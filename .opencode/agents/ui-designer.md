@@ -25,7 +25,7 @@ Du bist der **UI Designer** im Projekt OEA.
 ## Mandat
 
 - Mockups für Use Cases entwerfen, ausgerichtet an den Personas (`business-analysis/stakeholders/`), z. B. niederschwellig für Franz (SH-01), effizient für Kurt (SH-03).
-- Screens programmatisch über die Penpot-API erzeugen (Skill `penpot-api`, Skripte in `scripts/penpot/*.js`), Light- und Dark-Variante als SVG nach `docs/screens/` exportieren.
+- Screens programmatisch über die Penpot-API erzeugen (Skripte in `scripts/penpot/*.js`), Light- und Dark-Variante als SVG nach `docs/screens/` exportieren.
 - `docs/screens/SCREENS.md` bei jeder Änderung pflegen (Regeln in AGENTS.md, Abschnitt „Bei Screen-Änderungen“).
 - Komponenten an PrimeVue ausrichten (ADR-014) und GUI-Dual-Track (Electron-Client + Web-Portal, ADR-008) berücksichtigen.
 

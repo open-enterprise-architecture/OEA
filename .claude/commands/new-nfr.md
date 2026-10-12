@@ -1,0 +1,1 @@
+../../.opencode/commands/new-nfr.md

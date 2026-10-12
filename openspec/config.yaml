@@ -1,65 +1,67 @@
 schema: oea
 
 context: |
-  Language: German
-  All artifacts must be written in German.
-  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+  Language: English
+  All artifacts (proposal, specs, design, tasks) and all code must be written in English.
 
-  Projekt: OEA – Open Enterprise Architecture (Open-Source-EA-Werkzeug, AGPL-3.0).
-  Verbindliche Arbeitsweise: AGENTS.md im Repository-Root.
+  Project: OEA – Open Enterprise Architecture (open-source EA tool, AGPL-3.0).
+  Binding working agreement: AGENTS.md in the repository root.
 
-  Quelle der Wahrheit (NICHT in OpenSpec duplizieren, nur referenzieren):
-  - Use Cases:        requirements/use-cases/UC-NN-*.md
+  Source of truth (do NOT duplicate in OpenSpec, only reference):
+  - Use cases:        requirements/use-cases/UC-NN-*.md
   - Requirements:     requirements/req/REQ-NNN-*.md
-  - User Stories:     requirements/user-stories/US-NNN-*.md (inkl. Akzeptanzkriterien)
-  - Tests/Features:   requirements/tests/
-  - Business Objects: business-objects/*.md + docs/data-model.puml
+  - User stories:     requirements/user-stories/US-NNN-*.md (incl. acceptance criteria)
+  - Tests/features:   requirements/tests/
+  - Business objects: business-objects/*.md + docs/data-model.puml
   - ADRs:             adrs/ADR-NNN-*.md
-  - Sprint-Plan:      docs/sprint-plan.md, Walking Skeleton: docs/walking-skeleton.md
+  - Sprint plan:      docs/sprint-plan.md, walking skeleton: docs/walking-skeleton.md
   - Screens:          docs/screens/SCREENS.md
-  OpenSpec-Specs beschreiben das umgesetzte Systemverhalten je Capability und
-  wachsen Change für Change. Bestehende Dokumente sind Quellmaterial, keine
-  Vorlage für eine Massenkonvertierung.
+  Several of these source documents are still written in German. Read them as
+  source material; write all new OpenSpec artifacts in English regardless.
+  OpenSpec specs describe the implemented system behavior per capability and
+  grow change by change. Existing documents are source material, not a
+  template for a bulk conversion.
 
-  Tech-Stack (accepted ADRs):
+  Tech stack (accepted ADRs):
   - Backend: Java 21, Spring Boot 3, Hibernate/Spring Data JPA (ADR-012, ADR-023)
-  - Schichten: api/app/core-Trennung (ADR-028), ein Maven-Modul backend/ (ADR-027)
-  - DB: PostgreSQL 15 + JSONB als Referenz, Multi-DB via JPA (ADR-016, ADR-023)
-  - Migrationen: Flyway (ADR-015)
-  - API: REST + OpenAPI 3.x, Vertrag in api/openapi.yaml (ADR-013)
-  - Frontend: Vue 3 + TypeScript (ADR-011), PrimeVue + WYSIWYG-Editor (ADR-014)
-  - Client: Electron + Web-Portal, Dual-Track-GUI (ADR-008, ADR-009)
-  - Auth: OIDC-basierte IdP-Integration (ADR-006)
-  - Soft-Delete (ADR-019), Audit in separatem Schema (ADR-024), I18N (ADR-025)
-  - Tests: Cucumber/Gherkin über JUnit Platform (ADR-029)
-  - Deployment: docker compose up (Monorepo, ADR-027)
+  - Layers: api/app/core separation (ADR-028), single Maven module backend/ (ADR-027)
+  - DB: PostgreSQL 15 + JSONB as reference, multi-DB via JPA (ADR-016, ADR-023)
+  - Migrations: Flyway (ADR-015)
+  - API: REST + OpenAPI 3.x, contract in api/openapi.yaml (ADR-013)
+  - Frontend: Vue 3 + TypeScript (ADR-011), PrimeVue + WYSIWYG editor (ADR-014)
+  - Client: Electron + web portal, dual-track GUI (ADR-008, ADR-009)
+  - Auth: OIDC-based IdP integration (ADR-006)
+  - Soft delete (ADR-019), audit in separate schema (ADR-024), i18n (ADR-025)
+  - Tests: Cucumber/Gherkin on JUnit Platform (ADR-029)
+  - Deployment: docker compose up (monorepo, ADR-027)
 
-  Konventionen:
-  - Dokumentation Deutsch, Code-Identifier und Code-Kommentare Englisch
-  - Commits: Conventional Commits; Branches feature/<kurz>, docs/<kurz>, adr/<NNN-kurz>
-  - Quality Gate: python3 scripts/validate_links.py muss grün sein
+  Conventions:
+  - Documentation, code identifiers and code comments in English
+  - Commits: Conventional Commits; branches feature/<short>, docs/<short>, adr/<NNN-short>
+  - Quality gate: python3 scripts/validate_links.py must pass
 
 rules:
   proposal:
-    - Jeder Change MUSS im Abschnitt Traceability mindestens eine User Story oder ein REQ referenzieren (relative Links)
-    - Sprint und Milestone aus docs/sprint-plan.md angeben, falls zugeordnet
-    - Change-Name im Format <us-id>-<kurzname>, z. B. us-001-oidc-login
-    - Weicht der Change von einer accepted ADR ab, ist zuerst eine neue ADR nötig – nicht im Proposal entscheiden
+    - Every change MUST reference at least one user story or REQ in the Traceability section (relative links)
+    - State sprint and milestone from docs/sprint-plan.md, if assigned
+    - Change name in the format <us-id>-<short-name>, e.g. us-001-oidc-login
+    - If the change deviates from an accepted ADR, a new ADR is required first – do not decide it in the proposal
   specs:
-    - Capability-Pfade nach fachlicher Domäne, z. B. identity/login, metamodel/entity-types, catalog/query
-    - Szenarien aus den Akzeptanzkriterien der referenzierten User Stories ableiten, nicht neu erfinden
-    - Jedes Requirement nennt in einer Zeile 'Trace:' die zugehörigen US-/REQ-IDs
+    - Capability paths by business domain, e.g. identity/login, metamodel/entity-types, catalog/query
+    - Derive scenarios from the acceptance criteria of the referenced user stories, do not invent new ones
+    - Every requirement names the related US/REQ IDs in a 'Trace:' line
   design:
-    - Betroffene ADRs verlinken; Entscheidungen innerhalb des ADR-Rahmens treffen
-    - Datenmodell-Auswirkungen benennen (docs/data-model.puml, business-objects/)
-    - API-Änderungen als Delta zu api/openapi.yaml beschreiben
+    - Link affected ADRs; make decisions within the ADR framework
+    - Name data model impacts (docs/data-model.puml, business-objects/)
+    - Describe API changes as a delta to api/openapi.yaml
   tasks:
-    - Cucumber-Szenarien (ADR-029) gehören in die jeweilige Task-Gruppe, nicht in eine Sammelgruppe am Ende
-    - Flyway-Migrationen als eigene Tasks mit Versionsnummer
-    - Letzte Gruppe 'Abschluss' enthält Doku-Sync (US-Status, traceability.md, SCREENS.md, data-model.puml) und Link-Validierung
+    - Tests are written as part of the change, never ahead of it – each task group contains its own tests
+    - Cucumber scenarios (ADR-029) belong in the respective task group, not in a collective group at the end
+    - Flyway migrations as separate tasks with version number
+    - Last group 'Wrap-up' contains doc sync (US status, traceability.md, SCREENS.md, data-model.puml) and link validation
 
 operations:
   archive:
     guidance:
-      - Vor dem Archivieren Status der referenzierten User Stories auf realized setzen und Implementation-Hash vermerken (AGENTS.md)
-      - requirements/traceability.md um Verweis auf die erzeugte/geänderte Capability ergänzen
+      - Before archiving, set the status of the referenced user stories to realized and record the implementation hash (AGENTS.md)
+      - Extend requirements/traceability.md with a reference to the created/changed capability
