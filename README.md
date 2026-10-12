@@ -37,7 +37,7 @@ Mehr Details: [business-analysis/vision.md](business-analysis/vision.md)
 | ADRs | 29 |
 | Business Objects | 22 |
 
-_Konzept: v0.17 · Letzter Update: 2026-10-04_
+_Konzept: v0.17 · Letzter Update: 2026-10-12_
 <!-- /AUTO-GENERATED: stats -->
 
 **Nächster Schritt**: Walking Skeleton auf Basis von UC-06 (Katalog-Browser).
@@ -91,31 +91,31 @@ OEA ist **noch nicht produktiv einsetzbar**. Wenn du mitwirken willst: [CONTRIBU
 | [ADR-001](adrs/ADR-001-urn-schema.md) | URN-Schema und Stabilitäts-Garantien | accepted |
 | [ADR-002](adrs/ADR-002-continuum-repository.md) | Enterprise Continuum – Ein Repository oder zwei? | accepted |
 | [ADR-003](adrs/ADR-003-product-vs-project.md) | Product vs. Project – Koexistenz oder Trennung? | accepted |
-| [ADR-004](adrs/ADR-004-reifikation-details.md) | Reifikations-Details (Max-Tiefe, Adressierung, UI) | accepted |
+| [ADR-004](adrs/ADR-004-reification-details.md) | Reifikations-Details (Max-Tiefe, Adressierung, UI) | accepted |
 | [ADR-005](adrs/ADR-005-app-vs-tech-default.md) | Application-vs-Technology-Klassifikations-Prinzip (Default) | accepted |
-| [ADR-006](adrs/ADR-006-auth-stack-wahl.md) | Auth-Stack-Wahl (Identity-Provider-Integrationen) | accepted |
-| [ADR-007](adrs/ADR-007-canvas-bibliothek.md) | Canvas-Bibliothek für interaktive Diagramm-Editierung | accepted |
-| [ADR-008](adrs/ADR-008-gui-architektur-dual-track.md) | GUI-Architektur – Client App + Web Portal (Dual-Track-Delivery) | accepted |
+| [ADR-006](adrs/ADR-006-auth-stack-choice.md) | Auth-Stack-Wahl (Identity-Provider-Integrationen) | accepted |
+| [ADR-007](adrs/ADR-007-canvas-library.md) | Canvas-Bibliothek für interaktive Diagramm-Editierung | accepted |
+| [ADR-008](adrs/ADR-008-gui-architecture-dual-track.md) | GUI-Architektur – Client App + Web Portal (Dual-Track-Delivery) | accepted |
 | [ADR-009](adrs/ADR-009-client-app-framework.md) | Client-App-Framework – Electron vs. Tauri | accepted |
 | [ADR-010](adrs/ADR-010-n-connection-data-lineage.md) | Modellierung der DataFlow↔DataObject-Beziehung (n-Connection vs. Property-String) | accepted |
 | [ADR-011](adrs/ADR-011-frontend-framework.md) | Frontend-Framework – Vue 3 + TypeScript | accepted |
 | [ADR-012](adrs/ADR-012-backend-stack.md) | Backend-Stack – Java 21 + Spring Boot 3 + Hibernate | accepted |
-| [ADR-013](adrs/ADR-013-api-stil.md) | API-Stil – REST + OpenAPI 3.x | accepted |
-| [ADR-014](adrs/ADR-014-frontend-komponentenbibliothek.md) | Frontend-Komponentenbibliothek und WYSIWYG-Editor | accepted |
+| [ADR-013](adrs/ADR-013-api-style.md) | API-Stil – REST + OpenAPI 3.x | accepted |
+| [ADR-014](adrs/ADR-014-frontend-component-library.md) | Frontend-Komponentenbibliothek und WYSIWYG-Editor | accepted |
 | [ADR-015](adrs/ADR-015-db-migration.md) | Datenbank-Migrations-Tool – Flyway | accepted |
-| [ADR-016](adrs/ADR-016-persistenz-strategie.md) | Persistenz-Strategie – PostgreSQL 15 + JSONB | accepted |
-| [ADR-017](adrs/ADR-017-architektur-layer-strategie.md) | Architektur-Layer-Strategie – Fully Open in v1.0 | accepted |
+| [ADR-016](adrs/ADR-016-persistence-strategy.md) | Persistenz-Strategie – PostgreSQL 15 + JSONB | accepted |
+| [ADR-017](adrs/ADR-017-architecture-layer-strategy.md) | Architektur-Layer-Strategie – Fully Open in v1.0 | accepted |
 | [ADR-018](adrs/ADR-018-business-rule-engine.md) | Business-Rule-Engine – CEL mit GUI-Abstraktionsschicht | accepted |
-| [ADR-019](adrs/ADR-019-soft-delete-strategie.md) | Soft-Delete-Strategie für Entities und Connections | accepted |
-| [ADR-020](adrs/ADR-020-explorer-navigationsmodell.md) | Explorer-Browser-Navigationsmodell im Native Client | proposed |
-| [ADR-021](adrs/ADR-021-implizite-parent-child-verbindung.md) | Implizite Parent-Child-Verbindung bei Component-Verschachtelung | proposed |
-| [ADR-022](adrs/ADR-022-strukturiertes-property-modell.md) | Strukturiertes Property-Modell mit Kategorie, temporalem Mapping und Delta-Versionierung | accepted |
-| [ADR-023](adrs/ADR-023-multi-db-strategie.md) | Multi-DB-Strategie — Datenbankabstraktion via JPA/Hibernate | accepted |
+| [ADR-019](adrs/ADR-019-soft-delete-strategy.md) | Soft-Delete-Strategie für Entities und Connections | accepted |
+| [ADR-020](adrs/ADR-020-explorer-navigation-model.md) | Explorer-Browser-Navigationsmodell im Native Client | proposed |
+| [ADR-021](adrs/ADR-021-implicit-parent-child-connection.md) | Implizite Parent-Child-Verbindung bei Component-Verschachtelung | proposed |
+| [ADR-022](adrs/ADR-022-structured-property-model.md) | Strukturiertes Property-Modell mit Kategorie, temporalem Mapping und Delta-Versionierung | accepted |
+| [ADR-023](adrs/ADR-023-multi-db-strategy.md) | Multi-DB-Strategie — Datenbankabstraktion via JPA/Hibernate | accepted |
 | [ADR-024](adrs/ADR-024-audit-separation.md) | Audit-Datenhaltung — separates Schema, konfigurierbar als externe Datenbank | accepted |
-| [ADR-025](adrs/ADR-025-i18n-strategie.md) | I18N-Strategie — Zweischichtig mit ETag-Caching und SSE-Invalidierung | accepted |
-| [ADR-026](adrs/ADR-026-externe-system-integration.md) | Externe System-Integration — Schreibzugriff via API (optional) | accepted |
-| [ADR-027](adrs/ADR-027-projekt-setup-monorepo.md) | Projekt-Setup — Mono-Repo, Maven-Struktur, Package-Naming, Docker Compose | accepted |
-| [ADR-028](adrs/ADR-028-backend-schichtenarchitektur.md) | Backend-Schichtenarchitektur — API / Application / Core | accepted |
+| [ADR-025](adrs/ADR-025-i18n-strategy.md) | I18N-Strategie — Zweischichtig mit ETag-Caching und SSE-Invalidierung | accepted |
+| [ADR-026](adrs/ADR-026-external-system-integration.md) | Externe System-Integration — Schreibzugriff via API (optional) | accepted |
+| [ADR-027](adrs/ADR-027-project-setup-monorepo.md) | Projekt-Setup — Mono-Repo, Maven-Struktur, Package-Naming, Docker Compose | accepted |
+| [ADR-028](adrs/ADR-028-backend-layered-architecture.md) | Backend-Schichtenarchitektur — API / Application / Core | accepted |
 | [ADR-029](adrs/ADR-029-cucumber-test-framework.md) | Testframework für BDD-Systemtests — Cucumber JVM | accepted |
 <!-- /AUTO-GENERATED: adrs -->
 
@@ -134,7 +134,7 @@ Erste Schritte: Suche nach Issues mit Label `good first issue`.
 
 Drei realistische Fragen vor einem Test:
 
-1. **Bist du in einer regulierten Branche?** Dann lies [SECURITY.md](SECURITY.md) und die [GRC/DSGVO/ISMS-Integration](concept/60-integrations/20-grc-dsgvo-isms-integration.md). Audit-Trail und Compliance sind Pflicht-Features, aber v1.0 wird sie erstmalig vollständig liefern.
+1. **Bist du in einer regulierten Branche?** Dann lies [SECURITY.md](SECURITY.md) und die [GRC/DSGVO/ISMS-Integration](concept/60-integrations/20-grc-gdpr-isms-integration.md). Audit-Trail und Compliance sind Pflicht-Features, aber v1.0 wird sie erstmalig vollständig liefern.
 2. **Migrierst du aus Sparx, Avolution, LeanIX?** Migration-Adapter sind in Planung, aber pre-v1.0 noch nicht produktiv. Lies die [Persona-Profile](business-analysis/stakeholders/) für realistische Erwartungen.
 3. **Brauchst du Vendor-Support?** OEA ist OSS ohne kommerzielle Anbietersicherung. Community-Support ist da, SLAs nicht.
 
