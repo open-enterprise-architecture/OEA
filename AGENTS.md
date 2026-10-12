@@ -351,5 +351,5 @@ Only then does the implementation phase start.
 
 ## Contact for Clarifications
 
-For conceptual questions: repository owner (TBD).
+For conceptual questions: repository owner Lukas Mathis (sole copyright holder and licensor, see `NOTICE`).
 For structural questions about AGENTS.md: PR with rationale.

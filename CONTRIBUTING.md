@@ -131,13 +131,14 @@ Das Konzeptpapier ist das Fundament. Änderungen brauchen Sorgfalt:
 - "Request changes" bedeutet konkrete Verbesserungen, keine reine Ablehnung
 - Diskussionen werden öffentlich geführt (im PR oder im Issue)
 
-## Lizenz für Beiträge
+## License for Contributions
 
-OEA ist dual-lizenziert: **AGPL-3.0** (Community Edition) und eine proprietäre **Enterprise-Lizenz**.
+OEA is dual-licensed: **AGPL-3.0** (Community Edition) and a proprietary **Enterprise license**.
+The licensor is Lukas Mathis as a private individual (see [NOTICE](NOTICE)).
 
-Mit dem Einreichen eines Pull Requests akzeptierst du das **Contributor License Agreement** (siehe [LICENSES/CLA.md](LICENSES/CLA.md)). Es räumt dem Lizenzgeber das Recht ein, deinen Beitrag unter beiden Lizenzen zu verwenden — du behältst dabei dein Urheberrecht.
+By submitting a pull request, you accept the **Contributor License Agreement** (see [LICENSES/CLA.md](LICENSES/CLA.md)). It grants the licensor the right to use your contribution under both licenses — you retain your copyright.
 
-Bitte lies [LICENSES/CLA.md](LICENSES/CLA.md) vor deinem ersten Beitrag.
+Please read [LICENSES/CLA.md](LICENSES/CLA.md) before your first contribution.
 
 ## Erste Schritte
 

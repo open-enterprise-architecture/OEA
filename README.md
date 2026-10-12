@@ -138,17 +138,17 @@ Drei realistische Fragen vor einem Test:
 2. **Migrierst du aus Sparx, Avolution, LeanIX?** Migration-Adapter sind in Planung, aber pre-v1.0 noch nicht produktiv. Lies die [Persona-Profile](business-analysis/stakeholders/) für realistische Erwartungen.
 3. **Brauchst du Vendor-Support?** OEA ist OSS ohne kommerzielle Anbietersicherung. Community-Support ist da, SLAs nicht.
 
-## Lizenz
+## License
 
-OEA ist dual-lizenziert:
+OEA is dual-licensed:
 
-| Edition | Lizenz | Nutzung |
+| Edition | License | Use |
 |---|---|---|
-| Community | [AGPL-3.0](LICENSE) | kostenlos, Quellcode-Offenlegungspflicht |
-| Enterprise | [proprietär](LICENSES/LICENSE-ENTERPRISE.md) | kostenpflichtig, keine Offenlegungspflicht |
+| Community | [AGPL-3.0](LICENSE) | free of charge, source disclosure obligation |
+| Enterprise | [proprietary](LICENSES/LICENSE-ENTERPRISE.md) | paid, no disclosure obligation |
 
-Für Beiträge gilt das [Contributor License Agreement (CLA)](LICENSES/CLA.md).
-Copyright 2026 Lukas Mathis – siehe [NOTICE](NOTICE).
+Contributions are subject to the [Contributor License Agreement (CLA)](LICENSES/CLA.md).
+Copyright 2026 Lukas Mathis – see [NOTICE](NOTICE). The copyright holder and licensor is Lukas Mathis as a private individual; there is currently no organization behind the project.
 
 ## Quellenverzeichnis
 
