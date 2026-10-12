@@ -19,6 +19,18 @@ jobs:
       - name: Relative Links prüfen
         run: python3 scripts/validate_links.py
 
+  # ── 1b. Agent configuration sync (OpenCode ↔ Claude Code) ───────────────
+  agent-config-sync:
+    name: Agent configuration in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check single source of truth
+        run: python3 scripts/sync_agent_config.py --check
+
   # ── 2. Requirements-Vollständigkeit ──────────────────────────────────────
   requirements-quality:
     name: Requirements-Vollständigkeit

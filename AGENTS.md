@@ -1,307 +1,355 @@
-# AGENTS.md – Anleitung für KI-Agenten (OpenCode)
+# AGENTS.md – Instructions for AI Agents (OpenCode, Claude Code)
 
-Diese Datei codifiziert die Arbeitsweise in diesem Repository. Sie wird von OpenCode beim Start automatisch eingelesen und ist verbindlich.
+This file codifies how work is done in this repository. OpenCode reads it automatically on startup; Claude Code reads it via `CLAUDE.md`. It is binding.
 
-## Projekt-Kontext
+## Project Context
 
-**Projekt**: OEA – Open Enterprise Architecture (Open-Source-Werkzeug für EA-Disziplin)
-**Sprache**: Deutsch ist Arbeitssprache für Dokumentation, Code-Kommentare in Englisch
-**Lizenz**: AGPL-3.0 (Community) / Proprietär (Enterprise) – siehe `LICENSE`, `LICENSES/LICENSE-ENTERPRISE.md`, `LICENSES/CLA.md`
-**Phase**: Implementierung – Walking Skeleton (Requirements-Phase abgeschlossen, siehe `docs/walking-skeleton.md` und `docs/sprint-plan.md`)
-**Vision**: siehe `business-analysis/vision.md`
+**Project**: OEA – Open Enterprise Architecture (open-source tool for the EA discipline)
+**Language**: English for all documentation and code; communication with the repository owner in German (see [Language and Style Conventions](#language-and-style-conventions))
+**License**: AGPL-3.0 (Community) / proprietary (Enterprise) – see `LICENSE`, `LICENSES/LICENSE-ENTERPRISE.md`, `LICENSES/CLA.md`
+**Phase**: Implementation – walking skeleton (requirements phase completed, see `docs/walking-skeleton.md` and `docs/sprint-plan.md`)
+**Vision**: see `business-analysis/vision.md`
 
-## Repository-Struktur
+## Repository Structure
 
 ```
 oea/
-├── concept/              ← Konzeptpapier (v0.15+), 24 Kapitel + Changelog
-├── business-analysis/    ← Vision, 7 Stakeholder-Profile, Concerns
-├── business-objects/     ← Domain Model: Business Objects, Capabilities, Business Rules
+├── concept/              ← concept paper (v0.15+), 24 chapters + changelog
+├── business-analysis/    ← vision, 7 stakeholder profiles, concerns
+├── business-objects/     ← domain model: business objects, capabilities, business rules
 ├── requirements/
-│   ├── use-cases/        ← zielorientierte UC
-│   ├── req/              ← atomare Requirements (alle Typen)
-│   ├── user-stories/     ← granulare Backlog-Items
-│   └── nfr/              ← Legacy-NFRs (kann zu req/ migriert werden)
+│   ├── use-cases/        ← goal-oriented UCs
+│   ├── req/              ← atomic requirements (all types)
+│   ├── user-stories/     ← granular backlog items
+│   └── nfr/              ← legacy NFRs (can be migrated to req/)
 ├── adrs/                 ← Architectural Decision Records
-├── openspec/             ← Umsetzungs-Specs und Changes (OpenSpec, siehe openspec/README.md)
-├── templates/            ← Vorlagen für Stakeholder, BO, UC, REQ, US, NFR
-├── docs/                 ← Workflow, Quick Reference, Anti-Patterns
-├── scripts/              ← Hilfsskripte (Validierung, Generation)
-├── .opencode/commands/   ← Slash-Commands
-├── .opencode/skills/     ← Skills (OpenSpec, Penpot API)
-├── .github/              ← Issue-Templates, PR-Template, CI-Workflows
-├── install-concept.sh    ← Setup-Skript für Konzept-Verteilung
-└── AGENTS.md             ← diese Datei
+├── openspec/             ← implementation specs and changes (OpenSpec, see openspec/README.md)
+├── templates/            ← templates for stakeholder, BO, UC, REQ, US, NFR
+├── docs/                 ← workflow, quick reference, anti-patterns
+├── scripts/              ← helper scripts (validation, generation)
+├── .opencode/            ← OpenCode: commands, skills, agents (source of truth)
+├── .claude/              ← Claude Code: derived only (symlinks, generated files)
+├── .github/              ← issue templates, PR template, CI workflows
+├── install-concept.sh    ← setup script for concept distribution
+├── CLAUDE.md             ← Claude Code entry point, refers to this file
+└── AGENTS.md             ← this file
 ```
 
-Code entsteht mit dem Walking Skeleton in `backend/` (Java 21 / Spring Boot / Maven), `frontend/` (Vue 3) und `api/openapi.yaml` (spec-first-Vertrag), siehe ADR-027.
+Code is created with the walking skeleton in `backend/` (Java 21 / Spring Boot / Maven), `frontend/` (Vue 3) and `api/openapi.yaml` (spec-first contract), see ADR-027.
 
-## Aktuelle Phase: Implementierung (Walking Skeleton)
+## Current Phase: Implementation (Walking Skeleton)
 
-Die Umsetzung erfolgt in OpenSpec-Changes (`openspec/README.md`), geschnitten aus den User Stories des Sprint-Plans. API-Änderungen immer zuerst in `api/openapi.yaml` (ADR-013, spec-first).
+Implementation happens in OpenSpec changes (`openspec/README.md`), cut from the user stories of the sprint plan. API changes always go into `api/openapi.yaml` first (ADR-013, spec-first).
 
-**Abgeschlossenes Vorgehen der Requirements-Phase** (Domain-Model-first, gilt weiter für neue Fachlichkeit):
-1. Vision in `business-analysis/vision.md` ausformulieren (✓ erledigt)
-2. 7 Stakeholder-Profile in `business-analysis/stakeholders/` anlegen (✓ erledigt)
-3. Erste Business Objects mit Business Engineer modellieren (`business-objects/`)
-4. Use Cases in `requirements/use-cases/` ableiten (zielorientiert, nicht CRUD)
-5. Requirements mit Requirements Engineer aus UCs ableiten (`requirements/req/`, alle 7 Typen)
-6. Priorisierung nach MoSCoW
-7. User Stories für MUST-Use-Cases zerlegen
-8. ADRs für blockierende Entscheidungen (Gruppe A: ADR-001 bis ADR-005)
-9. Tech-Stack-Entscheidungen (ADR-011 Frontend, ADR-012 Backend, ADR-013 API)
-10. Walking-Skeleton-Definition (genau ein End-to-End-Use-Case)
+**Tests are written as part of the OpenSpec change that implements the behavior** – derived from the change's spec scenarios and listed in its `tasks.md`. No test suites are created ahead of the code.
 
-**Nicht ohne Stakeholder mit Use Cases starten** – das führt zu generischer Funktionalität.
-**Nicht ohne Business Objects in Use Cases starten** – sonst entstehen referenz-lose Szenarien.
+**Completed approach of the requirements phase** (domain-model-first, still applies to new business functionality):
+1. Write out the vision in `business-analysis/vision.md` (✓ done)
+2. Create 7 stakeholder profiles in `business-analysis/stakeholders/` (✓ done)
+3. Model first business objects with the business engineer (`business-objects/`)
+4. Derive use cases in `requirements/use-cases/` (goal-oriented, not CRUD)
+5. Derive requirements from UCs with the requirements engineer (`requirements/req/`, all 7 types)
+6. Prioritize using MoSCoW
+7. Break down user stories for MUST use cases
+8. ADRs for blocking decisions (group A: ADR-001 to ADR-005)
+9. Tech stack decisions (ADR-011 frontend, ADR-012 backend, ADR-013 API)
+10. Walking skeleton definition (exactly one end-to-end use case)
 
-## Sprach- und Stil-Konventionen
+**Do not start use cases without stakeholders** – this leads to generic functionality.
+**Do not start use cases without business objects** – otherwise scenarios without references emerge.
 
-### Dokumentation
+## Language and Style Conventions
 
-- **Deutsch** als Hauptsprache
-- **Du-Form vermeiden** in Dokumentation (sachlich, neutral); in Slash-Command-Output ist Du-Form OK
-- **Markdown** als Format, mit Frontmatter wo sinnvoll
-- **Diagramme**: Notation noch offen (siehe §21.2.1 im Konzept). Bis dahin: deskriptiv beschreiben, bei Bedarf Mermaid inline
+### Communication
 
-### Code-Kommentare
+- **German** in conversation with the repository owner (chat answers, questions, summaries)
+- Everything written to the repository is **English** (see below)
 
-- **Englisch** (international, OSS-tauglich)
-- Code-Identifier englisch (Variablen, Funktionen, Klassen)
-- Domain-Begriffe können deutsch bleiben, wenn fachlich etabliert (z.B. "Bebauungsplan")
+### Documentation
 
-## Git-Konventionen
+- **English** for all new and changed documentation (Markdown, ADRs, OpenSpec artifacts, templates, commit messages, PR descriptions)
+- Existing German documents are translated when they are substantially changed; no bulk translation without a dedicated change
+- Established German domain terms may be kept where no precise English equivalent exists (e.g. "Bebauungsplan"); add a short English explanation on first use
+- **Neutral, factual tone**; no second-person address in documentation
+- **Markdown** as format, with frontmatter where useful
+- **Diagrams**: notation still open (see §21.2.1 in the concept). Until then: describe descriptively, use inline Mermaid if needed
 
-### Commit-Messages: Conventional Commits
+### Code
+
+- **English** code identifiers (variables, functions, classes) and code comments (international, OSS-friendly)
+
+## Git Conventions
+
+### Commit Messages: Conventional Commits
 
 Format: `<type>(<scope>): <subject>`
 
-Beispiele:
-- `feat(requirements): add UC-03 Bebauungsplan-Export`
-- `docs(concept): clarify Logical-Schicht-Optionalität in §6.1.1`
+Examples:
+- `feat(requirements): add UC-03 Bebauungsplan export`
+- `docs(concept): clarify optional logical layer in §6.1.1`
 - `fix(scripts): correct link validator path handling`
-- `chore(adrs): add ADR-006 stub for Persistenz-Wahl`
+- `chore(adrs): add ADR-006 stub for persistence choice`
 
-Erlaubte Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`
+Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`
 
 ### Branches
 
-- `main` ist immer deploybar / lesbar
-- Feature-Branches: `feature/<kurz-beschreibung>`
-- Doku-Branches: `docs/<kurz-beschreibung>`
-- ADR-Branches: `adr/<NNN-kurzname>`
+- `main` is always deployable / readable
+- Feature branches: `feature/<short-description>`
+- Docs branches: `docs/<short-description>`
+- ADR branches: `adr/<NNN-short-name>`
 
 ### Pull Requests
 
-Jeder PR braucht:
-- Conventional-Commits-konformen Titel
-- Beschreibung mit Kontext
-- Link zu verwandtem Use Case, NFR oder ADR
-- Bestandene CI (siehe Quality Gates)
+Every PR needs:
+- a Conventional-Commits-compliant title
+- a description with context
+- a link to the related use case, NFR or ADR
+- passing CI (see quality gates)
 
 ## Quality Gates (CI)
 
-Vor jedem Merge auf `main`:
+Before every merge to `main`:
 
-1. **Link-Validierung**: `python3 scripts/validate_links.py` – muss grün sein
-2. **Markdown-Lint** (sobald eingerichtet)
-3. **ADR-Konsistenz**: jede in `adrs/` referenzierte ADR existiert
-4. **Use-Case-Vollständigkeit**: jeder Use Case hat Persona, Akzeptanzkriterien, Konzept-Bezug
+1. **Link validation**: `python3 scripts/validate_links.py` – must pass
+2. **Markdown lint** (once set up)
+3. **ADR consistency**: every ADR referenced in `adrs/` exists
+4. **Use case completeness**: every use case has a persona, acceptance criteria and a concept reference
 
-## Versionierung
+## Versioning
 
-### Konzeptpapier
+### Concept Paper
 
-- Status in `concept/README.md` (Format: `**Status:** Entwurf vX.Y`)
-- Bei Änderung: Eintrag in `concept/CHANGELOG.md` (Format: Keep a Changelog)
-- Minor-Bump bei neuen Abschnitten/Kapiteln
-- Patch-Bump bei Korrekturen
+- Status in `concept/README.md` (format: `**Status:** Entwurf vX.Y`)
+- On change: entry in `concept/CHANGELOG.md` (format: Keep a Changelog)
+- Minor bump for new sections/chapters
+- Patch bump for corrections
 
 ### ADRs
 
-- Semantisch nummeriert (ADR-001, ADR-002, ...)
-- Nummern werden nicht wiederverwendet, auch wenn eine ADR als `superseded` markiert wird
-- Status-Übergänge: `draft → proposed → accepted | rejected`; später ggf. `superseded by ADR-NNN`
+- Numbered sequentially (ADR-001, ADR-002, ...)
+- Numbers are never reused, even if an ADR is marked `superseded`
+- Status transitions: `draft → proposed → accepted | rejected`; later possibly `superseded by ADR-NNN`
 
 ### Use Cases / User Stories / NFRs
 
-- Status pro Datei verfolgen (siehe Templates)
-- Bei Statusübergang `accepted → realized` ist Implementation-Hash zu vermerken
+- Track status per file (see templates)
+- On the status transition `accepted → realized`, record the implementation hash
 
-## Slash-Commands (in `.opencode/commands/`)
+## Agent Configuration: Single Source of Truth
 
-Verfügbare Befehle (siehe einzelne Dateien für Details):
+OpenCode and Claude Code must always work with the same information. Every piece of configuration has exactly one source; everything in `.claude/` and `CLAUDE.md` is derived and never edited by hand.
 
-- `/new-stakeholder` – legt Stakeholder-Profil aus Template an
-- `/new-business-object` – legt Business Object aus Template an (vor Use Cases)
-- `/new-usecase` – legt Use Case an, prüft Stakeholder- und Business-Object-Bezug
-- `/new-requirement` – legt atomare Anforderung aus Template an (alle 7 Typen)
-- `/new-story` – legt User Story an, prüft Use-Case-Bezug
-- `/new-nfr` – legt NFR an, erinnert an messbare Zielwerte (Legacy – kann durch `/new-requirement` mit `type: non-functional` ersetzt werden)
-- `/new-adr` – legt ADR mit nächster freier Nummer an
-- `/trace-check` – prüft Verknüpfungs-Konsistenz aller Artefakte
-- `/release` – setzt Konzept-Version hoch und aktualisiert CHANGELOG
-- `/opsx-explore`, `/opsx-propose`, `/opsx-apply`, `/opsx-archive`, `/opsx-update`, `/opsx-sync` – OpenSpec-Workflow für die Umsetzung (siehe `openspec/README.md`)
+| Information | Source of truth (edit here) | Claude Code receives it via |
+|---|---|---|
+| Working agreement, rules | `AGENTS.md` | `CLAUDE.md` contains only `@AGENTS.md` |
+| Project slash commands | `.opencode/commands/*.md` | symlinks in `.claude/commands/` |
+| Agent roles | `.opencode/agents/*.md` | generated `.claude/agents/*.md` (incl. permissions as binding instructions) |
+| OpenSpec commands and skills | OpenSpec CLI + `openspec/config.yaml`, `openspec/schemas/` | `openspec update` regenerates both tool directories |
+
+After changing a source:
+
+```bash
+python3 scripts/sync_agent_config.py   # refresh .claude/ (commands, agents, CLAUDE.md)
+openspec update                        # only after an OpenSpec upgrade
+```
+
+CI runs `python3 scripts/sync_agent_config.py --check` and fails on any drift (changed, missing or stale files, differing OpenSpec versions). Tool-specific content in `CLAUDE.md` or hand-written files in `.claude/` are not allowed.
+
+## Slash Commands
+
+All commands below are available in both OpenCode and Claude Code.
+
+### Project commands (source: `.opencode/commands/`)
+
+See the individual files for details:
+
+- `/new-stakeholder` – creates a stakeholder profile from the template
+- `/new-business-object` – creates a business object from the template (before use cases)
+- `/new-usecase` – creates a use case, checks stakeholder and business object references
+- `/new-requirement` – creates an atomic requirement from the template (all 7 types)
+- `/new-story` – creates a user story, checks the use case reference
+- `/new-nfr` – creates an NFR, reminds of measurable target values (legacy – can be replaced by `/new-requirement` with `type: non-functional`)
+- `/new-adr` – creates an ADR with the next free number
+- `/trace-check` – checks link consistency of all artifacts
+- `/release` – bumps the concept version and updates the CHANGELOG
+
+### OpenSpec commands (OpenCode and Claude Code)
+
+| Purpose | OpenCode | Claude Code |
+|---|---|---|
+| Explore | `/opsx-explore` | `/opsx:explore` |
+| Propose a change | `/opsx-propose` | `/opsx:propose` |
+| Implement a change | `/opsx-apply` | `/opsx:apply` |
+| Revise a change | `/opsx-update` | `/opsx:update` |
+| Sync delta specs | `/opsx-sync` | `/opsx:sync` |
+| Archive a change | `/opsx-archive` | `/opsx:archive` |
+
+These files and the matching skills in `.opencode/skills/` and `.claude/skills/` are generated by the OpenSpec CLI. Do not edit them by hand; refresh them with `openspec update` (see `openspec/README.md`).
 
 ## Agents (in `.opencode/agents/`)
 
-Sieben Agent-Rollen für Vibe Coding. Alle sind als primärer Agent (Agent-Wechsel im TUI) und als Subagent (`@<agent-name>`) nutzbar. Schreibrechte sind je Rolle auf den eigenen Verzeichnisbereich beschränkt:
+Seven agent roles for vibe coding. In OpenCode, all can be used as a primary agent (agent switch in the TUI) and as a subagent (`@<agent-name>`); in Claude Code they are available as subagents (generated into `.claude/agents/`). Write access is restricted per role to its own directory scope – enforced in OpenCode, binding as instruction in Claude Code:
 
-- `business-engineer.md` – Domain Model first (vor UC)
-- `solution-architect.md` – Klärung, Scope, Specs, Tickets
-- `requirements-engineer.md` – atomare Requirements aus UCs
-- `ui-designer.md` – Penpot-Mockups, Design-System
-- `backend-engineer.md` – Backend (Typsicherheit verbindlich)
-- `frontend-engineer.md` – Frontend (TypeScript Pflicht)
-- `security-engineer.md` – querschneidende Sicherheits-Reviews
+- `business-engineer.md` – domain model first (before UC)
+- `solution-architect.md` – clarification, scope, specs, tickets
+- `requirements-engineer.md` – atomic requirements from UCs
+- `ui-designer.md` – Penpot mockups, design system
+- `backend-engineer.md` – backend (type safety mandatory)
+- `frontend-engineer.md` – frontend (TypeScript mandatory)
+- `security-engineer.md` – cross-cutting security reviews
 
-Workflow siehe `docs/workflow-example.md`.
+Workflow see `docs/workflow-example.md`.
 
-## Git-Zugriff in Distrobox
+## Git Access in Distrobox
 
-In der Distrobox-Umgebung ist git nicht direkt verfügbar und wird über einen Symlink bereitgestellt.
+In the Distrobox environment, git is not directly available and is provided via a symlink.
 
-Einrichtung (einmalig pro Host):
+Setup (once per host):
 
 ```bash
 mkdir -p ~/.distrobox/bin
 ln -sf /run/host/var/lib/flatpak/runtime/org.freedesktop.Sdk/x86_64/25.08/*/files/libexec/git-core/git ~/.distrobox/bin/git
 ```
 
-Nutzung:
+Usage:
 
 ```bash
 export PATH="$HOME/.distrobox/bin:$PATH"
 git --version
 ```
 
-Die Flatpak-Runtime-Version kann sich ändern. Falls der Symlink nicht mehr funktioniert, die aktuelle git-Binärdatei suchen:
+The Flatpak runtime version may change. If the symlink no longer works, locate the current git binary:
 
 ```bash
 find /run/host/var/lib/flatpak/runtime/org.freedesktop.Sdk -name "git" -type f 2>/dev/null | head -1
 ```
 
-## Wichtige Prinzipien für die Arbeit mit KI-Agenten
+## Key Principles for Working with AI Agents
 
-### Vor jeder Änderung
+### Before every change
 
-1. Bestehende Dateien lesen, bevor neue erstellt werden
-2. Konzept-Bezüge prüfen – Anpassungen an Requirements haben oft Auswirkung auf Konzept
-3. Bei Konflikt: lieber nachfragen als annehmen
+1. Read existing files before creating new ones
+2. Check concept references – changes to requirements often affect the concept
+3. In case of conflict: ask rather than assume
 
-### Bei Konzept-Änderungen
+### On concept changes
 
-- IMMER `concept/CHANGELOG.md` aktualisieren
-- IMMER Status in `concept/README.md` hochziehen
-- IMMER Link-Validierung laufen lassen
-- IMMER prüfen, ob `concept/INDEX.md` aktualisiert werden muss
+- ALWAYS update `concept/CHANGELOG.md`
+- ALWAYS bump the status in `concept/README.md`
+- ALWAYS run link validation
+- ALWAYS check whether `concept/INDEX.md` needs updating
 
-### Bei neuen Use Cases
+### On new use cases
 
-- IMMER Persona-Bezug prüfen (Stakeholder muss existieren)
-- IMMER mindestens einen Konzept-Bezug setzen
-- IMMER Akzeptanzkriterien als prüfbare Aussagen formulieren
+- ALWAYS check the persona reference (stakeholder must exist)
+- ALWAYS set at least one concept reference
+- ALWAYS phrase acceptance criteria as testable statements
 
-### Bei neuen NFRs
+### On new NFRs
 
-- IMMER messbare Zielwerte fordern (keine "soll schnell sein"-Aussagen)
-- IMMER Verifikationsmethode benennen
-- IMMER Scope angeben (bei welcher Datenmenge gilt der Wert)
+- ALWAYS require measurable target values (no "should be fast" statements)
+- ALWAYS name the verification method
+- ALWAYS state the scope (at which data volume the value applies)
 
-### Bei neuen ADRs
+### On new ADRs
 
-- IMMER alle Optionen mit Pro/Contra dokumentieren
-- IMMER Entscheidungstreiber explizit machen
-- IMMER betroffene Konzept-Kapitel verlinken
-- NIEMALS ADR-Nummer wiederverwenden (auch nicht bei Rejected)
+- ALWAYS document all options with pros/cons
+- ALWAYS make decision drivers explicit
+- ALWAYS link affected concept chapters
+- NEVER reuse an ADR number (not even for rejected ones)
 
-### Bei Screen-Änderungen (Penpot-Mockups)
+### On screen changes (Penpot mockups)
 
-`docs/screens/SCREENS.md` ist das verbindliche Screen-Inventar. Bei jedem der folgenden Ereignisse MUSS es geprüft und aktualisiert werden:
+`docs/screens/SCREENS.md` is the binding screen inventory. It MUST be checked and updated on each of the following events:
 
-| Ereignis | Was tun |
+| Event | Action |
 |---|---|
-| Neuer Screen erstellt (`scripts/penpot/*.js`) | Eintrag in SCREENS.md anlegen: ID, Name, Plattform, UC-Bezug, Priorität; Status auf `mockup` setzen |
-| Screen überarbeitet | Status in SCREENS.md prüfen und ggf. anpassen |
-| Neues Penpot-Script angelegt | Eintrag in der Tabelle „Zugehörige Penpot-Scripts" ergänzen |
-| Screen fällt weg oder wird zusammengelegt | Eintrag entfernen oder als `superseded` kommentieren |
+| New screen created (`scripts/penpot/*.js`) | Add an entry to SCREENS.md: ID, name, platform, UC reference, priority; set status to `mockup` |
+| Screen revised | Check and adjust the status in SCREENS.md if needed |
+| New Penpot script added | Add an entry to the table "Zugehörige Penpot-Scripts" |
+| Screen dropped or merged | Remove the entry or comment it as `superseded` |
 
-**Faustregel:** Jeder SVG in `docs/screens/` hat einen korrespondierenden Eintrag in `SCREENS.md`.
+**Rule of thumb:** every SVG in `docs/screens/` has a corresponding entry in `SCREENS.md`.
 
-### Bei Datenmodell-Änderungen
+### On data model changes
 
-Das Datenmodell besteht aus zwei synchron zu haltenden Quellen:
-- `docs/data-model.puml` – PlantUML-Gesamtdiagramm (Klassen, Attribute, Relationen, SQL-Constraints)
-- `business-objects/<name>.md` – Einzelbeschreibung je Business Object
+The data model consists of two sources that must be kept in sync:
+- `docs/data-model.puml` – PlantUML overall diagram (classes, attributes, relations, SQL constraints)
+- `business-objects/<name>.md` – individual description per business object
 
-**Auslöser für eine Datenmodell-Prüfung** – bei jedem der folgenden Ereignisse MUSS geprüft werden, ob das Datenmodell noch aktuell ist und ggf. angepasst werden muss:
+**Triggers for a data model check** – on each of the following events it MUST be checked whether the data model is still current and needs adjustment:
 
-| Ereignis | Was prüfen |
+| Event | What to check |
 |---|---|
-| Neues Business Object (`/new-business-object`) | Klasse in `data-model.puml` ergänzen; Attribute, Typen, Relationen eintragen |
-| Neues Requirement mit Daten-Auswirkung | Betroffenes BO in `business-objects/<name>.md` prüfen; neues Attribut/neue Relation in `data-model.puml` nachtragen |
-| Neuer Use Case, der ein bisher unbekanntes BO referenziert | BO anlegen, dann Datenmodell ergänzen |
-| Neue ADR mit Persistenz-Auswirkung (z. B. Soft-Delete, Audit-Log, neue Tabelle) | Konsequenzen in `data-model.puml` umsetzen |
-| Geändertes Business Object (Attribut umbenannt, Typ geändert, Relation entfernt) | `data-model.puml` synchron halten; bestehende REQs und USs auf Konsistenz prüfen |
+| New business object (`/new-business-object`) | Add the class to `data-model.puml`; enter attributes, types, relations |
+| New requirement with data impact | Check the affected BO in `business-objects/<name>.md`; add the new attribute/relation to `data-model.puml` |
+| New use case referencing a previously unknown BO | Create the BO, then extend the data model |
+| New ADR with persistence impact (e.g. soft delete, audit log, new table) | Apply the consequences in `data-model.puml` |
+| Changed business object (attribute renamed, type changed, relation removed) | Keep `data-model.puml` in sync; check existing REQs and USs for consistency |
 
-**Konkrete Schritte bei jeder Änderung:**
+**Concrete steps for every change:**
 
-1. `docs/data-model.puml` öffnen und prüfen, ob das betroffene BO/Attribut bereits enthalten ist
-2. Falls nicht vorhanden oder veraltet: Klasse, Attribute (mit Typ und Sichtbarkeit), Relationen und SQL-Constraints ergänzen/korrigieren
-3. Falls das zugehörige `business-objects/<name>.md` noch kein Attribut kennt: dort ebenfalls ergänzen
-4. Kurz notieren, warum die Änderung nötig war (z. B. als Kommentar in `data-model.puml` oder in der BO-Datei unter "Notizen")
+1. Open `docs/data-model.puml` and check whether the affected BO/attribute is already contained
+2. If missing or outdated: add/correct the class, attributes (with type and visibility), relations and SQL constraints
+3. If the corresponding `business-objects/<name>.md` does not know an attribute yet: add it there as well
+4. Briefly note why the change was necessary (e.g. as a comment in `data-model.puml` or in the BO file under "Notes")
 
-**Faustregel:** Jedes Attribut, das in einem REQ oder einer User Story vorkommt, muss auch im Datenmodell sichtbar sein — spätestens bevor die zugehörige User Story als `accepted` markiert wird.
+**Rule of thumb:** every attribute that appears in a REQ or a user story must also be visible in the data model – at the latest before the corresponding user story is marked `accepted`.
 
 ## Anti-Patterns
 
-Bitte explizit vermeiden:
+Avoid explicitly:
 
 ### Use Cases
 
-- **CRUD-Use-Cases**: "ApplicationComponent anlegen" ist kein Use Case, sondern eine Funktion. Use Cases sind zielorientiert.
-- **Use Cases ohne Persona**: Generische Use Cases führen zu generischer Funktionalität.
-- **Use Cases ohne Akzeptanzkriterien**: ohne Prüfbarkeit ist es ein Wunsch, kein Use Case.
+- **CRUD use cases**: "Create ApplicationComponent" is not a use case but a function. Use cases are goal-oriented.
+- **Use cases without a persona**: generic use cases lead to generic functionality.
+- **Use cases without acceptance criteria**: without testability it is a wish, not a use case.
 
 ### NFRs
 
-- **"Performant sein"** ohne Zahl
-- **NFR ohne Verifikationsmethode**
-- **NFR ohne Scope** (bei welcher Datenmenge?)
+- **"Be performant"** without a number
+- **NFR without a verification method**
+- **NFR without a scope** (at which data volume?)
 
 ### ADRs
 
-- **"Wir haben uns für X entschieden, weil es Standard ist"** – ohne dokumentierte Alternativen
-- **ADR ohne Konsequenzen** – jede Entscheidung hat Trade-offs
-- **ADR auf Vorrat** – ADRs sollten ein konkretes Problem lösen, nicht vorausschauend angelegt werden
+- **"We chose X because it is the standard"** – without documented alternatives
+- **ADR without consequences** – every decision has trade-offs
+- **ADR in advance** – ADRs should solve a concrete problem, not be created speculatively
 
-### Konzept
+### Concept
 
-- **Notation-spezifische Beispiele festschreiben** – siehe §21.2.1, Notation ist noch offen
-- **Erzwungene Tiefe** – Logical-Schicht ist optional, das ist Grundprinzip
+- **Fixing notation-specific examples** – see §21.2.1, notation is still open
+- **Forced depth** – the logical layer is optional, this is a core principle
 
-### Datenmodell
+### Data Model
 
-- **Requirement anlegen, Datenmodell vergessen** – jedes REQ/US mit Daten-Auswirkung muss eine Spur im Datenmodell hinterlassen
-- **`data-model.puml` und `business-objects/*.md` auseinanderlaufen lassen** – beide Quellen müssen synchron sein; nur eine zu pflegen erzeugt versteckte Widersprüche
-- **Attribute in Anforderungen beschreiben, aber nicht typisieren** – Typ, Wertebereich und Pflichtfeld-Status gehören ins BO, nicht nur in den Fließtext eines REQ
+- **Creating a requirement, forgetting the data model** – every REQ/US with data impact must leave a trace in the data model
+- **Letting `data-model.puml` and `business-objects/*.md` diverge** – both sources must be in sync; maintaining only one creates hidden contradictions
+- **Describing attributes in requirements without typing them** – type, value range and mandatory status belong in the BO, not only in the prose of a REQ
 
-## Definition of Done für die Requirements-Phase
+### Tests
 
-Die Requirements-Phase ist abgeschlossen, wenn:
+- **Writing test suites ahead of the code** – tests are created within the OpenSpec change that implements the behavior
 
-- [ ] Vision formuliert und reviewed
-- [ ] Mindestens 3 Stakeholder-Profile mit Concerns
-- [ ] Mindestens 10 Use Cases, alle priorisiert (MoSCoW)
-- [ ] Mindestens 5 NFRs mit messbaren Zielwerten
-- [ ] Gruppe-A-ADRs (001 bis 005) entschieden oder bewusst deferred
-- [ ] Walking-Skeleton-Use-Cases identifiziert
-- [ ] Traceability-Matrix gepflegt
-- [ ] Trace-Check ohne Warnings
+## Definition of Done for the Requirements Phase
 
-Erst dann startet die Implementation-Phase.
+The requirements phase is complete when:
 
-## Kontakt für Klärungen
+- [ ] Vision formulated and reviewed
+- [ ] At least 3 stakeholder profiles with concerns
+- [ ] At least 10 use cases, all prioritized (MoSCoW)
+- [ ] At least 5 NFRs with measurable target values
+- [ ] Group A ADRs (001 to 005) decided or deliberately deferred
+- [ ] Walking skeleton use cases identified
+- [ ] Traceability matrix maintained
+- [ ] Trace check without warnings
 
-Bei konzeptionellen Fragen: Inhaber des Repositorys (TBD).
-Bei strukturellen Fragen zu AGENTS.md: PR mit Begründung.
+Only then does the implementation phase start.
+
+## Contact for Clarifications
+
+For conceptual questions: repository owner (TBD).
+For structural questions about AGENTS.md: PR with rationale.
