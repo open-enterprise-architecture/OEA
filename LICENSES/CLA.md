@@ -1,76 +1,91 @@
 # Contributor License Agreement (CLA)
 
-**Projekt**: OEA – Open Enterprise Architecture
-**Lizenzgeber**: Lukas Mathis
+**Project**: OEA – Open Enterprise Architecture
+**Licensor**: Lukas Mathis (natural person)
+
+> **Rights holder**: All rights in OEA are held by Lukas Mathis as a private individual.
+> There is currently no company, association or foundation behind the project.
+> Hosting accounts or organizations (e.g. on GitHub or Gitea) are infrastructure only
+> and hold no rights. Licenses under this CLA are granted to Lukas Mathis personally
+> and, as set out in section 5, to his legal successors and assignees.
 
 ---
 
-## Warum ein CLA?
+## Why a CLA?
 
-OEA ist dual-lizenziert (AGPL-3.0 Community + proprietäre Enterprise-Lizenz).
-Damit der Lizenzgeber beide Lizenzen anbieten darf, benötigt er das Recht,
-Beiträge unter beiden Lizenzen zu verwenden — auch dann, wenn der Beitrag
-ursprünglich von einer anderen Person stammt.
+OEA is dual-licensed (AGPL-3.0 Community + proprietary Enterprise license).
+For the licensor to be able to offer both licenses, he needs the right to use
+contributions under both licenses — even when a contribution originally comes
+from another person.
 
-Ohne CLA könnte der Lizenzgeber fremde Beiträge nicht in die Enterprise-Edition
-einschliessen. Das CLA schützt ausserdem Contributor:innen, indem es ihre Rechte
-klar definiert.
-
----
-
-## Was du mit diesem CLA zustimmst
-
-Indem du einen Pull Request gegen dieses Repository einreichst, stimmst du
-den folgenden Bedingungen zu:
-
-### 1. Einräumung einer Lizenz
-
-Du räumst Lukas Mathis (dem „Lizenzgeber") eine unwiderrufliche, weltweite,
-nicht-exklusive, gebührenfreie Lizenz ein, deinen Beitrag:
-
-- unter der GNU Affero General Public License v3.0 (AGPL-3.0) oder einer späteren
-  Version zu veröffentlichen, und
-- unter einer proprietären Lizenz zu veröffentlichen und zu vertreiben
-  (für die Enterprise-Edition von OEA).
-
-### 2. Du behältst dein Urheberrecht
-
-Du behältst das Urheberrecht an deinem Beitrag. Dieses CLA ist eine Lizenz,
-keine Übertragung des Urheberrechts. Du darfst deinen Beitrag jederzeit auch
-unter anderen Lizenzen verwenden oder veröffentlichen.
-
-### 3. Originalität des Beitrags
-
-Du bestätigst, dass:
-
-- du der/die alleinige Autor:in des Beitrags bist, oder
-- du die Berechtigung hast, dieses CLA im Namen aller Mitwirkenden zu unterzeichnen,
-- der Beitrag keine Rechte Dritter verletzt (keine Copy-Paste aus AGPL-inkompatiblen
-  oder proprietären Quellen ohne entsprechende Genehmigung).
-
-### 4. Kein Support-Versprechen
-
-Dieses CLA begründet keine Pflicht des Lizenzgebers, deinen Beitrag anzunehmen,
-einzubinden oder zu pflegen.
+Without a CLA, the licensor could not include third-party contributions in the
+Enterprise Edition. The CLA also protects contributors by clearly defining
+their rights.
 
 ---
 
-## Wie du das CLA annimmst
+## What You Agree to with This CLA
 
-Das CLA gilt als akzeptiert, sobald du einen Pull Request einreichst.
-Keine separate Unterschrift oder E-Mail erforderlich.
+By submitting a pull request to this repository, you agree to the following
+terms:
 
-Bei Beiträgen im Auftrag eines Arbeitgebers oder einer Organisation:
-Der/die Vertreter:in der Organisation muss berechtigt sein, dieses CLA
-im Namen der Organisation zu akzeptieren.
+### 1. Grant of License
+
+You grant Lukas Mathis (the "Licensor") an irrevocable, worldwide,
+non-exclusive, royalty-free license to:
+
+- publish your contribution under the GNU Affero General Public License v3.0
+  (AGPL-3.0) or any later version, and
+- publish and distribute your contribution under a proprietary license
+  (for the Enterprise Edition of OEA).
+
+### 2. You Retain Your Copyright
+
+You retain the copyright in your contribution. This CLA is a license, not a
+transfer of copyright. You may also use or publish your contribution under
+other licenses at any time.
+
+### 3. Originality of the Contribution
+
+You confirm that:
+
+- you are the sole author of the contribution, or
+- you are authorized to accept this CLA on behalf of all contributors,
+- the contribution does not infringe any third-party rights (no copy-paste from
+  AGPL-incompatible or proprietary sources without the corresponding permission).
+
+### 4. No Obligation to Support
+
+This CLA does not oblige the Licensor to accept, include or maintain your
+contribution.
+
+### 5. Successors and Assignees
+
+The license granted in section 1 also benefits the Licensor's legal successors.
+The Licensor may transfer the license granted in section 1, in whole, to a
+natural or legal person (e.g. an association, foundation or company) to which
+he transfers the rights in OEA. Such a successor or assignee acquires the same
+rights as the Licensor under this CLA. Your rights under sections 2 and 3
+remain unaffected.
 
 ---
 
-## Fragen
+## How to Accept the CLA
 
-Bei Fragen zum CLA: **luek.mathis@gmail.com**
+The CLA is deemed accepted as soon as you submit a pull request.
+No separate signature or email is required.
+
+For contributions on behalf of an employer or an organization:
+the organization's representative must be authorized to accept this CLA on
+behalf of the organization.
 
 ---
 
-_Dieser Text ist kein Ersatz für rechtliche Beratung. Der Lizenzgeber empfiehlt,
-bei grösseren Unternehmensbeiträgen einen Anwalt hinzuzuziehen._
+## Questions
+
+For questions about the CLA: **luek.mathis@gmail.com**
+
+---
+
+_This text is not a substitute for legal advice. The Licensor recommends
+consulting a lawyer for larger corporate contributions._

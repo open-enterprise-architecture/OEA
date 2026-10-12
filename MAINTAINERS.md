@@ -1,106 +1,108 @@
 # Maintainers
 
-Diese Datei listet die Maintainer und Verantwortungsbereiche für OEA.
+This file lists the maintainers and areas of responsibility for OEA.
 
-## Konzept
+## Concept
 
-Maintainer sind Personen mit Schreibzugriff auf das Hauptrepository und Review-Autorität über Pull Requests. Sie verpflichten sich, das Projekt im Sinne der [Vision](business-analysis/vision.md) und der [Leitprinzipien](concept/README.md) weiterzuentwickeln.
+Maintainers are people with write access to the main repository and review authority over pull requests. They commit to developing the project in line with the [vision](business-analysis/vision.md) and the [guiding principles](concept/README.md).
 
-## Aktuelle Maintainer
+Maintainer status does not confer any rights in the software. The sole copyright holder and licensor is Lukas Mathis (see [NOTICE](NOTICE)).
 
-| Bereich | Name | Kontakt |
+## Current Maintainers
+
+| Area | Name | Contact |
 |---|---|---|
-| Lead Maintainer / PO | TBD | TBD |
-| Konzept und Dokumentation | TBD | TBD |
+| Lead maintainer / PO, copyright holder | Lukas Mathis (chasperli) | luek.mathis@gmail.com |
+| Concept and documentation | TBD | TBD |
 | Backend | TBD | TBD |
 | Frontend | TBD | TBD |
-| Sicherheit | TBD | TBD |
-| Operations / Deployment | TBD | TBD |
+| Security | TBD | TBD |
+| Operations / deployment | TBD | TBD |
 
-<!-- 
-Format pro Eintrag:
-| Bereich | Vollständiger Name (GitHub/Gitea-Handle) | E-Mail oder Kontaktweg |
+<!--
+Format per entry:
+| Area | Full name (GitHub/Gitea handle) | Email or contact channel |
 -->
 
-## Maintainer werden
+## Becoming a Maintainer
 
-Wir freuen uns über neue Maintainer. Der Weg:
+New maintainers are welcome. The path:
 
-1. **Substanzieller Beitrag** über mindestens 6 Monate (Code, Doku, Konzept, Reviews)
-2. **Nomination** durch einen aktiven Maintainer im internen Maintainer-Kanal
-3. **Konsens** unter den aktiven Maintainern (lazy consensus, mindestens 75% Zustimmung)
-4. **Aufnahme** in diese Datei via PR
-5. **Schreibzugriff** im Repository
+1. **Substantial contribution** over at least 6 months (code, docs, concept, reviews)
+2. **Nomination** by an active maintainer in the internal maintainer channel
+3. **Consensus** among the active maintainers (lazy consensus, at least 75% approval)
+4. **Addition** to this file via PR
+5. **Write access** to the repository
 
-Erwartete Verpflichtungen:
+Expected commitments:
 
-- Mindestens monatliche aktive Mitwirkung
-- Verantwortung für Reviews im Fachbereich
-- Einhaltung des [Code of Conduct](CODE_OF_CONDUCT.md)
-- Kommunikation mit der Community
+- Active participation at least monthly
+- Responsibility for reviews in the area
+- Adherence to the [Code of Conduct](CODE_OF_CONDUCT.md)
+- Communication with the community
 
-## Maintainer-Status verlieren
+## Losing Maintainer Status
 
-Status wird verloren durch:
+Status is lost through:
 
-- 6+ Monate Inaktivität ohne Ankündigung
-- Schwerwiegende Verstöße gegen den Code of Conduct
-- Eigene Ankündigung des Rücktritts
+- 6+ months of inactivity without notice
+- Serious violations of the Code of Conduct
+- Own announcement of resignation
 
-Inaktive Maintainer werden in eine "Emeritus"-Sektion verschoben, behalten aber keine Schreibrechte.
+Inactive maintainers are moved to an "Emeritus" section but do not retain write access.
 
-## Entscheidungs-Findung
+## Decision Making
 
-OEA folgt einem **Lazy Consensus Model**:
+OEA follows a **lazy consensus model**:
 
-- Kleine Änderungen (Doku, Bugfixes): ein Maintainer-Review reicht
-- Mittlere Änderungen (Features, neue Abhängigkeiten): zwei Reviews, 7 Tage Vorlauf für Einwände
-- Große Änderungen (Architektur, Tech-Stack, Lizenz): ADR erforderlich, Konsens unter aktiven Maintainern, 14 Tage Vorlauf
+- Small changes (docs, bug fixes): one maintainer review is sufficient
+- Medium changes (features, new dependencies): two reviews, 7 days for objections
+- Large changes (architecture, tech stack, license): ADR required, consensus among active maintainers, 14 days for objections
 
-Bei Patt: Lead Maintainer / PO entscheidet.
+In case of a tie: the lead maintainer / PO decides. License changes always require the consent of the copyright holder.
 
-## Verantwortungsbereiche
+## Areas of Responsibility
 
-### Konzept und Dokumentation
+### Concept and Documentation
 
-- `concept/` und alle Markdown-Dokumente im Repo
-- Sicherstellen, dass Konzeptpapier mit Code synchron bleibt
-- CHANGELOG-Pflege
+- `concept/` and all Markdown documents in the repository
+- Ensuring the concept paper stays in sync with the code
+- Maintaining the CHANGELOG
 
 ### Backend
 
-- `backend/` Codebasis
-- API-Specs in `api/openapi/`
-- Persistenz-Schicht und Migrations
+- `backend/` codebase
+- API specs in `api/openapi.yaml`
+- Persistence layer and migrations
 
 ### Frontend
 
-- `frontend/` Codebasis
-- UI-Komponenten und Design-System-Integration
-- A11y-Compliance
+- `frontend/` codebase
+- UI components and design system integration
+- A11y compliance
 
-### Sicherheit
+### Security
 
-- Security-Reviews
-- Abarbeitung von Security-Meldungen (siehe [SECURITY.md](SECURITY.md))
-- SBOM und Dependency-Updates
+- Security reviews
+- Handling of security reports (see [SECURITY.md](SECURITY.md))
+- SBOM and dependency updates
 
 ### Operations / Deployment
 
-- Container-Images und Release-Pipeline
-- Deployment-Dokumentation
-- Backup- und Recovery-Konzepte
+- Container images and release pipeline
+- Deployment documentation
+- Backup and recovery concepts
 
-## Emeritus (Inaktive Maintainer)
+## Emeritus (Inactive Maintainers)
 
-<!-- Aufgenommen, wenn Maintainer den Status zurückgeben oder verlieren. -->
+<!-- Added when maintainers give up or lose their status. -->
 
-(noch keine)
+(none yet)
 
-## Kontakt
+## Contact
 
-Für Fragen zur Maintainer-Struktur: `maintainers@oea.org` (TBD)
+For questions about the maintainer structure: `maintainers@oea.org` (TBD)
 
-Für inhaltliche Diskussionen: GitHub/Gitea Discussions oder Issue-Tracker.
+For content discussions: GitHub/Gitea Discussions or the issue tracker.
 
-Für Sicherheits-Meldungen: siehe [SECURITY.md](SECURITY.md).
+For security reports: see [SECURITY.md](SECURITY.md).
