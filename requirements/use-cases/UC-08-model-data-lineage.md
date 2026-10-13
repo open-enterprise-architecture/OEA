@@ -1,6 +1,6 @@
 ---
 id: UC-08
-title: Datenflusskarte (Data Lineage) modellieren und analysieren
+title: Model and Analyze a Data Flow Map (Data Lineage)
 status: draft
 priority: should
 target_release: v1.0
@@ -19,11 +19,11 @@ references:
     - viewpoint
     - catalog
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
-    - concept/30-dynamics/13-fach-technik-verlinkung.md
-    - concept/40-extensibility/14-erweiterbarkeit.md
+    - concept/20-entities/06-core-entity-types.md
+    - concept/30-dynamics/13-business-technology-linking.md
+    - concept/40-extensibility/14-extensibility.md
     - concept/40-extensibility/15-schema-evolution.md
-    - concept/60-integrations/20-grc-dsgvo-isms-integration.md
+    - concept/60-integrations/20-grc-gdpr-isms-integration.md
   related_use_cases:
     - UC-04
     - UC-06
@@ -32,26 +32,26 @@ references:
     - ADR-010
 ---
 
-# UC-08: Datenflusskarte (Data Lineage) modellieren und analysieren
+# UC-08: Model and Analyze a Data Flow Map (Data Lineage)
 
-## Diagramm
+## Diagram
 
 ```plantuml
 @startuml UC-08-DataLineage
 left to right direction
 skinparam actorStyle awesome
 
-actor "Lukas\n(Data Architekt)" as Lukas
+actor "Lukas\n(Data Architect)" as Lukas
 actor "Kurt\n(Lead EA)" as Kurt
 actor "Sabine\n(Business Engineer)" as Sabine
 
 rectangle "OEA – Data Lineage" {
-  usecase "Datenobjekt modellieren\n(data-object Entity)" as UC_DO
-  usecase "Datenfluss modellieren\n(data-flow Connection)" as UC_DF
-  usecase "Lineage-Graph traversieren\n(upstream / downstream)" as UC_Lineage
-  usecase "Impact-Analyse\ndurchführen" as UC_Impact
-  usecase "DSGVO Art. 30\nKatalog ableiten" as UC_GDPR
-  usecase "Lineage-Viewpoint\nanzeigen" as UC_View
+  usecase "Model Data Object\n(data-object Entity)" as UC_DO
+  usecase "Model Data Flow\n(data-flow Connection)" as UC_DF
+  usecase "Traverse Lineage Graph\n(upstream / downstream)" as UC_Lineage
+  usecase "Perform Impact\nAnalysis" as UC_Impact
+  usecase "Derive GDPR Art. 30\nCatalog" as UC_GDPR
+  usecase "Show Lineage\nViewpoint" as UC_View
 }
 
 Lukas --> UC_DO
@@ -70,105 +70,105 @@ UC_GDPR ..> UC_Lineage : <<include>>
 
 ## Goal in Context
 
-In jedem Unternehmen fliessen Daten zwischen Systemen: Kundenstammdaten aus dem ERP in das CRM, Transaktionsdaten aus Kassensystemen in das Data Warehouse, Personalstammdaten aus dem HR-System in die Abrechnung. Diese Flüsse sind selten vollständig dokumentiert, veralten schnell nach Schemaänderungen und sind für Fachabteilungen, Datenschutzbeauftragte und Auditoren kaum nachvollziehbar.
+In every company, data flows between systems: customer master data from the ERP into the CRM, transaction data from point-of-sale systems into the data warehouse, employee master data from the HR system into payroll. These flows are rarely documented completely, become outdated quickly after schema changes and are hardly traceable for business units, data protection officers and auditors.
 
-OEA löst dieses Problem, indem Datenobjekte und Datenflüsse als First-Class-Entitäten im selben Architekturmodell geführt werden wie Anwendungskomponenten. Jeder Datenfluss referenziert explizit, welche Datenobjekte er transportiert. Das Ergebnis ist ein **traversierbarer Lineage-Graph**: OEA kann zu einem beliebigen Datenobjekt alle Quell- und Zielsysteme (upstream / downstream) berechnen – nicht nur als Diagramm, sondern als abfragbare API-Antwort.
+OEA solves this problem by managing data objects and data flows as first-class entities in the same architecture model as application components. Each data flow explicitly references which data objects it transports. The result is a **traversable lineage graph**: for any data object, OEA can calculate all source and target systems (upstream / downstream) – not only as a diagram, but as a queryable API response.
 
-Dieser UC ist die Grundlage für:
-- **DSGVO Art. 30**: Verarbeitungsverzeichnis aus dem Modell generieren (Nebenfluss A3)
-- **Impact Analysis**: welche Systeme sind betroffen, wenn sich das Schema von Datenobjekt X ändert?
-- **Compliance-Reporting**: welche Datenflüsse transportieren personenbezogene Daten ohne dokumentierte Rechtsgrundlage?
+This UC is the basis for:
+- **GDPR Art. 30**: generate the record of processing activities from the model (side flow A3)
+- **Impact analysis**: which systems are affected if the schema of data object X changes?
+- **Compliance reporting**: which data flows transport personal data without a documented legal basis?
 
-## Persona und Story
+## Persona and Story
 
-**Primärer Akteur**: [Lukas – Senior Data Architekt](../../business-analysis/stakeholders/SH-02-lukas-senior-data-architekt.md)
-**Weitere Beteiligte**:
-- [Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md) (gibt Metamodell-Erweiterung frei)
-- [Sabine – Business Engineer](../../business-analysis/stakeholders/SH-07-sabine-business-engineer.md) (nutzt fachliche Sicht auf Datenflüsse)
+**Primary Actor**: [Lukas – Senior Data Architect](../../business-analysis/stakeholders/SH-02-lukas-senior-data-architect.md)
+**Other Stakeholders**:
+- [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md) (approves metamodel extension)
+- [Sabine – Business Engineer](../../business-analysis/stakeholders/SH-07-sabine-business-engineer.md) (uses business view of data flows)
 
-**Story**: Als Data Architekt möchte ich Datenobjekte und die Datenflüsse zwischen Systemen im selben Tool modellieren, in dem auch die Anwendungslandschaft gepflegt wird – damit ich jederzeit abfragen kann, welchen Weg ein bestimmtes Datenobjekt durch alle Systeme nimmt, wer es transformiert und wo personenbezogene Daten verarbeitet werden.
+**Story**: As a data architect, I want to model data objects and the data flows between systems in the same tool in which the application landscape is maintained – so that I can query at any time which path a certain data object takes through all systems, who transforms it and where personal data is processed.
 
 ## Trigger
 
-- Lukas soll die Datenflüsse für ein neues Regulierungs-Audit dokumentieren (z.B. DSGVO, ISO 27001)
-- Eine Schema-Änderung im ERP wirft die Frage auf: welche Zielsysteme sind betroffen?
-- Lukas übernimmt die Pflege des EA-Modells von Avolution und möchte Lineage-Informationen migrieren
-- Ein Fachbereichs-Workshop soll klären, welche Abteilung für welche Daten verantwortlich ist
+- Lukas is to document the data flows for a new regulatory audit (e.g., GDPR, ISO 27001)
+- A schema change in the ERP raises the question: which target systems are affected?
+- Lukas takes over maintenance of the EA model from Avolution and wants to migrate lineage information
+- A business unit workshop is to clarify which department is responsible for which data
 
-## Vorbedingungen (Pre-Conditions)
+## Preconditions
 
-- [ ] Lukas ist eingeloggt (UC-01) und hat Berechtigung zum Anlegen und Bearbeiten von Entitäten
-- [ ] Im Metamodell existieren (oder werden im Rahmen dieses UC angelegt, Hauptablauf Schritt 1–3):
-  - EntityType `data-object` (`isConnection=false`) mit PropertyDefinitions: `dataClassification`, `personalDataCategories`, `dataOwner`, `description`
-  - EntityType `data-flow` (`isConnection=true`) mit PropertyDefinitions: `protocol`, `frequency`, `transformationDescription`, `carriedDataObjectIds`
-- [ ] Mindestens zwei Anwendungskomponenten (ArchitectureEntities mit EntityType `application-component`) existieren bereits oder werden parallel angelegt
+- [ ] Lukas is logged in (UC-01) and has permission to create and edit entities
+- [ ] The following exist in the metamodel (or are created as part of this UC, basic flow steps 1–3):
+  - EntityType `data-object` (`isConnection=false`) with PropertyDefinitions: `dataClassification`, `personalDataCategories`, `dataOwner`, `description`
+  - EntityType `data-flow` (`isConnection=true`) with PropertyDefinitions: `protocol`, `frequency`, `transformationDescription`, `carriedDataObjectIds`
+- [ ] At least two application components (ArchitectureEntities with EntityType `application-component`) already exist or are created in parallel
 
-## Nachbedingungen (Post-Conditions)
+## Postconditions
 
-### Bei Erfolg
+### On Success
 
-- Mindestens ein `data-object`-Entity mit stabiler Integer-ID existiert und ist mit Properties befüllt
-- Mindestens ein `data-flow`-Entity verbindet zwei `application-component`-Entitäten und referenziert in `carriedDataObjectIds` das Datenobjekt via Integer-ID
-- Die Lineage-Query `GET /api/v1/lineage?entityId={dataObjectId}&direction=both` liefert den vollständigen Pfad (Quellen und Konsumenten)
-- Ein Data-Lineage-Viewpoint zeigt den Graphen visuell
-- Optional: DSGVO-Katalog zeigt alle Datenflüsse mit `personalDataCategories ≠ leer`
+- At least one `data-object` entity with a stable integer ID exists and is filled with properties
+- At least one `data-flow` entity connects two `application-component` entities and references the data object via integer ID in `carriedDataObjectIds`
+- The lineage query `GET /api/v1/lineage?entityId={dataObjectId}&direction=both` returns the complete path (sources and consumers)
+- A data lineage viewpoint shows the graph visually
+- Optional: GDPR catalog shows all data flows with `personalDataCategories ≠ empty`
 
-### Bei Misserfolg
+### On Failure
 
-- Kein Datenobjekt oder Datenfluss persistiert
-- Fehlermeldung mit konkretem Hinweis (Validierungsfehler, fehlende Berechtigung)
+- No data object or data flow persisted
+- Error message with a concrete hint (validation error, missing permission)
 
-## Hauptablauf (Basic Flow)
+## Basic Flow
 
-*Standardfall: Lukas modelliert die Kundenstammdaten-Lineage in einer bestehenden Instanz*
+*Default case: Lukas models the customer master data lineage in an existing instance*
 
-**Phase 1 – Metamodell erweitern (einmalig)**
+**Phase 1 – Extend metamodel (one-time)**
 
-1. **Lukas**: öffnet die Metamodell-Konfiguration (UC-04)
-2. **System**: zeigt bestehende EntityType-Definitionen
-3. **Lukas**: legt EntityType `data-object` an (`isConnection=false`):
+1. **Lukas**: opens the metamodel configuration (UC-04)
+2. **System**: shows existing EntityType definitions
+3. **Lukas**: creates EntityType `data-object` (`isConnection=false`):
    - PropertyDefinition `dataClassification` (enum: `public | internal | confidential | restricted`; validationMode=mandatory; category=Governance)
-   - PropertyDefinition `personalDataCategories` (varchar(500); validationMode=optional; category=DSGVO)
+   - PropertyDefinition `personalDataCategories` (varchar(500); validationMode=optional; category=GDPR)
    - PropertyDefinition `dataOwner` (varchar(255); validationMode=warning; category=Governance)
-4. **Lukas**: legt EntityType `data-flow` an (`isConnection=true`):
-   - PropertyDefinition `protocol` (enum: `REST | SOAP | JDBC | FTP | Kafka | SFTP | other`; validationMode=warning; category=Technik)
-   - PropertyDefinition `frequency` (enum: `realtime | hourly | daily | weekly | on-demand`; validationMode=optional; category=Technik)
-   - PropertyDefinition `transformationDescription` (varchar(1000); validationMode=optional; category=Technik)
-   - PropertyDefinition `carriedDataObjectIds` (varchar(500); validationMode=optional; category=Lineage) — kommaseparierte Integer-IDs der referenzierten DataObjects
-5. **Lukas**: legt einen Lineage-Viewpoint an (Notation: `archimate3`; `allowedEntityTypes: [application-component, data-object]`; `allowedConnectionTypes: [data-flow]`) mit passenden NotationMappings und Standardgrössen
+4. **Lukas**: creates EntityType `data-flow` (`isConnection=true`):
+   - PropertyDefinition `protocol` (enum: `REST | SOAP | JDBC | FTP | Kafka | SFTP | other`; validationMode=warning; category=Technology)
+   - PropertyDefinition `frequency` (enum: `realtime | hourly | daily | weekly | on-demand`; validationMode=optional; category=Technology)
+   - PropertyDefinition `transformationDescription` (varchar(1000); validationMode=optional; category=Technology)
+   - PropertyDefinition `carriedDataObjectIds` (varchar(500); validationMode=optional; category=Lineage) — comma-separated integer IDs of the referenced DataObjects
+5. **Lukas**: creates a lineage viewpoint (notation: `archimate3`; `allowedEntityTypes: [application-component, data-object]`; `allowedConnectionTypes: [data-flow]`) with matching NotationMappings and default sizes
 
-**Phase 2 – Datenobjekte anlegen**
+**Phase 2 – Create data objects**
 
-6. **Lukas**: legt ArchitectureEntity `Kundenstamm` an (entityTypeId=`data-object`):
+6. **Lukas**: creates ArchitectureEntity `Customer Master` (entityTypeId=`data-object`):
    - `dataClassification`: `confidential`
-   - `personalDataCategories`: `Name, Adresse, E-Mail, Kundennummer`
-   - `dataOwner`: `CRM-Team`
-   - → System vergibt Integer-ID, z.B. **42**
-7. **Lukas**: legt ArchitectureEntity `Bestellposition` an (entityTypeId=`data-object`):
+   - `personalDataCategories`: `Name, Address, Email, Customer Number`
+   - `dataOwner`: `CRM team`
+   - → System assigns integer ID, e.g., **42**
+7. **Lukas**: creates ArchitectureEntity `Order Item` (entityTypeId=`data-object`):
    - `dataClassification`: `internal`
-   - → System vergibt Integer-ID, z.B. **43**
+   - → System assigns integer ID, e.g., **43**
 
-**Phase 3 – Datenflüsse modellieren**
+**Phase 3 – Model data flows**
 
-8. **Lukas**: legt DataFlow-Connection an: `SAP ERP → Data Warehouse` (entityTypeId=`data-flow`):
+8. **Lukas**: creates DataFlow connection: `SAP ERP → Data Warehouse` (entityTypeId=`data-flow`):
    - `protocol`: `JDBC`
    - `frequency`: `daily`
    - `carriedDataObjectIds`: `42,43`
-   - → System vergibt Integer-ID, z.B. **101**
-9. **Lukas**: legt DataFlow-Connection an: `Data Warehouse → BI Tool` (entityTypeId=`data-flow`):
+   - → System assigns integer ID, e.g., **101**
+9. **Lukas**: creates DataFlow connection: `Data Warehouse → BI Tool` (entityTypeId=`data-flow`):
    - `protocol`: `REST`
    - `frequency`: `on-demand`
    - `carriedDataObjectIds`: `42`
-   - → System vergibt Integer-ID, z.B. **102**
+   - → System assigns integer ID, e.g., **102**
 
-**Phase 4 – Lineage abfragen**
+**Phase 4 – Query lineage**
 
-10. **Lukas**: ruft die Lineage-Query auf: `GET /api/v1/lineage?entityId=42&direction=both`
-11. **System**: traversiert den Graphen entlang aller DataFlows, deren `carriedDataObjectIds` die ID `42` enthält; gibt zurück:
+10. **Lukas**: calls the lineage query: `GET /api/v1/lineage?entityId=42&direction=both`
+11. **System**: traverses the graph along all DataFlows whose `carriedDataObjectIds` contain the ID `42`; returns:
     ```json
     {
       "dataObjectId": 42,
-      "dataObjectName": "Kundenstamm",
+      "dataObjectName": "Customer Master",
       "upstream": [],
       "downstream": [
         { "via": 101, "system": { "id": 10, "name": "SAP ERP" } },
@@ -177,152 +177,152 @@ Dieser UC ist die Grundlage für:
       ]
     }
     ```
-12. **Lukas**: öffnet den Lineage-Viewpoint; das Diagramm zeigt SAP ERP → Data Warehouse → BI Tool mit `Kundenstamm`-Annotationen auf den Kanten
-13. **System**: rendert Datenflüsse mit `personalDataCategories ≠ leer` in einer anderen Farbe (per `visualHint` im Viewpoint)
+12. **Lukas**: opens the lineage viewpoint; the diagram shows SAP ERP → Data Warehouse → BI Tool with `Customer Master` annotations on the edges
+13. **System**: renders data flows with `personalDataCategories ≠ empty` in a different color (via `visualHint` in the viewpoint)
 
-## Alternative Abläufe (Alternative Flows)
+## Alternative Flows
 
-### A1 – Upstream-Lineage (Herkunft eines Datenobjekts)
+### A1 – Upstream lineage (origin of a data object)
 
-- **Schritt 10alt**: Lukas fragt `direction=upstream` für ein Datenobjekt im Data Warehouse
-- **System**: traversiert rückwärts entlang `targetEntityId` der DataFlows; gibt alle Quellsysteme zurück
+- **Step 10alt**: Lukas queries `direction=upstream` for a data object in the data warehouse
+- **System**: traverses backwards along `targetEntityId` of the DataFlows; returns all source systems
 
-### A2 – Impact Analysis: Schemaänderung
+### A2 – Impact analysis: schema change
 
-- **Schritt 10alt**: Lukas fragt `GET /api/v1/lineage?entityId=42&direction=downstream&mode=impact`
-- **System**: gibt alle Systeme zurück, die `Kundenstamm` direkt oder transitiv konsumieren; diese sind potenziell betroffen bei einer Schemaänderung
+- **Step 10alt**: Lukas queries `GET /api/v1/lineage?entityId=42&direction=downstream&mode=impact`
+- **System**: returns all systems that consume `Customer Master` directly or transitively; these are potentially affected by a schema change
 
-### A3 – DSGVO-Verarbeitungsverzeichnis (Nebenfluss)
+### A3 – GDPR record of processing activities (side flow)
 
-- Nach Schritt 9: Lukas öffnet einen Katalog (UC-06) mit Filter `entityTypeId=data-flow` UND `personalDataCategories ≠ leer`
-- **System**: listet alle Datenflüsse mit personenbezogenen Daten; Lukas exportiert als CSV/Excel für den Datenschutzbeauftragten
-- Optional (künftig): Dashboard (UC-07) mit `PropertyAggregation` auf `data-flow`, gruppiert nach `dataClassification`
+- After step 9: Lukas opens a catalog (UC-06) with filter `entityTypeId=data-flow` AND `personalDataCategories ≠ empty`
+- **System**: lists all data flows with personal data; Lukas exports as CSV/Excel for the data protection officer
+- Optional (future): dashboard (UC-07) with `PropertyAggregation` on `data-flow`, grouped by `dataClassification`
 
-### A4 – Bestehende Avolution-Lineage importieren
+### A4 – Import existing Avolution lineage
 
-- **Schritt 1alt**: Lukas importiert eine Metamodell-Konfigurationsdatei (REQ-033), die bereits `data-object` und `data-flow` als EntityTypes enthält
-- **Schritt 6alt**: Lukas importiert Entitäten via CSV-Upload (künftig; noch kein REQ); alternativ manuelle Anlage
+- **Step 1alt**: Lukas imports a metamodel configuration file (REQ-033) that already contains `data-object` and `data-flow` as EntityTypes
+- **Step 6alt**: Lukas imports entities via CSV upload (future; no REQ yet); alternatively manual creation
 
-## Ausnahmen / Fehlerfälle (Exception Flows)
+## Exception Flows
 
-### E1 – EntityType `data-flow` existiert bereits (Built-in Konflikt)
+### E1 – EntityType `data-flow` already exists (built-in conflict)
 
-- **Schritt 4**: Lukas versucht, `data-flow` anzulegen; der Name kollidiert mit einem bestehenden Custom-Typ
-- **System**: zeigt Konflikt-Warnung mit Diff (REQ-033); Lukas wählt: umbenennen oder vorhandenen Typ nutzen
+- **Step 4**: Lukas tries to create `data-flow`; the name collides with an existing custom type
+- **System**: shows conflict warning with diff (REQ-033); Lukas chooses: rename or use the existing type
 
-### E2 – `carriedDataObjectIds` referenziert ungültige ID
+### E2 – `carriedDataObjectIds` references an invalid ID
 
-- **Schritt 8**: Lukas gibt `carriedDataObjectIds: "42,999"` an; ID 999 existiert nicht
-- **System**: speichert den DataFlow, markiert aber ID 999 als unaufgelöste Referenz; Lineage-Query ignoriert unaufgelöste IDs und gibt Warnung zurück
-- Begründung: referentielle Integrität für `carriedDataObjectIds` ist soft-enforced (keine FK auf DB-Ebene), da der Wert als Property-String gespeichert wird
+- **Step 8**: Lukas specifies `carriedDataObjectIds: "42,999"`; ID 999 does not exist
+- **System**: saves the DataFlow, but marks ID 999 as an unresolved reference; the lineage query ignores unresolved IDs and returns a warning
+- Rationale: referential integrity for `carriedDataObjectIds` is soft-enforced (no FK at DB level), since the value is stored as a property string
 
-### E3 – Lineage-Query ergibt zyklischen Graphen
+### E3 – Lineage query yields a cyclic graph
 
-- **Schritt 10**: Datenflüsse bilden einen Zyklus (A→B→C→A)
-- **System**: erkennt den Zyklus während Traversierung (max. Tiefe = 50 Hops); bricht ab; gibt bisher traversierten Pfad + Warnung `cycle_detected` zurück
+- **Step 10**: Data flows form a cycle (A→B→C→A)
+- **System**: detects the cycle during traversal (max. depth = 50 hops); aborts; returns the path traversed so far + warning `cycle_detected`
 
-### E4 – Kein DataFlow referenziert das DataObject
+### E4 – No DataFlow references the DataObject
 
-- **Schritt 10**: `carriedDataObjectIds` enthält die ID nirgends
-- **System**: gibt leere upstream/downstream-Liste zurück; Hinweis: „Kein Datenfluss referenziert dieses Datenobjekt"
+- **Step 10**: `carriedDataObjectIds` does not contain the ID anywhere
+- **System**: returns empty upstream/downstream list; notice: "No data flow references this data object"
 
-## Datenfluss
+## Data Flow
 
 ```
 Lukas (SH-02)
   │
-  ├──[Schritt 3–5]──► MetamodelConfiguration: EntityTypeDefinition(data-object, data-flow), Viewpoint
-  ├──[Schritt 6–7]──► ArchitectureEntity(data-object): id=42 (Kundenstamm), id=43 (Bestellposition)
-  ├──[Schritt 8–9]──► ArchitectureEntity(data-flow): id=101, id=102 (mit carriedDataObjectIds)
-  └──[Schritt 10]──► Lineage-API: traversiert DataFlow-Graph → liefert Pfad
+  ├──[Step 3–5]──► MetamodelConfiguration: EntityTypeDefinition(data-object, data-flow), Viewpoint
+  ├──[Step 6–7]──► ArchitectureEntity(data-object): id=42 (Customer Master), id=43 (Order Item)
+  ├──[Step 8–9]──► ArchitectureEntity(data-flow): id=101, id=102 (with carriedDataObjectIds)
+  └──[Step 10]──► Lineage API: traverses DataFlow graph → returns path
 ```
 
-## Beteiligte Business Objects
+## Involved Business Objects
 
-| BO | Rolle in diesem UC |
+| BO | Role in this UC |
 |---|---|
-| [ArchitectureEntity](../../business-objects/entity.md) | DataObjects (data-object) + DataFlows (data-flow) als Entitäts-Instanzen |
-| [MetamodelConfiguration](../../business-objects/metamodel-configuration.md) | Defines EntityTypes data-object und data-flow mit PropertyDefinitions |
-| [Viewpoint](../../business-objects/viewpoint.md) | Lineage-Viewpoint mit NotationMappings für data-object und data-flow |
-| [Catalog](../../business-objects/catalog.md) | DSGVO-Filter-Ansicht auf data-flow Entitäten (A3) |
+| [ArchitectureEntity](../../business-objects/entity.md) | DataObjects (data-object) + DataFlows (data-flow) as entity instances |
+| [MetamodelConfiguration](../../business-objects/metamodel-configuration.md) | Defines EntityTypes data-object and data-flow with PropertyDefinitions |
+| [Viewpoint](../../business-objects/viewpoint.md) | Lineage viewpoint with NotationMappings for data-object and data-flow |
+| [Catalog](../../business-objects/catalog.md) | GDPR filter view on data-flow entities (A3) |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Datenobjekt mit stabiler ID):
-- Gegeben: Lukas legt `Kundenstamm` (data-object) an
-- Wenn: Entität gespeichert
-- Dann: System vergibt Integer-ID ≥ 1; diese ID ist unveränderlich; `entityTypeId=data-object` ist gesetzt
+**AC1** (data object with stable ID):
+- Given: Lukas creates `Customer Master` (data-object)
+- When: entity saved
+- Then: System assigns integer ID ≥ 1; this ID is immutable; `entityTypeId=data-object` is set
 
-**AC2** (DataFlow referenziert DataObject via ID):
-- Gegeben: DataObject mit ID 42 existiert
-- Wenn: Lukas legt DataFlow an mit `carriedDataObjectIds="42"`
-- Dann: DataFlow ist persistiert mit korrekter Property; Lineage-Query für ID 42 gibt diesen DataFlow zurück
+**AC2** (DataFlow references DataObject via ID):
+- Given: DataObject with ID 42 exists
+- When: Lukas creates DataFlow with `carriedDataObjectIds="42"`
+- Then: DataFlow is persisted with the correct property; lineage query for ID 42 returns this DataFlow
 
-**AC3** (Downstream-Lineage end-to-end):
-- Gegeben: Kette SAP ERP →(101)→ DWH →(102)→ BI Tool; beide DataFlows enthalten `carriedDataObjectIds="42"`
-- Wenn: `GET /api/v1/lineage?entityId=42&direction=downstream`
-- Dann: Response enthält SAP ERP, DWH und BI Tool in korrekter Reihenfolge; kein System fehlt
+**AC3** (downstream lineage end-to-end):
+- Given: chain SAP ERP →(101)→ DWH →(102)→ BI Tool; both DataFlows contain `carriedDataObjectIds="42"`
+- When: `GET /api/v1/lineage?entityId=42&direction=downstream`
+- Then: Response contains SAP ERP, DWH and BI Tool in the correct order; no system is missing
 
-**AC4** (Upstream-Lineage):
-- Gegeben: gleiche Kette wie AC3
-- Wenn: Lineage-Query von BI Tool rückwärts für ID 42
-- Dann: SAP ERP und DWH erscheinen als Quellen
+**AC4** (upstream lineage):
+- Given: same chain as AC3
+- When: lineage query from BI Tool backwards for ID 42
+- Then: SAP ERP and DWH appear as sources
 
-**AC5** (Zykluserkennung):
-- Gegeben: Datenflüsse A→B, B→C, C→A (Zyklus) mit DataObject 42
-- Wenn: Lineage-Query
-- Dann: Response enthält `cycle_detected=true`; kein Endlosloop
+**AC5** (cycle detection):
+- Given: data flows A→B, B→C, C→A (cycle) with DataObject 42
+- When: lineage query
+- Then: Response contains `cycle_detected=true`; no infinite loop
 
-**AC6** (DSGVO-Filter via Katalog):
-- Gegeben: DataFlow mit `personalDataCategories="Name,Adresse"` und DataFlow ohne personalDataCategories
-- Wenn: Lukas öffnet Katalog mit Filter `entityTypeId=data-flow` UND `personalDataCategories ≠ leer`
-- Dann: Nur der erste DataFlow erscheint; der zweite nicht
+**AC6** (GDPR filter via catalog):
+- Given: DataFlow with `personalDataCategories="Name,Address"` and DataFlow without personalDataCategories
+- When: Lukas opens catalog with filter `entityTypeId=data-flow` AND `personalDataCategories ≠ empty`
+- Then: Only the first DataFlow appears; the second does not
 
-## Nicht im Scope
+## Out of Scope
 
-- **Column-Level Lineage** (Feld-zu-Feld-Mapping zwischen Schemas): zu granular für v1.0; Erweiterungspunkt für künftige Versionen
-- **Automatische Schema-Synchronisierung** aus produktiven Datenbanken (kein Pull-Connector in v1.0)
-- **Automatische Lineage-Erkennung** aus Code oder SQL-Abfragen
-- **Avolution XMI/ArchiMate-Import** für Lineage-Daten: separates Feature (A4 als manueller Fallback)
-- **DSGVO Art. 30-Bericht als generiertes Dokument**: Grundlage wird hier gelegt (AC6), Bericht-Generation ist eigener UC
+- **Column-level lineage** (field-to-field mapping between schemas): too granular for v1.0; extension point for future versions
+- **Automatic schema synchronization** from production databases (no pull connector in v1.0)
+- **Automatic lineage detection** from code or SQL queries
+- **Avolution XMI/ArchiMate import** for lineage data: separate feature (A4 as manual fallback)
+- **GDPR Art. 30 report as a generated document**: basis is laid here (AC6), report generation is a separate UC
 
-## Konzept-Bezüge
+## Concept References
 
-| Konzept-Kapitel | Relevanz |
+| Concept Chapter | Relevance |
 |---|---|
-| §6 Kern-Entitätstypen | data-object und data-flow als extension zu built-in Typen |
-| §13 Fach-Technik-Verlinkung | Lineage verbindet Fachbegriffe (DataObject) mit technischen Systemen |
-| §14 Erweiterbarkeit | data-object / data-flow als custom EntityTypes |
-| §15 Schema-Evolution | Schemaänderungen → Impact Analysis (A2) |
-| §20 GRC/DSGVO/ISMS | `personalDataCategories` + Katalog als Basis für Art. 30 |
+| §6 Core Entity Types | data-object and data-flow as extension to built-in types |
+| §13 Business–Technology Linking | Lineage connects business terms (DataObject) with technical systems |
+| §14 Extensibility | data-object / data-flow as custom EntityTypes |
+| §15 Schema Evolution | Schema changes → impact analysis (A2) |
+| §20 GRC/GDPR/ISMS | `personalDataCategories` + catalog as basis for Art. 30 |
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- **Lineage-Graph-API** (`GET /api/v1/lineage`): traversiert ArchitectureEntity-Graphen entlang DataFlow-Kanten (BFS), wobei `carriedDataObjectIds` als Property-String geparst wird; max. Tiefe konfigurierbar; Zykluserkennung via Visited-Set
-- **carriedDataObjectIds-Format**: kommaseparierter Integer-String in PropertyValue; beim Abfragen serverseitig geparst; keine FK-Constraint auf DB-Ebene (soft-referenz)
-- **[ADR-010](../../adrs/ADR-010-n-connection-data-lineage.md) (draft)**: Die Frage Property-String vs. n-Connection (`carries-data`) ist offen. Der aktuelle Hauptablauf nutzt Property-String (Option A); bei Entscheidung für n-Connection (Option B) entfällt `carriedDataObjectIds` und wird durch einen eigenständigen `carries-data`-EntityType ersetzt, der DataFlow→DataObject als Connection-of-Connection abbildet.
+- **Lineage graph API** (`GET /api/v1/lineage`): traverses ArchitectureEntity graphs along DataFlow edges (BFS), with `carriedDataObjectIds` parsed as a property string; max. depth configurable; cycle detection via visited set
+- **carriedDataObjectIds format**: comma-separated integer string in PropertyValue; parsed server-side on query; no FK constraint at DB level (soft reference)
+- **[ADR-010](../../adrs/ADR-010-n-connection-data-lineage.md) (draft)**: The question property string vs. n-connection (`carries-data`) is open. The current basic flow uses a property string (option A); if n-connection is chosen (option B), `carriedDataObjectIds` is dropped and replaced by a standalone `carries-data` EntityType that models DataFlow→DataObject as a connection-of-connection.
 
-## Realisierende Bestandteile
+## Realizing Components
 
-- REQ: noch zu ableiten (REQ-060 ff.)
-- US: noch zu ableiten
-- Implementation: noch keine
+- REQ: still to be derived (REQ-060 ff.)
+- US: still to be derived
+- Implementation: none yet
 
-## Offene Fragen
+## Open Questions
 
-- [ ] Soll die Lineage-API auch transitiv durch `data-object`-zu-`data-object`-Transformationen traversieren (z.B. wenn ein DataObject aus mehreren anderen abgeleitet ist), oder nur System-zu-System-Pfade?
-- [ ] Wie werden Avolution-Datenmodelle (XMI/ArchiMate) auf `data-object`/`data-flow` EntityTypes gemappt? Import-Mapping muss definiert werden (Konzept §13).
-- [ ] Braucht `data-flow` ein zusätzliches Property `transformationRule` für Column-Level-Lineage als Vorarbeit für v2.0?
-- [ ] Ist `carriedDataObjectIds` als Property-String die richtige Modellierungs-Wahl oder sollte die Beziehung als n-Connection (`carries-data`, Connection-of-Connection) modelliert werden? → Erfasst in [ADR-010](../../adrs/ADR-010-n-connection-data-lineage.md) (draft); Entscheidung ausstehend. Der UC nutzt interim Property-String (Option A/C); bei Entscheidung für n-Connection (Option B) ist REQ-Anpassung nötig.
+- [ ] Should the lineage API also traverse transitively through `data-object`-to-`data-object` transformations (e.g., if a DataObject is derived from several others), or only system-to-system paths?
+- [ ] How are Avolution data models (XMI/ArchiMate) mapped to `data-object`/`data-flow` EntityTypes? Import mapping must be defined (concept §13).
+- [ ] Does `data-flow` need an additional property `transformationRule` for column-level lineage as preparation for v2.0?
+- [ ] Is `carriedDataObjectIds` as a property string the right modeling choice, or should the relationship be modeled as an n-connection (`carries-data`, connection-of-connection)? → Captured in [ADR-010](../../adrs/ADR-010-n-connection-data-lineage.md) (draft); decision pending. The UC interim uses a property string (option A/C); if n-connection (option B) is chosen, an adjustment of the REQ is necessary.
 
-## Notizen
+## Notes
 
-Der Unterschied zu einem statischen Lineage-Diagramm (wie in Avolution) ist fundamental: In OEA ist Lineage **abfragbar**, nicht nur visualisierbar. Die Kombination aus stabilen Integer-IDs (entity.md), typed Connections (isConnection=true in metamodel-configuration.md) und der Lineage-Query-API (`/api/v1/lineage`) macht Lineage zu einem First-Class-Feature.
+The difference to a static lineage diagram (as in Avolution) is fundamental: In OEA, lineage is **queryable**, not just visualizable. The combination of stable integer IDs (entity.md), typed connections (isConnection=true in metamodel-configuration.md) and the lineage query API (`/api/v1/lineage`) makes lineage a first-class feature.
 
-Die Entscheidung, `carriedDataObjectIds` als PropertyValue-String statt als eigenständige Relation zu speichern, ist ein pragmatischer Trade-off für v1.0. Sie erlaubt es, die Lineage-Semantik ohne Schemaerweiterung einzuführen; ein späteres Upgrade auf eine echte Join-Tabelle ist möglich ohne das BO-Modell zu verwerfen.
+The decision to store `carriedDataObjectIds` as a PropertyValue string instead of a standalone relation is a pragmatic trade-off for v1.0. It allows lineage semantics to be introduced without a schema extension; a later upgrade to a real join table is possible without discarding the BO model.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; Data Lineage als traversierbarer Graph; Lineage-API; DSGVO-Nebenfluss; Zykluserkennung |
+| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; data lineage as traversable graph; lineage API; GDPR side flow; cycle detection |

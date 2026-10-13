@@ -1,47 +1,47 @@
-# Ableitung aus: requirements/req/req-035-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-035-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @should @UC-04
-Feature: REQ-035 – Metamodell-Sperrmodus (Import-Only)
+Feature: REQ-035 – Metamodel lock mode (import-only)
 
-  Der Betreiber MUSS die `MetamodelConfiguration` einer Instanz in den
-  Modus `import-only` versetzen können; in diesem Modus DÜRFEN Create-,
-  Update- und Delete-Operationen auf EntityTypeDefinitions, Stereotypes
-  und ConstraintRules über die GUI-API NICHT ausgeführt werden –
-  unabhängig von der Berechtigung der anfragenden Person; Änderungen
-  sind ausschliesslich über den Import-Pfad (REQ-033) möglich.
+  The operator MUST be able to put the `MetamodelConfiguration` of an
+  instance into `import-only` mode; in this mode, create, update, and
+  delete operations on EntityTypeDefinitions, Stereotypes, and
+  ConstraintRules MUST NOT be executed via the GUI API – regardless of
+  the requesting person's permission; changes are possible exclusively
+  via the import path (REQ-033).
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
   Scenario: AC1 – `editMode=import-only`
     Given `editMode=import-only`
-    When  Kurt versucht, über die GUI einen neuen EntityType anzulegen (REQ-032)
-    Then  wird die Anfrage mit 403 und Hinweis auf den Import-Pfad abgelehnt; die MetamodelConfiguration bleibt unverändert
+    When  Kurt tries to create a new EntityType via the GUI (REQ-032)
+    Then  the request is rejected with 403 and a pointer to the import path; the MetamodelConfiguration remains unchanged
 
   @AC2
   Scenario: AC2 – `editMode=import-only`
     Given `editMode=import-only`
-    When  Kurt eine YAML-Datei via Import (REQ-033) hochlädt und bestätigt
-    Then  wird der Import normal verarbeitet; neue EntityTypes sind in der Konfiguration
+    When  Kurt uploads and confirms a YAML file via import (REQ-033)
+    Then  the import is processed normally; new EntityTypes are in the configuration
 
   @AC3
   Scenario: AC3 – `editMode=import-only`
     Given `editMode=import-only`
-    When  Kurt die MetamodelConfiguration-Übersicht aufruft
-    Then  sieht er alle EntityTypes (read-only); Create/Edit/Delete-Buttons fehlen oder sind deaktiviert; ein Hinweistext erklärt den Sperrmodus
+    When  Kurt opens the MetamodelConfiguration overview
+    Then  he sees all EntityTypes (read-only); create/edit/delete buttons are missing or disabled; a notice explains the lock mode
 
   @AC4
-  Scenario: AC4 – `editMode=gui-and-import` (Default)
-    Given `editMode=gui-and-import` (Default)
-    When  keine explizite Konfiguration vorgenommen wurde
-    Then  sind GUI- und Import-Bearbeitung beide aktiv (kein Unterschied zu REQ-032/REQ-033-Verhalten)
+  Scenario: AC4 – `editMode=gui-and-import` (default)
+    Given `editMode=gui-and-import` (default)
+    When  no explicit configuration was made
+    Then  GUI and import editing are both active (no difference from REQ-032/REQ-033 behavior)
 
   @AC5
-  Scenario: AC5 – Betreiber ändert `editMode` von `import-only` auf `gui-and-import`
-    Given Betreiber ändert `editMode` von `import-only` auf `gui-and-import`
-    When  Kurt danach einen EntityType über die GUI anlegt
-    Then  ist das wieder möglich; kein Neustart nötig (Konfiguration wird zur Laufzeit ausgewertet)
+  Scenario: AC5 – operator changes `editMode` from `import-only` to `gui-and-import`
+    Given operator changes `editMode` from `import-only` to `gui-and-import`
+    When  Kurt subsequently creates an EntityType via the GUI
+    Then  this is possible again; no restart necessary (configuration is evaluated at runtime)

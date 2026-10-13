@@ -1,32 +1,32 @@
-# Ableitung aus: requirements/req/req-107-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-107-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-17
-Feature: REQ-107 – ABB anlegen und Verfeinerungs-Hierarchie verwalten
+Feature: REQ-107 – Create ABB and manage refinement hierarchy
 
-  Das System MUSS das Anlegen, Bearbeiten und Löschen von
-  `ArchitectureBuildingBlock`-Einträgen (ABBs) mit `scope=organization`
-  ermöglichen. Pflichtfelder: `name` (eindeutig je `continuumLevel`),
+  The system MUST allow creating, editing and deleting
+  `ArchitectureBuildingBlock` entries (ABBs) with `scope=organization`.
+  Mandatory fields: `name` (unique per `continuumLevel`),
   `continuumLevel`, `maturityLevel`, `governanceStatus`.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – ABB anlegen – ein ABB mit `continuumLevel=organization` und `maturityLevel=established...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein ABB mit `continuumLevel=organization` und `maturityLevel=established` angelegt wird
-    Then  antwortet das System mit HTTP 201; der ABB ist in der Bibliothek sichtbar
+  Scenario: AC1 – Create ABB – an ABB is created with `continuumLevel=organization` and `maturityLevel=established...
+    Given the precondition according to the requirement is met
+    When  an ABB is created with `continuumLevel=organization` and `maturityLevel=established`
+    Then  the system responds with HTTP 201; the ABB is visible in the library
 
   @AC2
-  Scenario: AC2 – Zyklus-Erkennung – ABB „B" auf `refines=A` gesetzt ist und anschließend ABB „A" auf `refine...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ABB „B" auf `refines=A` gesetzt ist und anschließend ABB „A" auf `refines=B` gesetzt werden soll
-    Then  antwortet das System mit HTTP 422 „Zyklus erkannt: A → B → A" und lehnt die Speicherung ab
+  Scenario: AC2 – Cycle detection – ABB "B" is set to `refines=A` and subsequently ABB "A" is to be set to `refine...
+    Given the precondition according to the requirement is met
+    When  ABB "B" is set to `refines=A` and subsequently ABB "A" is to be set to `refines=B`
+    Then  the system responds with HTTP 422 "Cycle detected: A → B → A" and rejects saving
 
   @AC3
-  Scenario: AC3 – Pflichtfeld industry – ein ABB mit `continuumLevel=industry` ohne das Feld `industry` gespeiche...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein ABB mit `continuumLevel=industry` ohne das Feld `industry` gespeichert werden soll
-    Then  antwortet das System mit HTTP 422
+  Scenario: AC3 – Mandatory field industry – an ABB with `continuumLevel=industry` is to be saved without the `industry` field...
+    Given the precondition according to the requirement is met
+    When  an ABB with `continuumLevel=industry` is to be saved without the `industry` field
+    Then  the system responds with HTTP 422

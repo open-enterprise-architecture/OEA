@@ -1,6 +1,6 @@
 ---
 id: REQ-130
-title: Barrierefreiheit WCAG 2.1 Level AA
+title: Accessibility WCAG 2.1 Level AA
 type: non-functional
 priority: should
 status: proposed
@@ -23,98 +23,98 @@ references:
     - SH-02
     - SH-05
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-130: Barrierefreiheit WCAG 2.1 Level AA
+# REQ-130: Accessibility WCAG 2.1 Level AA
 
-## Aussage
+## Statement
 
-Die OEA-Weboberfläche MUSS für alle Seiten ausserhalb des Diagramm-Canvas die Konformitätsstufe **WCAG 2.1 Level AA** erfüllen. Der Diagramm-Canvas (UC-05, UC-10) ist von der WCAG-AA-Pflicht ausgenommen und MUSS mindestens WCAG 2.1 Level A erfüllen; für den Canvas SOLL eine zugängliche Alternativdarstellung (Listenansicht der Entities und Connections) bereitgestellt werden.
+The OEA web interface MUST meet conformance level **WCAG 2.1 Level AA** for all pages outside the diagram canvas. The diagram canvas (UC-05, UC-10) is exempt from the WCAG AA obligation and MUST meet at least WCAG 2.1 Level A; for the canvas, an accessible alternative representation (list view of the entities and connections) SHOULD be provided.
 
-**Konkrete Anforderungen (Auswahl)**:
-- Alle interaktiven Elemente sind per Tastatur erreichbar und bedienbar (Fokus-Management)
-- Farbkontrast: Mindest-Kontrastverhältnis 4,5:1 für normalen Text, 3:1 für Grossschrift und UI-Komponenten
-- Alle Nicht-Text-Inhalte (Icons, Diagramme) haben Text-Alternativen (`aria-label`, `alt`)
-- Fehlermeldungen benennen konkret das betroffene Feld und beschreiben die Korrekturmassnahme
-- Keine rein farbbasierten Informationsträger (Statusindikator muss zusätzlich Icon oder Text haben)
+**Specific requirements (selection)**:
+- All interactive elements are reachable and operable via keyboard (focus management)
+- Color contrast: minimum contrast ratio of 4.5:1 for normal text, 3:1 for large text and UI components
+- All non-text content (icons, diagrams) has text alternatives (`aria-label`, `alt`)
+- Error messages name the affected field specifically and describe the corrective action
+- No purely color-based information carriers (status indicators must additionally have an icon or text)
 
-## Begründung
+## Rationale
 
-OEA ist ein Open-Source-Tool mit dem Anspruch breiter Nutzbarkeit. Barrierefreiheit ist für öffentliche Vergaben (EU-Richtlinie 2016/2102) und für Grossunternehmen mit Diversity-Anforderungen relevant. Ausserdem verbessert WCAG-Konformität die Bedienbarkeit für alle Nutzer (z.B. Tastaturbedienung für Power-User).
+OEA is an open-source tool with the aspiration of broad usability. Accessibility is relevant for public procurement (EU Directive 2016/2102) and for large enterprises with diversity requirements. In addition, WCAG conformance improves usability for all users (e.g. keyboard operation for power users).
 
-## Kontext
+## Context
 
-**In Scope**: Alle Web-Portal-Seiten (Login, Katalog, Dashboard, Metamodell-Editor, Navigationsbaum, Entitäts-Detailseiten)
+**In scope**: all web portal pages (login, catalog, dashboard, metamodel editor, navigation tree, entity detail pages)
 
-**Ausnahme**: Diagramm-Canvas (UC-05, UC-10) — komplexe grafische Editoren sind per WCAG Ausnahme-tatbestand (Konformitätsanforderung wird auf Level A reduziert); Alternativdarstellung als Liste SOLL bereitgestellt werden
+**Exception**: diagram canvas (UC-05, UC-10) — complex graphical editors fall under a WCAG exemption (the conformance requirement is reduced to Level A); an alternative representation as a list SHOULD be provided
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=non-functional
+### For type=non-functional
 
-**Kategorie**: accessibility
+**Category**: accessibility
 
-**Messbare Zielwerte**:
+**Measurable Target Values**:
 
-| Metrik | Zielwert | Scope |
+| Metric | Target Value | Scope |
 |---|---|---|
-| WCAG 2.1 Level AA Konformität | 0 kritische Violations | alle Seiten ausser Canvas |
-| WCAG 2.1 Level A Konformität (Canvas) | 0 kritische Violations | Diagramm-Canvas |
-| Automatisierter Axe-Scan (CI) | 0 Violations (Severity: critical, serious) | alle Seiten |
-| Tastaturnavigation: alle primären Workflows | vollständig per Tastatur bedienbar | Web Portal |
+| WCAG 2.1 Level AA conformance | 0 critical violations | all pages except canvas |
+| WCAG 2.1 Level A conformance (canvas) | 0 critical violations | diagram canvas |
+| Automated Axe scan (CI) | 0 violations (severity: critical, serious) | all pages |
+| Keyboard navigation: all primary workflows | fully operable via keyboard | web portal |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Automatisierter Scan grün):
-- Wenn: Axe oder Lighthouse Accessibility-Scan gegen alle Web-Portal-Seiten läuft
-- Dann: 0 Violations mit Severity `critical` oder `serious`
+**AC1** (Automated scan green):
+- When: an Axe or Lighthouse accessibility scan runs against all web portal pages
+- Then: 0 violations with severity `critical` or `serious`
 
-**AC2** (Tastaturnavigation Login):
-- Wenn: Nutzer Tab-Taste verwendet ab Seitenaufruf
-- Dann: Alle Login-Felder, Buttons und Links erreichbar; Fokus-Indikator sichtbar
+**AC2** (Keyboard navigation login):
+- When: the user uses the Tab key from page load
+- Then: all login fields, buttons, and links are reachable; focus indicator visible
 
-**AC3** (Kontrast):
-- Wenn: Kontrast-Check gegen Design-System-Tokens durchgeführt
-- Dann: Alle Text-/Hintergrundkombinationen erfüllen 4,5:1 (normal) / 3:1 (Grossschrift)
+**AC3** (Contrast):
+- When: a contrast check is performed against the design system tokens
+- Then: all text/background combinations meet 4.5:1 (normal) / 3:1 (large text)
 
-**AC4** (Canvas-Alternativdarstellung):
-- Wenn: Nutzer den Canvas öffnet
-- Dann: Link/Button „Als Liste anzeigen" vorhanden; listet alle Entities und Connections als strukturierte Tabelle
+**AC4** (Canvas alternative representation):
+- When: the user opens the canvas
+- Then: a link/button "Show as list" is present; it lists all entities and connections as a structured table
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: automated-scan (Axe-Core in CI via Playwright oder Cypress)
-- [x] Methode: manual-test (Screenreader-Test mit NVDA/VoiceOver für Login und Katalog)
-- [ ] In CI integriert: ja (Axe-Scan), nein (Screenreader-Test)
+- [x] Method: automated-scan (Axe-Core in CI via Playwright or Cypress)
+- [x] Method: manual-test (screen reader test with NVDA/VoiceOver for login and catalog)
+- [ ] Integrated in CI: yes (Axe scan), no (screen reader test)
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: Design-System mit Farb-Tokens und Fokus-Styles (UI-Design-Phase)
-- **Folgewirkungen**: Canvas-Alternativdarstellung erfordert zusätzliche Implementierungszeit
+- **Prerequisites**: design system with color tokens and focus styles (UI design phase)
+- **Consequences**: canvas alternative representation requires additional implementation time
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Ausschluss von öffentlichen Ausschreibungen (EU 2016/2102)
-- Nutzer mit Sehbehinderung oder motorischen Einschränkungen können das Tool nicht nutzen
+- Exclusion from public tenders (EU 2016/2102)
+- Users with visual impairments or motor limitations cannot use the tool
 
 ## Trade-offs
 
-- Canvas WCAG AA wäre ideal, ist aber für komplexe grafische Editoren technisch sehr aufwändig (D3.js, Vue Flow haben eingeschränkte native Accessibility); Level A + Alternativdarstellung ist pragmatischer Kompromiss
-- Automatisierter Scan deckt ~30–40 % der WCAG-Kriterien ab; manuelle Tests sind für vollständige Konformität nötig
+- Canvas WCAG AA would be ideal, but is technically very costly for complex graphical editors (D3.js, Vue Flow have limited native accessibility); Level A + alternative representation is a pragmatic compromise
+- An automated scan covers ~30–40 % of the WCAG criteria; manual tests are necessary for full conformance
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

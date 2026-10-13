@@ -1,47 +1,47 @@
-# Ableitung aus: requirements/req/req-041-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert) + exploration (UI-Test)
+# Derived from: requirements/req/req-041-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated) + exploration (UI test)
 
 @functional @should @UC-05
-Feature: REQ-041 – Diff-Ansicht aktueller Stand vs. Zielzustand einer Solution
+Feature: REQ-041 – Diff view of current state vs. target state of a solution
 
-  Das System SOLL innerhalb einer Solution eine Diff-Ansicht
-  bereitstellen, die den aktuellen Stand der betroffenen Entitäten
-  (Ausgangsbasis aus REQ-039) dem Zielzustand nach Anwendung aller
-  EntityDeltas (REQ-040) gegenüberstellt und die Unterschiede visuell
-  hervorhebt; die Diff-Ansicht SOLL nach jeder Delta-Änderung
-  aktualisiert werden und DARF NICHT separat persistiert werden.
+  Within a solution, the system SHOULD provide a diff view that
+  contrasts the current state of the affected entities (baseline from
+  REQ-039) with the target state after applying all EntityDeltas
+  (REQ-040) and visually highlights the differences; the diff view
+  SHOULD be updated after each delta change and MUST NOT be persisted
+  separately.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Solution hat ein `new`-Delta für `Salesforce (ApplicationComponent)` und...
-    Given Solution hat ein `new`-Delta für `Salesforce (ApplicationComponent)` und ein `retiring`-Delta für `CRM-Legacy`
-    When  Michael die Diff-Ansicht öffnet
-    Then  erscheinen genau zwei Einträge; `Salesforce` grün markiert (kein Eintrag links), `CRM-Legacy` rot/durchgestrichen rechts
+  Scenario: AC1 – solution has a `new` delta for `Salesforce (ApplicationComponent)` an...
+    Given solution has a `new` delta for `Salesforce (ApplicationComponent)` and a `retiring` delta for `CRM-Legacy`
+    When  Michael opens the diff view
+    Then  exactly two entries appear; `Salesforce` marked green (no entry on the left), `CRM-Legacy` red/struck through on the right
 
   @AC2
-  Scenario: AC2 – Solution hat ein `modified`-Delta für `ERP-Core` (version: v4 → v5)
-    Given Solution hat ein `modified`-Delta für `ERP-Core` (version: v4 → v5)
-    When  Michael die Diff-Ansicht öffnet
-    Then  erscheint `ERP-Core` einmal; linke Seite zeigt `version=v4`, rechte Seite `version=v5`; nur das geänderte Property ist hervorgehoben
+  Scenario: AC2 – solution has a `modified` delta for `ERP-Core` (version: v4 → v5)
+    Given solution has a `modified` delta for `ERP-Core` (version: v4 → v5)
+    When  Michael opens the diff view
+    Then  `ERP-Core` appears once; left side shows `version=v4`, right side `version=v5`; only the changed property is highlighted
 
   @AC3
-  Scenario: AC3 – Michael fügt ein weiteres Delta hinzu (nach dem Öffnen der Diff-Ansicht)
-    Given Michael fügt ein weiteres Delta hinzu (nach dem Öffnen der Diff-Ansicht)
-    When  er das Delta speichert
-    Then  aktualisiert sich die Diff-Ansicht ohne vollständiges Neuladen und zeigt die neue Entität
+  Scenario: AC3 – Michael adds another delta (after opening the diff view)
+    Given Michael adds another delta (after opening the diff view)
+    When  he saves the delta
+    Then  the diff view updates without a full reload and shows the new entity
 
   @AC4
-  Scenario: AC4 – Solution hat keine Deltas
-    Given Solution hat keine Deltas
-    When  Michael die Diff-Ansicht öffnet
-    Then  erscheint der Hinweis „Noch keine Änderungen erfasst"; kein Fehler
+  Scenario: AC4 – solution has no deltas
+    Given solution has no deltas
+    When  Michael opens the diff view
+    Then  the notice "No changes captured yet" appears; no error
 
   @AC5
-  Scenario: AC5 – Solution hat 20 Deltas verschiedener Typen
-    Given Solution hat 20 Deltas verschiedener Typen
-    When  Michael die Diff-Ansicht öffnet
-    Then  werden alle 20 Deltas dargestellt; Entitäten ohne Delta sind **nicht** sichtbar (kein Landschafts-Dump)
+  Scenario: AC5 – solution has 20 deltas of different types
+    Given solution has 20 deltas of different types
+    When  Michael opens the diff view
+    Then  all 20 deltas are shown; entities without a delta are **not** visible (no landscape dump)

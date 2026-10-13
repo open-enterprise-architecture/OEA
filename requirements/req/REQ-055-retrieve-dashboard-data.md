@@ -1,6 +1,6 @@
 ---
 id: REQ-055
-title: Dashboard-Daten live berechnen und abrufen
+title: Calculate and retrieve dashboard data live
 type: functional
 priority: should
 status: proposed
@@ -25,33 +25,33 @@ references:
     - SH-06
     - SH-07
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-055: Dashboard-Daten live berechnen und abrufen
+# REQ-055: Calculate and retrieve dashboard data live
 
-## Aussage
+## Statement
 
-Das System MUSS auf Abruf die aktuellen Daten für alle Widgets eines [Dashboards](../../business-objects/dashboard.md) berechnen und gesammelt zurückliefern. Die Berechnung MUSS den aktuellen Stand des Architecture-Repositorys widerspiegeln (kein Cache). Scheitert die Daten-Berechnung eines einzelnen Widgets, DARF das NICHT die Berechnung der übrigen Widgets blockieren; das fehlerhaften Widget liefert einen isolierten Fehler-Status, alle anderen Widgets liefern normale Daten.
+The system MUST, on request, calculate the current data for all widgets of a [dashboard](../../business-objects/dashboard.md) and return it collectively. The calculation MUST reflect the current state of the architecture repository (no cache). If the data calculation of a single widget fails, this MUST NOT block the calculation of the remaining widgets; the faulty widget returns an isolated error status, all other widgets return normal data.
 
-## Begründung
+## Rationale
 
-Live-Berechnung stellt sicher, dass C-Level-Dashboards immer den aktuellen Repository-Stand zeigen. Widget-Fehler-Isolation verhindert, dass ein defektes Widget (z.B. durch Metamodell-Änderung) das ganze Dashboard unbrauchbar macht.
+Live calculation ensures that C-level dashboards always show the current repository state. Widget error isolation prevents a defective widget (e.g., due to a metamodel change) from making the entire dashboard unusable.
 
-## Kontext
+## Context
 
-`text`-Widgets haben keine DataSource und liefern keine berechneten Daten; sie erscheinen im Response mit `status=static`. `globalFilters` des Dashboards werden auf alle PropertyAggregation-DataSources AND-verknüpft; CatalogQuery-DataSources ignorieren `globalFilters` (verwenden stattdessen ihre eigenen Katalog-Filter plus Widget-`additionalFilters`).
+`text` widgets have no DataSource and return no calculated data; they appear in the response with `status=static`. The dashboard's `globalFilters` are combined with all PropertyAggregation DataSources using AND; CatalogQuery DataSources ignore `globalFilters` (they use their own catalog filters plus the widget's `additionalFilters` instead).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### API-Endpunkt
+### API Endpoint
 
 `GET /api/v1/dashboards/{id}/data`
 
-**Response-Struktur (HTTP 200)**:
+**Response structure (HTTP 200)**:
 
 ```json
 {
@@ -91,68 +91,68 @@ Live-Berechnung stellt sicher, dass C-Level-Dashboards immer den aktuellen Repos
     "<widgetId-broken>": {
       "status": "error",
       "type": "kpi",
-      "error": "PropertyDefinition 'investitionskostenPrognose' nicht auf EntityType 'plateau' gefunden"
+      "error": "PropertyDefinition 'investitionskostenPrognose' not found on EntityType 'plateau'"
     }
   }
 }
 ```
 
-### Verarbeitungsreihenfolge pro Widget
+### Processing Order per Widget
 
-1. DataSource-Typ bestimmen
-2. **PropertyAggregation**: globalFilters AND widget.filters anwenden; Aggregation auf Entity-Store ausführen; groupBy aufschlüsseln
-3. **CatalogQuery**: Katalog-Abfrage-API (REQ-046) mit widget.savedViewId und widget.additionalFilters aufrufen; pageSize aus Widget-Konfiguration
-4. **text**: kein API-Aufruf; `status=static` zurückgeben
-5. Bei Exception in einem Widget: `status=error` mit Fehlermeldung; nächstes Widget fortfahren
+1. Determine the DataSource type
+2. **PropertyAggregation**: apply globalFilters AND widget.filters; execute aggregation on the entity store; break down by groupBy
+3. **CatalogQuery**: call the catalog query API (REQ-046) with widget.savedViewId and widget.additionalFilters; pageSize from widget configuration
+4. **text**: no API call; return `status=static`
+5. On an exception in a widget: `status=error` with error message; continue with the next widget
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser |
+| Rule-ID | Statement | Trigger |
 |---|---|---|
-| BR-01 | Jedes Widget wird unabhängig berechnet; Fehler in Widget N blockiert Widget N+1 nicht | onQuery |
-| BR-02 | `globalFilters` des Dashboards werden auf PropertyAggregation-DataSources angewendet; CatalogQuery-Widgets ignorieren `globalFilters` | onQuery |
-| BR-03 | Keine Caching-Schicht in v1.0; jeder Aufruf berechnet Live-Daten | onQuery |
-| BR-04 | `text`-Widgets liefern immer `status=static`; kein Datenbankzugriff | onQuery |
+| BR-01 | Each widget is calculated independently; an error in widget N does not block widget N+1 | onQuery |
+| BR-02 | The dashboard's `globalFilters` are applied to PropertyAggregation DataSources; CatalogQuery widgets ignore `globalFilters` | onQuery |
+| BR-03 | No caching layer in v1.0; every call calculates live data | onQuery |
+| BR-04 | `text` widgets always return `status=static`; no database access | onQuery |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Erfolgreiches Dashboard mit gemischten Widgets):
-- Gegeben: Dashboard mit KPI-, Chart- und Table-Widget (alle gültige DataSources)
-- Wenn: GET /api/v1/dashboards/{id}/data
-- Dann: HTTP 200; alle 3 Widgets mit `status=ok`; `calculatedAt` enthält aktuellen Timestamp
+**AC1** (Successful dashboard with mixed widgets):
+- Given: Dashboard with KPI, chart and table widget (all valid DataSources)
+- When: GET /api/v1/dashboards/{id}/data
+- Then: HTTP 200; all 3 widgets with `status=ok`; `calculatedAt` contains the current timestamp
 
-**AC2** (Fehler-Isolation):
-- Gegeben: Dashboard mit 3 Widgets; Widget 2 hat ungültige PropertyDefinition (Metamodell geändert)
-- Wenn: GET /api/v1/dashboards/{id}/data
-- Dann: Widget 1 und 3 → `status=ok`; Widget 2 → `status=error` mit Fehlermeldung; HTTP 200 (kein 500)
+**AC2** (Error isolation):
+- Given: Dashboard with 3 widgets; widget 2 has an invalid PropertyDefinition (metamodel changed)
+- When: GET /api/v1/dashboards/{id}/data
+- Then: Widgets 1 and 3 → `status=ok`; widget 2 → `status=error` with error message; HTTP 200 (not 500)
 
-**AC3** (KPI: Wert = null bei leeren Daten):
-- Gegeben: PropertyAggregation auf EntityType ohne Instanzen
-- Wenn: Daten abrufen
-- Dann: `{ "status": "ok", "data": { "value": null } }`; kein Fehler
+**AC3** (KPI: value = null for empty data):
+- Given: PropertyAggregation on an EntityType without instances
+- When: Retrieve data
+- Then: `{ "status": "ok", "data": { "value": null } }`; no error
 
-**AC4** (globalFilter anwenden):
-- Gegeben: Dashboard mit globalFilter `status eq 'active'`; KPI-Widget aggregiert über `plateau`
-- Wenn: GET /api/v1/dashboards/{id}/data
-- Dann: Nur Plateaus mit status=active fliessen in die Aggregation ein
+**AC4** (Apply globalFilter):
+- Given: Dashboard with globalFilter `status eq 'active'`; KPI widget aggregates over `plateau`
+- When: GET /api/v1/dashboards/{id}/data
+- Then: Only plateaus with status=active are included in the aggregation
 
-**AC5** (Text-Widget):
-- Gegeben: Dashboard hat ein text-Widget
-- Wenn: Daten abrufen
-- Dann: `{ "status": "static", "type": "text" }`; kein DB-Aufruf für dieses Widget
+**AC5** (Text widget):
+- Given: Dashboard has a text widget
+- When: Retrieve data
+- Then: `{ "status": "static", "type": "text" }`; no DB call for this widget
 
-**AC6** (Live-Daten):
-- Gegeben: Plateau-Instanz erhält neuen Wert für investitionskostenPrognose
-- Wenn: GET /api/v1/dashboards/{id}/data unmittelbar danach
-- Dann: KPI-Wert spiegelt den neuen Wert wider (kein veralteter Cache)
+**AC6** (Live data):
+- Given: Plateau instance receives a new value for investitionskostenPrognose
+- When: GET /api/v1/dashboards/{id}/data immediately afterwards
+- Then: KPI value reflects the new value (no stale cache)
 
-## Abhängigkeiten
+## Dependencies
 
-- Blockiert durch: REQ-051 (Dashboard), REQ-052 (Widgets), REQ-053 (PropertyAggregation), REQ-054 (CatalogQuery)
-- Nutzt intern: REQ-046 (Katalog-Abfrage-API)
+- Blocked by: REQ-051 (dashboard), REQ-052 (widgets), REQ-053 (PropertyAggregation), REQ-054 (CatalogQuery)
+- Uses internally: REQ-046 (catalog query API)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; Widget-Fehler-Isolation, globalFilters, Live-Berechnung, Response-Schema |
+| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; widget error isolation, globalFilters, live calculation, response schema |

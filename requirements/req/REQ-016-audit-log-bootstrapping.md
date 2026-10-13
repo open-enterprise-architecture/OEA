@@ -1,6 +1,6 @@
 ---
 id: REQ-016
-title: Audit-Log-Eintrag für den Bootstrapping-Vorgang
+title: Audit log entry for the bootstrapping process
 type: compliance
 priority: must
 status: proposed
@@ -17,90 +17,90 @@ references:
   stakeholders:
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-016: Audit-Log-Eintrag für den Bootstrapping-Vorgang
+# REQ-016: Audit log entry for the bootstrapping process
 
-## Aussage
+## Statement
 
-Das System MUSS jeden abgeschlossenen oder abgelehnten Bootstrapping-Vorgang mit Zeitpunkt, gewähltem Modus (lokal/remote) und Ergebnis im Audit-Log erfassen.
+The system MUST record every completed or rejected bootstrapping process in the audit log with timestamp, chosen mode (local/remote), and result.
 
-## Begründung
+## Rationale
 
-Der Bootstrapping-Vorgang erzeugt den ersten privilegierten Zugang einer Instanz – ein sicherheitskritisches Ereignis, das nachvollziehbar sein muss, auch weil zu diesem Zeitpunkt noch kein reguläres RBAC greift. UC-02, Nachbedingungen bei Erfolg und Exception Flows.
+The bootstrapping process creates the first privileged access of an instance – a security-critical event that must be traceable, also because no regular RBAC applies at that point yet. UC-02, postconditions on success and exception flows.
 
-## Kontext
+## Context
 
-Gilt für den Hauptablauf (lokal), Alternative A1 (remote) und A2 (kombiniert), sowie für abgelehnte Versuche (E3, REQ-015).
+Applies to the Basic Flow (local), Alternative A1 (remote) and A2 (combined), as well as to rejected attempts (E3, REQ-015).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=compliance
+### For type=compliance
 
-**Regelwerk**: internes Audit-/Nachvollziehbarkeits-Prinzip von OEA (siehe Konzept §22 Auswertbarkeit), kompatibel zu ISO 27001 / DORA-Audit-Trail-Anforderungen
+**Rule set**: OEA's internal audit/traceability principle (see concept §22 Analyzability), compatible with ISO 27001 / DORA audit trail requirements
 
-**Konkrete Vorschrift**: Jeder Bootstrapping-Vorgang (erfolgreich oder abgelehnt) ist mit Zeitpunkt, Modus und Ergebnis zu protokollieren
+**Specific provision**: Every bootstrapping process (successful or rejected) must be logged with timestamp, mode, and result
 
-**Nachweis-Anforderung**: Audit-Log muss auch für Ereignisse vor jeder regulären Person-/Role-Konfiguration zugänglich sein (z.B. über lokale Log-Datei oder Datenbank, nicht ausschließlich über eine UI, die RBAC voraussetzt)
+**Evidence requirement**: The audit log must also be accessible for events before any regular person/role configuration (e.g., via a local log file or database, not exclusively via a UI that requires RBAC)
 
-**Audit-Relevanz**: ja, besonders hohe Relevanz, da Bootstrapping den ersten privilegierten Zugang erzeugt
+**Audit relevance**: yes, particularly high relevance, since bootstrapping creates the first privileged access
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein erfolgreich abgeschlossener lokaler oder remote Bootstrapping-Vorgang
-- Wenn: er abgeschlossen ist
-- Dann: enthält das Audit-Log einen Eintrag mit Zeitpunkt, Modus und Ergebnis `success`
+- Given: a successfully completed local or remote bootstrapping process
+- When: it is completed
+- Then: the audit log contains an entry with timestamp, mode, and result `success`
 
 **AC2**:
-- Gegeben: ein abgelehnter Bootstrapping-Versuch (z.B. wegen REQ-015)
-- Wenn: die Ablehnung erfolgt
-- Dann: enthält das Audit-Log einen Eintrag mit Zeitpunkt und Ergebnis `rejected`
+- Given: a rejected bootstrapping attempt (e.g., due to REQ-015)
+- When: the rejection occurs
+- Then: the audit log contains an entry with timestamp and result `rejected`
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Bootstrapping-Versuche (erfolgreich, abgelehnt) gegen Audit-Log-Inhalt prüfen
-- [x] Mess-Werkzeug: Test-Suite + Audit-Log-Reader
-- [x] Bestanden-Kriterium: AC1, AC2 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: check bootstrapping attempts (successful, rejected) against the audit log content
+- [x] Measurement tool: test suite + audit log reader
+- [x] Pass criterion: AC1, AC2 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-013, REQ-014, REQ-015
-- **Folgewirkungen**: keine bekannt
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-013, REQ-014, REQ-015
+- **Downstream effects**: none known
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne Protokollierung des Bootstrapping-Vorgangs fehlt die forensische Grundlage, falls ein System-Admin-Zugang missbräuchlich erzeugt wurde – schwerwiegend
+- Risk 1: Without logging of the bootstrapping process, the forensic basis is missing if a system admin access was created abusively – severe
 
 ## Trade-offs
 
-- keine bekannt
+- none known
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Audit-Log-Mechanismus sollte derselbe sein wie in REQ-005 (UC-01), aber muss bereits funktionieren, bevor reguläre Person-/Role-Daten existieren
+- The audit log mechanism should be the same as in REQ-005 (UC-01), but must already work before regular person/role data exist
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-02, Nachbedingungen bei Erfolg.
+Derived from UC-02, postconditions on success.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft aus UC-02 |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-02 |

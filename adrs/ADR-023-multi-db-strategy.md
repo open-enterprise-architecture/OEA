@@ -1,104 +1,104 @@
-# ADR-023: Multi-DB-Strategie — Datenbankabstraktion via JPA/Hibernate
+# ADR-023: Multi-DB Strategy — Database Abstraction via JPA/Hibernate
 
 **Status**: accepted
-**Datum**: 2026-06-29
-**Entscheider**: [Lukas – Repository-Inhaber](../business-analysis/stakeholders/SH-01-lukas-enterprise-architect.md)
+**Date**: 2026-06-29
+**Deciders**: [Lukas – Repository Owner](../business-analysis/stakeholders/SH-01-lukas-enterprise-architect.md)
 
 ---
 
-## Kontext
+## Context
 
-Das bisherige Datenmodell verwendet `JSONB` an mehreren Stellen — ein PostgreSQL-spezifischer Typ,
-der auf MySQL, MariaDB, SQL Server und eingebetteten Test-Datenbanken (H2) nicht verfügbar ist.
+The previous data model uses `JSONB` in several places — a PostgreSQL-specific type
+that is not available on MySQL, MariaDB, SQL Server, and embedded test databases (H2).
 
-OEA richtet sich an Unternehmen unterschiedlicher Grösse und IT-Landschaft. Viele Organisationen
-betreiben bereits lizenzierte relationale Datenbanken (SQL Server, MySQL) und wollen keine neue
-PostgreSQL-Instanz einführen. Eine Bindung an PostgreSQL würde die Adoptionsschwelle erhöhen.
+OEA targets companies of different sizes and IT landscapes. Many organizations
+already operate licensed relational databases (SQL Server, MySQL) and do not want to introduce
+a new PostgreSQL instance. Binding to PostgreSQL would raise the adoption threshold.
 
 ---
 
-## Entscheidung
+## Decision
 
-OEA verwendet **JPA/Hibernate** (via Spring Data JPA) als Datenbankabstraktionsschicht und
-verzichtet auf datenbankspezifische Typen im Datenbankschema.
+OEA uses **JPA/Hibernate** (via Spring Data JPA) as the database abstraction layer and
+refrains from using database-specific types in the database schema.
 
-### Unterstützte Datenbanken (v1.0)
+### Supported Databases (v1.0)
 
-| Datenbank | Mindestversion | Anmerkung |
+| Database | Minimum version | Note |
 |---|---|---|
-| PostgreSQL | 14+ | Primäre Entwicklungs- und Referenz-DB |
-| MySQL | 8.0+ | `utf8mb4`, `STRICT_TRANS_TABLES` zwingend |
-| MariaDB | 10.6+ | MySQL-kompatibel |
-| SQL Server | 2019+ | `READ_COMMITTED_SNAPSHOT` empfohlen |
-| H2 | 2.x | Nur für Tests und lokale Entwicklung |
+| PostgreSQL | 14+ | Primary development and reference DB |
+| MySQL | 8.0+ | `utf8mb4`, `STRICT_TRANS_TABLES` mandatory |
+| MariaDB | 10.6+ | MySQL-compatible |
+| SQL Server | 2019+ | `READ_COMMITTED_SNAPSHOT` recommended |
+| H2 | 2.x | Only for tests and local development |
 
-### Konsequenzen für den Datenbanktyp-Einsatz
+### Consequences for the Use of Database Types
 
-**JSONB wird durch `TEXT` (CLOB) ersetzt.** Die Serialisierung von strukturierten Daten zu JSON
-erfolgt ausschliesslich auf Applikationsebene via JPA `@Converter`.
+**JSONB is replaced by `TEXT` (CLOB).** The serialization of structured data to JSON
+happens exclusively at application level via JPA `@Converter`.
 
-| Bisherig | Ersatz | Begründung |
+| Previous | Replacement | Rationale |
 |---|---|---|
-| `JSONB` (i18n_labels) | `i18n_entries`-Tabelle | normalisierbar, kein JSON nötig |
-| `JSONB` (constraints) | Einzelspalten `max_length`, `min_value`, `max_value`, `pattern` | typisierbar |
-| `JSONB` (metamodel_configurations.config) | `TEXT` (CLOB) | zu komplex zum Normalisieren in v1; kein DB-Query-Bedarf |
-| `JSONB` (catalogs.config) | `TEXT` (CLOB) | View-Konfiguration; kein DB-Query-Bedarf |
+| `JSONB` (i18n_labels) | `i18n_entries` table | normalizable, no JSON needed |
+| `JSONB` (constraints) | Individual columns `max_length`, `min_value`, `max_value`, `pattern` | typeable |
+| `JSONB` (metamodel_configurations.config) | `TEXT` (CLOB) | too complex to normalize in v1; no DB query need |
+| `JSONB` (catalogs.config) | `TEXT` (CLOB) | view configuration; no DB query need |
 
-**Arrays (`TEXT[]`, `UUID[]`) sind verboten.** Postgres-Arrays sind nicht portable.
-Alle Array-Felder wurden in der Normalisierungsrunde (ADR-022) bereits in Join-Tabellen überführt.
+**Arrays (`TEXT[]`, `UUID[]`) are forbidden.** Postgres arrays are not portable.
+All array fields were already converted into join tables in the normalization round (ADR-022).
 
-**PostgreSQL-spezifische Funktionen** (z.B. `gen_random_uuid()`, `NOW()`) werden nicht
-direkt in Migrations-Scripts verwendet — stattdessen Hibernate-Defaults oder DB-agnostische
-Äquivalente in Flyway-Scripts mit DB-spezifischen Kompatibilitätspfaden.
+**PostgreSQL-specific functions** (e.g. `gen_random_uuid()`, `NOW()`) are not used
+directly in migration scripts — instead Hibernate defaults or DB-agnostic
+equivalents in Flyway scripts with DB-specific compatibility paths.
 
-### i18n-Strategie
+### i18n Strategy
 
-**Datensatz-Felder** (name, description von Entitäten, Business Objects) werden in der
-Konzernsprache der jeweiligen OEA-Instanz gespeichert. Keine Mehrsprachigkeit auf Datensatzebene.
+**Record fields** (name, description of entities, business objects) are stored in the
+corporate language of the respective OEA instance. No multilingualism at record level.
 
-**UI-Labels, Menüs, Systemmeldungen** werden über `vue-i18n` (statische JSON-Dateien) verwaltet.
-Neue Sprache = neues Translation-Bundle, kein Datenbankeingriff.
+**UI labels, menus, system messages** are managed via `vue-i18n` (static JSON files).
+New language = new translation bundle, no database intervention.
 
-**Konfigurierbare Labels** (MetaTyp-Namen, Property-Labels, Enum-Werte, Kategorie-Namen, Rollen)
-werden in einer normalisierten `i18n_entries`-Tabelle gespeichert, da diese durch Administratoren
-zur Laufzeit angepasst werden können müssen.
+**Configurable labels** (meta type names, property labels, enum values, category names, roles)
+are stored in a normalized `i18n_entries` table, since these must be adjustable by administrators
+at runtime.
 
 ---
 
-## Verworfene Alternativen
+## Rejected Alternatives
 
 ### PostgreSQL-only
-Einfachstes Setup, bestes Ökosystem (JSONB, pg_trgm, etc.). Aber: schränkt Adoption in
-SQL-Server- und MySQL-lastigen Unternehmen ein. **Verworfen**: Marktchance zu hoch.
+Simplest setup, best ecosystem (JSONB, pg_trgm, etc.). But: restricts adoption in
+SQL Server- and MySQL-heavy companies. **Rejected**: Market opportunity too high.
 
-### Dokumentdatenbank (MongoDB) parallel
-Würde JSON-Daten elegant lösen, aber erhöht Betriebskomplexität erheblich. **Verworfen** für v1.
+### Document database (MongoDB) in parallel
+Would solve JSON data elegantly, but increases operational complexity considerably. **Rejected** for v1.
 
-### Abstraktion via Repository-Pattern ohne JPA
-Mehr Kontrolle, aber kein vertretbarer Aufwand für Open-Source v1. **Verworfen**.
-
----
-
-## Konsequenzen
-
-**Positiv:**
-- OEA läuft auf allen gängigen Enterprise-Datenbanken ohne Anpassung
-- Tests können mit H2 in-memory laufen (kein PostgreSQL nötig)
-- Kein Vendor-Lock-in auf Datenbankebene
-
-**Negativ / Kompromisse:**
-- `config`-Felder (metamodel, catalogs) als TEXT/CLOB: kein DB-seitiger JSON-Query möglich
-- Flyway-Migrations müssen ggf. DB-spezifische Varianten haben (PostgreSQL vs. SQL Server Dialekt)
-- Hibernate-Dialekt muss pro Deployment konfiguriert werden
+### Abstraction via repository pattern without JPA
+More control, but not justifiable effort for open-source v1. **Rejected**.
 
 ---
 
-## Betroffene Konzept-Kapitel
+## Consequences
 
-- §6 (Entity-Modell), §9 (Metamodell), §21 (Tech-Stack)
+**Positive:**
+- OEA runs on all common enterprise databases without adjustment
+- Tests can run with H2 in-memory (no PostgreSQL needed)
+- No vendor lock-in at database level
 
-## Verwandte ADRs
+**Negative / Compromises:**
+- `config` fields (metamodel, catalogs) as TEXT/CLOB: no DB-side JSON query possible
+- Flyway migrations may need DB-specific variants (PostgreSQL vs. SQL Server dialect)
+- Hibernate dialect must be configured per deployment
 
-- ADR-006: Backend-Tech-Stack (Java/Spring)
-- ADR-022: Strukturiertes Property-Modell
-- ADR-024: Audit-Separation
+---
+
+## Affected Concept Chapters
+
+- §6 (Entity Model), §9 (Metamodel), §21 (Tech Stack)
+
+## Related ADRs
+
+- ADR-006: Backend tech stack (Java/Spring)
+- ADR-022: Structured property model
+- ADR-024: Audit separation

@@ -1,6 +1,6 @@
 ---
 id: REQ-106
-title: Teilwiederherstellung restoredFields Protokoll
+title: Partial Restore restoredFields Log
 type: functional
 priority: should
 status: proposed
@@ -21,43 +21,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-106: Teilwiederherstellung restoredFields Protokoll
+# REQ-106: Partial Restore restoredFields Log
 
-## Aussage
+## Statement
 
-Bei jeder Teilwiederherstellung MUSS der neue EntityVersion-Eintrag die exakte Liste der wiederhergestellten Felder in Dot-Notation als `restoredFields` enthalten (z.B. `["description", "properties.owner"]`). Eine Teilwiederherstellung ohne ausgewählte Felder (`restoredFields` leer) MUSS abgewiesen werden. In der Zeitlinie (UC-14) MUSS der Eintrag als "Teilweise wiederhergestellt aus vN (field1, field2)" lesbar sein.
+For every partial restore, the new EntityVersion entry MUST contain the exact list of restored fields in dot notation as `restoredFields` (e.g. `["description", "properties.owner"]`). A partial restore without selected fields (`restoredFields` empty) MUST be rejected. In the timeline (UC-14), the entry MUST be readable as "Partially restored from vN (field1, field2)".
 
-## Begründung
+## Rationale
 
-Ohne `restoredFields`-Protokoll ist in der Zeitlinie nicht erkennbar, was bei einer Teilwiederherstellung tatsächlich geändert wurde — der Audit-Trail wäre unvollständig und für Compliance-Zwecke unbrauchbar.
+Without a `restoredFields` log, it is not recognizable in the timeline what was actually changed in a partial restore — the audit trail would be incomplete and unusable for compliance purposes.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (restoredFields im Versionseintrag):
-- Wenn: eine Teilwiederherstellung mit `description` und `properties.owner` ausgeführt wird
-- Dann: enthält der neue EntityVersion-Eintrag `restoredFields=["description","properties.owner"]`
+**AC1** (restoredFields in the version entry):
+- When: a partial restore is executed with `description` and `properties.owner`
+- Then: the new EntityVersion entry contains `restoredFields=["description","properties.owner"]`
 
-**AC2** (Leere Auswahl abweisen):
-- Wenn: keine Felder ausgewählt wurden und der Bestätigen-Button geklickt wird
-- Dann: ist der Button deaktiviert; ein API-Aufruf mit leerem `restoredFields` wird mit HTTP 422 abgewiesen
+**AC2** (Reject empty selection):
+- When: no fields were selected and the confirm button is clicked
+- Then: the button is disabled; an API call with empty `restoredFields` is rejected with HTTP 422
 
-**AC3** (Zeitlinie-Lesbarkeit):
-- Wenn: die Zeitlinie nach einer Teilwiederherstellung angezeigt wird
-- Dann: zeigt der Eintrag "Teilweise wiederhergestellt aus v4 (description, properties.owner)"
+**AC3** (Timeline readability):
+- When: the timeline is displayed after a partial restore
+- Then: the entry shows "Partially restored from v4 (description, properties.owner)"
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-102 (Audit-Snapshot), REQ-103 (atomare Transaktion), REQ-105 (Feldauswahl)
-- **Folgewirkungen**: keine
+- **Prerequisites**: REQ-102 (audit snapshot), REQ-103 (atomic transaction), REQ-105 (field selection)
+- **Consequences**: none
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- `restoredFields`-Array als JSONB-Spalte in `entity_versions`-Tabelle
-- API-Validierung: `restoredFields` darf nicht leer sein; HTTP 422 bei leerem Array
-- Zeitlinie-Darstellung: Feld-Liste als aufklappbarer Tooltip für lange Listen
+- `restoredFields` array as a JSONB column in the `entity_versions` table
+- API validation: `restoredFields` must not be empty; HTTP 422 for an empty array
+- Timeline display: field list as a collapsible tooltip for long lists
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

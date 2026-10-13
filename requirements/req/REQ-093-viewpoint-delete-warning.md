@@ -1,6 +1,6 @@
 ---
 id: REQ-093
-title: Viewpoint-Löschung mit Diagramm-Warnung
+title: Viewpoint deletion with diagram warning
 type: functional
 priority: must
 status: proposed
@@ -21,39 +21,39 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-093: Viewpoint-Löschung mit Diagramm-Warnung
+# REQ-093: Viewpoint deletion with diagram warning
 
-## Aussage
+## Statement
 
-Beim Löschen eines user-defined Viewpoints MUSS das System prüfen, ob Diagramme diesen Viewpoint referenzieren, und eine Warnung mit der Anzahl betroffener Diagramme anzeigen. Die Löschung wird nicht blockiert; betroffene Diagramme referenzieren nach der Löschung keinen gültigen Viewpoint mehr und erhalten in der UI einen entsprechenden Hinweis.
+When deleting a user-defined viewpoint, the system MUST check whether diagrams reference this viewpoint and display a warning with the number of affected diagrams. Deletion is not blocked; after deletion, affected diagrams no longer reference a valid viewpoint and receive a corresponding note in the UI.
 
-## Begründung
+## Rationale
 
-Viewpoints können in Produktion von vielen Diagrammen genutzt werden. Eine stille Löschung ohne Warnung würde Nutzer überraschen und verwaiste Diagramm-Referenzen unbemerkt erzeugen.
+Viewpoints may be used by many diagrams in production. A silent deletion without a warning would surprise users and create orphaned diagram references unnoticed.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Warnung bei genutztem Viewpoint):
-- Wenn: ein Viewpoint gelöscht wird, der von 5 Diagrammen genutzt wird
-- Dann: zeigt das System die Warnung "5 Diagramme werden betroffen"; nach Bestätigung wird gelöscht
+**AC1** (Warning for a used viewpoint):
+- When: a viewpoint that is used by 5 diagrams is deleted
+- Then: the system shows the warning "5 diagrams will be affected"; after confirmation it is deleted
 
-**AC2** (Keine Warnung bei ungenutztem Viewpoint):
-- Wenn: ein Viewpoint gelöscht wird, der von keinem Diagramm genutzt wird
-- Dann: erfolgt eine direkte Bestätigung ohne Warnungsdialog
+**AC2** (No warning for an unused viewpoint):
+- When: a viewpoint that is used by no diagram is deleted
+- Then: a direct confirmation occurs without a warning dialog
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-090 (Viewpoint-Verwaltung)
-- **Folgewirkungen**: betroffene Diagramme zeigen Hinweis auf fehlenden Viewpoint
+- **Prerequisites**: REQ-090 (viewpoint management)
+- **Downstream effects**: affected diagrams show a note about the missing viewpoint
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Pre-Delete-Check: COUNT der Diagramme mit Referenz auf diesen Viewpoint-ID
-- Betroffene Diagramme erhalten `viewpointId=null` nach Löschung; UI zeigt Hinweisbanner
-- Warnung als Modal-Dialog vor Ausführung der Löschung
+- Pre-delete check: COUNT of diagrams referencing this viewpoint ID
+- Affected diagrams receive `viewpointId=null` after deletion; UI shows a notice banner
+- Warning as a modal dialog before executing the deletion
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

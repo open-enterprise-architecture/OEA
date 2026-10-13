@@ -1,196 +1,196 @@
-# Requirements-Engineering-Templates
+# Requirements Engineering Templates
 
-Sieben Markdown-Templates für die Requirements-Phase: **Stakeholder**, **Business Object**, **Use Cases**, **Requirements** (alle Typen), **User Stories**, **NFRs** und ADR-Template (separat in `adrs/`). Sie bauen aufeinander auf und referenzieren das Konzeptpapier sowie das ADR-Verzeichnis.
+Seven Markdown templates for the requirements phase: **Stakeholder**, **Business Object**, **Use Cases**, **Requirements** (all types), **User Stories**, **NFRs**, and the ADR template (separate in `adrs/`). They build on each other and reference the concept paper as well as the ADR directory.
 
-## Übersicht
+## Overview
 
-| Template | Wofür | Wann | Dateiname-Schema |
+| Template | Purpose | When | File Name Scheme |
 |---|---|---|---|
-| `stakeholder.template.md` | Konkrete Personen/Rollen mit Concerns | Zuerst – ohne Stakeholder keine Priorisierung | `SH-NN-kurzname.md` |
-| `business-object.template.md` | Fachliche Domain-Modellierung mit Attributen, Beziehungen, Lifecycle | **Vor** Use Cases – Domain Model first | `<english-kebab-case>.md` |
-| `use-case.template.md` | Zielorientierte Nutzer-Szenarien mit Pre/Post, Flows, Datenfluss | Nach Stakeholdern und Business Objects | `UC-NN-kurzname.md` |
-| `requirement.template.md` | Atomare Requirements aller Typen (functional, NFR, constraint, business-rule, data, interface, compliance) | **Nach** Use Cases | `REQ-NNN-kurzname.md` |
-| `user-story.template.md` | Granulare Backlog-Items, in 1-3 Tagen umsetzbar | Bei Implementierungsplanung | `US-NNN-kurzname.md` |
-| `nfr.template.md` | Nicht-funktionale Anforderungen mit Zielwerten (Legacy – kann durch `requirement.template.md` mit `type: non-functional` ersetzt werden) | Parallel zu Use Cases | `NFR-NN-kurzname.md` |
+| `stakeholder.template.md` | Concrete persons/roles with concerns | First – without stakeholders no prioritization | `SH-NN-shortname.md` |
+| `business-object.template.md` | Business domain modeling with attributes, relationships, lifecycle | **Before** use cases – domain model first | `<english-kebab-case>.md` |
+| `use-case.template.md` | Goal-oriented user scenarios with pre/post conditions, flows, data flow | After stakeholders and business objects | `UC-NN-shortname.md` |
+| `requirement.template.md` | Atomic requirements of all types (functional, NFR, constraint, business-rule, data, interface, compliance) | **After** use cases | `REQ-NNN-shortname.md` |
+| `user-story.template.md` | Granular backlog items, implementable in 1-3 days | During implementation planning | `US-NNN-shortname.md` |
+| `nfr.template.md` | Non-functional requirements with target values (legacy – can be replaced by `requirement.template.md` with `type: non-functional`) | In parallel with use cases | `NFR-NN-shortname.md` |
 
-ADR-Template liegt separat in `adrs/adr.template.md` (näher bei den ADR-Dokumenten).
+The ADR template is located separately in `adrs/adr.template.md` (closer to the ADR documents).
 
-## Wie die Templates zusammenhängen
+## How the Templates Relate
 
 ```
 Stakeholder (SH)
-    ↓ hat Concern → adressiert durch
+    ↓ has concern → addressed by
 Use Case (UC)
-    ↓ wird zerlegt in
+    ↓ is broken down into
 User Stories (US)
-    ↓ implementiert durch
+    ↓ implemented by
 Code + Tests
 
 NFR
-    ↓ gilt für
-Use Cases und Stories
-    ↓ wird verifiziert in
+    ↓ applies to
+Use Cases and Stories
+    ↓ is verified in
 Tests / Monitoring
 ```
 
-**Wichtigste Cross-References**:
+**Most important cross-references**:
 
-- Jede User Story → Use Case → Stakeholder (Trace)
-- Jeder Use Case → mindestens ein Konzept-Kapitel
-- Jede NFR → mindestens ein Stakeholder
-- Major-Architekturentscheidungen → ADR
+- Every user story → use case → stakeholder (trace)
+- Every use case → at least one concept chapter
+- Every NFR → at least one stakeholder
+- Major architecture decisions → ADR
 
-## Empfohlene Repo-Struktur
+## Recommended Repo Structure
 
 ```
 requirements/
-├── README.md                   ← Einstieg, MoSCoW-Übersicht, Trace-Matrix
-├── glossary.md                 ← projektspezifische Begriffsdefinitionen
+├── README.md                   ← entry point, MoSCoW overview, trace matrix
+├── glossary.md                 ← project-specific term definitions
 ├── stakeholders/
 │   ├── SH-01-stefan-solution-architect.md
 │   ├── SH-02-anna-enterprise-architect.md
 │   └── ...
 ├── use-cases/
-│   ├── UC-01-application-erfassen.md
-│   ├── UC-02-bebauungsplan-exportieren.md
+│   ├── UC-01-capture-application.md
+│   ├── UC-02-export-landscape-map.md
 │   └── ...
 ├── user-stories/
-│   ├── US-001-entity-anlegen-cli.md
-│   ├── US-002-validation-error-anzeigen.md
+│   ├── US-001-create-entity-cli.md
+│   ├── US-002-show-validation-error.md
 │   └── ...
 ├── nfr/
 │   ├── NFR-01-response-time-cli.md
-│   ├── NFR-02-repository-skalierung.md
+│   ├── NFR-02-repository-scaling.md
 │   └── ...
-└── traceability.md             ← Trace-Matrix Use Case × Konzept × ADR
+└── traceability.md             ← trace matrix use case × concept × ADR
 ```
 
-## Slash-Commands für OpenCode
+## Slash Commands for OpenCode
 
-Vorschlag für deine `.opencode/commands/`:
+Suggestion for your `.opencode/commands/`:
 
 ### `/new-stakeholder`
 
 ```markdown
-Erstelle eine neue Stakeholder-Datei in requirements/stakeholders/ basierend auf
+Create a new stakeholder file in requirements/stakeholders/ based on
 templates/stakeholder.template.md.
 
-Vorgehen:
-1. Frage nach Name/Rolle für ID-Generierung (SH-NN-kurzname).
-2. Nächste freie SH-NN-Nummer ermitteln.
-3. Template kopieren, Platzhalter ersetzen.
-4. In requirements/README.md die Stakeholder-Liste aktualisieren.
+Procedure:
+1. Ask for name/role for ID generation (SH-NN-shortname).
+2. Determine the next free SH-NN number.
+3. Copy the template, replace placeholders.
+4. Update the stakeholder list in requirements/README.md.
 ```
 
 ### `/new-usecase`
 
 ```markdown
-Erstelle einen neuen Use Case in requirements/use-cases/ basierend auf
+Create a new use case in requirements/use-cases/ based on
 templates/use-case.template.md.
 
-Vorgehen:
-1. Frage nach Titel und primärem Stakeholder.
-2. Validiere, dass der Stakeholder existiert (requirements/stakeholders/).
-3. Nächste freie UC-NN-Nummer ermitteln.
-4. Template kopieren, Platzhalter ersetzen.
-5. Konzept-Bezug: Frage, welche Kapitel betroffen sind, oder schlage basierend auf
-   Titel/Beschreibung aus concept/ Kapitel vor.
-6. In requirements/README.md die Use-Case-Liste aktualisieren.
-7. In stakeholders/SH-NN.md den Use-Case-Bezug nachtragen.
+Procedure:
+1. Ask for title and primary stakeholder.
+2. Validate that the stakeholder exists (requirements/stakeholders/).
+3. Determine the next free UC-NN number.
+4. Copy the template, replace placeholders.
+5. Concept reference: Ask which chapters are affected, or suggest concept/ chapters based on
+   title/description.
+6. Update the use case list in requirements/README.md.
+7. Add the use case reference in stakeholders/SH-NN.md.
 ```
 
 ### `/new-story`
 
 ```markdown
-Erstelle eine neue User Story in requirements/user-stories/ basierend auf
+Create a new user story in requirements/user-stories/ based on
 templates/user-story.template.md.
 
-Vorgehen:
-1. Frage nach Titel und übergeordnetem Use Case.
-2. Validiere, dass der Use Case existiert.
-3. Nächste freie US-NN-Nummer ermitteln (3-stellig, weil mehr Stories als Use Cases).
-4. Template kopieren, Platzhalter ersetzen.
-5. Im Use Case unter "Realisierende Bestandteile" Story nachtragen.
+Procedure:
+1. Ask for title and parent use case.
+2. Validate that the use case exists.
+3. Determine the next free US-NN number (3 digits, because there are more stories than use cases).
+4. Copy the template, replace placeholders.
+5. Add the story in the use case under "Realizing Components".
 ```
 
 ### `/new-nfr`
 
 ```markdown
-Erstelle eine neue NFR in requirements/nfr/ basierend auf templates/nfr.template.md.
+Create a new NFR in requirements/nfr/ based on templates/nfr.template.md.
 
-Vorgehen:
-1. Frage nach Titel und Kategorie.
-2. Nächste freie NFR-NN-Nummer ermitteln.
-3. Erinnere: NFRs ohne messbare Zielwerte sind Wunschdenken – Zielwerttabelle ausfüllen.
-4. Template kopieren, Platzhalter ersetzen.
+Procedure:
+1. Ask for title and category.
+2. Determine the next free NFR-NN number.
+3. Remind: NFRs without measurable target values are wishful thinking – fill in the target value table.
+4. Copy the template, replace placeholders.
 ```
 
 ### `/trace-check`
 
 ```markdown
-Prüfe das requirements/-Verzeichnis auf Vollständigkeit:
+Check the requirements/ directory for completeness:
 
-1. Jeder Use Case hat einen Stakeholder-Bezug? (Pflicht)
-2. Jeder Use Case hat mindestens einen Konzept-Bezug? (Pflicht)
-3. Jede User Story hat einen Use-Case-Bezug? (Pflicht)
-4. Jede NFR hat einen messbaren Zielwert? (Pflicht)
-5. Jeder Stakeholder hat mindestens einen Use Case? (Sonst: warum modelliert?)
-6. Generiere/aktualisiere traceability.md mit Matrix Use Case × Konzept × ADR.
+1. Does every use case have a stakeholder reference? (mandatory)
+2. Does every use case have at least one concept reference? (mandatory)
+3. Does every user story have a use case reference? (mandatory)
+4. Does every NFR have a measurable target value? (mandatory)
+5. Does every stakeholder have at least one use case? (Otherwise: why model them?)
+6. Generate/update traceability.md with the matrix use case × concept × ADR.
 ```
 
-## Praxis-Hinweise
+## Practical Tips
 
-### Beim Stakeholder-Schreiben
+### When Writing Stakeholders
 
-- **Echte Namen aus deinem Umfeld** schlagen abstrakte Personas. Wenn du niemanden namentlich nennst, ist die Persona oft zu generisch.
-- Beginne mit 3-5 Personas, nicht 15. Du kannst später erweitern.
-- Pain Points sind wertvoller als Wünsche. "Sparx EA ist zu teuer" ist klarer als "möchte ein günstiges Tool".
+- **Real names from your environment** beat abstract personas. If you do not name anyone, the persona is often too generic.
+- Start with 3-5 personas, not 15. You can expand later.
+- Pain points are more valuable than wishes. "Sparx EA is too expensive" is clearer than "want a cheap tool".
 
-### Beim Use-Case-Schreiben
+### When Writing Use Cases
 
-- **Zielorientiert, nicht funktional**: "Bebauungsplan exportieren" ist gut, "ApplicationComponent CRUD" ist schlecht.
-- Hauptablauf in maximal 7-10 Schritten. Wenn länger, ist es ein Prozess, kein Use Case.
-- Akzeptanzkriterien müssen prüfbar sein. "Soll schnell sein" ist nicht prüfbar. "Antwortet in <2s" ist prüfbar.
+- **Goal-oriented, not functional**: "Export landscape map (Bebauungsplan)" is good, "ApplicationComponent CRUD" is bad.
+- Basic flow in at most 7-10 steps. If longer, it is a process, not a use case.
+- Acceptance criteria must be verifiable. "Should be fast" is not verifiable. "Responds in <2s" is verifiable.
 
-### Beim NFR-Schreiben
+### When Writing NFRs
 
-- **Immer messbar**, sonst ist es keine NFR.
-- Zielwerte beziehen sich auf bestimmten Scope (z.B. "bei 1000 Entitäten"). Ohne Scope ist die Zahl wertlos.
-- Trade-offs explizit dokumentieren – NFRs konkurrieren oft miteinander.
+- **Always measurable**, otherwise it is not an NFR.
+- Target values refer to a specific scope (e.g. "with 1000 entities"). Without scope the number is worthless.
+- Document trade-offs explicitly – NFRs often compete with each other.
 
-### Beim User-Story-Schreiben
+### When Writing User Stories
 
-- INVEST-Kriterien beachten (Independent, Negotiable, Valuable, Estimable, Small, Testable)
-- Story Points geschätzt im Verhältnis zu anderen Stories, nicht in Stunden
-- Akzeptanzkriterien als Given-When-Then für Klarheit
+- Observe the INVEST criteria (Independent, Negotiable, Valuable, Estimable, Small, Testable)
+- Story points estimated relative to other stories, not in hours
+- Acceptance criteria as Given-When-Then for clarity
 
 ## Anti-Patterns
 
-**1. Use Case = Datenmodell-Auflistung**
-Schlecht: "Use Case: Application Component mit Name, Beschreibung, Owner erfassen"
-Gut: "Als Solution Architect möchte ich eine neue Anwendung erfassen, damit sie in der Landschaftssicht erscheint"
+**1. Use case = data model listing**
+Bad: "Use case: Capture Application Component with name, description, owner"
+Good: "As a solution architect, I want to capture a new application so that it appears in the landscape view"
 
-**2. NFR ohne Zahl**
-Schlecht: "Das Tool soll performant sein"
-Gut: "Die CLI-Validierung eines Repos mit 1000 Entitäten beendet in <30s (p95)"
+**2. NFR without a number**
+Bad: "The tool should be performant"
+Good: "CLI validation of a repo with 1000 entities completes in <30s (p95)"
 
-**3. Stakeholder ohne Concerns**
-Schlecht: "Stakeholder: Enterprise Architect"
-Gut: "Stakeholder: Anna, EA bei Bank X, frustriert von 6 Monaten Sparx-EA-Modellierung ohne sichtbaren Mehrwert, will Git-basierten Workflow"
+**3. Stakeholder without concerns**
+Bad: "Stakeholder: Enterprise Architect"
+Good: "Stakeholder: Anna, EA at bank X, frustrated by 6 months of Sparx EA modeling without visible added value, wants a Git-based workflow"
 
-**4. User Story zu groß**
-Schlecht: "Als Architekt möchte ich das komplette OEA nutzen"
-Gut: "Als Architekt möchte ich eine Application via CLI anlegen, damit sie in nachfolgenden Tests verfügbar ist"
+**4. User story too large**
+Bad: "As an architect, I want to use the complete OEA"
+Good: "As an architect, I want to create an application via CLI so that it is available in subsequent tests"
 
-## Empfohlene Startsequenz
+## Recommended Start Sequence
 
-1. **Tag 1**: README schreiben, Ordner anlegen, Templates kopieren
-2. **Tag 2-3**: 3-5 Stakeholder-Profile (echte Personen, konkrete Pain Points)
-3. **Tag 4-5**: 5-10 Use Cases zu den wichtigsten Pain Points
-4. **Tag 6**: NFRs aus den Use Cases ableiten, Zielwerte konkretisieren
-5. **Tag 7**: Priorisierung (MoSCoW über alle UC und NFR)
-6. **Tag 8**: traceability.md generieren, Lücken finden
-7. **Tag 9-10**: User Stories für MUST-Use-Cases zerlegen (Walking-Skeleton-Backlog)
-8. **Tag 11-12**: Erste ADRs zu blockierenden Entscheidungen (siehe `concept/90-backlog/`)
+1. **Day 1**: Write README, create folders, copy templates
+2. **Day 2-3**: 3-5 stakeholder profiles (real persons, concrete pain points)
+3. **Day 4-5**: 5-10 use cases for the most important pain points
+4. **Day 6**: Derive NFRs from the use cases, make target values concrete
+5. **Day 7**: Prioritization (MoSCoW across all UCs and NFRs)
+6. **Day 8**: Generate traceability.md, find gaps
+7. **Day 9-10**: Break down user stories for MUST use cases (walking skeleton backlog)
+8. **Day 11-12**: First ADRs for blocking decisions (see `concept/90-backlog/`)
 
-Danach kann mit der Implementierung des Walking Skeletons gestartet werden.
+After that, implementation of the walking skeleton can begin.

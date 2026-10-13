@@ -1,6 +1,6 @@
 ---
 id: REQ-149
-title: Eigenschafts-Validierung nach Notwendigkeit
+title: Property Validation by Necessity
 type: functional
 priority: must
 status: proposed
@@ -18,69 +18,69 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-149: Eigenschafts-Validierung nach Notwendigkeit
+# REQ-149: Property Validation by Necessity
 
-## Aussage
+## Statement
 
-Das System **MUSS** beim Speichern einer Entität die Property-Werte gegen die aktiven Metatyp-Property-Mappings validieren und bei `necessity=mandatory` einen Fehler, bei `necessity=warning` eine Warnung zurückgeben; `necessity=optional` erzeugt keinen Hinweis.
+When saving an entity, the system **MUST** validate the property values against the active metatype property mappings and return an error for `necessity=mandatory` and a warning for `necessity=warning`; `necessity=optional` produces no notice.
 
-## Begründung
+## Rationale
 
-Ohne Validierung ist die Notwendigkeitsangabe im Metamodell wirkungslos. Architekten sehen nicht, welche Properties fehlen. Das Metamodell verliert seine steuernde Wirkung.
+Without validation, the necessity specification in the metamodel is ineffective. Architects do not see which properties are missing. The metamodel loses its steering effect.
 
-## Kontext
+## Context
 
-Die aktive Notwendigkeit wird per "neuestes valid_from ≤ heute"-Query ermittelt (ADR-022). Validierung greift beim PUT/PATCH/POST von Entitäten und beim Batch-Write.
+The active necessity is determined via a "latest valid_from ≤ today" query (ADR-022). Validation applies on PUT/PATCH/POST of entities and on batch write.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-**Eingaben**:
-- Entity-Write (POST/PUT/PATCH/Batch)
-- Aktive Mappings für den MetaTyp der Entität
+**Inputs**:
+- Entity write (POST/PUT/PATCH/batch)
+- Active mappings for the MetaType of the entity
 
-**Verarbeitung**:
-- Für jede `mandatory`-Property: fehlt der Wert → Fehler (422)
-- Für jede `warning`-Property: fehlt der Wert → Warnung in Response-Body
-- `optional`-Properties: kein Feedback bei Fehlen
+**Processing**:
+- For every `mandatory` property: value missing → error (422)
+- For every `warning` property: value missing → warning in the response body
+- `optional` properties: no feedback when missing
 
-**Ausgaben**:
-- 422 Unprocessable Entity bei mandatory-Verletzung; Body mit `errors[]` (ValidationError-Schema)
-- 200/201 mit `warnings[]` bei warning-Verletzung
+**Outputs**:
+- 422 Unprocessable Entity on mandatory violation; body with `errors[]` (ValidationError schema)
+- 200/201 with `warnings[]` on warning violation
 
-**Fehlerfälle**:
-- MetaTyp ohne aktives Mapping für eine Property → property wird ignoriert
+**Error Cases**:
+- MetaType without an active mapping for a property → property is ignored
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: MetaTyp M hat Property `version` mit necessity=mandatory
-- Wenn: POST /entities mit MetaTyp M ohne Property `version`
-- Dann: 422; errors[0].field = "properties", errors[0].code = "MANDATORY_MISSING"
+- Given: MetaType M has property `version` with necessity=mandatory
+- When: POST /entities with MetaType M without property `version`
+- Then: 422; errors[0].field = "properties", errors[0].code = "MANDATORY_MISSING"
 
 **AC2**:
-- Gegeben: MetaTyp M hat Property `owner` mit necessity=warning
-- Wenn: POST /entities mit MetaTyp M ohne Property `owner`
-- Dann: 201 Created; Response enthält warnings[0].field = "properties[owner]"
+- Given: MetaType M has property `owner` with necessity=warning
+- When: POST /entities with MetaType M without property `owner`
+- Then: 201 Created; response contains warnings[0].field = "properties[owner]"
 
 **AC3**:
-- Gegeben: POST /entities/batch mit dryRun=true
-- Wenn: mehrere Entitäten, einige mit mandatory-Verletzung
-- Dann: ValidationResult.valid=false; alle Fehler pro Item aufgelistet; keine Persistierung
+- Given: POST /entities/batch with dryRun=true
+- When: several entities, some with a mandatory violation
+- Then: ValidationResult.valid=false; all errors listed per item; no persistence
 
-## Verifikationsmethode
+## Verification Method
 
-- [ ] Methode: test (automatisiert)
-- [ ] Test-Setup: Integration-Test; Metamodell mit mandatory/warning-Properties
-- [ ] Bestanden-Kriterium: Fehler-Codes korrekt; Warnings im Response-Body vorhanden
-- [ ] In CI integriert: ja
+- [ ] Method: test (automated)
+- [ ] Test setup: integration test; metamodel with mandatory/warning properties
+- [ ] Pass criterion: error codes correct; warnings present in the response body
+- [ ] Integrated in CI: yes
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-148 (Stichtag-Mechanismus)
-- **Folgewirkungen**: US-138
+- **Prerequisites**: REQ-148 (effective date mechanism)
+- **Consequences**: US-138
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft aus ADR-022 |
+| 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft from ADR-022 |

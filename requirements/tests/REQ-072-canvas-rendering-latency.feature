@@ -1,34 +1,34 @@
-# Ableitung aus: requirements/req/req-072-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert, Performance-Test im Browser)
+# Derived from: requirements/req/req-072-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated, performance test in browser)
 
 @non-functional @performance @must @UC-05
-Feature: REQ-072 – Canvas-Rendering-Latenz (Diagramm laden und rendern)
+Feature: REQ-072 – Canvas rendering latency (load and render diagram)
 
-  Das System MUSS ein Architektur-Diagramm — vom Öffnen bis zur
-  vollständig interaktiven Darstellung aller Shapes und Connections auf
-  dem Canvas — innerhalb eines definierten Zeitbudgets darstellen.
+  The system MUST display an architecture diagram — from opening to
+  fully interactive display of all shapes and connections on the
+  canvas — within a defined time budget.
 
   @AC1
-  Scenario: AC1 – Kleines Diagramm – Diagramm mit 50 Entities + 30 Connections; Chrome auf Standard-Developer...
-    Given Diagramm mit 50 Entities + 30 Connections; Chrome auf Standard-Developer-Hardware
-    When  Diagramm geöffnet
-    Then  Canvas interaktiv in < 500ms (gemessen ab vollständiger API-Response)
+  Scenario: AC1 – Small diagram – diagram with 50 entities + 30 connections; Chrome on...
+    Given diagram with 50 entities + 30 connections; Chrome on standard developer hardware
+    When  diagram opened
+    Then  canvas interactive in < 500ms (measured from complete API response)
 
   @AC2
-  Scenario: AC2 – Mittleres Diagramm – 150 Entities + 100 Connections
-    Given 150 Entities + 100 Connections
-    When  Diagramm geöffnet
-    Then  Time-to-Interactive < 1.500ms
+  Scenario: AC2 – Medium diagram – 150 entities + 100 connections
+    Given 150 entities + 100 connections
+    When  diagram opened
+    Then  time to interactive < 1,500ms
 
   @AC3
-  Scenario: AC3 – Grosses Diagramm – 400 Entities + 300 Connections
-    Given 400 Entities + 300 Connections
-    When  Diagramm geöffnet
-    Then  Time-to-Interactive < 3.000ms; keine Browser-Freezes > 100ms
+  Scenario: AC3 – Large diagram – 400 entities + 300 connections
+    Given 400 entities + 300 connections
+    When  diagram opened
+    Then  time to interactive < 3,000ms; no browser freezes > 100ms
 
   @AC4
-  Scenario: AC4 – Pan/Zoom flüssig – mittleres Diagramm (150+100)
-    Given mittleres Diagramm (150+100)
-    When  Nutzer zieht Canvas oder zoomt mit Mausrad
-    Then  Frame-Rate ≥ 30 fps (kein sichtbares Ruckeln)
+  Scenario: AC4 – Smooth pan/zoom – medium diagram (150+100)
+    Given medium diagram (150+100)
+    When  user drags canvas or zooms with mouse wheel
+    Then  frame rate ≥ 30 fps (no visible stuttering)

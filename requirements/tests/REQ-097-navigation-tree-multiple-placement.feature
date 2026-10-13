@@ -1,26 +1,26 @@
-# Ableitung aus: requirements/req/req-097-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-097-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-13
-Feature: REQ-097 – Navigationsbaum Mehrfach-Einordnung von Objekten
+Feature: REQ-097 – Navigation tree multiple placement of objects
 
-  Dasselbe Repository-Objekt (Entität, Diagramm oder Katalog) MUSS
-  gleichzeitig als Item in mehreren Ordnern referenziert sein dürfen.
-  Jeder Ordnereintrag ist ein eigenständiges TreeNodeItem mit eigener
-  `referenceId`; keine Datenduplizierung des Objekts.
+  The same repository object (entity, diagram or catalog) MUST be allowed
+  to be referenced simultaneously as an item in several folders.
+  Each folder entry is an independent TreeNodeItem with its own
+  `referenceId`; no data duplication of the object.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Mehrfach-Einordnung – die Entität "SAP ERP" als Item in Ordner "Finance" und "Cloud-Migration"...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  die Entität "SAP ERP" als Item in Ordner "Finance" und "Cloud-Migration" eingehängt wird
-    Then  existieren zwei eigenständige TreeNodeItems mit derselben `referenceId`; die Entität selbst ist unverändert
+  Scenario: AC1 – Multiple placement – the entity "SAP ERP" is attached as an item to folders "Finance" and "Cloud-Migration"...
+    Given the precondition according to the requirement is met
+    When  the entity "SAP ERP" is attached as an item to folders "Finance" and "Cloud-Migration"
+    Then  two independent TreeNodeItems with the same `referenceId` exist; the entity itself is unchanged
 
   @AC2
-  Scenario: AC2 – Unabhängige Entfernung – das Item "SAP ERP" aus Ordner "Finance" entfernt wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  das Item "SAP ERP" aus Ordner "Finance" entfernt wird
-    Then  ist der Eintrag in "Finance" gelöscht; der Eintrag in "Cloud-Migration" bleibt gültig
+  Scenario: AC2 – Independent removal – the item "SAP ERP" is removed from folder "Finance"
+    Given the precondition according to the requirement is met
+    When  the item "SAP ERP" is removed from folder "Finance"
+    Then  the entry in "Finance" is deleted; the entry in "Cloud-Migration" remains valid

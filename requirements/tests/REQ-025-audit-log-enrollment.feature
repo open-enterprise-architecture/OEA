@@ -1,36 +1,35 @@
-# Ableitung aus: requirements/req/req-025-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-025-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @compliance @must @UC-03
-Feature: REQ-025 – Audit-Log-Eintrag für jeden Enrollment-Vorgang
+Feature: REQ-025 – Audit log entry for every enrollment process
 
-  Das System MUSS für jeden abgeschlossenen Enrollment-Vorgang –
-  erfolgreich oder fehlgeschlagen – einen Audit-Log-Eintrag mit
-  Zeitpunkt, betroffener Person-ID, eingerichteter Methode und Ergebnis
-  erzeugen; Credentials-Werte (Secrets, Hashes, Public Keys) DÜRFEN
-  NICHT im Audit-Log erscheinen.
+  The system MUST create an audit log entry for every completed
+  enrollment process – successful or failed – with timestamp, affected
+  person ID, method set up, and result; credential values (secrets,
+  hashes, public keys) MUST NOT appear in the audit log.
 
   @AC1
-  Scenario: AC1 – ein Enrollment-Vorgang wird erfolgreich abgeschlossen (REQ-022, REQ-023 ...
-    Given ein Enrollment-Vorgang wird erfolgreich abgeschlossen (REQ-022, REQ-023 oder REQ-024)
-    When  die Methode persistiert ist
-    Then  enthält das Audit-Log einen Eintrag mit: Zeitpunkt (ISO 8601), Person-ID, Methoden-Typ (totp | passkey | password), Ergebnis `success`
+  Scenario: AC1 – an enrollment process is completed successfully (REQ-022, REQ-023 or...
+    Given an enrollment process is completed successfully (REQ-022, REQ-023 or REQ-024)
+    When  the method is persisted
+    Then  the audit log contains an entry with: timestamp (ISO 8601), person ID, method type (totp | passkey | password), result `success`
 
   @AC2
-  Scenario: AC2 – ein Enrollment-Vorgang schlägt fehl (z.B. TOTP-Verifikation fehlgeschlag...
-    Given ein Enrollment-Vorgang schlägt fehl (z.B. TOTP-Verifikation fehlgeschlagen, Passkey-Abbruch, Passwort zu schwach)
-    When  der Fehlschlag eintritt
-    Then  enthält das Audit-Log einen Eintrag mit Zeitpunkt, Person-ID (soweit aus Token ermittelbar), Methoden-Typ, Ergebnis `failure` und Fehlergrund (generisch, ohne sensible Details)
+  Scenario: AC2 – an enrollment process fails (e.g. TOTP verification failed, passkey c...
+    Given an enrollment process fails (e.g. TOTP verification failed, passkey cancellation, password too weak)
+    When  the failure occurs
+    Then  the audit log contains an entry with timestamp, person ID (as far as determinable from the token), method type, result `failure` and failure reason (generic, without sensitive details)
 
   @AC3
-  Scenario: AC3 – ein Audit-Log-Eintrag für einen Enrollment-Vorgang
-    Given ein Audit-Log-Eintrag für einen Enrollment-Vorgang
-    When  er in der Log-Infrastruktur gespeichert ist
-    Then  enthält er keine Credentials-Werte (kein TOTP-Secret, kein Passwort-Hash, kein Public Key)
+  Scenario: AC3 – an audit log entry for an enrollment process
+    Given an audit log entry for an enrollment process
+    When  it is stored in the log infrastructure
+    Then  it contains no credential values (no TOTP secret, no password hash, no public key)
 
   @AC4
-  Scenario: AC4 – ein ungültiges Enrollment-Token wird eingereicht (E1 aus UC-03)
-    Given ein ungültiges Enrollment-Token wird eingereicht (E1 aus UC-03)
-    When  der Fehlschlag eintritt
-    Then  enthält das Audit-Log einen Eintrag mit Zeitpunkt, Ergebnis `failure`, Fehlergrund `invalid_token`; keine Person-ID (Token ist ungültig, Person nicht ermittelbar)
+  Scenario: AC4 – an invalid enrollment token is submitted (E1 from UC-03)
+    Given an invalid enrollment token is submitted (E1 from UC-03)
+    When  the failure occurs
+    Then  the audit log contains an entry with timestamp, result `failure`, failure reason `invalid_token`; no person ID (token is invalid, person not determinable)

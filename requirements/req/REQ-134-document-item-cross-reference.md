@@ -1,6 +1,6 @@
 ---
 id: REQ-134
-title: DocumentItem-Querverweis via {{ im WYSIWYG-Editor
+title: DocumentItem Cross-Reference via {{ in the WYSIWYG Editor
 type: functional
 priority: must
 status: proposed
@@ -21,63 +21,63 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-134: DocumentItem-Querverweis via {{ im WYSIWYG-Editor
+# REQ-134: DocumentItem Cross-Reference via {{ in the WYSIWYG Editor
 
-## Aussage
+## Statement
 
-Das System MUSS im WYSIWYG-Editor von DocumentItems das Tippen von `{{` als Auslöser für ein Autocomplete-Dropdown erkennen, das DocumentItems der **aktuellen DocumentCollection** durchsucht. Gesucht wird sowohl über `alias` als auch über `name`. Nach Auswahl wird ein ID-stabiler Querverweis eingefügt.
+In the WYSIWYG editor of DocumentItems, the system MUST recognize typing `{{` as the trigger for an autocomplete dropdown that searches DocumentItems of the **current DocumentCollection**. The search covers both `alias` and `name`. After selection, an ID-stable cross-reference is inserted.
 
-**Speicherformat (Freitext):** `{{Kapitelname|item:uuid}}`
+**Storage format (free text):** `{{Chapter name|item:uuid}}`
 
-**Rendering:** Das System löst beim Darstellen den aktuellen `name` des referenzierten DocumentItems via UUID auf und zeigt ihn als anklickbaren Inline-Link. Wird das Ziel-Item umbenannt, aktualisiert sich die Anzeige automatisch. Wird das Ziel-Item gelöscht, zeigt der Verweis `[gelöschtes Kapitel|item:uuid]` in roter Schrift.
+**Rendering:** When rendering, the system resolves the current `name` of the referenced DocumentItem via UUID and displays it as a clickable inline link. If the target item is renamed, the display updates automatically. If the target item is deleted, the reference shows `[deleted chapter|item:uuid]` in red text.
 
-**Scope:** Querverweise sind auf Items derselben `DocumentCollection` begrenzt (BR-15). Cross-Collection-Verweise sind nicht unterstützt.
+**Scope:** Cross-references are limited to items of the same `DocumentCollection` (BR-15). Cross-collection references are not supported.
 
-**In Code-Blöcken** (Mermaid, PlantUML, Draw.io): `{{` löst ebenfalls Autocomplete aus; gespeichert wird der reine `name`-Text ohne ID-Klammerung; keine automatische Auflösung bei Umbenennung.
+**In code blocks** (Mermaid, PlantUML, Draw.io): `{{` also triggers autocomplete; the plain `name` text is stored without ID bracketing; no automatic resolution on renaming.
 
-## Begründung
+## Rationale
 
-Ohne Querverweise müssen Autoren Kapitelnamen manuell tippen — bei Umbenennungen entstehen verwaiste Textreferenzen. Der `{{`-Mechanismus (analog zu `[[` für Entities) stellt sicher, dass Kapitelverweise konsistent bleiben, auch wenn die Dokumentationsstruktur reorganisiert wird.
+Without cross-references, authors have to type chapter names manually — renamings produce orphaned text references. The `{{` mechanism (analogous to `[[` for entities) ensures that chapter references remain consistent even when the documentation structure is reorganized.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Autocomplete-Trigger):
-- Wenn: Nutzer im Freitext-Bereich `{{` tippt
-- Dann: Dropdown öffnet sich mit allen DocumentItems der aktuellen Collection; Suche über `alias` und `name`; erstes Ergebnis vorselektiert
+**AC1** (Autocomplete trigger):
+- When: the user types `{{` in the free-text area
+- Then: a dropdown opens with all DocumentItems of the current collection; search via `alias` and `name`; first result preselected
 
-**AC2** (Einfügen):
-- Wenn: Nutzer einen DocumentItem aus dem Dropdown auswählt
-- Dann: `{{Kapitelname|item:uuid}}` wird an Cursor-Position eingefügt; Dropdown schließt sich
+**AC2** (Insert):
+- When: the user selects a DocumentItem from the dropdown
+- Then: `{{Chapter name|item:uuid}}` is inserted at the cursor position; the dropdown closes
 
-**AC3** (Rendering — bestehender Name):
-- Wenn: DocumentItem mit Querverweis gerendert wird und das Ziel existiert
-- Dann: Anklickbarer Inline-Link mit aktuellem `name` des Ziel-Items dargestellt; Klick navigiert zum Ziel-Kapitel
+**AC3** (Rendering — existing name):
+- When: a DocumentItem with a cross-reference is rendered and the target exists
+- Then: a clickable inline link with the current `name` of the target item is displayed; clicking navigates to the target chapter
 
-**AC4** (Rendering — umbenanntes Ziel):
-- Wenn: Ziel-Item umbenannt wird
-- Dann: Alle Querverweise auf dieses Item zeigen automatisch den neuen Namen (ID-Auflösung)
+**AC4** (Rendering — renamed target):
+- When: the target item is renamed
+- Then: all cross-references to this item automatically show the new name (ID resolution)
 
-**AC5** (Rendering — gelöschtes Ziel):
-- Wenn: Ziel-Item gelöscht wird
-- Dann: Verweis zeigt `[gelöschtes Kapitel|item:uuid]` in roter Schrift; keine Navigation möglich
+**AC5** (Rendering — deleted target):
+- When: the target item is deleted
+- Then: the reference shows `[deleted chapter|item:uuid]` in red text; no navigation possible
 
-**AC6** (Code-Block):
-- Wenn: Nutzer in einem Mermaid- oder PlantUML-Block `{{` tippt und auswählt
-- Dann: Gespeichert wird reiner `name`-Text (kein `|item:uuid`); kein Link im Rendering
+**AC6** (Code block):
+- When: the user types `{{` in a Mermaid or PlantUML block and makes a selection
+- Then: plain `name` text is stored (no `|item:uuid`); no link in the rendering
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-132 (DocumentItem mit `alias`), REQ-070 (Entity-Mention-Mechanismus als Vorlage)
-- **Folgewirkungen**: –
+- **Prerequisites**: REQ-132 (DocumentItem with `alias`), REQ-070 (entity mention mechanism as a template)
+- **Consequences**: –
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Implementierung analog zu REQ-070 (`[[`-Trigger für Entities): gleicher Editor-Extension-Mechanismus (Tiptap/ProseMirror), anderer Trigger-Character und andere Datenquelle
-- Autocomplete-Quelle: `GET /api/v1/collections/{collectionId}/items?search=<query>` — gibt `id`, `name`, `alias` zurück
-- Rendering: Custom Node in Tiptap; `name` wird bei jedem Render via API aufgelöst (gecacht, TTL 60 s)
+- Implementation analogous to REQ-070 (`[[` trigger for entities): same editor extension mechanism (Tiptap/ProseMirror), different trigger character and different data source
+- Autocomplete source: `GET /api/v1/collections/{collectionId}/items?search=<query>` — returns `id`, `name`, `alias`
+- Rendering: custom node in Tiptap; `name` is resolved via the API on every render (cached, TTL 60 s)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

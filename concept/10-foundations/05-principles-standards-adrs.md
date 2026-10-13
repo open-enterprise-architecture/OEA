@@ -1,43 +1,43 @@
-## 5. Architekturprinzipien, Standards und Entscheidungen
+## 5. Architecture Principles, Standards, and Decisions
 
-Prinzipien, Standards und ADRs sind das **normative Rückgrat** des Repositorys: sie legen fest, *wie* Architektur gestaltet werden soll, und dokumentieren, *warum* welche Entscheidungen getroffen wurden. Dieses Kapitel präzisiert die drei Konzepte, ihre Beziehungen und das Compliance-Modell.
+Principles, standards, and ADRs are the **normative backbone** of the repository: they define *how* architecture should be shaped and document *why* which decisions were made. This chapter details the three concepts, their relationships, and the compliance model.
 
-### 5.1 Abgrenzung Prinzip – Standard – Guideline
+### 5.1 Distinction between Principle, Standard, and Guideline
 
-Die drei Begriffe werden oft synonym verwendet, sind aber konzeptionell klar unterscheidbar.
+The three terms are often used synonymously but are conceptually clearly distinguishable.
 
-| Aspekt | Principle (Prinzip) | Standard | Guideline |
+| Aspect | Principle | Standard | Guideline |
 |---|---|---|---|
-| Antwort auf | Warum? Wohin? | Was? Wie? | Wie am besten? |
-| Abstraktionsgrad | hoch | konkret | konkret |
-| Technologie-Bezug | agnostisch | meist spezifisch | meist spezifisch |
-| Lebensdauer | Jahre bis Jahrzehnte | Monate bis Jahre | Monate bis Jahre |
-| Verbindlichkeit | Leitaussage | verbindlich | empfohlen |
-| Prüfbarkeit | nur qualitativ | messbar / prüfbar | prüfbar |
-| Beispiel | "Cloud-First" | "AWS als primärer Cloud-Provider" | "CloudFormation bevorzugen gegenüber CDK" |
+| Answers | Why? Where to? | What? How? | How best? |
+| Level of abstraction | high | concrete | concrete |
+| Technology reference | agnostic | mostly specific | mostly specific |
+| Lifespan | years to decades | months to years | months to years |
+| Bindingness | guiding statement | binding | recommended |
+| Verifiability | qualitative only | measurable / verifiable | verifiable |
+| Example | "Cloud-First" | "AWS as the primary cloud provider" | "Prefer CloudFormation over CDK" |
 
-**Die Hierarchie**: Prinzipien sind Eltern von Standards; Standards können Guidelines haben. Ein Prinzip "Cloud-First" manifestiert sich in mehreren Standards (Cloud-Provider, Container-Orchestrator, IaC-Tool). Ändert sich der Cloud-Provider, ändert sich der Standard, aber das Prinzip bleibt.
+**The hierarchy**: Principles are parents of standards; standards can have guidelines. A principle "Cloud-First" manifests in several standards (cloud provider, container orchestrator, IaC tool). If the cloud provider changes, the standard changes, but the principle remains.
 
 ### 5.2 EntityType: ArchitecturePrinciple
 
-Orientiert am TOGAF-Standard-Template:
+Modeled on the TOGAF standard template:
 
 ```yaml
 EntityType: ArchitecturePrinciple
   properties:
-    - name: string                    # Kurzer Titel, z.B. "Buy before Build"
-    - statement: text                 # Das Prinzip selbst, prägnant formuliert
-    - rationale: text                 # Warum gilt dieses Prinzip?
-    - implications: text              # Was folgt daraus praktisch?
+    - name: string                    # Short title, e.g. "Buy before Build"
+    - statement: text                 # The principle itself, concisely worded
+    - rationale: text                 # Why does this principle apply?
+    - implications: text              # What follows from it in practice?
     - category: enum[business, data, application, technology, security, cross-cutting]
     - status: proposed | approved | deprecated | superseded
     - approvedBy: Role | OrganizationUnit
     - approvedDate: date
-    - reviewDate: date                # wann zu überprüfen
+    - reviewDate: date                # when to review
   relations:
     - refinedByStandards: ArchitectureStandard[]
-    - derivedFrom: Driver | Goal      # woher kommt das Prinzip
-    - supersededBy: ArchitecturePrinciple  # bei Ablösung
+    - derivedFrom: Driver | Goal      # where the principle comes from
+    - supersededBy: ArchitecturePrinciple  # on replacement
 ```
 
 ### 5.3 EntityType: ArchitectureStandard
@@ -49,14 +49,14 @@ EntityType: ArchitectureStandard
     - description: text
     - type: technology | integration | data | security | process | documentation
     - scope: enum[global, domain-specific, project-specific]
-    - mandatoryLevel: enum[must, should, may]  # RFC-2119-Stil
+    - mandatoryLevel: enum[must, should, may]  # RFC 2119 style
     - status: draft | active | deprecated | superseded
-    - version: string                 # Standards haben Versionen!
+    - version: string                 # Standards have versions!
     - effectiveFrom, effectiveUntil: date
-    - references: url[]               # externe Standards (ISO, RFC, …)
+    - references: url[]               # external standards (ISO, RFC, …)
   relations:
     - implementsPrinciple: ArchitecturePrinciple[]
-    - appliesTo: EntityType[]         # welche Entity-Typen sind betroffen
+    - appliesTo: EntityType[]         # which entity types are affected
     - preferredTechnology: SBB | PhysicalTechnologyComponent
     - acceptedAlternatives: SBB[]
     - relatedStandards: ArchitectureStandard[]
@@ -64,7 +64,7 @@ EntityType: ArchitectureStandard
     - supersededBy: ArchitectureStandard
 ```
 
-Der wichtige Unterschied zu Prinzipien: Standards haben eine **Version** und einen **mandatoryLevel** (muss/soll/kann) – das macht sie prüfbar und governance-fähig.
+The important difference from principles: standards have a **version** and a **mandatoryLevel** (must/should/may) – this makes them verifiable and governable.
 
 ### 5.4 EntityType: Guideline
 
@@ -79,15 +79,15 @@ EntityType: Guideline
     - relatesToPrinciple: ArchitecturePrinciple
 ```
 
-Guidelines sind explizit unverbindlich. Ihre Existenz im Metamodell verhindert, dass Teams Empfehlungen als Standards modellieren (was zu falscher Verbindlichkeit führen würde).
+Guidelines are explicitly non-binding. Their existence in the metamodel prevents teams from modeling recommendations as standards (which would lead to false bindingness).
 
-### 5.5 Compliance-Modell: Waiver, Deviation, Violation
+### 5.5 Compliance Model: Waiver, Deviation, Violation
 
-Die Realität: Verstöße gegen Standards sind häufig. Das Metamodell kennt drei Zustände:
+Reality: violations of standards are common. The metamodel knows three states:
 
-**Deviation** – festgestellte Abweichung, noch nicht bewertet
-**Waiver** – genehmigte Ausnahme, zeitlich begrenzt, mit Auflagen
-**Violation** – nicht-genehmigte Abweichung, muss behoben werden
+**Deviation** – identified deviation, not yet assessed
+**Waiver** – approved exception, time-limited, with conditions
+**Violation** – non-approved deviation, must be remedied
 
 ```yaml
 EntityType: ComplianceDeviation
@@ -99,55 +99,55 @@ EntityType: ComplianceDeviation
     - remediationPlan: text
   relations:
     - deviatesFrom: ArchitectureStandard
-    - affects: Entity | Relation      # Abweichung kann Entity ODER Relation sein
+    - affects: Entity | Relation      # a deviation can be an Entity OR a Relation
     - discoveredBy: Role
     - resolvedBy: Project | ADR
     - relatedWaiver: ArchitectureWaiver
 
 EntityType: ArchitectureWaiver
   properties:
-    - reason: text                    # Warum wird abgewichen?
+    - reason: text                    # Why is the deviation made?
     - grantedDate: date
-    - expiresDate: date               # Waivers sind IMMER befristet
-    - conditions: text                # unter welchen Auflagen
+    - expiresDate: date               # Waivers are ALWAYS time-limited
+    - conditions: text                # under which conditions
     - renewable: boolean
   relations:
     - waivesStandard: ArchitectureStandard
-    - grantedFor: Entity[] | Relation[]  # Waiver kann Entitäten oder Relationen abdecken
+    - grantedFor: Entity[] | Relation[]  # a waiver can cover entities or relations
     - grantedBy: Role | ARB
     - documentedInADR: ADR
     - resultsFromDeviation: ComplianceDeviation
 ```
 
-Zentrale Eigenschaft: **Waivers haben immer ein Ablaufdatum**. Unbefristete Waivers sind Architektur-Schuld, die unsichtbar wird. Das Metamodell erzwingt den Ablauf.
+Key property: **waivers always have an expiry date**. Unlimited waivers are architecture debt that becomes invisible. The metamodel enforces expiry.
 
 ### 5.6 Architecture Decision Records (ADRs)
 
-ADRs sind **eigene Entitäten**, die auf andere Entitäten referenzieren – nicht bloß Textfelder an Applications. Das ist der Kern der Arc42-ADR-Kultur.
+ADRs are **separate entities** that reference other entities – not merely text fields on applications. This is the core of the Arc42 ADR culture.
 
 ```yaml
 EntityType: ADR (ArchitectureDecisionRecord)
   properties:
-    - id: string                      # z.B. "ADR-042"
+    - id: string                      # e.g. "ADR-042"
     - title: string
     - status: proposed | accepted | deprecated | superseded | rejected
     - date: date
-    - context: text                   # Welches Problem, welche Rahmenbedingungen
-    - decision: text                  # Was wurde entschieden
-    - alternatives: Alternative[]     # Was wurde erwogen und abgelehnt
+    - context: text                   # Which problem, which constraints
+    - decision: text                  # What was decided
+    - alternatives: Alternative[]     # What was considered and rejected
     - consequences: {positive: text, negative: text, neutral: text}
-    - origin: intentional | emergent  # siehe [§19.1 (Agile Skalierung)](../60-integrations/19-agile-skalierung.md) (SAFe)
+    - origin: intentional | emergent  # see [§19.1 (Agile Scaling)](../60-integrations/19-agile-scaling.md) (SAFe)
     - decisionLevel: enterprise | domain | system | component
   relations:
-    - affects: Entity[] | Relation[]  # n:m – kann Entitäten UND Relationen betreffen
+    - affects: Entity[] | Relation[]  # n:m – can affect entities AND relations
     - decidedBy: Role | ARB
     - participants: Role[]
-    - supersedes: ADR                 # falls diese ADR eine frühere ablöst
-    - supersededBy: ADR               # Rückreferenz
-    - relatesTo: ADR[]                # lose Verbindungen
+    - supersedes: ADR                 # if this ADR replaces an earlier one
+    - supersededBy: ADR               # back reference
+    - relatesTo: ADR[]                # loose connections
     - basedOnPrinciple: ArchitecturePrinciple[]
     - referencesStandard: ArchitectureStandard[]
-    - documentsWaiver: ArchitectureWaiver  # wenn die Entscheidung eine Waiver begründet
+    - documentsWaiver: ArchitectureWaiver  # if the decision justifies a waiver
 
 Alternative:
   - name: string
@@ -156,56 +156,56 @@ Alternative:
   - reasonForRejection: text
 ```
 
-### 5.7 ADRs pro Entität und Relation – die Cross-Reference-Mächtigkeit
+### 5.7 ADRs per Entity and Relation – the Cross-Reference Power
 
-Die Beziehung `ADR.affects` ist n:m und akzeptiert sowohl **Entitäten als auch Relationen** als Ziel (siehe Reifikation in [§2 (Meta-Metamodell)](../00-overview/02-meta-metamodell.md)). Das ist der Kern der Navigierbarkeit:
+The relationship `ADR.affects` is n:m and accepts both **entities and relations** as targets (see reification in [§2 (Meta-Metamodel)](../00-overview/02-meta-metamodel.md)). This is the core of navigability:
 
-- Eine **Application** hat über Zeit mehrere ADRs angesammelt (Technologie-Wahl, Architektur-Muster, Datenspeicherung, …)
-- Ein **Standard** wird durch ein ADR etabliert (die Entscheidung, diesen Standard einzuführen, ist selbst ein ADR)
-- Ein **Plateau** wird durch ADRs geprägt (strategische Richtungs-Entscheidungen)
-- Ein **Interface** (als Entity) kann ein ADR haben (synchron vs. asynchron, Protokoll-Wahl)
-- Eine **Relation zwischen Entities** kann ein ADR haben, wenn die Entscheidung die Verbindung betrifft, nicht die Systeme – z.B. "Shop kommuniziert mit ERP künftig asynchron statt synchron" affektiert die Relation `Shop -[uses]-> ERP`, nicht Shop oder ERP selbst
+- An **application** has accumulated several ADRs over time (technology choice, architecture pattern, data storage, …)
+- A **standard** is established by an ADR (the decision to introduce this standard is itself an ADR)
+- A **plateau** is shaped by ADRs (strategic direction decisions)
+- An **interface** (as an entity) can have an ADR (synchronous vs. asynchronous, protocol choice)
+- A **relation between entities** can have an ADR if the decision concerns the connection, not the systems – e.g., "Shop will communicate with ERP asynchronously instead of synchronously" affects the relation `Shop -[uses]-> ERP`, not Shop or ERP themselves
 
-Sichten, die daraus entstehen:
-- **ADR-Historie einer Entität oder Relation**: alle Entscheidungen, die dieses Element geprägt haben, chronologisch
-- **Impact einer ADR**: alle Entitäten und Relationen, die von dieser Entscheidung betroffen sind
-- **Decision Trail**: Superseding-Kette zeigt, wie sich eine Entscheidung über Zeit entwickelt hat
-- **Orphan ADRs**: ADRs, die keine Entitäten/Relationen mehr referenzieren (weil alle Betroffenen retired sind – Aufräum-Kandidaten)
+Views that result from this:
+- **ADR history of an entity or relation**: all decisions that have shaped this element, chronologically
+- **Impact of an ADR**: all entities and relations affected by this decision
+- **Decision trail**: superseding chain shows how a decision has evolved over time
+- **Orphan ADRs**: ADRs that no longer reference any entities/relations (because all affected ones are retired – cleanup candidates)
 
-### 5.8 Die Navigationskette
+### 5.8 The Navigation Chain
 
-Die komplette normative Kette im Repository:
+The complete normative chain in the repository:
 
 ```
 Goal / Driver
-    ↓ motiviert
+    ↓ motivates
 ArchitecturePrinciple
-    ↓ verfeinert sich zu
+    ↓ is refined into
 ArchitectureStandard
-    ↓ wird etabliert/geändert durch
+    ↓ is established/changed by
 ADR
     ↓ affects
 Entity (Application, Interface, Technology, …)
-    ↓ kann abweichen via
+    ↓ may deviate via
 ComplianceDeviation
-    ↓ wird genehmigt als
+    ↓ is approved as
 ArchitectureWaiver
-    ↓ wird dokumentiert in
+    ↓ is documented in
 ADR
 ```
 
-Diese Kette ist bidirektional navigierbar. Von jeder Entität aus kann man die normativen Wurzeln erfragen: "Welche Standards/Prinzipien gelten für diese Application, und welche ADRs haben diese Entscheidungen geformt?"
+This chain is navigable in both directions. From any entity, the normative roots can be queried: "Which standards/principles apply to this application, and which ADRs shaped these decisions?"
 
-### 5.9 Compliance-Sichten
+### 5.9 Compliance Views
 
-Mehrere Sichten werden durch dieses Modell automatisch möglich:
+Several views become possible automatically through this model:
 
-- **Standards-Compliance-Report**: pro Standard, wie viele Entitäten konform/abweichend sind
-- **Active Waivers**: alle gültigen Waivers, sortiert nach Ablaufdatum (Erneuerungs-Backlog)
-- **Expired Waivers**: Waivers, deren Ablaufdatum überschritten ist (Sofort-Handlungsbedarf)
-- **Principle Impact**: welche Standards, ADRs und Entitäten hängen von welchem Prinzip ab
-- **Decision Lineage**: vollständige ADR-Kette zu einer Entität
-- **Governance Debt**: Summe offener Deviations × Severity (Technical-Debt-Analog)
+- **Standards compliance report**: per standard, how many entities are compliant/deviating
+- **Active waivers**: all valid waivers, sorted by expiry date (renewal backlog)
+- **Expired waivers**: waivers whose expiry date has passed (immediate action required)
+- **Principle impact**: which standards, ADRs, and entities depend on which principle
+- **Decision lineage**: complete ADR chain for an entity
+- **Governance debt**: sum of open deviations × severity (technical debt analog)
 
 ### 5.10 Constraints
 
@@ -214,20 +214,20 @@ constraint: waiver-has-expiry
   appliesTo: ArchitectureWaiver
   rule: "entity.expiresDate != null AND entity.expiresDate > entity.grantedDate"
   severity: error
-  message: "Waiver ohne Ablaufdatum ist unsichtbare Architektur-Schuld"
+  message: "A waiver without an expiry date is invisible architecture debt"
 
 constraint: active-standard-has-principle
   appliesTo: ArchitectureStandard
   when: "entity.status == 'active'"
   rule: "entity.implementsPrinciple.length >= 1"
   severity: warning
-  message: "Standard ohne Prinzip-Bezug – warum existiert dieser Standard?"
+  message: "Standard without a principle reference – why does this standard exist?"
 
 constraint: waiver-documented-in-adr
   appliesTo: ArchitectureWaiver
   rule: "entity.documentedInADR != null"
   severity: warning
-  message: "Waiver ohne ADR – Begründungs-Historie fehlt"
+  message: "Waiver without an ADR – rationale history is missing"
 
 constraint: violation-has-remediation
   appliesTo: ComplianceDeviation
@@ -242,29 +242,29 @@ constraint: superseded-adr-has-successor
   severity: error
 ```
 
-### 5.11 Workflow-Integration
+### 5.11 Workflow Integration
 
-Das Modell unterstützt folgende Workflows direkt:
+The model directly supports the following workflows:
 
-**Neue Entität entsteht**: Tool prüft, welche Standards für diesen EntityType gelten, markiert potenzielle Deviations.
+**A new entity is created**: The tool checks which standards apply to this EntityType and flags potential deviations.
 
-**Standard wird geändert**: Impact-Analyse zeigt alle betroffenen Entitäten; automatisch generierte Deviation-Kandidaten für Entitäten, die jetzt abweichen würden.
+**A standard is changed**: Impact analysis shows all affected entities; automatically generated deviation candidates for entities that would now deviate.
 
-**Waiver läuft ab**: Tool benachrichtigt Owner und ARB rechtzeitig; wenn nicht verlängert, wird Deviation automatisch zu Violation.
+**A waiver expires**: The tool notifies the owner and ARB in good time; if not renewed, the deviation automatically becomes a violation.
 
-**ADR wird erstellt**: Verknüpfung zu betroffenen Entitäten ist Pflicht (sonst warum die ADR?). Prüfung, ob bestehende ADRs überschrieben werden müssen.
+**An ADR is created**: Linking to affected entities is mandatory (otherwise why the ADR?). Check whether existing ADRs must be superseded.
 
-**Architecture Review Board** (aus [§18.9 (PPM-Integration)](../60-integrations/18-ppm-integration.md)): ARB-Entscheidungen resultieren in ADRs; Waiver-Genehmigungen laufen über ADRs; Principle-/Standard-Änderungen werden durch ADRs dokumentiert.
+**Architecture Review Board** (from [§18.9 (PPM Integration)](../60-integrations/18-ppm-integration.md)): ARB decisions result in ADRs; waiver approvals go through ADRs; principle/standard changes are documented by ADRs.
 
-### 5.12 Abgrenzung zu Compliance-Requirements (extern)
+### 5.12 Distinction from Compliance Requirements (external)
 
-Wichtig: Die hier beschriebenen Standards sind **interne Architektur-Standards**. Externe regulatorische Compliance-Requirements (DSGVO, SOX, ISO 27001, DORA) werden separat als `ComplianceRequirement` modelliert (siehe PPM-Kapitel [§18 (PPM-Integration)](../60-integrations/18-ppm-integration.md)). Der Unterschied:
+Important: The standards described here are **internal architecture standards**. External regulatory compliance requirements (GDPR, SOX, ISO 27001, DORA) are modeled separately as `ComplianceRequirement` (see PPM chapter [§18 (PPM Integration)](../60-integrations/18-ppm-integration.md)). The difference:
 
-- `ArchitectureStandard`: von der Organisation selbst gesetzte technische/architektonische Normen
-- `ComplianceRequirement`: von außen vorgegebene regulatorische Anforderungen
+- `ArchitectureStandard`: technical/architectural norms set by the organization itself
+- `ComplianceRequirement`: regulatory requirements imposed from outside
 
-Beide können sich überschneiden: Ein `ComplianceRequirement` (z.B. "Daten müssen verschlüsselt sein") manifestiert sich oft als interner `ArchitectureStandard` (z.B. "TLS 1.3 ist Pflicht"). Die Relation `ArchitectureStandard.derivedFrom: ComplianceRequirement` macht das explizit.
+Both can overlap: A `ComplianceRequirement` (e.g., "Data must be encrypted") often manifests as an internal `ArchitectureStandard` (e.g., "TLS 1.3 is mandatory"). The relation `ArchitectureStandard.derivedFrom: ComplianceRequirement` makes this explicit.
 
 ---
 
-← [Enterprise Continuum & TRM](04-enterprise-continuum-trm.md) · [🏠 Übersicht](../README.md) · [Kern-Entitätstypen](../20-entities/06-kern-entitaetstypen.md) →
+← [Enterprise Continuum & TRM](04-enterprise-continuum-trm.md) · [🏠 Overview](../README.md) · [Core Entity Types](../20-entities/06-core-entity-types.md) →

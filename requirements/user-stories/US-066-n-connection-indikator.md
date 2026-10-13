@@ -1,50 +1,50 @@
-# US-066: n-Connection-Indikator im Canvas sehen
+# US-066: See the n-Connection Indicator in the Canvas
 
 **ID**: US-066
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Data Architekt möchte ich auf einen Blick sehen, welche Verbindungen im Diagramm zusätzliche n-Connections tragen – damit ich weiss, an welchen Pfeilen ich weitere Informationen (z.B. transportierte Datenobjekte) per Doppelklick abrufen kann.
+As a Data Architect, I want to see at a glance which connections in the diagram carry additional n-connections – so that I know on which arrows I can retrieve further information (e.g. transported data objects) via double-click.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-08](../use-cases/UC-08-data-lineage-modellieren.md)
-**Persona**: Lukas – Senior Data Architekt (SH-02); auch alle anderen Canvas-Nutzer (SH-03, SH-04)
-**Requirements**: [REQ-063](../req/REQ-063-n-connection-canvas-darstellung.md)
+**Use Case**: [UC-08](../use-cases/UC-08-model-data-lineage.md)
+**Persona**: Lukas – Senior Data Architect (SH-02); also all other canvas users (SH-03, SH-04)
+**Requirements**: [REQ-063](../req/REQ-063-n-connection-canvas-rendering.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Indikator erscheint bei n-Connection):
-- Gegeben: DataFlow id=5 ist sourceEntityId von carries-data id=103
-- Wenn: Lukas öffnet Diagramm mit DataFlow id=5
-- Dann: Kreis mit `•••` erscheint auf der Verbindungslinie; bei Zoom-out weiterhin sichtbar
+**AC1** (indicator appears for n-connection):
+- Given: DataFlow id=5 is sourceEntityId of carries-data id=103
+- When: Lukas opens a diagram with DataFlow id=5
+- Then: Circle with `•••` appears on the connection line; still visible when zooming out
 
-**AC2** (Kein Indikator ohne n-Connection):
-- Gegeben: DataFlow id=7 hat keine n-Connections
-- Wenn: Diagramm mit DataFlow id=7
-- Dann: Kein Indikator auf dieser Linie
+**AC2** (no indicator without n-connection):
+- Given: DataFlow id=7 has no n-connections
+- When: Diagram with DataFlow id=7
+- Then: No indicator on this line
 
-**AC3** (Gesamtzahl angezeigt):
-- Gegeben: DataFlow id=5 hat 5 n-Connections (3 carries-data + 2 security-control)
-- Wenn: Diagramm geladen
-- Dann: Ein einziger Indikator mit Zahl „5" oder `•••`; nicht 5 separate Kreise
+**AC3** (total count displayed):
+- Given: DataFlow id=5 has 5 n-connections (3 carries-data + 2 security-control)
+- When: Diagram loaded
+- Then: A single indicator with number "5" or `•••`; not 5 separate circles
 
-**AC4** (Web Portal zeigt Indikator auch):
-- Wenn: CIO öffnet Diagramm im Web Portal mit n-Connection-Indikator
-- Dann: Indikator sichtbar (read-only; kein Anlege-Button)
+**AC4** (web portal also shows indicator):
+- When: CIO opens a diagram in the web portal with n-connection indicator
+- Then: Indicator visible (read-only; no create button)
 
-## Technische Hinweise
+## Technical Notes
 
-- `hasNConnections: bool` und `nConnectionCount: int` vom Backend beim Diagramm-Load
-- React Flow Custom Edge mit optionalem Kreismarker
+- `hasNConnections: bool` and `nConnectionCount: int` from the backend on diagram load
+- React Flow custom edge with optional circle marker
 
 ## Definition of Done
 
-- [ ] AC1–AC4 erfüllt
-- [ ] Tests: Indikator-Sichtbarkeit, Abwesenheit, Zählung; E2E-Test im Canvas
-- [ ] Code-Review
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] AC1–AC4 met
+- [ ] Tests: indicator visibility, absence, counting; E2E test in the canvas
+- [ ] Code review
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix

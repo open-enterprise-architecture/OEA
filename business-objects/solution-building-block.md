@@ -19,64 +19,64 @@ references:
 
 ## Definition
 
-Ein `SolutionBuildingBlock` (SBB) ist die konkrete Implementierung eines oder mehrerer `ArchitectureBuildingBlocks` (ABBs) durch ein Produkt, eine Open-Source-Komponente oder eine selbst entwickelte Lösung. SBBs bilden das **Solutions Continuum**: von universellen Produktkategorien bis zu organisationsspezifisch evaluierten und freigegebenen Produkten.
+A `SolutionBuildingBlock` (SBB) is the concrete implementation of one or more `ArchitectureBuildingBlocks` (ABBs) by a product, an open-source component, or a self-developed solution. SBBs form the **Solutions Continuum**: from universal product categories to organization-specifically evaluated and approved products.
 
-## Beschreibung
+## Description
 
-Während ein ABB beschreibt, *was* eine Komponente leisten muss, beschreibt ein SBB, *womit* das realisiert werden kann. SBBs sind die Verbindung zwischen dem abstrakten Architecture Continuum und konkreten Repository-Instanzen:
+While an ABB describes *what* a component must deliver, an SBB describes *with what* this can be realized. SBBs are the link between the abstract Architecture Continuum and concrete repository instances:
 
 ```
-ABB „Identity Provider"
-  ├── SBB „Keycloak 23.0"      (approved; community-supported)
-  ├── SBB „Azure AD B2C"       (acceptable; Vendor-Lock-in Risiko)
-  └── SBB „LDAP standalone"    (deprecated; kein MFA-Support)
+ABB "Identity Provider"
+  ├── SBB "Keycloak 23.0"      (approved; community-supported)
+  ├── SBB "Azure AD B2C"       (acceptable; vendor lock-in risk)
+  └── SBB "LDAP standalone"    (deprecated; no MFA support)
 ```
 
-Die `ArchitectureEntity` „acme-keycloak-prod" ist eine Instanz des SBB „Keycloak 23.0" (`entity.instanceOfSBBId`). Über die SBB-ABB-Kette ist damit auch die ABB-Konformität ableitbar.
+The `ArchitectureEntity` "acme-keycloak-prod" is an instance of the SBB "Keycloak 23.0" (`entity.instanceOfSBBId`). Via the SBB-ABB chain, ABB conformance can also be derived.
 
-**Governance-Status** steuert, welche SBBs für neue Projekte verwendbar sind:
+**Governance status** controls which SBBs are usable for new projects:
 
-| governanceStatus | Bedeutung | Verwendbar für neue Projekte? |
+| governanceStatus | Meaning | Usable for new projects? |
 |---|---|---|
-| `approved` | Bevorzugte Wahl; empfohlen | ja, bevorzugt |
-| `acceptable` | Zulässig mit Begründung | ja, mit Einschränkung |
-| `deprecated` | Auslaufend; nur in Bestandssystemen | nur Bestand; keine Neuimplementierung |
-| `prohibited` | Verboten (Sicherheit, Lizenz, EOL) | nein; Bestandssysteme müssen migrieren |
+| `approved` | Preferred choice; recommended | yes, preferred |
+| `acceptable` | Permitted with justification | yes, with restriction |
+| `deprecated` | Being phased out; only in existing systems | existing only; no new implementation |
+| `prohibited` | Prohibited (security, license, EOL) | no; existing systems must migrate |
 
-## Attribute
+## Attributes
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| id | UUID | required | | v4, global eindeutig | Primärschlüssel |
-| name | string | required | | max. 255 Zeichen | Produktname (z.B. „Keycloak", „Azure API Management") |
-| vendor | string | optional | null | max. 255 Zeichen | Hersteller oder Community (z.B. „Red Hat", „Microsoft", „Apache Foundation") |
-| version | string | optional | null | max. 100 Zeichen | Produktversion oder Versionsbereich (z.B. „23.x", „>= 3.2.0") |
-| description | string | optional | null | max. 5000 Zeichen; Markdown | Eigenschaften, Lizenzbedingungen, bekannte Einschränkungen |
-| continuumLevel | enum | required | `organization` | `[foundation, common-systems, industry, organization]` | Verortung im Solutions Continuum |
-| maturityLevel | enum | required | `experimental` | `[experimental, emerging, established, industry-standard]` | Reifegrad des Produkts |
-| governanceStatus | enum | required | `acceptable` | `[approved, acceptable, deprecated, prohibited]` | Freigabestatus für neue Projekte |
-| evaluationNotes | string | optional | null | max. 3000 Zeichen; Markdown | Begründung für den Governance-Status; Abwägungen |
-| scope | enum | required | `organization` | `[built-in, imported, organization]` | Herkunft analog zu ABB |
-| sourcePackage | string | optional | null | max. 255 Zeichen; nur wenn `scope=imported` | Herkunftspaket |
-| createdAt | datetime | required | | ISO 8601, UTC | Zeitpunkt der Anlage |
-| createdBy | reference | required | | target: person | Anlegende Person |
+| id | UUID | required | | v4, globally unique | Primary key |
+| name | string | required | | max. 255 characters | Product name (e.g. "Keycloak", "Azure API Management") |
+| vendor | string | optional | null | max. 255 characters | Manufacturer or community (e.g. "Red Hat", "Microsoft", "Apache Foundation") |
+| version | string | optional | null | max. 100 characters | Product version or version range (e.g. "23.x", ">= 3.2.0") |
+| description | string | optional | null | max. 5000 characters; Markdown | Properties, license terms, known restrictions |
+| continuumLevel | enum | required | `organization` | `[foundation, common-systems, industry, organization]` | Placement in the Solutions Continuum |
+| maturityLevel | enum | required | `experimental` | `[experimental, emerging, established, industry-standard]` | Maturity level of the product |
+| governanceStatus | enum | required | `acceptable` | `[approved, acceptable, deprecated, prohibited]` | Approval status for new projects |
+| evaluationNotes | string | optional | null | max. 3000 characters; Markdown | Rationale for the governance status; trade-offs |
+| scope | enum | required | `organization` | `[built-in, imported, organization]` | Origin, analogous to ABB |
+| sourcePackage | string | optional | null | max. 255 characters; only if `scope=imported` | Source package |
+| createdAt | datetime | required | | ISO 8601, UTC | Time of creation |
+| createdBy | reference | required | | target: person | Creating person |
 
-## Beziehungen
+## Relationships
 
-| Beziehung | Ziel-Objekt | Kardinalität | Optional | Beschreibung |
+| Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
-| implements | [architecture-building-block](./architecture-building-block.md) | n:m | yes | ABBs, deren Anforderungen dieser SBB erfüllt |
-| instantiatedAs | [entity](./entity.md) | 1:n | yes | Konkrete Instanzen im Repository, die auf diesen SBB referenzieren (`entity.instanceOfSBBId`) |
-| trmCategories | [trm-category](./trm-category.md) | n:m | yes | TRM-Kategorien, unter die dieser SBB fällt |
+| implements | [architecture-building-block](./architecture-building-block.md) | n:m | yes | ABBs whose requirements this SBB satisfies |
+| instantiatedAs | [entity](./entity.md) | 1:n | yes | Concrete instances in the repository that reference this SBB (`entity.instanceOfSBBId`) |
+| trmCategories | [trm-category](./trm-category.md) | n:m | yes | TRM categories under which this SBB falls |
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser |
+| Rule ID | Statement | Trigger |
 |---|---|---|
-| BR-01 | Ein SBB mit `governanceStatus=prohibited` erzeugt eine Blockier-Warnung, wenn er als `instanceOfSBBId` einer neuen Entität gesetzt werden soll | onEntityCreate, onEntityUpdate |
-| BR-02 | Ein SBB mit `governanceStatus=deprecated` erzeugt eine Governance-Warnung bei Neuverwendung, blockiert aber nicht | onEntityCreate |
-| BR-03 | SBBs mit `scope=imported` oder `scope=built-in` sind read-only | onUpdate, onDelete |
-| BR-04 | Ein SBB SOLLTE mindestens einen implementierten ABB referenzieren; SBBs ohne ABB-Referenz sind nur ein Produktkatalog-Eintrag ohne Architektur-Aussage (Governance-Warnung) | onCreate |
+| BR-01 | An SBB with `governanceStatus=prohibited` produces a blocking warning if it is to be set as `instanceOfSBBId` of a new entity | onEntityCreate, onEntityUpdate |
+| BR-02 | An SBB with `governanceStatus=deprecated` produces a governance warning on new use but does not block | onEntityCreate |
+| BR-03 | SBBs with `scope=imported` or `scope=built-in` are read-only | onUpdate, onDelete |
+| BR-04 | An SBB SHOULD reference at least one implemented ABB; SBBs without an ABB reference are merely a product catalog entry without architectural statement (governance warning) | onCreate |
 
 ## Lifecycle
 
@@ -84,16 +84,16 @@ Die `ArchitectureEntity` „acme-keycloak-prod" ist eine Instanz des SBB „Keyc
 acceptable → approved → deprecated → prohibited
 ```
 
-Importierte SBBs starten als `acceptable`. Die Organisation bewertet und setzt den Governance-Status. Wenn ein Produkt EOL erreicht oder Sicherheitsprobleme auftreten, wird es auf `deprecated` oder `prohibited` gesetzt; bestehende Instanzen erhalten in der UI einen Hinweis.
+Imported SBBs start as `acceptable`. The organization evaluates and sets the governance status. When a product reaches EOL or security problems occur, it is set to `deprecated` or `prohibited`; existing instances receive a notice in the UI.
 
-## Analysen (Konzept §4.5)
+## Analyses (Concept §4.5)
 
-- **SBB-Diversität**: Wie viele SBBs implementieren denselben ABB? (Standardisierungspotenzial)
-- **Standards-Drift**: Instanzen, deren `instanceOfSBBId` auf einen `deprecated`- oder `prohibited`-SBB zeigt
-- **TRM-Coverage**: Welche TRM-Kategorien haben approved SBBs, welche nicht?
+- **SBB diversity**: How many SBBs implement the same ABB? (standardization potential)
+- **Standards drift**: Instances whose `instanceOfSBBId` points to a `deprecated` or `prohibited` SBB
+- **TRM coverage**: Which TRM categories have approved SBBs, which do not?
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-28 | Business Engineer | Initial draft; Grundlage Enterprise Continuum §4 (Konzept); ADR-002 |
+| 0.1.0 | 2026-06-28 | Business Engineer | Initial draft; based on Enterprise Continuum §4 (concept); ADR-002 |

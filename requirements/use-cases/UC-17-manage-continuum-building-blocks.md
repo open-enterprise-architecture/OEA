@@ -1,6 +1,6 @@
 ---
 id: UC-17
-title: Wiederverwendbare Architektur-Bausteine verwalten
+title: Manage Reusable Architecture Building Blocks
 status: draft
 priority: must
 target_release: v1.0
@@ -30,9 +30,9 @@ references:
     - UC-20
 ---
 
-# UC-17: Wiederverwendbare Architektur-Bausteine verwalten
+# UC-17: Manage Reusable Architecture Building Blocks
 
-## Diagramm
+## Diagram
 
 ```plantuml
 @startuml UC-17-Continuum
@@ -40,15 +40,15 @@ left to right direction
 skinparam actorStyle awesome
 
 actor "Kurt\n(Lead EA)" as Kurt
-actor "Michael\n(Solution Architekt)" as Michael
+actor "Michael\n(Solution Architect)" as Michael
 
-rectangle "OEA – Continuum-Bausteine verwalten" {
-  usecase "Architecture Building Block\n(ABB) anlegen" as UC_ABB
-  usecase "Solution Building Block\n(SBB) anlegen & zuordnen" as UC_SBB
-  usecase "Architecture Pattern\nanlegen" as UC_Pattern
-  usecase "Reference Architecture\nkomponieren" as UC_RefArch
-  usecase "SBB-Governance-Status\nsetzen\n(deprecated / prohibited)" as UC_Status
-  usecase "Continuum-Bibliothek\nbrowsen" as UC_Browse
+rectangle "OEA – Manage Continuum Building Blocks" {
+  usecase "Create Architecture Building Block\n(ABB)" as UC_ABB
+  usecase "Create & Assign Solution Building Block\n(SBB)" as UC_SBB
+  usecase "Create Architecture\nPattern" as UC_Pattern
+  usecase "Compose Reference\nArchitecture" as UC_RefArch
+  usecase "Set SBB Governance Status\n(deprecated / prohibited)" as UC_Status
+  usecase "Browse Continuum\nLibrary" as UC_Browse
 }
 
 Kurt --> UC_ABB
@@ -66,150 +66,150 @@ UC_SBB ..> UC_Status : <<extend>>
 
 ## Goal in Context
 
-Das TOGAF Enterprise Continuum trennt wiederverwendbare Blueprints von konkreten Organisations-Instanzen. Kurt als Lead Enterprise Architekt muss diese Blueprints aktiv aufbauen und pflegen: Architecture Building Blocks (ABBs) spezifizieren, was eine Komponente leisten muss; Solution Building Blocks (SBBs) dokumentieren, welche Produkte diese Anforderungen erfüllen; Architecture Patterns halten erprobte Strukturlösungen fest; Reference Architectures kombinieren Bausteine zu vollständigen Blueprints. Dieser UC deckt die gesamte Lebenszyklusverwaltung der Continuum-Bibliothek ab.
+The TOGAF Enterprise Continuum separates reusable blueprints from concrete organizational instances. As Lead Enterprise Architect, Kurt must actively build and maintain these blueprints: Architecture Building Blocks (ABBs) specify what a component must deliver; Solution Building Blocks (SBBs) document which products fulfill these requirements; Architecture Patterns capture proven structural solutions; Reference Architectures combine building blocks into complete blueprints. This UC covers the entire lifecycle management of the continuum library.
 
-## Persona und Story
+## Persona and Story
 
-**Primärer Akteur**: [Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
+**Primary Actor**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 
-**Weitere Beteiligte**: [Michael – Solution Architekt](../../business-analysis/stakeholders/SH-04-michael-solution-architekt.md) (konsumiert die Bausteine beim Design von Solutions)
+**Other Stakeholders**: [Michael – Solution Architect](../../business-analysis/stakeholders/SH-04-michael-solution-architect.md) (consumes the building blocks when designing solutions)
 
-**Story**: Als Lead Enterprise Architekt möchte ich unsere organisationsspezifischen Architektur-Bausteine und Muster dokumentieren und pflegen, damit Solution Architekten auf eine kuratierte Bibliothek zugreifen und neue Lösungen auf bewährten Standards aufbauen können.
+**Story**: As a Lead Enterprise Architect, I want to document and maintain our organization-specific architecture building blocks and patterns so that solution architects can access a curated library and build new solutions on proven standards.
 
 ## Trigger
 
-1. Eine neue Technologie-Kategorie soll standardisiert werden → ABB und evaluierte SBBs anlegen
-2. Ein erprobtes Muster soll für die gesamte Organisation dokumentiert werden → Architecture Pattern anlegen
-3. Eine branchenübliche Blueprint-Struktur soll als Vorlage für künftige Plateaus dienen → Reference Architecture komponieren
-4. Ein SBB-Governance-Status ändert sich (Produkt-EOL, Sicherheitsproblem) → SBB auf `deprecated` oder `prohibited` setzen
+1. A new technology category is to be standardized → create ABB and evaluated SBBs
+2. A proven pattern is to be documented for the whole organization → create architecture pattern
+3. An industry-standard blueprint structure is to serve as a template for future plateaus → compose reference architecture
+4. An SBB governance status changes (product EOL, security issue) → set SBB to `deprecated` or `prohibited`
 
-## Vorbedingungen (Pre-Conditions)
+## Preconditions
 
-- [ ] Kurt ist eingeloggt (UC-01) und hat die Rolle „EA-Manager" oder eine Rolle mit Schreibberechtigung auf die Continuum-Bibliothek
-- [ ] Für Reference Architectures: die referenzierten ABBs müssen bereits existieren
+- [ ] Kurt is logged in (UC-01) and has the role "EA Manager" or a role with write permission on the continuum library
+- [ ] For reference architectures: the referenced ABBs must already exist
 
-## Nachbedingungen (Post-Conditions)
+## Postconditions
 
-### Bei Erfolg
+### On Success
 
-- Der neue Baustein (ABB / SBB / Pattern / Reference Architecture) ist in der Continuum-Bibliothek sichtbar
-- Alle referenzierten Objekte (z.B. `refines`-ABB, `implements`-ABBs) sind korrekt verknüpft
-- Scope-Schutz ist aktiv: `imported`- und `built-in`-Bausteine bleiben unveränderlich
+- The new building block (ABB / SBB / pattern / reference architecture) is visible in the continuum library
+- All referenced objects (e.g., `refines` ABB, `implements` ABBs) are linked correctly
+- Scope protection is active: `imported` and `built-in` building blocks remain immutable
 
-### Bei Misserfolg
+### On Failure
 
-- Keine Änderung; Fehlermeldung mit konkretem Hinweis
+- No change; error message with a concrete hint
 
-## Hauptablauf (Basic Flow)
+## Basic Flow
 
-*Standardfall: Kurt legt einen neuen organisation-spezifischen ABB und den dazugehörigen SBB an*
+*Default case: Kurt creates a new organization-specific ABB and the associated SBB*
 
-1. **Kurt**: öffnet die Continuum-Bibliothek (Navigations-Bereich „Enterprise Continuum")
-2. **System**: zeigt die Bibliothek gegliedert in vier Bereiche: ABBs, SBBs, Patterns, Reference Architectures; jeweils mit Filter nach `continuumLevel`, `maturityLevel`, `governanceStatus`
-3. **Kurt**: klickt im ABB-Bereich auf „Neuer ABB"
-4. **System**: öffnet das ABB-Formular mit Feldern: Name, Description, `continuumLevel`, `maturityLevel`, `governanceStatus`, Specifications (Markdown), optional `refines` (Dropdown bestehender ABBs), optional `industry`
-5. **Kurt**: füllt das Formular aus: Name = „Unternehmens-IAM", `continuumLevel = organization`, `maturityLevel = established`, verfeinert `common-systems`-ABB „Identity Provider"
-6. **System**: speichert den ABB; zeigt den ABB in der Verfeinerungs-Hierarchie unter „Identity Provider"
-7. **Kurt**: navigiert zu „Neuer SBB"
-8. **System**: öffnet das SBB-Formular: Name, Vendor, Version, Description, `continuumLevel`, `maturityLevel`, `governanceStatus`, `evaluationNotes`, Felder für `implements`-ABBs (Multi-Select)
-9. **Kurt**: füllt aus: Name = „Keycloak", Vendor = „Red Hat", Version = „23.x", `governanceStatus = approved`, wählt implementierte ABBs: „Unternehmens-IAM" und „Identity Provider"
-10. **System**: speichert den SBB; zeigt ihn in der ABB-Detailansicht unter „implementedBy"
+1. **Kurt**: opens the continuum library (navigation area "Enterprise Continuum")
+2. **System**: shows the library divided into four areas: ABBs, SBBs, patterns, reference architectures; each with filters by `continuumLevel`, `maturityLevel`, `governanceStatus`
+3. **Kurt**: clicks "New ABB" in the ABB area
+4. **System**: opens the ABB form with fields: name, description, `continuumLevel`, `maturityLevel`, `governanceStatus`, specifications (Markdown), optional `refines` (dropdown of existing ABBs), optional `industry`
+5. **Kurt**: fills in the form: name = "Enterprise IAM", `continuumLevel = organization`, `maturityLevel = established`, refines `common-systems` ABB "Identity Provider"
+6. **System**: saves the ABB; shows the ABB in the refinement hierarchy under "Identity Provider"
+7. **Kurt**: navigates to "New SBB"
+8. **System**: opens the SBB form: name, vendor, version, description, `continuumLevel`, `maturityLevel`, `governanceStatus`, `evaluationNotes`, fields for `implements` ABBs (multi-select)
+9. **Kurt**: fills in: name = "Keycloak", vendor = "Red Hat", version = "23.x", `governanceStatus = approved`, selects implemented ABBs: "Enterprise IAM" and "Identity Provider"
+10. **System**: saves the SBB; shows it in the ABB detail view under "implementedBy"
 
-## Alternative Abläufe (Alternative Flows)
+## Alternative Flows
 
-**A1 – Architecture Pattern anlegen**
+**A1 – Create architecture pattern**
 
-1. **Kurt**: wählt „Neues Pattern" im Pattern-Bereich
-2. **System**: öffnet das Formular mit Feldern: Name, Problem (Markdown), Solution (Markdown), Applicability, Consequences, `maturityLevel`, Tags
-3. **Kurt**: füllt das Pattern aus (z.B. „Strangler Fig" für Legacy-Ablösung)
-4. **Kurt**: verknüpft das Pattern mit bestehenden Patterns über „Related Patterns" (Multi-Select)
-5. **System**: speichert; Pattern ist für alle Nutzer in der Bibliothek sichtbar
+1. **Kurt**: selects "New pattern" in the pattern area
+2. **System**: opens the form with fields: name, problem (Markdown), solution (Markdown), applicability, consequences, `maturityLevel`, tags
+3. **Kurt**: fills in the pattern (e.g., "Strangler Fig" for legacy replacement)
+4. **Kurt**: links the pattern to existing patterns via "Related patterns" (multi-select)
+5. **System**: saves; pattern is visible to all users in the library
 
-**A2 – Reference Architecture aus ABBs und Patterns komponieren**
+**A2 – Compose reference architecture from ABBs and patterns**
 
-1. **Kurt**: wählt „Neue Reference Architecture"
-2. **System**: öffnet das Formular; danach Multi-Select für `composedOf` (ABBs) und `basedOnPatterns` (Patterns)
-3. **Kurt**: wählt 5 ABBs und 2 Patterns; setzt `continuumLevel = organization`, `governanceStatus = approved`
-4. **System**: speichert; Reference Architecture erscheint als Blueprint für Plateau-Anlage (UC-11)
+1. **Kurt**: selects "New reference architecture"
+2. **System**: opens the form; then multi-select for `composedOf` (ABBs) and `basedOnPatterns` (patterns)
+3. **Kurt**: selects 5 ABBs and 2 patterns; sets `continuumLevel = organization`, `governanceStatus = approved`
+4. **System**: saves; reference architecture appears as a blueprint for plateau creation (UC-11)
 
-**A3 – SBB-Governance-Status ändern (Produkt-EOL)**
+**A3 – Change SBB governance status (product EOL)**
 
-1. **Kurt**: sucht den SBB „Oracle Database 11g" in der Bibliothek
-2. **Kurt**: öffnet den SBB und setzt `governanceStatus = prohibited`, trägt `evaluationNotes` ein (EOL Oktober 2023, keine Sicherheits-Updates mehr)
-3. **System**: speichert; alle Entitäten mit `instanceOfSBBId = Oracle-11g-UUID` erhalten in der UI einen Hinweis „Verwendetes Produkt ist verboten; Migration erforderlich"
+1. **Kurt**: searches for the SBB "Oracle Database 11g" in the library
+2. **Kurt**: opens the SBB and sets `governanceStatus = prohibited`, enters `evaluationNotes` (EOL October 2023, no more security updates)
+3. **System**: saves; all entities with `instanceOfSBBId = Oracle-11g-UUID` receive a notice in the UI "Product used is prohibited; migration required"
 
-**A4 – ABB-Verfeinerungs-Hierarchie bearbeiten**
+**A4 – Edit ABB refinement hierarchy**
 
-1. **Kurt**: bearbeitet einen bestehenden ABB
-2. **Kurt**: ändert das `refines`-Feld (Dropdown: nur ABBs ohne Zyklusrisiko auswählbar)
-3. **System**: prüft Zyklus-Freiheit (BR-03); bei Zyklus → HTTP 422 mit Hinweis
+1. **Kurt**: edits an existing ABB
+2. **Kurt**: changes the `refines` field (dropdown: only ABBs without cycle risk selectable)
+3. **System**: checks cycle freedom (BR-03); on a cycle → HTTP 422 with notice
 
-**A5 – `imported`-Baustein öffnen (read-only)**
+**A5 – Open `imported` building block (read-only)**
 
-1. **Kurt**: öffnet einen aus einem Continuum-Paket importierten ABB (erkennbar am Badge „Importiert")
-2. **System**: zeigt alle Felder read-only; Bearbeiten- und Löschen-Buttons nicht sichtbar
-3. **Kurt**: kann den Baustein lesen und als `refines`-Basis für eigene ABBs nutzen
+1. **Kurt**: opens an ABB imported from a continuum package (recognizable by the badge "Imported")
+2. **System**: shows all fields read-only; edit and delete buttons not visible
+3. **Kurt**: can read the building block and use it as a `refines` basis for own ABBs
 
-## Ausnahmen / Fehlerfälle (Exception Flows)
+## Exception Flows
 
-**E1 – Zyklus in ABB-Verfeinerung**
-- Bedingung: Kurt setzt `refines` auf einen ABB, der selbst (direkt oder indirekt) diesen ABB verfeinert
-- Erwartete Reaktion: HTTP 422 „Verfeinerungs-Zyklus erkannt: [ABB-A] → [ABB-B] → [ABB-A]"; keine Änderung
-- Wiederaufnahme: Kurt wählt einen anderen Basis-ABB
+**E1 – Cycle in ABB refinement**
+- Condition: Kurt sets `refines` to an ABB that itself (directly or indirectly) refines this ABB
+- Expected reaction: HTTP 422 "Refinement cycle detected: [ABB-A] → [ABB-B] → [ABB-A]"; no change
+- Resumption: Kurt selects a different base ABB
 
-**E2 – Löschen eines ABBs mit abhängigen SBBs oder Entitäten**
-- Bedingung: Kurt versucht, einen ABB zu löschen, der von SBBs referenziert oder von Entitäten als `conformsToABBId` gesetzt ist
-- Erwartete Reaktion: Warnung mit Anzahl abhängiger SBBs und Entitäten; keine automatische Blockierung — Kurt entscheidet
-- Wiederaufnahme: Kurt bereinigt die Referenzen vorher oder löscht trotz Warnung
+**E2 – Deleting an ABB with dependent SBBs or entities**
+- Condition: Kurt tries to delete an ABB that is referenced by SBBs or set as `conformsToABBId` by entities
+- Expected reaction: Warning with the number of dependent SBBs and entities; no automatic blocking — Kurt decides
+- Resumption: Kurt cleans up the references beforehand or deletes despite the warning
 
-**E3 – SBB ohne ABB-Referenz**
-- Bedingung: Kurt speichert einen SBB ohne `implements`-ABBs
-- Erwartete Reaktion: Governance-Warnung „SBB ohne ABB-Referenz ist nur ein Produktkatalog-Eintrag"; kein Block
-- Wiederaufnahme: Kurt kann die ABB-Referenz später ergänzen
+**E3 – SBB without ABB reference**
+- Condition: Kurt saves an SBB without `implements` ABBs
+- Expected reaction: Governance warning "An SBB without an ABB reference is only a product catalog entry"; no block
+- Resumption: Kurt can add the ABB reference later
 
-## Datenfluss
+## Data Flow
 
-| Schritt | Daten | Richtung |
+| Step | Data | Direction |
 |---|---|---|
-| 4 | ABB-Formular (Name, continuumLevel, maturityLevel, governanceStatus, specifications, refines) | System → Kurt |
-| 5–6 | Ausgefülltes ABB-Formular | Kurt → System |
-| 8 | SBB-Formular (Name, vendor, version, governanceStatus, implements[]) | System → Kurt |
-| 9–10 | Ausgefülltes SBB-Formular | Kurt → System |
+| 4 | ABB form (name, continuumLevel, maturityLevel, governanceStatus, specifications, refines) | System → Kurt |
+| 5–6 | Completed ABB form | Kurt → System |
+| 8 | SBB form (name, vendor, version, governanceStatus, implements[]) | System → Kurt |
+| 9–10 | Completed SBB form | Kurt → System |
 
-## Beteiligte Business Objects
+## Involved Business Objects
 
-| Business Object | Operation | Notiz |
+| Business Object | Operation | Note |
 |---|---|---|
-| [architecture-building-block](../../business-objects/architecture-building-block.md) | create, read, update, delete | Kern-Objekt; Verfeinerungs-Hierarchie wird geprüft |
-| [solution-building-block](../../business-objects/solution-building-block.md) | create, read, update, delete | Governance-Status steuert Warn-Verhalten bei Entitätsanlage |
-| [architecture-pattern](../../business-objects/architecture-pattern.md) | create, read, update, delete | Problem/Lösung-Format |
-| [reference-architecture](../../business-objects/reference-architecture.md) | create, read, update, delete | Komposition aus ABBs + Patterns |
-| [person](../../business-objects/person.md) | read | `createdBy`-Referenz |
-| [role](../../business-objects/role.md) | read | Schreibberechtigung prüfen |
+| [architecture-building-block](../../business-objects/architecture-building-block.md) | create, read, update, delete | Core object; refinement hierarchy is checked |
+| [solution-building-block](../../business-objects/solution-building-block.md) | create, read, update, delete | Governance status controls warning behavior on entity creation |
+| [architecture-pattern](../../business-objects/architecture-pattern.md) | create, read, update, delete | Problem/solution format |
+| [reference-architecture](../../business-objects/reference-architecture.md) | create, read, update, delete | Composition of ABBs + patterns |
+| [person](../../business-objects/person.md) | read | `createdBy` reference |
+| [role](../../business-objects/role.md) | read | Check write permission |
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser |
+| Rule ID | Statement | Trigger |
 |---|---|---|
-| BR-01 | `imported`- und `built-in`-Bausteine aller Typen sind read-only; kein Bearbeiten oder Löschen | onUpdate, onDelete |
-| BR-02 | ABB-Verfeinerungs-Graph ist azyklisch (kein direkter oder indirekter Zyklus) | onABBCreate, onABBUpdate |
-| BR-03 | SBB `governanceStatus=prohibited` erzeugt eine Blockier-Warnung bei Entitäts-Neuanlage (kein harter Block; Entscheidung liegt beim Architekten) | onEntityCreate |
-| BR-04 | Reference Architecture `composedOf`-Liste darf nicht leer sein (BR-03 aus reference-architecture.md) | onCreate |
+| BR-01 | `imported` and `built-in` building blocks of all types are read-only; no editing or deleting | onUpdate, onDelete |
+| BR-02 | ABB refinement graph is acyclic (no direct or indirect cycle) | onABBCreate, onABBUpdate |
+| BR-03 | SBB `governanceStatus=prohibited` generates a blocking warning on new entity creation (no hard block; decision lies with the architect) | onEntityCreate |
+| BR-04 | Reference architecture `composedOf` list must not be empty (BR-03 from reference-architecture.md) | onCreate |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] ABB anlegen: Formular mit continuumLevel, maturityLevel, governanceStatus, Verfeinerungs-Dropdown
-- [ ] ABB-Verfeinerung: Zyklus-Erkennung und 422-Rückmeldung
-- [ ] SBB anlegen: Multi-Select für implementierte ABBs; Governance-Status auswählbar
-- [ ] SBB-Governance-Status auf `prohibited` setzen: betroffene Entitäten erhalten Hinweis
-- [ ] Pattern anlegen: Problem/Lösung-Format; Related-Patterns verknüpfen
-- [ ] Reference Architecture: aus ABBs und Patterns komponieren; als Blueprint für Plateau-Anlage sichtbar
-- [ ] A5: `imported`-Bausteine als read-only mit Badge erkennbar
-- [ ] E2: Löschen mit abhängigen Referenzen erzeugt Warnung, blockiert aber nicht
+- [ ] Create ABB: form with continuumLevel, maturityLevel, governanceStatus, refinement dropdown
+- [ ] ABB refinement: cycle detection and 422 response
+- [ ] Create SBB: multi-select for implemented ABBs; governance status selectable
+- [ ] Set SBB governance status to `prohibited`: affected entities receive a notice
+- [ ] Create pattern: problem/solution format; link related patterns
+- [ ] Reference architecture: compose from ABBs and patterns; visible as a blueprint for plateau creation
+- [ ] A5: `imported` building blocks recognizable as read-only with badge
+- [ ] E2: Deleting with dependent references generates a warning, but does not block
 
-## Nicht im Scope
+## Out of Scope
 
-- **Continuum-Paket-Import**: UC-18
-- **TRM-Konfiguration**: UC-19
-- **Conformance-Analyse**: UC-20
-- **Zuweisung von ABBs/SBBs zu Instanz-Entitäten**: Erweiterung der Entitäts-Bearbeitungsmaske (Erweiterung von UC-05/UC-06)
+- **Continuum package import**: UC-18
+- **TRM configuration**: UC-19
+- **Conformance analysis**: UC-20
+- **Assignment of ABBs/SBBs to instance entities**: extension of the entity edit form (extension of UC-05/UC-06)

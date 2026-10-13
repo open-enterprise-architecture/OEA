@@ -1,36 +1,36 @@
-# US-113: Continuum-Paket per Datei-Upload importieren
+# US-113: Import a Continuum Package via File Upload
 
 **ID**: US-113
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich eine `.json`- oder `.yaml`-Paketdatei hochladen und vor dem Import eine Vorschau mit Schema-Validierungsergebnis sehen, damit ich Fehler in der Datei korrigieren kann, bevor Bausteine importiert werden.
+As Kurt – Lead Enterprise Architect, I want to upload a `.json` or `.yaml` package file and see a preview with the schema validation result before the import, so that I can correct errors in the file before building blocks are imported.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-18](../use-cases/UC-18-continuum-paket-importieren.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-113](../req/REQ-113-paket-datei-upload.md)
+**Use Case**: [UC-18](../use-cases/UC-18-import-continuum-package.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-113](../req/REQ-113-package-file-upload.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Valide Datei – Vorschau):
-- Wenn: ich eine valide Paket-Datei hochlade
-- Dann: zeigt die UI eine Vorschau mit Anzahl und Art der enthaltenen Bausteine
+**AC1** (Valid file – preview):
+- When: I upload a valid package file
+- Then: the UI shows a preview with the number and kind of the contained building blocks
 
-**AC2** (Schema-Verletzung):
-- Wenn: ich eine Datei mit fehlendem Pflichtfeld hochlade
-- Dann: erhalte ich HTTP 422 mit einer Fehlerliste (Zeile, Feld, Fehlerbeschreibung); kein Baustein wird importiert
+**AC2** (Schema violation):
+- When: I upload a file with a missing mandatory field
+- Then: I receive HTTP 422 with an error list (line, field, error description); no building block is imported
 
-**AC3** (Import nach Bestätigung):
-- Wenn: ich die Vorschau bestätige
-- Dann: wird der Import ausgeführt; alle importierten Bausteine haben `scope=imported`
+**AC3** (Import after confirmation):
+- When: I confirm the preview
+- Then: the import is executed; all imported building blocks have `scope=imported`
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

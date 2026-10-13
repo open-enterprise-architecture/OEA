@@ -1,6 +1,6 @@
 ---
 id: REQ-119
-title: Standards-Drift-Analyse (prohibited und Abweichungs-Report)
+title: Standards Drift Analysis (Prohibited and Deviation Report)
 type: functional
 priority: should
 status: proposed
@@ -24,43 +24,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-119: Standards-Drift-Analyse (prohibited und Abweichungs-Report)
+# REQ-119: Standards Drift Analysis (Prohibited and Deviation Report)
 
-## Aussage
+## Statement
 
-Das System MUSS eine Standards-Drift-Analyse anbieten, die alle Entitäten ausweist, deren `instanceOfSBBId` auf einen SBB mit `governanceStatus=prohibited` oder `deprecated` zeigt. Zusätzlich MUSS die Analyse Entitäten zeigen, deren `instanceOfSBBId` nicht dem `preferredStandard` der zugeordneten TRM-Kategorie entspricht (Abweichungs-Report). Jede Zeile in der Ergebnisliste MUSS einen Direkt-Link zur Entitäts-Detailansicht enthalten. Die Analyse ist rein lesend.
+The system MUST offer a standards drift analysis that reports all entities whose `instanceOfSBBId` points to an SBB with `governanceStatus=prohibited` or `deprecated`. In addition, the analysis MUST show entities whose `instanceOfSBBId` does not match the `preferredStandard` of the assigned TRM category (deviation report). Every row in the result list MUST contain a direct link to the entity detail view. The analysis is read-only.
 
-## Begründung
+## Rationale
 
-Standards-Drift macht definierten Governance unbemerkt unwirksam. Automatische Erkennung ist die Voraussetzung für gezielte Migrations-Planung und das frühzeitige Erkennen von Compliance-Risiken.
+Standards drift silently renders defined governance ineffective. Automatic detection is the prerequisite for targeted migration planning and early detection of compliance risks.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (prohibited-Entitäten):
-- Wenn: 3 Entitäten `instanceOfSBBId=prohibited-SBB-UUID` haben
-- Dann: sind alle 3 in der Drift-Liste; `prohibited` ist rot hervorgehoben
+**AC1** (Prohibited entities):
+- When: 3 entities have `instanceOfSBBId=prohibited-SBB-UUID`
+- Then: all 3 are in the drift list; `prohibited` is highlighted in red
 
-**AC2** (Abweichungs-Report):
-- Wenn: eine Entität einen SBB verwendet, der nicht dem `preferredStandard` ihrer TRM-Kategorie entspricht
-- Dann: erscheint die Entität in der Abweichungs-Liste
+**AC2** (Deviation report):
+- When: an entity uses an SBB that does not match the `preferredStandard` of its TRM category
+- Then: the entity appears in the deviation list
 
-**AC3** (Direkt-Link):
-- Wenn: ein Eintrag in der Drift-Liste angeklickt wird
-- Dann: öffnet sich die Entitäts-Detailansicht
+**AC3** (Direct link):
+- When: an entry in the drift list is clicked
+- Then: the entity detail view opens
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-108 (SBB mit governanceStatus), REQ-116 (preferredStandard je TRM-Kategorie)
-- **Folgewirkungen**: REQ-120 (prohibited-Entitäten fließen in Executive Summary ein)
+- **Prerequisites**: REQ-108 (SBB with governanceStatus), REQ-116 (preferredStandard per TRM category)
+- **Consequences**: REQ-120 (prohibited entities feed into the executive summary)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- SQL: LEFT JOIN entity auf solution_building_block; Filter auf `governance_status IN ('prohibited', 'deprecated')`
-- Abweichungs-Report: JOIN auf trm_category via entity.trmCategoryId; Vergleich mit `preferred_standard_sbb_id`
-- Farbkodierung: `prohibited` = rot, `deprecated` = orange; via CSS-Klassen gesteuert
+- SQL: LEFT JOIN entity on solution_building_block; filter on `governance_status IN ('prohibited', 'deprecated')`
+- Deviation report: JOIN on trm_category via entity.trmCategoryId; comparison with `preferred_standard_sbb_id`
+- Color coding: `prohibited` = red, `deprecated` = orange; controlled via CSS classes
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

@@ -1,50 +1,50 @@
-# US-068: DSGVO-Katalog — Datenflüsse mit personalDataCategories filtern und exportieren
+# US-068: GDPR Catalog — Filter and Export Data Flows by personalDataCategories
 
 **ID**: US-068
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Data Architekt möchte ich im Katalog alle Datenflüsse, die personenbezogene Daten transportieren, per Filter herausfiltern und als CSV exportieren – damit ich dem Datenschutzbeauftragten eine maschinenlesbare Grundlage für das DSGVO-Verarbeitungsverzeichnis (Art. 30) liefern kann, ohne ein separates Compliance-Tool zu pflegen.
+As a Data Architect, I want to filter out in the catalog all data flows that transport personal data and export them as CSV – so that I can provide the data protection officer with a machine-readable basis for the GDPR record of processing activities (Art. 30) without maintaining a separate compliance tool.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-08](../use-cases/UC-08-data-lineage-modellieren.md)
-**Persona**: Lukas – Senior Data Architekt (SH-02)
-**Requirements**: [REQ-064](../req/REQ-064-dsgvo-katalogfilter.md)
+**Use Case**: [UC-08](../use-cases/UC-08-model-data-lineage.md)
+**Persona**: Lukas – Senior Data Architect (SH-02)
+**Requirements**: [REQ-064](../req/REQ-064-gdpr-catalog-filter.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Filter auf personalDataCategories):
-- Gegeben: DataFlow id=5 mit `personalDataCategories="Name,Adresse,E-Mail"` und DataFlow id=7 ohne personalDataCategories
-- Wenn: Lukas öffnet Katalog mit Filter `entityTypeId=data-flow` + `personalDataCategories ist nicht leer`
-- Dann: Nur DataFlow id=5 erscheint; id=7 nicht
+**AC1** (filter on personalDataCategories):
+- Given: DataFlow id=5 with `personalDataCategories="Name,Address,Email"` and DataFlow id=7 without personalDataCategories
+- When: Lukas opens the catalog with filter `entityTypeId=data-flow` + `personalDataCategories is not empty`
+- Then: Only DataFlow id=5 appears; id=7 does not
 
-**AC2** (Kombinierter Filter):
-- Wenn: Lukas fügt zusätzlich `protocol=JDBC` hinzu
-- Dann: Nur JDBC-Datenflüsse mit personalDataCategories angezeigt
+**AC2** (combined filter):
+- When: Lukas additionally adds `protocol=JDBC`
+- Then: Only JDBC data flows with personalDataCategories displayed
 
-**AC3** (CSV-Export):
-- Gegeben: Katalog zeigt 3 DataFlows nach Filter
-- Wenn: Lukas klickt „Als CSV exportieren"
-- Dann: CSV-Download; enthält Header + 3 Datenzeilen; Felder: id, name, protocol, personalDataCategories, source, target; UTF-8-Encoding
+**AC3** (CSV export):
+- Given: Catalog shows 3 DataFlows after filtering
+- When: Lukas clicks "Export as CSV"
+- Then: CSV download; contains header + 3 data rows; fields: id, name, protocol, personalDataCategories, source, target; UTF-8 encoding
 
-**AC4** (Leeres Ergebnis kein Fehler):
-- Gegeben: Keine DataFlows mit personalDataCategories
-- Wenn: Filter angewendet
-- Dann: Leere Tabelle; Export liefert nur Header; kein Fehler
+**AC4** (empty result is not an error):
+- Given: No DataFlows with personalDataCategories
+- When: Filter applied
+- Then: Empty table; export delivers only header; no error
 
-## Technische Hinweise
+## Technical Notes
 
-- Filteroperator `isNotEmpty` auf PropertyValue (SQL: `value IS NOT NULL AND value != ''`)
-- CSV-Export: Backend-seitig generiert, kein clientseitiges CSV
+- Filter operator `isNotEmpty` on PropertyValue (SQL: `value IS NOT NULL AND value != ''`)
+- CSV export: generated backend-side, no client-side CSV
 
 ## Definition of Done
 
-- [ ] AC1–AC4 erfüllt
-- [ ] Tests: Filter, Kombination, CSV-Export, Leer-Zustand
-- [ ] Code-Review
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] AC1–AC4 met
+- [ ] Tests: filter, combination, CSV export, empty state
+- [ ] Code review
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix

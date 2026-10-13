@@ -1,74 +1,73 @@
-# Ableitung aus: requirements/req/req-070-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-070-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @should @UC-09
-Feature: REQ-070 – Entity-Mention via [[ im WYSIWYG-Editor (Autocomplete + Verlinkung)
+Feature: REQ-070 – Entity mention via [[ in the WYSIWYG editor (autocomplete + linking)
 
-  Das System MUSS im WYSIWYG-Editor überall — in
-  Markdown-Freitext-Abschnitten, in Mermaid-/PlantUML-Codeblöcken und
-  in Draw.io-Shape-Labels — beim Tippen von `[[` ein
-  Autocomplete-Dropdown öffnen, das Entitäten aus dem
-  Architecture-Repository live durchsucht. Nach Auswahl einer Entität
-  MUSS das System den Mention kontextabhängig einfügen: als
-  strukturierten Wiki-Link `[[Name|entity:ID]]` im Freitext, als reinen
-  Textnamen in allen Codeblock-Kontexten.
+  Everywhere in the WYSIWYG editor — in Markdown free-text sections,
+  in Mermaid/PlantUML code blocks, and in Draw.io shape labels — the
+  system MUST open an autocomplete dropdown when typing `[[` that
+  searches entities in the architecture repository live. After an
+  entity is selected, the system MUST insert the mention depending on
+  context: as a structured wiki link `[[Name|entity:ID]]` in free
+  text, as plain text name in all code block contexts.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Dropdown öffnet sich im Freitext – Michael tippt `[[` im Markdown-Freitext des Editors
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Michael tippt `[[` im Markdown-Freitext des Editors
-    Then  Autocomplete-Dropdown erscheint mit Top-10 Entitäten; kein Seitenaufruf nötig
+  Scenario: AC1 – Dropdown opens in free text – Michael types `[[` in the Markdown free text of the editor
+    Given the precondition according to the requirement is met
+    When  Michael types `[[` in the Markdown free text of the editor
+    Then  autocomplete dropdown appears with top 10 entities; no page load needed
 
   @AC2
-  Scenario: AC2 – Live-Suche filtert Ergebnisse – Michael tippt `[[CRM`
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Michael tippt `[[CRM`
-    Then  Dropdown zeigt nur Entitäten, deren Name „CRM" enthält (case-insensitive); Ergebnisse aktualisieren sich mit jedem weiteren Zeichen
+  Scenario: AC2 – Live search filters results – Michael types `[[CRM`
+    Given the precondition according to the requirement is met
+    When  Michael types `[[CRM`
+    Then  dropdown shows only entities whose name contains "CRM" (case-insensitive); results update with every further character
 
   @AC3
-  Scenario: AC3 – Mention im Freitext — ID-stable – Michael wählt „CRM-System" (id=1) im Dropdown
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Michael wählt „CRM-System" (id=1) im Dropdown
-    Then  `[[CRM-System|entity:1]]` wird eingefügt; Rendering zeigt klickbares Badge „CRM-System"
+  Scenario: AC3 – Mention in free text — ID-stable – Michael selects "CRM-System" (id=1) in the dropdown
+    Given the precondition according to the requirement is met
+    When  Michael selects "CRM-System" (id=1) in the dropdown
+    Then  `[[CRM-System|entity:1]]` is inserted; rendering shows clickable badge "CRM-System"
 
   @AC4
-  Scenario: AC4 – Umbenennung spiegelt sich in Rendering wider – Entität id=1 wird von „CRM-System" auf „Salesforce CRM" umbenannt
-    Given Entität id=1 wird von „CRM-System" auf „Salesforce CRM" umbenannt
-    When  Michael öffnet die Arc42-Antwort erneut
-    Then  Badge zeigt „Salesforce CRM"; Rohtext im `content` bleibt `[[CRM-System|entity:1]]` (unveränderter Rohwert)
+  Scenario: AC4 – Rename is reflected in rendering – entity id=1 is renamed from "CRM-S...
+    Given entity id=1 is renamed from "CRM-System" to "Salesforce CRM"
+    When  Michael opens the Arc42 answer again
+    Then  badge shows "Salesforce CRM"; raw text in `content` remains `[[CRM-System|entity:1]]` (unchanged raw value)
 
   @AC5
-  Scenario: AC5 – Gelöschte Entität – Entität id=1 wurde gelöscht
-    Given Entität id=1 wurde gelöscht
-    When  Arc42-Antwort mit `[[CRM-System|entity:1]]` geöffnet
-    Then  Badge zeigt `[gelöscht]` in roter Schrift; kein Link; keine Exception
+  Scenario: AC5 – Deleted entity – entity id=1 was deleted
+    Given entity id=1 was deleted
+    When  Arc42 answer with `[[CRM-System|entity:1]]` opened
+    Then  badge shows `[deleted]` in red text; no link; no exception
 
   @AC6
-  Scenario: AC6 – Dropdown im Mermaid-Block – Michael tippt `[[CRM` innerhalb eines ` ```mermaid `-Codeblocks (im Edit...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Michael tippt `[[CRM` innerhalb eines ` ```mermaid `-Codeblocks (im Edit-Modus)
-    Then  Autocomplete-Dropdown erscheint; nach Auswahl wird nur der Textname `CRM-System` eingefügt (kein Link-Markup)
+  Scenario: AC6 – Dropdown in Mermaid block – Michael types `[[CRM` inside a ` ```merma...
+    Given the precondition according to the requirement is met
+    When  Michael types `[[CRM` inside a ` ```mermaid ` code block (in edit mode)
+    Then  autocomplete dropdown appears; after selection only the text name `CRM-System` is inserted (no link markup)
 
   @AC7
-  Scenario: AC7 – Dropdown im PlantUML-Block – Wie AC6, für PlantUML-Codeblock
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - Wie AC6, für PlantUML-Codeblock
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC7 – Dropdown in PlantUML block – As AC6, for PlantUML code block
+    # TODO: AC without standard structure – refine manually
+    # - As AC6, for PlantUML code block
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement
 
   @AC8
-  Scenario: AC8 – ESC schliesst Dropdown ohne Änderung – Michael tippt `[[CR` und drückt ESC
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Michael tippt `[[CR` und drückt ESC
-    Then  Dropdown schliesst; `[[CR` bleibt als Rohtext
+  Scenario: AC8 – ESC closes dropdown without change – Michael types `[[CR` and presses ESC
+    Given the precondition according to the requirement is met
+    When  Michael types `[[CR` and presses ESC
+    Then  dropdown closes; `[[CR` remains as raw text
 
   @AC9
-  Scenario: AC9 – Web Portal: Mentions gerendert, kein Edit – CIO öffnet Arc42-Dokumentation im Web Portal
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  CIO öffnet Arc42-Dokumentation im Web Portal
-    Then  Mentions als Badges gerendert (mit aktuellem Namen); kein Dropdown-Trigger bei Klick auf Badge im Lese-Modus (Badge öffnet Entity-Detail)
+  Scenario: AC9 – Web portal: mentions rendered, no edit – CIO opens Arc42 documentation in the web portal
+    Given the precondition according to the requirement is met
+    When  CIO opens Arc42 documentation in the web portal
+    Then  mentions rendered as badges (with current name); no dropdown trigger on clicking a badge in read mode (badge opens entity detail)

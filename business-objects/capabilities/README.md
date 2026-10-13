@@ -1,11 +1,11 @@
 # Business Capabilities
 
-Capabilities beschreiben **was** die Organisation kann, nicht **wie** sie es tut.
+Capabilities describe **what** the organization can do, not **how** it does it.
 
-Pro Capability eine Datei mit:
-- Name und Definition
-- Maturity-Level (current, target)
-- Parent/Children (Capability-Hierarchie, max 3-4 Ebenen)
-- Beziehungen zu anderen Capabilities
-- Zugeordnete Business Objects
-- Owner-Rolle
+One file per capability with:
+- Name and definition
+- Maturity level (current, target)
+- Parent/children (capability hierarchy, max 3-4 levels)
+- Relationships to other capabilities
+- Assigned business objects
+- Owner role

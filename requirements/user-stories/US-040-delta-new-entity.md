@@ -1,59 +1,59 @@
-# US-040: Neue Entität im Katalog als Delta anlegen
+# US-040: Create a New Entity in the Catalog as a Delta
 
 **ID**: US-040
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Solution Architekt möchte ich innerhalb einer Solution über ein Formular (Katalog-Ansicht) eine neue Entität anlegen können (deltaType=new), damit ich Systeme und Komponenten beschreibe, die durch diese Initiative erstmalig entstehen.
+As a Solution Architect, I want to be able to create a new entity (deltaType=new) within a solution via a form (catalog view), so that I describe systems and components that come into existence for the first time through this initiative.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-05: Architektur-Vision einer Änderungsinitiative beschreiben](../use-cases/UC-05-architektur-vision-beschreiben.md)
-**Persona**: [SH-04: Michael – Solution Architekt](../../business-analysis/stakeholders/SH-04-michael-solution-architekt.md)
-**Requirement**: [REQ-040: EntityDeltas einer Solution erfassen](../req/REQ-040-entity-deltas-erfassen.md)
+**Use Case**: [UC-05: Describe the Architecture Vision of a Change Initiative](../use-cases/UC-05-describe-architecture-vision.md)
+**Persona**: [SH-04: Michael – Solution Architect](../../business-analysis/stakeholders/SH-04-michael-solution-architect.md)
+**Requirement**: [REQ-040: Capture EntityDeltas of a Solution](../req/REQ-040-capture-entity-deltas.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Michael arbeitet an einer Solution im Status `draft`
-- Wenn: er im Bereich „Neue Entität anlegen" den Typ `ApplicationComponent` und den Namen `Salesforce` eingibt und speichert
-- Dann: erscheint `Salesforce` in der Delta-Liste der Solution mit `deltaType=new`; sie ist **nicht** in der Ausgangsbasis (existiert noch nicht in der Landschaft)
+- Given: Michael is working on a solution in status `draft`
+- When: in the area "Create new entity" he enters the type `ApplicationComponent` and the name `Salesforce` and saves
+- Then: `Salesforce` appears in the solution's delta list with `deltaType=new`; it is **not** in the baseline (does not yet exist in the landscape)
 
 **AC2**:
-- Gegeben: Solution hat status=`implemented`
-- Wenn: Michael versucht, eine neue Entität anzulegen
-- Dann: 409 Conflict „Diese Solution ist abgeschlossen und kann nicht mehr verändert werden"
+- Given: Solution has status=`implemented`
+- When: Michael tries to create a new entity
+- Then: 409 Conflict "This solution is completed and can no longer be changed"
 
 **AC3**:
-- Gegeben: Michael legt `Salesforce (new)` an, und die Delta-Liste zeigt `Salesforce` bereits
-- Wenn: er versucht, erneut ein Delta für `Salesforce` hinzuzufügen
-- Dann: Validierungsfehler „Für diese Entität existiert bereits ein Delta in dieser Solution"
+- Given: Michael creates `Salesforce (new)`, and the delta list already shows `Salesforce`
+- When: he tries to add another delta for `Salesforce`
+- Then: validation error "A delta already exists for this entity in this solution"
 
 **AC4**:
-- Gegeben: Michael gibt einen EntityType ein, der in der MetamodelConfiguration nicht existiert
-- Wenn: er speichert
-- Dann: Validierungsfehler; nur typisierte Entitäten aus dem Metamodell sind erlaubt
+- Given: Michael enters an EntityType that does not exist in the MetamodelConfiguration
+- When: he saves
+- Then: validation error; only typed entities from the metamodel are allowed
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Solution-Detailansicht, Katalog-Tab (Formular „Neue Entität"), Backend `POST /api/v1/solutions/{id}/deltas`
-- Request-Body: `{ entityName: string, entityType: string, deltaType: "new", properties: {...} }`
-- `new`-Deltas referenzieren keine entityId aus der Landschaft; das System vergibt beim Speichern eine neue UUID für die künftige Entität
-- EntityType-Dropdown aus MetamodelConfiguration (REQ-032-Daten)
-- Diagramm-Pfad (Canvas) ist nicht Teil dieser Story → US-045
+- Affected components: solution detail view, catalog tab (form "New entity"), backend `POST /api/v1/solutions/{id}/deltas`
+- Request body: `{ entityName: string, entityType: string, deltaType: "new", properties: {...} }`
+- `new` deltas do not reference an entityId from the landscape; the system assigns a new UUID for the future entity when saving
+- EntityType dropdown from MetamodelConfiguration (REQ-032 data)
+- Diagram path (canvas) is not part of this story → US-045
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien AC1–AC4 erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests: Delta anlegen, Solution=implemented blockiert, Duplikat-Prüfung, ungültiger EntityType
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria AC1–AC4 met
+- [ ] Code review by a second person
+- [ ] Tests: create delta, solution=implemented blocks, duplicate check, invalid EntityType
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-038 (Solution), US-039 (Delta-Backend setzt Solution-Datenstruktur voraus)
-- Blockiert: US-043 (Diff-Ansicht braucht mind. ein Delta), US-044 (Konflikt-Check braucht Deltas), US-045 (Diagramm-Pfad teilt dasselbe Backend)
+- Waiting on: US-038 (solution), US-039 (delta backend presupposes solution data structure)
+- Blocks: US-043 (diff view needs at least one delta), US-044 (conflict check needs deltas), US-045 (diagram path shares the same backend)

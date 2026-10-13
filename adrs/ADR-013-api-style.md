@@ -1,96 +1,96 @@
-# ADR-013: API-Stil – REST + OpenAPI 3.x
+# ADR-013: API Style – REST + OpenAPI 3.x
 
 **Status**: accepted
-**Datum**: 2026-06-26
-**Entscheider**: [Rigobert – Produkt Owner](../business-analysis/stakeholders/SH-09-rigobert-produkt-owner.md) (SH-09)
-**Konsultiert**: Requirements Engineer
-**Informiert**: –
-**Aktualisiert**: 2026-06-28 — NestJS-Referenzen durch SpringDoc OpenAPI (Spring Boot 3) und Gradle-Workflow ersetzt; ADR-012 hat Java 21 + Spring Boot 3 gewählt, nicht NestJS
-**Aktualisiert**: 2026-10-04 — Umstellung von code-first auf **spec-first**: `api/openapi.yaml` ist der verbindliche Vertrag (ADR-027), Backend-Interfaces und Frontend-Typen werden daraus generiert; Build mit Maven statt Gradle (ADR-027)
+**Date**: 2026-06-26
+**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Consulted**: Requirements Engineer
+**Informed**: –
+**Updated**: 2026-06-28 — NestJS references replaced by SpringDoc OpenAPI (Spring Boot 3) and Gradle workflow; ADR-012 chose Java 21 + Spring Boot 3, not NestJS
+**Updated**: 2026-10-04 — Switch from code-first to **spec-first**: `api/openapi.yaml` is the binding contract (ADR-027), backend interfaces and frontend types are generated from it; build with Maven instead of Gradle (ADR-027)
 
-## Kontext und Problem
+## Context and Problem
 
-OEA ist API-first (Leitprinzip in `concept/README.md`): alle Funktionalität ist über eine stabile, versionierte API zugänglich. UI, CLI, CI-Pipelines, Module und externe Integrationen nutzen dieselbe API. Es muss entschieden werden, welches API-Paradigma verwendet wird und wie die Spezifikation gepflegt wird.
+OEA is API-first (guiding principle in `concept/README.md`): all functionality is accessible via a stable, versioned API. UI, CLI, CI pipelines, modules, and external integrations use the same API. It must be decided which API paradigm is used and how the specification is maintained.
 
-Alle bisherigen REQs spezifizieren bereits REST-Endpunkte (`GET /api/v1/entities/...`, `POST /api/v1/catalogs/...`). Diese Entscheidung bestätigt und formalisiert diesen Ansatz.
+All existing REQs already specify REST endpoints (`GET /api/v1/entities/...`, `POST /api/v1/catalogs/...`). This decision confirms and formalizes this approach.
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- **Universelle Konsumierbarkeit**: CLI-Tool, CI-Pipelines, externe Integrationen (ITSM, PPM) müssen die API ohne TypeScript-Bindung nutzen können
-- **Selbst-dokumentierend**: API-Spezifikation soll aus dem Code generiert werden (kein manuelles Pflegeproblem)
-- **Typ-Sharing**: Frontend (Vue 3, ADR-011) soll typsichere API-Clients aus der Spezifikation generieren können
-- **Standard-Konformität**: etablierter Standard, den Enterprise-Integrationsteams kennen
-- **REQ-075**: keine proprietären Protokolle; API muss von Standard-HTTP-Clients konsumierbar sein
+- **Universal consumability**: CLI tool, CI pipelines, external integrations (ITSM, PPM) must be able to use the API without a TypeScript binding
+- **Self-documenting**: API specification should be generated from the code (no manual maintenance problem)
+- **Type sharing**: Frontend (Vue 3, ADR-011) should be able to generate type-safe API clients from the specification
+- **Standards conformance**: established standard that enterprise integration teams know
+- **REQ-075**: no proprietary protocols; API must be consumable by standard HTTP clients
 
-## Betrachtete Optionen
+## Considered Options
 
 ### Option 1: REST + OpenAPI 3.x ✓
 
 - **Pro**:
-  - Universell: jeder HTTP-Client (curl, Postman, fetch, Python requests) kann die API nutzen
-  - Spec-first: der Vertrag `api/openapi.yaml` entsteht vor der Implementierung und ist für Backend, Frontend und externe Konsumenten gleichermaßen verbindlich
-  - `openapi-generator-maven-plugin` (Generator `spring`, `interfaceOnly`) erzeugt Controller-Interfaces und DTOs für Spring Boot ([ADR-012](./ADR-012-backend-stack.md))
-  - `openapi-typescript`: generiert typsichere Fetch-Clients für Vue 3-Frontend aus der Spec
-  - Swagger UI ist out-of-the-box verfügbar (`/api/docs`)
-  - Standard in EA-Tool-Integrationen (ITSM, PPM, CMDB alle sprechen REST)
-  - Alle bestehenden REQ-Endpunkte sind bereits als REST spezifiziert
-- **Contra**: Kein natives Subscription-Protokoll (→ SSE separat, §23 #26)
+  - Universal: any HTTP client (curl, Postman, fetch, Python requests) can use the API
+  - Spec-first: the contract `api/openapi.yaml` is created before the implementation and is equally binding for backend, frontend, and external consumers
+  - `openapi-generator-maven-plugin` (generator `spring`, `interfaceOnly`) generates controller interfaces and DTOs for Spring Boot ([ADR-012](./ADR-012-backend-stack.md))
+  - `openapi-typescript`: generates type-safe fetch clients for the Vue 3 frontend from the spec
+  - Swagger UI is available out-of-the-box (`/api/docs`)
+  - Standard in EA tool integrations (ITSM, PPM, CMDB all speak REST)
+  - All existing REQ endpoints are already specified as REST
+- **Con**: No native subscription protocol (→ SSE separately, §23 #26)
 
 ### Option 2: GraphQL
 
-- **Pro**: Flexible Queries, Subscriptions nativ, kein Over-/Under-Fetching
-- **Contra**: Zusätzliche Lernkurve; Caching komplexer (kein HTTP-Caching); CLI-Tools brauchen GraphQL-Client; Schema-Versionierung schwieriger; für OEA kein wesentlicher Vorteil gegenüber REST + OpenAPI
-- Scheidet für v1.0 aus; kann als optionale Query-Schicht in v2.0 ergänzt werden
+- **Pro**: Flexible queries, subscriptions native, no over-/under-fetching
+- **Con**: Additional learning curve; caching more complex (no HTTP caching); CLI tools need a GraphQL client; schema versioning harder; no significant advantage over REST + OpenAPI for OEA
+- Ruled out for v1.0; can be added as an optional query layer in v2.0
 
 ### Option 3: tRPC
 
-- **Pro**: Maximale TypeScript-Type-Safety end-to-end (Frontend ↔ Backend)
-- **Contra**: Nur für TypeScript-Clients sinnvoll — CLI-Tool (Node.js oder andere Sprachen), CI-Pipelines, ITSM-Konnektoren können tRPC nicht einfach konsumieren; bricht das API-first-Prinzip
-- Scheidet aus
+- **Pro**: Maximum TypeScript type safety end-to-end (frontend ↔ backend)
+- **Con**: Only sensible for TypeScript clients — CLI tool (Node.js or other languages), CI pipelines, ITSM connectors cannot easily consume tRPC; breaks the API-first principle
+- Ruled out
 
-## Entscheidung
+## Decision
 
-Wir wählen **Option 1: REST + OpenAPI 3.x**.
+We choose **Option 1: REST + OpenAPI 3.x**.
 
-**Umsetzung:**
+**Implementation:**
 
-| Aspekt | Entscheidung |
+| Aspect | Decision |
 |---|---|
-| Paradigma | REST (ressourcenorientiert) |
-| Spezifikation | OpenAPI 3.x, **spec-first**: handgepflegter Vertrag `api/openapi.yaml` |
-| Code-Generierung Backend | `openapi-generator-maven-plugin` (Generator `spring`, `interfaceOnly=true`) erzeugt Controller-Interfaces + DTOs beim Maven-Build |
-| API-Basis-Pfad | `/api/v1/` (versioniert) |
-| Dokumentation | Swagger UI unter `/api/docs` (nur non-production), ausgeliefert aus `api/openapi.yaml` |
-| Typ-Generierung Frontend | `openapi-typescript` (generiert `types.d.ts` aus Spec) |
-| Echtzeit-Events | SSE unter `GET /api/v1/events` (§23 #26); kein WebSocket in v1.0 |
-| Graph-Traversal | `POST /api/v1/entities/{id}/impact` (Recursive CTE, Tiefe konfigurierbar; ADR-016) |
-| Analytics | `POST /api/v1/analytics/query` (SQL-Analytics, §22) |
-| Authentifizierung | Bearer-Token (JWT) im `Authorization`-Header (ADR-006) |
+| Paradigm | REST (resource-oriented) |
+| Specification | OpenAPI 3.x, **spec-first**: hand-maintained contract `api/openapi.yaml` |
+| Code generation backend | `openapi-generator-maven-plugin` (generator `spring`, `interfaceOnly=true`) generates controller interfaces + DTOs during the Maven build |
+| API base path | `/api/v1/` (versioned) |
+| Documentation | Swagger UI at `/api/docs` (non-production only), served from `api/openapi.yaml` |
+| Type generation frontend | `openapi-typescript` (generates `types.d.ts` from spec) |
+| Real-time events | SSE at `GET /api/v1/events` (§23 #26); no WebSocket in v1.0 |
+| Graph traversal | `POST /api/v1/entities/{id}/impact` (recursive CTE, depth configurable; ADR-016) |
+| Analytics | `POST /api/v1/analytics/query` (SQL analytics, §22) |
+| Authentication | Bearer token (JWT) in the `Authorization` header (ADR-006) |
 
-**Versionierungsstrategie**: URL-basiert (`/api/v1/`, `/api/v2/`). Breaking Changes → neue Version; alte Version mind. 6 Monate parallel betreiben.
+**Versioning strategy**: URL-based (`/api/v1/`, `/api/v2/`). Breaking changes → new version; operate the old version in parallel for at least 6 months.
 
-**OpenAPI-Spec als CI-Artefakt**: `api/openapi.yaml` wird in CI validiert (Lint) und gegen den Stand von `main` auf Breaking Changes geprüft (kein Bruch ohne Version-Bump). `./mvnw verify` generiert die Backend-Interfaces aus der Spec; weicht die Implementierung ab, schlägt der Build fehl. Die Spec wird als Release-Artefakt published.
+**OpenAPI spec as CI artifact**: `api/openapi.yaml` is validated (lint) in CI and checked for breaking changes against the state of `main` (no break without a version bump). `./mvnw verify` generates the backend interfaces from the spec; if the implementation deviates, the build fails. The spec is published as a release artifact.
 
-**Workflow-Reihenfolge**: API-Änderung zuerst in `api/openapi.yaml` (Solution Architect, Teil des OpenSpec-Changes), danach Backend- und Frontend-Implementierung parallel gegen denselben Vertrag.
+**Workflow order**: API change first in `api/openapi.yaml` (solution architect, part of the OpenSpec change), then backend and frontend implementation in parallel against the same contract.
 
-## Konsequenzen
+## Consequences
 
-### Positive Konsequenzen
+### Positive Consequences
 
-- Alle bestehenden REQ-Endpunkte (`GET /api/v1/entities`, `POST /api/v1/catalogs`, ...) sind 1:1 umsetzbar
-- Swagger UI ermöglicht interaktives Testen ohne separaten Client
-- `openapi-typescript` (Frontend) und `openapi-generator-maven-plugin` (Backend) halten beide Seiten automatisch synchron mit dem Vertrag
-- Backend und Frontend können parallel gegen denselben Vertrag entwickeln; API-Design wird vor der Implementierung reviewt
-- Enterprise-Integrationen (ITSM, PPM, CI-Tools) können mit Standard-REST-Clients angebunden werden
+- All existing REQ endpoints (`GET /api/v1/entities`, `POST /api/v1/catalogs`, ...) are implementable 1:1
+- Swagger UI enables interactive testing without a separate client
+- `openapi-typescript` (frontend) and `openapi-generator-maven-plugin` (backend) automatically keep both sides in sync with the contract
+- Backend and frontend can develop in parallel against the same contract; API design is reviewed before implementation
+- Enterprise integrations (ITSM, PPM, CI tools) can be connected with standard REST clients
 
-### Negative Konsequenzen / Trade-offs
+### Negative Consequences / Trade-offs
 
-- SSE für Echtzeit-Updates ist nicht so elegant wie WebSocket/GraphQL Subscriptions; ausreichend für v1.0
-- Kein automatisches Type-Safety für CLI-Tool wenn es nicht in TypeScript geschrieben wird (→ OpenAPI Spec als Quelle)
-- Spec-first erfordert Disziplin: YAML wird von Hand gepflegt; Code-Generierung im Build und CI-Prüfung verhindern Drift zwischen Vertrag und Implementierung
+- SSE for real-time updates is not as elegant as WebSocket/GraphQL subscriptions; sufficient for v1.0
+- No automatic type safety for the CLI tool if it is not written in TypeScript (→ OpenAPI spec as source)
+- Spec-first requires discipline: YAML is maintained by hand; code generation in the build and CI check prevent drift between contract and implementation
 
-## Bezüge
+## References
 
-**Verwandte ADRs**: [ADR-012](./ADR-012-backend-stack.md) (Java 21 + Spring Boot 3), [ADR-006](./ADR-006-auth-stack-wahl.md) (Auth)
+**Related ADRs**: [ADR-012](./ADR-012-backend-stack.md) (Java 21 + Spring Boot 3), [ADR-006](./ADR-006-auth-stack-choice.md) (auth)
 
-**Konzept**: [§21 API-Architektur](../concept/70-platform/21-api-architektur.md), [§22 Auswertbarkeit](../concept/70-platform/22-auswertbarkeit.md)
+**Concept**: [§21 API Architecture](../concept/70-platform/21-api-architecture.md), [§22 Analyzability](../concept/70-platform/22-analyzability.md)

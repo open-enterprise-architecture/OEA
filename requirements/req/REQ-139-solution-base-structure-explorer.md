@@ -1,6 +1,6 @@
 ---
 id: REQ-139
-title: Jede Solution hat eine auto-generierte Grundstruktur im Explorer
+title: Every Solution Has an Auto-Generated Base Structure in the Explorer
 type: functional
 priority: must
 status: proposed
@@ -26,69 +26,69 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-139: Jede Solution hat eine auto-generierte Grundstruktur im Explorer
+# REQ-139: Every Solution Has an Auto-Generated Base Structure in the Explorer
 
-## Aussage
+## Statement
 
-Jede Solution MUSS im Browser-Panel automatisch und ohne manuelle Konfiguration sechs Grundkategorien als Unterknoten enthalten: **Komponenten**, **Verbindungen**, **Kataloge**, **Functional Building Blocks**, **Solution Building Blocks** und **Diagramme**. Die Kategorien MÜSSEN die Anzahl der enthaltenen Objekte anzeigen. Leere Kategorien MÜSSEN sichtbar bleiben (ausgegraut), DÜRFEN aber nicht ausgeblendet werden.
+Every solution MUST automatically contain, in the browser panel and without manual configuration, six base categories as child nodes: **Components**, **Connections**, **Catalogs**, **Functional Building Blocks**, **Solution Building Blocks**, and **Diagrams**. The categories MUST display the number of contained objects. Empty categories MUST remain visible (grayed out) and MUST NOT be hidden.
 
-## Begründung
+## Rationale
 
-Jede Solution benötigt dieselbe Grundstruktur. Manuelle Anlage per TreeNode-CRUD wäre repetitiv und fehleranfällig (ein vergessener Ordner fehlt dann komplett). Die konsistente Struktur ermöglicht Nutzern, in jeder Solution sofort denselben Navigationspfad zu finden.
+Every solution needs the same base structure. Manual creation via TreeNode CRUD would be repetitive and error-prone (a forgotten folder would then be missing entirely). The consistent structure enables users to find the same navigation path immediately in every solution.
 
-**Kategorien und ihre Inhalte**:
+**Categories and their contents**:
 
-| Kategorie | Enthält | Entitätstyp (BO) |
+| Category | Contains | Entity type (BO) |
 |---|---|---|
-| Komponenten | Alle ArchitectureEntities mit `isConnection=false` in dieser Solution | `entity` |
-| Verbindungen | Alle ArchitectureEntities mit `isConnection=true` in dieser Solution | `entity` |
-| Kataloge | Alle Catalog-Objekte, die dieser Solution zugeordnet sind | `catalog` |
-| Functional Building Blocks | Alle ABBs (Architecture Building Blocks), die der Solution zugeordnet sind | `architecture-building-block` |
-| Solution Building Blocks | Alle SBBs (Solution Building Blocks), die der Solution zugeordnet sind | `solution-building-block` |
-| Diagramme | Alle Diagram-Instanzen (Viewpoint-Instanzen), die der Solution zugeordnet sind | (Diagram BO) |
+| Components | All ArchitectureEntities with `isConnection=false` in this solution | `entity` |
+| Connections | All ArchitectureEntities with `isConnection=true` in this solution | `entity` |
+| Catalogs | All catalog objects assigned to this solution | `catalog` |
+| Functional Building Blocks | All ABBs (Architecture Building Blocks) assigned to the solution | `architecture-building-block` |
+| Solution Building Blocks | All SBBs (Solution Building Blocks) assigned to the solution | `solution-building-block` |
+| Diagrams | All diagram instances (viewpoint instances) assigned to the solution | (Diagram BO) |
 
-*Hinweis*: „Functional Building Block" (FBB) ist die in OEA verwendete Bezeichnung für `ArchitectureBuildingBlock` (ABB) im Solution-Kontext. Es handelt sich um dasselbe Business Object — die Bezeichnung FBB wird in der UI verwendet, um die funktionale Rolle im Solution-Design zu betonen.
+*Note*: "Functional Building Block" (FBB) is the term used in OEA for `ArchitectureBuildingBlock` (ABB) in the solution context. It is the same business object — the term FBB is used in the UI to emphasize the functional role in the solution design.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-**Eingaben**: Solution-ID → alle verknüpften Objekte aus den sechs Kategorien
+**Inputs**: solution ID → all linked objects from the six categories
 
-**Verarbeitung**:
-1. System lädt Objekte aller sechs Kategorien für die gegebene Solution
-2. Jede Kategorie als Knoten mit Anzahl (z.B. „Komponenten (4)")
-3. Leere Kategorien: Knoten bleibt sichtbar, Anzahl „(0)", visuell ausgegraut
-4. Komponenten werden hierarchisch angezeigt wenn `parentEntityId` gesetzt (REQ-141)
+**Processing**:
+1. The system loads objects of all six categories for the given solution
+2. Each category as a node with count (e.g. "Components (4)")
+3. Empty categories: node remains visible, count "(0)", visually grayed out
+4. Components are displayed hierarchically when `parentEntityId` is set (REQ-141)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** — Vollständige Grundstruktur:
-- Gegeben: Beliebige Solution (mit oder ohne Inhalt)
-- Wenn: Solution im Browser aufgeklappt wird
-- Dann: Genau sechs Kategorien als Unterknoten sichtbar
+**AC1** — Complete base structure:
+- Given: any solution (with or without content)
+- When: the solution is expanded in the browser
+- Then: exactly six categories visible as child nodes
 
-**AC2** — Leere Kategorien sichtbar:
-- Gegeben: Solution mit 0 Katalogen
-- Wenn: Solution im Browser aufgeklappt wird
-- Dann: „Kataloge (0)" erscheint ausgegraut — nicht ausgeblendet
+**AC2** — Empty categories visible:
+- Given: solution with 0 catalogs
+- When: the solution is expanded in the browser
+- Then: "Catalogs (0)" appears grayed out — not hidden
 
-**AC3** — Anzahl korrekt:
-- Gegeben: Solution hat 3 Komponenten und 5 Verbindungen
-- Wenn: Browser angezeigt wird
-- Dann: „Komponenten (3)" und „Verbindungen (5)" korrekt angezeigt
+**AC3** — Count correct:
+- Given: the solution has 3 components and 5 connections
+- When: the browser is displayed
+- Then: "Components (3)" and "Connections (5)" are displayed correctly
 
-## Verifikationsmethode
+## Verification Method
 
-- [ ] Methode: test (automatisiert)
-- [ ] Test-Setup: Playwright; Solutions mit leerem und gefülltem Inhalt
-- [ ] Bestanden-Kriterium: AC1–AC3 alle grün
+- [ ] Method: test (automated)
+- [ ] Test setup: Playwright; solutions with empty and filled content
+- [ ] Pass criterion: AC1–AC3 all green
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-138 (Solution als primäre Navigationsebene); ADR-020
-- **Folgewirkungen**: REQ-141 (Component-Hierarchie unter „Komponenten")
+- **Prerequisites**: REQ-138 (solution as primary navigation level); ADR-020
+- **Consequences**: REQ-141 (component hierarchy under "Components")
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft; FBB-Gleichsetzung zu ABB dokumentiert |
+| 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft; equating FBB with ABB documented |

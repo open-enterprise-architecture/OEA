@@ -1,6 +1,6 @@
 ---
 id: REQ-048
-title: SavedView anlegen und beim Öffnen anwenden
+title: Create a SavedView and apply it on open
 type: functional
 priority: should
 status: proposed
@@ -25,93 +25,93 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-048: SavedView anlegen und beim Öffnen anwenden
+# REQ-048: Create a SavedView and apply it on open
 
-## Aussage
+## Statement
 
-Das System MUSS dem Katalog-Manager ermöglichen, benannte `SavedView`-Einträge innerhalb eines [Catalogs](../../business-objects/catalog.md) anzulegen. Eine SavedView bündelt: `columnOrder` (geordnete Liste sichtbarer Attributnamen, BR-05), `activeFilterIds` (IDs von SavedFilters dieses Catalogs) und `joinModeOverrides` (optionale Modus-Overrides pro JoinDefinition). Maximal eine SavedView pro Catalog DARF `isDefault=true` gesetzt haben (BR-06). Beim Öffnen eines Catalogs MUSS die Default-SavedView – sofern vorhanden – automatisch angewendet werden. Wird eine neue SavedView als Default markiert, MUSS eine bestehende Default-SavedView automatisch auf `isDefault=false` gesetzt werden.
+The system MUST allow the catalog manager to create named `SavedView` entries within a [Catalog](../../business-objects/catalog.md). A SavedView bundles: `columnOrder` (ordered list of visible attribute names, BR-05), `activeFilterIds` (IDs of SavedFilters of this catalog), and `joinModeOverrides` (optional mode overrides per JoinDefinition). At most one SavedView per catalog MAY have `isDefault=true` (BR-06). When a catalog is opened, the default SavedView – if present – MUST be applied automatically. If a new SavedView is marked as default, an existing default SavedView MUST automatically be set to `isDefault=false`.
 
-## Begründung
+## Rationale
 
-Ohne SavedViews muss jeder Besucher bei jedem Öffnen des Catalogs die gewünschte Spalten- und Filter-Kombination manuell rekonfigurieren. SavedViews erlauben dem Katalog-Manager, mehrere kontextbezogene Sichten vorzukonfigurieren (z.B. eine für den täglichen Check, eine für den Compliance-Export) und die wichtigste als Default zu markieren.
+Without SavedViews, every visitor has to reconfigure the desired column and filter combination manually each time the catalog is opened. SavedViews allow the catalog manager to preconfigure several context-related views (e.g., one for the daily check, one for the compliance export) and to mark the most important one as default.
 
-## Kontext
+## Context
 
-Eine SavedView verändert nicht die gespeicherte `columns`-Konfiguration des Catalogs; sie ist ein Overlay, das beim Öffnen angewendet wird. Die `columnOrder` in der SavedView überschreibt die `sortOrder` der `ColumnConfig`; sichtbar sind nur die in `columnOrder` genannten Spalten. Spalten, die in der `columns`-Konfiguration des Catalogs nicht existieren, sind in `columnOrder` nicht erlaubt (BR-05).
+A SavedView does not change the stored `columns` configuration of the catalog; it is an overlay applied on open. The `columnOrder` in the SavedView overrides the `sortOrder` of the `ColumnConfig`; only the columns named in `columnOrder` are visible. Columns that do not exist in the catalog's `columns` configuration are not allowed in `columnOrder` (BR-05).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
+**Inputs**:
 
-| Feld | Typ | Optional | Beschreibung |
+| Field | Type | Optional | Description |
 |---|---|---|---|
-| name | string | Pflicht | Lesbarer Name, eindeutig innerhalb des Catalogs |
+| name | string | mandatory | Readable name, unique within the catalog |
 | description | string | optional | |
-| columnOrder | string[] | optional | Geordnete Liste von attributeNames; nur aus `catalog.columns`; fehlende Spalten = ausgeblendet |
-| activeFilterIds | string[] | optional | IDs von SavedFilters dieses Catalogs |
-| joinModeOverrides | JoinModeOverride[] | optional | Pro JoinDefinitionId: `rows` oder `aggregate` |
-| isDefault | boolean | Pflicht | true = wird beim Öffnen des Catalogs automatisch aktiviert |
+| columnOrder | string[] | optional | Ordered list of attributeNames; only from `catalog.columns`; missing columns = hidden |
+| activeFilterIds | string[] | optional | IDs of SavedFilters of this catalog |
+| joinModeOverrides | JoinModeOverride[] | optional | Per JoinDefinitionId: `rows` or `aggregate` |
+| isDefault | boolean | mandatory | true = activated automatically when the catalog is opened |
 
-**Verarbeitung**:
+**Processing**:
 
-1. `columnOrder`-Einträge gegen `catalog.columns.attributeName`-Liste validieren (BR-05); 422 bei unbekannten Attributnamen
-2. `activeFilterIds` gegen `catalog.savedFilters`-IDs validieren; 422 bei unbekannten IDs
-3. Wenn `isDefault=true`: alle anderen SavedViews dieses Catalogs auf `isDefault=false` setzen (BR-06)
-4. `joinModeOverrides[].joinDefinitionId` gegen `catalog.joinDefinitions` validieren; 422 bei unbekannten IDs
-5. SavedView im Catalog persistieren
+1. Validate `columnOrder` entries against the `catalog.columns.attributeName` list (BR-05); 422 on unknown attribute names
+2. Validate `activeFilterIds` against the `catalog.savedFilters` IDs; 422 on unknown IDs
+3. If `isDefault=true`: set all other SavedViews of this catalog to `isDefault=false` (BR-06)
+4. Validate `joinModeOverrides[].joinDefinitionId` against `catalog.joinDefinitions`; 422 on unknown IDs
+5. Persist the SavedView in the catalog
 
-**Ausgaben**:
+**Outputs**:
 
-- HTTP 201 Created mit aktualisiertem Catalog (inkl. neuer SavedView mit id)
-- HTTP 200 OK beim Aktualisieren (PUT)
-- HTTP 422 Unprocessable Entity bei Validierungsfehlern
+- HTTP 201 Created with the updated catalog (including the new SavedView with id)
+- HTTP 200 OK on update (PUT)
+- HTTP 422 Unprocessable Entity on validation errors
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (SavedView anlegen, Happy Path):
-- Gegeben: Catalog hat columns [name, status, vendor] und SavedFilter „Nur aktive Systeme"
-- Wenn: `POST /api/v1/catalogs/{id}/views` mit `{ name: "Kompaktansicht", columnOrder: ["name", "status"], activeFilterIds: ["filter-1"], isDefault: true }`
-- Dann: HTTP 201; SavedView gespeichert; isDefault=true
+**AC1** (Create SavedView, happy path):
+- Given: the catalog has columns [name, status, vendor] and SavedFilter "Active systems only"
+- When: `POST /api/v1/catalogs/{id}/views` with `{ name: "Compact view", columnOrder: ["name", "status"], activeFilterIds: ["filter-1"], isDefault: true }`
+- Then: HTTP 201; SavedView saved; isDefault=true
 
-**AC2** (BR-06 – Default-Wechsel):
-- Gegeben: SavedView A mit isDefault=true existiert
-- Wenn: SavedView B mit isDefault=true angelegt
-- Dann: HTTP 201; SavedView B isDefault=true; SavedView A isDefault=false (automatisch)
+**AC2** (BR-06 – default switch):
+- Given: SavedView A with isDefault=true exists
+- When: SavedView B is created with isDefault=true
+- Then: HTTP 201; SavedView B isDefault=true; SavedView A isDefault=false (automatically)
 
-**AC3** (BR-05 – ungültiger columnOrder-Eintrag):
-- Gegeben: Catalog hat keine Spalte „unbekannt"
-- Wenn: `columnOrder: ["name", "unbekannt"]`
-- Dann: HTTP 422 „Das Attribut ‹unbekannt› ist nicht in der Spalten-Konfiguration des Catalogs"
+**AC3** (BR-05 – invalid columnOrder entry):
+- Given: the catalog has no column "unknown"
+- When: `columnOrder: ["name", "unknown"]`
+- Then: HTTP 422 "The attribute ‹unknown› is not in the catalog's column configuration"
 
-**AC4** (Default-View beim Öffnen anwenden):
-- Gegeben: Catalog hat SavedView „Kompaktansicht" mit isDefault=true; columnOrder=[name, status]; activeFilterIds=[filter-aktive-systeme]
-- Wenn: Besucher öffnet den Catalog
-- Dann: Tabelle zeigt nur Spalten name und status; Filter „Nur aktive Systeme" ist aktiv; `totalCount` entsprechend gefiltert
+**AC4** (Apply default view on open):
+- Given: the catalog has SavedView "Compact view" with isDefault=true; columnOrder=[name, status]; activeFilterIds=[filter-active-systems]
+- When: a visitor opens the catalog
+- Then: the table shows only the columns name and status; the filter "Active systems only" is active; `totalCount` filtered accordingly
 
-**AC5** (Kein Default):
-- Gegeben: Catalog hat keine SavedView mit isDefault=true
-- Wenn: Besucher öffnet den Catalog
-- Dann: Alle konfigurierten Spalten sichtbar; kein Filter vorausgewählt
+**AC5** (No default):
+- Given: the catalog has no SavedView with isDefault=true
+- When: a visitor opens the catalog
+- Then: all configured columns visible; no filter preselected
 
-**AC6** (SavedView löschen):
-- Wenn: `DELETE /api/v1/catalogs/{id}/views/{viewId}` für die Default-View
-- Dann: HTTP 200; View gelöscht; kein anderer Default wird automatisch gesetzt; nächster Öffne-Vorgang nutzt kein Default
+**AC6** (Delete SavedView):
+- When: `DELETE /api/v1/catalogs/{id}/views/{viewId}` for the default view
+- Then: HTTP 200; view deleted; no other default is set automatically; the next open uses no default
 
-## Abhängigkeiten
+## Dependencies
 
-- Blockiert durch: REQ-043, REQ-044, REQ-047 (SavedViews referenzieren Spalten und Filter)
-- Ermöglicht: bessere Nutzbarkeit des Catalogs für alle Besucher
+- Blocked by: REQ-043, REQ-044, REQ-047 (SavedViews reference columns and filters)
+- Enables: better usability of the catalog for all visitors
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
 - Endpoints: `POST /api/v1/catalogs/{id}/views`, `PUT /api/v1/catalogs/{id}/views/{viewId}`, `DELETE /api/v1/catalogs/{id}/views/{viewId}`
-- Default-View-Propagation: beim Setzen von isDefault=true auf einer View alle anderen Views transaktional auf false setzen (kein Partial-Update-Problem)
-- Beim Öffnen des Catalogs: Client fragt zuerst die Catalog-Konfiguration ab und findet die Default-View; dann verwendet er deren Parameter für den ersten Query-Aufruf (REQ-046)
+- Default view propagation: when setting isDefault=true on a view, set all other views to false transactionally (no partial update problem)
+- When opening the catalog: the client first queries the catalog configuration and finds the default view; it then uses its parameters for the first query call (REQ-046)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; BR-05/BR-06, Default-View-Mechanismus |
+| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; BR-05/BR-06, default view mechanism |

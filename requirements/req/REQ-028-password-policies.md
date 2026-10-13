@@ -1,6 +1,6 @@
 ---
 id: REQ-028
-title: Passwort-Richtlinien durch Betreiber konfigurieren
+title: Configure password policies by the operator
 type: functional
 priority: should
 status: proposed
@@ -17,132 +17,132 @@ references:
   stakeholders:
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-028: Passwort-Richtlinien durch Betreiber konfigurieren
+# REQ-028: Configure password policies by the operator
 
-## Aussage
+## Statement
 
-Das System MUSS dem Betreiber ermöglichen, instanzweite Passwort-Richtlinien zu konfigurieren, die bei jeder Passwort-Setzung oder -Änderung durchgesetzt werden; die Richtlinien MÜSSEN mindestens folgende Regeln umfassen: Mindestlänge, Zeichentypen-Erzwingung (Großbuchstaben, Kleinbuchstaben, Ziffern, Sonderzeichen – einzeln aktivierbar), Ablaufdauer und Passwort-Historie.
+The system MUST allow the operator to configure instance-wide password policies that are enforced on every password setting or change; the policies MUST include at least the following rules: minimum length, enforcement of character types (uppercase, lowercase, digits, special characters – individually activatable), expiry period, and password history.
 
-## Begründung
+## Rationale
 
-Unterschiedliche Organisationen haben unterschiedliche Sicherheitsanforderungen (Compliance, interne IT-Policy). Der Betreiber (SH-06, Max) muss die Passwort-Policy seiner Organisation abbilden können, ohne dass OEA eine starre Einheitspolicy vorschreibt. Betrifft alle Stellen, an denen Passwörter gesetzt oder geprüft werden: initiales Passwort (REQ-024), Passwort-Generator (REQ-027), künftiger Passwort-Änderungs-UC.
+Different organizations have different security requirements (compliance, internal IT policy). The operator (SH-06, Max) must be able to reflect their organization's password policy without OEA prescribing a rigid uniform policy. Concerns all places where passwords are set or checked: initial password (REQ-024), password generator (REQ-027), future password change UC.
 
-## Kontext
+## Context
 
-Die Richtlinien gelten instanzweit für alle Personen mit lokalem Password-Credential. Sie werden in der Instanz-Konfiguration (nicht im Person-Objekt) gespeichert. Änderungen wirken ab dem nächsten Passwort-Setzen oder -Ändern; bestehende Hashes werden nicht rückwirkend invalidiert (außer bei Ablaufdauer-Aktivierung, die dann alle bestehenden Passwörter als "läuft ab in N Tagen" markiert). Gilt nicht für den System-Admin-Account (UC-02), der eigene Credential-Regeln hat.
+The policies apply instance-wide to all persons with a local password credential. They are stored in the instance configuration (not in the Person object). Changes take effect from the next password setting or change; existing hashes are not retroactively invalidated (except when the expiry period is activated, which then marks all existing passwords as "expires in N days"). Does not apply to the system admin account (UC-02), which has its own credential rules.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben** (Konfiguration durch Betreiber im Admin-UI oder per Config-Datei):
+**Inputs** (configuration by the operator in the admin UI or via config file):
 
-| Regelname | Typ | Default | Beschreibung |
+| Rule name | Type | Default | Description |
 |---|---|---|---|
-| `minLength` | integer | 12 | Minimale Passwort-Länge in Zeichen |
-| `requireUppercase` | boolean | false | Mindestens ein Großbuchstabe (A–Z) |
-| `requireLowercase` | boolean | false | Mindestens ein Kleinbuchstabe (a–z) |
-| `requireDigits` | boolean | false | Mindestens eine Ziffer (0–9) |
-| `requireSpecialChars` | boolean | false | Mindestens ein Sonderzeichen aus dem vollständigen ASCII-Sonderzeichen-Zeichensatz |
-| `expiryDays` | integer | 0 | Ablaufdauer in Tagen (0 = kein Ablauf) |
-| `historyCount` | integer | 0 | Anzahl vorheriger Passwörter, die nicht wiederverwendet werden dürfen (0 = keine Prüfung) |
+| `minLength` | integer | 12 | Minimum password length in characters |
+| `requireUppercase` | boolean | false | At least one uppercase letter (A–Z) |
+| `requireLowercase` | boolean | false | At least one lowercase letter (a–z) |
+| `requireDigits` | boolean | false | At least one digit (0–9) |
+| `requireSpecialChars` | boolean | false | At least one special character from the full ASCII special character set |
+| `expiryDays` | integer | 0 | Expiry period in days (0 = no expiry) |
+| `historyCount` | integer | 0 | Number of previous passwords that must not be reused (0 = no check) |
 
-**Verarbeitung**:
-- Richtlinien werden bei Passwort-Setzung (REQ-024), Passwort-Änderung und Generator-Aufruf (REQ-027) synchron geprüft
-- Bei `expiryDays > 0`: System prüft `LocalCredential.lastUsedAt` / `createdAt` beim Login; ist das Passwort abgelaufen, wird Required Action "Passwort ändern" ausgelöst (analog UC-03 für 2FA)
-- Bei `historyCount > 0`: System hält die letzten N Passwort-Hashes pro Person und lehnt Wiederverwendung ab (Vergleich via Hash-Verifikation, nicht Klartext-Vergleich)
+**Processing**:
+- Policies are checked synchronously on password setting (REQ-024), password change, and generator call (REQ-027)
+- If `expiryDays > 0`: the system checks `LocalCredential.lastUsedAt` / `createdAt` at login; if the password has expired, the required action "Change password" is triggered (analogous to UC-03 for 2FA)
+- If `historyCount > 0`: the system keeps the last N password hashes per person and rejects reuse (comparison via hash verification, not plain-text comparison)
 
-**Ausgaben**:
-- Validierungsergebnis bei Passwort-Prüfung: Erfolg oder Fehlerliste mit konkreten nicht erfüllten Regeln
-- Betreiber-Konfiguration: gespeichert und aktiv für neue Passwort-Operationen
+**Outputs**:
+- Validation result on password check: success or a list of errors with the specific unmet rules
+- Operator configuration: stored and active for new password operations
 
-**Fehlerfälle**:
-- Konfiguration ist inkonsistent (z.B. `minLength < Anzahl erzwungener Zeichentypen`) → Validierungsfehler beim Speichern der Konfiguration, nicht erst bei der ersten Passwort-Nutzung
-- `historyCount` erfordert Speicherung alter Hashes, die nicht mehr als `LocalCredential` mit `status=active` existieren → separate `password_history`-Tabelle
+**Error Cases**:
+- Configuration is inconsistent (e.g., `minLength < number of enforced character types`) → validation error when saving the configuration, not only at first password use
+- `historyCount` requires storing old hashes that no longer exist as `LocalCredential` with `status=active` → separate `password_history` table
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Betreiber aktiviert `requireUppercase`, `requireLowercase`, `requireDigits`, `requireSpecialChars` und setzt `minLength=16`
-- Wenn: eine Person ein Passwort setzt, das nur Kleinbuchstaben enthält
-- Dann: wird es abgelehnt mit einer Fehlermeldung, die alle nicht erfüllten Regeln nennt
+- Given: the operator enables `requireUppercase`, `requireLowercase`, `requireDigits`, `requireSpecialChars` and sets `minLength=16`
+- When: a person sets a password that contains only lowercase letters
+- Then: it is rejected with an error message that names all unmet rules
 
 **AC2**:
-- Gegeben: Betreiber setzt `expiryDays=90`
-- Wenn: eine Person sich 91 Tage nach dem letzten Passwort-Wechsel einloggt
-- Dann: wird Required Action "Passwort ändern" ausgelöst; kein vollständiger Zugriff bis zum Wechsel
+- Given: the operator sets `expiryDays=90`
+- When: a person logs in 91 days after the last password change
+- Then: the required action "Change password" is triggered; no full access until the change
 
 **AC3**:
-- Gegeben: Betreiber setzt `historyCount=5`
-- Wenn: eine Person versucht, ein Passwort zu setzen, das mit einem der letzten 5 Passwörter übereinstimmt
-- Dann: wird es abgelehnt mit Hinweis auf Wiederverwendungsverbot
+- Given: the operator sets `historyCount=5`
+- When: a person tries to set a password that matches one of the last 5 passwords
+- Then: it is rejected with a note on the reuse prohibition
 
 **AC4**:
-- Gegeben: Betreiber setzt eine inkonsistente Konfiguration (`minLength=3`, alle 4 Zeichentypen erzwungen)
-- Wenn: die Konfiguration gespeichert werden soll
-- Dann: wird sie abgelehnt mit konkreter Fehlermeldung (Mindestlänge muss ≥ 4 sein)
+- Given: the operator sets an inconsistent configuration (`minLength=3`, all 4 character types enforced)
+- When: the configuration is to be saved
+- Then: it is rejected with a specific error message (minimum length must be ≥ 4)
 
 **AC5**:
-- Gegeben: alle Regeln sind auf Default (false / 0)
-- Wenn: ein Passwort mit Mindestlänge gesetzt wird
-- Dann: wird es akzeptiert, auch wenn es nur Kleinbuchstaben enthält
+- Given: all rules are at default (false / 0)
+- When: a password with the minimum length is set
+- Then: it is accepted, even if it contains only lowercase letters
 
 **AC6**:
-- Gegeben: `requireSpecialChars=true`
-- Wenn: ein Passwort geprüft wird
-- Dann: werden alle druckbaren ASCII-Sonderzeichen als gültig akzeptiert (kein eingeschränkter Teilmenge-Check)
+- Given: `requireSpecialChars=true`
+- When: a password is checked
+- Then: all printable ASCII special characters are accepted as valid (no restricted subset check)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Konfiguration mit verschiedenen Regel-Kombinationen setzen; Passwörter gegen Regeln prüfen; Ablaufdauer mit simuliertem Datum testen; History-Check
-- [x] Mess-Werkzeug: Test-Suite des Auth-Moduls + Admin-Konfigurationsmodul
-- [x] Bestanden-Kriterium: AC1–AC6 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: set the configuration with various rule combinations; check passwords against rules; test expiry period with a simulated date; history check
+- [x] Measurement tool: test suite of the auth module + admin configuration module
+- [x] Pass criterion: AC1–AC6 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-024 (Passwort wird initial gesetzt – erste Stelle, an der Richtlinien greifen)
-- **Folgewirkungen**: REQ-027 (Generator liest Richtlinien); REQ-011 (Login prüft Ablaufdauer); künftiger Passwort-Änderungs-UC (prüft History und Richtlinien)
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-024 (password is set initially – first place where policies take effect)
+- **Downstream effects**: REQ-027 (generator reads policies); REQ-011 (login checks expiry period); future password change UC (checks history and policies)
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne konfigurierbare Richtlinien können Compliance-Anforderungen (IT-Sicherheitsrichtlinien der Organisation) nicht abgebildet werden – Ablehnung durch Unternehmens-IT, mittlerer Schweregrad
-- Risiko 2: Ohne History-Prüfung können Nutzer dasselbe Passwort endlos rotieren – schwächt Ablauf-Policy, geringer Schweregrad
+- Risk 1: Without configurable policies, compliance requirements (the organization's IT security policies) cannot be reflected – rejection by corporate IT, medium severity
+- Risk 2: Without a history check, users can rotate the same password endlessly – weakens the expiry policy, low severity
 
 ## Trade-offs
 
-- `historyCount > 0` erfordert Speicherung von Passwort-Hashes, die nicht mehr aktiv sind (erhöhter Speicherbedarf, zusätzliche Tabelle). Vertretbar, da Hashes klein sind und die History begrenzt ist.
-- Zu strenge Policies (alle 4 Typen + kurze Mindestlänge) erhöhen die Fehlerrate beim Passwort-Setzen – durch aussagekräftige Fehlermeldungen und Generator (REQ-027) mitigiert.
+- `historyCount > 0` requires storing password hashes that are no longer active (increased storage need, additional table). Acceptable, since hashes are small and the history is limited.
+- Overly strict policies (all 4 types + short minimum length) increase the error rate when setting passwords – mitigated by meaningful error messages and the generator (REQ-027).
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Richtlinien als instanzweite Konfiguration speichern (YAML/ENV/DB-Tabelle `instance_config`), nicht pro Person
-- Validierungslogik als eigenständige, rein funktionale Prüffunktion (Input: Passwort-Klartext + Richtlinien-Objekt → Output: Liste nicht erfüllter Regeln); wiederverwendbar für REQ-024, REQ-027, Passwort-Änderungs-UC
-- Password-History: eigene Tabelle `password_history` (`person_id`, `password_hash`, `created_at`); Hash-Vergleich via Verifikation (nicht Klartext); automatisch trimmen auf `historyCount` Einträge
-- Ablaufdauer-Check: bei jedem Login via REQ-011; `LocalCredential.last_changed_at` ≤ now - expiryDays → Required Action
+- Store policies as instance-wide configuration (YAML/ENV/DB table `instance_config`), not per person
+- Validation logic as a standalone, purely functional check function (input: plain-text password + policy object → output: list of unmet rules); reusable for REQ-024, REQ-027, password change UC
+- Password history: dedicated table `password_history` (`person_id`, `password_hash`, `created_at`); hash comparison via verification (not plain text); automatically trim to `historyCount` entries
+- Expiry check: on every login via REQ-011; `LocalCredential.last_changed_at` ≤ now - expiryDays → required action
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus Betreiber-Anforderung (SH-06). Die Richtlinien sind bewusst alle optional (Default: off / 0), damit Self-Hosting-Instanzen ohne explizite IT-Policy funktionieren, ohne sofort an harte Regeln zu stoßen. Betreiber aktivieren gezielt, was ihre Organisation benötigt.
+Derived from operator requirement (SH-06). The policies are deliberately all optional (default: off / 0) so that self-hosting instances without an explicit IT policy work without immediately running into hard rules. Operators activate specifically what their organization needs.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |

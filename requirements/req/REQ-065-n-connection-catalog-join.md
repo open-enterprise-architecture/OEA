@@ -1,6 +1,6 @@
 ---
 id: REQ-065
-title: Katalog-Join für Connection-Typ-Primaries und n-Connection-Traversal
+title: Catalog join for connection-type primaries and n-connection traversal
 type: functional
 priority: should
 status: proposed
@@ -23,111 +23,111 @@ references:
     - SH-02
     - SH-03
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
+    - concept/20-entities/06-core-entity-types.md
   adrs:
     - ADR-010
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-065: Katalog-Join für Connection-Typ-Primaries und n-Connection-Traversal
+# REQ-065: Catalog join for connection-type primaries and n-connection traversal
 
-## Aussage
+## Statement
 
-Das System MUSS für [Catalog](../../business-objects/catalog.md)-Instanzen zwei Erweiterungen der Join-Logik (REQ-045/046) unterstützen:
+For [Catalog](../../business-objects/catalog.md) instances, the system MUST support two extensions of the join logic (REQ-045/046):
 
-1. **Connection-Typ als Primary**: `primaryEntityType` DARF auf einen EntityType mit `isConnection=true` gesetzt werden (z.B. `data-flow`-Catalog). Das System liefert in diesem Fall alle Connection-Instanzen dieses Typs als Zeilen.
-2. **n-Connection-Traversal**: Wenn `JoinDefinition.connectionType` ein Typ ist, dessen `sourceEntityId`-Feld auf Connection-Instanzen zeigen darf (`allowsConnectionAsSource=true` des jeweiligen Source-Typs), traversiert das System diesen Join genau wie einen normalen Join — also: finde alle Instanzen des `connectionType`, bei denen `sourceEntityId` der primären Entität entspricht (outbound).
+1. **Connection type as primary**: `primaryEntityType` MAY be set to an EntityType with `isConnection=true` (e.g., a `data-flow` catalog). In this case, the system returns all connection instances of this type as rows.
+2. **n-connection traversal**: If `JoinDefinition.connectionType` is a type whose `sourceEntityId` field may point to connection instances (`allowsConnectionAsSource=true` of the respective source type), the system traverses this join exactly like a normal join — that is: find all instances of the `connectionType` where `sourceEntityId` equals the primary entity (outbound).
 
-## Begründung
+## Rationale
 
-Mit ADR-010 (n-Connection) können Connections selbst Quelle weiterer Connections sein (z.B. `data-flow` → `carries-data` → `data-object`). Damit diese Struktur in Katalogen abfragbar wird — z.B. „Zeige alle Datenflüsse mit den Datenobjekten, die sie transportieren" — müssen zwei Anpassungen greifen:
-- Ein Catalog darf `primaryEntityType=data-flow` haben
-- Der Join-Traversal muss `carries-data`-Verbindungen finden, auch wenn deren Source eine Connection-Instanz ist
+With ADR-010 (n-connection), connections can themselves be the source of further connections (e.g., `data-flow` → `carries-data` → `data-object`). For this structure to become queryable in catalogs — e.g., "Show all data flows with the data objects they transport" — two adjustments must take effect:
+- A catalog may have `primaryEntityType=data-flow`
+- The join traversal must find `carries-data` connections even if their source is a connection instance
 
-Ohne diese Erweiterung wäre n-Connection rein modell-technisch vorhanden, aber nicht katalogisierbar — ein wesentliches Anwendungspotenzial (DSGVO-Bericht, Lineage-Tabellen) wäre verschlossen.
+Without this extension, n-connection would exist purely in the model but could not be cataloged — a substantial application potential (GDPR report, lineage tables) would remain closed off.
 
-## Kontext
+## Context
 
-REQ-045 definiert die Konfiguration von JoinDefinitions. REQ-046 definiert die Abfrage-Ausführung. Dieses REQ erweitert beide um den n-Connection-Fall, ohne ihre Grundstruktur zu ändern.
+REQ-045 defines the configuration of JoinDefinitions. REQ-046 defines the query execution. This REQ extends both by the n-connection case without changing their basic structure.
 
-**Abgrenzung zu Lineage-API (REQ-062)**: Die Lineage-API traversiert beliebig tief (BFS). Diese Erweiterung hier beschränkt sich auf 1-Hop-Joins in Katalogen — ausgehend von der primären Entität. Chained Joins über mehr als einen Hop sind NICHT Gegenstand dieses REQ (für v2.0 vorgesehen).
+**Distinction from the lineage API (REQ-062)**: The lineage API traverses to arbitrary depth (BFS). This extension is restricted to 1-hop joins in catalogs — starting from the primary entity. Chained joins over more than one hop are NOT the subject of this REQ (planned for v2.0).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Erweiterung für Connection-Typ als Primary (Ergänzung zu REQ-046, Schritt 1)
-
-```
-Schritt 1 (angepasst): Alle Entitäten des `primaryEntityType` laden.
-  - Wenn `primaryEntityType.isConnection=false`: alle Nicht-Connection-Instanzen (bestehende Logik)
-  - Wenn `primaryEntityType.isConnection=true`: alle Connection-Instanzen dieses Typs
-  - Sortierung bei Connection-Primaries: Default nach `name` der Connection; alternativ `sourceEntityName` oder `targetEntityName` konfigurierbar
-```
-
-### Erweiterung für n-Connection-Traversal (Ergänzung zu REQ-046, Schritt 4)
+### Extension for Connection Type as Primary (supplement to REQ-046, step 1)
 
 ```
-Schritt 4 (angepasst): Join-Traversal für jede Primär-Entität:
-  - Für joinDirection=outbound: finde alle Instanzen von JoinDefinition.connectionType
-    WHERE sourceEntityId = primäre-Entität.id
-  - Für joinDirection=inbound: finde alle Instanzen
-    WHERE targetEntityId = primäre-Entität.id
-  - Gilt unverändert auch wenn primäre-Entität selbst eine Connection-Instanz ist
-    (kein Sonderfall nötig — das Entity-ID-Modell ist einheitlich)
+Step 1 (adjusted): Load all entities of the `primaryEntityType`.
+  - If `primaryEntityType.isConnection=false`: all non-connection instances (existing logic)
+  - If `primaryEntityType.isConnection=true`: all connection instances of this type
+  - Sorting for connection primaries: default by `name` of the connection; alternatively `sourceEntityName` or `targetEntityName` configurable
 ```
 
-### Neue Validierung in REQ-045 (BR-04)
+### Extension for n-Connection Traversal (supplement to REQ-046, step 4)
 
-Wenn `primaryEntityType.isConnection=true` gesetzt wird, muss auch mindestens eine JoinDefinition konfiguriert sein, deren `connectionType` diese Connection als Source erlaubt — oder ein expliziter Hinweis in der UI erscheinen, dass ein Connection-Catalog ohne Joins nur die Rohverbindungen anzeigt (kein Fehler, aber Warning im UI).
+```
+Step 4 (adjusted): Join traversal for each primary entity:
+  - For joinDirection=outbound: find all instances of JoinDefinition.connectionType
+    WHERE sourceEntityId = primary-entity.id
+  - For joinDirection=inbound: find all instances
+    WHERE targetEntityId = primary-entity.id
+  - Also applies unchanged if the primary entity is itself a connection instance
+    (no special case needed — the entity ID model is uniform)
+```
 
-## Akzeptanzkriterien
+### New Validation in REQ-045 (BR-04)
 
-**AC1** (Connection-Typ als Primary):
-- Gegeben: MetamodelConfiguration mit EntityType `data-flow` (isConnection=true)
-- Wenn: Katalog-Manager legt Catalog mit `primaryEntityType=data-flow` an
-- Dann: HTTP 201; Catalog ist valide; Abfrage liefert alle data-flow-Instanzen als Zeilen
+If `primaryEntityType.isConnection=true` is set, at least one JoinDefinition must also be configured whose `connectionType` allows this connection as a source — or an explicit note must appear in the UI that a connection catalog without joins only shows the raw connections (not an error, but a warning in the UI).
 
-**AC2** (n-Connection-Join outbound):
-- Gegeben: DataFlow id=5 (data-flow); carries-data id=103 (sourceEntityId=5, targetEntityId=42)
-- Gegeben: Catalog `Data-Flow-Übersicht` (primaryEntityType=data-flow) mit JoinDefinition: `{ connectionType: carries-data, joinDirection: outbound, targetEntityType: data-object, targetColumns: [{attributeName: "name"}] }`
-- Wenn: Catalog-Abfrage
-- Dann: Zeile für DataFlow id=5; joinResults enthält DataObject id=42 mit name „Kundenstamm"
+## Acceptance Criteria
 
-**AC3** (Nicht-n-Connection bleibt unberührt):
-- Gegeben: normaler Catalog mit primaryEntityType=application-component und Join data-flow outbound
-- Wenn: Catalog-Abfrage
-- Dann: Ergebnis identisch mit REQ-046-Verhalten; kein Regressionsfehler
+**AC1** (Connection type as primary):
+- Given: MetamodelConfiguration with EntityType `data-flow` (isConnection=true)
+- When: Catalog manager creates a catalog with `primaryEntityType=data-flow`
+- Then: HTTP 201; catalog is valid; query returns all data-flow instances as rows
 
-**AC4** (Mehrere n-Connections aggregiert):
-- Gegeben: DataFlow id=5 hat 2 carries-data-Verbindungen (data-objects 42 und 43)
-- Wenn: Catalog-Abfrage, aggregate-Modus
-- Dann: Eine Zeile für DataFlow id=5; joinResults enthält Array mit beiden data-objects
+**AC2** (n-connection join outbound):
+- Given: DataFlow id=5 (data-flow); carries-data id=103 (sourceEntityId=5, targetEntityId=42)
+- Given: Catalog `Data Flow Overview` (primaryEntityType=data-flow) with JoinDefinition: `{ connectionType: carries-data, joinDirection: outbound, targetEntityType: data-object, targetColumns: [{attributeName: "name"}] }`
+- When: Catalog query
+- Then: Row for DataFlow id=5; joinResults contains DataObject id=42 with name "Customer master data"
 
-**AC5** (Connection-Primary: Quell- und Ziel-Entity als Spalten verfügbar):
-- Wenn: Catalog mit primaryEntityType=data-flow; Spalten `sourceEntityName`, `targetEntityName` konfiguriert
-- Dann: Spalten zeigen Namen der Quell- bzw. Ziel-Entität jedes Dataflusses
+**AC3** (Non-n-connection remains untouched):
+- Given: normal catalog with primaryEntityType=application-component and join data-flow outbound
+- When: Catalog query
+- Then: Result identical to REQ-046 behavior; no regression error
 
-## Abhängigkeiten
+**AC4** (Multiple n-connections aggregated):
+- Given: DataFlow id=5 has 2 carries-data connections (data-objects 42 and 43)
+- When: Catalog query, aggregate mode
+- Then: One row for DataFlow id=5; joinResults contains an array with both data-objects
 
-- **Erweitert**: REQ-045 (Join-Definition konfigurieren), REQ-046 (Katalog-Abfrage)
-- **Voraussetzung**: ADR-010 (accepted), REQ-061 (carries-data), entity.md BR-04 (relaxed)
-- **Ermöglicht**: REQ-064 (DSGVO-Filter auf data-flow-Catalog), UC-08-Lineage-Kataloge
+**AC5** (Connection primary: source and target entity available as columns):
+- When: Catalog with primaryEntityType=data-flow; columns `sourceEntityName`, `targetEntityName` configured
+- Then: Columns show the names of the source or target entity of each data flow
 
-## Realisierungs-Hinweise
+## Dependencies
 
-- Entity-Modell: alle ArchitectureEntities (Elemente und Connections) teilen denselben Integer-ID-Raum → keine Sonderbehandlung im Query nötig
-- `sourceEntityName`/`targetEntityName` als virtuelle Spalten: JOIN auf die Entitäten mit `id=sourceEntityId` bzw. `id=targetEntityId` beim Abfrage-Build
-- Für v2.0: Chained Joins (app-component → data-flow → data-object in einer Zeile via 2 JoinDefinitions in Serie)
+- **Extends**: REQ-045 (configure join definition), REQ-046 (catalog query)
+- **Prerequisite**: ADR-010 (accepted), REQ-061 (carries-data), entity.md BR-04 (relaxed)
+- **Enables**: REQ-064 (GDPR filter on data-flow catalog), UC-08 lineage catalogs
 
-## Realisierung
+## Implementation Notes
+
+- Entity model: all ArchitectureEntities (elements and connections) share the same integer ID space → no special handling needed in the query
+- `sourceEntityName`/`targetEntityName` as virtual columns: JOIN on the entities with `id=sourceEntityId` or `id=targetEntityId` when building the query
+- For v2.0: chained joins (app-component → data-flow → data-object in one row via 2 JoinDefinitions in series)
+
+## Implementation
 
 - ADR(s): ADR-010
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |

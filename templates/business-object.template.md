@@ -1,64 +1,64 @@
 ---
 identifier: {{english-kebab-case-id}}
-name_de: {{Deutscher Name}}
+name_de: {{German Name}}
 name_en: {{English Name}}
 version: 0.1.0
 status: draft  # draft | reviewed | approved | deprecated
 maturity: initial  # initial | developing | stable | mature
-owner_role: {{Role-ID oder Rollen-Bezeichnung}}
+owner_role: {{role ID or role designation}}
 aliases:
-  - {{Synonym oder Bezeichnung in anderem Bereich}}
+  - {{synonym or designation in another area}}
 related_capabilities:
   - {{capability-id}}
 references:
-  - concept: concept/20-entities/06-kern-entitaetstypen.md
-  - external: {{optional: Link zu externer Norm wie BIAN, ISO}}
+  - concept: concept/20-entities/06-core-entity-types.md
+  - external: {{optional: link to external standard such as BIAN, ISO}}
 ---
 
 # Business Object: {{Name}}
 
 <!--
-Verwendung: Ein Business Object pro Datei, strukturiert modelliert.
-Dateiname: business-objects/<identifier>.md
-Identifier sprachneutral in english-kebab-case (z.B. customer, sales-order, master-contract)
+Usage: One business object per file, modeled in a structured way.
+File name: business-objects/<identifier>.md
+Identifier language-neutral in english-kebab-case (e.g. customer, sales-order, master-contract)
 -->
 
 ## Definition
 
-Eine prägnante Definition in einem bis zwei Sätzen. Was ist das Business Object eindeutig? Wodurch ist es von ähnlichen Objekten abgegrenzt?
+A concise definition in one to two sentences. What exactly is the business object? What distinguishes it from similar objects?
 
-## Beschreibung
+## Description
 
-Erweiterte Beschreibung: Kontext, fachlicher Zweck, typische Lebensdauer.
+Extended description: context, business purpose, typical lifetime.
 
-## Attribute
+## Attributes
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| {{name}} | string \| integer \| decimal \| boolean \| date \| datetime \| enum \| reference \| composite | required \| optional | {{default-wert}} | {{z.B. max 255, regex...}} | {{Bedeutung}} |
+| {{name}} | string \| integer \| decimal \| boolean \| date \| datetime \| enum \| reference \| composite | required \| optional | {{default value}} | {{e.g. max 255, regex...}} | {{meaning}} |
 | | | | | | |
 
 **Notation**:
-- `reference` → verweist auf anderes Business Object, mit `target: <object-id>`
-- `enum` → Wertemenge auflisten, z.B. `[active, inactive, archived]`
-- `composite` → eingebettete Struktur, in separater Tabelle aufschlüsseln
+- `reference` → points to another business object, with `target: <object-id>`
+- `enum` → list the value set, e.g. `[active, inactive, archived]`
+- `composite` → embedded structure, break down in a separate table
 
-## Beziehungen
+## Relationships
 
-Beziehungen zu anderen Business Objects:
+Relationships to other business objects:
 
-| Beziehung | Ziel-Objekt | Kardinalität | Optional | Beschreibung |
+| Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
-| {{beziehungsname}} | [{{object-id}}](./{{object-id}}.md) | 1:1 \| 1:n \| n:m | yes \| no | {{Bedeutung}} |
+| {{relationship name}} | [{{object-id}}](./{{object-id}}.md) | 1:1 \| 1:n \| n:m | yes \| no | {{meaning}} |
 | | | | | |
 
-**Hinweise**:
-- Beziehungs-Richtung ist semantisch wichtig (z.B. "Order belongsTo Customer")
-- Bei n:m: ggf. eigenes Verbindungs-Objekt modellieren
+**Notes**:
+- Relationship direction is semantically important (e.g. "Order belongsTo Customer")
+- For n:m: model a separate connection object if applicable
 
 ## Lifecycle
 
-Zustände, die das Business Object durchlaufen kann:
+States the business object can pass through:
 
 ```
 {{initial-state}} → {{state-1}} → {{state-2}} → {{terminal-state}}
@@ -66,72 +66,72 @@ Zustände, die das Business Object durchlaufen kann:
                    {{alternative-state}}
 ```
 
-**Zustände**:
-- `{{state}}`: Bedeutung, wie wird erreicht, was darf in diesem Zustand
+**States**:
+- `{{state}}`: meaning, how it is reached, what is allowed in this state
 - ...
 
-**Übergänge**:
-- `{{from}} → {{to}}`: Trigger, Berechtigung, Folgen
+**Transitions**:
+- `{{from}} → {{to}}`: trigger, permission, consequences
 
 ## Business Rules
 
-Geschäftsregeln, die für dieses Business Object gelten:
+Business rules that apply to this business object:
 
-| Rule-ID | Aussage | Auslöser | Compliance-Bezug |
+| Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
-| BR-{{NN}} | {{z.B. "Customer mit personalDataCategory MUSS legalBasis haben"}} | {{onCreate, onUpdate}} | {{DSGVO Art. 6}} |
+| BR-{{NN}} | {{e.g. "Customer with personalDataCategory MUST have legalBasis"}} | {{onCreate, onUpdate}} | {{GDPR Art. 6}} |
 | | | | |
 
-Bei komplexen Regeln: eigene Datei in `business-objects/rules/BR-NN-name.md` und hier verlinken.
+For complex rules: separate file in `business-objects/rules/BR-NN-name.md` and link it here.
 
-## Beispiele
+## Examples
 
-Konkrete Beispiele helfen beim Verständnis:
+Concrete examples help with understanding:
 
-**Beispiel 1**: {{name}}
+**Example 1**: {{name}}
 ```yaml
-{{attribute1}}: {{wert1}}
-{{attribute2}}: {{wert2}}
+{{attribute1}}: {{value1}}
+{{attribute2}}: {{value2}}
 ```
 
-**Beispiel 2**: {{name}}
+**Example 2**: {{name}}
 ```yaml
 {{...}}
 ```
 
-## Begriffs-Mapping
+## Term Mapping
 
-Wenn das Objekt in unterschiedlichen Geschäftsbereichen unterschiedlich bezeichnet wird:
+If the object is designated differently in different business areas:
 
-| Bereich | Bezeichnung | Hinweis |
+| Area | Designation | Note |
 |---|---|---|
-| {{DACH}} | {{Bezeichnung DE}} | |
-| {{US}} | {{Bezeichnung EN}} | |
-| {{APAC}} | {{Bezeichnung}} | {{ggf. semantische Abweichungen}} |
+| {{DACH}} | {{designation DE}} | |
+| {{US}} | {{designation EN}} | |
+| {{APAC}} | {{designation}} | {{semantic deviations, if any}} |
 
-## Abgrenzung zu ähnlichen Objekten
+## Distinction from Similar Objects
 
-Was dieses Objekt **nicht** ist, im Vergleich zu verwandten:
+What this object is **not**, compared to related ones:
 
-- **NICHT** {{verwandtes Objekt 1}}: weil ...
-- **NICHT** {{verwandtes Objekt 2}}: weil ...
+- **NOT** {{related object 1}}: because ...
+- **NOT** {{related object 2}}: because ...
 
-## Verwendung in Use Cases
+## Usage in Use Cases
 
-<!-- Wird automatisch oder manuell gepflegt: welche UCs nutzen dieses Business Object? -->
+<!-- Maintained automatically or manually: which UCs use this business object? -->
 
-- [UC-NN: Titel](../requirements/use-cases/UC-NN-kurzname.md)
+- [UC-NN: Title](../requirements/use-cases/UC-NN-kurzname.md)
 
-## Konzept-Bezug
+## Concept Reference
 
-- [§{{N}} {{Kapitel}}](../concept/...)
+- [§{{N}} {{Chapter}}](../concept/...)
 
-## Notizen
+## Notes
 
-Freitext für Modellierungs-Entscheidungen, offene Fragen, Diskussionen.
+Free text for modeling decisions, open questions, discussions.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | YYYY-MM-DD | Business Engineer | Initial draft |

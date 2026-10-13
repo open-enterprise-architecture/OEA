@@ -1,48 +1,48 @@
-# US-063: Datenobjekt anlegen und Properties befüllen
+# US-063: Create a Data Object and Populate Properties
 
 **ID**: US-063
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Data Architekt möchte ich ein Datenobjekt (z.B. „Kundenstamm") als eigenständige Entität anlegen und mit Properties wie Datenklassifikation und DSGVO-Kategorien befüllen – damit es eine stabile Integer-ID erhält, die ich in Datenflüssen referenzieren kann.
+As a Data Architect, I want to create a data object (e.g. "Customer Master") as an independent entity and populate it with properties such as data classification and GDPR categories – so that it receives a stable integer ID that I can reference in data flows.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-08](../use-cases/UC-08-data-lineage-modellieren.md)
-**Persona**: Lukas – Senior Data Architekt (SH-02)
-**Requirements**: [REQ-060](../req/REQ-060-datenobjekt-anlegen.md)
+**Use Case**: [UC-08](../use-cases/UC-08-model-data-lineage.md)
+**Persona**: Lukas – Senior Data Architect (SH-02)
+**Requirements**: [REQ-060](../req/REQ-060-create-data-object.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Anlegen mit ID):
-- Wenn: Lukas legt Entität „Kundenstamm" mit entityTypeId=`data-object` an
-- Dann: Entität erhält Integer-ID ≥ 1; ID ist in der gesamten Instanz eindeutig (keine Kollision mit anderen Entitäten oder Connections)
+**AC1** (creation with ID):
+- When: Lukas creates entity "Customer Master" with entityTypeId=`data-object`
+- Then: Entity receives integer ID ≥ 1; ID is unique across the entire instance (no collision with other entities or connections)
 
-**AC2** (Properties befüllen):
-- Wenn: Lukas setzt `dataClassification=confidential`, `personalDataCategories="Name,Adresse,E-Mail"`
-- Dann: Properties gespeichert; Entität abrufbar mit korrekten Werten
+**AC2** (populate properties):
+- When: Lukas sets `dataClassification=confidential`, `personalDataCategories="Name,Address,Email"`
+- Then: Properties saved; entity retrievable with correct values
 
-**AC3** (Mandatory-Validierung):
-- Gegeben: `dataClassification` ist mandatory
-- Wenn: Lukas versucht zu speichern ohne dataClassification
-- Dann: Fehlermeldung benennt die fehlende Property; nichts gespeichert
+**AC3** (mandatory validation):
+- Given: `dataClassification` is mandatory
+- When: Lukas tries to save without dataClassification
+- Then: Error message names the missing property; nothing saved
 
-**AC4** (entityTypeId unveränderlich):
-- Wenn: Lukas versucht den EntityType einer bestehenden Entität zu ändern
-- Dann: Änderung abgelehnt; Fehlermeldung erklärt Unveränderlichkeit
+**AC4** (entityTypeId immutable):
+- When: Lukas tries to change the EntityType of an existing entity
+- Then: Change rejected; error message explains immutability
 
-## Technische Hinweise
+## Technical Notes
 
-- `POST /api/v1/entities` mit entityTypeId=`data-object`
-- Integer-ID wird serverseitig als nächste freie Sequenznummer vergeben (DB-Sequenz)
+- `POST /api/v1/entities` with entityTypeId=`data-object`
+- Integer ID is assigned server-side as the next free sequence number (DB sequence)
 
 ## Definition of Done
 
-- [ ] AC1–AC4 erfüllt
-- [ ] Tests: Anlegen, Properties, Mandatory-Fehler, Typ-Unveränderlichkeit
-- [ ] Code-Review
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] AC1–AC4 met
+- [ ] Tests: creation, properties, mandatory error, type immutability
+- [ ] Code review
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix

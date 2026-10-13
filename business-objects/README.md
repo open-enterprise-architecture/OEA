@@ -1,32 +1,32 @@
 # Business Objects
 
-Strukturiert modellierte fachliche Domäne von OEA. Pro Business Object eine Datei mit standardisiertem Frontmatter, Attributen, Beziehungen, Lifecycle und Business Rules.
+Structured business domain model of OEA. One file per business object with standardized frontmatter, attributes, relationships, lifecycle, and business rules.
 
-## Struktur
+## Structure
 
 ```
 business-objects/
-├── README.md             ← dieses Dokument, Übersicht und Capability Map
-├── <object-id>.md        ← eine Datei pro Business Object (english-kebab-case)
+├── README.md             ← this document, overview and capability map
+├── <object-id>.md        ← one file per business object (english-kebab-case)
 ├── capabilities/
-│   └── <capability>.md   ← Business Capabilities mit Beziehungen
+│   └── <capability>.md   ← business capabilities with relationships
 └── rules/
-    └── BR-NN-rule.md     ← objekt-übergreifende Business Rules
+    └── BR-NN-rule.md     ← cross-object business rules
 ```
 
-## Verantwortlich
+## Responsible
 
-Der Business Engineer (siehe `.opencode/agents/business-engineer.md`) modelliert hier. Arbeitet **vor** dem Use-Case-Engineering nach dem Domain-Model-first-Ansatz.
+The Business Engineer (see `.opencode/agents/business-engineer.md`) models here. Works **before** use-case engineering, following the domain-model-first approach.
 
-## Vorgehen
+## Procedure
 
-1. Mit PO klären: welche Geschäftsbegriffe sind im Scope?
-2. Erste Business-Object-Skizzen erstellen (eine Datei pro Objekt) mit `templates/business-object.template.md`
-3. Beziehungen zwischen Objekten klären
-4. PO-Review einholen
-5. Iterieren, dann Übergabe an Use-Case-Engineering
+1. Clarify with the PO: which business terms are in scope?
+2. Create first business object sketches (one file per object) using `templates/business-object.template.md`
+3. Clarify relationships between objects
+4. Obtain PO review
+5. Iterate, then hand over to use-case engineering
 
-## Übersicht der modellierten Business Objects
+## Overview of Modeled Business Objects
 
 ### Identity & Access
 
@@ -47,7 +47,7 @@ Der Business Engineer (siehe `.opencode/agents/business-engineer.md`) modelliert
 | [plateau](./plateau.md) | Plateau | Plateau | draft | 0.1.0 |
 | [solution](./solution.md) | Solution / Änderungsinitiative | Solution | draft | 0.1.0 |
 
-### Metamodell & Konfiguration
+### Metamodel & Configuration
 
 | ID | Name (DE) | Name (EN) | Status | Version |
 |---|---|---|---|---|
@@ -65,7 +65,7 @@ Der Business Engineer (siehe `.opencode/agents/business-engineer.md`) modelliert
 | [reference-architecture](./reference-architecture.md) | Referenzarchitektur | Reference Architecture | draft | 0.1.0 |
 | [trm-category](./trm-category.md) | TRM-Kategorie | TRM Category | draft | 0.1.0 |
 
-### Darstellung & Navigation
+### Presentation & Navigation
 
 | ID | Name (DE) | Name (EN) | Status | Version |
 |---|---|---|---|---|
@@ -75,8 +75,8 @@ Der Business Engineer (siehe `.opencode/agents/business-engineer.md`) modelliert
 
 ## Capability Map
 
-<!-- Übersichts-Diagramm der Business Capabilities und ihrer Beziehungen. Initial leer. -->
+<!-- Overview diagram of the business capabilities and their relationships. Initially empty. -->
 
-## Slash-Command
+## Slash Command
 
-`/new-business-object` legt ein neues Business Object aus dem Template an.
+`/new-business-object` creates a new business object from the template.

@@ -1,47 +1,47 @@
-# US-137: Property-Mapping Stichtag ändern
+# US-137: Change Property Mapping by Effective Date
 
 **ID**: US-137
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Metamodell-Administrator möchte ich die Notwendigkeit einer Property-Zuordnung zu einem MetaTyp per Stichtag ändern können, damit Metamodell-Entwicklungen nachvollziehbar und rückwirkend korrekt bleiben.
+As a metamodel administrator, I want to change the necessity of a property assignment to a MetaType by effective date, so that metamodel evolution remains traceable and retroactively correct.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-04: Metamodell konfigurieren](../use-cases/UC-04-metamodell-konfigurieren.md)
+**Use Case**: [UC-04: Configure Metamodel](../use-cases/UC-04-configure-metamodel.md)
 **Persona**: [SH-03: Kurt – Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-enterprise-architect.md)
 **Requirements**: REQ-148
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Property `version` ist für MetaTyp `ApplicationComponent` seit 2026-01-01 als `optional` gemappt
-- Wenn: Admin legt neues Mapping mit `valid_from=2026-07-01`, `necessity=mandatory` an via `POST /metamodel/metatypes/{id}/property-mappings`
-- Dann: Beide Einträge in DB vorhanden; GET liefert für heute (≥ 2026-07-01) `mandatory`
+- Given: property `version` has been mapped as `optional` for MetaType `ApplicationComponent` since 2026-01-01
+- When: admin creates a new mapping with `valid_from=2026-07-01`, `necessity=mandatory` via `POST /metamodel/metatypes/{id}/property-mappings`
+- Then: both entries present in the DB; GET returns `mandatory` for today (≥ 2026-07-01)
 
 **AC2**:
-- Gegeben: Ein Stichtag-Eintrag für (metatype, property, valid_from) existiert
-- Wenn: Admin versucht denselben valid_from erneut anzulegen
-- Dann: 409 Conflict; kein Duplikat
+- Given: an effective-date entry for (metatype, property, valid_from) exists
+- When: admin tries to create the same valid_from again
+- Then: 409 Conflict; no duplicate
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Tabelle: `metatype_property_mappings`
+- Affected table: `metatype_property_mappings`
 - UNIQUE(metatype_id, property_def_id, valid_from)
 - API: `POST /api/v1/metamodel/metatypes/{id}/property-mappings`
-- Aktive Zuordnung ermitteln: `WHERE valid_from <= CURRENT_DATE ORDER BY valid_from DESC LIMIT 1`
+- Determine active assignment: `WHERE valid_from <= CURRENT_DATE ORDER BY valid_from DESC LIMIT 1`
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Integration-Test: Stichtag-Wechsel korrekt; Konflikt-Check korrekt
-- [ ] Dokumentation: `docs/data-model.puml` bereits aktuell (ADR-022)
-- [ ] Linter und Type-Checks grün
+- [ ] Acceptance criteria fulfilled
+- [ ] Integration test: effective-date change correct; conflict check correct
+- [ ] Documentation: `docs/data-model.puml` already up to date (ADR-022)
+- [ ] Linter and type checks green
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-033 (Metamodell-Import, Starter-Paket)
-- Blockiert: US-138 (Validierung basiert auf aktiver Zuordnung)
+- Waits for: US-033 (metamodel import, starter package)
+- Blocks: US-138 (validation is based on the active assignment)

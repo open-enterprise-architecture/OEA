@@ -1,6 +1,6 @@
 ---
 id: UC-10
-title: Geschäftsprozesse nach BPMN 2.0 modellieren
+title: Model Business Processes According to BPMN 2.0
 version: 0.1.0
 status: draft
 priority: must
@@ -16,8 +16,8 @@ references:
     - SH-04
     - SH-07
   concept:
-    - concept/20-entities/09-prozess-architektur.md
-    - concept/20-entities/06-kern-entitaetstypen.md
+    - concept/20-entities/09-process-architecture.md
+    - concept/20-entities/06-core-entity-types.md
   business_objects:
     - process
     - entity
@@ -28,9 +28,9 @@ references:
     - REQ-077
 ---
 
-# UC-10: Geschäftsprozesse nach BPMN 2.0 modellieren
+# UC-10: Model Business Processes According to BPMN 2.0
 
-## Diagramm
+## Diagram
 
 ```plantuml
 @startuml UC-10-BPMN
@@ -38,16 +38,16 @@ left to right direction
 skinparam actorStyle awesome
 
 actor "Anna\n(Business Analyst)" as Anna
-actor "Michael\n(Solution Architekt)" as Michael
+actor "Michael\n(Solution Architect)" as Michael
 actor "Sabine\n(Business Engineer)" as Sabine
 
-rectangle "OEA – Geschäftsprozesse modellieren (BPMN 2.0)" {
-  usecase "Prozessdiagramm anlegen\n(BPMN-Viewpoint)" as UC_Create
-  usecase "Pool & Lanes\nkonfigurieren" as UC_Pool
-  usecase "Tasks platzieren\n& Personen zuordnen" as UC_Tasks
-  usecase "SequenceFlow &\nGateways verbinden" as UC_Flow
-  usecase "Task mit Applikation\nverknüpfen" as UC_App
-  usecase "Prozess speichern\n(Repository)" as UC_Save
+rectangle "OEA – Model Business Processes (BPMN 2.0)" {
+  usecase "Create Process Diagram\n(BPMN Viewpoint)" as UC_Create
+  usecase "Configure Pool &\nLanes" as UC_Pool
+  usecase "Place Tasks\n& Assign Persons" as UC_Tasks
+  usecase "Connect SequenceFlow &\nGateways" as UC_Flow
+  usecase "Link Task to\nApplication" as UC_App
+  usecase "Save Process\n(Repository)" as UC_Save
 }
 
 Anna --> UC_Create
@@ -65,103 +65,103 @@ UC_Create ..> UC_Save : <<include>>
 @enduml
 ```
 
-## Ziel
+## Goal
 
-Die Business Analyst-Persona kann Geschäftsprozesse direkt im OEA-Tool in BPMN 2.0 modellieren. Sie ordnet dabei Lanes Rollen und Organisationseinheiten zu sowie Tasks konkreten Personen — ohne ein separates Prozess-Tool zu benötigen. Prozessmodelle sind Bestandteil des gemeinsamen EA-Repositorys und damit mit Applikationen, Fähigkeiten und Architektur-Domains verknüpfbar.
+The business analyst persona can model business processes directly in the OEA tool in BPMN 2.0. In doing so, she assigns roles and organizational units to lanes and concrete persons to tasks — without needing a separate process tool. Process models are part of the shared EA repository and can thus be linked with applications, capabilities and architecture domains.
 
-## Akteure
+## Actors
 
-- **Primär**: SH-08 (Anna – Business Analyst)
-- **Sekundär**: SH-04 (Michael – Solution Architekt; verknüpft Tasks mit Applikationen), SH-07 (Sabine – Business Engineer; konfiguriert BPMN-Typen im Metamodell)
+- **Primary**: SH-08 (Anna – Business Analyst)
+- **Secondary**: SH-04 (Michael – Solution Architect; links tasks with applications), SH-07 (Sabine – Business Engineer; configures BPMN types in the metamodel)
 
-## Vorbedingungen
+## Preconditions
 
-1. OEA-Instanz läuft; Anna ist eingeloggt mit Rolle „Modeler" oder höher
-2. BPMN-Process-View-Viewpoint ist im Metamodell konfiguriert (built-in oder von Admin angepasst)
-3. OrganizationalUnit- und Rollen-Entitäten existieren im Repository (können auch leer sein)
+1. OEA instance is running; Anna is logged in with role "Modeler" or higher
+2. BPMN process view viewpoint is configured in the metamodel (built-in or adapted by admin)
+3. OrganizationalUnit and role entities exist in the repository (may also be empty)
 
-## Nachbedingungen
+## Postconditions
 
-- Prozessdiagramm ist im Repository persistent gespeichert
-- Alle Prozess-Elemente (Pool, Lane, Task, Event, Gateway) sind als ArchitectureEntities mit korrekten EntityTypeIds angelegt
-- Zuordnungs-Connections (Lane → OrgUnit, Lane → Rolle, Task → Person) sind im Repository verankert
-- Prozessmodell ist im Web-Portal read-only einsehbar (SH-03/04)
+- Process diagram is persistently stored in the repository
+- All process elements (pool, lane, task, event, gateway) are created as ArchitectureEntities with correct EntityTypeIds
+- Assignment connections (lane → OrgUnit, lane → role, task → person) are anchored in the repository
+- Process model is viewable read-only in the web portal (SH-03/04)
 
-## Hauptfluss
+## Basic Flow
 
-1. Anna öffnet ein bestehendes Diagramm oder legt ein neues Diagramm an und wählt den Viewpoint „Prozess-Modell (BPMN 2.0)"
-2. Die Canvas-Palette zeigt BPMN-spezifische Elemente: Pool, Lane, Task-Varianten, Events, Gateways — entsprechend der Metamodell-Konfiguration
-3. Anna zieht einen **Pool** auf die Canvas; der Pool-Wizard öffnet sich: Name eingeben, Teilnehmer-OrgUnit zuordnen (`bpmn-pool-represents-org-unit`)
-4. Anna fügt eine oder mehrere **Lanes** in den Pool ein; pro Lane kann sie:
-   - Eine **Organisationseinheit** zuordnen (`bpmn-lane-belongs-to-org-unit`)
-   - Eine oder mehrere **Rollen** zuordnen (`bpmn-lane-performs-role`)
-5. Anna platziert **Tasks** (UserTask, ServiceTask, BusinessRuleTask etc.) innerhalb der Lanes; Elemente werden automatisch via `bpmn-contained-in` mit der Lane verknüpft
-6. Für UserTasks öffnet Anna das Detail-Panel und weist eine **Person** aus dem Repository zu (`bpmn-task-assigned-to`)
-7. Anna verbindet Elemente mit **SequenceFlow**-Connections; Gateways (Exclusive, Parallel, Inclusive) werden über die Palette eingefügt
-8. Anna wählt optional „Verbindung zu Applikation": eine Task-zu-Applikation-Connection verbindet den Prozessschritt mit dem unterstützenden System im EA-Repository
-9. Anna speichert das Diagramm; alle Entities und Connections werden atomar persistiert
+1. Anna opens an existing diagram or creates a new diagram and selects the viewpoint "Process Model (BPMN 2.0)"
+2. The canvas palette shows BPMN-specific elements: pool, lane, task variants, events, gateways — according to the metamodel configuration
+3. Anna drags a **pool** onto the canvas; the pool wizard opens: enter name, assign participant OrgUnit (`bpmn-pool-represents-org-unit`)
+4. Anna inserts one or more **lanes** into the pool; for each lane she can:
+   - Assign an **organizational unit** (`bpmn-lane-belongs-to-org-unit`)
+   - Assign one or more **roles** (`bpmn-lane-performs-role`)
+5. Anna places **tasks** (UserTask, ServiceTask, BusinessRuleTask etc.) within the lanes; elements are automatically linked to the lane via `bpmn-contained-in`
+6. For UserTasks, Anna opens the detail panel and assigns a **person** from the repository (`bpmn-task-assigned-to`)
+7. Anna connects elements with **SequenceFlow** connections; gateways (exclusive, parallel, inclusive) are inserted via the palette
+8. Anna optionally selects "Link to application": a task-to-application connection links the process step with the supporting system in the EA repository
+9. Anna saves the diagram; all entities and connections are persisted atomically
 
-## Alternative Flüsse
+## Alternative Flows
 
-**A1 — OrganizationalUnit existiert nicht**:
-- Schritt 3/4: Zuordnungs-Dropdown zeigt leere Liste
-- Anna wählt „Neue OrgUnit anlegen": Mini-Wizard (Name, Typ) legt `organizational-unit`-Entity direkt im Zuordnungsdialog an
-- Fluss weiter wie im Hauptfluss
+**A1 — OrganizationalUnit does not exist**:
+- Step 3/4: Assignment dropdown shows an empty list
+- Anna selects "Create new OrgUnit": mini wizard (name, type) creates the `organizational-unit` entity directly in the assignment dialog
+- Flow continues as in the basic flow
 
-**A2 — Person existiert nicht im Repository**:
-- Schritt 6: Person nicht gefunden im Autocomplete
-- Anna kann Feld leer lassen (Zuordnung optional) und später nachtragen
+**A2 — Person does not exist in the repository**:
+- Step 6: Person not found in autocomplete
+- Anna can leave the field empty (assignment optional) and add it later
 
-**A3 — Viewpoint nur mit Standard-BPMN-Typen**:
-- Schritte 1–9 laufen ohne unternehmensspezifische Subtypen; alle Tasks erscheinen als `bpmn-task` oder Standard-Subtyp
+**A3 — Viewpoint with standard BPMN types only**:
+- Steps 1–9 run without company-specific subtypes; all tasks appear as `bpmn-task` or standard subtype
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Pool/Lane-Struktur):
-- Gegeben: Anna hat Viewpoint „Prozess-Modell (BPMN 2.0)" geöffnet
-- Wenn: Sie einen Pool anlegt und Lanes einfügt
-- Dann: Pool erscheint als Container auf Canvas; Lanes als Swim-Lanes innerhalb des Pools; Tasks können in Lanes platziert werden
+**AC1** (pool/lane structure):
+- Given: Anna has opened the viewpoint "Process Model (BPMN 2.0)"
+- When: She creates a pool and inserts lanes
+- Then: Pool appears as a container on the canvas; lanes as swim lanes within the pool; tasks can be placed in lanes
 
-**AC2** (OrgUnit-Zuordnung):
-- Wenn: Anna eine Lane mit einer OrgUnit verbindet
-- Dann: `bpmn-lane-belongs-to-org-unit`-Connection im Repository gespeichert; Lane zeigt OrgUnit-Namen als Label oder Badge
+**AC2** (OrgUnit assignment):
+- When: Anna connects a lane with an OrgUnit
+- Then: `bpmn-lane-belongs-to-org-unit` connection stored in the repository; lane shows OrgUnit name as label or badge
 
-**AC3** (Rollen-Zuordnung):
-- Wenn: Anna eine Lane mit einer Rolle verbindet
-- Dann: `bpmn-lane-performs-role`-Connection gespeichert; mehrere Rollen pro Lane möglich
+**AC3** (role assignment):
+- When: Anna connects a lane with a role
+- Then: `bpmn-lane-performs-role` connection stored; several roles per lane possible
 
-**AC4** (Personen-Zuordnung):
-- Wenn: Anna einem UserTask eine Person zuordnet
-- Dann: `bpmn-task-assigned-to`-Connection gespeichert; Task zeigt Person-Avatar oder Kürzel als Indikator
+**AC4** (person assignment):
+- When: Anna assigns a person to a UserTask
+- Then: `bpmn-task-assigned-to` connection stored; task shows person avatar or initials as indicator
 
-**AC5** (Prozesselemente im Katalog):
-- Gegeben: Prozessdiagramm ist gespeichert
-- Wenn: Anna einen Katalog für `bpmn-user-task` öffnet
-- Dann: Alle UserTask-Entities aus allen Diagrammen erscheinen; Join-Spalte zeigt zugeordnete Person und Lane
+**AC5** (process elements in catalog):
+- Given: Process diagram is saved
+- When: Anna opens a catalog for `bpmn-user-task`
+- Then: All UserTask entities from all diagrams appear; join column shows assigned person and lane
 
-**AC6** (Metamodell-Konfigurierbarkeit):
-- Gegeben: Admin hat einen Subtyp `approval-task extends bpmn-user-task` konfiguriert
-- Wenn: Anna das Prozessdiagramm öffnet
-- Dann: `approval-task` erscheint in der Palette; kann wie jeder andere Task platziert und zugeordnet werden
+**AC6** (metamodel configurability):
+- Given: Admin has configured a subtype `approval-task extends bpmn-user-task`
+- When: Anna opens the process diagram
+- Then: `approval-task` appears in the palette; can be placed and assigned like any other task
 
-**AC7** (Web-Portal Lesbarkeit):
-- Wenn: Nutzer mit Rolle „Viewer" (Web-Portal) das Prozessdiagramm öffnet
-- Dann: BPMN-Canvas read-only sichtbar; OrgUnit- und Personen-Zuordnungen als Tooltips
+**AC7** (web portal readability):
+- When: User with role "Viewer" (web portal) opens the process diagram
+- Then: BPMN canvas visible read-only; OrgUnit and person assignments as tooltips
 
-## Nicht im Scope
+## Out of Scope
 
-- BPMN 2.0 XML-Export/Import (separat, Prio: medium — SH-08-Concern)
-- Simulation / Prozess-Ausführung
-- DMN-Integration (Decision-Tabellen)
-- Collaboration-Diagramme mit Message-Flows zwischen verschiedenen Pool-Teilnehmern (v2.0)
+- BPMN 2.0 XML export/import (separate, priority: medium — SH-08 concern)
+- Simulation / process execution
+- DMN integration (decision tables)
+- Collaboration diagrams with message flows between different pool participants (v2.0)
 
-## Konzept-Bezug
+## Concept Reference
 
-- §9 Prozess-Architektur: BPMN als Adapter-Modul, Prozess als ArchitectureEntity
-- §6 Kern-Entitätstypen: OrganizationalUnit als konfigurierbarer EntityType
+- §9 Process Architecture: BPMN as adapter module, process as ArchitectureEntity
+- §6 Core Entity Types: OrganizationalUnit as configurable EntityType
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |

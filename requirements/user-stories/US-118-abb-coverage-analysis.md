@@ -1,36 +1,36 @@
-# US-118: ABB-Abdeckungs-Analyse und Gap-Quote einsehen
+# US-118: View ABB Coverage Analysis and Gap Rate
 
 **ID**: US-118
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich für alle approved ABBs sehen, wie viele konforme Entitäten und implementierende SBBs vorhanden sind, und eine Gap-Quote ablesen können, damit ich Governance-Lücken zwischen definierten Standards und der Ist-Landschaft identifizieren kann.
+As Kurt – Lead Enterprise Architect, I want to see for all approved ABBs how many conforming entities and implementing SBBs exist, and to read off a gap rate, so that I can identify governance gaps between defined standards and the current-state landscape.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-20](../use-cases/UC-20-continuum-conformance-analysieren.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-118](../req/REQ-118-abb-abdeckungs-analyse.md)
+**Use Case**: [UC-20](../use-cases/UC-20-analyze-continuum-conformance.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-118](../req/REQ-118-abb-coverage-analysis.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Gap-Quote):
-- Wenn: 5 approved ABBs vorhanden sind, davon 2 ohne Instanz
-- Dann: zeigt die Analyse Gap-Quote = 40%; die Tabelle zeigt alle 5 ABBs mit Instanz-Zählungen
+**AC1** (Gap rate):
+- When: 5 approved ABBs exist, 2 of them without an instance
+- Then: the analysis shows gap rate = 40%; the table shows all 5 ABBs with instance counts
 
-**AC2** (ABB-Detailansicht):
-- Wenn: ich einen ABB in der Analyse-Tabelle öffne
-- Dann: sehe ich implementierende SBBs und konforme Entitäten als anklickbare Links
+**AC2** (ABB detail view):
+- When: I open an ABB in the analysis table
+- Then: I see implementing SBBs and conforming entities as clickable links
 
-**AC3** (Leer-Zustand):
-- Wenn: noch keine ABBs konfiguriert sind
-- Dann: zeigt das System den Hinweis „Noch keine ABBs konfiguriert; starte mit UC-17"
+**AC3** (Empty state):
+- When: no ABBs are configured yet
+- Then: the system shows the note "No ABBs configured yet; start with UC-17"
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

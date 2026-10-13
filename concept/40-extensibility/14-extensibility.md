@@ -1,8 +1,8 @@
-## 14. Erweiterbarkeit
+## 14. Extensibility
 
 ### 14.1 Custom EntityTypes
 
-Neue Typen werden als YAML-Schema hinzugefügt:
+New types are added as a YAML schema:
 
 ```yaml
 entityType: SecurityZone
@@ -18,9 +18,9 @@ relations:
     cardinality: 0..n
 ```
 
-### 14.2 Stereotypen (non-breaking Erweiterung)
+### 14.2 Stereotypes (non-breaking extension)
 
-Bestehende EntityTypes können ohne Vererbung erweitert werden:
+Existing EntityTypes can be extended without inheritance:
 
 ```yaml
 stereotype: SaaSApplication
@@ -34,9 +34,9 @@ properties:
     type: string
 ```
 
-### 14.3 Constraint-Regeln
+### 14.3 Constraint Rules
 
-Regeln als deklarative Prüfungen:
+Rules as declarative checks:
 
 ```yaml
 constraint: every-interface-has-owner
@@ -47,4 +47,4 @@ severity: error
 
 ---
 
-← [Fach-Technik-Verlinkung](../30-dynamics/13-fach-technik-verlinkung.md) · [🏠 Übersicht](../README.md) · [Schema-Evolution](15-schema-evolution.md) →
+← [Business–Technology Linking](../30-dynamics/13-business-technology-linking.md) · [🏠 Overview](../README.md) · [Schema Evolution](15-schema-evolution.md) →

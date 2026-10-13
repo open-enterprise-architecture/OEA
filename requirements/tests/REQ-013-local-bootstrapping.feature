@@ -1,26 +1,27 @@
-# Ableitung aus: requirements/req/req-013-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-013-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @must @UC-02
-Feature: REQ-013 – Lokales Bootstrapping bei fehlendem System-Admin-Account
+Feature: REQ-013 – Local bootstrapping when no system admin account exists
 
-  Das System MUSS erkennen, wenn für eine Instanz noch kein
-  [System-Admin-Account](../../business-objects/system-admin-account.md)
-  existiert, und in diesem Fall einen lokalen Bootstrapping-Vorgang
-  anbieten, der ohne externen Identity-Provider auskommt.
+  The system MUST detect when no
+  [system admin account](../../business-objects/system-admin-account.md)
+  exists yet for an instance and, in this case, offer a local
+  bootstrapping process that works without an external identity
+  provider.
 
   Background:
-    Given eine frisch installierte OEA-Instanz ohne System-Admin-Account
+    Given a freshly installed OEA instance without a system admin account
 
   @AC1
-  Scenario: AC1 – eine frisch installierte Instanz ohne System-Admin-Account
-    Given eine frisch installierte Instanz ohne System-Admin-Account
-    When  sie zum ersten Mal gestartet bzw. aufgerufen wird
-    Then  bietet das System den lokalen Bootstrapping-Vorgang an, ohne einen externen IdP vorauszusetzen
+  Scenario: AC1 – a freshly installed instance without a system admin account
+    Given a freshly installed instance without a system admin account
+    When  it is started or accessed for the first time
+    Then  the system offers the local bootstrapping process without requiring an external IdP
 
   @AC2
-  Scenario: AC2 – ein abgeschlossener lokaler Bootstrapping-Vorgang
-    Given ein abgeschlossener lokaler Bootstrapping-Vorgang
-    When  der Operator sich mit dem festgelegten Credential anmeldet
-    Then  erhält er Zugriff mit System-Admin-Rechten
+  Scenario: AC2 – a completed local bootstrapping process
+    Given a completed local bootstrapping process
+    When  the operator logs in with the credential that was set
+    Then  they receive access with system admin permissions

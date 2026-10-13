@@ -1,54 +1,54 @@
-# US-016: Audit-Log-Eintrag für den Bootstrapping-Vorgang
+# US-016: Audit Log Entry for the Bootstrapping Process
 
 **ID**: US-016
 **Story Points**: 2
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Betreiber möchte ich, dass jeder Bootstrapping-Vorgang protokolliert wird, damit ich nachweisen kann, wann und wie der erste privilegierte Zugang der Instanz entstanden ist.
+As an operator, I want every bootstrapping process to be logged, so that I can prove when and how the instance's first privileged access came into existence.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-02: System-Admin-Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
-**Persona**: [SH-06: Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Requirement**: [REQ-016: Audit-Log-Eintrag für Bootstrapping-Vorgang](../req/REQ-016-audit-log-bootstrapping.md)
+**Use Case**: [UC-02: System Admin Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
+**Persona**: [SH-06: Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Requirement**: [REQ-016: Audit Log Entry for Bootstrapping Process](../req/REQ-016-audit-log-bootstrapping.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein erfolgreich abgeschlossener Bootstrapping-Vorgang (lokal oder remote)
-- Wenn: er abgeschlossen ist
-- Dann: enthält das Audit-Log einen Eintrag mit Zeitpunkt, Modus und Ergebnis `success`
+- Given: a successfully completed bootstrapping process (local or remote)
+- When: it is completed
+- Then: the audit log contains an entry with timestamp, mode and result `success`
 
 **AC2**:
-- Gegeben: ein abgelehnter Bootstrapping-Versuch
-- Wenn: die Ablehnung erfolgt
-- Dann: enthält das Audit-Log einen Eintrag mit Zeitpunkt und Ergebnis `rejected`
+- Given: a rejected bootstrapping attempt
+- When: the rejection occurs
+- Then: the audit log contains an entry with timestamp and result `rejected`
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Audit-Log-Modul, Bootstrapping-Endpunkt
-- Betroffene EntityTypes/Relations: keine fachlichen
-- API-Endpunkte: Bootstrapping-Endpunkt
-- Datenbank-Änderungen: Audit-Log muss bereits vor jeder Person-/Role-Konfiguration funktionsfähig sein
+- Affected components: audit log module, bootstrapping endpoint
+- Affected EntityTypes/Relations: no business ones
+- API endpoints: bootstrapping endpoint
+- Database changes: the audit log must be functional before any Person/Role configuration
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (erfolgreiche und abgelehnte Versuche)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (successful and rejected attempts)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-013, US-015
-- Blockiert: keine
+- Waiting on: US-013, US-015
+- Blocks: none
 
-## Notizen
+## Notes
 
-Audit-Log-Mechanismus sollte mit US-005 (Login-Audit-Log) geteilt werden, muss aber bereits vor jeder regulären Person-/Role-Konfiguration einsatzbereit sein.
+The audit log mechanism should be shared with US-005 (login audit log), but must be ready for use before any regular Person/Role configuration.

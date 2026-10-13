@@ -1,46 +1,46 @@
-# Ableitung aus: requirements/req/req-032-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert) + exploration (UI-Test)
+# Derived from: requirements/req/req-032-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated) + exploration (UI test)
 
 @functional @must @UC-04
-Feature: REQ-032 – Custom EntityTypes via GUI konfigurieren
+Feature: REQ-032 – Configure custom EntityTypes via GUI
 
-  Das System MUSS Personen mit Metamodell-Bearbeiter-Berechtigung
-  ermöglichen, Custom EntityTypes (inkl. Properties, Relationen,
-  optionalem Basis-Typ und Stereotypen) über ein grafisches Formular zu
-  erstellen, zu bearbeiten und zu löschen; Built-in EntityTypes MÜSSEN
-  sichtbar, aber NICHT editierbar oder löschbar sein.
+  The system MUST enable persons with metamodel editor permission to
+  create, edit, and delete custom EntityTypes (including properties,
+  relations, optional base type, and stereotypes) via a graphical
+  form; built-in EntityTypes MUST be visible but NOT editable or
+  deletable.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Kurt hat Metamodell-Bearbeiter-Berechtigung
-    Given Kurt hat Metamodell-Bearbeiter-Berechtigung
-    When  er einen neuen EntityType `SecurityZone` mit Property `trustLevel` (enum, pflicht) und Relation `contains → TechnologyComponent (0..n)` über das Formular anlegt
-    Then  erscheint `SecurityZone` in der Typ-Liste; beim Anlegen einer neuen Entität ist `SecurityZone` auswählbar
+  Scenario: AC1 – Kurt has metamodel editor permission
+    Given Kurt has metamodel editor permission
+    When  he creates a new EntityType `SecurityZone` with property `trustLevel` (enum, mandatory) and relation `contains → TechnologyComponent (0..n)` via the form
+    Then  `SecurityZone` appears in the type list; when creating a new entity, `SecurityZone` is selectable
 
   @AC2
-  Scenario: AC2 – Kurt versucht, einen EntityType mit dem Namen `ApplicationComponent` (bu...
-    Given Kurt versucht, einen EntityType mit dem Namen `ApplicationComponent` (built-in) anzulegen
-    When  er speichert
-    Then  erscheint eine Fehlermeldung „Name 'ApplicationComponent' bereits vergeben (built-in)"; kein Eintrag wird angelegt
+  Scenario: AC2 – Kurt tries to create an EntityType with the name `ApplicationComponen...
+    Given Kurt tries to create an EntityType with the name `ApplicationComponent` (built-in)
+    When  he saves
+    Then  an error message "Name 'ApplicationComponent' already taken (built-in)" appears; no entry is created
 
   @AC3
-  Scenario: AC3 – Custom EntityType `SecurityZone` hat 5 Entitäts-Instanzen im Repository
-    Given Custom EntityType `SecurityZone` hat 5 Entitäts-Instanzen im Repository
-    When  Kurt versucht, `SecurityZone` zu löschen
-    Then  erscheint eine Fehlermeldung mit „5 Entitäten vom Typ SecurityZone müssen zuerst gelöscht oder migriert werden"; kein Löschen
+  Scenario: AC3 – custom EntityType `SecurityZone` has 5 entity instances in the repository
+    Given custom EntityType `SecurityZone` has 5 entity instances in the repository
+    When  Kurt tries to delete `SecurityZone`
+    Then  an error message appears with "5 entities of type SecurityZone must first be deleted or migrated"; no deletion
 
   @AC4
-  Scenario: AC4 – Kurt bearbeitet einen Custom EntityType (fügt ein optionales Property hi...
-    Given Kurt bearbeitet einen Custom EntityType (fügt ein optionales Property hinzu)
-    When  er speichert
-    Then  ist das neue Property sichtbar; bestehende Entitäten dieses Typs werden nicht invalide (optionales Property, kein Breaking Change)
+  Scenario: AC4 – Kurt edits a custom EntityType (adds an optional property)
+    Given Kurt edits a custom EntityType (adds an optional property)
+    When  he saves
+    Then  the new property is visible; existing entities of this type do not become invalid (optional property, no breaking change)
 
   @AC5
-  Scenario: AC5 – Built-in EntityType `ApplicationComponent` in der Liste
-    Given Built-in EntityType `ApplicationComponent` in der Liste
-    When  Kurt darauf klickt
-    Then  wird er als schreibgeschützt dargestellt; keine Edit- oder Delete-Buttons
+  Scenario: AC5 – built-in EntityType `ApplicationComponent` in the list
+    Given built-in EntityType `ApplicationComponent` in the list
+    When  Kurt clicks on it
+    Then  it is displayed as read-only; no edit or delete buttons

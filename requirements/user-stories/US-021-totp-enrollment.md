@@ -1,64 +1,64 @@
-# US-021: TOTP-Secret einrichten (Authenticator-App registrieren)
+# US-021: Set Up TOTP Secret (Register Authenticator App)
 
 **ID**: US-021
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Person, die sich zum ersten Mal mit ihrem initialen Passwort anmeldet, möchte ich im Rahmen des Logins ein TOTP-Secret per QR-Code in meiner Authenticator-App einrichten, damit ich danach mit Username, Passwort und TOTP-Code vollen Zugriff erhalte.
+As a person signing in for the first time with my initial password, I want to set up a TOTP secret in my authenticator app via QR code as part of the login, so that afterwards I get full access with username, password and TOTP code.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-03: Authentifizierungsmethode einrichten](../use-cases/UC-03-authentifizierungsmethode-einrichten.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-022: TOTP-Secret-Enrollment](../req/REQ-022-totp-enrollment.md)
+**Use Case**: [UC-03: Set Up Authentication Method](../use-cases/UC-03-set-up-authentication-method.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-022: TOTP Secret Enrollment](../req/REQ-022-totp-enrollment.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Kurt hat TOTP als Methode gewählt
-- Wenn: die Seite geladen wird
-- Dann: sieht er einen QR-Code (Key-URI-Format `otpauth://totp/…`) und den Secret-Klartext zur manuellen Eingabe
+- Given: Kurt has chosen TOTP as the method
+- When: the page is loaded
+- Then: he sees a QR code (key URI format `otpauth://totp/…`) and the secret in plaintext for manual entry
 
 **AC2**:
-- Gegeben: Kurt scannt den QR-Code und gibt den aktuellen 6-stelligen Code ein
-- Wenn: der Code korrekt ist (Zeittoleranz ±1 Fenster à 30 s)
-- Dann: ist das Secret verschlüsselt persistiert; der Login mit TOTP (UC-01 A4) ist möglich
+- Given: Kurt scans the QR code and enters the current 6-digit code
+- When: the code is correct (time tolerance ±1 window of 30 s)
+- Then: the secret is persisted in encrypted form; login with TOTP (UC-01 A4) is possible
 
 **AC3**:
-- Gegeben: Kurt gibt einen falschen Code ein
-- Wenn: er das Formular absendet
-- Dann: bleibt das Token gültig, es wird kein Secret gespeichert, Kurt kann es erneut versuchen
+- Given: Kurt enters a wrong code
+- When: he submits the form
+- Then: the token remains valid, no secret is stored, Kurt can try again
 
 **AC4**:
-- Gegeben: Enrollment wurde abgeschlossen
-- Wenn: Server-Logs und Datenbank-Einträge vorliegen
-- Dann: ist das TOTP-Secret weder im Klartext noch als Hash in Logs enthalten; in der Datenbank ist es verschlüsselt gespeichert
+- Given: enrollment has been completed
+- When: server logs and database entries are present
+- Then: the TOTP secret is contained neither in plaintext nor as a hash in logs; in the database it is stored encrypted
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Enrollment-Modul (TOTP-Secret-Generierung, QR-Code-Rendering, Verifikation), Credential-Speicher
-- Betroffene EntityTypes/Relations: `local_credentials`-Tabelle (`person_id`, `type=totp`, `secret_encrypted`, `created_at`)
-- API-Endpunkte: `GET /auth/enrollment/totp/init` (Secret generieren, QR-Code zurückgeben); `POST /auth/enrollment/totp/verify` (Code prüfen und persistieren)
-- Datenbank-Änderungen: Zeile in `local_credentials` (Secret AES-256-verschlüsselt)
+- Affected components: enrollment module (TOTP secret generation, QR code rendering, verification), credential store
+- Affected EntityTypes/Relations: `local_credentials` table (`person_id`, `type=totp`, `secret_encrypted`, `created_at`)
+- API endpoints: `GET /auth/enrollment/totp/init` (generate secret, return QR code); `POST /auth/enrollment/totp/verify` (verify code and persist)
+- Database changes: row in `local_credentials` (secret AES-256-encrypted)
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (korrekter Code, falscher Code, Secret-Verschlüsselung, Log-Scan)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (correct code, wrong code, secret encryption, log scan)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-023 (initiales Passwort muss gesetzt sein, damit der erste Login als Trigger funktioniert), US-010 (TOTP-Login-Endpunkt ist Ziel nach Enrollment)
-- Blockiert: US-024 (Audit-Log kann erst über TOTP-Enrollment-Ereignisse schreiben, wenn dieser Pfad existiert)
+- Waiting on: US-023 (initial password must be set so that the first login works as trigger), US-010 (TOTP login endpoint is the target after enrollment)
+- Blocks: US-024 (audit log can only write TOTP enrollment events once this path exists)
 
-## Notizen
+## Notes
 
-Key-URI-Format: `otpauth://totp/{Instanzname}:{E-Mail}?secret={BASE32}&issuer={Instanzname}&algorithm=SHA1&digits=6&period=30`. Das Secret wird nach der Verifikation serverseitig nicht mehr im Klartext gehalten; der QR-Code wird nur einmalig angezeigt (kein Re-Display-Endpunkt).
+Key URI format: `otpauth://totp/{instance name}:{email}?secret={BASE32}&issuer={instance name}&algorithm=SHA1&digits=6&period=30`. After verification, the secret is no longer held in plaintext on the server; the QR code is displayed only once (no re-display endpoint).

@@ -1,145 +1,145 @@
-# ADR-029: Testframework für BDD-Systemtests — Cucumber JVM
+# ADR-029: Test Framework for BDD System Tests — Cucumber JVM
 
 **Status**: accepted
-**Datum**: 2026-06-30
-**Entscheider**: [Lukas – Repository-Inhaber](../business-analysis/stakeholders/SH-01-lukas-enterprise-architect.md)
+**Date**: 2026-06-30
+**Deciders**: [Lukas – Repository Owner](../business-analysis/stakeholders/SH-01-lukas-enterprise-architect.md)
 
 ---
 
-## Kontext
+## Context
 
-Im Rahmen der Requirements-Phase wurden bereits 155 Gherkin Feature Files unter
-`requirements/tests/` aus den Requirements (`requirements/req/REQ-*.md`) generiert
-(`scripts/generate_feature_files.py`). Sie bilden die V-Modell-Systemtestspezifikation
-und definieren *was* getestet wird — nicht *wie*.
+As part of the requirements phase, 155 Gherkin feature files have already been generated under
+`requirements/tests/` from the requirements (`requirements/req/REQ-*.md`)
+(`scripts/generate_feature_files.py`). They form the V-model system test specification
+and define *what* is tested — not *how*.
 
-Vor dem Implementierungsstart (ADR-012 Java/Spring Boot, ADR-027 Maven-Struktur,
-ADR-028 Schichtenarchitektur) müssen zwei Fragen geklärt sein:
+Before the start of implementation (ADR-012 Java/Spring Boot, ADR-027 Maven structure,
+ADR-028 layered architecture), two questions must be clarified:
 
-1. Mit welchem Test-Execution-Framework werden die Gherkin-Feature-Files gegen
-   das Java/Spring-Boot-Backend ausgeführt?
-2. Wie entstehen die Step-Definitionen (der Java-Code hinter Given/When/Then),
-   ohne dass ein Entwickler sie für alle 155 Dateien von Hand schreiben muss?
+1. With which test execution framework are the Gherkin feature files executed against
+   the Java/Spring Boot backend?
+2. How are the step definitions (the Java code behind Given/When/Then) created,
+   without a developer having to write them by hand for all 155 files?
 
-Diese Entscheidung war bisher nur informell in `requirements/tests/README.md`
-festgehalten (Tool-Versionen, Verzeichnisstruktur), ohne dokumentierte Alternativen
-oder Trade-offs — das wird hiermit nachgeholt.
-
----
-
-## Entscheidungstreiber
-
-- 155 Feature Files existieren bereits im Standard-Gherkin-Format und sollen
-  ohne Migration weiterverwendet werden
-- Tag-Schema (`@must`, `@should`, `@UC-06`, `@performance`, `@skip`, …) ist
-  bereits in den Feature Files angelegt und muss zur Testselektion nutzbar sein
-- Stakeholder ohne Java-Kenntnisse (Product Owner, QA) sollen Testszenarien
-  weiterhin lesen können
-- Step-Definitionen sollen von einem lokal gehosteten LLM (Qwen2.5-14B,
-  4-Bit-Quantisierung, headless via Ollama) generierbar sein — Aufwand pro
-  Feature File muss klein und klar abgegrenzt sein
-- Integration mit Spring Boot (Dependency Injection, Testcontainers) muss
-  ohne Zusatz-Framework funktionieren
+This decision had previously only been recorded informally in `requirements/tests/README.md`
+(tool versions, directory structure), without documented alternatives
+or trade-offs — this is hereby made up for.
 
 ---
 
-## Betrachtete Optionen
+## Decision Drivers
+
+- 155 feature files already exist in standard Gherkin format and are to be reused
+  without migration
+- Tag scheme (`@must`, `@should`, `@UC-06`, `@performance`, `@skip`, …) is
+  already laid out in the feature files and must be usable for test selection
+- Stakeholders without Java knowledge (product owner, QA) should still
+  be able to read test scenarios
+- Step definitions should be generatable by a locally hosted LLM (Qwen2.5-14B,
+  4-bit quantization, headless via Ollama) — effort per
+  feature file must be small and clearly delimited
+- Integration with Spring Boot (dependency injection, Testcontainers) must work
+  without an additional framework
+
+---
+
+## Considered Options
 
 ### Option 1: Cucumber JVM (cucumber-java + cucumber-spring + cucumber-junit-platform-engine)
 
-- **Pro**: Standard-Gherkin-Parser — die 155 bestehenden Feature Files sind
-  ohne Änderung nutzbar; `cucumber-spring` injiziert Spring-Beans direkt in
-  Step-Definitionen; Tag-Filterung (`--tags`) bildet das bestehende Tag-Schema
-  1:1 ab; etabliertes Ökosystem mit Testcontainers-Integration; Ausführung über
-  Standard-Maven/JUnit-Platform-Tooling
-- **Contra**: Zusätzliche Indirektionsebene (Gherkin → generierte
-  Step-Definition-Klasse → Java) gegenüber reinem JUnit-Test; Pflege von
-  Step-Definitionen als eigene Code-Schicht
+- **Pro**: Standard Gherkin parser — the 155 existing feature files are
+  usable without change; `cucumber-spring` injects Spring beans directly into
+  step definitions; tag filtering (`--tags`) maps the existing tag scheme
+  1:1; established ecosystem with Testcontainers integration; execution via
+  standard Maven/JUnit Platform tooling
+- **Con**: Additional layer of indirection (Gherkin → generated
+  step definition class → Java) compared to a plain JUnit test; maintenance of
+  step definitions as their own code layer
 
-### Option 2: JUnit 5 + RestAssured ohne Gherkin/BDD-Layer
+### Option 2: JUnit 5 + RestAssured without Gherkin/BDD layer
 
-- **Pro**: Weniger Tooling-Schichten; direkter Java-Code ohne
-  Gherkin-Step-Mapping; etwas schnellere Testausführung
-- **Contra**: Die 155 bereits erstellten Feature Files wären nicht ausführbar
-  und müssten verworfen oder in Code-Kommentare übersetzt werden; Verlust der
-  Lesbarkeit für Nicht-Entwickler; kein deklaratives Tag-Filtering wie
-  `@must and @UC-06`, stattdessen JUnit-Tags manuell nachbauen
-- **Verworfen**: Wirft bereits investierte Arbeit (155 Feature Files,
-  Tag-Schema, REQ-Traceability) weg, ohne einen Vorteil zu bieten, der diesen
-  Verlust aufwiegt
+- **Pro**: Fewer tooling layers; direct Java code without
+  Gherkin step mapping; slightly faster test execution
+- **Con**: The 155 already created feature files would not be executable
+  and would have to be discarded or translated into code comments; loss of
+  readability for non-developers; no declarative tag filtering such as
+  `@must and @UC-06`, JUnit tags would have to be rebuilt manually
+- **Rejected**: Throws away already invested work (155 feature files,
+  tag scheme, REQ traceability) without offering an advantage that outweighs this
+  loss
 
 ### Option 3: Karate DSL
 
-- **Pro**: Eigene BDD-ähnliche Syntax mit eingebautem HTTP-Client — für reine
-  REST-Tests oft weniger Step-Definition-Code nötig
-- **Contra**: Eigene DSL statt Standard-Gherkin — die 155 bestehenden Feature
-  Files wären nicht 1:1 kompatibel und müssten neu geschrieben werden;
-  kleineres Ökosystem für Spring-Boot-/Testcontainers-Integration; weniger
-  geeignet für Domain-Assertions jenseits reiner HTTP-Response-Prüfung (z.B.
-  Constraint-Checks, Property-Validierung in `core/`)
-- **Verworfen**: Inkompatibel mit bestehenden Feature Files; Migrationsaufwand
-  übersteigt den Nutzen des eingebauten HTTP-Clients
+- **Pro**: Own BDD-like syntax with built-in HTTP client — for pure
+  REST tests often less step definition code is needed
+- **Con**: Own DSL instead of standard Gherkin — the 155 existing feature
+  files would not be 1:1 compatible and would have to be rewritten;
+  smaller ecosystem for Spring Boot/Testcontainers integration; less
+  suitable for domain assertions beyond pure HTTP response checks (e.g.
+  constraint checks, property validation in `core/`)
+- **Rejected**: Incompatible with existing feature files; migration effort
+  exceeds the benefit of the built-in HTTP client
 
 ---
 
-## Entscheidung
+## Decision
 
-Wir wählen **Option 1: Cucumber JVM**
+We choose **Option 1: Cucumber JVM**
 (`cucumber-java`, `cucumber-spring`, `cucumber-junit-platform-engine`,
-Version 7.15.0), ausgeführt über Maven/JUnit-Platform
+version 7.15.0), executed via Maven/JUnit Platform
 (`mvn test -Dcucumber.filter.tags="..."`).
 
-Die Java-Step-Definitionen unter `backend/src/test/java/de/oea/steps/` werden
-während der Implementierungsphase pro Feature File von **Qwen2.5-14B-Instruct**
-(Q4_K_M, lokal headless via Ollama, siehe `requirements/tests/README.md`)
-generiert — ein Prompt je Feature File, mit Spring-Boot/RestAssured/
-Testcontainers als Ziel-Stack.
+The Java step definitions under `backend/src/test/java/de/oea/steps/` are
+generated during the implementation phase per feature file by **Qwen2.5-14B-Instruct**
+(Q4_K_M, local headless via Ollama, see `requirements/tests/README.md`)
+— one prompt per feature file, with Spring Boot/RestAssured/
+Testcontainers as target stack.
 
-**Begründung**: Die Feature Files sind bereits investierte Arbeit und das
-verbindliche V-Modell-Testartefakt der Requirements-Phase. Cucumber JVM ist die
-einzige der drei Optionen, die diese Dateien unverändert weiterverwendet und
-gleichzeitig nativ in den Spring-Boot-Stack (ADR-012, ADR-028) integriert.
-
----
-
-## Konsequenzen
-
-### Positive Konsequenzen
-
-- Bestehende 155 Feature Files bleiben 1:1 nutzbar, keine Migration nötig
-- Tag-basierte Filterung (`@must`, `@UC-06`, `@performance`, `not @skip`)
-  bereits vorhanden und sofort einsetzbar (siehe `requirements/tests/README.md`)
-- Stakeholder ohne Java-Kenntnisse können Testszenarien weiterhin lesen
-- Step-Definitionen lassen sich pro Feature File isoliert generieren — kleine,
-  klar abgegrenzte Prompts für Qwen statt einer monolithischen Codebasis
-- `cucumber-spring` nutzt dieselbe Dependency-Injection wie die
-  Anwendungsschichten aus ADR-028, kein Parallel-Wiring nötig
-
-### Negative Konsequenzen / Trade-offs
-
-- Zusätzliche Indirektionsebene (Gherkin → Step-Definition → Java) gegenüber
-  einem direkten JUnit-Test bedeutet mehr Tooling-Komplexität und eine weitere
-  Stelle, an der Fehler entstehen können (z.B. nicht erkannte Step-Patterns)
-- Qualität der generierten Step-Definitionen hängt von einem lokal gehosteten,
-  4-Bit-quantisierten 14B-Modell ab — schwächer als Cloud-Alternativen,
-  voraussichtlich höherer manueller Repair-Aufwand
-- Lokale Generierung auf 16GB RAM ist langsam (ca. 4–8 Tokens/s) — die
-  Step-Def-Generierung für alle 155 Feature Files ist ein Batch-Prozess über
-  Nacht, kein interaktiver Workflow
-- Die 4 Feature Files mit TODO-Platzhaltern (REQ-070, REQ-079, REQ-080,
-  REQ-081, siehe `requirements/tests/README.md`) müssen vor der
-  Step-Def-Generierung manuell ins Standard-Gegeben/Wenn/Dann-Format gebracht
-  werden, sonst scheitert die Generierung oder liefert Platzhalter-Code
+**Rationale**: The feature files are already invested work and the
+binding V-model test artifact of the requirements phase. Cucumber JVM is the
+only one of the three options that reuses these files unchanged and
+at the same time integrates natively into the Spring Boot stack (ADR-012, ADR-028).
 
 ---
 
-## Bezüge
+## Consequences
 
-**Verwandte ADRs**:
-- ADR-012: Backend-Stack Java 21 + Spring Boot 3 (Ziel-Stack der Step-Definitionen)
-- ADR-027: Mono-Repo und Maven-Modul-Struktur (Verzeichnis `backend/src/test/`)
-- ADR-028: Backend-Schichtenarchitektur (App-Services als Testziel der Step-Definitionen)
+### Positive Consequences
 
-**Konzept**: §21 (Tech-Stack Backend)
+- Existing 155 feature files remain usable 1:1, no migration needed
+- Tag-based filtering (`@must`, `@UC-06`, `@performance`, `not @skip`)
+  already present and immediately usable (see `requirements/tests/README.md`)
+- Stakeholders without Java knowledge can still read test scenarios
+- Step definitions can be generated in isolation per feature file — small,
+  clearly delimited prompts for Qwen instead of a monolithic codebase
+- `cucumber-spring` uses the same dependency injection as the
+  application layers from ADR-028, no parallel wiring needed
 
-**Weitere Quelle**: `requirements/tests/README.md` (Tag-Schema, Cucumber-CLI-Filterbeispiele, Qwen/Ollama-Setup)
+### Negative Consequences / Trade-offs
+
+- Additional layer of indirection (Gherkin → step definition → Java) compared to
+  a direct JUnit test means more tooling complexity and one more
+  place where errors can arise (e.g. unrecognized step patterns)
+- Quality of the generated step definitions depends on a locally hosted,
+  4-bit-quantized 14B model — weaker than cloud alternatives,
+  presumably higher manual repair effort
+- Local generation on 16GB RAM is slow (approx. 4–8 tokens/s) — step
+  definition generation for all 155 feature files is a batch process overnight,
+  not an interactive workflow
+- The 4 feature files with TODO placeholders (REQ-070, REQ-079, REQ-080,
+  REQ-081, see `requirements/tests/README.md`) must be manually brought into the
+  standard Given/When/Then format before step definition generation,
+  otherwise the generation fails or delivers placeholder code
+
+---
+
+## References
+
+**Related ADRs**:
+- ADR-012: Backend stack Java 21 + Spring Boot 3 (target stack of the step definitions)
+- ADR-027: Mono-repo and Maven module structure (directory `backend/src/test/`)
+- ADR-028: Backend layered architecture (app services as test target of the step definitions)
+
+**Concept**: §21 (Tech Stack Backend)
+
+**Further source**: `requirements/tests/README.md` (tag scheme, Cucumber CLI filter examples, Qwen/Ollama setup)

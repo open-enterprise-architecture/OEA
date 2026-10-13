@@ -1,6 +1,6 @@
 ---
 id: REQ-116
-title: SBB-Governance-Zuordnung je TRM-Kategorie
+title: SBB Governance Assignment per TRM Category
 type: functional
 priority: must
 status: proposed
@@ -21,43 +21,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-116: SBB-Governance-Zuordnung je TRM-Kategorie
+# REQ-116: SBB Governance Assignment per TRM Category
 
-## Aussage
+## Statement
 
-Das System MUSS für jede TRM-Kategorie (auch `scope=imported`) das Setzen von `preferredStandard` (Einzelauswahl eines SBBs), `acceptedAlternatives` (Multi-Select SBBs) und `deprecatedOptions` (Multi-Select SBBs) ermöglichen. Ein SBB DARF in derselben Kategorie nicht in mehr als einer der drei Listen erscheinen (mutually exclusive). Wenn sich `preferredStandard` ändert, MUSS das System alle Entitäten in dieser TRM-Kategorie, deren `instanceOfSBBId` nicht dem neuen `preferredStandard` entspricht, in der UI mit dem Hinweis „Abweichung vom TRM-Standard" versehen.
+The system MUST allow setting `preferredStandard` (single selection of an SBB), `acceptedAlternatives` (multi-select SBBs), and `deprecatedOptions` (multi-select SBBs) for every TRM category (including `scope=imported`). An SBB MUST NOT appear in more than one of the three lists within the same category (mutually exclusive). When `preferredStandard` changes, the system MUST mark all entities in this TRM category whose `instanceOfSBBId` does not match the new `preferredStandard` in the UI with the note "Deviation from TRM standard".
 
-## Begründung
+## Rationale
 
-Die SBB-Governance-Zuordnung ist der Kern des Technology-Standards-Mechanismus. Ohne sie ist das TRM eine leere Taxonomie ohne Steuerungswirkung auf die Ist-Landschaft.
+The SBB governance assignment is the core of the technology standards mechanism. Without it, the TRM is an empty taxonomy with no steering effect on the current-state landscape.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (preferredStandard setzen und Abweichungs-Hinweis):
-- Wenn: `preferredStandard=PostgreSQL 17` in der Kategorie „Database Management" gesetzt wird
-- Dann: zeigen alle Entitäten in dieser Kategorie mit einem anderen `instanceOfSBBId` den Hinweis „Abweichung vom TRM-Standard"
+**AC1** (Set preferredStandard and deviation note):
+- When: `preferredStandard=PostgreSQL 17` is set in the category "Database Management"
+- Then: all entities in this category with a different `instanceOfSBBId` show the note "Deviation from TRM standard"
 
 **AC2** (Mutually exclusive):
-- Wenn: derselbe SBB gleichzeitig in `preferredStandard` und `acceptedAlternatives` gesetzt werden soll
-- Dann: antwortet das System mit HTTP 422 „SBB darf nur in einer Liste erscheinen"
+- When: the same SBB is to be set in both `preferredStandard` and `acceptedAlternatives`
+- Then: the system responds with HTTP 422 "SBB may only appear in one list"
 
-**AC3** (imported-Kategorie editierbar):
-- Wenn: eine TRM-Kategorie mit `scope=imported` geöffnet wird
-- Dann: sind SBB-Zuordnungen editierbar; Name und Parent-Kategorie sind gesperrt
+**AC3** (Imported category editable):
+- When: a TRM category with `scope=imported` is opened
+- Then: SBB assignments are editable; name and parent category are locked
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-108 (SBBs), REQ-115 (TRM-Kategorien), REQ-111 (Scope-Schutz erlaubt SBB-Zuordnung trotz importierter Kategorie)
-- **Folgewirkungen**: REQ-119 (Standards-Drift-Analyse nutzt preferredStandard), REQ-120 (Diversity-Analyse)
+- **Prerequisites**: REQ-108 (SBBs), REQ-115 (TRM categories), REQ-111 (scope protection allows SBB assignment despite the imported category)
+- **Consequences**: REQ-119 (standards drift analysis uses preferredStandard), REQ-120 (diversity analysis)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Mutually-exclusive-Validierung: Backend prüft alle drei Listen auf Überschneidungen vor Speicherung
-- Abweichungs-Hinweis: Berechnung via JOIN auf Entitäts-Tabelle; asynchrone Aktualisierung nach `preferredStandard`-Änderung möglich
-- UI: drei separate Dropdown-Felder je Kategorie; SBBs bereits in einer Liste werden in anderen ausgegraut
+- Mutually-exclusive validation: backend checks all three lists for overlaps before saving
+- Deviation note: calculation via JOIN on the entity table; asynchronous update possible after a `preferredStandard` change
+- UI: three separate dropdown fields per category; SBBs already in one list are grayed out in the others
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

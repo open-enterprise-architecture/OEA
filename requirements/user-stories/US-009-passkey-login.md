@@ -1,59 +1,59 @@
-# US-009: Passkey-Login (lokale Authentifizierung)
+# US-009: Passkey Login (Local Authentication)
 
 **ID**: US-009
 **Story Points**: 8
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Person auf einer Instanz ohne externen Identity-Provider möchte ich mich mit einem Passkey anmelden, idealerweise ohne vorherige Eingabe von Username oder Passwort, damit ich passwortlos und phishing-resistent Zugriff erhalte.
+As a person on an instance without an external identity provider, I want to sign in with a passkey, ideally without first entering a username or password, so that I get passwordless, phishing-resistant access.
 
-## Bezug
+## Reference
 
 **Use Case**: [UC-01: Login](../use-cases/UC-01-login.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-009: Passkey-Login](../req/REQ-009-passkey-login.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-009: Passkey Login](../req/REQ-009-passkey-login.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine Person mit zuvor registriertem Passkey
-- Wenn: sie sich mit diesem Passkey anmeldet
-- Dann: erhält sie eine Session gemäß ihren aktiven Rollenzuweisungen
+- Given: a person with a previously registered passkey
+- When: they sign in with this passkey
+- Then: they receive a session according to their active role assignments
 
 **AC2**:
-- Gegeben: eine fehlgeschlagene Passkey-Verifikation
-- Wenn: der Login-Versuch abgeschlossen wird
-- Dann: wird keine Session erstellt, Fehlermeldung nicht von anderen Fehlerfällen unterscheidbar
+- Given: a failed passkey verification
+- When: the login attempt is completed
+- Then: no session is created, error message indistinguishable from other error cases
 
 **AC3**:
-- Gegeben: eine Person mit einem als discoverable credential registrierten Passkey
-- Wenn: sie sich anmeldet
-- Dann: ist keine vorherige Eingabe von Username oder Passwort erforderlich
+- Given: a person with a passkey registered as a discoverable credential
+- When: they sign in
+- Then: no prior entry of username or password is required
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Auth-Modul, WebAuthn-Client/Server-Bibliothek
-- Betroffene EntityTypes/Relations: Passkey-Public-Keys (getrennt vom `Person`-Objekt, sensible Credential-Daten)
-- API-Endpunkte: WebAuthn-Challenge-/Assertion-Endpunkte
-- Datenbank-Änderungen: separate Tabelle für Passkey-Credentials pro Person
+- Affected components: auth module, WebAuthn client/server library
+- Affected EntityTypes/Relations: passkey public keys (separate from the `Person` object, sensitive credential data)
+- API endpoints: WebAuthn challenge/assertion endpoints
+- Database changes: separate table for passkey credentials per person
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (WebAuthn-Testclient mit virtuellem Authenticator)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (WebAuthn test client with virtual authenticator)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-001 (gemeinsames Rollen-Lookup-Schema), US-022 (Passkey-Enrollment muss existieren, damit Passkeys vorhanden sind)
-- Blockiert: keine
+- Waiting on: US-001 (shared role lookup schema), US-022 (passkey enrollment must exist so that passkeys are available)
+- Blocks: none
 
-## Notizen
+## Notes
 
-Enrollment (Registrierung eines Passkeys) ist explizit nicht Teil dieser Story – UC-01 setzt eine abgeschlossene Registrierung voraus. Enrollment ist eigener, hier nicht abgeleiteter Use Case.
+Enrollment (registration of a passkey) is explicitly not part of this story – UC-01 assumes a completed registration. Enrollment is a separate use case, not derived here.

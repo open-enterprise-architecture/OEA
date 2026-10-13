@@ -1,36 +1,36 @@
-# US-105: Selektive Feldauswahl im Teilwiederherstellungs-Wizard
+# US-105: Selective Field Selection in the Partial Restore Wizard
 
 **ID**: US-105
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich im Wizard nur Felder auswählen können, die sich tatsächlich unterscheiden, und für jedes Feld den Quellwert als Vorschau sehen, damit ich präzise entscheiden kann, was wiederhergestellt werden soll.
+As Kurt – Lead Enterprise Architect, I want to be able to select in the wizard only fields that actually differ and to see the source value as a preview for each field, so that I can decide precisely what should be restored.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-16](../use-cases/UC-16-teilwiederherstellung-entitaet.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-105](../req/REQ-105-teilwiederherstellung-feldauswahl.md)
+**Use Case**: [UC-16](../use-cases/UC-16-partial-entity-restore.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-105](../req/REQ-105-partial-restore-field-selection.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Identische Felder ausgegraut):
-- Wenn: ein Feld in Quelle und aktuellem Stand identisch ist
-- Dann: ist die Checkbox ausgegraut und nicht anklickbar
+**AC1** (Identical fields grayed out):
+- When: a field is identical in the source and the current state
+- Then: the checkbox is grayed out and not clickable
 
-**AC2** (Neue Properties gekennzeichnet):
-- Wenn: eine Property in der Quellversion noch nicht vorhanden war
-- Dann: zeigt der Wizard "(in Quellversion nicht vorhanden)"; Checkbox nicht anwählbar
+**AC2** (New properties marked):
+- When: a property did not yet exist in the source version
+- Then: the wizard shows "(not present in source version)"; checkbox not selectable
 
-**AC3** (Vorschau bei Feldauswahl):
-- Wenn: ich die Checkbox eines geänderten Feldes aktiviere
-- Dann: wird der Quellwert als Vorschau angezeigt
+**AC3** (Preview on field selection):
+- When: I activate the checkbox of a changed field
+- Then: the source value is displayed as a preview
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

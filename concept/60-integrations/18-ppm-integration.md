@@ -1,20 +1,20 @@
-## 18. Projekt-Portfolio-Integration (PPM)
+## 18. Project Portfolio Integration (PPM)
 
-Das EA-Repository beschreibt, *was* sich architektonisch ändern soll. Project Portfolio Management (PPM) beschreibt, *welche Projekte das mit welchen Ressourcen bis wann umsetzen*. Zwischen beiden Welten existiert eine natürliche Brücke – das **Work Package** – die im Metamodell bereits angelegt ist. Dieses Kapitel präzisiert die Integration.
+The EA repository describes *what* is to change architecturally. Project portfolio management (PPM) describes *which projects implement this with which resources by when*. A natural bridge exists between the two worlds – the **work package** – which is already laid out in the metamodel. This chapter details the integration.
 
-### 18.1 Rollenverteilung EA ↔ PPM
+### 18.1 Division of Roles EA ↔ PPM
 
-| EA-Repository beantwortet | PPM beantwortet |
+| EA repository answers | PPM answers |
 |---|---|
-| Was sollte sich architektonisch ändern? | Welche Projekte setzen das um? |
-| Warum (Goals, Outcomes, Capabilities)? | Mit welchem Budget, welchen Ressourcen? |
-| Welche Zielzustände bis wann (Plateaus)? | Welche Meilensteine, welche Abhängigkeiten? |
-| Welche Gaps sind zu schließen? | Wer ist Projekt-Sponsor, -Manager, -Team? |
-| Technische/architektonische Risiken? | Projekt-/Ressourcen-/Schedule-Risiken? |
+| What should change architecturally? | Which projects implement it? |
+| Why (goals, outcomes, capabilities)? | With which budget, which resources? |
+| Which target states by when (plateaus)? | Which milestones, which dependencies? |
+| Which gaps need to be closed? | Who is the project sponsor, manager, team? |
+| Technical/architectural risks? | Project/resource/schedule risks? |
 
-EA denkt in **Capabilities, Gaps und Plateaus**. PPM denkt in **Projekten, Meilensteinen und Budgets**. Die Verbindung entsteht über Work Packages (EA-Seite) und Projects (PPM-Seite).
+EA thinks in **capabilities, gaps, and plateaus**. PPM thinks in **projects, milestones, and budgets**. The connection arises via work packages (EA side) and projects (PPM side).
 
-### 18.2 Neue EntityTypes
+### 18.2 New EntityTypes
 
 ```yaml
 EntityType: Project
@@ -25,7 +25,7 @@ EntityType: Project
     - budget: { planned, committed, spent }
     - methodology: waterfall | agile | hybrid
     - planningConfidence: committed | planned | proposed | directional
-    - externalReferences[] (zu PPM-Tool-IDs)
+    - externalReferences[] (to PPM tool IDs)
   relations:
     - realizes: WorkPackage[]
     - dependsOn: Project[]
@@ -34,7 +34,7 @@ EntityType: Project
     - contributesTo: Goal[] | Outcome[]
 
 EntityType: Program
-  basedOn: Project (strukturelle Ähnlichkeit)
+  basedOn: Project (structural similarity)
   additionalRelations:
     - contains: Project[]
     - realizesStrategy: Goal | Outcome
@@ -56,7 +56,7 @@ EntityType: Demand
   relations:
     - proposedFor: Capability | Domain
     - evaluatedAgainst: ArchitecturePrinciple[]
-    - convertedTo: Project (wenn approved)
+    - convertedTo: Project (if approved)
 
 EntityType: BusinessCase
   relations:
@@ -86,80 +86,80 @@ EntityType: Risk
     - ownedBy: Role
 ```
 
-### 18.3 Erweiterungen bestehender Entitäten
+### 18.3 Extensions of Existing Entities
 
-**WorkPackage** erhält:
-- `realizedByProject: Project[]` – welche Projekte setzen es um
-- `requiredSkills: Skill[]` – Kompetenz-Bedarf
-- `estimatedEffort, estimatedCost` – für Portfolio-Planung
+**WorkPackage** gains:
+- `realizedByProject: Project[]` – which projects implement it
+- `requiredSkills: Skill[]` – competence demand
+- `estimatedEffort, estimatedCost` – for portfolio planning
 
-**PhysicalApplicationComponent** erhält optional:
-- `tco: { licenseCost, operationalCost, developmentCost }` pro Jahr
+**PhysicalApplicationComponent** optionally gains:
+- `tco: { licenseCost, operationalCost, developmentCost }` per year
 - `costCenter`
 - `financialLifecycle: invest | sustain | rationalize | retire`
-- `activeProjects: Project[]` (die aktuell an dieser Application arbeiten)
+- `activeProjects: Project[]` (currently working on this application)
 
-**Capability** erhält optional:
+**Capability** optionally gains:
 - `investmentLevel: heavy | moderate | minimal | divest`
 - `strategicPriority: high | medium | low`
-- `timeCategorization: tolerate | invest | migrate | eliminate` (TIME-Modell, Gartner)
+- `timeCategorization: tolerate | invest | migrate | eliminate` (TIME model, Gartner)
 
-### 18.4 Architektur-Abhängigkeiten als Projekt-Abhängigkeiten
+### 18.4 Architecture Dependencies as Project Dependencies
 
-Eine zentrale Stärke der Integration: **Projekt-Dependencies können automatisch aus Architektur-Dependencies abgeleitet werden.**
+A central strength of the integration: **project dependencies can be derived automatically from architecture dependencies.**
 
-Regel: Wenn Component A von Component B abhängt und Project X die Component B verändert, während Project Y Component A verändert, dann hat Project Y eine Abhängigkeit zu Project X.
+Rule: If component A depends on component B and project X changes component B while project Y changes component A, then project Y has a dependency on project X.
 
-Diese Ableitung ist in reinen PPM-Tools unmöglich, weil ihnen die Architektur-Information fehlt. Im integrierten Repository wird sie als Sicht oder automatische Dependency-Suggestion verfügbar.
+This derivation is impossible in pure PPM tools because they lack the architecture information. In the integrated repository, it becomes available as a view or automatic dependency suggestion.
 
-### 18.5 Mastership pro Konzept
+### 18.5 Mastership per Concept
 
-**EA ist Master für:**
-- Work Package, Gap, Plateau
-- Strategic Goal, Capability, Driver, Outcome
-- Architektur-spezifische Risiken (Obsoleszenz, technical debt)
-- Architecture Principles, Standards
+**EA is master for:**
+- Work package, gap, plateau
+- Strategic goal, capability, driver, outcome
+- Architecture-specific risks (obsolescence, technical debt)
+- Architecture principles, standards
 
-**PPM ist Master für:**
-- Project, Program, Portfolio (operative Einheiten)
-- Demand / Initiative (Vorstufen)
-- Ressourcen, Budgets, konkrete Meilensteine
-- Projekt-spezifische Risiken
-- Benefits-Tracking (Realization-Seite)
-- Business Cases
+**PPM is master for:**
+- Project, program, portfolio (operational units)
+- Demand / initiative (preliminary stages)
+- Resources, budgets, concrete milestones
+- Project-specific risks
+- Benefits tracking (realization side)
+- Business cases
 
-**Gemeinsam (Property-Mastership):**
-- Work Package ↔ Project: EA-Master für *was* umgesetzt wird, PPM-Master für *wann/wer/wie viel*
-- Roadmap-Termine: EA-Plan wird von Projekt-Terminen beeinflusst, PPM-Termine müssen zu Plateaus passen
-- Benefits: EA-Master für strategische Zuordnung, PPM-Master für Realization-Status
+**Jointly (property mastership):**
+- Work package ↔ project: EA master for *what* is implemented, PPM master for *when/who/how much*
+- Roadmap dates: the EA plan is influenced by project dates, PPM dates must fit the plateaus
+- Benefits: EA master for strategic assignment, PPM master for realization status
 
-### 18.6 Planungshorizonte und -konfidenz
+### 18.6 Planning Horizons and Confidence
 
-EA und PPM arbeiten mit unterschiedlichen Planungshorizonten, die synchronisiert werden müssen:
+EA and PPM work with different planning horizons that must be synchronized:
 
-- EA-Plateaus: typischerweise 2–5 Jahre
-- Budget-Planung: oft nur 1–2 Jahre
-- Konkrete Projekte: 6 Monate bis 2 Jahre
-- Agile PIs/Sprints: Wochen bis Quartale
+- EA plateaus: typically 2–5 years
+- Budget planning: often only 1–2 years
+- Concrete projects: 6 months to 2 years
+- Agile PIs/sprints: weeks to quarters
 
-Das `planningConfidence`-Property an Projects erlaubt, Roadmaps gestuft zu visualisieren:
-- `committed`: Budget genehmigt, Team allokiert
-- `planned`: in aktueller Portfolio-Planung
-- `proposed`: im Backlog, noch nicht priorisiert
-- `directional`: strategisch gewollt, noch kein Plan
+The `planningConfidence` property on projects allows roadmaps to be visualized in tiers:
+- `committed`: budget approved, team allocated
+- `planned`: in current portfolio planning
+- `proposed`: in the backlog, not yet prioritized
+- `directional`: strategically desired, no plan yet
 
-### 18.7 Neue Sichten
+### 18.7 New Views
 
-- **Investment Heatmap**: Capabilities × Investment-Level, farblich nach aggregiertem Projekt-Budget
-- **Portfolio-Architecture-Alignment**: Projekte ohne Work Package (architektonisch blind) und Work Packages ohne Projekt (umsetzungslos)
-- **Resource Demand over Time**: Skill-Bedarf aggregiert aus WorkPackages, verteilt über Projekt-Zeiträume
-- **Benefit Attribution**: welche Capabilities/Goals profitieren von welchen aktiven Projekten
-- **Technical Debt Portfolio**: Applications mit Sunset-Druck und fehlendem Ablösungsprojekt
-- **Strategic Alignment Check**: aktive Projekte ohne Beitrag zu einem strategischen Goal
-- **Compliance Risk View**: Compliance-Requirements mit nahender Deadline und nicht durch Projekte adressiert
-- **TIME-Matrix** (Gartner): Applications kategorisiert als Tolerate/Invest/Migrate/Eliminate mit zugehörigen Investitionen
+- **Investment heatmap**: capabilities × investment level, colored by aggregated project budget
+- **Portfolio-architecture alignment**: projects without a work package (architecturally blind) and work packages without a project (without implementation)
+- **Resource demand over time**: skill demand aggregated from work packages, distributed over project periods
+- **Benefit attribution**: which capabilities/goals benefit from which active projects
+- **Technical debt portfolio**: applications with sunset pressure and a missing replacement project
+- **Strategic alignment check**: active projects without a contribution to a strategic goal
+- **Compliance risk view**: compliance requirements with an approaching deadline and not addressed by projects
+- **TIME matrix** (Gartner): applications categorized as tolerate/invest/migrate/eliminate with associated investments
 
-### 18.8 Neue Constraints
+### 18.8 New Constraints
 
 ```yaml
 constraint: work-package-has-project
@@ -171,7 +171,7 @@ constraint: target-plateau-coverage
   appliesTo: Plateau (type: target)
   rule: "all gaps to this plateau are addressed by active or planned projects"
   severity: error
-  message: "Zielplateau nicht durch Portfolio abgedeckt"
+  message: "Target plateau not covered by the portfolio"
 
 constraint: sunset-has-replacement-project
   appliesTo: PhysicalApplicationComponent
@@ -182,19 +182,19 @@ constraint: no-invest-in-sunset
   appliesTo: Project
   rule: "project.affects.applications must not include applications with lifecycleState in [sunset, retired]"
   severity: warning
-  message: "Projekt investiert in Application, die abgelöst wird"
+  message: "Project invests in an application that is being replaced"
 ```
 
-### 18.9 Architecture Review Board als organisatorische Brücke
+### 18.9 Architecture Review Board as an Organizational Bridge
 
-Ein **Architecture Review Board (ARB)** ist der organisatorische Andockpunkt zwischen EA und PPM. Es prüft:
+An **Architecture Review Board (ARB)** is the organizational docking point between EA and PPM. It reviews:
 
-- Demands gegen Architektur-Prinzipien und Zielbilder
-- Projekt-Business-Cases auf strategischen Fit
-- Abweichungen von Standards (Waivers)
-- Major Changes gegen Architektur-Implikationen
+- Demands against architecture principles and target states
+- Project business cases for strategic fit
+- Deviations from standards (waivers)
+- Major changes against architecture implications
 
-Im Metamodell:
+In the metamodel:
 
 ```yaml
 EntityType: ArchitectureReview
@@ -205,26 +205,26 @@ EntityType: ArchitectureReview
   relations:
     - reviews: Project | Demand | Change
     - assessedAgainst: ArchitecturePrinciple[] | Plateau
-    - decidedBy: Role (ARB-Mitglieder)
-    - resultsInADR: ADR (bei grundsätzlichen Entscheidungen)
+    - decidedBy: Role (ARB members)
+    - resultsInADR: ADR (for fundamental decisions)
 ```
 
-### 18.10 PPM-Tool-Integration
+### 18.10 PPM Tool Integration
 
-Relevante PPM-Tools:
+Relevant PPM tools:
 - **Enterprise**: ServiceNow SPM, Planview, Clarity PPM, Jira Align
-- **Mittelstand / Open Source**: OpenProject, Jira + Portfolio-Plugins
-- **Agile-nativ**: Jira Advanced Roadmaps, AzureDevOps, Linear
+- **Mid-sized company / open source**: OpenProject, Jira + portfolio plugins
+- **Agile-native**: Jira Advanced Roadmaps, AzureDevOps, Linear
 
-Pragmatischer Ansatz: **Generischer REST-Connector mit Mapping-Konfiguration** statt tiefer Tool-Spezifika. Standardisierte Import/Export-Struktur (basierend auf PMBOK-Vokabular), die jedes Tool bedienen kann. Tool-spezifische Adapter als Plugins.
+Pragmatic approach: **generic REST connector with mapping configuration** instead of deep tool specifics. A standardized import/export structure (based on PMBOK vocabulary) that every tool can serve. Tool-specific adapters as plugins.
 
-### 18.11 Praxisprinzipien
+### 18.11 Practical Principles
 
-- **EA bewertet Demands *vor* der Portfolio-Entscheidung** – nicht nachträglich, sonst ist das Budget schon zugesagt
-- **Work Package als Kontrakt zwischen EA und PPM** – Änderungen am Work Package brauchen Abstimmung beider Seiten
-- **Benefits mit Goals verknüpfen** – sonst versickert Benefits-Realization und Strategie-Erfolg bleibt unmessbar
-- **Keine separaten Roadmaps pflegen** – die integrierte Roadmap aus Repository-Daten ist die eine Wahrheit
+- **EA assesses demands *before* the portfolio decision** – not retroactively, otherwise the budget is already committed
+- **Work package as a contract between EA and PPM** – changes to the work package require coordination between both sides
+- **Link benefits to goals** – otherwise benefits realization trickles away and strategy success remains unmeasurable
+- **Do not maintain separate roadmaps** – the integrated roadmap from repository data is the single source of truth
 
 ---
 
-← [ITSM-Integration](17-itsm-integration.md) · [🏠 Übersicht](../README.md) · [Agile Skalierungs-Frameworks](19-agile-skalierung.md) →
+← [ITSM Integration](17-itsm-integration.md) · [🏠 Overview](../README.md) · [Agile Scaling](19-agile-scaling.md) →

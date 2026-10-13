@@ -1,46 +1,46 @@
-# Ableitung aus: requirements/req/req-051-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-051-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @should @UC-07
-Feature: REQ-051 – Dashboard anlegen
+Feature: REQ-051 – Create dashboard
 
-  Das System MUSS es berechtigten Nutzern ermöglichen, ein neues
-  [Dashboard](../../business-objects/dashboard.md)-Objekt mit Name,
-  optionaler Beschreibung und Scope (`instance` oder `personal`)
-  anzulegen. Dashboards mit `scope=instance` DÜRFEN nur von Nutzern
-  angelegt werden, die die Rolle „Enterprise Architekt" oder eine
-  äquivalente Dashboard-Schreibberechtigung besitzen.
+  The system MUST enable authorized users to create a new
+  [Dashboard](../../business-objects/dashboard.md) object with name,
+  optional description, and scope (`instance` or `personal`).
+  Dashboards with `scope=instance` MUST only be created by users who
+  have the role "Enterprise Architect" or an equivalent dashboard
+  write permission.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Anlegen mit scope=instance – Kurt (Rolle Enterprise Architekt) ist eingeloggt
-    Given Kurt (Rolle Enterprise Architekt) ist eingeloggt
-    When  `POST /api/v1/dashboards` mit name="IT-Investitionsplanung" und scope=instance
-    Then  HTTP 201; Dashboard-Objekt in DB; für alle Nutzer im GET /api/v1/dashboards sichtbar
+  Scenario: AC1 – Create with scope=instance – Kurt (role Enterprise Architect) is logged in
+    Given Kurt (role Enterprise Architect) is logged in
+    When  `POST /api/v1/dashboards` with name="IT Investment Planning" and scope=instance
+    Then  HTTP 201; dashboard object in DB; visible to all users in GET /api/v1/dashboards
 
   @AC2
-  Scenario: AC2 – Duplikat-Name – Dashboard „IT-Investitionsplanung" (scope=instance) existiert bereits
-    Given Dashboard „IT-Investitionsplanung" (scope=instance) existiert bereits
-    When  zweites POST mit demselben Namen
-    Then  HTTP 409 mit Fehlermeldung „Name bereits vergeben"
+  Scenario: AC2 – Duplicate name – dashboard "IT Investment Planning" (scope=instance) already exists
+    Given dashboard "IT Investment Planning" (scope=instance) already exists
+    When  second POST with the same name
+    Then  HTTP 409 with error message "Name already taken"
 
   @AC3
-  Scenario: AC3 – Fehlende Berechtigung für scope=instance – Franz (Rolle Junior Domain Architekt, keine Dashboard-Schreibberechtigun...
-    Given Franz (Rolle Junior Domain Architekt, keine Dashboard-Schreibberechtigung) ist eingeloggt
-    When  POST mit scope=instance
-    Then  HTTP 403; kein Dashboard angelegt
+  Scenario: AC3 – Missing permission for scope=instance – Franz (role Junior Domain Arc...
+    Given Franz (role Junior Domain Architect, no dashboard write permission) is logged in
+    When  POST with scope=instance
+    Then  HTTP 403; no dashboard created
 
   @AC4
-  Scenario: AC4 – Personal-Dashboard für beliebigen Nutzer – Franz (ohne Schreibberechtigung) ist eingeloggt
-    Given Franz (ohne Schreibberechtigung) ist eingeloggt
-    When  POST mit scope=personal, name="Meine Analyse"
-    Then  HTTP 201; Dashboard ist nur für Franz sichtbar (in GET /api/v1/dashboards für andere Nutzer nicht enthalten)
+  Scenario: AC4 – Personal dashboard for any user – Franz (without write permission) is logged in
+    Given Franz (without write permission) is logged in
+    When  POST with scope=personal, name="My Analysis"
+    Then  HTTP 201; dashboard is visible only to Franz (not contained in GET /api/v1/dashboards for other users)
 
   @AC5
-  Scenario: AC5 – Scope-Upgrade – Franz hat ein personal-Dashboard; später erhält er die Dashboard-Berecht...
-    Given Franz hat ein personal-Dashboard; später erhält er die Dashboard-Berechtigung
-    When  PUT mit scope=instance
-    Then  HTTP 200; Dashboard ab sofort für alle sichtbar
+  Scenario: AC5 – Scope upgrade – Franz has a personal dashboard; later he receives the...
+    Given Franz has a personal dashboard; later he receives the dashboard permission
+    When  PUT with scope=instance
+    Then  HTTP 200; dashboard is visible to everyone from now on

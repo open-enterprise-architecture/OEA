@@ -1,6 +1,6 @@
 ---
 id: REQ-101
-title: Vollwiederherstellung einer Entität auf früheren Stand
+title: Full restore of an entity to an earlier state
 type: functional
 priority: should
 status: proposed
@@ -21,43 +21,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-101: Vollwiederherstellung einer Entität auf früheren Stand
+# REQ-101: Full restore of an entity to an earlier state
 
-## Aussage
+## Statement
 
-Das System MUSS die Wiederherstellung einer ArchitectureEntity auf einen beliebigen früheren Stand ermöglichen. Vor der Ausführung MUSS ein Bestätigungsdialog angezeigt werden, der den Diff (aktuell vs. Zielversion) und den optionalen Änderungsgrund enthält. Unveränderliche Felder (`id`, `entityTypeId`, `sourceEntityId`, `targetEntityId`, `createdAt`, `createdBy`) DÜRFEN dabei nicht verändert werden.
+The system MUST enable restoring an ArchitectureEntity to any earlier state. Before execution, a confirmation dialog MUST be displayed that contains the diff (current vs. target version) and the optional change reason. Immutable fields (`id`, `entityTypeId`, `sourceEntityId`, `targetEntityId`, `createdAt`, `createdBy`) MUST NOT be changed in the process.
 
-## Begründung
+## Rationale
 
-Fehlerhafte Änderungen passieren. Ohne Wiederherstellungsmöglichkeit müssen Änderungen manuell rückgängig gemacht werden, was fehleranfällig ist und keine Audit-Spur hinterlässt.
+Faulty changes happen. Without a restore option, changes have to be reverted manually, which is error-prone and leaves no audit trail.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Wiederherstellung auf früheren Stand):
-- Wenn: eine Entität auf Version v3 wiederhergestellt wird
-- Dann: sind `name`, `description` und `properties` auf v3-Werte gesetzt; `id` ist unverändert
+**AC1** (Restore to earlier state):
+- When: an entity is restored to version v3
+- Then: `name`, `description` and `properties` are set to v3 values; `id` is unchanged
 
-**AC2** (Bestätigungsdialog mit Diff):
-- Wenn: die Wiederherstellung initiiert wird
-- Dann: zeigt der Bestätigungsdialog, welche Felder sich zwischen aktuellem Stand und Zielversion unterscheiden
+**AC2** (Confirmation dialog with diff):
+- When: the restore is initiated
+- Then: the confirmation dialog shows which fields differ between the current state and the target version
 
-**AC3** (Abbruch ohne Änderung):
-- Wenn: der Dialog abgebrochen wird
-- Dann: bleibt die Entität unverändert
+**AC3** (Cancel without change):
+- When: the dialog is canceled
+- Then: the entity remains unchanged
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-102 (Snapshot-Sicherung vor Wiederherstellung), REQ-103 (atomare Transaktion)
-- **Folgewirkungen**: REQ-102 (Audit-Snapshot nach Wiederherstellung)
+- **Prerequisites**: REQ-102 (snapshot backup before restore), REQ-103 (atomic transaction)
+- **Downstream effects**: REQ-102 (audit snapshot after restore)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Unveränderliche Felder: `id`, `entityTypeId`, `sourceEntityId`, `targetEntityId`, `createdAt`, `createdBy` — aus Snapshot ignorieren
-- Diff-Berechnung wie REQ-099 (Dot-Notation, feldweise)
-- Änderungsgrund in `EntityVersion.changeReason` persistieren
+- Immutable fields: `id`, `entityTypeId`, `sourceEntityId`, `targetEntityId`, `createdAt`, `createdBy` — ignore from snapshot
+- Diff calculation as in REQ-099 (dot notation, field by field)
+- Persist the change reason in `EntityVersion.changeReason`
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

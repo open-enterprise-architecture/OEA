@@ -1,15 +1,15 @@
-## 11. Temporales Modell
+## 11. Temporal Model
 
-Dies ist das konzeptionelle Herzstück des Tools.
+This is the conceptual centerpiece of the tool.
 
-### 11.1 Plateau als zeitlicher Anker
+### 11.1 Plateau as a Temporal Anchor
 
-Ein **Plateau** (Begriff aus ArchiMate) repräsentiert einen konsistenten Architekturzustand zu einem Zeitpunkt oder für einen Zeitraum.
+A **plateau** (term from ArchiMate) represents a consistent architecture state at a point in time or for a period.
 
 ```
 Plateau {
   id: "baseline-2026-q1"
-  name: "Ist-Zustand Q1 2026"
+  name: "Current State Q1 2026"
   type: baseline | transition | target
   validFrom: 2026-01-01
   validTo: 2026-03-31
@@ -17,40 +17,40 @@ Plateau {
 }
 ```
 
-Typische Plateau-Struktur eines Unternehmens:
+Typical plateau structure of an enterprise:
 
-- **1 Baseline** ("Ist-Zustand heute")
-- **1–n Transition Plateaus** (Zwischenzustände, z.B. "nach Migration Phase 1")
-- **1–n Target Plateaus** (Zielbilder, z.B. "Ziel 2028", "Langfrist-Vision 2030")
+- **1 baseline** ("current state today")
+- **1–n transition plateaus** (intermediate states, e.g., "after migration phase 1")
+- **1–n target plateaus** (target states, e.g., "target 2028", "long-term vision 2030")
 
-### 11.2 Entity Lifecycle pro Plateau
+### 11.2 Entity Lifecycle per Plateau
 
-Jede Entität hat **pro Plateau** einen Zustand:
+Every entity has a state **per plateau**:
 
-| Lifecycle State | Bedeutung |
+| Lifecycle State | Meaning |
 |---|---|
-| `planned` | Geplant, noch nicht umgesetzt |
-| `under-construction` | In Umsetzung |
-| `active` | Produktiv / im Einsatz |
-| `sunset` | Abzulösen, noch aktiv |
-| `retired` | Stillgelegt |
-| `not-applicable` | In diesem Plateau nicht existent |
+| `planned` | Planned, not yet implemented |
+| `under-construction` | Under implementation |
+| `active` | In production / in use |
+| `sunset` | To be replaced, still active |
+| `retired` | Decommissioned |
+| `not-applicable` | Does not exist in this plateau |
 
-Entitäten werden **nicht gelöscht**, wenn sie abgelöst werden – sie bekommen einen Lifecycle-State pro Plateau. Das erhält Historie und ermöglicht Diffs.
+Entities are **not deleted** when they are replaced – they get a lifecycle state per plateau. This preserves history and enables diffs.
 
-### 11.3 Gaps und Work Packages
+### 11.3 Gaps and Work Packages
 
-Ein **Gap** ist die Differenz einer Entität (oder Gruppe) zwischen zwei Plateaus. Gaps sind:
+A **gap** is the difference of an entity (or group) between two plateaus. Gaps are:
 
-- **berechenbar** aus Lifecycle-States und Properties-Differenzen, oder
-- **explizit modelliert**, wenn sie eine eigene fachliche Bedeutung haben
+- **computable** from lifecycle states and property differences, or
+- **explicitly modeled** if they have their own business meaning
 
-Ein **Work Package** schließt einen oder mehrere Gaps:
+A **work package** closes one or more gaps:
 
 ```
 WorkPackage {
   id: "wp-crm-migration"
-  name: "CRM-Ablösung Salesforce → HubSpot"
+  name: "CRM replacement Salesforce → HubSpot"
   closesGaps: [gap-001, gap-002]
   dependsOn: [wp-identity-migration]
   plannedStart: 2026-06-01
@@ -59,34 +59,34 @@ WorkPackage {
 }
 ```
 
-### 11.4 Zielbilder – Struktur
+### 11.4 Target States – Structure
 
-Ein Zielbild ist **kein neuer Entitätstyp**, sondern eine **Sicht auf Entitäten mit Zustand im Target-Plateau**, angereichert um Motivations-Entitäten:
+A target state is **not a new entity type** but a **view on entities with a state in the target plateau**, enriched with motivation entities:
 
-- **Goal** (strategisches Ziel)
-- **Outcome** (messbares Ergebnis)
-- **Principle** (Leitlinie)
-- **Driver** (externer/interner Treiber)
-- **Assessment** (Bewertung des Ist)
+- **Goal** (strategic goal)
+- **Outcome** (measurable result)
+- **Principle** (guideline)
+- **Driver** (external/internal driver)
+- **Assessment** (evaluation of the current state)
 
-Die Verbindung: Driver → Assessment → Goal → Outcome → realisiert durch → Capability → gestützt durch → ApplicationComponent (im Target-Plateau).
+The connection: Driver → Assessment → Goal → Outcome → realized by → Capability → supported by → ApplicationComponent (in the target plateau).
 
-### 11.5 Plateau-Diff: Strukturierter Vergleich zwischen Plateaus
+### 11.5 Plateau Diff: Structured Comparison between Plateaus
 
-Der Vergleich zwischen zwei Plateaus ist eine der wichtigsten Sichten im Tool – er beantwortet "was ändert sich zwischen Ist und Ziel?". Das Ergebnis ist eine strukturierte Differenz, die als Grundlage für Migrations-Planung, Stakeholder-Kommunikation und Gap-Analyse dient.
+The comparison between two plateaus is one of the most important views in the tool – it answers "what changes between current state and target?". The result is a structured difference that serves as the basis for migration planning, stakeholder communication, and gap analysis.
 
-**Diff-Dimensionen**: Eine Plateau-Diff betrachtet drei Arten von Änderungen:
+**Diff dimensions**: A plateau diff considers three kinds of changes:
 
 ```yaml
 PlateauDiff:
-  - sourcePlateau: Plateau              # z.B. baseline-2026
-  - targetPlateau: Plateau              # z.B. target-2028
+  - sourcePlateau: Plateau              # e.g. baseline-2026
+  - targetPlateau: Plateau              # e.g. target-2028
   - generatedAt: timestamp
   - changes:
-      entitiesAdded: Entity[]             # neu in target
-      entitiesRetired: Entity[]           # in target nicht mehr aktiv
-      entitiesModified: PropertyDiff[]    # gleiche URN, geänderte Properties
-      lifecycleTransitions:               # gleiche Entität, anderer Lifecycle-State
+      entitiesAdded: Entity[]             # new in target
+      entitiesRetired: Entity[]           # no longer active in target
+      entitiesModified: PropertyDiff[]    # same URN, changed properties
+      lifecycleTransitions:               # same entity, different lifecycle state
         - entity: Entity
           stateInSource: active
           stateInTarget: sunset
@@ -95,40 +95,40 @@ PlateauDiff:
       relationsModified: PropertyDiff[]
 ```
 
-**Berechnungsregeln**:
+**Calculation rules**:
 
-- **Hinzugefügt**: Entität existiert nur in `target`, oder in `source` mit Lifecycle `not-applicable` und in `target` mit aktivem State
-- **Entfernt**: Entität in `source` aktiv, in `target` `retired` oder `not-applicable`
-- **Modifiziert**: Selbe URN, mindestens ein Property-Wert unterschiedlich
-- **Lifecycle-Transition**: Selbe URN, beide Plateaus aktiv, unterschiedlicher Lifecycle-State
+- **Added**: Entity exists only in `target`, or in `source` with lifecycle `not-applicable` and in `target` with an active state
+- **Removed**: Entity active in `source`, `retired` or `not-applicable` in `target`
+- **Modified**: Same URN, at least one property value different
+- **Lifecycle transition**: Same URN, both plateaus active, different lifecycle state
 
-**Filterung und Aggregation**: Eine vollständige Plateau-Diff über ein großes Repository ist überwältigend. Nutzer können filtern:
+**Filtering and aggregation**: A complete plateau diff over a large repository is overwhelming. Users can filter:
 
-- Nach Domain (nur Finance-Änderungen)
-- Nach EntityType (nur Application-Änderungen)
-- Nach Significance (nur Major-Changes)
-- Nach Capability (nur Änderungen, die Capability X betreffen)
-- Auf eine Sub-Hierarchie beschränkt (alle Module einer Suite)
+- By domain (finance changes only)
+- By EntityType (application changes only)
+- By significance (major changes only)
+- By capability (only changes affecting capability X)
+- Restricted to a sub-hierarchy (all modules of a suite)
 
-**Diff als Basis für Bebauungsplan-Visualisierung**: Die §12-Bebauungsplan-Sichten konsumieren Plateau-Diffs, um Lifecycle-Übergänge farblich darzustellen (z.B. grün=neu, rot=retired, gelb=modified).
+**Diff as a basis for landscape map (Bebauungsplan) visualization**: The §12 landscape map views consume plateau diffs to display lifecycle transitions in color (e.g., green=new, red=retired, yellow=modified).
 
-**Diff-Persistenz**: Diffs werden nicht persistent gespeichert, sondern bei Bedarf berechnet. Ausnahme: Wenn eine Diff Teil eines RepositoryRelease wird (siehe [§22.11 (Auswertbarkeit & Query-Architektur)](../70-platform/22-auswertbarkeit.md)), wird sie als Snapshot zum Release-Tag konserviert – damit später nachvollziehbar bleibt, was zum Zeitpunkt des Release-Tags der Differenz-Stand war.
+**Diff persistence**: Diffs are not stored persistently but calculated on demand. Exception: If a diff becomes part of a RepositoryRelease (see [§22.11 (Analyzability & Query Architecture)](../70-platform/22-analyzability.md)), it is preserved as a snapshot at the release tag – so that it remains traceable later what the state of the difference was at the time of the release tag.
 
-**API-Endpunkt**:
+**API endpoint**:
 
 ```
 POST /api/v1/plateaus/{a}/diff/{b}
 Body: { filter: { domain: "...", entityTypes: [...] }, aggregateBy: "domain" | "capability" | ... }
-Response: PlateauDiff (strukturiert)
+Response: PlateauDiff (structured)
 ```
 
-**Sichten und Reports auf Diffs**:
+**Views and reports on diffs**:
 
-- **Migrations-Backlog**: alle Lifecycle-Transitionen `active → sunset` mit zugeordneten Work Packages
-- **Neuerungen-Report**: alle `entitiesAdded` mit ihrem Goal-/Capability-Bezug
-- **Ablöse-Report**: alle `entitiesRetired` mit Begründung (typisch über ADR-Verweis)
-- **Cross-Plateau-Konflikte**: Inkonsistenzen, z.B. Entität ist `retired` in Plateau-A, aber Plateau-B referenziert sie noch
+- **Migration backlog**: all lifecycle transitions `active → sunset` with assigned work packages
+- **Innovations report**: all `entitiesAdded` with their goal/capability reference
+- **Retirement report**: all `entitiesRetired` with rationale (typically via ADR reference)
+- **Cross-plateau conflicts**: inconsistencies, e.g., entity is `retired` in plateau A, but plateau B still references it
 
 ---
 
-← [Cross-Cutting-Konzepte](../20-entities/10-cross-cutting.md) · [🏠 Übersicht](../README.md) · [Domain-Konzept & Sichten](12-domain-sichten.md) →
+← [Cross-Cutting](../20-entities/10-cross-cutting.md) · [🏠 Overview](../README.md) · [Domain Views](12-domain-views.md) →

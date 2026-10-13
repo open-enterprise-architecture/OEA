@@ -12,174 +12,174 @@ aliases:
   - Architektur-Navigator
 related_capabilities: []
 references:
-  - concept: concept/20-entities/06-kern-entitaetstypen.md
+  - concept: concept/20-entities/06-core-entity-types.md
 ---
 
 # Business Object: TreeNode
 
 ## Definition
 
-Ein `TreeNode` ist ein Ordner im hierarchischen Navigationsbaum einer OEA-Instanz. Er kann Unterordner (weitere TreeNodes) und Verweise auf Repository-Inhalte (Entitäten, Diagramme, Kataloge) enthalten. Der Baum dient ausschliesslich der Navigation und Organisation; er beeinflusst nicht die Speicherung oder Semantik der referenzierten Objekte.
+A `TreeNode` is a folder in the hierarchical navigation tree of an OEA instance. It can contain subfolders (further TreeNodes) and references to repository content (entities, diagrams, catalogs). The tree serves exclusively navigation and organization; it does not affect the storage or semantics of the referenced objects.
 
-## Beschreibung
+## Description
 
-Das Architecture-Repository einer OEA-Instanz kann schnell wachsen: Hunderte von Entitäten, viele Diagramme zu verschiedenen Viewpoints, dutzende Kataloge. Der Navigationsbaum gibt dem Enterprise Architekten die Kontrolle, diesen Inhalt in einer fachlich sinnvollen Hierarchie zu präsentieren – ohne die internen Objekt-Identitäten oder ihre semantische Verknüpfung zu verändern.
+The architecture repository of an OEA instance can grow quickly: hundreds of entities, many diagrams for different viewpoints, dozens of catalogs. The navigation tree gives the enterprise architect control to present this content in a business-meaningful hierarchy – without changing the internal object identities or their semantic linking.
 
 ```
 Architecture Repository (Root)
 ├── Business Architecture
-│   ├── [Katalog] Geschäftsfähigkeiten
-│   ├── [Katalog] Geschäftsprozesse
-│   └── [Diagramm] Business Architecture Overview
-├── Applikationslandschaft
-│   ├── [Katalog] Application Inventory
-│   ├── [Katalog] Schnittstellen-Übersicht
-│   └── [Diagramm] Applikations-Kooperation
-├── Technologie-Infrastruktur
-│   └── [Diagramm] Deployment Architecture
-├── Architektur-Entscheide
-│   ├── [Entität] ADR-006 (Auth Stack)
-│   └── [Entität] ADR-007 (Canvas Library)
+│   ├── [Catalog] Business Capabilities
+│   ├── [Catalog] Business Processes
+│   └── [Diagram] Business Architecture Overview
+├── Application Landscape
+│   ├── [Catalog] Application Inventory
+│   ├── [Catalog] Interface Overview
+│   └── [Diagram] Application Cooperation
+├── Technology Infrastructure
+│   └── [Diagram] Deployment Architecture
+├── Architecture Decisions
+│   ├── [Entity] ADR-006 (Auth Stack)
+│   └── [Entity] ADR-007 (Canvas Library)
 └── Solutions
-    ├── ERP-Erweiterung Logistics
-    └── CRM-Ablösung
+    ├── ERP Extension Logistics
+    └── CRM Replacement
 ```
 
 ---
 
-### Inhaltstypen eines TreeNode
+### Content Types of a TreeNode
 
-Ein TreeNode kann Einträge von vier Typen enthalten:
+A TreeNode can contain entries of four types:
 
-| Typ | Beschreibung | Beispiel |
+| Type | Description | Example |
 |---|---|---|
-| `tree-node` | Unterordner | „Business Architecture" |
-| `entity` | Verweis auf eine Entität im Repository | ApplicationComponent „CRM-System" |
-| `diagram` | Verweis auf ein Diagramm (Instanz eines Viewpoints) | „Application Cooperation View – aktuell" |
-| `catalog` | Verweis auf einen [Catalog](./catalog.md) | „Application Inventory" |
+| `tree-node` | Subfolder | "Business Architecture" |
+| `entity` | Reference to an entity in the repository | ApplicationComponent "CRM-System" |
+| `diagram` | Reference to a diagram (instance of a viewpoint) | "Application Cooperation View – current" |
+| `catalog` | Reference to a [Catalog](./catalog.md) | "Application Inventory" |
 
 ---
 
-### Soft-Reference-Prinzip
+### Soft-Reference Principle
 
-Ein Repository-Objekt (Entität, Diagramm, Katalog) kann in **mehreren** TreeNodes gleichzeitig referenziert werden. Der TreeNode besitzt das Objekt nicht; er verweist nur darauf. Das Löschen eines TreeNode-Eintrags löscht nicht das Objekt selbst – es entfernt nur den Navigationsverweis.
+A repository object (entity, diagram, catalog) can be referenced in **several** TreeNodes at the same time. The TreeNode does not own the object; it merely points to it. Deleting a TreeNode entry does not delete the object itself – it only removes the navigation reference.
 
-Analogie: TreeNodes verhalten sich wie Lesezeichen oder Shortcuts, nicht wie Dateisystem-Ordner mit Ownership.
-
----
-
-### Wurzelknoten
-
-Jede OEA-Instanz hat genau **einen Wurzelknoten** (`parentId = null`). Alle weiteren TreeNodes sind Nachkommen dieses Wurzelknotens. Der Wurzelknoten wird automatisch beim Anlegen einer Instanz erstellt und kann nicht gelöscht werden; sein Name kann angepasst werden (Default: Name der OEA-Instanz).
+Analogy: TreeNodes behave like bookmarks or shortcuts, not like file system folders with ownership.
 
 ---
 
-### Beziehung zu anderen Darstellungsformen
+### Root Node
 
-| Darstellungsform | Zweck | Primäres Objekt |
+Every OEA instance has exactly **one root node** (`parentId = null`). All other TreeNodes are descendants of this root node. The root node is created automatically when an instance is created and cannot be deleted; its name can be changed (default: name of the OEA instance).
+
+---
+
+### Relationship to Other Presentation Forms
+
+| Presentation Form | Purpose | Primary Object |
 |---|---|---|
-| Navigationsbaum (TreeNode) | Organisation und Navigation aller Repository-Inhalte | TreeNode |
-| Diagramm | Graphische Visualisierung (Viewpoint-basiert) | Diagram + [Viewpoint](./viewpoint.md) |
-| Katalog | Tabellarische Abfrage mit Joins und Filtern | [Catalog](./catalog.md) |
+| Navigation tree (TreeNode) | Organization and navigation of all repository content | TreeNode |
+| Diagram | Graphical visualization (viewpoint-based) | Diagram + [Viewpoint](./viewpoint.md) |
+| Catalog | Tabular query with joins and filters | [Catalog](./catalog.md) |
 
-Alle drei Sichten zeigen denselben Datenbestand; sie sind komplementär, nicht konkurierend.
+All three views show the same data set; they are complementary, not competing.
 
-## Attribute
+## Attributes
 
-### TreeNode (Ordner)
+### TreeNode (folder)
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| id | string | required | | UUID v4, global eindeutig | Interner Primärschlüssel |
-| name | string | required | | max. 255 Zeichen, eindeutig innerhalb desselben Eltern-Knotens | Lesbarer Name des Ordners |
-| description | string | optional | | max. 500 Zeichen | Kurzbeschreibung des Ordner-Inhalts |
-| parentId | reference | optional | null | target: TreeNode; null = Wurzelknoten | Übergeordneter Knoten; null nur für den Instanz-Wurzelknoten |
-| sortOrder | integer | required | 0 | >= 0 | Reihenfolge innerhalb des Eltern-Knotens |
-| items | TreeNodeItem[] | required | [] | | Geordnete Liste von Verweisen in diesem Knoten |
-| instanceId | reference | required | | target: OEA-Instanz | Zugehörige OEA-Instanz |
-| createdBy | reference | required | | target: person | Erstellende Person |
-| createdAt | datetime | required | | ISO 8601, UTC | Zeitpunkt der Anlage |
+| id | string | required | | UUID v4, globally unique | Internal primary key |
+| name | string | required | | max. 255 characters, unique within the same parent node | Readable name of the folder |
+| description | string | optional | | max. 500 characters | Short description of the folder content |
+| parentId | reference | optional | null | target: TreeNode; null = root node | Parent node; null only for the instance root node |
+| sortOrder | integer | required | 0 | >= 0 | Order within the parent node |
+| items | TreeNodeItem[] | required | [] | | Ordered list of references in this node |
+| instanceId | reference | required | | target: OEA instance | Associated OEA instance |
+| createdBy | reference | required | | target: person | Creating person |
+| createdAt | datetime | required | | ISO 8601, UTC | Time of creation |
 
-### TreeNodeItem (Verweis auf Repository-Inhalt)
+### TreeNodeItem (reference to repository content)
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| id | string | required | | UUID v4 | Interner Schlüssel des Eintrags |
-| itemType | enum | required | | `[tree-node, entity, diagram, catalog]` | Typ des referenzierten Objekts |
-| referenceId | string | required | | UUID des referenzierten Objekts | Verweis auf Entität / Diagramm / Katalog / Unterordner |
-| displayLabel | string | optional | = Name des Objekts | max. 255 Zeichen | Optionaler Anzeigetext im Baum (überschreibt den Namen des Originals) |
-| sortOrder | integer | required | 0 | >= 0 | Reihenfolge innerhalb des übergeordneten TreeNode |
+| id | string | required | | UUID v4 | Internal key of the entry |
+| itemType | enum | required | | `[tree-node, entity, diagram, catalog]` | Type of the referenced object |
+| referenceId | string | required | | UUID of the referenced object | Reference to entity / diagram / catalog / subfolder |
+| displayLabel | string | optional | = name of the object | max. 255 characters | Optional display text in the tree (overrides the name of the original) |
+| sortOrder | integer | required | 0 | >= 0 | Order within the parent TreeNode |
 
-## Beziehungen
+## Relationships
 
-| Beziehung | Ziel-Objekt | Kardinalität | Optional | Beschreibung |
+| Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
-| parent | TreeNode | n:0..1 | yes | Eltern-Knoten (null = Wurzel) |
-| children | TreeNode | 1:n | yes | Unterordner dieses Knotens |
-| refersToEntities | entity | n:n | yes | Entitäten, auf die dieser Knoten verweist |
-| refersTodiagrams | diagram (future BO) | n:n | yes | Diagramme, auf die dieser Knoten verweist |
-| refersToCatalogs | [catalog](./catalog.md) | n:n | yes | Kataloge, auf die dieser Knoten verweist |
+| parent | TreeNode | n:0..1 | yes | Parent node (null = root) |
+| children | TreeNode | 1:n | yes | Subfolders of this node |
+| refersToEntities | entity | n:n | yes | Entities to which this node refers |
+| refersTodiagrams | diagram (future BO) | n:n | yes | Diagrams to which this node refers |
+| refersToCatalogs | [catalog](./catalog.md) | n:n | yes | Catalogs to which this node refers |
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser | Compliance-Bezug |
+| Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
-| BR-01 | `TreeNode.name` MUSS innerhalb aller direkten Kinder desselben `parentId` eindeutig sein | onCreate, onUpdate | – |
-| BR-02 | Der Wurzelknoten (`parentId = null`) DARF NICHT gelöscht werden | onDelete | – |
-| BR-03 | Ein `TreeNode` DARF NICHT sein eigener Vorfahre sein (keine Zyklen) | onCreate, onUpdate | – |
-| BR-04 | Ein `TreeNodeItem.referenceId` MUSS auf ein existierendes Objekt des angegebenen `itemType` zeigen | onCreate; prüfbar per Konsistenzcheck | – |
-| BR-05 | Das Löschen eines `TreeNode` MUSS alle seine Kinder-Knoten und deren Items rekursiv entfernen; referenzierte Objekte (Entitäten, Diagramme, Kataloge) werden NICHT gelöscht | onDelete | – |
-| BR-06 | Ein `TreeNodeItem` kann dasselbe Objekt (`referenceId`) in mehreren verschiedenen TreeNodes referenzieren (Soft-Reference-Prinzip) | – | – |
+| BR-01 | `TreeNode.name` MUST be unique among all direct children of the same `parentId` | onCreate, onUpdate | – |
+| BR-02 | The root node (`parentId = null`) MUST NOT be deleted | onDelete | – |
+| BR-03 | A `TreeNode` MUST NOT be its own ancestor (no cycles) | onCreate, onUpdate | – |
+| BR-04 | A `TreeNodeItem.referenceId` MUST point to an existing object of the specified `itemType` | onCreate; verifiable via consistency check | – |
+| BR-05 | Deleting a `TreeNode` MUST recursively remove all its child nodes and their items; referenced objects (entities, diagrams, catalogs) are NOT deleted | onDelete | – |
+| BR-06 | A `TreeNodeItem` can reference the same object (`referenceId`) in several different TreeNodes (soft-reference principle) | – | – |
 
 ## Lifecycle
 
-TreeNodes haben keinen formalen Status-Lifecycle. Sie existieren solange die OEA-Instanz aktiv ist. Einzelne Items können hinzugefügt, umbenannt (displayLabel), umsortiert und entfernt werden. Der Wurzelknoten wird beim Instanz-Setup automatisch angelegt.
+TreeNodes have no formal status lifecycle. They exist as long as the OEA instance is active. Individual items can be added, renamed (displayLabel), reordered, and removed. The root node is created automatically during instance setup.
 
-## Beispiele
+## Examples
 
-**Struktur für ein KMU (Projekt-Modus)**:
+**Structure for an SME (project mode)**:
 ```
-Root: "Architektur-Repository Musterfirma AG"
-├── Geschäftsarchitektur
-│   └── [Katalog] Geschäftsfähigkeiten (capabilities)
-├── IT-Landschaft
-│   ├── [Katalog] Application Inventory
-│   ├── [Katalog] Schnittstellen-Übersicht (DataFlow → Interface)
-│   └── [Diagramm] Layered View (archimate3)
+Root: "Architecture Repository Sample Company AG"
+├── Business Architecture
+│   └── [Catalog] Business Capabilities (capabilities)
+├── IT Landscape
+│   ├── [Catalog] Application Inventory
+│   ├── [Catalog] Interface Overview (DataFlow → Interface)
+│   └── [Diagram] Layered View (archimate3)
 └── Initiatives
-    ├── ERP-Erweiterung 2026
-    │   └── [Entität] Solution: ERP-Erweiterung 2026
-    └── CRM-Ablösung
-        └── [Entität] Solution: CRM-Ablösung
+    ├── ERP Extension 2026
+    │   └── [Entity] Solution: ERP Extension 2026
+    └── CRM Replacement
+        └── [Entity] Solution: CRM Replacement
 ```
 
-**Item, das mehrfach im Baum erscheint**:
+**Item that appears multiple times in the tree**:
 ```
-[Katalog] "Application Inventory" erscheint in:
-  1. IT-Landschaft/Application Inventory  ← primäre Ablage
-  2. Compliance/ISO 27001 View/Systeminventar  ← Cross-Referenz
-  (das Katalog-Objekt existiert einmal; zwei TreeNodeItems zeigen darauf)
+[Catalog] "Application Inventory" appears in:
+  1. IT Landscape/Application Inventory  ← primary location
+  2. Compliance/ISO 27001 View/System Inventory  ← cross-reference
+  (the catalog object exists once; two TreeNodeItems point to it)
 ```
 
-## Abgrenzung
+## Delimitation
 
-- **NICHT** Archivspeicher: TreeNodes speichern keine Daten; sie sind reine Navigation. Das Löschen eines TreeNode löscht nicht die referenzierten Objekte.
-- **NICHT** Zugriffssteuerung: Berechtigungen werden nicht über TreeNodes vergeben (eigenes Konzept, noch offen).
-- **NICHT** [Viewpoint](./viewpoint.md): Ein Viewpoint definiert, welche Typen in einem Diagramm erlaubt sind; ein TreeNode organisiert Diagramme, Kataloge und Entitäten für die Navigation.
+- **NOT** archive storage: TreeNodes store no data; they are pure navigation. Deleting a TreeNode does not delete the referenced objects.
+- **NOT** access control: Permissions are not granted via TreeNodes (separate concept, still open).
+- **NOT** [Viewpoint](./viewpoint.md): A viewpoint defines which types are allowed in a diagram; a TreeNode organizes diagrams, catalogs, and entities for navigation.
 
-## Verwendung in Use Cases
+## Usage in Use Cases
 
-- Künftig: UC für Navigationsbaum verwalten (primärer Akteur: SH-03 Kurt)
-- Kann als Default-Einstiegspunkt des Client Apps und Web Portals dienen (ADR-008 ausstehend)
+- Future: UC for managing the navigation tree (primary actor: SH-03 Kurt)
+- Can serve as the default entry point of the client app and web portal (ADR-008 pending)
 
-## Offene Fragen
+## Open Questions
 
-- Soll es mehrere benannte Bäume pro Instanz geben (z.B. „EA-Team-Baum" vs. „Stakeholder-Publikation")? → Offen; aktuell ein Baum pro Instanz.
-- Soll der Baum rollenbasiert sichtbar sein (bestimmte Ordner nur für EA-Team)? → Hängt von Berechtigungskonzept ab (noch offen).
-- Können Solutions als TreeNodes abgebildet werden (Unterordner-Struktur für Solution-Inhalte)? → Ja, eine Solution könnte als Ordner + ihre EntityDeltas als Items modelliert werden. Details TBD.
+- Should there be several named trees per instance (e.g. "EA team tree" vs. "stakeholder publication")? → Open; currently one tree per instance.
+- Should the tree be visible in a role-based manner (certain folders only for the EA team)? → Depends on the permission concept (still open).
+- Can solutions be represented as TreeNodes (subfolder structure for solution content)? → Yes, a solution could be modeled as a folder + its EntityDeltas as items. Details TBD.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | Business Engineer | Initial draft; Soft-Reference-Prinzip, Wurzelknoten, vier Item-Typen (entity/diagram/catalog/tree-node) |
+| 0.1.0 | 2026-06-26 | Business Engineer | Initial draft; soft-reference principle, root node, four item types (entity/diagram/catalog/tree-node) |

@@ -1,54 +1,54 @@
-# Ableitung aus: requirements/req/req-059-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-059-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @should @UC-04
-Feature: REQ-059 – Viewpoint importieren und exportieren
+Feature: REQ-059 – Import and export viewpoint
 
-  Das System MUSS Personen mit Metamodell-Bearbeiter-Berechtigung
-  ermöglichen, einzelne Viewpoints als YAML-Datei zu exportieren und
-  Viewpoint-YAML-Dateien zu importieren; beim Import MUSS das System
-  alle referenzierten EntityType-IDs (`allowedEntityTypes`,
-  `allowedConnectionTypes`, `notationMappings.entityTypeId`) gegen die
-  Ziel-MetamodelConfiguration validieren und fehlende IDs als Fehler
-  melden, bevor der Import abgebrochen wird.
+  The system MUST enable persons with metamodel editor permission to
+  export individual viewpoints as a YAML file and to import viewpoint
+  YAML files; on import, the system MUST validate all referenced
+  EntityType IDs (`allowedEntityTypes`, `allowedConnectionTypes`,
+  `notationMappings.entityTypeId`) against the target
+  MetamodelConfiguration and report missing IDs as errors before the
+  import is aborted.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Export einzelner Viewpoint – user-defined Viewpoint `cloud-security-view` mit 4 allowedEntityTypes, 3...
-    Given user-defined Viewpoint `cloud-security-view` mit 4 allowedEntityTypes, 3 notationMappings
-    When  Kurt exportiert diesen Viewpoint als YAML
-    Then  YAML enthält alle Felder inkl. notationMappings mit defaultWidth/defaultHeight; ID `cloud-security-view` ist enthalten
+  Scenario: AC1 – Export single viewpoint – user-defined viewpoint `cloud-security-view...
+    Given user-defined viewpoint `cloud-security-view` with 4 allowedEntityTypes, 3 notationMappings
+    When  Kurt exports this viewpoint as YAML
+    Then  YAML contains all fields incl. notationMappings with defaultWidth/defaultHeight; ID `cloud-security-view` is included
 
   @AC2
-  Scenario: AC2 – Roundtrip – Kurt die exportierte YAML-Datei in eine andere Instanz importiert (alle ...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Kurt die exportierte YAML-Datei in eine andere Instanz importiert (alle referenzierten EntityType-IDs vorhanden)
-    Then  HTTP 201; Viewpoint ist in der Ziel-Instanz vorhanden mit identischer Konfiguration
+  Scenario: AC2 – Roundtrip – Kurt imports the exported YAML file into another instanc...
+    Given the precondition according to the requirement is met
+    When  Kurt imports the exported YAML file into another instance (all referenced EntityType IDs present)
+    Then  HTTP 201; viewpoint is present in the target instance with identical configuration
 
   @AC3
-  Scenario: AC3 – Fehlende EntityType-IDs – YAML referenziert `allowedEntityTypes: [security-zone]`; Ziel-Instanz ke...
-    Given YAML referenziert `allowedEntityTypes: [security-zone]`; Ziel-Instanz kennt keine EntityType-ID `security-zone`
-    When  Kurt die Datei importiert
-    Then  HTTP 422; Fehlermeldung enthält `unknown entityTypeId: security-zone`; kein Viewpoint angelegt
+  Scenario: AC3 – Missing EntityType IDs – YAML references `allowedEntityTypes: [securi...
+    Given YAML references `allowedEntityTypes: [security-zone]`; target instance does not know EntityType ID `security-zone`
+    When  Kurt imports the file
+    Then  HTTP 422; error message contains `unknown entityTypeId: security-zone`; no viewpoint created
 
   @AC4
-  Scenario: AC4 – ID-Konflikt – Ziel-Instanz hat bereits einen Viewpoint mit ID `cloud-security-view`
-    Given Ziel-Instanz hat bereits einen Viewpoint mit ID `cloud-security-view`
-    When  Kurt eine Viewpoint-Datei mit derselben ID hochlädt
-    Then  HTTP 409; Response enthält vorgeschlagenen Alternativ-ID (z.B. `cloud-security-view-2`); kein Import ohne explizite Bestätigung
+  Scenario: AC4 – ID conflict – target instance already has a viewpoint with ID `cloud-security-view`
+    Given target instance already has a viewpoint with ID `cloud-security-view`
+    When  Kurt uploads a viewpoint file with the same ID
+    Then  HTTP 409; response contains a suggested alternative ID (e.g. `cloud-security-view-2`); no import without explicit confirmation
 
   @AC5
-  Scenario: AC5 – System-defined nicht importierbar – YAML mit `viewpointType: system-defined`
-    Given YAML mit `viewpointType: system-defined`
-    When  Kurt die Datei importiert
-    Then  System ignoriert `viewpointType=system-defined`; importiert den Viewpoint als `user-defined`; HTTP 201
+  Scenario: AC5 – System-defined not importable – YAML with `viewpointType: system-defined`
+    Given YAML with `viewpointType: system-defined`
+    When  Kurt imports the file
+    Then  system ignores `viewpointType=system-defined`; imports the viewpoint as `user-defined`; HTTP 201
 
   @AC6
-  Scenario: AC6 – Bulk-Export – Kurt alle user-defined Viewpoints exportiert
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Kurt alle user-defined Viewpoints exportiert
-    Then  ZIP-Download mit einer YAML-Datei pro user-defined Viewpoint; system-defined Viewpoints enthalten (optional, da hilfreich für Roundtrip)
+  Scenario: AC6 – Bulk export – Kurt exports all user-defined viewpoints
+    Given the precondition according to the requirement is met
+    When  Kurt exports all user-defined viewpoints
+    Then  ZIP download with one YAML file per user-defined viewpoint; system-defined viewpoints included (optional, as helpful for roundtrip)

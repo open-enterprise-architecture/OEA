@@ -1,6 +1,6 @@
 ---
 id: US-077
-title: Draw.io-Diagramm in Arc42-Dokumentation einbetten
+title: Embed a Draw.io Diagram in Arc42 Documentation
 use_case: UC-09
 requirement: REQ-078
 priority: should
@@ -9,31 +9,31 @@ story_points: 8
 created: 2026-06-26
 ---
 
-# US-077: Draw.io-Diagramm in Arc42-Dokumentation einbetten
+# US-077: Embed a Draw.io Diagram in Arc42 Documentation
 
-**Als** Solution Architekt (Michael, SH-04)  
-**möchte ich** in einer Arc42-Dokumentationsantwort ein Draw.io-Diagramm einbetten und direkt im Tool bearbeiten,  
-**damit** ich detaillierte Komponentendiagramme und Deployment-Topologien ohne Screenshot-Workaround direkt in der Architekturdokumentation pflegen kann.
+**As** a Solution Architect (Michael, SH-04)  
+**I want** to embed a Draw.io diagram in an Arc42 documentation answer and edit it directly in the tool,  
+**so that** I can maintain detailed component diagrams and deployment topologies directly in the architecture documentation without a screenshot workaround.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] Arc42-WYSIWYG-Editor bietet Codeblock-Typ `drawio` an (via `/`-Slash-Command oder Toolbar-Dropdown)
-- [ ] Leerer `drawio`-Block zeigt Platzhalter mit „In Draw.io öffnen"-Button
-- [ ] Klick auf „In Draw.io öffnen" öffnet draw.io-Editor-Modal (embed.diagrams.net oder Self-hosted)
-- [ ] Nach Speichern im draw.io-Editor wird das XML im Block gespeichert und als SVG gerendert
-- [ ] SVG-Vorschau im Leseansicht korrekt und ohne XML-Text sichtbar
-- [ ] Tippen von `[[` in einem Shape-Label im draw.io-Editor öffnet Entity-Autocomplete; Auswahl fügt Entitätsnamen als plain text ein
-- [ ] Draw.io-XML wird vor dem Rendering sanitisiert (keine Script-Tags, keine javascript:-URIs) — AC6 REQ-078
-- [ ] Web-Portal: SVG read-only sichtbar; kein Editor-Button
-- [ ] Konfigurierbarer `drawioEditorUrl` (Env/MetamodelConfiguration) für Air-gapped-Deployments
+- [ ] The Arc42 WYSIWYG editor offers the code block type `drawio` (via `/` slash command or toolbar dropdown)
+- [ ] An empty `drawio` block shows a placeholder with an "Open in Draw.io" button
+- [ ] Clicking "Open in Draw.io" opens the draw.io editor modal (embed.diagrams.net or self-hosted)
+- [ ] After saving in the draw.io editor, the XML is stored in the block and rendered as SVG
+- [ ] The SVG preview in read view is correct and visible without XML text
+- [ ] Typing `[[` in a shape label in the draw.io editor opens entity autocomplete; selection inserts the entity name as plain text
+- [ ] Draw.io XML is sanitized before rendering (no script tags, no javascript: URIs) — AC6 REQ-078
+- [ ] Web portal: SVG visible read-only; no editor button
+- [ ] Configurable `drawioEditorUrl` (env/MetamodelConfiguration) for air-gapped deployments
 
-## Technische Hinweise
+## Technical Notes
 
-- draw.io Embed-API: `postMessage`-Protokoll; TipTap-CodeBlock mit Language `drawio`
-- Viewer: `draw.io-viewer-static.min.js` (lokal mitgeliefert)
-- Sanitizing: DOMParser → Whitelist-Traversal vor Rendering und vor Speichern
+- draw.io embed API: `postMessage` protocol; TipTap CodeBlock with language `drawio`
+- Viewer: `draw.io-viewer-static.min.js` (shipped locally)
+- Sanitizing: DOMParser → whitelist traversal before rendering and before saving
 
-## Nicht im Scope
+## Out of Scope
 
-- Automatische Synchronisierung von Shape-Labels mit OEA-Entitätsnamen bei Umbenennung (v2.0)
-- Import bestehender `.drawio`-Dateien als Dateiupload (separates Feature)
+- Automatic synchronization of shape labels with OEA entity names on rename (v2.0)
+- Import of existing `.drawio` files as file upload (separate feature)

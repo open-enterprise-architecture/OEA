@@ -12,44 +12,44 @@ aliases:
   - Benutzer (im Kontext der Tool-Authentifizierung)
 related_capabilities: []
 references:
-  - concept: concept/20-entities/08-organisation-rollen-personen.md
+  - concept: concept/20-entities/08-organization-roles-persons.md
 ---
 
 # Business Object: Person
 
 ## Definition
 
-Eine Person ist ein:e konkrete:r Mitarbeiter:in oder externe:r Mitwirkende:r, die im EA-Repository über zugewiesene Rollen ([role](./role.md)) Verantwortung trägt oder das Tool nutzt. Person ist von Role bewusst entkoppelt, damit Personalwechsel keine Architektur-Änderungen auslösen.
+A person is a specific employee or external contributor who bears responsibility in the EA repository through assigned roles ([role](./role.md)) or uses the tool. Person is deliberately decoupled from role so that personnel changes do not trigger architecture changes.
 
-## Beschreibung
+## Description
 
-Person ist im EA-Repository typischerweise **referenziert, nicht gemastert**: Stammdaten (Name, E-Mail, Beschäftigungsstatus) kommen aus HR-Systemen oder einem Identity-Provider (z.B. Active Directory, Okta) und werden im Repository nur referenziert oder in reduziertem Detailgrad gehalten (siehe `detailLevel`). Das schützt vor DSGVO-Konflikten durch doppelte Personaldatenhaltung.
+In the EA repository, a person is typically **referenced, not mastered**: master data (name, email, employment status) comes from HR systems or an identity provider (e.g. Active Directory, Okta) and is only referenced in the repository or held at a reduced level of detail (see `detailLevel`). This protects against GDPR conflicts caused by duplicate storage of personnel data.
 
-Im Kontext der Tool-Authentifizierung (siehe [UC-01 Login](../requirements/use-cases/UC-01-login.md)) ist Person die Identität, die sich gegenüber OEA authentifiziert; die eigentliche Autorisierung erfolgt über die ihr zugewiesenen Rollen.
+In the context of tool authentication (see [UC-01 Login](../requirements/use-cases/UC-01-login.md)), a person is the identity that authenticates against OEA; the actual authorization is performed via the roles assigned to them.
 
-## Attribute
+## Attributes
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| name | string | required | | | Anzeigename |
-| employeeId | string | optional | | | interne Personalnummer, falls vorhanden |
-| email | string | required | | gültige E-Mail-Adresse | Primäre Kontakt- und Login-Identität |
-| active | boolean | required | true | | Beschäftigungs-/Account-Status |
-| startDate | date | optional | | | Beginn der Zugehörigkeit |
-| endDate | date | optional | | | Ende der Zugehörigkeit |
-| externalReference | reference | optional | | target: external-identity (z.B. AD, Workday, OIDC-Provider) | Verweis auf Master-System |
-| detailLevel | enum | required | reference-only | `[full, reference-only, anonymized]` | Steuert, wie viele Personendaten im Repository selbst gehalten werden |
-| uiTheme | enum | required | system | `[light, dark, system]` | Bevorzugtes UI-Farbschema; `system` übernimmt die OS-Einstellung (prefers-color-scheme) |
+| name | string | required | | | Display name |
+| employeeId | string | optional | | | Internal employee number, if available |
+| email | string | required | | valid email address | Primary contact and login identity |
+| active | boolean | required | true | | Employment/account status |
+| startDate | date | optional | | | Start of affiliation |
+| endDate | date | optional | | | End of affiliation |
+| externalReference | reference | optional | | target: external-identity (e.g. AD, Workday, OIDC provider) | Reference to the master system |
+| detailLevel | enum | required | reference-only | `[full, reference-only, anonymized]` | Controls how much personal data is held in the repository itself |
+| uiTheme | enum | required | system | `[light, dark, system]` | Preferred UI color scheme; `system` adopts the OS setting (prefers-color-scheme) |
 
-## Beziehungen
+## Relationships
 
-| Beziehung | Ziel-Objekt | Kardinalität | Optional | Beschreibung |
+| Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
-| fillsRoles | [role](./role.md) | n:m | yes | Rollen, die die Person aktuell oder historisch ausfüllt (siehe RoleAssignment) |
-| memberOf | organization-unit | n:m | yes | Organisationseinheiten, denen die Person zugeordnet ist |
-| primaryOrgUnit | organization-unit | 1:1 | yes | Primäre Organisationseinheit |
+| fillsRoles | [role](./role.md) | n:m | yes | Roles that the person currently or historically fills (see RoleAssignment) |
+| memberOf | organization-unit | n:m | yes | Organizational units to which the person is assigned |
+| primaryOrgUnit | organization-unit | 1:1 | yes | Primary organizational unit |
 
-**Hinweise**: `fillsRoles` wird über die Relation `RoleAssignment` (role, person, validFrom, validTo, assignmentType, percentage) zeitlich aufgelöst, siehe Konzept §8.3.
+**Notes**: `fillsRoles` is resolved over time via the `RoleAssignment` relation (role, person, validFrom, validTo, assignmentType, percentage), see concept §8.3.
 
 ## Lifecycle
 
@@ -59,29 +59,29 @@ invited → active → inactive
           offboarded
 ```
 
-**Zustände**:
-- `invited`: Person ist im System angelegt/referenziert, aber noch nicht authentifiziert
-- `active`: Person ist aktiv, kann sich anmelden und Rollen ausfüllen
-- `inactive`: Person ist temporär ohne Zugriff (z.B. Elternzeit), Rollenzuweisungen bleiben erhalten
-- `offboarded`: Person hat das Unternehmen/Mandat verlassen, Zugriff entzogen, Historie bleibt für Audit erhalten
+**States**:
+- `invited`: Person is created/referenced in the system but not yet authenticated
+- `active`: Person is active, can log in and fill roles
+- `inactive`: Person is temporarily without access (e.g. parental leave), role assignments are retained
+- `offboarded`: Person has left the company/mandate, access revoked, history is retained for audit
 
-**Übergänge**:
-- `invited → active`: erstes erfolgreiches Login (siehe UC-01)
-- `active → inactive`: durch HR-Mastersystem oder manuell durch Rollen mit Autorisierungsrecht
-- `* → offboarded`: durch HR-Mastersystem getriggert, Zugriff wird beim nächsten Login-Versuch verweigert
+**Transitions**:
+- `invited → active`: first successful login (see UC-01)
+- `active → inactive`: by the HR master system or manually by roles with authorization rights
+- `* → offboarded`: triggered by the HR master system, access is denied at the next login attempt
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser | Compliance-Bezug |
+| Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
-| BR-01 | Eine `active`-Person MUSS mindestens eine Rolle ausfüllen (siehe Konzept-Constraint `person-minimum-role`) | onUpdate, onLogin | – |
-| BR-02 | Personendaten mit `detailLevel: full` dürfen nur gehalten werden, wenn keine HR-Mastersystem-Anbindung besteht | onCreate, onUpdate | DSGVO Art. 5 (Datenminimierung) |
+| BR-01 | An `active` person MUST fill at least one role (see concept constraint `person-minimum-role`) | onUpdate, onLogin | – |
+| BR-02 | Personal data with `detailLevel: full` may only be held if there is no HR master system connection | onCreate, onUpdate | GDPR Art. 5 (data minimization) |
 
-## Beispiele
+## Examples
 
-**Beispiel 1**: Referenzierte Person (Standardfall)
+**Example 1**: Referenced person (standard case)
 ```yaml
-name: Kurt Lead Enterprise Architekt
+name: Kurt Lead Enterprise Architect
 email: kurt@example-kmu.de
 active: true
 detailLevel: reference-only
@@ -92,30 +92,30 @@ fillsRoles:
   - role: enterprise-architect
 ```
 
-## Abgrenzung zu ähnlichen Objekten
+## Delimitation from Similar Objects
 
-- **NICHT** [role](./role.md): Role beschreibt fachlich-funktionale Verantwortung, unabhängig davon, wer sie aktuell ausfüllt. Person ist der konkrete Mensch.
-- **NICHT** organization-unit: OrganizationUnit ist die strukturelle Einheit, in der eine Person organisatorisch verortet ist, nicht die Person selbst.
+- **NOT** [role](./role.md): Role describes business-functional responsibility, independent of who currently fills it. Person is the actual human.
+- **NOT** organization-unit: OrganizationUnit is the structural unit in which a person is organizationally located, not the person itself.
 
-## Verwendung in Use Cases
+## Usage in Use Cases
 
 - [UC-01: Login](../requirements/use-cases/UC-01-login.md)
-- [UC-02: System-Admin-Bootstrapping](../requirements/use-cases/UC-02-system-admin-bootstrapping.md)
-- [UC-03: Authentifizierungsmethode einrichten](../requirements/use-cases/UC-03-authentifizierungsmethode-einrichten.md)
+- [UC-02: System Admin Bootstrapping](../requirements/use-cases/UC-02-system-admin-bootstrapping.md)
+- [UC-03: Set Up Authentication Method](../requirements/use-cases/UC-03-set-up-authentication-method.md)
 
-## Konzept-Bezug
+## Concept Reference
 
-- [§8.3 Person](../concept/20-entities/08-organisation-rollen-personen.md)
-- [§8.7 Mastership mit HR-Systemen](../concept/20-entities/08-organisation-rollen-personen.md)
-- [§21.8 Authentifizierung/Autorisierung](../concept/70-platform/21-api-architektur.md)
+- [§8.3 Person](../concept/20-entities/08-organization-roles-persons.md)
+- [§8.7 Mastership with HR Systems](../concept/20-entities/08-organization-roles-persons.md)
+- [§21.8 Authentication/Authorization](../concept/70-platform/21-api-architecture.md)
 
-## Notizen
+## Notes
 
-Erste Modellierung im Rahmen von UC-01 Login. Attribute auf das für Authentifizierung/Autorisierung Nötige reduziert; vollständige HR-relevante Attribute (Skills, RACI) folgen bei Bedarf eigener Use Cases.
+First modeling in the context of UC-01 Login. Attributes reduced to what is needed for authentication/authorization; full HR-relevant attributes (skills, RACI) will follow in dedicated use cases as needed.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | Business Engineer | Initial draft im Rahmen von UC-01 Login |
-| 0.2.0 | 2026-06-28 | Business Engineer | `uiTheme`-Attribut ergänzt (REQ-135: Dark-Mode-Präferenz pro Person, serverseitig persistiert) |
+| 0.1.0 | 2026-06-24 | Business Engineer | Initial draft in the context of UC-01 Login |
+| 0.2.0 | 2026-06-28 | Business Engineer | Added `uiTheme` attribute (REQ-135: dark mode preference per person, persisted server-side) |

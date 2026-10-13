@@ -1,6 +1,6 @@
 ---
 id: REQ-047
-title: Filter setzen und als SavedFilter speichern
+title: Set filters and save them as a SavedFilter
 type: functional
 priority: must
 status: proposed
@@ -29,102 +29,102 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-047: Filter setzen und als SavedFilter speichern
+# REQ-047: Set filters and save them as a SavedFilter
 
-## Aussage
+## Statement
 
-Das System MUSS allen Katalog-Besuchern ermöglichen, Filterausdrücke auf Attributen der primären Entität und gejoineter Zielentitäten zu setzen. Unterstützte Operatoren: `eq`, `neq`, `contains`, `startsWith`, `in`, `notIn`, `isNull`, `isNotNull`, `gt`, `lt`, `gte`, `lte`. Mehrere Ausdrücke innerhalb eines Filters MÜSSEN per `AND` oder `OR` kombinierbar sein. Gesetzte Filter-Ausdrücke MÜSSEN als benannte [SavedFilter](../../business-objects/catalog.md) im Catalog persistiert werden können; gespeicherte Filter MÜSSEN als Schnellauswahl angeboten werden. Das Löschen eines SavedFilters, der in einer SavedView referenziert wird, MUSS die Referenz aus der SavedView bereinigen.
+The system MUST allow all catalog visitors to set filter expressions on attributes of the primary entity and of joined target entities. Supported operators: `eq`, `neq`, `contains`, `startsWith`, `in`, `notIn`, `isNull`, `isNotNull`, `gt`, `lt`, `gte`, `lte`. Multiple expressions within a filter MUST be combinable via `AND` or `OR`. Filter expressions that have been set MUST be persistable in the catalog as named [SavedFilters](../../business-objects/catalog.md); saved filters MUST be offered as quick selection. Deleting a SavedFilter that is referenced in a SavedView MUST remove the reference from the SavedView.
 
-## Begründung
+## Rationale
 
-Ohne Filterfunktion muss der Katalog-Besucher durch alle Entitäten scrollen. Da Repositories rasch auf hunderte Entitäten wachsen, sind Filter unerlässlich. Die Persistierung als SavedFilter erspart Wiederholungsaufwand für häufig verwendete Einschränkungen (z.B. „Nur aktive Systeme", „Nur Business-Schicht").
+Without a filter function, the catalog visitor has to scroll through all entities. Since repositories quickly grow to hundreds of entities, filters are indispensable. Persisting as a SavedFilter saves repetitive effort for frequently used restrictions (e.g., "Active systems only", "Business layer only").
 
-## Kontext
+## Context
 
-`attributePath` kann entweder ein Attribut der primären Entität (einfacher Name, z.B. `status`) oder ein Attribut einer gejoineten Zielentität sein (Punkt-Notation, z.B. `Schnittstellen.protocol`, wobei `Schnittstellen` der `name` der JoinDefinition ist). Die Filter auf Join-Attribute filtern die Join-Ergebnisse, nicht die primäre Entität (LEFT-JOIN-Logik bleibt erhalten; eine primäre Entität ohne übereinstimmende Join-Ergebnisse nach dem Filter hat leeres joinResults-Array, wird aber nicht ausgeblendet).
+`attributePath` can be either an attribute of the primary entity (simple name, e.g., `status`) or an attribute of a joined target entity (dot notation, e.g., `Interfaces.protocol`, where `Interfaces` is the `name` of the JoinDefinition). Filters on join attributes filter the join results, not the primary entity (LEFT JOIN logic is retained; a primary entity without matching join results after the filter has an empty joinResults array but is not hidden).
 
-Ein SavedFilter mit `scope=instance` (sichtbar für alle Besucher) kann nur von einem Katalog-Manager angelegt werden. Besucher ohne Schreibrecht können nur `scope=personal` SavedFilter anlegen.
+A SavedFilter with `scope=instance` (visible to all visitors) can only be created by a catalog manager. Visitors without write permission can only create `scope=personal` SavedFilters.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben (SavedFilter erstellen)**:
+**Inputs (create SavedFilter)**:
 
-| Feld | Typ | Optional | Beschreibung |
+| Field | Type | Optional | Description |
 |---|---|---|---|
-| name | string | Pflicht | Lesbarer Name, eindeutig innerhalb des Catalogs |
-| description | string | optional | Kurzbeschreibung |
-| logicalOperator | enum | Pflicht | `and` (Default) oder `or` |
-| expressions | FilterExpression[] | Pflicht | Mind. 1 Ausdruck |
-| expressions[].attributePath | string | Pflicht | Attributname oder „JoinName.attributeName" (BR-04) |
-| expressions[].operator | enum | Pflicht | Einer der 12 unterstützten Operatoren |
-| expressions[].value | any | optional | Leer bei `isNull`/`isNotNull`; Array bei `in`/`notIn` |
+| name | string | mandatory | Readable name, unique within the catalog |
+| description | string | optional | Short description |
+| logicalOperator | enum | mandatory | `and` (default) or `or` |
+| expressions | FilterExpression[] | mandatory | At least 1 expression |
+| expressions[].attributePath | string | mandatory | Attribute name or "JoinName.attributeName" (BR-04) |
+| expressions[].operator | enum | mandatory | One of the 12 supported operators |
+| expressions[].value | any | optional | Empty for `isNull`/`isNotNull`; array for `in`/`notIn` |
 
-**Verarbeitung (Speichern)**:
+**Processing (save)**:
 
-1. `attributePath` validieren: einfacher Attributname muss im primaryEntityType existieren; Punkt-Notation muss auf gültige JoinDefinition und deren Zielentitäts-Attribut verweisen (BR-04); 422 sonst
-2. `name` auf Eindeutigkeit innerhalb des Catalogs prüfen (case-insensitiv)
-3. `scope` prüfen: `instance` nur wenn Akteur Katalog-Manager-Berechtigung hat; sonst nur `personal`
-4. SavedFilter im Catalog persistieren
+1. Validate `attributePath`: a simple attribute name must exist in the primaryEntityType; dot notation must refer to a valid JoinDefinition and its target entity attribute (BR-04); otherwise 422
+2. Check `name` for uniqueness within the catalog (case-insensitive)
+3. Check `scope`: `instance` only if the actor has catalog manager permission; otherwise only `personal`
+4. Persist the SavedFilter in the catalog
 
-**Verarbeitung (Anwenden zur Laufzeit, ad-hoc)**:
+**Processing (apply at runtime, ad hoc)**:
 
-Filter werden als Query-Parameter an `GET /api/v1/catalogs/{id}/query` übergeben (vgl. REQ-046) und wirken auf die Live-Abfrage, ohne den Catalog zu verändern.
+Filters are passed as query parameters to `GET /api/v1/catalogs/{id}/query` (cf. REQ-046) and act on the live query without changing the catalog.
 
-**Ausgaben**:
+**Outputs**:
 
-- HTTP 201 Created mit aktualisiertem Catalog (inkl. neuem SavedFilter mit id)
-- HTTP 422 Unprocessable Entity bei Validierungsfehlern
+- HTTP 201 Created with the updated catalog (including the new SavedFilter with id)
+- HTTP 422 Unprocessable Entity on validation errors
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (SavedFilter anlegen, Happy Path):
-- Wenn: `POST /api/v1/catalogs/{id}/filters` mit `{ name: "Nur aktive Systeme", logicalOperator: "and", expressions: [{attributePath: "status", operator: "eq", value: "active"}] }`
-- Dann: HTTP 201; SavedFilter in Catalog; bei nächster Abfrage in Schnellauswahl angeboten
+**AC1** (Create SavedFilter, happy path):
+- When: `POST /api/v1/catalogs/{id}/filters` with `{ name: "Active systems only", logicalOperator: "and", expressions: [{attributePath: "status", operator: "eq", value: "active"}] }`
+- Then: HTTP 201; SavedFilter in catalog; offered in quick selection on the next query
 
-**AC2** (SavedFilter anwenden):
-- Gegeben: SavedFilter „Nur aktive Systeme" mit id=filter-1 existiert
-- Wenn: `GET /api/v1/catalogs/{id}/query?savedFilterIds[]=filter-1`
-- Dann: Nur Entitäten mit status=active im Response; `totalCount` entsprechend reduziert
+**AC2** (Apply SavedFilter):
+- Given: SavedFilter "Active systems only" with id=filter-1 exists
+- When: `GET /api/v1/catalogs/{id}/query?savedFilterIds[]=filter-1`
+- Then: only entities with status=active in the response; `totalCount` reduced accordingly
 
-**AC3** (BR-04 – ungültiger attributePath):
-- Gegeben: primaryEntityType ApplicationComponent hat kein Attribut `nonexistent`
-- Wenn: FilterExpression mit `attributePath: "nonexistent"`
-- Dann: HTTP 422 „Das Attribut ‹nonexistent› ist für den Typ ‹ApplicationComponent› nicht definiert"
+**AC3** (BR-04 – invalid attributePath):
+- Given: primaryEntityType ApplicationComponent has no attribute `nonexistent`
+- When: FilterExpression with `attributePath: "nonexistent"`
+- Then: HTTP 422 "The attribute ‹nonexistent› is not defined for the type ‹ApplicationComponent›"
 
-**AC4** (Punkt-Notation auf Join):
-- Gegeben: JoinDefinition „Schnittstellen" mit targetEntityType Interface, Attribut `protocol`
-- Wenn: FilterExpression mit `attributePath: "Schnittstellen.protocol", operator: "eq", value: "REST"`
-- Dann: HTTP 201; Filter filteriert Join-Ergebnisse auf protocol=REST
+**AC4** (Dot notation on join):
+- Given: JoinDefinition "Interfaces" with targetEntityType Interface, attribute `protocol`
+- When: FilterExpression with `attributePath: "Interfaces.protocol", operator: "eq", value: "REST"`
+- Then: HTTP 201; the filter filters join results to protocol=REST
 
-**AC5** (OR-Kombination):
-- Wenn: SavedFilter mit `logicalOperator: "or"` und zwei Expressions: `status=active` OR `status=deprecated`
-- Dann: Abfrage liefert Entitäten mit status=active oder status=deprecated
+**AC5** (OR combination):
+- When: SavedFilter with `logicalOperator: "or"` and two expressions: `status=active` OR `status=deprecated`
+- Then: the query returns entities with status=active or status=deprecated
 
-**AC6** (Scope-Prüfung):
-- Gegeben: Franz hat nur Besucher-Rolle (kein Schreibrecht)
-- Wenn: Franz versucht, SavedFilter mit scope=instance anzulegen
-- Dann: HTTP 403; Franz kann SavedFilter nur als scope=personal anlegen
+**AC6** (Scope check):
+- Given: Franz has only the visitor role (no write permission)
+- When: Franz tries to create a SavedFilter with scope=instance
+- Then: HTTP 403; Franz can only create SavedFilters with scope=personal
 
-**AC7** (SavedFilter löschen und SavedView bereinigen):
-- Gegeben: SavedView „Kompaktansicht" referenziert SavedFilter-id=filter-1
-- Wenn: `DELETE /api/v1/catalogs/{id}/filters/filter-1`
-- Dann: HTTP 200; SavedFilter gelöscht; SavedView bereinigt (filter-1 aus `activeFilterIds` entfernt)
+**AC7** (Delete SavedFilter and clean up SavedView):
+- Given: SavedView "Compact view" references SavedFilter id=filter-1
+- When: `DELETE /api/v1/catalogs/{id}/filters/filter-1`
+- Then: HTTP 200; SavedFilter deleted; SavedView cleaned up (filter-1 removed from `activeFilterIds`)
 
-## Abhängigkeiten
+## Dependencies
 
-- Blockiert durch: REQ-043 (Catalog muss existieren)
-- Zusammenhang: REQ-046 (Filter werden in der Abfrage ausgewertet), REQ-048 (SavedViews referenzieren SavedFilter-IDs)
+- Blocked by: REQ-043 (the catalog must exist)
+- Related: REQ-046 (filters are evaluated in the query), REQ-048 (SavedViews reference SavedFilter IDs)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
 - Endpoints: `POST /api/v1/catalogs/{id}/filters`, `DELETE /api/v1/catalogs/{id}/filters/{filterId}`
-- Punkt-Notation-Validierung: `joinName` aus dem ersten Segment extrahieren; JoinDefinition mit diesem `name` suchen; dann Attribut auf `targetEntityType` prüfen
-- `in`/`notIn`-Werte: als JSON-Array im Request-Body; als komma-separierter Query-Parameter bei Laufzeit-Filtern
+- Dot notation validation: extract `joinName` from the first segment; look up the JoinDefinition with this `name`; then check the attribute on the `targetEntityType`
+- `in`/`notIn` values: as a JSON array in the request body; as a comma-separated query parameter for runtime filters
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; 12 Operatoren, Punkt-Notation für Join-Attribute, scope=personal/instance |
+| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; 12 operators, dot notation for join attributes, scope=personal/instance |

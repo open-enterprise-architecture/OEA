@@ -1,47 +1,47 @@
-# Ableitung aus: requirements/req/req-050-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-050-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @should @UC-06
-Feature: REQ-050 – Katalog im Navigationsbaum einordnen
+Feature: REQ-050 – Place catalog in the navigation tree
 
-  Das System MUSS dem Katalog-Manager ermöglichen, einen
-  [Catalog](../../business-objects/catalog.md) einem oder mehreren
-  [TreeNode](../../business-objects/tree-node.md)-Knoten als
-  `TreeNodeItem` (itemType=`catalog`, referenceId=catalogId)
-  zuzuordnen. Es gilt das **Soft-Reference-Prinzip**: Derselbe Catalog
-  KANN in mehreren Knoten erscheinen (BR-06); das Entfernen eines
-  `TreeNodeItem` DARF den Catalog-Datensatz NICHT löschen (BR-05).
+  The system MUST enable the catalog manager to assign a
+  [Catalog](../../business-objects/catalog.md) to one or more
+  [TreeNode](../../business-objects/tree-node.md) nodes as a
+  `TreeNodeItem` (itemType=`catalog`, referenceId=catalogId). The
+  **soft-reference principle** applies: the same catalog MAY appear in
+  multiple nodes (BR-06); removing a `TreeNodeItem` MUST NOT delete
+  the catalog record (BR-05).
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Einordnen, Happy Path – Catalog „Application Inventory" und TreeNode „IT-Landschaft" existieren
-    Given Catalog „Application Inventory" und TreeNode „IT-Landschaft" existieren
-    When  `POST /api/v1/tree-nodes/{nodeId}/items` mit `{ itemType: "catalog", referenceId: "{catalogId}" }`
-    Then  HTTP 201; TreeNodeItem angelegt; Catalog erscheint im Navigationsbaum unter „IT-Landschaft"
+  Scenario: AC1 – Placement, happy path – catalog "Application Inventory" and TreeNode "IT Landscape" exist
+    Given catalog "Application Inventory" and TreeNode "IT Landscape" exist
+    When  `POST /api/v1/tree-nodes/{nodeId}/items` with `{ itemType: "catalog", referenceId: "{catalogId}" }`
+    Then  HTTP 201; TreeNodeItem created; catalog appears in the navigation tree under "IT Landscape"
 
   @AC2
-  Scenario: AC2 – Soft-Reference – mehrfache Einordnung – Catalog „Application Inventory" ist bereits in „IT-Landschaft" eingehängt
-    Given Catalog „Application Inventory" ist bereits in „IT-Landschaft" eingehängt
-    When  Catalog wird zusätzlich in „Compliance/ISO 27001 View" eingehängt
-    Then  HTTP 201; Catalog erscheint in beiden Knoten; es existiert ein Catalog-Datensatz (kein Duplikat)
+  Scenario: AC2 – Soft reference – multiple placement – catalog "Application Inventory" is already attached to "IT Landscape"
+    Given catalog "Application Inventory" is already attached to "IT Landscape"
+    When  catalog is additionally attached to "Compliance/ISO 27001 View"
+    Then  HTTP 201; catalog appears in both nodes; there is one catalog record (no duplicate)
 
   @AC3
-  Scenario: AC3 – BR-05 – Entfernen löscht Catalog nicht – `DELETE /api/v1/tree-nodes/{nodeId}/items/{itemId}` (TreeNodeItem entfer...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  `DELETE /api/v1/tree-nodes/{nodeId}/items/{itemId}` (TreeNodeItem entfernen)
-    Then  HTTP 200; TreeNodeItem gelöscht; `GET /api/v1/catalogs/{catalogId}` liefert weiterhin HTTP 200
+  Scenario: AC3 – BR-05 – Removal does not delete catalog – `DELETE /api/v1/tree-nodes/...
+    Given the precondition according to the requirement is met
+    When  `DELETE /api/v1/tree-nodes/{nodeId}/items/{itemId}` (remove TreeNodeItem)
+    Then  HTTP 200; TreeNodeItem deleted; `GET /api/v1/catalogs/{catalogId}` still returns HTTP 200
 
   @AC4
-  Scenario: AC4 – Öffnen via Navigationsbaum – Catalog ist im Navigationsbaum eingehängt
-    Given Catalog ist im Navigationsbaum eingehängt
-    When  Besucher klickt auf den Eintrag im Navigationsbaum
-    Then  Catalog wird direkt geöffnet (identisch mit Öffnen über Katalog-Übersicht); Default-SavedView wird angewendet (REQ-048)
+  Scenario: AC4 – Open via navigation tree – catalog is attached in the navigation tree
+    Given catalog is attached in the navigation tree
+    When  visitor clicks the entry in the navigation tree
+    Then  catalog is opened directly (identical to opening via catalog overview); default SavedView is applied (REQ-048)
 
   @AC5
-  Scenario: AC5 – displayLabel Override – `{ itemType: "catalog", referenceId: "{catalogId}", displayLabel: "Syste...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  `{ itemType: "catalog", referenceId: "{catalogId}", displayLabel: "Systeminventar" }`
-    Then  Im Navigationsbaum erscheint der Catalog unter dem Namen „Systeminventar"; der Name des Catalog-Objekts selbst bleibt „Application Inventory"
+  Scenario: AC5 – displayLabel override – `{ itemType: "catalog", referenceId: "{catalo...
+    Given the precondition according to the requirement is met
+    When  `{ itemType: "catalog", referenceId: "{catalogId}", displayLabel: "System inventory" }`
+    Then  in the navigation tree the catalog appears under the name "System inventory"; the name of the catalog object itself remains "Application Inventory"

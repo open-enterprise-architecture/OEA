@@ -1,6 +1,6 @@
 ---
 id: REQ-037
-title: Solution-spezifische Metamodell-Erweiterung
+title: Solution-specific metamodel extension
 type: functional
 priority: should
 status: proposed
@@ -22,133 +22,133 @@ references:
     - SH-04
     - SH-06
   concept:
-    - concept/40-extensibility/14-erweiterbarkeit.md
+    - concept/40-extensibility/14-extensibility.md
     - concept/40-extensibility/15-schema-evolution.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-037: Solution-spezifische Metamodell-Erweiterung
+# REQ-037: Solution-specific metamodel extension
 
-## Aussage
+## Statement
 
-Das System MUSS es ermöglichen, für eine [Solution](../../business-objects/solution.md) eine eigene `MetamodelConfiguration` mit `scope=solution` anzulegen, die das Instanz-Standardmetamodell erbt und um zusätzliche EntityTypes, Stereotypen und Constraint-Regeln erweitert; die Solution-Erweiterung MUSS einen eigenen `editMode` haben, der unabhängig vom `editMode` der Instanz-Konfiguration konfiguriert ist; Solution-eigene Typen DÜRFEN Instanz-Typen weder überschreiben noch entfernen.
+The system MUST allow creating, for a [Solution](../../business-objects/solution.md), its own `MetamodelConfiguration` with `scope=solution` that inherits the instance default metamodel and extends it with additional EntityTypes, stereotypes, and constraint rules; the solution extension MUST have its own `editMode`, configured independently of the `editMode` of the instance configuration; solution-specific types MUST NOT override or remove instance types.
 
-## Begründung
+## Rationale
 
-Das Instanz-Standardmetamodell soll für Produktiv-Plateaus stabil und kontrolliert sein (Sperrmodus, REQ-035). Gleichzeitig muss ein Solution Architekt neue Typen erproben können, die für eine spezifische Initiative relevant sind, bevor sie als Standard eingeführt werden. Ohne Solution-Level-Scoping müssten Experimente entweder das gesperrte Standardmetamodell aufheben oder auf einer separaten Instanz stattfinden. Der Zwei-Ebenen-Ansatz (Instanz gesperrt, Solution editierbar) erlaubt beides gleichzeitig: Baseline-Stabilität und Innovationsfreiheit in Target-Plateaus.
+The instance default metamodel should be stable and controlled for production plateaus (lock mode, REQ-035). At the same time, a solution architect must be able to try out new types relevant for a specific initiative before they are introduced as standard. Without solution-level scoping, experiments would either have to lift the locked default metamodel or take place on a separate instance. The two-level approach (instance locked, solution editable) allows both at once: baseline stability and freedom to innovate in target plateaus.
 
-## Kontext
+## Context
 
-Eine [Solution](../../business-objects/solution.md) beschreibt den Delta zwischen einem Baseline-[Plateau](../../business-objects/plateau.md) und einem Target-Plateau. Das effektive Metamodell einer Solution = Instanz-Typen (geerbt, read-only in diesem Kontext) ∪ Solution-eigene Typen (editierbar, sofern `editMode=gui-and-import`). Solution-eigene Typen sind ausschliesslich innerhalb dieser Solution sichtbar; sie erscheinen nicht im Instanz-Standardmetamodell und nicht in anderen Solutions. Sobald ein erprobter Typ bewährt ist, kann er per Import in das Instanz-Standardmetamodell übernommen werden (separater Governance-Schritt, nicht in diesem REQ).
+A [Solution](../../business-objects/solution.md) describes the delta between a baseline [plateau](../../business-objects/plateau.md) and a target plateau. The effective metamodel of a solution = instance types (inherited, read-only in this context) ∪ solution-specific types (editable, provided `editMode=gui-and-import`). Solution-specific types are visible exclusively within this solution; they do not appear in the instance default metamodel or in other solutions. Once a tried type has proven itself, it can be adopted into the instance default metamodel via import (separate governance step, not in this REQ).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- Solution-ID (Referenz auf eine existierende [Solution](../../business-objects/solution.md))
-- `editMode` für die Erweiterungs-Konfiguration: `gui-and-import` | `import-only`
-- EntityTypeDefinitions, Stereotypes, ConstraintRules (wie in REQ-032/REQ-033 beschrieben, aber nur für den Solution-Scope)
+**Inputs**:
+- Solution ID (reference to an existing [Solution](../../business-objects/solution.md))
+- `editMode` for the extension configuration: `gui-and-import` | `import-only`
+- EntityTypeDefinitions, Stereotypes, ConstraintRules (as described in REQ-032/REQ-033, but only for the solution scope)
 
-**Verarbeitung**:
+**Processing**:
 
-*Anlegen einer Solution-Erweiterungs-Konfiguration*:
-1. Prüfen: Solution existiert und hat noch keine `metamodelExtensionId` (oder ersetzt bestehende)
-2. Neue `MetamodelConfiguration` anlegen mit `scope=solution`, `solutionId`, `parentId` → Instanz-Konfiguration, `editMode` (frei wählbar)
-3. Solution.`metamodelExtensionId` setzen
+*Creating a solution extension configuration*:
+1. Check: the solution exists and does not yet have a `metamodelExtensionId` (or replaces an existing one)
+2. Create a new `MetamodelConfiguration` with `scope=solution`, `solutionId`, `parentId` → instance configuration, `editMode` (freely selectable)
+3. Set Solution.`metamodelExtensionId`
 
-*Effektives Metamodell berechnen (bei Entitäts-Anlage innerhalb einer Solution)*:
-1. Instanz-Konfiguration laden (built-in + Instanz-Custom-Typen)
-2. Solution-Erweiterungs-Konfiguration laden (falls vorhanden)
-3. Union bilden: alle Instanz-Typen + Solution-eigene Typen
-4. Bei Namenskollision (Solution-Typ hat gleichen Namen wie Instanz-Typ) → Fehler beim Anlegen (BR-09: kein Überschreiben)
+*Compute the effective metamodel (on entity creation within a solution)*:
+1. Load the instance configuration (built-in + instance custom types)
+2. Load the solution extension configuration (if present)
+3. Form the union: all instance types + solution-specific types
+4. On name collision (solution type has the same name as an instance type) → error on creation (BR-09: no overriding)
 
-*Validierung neuer Typen in der Solution-Erweiterung*:
-- Namens-Eindeutigkeit gegen built-in Typen + Instanz-Custom-Typen + bereits vorhandene Solution-Typen (BR-09)
-- Basis-Typ (`extends`) muss in der effektiven Typliste enthalten sein (Instanz oder Solution)
+*Validation of new types in the solution extension*:
+- Name uniqueness against built-in types + instance custom types + already existing solution types (BR-09)
+- Base type (`extends`) must be contained in the effective type list (instance or solution)
 
-**Ausgaben**:
-- Solution-Erweiterungs-Konfiguration angelegt/aktualisiert
-- Effektive Typliste für die Solution (Union aus Instanz + Solution)
+**Outputs**:
+- Solution extension configuration created/updated
+- Effective type list for the solution (union of instance + solution)
 
-**Fehlerfälle**:
-- Solution-Typ hat gleichen Namen wie Instanz-Typ → Fehler "Typ 'X' ist im Instanz-Metamodell bereits definiert; Solution-Typen können Instanz-Typen nicht überschreiben"
-- Solution-Erweiterungs-Konfiguration hat keinen gültigen `parentId` → Fehler
-- `editMode=import-only` der Instanz hat keinen Einfluss auf Solution-Erweiterung → sie bleibt editierbar gemäss ihrem eigenen `editMode`
+**Error Cases**:
+- Solution type has the same name as an instance type → error "Type 'X' is already defined in the instance metamodel; solution types cannot override instance types"
+- Solution extension configuration has no valid `parentId` → error
+- `editMode=import-only` of the instance has no influence on the solution extension → it remains editable according to its own `editMode`
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Instanz-Metamodell mit `editMode=import-only`; Solution „Cloud-Experiment" ohne Erweiterungs-Konfiguration
-- Wenn: Kurt für „Cloud-Experiment" eine neue Erweiterungs-Konfiguration mit `editMode=gui-and-import` anlegt und darin `CloudService` definiert
-- Dann: ist `CloudService` im effektiven Metamodell von „Cloud-Experiment" verfügbar; das Instanz-Standardmetamodell bleibt unverändert und gesperrt; `CloudService` erscheint nicht in anderen Solutions
+- Given: instance metamodel with `editMode=import-only`; solution "Cloud-Experiment" without an extension configuration
+- When: Kurt creates a new extension configuration with `editMode=gui-and-import` for "Cloud-Experiment" and defines `CloudService` in it
+- Then: `CloudService` is available in the effective metamodel of "Cloud-Experiment"; the instance default metamodel remains unchanged and locked; `CloudService` does not appear in other solutions
 
 **AC2**:
-- Gegeben: Solution „Cloud-Experiment" mit `CloudService` (Solution-Typ) und Instanz-Typ `ApplicationComponent`
-- Wenn: ein Architekt eine neue Entität innerhalb „Cloud-Experiment" anlegt
-- Dann: stehen beide Typen zur Auswahl: `ApplicationComponent` (aus Instanz) und `CloudService` (Solution-eigen)
+- Given: solution "Cloud-Experiment" with `CloudService` (solution type) and instance type `ApplicationComponent`
+- When: an architect creates a new entity within "Cloud-Experiment"
+- Then: both types are available for selection: `ApplicationComponent` (from the instance) and `CloudService` (solution-specific)
 
 **AC3**:
-- Gegeben: Solution-Erweiterung mit `editMode=gui-and-import`
-- Wenn: Kurt über die GUI einen neuen Typ hinzufügt
-- Dann: ist das möglich, obwohl das Instanz-Metamodell `import-only` ist (unabhängige `editMode`-Ebenen)
+- Given: solution extension with `editMode=gui-and-import`
+- When: Kurt adds a new type via the GUI
+- Then: this is possible even though the instance metamodel is `import-only` (independent `editMode` levels)
 
 **AC4**:
-- Gegeben: Solution-Erweiterungs-Konfiguration soll einen Typ `ApplicationComponent` definieren (bereits als Instanz-Typ vorhanden)
-- Wenn: Kurt speichert
-- Dann: erscheint Fehler "Typ 'ApplicationComponent' ist im Instanz-Metamodell bereits definiert"; kein Eintrag angelegt
+- Given: a solution extension configuration is to define a type `ApplicationComponent` (already present as an instance type)
+- When: Kurt saves
+- Then: the error "Type 'ApplicationComponent' is already defined in the instance metamodel" appears; no entry created
 
 **AC5**:
-- Gegeben: Solution hat keine Erweiterungs-Konfiguration (`metamodelExtensionId=null`)
-- Wenn: ein Architekt innerhalb dieser Solution eine Entität anlegt
-- Dann: stehen ausschliesslich Instanz-Typen zur Verfügung; kein Fehler
+- Given: a solution has no extension configuration (`metamodelExtensionId=null`)
+- When: an architect creates an entity within this solution
+- Then: only instance types are available; no error
 
 **AC6**:
-- Gegeben: Solution-Erweiterung mit `editMode=import-only`
-- Wenn: Kurt die Solution-Erweiterung über eine YAML-Datei aktualisiert (REQ-033)
-- Dann: ist der Import möglich; GUI-Bearbeitung dieser Erweiterung ist blockiert
+- Given: solution extension with `editMode=import-only`
+- When: Kurt updates the solution extension via a YAML file (REQ-033)
+- Then: the import is possible; GUI editing of this extension is blocked
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Instanz `import-only` + Solution `gui-and-import`; Typen anlegen; effektives Metamodell prüfen; Namenskollision; Solution ohne Extension
-- [x] Bestanden-Kriterium: AC1–AC6 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: instance `import-only` + solution `gui-and-import`; create types; check effective metamodel; name collision; solution without extension
+- [x] Pass criterion: AC1–AC6 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-032 (GUI-Konfiguration, auf Solution-Scope anwendbar); REQ-033 (Import, auf Solution-Scope anwendbar); REQ-035 (Sperrmodus ist die Motivation für Solution-Level-Editierbarkeit); Solution BO muss existieren
-- **Folgewirkungen**: Entitäts-Anlage-UC (künftig) muss Solution-Scope beachten und effektives Metamodell berechnen; Typ-Auswahl-Dropdown muss Instanz- und Solution-Typen unterscheidbar anzeigen
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-032 (GUI configuration, applicable to solution scope); REQ-033 (import, applicable to solution scope); REQ-035 (lock mode is the motivation for solution-level editability); Solution BO must exist
+- **Downstream effects**: The entity creation UC (future) must respect the solution scope and compute the effective metamodel; the type selection dropdown must display instance and solution types distinguishably
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne Solution-Level-Scoping können neue Typen nur erprobt werden, indem der Instanz-Sperrmodus vorübergehend deaktiviert wird – widerspricht dem Governance-Ziel von REQ-035
-- Risiko 2: Ohne diesen Mechanismus ist Metamodell-Innovation nur per Code-Deployment möglich – hohe Hürde
+- Risk 1: Without solution-level scoping, new types can only be tried out by temporarily disabling the instance lock mode – contradicts the governance goal of REQ-035
+- Risk 2: Without this mechanism, metamodel innovation is only possible via code deployment – high barrier
 
 ## Trade-offs
 
-- Solution-Typen können Instanz-Typen nicht überschreiben (BR-09): verhindert, dass eine Solution das Shared-Modell korrumpiert; reduziert aber die Anpassungsfreiheit pro Solution. Bewusste Governance-Entscheidung.
-- Effektives Metamodell als Union: einfach zu berechnen, aber kann bei vielen Solutions zu unübersichtlicher Typliste führen. Mitigierung: UI zeigt Herkunft jedes Typs (Instanz vs. Solution) klar an.
+- Solution types cannot override instance types (BR-09): prevents a solution from corrupting the shared model; but reduces the freedom to customize per solution. Deliberate governance decision.
+- Effective metamodel as a union: easy to compute, but with many solutions can lead to an unwieldy type list. Mitigation: the UI clearly shows the origin of each type (instance vs. solution).
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- DB: `metamodel_configurations`-Tabelle bekommt `scope`, `parent_id`, `solution_id`-Spalten; Instanz-Konfiguration hat `scope=instance`, `parent_id=null`
-- Effektives-Metamodell-API: `GET /solutions/{id}/effective-metamodel` → gibt Union zurück; gecacht, invalidiert bei Änderung beider Ebenen
-- UI: Typ-Auswahl-Dropdown gruppiert nach „Standard (Instanz)" und „Solution-spezifisch (Solution-Name)"; Solution-eigene Typen mit Badge/Farbe hervorgehoben
-- Import für Solution-Scope: `POST /solutions/{id}/metamodel/import` (analog zu Instanz-Import, aber scope=solution)
+- DB: the `metamodel_configurations` table gets `scope`, `parent_id`, `solution_id` columns; the instance configuration has `scope=instance`, `parent_id=null`
+- Effective metamodel API: `GET /solutions/{id}/effective-metamodel` → returns the union; cached, invalidated on change of either level
+- UI: the type selection dropdown is grouped by "Standard (instance)" and "Solution-specific (solution name)"; solution-specific types highlighted with a badge/color
+- Import for solution scope: `POST /solutions/{id}/metamodel/import` (analogous to instance import, but scope=solution)
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |

@@ -1,28 +1,28 @@
-# Ableitung aus: requirements/req/req-103-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-103-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @should @UC-15
-Feature: REQ-103 – Wiederherstellung als atomare Transaktion
+Feature: REQ-103 – Restore as atomic transaction
 
-  Snapshot-Sicherung, Entitäts-Update und Schreiben des neuen
-  EntityVersion-Eintrags MÜSSEN bei jeder Wiederherstellung (UC-15 und
-  UC-16) in einer einzigen DB-Transaktion erfolgen. Bei technischem
-  Fehler MUSS ein vollständiger Rollback erfolgen; kein
-  Inkonsistenz-Zustand (Snapshot ohne Update oder Update ohne Snapshot)
-  ist zulässig.
+  Snapshot backup, entity update and writing of the new
+  EntityVersion entry MUST occur in a single DB transaction on every restore (UC-15 and
+  UC-16). On a technical
+  error a complete rollback MUST occur; no
+  inconsistent state (snapshot without update or update without snapshot)
+  is permissible.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Rollback bei DB-Fehler – ein simulierter DB-Fehler nach dem Snapshot-Schreiben auftritt
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein simulierter DB-Fehler nach dem Snapshot-Schreiben auftritt
-    Then  erfolgt ein vollständiger Rollback; Entität ist unverändert; kein Snapshot in `entity_versions`
+  Scenario: AC1 – Rollback on DB error – a simulated DB error occurs after the snapshot is written
+    Given the precondition according to the requirement is met
+    When  a simulated DB error occurs after the snapshot is written
+    Then  a complete rollback occurs; entity is unchanged; no snapshot in `entity_versions`
 
   @AC2
-  Scenario: AC2 – Erfolgreiche Wiederherstellung – die Wiederherstellung erfolgreich abgeschlossen wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  die Wiederherstellung erfolgreich abgeschlossen wird
-    Then  sind Snapshot, Entitäts-Update und Versionseintrag alle vorhanden und konsistent
+  Scenario: AC2 – Successful restore – the restore completes successfully
+    Given the precondition according to the requirement is met
+    When  the restore completes successfully
+    Then  snapshot, entity update and version entry are all present and consistent

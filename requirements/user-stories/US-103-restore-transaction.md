@@ -1,32 +1,32 @@
-# US-103: Wiederherstellung ist atomar und rollback-sicher
+# US-103: Restore Is Atomic and Rollback-Safe
 
 **ID**: US-103
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich sicher sein, dass eine Wiederherstellung entweder vollständig ausgeführt oder vollständig zurückgerollt wird, damit kein inkonsistenter Zustand ohne Audit-Snapshot entstehen kann.
+As Kurt – Lead Enterprise Architect, I want to be sure that a restore is either fully executed or fully rolled back, so that no inconsistent state without an audit snapshot can arise.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-15](../use-cases/UC-15-entitaetsstand-wiederherstellen.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-103](../req/REQ-103-wiederherstellung-atomare-transaktion.md)
+**Use Case**: [UC-15](../use-cases/UC-15-restore-entity-state.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-103](../req/REQ-103-restore-atomic-transaction.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Rollback bei Fehler):
-- Wenn: ein technischer Fehler nach dem Snapshot-Schreiben auftritt
-- Dann: ist die Entität unverändert; kein Snapshot ist in `entity_versions` vorhanden
+**AC1** (Rollback on error):
+- When: a technical error occurs after the snapshot is written
+- Then: the entity is unchanged; no snapshot exists in `entity_versions`
 
-**AC2** (Erfolgreiche Wiederherstellung):
-- Wenn: die Wiederherstellung erfolgreich ist
-- Dann: sind Snapshot, Entitäts-Update und Versionseintrag alle vorhanden und konsistent
+**AC2** (Successful restore):
+- When: the restore is successful
+- Then: snapshot, entity update, and version entry are all present and consistent
 
 ## Definition of Done
 
-- [ ] AC1–AC2 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC2 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

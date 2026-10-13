@@ -13,32 +13,32 @@ aliases:
   - Projekt (KMU)
 related_capabilities: []
 references:
-  - concept: concept/20-entities/06-kern-entitaetstypen.md
-  - concept/40-extensibility/14-erweiterbarkeit.md
+  - concept: concept/20-entities/06-core-entity-types.md
+  - concept/40-extensibility/14-extensibility.md
 ---
 
 # Business Object: Solution
 
 ## Definition
 
-Eine `Solution` ist eine benannte Architecture-Initiative, die beschreibt, welche Entitäten im Rahmen eines Projekts oder einer Transition neu entstehen, sich verändern oder ausser Betrieb gehen. Sie ist der primäre Arbeitsbereich eines Solution Architekten.
+A `Solution` is a named architecture initiative that describes which entities are created, change, or go out of service as part of a project or a transition. It is the primary workspace of a solution architect.
 
-## Beschreibung
+## Description
 
-Eine Solution unterstützt zwei **Betriebsmodi**, die je nach Organisations-Reifegrad gewählt werden:
+A solution supports two **operating modes**, chosen depending on the organization's maturity:
 
 ---
 
-### Modus A: Plateau-Modus (Enterprise)
+### Mode A: Plateau Mode (Enterprise)
 
-`fromPlateauId` und `toPlateauId` sind gesetzt. Die Solution beschreibt den **Delta** von einem Baseline-[Plateau](./plateau.md) zu einem Target-Plateau. Entitäten des Baseline-Plateaus werden vererbt; die Solution beschreibt ausschliesslich die Änderungen.
+`fromPlateauId` and `toPlateauId` are set. The solution describes the **delta** from a baseline [plateau](./plateau.md) to a target plateau. Entities of the baseline plateau are inherited; the solution describes only the changes.
 
-Geeignet für: Organisationen, die formale Architektur-Zustände (Baseline / Target) verwalten und Governance über Plateau-Übergänge benötigen (TOGAF-Reife).
+Suitable for: organizations that manage formal architecture states (baseline / target) and need governance over plateau transitions (TOGAF maturity).
 
 ```
-Baseline P0 (aktuell produktiv)
+Baseline P0 (currently productive)
   │
-  └── Solution „Salesforce-Einführung" (Plateau-Modus)
+  └── Solution "Salesforce Introduction" (plateau mode)
         fromPlateau: P0 → toPlateau: P1 (Target 2027)
         deltas:
           CRM-Legacy:  retiring
@@ -47,106 +47,106 @@ Baseline P0 (aktuell produktiv)
 
 ---
 
-### Modus B: Projekt-Modus (KMU)
+### Mode B: Project Mode (SME)
 
-`fromPlateauId` und `toPlateauId` sind beide `null`. Die Solution ist ein freies Projekt-Workspace. Es gibt keine formale Baseline; der aktuelle Gesamtzustand der Landschaft ergibt sich aus der Summe aller `implemented`-Solutions. Die Solution modelliert direkt Entitäten und deren Änderungen, ohne einen formalen Plateau-Rahmen.
+`fromPlateauId` and `toPlateauId` are both `null`. The solution is a free project workspace. There is no formal baseline; the current overall state of the landscape results from the sum of all `implemented` solutions. The solution models entities and their changes directly, without a formal plateau framework.
 
-Geeignet für: KMU und Organisationen, die nicht mit dem Plateau-Prinzip arbeiten, sondern Projekte durchführen und die Landschaft kontinuierlich weiterentwickeln.
+Suitable for: SMEs and organizations that do not work with the plateau principle but carry out projects and continuously evolve the landscape.
 
 ```
-Solution „Salesforce-Einführung" (Projekt-Modus, kein Plateau)
+Solution "Salesforce Introduction" (project mode, no plateau)
   deltas:
     CRM-Legacy:  retiring
     Salesforce:  new
-    [nach implemented: Gesamtzustand = Summe aller Solutions]
+    [after implemented: overall state = sum of all solutions]
 ```
 
 ---
 
-### Vergleich der Modi
+### Comparison of Modes
 
-| Merkmal | Plateau-Modus | Projekt-Modus |
+| Characteristic | Plateau Mode | Project Mode |
 |---|---|---|
-| Plateau-Referenzen | `fromPlateauId` + `toPlateauId` gesetzt | beide `null` |
-| Baseline-Erbschaft | Entitäten aus `fromPlateau` | keine; freistehendes Workspace |
-| Effektiver Gesamtzustand | Baseline ∪ Solution-Deltas | Summe aller `implemented`-Solutions |
-| Geeignet für | Enterprise, TOGAF-Governance | KMU, projektbasierte Arbeitsweise |
-| Plateau erforderlich | ja | nein |
+| Plateau references | `fromPlateauId` + `toPlateauId` set | both `null` |
+| Baseline inheritance | Entities from `fromPlateau` | none; standalone workspace |
+| Effective overall state | Baseline ∪ solution deltas | Sum of all `implemented` solutions |
+| Suitable for | Enterprise, TOGAF governance | SME, project-based way of working |
+| Plateau required | yes | no |
 
 ---
 
-**Status-Bedeutung**:
+**Meaning of status**:
 
-| Status | Bedeutung |
+| Status | Meaning |
 |---|---|
-| `draft` | Idee, noch unvollständig |
-| `proposed` | Vollständig beschrieben, zur Review eingereicht |
-| `approved` | Freigegeben zur Umsetzung |
-| `in-progress` | Umsetzung läuft |
-| `implemented` | Go-Live erfolgt; Delta ist Teil des realisierten Zustands |
-| `archived` | Solution aufgegeben oder ersetzt |
+| `draft` | Idea, still incomplete |
+| `proposed` | Fully described, submitted for review |
+| `approved` | Approved for implementation |
+| `in-progress` | Implementation under way |
+| `implemented` | Go-live done; delta is part of the realized state |
+| `archived` | Solution abandoned or replaced |
 
-**Metamodell-Erweiterung**: Eine Solution kann eine eigene [`MetamodelConfiguration`](./metamodel-configuration.md) mit `scope=solution` haben. Damit kann der Solution Architekt neue Entitätstypen erproben, ohne das gesperrte Instanz-Standardmetamodell zu verändern (REQ-037). Diese Typen sind ausschliesslich innerhalb dieser Solution sichtbar.
+**Metamodel extension**: A solution can have its own [`MetamodelConfiguration`](./metamodel-configuration.md) with `scope=solution`. This allows the solution architect to try out new entity types without changing the locked instance default metamodel (REQ-037). These types are visible exclusively within this solution.
 
-## Attribute
+## Attributes
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| id | string | required | | UUID v4, global eindeutig | Interner Primärschlüssel |
-| name | string | required | | max. 255 Zeichen; eindeutig innerhalb der Instanz | Lesbarer Name (z.B. „Cloud-Migration Infrastruktur 2027") |
-| description | string | optional | | max. 2000 Zeichen | Ziel und Scope der Solution |
-| status | enum | required | `draft` | `[draft, proposed, approved, in-progress, implemented, archived]` | Aktueller Fortschritt |
-| fromPlateauId | reference | **optional** | null | target: Plateau (status=baseline oder transition); null = Projekt-Modus | Ausgangszustand (Plateau-Modus); null = kein formales Baseline-Plateau |
-| toPlateauId | reference | **optional** | null | target: Plateau (status=target oder transition); null = Projekt-Modus | Zielzustand (Plateau-Modus); null = kein formales Target-Plateau |
-| ownerId | reference | required | | target: person | Verantwortliche Person (Solution Architekt) |
-| metamodelExtensionId | reference | optional | null | target: MetamodelConfiguration (scope=solution) | Eigene Metamodell-Erweiterung; null = nur Instanz-Standard-Typen verfügbar |
-| createdAt | datetime | required | | ISO 8601, UTC | Zeitpunkt der Anlage |
-| createdBy | reference | required | | target: person | Anlegende Person |
+| id | string | required | | UUID v4, globally unique | Internal primary key |
+| name | string | required | | max. 255 characters; unique within the instance | Readable name (e.g. "Cloud Migration Infrastructure 2027") |
+| description | string | optional | | max. 2000 characters | Goal and scope of the solution |
+| status | enum | required | `draft` | `[draft, proposed, approved, in-progress, implemented, archived]` | Current progress |
+| fromPlateauId | reference | **optional** | null | target: Plateau (status=baseline or transition); null = project mode | Starting state (plateau mode); null = no formal baseline plateau |
+| toPlateauId | reference | **optional** | null | target: Plateau (status=target or transition); null = project mode | Target state (plateau mode); null = no formal target plateau |
+| ownerId | reference | required | | target: person | Responsible person (solution architect) |
+| metamodelExtensionId | reference | optional | null | target: MetamodelConfiguration (scope=solution) | Own metamodel extension; null = only instance default types available |
+| createdAt | datetime | required | | ISO 8601, UTC | Time of creation |
+| createdBy | reference | required | | target: person | Creating person |
 
-## Beziehungen
+## Relationships
 
-| Beziehung | Ziel-Objekt | Kardinalität | Optional | Beschreibung |
+| Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
-| startsFrom | [plateau](./plateau.md) | n:0..1 | yes | Ausgangszustand (nur Plateau-Modus) |
-| targetsTo | [plateau](./plateau.md) | n:0..1 | yes | Zielzustand (nur Plateau-Modus) |
-| ownedBy | [person](./person.md) | n:1 | no | Verantwortliche Person |
-| hasMetamodelExtension | [metamodel-configuration](./metamodel-configuration.md) | 1:0..1 | yes | Optionale Metamodell-Erweiterung |
-| containsDeltas | EntityDelta[] | 1:n | yes | Menge der Entitätsänderungen (neu / geändert / retiring) |
+| startsFrom | [plateau](./plateau.md) | n:0..1 | yes | Starting state (plateau mode only) |
+| targetsTo | [plateau](./plateau.md) | n:0..1 | yes | Target state (plateau mode only) |
+| ownedBy | [person](./person.md) | n:1 | no | Responsible person |
+| hasMetamodelExtension | [metamodel-configuration](./metamodel-configuration.md) | 1:0..1 | yes | Optional metamodel extension |
+| containsDeltas | EntityDelta[] | 1:n | yes | Set of entity changes (new / modified / retiring) |
 
-### EntityDelta (Werteobjekt, kein eigenes BO)
+### EntityDelta (value object, no BO of its own)
 
-| Attribut | Typ | Beschreibung |
+| Attribute | Type | Description |
 |---|---|---|
-| entityId | integer | FK → [ArchitectureEntity](./entity.md).id (fortlaufender Integer ≥ 1); bei `deltaType=new` wird die Entität durch diese Solution erstmalig angelegt |
-| deltaType | enum `[new, modified, retiring]` | Art der Änderung |
-| changes | map | Für `modified`: geänderte PropertyValues (vorher/nachher); Format entspricht `ArchitectureEntity.properties` |
+| entityId | integer | FK → [ArchitectureEntity](./entity.md).id (sequential integer ≥ 1); for `deltaType=new`, the entity is created for the first time by this solution |
+| deltaType | enum `[new, modified, retiring]` | Kind of change |
+| changes | map | For `modified`: changed PropertyValues (before/after); format corresponds to `ArchitectureEntity.properties` |
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser | Compliance-Bezug |
+| Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
-| BR-01 | `fromPlateauId` und `toPlateauId` MÜSSEN entweder **beide gesetzt** oder **beide null** sein (kein Mischzustand) | onCreate, onUpdate | – |
-| BR-02 | Sind beide Plateau-IDs gesetzt: `fromPlateauId` ≠ `toPlateauId`; `toPlateauId.status` muss `target` oder `transition` sein | onCreate, onUpdate | – |
-| BR-03 | Eine Solution mit `status=implemented` ist read-only | onUpdate | – |
-| BR-04 | `metamodelExtensionId` darf nur auf eine `MetamodelConfiguration` mit `scope=solution` zeigen | onCreate, onUpdate | – |
-| BR-05 | Entitäten einer Solution sind für andere Solutions sichtbar (Basis für Kollisions-Erkennung bei parallelen Änderungen an derselben Entität) | onRead | – |
+| BR-01 | `fromPlateauId` and `toPlateauId` MUST either **both be set** or **both be null** (no mixed state) | onCreate, onUpdate | – |
+| BR-02 | If both plateau IDs are set: `fromPlateauId` ≠ `toPlateauId`; `toPlateauId.status` must be `target` or `transition` | onCreate, onUpdate | – |
+| BR-03 | A solution with `status=implemented` is read-only | onUpdate | – |
+| BR-04 | `metamodelExtensionId` may only point to a `MetamodelConfiguration` with `scope=solution` | onCreate, onUpdate | – |
+| BR-05 | Entities of a solution are visible to other solutions (basis for collision detection on parallel changes to the same entity) | onRead | – |
 
 ## Lifecycle
 
 ```
 draft → proposed → approved → in-progress → implemented
-              ↘ archived (aufgegeben)
+              ↘ archived (abandoned)
 ```
 
-**Plateau-Modus nach `implemented`**: Go-Live-Prozess setzt `toPlateauId.status` von `target` auf `realized`; das alte Baseline-Plateau wird `realized`; das realisierte Plateau wird zum neuen Baseline.
+**Plateau mode after `implemented`**: The go-live process sets `toPlateauId.status` from `target` to `realized`; the old baseline plateau becomes `realized`; the realized plateau becomes the new baseline.
 
-**Projekt-Modus nach `implemented`**: Solution ist abgeschlossen; ihre Deltas sind fester Bestandteil des realisierten Gesamtzustands (keine Plateau-Übergänge nötig).
+**Project mode after `implemented`**: The solution is completed; its deltas are a permanent part of the realized overall state (no plateau transitions needed).
 
-## Beispiele
+## Examples
 
-**Projekt-Modus (KMU, kein Plateau)**:
+**Project mode (SME, no plateau)**:
 ```
-Solution: „Salesforce-Einführung" (Projekt-Modus)
+Solution: "Salesforce Introduction" (project mode)
   fromPlateau: null
   toPlateau:   null
   status: draft → implemented
@@ -155,43 +155,43 @@ Solution: „Salesforce-Einführung" (Projekt-Modus)
     - Salesforce:  deltaType=new, type=ApplicationComponent
     - Integration: deltaType=new, type=Interface
 ```
-Nach `implemented` ist der realisierte Gesamtzustand die Summe aller `implemented`-Solutions der Instanz.
+After `implemented`, the realized overall state is the sum of all `implemented` solutions of the instance.
 
-**Plateau-Modus (Enterprise)**:
+**Plateau mode (Enterprise)**:
 ```
 Baseline P0: CRM-Legacy [active], ERP-Core [active]
 
-Solution: „Salesforce-Einführung" (Plateau-Modus)
+Solution: "Salesforce Introduction" (plateau mode)
   fromPlateau: P0  →  toPlateau: P1 (Target 2027)
   deltas:
     - CRM-Legacy:  deltaType=retiring
     - Salesforce:  deltaType=new, type=ApplicationComponent
     - Integration: deltaType=new, type=Interface
 
-Target P1 (nach Go-Live):
-  - ERP-Core    [active]    ← geerbt von P0
-  - Salesforce  [active]    ← neu durch Solution
-  - CRM-Legacy  [retiring]  ← wird ausser Betrieb genommen
+Target P1 (after go-live):
+  - ERP-Core    [active]    ← inherited from P0
+  - Salesforce  [active]    ← new through solution
+  - CRM-Legacy  [retiring]  ← being taken out of service
 ```
 
-## Abgrenzung
+## Delimitation
 
-- **NICHT** ein [Plateau](./plateau.md): Ein Plateau ist ein stabiler Zustand; eine Solution ist der Änderungsprozess. Im Projekt-Modus existieren Solutions ohne jedes Plateau.
-- **NICHT** ein Projekt**: Eine Solution ist eine Architektur-Beschreibung; das Projekt (Budget, Timeline, Teams) ist extern (PPM-Tool-Integration ist in §23 als offene Frage vermerkt).
-- **NICHT** ein ADR: Architektur-Entscheidungen begleiten eine Solution, sind aber separate Artefakte.
+- **NOT** a [Plateau](./plateau.md): A plateau is a stable state; a solution is the change process. In project mode, solutions exist without any plateau.
+- **NOT** a project**: A solution is an architecture description; the project (budget, timeline, teams) is external (PPM tool integration is noted in §23 as an open question).
+- **NOT** an ADR: Architecture decisions accompany a solution but are separate artifacts.
 
-## Verwendung in Use Cases
+## Usage in Use Cases
 
-- Künftig: UC für Solution-Verwaltung (Anlegen, Review-Prozess, Go-Live; Projekt-Modus und Plateau-Modus)
-- [UC-04](../requirements/use-cases/UC-04-metamodell-konfigurieren.md) (Metamodell-Erweiterung für Solution, REQ-037)
+- Future: UC for solution management (create, review process, go-live; project mode and plateau mode)
+- [UC-04](../requirements/use-cases/UC-04-configure-metamodel.md) (metamodel extension for solution, REQ-037)
 
-## Notizen
+## Notes
 
-TOGAF-Referenz (Plateau-Modus): „Solution Architecture" in Phase E/F. Die `EntityDelta`-Struktur entspricht TOGAF Architecture Change Request + Gap Analysis. Die Fragen zur Referenz-Integrität über Plateaus (§23 Punkt 6) betreffen ausschliesslich den Plateau-Modus; im Projekt-Modus gibt es keine Plateau-Grenzen.
+TOGAF reference (plateau mode): "Solution Architecture" in phase E/F. The `EntityDelta` structure corresponds to TOGAF Architecture Change Request + Gap Analysis. The questions on referential integrity across plateaus (§23 item 6) concern plateau mode exclusively; in project mode there are no plateau boundaries.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | Business Engineer | Initial draft |
-| 0.2.0 | 2026-06-25 | Business Engineer | `fromPlateauId` + `toPlateauId` optional gemacht; Projekt-Modus (KMU) eingeführt; BR-01 angepasst (entweder beide gesetzt oder beide null); Vergleichstabelle der Modi |
+| 0.2.0 | 2026-06-25 | Business Engineer | Made `fromPlateauId` + `toPlateauId` optional; introduced project mode (SME); adapted BR-01 (either both set or both null); comparison table of the modes |

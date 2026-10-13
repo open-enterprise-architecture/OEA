@@ -1,6 +1,6 @@
 ---
 id: UC-20
-title: Architektur-Conformance zum Continuum analysieren
+title: Analyze Architecture Conformance to the Continuum
 status: draft
 priority: should
 target_release: v1.0
@@ -32,9 +32,9 @@ references:
     - UC-07
 ---
 
-# UC-20: Architektur-Conformance zum Continuum analysieren
+# UC-20: Analyze Architecture Conformance to the Continuum
 
-## Diagramm
+## Diagram
 
 ```plantuml
 @startuml UC-20-Conformance
@@ -45,12 +45,12 @@ actor "Kurt\n(Lead EA)" as Kurt
 actor "CIO" as CIO
 actor "Sabine\n(Business Engineer)" as Sabine
 
-rectangle "OEA – Architektur-Conformance analysieren" {
-  usecase "Conformance-Report\ngenerieren" as UC_Report
-  usecase "TRM-Abweichungen\nanzeigen\n(prohibited / deprecated)" as UC_TRM
-  usecase "ABB-Gap-Analyse\n(keine konformen Instanzen)" as UC_Gap
-  usecase "Technology-Diversity\nProblem erkennen" as UC_Diversity
-  usecase "Management-Summary\nanzeigen" as UC_Summary
+rectangle "OEA – Analyze Architecture Conformance" {
+  usecase "Generate Conformance\nReport" as UC_Report
+  usecase "Show TRM Deviations\n(prohibited / deprecated)" as UC_TRM
+  usecase "ABB Gap Analysis\n(no conforming instances)" as UC_Gap
+  usecase "Detect Technology\nDiversity Problem" as UC_Diversity
+  usecase "Show Management\nSummary" as UC_Summary
 }
 
 Kurt --> UC_Report
@@ -66,133 +66,133 @@ UC_Report ..> UC_Summary : <<extend>>
 
 ## Goal in Context
 
-Ein gepflegtes Enterprise Continuum hat nur dann Wert, wenn die tatsächliche Architektur regelmässig damit abgeglichen wird. Abweichungen müssen sichtbar sein: Welche Entitäten nutzen verbotene Produkte? Welche ABBs haben keine konformen Instanzen (Gap)? Welche TRM-Kategorien sind mit zu vielen verschiedenen Produkten besetzt (Technology Diversity Problem)?
+A maintained Enterprise Continuum only has value if the actual architecture is regularly compared against it. Deviations must be visible: Which entities use prohibited products? Which ABBs have no conforming instances (gap)? Which TRM categories are populated with too many different products (technology diversity problem)?
 
-UC-20 ist ein reiner Analyse-UC — er verändert keine Daten, sondern macht Conformance-Lücken und Standards-Drift für Kurt und den CIO sichtbar. Die eigentlichen Korrekturen erfolgen in UC-05/06 (Entität bearbeiten), UC-17 (SBB-Governance anpassen) oder UC-19 (TRM aktualisieren).
+UC-20 is a pure analysis UC — it changes no data, but makes conformance gaps and standards drift visible for Kurt and the CIO. The actual corrections take place in UC-05/06 (edit entity), UC-17 (adjust SBB governance) or UC-19 (update TRM).
 
-## Persona und Story
+## Persona and Story
 
-**Primärer Akteur**: [Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
+**Primary Actor**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 
-**Weitere Beteiligte**:
-- [CIO](../../business-analysis/stakeholders/SH-05-cio-konzern.md) (liest den Conformance-Report als Management-Summary)
-- [Sabine – Senior Business Engineer](../../business-analysis/stakeholders/SH-07-sabine-business-engineer.md) (nutzt die Analyse zur Standardisierungs-Initiative)
+**Other Stakeholders**:
+- [CIO](../../business-analysis/stakeholders/SH-05-cio-corporate-group.md) (reads the conformance report as a management summary)
+- [Sabine – Senior Business Engineer](../../business-analysis/stakeholders/SH-07-sabine-business-engineer.md) (uses the analysis for the standardization initiative)
 
-**Story**: Als Lead Enterprise Architekt möchte ich sehen, wo unsere tatsächliche Landschaft von den definierten ABB-Standards, SBB-Governance-Regeln und TRM-Vorgaben abweicht — damit ich gezielte Massnahmen ableiten kann.
+**Story**: As a Lead Enterprise Architect, I want to see where our actual landscape deviates from the defined ABB standards, SBB governance rules and TRM specifications — so that I can derive targeted measures.
 
 ## Trigger
 
-1. Regelmässiger Architecture-Review-Termin (quartalsweise)
-2. Neues Produkt wurde als `prohibited` gesetzt → sofortige Prüfung, wie viele Entitäten betroffen sind
-3. Vorbereitung eines Technology-Standardisierungs-Projekts
+1. Regular architecture review date (quarterly)
+2. A new product was set to `prohibited` → immediate check of how many entities are affected
+3. Preparation of a technology standardization project
 
-## Vorbedingungen (Pre-Conditions)
+## Preconditions
 
-- [ ] Kurt ist eingeloggt (UC-01) und hat Leseberechtigung auf das Repository
-- [ ] Das Enterprise Continuum (ABBs, SBBs, TRM) ist konfiguriert (UC-17–19)
-- [ ] Mindestens einige Entitäten haben `conformsToABBId`, `instanceOfSBBId` oder `trmClassificationIds` gesetzt
+- [ ] Kurt is logged in (UC-01) and has read permission on the repository
+- [ ] The Enterprise Continuum (ABBs, SBBs, TRM) is configured (UC-17–19)
+- [ ] At least some entities have `conformsToABBId`, `instanceOfSBBId` or `trmClassificationIds` set
 
-## Nachbedingungen (Post-Conditions)
+## Postconditions
 
-- Kein Datensatz wurde verändert; der UC ist rein lesend
-- Kurt hat eine aktuelle Übersicht der Conformance-Lücken und kann Massnahmen ableiten
+- No record was changed; the UC is purely read-only
+- Kurt has a current overview of the conformance gaps and can derive measures
 
-## Hauptablauf (Basic Flow)
+## Basic Flow
 
-*Standardfall: Kurt öffnet das Conformance-Dashboard und analysiert die aktuelle Situation*
+*Default case: Kurt opens the conformance dashboard and analyzes the current situation*
 
-1. **Kurt**: öffnet den Bereich „Continuum Conformance" im EA-Dashboard
-2. **System**: zeigt drei Analyse-Sektionen mit Zusammenfassungen:
+1. **Kurt**: opens the section "Continuum Conformance" in the EA dashboard
+2. **System**: shows three analysis sections with summaries:
 
-   **Sektion 1 – ABB-Abdeckung**
-   - Gesamt-ABBs: 52 (approved) / davon ohne konforme Instanz: 14 → Gap-Quote 27%
-   - Tabelle: ABB-Name | continuumLevel | Konforme Instanzen | SBBs vorhanden | Status
+   **Section 1 – ABB Coverage**
+   - Total ABBs: 52 (approved) / of which without conforming instance: 14 → gap rate 27%
+   - Table: ABB name | continuumLevel | Conforming instances | SBBs present | Status
    
-   **Sektion 2 – Standards-Drift (SBB-Governance)**
-   - Entitäten mit `instanceOfSBBId=prohibited`: 3
-   - Entitäten mit `instanceOfSBBId=deprecated`: 7
-   - Entitäten ohne SBB-Referenz, aber TRM-Kategorie gesetzt: 21
-   - Tabelle: Entität | Entitätstyp | genutzter SBB | Governance-Status | TRM-Kategorie | Preferred Standard
+   **Section 2 – Standards Drift (SBB Governance)**
+   - Entities with `instanceOfSBBId=prohibited`: 3
+   - Entities with `instanceOfSBBId=deprecated`: 7
+   - Entities without SBB reference, but TRM category set: 21
+   - Table: Entity | Entity type | SBB used | Governance status | TRM category | Preferred standard
 
-   **Sektion 3 – Technology Diversity (TRM)**
-   - TRM-Kategorien mit > 1 `approved`-SBB: 4 → Standardisierungspotenzial
-   - TRM-Kategorien ohne `preferredStandard`: 9
-   - Tabelle: TRM-Kategorie | Anzahl genutzter SBBs | preferred Standard | Entitäten-Zählung
+   **Section 3 – Technology Diversity (TRM)**
+   - TRM categories with > 1 `approved` SBB: 4 → standardization potential
+   - TRM categories without `preferredStandard`: 9
+   - Table: TRM category | Number of SBBs used | Preferred standard | Entity count
 
-3. **Kurt**: klickt in Sektion 2 auf „Entitäten mit prohibited SBB" (3 Einträge)
-4. **System**: zeigt die 3 Entitäten mit Details: Name, Entitätstyp, genutzter SBB („Oracle Database 11g – prohibited"), TRM-Kategorie, zuletzt geändert von wem und wann
-5. **Kurt**: klickt auf eine Entität → Sprung zur Entitäts-Detailansicht (UC-05)
-6. **Kurt**: kehrt zurück zum Conformance-Dashboard und exportiert den Report
+3. **Kurt**: clicks "Entities with prohibited SBB" in section 2 (3 entries)
+4. **System**: shows the 3 entities with details: name, entity type, SBB used ("Oracle Database 11g – prohibited"), TRM category, last changed by whom and when
+5. **Kurt**: clicks an entity → jump to the entity detail view (UC-05)
+6. **Kurt**: returns to the conformance dashboard and exports the report
 
-## Alternative Abläufe (Alternative Flows)
+## Alternative Flows
 
-**A1 – ABB-Gap-Analyse im Detail**
+**A1 – ABB gap analysis in detail**
 
-1. **Kurt**: klappt in Sektion 1 einen ABB auf (z.B. „Message Broker")
-2. **System**: zeigt:
-   - Konforme Instanzen: 0 (Gap)
-   - Implementierende SBBs: [SBB „Apache Kafka 3.x" – approved], [SBB „RabbitMQ" – acceptable]
-   - Hinweis: „Kein physischer Message Broker in der Landschaft klassifiziert — ggf. fehlende TRM-Zuordnung"
-3. **Kurt**: klickt „Entitäten suchen" → zeigt alle Entitäten mit Entitätstyp-Namen, die semantisch passen könnten (Freitext-Suche, kein automatischer Match)
+1. **Kurt**: expands an ABB in section 1 (e.g., "Message Broker")
+2. **System**: shows:
+   - Conforming instances: 0 (gap)
+   - Implementing SBBs: [SBB "Apache Kafka 3.x" – approved], [SBB "RabbitMQ" – acceptable]
+   - Notice: "No physical message broker classified in the landscape — possibly missing TRM assignment"
+3. **Kurt**: clicks "Search entities" → shows all entities with entity type names that could semantically match (free-text search, no automatic match)
 
-**A2 – Report für CIO exportieren**
+**A2 – Export report for CIO**
 
-1. **Kurt**: klickt „Report exportieren" → wählt Format (PDF, CSV)
-2. **System**: erzeugt einen Report mit Executive Summary (Gap-Quote, Drift-Zählung, Top-3-Risiken) und Detailtabellen
-3. **CIO**: erhält den Report per Download oder E-Mail-Link
+1. **Kurt**: clicks "Export report" → selects format (PDF, CSV)
+2. **System**: generates a report with executive summary (gap rate, drift count, top 3 risks) and detail tables
+3. **CIO**: receives the report via download or email link
 
-**A3 – Technology-Diversity-Massnahme ableiten**
+**A3 – Derive technology diversity measure**
 
-1. **Kurt**: öffnet eine TRM-Kategorie mit 3 genutzten SBBs (z.B. „Container Orchestration": Kubernetes EKS, AKS, On-Prem Kubernetes)
-2. **System**: zeigt alle Entitäten mit SBB-Referenzen in dieser Kategorie; gruppiert nach SBB
-3. **Kurt**: erkennt: 2 Entitäten nutzen On-Prem-Kubernetes; geplante Migration zu EKS → trägt diese Erkenntnis als Grundlage für eine neue Solution (UC-05) ein
+1. **Kurt**: opens a TRM category with 3 SBBs in use (e.g., "Container Orchestration": Kubernetes EKS, AKS, on-prem Kubernetes)
+2. **System**: shows all entities with SBB references in this category; grouped by SBB
+3. **Kurt**: recognizes: 2 entities use on-prem Kubernetes; planned migration to EKS → enters this insight as a basis for a new solution (UC-05)
 
-**A4 – Filter nach Plateau oder Solution**
+**A4 – Filter by plateau or solution**
 
-1. **Kurt**: aktiviert den Filter „Nur Entitäten in Plateau P1 (Target 2027)"
-2. **System**: zeigt Conformance-Analyse gefiltert auf Entitäten des gewählten Plateaus
-3. **Kurt**: prüft, ob das geplante Target-Plateau schon Standards-konform ist
+1. **Kurt**: activates the filter "Only entities in plateau P1 (Target 2027)"
+2. **System**: shows conformance analysis filtered to entities of the selected plateau
+3. **Kurt**: checks whether the planned target plateau is already standards-conformant
 
-## Datenfluss
+## Data Flow
 
-| Schritt | Daten | Richtung | Bemerkung |
+| Step | Data | Direction | Remark |
 |---|---|---|---|
-| 2 | Conformance-Kennzahlen und Tabellen | System → Kurt | Rein lesend; keine Änderungen |
-| 3–4 | Detail-Liste betroffener Entitäten | System → Kurt | Mit Sprunglink zur Entitäts-Detailansicht |
-| A2 | PDF/CSV-Report | System → Kurt | Executive Summary + Detailtabellen |
+| 2 | Conformance metrics and tables | System → Kurt | Read-only; no changes |
+| 3–4 | Detail list of affected entities | System → Kurt | With jump link to the entity detail view |
+| A2 | PDF/CSV report | System → Kurt | Executive summary + detail tables |
 
-## Beteiligte Business Objects
+## Involved Business Objects
 
-| Business Object | Operation | Notiz |
+| Business Object | Operation | Note |
 |---|---|---|
-| [architecture-building-block](../../business-objects/architecture-building-block.md) | read | ABB-Gap-Analyse |
-| [solution-building-block](../../business-objects/solution-building-block.md) | read | Governance-Status je SBB |
-| [trm-category](../../business-objects/trm-category.md) | read | Technology-Diversity-Analyse |
+| [architecture-building-block](../../business-objects/architecture-building-block.md) | read | ABB gap analysis |
+| [solution-building-block](../../business-objects/solution-building-block.md) | read | Governance status per SBB |
+| [trm-category](../../business-objects/trm-category.md) | read | Technology diversity analysis |
 | [entity](../../business-objects/entity.md) | read | `conformsToABBId`, `instanceOfSBBId`, `trmClassificationIds` |
-| [person](../../business-objects/person.md) | read | `changedBy` in Entitäts-Details |
-| [role](../../business-objects/role.md) | read | Leseberechtigung |
+| [person](../../business-objects/person.md) | read | `changedBy` in entity details |
+| [role](../../business-objects/role.md) | read | Read permission |
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser |
+| Rule ID | Statement | Trigger |
 |---|---|---|
-| BR-01 | UC-20 ist rein lesend — kein Schreibzugriff auf Repository-Daten | immer |
-| BR-02 | Conformance-Kennzahlen werden on-demand berechnet (kein gecachter Snapshot); Ausnahme: Export-Report darf gecacht werden (max. 1 Stunde) | onRead |
+| BR-01 | UC-20 is purely read-only — no write access to repository data | always |
+| BR-02 | Conformance metrics are calculated on demand (no cached snapshot); exception: the export report may be cached (max. 1 hour) | onRead |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] Drei Analyse-Sektionen: ABB-Abdeckung, Standards-Drift, Technology Diversity
-- [ ] ABB-Abdeckung: Gap-Quote und Tabelle ABB × konforme Instanzen × SBBs
-- [ ] Standards-Drift: Entitäten mit prohibited/deprecated SBB klar hervorgehoben; Sprunglink zur Entität
-- [ ] Technology Diversity: TRM-Kategorien mit Entitäten-Zählungen und preferred Standard
-- [ ] A1: ABB-Gap-Drill-Down zeigt implementierende SBBs und Hinweis auf fehlende TRM-Klassifizierung
-- [ ] A2: Export als PDF und CSV; mit Executive Summary
-- [ ] A4: Filter nach Plateau oder Solution
-- [ ] Rein lesender UC: keine Datenänderung möglich
+- [ ] Three analysis sections: ABB coverage, standards drift, technology diversity
+- [ ] ABB coverage: gap rate and table ABB × conforming instances × SBBs
+- [ ] Standards drift: entities with prohibited/deprecated SBB clearly highlighted; jump link to the entity
+- [ ] Technology diversity: TRM categories with entity counts and preferred standard
+- [ ] A1: ABB gap drill-down shows implementing SBBs and notice about missing TRM classification
+- [ ] A2: Export as PDF and CSV; with executive summary
+- [ ] A4: Filter by plateau or solution
+- [ ] Purely read-only UC: no data change possible
 
-## Nicht im Scope
+## Out of Scope
 
-- **Korrekturen an Entitäten** (SBB-Zuweisung, TRM-Klassifizierung ändern): UC-05/UC-06
-- **SBB-Governance-Status ändern**: UC-17
-- **TRM-SBB-Zuordnungen anpassen**: UC-19
-- **Automatisierte Conformance-Checks als CI/CD-Gate**: deferred v2.0
+- **Corrections to entities** (changing SBB assignment, TRM classification): UC-05/UC-06
+- **Changing SBB governance status**: UC-17
+- **Adjusting TRM-SBB assignments**: UC-19
+- **Automated conformance checks as a CI/CD gate**: deferred v2.0

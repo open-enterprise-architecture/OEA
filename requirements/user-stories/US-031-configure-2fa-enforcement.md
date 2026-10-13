@@ -1,62 +1,62 @@
-# US-031: Zweiten Faktor instanzweit als Pflicht konfigurieren
+# US-031: Configure Second Factor as Mandatory Instance-Wide
 
 **ID**: US-031
 **Story Points**: 2
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Betreiber möchte ich instanzweit festlegen können, dass alle regulären Personen beim Login einen zweiten Faktor vorweisen müssen, damit Passwort-only-Logins für meine Organisation ausgeschlossen sind.
+As an operator, I want to be able to define instance-wide that all regular persons must present a second factor at login, so that password-only logins are ruled out for my organization.
 
-## Bezug
+## Reference
 
 **Use Case**: [UC-01: Login](../use-cases/UC-01-login.md)
-**Persona**: [SH-06: Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Requirement**: [REQ-020: Instanzweite Erzwingung eines zweiten Faktors](../req/REQ-020-erzwingung-zweiter-faktor.md)
+**Persona**: [SH-06: Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Requirement**: [REQ-020: Instance-Wide Enforcement of a Second Factor](../req/REQ-020-enforce-second-factor.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Max aktiviert `enforce2FA=true` in der Instanz-Konfiguration
-- Wenn: eine Person versucht, sich via REQ-011 (Passwort ohne zweiten Faktor) einzuloggen
-- Dann: wird der Login abgelehnt
+- Given: Max enables `enforce2FA=true` in the instance configuration
+- When: a person tries to log in via REQ-011 (password without second factor)
+- Then: the login is rejected
 
 **AC2**:
-- Gegeben: `enforce2FA=true` ist aktiv
-- Wenn: eine Person ohne eingerichtetes 2FA-Credential sich einloggt
-- Dann: wird UC-03 Required Action ausgelöst; sie muss einen zweiten Faktor einrichten, bevor sie Zugriff erhält
+- Given: `enforce2FA=true` is active
+- When: a person without a set-up 2FA credential logs in
+- Then: UC-03 required action is triggered; they must set up a second factor before they gain access
 
 **AC3**:
-- Gegeben: `enforce2FA=true` ist aktiv
-- Wenn: der System-Admin-Account sich via UC-02 einloggt
-- Dann: ist er von der Erzwingung unberührt
+- Given: `enforce2FA=true` is active
+- When: the system admin account logs in via UC-02
+- Then: it is unaffected by the enforcement
 
 **AC4**:
-- Gegeben: `enforce2FA=false` (Default)
-- Wenn: eine Person sich mit Passwort ohne zweiten Faktor einloggt
-- Dann: ist das weiterhin zulässig (kein Zwang)
+- Given: `enforce2FA=false` (default)
+- When: a person logs in with a password without a second factor
+- Then: this remains permitted (no obligation)
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Admin-Konfigurationsmodul, Login-Flow (UC-01/UC-03 Required-Action-Check)
-- API-Endpunkte: `GET/PUT /admin/config/auth` (Feld `enforce2FA`)
-- Datenbank-Änderungen: keine neue Tabelle; Feld in `instance_config`
-- Zusammenspiel: REQ-029 (rollen-basierte Ausnahmen) erweitert diese Einstellung
+- Affected components: admin configuration module, login flow (UC-01/UC-03 required action check)
+- API endpoints: `GET/PUT /admin/config/auth` (field `enforce2FA`)
+- Database changes: no new table; field in `instance_config`
+- Interplay: REQ-029 (role-based exemptions) extends this setting
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (enforce=true blockiert REQ-011; Required Action ausgelöst; System-Admin ausgenommen; Default=false)
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (enforce=true blocks REQ-011; required action triggered; system admin exempt; default=false)
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-010 (TOTP-Login), US-009 (Passkey-Login) – müssen als zweiter Faktor verfügbar sein, bevor die Erzwingung sinnvoll ist
-- Blockiert: US-028 (rollen-basierte Ausnahme – setzt aktive Erzwingung voraus)
+- Waiting on: US-010 (TOTP login), US-009 (passkey login) – must be available as a second factor before enforcement makes sense
+- Blocks: US-028 (role-based exemption – presupposes active enforcement)
 
-## Notizen
+## Notes
 
-Default `enforce2FA=false`, damit OEA ohne Konfiguration betreibbar ist. Max aktiviert die Erzwingung bewusst. Der System-Admin-Account (UC-02) ist hartcodiert ausgenommen – er existiert vor dem Person/Role-System und darf das Bootstrapping nicht blockieren.
+Default `enforce2FA=false` so that OEA can be operated without configuration. Max enables the enforcement deliberately. The system admin account (UC-02) is hard-coded as exempt – it exists before the Person/Role system and must not block bootstrapping.

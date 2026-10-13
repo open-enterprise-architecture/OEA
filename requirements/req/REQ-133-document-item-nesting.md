@@ -1,6 +1,6 @@
 ---
 id: REQ-133
-title: Verschachtelung von DocumentItems (hierarchische Kapitelstruktur)
+title: Nesting of DocumentItems (Hierarchical Chapter Structure)
 type: functional
 priority: must
 status: proposed
@@ -21,57 +21,57 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-133: Verschachtelung von DocumentItems (hierarchische Kapitelstruktur)
+# REQ-133: Nesting of DocumentItems (Hierarchical Chapter Structure)
 
-## Aussage
+## Statement
 
-Das System MUSS die hierarchische Verschachtelung von DocumentItems innerhalb einer DocumentCollection ermöglichen. Ein DocumentItem KANN über das Feld `parentId` auf ein übergeordnetes DocumentItem derselben Collection verweisen (`parentId=null` = Wurzel-Kapitel).
+The system MUST allow hierarchical nesting of DocumentItems within a DocumentCollection. A DocumentItem MAY reference a parent DocumentItem of the same collection via the field `parentId` (`parentId=null` = root chapter).
 
-**Regeln:**
-- Maximale Tiefe: **5 Ebenen** (Ebene 0 = Wurzel, `parentId=null`)
-- Zyklen sind verboten (BR-11); das System MUSS Zyklus-Prüfung bei jeder `parentId`-Änderung durchführen
-- `sortOrder` gilt relativ zu Geschwister-Items desselben `parentId`
-- Löschen eines Eltern-Items: Kinder-Items werden **mitgelöscht** (Cascade-Delete) — mit Warnhinweis vor Ausführung
-- Verschieben: `parentId` und `sortOrder` eines Items können via Drag & Drop in der Kapitelnavigation geändert werden
+**Rules:**
+- Maximum depth: **5 levels** (level 0 = root, `parentId=null`)
+- Cycles are forbidden (BR-11); the system MUST perform a cycle check on every `parentId` change
+- `sortOrder` applies relative to sibling items with the same `parentId`
+- Deleting a parent item: child items are **deleted along with it** (cascade delete) — with a warning before execution
+- Moving: `parentId` and `sortOrder` of an item can be changed via drag & drop in the chapter navigation
 
-## Begründung
+## Rationale
 
-Ohne Verschachtelung sind komplexe Dokumentationen (z.B. Arc42 §5 Bausteinsicht mit Teilsichten) als flache Liste kaum strukturierbar. Hierarchische Kapitel ermöglichen eine natürliche Gliederung analog zu Buchkapiteln (§1 → §1.1 → §1.1.1).
+Without nesting, complex documentation (e.g. Arc42 §5 building block view with sub-views) can hardly be structured as a flat list. Hierarchical chapters enable a natural outline analogous to book chapters (§1 → §1.1 → §1.1.1).
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Unterelement anlegen):
-- Wenn: Nutzer in der Kapitelnavigation „Unterkapitel anlegen" wählt
-- Dann: Neues DocumentItem mit `parentId` des ausgewählten Items wird erstellt; erscheint eingerückt in der Navigation
+**AC1** (Create sub-item):
+- When: the user selects "Create sub-chapter" in the chapter navigation
+- Then: a new DocumentItem with the `parentId` of the selected item is created; it appears indented in the navigation
 
-**AC2** (Tiefenbegrenzung):
-- Wenn: Nutzer versucht, ein Unterkapitel auf Ebene 6 anzulegen
-- Dann: Aktion wird verweigert mit Hinweis „Maximale Tiefe (5) erreicht"
+**AC2** (Depth limit):
+- When: the user tries to create a sub-chapter at level 6
+- Then: the action is refused with the note "Maximum depth (5) reached"
 
-**AC3** (Zyklus-Schutz):
-- Wenn: `parentId` eines Items so gesetzt würde, dass ein Zyklus entsteht (Item A → B → A)
-- Dann: Speichern verweigert; Fehlerhinweis
+**AC3** (Cycle protection):
+- When: the `parentId` of an item would be set such that a cycle arises (item A → B → A)
+- Then: saving refused; error message
 
-**AC4** (Cascade-Delete-Warnung):
-- Wenn: Nutzer ein Item mit Kindern löscht
-- Dann: Warnhinweis „Dieses Kapitel hat N Unterkapitel, die ebenfalls gelöscht werden"; Bestätigung erforderlich
+**AC4** (Cascade delete warning):
+- When: the user deletes an item with children
+- Then: warning "This chapter has N sub-chapters that will also be deleted"; confirmation required
 
-**AC5** (Drag & Drop):
-- Wenn: Nutzer ein Item in der Kapitelnavigation per Drag & Drop verschiebt
-- Dann: `parentId` und `sortOrder` werden aktualisiert; Navigation zeigt neue Struktur sofort
+**AC5** (Drag & drop):
+- When: the user moves an item in the chapter navigation via drag & drop
+- Then: `parentId` and `sortOrder` are updated; the navigation shows the new structure immediately
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-132 (DocumentItem-Grundstruktur)
-- **Folgewirkungen**: –
+- **Prerequisites**: REQ-132 (DocumentItem base structure)
+- **Consequences**: –
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Zyklus-Check: iterativer Ancestor-Walk von `parentId` bis Wurzel; bei Fund der eigenen ID → Zyklus; O(Tiefe) ≤ O(5) — kein Graph-Problem
-- Kapitelnavigation: Tree-Komponente mit Drag & Drop (z.B. vue-draggable-next); Ebenen-Einrückung visuell unterscheidbar
+- Cycle check: iterative ancestor walk from `parentId` to the root; if the own ID is found → cycle; O(depth) ≤ O(5) — not a graph problem
+- Chapter navigation: tree component with drag & drop (e.g. vue-draggable-next); levels visually distinguishable by indentation
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

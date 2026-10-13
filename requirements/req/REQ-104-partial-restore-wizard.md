@@ -1,6 +1,6 @@
 ---
 id: REQ-104
-title: Teilwiederherstellung dreistufiger Wizard
+title: Partial restore three-step wizard
 type: functional
 priority: should
 status: proposed
@@ -21,43 +21,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-104: Teilwiederherstellung dreistufiger Wizard
+# REQ-104: Partial restore three-step wizard
 
-## Aussage
+## Statement
 
-Das System MUSS einen dreistufigen Wizard für die selektive Wiederherstellung bereitstellen: Schritt 1 General Properties (`name`, `description`, `isLogical`), Schritt 2 Custom Properties (alle konfigurierten Properties aus `snapshot.propertyDefinitions`), Schritt 3 Verbindungsübersicht (informativ: geändert/hinzugekommen/entfernt). Jeder Schritt MUSS einzeln überspringbar sein. Schritte ohne Unterschiede zwischen Quelle und aktuellem Stand MÜSSEN automatisch übersprungen werden mit Hinweis.
+The system MUST provide a three-step wizard for selective restore: step 1 general properties (`name`, `description`, `isLogical`), step 2 custom properties (all configured properties from `snapshot.propertyDefinitions`), step 3 connection overview (informational: changed/added/removed). Each step MUST be individually skippable. Steps without differences between the source and the current state MUST be skipped automatically with a note.
 
-## Begründung
+## Rationale
 
-Eine Vollwiederherstellung überschreibt korrekte Änderungen. Der Wizard ermöglicht chirurgische Korrekturen ohne Kollateralschäden und gibt Nutzern volle Kontrolle über die Wiederherstellungsoperationen.
+A full restore overwrites correct changes. The wizard enables surgical corrections without collateral damage and gives users full control over the restore operations.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Quellversion vorausgefüllt):
-- Wenn: der Wizard aus der Zeitlinie (UC-14) für Version v3 gestartet wird
-- Dann: ist die Quellversion v3 vorausgefüllt
+**AC1** (Source version prefilled):
+- When: the wizard is started from the timeline (UC-14) for version v3
+- Then: source version v3 is prefilled
 
-**AC2** (Automatisches Überspringen):
-- Wenn: Schritt 1 keine Unterschiede in General Properties enthält
-- Dann: wird Schritt 1 automatisch mit dem Hinweis "Keine Unterschiede in General Properties" übersprungen; Wizard wechselt direkt zu Schritt 2
+**AC2** (Automatic skipping):
+- When: step 1 contains no differences in general properties
+- Then: step 1 is skipped automatically with the note "No differences in general properties"; wizard switches directly to step 2
 
-**AC3** (Bestätigen-Button bei leerer Auswahl):
-- Wenn: in allen Schritten keine Felder ausgewählt wurden
-- Dann: ist der Bestätigen-Button deaktiviert (gemäss REQ-106)
+**AC3** (Confirm button on empty selection):
+- When: no fields were selected in any step
+- Then: the confirm button is disabled (per REQ-106)
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-098 (Zeitlinie als Einstiegspunkt), REQ-105 (Feldauswahl), REQ-106 (Validierung)
-- **Folgewirkungen**: REQ-102 (Audit-Snapshot), REQ-103 (atomare Transaktion)
+- **Prerequisites**: REQ-098 (timeline as entry point), REQ-105 (field selection), REQ-106 (validation)
+- **Downstream effects**: REQ-102 (audit snapshot), REQ-103 (atomic transaction)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Wizard-Schritte mit Schritt-Indikator (1/3, 2/3, 3/3) und Überspringen-Link
-- Diff-Berechnung für jeden Schritt separat; nur geänderte Felder laden
-- Schritt 3 (Verbindungsübersicht) ist rein informativ; keine Auswahl nötig
+- Wizard steps with step indicator (1/3, 2/3, 3/3) and skip link
+- Diff calculation for each step separately; load only changed fields
+- Step 3 (connection overview) is purely informational; no selection needed
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

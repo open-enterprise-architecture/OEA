@@ -1,6 +1,6 @@
 ---
 id: REQ-083
-title: Audit-Log-Retention und Abfrage-Performance
+title: Audit log retention and query performance
 type: non-functional
 priority: should
 status: proposed
@@ -19,107 +19,107 @@ references:
     - SH-05
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-016
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-083: Audit-Log-Retention und Abfrage-Performance
+# REQ-083: Audit log retention and query performance
 
-## Aussage
+## Statement
 
-Das System MUSS alle sicherheits- und compliance-relevanten Ereignisse (Login, Logout, Entitäts-Anlage/-Änderung/-Löschung, Metamodell-Änderung, Rollen-Zuweisung) in einem append-only Audit-Log persistieren. Audit-Einträge MÜSSEN mindestens **2 Jahre** aufbewahrt werden. Abfragen über die letzten **30 Tage** MÜSSEN innerhalb von **5 Sekunden** abgeschlossen sein.
+The system MUST persist all security- and compliance-relevant events (login, logout, entity creation/change/deletion, metamodel change, role assignment) in an append-only audit log. Audit entries MUST be retained for at least **2 years**. Queries over the last **30 days** MUST complete within **5 seconds**.
 
-## Begründung
+## Rationale
 
-OEA wird in Konzernumgebungen eingesetzt, in denen Change-Tracking für strategische Architektur-Entscheidungen nachvollziehbar sein muss (SH-05: CIO, Audit-Nachweis; SH-06: KMU-Operator, Versionshistorie für Entscheidungsdokumentation). Gleichzeitig ist das Audit-Log die Grundlage für die Entity-Versionshistorie (ADR-016: `entity_versions` + `audit_events`). 2 Jahre Retention deckt typische Compliance-Anforderungen (DSGVO Art. 30, ISO 27001 A.12.4) ab, ohne exzessiven Speicheraufwand.
+OEA is used in corporate environments where change tracking for strategic architecture decisions must be traceable (SH-05: CIO, audit evidence; SH-06: SME operator, version history for decision documentation). At the same time, the audit log is the basis for the entity version history (ADR-016: `entity_versions` + `audit_events`). A 2-year retention covers typical compliance requirements (GDPR Art. 30, ISO 27001 A.12.4) without excessive storage effort.
 
-## Kontext
+## Context
 
-„Audit-Log" umfasst zwei Tabellen (ADR-016):
-- `entity_versions`: Property-Snapshots vor jedem Entity-Update (Content-History)
-- `audit_events`: Strukturelle Ereignisse (Löschung, Typ-Änderung, Login, Rollen-Zuweisung)
+"Audit log" comprises two tables (ADR-016):
+- `entity_versions`: property snapshots before every entity update (content history)
+- `audit_events`: structural events (deletion, type change, login, role assignment)
 
-Retention gilt für beide. Der append-only-Charakter (kein Update/Delete auf Audit-Einträgen) ist architektonisch erzwungen (BR-14 in entity.md).
+Retention applies to both. The append-only nature (no update/delete on audit entries) is enforced architecturally (BR-14 in entity.md).
 
-„Letzte 30 Tage" ist der häufigste Query-Use-Case (Nachvollzug von Änderungen in laufenden Sprint/Projekt-Zeiträumen). Ältere Einträge dürfen paginiert und langsamer sein.
+"Last 30 days" is the most frequent query use case (tracing changes in running sprint/project periods). Older entries may be paginated and slower.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=non-functional
+### For type=non-functional
 
-**Kategorie**: compliance / performance
+**Category**: compliance / performance
 
-**Messbare Zielwerte**:
+**Measurable Target Values**:
 
-| Metrik | Zielwert | Schwellwert (warning) | Scope |
+| Metric | Target value | Threshold (warning) | Scope |
 |---|---|---|---|
-| Aufbewahrungsdauer Audit-Einträge | ≥ 2 Jahre | < 1 Jahr | `entity_versions` + `audit_events` |
-| Abfrage-Latenz (letzte 30 Tage, eine Entity) | ≤ 5s p95 | > 2s | Repository mit 100.000 Entitäten, 50 Versionen/Entität |
-| Abfrage-Latenz (letzte 30 Tage, alle Events) | ≤ 10s p95 | > 5s | paginiert, 100 Einträge/Seite |
-| Append-only-Garantie | 100 % | | kein UPDATE/DELETE auf `entity_versions` oder `audit_events` |
+| Retention period of audit entries | ≥ 2 years | < 1 year | `entity_versions` + `audit_events` |
+| Query latency (last 30 days, one entity) | ≤ 5s p95 | > 2s | Repository with 100,000 entities, 50 versions/entity |
+| Query latency (last 30 days, all events) | ≤ 10s p95 | > 5s | paginated, 100 entries/page |
+| Append-only guarantee | 100% | | no UPDATE/DELETE on `entity_versions` or `audit_events` |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1** (Append-only):
-- Gegeben: `audit_events`- und `entity_versions`-Tabellen in PostgreSQL
-- Wenn: Datenbankbenutzer der Applikation einen UPDATE- oder DELETE-Befehl auf diesen Tabellen ausführt
-- Dann: Datenbank verweigert den Befehl (Row-Level-Security oder Tabellen-Permission; kein Soft-Delete)
+- Given: `audit_events` and `entity_versions` tables in PostgreSQL
+- When: The application's database user executes an UPDATE or DELETE command on these tables
+- Then: Database rejects the command (row-level security or table permission; no soft delete)
 
-**AC2** (Retention aktiv):
-- Gegeben: Audit-Eintrag vom Datum `NOW() - INTERVAL '2 years'`
-- Wenn: Standard-Abfrage über `audit_events` für diesen Zeitraum
-- Dann: Eintrag ist vorhanden und abrufbar; kein automatisches Löschen durch das System
+**AC2** (Retention active):
+- Given: Audit entry dated `NOW() - INTERVAL '2 years'`
+- When: Standard query over `audit_events` for this period
+- Then: Entry is present and retrievable; no automatic deletion by the system
 
-**AC3** (Abfrage-Performance letzte 30 Tage):
-- Gegeben: `entity_versions` mit 5.000.000 Einträgen (100.000 Entitäten × 50 Versionen); B-Tree-Index auf `changed_at`
-- Wenn: `SELECT * FROM entity_versions WHERE entity_id = ? AND changed_at >= NOW() - INTERVAL '30 days' ORDER BY version DESC`
-- Dann: p95 ≤ 5s; Ergebnis korrekt und vollständig
+**AC3** (Query performance last 30 days):
+- Given: `entity_versions` with 5,000,000 entries (100,000 entities × 50 versions); B-tree index on `changed_at`
+- When: `SELECT * FROM entity_versions WHERE entity_id = ? AND changed_at >= NOW() - INTERVAL '30 days' ORDER BY version DESC`
+- Then: p95 ≤ 5s; result correct and complete
 
-**AC4** (API-Endpunkt):
-- Gegeben: `GET /api/v1/entities/{id}/history?days=30`
-- Wenn: Aufruf für eine Entität mit 50 Versionen in den letzten 30 Tagen
-- Dann: HTTP 200, vollständige Version-Liste, p95 ≤ 5s
+**AC4** (API endpoint):
+- Given: `GET /api/v1/entities/{id}/history?days=30`
+- When: Call for an entity with 50 versions in the last 30 days
+- Then: HTTP 200, complete version list, p95 ≤ 5s
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert) + inspection (DB-Permissions)
-- [x] Test-Setup: synthetische `entity_versions`-Tabelle mit 5M Einträgen; Query-Plan-Analyse via `EXPLAIN ANALYZE`; Permission-Test (UPDATE verweigert)
-- [x] Bestanden-Kriterium: Latenz ≤ 5s p95; UPDATE/DELETE abgewiesen; 2-Jahres-Einträge vorhanden
-- [ ] In CI integriert: Permission-Test ja; Performance-Test als Release-Gate
+- [x] Method: test (automated) + inspection (DB permissions)
+- [x] Test setup: synthetic `entity_versions` table with 5M entries; query plan analysis via `EXPLAIN ANALYZE`; permission test (UPDATE rejected)
+- [x] Pass criterion: Latency ≤ 5s p95; UPDATE/DELETE rejected; 2-year entries present
+- [ ] Integrated in CI: permission test yes; performance test as release gate
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: ADR-016 (entity_versions, audit_events Tabellenstruktur); REQ-005 (Login-Audit-Log)
-- **Folgewirkungen**: Index auf `entity_versions.changed_at` und `audit_events.occurred_at` ist Pflicht (in Init-Migration)
+- **Prerequisites**: ADR-016 (entity_versions, audit_events table structure); REQ-005 (login audit log)
+- **Downstream effects**: Index on `entity_versions.changed_at` and `audit_events.occurred_at` is mandatory (in init migration)
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Compliance-Verstoss (DSGVO Art. 30, ISO 27001) bei Kunden mit Audit-Anforderungen
-- Nachvollziehbarkeit von Architektur-Entscheidungen geht verloren (wer hat was wann geändert?)
+- Compliance violation (GDPR Art. 30, ISO 27001) for customers with audit requirements
+- Traceability of architecture decisions is lost (who changed what when?)
 
 ## Trade-offs
 
-- Unbegrenzte Retention vs. 2 Jahre: 2 Jahre ist Kompromiss zwischen Compliance und Speicherkosten. Für Instanzen mit vielen Änderungen (> 1M Events/Jahr) wächst die Tabelle auf > 50 GB — Partitionierung nach `changed_at` (monatlich) empfohlen ab v2.0
-- Keine automatische Archivierung in v1.0: Einträge bleiben in denselben Tabellen; Cold-Storage-Archivierung ist v2.0-Feature
+- Unlimited retention vs. 2 years: 2 years is a compromise between compliance and storage costs. For instances with many changes (> 1M events/year), the table grows to > 50 GB — partitioning by `changed_at` (monthly) recommended from v2.0
+- No automatic archiving in v1.0: entries remain in the same tables; cold-storage archiving is a v2.0 feature
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- PostgreSQL Row-Level-Security oder separater DB-User ohne DELETE-Rechte auf `entity_versions` und `audit_events`
-- Partielle Indizes auf `changed_at >= NOW() - INTERVAL '30 days'` für häufige Abfragen
-- `GET /api/v1/entities/{id}/history` — paginierter Endpunkt (Cursor-basiert, nicht Offset)
+- PostgreSQL row-level security or separate DB user without DELETE rights on `entity_versions` and `audit_events`
+- Partial indexes on `changed_at >= NOW() - INTERVAL '30 days'` for frequent queries
+- `GET /api/v1/entities/{id}/history` — paginated endpoint (cursor-based, not offset)
 
-## Realisierung
+## Implementation
 
 - ADR(s): ADR-016
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-27 | requirements-engineer | Initial draft |

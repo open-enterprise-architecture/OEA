@@ -12,10 +12,10 @@ aliases:
   - Instanz-Metamodell
 related_capabilities: []
 references:
-  - concept: concept/20-entities/06-kern-entitaetstypen.md
-  - concept: concept/40-extensibility/14-erweiterbarkeit.md
+  - concept: concept/20-entities/06-core-entity-types.md
+  - concept: concept/40-extensibility/14-extensibility.md
   - concept: concept/40-extensibility/15-schema-evolution.md
-  - adr: adrs/ADR-017-architektur-layer-strategie.md
+  - adr: adrs/ADR-017-architecture-layer-strategy.md
   - adr: adrs/ADR-018-business-rule-engine.md
 ---
 
@@ -23,274 +23,274 @@ references:
 
 ## Definition
 
-Die `MetamodelConfiguration` ist die instanzweite Konfiguration, die festlegt, welche Entitätstypen, Stereotypen und Constraint-Regeln in einem OEA-Repository verfügbar sind. Sie ist das Aggregate, das alle vom Architekturteam verwalteten Schema-Elemente bündelt.
+The `MetamodelConfiguration` is the instance-wide configuration that determines which entity types, stereotypes, and constraint rules are available in an OEA repository. It is the aggregate that bundles all schema elements managed by the architecture team.
 
-## Beschreibung
+## Description
 
-Jede OEA-Instanz hat genau eine `MetamodelConfiguration`. Sie besteht aus zwei Schichten:
+Every OEA instance has exactly one `MetamodelConfiguration`. It consists of two layers:
 
-**Eingebaute Elemente (built-in, read-only)**:
-Die TOGAF-basierten Kern-Entitätstypen aus [§6 Kern-Entitätstypen](../concept/20-entities/06-kern-entitaetstypen.md) sind immer vorhanden:
+**Built-in elements (built-in, read-only)**:
+The TOGAF-based core entity types from [§6 Core Entity Types](../concept/20-entities/06-core-entity-types.md) are always present:
 - Business Architecture: `Actor`, `Role`, `OrganizationUnit`, `BusinessService`, `BusinessFunction`, `BusinessProcess`, `Capability`, `ValueStream`, `InformationObject`
 - Data Architecture: `DataEntity`, `LogicalDataComponent`, `PhysicalDataComponent`
 - Application Architecture: `ApplicationComponent`, `ApplicationService`, `ApplicationFunction`, `Interface`
 - Technology Architecture: `TechnologyComponent`, `Platform`, `Node`, `CommunicationPath`
 
-Diese Typen können nicht gelöscht oder in ihrer Grundstruktur verändert werden. Sie können durch Stereotypen und optionale Properties erweitert werden.
+These types cannot be deleted or changed in their basic structure. They can be extended by stereotypes and optional properties.
 
-**Konfigurierbare Elemente**:
-Das Architekturteam kann die Konfiguration durch sieben Kategorien erweitern (gemäß [§14 Erweiterbarkeit](../concept/40-extensibility/14-erweiterbarkeit.md)):
-1. **Custom EntityTypes**: neue Typen, die nicht im TOGAF-Kern enthalten sind (z.B. `SecurityZone`, `DataPipeline`); ein EntityType kann als **Connection-Typ** markiert werden, der eine Verbindung zwischen zwei Entitäten modelliert und Start und Ziel erzwingt (REQ-036); jeder EntityType kann beliebig viele **PropertyDefinitions** mit Datentyp, Validierungs-Modus und Kategorie erhalten
-2. **Stereotypes**: nicht-brechende Erweiterungen bestehender Typen mit zusätzlichen Properties (z.B. `SaaSApplication` auf `ApplicationComponent`)
-3. **ConstraintRules**: deklarative Ausdrucks-Validierungsregeln für Entities (z.B. "jede Interface muss einen Owner haben")
-4. **Viewpoints**: benannte Architektursichten, die festlegen, welche EntityTypes und Connection-Typen in einem Diagramm dieses Typs erscheinen dürfen und in welcher Notation dargestellt wird (ArchiMate 3, UML oder BPMN 2.0); siehe [viewpoint.md](./viewpoint.md)
-5. **ArchitectureLayers**: frei definierbare Architekturebenen (z.B. Business, Application, Technology oder domänenspezifische Ebenen); jedem EntityType kann genau eine Ebene zugewiesen werden; steuern Sortierung, Farb-Codierung und Filterbarkeit im Web Portal
-6. **MandatoryConnectionConstraints**: deklarative Regeln, die eine Pflicht-Connection zwischen zwei EntityTypes erzwingen (z.B. „jede ApplicationComponent muss mindestens eine `runs-on`-Connection zu einer TechnologyComponent haben"); ergänzen ConstraintRules um strukturelle Verbindungs-Validierung
+**Configurable elements**:
+The architecture team can extend the configuration through seven categories (per [§14 Extensibility](../concept/40-extensibility/14-extensibility.md)):
+1. **Custom EntityTypes**: new types that are not part of the TOGAF core (e.g. `SecurityZone`, `DataPipeline`); an EntityType can be marked as a **connection type** that models a connection between two entities and enforces start and target (REQ-036); every EntityType can receive any number of **PropertyDefinitions** with data type, validation mode, and category
+2. **Stereotypes**: non-breaking extensions of existing types with additional properties (e.g. `SaaSApplication` on `ApplicationComponent`)
+3. **ConstraintRules**: declarative expression validation rules for entities (e.g. "every Interface must have an owner")
+4. **Viewpoints**: named architecture views that determine which EntityTypes and connection types may appear in a diagram of this type and in which notation it is displayed (ArchiMate 3, UML, or BPMN 2.0); see [viewpoint.md](./viewpoint.md)
+5. **ArchitectureLayers**: freely definable architecture layers (e.g. business, application, technology, or domain-specific layers); exactly one layer can be assigned to each EntityType; they control sorting, color coding, and filterability in the Web Portal
+6. **MandatoryConnectionConstraints**: declarative rules that enforce a mandatory connection between two EntityTypes (e.g. "every ApplicationComponent must have at least one `runs-on` connection to a TechnologyComponent"); they complement ConstraintRules with structural connection validation
 
-Der **Bearbeitungs-Modus** (`editMode`) steuert, ob Änderungen am Metamodell via GUI und Import oder ausschliesslich per Import möglich sind. Im Sperrmodus `import-only` ist die GUI-Bearbeitung für alle Nutzer deaktiviert; das YAML-File wird zur einzigen Quelle der Wahrheit (REQ-035).
+The **edit mode** (`editMode`) controls whether changes to the metamodel are possible via GUI and import or exclusively via import. In lock mode `import-only`, GUI editing is disabled for all users; the YAML file becomes the single source of truth (REQ-035).
 
-**Zwei-Ebenen-Scoping** (REQ-037): Eine `MetamodelConfiguration` hat einen `scope`:
-- `scope=instance`: das Instanz-Standardmetamodell (Singleton pro Instanz); `editMode` hier steuerbar; kann gesperrt werden
-- `scope=solution`: Erweiterungs-Konfiguration für eine spezifische [Solution](./solution.md); erbt alle Typen der Instanz-Konfiguration (`parentId` verweist auf diese); kann eigene EntityTypes, Stereotypes und ConstraintRules hinzufügen; hat eigenen `editMode` unabhängig vom Parent; Solution-Typen sind nur innerhalb dieser Solution sichtbar
+**Two-level scoping** (REQ-037): A `MetamodelConfiguration` has a `scope`:
+- `scope=instance`: the instance default metamodel (singleton per instance); `editMode` can be controlled here; can be locked
+- `scope=solution`: extension configuration for a specific [Solution](./solution.md); inherits all types of the instance configuration (`parentId` points to it); can add its own EntityTypes, stereotypes, and ConstraintRules; has its own `editMode` independent of the parent; solution types are visible only within this solution
 
-Das **effektive Metamodell** einer Solution ergibt sich als Union: Instanz-Typen ∪ Solution-eigene Typen. Solution-Typen können keine Instanz-Typen überschreiben oder entfernen.
+The **effective metamodel** of a solution results as the union: instance types ∪ solution-specific types. Solution types cannot override or remove instance types.
 
-Änderungen an der Konfiguration werden versioniert und im Audit-Log festgehalten.
+Changes to the configuration are versioned and recorded in the audit log.
 
-## Attribute
+## Attributes
 
-### MetamodelConfiguration (Wurzel-Objekt)
+### MetamodelConfiguration (root object)
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| id | string | required | | UUID v4, global eindeutig | Interner Primärschlüssel |
-| scope | enum | required | `instance` | `[instance, solution]` | Unterscheidet Instanz-Standard (Singleton) von Solution-Erweiterung |
-| instanceId | reference | required | | target: instance; eindeutig wenn scope=instance | Verknüpfung zur OEA-Instanz |
-| solutionId | reference | optional | null | target: solution; nur gesetzt wenn scope=solution | Verknüpfung zur Solution (scope=solution) |
-| parentId | reference | optional | null | target: MetamodelConfiguration (scope=instance); nur gesetzt wenn scope=solution | Eltern-Konfiguration, deren Typen geerbt werden |
-| schemaVersion | string | required | "1.0" | Semver | Aktuelle Schema-Version der Konfiguration |
-| lastModifiedAt | datetime | required | | ISO 8601, UTC | Zeitpunkt der letzten Änderung |
-| lastModifiedBy | reference | required | | target: person | Person, die die letzte Änderung vorgenommen hat |
-| editMode | enum | required | `gui-and-import` | `[gui-and-import, import-only]` | Steuert, ob GUI-Bearbeitung des Metamodells (EntityTypes, Stereotypes, Layer) erlaubt ist; `import-only` = Sperrmodus (REQ-035); gilt unabhängig pro Scope-Ebene |
-| rulesEditMode | enum | required | `gui-and-import` | `[gui-and-import, import-only]` | Steuert GUI-Bearbeitung von `constraintRules` und `mandatoryConnectionConstraints` unabhängig von `editMode`; `import-only` = nur JSON-Import erlaubt (ADR-018) |
-| entityTypeDefinitions | EntityTypeDefinition[] | required | [] | | Liste der benutzerdefinierten Entitätstypen |
-| stereotypes | Stereotype[] | required | [] | | Liste der definierten Stereotypen |
-| constraintRules | ConstraintRule[] | required | [] | | Liste der Ausdrucks-Constraint-Regeln |
-| viewpoints | ViewpointDefinition[] | required | [] | Enthält system-defined (built-in) + user-defined Viewpoints | Liste der Viewpoints; Verweis auf [viewpoint.md](./viewpoint.md) für Vollspezifikation |
-| architectureLayers | ArchitectureLayerDefinition[] | required | [] | | Liste der Architekturebenen; leer = keine Ebenen-Kategorisierung |
-| mandatoryConnectionConstraints | MandatoryConnectionConstraint[] | required | [] | | Deklarative Pflicht-Connection-Regeln |
-| documentCollectionDefinitions | DocumentCollectionDefinition[] | required | [] | | Betreiberdefinierte Dokumentationstypen mit Kapiteln (Arc42, Third-Party, Lizenzregister usw.); Verweis auf [document-collection.md](./document-collection.md) |
+| id | string | required | | UUID v4, globally unique | Internal primary key |
+| scope | enum | required | `instance` | `[instance, solution]` | Distinguishes instance default (singleton) from solution extension |
+| instanceId | reference | required | | target: instance; unique if scope=instance | Link to the OEA instance |
+| solutionId | reference | optional | null | target: solution; only set if scope=solution | Link to the solution (scope=solution) |
+| parentId | reference | optional | null | target: MetamodelConfiguration (scope=instance); only set if scope=solution | Parent configuration whose types are inherited |
+| schemaVersion | string | required | "1.0" | Semver | Current schema version of the configuration |
+| lastModifiedAt | datetime | required | | ISO 8601, UTC | Time of the last change |
+| lastModifiedBy | reference | required | | target: person | Person who made the last change |
+| editMode | enum | required | `gui-and-import` | `[gui-and-import, import-only]` | Controls whether GUI editing of the metamodel (EntityTypes, stereotypes, layers) is allowed; `import-only` = lock mode (REQ-035); applies independently per scope level |
+| rulesEditMode | enum | required | `gui-and-import` | `[gui-and-import, import-only]` | Controls GUI editing of `constraintRules` and `mandatoryConnectionConstraints` independently of `editMode`; `import-only` = only JSON import allowed (ADR-018) |
+| entityTypeDefinitions | EntityTypeDefinition[] | required | [] | | List of user-defined entity types |
+| stereotypes | Stereotype[] | required | [] | | List of defined stereotypes |
+| constraintRules | ConstraintRule[] | required | [] | | List of expression constraint rules |
+| viewpoints | ViewpointDefinition[] | required | [] | Contains system-defined (built-in) + user-defined viewpoints | List of viewpoints; see [viewpoint.md](./viewpoint.md) for the full specification |
+| architectureLayers | ArchitectureLayerDefinition[] | required | [] | | List of architecture layers; empty = no layer categorization |
+| mandatoryConnectionConstraints | MandatoryConnectionConstraint[] | required | [] | | Declarative mandatory-connection rules |
+| documentCollectionDefinitions | DocumentCollectionDefinition[] | required | [] | | Operator-defined documentation types with chapters (Arc42, third-party, license register, etc.); see [document-collection.md](./document-collection.md) |
 
 ### EntityTypeDefinition
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| id | string | required | | kebab-case, global eindeutig | Stabiler Bezeichner (z.B. `security-zone`) |
-| name | string | required | | PascalCase, eindeutig über alle Typen | Anzeigename (z.B. `SecurityZone`) |
-| extends | string | optional | null | muss ein gültiger EntityType-Name sein | Basis-Typ; null = kein Eltern-Typ |
-| description | string | optional | | max. 1000 Zeichen | Fachliche Beschreibung des Typs |
-| properties | PropertyDefinition[] | required | [] | | Typ-spezifische Attribute |
-| relations | RelationDefinition[] | required | [] | | Erlaubte Relationen zu anderen Typen |
-| isBuiltIn | boolean | required | false | read-only; true nur für §6-Typen | Kennzeichnet eingebaute Typen |
-| isConnection | boolean | required | false | | Markiert den Typ als Connection-Typ; erzwingt `source` und `target` an jeder Instanz (REQ-036) |
-| allowedSourceTypes | string[] | optional | null | null = beliebiger EntityType oder Connection-Typ zulässig | Einschränkung: welche Typen als Start-Entität erlaubt sind |
-| allowedTargetTypes | string[] | optional | null | null = beliebiger EntityType oder Connection-Typ zulässig | Einschränkung: welche Typen als Ziel-Entität erlaubt sind |
-| allowsConnectionAsSource | boolean | optional | false | nur sinnvoll wenn `isConnection=true` | Gibt frei, dass Instanzen dieses Typs als `sourceEntityId` einer weiteren Connection fungieren dürfen (n-Connection, ADR-010); Default false |
-| architectureLayerId | string | optional | null | muss gültige ArchitectureLayerDefinition.id referenzieren | Zuweisung zur Architekturebene; null = keine Ebene zugewiesen |
-| creationSteps | CreationStep[] | optional | [] | | Definiert den Wizard bei der Anlage; leer = einfaches Anlage-Formular ohne Wizard |
+| id | string | required | | kebab-case, globally unique | Stable identifier (e.g. `security-zone`) |
+| name | string | required | | PascalCase, unique across all types | Display name (e.g. `SecurityZone`) |
+| extends | string | optional | null | must be a valid EntityType name | Base type; null = no parent type |
+| description | string | optional | | max. 1000 characters | Business description of the type |
+| properties | PropertyDefinition[] | required | [] | | Type-specific attributes |
+| relations | RelationDefinition[] | required | [] | | Allowed relations to other types |
+| isBuiltIn | boolean | required | false | read-only; true only for §6 types | Marks built-in types |
+| isConnection | boolean | required | false | | Marks the type as a connection type; enforces `source` and `target` on every instance (REQ-036) |
+| allowedSourceTypes | string[] | optional | null | null = any EntityType or connection type permitted | Restriction: which types are allowed as start entity |
+| allowedTargetTypes | string[] | optional | null | null = any EntityType or connection type permitted | Restriction: which types are allowed as target entity |
+| allowsConnectionAsSource | boolean | optional | false | only meaningful if `isConnection=true` | Allows instances of this type to act as the `sourceEntityId` of a further connection (n-connection, ADR-010); default false |
+| architectureLayerId | string | optional | null | must reference a valid ArchitectureLayerDefinition.id | Assignment to the architecture layer; null = no layer assigned |
+| creationSteps | CreationStep[] | optional | [] | | Defines the wizard on creation; empty = simple creation form without wizard |
 
 ### PropertyDefinition
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| name | string | required | | camelCase; eindeutig pro EntityType | Technischer Attribut-Name (z.B. `investitionskostenPrognose`) |
-| displayLabel | string | optional | | max. 100 Zeichen | Anzeigename in der GUI; überschreibt `name` wenn gesetzt |
-| dataType | PropertyDataType | required | | | Datentyp-Definition (Details: PropertyDataType) |
-| validationMode | enum | required | `optional` | `[mandatory, warning, optional]` | `mandatory` = Fehler beim Speichern wenn leer; `warning` = Hinweis, aber Speichern erlaubt; `optional` = keine Prüfung |
-| category | string | required | | max. 100 Zeichen; frei wählbar | Kategorie-Zuordnung (z.B. `"Kosten"`, `"Organisation"`, `"Compliance"`, `"Sicherheit"`) |
-| defaultValue | string | optional | null | muss zur dataType-Definition passen | Standardwert als String-Repräsentation |
-| description | string | optional | | max. 500 Zeichen | Fachliche Beschreibung des Attributs |
-| visibilityMode | enum | optional | `public` | `[public, role-restricted, connection-scoped]` | Steuert, wer den Wert lesen und schreiben darf (REQ-124); `public` = alle; `role-restricted` = nur `allowedRoles`; `connection-scoped` = ABAC via Graph-Traversal |
-| allowedRoles | Role[] | conditional | [] | Pflicht wenn `visibilityMode=role-restricted`; mind. 1 Eintrag | Rollen, die den Wert lesen und schreiben dürfen |
-| scopingConnectionType | string | conditional | null | Pflicht wenn `visibilityMode=connection-scoped`; muss gültige `isConnection=true`-ConnectionType-ID referenzieren | Connection-Typ, der den Scope definiert (z.B. `DomainAssignment`) |
+| name | string | required | | camelCase; unique per EntityType | Technical attribute name (e.g. `investitionskostenPrognose`) |
+| displayLabel | string | optional | | max. 100 characters | Display name in the GUI; overrides `name` if set |
+| dataType | PropertyDataType | required | | | Data type definition (details: PropertyDataType) |
+| validationMode | enum | required | `optional` | `[mandatory, warning, optional]` | `mandatory` = error on save if empty; `warning` = notice, but saving allowed; `optional` = no check |
+| category | string | required | | max. 100 characters; freely selectable | Category assignment (e.g. `"Costs"`, `"Organization"`, `"Compliance"`, `"Security"`) |
+| defaultValue | string | optional | null | must match the dataType definition | Default value as string representation |
+| description | string | optional | | max. 500 characters | Business description of the attribute |
+| visibilityMode | enum | optional | `public` | `[public, role-restricted, connection-scoped]` | Controls who may read and write the value (REQ-124); `public` = all; `role-restricted` = only `allowedRoles`; `connection-scoped` = ABAC via graph traversal |
+| allowedRoles | Role[] | conditional | [] | Required if `visibilityMode=role-restricted`; at least 1 entry | Roles that may read and write the value |
+| scopingConnectionType | string | conditional | null | Required if `visibilityMode=connection-scoped`; must reference a valid `isConnection=true` ConnectionType ID | Connection type that defines the scope (e.g. `DomainAssignment`) |
 
 ### PropertyDataType
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| kind | enum | required | | `[int, varchar, enum]` | Basistyp: `int` = Ganzzahl; `varchar` = Text mit Länge; `enum` = Auswahlliste |
-| maxLength | integer | conditional | | nur bei `kind=varchar`; Wertebereich 1–4000 | Maximale Zeichenanzahl |
-| enumValues | string[] | conditional | | nur bei `kind=enum`; mindestens 2 Einträge; eindeutig | Erlaubte Auswahlwerte |
+| kind | enum | required | | `[int, varchar, enum]` | Base type: `int` = integer; `varchar` = text with length; `enum` = selection list |
+| maxLength | integer | conditional | | only for `kind=varchar`; value range 1–4000 | Maximum number of characters |
+| enumValues | string[] | conditional | | only for `kind=enum`; at least 2 entries; unique | Allowed selection values |
 
 ### RelationDefinition
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| name | string | required | | camelCase | Relationsbezeichnung (z.B. `contains`) |
-| target | string | required | | gültiger EntityType-Name | Ziel-Typ der Relation |
-| cardinality | string | required | | Format: `min..max` (z.B. `0..n`, `1..1`) | Kardinalität |
-| description | string | optional | | | Fachliche Bedeutung der Relation |
+| name | string | required | | camelCase | Relation name (e.g. `contains`) |
+| target | string | required | | valid EntityType name | Target type of the relation |
+| cardinality | string | required | | Format: `min..max` (e.g. `0..n`, `1..1`) | Cardinality |
+| description | string | optional | | | Business meaning of the relation |
 
 ### Stereotype
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| name | string | required | | PascalCase, eindeutig | Stereotyp-Name (z.B. `SaaSApplication`) |
-| basedOn | string | required | | gültiger EntityType-Name | Basis-Typ, der erweitert wird |
-| properties | PropertyDefinition[] | required | [] | | Zusätzliche Attribute |
-| description | string | optional | | | Fachliche Bedeutung |
+| name | string | required | | PascalCase, unique | Stereotype name (e.g. `SaaSApplication`) |
+| basedOn | string | required | | valid EntityType name | Base type that is extended |
+| properties | PropertyDefinition[] | required | [] | | Additional attributes |
+| description | string | optional | | | Business meaning |
 
 ### ConstraintRule
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| name | string | required | | kebab-case, eindeutig | Regelbezeichner (z.B. `every-interface-has-owner`) |
-| appliesTo | string | required | | gültiger EntityType-Name | Geltungsbereich: Entitätstyp |
-| scope | ScopeDefinition | optional | null | null = gilt für alle Instanzen des Typs | Einschränkung auf Teilmenge (§15.2) |
-| ruleMode | enum | required | `structured` | `[structured, expression]` | `structured` = GUI-Builder-Bedingungen (zu CEL kompiliert); `expression` = direkter CEL-Ausdruck (ADR-018) |
-| conditions | ConditionGroup | conditional | null | REQUIRED wenn `ruleMode=structured` | Verschachtelte AND/OR-Bedingungsstruktur; vom Backend zu CEL kompiliert |
-| expression | string | conditional | null | REQUIRED wenn `ruleMode=expression`; gültiger CEL-Ausdruck | Direkter CEL-Ausdruck (z.B. `entity.owner != null`) |
-| severity | enum | required | `warning` | `[hint, warning, error]` | Schweregrad bei Regelverletzung |
-| message | string | required | | max. 500 Zeichen | Meldung für den Nutzer bei Verletzung |
+| name | string | required | | kebab-case, unique | Rule identifier (e.g. `every-interface-has-owner`) |
+| appliesTo | string | required | | valid EntityType name | Scope of applicability: entity type |
+| scope | ScopeDefinition | optional | null | null = applies to all instances of the type | Restriction to a subset (§15.2) |
+| ruleMode | enum | required | `structured` | `[structured, expression]` | `structured` = GUI builder conditions (compiled to CEL); `expression` = direct CEL expression (ADR-018) |
+| conditions | ConditionGroup | conditional | null | REQUIRED if `ruleMode=structured` | Nested AND/OR condition structure; compiled to CEL by the backend |
+| expression | string | conditional | null | REQUIRED if `ruleMode=expression`; valid CEL expression | Direct CEL expression (e.g. `entity.owner != null`) |
+| severity | enum | required | `warning` | `[hint, warning, error]` | Severity on rule violation |
+| message | string | required | | max. 500 characters | Message for the user on violation |
 
 ### ConditionGroup
 
-| Attribut | Typ | Optional | Beschreibung |
+| Attribute | Type | Optional | Description |
 |---|---|---|---|
-| all | Condition[] | conditional | AND-Verknüpfung; mindestens eine von `all` oder `any` muss gesetzt sein |
-| any | Condition[] | conditional | OR-Verknüpfung |
+| all | Condition[] | conditional | AND combination; at least one of `all` or `any` must be set |
+| any | Condition[] | conditional | OR combination |
 
 ### Condition
 
-| Attribut | Typ | Optional | Beschreibung |
+| Attribute | Type | Optional | Description |
 |---|---|---|---|
-| property | string | required | Eigenschaftsname der Entität (z.B. `owner`, `criticality`) |
+| property | string | required | Property name of the entity (e.g. `owner`, `criticality`) |
 | operator | enum | required | `[notNull, isNull, equals, notEquals, contains, notContains, startsWith, matches, greaterThan, lessThan, between, minCount, maxCount]` |
-| value | string \| number | conditional | Vergleichswert; nicht benötigt bei `notNull`/`isNull` |
-| group | ConditionGroup | optional | Verschachtelte Untergruppe (ermöglicht komplexe AND/OR-Kombinationen) |
+| value | string \| number | conditional | Comparison value; not needed for `notNull`/`isNull` |
+| group | ConditionGroup | optional | Nested subgroup (enables complex AND/OR combinations) |
 
 ### ArchitectureLayerDefinition
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| id | string | required | | kebab-case, eindeutig | Technischer Bezeichner (z.B. `business-layer`, `application-layer`) |
-| name | string | required | | eindeutig in der MetamodelConfiguration | Anzeigename (z.B. „Business", „Applikation", „Technologie") |
-| sortOrder | integer | required | | ≥ 0; steuert Anzeigereihenfolge | Reihenfolge in Listen und Diagrammen (aufsteigend) |
-| color | string | optional | | Hex-Farbcode (#RRGGBB) | Farb-Codierung für visuelle Abgrenzung |
-| description | string | optional | | max. 500 Zeichen | Beschreibung des Geltungsbereichs dieser Ebene |
+| id | string | required | | kebab-case, unique | Technical identifier (e.g. `business-layer`, `application-layer`) |
+| name | string | required | | unique in the MetamodelConfiguration | Display name (e.g. "Business", "Application", "Technology") |
+| sortOrder | integer | required | | ≥ 0; controls display order | Order in lists and diagrams (ascending) |
+| color | string | optional | | hex color code (#RRGGBB) | Color coding for visual distinction |
+| description | string | optional | | max. 500 characters | Description of the scope of this layer |
 
-**Verwendung**: Jeder `EntityTypeDefinition` kann über `architectureLayerId` genau einer Ebene zugewiesen werden. Entity-Instanzen erben die Ebene ihres Typs. Ebenen steuern Sortierung und Filterbarkeit in Katalogen und Dashboards.
+**Usage**: Each `EntityTypeDefinition` can be assigned to exactly one layer via `architectureLayerId`. Entity instances inherit the layer of their type. Layers control sorting and filterability in catalogs and dashboards.
 
 ### MandatoryConnectionConstraint
 
-Deklarative Regel, die vorschreibt, dass jede Instanz eines bestimmten EntityTypes mindestens eine Connection eines definierten Connection-Typs zu einem Ziel-EntityType haben muss.
+Declarative rule that prescribes that every instance of a specific EntityType must have at least one connection of a defined connection type to a target EntityType.
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| name | string | required | | kebab-case, eindeutig | Regelbezeichner (z.B. `appcomp-must-run-on-tech`) |
-| sourceEntityType | string | required | | gültige EntityType-ID (built-in oder custom) | Quell-Entitätstyp, für den die Regel gilt |
-| connectionType | string | required | | EntityType-ID mit `isConnection=true` | Connection-Typ, der als Pflicht-Verbindung gefordert wird |
-| targetEntityType | string | optional | null | gültige EntityType-ID oder null | Ziel-Entitätstyp; null = beliebiger Zieltyp akzeptiert |
-| validationMode | enum | required | `warning` | `[error, warning]` | `error` = Speichern blockiert; `warning` = Hinweis, Speichern erlaubt |
-| message | string | required | | max. 500 Zeichen | Fehlermeldung oder Hinweis für den Nutzer |
+| name | string | required | | kebab-case, unique | Rule identifier (e.g. `appcomp-must-run-on-tech`) |
+| sourceEntityType | string | required | | valid EntityType ID (built-in or custom) | Source entity type to which the rule applies |
+| connectionType | string | required | | EntityType ID with `isConnection=true` | Connection type required as mandatory connection |
+| targetEntityType | string | optional | null | valid EntityType ID or null | Target entity type; null = any target type accepted |
+| validationMode | enum | required | `warning` | `[error, warning]` | `error` = saving blocked; `warning` = notice, saving allowed |
+| message | string | required | | max. 500 characters | Error message or notice for the user |
 
 ### CreationStep
 
-Beschreibt eine einzelne Seite (Schritt) im Anlage-Wizard, der beim Erstellen einer Entität dieses Typs durchlaufen wird. Wenn `EntityTypeDefinition.creationSteps` nicht leer ist, öffnet das System automatisch einen mehrseitigen Wizard statt des einfachen Anlage-Formulars.
+Describes a single page (step) in the creation wizard that is run through when creating an entity of this type. If `EntityTypeDefinition.creationSteps` is not empty, the system automatically opens a multi-page wizard instead of the simple creation form.
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| stepId | string | required | | kebab-case; eindeutig innerhalb `creationSteps` | Technischer Bezeichner des Schritts |
-| title | string | required | | max. 100 Zeichen | Seitentitel im Wizard (z.B. „Basisdaten", „Domänen-Zuordnung") |
-| description | string | optional | null | max. 500 Zeichen | Hilfetext unterhalb des Titels |
-| stepType | enum | required | | `[properties, domainAssignment, connectionAssignment]` | Art des Wizard-Schritts |
-| propertyCategory | string | conditional | null | Pflicht wenn `stepType=properties` | Zeigt alle `PropertyDefinition`-Felder dieser Kategorie auf der Seite |
-| connectionType | string | conditional | null | Pflicht wenn `stepType=connectionAssignment`; muss `isConnection=true` haben | Connection-Typ, den der Nutzer hier verknüpfen soll |
-| targetEntityType | string | optional | null | nur relevant wenn `stepType=connectionAssignment` | Schränkt Zielauswahl auf diesen Typ ein; null = beliebiger Typ erlaubt |
-| minConnections | integer | optional | 1 | nur relevant wenn `stepType=connectionAssignment`; ≥ 1 | Mindestanzahl Verbindungen; 0 = optional |
+| stepId | string | required | | kebab-case; unique within `creationSteps` | Technical identifier of the step |
+| title | string | required | | max. 100 characters | Page title in the wizard (e.g. "Basic Data", "Domain Assignment") |
+| description | string | optional | null | max. 500 characters | Help text below the title |
+| stepType | enum | required | | `[properties, domainAssignment, connectionAssignment]` | Kind of wizard step |
+| propertyCategory | string | conditional | null | Required if `stepType=properties` | Shows all `PropertyDefinition` fields of this category on the page |
+| connectionType | string | conditional | null | Required if `stepType=connectionAssignment`; must have `isConnection=true` | Connection type that the user is to link here |
+| targetEntityType | string | optional | null | only relevant if `stepType=connectionAssignment` | Restricts target selection to this type; null = any type allowed |
+| minConnections | integer | optional | 1 | only relevant if `stepType=connectionAssignment`; ≥ 1 | Minimum number of connections; 0 = optional |
 
-**stepType-Semantik**:
-- `properties`: zeigt alle `PropertyDefinitions` der angegebenen `propertyCategory` als ausfüllbares Formular
-- `domainAssignment`: zeigt MultiSelect aller `ArchitectureDomainDefinition`-Einträge; Nutzer wählt Zugehörigkeit
-- `connectionAssignment`: zeigt Suchfeld + Auswahl für Zielentitäten; erzeugt Connection(s) nach Fertigstellung
+**stepType semantics**:
+- `properties`: shows all `PropertyDefinitions` of the specified `propertyCategory` as a fillable form
+- `domainAssignment`: shows a multi-select of all `ArchitectureDomainDefinition` entries; the user selects membership
+- `connectionAssignment`: shows a search field + selection for target entities; creates connection(s) upon completion
 
-**Wizard-Ablauf**: N Schritte → N-1 mal „Weiter" + einmal „Fertig". Die Entität wird erst nach Klick auf „Fertig" atomisch persistiert (Entität + alle angegebenen Connections in einer Transaktion). Bis dahin existiert sie nicht im Repository.
+**Wizard flow**: N steps → N-1 times "Next" + once "Finish". The entity is persisted atomically only after clicking "Finish" (entity + all specified connections in one transaction). Until then it does not exist in the repository.
 
-## Beziehungen
+## Relationships
 
-| Beziehung | Ziel-Objekt | Kardinalität | Optional | Beschreibung |
+| Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
-| belongsTo | instance | 1:1 | no | Jede Instanz hat genau eine Konfiguration |
-| modifiedBy | [person](./person.md) | n:1 | no | Letzte Änderung ist einer Person zugeordnet |
+| belongsTo | instance | 1:1 | no | Each instance has exactly one configuration |
+| modifiedBy | [person](./person.md) | n:1 | no | The last change is assigned to a person |
 
-**Hinweise**:
-- Die `MetamodelConfiguration` ist kein EA-Modell-Element; sie ist Infrastruktur, die das Modell formt.
-- Änderungen an der Konfiguration wirken auf alle künftig angelegten Entitäten; bestehende Entitäten werden durch Schema-Evolution (§15) migriert.
-- Built-in EntityTypes (`isBuiltIn=true`) werden im Code verwaltet, nicht in der DB-gespeicherten Konfiguration. Sie sind in der API und im UI sichtbar, aber nicht editierbar.
+**Notes**:
+- The `MetamodelConfiguration` is not an EA model element; it is infrastructure that shapes the model.
+- Changes to the configuration affect all entities created in the future; existing entities are migrated through schema evolution (§15).
+- Built-in EntityTypes (`isBuiltIn=true`) are managed in code, not in the DB-stored configuration. They are visible in the API and UI but not editable.
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser | Compliance-Bezug |
+| Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
-| BR-01 | Ein `EntityTypeDefinition.name` muss über alle Typen (built-in + custom) eindeutig sein | onCreate, onUpdate | – |
-| BR-02 | Ein Built-in EntityType (`isBuiltIn=true`) darf nicht gelöscht oder in seiner Grundstruktur verändert werden | onDelete, onUpdate | – |
-| BR-03 | Ein Custom EntityType kann nur gelöscht werden, wenn keine Instanz dieses Typs im Repository existiert | onDelete | – |
-| BR-04 | Eine `ConstraintRule` mit `severity=error` blockiert das Speichern von Entitäten, die die Regel verletzen | onValidate | – |
-| BR-05 | Änderungen an der `MetamodelConfiguration` erfordern eine berechtigt konfigurierende Person (Metamodell-Bearbeiter-Rolle) | onCreate, onUpdate, onDelete | – |
-| BR-06 | Ist `editMode=import-only` einer Konfiguration, DÜRFEN Create-, Update- und Delete-Operationen auf EntityTypeDefinitions, Stereotypes und ConstraintRules dieser Konfiguration via GUI-API NICHT ausgeführt werden; nur der Import-Pfad (REQ-033) bleibt aktiv; gilt unabhängig pro Scope-Ebene: eine Solution-Erweiterung kann `gui-and-import` haben, während die Instanz-Konfiguration `import-only` ist | onUpdate | – |
-| BR-09 | Eine `MetamodelConfiguration` mit `scope=solution` DARF keine Typen enthalten, die im Eltern-Objekt (`parentId`) bereits definiert sind (keine Überschreibung, nur Ergänzung) | onCreate, onUpdate | – |
-| BR-10 | Eine `MetamodelConfiguration` mit `scope=solution` MUSS eine gültige `parentId` haben, die auf eine `MetamodelConfiguration` mit `scope=instance` derselben OEA-Instanz zeigt | onCreate | – |
-| BR-07 | Eine Instanz eines Connection-Typs (`isConnection=true`) MUSS genau eine `source`- und eine `target`-Referenz besitzen; beide Referenzen dürfen auf Entitäten beliebiger EntityType-Klasse zeigen (inkl. andere Connection-Instanzen), sofern die jeweiligen `allowedSourceTypes`/`allowedTargetTypes`-Listen eingehalten werden | onCreate, onUpdate | – |
-| BR-08 | `allowedSourceTypes`, `allowedTargetTypes` und `allowsConnectionAsSource` dürfen nur gesetzt werden, wenn `isConnection=true`; bei `isConnection=false` sind sie bedeutungslos und werden ignoriert | onCreate, onUpdate | – |
-| BR-11 | `PropertyDefinition.dataType.kind=varchar` erfordert `maxLength` ≥ 1 | onCreate, onUpdate | – |
-| BR-12 | `PropertyDefinition.dataType.kind=enum` erfordert `enumValues` mit mindestens 2 eindeutigen Einträgen | onCreate, onUpdate | – |
-| BR-13 | `PropertyDefinition.name` muss innerhalb eines EntityType eindeutig sein (case-insensitive) | onCreate, onUpdate | – |
-| BR-14 | `PropertyDefinition.category` darf nicht leer sein; Leerzeichen-only gilt als leer | onCreate, onUpdate | – |
-| BR-15 | `EntityTypeDefinition.architectureLayerId` muss, wenn gesetzt, eine `ArchitectureLayerDefinition.id` derselben `MetamodelConfiguration` (oder deren Parent-Konfiguration) referenzieren | onCreate, onUpdate | – |
-| BR-16 | `MandatoryConnectionConstraint.connectionType` muss ein `EntityTypeDefinition` mit `isConnection=true` referenzieren | onCreate, onUpdate | – |
-| BR-17 | `MandatoryConnectionConstraint.sourceEntityType` und `targetEntityType` (wenn gesetzt) müssen gültige EntityType-IDs sein | onCreate, onUpdate | – |
-| BR-18 | `ArchitectureLayerDefinition.id` und `ArchitectureDomainDefinition.id` müssen innerhalb der MetamodelConfiguration eindeutig sein (gemeinsamer Namensraum erlaubt Konflikte nicht) | onCreate, onUpdate | – |
-| BR-19 | `CreationStep.stepId` muss innerhalb der `creationSteps`-Liste eines EntityType eindeutig sein | onCreate, onUpdate | – |
-| BR-20 | `CreationStep.propertyCategory` muss, wenn gesetzt, einem vorhandenen `PropertyDefinition.category`-Wert des zugehörigen EntityType entsprechen | onCreate, onUpdate | – |
-| BR-21 | `CreationStep.connectionType` muss, wenn gesetzt, eine gültige EntityType-ID mit `isConnection=true` in derselben MetamodelConfiguration sein | onCreate, onUpdate | – |
-| BR-22 | Wenn der Anlage-Wizard gestartet wird (`creationSteps` nicht leer): die Entität wird erst nach Klick auf „Fertig" persistiert; ein Abbruch (ESC oder X) erzeugt keine Entität und hinterlässt keinen Zustand im Repository | onEntityCreate | – |
+| BR-01 | An `EntityTypeDefinition.name` must be unique across all types (built-in + custom) | onCreate, onUpdate | – |
+| BR-02 | A built-in EntityType (`isBuiltIn=true`) must not be deleted or changed in its basic structure | onDelete, onUpdate | – |
+| BR-03 | A custom EntityType can only be deleted if no instance of this type exists in the repository | onDelete | – |
+| BR-04 | A `ConstraintRule` with `severity=error` blocks saving of entities that violate the rule | onValidate | – |
+| BR-05 | Changes to the `MetamodelConfiguration` require an authorized configuring person (metamodel editor role) | onCreate, onUpdate, onDelete | – |
+| BR-06 | If `editMode=import-only` for a configuration, create, update, and delete operations on EntityTypeDefinitions, stereotypes, and ConstraintRules of this configuration MUST NOT be executed via the GUI API; only the import path (REQ-033) remains active; applies independently per scope level: a solution extension can have `gui-and-import` while the instance configuration is `import-only` | onUpdate | – |
+| BR-09 | A `MetamodelConfiguration` with `scope=solution` MUST NOT contain types that are already defined in the parent object (`parentId`) (no overriding, only supplementing) | onCreate, onUpdate | – |
+| BR-10 | A `MetamodelConfiguration` with `scope=solution` MUST have a valid `parentId` pointing to a `MetamodelConfiguration` with `scope=instance` of the same OEA instance | onCreate | – |
+| BR-07 | An instance of a connection type (`isConnection=true`) MUST have exactly one `source` and one `target` reference; both references may point to entities of any EntityType class (including other connection instances), provided the respective `allowedSourceTypes`/`allowedTargetTypes` lists are respected | onCreate, onUpdate | – |
+| BR-08 | `allowedSourceTypes`, `allowedTargetTypes`, and `allowsConnectionAsSource` may only be set if `isConnection=true`; for `isConnection=false` they are meaningless and are ignored | onCreate, onUpdate | – |
+| BR-11 | `PropertyDefinition.dataType.kind=varchar` requires `maxLength` ≥ 1 | onCreate, onUpdate | – |
+| BR-12 | `PropertyDefinition.dataType.kind=enum` requires `enumValues` with at least 2 unique entries | onCreate, onUpdate | – |
+| BR-13 | `PropertyDefinition.name` must be unique within an EntityType (case-insensitive) | onCreate, onUpdate | – |
+| BR-14 | `PropertyDefinition.category` must not be empty; whitespace-only counts as empty | onCreate, onUpdate | – |
+| BR-15 | `EntityTypeDefinition.architectureLayerId`, if set, must reference an `ArchitectureLayerDefinition.id` of the same `MetamodelConfiguration` (or its parent configuration) | onCreate, onUpdate | – |
+| BR-16 | `MandatoryConnectionConstraint.connectionType` must reference an `EntityTypeDefinition` with `isConnection=true` | onCreate, onUpdate | – |
+| BR-17 | `MandatoryConnectionConstraint.sourceEntityType` and `targetEntityType` (if set) must be valid EntityType IDs | onCreate, onUpdate | – |
+| BR-18 | `ArchitectureLayerDefinition.id` and `ArchitectureDomainDefinition.id` must be unique within the MetamodelConfiguration (shared namespace does not allow conflicts) | onCreate, onUpdate | – |
+| BR-19 | `CreationStep.stepId` must be unique within the `creationSteps` list of an EntityType | onCreate, onUpdate | – |
+| BR-20 | `CreationStep.propertyCategory`, if set, must correspond to an existing `PropertyDefinition.category` value of the associated EntityType | onCreate, onUpdate | – |
+| BR-21 | `CreationStep.connectionType`, if set, must be a valid EntityType ID with `isConnection=true` in the same MetamodelConfiguration | onCreate, onUpdate | – |
+| BR-22 | When the creation wizard is started (`creationSteps` not empty): the entity is persisted only after clicking "Finish"; a cancellation (ESC or X) creates no entity and leaves no state in the repository | onEntityCreate | – |
 
-## Beispiele
+## Examples
 
-**Custom EntityType (YAML-Darstellung, §14.1)**:
+**Custom EntityType (YAML representation, §14.1)**:
 ```yaml
 entityType: SecurityZone
 id: security-zone
 extends: null
-description: "Logische Netzwerkzone mit definiertem Trust-Level"
+description: "Logical network zone with a defined trust level"
 architectureLayerId: technology-layer
 properties:
   - name: trustLevel
-    displayLabel: "Vertrauensstufe"
+    displayLabel: "Trust Level"
     dataType: { kind: enum, enumValues: [public, dmz, internal, restricted] }
     validationMode: mandatory
-    category: "Sicherheit"
+    category: "Security"
   - name: complianceScope
-    displayLabel: "Compliance-Scope"
+    displayLabel: "Compliance Scope"
     dataType: { kind: varchar, maxLength: 200 }
     validationMode: optional
     category: "Compliance"
   - name: investitionskostenPrognose
-    displayLabel: "Investitionskosten Prognose (CHF)"
+    displayLabel: "Investment Cost Forecast (CHF)"
     dataType: { kind: int }
     validationMode: warning
-    category: "Kosten"
+    category: "Costs"
 relations:
   - name: contains
     target: TechnologyComponent
     cardinality: 0..n
 ```
 
-**Stereotype (YAML-Darstellung, §14.2)**:
+**Stereotype (YAML representation, §14.2)**:
 ```yaml
 stereotype: SaaSApplication
 basedOn: ApplicationComponent
-description: "Software-as-a-Service Anwendung ohne eigenen Hosting-Betrieb"
+description: "Software-as-a-Service application without own hosting operations"
 properties:
   - name: vendor
     type: string
@@ -303,12 +303,12 @@ properties:
     required: false
 ```
 
-**Connection-EntityType (YAML-Darstellung, REQ-036)**:
+**Connection EntityType (YAML representation, REQ-036)**:
 ```yaml
 entityType: DataFlow
 id: data-flow
 isConnection: true
-description: "Datenfluss zwischen zwei Komponenten; Start und Ziel sind Pflicht"
+description: "Data flow between two components; start and target are mandatory"
 allowedSourceTypes: [ApplicationComponent, ApplicationService, DataFlow]
 allowedTargetTypes: [ApplicationComponent, ApplicationService, DataFlow]
 properties:
@@ -321,53 +321,53 @@ properties:
     required: false
     enumValues: [public, internal, confidential, restricted]
 ```
-*T-Beziehung*: `DataFlow.allowedSourceTypes` enthält `DataFlow` → ein DataFlow kann auf einen anderen DataFlow zeigen, was eine T-Verbindung ergibt (z.B. Abzweigung einer Datenleitung).
+*T relationship*: `DataFlow.allowedSourceTypes` contains `DataFlow` → a DataFlow can point to another DataFlow, which yields a T connection (e.g. a branch of a data line).
 
-**Constraint-Regel (YAML-Darstellung, §14.3)**:
+**Constraint rule (YAML representation, §14.3)**:
 ```yaml
 name: every-interface-has-owner
 appliesTo: Interface
 rule: "entity.owner != null"
 severity: error
-message: "Jede Interface muss einen Owner-ApplicationComponent zugewiesen haben"
+message: "Every Interface must have an owner ApplicationComponent assigned"
 ```
 
-**ArchitectureLayer-Definitionen (YAML-Darstellung)**:
+**ArchitectureLayer definitions (YAML representation)**:
 ```yaml
 architectureLayers:
   - id: business-layer
     name: "Business"
     sortOrder: 1
     color: "#F5A623"
-    description: "Fachliche Prozesse, Rollen und Organisationseinheiten"
+    description: "Business processes, roles, and organizational units"
   - id: application-layer
-    name: "Applikation"
+    name: "Application"
     sortOrder: 2
     color: "#4A90D9"
-    description: "Applikationskomponenten und -services"
+    description: "Application components and services"
   - id: technology-layer
-    name: "Technologie"
+    name: "Technology"
     sortOrder: 3
     color: "#7ED321"
-    description: "Infrastruktur, Plattformen und technische Dienste"
+    description: "Infrastructure, platforms, and technical services"
 ```
 
-**ArchitectureDomain-Definitionen (YAML-Darstellung)**:
+**ArchitectureDomain definitions (YAML representation)**:
 ```yaml
 architectureDomains:
   - id: finance
     name: "Finance"
     color: "#9B59B6"
-    description: "Finanzbuchhaltung, Controlling, Treasury"
+    description: "Financial accounting, controlling, treasury"
   - id: hr
     name: "Human Resources"
     color: "#E74C3C"
   - id: logistics
-    name: "Logistik"
+    name: "Logistics"
     color: "#1ABC9C"
 ```
 
-**MandatoryConnectionConstraint (YAML-Darstellung)**:
+**MandatoryConnectionConstraint (YAML representation)**:
 ```yaml
 mandatoryConnectionConstraints:
   - name: appcomp-must-run-on-tech
@@ -375,37 +375,37 @@ mandatoryConnectionConstraints:
     connectionType: runs-on
     targetEntityType: technology-component
     validationMode: warning
-    message: "Jede ApplicationComponent sollte mindestens eine 'runs-on'-Connection zu einer TechnologyComponent haben"
+    message: "Every ApplicationComponent should have at least one 'runs-on' connection to a TechnologyComponent"
   - name: solution-must-realize-plateau
     sourceEntityType: solution
     connectionType: realizes
     targetEntityType: plateau
     validationMode: error
-    message: "Jede Solution muss genau einem Plateau zugeordnet sein"
+    message: "Every Solution must be assigned to exactly one Plateau"
 ```
 
-## Abgrenzung zu ähnlichen Objekten
+## Delimitation from Similar Objects
 
-- **NICHT** [person](./person.md): Die Konfiguration gehört der Instanz, nicht einer Person; Personen sind nur Bearbeiter.
-- **NICHT** ein EA-Modell-Element: `ApplicationComponent`, `BusinessProcess` etc. sind Instanzen der durch die `MetamodelConfiguration` definierten Typen, nicht Teil der Konfiguration selbst.
-- **NICHT** ADR: Architektur-Entscheidungen (Welchen EntityType verwenden wir für Kafka?) sind ADRs; die `MetamodelConfiguration` ist die technische Umsetzung dieser Entscheidung.
+- **NOT** [person](./person.md): The configuration belongs to the instance, not to a person; persons are only editors.
+- **NOT** an EA model element: `ApplicationComponent`, `BusinessProcess`, etc. are instances of the types defined by the `MetamodelConfiguration`, not part of the configuration itself.
+- **NOT** an ADR: Architecture decisions (which EntityType do we use for Kafka?) are ADRs; the `MetamodelConfiguration` is the technical implementation of this decision.
 
-## Verwendung in Use Cases
+## Usage in Use Cases
 
-- [UC-04: Metamodell konfigurieren](../requirements/use-cases/UC-04-metamodell-konfigurieren.md) (erzeugt und verwaltet MetamodelConfiguration inkl. Viewpoints)
+- [UC-04: Configure Metamodel](../requirements/use-cases/UC-04-configure-metamodel.md) (creates and manages MetamodelConfiguration incl. viewpoints)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | Business Engineer | Initial draft |
-| 0.2.0 | 2026-06-25 | Business Engineer | `editMode` (Sperrmodus REQ-035) und Connection-Attribute (`isConnection`, `allowedSourceTypes`, `allowedTargetTypes`) zu EntityTypeDefinition hinzugefügt (REQ-036); BR-06/07/08 ergänzt |
-| 0.3.0 | 2026-06-25 | Business Engineer | Zwei-Ebenen-Scoping eingeführt (REQ-037): `scope`, `architectureId`, `parentId`; BR-09/10 ergänzt; `editMode` gilt unabhängig pro Scope-Ebene |
-| 0.4.0 | 2026-06-25 | Business Engineer | `scope=architecture` → `scope=solution`; `architectureId` → `solutionId`; Scope-Container präzisiert als Solution (Plateau-Prinzip, Option 3) |
-| 0.5.0 | 2026-06-26 | Business Engineer | Viewpoints als vierte konfigurierbare Kategorie ergänzt; `viewpoints: ViewpointDefinition[]` zum Wurzel-Objekt hinzugefügt; Verweis auf viewpoint.md |
-| 0.6.0 | 2026-06-26 | Business Engineer | PropertyDefinition überarbeitet: `type/required` → `dataType (kind: int/varchar/enum)` + `validationMode (mandatory/warning/optional)` + `category`; neues Sub-Objekt `PropertyDataType`; `architectureLayerId` zu EntityTypeDefinition; neue Sub-Objekte `ArchitectureLayerDefinition`, `ArchitectureDomainDefinition`, `MandatoryConnectionConstraint`; drei neue Felder im Wurzel-Objekt; BR-11–18 ergänzt; YAML-Beispiele aktualisiert |
-| 0.7.0 | 2026-06-26 | Business Engineer | `allowsConnectionAsSource: boolean` (Default false) zu EntityTypeDefinition hinzugefügt (ADR-010, n-Connection); BR-08 erweitert |
-| 0.8.0 | 2026-06-26 | Business Engineer | `creationSteps: CreationStep[]` zu EntityTypeDefinition hinzugefügt; neues Sub-Objekt `CreationStep` mit stepTypes properties/domainAssignment/connectionAssignment; BR-19–22 ergänzt (REQ-066) |
-| 0.9.0 | 2026-06-26 | Business Engineer | `arc42Collections: Arc42ChapterCollection[]` zum Wurzel-Objekt hinzugefügt (Verweis auf arc42.md); eingebaute EntityTypes `arc42-meta-object` und `arc42-describes` deklariert (REQ-067) |
-| 1.0.0 | 2026-06-27 | Business Engineer | `arc42Collections` → `documentCollectionDefinitions`; Arc42-spezifische Benennung generalisiert; Arc42 wird Template, nicht Systemkonzept (Verweis auf document-collection.md) |
-| 1.1.0 | 2026-06-28 | Business Engineer | `PropertyDefinition` um `visibilityMode`, `allowedRoles`, `scopingConnectionType` erweitert (UC-21, REQ-124); drei Sichtbarkeits-Modi: `public` (Default), `role-restricted`, `connection-scoped` (ABAC via Graph-Traversal) |
+| 0.2.0 | 2026-06-25 | Business Engineer | Added `editMode` (lock mode REQ-035) and connection attributes (`isConnection`, `allowedSourceTypes`, `allowedTargetTypes`) to EntityTypeDefinition (REQ-036); added BR-06/07/08 |
+| 0.3.0 | 2026-06-25 | Business Engineer | Introduced two-level scoping (REQ-037): `scope`, `architectureId`, `parentId`; added BR-09/10; `editMode` applies independently per scope level |
+| 0.4.0 | 2026-06-25 | Business Engineer | `scope=architecture` → `scope=solution`; `architectureId` → `solutionId`; scope container clarified as solution (plateau principle, option 3) |
+| 0.5.0 | 2026-06-26 | Business Engineer | Added viewpoints as fourth configurable category; added `viewpoints: ViewpointDefinition[]` to the root object; reference to viewpoint.md |
+| 0.6.0 | 2026-06-26 | Business Engineer | Reworked PropertyDefinition: `type/required` → `dataType (kind: int/varchar/enum)` + `validationMode (mandatory/warning/optional)` + `category`; new sub-object `PropertyDataType`; `architectureLayerId` on EntityTypeDefinition; new sub-objects `ArchitectureLayerDefinition`, `ArchitectureDomainDefinition`, `MandatoryConnectionConstraint`; three new fields in the root object; added BR-11–18; updated YAML examples |
+| 0.7.0 | 2026-06-26 | Business Engineer | Added `allowsConnectionAsSource: boolean` (default false) to EntityTypeDefinition (ADR-010, n-connection); extended BR-08 |
+| 0.8.0 | 2026-06-26 | Business Engineer | Added `creationSteps: CreationStep[]` to EntityTypeDefinition; new sub-object `CreationStep` with stepTypes properties/domainAssignment/connectionAssignment; added BR-19–22 (REQ-066) |
+| 0.9.0 | 2026-06-26 | Business Engineer | Added `arc42Collections: Arc42ChapterCollection[]` to the root object (reference to arc42.md); declared built-in EntityTypes `arc42-meta-object` and `arc42-describes` (REQ-067) |
+| 1.0.0 | 2026-06-27 | Business Engineer | `arc42Collections` → `documentCollectionDefinitions`; Arc42-specific naming generalized; Arc42 becomes a template, not a system concept (reference to document-collection.md) |
+| 1.1.0 | 2026-06-28 | Business Engineer | Extended `PropertyDefinition` with `visibilityMode`, `allowedRoles`, `scopingConnectionType` (UC-21, REQ-124); three visibility modes: `public` (default), `role-restricted`, `connection-scoped` (ABAC via graph traversal) |

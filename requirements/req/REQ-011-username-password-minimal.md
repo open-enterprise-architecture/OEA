@@ -1,6 +1,6 @@
 ---
 id: REQ-011
-title: Username/Passwort-Login ohne zweiten Faktor (Minimal-Variante)
+title: Username/password login without second factor (minimal variant)
 type: functional
 priority: could
 status: proposed
@@ -18,103 +18,103 @@ references:
     - SH-03
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-011: Username/Passwort-Login ohne zweiten Faktor (Minimal-Variante)
+# REQ-011: Username/password login without second factor (minimal variant)
 
-## Aussage
+## Statement
 
-Das System KANN Personen die Anmeldung mit ausschließlich Username/Passwort ohne zweiten Faktor ermöglichen; diese Variante MUSS auf Instanz-Ebene explizit aktiviert werden und DARF NICHT der Standardzustand einer neu installierten OEA-Instanz sein.
+The system MAY allow persons to log in with username/password only, without a second factor; this variant MUST be explicitly enabled at instance level and MUST NOT be the default state of a newly installed OEA instance.
 
-## Begründung
+## Rationale
 
-Konzept §21.8 nennt diese Variante bewusst als "riskante Minimal-Variante" für den einfachsten Self-Hosting-Fall (z.B. Kurt als Single-User im KMU, der weder externen IdP noch Passkey/TOTP-Infrastruktur betreiben will). UC-01, Alternative A5. Da sie das schwächste Sicherheitsniveau aller Mechanismen bietet, ist sie als optionale, bewusst zu aktivierende Ausnahme modelliert, nicht als Default.
+Concept §21.8 deliberately names this variant as the "risky minimal variant" for the simplest self-hosting case (e.g., Kurt as a single user in an SME who wants to operate neither an external IdP nor passkey/TOTP infrastructure). UC-01, Alternative A5. Because it offers the weakest security level of all mechanisms, it is modeled as an optional exception to be enabled deliberately, not as a default.
 
-## Kontext
+## Context
 
-Betrifft ausschließlich Instanzen, die explizit auf einen zweiten Faktor und auf Passkey verzichten.
+Concerns exclusively instances that explicitly forgo a second factor and passkeys.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- Username, Passwort
+**Inputs**:
+- Username, password
 
-**Verarbeitung**:
-- Prüfung des Passwort-Hashes gegen den gespeicherten Hash der Person
-- Prüfung, ob diese Authentifizierungsvariante für die Instanz aktiviert ist; falls nicht, wird sie wie ein nicht-existierender Mechanismus behandelt
+**Processing**:
+- Check the password hash against the person's stored hash
+- Check whether this authentication variant is enabled for the instance; if not, it is treated like a non-existent mechanism
 
-**Ausgaben**:
-- Bei korrektem Passwort: Fortsetzung mit Person-/Rollen-Lookup (siehe REQ-001, Schritt 6)
+**Outputs**:
+- If the password is correct: continue with person/role lookup (see REQ-001, step 6)
 
-**Fehlerfälle**:
-- Falsches Passwort → generische Fehlermeldung (siehe REQ-006)
-- Variante ist instanzweit deaktiviert → Mechanismus wird nicht angeboten
+**Error Cases**:
+- Wrong password → generic error message (see REQ-006)
+- Variant is disabled instance-wide → mechanism is not offered
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine Instanz, auf der diese Variante explizit aktiviert wurde, und eine Person mit korrektem Passwort
-- Wenn: sie sich anmeldet
-- Dann: erhält sie eine Session gemäß ihren aktiven Rollenzuweisungen
+- Given: an instance on which this variant has been explicitly enabled, and a person with a correct password
+- When: they log in
+- Then: they receive a session according to their active role assignments
 
 **AC2**:
-- Gegeben: eine neu installierte, nicht konfigurierte OEA-Instanz
-- Wenn: ihr Authentifizierungs-Setup geprüft wird
-- Dann: ist diese Variante standardmäßig deaktiviert
+- Given: a newly installed, unconfigured OEA instance
+- When: its authentication setup is checked
+- Then: this variant is disabled by default
 
 **AC3**:
-- Gegeben: jeder erfolgreiche oder fehlgeschlagene Login über diese Variante
-- Wenn: der Audit-Log-Eintrag erzeugt wird (siehe REQ-005)
-- Dann: ist im Eintrag erkennbar, dass kein zweiter Faktor verwendet wurde
+- Given: every successful or failed login via this variant
+- When: the audit log entry is created (see REQ-005)
+- Then: the entry shows that no second factor was used
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert) + inspection (Default-Konfiguration)
-- [x] Test-Setup: Login-Versuche bei aktivierter und deaktivierter Variante; Prüfung der Default-Konfiguration einer frischen Installation
-- [x] Mess-Werkzeug: Test-Suite des Auth-Moduls, Konfigurations-Inspektion
-- [x] Bestanden-Kriterium: AC1–AC3 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated) + inspection (Default-Konfiguration)
+- [x] Test setup: login attempts with the variant enabled and disabled; check of the default configuration of a fresh installation
+- [x] Measurement tool: test suite of the auth module, configuration inspection
+- [x] Pass criterion: AC1–AC3 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-024 (Passwort-Enrollment muss vorher abgeschlossen sein)
-- **Folgewirkungen**: keine bekannt
-- **Konflikte**: [REQ-020](./REQ-020-erzwingung-zweiter-faktor.md) – ist die instanzweite Erzwingung eines zweiten Faktors aktiv, darf diese Variante für reguläre Personen nicht aktivierbar sein
+- **Prerequisites**: REQ-024 (password enrollment must have been completed beforehand)
+- **Downstream effects**: none known
+- **Conflicts**: [REQ-020](./REQ-020-enforce-second-factor.md) – if instance-wide enforcement of a second factor is active, this variant must not be enableable for regular persons
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Wäre diese Variante standardmäßig aktiv, würde jede OEA-Instanz ungewollt mit dem schwächsten Authentifizierungsniveau ausgeliefert – schwerwiegend
-- Risiko 2: Ohne diese Option könnten Betreiber ohne Passkey/TOTP-Infrastruktur (z.B. Max im KMU) das Tool gar nicht ohne externen IdP betreiben
+- Risk 1: If this variant were active by default, every OEA instance would unintentionally ship with the weakest authentication level – severe
+- Risk 2: Without this option, operators without passkey/TOTP infrastructure (e.g., Max in an SME) could not operate the tool at all without an external IdP
 
 ## Trade-offs
 
-- vs. Sicherheit: explizit schwächer als REQ-009 (Passkey) und REQ-010 (TOTP); Existenz dieser Option ist ein bewusster Usability-/Self-Hosting-Kompromiss, kein empfohlener Standard
+- vs. security: explicitly weaker than REQ-009 (passkey) and REQ-010 (TOTP); the existence of this option is a deliberate usability/self-hosting compromise, not a recommended default
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Aktivierung sollte eine bewusste, mit einer Warnung versehene Konfigurationsentscheidung sein (z.B. beim Setup-Wizard explizit abgefragt, nicht versteckt in einer Config-Datei)
-- Passwort-Hashing wie in REQ-010 (z.B. Argon2id), Rate-Limiting gegen Brute-Force
+- Enabling should be a deliberate configuration decision accompanied by a warning (e.g., explicitly asked in the setup wizard, not hidden in a config file)
+- Password hashing as in REQ-010 (e.g., Argon2id), rate limiting against brute force
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-01 Login, Alternative A5. Priorität bewusst `could` statt `should`, da diese Variante nicht für den produktiven Standardfall vorgesehen ist, sondern für den niedrigschwelligsten Self-Hosting-Fall.
+Derived from UC-01 Login, Alternative A5. Priority deliberately `could` instead of `should`, because this variant is not intended for the productive standard case but for the lowest-barrier self-hosting case.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft aus UC-01 |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |

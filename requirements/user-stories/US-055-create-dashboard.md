@@ -1,51 +1,51 @@
-# US-055: Dashboard anlegen (instance-scope)
+# US-055: Create a Dashboard (instance scope)
 
 **ID**: US-055
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Lead Enterprise Architekt möchte ich ein neues Dashboard mit Name, Beschreibung und Scope anlegen – damit ich für den CIO und andere Stakeholder eine strukturierte C-Level-Ansicht auf die Architektur-Kennzahlen bereitstellen kann.
+As a Lead Enterprise Architect, I want to create a new dashboard with name, description and scope – so that I can provide a structured C-level view of the architecture metrics for the CIO and other stakeholders.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-07: Dashboard anlegen und im Web Portal verwenden](../use-cases/UC-07-dashboard-anlegen-und-verwenden.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-051: Dashboard anlegen](../req/REQ-051-dashboard-anlegen.md), [REQ-056: Zugriff und Sichtbarkeit](../req/REQ-056-dashboard-zugriff-sichtbarkeit.md)
+**Use Case**: [UC-07: Create a Dashboard and Use It in the Web Portal](../use-cases/UC-07-create-and-use-dashboard.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-051: Create Dashboard](../req/REQ-051-create-dashboard.md), [REQ-056: Access and Visibility](../req/REQ-056-dashboard-access-visibility.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Anlegen):
-- Gegeben: Kurt ist in der Client App eingeloggt (Rolle Enterprise Architekt)
-- Wenn: Kurt klickt „Neues Dashboard anlegen", gibt Name „IT-Investitionsplanung 2026–2030" und Scope=instance ein
-- Dann: Dashboard wird angelegt; erscheint in der Dashboard-Liste; im Web Portal für alle Nutzer sichtbar
+**AC1** (creation):
+- Given: Kurt is logged in to the client app (role Enterprise Architect)
+- When: Kurt clicks "Create new dashboard", enters name "IT Investment Planning 2026–2030" and scope=instance
+- Then: Dashboard is created; appears in the dashboard list; visible to all users in the web portal
 
-**AC2** (Validierung: Duplikat-Name):
-- Gegeben: Dashboard „IT-Investitionsplanung 2026–2030" existiert bereits
-- Wenn: Kurt versucht, ein zweites Dashboard mit demselben Namen anzulegen
-- Dann: Fehlermeldung „Name bereits vergeben"; kein zweites Dashboard angelegt
+**AC2** (validation: duplicate name):
+- Given: Dashboard "IT Investment Planning 2026–2030" already exists
+- When: Kurt tries to create a second dashboard with the same name
+- Then: Error message "Name already taken"; no second dashboard created
 
-**AC3** (Leeres Dashboard nach Anlage):
-- Wenn: Dashboard angelegt
-- Dann: Dashboard enthält keine Widgets; Hinweis „Noch keine Widgets. Widget hinzufügen." sichtbar
+**AC3** (empty dashboard after creation):
+- When: Dashboard created
+- Then: Dashboard contains no widgets; notice "No widgets yet. Add widget." visible
 
-**AC4** (Kein Zugriff auf fremde personal-Dashboards):
-- Gegeben: Franz hat ein scope=personal-Dashboard
-- Wenn: Kurt die Dashboard-Liste aufruft
-- Dann: Franzs Dashboard erscheint nicht
+**AC4** (no access to other users' personal dashboards):
+- Given: Franz has a scope=personal dashboard
+- When: Kurt opens the dashboard list
+- Then: Franz's dashboard does not appear
 
-## Technische Hinweise
+## Technical Notes
 
 - Endpoint: `POST /api/v1/dashboards`
-- Berechtigungsprüfung: scope=instance erfordert Dashboard-Schreibberechtigung (BR-02 REQ-051)
-- Nach Anlage: Frontend navigiert direkt in den Widget-Editor (leeres Dashboard)
+- Permission check: scope=instance requires dashboard write permission (BR-02 REQ-051)
+- After creation: frontend navigates directly into the widget editor (empty dashboard)
 
 ## Definition of Done
 
-- [ ] AC1–AC4 erfüllt
-- [ ] Code-Review
-- [ ] Tests: Anlegen erfolgreich, Duplikat-Name 409, 403 ohne Berechtigung, scope=personal nicht in Liste anderer
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] AC1–AC4 met
+- [ ] Code review
+- [ ] Tests: creation successful, duplicate name 409, 403 without permission, scope=personal not in others' list
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix

@@ -1,32 +1,32 @@
-# Ableitung aus: requirements/req/req-106-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-106-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @should @UC-16
-Feature: REQ-106 – Teilwiederherstellung restoredFields Protokoll
+Feature: REQ-106 – Partial restore restoredFields log
 
-  Bei jeder Teilwiederherstellung MUSS der neue EntityVersion-Eintrag
-  die exakte Liste der wiederhergestellten Felder in Dot-Notation als
-  `restoredFields` enthalten (z.B. `["description",
+  On every partial restore, the new EntityVersion entry MUST contain
+  the exact list of restored fields in dot notation as
+  `restoredFields` (e.g. `["description",
   "properties.owner"]`).
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – restoredFields im Versionseintrag – eine Teilwiederherstellung mit `description` und `properties.owner` ausg...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  eine Teilwiederherstellung mit `description` und `properties.owner` ausgeführt wird
-    Then  enthält der neue EntityVersion-Eintrag `restoredFields=["description","properties.owner"]`
+  Scenario: AC1 – restoredFields in version entry – a partial restore is executed with `description` and `properties.owner`...
+    Given the precondition according to the requirement is met
+    When  a partial restore is executed with `description` and `properties.owner`
+    Then  the new EntityVersion entry contains `restoredFields=["description","properties.owner"]`
 
   @AC2
-  Scenario: AC2 – Leere Auswahl abweisen – keine Felder ausgewählt wurden und der Bestätigen-Button geklickt wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  keine Felder ausgewählt wurden und der Bestätigen-Button geklickt wird
-    Then  ist der Button deaktiviert; ein API-Aufruf mit leerem `restoredFields` wird mit HTTP 422 abgewiesen
+  Scenario: AC2 – Reject empty selection – no fields were selected and the confirm button is clicked
+    Given the precondition according to the requirement is met
+    When  no fields were selected and the confirm button is clicked
+    Then  the button is disabled; an API call with empty `restoredFields` is rejected with HTTP 422
 
   @AC3
-  Scenario: AC3 – Zeitlinie-Lesbarkeit – die Zeitlinie nach einer Teilwiederherstellung angezeigt wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  die Zeitlinie nach einer Teilwiederherstellung angezeigt wird
-    Then  zeigt der Eintrag "Teilweise wiederhergestellt aus v4 (description, properties.owner)"
+  Scenario: AC3 – Timeline readability – the timeline is displayed after a partial restore
+    Given the precondition according to the requirement is met
+    When  the timeline is displayed after a partial restore
+    Then  the entry shows "Partially restored from v4 (description, properties.owner)"

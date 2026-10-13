@@ -1,31 +1,31 @@
-# Ableitung aus: requirements/req/req-110-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-110-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-17
-Feature: REQ-110 – Reference Architecture aus Bausteinen komponieren
+Feature: REQ-110 – Compose reference architecture from building blocks
 
-  Das System MUSS das Anlegen, Bearbeiten und Löschen von
-  `ReferenceArchitecture`-Einträgen ermöglichen. Pflichtfelder: `name`,
+  The system MUST allow creating, editing and deleting
+  `ReferenceArchitecture` entries. Mandatory fields: `name`,
   `continuumLevel`, `governanceStatus`.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Reference Architecture anlegen und als Blueprint verfügbar – eine Reference Architecture mit 3 ABBs und 1 Pattern angelegt und `gover...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  eine Reference Architecture mit 3 ABBs und 1 Pattern angelegt und `governanceStatus=approved` gesetzt wird
-    Then  antwortet das System mit HTTP 201; die Reference Architecture ist als Blueprint in UC-11 (Plateau-Anlage) auswählbar
+  Scenario: AC1 – Create reference architecture and make available as blueprint – a reference architecture is created with 3 ABBs and 1 pattern and `gover...
+    Given the precondition according to the requirement is met
+    When  a reference architecture is created with 3 ABBs and 1 pattern and `governanceStatus=approved` is set
+    Then  the system responds with HTTP 201; the reference architecture is selectable as a blueprint in UC-11 (plateau creation)
 
   @AC2
-  Scenario: AC2 – Leere Kompositions-Warnung – eine Reference Architecture ohne ABBs und ohne Patterns gespeichert werd...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  eine Reference Architecture ohne ABBs und ohne Patterns gespeichert werden soll
-    Then  zeigt das System eine Governance-Warnung; die Speicherung wird nicht blockiert
+  Scenario: AC2 – Empty composition warning – a reference architecture is to be saved without ABBs and without patterns...
+    Given the precondition according to the requirement is met
+    When  a reference architecture is to be saved without ABBs and without patterns
+    Then  the system shows a governance warning; saving is not blocked
 
   @AC3
-  Scenario: AC3 – Pflichtfeld targetIndustry – eine Reference Architecture mit `continuumLevel=industry` ohne `targetIn...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  eine Reference Architecture mit `continuumLevel=industry` ohne `targetIndustry` gespeichert werden soll
-    Then  antwortet das System mit HTTP 422
+  Scenario: AC3 – Mandatory field targetIndustry – a reference architecture with `continuumLevel=industry` is to be saved without `targetIn...
+    Given the precondition according to the requirement is met
+    When  a reference architecture with `continuumLevel=industry` is to be saved without `targetIndustry`
+    Then  the system responds with HTTP 422

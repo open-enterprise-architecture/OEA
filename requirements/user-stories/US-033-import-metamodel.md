@@ -1,59 +1,59 @@
-# US-033: Metamodell aus Datei importieren
+# US-033: Import Metamodel from File
 
 **ID**: US-033
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Lead Enterprise Architekt möchte ich ein vorbereitetes Metamodell aus einer YAML- oder JSON-Datei importieren können, damit ich nicht jeden Entitätstyp manuell per Formular eingeben muss und bestehende Metamodell-Definitionen meiner Organisation direkt übernehmen kann.
+As a Lead Enterprise Architect, I want to be able to import a prepared metamodel from a YAML or JSON file, so that I do not have to enter every entity type manually via form and can directly adopt my organization's existing metamodel definitions.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-04: Metamodell gemeinsam konfigurieren](../use-cases/UC-04-metamodell-konfigurieren.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-033: Metamodell aus Datei importieren](../req/REQ-033-metamodell-import.md)
+**Use Case**: [UC-04: Configure the Metamodel Collaboratively](../use-cases/UC-04-configure-metamodel.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-033: Import Metamodel from File](../req/REQ-033-metamodel-import.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine gültige YAML-Datei mit 5 Custom EntityTypes
-- Wenn: Kurt die Datei hochlädt und nach Vorschau bestätigt
-- Dann: sind alle 5 Typen in der MetamodelConfiguration; Audit-Log zeigt alle 5 als `imported` mit derselben Batch-ID
+- Given: a valid YAML file with 5 custom EntityTypes
+- When: Kurt uploads the file and confirms after preview
+- Then: all 5 types are in the MetamodelConfiguration; the audit log shows all 5 as `imported` with the same batch ID
 
 **AC2**:
-- Gegeben: die Datei enthält einen Typ mit dem Namen `ApplicationComponent` (built-in)
-- Dann: zeigt die Vorschau diesen Eintrag rot als „nicht importierbar (built-in)"; Import ohne Auflösung nicht möglich
+- Given: the file contains a type with the name `ApplicationComponent` (built-in)
+- Then: the preview shows this entry in red as "not importable (built-in)"; import not possible without resolution
 
 **AC3**:
-- Gegeben: eine syntaktisch fehlerhafte YAML-Datei
-- Dann: erscheint sofort eine Fehlermeldung mit Zeilen- und Spaltenangabe; keine Vorschau
+- Given: a syntactically faulty YAML file
+- Then: an error message with line and column appears immediately; no preview
 
 **AC4**:
-- Gegeben: eine Datei mit 3 neuen und 1 Konflikt (überschreibbarer Custom-Typ)
-- Wenn: Kurt nur die 3 neuen bestätigt
-- Dann: werden nur diese importiert; der Konflikt bleibt unberührt
+- Given: a file with 3 new types and 1 conflict (overwritable custom type)
+- When: Kurt confirms only the 3 new ones
+- Then: only these are imported; the conflict remains untouched
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Import-UI-Komponente (Datei-Upload + Diff-Vorschau), Backend `POST /admin/metamodel/import` + `POST /admin/metamodel/import/confirm`
-- Datenbank-Änderungen: gleich wie US-032 (gleiche Ziel-Tabelle)
-- Batch-UUID wird beim Import-Confirm erzeugt und für alle Audit-Einträge verwendet
+- Affected components: import UI component (file upload + diff preview), backend `POST /admin/metamodel/import` + `POST /admin/metamodel/import/confirm`
+- Database changes: same as US-032 (same target table)
+- Batch UUID is generated at import confirm and used for all audit entries
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests: gültige YAML, gültiges JSON, Syntaxfehler, Built-in-Konflikt, Partial-Import
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests: valid YAML, valid JSON, syntax error, built-in conflict, partial import
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-032 (Backend-Schema muss existieren, da Import dasselbe Schema befüllt)
-- Blockiert: keine
+- Waiting on: US-032 (backend schema must exist, since import populates the same schema)
+- Blocks: none
 
-## Notizen
+## Notes
 
-5 SP wegen der Vorschau-Komponente (Diff-Rendering), der zwei-phasigen API (parse → confirm) und der Partial-Import-Logik (Checkbox pro Eintrag). YAML und JSON werden auto-detektiert. ArchiMate-XMI ist explizit nicht im Scope.
+5 SP because of the preview component (diff rendering), the two-phase API (parse → confirm) and the partial import logic (checkbox per entry). YAML and JSON are auto-detected. ArchiMate XMI is explicitly out of scope.

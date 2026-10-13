@@ -1,6 +1,6 @@
 ---
 id: REQ-132
-title: DocumentItem als atomare Einheit der DocumentCollection
+title: DocumentItem as the Atomic Unit of the DocumentCollection
 type: functional
 priority: must
 status: proposed
@@ -21,50 +21,50 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-132: DocumentItem als atomare Einheit der DocumentCollection
+# REQ-132: DocumentItem as the Atomic Unit of the DocumentCollection
 
-## Aussage
+## Statement
 
-Das System MUSS `DocumentItem` als atomare Instanz-Einheit einer `DocumentCollection` bereitstellen. Jeder DocumentItem MUSS folgende Felder tragen:
+The system MUST provide `DocumentItem` as the atomic instance unit of a `DocumentCollection`. Every DocumentItem MUST carry the following fields:
 
-| Feld | Pflicht | Beschreibung |
+| Field | Mandatory | Description |
 |---|---|---|
-| `name` | required | Kapitelbezeichnung; wird in der Kapitelnavigation und als Überschrift im Inhalt angezeigt; max. 200 Zeichen |
-| `alias` | optional | Kurzname für Querverweise; innerhalb der Collection eindeutig (case-insensitive, kebab-case); max. 60 Zeichen |
-| `content` | required | WYSIWYG-Inhalt (Markdown, Mermaid, PlantUML, Draw.io, Entity-Mentions, DocumentItem-Querverweise) |
-| `sortOrder` | required | Reihenfolge unter Geschwister-Items; aufsteigend |
+| `name` | required | Chapter title; displayed in the chapter navigation and as a heading in the content; max. 200 characters |
+| `alias` | optional | Short name for cross-references; unique within the collection (case-insensitive, kebab-case); max. 60 characters |
+| `content` | required | WYSIWYG content (Markdown, Mermaid, PlantUML, Draw.io, entity mentions, DocumentItem cross-references) |
+| `sortOrder` | required | Order among sibling items; ascending |
 
-Eine DocumentCollection besteht aus einer geordneten Liste von DocumentItems. Die Gesamtzahl der Items pro Collection ist nicht begrenzt; der `content`-Wert ist auf 100.000 Zeichen begrenzt (BR-07).
+A DocumentCollection consists of an ordered list of DocumentItems. The total number of items per collection is not limited; the `content` value is limited to 100,000 characters (BR-07).
 
-## Begründung
+## Rationale
 
-Die bisherige Trennung von `DocumentChapterDefinition` (Template) und `DocumentationEntry` (Instanz) ist für Nutzer schwer verständlich. `DocumentItem` vereint Struktur und Inhalt in einer Einheit und erlaubt freies Anlegen und Bearbeiten von Kapiteln ohne Template-Bindung.
+The previous separation of `DocumentChapterDefinition` (template) and `DocumentationEntry` (instance) is hard for users to understand. `DocumentItem` combines structure and content in one unit and allows free creation and editing of chapters without template binding.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Anlegen):
-- Wenn: Nutzer in einer DocumentCollection ein neues Kapitel anlegt
-- Dann: System erstellt einen DocumentItem mit `name` (Pflicht), optionalem `alias`, leerem `content` und automatisch vergebenem `sortOrder`
+**AC1** (Create):
+- When: a user creates a new chapter in a DocumentCollection
+- Then: the system creates a DocumentItem with `name` (mandatory), optional `alias`, empty `content`, and automatically assigned `sortOrder`
 
-**AC2** (Name in Navigation):
-- Wenn: DocumentCollection geöffnet wird
-- Dann: Kapitelnavigation zeigt `name` jedes Items; Items sind nach `sortOrder` sortiert
+**AC2** (Name in navigation):
+- When: the DocumentCollection is opened
+- Then: the chapter navigation shows the `name` of each item; items are sorted by `sortOrder`
 
-**AC3** (Alias eindeutig):
-- Wenn: Nutzer `alias` setzt, der innerhalb der Collection bereits vergeben ist
-- Dann: Inline-Fehler; Speichern verhindert
+**AC3** (Alias unique):
+- When: a user sets an `alias` that is already assigned within the collection
+- Then: inline error; saving prevented
 
 **AC4** (Content WYSIWYG):
-- Wenn: Nutzer einen DocumentItem öffnet
-- Dann: WYSIWYG-Editor ist verfügbar; alle unterstützten Formate (Markdown, Mermaid, PlantUML, Draw.io, `[[`, `{{`) sind nutzbar
+- When: a user opens a DocumentItem
+- Then: the WYSIWYG editor is available; all supported formats (Markdown, Mermaid, PlantUML, Draw.io, `[[`, `{{`) are usable
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-068 (WYSIWYG-Editor vorhanden), REQ-069 (Dokumentation bearbeiten)
-- **Folgewirkungen**: REQ-133 (Verschachtelung), REQ-134 (Querverweise)
+- **Prerequisites**: REQ-068 (WYSIWYG editor available), REQ-069 (edit documentation)
+- **Consequences**: REQ-133 (nesting), REQ-134 (cross-references)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

@@ -1,40 +1,40 @@
-# US-130: DocumentItems hierarchisch verschachteln
+# US-130: Nest DocumentItems Hierarchically
 
 **ID**: US-130
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Michael – Solution Architekt möchte ich Kapitel in einer DocumentCollection ineinander verschachteln können (z.B. „§5 Bausteinsicht" → „§5.1 Whitebox Gesamtsystem"), damit ich komplexe Dokumentationen natürlich gliedern kann ohne alles in eine flache Liste zu zwingen.
+As Michael – Solution Architect, I want to nest chapters within a DocumentCollection (e.g. "§5 Building Block View" → "§5.1 Whitebox Overall System"), so that I can structure complex documentation naturally without forcing everything into a flat list.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-09](../use-cases/UC-09-loesungsarchitektur-arc42-dokumentieren.md)
-**Persona**: Michael – Solution Architekt (SH-04)
-**Requirements**: [REQ-133](../req/REQ-133-document-item-verschachtelung.md)
+**Use Case**: [UC-09](../use-cases/UC-09-document-solution-architecture-arc42.md)
+**Persona**: Michael – Solution Architect (SH-04)
+**Requirements**: [REQ-133](../req/REQ-133-document-item-nesting.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Unterkapitel anlegen):
-- Wenn: Michael „Unterkapitel anlegen" an einem Item wählt
-- Dann: Neues Item erscheint eingerückt darunter in der Navigation
+**AC1** (Create subchapter):
+- When: Michael selects "Create subchapter" on an item
+- Then: new item appears indented below it in the navigation
 
-**AC2** (Drag & Drop):
-- Wenn: Michael ein Item per Drag & Drop unter ein anderes zieht
-- Dann: `parentId` und `sortOrder` werden aktualisiert; Struktur in Navigation sofort sichtbar
+**AC2** (Drag & drop):
+- When: Michael drags an item under another via drag & drop
+- Then: `parentId` and `sortOrder` are updated; structure immediately visible in navigation
 
-**AC3** (Tiefenbegrenzung):
-- Wenn: Michael versucht, ein Unterkapitel auf Ebene 6 anzulegen
-- Dann: Hinweis „Maximale Tiefe erreicht"; Aktion nicht möglich
+**AC3** (Depth limit):
+- When: Michael tries to create a subchapter at level 6
+- Then: note "Maximum depth reached"; action not possible
 
-**AC4** (Cascade-Delete-Warnung):
-- Wenn: Michael ein Item mit Unterkapiteln löscht
-- Dann: Warnhinweis mit Anzahl der betroffenen Unterkapitel; Bestätigung erforderlich
+**AC4** (Cascade delete warning):
+- When: Michael deletes an item with subchapters
+- Then: warning with the number of affected subchapters; confirmation required
 
 ## Definition of Done
 
-- [ ] AC1–AC4 erfüllt
-- [ ] Tests vorhanden (inkl. Zyklus-Schutz-Test)
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC4 fulfilled
+- [ ] Tests present (incl. cycle protection test)
+- [ ] Code review; linter green; entered in trace matrix

@@ -1,46 +1,45 @@
-# Ableitung aus: requirements/req/req-065-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-065-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @should @UC-06 @UC-08
-Feature: REQ-065 – Katalog-Join für Connection-Typ-Primaries und n-Connection-Traversal
+Feature: REQ-065 – Catalog join for connection-type primaries and n-Connection traversal
 
-  Das System MUSS für
-  [Catalog](../../business-objects/catalog.md)-Instanzen zwei
-  Erweiterungen der Join-Logik (REQ-045/046) unterstützen: 1.
-  **Connection-Typ als Primary**: `primaryEntityType` DARF auf einen
-  EntityType mit `isConnection=true` gesetzt werden (z.B.
+  The system MUST support two extensions of the join logic
+  (REQ-045/046) for [Catalog](../../business-objects/catalog.md)
+  instances: 1. **Connection type as primary**: `primaryEntityType`
+  MAY be set to an EntityType with `isConnection=true` (e.g.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Connection-Typ als Primary – MetamodelConfiguration mit EntityType `data-flow` (isConnection=true)
-    Given MetamodelConfiguration mit EntityType `data-flow` (isConnection=true)
-    When  Katalog-Manager legt Catalog mit `primaryEntityType=data-flow` an
-    Then  HTTP 201; Catalog ist valide; Abfrage liefert alle data-flow-Instanzen als Zeilen
+  Scenario: AC1 – Connection type as primary – MetamodelConfiguration with EntityType `data-flow` (isConnection=true)
+    Given MetamodelConfiguration with EntityType `data-flow` (isConnection=true)
+    When  catalog manager creates catalog with `primaryEntityType=data-flow`
+    Then  HTTP 201; catalog is valid; query returns all data-flow instances as rows
 
   @AC2
-  Scenario: AC2 – n-Connection-Join outbound – DataFlow id=5 (data-flow); carries-data id=103 (sourceEntityId=5, target...
+  Scenario: AC2 – n-Connection join outbound – DataFlow id=5 (data-flow); carries-data id=103 (sourceEntityId=5, target...
     Given DataFlow id=5 (data-flow); carries-data id=103 (sourceEntityId=5, targetEntityId=42)
-    And   Catalog `Data-Flow-Übersicht` (primaryEntityType=data-flow) mit JoinDefinition: `{ connectionType: carries-data, joinDirection: outbound, targetEntityType: data-object, targetColumns: [{attributeName: "name"}] }`
-    When  Catalog-Abfrage
-    Then  Zeile für DataFlow id=5; joinResults enthält DataObject id=42 mit name „Kundenstamm"
+    And   catalog `Data Flow Overview` (primaryEntityType=data-flow) with JoinDefinition: `{ connectionType: carries-data, joinDirection: outbound, targetEntityType: data-object, targetColumns: [{attributeName: "name"}] }`
+    When  catalog query
+    Then  row for DataFlow id=5; joinResults contains DataObject id=42 with name "Customer master"
 
   @AC3
-  Scenario: AC3 – Nicht-n-Connection bleibt unberührt – normaler Catalog mit primaryEntityType=application-component und Join da...
-    Given normaler Catalog mit primaryEntityType=application-component und Join data-flow outbound
-    When  Catalog-Abfrage
-    Then  Ergebnis identisch mit REQ-046-Verhalten; kein Regressionsfehler
+  Scenario: AC3 – Non-n-Connection remains untouched – regular catalog with primaryEnti...
+    Given regular catalog with primaryEntityType=application-component and join data-flow outbound
+    When  catalog query
+    Then  result identical to REQ-046 behavior; no regression error
 
   @AC4
-  Scenario: AC4 – Mehrere n-Connections aggregiert – DataFlow id=5 hat 2 carries-data-Verbindungen (data-objects 42 und 43)
-    Given DataFlow id=5 hat 2 carries-data-Verbindungen (data-objects 42 und 43)
-    When  Catalog-Abfrage, aggregate-Modus
-    Then  Eine Zeile für DataFlow id=5; joinResults enthält Array mit beiden data-objects
+  Scenario: AC4 – Multiple n-Connections aggregated – DataFlow id=5 has 2 carries-data connections (data-objects 42 and 43)
+    Given DataFlow id=5 has 2 carries-data connections (data-objects 42 and 43)
+    When  catalog query, aggregate mode
+    Then  one row for DataFlow id=5; joinResults contains array with both data-objects
 
   @AC5
-  Scenario: AC5 – Connection-Primary: Quell- und Ziel-Entity als Spalten verfügbar – Catalog mit primaryEntityType=data-flow; Spalten `sourceEntityName`, `ta...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Catalog mit primaryEntityType=data-flow; Spalten `sourceEntityName`, `targetEntityName` konfiguriert
-    Then  Spalten zeigen Namen der Quell- bzw. Ziel-Entität jedes Dataflusses
+  Scenario: AC5 – Connection primary: source and target entity available as columns – c...
+    Given the precondition according to the requirement is met
+    When  catalog with primaryEntityType=data-flow; columns `sourceEntityName`, `targetEntityName` configured
+    Then  columns show the names of the source and target entity of each data flow

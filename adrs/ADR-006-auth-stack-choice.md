@@ -1,103 +1,103 @@
-# ADR-006: Auth-Stack-Wahl (Identity-Provider-Integrationen)
+# ADR-006: Auth Stack Choice (Identity Provider Integrations)
 
 **Status**: accepted
-**Datum**: 2026-06-24
-**Entscheider**: [Rigobert – Produkt Owner](../business-analysis/stakeholders/SH-09-rigobert-produkt-owner.md) (SH-09)
-**Konsultiert**: Requirements Engineer (UC-01 Login, REQ-001–REQ-011)
-**Informiert**: –
+**Date**: 2026-06-24
+**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Consulted**: Requirements Engineer (UC-01 Login, REQ-001–REQ-011)
+**Informed**: –
 
-## Kontext und Problem
+## Context and Problem
 
-UC-01 (Login) und Konzept §21.8 legen fest, dass OEA OAuth 2.0/OIDC als Standard-Authentifizierung sowie optional lokale Authentifizierung (Passkey, Username/Passwort mit TOTP) unterstützen muss. Offen war bisher, **gegen welche konkreten Identity-Provider OEA getestete, gepflegte Integrationen bereitstellt** – reines "OIDC-Standard" allein löst dieses Problem nicht vollständig, weil sich Claim-Mapping, Discovery-Verhalten, Gruppen-/Rollen-Claims und Admin-Tooling zwischen Providern unterscheiden. UC-01 nannte dies als offene Frage ("Welcher konkrete Identity-Provider/Auth-Stack wird für den Walking Skeleton genutzt?").
+UC-01 (Login) and concept §21.8 specify that OEA must support OAuth 2.0/OIDC as standard authentication and optionally local authentication (passkey, username/password with TOTP). What was previously open is **against which concrete identity providers OEA provides tested, maintained integrations** – plain "OIDC standard" alone does not fully solve this problem, because claim mapping, discovery behavior, group/role claims, and admin tooling differ between providers. UC-01 named this as an open question ("Which concrete identity provider/auth stack is used for the Walking Skeleton?").
 
-Zusätzlich ist ungeklärt, wie der **initiale System-Admin-Zugang** funktioniert, bevor in einer frisch installierten Instanz überhaupt Person-/Role-Daten oder eine IdP-Anbindung existieren (Bootstrapping-Problem).
+Additionally, it is unclear how the **initial system admin access** works before any person/role data or IdP connection exists in a freshly installed instance (bootstrapping problem).
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- **Enterprise-Anbindung**: Größere Organisationen (siehe SH-05, CIO Konzern) betreiben in der Regel bereits Microsoft Entra ID als zentralen Identity-Provider; eine Integration ohne Reibung ist Voraussetzung für Adoption in diesem Segment.
-- **Self-Hosting ohne Vendor-Lock-in** (siehe SH-03 Kurt, SH-06 Max): Organisationen ohne Microsoft-Tenant brauchen eine vollständig selbst hostbare, Open-Source-IdP-Option.
-- **OSS-Glaubwürdigkeit**: Die gewählten Pflicht-Integrationen sollten selbst entweder marktdominant (Entra ID) oder Open-Source-nativ (Authentik) sein, nicht proprietäre Nischenlösungen.
-- **Bootstrapping**: Eine frische Instanz muss ohne vorherige Konfiguration eines externen IdP administrierbar sein.
-- **Aufwand begrenzen**: Nicht jede denkbare OIDC-Implementierung kann gepflegt/getestet werden; Pflicht-Set muss klein und konkret sein.
-- **Standardkonformität statt Provider-Lock-in**: Implementierung soll sich an offenen RFCs/Spezifikationen orientieren (OIDC Core, RFC 6749, RFC 8414, RFC 7662), damit weitere Enterprise-IdPs (Okta, Ping Identity, Keycloak etc.) ohne Zusatzaufwand kompatibel sind, auch wenn nur zwei Provider explizit getestet werden.
+- **Enterprise connectivity**: Larger organizations (see SH-05, CIO corporate group) usually already operate Microsoft Entra ID as their central identity provider; frictionless integration is a prerequisite for adoption in this segment.
+- **Self-hosting without vendor lock-in** (see SH-03 Kurt, SH-06 Max): Organizations without a Microsoft tenant need a fully self-hostable, open-source IdP option.
+- **OSS credibility**: The chosen mandatory integrations should themselves be either market-dominant (Entra ID) or open-source-native (Authentik), not proprietary niche solutions.
+- **Bootstrapping**: A fresh instance must be administrable without prior configuration of an external IdP.
+- **Limit effort**: Not every conceivable OIDC implementation can be maintained/tested; the mandatory set must be small and concrete.
+- **Standards conformance instead of provider lock-in**: The implementation should follow open RFCs/specifications (OIDC Core, RFC 6749, RFC 8414, RFC 7662), so that further enterprise IdPs (Okta, Ping Identity, Keycloak, etc.) are compatible without additional effort, even if only two providers are explicitly tested.
 
-## Betrachtete Optionen
+## Considered Options
 
-### Option 1: Nur generisches OIDC, keine konkrete Provider-Pflicht
+### Option 1: Generic OIDC only, no concrete provider obligation
 
-Beliebiger OIDC-konformer Provider wird unterstützt, ohne dass OEA gegen einen konkreten Provider testet oder Referenz-Konfiguration pflegt.
+Any OIDC-compliant provider is supported, without OEA testing against a concrete provider or maintaining a reference configuration.
 
-- **Pro**: minimaler Implementierungsaufwand, maximale theoretische Flexibilität
-- **Contra**: lässt die offene Frage aus UC-01 ungelöst; Praxis zeigt, dass "generisches OIDC" ohne konkrete Referenz-Integration zu Integrationsproblemen führt (Claim-Mapping, Gruppen-Claims, Discovery-Eigenheiten); keine getestete Garantie für Nutzer
+- **Pro**: minimal implementation effort, maximum theoretical flexibility
+- **Con**: leaves the open question from UC-01 unresolved; practice shows that "generic OIDC" without a concrete reference integration leads to integration problems (claim mapping, group claims, discovery quirks); no tested guarantee for users
 
-### Option 2: Nur Microsoft Entra ID
+### Option 2: Microsoft Entra ID only
 
-- **Pro**: deckt den Konzern-/Enterprise-Fall (SH-05) direkt ab; weit verbreiteter Standard in Unternehmens-IT
-- **Contra**: schließt Self-Hoster ohne Microsoft-Tenant (SH-03, SH-06) faktisch aus oder zwingt sie zu Drittanbieter-Workarounds; widerspricht dem KMU-/OSS-Fokus des Projekts
+- **Pro**: directly covers the corporate group/enterprise case (SH-05); widely used standard in corporate IT
+- **Con**: effectively excludes self-hosters without a Microsoft tenant (SH-03, SH-06) or forces them into third-party workarounds; contradicts the SME/OSS focus of the project
 
-### Option 3: Nur Authentik
+### Option 3: Authentik only
 
-- **Pro**: vollständig Open-Source, selbst hostbar, passt zum KMU-Self-Hosting-Profil (SH-03, SH-06)
-- **Contra**: in Konzern-IT (SH-05) i.d.R. nicht der bereits etablierte IdP; würde dort eine Parallel-Identity-Infrastruktur erfordern – unrealistisch für Adoption
+- **Pro**: fully open-source, self-hostable, fits the SME self-hosting profile (SH-03, SH-06)
+- **Con**: generally not the already established IdP in corporate group IT (SH-05); would require a parallel identity infrastructure there – unrealistic for adoption
 
-### Option 4: Entra ID und Authentik als Pflicht-Integrationen, lokale Auth optional
+### Option 4: Entra ID and Authentik as mandatory integrations, local auth optional
 
-OEA MUSS gegen Microsoft Entra ID und gegen Authentik getestete OIDC-Integrationen bereitstellen und pflegen. Zusätzlich KANN lokale Authentifizierung (Passkey, Username/Passwort mit optionalem TOTP, siehe REQ-009–REQ-011) parallel aktiviert werden. Andere OIDC-Provider funktionieren ggf. ebenfalls (Standard-Konformität), sind aber nicht Teil der gepflegten Referenz-Integrationen.
+OEA MUST provide and maintain tested OIDC integrations against Microsoft Entra ID and against Authentik. Additionally, local authentication (passkey, username/password with optional TOTP, see REQ-009–REQ-011) MAY be activated in parallel. Other OIDC providers may also work (standards conformance), but are not part of the maintained reference integrations.
 
-- **Pro**: deckt sowohl Konzern-Enterprise (Entra ID) als auch Self-Hosting-OSS (Authentik) ab, ohne beliebig viele Provider pflegen zu müssen; beide sind marktrelevant/OSS-glaubwürdig; lässt lokale Auth als Fallback ohne jeden externen IdP
-- **Contra**: zwei zu pflegende Integrationen statt einer; Authentik ist gegenüber Entra ID/Okta/Keycloak eine bewusste Wahl, die nicht jeder Self-Hoster bereits einsetzt
+- **Pro**: covers both corporate group enterprise (Entra ID) and self-hosting OSS (Authentik) without having to maintain arbitrarily many providers; both are market-relevant/OSS-credible; keeps local auth as fallback without any external IdP
+- **Con**: two integrations to maintain instead of one; Authentik is a deliberate choice compared to Entra ID/Okta/Keycloak that not every self-hoster already uses
 
-### Option 5: Entra ID, Authentik und Keycloak als Pflicht-Integrationen
+### Option 5: Entra ID, Authentik, and Keycloak as mandatory integrations
 
-- **Pro**: Keycloak zusätzlich als verbreitetste OSS-Alternative abgedeckt
-- **Contra**: dritte Pflicht-Integration erhöht Pflegeaufwand ohne klar zusätzlichen Stakeholder-Nutzen gegenüber Authentik; nicht angefordert
+- **Pro**: Keycloak additionally covered as the most widespread OSS alternative
+- **Con**: a third mandatory integration increases maintenance effort without clearly additional stakeholder benefit over Authentik; not requested
 
-## Entscheidung
+## Decision
 
-Wir wählen **Option 4**: Microsoft Entra ID und Authentik sind **Pflicht-Integrationen** – OEA muss gegen beide getestete, dokumentierte OIDC-Konfigurationen bereitstellen. Lokale Authentifizierung (Passkey, Username/Passwort mit optionalem TOTP gemäß REQ-009–REQ-011) ist **optional** und kann parallel zu den IdP-Integrationen aktiviert werden, insbesondere für Instanzen ohne jeden externen IdP.
+We choose **Option 4**: Microsoft Entra ID and Authentik are **mandatory integrations** – OEA must provide tested, documented OIDC configurations for both. Local authentication (passkey, username/password with optional TOTP per REQ-009–REQ-011) is **optional** and can be activated in parallel to the IdP integrations, especially for instances without any external IdP.
 
-Der initiale **System-Admin-Zugang** einer Instanz kann ebenfalls optional **lokal** (eingebauter Admin-Account, unabhängig von Person/Role-Daten im Repository) oder **remote** (über Entra ID oder Authentik, z.B. via Gruppen-/Rollen-Claim) realisiert werden. Beide Varianten müssen unterstützt werden, weil das Bootstrapping-Problem (Zugang vor jeder IdP-Konfiguration) eine lokale Option erzwingt, während Organisationen mit etablierter IdP-Governance den lokalen Admin-Zugang aus Sicherheitsgründen ggf. nach Erstkonfiguration deaktivieren wollen.
+The initial **system admin access** of an instance can likewise optionally be realized **locally** (built-in admin account, independent of person/role data in the repository) or **remotely** (via Entra ID or Authentik, e.g. via group/role claim). Both variants must be supported, because the bootstrapping problem (access before any IdP configuration) forces a local option, while organizations with established IdP governance may want to disable local admin access after initial configuration for security reasons.
 
-**Realisierungsprinzip – RFC-Konformität statt Provider-Spezifika**: Die Integration wird als generischer OIDC-Client gegen die einschlägigen Standards implementiert – OpenID Connect Core 1.0, OAuth 2.0 (RFC 6749), OAuth 2.0 Authorization Server Metadata / OIDC Discovery (RFC 8414) für automatische Endpunkt-Erkennung, und optional Token-Introspection (RFC 7662, siehe REQ-001 AC3) für Echtzeit-Widerruf-Prüfung. Entra ID und Authentik sind die zwei **getesteten Referenz-Integrationen** (Pflicht), nicht aber die einzigen technisch unterstützten Provider: jeder weitere RFC-/Standard-konforme Enterprise-IdP – z.B. **Okta**, **Ping Identity**, **ForgeRock**, **Google Workspace**, **AWS IAM Identity Center**, **OneLogin**, oder im OSS-Bereich **Keycloak** und **Zitadel** – sollte durch reine Standardkonformität ebenfalls funktionieren, ohne dass OEA dafür dedizierten Provider-Code pflegt oder Kompatibilität garantiert.
+**Implementation principle – RFC conformance instead of provider specifics**: The integration is implemented as a generic OIDC client against the relevant standards – OpenID Connect Core 1.0, OAuth 2.0 (RFC 6749), OAuth 2.0 Authorization Server Metadata / OIDC Discovery (RFC 8414) for automatic endpoint discovery, and optionally token introspection (RFC 7662, see REQ-001 AC3) for real-time revocation checks. Entra ID and Authentik are the two **tested reference integrations** (mandatory), but not the only technically supported providers: any further RFC-/standards-compliant enterprise IdP – e.g. **Okta**, **Ping Identity**, **ForgeRock**, **Google Workspace**, **AWS IAM Identity Center**, **OneLogin**, or in the OSS space **Keycloak** and **Zitadel** – should also work through pure standards conformance, without OEA maintaining dedicated provider code or guaranteeing compatibility for it.
 
-## Konsequenzen
+## Consequences
 
-### Positive Konsequenzen
+### Positive Consequences
 
-- Die offene Frage aus UC-01 ("welcher Identity-Provider/Auth-Stack für den Walking Skeleton") ist aufgelöst: Walking Skeleton implementiert mindestens eine der beiden Pflicht-Integrationen vollständig.
-- Sowohl Konzern- (SH-05) als auch KMU-/Self-Hosting-Stakeholder (SH-03, SH-06) sind mit einer konkreten, getesteten Option versorgt.
-- Lokale Authentifizierung bleibt als Fallback bestehen, OEA ist nie zwingend von einem externen IdP abhängig.
+- The open question from UC-01 ("which identity provider/auth stack for the Walking Skeleton") is resolved: the Walking Skeleton fully implements at least one of the two mandatory integrations.
+- Both corporate group (SH-05) and SME/self-hosting stakeholders (SH-03, SH-06) are served with a concrete, tested option.
+- Local authentication remains as a fallback; OEA is never necessarily dependent on an external IdP.
 
-### Negative Konsequenzen / Trade-offs
+### Negative Consequences / Trade-offs
 
-- Zwei IdP-Integrationen müssen dauerhaft gepflegt, getestet und bei Breaking Changes der jeweiligen Provider aktualisiert werden – höherer Wartungsaufwand als bei nur einer Pflicht-Integration.
-- Andere verbreitete Provider (z.B. Keycloak, Okta, Auth0) sind nicht Teil der gepflegten Referenz-Integrationen; sie funktionieren ggf. über Standard-OIDC, aber ohne Garantie/Tests von OEA-Seite. Das kann von Nutzern mit anderem Bestands-IdP als Lücke empfunden werden.
-- Der optionale lokale System-Admin-Zugang ist ein zusätzlicher Authentifizierungspfad, der eigenständig abgesichert werden muss (siehe Folgeentscheidungen) – sonst entsteht ein Bypass um die RBAC-Struktur aus §8.2/§21.8.
+- Two IdP integrations must be permanently maintained, tested, and updated on breaking changes of the respective providers – higher maintenance effort than with only one mandatory integration.
+- Other widespread providers (e.g. Keycloak, Okta, Auth0) are not part of the maintained reference integrations; they may work via standard OIDC, but without guarantee/tests from OEA's side. This may be perceived as a gap by users with a different existing IdP.
+- The optional local system admin access is an additional authentication path that must be secured independently (see follow-up decisions) – otherwise a bypass around the RBAC structure from §8.2/§21.8 arises.
 
-### Folgeentscheidungen
+### Follow-up Decisions
 
-- ~~**Bootstrapping-Use-Case** für den initialen System-Admin-Zugang ist noch zu spezifizieren~~ → erledigt: [UC-02: System-Admin-Bootstrapping](../requirements/use-cases/UC-02-system-admin-bootstrapping.md)
-- Konkrete Claim-Mapping-Konventionen für Entra ID (z.B. `groups`-Claim) und Authentik (z.B. Authentik-Gruppen/Properties) auf OEA-Rollen sind in einer technischen Spezifikation festzulegen (Solution-Design, nicht ADR-Ebene).
-- Entscheidung, ob der lokale System-Admin-Zugang nach Erstkonfiguration eines Pflicht-IdP deaktivierbar sein muss (Sicherheits-Empfehlung) – ggf. eigenes Requirement.
+- ~~**Bootstrapping use case** for the initial system admin access is yet to be specified~~ → done: [UC-02: System Admin Bootstrapping](../requirements/use-cases/UC-02-system-admin-bootstrapping.md)
+- Concrete claim mapping conventions for Entra ID (e.g. `groups` claim) and Authentik (e.g. Authentik groups/properties) to OEA roles are to be defined in a technical specification (solution design, not ADR level).
+- Decision whether the local system admin access must be deactivatable after initial configuration of a mandatory IdP (security recommendation) – possibly its own requirement.
 
-## Bezüge
+## References
 
-**Konzept-Kapitel**:
-- [§21.8 Sicherheit und Autorisierung](../concept/70-platform/21-api-architektur.md)
-- [§8.2 Role](../concept/20-entities/08-organisation-rollen-personen.md)
+**Concept Chapters**:
+- [§21.8 Security and Authorization](../concept/70-platform/21-api-architecture.md)
+- [§8.2 Role](../concept/20-entities/08-organization-roles-persons.md)
 
-**Verwandte ADRs**:
-- keine
+**Related ADRs**:
+- none
 
 **Use Cases / Requirements**:
 - [UC-01: Login](../requirements/use-cases/UC-01-login.md)
-- [UC-02: System-Admin-Bootstrapping](../requirements/use-cases/UC-02-system-admin-bootstrapping.md)
-- [REQ-001: OIDC-basierte Anmeldung und Session-Erstellung](../requirements/req/REQ-001-oidc-login-session.md)
-- [REQ-009: Passkey-Login](../requirements/req/REQ-009-passkey-login.md)
-- [REQ-010: Username/Passwort-Login mit TOTP](../requirements/req/REQ-010-username-passwort-totp.md)
-- [REQ-011: Username/Passwort-Login ohne zweiten Faktor](../requirements/req/REQ-011-username-passwort-minimal.md)
-- [REQ-012: Konfigurierbare Token-Lebensdauer bei lokaler Authentifizierung](../requirements/req/REQ-012-token-lebensdauer-lokal.md)
+- [UC-02: System Admin Bootstrapping](../requirements/use-cases/UC-02-system-admin-bootstrapping.md)
+- [REQ-001: OIDC-Based Login and Session Creation](../requirements/req/REQ-001-oidc-login-session.md)
+- [REQ-009: Passkey Login](../requirements/req/REQ-009-passkey-login.md)
+- [REQ-010: Username/Password Login with TOTP](../requirements/req/REQ-010-username-password-totp.md)
+- [REQ-011: Username/Password Login without Second Factor](../requirements/req/REQ-011-username-password-minimal.md)
+- [REQ-012: Configurable Token Lifetime for Local Authentication](../requirements/req/REQ-012-token-lifetime-local.md)
 
-## Notizen
+## Notes
 
-Entra ID und Authentik wurden als Pflicht-Set vom Repository-Inhaber vorgegeben, nicht aus einer rein technischen Bewertung abgeleitet. Die Begründung (Konzern- vs. Self-Hosting-Abdeckung) ist nachträglich rekonstruiert, um die Entscheidung im ADR-Format konsistent mit Pro/Contra zu dokumentieren.
+Entra ID and Authentik were specified as the mandatory set by the repository owner, not derived from a purely technical evaluation. The rationale (corporate group vs. self-hosting coverage) was reconstructed retrospectively in order to document the decision in ADR format consistently with pros/cons.

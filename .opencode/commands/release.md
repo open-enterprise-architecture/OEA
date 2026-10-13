@@ -1,64 +1,64 @@
-# /release – Konzept-Version hochziehen und CHANGELOG aktualisieren
+# /release – Bump the concept version and update the CHANGELOG
 
-Erstellt einen Release-Eintrag im CHANGELOG und aktualisiert den Status im Konzept-README.
+Creates a release entry in the CHANGELOG and updates the status in the concept README.
 
-## Argumente
+## Arguments
 
-`$ARGUMENTS` enthält optional: `<bump-type> "<Beschreibung>"`
-- `bump-type`: `minor` (neues Kapitel/Abschnitt) | `patch` (Korrekturen)
-- Beispiel: `/release minor "Neues Kapitel §24 Monitoring-Strategie"`
-- Ohne Argumente: interaktiv erfragen
+`$ARGUMENTS` optionally contains: `<bump-type> "<description>"`
+- `bump-type`: `minor` (new chapter/section) | `patch` (corrections)
+- Example: `/release minor "New chapter §24 Monitoring strategy"`
+- Without arguments: ask interactively
 
-## Ausführung
+## Execution
 
-1. **Aktuelle Version lesen**:
+1. **Read the current version**:
    ```bash
    grep -m1 "Status:" concept/README.md
    ```
-   Format: `**Status:** Entwurf vX.Y`
+   Format: `**Status:** Draft vX.Y`
 
-2. **Neue Version berechnen**:
-   - `minor`: Y bleibt, X+1 → v(X+1).0 — NEIN: Korrektur:
-     - `minor`: X.Y → X.(Y+1) (neuer Abschnitt/Kapitel)
-     - `patch`: X.Y → X.Y+1 als Patch: X.Y.Z → X.Y.(Z+1)
-   - Aktuelles Schema prüfen: `vX.Y` (zweistellig) oder `vX.Y.Z` (dreistellig)
+2. **Calculate the new version**:
+   - `minor`: Y stays, X+1 → v(X+1).0 — NO: correction:
+     - `minor`: X.Y → X.(Y+1) (new section/chapter)
+     - `patch`: X.Y → X.Y+1 as patch: X.Y.Z → X.Y.(Z+1)
+   - Check the current scheme: `vX.Y` (two-part) or `vX.Y.Z` (three-part)
 
-3. **CHANGELOG aktualisieren** (`concept/CHANGELOG.md`):
+3. **Update the CHANGELOG** (`concept/CHANGELOG.md`):
    Format: Keep a Changelog
    ```markdown
    ## [vX.Y] – YYYY-MM-DD
 
    ### Added / Changed / Fixed / Removed
-   - {{Beschreibung der Änderungen}}
+   - {{Description of the changes}}
    ```
-   - Neuen Eintrag **oben** unter `## [Unreleased]` einfügen (oder `[Unreleased]`-Block ersetzen)
-   - Datum: heute
+   - Insert the new entry **at the top** under `## [Unreleased]` (or replace the `[Unreleased]` block)
+   - Date: today
 
-4. **Status in `concept/README.md` aktualisieren**:
+4. **Update the status in `concept/README.md`**:
    ```
-   **Status:** Entwurf vX.Y  →  **Status:** Entwurf vX.(Y+1)
+   **Status:** Draft vX.Y  →  **Status:** Draft vX.(Y+1)
    ```
 
-5. **INDEX.md prüfen** (`concept/INDEX.md`):
-   - Hat sich die Kapitelstruktur geändert? Falls ja: INDEX anpassen.
+5. **Check INDEX.md** (`concept/INDEX.md`):
+   - Has the chapter structure changed? If so: adjust the INDEX.
 
-6. **Link-Validierung laufen lassen**:
+6. **Run link validation**:
    ```bash
    python3 scripts/validate_links.py
    ```
-   Muss grün sein vor dem Commit.
+   Must be green before the commit.
 
-7. **Git-Commit erstellen**:
+7. **Create the git commit**:
    ```
-   chore(concept): Release vX.Y – <Kurzbeschreibung>
+   chore(concept): Release vX.Y – <short description>
    ```
 
-8. **Ausgabe**:
-   Alte Version, neue Version, CHANGELOG-Eintrag-Vorschau.
+8. **Output**:
+   Old version, new version, CHANGELOG entry preview.
 
-## Konventionen
+## Conventions
 
-- Minor-Bump: neue Abschnitte, neue Kapitel, inhaltliche Erweiterungen
-- Patch-Bump: Korrekturen, Klarstellungen, Tippfehler
-- Kein Release ohne CHANGELOG-Eintrag
-- Kein Release ohne grüne Link-Validierung
+- Minor bump: new sections, new chapters, extensions of content
+- Patch bump: corrections, clarifications, typos
+- No release without a CHANGELOG entry
+- No release without green link validation

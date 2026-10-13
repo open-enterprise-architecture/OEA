@@ -1,6 +1,6 @@
 ---
 id: REQ-007
-title: Lifecycle-Übergang invited→active beim ersten erfolgreichen Login
+title: Lifecycle transition invited→active on first successful login
 type: business-rule
 priority: should
 status: proposed
@@ -17,93 +17,93 @@ references:
   stakeholders:
     - SH-03
   concept:
-    - concept/20-entities/08-organisation-rollen-personen.md
+    - concept/20-entities/08-organization-roles-persons.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-007: Lifecycle-Übergang invited→active beim ersten erfolgreichen Login
+# REQ-007: Lifecycle transition invited→active on first successful login
 
-## Aussage
+## Statement
 
-Das System SOLL den Lifecycle-Status einer [Person](../../business-objects/person.md) von `invited` zu `active` ändern, sobald ihr erster erfolgreicher Login-Vorgang abgeschlossen ist.
+The system SHOULD change the lifecycle status of a [Person](../../business-objects/person.md) from `invited` to `active` as soon as their first successful login process is completed.
 
-## Begründung
+## Rationale
 
-UC-01, Nachbedingung bei Erfolg. Der Lifecycle von Person (siehe `person.md`) unterscheidet `invited` (im System referenziert, aber noch nicht authentifiziert) von `active`. Der Login ist der definierte Übergangs-Trigger.
+UC-01, postcondition on success. The lifecycle of Person (see `person.md`) distinguishes `invited` (referenced in the system but not yet authenticated) from `active`. Login is the defined transition trigger.
 
-## Kontext
+## Context
 
-Betrifft Personen, die neu im Repository angelegt/referenziert wurden, sich aber noch nicht angemeldet haben.
+Concerns persons who were newly created/referenced in the repository but have not yet logged in.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=business-rule
+### For type=business-rule
 
-**Auslöser**: onLogin (genauer: beim ersten erfolgreichen Login)
+**Trigger**: onLogin (genauer: beim ersten erfolgreichen Login)
 
-**Betroffene Business Objects**: [person](../../business-objects/person.md)
+**Affected Business Objects**: [person](../../business-objects/person.md)
 
-**Formale Aussage** (vereinfacht):
+**Formal Statement** (vereinfacht):
 ```
 if Person.status == "invited" and Login.result == "success":
     Person.status = "active"
 ```
 
-**Beispiel**: Eine neu eingeladene Person meldet sich zum ersten Mal über den Identity-Provider an; ihr Status wechselt von `invited` zu `active`, unabhängig davon, ob ihr bereits eine Rolle zugewiesen ist (siehe REQ-003).
+**Example**: A newly invited person logs in via the identity provider for the first time; their status changes from `invited` to `active`, regardless of whether a role has already been assigned to them (see REQ-003).
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine Person mit Status `invited`
-- Wenn: sie sich erstmals erfolgreich anmeldet
-- Dann: wechselt ihr Status zu `active`
+- Given: a person with status `invited`
+- When: they log in successfully for the first time
+- Then: their status changes to `active`
 
 **AC2**:
-- Gegeben: eine Person mit Status `active`
-- Wenn: sie sich erneut anmeldet
-- Dann: bleibt ihr Status unverändert `active` (kein erneuter Übergang, keine Seiteneffekte)
+- Given: a person with status `active`
+- When: they log in again
+- Then: their status remains `active` unchanged (no repeated transition, no side effects)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Login-Simulation für `invited`-Person und für bereits `active`-Person
-- [x] Mess-Werkzeug: Test-Suite des Auth-Moduls
-- [x] Bestanden-Kriterium: AC1, AC2 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: login simulation for an `invited` person and for an already `active` person
+- [x] Measurement tool: test suite of the auth module
+- [x] Pass criterion: AC1, AC2 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-001
-- **Folgewirkungen**: keine bekannt
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-001
+- **Downstream effects**: none known
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne automatischen Übergang bliebe der Lifecycle-Status manuell zu pflegen – Inkonsistenz-Risiko, geringer Schweregrad
+- Risk 1: Without an automatic transition, the lifecycle status would have to be maintained manually – inconsistency risk, low severity
 
 ## Trade-offs
 
-- keine bekannt
+- none known
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Übergang sollte idempotent sein (mehrfacher Login bei bereits `active`-Status darf keinen Fehler werfen)
+- The transition should be idempotent (repeated login with an already `active` status must not throw an error)
 
-## Realisierung
+## Implementation
 
-- ADR(s): keine
-- Implementiert durch: –
+- ADR(s): none
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-01 Login, Nachbedingung bei Erfolg, und Lifecycle-Definition in `person.md`.
+Derived from UC-01 Login, postcondition on success, and the lifecycle definition in `person.md`.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft aus UC-01 |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |

@@ -68,7 +68,7 @@ Implementation happens in OpenSpec changes (`openspec/README.md`), cut from the 
 ### Documentation
 
 - **English** for all new and changed documentation (Markdown, ADRs, OpenSpec artifacts, templates, commit messages, PR descriptions)
-- Existing German documents are translated when they are substantially changed; no bulk translation without a dedicated change
+- The repository was fully translated to English in October 2026; new German content is not accepted
 - Established German domain terms may be kept where no precise English equivalent exists (e.g. "Bebauungsplan"); add a short English explanation on first use
 - **Neutral, factual tone**; no second-person address in documentation
 - **Markdown** as format, with frontmatter where useful
@@ -120,7 +120,7 @@ Before every merge to `main`:
 
 ### Concept Paper
 
-- Status in `concept/README.md` (format: `**Status:** Entwurf vX.Y`)
+- Status in `concept/README.md` (format: `**Status:** Draft vX.Y`)
 - On change: entry in `concept/CHANGELOG.md` (format: Keep a Changelog)
 - Minor bump for new sections/chapters
 - Patch bump for corrections
@@ -259,7 +259,7 @@ find /run/host/var/lib/flatpak/runtime/org.freedesktop.Sdk -name "git" -type f 2
 - ALWAYS link affected concept chapters
 - NEVER reuse an ADR number (not even for rejected ones)
 
-### On screen changes (Penpot mockups)
+### On Screen Changes
 
 `docs/screens/SCREENS.md` is the binding screen inventory. It MUST be checked and updated on each of the following events:
 
@@ -267,12 +267,12 @@ find /run/host/var/lib/flatpak/runtime/org.freedesktop.Sdk -name "git" -type f 2
 |---|---|
 | New screen created (`scripts/penpot/*.js`) | Add an entry to SCREENS.md: ID, name, platform, UC reference, priority; set status to `mockup` |
 | Screen revised | Check and adjust the status in SCREENS.md if needed |
-| New Penpot script added | Add an entry to the table "Zugehörige Penpot-Scripts" |
+| New Penpot script added | Add an entry to the table "Related Penpot Scripts" |
 | Screen dropped or merged | Remove the entry or comment it as `superseded` |
 
 **Rule of thumb:** every SVG in `docs/screens/` has a corresponding entry in `SCREENS.md`.
 
-### On data model changes
+### On Data Model Changes
 
 The data model consists of two sources that must be kept in sync:
 - `docs/data-model.puml` – PlantUML overall diagram (classes, attributes, relations, SQL constraints)

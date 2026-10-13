@@ -1,6 +1,6 @@
 ---
 id: REQ-050
-title: Katalog im Navigationsbaum einordnen
+title: Place a catalog in the navigation tree
 type: functional
 priority: should
 status: proposed
@@ -27,89 +27,89 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-050: Katalog im Navigationsbaum einordnen
+# REQ-050: Place a catalog in the navigation tree
 
-## Aussage
+## Statement
 
-Das System MUSS dem Katalog-Manager ermöglichen, einen [Catalog](../../business-objects/catalog.md) einem oder mehreren [TreeNode](../../business-objects/tree-node.md)-Knoten als `TreeNodeItem` (itemType=`catalog`, referenceId=catalogId) zuzuordnen. Es gilt das **Soft-Reference-Prinzip**: Derselbe Catalog KANN in mehreren Knoten erscheinen (BR-06); das Entfernen eines `TreeNodeItem` DARF den Catalog-Datensatz NICHT löschen (BR-05). Der Catalog MUSS über einen Klick auf den TreeNode-Eintrag im Navigationsbaum direkt öffenbar sein.
+The system MUST allow the catalog manager to assign a [Catalog](../../business-objects/catalog.md) to one or more [TreeNode](../../business-objects/tree-node.md) nodes as a `TreeNodeItem` (itemType=`catalog`, referenceId=catalogId). The **soft reference principle** applies: the same catalog MAY appear in several nodes (BR-06); removing a `TreeNodeItem` MUST NOT delete the catalog record (BR-05). The catalog MUST be directly openable by clicking the TreeNode entry in the navigation tree.
 
-## Begründung
+## Rationale
 
-Ohne Einordnung in den Navigationsbaum sind Catalogs nur über die globale Katalog-Übersicht auffindbar. Für grosse Repositorys (viele Catalogs) ist eine kontextuelle Navigation – z.B. alle Business-Architecture-Catalogs im Ordner „Business Architecture" – unerlässlich, damit Besucher gezielt zu relevanten Sichten navigieren können.
+Without placement in the navigation tree, catalogs can only be found via the global catalog overview. For large repositories (many catalogs), contextual navigation – e.g., all business architecture catalogs in the folder "Business Architecture" – is indispensable so that visitors can navigate specifically to relevant views.
 
-## Kontext
+## Context
 
-Der Navigationsbaum ist eine gemeinsame Struktur für alle Repository-Inhalte: Entitäten, Diagramme und Catalogs. Für Catalogs gelten dieselben TreeNode-Regeln wie für andere Objekte. Die Platzierung im Baum ist optional – ein Catalog ist auch ohne Baum-Einordnung über die Katalog-Übersicht zugänglich.
+The navigation tree is a shared structure for all repository content: entities, diagrams, and catalogs. For catalogs, the same TreeNode rules apply as for other objects. Placement in the tree is optional – a catalog is also accessible via the catalog overview without tree placement.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben (Catalog in Baum einhängen)**:
+**Inputs (attach catalog to tree)**:
 
-| Feld | Typ | Optional | Beschreibung |
+| Field | Type | Optional | Description |
 |---|---|---|---|
-| catalogId | string | Pflicht | UUID des einzuhängenden Catalogs |
-| parentNodeId | string | Pflicht | UUID des Ziel-TreeNodes (muss existieren) |
-| displayLabel | string | optional | Überschreibt Catalog-Name im Baum |
-| sortOrder | integer | optional | Reihenfolge innerhalb des Knotens; Default: ans Ende |
+| catalogId | string | mandatory | UUID of the catalog to attach |
+| parentNodeId | string | mandatory | UUID of the target TreeNode (must exist) |
+| displayLabel | string | optional | Overrides the catalog name in the tree |
+| sortOrder | integer | optional | Order within the node; default: at the end |
 
-**Verarbeitung**:
+**Processing**:
 
-1. Catalog existiert prüfen (BR-04); 404 sonst
-2. Target-TreeNode existiert prüfen; 404 sonst
+1. Check that the catalog exists (BR-04); 404 otherwise
+2. Check that the target TreeNode exists; 404 otherwise
 3. TreeNodeItem anlegen: `{ itemType: "catalog", referenceId: catalogId, parentNodeId, displayLabel, sortOrder }`
-4. Soft-Reference: derselbe Catalog kann in mehreren Knoten eingehängt werden; keine Duplikat-Verhinderung auf `referenceId`-Ebene
+4. Soft reference: the same catalog can be attached to several nodes; no duplicate prevention at `referenceId` level
 
-**Verarbeitung (Catalog aus Baum entfernen)**:
+**Processing (remove catalog from tree)**:
 
-1. TreeNodeItem löschen (nicht den Catalog selbst – BR-05)
-2. Alle anderen Einträge des Catalogs in anderen Knoten bleiben erhalten
+1. Delete the TreeNodeItem (not the catalog itself – BR-05)
+2. All other entries of the catalog in other nodes are retained
 
-**Ausgaben**:
+**Outputs**:
 
-- HTTP 201 Created mit dem neuen TreeNodeItem
-- HTTP 404 Not Found wenn Catalog oder TreeNode nicht existieren
-- HTTP 403 Forbidden bei fehlender Schreibberechtigung
+- HTTP 201 Created with the new TreeNodeItem
+- HTTP 404 Not Found if the catalog or TreeNode does not exist
+- HTTP 403 Forbidden on missing write permission
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Einordnen, Happy Path):
-- Gegeben: Catalog „Application Inventory" und TreeNode „IT-Landschaft" existieren
-- Wenn: `POST /api/v1/tree-nodes/{nodeId}/items` mit `{ itemType: "catalog", referenceId: "{catalogId}" }`
-- Dann: HTTP 201; TreeNodeItem angelegt; Catalog erscheint im Navigationsbaum unter „IT-Landschaft"
+**AC1** (Placement, happy path):
+- Given: catalog "Application Inventory" and TreeNode "IT Landscape" exist
+- When: `POST /api/v1/tree-nodes/{nodeId}/items` with `{ itemType: "catalog", referenceId: "{catalogId}" }`
+- Then: HTTP 201; TreeNodeItem created; the catalog appears in the navigation tree under "IT Landscape"
 
-**AC2** (Soft-Reference – mehrfache Einordnung):
-- Gegeben: Catalog „Application Inventory" ist bereits in „IT-Landschaft" eingehängt
-- Wenn: Catalog wird zusätzlich in „Compliance/ISO 27001 View" eingehängt
-- Dann: HTTP 201; Catalog erscheint in beiden Knoten; es existiert ein Catalog-Datensatz (kein Duplikat)
+**AC2** (Soft reference – multiple placement):
+- Given: catalog "Application Inventory" is already attached in "IT Landscape"
+- When: the catalog is additionally attached in "Compliance/ISO 27001 View"
+- Then: HTTP 201; the catalog appears in both nodes; there is one catalog record (no duplicate)
 
-**AC3** (BR-05 – Entfernen löscht Catalog nicht):
-- Wenn: `DELETE /api/v1/tree-nodes/{nodeId}/items/{itemId}` (TreeNodeItem entfernen)
-- Dann: HTTP 200; TreeNodeItem gelöscht; `GET /api/v1/catalogs/{catalogId}` liefert weiterhin HTTP 200
+**AC3** (BR-05 – removal does not delete the catalog):
+- When: `DELETE /api/v1/tree-nodes/{nodeId}/items/{itemId}` (remove the TreeNodeItem)
+- Then: HTTP 200; TreeNodeItem deleted; `GET /api/v1/catalogs/{catalogId}` still returns HTTP 200
 
-**AC4** (Öffnen via Navigationsbaum):
-- Gegeben: Catalog ist im Navigationsbaum eingehängt
-- Wenn: Besucher klickt auf den Eintrag im Navigationsbaum
-- Dann: Catalog wird direkt geöffnet (identisch mit Öffnen über Katalog-Übersicht); Default-SavedView wird angewendet (REQ-048)
+**AC4** (Open via navigation tree):
+- Given: the catalog is attached in the navigation tree
+- When: a visitor clicks the entry in the navigation tree
+- Then: the catalog is opened directly (identical to opening via the catalog overview); the default SavedView is applied (REQ-048)
 
-**AC5** (displayLabel Override):
-- Wenn: `{ itemType: "catalog", referenceId: "{catalogId}", displayLabel: "Systeminventar" }`
-- Dann: Im Navigationsbaum erscheint der Catalog unter dem Namen „Systeminventar"; der Name des Catalog-Objekts selbst bleibt „Application Inventory"
+**AC5** (displayLabel override):
+- When: `{ itemType: "catalog", referenceId: "{catalogId}", displayLabel: "System inventory" }`
+- Then: in the navigation tree the catalog appears under the name "System inventory"; the name of the catalog object itself remains "Application Inventory"
 
-## Abhängigkeiten
+## Dependencies
 
-- Blockiert durch: REQ-043 (Catalog muss existieren), TreeNode-Implementierung (eigenes REQ noch ausstehend)
-- Zusammenhang: REQ-046 (Öffnen des Catalogs aus Baum)
+- Blocked by: REQ-043 (the catalog must exist), TreeNode implementation (separate REQ still pending)
+- Related: REQ-046 (opening the catalog from the tree)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Endpoint: `POST /api/v1/tree-nodes/{nodeId}/items` (generisch für alle Item-Typen)
-- Entfernen: `DELETE /api/v1/tree-nodes/{nodeId}/items/{itemId}` (löscht nur TreeNodeItem, nicht den Catalog)
-- Navigationsbaum-Response: TreeNode mit items[] enthält für jeden Catalog-Item: type=catalog, referenceId, displayLabel, catalogName (für Anzeige wenn kein displayLabel gesetzt)
+- Endpoint: `POST /api/v1/tree-nodes/{nodeId}/items` (generic for all item types)
+- Removal: `DELETE /api/v1/tree-nodes/{nodeId}/items/{itemId}` (deletes only the TreeNodeItem, not the catalog)
+- Navigation tree response: TreeNode with items[] contains for each catalog item: type=catalog, referenceId, displayLabel, catalogName (for display when no displayLabel is set)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft |

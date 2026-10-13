@@ -1,35 +1,35 @@
-# Ableitung aus: requirements/req/req-104-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-104-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @should @UC-16
-Feature: REQ-104 – Teilwiederherstellung dreistufiger Wizard
+Feature: REQ-104 – Partial restore three-step wizard
 
-  Das System MUSS einen dreistufigen Wizard für die selektive
-  Wiederherstellung bereitstellen: Schritt 1 General Properties
-  (`name`, `description`, `isLogical`), Schritt 2 Custom Properties
-  (alle konfigurierten Properties aus `snapshot.propertyDefinitions`),
-  Schritt 3 Verbindungsübersicht (informativ:
-  geändert/hinzugekommen/entfernt). Jeder Schritt MUSS einzeln
-  überspringbar sein.
+  The system MUST provide a three-step wizard for selective
+  restore: step 1 General Properties
+  (`name`, `description`, `isLogical`), step 2 Custom Properties
+  (all configured properties from `snapshot.propertyDefinitions`),
+  step 3 connection overview (informational:
+  changed/added/removed). Each step MUST be individually
+  skippable.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Quellversion vorausgefüllt – der Wizard aus der Zeitlinie (UC-14) für Version v3 gestartet wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  der Wizard aus der Zeitlinie (UC-14) für Version v3 gestartet wird
-    Then  ist die Quellversion v3 vorausgefüllt
+  Scenario: AC1 – Source version prefilled – the wizard is started from the timeline (UC-14) for version v3
+    Given the precondition according to the requirement is met
+    When  the wizard is started from the timeline (UC-14) for version v3
+    Then  source version v3 is prefilled
 
   @AC2
-  Scenario: AC2 – Automatisches Überspringen – Schritt 1 keine Unterschiede in General Properties enthält
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Schritt 1 keine Unterschiede in General Properties enthält
-    Then  wird Schritt 1 automatisch mit dem Hinweis "Keine Unterschiede in General Properties" übersprungen; Wizard wechselt direkt zu Schritt 2
+  Scenario: AC2 – Automatic skipping – step 1 contains no differences in General Properties
+    Given the precondition according to the requirement is met
+    When  step 1 contains no differences in General Properties
+    Then  step 1 is skipped automatically with the note "No differences in General Properties"; wizard switches directly to step 2
 
   @AC3
-  Scenario: AC3 – Bestätigen-Button bei leerer Auswahl – in allen Schritten keine Felder ausgewählt wurden
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  in allen Schritten keine Felder ausgewählt wurden
-    Then  ist der Bestätigen-Button deaktiviert (gemäss REQ-106)
+  Scenario: AC3 – Confirm button on empty selection – no fields were selected in any step
+    Given the precondition according to the requirement is met
+    When  no fields were selected in any step
+    Then  the confirm button is disabled (per REQ-106)

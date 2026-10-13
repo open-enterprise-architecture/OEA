@@ -1,52 +1,52 @@
-# Ableitung aus: requirements/req/req-042-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-042-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @should @UC-05
-Feature: REQ-042 – Konflikt-Warnung bei parallelen EntityDeltas
+Feature: REQ-042 – Conflict warning for parallel EntityDeltas
 
-  Das System SOLL beim Erfassen oder Aktualisieren eines EntityDeltas
-  prüfen, ob eine andere aktive Solution (status ∉ {`implemented`,
-  `archived`}) bereits ein EntityDelta für dieselbe Entität enthält;
-  falls ja, SOLL eine nicht-blockierende Warnung mit Name und Owner der
-  konfliktbehafteten Solution angezeigt werden.
+  When capturing or updating an EntityDelta, the system SHOULD check
+  whether another active solution (status ∉ {`implemented`,
+  `archived`}) already contains an EntityDelta for the same entity; if
+  so, a non-blocking warning with the name and owner of the
+  conflicting solution SHOULD be displayed.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Solution A (draft, Owner: Maria) enthält ein Delta für Entity `CRM-Legacy`
-    Given Solution A (draft, Owner: Maria) enthält ein Delta für Entity `CRM-Legacy`
-    When  Michael in einer anderen Solution B ein Delta für `CRM-Legacy` anlegt
-    Then  erscheint eine Warnung „Diese Entität wird auch in Solution 'Solution A' (Owner: Maria) geändert"; das Delta in Solution B wird trotzdem gespeichert
+  Scenario: AC1 – solution A (draft, owner: Maria) contains a delta for entity `CRM-Leg...
+    Given solution A (draft, owner: Maria) contains a delta for entity `CRM-Legacy`
+    When  Michael creates a delta for `CRM-Legacy` in another solution B
+    Then  a warning "This entity is also being changed in solution 'Solution A' (owner: Maria)" appears; the delta in solution B is saved anyway
 
   @AC2
-  Scenario: AC2 – Solution A (implemented) enthält ein Delta für Entity `CRM-Legacy`
-    Given Solution A (implemented) enthält ein Delta für Entity `CRM-Legacy`
-    When  Michael in Solution B ein Delta für `CRM-Legacy` anlegt
-    Then  **keine** Warnung (implemented ist kein aktiver Konflikt)
+  Scenario: AC2 – solution A (implemented) contains a delta for entity `CRM-Legacy`
+    Given solution A (implemented) contains a delta for entity `CRM-Legacy`
+    When  Michael creates a delta for `CRM-Legacy` in solution B
+    Then  **no** warning (implemented is not an active conflict)
 
   @AC3
-  Scenario: AC3 – Solution A (archived) enthält ein Delta für Entity `CRM-Legacy`
-    Given Solution A (archived) enthält ein Delta für Entity `CRM-Legacy`
-    When  Michael in Solution B ein Delta für `CRM-Legacy` anlegt
-    Then  **keine** Warnung (archived ist kein aktiver Konflikt)
+  Scenario: AC3 – solution A (archived) contains a delta for entity `CRM-Legacy`
+    Given solution A (archived) contains a delta for entity `CRM-Legacy`
+    When  Michael creates a delta for `CRM-Legacy` in solution B
+    Then  **no** warning (archived is not an active conflict)
 
   @AC4
-  Scenario: AC4 – Zwei andere Solutions (A und B) haben jeweils ein Delta für `CRM-Legacy`
-    Given Zwei andere Solutions (A und B) haben jeweils ein Delta für `CRM-Legacy`
-    When  Michael in Solution C ein Delta für `CRM-Legacy` anlegt
-    Then  erscheinen zwei Warnungen (eine pro konfliktbehafteter Solution)
+  Scenario: AC4 – two other solutions (A and B) each have a delta for `CRM-Legacy`
+    Given two other solutions (A and B) each have a delta for `CRM-Legacy`
+    When  Michael creates a delta for `CRM-Legacy` in solution C
+    Then  two warnings appear (one per conflicting solution)
 
   @AC5
-  Scenario: AC5 – Warnung wurde für `CRM-Legacy` in Solution B angezeigt
-    Given Warnung wurde für `CRM-Legacy` in Solution B angezeigt
-    When  Michael die Solution B neu lädt oder die Delta-Liste öffnet
-    Then  ist die Warnung weiterhin sichtbar (kein einmaliges Toast, persistente Anzeige am Delta)
+  Scenario: AC5 – warning was displayed for `CRM-Legacy` in solution B
+    Given warning was displayed for `CRM-Legacy` in solution B
+    When  Michael reloads solution B or opens the delta list
+    Then  the warning is still visible (not a one-time toast, persistent display on the delta)
 
   @AC6
-  Scenario: AC6 – Solution A wird auf `implemented` gesetzt (Go-Live)
-    Given Solution A wird auf `implemented` gesetzt (Go-Live)
-    When  Michael Solution B mit dem Delta für `CRM-Legacy` öffnet
-    Then  verschwindet die Warnung (Konflikt aufgelöst durch Go-Live von A)
+  Scenario: AC6 – solution A is set to `implemented` (go-live)
+    Given solution A is set to `implemented` (go-live)
+    When  Michael opens solution B with the delta for `CRM-Legacy`
+    Then  the warning disappears (conflict resolved by go-live of A)

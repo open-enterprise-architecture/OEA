@@ -1,32 +1,32 @@
-## 7. Motivation, Stakeholder und Ziele
+## 7. Motivation, Stakeholders, and Goals
 
-Ein EA-Repository beschreibt nicht nur *was* existiert, sondern auch *warum* es existiert und *für wen*. Die Motivation-Schicht ist die Antwort-Ebene auf diese Fragen – aus TOGAF Motivation Extension und ArchiMate Motivation Layer.
+An EA repository describes not only *what* exists, but also *why* it exists and *for whom*. The motivation layer is the answer level for these questions – from the TOGAF Motivation Extension and the ArchiMate Motivation Layer.
 
-### 7.1 Die Motivations-Kette
+### 7.1 The Motivation Chain
 
-Die Konzepte bauen aufeinander auf:
+The concepts build on each other:
 
 ```
-Driver (externer/interner Treiber)
+Driver (external/internal driver)
    ↓ triggers
-Assessment (Bewertung des Ist-Zustands)
+Assessment (evaluation of the current state)
    ↓ motivates
-Goal (strategisches Ziel)
+Goal (strategic goal)
    ↓ refined by
-Outcome (messbares Ergebnis)
+Outcome (measurable result)
    ↓ realized by
 Capability + Course of Action
    ↓ implemented through
 Architecture Elements (Applications, Processes, Data, Technology)
 ```
 
-### 7.2 Neue EntityTypes
+### 7.2 New EntityTypes
 
 ```yaml
 EntityType: Vision
   properties:
-    - statement: text                 # langfristige, inspirierende Aussage
-    - timeHorizon: string             # z.B. "2030+"
+    - statement: text                 # long-term, inspiring statement
+    - timeHorizon: string             # e.g. "2030+"
   relations:
     - pursuedBy: OrganizationUnit
     - refinedBy: Goal[]
@@ -58,7 +58,7 @@ EntityType: Goal
     - priority: critical | high | medium | low
     - status: proposed | active | achieved | abandoned
   relations:
-    - refinedBy: Goal[] (Hierarchie)
+    - refinedBy: Goal[] (hierarchy)
     - measuredBy: Outcome[]
     - contributesTo: Vision
     - supportedBy: Capability[]
@@ -104,43 +104,43 @@ EntityType: Concern
 
 EntityType: Requirement
   properties:
-    - statement: text                 # die Anforderung selbst, prägnant formuliert
-    - rationale: text                 # warum existiert die Anforderung
+    - statement: text                 # the requirement itself, concisely worded
+    - rationale: text                 # why the requirement exists
     - type: functional | non-functional | constraint | assumption
     - category: business | data | application | technology | security | compliance | usability | performance | cross-cutting
     - priority: must | should | could | wont (MoSCoW)
     - status: identified | analyzed | approved | allocated | realized | verified | rejected | deferred | retired
-    - source: text                    # woher stammt die Anforderung
+    - source: text                    # where the requirement comes from
     - sourceType: stakeholder | regulation | contract | workshop | audit-finding | strategy | other
-    - acceptanceCriteria: text        # Pflicht für status >= 'approved'
+    - acceptanceCriteria: text        # mandatory for status >= 'approved'
     - verificationMethod: test | inspection | demonstration | analysis | none
     - verificationStatus: not-verified | verified | failed
-    - version: integer                # neue Version bei jeder semantischen Änderung
+    - version: integer                # new version on every semantic change
   relations:
-    # Quellen und Begründung (aufwärts)
-    - raisedBy: Stakeholder[]         # wer hat die Anforderung gestellt
-    - addresses: Concern[]            # welche Stakeholder-Sorge wird adressiert
-    - derivedFromGoal: Goal[]         # strategische Begründung
-    - derivedFromCompliance: ComplianceRequirement[]   # regulatorische Begründung
-    - derivedFromPrinciple: ArchitecturePrinciple[]    # Prinzip-Bezug
+    # Sources and rationale (upward)
+    - raisedBy: Stakeholder[]         # who raised the requirement
+    - addresses: Concern[]            # which stakeholder concern is addressed
+    - derivedFromGoal: Goal[]         # strategic justification
+    - derivedFromCompliance: ComplianceRequirement[]   # regulatory justification
+    - derivedFromPrinciple: ArchitecturePrinciple[]    # principle reference
     
-    # Realisierung (abwärts)
-    - realizedBy: Entity[] | Relation[]   # welche Architektur-Elemente erfüllen sie
-    - implementedInPlateau: Plateau[]     # in welchem Plateau muss erfüllt sein
-    - allocatedTo: WorkPackage[]          # welches WorkPackage liefert die Erfüllung
-    - referencesStandard: ArchitectureStandard[]  # Standard erfüllt die Anforderung
-    - documentedInADR: ADR[]              # ADR begründet/erfüllt die Anforderung
+    # Implementation (downward)
+    - realizedBy: Entity[] | Relation[]   # which architecture elements fulfill it
+    - implementedInPlateau: Plateau[]     # in which plateau it must be fulfilled
+    - allocatedTo: WorkPackage[]          # which work package delivers the fulfillment
+    - referencesStandard: ArchitectureStandard[]  # standard fulfills the requirement
+    - documentedInADR: ADR[]              # ADR justifies/fulfills the requirement
     
-    # Beziehungen zu anderen Anforderungen
-    - refines: Requirement              # verfeinert eine grobe Anforderung
-    - refinedBy: Requirement[]          # rückreferenz für Hierarchie
-    - dependsOn: Requirement[]          # setzt andere voraus
-    - conflictsWith: Requirement[]      # widerspricht anderen
-    - supersedes: Requirement           # ersetzt eine alte Version
+    # Relationships to other requirements
+    - refines: Requirement              # refines a coarse requirement
+    - refinedBy: Requirement[]          # back reference for hierarchy
+    - dependsOn: Requirement[]          # presupposes others
+    - conflictsWith: Requirement[]      # contradicts others
+    - supersedes: Requirement           # replaces an old version
     
-    # Risiko-Verbindungen
-    - mitigatesRisk: Risk[]             # Anforderung reduziert Risiko
-    - riskIfNotMet: Risk                # was passiert bei Nicht-Erfüllung
+    # Risk connections
+    - mitigatesRisk: Risk[]             # requirement reduces risk
+    - riskIfNotMet: Risk                # what happens if not fulfilled
 
 EntityType: Assumption
   properties:
@@ -153,72 +153,72 @@ EntityType: Assumption
     - verifiedBy: Assessment
 ```
 
-**Stereotypen für unterschiedliche Anforderungs-Ebenen**:
+**Stereotypes for different requirement levels**:
 
-Das EA-Repository fokussiert auf **Architecture Requirements** – fachlich-architektonische Anforderungen, die mehrere Systeme oder die Landschaft als Ganzes betreffen. **System Requirements** (anforderungen an konkret zu bauende Systeme) gehören klassischerweise in Tools wie Jira, Doors, Polarion oder Jama. Pragmatisch werden sie aber im Repository erlaubt – als Stereotype:
+The EA repository focuses on **architecture requirements** – business and architectural requirements that affect several systems or the landscape as a whole. **System requirements** (requirements for concrete systems to be built) classically belong in tools like Jira, Doors, Polarion, or Jama. Pragmatically, however, they are allowed in the repository – as stereotypes:
 
 ```yaml
 Stereotype: ArchitectureRequirement (Default)
   basedOn: Requirement
-  intent: "Anforderung an die Architektur, system-übergreifend"
+  intent: "Requirement on the architecture, cross-system"
 
 Stereotype: SystemRequirement
   basedOn: Requirement
-  intent: "Anforderung an ein konkretes System, oft Resultat einer Architecture Requirement"
+  intent: "Requirement on a concrete system, often the result of an architecture requirement"
   additionalProperties:
     - targetSystem: ApplicationComponent
-    - externalReference: string  # Verweis ins eigentliche System-Requirements-Tool
+    - externalReference: string  # Reference into the actual system requirements tool
 
 Stereotype: QualityRequirement
   basedOn: Requirement
-  intent: "Nicht-funktionale Anforderung mit Bezug zum Qualitätsbaum (Arc42 Kapitel 10)"
+  intent: "Non-functional requirement related to the quality tree (Arc42 chapter 10)"
   additionalProperties:
     - qualityCategory: performance | security | usability | maintainability | reliability | scalability
-    - measurableTarget: string  # konkrete Zielgröße, z.B. "p95 response < 200ms"
+    - measurableTarget: string  # concrete target value, e.g. "p95 response < 200ms"
 
-Stereotype: ComplianceRequirement (existiert bereits, siehe §17/§20)
-  intent: "Externe regulatorische Anforderung – wird oft Quelle für ArchitectureRequirements"
+Stereotype: ComplianceRequirement (already exists, see §17/§20)
+  intent: "External regulatory requirement – often becomes the source for ArchitectureRequirements"
 ```
 
-Die **Empfehlung**: SystemRequirements werden im EA-Repository nur dann modelliert, wenn sie architektonisch relevant sind (Cross-System-Constraints, Compliance-Nachweise, Trace-Pflichten). Detail-Anforderungen für ein einzelnes System bleiben in den jeweiligen System-Tools, mit Verlinkung über `externalReference`.
+The **recommendation**: SystemRequirements are modeled in the EA repository only if they are architecturally relevant (cross-system constraints, compliance evidence, trace obligations). Detailed requirements for a single system remain in the respective system tools, linked via `externalReference`.
 
-### 7.3 Stakeholder-Concern-Mapping
+### 7.3 Stakeholder-Concern Mapping
 
-Die zentrale Praxis aus ISO 42010: **Viewpoints werden aus Stakeholder-Concerns abgeleitet**. Im Repository:
+The central practice from ISO 42010: **viewpoints are derived from stakeholder concerns**. In the repository:
 
 ```yaml
-View (bereits existiert) erhält:
+View (already exists) gains:
   - addressesConcerns: Concern[]
   - forStakeholders: Stakeholder[]
 ```
 
-Damit lässt sich prüfen: Welche Stakeholder-Concerns sind nicht durch mindestens eine View adressiert?
+This makes it possible to check: Which stakeholder concerns are not addressed by at least one view?
 
-### 7.4 Glossar als First-Class-Konzept
+### 7.4 Glossary as a First-Class Concept
 
-Ein oft vergessenes Element: konsistente Terminologie über das gesamte Repository.
+An often forgotten element: consistent terminology across the entire repository.
 
 ```yaml
 EntityType: GlossaryTerm
   properties:
     - term: string
     - definition: text
-    - domain: Domain                  # fachlicher Kontext
-    - aliases: string[]               # Synonyme
+    - domain: Domain                  # business context
+    - aliases: string[]               # synonyms
     - abbreviations: string[]
     - status: active | deprecated
-    - source: string                  # Quelle der Definition
+    - source: string                  # source of the definition
   relations:
     - relatedTerms: GlossaryTerm[]
     - supersedes: GlossaryTerm
-    - usedIn: Entity[]                # wo wird der Begriff verwendet
+    - usedIn: Entity[]                # where the term is used
 ```
 
-Glossare sind besonders wertvoll bei:
-- Fachbereich-IT-Kommunikation (gemeinsame Sprache)
-- Cross-Domain-Projekten (Customer-Begriff in Sales vs. Support)
-- Compliance-Audits (Begriffs-Nachvollziehbarkeit)
+Glossaries are particularly valuable for:
+- Business unit–IT communication (shared language)
+- Cross-domain projects (customer term in sales vs. support)
+- Compliance audits (terminology traceability)
 
 ---
 
-← [Kern-Entitätstypen](06-kern-entitaetstypen.md) · [🏠 Übersicht](../README.md) · [Organisation, Rollen & Personen](08-organisation-rollen-personen.md) →
+← [Core Entity Types](06-core-entity-types.md) · [🏠 Overview](../README.md) · [Organization, Roles & Persons](08-organization-roles-persons.md) →

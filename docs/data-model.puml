@@ -1,7 +1,7 @@
-@startuml OEA – Datenmodell
+@startuml OEA – Data Model
 
 ' ─────────────────────────────────────────────────────
-' Stil
+' Style
 ' ─────────────────────────────────────────────────────
 skinparam linetype ortho
 skinparam classAttributeIconSize 0
@@ -19,13 +19,13 @@ skinparam package {
 hide empty methods
 
 ' ─────────────────────────────────────────────────────
-' Legende Konventionen
+' Legend of conventions
 ' {PK}   Primary Key
 ' {FK}   Foreign Key
 ' {UQ}   Unique Constraint
-' {NN}   NOT NULL (implizit bei PK; explizit bei anderen)
-' TEXT   = VARCHAR / CLOB je DB-Dialekt (ADR-023: kein JSONB)
-' Enums als Kommentar: -- enum: a|b|c
+' {NN}   NOT NULL (implicit for PK; explicit for others)
+' TEXT   = VARCHAR / CLOB depending on DB dialect (ADR-023: no JSONB)
+' Enums as comment: -- enum: a|b|c
 ' ─────────────────────────────────────────────────────
 
 ' ╔══════════════════════════════════════════════════════╗
@@ -38,22 +38,22 @@ package "Auth" #FFF8E1 {
     --
     + person_type         : TEXT          {NN} DEFAULT 'human'
     .. enum: human | service-account ..
-    .. service-account: kein ui_language/ui_theme erforderlich ..
+    .. service-account: no ui_language/ui_theme required ..
     + name                : TEXT          {NN}
     + email               : TEXT          {NN} {UQ}
     + employee_id         : TEXT
-    .. null bei service-account ..
+    .. null for service-account ..
     + active              : BOOLEAN       {NN} DEFAULT true
     + start_date          : DATE
     + end_date            : DATE
     + detail_level        : TEXT          {NN} DEFAULT 'reference-only'
     .. enum: full | reference-only | anonymized ..
-    .. service-account: immer 'reference-only' ..
+    .. service-account: always 'reference-only' ..
     + external_ref_system : TEXT
     + external_ref_id     : TEXT
     + ui_language         : TEXT          {NN} DEFAULT 'de'
     .. BCP 47: 'de' | 'en' | 'fr' | 'it' ..
-    .. ignoriert bei person_type=service-account ..
+    .. ignored for person_type=service-account ..
     + ui_theme            : TEXT          {NN} DEFAULT 'system'
     .. enum: light | dark | system ..
     + created_at          : TIMESTAMPTZ   {NN} DEFAULT NOW()
@@ -61,45 +61,45 @@ package "Auth" #FFF8E1 {
 
   class machine_credentials <<Table>> #FFECB3 {
     + client_id           : UUID          {PK}
-    .. stabil; wird als agent_id im Audit-Log verwendet ..
+    .. stable; used as agent_id in the audit log ..
     --
     + person_id           : BIGINT        {NN} {FK→persons.id}
     .. CHECK: persons.person_type = 'service-account' ..
     + client_secret_hash  : TEXT          {NN}
-    .. argon2id; Klartext nur einmalig bei Anlage/Rotation zurückgegeben ..
+    .. argon2id; plaintext returned only once on creation/rotation ..
     + active              : BOOLEAN       {NN} DEFAULT true
     + created_at          : TIMESTAMPTZ   {NN} DEFAULT NOW()
     + last_used_at        : TIMESTAMPTZ
     + rotated_at          : TIMESTAMPTZ
-    .. null = noch nie rotiert ..
+    .. null = never rotated ..
   }
 
   note right of machine_credentials
-    Credentials für Service-Accounts (ADR-026).
+    Credentials for service accounts (ADR-026).
     OAuth2 Client-Credentials-Grant:
     client_id + client_secret → JWT.
-    client_id = agent_id im Audit-Log.
-    Rotation: neues Secret; altes sofort
-    ungültig (active=false auf altem Eintrag,
-    neuer Eintrag erstellt).
+    client_id = agent_id in the audit log.
+    Rotation: new secret; old one immediately
+    invalid (active=false on the old entry,
+    new entry created).
   end note
 
   class roles <<Table>> #FFECB3 {
     + id               : TEXT             {PK}
-    .. kebab-case, z.B. 'enterprise-architect' ..
+    .. kebab-case, e.g. 'enterprise-architect' ..
     --
     + name             : TEXT             {NN}
-    .. Konzernsprache; Übersetzung via i18n_entries(field='name') ..
+    .. corporate language; translation via i18n_entries(field='name') ..
     + description      : TEXT
-    .. Konzernsprache; Übersetzung via i18n_entries(field='description') ..
+    .. corporate language; translation via i18n_entries(field='description') ..
     + type             : TEXT             {NN}
     .. enum: functional | process | project | governance | architectural | system ..
-    .. system = für interne Rollen (integration-writer, auditor) ..
+    .. system = for internal roles (integration-writer, auditor) ..
     + permission_level : TEXT             {NN} DEFAULT 'read'
     .. enum: read | write | admin ..
     + is_standard_role : BOOLEAN          {NN} DEFAULT false
     + is_builtin       : BOOLEAN          {NN} DEFAULT false
-    .. is_builtin=true: nicht löschbar; Teil des Starter-Daten-Scripts ..
+    .. is_builtin=true: not deletable; part of the starter data script ..
   }
 
   note right of roles
@@ -107,11 +107,11 @@ package "Auth" #FFF8E1 {
     'enterprise-architect' (write)
     'viewer'               (read)
     'auditor'              (read, audit-schema)
-    'integration-writer'   (write, nur Entities/
-      Connections; kein Admin-Zugriff)
-      → nur für service-account-Persons
-    Rollen-Zuweisung via person_roles
-    (gültig ab valid_from, optional bis valid_to).
+    'integration-writer'   (write, entities/
+      connections only; no admin access)
+      → only for service-account persons
+    Role assignment via person_roles
+    (valid from valid_from, optionally until valid_to).
   end note
 
   class person_roles <<Table>> #FFECB3 {
@@ -155,13 +155,13 @@ package "Auth" #FFF8E1 {
     + credential_id  : UUID               {PK} {FK→local_credentials.id}
     --
     + totp_secret    : TEXT               {NN}
-    .. AES-verschlüsselt; RFC 6238 ..
+    .. AES-encrypted; RFC 6238 ..
     + totp_label     : TEXT
   }
 
   class password_credentials <<Table>> #FFECB3 {
     + credential_id  : UUID               {PK} {FK→local_credentials.id}
-    .. max. 1 aktiv pro Person ..
+    .. max. 1 active per person ..
     --
     + password_hash  : TEXT               {NN}
     .. argon2id ..
@@ -189,8 +189,8 @@ package "I18N" #FFF3E0 {
     .. enum: metatype | property_def | enum_value | ..
     .. property_category | role ..
     + entity_id    : TEXT                 {NN}
-    .. UUID oder TEXT-ID des referenzierten Eintrags ..
-    .. kein DB-FK (polymorphisch) ..
+    .. UUID or TEXT ID of the referenced entry ..
+    .. no DB FK (polymorphic) ..
     + locale       : TEXT                 {NN}
     .. BCP 47: 'de' | 'en' | 'fr' | 'it' ..
     + field        : TEXT                 {NN}
@@ -200,22 +200,22 @@ package "I18N" #FFF3E0 {
   }
 
   note right of i18n_entries
-    Ersetzt alle i18n_labels TEXT(CLOB/JSONB).
-    Eine Tabelle für alle übersetzbaren Labels:
-    MetaTyp-Namen, Property-Labels, Enum-Werte,
-    Kategorie-Namen, Rollen-Bezeichnungen.
-    Datensatz-Felder (name, description von
-    Entitäten) sind einsprachig (Konzernsprache).
-    UI-Menüs und Systemmeldungen: vue-i18n
-    (statische Bundle-Dateien, kein DB-Eintrag).
+    Replaces all i18n_labels TEXT(CLOB/JSONB).
+    One table for all translatable labels:
+    metatype names, property labels, enum values,
+    category names, role designations.
+    Record fields (name, description of
+    entities) are monolingual (corporate language).
+    UI menus and system messages: vue-i18n
+    (static bundle files, no DB entry).
   end note
 
 }
 
 ' ╔══════════════════════════════════════════════════════╗
-' ║  METAMODELL                                         ║
+' ║  METAMODEL                                          ║
 ' ╚══════════════════════════════════════════════════════╝
-package "Metamodell" #E8F5E9 {
+package "Metamodel" #E8F5E9 {
 
   class metamodel_configurations <<Table>> #C8E6C9 {
     + id               : UUID             {PK}
@@ -230,9 +230,9 @@ package "Metamodell" #E8F5E9 {
     + rules_edit_mode  : TEXT             {NN} DEFAULT 'gui-and-import'
     + last_modified_at : TIMESTAMPTZ      {NN} DEFAULT NOW()
     + last_modified_by : BIGINT           {NN} {FK→persons.id}
-    == Konfiguration als TEXT/CLOB (ADR-023) ==
+    == Configuration as TEXT/CLOB (ADR-023) ==
     + config           : TEXT             {NN} DEFAULT '{}'
-    .. JSON-String; serialisiert via JPA @Converter ..
+    .. JSON string; serialized via JPA @Converter ..
     .. viewpoints[], architectureLayers[] ..
     .. constraintRules[], stereotypes[]   ..
     .. documentCollectionDefinitions[]    ..
@@ -243,12 +243,12 @@ package "Metamodell" #E8F5E9 {
     --
     + config_id             : UUID        {NN} {FK→metamodel_configurations.id}
     + name                  : TEXT        {NN}
-    .. Konzernsprache; Übersetzungen in i18n_entries ..
+    .. corporate language; translations in i18n_entries ..
     + abbreviation          : TEXT
-    .. max. 10 Zeichen; z.B. 'AC', 'TC' ..
+    .. max. 10 characters; e.g. 'AC', 'TC' ..
     + is_connection         : BOOLEAN     {NN} DEFAULT false
     + architecture_layer_id : TEXT
-    .. Soft-Ref in config.architectureLayers ..
+    .. soft ref in config.architectureLayers ..
     + sort_order            : INTEGER     {NN} DEFAULT 0
     + is_builtin            : BOOLEAN     {NN} DEFAULT false
     + created_at            : TIMESTAMPTZ {NN} DEFAULT NOW()
@@ -273,36 +273,36 @@ package "Metamodell" #E8F5E9 {
 }
 
 ' ╔══════════════════════════════════════════════════════╗
-' ║  METAMODELL – PROPERTIES (ADR-022)                  ║
+' ║  METAMODEL – PROPERTIES (ADR-022)                   ║
 ' ╚══════════════════════════════════════════════════════╝
-package "Metamodell – Properties" #E0F2F1 {
+package "Metamodel – Properties" #E0F2F1 {
 
   class property_categories <<Table>> #B2DFDB {
     + id          : UUID                  {PK}
     --
     + name        : TEXT                  {NN} {UQ}
-    .. Konzernsprache; Übersetzung via i18n_entries(field='name') ..
+    .. corporate language; translation via i18n_entries(field='name') ..
     + sort_order  : INTEGER               {NN} DEFAULT 0
     + description : TEXT
-    .. Konzernsprache; Übersetzung via i18n_entries(field='description') ..
+    .. corporate language; translation via i18n_entries(field='description') ..
   }
 
   class property_definitions <<Table>> #B2DFDB {
     + id              : UUID              {PK}
     --
     + name            : TEXT              {NN}
-    .. Konzernsprache; Übersetzungen in i18n_entries ..
+    .. corporate language; translations in i18n_entries ..
     + data_type       : TEXT              {NN}
     .. enum: string | integer | boolean | enum | reference | date | url | text ..
     + category_id     : UUID              {FK→property_categories.id}
     + ref_metatype_id : UUID              {FK→metatypes.id}
-    .. nur bei data_type='reference' ..
-    == Constraints als Einzelspalten (ADR-023, kein JSONB) ==
+    .. only for data_type='reference' ..
+    == Constraints as individual columns (ADR-023, no JSONB) ==
     + max_length      : INTEGER
     + min_value       : NUMERIC
     + max_value       : NUMERIC
     + pattern         : TEXT
-    .. regulärer Ausdruck für Validierung ..
+    .. regular expression for validation ..
     + created_at      : TIMESTAMPTZ       {NN} DEFAULT NOW()
     + created_by      : BIGINT            {FK→persons.id}
   }
@@ -314,7 +314,7 @@ package "Metamodell – Properties" #E0F2F1 {
     + value           : TEXT              {NN}
     .. UNIQUE(property_def_id, value) ..
     + sort_order      : INTEGER           {NN} DEFAULT 0
-    .. Übersetzungen der Werte in i18n_entries ..
+    .. translations of the values in i18n_entries ..
   }
 
   class metatype_property_mappings <<Table>> #B2DFDB {
@@ -326,15 +326,15 @@ package "Metamodell – Properties" #E0F2F1 {
     .. enum: mandatory | warning | optional ..
     + valid_from      : DATE              {NN}
     .. UNIQUE(metatype_id, property_def_id, valid_from) ..
-    == Optionaler Default-Wert (typed, ADR-022) ==
+    == Optional default value (typed, ADR-022) ==
     + default_value_text  : TEXT
     + default_value_int   : INT8
     + default_value_bool  : BOOLEAN
     + default_value_date  : DATE
     + default_value_ref   : INTEGER
-    .. Soft-Ref → entities.id (kein DB-FK; vermeidet zirkuläre Cross-Package-Abhängigkeit) ..
+    .. soft ref → entities.id (no DB FK; avoids circular cross-package dependency) ..
     + default_value_enum  : TEXT
-    .. CHECK: max. eine default_value_*-Spalte NOT NULL ..
+    .. CHECK: at most one default_value_* column NOT NULL ..
     + sort_order      : INTEGER           {NN} DEFAULT 0
     + created_at      : TIMESTAMPTZ       {NN} DEFAULT NOW()
     + created_by      : BIGINT            {FK→persons.id}
@@ -348,9 +348,9 @@ package "Metamodell – Properties" #E0F2F1 {
 }
 
 ' ╔══════════════════════════════════════════════════════╗
-' ║  ARCHITEKTUR-PLANUNG                                ║
+' ║  ARCHITECTURE PLANNING                              ║
 ' ╚══════════════════════════════════════════════════════╝
-package "Architektur-Planung" #E3F2FD {
+package "Architecture Planning" #E3F2FD {
 
   class plateaus <<Table>> #BBDEFB {
     + id          : UUID                  {PK}
@@ -396,19 +396,19 @@ package "Architektur-Planung" #E3F2FD {
     --
     + delta_id        : UUID              {NN} {FK→entity_deltas.id}
     + property_def_id : UUID              {FK→property_definitions.id}
-    .. null wenn system_field gesetzt ..
+    .. null if system_field is set ..
     + system_field    : TEXT
-    .. null wenn property_def_id gesetzt ..
+    .. null if property_def_id is set ..
     .. enum: name | description | is_logical | metatype_id ..
-    .. CHECK: genau eines der beiden NOT NULL ..
-    == Wert VOR der Änderung (AS-IS) ==
+    .. CHECK: exactly one of the two NOT NULL ..
+    == Value BEFORE the change (AS-IS) ==
     + before_value_text  : TEXT
     + before_value_int   : INT8
     + before_value_bool  : BOOLEAN
     + before_value_date  : DATE
     + before_value_ref   : INTEGER        {FK→entities.id}
     + before_value_enum  : TEXT
-    == Wert NACH der Änderung (TO-BE) ==
+    == Value AFTER the change (TO-BE) ==
     + after_value_text   : TEXT
     + after_value_int    : INT8
     + after_value_bool   : BOOLEAN
@@ -427,7 +427,7 @@ package "Architektur-Planung" #E3F2FD {
 }
 
 ' ╔══════════════════════════════════════════════════════╗
-' ║  REPOSITORY (Kern-Datenhaltung)                     ║
+' ║  REPOSITORY (core data storage)                     ║
 ' ╚══════════════════════════════════════════════════════╝
 package "Repository" #FCE4EC {
 
@@ -436,34 +436,34 @@ package "Repository" #FCE4EC {
     --
     + metatype_id      : UUID             {NN} {FK→metatypes.id}
     + name             : TEXT             {NN}
-    .. Konzernsprache; keine Übersetzung ..
+    .. corporate language; no translation ..
     + description      : TEXT             {NN} DEFAULT ''
     + is_logical       : BOOLEAN          {NN} DEFAULT true
     + version          : INTEGER          {NN} DEFAULT 1
-    .. Optimistic-Lock-Zähler (ADR-016) ..
+    .. optimistic lock counter (ADR-016) ..
     + parent_entity_id : INTEGER          {FK→entities.id}
-    .. nur bei is_connection=false; ADR-021 ..
+    .. only for is_connection=false; ADR-021 ..
     + is_structural_grouper : BOOLEAN     {NN} DEFAULT false
     + auto_created     : BOOLEAN          {NN} DEFAULT false
     + created_at       : TIMESTAMPTZ      {NN} DEFAULT NOW()
     + created_by       : BIGINT           {NN} {FK→persons.id}
     + updated_at       : TIMESTAMPTZ
     + updated_by       : BIGINT           {FK→persons.id}
-    == Externe Integration (ADR-026, optional) ==
+    == External integration (ADR-026, optional) ==
     + external_id      : TEXT
-    .. Stabile Kennung aus Quellsystem (z.B. 'git:org/repo/svc') ..
+    .. Stable identifier from the source system (e.g. 'git:org/repo/svc') ..
     .. UNIQUE WHERE external_id IS NOT NULL ..
-    .. NULL wenn manuell angelegt; nie auto-generiert ..
+    .. NULL if created manually; never auto-generated ..
     == Soft-Delete (ADR-019) ==
     + deleted_at       : TIMESTAMPTZ
-    .. null = aktiv; INDEX WHERE deleted_at IS NULL ..
+    .. null = active; INDEX WHERE deleted_at IS NULL ..
     + deleted_by       : BIGINT           {FK→persons.id}
     + deletion_reason  : TEXT
   }
 
   class entity_connections <<Table>> #F8BBD9 {
     + entity_id        : INTEGER          {PK} {FK→entities.id}
-    .. 1:1; nur wenn metatype.is_connection=true ..
+    .. 1:1; only if metatype.is_connection=true ..
     --
     + source_entity_id : INTEGER          {NN} {FK→entities.id}
     + target_entity_id : INTEGER          {NN} {FK→entities.id}
@@ -481,7 +481,7 @@ package "Repository" #FCE4EC {
     + value_date      : DATE
     + value_ref       : INTEGER           {FK→entities.id}
     + value_enum      : TEXT
-    .. CHECK: max. eine value_*-Spalte NOT NULL ..
+    .. CHECK: at most one value_* column NOT NULL ..
   }
 
   class entity_property_value_history <<Table>> #F8BBD9 {
@@ -490,8 +490,8 @@ package "Repository" #FCE4EC {
     + entity_id       : INTEGER           {NN} {FK→entities.id}
     + property_def_id : UUID              {NN} {FK→property_definitions.id}
     + entity_version  : INTEGER           {NN}
-    .. entities.version zum Zeitpunkt der Änderung ..
-    == Wert VOR der Änderung (Delta) ==
+    .. entities.version at the time of the change ..
+    == Value BEFORE the change (delta) ==
     + value_text      : TEXT
     + value_int       : INT8
     + value_bool      : BOOLEAN
@@ -513,12 +513,12 @@ package "Repository" #FCE4EC {
   }
 
   note right of entity_version_headers
-    Ersetzt entity_versions (ADR-022 konsequent).
-    Kein System-Felder-Snapshot mehr —
-    was sich geändert hat steht delta-basiert
+    Replaces entity_versions (ADR-022 consistently).
+    No system field snapshot anymore —
+    what has changed is stored delta-based
     in entity_system_field_history.
-    Restore: Header gibt Version/Zeitpunkt,
-    Deltas geben den Zustand.
+    Restore: the header gives version/timestamp,
+    the deltas give the state.
   end note
 
   class entity_system_field_history <<Table>> #F8BBD9 {
@@ -526,25 +526,25 @@ package "Repository" #FCE4EC {
     --
     + entity_id      : INTEGER            {NN} {FK→entities.id}
     + entity_version : INTEGER            {NN}
-    .. entities.version zum Zeitpunkt der Änderung ..
+    .. entities.version at the time of the change ..
     + field_name     : TEXT               {NN}
     .. enum: name | description | is_logical | metatype_id ..
     .. | source_entity_id | target_entity_id ..
     + old_value      : TEXT
-    .. serialisiert als Text; null bei neu angelegten Feldern ..
+    .. serialized as text; null for newly created fields ..
     + new_value      : TEXT
-    .. serialisiert als Text; null bei gelöschten Feldern ..
+    .. serialized as text; null for deleted fields ..
     + changed_at     : TIMESTAMPTZ        {NN} DEFAULT NOW()
     + changed_by     : BIGINT             {NN} {FK→persons.id}
   }
 
   note right of entity_system_field_history
-    Delta-basiert: nur geänderte Felder.
-    Deckt auch Verbindungsänderungen ab:
+    Delta-based: changed fields only.
+    Also covers connection changes:
     field_name='source_entity_id' /
-    'target_entity_id' → ersetzt fehlende
+    'target_entity_id' → replaces missing
     entity_connections_history.
-    Konsistent mit entity_property_value_history.
+    Consistent with entity_property_value_history.
   end note
 
   class entity_plateau_states <<Table>> #F8BBD9 {
@@ -580,30 +580,30 @@ package "Audit  [Schema: audit]" #EFEBE9 {
     + id           : BIGSERIAL            {PK}
     --
     + event_type   : TEXT                 {NN}
-    .. z.B. 'entity.created', 'entity.property_changed', 'entity.deleted' ..
+    .. e.g. 'entity.created', 'entity.property_changed', 'entity.deleted' ..
     + entity_id    : INTEGER
-    .. Soft-Ref (kein FK; Audit-DB kann extern sein) ..
+    .. soft ref (no FK; audit DB can be external) ..
     + entity_name  : TEXT
-    .. denormalisiert für Tamper-Nachweis ..
+    .. denormalized for tamper evidence ..
     + actor_id     : BIGINT
-    .. Soft-Ref ..
+    .. soft ref ..
     + actor_name   : TEXT                 {NN}
-    .. denormalisiert; bleibt auch nach Anonymisierung erhalten ..
+    .. denormalized; retained even after anonymization ..
     + actor_email  : TEXT                 {NN}
-    .. denormalisiert ..
+    .. denormalized ..
     + source       : TEXT                 {NN}
     .. enum: UI | API | Job | Import ..
     + occurred_at  : TIMESTAMPTZ          {NN} DEFAULT NOW()
     + request_id   : TEXT
-    .. HTTP-Korrelations-ID oder Job-Run-ID ..
-    == Externe Integration (ADR-026, optional) ==
+    .. HTTP correlation ID or job run ID ..
+    == External integration (ADR-026, optional) ==
     + agent_id     : TEXT
-    .. Kennung des schreibenden Systems (z.B. 'oea-scanner/1.0') ..
-    .. aus X-Agent-Id-Header oder JWT-Claim 'agent_id' ..
+    .. Identifier of the writing system (e.g. 'oea-scanner/1.0') ..
+    .. from X-Agent-Id header or JWT claim 'agent_id' ..
     + agent_run    : TEXT
-    .. Korrelations-ID eines Laufs (alle Writes desselben Durchlaufs) ..
+    .. Correlation ID of a run (all writes of the same run) ..
     + prev_hash    : TEXT
-    .. SHA-256 des Vorgänger-Records (Enterprise: Tamper-Chain) ..
+    .. SHA-256 of the predecessor record (Enterprise: tamper chain) ..
     + record_hash  : TEXT
     .. SHA-256(prev_hash || event_type || entity_id || occurred_at) ..
   }
@@ -613,27 +613,27 @@ package "Audit  [Schema: audit]" #EFEBE9 {
     --
     + event_id      : BIGINT              {NN} {FK→audit.events.id}
     + property_name : TEXT                {NN}
-    .. denormalisiert ('name', 'lifecycle', 'version', …) ..
+    .. denormalized ('name', 'lifecycle', 'version', …) ..
     + system_field  : BOOLEAN             {NN} DEFAULT false
-    .. true = System-Feld; false = user-defined Property ..
+    .. true = system field; false = user-defined property ..
     + old_value     : TEXT
-    .. serialisiert als Text (DB-agnostisch) ..
+    .. serialized as text (DB-agnostic) ..
     + new_value     : TEXT
   }
 
   note right of "audit.events"
-    App-Benutzer: INSERT only (ADR-024).
-    Revisions-Benutzer: SELECT only.
-    prev_hash / record_hash: NULL im
-    Community-Betrieb; aktivierbar via
+    App user: INSERT only (ADR-024).
+    Audit user: SELECT only.
+    prev_hash / record_hash: NULL in
+    Community operation; can be enabled via
     oea.audit.hash-chain-enabled=true.
-    Aufbewahrung: konfigurierbar,
-    Default 7 Jahre (2555 Tage).
-    Konfigurierbar als externe DB via
+    Retention: configurable,
+    default 7 years (2555 days).
+    Configurable as an external DB via
     oea.datasource.audit.url.
-    agent_id / agent_run: NULL bei
-    manuellen UI/API-Zugriffen; gesetzt
-    wenn externes System schreibt (ADR-026).
+    agent_id / agent_run: NULL for
+    manual UI/API access; set
+    when an external system writes (ADR-026).
   end note
 
   "audit.events" "1" --o{ "0..*" "audit.event_changes" : details
@@ -641,9 +641,9 @@ package "Audit  [Schema: audit]" #EFEBE9 {
 }
 
 ' ╔══════════════════════════════════════════════════════╗
-' ║  NAVIGATION & DARSTELLUNG                           ║
+' ║  NAVIGATION & PRESENTATION                          ║
 ' ╚══════════════════════════════════════════════════════╝
-package "Navigation & Darstellung" #EDE7F6 {
+package "Navigation & Presentation" #EDE7F6 {
 
   class catalogs <<Table>> #D1C4E9 {
     + id                  : UUID          {PK}
@@ -659,9 +659,9 @@ package "Navigation & Darstellung" #EDE7F6 {
     + created_at          : TIMESTAMPTZ   {NN} DEFAULT NOW()
     + last_modified_at    : TIMESTAMPTZ   {NN} DEFAULT NOW()
     + last_modified_by    : BIGINT        {NN} {FK→persons.id}
-    == Konfiguration als TEXT/CLOB (ADR-023) ==
+    == Configuration as TEXT/CLOB (ADR-023) ==
     + config              : TEXT          {NN} DEFAULT '{}'
-    .. JSON-String; columns[], joinDefinitions[] ..
+    .. JSON string; columns[], joinDefinitions[] ..
     .. savedFilters[], savedViews[]       ..
   }
 
@@ -683,7 +683,7 @@ package "Navigation & Darstellung" #EDE7F6 {
     + item_type     : TEXT                {NN}
     .. enum: tree-node | entity | diagram | catalog ..
     + reference_id  : TEXT                {NN}
-    .. polymorphe Referenz; kein DB-FK möglich ..
+    .. polymorphic reference; no DB FK possible ..
     + display_label : TEXT
     + sort_order    : INTEGER             {NN} DEFAULT 0
   }
@@ -693,26 +693,26 @@ package "Navigation & Darstellung" #EDE7F6 {
     --
     + config_id      : UUID              {NN} {FK→metamodel_configurations.id}
     + viewpoint_key  : TEXT              {NN}
-    .. Soft-Ref auf Viewpoint-Slug in config.viewpoints[] ..
+    .. soft ref to viewpoint slug in config.viewpoints[] ..
     .. UNIQUE(config_id, viewpoint_key, metatype_id) ..
     + metatype_id    : UUID              {NN} {FK→metatypes.id}
     + shape_key      : TEXT              {NN}
-    .. Icon/Shape-Schlüssel im Design-System ..
+    .. icon/shape key in the design system ..
     + fill_color     : TEXT
-    .. CSS-Farbwert oder Design-Token ..
+    .. CSS color value or design token ..
     + border_color   : TEXT
     + icon_key       : TEXT
-    .. optionaler Override; Default aus shape_key ..
+    .. optional override; default from shape_key ..
   }
 
   note right of viewpoint_shape_assignments
-    Welcher MetaTyp bekommt in welchem
-    Viewpoint welches Shape/Icon?
-    Exportierbar als Teil des Metamodell-
-    Pakets (ADR-026: GET /admin/metamodel/export).
-    Ermöglicht: schreibende Systeme können
-    Entitäten korrekt in Diagramme platzieren
-    ohne shape-Wissen hard-coden zu müssen.
+    Which metatype gets which shape/icon
+    in which viewpoint?
+    Exportable as part of the metamodel
+    package (ADR-026: GET /admin/metamodel/export).
+    Enables: writing systems can
+    place entities correctly in diagrams
+    without having to hard-code shape knowledge.
   end note
 
   metatypes       "1"    --o{ "0..*" catalogs        : primary_metatype_id
@@ -724,7 +724,7 @@ package "Navigation & Darstellung" #EDE7F6 {
 }
 
 ' ─────────────────────────────────────────────────────
-' Cross-Package-Beziehungen
+' Cross-package relationships
 ' ─────────────────────────────────────────────────────
 persons "1" --o{ "0..*" entities                          : created_by / updated_by
 persons "1" --o{ "0..*" entity_property_value_history     : changed_by

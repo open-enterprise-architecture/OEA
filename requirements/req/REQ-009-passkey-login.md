@@ -1,6 +1,6 @@
 ---
 id: REQ-009
-title: Passkey-Login (lokale Authentifizierung ohne externen IdP)
+title: Passkey login (local authentication without an external IdP)
 type: functional
 priority: should
 status: proposed
@@ -18,104 +18,104 @@ references:
     - SH-03
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-009: Passkey-Login (lokale Authentifizierung ohne externen IdP)
+# REQ-009: Passkey login (local authentication without an external IdP)
 
-## Aussage
+## Statement
 
-Das System SOLL Personen die Anmeldung per Passkey (WebAuthn/FIDO2) ermöglichen, wenn die OEA-Instanz ohne externen OIDC-Identity-Provider betrieben wird. Bei Passkeys, die als discoverable credential (resident key) registriert wurden, SOLL die Anmeldung ohne vorherige Eingabe von Username oder Passwort möglich sein.
+The system SHOULD allow persons to log in using a passkey (WebAuthn/FIDO2) when the OEA instance is operated without an external OIDC identity provider. For passkeys registered as a discoverable credential (resident key), login SHOULD be possible without prior entry of a username or password.
 
-## Begründung
+## Rationale
 
-Konzept §21.8 sieht lokale Authentifizierung als Alternative zu OIDC vor, mit Passkey als empfohlenem Standard (passwortlos, phishing-resistent). UC-01, Alternative A3. Adressiert SH-06s Anti-Pattern-Grenze (keine eigene Nutzerverwaltung ohne sinnvolle Alternative zu klassischen Passwörtern) und SH-03s Self-Hosting-Realität ohne eigenes IdP-Team.
+Concept §21.8 provides local authentication as an alternative to OIDC, with passkey as the recommended standard (passwordless, phishing-resistant). UC-01, Alternative A3. Addresses SH-06's anti-pattern boundary (no custom user management without a sensible alternative to classic passwords) and SH-03's self-hosting reality without a dedicated IdP team.
 
-## Kontext
+## Context
 
-Setzt voraus, dass die Person zuvor einen Passkey registriert hat (Enrollment ist eigener Use Case, nicht Teil von UC-01).
+Assumes that the person has previously registered a passkey (enrollment is a separate use case, not part of UC-01).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- WebAuthn-Assertion (signierte Challenge-Response) vom Client-Authenticator, bei discoverable credentials ohne vorherige Username-Eingabe
+**Inputs**:
+- WebAuthn assertion (signed challenge-response) from the client authenticator, for discoverable credentials without prior username entry
 
-**Verarbeitung**:
-- System generiert WebAuthn-Challenge (bei discoverable credentials ohne vorherige Identitäts-Angabe, sog. usernameless flow)
-- Client signiert Challenge mit dem privaten Schlüssel des registrierten Passkeys
-- System ermittelt die Person über den in der Assertion enthaltenen User-Handle (discoverable credential) oder über die vorab eingegebene Identität (non-resident credential, Fallback)
-- System verifiziert die Signatur gegen den hinterlegten Public Key der Person
+**Processing**:
+- System generates a WebAuthn challenge (for discoverable credentials without prior identity indication, the so-called usernameless flow)
+- Client signs the challenge with the private key of the registered passkey
+- System determines the person via the user handle contained in the assertion (discoverable credential) or via the previously entered identity (non-resident credential, fallback)
+- System verifies the signature against the person's stored public key
 
-**Ausgaben**:
-- Bei erfolgreicher Verifikation: Fortsetzung mit Person-/Rollen-Lookup (siehe REQ-001, Schritt 6 des Hauptablaufs)
+**Outputs**:
+- On successful verification: continue with person/role lookup (see REQ-001, step 6 of the Basic Flow)
 
-**Fehlerfälle**:
-- Keine registrierten Passkeys für die angegebene Identität → generische Fehlermeldung (siehe REQ-006), kein Hinweis auf Nichtexistenz
-- Signatur-Verifikation fehlgeschlagen → Ablehnung, Audit-Log-Eintrag (siehe REQ-005)
+**Error Cases**:
+- No registered passkeys for the given identity → generic error message (see REQ-006), no indication of non-existence
+- Signature verification failed → rejection, audit log entry (see REQ-005)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine Person mit zuvor registriertem Passkey
-- Wenn: sie sich mit diesem Passkey anmeldet
-- Dann: erhält sie eine Session gemäß ihren aktiven Rollenzuweisungen
+- Given: a person with a previously registered passkey
+- When: they log in with this passkey
+- Then: they receive a session according to their active role assignments
 
 **AC2**:
-- Gegeben: eine fehlgeschlagene Passkey-Verifikation
-- Wenn: der Login-Versuch abgeschlossen wird
-- Dann: wird keine Session erstellt und die Fehlermeldung ist nicht von anderen Fehlerfällen (z.B. E1, E2) unterscheidbar
+- Given: a failed passkey verification
+- When: the login attempt is completed
+- Then: no session is created and the error message is indistinguishable from other error cases (e.g., E1, E2)
 
 **AC3**:
-- Gegeben: eine Person mit einem als discoverable credential registrierten Passkey
-- Wenn: sie sich anmeldet
-- Dann: ist keine vorherige Eingabe von Username oder Passwort erforderlich
+- Given: a person with a passkey registered as a discoverable credential
+- When: they log in
+- Then: no prior entry of a username or password is required
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: WebAuthn-Testclient mit registriertem virtuellem Authenticator
-- [x] Mess-Werkzeug: Test-Suite des Auth-Moduls
-- [x] Bestanden-Kriterium: AC1, AC2 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: WebAuthn test client with a registered virtual authenticator
+- [x] Measurement tool: test suite of the auth module
+- [x] Pass criterion: AC1, AC2 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-023 (Passkey-Enrollment muss vorher abgeschlossen sein)
-- **Folgewirkungen**: keine bekannt
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-023 (passkey enrollment must have been completed beforehand)
+- **Downstream effects**: none known
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne Passkey-Option bleibt für Self-Hosting ohne IdP nur Passwort-basierte Anmeldung – höheres Risiko (Phishing, schwache Passwörter), mittlerer Schweregrad
+- Risk 1: Without a passkey option, only password-based login remains for self-hosting without an IdP – higher risk (phishing, weak passwords), medium severity
 
 ## Trade-offs
 
-- vs. Implementierungsaufwand: WebAuthn ist komplexer zu implementieren als einfache Passwort-Prüfung, bietet aber deutlich höhere Sicherheit
+- vs. implementation effort: WebAuthn is more complex to implement than a simple password check, but offers significantly higher security
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Public Keys pro Passkey sollten getrennt vom fachlichen Person-Objekt gespeichert werden (sensible Credential-Daten, siehe UC-01 Realisierungs-Hinweise)
-- Mehrere Passkeys pro Person sollten unterstützt werden (z.B. mehrere Geräte)
+- Public keys per passkey should be stored separately from the business Person object (sensitive credential data, see UC-01 Implementation Notes)
+- Multiple passkeys per person should be supported (e.g., multiple devices)
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-01 Login, Alternative A3.
+Derived from UC-01 Login, Alternative A3.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft aus UC-01 |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |

@@ -1,6 +1,6 @@
 ---
 id: REQ-067
-title: Arc42ChapterCollection im Metamodell konfigurieren
+title: Configure Arc42ChapterCollection in the metamodel
 type: functional
 priority: should
 status: proposed
@@ -19,57 +19,57 @@ references:
     - SH-07
     - SH-03
   concept:
-    - concept/20-entities/14-erweiterbarkeit.md
+    - concept/20-entities/14-extensibility.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-067: Arc42ChapterCollection im Metamodell konfigurieren
+# REQ-067: Configure Arc42ChapterCollection in the metamodel
 
-## Aussage
+## Statement
 
-Das System MUSS dem Metamodell-Administrator ermöglichen, `Arc42ChapterCollection`-Objekte in der MetamodelConfiguration anzulegen, zu bearbeiten und zu löschen. Eine Collection besteht aus einem `name`, einer geordneten Liste von `Arc42QuestionTemplate`-Einträgen und einer Liste von `assignedEntityTypeIds`. Das System MUSS ausserdem eine vordefinierte Built-in-Collection `arc42-standard` mit den 12 klassischen Arc42-Kapiteln mitliefern, die als Startpunkt importiert werden kann.
+The system MUST enable the metamodel administrator to create, edit and delete `Arc42ChapterCollection` objects in the MetamodelConfiguration. A collection consists of a `name`, an ordered list of `Arc42QuestionTemplate` entries and a list of `assignedEntityTypeIds`. The system MUST also ship a predefined built-in collection `arc42-standard` with the 12 classic Arc42 chapters, which can be imported as a starting point.
 
-## Begründung
+## Rationale
 
-Ohne konfigurierbare Collections wäre Arc42 ein hartes Format, das nicht zum jeweiligen Kontext passt. Ein KMU braucht 5 Fragen, ein Konzern 15. Die Collection-Ebene erlaubt beliebige Konfiguration pro Instanz — maximalem Freiheitsgrad gemäss dem OEA-Grundprinzip.
+Without configurable collections, Arc42 would be a rigid format that does not fit the respective context. An SME needs 5 questions, a corporate group 15. The collection level allows arbitrary configuration per instance — maximum degree of freedom in line with the OEA core principle.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Collection anlegen):
-- Wenn: Admin postet `{ id: "arc42-kmu", name: "Arc42 KMU", questions: [...], assignedEntityTypeIds: ["application-component"] }`
-- Dann: HTTP 201; Collection in MetamodelConfiguration gespeichert; EntityType `application-component` zeigt Collection beim Öffnen
+**AC1** (Create collection):
+- When: Admin posts `{ id: "arc42-kmu", name: "Arc42 SME", questions: [...], assignedEntityTypeIds: ["application-component"] }`
+- Then: HTTP 201; collection stored in MetamodelConfiguration; EntityType `application-component` shows the collection when opened
 
-**AC2** (Frage hinzufügen):
-- Wenn: Admin fügt `{ questionId: "context", title: "Kontext", questionText: "...", sortOrder: 1 }` zu einer Collection hinzu
-- Dann: Frage erscheint an Position 1 in der Collection
+**AC2** (Add question):
+- When: Admin adds `{ questionId: "context", title: "Context", questionText: "...", sortOrder: 1 }` to a collection
+- Then: Question appears at position 1 in the collection
 
-**AC3** (Built-in Standard-Collection importieren):
-- Wenn: Admin klickt „Standard Arc42 importieren"
-- Dann: Collection `arc42-standard` mit 12 Fragen wird als user-definierte Kopie angelegt (editierbar); Original bleibt unveränderlich
+**AC3** (Import built-in standard collection):
+- When: Admin clicks "Import standard Arc42"
+- Then: Collection `arc42-standard` with 12 questions is created as a user-defined copy (editable); original remains immutable
 
-**AC4** (Mehrere zugewiesene EntityTypes):
-- Wenn: `assignedEntityTypeIds: ["application-component", "technology-component"]`
-- Dann: Beide EntityTypes zeigen die Collection im Arc42-Tab
+**AC4** (Multiple assigned EntityTypes):
+- When: `assignedEntityTypeIds: ["application-component", "technology-component"]`
+- Then: Both EntityTypes show the collection in the Arc42 tab
 
-**AC5** (Löschen Collection):
-- Wenn: Admin löscht eine Collection, die bereits Antwort-Entitäten besitzt
-- Dann: HTTP 422; Meldung: „Collection hat {N} Antworten — zuerst Antworten entfernen oder Collection als inaktiv markieren"; kein Datenverlust
+**AC5** (Delete collection):
+- When: Admin deletes a collection that already has answer entities
+- Then: HTTP 422; message: "Collection has {N} answers — first remove answers or mark the collection as inactive"; no data loss
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-036 (EntityTypeDefinition), REQ-033 (Import — Collections müssen per MetamodelConfiguration-Import mitkommen)
-- **Folgewirkungen**: REQ-068 (WYSIWYG-Editor), REQ-069 (Anzeige und Bearbeitung)
+- **Prerequisites**: REQ-036 (EntityTypeDefinition), REQ-033 (import — collections must come along with the MetamodelConfiguration import)
+- **Downstream effects**: REQ-068 (WYSIWYG editor), REQ-069 (display and editing)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Arc42ChapterCollection wird als Teil der MetamodelConfiguration gespeichert (neues Top-Level-Array `arc42Collections: Arc42ChapterCollection[]`)
-- Built-in `arc42-standard` wird bei Systemstart automatisch registriert; ist nicht in der DB, sondern im Code
-- Import/Export von Collections via REQ-033/REQ-058 (MetamodelConfiguration-Import/Export deckt arc42Collections mit ab)
+- Arc42ChapterCollection is stored as part of the MetamodelConfiguration (new top-level array `arc42Collections: Arc42ChapterCollection[]`)
+- Built-in `arc42-standard` is registered automatically at system start; it is not in the DB but in the code
+- Import/export of collections via REQ-033/REQ-058 (MetamodelConfiguration import/export also covers arc42Collections)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |

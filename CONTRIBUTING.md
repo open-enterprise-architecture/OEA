@@ -1,135 +1,135 @@
-# Beitragen zu OEA
+# Contributing to OEA
 
-Vielen Dank für dein Interesse, zu OEA beizutragen. Dieses Dokument beschreibt, wie du sinnvoll mitwirken kannst.
+Thank you for your interest in contributing to OEA. This document describes how to contribute effectively.
 
-## Schnellüberblick
+## Quick Overview
 
-| Du willst... | Lies... |
+| You want to... | Read... |
 |---|---|
-| Verstehen, was OEA ist | [README.md](README.md) und [concept/README.md](concept/README.md) |
-| Einen Bug melden | [Issue-Template Bug Report](.github/ISSUE_TEMPLATE/bug_report.md) |
-| Ein Feature vorschlagen | [Issue-Template Feature Request](.github/ISSUE_TEMPLATE/feature_request.md) |
-| Code beisteuern | Dieses Dokument, dann ein PR |
-| Doku verbessern | Dieses Dokument, dann ein PR |
-| Sicherheitslücke melden | **NICHT als Issue** – [SECURITY.md](SECURITY.md) |
+| Understand what OEA is | [README.md](README.md) and [concept/README.md](concept/README.md) |
+| Report a bug | [Issue template Bug Report](.github/ISSUE_TEMPLATE/bug_report.md) |
+| Propose a feature | [Issue template Feature Request](.github/ISSUE_TEMPLATE/feature_request.md) |
+| Contribute code | This document, then a PR |
+| Improve documentation | This document, then a PR |
+| Report a security vulnerability | **NOT as an issue** – [SECURITY.md](SECURITY.md) |
 
-## Voraussetzungen
+## Prerequisites
 
-Bevor du beiträgst, lies bitte:
+Before contributing, please read:
 
-- [README.md](README.md) – Projekt-Übersicht
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) – Verhaltenskodex
-- [AGENTS.md](AGENTS.md) – Arbeitsweise und Konventionen
-- Relevante Kapitel aus `concept/` je nach Beitrag
+- [README.md](README.md) – project overview
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) – code of conduct
+- [AGENTS.md](AGENTS.md) – working method and conventions
+- Relevant chapters from `concept/` depending on the contribution
 
-## Arbeitsweise
+## Working Method
 
-OEA wird als **dokumentations-zentriertes Projekt** entwickelt. Konzept-Papier, Use Cases, Requirements und ADRs entstehen vor dem Code und werden mit dem Code gemeinsam gepflegt.
+OEA is developed as a **documentation-centric project**. Concept paper, use cases, requirements, and ADRs are created before the code and maintained together with the code.
 
-Wir arbeiten mit einem **agent-getriebenen Workflow** (siehe `.opencode/agents/` und `docs/workflow-example.md`). Auch wenn du keinen KI-Assistenten nutzt, sind die Rollenverteilungen relevant:
+We work with an **agent-driven workflow** (see `.opencode/agents/` and `docs/workflow-example.md`). Even if you do not use an AI assistant, the role distribution is relevant:
 
-- **Solution Architect**: Klärt Anforderungen, definiert Specs
-- **Business Engineer**: Modelliert die fachliche Domäne
-- **Requirements Engineer**: Leitet atomare Requirements ab
-- **UI Designer**: Mockups und Design-System
-- **Backend Engineer / Frontend Engineer**: Implementation aus Specs
-- **Security Engineer**: Querschneidende Sicherheits-Reviews
+- **Solution Architect**: Clarifies requirements, defines specs
+- **Business Engineer**: Models the business domain
+- **Requirements Engineer**: Derives atomic requirements
+- **UI Designer**: Mockups and design system
+- **Backend Engineer / Frontend Engineer**: Implementation from specs
+- **Security Engineer**: Cross-cutting security reviews
 
-## Beitrags-Arten
+## Types of Contributions
 
 ### Bug Reports
 
-Nutze das [Bug-Report-Template](.github/ISSUE_TEMPLATE/bug_report.md). Wichtig:
+Use the [bug report template](.github/ISSUE_TEMPLATE/bug_report.md). Important:
 
-- Reproduzierbarer Schritt-für-Schritt-Ablauf
-- Erwartetes vs. tatsächliches Verhalten
-- Umgebungsinformationen (OS, Version, Browser)
-- Logs (falls verfügbar, ohne sensible Daten)
+- Reproducible step-by-step procedure
+- Expected vs. actual behavior
+- Environment information (OS, version, browser)
+- Logs (if available, without sensitive data)
 
 ### Feature Requests
 
-Nutze das [Feature-Request-Template](.github/ISSUE_TEMPLATE/feature_request.md). Beschreibe:
+Use the [feature request template](.github/ISSUE_TEMPLATE/feature_request.md). Describe:
 
-- Welcher Persona soll das Feature dienen? (siehe `business-analysis/stakeholders/`)
-- Welcher Pain Point wird adressiert?
-- Wie würde der ideale Ablauf aussehen?
+- Which persona should the feature serve? (see `business-analysis/stakeholders/`)
+- Which pain point is addressed?
+- What would the ideal flow look like?
 
-Features beginnen oft als Use Case (`requirements/use-cases/`) bevor sie implementiert werden.
+Features often begin as a use case (`requirements/use-cases/`) before they are implemented.
 
-### Code-Beiträge
+### Code Contributions
 
-#### Vorbereitung
+#### Preparation
 
-1. Issue erstellen oder existierendes Issue zuweisen lassen
-2. Bei größeren Änderungen: ADR-Entwurf vorab diskutieren
-3. Fork erstellen
-4. Feature-Branch: `feature/<kurzbeschreibung>` oder `fix/<kurzbeschreibung>`
+1. Create an issue or have an existing issue assigned to you
+2. For larger changes: discuss an ADR draft beforehand
+3. Create a fork
+4. Feature branch: `feature/<short-description>` or `fix/<short-description>`
 
-#### Code-Konventionen
+#### Code Conventions
 
-- **Sprache**: Code-Identifier und Kommentare auf Englisch, Dokumentation und Commit-Messages auf Deutsch
-- **Typsicherheit**: TypeScript strikt im Frontend, Type Hints + mypy strict im Python-Backend (oder vergleichbar je nach Sprache)
-- **Tests**: Pflicht – Unit-Tests, Contract-Tests gegen OpenAPI-Specs
-- **Specs first**: API-Änderungen werden zuerst im OpenAPI-Spec eingearbeitet
-- **Sichere Defaults**: TLS an, AuthN required, Audit-Log aktiv
+- **Language**: English for code identifiers, comments, documentation and commit messages
+- **Type safety**: TypeScript strict in the frontend, type hints + mypy strict in the Python backend (or comparable depending on the language)
+- **Tests**: Mandatory – unit tests, contract tests against OpenAPI specs
+- **Specs first**: API changes are incorporated into the OpenAPI spec first
+- **Secure defaults**: TLS on, AuthN required, audit log active
 
 #### Conventional Commits
 
 Format: `<type>(<scope>): <subject>`
 
-Erlaubte Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`
+Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`
 
-Beispiele:
+Examples:
 - `feat(backend): add POST /api/v1/applications endpoint`
 - `fix(frontend): correct validation in wizard step 2`
-- `docs(concept): clarify Logical-Schicht-Optionalität in §6.1.1`
+- `docs(concept): clarify optionality of the logical layer in §6.1.1`
 - `chore(adrs): add ADR-006 for backend stack decision`
 
 #### Pull Request
 
-- Titel folgt Conventional Commits
-- Beschreibung referenziert betroffenes Issue, Use Case, ADR
-- PR-Template ausfüllen
-- CI muss grün sein
-- Mindestens ein Maintainer-Review erforderlich
-- Bei security-relevanten Änderungen: Security-Review erforderlich
+- Title follows Conventional Commits
+- Description references the affected issue, use case, ADR
+- Fill in the PR template
+- CI must be green
+- At least one maintainer review required
+- For security-relevant changes: security review required
 
 #### Definition of Done
 
-- [ ] Code implementiert die Akzeptanzkriterien
-- [ ] Tests geschrieben (Unit, Integration, ggf. E2E)
-- [ ] Code-Review durch zweite Person
-- [ ] Linter und Type-Checks grün
-- [ ] Doku aktualisiert (README, Konzept, falls betroffen)
-- [ ] ADR erstellt, falls Architektur-Entscheidung
-- [ ] Conventional-Commits-konforme Commits
-- [ ] Link-Validierung grün (`python3 scripts/validate_links.py`)
+- [ ] Code implements the acceptance criteria
+- [ ] Tests written (unit, integration, E2E where applicable)
+- [ ] Code review by a second person
+- [ ] Linter and type checks green
+- [ ] Documentation updated (README, concept, if affected)
+- [ ] ADR created if architecture decision
+- [ ] Commits conform to Conventional Commits
+- [ ] Link validation green (`python3 scripts/validate_links.py`)
 
-### Doku-Beiträge
+### Documentation Contributions
 
-Doku ist Code-gleichwertig. Pflege ist Pflicht, nicht Wahl.
+Documentation is equivalent to code. Maintenance is mandatory, not optional.
 
-- Markdown-Dateien folgen dem Stil bestehender Dokumente
-- Querverweise als relative Links
-- Beispiele auf Deutsch (es sei denn, sie sind Code-Beispiele)
-- Bei Konzept-Änderungen: `concept/CHANGELOG.md` aktualisieren
+- Markdown files follow the style of existing documents
+- Cross-references as relative links
+- Examples in English
+- For concept changes: update `concept/CHANGELOG.md`
 
-### Konzept-Beiträge
+### Concept Contributions
 
-Das Konzeptpapier ist das Fundament. Änderungen brauchen Sorgfalt:
+The concept paper is the foundation. Changes require care:
 
-- Diskussion vorab (Issue oder Diskussions-Thread)
-- Bei größeren Änderungen: ADR
-- `concept/CHANGELOG.md` Pflicht
-- Versions-Bump in `concept/README.md`
-- Link-Validierung muss grün bleiben
+- Discussion beforehand (issue or discussion thread)
+- For larger changes: ADR
+- `concept/CHANGELOG.md` mandatory
+- Version bump in `concept/README.md`
+- Link validation must stay green
 
-## Review-Prozess
+## Review Process
 
-- Maintainer reviewen in der Regel innerhalb von 5 Werktagen
-- Reviews sind respektvoll, sachorientiert, konstruktiv
-- "Request changes" bedeutet konkrete Verbesserungen, keine reine Ablehnung
-- Diskussionen werden öffentlich geführt (im PR oder im Issue)
+- Maintainers generally review within 5 business days
+- Reviews are respectful, objective, constructive
+- "Request changes" means concrete improvements, not mere rejection
+- Discussions are held publicly (in the PR or the issue)
 
 ## License for Contributions
 
@@ -140,10 +140,10 @@ By submitting a pull request, you accept the **Contributor License Agreement** (
 
 Please read [LICENSES/CLA.md](LICENSES/CLA.md) before your first contribution.
 
-## Erste Schritte
+## First Steps
 
-Wenn du noch nie zu OEA beigetragen hast, suche nach Issues mit dem Label `good first issue` oder `documentation`. Diese sind bewusst klein und gut umrissen.
+If you have never contributed to OEA, look for issues with the label `good first issue` or `documentation`. These are deliberately small and well-scoped.
 
-Bei Fragen: Issue mit Label `question` erstellen oder Diskussion starten.
+If you have questions: create an issue with the label `question` or start a discussion.
 
-Vielen Dank, dass du OEA besser machst.
+Thank you for making OEA better.

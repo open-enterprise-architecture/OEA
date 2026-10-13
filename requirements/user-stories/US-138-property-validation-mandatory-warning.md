@@ -1,52 +1,52 @@
-# US-138: Eigenschafts-Validierung mandatory/warning beim Speichern
+# US-138: Property Validation mandatory/warning on Save
 
 **ID**: US-138
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Architekt möchte ich beim Anlegen oder Bearbeiten einer Entität sofort sehen, welche Pflichtfelder fehlen und welche Felder empfohlen werden, damit das Datenmodell vollständig und konsistent bleibt.
+As an architect, I want to see immediately when creating or editing an entity which mandatory fields are missing and which fields are recommended, so that the data model remains complete and consistent.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-06: Katalog anlegen und verwenden](../use-cases/UC-06-katalog-anlegen.md)
+**Use Case**: [UC-06: Create and Use Catalog](../use-cases/UC-06-create-and-use-catalog.md)
 **Persona**: [SH-03: Kurt – Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-enterprise-architect.md)
 **Requirements**: REQ-149
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: MetaTyp `ApplicationComponent` hat Property `owner` mit necessity=mandatory
-- Wenn: POST /entities ohne `owner`-Property
-- Dann: 422; `errors[0].code = "MANDATORY_MISSING"`, `errors[0].field` enthält Property-Name
+- Given: MetaType `ApplicationComponent` has property `owner` with necessity=mandatory
+- When: POST /entities without `owner` property
+- Then: 422; `errors[0].code = "MANDATORY_MISSING"`, `errors[0].field` contains the property name
 
 **AC2**:
-- Gegeben: MetaTyp `ApplicationComponent` hat Property `description` mit necessity=warning
-- Wenn: POST /entities ohne `description`-Property
-- Dann: 201 Created; Response-Body enthält `warnings[0]` mit Property-Name
+- Given: MetaType `ApplicationComponent` has property `description` with necessity=warning
+- When: POST /entities without `description` property
+- Then: 201 Created; response body contains `warnings[0]` with the property name
 
 **AC3**:
-- Gegeben: dryRun=true im Batch-Request (REQ-154)
-- Wenn: 50 Entitäten, 10 mit mandatory-Verletzung
-- Dann: `valid=false`; alle 10 Fehler aufgelistet; keine Persistierung
+- Given: dryRun=true in the batch request (REQ-154)
+- When: 50 entities, 10 with mandatory violation
+- Then: `valid=false`; all 10 errors listed; no persistence
 
-## Technische Hinweise
+## Technical Notes
 
-- Validierung in `EntityWriteService.validate(entity, metatype)`
-- Aktive Mappings: `metatype_property_mappings WHERE valid_from <= CURRENT_DATE`
-- Response-Schema: `ValidationError[]` (code, field, message)
-- Warning-Felder im Response: `warnings: ValidationError[]` parallel zu `errors`
+- Validation in `EntityWriteService.validate(entity, metatype)`
+- Active mappings: `metatype_property_mappings WHERE valid_from <= CURRENT_DATE`
+- Response schema: `ValidationError[]` (code, field, message)
+- Warning fields in the response: `warnings: ValidationError[]` parallel to `errors`
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Unit-Tests für Validierungslogik
-- [ ] Integration-Test: mandatory → 422; warning → 201 mit warnings[]
-- [ ] dryRun-Modus im Batch korrekt
+- [ ] Acceptance criteria fulfilled
+- [ ] Unit tests for validation logic
+- [ ] Integration test: mandatory → 422; warning → 201 with warnings[]
+- [ ] dryRun mode in batch correct
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-137 (Stichtag-Mechanismus muss vor Validierung stehen)
-- Wartet auf: US-051 (Entität anlegen muss implementiert sein)
+- Waits for: US-137 (effective-date mechanism must precede validation)
+- Waits for: US-051 (create entity must be implemented)

@@ -1,36 +1,36 @@
-# US-120: Technology-Diversity analysieren und als PDF/CSV exportieren
+# US-120: Analyze Technology Diversity and Export as PDF/CSV
 
 **ID**: US-120
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich je TRM-Kategorie sehen, wie viele unterschiedliche SBBs tatsächlich genutzt werden, und die Analyse mit Executive Summary als PDF oder CSV exportieren, damit ich Standardisierungspotenziale sichtbar machen und Entscheidungsträger informieren kann.
+As Kurt – Lead Enterprise Architect, I want to see per TRM category how many different SBBs are actually used, and to export the analysis with an executive summary as PDF or CSV, so that I can make standardization potential visible and inform decision makers.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-20](../use-cases/UC-20-continuum-conformance-analysieren.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-120](../req/REQ-120-technology-diversity-analyse.md)
+**Use Case**: [UC-20](../use-cases/UC-20-analyze-continuum-conformance.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-120](../req/REQ-120-technology-diversity-analysis.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Standardisierungspotenzial hervorheben):
-- Wenn: die TRM-Kategorie „Container Orchestration" 3 unterschiedliche genutzte SBBs aufweist
-- Dann: wird diese Kategorie als „Standardisierungspotenzial" hervorgehoben
+**AC1** (Highlight standardization potential):
+- When: the TRM category "Container Orchestration" has 3 different SBBs in use
+- Then: this category is highlighted as "Standardization potential"
 
-**AC2** (Fehlende Standards auflisten):
-- Wenn: TRM-Kategorien ohne konfigurierten `preferredStandard` vorhanden sind
-- Dann: erscheinen diese in einer separaten Liste „Fehlende Standards"
+**AC2** (List missing standards):
+- When: TRM categories without a configured `preferredStandard` exist
+- Then: they appear in a separate list "Missing standards"
 
-**AC3** (PDF-Export mit Executive Summary):
-- Wenn: ich den Export als PDF auslöse
-- Dann: enthält das Dokument eine Executive-Summary-Sektion mit Top-3-Risiken (prohibited Entitäten, Gap-Quote, Diversity-Hotspots) und Detailtabellen je Analyse-Sektion
+**AC3** (PDF export with executive summary):
+- When: I trigger the export as PDF
+- Then: the document contains an executive summary section with the top 3 risks (prohibited entities, gap rate, diversity hotspots) and detail tables per analysis section
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

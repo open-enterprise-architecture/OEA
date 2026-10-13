@@ -1,64 +1,63 @@
-# Ableitung aus: requirements/req/req-069-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-069-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @should @UC-09
-Feature: REQ-069 – Arc42-Dokumentation zu einer Entität bearbeiten und anzeigen
+Feature: REQ-069 – Edit and display Arc42 documentation for an entity
 
-  Das System MUSS für jede ArchitectureEntity, deren EntityType
-  mindestens einer Arc42ChapterCollection zugewiesen ist, einen Tab
-  „Arc42 Dokumentation" anzeigen. Dieser Tab zeigt alle konfigurierten
-  Fragen der zugewiesenen Collections und ermöglicht das Anlegen,
-  Bearbeiten und Löschen von Arc42MetaObject-Antwort-Entitäten
-  (REQ-068).
+  For every ArchitectureEntity whose EntityType is assigned to at
+  least one Arc42ChapterCollection, the system MUST display an "Arc42
+  Documentation" tab. This tab shows all configured questions of the
+  assigned collections and enables creating, editing, and deleting
+  Arc42MetaObject answer entities (REQ-068).
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Tab sichtbar bei Collection-Zuweisung – EntityType `application-component` hat Collection `arc42-standard` zugew...
-    Given EntityType `application-component` hat Collection `arc42-standard` zugewiesen
-    When  Michael öffnet CRM-System-Entität (id=1)
-    Then  Tab „Arc42 Dokumentation" sichtbar; 12 Fragen aufgelistet; alle zunächst unbeanwortet
+  Scenario: AC1 – Tab visible on collection assignment – EntityType `application-compo...
+    Given EntityType `application-component` has collection `arc42-standard` assigned
+    When  Michael opens CRM-System entity (id=1)
+    Then  tab "Arc42 Documentation" visible; 12 questions listed; all initially unanswered
 
   @AC2
-  Scenario: AC2 – Tab fehlt ohne Zuweisung – EntityType `technology-component` hat keine Collection
-    Given EntityType `technology-component` hat keine Collection
-    When  Nutzer öffnet Technology-Component-Entität
-    Then  Kein Arc42-Tab; kein Fehler
+  Scenario: AC2 – Tab missing without assignment – EntityType `technology-component` has no collection
+    Given EntityType `technology-component` has no collection
+    When  user opens Technology-Component entity
+    Then  no Arc42 tab; no error
 
   @AC3
-  Scenario: AC3 – Antwort anlegen – Michael klickt „Jetzt beantworten" bei Frage 1, schreibt Content, speichert
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Michael klickt „Jetzt beantworten" bei Frage 1, schreibt Content, speichert
-    Then  arc42-meta-object-Entität angelegt (id=201); arc42-describes(source=201, target=1) angelegt; Frage 1 zeigt „✓"
+  Scenario: AC3 – Create answer – Michael clicks "Answer now" on question 1, writes con...
+    Given the precondition according to the requirement is met
+    When  Michael clicks "Answer now" on question 1, writes content, saves
+    Then  arc42-meta-object entity created (id=201); arc42-describes(source=201, target=1) created; question 1 shows "✓"
 
   @AC4
-  Scenario: AC4 – Antwort bearbeiten – Michael klickt „Bearbeiten" bei Frage 1 (id=201)
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Michael klickt „Bearbeiten" bei Frage 1 (id=201)
-    Then  WYSIWYG-Editor öffnet sich mit aktuellem Content; nach Speichern Entity 201 aktualisiert
+  Scenario: AC4 – Edit answer – Michael clicks "Edit" on question 1 (id=201)
+    Given the precondition according to the requirement is met
+    When  Michael clicks "Edit" on question 1 (id=201)
+    Then  WYSIWYG editor opens with current content; after saving, entity 201 is updated
 
   @AC5
-  Scenario: AC5 – Fortschrittsindikator – 4 von 12 Fragen beantwortet
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  4 von 12 Fragen beantwortet
-    Then  Chip zeigt „4 / 12"; offene Fragen visuell unterschieden (Farbe oder Icon)
+  Scenario: AC5 – Progress indicator – 4 of 12 questions answered
+    Given the precondition according to the requirement is met
+    When  4 of 12 questions answered
+    Then  chip shows "4 / 12"; open questions visually distinguished (color or icon)
 
   @AC6
-  Scenario: AC6 – Mehrere Collections – EntityType hat 2 Collections
-    Given EntityType hat 2 Collections
-    When  Arc42-Tab geöffnet
-    Then  Beide Collections als separate Sektionen (oder Tabs); Fortschritt pro Collection separat
+  Scenario: AC6 – Multiple collections – EntityType has 2 collections
+    Given EntityType has 2 collections
+    When  Arc42 tab opened
+    Then  both collections as separate sections (or tabs); progress per collection separate
 
   @AC7
-  Scenario: AC7 – Web Portal read-only – CIO öffnet Entität im Web Portal
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  CIO öffnet Entität im Web Portal
-    Then  Arc42-Tab sichtbar; Inhalte mit gerenderten Diagrammen; kein „Beantworten"-Button
+  Scenario: AC7 – Web portal read-only – CIO opens entity in the web portal
+    Given the precondition according to the requirement is met
+    When  CIO opens entity in the web portal
+    Then  Arc42 tab visible; contents with rendered diagrams; no "Answer" button
 
   @AC8
-  Scenario: AC8 – Antwort löschen – Michael klickt „Löschen" bei beantworteter Frage
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Michael klickt „Löschen" bei beantworteter Frage
-    Then  arc42-meta-object-Entität (201) und arc42-describes-Connection gelöscht; Frage wieder „unbeanwortet"
+  Scenario: AC8 – Delete answer – Michael clicks "Delete" on an answered question
+    Given the precondition according to the requirement is met
+    When  Michael clicks "Delete" on an answered question
+    Then  arc42-meta-object entity (201) and arc42-describes connection deleted; question "unanswered" again

@@ -1,6 +1,6 @@
 ---
 id: REQ-003
-title: Eingeschränkter Zugriff bei fehlender aktiver Rollenzuweisung
+title: Restricted access without an active role assignment
 type: business-rule
 priority: must
 status: proposed
@@ -19,94 +19,94 @@ references:
   stakeholders:
     - SH-03
   concept:
-    - concept/20-entities/08-organisation-rollen-personen.md
+    - concept/20-entities/08-organization-roles-persons.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-003: Eingeschränkter Zugriff bei fehlender aktiver Rollenzuweisung
+# REQ-003: Restricted access without an active role assignment
 
-## Aussage
+## Statement
 
-Eine erfolgreich authentifizierte Person OHNE aktive Rollenzuweisung DARF NICHT auf andere als öffentlich-lesbare Inhalte des Repositorys zugreifen.
+A successfully authenticated person WITHOUT an active role assignment MUST NOT access any repository content other than publicly readable content.
 
-## Begründung
+## Rationale
 
-Konzept-Constraint `person-minimum-role` (§8.8) ist als Warning, nicht als Hard-Block modelliert – eine Person ohne Rolle soll sich anmelden können (z.B. für Onboarding), aber keine Berechtigungen über das Minimum hinaus erhalten. UC-01, Exception Flow E3.
+The concept constraint `person-minimum-role` (§8.8) is modeled as a warning, not a hard block – a person without a role should be able to log in (e.g., for onboarding) but receive no permissions beyond the minimum. UC-01, Exception Flow E3.
 
-## Kontext
+## Context
 
-Betrifft den Fall, dass eine Person beim Identity-Provider erfolgreich authentifiziert wurde, aber im EA-Repository (noch) keine aktive `RoleAssignment` besitzt.
+Concerns the case that a person was successfully authenticated at the identity provider but has (not yet) an active `RoleAssignment` in the EA repository.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=business-rule
+### For type=business-rule
 
-**Auslöser**: onLogin
+**Trigger**: onLogin
 
-**Betroffene Business Objects**: [person](../../business-objects/person.md), [role](../../business-objects/role.md)
+**Affected Business Objects**: [person](../../business-objects/person.md), [role](../../business-objects/role.md)
 
-**Formale Aussage** (vereinfacht):
+**Formal Statement** (simplified):
 ```
 if Person.fillsRoles.filter(active=true).isEmpty():
     Session.permissions = PUBLIC_READ_ONLY
 ```
 
-**Beispiel**: Eine neu eingeladene Person hat noch keine Rollenzuweisung erhalten. Sie kann sich anmelden, sieht aber nur öffentlich freigegebene Inhalte, bis eine Person mit Autorisierungsrecht ihr eine Rolle zuweist.
+**Example**: A newly invited person has not yet been given a role assignment. They can log in but only see publicly released content until a person with authorization rights assigns them a role.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine Person ist erfolgreich authentifiziert, hat aber keine aktive Rollenzuweisung
-- Wenn: sie auf das Repository zugreift
-- Dann: erhält sie ausschließlich Zugriff auf öffentlich-lesbare Inhalte und einen Hinweis, dass keine Rolle zugewiesen ist
+- Given: a person is successfully authenticated but has no active role assignment
+- When: they access the repository
+- Then: they receive access to publicly readable content only, and a notice that no role is assigned
 
 **AC2**:
-- Gegeben: eine Person erhält nachträglich eine aktive Rollenzuweisung
-- Wenn: sie sich erneut anmeldet oder die Session aktualisiert wird
-- Dann: spiegeln ihre Berechtigungen die neue Rolle wider
+- Given: a person is subsequently given an active role assignment
+- When: they log in again or the session is refreshed
+- Then: their permissions reflect the new role
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Login mit Testperson ohne RoleAssignment, Prüfung der resultierenden Berechtigungen
-- [x] Mess-Werkzeug: Test-Suite des Auth-/Autorisierungsmoduls
-- [x] Bestanden-Kriterium: AC1, AC2 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: login with a test person without RoleAssignment, check the resulting permissions
+- [x] Measurement tool: test suite of the auth/authorization module
+- [x] Pass criterion: AC1, AC2 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-001
-- **Folgewirkungen**: keine bekannt
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-001
+- **Downstream effects**: none known
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne diese Regel könnten neu authentifizierte Personen versehentlich vollen Zugriff erhalten – Sicherheitsrisiko, schwerwiegend
-- Risiko 2: Wird die Regel als Hard-Block statt Soft-Limit umgesetzt, blockiert sie das Onboarding neuer Personen unnötig
+- Risk 1: Without this rule, newly authenticated persons could accidentally receive full access – security risk, severe
+- Risk 2: If the rule is implemented as a hard block instead of a soft limit, it needlessly blocks the onboarding of new persons
 
 ## Trade-offs
 
-- vs. Benutzerfreundlichkeit: ein Hard-Block beim Login ohne Rolle wäre einfacher zu implementieren, widerspricht aber dem Konzept-Constraint (Warning statt Error) und würde Onboarding erschweren
+- vs. usability: a hard block at login without a role would be simpler to implement, but contradicts the concept constraint (warning instead of error) and would make onboarding harder
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Session-Refresh-Mechanismus nötig, damit neu zugewiesene Rollen ohne vollständigen Re-Login wirksam werden (siehe REQ-001 Realisierungs-Hinweise zu Caching)
+- A session refresh mechanism is needed so that newly assigned roles take effect without a full re-login (see REQ-001 Implementation Notes on caching)
 
-## Realisierung
+## Implementation
 
-- ADR(s): keine
-- Implementiert durch: –
+- ADR(s): none
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-01 Login, Exception Flow E3, und Konzept-Constraint `person-minimum-role`.
+Derived from UC-01 Login, Exception Flow E3, and the concept constraint `person-minimum-role`.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft aus UC-01 |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |

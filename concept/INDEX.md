@@ -1,78 +1,78 @@
-# Vollständige Kapitelübersicht
+# Complete Chapter Overview
 
-Chronologische Liste aller Kapitel mit Kurzbeschreibung.
+Chronological list of all chapters with a short description.
 
 ## 00 – Overview
 
-1. [Einordnung und Zielsetzung](00-overview/01-einordnung.md) – Scope, Leitprinzipien
-2. [Meta-Metamodell: Die drei Ebenen](00-overview/02-meta-metamodell.md) – M2/M1/M0-Konzept, Reifikation
+1. [Positioning and Objectives](00-overview/01-positioning.md) – Scope, guiding principles
+2. [Meta-Metamodel: The Three Levels](00-overview/02-meta-metamodel.md) – M2/M1/M0 concept, reification
 
 ## 10 – Foundations
 
-3. [Verhältnis zu Arc42 und TOGAF](10-foundations/03-framework-verhaeltnis.md) – Reibungspunkte und Auflösung
-4. [Enterprise Continuum und Technical Reference Model](10-foundations/04-enterprise-continuum-trm.md) – ABBs, SBBs, Patterns, TRM
-5. [Architekturprinzipien, Standards und Entscheidungen](10-foundations/05-prinzipien-standards-adrs.md) – Prinzip vs. Standard, Waivers, ADRs
+3. [Relationship to Arc42 and TOGAF](10-foundations/03-framework-relationship.md) – Friction points and resolution
+4. [Enterprise Continuum and Technical Reference Model](10-foundations/04-enterprise-continuum-trm.md) – ABBs, SBBs, patterns, TRM
+5. [Architecture Principles, Standards, and Decisions](10-foundations/05-principles-standards-adrs.md) – Principle vs. standard, waivers, ADRs
 
 ## 20 – Entities
 
-6. [Kern-Entitätstypen](20-entities/06-kern-entitaetstypen.md) – TOGAF-Mapping, Arc42-Mapping, BPMN-Integration
-7. [Motivation, Stakeholder und Ziele](20-entities/07-motivation-stakeholder-ziele.md) – Vision, Driver, Goal, Stakeholder, Glossar
-8. [Organisation, Rollen und Personen](20-entities/08-organisation-rollen-personen.md) – Org-Hierarchie, Rollen-Typen, Skills, RACI, Governance Bodies
-9. [Prozess-Architektur](20-entities/09-prozess-architektur.md) – Abstrakte Prozess-Modellierung, Process Landscape, CRUD-Matrix, Value Streams
-10. [Weitere Cross-Cutting-Konzepte](20-entities/10-cross-cutting.md) – Location, Security, Sustainability, Contracts, Deliverables, Schutzbedarf, Requirements-Repository
+6. [Core Entity Types](20-entities/06-core-entity-types.md) – TOGAF mapping, Arc42 mapping, BPMN integration
+7. [Motivation, Stakeholders, and Goals](20-entities/07-motivation-stakeholders-goals.md) – Vision, driver, goal, stakeholder, glossary
+8. [Organization, Roles, and Persons](20-entities/08-organization-roles-persons.md) – Org hierarchy, role types, skills, RACI, governance bodies
+9. [Process Architecture](20-entities/09-process-architecture.md) – Abstract process modeling, process landscape, CRUD matrix, value streams
+10. [Additional Cross-Cutting Concepts](20-entities/10-cross-cutting.md) – Location, security, sustainability, contracts, deliverables, protection need, requirements repository
 
 ## 30 – Dynamics
 
-11. [Temporales Modell](30-dynamics/11-temporales-modell.md) – Plateaus, Lifecycle, Gaps, Work Packages, Zielbilder
-12. [Domain-Konzept und Sichten](30-dynamics/12-domain-sichten.md) – n:m-Domains, Bebauungspläne, gespeicherte Sichten
-13. [Verlinkung Fach- und Technik-Ebene](30-dynamics/13-fach-technik-verlinkung.md) – Die Traceability-Kette
+11. [Temporal Model](30-dynamics/11-temporal-model.md) – Plateaus, lifecycle, gaps, work packages, target states
+12. [Domain Concept and Views](30-dynamics/12-domain-views.md) – n:m domains, landscape maps (Bebauungspläne), stored views
+13. [Linking the Business and Technology Levels](30-dynamics/13-business-technology-linking.md) – The traceability chain
 
 ## 40 – Extensibility
 
-14. [Erweiterbarkeit](40-extensibility/14-erweiterbarkeit.md) – Custom EntityTypes, Stereotypen, Constraints
-15. [Schema-Evolution](40-extensibility/15-schema-evolution.md) – Subjektive Scopes, Patterns, Versionierung, Data Quality
+14. [Extensibility](40-extensibility/14-extensibility.md) – Custom EntityTypes, stereotypes, constraints
+15. [Schema Evolution](40-extensibility/15-schema-evolution.md) – Subjective scopes, patterns, versioning, data quality
 
 ## 50 – Walkthrough
 
-16. [Beispiel-Walkthrough](50-walkthrough/16-beispiel-walkthrough.md) – CRM-Migration als End-to-End-Szenario
+16. [Example Walkthrough](50-walkthrough/16-example-walkthrough.md) – CRM migration as an end-to-end scenario
 
 ## 60 – Integrations
 
-17. [ITSM-Integration (CMDB und Service Catalog)](60-integrations/17-itsm-integration.md) – Mastership, Services, ITIL-4-Practices
-18. [Projekt-Portfolio-Integration (PPM)](60-integrations/18-ppm-integration.md) – Project, Program, Portfolio, Benefits, ARB
-19. [Agile Skalierungs-Frameworks (SAFe, LeSS)](60-integrations/19-agile-skalierung.md) – Framework-spezifische Abbildung und Schema-Profile
-20. [GRC-, DSGVO- und ISMS-Integration](60-integrations/20-grc-dsgvo-isms-integration.md) – Asset-Export, Art. 30, Drittlandtransfers, ISO 27005, Audit-Trail
+17. [ITSM Integration (CMDB and Service Catalog)](60-integrations/17-itsm-integration.md) – Mastership, services, ITIL 4 practices
+18. [Project Portfolio Integration (PPM)](60-integrations/18-ppm-integration.md) – Project, program, portfolio, benefits, ARB
+19. [Agile Scaling Frameworks (SAFe, LeSS)](60-integrations/19-agile-scaling.md) – Framework-specific mapping and schema profiles
+20. [GRC, GDPR, and ISMS Integration](60-integrations/20-grc-gdpr-isms-integration.md) – Asset export, Art. 30, third-country transfers, ISO 27005, audit trail
 
 ## 70 – Platform
 
-21. [API-Architektur und Modularität](70-platform/21-api-architektur.md) – Schichten, Module (inkl. BPMN), Events, SDK, Property-Level-AuthZ
-22. [Auswertbarkeit und Query-Architektur](70-platform/22-auswertbarkeit.md) – Graph-Traversierung, Analytics, Persistenz-Optionen
+21. [API Architecture and Modularity](70-platform/21-api-architecture.md) – Layers, modules (incl. BPMN), events, SDK, property-level authZ
+22. [Analyzability and Query Architecture](70-platform/22-analyzability.md) – Graph traversal, analytics, persistence options
 
 ## 90 – Backlog
 
-23. [Offene Punkte / nächste Entscheidungen](90-backlog/23-offene-punkte.md) – ADR-Kandidaten
-24. [Nächste Schritte](90-backlog/24-naechste-schritte.md) – Review, Use-Case-Katalog, Walking Skeleton
+23. [Open Issues / Next Decisions](90-backlog/23-open-issues.md) – ADR candidates
+24. [Next Steps](90-backlog/24-next-steps.md) – Review, use case catalog, walking skeleton
 
 ---
 
-## Lesepfade
+## Reading Paths
 
-Je nach Fokus sind unterschiedliche Reihenfolgen sinnvoll:
+Depending on focus, different orders make sense:
 
-**Für Entscheider** (Was ist das Konzept?):
+**For decision makers** (What is the concept?):
 README → 01 → 03 → 11 → 12 → 16
 
-**Für Metamodell-Designer** (Wie ist es strukturiert?):
+**For metamodel designers** (How is it structured?):
 02 → 04 → 05 → 06 → 07 → 08 → 09 → 10 → 11 → 14 → 15
 
-**Für Integrations-Architekten** (Wie dockt es an bestehende Systeme an?):
+**For integration architects** (How does it dock onto existing systems?):
 17 → 18 → 19 → 20 → 21
 
-**Für Implementierer** (Was ist zu bauen?):
+**For implementers** (What is to be built?):
 21 → 22 → 23 → 24
 
-**Für Fachbereich-Stakeholder** (Was bedeutet das für uns?):
+**For business unit stakeholders** (What does this mean for us?):
 01 → 07 → 08 → 09 → 12 → 16
 
-**Für Compliance-/Datenschutz-/Sicherheitsrollen** (Was wird regulatorisch unterstützt?):
+**For compliance/data protection/security roles** (What is supported from a regulatory perspective?):
 01 → 10 → 17 → 20 → 21

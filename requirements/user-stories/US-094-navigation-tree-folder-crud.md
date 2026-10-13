@@ -1,40 +1,40 @@
-# US-094: Navigationsbaum Ordner anlegen, umbenennen und löschen
+# US-094: Create, Rename, and Delete Navigation Tree Folders
 
 **ID**: US-094
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich Ordner im Navigationsbaum anlegen, umbenennen und löschen können, damit ich das EA-Repository sinnvoll strukturieren und navigieren kann.
+As Kurt – Lead Enterprise Architect, I want to create, rename, and delete folders in the navigation tree, so that I can structure and navigate the EA repository sensibly.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-13](../use-cases/UC-13-navigationsbaum-verwalten.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-094](../req/REQ-094-navigationsbaum-ordner-crud.md)
+**Use Case**: [UC-13](../use-cases/UC-13-manage-navigation-tree.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-094](../req/REQ-094-navigation-tree-folder-crud.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Ordner anlegen):
-- Wenn: ich einen neuen Ordner unter einem Parent anlege
-- Dann: erhalte ich HTTP 201 und der Ordner ist im Baum sichtbar
+**AC1** (Create folder):
+- When: I create a new folder under a parent
+- Then: I receive HTTP 201 and the folder is visible in the tree
 
-**AC2** (Doppelter Name abweisen):
-- Wenn: ich einen Ordner mit einem bereits vorhandenen Namen unter demselben Parent anlege
-- Dann: erhalte ich HTTP 422 "Name bereits vorhanden"
+**AC2** (Reject duplicate name):
+- When: I create a folder with an already existing name under the same parent
+- Then: I receive HTTP 422 "Name already exists"
 
-**AC3** (Rekursives Löschen):
-- Wenn: ich einen Ordner mit Kind-Ordnern und Items lösche
-- Dann: werden alle Kind-Ordner und Items entfernt; referenzierte Entitäten bleiben unberührt
+**AC3** (Recursive deletion):
+- When: I delete a folder with child folders and items
+- Then: all child folders and items are removed; referenced entities remain untouched
 
-**AC4** (Wurzelknoten-Schutz):
-- Wenn: ich den Wurzelknoten löschen will
-- Dann: erhalte ich HTTP 422 "Wurzelknoten kann nicht gelöscht werden"
+**AC4** (Root node protection):
+- When: I try to delete the root node
+- Then: I receive HTTP 422 "Root node cannot be deleted"
 
 ## Definition of Done
 
-- [ ] AC1–AC4 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC4 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

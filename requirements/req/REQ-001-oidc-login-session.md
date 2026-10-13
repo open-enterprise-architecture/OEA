@@ -1,6 +1,6 @@
 ---
 id: REQ-001
-title: OIDC-basierte Anmeldung und Session-Erstellung
+title: OIDC-based login and session creation
 type: functional
 priority: must
 status: proposed
@@ -18,119 +18,119 @@ references:
   stakeholders:
     - SH-03
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-001: OIDC-basierte Anmeldung und Session-Erstellung
+# REQ-001: OIDC-based login and session creation
 
-## Aussage
+## Statement
 
-Das System MUSS eine Person, die keine gültige Session besitzt, zur Authentifizierung an einen konfigurierten OIDC-Identity-Provider weiterleiten und nach erfolgreicher Authentifizierung eine Session erstellen, die an die Person und ihre aktiven Rollenzuweisungen gebunden ist. Das System KANN zusätzlich zur lokalen Signaturprüfung des Identity-Tokens optional eine Online-Validierung gegen den Identity-Provider durchführen (z.B. Token-Introspection nach RFC 7662 oder Userinfo-Endpoint), wenn dies für die Instanz konfiguriert ist.
+The system MUST redirect a person who has no valid session to a configured OIDC identity provider for authentication and, after successful authentication, create a session bound to the person and their active role assignments. In addition to the local signature check of the identity token, the system MAY optionally perform an online validation against the identity provider (e.g., token introspection per RFC 7662 or the userinfo endpoint) if this is configured for the instance.
 
-## Begründung
+## Rationale
 
-Login ist Voraussetzung für jeden Use Case, der über öffentlich-lesbare Inhalte hinausgeht (siehe UC-01). Ohne standardkonforme Authentifizierung kann keine rollenbasierte Autorisierung (RBAC, Konzept §21.8) stattfinden.
+Login is a prerequisite for every use case that goes beyond publicly readable content (see UC-01). Without standards-compliant authentication, no role-based authorization (RBAC, concept §21.8) can take place.
 
-## Kontext
+## Context
 
-Konzept §21.8 legt OAuth 2.0/OIDC als Standard-Authentifizierungsmechanismus fest. UC-01, Hauptablauf Schritte 2–7, sowie Alternative A1 (bestehende gültige Session wird nicht neu authentifiziert).
+Concept §21.8 defines OAuth 2.0/OIDC as the standard authentication mechanism. UC-01, Basic Flow steps 2–7, and Alternative A1 (an existing valid session is not re-authenticated).
 
-**Token-Gültigkeit**: Bei externem IdP (Entra ID, Authentik, siehe ADR-006) gibt der Identity-Provider die Gültigkeitsdauer von Access-, ID- und Refresh-Token vor; OEA übernimmt diese unverändert und erzwingt keine eigene, abweichende Lebensdauer für extern ausgestellte Token. Für lokale Authentifizierung gilt das nicht – siehe REQ-012.
+**Token validity**: With an external IdP (Entra ID, Authentik, see ADR-006), the identity provider dictates the validity period of access, ID, and refresh tokens; OEA adopts it unchanged and does not enforce its own, deviating lifetime for externally issued tokens. This does not apply to local authentication – see REQ-012.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- HTTP-Request ohne gültige Session an eine geschützte Ressource
-- Authorization Code vom Identity-Provider nach erfolgreichem Redirect
+**Inputs**:
+- HTTP request without a valid session to a protected resource
+- Authorization code from the identity provider after a successful redirect
 
-**Verarbeitung**:
-- Prüfung auf bestehende gültige Session; falls vorhanden, kein erneuter Redirect (A1)
-- Redirect zum konfigurierten OIDC-Provider mit state/nonce-Absicherung
-- Einlösen des Authorization Codes gegen Identity-Token (Access Token, ID Token)
-- Validierung des Tokens: standardmäßig lokale Signaturprüfung gegen die JWKS des Providers; optional (konfigurierbar) zusätzliche Online-Prüfung beim IdP für Echtzeit-Widerruf-Erkennung
-- Abgleich der Identity-Claims mit dem referenzierten [Person](../../business-objects/person.md)-Objekt
-- Laden der aktiven Rollenzuweisungen (RoleAssignment mit `validFrom <= heute <= validTo`)
-- Erstellung einer Session, gebunden an Person und aktive Rollen
+**Processing**:
+- Check for an existing valid session; if present, no new redirect (A1)
+- Redirect to the configured OIDC provider with state/nonce protection
+- Redeem the authorization code for an identity token (access token, ID token)
+- Token validation: by default a local signature check against the provider's JWKS; optionally (configurable) an additional online check with the IdP for real-time revocation detection
+- Match the identity claims against the referenced [Person](../../business-objects/person.md) object
+- Load the active role assignments (RoleAssignment with `validFrom <= today <= validTo`)
+- Create a session bound to the person and active roles
 
-**Ausgaben**:
-- Gültige Session/Access-Token
-- Bestätigung der Anmeldung mit rollenbasiertem Einstiegsbereich
+**Outputs**:
+- Valid session/access token
+- Login confirmation with a role-based landing area
 
-**Fehlerfälle**:
-- Identity-Provider lehnt Authentifizierung ab → siehe REQ-006 (keine Session, generische Fehlermeldung)
-- Person nicht auffindbar/offboarded → siehe REQ-004
-- Identity-Provider nicht erreichbar → technische Fehlermeldung, kein Session-Aufbau, Wiederholung möglich
+**Error Cases**:
+- Identity provider rejects authentication → see REQ-006 (no session, generic error message)
+- Person not found/offboarded → see REQ-004
+- Identity provider unreachable → technical error message, no session established, retry possible
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine Person ohne gültige Session ruft eine geschützte Ressource auf
-- Wenn: sie sich erfolgreich beim konfigurierten OIDC-Provider authentifiziert
-- Dann: erhält sie eine Session, die ihre aktiven Rollenzuweisungen widerspiegelt
+- Given: a person without a valid session calls a protected resource
+- When: they successfully authenticate with the configured OIDC provider
+- Then: they receive a session that reflects their active role assignments
 
 **AC2**:
-- Gegeben: eine Person besitzt bereits eine gültige Session
-- Wenn: sie eine weitere geschützte Ressource aufruft
-- Dann: erfolgt kein erneuter Redirect zum Identity-Provider
+- Given: a person already has a valid session
+- When: they call another protected resource
+- Then: no new redirect to the identity provider occurs
 
 **AC3**:
-- Gegeben: eine Instanz, für die Online-Token-Validierung gegen den IdP konfiguriert ist, und ein Identity-Token, das lokal gültig signiert, aber beim IdP bereits widerrufen wurde
-- Wenn: der Login-Vorgang abgeschlossen wird
-- Dann: wird die Session-Erstellung verweigert
+- Given: an instance for which online token validation against the IdP is configured, and an identity token that is validly signed locally but has already been revoked at the IdP
+- When: the login process is completed
+- Then: session creation is refused
 
 **AC4**:
-- Gegeben: ein vom externen IdP ausgestelltes Token mit vom IdP festgelegter Gültigkeitsdauer
-- Wenn: OEA die Session erstellt
-- Dann: übernimmt OEA diese Gültigkeitsdauer unverändert, ohne sie zu verkürzen oder zu verlängern
+- Given: a token issued by the external IdP with a validity period set by the IdP
+- When: OEA creates the session
+- Then: OEA adopts this validity period unchanged, without shortening or extending it
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Integrationstest gegen einen Test-OIDC-Provider (z.B. Mock-IdP), inkl. Session-Cookie/Token-Prüfung
-- [x] Mess-Werkzeug: Test-Suite des Auth-Moduls
-- [x] Bestanden-Kriterium: AC1 und AC2 grün, kein Redirect bei bestehender Session
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: integration test against a test OIDC provider (e.g., mock IdP), including session cookie/token check
+- [x] Measurement tool: test suite of the auth module
+- [x] Pass criterion: AC1 and AC2 green, no redirect when a session exists
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: keine
-- **Folgewirkungen**: REQ-002 (API-Key als Alternative), REQ-003, REQ-004, REQ-007
-- **Konflikte**: keine bekannt
+- **Prerequisites**: none
+- **Downstream effects**: REQ-002 (API key as alternative), REQ-003, REQ-004, REQ-007
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne standardkonformes OIDC kein einheitlicher RBAC-Anschluss an bestehende Identity-Provider der Organisation – schwerwiegend
-- Risiko 2: Eigenbau-Authentifizierung erhöht Angriffsfläche (Credential-Handling im eigenen Code) – schwerwiegend
+- Risk 1: Without standards-compliant OIDC, no uniform RBAC connection to the organization's existing identity providers – severe
+- Risk 2: Custom-built authentication increases the attack surface (credential handling in own code) – severe
 
 ## Trade-offs
 
-- vs. Self-Hosting-Einfachheit (SH-03 Kurt, Single-User-KMU): OIDC erfordert einen Identity-Provider; ein leichtgewichtiger Default-Provider für Single-User-Betrieb sollte in der ADR zur Auth-Stack-Wahl mitbedacht werden.
-- vs. REQ-008 (Login-Latenz): die optionale Online-Token-Validierung gegen den IdP fügt einen zusätzlichen Netzwerk-Roundtrip hinzu und ist daher per Default deaktiviert; bei Aktivierung muss das Latenzbudget aus REQ-008 neu bewertet werden.
+- vs. self-hosting simplicity (SH-03 Kurt, single-user SME): OIDC requires an identity provider; a lightweight default provider for single-user operation should be considered in the ADR on the auth stack choice.
+- vs. REQ-008 (login latency): the optional online token validation against the IdP adds an extra network round trip and is therefore disabled by default; when enabled, the latency budget from REQ-008 must be reassessed.
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Bekannte technische Herausforderungen: state/nonce-Handling gegen CSRF, Token-Refresh, Mapping von Identity-Claims auf bestehende Person-Objekte bei wechselnden Claim-Formaten je Provider
-- Konkrete Provider-Wahl ist nicht Teil dieses Requirements, sondern einer noch offenen ADR
+- Known technical challenges: state/nonce handling against CSRF, token refresh, mapping identity claims to existing Person objects with claim formats that vary per provider
+- The concrete provider choice is not part of this requirement but of a still-open ADR
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-01 Login, Hauptablauf und Alternative A1.
+Derived from UC-01 Login, Basic Flow and Alternative A1.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft aus UC-01 |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |

@@ -1,40 +1,40 @@
-# US-134: Aktueller-Stand-Knoten zeigt aggregierte Architektur
+# US-134: Current State Node Shows Aggregated Architecture
 
 **ID**: US-134
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Lead Enterprise Architekt möchte ich im Browser-Panel einen „Aktueller Stand"-Knoten haben, der alle realisierten Inhalte aus implementierten Solutions aggregiert — unabhängig davon, ob sie über Plateau-Modus oder Projekt-Modus entstanden sind — damit ich den Gesamtzustand der Architektur auf einen Blick navigieren kann.
+As a Lead Enterprise Architect, I want a "Current State" node in the browser panel that aggregates all realized content from implemented solutions — regardless of whether they arose via plateau mode or project mode — so that I can navigate the overall state of the architecture at a glance.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-11: Plateau definieren und Go-Live](../use-cases/UC-11-plateau-definieren-und-go-live.md)
+**Use Case**: [UC-11: Define Plateau and Go-Live](../use-cases/UC-11-define-plateau-and-go-live.md)
 **Requirement**: REQ-140
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 **ADR**: ADR-020
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Solution A (Projekt-Modus, `status=implemented`, 3 Komponenten) und Solution B (Plateau-Modus, `status=implemented`, 5 Komponenten)
-- Wenn: „Aktueller Stand → Komponenten" aufgeklappt
-- Dann: 8 Komponenten sichtbar (aus beiden Solutions zusammen)
+- Given: solution A (project mode, `status=implemented`, 3 components) and solution B (plateau mode, `status=implemented`, 5 components)
+- When: "Current State → Components" expanded
+- Then: 8 components visible (from both solutions combined)
 
 **AC2**:
-- Gegeben: Solution C (Projekt-Modus, `status=in-progress`)
-- Wenn: „Aktueller Stand" durchsucht
-- Dann: Inhalte von Solution C nicht sichtbar (noch nicht implementiert)
+- Given: solution C (project mode, `status=in-progress`)
+- When: "Current State" is browsed
+- Then: contents of solution C not visible (not yet implemented)
 
 **AC3**:
-- Gegeben: Gleiche Komponente erscheint in zwei Solutions (Referenz-Entity)
-- Wenn: „Aktueller Stand → Komponenten" angezeigt
-- Dann: Komponente erscheint nur einmal (Deduplizierung nach Entity-ID)
+- Given: the same component appears in two solutions (reference entity)
+- When: "Current State → Components" displayed
+- Then: component appears only once (deduplication by entity ID)
 
-## Technische Hinweise
+## Technical Notes
 
-- „Aktueller Stand" ist ein read-only, berechneter Knoten — kein persistierter TreeNode
-- Aggregation: alle Entities aus Solutions mit `status=implemented`
-- Deduplizierung auf Entity-ID-Ebene (gleiche Entität in mehreren Solutions erscheint einmal)
+- "Current State" is a read-only, computed node — not a persisted TreeNode
+- Aggregation: all entities from solutions with `status=implemented`
+- Deduplication at entity ID level (the same entity in multiple solutions appears once)

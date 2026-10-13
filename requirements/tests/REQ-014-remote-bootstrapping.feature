@@ -1,27 +1,26 @@
-# Ableitung aus: requirements/req/req-014-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-014-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @should @UC-02
-Feature: REQ-014 – Remote-Bootstrapping über IdP-Claim-Mapping
+Feature: REQ-014 – Remote bootstrapping via IdP claim mapping
 
-  Das System SOLL es ermöglichen, System-Admin-Rechte über ein Mapping
-  auf einen Gruppen- oder Rollen-Claim eines konfigurierten externen
-  Identity-Providers (Entra ID oder Authentik, siehe ADR-006) zu
-  vergeben, ohne dass dafür ein lokales Credential angelegt werden
-  muss.
+  The system SHOULD make it possible to grant system admin permissions
+  via a mapping to a group or role claim of a configured external
+  identity provider (Entra ID or Authentik, see ADR-006) without
+  requiring a local credential to be created for this purpose.
 
   Background:
-    Given eine frisch installierte OEA-Instanz ohne System-Admin-Account
+    Given a freshly installed OEA instance without a system admin account
 
   @AC1
-  Scenario: AC1 – ein konfiguriertes Claim-Mapping auf eine IdP-Gruppe
-    Given ein konfiguriertes Claim-Mapping auf eine IdP-Gruppe
-    When  eine Person mit diesem Gruppen-Claim im Identity-Token sich anmeldet
-    Then  erhält die Session System-Admin-Rechte
+  Scenario: AC1 – a configured claim mapping to an IdP group
+    Given a configured claim mapping to an IdP group
+    When  a person with this group claim in the identity token logs in
+    Then  the session receives system admin permissions
 
   @AC2
-  Scenario: AC2 – dasselbe Mapping
-    Given dasselbe Mapping
-    When  eine Person ohne diesen Claim sich anmeldet
-    Then  erhält die Session keine System-Admin-Rechte über diesen Weg
+  Scenario: AC2 – the same mapping
+    Given the same mapping
+    When  a person without this claim logs in
+    Then  the session does not receive system admin permissions via this route

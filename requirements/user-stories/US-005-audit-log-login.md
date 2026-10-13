@@ -1,54 +1,54 @@
-# US-005: Audit-Log-Eintrag für jeden Login-Versuch
+# US-005: Audit Log Entry for Every Login Attempt
 
 **ID**: US-005
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Betreiber möchte ich, dass jeder Login-Versuch protokolliert wird, damit ich im Audit-Fall nachvollziehen kann, wer sich wann mit welchem Mechanismus angemeldet hat – erfolgreich oder nicht.
+As an operator, I want every login attempt to be logged, so that in an audit I can trace who signed in when and with which mechanism – successfully or not.
 
-## Bezug
+## Reference
 
 **Use Case**: [UC-01: Login](../use-cases/UC-01-login.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-005: Audit-Log-Eintrag für jeden Login-Versuch](../req/REQ-005-audit-log-login.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-005: Audit Log Entry for Every Login Attempt](../req/REQ-005-audit-log-login.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein erfolgreicher Login-Versuch (OIDC, API-Key, Passkey, lokal)
-- Wenn: er abgeschlossen ist
-- Dann: enthält das Audit-Log einen Eintrag mit Zeitpunkt, Mechanismus, Ergebnis `success` und Identitäts-Referenz
+- Given: a successful login attempt (OIDC, API key, passkey, local)
+- When: it is completed
+- Then: the audit log contains an entry with timestamp, mechanism, result `success` and identity reference
 
 **AC2**:
-- Gegeben: ein fehlgeschlagener Login-Versuch
-- Wenn: der Fehlschlag eintritt
-- Dann: enthält das Audit-Log einen Eintrag mit Zeitpunkt, Mechanismus, Ergebnis `failure` und – soweit ohne Preisgabe sicherheitsrelevanter Details möglich – dem Fehlergrund
+- Given: a failed login attempt
+- When: the failure occurs
+- Then: the audit log contains an entry with timestamp, mechanism, result `failure` and – as far as possible without disclosing security-relevant details – the failure reason
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Audit-Log-Modul, Auth-Modul (alle Mechanismen)
-- Betroffene EntityTypes/Relations: keine fachlichen, separates Audit-Log-Schema
-- API-Endpunkte: alle Login-Endpunkte (OIDC-Callback, API-Key, Passkey, lokal)
-- Datenbank-Änderungen: Audit-Log-Tabelle/Append-Only-Store
+- Affected components: audit log module, auth module (all mechanisms)
+- Affected EntityTypes/Relations: no business ones, separate audit log schema
+- API endpoints: all login endpoints (OIDC callback, API key, passkey, local)
+- Database changes: audit log table/append-only store
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (Unit, Integration über alle Mechanismen)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (unit, integration across all mechanisms)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-001, US-002 (mindestens ein Login-Mechanismus muss existieren, um zu loggen)
-- Blockiert: keine
+- Waiting on: US-001, US-002 (at least one login mechanism must exist in order to log)
+- Blocks: none
 
-## Notizen
+## Notes
 
-Sollte parallel zu jedem neuen Login-Mechanismus erweitert werden (Passkey, TOTP, lokal) – ggf. iterativ statt in einem Schritt für alle Mechanismen.
+Should be extended in parallel with every new login mechanism (passkey, TOTP, local) – possibly iteratively rather than in one step for all mechanisms.

@@ -1,6 +1,6 @@
 ---
 id: REQ-135
-title: Dark-Mode-Unterstützung mit System-Default und Benutzer-Präferenz
+title: Dark Mode Support with System Default and User Preference
 type: functional
 priority: should
 status: proposed
@@ -26,128 +26,128 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-135: Dark-Mode-Unterstützung mit System-Default und Benutzer-Präferenz
+# REQ-135: Dark Mode Support with System Default and User Preference
 
-## Aussage
+## Statement
 
-Die OEA-Benutzeroberfläche **MUSS** ein helles und ein dunkles Farbschema unterstützen. Das aktive Schema **MUSS** pro Benutzer serverseitig am `Person`-Objekt persistiert werden können (Werte: `light` | `dark` | `system`). Solange kein Benutzer-Override gesetzt ist, **MUSS** als Default der Wert `system` gelten, d. h. das vom Betriebssystem gemeldete Farbschema (`prefers-color-scheme`) wird übernommen.
+The OEA user interface **MUST** support a light and a dark color scheme. The active scheme **MUST** be persistable per user on the server on the `Person` object (values: `light` | `dark` | `system`). As long as no user override is set, the value `system` **MUST** apply as the default, i.e. the color scheme reported by the operating system (`prefers-color-scheme`) is adopted.
 
-## Begründung
+## Rationale
 
-SH-03 (Kurt) und SH-06 (Max) nutzen OEA auf mehreren Geräten und in unterschiedlichen Umgebungen. Eine rein lokale Speicherung (localStorage / Electron-Store) würde bedeuten, dass die Präferenz bei einem Gerätewechsel verloren geht. Durch serverseitige Speicherung am `Person`-Objekt ist die Einstellung geräteübergreifend konsistent und wird bei jedem Login automatisch geladen.
+SH-03 (Kurt) and SH-06 (Max) use OEA on multiple devices and in different environments. Purely local storage (localStorage / Electron store) would mean that the preference is lost when switching devices. With server-side storage on the `Person` object, the setting is consistent across devices and is loaded automatically on every login.
 
-## Kontext
+## Context
 
-Die Anforderung gilt für alle UI-Oberflächen von OEA: Client App (Electron), Web Portal und alle Dialoge/Fenster. Sie gilt nicht für rein maschinenlesbare Ausgaben (CLI-Output, API-Responses, Exports).
+The requirement applies to all UI surfaces of OEA: client app (Electron), web portal, and all dialogs/windows. It does not apply to purely machine-readable outputs (CLI output, API responses, exports).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-**Eingaben**:
-- Betriebssystem-Präferenz (`prefers-color-scheme: dark | light`) beim App-Start/Browser-Aufruf
-- Serverseitig gespeicherte Benutzer-Präferenz (`person.uiTheme`: `light` | `dark` | `system`) — wird beim Login geladen
-- Explizite Benutzeraktion in den Profil-Einstellungen (Auswahl Hell / Dunkel / System)
+**Inputs**:
+- Operating system preference (`prefers-color-scheme: dark | light`) at app start/browser call
+- Server-stored user preference (`person.uiTheme`: `light` | `dark` | `system`) — loaded at login
+- Explicit user action in the profile settings (selection Light / Dark / System)
 
-**Verarbeitung**:
-1. Beim Login: `person.uiTheme` aus dem Session-Response laden
-2. `system`: `prefers-color-scheme` des Clients auswerten; bei OS-Wechsel während der Laufzeit sofort reagieren (kein Reload nötig)
-3. `light` oder `dark`: OS-Präferenz ignorieren, festes Schema anwenden
-4. Benutzer ändert Präferenz in Profil-Einstellungen: sofort im UI anwenden **und** per `PATCH /api/v1/persons/me` an Server senden; bei Netzwerkfehler: lokal zwischenspeichern und beim nächsten erfolgreichen Request nachsenden
-5. Kein Login (öffentliche Seiten, Bootstrapping-Wizard): `prefers-color-scheme` ohne Server-Kontext anwenden
+**Processing**:
+1. At login: load `person.uiTheme` from the session response
+2. `system`: evaluate the client's `prefers-color-scheme`; react immediately to an OS change at runtime (no reload needed)
+3. `light` or `dark`: ignore the OS preference, apply a fixed scheme
+4. User changes the preference in the profile settings: apply immediately in the UI **and** send to the server via `PATCH /api/v1/persons/me`; on network error: buffer locally and resend with the next successful request
+5. No login (public pages, bootstrapping wizard): apply `prefers-color-scheme` without server context
 
-**Ausgaben**:
-- Gesamtes UI (Hintergründe, Karten, Texte, Icons, Eingabefelder, Buttons) in konsistenten Farb-Tokens des gewählten Schemas
-- Aktives Schema ist für Accessibility-Tools erkennbar (`<html data-theme="dark|light">` und CSS `color-scheme`-Property)
-- Session-Response enthält `uiTheme`-Feld sodass der Client es direkt beim Login anwenden kann (kein separater Request nötig)
+**Outputs**:
+- The entire UI (backgrounds, cards, texts, icons, input fields, buttons) in consistent color tokens of the selected scheme
+- The active scheme is recognizable for accessibility tools (`<html data-theme="dark|light">` and CSS `color-scheme` property)
+- The session response contains the `uiTheme` field so that the client can apply it directly at login (no separate request needed)
 
-**Fehlerfälle**:
-- `prefers-color-scheme` nicht auflösbar (sehr alte Browser/OS): Fallback auf `light`
-- `person.uiTheme` hat unbekannten Wert (z. B. nach Migration): Fallback auf `system`
-- Server nicht erreichbar beim Speichern der Präferenz: lokal puffern, kein Fehler-Dialog
+**Error Cases**:
+- `prefers-color-scheme` not resolvable (very old browsers/OS): fallback to `light`
+- `person.uiTheme` has an unknown value (e.g. after migration): fallback to `system`
+- Server unreachable when saving the preference: buffer locally, no error dialog
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** — Default: kein Override, Light-OS:
-- Gegeben: `person.uiTheme = system`, OS hat Light-Mode aktiv
-- Wenn: Login abgeschlossen, App initialisiert
-- Dann: Light-Schema wird ohne Benutzerinteraktion angezeigt
+**AC1** — Default: no override, light OS:
+- Given: `person.uiTheme = system`, OS has light mode active
+- When: login completed, app initialized
+- Then: the light scheme is displayed without user interaction
 
-**AC2** — Default: kein Override, Dark-OS:
-- Gegeben: `person.uiTheme = system`, OS hat Dark-Mode aktiv
-- Wenn: Login abgeschlossen, App initialisiert
-- Dann: Dark-Schema wird ohne Benutzerinteraktion angezeigt
+**AC2** — Default: no override, dark OS:
+- Given: `person.uiTheme = system`, OS has dark mode active
+- When: login completed, app initialized
+- Then: the dark scheme is displayed without user interaction
 
-**AC3** — Laufzeit-OS-Wechsel (kein Override):
-- Gegeben: `person.uiTheme = system`, OS wechselt während der Laufzeit das Schema
-- Wenn: OS-Präferenz ändert sich (z. B. automatischer Nacht-Modus)
-- Dann: UI wechselt innerhalb von 1 Sekunde auf neues Schema ohne Seitenreload
+**AC3** — Runtime OS switch (no override):
+- Given: `person.uiTheme = system`, OS switches the scheme at runtime
+- When: the OS preference changes (e.g. automatic night mode)
+- Then: the UI switches to the new scheme within 1 second without a page reload
 
-**AC4** — Expliziter Override, Geräteübergreifend:
-- Gegeben: Benutzer setzt in Profil-Einstellungen auf Gerät A den Override „Dunkel"
-- Wenn: Benutzer meldet sich auf Gerät B an
-- Dann: Dark-Schema wird auf Gerät B ohne weitere Aktion angewendet (`person.uiTheme = dark` kommt mit Session)
+**AC4** — Explicit override, across devices:
+- Given: the user sets the override "Dark" in the profile settings on device A
+- When: the user logs in on device B
+- Then: the dark scheme is applied on device B without further action (`person.uiTheme = dark` arrives with the session)
 
-**AC5** — Override zurücksetzen:
-- Gegeben: `person.uiTheme = dark`
-- Wenn: Benutzer wählt „System-Einstellung" in Profil-Einstellungen
-- Dann: `person.uiTheme` wird auf `system` gesetzt, OS-Präferenz gilt sofort wieder
+**AC5** — Reset override:
+- Given: `person.uiTheme = dark`
+- When: the user selects "System setting" in the profile settings
+- Then: `person.uiTheme` is set to `system`, the OS preference applies again immediately
 
-**AC6** — Kontrast (WCAG AA):
-- Gegeben: Dark-Mode ist aktiv
-- Wenn: beliebiger Fließtext gegen seinen Hintergrund geprüft wird
-- Dann: Kontrastverhältnis ≥ 4.5:1
+**AC6** — Contrast (WCAG AA):
+- Given: dark mode is active
+- When: any body text is checked against its background
+- Then: contrast ratio ≥ 4.5:1
 
-**AC7** — Unauthentifizierte Screens:
-- Gegeben: Benutzer ist nicht eingeloggt (Bootstrapping-Wizard, Login-Screen)
-- Wenn: App gestartet wird
-- Dann: `prefers-color-scheme` des Clients wird angewendet (kein Server-Kontext verfügbar)
+**AC7** — Unauthenticated screens:
+- Given: the user is not logged in (bootstrapping wizard, login screen)
+- When: the app is started
+- Then: the client's `prefers-color-scheme` is applied (no server context available)
 
-## Verifikationsmethode
+## Verification Method
 
-- [ ] Methode: test (automatisiert) + demonstration (manuell)
-- [ ] Test-Setup: Playwright mit `--force-prefers-color-scheme=dark/light`; API-Mock für Session-Response mit verschiedenen `uiTheme`-Werten; E2E-Test für PATCH-Request bei Einstellungsänderung
-- [ ] Mess-Werkzeug: axe-core für Kontrast-Check (AC6); Browser DevTools Media-Query-Simulation
-- [ ] Bestanden-Kriterium: AC1–AC7 alle grün; keine axe-Violation `color-contrast` im Dark-Mode
-- [ ] In CI integriert: ja (nach Implementierung)
+- [ ] Method: test (automated) + demonstration (manual)
+- [ ] Test setup: Playwright with `--force-prefers-color-scheme=dark/light`; API mock for session response with various `uiTheme` values; E2E test for the PATCH request on settings change
+- [ ] Measuring tool: axe-core for contrast check (AC6); browser DevTools media query simulation
+- [ ] Pass criterion: AC1–AC7 all green; no axe violation `color-contrast` in dark mode
+- [ ] Integrated in CI: yes (after implementation)
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: `person.uiTheme`-Attribut muss im Datenmodell ergänzt werden (enum: `light | dark | system`, Default: `system`); ADR-011 (Vue 3) für CSS-Custom-Properties-Ansatz; ADR-009 (Electron) für `nativeTheme`-Integration
-- **Folgewirkungen**: Design-System-Tokens müssen für beide Modi vollständig definiert sein; Session-Response-Schema erweitern
-- **Konflikte**: keine bekannten
+- **Prerequisites**: the `person.uiTheme` attribute must be added to the data model (enum: `light | dark | system`, default: `system`); ADR-011 (Vue 3) for the CSS custom properties approach; ADR-009 (Electron) for `nativeTheme` integration
+- **Consequences**: design system tokens must be fully defined for both modes; extend the session response schema
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Präferenz geht bei Gerätewechsel verloren → Frustration bei SH-03, der OEA auf Desktop (Electron) und gelegentlich im Browser nutzt (mittel)
-- Risiko 2: Fehlender Dark-Mode senkt wahrgenommene Produktqualität bei Early Adopters im Open-Source-Umfeld (mittel)
-- Risiko 3: Kontrast-Probleme bei Behörden-Kunden → WCAG-AA-Verletzung (mittel)
+- Risk 1: preference is lost when switching devices → frustration for SH-03, who uses OEA on desktop (Electron) and occasionally in the browser (medium)
+- Risk 2: missing dark mode lowers perceived product quality among early adopters in the open-source environment (medium)
+- Risk 3: contrast problems with government customers → WCAG AA violation (medium)
 
 ## Trade-offs
 
-- vs. Aufwand: Serverseitige Speicherung erfordert Datenbankattribut, API-Erweiterung und Session-Response-Anpassung — höherer Aufwand als rein lokale Lösung
-- vs. Datenschutz: `uiTheme` ist eine UI-Präferenz ohne Personenbezug im datenschutzrechtlichen Sinne; kein DSGVO-Konflikt
+- vs. effort: server-side storage requires a database attribute, API extension, and session response adaptation — higher effort than a purely local solution
+- vs. data protection: `uiTheme` is a UI preference without personal reference in the data protection sense; no GDPR conflict
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- `person.uiTheme` als Enum-Spalte in der Personen-Tabelle (`light | dark | system`, Default `system`)
-- Session-Response um `uiTheme` erweitern, damit der Client es ohne zweiten Request kennt
-- CSS Custom Properties (Design Tokens) als einzige Farb-Quelle; kein Hard-coding von Farben in Komponenten
-- Electron: `nativeTheme.themeSource` steuert das native Window-Frame-Theming; `nativeTheme.updated`-Event für Live-Wechsel
-- Vue 3: Pinia-Store `useThemeStore` hält `resolvedTheme` (immer `light` oder `dark`, nie `system`); `window.matchMedia`-Listener für `system`-Modus
-- Kein FOUC: Theme-Attribut (`data-theme`) vor erstem Render setzen
+- `person.uiTheme` as an enum column in the persons table (`light | dark | system`, default `system`)
+- Extend the session response with `uiTheme` so that the client knows it without a second request
+- CSS custom properties (design tokens) as the only color source; no hard-coding of colors in components
+- Electron: `nativeTheme.themeSource` controls the native window frame theming; `nativeTheme.updated` event for live switching
+- Vue 3: Pinia store `useThemeStore` holds `resolvedTheme` (always `light` or `dark`, never `system`); `window.matchMedia` listener for `system` mode
+- No FOUC: set the theme attribute (`data-theme`) before the first render
 
-## Realisierung
+## Implementation
 
-- ADR(s): ADR-011 (Vue 3 Frontend), ADR-009 (Electron)
-- Implementiert durch: (noch offen)
-- Tests: (noch offen)
-- Status der Verifikation: not-verified
+- ADR(s): ADR-011 (Vue 3 frontend), ADR-009 (Electron)
+- Implemented by: (still open)
+- Tests: (still open)
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Anforderung entstanden im Rahmen der Mockup-Erstellung der Startfenster (UC-01–UC-03). Primärfarbe des UI wurde gleichzeitig von Violett (#4F46E5) auf Sky-Blau (#0EA5E9) geändert. Der Hinweis auf geräteübergreifende Persistenz kam nach dem ersten Entwurf — erklärt die serverseitige Speicherung statt reinem localStorage.
+Requirement arose during the creation of the startup window mockups (UC-01–UC-03). The primary color of the UI was changed at the same time from violet (#4F46E5) to sky blue (#0EA5E9). The note on cross-device persistence came after the first draft — this explains the server-side storage instead of plain localStorage.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft inkl. serverseitiger Persistenz am Person-Objekt |
+| 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft incl. server-side persistence on the Person object |

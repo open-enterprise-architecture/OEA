@@ -1,55 +1,54 @@
-# Ableitung aus: requirements/req/req-036-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-036-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @must @UC-04
-Feature: REQ-036 – Connection-EntityType im Metamodell
+Feature: REQ-036 – Connection EntityType in the metamodel
 
-  Das System MUSS es ermöglichen, beim Anlegen eines Custom EntityTypes
-  das Flag `isConnection=true` zu setzen; ein Connection-Typ MUSS an
-  jeder seiner Instanzen genau eine `source`- und eine
-  `target`-Referenz erzwingen; `source` und `target` DÜRFEN auf
-  Instanzen beliebiger EntityType-Klassen zeigen – einschliesslich
-  anderer Connection-Instanzen, wodurch T-Beziehungen entstehen; die
-  erlaubten Typen für `source` und `target` KÖNNEN optional
-  eingeschränkt werden.
+  The system MUST make it possible to set the flag `isConnection=true`
+  when creating a custom EntityType; a connection type MUST enforce
+  exactly one `source` and one `target` reference on each of its
+  instances; `source` and `target` MAY point to instances of any
+  EntityType class – including other connection instances, which
+  yields T-relationships; the allowed types for `source` and `target`
+  MAY optionally be restricted.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – EntityType `DataFlow` mit `isConnection=true`, `allowedSourceTypes=[Appl...
-    Given EntityType `DataFlow` mit `isConnection=true`, `allowedSourceTypes=[ApplicationComponent, DataFlow]`, `allowedTargetTypes=[ApplicationComponent, DataFlow]`
-    When  Kurt eine neue `DataFlow`-Instanz anlegt ohne `source` anzugeben
-    Then  erscheint Validierungsfehler "source ist Pflichtfeld"; kein Objekt wird gespeichert
+  Scenario: AC1 – EntityType `DataFlow` with `isConnection=true`, `allowedSourceTypes=...
+    Given EntityType `DataFlow` with `isConnection=true`, `allowedSourceTypes=[ApplicationComponent, DataFlow]`, `allowedTargetTypes=[ApplicationComponent, DataFlow]`
+    When  Kurt creates a new `DataFlow` instance without specifying `source`
+    Then  validation error "source is a mandatory field" appears; no object is saved
 
   @AC2
-  Scenario: AC2 – `DataFlow`-Instanz DF-1 (source=AppA, target=AppB) existiert bereits
-    Given `DataFlow`-Instanz DF-1 (source=AppA, target=AppB) existiert bereits
-    When  Kurt eine neue `DataFlow`-Instanz DF-2 anlegt mit `source=DF-1` (Connection → Connection) und `target=AppC`
-    Then  wird DF-2 gespeichert; im Graphen zeigt DF-2 auf DF-1 (T-Beziehung: DF-2 zweigt von DF-1 ab, AppC ist Endpunkt)
+  Scenario: AC2 – `DataFlow` instance DF-1 (source=AppA, target=AppB) already exists
+    Given `DataFlow` instance DF-1 (source=AppA, target=AppB) already exists
+    When  Kurt creates a new `DataFlow` instance DF-2 with `source=DF-1` (connection → connection) and `target=AppC`
+    Then  DF-2 is saved; in the graph DF-2 points to DF-1 (T-relationship: DF-2 branches off from DF-1, AppC is the endpoint)
 
   @AC3
-  Scenario: AC3 – `DataFlow` hat `allowedSourceTypes=[ApplicationComponent]` (DataFlow nic...
-    Given `DataFlow` hat `allowedSourceTypes=[ApplicationComponent]` (DataFlow nicht in der Liste)
-    When  Kurt DF-2 mit `source=DF-1` (eine Connection-Instanz) anlegen möchte
-    Then  erscheint Validierungsfehler "DataFlow ist kein erlaubter Source-Typ für DataFlow"
+  Scenario: AC3 – `DataFlow` has `allowedSourceTypes=[ApplicationComponent]` (DataFlow n...
+    Given `DataFlow` has `allowedSourceTypes=[ApplicationComponent]` (DataFlow not in the list)
+    When  Kurt wants to create DF-2 with `source=DF-1` (a connection instance)
+    Then  validation error "DataFlow is not an allowed source type for DataFlow" appears
 
   @AC4
-  Scenario: AC4 – EntityType `DataFlow` mit `isConnection=true` und Property `protocol (en...
-    Given EntityType `DataFlow` mit `isConnection=true` und Property `protocol (enum)`
-    When  Kurt eine Instanz mit `source=AppA`, `target=AppB`, `protocol=REST` anlegt
-    Then  wird die Instanz mit allen Feldern gespeichert (eigene Properties koexistieren mit source/target)
+  Scenario: AC4 – EntityType `DataFlow` with `isConnection=true` and property `protocol...
+    Given EntityType `DataFlow` with `isConnection=true` and property `protocol (enum)`
+    When  Kurt creates an instance with `source=AppA`, `target=AppB`, `protocol=REST`
+    Then  the instance is saved with all fields (own properties coexist with source/target)
 
   @AC5
-  Scenario: AC5 – `isConnection=false` (Standard-EntityType `ApplicationComponent`)
-    Given `isConnection=false` (Standard-EntityType `ApplicationComponent`)
-    When  Kurt eine `ApplicationComponent`-Instanz anlegt
-    Then  sind `source` und `target` kein Pflichtfeld; keine Änderung am bestehenden Verhalten
+  Scenario: AC5 – `isConnection=false` (standard EntityType `ApplicationComponent`)
+    Given `isConnection=false` (standard EntityType `ApplicationComponent`)
+    When  Kurt creates an `ApplicationComponent` instance
+    Then  `source` and `target` are not mandatory fields; no change to existing behavior
 
   @AC6
-  Scenario: AC6 – eine YAML-Import-Datei (REQ-033) definiert `DataFlow` mit `isConnection=...
-    Given eine YAML-Import-Datei (REQ-033) definiert `DataFlow` mit `isConnection=true`
-    When  Kurt die Datei importiert
-    Then  wird `DataFlow` korrekt als Connection-Typ importiert; `isConnection=true` ist im GUI sichtbar
+  Scenario: AC6 – a YAML import file (REQ-033) defines `DataFlow` with `isConnection=true`
+    Given a YAML import file (REQ-033) defines `DataFlow` with `isConnection=true`
+    When  Kurt imports the file
+    Then  `DataFlow` is correctly imported as a connection type; `isConnection=true` is visible in the GUI

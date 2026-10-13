@@ -1,25 +1,25 @@
-# Projekt-Glossar
+# Project Glossary
 
-Projektspezifische Begriffsdefinitionen. Stand-alone-fähig, damit neue Mitarbeitende einen schnellen Einstieg finden.
+Project-specific term definitions. Designed to stand alone so that new team members can get up to speed quickly.
 
-## Konventionen
+## Conventions
 
-- Alphabetisch sortiert
-- Pro Begriff: Definition, evtl. Verweise auf Konzept-Kapitel
-- Synonyme und Abgrenzungen erwähnen
+- Sorted alphabetically
+- Per term: definition, possibly references to concept chapters
+- Mention synonyms and distinctions
 
-## Begriffe
+## Terms
 
 ### ADR (Architectural Decision Record)
-Dokumentierte Architektur-Entscheidung mit Kontext, Optionen, Wahl und Konsequenzen. Siehe [§5 (Prinzipien & Standards)](../concept/10-foundations/05-prinzipien-standards-adrs.md).
+Documented architecture decision with context, options, choice, and consequences. See [§5 (Principles & Standards)](../concept/10-foundations/05-principles-standards-adrs.md).
 
 ### EA (Enterprise Architecture)
-Disziplin, die Geschäfts- und IT-Landschaft als Ganzes betrachtet, plant und steuert. Im engeren Sinn auch das hier zu bauende Tool selbst.
+Discipline that views, plans, and steers the business and IT landscape as a whole. In the narrower sense, also the tool to be built here.
 
 ### Plateau
-Zeitlich-stabiler Architektur-Zustand. Z.B. "baseline-2026", "target-2028". Siehe [§11 (Temporales Modell)](../concept/30-dynamics/11-temporales-modell.md).
+Temporally stable architecture state. E.g. "baseline-2026", "target-2028". See [§11 (Temporal Model)](../concept/30-dynamics/11-temporal-model.md).
 
 ### TOGAF
-Framework für Enterprise Architecture vom Open Group. Liefert ADM (Methodik) und Content Metamodel.
+Framework for enterprise architecture from The Open Group. Provides the ADM (methodology) and the Content Metamodel.
 
-<!-- Weitere Begriffe nach Bedarf ergänzen -->
+<!-- Add further terms as needed -->

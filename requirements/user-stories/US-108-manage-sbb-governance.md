@@ -1,36 +1,36 @@
-# US-108: SBB mit Governance-Status verwalten
+# US-108: Manage SBBs with Governance Status
 
 **ID**: US-108
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich `SolutionBuildingBlock`-Einträge mit Governance-Status anlegen und verwalten, damit ich Technology-Standards durchsetzen und verbotene Produkte in der Landschaft automatisch kenntlich machen kann.
+As Kurt – Lead Enterprise Architect, I want to create and manage `SolutionBuildingBlock` entries with governance status, so that I can enforce technology standards and automatically flag prohibited products in the landscape.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-17](../use-cases/UC-17-continuum-bausteine-verwalten.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-108](../req/REQ-108-sbb-governance-verwalten.md)
+**Use Case**: [UC-17](../use-cases/UC-17-manage-continuum-building-blocks.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-108](../req/REQ-108-manage-sbb-governance.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (SBB anlegen):
-- Wenn: ich eine SBB mit `governanceStatus=approved` und `implements=[ABB-UUID]` anlege
-- Dann: speichert das System sie mit HTTP 201
+**AC1** (Create SBB):
+- When: I create an SBB with `governanceStatus=approved` and `implements=[ABB-UUID]`
+- Then: the system saves it with HTTP 201
 
-**AC2** (Prohibited-Warnung):
-- Wenn: ich eine SBB auf `governanceStatus=prohibited` setze
-- Dann: zeigen alle Entitäten mit `instanceOfSBBId=dieser-SBB` den Hinweis „Verwendetes Produkt verboten – Migration erforderlich"
+**AC2** (Prohibited warning):
+- When: I set an SBB to `governanceStatus=prohibited`
+- Then: all entities with `instanceOfSBBId=this-SBB` show the note "Product in use is prohibited – migration required"
 
-**AC3** (Warnung ohne ABB-Referenz):
-- Wenn: ich eine SBB ohne `implements`-ABBs anlege
-- Dann: zeigt das System die Governance-Warnung „SBB ohne ABB-Referenz ist nur Produktkatalog-Eintrag"; die Speicherung wird nicht blockiert
+**AC3** (Warning without ABB reference):
+- When: I create an SBB without `implements` ABBs
+- Then: the system shows the governance warning "SBB without ABB reference is only a product catalog entry"; saving is not blocked
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

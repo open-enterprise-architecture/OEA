@@ -1,52 +1,52 @@
-## 6. Kern-Entitätstypen
+## 6. Core Entity Types
 
 ### 6.1 TOGAF Content Metamodel Mapping
 
-Die TOGAF-Architekturdomänen werden 1:1 als Layer abgebildet:
+The TOGAF architecture domains are mapped 1:1 as layers:
 
 - **Business Architecture**: Actor, Role, OrganizationUnit, BusinessService, BusinessFunction, BusinessProcess, Capability, ValueStream, InformationObject
 - **Data Architecture**: DataEntity, LogicalDataComponent, PhysicalDataComponent
 - **Application Architecture**: ApplicationComponent, ApplicationService, ApplicationFunction, Interface
 - **Technology Architecture**: TechnologyComponent, Platform, Node, CommunicationPath
 
-### 6.1.1 Abgrenzung Application vs. Technology in der Praxis
+### 6.1.1 Distinguishing Application from Technology in Practice
 
-Die TOGAF-Definitionen sind **strukturell**: ApplicationComponent kapselt Application Functionality, TechnologyComponent kapselt Technology Infrastructure. In der Praxis ist die Abgrenzung bei vielen Objekten trotzdem strittig – moderne Architekturen (Cloud-Native, Serverless, SaaS, Plattform-Produkte) verwischen die Grenzen. Das Tool muss mit dieser Unschärfe umgehen können, ohne jede Grenzfall-Debatte ins ARB eskalieren zu lassen.
+The TOGAF definitions are **structural**: ApplicationComponent encapsulates application functionality, TechnologyComponent encapsulates technology infrastructure. In practice, the distinction is nevertheless disputed for many objects – modern architectures (cloud-native, serverless, SaaS, platform products) blur the boundaries. The tool must be able to handle this fuzziness without escalating every borderline debate to the ARB.
 
-**Warum die Abgrenzung schwierig ist**:
-- Kausale Verflechtung: jede Technology existiert letztlich, um Applications zu ermöglichen
-- Perspektiven-Abhängigkeit: dasselbe Objekt kann für das betreibende Team Application, für das nutzende Team Technology sein
-- Plattform-Produkte (Kafka, Kubernetes, Keycloak, Control-M) spielen beide Rollen gleichzeitig
+**Why the distinction is difficult**:
+- Causal interdependence: every technology ultimately exists to enable applications
+- Perspective dependence: the same object can be an application for the operating team and a technology for the consuming team
+- Platform products (Kafka, Kubernetes, Keycloak, Control-M) play both roles at the same time
 
-**Vier Entscheidungs-Prinzipien** als praktische Unterstützung:
+**Four decision principles** as practical support:
 
-1. **Business-Purpose-Test**: Existiert das Objekt aus einem eigenständigen fachlichen Grund, unabhängig davon, welche andere Applikation es benötigt? CRM hat fachlichen Zweck "Kundenbeziehung verwalten" → Application. Eine DB hat keinen eigenständigen Zweck, sie existiert für andere → Technology.
+1. **Business purpose test**: Does the object exist for an independent business reason, regardless of which other application needs it? CRM has the business purpose "manage customer relationships" → Application. A DB has no independent purpose, it exists for others → Technology.
 
-2. **Austauschbarkeits-Test**: Würde ein Austausch nur technisch sein oder auch fachlich? Oracle gegen PostgreSQL → nur technisch → Technology. SAP gegen Oracle Financials → auch fachliche Änderungen → Application.
+2. **Replaceability test**: Would a replacement be purely technical or also business-related? Oracle to PostgreSQL → technical only → Technology. SAP to Oracle Financials → business changes as well → Application.
 
-3. **Ownership-Test**: Gibt es einen Product Owner mit fachlicher Verantwortung, der Features priorisiert? Ja → Application. Nein, nur Betriebs-Verantwortung → Technology.
+3. **Ownership test**: Is there a product owner with business responsibility who prioritizes features? Yes → Application. No, only operational responsibility → Technology.
 
-4. **Katalogisierungs-Test**: Würde das Objekt in einem Business Application Catalog auftauchen, den das Management liest? Ja → Application. Nein → Technology.
+4. **Cataloging test**: Would the object appear in a business application catalog that management reads? Yes → Application. No → Technology.
 
-Diese Prinzipien sind **Heuristiken, keine Algorithmen** – bei Grenzfällen werden sie unterschiedliche Antworten geben. Wichtig ist nicht, dass jedes Prinzip für sich eindeutig ist, sondern dass die Organisation sich auf ein Leitprinzip festlegt und konsistent anwendet.
+These principles are **heuristics, not algorithms** – in borderline cases they will give different answers. What matters is not that each principle is unambiguous on its own, but that the organization commits to one guiding principle and applies it consistently.
 
-**Organisations-Prinzip als Pflicht**: Jede Organisation, die das Tool einsetzt, formuliert ein **Architektur-Prinzip** (im Sinne von [§5 (Prinzipien & Standards)](../10-foundations/05-prinzipien-standards-adrs.md)), das die Abgrenzung verbindlich festlegt. Zwei legitime Varianten:
+**Organizational principle as a requirement**: Every organization that uses the tool formulates an **architecture principle** (in the sense of [§5 (Principles & Standards)](../10-foundations/05-principles-standards-adrs.md)) that defines the distinction in a binding way. Two legitimate variants:
 
-- **Variante A – "Plattform-Services sind Technology"**: Produkte, die primär anderen Applications technische Fähigkeiten bereitstellen (Messaging, DB, Identity, API-Gateway), werden als TechnologyComponents modelliert – auch bei eigenem Betriebsteam. Kafka, PostgreSQL, Keycloak, Kong sind Technology.
+- **Variant A – "Platform services are technology"**: Products that primarily provide technical capabilities to other applications (messaging, DB, identity, API gateway) are modeled as TechnologyComponents – even with their own operating team. Kafka, PostgreSQL, Keycloak, Kong are technology.
 
-- **Variante B – "Produkte mit Product Owner sind Applications"**: Jedes Produkt mit fachlichem Product Owner wird als ApplicationComponent modelliert – auch bei technischem Charakter. Ein internes Identity-System mit Product Owner ist Application.
+- **Variant B – "Products with a product owner are applications"**: Every product with a business product owner is modeled as an ApplicationComponent – even if technical in nature. An internal identity system with a product owner is an application.
 
-Beide Varianten sind legitim. Welche eine Organisation wählt, ist eine Governance-Entscheidung, die als ADR dokumentiert wird.
+Both variants are legitimate. Which one an organization chooses is a governance decision documented as an ADR.
 
-**Dual-Modellierung für Grenzfälle**: Wenn ein Objekt fachlich beide Rollen spielt (z.B. Control-M als Scheduler-Produkt *und* als Laufzeit-Plattform für Jobs anderer Applications), unterstützt das Metamodell drei Ansätze:
+**Dual modeling for borderline cases**: If an object plays both roles in business terms (e.g., Control-M as a scheduler product *and* as a runtime platform for jobs of other applications), the metamodel supports three approaches:
 
-- **Beide Entities**: ApplicationComponent und TechnologyComponent werden gleichzeitig modelliert, verbunden über `realizes`-Relation. Maximal explizit, aber pflegeintensiv.
-- **Primäre Klassifikation plus Stereotype**: Primär als Application modelliert, mit Stereotype `PlatformProduct`, der die Technology-Rolle kennzeichnet. Pragmatisch.
-- **ApplicationService als Brücke**: Die Application exponiert einen ApplicationService, den andere Applications konsumieren. Die Technology-Natur bleibt im Hintergrund, die Schnittstelle ist explizit.
+- **Both entities**: ApplicationComponent and TechnologyComponent are modeled simultaneously, connected via a `realizes` relation. Maximally explicit, but maintenance-intensive.
+- **Primary classification plus stereotype**: Modeled primarily as an application, with the stereotype `PlatformProduct` marking the technology role. Pragmatic.
+- **ApplicationService as a bridge**: The application exposes an ApplicationService that other applications consume. The technology nature stays in the background, the interface is explicit.
 
-Welcher Ansatz zum Einsatz kommt, sollte ebenfalls im Organisations-Prinzip geregelt sein.
+Which approach is used should also be regulated in the organizational principle.
 
-**Konsequenz fürs Tool**: Das Repository zwingt keine der Varianten auf – das Metamodell trägt alle. Aber es unterstützt die Durchsetzung der organisations-weiten Entscheidung über Constraints:
+**Consequence for the tool**: The repository does not force either variant – the metamodel supports all. But it supports enforcement of the organization-wide decision via constraints:
 
 ```yaml
 constraint: platform-service-classification
@@ -55,75 +55,75 @@ constraint: platform-service-classification
   rule: "organization.classificationPrinciple == 'platform-as-application'
          OR entity also modeled as TechnologyComponent"
   severity: warning
-  message: "Plattform-Produkt abweichend vom Organisations-Prinzip klassifiziert"
+  message: "Platform product classified contrary to the organizational principle"
 ```
 
-So bleibt die Abgrenzung ein konsistentes organisatorisches Element – keine endlose Grundsatzdebatte pro Objekt.
+This keeps the distinction a consistent organizational element – no endless fundamental debate per object.
 
-#### Kognitive Realität: Menschen denken in Lösungen, nicht in Schichten
+#### Cognitive Reality: People Think in Solutions, Not in Layers
 
-Das Logical/Physical-Schema ist analytisch wertvoll, aber kognitiv unnatürlich. Menschen denken in konkreten Lösungen: "Wir haben Salesforce." "Da läuft Confluence." Diese Aussagen vermischen automatisch fachliche Rolle und konkrete Implementierung – das ist keine Schlamperei, sondern wie Wahrnehmung funktioniert.
+The logical/physical schema is analytically valuable but cognitively unnatural. People think in concrete solutions: "We have Salesforce." "Confluence runs there." These statements automatically mix business role and concrete implementation – this is not sloppiness but how perception works.
 
-Ein erfolgreiches OEA muss diese Realität anerkennen und darf die analytische Sauberkeit **nicht erzwingen**. Daraus folgt eine zentrale Design-Entscheidung:
+A successful OEA must acknowledge this reality and **must not enforce** analytical cleanliness. A central design decision follows from this:
 
-**Die Logical-Schicht ist optional, nicht obligatorisch.**
+**The logical layer is optional, not mandatory.**
 
-- Eine `PhysicalApplicationComponent` kann ohne zugehörigen `LogicalApplicationComponent` existieren – das Tool blockiert das nicht
-- Eine Organisation kann mit reiner Physical-Modellierung beginnen ("Welche Systeme haben wir?") und die Logical-Schicht später bei Bedarf nachziehen ("Welche fachliche Rolle hat jedes System?")
-- Schema-Constraints, die Logical-Bezug fordern, sind als `severity: hint` oder `warning` ausgelegt, nicht als `error`
+- A `PhysicalApplicationComponent` can exist without an associated `LogicalApplicationComponent` – the tool does not block this
+- An organization can start with pure physical modeling ("Which systems do we have?") and add the logical layer later as needed ("What business role does each system have?")
+- Schema constraints that require a logical reference are designed as `severity: hint` or `warning`, not as `error`
 
-Das ist konsistent mit dem Schema-Evolutions-Ansatz aus [§15 (Schema-Evolution)](../40-extensibility/15-schema-evolution.md): Anforderungen können scope-basiert eingeführt werden, statt globale Pflicht durchzusetzen.
+This is consistent with the schema evolution approach from [§15 (Schema Evolution)](../40-extensibility/15-schema-evolution.md): requirements can be introduced scope-based instead of enforcing a global obligation.
 
-#### Progressive Disclosure als UX-Strategie
+#### Progressive Disclosure as a UX Strategy
 
-Das Tool unterstützt einen schrittweisen Aufbau über drei Sichten:
+The tool supports a step-by-step build-up across three views:
 
-**Sicht 1 – Inventar-Sicht (Default für Einsteiger und Fachbereiche)**: Flache Liste aller Produkte/Systeme, ohne explizite Ebenen-Unterscheidung. Application und Technology nebeneinander, visuell markiert (z.B. farblich), aber inhaltlich beide Einträge derselben Liste. Wer einsteigt, findet alles, was er kennt, ohne lernen zu müssen, was "Logical Application Component" bedeutet.
+**View 1 – Inventory view (default for beginners and business units)**: Flat list of all products/systems, without an explicit level distinction. Application and technology side by side, visually marked (e.g., by color), but both entries of the same list in terms of content. Newcomers find everything they know without having to learn what "Logical Application Component" means.
 
-**Sicht 2 – Schichten-Sicht (für Architekten)**: Wer auf einen Eintrag klickt, sieht die strukturelle Einbettung – welche Logical Application dahinter steht, welche Technology Components darunter laufen, welche fachlichen Rollen erfüllt werden. Diese Sicht wird gefordert, wenn analytische Tiefe gebraucht wird.
+**View 2 – Layer view (for architects)**: Clicking an entry reveals the structural embedding – which logical application stands behind it, which technology components run beneath it, which business roles are fulfilled. This view is requested when analytical depth is needed.
 
-**Sicht 3 – Bebauungsplan-Sicht (für strategische Entscheidungen)**: Hier wird die Logical/Physical-Trennung essentiell, weil Migrationen sichtbar werden (Logical bleibt stabil, Physical wechselt).
+**View 3 – Landscape map view (Bebauungsplan) (for strategic decisions)**: Here the logical/physical separation becomes essential because migrations become visible (logical stays stable, physical changes).
 
-Die drei Sichten arbeiten auf demselben Repository, aber zeigen unterschiedliche Detailtiefe. Details zur Sichten-Definition in [§12 (Domain & Sichten)](../30-dynamics/12-domain-sichten.md).
+The three views work on the same repository but show different levels of detail. Details on the view definition in [§12 (Domains & Views)](../30-dynamics/12-domain-views.md).
 
-#### Auto-Generierung Logical aus Physical
+#### Auto-Generation of Logical from Physical
 
-Um den Step-by-Step-Aufbau zu unterstützen, kann das Tool optional eine **automatische Logical-Stub-Generierung** anbieten: Wird eine PhysicalApplicationComponent ohne expliziten Logical-Bezug angelegt, generiert das Tool im Hintergrund einen Stub-Logical-Component ("`<Name> Logical`"), der später vom Nutzer angereichert oder mit anderen Logicals zusammengeführt werden kann.
+To support the step-by-step build-up, the tool can optionally offer **automatic logical stub generation**: If a PhysicalApplicationComponent is created without an explicit logical reference, the tool generates in the background a stub logical component ("`<Name> Logical`") that can later be enriched by the user or merged with other logicals.
 
-Diese Auto-Generierung ist:
-- Optional (per Schema-Konfiguration aktivierbar/deaktivierbar)
-- Sichtbar markiert als "auto-generiert, pending review"
-- Nicht semantisch geladen – der Stub erbt keine fachliche Bedeutung, nur den Namen
+This auto-generation is:
+- Optional (can be enabled/disabled via schema configuration)
+- Visibly marked as "auto-generated, pending review"
+- Not semantically loaded – the stub inherits no business meaning, only the name
 
-So entsteht von Anfang an eine vollständige Schichten-Struktur, ohne dass der Modellierer sie aktiv pflegen muss. Wenn später jemand die Logical-Schicht ernst nimmt, sind die Stubs Startpunkte, keine Blockaden.
+This creates a complete layer structure from the start without the modeler having to actively maintain it. If someone later takes the logical layer seriously, the stubs are starting points, not blockers.
 
-### 6.2 Arc42-Mapping
+### 6.2 Arc42 Mapping
 
-Arc42 ist primär eine **Dokumentstruktur für Solution Design**, keine eigene Modellsprache. Das Mapping erfolgt über:
+Arc42 is primarily a **document structure for solution design**, not a modeling language of its own. The mapping is done via:
 
-- **Bausteinsicht** → `ApplicationComponent` (hierarchisch via `contains`)
-- **Laufzeitsicht** → `Scenario` mit Referenzen auf Bausteine
-- **Verteilungssicht** → `DeploymentNode` mit `hosts`-Relationen
-- **Querschnittliche Konzepte** → `ArchitecturalDecision` / `Concept`-Entitäten
-- **Architekturentscheidungen** → `ADR`-Entität (mit Referenzen auf betroffene Entities)
+- **Building block view** → `ApplicationComponent` (hierarchical via `contains`)
+- **Runtime view** → `Scenario` with references to building blocks
+- **Deployment view** → `DeploymentNode` with `hosts` relations
+- **Cross-cutting concepts** → `ArchitecturalDecision` / `Concept` entities
+- **Architecture decisions** → `ADR` entity (with references to affected entities)
 
-Arc42-Dokumente werden **aus dem Repository generiert**, nicht separat gepflegt.
+Arc42 documents are **generated from the repository**, not maintained separately.
 
 ### 6.3 BPMN 2.0 Integration
 
-BPMN-Elemente sind vollwertige Entitäten im Repository mit expliziten Cross-Layer-Referenzen:
+BPMN elements are full-fledged entities in the repository with explicit cross-layer references:
 
-| BPMN-Element | Referenziert EA-Entität |
+| BPMN element | References EA entity |
 |---|---|
 | `Pool` | `OrganizationUnit` |
-| `Lane` | `OrganizationUnit` oder `Role` |
-| `Task` (User/Service/Manual) | `BusinessService` oder `ApplicationService` |
-| `DataObject` / `DataStore` | `InformationObject` oder `DataEntity` |
-| `MessageFlow` | `Interface` (fachlicher Informationsfluss) |
+| `Lane` | `OrganizationUnit` or `Role` |
+| `Task` (User/Service/Manual) | `BusinessService` or `ApplicationService` |
+| `DataObject` / `DataStore` | `InformationObject` or `DataEntity` |
+| `MessageFlow` | `Interface` (business information flow) |
 | `Event` (Message) | `Interface` |
 
-So entsteht eine **durchgehende Traceability**: ein BPMN-Task weiß, welchen BusinessService er aufruft; der Service kennt seine realisierende Application; die Application kennt ihre Technologie. Diese Traversierbarkeit ist die Grundlage für Impact-Analysen.
+This creates **end-to-end traceability**: a BPMN task knows which BusinessService it calls; the service knows its realizing application; the application knows its technology. This traversability is the basis for impact analyses.
 
 ---
 
-← [Prinzipien, Standards & ADRs](../10-foundations/05-prinzipien-standards-adrs.md) · [🏠 Übersicht](../README.md) · [Motivation, Stakeholder & Ziele](07-motivation-stakeholder-ziele.md) →
+← [Principles, Standards & ADRs](../10-foundations/05-principles-standards-adrs.md) · [🏠 Overview](../README.md) · [Motivation, Stakeholders & Goals](07-motivation-stakeholders-goals.md) →

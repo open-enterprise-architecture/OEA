@@ -1,28 +1,28 @@
-# Ableitung aus: requirements/req/req-093-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-093-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-12
-Feature: REQ-093 – Viewpoint-Löschung mit Diagramm-Warnung
+Feature: REQ-093 – Viewpoint deletion with diagram warning
 
-  Beim Löschen eines user-defined Viewpoints MUSS das System prüfen, ob
-  Diagramme diesen Viewpoint referenzieren, und eine Warnung mit der
-  Anzahl betroffener Diagramme anzeigen. Die Löschung wird nicht
-  blockiert; betroffene Diagramme referenzieren nach der Löschung
-  keinen gültigen Viewpoint mehr und erhalten in der UI einen
-  entsprechenden Hinweis.
+  When deleting a user-defined viewpoint, the system MUST check whether
+  diagrams reference this viewpoint and display a warning with the
+  number of affected diagrams. Deletion is not
+  blocked; after deletion, affected diagrams no longer reference
+  a valid viewpoint and receive a corresponding
+  note in the UI.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Warnung bei genutztem Viewpoint – ein Viewpoint gelöscht wird, der von 5 Diagrammen genutzt wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein Viewpoint gelöscht wird, der von 5 Diagrammen genutzt wird
-    Then  zeigt das System die Warnung "5 Diagramme werden betroffen"; nach Bestätigung wird gelöscht
+  Scenario: AC1 – Warning for used viewpoint – a viewpoint used by 5 diagrams is deleted
+    Given the precondition according to the requirement is met
+    When  a viewpoint used by 5 diagrams is deleted
+    Then  the system shows the warning "5 diagrams will be affected"; after confirmation it is deleted
 
   @AC2
-  Scenario: AC2 – Keine Warnung bei ungenutztem Viewpoint – ein Viewpoint gelöscht wird, der von keinem Diagramm genutzt wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein Viewpoint gelöscht wird, der von keinem Diagramm genutzt wird
-    Then  erfolgt eine direkte Bestätigung ohne Warnungsdialog
+  Scenario: AC2 – No warning for unused viewpoint – a viewpoint used by no diagram is deleted
+    Given the precondition according to the requirement is met
+    When  a viewpoint used by no diagram is deleted
+    Then  direct confirmation occurs without a warning dialog

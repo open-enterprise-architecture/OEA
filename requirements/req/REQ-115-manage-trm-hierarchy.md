@@ -1,6 +1,6 @@
 ---
 id: REQ-115
-title: TRM-Kategorie-Hierarchie verwalten
+title: Manage TRM Category Hierarchy
 type: functional
 priority: must
 status: proposed
@@ -21,43 +21,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-115: TRM-Kategorie-Hierarchie verwalten
+# REQ-115: Manage TRM Category Hierarchy
 
-## Aussage
+## Statement
 
-Das System MUSS das Anlegen, Umbenennen und Löschen von TRM-Kategorien mit `scope=organization` ermöglichen. Beim Anlegen MUSS das `level`-Feld automatisch als `parent.level + 1` gesetzt werden. Das Löschen einer Kategorie mit Unterknoten MUSS mit HTTP 422 abgewiesen werden (erst Kinder entfernen). Das Löschen einer Kategorie mit zugeordneten Entitäten (`classifiedEntities` nicht leer) MUSS eine Warnung erzeugen, aber nicht blockieren. TRM-Kategorien mit `scope=organization` MÜSSEN per Drag & Drop innerhalb der Hierarchie reorganisierbar sein (Zyklus-Schutz: BR-01 aus trm-category.md).
+The system MUST allow creating, renaming, and deleting TRM categories with `scope=organization`. On creation, the `level` field MUST be set automatically as `parent.level + 1`. Deleting a category with child nodes MUST be rejected with HTTP 422 (remove children first). Deleting a category with assigned entities (`classifiedEntities` not empty) MUST produce a warning but not block. TRM categories with `scope=organization` MUST be reorganizable within the hierarchy via drag & drop (cycle protection: BR-01 from trm-category.md).
 
-## Begründung
+## Rationale
 
-Das TRM ist eine lebende Taxonomie. Ohne CRUD und Reorganisation kann eine Organisation ihr TRM nicht an eigene Strukturen anpassen, was die Akzeptanz des Werkzeugs gefährdet.
+The TRM is a living taxonomy. Without CRUD and reorganization, an organization cannot adapt its TRM to its own structures, which endangers acceptance of the tool.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Automatisches level):
-- Wenn: eine Unterkategorie unter „Security Services" angelegt wird
-- Dann: ist das `level`-Feld automatisch auf `parent.level + 1` gesetzt
+**AC1** (Automatic level):
+- When: a subcategory is created under "Security Services"
+- Then: the `level` field is automatically set to `parent.level + 1`
 
-**AC2** (Löschen mit Unterknoten):
-- Wenn: eine Kategorie mit 3 Unterknoten gelöscht werden soll
-- Dann: antwortet das System mit HTTP 422 „Unterknoten müssen zuerst entfernt werden"
+**AC2** (Delete with child nodes):
+- When: a category with 3 child nodes is to be deleted
+- Then: the system responds with HTTP 422 "Child nodes must be removed first"
 
-**AC3** (Drag & Drop Zyklus-Schutz):
-- Wenn: eine Kategorie per Drag & Drop unter einen ihrer eigenen Nachkommen gezogen wird
-- Dann: wird der Drop visuell blockiert; ein API-Versuch antwortet mit HTTP 422
+**AC3** (Drag & drop cycle protection):
+- When: a category is dragged via drag & drop under one of its own descendants
+- Then: the drop is visually blocked; an API attempt responds with HTTP 422
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-112 (Import erzeugt scope=imported Kategorien als Basis)
-- **Folgewirkungen**: REQ-116 (SBB-Governance-Zuordnung je Kategorie), REQ-117 (Review-Datum)
+- **Prerequisites**: REQ-112 (import produces scope=imported categories as a basis)
+- **Consequences**: REQ-116 (SBB governance assignment per category), REQ-117 (review date)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Hierarchie: Adjacency-List-Modell mit `parentId`; `level` als berechnetes Feld oder denormalisiert
-- Drag & Drop: Zyklus-Prüfung im Frontend (vor Drop) und Backend (HTTP 422)
-- Löschen mit Entitäten: Warn-Modal mit Anzahl betroffener Entitäten; keine API-Blockierung
+- Hierarchy: adjacency list model with `parentId`; `level` as a computed field or denormalized
+- Drag & drop: cycle check in the frontend (before drop) and backend (HTTP 422)
+- Delete with entities: warning modal with the number of affected entities; no API blocking
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

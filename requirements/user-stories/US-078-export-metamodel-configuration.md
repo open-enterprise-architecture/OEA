@@ -1,6 +1,6 @@
 ---
 id: US-078
-title: Metamodell-Konfiguration exportieren
+title: Export Metamodel Configuration
 use_case: UC-04
 requirement: REQ-058
 priority: should
@@ -9,23 +9,23 @@ story_points: 3
 created: 2026-06-26
 ---
 
-# US-078: Metamodell-Konfiguration exportieren
+# US-078: Export Metamodel Configuration
 
-**Als** Lead Enterprise Architekt (Kurt, SH-03)  
-**möchte ich** die aktuelle Metamodell-Konfiguration als JSON- oder YAML-Datei exportieren,  
-**damit** ich sie in einer anderen OEA-Instanz importieren, als Backup sichern oder mit dem Team versionieren kann.
+**As** a Lead Enterprise Architect (Kurt, SH-03)  
+**I want** to export the current metamodel configuration as a JSON or YAML file,  
+**so that** I can import it into another OEA instance, back it up, or version it with the team.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] „Metamodell exportieren"-Button im MetamodelConfiguration-UI verfügbar
-- [ ] Export enthält alle EntityTypeDefinitions (inkl. scope, extends, properties, creationSteps)
-- [ ] Export enthält alle Connection-Typen und arc42Collections
-- [ ] Format: JSON und YAML wählbar
-- [ ] scope=built-in Typen sind im Export enthalten aber als unveränderlich markiert
-- [ ] Exportierte Datei kann via US-033 (Starter-Paket importieren) wieder importiert werden
-- [ ] Dateiname: `oea-metamodel-{instance-slug}-{datum}.json`
+- [ ] "Export metamodel" button available in the MetamodelConfiguration UI
+- [ ] Export contains all EntityTypeDefinitions (incl. scope, extends, properties, creationSteps)
+- [ ] Export contains all connection types and arc42Collections
+- [ ] Format: JSON and YAML selectable
+- [ ] scope=built-in types are included in the export but marked as immutable
+- [ ] The exported file can be re-imported via US-033 (import starter package)
+- [ ] File name: `oea-metamodel-{instance-slug}-{date}.json`
 
-## Technische Hinweise
+## Technical Notes
 
 - `GET /api/v1/metamodel/export?format=json|yaml`
-- ADR-002: scope-Property im Export mitführen; Import behandelt `scope=built-in` als `scope=imported`
+- ADR-002: include the scope property in the export; import treats `scope=built-in` as `scope=imported`

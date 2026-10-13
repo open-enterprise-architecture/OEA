@@ -1,34 +1,34 @@
-# Ableitung aus: requirements/req/req-154-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-154-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: method: test (automated)
 
 @functional @should @UC-19
-Feature: REQ-154 – Batch-Write für Entitäten und Verbindungen
+Feature: REQ-154 – Batch write for entities and connections
 
-  Das System **MUSS** einen Endpoint bereitstellen, der bis zu 500
-  Entitäten und 500 Verbindungen in einem einzigen HTTP-Request mit
-  konfigurierbarer Upsert-Strategie anlegt oder aktualisiert, und
-  **MUSS** einen `dryRun`-Modus unterstützen, der alle Validierungen
-  durchführt ohne zu persistieren.
+  The system **MUST** provide an endpoint that creates or updates up to 500
+  entities and 500 connections in a single HTTP request with a
+  configurable upsert strategy, and
+  **MUST** support a `dryRun` mode that performs all validations
+  without persisting.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – 100 Entitäten im Batch, 5 mit mandatory-Property-Verletzung, `atomic=false`
-    Given 100 Entitäten im Batch, 5 mit mandatory-Property-Verletzung, `atomic=false`
+  Scenario: AC1 – 100 entities in batch, 5 with mandatory property violation, `atomic=false`
+    Given 100 entities in batch, 5 with mandatory property violation, `atomic=false`
     When  POST /api/v1/entities/batch
-    Then  200 OK; summary.created=95, summary.errors=5; fehlerhafte Items mit status=error
+    Then  200 OK; summary.created=95, summary.errors=5; faulty items with status=error
 
   @AC2
-  Scenario: AC2 – 100 Entitäten, `dryRun=true`
-    Given 100 Entitäten, `dryRun=true`
+  Scenario: AC2 – 100 entities, `dryRun=true`
+    Given 100 entities, `dryRun=true`
     When  POST /api/v1/entities/batch?dryRun=true
-    Then  ValidationResult; keine Entität in DB; Response zeigt was angelegt würde
+    Then  ValidationResult; no entity in DB; response shows what would be created
 
   @AC3
-  Scenario: AC3 – Batch mit Verbindung, deren `sourceExternalId` nicht existiert
-    Given Batch mit Verbindung, deren `sourceExternalId` nicht existiert
-    When  POST /api/v1/entities/batch (entities + connections im selben Request)
-    Then  Entitäten zuerst angelegt; Verbindung dann aufgelöst (sourceExternalId aus diesem Batch)
+  Scenario: AC3 – Batch with connection whose `sourceExternalId` does not exist
+    Given batch with connection whose `sourceExternalId` does not exist
+    When  POST /api/v1/entities/batch (entities + connections in the same request)
+    Then  entities created first; connection then resolved (sourceExternalId from this batch)

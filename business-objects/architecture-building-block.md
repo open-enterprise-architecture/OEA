@@ -19,67 +19,67 @@ references:
 
 ## Definition
 
-Ein `ArchitectureBuildingBlock` (ABB) ist eine wiederverwendbare, technologieneutrale Architektur-Spezifikation, die beschreibt, *was* ein Baustein leisten muss und *welche Eigenschaften* er haben muss — ohne festzulegen, wie er implementiert wird. ABBs bilden den **Architecture Continuum**: von universellen Foundation-Bausteinen bis zu organisationsspezifischen Spezifikationen.
+An `ArchitectureBuildingBlock` (ABB) is a reusable, technology-neutral architecture specification that describes *what* a building block must deliver and *which properties* it must have — without prescribing how it is implemented. ABBs form the **Architecture Continuum**: from universal foundation building blocks to organization-specific specifications.
 
-## Beschreibung
+## Description
 
-ABBs stehen auf einer höheren Abstraktionsebene als konkrete `ArchitectureEntity`-Instanzen. Die Beziehungskette lautet:
+ABBs sit at a higher level of abstraction than concrete `ArchitectureEntity` instances. The relationship chain is:
 
 ```
-ABB „Identity Provider"          ← Spezifikation: was muss es können?
-  └── SBB „Keycloak 23.0"        ← konkrete Implementierung (implements ABB)
-        └── Entity „acme-iam"    ← Produktionsinstanz (instanceOf SBB, conformsTo ABB)
+ABB „Identity Provider"          ← specification: what must it be able to do?
+  └── SBB „Keycloak 23.0"        ← concrete implementation (implements ABB)
+        └── Entity „acme-iam"    ← production instance (instanceOf SBB, conformsTo ABB)
 ```
 
-**Continuum-Hierarchie** (von generisch zu spezifisch):
+**Continuum hierarchy** (from generic to specific):
 
-| Level | Bedeutung | Beispiel |
+| Level | Meaning | Example |
 |---|---|---|
-| `foundation` | Universell, framework-seitig definiert (z.B. TOGAF TRM) | „Security Service", „Data Exchange Service" |
-| `common-systems` | Branchenübergreifend wiederverwendbar | „Identity Provider", „API Gateway" |
-| `industry` | Branchenspezifisch (z.B. Banking, Telekommunikation) | „Core Banking System", „BSS/OSS" |
-| `organization` | Organisationsspezifisch; kann zurück ins Continuum promoviert werden | „Acme Central IAM Service" |
+| `foundation` | Universal, defined on the framework side (e.g. TOGAF TRM) | "Security Service", "Data Exchange Service" |
+| `common-systems` | Reusable across industries | "Identity Provider", "API Gateway" |
+| `industry` | Industry-specific (e.g. banking, telecommunications) | "Core Banking System", "BSS/OSS" |
+| `organization` | Organization-specific; can be promoted back into the continuum | "Acme Central IAM Service" |
 
-Foundation- und Common-Systems-ABBs werden typischerweise aus Continuum-Paketen importiert (ADR-002: `scope=imported`); organisationsspezifische ABBs werden selbst erstellt (`scope=organization`).
+Foundation and common-systems ABBs are typically imported from continuum packages (ADR-002: `scope=imported`); organization-specific ABBs are created in-house (`scope=organization`).
 
-ABBs können sich gegenseitig verfeinern: ein spezialisierter ABB `MFA-fähiger Identity Provider` verfeinert den generischeren `Identity Provider`. Dadurch entsteht ein Verfeinerungsbaum innerhalb des Architecture Continuum.
+ABBs can refine each other: a specialized ABB `MFA-capable Identity Provider` refines the more generic `Identity Provider`. This creates a refinement tree within the Architecture Continuum.
 
-## Attribute
+## Attributes
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| id | UUID | required | | v4, global eindeutig | Primärschlüssel |
-| name | string | required | | max. 255 Zeichen; eindeutig je `continuumLevel` | Lesbarer Name (z.B. „Identity Provider") |
-| description | string | optional | null | max. 5000 Zeichen; Markdown | Zweck und fachliche Einordnung |
-| continuumLevel | enum | required | `organization` | `[foundation, common-systems, industry, organization]` | Verortung im Architecture Continuum |
-| industry | string | optional | null | max. 100 Zeichen; nur relevant wenn `continuumLevel=industry` | Branche (z.B. „Banking", „Telekommunikation", „TM Forum") |
-| maturityLevel | enum | required | `experimental` | `[experimental, emerging, established, industry-standard]` | Reifegrad des Bausteins |
-| governanceStatus | enum | required | `proposed` | `[proposed, approved, deprecated]` | Freigabestatus in der Organisation |
-| specifications | string | optional | null | max. 10000 Zeichen; Markdown | Anforderungen und Constraints, die Implementierungen (SBBs) erfüllen müssen |
-| scope | enum | required | `organization` | `[built-in, imported, organization]` | Herkunft: `built-in` = OEA-Standard; `imported` = aus Continuum-Paket; `organization` = selbst erstellt |
-| sourcePackage | string | optional | null | max. 255 Zeichen; nur wenn `scope=imported` | Herkunftspaket (z.B. „TOGAF 10 TRM", „TM Forum Frameworx 23.0") |
-| createdAt | datetime | required | | ISO 8601, UTC | Zeitpunkt der Anlage |
-| createdBy | reference | required | | target: person | Anlegende Person |
+| id | UUID | required | | v4, globally unique | Primary key |
+| name | string | required | | max. 255 characters; unique per `continuumLevel` | Readable name (e.g. "Identity Provider") |
+| description | string | optional | null | max. 5000 characters; Markdown | Purpose and business positioning |
+| continuumLevel | enum | required | `organization` | `[foundation, common-systems, industry, organization]` | Placement in the Architecture Continuum |
+| industry | string | optional | null | max. 100 characters; only relevant if `continuumLevel=industry` | Industry (e.g. "Banking", "Telecommunications", "TM Forum") |
+| maturityLevel | enum | required | `experimental` | `[experimental, emerging, established, industry-standard]` | Maturity level of the building block |
+| governanceStatus | enum | required | `proposed` | `[proposed, approved, deprecated]` | Approval status in the organization |
+| specifications | string | optional | null | max. 10000 characters; Markdown | Requirements and constraints that implementations (SBBs) must satisfy |
+| scope | enum | required | `organization` | `[built-in, imported, organization]` | Origin: `built-in` = OEA standard; `imported` = from continuum package; `organization` = created in-house |
+| sourcePackage | string | optional | null | max. 255 characters; only if `scope=imported` | Source package (e.g. "TOGAF 10 TRM", "TM Forum Frameworx 23.0") |
+| createdAt | datetime | required | | ISO 8601, UTC | Time of creation |
+| createdBy | reference | required | | target: person | Creating person |
 
-## Beziehungen
+## Relationships
 
-| Beziehung | Ziel-Objekt | Kardinalität | Optional | Beschreibung |
+| Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
-| refines | [architecture-building-block](./architecture-building-block.md) | n:0..1 | yes | Dieser ABB verfeinert einen generischeren ABB (Verfeinerungshierarchie im Continuum) |
-| refinedBy | [architecture-building-block](./architecture-building-block.md) | 1:n | yes | Spezialisierungen dieses ABBs |
-| implementedBy | [solution-building-block](./solution-building-block.md) | 1:n | yes | Konkrete Produkte / Komponenten, die diesen ABB implementieren |
-| usedIn | [reference-architecture](./reference-architecture.md) | n:m | yes | Reference Architectures, in denen dieser ABB vorkommt |
-| conformingEntities | [entity](./entity.md) | 1:n | yes | Instanzen, die explizit konform zu diesem ABB deklariert sind (via `entity.conformsToABBId`) |
+| refines | [architecture-building-block](./architecture-building-block.md) | n:0..1 | yes | This ABB refines a more generic ABB (refinement hierarchy in the continuum) |
+| refinedBy | [architecture-building-block](./architecture-building-block.md) | 1:n | yes | Specializations of this ABB |
+| implementedBy | [solution-building-block](./solution-building-block.md) | 1:n | yes | Concrete products / components that implement this ABB |
+| usedIn | [reference-architecture](./reference-architecture.md) | n:m | yes | Reference architectures in which this ABB occurs |
+| conformingEntities | [entity](./entity.md) | 1:n | yes | Instances explicitly declared conformant to this ABB (via `entity.conformsToABBId`) |
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser |
+| Rule ID | Statement | Trigger |
 |---|---|---|
-| BR-01 | ABBs mit `scope=imported` oder `scope=built-in` sind read-only; Bearbeiten und Löschen sind gesperrt | onUpdate, onDelete |
-| BR-02 | `industry`-Feld MUSS gesetzt sein, wenn `continuumLevel=industry` | onCreate, onUpdate |
-| BR-03 | Ein ABB darf sich nicht selbst verfeinern — kein direkter oder indirekter Zyklus im `refines`-Graphen | onCreate, onUpdate |
-| BR-04 | ABBs mit `governanceStatus=deprecated` sind auswählbar, erzeugen jedoch eine Warnung bei Neuverwendung | onUse |
-| BR-05 | ABBs mit `continuumLevel=foundation` oder `common-systems` SOLLTEN aus Continuum-Paketen stammen (`scope=imported`); manuelle Anlage erzeugt eine Governance-Warnung | onCreate |
+| BR-01 | ABBs with `scope=imported` or `scope=built-in` are read-only; editing and deletion are blocked | onUpdate, onDelete |
+| BR-02 | The `industry` field MUST be set if `continuumLevel=industry` | onCreate, onUpdate |
+| BR-03 | An ABB must not refine itself — no direct or indirect cycle in the `refines` graph | onCreate, onUpdate |
+| BR-04 | ABBs with `governanceStatus=deprecated` are selectable but produce a warning on new use | onUse |
+| BR-05 | ABBs with `continuumLevel=foundation` or `common-systems` SHOULD originate from continuum packages (`scope=imported`); manual creation produces a governance warning | onCreate |
 
 ## Lifecycle
 
@@ -87,18 +87,18 @@ ABBs können sich gegenseitig verfeinern: ein spezialisierter ABB `MFA-fähiger 
 proposed → approved → deprecated
 ```
 
-- `imported`-ABBs starten direkt als `approved` (durch das Paket validiert)
-- `organization`-ABBs durchlaufen `proposed → approved`
-- `deprecated`-ABBs können nicht gelöscht werden, solange Entitäten auf sie referenzieren
+- `imported` ABBs start directly as `approved` (validated by the package)
+- `organization` ABBs go through `proposed → approved`
+- `deprecated` ABBs cannot be deleted as long as entities reference them
 
-## Analysen (Konzept §4.5)
+## Analyses (Concept §4.5)
 
-- **ABB-Abdeckungslücke**: ABBs ohne implementierenden SBB oder ohne konforme Instanz → Gap in der Architecture Delivery
-- **Verfeinerungs-Baum**: Hierarchie von `foundation` → `organization` als Tree-View
-- **Conformance-Check**: Entitäten ohne `conformsToABBId`, obwohl ein passender ABB existiert
+- **ABB coverage gap**: ABBs without an implementing SBB or without a conformant instance → gap in architecture delivery
+- **Refinement tree**: hierarchy from `foundation` → `organization` as tree view
+- **Conformance check**: entities without `conformsToABBId` even though a matching ABB exists
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-28 | Business Engineer | Initial draft; Grundlage Enterprise Continuum §4 (Konzept); ADR-002 (scope-basiert) |
+| 0.1.0 | 2026-06-28 | Business Engineer | Initial draft; based on Enterprise Continuum §4 (concept); ADR-002 (scope-based) |

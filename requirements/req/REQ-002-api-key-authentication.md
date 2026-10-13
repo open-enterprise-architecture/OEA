@@ -1,6 +1,6 @@
 ---
 id: REQ-002
-title: API-Key-Authentifizierung für Maschine-zu-Maschine-Zugriffe
+title: API key authentication for machine-to-machine access
 type: functional
 priority: should
 status: proposed
@@ -18,95 +18,95 @@ references:
   stakeholders:
     - SH-03
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-002: API-Key-Authentifizierung für Maschine-zu-Maschine-Zugriffe
+# REQ-002: API key authentication for machine-to-machine access
 
-## Aussage
+## Statement
 
-Das System SOLL Anfragen mit gültigem API-Key direkt validieren können, ohne Redirect zu einem OIDC-Identity-Provider, und die dem API-Key zugeordnete Identität samt aktiven Rollenzuweisungen ermitteln.
+The system SHOULD be able to validate requests with a valid API key directly, without a redirect to an OIDC identity provider, and determine the identity assigned to the API key together with its active role assignments.
 
-## Begründung
+## Rationale
 
-Konzept §21.8 sieht API-Keys explizit für Maschine-zu-Maschine-Kommunikation vor (z.B. Discovery-Adapter, CI-Skripte, externe Module). UC-01, Alternative A2.
+Concept §21.8 explicitly provides for API keys for machine-to-machine communication (e.g., discovery adapters, CI scripts, external modules). UC-01, Alternative A2.
 
-## Kontext
+## Context
 
-Browser-basierter OIDC-Redirect ist für nicht-interaktive Clients ungeeignet. API-Keys sind die in §21.8 vorgesehene Alternative.
+A browser-based OIDC redirect is unsuitable for non-interactive clients. API keys are the alternative provided in §21.8.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- HTTP-Request mit API-Key (z.B. als Header)
+**Inputs**:
+- HTTP request with API key (e.g., as a header)
 
-**Verarbeitung**:
-- Validierung des API-Keys (Existenz, nicht abgelaufen, nicht widerrufen)
-- Ermittlung der dem API-Key zugeordneten Service-Identität bzw. Person
-- Laden der zugeordneten aktiven Rollenzuweisungen
+**Processing**:
+- Validate the API key (exists, not expired, not revoked)
+- Determine the service identity or person assigned to the API key
+- Load the assigned active role assignments
 
-**Ausgaben**:
-- Autorisierter Request-Kontext mit den Berechtigungen der zugeordneten Rollen
+**Outputs**:
+- Authorized request context with the permissions of the assigned roles
 
-**Fehlerfälle**:
-- Ungültiger, abgelaufener oder widerrufener API-Key → Request wird mit Fehler abgelehnt, kein Berechtigungs-Kontext erstellt
+**Error Cases**:
+- Invalid, expired, or revoked API key → request is rejected with an error, no permission context is created
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein Request enthält einen gültigen, nicht widerrufenen API-Key
-- Wenn: der Request gegen eine geschützte Ressource gestellt wird
-- Dann: wird er ohne Redirect autorisiert, gemäß den Rollen der zugeordneten Identität
+- Given: a request contains a valid, non-revoked API key
+- When: the request is made against a protected resource
+- Then: it is authorized without a redirect, according to the roles of the assigned identity
 
 **AC2**:
-- Gegeben: ein Request enthält einen ungültigen oder widerrufenen API-Key
-- Wenn: der Request gestellt wird
-- Dann: wird er abgelehnt, ohne dass ein Autorisierungs-Kontext entsteht
+- Given: a request contains an invalid or revoked API key
+- When: the request is made
+- Then: it is rejected without an authorization context being created
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Integrationstest mit gültigem/ungültigem/widerrufenem API-Key
-- [x] Mess-Werkzeug: Test-Suite des Auth-Moduls
-- [x] Bestanden-Kriterium: AC1 und AC2 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: integration test with valid/invalid/revoked API key
+- [x] Measurement tool: test suite of the auth module
+- [x] Pass criterion: AC1 and AC2 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-001 (gemeinsames Rollen-/Autorisierungsmodell)
-- **Folgewirkungen**: keine bekannt
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-001 (shared role/authorization model)
+- **Downstream effects**: none known
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne API-Key-Unterstützung müssten Maschinen-Clients OIDC-Browser-Flows simulieren – unpraktikabel, Schweregrad mittel
+- Risk 1: Without API key support, machine clients would have to simulate OIDC browser flows – impractical, severity medium
 
 ## Trade-offs
 
-- vs. Sicherheit: API-Keys sind langlebige Credentials und müssen daher Widerruf, Rotation und Scoping unterstützen, um nicht zum schwächsten Glied zu werden.
+- vs. security: API keys are long-lived credentials and must therefore support revocation, rotation, and scoping so that they do not become the weakest link.
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Bekannte technische Herausforderungen: sicherer Storage und Rotation der API-Keys, Scoping (welche Rollen/Rechte ein Key maximal tragen darf)
+- Known technical challenges: secure storage and rotation of API keys, scoping (which roles/permissions a key may carry at most)
 
-## Realisierung
+## Implementation
 
-- ADR(s): ausstehend
-- Implementiert durch: –
+- ADR(s): pending
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-01 Login, Alternative A2.
+Derived from UC-01 Login, Alternative A2.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft aus UC-01 |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |

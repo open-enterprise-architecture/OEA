@@ -1,36 +1,36 @@
-# US-099: Feldweisen Diff zwischen Versionen anzeigen
+# US-099: Show Field-by-Field Diff Between Versions
 
 **ID**: US-099
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich beim Anklicken einer Version einen feldweisen Diff sehen und zwei beliebige Versionen direkt vergleichen können, damit ich Änderungen ohne technische Vorkenntnisse schnell verstehe.
+As Kurt – Lead Enterprise Architect, I want to see a field-by-field diff when clicking a version and to compare any two versions directly, so that I can understand changes quickly without technical background knowledge.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-14](../use-cases/UC-14-aenderungshistorie-einsehen.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-099](../req/REQ-099-versionshistorie-diff-ansicht.md)
+**Use Case**: [UC-14](../use-cases/UC-14-view-change-history.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-099](../req/REQ-099-version-history-diff-view.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Nur geänderte Felder):
-- Wenn: ich eine Version anklicke
-- Dann: sehe ich nur die geänderten Felder; identische Felder sind ausgeblendet
+**AC1** (Changed fields only):
+- When: I click a version
+- Then: I see only the changed fields; identical fields are hidden
 
-**AC2** (Dot-Notation für Properties):
-- Wenn: `properties.owner` geändert wurde
-- Dann: erscheint der Eintrag als "properties.owner: 'Kurt' → 'Michael'"
+**AC2** (Dot notation for properties):
+- When: `properties.owner` was changed
+- Then: the entry appears as "properties.owner: 'Kurt' → 'Michael'"
 
-**AC3** (Kumulierter Diff):
-- Wenn: ich Version v2 und v7 für den Vergleich auswähle
-- Dann: sehe ich den kumulierten Diff über alle Übergänge von v2 bis v7
+**AC3** (Cumulative diff):
+- When: I select versions v2 and v7 for comparison
+- Then: I see the cumulative diff across all transitions from v2 to v7
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

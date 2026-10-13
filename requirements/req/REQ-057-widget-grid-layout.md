@@ -1,6 +1,6 @@
 ---
 id: REQ-057
-title: Widget-Grid-Layout konfigurieren (GridPosition)
+title: Configure widget grid layout (GridPosition)
 type: functional
 priority: should
 status: proposed
@@ -18,84 +18,84 @@ references:
     - SH-03
     - SH-07
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-057: Widget-Grid-Layout konfigurieren (GridPosition)
+# REQ-057: Configure widget grid layout (GridPosition)
 
-## Aussage
+## Statement
 
-Das System MUSS für jedes Widget eines Dashboards eine `GridPosition` speichern und zur Laufzeit zurückliefern, die bestimmt, wo das Widget im **12-Spalten-Raster** des Dashboards platziert wird. Das System MUSS `col + width > 12` (Überschreitung der Rasterbreite) als Validierungsfehler ablehnen. Vertikale Reihen sind unbegrenzt (Dashboard scrollt); Widget-Überlappung wird serverseitig nicht geprüft (Verantwortung des Clients).
+The system MUST store a `GridPosition` for each widget of a dashboard and return it at runtime; it determines where the widget is placed in the dashboard's **12-column grid**. The system MUST reject `col + width > 12` (exceeding the grid width) as a validation error. Vertical rows are unlimited (the dashboard scrolls); widget overlap is not checked server-side (client responsibility).
 
-## Begründung
+## Rationale
 
-Ein einheitliches Grid-Layout (12 Spalten, analog zu Bootstrap/Material-Grid) ermöglicht eine flexible Positionierung von Widgets ohne feste Vorgaben. Die Breiten-Validierung serverseitig verhindert offensichtlich fehlerhafte Layouts; Überlappungs-Detektion ist Client-Aufgabe (Drag-and-Drop-Editor in der Client App).
+A uniform grid layout (12 columns, analogous to the Bootstrap/Material grid) enables flexible positioning of widgets without fixed constraints. Server-side width validation prevents obviously faulty layouts; overlap detection is a client task (drag-and-drop editor in the client app).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### GridPosition-Felder
+### GridPosition Fields
 
-| Feld | Typ | Wertebereich | Beschreibung |
+| Field | Type | Value Range | Description |
 |---|---|---|---|
-| col | integer | 1–12 | Startspalte (1-basiert) |
-| row | integer | ≥ 1 | Startzeile (1-basiert; unbegrenzt nach unten) |
-| width | integer | 1–12 | Spaltenbreite; `col + width` darf 13 nicht überschreiten |
-| height | integer | 1–6 | Höhe in Rastereinheiten (1 = kleinste Einheit, ~150px) |
+| col | integer | 1–12 | Start column (1-based) |
+| row | integer | ≥ 1 | Start row (1-based; unlimited downwards) |
+| width | integer | 1–12 | Column width; `col + width` must not exceed 13 |
+| height | integer | 1–6 | Height in grid units (1 = smallest unit, ~150px) |
 
-GridPosition wird bei Widget-Anlage (REQ-052 POST) und Widget-Update (PUT) gesetzt und validiert.
+GridPosition is set and validated on widget creation (REQ-052 POST) and widget update (PUT).
 
-### Persistenz und Abruf
+### Persistence and Retrieval
 
-- GridPosition wird als Teil der Widget-Konfiguration gespeichert
-- `GET /api/v1/dashboards/{id}` liefert alle Widgets inkl. deren GridPositions
-- Das Frontend liest GridPositions und rendert das Layout; serverseitig keine Layout-Berechnung
+- GridPosition is stored as part of the widget configuration
+- `GET /api/v1/dashboards/{id}` returns all widgets including their GridPositions
+- The frontend reads GridPositions and renders the layout; no layout calculation server-side
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser |
+| Rule-ID | Statement | Trigger |
 |---|---|---|
-| BR-01 | `col + width` DARF 13 nicht überschreiten; bei Verletzung → HTTP 422 | onCreate, onUpdate |
-| BR-02 | `col`, `row`, `width`, `height` sind positive ganze Zahlen; 0 und Negativwerte → 422 | onCreate, onUpdate |
-| BR-03 | `height` ist auf maximal 6 begrenzt (entspricht ca. 900px bei 150px Einheitsgrösse) | onCreate, onUpdate |
-| BR-04 | Widget-Überlappung wird serverseitig nicht geprüft; der Client ist für überlappungsfreies Layout verantwortlich | – |
+| BR-01 | `col + width` MUST NOT exceed 13; on violation → HTTP 422 | onCreate, onUpdate |
+| BR-02 | `col`, `row`, `width`, `height` are positive integers; 0 and negative values → 422 | onCreate, onUpdate |
+| BR-03 | `height` is limited to a maximum of 6 (corresponds to approx. 900px at a unit size of 150px) | onCreate, onUpdate |
+| BR-04 | Widget overlap is not checked server-side; the client is responsible for an overlap-free layout | – |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Gültige GridPosition):
-- Wenn: Widget anlegen mit gridPosition={col:4, row:1, width:9, height:3}
-- Dann: HTTP 201; `col + width = 13` → gültig (Grenze genau ausgeschöpft)
+**AC1** (Valid GridPosition):
+- When: Create widget with gridPosition={col:4, row:1, width:9, height:3}
+- Then: HTTP 201; `col + width = 13` → valid (limit exactly exhausted)
 
-**AC2** (Zu breites Widget):
-- Wenn: Widget anlegen mit gridPosition={col:4, row:1, width:10, height:2}
-- Dann: HTTP 422 „col + width = 14 überschreitet die maximale Rasterbreite von 12"
+**AC2** (Widget too wide):
+- When: Create widget with gridPosition={col:4, row:1, width:10, height:2}
+- Then: HTTP 422 "col + width = 14 exceeds the maximum grid width of 12"
 
-**AC3** (Ungültige Werte):
-- Wenn: Widget anlegen mit gridPosition={col:0, row:1, width:3, height:1}
-- Dann: HTTP 422 „col muss ≥ 1 sein"
+**AC3** (Invalid values):
+- When: Create widget with gridPosition={col:0, row:1, width:3, height:1}
+- Then: HTTP 422 "col must be ≥ 1"
 
-**AC4** (Height-Limit):
-- Wenn: Widget anlegen mit height=7
-- Dann: HTTP 422 „height darf maximal 6 sein"
+**AC4** (Height limit):
+- When: Create widget with height=7
+- Then: HTTP 422 "height may be at most 6"
 
-**AC5** (GridPosition im Dashboard-Response):
-- Gegeben: Dashboard mit 3 Widgets mit verschiedenen GridPositions
-- Wenn: GET /api/v1/dashboards/{id}
-- Dann: jedes Widget enthält sein `gridPosition`-Objekt; Client rendert Layout daraus
+**AC5** (GridPosition in dashboard response):
+- Given: Dashboard with 3 widgets with different GridPositions
+- When: GET /api/v1/dashboards/{id}
+- Then: each widget contains its `gridPosition` object; the client renders the layout from it
 
-**AC6** (Überlappung nicht serverseitig geblockt):
-- Wenn: Zwei Widgets werden mit überlappenden GridPositions angelegt
-- Dann: beide Widgets werden akzeptiert (HTTP 201); Überlappung ist Client-Problem
+**AC6** (Overlap not blocked server-side):
+- When: Two widgets are created with overlapping GridPositions
+- Then: both widgets are accepted (HTTP 201); overlap is a client problem
 
-## Abhängigkeiten
+## Dependencies
 
-- Teil von: REQ-052 (Widget anlegen/konfigurieren) – GridPosition ist Pflichtfeld jedes Widgets
-- Rendering: Client App (Electron, ADR-009) verwaltet Drag-and-Drop-Editor; Web Portal rendert Grid read-only
+- Part of: REQ-052 (create/configure widget) – GridPosition is a mandatory field of every widget
+- Rendering: Client app (Electron, ADR-009) manages the drag-and-drop editor; the web portal renders the grid read-only
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; 12-Spalten-Grid, Breiten-Validierung, Überlappung client-seitig |
+| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; 12-column grid, width validation, overlap handled client-side |

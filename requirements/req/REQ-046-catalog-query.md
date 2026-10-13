@@ -1,6 +1,6 @@
 ---
 id: REQ-046
-title: Katalog-Abfrage ausführen (Live-Daten)
+title: Execute a catalog query (live data)
 type: functional
 priority: must
 status: proposed
@@ -24,54 +24,54 @@ references:
     - SH-06
     - SH-07
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
+    - concept/20-entities/06-core-entity-types.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-046: Katalog-Abfrage ausführen (Live-Daten)
+# REQ-046: Execute a catalog query (live data)
 
-## Aussage
+## Statement
 
-Das System MUSS für einen [Catalog](../../business-objects/catalog.md) auf Abruf eine Live-Abfrage gegen das Architecture-Repository ausführen und die Entitäten des `primaryEntityType` als paginierte Liste zurückliefern. Für jede Entität MÜSSEN die Werte der konfigurierten `columns` (Attribute) sowie die Ergebnisse aller `joinDefinitions` enthalten sein. Join-Ergebnisse MÜSSEN je nach aktivem `joinMode` entweder als Zeilen-Expansion (`rows`) oder als aggregierter Eintrag (`aggregate`) dargestellt werden. Aktive Filter (SavedFilter oder Ad-hoc-Filter) MÜSSEN auf die primäre Entität und auf Join-Ergebnisse anwendbar sein.
+On demand, the system MUST execute a live query against the architecture repository for a [Catalog](../../business-objects/catalog.md) and return the entities of the `primaryEntityType` as a paginated list. For each entity, the values of the configured `columns` (attributes) as well as the results of all `joinDefinitions` MUST be included. Depending on the active `joinMode`, join results MUST be presented either as row expansion (`rows`) or as an aggregated entry (`aggregate`). Active filters (SavedFilter or ad hoc filter) MUST be applicable to the primary entity and to join results.
 
-## Begründung
+## Rationale
 
-Der Catalog ist eine gespeicherte Abfrage-Konfiguration; der eigentliche Mehrwert entsteht erst, wenn das System Live-Daten liefert. Die Ergebnisse müssen immer den aktuellen Zustand des Repositorys widerspiegeln, nicht einen gecachten Snapshot. Die Unterstützung beider Join-Modi (`rows` / `aggregate`) direkt im Abfrage-Endpunkt ist nötig, damit das Frontend ohne eigene Aggregationslogik auskommt.
+The catalog is a stored query configuration; the actual value arises only when the system delivers live data. The results must always reflect the current state of the repository, not a cached snapshot. Supporting both join modes (`rows` / `aggregate`) directly in the query endpoint is necessary so that the frontend can do without its own aggregation logic.
 
-## Kontext
+## Context
 
-Die Abfrage-Logik ist ein **Read-Only**-Operation auf dem Entity-Repository. Der Catalog-Endpunkt ist ein Query-Endpunkt, kein Mutations-Endpunkt. Das Repository enthält Entitäten aus dem aggregierten Ist-Stand (alle `implemented`-Solutions im Projekt-Modus) bzw. aus dem aktuellen Plateau (im Plateau-Modus). Join-Traversal nutzt die gespeicherten Connection-Instanzen im Repository.
+The query logic is a **read-only** operation on the entity repository. The catalog endpoint is a query endpoint, not a mutation endpoint. The repository contains entities from the aggregated current state (all `implemented` solutions in project mode) or from the current plateau (in plateau mode). Join traversal uses the stored connection instances in the repository.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben (Query-Parameter)**:
+**Inputs (query parameters)**:
 
-| Parameter | Typ | Optional | Beschreibung |
+| Parameter | Type | Optional | Description |
 |---|---|---|---|
-| page | integer | optional | Seite (0-basiert), Default: 0 |
-| pageSize | integer | optional | Einträge pro Seite, Default: 50, Max: 500 |
-| sortBy | string | optional | attributeName der primären Entität; Default: `name` asc |
-| sortDir | enum | optional | `asc` oder `desc`; Default: `asc` |
-| joinMode | object | optional | `{ joinDefinitionId: "rows" | "aggregate", ... }` – überschreibt Catalog-/JoinDefinition-Defaults für diesen Aufruf |
-| filter | object | optional | Ad-hoc-FilterExpressions als JSON; ergänzend zu aktiven SavedFilters |
-| savedFilterIds | string[] | optional | IDs von SavedFilters, die zusätzlich angewendet werden sollen |
+| page | integer | optional | Page (0-based), default: 0 |
+| pageSize | integer | optional | Entries per page, default: 50, max: 500 |
+| sortBy | string | optional | attributeName of the primary entity; default: `name` asc |
+| sortDir | enum | optional | `asc` or `desc`; default: `asc` |
+| joinMode | object | optional | `{ joinDefinitionId: "rows" | "aggregate", ... }` – overrides catalog/JoinDefinition defaults for this call |
+| filter | object | optional | Ad hoc FilterExpressions as JSON; in addition to active SavedFilters |
+| savedFilterIds | string[] | optional | IDs of SavedFilters to be applied additionally |
 
-**Verarbeitung**:
+**Processing**:
 
-1. Alle Entitäten des `primaryEntityType` aus dem Repository laden
-2. Aktive Filter (savedFilterIds + ad-hoc `filter`) als AND-Kombination anwenden (zwischen Filter-Sets AND; innerhalb eines SavedFilters laut dessen `logicalOperator`)
-3. Für jede gefilterte Entität: konfigurierte `columns`-Attribute auflösen; unbekannte oder fehlende Attributwerte als `null` zurückgeben
-4. Für jede JoinDefinition: Connection-Graph traversieren; Ergebnisse nach aktivem joinMode strukturieren:
-   - `rows`: jede Kombination (primäre Entität × Join-Ergebnis) wird als eigene Zeile geliefert; primäre Entität mit Attributen wiederholt sich
-   - `aggregate`: primäre Entität einmal; Join-Ergebnisse als Array im Feld `joinResults[joinName]`
-5. Sortierung auf `primäre Entität.sortBy` anwenden (nach Filterung, vor Paginierung)
-6. Paginierung anwenden; Response enthält `totalCount`, `page`, `pageSize`, `data[]`
+1. Load all entities of the `primaryEntityType` from the repository
+2. Apply active filters (savedFilterIds + ad hoc `filter`) as an AND combination (AND between filter sets; within a SavedFilter according to its `logicalOperator`)
+3. For each filtered entity: resolve the configured `columns` attributes; return unknown or missing attribute values as `null`
+4. For each JoinDefinition: traverse the connection graph; structure results according to the active joinMode:
+   - `rows`: each combination (primary entity × join result) is delivered as its own row; the primary entity with attributes repeats
+   - `aggregate`: primary entity once; join results as an array in the field `joinResults[joinName]`
+5. Apply sorting to `primary entity.sortBy` (after filtering, before pagination)
+6. Apply pagination; the response contains `totalCount`, `page`, `pageSize`, `data[]`
 
-**Ausgaben**:
+**Outputs**:
 
 ```json
 {
@@ -83,7 +83,7 @@ Die Abfrage-Logik ist ein **Read-Only**-Operation auf dem Entity-Repository. Der
       "id": "uuid",
       "columns": { "name": "CRM-System", "status": "active" },
       "joinResults": {
-        "Schnittstellen": [
+        "Interfaces": [
           { "name": "REST-API", "protocol": "REST" },
           { "name": "SFTP-Export", "protocol": "SFTP" }
         ]
@@ -93,63 +93,63 @@ Die Abfrage-Logik ist ein **Read-Only**-Operation auf dem Entity-Repository. Der
 }
 ```
 
-Im `rows`-Modus für denselben Catalog:
+In `rows` mode for the same catalog:
 
 ```json
 {
   "data": [
-    { "columns": { "name": "CRM-System", "status": "active" }, "joinResults": { "Schnittstellen": { "name": "REST-API", "protocol": "REST" } } },
-    { "columns": { "name": "CRM-System", "status": "active" }, "joinResults": { "Schnittstellen": { "name": "SFTP-Export", "protocol": "SFTP" } } }
+    { "columns": { "name": "CRM-System", "status": "active" }, "joinResults": { "Interfaces": { "name": "REST-API", "protocol": "REST" } } },
+    { "columns": { "name": "CRM-System", "status": "active" }, "joinResults": { "Interfaces": { "name": "SFTP-Export", "protocol": "SFTP" } } }
   ]
 }
 ```
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Happy Path, aggregate-Modus):
-- Gegeben: Catalog „Application Inventory", primaryEntityType=ApplicationComponent, 2 Spalten (name, status), 1 Join (DataFlow→Interface, aggregate); Repository enthält CRM-System (status=active) mit 2 Interfaces
-- Wenn: `GET /api/v1/catalogs/{id}/query`
-- Dann: Response enthält 1 Zeile für CRM-System; `joinResults.Schnittstellen` ist Array mit 2 Einträgen
+**AC1** (Happy path, aggregate mode):
+- Given: catalog "Application Inventory", primaryEntityType=ApplicationComponent, 2 columns (name, status), 1 join (DataFlow→Interface, aggregate); the repository contains CRM-System (status=active) with 2 interfaces
+- When: `GET /api/v1/catalogs/{id}/query`
+- Then: the response contains 1 row for CRM-System; `joinResults.Interfaces` is an array with 2 entries
 
-**AC2** (rows-Modus):
-- Gegeben: wie AC1
-- Wenn: `GET /api/v1/catalogs/{id}/query?joinMode[join-id]=rows`
-- Dann: Response enthält 2 Zeilen (je Interface eine); `columns.name` = „CRM-System" in beiden Zeilen
+**AC2** (rows mode):
+- Given: as AC1
+- When: `GET /api/v1/catalogs/{id}/query?joinMode[join-id]=rows`
+- Then: the response contains 2 rows (one per interface); `columns.name` = "CRM-System" in both rows
 
 **AC3** (Filter):
-- Gegeben: Repository enthält 5 ApplicationComponents, davon 2 mit status=active
-- Wenn: `GET /api/v1/catalogs/{id}/query?filter[status][eq]=active`
-- Dann: `totalCount=2`; nur die 2 aktiven Entitäten im data-Array
+- Given: the repository contains 5 ApplicationComponents, 2 of them with status=active
+- When: `GET /api/v1/catalogs/{id}/query?filter[status][eq]=active`
+- Then: `totalCount=2`; only the 2 active entities in the data array
 
-**AC4** (Entität ohne Join-Ergebnisse):
-- Gegeben: ERP-Core (ApplicationComponent) hat keine DataFlow-Connections
-- Wenn: Abfrage im aggregate-Modus
-- Dann: ERP-Core erscheint in der Antwort mit `joinResults.Schnittstellen = []`; wird NICHT aus der Ergebnismenge ausgeschlossen (LEFT-JOIN-Semantik)
+**AC4** (Entity without join results):
+- Given: ERP-Core (ApplicationComponent) has no DataFlow connections
+- When: query in aggregate mode
+- Then: ERP-Core appears in the response with `joinResults.Interfaces = []`; is NOT excluded from the result set (LEFT JOIN semantics)
 
-**AC5** (Sortierung und Paginierung):
-- Gegeben: 60 ApplicationComponents
-- Wenn: `GET /api/v1/catalogs/{id}/query?page=1&pageSize=20&sortBy=name&sortDir=asc`
-- Dann: `totalCount=60`; `data` enthält Einträge 21–40 alphabetisch nach Name
+**AC5** (Sorting and pagination):
+- Given: 60 ApplicationComponents
+- When: `GET /api/v1/catalogs/{id}/query?page=1&pageSize=20&sortBy=name&sortDir=asc`
+- Then: `totalCount=60`; `data` contains entries 21–40 alphabetically by name
 
-**AC6** (Leeres Repository):
-- Gegeben: primaryEntityType hat keine Entitäten im Repository
-- Wenn: Abfrage
-- Dann: HTTP 200 mit `totalCount=0`, `data=[]`; kein Fehler
+**AC6** (Empty repository):
+- Given: primaryEntityType has no entities in the repository
+- When: query
+- Then: HTTP 200 with `totalCount=0`, `data=[]`; no error
 
-## Abhängigkeiten
+## Dependencies
 
-- Blockiert durch: REQ-043 (Catalog muss existieren), REQ-044 (Spalten konfiguriert), REQ-039 (Repository-Datenbasis im Projekt-Modus)
-- Ermöglicht: REQ-049 (Join-Modus-Wechsel nutzt diesen Endpunkt mit joinMode-Override)
+- Blocked by: REQ-043 (the catalog must exist), REQ-044 (columns configured), REQ-039 (repository data basis in project mode)
+- Enables: REQ-049 (join mode switch uses this endpoint with joinMode override)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
 - Endpoint: `GET /api/v1/catalogs/{id}/query`
-- LEFT-JOIN-Semantik: Entitäten ohne Join-Treffer werden trotzdem zurückgeliefert (nicht gefiltert)
-- Filterausdruck-Serialisierung als Query-Parameter: `filter[attributeName][operator]=value`; für `in`-Operator als CSV oder Array
-- Performance: bei grossen Repositories Indexed-Lookup auf EntityType + FilterAttributes notwendig; NFR noch nicht definiert (folgt)
+- LEFT JOIN semantics: entities without join hits are returned anyway (not filtered)
+- Filter expression serialization as a query parameter: `filter[attributeName][operator]=value`; for the `in` operator as CSV or array
+- Performance: for large repositories an indexed lookup on EntityType + FilterAttributes is necessary; NFR not yet defined (to follow)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; rows/aggregate Modi, LEFT-JOIN-Semantik, Paginierung |
+| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; rows/aggregate modes, LEFT JOIN semantics, pagination |

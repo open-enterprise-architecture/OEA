@@ -1,6 +1,6 @@
 ---
 id: REQ-062
-title: Lineage-Graph-API (traversierbare Pfade, upstream/downstream/impact)
+title: Lineage graph API (traversable paths, upstream/downstream/impact)
 type: functional
 priority: should
 status: proposed
@@ -17,51 +17,51 @@ references:
   stakeholders:
     - SH-02
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
-    - concept/30-dynamics/13-fach-technik-verlinkung.md
+    - concept/20-entities/06-core-entity-types.md
+    - concept/30-dynamics/13-business-technology-linking.md
   adrs:
     - ADR-010
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-062: Lineage-Graph-API (traversierbare Pfade, upstream/downstream/impact)
+# REQ-062: Lineage graph API (traversable paths, upstream/downstream/impact)
 
-## Aussage
+## Statement
 
-Das System MUSS einen dedizierten Lineage-Endpunkt (`GET /api/v1/lineage`) bereitstellen, der zu einer gegebenen ArchitectureEntity-ID alle upstream- und/oder downstream-verbundenen Entitäten durch Traversierung des ArchitectureEntity-Graphen via `carries-data`-Connections und angrenzenden `data-flow`-Connections berechnet; die Traversierung MUSS Zyklen erkennen (max. 50 Hops) und einen vollständigen Pfad als strukturierten JSON-Graphen zurückgeben.
+The system MUST provide a dedicated lineage endpoint (`GET /api/v1/lineage`) that, for a given ArchitectureEntity ID, calculates all upstream and/or downstream connected entities by traversing the ArchitectureEntity graph via `carries-data` connections and adjacent `data-flow` connections; the traversal MUST detect cycles (max. 50 hops) and return a complete path as a structured JSON graph.
 
-## Begründung
+## Rationale
 
-Ein Lineage-Diagramm ohne Query-API ist nur eine statische Visualisierung — nicht abfragbar durch Tooling, CI-Pipelines oder Compliance-Systeme. Die Lineage-API macht die modellierten Datenflüsse zu einer echten Datengrundlage für Impact Analysis, Compliance-Reports und Änderungsmanagement.
+A lineage diagram without a query API is merely a static visualization — not queryable by tooling, CI pipelines or compliance systems. The lineage API turns the modeled data flows into a genuine data foundation for impact analysis, compliance reports and change management.
 
-## Kontext
+## Context
 
-Die Traversierung folgt diesem Muster:
-1. Gegeben: DataObject-Entity mit id=X
-2. Finde alle `carries-data`-Connections, deren `targetEntityId=X`
-3. Für jede gefundene `carries-data`-Connection: `sourceEntityId` ist ein DataFlow
-4. Vom DataFlow: lese `sourceEntityId` (Quellsystem) und `targetEntityId` (Zielsystem)
-5. Rekursiv: vom Zielsystem aus weitersuchen (downstream) oder vom Quellsystem rückwärts (upstream)
+The traversal follows this pattern:
+1. Given: DataObject entity with id=X
+2. Find all `carries-data` connections whose `targetEntityId=X`
+3. For each found `carries-data` connection: `sourceEntityId` is a DataFlow
+4. From the DataFlow: read `sourceEntityId` (source system) and `targetEntityId` (target system)
+5. Recursively: continue searching from the target system (downstream) or backwards from the source system (upstream)
 
-`direction=impact` gibt dieselbe Traversierung wie `downstream` zurück, aber annotiert jeden Knoten mit `impact: true` — nützlich für „welche Systeme sind betroffen, wenn dieses Datenobjekt sich ändert?"
+`direction=impact` returns the same traversal as `downstream`, but annotates each node with `impact: true` — useful for "which systems are affected if this data object changes?"
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Query-Parameter
+### Query Parameters
 
-| Parameter | Typ | Optional | Default | Beschreibung |
+| Parameter | Type | Optional | Default | Description |
 |---|---|---|---|---|
-| entityId | integer | required | | ID der Startentität (typisch: data-object oder system) |
-| direction | enum | optional | `both` | `upstream` (Quellen), `downstream` (Konsumenten), `both`, `impact` |
-| maxDepth | integer | optional | 50 | Maximale Traversierungstiefe; Minimum 1, Maximum 100 |
-| entityTypeFilter | string[] | optional | | Nur Knoten dieser EntityType-IDs im Ergebnis aufführen |
+| entityId | integer | required | | ID of the start entity (typically: data-object or system) |
+| direction | enum | optional | `both` | `upstream` (sources), `downstream` (consumers), `both`, `impact` |
+| maxDepth | integer | optional | 50 | Maximum traversal depth; minimum 1, maximum 100 |
+| entityTypeFilter | string[] | optional | | List only nodes of these EntityType IDs in the result |
 
-### Response-Struktur
+### Response Structure
 
 ```json
 {
-  "startEntity": { "id": 42, "name": "Kundenstamm", "entityTypeId": "data-object" },
+  "startEntity": { "id": 42, "name": "Customer master data", "entityTypeId": "data-object" },
   "direction": "both",
   "cycleDetected": false,
   "nodes": [
@@ -79,64 +79,64 @@ Die Traversierung folgt diesem Muster:
 }
 ```
 
-**Fehlerfälle**:
-- `entityId` nicht gefunden → HTTP 404
-- `maxDepth` überschritten → HTTP 400
-- Keine Berechtigung zur Entität → HTTP 403
+**Error Cases**:
+- `entityId` not found → HTTP 404
+- `maxDepth` exceeded → HTTP 400
+- No permission for the entity → HTTP 403
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1** (Downstream end-to-end):
-- Gegeben: SAP ERP(1) →[data-flow:5, carries-data:103→DataObject:42]→ DWH(2) →[data-flow:6, carries-data:104→DataObject:42]→ BI Tool(14)
-- Wenn: `GET /api/v1/lineage?entityId=42&direction=downstream`
-- Dann: `nodes` enthält id=1 (SAP ERP), id=2 (DWH), id=14 (BI Tool); `path=[1,2,14]`; `cycleDetected=false`
+- Given: SAP ERP(1) →[data-flow:5, carries-data:103→DataObject:42]→ DWH(2) →[data-flow:6, carries-data:104→DataObject:42]→ BI Tool(14)
+- When: `GET /api/v1/lineage?entityId=42&direction=downstream`
+- Then: `nodes` contains id=1 (SAP ERP), id=2 (DWH), id=14 (BI Tool); `path=[1,2,14]`; `cycleDetected=false`
 
 **AC2** (Upstream):
-- Gegeben: gleiche Konfiguration wie AC1
-- Wenn: `GET /api/v1/lineage?entityId=42&direction=upstream`
-- Dann: `nodes` enthält id=1 (SAP ERP); DWH nur als Zwischenknoten; path rückwärts
+- Given: same configuration as AC1
+- When: `GET /api/v1/lineage?entityId=42&direction=upstream`
+- Then: `nodes` contains id=1 (SAP ERP); DWH only as an intermediate node; path backwards
 
-**AC3** (Zykluserkennung):
-- Gegeben: Zyklus A→B→C→A mit DataObject 42 in allen Flows
-- Wenn: `GET /api/v1/lineage?entityId=42&direction=downstream`
-- Dann: `cycleDetected=true`; Response enthält traversierten Teilgraph; kein Timeout/Endlosloop
+**AC3** (Cycle detection):
+- Given: Cycle A→B→C→A with DataObject 42 in all flows
+- When: `GET /api/v1/lineage?entityId=42&direction=downstream`
+- Then: `cycleDetected=true`; response contains the traversed subgraph; no timeout/endless loop
 
-**AC4** (EntityType-Filter):
-- Wenn: `entityTypeFilter=application-component`
-- Dann: Response enthält nur Knoten mit `entityTypeId=application-component`; DataFlows erscheinen nur in `edges`
+**AC4** (EntityType filter):
+- When: `entityTypeFilter=application-component`
+- Then: Response contains only nodes with `entityTypeId=application-component`; DataFlows appear only in `edges`
 
-**AC5** (Leeres Ergebnis):
-- Gegeben: DataObject id=42 wird von keinem DataFlow via carries-data referenziert
-- Wenn: Lineage-Query für id=42
-- Dann: `nodes=[]`, `edges=[]`, HTTP 200; kein Fehler
+**AC5** (Empty result):
+- Given: DataObject id=42 is not referenced by any DataFlow via carries-data
+- When: Lineage query for id=42
+- Then: `nodes=[]`, `edges=[]`, HTTP 200; no error
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Bestanden-Kriterium: AC1–AC5 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Pass criterion: AC1–AC5 green
+- [ ] Integrated in CI: yes, as soon as implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-061 (carries-data-Verbindungen müssen existieren für sinnvolle Traversierung)
-- **Folgewirkungen**: REQ-063 (Canvas nutzt Lineage-API um 3-Punkte-Indikator zu setzen)
+- **Prerequisites**: REQ-061 (carries-data connections must exist for a meaningful traversal)
+- **Downstream effects**: REQ-063 (canvas uses the lineage API to set the 3-dot indicator)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- BFS-Algorithmus (Breadth-First Search); Visited-Set für Zykluserkennung
-- Die carries-data-Connection ist der Schlüssel: Traversierung folgt `carries-data.source → dataFlow → dataFlow.target`
-- Keine ORM-Joins über n Ebenen; Graph-Traversierung im Service-Layer (nicht in SQL)
-- Caching: kein Cache in v1.0 (live Query); bei Performance-Problemen optional Redis-Cache mit TTL
+- BFS algorithm (breadth-first search); visited set for cycle detection
+- The carries-data connection is the key: the traversal follows `carries-data.source → dataFlow → dataFlow.target`
+- No ORM joins over n levels; graph traversal in the service layer (not in SQL)
+- Caching: no cache in v1.0 (live query); in case of performance problems, optionally a Redis cache with TTL
 
-## Realisierung
+## Implementation
 
 - ADR(s): [ADR-010](../../adrs/ADR-010-n-connection-data-lineage.md) (proposed)
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |

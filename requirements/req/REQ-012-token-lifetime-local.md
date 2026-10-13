@@ -1,6 +1,6 @@
 ---
 id: REQ-012
-title: Konfigurierbare Token-Lebensdauer bei lokaler Authentifizierung
+title: Configurable token lifetime for local authentication
 type: data
 priority: should
 status: proposed
@@ -18,95 +18,95 @@ references:
     - SH-03
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-012: Konfigurierbare Token-Lebensdauer bei lokaler Authentifizierung
+# REQ-012: Configurable token lifetime for local authentication
 
-## Aussage
+## Statement
 
-Bei lokaler Authentifizierung (Passkey, Username/Passwort, mit oder ohne TOTP – siehe REQ-009–REQ-011) MUSS die Gültigkeitsdauer von Access-Token (Authorization Token) und Refresh-Token instanzweit konfigurierbar sein.
+For local authentication (passkey, username/password, with or without TOTP – see REQ-009–REQ-011), the validity period of access token (authorization token) and refresh token MUST be configurable instance-wide.
 
-## Begründung
+## Rationale
 
-Im Gegensatz zu externen Identity-Providern (Entra ID, Authentik), bei denen die Token-Gültigkeit vom IdP vorgegeben wird (siehe REQ-001, AC4), gibt es bei lokaler Authentifizierung keine externe Instanz, die diese Werte festlegt. OEA selbst muss daher sinnvolle, konfigurierbare Defaults bereitstellen, da unterschiedliche Betreiber (z.B. SH-03 Single-User-KMU vs. sicherheitsbewusstere Organisationen) unterschiedliche Sicherheits-/Usability-Abwägungen treffen.
+Unlike external identity providers (Entra ID, Authentik), where the token validity is dictated by the IdP (see REQ-001, AC4), local authentication has no external instance that sets these values. OEA itself must therefore provide sensible, configurable defaults, since different operators (e.g., SH-03 single-user SME vs. more security-conscious organizations) make different security/usability trade-offs.
 
-## Kontext
+## Context
 
-Betrifft ausschließlich Sessions, die über die lokalen Authentifizierungsmechanismen aus REQ-009 (Passkey), REQ-010 (Username/Passwort + TOTP) und REQ-011 (Username/Passwort ohne zweiten Faktor) entstehen.
+Concerns exclusively sessions created via the local authentication mechanisms from REQ-009 (passkey), REQ-010 (username/password + TOTP), and REQ-011 (username/password without second factor).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=data
+### For type=data
 
-**Betroffene Datenstruktur**: Instanz-weite Authentifizierungs-Konfiguration (nicht Person- oder Role-Objekt)
+**Affected Data Structure**: Instance-wide authentication configuration (not a Person or Role object)
 
-**Datentyp**: composite (zwei Werte: `accessTokenLifetime`, `refreshTokenLifetime`, jeweils Dauer)
+**Data Type**: composite (two values: `accessTokenLifetime`, `refreshTokenLifetime`, each a duration)
 
 **Constraints**:
-- Pflichtfeld: ja, beide Werte müssen gesetzt sein (mit sinnvollem Default, falls nicht explizit konfiguriert)
-- Format: ISO 8601 Duration (z.B. `PT15M` für 15 Minuten) oder gleichwertige Konfigurationsnotation
-- Wertebereich: `accessTokenLifetime` < `refreshTokenLifetime`; beide > 0
-- Eindeutigkeit: instanzweit einheitlich (nicht pro Person konfigurierbar)
+- Mandatory field: yes, both values must be set (with a sensible default if not explicitly configured)
+- Format: ISO 8601 duration (e.g., `PT15M` for 15 minutes) or an equivalent configuration notation
+- Value range: `accessTokenLifetime` < `refreshTokenLifetime`; both > 0
+- Uniqueness: uniform instance-wide (not configurable per person)
 
-**Default-Wert**: vorläufig `accessTokenLifetime: PT15M`, `refreshTokenLifetime: P7D` (Walking-Skeleton-Annahme, bei Bedarf in Review anzupassen)
+**Default Value**: provisionally `accessTokenLifetime: PT15M`, `refreshTokenLifetime: P7D` (walking skeleton assumption, to be adjusted in review if needed)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine Instanz mit lokal konfigurierter Access-Token-Lebensdauer von 15 Minuten
-- Wenn: eine Person sich über einen lokalen Mechanismus (Passkey, Username/Passwort) anmeldet
-- Dann: läuft das Access-Token nach 15 Minuten ab
+- Given: an instance with a locally configured access token lifetime of 15 minutes
+- When: a person logs in via a local mechanism (passkey, username/password)
+- Then: the access token expires after 15 minutes
 
 **AC2**:
-- Gegeben: ein abgelaufenes Access-Token, aber ein noch gültiges Refresh-Token aus lokaler Authentifizierung
-- Wenn: ein Refresh angefordert wird
-- Dann: wird ein neues Access-Token mit der konfigurierten Lebensdauer ausgestellt
+- Given: an expired access token but a still-valid refresh token from local authentication
+- When: a refresh is requested
+- Then: a new access token with the configured lifetime is issued
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Konfiguration unterschiedlicher Lebensdauer-Werte, Prüfung von Ablauf- und Refresh-Verhalten
-- [x] Mess-Werkzeug: Test-Suite des Auth-Moduls
-- [x] Bestanden-Kriterium: AC1, AC2 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: configuration of different lifetime values, check of expiry and refresh behavior
+- [x] Measurement tool: test suite of the auth module
+- [x] Pass criterion: AC1, AC2 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-009, REQ-010, REQ-011 (mindestens einer der lokalen Mechanismen muss existieren)
-- **Folgewirkungen**: keine bekannt
-- **Konflikte**: REQ-001 AC4 (für externe IdP gilt die gegenteilige Regel: keine eigene Lebensdauer-Festlegung durch OEA)
+- **Prerequisites**: REQ-009, REQ-010, REQ-011 (at least one of the local mechanisms must exist)
+- **Downstream effects**: none known
+- **Conflicts**: REQ-001 AC4 (for external IdPs the opposite rule applies: no lifetime set by OEA itself)
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Feste, nicht konfigurierbare Lebensdauer könnte für manche Betreiber zu kurz (Frustration) oder zu lang (Sicherheitsrisiko bei gestohlenen Tokens) sein
+- Risk 1: A fixed, non-configurable lifetime could be too short (frustration) or too long (security risk with stolen tokens) for some operators
 
 ## Trade-offs
 
-- vs. Sicherheit: längere Lebensdauer erhöht Usability, aber auch das Risiko bei Token-Diebstahl – Betreiber müssen diese Abwägung selbst treffen können, OEA gibt nur sinnvolle Defaults vor
+- vs. security: a longer lifetime increases usability but also the risk of token theft – operators must be able to make this trade-off themselves, OEA only provides sensible defaults
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Konfiguration sollte Teil der instanzweiten Auth-Konfiguration sein (gleiche Stelle wie Aktivierung von REQ-011)
-- Gilt nicht für extern ausgestellte Token (REQ-001, AC4) – dort bestimmt der IdP
+- Configuration should be part of the instance-wide auth configuration (same place as enabling REQ-011)
+- Does not apply to externally issued tokens (REQ-001, AC4) – there the IdP decides
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Löst die in UC-01 offene Frage "Wie lange ist eine Session gültig, und wie wird Refresh gehandhabt?" für den lokalen Authentifizierungsfall; für externe IdPs ist die Frage durch REQ-001 AC4 beantwortet (IdP-seitig vorgegeben).
+Resolves the question left open in UC-01, "How long is a session valid, and how is refresh handled?", for the local authentication case; for external IdPs the question is answered by REQ-001 AC4 (set by the IdP).
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft, klärt Token-Lebensdauer getrennt für externe IdP (REQ-001) und lokale Authentifizierung |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft, clarifies token lifetime separately for external IdP (REQ-001) and local authentication |

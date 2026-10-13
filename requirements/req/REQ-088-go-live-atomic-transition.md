@@ -1,6 +1,6 @@
 ---
 id: REQ-088
-title: Go-Live als atomare DB-Transaktion
+title: Go-live as an atomic DB transaction
 type: functional
 priority: must
 status: proposed
@@ -23,39 +23,39 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-088: Go-Live als atomare DB-Transaktion
+# REQ-088: Go-live as an atomic DB transaction
 
-## Aussage
+## Statement
 
-Die Go-Live-Transition MUSS als atomare DB-Transaktion ausgeführt werden und folgende Änderungen umfassen: (1) P1: `status→baseline`, `validFrom=jetzt(UTC)`; (2) P0: `status→realized`, `validTo=jetzt(UTC)`, read-only; (3) alle Entitäten in P1 mit `lifecycle_state=retiring` → `lifecycle_state=retired`. Bei technischem Fehler MUSS ein vollständiger Rollback erfolgen; kein Inkonsistenz-Zustand ist zulässig.
+The go-live transition MUST be executed as an atomic DB transaction and comprise the following changes: (1) P1: `status→baseline`, `validFrom=now(UTC)`; (2) P0: `status→realized`, `validTo=now(UTC)`, read-only; (3) all entities in P1 with `lifecycle_state=retiring` → `lifecycle_state=retired`. In case of a technical error, a complete rollback MUST occur; no inconsistent state is permissible.
 
-## Begründung
+## Rationale
 
-Der Go-Live-Übergang betrifft mehrere Tabellen. Partielles Commit würde zu inkonsistentem Architekturstatus führen — P1 wäre Baseline ohne P0 als realized, was den Architektur-Lebenszyklus dauerhaft beschädigt.
+The go-live transition affects several tables. A partial commit would lead to an inconsistent architecture status — P1 would be baseline without P0 as realized, which permanently damages the architecture lifecycle.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Rollback bei DB-Fehler):
-- Wenn: ein simulierter DB-Fehler nach dem P1-Update auftritt
-- Dann: erfolgt ein vollständiger Rollback; P0 und P1 sind unverändert
+**AC1** (Rollback on DB error):
+- When: a simulated DB error occurs after the P1 update
+- Then: a complete rollback occurs; P0 and P1 are unchanged
 
-**AC2** (Erfolgreicher Go-Live):
-- Wenn: Go-Live erfolgreich ausgeführt wird
-- Dann: hat P1 `status=baseline`, P0 hat `status=realized`; alle `retiring`-Entitäten in P1 haben `lifecycle_state=retired`; alle Zustände sind konsistent
+**AC2** (Successful go-live):
+- When: go-live is executed successfully
+- Then: P1 has `status=baseline`, P0 has `status=realized`; all `retiring` entities in P1 have `lifecycle_state=retired`; all states are consistent
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-086 (Bestätigung erteilt), REQ-084 (Plateau existiert)
-- **Folgewirkungen**: REQ-089 (Realized-Plateau ist read-only)
+- **Prerequisites**: REQ-086 (confirmation granted), REQ-084 (plateau exists)
+- **Downstream effects**: REQ-089 (realized plateau is read-only)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Transaktions-Isolation mindestens `REPEATABLE READ`
-- Spring `@Transactional` mit explizitem Rollback auf alle Exceptions
-- UTC-Zeitstempel für `validFrom`/`validTo` aus Systemzeit zum Transaktionsbeginn
+- Transaction isolation at least `REPEATABLE READ`
+- Spring `@Transactional` with explicit rollback on all exceptions
+- UTC timestamps for `validFrom`/`validTo` from system time at transaction start
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

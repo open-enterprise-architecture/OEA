@@ -1,69 +1,69 @@
-# Ableitung aus: requirements/req/req-066-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-066-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-04 @UC-05 @UC-06 @UC-08
-Feature: REQ-066 – Konfigurierbare Entity-Anlage-Workflows (Wizard)
+Feature: REQ-066 – Configurable entity creation workflows (wizard)
 
-  Das System MUSS für jeden `EntityTypeDefinition` mit mindestens einem
-  konfigurierten `creationStep` beim Anlegen einer neuen Entität — egal
-  ob im Katalog-Kontext oder im Diagramm-Kontext — automatisch einen
-  mehrseitigen Wizard öffnen. Jeder `CreationStep` entspricht genau
-  einer Pop-over-Seite.
+  For every `EntityTypeDefinition` with at least one configured
+  `creationStep`, the system MUST automatically open a multi-page
+  wizard when creating a new entity — regardless of whether in the
+  catalog context or in the diagram context. Each `CreationStep`
+  corresponds to exactly one pop-over page.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Wizard öffnet sich automatisch – Katalog-Kontext – ApplicationComponent hat 3 `creationSteps`
-    Given ApplicationComponent hat 3 `creationSteps`
-    When  Lukas klickt „+ Neue Entität" im ApplicationComponent-Catalog
-    Then  Wizard öffnet sich auf Seite 1 „Basisdaten"; kein klassisches Anlage-Modal
+  Scenario: AC1 – Wizard opens automatically – catalog context – ApplicationComponent has 3 `creationSteps`
+    Given ApplicationComponent has 3 `creationSteps`
+    When  Lukas clicks "+ New entity" in the ApplicationComponent catalog
+    Then  wizard opens on page 1 "Basic data"; no classic creation modal
 
   @AC2
-  Scenario: AC2 – Wizard öffnet sich automatisch – Diagramm-Kontext – Lukas platziert ein ApplicationComponent-Element im Diagramm (Drag & Dro...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Lukas platziert ein ApplicationComponent-Element im Diagramm (Drag & Drop aus Palette)
-    Then  Wizard öffnet sich sofort; Entität ist erst nach „Fertig" auf dem Canvas sichtbar
+  Scenario: AC2 – Wizard opens automatically – diagram context – Lukas places an Appli...
+    Given the precondition according to the requirement is met
+    When  Lukas places an ApplicationComponent element in the diagram (drag & drop from palette)
+    Then  wizard opens immediately; entity is visible on the canvas only after "Finish"
 
   @AC3
-  Scenario: AC3 – Navigation Weiter / Fertig – 3 Schritte
-    Given 3 Schritte
-    When  Lukas navigiert: Weiter → Weiter → Fertig
-    Then  Schritt 1 → Schritt 2 → Schritt 3 → Fertig; Entität und alle Connections atomisch persistiert
+  Scenario: AC3 – Navigation Next / Finish – 3 steps
+    Given 3 steps
+    When  Lukas navigates: Next → Next → Finish
+    Then  step 1 → step 2 → step 3 → Finish; entity and all connections persisted atomically
 
   @AC4
-  Scenario: AC4 – Zurück-Navigation – Lukas ist auf Schritt 2 und klickt „Zurück"
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Lukas ist auf Schritt 2 und klickt „Zurück"
-    Then  Schritt 1 wird wieder angezeigt; eingegebene Daten aus Schritt 1 bleiben erhalten
+  Scenario: AC4 – Back navigation – Lukas is on step 2 and clicks "Back"
+    Given the precondition according to the requirement is met
+    When  Lukas is on step 2 and clicks "Back"
+    Then  step 1 is displayed again; data entered in step 1 is retained
 
   @AC5
-  Scenario: AC5 – Mandatory Property blockiert Fertig – Schritt 1 hat Property `owner` (validationMode=mandatory); Lukas lässt e...
-    Given Schritt 1 hat Property `owner` (validationMode=mandatory); Lukas lässt es leer
-    When  Lukas klickt „Fertig" (oder versucht nach Schritt 3 zu gelangen)
-    Then  Fehlermeldung auf dem entsprechenden Schritt; keine Persistierung
+  Scenario: AC5 – Mandatory property blocks Finish – step 1 has property `owner` (valid...
+    Given step 1 has property `owner` (validationMode=mandatory); Lukas leaves it empty
+    When  Lukas clicks "Finish" (or tries to proceed to step 3)
+    Then  error message on the corresponding step; no persistence
 
   @AC6
-  Scenario: AC6 – connectionAssignment minConnections=1 – Schritt 3 „Capability-Verknüpfung" mit minConnections=1
-    Given Schritt 3 „Capability-Verknüpfung" mit minConnections=1
-    When  Lukas klickt „Fertig" ohne eine Capability ausgewählt zu haben
-    Then  Schritt 3 zeigt Fehler „Mind. 1 Capability muss verknüpft werden"; keine Persistierung
+  Scenario: AC6 – connectionAssignment minConnections=1 – step 3 "Capability linking" with minConnections=1
+    Given step 3 "Capability linking" with minConnections=1
+    When  Lukas clicks "Finish" without having selected a capability
+    Then  step 3 shows error "At least 1 capability must be linked"; no persistence
 
   @AC7
-  Scenario: AC7 – Abbruch = keine Entität – Lukas schliesst den Wizard (ESC oder X) auf Schritt 2
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Lukas schliesst den Wizard (ESC oder X) auf Schritt 2
-    Then  Keine Entität im Repository; keine teilangelegte Verbindung
+  Scenario: AC7 – Cancel = no entity – Lukas closes the wizard (ESC or X) on step 2
+    Given the precondition according to the requirement is met
+    When  Lukas closes the wizard (ESC or X) on step 2
+    Then  no entity in the repository; no partially created connection
 
   @AC8
-  Scenario: AC8 – Kein Wizard ohne creationSteps – EntityType `stereotype` ohne `creationSteps` (leere Liste)
-    Given EntityType `stereotype` ohne `creationSteps` (leere Liste)
-    When  Nutzer legt neue Instanz an
-    Then  Klassisches Anlage-Modal (kein Wizard); kein Regressionsfehler
+  Scenario: AC8 – No wizard without creationSteps – EntityType `stereotype` without `creationSteps` (empty list)
+    Given EntityType `stereotype` without `creationSteps` (empty list)
+    When  user creates a new instance
+    Then  classic creation modal (no wizard); no regression error
 
   @AC9
-  Scenario: AC9 – Atomische Persistierung – Wizard mit Entität + 2 Connections
-    Given Wizard mit Entität + 2 Connections
-    When  Die zweite Connection-Erstellung schlägt serverseitig fehl (z.B. Zielentität gelöscht)
-    Then  Weder Entität noch erste Connection sind persistent; HTTP 422 mit Fehlerbeschreibung
+  Scenario: AC9 – Atomic persistence – wizard with entity + 2 connections
+    Given wizard with entity + 2 connections
+    When  the second connection creation fails server-side (e.g. target entity deleted)
+    Then  neither entity nor first connection are persistent; HTTP 422 with error description

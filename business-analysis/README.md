@@ -1,58 +1,58 @@
 # Business Analysis
 
-Stakeholder-Profile, Concerns und Pain Points. Grundlage für die Requirements-Phase.
+Stakeholder profiles, concerns, and pain points. Foundation for the requirements phase.
 
-## Inhalt
+## Contents
 
 ```
 business-analysis/
-├── README.md                    ← dieses Dokument
-├── vision.md                    ← eine Vision in einem Satz, ergänzt um Kontext
-├── stakeholders/                ← konkrete Personen oder Rollen
+├── README.md                    ← this document
+├── vision.md                    ← a vision in one sentence, supplemented by context
+├── stakeholders/                ← concrete persons or roles
 │   ├── SH-01-...md
 │   └── ...
-├── concerns/                    ← Stakeholder-übergreifende Concerns
+├── concerns/                    ← cross-stakeholder concerns
 │   └── ...
-└── glossary.md                  ← projektspezifische Begriffsdefinitionen
+└── glossary.md                  ← project-specific term definitions
 ```
 
-## Vorgehen
+## Approach
 
-### Schritt 1: Vision festhalten
+### Step 1: Capture the Vision
 
-Eine Aussage in einem Satz: Was soll das Tool für wen leisten? Beispiel:
+One statement in one sentence: What should the tool achieve for whom? Example:
 
-> "Das Tool gibt einem Enterprise Architekten volle Kontrolle über Landschaft, Zielbilder und Governance über ein Git-basiertes Repository, ohne ihn an proprietäre Formate zu binden."
+> "The tool gives an enterprise architect full control over the landscape, target states, and governance via a Git-based repository, without tying them to proprietary formats."
 
-Diese Vision entscheidet später jeden Trade-off. Sie wird in `vision.md` festgehalten.
+This vision decides every later trade-off. It is recorded in `vision.md`.
 
-### Schritt 2: Stakeholder identifizieren
+### Step 2: Identify Stakeholders
 
-Drei bis fünf konkrete Personen (mit echten Namen aus deinem Umfeld, wenn möglich) als primäre Stakeholder. Pro Person ein Profil basierend auf `../templates/stakeholder.template.md`.
+Three to five concrete persons (with real names from your environment, if possible) as primary stakeholders. One profile per person based on `../templates/stakeholder.template.md`.
 
-**Anti-Pattern vermeiden**: "Enterprise Architect mittlerer Erfahrung" ist nichtssagend. "Stefan, Solution Architect bei einem Schweizer Versicherer, frustriert von Sparx-EA-Lizenzkosten" ist Gold wert.
+**Avoid the anti-pattern**: "Enterprise architect with medium experience" is meaningless. "Stefan, solution architect at a Swiss insurer, frustrated by Sparx EA license costs" is gold.
 
-### Schritt 3: Pain Points sammeln
+### Step 3: Collect Pain Points
 
-Pro Stakeholder die größten Probleme heute. Was kostet Zeit? Was funktioniert nicht? Was nervt? Pain Points sind wertvoller als Wünsche, weil sie konkrete Use Cases generieren.
+Per stakeholder, the biggest problems today. What costs time? What does not work? What is annoying? Pain points are more valuable than wishes because they generate concrete use cases.
 
-### Schritt 4: Concerns ableiten
+### Step 4: Derive Concerns
 
-Stakeholder-übergreifende Sorgen, die das Tool adressieren muss. Beispiele:
-- "Architektur-Dokumentation veraltet schnell"
-- "EA-Tools sind teuer und proprietär"
-- "Compliance-Nachweise sind manuell und fehleranfällig"
+Cross-stakeholder worries that the tool must address. Examples:
+- "Architecture documentation becomes outdated quickly"
+- "EA tools are expensive and proprietary"
+- "Compliance evidence is manual and error-prone"
 
-Concerns werden später in Use Cases übersetzt.
+Concerns are later translated into use cases.
 
-## Verbindung zu anderen Ordnern
+## Connection to Other Folders
 
-- Stakeholder → Use Cases in `../requirements/use-cases/`
-- Concerns → Anforderungen in `../requirements/`
-- Vision → Leitprinzipien in `../concept/README.md`
+- Stakeholders → use cases in `../requirements/use-cases/`
+- Concerns → requirements in `../requirements/`
+- Vision → guiding principles in `../concept/README.md`
 
-## Slash-Commands
+## Slash Commands
 
-In `.opencode/commands/` sollten verfügbar sein:
-- `/new-stakeholder` – legt neues Stakeholder-Profil an
-- `/list-stakeholders` – zeigt alle Stakeholder mit Use-Case-Bezug
+The following should be available in `.opencode/commands/`:
+- `/new-stakeholder` – creates a new stakeholder profile
+- `/list-stakeholders` – shows all stakeholders with use case reference

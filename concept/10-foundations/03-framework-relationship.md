@@ -1,79 +1,79 @@
-## 3. Verhältnis zu Arc42 und TOGAF
+## 3. Relationship to Arc42 and TOGAF
 
-TOGAF und Arc42 sind beide als Standards eingeplant – aber sie adressieren unterschiedliche Ebenen und reiben sich an mehreren Stellen. Dieses Kapitel macht die Reibungspunkte explizit, damit Modellierungs-Entscheidungen und Schema-Design sie bewusst auflösen können.
+TOGAF and Arc42 are both planned as standards – but they address different levels and conflict at several points. This chapter makes the friction points explicit so that modeling decisions and schema design can resolve them deliberately.
 
-### 3.1 Grundausrichtung
+### 3.1 Basic Orientation
 
 | Dimension | TOGAF | Arc42 |
 |---|---|---|
-| Typ | Enterprise-Architecture-Framework | Dokumentations-Template für Softwarearchitekturen |
-| Skala | Unternehmen, Portfolio | Einzelnes System |
-| Kern | ADM (Prozess) + Content Metamodel (Struktur) | 12 vordefinierte Dokumentations-Kapitel |
-| Zielrollen | Enterprise/Domain Architects, Programm-Verantwortliche | Software/Solution Architects, Entwicklungsteams |
-| Planungshorizont | Monate bis Jahre (Baseline → Target) | Lebenszyklus eines Systems |
+| Type | Enterprise architecture framework | Documentation template for software architectures |
+| Scale | Enterprise, portfolio | Single system |
+| Core | ADM (process) + Content Metamodel (structure) | 12 predefined documentation chapters |
+| Target roles | Enterprise/domain architects, program managers | Software/solution architects, development teams |
+| Planning horizon | Months to years (baseline → target) | Lifecycle of a system |
 
-Die Frameworks sind **komplementär, nicht konkurrierend**: TOGAF sagt *wie entwickelt*, Arc42 sagt *wie dokumentiert*. An den Nahtstellen entstehen jedoch konzeptionelle Spannungen.
+The frameworks are **complementary, not competing**: TOGAF says *how to develop*, Arc42 says *how to document*. However, conceptual tensions arise at the seams.
 
-### 3.2 Konzeptionelle Reibungspunkte
+### 3.2 Conceptual Friction Points
 
-**Reibung 1: Hierarchie von Komponenten**
-- Arc42-Bausteine sind rekursiv hierarchisch (Whitebox/Blackbox-Dialektik)
-- TOGAF Application Components sind konzeptionell flach mit expliziten `partOf`-Relationen
-- *Auflösung im Metamodell*: Application Components unterstützen Hierarchie via `partOf`; Arc42-Bausteine sind Stereotyp auf Application Component
+**Friction 1: Hierarchy of components**
+- Arc42 building blocks are recursively hierarchical (whitebox/blackbox dialectic)
+- TOGAF Application Components are conceptually flat with explicit `partOf` relations
+- *Resolution in the metamodel*: Application Components support hierarchy via `partOf`; Arc42 building blocks are a stereotype on Application Component
 
-**Reibung 2: Sichten-Konzept**
-- Arc42 hat drei Pflichtsichten (Baustein, Laufzeit, Verteilung)
-- TOGAF kennt flexibel definierbare Viewpoints/Views (ISO 42010)
-- *Auflösung*: Arc42-Sichten sind vordefinierte TOGAF-Viewpoints im Schema `arc42`
+**Friction 2: View concept**
+- Arc42 has three mandatory views (building block, runtime, deployment)
+- TOGAF knows flexibly definable viewpoints/views (ISO 42010)
+- *Resolution*: Arc42 views are predefined TOGAF viewpoints in the schema `arc42`
 
-**Reibung 3: Qualitätsanforderungen**
-- Arc42 hat expliziten Qualitätsbaum als Pflicht-Kapitel
-- TOGAF hat Requirements als Querschnitt, aber ohne präzise NFR-Struktur
-- *Auflösung*: Qualitätsanforderungen werden als eigener EntityType mit Baum-Struktur modelliert (aus Arc42 übernommen)
+**Friction 3: Quality requirements**
+- Arc42 has an explicit quality tree as a mandatory chapter
+- TOGAF has requirements as a cross-cutting concern, but without a precise NFR structure
+- *Resolution*: Quality requirements are modeled as a separate EntityType with a tree structure (adopted from Arc42)
 
-**Reibung 4: Architekturentscheidungen**
-- Arc42 + Community: etablierte ADR-Kultur (einzeln, versioniert, git-basiert)
-- TOGAF: Architecture Decisions meist in großen Dokumenten, weniger agil
-- *Auflösung*: ADRs sind First-Class-EntityType im Repository (Arc42-Kultur gewinnt)
+**Friction 4: Architecture decisions**
+- Arc42 + community: established ADR culture (individual, versioned, git-based)
+- TOGAF: architecture decisions mostly in large documents, less agile
+- *Resolution*: ADRs are a first-class EntityType in the repository (Arc42 culture wins)
 
-**Reibung 5: Zeit und Versionierung** (der größte Unterschied)
-- TOGAF: Baseline + Target + Transition Architectures sind First-Class
-- Arc42: kein temporales Konzept – ein Dokument = ein Zustand
-- *Auflösung*: Das Plateau-Konzept (siehe [§11 (Temporales Modell)](../30-dynamics/11-temporales-modell.md)) geht über beide Frameworks hinaus; Arc42-Dokumente werden pro Plateau generiert
+**Friction 5: Time and versioning** (the biggest difference)
+- TOGAF: baseline + target + transition architectures are first-class
+- Arc42: no temporal concept – one document = one state
+- *Resolution*: The plateau concept (see [§11 (Temporal Model)](../30-dynamics/11-temporal-model.md)) goes beyond both frameworks; Arc42 documents are generated per plateau
 
-**Reibung 6: Standards und Prinzipien**
-- TOGAF: zentrale, unternehmensweite Architecture Principles/Standards
-- Arc42: system-lokale Randbedingungen (Kapitel 2) und Querschnittliche Konzepte (Kapitel 8)
-- *Auflösung*: Standards/Prinzipien zentral im Repository; Arc42-Randbedingungen referenzieren oder ergänzen sie
+**Friction 6: Standards and principles**
+- TOGAF: central, enterprise-wide architecture principles/standards
+- Arc42: system-local constraints (chapter 2) and cross-cutting concepts (chapter 8)
+- *Resolution*: Standards/principles centrally in the repository; Arc42 constraints reference or supplement them
 
-**Reibung 7: Interface-Perspektive** (einziger echter Widerspruch)
-- TOGAF: Interface ist neutrale Verbindung zwischen Systemen
-- Arc42: Interface ist system-zentriert beschrieben (ausgehend/eingehend aus Sicht *eines* Systems)
-- *Gefahr*: Zwei Arc42-Dokumente und ein EA-Eintrag können dasselbe Interface unterschiedlich beschreiben
-- *Auflösung*: Interface-Definition ausschließlich im Repository, Arc42-Dokumente ziehen Daten von dort (zentrale Konsequenz für die Dokumenten-Generierung)
+**Friction 7: Interface perspective** (the only real contradiction)
+- TOGAF: interface is a neutral connection between systems
+- Arc42: interface is described system-centrically (outgoing/incoming from the perspective of *one* system)
+- *Risk*: Two Arc42 documents and one EA entry may describe the same interface differently
+- *Resolution*: Interface definition exclusively in the repository, Arc42 documents pull data from there (central consequence for document generation)
 
-### 3.3 Gemeinsames Metamodell als Auflösung
+### 3.3 Common Metamodel as Resolution
 
-Der eigentliche Wert der Meta-Metamodell-Strategie liegt darin, dass beide Frameworks auf *eine gemeinsame Datenstruktur* abgebildet werden. Was in den Frameworks als Widerspruch erscheint, wird im Repository zu **zwei Sichten auf dieselben Daten**:
+The real value of the meta-metamodel strategy is that both frameworks are mapped onto *one common data structure*. What appears as a contradiction in the frameworks becomes **two views of the same data** in the repository:
 
-- Die **Enterprise-Sicht** zeigt Portfolio, Landschaft, Plateaus – TOGAF-konform
-- Die **System-Sicht** zeigt ein einzelnes System als Arc42-Dokument – generiert aus demselben Repository
-- **Interfaces, Standards, ADRs** leben zentral und sind in beiden Sichten konsistent
+- The **enterprise view** shows portfolio, landscape, plateaus – TOGAF-compliant
+- The **system view** shows a single system as an Arc42 document – generated from the same repository
+- **Interfaces, standards, ADRs** live centrally and are consistent in both views
 
-Das ist der technische Kern: Die Reibung verschwindet nicht in den Standards, sie wird im Tool aufgelöst.
+This is the technical core: The friction does not disappear in the standards, it is resolved in the tool.
 
-### 3.4 Konsequenzen für Schema-Design
+### 3.4 Consequences for Schema Design
 
-Konkret folgt daraus für die Schema-Gestaltung:
+Concretely, this results in the following for schema design:
 
-1. **Application Components unterstützen Hierarchie** (für Arc42-Bausteine)
-2. **QualityRequirement als eigener EntityType** mit Baum-Struktur (aus Arc42)
-3. **ADRs als First-Class-EntityType** (aus Arc42-Praxis, ergänzt TOGAF)
-4. **Plateau-Konzept als Erweiterung beider Frameworks** (siehe [§11 (Temporales Modell)](../30-dynamics/11-temporales-modell.md))
-5. **Interfaces zentral im Repository** – Arc42-Dokumente nur als Leser
-6. **Standards/Prinzipien zentral** – Arc42-Randbedingungen referenzieren sie
-7. **Arc42-Dokumenten-Generator**: erzeugt aus dem Repository ein vollständiges Arc42-Dokument für ein System und Plateau, mit allen 12 Kapiteln befüllt aus modellierten Entitäten
+1. **Application Components support hierarchy** (for Arc42 building blocks)
+2. **QualityRequirement as a separate EntityType** with a tree structure (from Arc42)
+3. **ADRs as a first-class EntityType** (from Arc42 practice, supplements TOGAF)
+4. **Plateau concept as an extension of both frameworks** (see [§11 (Temporal Model)](../30-dynamics/11-temporal-model.md))
+5. **Interfaces centrally in the repository** – Arc42 documents only as readers
+6. **Standards/principles centrally** – Arc42 constraints reference them
+7. **Arc42 document generator**: generates a complete Arc42 document for a system and plateau from the repository, with all 12 chapters populated from modeled entities
 
 ---
 
-← [Meta-Metamodell](../00-overview/02-meta-metamodell.md) · [🏠 Übersicht](../README.md) · [Enterprise Continuum & TRM](04-enterprise-continuum-trm.md) →
+← [Meta-Metamodel](../00-overview/02-meta-metamodel.md) · [🏠 Overview](../README.md) · [Enterprise Continuum & TRM](04-enterprise-continuum-trm.md) →

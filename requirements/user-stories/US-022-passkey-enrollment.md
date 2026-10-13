@@ -1,64 +1,64 @@
-# US-022: Passkey registrieren (WebAuthn-Credential-Registrierung)
+# US-022: Register Passkey (WebAuthn Credential Registration)
 
 **ID**: US-022
 **Story Points**: 8
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Person, die sich zum ersten Mal mit ihrem initialen Passwort anmeldet, möchte ich im Rahmen des Logins einen Passkey registrieren, damit ich danach passwortlos und phishing-resistent Zugriff erhalte.
+As a person signing in for the first time with my initial password, I want to register a passkey as part of the login, so that afterwards I get passwordless, phishing-resistant access.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-03: Authentifizierungsmethode einrichten](../use-cases/UC-03-authentifizierungsmethode-einrichten.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-023: Passkey-Enrollment (WebAuthn-Credential-Registrierung)](../req/REQ-023-passkey-enrollment.md)
+**Use Case**: [UC-03: Set Up Authentication Method](../use-cases/UC-03-set-up-authentication-method.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-023: Passkey Enrollment (WebAuthn Credential Registration)](../req/REQ-023-passkey-enrollment.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Kurt hat Passkey als Methode gewählt und einen WebAuthn-fähigen Authenticator
-- Wenn: er die Authenticator-Bestätigung abschließt
-- Dann: ist der Public Key persistiert; der Passkey-Login (UC-01 A3) ist möglich
+- Given: Kurt has chosen passkey as the method and has a WebAuthn-capable authenticator
+- When: he completes the authenticator confirmation
+- Then: the public key is persisted; passkey login (UC-01 A3) is possible
 
 **AC2**:
-- Gegeben: Kurt bricht die Authenticator-Bestätigung ab
-- Wenn: der Abbruch eintritt
-- Dann: wird kein Credential gespeichert; das Enrollment-Token bleibt gültig
+- Given: Kurt cancels the authenticator confirmation
+- When: the cancellation occurs
+- Then: no credential is stored; the enrollment token remains valid
 
 **AC3**:
-- Gegeben: eine Person hat bereits einen registrierten Passkey
-- Wenn: sie einen weiteren registriert
-- Dann: sind beide Credentials gespeichert und einzeln für den Login verwendbar
+- Given: a person already has a registered passkey
+- When: they register another one
+- Then: both credentials are stored and can each be used individually for login
 
 **AC4**:
-- Gegeben: eine Registrierungsantwort mit falschem Origin oder RP-ID
-- Wenn: das System sie verarbeitet
-- Dann: wird sie abgelehnt; kein Credential gespeichert
+- Given: a registration response with a wrong origin or RP ID
+- When: the system processes it
+- Then: it is rejected; no credential stored
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Enrollment-Modul (WebAuthn-Challenge-Generierung, Attestation-Verifikation), Credential-Speicher
-- Betroffene EntityTypes/Relations: `passkey_credentials`-Tabelle (`person_id`, `credential_id`, `public_key`, `sign_count`, `aaguid`, `created_at`, `last_used_at`)
-- API-Endpunkte: `POST /auth/enrollment/passkey/challenge` (Challenge generieren); `POST /auth/enrollment/passkey/register` (Attestation verarbeiten und Public Key speichern)
-- Datenbank-Änderungen: neue Tabelle `passkey_credentials`; mehrere Zeilen pro Person möglich
+- Affected components: enrollment module (WebAuthn challenge generation, attestation verification), credential store
+- Affected EntityTypes/Relations: `passkey_credentials` table (`person_id`, `credential_id`, `public_key`, `sign_count`, `aaguid`, `created_at`, `last_used_at`)
+- API endpoints: `POST /auth/enrollment/passkey/challenge` (generate challenge); `POST /auth/enrollment/passkey/register` (process attestation and store public key)
+- Database changes: new table `passkey_credentials`; multiple rows per person possible
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (virtueller WebAuthn-Authenticator; Origin-Mismatch; Mehrfach-Registrierung)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (virtual WebAuthn authenticator; origin mismatch; multiple registration)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-023 (initiales Passwort muss gesetzt sein, damit der erste Login als Trigger funktioniert), US-009 (Passkey-Login-Endpunkt ist Ziel nach Enrollment)
-- Blockiert: US-024 (Audit-Log benötigt diesen Pfad)
+- Waiting on: US-023 (initial password must be set so that the first login works as trigger), US-009 (passkey login endpoint is the target after enrollment)
+- Blocks: US-024 (audit log requires this path)
 
-## Notizen
+## Notes
 
-8 SP wegen WebAuthn-Komplexität: Challenge-Generierung, Attestation-Verifikation (inkl. Origin-Check, RP-ID-Check, Signatur-Verifikation), Signatur-Counter-Speicherung. Attestation-Format: `none` als Default; kein Attestation-CA-Betrieb nötig. User-Handle ist die opaque UUID der Person, nicht die E-Mail (FIDO2-Spec).
+8 SP because of WebAuthn complexity: challenge generation, attestation verification (incl. origin check, RP ID check, signature verification), signature counter storage. Attestation format: `none` as default; no attestation CA operation needed. The user handle is the person's opaque UUID, not the email (FIDO2 spec).

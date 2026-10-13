@@ -1,36 +1,36 @@
-# US-119: Standards-Drift in der Ist-Landschaft analysieren
+# US-119: Analyze Standards Drift in the Current-State Landscape
 
 **ID**: US-119
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich alle Entitäten sehen, die einen verbotenen, veralteten oder vom TRM-Standard abweichenden SBB verwenden, damit ich gezielte Migrations-Maßnahmen planen kann.
+As Kurt – Lead Enterprise Architect, I want to see all entities that use a prohibited, deprecated, or TRM-deviating SBB, so that I can plan targeted migration measures.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-20](../use-cases/UC-20-continuum-conformance-analysieren.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-119](../req/REQ-119-standards-drift-analyse.md)
+**Use Case**: [UC-20](../use-cases/UC-20-analyze-continuum-conformance.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-119](../req/REQ-119-standards-drift-analysis.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (prohibited-Entitäten):
-- Wenn: 3 Entitäten `instanceOfSBBId=prohibited-SBB-UUID` haben
-- Dann: sind alle 3 in der Drift-Liste; `prohibited` ist rot hervorgehoben
+**AC1** (Prohibited entities):
+- When: 3 entities have `instanceOfSBBId=prohibited-SBB-UUID`
+- Then: all 3 are in the drift list; `prohibited` is highlighted in red
 
-**AC2** (Abweichungs-Report):
-- Wenn: eine Entität einen SBB verwendet, der nicht dem `preferredStandard` ihrer TRM-Kategorie entspricht
-- Dann: erscheint sie in der Abweichungs-Liste
+**AC2** (Deviation report):
+- When: an entity uses an SBB that does not match the `preferredStandard` of its TRM category
+- Then: it appears in the deviation list
 
-**AC3** (Direkt-Link):
-- Wenn: ich einen Eintrag in der Drift-Liste anklicke
-- Dann: öffnet sich die Entitäts-Detailansicht
+**AC3** (Direct link):
+- When: I click an entry in the drift list
+- Then: the entity detail view opens
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

@@ -1,6 +1,6 @@
-## 8. Organisation, Rollen und Personen
+## 8. Organization, Roles, and Persons
 
-Das EA-Repository kennt drei klar getrennte Konzepte: **OrganizationUnit** (strukturelle Einheit), **Role** (fachlich-funktionale Verantwortung) und **Person** (konkrete:r Mitarbeiter:in). Die Trennung ist essentiell, weil Personalwechsel nicht Architektur-Änderungen auslösen soll.
+The EA repository knows three clearly separated concepts: **OrganizationUnit** (structural unit), **Role** (business-functional responsibility), and **Person** (concrete employee). The separation is essential because personnel changes should not trigger architecture changes.
 
 ### 8.1 OrganizationUnit
 
@@ -9,21 +9,21 @@ EntityType: OrganizationUnit
   properties:
     - name, description
     - type: company | division | department | team | virtual-team | chapter | guild
-    - size: number (Mitarbeitende)
+    - size: number (employees)
     - costCenter: string
   relations:
-    - parentUnit: OrganizationUnit    # Hierarchie
-    - matrixReporting: OrganizationUnit[]  # für Matrix-Organisationen
+    - parentUnit: OrganizationUnit    # hierarchy
+    - matrixReporting: OrganizationUnit[]  # for matrix organizations
     - locatedAt: Location[]
     - headedBy: Role
-    - memberOfRoles: Role[]           # Organisations-Rollen
+    - memberOfRoles: Role[]           # organizational roles
 ```
 
-Die OrganizationUnit-Hierarchie ist zentral für strukturelle Analysen (Org-Chart, Kostenallokation) und kann sowohl klassische Hierarchien als auch Matrix- und Netzwerk-Organisationen abbilden.
+The OrganizationUnit hierarchy is central for structural analyses (org chart, cost allocation) and can represent classic hierarchies as well as matrix and network organizations.
 
 ### 8.2 Role
 
-Rollen sind **von Personen entkoppelt** – ein Paradigma, das das Repository stabil über Personalwechsel macht.
+Roles are **decoupled from persons** – a paradigm that makes the repository stable across personnel changes.
 
 ```yaml
 EntityType: Role
@@ -32,24 +32,24 @@ EntityType: Role
     - description: text
     - type: functional | process | project | governance | architectural
     - responsibilities: text[]
-    - authorities: text[]             # was darf die Rolle entscheiden
-    - isStandardRole: boolean         # aus Referenzmodell vs. org-spezifisch
+    - authorities: text[]             # what the role may decide
+    - isStandardRole: boolean         # from reference model vs. org-specific
   relations:
     - belongsToUnit: OrganizationUnit
     - reportsToRole: Role
     - requiresSkills: Skill[]
-    - filledBy: Person[]              # aktuell besetzt durch
+    - filledBy: Person[]              # currently filled by
     - participatesInProcesses: Process[]
-    - ownsEntities: Entity[]          # generische Ownership
+    - ownsEntities: Entity[]          # generic ownership
 ```
 
-**Rollen-Typen im Detail**:
+**Role types in detail**:
 
-- **Functional Role**: "Buchhalter", "Vertriebsmitarbeiter" – Linien-Rollen
-- **Process Role**: "Process Owner", "Incident Manager" – prozess-spezifisch
-- **Project Role**: "Product Owner", "Scrum Master" – projekt-spezifisch
-- **Governance Role**: "Data Owner", "Risk Owner" – verantwortungs-fokussiert
-- **Architectural Role**: "Enterprise Architect", "Solution Architect" – EA-Funktion
+- **Functional Role**: "Accountant", "Sales representative" – line roles
+- **Process Role**: "Process Owner", "Incident Manager" – process-specific
+- **Project Role**: "Product Owner", "Scrum Master" – project-specific
+- **Governance Role**: "Data Owner", "Risk Owner" – responsibility-focused
+- **Architectural Role**: "Enterprise Architect", "Solution Architect" – EA function
 
 ### 8.3 Person
 
@@ -62,8 +62,8 @@ EntityType: Person
     - active: boolean
     - startDate, endDate: date
   relations:
-    - fillsRoles: Role[]              # mehrere gleichzeitig möglich
-    - hasSkills: SkillLevel[]         # siehe 8.4
+    - fillsRoles: Role[]              # several simultaneously possible
+    - hasSkills: SkillLevel[]         # see 8.4
     - memberOf: OrganizationUnit[]
     - primaryOrgUnit: OrganizationUnit
 
@@ -72,28 +72,28 @@ Relation: RoleAssignment
   - person: Person
   - validFrom, validTo: date
   - assignmentType: primary | secondary | deputy
-  - percentage: number               # FTE-Anteil
+  - percentage: number               # FTE share
 ```
 
-**Wichtig**: Person ist optional. In vielen Organisationen ist Person-Information aus Datenschutz-Gründen (DSGVO) nicht im EA-Repository, sondern wird aus HR-Systemen referenziert. Das Metamodell unterstützt beides:
+**Important**: Person is optional. In many organizations, person information is not in the EA repository for data protection reasons (GDPR) but is referenced from HR systems. The metamodel supports both:
 
 ```yaml
-Person erhält:
-  - externalReference: ExternalRef (z.B. zu Active Directory, Workday)
+Person gains:
+  - externalReference: ExternalRef (e.g., to Active Directory, Workday)
   - detailLevel: full | reference-only | anonymized
 ```
 
-### 8.4 Skills und Kompetenzen
+### 8.4 Skills and Competencies
 
 ```yaml
 EntityType: Skill
   properties:
     - name: string
     - category: technical | functional | domain | leadership | methodology
-    - taxonomy: string                # z.B. "SFIA-8" als Bezugsrahmen
+    - taxonomy: string                # e.g. "SFIA-8" as a frame of reference
     - description: text
   relations:
-    - parentSkill: Skill              # Hierarchie
+    - parentSkill: Skill              # hierarchy
     - relatedSkills: Skill[]
 
 Relation: SkillLevel
@@ -104,11 +104,11 @@ Relation: SkillLevel
   - verifiedDate: date
 ```
 
-Die Referenz auf **SFIA (Skills Framework for the Information Age)** als Standardtaxonomie macht die Skills international vergleichbar und auditierbar.
+The reference to **SFIA (Skills Framework for the Information Age)** as a standard taxonomy makes skills internationally comparable and auditable.
 
-### 8.5 RACI als Modellierungs-Primitiv
+### 8.5 RACI as a Modeling Primitive
 
-RACI-Zuordnungen werden als explizite Relation modelliert:
+RACI assignments are modeled as an explicit relation:
 
 ```yaml
 Relation: RACIAssignment
@@ -118,11 +118,11 @@ Relation: RACIAssignment
   - note: text (optional)
 ```
 
-**Constraint**: Pro Activity darf maximal eine Role `accountable` sein (klassische RACI-Regel). Dieser Constraint wird im Metamodell erzwungen.
+**Constraint**: At most one role may be `accountable` per activity (classic RACI rule). This constraint is enforced in the metamodel.
 
-### 8.6 Architecture Review Board (ARB) und Governance-Gremien
+### 8.6 Architecture Review Board (ARB) and Governance Bodies
 
-Gremien als strukturierte Gruppen von Rollen:
+Bodies as structured groups of roles:
 
 ```yaml
 EntityType: GovernanceBody
@@ -135,23 +135,23 @@ EntityType: GovernanceBody
   relations:
     - chairedBy: Role
     - members: Role[]
-    - decidesOn: EntityType[]         # was darf dieses Gremium entscheiden
+    - decidesOn: EntityType[]         # what this body may decide
     - reportsTo: GovernanceBody | OrganizationUnit
 ```
 
-Das macht explizit, welches Gremium welche Entscheidungen treffen darf – und referenziert ADRs zurück auf das entscheidende Gremium.
+This makes explicit which body may make which decisions – and references ADRs back to the deciding body.
 
-### 8.7 Mastership mit HR-Systemen
+### 8.7 Mastership with HR Systems
 
-Wie bei ITSM: OrganizationUnit und Person sind typischerweise in HR- und Identity-Systemen gemastert.
+As with ITSM: OrganizationUnit and Person are typically mastered in HR and identity systems.
 
-| Entität | Typischer Master | EA-Master für |
+| Entity | Typical master | EA master for |
 |---|---|---|
-| OrganizationUnit | HR-System | EA-spezifische Ownership-Properties |
-| Person | HR-System / AD | nichts (nur Referenz) |
-| Role | EA-Repository | alle architektur-relevanten Properties |
-| Skill (Taxonomie) | EA-Repository oder externes Framework (SFIA) | Mapping |
-| SkillLevel (Person × Skill) | HR/LMS-System oder EA | je nach Org |
+| OrganizationUnit | HR system | EA-specific ownership properties |
+| Person | HR system / AD | nothing (reference only) |
+| Role | EA repository | all architecture-relevant properties |
+| Skill (taxonomy) | EA repository or external framework (SFIA) | Mapping |
+| SkillLevel (Person × Skill) | HR/LMS system or EA | depending on org |
 
 ### 8.8 Constraints
 
@@ -166,13 +166,13 @@ constraint: role-has-responsibilities
   appliesTo: Role
   rule: "entity.responsibilities.length >= 1"
   severity: warning
-  message: "Rolle ohne definierte Verantwortlichkeiten ist inhaltsleer"
+  message: "A role without defined responsibilities is empty of content"
 
 constraint: single-accountable-per-activity
   appliesTo: RACIAssignment
   rule: "for any activity, count(raci where responsibility='accountable') == 1"
   severity: error
-  message: "Genau eine accountable Rolle pro Activity erforderlich"
+  message: "Exactly one accountable role per activity required"
 
 constraint: person-minimum-role
   appliesTo: Person
@@ -183,4 +183,4 @@ constraint: person-minimum-role
 
 ---
 
-← [Motivation, Stakeholder & Ziele](07-motivation-stakeholder-ziele.md) · [🏠 Übersicht](../README.md) · [Prozess-Architektur](09-prozess-architektur.md) →
+← [Motivation, Stakeholders & Goals](07-motivation-stakeholders-goals.md) · [🏠 Overview](../README.md) · [Process Architecture](09-process-architecture.md) →

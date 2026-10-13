@@ -1,6 +1,6 @@
 ---
 id: REQ-080
-title: Rechtschreibungsprüfung im WYSIWYG-Editor
+title: Spell checking in the WYSIWYG editor
 type: functional
 priority: could
 status: proposed
@@ -10,48 +10,48 @@ created: 2026-06-26
 author: requirements-engineer
 ---
 
-# REQ-080: Rechtschreibungsprüfung im WYSIWYG-Editor
+# REQ-080: Spell checking in the WYSIWYG editor
 
-## Beschreibung
+## Description
 
-Alle WYSIWYG-Editoren in OEA (Arc42-Kapitel, Entity-Beschreibungen, Freitext-Properties) unterstützen Rechtschreibungsprüfung. Die Basisfunktion nutzt den Browser-nativen Spellcheck (kein Implementierungsaufwand). Optional kann ein LanguageTool-Server für erweiterte Grammatik- und Stilprüfung konfiguriert werden.
+All WYSIWYG editors in OEA (Arc42 chapters, entity descriptions, free-text properties) support spell checking. The base function uses the browser-native spellcheck (no implementation effort). Optionally, a LanguageTool server can be configured for extended grammar and style checking.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Browser-native Basis):
-- TipTap-Editor-Element hat `spellcheck="true"` gesetzt
-- Der Browser markiert falsch geschriebene Wörter mit roter Unterstreichung
-- Rechtsklick → Browser-Korrekturvorschläge (Standardverhalten)
+**AC1** (Browser-native basis):
+- TipTap editor element has `spellcheck="true"` set
+- The browser marks misspelled words with a red underline
+- Right-click → browser correction suggestions (default behavior)
 
-**AC2** (Sprache der Prüfung):
-- Browser-Spellcheck folgt der Systemsprache des Browsers/Betriebssystems
-- Wenn LanguageTool aktiv: Prüfsprache folgt der in REQ-079 gewählten UI-Sprache des Nutzers; explizit im Editor überschreibbar
+**AC2** (Language of the check):
+- Browser spellcheck follows the system language of the browser/operating system
+- If LanguageTool is active: check language follows the user's UI language selected in REQ-079; explicitly overridable in the editor
 
-**AC3** (LanguageTool konfigurierbar):
-- Admin kann in den Instanz-Einstellungen `languageToolUrl` hinterlegen (z.B. `http://languagetool:8010`)
-- Wenn konfiguriert: Editor sendet Text an LanguageTool-API und zeigt Fehler mit farblicher Unterstreichung an
-- Klick auf unterstrichenes Wort → Popup mit Korrekturvorschlägen; Klick auf Vorschlag → ersetzt Text
+**AC3** (LanguageTool configurable):
+- Admin can set `languageToolUrl` in the instance settings (e.g., `http://languagetool:8010`)
+- If configured: editor sends text to the LanguageTool API and displays errors with colored underlining
+- Click on an underlined word → popup with correction suggestions; click on a suggestion → replaces text
 
-**AC4** (Fehlertypen mit LanguageTool):
-- Rechtschreibfehler: rote Unterstreichung
-- Grammatikfehler: blaue Unterstreichung
-- Stil-Hinweise: graue Unterstreichung (deaktivierbar per Nutzer-Einstellung)
+**AC4** (Error types with LanguageTool):
+- Spelling errors: red underline
+- Grammar errors: blue underline
+- Style hints: gray underline (can be disabled per user setting)
 
-**AC5** (Fallback bei Nicht-Erreichbarkeit):
-- Wenn LanguageTool nicht erreichbar: kein Fehler in der UI; Browser-nativer Spellcheck bleibt aktiv
-- Verbindungsfehler wird nicht prominent angezeigt (kein roter Banner); optional: kleines Indikator-Icon in der Toolbar
+**AC5** (Fallback when unreachable):
+- If LanguageTool is not reachable: no error in the UI; browser-native spellcheck remains active
+- Connection error is not displayed prominently (no red banner); optionally: small indicator icon in the toolbar
 
-**AC6** (Offline / Air-gapped):
-- Self-hosted LanguageTool (`languagetool/languagetool` Docker-Image, LGPL) konfigurierbar; konsistent mit REQ-075
-- Kein externer Dienst-Aufruf wenn `languageToolUrl` nicht gesetzt
+**AC6** (Offline / air-gapped):
+- Self-hosted LanguageTool (`languagetool/languagetool` Docker image, LGPL) configurable; consistent with REQ-075
+- No external service call if `languageToolUrl` is not set
 
-**AC7** (Deaktivierbar):
-- Nutzer kann Rechtschreibprüfung im Editor über Toolbar-Button deaktivieren (Präferenz wird gespeichert)
+**AC7** (Can be disabled):
+- User can disable spell checking in the editor via a toolbar button (preference is saved)
 
-## Technische Hinweise
+## Technical Notes
 
-- TipTap unterstützt `spellcheck`-Attribut auf dem Editor-Root-Element nativ
-- LanguageTool-Integration: TipTap-Custom-Extension; sendet Text-Blöcke via `POST /v2/check` an LanguageTool-Server; Fehler werden als TipTap-Decorations eingeblendet
-- LanguageTool Docker-Image: `languagetool/languagetool` (LGPL); Ports: 8010; kein API-Key für self-hosted
-- Sprach-Codes folgen BCP 47 (`en-US`, `de-DE`, `fr-FR`); Mapping aus REQ-079 i18n-Sprachschlüssel → BCP-47-Code
-- Performance: Text nur bei Idle-Pause (> 500ms seit letzter Eingabe) an LanguageTool senden, nicht bei jedem Keystroke
+- TipTap natively supports the `spellcheck` attribute on the editor root element
+- LanguageTool integration: TipTap custom extension; sends text blocks via `POST /v2/check` to the LanguageTool server; errors are displayed as TipTap decorations
+- LanguageTool Docker image: `languagetool/languagetool` (LGPL); ports: 8010; no API key for self-hosted
+- Language codes follow BCP 47 (`en-US`, `de-DE`, `fr-FR`); mapping from REQ-079 i18n language key → BCP 47 code
+- Performance: send text to LanguageTool only after an idle pause (> 500ms since last input), not on every keystroke

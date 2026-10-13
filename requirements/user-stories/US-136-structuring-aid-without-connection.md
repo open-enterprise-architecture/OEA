@@ -1,40 +1,40 @@
-# US-136: Strukturierungshilfe als Ordner ohne implizite Verbindung anlegen
+# US-136: Create a Structuring Aid as a Folder Without an Implicit Connection
 
 **ID**: US-136
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Enterprise Architekt möchte ich im Browser eine Strukturierungshilfe (Ordner) anlegen können, unter die ich Komponenten einordnen kann, ohne dass dabei automatisch ArchiMate-Verbindungen entstehen — damit ich die Landschaft rein navigatorisch gliedern kann ohne semantischen Lärm im Modell zu erzeugen.
+As an Enterprise Architect, I want to create a structuring aid (folder) in the browser under which I can place components without ArchiMate connections being created automatically — so that I can organize the landscape purely for navigation without creating semantic noise in the model.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-13: Navigationsbaum verwalten](../use-cases/UC-13-navigationsbaum-verwalten.md)
+**Use Case**: [UC-13: Manage Navigation Tree](../use-cases/UC-13-manage-navigation-tree.md)
 **Requirements**: REQ-141, REQ-142
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 **ADR**: ADR-021
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Nutzer wählt im Browser-Kontext „Neue Strukturierungshilfe"
-- Wenn: Name eingegeben und bestätigt
-- Dann: Neuer Knoten mit Ordner-Icon (kein ArchiMate-Icon) erscheint unter „Komponenten"; `isStructuralGrouper=true` gesetzt
+- Given: user selects "New structuring aid" in the browser context
+- When: name entered and confirmed
+- Then: new node with folder icon (no ArchiMate icon) appears under "Components"; `isStructuralGrouper=true` set
 
 **AC2**:
-- Gegeben: Strukturierungshilfe S und instanziierte Komponente K
-- Wenn: K unter S eingeordnet wird
-- Dann: K erscheint als Kind von S; unter „Verbindungen" erscheint KEINE neue Verbindung
+- Given: structuring aid S and instantiated component K
+- When: K is placed under S
+- Then: K appears as a child of S; NO new connection appears under "Connections"
 
 **AC3**:
-- Gegeben: Strukturierungshilfe S mit 3 Kindkomponenten
-- Wenn: S gelöscht wird
-- Dann: Die 3 Kindkomponenten werden auf Root-Ebene verschoben (kein Kaskadendelete); Warnung erscheint vor Löschung
+- Given: structuring aid S with 3 child components
+- When: S is deleted
+- Then: the 3 child components are moved to root level (no cascade delete); warning appears before deletion
 
-## Technische Hinweise
+## Technical Notes
 
-- Strukturierungshilfe = ArchitectureEntity mit `isStructuralGrouper=true`; hat einen eigenen (nicht-ArchiMate) EntityType
-- Ordner-Icon im Browser klar unterscheidbar von ArchiMate-Entitäts-Icons
-- Strukturierungshilfen sind kein TOGAF- oder ArchiMate-Konzept — nur ein UI-Hilfsmittel
+- Structuring aid = ArchitectureEntity with `isStructuralGrouper=true`; has its own (non-ArchiMate) EntityType
+- Folder icon in the browser clearly distinguishable from ArchiMate entity icons
+- Structuring aids are not a TOGAF or ArchiMate concept — only a UI aid

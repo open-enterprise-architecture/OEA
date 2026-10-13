@@ -1,6 +1,6 @@
 ---
 id: REQ-098
-title: Versionshistorie als chronologische Zeitlinie
+title: Version history as a chronological timeline
 type: functional
 priority: must
 status: proposed
@@ -22,43 +22,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-098: Versionshistorie als chronologische Zeitlinie
+# REQ-098: Version history as a chronological timeline
 
-## Aussage
+## Statement
 
-Das System MUSS für jede ArchitectureEntity eine chronologische Versionshistorie (Zeitlinie) anzeigen. Pro Version MÜSSEN folgende Informationen sichtbar sein: Versionsnummer, Zeitstempel (UTC), Name der ändernden Person (verlinkt auf Profil), geänderte Felder (aus `EntityVersion.changedFields`) und optionaler Änderungsgrund. Die Zeitlinie MUSS nach Zeitraum und Actor filterbar sein. Bei mehr als 50 Versionen MUSS paginiert werden.
+The system MUST display a chronological version history (timeline) for every ArchitectureEntity. For each version, the following information MUST be visible: version number, timestamp (UTC), name of the person who made the change (linked to profile), changed fields (from `EntityVersion.changedFields`) and optional change reason. The timeline MUST be filterable by time period and actor. For more than 50 versions, pagination MUST be applied.
 
-## Begründung
+## Rationale
 
-Ohne nachvollziehbare Änderungshistorie ist ein Architecture Repository kein vertrauenswürdiges System of Record. Compliance-Anforderungen erfordern lückenlose Audit-Trails, die für jeden EA-relevanten Zustand belegen, wer was wann geändert hat.
+Without a traceable change history, an architecture repository is not a trustworthy system of record. Compliance requirements demand gapless audit trails that prove for every EA-relevant state who changed what and when.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Zeitlinie mit Versionen):
-- Wenn: eine Entität mit 5 Versionen geöffnet wird
-- Dann: zeigt die Zeitlinie 5 Einträge, neueste zuerst
+**AC1** (Timeline with versions):
+- When: an entity with 5 versions is opened
+- Then: the timeline shows 5 entries, newest first
 
-**AC2** (Filter nach Actor):
-- Wenn: die Zeitlinie nach Actor "Michael" gefiltert wird
-- Dann: werden nur Versionen angezeigt, die von Michael erstellt wurden
+**AC2** (Filter by actor):
+- When: the timeline is filtered by actor "Michael"
+- Then: only versions created by Michael are displayed
 
-**AC3** (Entität ohne Historie):
-- Wenn: eine Entität ohne Änderungshistorie geöffnet wird
-- Dann: zeigt der Tab "Keine Änderungen seit Anlage. Erstellt am [Datum] von [Person]."
+**AC3** (Entity without history):
+- When: an entity without a change history is opened
+- Then: the tab shows "No changes since creation. Created on [date] by [person]."
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-102 (EntityVersion-Snapshots müssen existieren)
-- **Folgewirkungen**: REQ-099 (Diff-Ansicht), REQ-100 (Snapshot-Abruf), REQ-101 (Vollwiederherstellung)
+- **Prerequisites**: REQ-102 (EntityVersion snapshots must exist)
+- **Downstream effects**: REQ-099 (diff view), REQ-100 (snapshot retrieval), REQ-101 (full restore)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Paginierung bei > 50 Versionen; Page-Size konfigurierbar
-- Filter nach Zeitraum per `from`/`to`-Query-Parameter; Actor-Filter per `actorId`
-- Zeitstempel immer in UTC anzeigen; Formatierung im Frontend nach lokalem Timezone-Offset
+- Pagination for > 50 versions; page size configurable
+- Filter by time period via `from`/`to` query parameters; actor filter via `actorId`
+- Always display timestamps in UTC; formatting in the frontend according to the local timezone offset
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

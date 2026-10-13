@@ -10,159 +10,159 @@ aliases:
   - Architecture
   - EA-Modell
 references:
-  - concept: concept/20-entities/06-kern-entitaetstypen.md
-  - concept: concept/40-extensibility/14-erweiterbarkeit.md
-  - concept: concept/90-backlog/23-offene-punkte.md
-  - adr: adrs/ADR-017-architektur-layer-strategie.md
+  - concept: concept/20-entities/06-core-entity-types.md
+  - concept: concept/40-extensibility/14-extensibility.md
+  - concept: concept/90-backlog/23-open-issues.md
+  - adr: adrs/ADR-017-architecture-layer-strategy.md
 ---
 
-# Architektur-Modell: Übersicht
+# Architecture Model: Overview
 
-> **Hinweis**: Diese Datei war ursprünglich als generischer „Scope-Container" modelliert (v0.1.0). Mit v0.2.0 wird sie zur Übersichtsdatei des Gesamtmodells. Die konkreten BOs sind:
-> - [Plateau](./plateau.md) — stabiler Architektur-Zustand (Baseline, Target, Transition)
-> - [Solution](./solution.md) — Initiative, die Entitäten von einem Plateau zu einem anderen überführt
+> **Note**: This file was originally modeled as a generic "scope container" (v0.1.0). With v0.2.0 it becomes the overview file of the overall model. The concrete BOs are:
+> - [Plateau](./plateau.md) — stable architecture state (baseline, target, transition)
+> - [Solution](./solution.md) — initiative that moves entities from one plateau to another
 
 ---
 
-## Betriebsmodi
+## Operating Modes
 
-OEA unterstützt zwei Betriebsmodi, die je nach Organisations-Reifegrad gewählt werden können. Beide basieren auf dem [Solution](./solution.md)-Konzept; das [Plateau](./plateau.md) ist optional.
+OEA supports two operating modes that can be chosen depending on the organization's maturity. Both are based on the [Solution](./solution.md) concept; the [Plateau](./plateau.md) is optional.
 
-| Modus | Plateau erforderlich | Geeignet für |
+| Mode | Plateau required | Suitable for |
 |---|---|---|
-| **Projekt-Modus** | nein | KMU, projektbasierte Arbeitsweise ohne formales Baseline-Target-Schema |
-| **Plateau-Modus** | ja | Enterprise, TOGAF-Governance, formale Baseline/Target-Übergänge |
+| **Project mode** | no | SME, project-based way of working without a formal baseline-target scheme |
+| **Plateau mode** | yes | Enterprise, TOGAF governance, formal baseline/target transitions |
 
-Im **Projekt-Modus** sind Solutions freie Workspaces. Nach Go-Live ergibt der Gesamtzustand der Landschaft sich aus der Summe aller `implemented`-Solutions. Kein Plateau nötig.
+In **project mode**, solutions are free workspaces. After go-live, the overall state of the landscape results from the sum of all `implemented` solutions. No plateau needed.
 
-Im **Plateau-Modus** sind Solutions Transitionen zwischen Plateaus. Der Gesamtzustand zu einem Zeitpunkt ist ein Plateau; Solutions beschreiben den Delta zwischen zwei Plateaus.
+In **plateau mode**, solutions are transitions between plateaus. The overall state at a point in time is a plateau; solutions describe the delta between two plateaus.
 
 ---
 
-## Konzeptionelles Modell (Plateau-Modus)
+## Conceptual Model (Plateau Mode)
 
-In OEA wird eine Unternehmensarchitektur in zwei komplementären Dimensionen beschrieben:
+In OEA, an enterprise architecture is described in two complementary dimensions:
 
-### Dimension 1: Zustände (Plateaus)
+### Dimension 1: States (Plateaus)
 
-Ein **[Plateau](./plateau.md)** ist ein stabiler, benannter Zustand der Gesamtarchitektur zu einem Zeitpunkt. Die OEA-Instanz hat immer genau ein **Baseline-Plateau** (aktueller Produktivstand) und beliebig viele **Target-Plateaus** (geplante Zielzustände).
+A **[Plateau](./plateau.md)** is a stable, named state of the overall architecture at a point in time. The OEA instance always has exactly one **baseline plateau** (current production state) and any number of **target plateaus** (planned target states).
 
 ```
-Plateau P0 (Baseline, produktiv)
+Plateau P0 (Baseline, productive)
   ├── ApplicationComponent: CRM-Legacy        [active]
   ├── ApplicationComponent: ERP-Core          [active]
-  └── Interface: Legacy-ERP-Schnittstelle     [active]
+  └── Interface: Legacy-ERP-Interface         [active]
 
-Plateau P1 (Target 2027, noch nicht produktiv)
-  ├── ApplicationComponent: ERP-Core          [active]    ← geerbt von P0
-  ├── ApplicationComponent: Salesforce        [active]    ← neu (durch Solution)
-  ├── ApplicationComponent: CRM-Legacy        [retiring]  ← wird abgelöst
-  └── Interface: Salesforce-API               [active]    ← neu (durch Solution)
+Plateau P1 (Target 2027, not yet productive)
+  ├── ApplicationComponent: ERP-Core          [active]    ← inherited from P0
+  ├── ApplicationComponent: Salesforce        [active]    ← new (through solution)
+  ├── ApplicationComponent: CRM-Legacy        [retiring]  ← being replaced
+  └── Interface: Salesforce-API               [active]    ← new (through solution)
 ```
 
-### Dimension 2: Transitionen (Solutions)
+### Dimension 2: Transitions (Solutions)
 
-Eine **[Solution](./solution.md)** beschreibt den **Delta** zwischen zwei Plateaus: welche Entitäten neu entstehen, sich ändern oder ausser Betrieb gehen. Sie ist der Arbeitsbereich des Solution Architekten.
+A **[Solution](./solution.md)** describes the **delta** between two plateaus: which entities are created, change, or are decommissioned. It is the workspace of the solution architect.
 
 ```
-Solution: „Salesforce-Einführung"
+Solution: "Salesforce Introduction"
   fromPlateau: P0 (Baseline)
   toPlateau:   P1 (Target 2027)
   deltas:
     - CRM-Legacy:             retiring
     - Salesforce:             new, type=ApplicationComponent
     - Salesforce-API:         new, type=Interface
-    - Legacy-Schnittstelle:   retiring
+    - Legacy-Interface:       retiring
 ```
 
-### Zusammenspiel
+### Interplay
 
-Das entspricht dem **Plateau-Prinzip** aus TOGAF / ArchiMate 3:
+This corresponds to the **plateau principle** from TOGAF / ArchiMate 3:
 
 ```
 Plateau P0 (Baseline)
       │
       ├── Solution A ──────────────── Plateau P1 (Target A)
       ├── Solution B ──────────────── Plateau P2 (Target B)
-      │   [mehrere Solutions laufen parallel]
+      │   [multiple solutions run in parallel]
       │
-      ▼ (nach Go-Live Solution A)
-Plateau P1 wird realisiert → neues Baseline
+      ▼ (after go-live of solution A)
+Plateau P1 is realized → new baseline
 Plateau P0 → realized (read-only)
 ```
 
-### Metamodell-Scoping
+### Metamodel Scoping
 
-Das Instanz-Metamodell ([MetamodelConfiguration](./metamodel-configuration.md) `scope=instance`) gilt instanzweit. Eine Solution kann eine eigene Metamodell-Erweiterung haben (`scope=solution`), um neue Entitätstypen zu erproben, ohne das gesperrte Instanz-Standardmetamodell zu verändern (REQ-037).
+The instance metamodel ([MetamodelConfiguration](./metamodel-configuration.md) `scope=instance`) applies instance-wide. A solution can have its own metamodel extension (`scope=solution`) to try out new entity types without modifying the locked instance default metamodel (REQ-037).
 
 ```
 MetamodelConfiguration (scope=instance, editMode=import-only)
-└── Solution-Erweiterung (scope=solution, editMode=gui-and-import)
-      └── eigene Custom-Typen, nur innerhalb dieser Solution sichtbar
+└── Solution extension (scope=solution, editMode=gui-and-import)
+      └── own custom types, visible only within this solution
 ```
 
 ---
 
-## Begriffsabgrenzung
+## Term Delimitation
 
-| Begriff | Was es ist | BO-Datei |
+| Term | What it is | BO file |
 |---|---|---|
-| **Plateau** | Stabiler Architektur-Zustand (Baseline / Target) | [plateau.md](./plateau.md) |
-| **Solution** | Initiative mit Entitäts-Deltas zwischen Plateaus | [solution.md](./solution.md) |
-| **MetamodelConfiguration** | Instanz-Metamodell + optionale Solution-Erweiterung | [metamodel-configuration.md](./metamodel-configuration.md) |
-| **ArchitectureEntity** | Konkrete Instanz eines Entitätstyps (UUID + Metatyp-Referenz) | [entity.md](./entity.md) |
-| **EntityDelta** | Werteobjekt: einzelne Änderung einer Entität in einer Solution | in solution.md definiert |
+| **Plateau** | Stable architecture state (baseline / target) | [plateau.md](./plateau.md) |
+| **Solution** | Initiative with entity deltas between plateaus | [solution.md](./solution.md) |
+| **MetamodelConfiguration** | Instance metamodel + optional solution extension | [metamodel-configuration.md](./metamodel-configuration.md) |
+| **ArchitectureEntity** | Concrete instance of an entity type (UUID + meta-type reference) | [entity.md](./entity.md) |
+| **EntityDelta** | Value object: single change of an entity in a solution | defined in solution.md |
 
 ---
 
-## TOGAF-Referenz
+## TOGAF Reference
 
-| OEA-Begriff | TOGAF-Entsprechung | ArchiMate 3 |
+| OEA Term | TOGAF Equivalent | ArchiMate 3 |
 |---|---|---|
-| Plateau | Plateau | `Plateau` (Migration-Schicht) |
+| Plateau | Plateau | `Plateau` (migration layer) |
 | Solution | Solution Architecture (Phase E/F) | `Deliverable`, `Gap` |
-| fromPlateau / toPlateau | Baseline / Target Architecture | Plateau mit Rollen |
+| fromPlateau / toPlateau | Baseline / Target Architecture | Plateau with roles |
 | EntityDelta | Architecture Change Request / Gap Analysis | `Gap` |
 
 ---
 
-## Konzeptionelles Modell (Projekt-Modus / KMU)
+## Conceptual Model (Project Mode / SME)
 
 ```
-OEA-Instanz (kein Plateau)
+OEA instance (no plateau)
   │
-  ├── Solution „Salesforce-Einführung" [implemented]
+  ├── Solution "Salesforce Introduction" [implemented]
   │     deltas: CRM-Legacy retiring, Salesforce new
   │
-  ├── Solution „API-Gateway Einführung" [implemented]
+  ├── Solution "API Gateway Introduction" [implemented]
   │     deltas: API-GW new
   │
-  └── Solution „ERP-Upgrade" [in-progress]
+  └── Solution "ERP Upgrade" [in-progress]
         deltas: ERP-Core v4 → v5 (modified)
 
-Realisierter Gesamtzustand = Summe aller implemented-Solutions:
+Realized overall state = sum of all implemented solutions:
   - Salesforce        [active]
   - API-Gateway       [active]
-  - ERP-Core v5       [active]  ← aus laufender Solution (nach Go-Live)
+  - ERP-Core v5       [active]  ← from running solution (after go-live)
   - CRM-Legacy        [retired]
 ```
 
 ---
 
-## Offene Fragen (§23 Offene Punkte)
+## Open Questions (§23 Open Issues)
 
-- **Punkt 3 – Bitemporalität**: Gültigkeitszeit (Plateau-Zeitfenster) vs. Erfassungszeit. Das Plateau-Modell abstrahiert zunächst; Antwort beeinflusst das DB-Schema.
-- **Punkt 4 – Plateau-Diffs**: Wie werden Übergänge berechnet und visualisiert? Das Solution/EntityDelta-Modell liefert die Grundlage.
-- **Punkt 6 – Referenz-Integrität über Plateaus**: `retiring`-Entitäten bleiben im Target-Plateau sichtbar bis Go-Live; danach `archived`, nicht mehr als Relation-Ziel verwendbar.
+- **Item 3 – Bitemporality**: validity time (plateau time window) vs. recording time. The plateau model abstracts at first; the answer affects the DB schema.
+- **Item 4 – Plateau diffs**: How are transitions computed and visualized? The solution/EntityDelta model provides the basis.
+- **Item 6 – Referential integrity across plateaus**: `retiring` entities remain visible in the target plateau until go-live; afterwards `archived`, no longer usable as a relation target.
 
-Diese Fragen sind für künftige ADRs (Gruppe A oder B) vorgesehen.
+These questions are intended for future ADRs (group A or B).
 
 ---
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-25 | Business Engineer | Initial draft als generischer Scope-Container |
-| 0.2.0 | 2026-06-25 | Business Engineer | Umgewandelt zur Modell-Übersicht; Plateau + Solution als eigene BOs eingeführt |
-| 0.3.0 | 2026-06-25 | Business Engineer | Projekt-Modus (KMU) eingeführt: Solutions ohne Plateau; Betriebsmodi-Tabelle; KMU-Beispiel |
+| 0.1.0 | 2026-06-25 | Business Engineer | Initial draft as generic scope container |
+| 0.2.0 | 2026-06-25 | Business Engineer | Converted to model overview; plateau + solution introduced as separate BOs |
+| 0.3.0 | 2026-06-25 | Business Engineer | Project mode (SME) introduced: solutions without plateau; operating modes table; SME example |

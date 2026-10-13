@@ -1,61 +1,61 @@
 ---
 id: process
-title: Prozess-Modellierung (BPMN 2.0)
+title: Process Modeling (BPMN 2.0)
 version: 0.2.0
 status: draft
 created: 2026-06-26
 last_updated: 2026-06-26
 references:
   concept:
-    - concept/20-entities/09-prozess-architektur.md
-    - concept/20-entities/06-kern-entitaetstypen.md
+    - concept/20-entities/09-process-architecture.md
+    - concept/20-entities/06-core-entity-types.md
   business_objects:
     - entity
     - metamodel-configuration
     - viewpoint
 ---
 
-# Business Object: Prozess-Modellierung (BPMN 2.0)
+# Business Object: Process Modeling (BPMN 2.0)
 
-## Überblick
+## Overview
 
-OEA ermöglicht die Modellierung von Geschäftsprozessen nach BPMN 2.0 — als vollständig integrierter Bestandteil des EA-Repositorys. Prozess-Elemente (Pools, Lanes, Tasks, Events, Gateways, DataObjects) sind reguläre `ArchitectureEntities` im geteilten Integer-ID-Raum. Ihre Typen sind im Metamodell als `EntityTypeDefinition` konfiguriert; die Notation ist im Viewpoint-System verankert (siehe viewpoint.md).
+OEA enables the modeling of business processes according to BPMN 2.0 — as a fully integrated part of the EA repository. Process elements (pools, lanes, tasks, events, gateways, DataObjects) are regular `ArchitectureEntities` in the shared integer ID space. Their types are configured in the metamodel as `EntityTypeDefinition`; the notation is anchored in the viewpoint system (see viewpoint.md).
 
-Diese Datei beschreibt die zusätzlichen Konzepte, die für Prozess-Modellierung nötig sind:
+This file describes the additional concepts required for process modeling:
 
-1. **OrganizationalUnit** — strukturelle Einheit eines Unternehmens (Abteilung, Team, Bereich)
-2. **BPMN-spezifische built-in EntityTypes** — Pool, Lane, Task-Varianten, Events, Gateways, DataObjects, DataStore
-3. **Zuordnungs-Connections** — Lane → Rolle, Lane → OrgUnit, Task → Person
-4. **DataObject und Prozess-Datenlineage** — DataObjects in Prozessen anreichern; Data Lineage durch Geschäftsprozesse
-5. **Pool/Lane-Struktur auf dem Canvas**
+1. **OrganizationalUnit** — structural unit of a company (department, team, division)
+2. **BPMN-specific built-in EntityTypes** — pool, lane, task variants, events, gateways, DataObjects, DataStore
+3. **Assignment connections** — lane → role, lane → OrgUnit, task → person
+4. **DataObject and process data lineage** — enriching DataObjects in processes; data lineage through business processes
+5. **Pool/lane structure on the canvas**
 
 ---
 
 ## 1. OrganizationalUnit
 
-### Beschreibung
+### Description
 
-Eine **OrganizationalUnit** (OrgUnit) repräsentiert eine strukturelle Einheit des Unternehmens: Abteilung, Team, Fachbereich, Konzerngesellschaft. OrgUnits sind von **Rollen** (funktionale Funktion, z.B. „Genehmiger") und **Personen** (individuelle Mitarbeiter) konzeptuell zu trennen.
+An **OrganizationalUnit** (OrgUnit) represents a structural unit of the company: department, team, business unit, corporate group entity. OrgUnits are to be conceptually separated from **roles** (functional function, e.g. "Approver") and **persons** (individual employees).
 
-OrgUnits sind als **konfigurierbare EntityTypes** im Metamodell modellierbar. Der built-in Basis-Typ `organizational-unit` dient als Basistyp; konkrete Subtypen (z.B. `department`, `team`, `business-unit`) werden vom Administrator per `extends: organizational-unit` konfiguriert.
+OrgUnits can be modeled as **configurable EntityTypes** in the metamodel. The built-in base type `organizational-unit` serves as the base type; concrete subtypes (e.g. `department`, `team`, `business-unit`) are configured by the administrator via `extends: organizational-unit`.
 
-### Attribute
+### Attributes
 
-| Attribut | Typ | Pflicht | Beschreibung |
+| Attribute | Type | Mandatory | Description |
 |---|---|---|---|
-| `id` | integer | ja | Gemeinsamer ID-Raum mit allen ArchitectureEntities |
-| `entityTypeId` | string | ja | `organizational-unit` oder konfigurierbarer Subtyp |
-| `name` | string | ja | Name der Einheit (z.B. „Einkauf", „IT Operations") |
-| `parentOrgUnitId` | integer ⟶ ArchitectureEntity | nein | Übergeordnete Einheit (Hierarchie); via `org-unit-part-of` Connection |
-| `architectureDomainIds` | integer[] | nein | Zugeordnete Architekturdomänen |
-| properties | frei konfigurierbar | nein | z.B. Kostenstelle, SAP-OrgUnit-ID, Verantwortliche Person |
+| `id` | integer | yes | Shared ID space with all ArchitectureEntities |
+| `entityTypeId` | string | yes | `organizational-unit` or configurable subtype |
+| `name` | string | yes | Name of the unit (e.g. "Procurement", "IT Operations") |
+| `parentOrgUnitId` | integer ⟶ ArchitectureEntity | no | Parent unit (hierarchy); via `org-unit-part-of` connection |
+| `architectureDomainIds` | integer[] | no | Assigned architecture domains |
+| properties | freely configurable | no | e.g. cost center, SAP OrgUnit ID, responsible person |
 
 ### Built-in EntityType: `organizational-unit`
 
 ```
 EntityTypeDefinition {
   id:           "organizational-unit"
-  name:         "Organisationseinheit"
+  name:         "Organizational Unit"
   isConnection: false
   isBuiltIn:    true
   extends:      null
@@ -72,111 +72,111 @@ EntityTypeDefinition {
   isConnection:          true
   isBuiltIn:             true
   allowsConnectionAsSource: false
-  sourceEntityType:      "organizational-unit" (+ Subtypen)
-  targetEntityType:      "organizational-unit" (+ Subtypen)
+  sourceEntityType:      "organizational-unit" (+ subtypes)
+  targetEntityType:      "organizational-unit" (+ subtypes)
 }
 ```
 
 ---
 
-## 2. BPMN-spezifische built-in EntityTypes
+## 2. BPMN-Specific Built-in EntityTypes
 
-Alle Prozess-Elemente sind ArchitectureEntities. Die folgenden Typen sind built-in; Administratoren können sie per `extends` um eigene Subtypen erweitern.
+All process elements are ArchitectureEntities. The following types are built-in; administrators can extend them with their own subtypes via `extends`.
 
-### Elemente (isConnection=false)
+### Elements (isConnection=false)
 
-| EntityType ID | BPMN-Konzept | Notations-Element | Besonderheit |
+| EntityType ID | BPMN Concept | Notation Element | Special Feature |
 |---|---|---|---|
-| `bpmn-process` | BusinessProcess | `bpmn:Process` | Top-level Container; Wurzel-Element |
-| `bpmn-pool` | Pool | `bpmn:Pool` | Repräsentiert einen Teilnehmer; enthält Lanes |
-| `bpmn-lane` | Lane | `bpmn:Lane` | Zuständigkeitsbereich innerhalb eines Pools |
-| `bpmn-task` | Task | `bpmn:Task` | Generische Aufgabe |
-| `bpmn-user-task` | UserTask | `bpmn:UserTask` | Manuelle Aufgabe durch Person |
-| `bpmn-service-task` | ServiceTask | `bpmn:ServiceTask` | Automatisierte Aufgabe |
-| `bpmn-send-task` | SendTask | `bpmn:SendTask` | Nachricht versenden |
-| `bpmn-receive-task` | ReceiveTask | `bpmn:ReceiveTask` | Nachricht empfangen |
-| `bpmn-business-rule-task` | BusinessRuleTask | `bpmn:BusinessRuleTask` | Regelauswertung |
-| `bpmn-script-task` | ScriptTask | `bpmn:ScriptTask` | Skript-Ausführung |
-| `bpmn-sub-process` | SubProcess | `bpmn:SubProcess` | Eingebetteter Prozess |
-| `bpmn-start-event` | StartEvent | `bpmn:StartEvent` | Prozessstart |
-| `bpmn-end-event` | EndEvent | `bpmn:EndEvent` | Prozessende |
-| `bpmn-intermediate-catch-event` | IntermediateCatchEvent | `bpmn:IntermediateCatchEvent` | Zwischenereignis (empfangen) |
-| `bpmn-intermediate-throw-event` | IntermediateThrowEvent | `bpmn:IntermediateThrowEvent` | Zwischenereignis (senden) |
-| `bpmn-exclusive-gateway` | ExclusiveGateway | `bpmn:ExclusiveGateway` | XOR-Verzweigung |
-| `bpmn-parallel-gateway` | ParallelGateway | `bpmn:ParallelGateway` | AND-Verzweigung |
-| `bpmn-inclusive-gateway` | InclusiveGateway | `bpmn:InclusiveGateway` | OR-Verzweigung |
-| `bpmn-event-gateway` | EventBasedGateway | `bpmn:EventBasedGateway` | Ereignisbasierte Verzweigung |
-| `bpmn-data-object` | DataObject | `bpmn:DataObject` | Datenobjekt im Prozess; extends `data-object` aus entity.md; `isCollection: boolean`-Property |
-| `bpmn-data-store` | DataStore | `bpmn:DataStoreReference` | Persistenter Datenspeicher (z.B. Datenbank, Archiv); steht ausserhalb von Pools |
+| `bpmn-process` | BusinessProcess | `bpmn:Process` | Top-level container; root element |
+| `bpmn-pool` | Pool | `bpmn:Pool` | Represents a participant; contains lanes |
+| `bpmn-lane` | Lane | `bpmn:Lane` | Area of responsibility within a pool |
+| `bpmn-task` | Task | `bpmn:Task` | Generic task |
+| `bpmn-user-task` | UserTask | `bpmn:UserTask` | Manual task performed by a person |
+| `bpmn-service-task` | ServiceTask | `bpmn:ServiceTask` | Automated task |
+| `bpmn-send-task` | SendTask | `bpmn:SendTask` | Send a message |
+| `bpmn-receive-task` | ReceiveTask | `bpmn:ReceiveTask` | Receive a message |
+| `bpmn-business-rule-task` | BusinessRuleTask | `bpmn:BusinessRuleTask` | Rule evaluation |
+| `bpmn-script-task` | ScriptTask | `bpmn:ScriptTask` | Script execution |
+| `bpmn-sub-process` | SubProcess | `bpmn:SubProcess` | Embedded process |
+| `bpmn-start-event` | StartEvent | `bpmn:StartEvent` | Process start |
+| `bpmn-end-event` | EndEvent | `bpmn:EndEvent` | Process end |
+| `bpmn-intermediate-catch-event` | IntermediateCatchEvent | `bpmn:IntermediateCatchEvent` | Intermediate event (receive) |
+| `bpmn-intermediate-throw-event` | IntermediateThrowEvent | `bpmn:IntermediateThrowEvent` | Intermediate event (send) |
+| `bpmn-exclusive-gateway` | ExclusiveGateway | `bpmn:ExclusiveGateway` | XOR branching |
+| `bpmn-parallel-gateway` | ParallelGateway | `bpmn:ParallelGateway` | AND branching |
+| `bpmn-inclusive-gateway` | InclusiveGateway | `bpmn:InclusiveGateway` | OR branching |
+| `bpmn-event-gateway` | EventBasedGateway | `bpmn:EventBasedGateway` | Event-based branching |
+| `bpmn-data-object` | DataObject | `bpmn:DataObject` | Data object in the process; extends `data-object` from entity.md; `isCollection: boolean` property |
+| `bpmn-data-store` | DataStore | `bpmn:DataStoreReference` | Persistent data store (e.g. database, archive); sits outside of pools |
 
 ### Connections (isConnection=true)
 
-| Connection ID | BPMN-Konzept | Notations-Element | sourceEntityType | targetEntityType |
+| Connection ID | BPMN Concept | Notation Element | sourceEntityType | targetEntityType |
 |---|---|---|---|---|
-| `bpmn-sequence-flow` | SequenceFlow | `bpmn:SequenceFlow` | Beliebiges BPMN-Flusselement | Beliebiges BPMN-Flusselement |
-| `bpmn-message-flow` | MessageFlow | `bpmn:MessageFlow` | Pool oder Task | Pool oder Task |
-| `bpmn-contained-in` | ContainedIn | – | Beliebiges BPMN-Element | `bpmn-lane` oder `bpmn-pool` |
+| `bpmn-sequence-flow` | SequenceFlow | `bpmn:SequenceFlow` | Any BPMN flow element | Any BPMN flow element |
+| `bpmn-message-flow` | MessageFlow | `bpmn:MessageFlow` | Pool or task | Pool or task |
+| `bpmn-contained-in` | ContainedIn | – | Any BPMN element | `bpmn-lane` or `bpmn-pool` |
 | `bpmn-lane-in-pool` | LaneInPool | – | `bpmn-lane` | `bpmn-pool` |
-| `bpmn-data-input-association` | DataInputAssociation | `bpmn:DataInputAssociation` | `data-object` / `bpmn-data-object` / `bpmn-data-store` | `bpmn-task` (+ alle Task-Subtypen) |
-| `bpmn-data-output-association` | DataOutputAssociation | `bpmn:DataOutputAssociation` | `bpmn-task` (+ alle Task-Subtypen) | `data-object` / `bpmn-data-object` / `bpmn-data-store` |
+| `bpmn-data-input-association` | DataInputAssociation | `bpmn:DataInputAssociation` | `data-object` / `bpmn-data-object` / `bpmn-data-store` | `bpmn-task` (+ all task subtypes) |
+| `bpmn-data-output-association` | DataOutputAssociation | `bpmn:DataOutputAssociation` | `bpmn-task` (+ all task subtypes) | `data-object` / `bpmn-data-object` / `bpmn-data-store` |
 
 ---
 
-## 3. Zuordnungs-Connections (Rollen, OrgUnits, Personen)
+## 3. Assignment Connections (Roles, OrgUnits, Persons)
 
-| Connection ID | Quelle | Ziel | Semantik |
+| Connection ID | Source | Target | Semantics |
 |---|---|---|---|
-| `bpmn-lane-performs-role` | `bpmn-lane` | `role` | Lane ist für diese Rolle zuständig |
-| `bpmn-lane-belongs-to-org-unit` | `bpmn-lane` | `organizational-unit` | Lane gehört zu dieser OrgUnit |
-| `bpmn-pool-represents-org-unit` | `bpmn-pool` | `organizational-unit` | Pool repräsentiert diese OrgUnit/Gesellschaft |
-| `bpmn-task-assigned-to` | `bpmn-user-task` | `person` | Konkrete Person ist für diesen Task verantwortlich |
-| `bpmn-task-requires-role` | `bpmn-task` (+ Subtypen) | `role` | Aufgabe erfordert diese Rolle |
+| `bpmn-lane-performs-role` | `bpmn-lane` | `role` | Lane is responsible for this role |
+| `bpmn-lane-belongs-to-org-unit` | `bpmn-lane` | `organizational-unit` | Lane belongs to this OrgUnit |
+| `bpmn-pool-represents-org-unit` | `bpmn-pool` | `organizational-unit` | Pool represents this OrgUnit/company |
+| `bpmn-task-assigned-to` | `bpmn-user-task` | `person` | A specific person is responsible for this task |
+| `bpmn-task-requires-role` | `bpmn-task` (+ subtypes) | `role` | Task requires this role |
 
-Durch diese Connections sind alle Verantwortlichkeiten im gemeinsamen ID-Raum abfragbar.
+Through these connections, all responsibilities can be queried in the shared ID space.
 
 ---
 
-## 4. DataObject und Prozess-Datenlineage
+## 4. DataObject and Process Data Lineage
 
-### 4.1 Konzept
+### 4.1 Concept
 
-BPMN-Prozesse arbeiten mit Daten: Ein Task liest ein `data-object` (Bestellung, Kundendatensatz), verarbeitet es und schreibt das Ergebnis in ein anderes (oder dasselbe) `data-object`. Diese **Prozess-Datenlineage** ist in OEA modellierbar und mit der technischen Data Lineage (UC-08) verknüpfbar.
+BPMN processes work with data: a task reads a `data-object` (order, customer record), processes it, and writes the result to another (or the same) `data-object`. This **process data lineage** can be modeled in OEA and linked to the technical data lineage (UC-08).
 
-**`bpmn-data-object`** ist ein Subtyp von `data-object` (aus entity.md). Dadurch teilt es den ID-Raum und ist sowohl im BPMN-Diagramm sichtbar als auch in der technischen Lineage-API abfragbar. Alternativ kann ein bereits im EA-Repository vorhandenes `data-object` direkt in einem BPMN-Prozess referenziert werden — ohne Duplizierung.
+**`bpmn-data-object`** is a subtype of `data-object` (from entity.md). It therefore shares the ID space and is both visible in the BPMN diagram and queryable in the technical lineage API. Alternatively, a `data-object` already present in the EA repository can be referenced directly in a BPMN process — without duplication.
 
-### 4.2 Anreicherungs-Semantik
+### 4.2 Enrichment Semantics
 
-Die `bpmn-data-output-association`-Connection trägt Properties, die beschreiben, **was ein Task mit dem Datenobjekt macht**:
+The `bpmn-data-output-association` connection carries properties that describe **what a task does with the data object**:
 
-| Property | Typ | Pflicht | Werte |
+| Property | Type | Mandatory | Values |
 |---|---|---|---|
-| `transformationType` | enum | nein | `create` · `enrich` · `overwrite` · `delete` · `read-only` |
-| `affectedAttributes` | string[] | nein | Liste der Attribut-Namen, die der Task setzt oder ändert |
-| `condition` | string | nein | Bedingung, unter der die Assoziation aktiv ist (z.B. „nur bei Genehmigung") |
+| `transformationType` | enum | no | `create` · `enrich` · `overwrite` · `delete` · `read-only` |
+| `affectedAttributes` | string[] | no | List of attribute names that the task sets or changes |
+| `condition` | string | no | Condition under which the association is active (e.g. "only on approval") |
 
-Beispiel: Ein `bpmn-user-task` „Bestellung prüfen" hat:
-- `bpmn-data-input-association` → `data-object` Bestellung (lesen)
-- `bpmn-data-output-association` → `data-object` Bestellung mit `transformationType: enrich`, `affectedAttributes: ["status", "reviewedBy", "reviewedAt"]` (anreichern)
+Example: A `bpmn-user-task` "Review Order" has:
+- `bpmn-data-input-association` → `data-object` Order (read)
+- `bpmn-data-output-association` → `data-object` Order with `transformationType: enrich`, `affectedAttributes: ["status", "reviewedBy", "reviewedAt"]` (enrich)
 
-### 4.3 Verbindung zur technischen Data Lineage
+### 4.3 Link to Technical Data Lineage
 
-Die Zweischicht-Lineage verbindet Geschäftsprozess-Ebene und technische Ebene:
+The two-layer lineage connects the business process level and the technical level:
 
 ```
-[bpmn-task „Bestellung prüfen"]
-  └─ bpmn-data-output-association (enrich) ──▶ [data-object „Bestellung"]
-                                                    └─ carries-data (ADR-010) ──▶ [data-flow „ERP → Archiv"]
-                                                                                       └─ realizesProcess ──▶ [bpmn-process „Beschaffung"]
+[bpmn-task "Review Order"]
+  └─ bpmn-data-output-association (enrich) ──▶ [data-object "Order"]
+                                                    └─ carries-data (ADR-010) ──▶ [data-flow "ERP → Archive"]
+                                                                                       └─ realizesProcess ──▶ [bpmn-process "Procurement"]
 ```
 
-**Abfrage-Beispiel** — „Welche Tasks erzeugen oder verändern das DataObject ‚Bestellung'?":
+**Query example** — "Which tasks create or change the DataObject 'Order'?":
 ```cypher
-MATCH (t)-[r:bpmn-data-output-association]->(d:data-object {name: "Bestellung"})
+MATCH (t)-[r:bpmn-data-output-association]->(d:data-object {name: "Order"})
 RETURN t.name, r.transformationType, r.affectedAttributes
 ORDER BY t.name
 ```
 
-**Abfrage-Beispiel** — „Welcher Prozess steckt hinter einem technischen DataFlow?":
+**Query example** — "Which process is behind a technical DataFlow?":
 ```cypher
 MATCH (flow:data-flow {id: 42})-[:carries-data]->(d:data-object)
 MATCH (t)-[:bpmn-data-output-association]->(d)
@@ -186,46 +186,46 @@ RETURN flow.name, d.name, t.name, p.name
 
 ### 4.4 DataStore
 
-`bpmn-data-store` repräsentiert persistenten Datenspeicher (Datenbank, Archiv, Filesystem), auf den ein Task lesend oder schreibend zugreift. Im Gegensatz zum `data-object` (transientes Datenobjekt im Prozessfluss) ist der DataStore **kein Element innerhalb eines Pools**, sondern steht eigenständig im Prozessdiagramm.
+`bpmn-data-store` represents a persistent data store (database, archive, file system) that a task accesses for reading or writing. In contrast to the `data-object` (transient data object in the process flow), the DataStore is **not an element within a pool** but stands on its own in the process diagram.
 
-`bpmn-data-store` kann via `realizes`-Connection mit einem technischen `data-component` (aus entity.md) verknüpft werden — damit ist der Bezug zur technischen Infrastruktur hergestellt.
+`bpmn-data-store` can be linked via a `realizes` connection to a technical `data-component` (from entity.md) — this establishes the link to the technical infrastructure.
 
 ---
 
-## 5. Pool/Lane-Struktur auf dem Canvas
+## 5. Pool/Lane Structure on the Canvas
 
-Pools und Lanes sind hierarchisch verschachtelte Elemente auf dem Canvas:
+Pools and lanes are hierarchically nested elements on the canvas:
 
-- **Pool** = Vue Flow GroupNode; enthält Lanes als Kinder
-- **Lane** = Vue Flow Subgruppe innerhalb Pool; enthält Tasks, Events, Gateways, DataObjects als Kinder
-- **Elemente** (Tasks, Events, Gateways, DataObjects) = reguläre Nodes, deren `parentId` auf eine Lane zeigt
-- **DataObjects** können auch ausserhalb von Pools auf der Prozessebene platziert werden (Pool-übergreifende Daten)
+- **Pool** = Vue Flow GroupNode; contains lanes as children
+- **Lane** = Vue Flow subgroup within a pool; contains tasks, events, gateways, DataObjects as children
+- **Elements** (tasks, events, gateways, DataObjects) = regular nodes whose `parentId` points to a lane
+- **DataObjects** can also be placed outside of pools at the process level (cross-pool data)
 
-Die `parentId`-Beziehung wird im Repository über `bpmn-contained-in` modelliert.
+The `parentId` relationship is modeled in the repository via `bpmn-contained-in`.
 
 ---
 
 ## 6. Business Rules
 
-| ID | Aussage | Auslöser | Verantwortlich |
+| ID | Statement | Trigger | Responsible |
 |---|---|---|---|
-| BR-01 | `bpmn-sequence-flow` verbindet nur BPMN-Flusselemente (Tasks, Events, Gateways); keine Verbindung zu DataObjects oder DataStores | onConnectionCreate | API |
-| BR-02 | `bpmn-message-flow` verbindet nur `bpmn-pool`- oder Task-Elemente verschiedener Pools | onConnectionCreate | API |
-| BR-03 | Eine `bpmn-lane` hat höchstens eine `bpmn-lane-belongs-to-org-unit`-Connection (1 OrgUnit pro Lane) | onConnectionCreate | API |
-| BR-04 | Eine `bpmn-lane` kann mehrere `bpmn-lane-performs-role`-Connections haben (Lane kann mehrere Rollen bündeln) | – | Daten |
-| BR-05 | Ein `bpmn-user-task` sollte (SHOULD) höchstens eine `bpmn-task-assigned-to`-Connection haben | onConnectionCreate | UI-Warnung |
-| BR-06 | Prozess-Elemente innerhalb eines Pools MÜSSEN über `bpmn-contained-in` mit einer Lane oder dem Pool verbunden sein | onSave | API |
-| BR-07 | `bpmn-data-input-association` läuft immer von DataObject/DataStore **zu** Task (Pfeilrichtung: Datenquelle → Task); `bpmn-data-output-association` läuft immer von Task **zu** DataObject/DataStore | onConnectionCreate | API |
-| BR-08 | Ein `bpmn-data-object` mit `transformationType: create` darf nicht gleichzeitig eine `bpmn-data-input-association` auf dasselbe Objekt haben (neu erstellt = vorher nicht vorhanden) | onSave | API-Warnung |
+| BR-01 | `bpmn-sequence-flow` connects only BPMN flow elements (tasks, events, gateways); no connection to DataObjects or DataStores | onConnectionCreate | API |
+| BR-02 | `bpmn-message-flow` connects only `bpmn-pool` or task elements of different pools | onConnectionCreate | API |
+| BR-03 | A `bpmn-lane` has at most one `bpmn-lane-belongs-to-org-unit` connection (1 OrgUnit per lane) | onConnectionCreate | API |
+| BR-04 | A `bpmn-lane` can have multiple `bpmn-lane-performs-role` connections (a lane can bundle multiple roles) | – | Data |
+| BR-05 | A `bpmn-user-task` SHOULD have at most one `bpmn-task-assigned-to` connection | onConnectionCreate | UI warning |
+| BR-06 | Process elements within a pool MUST be connected to a lane or the pool via `bpmn-contained-in` | onSave | API |
+| BR-07 | `bpmn-data-input-association` always runs from DataObject/DataStore **to** task (arrow direction: data source → task); `bpmn-data-output-association` always runs from task **to** DataObject/DataStore | onConnectionCreate | API |
+| BR-08 | A `bpmn-data-object` with `transformationType: create` must not simultaneously have a `bpmn-data-input-association` on the same object (newly created = not present before) | onSave | API warning |
 
 ---
 
-## 7. Erweiterbarkeit (Metamodell-Konfigurierbarkeit)
+## 7. Extensibility (Metamodel Configurability)
 
-Alle built-in BPMN-Typen sind via `extends` erweiterbar:
+All built-in BPMN types are extensible via `extends`:
 
 ```yaml
-# Unternehmensspezifischer Review-Task
+# Company-specific review task
 EntityTypeDefinition:
   id:      "review-task"
   extends: "bpmn-user-task"
@@ -234,7 +234,7 @@ EntityTypeDefinition:
       type: "date"
       required: true
 
-# Prozess-DataObject mit Datenklassifizierung
+# Process DataObject with data classification
 EntityTypeDefinition:
   id:      "classified-data-object"
   extends: "bpmn-data-object"
@@ -246,24 +246,24 @@ EntityTypeDefinition:
 
 ---
 
-## 8. Abgrenzung zu bestehenden BOs
+## 8. Delimitation from Existing BOs
 
-| Konzept | In process.md | In anderen BOs |
+| Concept | In process.md | In other BOs |
 |---|---|---|
-| Entity-Grundmodell | – | entity.md |
-| `data-object` Basis-Typ | Subtyp `bpmn-data-object` verwendet | entity.md |
-| DataFlow / carries-data | Verknüpft via Data Lineage (§4.3) | entity.md, ADR-010 |
-| EntityTypeDefinition-Struktur | Verwendet | metamodel-configuration.md |
-| Viewpoint / NotationMapping | Verwendet | viewpoint.md |
-| Person als Entität | Zuordnungs-Ziel | role.md |
-| Role als Entität | Zuordnungs-Ziel | role.md |
-| Canvas-Rendering | – | viewpoint.md, ADR-007 (Vue Flow) |
+| Basic entity model | – | entity.md |
+| `data-object` base type | Subtype `bpmn-data-object` used | entity.md |
+| DataFlow / carries-data | Linked via data lineage (§4.3) | entity.md, ADR-010 |
+| EntityTypeDefinition structure | Used | metamodel-configuration.md |
+| Viewpoint / NotationMapping | Used | viewpoint.md |
+| Person as entity | Assignment target | role.md |
+| Role as entity | Assignment target | role.md |
+| Canvas rendering | – | viewpoint.md, ADR-007 (Vue Flow) |
 
 ---
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.2.0 | 2026-06-26 | business-engineer | DataObject/DataStore-Integration: bpmn-data-object (extends data-object), bpmn-data-store; DataAssociation-Connections; Prozess-Datenlineage (§4); BR-07/08; Vue Flow |
-| 0.1.0 | 2026-06-26 | business-engineer | Initial draft: OrganizationalUnit, BPMN-Typen, Zuordnungs-Connections, BR-01–06 |
+| 0.2.0 | 2026-06-26 | business-engineer | DataObject/DataStore integration: bpmn-data-object (extends data-object), bpmn-data-store; DataAssociation connections; process data lineage (§4); BR-07/08; Vue Flow |
+| 0.1.0 | 2026-06-26 | business-engineer | Initial draft: OrganizationalUnit, BPMN types, assignment connections, BR-01–06 |

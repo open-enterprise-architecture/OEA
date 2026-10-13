@@ -1,6 +1,6 @@
 ---
 id: UC-09
-title: Entität strukturiert dokumentieren
+title: Document an Entity in a Structured Way
 version: 0.2.0
 status: draft
 priority: should
@@ -16,28 +16,28 @@ references:
     - metamodel-configuration
     - entity
   concept:
-    - concept/20-entities/14-erweiterbarkeit.md
+    - concept/20-entities/14-extensibility.md
 ---
 
-# UC-09: Entität strukturiert dokumentieren
+# UC-09: Document an Entity in a Structured Way
 
-## Diagramm
+## Diagram
 
 ```plantuml
-@startuml UC-09-Dokumentation
+@startuml UC-09-Documentation
 left to right direction
 skinparam actorStyle awesome
 
-actor "Michael\n(Solution Architekt)" as Michael
+actor "Michael\n(Solution Architect)" as Michael
 actor "Kurt\n(Lead EA)" as Kurt
 actor "CIO" as CIO
 
-rectangle "OEA – Entität strukturiert dokumentieren" {
-  usecase "Dokumentationskapitel\nbearbeiten (WYSIWYG)" as UC_Edit
-  usecase "Diagramm einbetten\n(Mermaid / PlantUML)" as UC_Diag
-  usecase "ADR verlinken" as UC_ADR
-  usecase "Weitere Collection\nbearbeiten\n(Third-Party / Lizenz)" as UC_Coll
-  usecase "Dokumentation\nlesen" as UC_Read
+rectangle "OEA – Document an Entity in a Structured Way" {
+  usecase "Edit Documentation Chapter\n(WYSIWYG)" as UC_Edit
+  usecase "Embed Diagram\n(Mermaid / PlantUML)" as UC_Diag
+  usecase "Link ADR" as UC_ADR
+  usecase "Edit Another Collection\n(Third-Party / License)" as UC_Coll
+  usecase "Read\nDocumentation" as UC_Read
 }
 
 Michael --> UC_Edit
@@ -51,107 +51,107 @@ UC_Edit ..> UC_Coll : <<extend>>
 @enduml
 ```
 
-## Kurzbeschreibung
+## Short Description
 
-Der Solution Architekt dokumentiert eine Entität (z.B. ein System, eine Applikation, einen Drittanbieter) direkt in OEA über eine betreiberdefinierte Kapitelsammlung — verknüpft mit dem EA-Modell, ohne separates Dokumentations-Tool. Typische Anwendungsfälle sind Arc42-Architekturdokumentation, Third-Party-Management oder ein Lizenzregister.
+The solution architect documents an entity (e.g., a system, an application, a third party) directly in OEA via an operator-defined chapter collection — linked with the EA model, without a separate documentation tool. Typical use cases are Arc42 architecture documentation, third-party management or a license register.
 
-## Primärer Akteur
+## Primary Actor
 
-**SH-04 – Michael, Solution Architekt im Mittelstand**
+**SH-04 – Michael, Solution Architect in a mid-sized company**
 
-Sekundäre Akteure: SH-03 (Lead EA liest Dokumentation mit), SH-05 (CIO im Web Portal)
+Secondary actors: SH-03 (Lead EA reads documentation along), SH-05 (CIO in the web portal)
 
-## Ziel
+## Goal
 
-Jede Entität kann mit einer oder mehreren betreiberdefinierten Dokumentationssammlungen verknüpft werden. Die Inhalte leben im EA-Repository, sind über Viewpoints sichtbar und mit ADRs, NFRs und dem Diagramm-Canvas verbunden.
+Every entity can be linked to one or more operator-defined documentation collections. The contents live in the EA repository, are visible via viewpoints and connected with ADRs, NFRs and the diagram canvas.
 
-## Vorbedingungen
+## Preconditions
 
-- Mindestens eine `DocumentCollectionDefinition` ist im MetamodelConfiguration konfiguriert und dem EntityType der zu dokumentierenden Entität zugewiesen (UC-04)
-- Die zu dokumentierende Entität existiert als ArchitectureEntity im Repository
+- At least one `DocumentCollectionDefinition` is configured in the MetamodelConfiguration and assigned to the EntityType of the entity to be documented (UC-04)
+- The entity to be documented exists as an ArchitectureEntity in the repository
 
-## Hauptfluss
+## Basic Flow
 
-*Standardfall: Michael dokumentiert ein System nach Arc42*
+*Default case: Michael documents a system according to Arc42*
 
-1. Michael öffnet die ArchitectureEntity „CRM-System" (application-component, id=1)
-2. Das System zeigt den Tab „Dokumentation" mit allen zugewiesenen `DocumentCollectionDefinitions` als Reiter
-3. Michael wählt den Reiter „Arc42 Architektur" und sieht alle 12 Kapitel als Abschnitte
-4. Michael klickt auf „1. Kontextabgrenzung" — ein WYSIWYG-Editor öffnet sich
-5. Michael schreibt den Kontext-Text und fügt einen Mermaid-Block (C4-Context-Diagramm) ein
-6. Das System rendert den Mermaid-Block als Vorschau inline im Editor
-7. Michael speichert — das System legt eine `documentation-entry`-Entität an und verknüpft sie via `documents` mit id=1
-8. Michael wechselt zu „9. Architekturentscheidungen" und verlinkt bestehende ADRs per Link im Editor
-9. Michael wechselt zu „5. Bausteinsicht" und fügt ein PlantUML-Komponentendiagramm ein
-10. Nach Abschluss: alle befüllten Kapitel sind in der Übersicht mit Status „✓" markiert
+1. Michael opens the ArchitectureEntity "CRM System" (application-component, id=1)
+2. The system shows the tab "Documentation" with all assigned `DocumentCollectionDefinitions` as tabs
+3. Michael selects the tab "Arc42 Architecture" and sees all 12 chapters as sections
+4. Michael clicks on "3. Context and Scope" — a WYSIWYG editor opens
+5. Michael writes the context text and inserts a Mermaid block (C4 context diagram)
+6. The system renders the Mermaid block as an inline preview in the editor
+7. Michael saves — the system creates a `documentation-entry` entity and links it via `documents` to id=1
+8. Michael switches to "9. Architecture Decisions" and links existing ADRs via link in the editor
+9. Michael switches to "5. Building Block View" and inserts a PlantUML component diagram
+10. After completion: all filled chapters are marked with status "✓" in the overview
 
-## Alternativflüsse
+## Alternative Flows
 
-**A1 – Andere DocumentCollection (z.B. Third-Party Management):**
-- Schritt 2a: Michael wechselt zum Reiter „Third-Party Management" derselben Entität
-- Michael befüllt dort Kapitel „Vendor-Bewertung", „SLA-Bedingungen" und „Exit-Strategie"
-- Für jedes Kapitel wird eine eigene `documentation-entry`-Entität angelegt und via `documents` verknüpft
+**A1 – Another DocumentCollection (e.g., third-party management):**
+- Step 2a: Michael switches to the tab "Third-Party Management" of the same entity
+- There, Michael fills chapters "Vendor Assessment", "SLA Terms" and "Exit Strategy"
+- For each chapter, a separate `documentation-entry` entity is created and linked via `documents`
 
-**A2 – PlantUML-Server nicht verfügbar:**
-- Schritt 6a: Das Rendering schlägt fehl; System zeigt Code-Fallback (roher Text) und Warning-Icon
-- Michael kann den Content speichern; Rendering wird beim nächsten Laden erneut versucht
+**A2 – PlantUML server unavailable:**
+- Step 6a: Rendering fails; system shows code fallback (raw text) and warning icon
+- Michael can save the content; rendering is retried on the next load
 
-**A3 – Mehrere Collections gleichzeitig sichtbar:**
-- Schritt 2a: Für den EntityType sind „Arc42 Architektur", „Third-Party Management" und „Lizenzregister" konfiguriert
-- Michael sieht alle drei als Reiter; befüllt je nach Bedarf einen oder mehrere
+**A3 – Several collections visible at the same time:**
+- Step 2a: "Arc42 Architecture", "Third-Party Management" and "License Register" are configured for the EntityType
+- Michael sees all three as tabs; fills one or more as needed
 
-## Ausnahmen
+## Exception Flows
 
-**E1 – Entität ohne Collection-Zuweisung:**
-- Kein Dokumentations-Tab erscheint; kein Fehler; Hinweis „Keine Dokumentationssammlung für diesen Typ konfiguriert"
+**E1 – Entity without collection assignment:**
+- No documentation tab appears; no error; notice "No documentation collection configured for this type"
 
-**E2 – Kapitel-Inhalt wird überschrieben:**
-- Pro (Subject-Entität + `chapterRef` + `collectionRef`) ist maximal ein Eintrag erlaubt (BR-05); erneutes Speichern überschreibt den bestehenden
+**E2 – Chapter content is overwritten:**
+- At most one entry is allowed per (subject entity + `chapterRef` + `collectionRef`) (BR-05); saving again overwrites the existing one
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Tab erscheint für zugewiesenen Typ):
-- Gegeben: EntityType `application-component` hat Collection `arc42-standard` zugewiesen
-- Wenn: Michael öffnet CRM-System-Entität
-- Dann: Tab „Dokumentation" mit Reiter „Arc42 Architektur" sichtbar; alle 12 Kapitel aufgelistet; unbefüllte Kapitel als leer
+**AC1** (tab appears for assigned type):
+- Given: EntityType `application-component` has collection `arc42-standard` assigned
+- When: Michael opens the CRM System entity
+- Then: Tab "Documentation" with tab "Arc42 Architecture" visible; all 12 chapters listed; unfilled chapters shown as empty
 
-**AC2** (WYSIWYG Speichern):
-- Wenn: Michael schreibt Text + Mermaid-Block und klickt Speichern
-- Dann: `documentation-entry`-Entität angelegt mit `content`, verknüpft via `documents(sourceId=neu, targetId=1)`
+**AC2** (WYSIWYG save):
+- When: Michael writes text + Mermaid block and clicks Save
+- Then: `documentation-entry` entity created with `content`, linked via `documents(sourceId=new, targetId=1)`
 
-**AC3** (Mermaid-Rendering):
-- Wenn: Content enthält ```mermaid-Block
-- Dann: Block wird als SVG-Diagramm gerendert; Fallback auf Code wenn mermaid.js nicht verfügbar
+**AC3** (Mermaid rendering):
+- When: Content contains a ```mermaid block
+- Then: Block is rendered as an SVG diagram; fallback to code if mermaid.js is not available
 
-**AC4** (PlantUML-Rendering):
-- Wenn: Content enthält ```plantuml-Block
-- Dann: Block wird via konfigurierten PlantUML-Server oder WASM als SVG gerendert
+**AC4** (PlantUML rendering):
+- When: Content contains a ```plantuml block
+- Then: Block is rendered as SVG via the configured PlantUML server or WASM
 
-**AC5** (Web Portal read-only):
-- Wenn: CIO öffnet dieselbe Entität im Web Portal
-- Dann: Dokumentations-Tab sichtbar; Inhalte lesbar; Mermaid/PlantUML gerendert; kein Bearbeitungs-Button
+**AC5** (web portal read-only):
+- When: CIO opens the same entity in the web portal
+- Then: Documentation tab visible; contents readable; Mermaid/PlantUML rendered; no edit button
 
-**AC6** (Fortschrittsanzeige):
-- Wenn: 4 von 12 Kapiteln befüllt
-- Dann: Übersicht zeigt „4 / 12 befüllt" und welche Kapitel noch leer sind
+**AC6** (progress display):
+- When: 4 of 12 chapters filled
+- Then: Overview shows "4 / 12 filled" and which chapters are still empty
 
-**AC7** (Mehrere Collections gleichzeitig):
-- Wenn: Zwei Collections für denselben EntityType konfiguriert
-- Dann: Beide Reiter sichtbar; Inhalte unabhängig voneinander befüllbar
+**AC7** (several collections at the same time):
+- When: Two collections configured for the same EntityType
+- Then: Both tabs visible; contents fillable independently of each other
 
-## Nicht im Scope
+## Out of Scope
 
-- Automatisches Befüllen aus dem EA-Modell (v2.0 denkbar: Kontextabgrenzung aus Diagramm generieren)
-- PDF-Export der Dokumentation (v2.0)
-- Kollaborative Echtzeit-Bearbeitung (v2.0)
+- Automatic filling from the EA model (conceivable in v2.0: generate context scope from diagram)
+- PDF export of the documentation (v2.0)
+- Collaborative real-time editing (v2.0)
 
-## Beziehung zu anderen Use Cases
+## Relationship to Other Use Cases
 
-- **UC-04**: Metamodell-Admin konfiguriert `DocumentCollectionDefinitions` und weist sie EntityTypes zu (Voraussetzung)
-- **UC-05**: Architektur-Vision und Solutions definieren das modellierte System; UC-09 dokumentiert dessen Inhalte
-- **UC-06**: Katalog kann `documentation-entry`-Entitäten auflisten (Überblick aller dokumentierten Entitäten)
+- **UC-04**: Metamodel admin configures `DocumentCollectionDefinitions` and assigns them to EntityTypes (prerequisite)
+- **UC-05**: Architecture vision and solutions define the modeled system; UC-09 documents its contents
+- **UC-06**: Catalog can list `documentation-entry` entities (overview of all documented entities)
 
-## Konzept-Bezug
+## Concept Reference
 
-- §14 Erweiterbarkeit: `DocumentCollectionDefinition` als betreiberdefiniertes Metamodell-Konzept
-- §18 Reporting: strukturierte Dokumentation als Ausgabe pro Entität
+- §14 Extensibility: `DocumentCollectionDefinition` as an operator-defined metamodel concept
+- §18 Reporting: structured documentation as output per entity

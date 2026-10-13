@@ -1,6 +1,6 @@
 ---
 id: REQ-091
-title: Viewpoint Notation-Mapping Konsistenz
+title: Viewpoint notation mapping consistency
 type: functional
 priority: must
 status: proposed
@@ -21,43 +21,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-091: Viewpoint Notation-Mapping Konsistenz
+# REQ-091: Viewpoint notation mapping consistency
 
-## Aussage
+## Statement
 
-Das `notationElement`-Dropdown im Viewpoint-Editor MUSS ausschliesslich Elemente der gewählten Notation anzeigen (Präfix-Filter: `archimate3:*`, `uml:*`, `bpmn:*`). Die Auswahl eines Elements mit falschem Präfix MUSS beim Speichern mit HTTP 422 abgewiesen werden.
+The `notationElement` dropdown in the viewpoint editor MUST display exclusively elements of the selected notation (prefix filter: `archimate3:*`, `uml:*`, `bpmn:*`). Selecting an element with the wrong prefix MUST be rejected with HTTP 422 on saving.
 
-## Begründung
+## Rationale
 
-Ein ArchiMate-Viewpoint mit UML-Elementen würde zu inkonsistenten Diagrammen führen, die in keiner Notation korrekt gerendert werden können. Die Konsistenz zwischen Notation und Mapping-Elementen muss sowohl im Frontend als auch im Backend erzwungen werden.
+An ArchiMate viewpoint with UML elements would lead to inconsistent diagrams that cannot be rendered correctly in any notation. Consistency between notation and mapping elements must be enforced in both the frontend and the backend.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Dropdown-Filter nach Notation):
-- Wenn: `notation=archimate3` ausgewählt ist
-- Dann: zeigt das Dropdown nur `archimate3:*`-Elemente
+**AC1** (Dropdown filter by notation):
+- When: `notation=archimate3` is selected
+- Then: the dropdown shows only `archimate3:*` elements
 
-**AC2** (API-Validierung):
-- Wenn: ein API-Aufruf ein `bpmn:Task`-Element in einem `archimate3`-Viewpoint speichern will
-- Dann: antwortet die API mit HTTP 422
+**AC2** (API validation):
+- When: an API call tries to save a `bpmn:Task` element in an `archimate3` viewpoint
+- Then: the API responds with HTTP 422
 
-**AC3** (Dropdown-Reset bei Notation-Wechsel):
-- Wenn: die Notation im Formular gewechselt wird
-- Dann: aktualisieren sich die Dropdown-Inhalte sofort; bereits gewählte inkompatible Elemente werden zurückgesetzt
+**AC3** (Dropdown reset on notation change):
+- When: the notation is changed in the form
+- Then: the dropdown contents update immediately; already selected incompatible elements are reset
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-090 (Viewpoint-Editor)
-- **Folgewirkungen**: keine
+- **Prerequisites**: REQ-090 (viewpoint editor)
+- **Downstream effects**: none
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Präfix-Filter clientseitig im Dropdown und serverseitig in der Validierungslogik
-- Notation-Wechsel triggert reaktive Aktualisierung der Mapping-Felder
-- Fehlermeldung bei HTTP 422 benennt das inkonsistente Element explizit
+- Prefix filter client-side in the dropdown and server-side in the validation logic
+- Notation change triggers reactive update of the mapping fields
+- Error message on HTTP 422 explicitly names the inconsistent element
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

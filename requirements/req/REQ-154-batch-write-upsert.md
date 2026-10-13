@@ -1,6 +1,6 @@
 ---
 id: REQ-154
-title: Batch-Write für Entitäten und Verbindungen
+title: Batch Write for Entities and Connections
 type: functional
 priority: should
 status: proposed
@@ -17,70 +17,70 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-154: Batch-Write für Entitäten und Verbindungen
+# REQ-154: Batch Write for Entities and Connections
 
-## Aussage
+## Statement
 
-Das System **MUSS** einen Endpoint bereitstellen, der bis zu 500 Entitäten und 500 Verbindungen in einem einzigen HTTP-Request mit konfigurierbarer Upsert-Strategie anlegt oder aktualisiert, und **MUSS** einen `dryRun`-Modus unterstützen, der alle Validierungen durchführt ohne zu persistieren.
+The system **MUST** provide an endpoint that creates or updates up to 500 entities and 500 connections in a single HTTP request with a configurable upsert strategy, and **MUST** support a `dryRun` mode that performs all validations without persisting.
 
-## Begründung
+## Rationale
 
-Code-Scanner und Import-Werkzeuge analysieren ganze Repositories oder CMDB-Snapshots und erzeugen viele Objekte auf einmal. Einzelne HTTP-Requests pro Objekt sind ineffizient (hohe Latenz, viele Verbindungen) und fehleranfällig (partial-failure ohne Atomarität).
+Code scanners and import tools analyze entire repositories or CMDB snapshots and produce many objects at once. Individual HTTP requests per object are inefficient (high latency, many connections) and error-prone (partial failure without atomicity).
 
-## Kontext
+## Context
 
-`POST /api/v1/entities/batch`. Strategien: upsert (default), create-only, skip-existing. Atomarität optional (atomic: true/false). (ADR-026)
+`POST /api/v1/entities/batch`. Strategies: upsert (default), create-only, skip-existing. Atomicity optional (atomic: true/false). (ADR-026)
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-**Eingaben**:
+**Inputs**:
 - BatchWriteRequest (entities[], connections[], strategy, atomic)
-- `?dryRun=true` Query-Parameter
+- `?dryRun=true` query parameter
 
-**Verarbeitung**:
-- Für jede Entität: Validierung, dann Create/Update/Skip je Strategie
-- Verbindungen: nach Entitäten verarbeitet (Referenzintegrität)
-- Bei `atomic=true`: ein Fehler → Rollback aller Änderungen
-- Bei `dryRun=true`: kein Persistieren; ValidationResult pro Item
+**Processing**:
+- For each entity: validation, then create/update/skip according to the strategy
+- Connections: processed after entities (referential integrity)
+- With `atomic=true`: one error → rollback of all changes
+- With `dryRun=true`: no persisting; ValidationResult per item
 
-**Ausgaben**:
-- BatchWriteResponse (summary, items[]) mit Status pro Item
+**Outputs**:
+- BatchWriteResponse (summary, items[]) with status per item
 
-**Fehlerfälle**:
-- `atomic=true` + mind. ein Fehler → 422; alle rollback'd
-- `atomic=false` + Teilfehler → 200 mit errors in items[]
+**Error Cases**:
+- `atomic=true` + at least one error → 422; all rolled back
+- `atomic=false` + partial errors → 200 with errors in items[]
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: 100 Entitäten im Batch, 5 mit mandatory-Property-Verletzung, `atomic=false`
-- Wenn: POST /api/v1/entities/batch
-- Dann: 200 OK; summary.created=95, summary.errors=5; fehlerhafte Items mit status=error
+- Given: 100 entities in the batch, 5 with a mandatory property violation, `atomic=false`
+- When: POST /api/v1/entities/batch
+- Then: 200 OK; summary.created=95, summary.errors=5; faulty items with status=error
 
 **AC2**:
-- Gegeben: 100 Entitäten, `dryRun=true`
-- Wenn: POST /api/v1/entities/batch?dryRun=true
-- Dann: ValidationResult; keine Entität in DB; Response zeigt was angelegt würde
+- Given: 100 entities, `dryRun=true`
+- When: POST /api/v1/entities/batch?dryRun=true
+- Then: ValidationResult; no entity in DB; response shows what would be created
 
 **AC3**:
-- Gegeben: Batch mit Verbindung, deren `sourceExternalId` nicht existiert
-- Wenn: POST /api/v1/entities/batch (entities + connections im selben Request)
-- Dann: Entitäten zuerst angelegt; Verbindung dann aufgelöst (sourceExternalId aus diesem Batch)
+- Given: batch with a connection whose `sourceExternalId` does not exist
+- When: POST /api/v1/entities/batch (entities + connections in the same request)
+- Then: entities created first; connection then resolved (sourceExternalId from this batch)
 
-## Verifikationsmethode
+## Verification Method
 
-- [ ] Methode: test (automatisiert)
-- [ ] Test-Setup: Integration-Test; 100-Item-Batch mit Fehlerszenarien
-- [ ] Bestanden-Kriterium: Korrekte summary-Zählung; dryRun schreibt nicht
-- [ ] In CI integriert: ja
+- [ ] Method: test (automated)
+- [ ] Test setup: integration test; 100-item batch with error scenarios
+- [ ] Pass criterion: correct summary counts; dryRun does not write
+- [ ] Integrated in CI: yes
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-153 (external_id + Upsert), REQ-149 (Validierung)
-- **Folgewirkungen**: US-141
+- **Prerequisites**: REQ-153 (external_id + upsert), REQ-149 (validation)
+- **Consequences**: US-141
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft aus ADR-026 |
+| 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft from ADR-026 |

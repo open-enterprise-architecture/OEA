@@ -1,26 +1,26 @@
-# Dokumentation für PO und Contributors
+# Documentation for PO and Contributors
 
-Drei Onboarding-Dokumente plus diese Übersicht.
+Three onboarding documents plus this overview.
 
-## Reihenfolge
+## Order
 
-1. **Heute**: [Quick Reference](quick-reference.md) einmal überfliegen (ca. 15 Min)
-2. **Vor dem ersten Feature**: [Workflow-Beispiel](workflow-example.md) lesen (ca. 30 Min)
-3. **Nach dem ersten Feature**: [Anti-Patterns](anti-patterns.md) lesen (ca. 45 Min)
+1. **Today**: skim the [Quick Reference](quick-reference.md) once (approx. 15 min)
+2. **Before the first feature**: read the [Workflow Example](workflow-example.md) (approx. 30 min)
+3. **After the first feature**: read the [Anti-Patterns](anti-patterns.md) (approx. 45 min)
 
-Anti-Patterns vor der ersten Erfahrung zu lesen ist abstrakt – nach der ersten Erfahrung wird vieles plötzlich klar.
+Reading the anti-patterns before the first experience is abstract – after the first experience, a lot suddenly becomes clear.
 
-## Inhalte
+## Contents
 
-| Datei | Zweck |
+| File | Purpose |
 |---|---|
-| [quick-reference.md](quick-reference.md) | Tabellarische Übersicht: welcher Agent wofür, ID-Konventionen, Slash-Commands, Quality Gates. Cheat Sheet zum Nachschlagen. |
-| [workflow-example.md](workflow-example.md) | End-to-End-Beispiel "Franz erfasst Application Component" in 10 Phasen, mit Beispiel-Prompts und realistischen Agent-Antworten. |
-| [anti-patterns.md](anti-patterns.md) | 29 typische Fehlmuster in 8 Kategorien (PO-Rolle, Agent-Nutzung, Pipeline, Spec-Disziplin, Security, Doku, Skalierung, Mensch-Maschine). Prophylaxe. |
+| [quick-reference.md](quick-reference.md) | Tabular overview: which agent for what, ID conventions, slash commands, quality gates. Cheat sheet for lookup. |
+| [workflow-example.md](workflow-example.md) | End-to-end example "Franz captures an Application Component" in 10 phases, with example prompts and realistic agent responses. |
+| [anti-patterns.md](anti-patterns.md) | 29 typical failure patterns in 8 categories (PO role, agent usage, pipeline, spec discipline, security, documentation, scaling, human-machine). Prophylaxis. |
 
-## Verbindung zum Konzept
+## Relationship to the Concept
 
-Diese Dokumente sind **Arbeits-Doku**, nicht Konzept. Das eigentliche Konzept liegt in [`../concept/`](../concept/). 
+These documents are **working documentation**, not concept. The actual concept lives in [`../concept/`](../concept/). 
 
-- Konzept = was OEA inhaltlich ist und tut
-- docs/ = wie wir es entwickeln und pflegen
+- Concept = what OEA is and does in terms of content
+- docs/ = how we develop and maintain it

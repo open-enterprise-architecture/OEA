@@ -1,6 +1,6 @@
 ---
 id: REQ-043
-title: Katalog anlegen
+title: Create a catalog
 type: functional
 priority: must
 status: proposed
@@ -19,93 +19,93 @@ references:
     - SH-03
     - SH-07
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
+    - concept/20-entities/06-core-entity-types.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-043: Katalog anlegen
+# REQ-043: Create a catalog
 
-## Aussage
+## Statement
 
-Das System MUSS dem Katalog-Manager ermöglichen, einen neuen [Catalog](../../business-objects/catalog.md) mit folgenden Feldern anzulegen: `name` (Pflicht, eindeutig innerhalb der Instanz), `description` (optional), `primaryEntityType` (Pflicht, muss ein gültiger EntityType-Name aus der MetamodelConfiguration sein), `scope` (Pflicht: `instance` | `personal`) und `defaultJoinMode` (Pflicht: `rows` | `aggregate`, Default: `aggregate`). Der Catalog wird initial ohne Spalten, Joins, Filter oder Views erstellt; Spalten- und Join-Konfiguration erfolgt in separaten Schritten (REQ-044, REQ-045).
+The system MUST allow the catalog manager to create a new [Catalog](../../business-objects/catalog.md) with the following fields: `name` (mandatory, unique within the instance), `description` (optional), `primaryEntityType` (mandatory, must be a valid EntityType name from the MetamodelConfiguration), `scope` (mandatory: `instance` | `personal`), and `defaultJoinMode` (mandatory: `rows` | `aggregate`, default: `aggregate`). The catalog is initially created without columns, joins, filters, or views; column and join configuration take place in separate steps (REQ-044, REQ-045).
 
-## Begründung
+## Rationale
 
-Ohne persistierte Catalog-Objekte kann keine wiederverwendbare Tabellenansicht auf das Repository bereitgestellt werden. Das Anlegen eines Catalogs ist der Einstiegspunkt für alle weiteren Konfigurationsschritte. Die Eindeutigkeitsprüfung des Namens verhindert Verwechslungen in der Katalog-Übersicht.
+Without persisted catalog objects, no reusable table view of the repository can be provided. Creating a catalog is the entry point for all further configuration steps. The uniqueness check of the name prevents confusion in the catalog overview.
 
-## Kontext
+## Context
 
-Ein Catalog ist ein Konfigurationsobjekt – er speichert die Abfrage-Definition, nicht die Abfrage-Ergebnisse selbst. Die Live-Ergebnisse werden erst bei Öffnen des Catalogs berechnet (REQ-046). Ein Catalog mit `scope=personal` ist nur für den Ersteller sichtbar; bei `scope=instance` können alle Nutzer der Instanz den Catalog öffnen (aber nicht konfigurieren, sofern sie keine Schreibberechtigung haben).
+A catalog is a configuration object – it stores the query definition, not the query results themselves. The live results are computed only when the catalog is opened (REQ-046). A catalog with `scope=personal` is visible only to its creator; with `scope=instance`, all users of the instance can open the catalog (but not configure it, unless they have write permission).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
+**Inputs**:
 
-| Feld | Typ | Optional | Beschreibung |
+| Field | Type | Optional | Description |
 |---|---|---|---|
-| name | string | Pflicht | Lesbarer Name, max. 255 Zeichen; eindeutig innerhalb der Instanz (case-insensitiv, getrimmt) |
-| description | string | optional | Kurzbeschreibung, max. 1000 Zeichen |
-| primaryEntityType | string | Pflicht | EntityType-Name aus der MetamodelConfiguration (built-in oder custom) |
-| scope | enum | Pflicht | `instance` (für alle sichtbar) oder `personal` (nur für Ersteller) |
-| defaultJoinMode | enum | Pflicht | `aggregate` (Standard) oder `rows` |
+| name | string | mandatory | Readable name, max. 255 characters; unique within the instance (case-insensitive, trimmed) |
+| description | string | optional | Short description, max. 1000 characters |
+| primaryEntityType | string | mandatory | EntityType name from the MetamodelConfiguration (built-in or custom) |
+| scope | enum | mandatory | `instance` (visible to all) or `personal` (creator only) |
+| defaultJoinMode | enum | mandatory | `aggregate` (default) or `rows` |
 
-**Verarbeitung**:
+**Processing**:
 
-1. Name auf Eindeutigkeit prüfen (scope = gesamte Instanz; personal-Catalogs und instance-Catalogs teilen denselben Namensraum pro Instanz, sodass keine Verwechslungen entstehen)
-2. `primaryEntityType` gegen MetamodelConfiguration validieren; 422 wenn nicht vorhanden
-3. Catalog mit `createdBy = aktuelle Person`, `createdAt = now()` persistieren
-4. Leere Listen für `columns`, `joinDefinitions`, `savedFilters`, `savedViews` initialisieren
+1. Check the name for uniqueness (scope = entire instance; personal catalogs and instance catalogs share the same namespace per instance, so no confusion arises)
+2. Validate `primaryEntityType` against the MetamodelConfiguration; 422 if not present
+3. Persist the catalog with `createdBy = current person`, `createdAt = now()`
+4. Initialize empty lists for `columns`, `joinDefinitions`, `savedFilters`, `savedViews`
 
-**Ausgaben**:
+**Outputs**:
 
-- HTTP 201 Created mit dem angelegten Catalog-Objekt (inkl. generierter `id`)
-- HTTP 422 Unprocessable Entity bei Validierungsfehlern (fehlende Pflichtfelder, ungültiger EntityType, Name-Kollision)
-- HTTP 403 Forbidden wenn der Akteur keine Schreibberechtigung für Catalogs hat
+- HTTP 201 Created with the created catalog object (including generated `id`)
+- HTTP 422 Unprocessable Entity on validation errors (missing mandatory fields, invalid EntityType, name collision)
+- HTTP 403 Forbidden if the actor has no write permission for catalogs
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Anlegen, Happy Path):
-- Gegeben: Kurt ist eingeloggt mit Rolle „Enterprise Architekt"; die MetamodelConfiguration enthält den EntityType `ApplicationComponent`
-- Wenn: `POST /api/v1/catalogs` mit `{ name: "Application Inventory", primaryEntityType: "ApplicationComponent", scope: "instance", defaultJoinMode: "aggregate" }`
-- Dann: HTTP 201; Response enthält id, name, primaryEntityType, scope, defaultJoinMode, createdBy=Kurts ID, leere columns/joinDefinitions/savedFilters/savedViews-Listen
+**AC1** (Creation, happy path):
+- Given: Kurt is logged in with the role "Enterprise Architect"; the MetamodelConfiguration contains the EntityType `ApplicationComponent`
+- When: `POST /api/v1/catalogs` with `{ name: "Application Inventory", primaryEntityType: "ApplicationComponent", scope: "instance", defaultJoinMode: "aggregate" }`
+- Then: HTTP 201; response contains id, name, primaryEntityType, scope, defaultJoinMode, createdBy=Kurt's ID, empty columns/joinDefinitions/savedFilters/savedViews lists
 
-**AC2** (Name-Kollision):
-- Gegeben: Ein Catalog mit name="Application Inventory" existiert bereits
-- Wenn: Erneuter POST mit demselben Name (egal ob identische Schreibweise oder Variationen wie Leerzeichen vorn/hinten)
-- Dann: HTTP 422 mit Fehlermeldung „Ein Katalog mit diesem Namen existiert bereits"
+**AC2** (Name collision):
+- Given: a catalog with name="Application Inventory" already exists
+- When: another POST with the same name (whether identical spelling or variations such as leading/trailing spaces)
+- Then: HTTP 422 with the error message "A catalog with this name already exists"
 
-**AC3** (Ungültiger EntityType):
-- Gegeben: Die MetamodelConfiguration enthält keinen EntityType „UnbekannterTyp"
-- Wenn: POST mit `primaryEntityType: "UnbekannterTyp"`
-- Dann: HTTP 422 „Der EntityType ‹UnbekannterTyp› ist in der MetamodelConfiguration nicht definiert"
+**AC3** (Invalid EntityType):
+- Given: the MetamodelConfiguration contains no EntityType "UnknownType"
+- When: POST with `primaryEntityType: "UnknownType"`
+- Then: HTTP 422 "The EntityType ‹UnknownType› is not defined in the MetamodelConfiguration"
 
 **AC4** (Scope=personal):
-- Gegeben: Sabine legt einen Catalog mit scope=personal an
-- Wenn: Franz (anderer Nutzer) die Catalog-Übersicht abruft
-- Dann: Sabines personal-Catalog erscheint NICHT in Franzens Sicht; 404 bei direktem Zugriff
+- Given: Sabine creates a catalog with scope=personal
+- When: Franz (another user) retrieves the catalog overview
+- Then: Sabine's personal catalog does NOT appear in Franz's view; 404 on direct access
 
-**AC5** (Fehlende Berechtigung):
-- Gegeben: Franz hat nur die Rolle „Betrachter"
-- Wenn: Franz versucht, einen Catalog anzulegen
-- Dann: HTTP 403 Forbidden
+**AC5** (Missing permission):
+- Given: Franz has only the role "Viewer"
+- When: Franz tries to create a catalog
+- Then: HTTP 403 Forbidden
 
-## Abhängigkeiten
+## Dependencies
 
-- Blockiert durch: UC-04 / REQ-032 (MetamodelConfiguration muss EntityTypes enthalten)
-- Ermöglicht: REQ-044 (Spalten konfigurieren), REQ-045 (Join konfigurieren), REQ-046 (Abfrage ausführen)
+- Blocked by: UC-04 / REQ-032 (MetamodelConfiguration must contain EntityTypes)
+- Enables: REQ-044 (configure columns), REQ-045 (configure join), REQ-046 (execute query)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
 - Endpoint: `POST /api/v1/catalogs`
-- Name-Eindeutigkeit: `SELECT id FROM catalogs WHERE lower(trim(name)) = lower(trim(:name)) AND instance_id = :instanceId`
-- Berechtigungsprüfung: Rolle „Enterprise Architekt" oder äquivalente Schreibberechtigung auf Resource `catalog`
+- Name uniqueness: `SELECT id FROM catalogs WHERE lower(trim(name)) = lower(trim(:name)) AND instance_id = :instanceId`
+- Permission check: role "Enterprise Architect" or equivalent write permission on resource `catalog`
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft |

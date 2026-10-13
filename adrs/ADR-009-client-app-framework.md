@@ -1,148 +1,148 @@
-# ADR-009: Client-App-Framework – Electron vs. Tauri
+# ADR-009: Client App Framework – Electron vs. Tauri
 
 **Status**: accepted
-**Datum**: 2026-06-26
-**Entscheider**: [Rigobert – Produkt Owner](../business-analysis/stakeholders/SH-09-rigobert-produkt-owner.md) (SH-09)
-**Konsultiert**: Requirements Engineer (US-045), Frontend-Engineer
-**Informiert**: –
-**Aktualisiert**: 2026-06-28 — React Flow → Vue Flow und React/TypeScript → Vue/TypeScript infolge [ADR-011](./ADR-011-frontend-framework.md) (Frontend-Framework: Vue 3); Begründung und Entscheidung bleiben inhaltlich gültig, da Vue Flow denselben DOM-Rendering-Ansatz wie React Flow verwendet
+**Date**: 2026-06-26
+**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Consulted**: Requirements Engineer (US-045), Frontend Engineer
+**Informed**: –
+**Updated**: 2026-06-28 — React Flow → Vue Flow and React/TypeScript → Vue/TypeScript following [ADR-011](./ADR-011-frontend-framework.md) (frontend framework: Vue 3); rationale and decision remain valid in substance, since Vue Flow uses the same DOM rendering approach as React Flow
 
-## Kontext und Problem
+## Context and Problem
 
-[ADR-008](./ADR-008-gui-architektur-dual-track.md) hat entschieden, dass OEA eine **Client App** für den vollständigen Modellierungs-Umfang bereitstellt. Die Client App bettet die Vue/TypeScript-Oberfläche (inkl. Vue Flow Canvas, ADR-007, ADR-011) in eine native Desktop-Anwendung ein, die Zugriff auf Dateisystem, Offline-Betrieb und volle Plattform-Integration bietet.
+[ADR-008](./ADR-008-gui-architecture-dual-track.md) decided that OEA provides a **client app** for the full modeling scope. The client app embeds the Vue/TypeScript interface (incl. Vue Flow canvas, ADR-007, ADR-011) into a native desktop application that offers file system access, offline operation, and full platform integration.
 
-Offen ist die Wahl des **Embedding-Frameworks**: Was stellt die native Hülle, den Prozessmanager, die IPC-Brücke und den Packaging-/Distributions-Mechanismus bereit?
+What is open is the choice of the **embedding framework**: What provides the native shell, the process manager, the IPC bridge, and the packaging/distribution mechanism?
 
-Die beiden ernsthaften Kandidaten im OSS-Ökosystem 2026 sind **Electron** und **Tauri v2**. Beide packen eine Webview mit nativen Fähigkeiten; sie unterscheiden sich fundamental in der Rendering-Strategie (gebündeltes Chromium vs. System-WebView) und im Backend-Stack (Node.js vs. Rust).
+The two serious candidates in the 2026 OSS ecosystem are **Electron** and **Tauri v2**. Both package a webview with native capabilities; they differ fundamentally in rendering strategy (bundled Chromium vs. system WebView) and backend stack (Node.js vs. Rust).
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- **Canvas-Rendering-Konsistenz**: Vue Flow (ADR-007) ist eine DOM-basierte Canvas-Bibliothek – kein WebGL. DOM-Performance und CSS-Rendering-Fidelity sind vom Laufzeit-Browser abhängig. Inkonsistente System-WebViews sind ein Risiko für Diagramm-Editierung und Typeahead-Interaktion (US-045).
-- **Dev-Team-Fit**: Das OEA-Frontend ist Vue/TypeScript (ADR-011). Native Erweiterungen (IPC-Handler, Dateisystem-Zugriff, Auto-Update) sollten ebenfalls in einer dem Team vertrauten Sprache schreibbar sein.
-- **OSS-Lizenz-Kompatibilität**: Apache 2.0-Projekt; das Framework muss MIT, Apache 2.0 oder BSD sein.
-- **Installations-Grösse**: Relevant für OSS-Adoption; grosse Bundles erhöhen die Hürde für neue Nutzer.
-- **Offline-Betrieb und Dateisystem**: Architekten exportieren Modelle als YAML/JSON direkt in lokale Git-Repos; nativer Dateisystem-Zugriff ist Pflicht.
-- **Auto-Update**: OSS-Projekt ohne proprietäre Store-Abhängigkeit; der Update-Mechanismus muss selbst gehostet werden können.
-- **Cross-Platform**: macOS, Windows, Linux (alle drei gleich wichtig; EA-Teams sind gemischt).
-- **Langfristige Projekt-Stabilität**: Bibliothek muss aktiv gepflegt und community-getragen sein.
+- **Canvas rendering consistency**: Vue Flow (ADR-007) is a DOM-based canvas library – no WebGL. DOM performance and CSS rendering fidelity depend on the runtime browser. Inconsistent system WebViews are a risk for diagram editing and typeahead interaction (US-045).
+- **Dev team fit**: The OEA frontend is Vue/TypeScript (ADR-011). Native extensions (IPC handlers, file system access, auto-update) should also be writable in a language familiar to the team.
+- **OSS license compatibility**: Apache 2.0 project; the framework must be MIT, Apache 2.0, or BSD.
+- **Installation size**: Relevant for OSS adoption; large bundles raise the barrier for new users.
+- **Offline operation and file system**: Architects export models as YAML/JSON directly into local Git repos; native file system access is mandatory.
+- **Auto-update**: OSS project without proprietary store dependency; the update mechanism must be self-hostable.
+- **Cross-platform**: macOS, Windows, Linux (all three equally important; EA teams are mixed).
+- **Long-term project stability**: The library must be actively maintained and community-driven.
 
-## Betrachtete Optionen
+## Considered Options
 
 ### Option 1: Electron
 
-Electron (MIT) bettet **Chromium + Node.js** in die App ein. VS Code, Figma (Desktop), Slack, Notion, Postman – viele professionelle Tools basieren auf Electron. Rendering-Engine ist immer Chromium (V8 + Blink); kein System-WebView-Wildwuchs.
+Electron (MIT) embeds **Chromium + Node.js** in the app. VS Code, Figma (desktop), Slack, Notion, Postman – many professional tools are based on Electron. The rendering engine is always Chromium (V8 + Blink); no system WebView sprawl.
 
 - **Pro**:
-  - Garantiert konsistentes Rendering auf allen Plattformen: alle Nutzer sehen dieselbe Chromium-Version
-  - Vue Flow und alle CSS-Features laufen auf einem bekannten, getesteten Engine-Stand
-  - Node.js im Main-Prozess: Dateisystem, IPC, native Module – alles in JavaScript/TypeScript schreibbar; kein Rust nötig
-  - Riesiges Ökosystem: `electron-updater` (Auto-Update), `electron-builder` (Packaging), umfangreiche Plugin-Sammlung
-  - Grösste Community; ausgezeichnete Dokumentation; viele OSS-Vorbilder
-  - Electron Forge / electron-builder erzeugen signierte `.dmg`, `.exe`, `.AppImage`-Bundles ohne proprietären Store
-  - Gut getestete Sicherheitsarchitektur: `contextIsolation + preload` als etabliertes Muster
-- **Contra**:
-  - **Bundle-Grösse**: ~150–200 MB unkomprimiert (Chromium ist gross); komprimierter Installer typisch 80–120 MB
-  - **Speicher-Verbrauch**: jede Electron-Instanz bringt eigenen Chromium-Prozess; auf Rechnern mit 8 GB RAM spürbar
-  - Chromium muss mit der App mitgepflegt werden (Sicherheits-Updates → neue Electron-Hauptversionen)
-  - Reputation als „schwer" und „ressourcenfressend" (teils berechtigt, teils übertrieben)
+  - Guarantees consistent rendering on all platforms: all users see the same Chromium version
+  - Vue Flow and all CSS features run on a known, tested engine version
+  - Node.js in the main process: file system, IPC, native modules – all writable in JavaScript/TypeScript; no Rust needed
+  - Huge ecosystem: `electron-updater` (auto-update), `electron-builder` (packaging), extensive plugin collection
+  - Largest community; excellent documentation; many OSS role models
+  - Electron Forge / electron-builder produce signed `.dmg`, `.exe`, `.AppImage` bundles without a proprietary store
+  - Well-tested security architecture: `contextIsolation + preload` as an established pattern
+- **Con**:
+  - **Bundle size**: ~150–200 MB uncompressed (Chromium is large); compressed installer typically 80–120 MB
+  - **Memory consumption**: every Electron instance brings its own Chromium process; noticeable on machines with 8 GB RAM
+  - Chromium must be maintained along with the app (security updates → new Electron major versions)
+  - Reputation as "heavy" and "resource-hungry" (partly justified, partly exaggerated)
 
 ### Option 2: Tauri v2
 
-Tauri v2 (MIT/Apache 2.0) nutzt die **System-eigene WebView** des Betriebssystems und ein **Rust-Backend** für native Fähigkeiten. Install-Grösse typisch 5–15 MB.
+Tauri v2 (MIT/Apache 2.0) uses the operating system's **native WebView** and a **Rust backend** for native capabilities. Install size typically 5–15 MB.
 
 - **Pro**:
-  - Minimale Install-Grösse: kein gebündeltes Chromium; nutzt WKWebView (macOS), WebView2 (Windows), WebKitGTK (Linux)
-  - Rust-Backend: sehr schnell, memory-safe, niedrige Ressourcenanforderung
-  - Aktive, wachsende Community; Tauri v2 ist stabil (GA seit 2024)
-  - Besseres Security-Modell out-of-the-box: explizite API-Allowlist; kein volles Node.js im Render-Prozess
-  - Apache 2.0-kompatibel
-- **Contra**:
-  - **System-WebView-Inkonsistenz**: Das ist das zentrale Risiko für OEA
-    - macOS: WKWebView (Safari-Engine) – gut, aber abweichend von Chrome
-    - Windows: WebView2 (Chromium-basiert) – nah an Electron
-    - Linux: **WebKitGTK** – kann mehrere Versionen hinter dem aktuellen WebKit stehen; DOM-Performance für komplexe Canvas-Layouts nachweislich schwächer als Chromium
-  - Vue Flow ist für Chromium/Firefox optimiert; auf WebKitGTK (Linux) können subtile Rendering-Fehler oder Performance-Probleme auftreten, die nur auf dieser Plattform reproduzierbar sind
-  - Native Erweiterungen (IPC, Plugins) werden in **Rust** geschrieben; das OEA-Team hat primär JS/TS-Kompetenz; jeder native Feature-Bedarf erfordert Rust-Know-how oder Community-Plugins
-  - Tauri v2-Plugin-Ökosystem wächst, ist aber kleiner als Electrons; manche Features (z.B. spezifische System-APIs) sind als Community-Plugins noch unreif
-  - `update`-Plugin (Auto-Update) für Tauri v2 ist verfügbar, aber weniger battle-tested als `electron-updater`
+  - Minimal install size: no bundled Chromium; uses WKWebView (macOS), WebView2 (Windows), WebKitGTK (Linux)
+  - Rust backend: very fast, memory-safe, low resource requirements
+  - Active, growing community; Tauri v2 is stable (GA since 2024)
+  - Better security model out-of-the-box: explicit API allowlist; no full Node.js in the render process
+  - Apache 2.0-compatible
+- **Con**:
+  - **System WebView inconsistency**: This is the central risk for OEA
+    - macOS: WKWebView (Safari engine) – good, but different from Chrome
+    - Windows: WebView2 (Chromium-based) – close to Electron
+    - Linux: **WebKitGTK** – can be several versions behind current WebKit; DOM performance for complex canvas layouts demonstrably weaker than Chromium
+  - Vue Flow is optimized for Chromium/Firefox; on WebKitGTK (Linux) subtle rendering errors or performance problems may occur that are only reproducible on this platform
+  - Native extensions (IPC, plugins) are written in **Rust**; the OEA team has primarily JS/TS competence; every native feature need requires Rust know-how or community plugins
+  - The Tauri v2 plugin ecosystem is growing, but smaller than Electron's; some features (e.g. specific system APIs) are still immature as community plugins
+  - The `update` plugin (auto-update) for Tauri v2 is available, but less battle-tested than `electron-updater`
 
 ### Option 3: Neutralino.js
 
-Neutralino (MIT) ist eine ultrakompakte Alternative (~2 MB): native Hülle + System-WebView + lightweight C++-Backend.
+Neutralino (MIT) is an ultra-compact alternative (~2 MB): native shell + system WebView + lightweight C++ backend.
 
 - **Pro**:
-  - Kleinstmögliche Bundle-Grösse
-  - Für einfache Desktop-Wrapper-Aufgaben geeignet
-- **Contra**:
-  - Sehr kleines Ökosystem; begrenzte Community-Unterstützung
-  - Trägt dieselben System-WebView-Inkonsistenz-Risiken wie Tauri, ohne Tauris Rust-Backend-Stärke
-  - Für eine komplexe Modellierungs-App (Canvas-Editor, Navigationsbaum, Katalog-Konfiguration) fehlen ausgereifte Integrations-Patterns
-  - Scheidet als zu unreif für produktionellen Einsatz in OEA aus
+  - Smallest possible bundle size
+  - Suitable for simple desktop wrapper tasks
+- **Con**:
+  - Very small ecosystem; limited community support
+  - Carries the same system WebView inconsistency risks as Tauri, without Tauri's Rust backend strength
+  - Mature integration patterns are missing for a complex modeling app (canvas editor, navigation tree, catalog configuration)
+  - Ruled out as too immature for production use in OEA
 
-### Nicht betrachtete Optionen
+### Options Not Considered
 
-- **NW.js**: technisch ähnlich wie Electron (Chromium + Node.js), aber wesentlich kleinere Community und geringere Maintenance-Aktivität. Kein relevanter Vorteil gegenüber Electron.
-- **Flutter Desktop / Qt / native Frameworks**: inkompatibel mit dem Vue/TypeScript-Stack (ADR-007, ADR-011); erfordern separate Codebase; ausgeschlossen.
-- **PWA (als Client-App-Ersatz)**: von ADR-008 explizit ausgeschlossen (Option 3 der dortigen Entscheidung).
+- **NW.js**: technically similar to Electron (Chromium + Node.js), but a significantly smaller community and lower maintenance activity. No relevant advantage over Electron.
+- **Flutter Desktop / Qt / native frameworks**: incompatible with the Vue/TypeScript stack (ADR-007, ADR-011); require a separate codebase; excluded.
+- **PWA (as client app replacement)**: explicitly excluded by ADR-008 (Option 3 of that decision).
 
-## Entscheidung
+## Decision
 
-Wir wählen **Option 1: Electron**.
+We choose **Option 1: Electron**.
 
-**Begründung**: OEA ist eine canvas-intensive Modellierungs-App. Vue Flow (ADR-007) nutzt DOM-Rendering intensiv; Typeahead-Interaktionen (US-045), Drag-and-Drop und grosse Diagramme stellen hohe Ansprüche an Browser-Engine-Konsistenz. Das Linux-WebKitGTK-Risiko von Tauri ist für eine EA-Tool-Zielgruppe (häufig Linux-affine Architekten und Entwickler) nicht akzeptabel: plattformspezifische Rendering-Fehler im Canvas-Editor sind aufwändiger zu debuggen als das Mitführen von Chromium.
+**Rationale**: OEA is a canvas-intensive modeling app. Vue Flow (ADR-007) makes heavy use of DOM rendering; typeahead interactions (US-045), drag-and-drop, and large diagrams place high demands on browser engine consistency. The Linux WebKitGTK risk of Tauri is not acceptable for an EA tool target group (often Linux-affine architects and developers): platform-specific rendering errors in the canvas editor are more laborious to debug than carrying Chromium along.
 
-Dazu kommt der Dev-Team-Fit: alle nativen Erweiterungen (Dateisystem-Watcher, lokaler Git-Export, IPC-Handler) können in TypeScript im Electron Main-Prozess geschrieben werden. Kein Rust-Know-how erforderlich.
+Added to this is the dev team fit: all native extensions (file system watcher, local Git export, IPC handlers) can be written in TypeScript in the Electron main process. No Rust know-how required.
 
-Die grösste Schwäche – Bundle-Grösse – ist für eine professionelle Desktop-Anwendung in einem Enterprise-Kontext akzeptabel. OEA-Nutzer sind Architekten, keine gelegentlichen Browser-Nutzer; sie installieren ein Werkzeug und nutzen es täglich.
+The biggest weakness – bundle size – is acceptable for a professional desktop application in an enterprise context. OEA users are architects, not occasional browser users; they install a tool and use it daily.
 
-**Technologie-Entscheidungen innerhalb Electron**:
+**Technology decisions within Electron**:
 
-| Aspekt | Wahl | Begründung |
+| Aspect | Choice | Rationale |
 |---|---|---|
-| Electron-Version | aktuelle Stable (v34+) | aktiver Support, neueste Chromium-Basis |
-| Packaging | `electron-builder` | reif, signiert `.dmg` / `.exe` / `.AppImage`, unterstützt selbst-gehostete Updates |
-| Auto-Update | `electron-updater` (via electron-builder) | kein proprietärer Store nötig; Update-Server selbst hostbar |
-| Security | `contextIsolation=true`, `preload`-Script, `nodeIntegration=false` | Electron-Best-Practice seit v12 |
-| IPC | `ipcMain` / `ipcRenderer` via `contextBridge` | sicheres Kommunikationsmuster; keine direkte Node-Exposition |
+| Electron version | current stable (v34+) | active support, latest Chromium base |
+| Packaging | `electron-builder` | mature, signs `.dmg` / `.exe` / `.AppImage`, supports self-hosted updates |
+| Auto-update | `electron-updater` (via electron-builder) | no proprietary store needed; update server self-hostable |
+| Security | `contextIsolation=true`, `preload` script, `nodeIntegration=false` | Electron best practice since v12 |
+| IPC | `ipcMain` / `ipcRenderer` via `contextBridge` | secure communication pattern; no direct Node exposure |
 
-## Konsequenzen
+## Consequences
 
-### Positive Konsequenzen
+### Positive Consequences
 
-- Konsistentes Rendering auf macOS, Windows und Linux: Vue Flow, Typeahead, CSS-Animationen verhalten sich überall gleich
-- Native Erweiterungen (Dateisystem, lokaler Git-Export, System-Tray) in TypeScript schreibbar; kein neues Sprach-Know-how erforderlich
-- `electron-builder` erzeugt alle nötigen Plattform-Bundles aus einer CI-Pipeline
-- Auto-Update ohne Store-Abhängigkeit: OEA kann Updates über eigene GitHub-Releases oder selbst gehosteten S3-Bucket ausliefern
-- US-045 (Diagramm-Pfad, 8 SP) ist damit vollständig entsperrt: alle Abhängigkeiten (ADR-007, ADR-008, ADR-009) sind entschieden
+- Consistent rendering on macOS, Windows, and Linux: Vue Flow, typeahead, CSS animations behave the same everywhere
+- Native extensions (file system, local Git export, system tray) writable in TypeScript; no new language know-how required
+- `electron-builder` produces all necessary platform bundles from one CI pipeline
+- Auto-update without store dependency: OEA can deliver updates via its own GitHub releases or a self-hosted S3 bucket
+- US-045 (diagram path, 8 SP) is thus fully unblocked: all dependencies (ADR-007, ADR-008, ADR-009) are decided
 
-### Negative Konsequenzen / Trade-offs
+### Negative Consequences / Trade-offs
 
-- **Bundle-Grösse** ~80–120 MB komprimierter Installer; neuen Nutzern ist dies transparent zu kommunizieren (Erstinstallation dauert länger als eine Web-App)
-- **Speicher-Verbrauch**: Electron-App mit Vue-Front-End liegt typisch bei 200–400 MB RAM; auf low-end Hardware spürbar
-- **Chromium-Updates**: mit jeder Electron-Hauptversion kommt eine neue Chromium-Version; Upgrade-Zyklus muss im Projekt-Prozess verankert werden (ca. quartalsweise)
-- **Tauri als Option für v2.x**: Wenn WebKitGTK auf Linux aufholt und das Tauri-Plugin-Ökosystem reift, kann die Entscheidung für spätere Versionen neu bewertet werden (Architektur-Entscheid, nicht Lock-in)
+- **Bundle size** ~80–120 MB compressed installer; this must be communicated transparently to new users (initial installation takes longer than a web app)
+- **Memory consumption**: Electron app with Vue frontend is typically at 200–400 MB RAM; noticeable on low-end hardware
+- **Chromium updates**: with every Electron major version comes a new Chromium version; the upgrade cycle must be anchored in the project process (approx. quarterly)
+- **Tauri as an option for v2.x**: If WebKitGTK catches up on Linux and the Tauri plugin ecosystem matures, the decision can be re-evaluated for later versions (architecture decision, not lock-in)
 
-### Folgeentscheidungen
+### Follow-up Decisions
 
-- **ADR-010** (ausstehend): Shared-Component-Library und Design-System – wie teilen Client App und Web Portal UI-Komponenten?
-- **Signing & Notarization**: macOS-Notarisierung (Apple) und Windows-Code-Signing (EV-Zertifikat) sind Distributions-Voraussetzungen; Setup-Anleitung als eigene Dokumentations-Aufgabe
-- **CI/CD für Multi-Platform-Builds**: Electron-Builder braucht je ein Build-Environment pro Zielplattform (macOS-Runner für `.dmg`, Windows-Runner für `.exe`); GitHub Actions Matrix oder eigene Runner
+- **ADR-010** (pending): Shared component library and design system – how do client app and web portal share UI components?
+- **Signing & notarization**: macOS notarization (Apple) and Windows code signing (EV certificate) are distribution prerequisites; setup guide as a separate documentation task
+- **CI/CD for multi-platform builds**: Electron-Builder needs one build environment per target platform (macOS runner for `.dmg`, Windows runner for `.exe`); GitHub Actions matrix or own runners
 
-## Bezüge
+## References
 
-**Konzept-Kapitel**:
-- [§21.2.1 Visualisierungs-Strategie](../concept/70-platform/21-api-architektur.md)
+**Concept Chapters**:
+- [§21.2.1 Visualization Strategy](../concept/70-platform/21-api-architecture.md)
 
-**Verwandte ADRs**:
-- [ADR-007](./ADR-007-canvas-bibliothek.md): Vue Flow als Canvas-Bibliothek (accepted, aktualisiert infolge ADR-011) – Rendering-Konsistenz ist Kernargument für Electron
-- [ADR-008](./ADR-008-gui-architektur-dual-track.md): Client App + Web Portal (accepted) – dieser ADR konkretisiert die Client-App-Seite
-- [ADR-011](./ADR-011-frontend-framework.md): Vue 3 + TypeScript (accepted) – hat React Flow → Vue Flow ausgelöst; dieser ADR hätte aktualisiert werden müssen
+**Related ADRs**:
+- [ADR-007](./ADR-007-canvas-library.md): Vue Flow as canvas library (accepted, updated following ADR-011) – rendering consistency is the core argument for Electron
+- [ADR-008](./ADR-008-gui-architecture-dual-track.md): Client app + web portal (accepted) – this ADR specifies the client app side
+- [ADR-011](./ADR-011-frontend-framework.md): Vue 3 + TypeScript (accepted) – triggered React Flow → Vue Flow; this ADR should have been updated
 
 **Use Cases / Requirements**:
-- [US-045](../requirements/user-stories/US-045-delta-neue-entitaet-diagramm.md): Neue Entität im Diagramm als Delta anlegen – letzter offener Blocker, wird durch diesen ADR entsperrt
+- [US-045](../requirements/user-stories/US-045-delta-new-entity-diagram.md): Create new entity in diagram as delta – last open blocker, unblocked by this ADR
 
-## Notizen
+## Notes
 
-`electron-builder` vs. `Electron Forge`: Beide sind verbreitet. `electron-builder` ist ausgereifter für Multi-Platform-Bundles mit Auto-Update; `Electron Forge` ist offiziell von Electronjs.org empfohlen und einfacher einzurichten, aber weniger flexibel bei Custom-Signing-Pipelines. Entscheidung kann beim Aufsetzen des Build-Systems getroffen werden; kein eigener ADR nötig.
+`electron-builder` vs. `Electron Forge`: Both are widespread. `electron-builder` is more mature for multi-platform bundles with auto-update; `Electron Forge` is officially recommended by Electronjs.org and easier to set up, but less flexible with custom signing pipelines. The decision can be made when setting up the build system; no separate ADR needed.
 
-Tauri v3 (in Entwicklung, Stand 2026): Falls Tauri v3 die WebKitGTK-Linux-Situation verbessert und ein stabiles TypeScript/JavaScript-Plugin-API liefert, ist die Entscheidung für OEA v2.x neu zu evaluieren. Der Wechsel wäre möglich, da Business-Logik im Backend liegt (API-First, ADR-008) und das Frontend-Vue-Code unverändert bleibt.
+Tauri v3 (in development, as of 2026): If Tauri v3 improves the WebKitGTK Linux situation and delivers a stable TypeScript/JavaScript plugin API, the decision is to be re-evaluated for OEA v2.x. The switch would be possible, since business logic lives in the backend (API-first, ADR-008) and the frontend Vue code remains unchanged.

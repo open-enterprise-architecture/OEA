@@ -1,49 +1,49 @@
-# ADR-003: Product vs. Project – Koexistenz oder Trennung?
+# ADR-003: Product vs. Project – Coexistence or Separation?
 
 **Status**: accepted
-**Datum**: 2026-06-26
-**Entscheider**: [Rigobert – Produkt Owner](../business-analysis/stakeholders/SH-09-rigobert-produkt-owner.md) (SH-09)
-**Konsultiert**: Requirements Engineer (metamodel-configuration.md, solution.md)
-**Informiert**: alle Stakeholder
+**Date**: 2026-06-26
+**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Consulted**: Requirements Engineer (metamodel-configuration.md, solution.md)
+**Informed**: all stakeholders
 
 ---
 
-## Kontext und Problem
+## Context and Problem
 
-Moderne IT-Organisationen arbeiten product-orientiert (langfristige Verantwortung, kein End-Datum) und projekt-orientiert (zeitlich begrenzt, definierter Scope). OEA muss beide Welten unterstützen. Die offene Frage: Werden Product und Project als separate EntityTypes modelliert, oder als Stereotypen eines gemeinsamen Konzepts?
+Modern IT organizations work product-oriented (long-term responsibility, no end date) and project-oriented (time-limited, defined scope). OEA must support both worlds. The open question: Are Product and Project modeled as separate EntityTypes, or as stereotypes of a common concept?
 
-**Bereits getroffene Vorentscheidung** (metamodel-configuration.md): OEA ist metamodell-getrieben — EntityTypes sind keine hardcodierten Klassen, sondern konfigurierbare EntityTypeDefinitions mit `extends`-Mechanismus. Separate „hardcodierte" EntityTypes für Product und Project widersprechen diesem Ansatz.
+**Prior decision already made** (metamodel-configuration.md): OEA is metamodel-driven — EntityTypes are not hardcoded classes but configurable EntityTypeDefinitions with an `extends` mechanism. Separate "hardcoded" EntityTypes for Product and Project contradict this approach.
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- **Metamodell-Konsistenz**: keine Sonderbehandlung für Product/Project; selbes Modell wie alle anderen Typen
-- **Realität abbilden**: beide Konzepte koexistieren in der meisten Organisationen
-- **PPM-Integration**: Lifecycle-Unterschiede (endDate optional/pflicht) über Properties abbildbar
-- **Erweiterbarkeit**: Org-spezifische Subtypen (z.B. `CapexProject`, `InternalProduct`) müssen möglich sein
+- **Metamodel consistency**: no special treatment for Product/Project; same model as all other types
+- **Reflect reality**: both concepts coexist in most organizations
+- **PPM integration**: lifecycle differences (endDate optional/mandatory) can be expressed via properties
+- **Extensibility**: org-specific subtypes (e.g. `CapexProject`, `InternalProduct`) must be possible
 
-## Betrachtete Optionen
+## Considered Options
 
-### Option 1: Getrennte EntityTypes (hardcodiert)
-- Pro: Properties klar getrennt; kein Stereotyp-Konzept nötig
-- Contra: widerspricht Metamodell-Ansatz; Org kann keine eigenen Sub-Varianten definieren; Code-Duplizierung im Backend
+### Option 1: Separate EntityTypes (hardcoded)
+- Pro: properties clearly separated; no stereotype concept needed
+- Con: contradicts metamodel approach; org cannot define its own sub-variants; code duplication in the backend
 
-### Option 2 (gewählt): Gemeinsames built-in Konzept + Subtypen im Metamodell
-- `work-initiative` als built-in EntityType (scope=built-in, isBuiltIn=true)
-- `product` und `project` als built-in Subtypen (`extends: work-initiative`)
-- Lifecycle-Unterschiede über Properties und `creationSteps` (REQ-066 Wizard)
-- Org kann eigene Subtypen definieren: `capex-project extends project`, `platform-product extends product`
-- Pro: vollständige Metamodell-Konsistenz; erweiterbar; kein Sondercode
-- Contra: Admin muss verstehen, dass product/project konfigurierbare Typen sind (nicht „eingebaut")
+### Option 2 (chosen): Common built-in concept + subtypes in the metamodel
+- `work-initiative` as built-in EntityType (scope=built-in, isBuiltIn=true)
+- `product` and `project` as built-in subtypes (`extends: work-initiative`)
+- Lifecycle differences via properties and `creationSteps` (REQ-066 wizard)
+- Org can define its own subtypes: `capex-project extends project`, `platform-product extends product`
+- Pro: full metamodel consistency; extensible; no special code
+- Con: Admin must understand that product/project are configurable types (not "built in")
 
-### Option 3: WorkPackage als Basis
-- Pro: Konsistenz mit WorkPackage-Konzept
-- Contra: WorkPackage ist taktisch (Sprint, Task); Product/Project sind strategisch — konzeptuell falsche Basis
+### Option 3: WorkPackage as base
+- Pro: consistency with the WorkPackage concept
+- Con: WorkPackage is tactical (sprint, task); Product/Project are strategic — conceptually wrong base
 
-## Entscheidung
+## Decision
 
-**Option 2 ist die Entscheidung.**
+**Option 2 is the decision.**
 
-**Built-in EntityTypes** (scope=built-in, als Starter-Paket `oea-togaf-starter`):
+**Built-in EntityTypes** (scope=built-in, as starter package `oea-togaf-starter`):
 
 ```
 work-initiative (built-in)
@@ -55,42 +55,42 @@ work-initiative (built-in)
 
 | Property | work-initiative | product | project |
 |---|---|---|---|
-| `name` | required | geerbt | geerbt |
-| `description` | optional | geerbt | geerbt |
-| `status` | `planned\|active\|closed` | geerbt | geerbt |
-| `startDate` | optional | geerbt | required |
-| `endDate` | optional | nicht genutzt (kein Ende) | required |
+| `name` | required | inherited | inherited |
+| `description` | optional | inherited | inherited |
+| `status` | `planned\|active\|closed` | inherited | inherited |
+| `startDate` | optional | inherited | required |
+| `endDate` | optional | not used (no end) | required |
 | `owner` | optional | required (Product Owner) | optional (Sponsor) |
 | `budget` | optional | optional | optional |
 
-**CreationSteps** (REQ-066 Wizard):
-- `project`: Schritt 1 = Basisinfo (name, startDate, endDate), Schritt 2 = Domain-Zuordnung
-- `product`: Schritt 1 = Basisinfo (name, owner), Schritt 2 = Domain-Zuordnung
+**CreationSteps** (REQ-066 wizard):
+- `project`: Step 1 = basic info (name, startDate, endDate), Step 2 = domain assignment
+- `product`: Step 1 = basic info (name, owner), Step 2 = domain assignment
 
-**Connection-Typen** (built-in):
-- `initiative-realizes-solution` (work-initiative → solution): verknüpft Initiative mit EA-Solution
-- `initiative-part-of` (work-initiative → work-initiative): Programm/Projekt-Hierarchie
+**Connection types** (built-in):
+- `initiative-realizes-solution` (work-initiative → solution): links initiative with EA solution
+- `initiative-part-of` (work-initiative → work-initiative): program/project hierarchy
 
-## Konsequenzen
+## Consequences
 
-### Positiv
-- Keine Sonderbehandlung im Backend; product/project sind reguläre EntityTypeDefinitions
-- Erweiterbar: `capex-project extends project` ohne Code-Änderung
-- Catalog + Dashboard (UC-06, UC-07) funktionieren ohne Anpassung für diese Typen
-- Wizard (REQ-066) deckt die unterschiedlichen Pflichtfelder über `creationSteps` ab
+### Positive Consequences
+- No special treatment in the backend; product/project are regular EntityTypeDefinitions
+- Extensible: `capex-project extends project` without code change
+- Catalog + dashboard (UC-06, UC-07) work without adjustment for these types
+- Wizard (REQ-066) covers the different mandatory fields via `creationSteps`
 
-### Negativ / Trade-offs
-- Erstnutzer ohne Metamodell-Kenntnisse könnten verwirrt sein, dass „Projekt anlegen" durch einen konfigurierbaren Typ erfolgt
-- Lifecycle-Validierung (endDate bei project pflicht) muss im Wizard/API als Constraint abgebildet werden — nicht als hartes DB-Schema-Constraint
+### Negative Consequences / Trade-offs
+- First-time users without metamodel knowledge might be confused that "create project" happens via a configurable type
+- Lifecycle validation (endDate mandatory for project) must be implemented in the wizard/API as a constraint — not as a hard DB schema constraint
 
-### Folgeentscheidungen
-- `initiative-realizes-solution` Connection wird in solution.md ergänzt
-- `work-initiative`-Typen als Teil des `oea-togaf-starter`-Pakets (ADR-002)
+### Follow-up Decisions
+- `initiative-realizes-solution` connection is added in solution.md
+- `work-initiative` types as part of the `oea-togaf-starter` package (ADR-002)
 
-## Bezüge
+## References
 
-**Konzept-Kapitel**:
-- [§18 PPM-Integration](../concept/60-integrations/18-ppm-integration.md)
-- [§11 Temporales Modell](../concept/30-dynamics/11-temporales-modell.md)
+**Concept Chapters**:
+- [§18 PPM Integration](../concept/60-integrations/18-ppm-integration.md)
+- [§11 Temporal Model](../concept/30-dynamics/11-temporal-model.md)
 
-**Bezogene Business Objects**: metamodel-configuration.md (EntityTypeDefinition + extends), solution.md
+**Related Business Objects**: metamodel-configuration.md (EntityTypeDefinition + extends), solution.md

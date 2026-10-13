@@ -1,6 +1,6 @@
 ---
 id: REQ-024
-title: Initiales Passwort durch Administrator setzen
+title: Set initial password by administrator
 type: functional
 priority: must
 status: proposed
@@ -18,123 +18,123 @@ references:
   stakeholders:
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-024: Initiales Passwort durch Administrator setzen
+# REQ-024: Set initial password by administrator
 
-## Aussage
+## Statement
 
-Das System MUSS einem Administrator ermöglichen, beim Anlegen einer Person für lokale Authentifizierung ein initiales Passwort zu setzen; dieses Passwort MUSS sofort nach dem Setzen als sicherer Hash (argon2id oder bcrypt) persistiert werden und MUSS dem Administrator genau einmal im Klartext angezeigt werden, danach nicht mehr abrufbar sein.
+The system MUST allow an administrator to set an initial password when creating a person for local authentication; this password MUST be persisted as a secure hash (argon2id or bcrypt) immediately after being set and MUST be displayed to the administrator in plain text exactly once, and not be retrievable afterwards.
 
-## Begründung
+## Rationale
 
-Lokale Authentifizierung ohne externen IdP benötigt einen Startpunkt: Bevor eine Person sich einloggen kann, muss sie Credentials besitzen. Das initiale Passwort überbrückt diese Lücke – es ist der Startpunkt für den ersten Login (UC-01 A5), nach dem UC-03 (Required Action) den 2. Faktor einrichtet. Der Administrator setzt das Passwort einmalig, gibt es an die Person weiter (beliebiger Kanal), und die Person ändert es beim ersten Login (REQ-024b – Passwort-Änderung beim ersten Login, ggf. erzwungen). Adressiert SH-06s Anforderung nach lokaler Nutzerverwaltung ohne E-Mail-Infrastruktur.
+Local authentication without an external IdP needs a starting point: before a person can log in, they must have credentials. The initial password bridges this gap – it is the starting point for the first login (UC-01 A5), after which UC-03 (required action) sets up the 2nd factor. The administrator sets the password once, passes it on to the person (any channel), and the person changes it at first login (REQ-024b – password change at first login, enforced if necessary). Addresses SH-06's requirement for local user management without email infrastructure.
 
-## Kontext
+## Context
 
-Das initiale Passwort ist ein temporäres Credential: Es reicht aus, um UC-01 A5 (Passwort-Login) auszuführen und UC-03 (Required Action) auszulösen. Ein Passwort-Wechsel beim ersten Login ist empfohlen, aber als eigenständige Required Action separat zu modellieren (hier nicht entschieden). Kein Enrollment-Token oder Einladungslink wird benötigt.
+The initial password is a temporary credential: it suffices to perform UC-01 A5 (password login) and to trigger UC-03 (required action). A password change at first login is recommended, but is to be modeled separately as an independent required action (not decided here). No enrollment token or invitation link is needed.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- Generiertes oder manuell eingegebenes initiales Passwort durch den Administrator (Admin-UI oder CLI)
+**Inputs**:
+- Generated or manually entered initial password by the administrator (admin UI or CLI)
 
-**Verarbeitung**:
-- System prüft das Passwort gegen konfigurierbare Mindestanforderungen (Mindestlänge; optionale Komplexitätsregeln)
-- System erzeugt Hash (argon2id bevorzugt; bcrypt als Fallback)
-- Hash wird als `LocalCredential` mit `type=password` persistiert und mit der Person verknüpft
-- Passwort-Klartext wird einmalig in der Admin-UI / CLI-Output angezeigt, danach nicht mehr abrufbar
-- Optional: System kann ein kryptographisch starkes Passwort automatisch generieren (Empfehlung)
+**Processing**:
+- System checks the password against configurable minimum requirements (minimum length; optional complexity rules)
+- System creates a hash (argon2id preferred; bcrypt as fallback)
+- Hash is persisted as a `LocalCredential` with `type=password` and linked to the person
+- Plain-text password is displayed once in the admin UI / CLI output, afterwards not retrievable
+- Optional: the system can automatically generate a cryptographically strong password (recommended)
 
-**Ausgaben**:
-- Passwort-Klartext: einmalige Anzeige im Admin-UI oder CLI-Stdout
-- Bestätigung: "Initiales Passwort gesetzt. Bitte sicher an die Person weitergeben."
-- Bei Fehler: Fehlermeldung mit nicht erfüllter Anforderung
+**Outputs**:
+- Plain-text password: one-time display in the admin UI or CLI stdout
+- Confirmation: "Initial password set. Please pass it on to the person securely."
+- On error: error message with the unmet requirement
 
-**Fehlerfälle**:
-- Passwort erfüllt Mindestanforderungen nicht → Fehlermeldung mit konkreten Anforderungen, kein Hash gespeichert
-- Person existiert nicht oder hat bereits ein aktives Password-Credential → Fehlermeldung; bestehende Credentials unverändert
+**Error Cases**:
+- Password does not meet minimum requirements → error message with the specific requirements, no hash stored
+- Person does not exist or already has an active password credential → error message; existing credentials unchanged
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Administrator legt eine Person an und setzt ein initiales Passwort
-- Wenn: die Anfrage erfolgreich verarbeitet wird
-- Dann: ist der Passwort-Hash als `LocalCredential (type=password)` persistiert; der Klartext wird genau einmal angezeigt
+- Given: an administrator creates a person and sets an initial password
+- When: the request is processed successfully
+- Then: the password hash is persisted as `LocalCredential (type=password)`; the plain text is displayed exactly once
 
 **AC2**:
-- Gegeben: das initiale Passwort wurde gesetzt und angezeigt
-- Wenn: der Administrator die Admin-UI erneut öffnet oder die API erneut aufruft
-- Dann: ist der Passwort-Klartext nicht mehr abrufbar (nur Hash in der DB)
+- Given: the initial password has been set and displayed
+- When: the administrator reopens the admin UI or calls the API again
+- Then: the plain-text password is no longer retrievable (only the hash in the DB)
 
 **AC3**:
-- Gegeben: das initiale Passwort ist gesetzt
-- Wenn: die Person sich mit diesem Passwort anmeldet (UC-01 A5)
-- Dann: gelingt der Login und UC-03 (Required Action) wird ausgelöst, falls 2FA erzwungen ist
+- Given: the initial password is set
+- When: the person logs in with this password (UC-01 A5)
+- Then: the login succeeds and UC-03 (required action) is triggered if 2FA is enforced
 
 **AC4**:
-- Gegeben: das System verarbeitet die Passwort-Anfrage
-- Wenn: Server-Logs geschrieben werden
-- Dann: ist der Passwort-Klartext nicht in den Logs enthalten
+- Given: the system processes the password request
+- When: server logs are written
+- Then: the plain-text password is not contained in the logs
 
 **AC5**:
-- Gegeben: System generiert automatisch ein Passwort
-- Wenn: es generiert wird
-- Dann: hat es mindestens 16 Zeichen und ausreichend Entropie (Groß/Klein/Ziffern/Sonderzeichen)
+- Given: the system automatically generates a password
+- When: it is generated
+- Then: it has at least 16 characters and sufficient entropy (upper/lower case/digits/special characters)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Passwort setzen, Hash-Format prüfen, Klartext-Abruf versuchen, Log-Scan
-- [x] Mess-Werkzeug: Test-Suite des Admin-Moduls; DB-Inspektion im Test
-- [x] Bestanden-Kriterium: AC1–AC5 grün; Login mit gesetztem Passwort (AC3) funktioniert via REQ-011
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: set password, check hash format, attempt plain-text retrieval, log scan
+- [x] Measurement tool: test suite of the admin module; DB inspection in the test
+- [x] Pass criterion: AC1–AC5 green; login with the set password (AC3) works via REQ-011
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: Person muss im System angelegt sein (kein eigener UC bisher); REQ-028 (Passwort-Richtlinien müssen konfiguriert sein, damit Validierung greift)
-- **Folgewirkungen**: REQ-011 (Passwort-Login); UC-03 Required Action (setzt initiales Passwort voraus)
-- **Empfohlen**: REQ-027 (Passwort-Generator erzeugt automatisch ein richtlinienkonformes Passwort)
-- **Folge-Requirement**: REQ-031 (Passwort-Reset für bestehende Nutzer – gleiches Muster, aber mit Revoke des alten Credentials und erzwungenem Passwort-Wechsel)
-- **Konflikte**: keine bekannt
+- **Prerequisites**: The person must be created in the system (no separate UC so far); REQ-028 (password policies must be configured so that validation takes effect)
+- **Downstream effects**: REQ-011 (password login); UC-03 required action (requires an initial password)
+- **Recommended**: REQ-027 (password generator automatically creates a policy-compliant password)
+- **Follow-up requirement**: REQ-031 (password reset for existing users – same pattern, but with revocation of the old credential and forced password change)
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne initiales Passwort kein erster Login für lokale Nutzer – vollständiger Blockierung des Onboardings, schwerwiegend
-- Risiko 2: Klartext in Logs → Credentials-Leak, schwerwiegend (durch AC4 mitigiert)
+- Risk 1: Without an initial password, no first login for local users – complete blocking of onboarding, severe
+- Risk 2: Plain text in logs → credentials leak, severe (mitigated by AC4)
 
 ## Trade-offs
 
-- Kein E-Mail-Versand durch OEA: Der Administrator ist für die sichere Weitergabe des initialen Passworts verantwortlich (persönlich, Messenger, eigenes Mail-System). OEA bleibt infrastrukturunabhängig.
+- No email sending by OEA: the administrator is responsible for secure handover of the initial password (in person, messenger, own mail system). OEA remains infrastructure-independent.
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Automatisch generierte Passwörter bevorzugen (Admin muss kein eigenes erfinden); kryptographisch sicher (CSPRNG)
-- Hashing sofort beim Setzen: Klartext nur im Arbeitsspeicher, nach Hashing verwerfen; nie in Request-Logs
-- Admin-UI: Passwort in einem einmaligen Popup oder einer abgesicherten Seite anzeigen (nicht im regulären Seiteninhalt, der gecacht werden könnte)
-- CLI-Alternative: `oea user create --name "Kurt" --generate-password` → gibt Passwort auf Stdout aus; Admin kopiert es
+- Prefer automatically generated passwords (admin does not have to invent one); cryptographically secure (CSPRNG)
+- Hash immediately when setting: plain text only in working memory, discard after hashing; never in request logs
+- Admin UI: display the password in a one-time popup or a secured page (not in the regular page content, which could be cached)
+- CLI alternative: `oea user create --name "Kurt" --generate-password` → outputs the password to stdout; admin copies it
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-v0.2.0: Vollständig neu geschrieben. v0.1.0 (Passwort-Enrollment durch den User selbst via Enrollment-Token) wurde verworfen, da der Token-Ansatz (REQ-021 `rejected`) durch Just-in-Time-Enrollment im Login-Flow ersetzt wurde. Das initiale Passwort wird nun durch den Administrator gesetzt und einmalig angezeigt – wie der Setup-Token in UC-02, aber für reguläre Personen.
+v0.2.0: Completely rewritten. v0.1.0 (password enrollment by the user themselves via enrollment token) was rejected because the token approach (REQ-021 `rejected`) was replaced by just-in-time enrollment in the login flow. The initial password is now set by the administrator and displayed once – like the setup token in UC-02, but for regular persons.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft: Passwort-Enrollment durch User via Enrollment-Token |
-| 0.2.0 | 2026-06-25 | requirements-engineer | Vollständige Revision: Admin setzt initiales Passwort; Token-Ansatz verworfen |
+| 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft: password enrollment by user via enrollment token |
+| 0.2.0 | 2026-06-25 | requirements-engineer | Complete revision: admin sets initial password; token approach rejected |

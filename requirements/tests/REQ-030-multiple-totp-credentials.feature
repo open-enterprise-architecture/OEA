@@ -1,47 +1,47 @@
-# Ableitung aus: requirements/req/req-030-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-030-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @should @UC-03
-Feature: REQ-030 – Mehrere aktive TOTP-Credentials pro Person
+Feature: REQ-030 – Multiple active TOTP credentials per person
 
-  Das System MUSS es einer Person erlauben, gleichzeitig mehrere aktive
-  TOTP-Credentials (`LocalCredential.type=totp`) zu hinterlegen; beim
-  Login (REQ-010) MUSS ein gültiger TOTP-Code aus irgendeinem der
-  aktiven TOTP-Credentials der Person akzeptiert werden; jedes
-  TOTP-Credential MUSS ein nutzer-vergebbares Label tragen, damit die
-  Person ihre Credentials voneinander unterscheiden kann.
+  The system MUST allow a person to store multiple active TOTP
+  credentials (`LocalCredential.type=totp`) at the same time; at login
+  (REQ-010), a valid TOTP code from any of the person's active TOTP
+  credentials MUST be accepted; each TOTP credential MUST carry a
+  user-assignable label so that the person can distinguish their
+  credentials from one another.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Person hat zwei aktive TOTP-Credentials (unterschiedliche Secrets, unter...
-    Given Person hat zwei aktive TOTP-Credentials (unterschiedliche Secrets, unterschiedliche Geräte)
-    When  ein gültiger TOTP-Code aus dem zweiten Credential eingegeben wird
-    Then  ist der Login erfolgreich; `lastUsedAt` des zweiten Credentials wird aktualisiert
+  Scenario: AC1 – person has two active TOTP credentials (different secrets, different...
+    Given person has two active TOTP credentials (different secrets, different devices)
+    When  a valid TOTP code from the second credential is entered
+    Then  login is successful; `lastUsedAt` of the second credential is updated
 
   @AC2
-  Scenario: AC2 – Person hat ein bestehendes aktives TOTP-Credential
-    Given Person hat ein bestehendes aktives TOTP-Credential
-    When  sie über UC-03 A3 ein weiteres TOTP-Credential einrichtet
-    Then  hat sie danach zwei aktive TOTP-Credentials; das erste ist nicht revoked
+  Scenario: AC2 – person has an existing active TOTP credential
+    Given person has an existing active TOTP credential
+    When  they set up another TOTP credential via UC-03 A3
+    Then  they then have two active TOTP credentials; the first is not revoked
 
   @AC3
-  Scenario: AC3 – zwei aktive TOTP-Credentials
-    Given zwei aktive TOTP-Credentials
-    When  die Person ihre Sicherheitseinstellungen aufruft
-    Then  werden beide Credentials mit ihrem Label und `createdAt`/`lastUsedAt` angezeigt
+  Scenario: AC3 – two active TOTP credentials
+    Given two active TOTP credentials
+    When  the person opens their security settings
+    Then  both credentials are displayed with their label and `createdAt`/`lastUsedAt`
 
   @AC4
-  Scenario: AC4 – Person richtet ein TOTP ohne Label ein
-    Given Person richtet ein TOTP ohne Label ein
-    When  das Credential angelegt wird
-    Then  erhält es ein sinnvolles Default-Label (z.B. "TOTP-Authenticator" + Datum)
+  Scenario: AC4 – person sets up a TOTP without a label
+    Given person sets up a TOTP without a label
+    When  the credential is created
+    Then  it receives a sensible default label (e.g. "TOTP Authenticator" + date)
 
   @AC5
-  Scenario: AC5 – zwei aktive TOTP-Credentials
-    Given zwei aktive TOTP-Credentials
-    When  ein ungültiger Code (keinem der Credentials zuordenbar) eingegeben wird
-    Then  schlägt der Login fehl; keine Information darüber, welches Credential nicht getroffen wurde (kein Leak)
+  Scenario: AC5 – two active TOTP credentials
+    Given two active TOTP credentials
+    When  an invalid code (not attributable to any of the credentials) is entered
+    Then  login fails; no information about which credential was not matched (no leak)

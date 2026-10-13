@@ -1,95 +1,95 @@
-# Stakeholder: Sabine – Senior Business Engineer im Globalkonzern
+# Stakeholder: Sabine – Senior Business Engineer in a Global Corporate Group
 
 **ID**: SH-07
-**Typ**: persona
-**Bezug zum Tool**: primary
+**Type**: persona
+**Relation to the Tool**: primary
 **Internal/External**: internal
 
-## Kurzbeschreibung
+## Short Description
 
-Sabine ist Senior Business Engineer / Business Architect in einem global tätigen Konzern. Sie modelliert die fachliche Domäne strukturiert: Business Objects, Business Capabilities, Business Rules, Information Flows. Ihre Outputs sind die Grundlage für Use Cases, Requirements und Solution Design. Sie denkt in formalisierten Geschäftsmodellen und bringt strukturelle Klarheit in komplexe Konzern-Realitäten.
+Sabine is a senior business engineer / business architect in a globally operating corporate group. She models the business domain in a structured way: business objects, business capabilities, business rules, information flows. Her outputs are the foundation for use cases, requirements, and solution design. She thinks in formalized business models and brings structural clarity to complex corporate realities.
 
-## Rolle und Verantwortung
+## Role and Responsibility
 
-- **Aktuelle Rolle**: Senior Business Engineer / Business Architect (10+ Jahre Erfahrung)
-- **Organisation/Branche**: Globalkonzern (>10.000 Mitarbeitende, mehrere Geschäftsbereiche, internationale Operations)
-- **Erfahrungsniveau**: sehr hoch in Business-Modellierung, vertraut mit BIAN, ARIS, BPMN, ArchiMate
-- **Tägliche Hauptaufgaben**:
-  - Business Objects und deren Beziehungen modellieren (Customer, Product, Order, Contract, etc.)
-  - Business Capabilities und deren Abhängigkeiten erfassen
-  - Business Rules formalisieren und mit Compliance abstimmen
-  - Process Maps und Wertschöpfungsketten erstellen
-  - Übergaben an Solution Architecture und Requirements Engineering
-  - Konzernweite Vereinheitlichung von Begriffen und Strukturen
-  - Stakeholder-Management über Bereiche und Länder hinweg
+- **Current role**: Senior business engineer / business architect (10+ years of experience)
+- **Organization/industry**: Global corporate group (>10,000 employees, several business divisions, international operations)
+- **Experience level**: very high in business modeling, familiar with BIAN, ARIS, BPMN, ArchiMate
+- **Main daily tasks**:
+  - Model business objects and their relationships (Customer, Product, Order, Contract, etc.)
+  - Capture business capabilities and their dependencies
+  - Formalize business rules and align them with compliance
+  - Create process maps and value chains
+  - Handovers to solution architecture and requirements engineering
+  - Group-wide harmonization of terms and structures
+  - Stakeholder management across areas and countries
 
-## Beziehung zum OEA
+## Relation to OEA
 
-- **Nutzungsfrequenz**: täglich
-- **Hauptnutzung**: pflegen (Business-Modell), reviewen (Cross-Bereich-Konsistenz), generieren (Reports für Management)
-- **Technisches Niveau**: mittel-hoch (kann Markdown, YAML, JSON Schema lesen; programmiert nicht, versteht aber Datenstrukturen)
-- **Bevorzugte Schnittstelle**: UI primär (für Modellierung und Reviews), CLI/Export für Reports
+- **Usage frequency**: daily
+- **Main usage**: maintain (business model), review (cross-area consistency), generate (reports for management)
+- **Technical level**: medium-high (can read Markdown, YAML, JSON Schema; does not program, but understands data structures)
+- **Preferred interface**: UI primarily (for modeling and reviews), CLI/export for reports
 
-## Aktuelle Pain Points
+## Current Pain Points
 
-- **Fehlende strukturierte Business-Objekt-Modellierung in vielen Tools**: ArchiMate hat zwar Konzepte, aber kein dezidiertes Business-Object-Modell. ARIS hat es, ist aber proprietär und teuer.
-- **Begriffs-Wildwuchs im Konzern**: Was in Deutschland "Kunde" heißt, ist in einer Tochter "Account", in einer anderen "Customer Master". Vereinheitlichung ohne Tool-Unterstützung mühsam.
-- **Business Rules ungenügend formalisiert**: Geschäftsregeln existieren oft nur in Köpfen oder verstreut in Doku. Compliance-Audits decken Lücken auf.
-- **Übergabe zwischen Business und IT bricht**: Business-Modelle werden für IT übersetzt, Übersetzungs-Verluste sind die Regel. Sie wünscht sich dieselbe Quelle für beide.
-- **Business Capabilities ohne klare Abhängigkeiten**: Capability-Maps sehen schön aus, aber die Beziehungen zwischen Capabilities werden selten sauber erfasst.
-- **Versionierte Business-Modelle fehlen**: Modelle ändern sich (M&A, Restrukturierungen, neue Geschäftsfelder), aber die Historie wird selten erfasst.
-- **Cross-Border-Konsistenz**: Geschäftsmodelle in DE, US, APAC haben strukturelle Gemeinsamkeiten, aber auch Unterschiede. Ein Tool, das beides ausdrücken kann, ist selten.
+- **Missing structured business object modeling in many tools**: ArchiMate does have concepts, but no dedicated business object model. ARIS has it, but is proprietary and expensive.
+- **Proliferation of terms in the corporate group**: What is called "Kunde" in Germany is "Account" in one subsidiary and "Customer Master" in another. Harmonization without tool support is laborious.
+- **Business rules insufficiently formalized**: Business rules often exist only in people's heads or scattered across documentation. Compliance audits reveal gaps.
+- **Handover between business and IT breaks**: Business models are translated for IT, translation losses are the rule. She wishes for the same source for both.
+- **Business capabilities without clear dependencies**: Capability maps look nice, but the relationships between capabilities are rarely captured cleanly.
+- **Versioned business models are missing**: Models change (M&A, restructurings, new business fields), but the history is rarely captured.
+- **Cross-border consistency**: Business models in DE, US, APAC have structural commonalities but also differences. A tool that can express both is rare.
 
 ## Concerns
 
-| Concern | Kategorie | Severity |
+| Concern | Category | Severity |
 |---|---|---|
-| Strukturierte Business-Object-Modellierung als First-Class | functional | blocking |
-| Versionierte Business-Modelle (Plateaus, Lifecycle) | functional | worrying |
-| Business Rules formalisierbar und prüfbar | functional | worrying |
-| Business Capabilities mit Beziehungen modellieren | functional | worrying |
-| Cross-Bereich-Konsistenz (z.B. Begriffs-Mapping) | functional | worrying |
-| Übergabe an Use Cases nahtlos (Business Objects referenzierbar) | usability | blocking |
-| Generierung von Reports für Management | usability | worrying |
-| Mehrsprachigkeit (DE/EN minimum für globalen Konzern) | usability | worrying |
-| Compliance-Bezug der Business Rules (DSGVO, branchenspezifisch) | compliance | worrying |
+| Structured business object modeling as first-class | functional | blocking |
+| Versioned business models (plateaus, lifecycle) | functional | worrying |
+| Business rules formalizable and verifiable | functional | worrying |
+| Model business capabilities with relationships | functional | worrying |
+| Cross-area consistency (e.g. term mapping) | functional | worrying |
+| Seamless handover to use cases (business objects referenceable) | usability | blocking |
+| Generation of reports for management | usability | worrying |
+| Multilingualism (DE/EN minimum for a global corporate group) | usability | worrying |
+| Compliance relation of business rules (GDPR, industry-specific) | compliance | worrying |
 
-## Erfolgskriterien
+## Success Criteria
 
-- [ ] Business Object kann strukturiert modelliert werden (Attribute, Typen, Beziehungen)
-- [ ] Beziehungen zwischen Business Objects sind navigierbar und auswertbar
-- [ ] Business Capabilities mit Abhängigkeiten modellierbar
-- [ ] Business Rules referenzieren Business Objects und sind prüfbar
-- [ ] Use Cases können Business Objects direkt referenzieren
-- [ ] Begriffs-Mapping zwischen Konzern-Töchtern abbildbar
-- [ ] Reports für Management automatisch generierbar (Capability-Heatmap, Business-Object-Übersicht)
-- [ ] Versionierung der Business-Modelle über Plateaus
-- [ ] Mehrsprachigkeit zumindest für Bezeichner und Beschreibungen
+- [ ] Business object can be modeled in a structured way (attributes, types, relationships)
+- [ ] Relationships between business objects are navigable and analyzable
+- [ ] Business capabilities modelable with dependencies
+- [ ] Business rules reference business objects and are verifiable
+- [ ] Use cases can reference business objects directly
+- [ ] Term mapping between corporate group subsidiaries representable
+- [ ] Reports for management automatically generatable (capability heatmap, business object overview)
+- [ ] Versioning of business models across plateaus
+- [ ] Multilingualism at least for identifiers and descriptions
 
-## Beteiligte Use Cases
+## Involved Use Cases
 
-<!-- Wird gefüllt, sobald Use Cases definiert sind -->
+<!-- To be filled once use cases are defined -->
 
-## Konzept-Bezüge
+## Concept References
 
-- [§7 Motivation, Stakeholder und Ziele](../../concept/20-entities/07-motivation-stakeholder-ziele.md)
-- [§9 Prozess-Architektur](../../concept/20-entities/09-prozess-architektur.md) – Geschäftsprozesse
-- [§13 Verlinkung Fach- und Technik-Ebene](../../concept/30-dynamics/13-fach-technik-verlinkung.md) – Business-IT-Brücke
+- [§7 Motivation, Stakeholders & Goals](../../concept/20-entities/07-motivation-stakeholders-goals.md)
+- [§9 Process Architecture](../../concept/20-entities/09-process-architecture.md) – business processes
+- [§13 Business–Technology Linking](../../concept/30-dynamics/13-business-technology-linking.md) – business-IT bridge
 
-## Notizen
+## Notes
 
-Sabine ist die **fachliche Strukturgeberin**. Sie liefert das Domain Model, auf dem alles andere aufbaut: Use Cases verweisen auf ihre Business Objects, Requirements referenzieren ihre Business Rules, Solution Architect leitet seine Specs aus ihrer Domain-Struktur ab.
+Sabine is the **business structure-giver**. She delivers the domain model on which everything else builds: use cases refer to her business objects, requirements reference her business rules, the solution architect derives his specs from her domain structure.
 
-**Senior und global**: Sie hat genug Erfahrung, um auch komplexe Konzern-Realitäten zu modellieren. Ihr Tool darf anspruchsvoll sein, muss aber strukturell sauber und konsistent sein.
+**Senior and global**: She has enough experience to model even complex corporate realities. Her tool may be demanding, but must be structurally clean and consistent.
 
-**Hebelwirkung**: Ihre Arbeit ist Multiplikator für alle nachfolgenden Rollen. Ein falsch modelliertes Business Object pflanzt sich durch Use Cases, Requirements und Code fort. Die Investition in saubere Business-Modellierung zahlt sich auf jeder nachfolgenden Ebene aus.
+**Leverage**: Her work is a multiplier for all subsequent roles. A wrongly modeled business object propagates through use cases, requirements, and code. The investment in clean business modeling pays off at every subsequent level.
 
-**Cross-Cultural-Komplexität**: In Globalkonzernen ist nichts trivial. "Customer" in den USA hat andere Pflichtfelder als in Deutschland (DSGVO!). Ihr Tool muss diese Varianten ausdrücken können, ohne zur Komplexitäts-Hölle zu werden.
+**Cross-cultural complexity**: In global corporate groups nothing is trivial. "Customer" in the USA has different mandatory fields than in Germany (GDPR!). Her tool must be able to express these variants without turning into complexity hell.
 
-**Verbindung zu CIO (SH-05)**: Sie liefert dem CIO die strukturelle Basis für strategische Entscheidungen. Capability-Heatmaps, Business-Object-Inventare, Compliance-Bezug der Geschäftslogik – das ist ihr Output.
+**Connection to CIO (SH-05)**: She provides the CIO with the structural basis for strategic decisions. Capability heatmaps, business object inventories, compliance relation of business logic – that is her output.
 
-**Verbindung zu Lukas (SH-02)**: Datenmodellierung profitiert direkt von ihrer Arbeit. Wenn Business Objects sauber modelliert sind, ist die Übersetzung in Data Entities mechanisch.
+**Connection to Lukas (SH-02)**: Data modeling benefits directly from her work. When business objects are modeled cleanly, the translation into data entities is mechanical.
 
-**Verbindung zu Franz (SH-01)**: Sie liefert ihm das Domain Model als Lernmaterial. Junior-Architekten verstehen ein Tool schneller, wenn die Business-Modelle vorhanden sind.
+**Connection to Franz (SH-01)**: She provides him with the domain model as learning material. Junior architects understand a tool faster when the business models are present.
 
-**Verbindung zu Michael (SH-04)**: Solution-Architekt greift auf ihre Business Objects zurück, um Komponenten zu strukturieren.
+**Connection to Michael (SH-04)**: The solution architect draws on her business objects to structure components.

@@ -1,34 +1,34 @@
-# Ableitung aus: requirements/req/req-118-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-118-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @should @UC-20
-Feature: REQ-118 – ABB-Abdeckungs-Analyse (Gap-Quote)
+Feature: REQ-118 – ABB coverage analysis (gap rate)
 
-  Das System MUSS eine ABB-Abdeckungs-Analyse anbieten, die für jeden
-  ABB mit `governanceStatus=approved` ausweist: Anzahl konformer
-  Entitäten (`conformsToABBId`), Anzahl implementierender SBBs und ob
-  ein Gap vorliegt (keine konformen Entitäten). Die Gesamtquote (ABBs
-  mit mindestens einer Instanz / alle approved ABBs) MUSS als
-  Prozentzahl „Gap-Quote" sichtbar sein.
+  The system MUST offer an ABB coverage analysis that reports, for every
+  ABB with `governanceStatus=approved`: number of conforming
+  entities (`conformsToABBId`), number of implementing SBBs and whether
+  a gap exists (no conforming entities). The overall rate (ABBs
+  with at least one instance / all approved ABBs) MUST be visible as a
+  percentage "gap rate".
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Gap-Quote-Berechnung – 5 approved ABBs vorhanden sind, davon 2 ohne Instanz
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  5 approved ABBs vorhanden sind, davon 2 ohne Instanz
-    Then  zeigt die Analyse Gap-Quote = 40%; die Tabelle zeigt alle 5 ABBs mit ihren Instanz-Zählungen
+  Scenario: AC1 – Gap rate calculation – 5 approved ABBs exist, 2 of them without an instance
+    Given the precondition according to the requirement is met
+    When  5 approved ABBs exist, 2 of them without an instance
+    Then  the analysis shows gap rate = 40%; the table shows all 5 ABBs with their instance counts
 
   @AC2
-  Scenario: AC2 – ABB-Detailansicht – ein ABB in der Analyse-Tabelle geöffnet wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein ABB in der Analyse-Tabelle geöffnet wird
-    Then  sind implementierende SBBs und konforme Entitäten als anklickbare Links sichtbar
+  Scenario: AC2 – ABB detail view – an ABB is opened in the analysis table
+    Given the precondition according to the requirement is met
+    When  an ABB is opened in the analysis table
+    Then  implementing SBBs and conforming entities are visible as clickable links
 
   @AC3
-  Scenario: AC3 – Leer-Zustand – noch keine ABBs konfiguriert sind
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  noch keine ABBs konfiguriert sind
-    Then  zeigt das System den Hinweis „Noch keine ABBs konfiguriert; starte mit UC-17"
+  Scenario: AC3 – Empty state – no ABBs are configured yet
+    Given the precondition according to the requirement is met
+    When  no ABBs are configured yet
+    Then  the system shows the note "No ABBs configured yet; start with UC-17"

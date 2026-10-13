@@ -1,103 +1,103 @@
-# ADR-004: Reifikations-Details (Max-Tiefe, Adressierung, UI)
+# ADR-004: Reification Details (Max Depth, Addressing, UI)
 
 **Status**: accepted
-**Datum**: 2026-06-26
-**Entscheider**: [Rigobert – Produkt Owner](../business-analysis/stakeholders/SH-09-rigobert-produkt-owner.md) (SH-09)
-**Konsultiert**: Requirements Engineer (entity.md, ADR-010, REQ-063, US-066)
-**Informiert**: alle Stakeholder
+**Date**: 2026-06-26
+**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Consulted**: Requirements Engineer (entity.md, ADR-010, REQ-063, US-066)
+**Informed**: all stakeholders
 
 ---
 
-## Kontext und Problem
+## Context and Problem
 
-Das Konzept erlaubt reifizierte Relationen: Relationen können selbst Endpunkte anderer Relationen sein. Drei Detail-Fragen waren offen:
+The concept allows reified relations: relations can themselves be endpoints of other relations. Three detail questions were open:
 
-1. **Maximale Reifikations-Tiefe**: Wie viele Ebenen tief darf eine Connection selbst Quelle sein?
-2. **Relation-Adressierung**: Haben alle Connections eine eigene ID / sind sie direkt adressierbar?
-3. **UI-Darstellung**: Wie werden reifizierte Relationen auf dem Canvas dargestellt?
+1. **Maximum reification depth**: How many levels deep may a connection itself be a source?
+2. **Relation addressing**: Do all connections have their own ID / are they directly addressable?
+3. **UI representation**: How are reified relations displayed on the canvas?
 
-**Bereits getroffene Vorentscheidungen**:
-- **entity.md v0.2.0**: Alle ArchitectureEntities (Elemente UND Connections) teilen denselben Integer-ID-Raum. `sourceEntityId` darf auf eine Connection zeigen wenn `allowsConnectionAsSource=true` (ADR-010).
-- **ADR-010 (accepted, 2026-06-26)**: n-Connection für Data-Lineage: `carries-data` verbindet DataFlow (Connection) mit DataObject; max. 1 Ebene tief für v1.0; `allowsConnectionAsSource`-Flag auf EntityTypeDefinition.
-- **REQ-063 + US-066**: Canvas zeigt 3-Dot-Circle-Indikator auf Connections mit n-Connections; Doppelklick öffnet Verbindungs-Panel.
+**Prior decisions already made**:
+- **entity.md v0.2.0**: All ArchitectureEntities (elements AND connections) share the same integer ID space. `sourceEntityId` may point to a connection if `allowsConnectionAsSource=true` (ADR-010).
+- **ADR-010 (accepted, 2026-06-26)**: n-connection for data lineage: `carries-data` connects DataFlow (connection) with DataObject; max. 1 level deep for v1.0; `allowsConnectionAsSource` flag on EntityTypeDefinition.
+- **REQ-063 + US-066**: Canvas shows 3-dot-circle indicator on connections with n-connections; double-click opens connection panel.
 
-Die ADR-Entscheidung bestätigt und konsolidiert diese impliziten Vorentscheidungen.
+The ADR decision confirms and consolidates these implicit prior decisions.
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- **Komplexität vermeiden**: Zu tiefe Reifikation führt zu unverständlichen Modellen
-- **Performance**: Jede adressierbare Connection kostet Storage und Index-Aufwand (wichtig bei REQ-074: 500k Entitäten)
-- **Konsistenz**: Entity- und Connection-Adressierung einheitlich
-- **Visualisierbarkeit**: React Flow (ADR-007) muss Darstellung leisten können
+- **Avoid complexity**: Too deep reification leads to incomprehensible models
+- **Performance**: Every addressable connection costs storage and index effort (important for REQ-074: 500k entities)
+- **Consistency**: Uniform entity and connection addressing
+- **Visualizability**: React Flow (ADR-007) must be able to render the representation
 
-## Frage 1: Maximale Reifikations-Tiefe
+## Question 1: Maximum Reification Depth
 
-### Optionen
-- Option A (gewählt): Default 1 Ebene (v1.0); konfigurierbar in MetamodelConfiguration für v2.0
-- Option B: Harte Grenze 1 Ebene, nicht konfigurierbar
-- Option C: Unbegrenzt mit Warnung
+### Options
+- Option A (chosen): Default 1 level (v1.0); configurable in MetamodelConfiguration for v2.0
+- Option B: Hard limit of 1 level, not configurable
+- Option C: Unlimited with warning
 
-### Entscheidung Frage 1: **Option A**
+### Decision on Question 1: **Option A**
 
-- **v1.0**: Maximale Tiefe = 1 Ebene (`sourceEntityId` einer Connection darf auf eine andere Connection zeigen; `targetEntityId` muss immer Nicht-Connection sein — entity.md BR-04)
-- **Mechanismus**: `allowsConnectionAsSource: boolean` (Default: false) auf EntityTypeDefinition; nur wenn `true`, darf der Typ als `sourceEntityId` einer weiteren Connection fungieren
-- **v2.0**: MetamodelConfiguration erhält `maxConnectionDepth: integer` (Default: 1); erhöhbar auf 2 oder 3 für komplexe Lineage-Graphen
-- **Begründung**: 1 Ebene deckt den primären Use Case (Data Lineage, carries-data) vollständig ab. Tiefere Chains sind in der Praxis selten und erzeugen exponentiell komplexere Queries.
+- **v1.0**: Maximum depth = 1 level (`sourceEntityId` of a connection may point to another connection; `targetEntityId` must always be a non-connection — entity.md BR-04)
+- **Mechanism**: `allowsConnectionAsSource: boolean` (default: false) on EntityTypeDefinition; only if `true` may the type act as `sourceEntityId` of a further connection
+- **v2.0**: MetamodelConfiguration receives `maxConnectionDepth: integer` (default: 1); can be raised to 2 or 3 for complex lineage graphs
+- **Rationale**: 1 level fully covers the primary use case (data lineage, carries-data). Deeper chains are rare in practice and produce exponentially more complex queries.
 
-## Frage 2: Adressierung
+## Question 2: Addressing
 
-### Optionen
-- Option A (gewählt): Alle Connections haben Integer-ID und sind direkt adressierbar (`/api/v1/entities/{id}`)
-- Option B: Nur Connections mit Meta-Properties haben eigene ID
-- Option C: ID erst on-demand bei erster Reifikations-Nutzung
+### Options
+- Option A (chosen): All connections have an integer ID and are directly addressable (`/api/v1/entities/{id}`)
+- Option B: Only connections with meta properties have their own ID
+- Option C: ID only on demand at first use of reification
 
-### Entscheidung Frage 2: **Option A**
+### Decision on Question 2: **Option A**
 
-- **Bereits entschieden durch entity.md**: ArchitectureEntity umfasst Elemente UND Connections. Beide erhalten beim Anlegen eine Integer-ID aus dem gemeinsamen Sequenz-Namespace.
-- `GET /api/v1/entities/{id}` funktioniert für jede Connection identisch wie für jedes Element
-- Alle Connections sind URN-adressierbar: `urn:oea:{instance-slug}:{id}` (ADR-001)
-- **Begründung**: Einheitliches Modell; keine Sonderbehandlung; Catalog und Join (UC-06, REQ-044–046) können Connections als Primary-Entities nutzen (REQ-065); keine on-demand-ID-Vergabe nötig
+- **Already decided by entity.md**: ArchitectureEntity covers elements AND connections. Both receive an integer ID from the shared sequence namespace on creation.
+- `GET /api/v1/entities/{id}` works for any connection identically to any element
+- All connections are URN-addressable: `urn:oea:{instance-slug}:{id}` (ADR-001)
+- **Rationale**: Uniform model; no special treatment; catalog and join (UC-06, REQ-044–046) can use connections as primary entities (REQ-065); no on-demand ID assignment needed
 
-## Frage 3: UI-Darstellung
+## Question 3: UI Representation
 
-### Optionen
-- Option A: Reifizierte Connection als eigener Knoten in Diagrammen
-- Option B (gewählt): Kleines Symbol (3-Dot-Circle) auf der Kante
-- Option C: Tooltip/Detail-View bei Klick
+### Options
+- Option A: Reified connection as its own node in diagrams
+- Option B (chosen): Small symbol (3-dot circle) on the edge
+- Option C: Tooltip/detail view on click
 
-### Entscheidung Frage 3: **Option B (3-Dot-Circle)**
+### Decision on Question 3: **Option B (3-dot circle)**
 
-- **Bereits entschieden durch ADR-010 + REQ-063 + US-066**: Connections mit mindestens einer n-Connection zeigen einen •••-Indikator auf der Kante
-- Bei mehreren n-Connections: einzelner Indikator mit Zahl (`••• 3`)
-- Doppelklick auf Indikator öffnet Verbindungs-Panel (US-067): listet alle n-Connections mit Typ-Filter-Chips
-- **Referenz**: Obsidian-Graph-View (ähnliche Semantik für "hat Eigenschaften")
-- **Begründung**: Ein eigener Knoten (Option A) würde das Diagramm drastisch komplexer machen; Tooltip-only (Option C) ist zu schwer auffindbar. Das 3-Dot-Symbol signalisiert „mehr dahinter" ohne das Layout zu brechen.
+- **Already decided by ADR-010 + REQ-063 + US-066**: Connections with at least one n-connection show a ••• indicator on the edge
+- With multiple n-connections: single indicator with number (`••• 3`)
+- Double-click on the indicator opens the connection panel (US-067): lists all n-connections with type filter chips
+- **Reference**: Obsidian graph view (similar semantics for "has properties")
+- **Rationale**: A dedicated node (Option A) would make the diagram drastically more complex; tooltip-only (Option C) is too hard to discover. The 3-dot symbol signals "more behind this" without breaking the layout.
 
-## Gesamtentscheidung
+## Overall Decision
 
-| Frage | Entscheidung | Implementiert durch |
+| Question | Decision | Implemented by |
 |---|---|---|
-| Max-Tiefe | 1 Ebene (v1.0); konfigurierbar für v2.0 | `allowsConnectionAsSource` auf EntityTypeDefinition; entity.md BR-04 |
-| Adressierung | Alle Connections haben Integer-ID; direkt adressierbar | entity.md; gemeinsamer ID-Namespace; ADR-001 |
-| UI | 3-Dot-Circle-Indikator auf Kanten; Verbindungs-Panel per Doppelklick | ADR-010; REQ-063; US-066; US-067 |
+| Max depth | 1 level (v1.0); configurable for v2.0 | `allowsConnectionAsSource` on EntityTypeDefinition; entity.md BR-04 |
+| Addressing | All connections have an integer ID; directly addressable | entity.md; shared ID namespace; ADR-001 |
+| UI | 3-dot-circle indicator on edges; connection panel via double-click | ADR-010; REQ-063; US-066; US-067 |
 
-## Konsequenzen
+## Consequences
 
-### Positiv
-- Einheitliche API: keine Unterscheidung Connection vs. Element in `/api/v1/entities/{id}`
-- Performance: Integer-ID-Join auch für Connections optimal (REQ-071, REQ-074)
-- Canvas bleibt übersichtlich: 3-Dot-Symbol statt zusätzlicher Knoten
-- v2.0-Erweiterung auf tiefere Reifikation ohne Breaking-Change möglich (`maxConnectionDepth` konfigurierbar)
+### Positive Consequences
+- Uniform API: no distinction between connection and element in `/api/v1/entities/{id}`
+- Performance: integer ID join optimal for connections as well (REQ-071, REQ-074)
+- Canvas stays clear: 3-dot symbol instead of additional nodes
+- v2.0 extension to deeper reification possible without breaking change (`maxConnectionDepth` configurable)
 
-### Negativ / Trade-offs
-- 1-Ebene-Limit schränkt manche Graph-Topologien ein; für v1.0 bewusste Vereinfachung
-- 3-Dot-Indikator setzt voraus, dass React Flow (ADR-007) Kanten-Overlays unterstützt (korrekt: `EdgeLabelRenderer` in React Flow 11+)
+### Negative Consequences / Trade-offs
+- 1-level limit restricts some graph topologies; deliberate simplification for v1.0
+- 3-dot indicator requires that React Flow (ADR-007) supports edge overlays (correct: `EdgeLabelRenderer` in React Flow 11+)
 
-## Bezüge
+## References
 
-**Konzept-Kapitel**:
-- [§2.1 Reifikation](../concept/00-overview/02-meta-metamodell.md)
+**Concept Chapters**:
+- [§2.1 Reification](../concept/00-overview/02-meta-metamodel.md)
 
-**Abhängige ADRs**: ADR-010 (n-Connection Data Lineage — Spezialfall der Reifikation)
+**Dependent ADRs**: ADR-010 (n-connection data lineage — special case of reification)
 
-**Bezogene Requirements**: entity.md (BR-04), REQ-063 (3-Dot-Indikator), REQ-064 (DSGVO-Katalog), REQ-065 (n-Connection Katalog-Join), US-066, US-067
+**Related Requirements**: entity.md (BR-04), REQ-063 (3-dot indicator), REQ-064 (GDPR catalog), REQ-065 (n-connection catalog join), US-066, US-067

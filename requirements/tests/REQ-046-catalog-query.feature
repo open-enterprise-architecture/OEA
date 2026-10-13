@@ -1,53 +1,52 @@
-# Ableitung aus: requirements/req/req-046-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-046-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-06
-Feature: REQ-046 – Katalog-Abfrage ausführen (Live-Daten)
+Feature: REQ-046 – Execute catalog query (live data)
 
-  Das System MUSS für einen
-  [Catalog](../../business-objects/catalog.md) auf Abruf eine
-  Live-Abfrage gegen das Architecture-Repository ausführen und die
-  Entitäten des `primaryEntityType` als paginierte Liste zurückliefern.
-  Für jede Entität MÜSSEN die Werte der konfigurierten `columns`
-  (Attribute) sowie die Ergebnisse aller `joinDefinitions` enthalten
-  sein.
+  On demand, the system MUST execute a live query against the
+  architecture repository for a
+  [Catalog](../../business-objects/catalog.md) and return the entities
+  of the `primaryEntityType` as a paginated list. For each entity, the
+  values of the configured `columns` (attributes) as well as the
+  results of all `joinDefinitions` MUST be included.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Happy Path, aggregate-Modus – Catalog „Application Inventory", primaryEntityType=ApplicationComponent,...
-    Given Catalog „Application Inventory", primaryEntityType=ApplicationComponent, 2 Spalten (name, status), 1 Join (DataFlow→Interface, aggregate); Repository enthält CRM-System (status=active) mit 2 Interfaces
+  Scenario: AC1 – Happy path, aggregate mode – catalog "Application Inventory", primary...
+    Given catalog "Application Inventory", primaryEntityType=ApplicationComponent, 2 columns (name, status), 1 join (DataFlow→Interface, aggregate); repository contains CRM-System (status=active) with 2 interfaces
     When  `GET /api/v1/catalogs/{id}/query`
-    Then  Response enthält 1 Zeile für CRM-System; `joinResults.Schnittstellen` ist Array mit 2 Einträgen
+    Then  response contains 1 row for CRM-System; `joinResults.Interfaces` is an array with 2 entries
 
   @AC2
-  Scenario: AC2 – rows-Modus – wie AC1
-    Given wie AC1
+  Scenario: AC2 – rows mode – as AC1
+    Given as AC1
     When  `GET /api/v1/catalogs/{id}/query?joinMode[join-id]=rows`
-    Then  Response enthält 2 Zeilen (je Interface eine); `columns.name` = „CRM-System" in beiden Zeilen
+    Then  response contains 2 rows (one per interface); `columns.name` = "CRM-System" in both rows
 
   @AC3
-  Scenario: AC3 – Filter – Repository enthält 5 ApplicationComponents, davon 2 mit status=active
-    Given Repository enthält 5 ApplicationComponents, davon 2 mit status=active
+  Scenario: AC3 – Filter – repository contains 5 ApplicationComponents, of which 2 have status=active
+    Given repository contains 5 ApplicationComponents, of which 2 have status=active
     When  `GET /api/v1/catalogs/{id}/query?filter[status][eq]=active`
-    Then  `totalCount=2`; nur die 2 aktiven Entitäten im data-Array
+    Then  `totalCount=2`; only the 2 active entities in the data array
 
   @AC4
-  Scenario: AC4 – Entität ohne Join-Ergebnisse – ERP-Core (ApplicationComponent) hat keine DataFlow-Connections
-    Given ERP-Core (ApplicationComponent) hat keine DataFlow-Connections
-    When  Abfrage im aggregate-Modus
-    Then  ERP-Core erscheint in der Antwort mit `joinResults.Schnittstellen = []`; wird NICHT aus der Ergebnismenge ausgeschlossen (LEFT-JOIN-Semantik)
+  Scenario: AC4 – Entity without join results – ERP-Core (ApplicationComponent) has no DataFlow connections
+    Given ERP-Core (ApplicationComponent) has no DataFlow connections
+    When  query in aggregate mode
+    Then  ERP-Core appears in the response with `joinResults.Interfaces = []`; is NOT excluded from the result set (LEFT JOIN semantics)
 
   @AC5
-  Scenario: AC5 – Sortierung und Paginierung – 60 ApplicationComponents
+  Scenario: AC5 – Sorting and pagination – 60 ApplicationComponents
     Given 60 ApplicationComponents
     When  `GET /api/v1/catalogs/{id}/query?page=1&pageSize=20&sortBy=name&sortDir=asc`
-    Then  `totalCount=60`; `data` enthält Einträge 21–40 alphabetisch nach Name
+    Then  `totalCount=60`; `data` contains entries 21–40 alphabetically by name
 
   @AC6
-  Scenario: AC6 – Leeres Repository – primaryEntityType hat keine Entitäten im Repository
-    Given primaryEntityType hat keine Entitäten im Repository
-    When  Abfrage
-    Then  HTTP 200 mit `totalCount=0`, `data=[]`; kein Fehler
+  Scenario: AC6 – Empty repository – primaryEntityType has no entities in the repository
+    Given primaryEntityType has no entities in the repository
+    When  query
+    Then  HTTP 200 with `totalCount=0`, `data=[]`; no error

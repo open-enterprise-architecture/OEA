@@ -1,54 +1,54 @@
-# US-007: Lifecycle-Übergang invited→active beim ersten erfolgreichen Login
+# US-007: Lifecycle Transition invited→active on First Successful Login
 
 **ID**: US-007
 **Story Points**: 1
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Person mit Status "invited" möchte ich nach meinem ersten erfolgreichen Login automatisch als "active" markiert werden, damit mein Status im Repository den tatsächlichen Onboarding-Fortschritt widerspiegelt.
+As a person with status "invited", I want to be automatically marked as "active" after my first successful login, so that my status in the repository reflects the actual onboarding progress.
 
-## Bezug
+## Reference
 
 **Use Case**: [UC-01: Login](../use-cases/UC-01-login.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-007: Lifecycle-Übergang invited→active](../req/REQ-007-lifecycle-uebergang-invited-active.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-007: Lifecycle Transition invited→active](../req/REQ-007-lifecycle-transition-invited-active.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine Person mit Status `invited`
-- Wenn: sie sich erstmals erfolgreich anmeldet
-- Dann: wechselt ihr Status zu `active`
+- Given: a person with status `invited`
+- When: they sign in successfully for the first time
+- Then: their status changes to `active`
 
 **AC2**:
-- Gegeben: eine Person mit Status `active`
-- Wenn: sie sich erneut anmeldet
-- Dann: bleibt ihr Status unverändert `active`
+- Given: a person with status `active`
+- When: they sign in again
+- Then: their status remains unchanged at `active`
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Auth-Modul, Person-Lifecycle
-- Betroffene EntityTypes/Relations: `Person.status`
-- API-Endpunkte: Login-Endpunkte (alle Mechanismen)
-- Datenbank-Änderungen: keine zusätzlichen
+- Affected components: auth module, person lifecycle
+- Affected EntityTypes/Relations: `Person.status`
+- API endpoints: login endpoints (all mechanisms)
+- Database changes: no additional ones
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (Unit)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (unit)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-001
-- Blockiert: keine
+- Waiting on: US-001
+- Blocks: none
 
-## Notizen
+## Notes
 
-Übergang muss idempotent sein (kein Fehler bei mehrfachem Login).
+The transition must be idempotent (no error on repeated login).

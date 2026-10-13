@@ -1,36 +1,36 @@
-# US-111: Importierte Continuum-Bausteine vor Änderungen schützen
+# US-111: Protect Imported Continuum Building Blocks from Changes
 
 **ID**: US-111
 **Story Points**: 2
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich, dass importierte und built-in Continuum-Bausteine nicht bearbeitbar oder löschbar sind, damit die Integrität der Ursprungs-Frameworks und die Traceability zu Paket-Updates erhalten bleiben.
+As Kurt – Lead Enterprise Architect, I want imported and built-in continuum building blocks to be non-editable and non-deletable, so that the integrity of the originating frameworks and traceability to package updates are preserved.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-17](../use-cases/UC-17-continuum-bausteine-verwalten.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-111](../req/REQ-111-continuum-scope-schutz.md)
+**Use Case**: [UC-17](../use-cases/UC-17-manage-continuum-building-blocks.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-111](../req/REQ-111-continuum-scope-protection.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (API-Schreibschutz):
-- Wenn: ein PUT- oder DELETE-Request auf einen Baustein mit `scope=imported` abgesetzt wird
-- Dann: antwortet das System mit HTTP 422
+**AC1** (API write protection):
+- When: a PUT or DELETE request is issued on a building block with `scope=imported`
+- Then: the system responds with HTTP 422
 
-**AC2** (UI-Schreibschutz und Badge):
-- Wenn: ich einen Baustein mit `scope=imported` in der UI öffne
-- Dann: sind Bearbeiten- und Löschen-Buttons nicht sichtbar; ein Badge „Importiert – TOGAF 10 TRM" ist sichtbar
+**AC2** (UI write protection and badge):
+- When: I open a building block with `scope=imported` in the UI
+- Then: edit and delete buttons are not visible; a badge "Imported – TOGAF 10 TRM" is visible
 
-**AC3** (SBB-Zuordnungen editierbar):
-- Wenn: ich eine TRM-Kategorie mit `scope=imported` öffne
-- Dann: kann ich SBB-Zuordnungen bearbeiten; Name und Parent-Kategorie sind gesperrt
+**AC3** (SBB assignments editable):
+- When: I open a TRM category with `scope=imported`
+- Then: I can edit SBB assignments; name and parent category are locked
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

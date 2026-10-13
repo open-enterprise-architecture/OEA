@@ -1,18 +1,18 @@
 ---
 id: ADR-021
-title: Implizite Parent-Child-Verbindung bei Component-Verschachtelung
+title: Implicit Parent-Child Connection on Component Nesting
 status: proposed
 date: 2026-06-28
 deciders:
-  - Lead Enterprise Architekt
-  - Solution Architekt
+  - Lead Enterprise Architect
+  - Solution Architect
 categories:
-  - Datenmodell
-  - Semantik
+  - Data Model
+  - Semantics
   - Navigation
 references:
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
+    - concept/20-entities/06-core-entity-types.md
   requirements:
     - REQ-141
     - REQ-142
@@ -21,77 +21,77 @@ references:
     - ADR-010
 ---
 
-# ADR-021: Implizite Parent-Child-Verbindung bei Component-Verschachtelung
+# ADR-021: Implicit Parent-Child Connection on Component Nesting
 
 ## Status
 
 Proposed
 
-**Entscheider**: [Kurt – Lead Enterprise Architekt](../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md) (SH-03), [Michael – Solution Architekt](../business-analysis/stakeholders/SH-04-michael-solution-architekt.md) (SH-04)
+**Deciders**: [Kurt – Lead Enterprise Architect](../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md) (SH-03), [Michael – Solution Architect](../business-analysis/stakeholders/SH-04-michael-solution-architect.md) (SH-04)
 
-## Kontext
+## Context
 
-Im Explorer (ADR-020) können Komponenten hierarchisch unter andere Komponenten eingeordnet werden. Die Frage ist, ob diese strukturelle Einordnung semantische Auswirkungen hat — d.h. ob automatisch eine Verbindung (ArchiMate Composition oder Aggregation) zwischen Eltern- und Kindknoten angelegt wird.
+In the explorer (ADR-020), components can be placed hierarchically under other components. The question is whether this structural placement has semantic effects — i.e. whether a connection (ArchiMate composition or aggregation) is automatically created between parent and child nodes.
 
-Ausserdem muss unterschieden werden zwischen:
-- **Strukturierungshilfen** (`isStructuralGrouper=true`): Ordner-artige Knoten, die ausschliesslich der Gliederung dienen und selbst keine EA-Instanz repräsentieren
-- **Instanziierte Entitäten** (`isStructuralGrouper=false`): Echte ArchitectureEntity-Instanzen (z. B. „SAP S/4HANA")
+In addition, a distinction must be made between:
+- **Structuring aids** (`isStructuralGrouper=true`): folder-like nodes that serve exclusively for organization and do not represent an EA instance themselves
+- **Instantiated entities** (`isStructuralGrouper=false`): real ArchitectureEntity instances (e.g. "SAP S/4HANA")
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- Verschachtelung soll semantischen Mehrwert liefern, nicht nur visuelle Gruppierung sein
-- ArchiMate kennt Composition (Teil-Ganzes, stark) und Aggregation (Teil-Ganzes, schwach)
-- Strukturierungshilfen (z. B. „Backend-Systeme" als Ordner) sollen keine inhaltliche Verbindung erzeugen
-- Die implizite Verbindung muss nachvollziehbar, sichtbar und löschbar sein
+- Nesting should deliver semantic added value, not just be visual grouping
+- ArchiMate knows composition (part-whole, strong) and aggregation (part-whole, weak)
+- Structuring aids (e.g. "Backend systems" as a folder) should not create a content connection
+- The implicit connection must be traceable, visible, and deletable
 
-## Optionen
+## Options
 
-### Option A — Implizite Composition-Verbindung (nur für Instanzen)
+### Option A — Implicit composition connection (instances only)
 
-Beim Einordnen eines ArchitectureEntity-Elements (`isStructuralGrouper=false`) unter ein anderes Element wird automatisch eine Composition-Verbindung (`entityType: composition`) als neue ArchitectureEntity angelegt. Diese Verbindung erscheint in der Kategorie „Verbindungen" der Solution. Beim Herauslösen des Elements wird die implizite Verbindung gelöscht.
+When placing an ArchitectureEntity element (`isStructuralGrouper=false`) under another element, a composition connection (`entityType: composition`) is automatically created as a new ArchitectureEntity. This connection appears in the "Connections" category of the solution. When the element is detached, the implicit connection is deleted.
 
-Für Strukturierungshilfen (`isStructuralGrouper=true`) wird keine Verbindung angelegt.
+For structuring aids (`isStructuralGrouper=true`) no connection is created.
 
-**Pro**: Direkte semantische Aussage; Composition im Modell sichtbar; ArchiMate-konform
-**Contra**: Überraschungseffekt (Nutzer sieht neue Verbindung); Modell wächst schnell
+**Pro**: Direct semantic statement; composition visible in the model; ArchiMate-compliant
+**Con**: Surprise effect (user sees a new connection); model grows quickly
 
-### Option B — Keine implizite Verbindung (rein visuelle Hierarchie)
+### Option B — No implicit connection (purely visual hierarchy)
 
-Verschachtelung ist nur Navigation. Keine automatische Verbindung wird angelegt.
+Nesting is navigation only. No automatic connection is created.
 
-**Pro**: Keine Überraschungen; sauber getrennt zwischen Navigation und Modell
-**Contra**: Verlust semantischer Information; Composition muss manuell nacherfasst werden
+**Pro**: No surprises; cleanly separated between navigation and model
+**Con**: Loss of semantic information; composition must be captured manually afterwards
 
-### Option C — Nutzer wählt Verbindungstyp bei jeder Einordnung
+### Option C — User chooses connection type on every placement
 
-Dialog beim Einordnen fragt: „Composition, Aggregation oder keine Verbindung?"
+A dialog on placement asks: "Composition, aggregation, or no connection?"
 
-**Pro**: Maximale Kontrolle; Nutzer entscheidet
-**Contra**: Hoher Interaktionsaufwand; für häufige Operationen zu komplex
+**Pro**: Maximum control; user decides
+**Con**: High interaction effort; too complex for frequent operations
 
-## Entscheidung
+## Decision
 
-**Option A — Implizite Composition-Verbindung, nur für Instanzen.**
+**Option A — Implicit composition connection, instances only.**
 
-Beim Einordnen einer instanziierten Entität (`isStructuralGrouper=false`) als Kind einer anderen Entität wird automatisch eine ArchiMate-Composition-Verbindung angelegt. Die Verbindung wird in der UI als „auto (Composition)" gekennzeichnet und kann manuell in „Aggregation" umgewandelt oder gelöscht werden. Strukturierungshilfen (`isStructuralGrouper=true`) erhalten keine implizite Verbindung.
+When placing an instantiated entity (`isStructuralGrouper=false`) as a child of another entity, an ArchiMate composition connection is created automatically. The connection is labeled in the UI as "auto (Composition)" and can be manually converted to "Aggregation" or deleted. Structuring aids (`isStructuralGrouper=true`) receive no implicit connection.
 
-## Konsequenzen
+## Consequences
 
-- `ArchitectureEntity` erhält zwei neue Felder: `parentEntityId` (nullable FK auf eigene Tabelle) und `isStructuralGrouper` (boolean, Default: false)
-- Business Rule: `parentEntityId` darf nur bei Elementen gesetzt werden (`isConnection=false`); Verbindungen können keine Kinder haben
-- Die implizite Composition-Verbindung hat `source=parentEntityId`, `target=childEntityId`, `autoCreated=true`
-- Beim Löschen des `parentEntityId`-Feldes (Herauslösen aus Hierarchie) wird die `autoCreated=true`-Verbindung automatisch entfernt
-- Manuell geänderte Verbindungen (`autoCreated=false`) überleben das Herauslösen
-- `data-model.puml` muss aktualisiert werden: `parent_entity_id` und `is_structural_grouper` in der `entities`-Tabelle
-- Betroffenes BO: `entity.md`
+- `ArchitectureEntity` receives two new fields: `parentEntityId` (nullable FK to own table) and `isStructuralGrouper` (boolean, default: false)
+- Business rule: `parentEntityId` may only be set on elements (`isConnection=false`); connections cannot have children
+- The implicit composition connection has `source=parentEntityId`, `target=childEntityId`, `autoCreated=true`
+- When the `parentEntityId` field is cleared (detached from hierarchy), the `autoCreated=true` connection is removed automatically
+- Manually changed connections (`autoCreated=false`) survive detachment
+- `data-model.puml` must be updated: `parent_entity_id` and `is_structural_grouper` in the `entities` table
+- Affected BO: `entity.md`
 
-## Betroffene Konzept-Kapitel
+## Affected Concept Chapters
 
-- §6 Kern-Entitätstypen
+- §6 Core Entity Types
 - §10 N-Connection / Data Lineage (ADR-010)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-28 | Solution Architekt | Initial draft |
+| 0.1.0 | 2026-06-28 | Solution Architect | Initial draft |

@@ -1,6 +1,6 @@
 ---
 id: REQ-107
-title: ABB anlegen und Verfeinerungs-Hierarchie verwalten
+title: Create ABBs and Manage Refinement Hierarchy
 type: functional
 priority: must
 status: proposed
@@ -21,43 +21,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-107: ABB anlegen und Verfeinerungs-Hierarchie verwalten
+# REQ-107: Create ABBs and Manage Refinement Hierarchy
 
-## Aussage
+## Statement
 
-Das System MUSS das Anlegen, Bearbeiten und Löschen von `ArchitectureBuildingBlock`-Einträgen (ABBs) mit `scope=organization` ermöglichen. Pflichtfelder: `name` (eindeutig je `continuumLevel`), `continuumLevel`, `maturityLevel`, `governanceStatus`. Optional: `specifications` (Markdown), `industry` (Pflicht wenn `continuumLevel=industry`), `refines` (Verweis auf bestehenden ABB; Dropdown zeigt nur Einträge ohne Zyklusrisiko). Beim Speichern MUSS das System Zyklen im Verfeinerungs-Graphen erkennen und mit HTTP 422 ablehnen.
+The system MUST allow creating, editing, and deleting `ArchitectureBuildingBlock` entries (ABBs) with `scope=organization`. Mandatory fields: `name` (unique per `continuumLevel`), `continuumLevel`, `maturityLevel`, `governanceStatus`. Optional: `specifications` (Markdown), `industry` (mandatory if `continuumLevel=industry`), `refines` (reference to an existing ABB; the dropdown only shows entries without cycle risk). When saving, the system MUST detect cycles in the refinement graph and reject them with HTTP 422.
 
-## Begründung
+## Rationale
 
-ABBs sind die zentralen Spezifikations-Bausteine des Enterprise Continuum. Ohne CRUD-Operationen und Verfeinerungs-Hierarchie kann keine organisationsspezifische Continuum-Bibliothek aufgebaut werden. Die Zyklus-Erkennung ist notwendig, um inkonsistente Verfeinerungs-Ketten zu verhindern, die spätere Graph-Traversierungen korrumpieren würden.
+ABBs are the central specification building blocks of the Enterprise Continuum. Without CRUD operations and a refinement hierarchy, no organization-specific continuum library can be built. Cycle detection is necessary to prevent inconsistent refinement chains that would corrupt later graph traversals.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (ABB anlegen):
-- Wenn: ein ABB mit `continuumLevel=organization` und `maturityLevel=established` angelegt wird
-- Dann: antwortet das System mit HTTP 201; der ABB ist in der Bibliothek sichtbar
+**AC1** (Create ABB):
+- When: an ABB is created with `continuumLevel=organization` and `maturityLevel=established`
+- Then: the system responds with HTTP 201; the ABB is visible in the library
 
-**AC2** (Zyklus-Erkennung):
-- Wenn: ABB „B" auf `refines=A` gesetzt ist und anschließend ABB „A" auf `refines=B` gesetzt werden soll
-- Dann: antwortet das System mit HTTP 422 „Zyklus erkannt: A → B → A" und lehnt die Speicherung ab
+**AC2** (Cycle detection):
+- When: ABB "B" is set to `refines=A` and ABB "A" is subsequently to be set to `refines=B`
+- Then: the system responds with HTTP 422 "Cycle detected: A → B → A" and rejects saving
 
-**AC3** (Pflichtfeld industry):
-- Wenn: ein ABB mit `continuumLevel=industry` ohne das Feld `industry` gespeichert werden soll
-- Dann: antwortet das System mit HTTP 422
+**AC3** (Mandatory field industry):
+- When: an ABB with `continuumLevel=industry` is to be saved without the `industry` field
+- Then: the system responds with HTTP 422
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-111 (Scope-Schutz für importierte Bausteine)
-- **Folgewirkungen**: REQ-110 (Reference Architecture komposiert ABBs), REQ-118 (ABB-Abdeckungs-Analyse)
+- **Prerequisites**: REQ-111 (scope protection for imported building blocks)
+- **Consequences**: REQ-110 (reference architecture composes ABBs), REQ-118 (ABB coverage analysis)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Zyklus-Erkennung: DFS oder Kahn's Algorithm auf dem ABB-Verfeinerungs-Graphen vor jedem Speichern
-- Dropdown für `refines`: nur ABBs ohne transitiven Verweis auf den aktuell bearbeiteten ABB anzeigen
-- `name` muss per Unique-Constraint je `continuumLevel` in der DB abgesichert sein
+- Cycle detection: DFS or Kahn's algorithm on the ABB refinement graph before every save
+- Dropdown for `refines`: only show ABBs without a transitive reference to the ABB currently being edited
+- `name` must be secured by a unique constraint per `continuumLevel` in the DB
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

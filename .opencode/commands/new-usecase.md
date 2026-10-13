@@ -1,44 +1,44 @@
-# /new-usecase – Neuen Use Case anlegen
+# /new-usecase – Create a new use case
 
-Legt einen neuen Use Case in `requirements/use-cases/` an. Prüft Stakeholder- und Business-Object-Bezug.
+Creates a new use case in `requirements/use-cases/`. Checks the stakeholder and business object references.
 
-## Argumente
+## Arguments
 
-`$ARGUMENTS` enthält den Titel des Use Cases (optional).
+`$ARGUMENTS` contains the title of the use case (optional).
 
-## Ausführung
+## Execution
 
-1. **Nächste freie ID ermitteln**:
+1. **Determine the next free ID**:
    ```bash
    ls requirements/use-cases/UC-*.md | sed 's/.*UC-//' | sed 's/-.*//' | sort -n | tail -1
    ```
-   Nächste ID = höchste Nummer + 1, zweistellig (z.B. `UC-22`).
+   Next ID = highest number + 1, two digits (e.g. `UC-22`).
 
-2. **Stakeholder-Bezug klären** (vor dem Anlegen fragen falls nicht aus `$ARGUMENTS` ableitbar):
-   - Wer ist `primary_actor`? → muss als `SH-NN` in `business-analysis/stakeholders/` existieren
-   - Verifizieren: `ls business-analysis/stakeholders/SH-NN-*.md`
+2. **Clarify the stakeholder reference** (ask before creating if it cannot be derived from `$ARGUMENTS`):
+   - Who is the `primary_actor`? → must exist as `SH-NN` in `business-analysis/stakeholders/`
+   - Verify: `ls business-analysis/stakeholders/SH-NN-*.md`
 
-3. **Business-Object-Bezug klären**:
-   - Welche Business Objects nutzt dieser UC? → müssen in `business-objects/` existieren
-   - Verifizieren: `ls business-objects/<identifier>.md`
-   - Falls BO fehlt: STOP — erst `/new-business-object` aufrufen
+3. **Clarify the business object reference**:
+   - Which business objects does this UC use? → must exist in `business-objects/`
+   - Verify: `ls business-objects/<identifier>.md`
+   - If a BO is missing: STOP — call `/new-business-object` first
 
-4. **Datei anlegen**:
-   Kopiere `templates/use-case.template.md` nach `requirements/use-cases/UC-NN-kurzname.md`
-   - `id`, `title`, `primary_actor`, `created` (heute), `status: draft` setzen
-   - Alle `{{Platzhalter}}` ersetzen
-   - Mindestens einen Konzept-Bezug setzen (§-Angabe im Konzept-Verzeichnis)
+4. **Create the file**:
+   Copy `templates/use-case.template.md` to `requirements/use-cases/UC-NN-shortname.md`
+   - Set `id`, `title`, `primary_actor`, `created` (today), `status: draft`
+   - Replace all `{{placeholders}}`
+   - Set at least one concept reference (§ reference in the concept directory)
 
-5. **Anti-Pattern-Prüfung**:
-   - Ist der Titel zielorientiert (NICHT: "X anlegen", "X bearbeiten")?
-   - Hat der UC echte Akzeptanzkriterien (nicht nur Platzhalter)?
-   - Hat der UC eine Story-Formulierung ("Als … möchte ich … damit …")?
+5. **Anti-pattern check**:
+   - Is the title goal-oriented (NOT: "create X", "edit X")?
+   - Does the UC have real acceptance criteria (not just placeholders)?
+   - Does the UC have a story formulation ("As … I want … so that …")?
 
-6. **Ausgabe**:
-   Pfad, ID, primary_actor, referenzierte BOs, und Hinweis auf offene Felder.
+6. **Output**:
+   Path, ID, primary_actor, referenced BOs, and a note on open fields.
 
-## Konventionen
+## Conventions
 
-- Dateiname: `UC-NN-kurzname.md` (Kurzname: deutsch, kebab-case, 2-4 Wörter)
-- CRUD-Use-Cases vermeiden (kein "Entität anlegen" ohne Ziel-Kontext)
-- Mindestens 1 Konzept-Bezug ist Pflicht
+- File name: `UC-NN-shortname.md` (short name: English, kebab-case, 2-4 words)
+- Avoid CRUD use cases (no "create entity" without a goal context)
+- At least 1 concept reference is mandatory

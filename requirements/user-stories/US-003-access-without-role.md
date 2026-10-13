@@ -1,54 +1,54 @@
-# US-003: Eingeschränkter Zugriff bei fehlender aktiver Rollenzuweisung
+# US-003: Restricted Access Without an Active Role Assignment
 
 **ID**: US-003
 **Story Points**: 2
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Person ohne aktive Rollenzuweisung möchte ich mich trotzdem anmelden können, damit ich zumindest öffentlich-lesbare Inhalte sehe und einen Hinweis erhalte, dass mir noch keine Rolle zugewiesen wurde.
+As a person without an active role assignment, I want to still be able to sign in, so that I can at least see publicly readable content and receive a notice that no role has been assigned to me yet.
 
-## Bezug
+## Reference
 
 **Use Case**: [UC-01: Login](../use-cases/UC-01-login.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-003: Eingeschränkter Zugriff bei fehlender Rollenzuweisung](../req/REQ-003-zugriff-ohne-rollenzuweisung.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-003: Restricted Access Without Role Assignment](../req/REQ-003-access-without-role-assignment.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine erfolgreich authentifizierte Person ohne aktive Rollenzuweisung
-- Wenn: sie auf das Repository zugreift
-- Dann: erhält sie ausschließlich Zugriff auf öffentlich-lesbare Inhalte und einen Hinweis, dass keine Rolle zugewiesen ist
+- Given: a successfully authenticated person without an active role assignment
+- When: they access the repository
+- Then: they receive access only to publicly readable content and a notice that no role is assigned
 
 **AC2**:
-- Gegeben: eine Person erhält nachträglich eine aktive Rollenzuweisung
-- Wenn: sie sich erneut anmeldet oder die Session aktualisiert wird
-- Dann: spiegeln ihre Berechtigungen die neue Rolle wider
+- Given: a person subsequently receives an active role assignment
+- When: they sign in again or the session is refreshed
+- Then: their permissions reflect the new role
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Autorisierungs-Modul
-- Betroffene EntityTypes/Relations: `Person`, `Role`, `RoleAssignment`
-- API-Endpunkte: Autorisierungs-Check bei jedem geschützten Endpunkt
-- Datenbank-Änderungen: keine zusätzlichen
+- Affected components: authorization module
+- Affected EntityTypes/Relations: `Person`, `Role`, `RoleAssignment`
+- API endpoints: authorization check on every protected endpoint
+- Database changes: no additional ones
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (Unit, Integration)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (unit, integration)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-001
-- Blockiert: keine
+- Waiting on: US-001
+- Blocks: none
 
-## Notizen
+## Notes
 
-Deckt Exception Flow E3 aus UC-01 ab. Setzt Konzept-Constraint `person-minimum-role` als Warning, nicht Hard-Block, um.
+Covers exception flow E3 from UC-01. Implements the concept constraint `person-minimum-role` as a warning, not a hard block.

@@ -1,33 +1,33 @@
-# Ableitung aus: requirements/req/req-020-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert) + inspection (Default-Konfiguration)
+# Derived from: requirements/req/req-020-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated) + inspection (default configuration)
 
 @business-rule @should @UC-01
-Feature: REQ-020 – Instanzweite Erzwingung eines zweiten Faktors für reguläre Logins
+Feature: REQ-020 – Instance-wide enforcement of a second factor for regular logins
 
-  Der Betreiber MUSS bei der Inbetriebnahme einer Instanz festlegen
-  können, dass sich alle Personen ausschließlich mit einem zweiten
-  Faktor anmelden dürfen (Passkey oder Username/Passwort mit TOTP,
-  siehe REQ-009/REQ-010); ist diese Erzwingung aktiv, DARF die
-  Minimal-Variante ohne zweiten Faktor (REQ-011) für reguläre Personen
-  NICHT nutzbar sein. Diese Erzwingung gilt NICHT für den
-  [System-Admin-Account](../../business-objects/system-admin-account.md)
-  aus UC-02.
+  The operator MUST be able to specify during instance commissioning
+  that all persons may only log in with a second factor (passkey or
+  username/password with TOTP, see REQ-009/REQ-010); when this
+  enforcement is active, the minimal variant without a second factor
+  (REQ-011) MUST NOT be usable for regular persons. This enforcement
+  does NOT apply to the
+  [system admin account](../../business-objects/system-admin-account.md)
+  from UC-02.
 
   @AC1
-  Scenario: AC1 – eine Instanz, bei der "zweiter Faktor erzwingen" bei der Inbetriebnahme ...
-    Given eine Instanz, bei der "zweiter Faktor erzwingen" bei der Inbetriebnahme aktiviert wurde
-    When  versucht wird, REQ-011 (Username/Passwort ohne zweiten Faktor) für reguläre Personen zu aktivieren
-    Then  wird dies abgelehnt, solange die Erzwingung aktiv ist
+  Scenario: AC1 – an instance on which "enforce second factor" was enabled during commi...
+    Given an instance on which "enforce second factor" was enabled during commissioning
+    When  an attempt is made to enable REQ-011 (username/password without second factor) for regular persons
+    Then  this is rejected as long as the enforcement is active
 
   @AC2
-  Scenario: AC2 – dieselbe Instanz mit aktiver Erzwingung
-    Given dieselbe Instanz mit aktiver Erzwingung
-    When  der System-Admin-Account aus UC-02 sich anmeldet (lokal oder remote)
-    Then  ist diese Anmeldung von der Erzwingung unberührt und funktioniert wie in UC-02 spezifiziert
+  Scenario: AC2 – the same instance with active enforcement
+    Given the same instance with active enforcement
+    When  the system admin account from UC-02 logs in (locally or remotely)
+    Then  this login is unaffected by the enforcement and works as specified in UC-02
 
   @AC3
-  Scenario: AC3 – eine Instanz ohne aktivierte Erzwingung (Default)
-    Given eine Instanz ohne aktivierte Erzwingung (Default)
-    When  das Authentifizierungs-Setup geprüft wird
-    Then  ist REQ-011 weiterhin gemäß seiner eigenen Bedingungen aktivierbar (kein Default-Zwang)
+  Scenario: AC3 – an instance without enabled enforcement (default)
+    Given an instance without enabled enforcement (default)
+    When  the authentication setup is checked
+    Then  REQ-011 can still be enabled according to its own conditions (no default enforcement)

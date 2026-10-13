@@ -1,127 +1,127 @@
-# OEA Screen-Inventar
+# OEA Screen Inventory
 
-Vollständige Liste aller UI-Screens als Grundlage für Penpot-Mockups und API-Definitionen.
+Complete list of all UI screens as the basis for Penpot mockups and API definitions.
 
-**Plattformen** (ADR-008, ADR-009):
-- **CA** = Client App (Tauri/Desktop) — vollständiger Modellierungs-Umfang
-- **WP** = Web Portal (Vue 3 SPA, Browser) — Read-only-Publikation
-- **CA+WP** = beide Plattformen
+**Platforms** (ADR-008, ADR-009):
+- **CA** = Client App (Tauri/Desktop) — full modeling scope
+- **WP** = Web Portal (Vue 3 SPA, Browser) — read-only publication
+- **CA+WP** = both platforms
 
-**Status-Werte**: `todo` | `mockup` | `api-defined` | `implemented`
+**Status values**: `todo` | `mockup` | `api-defined` | `implemented`
 
-> **Pflegepflicht**: Wenn ein Screen neu erstellt, überarbeitet oder entfernt wird, muss diese Datei geprüft und der Status sowie die Zuordnung (UC-Bezug, Plattform, Script) aktualisiert werden.
+> **Maintenance obligation**: When a screen is created, revised or removed, this file must be checked and the status and mapping (UC reference, platform, script) updated.
 
 ---
 
 ## Auth & Setup
 
-| ID | Screen | Plattform | UC-Bezug | Priorität | Status |
+| ID | Screen | Platform | UC Reference | Priority | Status |
 |---|---|---|---|---|---|
 | SCR-001 | Login + Auto-SSO | CA+WP | UC-01 | must | `mockup` |
-| SCR-002 | Setup-Wizard (Ersteinrichtung) | CA | UC-02 | must | `mockup` |
-| SCR-003 | Auth-Methode einrichten (2FA / Passkey) | CA | UC-03 | must | `mockup` |
+| SCR-002 | Setup Wizard (initial setup) | CA | UC-02 | must | `mockup` |
+| SCR-003 | Set up auth method (2FA / Passkey) | CA | UC-03 | must | `mockup` |
 
 ---
 
 ## Client App – Shell & Navigation
 
-| ID | Screen | Plattform | UC-Bezug | Priorität | Status |
+| ID | Screen | Platform | UC Reference | Priority | Status |
 |---|---|---|---|---|---|
-| SCR-010 | Hauptfenster / App-Shell | CA | UC-06, UC-13 | must | `mockup` |
-| SCR-011 | Explorer / Navigationsbaum — Edit Mode | CA | UC-13 | must | `mockup` |
-| SCR-012 | Entity-Eigenschaften-Panel | CA | UC-06, UC-04 | must | `mockup` |
+| SCR-010 | Main window / app shell | CA | UC-06, UC-13 | must | `mockup` |
+| SCR-011 | Explorer / navigation tree — Edit Mode | CA | UC-13 | must | `mockup` |
+| SCR-012 | Entity properties panel | CA | UC-06, UC-04 | must | `mockup` |
 
 ---
 
-## Client App – Kernfunktionen
+## Client App – Core Functions
 
-| ID | Screen | Plattform | UC-Bezug | Priorität | Status |
+| ID | Screen | Platform | UC Reference | Priority | Status |
 |---|---|---|---|---|---|
-| SCR-020 | Katalog-Browser (Walking Skeleton) | CA | UC-06 | must | `mockup` |
-| SCR-021 | Diagramm-Editor / Canvas (ArchiMate) | CA | UC-05, UC-08 | must | `mockup` |
+| SCR-020 | Catalog Browser (Walking Skeleton) | CA | UC-06 | must | `mockup` |
+| SCR-021 | Diagram editor / canvas (ArchiMate) | CA | UC-05, UC-08 | must | `mockup` |
 | SCR-022 | BPMN-Editor | CA | UC-10 | must | `mockup` |
 | SCR-023 | Data-Lineage-Editor | CA | UC-08 | should | `mockup` |
 | SCR-024 | Dashboard-Editor | CA | UC-07 | should | `mockup` |
 | SCR-025 | Plateau-Roadmap | CA | UC-11 | must | `mockup` |
-| SCR-026 | Änderungshistorie / Audit-Log | CA | UC-14 | must | `mockup` |
-| SCR-027 | Entität wiederherstellen — Modal (Diff + Restore) | CA | UC-15, UC-16 | should | `mockup` |
+| SCR-026 | Change history / audit log | CA | UC-14 | must | `mockup` |
+| SCR-027 | Restore entity — modal (diff + restore) | CA | UC-15, UC-16 | should | `mockup` |
 
 ---
 
-## Client App – Administration & Konfiguration
+## Client App – Administration & Configuration
 
-| ID | Screen | Plattform | UC-Bezug | Priorität | Status |
+| ID | Screen | Platform | UC Reference | Priority | Status |
 |---|---|---|---|---|---|
-| SCR-030 | Metamodell-Konfiguration | CA | UC-04 | must | `mockup` |
-| SCR-031 | Viewpoint-Verwaltung | CA | UC-12 | must | `mockup` |
-| SCR-032 | Property-Sichtbarkeit konfigurieren | CA | UC-21 | must | `mockup` |
-| SCR-033 | TRM-Konfiguration | CA | UC-19 | must | `mockup` |
-| SCR-034 | Continuum-Bausteine verwalten | CA | UC-17 | must | `mockup` |
-| SCR-035 | Continuum-Paket importieren | CA | UC-18 | should | `mockup` |
-| SCR-036 | Conformance-Analyse | CA | UC-20 | should | `mockup` |
-| SCR-037 | Auth-Konfiguration (Admin) | CA | UC-03 | must | `mockup` |
-| SCR-038 | System-Einstellungen | CA | UC-02 | must | `mockup` |
+| SCR-030 | Metamodel configuration | CA | UC-04 | must | `mockup` |
+| SCR-031 | Viewpoint management | CA | UC-12 | must | `mockup` |
+| SCR-032 | Configure property visibility | CA | UC-21 | must | `mockup` |
+| SCR-033 | TRM configuration | CA | UC-19 | must | `mockup` |
+| SCR-034 | Manage continuum building blocks | CA | UC-17 | must | `mockup` |
+| SCR-035 | Import continuum package | CA | UC-18 | should | `mockup` |
+| SCR-036 | Conformance analysis | CA | UC-20 | should | `mockup` |
+| SCR-037 | Auth configuration (admin) | CA | UC-03 | must | `mockup` |
+| SCR-038 | System settings | CA | UC-02 | must | `mockup` |
 
 ---
 
-## Web Portal – Read-only-Publikation
+## Web Portal – read-only publication
 
-| ID | Screen | Plattform | UC-Bezug | Priorität | Status |
+| ID | Screen | Platform | UC Reference | Priority | Status |
 |---|---|---|---|---|---|
-| SCR-050 | Portal-Startseite / Katalog-Übersicht | WP | UC-06 | must | `mockup` |
-| SCR-051 | Entity-Detailansicht (read-only) | WP | UC-06 | must | `mockup` |
-| SCR-052 | Diagramm-Viewer (read-only) | WP | UC-05, UC-08 | must | `mockup` |
-| SCR-053 | Dashboard-Ansicht (read-only) | WP | UC-07 | should | `mockup` |
-| SCR-054 | Änderungshistorie (read-only) | WP | UC-14 | should | `mockup` |
+| SCR-050 | Portal home page / catalog overview | WP | UC-06 | must | `mockup` |
+| SCR-051 | Entity detail view (read-only) | WP | UC-06 | must | `mockup` |
+| SCR-052 | Diagram viewer (read-only) | WP | UC-05, UC-08 | must | `mockup` |
+| SCR-053 | Dashboard view (read-only) | WP | UC-07 | should | `mockup` |
+| SCR-054 | Change history (read-only) | WP | UC-14 | should | `mockup` |
 
 ---
 
-## Übersicht nach Priorität
+## Overview by Priority
 
-**Must-have** (Walking Skeleton + v1.0 Kern):
+**Must-have** (Walking Skeleton + v1.0 core):
 SCR-001, SCR-002, SCR-003, SCR-010, SCR-011, SCR-012, SCR-020, SCR-021, SCR-022, SCR-025, SCR-026, SCR-030, SCR-031, SCR-032, SCR-033, SCR-034, SCR-037, SCR-038, SCR-050, SCR-051, SCR-052
 
-**Should-have** (v1.0 Erweiterungen):
+**Should-have** (v1.0 extensions):
 SCR-023, SCR-024, SCR-027, SCR-035, SCR-036, SCR-053, SCR-054
 
 ---
 
-## Reihenfolge für Penpot-Mockups
+## Order for Penpot Mockups
 
-Empfohlene Reihenfolge (GUI-first → OpenAPI → Code):
+Recommended order (GUI first → OpenAPI → code):
 
-1. ~~**SCR-020** Katalog-Browser — Walking Skeleton (UC-06)~~ ✅
-2. ~~**SCR-010** Hauptfenster / App-Shell~~ ✅
-3. ~~**SCR-012** Entity-Eigenschaften-Panel~~ ✅
-4. ~~**SCR-021** Diagramm-Editor (ArchiMate)~~ ✅
+1. ~~**SCR-020** Catalog Browser — Walking Skeleton (UC-06)~~ ✅
+2. ~~**SCR-010** Main window / app shell~~ ✅
+3. ~~**SCR-012** Entity properties panel~~ ✅
+4. ~~**SCR-021** Diagram editor (ArchiMate)~~ ✅
 5. ~~**SCR-022** BPMN-Editor~~ ✅
-6. ~~**SCR-026** Änderungshistorie / Audit-Log~~ ✅
+6. ~~**SCR-026** Change history / audit log~~ ✅
 7. ~~**SCR-027** Restore Entity (Modal)~~ ✅
 8. ~~**SCR-001** Login + Auto-SSO~~ ✅
-9. ~~**SCR-002** Setup-Wizard~~ ✅
-10. ~~**SCR-003** Auth-Methode (2FA / Passkey)~~ ✅
-11. ~~**SCR-011** Explorer / Navigationsbaum~~ ✅
+9. ~~**SCR-002** Setup Wizard~~ ✅
+10. ~~**SCR-003** Auth method (2FA / Passkey)~~ ✅
+11. ~~**SCR-011** Explorer / navigation tree~~ ✅
 12. ~~**SCR-023** Data-Lineage-Editor~~ ✅
 13. ~~**SCR-024** Dashboard-Editor~~ ✅
 14. ~~**SCR-025** Plateau-Roadmap~~ ✅
-15. ~~**SCR-030** Metamodell-Konfiguration~~ ✅
-16. ~~**SCR-050** Portal-Startseite~~ ⚠ SVG only
-17. ~~**SCR-051** Entity-Detailansicht (Web Portal)~~ ⚠ SVG only
-18. ~~**SCR-052** Diagramm-Viewer (read-only)~~ ⚠ SVG only
-19. ~~**SCR-031** Viewpoint-Verwaltung~~ ⚠ SVG only
-20. ~~**SCR-032** Property-Sichtbarkeit~~ ⚠ SVG only
-21. ~~**SCR-033** TRM-Konfiguration~~ ⚠ SVG only
-22. ~~**SCR-034** Continuum-Bausteine~~ ⚠ SVG only
-23. ~~**SCR-035** Continuum-Paket importieren~~ ⚠ SVG only
-24. ~~**SCR-036** Conformance-Analyse~~ ⚠ SVG only
-25. ~~**SCR-037** Auth-Konfiguration (Admin)~~ ⚠ SVG only
-26. ~~**SCR-038** System-Einstellungen~~ ⚠ SVG only
-27. ~~**SCR-053** Dashboard-Ansicht (Web Portal)~~ ✅
-28. ~~**SCR-054** Änderungshistorie (Web Portal)~~ ✅
+15. ~~**SCR-030** Metamodel configuration~~ ✅
+16. ~~**SCR-050** Portal home page~~ ⚠ SVG only
+17. ~~**SCR-051** Entity detail view (Web Portal)~~ ⚠ SVG only
+18. ~~**SCR-052** Diagram viewer (read-only)~~ ⚠ SVG only
+19. ~~**SCR-031** Viewpoint management~~ ⚠ SVG only
+20. ~~**SCR-032** Property visibility~~ ⚠ SVG only
+21. ~~**SCR-033** TRM configuration~~ ⚠ SVG only
+22. ~~**SCR-034** Continuum building blocks~~ ⚠ SVG only
+23. ~~**SCR-035** Import continuum package~~ ⚠ SVG only
+24. ~~**SCR-036** Conformance analysis~~ ⚠ SVG only
+25. ~~**SCR-037** Auth configuration (admin)~~ ⚠ SVG only
+26. ~~**SCR-038** System settings~~ ⚠ SVG only
+27. ~~**SCR-053** Dashboard view (Web Portal)~~ ✅
+28. ~~**SCR-054** Change history (Web Portal)~~ ✅
 
 ---
 
-## Zugehörige Penpot-Scripts
+## Related Penpot Scripts
 
 | Script | Screens | Penpot |
 |---|---|---|

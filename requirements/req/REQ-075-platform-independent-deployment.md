@@ -1,6 +1,6 @@
 ---
 id: REQ-075
-title: Plattformunabhängigkeit und Cloud-Betreibbarkeit
+title: Platform independence and cloud operability
 type: non-functional
 priority: must
 status: proposed
@@ -18,130 +18,130 @@ references:
     - SH-05
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-075: Plattformunabhängigkeit und Cloud-Betreibbarkeit
+# REQ-075: Platform independence and cloud operability
 
-## Aussage
+## Statement
 
-Das System MUSS als containerisierte Anwendung (Docker) auslieferbar sein, die ohne Anpassung auf Linux, macOS und Windows (Docker Desktop) sowie auf jeder CNCF-zertifizierten Kubernetes-Distribution betrieben werden kann. Das System DARF KEINE harten Abhängigkeiten auf proprietäre Cloud-Dienste eines einzelnen Anbieters haben — alle externen Dienste (Datenbank, Objektspeicher, Identity-Provider) MÜSSEN durch offene Standards oder anbieterübergreifende APIs austauschbar sein.
+The system MUST be deliverable as a containerized application (Docker) that can be operated without modification on Linux, macOS and Windows (Docker Desktop) as well as on any CNCF-certified Kubernetes distribution. The system MUST NOT have hard dependencies on proprietary cloud services of a single provider — all external services (database, object storage, identity provider) MUST be replaceable by open standards or cross-provider APIs.
 
-## Begründung
+## Rationale
 
-OEA richtet sich an KMUs (SH-06: self-hosted on-premise oder managed cloud) und Konzerne (SH-05: eigene Cloud-Infrastruktur, oft Multi-Cloud oder regulated cloud). Vendor-Lock-in auf einen Cloud-Anbieter würde grosse Teile der Zielgruppe ausschliessen. Gleichzeitig muss ein Cloud-Betrieb möglich sein — nicht als Pflicht, sondern als Option — damit Betreiber frei wählen können: on-premise, private cloud, public cloud (AWS, Azure, GCP) oder managed SaaS.
+OEA targets SMEs (SH-06: self-hosted on-premise or managed cloud) and corporate groups (SH-05: own cloud infrastructure, often multi-cloud or regulated cloud). Vendor lock-in to one cloud provider would exclude large parts of the target audience. At the same time, cloud operation must be possible — not as an obligation but as an option — so that operators can choose freely: on-premise, private cloud, public cloud (AWS, Azure, GCP) or managed SaaS.
 
-Die Container-Basis ist Voraussetzung für Reproduzierbarkeit, einfache Updates und Skalierbarkeit (REQ-074).
+The container basis is a prerequisite for reproducibility, easy updates and scalability (REQ-074).
 
-## Kontext
+## Context
 
-OEA besteht aus mehreren Diensten, die alle plattformunabhängig betreibbar sein müssen:
+OEA consists of several services, all of which must be operable in a platform-independent manner:
 
-| Dienst | Austauschbare Basis |
+| Service | Replaceable basis |
 |---|---|
-| API-Server | Docker-Container; Standard-JVM oder Node-Runtime |
-| Datenbank | PostgreSQL (Standard-SQL; keine proprietären Extensions) |
-| Identity-Provider | OIDC/OAuth2-kompatibler IdP (Keycloak, Entra ID, Okta, Auth0, …) |
-| Objektspeicher (Dateien, Arc42-Content-Blobs) | S3-kompatible API (AWS S3, MinIO, GCS mit S3-Gateway, Azure Blob via Adapter) |
-| PlantUML-Server | optional; Docker-Image `plantuml/plantuml-server` |
+| API server | Docker container; standard JVM or Node runtime |
+| Database | PostgreSQL (standard SQL; no proprietary extensions) |
+| Identity provider | OIDC/OAuth2-compatible IdP (Keycloak, Entra ID, Okta, Auth0, …) |
+| Object storage (files, Arc42 content blobs) | S3-compatible API (AWS S3, MinIO, GCS with S3 gateway, Azure Blob via adapter) |
+| PlantUML server | optional; Docker image `plantuml/plantuml-server` |
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=non-functional
+### For type=non-functional
 
-**Kategorie**: portability
+**Category**: portability
 
-**Messbare Zielwerte**:
+**Measurable Target Values**:
 
-| Metrik | Zielwert | Verifikation |
+| Metric | Target value | Verification |
 |---|---|---|
-| Deployment via Docker Compose | Lauffähig auf Linux, macOS, Windows ohne Codeänderung | manueller Test auf allen drei Plattformen |
-| Deployment via Helm Chart | Lauffähig auf mind. 2 verschiedenen K8s-Distributionen (z.B. vanilla K8s + K3s) | CI-Test in Kind-Cluster |
-| Vendor-Lock-in-Freiheit: Datenbank | Betrieb mit vanilla PostgreSQL ≥ 15 ohne proprietäre Extensions | Integrationstest gegen Standard-Postgres |
-| Vendor-Lock-in-Freiheit: Objektspeicher | Betrieb mit MinIO (S3-kompatibel) als Ersatz für AWS S3 | Integrationstest gegen MinIO |
-| Vendor-Lock-in-Freiheit: Auth | Betrieb mit Keycloak als Ersatz für Entra ID oder Okta | Integrationstest gegen Keycloak |
-| Cloud-Deployment: AWS | Dokumentiertes Referenz-Deployment (EKS + RDS Postgres + S3) | Deployment-Guide, kein automatisierter Test |
-| Cloud-Deployment: Azure | Dokumentiertes Referenz-Deployment (AKS + Azure Database for PostgreSQL + Blob Storage S3-Gateway) | Deployment-Guide |
-| Image-Grösse API-Server | ≤ 500 MB (komprimiert) | CI-Build |
+| Deployment via Docker Compose | Runs on Linux, macOS, Windows without code changes | manual test on all three platforms |
+| Deployment via Helm chart | Runs on at least 2 different K8s distributions (e.g., vanilla K8s + K3s) | CI test in Kind cluster |
+| Freedom from vendor lock-in: database | Operation with vanilla PostgreSQL ≥ 15 without proprietary extensions | integration test against standard Postgres |
+| Freedom from vendor lock-in: object storage | Operation with MinIO (S3-compatible) as a replacement for AWS S3 | integration test against MinIO |
+| Freedom from vendor lock-in: auth | Operation with Keycloak as a replacement for Entra ID or Okta | integration test against Keycloak |
+| Cloud deployment: AWS | Documented reference deployment (EKS + RDS Postgres + S3) | deployment guide, no automated test |
+| Cloud deployment: Azure | Documented reference deployment (AKS + Azure Database for PostgreSQL + Blob Storage S3 gateway) | deployment guide |
+| Image size API server | ≤ 500 MB (compressed) | CI build |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Docker Compose auf Linux):
-- Wenn: `docker compose up` auf einem Linux-System (Ubuntu 22.04 LTS) ohne vorherige Konfiguration ausgeführt wird
-- Dann: OEA-API, Datenbank und Auth-Service starten; `GET /health` antwortet HTTP 200 innerhalb von 60 Sekunden
+**AC1** (Docker Compose on Linux):
+- When: `docker compose up` is executed on a Linux system (Ubuntu 22.04 LTS) without prior configuration
+- Then: OEA API, database and auth service start; `GET /health` responds with HTTP 200 within 60 seconds
 
-**AC2** (Docker Compose auf macOS und Windows):
-- Wie AC1, auf macOS 14+ (Docker Desktop) und Windows 11 (Docker Desktop WSL2)
-- Dann: identisches Ergebnis wie AC1; keine plattformspezifischen Anpassungen nötig
+**AC2** (Docker Compose on macOS and Windows):
+- Same as AC1, on macOS 14+ (Docker Desktop) and Windows 11 (Docker Desktop WSL2)
+- Then: identical result as AC1; no platform-specific adjustments needed
 
-**AC3** (Kubernetes / Kind-Cluster):
-- Gegeben: Helm Chart für OEA; lokaler Kind-Cluster
-- Wenn: `helm install oea ./chart` ausgeführt
-- Dann: alle Pods `Running` innerhalb von 120 Sekunden; `GET /health` HTTP 200
+**AC3** (Kubernetes / Kind cluster):
+- Given: Helm chart for OEA; local Kind cluster
+- When: `helm install oea ./chart` executed
+- Then: all pods `Running` within 120 seconds; `GET /health` HTTP 200
 
-**AC4** (PostgreSQL ohne proprietäre Extensions):
-- Gegeben: vanilla PostgreSQL 15 (kein AWS Aurora, kein Azure Flexible Server, kein Cloud SQL)
-- Wenn: OEA mit dieser Datenbank verbunden
-- Dann: alle Funktionen arbeiten korrekt; keine Extension ausser `uuid-ossp` (falls benötigt) oder keine
+**AC4** (PostgreSQL without proprietary extensions):
+- Given: vanilla PostgreSQL 15 (no AWS Aurora, no Azure Flexible Server, no Cloud SQL)
+- When: OEA connected to this database
+- Then: all functions work correctly; no extension except `uuid-ossp` (if needed) or none
 
-**AC5** (MinIO statt AWS S3):
-- Gegeben: MinIO-Instanz als Objektspeicher konfiguriert (S3-kompatible API)
-- Wenn: OEA Dateien/Blobs schreibt und liest
-- Dann: korrekte Funktion; kein AWS-SDK-spezifischer Code-Pfad
+**AC5** (MinIO instead of AWS S3):
+- Given: MinIO instance configured as object storage (S3-compatible API)
+- When: OEA writes and reads files/blobs
+- Then: correct function; no AWS SDK-specific code path
 
-**AC6** (Keycloak statt kommerziellem IdP):
-- Gegeben: Keycloak als OIDC-Provider konfiguriert
-- Wenn: Nutzer Login via OIDC
-- Dann: Login erfolgreich; Rollen korrekt übertragen; kein Entra-ID-spezifisches API verwendet
+**AC6** (Keycloak instead of commercial IdP):
+- Given: Keycloak configured as OIDC provider
+- When: User logs in via OIDC
+- Then: Login successful; roles transferred correctly; no Entra ID-specific API used
 
-**AC7** (Keine proprietären Umgebungsvariablen als Pflicht):
-- Wenn: OEA ohne AWS_ACCESS_KEY, AZURE_CLIENT_ID o.ä. Cloud-spezifische Env-Variablen gestartet
-- Dann: System startet (mit S3-kompatibler Alternative konfiguriert); keine Exception
+**AC7** (No proprietary environment variables as a requirement):
+- When: OEA started without AWS_ACCESS_KEY, AZURE_CLIENT_ID or similar cloud-specific env variables
+- Then: System starts (configured with an S3-compatible alternative); no exception
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert für AC1, AC3–AC6) + manuell (AC2, AC7)
-- [x] Test-Setup: CI-Pipeline mit Docker-Build + Kind-Cluster + MinIO + Keycloak + Postgres 15
-- [x] Bestanden-Kriterium: alle ACs grün; kein proprietäres SDK als transitive Pflicht-Abhängigkeit
-- [ ] In CI integriert: AC1, AC3–AC6 als CI-Job; AC2 manuell bei Release
+- [x] Method: test (automated for AC1, AC3–AC6) + manual (AC2, AC7)
+- [x] Test setup: CI pipeline with Docker build + Kind cluster + MinIO + Keycloak + Postgres 15
+- [x] Pass criterion: all ACs green; no proprietary SDK as a transitive mandatory dependency
+- [ ] Integrated in CI: AC1, AC3–AC6 as CI job; AC2 manually at release
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: Deployment-ADR (Gruppe-A-ADR noch offen; dieses REQ ist Input für den ADR)
-- **Folgewirkungen**: REQ-073 (Verfügbarkeit) gilt für alle Deployment-Varianten; REQ-074 (Skalierbarkeit) setzt zustandslose API voraus — dies ist hier als Designvorgabe verankert
-- **Beeinflusst**: ADR-006 (Auth-Stack) — OIDC-Wahl muss mit Keycloak, Entra ID und Okta kompatibel sein
+- **Prerequisites**: Deployment ADR (group A ADR still open; this REQ is input for the ADR)
+- **Downstream effects**: REQ-073 (availability) applies to all deployment variants; REQ-074 (scalability) presupposes a stateless API — this is anchored here as a design requirement
+- **Influences**: ADR-006 (auth stack) — the OIDC choice must be compatible with Keycloak, Entra ID and Okta
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- KMU-Operator (SH-06) kann OEA nicht on-premise betreiben
-- Konzern (SH-05) mit Azure-only-Policy kann nicht wechseln wenn AWS-spezifisches SDK verwendet wird
-- Open-Source-Glaubwürdigkeit leidet wenn Betrieb nur mit einem Cloud-Anbieter funktioniert
+- SME operator (SH-06) cannot operate OEA on-premise
+- Corporate group (SH-05) with an Azure-only policy cannot switch if an AWS-specific SDK is used
+- Open-source credibility suffers if operation only works with one cloud provider
 
 ## Trade-offs
 
-- S3-kompatible API als Standard bedeutet: kein direkter Einsatz von AWS S3 Transfer Acceleration oder Azure CDN-Funktionen; akzeptierter Trade-off für Portabilität
-- OIDC als gemeinsamer Nenner bedeutet: kein direkter Einsatz von Entra-ID-spezifischen Gruppen-APIs; Rollen-Mapping muss über Standard-Claims erfolgen (REQ-001/003)
-- Keine proprietäre DB-Extension: z.B. kein `pg_vector` für Embedding-Features (könnte für künftige KI-Features relevant werden — dann separater ADR nötig)
+- S3-compatible API as the standard means: no direct use of AWS S3 Transfer Acceleration or Azure CDN features; accepted trade-off for portability
+- OIDC as the common denominator means: no direct use of Entra ID-specific group APIs; role mapping must occur via standard claims (REQ-001/003)
+- No proprietary DB extension: e.g., no `pg_vector` for embedding features (could become relevant for future AI features — then a separate ADR is needed)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Docker-Images: Multi-Stage-Build; kein Root-User; distroless oder alpine base
-- Helm Chart: alle externen Dienste als `externalSecret` oder Env-Variable konfigurierbar; keine hardcodierten Endpunkte
-- S3-SDK: AWS SDK v3 mit custom Endpoint-URL konfigurierbar (kompatibel mit MinIO und GCS)
-- PostgreSQL: Flyway oder Liquibase für DB-Migration; keine DB-spezifischen Stored Procedures
+- Docker images: multi-stage build; no root user; distroless or alpine base
+- Helm chart: all external services configurable as `externalSecret` or env variable; no hardcoded endpoints
+- S3 SDK: AWS SDK v3 with configurable custom endpoint URL (compatible with MinIO and GCS)
+- PostgreSQL: Flyway or Liquibase for DB migration; no DB-specific stored procedures
 
-## Realisierung
+## Implementation
 
-- ADR(s): Deployment-ADR (ausstehend, Gruppe A)
-- Implementiert durch: –
+- ADR(s): Deployment ADR (pending, group A)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |

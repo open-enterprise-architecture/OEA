@@ -1,6 +1,6 @@
 ---
 id: REQ-147
-title: API-Vollständigkeit und Automations-Tauglichkeit (API-First)
+title: API Completeness and Automation Suitability (API-First)
 type: interface
 priority: must
 status: proposed
@@ -32,129 +32,129 @@ references:
     - SH-07
     - SH-09
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-013
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-147: API-Vollständigkeit und Automations-Tauglichkeit (API-First)
+# REQ-147: API Completeness and Automation Suitability (API-First)
 
-## Aussage
+## Statement
 
-Jede modellverändernde Operation, die über die OEA-Benutzeroberfläche ausführbar ist, MUSS gleichwertig über einen dokumentierten, versionierten REST-Endpoint erreichbar sein. Der Endpoint MUSS so gestaltet sein, dass er von externen Systemen (CI/CD-Pipelines, Migrationsskripte, ITSM-Konnektoren, andere EA-Werkzeuge) ohne Kenntnis der UI konsumierbar ist. Das System MUSS Bulk-Operationen für alle zentralen Entitätstypen anbieten (Erstellen, Aktualisieren, Löschen im Batch). Alle zustandsverändernden Endpoints MÜSSEN idempotent ausgelegt sein oder explizit dokumentieren, warum Idempotenz nicht möglich ist. Das System MUSS ein Webhook-Mechanismus anbieten, über den externe Systeme bei Modelländerungen proaktiv benachrichtigt werden können, ohne polling zu benötigen.
+Every model-changing operation that can be executed via the OEA user interface MUST be equivalently reachable via a documented, versioned REST endpoint. The endpoint MUST be designed so that it can be consumed by external systems (CI/CD pipelines, migration scripts, ITSM connectors, other EA tools) without knowledge of the UI. The system MUST offer bulk operations for all central entity types (create, update, delete in batch). All state-changing endpoints MUST be designed to be idempotent or explicitly document why idempotency is not possible. The system MUST offer a webhook mechanism through which external systems can be notified proactively of model changes, without needing to poll.
 
-## Begründung
+## Rationale
 
-OEA ist API-first (ADR-013, Leitprinzip `concept/README.md`). Dieses Prinzip bleibt ohne prüfbare Anforderung abstrakt. In der Praxis entstehen häufig "UI-only"-Operationen, die technisch HTTP nutzen, aber keine stabilen, externen API-Contracts darstellen — z.B. Session-gebundene Endpoints, UI-spezifische Aggregations-Antworten oder fehlende Batch-Endpunkte. Diese REQ stellt sicher, dass das API-first-Prinzip bei der Entwicklung jedes neuen Features operativ durchgesetzt wird.
+OEA is API-first (ADR-013, guiding principle `concept/README.md`). This principle remains abstract without a verifiable requirement. In practice, "UI-only" operations frequently arise that technically use HTTP but do not constitute stable, external API contracts — e.g. session-bound endpoints, UI-specific aggregation responses, or missing batch endpoints. This REQ ensures that the API-first principle is enforced operationally during the development of every new feature.
 
-Konkreter Anwendungsfall: Ein Konzern-Architect (SH-05) möchte 2 000 Applikationskomponenten aus dem CMDB per Skript in OEA importieren. Ein ITSM-System (SH-06) soll automatisch benachrichtigt werden, wenn eine Entität als `deprecated` markiert wird. Ein CI-Pipeline (SH-09) soll nach jedem Release-Branch-Merge automatisch den Plateau-Status umschalten. Alle drei Szenarien scheitern ohne diese Anforderung.
+Concrete use case: a corporate group architect (SH-05) wants to import 2,000 application components from the CMDB into OEA via script. An ITSM system (SH-06) is to be notified automatically when an entity is marked as `deprecated`. A CI pipeline (SH-09) is to switch the plateau status automatically after each release branch merge. All three scenarios fail without this requirement.
 
-## Kontext
+## Context
 
-Diese REQ ergänzt ADR-013 (welche Technologie) um die qualitative Dimension (was muss erreichbar sein):
+This REQ complements ADR-013 (which technology) with the qualitative dimension (what must be reachable):
 
-| Aspekt | ADR-013 (Wie) | REQ-147 (Was) |
+| Aspect | ADR-013 (How) | REQ-147 (What) |
 |---|---|---|
-| API-Stil und Technologie | REST + OpenAPI 3.x | — |
-| Vollständigkeit | implizit erwähnt | explizit prüfbar (AC1) |
-| Bulk-Operationen | nicht spezifiziert | MUSS vorhanden sein (AC2) |
-| Idempotenz | nicht spezifiziert | MUSS oder dokumentierte Ausnahme (AC3) |
-| Externe Consumer | als Ziel erwähnt | keine UI-spezifischen Annahmen (AC4) |
-| Webhooks / Push | SSE erwähnt | vollständiger Event-Mechanismus (AC5) |
-| Deprecation-Policy | Versionierungsstrategie | Consumer-Schutz 6 Monate (AC6) |
+| API style and technology | REST + OpenAPI 3.x | — |
+| Completeness | mentioned implicitly | explicitly verifiable (AC1) |
+| Bulk operations | not specified | MUST exist (AC2) |
+| Idempotency | not specified | MUST or documented exception (AC3) |
+| External consumers | mentioned as a goal | no UI-specific assumptions (AC4) |
+| Webhooks / push | SSE mentioned | full event mechanism (AC5) |
+| Deprecation policy | versioning strategy | consumer protection 6 months (AC6) |
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=interface
+### For type=interface
 
-**Schnittstellen-Kontrakt**:
+**Interface Contract**:
 
-| Eigenschaft | Anforderung |
+| Property | Requirement |
 |---|---|
-| Protokoll | HTTP/1.1, HTTP/2 |
-| Stil | REST, ressourcenorientiert |
-| Spezifikation | OpenAPI 3.x (maschinenlesbar, CI-Artefakt) |
-| Authentifizierung | Bearer JWT (ADR-006), API-Key (REQ-002) |
-| Basis-Pfad | `/api/v1/` |
-| Content-Type | `application/json`; `application/json-patch+json` für Partial-Updates |
-| Fehlerformat | RFC 9457 Problem Details (`type`, `title`, `status`, `detail`, `instance`) |
+| Protocol | HTTP/1.1, HTTP/2 |
+| Style | REST, resource-oriented |
+| Specification | OpenAPI 3.x (machine-readable, CI artifact) |
+| Authentication | Bearer JWT (ADR-006), API key (REQ-002) |
+| Base path | `/api/v1/` |
+| Content type | `application/json`; `application/json-patch+json` for partial updates |
+| Error format | RFC 9457 Problem Details (`type`, `title`, `status`, `detail`, `instance`) |
 
-**Vollständigkeits-Regel**:
+**Completeness Rule**:
 
-Jede der folgenden Operationen MUSS als eigenständiger Endpoint existieren, bevor das zugehörige UI-Feature als *done* gilt:
+Each of the following operations MUST exist as a standalone endpoint before the associated UI feature counts as *done*:
 
-| Operation | Minimum-Endpoint |
+| Operation | Minimum endpoint |
 |---|---|
-| Entität anlegen | `POST /api/v1/entities` |
-| Entität lesen | `GET /api/v1/entities/{id}` |
-| Entität aktualisieren | `PUT /api/v1/entities/{id}` / `PATCH /api/v1/entities/{id}` |
-| Entität löschen (soft) | `DELETE /api/v1/entities/{id}` (ADR-019) |
-| Entitäten abfragen | `GET /api/v1/entities?type=…&q=…` |
-| Bulk-Erstellen | `POST /api/v1/entities/bulk` |
-| Bulk-Aktualisieren | `PATCH /api/v1/entities/bulk` |
-| Diagramm-Shape einfügen | `POST /api/v1/diagrams/{id}/shapes` |
-| Diagramm-Shape entfernen | `DELETE /api/v1/diagrams/{id}/shapes/{shapeId}` |
-| Katalog-Abfrage | `GET /api/v1/catalogs/{id}/query` |
-| Plateau umschalten | `PUT /api/v1/solutions/{id}/plateau` |
+| Create entity | `POST /api/v1/entities` |
+| Read entity | `GET /api/v1/entities/{id}` |
+| Update entity | `PUT /api/v1/entities/{id}` / `PATCH /api/v1/entities/{id}` |
+| Delete entity (soft) | `DELETE /api/v1/entities/{id}` (ADR-019) |
+| Query entities | `GET /api/v1/entities?type=…&q=…` |
+| Bulk create | `POST /api/v1/entities/bulk` |
+| Bulk update | `PATCH /api/v1/entities/bulk` |
+| Insert diagram shape | `POST /api/v1/diagrams/{id}/shapes` |
+| Remove diagram shape | `DELETE /api/v1/diagrams/{id}/shapes/{shapeId}` |
+| Catalog query | `GET /api/v1/catalogs/{id}/query` |
+| Switch plateau | `PUT /api/v1/solutions/{id}/plateau` |
 
-**Webhook-Mechanismus**:
+**Webhook Mechanism**:
 
-| Aspekt | Anforderung |
+| Aspect | Requirement |
 |---|---|
-| Registrierung | `POST /api/v1/webhooks` mit `{ url, events[], secret }` |
-| Ereignistypen | `entity.created`, `entity.updated`, `entity.deleted`, `diagram.updated`, `plateau.changed` (mind.) |
+| Registration | `POST /api/v1/webhooks` with `{ url, events[], secret }` |
+| Event types | `entity.created`, `entity.updated`, `entity.deleted`, `diagram.updated`, `plateau.changed` (at least) |
 | Payload | `{ event, timestamp, entityId, entityType, changedBy, diff }` |
-| Sicherheit | HMAC-SHA256-Signatur im Header `X-OEA-Signature` |
-| Retry | mind. 3 Versuche mit exponentiellem Backoff bei HTTP-Fehlerantwort |
+| Security | HMAC-SHA256 signature in the header `X-OEA-Signature` |
+| Retry | at least 3 attempts with exponential backoff on an HTTP error response |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (API-Vollständigkeit):
-- Gegeben: Ein neues UI-Feature wird als *done* markiert
-- Dann: Für jede zustandsverändernde Aktion des Features existiert ein dokumentierter Endpoint in der OpenAPI-Spec (`/api/docs`)
-- Verifikation: Code-Review-Checkliste; CI schlägt fehl wenn neue Controller-Methode keine OpenAPI-Annotation hat
+**AC1** (API completeness):
+- Given: a new UI feature is marked as *done*
+- Then: for every state-changing action of the feature, a documented endpoint exists in the OpenAPI spec (`/api/docs`)
+- Verification: code review checklist; CI fails if a new controller method has no OpenAPI annotation
 
-**AC2** (Bulk-Import):
-- Wenn: `POST /api/v1/entities/bulk` mit 500 ApplicationComponent-Objekten aufgerufen wird
-- Dann: Alle 500 Objekte werden angelegt oder eine atomare Rollback-Antwort zurückgegeben; Antwortzeit < 10 s; kein Timeout
-- Scope: Testdatenbank mit 10 000 bestehenden Entities
+**AC2** (Bulk import):
+- When: `POST /api/v1/entities/bulk` is called with 500 ApplicationComponent objects
+- Then: all 500 objects are created or an atomic rollback response is returned; response time < 10 s; no timeout
+- Scope: test database with 10,000 existing entities
 
-**AC3** (Idempotenz):
-- Wenn: `PUT /api/v1/entities/{id}` mit identischem Body zweimal aufgerufen wird
-- Dann: Zweiter Aufruf gibt 200 zurück ohne doppelten Eintrag im Audit-Log
-- Wenn: Ein Endpoint nicht idempotent sein kann: er ist in der OpenAPI-Spec als `x-idempotent: false` dokumentiert
+**AC3** (Idempotency):
+- When: `PUT /api/v1/entities/{id}` is called twice with an identical body
+- Then: the second call returns 200 without a duplicate entry in the audit log
+- When: an endpoint cannot be idempotent: it is documented in the OpenAPI spec as `x-idempotent: false`
 
-**AC4** (Keine UI-Kopplung):
-- Wenn: Ein externer Client alle Entitäten eines Katalogs abruft und modifiziert, ohne je die UI zu laden
-- Dann: Alle Operationen (lesen, anlegen, aktualisieren, löschen, abfragen) sind vollständig via API durchführbar; kein Endpoint erfordert einen Browser-Session-Cookie
-- Verifikation: Integration-Test mit reinem `curl` / Python `requests`
+**AC4** (No UI coupling):
+- When: an external client retrieves and modifies all entities of a catalog without ever loading the UI
+- Then: all operations (read, create, update, delete, query) are fully executable via the API; no endpoint requires a browser session cookie
+- Verification: integration test with plain `curl` / Python `requests`
 
-**AC5** (Webhook-Notification):
-- Wenn: Eine Entität via `PUT /api/v1/entities/{id}` aktualisiert wird
-- Dann: Alle registrierten Webhooks für Event `entity.updated` erhalten innerhalb von 5 s einen HTTP-POST mit korrekter HMAC-Signatur
+**AC5** (Webhook notification):
+- When: an entity is updated via `PUT /api/v1/entities/{id}`
+- Then: all registered webhooks for the event `entity.updated` receive an HTTP POST with a correct HMAC signature within 5 s
 
-**AC6** (Deprecation-Policy):
-- Wenn: Ein Endpoint in einer neuen API-Version entfernt oder inkompatibel geändert wird
-- Dann: Der alte Endpoint ist mind. 6 Monate nach Ankündigung noch erreichbar und antwortet mit `Deprecation`- und `Sunset`-Headern (RFC 8594)
+**AC6** (Deprecation policy):
+- When: an endpoint is removed or changed incompatibly in a new API version
+- Then: the old endpoint remains reachable for at least 6 months after the announcement and responds with `Deprecation` and `Sunset` headers (RFC 8594)
 
-## Abhängigkeiten
+## Dependencies
 
-- Basiert auf: ADR-013 (REST + OpenAPI 3.x — Technologieentscheid)
-- Zusammenhang: REQ-002 (API-Key-Authentifizierung), REQ-046 (Katalog-Abfrage-Endpoint), REQ-047 (SavedFilter)
-- Betrifft: alle zukünftigen Feature-REQs — jedes neue Feature muss AC1 erfüllen
-- Blockiert: Walking Skeleton API-Design (UC-06)
+- Based on: ADR-013 (REST + OpenAPI 3.x — technology decision)
+- Related: REQ-002 (API key authentication), REQ-046 (catalog query endpoint), REQ-047 (SavedFilter)
+- Affects: all future feature REQs — every new feature must satisfy AC1
+- Blocks: Walking Skeleton API design (UC-06)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- **Spec-first für neue Endpoints**: OpenAPI-Annotation (`@Operation`, `@ApiResponse`) MUSS vor der Implementierung reviewed sein
-- **Bulk-Endpoint-Design**: Transaktional (all-or-nothing) mit max. Batch-Grösse 1 000; Fehler-Response enthält Index der fehlgeschlagenen Items
-- **Webhook-Service**: separater Spring-`@EventListener` auf Domain Events; entkoppelt von HTTP-Request-Thread; Webhook-Deliveries in separater Tabelle (für Retry und Audit)
-- **CI-Gate**: `api/openapi.yaml` muss valide sein und `./mvnw verify` (Interface-Generierung aus der Spec, ADR-013) grün; API-Breaking-Change-Detector (z.B. `openapi-diff`) schlägt fehl wenn keine neue API-Version deklariert wurde
+- **Spec-first for new endpoints**: OpenAPI annotation (`@Operation`, `@ApiResponse`) MUST be reviewed before implementation
+- **Bulk endpoint design**: transactional (all-or-nothing) with a max batch size of 1,000; error response contains the index of the failed items
+- **Webhook service**: separate Spring `@EventListener` on domain events; decoupled from the HTTP request thread; webhook deliveries in a separate table (for retry and audit)
+- **CI gate**: `api/openapi.yaml` must be valid and `./mvnw verify` (interface generation from the spec, ADR-013) green; API breaking-change detector (e.g. `openapi-diff`) fails if no new API version was declared
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-29 | Requirements Engineer | Initial draft; erster REQ vom Typ `interface` im Projekt |
+| 0.1.0 | 2026-06-29 | Requirements Engineer | Initial draft; first REQ of type `interface` in the project |

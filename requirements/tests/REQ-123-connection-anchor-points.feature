@@ -1,40 +1,40 @@
-# Ableitung aus: requirements/req/req-123-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-123-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-05
-Feature: REQ-123 – Ankerpunkte auf Connections
+Feature: REQ-123 – Anchor points on connections
 
-  Das System MUSS das Setzen, Verschieben und Entfernen von
-  **Ankerpunkten** (Waypoints) auf Connection-Linien ermöglichen.
-  Ankerpunkte steuern den Verlauf der Connection zwischen Quell- und
-  Ziel-Entität.
+  The system MUST allow setting, moving and removing
+  **anchor points** (waypoints) on connection lines.
+  Anchor points control the course of the connection between source and
+  target entity.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Ankerpunkt setzen – Nutzer auf eine selektierte Connection klickt
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer auf eine selektierte Connection klickt
-    Then  Neuer Ankerpunkt wird auf dem nächsten Rasterpunkt gesetzt und ist als Griff sichtbar
+  Scenario: AC1 – Set anchor point – user clicks on a selected connection
+    Given the precondition according to the requirement is met
+    When  user clicks on a selected connection
+    Then  new anchor point is set on the nearest grid point and is visible as a handle
 
   @AC2
-  Scenario: AC2 – Ankerpunkt immer auf Raster – Ankerpunkt per Drag & Drop verschoben wird (beliebiger Routing-Modus)
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Ankerpunkt per Drag & Drop verschoben wird (beliebiger Routing-Modus)
-    Then  Ankerpunkt rastet auf nächsten Rasterpunkt ein; sub-Raster-Positionierung ist nicht möglich
+  Scenario: AC2 – Anchor point always on grid – anchor point is moved via drag & drop (any routing mode)
+    Given the precondition according to the requirement is met
+    When  anchor point is moved via drag & drop (any routing mode)
+    Then  anchor point snaps to the nearest grid point; sub-grid positioning is not possible
 
   @AC3
-  Scenario: AC3 – Ankerpunkt entfernen – Nutzer einen Ankerpunkt doppelklickt oder im Kontextmenü „Ankerpunkt ent...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer einen Ankerpunkt doppelklickt oder im Kontextmenü „Ankerpunkt entfernen" wählt
-    Then  Ankerpunkt wird entfernt; Connection passt ihren Verlauf automatisch an
+  Scenario: AC3 – Remove anchor point – user double-clicks an anchor point or selects "Remove anchor point" in the context menu...
+    Given the precondition according to the requirement is met
+    When  user double-clicks an anchor point or selects "Remove anchor point" in the context menu
+    Then  anchor point is removed; connection adjusts its course automatically
 
   @AC4
-  Scenario: AC4 – Modus-Verhalten – Connection-Modus = Curved und Ankerpunkt gesetzt
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Connection-Modus = Curved und Ankerpunkt gesetzt
-    And   Connection-Modus = Orthogonal und Ankerpunkt gesetzt
-    Then  Bézierkurve verläuft durch den Ankerpunkt; Kurven-Griffe erscheinen beidseitig des Ankerpunkts zur Kurven-Steuerung
-    And   Segmente verlaufen rechtwinklig zum Ankerpunkt; Ankerpunkt liegt auf Raster-Schnittpunkt
+  Scenario: AC4 – Mode behavior – connection mode = Curved and anchor point set
+    Given the precondition according to the requirement is met
+    When  connection mode = Curved and anchor point set
+    And   connection mode = Orthogonal and anchor point set
+    Then  Bézier curve runs through the anchor point; curve handles appear on both sides of the anchor point for curve control
+    And   segments run at right angles to the anchor point; anchor point lies on grid intersection

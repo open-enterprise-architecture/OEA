@@ -1,6 +1,6 @@
 ---
 id: REQ-061
-title: n-Connection carries-data — DataFlow mit DataObject verknüpfen
+title: n-Connection carries-data — link DataFlow with DataObject
 type: functional
 priority: should
 status: proposed
@@ -19,117 +19,117 @@ references:
     - SH-02
     - SH-03
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
-    - concept/40-extensibility/14-erweiterbarkeit.md
+    - concept/20-entities/06-core-entity-types.md
+    - concept/40-extensibility/14-extensibility.md
   adrs:
     - ADR-010
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-061: n-Connection carries-data — DataFlow mit DataObject verknüpfen
+# REQ-061: n-Connection carries-data — link DataFlow with DataObject
 
-## Aussage
+## Statement
 
-Das System MUSS es ermöglichen, eine ArchitectureEntity vom Typ `carries-data` (`isConnection=true`) anzulegen, bei der `sourceEntityId` auf eine Connection-Entity (d.h. eine ArchitectureEntity mit `isConnection=true`, z.B. `data-flow`) zeigt und `targetEntityId` auf eine Nicht-Connection-Entity (z.B. `data-object`); dies setzt voraus, dass die EntityTypeDefinition des Source-Typs `allowsConnectionAsSource=true` hat. Jede `carries-data`-Instanz erhält eine eigene Integer-ID aus demselben instanzweiten Nummernraum.
+The system MUST make it possible to create an ArchitectureEntity of type `carries-data` (`isConnection=true`) where `sourceEntityId` points to a connection entity (i.e., an ArchitectureEntity with `isConnection=true`, e.g., `data-flow`) and `targetEntityId` points to a non-connection entity (e.g., `data-object`); this requires that the EntityTypeDefinition of the source type has `allowsConnectionAsSource=true`. Each `carries-data` instance receives its own integer ID from the same instance-wide number space.
 
-## Begründung
+## Rationale
 
-Ohne n-Connections ist Lineage auf String-Referenzen (Property-String) angewiesen — semantisch schwach, nicht FK-validiert, schwer abfragbar. Die `carries-data`-Connection als First-Class-Entität ermöglicht traversierbare Lineage-Queries (REQ-062), typsichere Referenzen und spätere Erweiterungen (z.B. Column-Level-Lineage durch Properties auf `carries-data`). Dies ist der Kern-Differenzierungspunkt gegenüber Abacus/Avolution (ADR-010 proposed, Option B).
+Without n-connections, lineage relies on string references (property string) — semantically weak, not FK-validated, hard to query. The `carries-data` connection as a first-class entity enables traversable lineage queries (REQ-062), type-safe references and later extensions (e.g., column-level lineage through properties on `carries-data`). This is the core differentiator compared to Abacus/Avolution (ADR-010 proposed, option B).
 
-## Kontext
+## Context
 
-[ADR-010](../../adrs/ADR-010-n-connection-data-lineage.md) (proposed, Option B) beschreibt die Entscheidungsgrundlage. Dieses REQ setzt Option B voraus.
+[ADR-010](../../adrs/ADR-010-n-connection-data-lineage.md) (proposed, option B) describes the decision basis. This REQ presupposes option B.
 
-**Metamodell-Erweiterung (Voraussetzung)**:
-`EntityTypeDefinition` in MetamodelConfiguration erhält ein neues Feld `allowsConnectionAsSource: bool` (Default: `false`). Für den EntityType `data-flow` wird dieses auf `true` gesetzt. Damit ist `data-flow` der einzige Typ (neben weiteren, wenn vom Architektur-Team konfiguriert), der als `sourceEntityId` in einer anderen Connection auftreten darf.
+**Metamodel extension (prerequisite)**:
+`EntityTypeDefinition` in MetamodelConfiguration receives a new field `allowsConnectionAsSource: bool` (default: `false`). For the EntityType `data-flow` this is set to `true`. This makes `data-flow` the only type (besides others, if configured by the architecture team) that may appear as `sourceEntityId` in another connection.
 
-**entity.md BR-04 Lockerung**:
-Aktuell: `sourceEntityId` MUSS auf Entity mit `isConnection=false` zeigen.
-Neu: `sourceEntityId` darf auf Entity mit `isConnection=true` zeigen, sofern deren EntityTypeDefinition `allowsConnectionAsSource=true` hat.
+**entity.md BR-04 relaxation**:
+Currently: `sourceEntityId` MUST point to an entity with `isConnection=false`.
+New: `sourceEntityId` may point to an entity with `isConnection=true`, provided its EntityTypeDefinition has `allowsConnectionAsSource=true`.
 
-**Tiefe**: v1.0 unterstützt genau eine Verschachtelungsebene (Connection-of-Connection). Eine `carries-data`-Connection darf nicht selbst wieder Source einer weiteren n-Connection sein.
+**Depth**: v1.0 supports exactly one nesting level (connection-of-connection). A `carries-data` connection must not itself be the source of a further n-connection.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- `entityTypeId`: `carries-data` (isConnection=true; allowsConnectionAsSource=false, da carries-data selbst keine weitere Connection-Quelle ist)
-- `sourceEntityId`: Integer-ID einer ArchitectureEntity mit `isConnection=true` und `allowsConnectionAsSource=true` (z.B. DataFlow id=5)
-- `targetEntityId`: Integer-ID einer ArchitectureEntity mit `isConnection=false` (z.B. DataObject id=42)
-- `name`: optional (z.B. „ERP→DWH trägt Kundenstamm")
+**Inputs**:
+- `entityTypeId`: `carries-data` (isConnection=true; allowsConnectionAsSource=false, since carries-data is itself not a further connection source)
+- `sourceEntityId`: integer ID of an ArchitectureEntity with `isConnection=true` and `allowsConnectionAsSource=true` (e.g., DataFlow id=5)
+- `targetEntityId`: integer ID of an ArchitectureEntity with `isConnection=false` (e.g., DataObject id=42)
+- `name`: optional (e.g., "ERP→DWH carries customer master data")
 
-**Verarbeitung**:
-1. Prüfe `sourceEntityId`: Entität muss existieren; ihr EntityType muss `allowsConnectionAsSource=true` haben → sonst HTTP 422
-2. Prüfe `targetEntityId`: Entität muss existieren; ihr EntityType muss `isConnection=false` haben → sonst HTTP 422
-3. Prüfe Tiefe: `sourceEntityId`-Entity darf nicht selbst eine n-Connection sein (`sourceEntityId.entityType.allowsConnectionAsSource` darf nicht referenzieren, dass carries-data selbst Quelle ist) → v1.0: max. 1 Ebene
-4. System vergibt nächste freie Integer-ID
-5. Persistieren; Audit-Log
+**Processing**:
+1. Check `sourceEntityId`: entity must exist; its EntityType must have `allowsConnectionAsSource=true` → otherwise HTTP 422
+2. Check `targetEntityId`: entity must exist; its EntityType must have `isConnection=false` → otherwise HTTP 422
+3. Check depth: the `sourceEntityId` entity must not itself be an n-connection (`sourceEntityId.entityType.allowsConnectionAsSource` must not reference that carries-data itself is a source) → v1.0: max. 1 level
+4. System assigns the next free integer ID
+5. Persist; audit log
 
-**Ausgaben**:
-- HTTP 201 mit vollständiger Entitäts-Repräsentation
-- `sourceEntityId` und `targetEntityId` sind unveränderlich nach Anlage
+**Outputs**:
+- HTTP 201 with complete entity representation
+- `sourceEntityId` and `targetEntityId` are immutable after creation
 
-**Fehlerfälle**:
-- `sourceEntityId` zeigt auf Entität mit `allowsConnectionAsSource=false` → HTTP 422 mit Hinweis „EntityType X erlaubt keine Connection-Quelle"
-- `targetEntityId` zeigt auf Connection-Entity → HTTP 422
-- Beide IDs identisch → HTTP 422
-- Tiefe > 1 verletzt → HTTP 422 „n-Connection-Tiefe überschritten (max. 1)"
+**Error Cases**:
+- `sourceEntityId` points to an entity with `allowsConnectionAsSource=false` → HTTP 422 with note "EntityType X does not allow a connection source"
+- `targetEntityId` points to a connection entity → HTTP 422
+- Both IDs identical → HTTP 422
+- Depth > 1 violated → HTTP 422 "n-connection depth exceeded (max. 1)"
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (carries-data anlegen):
-- Gegeben: DataFlow id=5 (`data-flow`, `allowsConnectionAsSource=true`); DataObject id=42 (`data-object`)
-- Wenn: Lukas legt `carries-data`-Connection an mit sourceEntityId=5, targetEntityId=42
-- Dann: HTTP 201; carries-data erhält eigene Integer-ID (z.B. 103); sourceEntityId=5 und targetEntityId=42 gesetzt
+**AC1** (Create carries-data):
+- Given: DataFlow id=5 (`data-flow`, `allowsConnectionAsSource=true`); DataObject id=42 (`data-object`)
+- When: Lukas creates a `carries-data` connection with sourceEntityId=5, targetEntityId=42
+- Then: HTTP 201; carries-data receives its own integer ID (e.g., 103); sourceEntityId=5 and targetEntityId=42 set
 
-**AC2** (Ablehnung wenn source kein allowsConnectionAsSource):
-- Gegeben: ApplicationComponent id=1 (`application-component`, `allowsConnectionAsSource=false`)
-- Wenn: Lukas versucht carries-data mit sourceEntityId=1 anzulegen
-- Dann: HTTP 422; Fehlermeldung benennt `application-component` als nicht als Connection-Quelle erlaubt
+**AC2** (Rejection if source has no allowsConnectionAsSource):
+- Given: ApplicationComponent id=1 (`application-component`, `allowsConnectionAsSource=false`)
+- When: Lukas tries to create carries-data with sourceEntityId=1
+- Then: HTTP 422; error message names `application-component` as not allowed as a connection source
 
-**AC3** (Ablehnung target=Connection):
-- Gegeben: DataFlow id=5 (isConnection=true) als potenzielle targetEntityId
-- Wenn: Lukas versucht carries-data mit targetEntityId=5 anzulegen
-- Dann: HTTP 422
+**AC3** (Rejection if target=connection):
+- Given: DataFlow id=5 (isConnection=true) as potential targetEntityId
+- When: Lukas tries to create carries-data with targetEntityId=5
+- Then: HTTP 422
 
-**AC4** (Unveränderlichkeit source/target):
-- Gegeben: carries-data id=103 mit sourceEntityId=5, targetEntityId=42
-- Wenn: Lukas versucht PUT mit sourceEntityId=6
-- Dann: HTTP 422; source/target wurden nicht geändert
+**AC4** (Immutability of source/target):
+- Given: carries-data id=103 with sourceEntityId=5, targetEntityId=42
+- When: Lukas tries PUT with sourceEntityId=6
+- Then: HTTP 422; source/target were not changed
 
-**AC5** (Tiefenbegrenzung v1.0):
-- Gegeben: carries-data id=103; carries-data hat `allowsConnectionAsSource=false`
-- Wenn: Lukas versucht, eine weitere Connection mit sourceEntityId=103 anzulegen
-- Dann: HTTP 422 „n-Connection-Tiefe überschritten"
+**AC5** (Depth limit v1.0):
+- Given: carries-data id=103; carries-data has `allowsConnectionAsSource=false`
+- When: Lukas tries to create a further connection with sourceEntityId=103
+- Then: HTTP 422 "n-connection depth exceeded"
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Bestanden-Kriterium: AC1–AC5 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Pass criterion: AC1–AC5 green
+- [ ] Integrated in CI: yes, as soon as implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-060 (DataObject muss existieren); metamodel-configuration muss `allowsConnectionAsSource` auf EntityTypeDefinition unterstützen (Änderung BR-04 in entity.md)
-- **Folgewirkungen**: REQ-062 (Lineage-API traversiert carries-data-Verbindungen); REQ-063 (Canvas zeigt 3-Punkte-Indikator wenn carries-data existieren)
+- **Prerequisites**: REQ-060 (DataObject must exist); metamodel-configuration must support `allowsConnectionAsSource` on EntityTypeDefinition (change to BR-04 in entity.md)
+- **Downstream effects**: REQ-062 (lineage API traverses carries-data connections); REQ-063 (canvas shows 3-dot indicator when carries-data exist)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- `POST /api/v1/entities` mit entityTypeId=`carries-data`; source/target validation serverseitig
-- DB: gleiche `architecture_entities`-Tabelle wie alle anderen Entitäten; source_entity_id darf auf Rows mit isConnection=true zeigen (FK bleibt auf architecture_entities, keine separate Tabelle)
-- Tiefencheck: beim Anlegen einer n-Connection prüfen ob `sourceEntity.entityType.allowsConnectionAsSource=true` AND `sourceEntity.entityType` selbst keine weitere n-Connection-Source-Erlaubnis erteilt
+- `POST /api/v1/entities` with entityTypeId=`carries-data`; source/target validation server-side
+- DB: same `architecture_entities` table as all other entities; source_entity_id may point to rows with isConnection=true (FK remains on architecture_entities, no separate table)
+- Depth check: when creating an n-connection, check whether `sourceEntity.entityType.allowsConnectionAsSource=true` AND `sourceEntity.entityType` itself does not grant a further n-connection source permission
 
-## Realisierung
+## Implementation
 
 - ADR(s): [ADR-010](../../adrs/ADR-010-n-connection-data-lineage.md) (proposed)
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft; n-Connection Option B gemäss ADR-010 |
+| 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft; n-connection option B per ADR-010 |

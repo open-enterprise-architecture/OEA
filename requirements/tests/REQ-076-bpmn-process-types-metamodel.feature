@@ -1,52 +1,52 @@
-# Ableitung aus: requirements/req/req-076-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert, API- und Integrationstests)
+# Derived from: requirements/req/req-076-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated, API and integration tests)
 
 @functional @must @UC-10 @UC-04
-Feature: REQ-076 – BPMN-Prozesselemente und OrganizationalUnit im Metamodell
+Feature: REQ-076 – BPMN process elements and OrganizationalUnit in the metamodel
 
-  Das System MUSS einen vollständigen Satz built-in
-  `EntityTypeDefinitions` für BPMN 2.0-Prozessmodellierung
-  bereitstellen (Pool, Lane, Task-Varianten, Events, Gateways,
-  SequenceFlow, MessageFlow). Zusätzlich MUSS `organizational-unit` als
-  built-in EntityType verfügbar sein.
+  The system MUST provide a complete set of built-in
+  `EntityTypeDefinitions` for BPMN 2.0 process modeling (pool, lane,
+  task variants, events, gateways, SequenceFlow, MessageFlow).
+  Additionally, `organizational-unit` MUST be available as a built-in
+  EntityType.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Built-in BPMN-Typen vorhanden – OEA-Instanz gestartet; Admin öffnet MetamodelConfiguration
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  OEA-Instanz gestartet; Admin öffnet MetamodelConfiguration
-    Then  Alle 19 built-in BPMN-EntityTypes und 9 built-in Connections sind sichtbar (isBuiltIn=true); unveränderlich in ihren Basiseigenschaften
+  Scenario: AC1 – Built-in BPMN types present – OEA instance started; admin opens MetamodelConfiguration
+    Given the precondition according to the requirement is met
+    When  OEA instance started; admin opens MetamodelConfiguration
+    Then  all 19 built-in BPMN EntityTypes and 9 built-in connections are visible (isBuiltIn=true); immutable in their base properties
 
   @AC2
-  Scenario: AC2 – Erweiterbarkeit – Admin legt `EntityTypeDefinition { id: "approval-task", extends: "bpmn-u...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Admin legt `EntityTypeDefinition { id: "approval-task", extends: "bpmn-user-task" }` an
-    Then  `approval-task` erbt alle Attribute von `bpmn-user-task`; erscheint in BPMN-Palette; kann in Prozessdiagrammen genutzt werden
+  Scenario: AC2 – Extensibility – admin creates `EntityTypeDefinition { id: "approval-t...
+    Given the precondition according to the requirement is met
+    When  admin creates `EntityTypeDefinition { id: "approval-task", extends: "bpmn-user-task" }`
+    Then  `approval-task` inherits all attributes of `bpmn-user-task`; appears in BPMN palette; can be used in process diagrams
 
   @AC3
-  Scenario: AC3 – OrganizationalUnit Typ – Admin öffnet MetamodelConfiguration
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Admin öffnet MetamodelConfiguration
-    Then  `organizational-unit` als built-in EntityType sichtbar; per `extends` zu `department`, `team`, `business-unit` etc. erweiterbar
+  Scenario: AC3 – OrganizationalUnit type – admin opens MetamodelConfiguration
+    Given the precondition according to the requirement is met
+    When  admin opens MetamodelConfiguration
+    Then  `organizational-unit` visible as built-in EntityType; extensible via `extends` to `department`, `team`, `business-unit`, etc.
 
   @AC4
-  Scenario: AC4 – Pool/Lane Nested-Layout – Prozessdiagramm mit Pool → Lane → Task-Hierarchie via `bpmn-contained-in...
-    Given Prozessdiagramm mit Pool → Lane → Task-Hierarchie via `bpmn-contained-in`-Connections
-    When  Canvas lädt das Diagramm
-    Then  Pool erscheint als äusserer Container; Lanes als Swim-Lanes; Tasks innerhalb der korrekten Lanes; Layout korrekt verschachtelt
+  Scenario: AC4 – Pool/lane nested layout – process diagram with pool → lane → task hie...
+    Given process diagram with pool → lane → task hierarchy via `bpmn-contained-in` connections
+    When  canvas loads the diagram
+    Then  pool appears as outer container; lanes as swim lanes; tasks within the correct lanes; layout correctly nested
 
   @AC5
-  Scenario: AC5 – SequenceFlow Constraint – Nutzer versucht, einen `bpmn-sequence-flow` von einem BPMN-Task zu einer...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer versucht, einen `bpmn-sequence-flow` von einem BPMN-Task zu einer Nicht-BPMN-Entität (z.B. ApplicationComponent) zu ziehen
-    Then  API gibt HTTP 422 zurück (BR-01); UI zeigt Fehlermeldung
+  Scenario: AC5 – SequenceFlow constraint – user tries to draw a `bpmn-sequence-flow` f...
+    Given the precondition according to the requirement is met
+    When  user tries to draw a `bpmn-sequence-flow` from a BPMN task to a non-BPMN entity (e.g. ApplicationComponent)
+    Then  API returns HTTP 422 (BR-01); UI shows error message
 
   @AC6
-  Scenario: AC6 – BPMN-Viewpoint – Nutzer legt neues Diagramm an und wählt den built-in Viewpoint `bpmn-pro...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer legt neues Diagramm an und wählt den built-in Viewpoint `bpmn-process-view`
-    Then  Palette zeigt ausschliesslich BPMN-konforme Elemente; Pool/Lane-Modus ist aktiv (Container-Drop möglich)
+  Scenario: AC6 – BPMN viewpoint – user creates a new diagram and selects the built-in...
+    Given the precondition according to the requirement is met
+    When  user creates a new diagram and selects the built-in viewpoint `bpmn-process-view`
+    Then  palette shows exclusively BPMN-compliant elements; pool/lane mode is active (container drop possible)

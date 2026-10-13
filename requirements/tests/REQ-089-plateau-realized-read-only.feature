@@ -1,26 +1,26 @@
-# Ableitung aus: requirements/req/req-089-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-089-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-11
-Feature: REQ-089 – Realized-Plateau schreibgeschützt
+Feature: REQ-089 – Realized plateau read-only
 
-  Plateaus mit `status=realized` MÜSSEN für alle Schreib-Operationen
-  gesperrt sein (read-only). Versuche, Name, Beschreibung, `validFrom`
-  oder verknüpfte Solutions eines realized-Plateaus zu ändern, MÜSSEN
-  mit HTTP 422 abgewiesen werden.
+  Plateaus with `status=realized` MUST be locked for all write operations
+  (read-only). Attempts to change name, description, `validFrom`
+  or linked solutions of a realized plateau MUST be rejected
+  with HTTP 422.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – API-Schreibschutz – ein PUT-Request an `/plateaus/{id}` für ein realized-Plateau gesendet wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein PUT-Request an `/plateaus/{id}` für ein realized-Plateau gesendet wird
-    Then  antwortet die API mit HTTP 422 "Realisiertes Plateau ist read-only"
+  Scenario: AC1 – API write protection – a PUT request is sent to `/plateaus/{id}` for a realized plateau
+    Given the precondition according to the requirement is met
+    When  a PUT request is sent to `/plateaus/{id}` for a realized plateau
+    Then  the API responds with HTTP 422 "Realized plateau is read-only"
 
   @AC2
-  Scenario: AC2 – UI-Schreibschutz – ein realized-Plateau in der Übersicht angezeigt wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein realized-Plateau in der Übersicht angezeigt wird
-    Then  ist keine Bearbeiten-Schaltfläche sichtbar
+  Scenario: AC2 – UI write protection – a realized plateau is displayed in the overview
+    Given the precondition according to the requirement is met
+    When  a realized plateau is displayed in the overview
+    Then  no edit button is visible

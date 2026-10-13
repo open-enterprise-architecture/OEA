@@ -1,79 +1,79 @@
-# Ableitung aus: requirements/req/req-081-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-081-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @should
-Feature: REQ-081 – BPMN-DataObject-Integration und Prozess-Datenlineage
+Feature: REQ-081 – BPMN DataObject integration and process data lineage
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – DataObject im Prozessdiagramm – Business Analyst kann `bpmn-data-object` und `bpmn-data-store` aus der B...
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - Business Analyst kann `bpmn-data-object` und `bpmn-data-store` aus der BPMN-Palette auf das Prozessdiagramm ziehen
-    # - DataObjects können innerhalb von Lanes oder frei auf Prozessebene platziert werden
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC1 – DataObject in the process diagram – Business analyst can drag `bpmn-data-object` and `bpmn-data-store` from the BPMN palette...
+    # TODO: AC without standard structure – refine manually
+    # - Business analyst can drag `bpmn-data-object` and `bpmn-data-store` from the BPMN palette onto the process diagram
+    # - DataObjects can be placed within lanes or freely at process level
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement
 
   @AC2
-  Scenario: AC2 – Input-/Output-Assoziation anlegen – Business Analyst zieht eine gestrichelte Linie (BPMN-Notation) von einem...
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - Business Analyst zieht eine gestrichelte Linie (BPMN-Notation) von einem DataObject zu einem Task (Input) oder vom Task zu einem DataObject (Output)
-    # - UI fragt beim Anlegen: Richtung (Input / Output) und optional `transformationType` (create / enrich / overwrite / delete / read-only)
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC2 – Create input/output association – Business analyst draws a dashed line (BPMN notation) from a DataObject...
+    # TODO: AC without standard structure – refine manually
+    # - Business analyst draws a dashed line (BPMN notation) from a DataObject to a task (input) or from the task to a DataObject (output)
+    # - On creation the UI asks for: direction (input / output) and optionally `transformationType` (create / enrich / overwrite / delete / read-only)
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement
 
   @AC3
-  Scenario: AC3 – Anreicherungs-Annotation – Detail-Panel einer `bpmn-data-output-association` zeigt Felder: `transfo...
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - Detail-Panel einer `bpmn-data-output-association` zeigt Felder: `transformationType` (Dropdown), `affectedAttributes` (Tag-Eingabe), `condition` (Freitext)
-    # - Diese Properties werden im Repository gespeichert und sind via API abfragbar
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC3 – Enrichment annotation – Detail panel of a `bpmn-data-output-association` shows fields: `transformationType`...
+    # TODO: AC without standard structure – refine manually
+    # - Detail panel of a `bpmn-data-output-association` shows fields: `transformationType` (dropdown), `affectedAttributes` (tag input), `condition` (free text)
+    # - These properties are stored in the repository and can be queried via API
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement
 
   @AC4
-  Scenario: AC4 – Bestehendes data-object referenzieren – Business Analyst kann beim Anlegen eines `bpmn-data-object` ein bereits ...
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - Business Analyst kann beim Anlegen eines `bpmn-data-object` ein bereits im EA-Repository vorhandenes `data-object` auswählen (Autocomplete via `[[`-Trigger, REQ-070)
-    # - Das BPMN-Element zeigt dann Name und ID des referenzierten Objekts; kein Duplikat wird erstellt
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC4 – Reference existing data-object – Business analyst can select a `data-object` already present in the EA repository when creating a `bpmn-data-object`...
+    # TODO: AC without standard structure – refine manually
+    # - When creating a `bpmn-data-object`, the business analyst can select a `data-object` already present in the EA repository (autocomplete via `[[` trigger, REQ-070)
+    # - The BPMN element then shows name and ID of the referenced object; no duplicate is created
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement
 
   @AC5
-  Scenario: AC5 – DataStore mit technischer Infrastruktur verknüpfen – `bpmn-data-store` kann via `realizes`-Connection mit einem `data-compone...
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - `bpmn-data-store` kann via `realizes`-Connection mit einem `data-component` aus dem EA-Repository verknüpft werden
-    # - Verknüpfung: Kontextmenü „Realisiert durch" → Suche im EA-Repository
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC5 – Link DataStore to technical infrastructure – `bpmn-data-store` can be linked via `realizes` connection to a `data-component`...
+    # TODO: AC without standard structure – refine manually
+    # - `bpmn-data-store` can be linked via a `realizes` connection to a `data-component` from the EA repository
+    # - Linking: context menu "Realized by" → search in the EA repository
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement
 
   @AC6
-  Scenario: AC6 – Lineage-Query durch Prozess – `GET /api/v1/entities/{id}/lineage?direction=downstream` für ein `data-o...
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - `GET /api/v1/entities/{id}/lineage?direction=downstream` für ein `data-object` gibt auch BPMN-Tasks zurück, die dieses Objekt über `bpmn-data-output-association` anreichern
-    # - Analog upstream: Tasks, die es als Input lesen
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC6 – Lineage query through process – `GET /api/v1/entities/{id}/lineage?direction=downstream` for a `data-object`...
+    # TODO: AC without standard structure – refine manually
+    # - `GET /api/v1/entities/{id}/lineage?direction=downstream` for a `data-object` also returns BPMN tasks that enrich this object via `bpmn-data-output-association`
+    # - Analogous upstream: tasks that read it as input
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement
 
   @AC7
-  Scenario: AC7 – Katalog-Join auf Prozess-Daten – Katalog mit `data-object` als primaryEntityType kann via Join auf `bpmn-...
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - Katalog mit `data-object` als primaryEntityType kann via Join auf `bpmn-data-output-association` zeigen, welche Prozess-Tasks jedes DataObject erzeugen oder anreichern
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC7 – Catalog join on process data – Catalog with `data-object` as primaryEntityType can show via join on `bpmn-...
+    # TODO: AC without standard structure – refine manually
+    # - A catalog with `data-object` as primaryEntityType can show via join on `bpmn-data-output-association` which process tasks create or enrich each DataObject
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement
 
   @AC8
-  Scenario: AC8 – Web Portal read-only – BPMN-Diagramm mit DataObjects ist im Web Portal lesbar; DataObject-Names...
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - BPMN-Diagramm mit DataObjects ist im Web Portal lesbar; DataObject-Names und transformationType-Annotationen sichtbar
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC8 – Web portal read-only – BPMN diagram with DataObjects is readable in the web portal; DataObject names...
+    # TODO: AC without standard structure – refine manually
+    # - BPMN diagram with DataObjects is readable in the web portal; DataObject names and transformationType annotations are visible
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement

@@ -1,6 +1,6 @@
 ---
 id: REQ-045
-title: Join-Definition zu einem Katalog hinzufügen
+title: Add a join definition to a catalog
 type: functional
 priority: must
 status: proposed
@@ -22,98 +22,98 @@ references:
     - SH-03
     - SH-07
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
+    - concept/20-entities/06-core-entity-types.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-045: Join-Definition zu einem Katalog hinzufügen
+# REQ-045: Add a join definition to a catalog
 
-## Aussage
+## Statement
 
-Das System MUSS dem Katalog-Manager ermöglichen, einem [Catalog](../../business-objects/catalog.md) `JoinDefinition`-Einträge hinzuzufügen, zu bearbeiten und zu entfernen. Eine `JoinDefinition` besteht aus: `name` (Pflicht), `connectionType` (Pflicht; EntityType mit `isConnection=true` – BR-02), `joinDirection` (Pflicht: `outbound` | `inbound` | `both`), `targetEntityType` (Pflicht; muss laut `allowedSourceTypes`/`allowedTargetTypes` des ConnectionTypes erreichbar sein – BR-03), `targetColumns` (ColumnConfig[]; Attribute der Zielentität), `defaultJoinMode` (optional; `rows` | `aggregate`; Default = Catalog.defaultJoinMode) und `aggregateLabel` (optional; Label der Aggregat-Zelle).
+The system MUST allow the catalog manager to add, edit, and remove `JoinDefinition` entries on a [Catalog](../../business-objects/catalog.md). A `JoinDefinition` consists of: `name` (mandatory), `connectionType` (mandatory; EntityType with `isConnection=true` – BR-02), `joinDirection` (mandatory: `outbound` | `inbound` | `both`), `targetEntityType` (mandatory; must be reachable according to `allowedSourceTypes`/`allowedTargetTypes` of the ConnectionType – BR-03), `targetColumns` (ColumnConfig[]; attributes of the target entity), `defaultJoinMode` (optional; `rows` | `aggregate`; default = Catalog.defaultJoinMode), and `aggregateLabel` (optional; label of the aggregate cell).
 
-## Begründung
+## Rationale
 
-Joins sind das entscheidende Merkmal des Catalogs, das ihn von einer einfachen Entitätsliste unterscheidet. Über Connections können verwandte Entitäten (z.B. alle Schnittstellen einer Applikation) direkt in der Tabellenansicht erscheinen, ohne dass der Besucher navigieren muss. Ohne valide Join-Konfiguration würden fehlerhafte Queries entstehen, die nicht auf das Repository-Modell passen.
+Joins are the decisive feature of the catalog that distinguishes it from a simple entity list. Via connections, related entities (e.g., all interfaces of an application) can appear directly in the table view without the viewer having to navigate. Without valid join configuration, faulty queries would arise that do not fit the repository model.
 
-## Kontext
+## Context
 
-Die Join-Logik in OEA basiert nicht auf SQL-JOINs über Datenbank-Tabellen, sondern auf dem Graph-Traversal des Entity-Repositories: Der Catalog sucht alle Connection-Instanzen des gewählten Typs, bei denen die primäre Entität als Source (outbound) oder Target (inbound) erscheint, und folgt der Connection zum anderen Endpunkt.
+The join logic in OEA is not based on SQL JOINs across database tables but on the graph traversal of the entity repository: the catalog looks for all connection instances of the chosen type in which the primary entity appears as source (outbound) or target (inbound), and follows the connection to the other endpoint.
 
-**Beispiel – outbound**: ApplicationComponent → DataFlow → Interface: für jede ApplicationComponent werden alle DataFlow-Connections gesucht, bei denen ApplicationComponent Source ist; die Interface-Objekte am anderen Ende sind die Join-Ergebnisse.
+**Example – outbound**: ApplicationComponent → DataFlow → Interface: for each ApplicationComponent, all DataFlow connections in which ApplicationComponent is the source are searched; the Interface objects at the other end are the join results.
 
-`joinDirection=both` kombiniert outbound und inbound; doppelte Treffer (wenn eine Entität sowohl Source als auch Target ist) werden dedupliziert.
+`joinDirection=both` combines outbound and inbound; duplicate hits (if an entity is both source and target) are deduplicated.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
+**Inputs**:
 
-| Feld | Typ | Optional | Beschreibung |
+| Field | Type | Optional | Description |
 |---|---|---|---|
-| name | string | Pflicht | Lesbarer Label des Joins (z.B. „Schnittstellen") |
-| connectionType | string | Pflicht | EntityType-Name; muss `isConnection=true` haben (BR-02) |
-| joinDirection | enum | Pflicht | `outbound`, `inbound`, `both` |
-| targetEntityType | string | Pflicht | EntityType der Zielentität; muss via connectionType erreichbar sein (BR-03) |
-| targetColumns | ColumnConfig[] | Pflicht | Mind. 1 Eintrag; `attributeName` muss Attribut von targetEntityType sein |
-| defaultJoinMode | enum | optional | `rows` oder `aggregate`; Default = Catalog.defaultJoinMode |
-| aggregateLabel | string | optional | Max. 255 Zeichen; Label der aggregierten Zelle; Default = name |
+| name | string | mandatory | Readable label of the join (e.g., "Interfaces") |
+| connectionType | string | mandatory | EntityType name; must have `isConnection=true` (BR-02) |
+| joinDirection | enum | mandatory | `outbound`, `inbound`, `both` |
+| targetEntityType | string | mandatory | EntityType of the target entity; must be reachable via connectionType (BR-03) |
+| targetColumns | ColumnConfig[] | mandatory | At least 1 entry; `attributeName` must be an attribute of targetEntityType |
+| defaultJoinMode | enum | optional | `rows` or `aggregate`; default = Catalog.defaultJoinMode |
+| aggregateLabel | string | optional | Max. 255 characters; label of the aggregated cell; default = name |
 
-**Verarbeitung**:
+**Processing**:
 
-1. `connectionType` gegen MetamodelConfiguration validieren: muss existieren und `isConnection=true` haben (BR-02); 422 sonst
-2. `targetEntityType` gegen `allowedSourceTypes` und `allowedTargetTypes` des ConnectionTypes validieren (unter Berücksichtigung von `joinDirection`); 422 wenn nicht erreichbar (BR-03)
-3. `targetColumns[].attributeName` gegen Attribute des `targetEntityType` validieren; 422 bei unbekannten Attributnamen
-4. JoinDefinition mit generierter `id` im Catalog persistieren
+1. Validate `connectionType` against the MetamodelConfiguration: must exist and have `isConnection=true` (BR-02); otherwise 422
+2. Validate `targetEntityType` against `allowedSourceTypes` and `allowedTargetTypes` of the ConnectionType (taking `joinDirection` into account); 422 if not reachable (BR-03)
+3. Validate `targetColumns[].attributeName` against the attributes of the `targetEntityType`; 422 on unknown attribute names
+4. Persist the JoinDefinition with a generated `id` in the catalog
 
-**Ausgaben**:
+**Outputs**:
 
-- HTTP 201 Created mit aktualisiertem Catalog-Objekt (inkl. neuer JoinDefinition mit id)
-- HTTP 422 Unprocessable Entity bei Validierungsfehlern
-- HTTP 403 Forbidden bei fehlender Schreibberechtigung
+- HTTP 201 Created with the updated catalog object (including the new JoinDefinition with id)
+- HTTP 422 Unprocessable Entity on validation errors
+- HTTP 403 Forbidden on missing write permission
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Join hinzufügen, Happy Path):
-- Gegeben: Catalog „Application Inventory" mit primaryEntityType=ApplicationComponent; MetamodelConfiguration hat ConnectionType `DataFlow` (isConnection=true, allowedSourceTypes=[ApplicationComponent], allowedTargetTypes=[Interface])
-- Wenn: `POST /api/v1/catalogs/{id}/joins` mit `{ name: "Schnittstellen", connectionType: "DataFlow", joinDirection: "outbound", targetEntityType: "Interface", targetColumns: [{attributeName: "name", sortOrder: 0}], defaultJoinMode: "aggregate" }`
-- Dann: HTTP 201; Catalog enthält neue JoinDefinition mit generierter id
+**AC1** (Add join, happy path):
+- Given: catalog "Application Inventory" with primaryEntityType=ApplicationComponent; the MetamodelConfiguration has ConnectionType `DataFlow` (isConnection=true, allowedSourceTypes=[ApplicationComponent], allowedTargetTypes=[Interface])
+- When: `POST /api/v1/catalogs/{id}/joins` with `{ name: "Interfaces", connectionType: "DataFlow", joinDirection: "outbound", targetEntityType: "Interface", targetColumns: [{attributeName: "name", sortOrder: 0}], defaultJoinMode: "aggregate" }`
+- Then: HTTP 201; the catalog contains the new JoinDefinition with a generated id
 
-**AC2** (BR-02 – connectionType kein Connection-Typ):
-- Gegeben: `ApplicationComponent` hat `isConnection=false`
-- Wenn: `connectionType: "ApplicationComponent"` im Request
-- Dann: HTTP 422 „Der Typ ‹ApplicationComponent› ist kein Connection-Typ (isConnection=false)"
+**AC2** (BR-02 – connectionType is not a connection type):
+- Given: `ApplicationComponent` has `isConnection=false`
+- When: `connectionType: "ApplicationComponent"` in the request
+- Then: HTTP 422 "The type ‹ApplicationComponent› is not a connection type (isConnection=false)"
 
-**AC3** (BR-03 – targetEntityType nicht erreichbar):
-- Gegeben: DataFlow hat `allowedTargetTypes=[Interface]`
-- Wenn: `targetEntityType: "TechnologyComponent"` bei `joinDirection=outbound`
-- Dann: HTTP 422 „Der EntityType ‹TechnologyComponent› ist über ‹DataFlow› in Richtung outbound nicht erreichbar"
+**AC3** (BR-03 – targetEntityType not reachable):
+- Given: DataFlow has `allowedTargetTypes=[Interface]`
+- When: `targetEntityType: "TechnologyComponent"` with `joinDirection=outbound`
+- Then: HTTP 422 "The EntityType ‹TechnologyComponent› is not reachable via ‹DataFlow› in direction outbound"
 
-**AC4** (Join entfernen):
-- Wenn: `DELETE /api/v1/catalogs/{id}/joins/{joinId}`
-- Dann: HTTP 200; JoinDefinition entfernt; bestehende SavedViews werden um JoinModeOverrides für diesen Join bereinigt
+**AC4** (Remove join):
+- When: `DELETE /api/v1/catalogs/{id}/joins/{joinId}`
+- Then: HTTP 200; JoinDefinition removed; existing SavedViews are cleaned of JoinModeOverrides for this join
 
-**AC5** (targetColumns-Validierung):
-- Gegeben: Interface hat kein Attribut `nonExistingProp`
-- Wenn: targetColumns enthält `attributeName: "nonExistingProp"`
-- Dann: HTTP 422 „Das Attribut ‹nonExistingProp› ist für den Typ ‹Interface› nicht definiert"
+**AC5** (targetColumns validation):
+- Given: Interface has no attribute `nonExistingProp`
+- When: targetColumns contains `attributeName: "nonExistingProp"`
+- Then: HTTP 422 "The attribute ‹nonExistingProp› is not defined for the type ‹Interface›"
 
-## Abhängigkeiten
+## Dependencies
 
-- Blockiert durch: REQ-043 (Catalog muss existieren), REQ-036 (Connection-EntityTypes müssen in Metamodell definiert sein)
-- Ermöglicht: REQ-046 (Join-Ergebnisse in Abfrage), REQ-049 (Join-Modus wechseln)
+- Blocked by: REQ-043 (the catalog must exist), REQ-036 (connection EntityTypes must be defined in the metamodel)
+- Enables: REQ-046 (join results in query), REQ-049 (switch join mode)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
 - Endpoints: `POST /api/v1/catalogs/{id}/joins`, `PUT /api/v1/catalogs/{id}/joins/{joinId}`, `DELETE /api/v1/catalogs/{id}/joins/{joinId}`
-- `joinDirection=both`: outbound + inbound traversieren; Ergebnisse per entityId deduplizieren
-- Reihenfolge der Joins: nach Anlage-Reihenfolge; optional durch den Manager umsortierbar
+- `joinDirection=both`: traverse outbound + inbound; deduplicate results by entityId
+- Order of joins: by creation order; optionally reorderable by the manager
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft |

@@ -1,6 +1,6 @@
 ---
 id: REQ-126
-title: Enforcement role-restricted Property-Sichtbarkeit
+title: Enforcement of role-restricted Property Visibility
 type: functional
 priority: must
 status: proposed
@@ -24,50 +24,50 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-126: Enforcement role-restricted Property-Sichtbarkeit
+# REQ-126: Enforcement of role-restricted Property Visibility
 
-## Aussage
+## Statement
 
-Die Entity-API MUSS bei Rückgabe einer Entität alle `PropertyDefinition`-Werte mit `visibilityMode = role-restricted` für Nutzer ohne eine der konfigurierten `allowedRoles` durch `null` ersetzen. Das Frontend MUSS ein `null`-Wert-Feld mit `visibilityMode ≠ public` als **leer und nicht editierbar** darstellen — ohne Hinweis auf den tatsächlichen Wert. Die Filterung erfolgt serverseitig; der tatsächliche Wert DARF den Client für nicht-berechtigte Nutzer niemals erreichen.
+When returning an entity, the entity API MUST replace all `PropertyDefinition` values with `visibilityMode = role-restricted` with `null` for users without one of the configured `allowedRoles`. The frontend MUST display a `null`-valued field with `visibilityMode ≠ public` as **empty and not editable** — without any hint of the actual value. Filtering happens server-side; the actual value MUST NEVER reach the client for unauthorized users.
 
-## Begründung
+## Rationale
 
-Clientseitiges Ausblenden reicht nicht — ein technisch versierter Nutzer könnte den API-Response direkt lesen. Die Vertraulichkeit muss serverseitig erzwungen werden.
+Hiding on the client side is not sufficient — a technically savvy user could read the API response directly. Confidentiality must be enforced server-side.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (API-Response):
-- Wenn: Nutzer ohne erlaubte Rolle Entity mit role-restricted Property abruft
-- Dann: API-Response enthält `"investitionskostenPrognose": null`; kein tatsächlicher Wert im Response
+**AC1** (API response):
+- When: a user without an allowed role retrieves an entity with a role-restricted property
+- Then: the API response contains `"investitionskostenPrognose": null`; no actual value in the response
 
-**AC2** (UI leer und read-only):
-- Wenn: Nutzer ohne Berechtigung das Entity-Detailformular öffnet
-- Dann: Eingeschränktes Feld ist leer dargestellt; Eingabe ist deaktiviert; kein Tooltip mit echtem Wert
+**AC2** (UI empty and read-only):
+- When: a user without permission opens the entity detail form
+- Then: the restricted field is displayed empty; input is disabled; no tooltip with the real value
 
-**AC3** (Schreibschutz):
-- Wenn: Nutzer ohne Berechtigung versucht, das Feld via API direkt zu beschreiben (PATCH)
-- Dann: API antwortet mit HTTP 403; Wert wird nicht geändert
+**AC3** (Write protection):
+- When: a user without permission tries to write to the field directly via the API (PATCH)
+- Then: the API responds with HTTP 403; the value is not changed
 
-**AC4** (Berechtigter Nutzer):
-- Wenn: Nutzer mit einer der `allowedRoles` dasselbe Feld abruft
-- Dann: Tatsächlicher Wert wird zurückgegeben; Feld ist editierbar
+**AC4** (Authorized user):
+- When: a user with one of the `allowedRoles` retrieves the same field
+- Then: the actual value is returned; the field is editable
 
-**AC5** (Katalog-Konsistenz):
-- Wenn: Katalog (UC-06) eine Spalte auf ein role-restricted Property zeigt
-- Dann: Spalte zeigt für nicht-berechtigte Nutzer leere Zellen; Sortierung und Filterung dieser Spalte sind für diese Nutzer deaktiviert
+**AC5** (Catalog consistency):
+- When: a catalog (UC-06) shows a column for a role-restricted property
+- Then: the column shows empty cells for unauthorized users; sorting and filtering of this column are disabled for these users
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-124 (Datenmodell), REQ-001 (Authentifizierung), REQ-003 (Rollenzuweisung)
-- **Folgewirkungen**: –
+- **Prerequisites**: REQ-124 (data model), REQ-001 (authentication), REQ-003 (role assignment)
+- **Consequences**: –
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Filterung auf API-Ebene in der Entity-Read-Pipeline (Middleware/Interceptor); kein DB-Filter nötig — der Wert wird nach dem Lesen maskiert
-- Rollen-Check: `currentUser.roles ∩ property.allowedRoles ≠ ∅` → sichtbar
+- Filtering at the API level in the entity read pipeline (middleware/interceptor); no DB filter needed — the value is masked after reading
+- Role check: `currentUser.roles ∩ property.allowedRoles ≠ ∅` → visible
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

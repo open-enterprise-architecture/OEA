@@ -1,6 +1,6 @@
 ---
 id: REQ-095
-title: Navigationsbaum Items als Soft-References
+title: Navigation tree items as soft references
 type: functional
 priority: must
 status: proposed
@@ -22,39 +22,39 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-095: Navigationsbaum Items als Soft-References
+# REQ-095: Navigation tree items as soft references
 
-## Aussage
+## Statement
 
-Das System MUSS das Hinzufügen und Entfernen von Repository-Inhalten (Entitäten, Diagramme, Kataloge) als TreeNodeItems zu Ordnern ermöglichen. Das Entfernen eines Items MUSS ausschliesslich den Navigationseintrag (TreeNodeItem) löschen; das referenzierte Objekt DARF dabei NICHT verändert oder gelöscht werden. Das System MUSS verwaiste Items (Zielobjekt inzwischen gelöscht) mit einem Warnsymbol kennzeichnen und die Bereinigung ermöglichen.
+The system MUST enable adding and removing repository contents (entities, diagrams, catalogs) as TreeNodeItems to folders. Removing an item MUST delete exclusively the navigation entry (TreeNodeItem); the referenced object MUST NOT be changed or deleted in the process. The system MUST mark orphaned items (target object has since been deleted) with a warning symbol and enable cleanup.
 
-## Begründung
+## Rationale
 
-Der Navigationsbaum ist eine reine Navigationshilfe (Soft-Reference-Prinzip). Eine Kopplung von Navigation und Datenlöschung würde zu unbeabsichtigtem Datenverlust führen und den Baum als unabhängige Strukturierungsebene wertlos machen.
+The navigation tree is a pure navigation aid (soft-reference principle). Coupling navigation and data deletion would lead to unintended data loss and make the tree worthless as an independent structuring layer.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Item-Entfernung ohne Datenverlust):
-- Wenn: ein TreeNodeItem entfernt wird
-- Dann: ist das TreeNodeItem gelöscht; die referenzierte Entität existiert weiterhin (HTTP 200 auf die Entität)
+**AC1** (Item removal without data loss):
+- When: a TreeNodeItem is removed
+- Then: the TreeNodeItem is deleted; the referenced entity still exists (HTTP 200 on the entity)
 
-**AC2** (Verwaiste Items markieren):
-- Wenn: eine Entität gelöscht wird, die als Item in 2 Ordnern referenziert ist
-- Dann: zeigen beide Items ein Warnsymbol; die Entität ist nicht durch Item-Entfernung wiederherstellbar
+**AC2** (Mark orphaned items):
+- When: an entity that is referenced as an item in 2 folders is deleted
+- Then: both items show a warning symbol; the entity is not restorable by removing the item
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-094 (Ordner existieren)
-- **Folgewirkungen**: REQ-097 (Mehrfach-Einordnung)
+- **Prerequisites**: REQ-094 (folders exist)
+- **Downstream effects**: REQ-097 (multiple placement)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Soft-Reference-Prinzip gemäss BR-05, BR-06 in `tree-node.md`
-- Verwaiste Items per Background-Job oder bei Anzeige prüfen (lazy vs. eager)
-- Bereinigung: Bulk-Delete für verwaiste Items als eigene UI-Aktion
+- Soft-reference principle per BR-05, BR-06 in `tree-node.md`
+- Check orphaned items via background job or on display (lazy vs. eager)
+- Cleanup: bulk delete for orphaned items as a separate UI action
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

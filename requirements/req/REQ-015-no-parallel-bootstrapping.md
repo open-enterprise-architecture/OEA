@@ -1,6 +1,6 @@
 ---
 id: REQ-015
-title: Kein paralleles oder wiederholtes Bootstrapping
+title: No parallel or repeated bootstrapping
 type: business-rule
 priority: must
 status: proposed
@@ -18,94 +18,94 @@ references:
   stakeholders:
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-015: Kein paralleles oder wiederholtes Bootstrapping
+# REQ-015: No parallel or repeated bootstrapping
 
-## Aussage
+## Statement
 
-Das System DARF NICHT mehr als einen aktiven Bootstrapping-Vorgang gleichzeitig zulassen, und MUSS einen erneuten Bootstrapping-Versuch verweigern, sobald für die Instanz bereits ein [System-Admin-Account](../../business-objects/system-admin-account.md) existiert.
+The system MUST NOT allow more than one active bootstrapping process at the same time, and MUST refuse a new bootstrapping attempt as soon as a [system admin account](../../business-objects/system-admin-account.md) already exists for the instance.
 
-## Begründung
+## Rationale
 
-Ohne diese Regel könnte ein Race Condition zwischen zwei parallelen Bootstrapping-Versuchen zu inkonsistenten Zuständen führen, oder ein Angreifer mit kurzfristigem Zugriff auf eine bereits konfigurierte Instanz könnte versuchen, einen zusätzlichen, eigenen System-Admin-Account anzulegen. UC-02, Business Rule BR-01 (`system-admin-account.md`) und Exception Flow E3.
+Without this rule, a race condition between two parallel bootstrapping attempts could lead to inconsistent states, or an attacker with short-term access to an already configured instance could try to create an additional system admin account of their own. UC-02, Business Rule BR-01 (`system-admin-account.md`) and Exception Flow E3.
 
-## Kontext
+## Context
 
-Gilt für den Zeitraum der Erstinstallation (Race-Condition-Schutz) sowie für jeden späteren Zeitpunkt, an dem bereits ein Account existiert (Wiederholungs-Schutz).
+Applies to the period of initial installation (race condition protection) as well as to any later point at which an account already exists (repetition protection).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=business-rule
+### For type=business-rule
 
-**Auslöser**: onCreate (Versuch, einen System-Admin-Account anzulegen)
+**Trigger**: onCreate (attempt to create a system admin account)
 
-**Betroffene Business Objects**: [system-admin-account](../../business-objects/system-admin-account.md)
+**Affected Business Objects**: [system-admin-account](../../business-objects/system-admin-account.md)
 
-**Formale Aussage** (vereinfacht):
+**Formal Statement** (simplified):
 ```
 if exists(SystemAdminAccount for instance) or bootstrappingInProgress(instance):
     reject(new bootstrapping attempt)
 ```
 
-**Beispiel**: Zwei parallele Setup-Wizard-Aufrufe auf derselben frisch installierten Instanz dürfen nicht zu zwei unterschiedlichen System-Admin-Accounts führen; nur der erste abgeschlossene Vorgang gewinnt, der zweite wird abgelehnt.
+**Example**: Two parallel setup wizard calls on the same freshly installed instance must not lead to two different system admin accounts; only the first completed process wins, the second is rejected.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: zwei nahezu gleichzeitig gestartete Bootstrapping-Versuche auf derselben frischen Instanz
-- Wenn: beide um Abschluss konkurrieren
-- Dann: wird genau einer erfolgreich abgeschlossen, der andere abgelehnt
+- Given: two bootstrapping attempts started almost simultaneously on the same fresh instance
+- When: both compete to complete
+- Then: exactly one completes successfully, the other is rejected
 
 **AC2**:
-- Gegeben: eine Instanz mit bereits bestehendem System-Admin-Account
-- Wenn: ein erneuter Bootstrapping-Versuch unternommen wird
-- Dann: wird dieser ohne explizite Reset-Aktion durch einen bestehenden System-Admin-Account abgelehnt
+- Given: an instance with an already existing system admin account
+- When: a new bootstrapping attempt is made
+- Then: it is rejected without an explicit reset action by an existing system admin account
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: parallele Bootstrapping-Versuche (Concurrency-Test), Bootstrapping-Versuch auf bereits konfigurierter Instanz
-- [x] Mess-Werkzeug: Test-Suite des Auth-Moduls
-- [x] Bestanden-Kriterium: AC1, AC2 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: parallel bootstrapping attempts (concurrency test), bootstrapping attempt on an already configured instance
+- [x] Measurement tool: test suite of the auth module
+- [x] Pass criterion: AC1, AC2 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-013 und/oder REQ-014 (es muss überhaupt einen Bootstrapping-Mechanismus geben, den diese Regel einschränkt)
-- **Folgewirkungen**: keine bekannt
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-013 and/or REQ-014 (there must be a bootstrapping mechanism at all that this rule restricts)
+- **Downstream effects**: none known
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne diese Regel könnte ein zweiter, unautorisierter System-Admin-Account neben dem legitimen entstehen – schwerwiegendes Sicherheitsrisiko (Privilege-Escalation-Vektor)
+- Risk 1: Without this rule, a second, unauthorized system admin account could arise alongside the legitimate one – severe security risk (privilege escalation vector)
 
 ## Trade-offs
 
-- keine bekannt
+- none known
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Erfordert einen atomaren Check-and-Set-Mechanismus (z.B. Datenbank-Constraint oder Distributed Lock), nicht nur eine einfache Existenzprüfung vor dem Schreiben
+- Requires an atomic check-and-set mechanism (e.g., database constraint or distributed lock), not just a simple existence check before writing
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-02, Exception Flow E3, und Business Rule BR-01 aus `system-admin-account.md`.
+Derived from UC-02, Exception Flow E3, and Business Rule BR-01 from `system-admin-account.md`.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft aus UC-02 |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-02 |

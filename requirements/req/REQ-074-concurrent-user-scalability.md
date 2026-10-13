@@ -1,6 +1,6 @@
 ---
 id: REQ-074
-title: Gleichzeitige Nutzer und Skalierbarkeit
+title: Concurrent users and scalability
 type: non-functional
 priority: should
 status: proposed
@@ -20,103 +20,103 @@ references:
     - SH-05
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-074: Gleichzeitige Nutzer und Skalierbarkeit
+# REQ-074: Concurrent users and scalability
 
-## Aussage
+## Statement
 
-Das System MUSS unter Last von **50 gleichzeitigen aktiven Nutzern** die in REQ-008, REQ-071 und REQ-072 definierten Latenzziele einhalten, ohne Degradierung der p95-Werte um mehr als den Faktor 2. Das System SOLL ein Architecture-Repository mit bis zu **500.000 ArchitectureEntities** (Elemente und Connections kombiniert) ohne funktionale Einschränkungen unterstützen.
+The system MUST meet the latency targets defined in REQ-008, REQ-071 and REQ-072 under a load of **50 concurrent active users**, without degrading the p95 values by more than a factor of 2. The system SHOULD support an architecture repository with up to **500,000 ArchitectureEntities** (elements and connections combined) without functional restrictions.
 
-## Begründung
+## Rationale
 
-OEA wird in Konzernen mit grossen EA-Teams eingesetzt (SH-05: Konzern mit gemischtem OEA-Stack) und muss bei gleichzeitiger Nutzung durch mehrere Domänen-Architekten stabil bleiben. Gleichzeitig muss die Datenmenge skalieren: ein vollständig modellierter Konzern-IT-Bebauungsplan (alle Applikationen, Schnittstellen, Technologien, Personas, Capabilities) erreicht leicht 50.000–200.000 Entitäten.
+OEA is used in corporate groups with large EA teams (SH-05: corporate group with mixed OEA stack) and must remain stable under simultaneous use by multiple domain architects. At the same time, the data volume must scale: a fully modeled corporate IT landscape map (Bebauungsplan) (all applications, interfaces, technologies, personas, capabilities) easily reaches 50,000–200,000 entities.
 
-## Kontext
+## Context
 
-„Gleichzeitige aktive Nutzer" bedeutet: Nutzer, die innerhalb desselben 60-Sekunden-Fensters mindestens eine API-Anfrage absetzen. Lesende Zugriffe (Katalog, Diagramme) dominieren; schreibende Zugriffe (EntityDeltas, Metamodell-Änderungen) sind seltener. Der Zielwert von 50 Nutzern deckt KMU bis mittlere Konzerne ab; für grosse Konzerne (> 200 Nutzer) ist horizontale Skalierung (mehrere API-Instanzen, Load-Balancer) Deployment-Verantwortung des Betreibers.
+"Concurrent active users" means: users who issue at least one API request within the same 60-second window. Read accesses (catalog, diagrams) dominate; write accesses (EntityDeltas, metamodel changes) are rarer. The target value of 50 users covers SMEs up to mid-sized corporate groups; for large corporate groups (> 200 users), horizontal scaling (multiple API instances, load balancer) is the deployment responsibility of the operator.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=non-functional
+### For type=non-functional
 
-**Kategorie**: scalability
+**Category**: scalability
 
-**Messbare Zielwerte**:
+**Measurable Target Values**:
 
-| Metrik | Zielwert | Schwellwert (warning) | Scope |
+| Metric | Target value | Threshold (warning) | Scope |
 |---|---|---|---|
-| Max. gleichzeitige aktive Nutzer ohne Latenz-Degradierung > 2× | 50 Nutzer | 30 Nutzer | Standard-Deployment (1 API-Instanz, 1 DB-Instanz) |
-| Max. ArchitectureEntities im Repository | 500.000 | | alle Typen kombiniert (Elemente + Connections) |
-| Katalog-Abfrage-p95 bei 50 Nutzern | ≤ 2× REQ-071-Zielwert | | 50 parallele Requests |
-| Login-p95 bei 50 Nutzern | ≤ 2× REQ-008-Zielwert | | 50 parallele Login-Vorgänge |
-| Write-Throughput (EntityDelta speichern) | ≥ 20 Schreibvorgänge/s | | bei 50 aktiven Nutzern |
+| Max. concurrent active users without latency degradation > 2× | 50 users | 30 users | Standard deployment (1 API instance, 1 DB instance) |
+| Max. ArchitectureEntities in the repository | 500,000 | | all types combined (elements + connections) |
+| Catalog query p95 with 50 users | ≤ 2× REQ-071 target value | | 50 parallel requests |
+| Login p95 with 50 users | ≤ 2× REQ-008 target value | | 50 parallel login operations |
+| Write throughput (save EntityDelta) | ≥ 20 writes/s | | with 50 active users |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (50 gleichzeitige Nutzer — Katalog):
-- Gegeben: 50 virtuelle Nutzer senden gleichzeitig `GET /api/v1/catalogs/{id}/data`; Repository mit 10.000 Entitäten
-- Wenn: Lasttest läuft 5 Minuten
-- Dann: p95-Latenz ≤ 2 × 500ms = 1.000ms (REQ-071-Zielwert × 2); kein HTTP 5xx; kein Timeout
+**AC1** (50 concurrent users — catalog):
+- Given: 50 virtual users simultaneously send `GET /api/v1/catalogs/{id}/data`; repository with 10,000 entities
+- When: Load test runs for 5 minutes
+- Then: p95 latency ≤ 2 × 500ms = 1,000ms (REQ-071 target value × 2); no HTTP 5xx; no timeout
 
-**AC2** (50 gleichzeitige Nutzer — Login):
-- Gegeben: 50 virtuelle Nutzer senden gleichzeitig OIDC-Token-Einlösung
-- Wenn: Lasttest 1 Minute
-- Dann: p95-Login-Latenz ≤ 2 × 300ms = 600ms (REQ-008-Zielwert × 2)
+**AC2** (50 concurrent users — login):
+- Given: 50 virtual users simultaneously redeem an OIDC token
+- When: Load test for 1 minute
+- Then: p95 login latency ≤ 2 × 300ms = 600ms (REQ-008 target value × 2)
 
-**AC3** (500.000 Entitäten — Funktionalität):
-- Gegeben: Repository mit 500.000 ArchitectureEntities (verschiedene EntityTypes)
-- Wenn: Standard-Katalog-Abfrage, Diagramm-Öffnen, Lineage-Query
-- Dann: Keine Timeouts; keine OOM-Fehler; korrekte Ergebnisse
+**AC3** (500,000 entities — functionality):
+- Given: Repository with 500,000 ArchitectureEntities (various EntityTypes)
+- When: Standard catalog query, opening a diagram, lineage query
+- Then: No timeouts; no OOM errors; correct results
 
-**AC4** (500.000 Entitäten — Katalog-Latenz):
-- Gegeben: 500.000 Entitäten; Katalog für primaryEntityType mit 50.000 Instanzen
-- Wenn: Katalog-Abfrage, erste Seite (50 Einträge), kein Join
-- Dann: p95 < 500ms (durch Cursor-Paginierung ist das unabhängig von Gesamtgrösse)
+**AC4** (500,000 entities — catalog latency):
+- Given: 500,000 entities; catalog for primaryEntityType with 50,000 instances
+- When: Catalog query, first page (50 entries), no join
+- Then: p95 < 500ms (thanks to cursor pagination this is independent of total size)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert, Lasttest)
-- [x] Test-Setup: k6 / Locust Lasttest; synthetisches Repository mit 10.000–500.000 Entitäten; 50 virtuelle Nutzer
-- [x] Mess-Werkzeug: k6 oder Locust (HTTP-Lasttest); DB-Monitoring (Query-Plan, Lock-Contention)
-- [x] Bestanden-Kriterium: p95-Werte gemäss Tabelle; 0 HTTP 5xx; kein OOM
-- [ ] In CI integriert: nein (zu ressourcenintensiv für Standard-CI); als Release-Gate vor Major-Version
+- [x] Method: test (automated, load test)
+- [x] Test setup: k6 / Locust load test; synthetic repository with 10,000–500,000 entities; 50 virtual users
+- [x] Measuring tool: k6 or Locust (HTTP load test); DB monitoring (query plan, lock contention)
+- [x] Pass criterion: p95 values according to table; 0 HTTP 5xx; no OOM
+- [ ] Integrated in CI: no (too resource-intensive for standard CI); as a release gate before a major version
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-008 (Login-Latenz), REQ-071 (Katalog-Latenz), REQ-072 (Canvas-Latenz) — diese NFRs definieren den Einzel-Nutzer-Baseline
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-008 (login latency), REQ-071 (catalog latency), REQ-072 (canvas latency) — these NFRs define the single-user baseline
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Konzern-Rollout scheitert: parallele Nutzung durch mehrere EA-Teams führt zu inakzeptablen Antwortzeiten
-- Grosse EA-Modelle (Konzern mit tausenden Applikationen) können nicht vollständig erfasst werden
+- Corporate group rollout fails: parallel use by multiple EA teams leads to unacceptable response times
+- Large EA models (corporate group with thousands of applications) cannot be captured completely
 
 ## Trade-offs
 
-- 500.000 Entitäten sind mit relationale DB (Postgres) + korrekten Indizes erreichbar; kein NoSQL nötig
-- Horizontale Skalierung (mehrere API-Instanzen) für > 50 Nutzer: Session-Management muss zustandslos sein (JWT, kein serverseitiger Session-State) — dies ist Designentscheidung für Walking-Skeleton
-- Connection-Pool-Konfiguration (max. DB-Connections) muss auf 50 Nutzer ausgelegt sein: ~10–15 Connections/Instanz
+- 500,000 entities are achievable with a relational DB (Postgres) + correct indexes; no NoSQL needed
+- Horizontal scaling (multiple API instances) for > 50 users: session management must be stateless (JWT, no server-side session state) — this is a design decision for the walking skeleton
+- Connection pool configuration (max. DB connections) must be sized for 50 users: ~10–15 connections/instance
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- API-Server muss zustandslos sein (kein In-Memory-Session-State) → horizontale Skalierung ohne Sticky Sessions
-- DB-Connection-Pool: HikariCP oder pgBouncer empfohlen
-- 500.000 Entitäten: Tabellen-Partitionierung nach `entityTypeId` prüfen ab 1M Einträgen
+- API server must be stateless (no in-memory session state) → horizontal scaling without sticky sessions
+- DB connection pool: HikariCP or pgBouncer recommended
+- 500,000 entities: consider table partitioning by `entityTypeId` from 1M entries
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |

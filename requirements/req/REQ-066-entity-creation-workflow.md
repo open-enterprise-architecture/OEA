@@ -1,6 +1,6 @@
 ---
 id: REQ-066
-title: Konfigurierbare Entity-Anlage-Workflows (Wizard)
+title: Configurable entity creation workflows (wizard)
 type: functional
 priority: must
 status: proposed
@@ -26,40 +26,40 @@ references:
     - SH-03
     - SH-07
   concept:
-    - concept/20-entities/14-erweiterbarkeit.md
+    - concept/20-entities/14-extensibility.md
     - concept/20-entities/15-schema-evolution.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-066: Konfigurierbare Entity-Anlage-Workflows (Wizard)
+# REQ-066: Configurable entity creation workflows (wizard)
 
-## Aussage
+## Statement
 
-Das System MUSS für jeden `EntityTypeDefinition` mit mindestens einem konfigurierten `creationStep` beim Anlegen einer neuen Entität — egal ob im Katalog-Kontext oder im Diagramm-Kontext — automatisch einen mehrseitigen Wizard öffnen. Jeder `CreationStep` entspricht genau einer Pop-over-Seite. Navigation: „Weiter" für alle Schritte ausser dem letzten, „Fertig" auf dem letzten Schritt. Nach „Fertig" wird die Entität atomisch im Repository persistiert und steht sofort im auslösenden Kontext zur Verfügung.
+For every `EntityTypeDefinition` with at least one configured `creationStep`, the system MUST automatically open a multi-page wizard when creating a new entity — regardless of whether in the catalog context or the diagram context. Each `CreationStep` corresponds to exactly one popover page. Navigation: "Next" for all steps except the last, "Done" on the last step. After "Done", the entity is persisted atomically in the repository and is immediately available in the triggering context.
 
-## Begründung
+## Rationale
 
-OEA soll den grösstmöglichen Freiheitsgrad im Metamodell erlauben: jede Instanz definiert ihre eigenen EntityTypes, Properties und Regeln. Reine save-time-Validierungen (ConstraintRule, MandatoryConnectionConstraint) blockieren nachträglich — sie bieten aber keine proaktive Führung durch Pflichtfelder und Pflichtverknüpfungen. Der Wizard löst dieses Problem, indem er Nutzer Schritt für Schritt durch alle konfigurierten Anforderungen führt, bevor die Entität überhaupt angelegt wird. Das Ergebnis ist ein vollständiges, regelkonformes Objekt — ohne Nacharbeit.
+OEA should allow the greatest possible degree of freedom in the metamodel: each instance defines its own EntityTypes, properties and rules. Pure save-time validations (ConstraintRule, MandatoryConnectionConstraint) block after the fact — but they offer no proactive guidance through mandatory fields and mandatory links. The wizard solves this problem by guiding users step by step through all configured requirements before the entity is even created. The result is a complete, rule-compliant object — without rework.
 
-## Kontext
+## Context
 
-Die `creationSteps`-Konfiguration sitzt auf `EntityTypeDefinition` in der MetamodelConfiguration (BO: metamodel-configuration.md, Version 0.8.0). Drei Step-Typen:
-- `properties`: zeigt alle Properties einer `propertyCategory`
-- `domainAssignment`: zeigt Architekturdomänen-Auswahl (Multi-Select)
-- `connectionAssignment`: zeigt Zielentitäts-Suche + Auswahl; erstellt Connection nach Fertigstellung
+The `creationSteps` configuration sits on `EntityTypeDefinition` in the MetamodelConfiguration (BO: metamodel-configuration.md, version 0.8.0). Three step types:
+- `properties`: shows all properties of a `propertyCategory`
+- `domainAssignment`: shows architecture domain selection (multi-select)
+- `connectionAssignment`: shows target entity search + selection; creates the connection after completion
 
-Der Wizard gilt für **alle** Anlage-Einstiegspunkte:
-- „+ Entität" im Katalog (Katalog-Kontext: nach Fertig erscheint die Entität als neue Zeile)
-- „Element platzieren" im Diagramm (Diagramm-Kontext: nach Fertig erscheint das Shape auf dem Canvas)
-- API (`POST /api/v1/entities` mit Wizard-Payload)
+The wizard applies to **all** creation entry points:
+- "+ Entity" in the catalog (catalog context: after Done, the entity appears as a new row)
+- "Place element" in the diagram (diagram context: after Done, the shape appears on the canvas)
+- API (`POST /api/v1/entities` with wizard payload)
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Konfiguration (Metamodell-Ebene, UC-04)
+### Configuration (Metamodel Level, UC-04)
 
-Ein Metamodell-Konfigurateur legt die Steps in der MetamodelConfiguration fest:
+A metamodel configurator defines the steps in the MetamodelConfiguration:
 
 ```yaml
 entityTypeDefinitions:
@@ -67,28 +67,28 @@ entityTypeDefinitions:
     name: ApplicationComponent
     creationSteps:
       - stepId: basic-info
-        title: "Basisdaten"
-        description: "Name und grundlegende Informationen"
+        title: "Basic data"
+        description: "Name and basic information"
         stepType: properties
-        propertyCategory: "Allgemein"
+        propertyCategory: "General"
 
       - stepId: domain-assignment
-        title: "Domänen-Zuordnung"
-        description: "Welcher Architekturdomäne gehört diese Applikation an?"
+        title: "Domain assignment"
+        description: "Which architecture domain does this application belong to?"
         stepType: domainAssignment
 
       - stepId: capability-link
-        title: "Capability-Verknüpfung"
-        description: "Welche Capability realisiert diese Applikation?"
+        title: "Capability link"
+        description: "Which capability does this application realize?"
         stepType: connectionAssignment
         connectionType: "realizes-capability"
         targetEntityType: "capability"
         minConnections: 1
 ```
 
-Mit dieser Konfiguration öffnet sich beim Anlegen einer ApplicationComponent ein 3-Seiten-Wizard: Schritt 1 zeigt Properties der Kategorie „Allgemein"; Schritt 2 zeigt Domänen-Auswahl; Schritt 3 zeigt Capability-Suche. Navigation: „Weiter" → „Weiter" → „Fertig".
+With this configuration, a 3-page wizard opens when creating an ApplicationComponent: step 1 shows properties of the category "General"; step 2 shows domain selection; step 3 shows capability search. Navigation: "Next" → "Next" → "Done".
 
-### Wizard-API (POST /api/v1/entities, erweitertes Payload)
+### Wizard API (POST /api/v1/entities, extended payload)
 
 ```json
 {
@@ -107,80 +107,80 @@ Mit dieser Konfiguration öffnet sich beim Anlegen einer ApplicationComponent ei
 }
 ```
 
-Das Backend erstellt die Entität und alle angegebenen Connections in einer Transaktion. Schlägt die Transaktion fehl, werden weder Entität noch Connections persistiert.
+The backend creates the entity and all specified connections in one transaction. If the transaction fails, neither the entity nor the connections are persisted.
 
-### Validierung
+### Validation
 
-- Mandatory-Felder des `properties`-Schritts: sofortige Inline-Validierung beim Verlassen des Feldes; „Weiter"-Button bleibt aktivierbar (damit der Nutzer vorwärts navigieren und zurückkehren kann), aber „Fertig" blockiert wenn mandatory Properties leer sind
-- `connectionAssignment` mit `minConnections=1`: „Fertig" blockiert, wenn keine Connection ausgewählt
-- `domainAssignment`: immer optional (minCount=0); keine Blockade
+- Mandatory fields of the `properties` step: immediate inline validation when leaving the field; the "Next" button remains activatable (so the user can navigate forward and return), but "Done" is blocked if mandatory properties are empty
+- `connectionAssignment` with `minConnections=1`: "Done" is blocked if no connection is selected
+- `domainAssignment`: always optional (minCount=0); no blocking
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Wizard öffnet sich automatisch – Katalog-Kontext):
-- Gegeben: ApplicationComponent hat 3 `creationSteps`
-- Wenn: Lukas klickt „+ Neue Entität" im ApplicationComponent-Catalog
-- Dann: Wizard öffnet sich auf Seite 1 „Basisdaten"; kein klassisches Anlage-Modal
+**AC1** (Wizard opens automatically – catalog context):
+- Given: ApplicationComponent has 3 `creationSteps`
+- When: Lukas clicks "+ New entity" in the ApplicationComponent catalog
+- Then: Wizard opens on page 1 "Basic data"; no classic creation modal
 
-**AC2** (Wizard öffnet sich automatisch – Diagramm-Kontext):
-- Wenn: Lukas platziert ein ApplicationComponent-Element im Diagramm (Drag & Drop aus Palette)
-- Dann: Wizard öffnet sich sofort; Entität ist erst nach „Fertig" auf dem Canvas sichtbar
+**AC2** (Wizard opens automatically – diagram context):
+- When: Lukas places an ApplicationComponent element in the diagram (drag & drop from palette)
+- Then: Wizard opens immediately; entity is only visible on the canvas after "Done"
 
-**AC3** (Navigation Weiter / Fertig):
-- Gegeben: 3 Schritte
-- Wenn: Lukas navigiert: Weiter → Weiter → Fertig
-- Dann: Schritt 1 → Schritt 2 → Schritt 3 → Fertig; Entität und alle Connections atomisch persistiert
+**AC3** (Navigation Next / Done):
+- Given: 3 steps
+- When: Lukas navigates: Next → Next → Done
+- Then: Step 1 → step 2 → step 3 → Done; entity and all connections persisted atomically
 
-**AC4** (Zurück-Navigation):
-- Wenn: Lukas ist auf Schritt 2 und klickt „Zurück"
-- Dann: Schritt 1 wird wieder angezeigt; eingegebene Daten aus Schritt 1 bleiben erhalten
+**AC4** (Back navigation):
+- When: Lukas is on step 2 and clicks "Back"
+- Then: Step 1 is displayed again; data entered in step 1 is retained
 
-**AC5** (Mandatory Property blockiert Fertig):
-- Gegeben: Schritt 1 hat Property `owner` (validationMode=mandatory); Lukas lässt es leer
-- Wenn: Lukas klickt „Fertig" (oder versucht nach Schritt 3 zu gelangen)
-- Dann: Fehlermeldung auf dem entsprechenden Schritt; keine Persistierung
+**AC5** (Mandatory property blocks Done):
+- Given: Step 1 has property `owner` (validationMode=mandatory); Lukas leaves it empty
+- When: Lukas clicks "Done" (or tries to reach step 3)
+- Then: Error message on the corresponding step; no persistence
 
 **AC6** (connectionAssignment minConnections=1):
-- Gegeben: Schritt 3 „Capability-Verknüpfung" mit minConnections=1
-- Wenn: Lukas klickt „Fertig" ohne eine Capability ausgewählt zu haben
-- Dann: Schritt 3 zeigt Fehler „Mind. 1 Capability muss verknüpft werden"; keine Persistierung
+- Given: Step 3 "Capability link" with minConnections=1
+- When: Lukas clicks "Done" without having selected a capability
+- Then: Step 3 shows error "At least 1 capability must be linked"; no persistence
 
-**AC7** (Abbruch = keine Entität):
-- Wenn: Lukas schliesst den Wizard (ESC oder X) auf Schritt 2
-- Dann: Keine Entität im Repository; keine teilangelegte Verbindung
+**AC7** (Cancel = no entity):
+- When: Lukas closes the wizard (ESC or X) on step 2
+- Then: No entity in the repository; no partially created connection
 
-**AC8** (Kein Wizard ohne creationSteps):
-- Gegeben: EntityType `stereotype` ohne `creationSteps` (leere Liste)
-- Wenn: Nutzer legt neue Instanz an
-- Dann: Klassisches Anlage-Modal (kein Wizard); kein Regressionsfehler
+**AC8** (No wizard without creationSteps):
+- Given: EntityType `stereotype` without `creationSteps` (empty list)
+- When: User creates a new instance
+- Then: Classic creation modal (no wizard); no regression error
 
-**AC9** (Atomische Persistierung):
-- Gegeben: Wizard mit Entität + 2 Connections
-- Wenn: Die zweite Connection-Erstellung schlägt serverseitig fehl (z.B. Zielentität gelöscht)
-- Dann: Weder Entität noch erste Connection sind persistent; HTTP 422 mit Fehlerbeschreibung
+**AC9** (Atomic persistence):
+- Given: Wizard with entity + 2 connections
+- When: The creation of the second connection fails server-side (e.g., target entity deleted)
+- Then: Neither the entity nor the first connection is persistent; HTTP 422 with error description
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: metamodel-configuration.md v0.8.0 (CreationStep); REQ-036 (EntityType-Konfiguration); REQ-033 (Import — Workflow-Konfiguration muss importierbar sein)
-- **Folgewirkungen**: Löst Kernproblem der proaktiven Datenvollständigkeit; ersetzt reaktive ConstraintRule-Blockaden für Pflicht-Properties und Pflicht-Connections
-- **Optionaler Konflikt**: ConstraintRule severity=error und MandatoryConnectionConstraint bleiben aktiv als save-time-Fallback; Wizard und Constraints sind komplementär
+- **Prerequisites**: metamodel-configuration.md v0.8.0 (CreationStep); REQ-036 (EntityType configuration); REQ-033 (import — workflow configuration must be importable)
+- **Downstream effects**: Solves the core problem of proactive data completeness; replaces reactive ConstraintRule blocks for mandatory properties and mandatory connections
+- **Optional conflict**: ConstraintRule severity=error and MandatoryConnectionConstraint remain active as a save-time fallback; wizard and constraints are complementary
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Frontend: Multi-Step-Panel-Komponente (Modal/Drawer); Schritt-Indikator (Breadcrumb oder Stepper oben)
-- Zustand: Wizard-State lokal im Frontend (kein Draft-Persistenz); Payload wird erst bei Fertig gesendet
-- Context-Handling: Nach Fertig muss das auslösende Kontextelement (Katalog-Tabelle oder Diagramm-Canvas) die neue Entität ohne vollen Reload darstellen
-- Client App (Electron): voll editierbar; Web Portal: Wizard nur für Typen mit `isReadOnly=false`
+- Frontend: multi-step panel component (modal/drawer); step indicator (breadcrumb or stepper at the top)
+- State: wizard state local in the frontend (no draft persistence); payload is only sent on Done
+- Context handling: after Done, the triggering context element (catalog table or diagram canvas) must display the new entity without a full reload
+- Client app (Electron): fully editable; web portal: wizard only for types with `isReadOnly=false`
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |

@@ -1,6 +1,6 @@
 ---
 id: REQ-049
-title: Join-Modus eines Katalogs zur Laufzeit umschalten
+title: Switch the join mode of a catalog at runtime
 type: functional
 priority: must
 status: proposed
@@ -28,81 +28,81 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-049: Join-Modus eines Katalogs zur Laufzeit umschalten
+# REQ-049: Switch the join mode of a catalog at runtime
 
-## Aussage
+## Statement
 
-Das System MUSS allen Katalog-Besuchern ermöglichen, den Join-Modus (`rows` | `aggregate`) pro JoinDefinition zur Laufzeit zu ändern, ohne die gespeicherte Catalog-Konfiguration zu verändern. Die Tabelle MUSS nach dem Umschalten ohne Seiten-Neuladen aktualisiert werden. Der Laufzeit-Override wird als Parameter an den Abfrage-Endpunkt übergeben (REQ-046 `joinMode`-Parameter). Der Besucher KANN den aktuellen Modus optional als SavedView persistieren (REQ-048).
+The system MUST allow all catalog visitors to change the join mode (`rows` | `aggregate`) per JoinDefinition at runtime without changing the stored catalog configuration. The table MUST be updated after switching without a page reload. The runtime override is passed as a parameter to the query endpoint (REQ-046 `joinMode` parameter). The visitor MAY optionally persist the current mode as a SavedView (REQ-048).
 
-## Begründung
+## Rationale
 
-Der optimale Join-Modus hängt vom Analyse-Kontext ab: Der Enterprise Architekt möchte eine kompakte Übersicht (aggregate), um viele Applikationen auf einen Blick zu sehen; der Data Architekt möchte alle Schnittstellen-Zeilen einzeln (rows), um einen CSV-Export zu erstellen oder die Tabelle nach Interface-Attributen zu sortieren. Beide Bedürfnisse soll derselbe Catalog erfüllen, ohne zwei separate Konfigurationen zu benötigen.
+The optimal join mode depends on the analysis context: the enterprise architect wants a compact overview (aggregate) to see many applications at a glance; the data architect wants all interface rows individually (rows) to create a CSV export or to sort the table by interface attributes. The same catalog should satisfy both needs without requiring two separate configurations.
 
-## Kontext
+## Context
 
-Der Laufzeit-Override betrifft ausschliesslich die aktuelle Abfrage und Session des Besuchers. Andere Besucher, die denselben Catalog gleichzeitig öffnen, sind nicht betroffen. Der Override wird im Frontend-State gehalten (nicht auf dem Server persistiert), bis der Besucher explizit eine SavedView anlegt.
+The runtime override affects only the current query and session of the visitor. Other visitors who open the same catalog at the same time are not affected. The override is held in the frontend state (not persisted on the server) until the visitor explicitly creates a SavedView.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben (Query-Parameter bei REQ-046-Endpunkt)**:
+**Inputs (query parameters on the REQ-046 endpoint)**:
 
-| Parameter | Typ | Beschreibung |
+| Parameter | Type | Description |
 |---|---|---|
-| `joinMode[{joinDefinitionId}]` | enum `rows\|aggregate` | Überschreibt den Modus für diese JoinDefinition für diesen Aufruf |
+| `joinMode[{joinDefinitionId}]` | enum `rows\|aggregate` | Overrides the mode for this JoinDefinition for this call |
 
-Beispiel: `GET /api/v1/catalogs/{id}/query?joinMode[abc-123]=rows&joinMode[def-456]=aggregate`
+Example: `GET /api/v1/catalogs/{id}/query?joinMode[abc-123]=rows&joinMode[def-456]=aggregate`
 
-**Verarbeitung**:
+**Processing**:
 
-1. Für jede JoinDefinition im Catalog: falls `joinMode[joinDefinitionId]` im Request-Parameter vorhanden, diesen Modus für die Abfrage verwenden (überschreibt `JoinDefinition.defaultJoinMode` und `Catalog.defaultJoinMode`)
-2. Nicht überschriebene JoinDefinitions verwenden ihren konfigurierten Default
-3. Catalog-Konfiguration (gespeicherter `defaultJoinMode`) BLEIBT UNVERÄNDERT
+1. For each JoinDefinition in the catalog: if `joinMode[joinDefinitionId]` is present in the request parameter, use this mode for the query (overrides `JoinDefinition.defaultJoinMode` and `Catalog.defaultJoinMode`)
+2. JoinDefinitions that are not overridden use their configured default
+3. The catalog configuration (stored `defaultJoinMode`) REMAINS UNCHANGED
 
-**Ausgaben**:
+**Outputs**:
 
-- HTTP 200 OK mit Abfrage-Response gemäss REQ-046; Join-Ergebnisse entsprechend dem gewählten Modus strukturiert
-- HTTP 400 Bad Request wenn `joinDefinitionId` unbekannt
+- HTTP 200 OK with the query response per REQ-046; join results structured according to the chosen mode
+- HTTP 400 Bad Request if `joinDefinitionId` is unknown
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (rows-Modus via Parameter):
-- Gegeben: Catalog „Application Inventory" mit JoinDefinition id=join-1 (DataFlow→Interface), defaultJoinMode=aggregate; CRM-System hat 2 Interfaces
-- Wenn: `GET /api/v1/catalogs/{id}/query?joinMode[join-1]=rows`
-- Dann: Response enthält 2 Zeilen für CRM-System (je Interface eine); Catalog.joinDefinitions[0].defaultJoinMode bleibt `aggregate` (unverändert)
+**AC1** (rows mode via parameter):
+- Given: catalog "Application Inventory" with JoinDefinition id=join-1 (DataFlow→Interface), defaultJoinMode=aggregate; CRM-System has 2 interfaces
+- When: `GET /api/v1/catalogs/{id}/query?joinMode[join-1]=rows`
+- Then: the response contains 2 rows for CRM-System (one per interface); Catalog.joinDefinitions[0].defaultJoinMode remains `aggregate` (unchanged)
 
-**AC2** (aggregate-Modus, gespeicherter Default greift):
-- Gegeben: wie AC1
-- Wenn: `GET /api/v1/catalogs/{id}/query` (ohne joinMode-Parameter)
-- Dann: Response enthält 1 Zeile für CRM-System mit joinResults.Schnittstellen als Array
+**AC2** (aggregate mode, stored default applies):
+- Given: as AC1
+- When: `GET /api/v1/catalogs/{id}/query` (without joinMode parameter)
+- Then: the response contains 1 row for CRM-System with joinResults.Interfaces as an array
 
-**AC3** (Keine Mutation am Catalog):
-- Nach AC1: `GET /api/v1/catalogs/{id}` (Catalog-Konfiguration abrufen)
-- Dann: `joinDefinitions[0].defaultJoinMode = "aggregate"` (unverändert)
+**AC3** (No mutation of the catalog):
+- After AC1: `GET /api/v1/catalogs/{id}` (retrieve the catalog configuration)
+- Then: `joinDefinitions[0].defaultJoinMode = "aggregate"` (unchanged)
 
-**AC4** (Unbekannte joinDefinitionId):
-- Wenn: `joinMode[nonexistent-id]=rows`
-- Dann: HTTP 400 „JoinDefinition ‹nonexistent-id› nicht gefunden"
+**AC4** (Unknown joinDefinitionId):
+- When: `joinMode[nonexistent-id]=rows`
+- Then: HTTP 400 "JoinDefinition ‹nonexistent-id› not found"
 
-**AC5** (Mehrere Joins gleichzeitig überschreiben):
-- Gegeben: Catalog hat 2 JoinDefinitions (join-1 defaultMode=aggregate, join-2 defaultMode=aggregate)
-- Wenn: `?joinMode[join-1]=rows&joinMode[join-2]=aggregate`
-- Dann: join-1 liefert Zeilen-Expansion; join-2 bleibt aggregiert
+**AC5** (Override several joins at once):
+- Given: the catalog has 2 JoinDefinitions (join-1 defaultMode=aggregate, join-2 defaultMode=aggregate)
+- When: `?joinMode[join-1]=rows&joinMode[join-2]=aggregate`
+- Then: join-1 delivers row expansion; join-2 remains aggregated
 
-## Abhängigkeiten
+## Dependencies
 
-- Blockiert durch: REQ-045 (JoinDefinitions müssen konfiguriert sein), REQ-046 (Abfrage-Endpunkt)
-- Zusammenhang: REQ-048 (Laufzeit-Override kann als SavedView gespeichert werden)
+- Blocked by: REQ-045 (JoinDefinitions must be configured), REQ-046 (query endpoint)
+- Related: REQ-048 (the runtime override can be saved as a SavedView)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Kein eigener Endpunkt nötig; der Parameter wird direkt an REQ-046-Endpunkt übergeben
-- Frontend: Toggle-Control pro JoinDefinition (Label: „Zeilen" / „Kompakt" oder „rows" / „aggregate"); ändert den Query-Parameter und löst einen neuen Fetch aus
-- Kein Server-Side-Session-State nötig; der Override lebt im Frontend-State
+- No separate endpoint needed; the parameter is passed directly to the REQ-046 endpoint
+- Frontend: toggle control per JoinDefinition (label: "Rows" / "Compact" or "rows" / "aggregate"); changes the query parameter and triggers a new fetch
+- No server-side session state needed; the override lives in the frontend state
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft |

@@ -1,6 +1,6 @@
 ---
 id: REQ-125
-title: Konfigurationsmaske für Property-Sichtbarkeit im Metamodell-Editor
+title: Configuration Form for Property Visibility in the Metamodel Editor
 type: functional
 priority: must
 status: proposed
@@ -21,48 +21,48 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-125: Konfigurationsmaske für Property-Sichtbarkeit im Metamodell-Editor
+# REQ-125: Configuration Form for Property Visibility in the Metamodel Editor
 
-## Aussage
+## Statement
 
-Der Metamodell-Editor MUSS pro `PropertyDefinition` eine Konfigurationsmaske für die Sichtbarkeit bereitstellen. Die Maske MUSS:
+The metamodel editor MUST provide a configuration form for visibility per `PropertyDefinition`. The form MUST:
 
-1. Einen **Modus-Selektor** (Dropdown oder Radio-Group) für `visibilityMode` mit den drei Optionen `Öffentlich`, `Rollenbasiert`, `Verbindungsbasiert` anzeigen
-2. Bei Wahl von `role-restricted`: eine **Rollenauswahl** (Multi-Select aus allen konfigurierten Rollen) für `allowedRoles` einblenden
-3. Bei Wahl von `connection-scoped`: eine **Connection-Typ-Auswahl** (Single-Select aus allen `isConnection=true`-Typen) für `scopingConnectionType` einblenden
-4. Den aktuell gesetzten Modus visuell hervorheben (z.B. Badge oder Icon am Property-Eintrag in der Liste)
+1. Display a **mode selector** (dropdown or radio group) for `visibilityMode` with the three options `Public`, `Role-based`, `Connection-based`
+2. When `role-restricted` is chosen: show a **role selection** (multi-select from all configured roles) for `allowedRoles`
+3. When `connection-scoped` is chosen: show a **connection type selection** (single-select from all `isConnection=true` types) for `scopingConnectionType`
+4. Visually highlight the currently set mode (e.g. badge or icon on the property entry in the list)
 
-Nicht benötigte Felder (`allowedRoles` bei `public`, `scopingConnectionType` bei `role-restricted`) MÜSSEN ausgeblendet sein.
+Fields not needed (`allowedRoles` for `public`, `scopingConnectionType` for `role-restricted`) MUST be hidden.
 
-## Begründung
+## Rationale
 
-Ohne dedizierte Konfigurationsmaske müssten EA-Manager Sichtbarkeit über YAML-Import verwalten — das ist fehleranfällig und schließt nicht-technische Nutzer aus.
+Without a dedicated configuration form, EA managers would have to manage visibility via YAML import — this is error-prone and excludes non-technical users.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Modus-Selektor sichtbar):
-- Wenn: Kurt ein Property im Metamodell-Editor öffnet
-- Dann: Sichtbarkeits-Sektion ist vorhanden; aktueller Modus ist vorgewählt (`public` für neue Properties)
+**AC1** (Mode selector visible):
+- When: Kurt opens a property in the metamodel editor
+- Then: the visibility section is present; the current mode is preselected (`public` for new properties)
 
-**AC2** (Bedingte Felder):
-- Wenn: Modus-Selektor auf `Rollenbasiert` gestellt
-- Dann: Rollenauswahl erscheint; `scopingConnectionType`-Feld ist ausgeblendet
+**AC2** (Conditional fields):
+- When: the mode selector is set to `Role-based`
+- Then: the role selection appears; the `scopingConnectionType` field is hidden
 
 **AC3** (Badge):
-- Wenn: Ein Property hat `visibilityMode ≠ public`
-- Dann: Property-Eintrag in der Liste zeigt ein „Eingeschränkt"-Badge oder entsprechendes Icon
+- When: a property has `visibilityMode ≠ public`
+- Then: the property entry in the list shows a "Restricted" badge or a corresponding icon
 
-**AC4** (Speichern-Validierung im UI):
-- Wenn: Kurt auf „Speichern" klickt mit leerem `allowedRoles` bei `role-restricted`
-- Dann: Inline-Fehlerhinweis erscheint; Server-Request wird nicht abgesetzt
+**AC4** (Save validation in the UI):
+- When: Kurt clicks "Save" with empty `allowedRoles` for `role-restricted`
+- Then: an inline error message appears; no server request is sent
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-124 (Datenmodell), REQ-032 (Metamodell-Editor vorhanden)
-- **Folgewirkungen**: –
+- **Prerequisites**: REQ-124 (data model), REQ-032 (metamodel editor available)
+- **Consequences**: –
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

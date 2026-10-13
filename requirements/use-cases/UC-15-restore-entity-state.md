@@ -1,6 +1,6 @@
 ---
 id: UC-15
-title: Entitätsstand wiederherstellen
+title: Restore Entity State
 status: draft
 priority: should
 target_release: v1.0
@@ -16,17 +16,17 @@ references:
     - person
     - role
   adrs:
-    - adrs/ADR-016-persistenz-strategie.md
+    - adrs/ADR-016-persistence-strategy.md
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
+    - concept/20-entities/06-core-entity-types.md
   related_use_cases:
     - UC-14
     - UC-05
 ---
 
-# UC-15: Entitätsstand wiederherstellen
+# UC-15: Restore Entity State
 
-## Diagramm
+## Diagram
 
 ```plantuml
 @startuml UC-15-Restore
@@ -35,12 +35,12 @@ skinparam actorStyle awesome
 
 actor "Kurt\n(Lead EA)" as Kurt
 
-usecase "Änderungshistorie\neinsehen (UC-14)" as UC_History
+usecase "View Change\nHistory (UC-14)" as UC_History
 
-rectangle "OEA – Entitätsstand wiederherstellen" {
-  usecase "Zielversion auswählen\n(vollständige Wiederherstellung)" as UC_Select
-  usecase "Wiederherstellung\nbestätigen" as UC_Confirm
-  usecase "Neuen Versions-\nsnapshot anlegen" as UC_Snapshot
+rectangle "OEA – Restore Entity State" {
+  usecase "Select Target Version\n(full restore)" as UC_Select
+  usecase "Confirm\nRestore" as UC_Confirm
+  usecase "Create New Version\nSnapshot" as UC_Snapshot
 }
 
 Kurt --> UC_History
@@ -55,148 +55,148 @@ UC_Confirm ..> UC_Snapshot : <<include>>
 
 ## Goal in Context
 
-Fehlerhafte Änderungen passieren: ein Feld wurde falsch befüllt, eine Property irrtümlich gelöscht, ein falscher Name gesetzt. Der Lead Enterprise Architekt muss eine Entität auf einen früheren, bekannt-guten Zustand zurücksetzen können — ohne Datenverlust und ohne die Auditierbarkeit zu brechen.
+Faulty changes happen: a field was filled in incorrectly, a property was deleted by mistake, a wrong name was set. The Lead Enterprise Architect must be able to reset an entity to an earlier, known-good state — without data loss and without breaking auditability.
 
-Wichtig: Eine Wiederherstellung erzeugt einen **neuen** Versionseintragleintrag. Der Zustand vor der Wiederherstellung bleibt in der Historie erhalten. Es gibt kein stilles Überschreiben — jede Wiederherstellung ist selbst eine nachvollziehbare Änderung.
+Important: A restore creates a **new** version entry. The state before the restore remains preserved in the history. There is no silent overwriting — every restore is itself a traceable change.
 
-## Persona und Story
+## Persona and Story
 
-**Primärer Akteur**: [Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
+**Primary Actor**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 
-**Story**: Als Lead Enterprise Architekt möchte ich eine Entität auf einen früheren Stand zurücksetzen können, wenn eine Änderung fehlerhaft war — und dabei sicherstellen, dass die Wiederherstellung selbst in der Historie sichtbar bleibt.
+**Story**: As a Lead Enterprise Architect, I want to be able to reset an entity to an earlier state when a change was faulty — and ensure that the restore itself remains visible in the history.
 
 ## Trigger
 
-1. Eine Entität wurde irrtümlich falsch bearbeitet (falscher Name, gelöschte Property, falscher Wert)
-2. Kurt hat in UC-14 die Versionshistorie gesichtet und den gewünschten Zielstand identifiziert
+1. An entity was edited incorrectly by mistake (wrong name, deleted property, wrong value)
+2. In UC-14, Kurt has reviewed the version history and identified the desired target state
 
-## Vorbedingungen (Pre-Conditions)
+## Preconditions
 
-- [ ] Kurt ist eingeloggt (UC-01) und hat Schreibberechtigung auf die Entität
-- [ ] Die Entität hat mindestens eine frühere Version in `entity_versions`
-- [ ] Kurt hat in UC-14 die gewünschte Zielversion identifiziert (typischer Einstiegspunkt)
+- [ ] Kurt is logged in (UC-01) and has write permission on the entity
+- [ ] The entity has at least one earlier version in `entity_versions`
+- [ ] In UC-14, Kurt has identified the desired target version (typical entry point)
 
-## Nachbedingungen (Post-Conditions)
+## Postconditions
 
-### Bei Erfolg
+### On Success
 
-- Die Entität hat den Zustand der gewählten Version
-- Der aktuelle Zustand vor der Wiederherstellung ist als neuer `entity_versions`-Snapshot gespeichert (unveränderlich)
-- Die Wiederherstellung selbst ist als Versionsänderung sichtbar: `changedBy`, `changedAt`, optionaler `changeReason`, Markierung als `restoredFromVersion: N`
-- Die `version`-Zahl der Entität wurde um 1 erhöht
+- The entity has the state of the selected version
+- The current state before the restore is stored as a new `entity_versions` snapshot (immutable)
+- The restore itself is visible as a version change: `changedBy`, `changedAt`, optional `changeReason`, marking as `restoredFromVersion: N`
+- The entity's `version` number was increased by 1
 
-### Bei Misserfolg
+### On Failure
 
-- Die Entität ist unverändert; kein neuer Snapshot
-- Fehlermeldung mit konkretem Hinweis
+- The entity is unchanged; no new snapshot
+- Error message with a concrete hint
 
-## Hauptablauf (Basic Flow)
+## Basic Flow
 
-*Standardfall: Kurt stellt eine Entität auf eine frühere Version zurück*
+*Default case: Kurt resets an entity to an earlier version*
 
-1. **Kurt**: befindet sich in der Versionshistorie einer Entität (UC-14) und hat Version v4 als Zielstand identifiziert
-2. **Kurt**: klickt in der Detailansicht von v4 auf „Diese Version wiederherstellen"
-3. **System**: zeigt einen Bestätigungsdialog mit:
-   - Diff: was wird sich gegenüber dem aktuellen Stand ändern (welche Felder, Vorher/Nachher)
-   - Hinweis: „Der aktuelle Stand wird in der Historie gespeichert und kann jederzeit wieder aufgerufen werden"
-   - Hinweis: „Unveränderliche Felder (ID, Typ, Verbindungsendpunkte) werden nicht verändert"
-   - Optionales Freitextfeld: „Grund der Wiederherstellung" (z.B. „Irrtümliche Änderung durch Mitarbeiter XY rückgängig")
-4. **Kurt**: füllt optional den Grund aus und bestätigt
-5. **System**: führt die Wiederherstellung durch:
-   - Snapshot des aktuellen Zustands wird in `entity_versions` geschrieben (unveränderlich)
-   - Wiederherstellbare Felder werden auf den Stand von v4 gesetzt (BR-02)
-   - `version`-Counter wird um 1 erhöht
-   - Neuer `entity_versions`-Eintrag mit `restoredFromVersion=4`, `changedBy`, `changedAt`, `changeReason`
-6. **System**: zeigt Erfolgsmeldung; Entitätsdetailansicht zeigt den wiederhergestellten Zustand
-7. **System**: in der Zeitlinie erscheint der neue Versionseintrag mit deutlicher Markierung „Wiederhergestellt aus v4"
+1. **Kurt**: is in the version history of an entity (UC-14) and has identified version v4 as the target state
+2. **Kurt**: clicks "Restore this version" in the detail view of v4
+3. **System**: shows a confirmation dialog with:
+   - Diff: what will change compared to the current state (which fields, before/after)
+   - Notice: "The current state is saved in the history and can be retrieved at any time"
+   - Notice: "Immutable fields (ID, type, connection endpoints) are not changed"
+   - Optional free-text field: "Reason for restore" (e.g., "Erroneous change by employee XY reverted")
+4. **Kurt**: optionally fills in the reason and confirms
+5. **System**: performs the restore:
+   - Snapshot of the current state is written to `entity_versions` (immutable)
+   - Restorable fields are set to the state of v4 (BR-02)
+   - `version` counter is increased by 1
+   - New `entity_versions` entry with `restoredFromVersion=4`, `changedBy`, `changedAt`, `changeReason`
+6. **System**: shows success message; entity detail view shows the restored state
+7. **System**: the new version entry appears in the timeline with a clear marking "Restored from v4"
 
-## Alternative Abläufe (Alternative Flows)
+## Alternative Flows
 
-**A1 – Wiederherstellung direkt aus der Entitätsdetailansicht**
+**A1 – Restore directly from the entity detail view**
 
-1. **Kurt**: ist auf der Detitansicht einer Entität (nicht in der Historie)
-2. **Kurt**: klickt „Auf frühere Version zurücksetzen"
-3. **System**: öffnet eine kompakte Versionsauswahl (Zeitlinie ohne Diff-Detail)
-4. **Kurt**: wählt eine Version; weiter ab Schritt 3 des Hauptablaufs
+1. **Kurt**: is on the detail view of an entity (not in the history)
+2. **Kurt**: clicks "Reset to earlier version"
+3. **System**: opens a compact version selection (timeline without diff detail)
+4. **Kurt**: selects a version; continue from step 3 of the basic flow
 
-## Ausnahmen / Fehlerfälle (Exception Flows)
+## Exception Flows
 
-**E1 – Validierungsfehler durch Wiederherstellung**
-- Bedingung: Der frühere Stand verletzt aktuelle Metamodell-Regeln (z.B. eine Property wurde inzwischen als `mandatory` markiert und hätte im alten Stand keinen Wert)
-- Erwartete Reaktion: System zeigt Validierungswarnungen im Bestätigungsdialog (kein Block — Kurt entscheidet); nach Wiederherstellung erscheinen die betroffenen Properties mit Validierungswarnung (wie bei normalem Save mit `validationMode=warning`)
-- Wiederaufnahme: Kurt korrigiert nach der Wiederherstellung die betroffenen Felder
+**E1 – Validation error caused by restore**
+- Condition: The earlier state violates current metamodel rules (e.g., a property has meanwhile been marked `mandatory` and would have had no value in the old state)
+- Expected reaction: System shows validation warnings in the confirmation dialog (no block — Kurt decides); after the restore, the affected properties appear with a validation warning (as with a normal save with `validationMode=warning`)
+- Resumption: After the restore, Kurt corrects the affected fields
 
-**E2 – Abbruch durch Kurt**
-- Bedingung: Kurt schliesst den Bestätigungsdialog ohne zu bestätigen
-- Erwartete Reaktion: keine Änderung; Entität unverändert
+**E2 – Cancellation by Kurt**
+- Condition: Kurt closes the confirmation dialog without confirming
+- Expected reaction: no change; entity unchanged
 
-**E3 – Fehlende Schreibberechtigung**
-- Bedingung: Kurt hat Leseberechtigung, aber keine Schreibberechtigung auf die Entität
-- Erwartete Reaktion: Schaltfläche „Wiederherstellen" nicht sichtbar; bei direktem API-Aufruf 403
-- Wiederaufnahme: Person wendet sich an Admin (UC-02)
+**E3 – Missing write permission**
+- Condition: Kurt has read permission, but no write permission on the entity
+- Expected reaction: Button "Restore" not visible; on direct API call 403
+- Resumption: Person contacts the admin (UC-02)
 
-**E4 – Optimistic-Lock-Konflikt**
-- Bedingung: Jemand anderes hat die Entität zwischen Kурts Ansicht und seiner Bestätigung geändert
-- Erwartete Reaktion: HTTP 409; Dialog bleibt offen mit Hinweis „Die Entität wurde inzwischen von [Person] geändert. Bitte prüfe die aktuelle Version und starte die Wiederherstellung erneut."
-- Wiederaufnahme: Kurt öffnet UC-14 erneut und prüft den aktuellen Stand
+**E4 – Optimistic lock conflict**
+- Condition: Someone else changed the entity between Kurt's view and his confirmation
+- Expected reaction: HTTP 409; dialog stays open with notice "The entity has meanwhile been changed by [person]. Please check the current version and start the restore again."
+- Resumption: Kurt opens UC-14 again and checks the current state
 
-## Datenfluss
+## Data Flow
 
-| Schritt | Daten | Richtung | Bemerkung |
+| Step | Data | Direction | Remark |
 |---|---|---|---|
-| 3 | Diff (aktueller Stand vs. Zielversion), Warnungen | System → Kurt | Nur wiederherstellbare Felder werden angezeigt |
-| 4 | Bestätigung + optionaler `changeReason` | Kurt → System | |
-| 5 | Snapshot (aktueller Zustand), Update (Zielzustand), neuer `entity_versions`-Eintrag | System intern | Atomare Transaktion; rollback bei Fehler |
+| 3 | Diff (current state vs. target version), warnings | System → Kurt | Only restorable fields are shown |
+| 4 | Confirmation + optional `changeReason` | Kurt → System | |
+| 5 | Snapshot (current state), update (target state), new `entity_versions` entry | System internal | Atomic transaction; rollback on error |
 
-## Nicht wiederherstellbare Felder (BR-02)
+## Non-Restorable Fields (BR-02)
 
-Folgende Felder sind nach Anlage unveränderlich und werden bei einer Wiederherstellung **nie** angepasst:
+The following fields are immutable after creation and are **never** adjusted during a restore:
 
-| Feld | Grund |
+| Field | Reason |
 |---|---|
-| `id` | Systemfeld; Primärschlüssel |
-| `entityTypeId` | Unveränderlich nach Anlage (entity.md BR-03) |
-| `sourceEntityId` | Verbindungsendpunkt unveränderlich (entity.md BR-09) |
-| `targetEntityId` | Verbindungsendpunkt unveränderlich (entity.md BR-09) |
-| `createdAt` | Systemfeld; Anlage-Zeitstempel |
-| `createdBy` | Systemfeld; ursprüngliche Anlage-Person |
+| `id` | System field; primary key |
+| `entityTypeId` | Immutable after creation (entity.md BR-03) |
+| `sourceEntityId` | Connection endpoint immutable (entity.md BR-09) |
+| `targetEntityId` | Connection endpoint immutable (entity.md BR-09) |
+| `createdAt` | System field; creation timestamp |
+| `createdBy` | System field; original creating person |
 
-Wiederherstellbar sind: `name`, `description`, `isLogical`, `stereotypeIds`, `properties`.
+Restorable are: `name`, `description`, `isLogical`, `stereotypeIds`, `properties`.
 
-## Beteiligte Business Objects
+## Involved Business Objects
 
-| Business Object | Operation | Notiz |
+| Business Object | Operation | Note |
 |---|---|---|
-| [entity](../../business-objects/entity.md) | read, update | Kern-Objekt; Snapshot + Update in einer atomaren Transaktion |
-| [person](../../business-objects/person.md) | read | `changedBy` im neuen Versionseintrag |
-| [role](../../business-objects/role.md) | read | Schreibberechtigung prüfen |
+| [entity](../../business-objects/entity.md) | read, update | Core object; snapshot + update in one atomic transaction |
+| [person](../../business-objects/person.md) | read | `changedBy` in the new version entry |
+| [role](../../business-objects/role.md) | read | Check write permission |
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser |
+| Rule ID | Statement | Trigger |
 |---|---|---|
-| BR-01 | Eine Wiederherstellung speichert IMMER zuerst einen Snapshot des aktuellen Zustands in `entity_versions`, bevor der Zielstand geschrieben wird | onRestore |
-| BR-02 | Unveränderliche Felder (`id`, `entityTypeId`, `sourceEntityId`, `targetEntityId`, `createdAt`, `createdBy`) werden bei einer Wiederherstellung nie verändert | onRestore |
-| BR-03 | Der neue `entity_versions`-Eintrag MUSS `restoredFromVersion: N` enthalten, damit die Wiederherstellung in der Zeitlinie eindeutig als solche erkennbar ist | onRestore |
-| BR-04 | Die Wiederherstellung ist eine atomare Transaktion: Snapshot + Update + neuer Versionseintrag erfolgen in einer DB-Transaktion; bei Fehler vollständiger Rollback | onRestore |
-| BR-05 | Validierungsfehler durch das aktuelle Metamodell blockieren die Wiederherstellung nicht; sie erzeugen Warnungen, die im Bestätigungsdialog angezeigt und nach der Wiederherstellung an der Entität sichtbar sind | onRestore |
+| BR-01 | A restore ALWAYS first stores a snapshot of the current state in `entity_versions` before the target state is written | onRestore |
+| BR-02 | Immutable fields (`id`, `entityTypeId`, `sourceEntityId`, `targetEntityId`, `createdAt`, `createdBy`) are never changed during a restore | onRestore |
+| BR-03 | The new `entity_versions` entry MUST contain `restoredFromVersion: N` so that the restore is clearly recognizable as such in the timeline | onRestore |
+| BR-04 | The restore is an atomic transaction: snapshot + update + new version entry occur in one DB transaction; complete rollback on error | onRestore |
+| BR-05 | Validation errors from the current metamodel do not block the restore; they generate warnings that are shown in the confirmation dialog and visible on the entity after the restore | onRestore |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] Bestätigungsdialog zeigt Diff (aktuell vs. Zielversion) mit Vorher/Nachher-Werten
-- [ ] Optionales Freitextfeld „Grund der Wiederherstellung" im Dialog
-- [ ] Nach Wiederherstellung: Entität hat den Zustand der gewählten Version
-- [ ] Nach Wiederherstellung: neuer `entity_versions`-Eintrag mit `restoredFromVersion` sichtbar in UC-14-Zeitlinie
-- [ ] Nach Wiederherstellung: `version`-Counter der Entität um 1 erhöht
-- [ ] BR-01: aktueller Zustand vor Wiederherstellung ist als Snapshot in der Historie erhalten
-- [ ] BR-02: unveränderliche Felder (ID, Typ, Verbindungsendpunkte) werden nicht verändert
-- [ ] BR-04: bei technischem Fehler vollständiger Rollback; kein Inkonsistenz-Zustand
-- [ ] E1: Validierungswarnungen werden angezeigt; kein Block der Wiederherstellung
-- [ ] E3: Ohne Schreibberechtigung ist die Schaltfläche nicht sichtbar
-- [ ] E4: Optimistic-Lock-Konflikt wird mit 409 und verständlicher Meldung abgefangen
+- [ ] Confirmation dialog shows diff (current vs. target version) with before/after values
+- [ ] Optional free-text field "Reason for restore" in the dialog
+- [ ] After restore: entity has the state of the selected version
+- [ ] After restore: new `entity_versions` entry with `restoredFromVersion` visible in the UC-14 timeline
+- [ ] After restore: entity's `version` counter increased by 1
+- [ ] BR-01: current state before restore is preserved as a snapshot in the history
+- [ ] BR-02: immutable fields (ID, type, connection endpoints) are not changed
+- [ ] BR-04: on technical error complete rollback; no inconsistent state
+- [ ] E1: Validation warnings are displayed; no block of the restore
+- [ ] E3: Without write permission, the button is not visible
+- [ ] E4: Optimistic lock conflict is caught with 409 and an understandable message
 
-## Nicht im Scope
+## Out of Scope
 
-- **Wiederherstellung gelöschter Entitäten**: Entitäten, die aus dem Repository entfernt wurden, können nicht via UC-15 wiederhergestellt werden (eigener UC, noch nicht angelegt; Soft-Delete wäre Voraussetzung)
-- **Massenwiederherstellung**: Gleichzeitiges Zurücksetzen mehrerer Entitäten auf einen gemeinsamen Zeitpunkt ist kein v1.0-Feature (Plateau-Modell bietet eine Alternative für Zustands-Snapshots)
-- **Wiederherstellung von MetamodelConfiguration-Ständen**: eigener UC, noch nicht angelegt
+- **Restoring deleted entities**: Entities that were removed from the repository cannot be restored via UC-15 (separate UC, not yet created; soft delete would be a prerequisite)
+- **Mass restore**: Simultaneously resetting several entities to a common point in time is not a v1.0 feature (the plateau model offers an alternative for state snapshots)
+- **Restoring MetamodelConfiguration states**: separate UC, not yet created

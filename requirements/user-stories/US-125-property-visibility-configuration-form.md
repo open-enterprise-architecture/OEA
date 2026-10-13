@@ -1,36 +1,36 @@
-# US-125: Sichtbarkeits-Badge im Metamodell-Editor und konditionelle Felder
+# US-125: Visibility Badge in the Metamodel Editor and Conditional Fields
 
 **ID**: US-125
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich auf einen Blick sehen, welche Properties eines EntityType eingeschränkt sind, und die Einschränkung direkt im Editor anpassen können, damit ich den Überblick über sensible Felder behalte.
+As Kurt – Lead Enterprise Architect, I want to see at a glance which properties of an EntityType are restricted and to be able to adjust the restriction directly in the editor, so that I keep an overview of sensitive fields.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-21](../use-cases/UC-21-property-sichtbarkeit-konfigurieren.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-125](../req/REQ-125-property-sichtbarkeit-konfigurationsmaske.md)
+**Use Case**: [UC-21](../use-cases/UC-21-configure-property-visibility.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-125](../req/REQ-125-property-visibility-configuration-form.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Badge in Property-Liste):
-- Wenn: Ein Property hat `visibilityMode ≠ public`
-- Dann: Zeigt ein „Eingeschränkt"-Badge (Icon oder Label) in der Property-Listzeile
+**AC1** (Badge in property list):
+- When: a property has `visibilityMode ≠ public`
+- Then: shows a "Restricted" badge (icon or label) in the property list row
 
-**AC2** (Konditionelle Felder):
-- Wenn: Modus-Selektor geändert
-- Dann: Nur relevante Hilfsfelder sichtbar; nicht benötigte ausgeblendet (kein Layout-Shift)
+**AC2** (Conditional fields):
+- When: mode selector changed
+- Then: only relevant helper fields visible; unneeded ones hidden (no layout shift)
 
-**AC3** (Inline-Validierung):
-- Wenn: Speichern mit leerem Pflichtfeld
-- Dann: Inline-Fehlerhinweis erscheint; kein Server-Request abgesetzt
+**AC3** (Inline validation):
+- When: saving with an empty mandatory field
+- Then: inline error hint appears; no server request sent
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

@@ -1,6 +1,6 @@
 ---
 id: UC-19
-title: Technical Reference Model konfigurieren
+title: Configure Technical Reference Model
 status: draft
 priority: must
 target_release: v1.0
@@ -27,9 +27,9 @@ references:
     - UC-20
 ---
 
-# UC-19: Technical Reference Model konfigurieren
+# UC-19: Configure Technical Reference Model
 
-## Diagramm
+## Diagram
 
 ```plantuml
 @startuml UC-19-TRM
@@ -38,12 +38,12 @@ skinparam actorStyle awesome
 
 actor "Kurt\n(Lead EA)" as Kurt
 
-rectangle "OEA – Technical Reference Model konfigurieren" {
-  usecase "TRM-Kategorie anlegen\n(hierarchisch)" as UC_Cat
-  usecase "TRM-Kategorie\nbearbeiten" as UC_Edit
-  usecase "SBB einer Kategorie\nzuordnen" as UC_Assign
-  usecase "SBB-Governance-Status\nsetzen\n(preferred / acceptable /\ndeprecated / prohibited)" as UC_Status
-  usecase "TRM-Übersicht\nanzeigen" as UC_View
+rectangle "OEA – Configure Technical Reference Model" {
+  usecase "Create TRM Category\n(hierarchical)" as UC_Cat
+  usecase "Edit TRM Category" as UC_Edit
+  usecase "Assign SBB to\nCategory" as UC_Assign
+  usecase "Set SBB Governance Status\n(preferred / acceptable /\ndeprecated / prohibited)" as UC_Status
+  usecase "Show TRM Overview" as UC_View
 }
 
 Kurt --> UC_Cat
@@ -59,136 +59,136 @@ UC_Assign ..> UC_Status : <<include>>
 
 ## Goal in Context
 
-Das Technical Reference Model (TRM) ist die Technologie-Taxonomie einer Organisation: eine hierarchische Klassifikation aller Technology-Service-Kategorien mit klaren Standards dafür, welche Produkte bevorzugt, akzeptiert, auslaufend oder verboten sind. Ein gepflegtes TRM ermöglicht Technology-Governance: Architekten sehen auf einen Blick, welche Produkte für eine neue Entität zulässig sind, und Abweichungen vom Standard werden automatisch sichtbar.
+The Technical Reference Model (TRM) is an organization's technology taxonomy: a hierarchical classification of all technology service categories with clear standards on which products are preferred, accepted, being phased out or prohibited. A maintained TRM enables technology governance: architects see at a glance which products are permissible for a new entity, and deviations from the standard become visible automatically.
 
-Kurt muss das TRM initial aufbauen (ggf. auf Basis eines importierten TOGAF-TRM-Pakets), organisationsspezifische Kategorien ergänzen und die SBB-Governance-Zuordnungen pflegen. Dieser UC beschreibt diesen Konfigurationsprozess.
+Kurt must build the TRM initially (possibly based on an imported TOGAF TRM package), add organization-specific categories and maintain the SBB governance assignments. This UC describes this configuration process.
 
-## Persona und Story
+## Persona and Story
 
-**Primärer Akteur**: [Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
+**Primary Actor**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 
-**Story**: Als Lead Enterprise Architekt möchte ich eine klare Technologie-Taxonomie mit verbindlichen Standards (preferred / acceptable / deprecated / prohibited) pro Kategorie pflegen, damit Solution Architekten bei der Komponentenwahl immer wissen, was organisatorisch erlaubt ist — und Abweichungen automatisch erkennbar sind.
+**Story**: As a Lead Enterprise Architect, I want to maintain a clear technology taxonomy with binding standards (preferred / acceptable / deprecated / prohibited) per category so that solution architects always know what is organizationally permitted when selecting components — and deviations are automatically recognizable.
 
 ## Trigger
 
-1. Ersteinrichtung: importiertes TOGAF-TRM-Paket soll mit organisationsspezifischen SBB-Zuordnungen angereichert werden
-2. Ein neues Produkt wurde evaluiert → SBB einer TRM-Kategorie als `approved` oder `acceptable` setzen
-3. Ein Produkt ist EOL → SBB von `acceptable` auf `deprecated` oder `prohibited` hochstufen
-4. Die Organisation erschliesst ein neues Technologie-Feld → neue TRM-Kategorie unterhalb einer bestehenden anlegen
+1. Initial setup: imported TOGAF TRM package is to be enriched with organization-specific SBB assignments
+2. A new product has been evaluated → set SBB of a TRM category to `approved` or `acceptable`
+3. A product is EOL → escalate SBB from `acceptable` to `deprecated` or `prohibited`
+4. The organization opens up a new technology field → create new TRM category below an existing one
 
-## Vorbedingungen (Pre-Conditions)
+## Preconditions
 
-- [ ] Kurt ist eingeloggt (UC-01) und hat die Rolle „EA-Manager"
-- [ ] Das TRM enthält mindestens eine Wurzelkategorie (ggf. aus UC-18 importiert oder manuell angelegt)
+- [ ] Kurt is logged in (UC-01) and has the role "EA Manager"
+- [ ] The TRM contains at least one root category (possibly imported from UC-18 or created manually)
 
-## Nachbedingungen (Post-Conditions)
+## Postconditions
 
-### Bei Erfolg
+### On Success
 
-- TRM-Kategorie ist angelegt / bearbeitet / SBB-Zuordnungen aktualisiert
-- `preferredStandard`, `acceptedAlternatives`, `deprecatedOptions` je Kategorie sind korrekt gesetzt
-- `lastReviewedAt` ist aktualisiert
-- Alle Entitäten, deren `instanceOfSBBId` von der Änderung betroffen ist, erhalten in der UI einen aktualisierten Governance-Hinweis
+- TRM category is created / edited / SBB assignments updated
+- `preferredStandard`, `acceptedAlternatives`, `deprecatedOptions` per category are set correctly
+- `lastReviewedAt` is updated
+- All entities whose `instanceOfSBBId` is affected by the change receive an updated governance notice in the UI
 
-### Bei Misserfolg
+### On Failure
 
-- Keine Änderung; Fehlermeldung mit konkretem Hinweis
+- No change; error message with a concrete hint
 
-## Hauptablauf (Basic Flow)
+## Basic Flow
 
-*Standardfall: Kurt reichert eine importierte TRM-Kategorie mit SBB-Standards an*
+*Default case: Kurt enriches an imported TRM category with SBB standards*
 
-1. **Kurt**: öffnet die TRM-Ansicht im Navigationsbereich „Enterprise Continuum → TRM"
-2. **System**: zeigt den TRM als aufklappbaren Baum; importierte Knoten mit Badge „TOGAF 10"; eigene Erweiterungen ohne Badge; jede Kategorie zeigt: `preferredStandard` (oder „—"), Anzahl `acceptedAlternatives`, Anzahl klassifizierter Entitäten
-3. **Kurt**: navigiert zu „Infrastructure Services → Data Management Services → Database Management"
-4. **System**: zeigt die Kategorie-Detailansicht mit aktuellen Feldern: kein `preferredStandard` gesetzt, `acceptedAlternatives` leer, `deprecatedOptions` leer, `evaluationCriteria` leer, `lastReviewedAt` leer
-5. **Kurt**: klickt „Bearbeiten"
-6. **System**: öffnet das Bearbeitungsformular mit Dropdowns für `preferredStandard` (Einzelauswahl, nur SBBs aus dem System), `acceptedAlternatives` (Multi-Select), `deprecatedOptions` (Multi-Select), Freitextfeld `evaluationCriteria`
-7. **Kurt**: wählt `preferredStandard = SBB „PostgreSQL 17"`, fügt `acceptedAlternatives = [SBB „MySQL 8.x"]`, `deprecatedOptions = [SBB „Oracle Database 11g"]` hinzu
-8. **Kurt**: trägt Evaluations-Kriterien ein: „Open-Source bevorzugt; Lizenzkosten < 10k/Jahr; PostgreSQL-Kompatibilität erforderlich"
-9. **Kurt**: klickt „Speichern" — `lastReviewedAt` wird automatisch auf heute gesetzt
-10. **System**: speichert; aktualisiert Governance-Hinweise für alle Entitäten mit `instanceOfSBBId = Oracle-11g-UUID` (deprecated) und alle ohne SBB-Klassifizierung in dieser Kategorie (Warnung „kein SBB gesetzt")
+1. **Kurt**: opens the TRM view in the navigation area "Enterprise Continuum → TRM"
+2. **System**: shows the TRM as an expandable tree; imported nodes with badge "TOGAF 10"; own extensions without badge; each category shows: `preferredStandard` (or "—"), number of `acceptedAlternatives`, number of classified entities
+3. **Kurt**: navigates to "Infrastructure Services → Data Management Services → Database Management"
+4. **System**: shows the category detail view with current fields: no `preferredStandard` set, `acceptedAlternatives` empty, `deprecatedOptions` empty, `evaluationCriteria` empty, `lastReviewedAt` empty
+5. **Kurt**: clicks "Edit"
+6. **System**: opens the edit form with dropdowns for `preferredStandard` (single selection, only SBBs from the system), `acceptedAlternatives` (multi-select), `deprecatedOptions` (multi-select), free-text field `evaluationCriteria`
+7. **Kurt**: selects `preferredStandard = SBB "PostgreSQL 17"`, adds `acceptedAlternatives = [SBB "MySQL 8.x"]`, `deprecatedOptions = [SBB "Oracle Database 11g"]`
+8. **Kurt**: enters evaluation criteria: "Open source preferred; license costs < 10k/year; PostgreSQL compatibility required"
+9. **Kurt**: clicks "Save" — `lastReviewedAt` is automatically set to today
+10. **System**: saves; updates governance notices for all entities with `instanceOfSBBId = Oracle-11g-UUID` (deprecated) and all without SBB classification in this category (warning "no SBB set")
 
-## Alternative Abläufe (Alternative Flows)
+## Alternative Flows
 
-**A1 – Neue TRM-Kategorie unterhalb einer bestehenden anlegen**
+**A1 – Create new TRM category below an existing one**
 
-1. **Kurt**: öffnet eine bestehende Kategorie (z.B. „Security Services") und klickt „Unterkategorie hinzufügen"
-2. **System**: öffnet das Kategorie-Formular: Name (Pflicht), Description, `evaluationCriteria`; `level` wird automatisch = parent.level + 1 gesetzt
-3. **Kurt**: gibt Namen ein: „Zero Trust Network Access", klickt „Speichern"
-4. **System**: fügt den neuen Knoten in die Hierarchie ein; `scope=organization`, kein `sourcePackage`
+1. **Kurt**: opens an existing category (e.g., "Security Services") and clicks "Add subcategory"
+2. **System**: opens the category form: name (mandatory), description, `evaluationCriteria`; `level` is automatically set = parent.level + 1
+3. **Kurt**: enters name: "Zero Trust Network Access", clicks "Save"
+4. **System**: inserts the new node into the hierarchy; `scope=organization`, no `sourcePackage`
 
-**A2 – TRM-Baumstruktur durch Drag & Drop reorganisieren**
+**A2 – Reorganize TRM tree structure via drag & drop**
 
-1. **Kurt**: zieht eine eigene (`scope=organization`) Kategorie per Drag & Drop unter einen anderen Knoten
-2. **System**: prüft: Ziel darf kein Nachkomme der zu verschiebenden Kategorie sein (BR-02); `level` wird automatisch angepasst
-3. **System**: verschiebt den Knoten; `level`-Feld aller betroffenen Nachkommen wird aktualisiert
+1. **Kurt**: drags an own (`scope=organization`) category via drag & drop under another node
+2. **System**: checks: target must not be a descendant of the category being moved (BR-02); `level` is adjusted automatically
+3. **System**: moves the node; `level` field of all affected descendants is updated
 
-**A3 – Überprüfungs-Datum aktuell halten**
+**A3 – Keep review date current**
 
-1. **Kurt**: öffnet die TRM-Übersicht und aktiviert den Filter „Zuletzt überprüft vor > 12 Monaten"
-2. **System**: zeigt alle TRM-Kategorien, deren `lastReviewedAt` mehr als 12 Monate zurückliegt oder null ist
-3. **Kurt**: öffnet jede Kategorie, prüft die SBB-Zuordnungen und setzt `lastReviewedAt` auf heute (auch ohne inhaltliche Änderung möglich)
+1. **Kurt**: opens the TRM overview and activates the filter "Last reviewed > 12 months ago"
+2. **System**: shows all TRM categories whose `lastReviewedAt` is more than 12 months ago or null
+3. **Kurt**: opens each category, checks the SBB assignments and sets `lastReviewedAt` to today (also possible without content change)
 
-## Ausnahmen / Fehlerfälle (Exception Flows)
+## Exception Flows
 
-**E1 – Zyklus beim Verschieben einer Kategorie**
-- Bedingung: Kurt versucht eine Kategorie unter einen ihrer eigenen Nachkommen zu verschieben
-- Erwartete Reaktion: Drop-Target visuell als ungültig markiert; API-Versuch → HTTP 422
-- Wiederaufnahme: Kurt wählt ein anderes Ziel
+**E1 – Cycle when moving a category**
+- Condition: Kurt tries to move a category under one of its own descendants
+- Expected reaction: Drop target visually marked as invalid; API attempt → HTTP 422
+- Resumption: Kurt selects a different target
 
-**E2 – Bearbeiten einer `imported`-Kategorie**
-- Bedingung: Kurt öffnet eine TRM-Kategorie mit `scope=imported`
-- Erwartete Reaktion: Name und Hierarchie read-only; nur SBB-Zuordnungen (`preferredStandard`, `acceptedAlternatives`, `deprecatedOptions`) und `evaluationCriteria` sind editierbar (da dies organisationsspezifische Entscheidungen sind)
-- Wiederaufnahme: Kurt kann die SBB-Zuordnungen trotz `imported`-Scope bearbeiten
+**E2 – Editing an `imported` category**
+- Condition: Kurt opens a TRM category with `scope=imported`
+- Expected reaction: Name and hierarchy read-only; only SBB assignments (`preferredStandard`, `acceptedAlternatives`, `deprecatedOptions`) and `evaluationCriteria` are editable (since these are organization-specific decisions)
+- Resumption: Kurt can edit the SBB assignments despite `imported` scope
 
-**E3 – Löschen einer Kategorie mit zugeordneten Entitäten**
-- Bedingung: Kurt versucht eine Kategorie zu löschen, der Entitäten zugeordnet sind (`classifiedEntities` nicht leer)
-- Erwartete Reaktion: Warnung „N Entitäten sind dieser Kategorie zugeordnet"; kein automatischer Block
-- Wiederaufnahme: Kurt bereinigt die Zuordnungen oder löscht trotz Warnung
+**E3 – Deleting a category with assigned entities**
+- Condition: Kurt tries to delete a category to which entities are assigned (`classifiedEntities` not empty)
+- Expected reaction: Warning "N entities are assigned to this category"; no automatic block
+- Resumption: Kurt cleans up the assignments or deletes despite the warning
 
-## Datenfluss
+## Data Flow
 
-| Schritt | Daten | Richtung |
+| Step | Data | Direction |
 |---|---|---|
-| 2 | TRM-Baum (Kategorien, SBB-Standard-Status, Entitäten-Zählungen) | System → Kurt |
-| 6 | Bearbeitungsformular (SBB-Dropdowns, evaluationCriteria) | System → Kurt |
-| 7–9 | Ausgefülltes Formular | Kurt → System |
-| 10 | Aktualisierte Governance-Hinweise für betroffene Entitäten | System intern |
+| 2 | TRM tree (categories, SBB standard status, entity counts) | System → Kurt |
+| 6 | Edit form (SBB dropdowns, evaluationCriteria) | System → Kurt |
+| 7–9 | Completed form | Kurt → System |
+| 10 | Updated governance notices for affected entities | System internal |
 
-## Beteiligte Business Objects
+## Involved Business Objects
 
-| Business Object | Operation | Notiz |
+| Business Object | Operation | Note |
 |---|---|---|
-| [trm-category](../../business-objects/trm-category.md) | create, read, update, delete | Kern-Objekt; SBB-Zuordnungen und `lastReviewedAt` |
-| [solution-building-block](../../business-objects/solution-building-block.md) | read | Als Auswahl-Optionen in den SBB-Dropdowns |
-| [entity](../../business-objects/entity.md) | read | `trmClassificationIds` auf Entitäten; Governance-Hinweise |
+| [trm-category](../../business-objects/trm-category.md) | create, read, update, delete | Core object; SBB assignments and `lastReviewedAt` |
+| [solution-building-block](../../business-objects/solution-building-block.md) | read | As selection options in the SBB dropdowns |
+| [entity](../../business-objects/entity.md) | read | `trmClassificationIds` on entities; governance notices |
 | [person](../../business-objects/person.md) | read | `createdBy` |
-| [role](../../business-objects/role.md) | read | Schreibberechtigung prüfen |
+| [role](../../business-objects/role.md) | read | Check write permission |
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser |
+| Rule ID | Statement | Trigger |
 |---|---|---|
-| BR-01 | Kein Zyklus im `parent`-Graphen der TRM-Kategorien | onTRMCreate, onTRMUpdate |
-| BR-02 | `level = parent.level + 1` muss konsistent sein | onTRMCreate, onTRMUpdate |
-| BR-03 | Ein SBB darf in derselben Kategorie nicht gleichzeitig `preferredStandard` UND in `acceptedAlternatives` UND in `deprecatedOptions` sein | onTRMUpdate |
-| BR-04 | `imported`-Kategorien: Hierarchie (Name, Parent) ist read-only; SBB-Zuordnungen und `evaluationCriteria` sind editierbar | onTRMUpdate |
-| BR-05 | `lastReviewedAt` wird automatisch auf `today` gesetzt, wenn Formular mit Speichern abgeschlossen wird | onTRMUpdate |
+| BR-01 | No cycle in the `parent` graph of the TRM categories | onTRMCreate, onTRMUpdate |
+| BR-02 | `level = parent.level + 1` must be consistent | onTRMCreate, onTRMUpdate |
+| BR-03 | An SBB must not be simultaneously `preferredStandard` AND in `acceptedAlternatives` AND in `deprecatedOptions` in the same category | onTRMUpdate |
+| BR-04 | `imported` categories: hierarchy (name, parent) is read-only; SBB assignments and `evaluationCriteria` are editable | onTRMUpdate |
+| BR-05 | `lastReviewedAt` is automatically set to `today` when the form is completed with Save | onTRMUpdate |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] TRM-Baum als aufklappbare Hierarchie; importierte Knoten mit Badge erkennbar
-- [ ] Kategorie-Detailansicht: `preferredStandard`, `acceptedAlternatives`, `deprecatedOptions`, `evaluationCriteria`, `lastReviewedAt`
-- [ ] `imported`-Kategorien: Name/Hierarchie read-only; SBB-Zuordnungen editierbar
-- [ ] A1: Unterkategorie anlegen; `level` automatisch gesetzt
-- [ ] A2: Drag & Drop; Zyklus-Erkennung visuell und per 422
-- [ ] A3: Filter „Zuletzt überprüft vor > 12 Monaten" verfügbar
-- [ ] E1: Zyklus beim Verschieben → Drop-Target ungültig; kein Save möglich
-- [ ] Änderung an SBB-Governance-Zuordnung aktualisiert Hinweise auf betroffene Entitäten
+- [ ] TRM tree as expandable hierarchy; imported nodes recognizable by badge
+- [ ] Category detail view: `preferredStandard`, `acceptedAlternatives`, `deprecatedOptions`, `evaluationCriteria`, `lastReviewedAt`
+- [ ] `imported` categories: name/hierarchy read-only; SBB assignments editable
+- [ ] A1: Create subcategory; `level` set automatically
+- [ ] A2: Drag & drop; cycle detection visually and via 422
+- [ ] A3: Filter "Last reviewed > 12 months ago" available
+- [ ] E1: Cycle when moving → drop target invalid; no save possible
+- [ ] Change to SBB governance assignment updates notices on affected entities
 
-## Nicht im Scope
+## Out of Scope
 
-- **Bausteine (ABBs, SBBs) anlegen**: UC-17
-- **Paket-Import**: UC-18
-- **Technology-Conformance-Analyse**: UC-20
+- **Creating building blocks (ABBs, SBBs)**: UC-17
+- **Package import**: UC-18
+- **Technology conformance analysis**: UC-20

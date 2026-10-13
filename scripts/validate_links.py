@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """Validate all relative markdown links in concept/.
 
-Wird typischerweise aus dem Repo-Root ausgeführt:
+Typically run from the repo root:
   python3 scripts/validate_links.py
 
-Exit code 0 = alle Links OK
-Exit code 1 = mindestens ein Link kaputt
+Exit code 0 = all links OK
+Exit code 1 = at least one link is broken
 """
 import re
 import sys
 from pathlib import Path
 
-# concept/-Verzeichnis relativ zum Repo-Root (Skript liegt in scripts/)
+# concept/ directory relative to the repo root (script lives in scripts/)
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CONCEPT_DIR = REPO_ROOT / "concept"
 
 if not CONCEPT_DIR.is_dir():
-    print(f"FEHLER: {CONCEPT_DIR} nicht gefunden – aus Repo-Root ausführen.")
+    print(f"ERROR: {CONCEPT_DIR} not found – run from the repo root.")
     sys.exit(2)
 
 LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
@@ -39,13 +39,13 @@ for md_file in sorted(CONCEPT_DIR.rglob("*.md")):
         if not resolved.exists():
             broken.append((md_file.relative_to(CONCEPT_DIR), target))
 
-print(f"Geprüft: {total} relative Links in {CONCEPT_DIR.relative_to(REPO_ROOT)}/")
+print(f"Checked: {total} relative links in {CONCEPT_DIR.relative_to(REPO_ROOT)}/")
 
 if broken:
-    print(f"\nKaputte Links ({len(broken)}):")
+    print(f"\nBroken links ({len(broken)}):")
     for f, t in broken:
         print(f"  {f}: {t}")
     sys.exit(1)
 else:
-    print("✓ Alle Links gültig")
+    print("✓ All links valid")
     sys.exit(0)

@@ -1,53 +1,53 @@
-# US-139: OEA auf alternativer Datenbank betreiben
+# US-139: Operate OEA on an Alternative Database
 
 **ID**: US-139
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Systemadministrator möchte ich OEA wahlweise auf PostgreSQL, MySQL oder SQL Server betreiben können, ohne den Applikationscode anpassen zu müssen, damit ich die Datenbank meiner bestehenden Infrastruktur verwenden kann.
+As a system administrator, I want to be able to operate OEA on PostgreSQL, MySQL, or SQL Server as desired without having to adapt the application code, so that I can use the database of my existing infrastructure.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-02: System-Administration Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
-**Persona**: [SH-07: Systemadministrator](../../business-analysis/stakeholders/SH-07-systemadmin.md)
+**Use Case**: [UC-02: System Administration Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
+**Persona**: [SH-07: System Administrator](../../business-analysis/stakeholders/SH-07-systemadmin.md)
 **Requirements**: REQ-150
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Docker-Compose-Konfiguration mit MySQL 8 statt PostgreSQL
-- Wenn: `docker compose up`
-- Dann: Flyway-Migrations laufen durch; Bootstrapping erreichbar; API antwortet korrekt
+- Given: Docker Compose configuration with MySQL 8 instead of PostgreSQL
+- When: `docker compose up`
+- Then: Flyway migrations run through; bootstrapping reachable; API responds correctly
 
 **AC2**:
-- Gegeben: CI-Pipeline mit H2 in-memory
-- Wenn: Test-Suite läuft
-- Dann: Alle Unit- und Integration-Tests grün ohne externe DB
+- Given: CI pipeline with H2 in-memory
+- When: test suite runs
+- Then: all unit and integration tests green without an external DB
 
 **AC3**:
-- Gegeben: Kein JSONB, keine Arrays im Schema
-- Wenn: Flyway-Migration auf SQL Server ausführen
-- Dann: Alle Tabellen angelegt ohne Dialekt-Fehler
+- Given: no JSONB, no arrays in the schema
+- When: run Flyway migration on SQL Server
+- Then: all tables created without dialect errors
 
-## Technische Hinweise
+## Technical Notes
 
-- Hibernate-Dialekt via `spring.jpa.database-platform` konfigurierbar
-- Kein `JSONB`, keine `UUID[]` im Schema — nur `TEXT`/`VARCHAR`/`CLOB`
-- Flyway-Migrations: SQL-92-kompatibel; DB-spezifische Varianten in `db/migration/{vendor}/`
-- H2-Kompatibilität: `spring.h2.console.enabled=true` nur für Dev-Profil
-- Primär-Schlüssel: `BIGSERIAL` (PG) → `BIGINT AUTO_INCREMENT` (MySQL) → Flyway-Vendor-Pfad
+- Hibernate dialect configurable via `spring.jpa.database-platform`
+- No `JSONB`, no `UUID[]` in the schema — only `TEXT`/`VARCHAR`/`CLOB`
+- Flyway migrations: SQL-92 compatible; DB-specific variants in `db/migration/{vendor}/`
+- H2 compatibility: `spring.h2.console.enabled=true` only for the dev profile
+- Primary key: `BIGSERIAL` (PG) → `BIGINT AUTO_INCREMENT` (MySQL) → Flyway vendor path
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] CI-Matrix: PostgreSQL + MySQL + H2 grün
-- [ ] Flyway-Migrations ohne PostgreSQL-spezifische Syntax
-- [ ] `docker-compose.mysql.yml` als Beispiel vorhanden
+- [ ] Acceptance criteria fulfilled
+- [ ] CI matrix: PostgreSQL + MySQL + H2 green
+- [ ] Flyway migrations without PostgreSQL-specific syntax
+- [ ] `docker-compose.mysql.yml` present as an example
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-013 (Bootstrapping-Schema muss zuerst portabel sein)
-- Blockiert: — (parallel mit anderen Features umsetzbar)
+- Waits for: US-013 (bootstrapping schema must be portable first)
+- Blocks: — (can be implemented in parallel with other features)

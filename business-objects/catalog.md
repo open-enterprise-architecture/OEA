@@ -12,192 +12,192 @@ aliases:
   - Tabellensicht
 related_capabilities: []
 references:
-  - concept: concept/20-entities/06-kern-entitaetstypen.md
-  - concept: concept/20-entities/12-domain-sichten.md
+  - concept: concept/20-entities/06-core-entity-types.md
+  - concept: concept/20-entities/12-domain-views.md
 ---
 
 # Business Object: Catalog
 
 ## Definition
 
-Ein `Catalog` ist eine benannte, konfigurierbare Tabellenansicht auf Entitäten des Architecture-Repositorys. Er legt fest, welcher Entitätstyp die primäre Zeile bildet, welche Attribute als Spalten erscheinen, wie über Connections zu weiteren Entitäten gejoint wird und welche gespeicherten Filter vorbelegt sind.
+A `Catalog` is a named, configurable table view of entities in the architecture repository. It defines which entity type forms the primary row, which attributes appear as columns, how further entities are joined via connections, and which saved filters are preset.
 
-## Beschreibung
+## Description
 
-Während ein [Viewpoint](./viewpoint.md) eine graphische Diagrammsicht definiert, liefert ein Catalog eine **tabellarische Sicht** – vergleichbar mit einer parametrisierten Datenbankabfrage, die gespeichert, geteilt und interaktiv angepasst werden kann.
+While a [Viewpoint](./viewpoint.md) defines a graphical diagram view, a catalog provides a **tabular view** – comparable to a parameterized database query that can be saved, shared, and adjusted interactively.
 
-Der Catalog ist das primäre Werkzeug des Enterprise Architekten, um strukturierte Übersichten zu erzeugen: eine Liste aller Applikationen mit ihren Schnittstellen, eine Compliance-Übersicht aller Datenentitäten mit Klassifizierung, oder eine Cross-Layer-Sicht, die Applikationen mit den Technologie-Komponenten verknüpft, auf denen sie laufen.
-
----
-
-### Primäre Entität und Spalten
-
-Jeder Catalog hat eine **primäre Entität** (`primaryEntityType`): sie liefert die Zeilen der Tabelle. Aus ihren Attributen werden **Spalten** konfiguriert: welche Attribute sichtbar sind, in welcher Reihenfolge sie erscheinen und unter welchem Label.
+The catalog is the enterprise architect's primary tool for producing structured overviews: a list of all applications with their interfaces, a compliance overview of all data entities with classification, or a cross-layer view that links applications to the technology components they run on.
 
 ---
 
-### Joins über Connections
+### Primary Entity and Columns
 
-Ein Catalog kann über [Connection-Typen](./metamodel-configuration.md) (EntityTypes mit `isConnection=true`) **Join-Definitionen** enthalten, die weitere Entitäten einbeziehen – analog zu SQL-JOINs.
+Every catalog has a **primary entity** (`primaryEntityType`): it supplies the rows of the table. **Columns** are configured from its attributes: which attributes are visible, in which order they appear, and under which label.
 
-**Beispiel**: Catalog „Applikationen & Schnittstellen"
+---
+
+### Joins via Connections
+
+Via [connection types](./metamodel-configuration.md) (EntityTypes with `isConnection=true`), a catalog can contain **join definitions** that include further entities – analogous to SQL JOINs.
+
+**Example**: Catalog "Applications & Interfaces"
 
 ```
-Primäre Entität: ApplicationComponent
-Join: über DataFlow (Connection) → Interface (Zielentität)
+Primary entity: ApplicationComponent
+Join: via DataFlow (connection) → Interface (target entity)
 ```
 
-Für jeden Join stehen zwei Modi zur Verfügung, die der **Katalog-Besucher** zur Laufzeit wechseln kann; der **Default-Modus** ist auf der JoinDefinition hinterlegt:
+Two modes are available for each join, which the **catalog visitor** can switch at runtime; the **default mode** is stored on the JoinDefinition:
 
-| Modus | Verhalten | Analogie |
+| Mode | Behavior | Analogy |
 |---|---|---|
-| `rows` | Für jede verknüpfte Zielentität entsteht eine eigene Zeile; die primäre Entität wiederholt sich → SQL INNER/LEFT JOIN | `SELECT a.*, b.* FROM a JOIN c ON … JOIN b ON …` |
-| `aggregate` | Die primäre Entität erscheint genau einmal; alle verknüpften Zielentitäten werden in eine einzige Zelle aggregiert (z.B. als kommaseparierte Liste oder Unter-Tabelle) | `SELECT a.*, array_agg(b.*) … GROUP BY a.id` |
+| `rows` | A separate row is created for each linked target entity; the primary entity repeats → SQL INNER/LEFT JOIN | `SELECT a.*, b.* FROM a JOIN c ON … JOIN b ON …` |
+| `aggregate` | The primary entity appears exactly once; all linked target entities are aggregated into a single cell (e.g. as a comma-separated list or sub-table) | `SELECT a.*, array_agg(b.*) … GROUP BY a.id` |
 
-Der **Catalog-Level-Default** (`defaultJoinMode`) gilt für alle JoinDefinitions, die keinen eigenen Default überschreiben. Der Besucher kann zur Laufzeit pro Join oder global zwischen `rows` und `aggregate` wechseln; seine Wahl persistiert optional als **SavedView**.
-
----
-
-### Gespeicherte Filter
-
-Filter können interaktiv gesetzt und als benannte **SavedFilter** persistiert werden. Ein SavedFilter ist eine wiederverwendbare, benannte Filterbedingung (z.B. „Nur Applikationen im Status active", „Nur Systeme der Business-Schicht"), die Besuchern als Schnellauswahl angeboten wird.
+The **catalog-level default** (`defaultJoinMode`) applies to all JoinDefinitions that do not override it with their own default. At runtime the visitor can switch between `rows` and `aggregate` per join or globally; the choice is optionally persisted as a **SavedView**.
 
 ---
 
-### Gespeicherte Views
+### Saved Filters
 
-Eine **SavedView** bündelt: sichtbare Spalten, Spaltenreihenfolge, aktive Filter (Referenzen auf SavedFilter) und Join-Modus. Sie erlaubt es, mehrere vorkonfigurierte Sichten auf denselben Catalog zu speichern (z.B. „Kompaktansicht", „Audit-Export-Sicht").
+Filters can be set interactively and persisted as named **SavedFilters**. A SavedFilter is a reusable, named filter condition (e.g. "Only applications with status active", "Only systems of the business layer") that is offered to visitors as a quick selection.
 
 ---
 
-### Catalog-Scope
+### Saved Views
 
-| Scope | Sichtbarkeit |
+A **SavedView** bundles: visible columns, column order, active filters (references to SavedFilters), and join mode. It allows saving several preconfigured views of the same catalog (e.g. "Compact view", "Audit export view").
+
+---
+
+### Catalog Scope
+
+| Scope | Visibility |
 |---|---|
-| `instance` | Für alle Nutzer der OEA-Instanz sichtbar (geteilter Catalog) |
-| `personal` | Nur für den Ersteller sichtbar |
+| `instance` | Visible to all users of the OEA instance (shared catalog) |
+| `personal` | Visible only to the creator |
 
 ---
 
-### Abgrenzung Catalog vs. Viewpoint
+### Delimitation: Catalog vs. Viewpoint
 
-| Aspekt | Catalog | Viewpoint |
+| Aspect | Catalog | Viewpoint |
 |---|---|---|
-| Darstellungsform | Tabelle / Liste | Grafisches Diagramm |
-| Konfigurierbar | Spalten, Joins, Filter, Sort | Erlaubte Typen, Notation |
-| Primäre Aktion | Daten exportieren, filtern, abfragen | Architektur visualisieren, zeichnen |
-| Notation | keine | ArchiMate 3, UML, BPMN 2.0 |
-| Join-Konzept | ja (über Connections) | nein |
+| Presentation form | Table / list | Graphical diagram |
+| Configurable | Columns, joins, filters, sort | Allowed types, notation |
+| Primary action | Export, filter, query data | Visualize, draw architecture |
+| Notation | none | ArchiMate 3, UML, BPMN 2.0 |
+| Join concept | yes (via connections) | no |
 
-## Attribute
+## Attributes
 
-### Catalog (Wurzel-Objekt)
+### Catalog (root object)
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| id | string | required | | UUID v4, global eindeutig | Interner Primärschlüssel |
-| name | string | required | | max. 255 Zeichen, eindeutig innerhalb der Instanz | Lesbarer Name (z.B. „Applikations-Übersicht") |
-| description | string | optional | | max. 1000 Zeichen | Zweck und Zielgruppe des Catalogs |
-| primaryEntityType | string | required | | gültiger EntityType-Name | Entitätstyp, der die Zeilen liefert |
-| columns | ColumnConfig[] | required | [] | mind. 1 Eintrag | Konfiguration der Spalten aus Attributen der primären Entität |
-| joinDefinitions | JoinDefinition[] | required | [] | | Joins über Connections zu weiteren Entitätstypen |
-| defaultJoinMode | enum | required | `aggregate` | `[rows, aggregate]` | Globaler Default für alle Joins des Catalogs; überschreibbar pro JoinDefinition und durch Besucher |
-| savedFilters | SavedFilter[] | required | [] | | Benannte, wiederverwendbare Filterbedingungen |
-| savedViews | SavedView[] | required | [] | | Benannte Kombinationen aus Spalten, Filtern und Join-Modus |
-| scope | enum | required | `instance` | `[instance, personal]` | Sichtbarkeit des Catalogs |
-| createdBy | reference | required | | target: person | Erstellende Person |
-| createdAt | datetime | required | | ISO 8601, UTC | Zeitpunkt der Anlage |
-| lastModifiedAt | datetime | required | | ISO 8601, UTC | Zeitpunkt der letzten Änderung |
-| lastModifiedBy | reference | required | | target: person | Person der letzten Änderung |
+| id | string | required | | UUID v4, globally unique | Internal primary key |
+| name | string | required | | max. 255 characters, unique within the instance | Readable name (e.g. "Application Overview") |
+| description | string | optional | | max. 1000 characters | Purpose and target audience of the catalog |
+| primaryEntityType | string | required | | valid EntityType name | Entity type that supplies the rows |
+| columns | ColumnConfig[] | required | [] | at least 1 entry | Configuration of the columns from attributes of the primary entity |
+| joinDefinitions | JoinDefinition[] | required | [] | | Joins via connections to further entity types |
+| defaultJoinMode | enum | required | `aggregate` | `[rows, aggregate]` | Global default for all joins of the catalog; can be overridden per JoinDefinition and by visitors |
+| savedFilters | SavedFilter[] | required | [] | | Named, reusable filter conditions |
+| savedViews | SavedView[] | required | [] | | Named combinations of columns, filters, and join mode |
+| scope | enum | required | `instance` | `[instance, personal]` | Visibility of the catalog |
+| createdBy | reference | required | | target: person | Creating person |
+| createdAt | datetime | required | | ISO 8601, UTC | Time of creation |
+| lastModifiedAt | datetime | required | | ISO 8601, UTC | Time of last modification |
+| lastModifiedBy | reference | required | | target: person | Person who made the last modification |
 
 ### ColumnConfig
 
-| Attribut | Typ | Optional | Default | Beschreibung |
+| Attribute | Type | Optional | Default | Description |
 |---|---|---|---|---|
-| attributeName | string | required | | Name des Attributs aus dem EntityType (z.B. `status`, `name`, `owner`) |
-| displayLabel | string | optional | = `attributeName` | Überschreibt den Spalten-Header in der Anzeige |
-| visible | boolean | required | true | Ob die Spalte sichtbar ist (false = vorhanden, aber ausgeblendet) |
-| sortOrder | integer | required | | Reihenfolge in der Tabelle (0 = erste Spalte) |
-| sortable | boolean | required | true | Ob nach dieser Spalte sortiert werden kann |
-| defaultSortDirection | enum | optional | null | `[asc, desc]`; null = keine Default-Sortierung |
+| attributeName | string | required | | Name of the attribute from the EntityType (e.g. `status`, `name`, `owner`) |
+| displayLabel | string | optional | = `attributeName` | Overrides the column header in the display |
+| visible | boolean | required | true | Whether the column is visible (false = present but hidden) |
+| sortOrder | integer | required | | Order in the table (0 = first column) |
+| sortable | boolean | required | true | Whether the table can be sorted by this column |
+| defaultSortDirection | enum | optional | null | `[asc, desc]`; null = no default sorting |
 
 ### JoinDefinition
 
-| Attribut | Typ | Optional | Default | Beschreibung |
+| Attribute | Type | Optional | Default | Description |
 |---|---|---|---|---|
 | id | string | required | | UUID v4 |
-| name | string | required | | Lesbarer Name für diesen Join (z.B. „Schnittstellen") |
-| connectionType | string | required | | EntityType-Name mit `isConnection=true` |
-| joinDirection | enum | required | `outbound` | `[outbound, inbound, both]`; outbound = primäre Entität als Source, inbound = als Target |
-| targetEntityType | string | required | | EntityType der Zielentität nach dem Join |
-| targetColumns | ColumnConfig[] | required | [] | Attribute der Zielentität, die als Spalten erscheinen |
-| defaultJoinMode | enum | optional | = Catalog.defaultJoinMode | `[rows, aggregate]`; überschreibt den Catalog-Default für diesen Join |
-| aggregateLabel | string | optional | = `name` | Label der Aggregat-Zelle im `aggregate`-Modus |
+| name | string | required | | Readable name for this join (e.g. "Interfaces") |
+| connectionType | string | required | | EntityType name with `isConnection=true` |
+| joinDirection | enum | required | `outbound` | `[outbound, inbound, both]`; outbound = primary entity as source, inbound = as target |
+| targetEntityType | string | required | | EntityType of the target entity after the join |
+| targetColumns | ColumnConfig[] | required | [] | Attributes of the target entity that appear as columns |
+| defaultJoinMode | enum | optional | = Catalog.defaultJoinMode | `[rows, aggregate]`; overrides the catalog default for this join |
+| aggregateLabel | string | optional | = `name` | Label of the aggregate cell in `aggregate` mode |
 
 ### SavedFilter
 
-| Attribut | Typ | Optional | Default | Beschreibung |
+| Attribute | Type | Optional | Default | Description |
 |---|---|---|---|---|
 | id | string | required | | UUID v4 |
-| name | string | required | | Lesbarer Name (z.B. „Nur aktive Systeme") |
+| name | string | required | | Readable name (e.g. "Only active systems") |
 | description | string | optional | | |
-| logicalOperator | enum | required | `and` | `[and, or]`; wie die Filterausdrücke verknüpft werden |
-| expressions | FilterExpression[] | required | | Mind. ein Ausdruck |
+| logicalOperator | enum | required | `and` | `[and, or]`; how the filter expressions are combined |
+| expressions | FilterExpression[] | required | | At least one expression |
 
 ### FilterExpression
 
-| Attribut | Typ | Optional | Beschreibung |
+| Attribute | Type | Optional | Description |
 |---|---|---|---|
-| attributePath | string | required | Attributname der primären oder gejointen Entität (z.B. `status`, `dataFlow.protocol`) |
+| attributePath | string | required | Attribute name of the primary or joined entity (e.g. `status`, `dataFlow.protocol`) |
 | operator | enum | required | `[eq, neq, contains, startsWith, in, notIn, isNull, isNotNull, gt, lt, gte, lte]` |
-| value | any | optional | Vergleichswert; bei `isNull`/`isNotNull` leer; bei `in`/`notIn` ein Array |
+| value | any | optional | Comparison value; empty for `isNull`/`isNotNull`; an array for `in`/`notIn` |
 
 ### SavedView
 
-| Attribut | Typ | Optional | Default | Beschreibung |
+| Attribute | Type | Optional | Default | Description |
 |---|---|---|---|---|
 | id | string | required | | UUID v4 |
-| name | string | required | | Lesbarer Name (z.B. „Audit-Export-Sicht") |
+| name | string | required | | Readable name (e.g. "Audit export view") |
 | description | string | optional | | |
-| columnOrder | string[] | optional | | Geordnete Liste von `attributeName`-Werten der sichtbaren Spalten; überschreibt die Catalog-ColumnConfig-Reihenfolge |
-| activeFilterIds | string[] | optional | [] | IDs von SavedFilters, die in dieser View aktiv sind |
-| joinModeOverrides | JoinModeOverride[] | optional | [] | Pro Join expliziter Modus (`rows`/`aggregate`); überschreibt JoinDefinition-Defaults |
-| isDefault | boolean | required | false | Ob diese View beim Öffnen des Catalogs vorausgewählt ist |
+| columnOrder | string[] | optional | | Ordered list of `attributeName` values of the visible columns; overrides the catalog ColumnConfig order |
+| activeFilterIds | string[] | optional | [] | IDs of SavedFilters that are active in this view |
+| joinModeOverrides | JoinModeOverride[] | optional | [] | Explicit mode per join (`rows`/`aggregate`); overrides JoinDefinition defaults |
+| isDefault | boolean | required | false | Whether this view is preselected when the catalog is opened |
 
-### JoinModeOverride (Werteobjekt in SavedView)
+### JoinModeOverride (value object in SavedView)
 
-| Attribut | Typ | Beschreibung |
+| Attribute | Type | Description |
 |---|---|---|
-| joinDefinitionId | string | ID der betroffenen JoinDefinition |
-| joinMode | enum `[rows, aggregate]` | Gewählter Modus für diese SavedView |
+| joinDefinitionId | string | ID of the affected JoinDefinition |
+| joinMode | enum `[rows, aggregate]` | Selected mode for this SavedView |
 
-## Beziehungen
+## Relationships
 
-| Beziehung | Ziel-Objekt | Kardinalität | Optional | Beschreibung |
+| Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
-| createdBy | [person](./person.md) | n:1 | no | Erstellende Person |
-| referencesEntityType | EntityTypeDefinition (via name) | n:1 | no | Primäre Entität |
-| referencesConnectionTypes | EntityTypeDefinition (isConnection=true) | n:n | yes | Connections, über die gejoint wird |
-| containedIn | [tree-node](./tree-node.md) | n:0..1 | yes | Position im Navigationsbaum |
+| createdBy | [person](./person.md) | n:1 | no | Creating person |
+| referencesEntityType | EntityTypeDefinition (via name) | n:1 | no | Primary entity |
+| referencesConnectionTypes | EntityTypeDefinition (isConnection=true) | n:n | yes | Connections via which joins are made |
+| containedIn | [tree-node](./tree-node.md) | n:0..1 | yes | Position in the navigation tree |
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser | Compliance-Bezug |
+| Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
-| BR-01 | `primaryEntityType` MUSS ein gültiger EntityType-Name in der MetamodelConfiguration sein | onCreate, onUpdate | – |
-| BR-02 | `JoinDefinition.connectionType` MUSS ein EntityType mit `isConnection=true` sein | onCreate, onUpdate | – |
-| BR-03 | `JoinDefinition.targetEntityType` MUSS einem der `allowedSourceTypes` oder `allowedTargetTypes` des ConnectionTypes entsprechen (bzw. beliebig sein wenn null) | onCreate, onUpdate | – |
-| BR-04 | Ein `SavedFilter.expression.attributePath` MUSS auf ein gültiges Attribut der primären Entität oder einer gejointen Zielentität zeigen | onCreate, onUpdate | – |
-| BR-05 | `SavedView.columnOrder` darf nur Attributnamen enthalten, die in der `columns`-Konfiguration des Catalogs definiert sind | onCreate, onUpdate | – |
-| BR-06 | Pro Catalog darf höchstens eine `SavedView` `isDefault=true` sein | onCreate, onUpdate | – |
+| BR-01 | `primaryEntityType` MUST be a valid EntityType name in the MetamodelConfiguration | onCreate, onUpdate | – |
+| BR-02 | `JoinDefinition.connectionType` MUST be an EntityType with `isConnection=true` | onCreate, onUpdate | – |
+| BR-03 | `JoinDefinition.targetEntityType` MUST correspond to one of the `allowedSourceTypes` or `allowedTargetTypes` of the ConnectionType (or be arbitrary if null) | onCreate, onUpdate | – |
+| BR-04 | A `SavedFilter.expression.attributePath` MUST point to a valid attribute of the primary entity or of a joined target entity | onCreate, onUpdate | – |
+| BR-05 | `SavedView.columnOrder` may only contain attribute names that are defined in the catalog's `columns` configuration | onCreate, onUpdate | – |
+| BR-06 | At most one `SavedView` per catalog may have `isDefault=true` | onCreate, onUpdate | – |
 
 ## Lifecycle
 
-Catalogs haben keinen formalen Status-Lifecycle. Sie sind Konfigurations-Objekte, die angelegt, bearbeitet und gelöscht werden können. Gelöschte Catalogs werden aus dem [TreeNode](./tree-node.md) entfernt.
+Catalogs have no formal status lifecycle. They are configuration objects that can be created, edited, and deleted. Deleted catalogs are removed from the [TreeNode](./tree-node.md).
 
-## Beispiele
+## Examples
 
-**Catalog „Applikations-Übersicht mit Schnittstellen"**:
+**Catalog "Application Overview with Interfaces"**:
 
 ```
 primaryEntityType: ApplicationComponent
@@ -208,57 +208,57 @@ columns:
   - attributeName: owner,      sortOrder: 2
   - attributeName: layer,      sortOrder: 3
 joinDefinitions:
-  - name: Schnittstellen
+  - name: Interfaces
     connectionType: DataFlow
     joinDirection: outbound
     targetEntityType: Interface
     targetColumns:
       - attributeName: name,     sortOrder: 0
       - attributeName: protocol, sortOrder: 1
-    defaultJoinMode: aggregate  ← zeigt alle Interfaces einer App in einer Zelle
+    defaultJoinMode: aggregate  ← shows all interfaces of an app in one cell
 savedFilters:
-  - name: Nur aktive Applikationen
+  - name: Only active applications
     expressions:
       - attributePath: status, operator: eq, value: active
 savedViews:
-  - name: Kompaktansicht
+  - name: Compact view
     columnOrder: [name, status]
-    activeFilterIds: [filter-aktive-applikationen]
+    activeFilterIds: [filter-active-applications]
     isDefault: true
-  - name: Vollständige Ansicht mit Interfaces (rows-Modus)
+  - name: Full view with interfaces (rows mode)
     joinModeOverrides:
-      - joinDefinitionId: join-schnittstellen, joinMode: rows
+      - joinDefinitionId: join-interfaces, joinMode: rows
 ```
 
-**Resultat im `aggregate`-Modus (Default)**:
+**Result in `aggregate` mode (default)**:
 
-| Name | Status | Schnittstellen |
+| Name | Status | Interfaces |
 |---|---|---|
 | CRM-System | active | REST-API, SFTP-Export |
 | ERP-Core | active | JDBC-Connector, REST-API |
 
-**Resultat im `rows`-Modus (Besucher wechselt)**:
+**Result in `rows` mode (visitor switches)**:
 
-| Name | Status | Schnittstelle | Protokoll |
+| Name | Status | Interface | Protocol |
 |---|---|---|---|
 | CRM-System | active | REST-API | REST |
 | CRM-System | active | SFTP-Export | SFTP |
 | ERP-Core | active | JDBC-Connector | JDBC |
 | ERP-Core | active | REST-API | REST |
 
-## Abgrenzung
+## Delimitation
 
-- **NICHT** [Viewpoint](./viewpoint.md): Ein Viewpoint steuert die graphische Diagrammdarstellung; ein Catalog ist eine tabellarische Datenabfrage.
-- **NICHT** ein Report: Reports (PDF, Export) können aus Catalogs generiert werden, sind aber kein eigenes BO.
-- **NICHT** eine [Solution](./solution.md): Eine Solution beschreibt Änderungs-Deltas; ein Catalog zeigt den aktuellen (oder historischen) Zustand.
+- **NOT** [Viewpoint](./viewpoint.md): A viewpoint controls the graphical diagram presentation; a catalog is a tabular data query.
+- **NOT** a report: Reports (PDF, export) can be generated from catalogs but are not a BO of their own.
+- **NOT** a [Solution](./solution.md): A solution describes change deltas; a catalog shows the current (or historical) state.
 
-## Verwendung in Use Cases
+## Usage in Use Cases
 
-- Künftig: UC für Kataloge anlegen und konfigurieren (primärer Akteur: SH-03 Kurt)
-- [UC-05: Architektur-Vision beschreiben](../requirements/use-cases/UC-05-architektur-vision-beschreiben.md) – Catalogs können zur Ausgangsbasis-Analyse genutzt werden (komplementär zu REQ-039)
+- Future: UC for creating and configuring catalogs (primary actor: SH-03 Kurt)
+- [UC-05: Describe Architecture Vision](../requirements/use-cases/UC-05-describe-architecture-vision.md) – catalogs can be used for baseline analysis (complementary to REQ-039)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | Business Engineer | Initial draft; Join-Modi (rows/aggregate), SavedFilter, SavedView, ColumnConfig, JoinDefinition |
+| 0.1.0 | 2026-06-26 | Business Engineer | Initial draft; join modes (rows/aggregate), SavedFilter, SavedView, ColumnConfig, JoinDefinition |

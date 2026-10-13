@@ -1,50 +1,50 @@
-# Ableitung aus: requirements/req/req-055-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-055-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @should @UC-07
-Feature: REQ-055 – Dashboard-Daten live berechnen und abrufen
+Feature: REQ-055 – Compute and retrieve dashboard data live
 
-  Das System MUSS auf Abruf die aktuellen Daten für alle Widgets eines
-  [Dashboards](../../business-objects/dashboard.md) berechnen und
-  gesammelt zurückliefern. Die Berechnung MUSS den aktuellen Stand des
-  Architecture-Repositorys widerspiegeln (kein Cache).
+  On demand, the system MUST compute the current data for all widgets
+  of a [dashboard](../../business-objects/dashboard.md) and return it
+  collectively. The computation MUST reflect the current state of the
+  architecture repository (no cache).
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Erfolgreiches Dashboard mit gemischten Widgets – Dashboard mit KPI-, Chart- und Table-Widget (alle gültige DataSources)
-    Given Dashboard mit KPI-, Chart- und Table-Widget (alle gültige DataSources)
+  Scenario: AC1 – Successful dashboard with mixed widgets – dashboard with KPI, chart, and table widget (all valid DataSources)
+    Given dashboard with KPI, chart, and table widget (all valid DataSources)
     When  GET /api/v1/dashboards/{id}/data
-    Then  HTTP 200; alle 3 Widgets mit `status=ok`; `calculatedAt` enthält aktuellen Timestamp
+    Then  HTTP 200; all 3 widgets with `status=ok`; `calculatedAt` contains current timestamp
 
   @AC2
-  Scenario: AC2 – Fehler-Isolation – Dashboard mit 3 Widgets; Widget 2 hat ungültige PropertyDefinition (Meta...
-    Given Dashboard mit 3 Widgets; Widget 2 hat ungültige PropertyDefinition (Metamodell geändert)
+  Scenario: AC2 – Error isolation – dashboard with 3 widgets; widget 2 has an invalid P...
+    Given dashboard with 3 widgets; widget 2 has an invalid PropertyDefinition (metamodel changed)
     When  GET /api/v1/dashboards/{id}/data
-    Then  Widget 1 und 3 → `status=ok`; Widget 2 → `status=error` mit Fehlermeldung; HTTP 200 (kein 500)
+    Then  widgets 1 and 3 → `status=ok`; widget 2 → `status=error` with error message; HTTP 200 (no 500)
 
   @AC3
-  Scenario: AC3 – KPI: Wert = null bei leeren Daten – PropertyAggregation auf EntityType ohne Instanzen
-    Given PropertyAggregation auf EntityType ohne Instanzen
-    When  Daten abrufen
-    Then  `{ "status": "ok", "data": { "value": null } }`; kein Fehler
+  Scenario: AC3 – KPI: value = null on empty data – PropertyAggregation on EntityType without instances
+    Given PropertyAggregation on EntityType without instances
+    When  retrieve data
+    Then  `{ "status": "ok", "data": { "value": null } }`; no error
 
   @AC4
-  Scenario: AC4 – globalFilter anwenden – Dashboard mit globalFilter `status eq 'active'`; KPI-Widget aggregiert ü...
-    Given Dashboard mit globalFilter `status eq 'active'`; KPI-Widget aggregiert über `plateau`
+  Scenario: AC4 – Apply globalFilter – dashboard with globalFilter `status eq 'active'`...
+    Given dashboard with globalFilter `status eq 'active'`; KPI widget aggregates over `plateau`
     When  GET /api/v1/dashboards/{id}/data
-    Then  Nur Plateaus mit status=active fliessen in die Aggregation ein
+    Then  only plateaus with status=active are included in the aggregation
 
   @AC5
-  Scenario: AC5 – Text-Widget – Dashboard hat ein text-Widget
-    Given Dashboard hat ein text-Widget
-    When  Daten abrufen
-    Then  `{ "status": "static", "type": "text" }`; kein DB-Aufruf für dieses Widget
+  Scenario: AC5 – Text widget – dashboard has a text widget
+    Given dashboard has a text widget
+    When  retrieve data
+    Then  `{ "status": "static", "type": "text" }`; no DB call for this widget
 
   @AC6
-  Scenario: AC6 – Live-Daten – Plateau-Instanz erhält neuen Wert für investitionskostenPrognose
-    Given Plateau-Instanz erhält neuen Wert für investitionskostenPrognose
-    When  GET /api/v1/dashboards/{id}/data unmittelbar danach
-    Then  KPI-Wert spiegelt den neuen Wert wider (kein veralteter Cache)
+  Scenario: AC6 – Live data – plateau instance receives new value for investitionskostenPrognose
+    Given plateau instance receives new value for investitionskostenPrognose
+    When  GET /api/v1/dashboards/{id}/data immediately afterwards
+    Then  KPI value reflects the new value (no stale cache)

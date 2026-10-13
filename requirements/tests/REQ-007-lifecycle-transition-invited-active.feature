@@ -1,23 +1,22 @@
-# Ableitung aus: requirements/req/req-007-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-007-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @business-rule @should @UC-01
-Feature: REQ-007 – Lifecycle-Übergang invited→active beim ersten erfolgreichen Login
+Feature: REQ-007 – Lifecycle transition invited→active on first successful login
 
-  Das System SOLL den Lifecycle-Status einer
-  [Person](../../business-objects/person.md) von `invited` zu `active`
-  ändern, sobald ihr erster erfolgreicher Login-Vorgang abgeschlossen
-  ist.
+  The system SHOULD change the lifecycle status of a
+  [Person](../../business-objects/person.md) from `invited` to `active`
+  as soon as their first successful login process is completed.
 
   @AC1
-  Scenario: AC1 – eine Person mit Status `invited`
-    Given eine Person mit Status `invited`
-    When  sie sich erstmals erfolgreich anmeldet
-    Then  wechselt ihr Status zu `active`
+  Scenario: AC1 – a person with status `invited`
+    Given a person with status `invited`
+    When  they log in successfully for the first time
+    Then  their status changes to `active`
 
   @AC2
-  Scenario: AC2 – eine Person mit Status `active`
-    Given eine Person mit Status `active`
-    When  sie sich erneut anmeldet
-    Then  bleibt ihr Status unverändert `active` (kein erneuter Übergang, keine Seiteneffekte)
+  Scenario: AC2 – a person with status `active`
+    Given a person with status `active`
+    When  they log in again
+    Then  their status remains `active` (no repeated transition, no side effects)

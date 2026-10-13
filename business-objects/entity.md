@@ -13,8 +13,8 @@ aliases:
   - ArchEntity
 related_capabilities: []
 references:
-  - concept: concept/20-entities/06-kern-entitaetstypen.md
-  - concept: concept/40-extensibility/14-erweiterbarkeit.md
+  - concept: concept/20-entities/06-core-entity-types.md
+  - concept: concept/40-extensibility/14-extensibility.md
   - concept: concept/40-extensibility/15-schema-evolution.md
 ---
 
@@ -22,31 +22,31 @@ references:
 
 ## Definition
 
-Eine `ArchitectureEntity` ist eine konkrete, benannte Instanz eines Entitätstyps im Architekturmodell – z.B. die Anwendung „SAP S/4HANA" als Instanz des Typs `application-component`. Jede Entität besitzt eine **global eindeutige, fortlaufende Integer-ID** (beginnend bei 1, menschenlesbar) und eine **obligatorische Referenz auf ihre EntityTypeDefinition** (den Metatyp). Diese Verbindung ist unveränderlich und strukturell erzwungen.
+An `ArchitectureEntity` is a concrete, named instance of an entity type in the architecture model – e.g. the application "SAP S/4HANA" as an instance of the type `application-component`. Every entity has a **globally unique, sequential integer ID** (starting at 1, human-readable) and a **mandatory reference to its EntityTypeDefinition** (the meta-type). This link is immutable and structurally enforced.
 
-## Beschreibung
+## Description
 
-ArchitectureEntities sind die zentralen Inhaltsobjekte jeder OEA-Instanz. Sie bilden die Bausteine der Unternehmensarchitektur: Anwendungen, Dienste, Prozesse, Schnittstellen, Server, Domänen, Personen-Rollen usw. Der konkrete Typ jeder Entität – also was eine Entität *ist* – wird ausschliesslich durch ihre `entityTypeId` bestimmt.
+ArchitectureEntities are the central content objects of every OEA instance. They form the building blocks of the enterprise architecture: applications, services, processes, interfaces, servers, domains, person roles, etc. The concrete type of each entity – i.e. what an entity *is* – is determined exclusively by its `entityTypeId`.
 
-Die ID ist ein **fortlaufender Integer** (1, 2, 3, …), der instanzweit eindeutig ist. Das macht IDs in URLs, API-Aufrufen, Exporten und manuellen Referenzen lesbar und merkbar. Verbindungen (`isConnection=true`) und Elemente (`isConnection=false`) teilen denselben Nummernraum.
+The ID is a **sequential integer** (1, 2, 3, …) that is unique instance-wide. This makes IDs readable and memorable in URLs, API calls, exports, and manual references. Connections (`isConnection=true`) and elements (`isConnection=false`) share the same number space.
 
-**Zwei Arten von Entitäten:**
+**Two kinds of entities:**
 
-| Art | Merkmal | Beispiel |
+| Kind | Characteristic | Example |
 |---|---|---|
-| **Element** (Knoten) | `EntityType.isConnection=false` | ApplicationComponent „SAP ERP", BusinessProcess „Rechnungsfreigabe" |
-| **Verbindung** (Kante) | `EntityType.isConnection=true` | DataFlow „ERP→CRM", SequenceFlow „Schritt 1 → Schritt 2" |
+| **Element** (node) | `EntityType.isConnection=false` | ApplicationComponent "SAP ERP", BusinessProcess "Invoice Approval" |
+| **Connection** (edge) | `EntityType.isConnection=true` | DataFlow "ERP→CRM", SequenceFlow "Step 1 → Step 2" |
 
-Verbindungen sind vollwertige Entitäten mit eigener UUID, eigenem Metatyp und eigenen Properties. Sie referenzieren zusätzlich ihre Quell- und Ziel-Entität.
+Connections are full-fledged entities with their own UUID, their own meta-type, and their own properties. They additionally reference their source and target entities.
 
 ---
 
-### Metatyp-Bindung
+### Meta-Type Binding
 
-Die Verbindung zwischen `ArchitectureEntity` und ihrer `EntityTypeDefinition` ist die strukturell wichtigste Invariante des Modells:
+The link between `ArchitectureEntity` and its `EntityTypeDefinition` is the structurally most important invariant of the model:
 
 ```
-EntityTypeDefinition (im Metamodell)        ArchitectureEntity (Instanz)
+EntityTypeDefinition (in the metamodel)     ArchitectureEntity (instance)
 ─────────────────────────────────────       ────────────────────────────
 id:             application-component  ←── entityTypeId: application-component
 name:           ApplicationComponent        id:           42
@@ -55,144 +55,144 @@ propertyDefs:   [investitionskosten, ...]   properties:   [{investitionskosten: 
 architectureLayerId: application-layer      architectureDomainIds: [finance-domain]
 ```
 
-Die `entityTypeId` bestimmt:
-- welche **Properties** die Entität haben kann und muss (PropertyDefinitions mit validationMode)
-- welches **Notation-Element** verwendet wird (NotationMapping in Viewpoints)
-- welche **Standardgrösse** im Canvas gilt (NotationMapping.defaultWidth / defaultHeight)
-- ob sie als **Knoten oder Kante** im Diagramm erscheint (`isConnection`)
-- zu welcher **Architektur-Schicht** sie gehört (via `architectureLayerId` der EntityTypeDefinition)
+The `entityTypeId` determines:
+- which **properties** the entity can and must have (PropertyDefinitions with validationMode)
+- which **notation element** is used (NotationMapping in viewpoints)
+- which **default size** applies on the canvas (NotationMapping.defaultWidth / defaultHeight)
+- whether it appears as a **node or edge** in the diagram (`isConnection`)
+- which **architecture layer** it belongs to (via `architectureLayerId` of the EntityTypeDefinition)
 
 ---
 
-### Diagramm-Bezug
+### Diagram Reference
 
-Wenn eine Entität in einem Diagramm (Viewpoint-Instanz) platziert wird, wird sie als Shape auf dem Canvas referenziert. Die Shape-Darstellung (Notation-Element, Grösse, Farbe) leitet sich vom Viewpoint's `NotationMapping` für `entityTypeId` ab. Die Entity selbst enthält keine Layout-Informationen – diese liegen im Diagram-Objekt.
+When an entity is placed in a diagram (viewpoint instance), it is referenced as a shape on the canvas. The shape's presentation (notation element, size, color) is derived from the viewpoint's `NotationMapping` for `entityTypeId`. The entity itself contains no layout information – that resides in the diagram object.
 
 ---
 
-## Property-Kategorien
+## Property Categories
 
-Jede Entität hat zwei Arten von Properties:
+Every entity has two kinds of properties:
 
-### General-Kategorie (systemdefiniert, gesperrt)
+### General Category (system-defined, locked)
 
-Die `General`-Kategorie enthält die unveränderlichen Systemfelder jeder ArchitectureEntity. Sie ist in der UI immer an erster Stelle sichtbar. Im Metamodell können keine weiteren Properties zur `General`-Kategorie hinzugefügt werden.
+The `General` category contains the immutable system fields of every ArchitectureEntity. It is always visible first in the UI. No further properties can be added to the `General` category in the metamodel.
 
-| Feld | Anzeigename | Editierbar |
+| Field | Display Name | Editable |
 |---|---|---|
-| `id` | ID | nein (systemvergeben) |
-| `name` | Name | ja |
-| `description` | Beschreibung | ja |
-| `entityTypeId` | Typ | nein (unveränderlich nach Anlage) |
-| `isLogical` | Logisch | ja |
+| `id` | ID | no (system-assigned) |
+| `name` | Name | yes |
+| `description` | Description | yes |
+| `entityTypeId` | Type | no (immutable after creation) |
+| `isLogical` | Logical | yes |
 
-### Custom-Kategorien (metamodell-konfiguriert)
+### Custom Categories (metamodel-configured)
 
-Alle weiteren Properties werden in `PropertyGroup`-Kategorien definiert, die im Metamodell pro EntityType konfiguriert werden (z.B. „Finanzen", „Governance", „Technisch"). Diese Properties landen in `properties JSONB`. Keine custom Kategorie darf den reservierten Namen `General` verwenden.
+All further properties are defined in `PropertyGroup` categories, which are configured per EntityType in the metamodel (e.g. "Finance", "Governance", "Technical"). These properties end up in `properties JSONB`. No custom category may use the reserved name `General`.
 
 ---
 
-## Attribute
+## Attributes
 
 ### ArchitectureEntity
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| id | integer | required | | positiver Ganzzahl-Wert ≥ 1; instanzweit eindeutig; fortlaufend; unveränderlich nach Anlage | **[General]** Primärschlüssel; vom System bei onCreate als nächste freie Sequenznummer vergeben |
-| entityTypeId | string | required | | FK → `EntityTypeDefinition.id`; muss in MetamodelConfiguration der Instanz existieren; unveränderlich nach Anlage | **[General]** Metatyp-Referenz; legt Typ, Properties und Notation fest |
-| name | string | required | | max. 255 Zeichen | **[General]** Anzeigename (z.B. „SAP S/4HANA", „Rechnungsfreigabe") |
-| description | string | required | `""` | max. 2000 Zeichen; nie null | **[General]** Fachliche Beschreibung; immer vorhanden, initial leer |
-| isLogical | boolean | required | `true` | | **[General]** `true` = logische/konzeptionelle Entität (z.B. Fähigkeit, Prozess, Daten-Konzept); `false` = physische Entität (konkrete Umsetzung, z.B. Server, Datenbank-Tabelle, Applikations-Instanz). Relevant für Plateau-Darstellung (s.u.) |
-| version | integer | required | `1` | ≥ 1; vom System inkrementiert bei jedem Update | Optimistic-Lock-Zähler (ADR-016); Client muss aktuelle Version beim Update mitsenden |
-| stereotypeIds | string[] | optional | `[]` | FK → `StereotypeDefinition.id`; alle IDs müssen im Metamodell existieren und auf den `entityTypeId` anwendbar sein | Zugewiesene Stereotypes (z.B. `saas-application`) |
-| properties | PropertyValue[] | optional | `[]` | Keys müssen `PropertyDefinition.name` des `entityTypeId`-Typs entsprechen; mandatory-Properties müssen befüllt sein | Werte der vom Metatyp definierten Custom-Properties (nicht-General) |
-| sourceEntityId | integer | conditional | null | REQUIRED wenn `EntityType.isConnection=true`; FK → ArchitectureEntity.id mit `isConnection=false`; unveränderlich nach Anlage | Quell-Entität (nur bei Verbindungen) |
-| targetEntityId | integer | conditional | null | REQUIRED wenn `EntityType.isConnection=true`; FK → ArchitectureEntity.id mit `isConnection=false`; unveränderlich nach Anlage | Ziel-Entität (nur bei Verbindungen) |
-| parentEntityId | integer | optional | null | FK → ArchitectureEntity.id; nur bei Elementen (`isConnection=false`); keine Zyklen erlaubt | Elternelement im Explorer-Baum; erzeugt implizite Composition-Verbindung wenn beide Seiten `isStructuralGrouper=false` (→ ADR-021, REQ-141, REQ-142) |
-| isStructuralGrouper | boolean | required | `false` | | `true` = reine Navigationshilfe im Browser-Panel (kein ArchiMate-Element); erzeugt keine implizite Verbindung; erscheint mit Ordner-Icon statt ArchiMate-Icon |
-| autoCreated | boolean | required | `false` | nur relevant wenn `isConnection=true` | `true` = diese Verbindung wurde automatisch durch Setzen von `parentEntityId` erzeugt; wird beim Herauslösen automatisch gelöscht sofern nicht manuell bearbeitet |
-| createdAt | datetime | required | | ISO 8601, UTC | Anlage-Zeitpunkt |
-| createdBy | reference | required | | target: person | Anlegende Person |
-| updatedAt | datetime | optional | null | ISO 8601, UTC | Letzte Änderung |
-| updatedBy | reference | optional | null | target: person | Zuletzt ändernde Person |
+| id | integer | required | | positive integer value ≥ 1; unique instance-wide; sequential; immutable after creation | **[General]** Primary key; assigned by the system on onCreate as the next free sequence number |
+| entityTypeId | string | required | | FK → `EntityTypeDefinition.id`; must exist in the instance's MetamodelConfiguration; immutable after creation | **[General]** Meta-type reference; determines type, properties, and notation |
+| name | string | required | | max. 255 characters | **[General]** Display name (e.g. "SAP S/4HANA", "Invoice Approval") |
+| description | string | required | `""` | max. 2000 characters; never null | **[General]** Business description; always present, initially empty |
+| isLogical | boolean | required | `true` | | **[General]** `true` = logical/conceptual entity (e.g. capability, process, data concept); `false` = physical entity (concrete implementation, e.g. server, database table, application instance). Relevant for plateau presentation (see below) |
+| version | integer | required | `1` | ≥ 1; incremented by the system on every update | Optimistic lock counter (ADR-016); the client must send the current version on update |
+| stereotypeIds | string[] | optional | `[]` | FK → `StereotypeDefinition.id`; all IDs must exist in the metamodel and be applicable to the `entityTypeId` | Assigned stereotypes (e.g. `saas-application`) |
+| properties | PropertyValue[] | optional | `[]` | Keys must correspond to `PropertyDefinition.name` of the `entityTypeId` type; mandatory properties must be filled | Values of the custom properties (non-General) defined by the meta-type |
+| sourceEntityId | integer | conditional | null | REQUIRED if `EntityType.isConnection=true`; FK → ArchitectureEntity.id with `isConnection=false`; immutable after creation | Source entity (connections only) |
+| targetEntityId | integer | conditional | null | REQUIRED if `EntityType.isConnection=true`; FK → ArchitectureEntity.id with `isConnection=false`; immutable after creation | Target entity (connections only) |
+| parentEntityId | integer | optional | null | FK → ArchitectureEntity.id; elements only (`isConnection=false`); no cycles allowed | Parent element in the explorer tree; creates an implicit composition connection if both sides have `isStructuralGrouper=false` (→ ADR-021, REQ-141, REQ-142) |
+| isStructuralGrouper | boolean | required | `false` | | `true` = pure navigation aid in the browser panel (not an ArchiMate element); creates no implicit connection; appears with a folder icon instead of an ArchiMate icon |
+| autoCreated | boolean | required | `false` | only relevant if `isConnection=true` | `true` = this connection was created automatically by setting `parentEntityId`; is deleted automatically on detaching unless manually edited |
+| createdAt | datetime | required | | ISO 8601, UTC | Time of creation |
+| createdBy | reference | required | | target: person | Creating person |
+| updatedAt | datetime | optional | null | ISO 8601, UTC | Last change |
+| updatedBy | reference | optional | null | target: person | Person who last made a change |
 
-### isLogical — Bedeutung im Plateau-Kontext
+### isLogical — Meaning in the Plateau Context
 
-| Wert | Bedeutung | Plateau-Verhalten |
+| Value | Meaning | Plateau Behavior |
 |---|---|---|
-| `true` (logisch) | Konzeptionelle Entität (z.B. „CRM-Fähigkeit", „Kundenstamm" als Daten-Konzept) | Existiert über Plateau-Grenzen hinweg; Lifecycle-State ändert sich pro Plateau |
-| `false` (physisch) | Konkrete Umsetzung (z.B. „SAP CRM 7.0 auf Server PROD-01", „Tabelle customers in PostgreSQL") | Hat klaren Zeitraum der Produktiv-Existenz; typischerweise `active` in Baseline, `retired` in Target |
+| `true` (logical) | Conceptual entity (e.g. "CRM capability", "customer master" as a data concept) | Exists across plateau boundaries; lifecycle state changes per plateau |
+| `false` (physical) | Concrete implementation (e.g. "SAP CRM 7.0 on server PROD-01", "table customers in PostgreSQL") | Has a clear period of productive existence; typically `active` in baseline, `retired` in target |
 
-`isLogical` kann beim Anlegen gesetzt werden und ist nachträglich editierbar. Die `EntityTypeDefinition` im Metamodell kann einen `defaultIsLogical`-Wert für neue Instanzen vorgeben (z.B. `capability` → `true`; `server` → `false`).
+`isLogical` can be set on creation and is editable afterwards. The `EntityTypeDefinition` in the metamodel can specify a `defaultIsLogical` value for new instances (e.g. `capability` → `true`; `server` → `false`).
 
-### EntityVersion (Werteobjekt / Snapshot)
+### EntityVersion (value object / snapshot)
 
-Pro Update auf einer ArchitectureEntity wird automatisch ein Version-Snapshot erzeugt (ADR-016). Der Snapshot wird **vor** dem Update geschrieben.
+A version snapshot is created automatically for every update on an ArchitectureEntity (ADR-016). The snapshot is written **before** the update.
 
-| Attribut | Typ | Beschreibung |
+| Attribute | Type | Description |
 |---|---|---|
 | entityId | integer | FK → ArchitectureEntity.id |
-| version | integer | Version zum Zeitpunkt dieses Snapshots |
-| name | string | Name vor dem Update |
-| description | string | Beschreibung vor dem Update |
-| isLogical | boolean | Logisch-Flag vor dem Update |
-| properties | object | Custom-Properties vor dem Update (JSONB) |
-| changedBy | integer | Wer hat dieses Update ausgelöst |
-| changedAt | datetime | Zeitpunkt des Updates |
+| version | integer | Version at the time of this snapshot |
+| name | string | Name before the update |
+| description | string | Description before the update |
+| isLogical | boolean | Logical flag before the update |
+| properties | object | Custom properties before the update (JSONB) |
+| changedBy | integer | Who triggered this update |
+| changedAt | datetime | Time of the update |
 
-### PropertyValue (Werteobjekt)
+### PropertyValue (value object)
 
-| Attribut | Typ | Optional | Constraints | Beschreibung |
+| Attribute | Type | Optional | Constraints | Description |
 |---|---|---|---|---|
-| propertyName | string | required | muss einem `PropertyDefinition.name` des `entityTypeId`-Typs entsprechen | Schlüssel; referenziert die PropertyDefinition |
-| value | string \| null | required | Serialisierungsformat: `int` als `"42"`, `enum` als Enum-Value-String, `varchar` direkt | Wert; null = nicht befüllt |
+| propertyName | string | required | must correspond to a `PropertyDefinition.name` of the `entityTypeId` type | Key; references the PropertyDefinition |
+| value | string \| null | required | Serialization format: `int` as `"42"`, `enum` as enum value string, `varchar` directly | Value; null = not filled |
 
-## Beziehungen
+## Relationships
 
-| Beziehung | Ziel-Objekt | Kardinalität | Optional | Beschreibung |
+| Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
-| instanceOf | [metamodel-configuration](./metamodel-configuration.md) → EntityTypeDefinition | n:1 | **no** | Jede Entität gehört genau einem Metatyp an; PFLICHT |
-| hasSterotypes | [metamodel-configuration](./metamodel-configuration.md) → StereotypeDefinition | n:0..n | yes | Zugewiesene Stereotypes |
-| source | ArchitectureEntity (isConnection=false) | 1:0..1 | conditional | Quell-Entität (nur Verbindungen) |
-| target | ArchitectureEntity (isConnection=false) | 1:0..1 | conditional | Ziel-Entität (nur Verbindungen) |
-| referencedBy | EntityDelta (in [solution](./solution.md)) | 1:0..n | yes | Solutions, die diese Entität ändern |
-| appearsIn | Diagram[] | 1:0..n | yes | Diagramme, in denen diese Entität platziert ist |
+| instanceOf | [metamodel-configuration](./metamodel-configuration.md) → EntityTypeDefinition | n:1 | **no** | Each entity belongs to exactly one meta-type; MANDATORY |
+| hasSterotypes | [metamodel-configuration](./metamodel-configuration.md) → StereotypeDefinition | n:0..n | yes | Assigned stereotypes |
+| source | ArchitectureEntity (isConnection=false) | 1:0..1 | conditional | Source entity (connections only) |
+| target | ArchitectureEntity (isConnection=false) | 1:0..1 | conditional | Target entity (connections only) |
+| referencedBy | EntityDelta (in [solution](./solution.md)) | 1:0..n | yes | Solutions that change this entity |
+| appearsIn | Diagram[] | 1:0..n | yes | Diagrams in which this entity is placed |
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser | Compliance-Bezug |
+| Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
-| BR-01 | Jede ArchitectureEntity MUSS eine `entityTypeId` haben, die auf eine existierende `EntityTypeDefinition` in der MetamodelConfiguration der Instanz zeigt | onCreate | – |
-| BR-02 | `id` ist ein fortlaufender Integer ≥ 1; er wird bei Anlage systemseitig als nächste freie Sequenznummer vergeben; Elemente und Verbindungen teilen denselben Nummernraum; unveränderlich nach Anlage | onCreate | – |
-| BR-03 | `entityTypeId` ist unveränderlich nach Anlage; ein Typ-Wechsel ist nicht möglich (neue Entität anlegen, alte löschen) | onUpdate | – |
-| BR-04 | Wenn `EntityTypeDefinition.isConnection=true`: `sourceEntityId` UND `targetEntityId` MÜSSEN gesetzt sein. `sourceEntityId` darf auf eine Connection-Instanz zeigen, **nur wenn** deren Metatyp `allowsConnectionAsSource=true` trägt (ADR-010 n-Connection); andernfalls muss `sourceEntityId` auf eine Nicht-Connection-Instanz zeigen. `targetEntityId` muss immer auf eine Nicht-Connection-Instanz zeigen. | onCreate, onUpdate | ADR-010 |
-| BR-05 | Wenn `EntityTypeDefinition.isConnection=false`: `sourceEntityId` und `targetEntityId` MÜSSEN null sein | onCreate, onUpdate | – |
-| BR-06 | Alle `PropertyValue.propertyName`-Werte MÜSSEN PropertyDefinitions des `entityTypeId`-Metatyps entsprechen; unbekannte Property-Namen werden abgelehnt (422) | onCreate, onUpdate | – |
-| BR-07 | PropertyDefinitions mit `validationMode=mandatory` MÜSSEN einen nicht-leeren Wert haben; fehlt der Wert → 422; `validationMode=warning` → Save mit Warnung-Response möglich; `validationMode=optional` → immer valid | onCreate, onUpdate | – |
-| BR-08 | `stereotypeIds` dürfen nur Stereotypes referenzieren, die für den `entityTypeId`-Metatyp definiert sind | onCreate, onUpdate | – |
-| BR-09 | `sourceEntityId` und `targetEntityId` sind nach Anlage einer Verbindung unveränderlich; Kantenrichtung kann nicht geändert werden | onUpdate | – |
-| BR-10 | `description` ist immer vorhanden (nie null); initial leerer String `""`; max. 2000 Zeichen | onCreate, onUpdate | – |
-| BR-11 | `isLogical` ist ein Boolean; Default ist `true`; kann nachträglich geändert werden | onCreate, onUpdate | – |
-| BR-12 | Bei jedem Update auf eine ArchitectureEntity MUSS der Client die aktuelle `version` mitsenden; stimmt sie nicht mit dem gespeicherten Wert überein → HTTP 409 Conflict; nach erfolgreichem Update wird `version` um 1 erhöht (Optimistic Locking, ADR-016) | onUpdate | ADR-016 |
-| BR-13 | Vor jedem Update MUSS ein EntityVersion-Snapshot des vorherigen Zustands in `entity_versions` geschrieben werden; dieser Snapshot ist unveränderlich | onUpdate | ADR-016 |
-| BR-14 | Keine `PropertyGroup` im Metamodell darf den reservierten Namen `general` (case-insensitive) tragen; General-Felder sind systemdefiniert und nicht erweiterbar | Metamodell-Konfiguration | – |
+| BR-01 | Every ArchitectureEntity MUST have an `entityTypeId` that points to an existing `EntityTypeDefinition` in the instance's MetamodelConfiguration | onCreate | – |
+| BR-02 | `id` is a sequential integer ≥ 1; it is assigned by the system on creation as the next free sequence number; elements and connections share the same number space; immutable after creation | onCreate | – |
+| BR-03 | `entityTypeId` is immutable after creation; a type change is not possible (create a new entity, delete the old one) | onUpdate | – |
+| BR-04 | If `EntityTypeDefinition.isConnection=true`: `sourceEntityId` AND `targetEntityId` MUST be set. `sourceEntityId` may point to a connection instance **only if** its meta-type carries `allowsConnectionAsSource=true` (ADR-010 n-connection); otherwise `sourceEntityId` must point to a non-connection instance. `targetEntityId` must always point to a non-connection instance. | onCreate, onUpdate | ADR-010 |
+| BR-05 | If `EntityTypeDefinition.isConnection=false`: `sourceEntityId` and `targetEntityId` MUST be null | onCreate, onUpdate | – |
+| BR-06 | All `PropertyValue.propertyName` values MUST correspond to PropertyDefinitions of the `entityTypeId` meta-type; unknown property names are rejected (422) | onCreate, onUpdate | – |
+| BR-07 | PropertyDefinitions with `validationMode=mandatory` MUST have a non-empty value; if the value is missing → 422; `validationMode=warning` → save with warning response possible; `validationMode=optional` → always valid | onCreate, onUpdate | – |
+| BR-08 | `stereotypeIds` may only reference stereotypes that are defined for the `entityTypeId` meta-type | onCreate, onUpdate | – |
+| BR-09 | `sourceEntityId` and `targetEntityId` are immutable after a connection is created; edge direction cannot be changed | onUpdate | – |
+| BR-10 | `description` is always present (never null); initially the empty string `""`; max. 2000 characters | onCreate, onUpdate | – |
+| BR-11 | `isLogical` is a boolean; default is `true`; can be changed afterwards | onCreate, onUpdate | – |
+| BR-12 | On every update to an ArchitectureEntity, the client MUST send the current `version`; if it does not match the stored value → HTTP 409 Conflict; after a successful update, `version` is incremented by 1 (optimistic locking, ADR-016) | onUpdate | ADR-016 |
+| BR-13 | Before every update, an EntityVersion snapshot of the previous state MUST be written to `entity_versions`; this snapshot is immutable | onUpdate | ADR-016 |
+| BR-14 | No `PropertyGroup` in the metamodel may carry the reserved name `general` (case-insensitive); General fields are system-defined and not extensible | metamodel configuration | – |
 
 ## Lifecycle
 
-ArchitectureEntities haben keinen eigenständigen Lifecycle-Status. Ihr Zustand innerhalb des Architekturmodells (aktiv, auslaufend, realisiert) wird kontextuell gesteuert:
+ArchitectureEntities have no standalone lifecycle status. Their state within the architecture model (active, retiring, realized) is controlled contextually:
 
-- **Projekt-Modus**: Status ergibt sich aus den `EntityDelta.deltaType`-Werten aller `implemented`-Solutions
-- **Plateau-Modus**: Jedes Plateau hat für jede enthaltene Entität einen Zustand (`active`, `retiring`, `retired`); der Zustand ist platauspezifisch und in der `PlateauEntityMembership` gespeichert (offen; vgl. architecture.md Offene Fragen)
+- **Project mode**: Status results from the `EntityDelta.deltaType` values of all `implemented` solutions
+- **Plateau mode**: Each plateau has a state (`active`, `retiring`, `retired`) for each contained entity; the state is plateau-specific and stored in the `PlateauEntityMembership` (open; cf. architecture.md Open Questions)
 
-## Beispiele
+## Examples
 
-**Element-Entität (ApplicationComponent)**:
+**Element entity (ApplicationComponent)**:
 ```yaml
 entity:
   id: 1
   entityTypeId: "application-component"
   name: "SAP S/4HANA"
-  description: "Zentrales ERP-System der Finanzabteilung"
+  description: "Central ERP system of the finance department"
   stereotypeIds:
     - "on-premise-application"
   architectureDomainIds:
@@ -207,13 +207,13 @@ entity:
   targetEntityId: null
 ```
 
-**Verbindungs-Entität (DataFlow)** – ID 5, verknüpft Entität 1 mit Entität 3:
+**Connection entity (DataFlow)** – ID 5, links entity 1 to entity 3:
 ```yaml
 entity:
   id: 5
   entityTypeId: "data-flow"
-  name: "ERP → CRM Kundenstamm-Sync"
-  description: "Nächtliche Synchronisierung des Kundenstamms"
+  name: "ERP → CRM customer master sync"
+  description: "Nightly synchronization of the customer master"
   properties:
     - propertyName: "protocol"
       value: "REST"
@@ -223,31 +223,31 @@ entity:
   targetEntityId: 3   # Salesforce CRM
 ```
 
-**Entität mit mandatory Property nicht befüllt → Warnung**:
+**Entity with mandatory property not filled → warning**:
 ```yaml
 entity:
   id: 7
   entityTypeId: "application-component"
-  name: "Legacy-Schnittstelle"
-  properties: []   # investitionskosten (validationMode=mandatory) fehlt
-# → Save möglich wenn validationMode=warning; Fehler wenn validationMode=mandatory
+  name: "Legacy Interface"
+  properties: []   # investitionskosten (validationMode=mandatory) is missing
+# → save possible if validationMode=warning; error if validationMode=mandatory
 ```
 
-## Abgrenzung
+## Delimitation
 
-- **NICHT** [EntityTypeDefinition](./metamodel-configuration.md): Eine EntityTypeDefinition ist der Typ (Metatyp); eine ArchitectureEntity ist die Instanz. Typen definieren was es gibt; Entitäten sind konkrete Elemente.
-- **NICHT** ein [EntityDelta](./solution.md): Ein EntityDelta beschreibt *was sich ändert* (new/modified/retiring); die ArchitectureEntity ist das *Objekt, das sich ändert*.
-- **NICHT** ein Diagram-Shape: Ein Shape ist die visuelle Repräsentation einer Entität in einem bestimmten Diagramm (inkl. Position, Grösse-Override); die Entität selbst ist positionslos.
+- **NOT** [EntityTypeDefinition](./metamodel-configuration.md): An EntityTypeDefinition is the type (meta-type); an ArchitectureEntity is the instance. Types define what exists; entities are concrete elements.
+- **NOT** an [EntityDelta](./solution.md): An EntityDelta describes *what changes* (new/modified/retiring); the ArchitectureEntity is the *object that changes*.
+- **NOT** a diagram shape: A shape is the visual representation of an entity in a specific diagram (incl. position, size override); the entity itself has no position.
 
-## Verwendung in Use Cases
+## Usage in Use Cases
 
-- [UC-05: Architektur-Vision einer Änderungsinitiative beschreiben](../requirements/use-cases/UC-05-architektur-vision-beschreiben.md) – EntityDeltas legen neue Entitäten an oder modifizieren bestehende
-- Künftig: UC für direkte Entitäts-Verwaltung (Create/Update/Delete ohne Solution-Kontext)
+- [UC-05: Describe Architecture Vision of a Change Initiative](../requirements/use-cases/UC-05-describe-architecture-vision.md) – EntityDeltas create new entities or modify existing ones
+- Future: UC for direct entity management (create/update/delete without solution context)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | Business Engineer | Initial draft; Integer-ID; entityTypeId als obligatorische Metatyp-Referenz; PropertyValue-Werteobjekt; BR-01–BR-10 |
-| 0.2.0 | 2026-06-26 | Business Engineer | BR-04 erweitert: `sourceEntityId` darf auf Connection-Instanz zeigen wenn `allowsConnectionAsSource=true` (ADR-010) |
-| 0.3.0 | 2026-06-27 | Business Engineer | `isLogical: boolean` (General, default true) hinzugefügt (BR-12); `description` als Pflichtfeld mit Default `""` (BR-11); General-Kategorie formalisiert (BR-15); `version`-Attribut für Optimistic Locking (BR-13); EntityVersion-Snapshot-Mechanismus (BR-14; ADR-016) |
+| 0.1.0 | 2026-06-26 | Business Engineer | Initial draft; integer ID; entityTypeId as mandatory meta-type reference; PropertyValue value object; BR-01–BR-10 |
+| 0.2.0 | 2026-06-26 | Business Engineer | BR-04 extended: `sourceEntityId` may point to a connection instance if `allowsConnectionAsSource=true` (ADR-010) |
+| 0.3.0 | 2026-06-27 | Business Engineer | Added `isLogical: boolean` (General, default true) (BR-12); `description` as mandatory field with default `""` (BR-11); General category formalized (BR-15); `version` attribute for optimistic locking (BR-13); EntityVersion snapshot mechanism (BR-14; ADR-016) |

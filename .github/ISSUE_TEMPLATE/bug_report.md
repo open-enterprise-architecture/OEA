@@ -1,30 +1,30 @@
 ---
-name: Fehler melden
-about: Einen Fehler im System oder in der Dokumentation melden
+name: Report a Bug
+about: Report a bug in the system or in the documentation
 title: 'fix: '
 labels: bug
 assignees: ''
 ---
 
-## Beschreibung
+## Description
 
-<!-- Was ist das fehlerhafte Verhalten? -->
+<!-- What is the faulty behavior? -->
 
-## Erwartetes Verhalten
+## Expected Behavior
 
-<!-- Was sollte stattdessen passieren? -->
+<!-- What should happen instead? -->
 
-## Schritte zur Reproduktion
+## Steps to Reproduce
 
 1.
 2.
 3.
 
-## Kontext
+## Context
 
-- **Betroffener UC / REQ / ADR**:
-- **Bereich**: [ ] Requirements [ ] Datenmodell [ ] API [ ] Screens [ ] Konzept
+- **Affected UC / REQ / ADR**:
+- **Area**: [ ] Requirements [ ] Data model [ ] API [ ] Screens [ ] Concept
 
-## Weitere Informationen
+## Additional Information
 
-<!-- Screenshots, Logs, etc. -->
+<!-- Screenshots, logs, etc. -->

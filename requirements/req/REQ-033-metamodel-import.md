@@ -1,6 +1,6 @@
 ---
 id: REQ-033
-title: Metamodell aus Datei importieren
+title: Import metamodel from file
 type: functional
 priority: should
 status: proposed
@@ -18,121 +18,121 @@ references:
     - SH-03
     - SH-06
   concept:
-    - concept/40-extensibility/14-erweiterbarkeit.md
+    - concept/40-extensibility/14-extensibility.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-033: Metamodell aus Datei importieren
+# REQ-033: Import metamodel from file
 
-## Aussage
+## Statement
 
-Das System MUSS Personen mit Metamodell-Bearbeiter-Berechtigung ermöglichen, eine Metamodell-Konfigurationsdatei (YAML oder JSON) hochzuladen; das System MUSS die Datei vor dem Import validieren, eine Vorschau der Änderungen (Diff: neue Typen, Konflikte, unveränderte Typen) anzeigen und erst nach expliziter Bestätigung importieren.
+The system MUST allow persons with metamodel editor permission to upload a metamodel configuration file (YAML or JSON); the system MUST validate the file before import, show a preview of the changes (diff: new types, conflicts, unchanged types), and import only after explicit confirmation.
 
-## Begründung
+## Rationale
 
-Viele Organisationen haben bestehende Architektur-Standards als YAML/JSON-Dokumente, oder ein Architect Lead bereitet das Metamodell lokal vor und übermittelt es per Datei. Der Import-Weg ist effizienter als die manuelle Eingabe vieler EntityTypes über das GUI, insbesondere bei der Ersteinrichtung. Das obligatorische Diff vor dem Import schützt vor unbeabsichtigtem Überschreiben bestehender Konfiguration.
+Many organizations have existing architecture standards as YAML/JSON documents, or an architect lead prepares the metamodel locally and submits it as a file. The import path is more efficient than manually entering many EntityTypes via the GUI, especially during initial setup. The mandatory diff before import protects against unintentionally overwriting existing configuration.
 
-## Kontext
+## Context
 
-YAML ist das primäre Import-Format (entspricht dem Format aus §14 des Konzepts). JSON ist eine gleichwertige Alternative. ArchiMate-XMI ist nicht im Scope dieses Requirements. Der Import ist additiv: neue Typen werden hinzugefügt; bestehende, unveränderte Typen bleiben erhalten; Built-in-Typen können nicht überschrieben werden. Konflikte (Namenskollisionen mit Custom-Typen) müssen vor dem Import aufgelöst werden.
+YAML is the primary import format (corresponds to the format from §14 of the concept). JSON is an equivalent alternative. ArchiMate XMI is out of scope of this requirement. The import is additive: new types are added; existing, unchanged types are retained; built-in types cannot be overwritten. Conflicts (name collisions with custom types) must be resolved before the import.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- Datei (YAML oder JSON); Format wird automatisch erkannt
-- Bestätigung durch den Nutzer nach Vorschau
+**Inputs**:
+- File (YAML or JSON); format is detected automatically
+- Confirmation by the user after the preview
 
-**Verarbeitung**:
-1. Upload: Datei entgegennehmen; maximale Größe TBD (Vorschlag: 1 MB)
-2. Parsing: YAML/JSON in interne Datenstruktur überführen; Syntaxfehler → sofortige Fehlermeldung
-3. Schema-Validierung: Pflichtfelder vorhanden, Typen korrekt, Kardinalitäts-Format gültig, Enum-Values nicht leer
-4. Diff-Berechnung:
-   - Neue Typen (grün): Name nicht in built-in und nicht in bestehenden Custom-Typen
-   - Konflikte (rot): Name kollidiert mit built-in → nicht importierbar; Name kollidiert mit Custom-Typ → überschreiben möglich (mit Warnung)
-   - Unveränderte Typen (grau): exakt gleicher Name und gleiche Definition bereits vorhanden
-5. Nutzer bestätigt Import
-6. Import: alle konfliktfreien neuen Typen werden persistiert; bei überschreibbaren Konflikten nur die explizit bestätigten
+**Processing**:
+1. Upload: accept the file; maximum size TBD (proposal: 1 MB)
+2. Parsing: convert YAML/JSON into an internal data structure; syntax errors → immediate error message
+3. Schema validation: mandatory fields present, types correct, cardinality format valid, enum values not empty
+4. Diff calculation:
+   - New types (green): name not in built-in and not in existing custom types
+   - Conflicts (red): name collides with built-in → not importable; name collides with custom type → overwrite possible (with warning)
+   - Unchanged types (gray): exactly the same name and same definition already present
+5. User confirms the import
+6. Import: all conflict-free new types are persisted; for overwritable conflicts only those explicitly confirmed
 
-**Ausgaben**:
-- Vorschau-Diff (vor dem Import)
-- Zusammenfassung nach Import: X Typen importiert, Y Konflikte übersprungen
-- Audit-Log-Einträge für jeden importierten/aktualisierten Typ
+**Outputs**:
+- Preview diff (before the import)
+- Summary after import: X types imported, Y conflicts skipped
+- Audit log entries for each imported/updated type
 
-**Fehlerfälle**:
-- Datei nicht parsebar (ungültiges YAML/JSON) → Syntaxfehler mit Zeilen- und Spaltenangabe
-- Schema-Verletzung (z.B. fehlendes Pflichtfeld `name`) → Liste aller Validierungsfehler
-- Alle Einträge der Datei sind Konflikte → Import ohne Bestätigung nicht möglich; Nutzer muss Datei korrigieren
-- Datei zu groß → Fehlermeldung mit Größenlimit
+**Error Cases**:
+- File not parseable (invalid YAML/JSON) → syntax error with line and column
+- Schema violation (e.g., missing mandatory field `name`) → list of all validation errors
+- All entries of the file are conflicts → import not possible without confirmation; the user must correct the file
+- File too large → error message with size limit
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine gültige YAML-Datei mit 3 neuen Custom EntityTypes
-- Wenn: Kurt die Datei hochlädt und die Vorschau bestätigt
-- Dann: sind alle 3 Typen in der MetamodelConfiguration vorhanden; Audit-Log enthält 3 Einträge
+- Given: a valid YAML file with 3 new custom EntityTypes
+- When: Kurt uploads the file and confirms the preview
+- Then: all 3 types are present in the MetamodelConfiguration; the audit log contains 3 entries
 
 **AC2**:
-- Gegeben: eine YAML-Datei, die einen Typ mit dem Namen `ApplicationComponent` (built-in) definiert
-- Wenn: Kurt die Datei hochlädt
-- Dann: zeigt die Vorschau diesen Eintrag als rot/Konflikt an mit „nicht importierbar (built-in)"; er kann nicht bestätigt werden
+- Given: a YAML file that defines a type with the name `ApplicationComponent` (built-in)
+- When: Kurt uploads the file
+- Then: the preview shows this entry as red/conflict with "not importable (built-in)"; it cannot be confirmed
 
 **AC3**:
-- Gegeben: eine syntaktisch ungültige YAML-Datei
-- Wenn: Kurt sie hochlädt
-- Dann: erscheint sofort eine Fehlermeldung mit Zeilen- und Spaltenangabe; keine Vorschau
+- Given: a syntactically invalid YAML file
+- When: Kurt uploads it
+- Then: an error message with line and column appears immediately; no preview
 
 **AC4**:
-- Gegeben: eine gültige Datei mit 2 neuen und 1 konfliktbehaftetem (überschreibbarem Custom-Typ)
-- Wenn: Kurt nur die 2 neuen Typen bestätigt und den Konflikt überspringt
-- Dann: werden nur die 2 neuen importiert; der bestehende Custom-Typ bleibt unverändert
+- Given: a valid file with 2 new types and 1 conflicting (overwritable custom type)
+- When: Kurt confirms only the 2 new types and skips the conflict
+- Then: only the 2 new ones are imported; the existing custom type remains unchanged
 
 **AC5**:
-- Gegeben: eine JSON-Datei mit identischer Struktur wie die YAML-Variante
-- Wenn: Kurt sie hochlädt
-- Dann: wird sie genauso behandelt (Format auto-detektiert)
+- Given: a JSON file with a structure identical to the YAML variant
+- When: Kurt uploads it
+- Then: it is handled in the same way (format auto-detected)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: gültige YAML/JSON-Dateien; Datei mit built-in-Konflikt; ungültige Syntax; Partial-Import-Test
-- [x] Mess-Werkzeug: Test-Suite des Import-Moduls
-- [x] Bestanden-Kriterium: AC1–AC5 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: valid YAML/JSON files; file with built-in conflict; invalid syntax; partial import test
+- [x] Measurement tool: test suite of the import module
+- [x] Pass criterion: AC1–AC5 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-032 (Import-Ergebnis entspricht dem gleichen Schema wie GUI-Ergebnis; beide landen in MetamodelConfiguration)
-- **Folgewirkungen**: keine eigenen; importierte Typen verhalten sich wie GUI-angelegte Typen
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-032 (the import result corresponds to the same schema as the GUI result; both end up in MetamodelConfiguration)
+- **Downstream effects**: none of its own; imported types behave like types created via GUI
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne Import müssen viele Typen manuell per GUI eingegeben werden – zeitaufwändig bei Ersteinrichtung, geringer bis mittlerer Schweregrad
-- Risiko 2: Import ohne Diff-Vorschau könnte bestehende Konfiguration unbeabsichtigt überschreiben, mittlerer Schweregrad (durch obligatorischen Diff mitigiert)
+- Risk 1: Without import, many types must be entered manually via the GUI – time-consuming during initial setup, low to medium severity
+- Risk 2: Import without a diff preview could unintentionally overwrite existing configuration, medium severity (mitigated by the mandatory diff)
 
 ## Trade-offs
 
-- Partial Import (AC4) erhöht die Komplexität der UI (Checkboxen pro Eintrag), bietet aber flexible Kontrolle. Alternative: alles-oder-nichts → einfacher, aber weniger flexibel. Empfehlung: Partial Import.
+- Partial import (AC4) increases UI complexity (checkboxes per entry) but offers flexible control. Alternative: all-or-nothing → simpler but less flexible. Recommendation: partial import.
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Backend: `POST /admin/metamodel/import` mit Multipart-Form-Data; Response: Diff-Objekt; `POST /admin/metamodel/import/confirm` mit Auswahl der zu importierenden Einträge
-- YAML-Parsing: etablierte Bibliothek (z.B. `gopkg.in/yaml.v3` für Go, `js-yaml` für Node.js)
-- Diff: serverseitig berechnet, nicht clientseitig (Datei nie direkt im Browser geparst)
+- Backend: `POST /admin/metamodel/import` with multipart form data; response: diff object; `POST /admin/metamodel/import/confirm` with the selection of entries to import
+- YAML parsing: established library (e.g., `gopkg.in/yaml.v3` for Go, `js-yaml` for Node.js)
+- Diff: calculated server-side, not client-side (file is never parsed directly in the browser)
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |

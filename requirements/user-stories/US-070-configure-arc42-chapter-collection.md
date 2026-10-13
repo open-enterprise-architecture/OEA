@@ -1,36 +1,36 @@
-# US-070: Arc42-Kapitelsammlung im Metamodell konfigurieren
+# US-070: Configure an Arc42 Chapter Collection in the Metamodel
 
 **ID**: US-070
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Metamodell-Administrator möchte ich eine Arc42-Kapitelsammlung anlegen, Fragen definieren und dem EntityType „ApplicationComponent" zuweisen – damit Solution Architekten beim Öffnen eines Systems sofort die richtigen Dokumentationsfragen sehen.
+As a metamodel administrator, I want to create an Arc42 chapter collection, define questions and assign it to the EntityType "ApplicationComponent" – so that solution architects immediately see the right documentation questions when opening a system.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-04](../use-cases/UC-04-metamodell-konfigurieren.md), [UC-09](../use-cases/UC-09-loesungsarchitektur-arc42-dokumentieren.md)
+**Use Case**: [UC-04](../use-cases/UC-04-configure-metamodel.md), [UC-09](../use-cases/UC-09-document-solution-architecture-arc42.md)
 **Persona**: Sabine – Business Engineer (SH-07); Kurt – Lead EA (SH-03)
-**Requirements**: [REQ-067](../req/REQ-067-arc42-kapitelsammlung.md)
+**Requirements**: [REQ-067](../req/REQ-067-arc42-chapter-collection.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Collection anlegen):
-- Wenn: Admin legt Collection „Arc42 Standard" mit 12 Fragen an und weist sie `application-component` zu
-- Dann: Collection gespeichert; ApplicationComponent-Entitäten zeigen Arc42-Tab
+**AC1** (create collection):
+- When: Admin creates collection "Arc42 Standard" with 12 questions and assigns it to `application-component`
+- Then: Collection saved; ApplicationComponent entities show the Arc42 tab
 
-**AC2** (Built-in importieren):
-- Wenn: Admin klickt „Standard Arc42 importieren"
-- Dann: 12-Fragen-Collection als editierbare Kopie verfügbar
+**AC2** (import built-in):
+- When: Admin clicks "Import standard Arc42"
+- Then: 12-question collection available as an editable copy
 
-**AC3** (Frage-Reihenfolge ändern):
-- Wenn: Admin ändert sortOrder der Fragen
-- Dann: Neue Reihenfolge im Tab korrekt angezeigt
+**AC3** (change question order):
+- When: Admin changes the sortOrder of the questions
+- Then: New order displayed correctly in the tab
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests: Anlegen, Import, Reihenfolge
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 met
+- [ ] Tests: creation, import, order
+- [ ] Code review; linter green; entered in trace matrix

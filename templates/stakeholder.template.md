@@ -1,71 +1,71 @@
 # Stakeholder: {{name-or-role}}
 
 <!--
-Verwendung: Ein Profil pro Stakeholder/Persona.
-Dateiname: stakeholders/SH-NN-kurzname.md (z.B. SH-01-stefan-solution-architect.md)
+Usage: One profile per stakeholder/persona.
+File name: stakeholders/SH-NN-shortname.md (e.g. SH-01-stefan-solution-architect.md)
 
-Personas mit echten Namen aus deinem Umfeld sind wertvoller als abstrakte Rollen.
-"Stefan, Solution Architect bei Versicherer X" > "Enterprise Architect mittlerer Erfahrung"
+Personas with real names from your environment are more valuable than abstract roles.
+"Stefan, Solution Architect at insurer X" > "Enterprise architect with medium experience"
 -->
 
 **ID**: SH-NN
-**Typ**: persona | role | group | organization | external-party
-**Bezug zum Tool**: primary | secondary | tertiary
+**Type**: persona | role | group | organization | external-party
+**Relation to the Tool**: primary | secondary | tertiary
 **Internal/External**: internal | external
 
-## Kurzbeschreibung
+## Short Description
 
-Ein bis zwei Sätze, wer das ist und in welchem Kontext.
+One to two sentences on who this is and in what context.
 
-## Rolle und Verantwortung
+## Role and Responsibility
 
-- Aktuelle Rolle:
-- Organisation/Branche:
-- Erfahrungsniveau:
-- Tägliche Hauptaufgaben:
+- Current role:
+- Organization/industry:
+- Experience level:
+- Main daily tasks:
 
-## Beziehung zum OEA
+## Relation to OEA
 
-- **Nutzungsfrequenz**: täglich | wöchentlich | gelegentlich | selten
-- **Hauptnutzung**: lesen | pflegen | reviewen | konsumieren von Outputs
-- **Technisches Niveau**: gering | mittel | hoch
-- **Bevorzugte Schnittstelle**: UI | CLI | API | generierte Dokumente
+- **Usage frequency**: daily | weekly | occasionally | rarely
+- **Main usage**: read | maintain | review | consume outputs
+- **Technical level**: low | medium | high
+- **Preferred interface**: UI | CLI | API | generated documents
 
-## Aktuelle Pain Points
+## Current Pain Points
 
-Was funktioniert heute schlecht? Was kostet unnötig Zeit?
+What works badly today? What costs unnecessary time?
 
 - Pain 1:
 - Pain 2:
 - Pain 3:
 
-## Concerns (Anliegen)
+## Concerns
 
-Was muss das Tool tun, damit diese Person zufrieden ist? Welche Sorgen hat sie?
-Diese werden später zu Anforderungen.
+What must the tool do to satisfy this person? What worries do they have?
+These later become requirements.
 
-| Concern | Kategorie | Severity |
+| Concern | Category | Severity |
 |---|---|---|
 | | functional / performance / security / compliance / cost / usability | informational / worrying / blocking |
 
-## Erfolgskriterien
+## Success Criteria
 
-Woran würde diese Person erkennen, dass das Tool für sie funktioniert?
+How would this person recognize that the tool works for them?
 
-- [ ] Erfolgskriterium 1
-- [ ] Erfolgskriterium 2
+- [ ] Success criterion 1
+- [ ] Success criterion 2
 
-## Beteiligte Use Cases
+## Involved Use Cases
 
-Welche Use Cases hat diese Persona als Hauptakteur?
+Which use cases does this persona have as primary actor?
 
-- [UC-NN: Titel](../use-cases/UC-NN-titel.md)
+- [UC-NN: Title](../use-cases/UC-NN-titel.md)
 
-## Konzept-Bezüge
+## Concept References
 
-- [§7 Motivation, Stakeholder und Ziele](../../concept/20-entities/07-motivation-stakeholder-ziele.md) – Stakeholder-Konzept
-- [§8 Organisation, Rollen und Personen](../../concept/20-entities/08-organisation-rollen-personen.md) – Rollen-Definition
+- [§7 Motivation, Stakeholders & Goals](../../concept/20-entities/07-motivation-stakeholders-goals.md) – stakeholder concept
+- [§8 Organization, Roles & Persons](../../concept/20-entities/08-organization-roles-persons.md) – role definition
 
-## Notizen
+## Notes
 
-Freitext für Beobachtungen, Zitate aus Gesprächen, Hintergrund.
+Free text for observations, quotes from conversations, background.

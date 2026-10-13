@@ -1,93 +1,93 @@
-# Sicherheitsrichtlinie / Security Policy
+# Security Policy
 
-Vielen Dank für deine Bemühungen, OEA sicher zu machen. Verantwortliches Melden von Sicherheitslücken ist ein wichtiger Beitrag zur Open-Source-Gemeinschaft.
+Thank you for your efforts to make OEA secure. Responsible reporting of security vulnerabilities is an important contribution to the open-source community.
 
-## Unterstützte Versionen
+## Supported Versions
 
-| Version | Unterstützt | Hinweise |
+| Version | Supported | Notes |
 |---|---|---|
-| 0.x | ✓ | Aktive Entwicklung, vor v1.0-Release |
-| < 0.x | ✗ | Pre-Alpha, nicht für Produktion gedacht |
+| 0.x | ✓ | Active development, before v1.0 release |
+| < 0.x | ✗ | Pre-alpha, not intended for production |
 
-Sobald v1.0 veröffentlicht ist, werden in der Regel die letzte Major-Version und die aktuelle unterstützt.
+Once v1.0 is released, the latest major version and the current one will generally be supported.
 
-## Melden von Sicherheitslücken
+## Reporting Security Vulnerabilities
 
-**Bitte melde Sicherheitslücken NICHT öffentlich** (nicht als GitHub/Gitea-Issue, nicht in Diskussionen, nicht in Pull Requests).
+**Please do NOT report security vulnerabilities publicly** (not as a GitHub/Gitea issue, not in discussions, not in pull requests).
 
-### Sicherer Meldeweg
+### Secure Reporting Channel
 
-Verwende einen der folgenden Wege:
+Use one of the following channels:
 
-1. **E-Mail** (bevorzugt): `security@oea.org` (TBD – muss vor Go-Live eingerichtet werden)
-2. **PGP-verschlüsselt**: PGP-Key wird bei Go-Live veröffentlicht
-3. **Private Security Advisory** in GitHub/Gitea (falls aktiviert)
+1. **Email** (preferred): `security@oea.org` (TBD – must be set up before go-live)
+2. **PGP-encrypted**: PGP key will be published at go-live
+3. **Private security advisory** in GitHub/Gitea (if enabled)
 
-### Was deine Meldung enthalten sollte
+### What Your Report Should Contain
 
-Damit wir schnell reagieren können:
+So that we can respond quickly:
 
-- **Beschreibung der Lücke**: Was ist das Problem?
-- **Reproduktion**: Schritt-für-Schritt-Anleitung
-- **Auswirkung**: Welche Daten oder Funktionen sind betroffen?
-- **Schweregrad-Einschätzung**: critical / high / medium / low (deine Einschätzung)
-- **Betroffene Version(en)**: Commit-Hash oder Release-Tag
-- **Umgebung**: OS, Konfiguration, Deployment-Variante
-- **Vorschlag zur Behebung** (optional): Falls du eine Idee hast
+- **Description of the vulnerability**: What is the problem?
+- **Reproduction**: Step-by-step instructions
+- **Impact**: Which data or functions are affected?
+- **Severity assessment**: critical / high / medium / low (your assessment)
+- **Affected version(s)**: commit hash or release tag
+- **Environment**: OS, configuration, deployment variant
+- **Suggested fix** (optional): If you have an idea
 
-### Was bei deiner Meldung passiert
+### What Happens After Your Report
 
-| Zeitrahmen | Aktion |
+| Timeframe | Action |
 |---|---|
-| Innerhalb 48 Stunden | Eingangsbestätigung an dich |
-| Innerhalb 5 Werktagen | Erste technische Einschätzung |
-| Innerhalb 30 Tagen | Behebungs-Plan und voraussichtlicher Veröffentlichungs-Zeitraum |
-| Vor öffentlicher Veröffentlichung | Abstimmung mit dir zu Disclosure-Timing |
+| Within 48 hours | Acknowledgment of receipt to you |
+| Within 5 business days | First technical assessment |
+| Within 30 days | Remediation plan and expected publication period |
+| Before public disclosure | Coordination with you on disclosure timing |
 
-Wir verfolgen das Modell **Coordinated Disclosure**: Sicherheitslücken werden erst nach Behebung öffentlich gemacht, in Abstimmung mit dem Melder.
+We follow the **coordinated disclosure** model: vulnerabilities are made public only after they are fixed, in coordination with the reporter.
 
-## Sicherheits-Garantien (Stand und Roadmap)
+## Security Guarantees (Status and Roadmap)
 
-OEA wird mit Sicherheit als Design-Constraint entwickelt:
+OEA is developed with security as a design constraint:
 
-- **Property-Level-Autorisierung** als Pflicht-Feature
-- **Audit-Trail** append-only, separat gespeichert
-- **Verschlüsselung at-rest und in-transit** als Standard
-- **OIDC/LDAP** für AuthN, niemals nur lokale Accounts
-- **Strukturierte Logs** ohne PII-Leaks
-- **Sichere Defaults**: TLS an, AuthN required, Audit-Log aktiv
+- **Property-level authorization** as a mandatory feature
+- **Audit trail** append-only, stored separately
+- **Encryption at rest and in transit** as standard
+- **OIDC/LDAP** for AuthN, never local accounts only
+- **Structured logs** without PII leaks
+- **Secure defaults**: TLS on, AuthN required, audit log active
 
-Details siehe [`concept/70-platform/21-api-architektur.md`](concept/70-platform/21-api-architektur.md) §21.8 und [`concept/60-integrations/20-grc-dsgvo-isms-integration.md`](concept/60-integrations/20-grc-dsgvo-isms-integration.md).
+For details see [`concept/70-platform/21-api-architecture.md`](concept/70-platform/21-api-architecture.md) §21.8 and [`concept/60-integrations/20-grc-gdpr-isms-integration.md`](concept/60-integrations/20-grc-gdpr-isms-integration.md).
 
-## Bekannte Sicherheitsaspekte (Pre-Production)
+## Known Security Aspects (Pre-Production)
 
-OEA ist vor v1.0 noch nicht produktiv einsetzbar. Folgende Aspekte sind bewusst noch in Arbeit:
+Before v1.0, OEA is not yet ready for production use. The following aspects are deliberately still in progress:
 
-- TBD: SBOM-Generierung (Software Bill of Materials)
-- TBD: Signierte Container-Images (Cosign)
-- TBD: Reproduzierbare Builds
-- TBD: Vollständiger Penetration-Test vor v1.0
+- TBD: SBOM generation (Software Bill of Materials)
+- TBD: Signed container images (Cosign)
+- TBD: Reproducible builds
+- TBD: Full penetration test before v1.0
 
-Wenn du OEA in Produktion einsetzen willst, prüfe den aktuellen Stand und kontaktiere uns für eine Bewertung deiner Use Cases.
+If you want to use OEA in production, check the current status and contact us for an assessment of your use cases.
 
-## Anerkennung
+## Acknowledgment
 
-Personen, die Sicherheitslücken verantwortlich melden, werden auf Wunsch im Release-Changelog genannt. Wir bieten kein Bug-Bounty-Programm, schätzen aber jeden Beitrag zur Sicherheit von OEA.
+Persons who responsibly report security vulnerabilities will be named in the release changelog on request. We do not offer a bug bounty program, but we appreciate every contribution to the security of OEA.
 
-## Häufige Fragen
+## Frequently Asked Questions
 
-**Warum nicht GPG-verschlüsselt verpflichtend?**
-Wir möchten Meldungen niedrig-schwellig ermöglichen. PGP ist verfügbar, aber nicht Pflicht.
+**Why is GPG encryption not mandatory?**
+We want to keep the barrier to reporting low. PGP is available but not required.
 
-**Was, wenn die Lücke akut ausgenutzt wird?**
-Wenn du Anzeichen aktiver Ausnutzung siehst, schreibe das in den Betreff: "AKUT: ..." – wir reagieren schneller.
+**What if the vulnerability is being actively exploited?**
+If you see signs of active exploitation, put this in the subject: "URGENT: ..." – we will respond faster.
 
-**Was, wenn ich die Lücke im Tool eines Drittanbieters entdecke?**
-OEA nutzt verschiedene Dependencies. Wenn die Lücke in einem fremden Tool ist, melde sie dem entsprechenden Maintainer und informiere uns parallel, damit wir bei Bedarf Patches einarbeiten können.
+**What if I discover the vulnerability in a third-party tool?**
+OEA uses various dependencies. If the vulnerability is in a third-party tool, report it to the respective maintainer and inform us in parallel so that we can incorporate patches if needed.
 
-**Wer sieht meine Meldung?**
-Initial nur die Security-Verantwortlichen (siehe [MAINTAINERS.md](MAINTAINERS.md)). Bei komplexen Lücken können weitere Maintainer hinzugezogen werden, immer unter Vertraulichkeits-Vereinbarung.
+**Who sees my report?**
+Initially only the security owners (see [MAINTAINERS.md](MAINTAINERS.md)). For complex vulnerabilities, additional maintainers may be brought in, always under a confidentiality agreement.
 
-## Vielen Dank
+## Thank You
 
-Sicherheits-Meldungen sind eine wertvolle Form der Mitwirkung. Wir schätzen jeden Beitrag.
+Security reports are a valuable form of contribution. We appreciate every contribution.

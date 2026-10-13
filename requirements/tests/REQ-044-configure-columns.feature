@@ -1,47 +1,47 @@
-# Ableitung aus: requirements/req/req-044-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-044-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-06
-Feature: REQ-044 – Spalten eines Katalogs konfigurieren
+Feature: REQ-044 – Configure columns of a catalog
 
-  Das System MUSS dem Katalog-Manager ermöglichen, die `columns`-Liste
-  eines [Catalogs](../../business-objects/catalog.md) zu definieren und
-  zu aktualisieren. Jeder `ColumnConfig`-Eintrag legt für ein Attribut
-  des `primaryEntityType` fest: `attributeName` (Pflicht, muss ein
-  gültiges Attribut des Typs sein), `displayLabel` (optional; Default =
-  attributeName), `visible` (boolean, Default: true), `sortOrder`
-  (integer, 0-basiert) und `sortable` (boolean, Default: true).
+  The system MUST enable the catalog manager to define and update the
+  `columns` list of a [Catalog](../../business-objects/catalog.md).
+  Each `ColumnConfig` entry defines, for an attribute of the
+  `primaryEntityType`: `attributeName` (mandatory, must be a valid
+  attribute of the type), `displayLabel` (optional; default =
+  attributeName), `visible` (boolean, default: true), `sortOrder`
+  (integer, 0-based) and `sortable` (boolean, default: true).
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Spalten setzen, Happy Path – Catalog „Application Inventory" mit primaryEntityType=ApplicationComponent
-    Given Catalog „Application Inventory" mit primaryEntityType=ApplicationComponent
-    When  PUT `/api/v1/catalogs/{id}/columns` mit `[{attributeName: "name", sortOrder: 0}, {attributeName: "status", sortOrder: 1, displayLabel: "Betriebsstatus"}]`
-    Then  HTTP 200; Catalog hat 2 Spalten; zweite Spalte hat displayLabel „Betriebsstatus"
+  Scenario: AC1 – Set columns, happy path – catalog "Application Inventory" with primaryEntityType=ApplicationComponent
+    Given catalog "Application Inventory" with primaryEntityType=ApplicationComponent
+    When  PUT `/api/v1/catalogs/{id}/columns` with `[{attributeName: "name", sortOrder: 0}, {attributeName: "status", sortOrder: 1, displayLabel: "Operating status"}]`
+    Then  HTTP 200; catalog has 2 columns; second column has displayLabel "Operating status"
 
   @AC2
-  Scenario: AC2 – Ungültiges Attribut – ApplicationComponent kennt kein Attribut `nonExistingField`
-    Given ApplicationComponent kennt kein Attribut `nonExistingField`
-    When  PUT mit `attributeName: "nonExistingField"`
-    Then  HTTP 422 „Das Attribut ‹nonExistingField› ist für den Typ ‹ApplicationComponent› nicht definiert"
+  Scenario: AC2 – Invalid attribute – ApplicationComponent has no attribute `nonExistingField`
+    Given ApplicationComponent has no attribute `nonExistingField`
+    When  PUT with `attributeName: "nonExistingField"`
+    Then  HTTP 422 "The attribute ‹nonExistingField› is not defined for the type ‹ApplicationComponent›"
 
   @AC3
-  Scenario: AC3 – Keine sichtbare Spalte – PUT mit ausschliesslich `visible: false`-Einträgen
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  PUT mit ausschliesslich `visible: false`-Einträgen
-    Then  HTTP 422 „Mind. eine Spalte muss sichtbar sein"
+  Scenario: AC3 – No visible column – PUT with exclusively `visible: false` entries
+    Given the precondition according to the requirement is met
+    When  PUT with exclusively `visible: false` entries
+    Then  HTTP 422 "At least one column must be visible"
 
   @AC4
-  Scenario: AC4 – SavedView bereinigung – SavedView „Kompaktansicht" enthält `columnOrder: ["name", "vendor"]`; Sp...
-    Given SavedView „Kompaktansicht" enthält `columnOrder: ["name", "vendor"]`; Spalte „vendor" wird aus columns entfernt
-    When  PUT ohne `vendor`-Spalte
-    Then  HTTP 200; Response enthält `warnings: [{type: "savedViewColumnRemoved", savedViewId: "...", removedColumns: ["vendor"]}]`; SavedView `columnOrder` ist auf `["name"]` bereinigt
+  Scenario: AC4 – SavedView cleanup – SavedView "Compact view" contains `columnOrder: ["name", "vendor"]`; column "vendor" is removed from columns
+    Given SavedView "Compact view" contains `columnOrder: ["name", "vendor"]`; column "vendor" is removed from columns
+    When  PUT without `vendor` column
+    Then  HTTP 200; response contains `warnings: [{type: "savedViewColumnRemoved", savedViewId: "...", removedColumns: ["vendor"]}]`; SavedView `columnOrder` is cleaned up to `["name"]`
 
   @AC5
-  Scenario: AC5 – Reihenfolge – Spalten mit sortOrder [2, 0, 1] gesendet werden
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Spalten mit sortOrder [2, 0, 1] gesendet werden
-    Then  System ordnet Spalten nach sortOrder; erste angezeigte Spalte ist jene mit sortOrder=0
+  Scenario: AC5 – Order – columns with sortOrder [2, 0, 1] are sent
+    Given the precondition according to the requirement is met
+    When  columns with sortOrder [2, 0, 1] are sent
+    Then  system orders columns by sortOrder; first displayed column is the one with sortOrder=0

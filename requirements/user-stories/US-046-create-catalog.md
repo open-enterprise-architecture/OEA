@@ -1,51 +1,51 @@
-# US-046: Katalog anlegen
+# US-046: Create a Catalog
 
 **ID**: US-046
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Lead Enterprise Architekt möchte ich einen neuen Katalog mit Name, Beschreibung, primärem Entitätstyp, Scope und Default-Join-Modus anlegen können, damit ich eine Basis-Konfiguration habe, die ich danach mit Spalten und Joins ausbaue.
+As a Lead Enterprise Architect, I want to be able to create a new catalog with name, description, primary entity type, scope and default join mode, so that I have a base configuration that I then extend with columns and joins.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-06: Architektur-Katalog anlegen, konfigurieren und verwenden](../use-cases/UC-06-katalog-anlegen-und-verwenden.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-043: Katalog anlegen](../req/REQ-043-katalog-anlegen.md)
+**Use Case**: [UC-06: Create, Configure and Use an Architecture Catalog](../use-cases/UC-06-create-and-use-catalog.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-043: Create Catalog](../req/REQ-043-create-catalog.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Anlegen, Happy Path):
-- Gegeben: Kurt ist eingeloggt; MetamodelConfiguration enthält `ApplicationComponent`
-- Wenn: Kurt füllt das Formular aus (Name=„Application Inventory", Typ=ApplicationComponent, Scope=instance, Join-Modus=aggregate) und bestätigt
-- Dann: Katalog erscheint in der Katalog-Übersicht; er ist leer (keine Spalten, keine Joins)
+**AC1** (creation, happy path):
+- Given: Kurt is logged in; MetamodelConfiguration contains `ApplicationComponent`
+- When: Kurt fills in the form (Name="Application Inventory", Type=ApplicationComponent, Scope=instance, Join mode=aggregate) and confirms
+- Then: Catalog appears in the catalog overview; it is empty (no columns, no joins)
 
-**AC2** (Name-Kollision):
-- Gegeben: Ein Katalog „Application Inventory" existiert bereits
-- Wenn: Kurt legt einen weiteren mit demselben Namen an
-- Dann: Inline-Fehlermeldung im Formular „Ein Katalog mit diesem Namen existiert bereits"; kein Datensatz angelegt
+**AC2** (name collision):
+- Given: A catalog "Application Inventory" already exists
+- When: Kurt creates another one with the same name
+- Then: Inline error message in the form "A catalog with this name already exists"; no record created
 
-**AC3** (Scope=personal):
-- Wenn: Sabine legt einen Katalog mit scope=personal an
-- Dann: Katalog erscheint nur in Sabines Katalog-Übersicht; Franz sieht ihn nicht
+**AC3** (scope=personal):
+- When: Sabine creates a catalog with scope=personal
+- Then: Catalog appears only in Sabine's catalog overview; Franz does not see it
 
-**AC4** (Fehlende Berechtigung):
-- Gegeben: Franz hat nur Besucher-Rolle
-- Wenn: Franz öffnet die Katalog-Übersicht
-- Dann: Schaltfläche „Neuen Katalog anlegen" ist nicht sichtbar oder deaktiviert
+**AC4** (missing permission):
+- Given: Franz has only the visitor role
+- When: Franz opens the catalog overview
+- Then: Button "Create new catalog" is not visible or disabled
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Katalog-Übersicht (Liste + „Neu"-Button), Erstellungsformular, Backend `POST /api/v1/catalogs`
-- Primärer Entitätstyp: Dropdown aus MetamodelConfiguration-EntityTypes; live geladen
-- Nach Speichern: Weiterleitung in den Spalten-Konfigurator (US-047)
+- Affected components: catalog overview (list + "New" button), creation form, backend `POST /api/v1/catalogs`
+- Primary entity type: dropdown from MetamodelConfiguration EntityTypes; loaded live
+- After saving: redirect to the column configurator (US-047)
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien AC1–AC4 erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests: Happy Path, Name-Kollision, scope=personal Sichtbarkeit, Berechtigungsprüfung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria AC1–AC4 met
+- [ ] Code review by a second person
+- [ ] Tests: happy path, name collision, scope=personal visibility, permission check
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix

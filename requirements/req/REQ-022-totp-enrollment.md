@@ -1,6 +1,6 @@
 ---
 id: REQ-022
-title: TOTP-Secret-Enrollment (Authenticator-App einrichten)
+title: TOTP secret enrollment (setting up an authenticator app)
 type: functional
 priority: should
 status: proposed
@@ -18,121 +18,121 @@ references:
     - SH-03
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-022: TOTP-Secret-Enrollment (Authenticator-App einrichten)
+# REQ-022: TOTP secret enrollment (setting up an authenticator app)
 
-## Aussage
+## Statement
 
-Das System SOLL das Einrichten eines TOTP-Secrets (RFC 6238) als lokale Authentifizierungsmethode ermöglichen, indem es ein Secret generiert, es als QR-Code (Key-URI-Format) und im Klartext anzeigt, einen Verifikations-Code entgegennimmt und das Secret nur bei bestandener Verifikation verschlüsselt persistiert.
+The system SHOULD allow setting up a TOTP secret (RFC 6238) as a local authentication method by generating a secret, displaying it as a QR code (key URI format) and in plain text, accepting a verification code, and persisting the secret in encrypted form only if verification is passed.
 
-## Begründung
+## Rationale
 
-TOTP ist die am breitesten unterstützte lokale Zwei-Faktor-Methode ohne Abhängigkeit von spezifischer Hardware oder Plattform-APIs. Sie ist der Hauptablauf in UC-03 und die Fallback-Option für Umgebungen, in denen WebAuthn (Passkey) nicht verfügbar ist. Adressiert SH-06s Anforderung nach lokaler Nutzerverwaltung ohne externen IdP und SH-03s Self-Hosting-Szenario.
+TOTP is the most widely supported local two-factor method without dependency on specific hardware or platform APIs. It is the Basic Flow in UC-03 and the fallback option for environments in which WebAuthn (passkey) is not available. Addresses SH-06's requirement for local user management without an external IdP and SH-03's self-hosting scenario.
 
-## Kontext
+## Context
 
-Wird als Required Action im Rahmen des ersten Logins ausgelöst (UC-03 Hauptablauf): Das System erkennt nach erfolgreicher Passwort-Prüfung, dass 2FA erzwungen ist (REQ-020) und noch kein TOTP-Credential existiert, und leitet den Nutzer direkt zur Einrichtungsseite. Alternativ kann TOTP über die Profil-Einstellungen einer bereits eingeloggten Person hinzugefügt werden (REQ-026). Das Secret wird beim Login durch REQ-010 (TOTP-Login) verwendet. Das Secret darf nur einmalig im Klartext angezeigt werden; danach ist es nicht mehr abrufbar.
+Triggered as a required action during the first login (UC-03 Basic Flow): after a successful password check, the system detects that 2FA is enforced (REQ-020) and no TOTP credential exists yet, and directly redirects the user to the setup page. Alternatively, TOTP can be added via the profile settings of an already logged-in person (REQ-026). The secret is used at login by REQ-010 (TOTP login). The secret may be displayed in plain text only once; afterwards it is no longer retrievable.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- Ausgelöster Enrollment-Schritt "TOTP" (nach Token-Validierung oder Session-Auth)
-- Verifikations-Code: 6-stellige TOTP-Ziffer, eingegeben von Kurt aus seiner Authenticator-App
+**Inputs**:
+- Triggered enrollment step "TOTP" (after token validation or session authentication)
+- Verification code: 6-digit TOTP code, entered by Kurt from his authenticator app
 
-**Verarbeitung**:
-- System generiert ein kryptographisch zufälliges TOTP-Secret (≥ 160 Bit, RFC 4226-konform)
-- System erzeugt eine Key-URI (`otpauth://totp/...`) und rendert daraus einen QR-Code
-- System zeigt QR-Code und Secret-Klartext (für manuelle Eingabe) genau einmal an
-- Wenn Kurt den Verifikations-Code eingibt: System prüft ihn gegen das generierte Secret mit Zeittoleranz (±1 Schritt à 30 s, RFC 6238)
-- Bei erfolgreicher Verifikation: System persistiert das Secret verschlüsselt (AES-256 oder gleichwertig), verknüpft es mit dem Person-Objekt
+**Processing**:
+- System generates a cryptographically random TOTP secret (≥ 160 bits, RFC 4226 compliant)
+- System creates a key URI (`otpauth://totp/...`) and renders a QR code from it
+- System displays the QR code and the plain-text secret (for manual entry) exactly once
+- When Kurt enters the verification code: the system checks it against the generated secret with time tolerance (±1 step of 30 s, RFC 6238)
+- On successful verification: the system persists the secret in encrypted form (AES-256 or equivalent) and links it to the Person object
 
-**Ausgaben**:
-- QR-Code und Secret-Klartext (einmalig, während Enrollment)
-- Erfolgsmeldung nach bestandener Verifikation
-- Bei fehlgeschlagener Verifikation: Fehlermeldung ohne Hinweis auf den Secret-Wert, kein Persistieren
+**Outputs**:
+- QR code and plain-text secret (once, during enrollment)
+- Success message after verification is passed
+- On failed verification: error message without any hint of the secret value, nothing persisted
 
-**Fehlerfälle**:
-- Falscher oder abgelaufener Verifikations-Code (E2 aus UC-03) → Fehlermeldung, Secret wird nicht persistiert, Token bleibt gültig; Kurt kann erneut versuchen
-- Secret-Generierung fehlgeschlagen (technischer Fehler) → allgemeine Fehlermeldung, kein Enrollment-Abschluss
+**Error Cases**:
+- Wrong or expired verification code (E2 from UC-03) → error message, secret is not persisted, token remains valid; Kurt can try again
+- Secret generation failed (technical error) → generic error message, enrollment is not completed
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Kurt hat TOTP als Methode gewählt
-- Wenn: das System das Secret generiert
-- Dann: wird ein QR-Code (Key-URI-Format) und der Secret-Klartext angezeigt
+- Given: Kurt has chosen TOTP as the method
+- When: the system generates the secret
+- Then: a QR code (key URI format) and the plain-text secret are displayed
 
 **AC2**:
-- Gegeben: Kurt scannt den QR-Code und gibt den aktuellen TOTP-Code ein
-- Wenn: der Code korrekt ist (innerhalb Zeittoleranz ±1 Schritt)
-- Dann: ist das Secret verschlüsselt persistiert und mit Kurts Person verknüpft; der Login mit diesem TOTP ist ab sofort möglich (UC-01 A4)
+- Given: Kurt scans the QR code and enters the current TOTP code
+- When: the code is correct (within time tolerance ±1 step)
+- Then: the secret is persisted in encrypted form and linked to Kurt's person; login with this TOTP is possible immediately (UC-01 A4)
 
 **AC3**:
-- Gegeben: Kurt gibt einen falschen TOTP-Code ein
-- Wenn: die Verifikation schlägt fehl
-- Dann: wird kein Secret persistiert, das Enrollment-Token bleibt gültig, Kurt kann es erneut versuchen
+- Given: Kurt enters a wrong TOTP code
+- When: verification fails
+- Then: no secret is persisted, the enrollment token remains valid, Kurt can try again
 
 **AC4**:
-- Gegeben: Enrollment wurde abgeschlossen
-- Wenn: das System Log-Einträge schreibt
-- Dann: ist das TOTP-Secret weder im Klartext noch als Hash in Logs enthalten
+- Given: enrollment has been completed
+- When: the system writes log entries
+- Then: the TOTP secret is contained in logs neither in plain text nor as a hash
 
 **AC5**:
-- Gegeben: das TOTP-Secret ist persistiert
-- Wenn: es in der Datenbank gespeichert ist
-- Dann: ist es verschlüsselt (nicht im Klartext lesbar ohne Entschlüsselungsschlüssel)
+- Given: the TOTP secret is persisted
+- When: it is stored in the database
+- Then: it is encrypted (not readable in plain text without the decryption key)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: TOTP-Enrollment mit virtuellem Authenticator (RFC-6238-konforme Test-Implementierung); Prüfung gegen DB-Inhalt
-- [x] Mess-Werkzeug: Test-Suite des Enrollment-Moduls; DB-Inspektion im Test
-- [x] Bestanden-Kriterium: AC1–AC5 grün; Login nach Enrollment (AC2) funktioniert via REQ-010
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: TOTP enrollment with a virtual authenticator (RFC 6238-compliant test implementation); check against DB contents
+- [x] Measurement tool: test suite of the enrollment module; DB inspection in the test
+- [x] Pass criterion: AC1–AC5 green; login after enrollment (AC2) works via REQ-010
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: UC-03 Required-Action-Trigger (erster Login mit initialem Passwort, REQ-024) oder REQ-026 (Session-Auth für Profil-Einstellungen)
-- **Folgewirkungen**: REQ-010 (TOTP-Login setzt enrolltes Secret voraus)
-- **Konflikte**: keine bekannt
+- **Prerequisites**: UC-03 required action trigger (first login with initial password, REQ-024) or REQ-026 (session authentication for profile settings)
+- **Downstream effects**: REQ-010 (TOTP login requires an enrolled secret)
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne TOTP-Enrollment kein 2-Faktor-Login für Umgebungen ohne WebAuthn-Hardware – erhöhtes Risiko durch reine Passwort-Anmeldung, mittlerer Schweregrad
-- Risiko 2: TOTP-Secret im Klartext in Logs → Kompromittierung des zweiten Faktors, schwerwiegend (durch AC4 mitigiert)
+- Risk 1: Without TOTP enrollment, no 2-factor login for environments without WebAuthn hardware – increased risk from password-only login, medium severity
+- Risk 2: TOTP secret in plain text in logs → compromise of the second factor, severe (mitigated by AC4)
 
 ## Trade-offs
 
-- vs. REQ-023 (Passkey): TOTP ist weniger phishing-resistent als Passkey, aber ohne Plattform-API-Abhängigkeit – sinnvolle Ergänzung, kein Ersatz
+- vs. REQ-023 (passkey): TOTP is less phishing-resistant than a passkey, but has no platform API dependency – a sensible complement, not a replacement
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Key-URI-Format: `otpauth://totp/{issuer}:{account}?secret={BASE32}&issuer={issuer}&algorithm=SHA1&digits=6&period=30` (Standard für Authenticator-App-Kompatibilität)
-- Zeittoleranz: ±1 Fenster (30 s) ist RFC-6238-Empfehlung; größere Toleranz schwächt Sicherheit
-- Secret-Verschlüsselung: symmetrischer Key (AES-256) muss getrennt von der Datenbank verwaltet werden (z.B. Umgebungsvariable oder KMS); kein Hard-Coding
-- Secret und Person in eigener Credential-Tabelle (nicht im Person-Objekt selbst, vgl. UC-01 Realisierungs-Hinweise)
+- Key URI format: `otpauth://totp/{issuer}:{account}?secret={BASE32}&issuer={issuer}&algorithm=SHA1&digits=6&period=30` (standard for authenticator app compatibility)
+- Time tolerance: ±1 window (30 s) is the RFC 6238 recommendation; larger tolerance weakens security
+- Secret encryption: the symmetric key (AES-256) must be managed separately from the database (e.g., environment variable or KMS); no hard-coding
+- Secret and person in a dedicated credential table (not in the Person object itself, cf. UC-01 Implementation Notes)
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-03 Hauptablauf (Schritte 3–8) und Exception Flow E2.
+Derived from UC-03 Basic Flow (steps 3–8) and Exception Flow E2.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft aus UC-03 |
+| 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft from UC-03 |

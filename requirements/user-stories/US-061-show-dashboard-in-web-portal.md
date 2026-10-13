@@ -1,61 +1,61 @@
-# US-061: Dashboard im Web Portal als Betrachter aufrufen
+# US-061: Open a Dashboard in the Web Portal as a Viewer
 
 **ID**: US-061
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als CIO möchte ich ein Dashboard im Web Portal im Browser öffnen und die berechneten Kennzahlen, Charts und Tabellen sehen – damit ich jederzeit einen aktuellen Überblick über das IT-Portfolio habe, ohne die Client App zu installieren.
+As a CIO, I want to open a dashboard in the web portal in the browser and see the calculated metrics, charts and tables – so that I have a current overview of the IT portfolio at any time without installing the client app.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-07](../use-cases/UC-07-dashboard-anlegen-und-verwenden.md)
-**Persona**: CIO (SH-05); auch alle anderen Stakeholder (SH-01–SH-07) als Betrachter
-**Requirements**: [REQ-055](../req/REQ-055-dashboard-daten-abrufen.md), [REQ-056](../req/REQ-056-dashboard-zugriff-sichtbarkeit.md)
+**Use Case**: [UC-07](../use-cases/UC-07-create-and-use-dashboard.md)
+**Persona**: CIO (SH-05); also all other stakeholders (SH-01–SH-07) as viewers
+**Requirements**: [REQ-055](../req/REQ-055-retrieve-dashboard-data.md), [REQ-056](../req/REQ-056-dashboard-access-visibility.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Dashboard öffnen):
-- Gegeben: Dashboard „IT-Investitionsplanung" (scope=instance) mit 3 Widgets (KPI, Bar-Chart, Pie-Chart)
-- Wenn: CIO öffnet das Web Portal und klickt das Dashboard an
-- Dann: Alle 3 Widgets rendern mit Live-Daten; KPI zeigt Zahl + Einheit; Charts zeigen korrekte Balken/Segmente
+**AC1** (open dashboard):
+- Given: Dashboard "IT Investment Planning" (scope=instance) with 3 widgets (KPI, bar chart, pie chart)
+- When: CIO opens the web portal and clicks the dashboard
+- Then: All 3 widgets render with live data; KPI shows number + unit; charts show correct bars/segments
 
-**AC2** (Fehlendes Widget nicht blockierend):
-- Gegeben: Ein Widget hat eine ungültige DataSource (z.B. Property nach Metamodell-Änderung entfernt)
-- Wenn: CIO öffnet das Dashboard
-- Dann: Fehlendes Widget zeigt Fehler-Hinweis in seiner Grid-Position; andere Widgets rendern normal
+**AC2** (missing widget not blocking):
+- Given: A widget has an invalid DataSource (e.g. property removed after a metamodel change)
+- When: CIO opens the dashboard
+- Then: Failing widget shows an error notice in its grid position; other widgets render normally
 
-**AC3** (Tooltip bei Chart):
-- Wenn: CIO fährt mit der Maus über einen Balken im Bar-Chart
-- Dann: Tooltip zeigt Gruppe und Wert (z.B. „Plateau 2027: 30 500 000 CHF")
+**AC3** (tooltip on chart):
+- When: CIO hovers the mouse over a bar in the bar chart
+- Then: Tooltip shows group and value (e.g. "Plateau 2027: 30,500,000 CHF")
 
-**AC4** (Paginierung in Table-Widget):
-- Gegeben: Table-Widget zeigt Katalog mit 47 Einträgen und pageSize=10
-- Wenn: CIO klickt auf Seite 2
-- Dann: Tabelle zeigt Einträge 11–20; `totalCount` und aktuelle Seite sichtbar
+**AC4** (pagination in table widget):
+- Given: Table widget shows catalog with 47 entries and pageSize=10
+- When: CIO clicks on page 2
+- Then: Table shows entries 11–20; `totalCount` and current page visible
 
-**AC5** (Kein Edit-Modus):
-- Wenn: CIO öffnet das Dashboard
-- Dann: Keine „Bearbeiten"- oder „Widget hinzufügen"-Schaltflächen sichtbar (nur Betrachter-Ansicht)
+**AC5** (no edit mode):
+- When: CIO opens the dashboard
+- Then: No "Edit" or "Add widget" buttons visible (viewer view only)
 
-**AC6** (scope=personal nicht abrufbar):
-- Gegeben: Franz hat ein persönliches Dashboard
-- Wenn: CIO versucht, Franzs Dashboard-URL direkt aufzurufen
-- Dann: HTTP 403; kein Dashboard-Inhalt sichtbar
+**AC6** (scope=personal not retrievable):
+- Given: Franz has a personal dashboard
+- When: CIO tries to open Franz's dashboard URL directly
+- Then: HTTP 403; no dashboard content visible
 
-## Technische Hinweise
+## Technical Notes
 
-- Web Portal: React SPA (ADR-008); kein React Flow/Canvas nötig; Standard-Chart-Bibliothek (z.B. recharts, chart.js)
-- Initiales Laden: `GET /api/v1/dashboards/{id}` (Konfiguration) + `GET /api/v1/dashboards/{id}/data` (Live-Daten) parallel
-- Refresh: v1.0 manuell (Seiten-Reload oder Refresh-Button); kein Polling
-- Markdown in Text-Widgets: sanitiertes HTML; kein XSS
+- Web portal: React SPA (ADR-008); no React Flow/canvas needed; standard chart library (e.g. recharts, chart.js)
+- Initial load: `GET /api/v1/dashboards/{id}` (configuration) + `GET /api/v1/dashboards/{id}/data` (live data) in parallel
+- Refresh: v1.0 manual (page reload or refresh button); no polling
+- Markdown in text widgets: sanitized HTML; no XSS
 
 ## Definition of Done
 
-- [ ] AC1–AC6 erfüllt
-- [ ] Tests: Vollständiges Rendering, Fehler-Isolation, Tooltip, Paginierung, kein Edit-Modus, 403 für fremdes personal
-- [ ] Code-Review
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] AC1–AC6 met
+- [ ] Tests: full rendering, error isolation, tooltip, pagination, no edit mode, 403 for others' personal
+- [ ] Code review
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix

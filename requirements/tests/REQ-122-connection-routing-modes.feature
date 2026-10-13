@@ -1,45 +1,45 @@
-# Ableitung aus: requirements/req/req-122-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-122-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-05
-Feature: REQ-122 – Connection-Routing-Modi (Curved, Gerade, Orthogonal)
+Feature: REQ-122 – Connection routing modes (curved, straight, orthogonal)
 
-  Das System MUSS für jede Connection auf dem Canvas drei Routing-Modi
-  anbieten, die pro Connection individuell wählbar sind: | Modus |
-  Verlauf | Raster-Bezug | |---|---|---| | **Curved** | Bézierkurve;
-  weiches Schwingen um Ankerpunkte | folgt **nicht** dem Raster | |
-  **Gerade** | Direkte Linie vom Quell- zum Ziel-Ankerpunkt | folgt
-  **nicht** zwingend dem Raster | | **Orthogonal** | Ausschliesslich
-  90°-Winkel (rechtwinklige Führung) | folgt dem **Raster** | Der
-  Routing-Modus MUSS über das Kontextmenü der Connection (Rechtsklick)
-  oder eine Toolbar bei selektierter Connection änderbar sein. Der
-  Standard-Routing-Modus für neue Connections MUSS im Viewpoint
-  konfigurierbar sein.
+  The system MUST offer three routing modes for each connection on the canvas
+  that can be selected individually per connection: | Mode |
+  Course | Grid relation | |---|---|---| | **Curved** | Bézier curve;
+  soft swing around anchor points | does **not** follow the grid | |
+  **Straight** | Direct line from source to target anchor point | does
+  **not** necessarily follow the grid | | **Orthogonal** | Exclusively
+  90° angles (right-angled routing) | follows the **grid** | The
+  routing mode MUST be changeable via the connection's context menu (right-click)
+  or a toolbar when the connection is selected. The
+  default routing mode for new connections MUST be
+  configurable in the viewpoint.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Curved-Modus – Routing-Modus = Curved
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Routing-Modus = Curved
-    Then  Connection wird als Bézierkurve gerendert; Kurven-Verlauf ist durch Bézierkurven-Griffe (via Ankerpunkte, REQ-123) steuerbar; Linie folgt keinem Raster
+  Scenario: AC1 – Curved mode – routing mode = Curved
+    Given the precondition according to the requirement is met
+    When  routing mode = Curved
+    Then  connection is rendered as a Bézier curve; curve course is controllable via Bézier handles (via anchor points, REQ-123); line follows no grid
 
   @AC2
-  Scenario: AC2 – Orthogonal-Modus – Routing-Modus = Orthogonal
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Routing-Modus = Orthogonal
-    Then  Connection macht ausschliesslich 90°-Biegungen; alle Segmente verlaufen horizontal oder vertikal; Biegepunkte liegen auf Rasterpunkten (REQ-121)
+  Scenario: AC2 – Orthogonal mode – routing mode = Orthogonal
+    Given the precondition according to the requirement is met
+    When  routing mode = Orthogonal
+    Then  connection makes exclusively 90° bends; all segments run horizontally or vertically; bend points lie on grid points (REQ-121)
 
   @AC3
-  Scenario: AC3 – Modus-Wechsel – Nutzer Routing-Modus einer bestehenden Connection ändert
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer Routing-Modus einer bestehenden Connection ändert
-    Then  Connection wird sofort neu gerendert; bestehende Ankerpunkte (REQ-123) bleiben erhalten und werden auf das neue Routing angewendet (ggf. auf Raster gerundet bei Wechsel zu Orthogonal)
+  Scenario: AC3 – Mode switch – user changes the routing mode of an existing connection
+    Given the precondition according to the requirement is met
+    When  user changes the routing mode of an existing connection
+    Then  connection is re-rendered immediately; existing anchor points (REQ-123) are retained and applied to the new routing (rounded to grid if necessary when switching to orthogonal)
 
   @AC4
-  Scenario: AC4 – Viewpoint-Default – Neue Connection auf Canvas gezogen wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Neue Connection auf Canvas gezogen wird
-    Then  Routing-Modus entspricht dem im Viewpoint konfigurierten Default; ohne Konfiguration = Orthogonal
+  Scenario: AC4 – Viewpoint default – a new connection is dragged onto the canvas
+    Given the precondition according to the requirement is met
+    When  a new connection is dragged onto the canvas
+    Then  routing mode matches the default configured in the viewpoint; without configuration = Orthogonal

@@ -1,56 +1,56 @@
-# /new-story – Neue User Story anlegen
+# /new-story – Create a new user story
 
-Legt eine User Story in `requirements/user-stories/` an. Prüft Use-Case-Bezug.
+Creates a user story in `requirements/user-stories/`. Checks the use case reference.
 
-## Argumente
+## Arguments
 
-`$ARGUMENTS` enthält optional: `<UC-NN> <Kurztitel>`
-Beispiel: `/new-story UC-05 Delta-Entität im Diagramm als Knoten anlegen`
+`$ARGUMENTS` optionally contains: `<UC-NN> <short title>`
+Example: `/new-story UC-05 Create delta entity as node in diagram`
 
-## Ausführung
+## Execution
 
-1. **Nächste freie ID ermitteln**:
+1. **Determine the next free ID**:
    ```bash
    ls requirements/user-stories/US-*.md | sed 's/.*US-//' | sed 's/-.*//' | sort -n | tail -1
    ```
-   Nächste ID = höchste Nummer + 1 (z.B. `US-132`).
+   Next ID = highest number + 1 (e.g. `US-132`).
 
-2. **UC-Referenz prüfen**:
-   - UC-NN aus `$ARGUMENTS` oder erfragen
-   - Verifizieren: `ls requirements/use-cases/UC-NN-*.md`
-   - Falls UC nicht existiert: STOP — UC muss zuerst angelegt werden
+2. **Check the UC reference**:
+   - UC-NN from `$ARGUMENTS` or ask
+   - Verify: `ls requirements/use-cases/UC-NN-*.md`
+   - If the UC does not exist: STOP — the UC must be created first
 
-3. **REQ-Referenz prüfen**:
-   - Zu welchem REQ gehört diese Story? (mind. einer)
-   - Verifizieren: `ls requirements/req/REQ-NNN-*.md`
-   - Falls REQ nicht existiert: Erst `/new-requirement` aufrufen
+3. **Check the REQ reference**:
+   - Which REQ does this story belong to? (at least one)
+   - Verify: `ls requirements/req/REQ-NNN-*.md`
+   - If the REQ does not exist: call `/new-requirement` first
 
-4. **Persona klären**:
-   - `primary_actor` des referenzierten UC lesen → Persona der Story
-   - Story-Formulierung: "Als [Persona aus UC] möchte ich …"
+4. **Clarify the persona**:
+   - Read the `primary_actor` of the referenced UC → persona of the story
+   - Story wording: "As [persona from UC] I want …"
 
-5. **Datei anlegen**:
-   Kopiere `templates/user-story.template.md` nach `requirements/user-stories/US-NNN-kurzname.md`
-   - `ID`, `Story Points`, `Status: backlog`, `Sprint: nicht-zugeordnet` setzen
-   - `Bezug`: UC-NN und REQ-NNN verlinken
-   - Mindestens 2 Akzeptanzkriterien (AC1, AC2) formulieren
+5. **Create the file**:
+   Copy `templates/user-story.template.md` to `requirements/user-stories/US-NNN-shortname.md`
+   - Set `ID`, `Story Points`, `Status: backlog`, `Sprint: unassigned`
+   - `Reference`: link UC-NN and REQ-NNN
+   - Formulate at least 2 acceptance criteria (AC1, AC2)
 
-6. **INVEST-Check**:
-   - Independent: Hängt die Story von einer anderen Story ab, die noch nicht done ist?
-   - Small: Kann sie in 1-3 Tagen implementiert werden? (> 8 SP → splitten)
-   - Testable: Sind die AKs prüfbar ohne Interpretation?
+6. **INVEST check**:
+   - Independent: Does the story depend on another story that is not done yet?
+   - Small: Can it be implemented in 1-3 days? (> 8 SP → split)
+   - Testable: Are the ACs verifiable without interpretation?
 
-7. **Story Points schätzen** (Fibonacci: 1, 2, 3, 5, 8, 13):
-   - 1-2 SP: triviale UI-Anpassung oder einfacher API-Endpunkt
-   - 3-5 SP: typische Feature-Story mit Backend + Frontend
-   - 8 SP: komplexe Story; überlegen ob Split sinnvoll
-   - 13 SP: zu gross, muss gesplittet werden
+7. **Estimate story points** (Fibonacci: 1, 2, 3, 5, 8, 13):
+   - 1-2 SP: trivial UI adjustment or simple API endpoint
+   - 3-5 SP: typical feature story with backend + frontend
+   - 8 SP: complex story; consider whether a split makes sense
+   - 13 SP: too large, must be split
 
-8. **Ausgabe**:
-   Pfad, ID, Story Points, UC- und REQ-Bezug.
+8. **Output**:
+   Path, ID, story points, UC and REQ reference.
 
-## Konventionen
+## Conventions
 
-- Dateiname: `US-NNN-kurzname.md` (dreistellig; Kurzname deutsch, kebab-case)
-- Stories beschreiben EINE Aufgabe — kein Multi-Feature in einer Story
-- Definition-of-Done-Checkliste vollständig ausfüllen
+- File name: `US-NNN-shortname.md` (three digits; short name English, kebab-case)
+- Stories describe ONE task — no multi-feature in one story
+- Fill in the Definition of Done checklist completely

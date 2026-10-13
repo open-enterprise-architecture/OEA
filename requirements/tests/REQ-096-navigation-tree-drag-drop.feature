@@ -1,34 +1,34 @@
-# Ableitung aus: requirements/req/req-096-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-096-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-13
-Feature: REQ-096 – Navigationsbaum Drag & Drop mit Zyklus-Schutz
+Feature: REQ-096 – Navigation tree drag & drop with cycle protection
 
-  Das System MUSS das Neuanordnen von Items (`sortOrder`) und das
-  Verschieben von Ordnern und Items per Drag & Drop unterstützen. Beim
-  Verschieben eines Ordners MUSS das System Zyklen erkennen (BR-03:
-  Ordner darf nicht in einen eigenen Nachkommen verschoben werden) und
-  das Drop-Target visuell als ungültig markieren; API-Versuche mit
-  Zyklus MÜSSEN mit HTTP 422 abgewiesen werden.
+  The system MUST support reordering items (`sortOrder`) and
+  moving folders and items via drag & drop. When
+  moving a folder, the system MUST detect cycles (BR-03:
+  a folder must not be moved into its own descendant) and
+  visually mark the drop target as invalid; API attempts with
+  a cycle MUST be rejected with HTTP 422.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Zyklus-Erkennung – Ordner A per Drag & Drop unter Ordner B gezogen wird und B ein Nachkomme...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Ordner A per Drag & Drop unter Ordner B gezogen wird und B ein Nachkomme von A ist
-    Then  wird das Drop-Target visuell als ungültig markiert; ein API-Versuch antwortet mit HTTP 422
+  Scenario: AC1 – Cycle detection – folder A is dragged via drag & drop under folder B and B is a descendant...
+    Given the precondition according to the requirement is met
+    When  folder A is dragged via drag & drop under folder B and B is a descendant of A
+    Then  the drop target is visually marked as invalid; an API attempt responds with HTTP 422
 
   @AC2
-  Scenario: AC2 – Neuanordnung von Items – Items innerhalb eines Ordners per Drag & Drop neu angeordnet werden
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Items innerhalb eines Ordners per Drag & Drop neu angeordnet werden
-    Then  wird `sortOrder` korrekt aktualisiert; die neue Reihenfolge ist persistent
+  Scenario: AC2 – Reordering of items – items within a folder are reordered via drag & drop
+    Given the precondition according to the requirement is met
+    When  items within a folder are reordered via drag & drop
+    Then  `sortOrder` is updated correctly; the new order is persistent
 
   @AC3
-  Scenario: AC3 – Item verschieben zwischen Ordnern – ein Item per Drag & Drop von Ordner A nach Ordner B verschoben wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein Item per Drag & Drop von Ordner A nach Ordner B verschoben wird
-    Then  ist das Item in B vorhanden und nicht mehr in A
+  Scenario: AC3 – Move item between folders – an item is moved via drag & drop from folder A to folder B
+    Given the precondition according to the requirement is met
+    When  an item is moved via drag & drop from folder A to folder B
+    Then  the item is present in B and no longer in A

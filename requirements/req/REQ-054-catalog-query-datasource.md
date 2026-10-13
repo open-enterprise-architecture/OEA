@@ -1,6 +1,6 @@
 ---
 id: REQ-054
-title: CatalogQuery-DataSource konfigurieren und validieren
+title: Configure and validate CatalogQuery DataSource
 type: functional
 priority: should
 status: proposed
@@ -19,96 +19,96 @@ references:
     - SH-03
     - SH-07
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-054: CatalogQuery-DataSource konfigurieren und validieren
+# REQ-054: Configure and validate CatalogQuery DataSource
 
-## Aussage
+## Statement
 
-Das System MUSS eine `CatalogQueryDataSource`-Konfiguration für `table`-Widgets validieren und bei der Daten-Berechnung (REQ-055) auf die Katalog-Abfrage-API (REQ-046) delegieren. Die DataSource MUSS `catalogId` als Pflichtfeld voraussetzen und MUSS zur Schreibzeit prüfen, ob der referenzierte [Katalog](../../business-objects/catalog.md) für den anfragenden Nutzer sichtbar ist. Optionale `savedViewId` und `additionalFilters` ergänzen die Basis-Abfrage.
+The system MUST validate a `CatalogQueryDataSource` configuration for `table` widgets and delegate to the catalog query API (REQ-046) during data calculation (REQ-055). The DataSource MUST require `catalogId` as a mandatory field and MUST check at write time whether the referenced [catalog](../../business-objects/catalog.md) is visible to the requesting user. Optional `savedViewId` and `additionalFilters` supplement the base query.
 
-## Begründung
+## Rationale
 
-Das Einbetten von Katalog-Daten in ein Dashboard-Table-Widget vermeidet Duplikation der Abfragelogik. Der Katalog bleibt die einzige konfigurierte Datenquelle; das Dashboard delegiert und rendert das Ergebnis in seinem Grid-Layout.
+Embedding catalog data in a dashboard table widget avoids duplicating the query logic. The catalog remains the only configured data source; the dashboard delegates and renders the result in its grid layout.
 
-## Kontext
+## Context
 
-`CatalogQueryDataSource` ist ausschliesslich für `table`-Widgets gültig (BR-04 in REQ-052). Die Sichtbarkeit des referenzierten Katalogs richtet sich nach dessen `scope`: ein `scope=personal`-Katalog eines anderen Nutzers darf nicht als DataSource verwendet werden.
+`CatalogQueryDataSource` is valid exclusively for `table` widgets (BR-04 in REQ-052). The visibility of the referenced catalog depends on its `scope`: a `scope=personal` catalog of another user must not be used as a DataSource.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### DataSource-Konfigurationsfelder
+### DataSource Configuration Fields
 
-| Feld | Typ | Optional | Beschreibung |
+| Field | Type | Optional | Description |
 |---|---|---|---|
-| catalogId | string | required | UUID des referenzierten Katalogs; muss für den Requester sichtbar sein |
-| savedViewId | string | optional | UUID einer SavedView im referenzierten Katalog; null = Standard-View |
-| additionalFilters | FilterExpression[] | optional | Zusätzliche Filter; werden AND-verknüpft mit Katalog-eigenen Filtern |
-| pageSize | integer | optional | Zeilen pro Seite für die Tabellen-Darstellung; Default aus Widget-Konfiguration |
+| catalogId | string | required | UUID of the referenced catalog; must be visible to the requester |
+| savedViewId | string | optional | UUID of a SavedView in the referenced catalog; null = default view |
+| additionalFilters | FilterExpression[] | optional | Additional filters; combined with the catalog's own filters using AND |
+| pageSize | integer | optional | Rows per page for the table display; default from widget configuration |
 
-### Validierungsregeln zur Schreibzeit
+### Validation Rules at Write Time
 
-| Rule-ID | Aussage | Auslöser |
+| Rule-ID | Statement | Trigger |
 |---|---|---|
-| BR-01 | `catalogId` muss einen existierenden, für den Requester sichtbaren Katalog referenzieren | onCreate, onUpdate |
-| BR-02 | `savedViewId` (wenn gesetzt) muss eine SavedView im referenzierten Katalog sein | onCreate, onUpdate |
-| BR-03 | Wird der referenzierte Katalog gelöscht, liefert das Widget beim nächsten Daten-Abruf einen isolierten Fehler-Status; das Dashboard als Ganzes bleibt funktionsfähig | onCatalogDelete |
-| BR-04 | Ein `scope=personal`-Katalog eines anderen Nutzers darf nicht als DataSource verwendet werden → 403 | onCreate, onUpdate |
+| BR-01 | `catalogId` must reference an existing catalog that is visible to the requester | onCreate, onUpdate |
+| BR-02 | `savedViewId` (if set) must be a SavedView in the referenced catalog | onCreate, onUpdate |
+| BR-03 | If the referenced catalog is deleted, the widget returns an isolated error status on the next data retrieval; the dashboard as a whole remains functional | onCatalogDelete |
+| BR-04 | A `scope=personal` catalog of another user must not be used as a DataSource → 403 | onCreate, onUpdate |
 
-### Ausgabe bei Daten-Berechnung (REQ-055)
+### Output During Data Calculation (REQ-055)
 
-Die Ausgabe entspricht der Katalog-Abfrage-Antwort aus REQ-046, eingeschränkt auf `page=0` und `pageSize` aus der Widget-Konfiguration:
+The output corresponds to the catalog query response from REQ-046, restricted to `page=0` and `pageSize` from the widget configuration:
 
 ```json
 {
   "totalCount": 47,
   "page": 0,
   "pageSize": 10,
-  "columns": ["name", "status", "Schnittstellen"],
+  "columns": ["name", "status", "Interfaces"],
   "data": [
-    { "columns": { "name": "CRM-System", "status": "active" }, "joinResults": { "Schnittstellen": [...] } }
+    { "columns": { "name": "CRM-System", "status": "active" }, "joinResults": { "Interfaces": [...] } }
   ]
 }
 ```
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Gültige DataSource):
-- Gegeben: Katalog „Application Inventory" (scope=instance) existiert; Kurt ist eingeloggt
-- Wenn: Widget anlegen mit type=table, catalogId=<id>
-- Dann: HTTP 201; DataSource gespeichert
+**AC1** (Valid DataSource):
+- Given: Catalog "Application Inventory" (scope=instance) exists; Kurt is logged in
+- When: Create widget with type=table, catalogId=<id>
+- Then: HTTP 201; DataSource saved
 
-**AC2** (Ungültige catalogId):
-- Wenn: Widget anlegen mit nicht-existierender catalogId
-- Dann: HTTP 422 „Katalog nicht gefunden oder nicht sichtbar"
+**AC2** (Invalid catalogId):
+- When: Create widget with non-existent catalogId
+- Then: HTTP 422 "Catalog not found or not visible"
 
-**AC3** (Fremder personal-Katalog):
-- Gegeben: Franz hat einen scope=personal-Katalog
-- Wenn: Kurt versucht, diesen Katalog als DataSource zu verwenden
-- Dann: HTTP 403 „Katalog nicht sichtbar"
+**AC3** (Another user's personal catalog):
+- Given: Franz has a scope=personal catalog
+- When: Kurt tries to use this catalog as a DataSource
+- Then: HTTP 403 "Catalog not visible"
 
-**AC4** (savedViewId gültig):
-- Gegeben: Katalog hat SavedView „Kompaktansicht"
-- Wenn: Widget anlegen mit savedViewId=<view-id>
-- Dann: HTTP 201; beim Daten-Abruf werden Spalten und Filter der SavedView angewendet
+**AC4** (savedViewId valid):
+- Given: Catalog has SavedView "Compact view"
+- When: Create widget with savedViewId=<view-id>
+- Then: HTTP 201; on data retrieval, the columns and filters of the SavedView are applied
 
-**AC5** (Katalog später gelöscht):
-- Gegeben: Widget mit CatalogQueryDataSource existiert; Katalog wird danach gelöscht
-- Wenn: GET /api/v1/dashboards/{id}/data
-- Dann: dieses Widget liefert `{ "status": "error", "error": "Katalog nicht gefunden" }`; andere Widgets rendern normal
+**AC5** (Catalog deleted later):
+- Given: Widget with CatalogQueryDataSource exists; catalog is deleted afterwards
+- When: GET /api/v1/dashboards/{id}/data
+- Then: this widget returns `{ "status": "error", "error": "Catalog not found" }`; other widgets render normally
 
-## Abhängigkeiten
+## Dependencies
 
-- Delegiert Abfrage-Logik an: REQ-046 (Katalog-Abfrage)
-- Validierung zur Schreibzeit: Katalog-API GET /api/v1/catalogs/{id}
-- Wird verwendet durch: REQ-052 (Widget-Validierung), REQ-055 (Daten-Berechnung)
+- Delegates query logic to: REQ-046 (catalog query)
+- Validation at write time: catalog API GET /api/v1/catalogs/{id}
+- Used by: REQ-052 (widget validation), REQ-055 (data calculation)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; Delegation an Katalog-API, Fehler-Isolation, BR-01–04 |
+| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; delegation to catalog API, error isolation, BR-01–04 |

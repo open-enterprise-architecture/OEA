@@ -1,73 +1,73 @@
-# Stakeholder: Franz – Junior Domain Architekt im Konzern
+# Stakeholder: Franz – Junior Domain Architect in a Corporate Group
 
 **ID**: SH-01
-**Typ**: persona
-**Bezug zum Tool**: primary
+**Type**: persona
+**Relation to the Tool**: primary
 **Internal/External**: internal
 
-## Kurzbeschreibung
+## Short Description
 
-Franz ist Junior Domain Architekt in einem Konzern, baut für seine Domäne (z.B. Finance, HR, Logistics) eine Architektur-Sicht auf der grünen Wiese auf. Er hat akademisches EA-Wissen, aber wenig Praxiserfahrung, und steht unter Druck, schnell sichtbare Ergebnisse zu liefern.
+Franz is a junior domain architect in a corporate group who is building an architecture view for his domain (e.g. Finance, HR, Logistics) from scratch. He has academic EA knowledge but little practical experience, and is under pressure to deliver visible results quickly.
 
-## Rolle und Verantwortung
+## Role and Responsibility
 
-- **Aktuelle Rolle**: Junior Domain Architekt (1-3 Jahre Erfahrung)
-- **Organisation/Branche**: Konzern, branchenoffen
-- **Erfahrungsniveau**: gering im EA-Tool-Einsatz, theoretisch ausgebildet (TOGAF-Foundation oder vergleichbar)
-- **Tägliche Hauptaufgaben**:
-  - Inventarisierung der bestehenden Systeme in seiner Domäne
-  - Workshops mit Fachbereich zur Anforderungs-Klärung
-  - Erste Domänen-Zielbilder skizzieren
-  - Anschluss an Konzern-EA-Vorgaben sicherstellen
+- **Current role**: Junior domain architect (1-3 years of experience)
+- **Organization/industry**: Corporate group, industry-agnostic
+- **Experience level**: low in EA tool usage, theoretically trained (TOGAF Foundation or comparable)
+- **Main daily tasks**:
+  - Inventory of the existing systems in his domain
+  - Workshops with the business unit to clarify requirements
+  - Sketch first domain target states
+  - Ensure alignment with corporate EA guidelines
 
-## Beziehung zum OEA
+## Relation to OEA
 
-- **Nutzungsfrequenz**: täglich
-- **Hauptnutzung**: pflegen (Modell aufbauen, dokumentieren)
-- **Technisches Niveau**: mittel (Git-Grundkenntnisse vorhanden, aber nicht selbstverständlich)
-- **Bevorzugte Schnittstelle**: UI primär, CLI für Routine-Tasks
+- **Usage frequency**: daily
+- **Main usage**: maintain (build up the model, document)
+- **Technical level**: medium (basic Git knowledge present, but not a given)
+- **Preferred interface**: UI primarily, CLI for routine tasks
 
-## Aktuelle Pain Points
+## Current Pain Points
 
-- **Existierende Konzern-EA-Tools sind überdimensioniert**: Sparx EA, LeanIX oder Avolution sind zu komplex für eine einzelne Domäne. Zugriff bekommt er nur eingeschränkt, Lizenzen sind knapp.
-- **TOGAF-Theorie hilft nicht beim Anfangen**: Er weiß, was ein Bebauungsplan sein sollte, aber nicht, wie er einen sinnvoll für seine Domäne erstellt.
-- **Rechtfertigungsdruck**: Sein Mehrwert ist abstrakt – ohne sichtbare Ergebnisse innerhalb von 3-6 Monaten wird seine Position hinterfragt.
-- **Kein Sandbox zum Ausprobieren**: Lizenzkosten bestehender Tools machen Experimentieren riskant – er traut sich nicht, "einfach mal was zu modellieren".
-- **Glaubwürdigkeit fehlt noch**: Erfahrene Architekten im Konzern bewerten ihn nach der Qualität seiner Outputs – die müssen respektabel aussehen.
+- **Existing corporate EA tools are oversized**: Sparx EA, LeanIX, or Avolution are too complex for a single domain. He only gets limited access, licenses are scarce.
+- **TOGAF theory does not help with getting started**: He knows what a landscape map (Bebauungsplan) should be, but not how to create a sensible one for his domain.
+- **Pressure to justify himself**: His added value is abstract – without visible results within 3-6 months, his position will be questioned.
+- **No sandbox to experiment in**: License costs of existing tools make experimenting risky – he does not dare to "just model something".
+- **Credibility is still lacking**: Experienced architects in the corporate group judge him by the quality of his outputs – these must look respectable.
 
 ## Concerns
 
-| Concern | Kategorie | Severity |
+| Concern | Category | Severity |
 |---|---|---|
-| Niedrige Einstiegshürde, schnelle erste Ergebnisse | usability | blocking |
-| Anschlussfähigkeit an Konzern-EA-Vorgaben | compatibility | worrying |
-| Lernunterstützung durch Tool (Defaults, Beispiele, Templates) | usability | worrying |
-| Glaubwürdige Outputs vor erfahrenen Architekten | usability | worrying |
-| Risikofrei experimentieren können | cost | worrying |
-| Sichere Modellierung trotz fehlender Erfahrung (Validierungen) | functional | worrying |
+| Low entry barrier, quick first results | usability | blocking |
+| Compatibility with corporate EA guidelines | compatibility | worrying |
+| Learning support by the tool (defaults, examples, templates) | usability | worrying |
+| Credible outputs in front of experienced architects | usability | worrying |
+| Being able to experiment risk-free | cost | worrying |
+| Safe modeling despite lack of experience (validations) | functional | worrying |
 
-## Erfolgskriterien
+## Success Criteria
 
-- [ ] In <30 Minuten erste Application Component erfasst, ohne Dokumentation zu lesen
-- [ ] Innerhalb 1 Woche erstes präsentierbares Domänen-Inventar
-- [ ] Innerhalb 1 Monat erster Bebauungsplan-Entwurf für Steering-Komitee
-- [ ] Konzern-Architekten akzeptieren seine Outputs als formal korrekt
-- [ ] Er versteht, was er tut – das Tool erklärt Konzepte, ohne ihn zu bevormunden
+- [ ] First Application Component captured in <30 minutes, without reading documentation
+- [ ] First presentable domain inventory within 1 week
+- [ ] First landscape map (Bebauungsplan) draft for the steering committee within 1 month
+- [ ] Corporate architects accept his outputs as formally correct
+- [ ] He understands what he is doing – the tool explains concepts without patronizing him
 
-## Beteiligte Use Cases
+## Involved Use Cases
 
-<!-- Wird gefüllt, sobald Use Cases definiert sind -->
+<!-- To be filled once use cases are defined -->
 
-## Konzept-Bezüge
+## Concept References
 
-- [§7 Motivation, Stakeholder und Ziele](../../concept/20-entities/07-motivation-stakeholder-ziele.md)
-- [§6.1.1 Application vs. Technology](../../concept/20-entities/06-kern-entitaetstypen.md) – die hier diskutierte Klassifikation muss für Franz greifbar sein
-- [§12.4 Progressive Disclosure](../../concept/30-dynamics/12-domain-sichten.md) – Inventar-Sicht ist sein Einstieg
+- [§7 Motivation, Stakeholders & Goals](../../concept/20-entities/07-motivation-stakeholders-goals.md)
+- [§6.1.1 Application vs. Technology](../../concept/20-entities/06-core-entity-types.md) – the classification discussed here must be tangible for Franz
+- [§12.4 Progressive Disclosure](../../concept/30-dynamics/12-domain-views.md) – inventory view is his entry point
 
-## Notizen
+## Notes
 
-Franz ist methodisch wertvoll, weil er **keinen Vergleichsmaßstab** hat. Er stellt Fragen, die andere Personas als selbstverständlich übersehen. Wenn das Tool für Franz funktioniert, funktioniert es für viele EA-Berufsstarter.
+Franz is methodologically valuable because he has **no benchmark for comparison**. He asks questions that other personas overlook as self-evident. If the tool works for Franz, it works for many EA career starters.
 
-**Greenfield-Charakteristik**: Im Gegensatz zu vier anderen Personas hat Franz keine Bestandstools zu migrieren. Sein MVP-Erfolgserlebnis ist deshalb der ehrlichste Test für die Einstiegs-Niederschwelligkeit.
+**Greenfield characteristic**: Unlike four other personas, Franz has no existing tools to migrate. His MVP success experience is therefore the most honest test of the low-threshold entry.
 
-**Lern-Pfad-Verantwortung**: Das Tool sollte ihn nicht zwingen, EA-Theorie zu kennen, aber ihm Anreize geben, sie zu lernen – z.B. durch erklärende Tooltips, gute Default-Schemata, Glossar-Verweise.
+**Learning path responsibility**: The tool should not force him to know EA theory, but should give him incentives to learn it – e.g. through explanatory tooltips, good default schemas, glossary references.

@@ -1,167 +1,167 @@
-# ADR-008: GUI-Architektur – Client App + Web Portal (Dual-Track-Delivery)
+# ADR-008: GUI Architecture – Client App + Web Portal (Dual-Track Delivery)
 
 **Status**: accepted
-**Datum**: 2026-06-26
-**Entscheider**: [Rigobert – Produkt Owner](../business-analysis/stakeholders/SH-09-rigobert-produkt-owner.md) (SH-09)
-**Konsultiert**: Requirements Engineer (UC-05, UC-06, US-045), Business Engineer (Viewpoint-BO, Catalog-BO)
-**Informiert**: –
-**Aktualisiert**: 2026-06-28 — React-SPA-Referenzen auf Vue 3 SPA aktualisiert (infolge ADR-011); ADR-007-Status von deferred auf accepted korrigiert (Vue Flow gewählt)
+**Date**: 2026-06-26
+**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Consulted**: Requirements Engineer (UC-05, UC-06, US-045), Business Engineer (Viewpoint BO, Catalog BO)
+**Informed**: –
+**Updated**: 2026-06-28 — React SPA references updated to Vue 3 SPA (following ADR-011); ADR-007 status corrected from deferred to accepted (Vue Flow chosen)
 
-## Kontext und Problem
+## Context and Problem
 
-OEA muss zwei grundlegend verschiedene Nutzergruppen bedienen:
+OEA must serve two fundamentally different user groups:
 
-- **Modellierungs-Nutzer** (Solution Architekten, Lead Enterprise Architekten, Business Engineers): Sie legen Entitäten an, zeichnen Diagramme, konfigurieren das Metamodell und beschreiben Architektur-Visionen. Für diese Gruppe ist die GUI das primäre Arbeitswerkzeug – täglich, über Stunden, mit hoher Interaktionsdichte.
-- **Konsumierungs-Nutzer** (CIO, Operator, Domänen-Betrachter): Sie lesen Kataloge, betrachten Diagramme und konsultieren das Repository bei Bedarf. Ihr Zugang soll niedrigschwellig sein: kein Download, kein Login-Aufwand, einfach ein Link.
+- **Modeling users** (solution architects, lead enterprise architects, business engineers): They create entities, draw diagrams, configure the metamodel, and describe architecture visions. For this group the GUI is the primary work tool – daily, for hours, with high interaction density.
+- **Consuming users** (CIO, operator, domain viewers): They read catalogs, view diagrams, and consult the repository as needed. Their access should be low-threshold: no download, no login effort, just a link.
 
-Ein einziges GUI-Fahrzeug kann beide Gruppen nicht gleichzeitig optimal bedienen: Ein Web Portal ist immer durch Browser-APIs limitiert (Dateisystem, nativer IPC, GPU-Direktzugriff, Memory-Ceiling); eine dedizierte Client App hingegen kann beliebig tief in die Plattform integrieren.
+A single GUI vehicle cannot serve both groups optimally at the same time: A web portal is always limited by browser APIs (file system, native IPC, direct GPU access, memory ceiling); a dedicated client app, on the other hand, can integrate arbitrarily deeply with the platform.
 
-Zusätzlich ist die Canvas-Bibliothekswahl (ADR-007, deferred) davon abhängig, in welchem Laufzeit-Kontext der interaktive Diagramm-Editor ausgeführt wird. Im Browser gelten andere Einschränkungen (DOM-Performance-Grenze, kein nativer Kontext-Menü-Zugriff) als in einem Electron- oder Tauri-Prozess.
+Additionally, the canvas library choice (ADR-007, deferred) depends on the runtime context in which the interactive diagram editor runs. The browser imposes different restrictions (DOM performance limit, no native context menu access) than an Electron or Tauri process.
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- **Modellierungs-Flexibilität**: Komplexe Diagramm-Editierung (Drag & Drop, In-Place-Edit, Auto-Layout, grosse Graphen) profitiert massiv von nativer Plattform-Integration; Browser-Grenzen limitieren das Nutzererlebnis
-- **Zugangs-Niedrigschwelligkeit**: Stakeholder, die nur lesen, sollen keinen Installer ausführen müssen; ein URL genügt
-- **Canvas-Bibliothek** (ADR-007): Die Wahl der Canvas-Bibliothek unterscheidet sich je nach Laufzeitkontext; die Entscheidung zwischen Web und nativ muss zuerst fallen
-- **Offline-Fähigkeit**: Architekten arbeiten teils ohne Serververbindung (lokale Git-Repos, Vor-Ort-Workshops); eine Client App kann offline funktionieren, ein Web Portal nicht
-- **Datei-System-Zugriff**: Client App kann lokale Artefakte lesen/schreiben (z.B. Modell-Export als YAML/JSON direkt ins Git-Repo)
-- **Entwicklungskosten**: Zwei separate Delivery-Fahrzeuge erhöhen den Pflege-Aufwand; Shared-Component-Strategie (Monorepo, gemeinsame Business-Logik) mildert das
-- **OSS-Distribution**: OEA ist Open Source; die Installations-Hürde für eine Client App muss gering sein (keine proprietary Store-Abhängigkeit; direkter Download)
+- **Modeling flexibility**: Complex diagram editing (drag & drop, in-place edit, auto-layout, large graphs) benefits massively from native platform integration; browser limits restrict the user experience
+- **Low-threshold access**: Stakeholders who only read should not have to run an installer; a URL suffices
+- **Canvas library** (ADR-007): The choice of canvas library differs depending on the runtime context; the decision between web and native must be made first
+- **Offline capability**: Architects sometimes work without a server connection (local Git repos, on-site workshops); a client app can work offline, a web portal cannot
+- **File system access**: Client app can read/write local artifacts (e.g. model export as YAML/JSON directly into the Git repo)
+- **Development costs**: Two separate delivery vehicles increase maintenance effort; a shared component strategy (monorepo, shared business logic) mitigates this
+- **OSS distribution**: OEA is open source; the installation barrier for a client app must be low (no proprietary store dependency; direct download)
 
-## Betrachtete Optionen
+## Considered Options
 
-### Option 1: Web-only SPA (ein einziges Web-Frontend für alle Nutzer)
+### Option 1: Web-only SPA (a single web frontend for all users)
 
-Eine einzelne Vue 3 SPA bedient sowohl Modellierungs- als auch Konsumierungs-Nutzer. Der interaktive Diagramm-Editor läuft im Browser.
-
-- **Pro**:
-  - Einzige Codebase für das Frontend; geringster Pflege-Aufwand
-  - Deployment: eine URL; kein Installer
-  - Kein plattformspezifisches Packaging nötig
-- **Contra**:
-  - Browser limitiert Canvas-Performance: DOM-Rendering bei grossen EA-Diagrammen (>300 Knoten) reagiert langsam; kein direkter GPU-Zugriff
-  - Kein nativer Dateisystem-Zugriff (File System Access API ist experimentell und browserabhängig)
-  - Kein Offline-Betrieb ohne Service Worker (hoher Implementierungsaufwand)
-  - Modellierungs-Nutzer müssen sich mit einer Oberfläche abfinden, die für Betrachter designt ist (Kompromiss in beide Richtungen)
-  - Größte Browser-Inkompatibilitäts-Risiken bei Canvas-Features
-
-### Option 2: Client App (Electron oder Tauri) + Web Portal (SPA) – zwei Delivery-Fahrzeuge
-
-- **Client App**: Vollständiger Modellierungs-Umfang; Zielgruppe SH-03 (Kurt), SH-04 (Michael), SH-07 (Sabine); läuft als installierte Anwendung
-- **Web Portal**: Read-only-Publikation; Zielgruppe SH-01 (Franz), SH-02 (Lukas, Konsumierung), SH-05 (CIO), SH-06 (Max); URL-basierter Zugang ohne Installation
+A single Vue 3 SPA serves both modeling and consuming users. The interactive diagram editor runs in the browser.
 
 - **Pro**:
-  - Client App ist maximal flexibel: nativer Speicher, GPU, Dateisystem, Offline, unbegrenzte Fenster/Panels
-  - Web Portal bleibt simpel: statisches Rendering, kein komplexer Canvas nötig
-  - Canvas-Bibliothek (ADR-007) kann für den Client-App-Kontext optimiert gewählt werden
-  - Trennung der Komplexität: Publikations-Code bleibt wartbar; Modellierungs-Code kann wachsen ohne das Portal zu belasten
-  - Shared-Component-Library möglich: UI-Atome (Buttons, Tabellen, Typografie) einmal entwickeln, in beiden Apps nutzen
-  - Saubere Stakeholder-Segmentierung entspricht der realen Nutzung
-- **Contra**:
-  - Zwei Deployment-Artefakte (Client-App-Installer + Web-Portal-Deployment) zu pflegen
-  - Feature-Parity-Risiko: gleiche Business-Logik (z.B. Katalog-Abfrage) muss in beiden Apps funktionieren → erfordert konsequente API-Trennung (alles über Backend-API, kein Business-Logic-Duplikat im Frontend)
-  - Distributions-Aufwand: Client App braucht Signierprozess und plattformspezifische Bundles (macOS, Windows, Linux)
-  - UX-Inkonsistenz zwischen den zwei GUIs muss aktiv verhindert werden (Shared Design System)
+  - Single codebase for the frontend; lowest maintenance effort
+  - Deployment: one URL; no installer
+  - No platform-specific packaging needed
+- **Con**:
+  - Browser limits canvas performance: DOM rendering of large EA diagrams (>300 nodes) responds slowly; no direct GPU access
+  - No native file system access (File System Access API is experimental and browser-dependent)
+  - No offline operation without a service worker (high implementation effort)
+  - Modeling users must put up with an interface designed for viewers (compromise in both directions)
+  - Greatest browser incompatibility risks with canvas features
 
-### Option 3: Progressive Web App (PWA) + Web Portal
+### Option 2: Client app (Electron or Tauri) + web portal (SPA) – two delivery vehicles
 
-Ein PWA versucht, die Lücke zwischen Web und nativer App durch Browser-APIs (Cache, Background Sync, Installation als „App") zu schliessen.
-
-- **Pro**:
-  - Eine Codebase; Installations-Möglichkeit über Browser-Mechanismus
-  - Begrenzte Offline-Fähigkeit über Service Worker
-- **Contra**:
-  - PWA-Installation ist kein vollständiger Ersatz für eine native App: kein Dateisystem-Zugriff, kein IPC, kein nativer Kontextmenü-Hook
-  - Canvas-Performance bleibt durch Browser-Grenzen limitiert
-  - Kein konsistenter plattformübergreifender PWA-Support (insbesondere auf macOS Safari)
-  - Offline-Sync mit einem OEA-Backend ist komplexer als bei einer nativen App
-  - Löst das Kernproblem (Canvas-Flexibilität) nicht
-
-### Option 4: Native App pro Plattform (macOS / Windows / Linux) + Web Portal
-
-Vollständig native Apps ohne Web-Technologie-Basis.
+- **Client app**: Full modeling scope; target group SH-03 (Kurt), SH-04 (Michael), SH-07 (Sabine); runs as an installed application
+- **Web portal**: Read-only publication; target group SH-01 (Franz), SH-02 (Lukas, consumption), SH-05 (CIO), SH-06 (Max); URL-based access without installation
 
 - **Pro**:
-  - Maximale Plattform-Integration und Performance
-- **Contra**:
-  - Drei separate Codebasen (macOS, Windows, Linux) für dasselbe Werkzeug; massiver Mehraufwand
-  - Kein gemeinsamer Code mit dem Web Portal möglich
-  - Open-Source-Community-Beiträge werden durch Plattform-spezifisches Know-how-Requirement stark eingeschränkt
-  - Scheidet für ein OSS-Projekt dieser Grösse aus
+  - Client app is maximally flexible: native storage, GPU, file system, offline, unlimited windows/panels
+  - Web portal stays simple: static rendering, no complex canvas needed
+  - Canvas library (ADR-007) can be chosen optimized for the client app context
+  - Separation of complexity: publication code stays maintainable; modeling code can grow without burdening the portal
+  - Shared component library possible: develop UI atoms (buttons, tables, typography) once, use in both apps
+  - Clean stakeholder segmentation corresponds to real usage
+- **Con**:
+  - Two deployment artifacts (client app installer + web portal deployment) to maintain
+  - Feature parity risk: the same business logic (e.g. catalog query) must work in both apps → requires consistent API separation (everything via backend API, no business logic duplicate in the frontend)
+  - Distribution effort: client app needs a signing process and platform-specific bundles (macOS, Windows, Linux)
+  - UX inconsistency between the two GUIs must be actively prevented (shared design system)
 
-## Entscheidung
+### Option 3: Progressive web app (PWA) + web portal
 
-Wir wählen **Option 2: Client App + Web Portal (Dual-Track-Delivery)**.
+A PWA tries to close the gap between web and native app through browser APIs (cache, background sync, installation as an "app").
 
-**Client App** (Technologie-Auswahl noch offen, ADR-009 ausstehend) für:
-- Solution Architekten (SH-04), Lead Enterprise Architekten (SH-03), Business Engineers (SH-07)
-- Interaktive Diagramm-Editierung, Metamodell-Konfiguration, Solution-Management, Katalog-Konfiguration
-- Alle Aktionen, die schreibend auf das Repository zugreifen
+- **Pro**:
+  - One codebase; installation possibility via browser mechanism
+  - Limited offline capability via service worker
+- **Con**:
+  - PWA installation is not a full replacement for a native app: no file system access, no IPC, no native context menu hook
+  - Canvas performance remains limited by browser limits
+  - No consistent cross-platform PWA support (especially on macOS Safari)
+  - Offline sync with an OEA backend is more complex than with a native app
+  - Does not solve the core problem (canvas flexibility)
 
-**Web Portal** (Vue 3 SPA) für:
-- CIO (SH-05), Operator (SH-06), Domänen-Betrachter (SH-01, SH-02 in Konsumierungs-Rolle)
-- Read-only: Kataloge browsen, Diagramme anschauen, Architektur-Berichte konsumieren
-- URL-basierter Zugang ohne Installations-Anforderung
+### Option 4: Native app per platform (macOS / Windows / Linux) + web portal
 
-Die Entscheidung folgt dem Prinzip: **jedes Fahrzeug wird für seinen primären Anwendungsfall optimiert, nicht auf einen Kompromiss hin gebaut.**
+Fully native apps without a web technology base.
 
-Business-Logik lebt ausschliesslich im Backend (API-First); beide GUIs sind reine Präsentationsschichten. Dadurch entsteht kein Code-Duplikat.
+- **Pro**:
+  - Maximum platform integration and performance
+- **Con**:
+  - Three separate codebases (macOS, Windows, Linux) for the same tool; massive extra effort
+  - No shared code with the web portal possible
+  - Open-source community contributions are severely limited by the platform-specific know-how requirement
+  - Ruled out for an OSS project of this size
 
-## Konsequenzen
+## Decision
 
-### Positive Konsequenzen
+We choose **Option 2: Client app + web portal (dual-track delivery)**.
 
-- **ADR-007 (Canvas-Bibliothek) entschieden**: Da der interaktive Diagramm-Editor in der Client App läuft, wurde Vue Flow als Canvas-Bibliothek gewählt (ADR-007 `accepted`)
-- **Web Portal bleibt schlank**: Kein Canvas-Framework im Portal nötig; read-only Diagramm-Rendering kann über ein leichtes SVG-Renderer-Backend erfolgen
-- **Klare Feature-Ownership**: jede Story weiß, in welches Fahrzeug sie gehört
-- **Offline-Betrieb** für Architekten möglich (Client App kann lokal cachen)
-- **Maximale Canvas-Flexibilität** für interaktive Diagramme im Client-App-Kontext
+**Client app** (technology choice still open, ADR-009 pending) for:
+- Solution architects (SH-04), lead enterprise architects (SH-03), business engineers (SH-07)
+- Interactive diagram editing, metamodel configuration, solution management, catalog configuration
+- All actions that write to the repository
 
-### Negative Konsequenzen / Trade-offs
+**Web portal** (Vue 3 SPA) for:
+- CIO (SH-05), operator (SH-06), domain viewers (SH-01, SH-02 in consumption role)
+- Read-only: browse catalogs, view diagrams, consume architecture reports
+- URL-based access without installation requirement
 
-- **Zwei Distributions-Artefakte**: Client App braucht Packaging (`.dmg`, `.exe`, `.AppImage`), Signierung und ggf. Auto-Update-Mechanismus; zusätzlicher DevOps-Aufwand
-- **Shared-Component-Strategie nötig**: Design-System und Business-Component-Library (Tabellen, Filter, Navigationsbaum) müssen von Beginn an in einem gemeinsamen Paket gehalten werden, sonst droht Auseinanderdriften
-- **UX-Inkonsistenz-Risiko**: Web Portal und Client App müssen dieselbe Gestaltungssprache sprechen; erfordert aktive Pflege des Design Systems
-- **Client-App-Framework-Wahl** (ADR-009) hängt noch aus: Electron (grösser, ausgereifter) vs. Tauri (klein, Rust-Backend, aktive Community)
+The decision follows the principle: **each vehicle is optimized for its primary use case, not built towards a compromise.**
 
-### Feature-Verteilung (initiale Zuordnung)
+Business logic lives exclusively in the backend (API-first); both GUIs are pure presentation layers. This avoids code duplication.
+
+## Consequences
+
+### Positive Consequences
+
+- **ADR-007 (canvas library) decided**: Since the interactive diagram editor runs in the client app, Vue Flow was chosen as the canvas library (ADR-007 `accepted`)
+- **Web portal stays lean**: No canvas framework needed in the portal; read-only diagram rendering can be done via a lightweight SVG renderer backend
+- **Clear feature ownership**: each story knows which vehicle it belongs to
+- **Offline operation** possible for architects (client app can cache locally)
+- **Maximum canvas flexibility** for interactive diagrams in the client app context
+
+### Negative Consequences / Trade-offs
+
+- **Two distribution artifacts**: Client app needs packaging (`.dmg`, `.exe`, `.AppImage`), signing, and possibly an auto-update mechanism; additional DevOps effort
+- **Shared component strategy necessary**: Design system and business component library (tables, filters, navigation tree) must be held in a shared package from the start, otherwise drifting apart looms
+- **UX inconsistency risk**: Web portal and client app must speak the same design language; requires active maintenance of the design system
+- **Client app framework choice** (ADR-009) is still pending: Electron (larger, more mature) vs. Tauri (small, Rust backend, active community)
+
+### Feature Distribution (initial assignment)
 
 | Feature | Client App | Web Portal |
 |---|---|---|
-| Interaktive Diagramm-Editierung (Canvas) | ✓ | – |
-| Diagramme anzeigen (read-only) | ✓ | ✓ |
-| Katalog anlegen und konfigurieren | ✓ | – |
-| Katalog browsen und filtern | ✓ | ✓ |
-| Navigationsbaum verwalten | ✓ | – |
-| Navigationsbaum browsen | ✓ | ✓ |
-| Solution / EntityDeltas erfassen | ✓ | – |
-| Metamodell konfigurieren | ✓ | – |
-| Architektur-Repository konsumieren | ✓ | ✓ |
-| Login / Auth (UC-01) | ✓ | ✓ |
+| Interactive diagram editing (canvas) | ✓ | – |
+| View diagrams (read-only) | ✓ | ✓ |
+| Create and configure catalog | ✓ | – |
+| Browse and filter catalog | ✓ | ✓ |
+| Manage navigation tree | ✓ | – |
+| Browse navigation tree | ✓ | ✓ |
+| Capture solution / EntityDeltas | ✓ | – |
+| Configure metamodel | ✓ | – |
+| Consume architecture repository | ✓ | ✓ |
+| Login / auth (UC-01) | ✓ | ✓ |
 
-### Folgeentscheidungen
+### Follow-up Decisions
 
-- **ADR-009** (ausstehend): Client-App-Framework – Electron vs. Tauri; inkl. Auto-Update-Strategie, Packaging, Signierung
-- **ADR-007** (deferred → zu öffnen): Canvas-Bibliothek; kann jetzt für Client-App-Kontext entschieden werden
-- **ADR-010** (optional): Shared-Component-Library und Design-System-Strategie (Monorepo-Struktur, gemeinsame npm-Pakete)
-- **Diagramm-Rendering im Web Portal**: leichtes SVG-basiertes Read-only-Rendering (kein Canvas-Framework) – eigenes REQ zu spezifizieren
+- **ADR-009** (pending): Client app framework – Electron vs. Tauri; incl. auto-update strategy, packaging, signing
+- **ADR-007** (deferred → to be opened): Canvas library; can now be decided for the client app context
+- **ADR-010** (optional): Shared component library and design system strategy (monorepo structure, shared npm packages)
+- **Diagram rendering in the web portal**: lightweight SVG-based read-only rendering (no canvas framework) – own REQ to be specified
 
-## Bezüge
+## References
 
-**Konzept-Kapitel**:
-- [§21.2.1 Visualisierungs-Strategie](../concept/70-platform/21-api-architektur.md)
+**Concept Chapters**:
+- [§21.2.1 Visualization Strategy](../concept/70-platform/21-api-architecture.md)
 
-**Verwandte ADRs**:
-- [ADR-007](./ADR-007-canvas-bibliothek.md): Canvas-Bibliothek (accepted; Vue Flow gewählt; diese Entscheidung hat die Wahl ermöglicht)
-- ADR-009 (ausstehend): Client-App-Framework-Wahl
+**Related ADRs**:
+- [ADR-007](./ADR-007-canvas-library.md): Canvas library (accepted; Vue Flow chosen; this decision enabled the choice)
+- ADR-009 (pending): Client app framework choice
 
 **Use Cases / Requirements**:
-- [UC-05: Architektur-Vision beschreiben](../requirements/use-cases/UC-05-architektur-vision-beschreiben.md) – Solution-Editierung in Client App; Read-only-Diff im Web Portal
-- [UC-06: Katalog anlegen und verwenden](../requirements/use-cases/UC-06-katalog-anlegen-und-verwenden.md) – Katalog-Konfiguration in Client App; Browsing in beiden
-- [US-045: Neue Entität im Diagramm als Delta anlegen](../requirements/user-stories/US-045-delta-neue-entitaet-diagramm.md) – Client-App-Feature; blockiert bis ADR-007 entschieden
+- [UC-05: Describe Architecture Vision](../requirements/use-cases/UC-05-describe-architecture-vision.md) – solution editing in client app; read-only diff in web portal
+- [UC-06: Create and Use Catalog](../requirements/use-cases/UC-06-create-and-use-catalog.md) – catalog configuration in client app; browsing in both
+- [US-045: Create New Entity in Diagram as Delta](../requirements/user-stories/US-045-delta-new-entity-diagram.md) – client app feature; blocked until ADR-007 decided
 
-## Notizen
+## Notes
 
-Der Begriff „Client App" bezeichnet bewusst keinen spezifischen Framework-Ansatz. Electron und Tauri sind die wahrscheinlichsten Kandidaten (beide packen eine Webview mit nativen Plattformzugriffen), aber die Wahl ist ADR-009 vorbehalten. Andere Ansätze (z.B. .NET MAUI, Flutter Desktop) scheiden wegen des JavaScript/TypeScript-Ökosystem-Fits aus.
+The term "client app" deliberately does not denote a specific framework approach. Electron and Tauri are the most likely candidates (both package a webview with native platform access), but the choice is reserved for ADR-009. Other approaches (e.g. .NET MAUI, Flutter Desktop) are ruled out because of the JavaScript/TypeScript ecosystem fit.
 
-Das Web Portal kann langfristig als Einstieg für neue OEA-Instanzen dienen: Wer OEA erst kennenlernen will, schaut sich das Portal an. Wer produktiv arbeitet, installiert die Client App.
+In the long term, the web portal can serve as an entry point for new OEA instances: those who first want to get to know OEA look at the portal. Those who work productively install the client app.

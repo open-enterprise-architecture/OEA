@@ -1,6 +1,6 @@
 ---
 id: US-083
-title: DataObject im BPMN-Prozess platzieren und anreichern
+title: Place and Enrich a DataObject in a BPMN Process
 use_case: UC-10
 requirement: REQ-081
 priority: should
@@ -9,35 +9,35 @@ story_points: 8
 created: 2026-06-26
 ---
 
-# US-083: DataObject im BPMN-Prozess platzieren und anreichern
+# US-083: Place and Enrich a DataObject in a BPMN Process
 
-**Als** Business Analyst (Anna, SH-08)  
-**möchte ich** in einem BPMN-Prozessdiagramm DataObjects platzieren und mit Tasks verbinden, sowie annotieren was ein Task mit dem Datenobjekt macht,  
-**damit** die Datenflüsse durch den Geschäftsprozess nachvollziehbar sind und eine saubere Data Lineage entsteht.
+**As** a Business Analyst (Anna, SH-08)  
+**I want** to place DataObjects in a BPMN process diagram and connect them to tasks, and annotate what a task does with the data object,  
+**so that** the data flows through the business process are traceable and clean data lineage emerges.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] BPMN-Palette enthält `bpmn-data-object` (Dokument-Icon) und `bpmn-data-store` (Zylinder-Icon)
-- [ ] Beim Anlegen eines DataObjects kann ein bestehendes `data-object` aus dem EA-Repository referenziert werden (`[[`-Trigger, REQ-070)
-- [ ] Gestrichelte Linie von DataObject zu Task = Input-Assoziation; von Task zu DataObject = Output-Assoziation
-- [ ] Detail-Panel der Output-Assoziation: Dropdown `transformationType` (create / enrich / overwrite / delete / read-only) und Tag-Feld `affectedAttributes`
-- [ ] `bpmn-data-store` kann via Kontextmenü mit einem `data-component` aus dem Repository verknüpft werden
-- [ ] `GET /api/v1/entities/{id}/lineage` für ein data-object gibt Tasks zurück, die es lesen oder anreichern
-- [ ] Katalog auf `data-object` kann über Join auf `bpmn-data-output-association` zeigen, welche Tasks jedes Objekt anreichern
-- [ ] BR-07/08 aus process.md werden durch die API validiert (Pfeilrichtung, create-Constraint)
+- [ ] The BPMN palette contains `bpmn-data-object` (document icon) and `bpmn-data-store` (cylinder icon)
+- [ ] When creating a DataObject, an existing `data-object` from the EA repository can be referenced (`[[` trigger, REQ-070)
+- [ ] Dashed line from DataObject to task = input association; from task to DataObject = output association
+- [ ] Detail panel of the output association: dropdown `transformationType` (create / enrich / overwrite / delete / read-only) and tag field `affectedAttributes`
+- [ ] `bpmn-data-store` can be linked via context menu to a `data-component` from the repository
+- [ ] `GET /api/v1/entities/{id}/lineage` for a data-object returns tasks that read or enrich it
+- [ ] A catalog on `data-object` can show via join on `bpmn-data-output-association` which tasks enrich each object
+- [ ] BR-07/08 from process.md are validated by the API (arrow direction, create constraint)
 
-## Szenario
+## Scenario
 
-Anna modelliert den Beschaffungsprozess:
+Anna models the procurement process:
 
-1. Zieht „Bestellung" (bestehendes `data-object` #15) auf den Canvas — kein Duplikat
-2. Zeichnet gestrichelte Linie von „Bestellung" zu Task „Bestellung prüfen" → Input-Assoziation entsteht
-3. Zeichnet gestrichelte Linie von Task „Bestellung prüfen" zu „Bestellung" → Output-Assoziation; Detail-Panel öffnet sich
-4. Wählt `transformationType: enrich`, trägt `affectedAttributes: [status, reviewedBy]` ein
-5. Abfrage: `GET /api/v1/entities/15/lineage?direction=downstream` → zeigt Task „Bestellung prüfen" als Schreiber
+1. Drags "Order" (existing `data-object` #15) onto the canvas — no duplicate
+2. Draws a dashed line from "Order" to task "Review order" → input association is created
+3. Draws a dashed line from task "Review order" to "Order" → output association; detail panel opens
+4. Selects `transformationType: enrich`, enters `affectedAttributes: [status, reviewedBy]`
+5. Query: `GET /api/v1/entities/15/lineage?direction=downstream` → shows task "Review order" as writer
 
-## Technische Hinweise
+## Technical Notes
 
-- `bpmn-data-object` extends `data-object` (Integer-ID-Raum geteilt, Lineage-API traversiert beide)
-- Connection-Properties auf `bpmn-data-output-association`: `transformationType`, `affectedAttributes` (array), `condition`
-- Canvas: gestrichelte Linie mit Pfeil-Spitze für Associations (abweichend von SequenceFlow = durchgezogene Linie)
+- `bpmn-data-object` extends `data-object` (integer ID space shared, lineage API traverses both)
+- Connection properties on `bpmn-data-output-association`: `transformationType`, `affectedAttributes` (array), `condition`
+- Canvas: dashed line with arrowhead for associations (unlike SequenceFlow = solid line)

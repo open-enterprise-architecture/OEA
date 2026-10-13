@@ -1,69 +1,69 @@
-# US-039: Aktuelle IT-Landschaft als Ausgangsbasis einer Solution anzeigen
+# US-039: Show the Current IT Landscape as the Baseline of a Solution
 
 **ID**: US-039
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Solution Architekt möchte ich innerhalb einer Solution den aktuellen Stand der IT-Landschaft als durchsuchbare Liste sehen, damit ich weiss, welche Systeme und Komponenten bereits existieren, und meine geplanten Änderungen auf diesem Ist-Stand aufbauen kann.
+As a Solution Architect, I want to see, within a solution, the current state of the IT landscape as a searchable list, so that I know which systems and components already exist and can build my planned changes on this current state.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-05: Architektur-Vision einer Änderungsinitiative beschreiben](../use-cases/UC-05-architektur-vision-beschreiben.md)
-**Persona**: [SH-04: Michael – Solution Architekt](../../business-analysis/stakeholders/SH-04-michael-solution-architekt.md)
-**Requirement**: [REQ-039: Aktuelle IT-Landschaft als Solution-Ausgangsbasis anzeigen](../req/REQ-039-landschaft-ausgangsbasis.md)
+**Use Case**: [UC-05: Describe the Architecture Vision of a Change Initiative](../use-cases/UC-05-describe-architecture-vision.md)
+**Persona**: [SH-04: Michael – Solution Architect](../../business-analysis/stakeholders/SH-04-michael-solution-architect.md)
+**Requirement**: [REQ-039: Show Current IT Landscape as Solution Baseline](../req/REQ-039-landscape-baseline.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Zwei implemented-Solutions: A hat `CRM-Legacy` (new), B hat `ERP-Core` (new)
-- Wenn: Michael eine neue Solution öffnet und die Ausgangsbasis lädt
-- Dann: sind `CRM-Legacy` und `ERP-Core` in der Liste; keine anderen Entitäten
+- Given: Two implemented solutions: A has `CRM-Legacy` (new), B has `ERP-Core` (new)
+- When: Michael opens a new solution and loads the baseline
+- Then: `CRM-Legacy` and `ERP-Core` are in the list; no other entities
 
 **AC2**:
-- Gegeben: Solution A (implemented) hat `CRM-Legacy` (retiring)
-- Wenn: Michael die Ausgangsbasis lädt
-- Dann: ist `CRM-Legacy` **nicht** in der Liste (retiring aus implemented entfernt die Entität)
+- Given: Solution A (implemented) has `CRM-Legacy` (retiring)
+- When: Michael loads the baseline
+- Then: `CRM-Legacy` is **not** in the list (retiring removes the entity from implemented)
 
 **AC3**:
-- Gegeben: Solution A hat `ERP-Core` als modified (v4); Solution B (neueren Datums, implemented) hat `ERP-Core` als modified (v5)
-- Wenn: Michael die Ausgangsbasis lädt
-- Dann: zeigt die Liste `ERP-Core` mit dem Stand aus Solution B (neuere Implementation gewinnt)
+- Given: Solution A has `ERP-Core` as modified (v4); solution B (more recent, implemented) has `ERP-Core` as modified (v5)
+- When: Michael loads the baseline
+- Then: the list shows `ERP-Core` with the state from solution B (more recent implementation wins)
 
-**AC4** (leere Landschaft):
-- Gegeben: noch keine implemented-Solutions vorhanden
-- Wenn: Michael die Ausgangsbasis lädt
-- Dann: erscheint der Hinweis „Keine realisierten Entitäten vorhanden – du kannst ausschliesslich neue Entitäten anlegen"; die `modified`- und `retiring`-Aktionen sind deaktiviert
+**AC4** (empty landscape):
+- Given: no implemented solutions present yet
+- When: Michael loads the baseline
+- Then: the notice "No implemented entities present – you can only create new entities" appears; the `modified` and `retiring` actions are disabled
 
-**AC5** (Filter):
-- Gegeben: Ausgangsbasis mit 20 Entitäten verschiedener Typen
-- Wenn: Michael nach EntityType `ApplicationComponent` filtert
-- Dann: werden nur Entitäten vom Typ `ApplicationComponent` angezeigt
+**AC5** (filter):
+- Given: baseline with 20 entities of various types
+- When: Michael filters by EntityType `ApplicationComponent`
+- Then: only entities of type `ApplicationComponent` are displayed
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Solution-Detailansicht (Bereich „Architektur-Vision & Scope"), Backend `GET /api/v1/solutions/{id}/landscape`
-- Aggregationslogik (Projekt-Modus): über alle `entity_deltas` aus Solutions mit status=`implemented`; pro entityId neueste Implementation gewinnt (ORDER BY `implemented_at DESC`); `retiring`-Deltas als Tombstone (Entität wird aus Ergebnis entfernt)
-- Datenbank-Änderungen: keine neuen Tabellen; Query auf bestehende `solutions` + `entity_deltas`
-- Pagination: Cursor-based (Entitätslisten können gross werden)
-- Für MVP: Plateau-Modus (Ausgangsbasis aus `fromPlateau`) kann initial mit Fallback auf Projekt-Modus-Berechnung gemockt werden, sofern Plateau-Modus noch nicht implementiert
+- Affected components: solution detail view (area "Architecture Vision & Scope"), backend `GET /api/v1/solutions/{id}/landscape`
+- Aggregation logic (project mode): over all `entity_deltas` from solutions with status=`implemented`; per entityId the most recent implementation wins (ORDER BY `implemented_at DESC`); `retiring` deltas as tombstone (entity is removed from result)
+- Database changes: no new tables; query on existing `solutions` + `entity_deltas`
+- Pagination: cursor-based (entity lists can become large)
+- For MVP: plateau mode (baseline from `fromPlateau`) can initially be mocked with fallback to project mode calculation, if plateau mode is not yet implemented
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien AC1–AC5 erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests: Aggregation aus mehreren Solutions (inkl. Überschneidungen, retiring als Tombstone, latest-wins bei modified); leere Landschaft; Filter
-- [ ] Performance-Test: Aggregation mit 100+ implemented-Solutions < 500ms
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria AC1–AC5 met
+- [ ] Code review by a second person
+- [ ] Tests: aggregation from multiple solutions (incl. overlaps, retiring as tombstone, latest-wins for modified); empty landscape; filter
+- [ ] Performance test: aggregation with 100+ implemented solutions < 500ms
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-038 (Solution muss existieren)
-- Blockiert: US-040 (retiring/new brauchen Ausgangsbasis), US-041 (modified braucht Ausgangsbasis), US-042 (retiring braucht Ausgangsbasis), US-043 (Diff-Ansicht baut auf Ausgangsbasis auf)
+- Waiting on: US-038 (solution must exist)
+- Blocks: US-040 (retiring/new need baseline), US-041 (modified needs baseline), US-042 (retiring needs baseline), US-043 (diff view builds on baseline)
 
-## Notizen
+## Notes
 
-5 SP wegen der Aggregationslogik im Backend (latest-wins, Tombstone-Behandlung, Pagination). Die UI ist einfach (filterbare Tabelle), aber die Query-Logik ist nicht trivial. Separate Unit-Tests für die Aggregationsfunktion empfohlen. Plateau-Modus (Ausgangsbasis aus fromPlateau) ist in REQ-039 spezifiziert, kann aber in einer Folge-Story realisiert werden.
+5 SP because of the aggregation logic in the backend (latest-wins, tombstone handling, pagination). The UI is simple (filterable table), but the query logic is not trivial. Separate unit tests for the aggregation function recommended. Plateau mode (baseline from fromPlateau) is specified in REQ-039, but can be implemented in a follow-up story.

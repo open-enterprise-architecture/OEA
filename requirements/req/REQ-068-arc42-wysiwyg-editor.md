@@ -1,6 +1,6 @@
 ---
 id: REQ-068
-title: Arc42 WYSIWYG-Editor mit Mermaid- und PlantUML-Rendering
+title: Arc42 WYSIWYG editor with Mermaid and PlantUML rendering
 type: functional
 priority: should
 status: proposed
@@ -21,101 +21,101 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-068: Arc42 WYSIWYG-Editor mit Mermaid- und PlantUML-Rendering
+# REQ-068: Arc42 WYSIWYG editor with Mermaid and PlantUML rendering
 
-## Aussage
+## Statement
 
-Das System MUSS für das `content`-Feld einer Arc42MetaObject-Entität einen WYSIWYG-Editor bereitstellen, der Markdown-Formatierung, `mermaid`-Codeblöcke und `plantuml`-Codeblöcke unterstützt. Mermaid-Blöcke MÜSSEN client-seitig als SVG gerendert werden. PlantUML-Blöcke MÜSSEN entweder via konfigurierten PlantUML-Server oder via WASM-basiertem Client-Rendering als SVG gerendert werden. Bei Rendering-Fehler MUSS der Roh-Code als Fallback angezeigt werden.
+The system MUST provide a WYSIWYG editor for the `content` field of an Arc42MetaObject entity that supports Markdown formatting, `mermaid` code blocks and `plantuml` code blocks. Mermaid blocks MUST be rendered client-side as SVG. PlantUML blocks MUST be rendered as SVG either via a configured PlantUML server or via WASM-based client rendering. On a rendering error, the raw code MUST be displayed as a fallback.
 
-## Begründung
+## Rationale
 
-Arc42 lebt von Diagrammen: Kontextabgrenzung, Bausteinsicht, Verteilungssicht sind alle visuell. Ohne Diagramm-Rendering im Editor wäre Arc42 in OEA nur Prosa. Mermaid und PlantUML sind die zwei dominanten Diagram-as-Code-Formate im Solution-Architektur-Bereich; beide müssen unterstützt werden.
+Arc42 thrives on diagrams: context boundary, building block view, deployment view are all visual. Without diagram rendering in the editor, Arc42 in OEA would be mere prose. Mermaid and PlantUML are the two dominant diagram-as-code formats in the solution architecture field; both must be supported.
 
-## Kontext
+## Context
 
-Der Editor ist keine Whiteboard-Canvas (das ist ADR-007 / React Flow). Er ist ein **Rich-Text-Editor** mit Code-Block-Rendering, vergleichbar mit Notion oder Confluence. Die Diagramme werden aus Text generiert — kein Drag & Drop.
+The editor is not a whiteboard canvas (that is ADR-007 / React Flow). It is a **rich-text editor** with code block rendering, comparable to Notion or Confluence. The diagrams are generated from text — no drag & drop.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Unterstützte Formate
+### Supported Formats
 
 **Markdown** (CommonMark + GFM):
-- Überschriften H1–H4, Listen, Tabellen, Links, Code inline, Fettschrift, Kursiv
+- Headings H1–H4, lists, tables, links, inline code, bold, italic
 
 **Mermaid**:
-- Trigger: Codeblock mit Sprache `mermaid`
-- Rendering: client-seitig via mermaid.js (bereits im Bundle wenn ADR-007 React Flow verwendet)
-- Unterstützte Typen: flowchart, sequenceDiagram, classDiagram, C4Context, erDiagram, gantt u.a.
+- Trigger: code block with language `mermaid`
+- Rendering: client-side via mermaid.js (already in the bundle if ADR-007 React Flow is used)
+- Supported types: flowchart, sequenceDiagram, classDiagram, C4Context, erDiagram, gantt, among others
 
 **PlantUML**:
-- Trigger: Codeblock mit Sprache `plantuml`
+- Trigger: code block with language `plantuml`
 - Rendering:
-  - Primär: HTTP-Request an konfigurierten PlantUML-Server (`/api/admin/config: plantumlServerUrl`)
-  - Fallback: WASM-basiertes Rendering (plantuml-wasm, kein Server nötig)
-  - Falls beides nicht verfügbar: Code als Fallback-Anzeige, Warning-Icon
+  - Primary: HTTP request to the configured PlantUML server (`/api/admin/config: plantumlServerUrl`)
+  - Fallback: WASM-based rendering (plantuml-wasm, no server needed)
+  - If neither is available: code as fallback display, warning icon
 
-### Editor-Verhalten
+### Editor Behavior
 
-- **Toggle**: Jeder Code-Block kann zwischen Edit-Modus (Code) und Preview-Modus (Rendering) umgeschaltet werden
-- **Inline-Preview**: Rendering erscheint direkt unter dem Code-Block in Split-View oder per Tab
-- **Zoom**: Gerenderte SVGs sind zoombar (SVG-native Zoom)
-- **Export**: SVG kann per Rechtsklick → „Bild speichern" heruntergeladen werden
+- **Toggle**: Each code block can be switched between edit mode (code) and preview mode (rendering)
+- **Inline preview**: Rendering appears directly below the code block in split view or via tab
+- **Zoom**: Rendered SVGs are zoomable (SVG-native zoom)
+- **Export**: SVG can be downloaded via right-click → "Save image"
 
-### Speicherformat
+### Storage Format
 
-`content` wird als Markdown-String gespeichert (inkl. Codeblöcke). Maximale Länge: 100.000 Zeichen. Kein pre-rendering beim Speichern.
+`content` is stored as a Markdown string (including code blocks). Maximum length: 100,000 characters. No pre-rendering on save.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Mermaid gerendert):
-- Gegeben: content enthält:
+**AC1** (Mermaid rendered):
+- Given: content contains:
   ````
   ```mermaid
   graph LR; A-->B; B-->C;
   ```
   ````
-- Wenn: Michael öffnet die Arc42-Antwort
-- Dann: Ein SVG-Diagramm (A→B→C) ist im Editor sichtbar; kein Roh-Code
+- When: Michael opens the Arc42 answer
+- Then: An SVG diagram (A→B→C) is visible in the editor; no raw code
 
-**AC2** (PlantUML via Server):
-- Gegeben: `plantumlServerUrl` konfiguriert; content mit PlantUML-Block
-- Wenn: Editor geöffnet
-- Dann: SVG vom Server geladen und angezeigt
+**AC2** (PlantUML via server):
+- Given: `plantumlServerUrl` configured; content with PlantUML block
+- When: Editor opened
+- Then: SVG loaded from the server and displayed
 
-**AC3** (PlantUML Fallback – kein Server):
-- Gegeben: kein PlantUML-Server konfiguriert und WASM nicht geladen
-- Wenn: Editor geöffnet
-- Dann: Roh-Code angezeigt; Warning-Icon; Meldung „PlantUML nicht verfügbar"
+**AC3** (PlantUML fallback – no server):
+- Given: no PlantUML server configured and WASM not loaded
+- When: Editor opened
+- Then: Raw code displayed; warning icon; message "PlantUML not available"
 
-**AC4** (Edit-Toggle):
-- Wenn: Michael klickt auf Mermaid-Diagramm → „Bearbeiten"
-- Dann: Code-Editor öffnet sich; Änderungen live nachgerendert
+**AC4** (Edit toggle):
+- When: Michael clicks on a Mermaid diagram → "Edit"
+- Then: Code editor opens; changes re-rendered live
 
-**AC5** (Speichern als Markdown):
-- Wenn: Michael speichert
-- Dann: `content`-Feld enthält Markdown-String mit unveränderten Codeblöcken; kein SVG in DB
+**AC5** (Save as Markdown):
+- When: Michael saves
+- Then: `content` field contains a Markdown string with unchanged code blocks; no SVG in DB
 
-**AC6** (Zeichenlimit):
-- Wenn: content > 100.000 Zeichen
-- Dann: Fehlermeldung; Speichern verhindert
+**AC6** (Character limit):
+- When: content > 100,000 characters
+- Then: Error message; saving prevented
 
-**AC7** (Web Portal rendering):
-- Wenn: CIO öffnet Arc42-Dokumentation im Web Portal
-- Dann: Mermaid und PlantUML werden gerendert (read-only); kein Editor
+**AC7** (Web portal rendering):
+- When: CIO opens Arc42 documentation in the web portal
+- Then: Mermaid and PlantUML are rendered (read-only); no editor
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-067 (Collections); REQ-069 (Arc42-Entity anlegen)
-- **Konfiguration**: `plantumlServerUrl` als neue optionale Instanzkonfiguration (Systemeinstellung)
+- **Prerequisites**: REQ-067 (collections); REQ-069 (create Arc42 entity)
+- **Configuration**: `plantumlServerUrl` as a new optional instance configuration (system setting)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Editor-Bibliothek: TipTap oder ProseMirror (kompatibel mit React); eigene Mermaid/PlantUML-Node-Extension
-- mermaid.js ist lizenzkompatibel (MIT); plantuml-wasm ist GPL → Server-Variante bevorzugen oder WASM nur lokal in Electron (Client App)
-- SVG-Rendering: immer sanitized (XSS-Prevention auf SVG-Content)
+- Editor library: TipTap or ProseMirror (compatible with React); custom Mermaid/PlantUML node extension
+- mermaid.js is license-compatible (MIT); plantuml-wasm is GPL → prefer the server variant or WASM only locally in Electron (client app)
+- SVG rendering: always sanitized (XSS prevention on SVG content)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |

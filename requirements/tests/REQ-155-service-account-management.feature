@@ -1,33 +1,33 @@
-# Ableitung aus: requirements/req/req-155-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert) + demonstration
+# Derived from: requirements/req/req-155-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: method: test (automated) + demonstration
 
 @functional @should @UC-02
-Feature: REQ-155 – Service-Account-Verwaltung für externe Systeme
+Feature: REQ-155 – Service account management for external systems
 
-  Das System **MUSS** es Administratoren ermöglichen, Service-Accounts
-  anzulegen, ihnen die Rolle `integration-writer` zuzuweisen und
-  rotierende Client-Credentials zu vergeben, damit externe Systeme ohne
-  menschliche Benutzeranmeldung auf die Schreib-API zugreifen können.
+  The system **MUST** enable administrators to create service accounts,
+  assign them the role `integration-writer` and issue
+  rotating client credentials, so that external systems can access the write API without
+  human user login.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Admin ist eingeloggt
-    Given Admin ist eingeloggt
-    When  POST /admin/service-accounts mit `{name: "ci-scanner", role: "integration-writer"}`
-    Then  201 Created; Response enthält einmalig `clientSecret`; DB enthält `machine_credentials`-Eintrag
+  Scenario: AC1 – Admin is logged in
+    Given admin is logged in
+    When  POST /admin/service-accounts with `{name: "ci-scanner", role: "integration-writer"}`
+    Then  201 Created; response contains `clientSecret` once; DB contains `machine_credentials` entry
 
   @AC2
-  Scenario: AC2 – Service-Account mit gültigem client_id/secret
-    Given Service-Account mit gültigem client_id/secret
-    When  OAuth2 Client-Credentials-Flow → JWT erhalten; PUT /entities/by-external-id/...
-    Then  200/201; Audit-Log zeigt `source=API`, `agent_id=<client_id>`
+  Scenario: AC2 – Service account with valid client_id/secret
+    Given service account with valid client_id/secret
+    When  OAuth2 client credentials flow → JWT obtained; PUT /entities/by-external-id/...
+    Then  200/201; audit log shows `source=API`, `agent_id=<client_id>`
 
   @AC3
-  Scenario: AC3 – Admin rotiert Credentials eines Service-Accounts
-    Given Admin rotiert Credentials eines Service-Accounts
-    When  Altes Secret für Auth-Request verwendet
-    Then  401 Unauthorized; neues Secret erforderlich
+  Scenario: AC3 – Admin rotates credentials of a service account
+    Given admin rotates credentials of a service account
+    When  old secret used for auth request
+    Then  401 Unauthorized; new secret required

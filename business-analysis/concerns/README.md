@@ -1,19 +1,19 @@
-# Concerns (Stakeholder-übergreifend)
+# Concerns (Cross-Stakeholder)
 
-Concerns, die mehrere Stakeholder teilen oder als zentrale Anliegen des Projekts gelten. Diese werden später zu architektonisch relevanten Anforderungen.
+Concerns that are shared by multiple stakeholders or considered central concerns of the project. These later become architecturally relevant requirements.
 
-Stakeholder-spezifische Concerns werden direkt im Stakeholder-Profil geführt; hier nur die übergreifenden.
+Stakeholder-specific concerns are maintained directly in the stakeholder profile; only the cross-cutting ones are listed here.
 
-## Übersicht
+## Overview
 
-<!-- Concerns nach Kategorie gruppiert -->
+<!-- Concerns grouped by category -->
 
-### Funktional
+### Functional
 
-### Qualität (Performance, Security, Usability)
+### Quality (Performance, Security, Usability)
 
-### Compliance und Governance
+### Compliance and Governance
 
-### Kosten und Lizenzen
+### Costs and Licenses
 
-### Wartbarkeit und Evolution
+### Maintainability and Evolution

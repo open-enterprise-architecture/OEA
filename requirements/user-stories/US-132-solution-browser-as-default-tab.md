@@ -1,40 +1,40 @@
-# US-132: Solution-Browser als Standard-Tab im Browser-Panel
+# US-132: Solution Browser as Default Tab in the Browser Panel
 
 **ID**: US-132
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Solution Architekt möchte ich beim Öffnen des Browser-Panels sofort alle Solutions in einer hierarchischen Übersicht sehen, damit ich ohne Zwischenschritte in den richtigen Arbeitskontext navigieren kann.
+As a Solution Architect, I want to see all solutions in a hierarchical overview immediately when opening the browser panel, so that I can navigate to the right working context without intermediate steps.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-13: Navigationsbaum verwalten](../use-cases/UC-13-navigationsbaum-verwalten.md)
+**Use Case**: [UC-13: Manage Navigation Tree](../use-cases/UC-13-manage-navigation-tree.md)
 **Requirement**: REQ-138
-**Persona**: [SH-04: Michael – Solution Architekt](../../business-analysis/stakeholders/SH-04-michael-solution-architekt.md)
+**Persona**: [SH-04: Michael – Solution Architect](../../business-analysis/stakeholders/SH-04-michael-solution-architect.md)
 **ADR**: ADR-020
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Benutzer öffnet Native Client und ist angemeldet
-- Wenn: Browser-Panel geladen wird
-- Dann: Tab „Browser" ist aktiv und zeigt „Aktueller Stand" als ersten Knoten, gefolgt von Plateau-Gruppen mit ihren Solutions
+- Given: user opens the native client and is logged in
+- When: browser panel is loaded
+- Then: tab "Browser" is active and shows "Current State" as the first node, followed by plateau groups with their solutions
 
 **AC2**:
-- Gegeben: Instanz hat Solutions in Plateau-Modus (IST→SOLL) und Projekt-Modus
-- Wenn: Browser-Panel angezeigt wird
-- Dann: Plateau-Solutions erscheinen unter ihrem Plateau-Knoten; Projekt-Solutions erscheinen nicht als eigene Knoten (nur in „Aktueller Stand")
+- Given: instance has solutions in plateau mode (AS-IS→TO-BE) and project mode
+- When: browser panel is displayed
+- Then: plateau solutions appear under their plateau node; project solutions do not appear as separate nodes (only in "Current State")
 
 **AC3**:
-- Gegeben: Solution mit `status=archived`
-- Wenn: Browser-Panel angezeigt wird
-- Dann: Archivierte Solution ist nicht sichtbar
+- Given: solution with `status=archived`
+- When: browser panel is displayed
+- Then: archived solution is not visible
 
-## Technische Hinweise
+## Technical Notes
 
-- „Aktueller Stand" ist ein berechneter, read-only Knoten — kein persistiertes Objekt
-- Plateaus werden aus `fromPlateauId`/`toPlateauId` der Solutions ermittelt
-- Tab „Architektur-Baum" (UC-13 TreeNode) bleibt als zweiter Tab erhalten
+- "Current State" is a computed, read-only node — not a persisted object
+- Plateaus are determined from `fromPlateauId`/`toPlateauId` of the solutions
+- Tab "Architecture Tree" (UC-13 TreeNode) is retained as the second tab

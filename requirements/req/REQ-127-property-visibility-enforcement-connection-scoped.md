@@ -1,6 +1,6 @@
 ---
 id: REQ-127
-title: Enforcement connection-scoped Property-Sichtbarkeit (ABAC)
+title: Enforcement of connection-scoped Property Visibility (ABAC)
 type: functional
 priority: must
 status: proposed
@@ -23,56 +23,56 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-127: Enforcement connection-scoped Property-Sichtbarkeit (ABAC)
+# REQ-127: Enforcement of connection-scoped Property Visibility (ABAC)
 
-## Aussage
+## Statement
 
-Die Entity-API MUSS bei Eigenschaften mit `visibilityMode = connection-scoped` zur Laufzeit per Graph-Traversal prüfen, ob der anfragende Nutzer über den konfigurierten `scopingConnectionType` einen Pfad zur angefragten Entität hat. Nur wenn ein solcher Pfad existiert, DARF der Wert zurückgegeben werden. Andernfalls MUSS der Wert durch `null` ersetzt werden — analog zum Enforcement bei `role-restricted` (REQ-126).
+For properties with `visibilityMode = connection-scoped`, the entity API MUST check at runtime via graph traversal whether the requesting user has a path to the requested entity via the configured `scopingConnectionType`. The value MAY only be returned if such a path exists. Otherwise the value MUST be replaced with `null` — analogous to the enforcement for `role-restricted` (REQ-126).
 
-**Traversal-Logik** (Tiefe 1, erweiterbar):
-1. Ermittle alle Entitäten, an denen der aktuelle Nutzer (via seiner `Person`-Entität) über den `scopingConnectionType` beteiligt ist (als Source oder Target)
-2. Prüfe, ob die angefragte Entität in dieser Menge enthalten ist
-3. Ja → Wert freigeben; Nein → `null` zurückgeben
+**Traversal logic** (depth 1, extensible):
+1. Determine all entities in which the current user (via their `Person` entity) is involved via the `scopingConnectionType` (as source or target)
+2. Check whether the requested entity is contained in this set
+3. Yes → release the value; No → return `null`
 
-## Begründung
+## Rationale
 
-Connection-basierte Sichtbarkeit erlaubt eine dynamische, organisationsstruktur-getriebene Zugriffskontrolle ohne statische Rollenzuweisung. Ein Domänen-Architekt, dem eine neue Applikation über `DomainAssignment` zugewiesen wird, erhält automatisch Lesezugriff auf eingeschränkte Felder dieser Applikation — ohne manuelle Rollenpflege.
+Connection-based visibility allows dynamic, organizational-structure-driven access control without static role assignment. A domain architect who is assigned a new application via `DomainAssignment` automatically receives read access to restricted fields of this application — without manual role maintenance.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Traversal positiv):
-- Gegeben: Property `sicherheitseinstufung` mit `visibilityMode=connection-scoped`, `scopingConnectionType=DomainAssignment`
-- Wenn: Michael (Domain Architekt) ist über eine `DomainAssignment`-Connection mit `ApplicationComponent A` verbunden und ruft Entity A ab
-- Dann: `sicherheitseinstufung`-Wert ist im Response enthalten
+**AC1** (Traversal positive):
+- Given: property `sicherheitseinstufung` with `visibilityMode=connection-scoped`, `scopingConnectionType=DomainAssignment`
+- When: Michael (domain architect) is connected to `ApplicationComponent A` via a `DomainAssignment` connection and retrieves entity A
+- Then: the `sicherheitseinstufung` value is contained in the response
 
-**AC2** (Traversal negativ):
-- Wenn: Michael ist **nicht** über `DomainAssignment` mit Entity B verbunden und ruft Entity B ab
-- Dann: `sicherheitseinstufung` ist `null`; kein Wert im Response
+**AC2** (Traversal negative):
+- When: Michael is **not** connected to entity B via `DomainAssignment` and retrieves entity B
+- Then: `sicherheitseinstufung` is `null`; no value in the response
 
-**AC3** (Schreibschutz):
-- Wenn: Nutzer ohne Pfad versucht, Feld via PATCH zu beschreiben
-- Dann: HTTP 403; Wert unverändert
+**AC3** (Write protection):
+- When: a user without a path tries to write to the field via PATCH
+- Then: HTTP 403; value unchanged
 
-**AC4** (Katalog-Konsistenz):
-- Wenn: Katalog-Abfrage enthält connection-scoped Properties
-- Dann: Werte werden pro Zeile individuell gefiltert; Nutzer sieht nur Werte für Entitäten im eigenen Scope
+**AC4** (Catalog consistency):
+- When: a catalog query contains connection-scoped properties
+- Then: values are filtered individually per row; the user only sees values for entities in their own scope
 
 **AC5** (Performance):
-- Wenn: Graph-Traversal für eine Entity mit connection-scoped Properties ausgelöst wird
-- Dann: Antwortzeit p95 ≤ 200 ms zusätzliche Latenz gegenüber unrestricted Query (bei ≤ 500 direkt verbundenen Entitäten pro Nutzer; gecacht)
+- When: a graph traversal is triggered for an entity with connection-scoped properties
+- Then: response time p95 ≤ 200 ms additional latency compared to an unrestricted query (with ≤ 500 directly connected entities per user; cached)
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-124 (Datenmodell), REQ-036 (Connection-Typen), REQ-126 (Enforcement-Pattern)
-- **Folgewirkungen**: –
+- **Prerequisites**: REQ-124 (data model), REQ-036 (connection types), REQ-126 (enforcement pattern)
+- **Consequences**: –
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Traversal-Ergebnis (Menge der Scope-Entitäten pro Nutzer und ConnectionType) sollte per Session oder kurz-lebigem Cache (TTL ≤ 60 s) gecacht werden, da sich Connections selten ändern
-- Tiefe 1 ist für den v1.0-Scope ausreichend; tiefere Traversal (z.B. Domäne → Sub-Domäne → Entität) ist als spätere Erweiterung möglich
+- The traversal result (set of scope entities per user and ConnectionType) should be cached per session or in a short-lived cache (TTL ≤ 60 s), since connections rarely change
+- Depth 1 is sufficient for the v1.0 scope; deeper traversal (e.g. domain → sub-domain → entity) is possible as a later extension
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

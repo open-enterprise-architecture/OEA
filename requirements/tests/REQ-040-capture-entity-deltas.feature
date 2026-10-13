@@ -1,56 +1,54 @@
-# Ableitung aus: requirements/req/req-040-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-040-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @must @UC-05
-Feature: REQ-040 – EntityDeltas einer Solution erfassen
+Feature: REQ-040 – Capture EntityDeltas of a solution
 
-  Das System MUSS dem Solution Architekten ermöglichen, innerhalb einer
-  Solution EntityDeltas der Typen `new`, `modified` und `retiring` zu
-  erfassen, zu bearbeiten und zu entfernen; Solutions mit
-  status=`implemented` DÜRFEN NICHT veränderbar sein (BR-03). Neue
-  Entitäten (`deltaType=new`) MÜSSEN sowohl über den **Katalog**
-  (Formular) als auch über das **Diagramm** (Canvas) anlegbar sein; im
-  Diagramm MUSS beim Eingeben des Namens eine Vorschlagsliste mit
-  bestehenden Komponenten aus der aktuellen IT-Landschaft angezeigt
-  werden.
+  The system MUST enable the solution architect to capture, edit, and
+  remove EntityDeltas of the types `new`, `modified`, and `retiring`
+  within a solution; solutions with status=`implemented` MUST NOT be
+  modifiable (BR-03). New entities (`deltaType=new`) MUST be creatable
+  both via the **catalog** (form) and via the **diagram** (canvas); in
+  the diagram, a suggestion list of existing components from the
+  current IT landscape MUST be displayed when entering the name.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Michael arbeitet an einer Solution im Status `draft`; Entity `CRM-Legacy...
-    Given Michael arbeitet an einer Solution im Status `draft`; Entity `CRM-Legacy` (ApplicationComponent) ist in der Ausgangsbasis
-    When  er `CRM-Legacy` als `retiring` markiert
-    Then  erscheint `CRM-Legacy` in der Delta-Liste der Solution als `deltaType=retiring`; Diff-Ansicht (REQ-041) zeigt sie als „ausser Betrieb"
+  Scenario: AC1 – Michael is working on a solution in status `draft`; entity `CRM-Legac...
+    Given Michael is working on a solution in status `draft`; entity `CRM-Legacy` (ApplicationComponent) is in the baseline
+    When  he marks `CRM-Legacy` as `retiring`
+    Then  `CRM-Legacy` appears in the solution's delta list as `deltaType=retiring`; diff view (REQ-041) shows it as "decommissioned"
 
   @AC2
-  Scenario: AC2 – Gleiche Ausgangssituation wie AC1
-    Given Gleiche Ausgangssituation wie AC1
-    When  Michael eine neue Entität `Salesforce` vom Typ `ApplicationComponent` mit `deltaType=new` anlegt
-    Then  erscheint `Salesforce` in der Delta-Liste als `deltaType=new`; `Salesforce` ist noch **nicht** in der Ausgangsbasis (kommt durch diese Solution neu hinzu)
+  Scenario: AC2 – same initial situation as AC1
+    Given same initial situation as AC1
+    When  Michael creates a new entity `Salesforce` of type `ApplicationComponent` with `deltaType=new`
+    Then  `Salesforce` appears in the delta list as `deltaType=new`; `Salesforce` is **not** yet in the baseline (added new by this solution)
 
   @AC3
-  Scenario: AC3 – Entity `ERP-Core` (ApplicationComponent) ist in der Ausgangsbasis
-    Given Entity `ERP-Core` (ApplicationComponent) ist in der Ausgangsbasis
-    When  Michael `ERP-Core` als `modified` markiert und die Version von v4 auf v5 ändert
-    Then  enthält das Delta `changes = {version: {before: "v4", after: "v5"}}`; Diff-Ansicht zeigt die Änderung
+  Scenario: AC3 – entity `ERP-Core` (ApplicationComponent) is in the baseline
+    Given entity `ERP-Core` (ApplicationComponent) is in the baseline
+    When  Michael marks `ERP-Core` as `modified` and changes the version from v4 to v5
+    Then  the delta contains `changes = {version: {before: "v4", after: "v5"}}`; diff view shows the change
 
   @AC4
-  Scenario: AC4 – Solution hat status=`implemented`
-    Given Solution hat status=`implemented`
-    When  Michael versucht, ein neues Delta hinzuzufügen
-    Then  409 Conflict mit Meldung „Diese Solution ist abgeschlossen und kann nicht mehr verändert werden"
+  Scenario: AC4 – solution has status=`implemented`
+    Given solution has status=`implemented`
+    When  Michael tries to add a new delta
+    Then  409 Conflict with message "This solution is completed and can no longer be modified"
 
   @AC5
-  Scenario: AC5 – `CRM-Legacy` hat bereits ein `retiring`-Delta in dieser Solution
-    Given `CRM-Legacy` hat bereits ein `retiring`-Delta in dieser Solution
-    When  Michael versucht, `CRM-Legacy` erneut als `modified` hinzuzufügen
-    Then  Validierungsfehler „Für CRM-Legacy existiert bereits ein Delta in dieser Solution"
+  Scenario: AC5 – `CRM-Legacy` already has a `retiring` delta in this solution
+    Given `CRM-Legacy` already has a `retiring` delta in this solution
+    When  Michael tries to add `CRM-Legacy` again as `modified`
+    Then  validation error "A delta already exists for CRM-Legacy in this solution"
 
   @AC6
-  Scenario: AC6 – Michael gibt als `modified`-Delta eine entityId ein, die nicht in der Au...
-    Given Michael gibt als `modified`-Delta eine entityId ein, die nicht in der Ausgangsbasis ist
-    When  er speichert
-    Then  Validierungsfehler „Entität nicht in der aktuellen Landschaft gefunden"
+  Scenario: AC6 – Michael enters as `modified` delta an entityId that is not in the bas...
+    Given Michael enters as `modified` delta an entityId that is not in the baseline
+    When  he saves
+    Then  validation error "Entity not found in the current landscape"

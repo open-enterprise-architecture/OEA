@@ -1,40 +1,40 @@
-# Ableitung aus: requirements/req/req-064-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-064-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @should @UC-08
-Feature: REQ-064 – DSGVO-Katalogfilter auf Datenflüsse (personalDataCategories)
+Feature: REQ-064 – GDPR catalog filter on data flows (personalDataCategories)
 
-  Das System MUSS es ermöglichen, in einem Katalog (UC-06) alle
-  ArchitectureEntities vom Typ `data-flow` mit einem Filter auf
-  `personalDataCategories ≠ leer` einzuschränken und das Ergebnis als
-  CSV zu exportieren; dieser Filter MUSS auch mit den
-  Katalog-Filteroperatoren aus REQ-047 kombinierbar sein.
+  The system MUST make it possible to restrict, in a catalog (UC-06),
+  all ArchitectureEntities of type `data-flow` with a filter on
+  `personalDataCategories ≠ empty` and to export the result as CSV;
+  this filter MUST also be combinable with the catalog filter
+  operators from REQ-047.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Filter personalDataCategories ≠ leer – DataFlow id=5 mit `personalDataCategories="Name,Adresse,E-Mail"` und Dat...
-    Given DataFlow id=5 mit `personalDataCategories="Name,Adresse,E-Mail"` und DataFlow id=7 ohne personalDataCategories
-    When  Lukas öffnet Katalog mit Filter `entityTypeId=data-flow` + `personalDataCategories ≠ leer`
-    Then  Nur id=5 erscheint; id=7 nicht
+  Scenario: AC1 – Filter personalDataCategories ≠ empty – DataFlow id=5 with `personalD...
+    Given DataFlow id=5 with `personalDataCategories="Name,Address,Email"` and DataFlow id=7 without personalDataCategories
+    When  Lukas opens catalog with filter `entityTypeId=data-flow` + `personalDataCategories ≠ empty`
+    Then  only id=5 appears; id=7 does not
 
   @AC2
-  Scenario: AC2 – Kombinierter Filter – Lukas fügt zusätzlich Filter `protocol=JDBC` hinzu
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Lukas fügt zusätzlich Filter `protocol=JDBC` hinzu
-    Then  Nur DataFlows mit JDBC-Protokoll UND nicht-leerem personalDataCategories erscheinen
+  Scenario: AC2 – Combined filter – Lukas additionally adds filter `protocol=JDBC`
+    Given the precondition according to the requirement is met
+    When  Lukas additionally adds filter `protocol=JDBC`
+    Then  only DataFlows with JDBC protocol AND non-empty personalDataCategories appear
 
   @AC3
-  Scenario: AC3 – CSV-Export – Katalog zeigt 3 DataFlows nach Filter
-    Given Katalog zeigt 3 DataFlows nach Filter
-    When  Lukas klickt „Als CSV exportieren"
-    Then  CSV-Download mit 3 Zeilen + Header; Felder wie oben beschrieben; encoding UTF-8
+  Scenario: AC3 – CSV export – catalog shows 3 DataFlows after filter
+    Given catalog shows 3 DataFlows after filter
+    When  Lukas clicks "Export as CSV"
+    Then  CSV download with 3 rows + header; fields as described above; encoding UTF-8
 
   @AC4
-  Scenario: AC4 – Leeres Ergebnis – Keine DataFlows haben personalDataCategories befüllt
-    Given Keine DataFlows haben personalDataCategories befüllt
-    When  Filter angewendet
-    Then  Leere Tabelle; kein Fehler; Export liefert nur Header-Zeile
+  Scenario: AC4 – Empty result – no DataFlows have personalDataCategories filled
+    Given no DataFlows have personalDataCategories filled
+    When  filter applied
+    Then  empty table; no error; export returns only header row

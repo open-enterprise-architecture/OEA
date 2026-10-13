@@ -1,6 +1,6 @@
 ---
 id: REQ-142
-title: Implizite Composition-Verbindung bei Verschachtelung instanziierter Komponenten
+title: Implicit Composition Connection When Nesting Instantiated Components
 type: functional
 priority: should
 status: proposed
@@ -22,68 +22,68 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-142: Implizite Composition-Verbindung bei Verschachtelung instanziierter Komponenten
+# REQ-142: Implicit Composition Connection When Nesting Instantiated Components
 
-## Aussage
+## Statement
 
-Das System MUSS beim Einordnen einer instanziierten ArchitectureEntity (`isStructuralGrouper=false`) als Kind einer anderen instanziierten Entität automatisch eine ArchiMate-Composition-Verbindung anlegen (`autoCreated=true`, `source=parentEntityId`, `target=childEntityId`). Diese Verbindung MUSS in der Kategorie „Verbindungen" der Solution sichtbar sein. Beim Herauslösen MUSS die `autoCreated=true`-Verbindung automatisch gelöscht werden. Strukturierungshilfen (`isStructuralGrouper=true`) DÜRFEN KEINE implizite Verbindung erzeugen.
+When an instantiated ArchitectureEntity (`isStructuralGrouper=false`) is arranged as a child of another instantiated entity, the system MUST automatically create an ArchiMate composition connection (`autoCreated=true`, `source=parentEntityId`, `target=childEntityId`). This connection MUST be visible in the "Connections" category of the solution. On detaching, the `autoCreated=true` connection MUST be deleted automatically. Structuring aids (`isStructuralGrouper=true`) MUST NOT create an implicit connection.
 
-## Begründung
+## Rationale
 
-Die Hierarchie von Komponenten hat semantische Bedeutung in ArchiMate: ein Eltern-Kind-Verhältnis ist eine Composition-Beziehung. Diese Information soll nicht verloren gehen, wenn Nutzer Komponenten im Explorer einordnen. Die Unterscheidung zwischen Strukturierungshilfen (Ordner) und Instanzen (echte EA-Elemente) verhindert unerwünschte Verbindungen aus reinen Navigationsentscheidungen.
+The hierarchy of components has semantic meaning in ArchiMate: a parent-child relationship is a composition relationship. This information should not be lost when users arrange components in the explorer. The distinction between structuring aids (folders) and instances (real EA elements) prevents unwanted connections arising from pure navigation decisions.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-**Eingaben**:
-- Elternentität A: `isStructuralGrouper=false`, `isConnection=false`
-- Kindentität B: `isStructuralGrouper=false`, `isConnection=false`
-- B.`parentEntityId` wird auf A gesetzt
+**Inputs**:
+- Parent entity A: `isStructuralGrouper=false`, `isConnection=false`
+- Child entity B: `isStructuralGrouper=false`, `isConnection=false`
+- B.`parentEntityId` is set to A
 
-**Verarbeitung**:
-1. Prüfung: Beide Entitäten `isStructuralGrouper=false`? → implizite Verbindung anlegen
-2. Prüfung: Mindestens eine Entität `isStructuralGrouper=true`? → keine Verbindung
-3. Anlegen: Neue ArchitectureEntity vom Typ `composition` mit `autoCreated=true`, `source=A.id`, `target=B.id`
-4. Beim Herauslösen (B.`parentEntityId=null` setzen): autoCreated-Verbindung löschen
-5. Manuelle Änderung der Verbindung (z.B. auf Aggregation umstellen) → `autoCreated=false`; überlebt das Herauslösen
+**Processing**:
+1. Check: both entities `isStructuralGrouper=false`? → create implicit connection
+2. Check: at least one entity `isStructuralGrouper=true`? → no connection
+3. Creation: new ArchitectureEntity of type `composition` with `autoCreated=true`, `source=A.id`, `target=B.id`
+4. On detaching (setting B.`parentEntityId=null`): delete the autoCreated connection
+5. Manual change of the connection (e.g. switching to aggregation) → `autoCreated=false`; survives detaching
 
-**Ausgabe**:
-- Neue Verbindung sichtbar unter „Verbindungen" mit Label „[auto] Composition: A → B"
-- In der Verbindungs-UI klar als automatisch erstellt gekennzeichnet
+**Output**:
+- New connection visible under "Connections" with the label "[auto] Composition: A → B"
+- Clearly marked as automatically created in the connection UI
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** — Implizite Verbindung erstellt:
-- Gegeben: Entity A und B (`isStructuralGrouper=false`); B.parentEntityId wird auf A gesetzt
-- Wenn: Speichern der Änderung
-- Dann: Composition-Verbindung (autoCreated=true) zwischen A und B existiert in „Verbindungen"
+**AC1** — Implicit connection created:
+- Given: entities A and B (`isStructuralGrouper=false`); B.parentEntityId is set to A
+- When: the change is saved
+- Then: a composition connection (autoCreated=true) between A and B exists in "Connections"
 
-**AC2** — Keine Verbindung bei Strukturierungshilfe:
-- Gegeben: Strukturierungshilfe C (`isStructuralGrouper=true`) und Entity D
-- Wenn: D.parentEntityId = C gesetzt
-- Dann: Keine Verbindung wird angelegt
+**AC2** — No connection for structuring aid:
+- Given: structuring aid C (`isStructuralGrouper=true`) and entity D
+- When: D.parentEntityId = C is set
+- Then: no connection is created
 
-**AC3** — Verbindung gelöscht beim Herauslösen:
-- Gegeben: AC1-Zustand (autoCreated-Verbindung existiert)
-- Wenn: B.parentEntityId auf null gesetzt
-- Dann: autoCreated-Verbindung automatisch entfernt
+**AC3** — Connection deleted on detaching:
+- Given: AC1 state (autoCreated connection exists)
+- When: B.parentEntityId is set to null
+- Then: the autoCreated connection is removed automatically
 
-**AC4** — Manuell geänderte Verbindung überlebt:
-- Gegeben: autoCreated-Verbindung aus AC1; Nutzer ändert Typ auf Aggregation (`autoCreated=false`)
-- Wenn: B.parentEntityId auf null gesetzt
-- Dann: Aggregation-Verbindung bleibt erhalten (autoCreated=false)
+**AC4** — Manually changed connection survives:
+- Given: autoCreated connection from AC1; user changes the type to aggregation (`autoCreated=false`)
+- When: B.parentEntityId is set to null
+- Then: the aggregation connection is retained (autoCreated=false)
 
-## Verifikationsmethode
+## Verification Method
 
-- [ ] Methode: test (automatisiert)
-- [ ] Test-Setup: Unit-Tests für Verbindungslogik; Playwright für UI-Sichtbarkeit
-- [ ] Bestanden-Kriterium: AC1–AC4 alle grün
+- [ ] Method: test (automated)
+- [ ] Test setup: unit tests for connection logic; Playwright for UI visibility
+- [ ] Pass criterion: AC1–AC4 all green
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: ADR-021; REQ-141; `entity` BO mit `parentEntityId`, `isStructuralGrouper`, `autoCreated`
+- **Prerequisites**: ADR-021; REQ-141; `entity` BO with `parentEntityId`, `isStructuralGrouper`, `autoCreated`
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft; abgeleitet aus ADR-021 |
+| 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft; derived from ADR-021 |

@@ -1,86 +1,86 @@
-# Stakeholder: CIO – Konzern mit gemischtem OEA-Stack
+# Stakeholder: CIO – Corporate Group with a Mixed OEA Stack
 
 **ID**: SH-05
-**Typ**: persona
-**Bezug zum Tool**: secondary
+**Type**: persona
+**Relation to the Tool**: secondary
 **Internal/External**: internal
 
-## Kurzbeschreibung
+## Short Description
 
-CIO eines Konzerns mit mehreren Tochterunternehmen. Auf Konzernebene werden EA-Tools von verschiedenen Anbietern eingesetzt (Ardoq, Avolution, LeanIX, Sparx) – jede Tochter hat ihre Historie. Der CIO ist nicht direkter Nutzer, sondern Sponsor und Entscheider für Tool-Strategie. Er bewertet auf Basis von Reports, Total Cost of Ownership, Strategic Fit und Compliance-Tauglichkeit.
+CIO of a corporate group with several subsidiaries. At group level, EA tools from different vendors are in use (Ardoq, Avolution, LeanIX, Sparx) – each subsidiary has its own history. The CIO is not a direct user but sponsor and decision maker for tool strategy. He evaluates on the basis of reports, total cost of ownership, strategic fit, and compliance suitability.
 
-## Rolle und Verantwortung
+## Role and Responsibility
 
-- **Aktuelle Rolle**: CIO eines Konzerns mit 1.000-10.000 Mitarbeitenden
-- **Organisation/Branche**: Konzern mit mehreren Geschäftsbereichen oder Tochterunternehmen
-- **Erfahrungsniveau**: hoch im strategischen Tool-Management, kein direkter Modellierer
-- **Tägliche Hauptaufgaben**:
-  - Strategische IT-Ausrichtung
-  - Lieferantenverhandlungen und Tool-Strategie
-  - Compliance-Verantwortung (DORA, NIS2, KRITIS je nach Branche)
-  - Vorstands- und Aufsichtsrats-Berichterstattung
-  - Konsolidierungs-Initiativen über Töchter hinweg
+- **Current role**: CIO of a corporate group with 1,000-10,000 employees
+- **Organization/industry**: Corporate group with several business divisions or subsidiaries
+- **Experience level**: high in strategic tool management, not a direct modeler
+- **Main daily tasks**:
+  - Strategic IT alignment
+  - Supplier negotiations and tool strategy
+  - Compliance responsibility (DORA, NIS2, KRITIS depending on the industry)
+  - Reporting to the executive board and supervisory board
+  - Consolidation initiatives across subsidiaries
 
-## Beziehung zum OEA
+## Relation to OEA
 
-- **Nutzungsfrequenz**: monatlich bis quartalsweise (konsumiert Reports, modelliert nicht)
-- **Hauptnutzung**: konsumieren von Outputs (Reports, Dashboards, Trend-Analysen)
-- **Technisches Niveau**: mittel (versteht Architektur-Konzepte, modelliert aber nicht)
-- **Bevorzugte Schnittstelle**: generierte PDF-Reports, Dashboards, Executive Summaries
+- **Usage frequency**: monthly to quarterly (consumes reports, does not model)
+- **Main usage**: consume outputs (reports, dashboards, trend analyses)
+- **Technical level**: medium (understands architecture concepts, but does not model)
+- **Preferred interface**: generated PDF reports, dashboards, executive summaries
 
-## Aktuelle Pain Points
+## Current Pain Points
 
-- **Tool-Heterogenität in den Töchtern**: Ardoq, Avolution, LeanIX, Sparx – jede Tochter hat ihre Wahl. Konsolidierte Konzern-Sicht ist manuell.
-- **OEA-Entscheidungen wiederholen sich alle 3-5 Jahre**: Jeder Wechsel kostet Migrationsaufwand und Akzeptanz-Verlust. Vendor-Lock-in ist real.
-- **Lizenzkosten skalieren nicht-linear**: LeanIX und Avolution kosten pro Nutzer. Mehr Nutzer einbinden würde Adoption fördern, ist aber wirtschaftlich problematisch.
-- **Adoption bleibt hinter Sales-Pitch zurück**: Jedes EA-Tool versprach "EA-Demokratisierung". In der Realität nutzen meist 5-15 Personen das Tool aktiv, andere ignorieren es.
-- **Compliance-Audits decken Modell-Realitäts-Lücke auf**: Was im jeweiligen EA-Tool steht, stimmt oft nicht mit der tatsächlichen Landschaft überein. Audits werden peinlich.
-- **Reports sind "schön, aber wenig aussagekräftig"**: Bunte Heatmaps und Capability-Maps werden im Vorstand gezeigt, aber selten zur Entscheidung herangezogen.
-- **OSS-Alternativen wirken bisher unprofessionell**: Vorstand fragt nach Vendor-Support, SLAs, Audit-Tauglichkeit. OSS muss diese Fragen beantworten können.
+- **Tool heterogeneity in the subsidiaries**: Ardoq, Avolution, LeanIX, Sparx – each subsidiary has made its own choice. The consolidated group view is manual.
+- **OEA decisions repeat every 3-5 years**: Every switch costs migration effort and loss of acceptance. Vendor lock-in is real.
+- **License costs scale non-linearly**: LeanIX and Avolution charge per user. Involving more users would promote adoption but is economically problematic.
+- **Adoption falls short of the sales pitch**: Every EA tool promised "EA democratization". In reality, usually 5-15 people actively use the tool, others ignore it.
+- **Compliance audits reveal the model-reality gap**: What is in the respective EA tool often does not match the actual landscape. Audits become embarrassing.
+- **Reports are "pretty but not very meaningful"**: Colorful heatmaps and capability maps are shown to the board, but rarely used for decisions.
+- **OSS alternatives have so far seemed unprofessional**: The board asks about vendor support, SLAs, audit suitability. OSS must be able to answer these questions.
 
 ## Concerns
 
-| Concern | Kategorie | Severity |
+| Concern | Category | Severity |
 |---|---|---|
-| Glaubwürdigkeit als OSS-Lösung im Konzern-Kontext | strategic | blocking |
-| Strategic Fit zur OSS/Cloud-Native/DevSecOps-Strategie | strategic | worrying |
-| Total Cost of Ownership inkl. Adoption, Schulung, Pflege | cost | blocking |
-| Migration aus existierenden Tools machbar (Multi-Tool) | compatibility | blocking |
-| Compliance-tauglich (DORA, NIS2, KRITIS, ISO 27001) | compliance | blocking |
-| Reportabel auf Vorstands-Ebene | usability | worrying |
-| Risiko-Profil (Entwickler-Stabilität, Support, SLAs) | strategic | worrying |
-| Hersteller-Unabhängigkeit langfristig | strategic | worrying |
-| Daten-Sovereignty (insb. relevant für Schweiz, EU) | compliance | worrying |
+| Credibility as an OSS solution in a corporate group context | strategic | blocking |
+| Strategic fit with the OSS/cloud-native/DevSecOps strategy | strategic | worrying |
+| Total cost of ownership incl. adoption, training, maintenance | cost | blocking |
+| Migration from existing tools feasible (multi-tool) | compatibility | blocking |
+| Compliance-suitable (DORA, NIS2, KRITIS, ISO 27001) | compliance | blocking |
+| Reportable at board level | usability | worrying |
+| Risk profile (developer stability, support, SLAs) | strategic | worrying |
+| Long-term vendor independence | strategic | worrying |
+| Data sovereignty (particularly relevant for Switzerland, EU) | compliance | worrying |
 
-## Erfolgskriterien
+## Success Criteria
 
-- [ ] Tochterunternehmen-übergreifende konsolidierte Sicht möglich (zumindest perspektivisch)
-- [ ] TCO um ≥40% niedriger als die aktuelle Multi-Tool-Landschaft (über 3-Jahres-Horizont)
-- [ ] Compliance-Reports automatisch generierbar (Art. 30 DSGVO, ISMS-Asset-Inventar)
-- [ ] Vorstand akzeptiert Outputs in regulärem Berichtsformat
-- [ ] Vendor-Risiko durch OSS-Charakter neutralisiert (Forkbarkeit, Community)
-- [ ] Adoption ≥30% der berechtigten Nutzer (höher als aktuelle Tool-Adoption-Rate)
-- [ ] Audit-Trail erfüllt regulatorische Anforderungen (DORA, NIS2 je nach Branche)
+- [ ] Consolidated view across subsidiaries possible (at least in perspective)
+- [ ] TCO ≥40% lower than the current multi-tool landscape (over a 3-year horizon)
+- [ ] Compliance reports automatically generatable (Art. 30 GDPR, ISMS asset inventory)
+- [ ] Board accepts outputs in regular reporting format
+- [ ] Vendor risk neutralized by OSS nature (forkability, community)
+- [ ] Adoption ≥30% of eligible users (higher than current tool adoption rate)
+- [ ] Audit trail meets regulatory requirements (DORA, NIS2 depending on the industry)
 
-## Beteiligte Use Cases
+## Involved Use Cases
 
-<!-- Wird gefüllt, sobald Use Cases definiert sind -->
+<!-- To be filled once use cases are defined -->
 
-## Konzept-Bezüge
+## Concept References
 
-- [§17 ITSM-Integration](../../concept/60-integrations/17-itsm-integration.md) – Multi-Tool-Mastership
-- [§20 GRC-, DSGVO- und ISMS-Integration](../../concept/60-integrations/20-grc-dsgvo-isms-integration.md) – Compliance-Anforderungen
-- [§21.8 Sicherheit, Audit-Trail](../../concept/70-platform/21-api-architektur.md) – Audit-Tauglichkeit
-- [§22.11 Repository-Changelog](../../concept/70-platform/22-auswertbarkeit.md) – Vorstands-Berichte
+- [§17 ITSM Integration](../../concept/60-integrations/17-itsm-integration.md) – multi-tool mastership
+- [§20 GRC/GDPR/ISMS Integration](../../concept/60-integrations/20-grc-gdpr-isms-integration.md) – compliance requirements
+- [§21.8 Security, Audit Trail](../../concept/70-platform/21-api-architecture.md) – audit suitability
+- [§22.11 Repository Changelog](../../concept/70-platform/22-analyzability.md) – board reports
 
-## Notizen
+## Notes
 
-Der CIO ist die **Sponsor-Persona**, nicht Nutzer. Er entscheidet über Adoption, finanziert die Initiative, aber modelliert nicht selbst. Seine Concerns sind strategisch und finanziell, nicht funktional im Sinne der Modellierer.
+The CIO is the **sponsor persona**, not a user. He decides on adoption and funds the initiative, but does not model himself. His concerns are strategic and financial, not functional in the sense of the modelers.
 
-**Multi-Tool-Komplexität als Konstante**: Anders als die anderen Personas hat er nicht "ein" Bestandstool, sondern vier. Migration muss schrittweise machbar sein (Tochter für Tochter), nicht als Big Bang.
+**Multi-tool complexity as a constant**: Unlike the other personas, he does not have "one" existing tool, but four. Migration must be feasible step by step (subsidiary by subsidiary), not as a big bang.
 
-**OSS-Glaubwürdigkeit als zentraler Hebel**: Sein größter Vorbehalt gegenüber OSS ist nicht das Tool selbst, sondern die Frage "wer steht dahinter?". Forkbarkeit, klare Lizenz, transparente Roadmap und idealerweise ein kommerzieller Support-Partner (auch wenn nicht zwingend genutzt) sind kritisch.
+**OSS credibility as the central lever**: His biggest reservation about OSS is not the tool itself, but the question "who is behind it?". Forkability, a clear license, a transparent roadmap, and ideally a commercial support partner (even if not necessarily used) are critical.
 
-**Wertvoll für Roadmap-Priorisierung**: Was den CIO überzeugt, überzeugt auch andere CIOs. Wenn das Tool für Konzerne adoptionsfähig wird, öffnet sich ein großer Markt.
+**Valuable for roadmap prioritization**: What convinces the CIO also convinces other CIOs. If the tool becomes adoptable for corporate groups, a large market opens up.
 
-**Spannungsfeld mit Modellierern**: Der CIO will Konsistenz, Reports, Strategic Fit. Modellierer wollen schnellen Wert, Niederschwelligkeit. Beide Welten müssen vom Tool bedient werden, ohne sich gegenseitig zu kannibalisieren.
+**Tension with modelers**: The CIO wants consistency, reports, strategic fit. Modelers want quick value, low threshold. Both worlds must be served by the tool without cannibalizing each other.

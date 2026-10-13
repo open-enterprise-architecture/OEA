@@ -1,6 +1,6 @@
 ---
 id: REQ-035
-title: Metamodell-Sperrmodus (Import-Only)
+title: Metamodel lock mode (import-only)
 type: functional
 priority: should
 status: proposed
@@ -18,110 +18,110 @@ references:
     - SH-06
     - SH-03
   concept:
-    - concept/40-extensibility/14-erweiterbarkeit.md
+    - concept/40-extensibility/14-extensibility.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-035: Metamodell-Sperrmodus (Import-Only)
+# REQ-035: Metamodel lock mode (import-only)
 
-## Aussage
+## Statement
 
-Der Betreiber MUSS die `MetamodelConfiguration` einer Instanz in den Modus `import-only` versetzen können; in diesem Modus DÜRFEN Create-, Update- und Delete-Operationen auf EntityTypeDefinitions, Stereotypes und ConstraintRules über die GUI-API NICHT ausgeführt werden – unabhängig von der Berechtigung der anfragenden Person; Änderungen sind ausschliesslich über den Import-Pfad (REQ-033) möglich.
+The operator MUST be able to put the `MetamodelConfiguration` of an instance into the `import-only` mode; in this mode, create, update, and delete operations on EntityTypeDefinitions, Stereotypes, and ConstraintRules via the GUI API MUST NOT be executed – regardless of the permission of the requesting person; changes are possible exclusively via the import path (REQ-033).
 
-## Begründung
+## Rationale
 
-Organisationen mit strengen Governance-Anforderungen oder GitOps-Prozessen wollen das Metamodell als versionierten Code in einem Repository verwalten. Ein manuell über die GUI editiertes Metamodell wäre in diesem Fall eine unerwünschte Drift-Quelle ausserhalb des kontrollierten Change-Prozesses. Der Sperrmodus stellt sicher, dass das YAML-File die einzige Quelle der Wahrheit bleibt und alle Metamodell-Änderungen denselben Review-Prozess durchlaufen wie Code. Adressiert SH-06s Anforderung an kontrollierte, nachvollziehbare Infrastrukturveränderungen.
+Organizations with strict governance requirements or GitOps processes want to manage the metamodel as versioned code in a repository. A metamodel edited manually via the GUI would in this case be an undesirable source of drift outside the controlled change process. The lock mode ensures that the YAML file remains the single source of truth and that all metamodel changes go through the same review process as code. Addresses SH-06's requirement for controlled, traceable infrastructure changes.
 
-## Kontext
+## Context
 
-Der `editMode` ist eine Betreiber-Einstellung (nicht durch Architekten änderbar) in der `MetamodelConfiguration`. Der Import-Pfad (REQ-033) bleibt im Sperrmodus vollständig aktiv – er ist der einzige Weg zur Änderung. Die GUI zeigt im Sperrmodus alle EntityTypes weiterhin an (read-only), aber Create/Edit/Delete-Buttons sind deaktiviert oder ausgeblendet. Der `editMode` des Sperrmodus selbst (Wechsel zwischen `gui-and-import` und `import-only`) ist ausschliesslich über die Betreiber-Konfiguration änderbar (Admin-UI oder Config-Datei), nicht über dieselbe GUI, die der Sperrmodus blockiert.
+The `editMode` is an operator setting (not changeable by architects) in the `MetamodelConfiguration`. The import path (REQ-033) remains fully active in lock mode – it is the only way to make changes. In lock mode, the GUI continues to show all EntityTypes (read-only), but create/edit/delete buttons are disabled or hidden. The `editMode` of the lock mode itself (switching between `gui-and-import` and `import-only`) can be changed exclusively via the operator configuration (admin UI or config file), not via the same GUI that the lock mode blocks.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben** (Betreiber-Konfiguration):
+**Inputs** (operator configuration):
 
-| Feld | Typ | Default | Beschreibung |
+| Field | Type | Default | Description |
 |---|---|---|---|
-| `editMode` | enum | `gui-and-import` | `gui-and-import` = GUI und Import erlaubt; `import-only` = nur Import erlaubt |
+| `editMode` | enum | `gui-and-import` | `gui-and-import` = GUI and import allowed; `import-only` = only import allowed |
 
-**Verarbeitung bei `editMode=import-only`**:
-- Eingehende API-Requests an `POST/PUT/DELETE /admin/metamodel/entity-types`, `.../stereotypes`, `.../constraint-rules` → 403 Forbidden mit Meldung: "Metamodell-Bearbeitung via GUI ist deaktiviert (import-only-Modus). Änderungen nur über Import möglich."
-- Import-Endpunkt (`POST /admin/metamodel/import`) bleibt vollständig aktiv
-- GUI: Create/Edit/Delete-Aktionen für EntityTypes, Stereotypes und Constraints werden ausgeblendet oder deaktiviert; Hinweistext "Metamodell im Sperrmodus – Änderungen nur per Import" erscheint
-- Lesende Operationen (GET) sind uneingeschränkt weiterhin möglich
-- `editMode`-Wechsel: ausschliesslich über `PUT /admin/config/metamodel-edit-mode` (Betreiber-Endpunkt, eigene RBAC-Ebene)
+**Processing with `editMode=import-only`**:
+- Incoming API requests to `POST/PUT/DELETE /admin/metamodel/entity-types`, `.../stereotypes`, `.../constraint-rules` → 403 Forbidden with message: "Metamodel editing via GUI is disabled (import-only mode). Changes only possible via import."
+- Import endpoint (`POST /admin/metamodel/import`) remains fully active
+- GUI: create/edit/delete actions for EntityTypes, Stereotypes, and Constraints are hidden or disabled; notice text "Metamodel in lock mode – changes only via import" appears
+- Read operations (GET) remain possible without restriction
+- `editMode` switch: exclusively via `PUT /admin/config/metamodel-edit-mode` (operator endpoint, separate RBAC level)
 
-**Fehlerfälle**:
-- Versuch, GUI-Änderung im Sperrmodus durchzuführen → 403 mit klarer Meldung (kein 404 oder 500)
-- Versuch, `editMode` über die reguläre Metamodell-API zu ändern → 400 Bad Request
+**Error Cases**:
+- Attempt to make a GUI change in lock mode → 403 with a clear message (not 404 or 500)
+- Attempt to change `editMode` via the regular metamodel API → 400 Bad Request
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: `editMode=import-only`
-- Wenn: Kurt versucht, über die GUI einen neuen EntityType anzulegen (REQ-032)
-- Dann: wird die Anfrage mit 403 und Hinweis auf den Import-Pfad abgelehnt; die MetamodelConfiguration bleibt unverändert
+- Given: `editMode=import-only`
+- When: Kurt tries to create a new EntityType via the GUI (REQ-032)
+- Then: the request is rejected with 403 and a note pointing to the import path; the MetamodelConfiguration remains unchanged
 
 **AC2**:
-- Gegeben: `editMode=import-only`
-- Wenn: Kurt eine YAML-Datei via Import (REQ-033) hochlädt und bestätigt
-- Dann: wird der Import normal verarbeitet; neue EntityTypes sind in der Konfiguration
+- Given: `editMode=import-only`
+- When: Kurt uploads and confirms a YAML file via import (REQ-033)
+- Then: the import is processed normally; new EntityTypes are in the configuration
 
 **AC3**:
-- Gegeben: `editMode=import-only`
-- Wenn: Kurt die MetamodelConfiguration-Übersicht aufruft
-- Dann: sieht er alle EntityTypes (read-only); Create/Edit/Delete-Buttons fehlen oder sind deaktiviert; ein Hinweistext erklärt den Sperrmodus
+- Given: `editMode=import-only`
+- When: Kurt opens the MetamodelConfiguration overview
+- Then: he sees all EntityTypes (read-only); create/edit/delete buttons are missing or disabled; a notice text explains the lock mode
 
 **AC4**:
-- Gegeben: `editMode=gui-and-import` (Default)
-- Wenn: keine explizite Konfiguration vorgenommen wurde
-- Dann: sind GUI- und Import-Bearbeitung beide aktiv (kein Unterschied zu REQ-032/REQ-033-Verhalten)
+- Given: `editMode=gui-and-import` (default)
+- When: no explicit configuration has been made
+- Then: GUI and import editing are both active (no difference to REQ-032/REQ-033 behavior)
 
 **AC5**:
-- Gegeben: Betreiber ändert `editMode` von `import-only` auf `gui-and-import`
-- Wenn: Kurt danach einen EntityType über die GUI anlegt
-- Dann: ist das wieder möglich; kein Neustart nötig (Konfiguration wird zur Laufzeit ausgewertet)
+- Given: the operator changes `editMode` from `import-only` to `gui-and-import`
+- When: Kurt subsequently creates an EntityType via the GUI
+- Then: this is possible again; no restart needed (configuration is evaluated at runtime)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: `editMode` setzen; GUI-Operationen versuchen (erwarte 403); Import-Operation (erwarte Erfolg); Umschalten auf `gui-and-import` (erwarte GUI-Operationen wieder möglich)
-- [x] Bestanden-Kriterium: AC1–AC5 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: set `editMode`; attempt GUI operations (expect 403); import operation (expect success); switch to `gui-and-import` (expect GUI operations possible again)
+- [x] Pass criterion: AC1–AC5 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-032 (GUI-API, die blockiert wird); REQ-033 (Import-Pfad, der aktiv bleibt)
-- **Folgewirkungen**: UC-04 A5 (kollaborative Bearbeitung): bei `import-only` werden alle manuellen Änderungen verhindert
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-032 (GUI API that is blocked); REQ-033 (import path that remains active)
+- **Downstream effects**: UC-04 A5 (collaborative editing): with `import-only` all manual changes are prevented
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne Sperrmodus können Architekten das per CI/CD verwaltete Metamodell manuell überschreiben – Drift vom versionierten YAML, mittlerer bis schwerwiegender Schweregrad in GitOps-Setups
+- Risk 1: Without lock mode, architects can manually overwrite the metamodel managed via CI/CD – drift from the versioned YAML, medium to severe in GitOps setups
 
 ## Trade-offs
 
-- `import-only` erhöht die Hürde für schnelle Korrekturen (kein schnelles GUI-Fix mehr möglich) – bewusster Governance-Trade-off; der Betreiber entscheidet, ob der Kontrollgewinn die reduzierte Agilität rechtfertigt.
+- `import-only` raises the barrier for quick fixes (no quick GUI fix possible anymore) – a deliberate governance trade-off; the operator decides whether the gain in control justifies the reduced agility.
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Middleware/Guard: bei jeder schreibenden Metamodell-API-Anfrage `editMode` aus `MetamodelConfiguration` lesen; bei `import-only` → 403; kein Durchreichen an Service-Layer
-- `editMode`-Wechsel: eigener Admin-Endpunkt mit eigener RBAC-Prüfung (Betreiber-Rolle, nicht Metamodell-Bearbeiter-Rolle)
-- Frontend: `editMode` als globale UI-State-Variable; Komponenten rendern conditional auf Basis dieses Flags
+- Middleware/guard: on every writing metamodel API request read `editMode` from `MetamodelConfiguration`; with `import-only` → 403; no pass-through to the service layer
+- `editMode` switch: dedicated admin endpoint with its own RBAC check (operator role, not metamodel editor role)
+- Frontend: `editMode` as a global UI state variable; components render conditionally based on this flag
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |

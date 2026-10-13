@@ -35,8 +35,8 @@ def stakeholder_lines():
     for f in sorted(glob.glob(os.path.join(ROOT, 'business-analysis/stakeholders/SH-*.md'))):
         with open(f) as fh:
             content = fh.read()
-        # H1 heading: "# Stakeholder: Name – Role" or frontmatter name
-        m = re.search(r'^# Stakeholder: (.+?)$', content, re.MULTILINE)
+        # H1 heading: "# Stakeholder: Name – Role" (or "# Stakeholder Profile: ...") or frontmatter name
+        m = re.search(r'^# Stakeholder(?: Profile)?: (.+?)$', content, re.MULTILINE)
         if m:
             raw = m.group(1).strip()
             # Split "Name – Role" → bold name + role
@@ -75,7 +75,7 @@ def adr_rows():
         full_title = m_title.group(1).strip()
         # Shorten: remove "ADR-NNN: " prefix for display
         short = re.sub(r'^ADR-\d+:\s*', '', full_title)
-        # Support both frontmatter (status: accepted) and bold (** Status **: accepted)
+        # Support both frontmatter (status: accepted) and bold (**Status**: accepted)
         m_status = re.search(r'^status:\s*(\w+)', content, re.MULTILINE) or \
                    re.search(r'^\*\*Status\*\*:?\s*(\w+)', content, re.MULTILINE)
         status = m_status.group(1).lower() if m_status else '?'
@@ -95,28 +95,28 @@ def build_stats_block():
     ver   = concept_version()
     today = date.today().isoformat()
     return f"""\
-| Artefakt | Anzahl |
+| Artifact | Count |
 |---|---|
-| Stakeholder-Profile | {n_sh} |
+| Stakeholder profiles | {n_sh} |
 | Use Cases | {n_uc} |
 | Requirements | {n_req} |
 | User Stories | {n_us} |
 | ADRs | {n_adr} |
 | Business Objects | {n_bo} |
 
-_Konzept: {ver} · Letzter Update: {today}_"""
+_Concept: {ver} · Last update: {today}_"""
 
 
 def build_stakeholders_block():
     sh_lines = stakeholder_lines()
     n = len(sh_lines)
-    header = f'{n} Persona-Profile sind ausgearbeitet (siehe [`business-analysis/stakeholders/`](business-analysis/stakeholders/)):\n'
+    header = f'{n} persona profiles have been worked out (see [`business-analysis/stakeholders/`](business-analysis/stakeholders/)):\n'
     return header + '\n' + '\n'.join(sh_lines)
 
 
 def build_adrs_block():
     rows = adr_rows()
-    header = '| ADR | Entscheidung | Status |\n|---|---|---|'
+    header = '| ADR | Decision | Status |\n|---|---|---|'
     return header + '\n' + '\n'.join(rows)
 
 
@@ -136,7 +136,7 @@ def replace_block(content, name, new_body):
     replacement = r'\1\n' + new_body + r'\n\2'
     result, n = re.subn(pattern, replacement, content, flags=re.DOTALL)
     if n == 0:
-        print(f'  Warnung: Marker für "{name}" nicht gefunden', file=sys.stderr)
+        print(f'  Warning: marker for "{name}" not found', file=sys.stderr)
     return result
 
 
@@ -150,14 +150,14 @@ def main():
             new_body = builder()
             content = replace_block(content, name, new_body)
         except Exception as e:
-            print(f'  Fehler bei Block "{name}": {e}', file=sys.stderr)
+            print(f'  Error in block "{name}": {e}', file=sys.stderr)
 
     if content != original:
         with open(README, 'w') as f:
             f.write(content)
-        print('README.md aktualisiert.')
+        print('README.md updated.')
     else:
-        print('README.md unveraendert.')
+        print('README.md unchanged.')
 
 
 if __name__ == '__main__':

@@ -1,27 +1,27 @@
-## 9. Prozess-Architektur
+## 9. Process Architecture
 
-Prozess-Modellierung im EA-Kontext ist **nicht** Prozess-Autoring. Dafür existieren spezialisierte BPM-Tools (Camunda, Signavio, BIC, ARIS). Dieses Tool modelliert Prozesse **abstrakt und notations-neutral**, mit BPMN und anderen Notationen als Import-/Export-Formate.
+Process modeling in the EA context is **not** process authoring. Specialized BPM tools (Camunda, Signavio, BIC, ARIS) exist for that. This tool models processes **abstractly and notation-neutrally**, with BPMN and other notations as import/export formats.
 
-### 9.1 Modellierungs-Philosophie
+### 9.1 Modeling Philosophy
 
-**Das Metamodell kennt abstrakte Prozess-Konzepte**, nicht BPMN-Spezifika. Vorteile:
-- Portabilität zu BPMN, EPK, Value Stream Maps, Future Standards
-- Keine Kopplung an BPMN-Versions-Wechsel
-- Fokus auf architektonisch relevante Eigenschaften (Ownership, Cross-References, KPIs)
-- Detail-Prozess-Modellierung bleibt im Fach-BPM-Tool
+**The metamodel knows abstract process concepts**, not BPMN specifics. Advantages:
+- Portability to BPMN, EPC, value stream maps, future standards
+- No coupling to BPMN version changes
+- Focus on architecturally relevant properties (ownership, cross-references, KPIs)
+- Detailed process modeling remains in the business BPM tool
 
-**Bidirektionale Integration mit BPM-Tools**: Prozess-Modelle werden aus externen BPM-Tools importiert, im Repository referenziert und mit EA-Entitäten verknüpft. Änderungen am Prozess-Ablauf passieren im BPM-Tool, architektonische Verknüpfungen in OEA.
+**Bidirectional integration with BPM tools**: Process models are imported from external BPM tools, referenced in the repository, and linked with EA entities. Changes to the process flow happen in the BPM tool, architectural links in OEA.
 
-### 9.2 Prozess-Hierarchie (Process Landscape)
+### 9.2 Process Hierarchy (Process Landscape)
 
-Die Process Landscape strukturiert alle Prozesse einer Organisation hierarchisch:
+The process landscape structures all processes of an organization hierarchically:
 
 ```yaml
 EntityType: ValueChain
   properties:
     - name, description
-    - type: core | supporting | management  # nach Porter
-    - industry: string                       # z.B. "retail", "banking"
+    - type: core | supporting | management  # per Porter
+    - industry: string                       # e.g. "retail", "banking"
   relations:
     - contains: ProcessGroup[]
     - supports: Capability[]
@@ -29,8 +29,8 @@ EntityType: ValueChain
 EntityType: ProcessGroup (L2 / L3)
   properties:
     - name, description
-    - level: integer                         # Hierarchie-Ebene (2–5)
-    - pcfReference: string                   # z.B. APQC-PCF-Code
+    - level: integer                         # hierarchy level (2–5)
+    - pcfReference: string                   # e.g. APQC PCF code
   relations:
     - parentGroup: ProcessGroup
     - contains: ProcessGroup[] | Process[]
@@ -40,9 +40,9 @@ EntityType: Process (L4)
     - name, description
     - type: core | supporting | management
     - automationLevel: manual | partially-automated | fully-automated
-    - triggers: text                         # was startet den Prozess
-    - outcomes: text                         # was entsteht am Ende
-    - frequency: string                      # z.B. "monthly", "on-demand"
+    - triggers: text                         # what starts the process
+    - outcomes: text                         # what results at the end
+    - frequency: string                      # e.g. "monthly", "on-demand"
     - complexity: low | medium | high
   relations:
     - belongsTo: ProcessGroup
@@ -52,7 +52,7 @@ EntityType: Process (L4)
     - realizes: Capability[]
     - usedBy: BusinessFunction[]
     - measuredBy: KPI[]
-    - externalDefinition: reference           # Link zu BPMN in BPM-Tool
+    - externalDefinition: reference           # link to BPMN in BPM tool
 
 EntityType: Activity (L5)
   properties:
@@ -70,29 +70,29 @@ EntityType: Activity (L5)
 
 ### 9.3 Process Classification Frameworks (PCF)
 
-Prozess-Referenzmodelle werden als Continuum-Artefakte aus [§4 (Enterprise Continuum)](../10-foundations/04-enterprise-continuum-trm.md) modelliert:
+Process reference models are modeled as continuum artifacts from [§4 (Enterprise Continuum)](../10-foundations/04-enterprise-continuum-trm.md):
 
 ```yaml
 ReferenceArchitecture "APQC-PCF-v7.4"
   continuumLevel: industry
-  contains: ProcessGroup-Blueprints (alle APQC-Kategorien)
+  contains: ProcessGroup-Blueprints (all APQC categories)
 
 ReferenceArchitecture "eTOM-v23"
   continuumLevel: industry
   industry: telco
-  contains: ProcessGroup-Blueprints (Telco-spezifisch)
+  contains: ProcessGroup-Blueprints (telco-specific)
 ```
 
-Organisationen können ihre eigenen Prozesse gegen diese Referenz-Taxonomien mappen – für Benchmarking und strukturelle Konsistenz:
+Organizations can map their own processes against these reference taxonomies – for benchmarking and structural consistency:
 
 ```yaml
-Process "Rechnungsstellung" erhält:
+Process "Invoicing" gains:
   - mapsToPCF: "APQC 9.2.1 - Invoice Customer"
 ```
 
-### 9.4 Prozess-Performance (PPIs / KPIs)
+### 9.4 Process Performance (PPIs / KPIs)
 
-Messgrößen als eigenständige Entität:
+Metrics as a separate entity:
 
 ```yaml
 EntityType: KPI
@@ -110,15 +110,15 @@ EntityType: KPI
     - dataSource: ApplicationComponent
 ```
 
-Typische Prozess-KPIs:
-- Zyklus-Zeit, Durchlaufzeit
-- Fehlerrate, First-Time-Right-Quote
-- Kosten pro Prozess-Instanz
-- Kundenzufriedenheit (NPS, CES)
+Typical process KPIs:
+- Cycle time, lead time
+- Error rate, first-time-right rate
+- Cost per process instance
+- Customer satisfaction (NPS, CES)
 
-### 9.5 Cross-Layer-Verlinkungen (CRUD-Matrix)
+### 9.5 Cross-Layer Links (CRUD Matrix)
 
-Die klassische EA-Analyse: Welche Prozesse tun was mit welchen Daten?
+The classic EA analysis: Which processes do what with which data?
 
 ```yaml
 Relation: ProcessDataAccess
@@ -128,20 +128,20 @@ Relation: ProcessDataAccess
   - frequency: string
 ```
 
-Daraus lässt sich automatisch eine **CRUD-Matrix** generieren: Prozesse × Datenobjekte mit C/R/U/D-Kennzeichnung. Zeigt u.a. **Datenhoheit** (wer erzeugt ein DataEntity?), **Read-only-Prozesse** und **potenzielle Konflikte** (zwei Prozesse, die dasselbe DataEntity unabhängig updaten).
+From this, a **CRUD matrix** can be generated automatically: processes × data objects with C/R/U/D marking. It shows, among other things, **data sovereignty** (who creates a DataEntity?), **read-only processes**, and **potential conflicts** (two processes that independently update the same DataEntity).
 
-### 9.6 BPMN-Integration
+### 9.6 BPMN Integration
 
-BPMN wird über einen Adapter eingebunden:
+BPMN is integrated via an adapter:
 
-**Import**: BPMN-XML-Dateien werden geparst, Elemente (Pool, Lane, Task, Flow, DataObject, MessageFlow) werden auf abstrakte Prozess-Entitäten gemappt. Die BPMN-Datei wird als externalDefinition referenziert, nicht dupliziert.
+**Import**: BPMN XML files are parsed, elements (Pool, Lane, Task, Flow, DataObject, MessageFlow) are mapped to abstract process entities. The BPMN file is referenced as externalDefinition, not duplicated.
 
-**Export**: Aus dem abstrakten Prozess-Modell kann BPMN-XML generiert werden (bidirektional, wobei BPMN-spezifische Details wie Gateway-Bedingungen im BPM-Tool gepflegt bleiben).
+**Export**: BPMN XML can be generated from the abstract process model (bidirectional, with BPMN-specific details such as gateway conditions remaining maintained in the BPM tool).
 
-**Annotation**: BPMN-Elemente werden mit EA-Referenzen annotiert (siehe [§6.3 (Kern-Entitätstypen)](06-kern-entitaetstypen.md) BPMN-Integration-Tabelle).
+**Annotation**: BPMN elements are annotated with EA references (see [§6.3 (Core Entity Types)](06-core-entity-types.md) BPMN integration table).
 
 ```yaml
-EntityType: ProcessModel (eigenständige Entität)
+EntityType: ProcessModel (separate entity)
   properties:
     - notation: BPMN-2.0 | EPK | VSM | custom
     - format: XML | JSON | proprietary
@@ -149,25 +149,25 @@ EntityType: ProcessModel (eigenständige Entität)
     - lastImported: datetime
   relations:
     - representsProcess: Process
-    - maintainedIn: ExternalTool     # z.B. "Camunda Modeler"
+    - maintainedIn: ExternalTool     # e.g. "Camunda Modeler"
 ```
 
 ### 9.7 Value Stream Mapping
 
-Für produkt-orientierte Organisationen (Lean, SAFe) ist der **Value Stream** oft die zentrale Sicht – orthogonal zur Prozess-Hierarchie:
+For product-oriented organizations (Lean, SAFe), the **value stream** is often the central view – orthogonal to the process hierarchy:
 
 ```yaml
 EntityType: ValueStream
   properties:
     - name, description
-    - triggerEvent: text             # was löst den Value Stream aus
-    - valueProposition: text         # welcher Kundennutzen
+    - triggerEvent: text             # what triggers the value stream
+    - valueProposition: text         # which customer benefit
     - totalLeadTime: duration
     - totalProcessTime: duration
   relations:
-    - steps: ValueStreamStep[]       # sequenzielle Schritte
+    - steps: ValueStreamStep[]       # sequential steps
     - deliversToCustomer: Stakeholder
-    - supportedBy: Process[]         # Prozesse, die Teile umsetzen
+    - supportedBy: Process[]         # processes that implement parts
     - realizes: Capability[]
 
 EntityType: ValueStreamStep
@@ -175,66 +175,66 @@ EntityType: ValueStreamStep
     - name, description
     - sequence: integer
     - processTime, leadTime: duration
-    - valueAdding: boolean           # WERTSCHÖPFEND ja/nein
+    - valueAdding: boolean           # VALUE-ADDING yes/no
   relations:
     - performedIn: Process | OrganizationUnit
     - handsOffTo: ValueStreamStep
 ```
 
-**Wichtige Analyse**: Waste Identification – nicht-wertschöpfende Schritte (`valueAdding: false`) sind Optimierungs-Kandidaten. Die klassische Lean-Sicht ins OEA geholt.
+**Important analysis**: Waste identification – non-value-adding steps (`valueAdding: false`) are optimization candidates. The classic Lean view brought into OEA.
 
-### 9.8 Prozess-Ownership (vertieft aus [§8 (Organisation & Rollen)](08-organisation-rollen-personen.md))
+### 9.8 Process Ownership (deepened from [§8 (Organization & Roles)](08-organization-roles-persons.md))
 
-Prozess-Ownership ist mehrschichtig:
+Process ownership is multi-layered:
 
-**Process Owner** (strategisch):
-- Verantwortet den Prozess über seinen Lebenszyklus
-- Entscheidet über Prozess-Design und Änderungen
-- Typisch: Linien-Management
+**Process Owner** (strategic):
+- Responsible for the process across its lifecycle
+- Decides on process design and changes
+- Typical: line management
 
-**Process Manager** (operativ):
-- Steuert laufende Prozess-Ausführung
-- Verantwortet KPI-Erreichung
-- Typisch: Team-Leader
+**Process Manager** (operational):
+- Steers ongoing process execution
+- Responsible for achieving KPIs
+- Typical: team leader
 
-**Process Architect** (methodisch):
-- Standardisierung, Cross-Process-Konsistenz
-- Teil der EA/BPM-Funktion
+**Process Architect** (methodological):
+- Standardization, cross-process consistency
+- Part of the EA/BPM function
 
 **Process Participant**:
-- Führt Aktivitäten aus
-- Intern oder extern (Kunde, Partner)
+- Performs activities
+- Internal or external (customer, partner)
 
-Alle vier als Relations am Process modellieren, mit eigenen Rollen:
+Model all four as relations on the process, with their own roles:
 
 ```yaml
-Process erhält:
+Process gains:
   - processOwner: Role
   - processManager: Role
   - processArchitect: Role
   - participants: Role[]
 ```
 
-### 9.9 Empfohlener Tool-Scope für Prozess-Modellierung
+### 9.9 Recommended Tool Scope for Process Modeling
 
-Das Tool sollte auf folgender Ebene Wertschöpfung bringen:
+The tool should add value at the following level:
 
-**Was das Tool tun sollte**:
-- Prozess-Hierarchie pflegen (L1–L5)
-- Cross-Layer-Verlinkungen (Process ↔ Capability, Application, Data, Role)
-- CRUD-Matrix generieren
-- KPI-Zuordnung und Tracking
-- PCF-Mapping für Benchmarking
-- BPMN-Import/-Export via Adapter
-- Prozess-Ownership und RACI
+**What the tool should do**:
+- Maintain the process hierarchy (L1–L5)
+- Cross-layer links (Process ↔ Capability, Application, Data, Role)
+- Generate the CRUD matrix
+- KPI assignment and tracking
+- PCF mapping for benchmarking
+- BPMN import/export via adapter
+- Process ownership and RACI
 
-**Was das Tool NICHT tun sollte**:
-- BPMN-Diagramm-Editor mit Swimlanes, Gateways, Event-Subprozessen
-- Process Simulation / Execution Engine
-- Formular-Generierung aus Prozessen
-- Workflow-Execution
+**What the tool should NOT do**:
+- BPMN diagram editor with swimlanes, gateways, event subprocesses
+- Process simulation / execution engine
+- Form generation from processes
+- Workflow execution
 
-Wer volles Prozess-Autoring braucht, nutzt Camunda/Signavio parallel und verlinkt.
+Those who need full process authoring use Camunda/Signavio in parallel and link.
 
 ### 9.10 Constraints
 
@@ -243,14 +243,14 @@ constraint: process-has-owner
   appliesTo: Process
   rule: "entity.processOwner != null"
   severity: error
-  message: "Prozess ohne Process Owner ist nicht governance-fähig"
+  message: "A process without a process owner is not governable"
 
 constraint: process-has-kpi
   appliesTo: Process
   when: "entity.type == 'core'"
   rule: "entity.measuredBy.length >= 1"
   severity: warning
-  message: "Kernprozess ohne KPIs nicht messbar"
+  message: "Core process without KPIs is not measurable"
 
 constraint: activity-has-performer
   appliesTo: Activity
@@ -262,9 +262,9 @@ constraint: data-write-has-owner
   when: "entity.accessType == 'create' OR entity.accessType == 'update'"
   rule: "process.processOwner has dataOwnership on dataEntity OR explicit delegation"
   severity: warning
-  message: "Prozess schreibt Daten ohne klare Datenhoheit"
+  message: "Process writes data without clear data sovereignty"
 ```
 
 ---
 
-← [Organisation, Rollen & Personen](08-organisation-rollen-personen.md) · [🏠 Übersicht](../README.md) · [Cross-Cutting-Konzepte](10-cross-cutting.md) →
+← [Organization, Roles & Persons](08-organization-roles-persons.md) · [🏠 Overview](../README.md) · [Cross-Cutting](10-cross-cutting.md) →

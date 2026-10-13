@@ -1,6 +1,6 @@
 ---
 id: UC-11
-title: Architektur-Plateau definieren und produktiv setzen
+title: Define Architecture Plateau and Put It into Production
 status: draft
 priority: must
 target_release: v1.0
@@ -20,20 +20,20 @@ references:
     - person
     - role
   adrs:
-    - adrs/ADR-016-persistenz-strategie.md
-    - adrs/ADR-017-architektur-layer-strategie.md
+    - adrs/ADR-016-persistence-strategy.md
+    - adrs/ADR-017-architecture-layer-strategy.md
     - adrs/ADR-018-business-rule-engine.md
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
-    - concept/20-entities/11-temporales-modell.md
+    - concept/20-entities/06-core-entity-types.md
+    - concept/20-entities/11-temporal-model.md
   related_use_cases:
     - UC-04
     - UC-05
 ---
 
-# UC-11: Architektur-Plateau definieren und produktiv setzen
+# UC-11: Define Architecture Plateau and Put It into Production
 
-## Diagramm
+## Diagram
 
 ```plantuml
 @startuml UC-11-Plateau
@@ -43,12 +43,12 @@ skinparam actorStyle awesome
 actor "Kurt\n(Lead EA)" as Kurt
 actor "CIO" as CIO
 
-rectangle "OEA – Plateau definieren & Go-Live" {
-  usecase "Initiales Baseline\nanlegen" as UC_Baseline
-  usecase "Target-Plateau\nanlegen" as UC_Target
-  usecase "Go-Live-Übergang\ndurchführen" as UC_GoLive
-  usecase "Warnungen prüfen\n(CEL-Rules, Solution-Status)" as UC_Check
-  usecase "Plateau-Dashboard\neinsehen" as UC_Dashboard
+rectangle "OEA – Define Plateau & Go-Live" {
+  usecase "Create Initial\nBaseline" as UC_Baseline
+  usecase "Create Target\nPlateau" as UC_Target
+  usecase "Perform Go-Live\nTransition" as UC_GoLive
+  usecase "Check Warnings\n(CEL Rules, Solution Status)" as UC_Check
+  usecase "View Plateau\nDashboard" as UC_Dashboard
 }
 
 Kurt --> UC_Baseline
@@ -64,178 +64,178 @@ UC_GoLive ..> UC_Dashboard : <<extend>>
 
 ## Goal in Context
 
-Organisationen, die im **Plateau-Modus** arbeiten, steuern die Weiterentwicklung ihrer Unternehmensarchitektur über klar definierte Zustände: ein Baseline-Plateau beschreibt die aktuelle Realität, Target-Plateaus beschreiben geplante Zielzustände. Der Lead Enterprise Architekt muss diese Zustände anlegen, pflegen und — wenn ein Zielzustand tatsächlich umgesetzt wurde — als neue produktive Realität festschreiben (Go-Live).
+Organizations working in **plateau mode** steer the evolution of their enterprise architecture via clearly defined states: a baseline plateau describes the current reality, target plateaus describe planned target states. The Lead Enterprise Architect must create and maintain these states and — when a target state has actually been implemented — commit it as the new productive reality (go-live).
 
-OEA unterstützt diesen Prozess, indem Kurt das initiale Baseline anlegen, beliebige Target-Plateaus planen und schliesslich einen Go-Live-Übergang durchführen kann. Der Übergang ist bewusst ein manueller, bestätigungspflichtiger Akt: OEA prüft keine Voraussetzungen erzwungen, zeigt aber alle konfigurierten Warnungen (CEL-Rules, Solution-Status), damit Kurt eine informierte Entscheidung treffen kann.
+OEA supports this process by allowing Kurt to create the initial baseline, plan any number of target plateaus and finally perform a go-live transition. The transition is deliberately a manual act requiring confirmation: OEA does not enforce any prerequisites, but shows all configured warnings (CEL rules, solution status) so that Kurt can make an informed decision.
 
-## Persona und Story
+## Persona and Story
 
-**Primärer Akteur**: [Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
+**Primary Actor**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 
-**Weitere Beteiligte**: [CIO](../../business-analysis/stakeholders/SH-05-cio-konzern.md) (beobachtet Fortschritt; kein aktiver Schritt im Ablauf)
+**Other Stakeholders**: [CIO](../../business-analysis/stakeholders/SH-05-cio-corporate-group.md) (observes progress; no active step in the flow)
 
-**Story**: Als Lead Enterprise Architekt möchte ich die geplante Zielarchitektur meiner Organisation als Plateau erfassen und — sobald die Umsetzung abgeschlossen ist — als neue produktive Baseline festschreiben, damit der aktuelle Architekturstand jederzeit klar und nachvollziehbar dokumentiert ist.
+**Story**: As a Lead Enterprise Architect, I want to capture my organization's planned target architecture as a plateau and — as soon as implementation is complete — commit it as the new productive baseline so that the current architecture state is documented clearly and traceably at all times.
 
 ## Trigger
 
-1. OEA-Instanz ist im Plateau-Modus konfiguriert und es existiert noch kein Baseline-Plateau → Kurt legt das initiale Baseline an (A1)
-2. Kurt möchte einen neuen Zielzustand für die Architektur planen → Target-Plateau anlegen (A2)
-3. Ein Target-Plateau ist umgesetzt und soll zur neuen Produktiv-Architektur werden → Go-Live (Hauptablauf)
+1. OEA instance is configured in plateau mode and no baseline plateau exists yet → Kurt creates the initial baseline (A1)
+2. Kurt wants to plan a new target state for the architecture → create target plateau (A2)
+3. A target plateau has been implemented and is to become the new production architecture → go-live (basic flow)
 
-## Vorbedingungen (Pre-Conditions)
+## Preconditions
 
-- [ ] Plateau-Modus ist für die OEA-Instanz aktiviert (Instanz-Konfiguration)
-- [ ] Kurt ist eingeloggt (UC-01) und hat die Rolle „EA-Manager" oder eine Rolle mit entsprechender Berechtigung
-- [ ] Für den Hauptablauf (Go-Live): ein Baseline-Plateau (`status=baseline`) und mindestens ein Target-Plateau (`status=target`) existieren
+- [ ] Plateau mode is enabled for the OEA instance (instance configuration)
+- [ ] Kurt is logged in (UC-01) and has the role "EA Manager" or a role with the corresponding permission
+- [ ] For the basic flow (go-live): a baseline plateau (`status=baseline`) and at least one target plateau (`status=target`) exist
 
-## Nachbedingungen (Post-Conditions)
+## Postconditions
 
-### Bei Erfolg (Hauptablauf — Go-Live)
+### On Success (basic flow — go-live)
 
-- Das gewählte Target-Plateau P1 hat `status=baseline`; `validFrom` ist auf den Go-Live-Zeitpunkt gesetzt
-- Das bisherige Baseline-Plateau P0 hat `status=realized`; `validTo` ist auf den Go-Live-Zeitpunkt gesetzt; P0 ist read-only (BR-03)
-- Entitäten, die in P1 den Lifecycle-State `retiring` hatten, sind nach dem Übergang `retired`
-- Der CIO kann den Go-Live-Eintrag im Plateau-Dashboard einsehen
-- Andere Target-Plateaus bleiben unverändert (keine system-seitigen Rebase-Automatismen; Umgang mit ihnen liegt beim Betreiber und konfigurierten Business Rules)
+- The selected target plateau P1 has `status=baseline`; `validFrom` is set to the go-live time
+- The previous baseline plateau P0 has `status=realized`; `validTo` is set to the go-live time; P0 is read-only (BR-03)
+- Entities that had the lifecycle state `retiring` in P1 are `retired` after the transition
+- The CIO can view the go-live entry in the plateau dashboard
+- Other target plateaus remain unchanged (no system-side rebase automatisms; handling them lies with the operator and configured business rules)
 
-### Bei Misserfolg
+### On Failure
 
-- Kein Plateau-Objekt wurde verändert; vollständiger Rollback der atomaren Transition
-- Fehlermeldung mit konkretem Hinweis (Berechtigung, DB-Fehler, Bestätigung abgebrochen)
+- No plateau object was changed; complete rollback of the atomic transition
+- Error message with a concrete hint (permission, DB error, confirmation canceled)
 
-## Hauptablauf (Basic Flow)
+## Basic Flow
 
-*Standardfall: Kurt führt einen Go-Live-Übergang für ein bestehendes Target-Plateau durch*
+*Default case: Kurt performs a go-live transition for an existing target plateau*
 
-1. **Kurt**: navigiert zur Plateau-Übersicht (`/plateaus`)
-2. **System**: zeigt alle Plateaus strukturiert:
-   - Aktuelles Baseline (status=`baseline`, hervorgehoben)
-   - Target-Plateaus (status=`target`, mit geplantem validFrom)
-   - Realisierte Plateaus (status=`realized`, chronologisch, einklappbar)
-3. **Kurt**: wählt ein Target-Plateau P1 aus
-4. **System**: zeigt die Plateau-Detailansicht mit:
-   - Name, Beschreibung, geplantes Go-Live-Datum (`validFrom`)
-   - Verknüpfte Solutions: Liste mit Name, Status (`draft`, `proposed`, `implemented`, …) und Owner
-   - Entitäten-Zusammenfassung: N Entitäten `active`, M `retiring`, K neu gegenüber Baseline
-   - CEL-Rule-Violations (sofern Business Rules konfiguriert): Severity `hint`/`warning` (kein Enforcement; Violations blockieren Go-Live nicht)
-5. **Kurt**: prüft die Zusammenfassung und entscheidet, Go-Live durchzuführen
-6. **Kurt**: klickt „Go-Live durchführen"
-7. **System**: zeigt einen Bestätigungsdialog mit:
-   - Übersicht: „P1 wird zur neuen Baseline; P0 wird archiviert (realized, read-only)"
-   - Anzahl nicht-implemented Solutions (Warnung, kein Block)
-   - Anzahl offener CEL-Violations (Warnung, kein Block)
-   - Expliziter Hinweis: „Diese Aktion kann nicht rückgängig gemacht werden"
-8. **Kurt**: bestätigt durch Eingabe des Plateau-Namens (zweistufige Bestätigung)
-9. **System**: führt die atomare Transition durch:
-   - P1: `status` → `baseline`; `validFrom` = jetzt (UTC)
-   - P0: `status` → `realized`; `validTo` = jetzt (UTC); ab sofort read-only (BR-03)
-   - Entitäten mit `lifecycle_state=retiring` in P1 → `lifecycle_state=retired`
-10. **System**: zeigt Erfolgsmeldung; leitet zur aktualisierten Plateau-Übersicht weiter
-11. **System**: Plateau-Dashboard zeigt Go-Live-Eintrag mit Zeitstempel — für SH-05 CIO einsehbar
+1. **Kurt**: navigates to the plateau overview (`/plateaus`)
+2. **System**: shows all plateaus in a structured way:
+   - Current baseline (status=`baseline`, highlighted)
+   - Target plateaus (status=`target`, with planned validFrom)
+   - Realized plateaus (status=`realized`, chronological, collapsible)
+3. **Kurt**: selects a target plateau P1
+4. **System**: shows the plateau detail view with:
+   - Name, description, planned go-live date (`validFrom`)
+   - Linked solutions: list with name, status (`draft`, `proposed`, `implemented`, …) and owner
+   - Entity summary: N entities `active`, M `retiring`, K new compared to baseline
+   - CEL rule violations (if business rules are configured): severity `hint`/`warning` (no enforcement; violations do not block go-live)
+5. **Kurt**: reviews the summary and decides to perform go-live
+6. **Kurt**: clicks "Perform go-live"
+7. **System**: shows a confirmation dialog with:
+   - Overview: "P1 becomes the new baseline; P0 is archived (realized, read-only)"
+   - Number of non-implemented solutions (warning, no block)
+   - Number of open CEL violations (warning, no block)
+   - Explicit notice: "This action cannot be undone"
+8. **Kurt**: confirms by entering the plateau name (two-step confirmation)
+9. **System**: performs the atomic transition:
+   - P1: `status` → `baseline`; `validFrom` = now (UTC)
+   - P0: `status` → `realized`; `validTo` = now (UTC); read-only from now on (BR-03)
+   - Entities with `lifecycle_state=retiring` in P1 → `lifecycle_state=retired`
+10. **System**: shows success message; redirects to the updated plateau overview
+11. **System**: plateau dashboard shows go-live entry with timestamp — viewable for SH-05 CIO
 
-## Alternative Abläufe (Alternative Flows)
+## Alternative Flows
 
-**A1 – Initiales Baseline-Plateau anlegen**
+**A1 – Create initial baseline plateau**
 
-*Wenn im Plateau-Modus noch kein Baseline existiert (Erst-Einrichtung)*
+*If no baseline exists yet in plateau mode (initial setup)*
 
-1. **System**: zeigt auf der Plateau-Übersicht einen Hinweis: „Noch kein Baseline-Plateau vorhanden. Lege das initiale Baseline an, um mit der strategischen EA-Planung zu beginnen."
-2. **Kurt**: klickt „Initiales Baseline anlegen"
-3. **System**: öffnet Erstellungsformular:
-   - Name (z.B. „Baseline 2026-Q2", Pflichtfeld)
-   - Beschreibung (optional, max. 2000 Zeichen)
-   - `validFrom` (Datum; Bedeutung: „Stand zu diesem Stichtag"; optional)
-4. **Kurt**: füllt Formular aus und speichert
-5. **System**: legt Plateau mit `status=baseline` an; `createdAt`/`createdBy` gesetzt
-6. **System**: zeigt Hinweis: „Initiales Baseline angelegt. Erfasse jetzt die bestehende Architektur direkt im Baseline oder lege ein Target-Plateau für die Zielarchitektur an (A2)."
-7. Weiter: Kurt erfasst Entitäten im Baseline oder fährt mit A2 fort
+1. **System**: shows a notice on the plateau overview: "No baseline plateau exists yet. Create the initial baseline to begin strategic EA planning."
+2. **Kurt**: clicks "Create initial baseline"
+3. **System**: opens creation form:
+   - Name (e.g., "Baseline 2026-Q2", mandatory field)
+   - Description (optional, max. 2000 characters)
+   - `validFrom` (date; meaning: "state as of this effective date"; optional)
+4. **Kurt**: fills in the form and saves
+5. **System**: creates plateau with `status=baseline`; `createdAt`/`createdBy` set
+6. **System**: shows notice: "Initial baseline created. Now capture the existing architecture directly in the baseline or create a target plateau for the target architecture (A2)."
+7. Continue: Kurt captures entities in the baseline or proceeds with A2
 
-**A2 – Target-Plateau anlegen**
+**A2 – Create target plateau**
 
-*Wenn eine neue Zielarchitektur geplant werden soll*
+*If a new target architecture is to be planned*
 
-1. **Kurt**: klickt in der Plateau-Übersicht „Neues Ziel-Plateau anlegen"
-2. **System**: öffnet Erstellungsformular:
-   - Name (z.B. „Target Cloud-Migration 2027", Pflichtfeld)
-   - Beschreibung / strategische Begründung (optional)
-   - `validFrom` (geplantes Go-Live-Datum; optional)
-   - `succeeds` (Dropdown: aktuelles Baseline vorausgewählt; änderbar auf beliebiges anderes Plateau)
-3. **Kurt**: füllt Formular aus und speichert
-4. **System**: legt Plateau mit `status=target` an; `succeeds`-Referenz gesetzt
-5. **System**: zeigt die Plateau-Detailansicht; Solution Architekten können nun Solutions diesem Target-Plateau zuordnen (UC-05 A1)
+1. **Kurt**: clicks "Create new target plateau" in the plateau overview
+2. **System**: opens creation form:
+   - Name (e.g., "Target Cloud Migration 2027", mandatory field)
+   - Description / strategic rationale (optional)
+   - `validFrom` (planned go-live date; optional)
+   - `succeeds` (dropdown: current baseline preselected; changeable to any other plateau)
+3. **Kurt**: fills in the form and saves
+4. **System**: creates plateau with `status=target`; `succeeds` reference set
+5. **System**: shows the plateau detail view; solution architects can now assign solutions to this target plateau (UC-05 A1)
 
-**A3 – Transition-Plateau als Zwischenzustand**
+**A3 – Transition plateau as intermediate state**
 
-*Wenn zwischen Baseline und Target ein gestaffelter Zwischenzustand sinnvoll ist*
+*If a staged intermediate state between baseline and target makes sense*
 
-1. Identischer Ablauf wie A2, aber Kurt wählt `status=transition` statt `target`
-2. Transition-Plateaus folgen denselben Regeln wie Target-Plateaus; sie können ebenfalls Go-Live gehen (Hauptablauf)
-3. Verwendung: optionale Modellierung von Migrationsphasen (z.B. „Phase 1 — Salesforce-Einführung" vor dem finalen Target)
+1. Identical flow to A2, but Kurt selects `status=transition` instead of `target`
+2. Transition plateaus follow the same rules as target plateaus; they can also go live (basic flow)
+3. Usage: optional modeling of migration phases (e.g., "Phase 1 — Salesforce introduction" before the final target)
 
-## Ausnahmen / Fehlerfälle (Exception Flows)
+## Exception Flows
 
-**E1 – Kein Baseline vorhanden beim Go-Live-Versuch**
-- Bedingung: Kurt versucht Go-Live, aber kein `status=baseline`-Plateau existiert
-- Erwartete Reaktion: System zeigt Fehlermeldung „Kein Baseline-Plateau vorhanden. Lege zuerst ein initiales Baseline an."; Link zu A1
-- Wiederaufnahme: Kurt führt A1 durch
+**E1 – No baseline present at go-live attempt**
+- Condition: Kurt attempts go-live, but no `status=baseline` plateau exists
+- Expected reaction: System shows error message "No baseline plateau exists. Create an initial baseline first."; link to A1
+- Resumption: Kurt performs A1
 
-**E2 – Go-Live-Bestätigung abgebrochen**
-- Bedingung: Kurt bricht den Bestätigungsdialog (Schritt 7–8) ab oder gibt falschen Plateau-Namen ein
-- Erwartete Reaktion: Dialog schliesst sich; keine Änderung an Daten; Plateau verbleibt in `status=target`
-- Wiederaufnahme: Kurt kann jederzeit einen neuen Go-Live-Versuch starten
+**E2 – Go-live confirmation canceled**
+- Condition: Kurt cancels the confirmation dialog (steps 7–8) or enters the wrong plateau name
+- Expected reaction: Dialog closes; no change to data; plateau remains in `status=target`
+- Resumption: Kurt can start a new go-live attempt at any time
 
-**E3 – Atomare Transition schlägt fehl (technischer Fehler)**
-- Bedingung: DB-Fehler, Constraint-Verletzung oder Timeout während der Transition in Schritt 9
-- Erwartete Reaktion: vollständiger Rollback; beide Plateaus (P0, P1) bleiben im ursprünglichen Status; Fehlermeldung mit technischem Hinweis
-- Wiederaufnahme: Kurt kann Go-Live erneut versuchen; kein Datenverlust
+**E3 – Atomic transition fails (technical error)**
+- Condition: DB error, constraint violation or timeout during the transition in step 9
+- Expected reaction: complete rollback; both plateaus (P0, P1) remain in their original status; error message with technical hint
+- Resumption: Kurt can retry go-live; no data loss
 
-**E4 – Fehlende Berechtigung**
-- Bedingung: Die eingeloggte Person hat nicht die Rolle „EA-Manager" oder vergleichbare Berechtigung
-- Erwartete Reaktion: 403 Forbidden; Schaltflächen „Go-Live" und „Anlegen" sind nicht sichtbar oder deaktiviert
-- Wiederaufnahme: Person wendet sich an Admin (UC-02)
+**E4 – Missing permission**
+- Condition: The logged-in person does not have the role "EA Manager" or a comparable permission
+- Expected reaction: 403 Forbidden; buttons "Go-live" and "Create" are not visible or disabled
+- Resumption: Person contacts the admin (UC-02)
 
-## Datenfluss
+## Data Flow
 
-| Schritt | Daten | Richtung | Bemerkung |
+| Step | Data | Direction | Remark |
 |---|---|---|---|
-| 2 | Plateau-Liste (id, name, status, validFrom) | System → Kurt | Alle Plateaus der Instanz |
-| 4 | Plateau-Detail (Solutions, Entity-Summary, CEL-Violations) | System → Kurt | Nur Warnungen; kein Block |
-| 7 | Bestätigungsdialog (Zusammenfassung, Risiko-Hinweis) | System → Kurt | Zeigt Anzahl nicht-implemented Solutions und Violations |
-| 8 | Plateau-Name (Bestätigung) | Kurt → System | Zweistufige Bestätigung; verhindert versehentliche Go-Lives |
-| 9 | Plateau-Status-Update (P1, P0), Entity-State-Update | System intern | Atomare Transaktion; vollständiger Rollback bei Fehler |
-| 11 | Go-Live-Eintrag (Zeitstempel, Plateau-Namen) | System → Dashboard | Für CIO einsehbar |
+| 2 | Plateau list (id, name, status, validFrom) | System → Kurt | All plateaus of the instance |
+| 4 | Plateau detail (solutions, entity summary, CEL violations) | System → Kurt | Warnings only; no block |
+| 7 | Confirmation dialog (summary, risk notice) | System → Kurt | Shows number of non-implemented solutions and violations |
+| 8 | Plateau name (confirmation) | Kurt → System | Two-step confirmation; prevents accidental go-lives |
+| 9 | Plateau status update (P1, P0), entity state update | System internal | Atomic transaction; complete rollback on error |
+| 11 | Go-live entry (timestamp, plateau names) | System → Dashboard | Viewable for CIO |
 
-## Beteiligte Business Objects
+## Involved Business Objects
 
-| Business Object | Operation | Notiz |
+| Business Object | Operation | Note |
 |---|---|---|
-| [plateau](../../business-objects/plateau.md) | create, update | Kern-Objekt; status-Übergang ist die zentrale Operation |
-| [entity](../../business-objects/entity.md) | update | `lifecycle_state` pro Plateau wird bei Go-Live aktualisiert |
-| [solution](../../business-objects/solution.md) | read | Status-Übersicht im Bestätigungsdialog; kein Update durch diesen UC |
-| [architecture](../../business-objects/architecture.md) | read | Betriebsmodus-Prüfung (Plateau-Modus erforderlich) |
-| [person](../../business-objects/person.md) | read | Authentifizierung; `createdBy` bei Anlage |
-| [role](../../business-objects/role.md) | read | Berechtigungsprüfung: EA-Manager-Rolle |
+| [plateau](../../business-objects/plateau.md) | create, update | Core object; status transition is the central operation |
+| [entity](../../business-objects/entity.md) | update | `lifecycle_state` per plateau is updated at go-live |
+| [solution](../../business-objects/solution.md) | read | Status overview in the confirmation dialog; no update by this UC |
+| [architecture](../../business-objects/architecture.md) | read | Operating mode check (plateau mode required) |
+| [person](../../business-objects/person.md) | read | Authentication; `createdBy` on creation |
+| [role](../../business-objects/role.md) | read | Permission check: EA Manager role |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] A1: Initiales Baseline-Plateau ohne Vorgänger anlegbar; `status=baseline` wird gesetzt
-- [ ] A2: Target-Plateau anlegbar mit `succeeds`-Referenz auf bestehendes Baseline; `status=target`
-- [ ] A3: Transition-Plateau anlegbar mit `status=transition`; kann ebenfalls Go-Live gehen
-- [ ] Plateau-Übersicht zeigt Baseline, Targets und realisierte Plateaus klar getrennt
-- [ ] Go-Live-Zusammenfassung zeigt: verknüpfte Solutions mit Status, CEL-Violations (falls konfiguriert), Entity-Zahlen
-- [ ] Go-Live ist **nicht** blockiert wenn Solutions nicht-implemented sind — nur Warnung
-- [ ] Go-Live ist **nicht** blockiert durch CEL-Violations — nur Warnung
-- [ ] Zweistufige Bestätigung (Eingabe Plateau-Name) vor Go-Live erzwungen
-- [ ] Nach Go-Live: P1 hat `status=baseline`; P0 hat `status=realized` und ist read-only
-- [ ] Andere Target-Plateaus bleiben nach Go-Live unverändert; kein system-seitiger Rebase
-- [ ] Atomare Transition: bei technischem Fehler vollständiger Rollback; kein Inkonsistenz-Zustand
-- [ ] CIO kann Go-Live-Eintrag mit Zeitstempel im Dashboard einsehen
-- [ ] E4: Ohne EA-Manager-Rolle sind Go-Live und Anlegen-Aktionen nicht zugänglich (403)
+- [ ] A1: Initial baseline plateau can be created without predecessor; `status=baseline` is set
+- [ ] A2: Target plateau can be created with `succeeds` reference to an existing baseline; `status=target`
+- [ ] A3: Transition plateau can be created with `status=transition`; can also go live
+- [ ] Plateau overview shows baseline, targets and realized plateaus clearly separated
+- [ ] Go-live summary shows: linked solutions with status, CEL violations (if configured), entity counts
+- [ ] Go-live is **not** blocked if solutions are non-implemented — warning only
+- [ ] Go-live is **not** blocked by CEL violations — warning only
+- [ ] Two-step confirmation (entering plateau name) enforced before go-live
+- [ ] After go-live: P1 has `status=baseline`; P0 has `status=realized` and is read-only
+- [ ] Other target plateaus remain unchanged after go-live; no system-side rebase
+- [ ] Atomic transition: complete rollback on technical error; no inconsistent state
+- [ ] CIO can view the go-live entry with timestamp in the dashboard
+- [ ] E4: Without the EA Manager role, go-live and create actions are inaccessible (403)
 
-## Nicht im Scope
+## Out of Scope
 
-- **Solution-Status-Übergänge** (`draft → proposed → implemented`): Teil von UC-05 und Solution-Review-Prozess
-- **Entitäten direkt im Baseline erfassen**: Basis-Entitätsverwaltung (eigener UC, noch nicht angelegt)
-- **Plateau löschen**: kein geplantes Feature; Plateaus sind unveränderliche Architektur-Historie
-- **Automatischer Rebase anderer Target-Plateaus**: bewusst nicht im System — Betreiber definiert via Business Rules (ADR-017, ADR-018)
-- **Projekt-Modus**: dieser UC gilt ausschliesslich für Instanzen im Plateau-Modus
+- **Solution status transitions** (`draft → proposed → implemented`): part of UC-05 and the solution review process
+- **Capturing entities directly in the baseline**: basic entity management (separate UC, not yet created)
+- **Deleting a plateau**: no planned feature; plateaus are immutable architecture history
+- **Automatic rebase of other target plateaus**: deliberately not in the system — operator defines via business rules (ADR-017, ADR-018)
+- **Project mode**: this UC applies exclusively to instances in plateau mode

@@ -1,40 +1,40 @@
-# Ableitung aus: requirements/req/req-023-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-023-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @should @UC-03
-Feature: REQ-023 – Passkey-Enrollment (WebAuthn-Credential-Registrierung)
+Feature: REQ-023 – Passkey enrollment (WebAuthn credential registration)
 
-  Das System SOLL das Registrieren eines Passkeys (WebAuthn Level 2 /
-  FIDO2) als lokale Authentifizierungsmethode ermöglichen, indem es
-  eine Registrierungs-Challenge generiert, die Authenticator-Antwort
-  verifiziert und den Public Key des registrierten Credentials
-  persistent mit dem Person-Objekt verknüpft.
+  The system SHOULD enable registering a passkey (WebAuthn Level 2 /
+  FIDO2) as a local authentication method by generating a registration
+  challenge, verifying the authenticator response, and persistently
+  linking the public key of the registered credential to the person
+  object.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Kurt hat Passkey als Methode gewählt und einen kompatiblen Authenticator
-    Given Kurt hat Passkey als Methode gewählt und einen kompatiblen Authenticator
-    When  er die Authenticator-Bestätigung abschließt
-    Then  ist der Public Key persistent gespeichert und der Login per Passkey (UC-01 A3) ist ab sofort möglich
+  Scenario: AC1 – Kurt has chosen passkey as the method and has a compatible authenticator
+    Given Kurt has chosen passkey as the method and has a compatible authenticator
+    When  he completes the authenticator confirmation
+    Then  the public key is persistently stored and login via passkey (UC-01 A3) is possible immediately
 
   @AC2
-  Scenario: AC2 – Kurt bricht die Authenticator-Bestätigung ab
-    Given Kurt bricht die Authenticator-Bestätigung ab
-    When  der Abbruch eintritt
-    Then  wird kein Credential gespeichert, das Enrollment-Token bleibt gültig
+  Scenario: AC2 – Kurt cancels the authenticator confirmation
+    Given Kurt cancels the authenticator confirmation
+    When  the cancellation occurs
+    Then  no credential is stored, the enrollment token remains valid
 
   @AC3
-  Scenario: AC3 – eine Person hat bereits einen registrierten Passkey
-    Given eine Person hat bereits einen registrierten Passkey
-    When  sie einen weiteren Passkey registriert (z.B. zweites Gerät)
-    Then  sind beide Credentials gespeichert und einzeln für den Login verwendbar
+  Scenario: AC3 – a person already has a registered passkey
+    Given a person already has a registered passkey
+    When  they register another passkey (e.g. second device)
+    Then  both credentials are stored and individually usable for login
 
   @AC4
-  Scenario: AC4 – eine Registrierungsantwort mit falschem Origin oder RP-ID
-    Given eine Registrierungsantwort mit falschem Origin oder RP-ID
-    When  das System sie verarbeitet
-    Then  wird sie abgelehnt, kein Credential persistiert
+  Scenario: AC4 – a registration response with a wrong origin or RP ID
+    Given a registration response with a wrong origin or RP ID
+    When  the system processes it
+    Then  it is rejected, no credential is persisted

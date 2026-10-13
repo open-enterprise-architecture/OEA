@@ -1,54 +1,54 @@
-# US-054: Katalog im Navigationsbaum platzieren
+# US-054: Place a Catalog in the Navigation Tree
 
 **ID**: US-054
 **Story Points**: 2
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Lead Enterprise Architekt möchte ich einen Katalog in einem Ordner des Navigationsbaums einordnen können, damit alle Nutzer ihn kontextuell – z.B. „IT-Landschaft > Application Inventory" – finden und direkt öffnen können.
+As a Lead Enterprise Architect, I want to be able to place a catalog in a folder of the navigation tree, so that all users can find it contextually – e.g. "IT Landscape > Application Inventory" – and open it directly.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-06: Architektur-Katalog anlegen, konfigurieren und verwenden](../use-cases/UC-06-katalog-anlegen-und-verwenden.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-050: Katalog im Navigationsbaum einordnen](../req/REQ-050-katalog-navigationsbaum.md)
+**Use Case**: [UC-06: Create, Configure and Use an Architecture Catalog](../use-cases/UC-06-create-and-use-catalog.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-050: Place a Catalog in the Navigation Tree](../req/REQ-050-catalog-navigation-tree.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (In Baum einhängen, Happy Path):
-- Gegeben: Katalog „Application Inventory" und Ordner „IT-Landschaft" im Navigationsbaum existieren
-- Wenn: Kurt wählt im Katalog-Kontextmenü „In Navigationsbaum einhängen", wählt Ordner „IT-Landschaft"
-- Dann: Katalog erscheint unter „IT-Landschaft" im Navigationsbaum; TreeNodeItem angelegt
+**AC1** (attach to tree, happy path):
+- Given: Catalog "Application Inventory" and folder "IT Landscape" in the navigation tree exist
+- When: Kurt chooses "Attach to navigation tree" in the catalog context menu and selects folder "IT Landscape"
+- Then: Catalog appears under "IT Landscape" in the navigation tree; TreeNodeItem created
 
-**AC2** (Öffnen via Baum):
-- Gegeben: Katalog ist im Baum unter „IT-Landschaft" eingehängt
-- Wenn: Franz klickt im Navigationsbaum auf den Katalog-Eintrag
-- Dann: Katalog öffnet sich direkt; Default-SavedView wird angewendet (wenn vorhanden)
+**AC2** (open via tree):
+- Given: Catalog is attached in the tree under "IT Landscape"
+- When: Franz clicks the catalog entry in the navigation tree
+- Then: Catalog opens directly; default SavedView is applied (if present)
 
-**AC3** (Mehrfache Einordnung – Soft-Reference):
-- Wenn: Kurt hängt „Application Inventory" zusätzlich in „Compliance/ISO 27001 View" ein
-- Dann: Katalog erscheint in beiden Ordnern; es existiert nur ein Catalog-Datensatz
+**AC3** (multiple placement – soft reference):
+- When: Kurt additionally attaches "Application Inventory" in "Compliance/ISO 27001 View"
+- Then: Catalog appears in both folders; only one Catalog record exists
 
-**AC4** (Aus Baum entfernen löscht Katalog nicht):
-- Wenn: Kurt entfernt den Eintrag aus „IT-Landschaft" (Kontextmenü „Aus Baum entfernen")
-- Dann: TreeNodeItem gelöscht; Katalog in „Compliance/ISO 27001 View" bleibt; `GET /api/v1/catalogs/{id}` liefert HTTP 200
+**AC4** (removing from tree does not delete the catalog):
+- When: Kurt removes the entry from "IT Landscape" (context menu "Remove from tree")
+- Then: TreeNodeItem deleted; catalog in "Compliance/ISO 27001 View" remains; `GET /api/v1/catalogs/{id}` returns HTTP 200
 
-**AC5** (Display-Label im Baum):
-- Wenn: Kurt hängt den Katalog mit displayLabel „Systeminventar" ein
-- Dann: Im Navigationsbaum erscheint „Systeminventar"; der Katalog selbst heisst weiterhin „Application Inventory"
+**AC5** (display label in tree):
+- When: Kurt attaches the catalog with displayLabel "System Inventory"
+- Then: "System Inventory" appears in the navigation tree; the catalog itself is still called "Application Inventory"
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Navigationsbaum-Komponente, Katalog-Kontextmenü, Backend `POST /api/v1/tree-nodes/{nodeId}/items` + `DELETE /api/v1/tree-nodes/{nodeId}/items/{itemId}`
-- UX: Kontextmenü am Katalog (Rechtsklick oder Kebab-Menü): „In Navigationsbaum einhängen" → Ordner-Auswahl-Dialog (Tree-Picker); alternativ: Drag-and-Drop in Navigationsbaum
-- Abhängigkeit: US-046; TreeNode-Verwaltung (eigene US, noch TBD)
+- Affected components: navigation tree component, catalog context menu, backend `POST /api/v1/tree-nodes/{nodeId}/items` + `DELETE /api/v1/tree-nodes/{nodeId}/items/{itemId}`
+- UX: context menu on the catalog (right-click or kebab menu): "Attach to navigation tree" → folder selection dialog (tree picker); alternatively: drag and drop into the navigation tree
+- Dependency: US-046; TreeNode management (separate US, still TBD)
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien AC1–AC5 erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests: Einordnen, Öffnen via Baum, Soft-Reference (mehrfach), Entfernen ohne Catalog-Löschung, displayLabel
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria AC1–AC5 met
+- [ ] Code review by a second person
+- [ ] Tests: placement, open via tree, soft reference (multiple), removal without catalog deletion, displayLabel
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix

@@ -1,6 +1,6 @@
 ---
 id: UC-05
-title: Architektur-Vision einer Änderungsinitiative beschreiben
+title: Describe the Architecture Vision of a Change Initiative
 status: draft
 priority: must
 target_release: v1.0
@@ -18,33 +18,33 @@ references:
     - person
     - role
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
-    - concept/20-entities/11-temporales-modell.md
-    - concept/20-entities/12-domain-sichten.md
-    - concept/50-walkthrough/16-beispiel-walkthrough.md
+    - concept/20-entities/06-core-entity-types.md
+    - concept/20-entities/11-temporal-model.md
+    - concept/20-entities/12-domain-views.md
+    - concept/50-walkthrough/16-example-walkthrough.md
   related_use_cases:
     - UC-01
     - UC-04
 ---
 
-# UC-05: Architektur-Vision einer Änderungsinitiative beschreiben
+# UC-05: Describe the Architecture Vision of a Change Initiative
 
-## Diagramm
+## Diagram
 
 ```plantuml
 @startuml UC-05-Solution
 left to right direction
 skinparam actorStyle awesome
 
-actor "Michael\n(Solution Architekt)" as Michael
+actor "Michael\n(Solution Architect)" as Michael
 actor "Kurt\n(Lead EA)" as Kurt
 
-rectangle "OEA – Architektur-Vision beschreiben" {
-  usecase "Solution anlegen" as UC_Create
-  usecase "Ausgangsbasis anzeigen\n(IT-Landschaft)" as UC_Base
-  usecase "Entity-Delta erfassen\n(new / modified / retiring)" as UC_Delta
-  usecase "Diff-Ansicht anzeigen\n(Ist → Ziel)" as UC_Diff
-  usecase "Konfliktwarnung\n(parallele Solutions)" as UC_Conflict
+rectangle "OEA – Describe Architecture Vision" {
+  usecase "Create Solution" as UC_Create
+  usecase "Show Baseline\n(IT Landscape)" as UC_Base
+  usecase "Capture Entity Delta\n(new / modified / retiring)" as UC_Delta
+  usecase "Show Diff View\n(Current → Target)" as UC_Diff
+  usecase "Conflict Warning\n(parallel Solutions)" as UC_Conflict
 }
 
 Michael --> UC_Create
@@ -61,191 +61,191 @@ UC_Delta ..> UC_Conflict : <<extend>>
 
 ## Goal in Context
 
-Wenn ein Unternehmen eine bestehende Lösung erweitern oder verändern will – ein neues Modul einführen, eine Schnittstelle ablösen, eine Plattform migrieren –, muss der Solution Architekt frühzeitig klären: Was ist der genaue Scope dieser Initiative? Welche Systemteile sind betroffen, welche nicht? Welcher Zielzustand soll erreicht werden?
+When a company wants to extend or change an existing solution – introduce a new module, replace an interface, migrate a platform – the solution architect must clarify early: What is the exact scope of this initiative? Which system parts are affected, which are not? Which target state is to be achieved?
 
-OEA löst dieses Problem, indem der Solution Architekt für eine Änderungsinitiative eine **Solution** anlegt und darin die **Architektur-Vision** beschreibt: den aktuellen Stand der betroffenen Systemlandschaft sowie die geplanten Änderungen (neue Entitäten, Modifikationen, Ausserbetriebnahmen). Das Ergebnis ist eine maschinenlesbare Scope-Abgrenzung, die als Grundlage für Reviews, Freigaben und Go-Live-Entscheidungen dient.
+OEA solves this problem by having the solution architect create a **Solution** for a change initiative and describe the **architecture vision** in it: the current state of the affected system landscape as well as the planned changes (new entities, modifications, decommissionings). The result is a machine-readable scope delimitation that serves as a basis for reviews, approvals and go-live decisions.
 
-## Persona und Story
+## Persona and Story
 
-**Primärer Akteur**: [Michael – Solution Architekt](../../business-analysis/stakeholders/SH-04-michael-solution-architekt.md)
-**Weitere Beteiligte**: [Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md) (Freigabe, nicht Teil dieses UC)
+**Primary Actor**: [Michael – Solution Architect](../../business-analysis/stakeholders/SH-04-michael-solution-architect.md)
+**Other Stakeholders**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md) (approval, not part of this UC)
 
-**Story**: Als Solution Architekt möchte ich für eine geplante Änderungsinitiative eine Architektur anlegen, in der ich den aktuellen Stand der betroffenen Systeme abbilde und die geplanten Änderungen beschreibe – damit der Scope klar abgegrenzt ist, alle Beteiligten dasselbe Bild haben und ein Review möglich ist.
+**Story**: As a solution architect, I want to create an architecture for a planned change initiative in which I depict the current state of the affected systems and describe the planned changes – so that the scope is clearly delimited, all stakeholders have the same picture and a review is possible.
 
 ## Trigger
 
-- Ein Projekt oder eine Initiative ist geplant, die bestehende Systeme erweitert, ablöst oder neu einführt
-- Michael wird beauftragt, die Architektur einer konkreten Lösung zu beschreiben
-- Eine bestehende Solution-Draft soll inhaltlich ausgearbeitet werden (Scope noch unklar)
+- A project or initiative is planned that extends, replaces or newly introduces existing systems
+- Michael is commissioned to describe the architecture of a specific solution
+- An existing solution draft is to be elaborated in content (scope still unclear)
 
-## Vorbedingungen (Pre-Conditions)
+## Preconditions
 
-- [ ] Michael ist eingeloggt (UC-01) und hat die Rolle „Solution-Architekt" oder eine Rolle mit entsprechender Berechtigung
-- [ ] Im Projekt-Modus: mindestens ein grundlegendes Verständnis der bestehenden IT-Landschaft liegt vor (implemented-Solutions oder manuelle Basisdaten)
-- [ ] Im Plateau-Modus (Alternative A1): ein Baseline-Plateau mit status=`baseline` existiert
+- [ ] Michael is logged in (UC-01) and has the role "Solution Architect" or a role with the corresponding permission
+- [ ] In project mode: at least a basic understanding of the existing IT landscape is available (implemented solutions or manual baseline data)
+- [ ] In plateau mode (alternative A1): a baseline plateau with status=`baseline` exists
 
-## Nachbedingungen (Post-Conditions)
+## Postconditions
 
-### Bei Erfolg
+### On Success
 
-- Eine [Solution](../../business-objects/solution.md) existiert mit status=`draft`
-- Die Solution enthält einen Architecture-Vision-Text (Name + Beschreibung: Ziel, Scope, Begründung)
-- Alle EntityDeltas sind erfasst (deltaType=`new`, `modified` oder `retiring`)
-- Die Diff-Ansicht zeigt den aktuellen Stand (betroffene Entitäten aus der Landschaft) dem Zielzustand (nach Anwendung der Deltas) gegenüber
-- `ownerId` der Solution ist auf Michael gesetzt; `createdAt` und `createdBy` sind gesetzt
+- A [Solution](../../business-objects/solution.md) exists with status=`draft`
+- The solution contains an architecture vision text (name + description: goal, scope, rationale)
+- All EntityDeltas are captured (deltaType=`new`, `modified` or `retiring`)
+- The diff view contrasts the current state (affected entities from the landscape) with the target state (after applying the deltas)
+- `ownerId` of the solution is set to Michael; `createdAt` and `createdBy` are set
 
-### Bei Misserfolg
+### On Failure
 
-- Kein neues Objekt wurde persistiert (oder bestehendes bleibt unverändert)
-- Fehlermeldung mit konkretem Hinweis (z.B. fehlende Berechtigung, Validierungsfehler)
+- No new object was persisted (or the existing one remains unchanged)
+- Error message with a concrete hint (e.g., missing permission, validation error)
 
-## Hauptablauf (Basic Flow)
+## Basic Flow
 
-*Standardfall: Michael legt eine neue Solution an und beschreibt die Architektur-Vision im Projekt-Modus (KMU)*
+*Default case: Michael creates a new solution and describes the architecture vision in project mode (SME)*
 
-1. **Michael**: navigiert zur Solution-Übersicht
-2. **System**: zeigt alle bestehenden Solutions mit Status und Owner
-3. **Michael**: klickt „Neue Solution anlegen"
-4. **System**: öffnet ein Erstellungsformular mit Feldern:
-   - Name (z.B. „ERP-Erweiterung Modul Logistics")
-   - Beschreibung / Architektur-Vision (Freitext: Ziel der Initiative, was und warum verändert wird)
-5. **Michael**: füllt das Formular aus und speichert
-6. **System**: legt die Solution im Status `draft` an; Michael ist `ownerId`
-7. **System**: zeigt die Solution-Detailansicht; Bereich „Architektur-Vision & Scope"
-8. **System**: zeigt den **aktuellen Stand** der IT-Landschaft als Ausgangsbasis:
-   - Projekt-Modus: alle Entitäten aus `implemented`-Solutions, aggregiert nach der Entity-ID
-   - Suchbar, filterbar nach Entitätstyp und Name
-9. **Michael**: identifiziert die betroffenen Entitäten und erfasst die **geplanten Änderungen** als EntityDeltas:
-   - a. **Entität wird modifiziert**: Michael wählt eine bestehende Entität → „Änderung erfassen" → beschreibt geänderte Properties → `deltaType=modified`
-   - b. **Entität geht ausser Betrieb**: Michael wählt eine bestehende Entität → „Ausser Betrieb nehmen" → `deltaType=retiring`
-   - c. **Neue Entität entsteht**: Michael klickt „Neue Entität" → gibt Typ, Name und Properties an → `deltaType=new`
-10. **System**: aktualisiert nach jedem Delta die **Diff-Ansicht** in Echtzeit:
-    - Links/Oben: betroffene Entitäten im aktuellen Stand (aus der Landschaft)
-    - Rechts/Unten: Zielzustand nach Anwendung der Deltas (retiring ausgegraut, modified mit Änderung, new hervorgehoben)
-11. **Michael**: prüft die Diff-Ansicht; der Scope der Initiative ist klar abgegrenzt
-12. **Michael**: speichert abschliessend → Architecture Vision ist vollständig erfasst; Solution verbleibt im Status `draft`
+1. **Michael**: navigates to the solution overview
+2. **System**: shows all existing solutions with status and owner
+3. **Michael**: clicks "Create new solution"
+4. **System**: opens a creation form with fields:
+   - Name (e.g., "ERP Extension Logistics Module")
+   - Description / architecture vision (free text: goal of the initiative, what is changed and why)
+5. **Michael**: fills in the form and saves
+6. **System**: creates the solution in status `draft`; Michael is `ownerId`
+7. **System**: shows the solution detail view; section "Architecture Vision & Scope"
+8. **System**: shows the **current state** of the IT landscape as the baseline:
+   - Project mode: all entities from `implemented` solutions, aggregated by entity ID
+   - Searchable, filterable by entity type and name
+9. **Michael**: identifies the affected entities and captures the **planned changes** as EntityDeltas:
+   - a. **Entity is modified**: Michael selects an existing entity → "Capture change" → describes changed properties → `deltaType=modified`
+   - b. **Entity is decommissioned**: Michael selects an existing entity → "Decommission" → `deltaType=retiring`
+   - c. **New entity arises**: Michael clicks "New entity" → specifies type, name and properties → `deltaType=new`
+10. **System**: updates the **diff view** in real time after each delta:
+    - Left/top: affected entities in the current state (from the landscape)
+    - Right/bottom: target state after applying the deltas (retiring grayed out, modified with change, new highlighted)
+11. **Michael**: reviews the diff view; the scope of the initiative is clearly delimited
+12. **Michael**: saves finally → architecture vision is completely captured; solution remains in status `draft`
 
-## Alternative Abläufe (Alternative Flows)
+## Alternative Flows
 
-**A1 – Plateau-Modus (Enterprise)**:
-Wenn die Instanz im Plateau-Modus arbeitet:
-1. Schritt 4: Formular enthält zusätzlich die Felder `fromPlateau` (Dropdown: bestehende Plateaus mit status=`baseline`) und `toPlateau` (Dropdown: Plateaus mit status=`target`; oder „Neues Ziel-Plateau anlegen")
-2. Schritt 8: System zeigt als aktuellen Stand die Entitäten des `fromPlateau` (inkl. aller geerbten Entitäten)
-3. EntityDeltas beschreiben den Delta vom Baseline- zum Target-Plateau
-4. Ansonsten identischer Ablauf
+**A1 – Plateau mode (enterprise)**:
+If the instance works in plateau mode:
+1. Step 4: The form additionally contains the fields `fromPlateau` (dropdown: existing plateaus with status=`baseline`) and `toPlateau` (dropdown: plateaus with status=`target`; or "Create new target plateau")
+2. Step 8: System shows the entities of the `fromPlateau` (including all inherited entities) as the current state
+3. EntityDeltas describe the delta from the baseline plateau to the target plateau
+4. Otherwise identical flow
 
-**A2 – Bestehende Solution-Draft weiterbearbeiten**:
-Wenn für die Initiative bereits eine Solution-Draft angelegt wurde, aber der Scope noch nicht ausgearbeitet ist:
-1. Michael öffnet die bestehende Solution über die Solution-Übersicht
-2. Weiter mit Schritt 7 des Hauptablaufs
+**A2 – Continue editing an existing solution draft**:
+If a solution draft has already been created for the initiative, but the scope has not yet been elaborated:
+1. Michael opens the existing solution via the solution overview
+2. Continue with step 7 of the basic flow
 
-**A3 – Entitäten aus aktueller Landschaft direkt in Scope aufnehmen**:
-Wenn viele Entitäten betroffen sind:
-1. Michael wählt in Schritt 8 mehrere Entitäten per Mehrfachauswahl
-2. Michael wählt für die Gesamtauswahl den Delta-Typ (z.B. alle als `modified` vormarkieren)
-3. Michael verfeinert danach jeden Delta einzeln
-4. System validiert und übernimmt alle Deltas
+**A3 – Include entities from the current landscape directly in scope**:
+If many entities are affected:
+1. In step 8, Michael selects several entities via multi-select
+2. For the whole selection, Michael chooses the delta type (e.g., pre-mark all as `modified`)
+3. Michael then refines each delta individually
+4. System validates and accepts all deltas
 
-## Ausnahmen / Fehlerfälle (Exception Flows)
+## Exception Flows
 
-**E1 – EntityDelta-Konflikt mit paralleler Solution**:
-- Bedingung: Eine andere Solution (status≠`implemented`, ≠`archived`) enthält bereits ein EntityDelta für dieselbe Entität
-- Erwartete Reaktion: System zeigt Warnung mit Verweis auf die konkurrierende Solution und deren Owner; Erfassen des Deltas ist dennoch möglich
-- Wiederaufnahme: Auflösung erfolgt im Review-Prozess; Michael kann den Conflict-Hinweis im Delta vermerken
+**E1 – EntityDelta conflict with parallel solution**:
+- Condition: Another solution (status≠`implemented`, ≠`archived`) already contains an EntityDelta for the same entity
+- Expected reaction: System shows a warning with a reference to the competing solution and its owner; capturing the delta is nevertheless possible
+- Resumption: Resolution takes place in the review process; Michael can note the conflict hint in the delta
 
-**E2 – Leere Landschaft (Projekt-Modus, noch keine implemented-Solutions)**:
-- Bedingung: Im Projekt-Modus existieren noch keine `implemented`-Solutions → die aggregierte Landschaft ist leer
-- Erwartete Reaktion: System zeigt einen Hinweis „Die Landschaft enthält noch keine realisierten Entitäten. Du kannst ausschliesslich neue Entitäten anlegen (deltaType=new)."; Felder für `modified` und `retiring` sind deaktiviert
-- Wiederaufnahme: Michael legt ausschliesslich neue Entitäten an
+**E2 – Empty landscape (project mode, no implemented solutions yet)**:
+- Condition: In project mode, no `implemented` solutions exist yet → the aggregated landscape is empty
+- Expected reaction: System shows a notice "The landscape does not contain any realized entities yet. You can only create new entities (deltaType=new)."; fields for `modified` and `retiring` are disabled
+- Resumption: Michael creates only new entities
 
-**E3 – Entität im aktuellen Stand nicht auffindbar**:
-- Bedingung: Michael sucht nach einer Entität, die in der Landschaft nicht vorhanden ist (z.B. noch nicht in OEA erfasst)
-- Erwartete Reaktion: Suchergebnis leer; System schlägt vor, die Entität als `deltaType=new` anzulegen oder zunächst im Basisdatenbestand zu erfassen
-- Wiederaufnahme: Michael legt sie als neue Entität an oder bricht ab und klärt, ob die Entität erst importiert werden muss
+**E3 – Entity not found in the current state**:
+- Condition: Michael searches for an entity that is not present in the landscape (e.g., not yet captured in OEA)
+- Expected reaction: Search result empty; system suggests creating the entity as `deltaType=new` or capturing it in the baseline data first
+- Resumption: Michael creates it as a new entity or cancels and clarifies whether the entity first needs to be imported
 
-**E4 – Fehlende Berechtigung**:
-- Bedingung: Michael hat nicht die Rolle „Solution-Architekt" oder eine vergleichbare Berechtigung
-- Erwartete Reaktion: 403 Forbidden mit konkreter Fehlermeldung; kein Datenzugriff
-- Wiederaufnahme: Michael wendet sich an Admin (UC-02)
+**E4 – Missing permission**:
+- Condition: Michael does not have the role "Solution Architect" or a comparable permission
+- Expected reaction: 403 Forbidden with a concrete error message; no data access
+- Resumption: Michael contacts the admin (UC-02)
 
-## Datenfluss
+## Data Flow
 
-| Schritt | Daten | Richtung | Bemerkung |
+| Step | Data | Direction | Remark |
 |---|---|---|---|
-| 4–5 | Name, Beschreibung (Architecture-Vision-Text) | Michael → System | Freitext; keine Struktur erzwungen |
-| 8 | Entitätsliste des aktuellen Stands | System → Michael | Aggregiert aus implemented-Solutions (Projekt) oder fromPlateau (Plateau) |
-| 9a–c | EntityDelta (entityId, deltaType, changes) | Michael → System | Werteobjekt; kein eigenes BO |
-| 10 | Diff-Ansicht (aktueller Stand vs. Zielzustand) | System → Michael | Liveberechnung; nicht persistiert |
-| 12 | Solution (status=draft, mit Deltas) | System intern | Persistiert |
+| 4–5 | Name, description (architecture vision text) | Michael → System | Free text; no structure enforced |
+| 8 | Entity list of the current state | System → Michael | Aggregated from implemented solutions (project) or fromPlateau (plateau) |
+| 9a–c | EntityDelta (entityId, deltaType, changes) | Michael → System | Value object; no BO of its own |
+| 10 | Diff view (current state vs. target state) | System → Michael | Live calculation; not persisted |
+| 12 | Solution (status=draft, with deltas) | System internal | Persisted |
 
-## Beteiligte Business Objects
+## Involved Business Objects
 
-| Business Object | Operation | Notiz |
+| Business Object | Operation | Note |
 |---|---|---|
-| [solution](../../business-objects/solution.md) | create, update | Kern-Objekt: Name, Beschreibung, EntityDeltas, status=draft |
-| [architecture](../../business-objects/architecture.md) | read | Domänenmodell-Übersicht; Entitätsliste für Ausgangsbasis |
-| [person](../../business-objects/person.md) | read | Authentifizierung; `ownerId` und `createdBy` |
-| [role](../../business-objects/role.md) | read | Berechtigungsprüfung: Solution-Architekt-Rolle |
+| [solution](../../business-objects/solution.md) | create, update | Core object: name, description, EntityDeltas, status=draft |
+| [architecture](../../business-objects/architecture.md) | read | Domain model overview; entity list for the baseline |
+| [person](../../business-objects/person.md) | read | Authentication; `ownerId` and `createdBy` |
+| [role](../../business-objects/role.md) | read | Permission check: Solution Architect role |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] Solution mit Name und Architecture-Vision-Text (Beschreibung) anlegbar
-- [ ] Aktueller Stand der Landschaft wird als Ausgangsbasis angezeigt: Projekt-Modus = Summe aller `implemented`-Solutions; Plateau-Modus = Entitäten des `fromPlateau`
-- [ ] EntityDeltas aller drei Typen (`new`, `modified`, `retiring`) sind erfassbar
-- [ ] Diff-Ansicht zeigt betroffene Entitäten: aktueller Stand links/oben, Zielzustand rechts/unten; Änderungen visuell unterscheidbar
-- [ ] E1: Bei überschneidendem EntityDelta mit einer anderen Solution erscheint eine Warnung (nicht blockierend)
-- [ ] E2: Bei leerer Landschaft erscheint ein erklärender Hinweis; `modified` und `retiring` sind deaktiviert
-- [ ] A1: Im Plateau-Modus dienen Entitäten des `fromPlateau` als Ausgangsbasis; `toPlateauId` ist wählbar
-- [ ] E4: Zugriff ohne Berechtigung wird mit 403 abgelehnt; kein Datenleck
+- [ ] Solution can be created with name and architecture vision text (description)
+- [ ] The current state of the landscape is shown as the baseline: project mode = sum of all `implemented` solutions; plateau mode = entities of the `fromPlateau`
+- [ ] EntityDeltas of all three types (`new`, `modified`, `retiring`) can be captured
+- [ ] Diff view shows affected entities: current state left/top, target state right/bottom; changes visually distinguishable
+- [ ] E1: In case of an overlapping EntityDelta with another solution, a warning appears (non-blocking)
+- [ ] E2: With an empty landscape, an explanatory notice appears; `modified` and `retiring` are disabled
+- [ ] A1: In plateau mode, entities of the `fromPlateau` serve as the baseline; `toPlateauId` is selectable
+- [ ] E4: Access without permission is rejected with 403; no data leak
 
-## Nicht im Scope
+## Out of Scope
 
-- **Status-Übergänge der Solution** (draft → proposed → approved → in-progress): das ist ein Review- und Freigabeprozess; separater Use Case
-- **Go-Live-Prozess** (Solution als `implemented` abschließen, Plateau-Übergang auslösen): künftiger UC (Nummer TBD)
-- **Plateau anlegen und verwalten**: künftiger UC (Nummer TBD)
-- **Metamodell-Erweiterung auf Solution-Scope** (Custom EntityTypes nur für diese Solution): UC-04 / REQ-037
-- **Solution löschen oder archivieren**: separater UC oder Admin-Funktion
-- **Kollisions-Auflösung bei parallelen Solutions**: Review-Prozess (nach diesem UC)
-- **XMI/Sparx-Import** (Entitäten aus bestehenden Modellen importieren): eigene Integrationskomponente (§§ Integrations-Kapitel)
-- **Diagramm-Ausgabe der Diff-Ansicht**: Visualisierungs-UC; die Diff-Ansicht hier ist funktional, nicht final gestaltet
+- **Status transitions of the solution** (draft → proposed → approved → in-progress): this is a review and approval process; separate use case
+- **Go-live process** (completing the solution as `implemented`, triggering the plateau transition): future UC (number TBD)
+- **Creating and managing plateaus**: future UC (number TBD)
+- **Metamodel extension to solution scope** (custom EntityTypes only for this solution): UC-04 / REQ-037
+- **Deleting or archiving a solution**: separate UC or admin function
+- **Conflict resolution for parallel solutions**: review process (after this UC)
+- **XMI/Sparx import** (importing entities from existing models): separate integration component (§§ integration chapters)
+- **Diagram output of the diff view**: visualization UC; the diff view here is functional, not finally designed
 
-## Konzept-Bezüge
+## Concept References
 
-- [§6 Kern-Entitätstypen](../../concept/20-entities/06-kern-entitaetstypen.md) – EntityTypes die in Deltas verwendet werden
-- [§11 Temporales Modell](../../concept/20-entities/11-temporales-modell.md) – Aktueller Stand vs. Zielzustand; Plateau-Zeitfenster
-- [§12 Domain-Sichten](../../concept/20-entities/12-domain-sichten.md) – Scope-Abgrenzung als Domain-View-Konzept
-- [§16 Beispiel-Walkthrough](../../concept/50-walkthrough/16-beispiel-walkthrough.md) – End-to-End-Beispiel mit Solution und EntityDeltas
+- [§6 Core Entity Types](../../concept/20-entities/06-core-entity-types.md) – EntityTypes used in deltas
+- [§11 Temporal Model](../../concept/20-entities/11-temporal-model.md) – Current state vs. target state; plateau time windows
+- [§12 Domain Views](../../concept/20-entities/12-domain-views.md) – Scope delimitation as a domain view concept
+- [§16 Example Walkthrough](../../concept/50-walkthrough/16-example-walkthrough.md) – End-to-end example with solution and EntityDeltas
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Diff-Berechnung: zustandslos, serverseitig berechnet aus `EntityDelta[]` + Landschafts-Snapshot; nicht persistiert
-- EntityDelta-Konflikt-Erkennung: bei jeder Delta-Speicherung prüfen, ob eine andere nicht-archivierte Solution ein Delta für dieselbe `entityId` enthält; nur Warnung, kein Block
-- Aggregierter Ist-Stand (Projekt-Modus): `SELECT DISTINCT entity_id FROM entity_deltas WHERE solution.status = 'implemented'`; bei mehrfachem `modified`-Delta auf dieselbe Entität gilt der zuletzt implementierte Stand
-- Projekt-Modus und Plateau-Modus sollten über denselben UI-Flow bedient werden; Plateau-Felder werden nur eingeblendet wenn die Instanz im Plateau-Modus konfiguriert ist
+- Diff calculation: stateless, calculated server-side from `EntityDelta[]` + landscape snapshot; not persisted
+- EntityDelta conflict detection: on every delta save, check whether another non-archived solution contains a delta for the same `entityId`; warning only, no block
+- Aggregated current state (project mode): `SELECT DISTINCT entity_id FROM entity_deltas WHERE solution.status = 'implemented'`; with multiple `modified` deltas on the same entity, the most recently implemented state applies
+- Project mode and plateau mode should be served by the same UI flow; plateau fields are shown only if the instance is configured in plateau mode
 
-## Realisierende Bestandteile
+## Realizing Components
 
-- Requirements: [REQ-038](../req/REQ-038-solution-anlegen.md), [REQ-039](../req/REQ-039-landschaft-ausgangsbasis.md), [REQ-040](../req/REQ-040-entity-deltas-erfassen.md), [REQ-041](../req/REQ-041-diff-ansicht.md), [REQ-042](../req/REQ-042-konflikt-warnung-parallele-solutions.md)
-- User Stories: [US-038](../user-stories/US-038-solution-anlegen.md), [US-039](../user-stories/US-039-landschaft-ausgangsbasis-anzeigen.md), [US-040](../user-stories/US-040-delta-neue-entitaet.md), [US-041](../user-stories/US-041-delta-modified.md), [US-042](../user-stories/US-042-delta-retiring.md), [US-043](../user-stories/US-043-diff-ansicht.md), [US-044](../user-stories/US-044-konflikt-warnung.md)
+- Requirements: [REQ-038](../req/REQ-038-create-solution.md), [REQ-039](../req/REQ-039-landscape-baseline.md), [REQ-040](../req/REQ-040-capture-entity-deltas.md), [REQ-041](../req/REQ-041-diff-view.md), [REQ-042](../req/REQ-042-conflict-warning-parallel-solutions.md)
+- User Stories: [US-038](../user-stories/US-038-create-solution.md), [US-039](../user-stories/US-039-show-landscape-baseline.md), [US-040](../user-stories/US-040-delta-new-entity.md), [US-041](../user-stories/US-041-delta-modified.md), [US-042](../user-stories/US-042-delta-retiring.md), [US-043](../user-stories/US-043-diff-view.md), [US-044](../user-stories/US-044-conflict-warning.md)
 - ADRs: –
-- Test Cases: noch keine
-- Implementation: noch keine
+- Test Cases: none yet
+- Implementation: none yet
 
-## Offene Fragen
+## Open Questions
 
-- [ ] Wie wird der „aktuelle Stand" beim ersten Aufruf berechnet, wenn Entitäten noch nicht in OEA modelliert sind, sondern nur in Sparx oder einem anderen Tool vorliegen? (Abhängigkeit: Import-UC / XMI-Integration)
-- [ ] Soll die Diff-Ansicht exportierbar sein (z.B. als PDF oder Markdown für Stakeholder-Präsentationen)? Oder ist das ein separater Export-UC?
-- [ ] Braucht jedes EntityDelta eine optionale Begründung (Freitext „Warum diese Änderung?")? Das wäre wertvoll für Reviews, aber erhöht den Erfassungsaufwand.
-- [ ] Soll `deltaType=modified` die vorherigen Property-Werte automatisch aus der Landschaft vorbelegen (Before-State), oder gibt Michael beide Zustände manuell ein?
+- [ ] How is the "current state" calculated on first access if entities are not yet modeled in OEA but only exist in Sparx or another tool? (Dependency: import UC / XMI integration)
+- [ ] Should the diff view be exportable (e.g., as PDF or Markdown for stakeholder presentations)? Or is this a separate export UC?
+- [ ] Does each EntityDelta need an optional rationale (free text "Why this change?")? That would be valuable for reviews, but increases the capture effort.
+- [ ] Should `deltaType=modified` automatically prefill the previous property values from the landscape (before state), or does Michael enter both states manually?
 
-## Notizen
+## Notes
 
-UC-05 ist bewusst auf den Erfassungs-Workflow begrenzt: Solution anlegen, Architecture Vision beschreiben, EntityDeltas erfassen. Der anschliessende Review-/Freigabe-Workflow (proposed → approved) und der Go-Live-Prozess (implemented + Plateau-Übergang) sind separate Use Cases, da sie eigene Akteure (Lead EA, Betreiber) und Entscheidungsschritte involvieren.
+UC-05 is deliberately limited to the capture workflow: create solution, describe architecture vision, capture EntityDeltas. The subsequent review/approval workflow (proposed → approved) and the go-live process (implemented + plateau transition) are separate use cases, since they involve their own actors (Lead EA, operator) and decision steps.
 
-Der Projekt-Modus (KMU) ist der Hauptablauf, weil er der einfachere Einstieg ist und die grössere Zielgruppe anspricht. Der Plateau-Modus ist Alternative A1, setzt aber auf denselben technischen Mechanismus (EntityDelta); nur der Ausgangspunkt der Landschaft ist unterschiedlich.
+Project mode (SME) is the basic flow because it is the simpler entry point and addresses the larger target group. Plateau mode is alternative A1, but relies on the same technical mechanism (EntityDelta); only the starting point of the landscape differs.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft |

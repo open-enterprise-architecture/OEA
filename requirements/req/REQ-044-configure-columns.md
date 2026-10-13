@@ -1,6 +1,6 @@
 ---
 id: REQ-044
-title: Spalten eines Katalogs konfigurieren
+title: Configure the columns of a catalog
 type: functional
 priority: must
 status: proposed
@@ -19,95 +19,95 @@ references:
     - SH-03
     - SH-07
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
+    - concept/20-entities/06-core-entity-types.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-044: Spalten eines Katalogs konfigurieren
+# REQ-044: Configure the columns of a catalog
 
-## Aussage
+## Statement
 
-Das System MUSS dem Katalog-Manager ermöglichen, die `columns`-Liste eines [Catalogs](../../business-objects/catalog.md) zu definieren und zu aktualisieren. Jeder `ColumnConfig`-Eintrag legt für ein Attribut des `primaryEntityType` fest: `attributeName` (Pflicht, muss ein gültiges Attribut des Typs sein), `displayLabel` (optional; Default = attributeName), `visible` (boolean, Default: true), `sortOrder` (integer, 0-basiert) und `sortable` (boolean, Default: true). Mind. eine Spalte mit `visible=true` MUSS jederzeit vorhanden sein.
+The system MUST allow the catalog manager to define and update the `columns` list of a [Catalog](../../business-objects/catalog.md). Each `ColumnConfig` entry defines for an attribute of the `primaryEntityType`: `attributeName` (mandatory, must be a valid attribute of the type), `displayLabel` (optional; default = attributeName), `visible` (boolean, default: true), `sortOrder` (integer, 0-based), and `sortable` (boolean, default: true). At least one column with `visible=true` MUST be present at all times.
 
-## Begründung
+## Rationale
 
-Ohne Spalten-Konfiguration liefert ein Catalog entweder alle oder keine Attribute. Beides ist unpraktisch: Zu viele Spalten überfordern den Besucher; zu wenige geben keinen Mehrwert. Die gezielte Spaltenauswahl mit anpassbarem Label und fixer Reihenfolge ist das primäre Differenzierungsmerkmal eines Catalogs gegenüber einer generischen Entitätsliste.
+Without column configuration, a catalog delivers either all or no attributes. Both are impractical: too many columns overwhelm the viewer; too few add no value. The targeted column selection with customizable label and fixed order is the primary differentiator of a catalog compared to a generic entity list.
 
-## Kontext
+## Context
 
-Attribute des `primaryEntityType` stammen aus zwei Quellen: (a) Built-in-Attribute aller EntityTypes (z.B. `id`, `name`, `createdAt`, `status`) und (b) Custom-Attribute aus der EntityTypeDefinition in der MetamodelConfiguration (z.B. `vendor`, `supportEndDate`). Beide sind in der Spalten-Konfiguration nutzbar.
+Attributes of the `primaryEntityType` come from two sources: (a) built-in attributes of all EntityTypes (e.g., `id`, `name`, `createdAt`, `status`) and (b) custom attributes from the EntityTypeDefinition in the MetamodelConfiguration (e.g., `vendor`, `supportEndDate`). Both can be used in the column configuration.
 
-Die Spalten-Konfiguration kann vollständig ersetzt werden (PUT) oder einzeln ergänzt/geändert werden (PATCH). Beim Aktualisieren müssen bestehende SavedViews, die sich auf gelöschte Spalten beziehen, bereinigt werden (die betroffenen Spalten aus den `columnOrder`-Listen der SavedViews entfernen).
+The column configuration can be replaced completely (PUT) or supplemented/changed individually (PATCH). On update, existing SavedViews that refer to deleted columns must be cleaned up (remove the affected columns from the `columnOrder` lists of the SavedViews).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben** (Spalten-Konfiguration via PUT):
+**Inputs** (column configuration via PUT):
 
-| Feld | Typ | Optional | Beschreibung |
+| Field | Type | Optional | Description |
 |---|---|---|---|
-| columns | ColumnConfig[] | Pflicht | Vollständige neue Spalten-Liste |
-| columns[].attributeName | string | Pflicht | Attributname aus dem primaryEntityType (built-in oder custom) |
-| columns[].displayLabel | string | optional | Überschreibt Spalten-Header; Default = attributeName |
+| columns | ColumnConfig[] | mandatory | Complete new column list |
+| columns[].attributeName | string | mandatory | Attribute name from the primaryEntityType (built-in or custom) |
+| columns[].displayLabel | string | optional | Overrides the column header; default = attributeName |
 | columns[].visible | boolean | optional | Default: true |
-| columns[].sortOrder | integer | Pflicht | Reihenfolge (0 = erste Spalte) |
+| columns[].sortOrder | integer | mandatory | Order (0 = first column) |
 | columns[].sortable | boolean | optional | Default: true |
-| columns[].defaultSortDirection | enum | optional | `asc` oder `desc`; null = keine Default-Sortierung |
+| columns[].defaultSortDirection | enum | optional | `asc` or `desc`; null = no default sorting |
 
-**Verarbeitung**:
+**Processing**:
 
-1. Jedes `attributeName` gegen den EntityType in der MetamodelConfiguration validieren; 422 bei unbekanntem Attribut
-2. Prüfen: mind. ein Eintrag mit `visible=true`; sonst 422
-3. `sortOrder` auf Eindeutigkeit prüfen (keine doppelten Positionen); optional: automatisch renummerieren
-4. Existierende SavedViews inspizieren: `columnOrder`-Einträge, die auf jetzt fehlende Attributnamen verweisen, entfernen; Manager im Response mit Warning-Liste informieren
+1. Validate each `attributeName` against the EntityType in the MetamodelConfiguration; 422 on unknown attribute
+2. Check: at least one entry with `visible=true`; otherwise 422
+3. Check `sortOrder` for uniqueness (no duplicate positions); optional: renumber automatically
+4. Inspect existing SavedViews: remove `columnOrder` entries that refer to now-missing attribute names; inform the manager in the response with a warning list
 
-**Ausgaben**:
+**Outputs**:
 
-- HTTP 200 OK mit dem aktualisierten Catalog-Objekt; optionales Feld `warnings: [{type: "savedViewColumnRemoved", savedViewId, removedColumns: [...]}]`
-- HTTP 422 Unprocessable Entity bei Validierungsfehlern
-- HTTP 403 Forbidden bei fehlender Schreibberechtigung
+- HTTP 200 OK with the updated catalog object; optional field `warnings: [{type: "savedViewColumnRemoved", savedViewId, removedColumns: [...]}]`
+- HTTP 422 Unprocessable Entity on validation errors
+- HTTP 403 Forbidden on missing write permission
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Spalten setzen, Happy Path):
-- Gegeben: Catalog „Application Inventory" mit primaryEntityType=ApplicationComponent
-- Wenn: PUT `/api/v1/catalogs/{id}/columns` mit `[{attributeName: "name", sortOrder: 0}, {attributeName: "status", sortOrder: 1, displayLabel: "Betriebsstatus"}]`
-- Dann: HTTP 200; Catalog hat 2 Spalten; zweite Spalte hat displayLabel „Betriebsstatus"
+**AC1** (Set columns, happy path):
+- Given: catalog "Application Inventory" with primaryEntityType=ApplicationComponent
+- When: PUT `/api/v1/catalogs/{id}/columns` with `[{attributeName: "name", sortOrder: 0}, {attributeName: "status", sortOrder: 1, displayLabel: "Operating status"}]`
+- Then: HTTP 200; the catalog has 2 columns; the second column has displayLabel "Operating status"
 
-**AC2** (Ungültiges Attribut):
-- Gegeben: ApplicationComponent kennt kein Attribut `nonExistingField`
-- Wenn: PUT mit `attributeName: "nonExistingField"`
-- Dann: HTTP 422 „Das Attribut ‹nonExistingField› ist für den Typ ‹ApplicationComponent› nicht definiert"
+**AC2** (Invalid attribute):
+- Given: ApplicationComponent has no attribute `nonExistingField`
+- When: PUT with `attributeName: "nonExistingField"`
+- Then: HTTP 422 "The attribute ‹nonExistingField› is not defined for the type ‹ApplicationComponent›"
 
-**AC3** (Keine sichtbare Spalte):
-- Wenn: PUT mit ausschliesslich `visible: false`-Einträgen
-- Dann: HTTP 422 „Mind. eine Spalte muss sichtbar sein"
+**AC3** (No visible column):
+- When: PUT with `visible: false` entries only
+- Then: HTTP 422 "At least one column must be visible"
 
-**AC4** (SavedView bereinigung):
-- Gegeben: SavedView „Kompaktansicht" enthält `columnOrder: ["name", "vendor"]`; Spalte „vendor" wird aus columns entfernt
-- Wenn: PUT ohne `vendor`-Spalte
-- Dann: HTTP 200; Response enthält `warnings: [{type: "savedViewColumnRemoved", savedViewId: "...", removedColumns: ["vendor"]}]`; SavedView `columnOrder` ist auf `["name"]` bereinigt
+**AC4** (SavedView cleanup):
+- Given: SavedView "Compact view" contains `columnOrder: ["name", "vendor"]`; column "vendor" is removed from columns
+- When: PUT without the `vendor` column
+- Then: HTTP 200; response contains `warnings: [{type: "savedViewColumnRemoved", savedViewId: "...", removedColumns: ["vendor"]}]`; SavedView `columnOrder` is cleaned up to `["name"]`
 
-**AC5** (Reihenfolge):
-- Wenn: Spalten mit sortOrder [2, 0, 1] gesendet werden
-- Dann: System ordnet Spalten nach sortOrder; erste angezeigte Spalte ist jene mit sortOrder=0
+**AC5** (Order):
+- When: columns with sortOrder [2, 0, 1] are sent
+- Then: the system orders columns by sortOrder; the first displayed column is the one with sortOrder=0
 
-## Abhängigkeiten
+## Dependencies
 
-- Blockiert durch: REQ-043 (Catalog muss existieren)
-- Ermöglicht: REQ-046 (Spalten fliessen in Abfrage-Response ein)
+- Blocked by: REQ-043 (the catalog must exist)
+- Enables: REQ-046 (columns flow into the query response)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
 - Endpoint: `PUT /api/v1/catalogs/{id}/columns`
-- Attributvalidierung: EntityType-Attributliste aus MetamodelConfiguration laden; built-in-Attribute (`id`, `name`, `createdAt`, `status`, `description`) immer verfügbar
-- SavedView-Bereinigung: beim Entfernen von Spalten synchron ausführen; kein separater Hintergrundprozess nötig
+- Attribute validation: load the EntityType attribute list from the MetamodelConfiguration; built-in attributes (`id`, `name`, `createdAt`, `status`, `description`) always available
+- SavedView cleanup: execute synchronously when removing columns; no separate background process needed
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft |

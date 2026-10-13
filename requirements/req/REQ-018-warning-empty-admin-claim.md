@@ -1,6 +1,6 @@
 ---
 id: REQ-018
-title: Warnung bei leerem oder nicht-existierendem Remote-Admin-Claim
+title: Warning on empty or non-existent remote admin claim
 type: functional
 priority: should
 status: proposed
@@ -17,95 +17,95 @@ references:
   stakeholders:
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-018: Warnung bei leerem oder nicht-existierendem Remote-Admin-Claim
+# REQ-018: Warning on empty or non-existent remote admin claim
 
-## Aussage
+## Statement
 
-Das System SOLL beim Konfigurieren eines Remote-Bootstrapping-Mappings (REQ-014) warnen, wenn die angegebene Gruppe/Rolle beim Identity-Provider zum Konfigurationszeitpunkt prüfbar nicht existiert oder keine Mitglieder hat.
+When configuring a remote bootstrapping mapping (REQ-014), the system SHOULD warn if the specified group/role verifiably does not exist at the identity provider at configuration time or has no members.
 
-## Begründung
+## Rationale
 
-Ein Mapping auf eine leere oder nicht-existierende Gruppe würde dazu führen, dass niemand über diesen Weg System-Admin-Rechte erhält – ein Lockout-Risiko, falls dies der einzige konfigurierte Zugang ist. UC-02, Exception Flow E2.
+A mapping to an empty or non-existent group would mean that nobody receives system admin permissions via this path – a lockout risk if this is the only configured access. UC-02, Exception Flow E2.
 
-## Kontext
+## Context
 
-Greift während der Konfiguration des Remote-Mappings (UC-02, A1, Schritt 2), nicht erst beim späteren Login-Versuch.
+Takes effect during configuration of the remote mapping (UC-02, A1, step 2), not only at a later login attempt.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- Konfigurierte Provider-, Claim-Typ- und Claim-Wert-Angabe für das Remote-Mapping
+**Inputs**:
+- Configured provider, claim type, and claim value for the remote mapping
 
-**Verarbeitung**:
-- Soweit technisch möglich (abhängig von Provider-API-Zugriff): Prüfung, ob die angegebene Gruppe/Rolle existiert und mindestens ein Mitglied hat
-- Anzeige einer Warnung, falls die Prüfung negativ ausfällt oder nicht durchführbar ist
+**Processing**:
+- Where technically possible (depending on provider API access): check whether the specified group/role exists and has at least one member
+- Display a warning if the check is negative or cannot be performed
 
-**Ausgaben**:
-- Warnung an den Operator (Max), verbunden mit dem Hinweis, den lokalen Bootstrapping-Weg (REQ-013) zusätzlich aktiv zu halten
+**Outputs**:
+- Warning to the operator (Max), together with the advice to additionally keep the local bootstrapping path (REQ-013) active
 
-**Fehlerfälle**:
-- Provider-API für die Prüfung nicht erreichbar → Warnung wird als "Prüfung nicht möglich" ausgegeben, Konfiguration wird nicht blockiert (kein Hard-Stop)
+**Error Cases**:
+- Provider API for the check unreachable → warning is output as "check not possible", configuration is not blocked (no hard stop)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein Remote-Mapping auf eine zum Konfigurationszeitpunkt leere oder nicht existierende Gruppe
-- Wenn: Max die Konfiguration speichert
-- Dann: erhält er eine Warnung, dass dieses Mapping aktuell niemandem Zugriff verleiht
+- Given: a remote mapping to a group that is empty or non-existent at configuration time
+- When: Max saves the configuration
+- Then: he receives a warning that this mapping currently grants nobody access
 
 **AC2**:
-- Gegeben: dieselbe Situation
-- Wenn: Max die Warnung zur Kenntnis nimmt
-- Dann: kann er die Konfiguration trotzdem speichern (kein Hard-Block), idealerweise mit aktivem lokalem Fallback (REQ-013)
+- Given: the same situation
+- When: Max acknowledges the warning
+- Then: he can still save the configuration (no hard block), ideally with an active local fallback (REQ-013)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Konfiguration eines Mappings gegen einen Test-IdP mit leerer/nicht-existierender Gruppe
-- [x] Mess-Werkzeug: Test-Suite des Auth-Moduls
-- [x] Bestanden-Kriterium: AC1, AC2 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: configure a mapping against a test IdP with an empty/non-existent group
+- [x] Measurement tool: test suite of the auth module
+- [x] Pass criterion: AC1, AC2 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-014
-- **Folgewirkungen**: keine bekannt
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-014
+- **Downstream effects**: none known
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne Warnung könnte ein Operator versehentlich die Instanz so konfigurieren, dass niemand mehr System-Admin-Zugriff über den Remote-Weg erhält – mittlerer Schweregrad, abgefedert durch REQ-013 als Fallback
+- Risk 1: Without a warning, an operator could accidentally configure the instance so that nobody gets system admin access via the remote path anymore – medium severity, mitigated by REQ-013 as a fallback
 
 ## Trade-offs
 
-- vs. Implementierungsaufwand: eine verlässliche Prüfung erfordert Provider-spezifische API-Zugriffe (z.B. Microsoft Graph für Entra ID), die über reine OIDC-Standardkonformität hinausgehen
+- vs. implementation effort: a reliable check requires provider-specific API access (e.g., Microsoft Graph for Entra ID) that goes beyond plain OIDC standards compliance
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Prüfung ist Best-Effort, kein verpflichtender Hard-Block, da nicht jeder Provider eine entsprechende Abfrage-API bereitstellt
+- The check is best-effort, not a mandatory hard block, since not every provider offers a corresponding query API
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-02, Exception Flow E2.
+Derived from UC-02, Exception Flow E2.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft aus UC-02 |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-02 |

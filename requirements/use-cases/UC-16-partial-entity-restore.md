@@ -1,6 +1,6 @@
 ---
 id: UC-16
-title: Entität teilweise wiederherstellen
+title: Partially Restore an Entity
 status: draft
 priority: should
 target_release: v1.0
@@ -17,17 +17,17 @@ references:
     - person
     - role
   adrs:
-    - adrs/ADR-016-persistenz-strategie.md
+    - adrs/ADR-016-persistence-strategy.md
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
+    - concept/20-entities/06-core-entity-types.md
   related_use_cases:
     - UC-14
     - UC-15
 ---
 
-# UC-16: Entität teilweise wiederherstellen
+# UC-16: Partially Restore an Entity
 
-## Diagramm
+## Diagram
 
 ```plantuml
 @startuml UC-16-PartialRestore
@@ -36,15 +36,15 @@ skinparam actorStyle awesome
 
 actor "Kurt\n(Lead EA)" as Kurt
 
-usecase "Änderungshistorie\neinsehen (UC-14)" as UC_History
+usecase "View Change\nHistory (UC-14)" as UC_History
 
-rectangle "OEA – Entität teilweise wiederherstellen" {
-  usecase "Zielversion bestimmen" as UC_Version
-  usecase "Kern-Properties\nselektieren (Schritt 1)" as UC_Step1
-  usecase "Custom Properties\nselektieren (Schritt 2)" as UC_Step2
-  usecase "Verbindungen\nselektieren (Schritt 3)" as UC_Step3
-  usecase "Teilwiederherstellung\nbestätigen" as UC_Confirm
-  usecase "Partiellen Versions-\nsnapshot anlegen" as UC_Snapshot
+rectangle "OEA – Partially Restore an Entity" {
+  usecase "Determine Target Version" as UC_Version
+  usecase "Select Core Properties\n(Step 1)" as UC_Step1
+  usecase "Select Custom Properties\n(Step 2)" as UC_Step2
+  usecase "Select Connections\n(Step 3)" as UC_Step3
+  usecase "Confirm Partial\nRestore" as UC_Confirm
+  usecase "Create Partial Version\nSnapshot" as UC_Snapshot
 }
 
 Kurt --> UC_History
@@ -62,230 +62,230 @@ UC_Confirm ..> UC_Snapshot : <<include>>
 
 ## Goal in Context
 
-Nicht immer soll eine Entität vollständig auf einen früheren Stand zurückgesetzt werden (UC-15). Oft ist nur ein Teil fehlerhaft: ein falscher Name, eine gelöschte Custom-Property, oder eine veränderte Verbindungsbeschreibung — während andere Änderungen korrekt und gewollt sind. UC-16 ermöglicht eine **selektive Wiederherstellung** über einen dreistufigen Wizard: Kurt wählt auf jeder Stufe genau aus, welche Felder und Verbindungen zurückgesetzt werden sollen.
+An entity should not always be reset completely to an earlier state (UC-15). Often only a part is faulty: a wrong name, a deleted custom property, or a changed connection description — while other changes are correct and intended. UC-16 enables a **selective restore** via a three-step wizard: at each step, Kurt selects exactly which fields and connections are to be reset.
 
-Wie bei UC-15 ist die Teilwiederherstellung selbst eine nachvollziehbare Änderung: Der aktuelle Stand wird als Snapshot gesichert, und der neue `entity_versions`-Eintrag enthält sowohl `restoredFromVersion` als auch `restoredFields` (Liste der tatsächlich wiederhergestellten Felder).
+As with UC-15, the partial restore is itself a traceable change: the current state is secured as a snapshot, and the new `entity_versions` entry contains both `restoredFromVersion` and `restoredFields` (list of the fields actually restored).
 
-## Persona und Story
+## Persona and Story
 
-**Primärer Akteur**: [Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
+**Primary Actor**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 
-**Story**: Als Lead Enterprise Architekt möchte ich gezielt einzelne Felder oder Properties einer Entität auf einen früheren Stand zurücksetzen — ohne dabei korrekte Änderungen anderer Felder zu überschreiben.
+**Story**: As a Lead Enterprise Architect, I want to reset individual fields or properties of an entity to an earlier state in a targeted way — without overwriting correct changes to other fields.
 
 ## Trigger
 
-1. Kurt hat in UC-14 eine historische Version identifiziert und möchte nur Teile davon übernehmen
-2. Kurt bemerkt einen Fehler in einem bestimmten Feld und kennt die Version, in der es noch korrekt war
+1. In UC-14, Kurt has identified a historical version and wants to adopt only parts of it
+2. Kurt notices an error in a particular field and knows the version in which it was still correct
 
-## Vorbedingungen (Pre-Conditions)
+## Preconditions
 
-- [ ] Kurt ist eingeloggt (UC-01) und hat Schreibberechtigung auf die Entität
-- [ ] Die Entität hat mindestens eine frühere Version in `entity_versions`
-- [ ] Kurt hat die Zielversion in UC-14 identifiziert (typischer Einstiegspunkt)
+- [ ] Kurt is logged in (UC-01) and has write permission on the entity
+- [ ] The entity has at least one earlier version in `entity_versions`
+- [ ] Kurt has identified the target version in UC-14 (typical entry point)
 
-## Nachbedingungen (Post-Conditions)
+## Postconditions
 
-### Bei Erfolg
+### On Success
 
-- Nur die ausgewählten Felder haben den Wert der gewählten Zielversion; alle anderen Felder bleiben auf dem aktuellen Stand
-- Der aktuelle Zustand vor der Teilwiederherstellung ist als `entity_versions`-Snapshot gespeichert
-- Der neue Versionseintrag enthält `restoredFromVersion` und `restoredFields` (explizite Liste der wiederhergestellten Felder)
-- Der `version`-Counter der Entität wurde um 1 erhöht
+- Only the selected fields have the value of the chosen target version; all other fields remain at the current state
+- The current state before the partial restore is stored as an `entity_versions` snapshot
+- The new version entry contains `restoredFromVersion` and `restoredFields` (explicit list of the restored fields)
+- The entity's `version` counter was increased by 1
 
-### Bei Misserfolg
+### On Failure
 
-- Keine Änderung; vollständiger Rollback
-- Fehlermeldung mit konkretem Hinweis
+- No change; complete rollback
+- Error message with a concrete hint
 
-## Hauptablauf (Basic Flow)
+## Basic Flow
 
-*Standardfall: Kurt öffnet den Teilwiederherstellungs-Wizard aus der Versionshistorie*
+*Default case: Kurt opens the partial restore wizard from the version history*
 
-### Einstieg
+### Entry
 
-1. **Kurt**: befindet sich in der Versionshistorie (UC-14) und klickt bei einer Version auf „Teilweise wiederherstellen"
-2. **System**: öffnet den dreistufigen Wizard mit der gewählten Version als Quelle; zeigt oben die Versionsinfo (v4, 2026-03-01, geändert von Michael)
-
----
-
-### Schritt 1 — General Properties
-
-3. **System**: zeigt eine Diff-Tabelle der allgemeinen Felder:
-
-   | Feld | Wert in v4 (Quelle) | Aktueller Wert | Wiederherstellen? |
-   |---|---|---|---|
-   | name | „SAP ERP Legacy" | „SAP S/4HANA" | ☐ |
-   | description | „Altsystem bis 2027" | „Produktivsystem ab Q2 2026" | ☐ |
-   | isLogical | false | false | — (identisch, nicht auswählbar) |
-
-   Identische Felder sind ausgegraut und nicht auswählbar. Nur geänderte Felder haben eine Checkbox.
-
-4. **Kurt**: wählt per Checkbox, welche General Properties wiederhergestellt werden sollen (z.B. nur `description`)
-5. **Kurt**: klickt „Weiter → Custom Properties"
+1. **Kurt**: is in the version history (UC-14) and clicks "Partially restore" on a version
+2. **System**: opens the three-step wizard with the chosen version as source; shows the version info at the top (v4, 2026-03-01, changed by Michael)
 
 ---
 
-### Schritt 2 — Custom Properties
+### Step 1 — General Properties
 
-6. **System**: zeigt eine Diff-Tabelle aller konfigurierten Custom Properties (aus `propertyDefinitions` des Snapshots):
+3. **System**: shows a diff table of the general fields:
 
-   | Property | Wert in v4 (Quelle) | Aktueller Wert | Wiederherstellen? |
+   | Field | Value in v4 (source) | Current value | Restore? |
    |---|---|---|---|
-   | owner | „Lukas" | „Michael" | ☐ |
+   | name | "SAP ERP Legacy" | "SAP S/4HANA" | ☐ |
+   | description | "Legacy system until 2027" | "Production system from Q2 2026" | ☐ |
+   | isLogical | false | false | — (identical, not selectable) |
+
+   Identical fields are grayed out and not selectable. Only changed fields have a checkbox.
+
+4. **Kurt**: selects via checkbox which general properties are to be restored (e.g., only `description`)
+5. **Kurt**: clicks "Next → Custom Properties"
+
+---
+
+### Step 2 — Custom Properties
+
+6. **System**: shows a diff table of all configured custom properties (from `propertyDefinitions` of the snapshot):
+
+   | Property | Value in v4 (source) | Current value | Restore? |
+   |---|---|---|---|
+   | owner | "Lukas" | "Michael" | ☐ |
    | criticality | high | medium | ☐ |
-   | lifecycle-status | „active" | „active" | — (identisch) |
-   | cost-center | „4711" | „4820" | ☐ |
+   | lifecycle-status | "active" | "active" | — (identical) |
+   | cost-center | "4711" | "4820" | ☐ |
 
-   Properties, die in v4 noch nicht existierten (nach Metamodell-Erweiterung hinzugekommen), werden als „(in v4 nicht vorhanden)" angezeigt und sind nicht auswählbar.
+   Properties that did not yet exist in v4 (added after a metamodel extension) are shown as "(not present in v4)" and are not selectable.
 
-7. **Kurt**: wählt per Checkbox die Properties, die auf den v4-Wert zurückgesetzt werden sollen
-8. **Kurt**: klickt „Weiter → Verbindungen"
-
----
-
-### Schritt 3 — Verbindungen
-
-9. **System**: zeigt drei Gruppen von Verbindungen, die diese Entität referenzieren:
-
-   **Verbindungen mit geänderten Properties seit v4** (selektiv wiederherstellbar):
-
-   | Verbindung | Geänderte Properties | Aktion |
-   |---|---|---|
-   | ERP→CRM Datensync (id=88) | label: „alt" → „neu" | „Properties wiederherstellen" → öffnet UC-16 für id=88 |
-   | ERP runs-on Server-01 (id=91) | description geändert | „Properties wiederherstellen" → öffnet UC-16 für id=91 |
-
-   **Verbindungen, die seit v4 hinzugekommen sind** (informativ):
-
-   | Verbindung | Hinzugekommen am | Hinweis |
-   |---|---|---|
-   | ERP→Cloud-DB DataFlow (id=105) | 2026-05-10 | Existierte in v4 noch nicht |
-
-   **Verbindungen, die seit v4 entfernt wurden** (informativ; nicht direkt wiederherstellbar):
-
-   | Verbindung | Entfernt am | Hinweis |
-   |---|---|---|
-   | ERP→Legacy-FTP (id=77) | 2026-04-01 | Entfernte Verbindungen können nur via Soft-Delete-Wiederherstellung zurückgeholt werden (noch nicht verfügbar) |
-
-   Verbindungs-Properties können in diesem Schritt nicht direkt wiederhergestellt werden — Kurt wird via „Properties wiederherstellen" zu einem neuen UC-16-Durchlauf für die jeweilige Verbindungsentität weitergeleitet.
-
-10. **Kurt**: notiert, welche Verbindungen er separat behandeln will; klickt „Weiter → Zusammenfassung"
+7. **Kurt**: selects via checkbox the properties to be reset to the v4 value
+8. **Kurt**: clicks "Next → Connections"
 
 ---
 
-### Schritt 4 — Zusammenfassung und Bestätigung
+### Step 3 — Connections
 
-11. **System**: zeigt eine vollständige Zusammenfassung aller ausgewählten Änderungen:
-    - Quelle: Version v4 (2026-03-01, Michael)
-    - General Properties: `description` wird wiederhergestellt
-    - Custom Properties: `owner`, `criticality` werden wiederhergestellt
-    - Verbindungen: keine direkte Änderung in diesem Lauf
-    - Optionales Freitextfeld „Grund der Wiederherstellung"
-    - Hinweis: „Alle nicht ausgewählten Felder bleiben unverändert"
+9. **System**: shows three groups of connections that reference this entity:
 
-12. **Kurt**: gibt optional einen Grund ein und klickt „Teilweise wiederherstellen"
-13. **System**: führt die atomare Teilwiederherstellung durch:
-    - Snapshot des aktuellen Zustands → `entity_versions` (unveränderlich)
-    - Nur die ausgewählten Felder werden auf Zielwerte gesetzt
-    - `version`-Counter +1
-    - Neuer `entity_versions`-Eintrag mit `restoredFromVersion=4` und `restoredFields=["description","properties.owner","properties.criticality"]`
-14. **System**: zeigt Erfolgsmeldung; Entitätsdetailansicht zeigt aktualisierten Zustand
-15. **System**: in der Zeitlinie (UC-14) erscheint der neue Eintrag mit „Teilweise wiederhergestellt aus v4 (description, owner, criticality)"
+   **Connections with properties changed since v4** (selectively restorable):
 
-## Alternative Abläufe (Alternative Flows)
+   | Connection | Changed properties | Action |
+   |---|---|---|
+   | ERP→CRM Data Sync (id=88) | label: "old" → "new" | "Restore properties" → opens UC-16 for id=88 |
+   | ERP runs-on Server-01 (id=91) | description changed | "Restore properties" → opens UC-16 for id=91 |
 
-**A1 – Schritt überspringen**
+   **Connections added since v4** (informational):
 
-- Auf jeder Wizard-Stufe kann Kurt „Überspringen" klicken, ohne eine Auswahl zu treffen
-- Übersprungene Schritte tragen keine Felder zur Wiederherstellung bei
-- Die Zusammenfassung zeigt nur die tatsächlich ausgewählten Felder
+   | Connection | Added on | Note |
+   |---|---|---|
+   | ERP→Cloud-DB DataFlow (id=105) | 2026-05-10 | Did not yet exist in v4 |
 
-**A2 – Keine Unterschiede in einem Schritt**
+   **Connections removed since v4** (informational; not directly restorable):
 
-- Wenn zwischen Zielversion und aktuellem Stand alle Felder eines Schritts identisch sind, zeigt das System „Keine Unterschiede in diesem Schritt" und springt automatisch weiter
+   | Connection | Removed on | Note |
+   |---|---|---|
+   | ERP→Legacy-FTP (id=77) | 2026-04-01 | Removed connections can only be retrieved via soft-delete restore (not yet available) |
 
-**A3 – Auf aktuelle Version als Quelle wechseln**
+   Connection properties cannot be restored directly in this step — Kurt is redirected via "Restore properties" to a new UC-16 run for the respective connection entity.
 
-- Kurt kann im Wizard die Quellversion jederzeit über ein Dropdown ändern; der Diff wird sofort neu berechnet
+10. **Kurt**: notes which connections he wants to handle separately; clicks "Next → Summary"
 
-**A4 – Nichts ausgewählt**
+---
 
-- Wenn Kurt in allen Schritten nichts auswählt und die Zusammenfassung leer ist, ist „Teilweise wiederherstellen" deaktiviert; kein leerer Commit möglich (BR-03)
+### Step 4 — Summary and Confirmation
 
-## Ausnahmen / Fehlerfälle (Exception Flows)
+11. **System**: shows a complete summary of all selected changes:
+    - Source: version v4 (2026-03-01, Michael)
+    - General properties: `description` is restored
+    - Custom properties: `owner`, `criticality` are restored
+    - Connections: no direct change in this run
+    - Optional free-text field "Reason for restore"
+    - Notice: "All non-selected fields remain unchanged"
 
-**E1 – Validierungsfehler durch Wiederherstellung eines Feldwerts**
-- Bedingung: Ein wiederhergestellter Property-Wert verletzt das aktuelle Metamodell (z.B. Enum-Wert existiert nicht mehr)
-- Erwartete Reaktion: Warnung in der Zusammenfassung; kein Block — Kurt entscheidet; nach Wiederherstellung erscheint das Feld mit Validierungswarnung
-- Wiederaufnahme: Kurt korrigiert das Feld nach der Wiederherstellung
+12. **Kurt**: optionally enters a reason and clicks "Partially restore"
+13. **System**: performs the atomic partial restore:
+    - Snapshot of the current state → `entity_versions` (immutable)
+    - Only the selected fields are set to target values
+    - `version` counter +1
+    - New `entity_versions` entry with `restoredFromVersion=4` and `restoredFields=["description","properties.owner","properties.criticality"]`
+14. **System**: shows success message; entity detail view shows the updated state
+15. **System**: in the timeline (UC-14) the new entry appears with "Partially restored from v4 (description, owner, criticality)"
 
-**E2 – Optimistic-Lock-Konflikt**
-- Bedingung: Die Entität wurde zwischen Wizard-Start und Bestätigung durch jemand anderen geändert
-- Erwartete Reaktion: 409 mit Hinweis; Wizard bleibt offen; Kurt kann den Diff neu laden (A3)
-- Wiederaufnahme: Kurt lädt den aktuellen Stand und startet den Wizard neu
+## Alternative Flows
 
-**E3 – Fehlende Schreibberechtigung**
-- Bedingung: Kurt hat nur Leseberechtigung
-- Erwartete Reaktion: „Teilweise wiederherstellen"-Option nicht sichtbar; bei API-Versuch 403
-- Wiederaufnahme: Admin kontaktieren (UC-02)
+**A1 – Skip step**
 
-## Datenfluss
+- At each wizard step, Kurt can click "Skip" without making a selection
+- Skipped steps contribute no fields to the restore
+- The summary shows only the fields actually selected
 
-| Schritt | Daten | Richtung | Bemerkung |
+**A2 – No differences in a step**
+
+- If all fields of a step are identical between target version and current state, the system shows "No differences in this step" and advances automatically
+
+**A3 – Switch to current version as source**
+
+- Kurt can change the source version at any time in the wizard via a dropdown; the diff is recalculated immediately
+
+**A4 – Nothing selected**
+
+- If Kurt selects nothing in all steps and the summary is empty, "Partially restore" is disabled; no empty commit possible (BR-03)
+
+## Exception Flows
+
+**E1 – Validation error due to restoring a field value**
+- Condition: A restored property value violates the current metamodel (e.g., enum value no longer exists)
+- Expected reaction: Warning in the summary; no block — Kurt decides; after the restore the field appears with a validation warning
+- Resumption: Kurt corrects the field after the restore
+
+**E2 – Optimistic lock conflict**
+- Condition: The entity was changed by someone else between wizard start and confirmation
+- Expected reaction: 409 with notice; wizard stays open; Kurt can reload the diff (A3)
+- Resumption: Kurt loads the current state and restarts the wizard
+
+**E3 – Missing write permission**
+- Condition: Kurt has read permission only
+- Expected reaction: "Partially restore" option not visible; on API attempt 403
+- Resumption: Contact admin (UC-02)
+
+## Data Flow
+
+| Step | Data | Direction | Remark |
 |---|---|---|---|
-| 3 | Diff General Properties (Feld, Quellwert, Zielwert) | System → Kurt | Aus EntityVersion.snapshot vs. aktuellem Stand |
-| 6 | Diff Custom Properties (property, Quellwert, Zielwert, Typ) | System → Kurt | Vollständige Property-Liste aus snapshot.propertyDefinitions |
-| 9 | Verbindungsliste (geändert, hinzugekommen, entfernt) | System → Kurt | Aus entity_versions der referenzierenden Verbindungsentitäten |
-| 11 | Zusammenfassung (restoredFields[]) | System → Kurt | Vorschau vor Commit |
-| 12 | Bestätigung + changeReason | Kurt → System | |
-| 13 | Snapshot + selektives Update + entity_versions-Eintrag | System intern | Atomare Transaktion; rollback bei Fehler |
+| 3 | Diff of general properties (field, source value, target value) | System → Kurt | From EntityVersion.snapshot vs. current state |
+| 6 | Diff of custom properties (property, source value, target value, type) | System → Kurt | Complete property list from snapshot.propertyDefinitions |
+| 9 | Connection list (changed, added, removed) | System → Kurt | From entity_versions of the referencing connection entities |
+| 11 | Summary (restoredFields[]) | System → Kurt | Preview before commit |
+| 12 | Confirmation + changeReason | Kurt → System | |
+| 13 | Snapshot + selective update + entity_versions entry | System internal | Atomic transaction; rollback on error |
 
-## Beteiligte Business Objects
+## Involved Business Objects
 
-| Business Object | Operation | Notiz |
+| Business Object | Operation | Note |
 |---|---|---|
-| [entity](../../business-objects/entity.md) | read, update | Nur ausgewählte Felder werden geändert |
-| [entity-version](../../business-objects/entity-version.md) | create, read | Snapshot vor Änderung; neuer Eintrag mit restoredFields |
-| [person](../../business-objects/person.md) | read | `changedBy` im neuen Versionseintrag |
-| [role](../../business-objects/role.md) | read | Schreibberechtigung prüfen |
+| [entity](../../business-objects/entity.md) | read, update | Only selected fields are changed |
+| [entity-version](../../business-objects/entity-version.md) | create, read | Snapshot before change; new entry with restoredFields |
+| [person](../../business-objects/person.md) | read | `changedBy` in the new version entry |
+| [role](../../business-objects/role.md) | read | Check write permission |
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser |
+| Rule ID | Statement | Trigger |
 |---|---|---|
-| BR-01 | Vor der Teilwiederherstellung MUSS ein vollständiger Snapshot des aktuellen Zustands in `entity_versions` gesichert werden (identisch wie UC-15 BR-01) | onRestore |
-| BR-02 | Die Transaktion ist atomar: Snapshot + selektives Update + neuer `entity_versions`-Eintrag in einer DB-Transaktion; vollständiger Rollback bei Fehler | onRestore |
-| BR-03 | Eine Teilwiederherstellung ohne ausgewählte Felder (`restoredFields` leer) MUSS abgewiesen werden — sie erzeugt keinen neuen Versionsstand (keine leeren Commits) | onRestore |
-| BR-04 | `restoredFields` im neuen `entity_versions`-Eintrag enthält die exakte Dot-Notation-Liste der wiederhergestellten Felder (z.B. `["description", "properties.owner"]`); nicht ausgewählte Felder erscheinen nicht in der Liste | onRestore |
-| BR-05 | Unveränderliche Felder (`id`, `entityTypeId`, Verbindungsendpunkte, `createdAt`, `createdBy`) können weder ausgewählt noch wiederhergestellt werden — sie erscheinen nicht im Wizard | UI + API |
-| BR-06 | Verbindungs-Properties werden nicht direkt in UC-16 wiederhergestellt; der Wizard zeigt sie informativ und leitet zu separaten UC-16-Instanzen für die jeweilige Verbindungsentität weiter | Schritt 3 |
-| BR-07 | Properties, die in der Quellversion noch nicht im Metamodell existierten (nach späterer Metamodell-Erweiterung hinzugekommen), sind nicht auswählbar; sie werden als „(in Quellversion nicht vorhanden)" angezeigt | Schritt 2 |
+| BR-01 | Before the partial restore, a complete snapshot of the current state MUST be secured in `entity_versions` (identical to UC-15 BR-01) | onRestore |
+| BR-02 | The transaction is atomic: snapshot + selective update + new `entity_versions` entry in one DB transaction; complete rollback on error | onRestore |
+| BR-03 | A partial restore without selected fields (`restoredFields` empty) MUST be rejected — it produces no new version state (no empty commits) | onRestore |
+| BR-04 | `restoredFields` in the new `entity_versions` entry contains the exact dot-notation list of the restored fields (e.g., `["description", "properties.owner"]`); non-selected fields do not appear in the list | onRestore |
+| BR-05 | Immutable fields (`id`, `entityTypeId`, connection endpoints, `createdAt`, `createdBy`) can be neither selected nor restored — they do not appear in the wizard | UI + API |
+| BR-06 | Connection properties are not restored directly in UC-16; the wizard shows them informatively and redirects to separate UC-16 instances for the respective connection entity | Step 3 |
+| BR-07 | Properties that did not yet exist in the metamodel in the source version (added after a later metamodel extension) are not selectable; they are shown as "(not present in source version)" | Step 2 |
 
-## Erweiterung des EntityVersion-BO
+## Extension of the EntityVersion BO
 
-UC-16 erfordert ein zusätzliches Attribut auf `EntityVersion`:
+UC-16 requires an additional attribute on `EntityVersion`:
 
-| Neues Attribut | Typ | Optional | Beschreibung |
+| New Attribute | Type | Optional | Description |
 |---|---|---|---|
-| `restoredFields` | string[] | optional | Dot-Notation-Liste der tatsächlich wiederhergestellten Felder bei einer Teilwiederherstellung; null bei Vollwiederherstellung (UC-15) oder regulären Updates |
+| `restoredFields` | string[] | optional | Dot-notation list of the fields actually restored in a partial restore; null for full restore (UC-15) or regular updates |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] Wizard öffnet sich mit vorausgefüllter Quellversion aus UC-14
-- [ ] Schritt 1: Diff der General Properties; identische Felder ausgegraut; nur geänderte Felder auswählbar
-- [ ] Schritt 2: Diff aller konfigurierten Custom Properties (auch leere); Properties ohne Quellwert als nicht auswählbar markiert
-- [ ] Schritt 3: Verbindungen in drei Gruppen (geändert/hinzugekommen/entfernt); geänderte Verbindungen mit Navigation zu separatem UC-16-Durchlauf
-- [ ] A1: Jeder Schritt einzeln überspringbar
-- [ ] A2: Schritte ohne Unterschiede werden automatisch übersprungen mit Hinweis
-- [ ] A4: Bestätigungsschaltfläche deaktiviert wenn keine Felder ausgewählt (BR-03)
-- [ ] Zusammenfassung zeigt vollständige `restoredFields`-Liste vor Bestätigung
-- [ ] Nach Wiederherstellung: nur ausgewählte Felder geändert; andere Felder unverändert
-- [ ] Neuer `entity_versions`-Eintrag enthält `restoredFromVersion` und `restoredFields`
-- [ ] In UC-14-Zeitlinie: Eintrag zeigt „Teilweise wiederhergestellt aus vN (Feldliste)"
-- [ ] BR-02: Atomare Transaktion; bei Fehler vollständiger Rollback
-- [ ] E2: Optimistic-Lock-Konflikt wird mit 409 und Reload-Option abgefangen
+- [ ] Wizard opens with prefilled source version from UC-14
+- [ ] Step 1: Diff of general properties; identical fields grayed out; only changed fields selectable
+- [ ] Step 2: Diff of all configured custom properties (including empty ones); properties without source value marked as not selectable
+- [ ] Step 3: Connections in three groups (changed/added/removed); changed connections with navigation to a separate UC-16 run
+- [ ] A1: Each step individually skippable
+- [ ] A2: Steps without differences are skipped automatically with a notice
+- [ ] A4: Confirmation button disabled if no fields are selected (BR-03)
+- [ ] Summary shows the complete `restoredFields` list before confirmation
+- [ ] After restore: only selected fields changed; other fields unchanged
+- [ ] New `entity_versions` entry contains `restoredFromVersion` and `restoredFields`
+- [ ] In UC-14 timeline: entry shows "Partially restored from vN (field list)"
+- [ ] BR-02: Atomic transaction; complete rollback on error
+- [ ] E2: Optimistic lock conflict is caught with 409 and reload option
 
-## Nicht im Scope
+## Out of Scope
 
-- **Direkte Verbindungswiederherstellung**: Verbindungs-Properties werden nicht innerhalb dieses Wizards geändert — separate UC-16-Instanz pro Verbindungsentität (BR-06)
-- **Wiederherstellung gelöschter Verbindungen**: erfordert Soft-Delete-Mechanismus (noch nicht modelliert)
-- **Parallel-Vergleich mehrerer Versionen**: der Wizard vergleicht immer genau eine Quellversion mit dem aktuellen Stand; Mehrfachquellen sind kein v1.0-Feature
+- **Direct connection restore**: Connection properties are not changed within this wizard — separate UC-16 instance per connection entity (BR-06)
+- **Restoring deleted connections**: requires a soft-delete mechanism (not yet modeled)
+- **Parallel comparison of several versions**: the wizard always compares exactly one source version with the current state; multiple sources are not a v1.0 feature

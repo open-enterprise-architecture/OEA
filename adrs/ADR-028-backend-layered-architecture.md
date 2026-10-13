@@ -1,90 +1,90 @@
-# ADR-028: Backend-Schichtenarchitektur — API / Application / Core
+# ADR-028: Backend Layered Architecture — API / Application / Core
 
 **Status**: accepted
-**Datum**: 2026-06-29
-**Entscheider**: [Lukas – Repository-Inhaber](../business-analysis/stakeholders/SH-01-lukas-enterprise-architect.md)
+**Date**: 2026-06-29
+**Deciders**: [Lukas – Repository Owner](../business-analysis/stakeholders/SH-01-lukas-enterprise-architect.md)
 
 ---
 
-## Kontext
+## Context
 
-ADR-027 legt die Paket-Struktur des Backends fest, lässt aber offen, wie die
-Schichten intern kommunizieren. Zwei Fragen sind offen:
+ADR-027 defines the package structure of the backend, but leaves open how the
+layers communicate internally. Two questions are open:
 
-1. Rufen REST-Controller die Core-Services direkt auf, oder gibt es eine
-   Zwischenschicht?
-2. Wie bleibt die externe API stabil, wenn sich das interne Domain-Modell ändert?
+1. Do REST controllers call the core services directly, or is there an
+   intermediate layer?
+2. How does the external API stay stable when the internal domain model changes?
 
-**Das Problem ohne Zwischenschicht**: Wenn `EntityController` direkt `EntityService`
-aus `core/` aufruft und `EntityService` sein Interface wegen Domain-Änderungen
-anpasst, bricht der Controller. Bei API v2 muss der v1-Controller ebenfalls
-angepasst werden. Bei ADR-026 (Batch-Write via REST und ggf. künftig via
-Message Queue) muss dieselbe Logik an zwei Stellen aufgerufen werden.
+**The problem without an intermediate layer**: If `EntityController` directly calls `EntityService`
+from `core/` and `EntityService` changes its interface due to domain changes,
+the controller breaks. With API v2, the v1 controller must also be
+adjusted. With ADR-026 (batch write via REST and possibly in the future via
+message queue), the same logic must be called in two places.
 
 ---
 
-## Entscheidung
+## Decision
 
-Das Backend verwendet drei klar getrennte Schichten mit einer strikten
-Abhängigkeitsregel: **Abhängigkeiten zeigen immer nach innen.**
+The backend uses three clearly separated layers with a strict
+dependency rule: **dependencies always point inward.**
 
 ```
 ┌─────────────────────────────────────────┐
-│  io.oea.api   (REST-Adapter)            │  ← kennt app, nicht core
-│  Controller, Request/Response DTOs      │
+│  io.oea.api   (REST adapter)            │  ← knows app, not core
+│  Controllers, request/response DTOs     │
 └───────────────┬─────────────────────────┘
-                │ ruft auf (via Interface)
+                │ calls (via interface)
 ┌───────────────▼─────────────────────────┐
-│  io.oea.app   (Application Services)   │  ← kennt core, nicht api
-│  Stabile Interfaces + Commands/Queries  │
+│  io.oea.app   (application services)   │  ← knows core, not api
+│  Stable interfaces + commands/queries   │
 └───────────────┬─────────────────────────┘
-                │ ruft auf
+                │ calls
 ┌───────────────▼─────────────────────────┐
-│  io.oea.core  (Domain)                  │  ← kennt niemanden über sich
-│  Domain Model, Repositories, Services   │
+│  io.oea.core  (domain)                  │  ← knows nothing above it
+│  Domain model, repositories, services   │
 └─────────────────────────────────────────┘
 ```
 
-### Schicht 1 — `io.oea.api` (REST-Adapter)
+### Layer 1 — `io.oea.api` (REST Adapter)
 
-Verantwortlich für:
-- HTTP-Mapping (Pfade, Methoden, Status-Codes)
-- Request-Validierung (`@Valid`)
-- Übersetzung Request-DTO → Command/Query
-- Übersetzung Result → Response-DTO
-- Keine Business-Logik; kein Datenbankzugriff
+Responsible for:
+- HTTP mapping (paths, methods, status codes)
+- Request validation (`@Valid`)
+- Translation request DTO → command/query
+- Translation result → response DTO
+- No business logic; no database access
 
 ```java
-// Beispiel: Controller-Methode
+// Example: controller method
 @PutMapping("/entities/by-external-id/{externalId}")
 public ResponseEntity<EntityDetailResponse> upsert(
     @PathVariable String externalId,
     @Valid @RequestBody EntityWriteRequest request
 ) {
     var command = EntityMapper.toUpsertCommand(externalId, request);
-    var result  = entityAppService.upsert(command);         // App-Layer
+    var result  = entityAppService.upsert(command);         // app layer
     return ResponseEntity.ok(EntityMapper.toResponse(result));
 }
 ```
 
-### Schicht 2 — `io.oea.app` (Application Services)
+### Layer 2 — `io.oea.app` (Application Services)
 
-Verantwortlich für:
-- **Stabile Interfaces** — das sind die Verträge, die die API-Schicht aufruft
-- Use-Case-Orchestrierung (Lesen + Schreiben in der richtigen Reihenfolge)
-- Transaktionsgrenzen (`@Transactional` liegt hier, nicht in `core/`)
-- Aufrufen von Core-Services und Repositories
-- Schreiben in das Audit-Log nach erfolgreicher Operation
+Responsible for:
+- **Stable interfaces** — these are the contracts that the API layer calls
+- Use case orchestration (reading + writing in the right order)
+- Transaction boundaries (`@Transactional` lives here, not in `core/`)
+- Calling core services and repositories
+- Writing to the audit log after a successful operation
 
 ```java
-// Interface (stabil; die API hängt davon ab)
+// Interface (stable; the API depends on it)
 public interface EntityAppService {
     EntityResult upsert(UpsertEntityCommand command);
     EntityResult getById(long id);
     BatchWriteResult batchWrite(BatchWriteCommand command);
 }
 
-// Command-Objekt (rein datentragend, kein Verhalten)
+// Command object (purely data-carrying, no behavior)
 public record UpsertEntityCommand(
     String externalId,
     String name,
@@ -93,19 +93,19 @@ public record UpsertEntityCommand(
 ) {}
 ```
 
-**Commands** (für Schreiboperationen) und **Queries** (für Leseoperationen) sind
-einfache Records — kein Command-Bus, kein Mediator, keine Infrastruktur.
+**Commands** (for write operations) and **queries** (for read operations) are
+simple records — no command bus, no mediator, no infrastructure.
 
-### Schicht 3 — `io.oea.core` (Domain)
+### Layer 3 — `io.oea.core` (Domain)
 
-Verantwortlich für:
-- Domain-Entities (`Entity`, `Metatype`, `PropertyDefinition`, ...)
-- Repository-Interfaces (Spring Data JPA Implementierungen hier)
-- Domain-Services für komplexe Regeln (Property-Validierung, Constraint-Checks)
-- Kennt weder `api/` noch `app/` — reine Domänenlogik
+Responsible for:
+- Domain entities (`Entity`, `Metatype`, `PropertyDefinition`, ...)
+- Repository interfaces (Spring Data JPA implementations here)
+- Domain services for complex rules (property validation, constraint checks)
+- Knows neither `api/` nor `app/` — pure domain logic
 
 ```java
-// Domain-Service (nur Domänen-Logik, keine HTTP-Kenntnis)
+// Domain service (domain logic only, no HTTP knowledge)
 public class PropertyValidationService {
     public ValidationResult validate(Entity entity, Metatype metatype) { ... }
 }
@@ -113,7 +113,7 @@ public class PropertyValidationService {
 
 ---
 
-## Paket-Struktur (vollständig)
+## Package Structure (complete)
 
 ```
 io.oea/
@@ -127,7 +127,7 @@ io.oea/
 │
 ├── app/
 │   ├── entity/
-│   │   ├── EntityAppService.java          (Interface)
+│   │   ├── EntityAppService.java          (interface)
 │   │   ├── EntityAppServiceImpl.java
 │   │   ├── command/                       UpsertEntityCommand, BatchWriteCommand, ...
 │   │   └── query/                         EntityDetailQuery, CatalogQuery, ...
@@ -153,79 +153,79 @@ io.oea/
 
 ---
 
-## Stabilitäts-Garantie
+## Stability Guarantee
 
-Die App-Service-Interfaces sind der stabile Vertrag:
+The app service interfaces are the stable contract:
 
-| Schicht | Änderungsfrequenz | Auswirkung auf andere |
+| Layer | Change frequency | Impact on others |
 |---|---|---|
-| `api/` (DTOs, Controller) | hoch (neue Felder, neue Versionen) | nur `api/` |
-| `app/` (Interfaces, Commands) | niedrig (breaking only bei Use-Case-Änderung) | `api/` muss anpassen |
-| `core/` (Domain) | mittel (Refactoring, neue Regeln) | nur `app/` muss anpassen |
+| `api/` (DTOs, controllers) | high (new fields, new versions) | only `api/` |
+| `app/` (interfaces, commands) | low (breaking only on use case change) | `api/` must adapt |
+| `core/` (domain) | medium (refactoring, new rules) | only `app/` must adapt |
 
-**API v2**: `api/v2/controller/EntityController` ruft denselben `EntityAppService`
-auf wie `v1/`. Die Übersetzung von neuen v2-DTOs zu Commands liegt in `api/v2/`.
+**API v2**: `api/v2/controller/EntityController` calls the same `EntityAppService`
+as `v1/`. The translation from new v2 DTOs to commands lives in `api/v2/`.
 
-**ADR-026 Batch-Write**: `BatchWriteAppService` wird sowohl von
-`v1/controller/EntityBatchController` als auch vom künftigen
-`integration/MessageQueueConsumer` aufgerufen — gleiche Logik, zwei Einstiegspunkte.
-
----
-
-## Was diese Schicht explizit NICHT ist
-
-- **Kein Command-Bus / Mediator** (z.B. MediatR-Muster): Kein zusätzliches
-  Infrastruktur-Framework. App-Services werden direkt per Spring-Injection aufgerufen.
-- **Kein CQRS mit getrennten Read/Write-Models**: Leseoperationen dürfen
-  Repositories direkt in App-Services aufrufen — kein separates Query-Modell.
-- **Keine Event-Sourcing-Infrastruktur**: Delta-basierte History (ADR-022) ist
-  kein Event Sourcing; Events werden synchron geschrieben, nicht als primäre
-  Datenhaltung.
+**ADR-026 batch write**: `BatchWriteAppService` is called both by
+`v1/controller/EntityBatchController` and by the future
+`integration/MessageQueueConsumer` — same logic, two entry points.
 
 ---
 
-## Verworfene Alternativen
+## What This Layer Is Explicitly NOT
 
-### Controller ruft Core direkt (ohne App-Schicht)
-
-- **Pro**: Weniger Klassen pro Feature
-- **Contra**: Controller-Tests testen Business-Logik; v1 und v2 teilen keinen Code;
-  Batch-Write dupliziert Logik; Core-Änderungen brechen direkt Controller
-- **Verworfen**: Kurzfristig einfacher, langfristig teuer
-
-### Vollständige Hexagonale Architektur mit Ports
-
-- **Pro**: Maximale Entkopplung; Core kennt Spring nicht
-- **Contra**: Doppelte Interfaces überall; für v1 mit einem Entwickler massiver
-  Overhead; Spring Data JPA bereits ein "Port"
-- **Verworfen**: Overkill für v1; App-Service-Interfaces geben 80% des Nutzens
-  mit 20% des Aufwands
+- **No command bus / mediator** (e.g. MediatR pattern): No additional
+  infrastructure framework. App services are called directly via Spring injection.
+- **No CQRS with separate read/write models**: Read operations may
+  call repositories directly in app services — no separate query model.
+- **No event sourcing infrastructure**: Delta-based history (ADR-022) is
+  not event sourcing; events are written synchronously, not as primary
+  data storage.
 
 ---
 
-## Konsequenzen
+## Rejected Alternatives
 
-**Positiv:**
-- Core-Refactoring berührt nie die REST-Controller
-- API v2 ohne Core-Änderungen möglich
-- App-Services sind mit Spring-Tests ohne HTTP-Stack testbar
-- Transaktionsgrenzen explizit und zentral (`@Transactional` in `app/`)
-- Audit-Log-Schreiben konsistent nach jedem App-Service-Call
+### Controller calls core directly (without app layer)
 
-**Negativ / Kompromisse:**
-- Pro Feature ca. 2–3 Klassen mehr (Interface, Impl, Command)
-- Disziplin nötig: Core darf nie `api/` importieren (kein Compiler-Enforcement
-  ohne Maven-Multi-Module — daher Code-Review-Pflicht)
+- **Pro**: Fewer classes per feature
+- **Con**: Controller tests test business logic; v1 and v2 share no code;
+  batch write duplicates logic; core changes directly break controllers
+- **Rejected**: Simpler in the short term, expensive in the long term
+
+### Full hexagonal architecture with ports
+
+- **Pro**: Maximum decoupling; core does not know Spring
+- **Con**: Duplicate interfaces everywhere; massive overhead for v1 with one
+  developer; Spring Data JPA is already a "port"
+- **Rejected**: Overkill for v1; app service interfaces give 80% of the benefit
+  with 20% of the effort
 
 ---
 
-## Betroffene Konzept-Kapitel
+## Consequences
 
-- §21 (Tech-Stack Backend)
+**Positive:**
+- Core refactoring never touches the REST controllers
+- API v2 possible without core changes
+- App services are testable with Spring tests without the HTTP stack
+- Transaction boundaries explicit and central (`@Transactional` in `app/`)
+- Audit log writing consistent after every app service call
 
-## Verwandte ADRs
+**Negative / Compromises:**
+- Approx. 2–3 more classes per feature (interface, impl, command)
+- Discipline needed: core must never import `api/` (no compiler enforcement
+  without Maven multi-module — hence code review obligation)
 
-- ADR-027: Mono-Repo und Maven-Modul-Struktur (aktualisiert)
+---
+
+## Affected Concept Chapters
+
+- §21 (Tech Stack Backend)
+
+## Related ADRs
+
+- ADR-027: Mono-repo and Maven module structure (updated)
 - ADR-012: Backend Java/Spring Boot
-- ADR-022: Strukturiertes Property-Modell (Core-Domain-Änderungen)
-- ADR-026: Externe Integration (App-Services als gemeinsamer Einstiegspunkt)
+- ADR-022: Structured property model (core domain changes)
+- ADR-026: External integration (app services as common entry point)

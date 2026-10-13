@@ -1,40 +1,40 @@
-# ADR-018: Business-Rule-Engine – CEL mit GUI-Abstraktionsschicht
+# ADR-018: Business Rule Engine – CEL with GUI Abstraction Layer
 
 **Status**: accepted
-**Datum**: 2026-06-27
-**Entscheider**: [Rigobert – Produkt Owner](../business-analysis/stakeholders/SH-09-rigobert-produkt-owner.md) (SH-09)
-**Konsultiert**: Business Engineer
-**Informiert**: ADR-012 (Backend-Stack), ADR-017 (Layer-Strategie)
+**Date**: 2026-06-27
+**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Consulted**: Business Engineer
+**Informed**: ADR-012 (backend stack), ADR-017 (layer strategy)
 **Supersedes**: –
-**Aktualisiert**: 2026-06-28 — CEL-Library korrigiert: `@cel-community/cel-js` (npm/Node.js) → `dev.cel:cel` (Google CEL-Java, Maven); Entscheidungstreiber „TypeScript/Node.js" war falsch, ADR-012 hat Java 21 + Spring Boot 3 gewählt
+**Updated**: 2026-06-28 — CEL library corrected: `@cel-community/cel-js` (npm/Node.js) → `dev.cel:cel` (Google CEL-Java, Maven); decision driver "TypeScript/Node.js" was wrong, ADR-012 chose Java 21 + Spring Boot 3
 
-## Kontext und Problem
+## Context and Problem
 
-OEA erlaubt Betreibern, Validierungsregeln für Architektur-Entitäten zu definieren (`ConstraintRule`, `MandatoryConnectionConstraint` in der `MetamodelConfiguration`). Diese Regeln sollen:
+OEA allows operators to define validation rules for architecture entities (`ConstraintRule`, `MandatoryConnectionConstraint` in the `MetamodelConfiguration`). These rules should:
 
-1. Im Web-GUI anlegbar, editierbar und löschbar sein
-2. Als JSON-Datei importierbar und exportierbar sein
-3. Per Admin-Setting auf Import-only sperrbar sein (kein GUI-Edit)
-4. Für nicht-technische Konfigurierer (Enterprise Architects) ohne Syntax-Kenntnisse bedienbar sein
+1. Be creatable, editable, and deletable in the web GUI
+2. Be importable and exportable as a JSON file
+3. Be lockable to import-only via admin setting (no GUI edit)
+4. Be operable by non-technical configurers (enterprise architects) without syntax knowledge
 
-Offen war: Welche OSS-Technologie wertet die Regelausdrücke aus, und wie wird die Konfigurationsoberfläche gestaltet?
+What was open: Which OSS technology evaluates the rule expressions, and how is the configuration interface designed?
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- **Zielgruppe ist nicht Entwickler**: Admins und Enterprise Architects sollen Regeln im GUI bauen können, ohne CEL/Code zu kennen
-- **Ausdrucksstärke**: Einfache Null-Checks bis zu Mehrfachbedingungen mit AND/OR; Cardinality-Checks auf Arrays
-- **JSON-Serialisierbarkeit**: Regeln müssen als JSON importiert/exportiert werden können
-- **Java 21 + Spring Boot 3** ([ADR-012](./ADR-012-backend-stack.md)): die Rule-Engine muss JVM-kompatibel sein; Node.js/npm-Bibliotheken scheiden aus
-- **Sandboxing**: Regelauswertung muss sicher sein (kein `eval`); Regeln dürfen keinen Seiteneffekt haben
-- **Zukunftssicherheit**: Ausdruckssprache soll erweiterbar sein, ohne das Rule-Format zu brechen
+- **Target group is not developers**: Admins and enterprise architects should be able to build rules in the GUI without knowing CEL/code
+- **Expressiveness**: Simple null checks up to multiple conditions with AND/OR; cardinality checks on arrays
+- **JSON serializability**: Rules must be importable/exportable as JSON
+- **Java 21 + Spring Boot 3** ([ADR-012](./ADR-012-backend-stack.md)): the rule engine must be JVM-compatible; Node.js/npm libraries are ruled out
+- **Sandboxing**: Rule evaluation must be safe (no `eval`); rules must have no side effects
+- **Future-proofing**: Expression language should be extensible without breaking the rule format
 
-## Betrachtete Optionen
+## Considered Options
 
-### Option 1: CEL + GUI-Abstraktionsschicht ✓
+### Option 1: CEL + GUI abstraction layer ✓
 
-**Common Expression Language (CEL)** als Auswertungs-Engine; der Konfigurierer sieht nie die CEL-Syntax — das GUI generiert CEL-Ausdrücke aus einem visuellen Condition-Builder. Power-User können optional direkt CEL eingeben.
+**Common Expression Language (CEL)** as evaluation engine; the configurer never sees the CEL syntax — the GUI generates CEL expressions from a visual condition builder. Power users can optionally enter CEL directly.
 
-Java-Implementierung: **`dev.cel:cel`** — Googles offizielle CEL-Referenzimplementierung für die JVM (Apache 2.0). Diesel­be Organisation, die die CEL-Spezifikation pflegt. In Produktion in Kubernetes-Java-Clients und Istio-Java-Integrationen.
+Java implementation: **`dev.cel:cel`** — Google's official CEL reference implementation for the JVM (Apache 2.0). The same organization that maintains the CEL specification. In production in Kubernetes Java clients and Istio Java integrations.
 
 ```xml
 <!-- backend/pom.xml -->
@@ -45,78 +45,78 @@ Java-Implementierung: **`dev.cel:cel`** — Googles offizielle CEL-Referenzimple
 </dependency>
 ```
 
-- **Pro**: CEL ist typsicher, sandboxed, ohne Seiteneffekte; in Google Cloud, Kubernetes Admission Policies und Firebase etabliert; `dev.cel:cel` ist die offizielle Java-Referenzimplementierung der CEL-Spezifikation; Expression-Syntax ist 1:1 identisch mit der ursprünglich geplanten JS-Implementierung — GUI-Builder, JSON-Format und CEL-Vorschau bleiben unverändert gültig; ausdrucksstark genug für alle absehbaren v1.0-Use-Cases; GUI-Abstraktion entkoppelt das Nutzer-Erlebnis von der Ausdruckssprache; Apache 2.0
-- **Contra**: `dev.cel:cel` ist noch im 0.x-Versions-Bereich (API kann sich ändern); im Java-Ökosystem jünger als Drools oder SpEL; GUI-Builder-Entwicklung ist eigener Aufwand
+- **Pro**: CEL is type-safe, sandboxed, without side effects; established in Google Cloud, Kubernetes admission policies, and Firebase; `dev.cel:cel` is the official Java reference implementation of the CEL specification; expression syntax is 1:1 identical to the originally planned JS implementation — GUI builder, JSON format, and CEL preview remain valid unchanged; expressive enough for all foreseeable v1.0 use cases; GUI abstraction decouples the user experience from the expression language; Apache 2.0
+- **Con**: `dev.cel:cel` is still in the 0.x version range (API may change); younger in the Java ecosystem than Drools or SpEL; GUI builder development is its own effort
 
 ### Option 2: json-rules-engine
 
-Rules sind nativ JSON-strukturiert (conditions/events); kein separater Ausdruck-String.
+Rules are natively JSON-structured (conditions/events); no separate expression string.
 
-- **Pro**: Regeln sind direkt JSON — kein Compile-Schritt; aktiv gepflegt; einfachster Import/Export
-- **Contra**: Kein freier Ausdrucks-String möglich; Power-User können nicht ausserhalb der vordefinierten Operatoren arbeiten; CEL-Level-Ausdrücklichkeit nicht erreichbar; harter API-Lock-in in das json-rules-engine-Format
+- **Pro**: Rules are directly JSON — no compile step; actively maintained; simplest import/export
+- **Con**: No free expression string possible; power users cannot work outside the predefined operators; CEL-level expressiveness not achievable; hard API lock-in to the json-rules-engine format
 
-### Option 3: Eigener Ausdruck-Parser
+### Option 3: Own expression parser
 
-OEA implementiert eine eigene Mini-Ausdruckssprache.
+OEA implements its own mini expression language.
 
-- **Pro**: Volle Kontrolle über Syntax und Feature-Set
-- **Contra**: Hoher Entwicklungsaufwand; Sicherheitsrisiken selbst zu verantworten; kein Ökosystem; scheidet aus
+- **Pro**: Full control over syntax and feature set
+- **Con**: High development effort; security risks to be borne ourselves; no ecosystem; ruled out
 
-### Option 4: Kein OSS-Engine — nur strukturierte Bedingungen
+### Option 4: No OSS engine — structured conditions only
 
-Nur GUI-Builder, kein freier Ausdrucks-Modus.
+GUI builder only, no free expression mode.
 
-- **Pro**: Einfachste Implementierung
-- **Contra**: Zu unflexibel für Enterprise-Anforderungen; kann nicht alle TOGAF-Constraint-Typen abdecken
+- **Pro**: Simplest implementation
+- **Con**: Too inflexible for enterprise requirements; cannot cover all TOGAF constraint types
 
-## Entscheidung
+## Decision
 
-**Option 1: CEL (`dev.cel:cel`, Google CEL-Java) mit GUI-Abstraktionsschicht.**
+**Option 1: CEL (`dev.cel:cel`, Google CEL-Java) with GUI abstraction layer.**
 
-Kern-Prinzip: **CEL ist der Evaluator — unsichtbar für Konfigurierer.** Das GUI generiert CEL intern; der Konfigurierer arbeitet mit einem visuellen Condition-Builder.
+Core principle: **CEL is the evaluator — invisible to configurers.** The GUI generates CEL internally; the configurer works with a visual condition builder.
 
 ---
 
-### Zwei Rule-Modi
+### Two Rule Modes
 
-Jede `ConstraintRule` hat einen `ruleMode`:
+Each `ConstraintRule` has a `ruleMode`:
 
-| Modus | Wer nutzt ihn | Wie entsteht er |
+| Mode | Who uses it | How it is created |
 |---|---|---|
-| `structured` | Konfigurierer ohne Syntax-Kenntnisse | GUI-Builder generiert CEL intern; Nutzer sieht nur Felder und Dropdowns |
-| `expression` | Entwickler, erfahrene Admins | Direkteingabe eines CEL-Ausdrucks; GUI zeigt Textfeld mit Syntax-Hint |
+| `structured` | Configurers without syntax knowledge | GUI builder generates CEL internally; user sees only fields and dropdowns |
+| `expression` | Developers, experienced admins | Direct entry of a CEL expression; GUI shows text field with syntax hint |
 
-Das GUI zeigt in beiden Modi eine CEL-Vorschau (read-only), damit Power-User sehen, was ausgeführt wird.
+In both modes the GUI shows a CEL preview (read-only), so that power users can see what is executed.
 
 ---
 
-### Condition-Builder (structured-Modus)
+### Condition Builder (structured mode)
 
-Der GUI-Builder erzeugt strukturierte Bedingungen, die das Backend zu CEL kompiliert:
+The GUI builder produces structured conditions that the backend compiles to CEL:
 
 ```
-[ Eigenschaft: owner ▼ ] [ Operator: ist nicht leer ▼ ]
+[ Property: owner ▼ ] [ Operator: is not empty ▼ ]
 [ AND ]
-[ Eigenschaft: architectureDomainIds ▼ ] [ Operator: enthält mindestens ▼ ] [ Wert: 1 ]
+[ Property: architectureDomainIds ▼ ] [ Operator: contains at least ▼ ] [ Value: 1 ]
 
-→ CEL-Vorschau: entity.owner != null && entity.architectureDomainIds.size() >= 1
+→ CEL preview: entity.owner != null && entity.architectureDomainIds.size() >= 1
 ```
 
-Unterstützte Operatoren v1.0:
+Supported operators v1.0:
 
-| Kategorie | Operatoren |
+| Category | Operators |
 |---|---|
-| Null-Checks | `notNull`, `isNull` |
-| String | `equals`, `notEquals`, `contains`, `startsWith`, `matches` (Regex) |
-| Numerisch | `equals`, `notEquals`, `greaterThan`, `lessThan`, `between` |
+| Null checks | `notNull`, `isNull` |
+| String | `equals`, `notEquals`, `contains`, `startsWith`, `matches` (regex) |
+| Numeric | `equals`, `notEquals`, `greaterThan`, `lessThan`, `between` |
 | Array | `minCount`, `maxCount`, `contains`, `notContains` |
-| Logisch | `all` (AND), `any` (OR) |
+| Logical | `all` (AND), `any` (OR) |
 
 ---
 
-### JSON-Import/Export-Format
+### JSON Import/Export Format
 
-Beide Modi sind JSON-importierbar. Das Backend validiert das Format und kompiliert `structured`-Rules zu CEL vor der Persistierung:
+Both modes are JSON-importable. The backend validates the format and compiles `structured` rules to CEL before persistence:
 
 ```json
 {
@@ -126,7 +126,7 @@ Beide Modi sind JSON-importierbar. Das Backend validiert das Format und kompilie
       "name": "appcomp-owner-required",
       "appliesTo": "application-component",
       "severity": "warning",
-      "message": "Jede ApplicationComponent muss einen Owner haben.",
+      "message": "Every ApplicationComponent must have an owner.",
       "ruleMode": "structured",
       "conditions": {
         "all": [
@@ -138,7 +138,7 @@ Beide Modi sind JSON-importierbar. Das Backend validiert das Format und kompilie
       "name": "interface-naming-convention",
       "appliesTo": "interface",
       "severity": "hint",
-      "message": "Interface-Name sollte mit 'I-' beginnen.",
+      "message": "Interface name should start with 'I-'.",
       "ruleMode": "expression",
       "expression": "entity.name.startsWith('I-')"
     }
@@ -150,51 +150,51 @@ Beide Modi sind JSON-importierbar. Das Backend validiert das Format und kompilie
       "connectionType": "runs-on",
       "targetEntityType": "technology-component",
       "validationMode": "warning",
-      "message": "ApplicationComponent sollte auf mindestens einer TechnologyComponent laufen."
+      "message": "An ApplicationComponent should run on at least one TechnologyComponent."
     }
   ]
 }
 ```
 
-Import-Endpunkt: `POST /api/v1/metamodel/rules/import`
-Import-Vorschau: `POST /api/v1/metamodel/rules/import/preview` (**Dry-Run**, v1.0)
-Export-Endpunkt: `GET /api/v1/metamodel/rules/export`
+Import endpoint: `POST /api/v1/metamodel/rules/import`
+Import preview: `POST /api/v1/metamodel/rules/import/preview` (**dry run**, v1.0)
+Export endpoint: `GET /api/v1/metamodel/rules/export`
 
-**Import-Semantik**: Replace-all (bestehende Rules werden komplett ersetzt). Der Dry-Run-Endpunkt gibt eine Diff-Vorschau zurück (`added`, `removed`, `unchanged`) ohne die Rules tatsächlich zu speichern — Schutz vor versehentlichem Löschen. Ein Merge-Modus (add/update/delete einzelner Rules) ist deferred für v2.0.
+**Import semantics**: Replace-all (existing rules are replaced completely). The dry-run endpoint returns a diff preview (`added`, `removed`, `unchanged`) without actually saving the rules — protection against accidental deletion. A merge mode (add/update/delete individual rules) is deferred to v2.0.
 
 ---
 
 ### rulesEditMode
 
-`MetamodelConfiguration` erhält ein neues Feld `rulesEditMode` (unabhängig von `editMode`):
+`MetamodelConfiguration` receives a new field `rulesEditMode` (independent of `editMode`):
 
-| `rulesEditMode` | Effekt |
+| `rulesEditMode` | Effect |
 |---|---|
-| `gui-and-import` | Rules per GUI und JSON-Import änderbar (Default) |
-| `import-only` | GUI-CRUD für Rules deaktiviert; nur Import möglich |
+| `gui-and-import` | Rules changeable via GUI and JSON import (default) |
+| `import-only` | GUI CRUD for rules disabled; only import possible |
 
-Mögliche Kombination mit `editMode`:
+Possible combinations with `editMode`:
 
-| `editMode` | `rulesEditMode` | Effekt |
+| `editMode` | `rulesEditMode` | Effect |
 |---|---|---|
-| `gui-and-import` | `gui-and-import` | Alles via GUI bearbeitbar |
-| `import-only` | `gui-and-import` | Metamodell gesperrt, Rules per GUI pflegbar |
-| `gui-and-import` | `import-only` | Rules nur per JSON-Import; Rest via GUI |
-| `import-only` | `import-only` | Vollständiger GitOps-Betrieb |
+| `gui-and-import` | `gui-and-import` | Everything editable via GUI |
+| `import-only` | `gui-and-import` | Metamodel locked, rules maintainable via GUI |
+| `gui-and-import` | `import-only` | Rules only via JSON import; rest via GUI |
+| `import-only` | `import-only` | Full GitOps operation |
 
 ---
 
-### CEL-Sicherheitskontext
+### CEL Security Context
 
-CEL wird in einem eingeschränkten Kontext ausgeführt (Java-Implementierung via `dev.cel:cel`):
+CEL is executed in a restricted context (Java implementation via `dev.cel:cel`):
 
-- Kein Dateisystem-Zugriff, kein Netzwerk-Aufruf — CEL ist per Spezifikation seiteneffektfrei
-- Keine Seiteneffekte (pure evaluation); kein Reflection-Zugriff auf beliebige Java-Klassen
-- Timeout: max. 100 ms pro Regelauswertung (Spring `@Async` + `CompletableFuture.get(100, MILLISECONDS)`)
-- Evaluierungskontext: `{ entity: ArchitectureEntity, metamodel: MetamodelContext }`
+- No file system access, no network call — CEL is side-effect-free by specification
+- No side effects (pure evaluation); no reflection access to arbitrary Java classes
+- Timeout: max. 100 ms per rule evaluation (Spring `@Async` + `CompletableFuture.get(100, MILLISECONDS)`)
+- Evaluation context: `{ entity: ArchitectureEntity, metamodel: MetamodelContext }`
 
 ```java
-// Beispiel: CEL-Auswertung im Spring-Service
+// Example: CEL evaluation in the Spring service
 Cel cel = CelFactory.standardCelBuilder()
     .addVar("entity", CelTypes.createMap(CelTypes.STRING, CelTypes.DYN))
     .build();
@@ -204,34 +204,34 @@ Object result = program.eval(Map.of("entity", entityProperties));
 
 ---
 
-## Konsequenzen
+## Consequences
 
-### Positive Konsequenzen
+### Positive Consequences
 
-- Konfigurierer ohne Programmierkenntnisse können vollständige Regelsätze im GUI bauen
-- Power-User können CEL direkt nutzen, wenn der Builder an Grenzen stösst
-- JSON-Format ist menschenlesbar und versionierbar (z.B. in Git)
-- CEL ist im Kubernetes-Ökosystem etabliert — Entwickler kennen die Syntax
-- `rulesEditMode` ermöglicht GitOps-Betrieb ohne die restliche Metamodell-Konfiguration zu sperren
+- Configurers without programming knowledge can build complete rule sets in the GUI
+- Power users can use CEL directly when the builder reaches its limits
+- JSON format is human-readable and versionable (e.g. in Git)
+- CEL is established in the Kubernetes ecosystem — developers know the syntax
+- `rulesEditMode` enables GitOps operation without locking the rest of the metamodel configuration
 
-### Negative Konsequenzen / Trade-offs
+### Negative Consequences / Trade-offs
 
-- GUI-Condition-Builder ist eigenständiger Frontend-Aufwand
-- `dev.cel:cel` befindet sich noch im 0.x-Versionsbereich; API-Stabilität vor Walking Skeleton prüfen (Alternativer Fallback: Spring Expression Language `SimpleEvaluationContext` — ohne CEL-Standardkonformität, aber zero additional dependency)
-- Import-Semantik (Replace-all) kann bei Versehen alle Rules löschen → Dry-Run-Endpunkt (`/import/preview`) mitigiert das Risiko; zusätzlich UI-Warnung vor Bestätigung
-- `structured`-zu-CEL-Kompilierung muss getestet werden; Inkonsistenz zwischen Builder-Darstellung und tatsächlich ausgeführtem CEL möglich
+- GUI condition builder is a standalone frontend effort
+- `dev.cel:cel` is still in the 0.x version range; check API stability before the Walking Skeleton (alternative fallback: Spring Expression Language `SimpleEvaluationContext` — without CEL standards conformance, but zero additional dependency)
+- Import semantics (replace-all) can delete all rules by mistake → dry-run endpoint (`/import/preview`) mitigates the risk; additionally UI warning before confirmation
+- `structured`-to-CEL compilation must be tested; inconsistency between builder display and actually executed CEL possible
 
-### Folgeentscheidungen / Offene Punkte
+### Follow-up Decisions / Open Questions
 
-- **Operator-Erweiterung**: welche Operatoren in v2.0 (z.B. Cross-Entity-Checks: "jede Interface muss mindestens eine zugeordnete ApplicationComponent haben")? Betrifft CEL-Kontext-Erweiterung.
-- **Import-Dry-Run**: `/import/preview` liefert Diff ohne Persistierung (v1.0, entschieden)
-- **Import-Merge-Modus**: Merge (add/update/delete einzelner Rules) kommt v2.0; Replace-all bleibt v1.0-Standard
-- **`MandatoryConnectionConstraint`-Builder**: strukturierter Builder für Connection-Constraints analog zu `ConstraintRule`; für v1.0 nur JSON-Import oder einfaches Formular
+- **Operator extension**: which operators in v2.0 (e.g. cross-entity checks: "every interface must have at least one assigned ApplicationComponent")? Affects CEL context extension.
+- **Import dry run**: `/import/preview` returns diff without persistence (v1.0, decided)
+- **Import merge mode**: Merge (add/update/delete individual rules) comes in v2.0; replace-all remains the v1.0 default
+- **`MandatoryConnectionConstraint` builder**: structured builder for connection constraints analogous to `ConstraintRule`; for v1.0 only JSON import or simple form
 
-## Bezüge
+## References
 
-**Verwandte ADRs**: [ADR-012](./ADR-012-backend-stack.md) (Java 21 + Spring Boot 3), [ADR-017](./ADR-017-architektur-layer-strategie.md) (Fully Open → Rules als Kompensation)
+**Related ADRs**: [ADR-012](./ADR-012-backend-stack.md) (Java 21 + Spring Boot 3), [ADR-017](./ADR-017-architecture-layer-strategy.md) (Fully Open → rules as compensation)
 
 **Business Objects**: [metamodel-configuration.md](../business-objects/metamodel-configuration.md) (`constraintRules`, `mandatoryConnectionConstraints`, `rulesEditMode`)
 
-**Konzept**: §14 Erweiterbarkeit
+**Concept**: §14 Extensibility

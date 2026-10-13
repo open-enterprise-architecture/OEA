@@ -1,30 +1,30 @@
-# Ableitung aus: requirements/req/req-073-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: monitoring (Produktivbetrieb)
+# Derived from: requirements/req/req-073-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: monitoring (production operation)
 
 @non-functional @performance @must @UC-01 @UC-05 @UC-06
-Feature: REQ-073 – Systemverfügbarkeit (Uptime-SLA)
+Feature: REQ-073 – System availability (uptime SLA)
 
-  Das System MUSS für produktive OEA-Instanzen eine
-  Mindestverfügbarkeit von **99,5 %** pro Kalendermonat einhalten,
-  gemessen am API-Endpunkt `GET /health`. Geplante Wartungsfenster
-  (maximal 4 Stunden pro Monat, angekündigt ≥ 24 Stunden im Voraus)
-  werden von der Berechnung ausgenommen.
+  For productive OEA instances, the system MUST maintain a minimum
+  availability of **99.5%** per calendar month, measured at the API
+  endpoint `GET /health`. Planned maintenance windows (maximum 4
+  hours per month, announced ≥ 24 hours in advance) are excluded from
+  the calculation.
 
   @AC1
-  Scenario: AC1 – Uptime-Monitoring – Produktive OEA-Instanz läuft seit 30 Tagen
-    Given Produktive OEA-Instanz läuft seit 30 Tagen
-    When  Monitoring-Tool prüft `GET /health` alle 60 Sekunden
-    Then  Verfügbarkeit ≥ 99,5 % des Messzeitraums (exkl. angekündigte Wartungsfenster)
+  Scenario: AC1 – Uptime monitoring – productive OEA instance has been running for 30 days
+    Given productive OEA instance has been running for 30 days
+    When  monitoring tool checks `GET /health` every 60 seconds
+    Then  availability ≥ 99.5% of the measurement period (excl. announced maintenance windows)
 
   @AC2
-  Scenario: AC2 – Automatischer Neustart – OEA-API-Prozess crasht unerwartet
-    Given OEA-API-Prozess crasht unerwartet
-    When  Container-Orchestrierung reagiert (Kubernetes/Docker Compose mit restart-policy)
-    Then  `/health` antwortet spätestens nach 30 Minuten wieder mit HTTP 200
+  Scenario: AC2 – Automatic restart – OEA API process crashes unexpectedly
+    Given OEA API process crashes unexpectedly
+    When  container orchestration responds (Kubernetes/Docker Compose with restart policy)
+    Then  `/health` responds with HTTP 200 again after 30 minutes at the latest
 
   @AC3
-  Scenario: AC3 – Health-Endpunkt – `GET /health` aufgerufen
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  `GET /health` aufgerufen
-    Then  HTTP 200 bei voller Funktionalität; HTTP 503 bei Datenbank-Nichterreichbarkeit oder kritischem Fehler; Antwortzeit < 100ms
+  Scenario: AC3 – Health endpoint – `GET /health` called
+    Given the precondition according to the requirement is met
+    When  `GET /health` called
+    Then  HTTP 200 with full functionality; HTTP 503 if the database is unreachable or on critical error; response time < 100ms

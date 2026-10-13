@@ -1,6 +1,6 @@
 ---
 id: REQ-131
-title: Graph-Traversal-Latenz (ABAC connection-scoped)
+title: Graph Traversal Latency (ABAC connection-scoped)
 type: non-functional
 priority: must
 status: proposed
@@ -26,94 +26,94 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-131: Graph-Traversal-Latenz (ABAC connection-scoped)
+# REQ-131: Graph Traversal Latency (ABAC connection-scoped)
 
-## Aussage
+## Statement
 
-Der Graph-Traversal für die `connection-scoped`-Sichtbarkeitsprüfung (REQ-127) DARF die Antwortzeit einer Entity-Abfrage um maximal **200 ms** (p95) erhöhen, gemessen als zusätzliche Latenz gegenüber einer identischen Abfrage ohne `connection-scoped`-Properties. Dies gilt für Entitäten mit bis zu **500 direkt verbundenen Scope-Entitäten** pro Nutzer über den konfigurierten `scopingConnectionType`.
+The graph traversal for the `connection-scoped` visibility check (REQ-127) MAY increase the response time of an entity query by at most **200 ms** (p95), measured as additional latency compared to an identical query without `connection-scoped` properties. This applies to entities with up to **500 directly connected scope entities** per user via the configured `scopingConnectionType`.
 
-Das Traversal-Ergebnis MUSS serverseitig gecacht werden (TTL ≤ 60 Sekunden pro Nutzer und ConnectionType). Der Cache MUSS bei Änderungen an relevanten Connections (Anlage, Löschung) für den betroffenen Nutzer invalidiert werden.
+The traversal result MUST be cached server-side (TTL ≤ 60 seconds per user and ConnectionType). The cache MUST be invalidated for the affected user on changes to relevant connections (creation, deletion).
 
-## Begründung
+## Rationale
 
-Der `connection-scoped`-Modus erfordert zur Laufzeit einen Graph-Traversal, der ohne Caching bei grossen Graphen die Gesamtlatenz der Entity-API signifikant erhöhen kann. Das Ziel von 200 ms zusätzliche Latenz ist ein konservativer Wert, der bei typischer EA-Repository-Grösse (≤ 500k Entitäten, ≤ 500 Scope-Verbindungen pro Nutzer) mit einer Tiefe-1-Traversal zuverlässig erreichbar ist. REQ-127 definiert die funktionale Anforderung; dieses REQ setzt den verbindlichen Performance-Rahmen.
+The `connection-scoped` mode requires a graph traversal at runtime, which without caching can significantly increase the overall latency of the entity API for large graphs. The goal of 200 ms additional latency is a conservative value that is reliably achievable with a depth-1 traversal at typical EA repository size (≤ 500k entities, ≤ 500 scope connections per user). REQ-127 defines the functional requirement; this REQ sets the binding performance framework.
 
-## Kontext
+## Context
 
-**Scope**: Tiefe-1-Traversal (Nutzer → direkt verbundene Entitäten via `scopingConnectionType`); Tiefe-2+-Traversal ist als zukünftige Erweiterung vorgesehen und hat eigene NFR-Definition
+**Scope**: depth-1 traversal (user → directly connected entities via `scopingConnectionType`); depth-2+ traversal is planned as a future extension and has its own NFR definition
 
-**Datenmenge**: bis zu 500k Gesamtentitäten; bis zu 500 direkt verbundene Scope-Entitäten pro Nutzer
+**Data volume**: up to 500k total entities; up to 500 directly connected scope entities per user
 
-**Cache**: serverseitig, per Nutzer-ID + ConnectionType-ID; TTL 60 Sekunden; Invalidierung bei Connection-Änderung
+**Cache**: server-side, per user ID + ConnectionType ID; TTL 60 seconds; invalidation on connection change
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=non-functional
+### For type=non-functional
 
-**Kategorie**: performance
+**Category**: performance
 
-**Messbare Zielwerte**:
+**Measurable Target Values**:
 
-| Metrik | Zielwert | Scope |
+| Metric | Target Value | Scope |
 |---|---|---|
-| Zusätzliche Latenz durch Traversal (p95) | ≤ 200 ms | Entity-Abfrage mit connection-scoped Properties, Cache kalt |
-| Zusätzliche Latenz durch Traversal (p95) | ≤ 10 ms | Entity-Abfrage mit connection-scoped Properties, Cache warm |
-| Cache-Hit-Rate nach Warm-up | ≥ 90 % | Normalnutzung (Nutzer liest mehrere Entities hintereinander) |
-| Cache-Invalidierung nach Connection-Änderung | ≤ 1 Sekunde | Konsistenz nach Write |
-| Scope: Anzahl direkt verbundener Entitäten | ≤ 500 | Gültigkeitsbereich des Zielwerts |
+| Additional latency from traversal (p95) | ≤ 200 ms | entity query with connection-scoped properties, cold cache |
+| Additional latency from traversal (p95) | ≤ 10 ms | entity query with connection-scoped properties, warm cache |
+| Cache hit rate after warm-up | ≥ 90 % | normal usage (user reads several entities in succession) |
+| Cache invalidation after connection change | ≤ 1 second | consistency after write |
+| Scope: number of directly connected entities | ≤ 500 | validity range of the target value |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Kalt-Traversal ≤ 200 ms):
-- Gegeben: Nutzer hat 500 direkt verbundene Scope-Entitäten; Cache leer
-- Wenn: Entity-Abfrage mit einem `connection-scoped` Property ausgeführt
-- Dann: p95-Latenz des Traversal-Anteils ≤ 200 ms (gemessen via APM-Trace)
+**AC1** (Cold traversal ≤ 200 ms):
+- Given: user has 500 directly connected scope entities; cache empty
+- When: an entity query with one `connection-scoped` property is executed
+- Then: p95 latency of the traversal portion ≤ 200 ms (measured via APM trace)
 
-**AC2** (Warm-Cache ≤ 10 ms):
-- Gegeben: Traversal-Ergebnis ist im Cache (TTL noch nicht abgelaufen)
-- Wenn: Weitere Entity-Abfrage desselben Nutzers ausgeführt
-- Dann: Traversal-Anteil ≤ 10 ms (Cache-Lookup)
+**AC2** (Warm cache ≤ 10 ms):
+- Given: the traversal result is in the cache (TTL not yet expired)
+- When: another entity query by the same user is executed
+- Then: traversal portion ≤ 10 ms (cache lookup)
 
-**AC3** (Cache-Invalidierung):
-- Gegeben: Nutzer hat gecachtes Traversal-Ergebnis
-- Wenn: Neue `DomainAssignment`-Connection für diesen Nutzer angelegt wird
-- Dann: Spätestens nach 1 Sekunde liefert die nächste Entity-Abfrage das aktualisierte Traversal-Ergebnis
+**AC3** (Cache invalidation):
+- Given: user has a cached traversal result
+- When: a new `DomainAssignment` connection is created for this user
+- Then: at the latest after 1 second, the next entity query returns the updated traversal result
 
-**AC4** (Lasttest):
-- Gegeben: 50 gleichzeitige Nutzer (REQ-074) mit je 500 Scope-Verbindungen
-- Wenn: Alle Nutzer gleichzeitig Entity-Abfragen mit connection-scoped Properties senden
-- Dann: p95-Latenz (gesamt, inkl. Traversal) ≤ REQ-071-Zielwert + 200 ms
+**AC4** (Load test):
+- Given: 50 concurrent users (REQ-074) with 500 scope connections each
+- When: all users simultaneously send entity queries with connection-scoped properties
+- Then: p95 latency (total, incl. traversal) ≤ REQ-071 target value + 200 ms
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: load-test (k6 oder Gatling; synthetischer Graph mit 500k Entities, 500 Scope-Connections pro Nutzer)
-- [x] Methode: apm-trace (OpenTelemetry-Span für Traversal-Anteil isolieren)
-- [ ] In CI integriert: nein (Lasttest in dedizierten Performance-Gates)
+- [x] Method: load-test (k6 or Gatling; synthetic graph with 500k entities, 500 scope connections per user)
+- [x] Method: apm-trace (isolate OpenTelemetry span for the traversal portion)
+- [ ] Integrated in CI: no (load test in dedicated performance gates)
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-127 (connection-scoped Enforcement implementiert), REQ-074 (Skalierbarkeits-NFR)
-- **Folgewirkungen**: Cache-Invalidierungs-Mechanismus muss bei Connection-Write-Operationen (UC-04, UC-17) mitgedacht werden
+- **Prerequisites**: REQ-127 (connection-scoped enforcement implemented), REQ-074 (scalability NFR)
+- **Consequences**: the cache invalidation mechanism must be considered for connection write operations (UC-04, UC-17)
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Spürbare Latenz-Degradierung bei Entitäts-Detailseiten im Katalog (UC-06) wenn viele `connection-scoped` Properties konfiguriert sind
-- Domänen-Architekten (SH-04) erleben träge Oberfläche in ihrer Hauptarbeit
+- Noticeable latency degradation on entity detail pages in the catalog (UC-06) when many `connection-scoped` properties are configured
+- Domain architects (SH-04) experience a sluggish interface in their main work
 
 ## Trade-offs
 
-- TTL 60 Sekunden: kurz genug für Konsistenz, lang genug für effektives Caching; bei höheren Konsistenz-Anforderungen auf 10–30 Sekunden senkbar (Performance-Kosten steigen)
-- Tiefe-1-Traversal ist für v1.0 ausreichend; tiefere Hierarchien (Domäne → Sub-Domäne → Entität) erfordern Graph-DB oder materialisierten Pfadindex
+- TTL 60 seconds: short enough for consistency, long enough for effective caching; can be lowered to 10–30 seconds for higher consistency requirements (performance cost increases)
+- Depth-1 traversal is sufficient for v1.0; deeper hierarchies (domain → sub-domain → entity) require a graph DB or a materialized path index
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

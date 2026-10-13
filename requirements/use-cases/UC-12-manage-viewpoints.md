@@ -1,6 +1,6 @@
 ---
 id: UC-12
-title: Viewpoint anlegen und verwalten
+title: Create and Manage Viewpoints
 status: draft
 priority: must
 target_release: v1.0
@@ -24,15 +24,15 @@ references:
     - requirements/user-stories/US-078-viewpoint-exportieren.md
     - requirements/user-stories/US-079-viewpoint-importieren.md
   concept:
-    - concept/20-entities/12-domain-sichten.md
+    - concept/20-entities/12-domain-views.md
   related_use_cases:
     - UC-04
     - UC-05
 ---
 
-# UC-12: Viewpoint anlegen und verwalten
+# UC-12: Create and Manage Viewpoints
 
-## Diagramm
+## Diagram
 
 ```plantuml
 @startuml UC-12-Viewpoint
@@ -40,15 +40,15 @@ left to right direction
 skinparam actorStyle awesome
 
 actor "Kurt\n(Lead EA)" as Kurt
-actor "Michael\n(Solution Architekt)" as Michael
+actor "Michael\n(Solution Architect)" as Michael
 
-rectangle "OEA – Viewpoint verwalten" {
-  usecase "User-defined Viewpoint\nanlegen" as UC_Create
-  usecase "Viewpoint bearbeiten\n(EntityTypes / Notation)" as UC_Edit
-  usecase "Viewpoint exportieren\n(JSON)" as UC_Export
-  usecase "Viewpoint importieren\n(JSON)" as UC_Import
-  usecase "Viewpoint löschen" as UC_Delete
-  usecase "System-Viewpoints\neinsehen (read-only)" as UC_System
+rectangle "OEA – Manage Viewpoints" {
+  usecase "Create User-defined\nViewpoint" as UC_Create
+  usecase "Edit Viewpoint\n(EntityTypes / Notation)" as UC_Edit
+  usecase "Export Viewpoint\n(JSON)" as UC_Export
+  usecase "Import Viewpoint\n(JSON)" as UC_Import
+  usecase "Delete Viewpoint" as UC_Delete
+  usecase "View System Viewpoints\n(read-only)" as UC_System
 }
 
 Kurt --> UC_Create
@@ -65,101 +65,101 @@ UC_Create ..> UC_Edit : <<extend>>
 
 ## Goal in Context
 
-OEA liefert eine Reihe system-definierter Viewpoints (ArchiMate 3, UML, BPMN 2.0). Jede Organisation hat jedoch spezifische Sichtweisen, die sich nicht in Standard-Viewpoints abbilden lassen — etwa eine „Cloud Security View", eine „Domänen-Übersicht" oder ein kundenspezifisches BPMN-Layout. Der Lead Enterprise Architekt muss solche user-defined Viewpoints anlegen, konfigurieren und bei Bedarf exportieren oder importieren können, ohne das Metamodell zu duplizieren.
+OEA delivers a set of system-defined viewpoints (ArchiMate 3, UML, BPMN 2.0). However, every organization has specific perspectives that cannot be represented in standard viewpoints — for example a "Cloud Security View", a "Domain Overview" or a customer-specific BPMN layout. The Lead Enterprise Architect must be able to create and configure such user-defined viewpoints and export or import them if needed, without duplicating the metamodel.
 
-Ein Viewpoint legt fest: welche Entitäts- und Verbindungstypen in Diagrammen dieses Typs erscheinen dürfen, welche Notation verwendet wird (ArchiMate 3, UML oder BPMN 2.0) und wie die Elemente standardmässig gerendert werden (Notation-Element, Grösse).
+A viewpoint defines: which entity and connection types may appear in diagrams of this type, which notation is used (ArchiMate 3, UML or BPMN 2.0) and how the elements are rendered by default (notation element, size).
 
-## Persona und Story
+## Persona and Story
 
-**Primärer Akteur**: [Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
+**Primary Actor**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 
-**Weitere Beteiligte**: [Michael – Solution Architekt](../../business-analysis/stakeholders/SH-04-michael-solution-architekt.md) (nutzt Viewpoints in UC-05; kein aktiver Schritt in diesem UC)
+**Other Stakeholders**: [Michael – Solution Architect](../../business-analysis/stakeholders/SH-04-michael-solution-architect.md) (uses viewpoints in UC-05; no active step in this UC)
 
-**Story**: Als Lead Enterprise Architekt möchte ich Architektursichten definieren, die genau die Entitätstypen und die Notation zeigen, die für unsere Organisation relevant sind — damit Diagramme konsistent erstellt werden und nicht jedes Mal neu konfiguriert werden müssen.
+**Story**: As a Lead Enterprise Architect, I want to define architecture views that show exactly the entity types and the notation that are relevant for our organization — so that diagrams are created consistently and do not have to be configured anew each time.
 
 ## Trigger
 
-1. Kurt möchte eine neue, organisationsspezifische Architektursicht einführen
-2. Ein importierter Viewpoint-Satz soll für die Instanz übernommen werden (Import-Flow)
-3. Ein bestehender user-defined Viewpoint muss angepasst werden (neue EntityTypes im Metamodell hinzugekommen)
-4. Ein user-defined Viewpoint wird nicht mehr benötigt und soll gelöscht werden
+1. Kurt wants to introduce a new, organization-specific architecture view
+2. An imported set of viewpoints is to be adopted for the instance (import flow)
+3. An existing user-defined viewpoint must be adapted (new EntityTypes have been added to the metamodel)
+4. A user-defined viewpoint is no longer needed and is to be deleted
 
-## Vorbedingungen (Pre-Conditions)
+## Preconditions
 
-- [ ] Kurt ist eingeloggt (UC-01) und hat die Rolle „EA-Manager" oder eine Rolle mit Metamodell-Berechtigung
-- [ ] Die MetamodelConfiguration der Instanz enthält die EntityTypes und ConnectionTypes, die im neuen Viewpoint verwendet werden sollen (UC-04)
-- [ ] Für den Import-Flow: eine gültige JSON-Datei mit Viewpoint-Definitionen liegt vor
+- [ ] Kurt is logged in (UC-01) and has the role "EA Manager" or a role with metamodel permission
+- [ ] The instance's MetamodelConfiguration contains the EntityTypes and ConnectionTypes to be used in the new viewpoint (UC-04)
+- [ ] For the import flow: a valid JSON file with viewpoint definitions is available
 
-## Nachbedingungen (Post-Conditions)
+## Postconditions
 
-### Bei Erfolg (Anlegen)
+### On Success (create)
 
-- Ein neuer `ViewpointDefinition`-Eintrag mit `viewpointType=user-defined` existiert in der MetamodelConfiguration
-- Der Viewpoint ist sofort für neue Diagramme auswählbar
-- `createdBy` und `createdAt` sind gesetzt
+- A new `ViewpointDefinition` entry with `viewpointType=user-defined` exists in the MetamodelConfiguration
+- The viewpoint is immediately selectable for new diagrams
+- `createdBy` and `createdAt` are set
 
-### Bei Misserfolg
+### On Failure
 
-- Kein neues Objekt wurde persistiert; bestehende Viewpoints unverändert
-- Fehlermeldung mit konkretem Hinweis (Validierungsfehler, Berechtigung, Import-Konflikt)
+- No new object was persisted; existing viewpoints unchanged
+- Error message with a concrete hint (validation error, permission, import conflict)
 
-## Hauptablauf (Basic Flow)
+## Basic Flow
 
-*Standardfall: Kurt legt einen neuen user-defined Viewpoint an*
+*Default case: Kurt creates a new user-defined viewpoint*
 
-1. **Kurt**: navigiert zur Metamodell-Konfiguration → Bereich „Viewpoints" (`/settings/metamodel/viewpoints`)
-2. **System**: zeigt alle Viewpoints in zwei Gruppen:
-   - System-definierte Viewpoints (read-only; mit Icon gekennzeichnet)
-   - User-defined Viewpoints (editierbar, löschbar)
-3. **Kurt**: klickt „Neuen Viewpoint anlegen"
-4. **System**: öffnet Erstellungsformular mit:
-   - Name (Pflichtfeld; max. 255 Zeichen; muss innerhalb der Instanz eindeutig sein)
-   - Beschreibung (optional; max. 1000 Zeichen)
-   - Notation (Pflichtfeld; Auswahl: `ArchiMate 3`, `UML`, `BPMN 2.0`)
-5. **Kurt**: füllt Basisfelder aus und klickt „Weiter"
-6. **System**: zeigt die Typ-Auswahl-Seite:
-   - Liste aller EntityTypes aus der MetamodelConfiguration (built-in + custom), gruppiert nach ArchitectureLayer (sofern konfiguriert)
-   - Liste aller Connection-Typen (`isConnection=true`)
-   - Kurt wählt per Checkbox, welche in diesem Viewpoint erlaubt sein sollen
-7. **Kurt**: wählt EntityTypes und ConnectionTypes aus und klickt „Weiter"
-8. **System**: zeigt die Notation-Mapping-Seite für jeden gewählten EntityType:
-   - Pro Typ: Dropdown für `notationElement` (gefiltert nach gewählter Notation; zeigt nur passende Präfix-Elemente)
-   - Felder für `defaultWidth` und `defaultHeight` (vorausgefüllt mit Empfehlungswerten)
-   - Optional: `visualHint` (Farbe oder Icon-Override)
-   - System-defined Typen haben bereits Standard-Mappings vorausgefüllt; custom Typen erhalten Fallback-Mapping
-9. **Kurt**: prüft und passt Mappings an
-10. **Kurt**: klickt „Viewpoint speichern"
-11. **System**: validiert (BR-01 bis BR-07); speichert den Viewpoint; zeigt Erfolgsmeldung
-12. **System**: neuer Viewpoint erscheint in der Liste der user-defined Viewpoints
+1. **Kurt**: navigates to the metamodel configuration → section "Viewpoints" (`/settings/metamodel/viewpoints`)
+2. **System**: shows all viewpoints in two groups:
+   - System-defined viewpoints (read-only; marked with an icon)
+   - User-defined viewpoints (editable, deletable)
+3. **Kurt**: clicks "Create new viewpoint"
+4. **System**: opens creation form with:
+   - Name (mandatory field; max. 255 characters; must be unique within the instance)
+   - Description (optional; max. 1000 characters)
+   - Notation (mandatory field; selection: `ArchiMate 3`, `UML`, `BPMN 2.0`)
+5. **Kurt**: fills in the basic fields and clicks "Next"
+6. **System**: shows the type selection page:
+   - List of all EntityTypes from the MetamodelConfiguration (built-in + custom), grouped by ArchitectureLayer (if configured)
+   - List of all connection types (`isConnection=true`)
+   - Kurt selects via checkbox which ones should be allowed in this viewpoint
+7. **Kurt**: selects EntityTypes and ConnectionTypes and clicks "Next"
+8. **System**: shows the notation mapping page for each selected EntityType:
+   - Per type: dropdown for `notationElement` (filtered by selected notation; shows only matching prefix elements)
+   - Fields for `defaultWidth` and `defaultHeight` (prefilled with recommended values)
+   - Optional: `visualHint` (color or icon override)
+   - System-defined types already have default mappings prefilled; custom types receive a fallback mapping
+9. **Kurt**: reviews and adjusts mappings
+10. **Kurt**: clicks "Save viewpoint"
+11. **System**: validates (BR-01 to BR-07); saves the viewpoint; shows success message
+12. **System**: new viewpoint appears in the list of user-defined viewpoints
 
-## Alternative Abläufe (Alternative Flows)
+## Alternative Flows
 
-**A1 – Bestehenden user-defined Viewpoint bearbeiten**
+**A1 – Edit existing user-defined viewpoint**
 
-1. **Kurt**: klickt in der Viewpoint-Liste auf einen user-defined Viewpoint → „Bearbeiten"
-2. **System**: öffnet Bearbeitungsformular mit vorausgefüllten Werten (identische Struktur wie Anlage-Flow)
-3. **Kurt**: passt EntityTypes, ConnectionTypes oder Notation-Mappings an
-   - Hinweis: wenn ein EntityType aus `allowedEntityTypes` entfernt wird, der in bestehenden Diagrammen genutzt wird, zeigt das System eine Warnung mit Anzahl betroffener Diagramme (kein Block, nur Information)
-4. **Kurt**: speichert; System validiert und persistiert
-5. Bestehende Diagramme, die diesen Viewpoint nutzen, werden beim nächsten Öffnen neu validiert (BR-05)
+1. **Kurt**: clicks a user-defined viewpoint in the viewpoint list → "Edit"
+2. **System**: opens edit form with prefilled values (identical structure to the creation flow)
+3. **Kurt**: adjusts EntityTypes, ConnectionTypes or notation mappings
+   - Note: if an EntityType used in existing diagrams is removed from `allowedEntityTypes`, the system shows a warning with the number of affected diagrams (no block, information only)
+4. **Kurt**: saves; system validates and persists
+5. Existing diagrams that use this viewpoint are revalidated the next time they are opened (BR-05)
 
-**A2 – User-defined Viewpoint löschen**
+**A2 – Delete user-defined viewpoint**
 
-1. **Kurt**: klickt auf einen user-defined Viewpoint → „Löschen"
-2. **System**: prüft, ob der Viewpoint von bestehenden Diagrammen genutzt wird
-   - Wenn ja: Warnung „N Diagramme nutzen diesen Viewpoint. Diese Diagramme verlieren ihren Viewpoint-Bezug." (kein automatischer Rollback der Diagramme)
-   - Wenn nein: direkte Bestätigung
-3. **Kurt**: bestätigt die Löschung
-4. **System**: entfernt den Viewpoint aus der MetamodelConfiguration; betroffene Diagramme referenzieren keinen gültigen Viewpoint mehr (UI zeigt Hinweis beim Öffnen dieser Diagramme)
+1. **Kurt**: clicks a user-defined viewpoint → "Delete"
+2. **System**: checks whether the viewpoint is used by existing diagrams
+   - If yes: warning "N diagrams use this viewpoint. These diagrams lose their viewpoint reference." (no automatic rollback of the diagrams)
+   - If no: direct confirmation
+3. **Kurt**: confirms the deletion
+4. **System**: removes the viewpoint from the MetamodelConfiguration; affected diagrams no longer reference a valid viewpoint (UI shows a notice when opening these diagrams)
 
-**A3 – Viewpoints exportieren (REQ-058, US-078)**
+**A3 – Export viewpoints (REQ-058, US-078)**
 
-1. **Kurt**: klickt „Viewpoints exportieren" in der Viewpoint-Übersicht
-2. **System**: öffnet Auswahl-Dialog: alle Viewpoints, user-defined vorausgewählt; system-defined optional zuwählbar
-3. **Kurt**: wählt zu exportierende Viewpoints und klickt „Exportieren"
-4. **System**: generiert JSON-Datei im Viewpoint-Format und startet Download
+1. **Kurt**: clicks "Export viewpoints" in the viewpoint overview
+2. **System**: opens selection dialog: all viewpoints, user-defined preselected; system-defined optionally selectable
+3. **Kurt**: selects the viewpoints to export and clicks "Export"
+4. **System**: generates JSON file in viewpoint format and starts download
 
-Exportiertes Format (Beispiel):
+Exported format (example):
 ```json
 {
   "schemaVersion": "1.0",
@@ -178,79 +178,79 @@ Exportiertes Format (Beispiel):
 }
 ```
 
-**A4 – Viewpoints importieren (REQ-059, US-079)**
+**A4 – Import viewpoints (REQ-059, US-079)**
 
-1. **Kurt**: klickt „Viewpoints importieren" und wählt eine JSON-Datei
-2. **System**: validiert die Datei (BR-08: alle referenzierten EntityType-IDs müssen in der Instanz existieren)
-   - Fehler bei unbekannten IDs: Liste der fehlenden Typen; kein Partial-Import
-3. **System**: zeigt Vorschau: neue Viewpoints (werden angelegt), konfligierende Namen (Option: überschreiben oder umbenennen)
-4. **Kurt**: bestätigt den Import
-5. **System**: legt neue Viewpoints an; überschreibt bei Bestätigung bestehende user-defined Viewpoints gleichen Namens; system-defined Viewpoints werden nie überschrieben
+1. **Kurt**: clicks "Import viewpoints" and selects a JSON file
+2. **System**: validates the file (BR-08: all referenced EntityType IDs must exist in the instance)
+   - Error for unknown IDs: list of missing types; no partial import
+3. **System**: shows preview: new viewpoints (will be created), conflicting names (option: overwrite or rename)
+4. **Kurt**: confirms the import
+5. **System**: creates new viewpoints; on confirmation overwrites existing user-defined viewpoints of the same name; system-defined viewpoints are never overwritten
 
-## Ausnahmen / Fehlerfälle (Exception Flows)
+## Exception Flows
 
-**E1 – Name nicht eindeutig**
-- Bedingung: Gewählter Name existiert bereits in der MetamodelConfiguration (BR-01)
-- Erwartete Reaktion: Inline-Validierungsfehler am Namensfeld; Speichern blockiert
-- Wiederaufnahme: Kurt wählt einen anderen Namen
+**E1 – Name not unique**
+- Condition: Chosen name already exists in the MetamodelConfiguration (BR-01)
+- Expected reaction: Inline validation error on the name field; saving blocked
+- Resumption: Kurt chooses a different name
 
-**E2 – EntityType nicht in MetamodelConfiguration vorhanden**
-- Bedingung: Kurt versucht einen EntityType zu referenzieren, der in der MetamodelConfiguration nicht (mehr) existiert (kann beim Importieren auftreten, BR-03/BR-08)
-- Erwartete Reaktion: Validierungsfehler mit Liste der fehlenden IDs; kein Partial-Import
-- Wiederaufnahme: Kurt legt den EntityType via UC-04 an oder passt die Import-Datei an
+**E2 – EntityType not present in MetamodelConfiguration**
+- Condition: Kurt tries to reference an EntityType that does not (or no longer) exist in the MetamodelConfiguration (can occur during import, BR-03/BR-08)
+- Expected reaction: Validation error with list of missing IDs; no partial import
+- Resumption: Kurt creates the EntityType via UC-04 or adjusts the import file
 
-**E3 – Notation-Element-Präfix passt nicht zur Notation (BR-07)**
-- Bedingung: Kurt wählt ein `notationElement` mit falschem Präfix (z.B. `bpmn:Task` in einem ArchiMate-Viewpoint)
-- Erwartete Reaktion: Dropdown zeigt nur Elemente der gewählten Notation; Freitext-Eingabe wird beim Speichern mit Validierungsfehler abgelehnt
-- Wiederaufnahme: Kurt wählt ein passendes Notation-Element
+**E3 – Notation element prefix does not match the notation (BR-07)**
+- Condition: Kurt selects a `notationElement` with the wrong prefix (e.g., `bpmn:Task` in an ArchiMate viewpoint)
+- Expected reaction: Dropdown shows only elements of the selected notation; free-text input is rejected with a validation error on save
+- Resumption: Kurt selects a matching notation element
 
-**E4 – Löschen eines system-defined Viewpoints versucht**
-- Bedingung: Kurt versucht, einen Viewpoint mit `viewpointType=system-defined` zu löschen (BR-02)
-- Erwartete Reaktion: Löschen-Button nicht sichtbar / deaktiviert für system-defined Viewpoints
-- Wiederaufnahme: nicht nötig; UI verhindert die Aktion
+**E4 – Attempt to delete a system-defined viewpoint**
+- Condition: Kurt tries to delete a viewpoint with `viewpointType=system-defined` (BR-02)
+- Expected reaction: Delete button not visible / disabled for system-defined viewpoints
+- Resumption: not necessary; UI prevents the action
 
-**E5 – Fehlende Berechtigung**
-- Bedingung: Eingeloggte Person hat keine Metamodell-Berechtigung
-- Erwartete Reaktion: 403 Forbidden; Anlegen/Bearbeiten/Löschen nicht zugänglich
-- Wiederaufnahme: Person wendet sich an Admin (UC-02)
+**E5 – Missing permission**
+- Condition: Logged-in person has no metamodel permission
+- Expected reaction: 403 Forbidden; create/edit/delete not accessible
+- Resumption: Person contacts the admin (UC-02)
 
-## Datenfluss
+## Data Flow
 
-| Schritt | Daten | Richtung | Bemerkung |
+| Step | Data | Direction | Remark |
 |---|---|---|---|
-| 2 | Viewpoint-Liste (id, name, notation, viewpointType) | System → Kurt | Zwei Gruppen: system-defined, user-defined |
-| 4–5 | Name, Beschreibung, Notation | Kurt → System | Basisfelder |
-| 6–7 | allowedEntityTypes[], allowedConnectionTypes[] | Kurt → System | Checkbox-Auswahl aus MetamodelConfiguration |
-| 8–9 | notationMappings[] (entityTypeId, notationElement, defaultWidth, defaultHeight) | Kurt → System | Pro gewähltem EntityType |
-| 11 | ViewpointDefinition (vollständig) | System intern | Persistiert in MetamodelConfiguration |
-| A3 | JSON-Export (Viewpoint-Definitionen) | System → Datei | Download |
-| A4 | JSON-Import + Validierungsbericht | Datei → System | Kein Partial-Import bei Validierungsfehler |
+| 2 | Viewpoint list (id, name, notation, viewpointType) | System → Kurt | Two groups: system-defined, user-defined |
+| 4–5 | Name, description, notation | Kurt → System | Basic fields |
+| 6–7 | allowedEntityTypes[], allowedConnectionTypes[] | Kurt → System | Checkbox selection from MetamodelConfiguration |
+| 8–9 | notationMappings[] (entityTypeId, notationElement, defaultWidth, defaultHeight) | Kurt → System | Per selected EntityType |
+| 11 | ViewpointDefinition (complete) | System internal | Persisted in MetamodelConfiguration |
+| A3 | JSON export (viewpoint definitions) | System → File | Download |
+| A4 | JSON import + validation report | File → System | No partial import on validation error |
 
-## Beteiligte Business Objects
+## Involved Business Objects
 
-| Business Object | Operation | Notiz |
+| Business Object | Operation | Note |
 |---|---|---|
-| [viewpoint](../../business-objects/viewpoint.md) | create, update, delete | Kern-Objekt; nur user-defined editierbar |
-| [metamodel-configuration](../../business-objects/metamodel-configuration.md) | read, update | Viewpoints sind Teil der MetamodelConfiguration |
-| [person](../../business-objects/person.md) | read | `createdBy`; Berechtigungsprüfung |
-| [role](../../business-objects/role.md) | read | EA-Manager-Rolle erforderlich |
+| [viewpoint](../../business-objects/viewpoint.md) | create, update, delete | Core object; only user-defined editable |
+| [metamodel-configuration](../../business-objects/metamodel-configuration.md) | read, update | Viewpoints are part of the MetamodelConfiguration |
+| [person](../../business-objects/person.md) | read | `createdBy`; permission check |
+| [role](../../business-objects/role.md) | read | EA Manager role required |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] User-defined Viewpoint mit Name, Notation, allowedEntityTypes, allowedConnectionTypes anlegbar
-- [ ] Notation-Mappings pro EntityType konfigurierbar (notationElement, defaultWidth, defaultHeight)
-- [ ] Dropdown für notationElement zeigt nur Elemente der gewählten Notation (BR-07)
-- [ ] E1: Doppelter Name wird mit Inline-Fehler abgelehnt (BR-01)
-- [ ] System-defined Viewpoints sind nicht bearbeitbar und nicht löschbar (BR-02); Schaltflächen deaktiviert
-- [ ] A1: Bestehender user-defined Viewpoint bearbeitbar; Warnung bei Entfernen eines genutzten EntityTypes
-- [ ] A2: Löschen mit Warnung bei genutzten Viewpoints; Bestätigung erforderlich
-- [ ] A3: Export erzeugt gültige JSON-Datei mit gewählten Viewpoints
-- [ ] A4: Import validiert alle EntityType-IDs gegen MetamodelConfiguration (BR-08); kein Partial-Import bei Fehler; Vorschau vor Übernahme
-- [ ] E5: Ohne Metamodell-Berechtigung kein Zugriff auf Anlegen/Bearbeiten/Löschen (403)
+- [ ] User-defined viewpoint can be created with name, notation, allowedEntityTypes, allowedConnectionTypes
+- [ ] Notation mappings configurable per EntityType (notationElement, defaultWidth, defaultHeight)
+- [ ] Dropdown for notationElement shows only elements of the selected notation (BR-07)
+- [ ] E1: Duplicate name is rejected with an inline error (BR-01)
+- [ ] System-defined viewpoints are neither editable nor deletable (BR-02); buttons disabled
+- [ ] A1: Existing user-defined viewpoint editable; warning when removing a used EntityType
+- [ ] A2: Deletion with warning for used viewpoints; confirmation required
+- [ ] A3: Export produces a valid JSON file with the selected viewpoints
+- [ ] A4: Import validates all EntityType IDs against the MetamodelConfiguration (BR-08); no partial import on error; preview before adoption
+- [ ] E5: Without metamodel permission, no access to create/edit/delete (403)
 
-## Nicht im Scope
+## Out of Scope
 
-- **Diagramm-Instanzen anlegen/bearbeiten**: Diagramme sind Instanzen eines Viewpoints; ihre Verwaltung ist ein eigener UC (noch nicht angelegt)
-- **System-defined Viewpoints anpassen**: bewusst nicht vorgesehen (BR-02); Betreiber legt user-defined Viewpoints als Ersatz/Ergänzung an
-- **Viewpoint-Vererbung**: ein Viewpoint kann nicht von einem anderen erben; Typen werden immer explizit gewählt
-- **Notation-Elemente erweitern**: der Notation-Element-Katalog (ArchiMate 3, UML, BPMN 2.0) ist in v1.0 fix; Erweiterung ist v2.0-Thema
+- **Creating/editing diagram instances**: diagrams are instances of a viewpoint; their management is a separate UC (not yet created)
+- **Adapting system-defined viewpoints**: deliberately not provided (BR-02); operator creates user-defined viewpoints as replacement/supplement
+- **Viewpoint inheritance**: a viewpoint cannot inherit from another; types are always selected explicitly
+- **Extending notation elements**: the notation element catalog (ArchiMate 3, UML, BPMN 2.0) is fixed in v1.0; extension is a v2.0 topic

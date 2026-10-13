@@ -1,6 +1,6 @@
 ---
 id: REQ-129
-title: Datenverschlüsselung (at-rest und in-transit)
+title: Data Encryption (at-rest and in-transit)
 type: non-functional
 priority: must
 status: proposed
@@ -21,100 +21,100 @@ references:
     - SH-05
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-129: Datenverschlüsselung (at-rest und in-transit)
+# REQ-129: Data Encryption (at-rest and in-transit)
 
-## Aussage
+## Statement
 
-Das System MUSS alle gespeicherten Daten (at-rest) und alle Datentransporte (in-transit) kryptographisch schützen:
+The system MUST cryptographically protect all stored data (at-rest) and all data transports (in-transit):
 
 **At-rest**:
-- Alle persistierten Daten (Datenbank, Backups, Export-Dateien im Storage) MÜSSEN mit **AES-256** oder einem gleichwertigen, anerkannten Verfahren verschlüsselt werden
-- Backups MÜSSEN verschlüsselt abgelegt werden; unverschlüsselte Backup-Dateien DÜRFEN nicht auf Datenträgern verbleiben
-- Verschlüsselungsschlüssel DÜRFEN NICHT hardcodiert sein; sie MÜSSEN über Umgebungsvariablen oder ein Secrets-Management-System konfigurierbar sein
+- All persisted data (database, backups, export files in storage) MUST be encrypted with **AES-256** or an equivalent, recognized method
+- Backups MUST be stored encrypted; unencrypted backup files MUST NOT remain on storage media
+- Encryption keys MUST NOT be hardcoded; they MUST be configurable via environment variables or a secrets management system
 
 **In-transit**:
-- Alle HTTP-Verbindungen (Browser ↔ API, API ↔ Datenbank, API ↔ Object Storage) MÜSSEN über **TLS 1.2** oder höher abgewickelt werden
-- Unverschlüsselte HTTP-Verbindungen zum API-Server MÜSSEN auf HTTPS umgeleitet (301-Redirect) oder blockiert werden
-- TLS-Zertifikate MÜSSEN konfigurierbar sein (eigene Zertifikate, Let's Encrypt, Proxy-Terminierung)
+- All HTTP connections (browser ↔ API, API ↔ database, API ↔ object storage) MUST be handled over **TLS 1.2** or higher
+- Unencrypted HTTP connections to the API server MUST be redirected to HTTPS (301 redirect) or blocked
+- TLS certificates MUST be configurable (own certificates, Let's Encrypt, proxy termination)
 
-## Begründung
+## Rationale
 
-UC-21 zeigt, dass OEA sensible Daten (Investitionskosten, Sicherheitseinstufungen) verwaltet. Ohne Verschlüsselung sind diese Daten bei Datenbank-Dumps, Backup-Exfiltration oder Man-in-the-Middle-Angriffen ungeschützt. Für Self-Hosted-Betreiber (SH-06) ist die eigene Infrastruktur die primäre Angriffsfläche.
+UC-21 shows that OEA manages sensitive data (investment costs, security classifications). Without encryption, this data is unprotected in the event of database dumps, backup exfiltration, or man-in-the-middle attacks. For self-hosted operators (SH-06), their own infrastructure is the primary attack surface.
 
-## Kontext
+## Context
 
-Gilt für alle Deployment-Szenarien (Self-hosted, SaaS). Die Verschlüsselung auf Betriebssystem-/Storage-Ebene (z.B. LUKS, AWS EBS Encryption) liegt in der Verantwortung des Betreibers und ist nicht Gegenstand dieses REQ. OEA stellt sicher, dass Backups und Exports verschlüsselt sind, bevor sie an den Storage übergeben werden.
+Applies to all deployment scenarios (self-hosted, SaaS). Encryption at the operating system/storage level (e.g. LUKS, AWS EBS Encryption) is the operator's responsibility and is not the subject of this REQ. OEA ensures that backups and exports are encrypted before they are handed over to storage.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=non-functional
+### For type=non-functional
 
-**Kategorie**: security
+**Category**: security
 
-**Messbare Zielwerte**:
+**Measurable Target Values**:
 
-| Metrik | Zielwert | Scope |
+| Metric | Target Value | Scope |
 |---|---|---|
-| TLS-Mindestversion | TLS 1.2 | alle externen Verbindungen |
-| Unverschlüsselte HTTP-Anfragen | 0 im Produktivbetrieb | API-Server |
-| Backup-Verschlüsselung | 100 % der Backup-Dateien | alle Backup-Ziele |
-| Hardcodierte Schlüssel im Source Code | 0 | Codebase, Docker-Images |
+| Minimum TLS version | TLS 1.2 | all external connections |
+| Unencrypted HTTP requests | 0 in production | API server |
+| Backup encryption | 100 % of backup files | all backup targets |
+| Hardcoded keys in source code | 0 | codebase, Docker images |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (TLS erzwungen):
-- Wenn: Browser sendet HTTP-Anfrage an OEA-API (Port 80)
-- Dann: Antwort ist 301-Redirect auf HTTPS oder Verbindung wird verweigert; kein Klartext-Response
+**AC1** (TLS enforced):
+- When: a browser sends an HTTP request to the OEA API (port 80)
+- Then: the response is a 301 redirect to HTTPS or the connection is refused; no plaintext response
 
-**AC2** (TLS-Version):
-- Wenn: TLS-Scan gegen den API-Endpunkt durchgeführt wird
-- Dann: TLS 1.0 und TLS 1.1 werden abgelehnt; TLS 1.2 und 1.3 werden akzeptiert
+**AC2** (TLS version):
+- When: a TLS scan is performed against the API endpoint
+- Then: TLS 1.0 and TLS 1.1 are rejected; TLS 1.2 and 1.3 are accepted
 
-**AC3** (Backup verschlüsselt):
-- Wenn: Backup-Routine ausgeführt wird
-- Dann: Backup-Datei ist AES-256-verschlüsselt; kein Klartext-Dump auf dem Storage
+**AC3** (Backup encrypted):
+- When: the backup routine is executed
+- Then: the backup file is AES-256-encrypted; no plaintext dump on storage
 
-**AC4** (Keine hardcodierten Schlüssel):
-- Wenn: Statische Code-Analyse (Secrets-Scanner) gegen den Source Code läuft
-- Dann: Keine Trefffer für Verschlüsselungsschlüssel, Passwörter oder Tokens im Quellcode oder in Docker-Images
+**AC4** (No hardcoded keys):
+- When: static code analysis (secrets scanner) runs against the source code
+- Then: no hits for encryption keys, passwords, or tokens in the source code or in Docker images
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: security-test (TLS-Scan via `testssl.sh` oder `sslyze`)
-- [x] Methode: secrets-scan (Trufflehog oder gitleaks in CI)
-- [x] Methode: backup-integration-test (Prüfung des Backup-Header-Magic-Bytes)
-- [x] In CI integriert: ja (Secrets-Scanner), nein (TLS-Scan — Produktivumgebung)
+- [x] Method: security-test (TLS scan via `testssl.sh` or `sslyze`)
+- [x] Method: secrets-scan (Trufflehog or gitleaks in CI)
+- [x] Method: backup-integration-test (check of the backup header magic bytes)
+- [x] Integrated in CI: yes (secrets scanner), no (TLS scan — production environment)
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: Deployment-Architektur (TLS-Terminierung: direkt oder via Reverse Proxy)
-- **Folgewirkungen**: REQ-082 (Backup-Retention) — verschlüsselte Backups müssen entschlüsselbar bleiben (Schlüssel-Rotation bedenken)
+- **Prerequisites**: deployment architecture (TLS termination: direct or via reverse proxy)
+- **Consequences**: REQ-082 (backup retention) — encrypted backups must remain decryptable (consider key rotation)
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Datenleck bei Datenbank-Dump oder Backup-Exfiltration; sensible Properties (UC-21) im Klartext lesbar
-- Compliance-Verstoss bei DSGVO-pflichtigen Daten (Personenbezug via `person`-Entitäten)
+- Data leak in the event of a database dump or backup exfiltration; sensitive properties (UC-21) readable in plaintext
+- Compliance violation for GDPR-relevant data (personal reference via `person` entities)
 
 ## Trade-offs
 
-- Proxy-basierte TLS-Terminierung (nginx, Traefik) ist für Self-Hosted-Betreiber der Standardweg; OEA unterstützt dieses Muster ausdrücklich — direkte TLS-Konfiguration im App-Server ist optional
-- Schlüssel-Rotation für Backup-Verschlüsselung erfordert Re-Encryption älterer Backups; Prozess muss dokumentiert werden
+- Proxy-based TLS termination (nginx, Traefik) is the standard route for self-hosted operators; OEA explicitly supports this pattern — direct TLS configuration in the app server is optional
+- Key rotation for backup encryption requires re-encryption of older backups; the process must be documented
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

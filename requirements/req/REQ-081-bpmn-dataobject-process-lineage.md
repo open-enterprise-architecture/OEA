@@ -1,6 +1,6 @@
 ---
 id: REQ-081
-title: BPMN-DataObject-Integration und Prozess-Datenlineage
+title: BPMN DataObject integration and process data lineage
 type: functional
 priority: should
 status: proposed
@@ -10,49 +10,49 @@ created: 2026-06-26
 author: requirements-engineer
 ---
 
-# REQ-081: BPMN-DataObject-Integration und Prozess-Datenlineage
+# REQ-081: BPMN DataObject integration and process data lineage
 
-## Beschreibung
+## Description
 
-BPMN-Prozesse können DataObjects und DataStores enthalten. Tasks beschreiben über Input- und Output-Assoziationen, welche Daten sie lesen, erzeugen oder anreichern (`transformationType`). Da `bpmn-data-object` als Subtyp von `data-object` (entity.md) modelliert ist, entsteht eine nahtlose Verbindung zur technischen Data Lineage (UC-08): die gleiche Entity erscheint sowohl im Prozessdiagramm als auch in der Lineage-Abfrage.
+BPMN processes can contain DataObjects and DataStores. Via input and output associations, tasks describe which data they read, create or enrich (`transformationType`). Since `bpmn-data-object` is modeled as a subtype of `data-object` (entity.md), a seamless connection to the technical data lineage (UC-08) arises: the same entity appears both in the process diagram and in the lineage query.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (DataObject im Prozessdiagramm):
-- Business Analyst kann `bpmn-data-object` und `bpmn-data-store` aus der BPMN-Palette auf das Prozessdiagramm ziehen
-- DataObjects können innerhalb von Lanes oder frei auf Prozessebene platziert werden
+**AC1** (DataObject in the process diagram):
+- Business analyst can drag `bpmn-data-object` and `bpmn-data-store` from the BPMN palette onto the process diagram
+- DataObjects can be placed within lanes or freely at process level
 
-**AC2** (Input-/Output-Assoziation anlegen):
-- Business Analyst zieht eine gestrichelte Linie (BPMN-Notation) von einem DataObject zu einem Task (Input) oder vom Task zu einem DataObject (Output)
-- UI fragt beim Anlegen: Richtung (Input / Output) und optional `transformationType` (create / enrich / overwrite / delete / read-only)
+**AC2** (Create input/output association):
+- Business analyst draws a dashed line (BPMN notation) from a DataObject to a task (input) or from the task to a DataObject (output)
+- On creation, the UI asks: direction (input / output) and optionally `transformationType` (create / enrich / overwrite / delete / read-only)
 
-**AC3** (Anreicherungs-Annotation):
-- Detail-Panel einer `bpmn-data-output-association` zeigt Felder: `transformationType` (Dropdown), `affectedAttributes` (Tag-Eingabe), `condition` (Freitext)
-- Diese Properties werden im Repository gespeichert und sind via API abfragbar
+**AC3** (Enrichment annotation):
+- Detail panel of a `bpmn-data-output-association` shows fields: `transformationType` (dropdown), `affectedAttributes` (tag input), `condition` (free text)
+- These properties are stored in the repository and are queryable via API
 
-**AC4** (Bestehendes data-object referenzieren):
-- Business Analyst kann beim Anlegen eines `bpmn-data-object` ein bereits im EA-Repository vorhandenes `data-object` auswählen (Autocomplete via `[[`-Trigger, REQ-070)
-- Das BPMN-Element zeigt dann Name und ID des referenzierten Objekts; kein Duplikat wird erstellt
+**AC4** (Reference existing data-object):
+- When creating a `bpmn-data-object`, the business analyst can select a `data-object` already present in the EA repository (autocomplete via `[[` trigger, REQ-070)
+- The BPMN element then shows the name and ID of the referenced object; no duplicate is created
 
-**AC5** (DataStore mit technischer Infrastruktur verknüpfen):
-- `bpmn-data-store` kann via `realizes`-Connection mit einem `data-component` aus dem EA-Repository verknüpft werden
-- Verknüpfung: Kontextmenü „Realisiert durch" → Suche im EA-Repository
+**AC5** (Link DataStore with technical infrastructure):
+- `bpmn-data-store` can be linked via a `realizes` connection with a `data-component` from the EA repository
+- Link: context menu "Realized by" → search in the EA repository
 
-**AC6** (Lineage-Query durch Prozess):
-- `GET /api/v1/entities/{id}/lineage?direction=downstream` für ein `data-object` gibt auch BPMN-Tasks zurück, die dieses Objekt über `bpmn-data-output-association` anreichern
-- Analog upstream: Tasks, die es als Input lesen
+**AC6** (Lineage query through process):
+- `GET /api/v1/entities/{id}/lineage?direction=downstream` for a `data-object` also returns BPMN tasks that enrich this object via `bpmn-data-output-association`
+- Analogously upstream: tasks that read it as input
 
-**AC7** (Katalog-Join auf Prozess-Daten):
-- Katalog mit `data-object` als primaryEntityType kann via Join auf `bpmn-data-output-association` zeigen, welche Prozess-Tasks jedes DataObject erzeugen oder anreichern
+**AC7** (Catalog join on process data):
+- A catalog with `data-object` as primaryEntityType can show via a join on `bpmn-data-output-association` which process tasks create or enrich each DataObject
 
-**AC8** (Web Portal read-only):
-- BPMN-Diagramm mit DataObjects ist im Web Portal lesbar; DataObject-Names und transformationType-Annotationen sichtbar
+**AC8** (Web portal read-only):
+- BPMN diagram with DataObjects is readable in the web portal; DataObject names and transformationType annotations visible
 
-## Technische Hinweise
+## Technical Notes
 
-- `bpmn-data-object` als EntityTypeDefinition mit `extends: data-object`, `isBuiltIn: true`; Property `isCollection: boolean` (BPMN-Standard)
-- `bpmn-data-store` als eigener EntityTypeDefinition; keine Vererbung von `data-object` (semantisch verschieden)
-- `bpmn-data-input-association` und `bpmn-data-output-association` als built-in Connections; Properties auf dem Connection-Objekt (ADR-004: alle Connections haben Integer-IDs)
-- Canvas-Darstellung: gestrichelte Linie mit ausgefülltem/offenem Pfeil (BPMN-Notation); DataObject-Symbol: ungefaltetes Dokument-Icon; DataStore-Symbol: Zylinder
-- Lineage-API (REQ-062): muss `bpmn-data-input-association` und `bpmn-data-output-association` als traversierbare Kanten kennen
-- BR-07/BR-08 aus process.md gelten (Pfeilrichtung, create-Constraint)
+- `bpmn-data-object` as EntityTypeDefinition with `extends: data-object`, `isBuiltIn: true`; property `isCollection: boolean` (BPMN standard)
+- `bpmn-data-store` as its own EntityTypeDefinition; no inheritance from `data-object` (semantically different)
+- `bpmn-data-input-association` and `bpmn-data-output-association` as built-in connections; properties on the connection object (ADR-004: all connections have integer IDs)
+- Canvas display: dashed line with filled/open arrow (BPMN notation); DataObject symbol: unfolded document icon; DataStore symbol: cylinder
+- Lineage API (REQ-062): must know `bpmn-data-input-association` and `bpmn-data-output-association` as traversable edges
+- BR-07/BR-08 from process.md apply (arrow direction, create constraint)

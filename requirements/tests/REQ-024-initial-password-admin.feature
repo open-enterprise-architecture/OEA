@@ -1,47 +1,46 @@
-# Ableitung aus: requirements/req/req-024-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-024-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @must @UC-03
-Feature: REQ-024 – Initiales Passwort durch Administrator setzen
+Feature: REQ-024 – Administrator sets initial password
 
-  Das System MUSS einem Administrator ermöglichen, beim Anlegen einer
-  Person für lokale Authentifizierung ein initiales Passwort zu setzen;
-  dieses Passwort MUSS sofort nach dem Setzen als sicherer Hash
-  (argon2id oder bcrypt) persistiert werden und MUSS dem Administrator
-  genau einmal im Klartext angezeigt werden, danach nicht mehr abrufbar
-  sein.
+  The system MUST enable an administrator to set an initial password
+  for local authentication when creating a person; this password MUST
+  be persisted as a secure hash (argon2id or bcrypt) immediately after
+  being set and MUST be displayed to the administrator in plain text
+  exactly once, and not be retrievable afterwards.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Administrator legt eine Person an und setzt ein initiales Passwort
-    Given Administrator legt eine Person an und setzt ein initiales Passwort
-    When  die Anfrage erfolgreich verarbeitet wird
-    Then  ist der Passwort-Hash als `LocalCredential (type=password)` persistiert; der Klartext wird genau einmal angezeigt
+  Scenario: AC1 – administrator creates a person and sets an initial password
+    Given administrator creates a person and sets an initial password
+    When  the request is processed successfully
+    Then  the password hash is persisted as `LocalCredential (type=password)`; the plain text is displayed exactly once
 
   @AC2
-  Scenario: AC2 – das initiale Passwort wurde gesetzt und angezeigt
-    Given das initiale Passwort wurde gesetzt und angezeigt
-    When  der Administrator die Admin-UI erneut öffnet oder die API erneut aufruft
-    Then  ist der Passwort-Klartext nicht mehr abrufbar (nur Hash in der DB)
+  Scenario: AC2 – the initial password was set and displayed
+    Given the initial password was set and displayed
+    When  the administrator opens the admin UI again or calls the API again
+    Then  the password plain text is no longer retrievable (only the hash in the DB)
 
   @AC3
-  Scenario: AC3 – das initiale Passwort ist gesetzt
-    Given das initiale Passwort ist gesetzt
-    When  die Person sich mit diesem Passwort anmeldet (UC-01 A5)
-    Then  gelingt der Login und UC-03 (Required Action) wird ausgelöst, falls 2FA erzwungen ist
+  Scenario: AC3 – the initial password is set
+    Given the initial password is set
+    When  the person logs in with this password (UC-01 A5)
+    Then  login succeeds and UC-03 (Required Action) is triggered if 2FA is enforced
 
   @AC4
-  Scenario: AC4 – das System verarbeitet die Passwort-Anfrage
-    Given das System verarbeitet die Passwort-Anfrage
-    When  Server-Logs geschrieben werden
-    Then  ist der Passwort-Klartext nicht in den Logs enthalten
+  Scenario: AC4 – the system processes the password request
+    Given the system processes the password request
+    When  server logs are written
+    Then  the password plain text is not contained in the logs
 
   @AC5
-  Scenario: AC5 – System generiert automatisch ein Passwort
-    Given System generiert automatisch ein Passwort
-    When  es generiert wird
-    Then  hat es mindestens 16 Zeichen und ausreichend Entropie (Groß/Klein/Ziffern/Sonderzeichen)
+  Scenario: AC5 – system automatically generates a password
+    Given system automatically generates a password
+    When  it is generated
+    Then  it has at least 16 characters and sufficient entropy (upper/lower case/digits/special characters)

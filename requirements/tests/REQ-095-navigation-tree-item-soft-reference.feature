@@ -1,27 +1,26 @@
-# Ableitung aus: requirements/req/req-095-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-095-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-13
-Feature: REQ-095 – Navigationsbaum Items als Soft-References
+Feature: REQ-095 – Navigation tree items as soft references
 
-  Das System MUSS das Hinzufügen und Entfernen von Repository-Inhalten
-  (Entitäten, Diagramme, Kataloge) als TreeNodeItems zu Ordnern
-  ermöglichen. Das Entfernen eines Items MUSS ausschliesslich den
-  Navigationseintrag (TreeNodeItem) löschen; das referenzierte Objekt
-  DARF dabei NICHT verändert oder gelöscht werden.
+  The system MUST allow adding and removing repository contents
+  (entities, diagrams, catalogs) as TreeNodeItems to folders. Removing an item MUST delete exclusively the
+  navigation entry (TreeNodeItem); the referenced object
+  MUST NOT be changed or deleted in the process.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Item-Entfernung ohne Datenverlust – ein TreeNodeItem entfernt wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein TreeNodeItem entfernt wird
-    Then  ist das TreeNodeItem gelöscht; die referenzierte Entität existiert weiterhin (HTTP 200 auf die Entität)
+  Scenario: AC1 – Item removal without data loss – a TreeNodeItem is removed
+    Given the precondition according to the requirement is met
+    When  a TreeNodeItem is removed
+    Then  the TreeNodeItem is deleted; the referenced entity continues to exist (HTTP 200 on the entity)
 
   @AC2
-  Scenario: AC2 – Verwaiste Items markieren – eine Entität gelöscht wird, die als Item in 2 Ordnern referenziert ist
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  eine Entität gelöscht wird, die als Item in 2 Ordnern referenziert ist
-    Then  zeigen beide Items ein Warnsymbol; die Entität ist nicht durch Item-Entfernung wiederherstellbar
+  Scenario: AC2 – Mark orphaned items – an entity is deleted that is referenced as an item in 2 folders
+    Given the precondition according to the requirement is met
+    When  an entity is deleted that is referenced as an item in 2 folders
+    Then  both items show a warning icon; the entity is not restorable by item removal

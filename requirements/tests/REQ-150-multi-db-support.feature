@@ -1,29 +1,29 @@
-# Ableitung aus: requirements/req/req-150-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert) + demonstration
+# Derived from: requirements/req/req-150-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: method: test (automated) + demonstration
 
 @constraint @must @UC-02
-Feature: REQ-150 – Multi-Datenbank-Unterstützung
+Feature: REQ-150 – Multi-database support
 
-  Das System **MUSS** mit PostgreSQL 14+, MySQL 8+, MariaDB 10.6+ und
-  SQL Server 2019+ betrieben werden können, ohne Änderungen am
-  Applikationscode; der Datenbanktyp wird ausschliesslich über
-  Konfiguration gewählt.
+  The system **MUST** be operable with PostgreSQL 14+, MySQL 8+, MariaDB 10.6+ and
+  SQL Server 2019+ without changes to the
+  application code; the database type is selected exclusively via
+  configuration.
 
   @AC1
-  Scenario: AC1 – OEA-Docker-Image mit Env-Variable `SPRING_DATASOURCE_URL=jdbc:mysql://...`
-    Given OEA-Docker-Image mit Env-Variable `SPRING_DATASOURCE_URL=jdbc:mysql://...`
+  Scenario: AC1 – OEA Docker image with env variable `SPRING_DATASOURCE_URL=jdbc:mysql://...`
+    Given OEA Docker image with env variable `SPRING_DATASOURCE_URL=jdbc:mysql://...`
     When  `docker compose up`
-    Then  Flyway-Migrations laufen durch; API antwortet korrekt; alle CRUD-Operationen funktionieren
+    Then  Flyway migrations run through; API responds correctly; all CRUD operations work
 
   @AC2
-  Scenario: AC2 – Testumgebung mit H2 in-memory (CI)
-    Given Testumgebung mit H2 in-memory (CI)
-    When  Unit- und Integration-Tests laufen
-    Then  Alle Tests grün ohne PostgreSQL-Instanz
+  Scenario: AC2 – Test environment with H2 in-memory (CI)
+    Given test environment with H2 in-memory (CI)
+    When  unit and integration tests run
+    Then  all tests green without a PostgreSQL instance
 
   @AC3
-  Scenario: AC3 – Schema-Migration V1 in SQL
-    Given Schema-Migration V1 in SQL
-    When  Flyway auf SQL Server 2019 ausführen
-    Then  Keine syntax-spezifischen Fehler; alle Tabellen angelegt
+  Scenario: AC3 – Schema migration V1 in SQL
+    Given schema migration V1 in SQL
+    When  run Flyway on SQL Server 2019
+    Then  no syntax-specific errors; all tables created

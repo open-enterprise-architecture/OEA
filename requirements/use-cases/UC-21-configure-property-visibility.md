@@ -1,6 +1,6 @@
 ---
 id: UC-21
-title: Property-Sichtbarkeit konfigurieren
+title: Configure Property Visibility
 status: draft
 priority: must
 target_release: v1.0
@@ -21,16 +21,16 @@ references:
   adrs: []
   concept:
     - concept/06-core-entity-types.md
-    - concept/08-organisation-rollen-personen.md
+    - concept/08-organization-roles-persons.md
   related_use_cases:
     - UC-04
     - UC-01
     - UC-06
 ---
 
-# UC-21: Property-Sichtbarkeit konfigurieren
+# UC-21: Configure Property Visibility
 
-## Diagramm
+## Diagram
 
 ```plantuml
 @startuml UC-21-PropertyVisibility
@@ -38,15 +38,15 @@ left to right direction
 skinparam actorStyle awesome
 
 actor "Kurt\n(Lead EA)" as Kurt
-actor "Michael\n(Domain Architekt)" as Michael
+actor "Michael\n(Domain Architect)" as Michael
 actor "Anna\n(Business Analyst)" as Anna
 
-rectangle "OEA – Property-Sichtbarkeit konfigurieren" {
-  usecase "Rollen-Sichtbarkeit\nkonfigurieren\n(role-based)" as UC_Role
-  usecase "Connection-Scope\nkonfigurieren\n(domain-scoped)" as UC_Scope
-  usecase "Property-Sichtbarkeit\ntesten" as UC_Test
-  usecase "Sensible Properties\neinsehen (berechtigt)" as UC_Read
-  usecase "Eingeschränkte Properties\nsehen (leer dargestellt)" as UC_Masked
+rectangle "OEA – Configure Property Visibility" {
+  usecase "Configure Role Visibility\n(role-based)" as UC_Role
+  usecase "Configure Connection Scope\n(domain-scoped)" as UC_Scope
+  usecase "Test Property\nVisibility" as UC_Test
+  usecase "View Sensitive Properties\n(authorized)" as UC_Read
+  usecase "See Restricted Properties\n(displayed empty)" as UC_Masked
 }
 
 Kurt --> UC_Role
@@ -62,69 +62,69 @@ UC_Scope ..> UC_Test : <<extend>>
 
 ## Goal in Context
 
-Nicht alle Properties einer Entität dürfen für alle Nutzer sichtbar sein. Investitionskosten, Vertragskonditionen oder interne Bewertungen sind sensible Felder, die nur bestimmten Rollen zugänglich sein sollen. Zusätzlich soll ein Domänen-Architekt sensible Felder nur für Entitäten sehen, die seiner Domäne zugeordnet sind — die Domänen-Zugehörigkeit wird über Connections im Graphen sichergestellt. Die Konfiguration der Sichtbarkeit erfolgt im Metamodell pro `PropertyDefinition`, sodass kein Code-Eingriff nötig ist.
+Not all properties of an entity may be visible to all users. Investment costs, contract terms or internal assessments are sensitive fields that should be accessible only to certain roles. In addition, a domain architect should see sensitive fields only for entities assigned to their domain — domain membership is ensured via connections in the graph. The visibility configuration takes place in the metamodel per `PropertyDefinition`, so that no code intervention is necessary.
 
-## Persona und Story
+## Persona and Story
 
-**Primärer Akteur**: [Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
+**Primary Actor**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 
-**Weitere Beteiligte**:
-- [Michael – Solution Architekt](../../business-analysis/stakeholders/SH-04-michael-solution-architekt.md) (Domain Architect, erlebt die connection-basierte Einschränkung)
-- [Anna – Business Analyst](../../business-analysis/stakeholders/SH-02-anna-business-analyst.md) (sieht eingeschränkte Felder leer)
+**Other Stakeholders**:
+- [Michael – Solution Architect](../../business-analysis/stakeholders/SH-04-michael-solution-architect.md) (Domain Architect, experiences the connection-based restriction)
+- [Anna – Business Analyst](../../business-analysis/stakeholders/SH-02-anna-business-analyst.md) (sees restricted fields empty)
 
-**Story**: Als Lead Enterprise Architekt möchte ich pro Property im Metamodell festlegen, wer den Wert sehen und editieren darf — entweder rollenbasiert oder abhängig von der Domänen-Zugehörigkeit der Entität — damit sensible Daten wie Kosten nicht organisationsweit sichtbar sind.
+**Story**: As a Lead Enterprise Architect, I want to define per property in the metamodel who may see and edit the value — either role-based or depending on the entity's domain membership — so that sensitive data such as costs is not visible organization-wide.
 
 ## Trigger
 
-1. Ein neues Property `investitionskostenPrognose` (EUR) wird im Metamodell ergänzt → Kurt schränkt die Sichtbarkeit auf Rollen `EA-Manager` und `Budget-Owner` ein
-2. Der Domänen-Architekt soll `sicherheitseinstufung` nur für Entitäten seiner Domäne sehen → Kurt konfiguriert `connection-scoped` mit Connection-Typ `DomainAssignment`
-3. Ein bisher öffentliches Feld soll nachträglich eingeschränkt werden → Bestehende Werte bleiben erhalten, werden aber für nicht-berechtigte Nutzer leer dargestellt
+1. A new property `investitionskostenPrognose` (EUR) is added to the metamodel → Kurt restricts visibility to the roles `EA-Manager` and `Budget-Owner`
+2. The domain architect should see `sicherheitseinstufung` only for entities of their domain → Kurt configures `connection-scoped` with connection type `DomainAssignment`
+3. A previously public field is to be restricted retroactively → Existing values are retained, but are displayed empty for unauthorized users
 
-## Vorbedingungen (Pre-Conditions)
+## Preconditions
 
-- [ ] Kurt ist eingeloggt (UC-01) und hat die Rolle `EA-Manager` oder eine Rolle mit Metamodell-Schreibberechtigung
-- [ ] Das Metamodell ist nicht im `import-only`-Modus (REQ-035)
-- [ ] Für `connection-scoped`: der verwendete Connection-Typ muss im Metamodell als `isConnection=true` definiert sein
+- [ ] Kurt is logged in (UC-01) and has the role `EA-Manager` or a role with metamodel write permission
+- [ ] The metamodel is not in `import-only` mode (REQ-035)
+- [ ] For `connection-scoped`: the connection type used must be defined in the metamodel as `isConnection=true`
 
-## Nachbedingungen (Post-Conditions)
+## Postconditions
 
-**Erfolg**:
-- `PropertyDefinition.visibilityMode` ist gesetzt; `allowedRoles` bzw. `scopingConnectionType` korrekt befüllt
-- Nicht-berechtigte Nutzer sehen das Feld ab sofort leer und können es nicht editieren
-- Änderung ist im Audit-Log (REQ-034) festgehalten
+**Success**:
+- `PropertyDefinition.visibilityMode` is set; `allowedRoles` or `scopingConnectionType` correctly filled
+- Unauthorized users see the field empty from now on and cannot edit it
+- The change is recorded in the audit log (REQ-034)
 
-**Misserfolg**:
-- Konfiguration ungültig (z.B. leere `allowedRoles` bei `role-restricted`) → Fehlermeldung; kein Speichern
+**Failure**:
+- Configuration invalid (e.g., empty `allowedRoles` with `role-restricted`) → error message; no saving
 
-## Hauptszenario
+## Basic Flow
 
-1. Kurt öffnet den Metamodell-Editor (UC-04) und navigiert zu einem EntityType (z.B. `ApplicationComponent`)
-2. Kurt wählt das Property `investitionskostenPrognose` zur Bearbeitung aus
-3. Kurt setzt `visibilityMode = role-restricted` und wählt die Rollen `EA-Manager`, `Budget-Owner` aus der Rollenliste
-4. Kurt speichert — das System validiert und persistiert die Konfiguration
-5. Ab sofort gibt die Entity-API den Wert dieses Feldes nur noch an Nutzer mit den konfigurierten Rollen zurück; alle anderen erhalten `null` und das Feld ist im UI als leer und nicht editierbar markiert
+1. Kurt opens the metamodel editor (UC-04) and navigates to an EntityType (e.g., `ApplicationComponent`)
+2. Kurt selects the property `investitionskostenPrognose` for editing
+3. Kurt sets `visibilityMode = role-restricted` and selects the roles `EA-Manager`, `Budget-Owner` from the role list
+4. Kurt saves — the system validates and persists the configuration
+5. From now on, the entity API returns the value of this field only to users with the configured roles; all others receive `null` and the field is marked in the UI as empty and not editable
 
-## Alternativszenario: connection-scoped
+## Alternative Flow: connection-scoped
 
-3a. Kurt setzt `visibilityMode = connection-scoped` und wählt den Connection-Typ `DomainAssignment` als `scopingConnectionType`
-3b. Zur Laufzeit prüft das System: Hat der anfragende Nutzer über seine Domänen-Zugehörigkeit (via `DomainAssignment`-Connection) einen Pfad zur angefragten Entität im Graphen?
-3c. Ja → Feld sichtbar; Nein → Feld leer und nicht editierbar
+3a. Kurt sets `visibilityMode = connection-scoped` and selects the connection type `DomainAssignment` as `scopingConnectionType`
+3b. At runtime the system checks: Does the requesting user have, via their domain membership (via `DomainAssignment` connection), a path in the graph to the requested entity?
+3c. Yes → field visible; No → field empty and not editable
 
-## Ausnahmeszenario
+## Exception Flow
 
-4a. Kurt setzt `visibilityMode = role-restricted`, lässt aber `allowedRoles` leer → System zeigt Validierungsfehler: „Mindestens eine Rolle muss ausgewählt sein"
-4b. Admin-Nutzer mit der Systemrolle `system-admin` erhalten **immer** Lesezugriff auf alle Properties, unabhängig vom `visibilityMode` (REQ-128; konfigurierbar)
+4a. Kurt sets `visibilityMode = role-restricted`, but leaves `allowedRoles` empty → system shows validation error: "At least one role must be selected"
+4b. Admin users with the system role `system-admin` **always** receive read access to all properties, regardless of `visibilityMode` (REQ-128; configurable)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- **AC1** (Konfiguration): Kurt kann `visibilityMode` im Metamodell-Editor pro PropertyDefinition setzen; alle drei Modi (`public`, `role-restricted`, `connection-scoped`) sind wählbar
-- **AC2** (Enforcement role-restricted): Ein Nutzer ohne konfigurierte Rolle sieht das Feld leer und kann es nicht editieren; kein Wert im API-Response
-- **AC3** (Enforcement connection-scoped): Ein Domain Architekt sieht den Wert nur für Entitäten, zu denen er über den konfigurierten Connection-Typ erreichbar ist; für alle anderen bleibt das Feld leer
-- **AC4** (Admin-Override): Ein Nutzer mit `system-admin`-Rolle sieht alle Properties unabhängig vom `visibilityMode`; der Override ist konfigurierbar
-- **AC5** (Konsistenz Katalog): Im Katalog-View (UC-06) werden eingeschränkte Felder für nicht-berechtigte Nutzer ebenfalls leer angezeigt; Sortierung/Filterung auf eingeschränkten Feldern ist für diese Nutzer deaktiviert
+- **AC1** (configuration): Kurt can set `visibilityMode` in the metamodel editor per PropertyDefinition; all three modes (`public`, `role-restricted`, `connection-scoped`) are selectable
+- **AC2** (enforcement role-restricted): A user without a configured role sees the field empty and cannot edit it; no value in the API response
+- **AC3** (enforcement connection-scoped): A domain architect sees the value only for entities reachable via the configured connection type; for all others the field remains empty
+- **AC4** (admin override): A user with the `system-admin` role sees all properties regardless of `visibilityMode`; the override is configurable
+- **AC5** (catalog consistency): In the catalog view (UC-06), restricted fields are also displayed empty for unauthorized users; sorting/filtering on restricted fields is disabled for these users
 
-## Anmerkungen
+## Notes
 
-- Der Wert wird serverseitig gefiltert — das Frontend erhält nie den tatsächlichen Wert für nicht-berechtigte Nutzer (`null` statt des echten Werts)
-- `connection-scoped` erfordert einen Graph-Traversal zur Laufzeit; dies hat Performance-Implikationen bei tiefer Graphstruktur (Caching empfohlen)
-- `visibilityMode` gilt nur für Lese- und Schreibzugriff auf den Wert, nicht für die Existenz des Feldes (das Feld selbst ist für alle sichtbar, aber leer)
+- The value is filtered server-side — the frontend never receives the actual value for unauthorized users (`null` instead of the real value)
+- `connection-scoped` requires a graph traversal at runtime; this has performance implications with deep graph structures (caching recommended)
+- `visibilityMode` applies only to read and write access to the value, not to the existence of the field (the field itself is visible to everyone, but empty)

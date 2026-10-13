@@ -1,63 +1,63 @@
-# Ableitung aus: requirements/req/req-078-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (Playwright E2E für AC1–AC5, AC7) + manuell (AC6 Security-Review, AC8)
+# Derived from: requirements/req/req-078-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (Playwright E2E for AC1–AC5, AC7) + manual (AC6 security review, AC8)
 
 @functional @should @UC-09
-Feature: REQ-078 – Draw.io-Diagramme im WYSIWYG-Editor einbetten
+Feature: REQ-078 – Embed Draw.io diagrams in the WYSIWYG editor
 
-  Das System MUSS im WYSIWYG-Editor (Arc42, UC-09) das Einbetten von
-  Draw.io-Diagrammen als Codeblock (`drawio`) ermöglichen. Der
-  Codeblock enthält Draw.io-XML (`<mxGraphModel>`); das System MUSS
-  dieses XML als SVG-Vorschau rendern.
+  The system MUST enable embedding Draw.io diagrams as a code block
+  (`drawio`) in the WYSIWYG editor (Arc42, UC-09). The code block
+  contains Draw.io XML (`<mxGraphModel>`); the system MUST render
+  this XML as an SVG preview.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Rendering aus Leseansicht – Arc42-Antwort mit `drawio`-Codeblock
-    Given Arc42-Antwort mit `drawio`-Codeblock
-    When  Nutzer öffnet die Antwort
-    Then  Draw.io-Diagramm als SVG gerendert (nicht als XML-Text); korrekte Shapes und Connections sichtbar
+  Scenario: AC1 – Rendering from read view – Arc42 answer with `drawio` code block
+    Given Arc42 answer with `drawio` code block
+    When  user opens the answer
+    Then  Draw.io diagram rendered as SVG (not as XML text); correct shapes and connections visible
 
   @AC2
-  Scenario: AC2 – Editor-Modal öffnen – Nutzer ist im Bearbeitungsmodus der Arc42-Antwort
-    Given Nutzer ist im Bearbeitungsmodus der Arc42-Antwort
-    When  Klick auf „In Draw.io öffnen"
-    Then  Modal öffnet sich mit dem vollen draw.io-Editor; vorhandenes XML ist geladen; Nutzer kann Shapes hinzufügen, verschieben, beschriften
+  Scenario: AC2 – Open editor modal – user is in edit mode of the Arc42 answer
+    Given user is in edit mode of the Arc42 answer
+    When  click on "Open in Draw.io"
+    Then  modal opens with the full draw.io editor; existing XML is loaded; user can add, move, and label shapes
 
   @AC3
-  Scenario: AC3 – Änderungen übernehmen – Nutzer im draw.io-Editor speichert (Ctrl+S oder Speichern-Button)
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer im draw.io-Editor speichert (Ctrl+S oder Speichern-Button)
-    Then  Modal schliesst; aktualisiertes XML erscheint im `drawio`-Codeblock; SVG-Vorschau wird sofort aktualisiert
+  Scenario: AC3 – Apply changes – user saves in the draw.io editor (Ctrl+S or Save button)
+    Given the precondition according to the requirement is met
+    When  user saves in the draw.io editor (Ctrl+S or Save button)
+    Then  modal closes; updated XML appears in the `drawio` code block; SVG preview is updated immediately
 
   @AC4
-  Scenario: AC4 – Neues leeres Diagramm – Nutzer fügt einen leeren `drawio`-Codeblock ein und klickt „Öffnen"
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer fügt einen leeren `drawio`-Codeblock ein und klickt „Öffnen"
-    Then  draw.io-Editor öffnet mit leerem Canvas; nach Speichern steht XML im Block
+  Scenario: AC4 – New empty diagram – user inserts an empty `drawio` code block and cli...
+    Given the precondition according to the requirement is met
+    When  user inserts an empty `drawio` code block and clicks "Open"
+    Then  draw.io editor opens with an empty canvas; after saving, XML is in the block
 
   @AC5
-  Scenario: AC5 – Entity-Mention in Shape-Label – Nutzer bearbeitet ein Shape-Label im draw.io-Editor und tippt `[[CRM`
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer bearbeitet ein Shape-Label im draw.io-Editor und tippt `[[CRM`
-    Then  Autocomplete-Dropdown öffnet sich über dem draw.io-Modal; nach Auswahl wird `CRM-System` als reiner Text ins Shape-Label eingefügt
+  Scenario: AC5 – Entity mention in shape label – user edits a shape label in the draw.io editor and types `[[CRM`
+    Given the precondition according to the requirement is met
+    When  user edits a shape label in the draw.io editor and types `[[CRM`
+    Then  autocomplete dropdown opens above the draw.io modal; after selection `CRM-System` is inserted as plain text into the shape label
 
   @AC6
-  Scenario: AC6 – Sicherheit — kein XSS – Draw.io-XML mit `<mxCell value="<script>alert(1)</script>"/>`
-    Given Draw.io-XML mit `<mxCell value="<script>alert(1)</script>"/>`
-    When  Rendering
-    Then  Script-Tag wird entfernt oder escaped; kein JavaScript ausgeführt
+  Scenario: AC6 – Security — no XSS – Draw.io XML with `<mxCell value="<script>alert(1)</script>"/>`
+    Given Draw.io XML with `<mxCell value="<script>alert(1)</script>"/>`
+    When  rendering
+    Then  script tag is removed or escaped; no JavaScript executed
 
   @AC7
-  Scenario: AC7 – Web-Portal read-only – Nutzer im Web-Portal Arc42-Dokumentation öffnet
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer im Web-Portal Arc42-Dokumentation öffnet
-    Then  Draw.io-Diagramm als SVG sichtbar; kein Editor-Button; kein postMessage-Bridge aktiv
+  Scenario: AC7 – Web portal read-only – user opens Arc42 documentation in the web portal
+    Given the precondition according to the requirement is met
+    When  user opens Arc42 documentation in the web portal
+    Then  Draw.io diagram visible as SVG; no editor button; no postMessage bridge active
 
   @AC8
-  Scenario: AC8 – Offline-fähig – OEA-Instanz ohne Internetzugang; draw.io-Viewer-Library ist lokal mitgel...
-    Given OEA-Instanz ohne Internetzugang; draw.io-Viewer-Library ist lokal mitgeliefert
-    When  Nutzer öffnet Antwort mit `drawio`-Block
-    Then  SVG-Rendering funktioniert ohne externe Anfragen; draw.io-Editor-Popup verwendet ebenfalls lokale draw.io-Installation (wenn konfiguriert)
+  Scenario: AC8 – Offline-capable – OEA instance without internet access; draw.io viewe...
+    Given OEA instance without internet access; draw.io viewer library is bundled locally
+    When  user opens answer with `drawio` block
+    Then  SVG rendering works without external requests; draw.io editor popup also uses a local draw.io installation (if configured)

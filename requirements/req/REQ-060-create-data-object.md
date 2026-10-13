@@ -1,6 +1,6 @@
 ---
 id: REQ-060
-title: Datenobjekt (data-object) als Entität anlegen und verwalten
+title: Create and manage data object (data-object) as an entity
 type: functional
 priority: should
 status: proposed
@@ -19,105 +19,105 @@ references:
     - SH-02
     - SH-03
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
-    - concept/40-extensibility/14-erweiterbarkeit.md
+    - concept/20-entities/06-core-entity-types.md
+    - concept/40-extensibility/14-extensibility.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-060: Datenobjekt (data-object) als Entität anlegen und verwalten
+# REQ-060: Create and manage data object (data-object) as an entity
 
-## Aussage
+## Statement
 
-Das System MUSS es Personen mit Entitäts-Bearbeiter-Berechtigung ermöglichen, ArchitectureEntities mit dem EntityType `data-object` anzulegen, zu bearbeiten und zu löschen; das System MUSS beim Anlegen automatisch eine instanzweit eindeutige Integer-ID vergeben und `entityTypeId=data-object` als unveränderliche Metatyp-Bindung setzen. Für `data-object` MUSS der EntityType im Metamodell die folgenden PropertyDefinitions unterstützen: `dataClassification` (enum, mandatory), `personalDataCategories` (varchar, optional), `dataOwner` (varchar, warning).
+The system MUST enable persons with entity editor permission to create, edit and delete ArchitectureEntities with the EntityType `data-object`; when creating, the system MUST automatically assign an instance-wide unique integer ID and set `entityTypeId=data-object` as an immutable meta-type binding. For `data-object`, the EntityType in the metamodel MUST support the following PropertyDefinitions: `dataClassification` (enum, mandatory), `personalDataCategories` (varchar, optional), `dataOwner` (varchar, warning).
 
-## Begründung
+## Rationale
 
-Datenobjekte (logische Datenentitäten wie „Kundenstamm", „Bestellposition") sind die Ankerpunkte jeder Lineage-Analyse. Ohne sie als First-Class-Entitäten mit stabiler Integer-ID ist keine traversierbare Lineage möglich — man kann nur auf String-Referenzen setzen, die nicht validiert werden können.
+Data objects (logical data entities such as "Customer master data", "Order item") are the anchor points of every lineage analysis. Without them as first-class entities with a stable integer ID, no traversable lineage is possible — one can only rely on string references that cannot be validated.
 
-## Kontext
+## Context
 
-`data-object` ist kein built-in EntityType, sondern wird vom Data Architect oder Lead EA via UC-04 im Metamodell angelegt. Dieser REQ beschreibt die Verhaltensanforderungen an das System beim Umgang mit solchen Entitäten — unabhängig davon, wie der Typ konkret heisst, solange `isConnection=false` gilt.
+`data-object` is not a built-in EntityType but is created in the metamodel by the data architect or lead EA via UC-04. This REQ describes the behavioral requirements for the system when handling such entities — regardless of what the type is actually called, as long as `isConnection=false` holds.
 
-Die PropertyDefinitions in diesem REQ sind Empfehlungen für den Standard-`data-object`-EntityType; abweichende Benennungen sind über das Metamodell möglich.
+The PropertyDefinitions in this REQ are recommendations for the standard `data-object` EntityType; deviating names are possible via the metamodel.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- `entityTypeId`: `data-object` (oder äquivalenter Custom-Typ mit `isConnection=false`)
-- `name`: Anzeigename (z.B. „Kundenstamm")
-- `properties`: PropertyValue-Liste gemäss EntityType-PropertyDefinitions
+**Inputs**:
+- `entityTypeId`: `data-object` (or an equivalent custom type with `isConnection=false`)
+- `name`: display name (e.g., "Customer master data")
+- `properties`: PropertyValue list according to the EntityType's PropertyDefinitions
 
-**Verarbeitung**:
-1. System vergibt nächste freie Integer-ID (instanzweit, Elemente und Connections teilen Nummernraum)
-2. `entityTypeId` wird gesetzt und ist unveränderlich
-3. PropertyValues werden gegen PropertyDefinitions des EntityTypes validiert (mandatory → 422 wenn leer; warning → 200 mit Warnung)
-4. Entität wird persistiert; Audit-Log-Eintrag
+**Processing**:
+1. System assigns the next free integer ID (instance-wide, elements and connections share the number space)
+2. `entityTypeId` is set and is immutable
+3. PropertyValues are validated against the EntityType's PropertyDefinitions (mandatory → 422 if empty; warning → 200 with warning)
+4. Entity is persisted; audit log entry
 
-**Ausgaben**:
-- HTTP 201 mit vollständiger Entitäts-Repräsentation inkl. vergebener Integer-ID
-- Bei Validierungswarnung: HTTP 200 mit `warnings`-Array in Response
+**Outputs**:
+- HTTP 201 with complete entity representation including the assigned integer ID
+- On validation warning: HTTP 200 with `warnings` array in the response
 
-**Fehlerfälle**:
-- Ungültige `entityTypeId` → HTTP 422
-- Mandatory Property leer → HTTP 422 mit Liste aller verletzten Properties
-- Keine Berechtigung → HTTP 403
+**Error Cases**:
+- Invalid `entityTypeId` → HTTP 422
+- Mandatory property empty → HTTP 422 with list of all violated properties
+- No permission → HTTP 403
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Anlegen mit ID-Vergabe):
-- Wenn: Lukas legt Entität `Kundenstamm` (entityTypeId=`data-object`) an
-- Dann: HTTP 201; `id` ist Integer ≥ 1; `entityTypeId=data-object` ist gesetzt; ID ist in der Instanz einmalig
+**AC1** (Creation with ID assignment):
+- When: Lukas creates entity `Customer master data` (entityTypeId=`data-object`)
+- Then: HTTP 201; `id` is an integer ≥ 1; `entityTypeId=data-object` is set; ID is unique in the instance
 
-**AC2** (Mandatory Property erzwingt Wert):
-- Gegeben: `dataClassification` ist mandatory
-- Wenn: Lukas legt Entität ohne `dataClassification` an
-- Dann: HTTP 422; Fehlermeldung benennt `dataClassification` als fehlend
+**AC2** (Mandatory property enforces value):
+- Given: `dataClassification` is mandatory
+- When: Lukas creates an entity without `dataClassification`
+- Then: HTTP 422; error message names `dataClassification` as missing
 
-**AC3** (Warning-Property speichert trotzdem):
-- Gegeben: `dataOwner` ist warning
-- Wenn: Lukas legt Entität ohne `dataOwner` an
-- Dann: HTTP 200; Entität gespeichert; Response enthält `warnings: ["dataOwner: Wert fehlt"]`
+**AC3** (Warning property saves anyway):
+- Given: `dataOwner` is warning
+- When: Lukas creates an entity without `dataOwner`
+- Then: HTTP 200; entity saved; response contains `warnings: ["dataOwner: value missing"]`
 
-**AC4** (entityTypeId unveränderlich):
-- Gegeben: Entität mit id=42 und entityTypeId=`data-object` existiert
-- Wenn: Lukas versucht via PUT `entityTypeId=application-component` zu setzen
-- Dann: HTTP 422; `entityTypeId` wurde nicht geändert
+**AC4** (entityTypeId immutable):
+- Given: Entity with id=42 and entityTypeId=`data-object` exists
+- When: Lukas tries to set `entityTypeId=application-component` via PUT
+- Then: HTTP 422; `entityTypeId` was not changed
 
-**AC5** (Löschen entfernt Referenzen-Warnung):
-- Gegeben: Entität id=42 wird von carries-data-Connection id=103 referenziert
-- Wenn: Lukas löscht Entität id=42
-- Dann: System warnt vor referenzierenden Connections; nach Bestätigung: Entität gelöscht; carries-data-Connection id=103 bekommt `targetEntityId=null` oder wird ebenfalls gelöscht (Kaskade TBD in ADR)
+**AC5** (Deletion removes reference warning):
+- Given: Entity id=42 is referenced by carries-data connection id=103
+- When: Lukas deletes entity id=42
+- Then: System warns about referencing connections; after confirmation: entity deleted; carries-data connection id=103 gets `targetEntityId=null` or is also deleted (cascade TBD in ADR)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Bestanden-Kriterium: AC1–AC5 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Pass criterion: AC1–AC5 green
+- [ ] Integrated in CI: yes, as soon as implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: UC-04 / REQ-032 (EntityType `data-object` muss im Metamodell existieren bevor Instanzen angelegt werden können)
-- **Folgewirkungen**: REQ-061 (carries-data) referenziert Integer-IDs aus REQ-060
+- **Prerequisites**: UC-04 / REQ-032 (EntityType `data-object` must exist in the metamodel before instances can be created)
+- **Downstream effects**: REQ-061 (carries-data) references integer IDs from REQ-060
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- `POST /api/v1/entities` mit `entityTypeId=data-object`
-- Integer-ID: DB-Sequenz, instanzweit; kein UUID
-- PropertyValue-Validierung: serverseitig gegen MetamodelConfiguration
+- `POST /api/v1/entities` with `entityTypeId=data-object`
+- Integer ID: DB sequence, instance-wide; no UUID
+- PropertyValue validation: server-side against MetamodelConfiguration
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |

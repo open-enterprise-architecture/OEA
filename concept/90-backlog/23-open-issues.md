@@ -1,175 +1,175 @@
-## 23. Offene Punkte – Status-Übersicht
+## 23. Open Issues – Status Overview
 
-Stand: 2026-06-26 — alle 47 ursprünglichen Punkte kategorisiert und abgearbeitet.
+As of: 2026-06-26 — all 47 original items categorized and worked through.
 
 ---
 
-### 23.1 Geschlossen durch ADR oder Business Object
+### 23.1 Closed by ADR or Business Object
 
-| # | Thema | Geschlossen durch | Entscheidung (Kurzform) |
+| # | Topic | Closed by | Decision (short form) |
 |---|---|---|---|
-| 2 | Identitäts-Schema / URN-Format | [ADR-001](../../adrs/ADR-001-urn-schema.md) | Integer-ID intern; `urn:oea:{instance-slug}:{id}` für externe Referenzen |
-| 5 | BPMN-Speicherung | [business-objects/process.md](../../business-objects/process.md) | Internes Modell; `bpmn-contained-in`-Connection als Repo-Repräsentation; kein natives BPMN-XML in der DB |
-| 11 | Product vs. Project | [ADR-003](../../adrs/ADR-003-product-vs-project.md) | `work-initiative` als built-in Basis; `product` und `project` als konfigurierbare Metamodell-Subtypen |
-| 13 | Continuum-Repository-Verhältnis | [ADR-002](../../adrs/ADR-002-continuum-repository.md) | Ein Repository mit `scope`-Property (built-in/imported/organization) + Import-Mechanismus |
-| 27 | API-Authentifizierungs-Scope | [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md) | OIDC; Microsoft Entra ID + Authentik als Pflicht-Integrationen; lokale Auth optional |
-| 30 | Maximale Reifikations-Tiefe | [ADR-004](../../adrs/ADR-004-reifikation-details.md) | Tiefe 1 in v1.0; `allowsConnectionAsSource`-Flag; `maxConnectionDepth` konfigurierbar für v2.0 |
-| 31 | Relation-Adressierung | [ADR-004](../../adrs/ADR-004-reifikation-details.md) | Alle Connections teilen den Integer-ID-Namespace mit Entities |
-| 40 | Application-vs-Technology-Klassifikations-Default | [ADR-005](../../adrs/ADR-005-app-vs-tech-default.md) | Kein erzwungener Default; zwei optionale Starter-Pakete beim Bootstrapping |
-| 46 | Visualisierungs-Strategie / Renderer-Notation | [ADR-007](../../adrs/ADR-007-canvas-bibliothek.md), [REQ-068](../../requirements/req/REQ-068-arc42-wysiwyg-editor.md), [REQ-078](../../requirements/req/REQ-078-drawio-einbetten.md) | Mermaid (client-seitig, kein Server), PlantUML (konfigurierter Server), draw.io (Embed via Code-Block), Vue Flow (interaktiver Canvas) |
+| 2 | Identity schema / URN format | [ADR-001](../../adrs/ADR-001-urn-schema.md) | Integer ID internally; `urn:oea:{instance-slug}:{id}` for external references |
+| 5 | BPMN storage | [business-objects/process.md](../../business-objects/process.md) | Internal model; `bpmn-contained-in` connection as repo representation; no native BPMN XML in the DB |
+| 11 | Product vs. project | [ADR-003](../../adrs/ADR-003-product-vs-project.md) | `work-initiative` as built-in base; `product` and `project` as configurable metamodel subtypes |
+| 13 | Continuum-repository relationship | [ADR-002](../../adrs/ADR-002-continuum-repository.md) | One repository with `scope` property (built-in/imported/organization) + import mechanism |
+| 27 | API authentication scope | [ADR-006](../../adrs/ADR-006-auth-stack-choice.md) | OIDC; Microsoft Entra ID + Authentik as mandatory integrations; local auth optional |
+| 30 | Maximum reification depth | [ADR-004](../../adrs/ADR-004-reification-details.md) | Depth 1 in v1.0; `allowsConnectionAsSource` flag; `maxConnectionDepth` configurable for v2.0 |
+| 31 | Relation addressing | [ADR-004](../../adrs/ADR-004-reification-details.md) | All connections share the integer ID namespace with entities |
+| 40 | Application-vs-technology classification default | [ADR-005](../../adrs/ADR-005-app-vs-tech-default.md) | No enforced default; two optional starter packages at bootstrapping |
+| 46 | Visualization strategy / renderer notation | [ADR-007](../../adrs/ADR-007-canvas-library.md), [REQ-068](../../requirements/req/REQ-068-arc42-wysiwyg-editor.md), [REQ-078](../../requirements/req/REQ-078-embed-drawio.md) | Mermaid (client-side, no server), PlantUML (configured server), draw.io (embed via code block), Vue Flow (interactive canvas) |
 
 ---
 
-### 23.2 Für v1.0 entschieden (Konzept-Entscheid)
+### 23.2 Decided for v1.0 (Concept Decision)
 
-Diese Punkte sind im Konzept entschieden, benötigen aber noch eine formale ADR bei der Implementierung.
-
----
-
-**#1 / #24 — Persistenz-Technologie und Walking-Skeleton-Stack**
-
-**Entscheidung**: PostgreSQL 15 + JSONB + Apache AGE (openCypher-Graph-Extension).
-
-Begründung: Eine Datenbank-Instanz für beide Query-Paradigmen (SQL-Analytics + Graph-Traversierung, §22.1). JSONB ermöglicht flexible Properties ohne Schema-Migration bei Klasse-3-Properties (§15.1). Apache AGE ist Open Source (Apache 2.0), PostgreSQL-nativ und unterstützt openCypher. REQ-075 schreibt PostgreSQL 15 ohne proprietäre Extensions als Portabilitätsziel vor — AGE erfüllt diese Anforderung. → Formale ADR bei Backend-Sprint.
+These items are decided in the concept but still need a formal ADR at implementation.
 
 ---
 
-**#3 — Bitemporalität: Reicht Gültigkeits-Zeit (Plateau)?**
+**#1 / #24 — Persistence technology and walking skeleton stack**
 
-**Entscheidung**: Ja — nur Gültigkeitszeit in v1.0. Keine separate Erfassungszeit.
+**Decision**: PostgreSQL 15 + JSONB + Apache AGE (openCypher graph extension).
 
-Begründung: Das Plateau-Modell (§11) bildet Gültigkeitszeiträume (wann ist ein Architekturzustand gültig?) vollständig ab. Erfassungszeit (wann wurde eine Änderung im System erfasst?) ist über das Audit-Log abdeckbar (§21.8), ohne das Datenmodell zu verdoppeln. Vollständige Bitemporalität ist für v2.0 als optionale Erweiterung möglich.
-
----
-
-**#4 — Diff-Semantik: Property-by-Property oder Lifecycle-basiert?**
-
-**Entscheidung**: Beides kombiniert — exakt wie in §11.5 definiert.
-
-PlateauDiff enthält: `entitiesAdded`, `entitiesRetired`, `entitiesModified` (property-by-property), `lifecycleTransitions`. Berechnungsregeln sind in §11.5 festgelegt und gelten verbindlich. Keine weiteren Diff-Dimensionen in v1.0.
+Rationale: One database instance for both query paradigms (SQL analytics + graph traversal, §22.1). JSONB enables flexible properties without schema migration for class 3 properties (§15.1). Apache AGE is open source (Apache 2.0), PostgreSQL-native, and supports openCypher. REQ-075 prescribes PostgreSQL 15 without proprietary extensions as a portability goal — AGE meets this requirement. → Formal ADR at backend sprint.
 
 ---
 
-**#6 — Referenz-Integrität über Plateaus**
+**#3 — Bitemporality: Is validity time (plateau) sufficient?**
 
-**Entscheidung**: Soft-Constraint (Warning) in v1.0.
+**Decision**: Yes — only validity time in v1.0. No separate recording time.
 
-Wenn Entität A in Plateau P als `retired` markiert ist, darf Entität B in Plateau P noch auf A verweisen — das Tool zeigt eine Warning ("Cross-Plateau-Konflikt"), blockiert aber nicht. Begründung: Migrations-Übergangszustände sind real; Hard-Constraint würde valide Zwischen-Modelle blockieren. v2.0: per Metamodell-Konfiguration auf Error konfigurierbar.
-
----
-
-**#10 — Schema-Profile**
-
-**Entscheidung**: Schema-Profile als formales Konzept entfallen.
-
-ADR-005 Starter-Pakete übernehmen diese Funktion. Beim Bootstrapping wählt der Admin ein oder mehrere Starter-Pakete; das ergibt de facto ein initiales Schema-Profil. Zusätzliche Profile würden einen dritten Konfigurationsmechanismus neben Starter-Paketen und `scope`-Property einführen — unnötige Komplexität.
+Rationale: The plateau model (§11) fully covers validity periods (when is an architecture state valid?). Recording time (when was a change recorded in the system?) can be covered via the audit log (§21.8) without duplicating the data model. Full bitemporality is possible for v2.0 as an optional extension.
 
 ---
 
-**#12 — SAFe-Capability-Kollision (TOGAF Capability vs. SAFe Capability)**
+**#4 — Diff semantics: property-by-property or lifecycle-based?**
 
-**Entscheidung**: Stereotype-Ansatz ist final.
+**Decision**: Both combined — exactly as defined in §11.5.
 
-- TOGAF Capability = `EntityType: capability` (built-in, §6)
-- SAFe Capability = Subtyp via Metamodell: `EntityType: safe-capability` mit `extends: work-initiative` (oder eigener Subtyp von `capability`)
-
-Im UI wird der vollständige EntityType-Name angezeigt (`capability` vs. `safe-capability`). Kein Namenskonflikt auf Daten-Ebene, da der EntityType-Identifier eindeutig ist.
+PlateauDiff contains: `entitiesAdded`, `entitiesRetired`, `entitiesModified` (property-by-property), `lifecycleTransitions`. Calculation rules are fixed in §11.5 and are binding. No further diff dimensions in v1.0.
 
 ---
 
-**#23 / #25 — Query-Sprachen und Graph-Query-Standard**
+**#6 — Referential integrity across plateaus**
 
-**Entscheidung**: Zweischicht-Ansatz (§22.4) mit openCypher als Graph-Standard.
+**Decision**: Soft constraint (warning) in v1.0.
+
+If entity A is marked `retired` in plateau P, entity B in plateau P may still reference A — the tool shows a warning ("cross-plateau conflict") but does not block. Rationale: Migration transition states are real; a hard constraint would block valid intermediate models. v2.0: configurable to error via metamodel configuration.
+
+---
+
+**#10 — Schema profiles**
+
+**Decision**: Schema profiles as a formal concept are dropped.
+
+ADR-005 starter packages take over this function. At bootstrapping, the admin selects one or more starter packages; this de facto yields an initial schema profile. Additional profiles would introduce a third configuration mechanism alongside starter packages and the `scope` property — unnecessary complexity.
+
+---
+
+**#12 — SAFe capability collision (TOGAF capability vs. SAFe capability)**
+
+**Decision**: The stereotype approach is final.
+
+- TOGAF capability = `EntityType: capability` (built-in, §6)
+- SAFe capability = subtype via metamodel: `EntityType: safe-capability` with `extends: work-initiative` (or its own subtype of `capability`)
+
+The UI displays the full EntityType name (`capability` vs. `safe-capability`). No naming conflict at data level, since the EntityType identifier is unique.
+
+---
+
+**#23 / #25 — Query languages and graph query standard**
+
+**Decision**: Two-layer approach (§22.4) with openCypher as the graph standard.
 
 ```
-/api/v1/entities/search      ← typisierte REST-Abfragen (einfacher Einstieg)
-/api/v1/graph/traverse       ← strukturierte Traversal-API (mittel)
-/api/v1/graph/cypher         ← openCypher für mächtige Graph-Queries (fortgeschritten)
-/api/v1/analytics/query      ← SQL für Analytics
-/api/v1/analytics/views/{n}  ← benannte vordefinierte Views
+/api/v1/entities/search      ← typed REST queries (easy entry)
+/api/v1/graph/traverse       ← structured traversal API (intermediate)
+/api/v1/graph/cypher         ← openCypher for powerful graph queries (advanced)
+/api/v1/analytics/query      ← SQL for analytics
+/api/v1/analytics/views/{n}  ← named predefined views
 ```
 
-openCypher (statt Gremlin oder ISO GQL): Apache AGE implementiert openCypher; Tooling-Reife; Neo4j-Kompatibilität bei späterer DB-Migration. Keine proprietäre DSL — Investitionsschutz für Query-Autoren.
+openCypher (instead of Gremlin or ISO GQL): Apache AGE implements openCypher; tooling maturity; Neo4j compatibility for a later DB migration. No proprietary DSL — investment protection for query authors.
 
 ---
 
-**#26 — Event-Transport**
+**#26 — Event transport**
 
-**Entscheidung**: Server-Sent Events (SSE) als Default in v1.0.
+**Decision**: Server-Sent Events (SSE) as default in v1.0.
 
-`GET /api/v1/events` als SSE-Stream; Events sind JSON mit `type`, `entityId`, `plateauId`, `timestamp`. WebSocket optional ab v2.0 für bidirektionale Use Cases (z.B. kollaborative Echtzeit-Bearbeitung). Kafka/Webhooks als Integration-Adapter (nicht Teil des Kern-Event-Bus).
-
----
-
-**#28 — Modul-Isolierung: gleicher Prozess, Sidecar oder eigenständige Services?**
-
-**Entscheidung**: Monolith-first in v1.0 — alle Module im gleichen Prozess.
-
-Interne Modul-Kommunikation über einen internen Event-Bus (kein Netzwerk-Overhead). Modul-Grenzen werden durch klare Package-Struktur und Interface-Kontrakte sichergestellt, sodass spätere Extraktion zu Sidecar/Service ohne API-Breaking-Change möglich ist. Begründung: Operativer Overhead eines verteilten Systems ist für ein OSS-Tool in v1.0 unverhältnismäßig.
+`GET /api/v1/events` as an SSE stream; events are JSON with `type`, `entityId`, `plateauId`, `timestamp`. WebSocket optional from v2.0 for bidirectional use cases (e.g., collaborative real-time editing). Kafka/webhooks as integration adapters (not part of the core event bus).
 
 ---
 
-**#29 — CLI-Query-Tool: volle Query-Engine lokal oder Proxy?**
+**#28 — Module isolation: same process, sidecar, or standalone services?**
 
-**Entscheidung**: v1.0 — CLI ist Proxy zum Server (REST-API-Client).
+**Decision**: Monolith-first in v1.0 — all modules in the same process.
 
-`oea query --server http://localhost:8080 "MATCH ..."` leitet Queries an den Server weiter. Vorteil: kein doppelter Query-Engine-Code in v1.0. v2.0: embedded DuckDB/Kuzu für offline und CI-Pipeline-Nutzung ohne laufenden Server (§22.10).
-
----
-
-**#32 — Relation-Lifecycle pro Plateau: UI-Darstellung**
-
-**Entscheidung**: Kantenfarbe auf dem Canvas nach Lifecycle-State; 3-Dot-Circle für Verbindungs-Panel.
-
-Farb-Konvention (konsistent mit §11.5 Plateau-Diff-Visualisierung):
-- `planned` / neu in Plateau: grün
-- `active` / unverändert: grau/neutral
-- `sunset` / `modified`: gelb/orange
-- `retired` / entfernt aus Plateau: rot
-
-Separates Relation-Liste-Panel: verfügbar im Detail-Panel der Canvas-Entität, nicht als eigene Top-Level-Ansicht (zu komplex für v1.0).
+Internal module communication via an internal event bus (no network overhead). Module boundaries are ensured by a clear package structure and interface contracts, so that later extraction to a sidecar/service is possible without an API breaking change. Rationale: The operational overhead of a distributed system is disproportionate for an OSS tool in v1.0.
 
 ---
 
-**#36 — Audit-Trail-Speicherung**
+**#29 — CLI query tool: full query engine locally or proxy?**
 
-**Entscheidung**: Gleiche PostgreSQL-Instanz, separate append-only Tabelle `audit_events`.
+**Decision**: v1.0 — CLI is a proxy to the server (REST API client).
 
-Keine DELETE-Berechtigung auf dieser Tabelle, auch nicht für Admins (Constraint auf DB-Ebene). Felder: `id`, `timestamp`, `actor_id`, `action_type`, `entity_id`, `before_snapshot`, `after_snapshot`, `session_id`. v2.0: optionaler Export in SIEM (Splunk, Elastic, Wazuh) über Webhook-Adapter.
+`oea query --server http://localhost:8080 "MATCH ..."` forwards queries to the server. Advantage: no duplicate query engine code in v1.0. v2.0: embedded DuckDB/Kuzu for offline and CI pipeline use without a running server (§22.10).
 
 ---
 
-### 23.3 Zurückgestellt — Integration-Phase oder v2.0
+**#32 — Relation lifecycle per plateau: UI representation**
 
-Diese Punkte sind bewusst nicht für v1.0 entschieden. Sie werden beim jeweiligen Modul-Sprint oder in v2.0 adressiert.
+**Decision**: Edge color on the canvas by lifecycle state; 3-dot circle for the connection panel.
 
-| # | Thema | Zurückgestellt bis | Erste Orientierung |
+Color convention (consistent with §11.5 plateau diff visualization):
+- `planned` / new in plateau: green
+- `active` / unchanged: gray/neutral
+- `sunset` / `modified`: yellow/orange
+- `retired` / removed from plateau: red
+
+Separate relation list panel: available in the detail panel of the canvas entity, not as a separate top-level view (too complex for v1.0).
+
+---
+
+**#36 — Audit trail storage**
+
+**Decision**: Same PostgreSQL instance, separate append-only table `audit_events`.
+
+No DELETE permission on this table, not even for admins (constraint at DB level). Fields: `id`, `timestamp`, `actor_id`, `action_type`, `entity_id`, `before_snapshot`, `after_snapshot`, `session_id`. v2.0: optional export to SIEM (Splunk, Elastic, Wazuh) via webhook adapter.
+
+---
+
+### 23.3 Deferred — Integration Phase or v2.0
+
+These items are deliberately not decided for v1.0. They will be addressed in the respective module sprint or in v2.0.
+
+| # | Topic | Deferred until | Initial orientation |
 |---|---|---|---|
-| 7 | ITSM-Konnektor-Scope | ITSM-Modul-Sprint | ServiceNow als erstes Zielsystem (Enterprise-Verbreitung, SH-05); generischer REST-Adapter als Fallback |
-| 8 | Sync-Konflikt-Resolution | ITSM-Modul-Sprint | Letzter-gewinnt als Default; manuelle Auflösung konfigurierbar; Master-System-Flag pro Property |
-| 9 | PPM-Konnektor-Scope | PPM-Modul-Sprint | Jira Software + OpenProject als erste Zielsysteme; ServiceNow SPM als Enterprise-Option |
-| 14 | TRM-Taxonomie-Pflege | v2.0 / Starter-Paket | TOGAF-Beispiel-TRM initial; eigenes TRM als organisation-eigenes Starter-Paket importierbar |
-| 15 | Scope-Ausdrucksstärke für Schema-Evolution | v2.0 | v1.0: Properties + IN-Listen (Pattern 2, §15.2); Graph-Queries als Scope-Kriterium ab v2.0 |
-| 16 | Data-Quality-Score-Gewichtung | v2.0 | Per-Organisation konfigurierbar; Schema definiert Gewichts-Property; Default-Gewichte im Starter-Paket |
-| 17 | Person-Datenhaltung und DSGVO | DSGVO-Modul-Sprint | v1.0: Reference-only (Name + E-Mail); kein biometrisches/sensitives Datum direkt in OEA |
-| 18 | Skill-Taxonomie | v2.0 | SFIA nur als Import-Option (nicht mitliefern wegen SFIA-Lizenz); Import-Format: CSV/JSON |
-| 19 | BPM-Tool-Adapter-Scope | BPMN-Modul-Sprint | BPMN-XML-Import aus Camunda als erstes Ziel; Lese-only initial |
-| 20 | PCF-Integration | v2.0 | APQC-PCF nicht mitliefern (Lizenzpflicht); nur Code-Referenzen; Import-Option für Lizenznehmer |
-| 21 | Carbon-Assessment-Methodik | v2.0 | SCI (Software Carbon Intensity) als Methodik-Kandidat; manuell in v1.0; automatische Schätzung v2.0 |
-| 22 | Contract-Dokumenten-Ablage | v2.0 | v1.0: nur externe Referenzen (URL/ID zu DMS); keine eigene Dokumentenablage in OEA |
-| 33 | GRC-Adapter-Priorität | GRC-Modul-Sprint | Verinice zuerst (OSS, ISMS-nah) oder OSCAL-Export; hängt von Community-Feedback ab |
-| 34 | Verarbeitungsverzeichnis-Format | DSGVO-Modul-Sprint | BSI-Orientierung (DE) als Primär-Schema; CNIL/ICO als Sekundär-Option |
-| 35 | Control-Framework-Integration | v2.0 | v1.0: nur strukturelle Unterstützung (EntityType + Relation); ISO 27001 Annex A als Continuum-Artefakt ab v2.0 |
-| 37 | Schutzbedarfs-Vererbung | v2.0 | v1.0: manuelle Pflege mit Validierungs-Hint; automatische Ableitung (DataEntity → Application) ab v2.0 |
-| 38 | Property-Level-AuthZ-Konfiguration | Security-Sprint | Per-Deployment konfigurierbar (YAML im Admin-Bereich); Admin-UI in v1.1 |
-| 39 | Segregation-of-Duties-Erzwingung | v2.0 | v1.0: Soft-Constraint (Warning); Hard-Constraint konfigurierbar ab v2.0; Override durch konfigurierten Admin-Rolle |
-| 41 | Requirements-Versionierungs-Trigger | Requirements-Modul-Sprint | Trigger: Änderungen an `statement`, `acceptanceCriteria`, `priority`; Tipp-/Formatänderungen = kein Versionsbump |
-| 42 | System-Requirements-Scope | Requirements-Modul-Sprint | Beides erlaubt (direkte Erfassung + externe Referenz); admin-konfigurierbar per Metamodell |
-| 43 | ReqIF-Import-Export | Requirements-Modul-Sprint | Modul/Adapter, nicht Kern; Mapping-Konventionen bei Modul-Entwicklung definieren |
-| 44 | Logical-Stub-Auto-Generierung | v2.0 | Opt-in; auto-generierte Stubs mit `(auto)`-Badge; kein automatischer Verfall; "Promote"-Aktion für Pflege |
-| 45 | Inventar-Sicht-Scope | UX-Sprint | Default: `applicationcomponent` + `technologycomponent` sichtbar; alle weiteren via Viewpoint konfigurierbar (ADR-002) |
-| 47 | Bestandstool-Migration | v1.1 | ArchiMate Open Exchange (Archi/Sparx EA) als erstes Import-Format; XMI als zweites |
+| 7 | ITSM connector scope | ITSM module sprint | ServiceNow as first target system (enterprise prevalence, SH-05); generic REST adapter as fallback |
+| 8 | Sync conflict resolution | ITSM module sprint | Last-write-wins as default; manual resolution configurable; master system flag per property |
+| 9 | PPM connector scope | PPM module sprint | Jira Software + OpenProject as first target systems; ServiceNow SPM as enterprise option |
+| 14 | TRM taxonomy maintenance | v2.0 / starter package | TOGAF example TRM initially; own TRM importable as an organization-specific starter package |
+| 15 | Scope expressiveness for schema evolution | v2.0 | v1.0: properties + IN lists (pattern 2, §15.2); graph queries as scope criterion from v2.0 |
+| 16 | Data quality score weighting | v2.0 | Configurable per organization; schema defines weight property; default weights in the starter package |
+| 17 | Person data retention and GDPR | GDPR module sprint | v1.0: reference-only (name + email); no biometric/sensitive data directly in OEA |
+| 18 | Skill taxonomy | v2.0 | SFIA only as import option (not shipped due to SFIA license); import format: CSV/JSON |
+| 19 | BPM tool adapter scope | BPMN module sprint | BPMN XML import from Camunda as first target; read-only initially |
+| 20 | PCF integration | v2.0 | Do not ship APQC-PCF (license required); code references only; import option for licensees |
+| 21 | Carbon assessment methodology | v2.0 | SCI (Software Carbon Intensity) as methodology candidate; manual in v1.0; automatic estimation v2.0 |
+| 22 | Contract document storage | v2.0 | v1.0: external references only (URL/ID to DMS); no own document storage in OEA |
+| 33 | GRC adapter priority | GRC module sprint | Verinice first (OSS, ISMS-oriented) or OSCAL export; depends on community feedback |
+| 34 | Record of processing activities format | GDPR module sprint | BSI orientation (DE) as primary schema; CNIL/ICO as secondary option |
+| 35 | Control framework integration | v2.0 | v1.0: structural support only (EntityType + relation); ISO 27001 Annex A as continuum artifact from v2.0 |
+| 37 | Protection need inheritance | v2.0 | v1.0: manual maintenance with validation hint; automatic derivation (DataEntity → Application) from v2.0 |
+| 38 | Property-level authZ configuration | Security sprint | Configurable per deployment (YAML in the admin area); admin UI in v1.1 |
+| 39 | Segregation of duties enforcement | v2.0 | v1.0: soft constraint (warning); hard constraint configurable from v2.0; override by configured admin role |
+| 41 | Requirements versioning trigger | Requirements module sprint | Trigger: changes to `statement`, `acceptanceCriteria`, `priority`; typo/format changes = no version bump |
+| 42 | System requirements scope | Requirements module sprint | Both allowed (direct capture + external reference); admin-configurable via metamodel |
+| 43 | ReqIF import/export | Requirements module sprint | Module/adapter, not core; define mapping conventions during module development |
+| 44 | Logical stub auto-generation | v2.0 | Opt-in; auto-generated stubs with `(auto)` badge; no automatic expiry; "Promote" action for maintenance |
+| 45 | Inventory view scope | UX sprint | Default: `applicationcomponent` + `technologycomponent` visible; all others configurable via viewpoint (ADR-002) |
+| 47 | Legacy tool migration | v1.1 | ArchiMate Open Exchange (Archi/Sparx EA) as first import format; XMI as second |
 
 ---
 
-← [Auswertbarkeit & Query-Architektur](../70-platform/22-auswertbarkeit.md) · [🏠 Übersicht](../README.md) · [Nächste Schritte](24-naechste-schritte.md) →
+← [Analyzability & Query Architecture](../70-platform/22-analyzability.md) · [🏠 Overview](../README.md) · [Next Steps](24-next-steps.md) →

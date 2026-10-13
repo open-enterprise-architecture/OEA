@@ -1,6 +1,6 @@
 ---
 id: REQ-079
-title: Mehrsprachige Benutzeroberfläche (i18n)
+title: Multilingual user interface (i18n)
 type: functional
 priority: should
 status: proposed
@@ -10,55 +10,55 @@ created: 2026-06-26
 author: requirements-engineer
 ---
 
-# REQ-079: Mehrsprachige Benutzeroberfläche (i18n)
+# REQ-079: Multilingual user interface (i18n)
 
-## Beschreibung
+## Description
 
-OEA-Frontend (Client App + Web Portal) unterstützt mehrere UI-Sprachen. Default ist Englisch. Weitere Sprachen werden vom Admin als Sprach-Pakete konfiguriert. Jeder Nutzer wählt seine bevorzugte Sprache in den Profil-Einstellungen.
+The OEA frontend (client app + web portal) supports multiple UI languages. The default is English. Additional languages are configured by the admin as language packs. Each user selects their preferred language in the profile settings.
 
 ## Scope
 
-Betroffen sind alle UI-Strings:
-- Navigation, Buttons, Menüs, Dialoge, Fehlermeldungen, Validierungstexte
-- EntityType-Anzeigenamen (z.B. „Application Component" → „Anwendungskomponente")
-- Catalog-Spaltenüberschriften (abgeleitet aus EntityType-Property-Definitionen)
-- Tooltips, Placeholder-Texte, Erfolgs-/Statusmeldungen
+All UI strings are affected:
+- Navigation, buttons, menus, dialogs, error messages, validation texts
+- EntityType display names (e.g., "Application Component" → "Anwendungskomponente")
+- Catalog column headers (derived from EntityType property definitions)
+- Tooltips, placeholder texts, success/status messages
 
-Nicht betroffen (Content-Layer, keine automatische Übersetzung):
-- Von Nutzern erfasste Inhalte (Entity-Namen, Arc42-Texte, Beschreibungen)
-- Metamodell-Konfiguration (Freitext-Felder vom Admin)
+Not affected (content layer, no automatic translation):
+- User-entered content (entity names, Arc42 texts, descriptions)
+- Metamodel configuration (free-text fields from the admin)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Default Englisch):
-- Eine frisch aufgesetzte OEA-Instanz zeigt die UI vollständig auf Englisch ohne weitere Konfiguration
+**AC1** (Default English):
+- A freshly set up OEA instance shows the UI entirely in English without further configuration
 
-**AC2** (Sprache wechseln):
-- Wenn Admin eine weitere Sprache aktiviert hat
-- Dann kann jeder Nutzer in den Profil-Einstellungen diese Sprache wählen
-- Und die UI wechselt sofort nach Auswahl (kein Neustart nötig)
+**AC2** (Switch language):
+- When the admin has activated an additional language
+- Then every user can select this language in the profile settings
+- And the UI switches immediately after selection (no restart needed)
 
-**AC3** (EntityType-Anzeigename mehrsprachig):
-- EntityTypeDefinition unterstützt `displayName: { en: "...", de: "..." }` als Sprach-Map
-- UI zeigt immer den Anzeigenamen in der aktiven Nutzersprache; Fallback: Englisch; zweiter Fallback: technischer Identifier
+**AC3** (EntityType display name multilingual):
+- EntityTypeDefinition supports `displayName: { en: "...", de: "..." }` as a language map
+- The UI always shows the display name in the active user language; fallback: English; second fallback: technical identifier
 
-**AC4** (Fallback bei fehlender Übersetzung):
-- Kein leerer String in der UI: fehlt ein Key in der aktiven Sprache, erscheint der englische Text (kein `undefined`)
+**AC4** (Fallback for missing translation):
+- No empty string in the UI: if a key is missing in the active language, the English text appears (no `undefined`)
 
-**AC5** (Sprach-Pakete importierbar):
-- Admin kann JSON-Sprach-Pakete über die Admin-UI hochladen und aktivieren
-- Format: flaches JSON `{ "entity.create": "Entität anlegen", ... }`
+**AC5** (Language packs importable):
+- Admin can upload and activate JSON language packs via the admin UI
+- Format: flat JSON `{ "entity.create": "Entität anlegen", ... }`
 
-**AC6** (Instanz-Default konfigurierbar):
-- Beim Bootstrapping (UC-02) wählbar: welche Sprache ist die Instanz-Standard-Sprache (Fallback für Nutzer ohne eigene Präferenz)
+**AC6** (Instance default configurable):
+- Selectable during bootstrapping (UC-02): which language is the instance default language (fallback for users without their own preference)
 
-**AC7** (Offline-fähig):
-- Sprach-Pakete werden bei App-Start geladen und gecacht; kein externer CDN-Zugriff zur Laufzeit (REQ-075)
+**AC7** (Offline-capable):
+- Language packs are loaded and cached at app start; no external CDN access at runtime (REQ-075)
 
-## Technische Hinweise
+## Technical Notes
 
-- Frontend: **vue-i18n** (MIT, offizielles Vue 3 i18n-Plugin)
-- Sprach-Dateien: JSON-Dateien im Format `{ "namespace.key": "Text" }`, nach Namespaces getrennt (z.B. `entity`, `catalog`, `canvas`, `admin`)
-- Built-in-EntityTypes (ADR-002): werden mit EN + DE Übersetzungen ausgeliefert; weitere Sprachen via Starter-Paket oder Admin-Import
-- `EntityTypeDefinition.displayName` wird von `string` zu `Record<string, string>` erweitert; API liefert immer das vollständige Sprach-Map-Objekt; Client wählt die richtige Variante
-- Backend: keine Übersetzungslogik im Server nötig; nur `displayName`-Map im EntityType-Objekt
+- Frontend: **vue-i18n** (MIT, official Vue 3 i18n plugin)
+- Language files: JSON files in the format `{ "namespace.key": "Text" }`, separated by namespaces (e.g., `entity`, `catalog`, `canvas`, `admin`)
+- Built-in EntityTypes (ADR-002): are shipped with EN + DE translations; further languages via starter pack or admin import
+- `EntityTypeDefinition.displayName` is extended from `string` to `Record<string, string>`; the API always returns the complete language map object; the client chooses the right variant
+- Backend: no translation logic needed on the server; only the `displayName` map in the EntityType object

@@ -1,6 +1,6 @@
 ---
 id: REQ-071
-title: Katalog-Abfrage-Latenz
+title: Catalog query latency
 type: non-functional
 priority: must
 status: proposed
@@ -20,94 +20,94 @@ references:
     - SH-01
     - SH-07
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-071: Katalog-Abfrage-Latenz
+# REQ-071: Catalog query latency
 
-## Aussage
+## Statement
 
-Das System MUSS Katalog-Live-Abfragen (REQ-046) innerhalb eines definierten Zeitbudgets abschliessen — auch bei mehreren konfigurierten Joins und aktivierten Filtern.
+The system MUST complete live catalog queries (REQ-046) within a defined time budget — even with multiple configured joins and activated filters.
 
-## Begründung
+## Rationale
 
-Der Katalog ist die primäre Arbeitsoberfläche für alle EA-Nutzer (SH-03, SH-01, SH-07). Jede Interaktion — Filter setzen, Join-Modus wechseln, Seite blättern — löst eine Live-Abfrage aus. Überschreitet die Antwortzeit 1 Sekunde, bricht die wahrgenommene Direktheit der Abfrage weg; Nutzer verlieren den Arbeitsfluss. Dies ist der frequenteste und damit latenzkritischste Lesepfad im System nach dem Login.
+The catalog is the primary working surface for all EA users (SH-03, SH-01, SH-07). Every interaction — setting a filter, switching the join mode, paging — triggers a live query. If the response time exceeds 1 second, the perceived immediacy of the query is lost; users lose their workflow. This is the most frequent and thus most latency-critical read path in the system after login.
 
-## Kontext
+## Context
 
-Gilt für den serverseitigen Anteil der Katalog-Abfrage (`GET /api/v1/catalogs/{id}/data`): Entity-Lade-, Join-Traversal-, Filter- und Aggregations-Zeit. Netzwerkzeit Client↔Server ist nicht Teil dieses Requirements.
+Applies to the server-side portion of the catalog query (`GET /api/v1/catalogs/{id}/data`): entity load, join traversal, filter and aggregation time. Network time client↔server is not part of this requirement.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=non-functional
+### For type=non-functional
 
-**Kategorie**: performance
+**Category**: performance
 
-**Messbare Zielwerte**:
+**Measurable Target Values**:
 
-| Metrik | Zielwert | Schwellwert (warning) | Schwellwert (critical) | Scope |
+| Metric | Target value | Threshold (warning) | Threshold (critical) | Scope |
 |---|---|---|---|---|
-| p95 Katalog-Abfrage ohne Join | < 200ms | 400ms | 800ms | 10.000 primäre Entitäten, keine Filter |
-| p95 Katalog-Abfrage mit 3 Joins | < 500ms | 800ms | 1.500ms | 10.000 primäre Entitäten, je Join max. 5 Ergebnisse pro Zeile |
-| p95 Katalog-Abfrage mit Filter + 3 Joins | < 600ms | 1.000ms | 2.000ms | 10.000 primäre Entitäten, 1 SavedFilter mit 2 Bedingungen |
-| p95 Paginierter Aufruf (Seite 2+) | < 200ms | 400ms | 800ms | gleicher Scope; Cursor-basierte Paginierung vorausgesetzt |
+| p95 catalog query without join | < 200ms | 400ms | 800ms | 10,000 primary entities, no filters |
+| p95 catalog query with 3 joins | < 500ms | 800ms | 1,500ms | 10,000 primary entities, max. 5 results per row per join |
+| p95 catalog query with filter + 3 joins | < 600ms | 1,000ms | 2,000ms | 10,000 primary entities, 1 SavedFilter with 2 conditions |
+| p95 paginated call (page 2+) | < 200ms | 400ms | 800ms | same scope; cursor-based pagination assumed |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Ohne Join):
-- Gegeben: Repository mit 10.000 ApplicationComponent-Entitäten; Katalog ohne Joins; kein Filter
-- Wenn: 95% der Abfragen gemessen
-- Dann: Serververarbeitungszeit < 200ms
+**AC1** (Without join):
+- Given: Repository with 10,000 ApplicationComponent entities; catalog without joins; no filter
+- When: 95% of the queries are measured
+- Then: Server processing time < 200ms
 
-**AC2** (3 Joins, aggregate-Modus):
-- Gegeben: Repository mit 10.000 ApplicationComponent-Entitäten; Katalog mit 3 JoinDefinitions; je Entität im Schnitt 5 Join-Ergebnisse
-- Wenn: 95% der Abfragen gemessen
-- Dann: Serververarbeitungszeit < 500ms
+**AC2** (3 joins, aggregate mode):
+- Given: Repository with 10,000 ApplicationComponent entities; catalog with 3 JoinDefinitions; on average 5 join results per entity
+- When: 95% of the queries are measured
+- Then: Server processing time < 500ms
 
-**AC3** (Filter + 3 Joins):
-- Gegeben: wie AC2 + 1 SavedFilter mit 2 AND-verknüpften Bedingungen
-- Wenn: 95% der Abfragen gemessen
-- Dann: Serververarbeitungszeit < 600ms
+**AC3** (Filter + 3 joins):
+- Given: as AC2 + 1 SavedFilter with 2 AND-combined conditions
+- When: 95% of the queries are measured
+- Then: Server processing time < 600ms
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert, Lasttest)
-- [x] Test-Setup: synthetisches Repository mit 10.000 Entitäten + 3 JoinDefinitions + SavedFilter
-- [x] Mess-Werkzeug: Last-/Performance-Test-Tool (Wahl: Solution-Design)
-- [x] Bestanden-Kriterium: p95-Werte gemäss Tabelle
-- [ ] In CI integriert: ja, als Performance-Gate nach Walking-Skeleton
+- [x] Method: test (automated, load test)
+- [x] Test setup: synthetic repository with 10,000 entities + 3 JoinDefinitions + SavedFilter
+- [x] Measuring tool: load/performance test tool (choice: solution design)
+- [x] Pass criterion: p95 values according to table
+- [ ] Integrated in CI: yes, as a performance gate after the walking skeleton
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-043 (Catalog), REQ-046 (Katalog-Abfrage)
-- **Konflikte**: REQ-065 (n-Connection-Traversal darf Latenz nicht übermässig erhöhen; Join auf Connection-Primaries muss gleiche SLA einhalten)
+- **Prerequisites**: REQ-043 (Catalog), REQ-046 (catalog query)
+- **Conflicts**: REQ-065 (n-connection traversal must not increase latency excessively; join on connection primaries must meet the same SLA)
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Nutzer empfinden Katalog als träge; Akzeptanz sinkt; Rückkehr zu Excel-Inventaren
+- Users perceive the catalog as sluggish; acceptance drops; return to Excel inventories
 
 ## Trade-offs
 
-- Index-Strategie auf `entityTypeId`, `sourceEntityId`, `targetEntityId` zwingend; Query-Plan muss sorgfältig geprüft werden
-- Caching von Join-Ergebnissen kontraindiziert (Live-Daten-Versprechen per REQ-046); stattdessen: DB-Query-Optimierung und Cursor-Paginierung
+- Index strategy on `entityTypeId`, `sourceEntityId`, `targetEntityId` mandatory; query plan must be carefully reviewed
+- Caching of join results is contraindicated (live data promise per REQ-046); instead: DB query optimization and cursor pagination
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Datenbankindizes: `(entityTypeId)`, `(sourceEntityId)`, `(targetEntityId)`, `(entityTypeId, name)` zwingend
-- Cursor-Paginierung (keyset) statt OFFSET für stabile Performance auf Seite N
+- Database indexes: `(entityTypeId)`, `(sourceEntityId)`, `(targetEntityId)`, `(entityTypeId, name)` mandatory
+- Cursor pagination (keyset) instead of OFFSET for stable performance on page N
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |

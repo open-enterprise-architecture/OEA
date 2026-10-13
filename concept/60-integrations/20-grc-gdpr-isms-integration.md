@@ -1,50 +1,50 @@
-## 20. GRC-, DSGVO- und ISMS-Integration
+## 20. GRC, GDPR, and ISMS Integration
 
-Regulatorische Governance und Informationssicherheit sind zwei Disziplinen, die stark auf EA-Daten angewiesen sind – beide brauchen aktuelle, vollständige Inventare von Applications, Technologies, Data Components, Interfaces und Prozessen. Ohne integrierte Anbindung führt das unweigerlich zu parallelen Shadow-Inventuren, die mit der Zeit veralten. Dieses Kapitel beschreibt die Schnittstellen zu **GRC-Tools** (Governance, Risk, Compliance), **DSGVO-/Datenschutz-Tools** und **ISMS-Tools** (Information Security Management Systems).
+Regulatory governance and information security are two disciplines that rely heavily on EA data – both need current, complete inventories of applications, technologies, data components, interfaces, and processes. Without integrated connectivity, this inevitably leads to parallel shadow inventories that become outdated over time. This chapter describes the interfaces to **GRC tools** (governance, risk, compliance), **GDPR/data protection tools**, and **ISMS tools** (information security management systems).
 
-### 20.1 Abgrenzung der drei Disziplinen
+### 20.1 Delimitation of the Three Disciplines
 
-| Aspekt | GRC / Compliance | DSGVO / Datenschutz | ISMS |
+| Aspect | GRC / Compliance | GDPR / Data protection | ISMS |
 |---|---|---|---|
-| Primäre Frage | "Welche externen Anforderungen erfüllen wir?" | "Welche personenbezogenen Daten verarbeiten wir wie?" | "Welche Risiken bedrohen unsere Assets?" |
-| Zielgruppe | Compliance Officer, Legal, Auditor | Datenschutzbeauftragte:r (DPO) | Information Security Officer (ISO/CISO) |
-| Kernoutputs | Evidence-Packages, Audit-Reports, Regulatory Reports | Verarbeitungsverzeichnis, DSFA, Auskunftsantworten | Risikoregister, SoA, Maßnahmenplan |
-| Denken in | Requirements → Controls → Evidence → Findings | Zweck → Datenkategorie → Rechtsgrundlage → Betroffene | Asset → Threat → Vulnerability → Risk → Treatment |
-| Referenzrahmen | ISO 27001, NIST CSF, SOX, DORA, NIS2 | DSGVO, revDSG, LGPD, CCPA | ISO 27001/27005, BSI Grundschutz, TISAX |
-| Tool-Beispiele | ServiceNow GRC, SAP GRC, MetricStream, Archer | OneTrust, TrustArc, Smart Global Governance | Verinice, HiScout, ibi iRIS, OpenPages |
+| Primary question | "Which external requirements do we meet?" | "Which personal data do we process and how?" | "Which risks threaten our assets?" |
+| Target group | Compliance officer, legal, auditor | Data protection officer (DPO) | Information security officer (ISO/CISO) |
+| Core outputs | Evidence packages, audit reports, regulatory reports | Record of processing activities, DPIA, access request responses | Risk register, SoA, action plan |
+| Thinks in | Requirements → controls → evidence → findings | Purpose → data category → legal basis → data subjects | Asset → threat → vulnerability → risk → treatment |
+| Frame of reference | ISO 27001, NIST CSF, SOX, DORA, NIS2 | GDPR, revDSG, LGPD, CCPA | ISO 27001/27005, BSI IT-Grundschutz, TISAX |
+| Tool examples | ServiceNow GRC, SAP GRC, MetricStream, Archer | OneTrust, TrustArc, Smart Global Governance | Verinice, HiScout, ibi iRIS, OpenPages |
 
-Die Disziplinen überlappen sich fachlich, werden aber meist von unterschiedlichen Tools unterstützt. Manche Anbieter (ServiceNow, Archer, OpenPages) decken alle drei ab, viele Organisationen kombinieren aber spezialisierte Lösungen.
+The disciplines overlap in business terms but are usually supported by different tools. Some vendors (ServiceNow, Archer, OpenPages) cover all three, but many organizations combine specialized solutions.
 
-### 20.2 Rolle des EA-Repositorys
+### 20.2 Role of the EA Repository
 
-EA ist der **strukturelle Datenlieferant** für alle drei Disziplinen. Was EA liefert:
+EA is the **structural data supplier** for all three disciplines. What EA delivers:
 
-- Asset-Inventory (Applications, Technologies, Data Components)
-- Klassifizierungen (Schutzbedarf, Datenkategorien)
-- Datenflusskarten (welche Daten fließen wohin)
-- Prozess-zu-System-Verknüpfung
-- Dienstleister-Beziehungen (aus Contracts)
-- Lebenszyklus- und Versionsinformationen
+- Asset inventory (applications, technologies, data components)
+- Classifications (protection need, data categories)
+- Data flow maps (which data flows where)
+- Process-to-system linking
+- Service provider relationships (from contracts)
+- Lifecycle and version information
 
-Was EA **nicht übernimmt**:
+What EA **does not take on**:
 
-- Risikoregister mit quantitativer Bewertung und Risk Appetite
-- Control-Wirksamkeits-Tests und Evidence-Collection
-- Betroffenenanfragen-Workflow (Auskunft, Löschung, Portabilität)
-- Datenschutz-Folgenabschätzungen (DSFA/DPIA) als formaler Workflow
-- Statement of Applicability (SoA) als ISO-27001-Artefakt
-- Audit-Vorbereitung und -Durchführung
+- Risk register with quantitative assessment and risk appetite
+- Control effectiveness tests and evidence collection
+- Data subject request workflow (access, erasure, portability)
+- Data protection impact assessments (DPIA) as a formal workflow
+- Statement of Applicability (SoA) as an ISO 27001 artifact
+- Audit preparation and execution
 
-Diese Funktionen bleiben in den spezialisierten Tools. Das OEA stellt die Asset-Basis zur Verfügung, auf der sie arbeiten.
+These functions remain in the specialized tools. The OEA provides the asset basis on which they work.
 
-### 20.3 Metamodell-Erweiterungen für DSGVO
+### 20.3 Metamodel Extensions for GDPR
 
-Für DSGVO Artikel 30 (Verarbeitungsverzeichnis) werden die bestehenden EntityTypes ergänzt.
+For GDPR Article 30 (record of processing activities), the existing EntityTypes are supplemented.
 
-**DataEntity** erhält optional:
+**DataEntity** optionally gains:
 
 ```yaml
-DataEntity erweitert um:
+DataEntity extended by:
   - isPersonalData: boolean
   - personalDataCategory: enum[standard, special-art-9, criminal-art-10]
   - dataSubjects: enum[employees, customers, prospects, suppliers, minors, patients, other][]
@@ -55,17 +55,17 @@ DataEntity erweitert um:
   - legalBasisDetails: text
 ```
 
-**ApplicationComponent** und **Interface** erhalten:
+**ApplicationComponent** and **Interface** gain:
 
 ```yaml
-ApplicationComponent / Interface erweitert um:
-  - processingLocations: Location[]       # wo wird verarbeitet
-  - dataTransferOutsideRegion: boolean    # Drittland-Transfer?
+ApplicationComponent / Interface extended by:
+  - processingLocations: Location[]       # where processing takes place
+  - dataTransferOutsideRegion: boolean    # third-country transfer?
   - transferMechanism: enum[adequacy-decision, standard-contractual-clauses, binding-corporate-rules, derogation, none]
   - transferDetails: text
 ```
 
-**Neue EntityTypes**:
+**New EntityTypes**:
 
 ```yaml
 EntityType: ProcessingPurpose
@@ -78,10 +78,10 @@ EntityType: ProcessingPurpose
     - appliesTo: DataEntity[]
     - realizedBy: BusinessProcess[]
 
-EntityType: DataProcessor (Auftragsverarbeiter)
+EntityType: DataProcessor (processor)
   basedOn: Vendor / OrganizationUnit (external)
   properties:
-    - dpaSignedDate: date             # Auftragsverarbeitungsvertrag
+    - dpaSignedDate: date             # data processing agreement
     - dpaExpiresDate: date
     - subprocessorsAllowed: boolean
     - auditRights: text
@@ -104,170 +104,170 @@ EntityType: DataTransfer
     - via: Interface
 ```
 
-### 20.4 Metamodell-Erweiterungen für ISMS (ISO 27001/27005)
+### 20.4 Metamodel Extensions for ISMS (ISO 27001/27005)
 
-Das ISMS arbeitet mit einem etablierten Vokabular, das in OEA als Referenz-Schema verfügbar sein sollte:
+The ISMS works with an established vocabulary that should be available in OEA as a reference schema:
 
-**Primary vs. Supporting Assets**: Die ISO-27005-Terminologie unterscheidet:
+**Primary vs. supporting assets**: The ISO 27005 terminology distinguishes:
 
-- **Primary Assets**: das, was geschützt werden soll (Geschäftsprozesse, Informationen)
-- **Supporting Assets**: das, worauf Primary Assets angewiesen sind (Systeme, Technologien, Personen, Standorte, Lieferanten)
+- **Primary assets**: what is to be protected (business processes, information)
+- **Supporting assets**: what primary assets depend on (systems, technologies, persons, locations, suppliers)
 
-Das OEA liefert beides ohne eigenes Asset-Konzept. BusinessProcess und InformationObject sind Primary Assets; ApplicationComponent, TechnologyComponent und Location sind Supporting Assets. Die ISO-27005-Kategorien werden als Stereotype oder Classification-Property an die EntityTypes angehängt:
+The OEA delivers both without a separate asset concept of its own. BusinessProcess and InformationObject are primary assets; ApplicationComponent, TechnologyComponent, and Location are supporting assets. The ISO 27005 categories are attached to the EntityTypes as a stereotype or classification property:
 
 ```yaml
-Entity erweitert um (optional):
+Entity extended by (optional):
   - isoAssetCategory: primary | supporting
   - iso27005Type: process | information | software | hardware | network | personnel | site | organization | service
 ```
 
-**Bedrohungen und Schwachstellen** bleiben im ISMS-Tool gepflegt – aber OEA kann Referenzen dorthin halten:
+**Threats and vulnerabilities** remain maintained in the ISMS tool – but OEA can hold references to them:
 
 ```yaml
-Entity erweitert um:
-  - knownThreats: ThreatReference[]       # Referenz ins ISMS-Tool
+Entity extended by:
+  - knownThreats: ThreatReference[]       # reference into the ISMS tool
   - openVulnerabilities: VulnerabilityReference[]
-  - riskScore: number                      # aggregiert vom ISMS
+  - riskScore: number                      # aggregated from the ISMS
   - lastRiskAssessment: date
 ```
 
-### 20.5 Mastership pro Konzept
+### 20.5 Mastership per Concept
 
-| Konzept | EA-Master | ISMS-Master | DSGVO-Tool-Master |
+| Concept | EA master | ISMS master | GDPR tool master |
 |---|---|---|---|
-| Asset-Existenz und -Struktur | ✓ | | |
-| CIA-Schutzbedarf | ✓ (oder shared) | ✓ (oder shared) | |
-| Datenkategorie (personenbezogen/nicht) | ✓ | | |
-| Zweck der Verarbeitung | | | ✓ |
-| Rechtsgrundlage | | | ✓ |
-| Rückbehalt / Löschfristen | ✓ | | |
-| Threat-Katalog | | ✓ | |
-| Risikobewertung (Wahrscheinlichkeit × Auswirkung) | | ✓ | |
-| Control-Framework (ISO 27001 Annex A) | als Continuum-Artefakt (§4) | ✓ | |
-| Control-Wirksamkeit und Evidence | | ✓ | ✓ (für DSGVO-Controls) |
-| Datenschutz-Folgenabschätzung (DSFA) | | | ✓ |
-| Betroffenenanfragen | | | ✓ |
+| Asset existence and structure | ✓ | | |
+| CIA protection need | ✓ (or shared) | ✓ (or shared) | |
+| Data category (personal/non-personal) | ✓ | | |
+| Purpose of processing | | | ✓ |
+| Legal basis | | | ✓ |
+| Retention / deletion periods | ✓ | | |
+| Threat catalog | | ✓ | |
+| Risk assessment (probability × impact) | | ✓ | |
+| Control framework (ISO 27001 Annex A) | as continuum artifact (§4) | ✓ | |
+| Control effectiveness and evidence | | ✓ | ✓ (for GDPR controls) |
+| Data protection impact assessment (DPIA) | | | ✓ |
+| Data subject requests | | | ✓ |
 | Statement of Applicability | | ✓ | |
-| Auftragsverarbeiter-Verträge | Stammdaten (Contract) | | ✓ (für DPA-Pflege) |
-| Drittlandtransfers | Struktur (Transfer-Beziehung) | | ✓ (für Rechtfertigung) |
+| Data processing agreements | Master data (Contract) | | ✓ (for DPA maintenance) |
+| Third-country transfers | Structure (transfer relationship) | | ✓ (for justification) |
 
-**Pragmatische Regel**: Wenn eine Information strukturell ist (Was existiert? Wie hängt es zusammen?), lebt sie im EA. Wenn sie prozedural ist (Was wurde bewertet? Was wurde nachgewiesen?), lebt sie im spezialisierten Tool.
+**Pragmatic rule**: If information is structural (What exists? How is it connected?), it lives in EA. If it is procedural (What was assessed? What was demonstrated?), it lives in the specialized tool.
 
-### 20.6 Integrations-Muster
+### 20.6 Integration Patterns
 
-**EA → GRC/ISMS/DSGVO-Tool (Push, regelmäßig)**:
+**EA → GRC/ISMS/GDPR tool (push, regular)**:
 
-- Asset-Inventory-Export im definierten Format
-- Strukturänderungen als Event-Stream (siehe API-Kapitel)
-- Klassifizierungsänderungen als Trigger für Neubewertung
+- Asset inventory export in a defined format
+- Structural changes as an event stream (see API chapter)
+- Classification changes as a trigger for reassessment
 
-**GRC/ISMS/DSGVO-Tool → EA (Pull oder Push)**:
+**GRC/ISMS/GDPR tool → EA (pull or push)**:
 
-- Risk-Scores als annotierte Properties
-- Offene Findings als Verweise (nicht als volle Daten)
-- Control-Framework-Referenzen (als Continuum-Artefakt)
-- Regulatorische Scope-Zuordnung (KRITIS, NIS2, DORA)
+- Risk scores as annotated properties
+- Open findings as references (not as full data)
+- Control framework references (as continuum artifact)
+- Regulatory scope assignment (KRITIS, NIS2, DORA)
 
-**Bidirektionale Synchronisation**: Für Entitäten, die in beiden Welten gepflegt werden (z.B. Schutzbedarf), gilt das Property-Mastership-Prinzip aus [§17 (ITSM-Integration)](../60-integrations/17-itsm-integration.md). Property-Level-Mastership pro Entity-Typ konfigurierbar.
+**Bidirectional synchronization**: For entities maintained in both worlds (e.g., protection need), the property mastership principle from [§17 (ITSM Integration)](../60-integrations/17-itsm-integration.md) applies. Property-level mastership configurable per entity type.
 
-### 20.7 Austauschformate
+### 20.7 Exchange Formats
 
-Das Tool sollte mehrere Formate unterstützen, um verschiedene Zielsysteme bedienen zu können:
+The tool should support several formats in order to serve different target systems:
 
-**Generische Formate**:
-- OSCAL (Open Security Controls Assessment Language, NIST) – modernes JSON/YAML-Format für Compliance
-- STIX/TAXII – für Threat-Intelligence-Austausch (eher ISMS-Fokus)
-- JSON/YAML-basierte Custom-Formate über Adapter
+**Generic formats**:
+- OSCAL (Open Security Controls Assessment Language, NIST) – modern JSON/YAML format for compliance
+- STIX/TAXII – for threat intelligence exchange (more ISMS focus)
+- JSON/YAML-based custom formats via adapters
 
-**Tool-spezifische Formate**:
-- Verinice: XML-basiertes Austauschformat, Open Source – guter Referenz-Adapter
-- ServiceNow GRC: REST-API
-- OneTrust: REST-API mit CSV-Import für Asset-Inventare
+**Tool-specific formats**:
+- Verinice: XML-based exchange format, open source – good reference adapter
+- ServiceNow GRC: REST API
+- OneTrust: REST API with CSV import for asset inventories
 
-**DSGVO-spezifisch**:
-- Verarbeitungsverzeichnis-Export im Format der jeweiligen Aufsichtsbehörde (variiert nach Land)
-- GPDR-konformer Datenexport für Betroffenenauskünfte (strukturiert)
+**GDPR-specific**:
+- Export of the record of processing activities in the format of the respective supervisory authority (varies by country)
+- GPDR-compliant data export for data subject access requests (structured)
 
-### 20.8 Adapter-Architektur
+### 20.8 Adapter Architecture
 
-Analog zur ITSM-/PPM-Integration werden GRC-/ISMS-/DSGVO-Adapter als **Plug-in-Module** realisiert (siehe API-Architektur). Ein Adapter:
+Analogous to ITSM/PPM integration, GRC/ISMS/GDPR adapters are implemented as **plug-in modules** (see API architecture). An adapter:
 
-- Konsumiert die EA-API für Asset-Abruf
-- Übersetzt in Zielsystem-Format
-- Pflegt URN-Kreuzreferenzen beidseitig
-- Reagiert auf Events (neue/geänderte Assets → Weiterleitung)
-- Implementiert bidirektionale Property-Synchronisation dort, wo konfiguriert
+- Consumes the EA API for asset retrieval
+- Translates into the target system format
+- Maintains URN cross-references on both sides
+- Reacts to events (new/changed assets → forwarding)
+- Implements bidirectional property synchronization where configured
 
-**Empfohlene Referenz-Adapter** (in Prioritätsreihenfolge):
+**Recommended reference adapters** (in priority order):
 
-1. **Verinice-Adapter** – Open-Source ISMS, ideal als erster Anlaufpunkt für die Community
-2. **Generischer CSV/JSON-Export** für Asset-Inventare – erlaubt manuelle Integration in beliebige Tools
-3. **OSCAL-basierter Export** – zukunftsfähig, standardisiert
-4. **ServiceNow GRC/IRM REST-Adapter** – hohe Enterprise-Relevanz
+1. **Verinice adapter** – open-source ISMS, ideal as a first port of call for the community
+2. **Generic CSV/JSON export** for asset inventories – allows manual integration into arbitrary tools
+3. **OSCAL-based export** – future-proof, standardized
+4. **ServiceNow GRC/IRM REST adapter** – high enterprise relevance
 
-### 20.9 Property-Level-Autorisierung
+### 20.9 Property-Level Authorization
 
-Diese Integration zwingt zur Präzisierung der Zugriffskontrolle: Nicht jede:r EA-Nutzer:in darf alle Attribute aller Entitäten sehen. Personenbezogene-Daten-Kategorien und detaillierte Schutzbedarfe sind sensibel.
+This integration forces a refinement of access control: not every EA user may see all attributes of all entities. Personal data categories and detailed protection needs are sensitive.
 
-Das Tool implementiert deshalb **Property-Level-Autorisierung als Pflicht-Feature**:
+The tool therefore implements **property-level authorization as a mandatory feature**:
 
-- Pro Property kann eine Lese- und Schreibe-Berechtigung definiert werden
-- Berechtigungen basieren auf Rollen (z.B. "DPO", "ISO", "Architekt")
-- Properties ohne explizite Einschränkung sind für alle Lesenden sichtbar
-- API-Response filtert automatisch nicht-berechtigte Properties heraus (ohne den Request abzulehnen)
-- Audit-Log erfasst, wer wann welche geschützten Properties abgefragt hat
+- A read and write permission can be defined per property
+- Permissions are based on roles (e.g., "DPO", "ISO", "Architect")
+- Properties without explicit restriction are visible to all readers
+- API responses automatically filter out unauthorized properties (without rejecting the request)
+- The audit log records who queried which protected properties and when
 
-Beispiel-Konfiguration:
+Example configuration:
 
 ```yaml
 propertyAuthorization:
   - entity: DataEntity
     property: personalDataCategory
-    read: [DPO, ISO, Architekt]
+    read: [DPO, ISO, Architect]
     write: [DPO]
   - entity: DataEntity
     property: retentionPeriod
-    read: [DPO, ISO, Architekt, FachOwner]
+    read: [DPO, ISO, Architect, BusinessOwner]
     write: [DPO]
   - entity: ApplicationComponent
     property: confidentialityProtectionNeed
-    read: [ISO, Architekt, AppOwner]
+    read: [ISO, Architect, AppOwner]
     write: [ISO]
 ```
 
-Details zur Implementierung siehe [§22 (API-Architektur)](../70-platform/21-api-architektur.md).
+For implementation details see [§22 (API Architecture)](../70-platform/21-api-architecture.md).
 
-### 20.10 Audit-Trail-Anforderungen
+### 20.10 Audit Trail Requirements
 
-GRC, DSGVO und ISMS bringen eine harte Compliance-Anforderung mit: **vollständiger Audit-Trail über Datenänderungen** ist nicht mehr nice-to-have, sondern Pflicht.
+GRC, GDPR, and ISMS bring a hard compliance requirement: a **complete audit trail of data changes** is no longer nice-to-have but mandatory.
 
-Das EA-Repository protokolliert für alle Änderungen:
+The EA repository logs for all changes:
 
-- Wer (User/Role/API-Key)
-- Wann (Zeitstempel)
-- Was (Entity/Relation/Property, Alt- und Neuwert)
-- Warum (optional: Commit-Message, Change-Reference)
-- Wie (UI/API/Sync)
+- Who (user/role/API key)
+- When (timestamp)
+- What (entity/relation/property, old and new value)
+- Why (optional: commit message, change reference)
+- How (UI/API/sync)
 
-Der Audit-Trail ist:
+The audit trail is:
 
-- **Unveränderbar** (Append-Only)
-- **Exportierbar** in standardisierten Formaten (JSON, CSV)
-- **Aufbewahrungspflichtig** entsprechend regulatorischer Vorgaben (DSGVO mindestens Speicherdauer der Verarbeitung, ISO 27001 typischerweise 3+ Jahre)
-- **Selbst zugriffsgeschützt** – Audit-Logs enthalten sensible Daten und dürfen nicht von jedem eingesehen werden
+- **Immutable** (append-only)
+- **Exportable** in standardized formats (JSON, CSV)
+- **Subject to retention** according to regulatory requirements (GDPR at least the storage duration of the processing, ISO 27001 typically 3+ years)
+- **Itself access-protected** – audit logs contain sensitive data and must not be viewable by everyone
 
-Technisch: Event-Stream aus dem API-Kapitel wird mit Audit-Flag ergänzt, dauerhaft persistiert, und kann in externe SIEM-Systeme (Splunk, Elastic) gestreamt werden.
+Technically: the event stream from the API chapter is supplemented with an audit flag, persisted permanently, and can be streamed to external SIEM systems (Splunk, Elastic).
 
 ### 20.11 Segregation of Duties
 
-GRC-Prinzip: Wer Kontrollen entwirft, darf sie nicht selbst abnehmen. Wer Risiken bewertet, darf sie nicht selbst akzeptieren. Das wirkt sich auf EA-Workflows aus:
+GRC principle: whoever designs controls must not approve them themselves. Whoever assesses risks must not accept them themselves. This affects EA workflows:
 
-- **Standards-Entwurf vs. -Genehmigung**: Architekt schlägt Standard vor, ARB genehmigt (Rollen getrennt)
-- **Waiver-Antrag vs. -Erteilung**: Application-Owner beantragt Ausnahme, ISO oder ARB erteilt
-- **Schutzbedarfs-Erhebung vs. -Validierung**: FachOwner pflegt Schutzbedarf, ISO validiert stichprobenartig
-- **Änderung vs. Review bei kritischen Properties**: Vier-Augen-Prinzip bei Änderungen personenbezogener Klassifikationen
+- **Standards draft vs. approval**: Architect proposes a standard, ARB approves (roles separated)
+- **Waiver request vs. grant**: Application owner requests an exception, ISO or ARB grants it
+- **Protection need collection vs. validation**: BusinessOwner maintains the protection need, ISO validates by sampling
+- **Change vs. review for critical properties**: Four-eyes principle for changes to personal data classifications
 
-Das Metamodell unterstützt dies durch:
+The metamodel supports this through:
 
 ```yaml
 Constraint: segregation-of-duties
@@ -276,20 +276,20 @@ Constraint: segregation-of-duties
   severity: error
 
 Constraint: four-eyes-personal-data-changes
-  appliesTo: DataEntity (Property-Änderung: personalDataCategory)
+  appliesTo: DataEntity (property change: personalDataCategory)
   rule: "change requires approval by Role != author"
   severity: error
 ```
 
-### 20.12 Neue Sichten
+### 20.12 New Views
 
-- **Verarbeitungsverzeichnis (Art. 30 DSGVO)**: automatisch generiert aus DataEntity mit isPersonalData=true, gruppiert nach ProcessingPurpose, mit allen Pflichtfeldern
-- **Drittland-Transfer-Landkarte**: visualisiert DataTransfer-Relationen über Jurisdiktionsgrenzen hinweg, farblich markiert nach Transfer-Mechanismus
-- **Schutzbedarfs-Heatmap**: Matrix von Applications × CIA-Werten, farblich kodiert
-- **Auftragsverarbeiter-Register**: alle DataProcessor-Entitäten mit DPA-Status, ablaufende Verträge hervorgehoben
-- **Asset-Compliance-Coverage**: pro Application/Technology, welche regulatorischen Scopes gelten (KRITIS, NIS2, DORA, PCI-DSS) und ob sie formal im ISMS/GRC erfasst sind
-- **Risiko-Hotspots**: Applications mit hohen Risk-Scores aus dem ISMS, kombiniert mit hoher Business-Kritikalität
-- **Offene-Findings-Durchstich**: Findings aus GRC-Tool verbunden mit EA-Entity, zeigt Remediation-Fortschritt
+- **Record of processing activities (Art. 30 GDPR)**: automatically generated from DataEntity with isPersonalData=true, grouped by ProcessingPurpose, with all mandatory fields
+- **Third-country transfer map**: visualizes DataTransfer relations across jurisdiction boundaries, color-coded by transfer mechanism
+- **Protection need heatmap**: matrix of applications × CIA values, color-coded
+- **Processor register**: all DataProcessor entities with DPA status, expiring contracts highlighted
+- **Asset compliance coverage**: per application/technology, which regulatory scopes apply (KRITIS, NIS2, DORA, PCI-DSS) and whether they are formally captured in the ISMS/GRC
+- **Risk hotspots**: applications with high risk scores from the ISMS, combined with high business criticality
+- **Open findings drill-through**: findings from the GRC tool linked to the EA entity, shows remediation progress
 
 ### 20.13 Constraints
 
@@ -299,34 +299,34 @@ constraint: personal-data-has-legal-basis
   when: "entity.isPersonalData == true"
   rule: "entity.legalBasis != null AND entity.processingPurposes.length >= 1"
   severity: error
-  message: "Personenbezogene Daten ohne Rechtsgrundlage oder Zweck sind unzulässig"
+  message: "Personal data without a legal basis or purpose is not permitted"
 
 constraint: personal-data-has-retention
   appliesTo: DataEntity
   when: "entity.isPersonalData == true"
   rule: "entity.retentionPeriod != null"
   severity: error
-  message: "Personenbezogene Daten benötigen definierte Aufbewahrungsfrist"
+  message: "Personal data requires a defined retention period"
 
 constraint: third-country-transfer-justified
   appliesTo: DataTransfer
   when: "entity.sourceLocation.region != entity.targetLocation.region AND entity.targetLocation.jurisdictionalRegion NOT IN adequacyDecisionRegions"
   rule: "entity.transferMechanism != 'none'"
   severity: error
-  message: "Drittlandtransfer ohne Rechtfertigungsmechanismus"
+  message: "Third-country transfer without a justification mechanism"
 
 constraint: data-processor-has-dpa
   appliesTo: DataProcessor
   when: "entity.processesData.length >= 1"
   rule: "entity.dpaSignedDate != null AND entity.dpaExpiresDate > today()"
   severity: error
-  message: "Auftragsverarbeiter ohne gültigen AVV"
+  message: "Processor without a valid DPA"
 
 constraint: protection-need-reviewed-annually
   appliesTo: ProtectionNeed
   rule: "entity.nextReview >= today() - 1 year"
   severity: warning
-  message: "Schutzbedarf sollte jährlich überprüft werden"
+  message: "Protection need should be reviewed annually"
 
 constraint: high-protection-application-has-iso-controls
   appliesTo: ApplicationComponent
@@ -335,15 +335,15 @@ constraint: high-protection-application-has-iso-controls
   severity: warning
 ```
 
-### 20.14 Praxisprinzipien
+### 20.14 Practical Principles
 
-- **EA liefert Strukturdaten, nicht Bewertungen**. Risikobewertungen, Control-Wirksamkeit, DSFA bleiben in den spezialisierten Tools.
-- **Keine Doppelpflege**. Wenn ein Schutzbedarf im ISMS gepflegt wird, wird er dort gepflegt und ins EA synchronisiert – oder umgekehrt, aber nicht beides parallel.
-- **Audit-Trail von Anfang an**. Später nachzurüsten ist aufwändig und compliance-problematisch.
-- **Property-Level-Autorisierung ist Grundlage**, nicht Zusatzfeature. Personenbezogene Daten und Schutzbedarfe sind sensibel und dürfen nicht für alle Nutzer sichtbar sein.
-- **Segregation of Duties ist kein Workflow, sondern ein Constraint**. Prüfung bei jeder kritischen Aktion, nicht als optionaler Prozess.
-- **Verinice als Referenz-Adapter**. Open Source, gut dokumentiert, für die Community ein wertvoller Ausgangspunkt.
+- **EA delivers structural data, not assessments**. Risk assessments, control effectiveness, DPIA remain in the specialized tools.
+- **No duplicate maintenance**. If a protection need is maintained in the ISMS, it is maintained there and synchronized into EA – or vice versa, but not both in parallel.
+- **Audit trail from the start**. Retrofitting later is laborious and problematic from a compliance perspective.
+- **Property-level authorization is a foundation**, not an additional feature. Personal data and protection needs are sensitive and must not be visible to all users.
+- **Segregation of duties is not a workflow but a constraint**. Check at every critical action, not as an optional process.
+- **Verinice as a reference adapter**. Open source, well documented, a valuable starting point for the community.
 
 ---
 
-← [Agile Skalierungs-Frameworks](19-agile-skalierung.md) · [🏠 Übersicht](../README.md) · [API-Architektur & Modularität](../70-platform/21-api-architektur.md) →
+← [Agile Scaling](19-agile-scaling.md) · [🏠 Overview](../README.md) · [API Architecture & Modularity](../70-platform/21-api-architecture.md) →

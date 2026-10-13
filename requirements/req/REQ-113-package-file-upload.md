@@ -1,6 +1,6 @@
 ---
 id: REQ-113
-title: Continuum-Paket per Datei-Upload importieren
+title: Import Continuum Package via File Upload
 type: functional
 priority: should
 status: proposed
@@ -25,43 +25,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-113: Continuum-Paket per Datei-Upload importieren
+# REQ-113: Import Continuum Package via File Upload
 
-## Aussage
+## Statement
 
-Das System MUSS den Upload von Continuum-Paketen als `.json`- oder `.yaml`-Datei ermöglichen. Nach dem Upload MUSS das System das Paket sofort gegen das OEA-Continuum-Paket-Schema validieren und bei Schema-Verletzungen HTTP 422 mit einer Fehlerliste (Zeile, Feld, Fehlerbeschreibung) zurückgeben — ohne einen einzigen Baustein zu importieren. Bei erfolgreicher Validierung MUSS eine Vorschau angezeigt werden, bevor der Import bestätigt wird.
+The system MUST allow uploading continuum packages as a `.json` or `.yaml` file. After the upload, the system MUST immediately validate the package against the OEA continuum package schema and, on schema violations, return HTTP 422 with an error list (line, field, error description) — without importing a single building block. On successful validation, a preview MUST be displayed before the import is confirmed.
 
-## Begründung
+## Rationale
 
-Schema-Fehler müssen vor dem Import sichtbar sein, damit der Betreiber die Datei korrigieren kann. Eine Vorschau vor dem Commit verhindert versehentliche Imports und gibt Transparenz über den Umfang des Imports.
+Schema errors must be visible before the import so that the operator can correct the file. A preview before the commit prevents accidental imports and provides transparency about the scope of the import.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Valide Datei – Vorschau):
-- Wenn: eine valide Paket-Datei hochgeladen wird
-- Dann: zeigt die UI eine Vorschau mit Anzahl und Art der enthaltenen Bausteine
+**AC1** (Valid file – preview):
+- When: a valid package file is uploaded
+- Then: the UI shows a preview with the number and kind of the contained building blocks
 
-**AC2** (Schema-Verletzung):
-- Wenn: eine Datei mit fehlendem Pflichtfeld hochgeladen wird
-- Dann: antwortet das System mit HTTP 422 und einer Fehlerliste (Zeile, Feld, Fehlerbeschreibung); kein Baustein wird importiert
+**AC2** (Schema violation):
+- When: a file with a missing mandatory field is uploaded
+- Then: the system responds with HTTP 422 and an error list (line, field, error description); no building block is imported
 
-**AC3** (Import nach Bestätigung):
-- Wenn: die Vorschau bestätigt wird
-- Dann: wird der Import ausgeführt; alle importierten Bausteine haben `scope=imported`
+**AC3** (Import after confirmation):
+- When: the preview is confirmed
+- Then: the import is executed; all imported building blocks have `scope=imported`
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-111 (Scope-Schutz), REQ-114 (atomare Import-Transaktion)
-- **Folgewirkungen**: keine
+- **Prerequisites**: REQ-111 (scope protection), REQ-114 (atomic import transaction)
+- **Consequences**: none
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Schema-Validierung: JSON Schema oder Zod auf dem Server; YAML per Parser zu JSON konvertieren vor Validierung
-- Fehlerliste: Array aus `{line, field, message}` im 422-Response-Body
-- Datei-Upload: Multipart-Form-Upload; max. Dateigröße konfigurierbar (default: 10 MB)
+- Schema validation: JSON Schema or Zod on the server; convert YAML to JSON via a parser before validation
+- Error list: array of `{line, field, message}` in the 422 response body
+- File upload: multipart form upload; max file size configurable (default: 10 MB)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

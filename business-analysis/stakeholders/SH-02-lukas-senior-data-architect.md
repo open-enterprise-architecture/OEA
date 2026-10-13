@@ -1,84 +1,84 @@
-# Stakeholder: Lukas – Senior Data Architekt im Mittelstand
+# Stakeholder: Lukas – Senior Data Architect in a Mid-Sized Company
 
 **ID**: SH-02
-**Typ**: persona
-**Bezug zum Tool**: primary
+**Type**: persona
+**Relation to the Tool**: primary
 **Internal/External**: internal
 
-## Kurzbeschreibung
+## Short Description
 
-Lukas ist erfahrener Data Architekt in einem Mittelstands-Unternehmen, das Abacus von Avolution einsetzt. Er kennt die Stärken professioneller EA-Tools, leidet aber unter Lizenzkosten, Pflege-Aufwand und mangelnder Pipeline-Eignung. Sein fachlicher Fokus liegt auf Datenmodellen, Information Flows und Data Lineage.
+Lukas is an experienced data architect in a mid-sized company that uses Abacus from Avolution. He knows the strengths of professional EA tools but suffers from license costs, maintenance effort, and a lack of pipeline suitability. His professional focus is on data models, information flows, and data lineage.
 
-## Rolle und Verantwortung
+## Role and Responsibility
 
-- **Aktuelle Rolle**: Senior Data Architekt (5-10 Jahre EA-Erfahrung, davon 3+ Jahre Avolution)
-- **Organisation/Branche**: Mittelstand, vermutlich datengetriebenes Geschäft (Finance, Insurance, Logistics, Manufacturing)
-- **Erfahrungsniveau**: hoch (kennt mehrere EA-Tools, hat ModelKnowhow gesehen)
-- **Tägliche Hauptaufgaben**:
-  - Datenmodelle pflegen (logisch und physikalisch)
-  - Information Flows zwischen Systemen modellieren
-  - Lineage-Analysen für Reporting und Compliance
-  - DSGVO-Asset-Inventare mit Datenschutz abstimmen
-  - Datenmodell-Governance über Bereiche hinweg
+- **Current role**: Senior data architect (5-10 years of EA experience, of which 3+ years Avolution)
+- **Organization/industry**: Mid-sized company, presumably data-driven business (finance, insurance, logistics, manufacturing)
+- **Experience level**: high (knows several EA tools, has seen model know-how)
+- **Main daily tasks**:
+  - Maintain data models (logical and physical)
+  - Model information flows between systems
+  - Lineage analyses for reporting and compliance
+  - Align GDPR asset inventories with data protection
+  - Data model governance across areas
 
-## Beziehung zum OEA
+## Relation to OEA
 
-- **Nutzungsfrequenz**: täglich
-- **Hauptnutzung**: pflegen, reviewen, generieren von Reports
-- **Technisches Niveau**: hoch (Git, SQL, gelegentlich Python für Datenanalysen)
-- **Bevorzugte Schnittstelle**: UI für Detailpflege, CLI/API für Reports und Validierungen
+- **Usage frequency**: daily
+- **Main usage**: maintain, review, generate reports
+- **Technical level**: high (Git, SQL, occasionally Python for data analyses)
+- **Preferred interface**: UI for detailed maintenance, CLI/API for reports and validations
 
-## Aktuelle Pain Points
+## Current Pain Points
 
-- **Avolution-Lizenzkosten unter Rechtfertigungsdruck**: Jede Verlängerung wirft die Frage auf, ob die Tiefe wirklich gebraucht wird. Das Management sieht hohe Kosten ohne messbaren ROI.
-- **Pflege-Aufwand konzentriert Wissen bei wenigen**: Avolution ist mächtig, aber nur 2-3 Personen im Unternehmen können wirklich damit arbeiten. Single Point of Failure.
-- **Daten-Lineage altert schnell**: Die Modelle sind initial sauber, aber Schemaänderungen in Produktivsystemen fließen nicht automatisch zurück. Lineage-Diagramme sind nach 3 Monaten schon veraltet.
-- **Doppelte Datenpflege für DSGVO**: Das DSGVO-Inventar wird in einem Compliance-Tool gepflegt. Lukas pflegt parallel ähnliche Strukturen in Avolution. Inkonsistenzen werden bei Audits sichtbar.
-- **Proprietäre Datenformate verhindern Pipeline-Integration**: Avolution-Modelle lassen sich nicht in CI/CD-Pipelines validieren. Lukas wünscht sich automatisierte Konsistenz-Checks bei jedem Schema-Update.
-- **Fachbereich versteht die Modelle nicht**: Die ERD-Diagramme aus Avolution sind formvollendet, aber Fachbereich-Stakeholder können sie nicht lesen. Übersetzung kostet ihn Zeit in jedem Workshop.
+- **Avolution license costs under pressure to justify**: Every renewal raises the question of whether the depth is really needed. Management sees high costs without measurable ROI.
+- **Maintenance effort concentrates knowledge in few people**: Avolution is powerful, but only 2-3 people in the company can really work with it. Single point of failure.
+- **Data lineage ages quickly**: The models are clean initially, but schema changes in production systems do not flow back automatically. Lineage diagrams are outdated after 3 months.
+- **Duplicate data maintenance for GDPR**: The GDPR inventory is maintained in a compliance tool. Lukas maintains similar structures in parallel in Avolution. Inconsistencies become visible during audits.
+- **Proprietary data formats prevent pipeline integration**: Avolution models cannot be validated in CI/CD pipelines. Lukas wants automated consistency checks on every schema update.
+- **Business unit does not understand the models**: The ERD diagrams from Avolution are flawless, but business unit stakeholders cannot read them. Translation costs him time in every workshop.
 
 ## Concerns
 
-| Concern | Kategorie | Severity |
+| Concern | Category | Severity |
 |---|---|---|
-| Tiefe Datenmodellierung (Schema-Evolution, Lineage, Data Quality) | functional | blocking |
-| Migration aus Avolution machbar (XMI/ArchiMate-Import) | compatibility | blocking |
-| Versionierte Datenmodelle als First-Class-Konzept | functional | worrying |
-| Pipeline-Integration für automatische Validierung | functional | worrying |
-| DSGVO-Asset-Inventar als integriertes Konzept, nicht parallel | compliance | worrying |
-| Fachbereich-taugliche Sichten auf Datenmodelle | usability | worrying |
-| Glaubwürdigkeit bei externen Auditoren | compliance | worrying |
-| TCO-Einsparung gegenüber Avolution | cost | worrying |
+| Deep data modeling (schema evolution, lineage, data quality) | functional | blocking |
+| Migration from Avolution feasible (XMI/ArchiMate import) | compatibility | blocking |
+| Versioned data models as a first-class concept | functional | worrying |
+| Pipeline integration for automatic validation | functional | worrying |
+| GDPR asset inventory as an integrated concept, not in parallel | compliance | worrying |
+| Business-unit-suitable views of data models | usability | worrying |
+| Credibility with external auditors | compliance | worrying |
+| TCO savings compared to Avolution | cost | worrying |
 
-## Erfolgskriterien
+## Success Criteria
 
-- [ ] Bestehendes Avolution-Datenmodell migrierbar (>80% automatisch, Rest manuell)
-- [ ] Schema-Änderungen in Produktiv-DB werden in CI-Pipeline erkannt und mit Modell abgeglichen
-- [ ] DSGVO-Verarbeitungsverzeichnis generierbar aus EA-Datenmodell (Art. 30)
-- [ ] Lineage-Diagramme automatisch aktualisierbar
-- [ ] Avolution kann nach 12-18 Monaten abgelöst werden mit positivem Business Case
-- [ ] Fachbereich versteht die generierten Datenflusskarten ohne Übersetzungs-Workshop
+- [ ] Existing Avolution data model migratable (>80% automatically, remainder manually)
+- [ ] Schema changes in the production DB are detected in the CI pipeline and reconciled with the model
+- [ ] GDPR record of processing activities generatable from the EA data model (Art. 30)
+- [ ] Lineage diagrams automatically updatable
+- [ ] Avolution can be replaced after 12-18 months with a positive business case
+- [ ] Business unit understands the generated data flow maps without a translation workshop
 
-## Beteiligte Use Cases
+## Involved Use Cases
 
-| UC | Titel | Rolle |
+| UC | Title | Role |
 |---|---|---|
-| [UC-08](../../requirements/use-cases/UC-08-data-lineage-modellieren.md) | Datenflusskarte (Data Lineage) modellieren und analysieren | Primärer Akteur |
+| [UC-08](../../requirements/use-cases/UC-08-model-data-lineage.md) | Model and analyze data flow map (data lineage) | Primary actor |
 
-## Konzept-Bezüge
+## Concept References
 
-- [§10.7 Requirements-Repository-Aspekte](../../concept/20-entities/10-cross-cutting.md)
-- [§13 Verlinkung Fach- und Technik-Ebene](../../concept/30-dynamics/13-fach-technik-verlinkung.md) – Lineage-relevant
-- [§15 Schema-Evolution](../../concept/40-extensibility/15-schema-evolution.md) – Datenmodell-Versionierung
-- [§20 GRC-, DSGVO- und ISMS-Integration](../../concept/60-integrations/20-grc-dsgvo-isms-integration.md) – Avolution/Compliance-Doppelpflege auflösen
-- [§22 Auswertbarkeit](../../concept/70-platform/22-auswertbarkeit.md) – Pipeline-Validierungen
+- [§10.7 Requirements Repository Aspects](../../concept/20-entities/10-cross-cutting.md)
+- [§13 Business–Technology Linking](../../concept/30-dynamics/13-business-technology-linking.md) – lineage-relevant
+- [§15 Schema Evolution](../../concept/40-extensibility/15-schema-evolution.md) – data model versioning
+- [§20 GRC/GDPR/ISMS Integration](../../concept/60-integrations/20-grc-gdpr-isms-integration.md) – resolve Avolution/compliance duplicate maintenance
+- [§22 Analyzability](../../concept/70-platform/22-analyzability.md) – pipeline validations
 
-## Notizen
+## Notes
 
-Lukas ist der **harte Kritiker**. Er hat ein professionelles Tool im Einsatz und wird scharf vergleichen. Wenn das Tool ihn nicht überzeugt, ist es kein Mittelstands-Konkurrent für Avolution.
+Lukas is the **tough critic**. He has a professional tool in use and will compare sharply. If the tool does not convince him, it is not a mid-sized-company competitor for Avolution.
 
-**Avolution-Vergleichsmaßstab**: Bestimmte Funktionen sind in Avolution sehr gut gelöst (Schema-Versionierung, Reporting). Eine ehrliche Roadmap muss benennen, was zunächst NICHT erreicht wird und wo Avolution überlegen bleibt.
+**Avolution benchmark**: Certain functions are solved very well in Avolution (schema versioning, reporting). An honest roadmap must name what is initially NOT achieved and where Avolution remains superior.
 
-**Daten-Fokus**: Das Tool darf nicht so application-zentriert sein, dass Datenmodellierung "nebenbei" mitläuft. Data Architects sind eine eigene Persona mit eigenen Bedürfnissen.
+**Data focus**: The tool must not be so application-centric that data modeling is handled "on the side". Data architects are a persona of their own with their own needs.
 
-**Wertvoll für Roadmap-Priorisierung**: Lukas' Pain Points decken sich oft mit Real-World-Compliance-Anforderungen (DSGVO Art. 30, Audit-Trail, Lineage). Was ihm hilft, hilft auch Auditoren und DPOs.
+**Valuable for roadmap prioritization**: Lukas's pain points often coincide with real-world compliance requirements (GDPR Art. 30, audit trail, lineage). What helps him also helps auditors and DPOs.

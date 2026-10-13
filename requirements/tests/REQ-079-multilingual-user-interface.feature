@@ -1,65 +1,65 @@
-# Ableitung aus: requirements/req/req-079-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-079-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @should
-Feature: REQ-079 – Mehrsprachige Benutzeroberfläche (i18n)
+Feature: REQ-079 – Multilingual user interface (i18n)
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Default Englisch – Eine frisch aufgesetzte OEA-Instanz zeigt die UI vollständig auf Englisc...
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - Eine frisch aufgesetzte OEA-Instanz zeigt die UI vollständig auf Englisch ohne weitere Konfiguration
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC1 – Default English – A freshly set up OEA instance shows the UI entirely in English...
+    # TODO: AC without standard structure – refine manually
+    # - A freshly set up OEA instance shows the UI entirely in English without further configuration
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement
 
   @AC2
-  Scenario: AC2 – Sprache wechseln – Admin eine weitere Sprache aktiviert hat
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Admin eine weitere Sprache aktiviert hat
-    Then  kann jeder Nutzer in den Profil-Einstellungen diese Sprache wählen
+  Scenario: AC2 – Switch language – Admin has activated an additional language
+    Given the precondition according to the requirement is met
+    When  Admin has activated an additional language
+    Then  every user can select this language in the profile settings
 
   @AC3
-  Scenario: AC3 – EntityType-Anzeigename mehrsprachig – EntityTypeDefinition unterstützt `displayName: { en: "...", de: "..." }`...
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - EntityTypeDefinition unterstützt `displayName: { en: "...", de: "..." }` als Sprach-Map
-    # - UI zeigt immer den Anzeigenamen in der aktiven Nutzersprache; Fallback: Englisch; zweiter Fallback: technischer Identifier
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC3 – EntityType display name multilingual – EntityTypeDefinition supports `displayName: { en: "...", de: "..." }`...
+    # TODO: AC without standard structure – refine manually
+    # - EntityTypeDefinition supports `displayName: { en: "...", de: "..." }` as a language map
+    # - The UI always shows the display name in the active user language; fallback: English; second fallback: technical identifier
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement
 
   @AC4
-  Scenario: AC4 – Fallback bei fehlender Übersetzung – Kein leerer String in der UI: fehlt ein Key in der aktiven Sprache, ersc...
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - Kein leerer String in der UI: fehlt ein Key in der aktiven Sprache, erscheint der englische Text (kein `undefined`)
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC4 – Fallback for missing translation – No empty string in the UI: if a key is missing in the active language, the Eng...
+    # TODO: AC without standard structure – refine manually
+    # - No empty string in the UI: if a key is missing in the active language, the English text appears (no `undefined`)
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement
 
   @AC5
-  Scenario: AC5 – Sprach-Pakete importierbar – Admin kann JSON-Sprach-Pakete über die Admin-UI hochladen und aktivieren
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - Admin kann JSON-Sprach-Pakete über die Admin-UI hochladen und aktivieren
-    # - Format: flaches JSON `{ "entity.create": "Entität anlegen", ... }`
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC5 – Language packs importable – Admin can upload and activate JSON language packs via the admin UI
+    # TODO: AC without standard structure – refine manually
+    # - Admin can upload and activate JSON language packs via the admin UI
+    # - Format: flat JSON `{ "entity.create": "Create entity", ... }`
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement
 
   @AC6
-  Scenario: AC6 – Instanz-Default konfigurierbar – Beim Bootstrapping (UC-02) wählbar: welche Sprache ist die Instanz-Stand...
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - Beim Bootstrapping (UC-02) wählbar: welche Sprache ist die Instanz-Standard-Sprache (Fallback für Nutzer ohne eigene Präferenz)
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC6 – Instance default configurable – Selectable during bootstrapping (UC-02): which language is the instance default...
+    # TODO: AC without standard structure – refine manually
+    # - Selectable during bootstrapping (UC-02): which language is the instance default language (fallback for users without their own preference)
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement
 
   @AC7
-  Scenario: AC7 – Offline-fähig – Sprach-Pakete werden bei App-Start geladen und gecacht; kein externer CD...
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - Sprach-Pakete werden bei App-Start geladen und gecacht; kein externer CDN-Zugriff zur Laufzeit (REQ-075)
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC7 – Offline-capable – Language packs are loaded and cached at app start; no external CDN access at runtime...
+    # TODO: AC without standard structure – refine manually
+    # - Language packs are loaded and cached at app start; no external CDN access at runtime (REQ-075)
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement

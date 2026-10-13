@@ -1,36 +1,36 @@
-# US-104: Teilwiederherstellung per dreistufigem Wizard
+# US-104: Partial Restore via a Three-Step Wizard
 
 **ID**: US-104
 **Story Points**: 8
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich eine Entität selektiv über einen dreistufigen Wizard wiederherstellen können, damit ich nur bestimmte Felder zurücksetzen kann ohne korrekte Änderungen zu überschreiben.
+As Kurt – Lead Enterprise Architect, I want to restore an entity selectively via a three-step wizard, so that I can reset only specific fields without overwriting correct changes.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-16](../use-cases/UC-16-teilwiederherstellung-entitaet.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-104](../req/REQ-104-teilwiederherstellung-wizard.md)
+**Use Case**: [UC-16](../use-cases/UC-16-partial-entity-restore.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-104](../req/REQ-104-partial-restore-wizard.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Quellversion vorausgefüllt):
-- Wenn: ich den Wizard aus der Zeitlinie für Version v3 starte
-- Dann: ist die Quellversion v3 vorausgefüllt
+**AC1** (Source version prefilled):
+- When: I start the wizard from the timeline for version v3
+- Then: the source version v3 is prefilled
 
-**AC2** (Automatisches Überspringen):
-- Wenn: Schritt 1 keine Unterschiede enthält
-- Dann: wird er automatisch mit Hinweis übersprungen; Wizard wechselt zu Schritt 2
+**AC2** (Automatic skipping):
+- When: step 1 contains no differences
+- Then: it is skipped automatically with a note; the wizard moves to step 2
 
-**AC3** (Bestätigen-Button ohne Auswahl deaktiviert):
-- Wenn: in keinem Schritt Felder ausgewählt wurden
-- Dann: ist der Bestätigen-Button deaktiviert
+**AC3** (Confirm button disabled without selection):
+- When: no fields have been selected in any step
+- Then: the confirm button is disabled
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

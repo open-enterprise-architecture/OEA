@@ -1,6 +1,6 @@
 ---
 id: REQ-094
-title: Navigationsbaum Ordner-CRUD
+title: Navigation tree folder CRUD
 type: functional
 priority: must
 status: proposed
@@ -22,47 +22,47 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-094: Navigationsbaum Ordner-CRUD
+# REQ-094: Navigation tree folder CRUD
 
-## Aussage
+## Statement
 
-Das System MUSS das Anlegen, Umbenennen und Löschen von TreeNode-Ordnern im Navigationsbaum ermöglichen. Ordnernamen MÜSSEN unter Geschwistern eindeutig sein (BR-01). Das Löschen eines Ordners MUSS alle Kind-Knoten und Items rekursiv entfernen; referenzierte Objekte bleiben unberührt (BR-05). Der Wurzelknoten DARF NICHT löschbar sein (BR-02); Umbenennen ist erlaubt.
+The system MUST enable creating, renaming and deleting TreeNode folders in the navigation tree. Folder names MUST be unique among siblings (BR-01). Deleting a folder MUST recursively remove all child nodes and items; referenced objects remain untouched (BR-05). The root node MUST NOT be deletable (BR-02); renaming is allowed.
 
-## Begründung
+## Rationale
 
-Der Navigationsbaum ist das primäre Strukturierungsinstrument für das EA-Repository. Ohne CRUD-Operationen auf Ordnern kann keine sinnvolle Navigation aufgebaut werden.
+The navigation tree is the primary structuring instrument for the EA repository. Without CRUD operations on folders, no meaningful navigation can be built.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Ordner anlegen):
-- Wenn: ein neuer Ordner unter einem Parent angelegt wird
-- Dann: antwortet die API mit HTTP 201; der Ordner ist im Baum sichtbar
+**AC1** (Create folder):
+- When: a new folder is created under a parent
+- Then: the API responds with HTTP 201; the folder is visible in the tree
 
-**AC2** (Doppelter Name abweisen):
-- Wenn: ein Ordner mit einem unter demselben Parent bereits vorhandenen Namen angelegt wird
-- Dann: antwortet die API mit HTTP 422 "Name bereits vorhanden"
+**AC2** (Reject duplicate name):
+- When: a folder is created with a name that already exists under the same parent
+- Then: the API responds with HTTP 422 "Name already exists"
 
-**AC3** (Rekursives Löschen):
-- Wenn: ein Ordner mit 3 Kind-Ordnern und 10 Items gelöscht wird
-- Dann: werden Kind-Ordner und Items entfernt; referenzierte Entitäten bleiben unberührt
+**AC3** (Recursive deletion):
+- When: a folder with 3 child folders and 10 items is deleted
+- Then: child folders and items are removed; referenced entities remain untouched
 
-**AC4** (Wurzelknoten-Schutz):
-- Wenn: ein DELETE-Request an `/tree-nodes/root` gesendet wird
-- Dann: antwortet die API mit HTTP 422 "Wurzelknoten kann nicht gelöscht werden"
+**AC4** (Root node protection):
+- When: a DELETE request is sent to `/tree-nodes/root`
+- Then: the API responds with HTTP 422 "Root node cannot be deleted"
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: keine
-- **Folgewirkungen**: REQ-095 (Items), REQ-096 (Drag & Drop), REQ-097 (Mehrfach-Einordnung)
+- **Prerequisites**: none
+- **Downstream effects**: REQ-095 (items), REQ-096 (drag & drop), REQ-097 (multiple placement)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Rekursives Löschen als DB-CASCADE oder explizite rekursive Traversierung implementieren
-- Unique-Constraint auf `(parentId, name)` in der DB
-- Wurzelknoten per Seeding angelegt; kein API-Endpunkt zum Anlegen des Roots
+- Implement recursive deletion as DB CASCADE or explicit recursive traversal
+- Unique constraint on `(parentId, name)` in the DB
+- Root node created by seeding; no API endpoint for creating the root
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

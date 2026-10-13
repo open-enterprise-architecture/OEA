@@ -1,97 +1,97 @@
-# ADR-012: Backend-Stack – Java 21 + Spring Boot 3 + Hibernate
+# ADR-012: Backend Stack – Java 21 + Spring Boot 3 + Hibernate
 
 **Status**: accepted
-**Datum**: 2026-06-27
-**Entscheider**: [Rigobert – Produkt Owner](../business-analysis/stakeholders/SH-09-rigobert-produkt-owner.md) (SH-09)
-**Konsultiert**: Business Engineer
-**Informiert**: ADR-013 (API-Stil), ADR-015 (DB-Migration), ADR-016 (Persistenz)
+**Date**: 2026-06-27
+**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Consulted**: Business Engineer
+**Informed**: ADR-013 (API style), ADR-015 (DB migration), ADR-016 (persistence)
 **Supersedes**: –
-**Aktualisiert**: 2026-10-04 — OpenAPI spec-first statt SpringDoc code-first (ADR-013); Build mit Maven statt Gradle, Verzeichnis `backend/` (ADR-027)
+**Updated**: 2026-10-04 — OpenAPI spec-first instead of SpringDoc code-first (ADR-013); build with Maven instead of Gradle, directory `backend/` (ADR-027)
 
-## Kontext und Problem
+## Context and Problem
 
-OEA benötigt einen Backend-Service, der:
-- die REST-API (alle `/api/v1/...`-Endpunkte) bereitstellt
-- das Metamodell und die EntityType-Engine ausführt
-- Mehrere Datenbanken unterstützt (PostgreSQL, MySQL, MariaDB, SQL Server, Oracle)
-- CEL-Rule-Evaluation (ADR-018) parallelisiert ausführen kann
-- WebSocket/SSE-Events für Echtzeit-Updates sendet
-- Als Docker-Container auf Linux, macOS und Windows betrieben werden kann
+OEA needs a backend service that:
+- provides the REST API (all `/api/v1/...` endpoints)
+- executes the metamodel and the EntityType engine
+- supports multiple databases (PostgreSQL, MySQL, MariaDB, SQL Server, Oracle)
+- can execute CEL rule evaluation (ADR-018) in parallel
+- sends WebSocket/SSE events for real-time updates
+- can be operated as a Docker container on Linux, macOS, and Windows
 
-**DB-Neutralität ist Tier-1-Anforderung**: Firmen fokussieren sich auf möglichst wenige Technologien und setzen oft bereits eine Enterprise-Datenbank ein. OEA soll sich in bestehende Infrastruktur einfügen, nicht eine neue DB-Abhängigkeit erzwingen.
+**DB neutrality is a tier-1 requirement**: Companies focus on as few technologies as possible and often already use an enterprise database. OEA should fit into existing infrastructure, not force a new DB dependency.
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- **DB-Neutralität**: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle — alle mit offiziellem ORM-Support
-- **Oracle**: Schlüsselkriterium; nur Hibernate und EF Core haben offiziellen Oracle-Support
-- **OpenJDK**: Kein Oracle JDK oder kommerzielle JVM; ausschliesslich freie Distributionen
-- **Echtes Multithreading**: parallele Verarbeitung ohne Event-Loop-Beschränkungen
-- **Cross-Platform + Container**: Standard-Docker-Images, keine proprietären Basis-Images
-- **OpenAPI-Codegen**: Generierung von Server-Interfaces aus dem spec-first-Vertrag `api/openapi.yaml` (ADR-013)
-- **OSS-Kompatibilität**: Apache 2.0 oder GPL-kompatible Lizenzen
+- **DB neutrality**: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle — all with official ORM support
+- **Oracle**: Key criterion; only Hibernate and EF Core have official Oracle support
+- **OpenJDK**: No Oracle JDK or commercial JVM; exclusively free distributions
+- **True multithreading**: parallel processing without event loop restrictions
+- **Cross-platform + container**: Standard Docker images, no proprietary base images
+- **OpenAPI codegen**: Generation of server interfaces from the spec-first contract `api/openapi.yaml` (ADR-013)
+- **OSS compatibility**: Apache 2.0 or GPL-compatible licenses
 
-## Betrachtete Optionen
+## Considered Options
 
 ### Option 1: TypeScript + NestJS
 
-- **Pro**: Ein-Sprachen-Stack (TypeScript überall); direkte DTO-Typen im Frontend
-- **Contra**: Node.js single-threaded (Event Loop); kein ausgereifter ORM mit Oracle-Support; DB-Neutralität nur mit erheblichem Eigenaufwand erreichbar; scheidet durch DB-Neutralitäts-Anforderung aus
+- **Pro**: One-language stack (TypeScript everywhere); direct DTO types in the frontend
+- **Con**: Node.js single-threaded (event loop); no mature ORM with Oracle support; DB neutrality only achievable with considerable own effort; ruled out by the DB neutrality requirement
 
 ### Option 2: Go + chi + GORM
 
-- **Pro**: Goroutines (echte Parallelität); ~20 MB Docker-Image; `microsoft/go-mssqldb` offiziell
-- **Contra**: GORM hat **keinen offiziellen Oracle-Support**; `sijms/go-ora` ist Community-only; Oracle-Anforderung nicht zuverlässig erfüllbar; scheidet aus
+- **Pro**: Goroutines (true parallelism); ~20 MB Docker image; `microsoft/go-mssqldb` official
+- **Con**: GORM has **no official Oracle support**; `sijms/go-ora` is community-only; Oracle requirement not reliably fulfillable; ruled out
 
 ### Option 3: C# / .NET 8 + Entity Framework Core
 
-- **Pro**: EF Core mit offiziellem Oracle-Support; .NET 8 cross-platform; gute Performance
-- **Contra**: Microsoft-Ökosystem politisch problematisch für neutrales OSS-Projekt; scheidet aus
+- **Pro**: EF Core with official Oracle support; .NET 8 cross-platform; good performance
+- **Con**: Microsoft ecosystem politically problematic for a neutral OSS project; ruled out
 
 ### Option 4: Rust + Axum + sqlx
 
-- **Pro**: Maximale Performance; ~15 MB Docker-Image
-- **Contra**: Kein ausgereiftes Multi-DB-ORM; Oracle-Support (`tiberius`) Community-only; höchste Lernkurve; scheidet aus
+- **Pro**: Maximum performance; ~15 MB Docker image
+- **Con**: No mature multi-DB ORM; Oracle support (`tiberius`) community-only; highest learning curve; ruled out
 
 ### Option 5: Java 21 + Spring Boot 3 + Hibernate ✓
 
 - **Pro**:
-  - Hibernate 6.x: ausgereiftester Multi-DB ORM mit offiziellem Support für **alle 5 Ziel-DBs**
-  - Java 21 Virtual Threads (Project Loom): echte Parallelität mit minimalem Overhead
-  - Eclipse Temurin: vollständig Open Source, TCK-zertifiziert, keine Oracle-Lizenzkosten
-  - GraalVM CE (optional): Native Image → ~100 MB Docker-Image, ~50 ms Startup
-  - `openapi-generator-maven-plugin`: generiert Controller-Interfaces und DTOs aus `api/openapi.yaml` (spec-first, ADR-013-konform)
-  - Flyway: Spring-native DB-Migration, alle 5 Ziel-DBs unterstützt (ADR-015)
-- **Contra**:
-  - Zweite Sprache neben TypeScript (Frontend); kein direktes DTO-Sharing — nur via OpenAPI-Codegen
-  - JVM ohne GraalVM: ~250–400 MB Speicher (für langlebigen Server-Prozess akzeptabel)
-  - GraalVM Native Image: längere Build-Zeiten; Reflection-intensive Libraries brauchen Konfiguration
+  - Hibernate 6.x: most mature multi-DB ORM with official support for **all 5 target DBs**
+  - Java 21 virtual threads (Project Loom): true parallelism with minimal overhead
+  - Eclipse Temurin: fully open source, TCK-certified, no Oracle license costs
+  - GraalVM CE (optional): native image → ~100 MB Docker image, ~50 ms startup
+  - `openapi-generator-maven-plugin`: generates controller interfaces and DTOs from `api/openapi.yaml` (spec-first, ADR-013-compliant)
+  - Flyway: Spring-native DB migration, all 5 target DBs supported (ADR-015)
+- **Con**:
+  - Second language alongside TypeScript (frontend); no direct DTO sharing — only via OpenAPI codegen
+  - JVM without GraalVM: ~250–400 MB memory (acceptable for a long-running server process)
+  - GraalVM native image: longer build times; reflection-heavy libraries need configuration
 
-## Entscheidung
+## Decision
 
 **Option 5: Java 21 + Spring Boot 3 + Hibernate.**
 
-Hibernate ist der einzige ORM mit offiziellem, battle-tested Support für alle fünf Ziel-Datenbanken inklusive Oracle. Java 21 Virtual Threads lösen die Multithreading-Anforderung mit einem einzigen Config-Switch. Die Mehrsprachigkeit (Java Backend + TypeScript Frontend) ist durch klare Schichttrennung und OpenAPI-Typ-Generierung vertretbar.
+Hibernate is the only ORM with official, battle-tested support for all five target databases including Oracle. Java 21 virtual threads solve the multithreading requirement with a single config switch. The multilingualism (Java backend + TypeScript frontend) is justifiable through clear layer separation and OpenAPI type generation.
 
-### Gewählter Stack
+### Chosen Stack
 
-| Komponente | Technologie | Version | Lizenz |
+| Component | Technology | Version | License |
 |---|---|---|---|
 | JDK | Eclipse Temurin (OpenJDK) | 21 LTS | GPL v2 + CE |
 | Framework | Spring Boot | 3.x | Apache 2.0 |
 | ORM | Hibernate (via Spring Data JPA) | 6.x | LGPL 2.1 |
-| API-Codegen | OpenAPI Generator (`openapi-generator-maven-plugin`, Generator `spring`) | 7.x | Apache 2.0 |
-| DB-Migration | Flyway Community | 10.x | Apache 2.0 |
-| Native Image (optional) | GraalVM Community Edition | 21 | GPL v2 + CE |
-| Build | Maven (Wrapper `./mvnw`, ADR-027) | 3.9.x | Apache 2.0 |
-| Container-Basis | `eclipse-temurin:21-jre-alpine` | aktuell | GPL v2 + CE |
+| API codegen | OpenAPI Generator (`openapi-generator-maven-plugin`, generator `spring`) | 7.x | Apache 2.0 |
+| DB migration | Flyway Community | 10.x | Apache 2.0 |
+| Native image (optional) | GraalVM Community Edition | 21 | GPL v2 + CE |
+| Build | Maven (wrapper `./mvnw`, ADR-027) | 3.9.x | Apache 2.0 |
+| Container base | `eclipse-temurin:21-jre-alpine` | current | GPL v2 + CE |
 
 ### OpenJDK: Eclipse Temurin
 
-Eclipse Temurin ist die empfohlene OpenJDK-Distribution für OSS-Projekte:
-- Herausgeber: Eclipse Adoptium Working Group (Eclipse Foundation)
-- Vollständig Open Source; keine Oracle-Lizenzkosten; TCK-zertifiziert
-- Docker: `eclipse-temurin:21-jre-alpine` (~170 MB) als Standard-Basis-Image
-- GraalVM Native Image: `ghcr.io/graalvm/native-image:ol9-java21` (GraalVM CE, GPL)
+Eclipse Temurin is the recommended OpenJDK distribution for OSS projects:
+- Publisher: Eclipse Adoptium Working Group (Eclipse Foundation)
+- Fully open source; no Oracle license costs; TCK-certified
+- Docker: `eclipse-temurin:21-jre-alpine` (~170 MB) as standard base image
+- GraalVM native image: `ghcr.io/graalvm/native-image:ol9-java21` (GraalVM CE, GPL)
 
 ### Virtual Threads (Project Loom)
 
@@ -103,13 +103,13 @@ spring:
       enabled: true
 ```
 
-Ein Config-Switch aktiviert Virtual Threads für den gesamten Spring MVC Thread-Pool. Jeder HTTP-Request läuft in einem eigenen Virtual Thread — kein Thread-Pool-Engpass bei vielen parallelen Requests.
+One config switch activates virtual threads for the entire Spring MVC thread pool. Each HTTP request runs in its own virtual thread — no thread pool bottleneck with many parallel requests.
 
-### DB-Neutralität via Hibernate-Dialekte
+### DB Neutrality via Hibernate Dialects
 
-Hibernate erkennt den Datenbanktyp anhand der Datasource und wählt automatisch den passenden Dialekt:
+Hibernate detects the database type from the datasource and automatically selects the appropriate dialect:
 
-| Datenbank | Hibernate-Dialekt | JSON-Spalte für Properties |
+| Database | Hibernate dialect | JSON column for properties |
 |---|---|---|
 | PostgreSQL | `PostgreSQLDialect` | `JSONB` |
 | MySQL | `MySQLDialect` | `JSON` |
@@ -117,7 +117,7 @@ Hibernate erkennt den Datenbanktyp anhand der Datasource und wählt automatisch 
 | SQL Server | `SQLServerDialect` | `NVARCHAR(MAX)` |
 | Oracle | `OracleDialect` | `CLOB` / `JSON` (Oracle 21c+) |
 
-Entity-Properties (metamodell-getrieben, kein fixes Schema) via `@JdbcTypeCode(SqlTypes.JSON)`:
+Entity properties (metamodel-driven, no fixed schema) via `@JdbcTypeCode(SqlTypes.JSON)`:
 
 ```java
 @Entity
@@ -131,7 +131,7 @@ public class ArchitectureEntity {
     private String entityTypeId;
 
     @Version
-    private Integer version;  // Optimistic Locking (ADR-016)
+    private Integer version;  // Optimistic locking (ADR-016)
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "properties", nullable = false)
@@ -139,11 +139,11 @@ public class ArchitectureEntity {
 }
 ```
 
-Hibernate serialisiert/deserialisiert JSON automatisch und nutzt den dialektspezifischen Spaltentyp — keine Anpassung pro Datenbank nötig.
+Hibernate serializes/deserializes JSON automatically and uses the dialect-specific column type — no per-database adjustment needed.
 
-### OpenAPI-Typ-Sharing (ADR-013-konform)
+### OpenAPI Type Sharing (ADR-013-compliant)
 
-Der Vertrag `api/openapi.yaml` ist die Quelle (spec-first). Das `openapi-generator-maven-plugin` erzeugt beim Build Controller-Interfaces und DTOs; die Implementierung realisiert nur das generierte Interface:
+The contract `api/openapi.yaml` is the source (spec-first). The `openapi-generator-maven-plugin` generates controller interfaces and DTOs at build time; the implementation only realizes the generated interface:
 
 ```java
 @RestController
@@ -154,36 +154,36 @@ public class EntityController implements EntitiesApi {   // EntitiesApi: generat
 }
 ```
 
-`openapi-typescript` im Vue 3 Frontend generiert typsichere API-Clients aus derselben Spec.
+`openapi-typescript` in the Vue 3 frontend generates type-safe API clients from the same spec.
 
-## Konsequenzen
+## Consequences
 
-### Positive Konsequenzen
+### Positive Consequences
 
-- Oracle, SQL Server, MySQL, MariaDB, PostgreSQL: alle first-class via Hibernate
-- Virtual Threads: echte Parallelität ohne reaktive Programmiermodelle
-- Eclipse Temurin: kein Vendor-Lock, vollständig frei und TCK-zertifiziert
-- Flyway: Spring-native Migration, alle 5 Ziel-DBs, plain SQL-Dateien im Repository
-- Optimistic Locking via `@Version` (Hibernate-nativ, ADR-016-konform)
-- GraalVM CE optional: natives Binary, schneller Start, kleines Image
+- Oracle, SQL Server, MySQL, MariaDB, PostgreSQL: all first-class via Hibernate
+- Virtual threads: true parallelism without reactive programming models
+- Eclipse Temurin: no vendor lock-in, fully free and TCK-certified
+- Flyway: Spring-native migration, all 5 target DBs, plain SQL files in the repository
+- Optimistic locking via `@Version` (Hibernate-native, ADR-016-compliant)
+- GraalVM CE optional: native binary, fast startup, small image
 
-### Negative Konsequenzen / Trade-offs
+### Negative Consequences / Trade-offs
 
-- Zwei Sprachen im Stack: Java (Backend) + TypeScript (Frontend)
-- Kein direktes DTO-Sharing; nur via OpenAPI-Codegen
-- JVM ohne Native Image: ~250–400 MB Speicher vs. ~20 MB (Go/Rust)
-- GraalVM Native Image: komplexere Build-Pipeline (optional; Fallback auf JVM-Betrieb möglich)
+- Two languages in the stack: Java (backend) + TypeScript (frontend)
+- No direct DTO sharing; only via OpenAPI codegen
+- JVM without native image: ~250–400 MB memory vs. ~20 MB (Go/Rust)
+- GraalVM native image: more complex build pipeline (optional; fallback to JVM operation possible)
 
-### Folgeentscheidungen
+### Follow-up Decisions
 
-- **ADR-015**: Drizzle Kit → Flyway (Spring-nativ, alle 5 DBs)
-- **ADR-016**: JSONB-spezifische GIN-Indexe entfallen zugunsten DB-Neutralität; `@JdbcTypeCode(SqlTypes.JSON)` als Abstraktionsschicht; Optimistic Locking und EntityVersion-Mechanismus bleiben gültig
-- **Monorepo-Struktur**: entschieden in ADR-027 — `backend/` (Spring Boot / Maven), `frontend/` (Vue 3 / Vite), `api/openapi.yaml` (Vertrag)
+- **ADR-015**: Drizzle Kit → Flyway (Spring-native, all 5 DBs)
+- **ADR-016**: JSONB-specific GIN indexes are dropped in favor of DB neutrality; `@JdbcTypeCode(SqlTypes.JSON)` as abstraction layer; optimistic locking and EntityVersion mechanism remain valid
+- **Monorepo structure**: decided in ADR-027 — `backend/` (Spring Boot / Maven), `frontend/` (Vue 3 / Vite), `api/openapi.yaml` (contract)
 
-## Bezüge
+## References
 
-**Verwandte ADRs**: [ADR-013](./ADR-013-api-stil.md), [ADR-015](./ADR-015-db-migration.md), [ADR-016](./ADR-016-persistenz-strategie.md), [ADR-018](./ADR-018-business-rule-engine.md)
+**Related ADRs**: [ADR-013](./ADR-013-api-style.md), [ADR-015](./ADR-015-db-migration.md), [ADR-016](./ADR-016-persistence-strategy.md), [ADR-018](./ADR-018-business-rule-engine.md)
 
-**Requirements**: [REQ-075](../requirements/req/REQ-075-plattformunabhaengigkeit-deployment.md)
+**Requirements**: [REQ-075](../requirements/req/REQ-075-platform-independent-deployment.md)
 
-**Konzept**: §21 API-Architektur, §22 Walking Skeleton
+**Concept**: §21 API Architecture, §22 Walking Skeleton

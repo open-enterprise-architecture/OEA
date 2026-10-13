@@ -1,64 +1,64 @@
-# US-023: Initiales Passwort für neue Person setzen (Admin)
+# US-023: Set Initial Password for a New Person (Admin)
 
 **ID**: US-023
 **Story Points**: 2
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Administrator möchte ich beim Anlegen einer Person für lokale Authentifizierung ein initiales Passwort setzen (oder generieren lassen), das mir einmalig angezeigt wird, damit ich es sicher an die Person weitergeben kann.
+As an administrator, I want to set (or have generated) an initial password when creating a person for local authentication, which is displayed to me once, so that I can pass it on to the person securely.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-03: Authentifizierungsmethode einrichten](../use-cases/UC-03-authentifizierungsmethode-einrichten.md)
-**Persona**: [SH-06: Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Requirement**: [REQ-024: Initiales Passwort durch Administrator setzen](../req/REQ-024-initiales-passwort-admin.md)
+**Use Case**: [UC-03: Set Up Authentication Method](../use-cases/UC-03-set-up-authentication-method.md)
+**Persona**: [SH-06: Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Requirement**: [REQ-024: Set Initial Password by Administrator](../req/REQ-024-initial-password-admin.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Max legt eine neue Person an und aktiviert lokale Authentifizierung
-- Wenn: er "Passwort generieren" wählt oder ein eigenes eingibt
-- Dann: wird der Hash als `LocalCredential (type=password)` gespeichert und der Klartext einmalig angezeigt
+- Given: Max creates a new person and enables local authentication
+- When: he chooses "Generate password" or enters his own
+- Then: the hash is stored as `LocalCredential (type=password)` and the plaintext is displayed once
 
 **AC2**:
-- Gegeben: das initiale Passwort wurde angezeigt
-- Wenn: Max die Seite verlässt und zurückkommt
-- Dann: ist der Klartext nicht mehr sichtbar (nur Hash in DB)
+- Given: the initial password has been displayed
+- When: Max leaves the page and comes back
+- Then: the plaintext is no longer visible (only the hash in the DB)
 
 **AC3**:
-- Gegeben: das initiale Passwort ist gesetzt
-- Wenn: die Person sich damit anmeldet (UC-01 A5)
-- Dann: gelingt der Login; ist 2FA erzwungen, startet UC-03 (Required Action) direkt im Login-Flow
+- Given: the initial password is set
+- When: the person signs in with it (UC-01 A5)
+- Then: the login succeeds; if 2FA is enforced, UC-03 (required action) starts directly in the login flow
 
 **AC4**:
-- Gegeben: das System verarbeitet die Anfrage
-- Wenn: Server-Logs geschrieben werden
-- Dann: ist der Passwort-Klartext nicht in den Logs enthalten
+- Given: the system processes the request
+- When: server logs are written
+- Then: the password plaintext is not contained in the logs
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Admin-Modul (Person anlegen), Credential-Speicher
-- Betroffene EntityTypes/Relations: `local_credentials`-Tabelle (`person_id`, `type=password`, `password_hash`, `created_at`)
-- API-Endpunkte: `POST /admin/persons/{id}/credentials/password` (Hash setzen, Klartext einmalig zurückgeben)
-- Datenbank-Änderungen: Zeile in `local_credentials`; Hash argon2id/bcrypt
+- Affected components: admin module (create person), credential store
+- Affected EntityTypes/Relations: `local_credentials` table (`person_id`, `type=password`, `password_hash`, `created_at`)
+- API endpoints: `POST /admin/persons/{id}/credentials/password` (set hash, return plaintext once)
+- Database changes: row in `local_credentials`; hash argon2id/bcrypt
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (Passwort setzen, Hash-Format, Klartext-Nicht-Abrufbarkeit, Log-Scan)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (set password, hash format, plaintext not retrievable, log scan)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: keine (kann parallel zu Login-Stories gebaut werden)
-- Blockiert: US-021, US-022 (Required-Action-Trigger setzt bestehendes Passwort voraus)
+- Waiting on: none (can be built in parallel with login stories)
+- Blocks: US-021, US-022 (required action trigger presupposes an existing password)
 
-## Notizen
+## Notes
 
-v0.2.0: Vollständig neu. v0.1.0 war "Person setzt eigenes Passwort via Enrollment-Token" (verworfen mit REQ-021). Jetzt setzt der Admin das Passwort; kein Einladungslink, keine E-Mail-Infrastruktur nötig. 2 SP weil es konzeptionell einfach ist – der Hash-Mechanismus wird aus REQ-011 (Passwort-Login) wiederverwendet.
+v0.2.0: Completely new. v0.1.0 was "person sets own password via enrollment token" (rejected with REQ-021). Now the admin sets the password; no invitation link, no email infrastructure needed. 2 SP because it is conceptually simple – the hash mechanism is reused from REQ-011 (password login).

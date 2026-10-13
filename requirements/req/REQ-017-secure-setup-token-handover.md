@@ -1,6 +1,6 @@
 ---
 id: REQ-017
-title: Sichere Übergabe des Setup-Tokens
+title: Secure handover of the setup token
 type: constraint
 priority: must
 status: proposed
@@ -17,90 +17,90 @@ references:
   stakeholders:
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-017: Sichere Übergabe des Setup-Tokens
+# REQ-017: Secure handover of the setup token
 
-## Aussage
+## Statement
 
-Das initiale Setup-Token bzw. das Aufforderungs-Interface zur Passwortvergabe DARF NICHT über einen Kanal ausgeliefert werden, der ohne vorherigen privilegierten Zugriff auf die Instanz (z.B. Server-/Container-Zugriff) erreichbar ist.
+The initial setup token or the prompt interface for password assignment MUST NOT be delivered via a channel that is reachable without prior privileged access to the instance (e.g., server/container access).
 
-## Begründung
+## Rationale
 
-Da zum Bootstrapping-Zeitpunkt noch kein RBAC greift, ist der Übergabe-Kanal des Setup-Tokens der einzige Schutzmechanismus gegen unbefugte Übernahme des ersten System-Admin-Zugangs. UC-02, Realisierungs-Hinweise.
+Since no RBAC applies at bootstrapping time, the handover channel of the setup token is the only protection mechanism against unauthorized takeover of the first system admin access. UC-02, Implementation Notes.
 
-## Kontext
+## Context
 
-Betrifft REQ-013 (lokales Bootstrapping): die Art, wie Max das Setup-Token oder die Passwort-Aufforderung erhält.
+Concerns REQ-013 (local bootstrapping): the way Max receives the setup token or the password prompt.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=constraint
+### For type=constraint
 
-**Art der Beschränkung**: technical
+**Type of constraint**: technical
 
-**Quelle**: Security-Best-Practice (Prinzip: initialer Bootstrap-Zugang nur über Kanäle, die bereits Infrastruktur-Zugriff voraussetzen)
+**Source**: Security best practice (principle: initial bootstrap access only via channels that already require infrastructure access)
 
-**Bindungsstärke**: hard (nicht umgehbar)
+**Binding strength**: hard (cannot be bypassed)
 
-**Auswirkung bei Nichtbeachtung**: Ein über das offene Netz erreichbares Setup-Interface ohne vorherige Authentifizierung wäre ein direkter Übernahme-Vektor für die gesamte Instanz
+**Impact of non-compliance**: A setup interface reachable over the open network without prior authentication would be a direct takeover vector for the entire instance
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine frisch installierte Instanz
-- Wenn: das Setup-Token generiert wird
-- Dann: ist es ausschließlich über einen Kanal abrufbar, der bereits privilegierten Zugriff voraussetzt (z.B. CLI-Ausgabe beim Start, lokale Logdatei, Container-Exec)
+- Given: a freshly installed instance
+- When: the setup token is generated
+- Then: it is retrievable only via a channel that already requires privileged access (e.g., CLI output at startup, local log file, container exec)
 
 **AC2**:
-- Gegeben: das initiale Setup-Webinterface (falls UI-basiert)
-- Wenn: es ohne gültiges Setup-Token aufgerufen wird
-- Dann: verweigert es die Passwortvergabe
+- Given: the initial setup web interface (if UI-based)
+- When: it is called without a valid setup token
+- Then: it refuses password assignment
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert) + inspection
-- [x] Test-Setup: Prüfung, dass das Setup-Token nicht über ungeschützte Netzwerk-Endpunkte abrufbar ist
-- [x] Mess-Werkzeug: Security-Test-Suite / manuelle Inspektion bei Implementierung
-- [x] Bestanden-Kriterium: AC1, AC2 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated) + inspection
+- [x] Test setup: check that the setup token cannot be retrieved via unprotected network endpoints
+- [x] Measurement tool: security test suite / manual inspection during implementation
+- [x] Pass criterion: AC1, AC2 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-013
-- **Folgewirkungen**: keine bekannt
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-013
+- **Downstream effects**: none known
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Offen erreichbares Setup-Interface ermöglicht jedem Netzwerk-Teilnehmer die Übernahme der Instanz vor deren eigentlichem Betreiber – kritisch
+- Risk 1: An openly reachable setup interface allows any network participant to take over the instance before its actual operator – critical
 
 ## Trade-offs
 
-- vs. Usability: CLI-/Server-Zugriff als Voraussetzung erhöht die Einstiegshürde leicht gegenüber einem rein Web-basierten Setup, ist aber sicherheitstechnisch notwendig
+- vs. usability: requiring CLI/server access slightly raises the entry barrier compared to a purely web-based setup, but is necessary from a security standpoint
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Konkreter Kanal (CLI-Stdout, temporäre Datei mit restriktiven Rechten, einmalige Setup-URL mit kurzer Gültigkeit) ist Solution-Design, nicht Teil dieses Requirements (siehe UC-02, offene Fragen)
+- The concrete channel (CLI stdout, temporary file with restrictive permissions, one-time setup URL with short validity) is solution design, not part of this requirement (see UC-02, open questions)
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-02, Realisierungs-Hinweise und offener Frage zur Setup-Token-Übergabe.
+Derived from UC-02, Implementation Notes and the open question on setup token handover.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft aus UC-02 |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-02 |

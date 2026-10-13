@@ -1,6 +1,6 @@
 ---
 id: REQ-{{NNN}}
-title: {{Kurztitel der Anforderung}}
+title: {{Short title of the requirement}}
 type: functional  # functional | non-functional | constraint | business-rule | data | interface | compliance
 priority: must  # must | should | could | wont (MoSCoW)
 status: proposed  # proposed | approved | realized | verified | rejected | deferred | superseded
@@ -21,196 +21,196 @@ references:
     - concept/...
   adrs:
     - ADR-NNN
-supersedes: []  # IDs vorheriger Requirements, falls superseded
-superseded_by: []  # Falls dieses Requirement abgelöst wurde
+supersedes: []  # IDs of previous requirements, if superseded
+superseded_by: []  # If this requirement has been replaced
 ---
 
-# REQ-{{NNN}}: {{Kurztitel}}
+# REQ-{{NNN}}: {{Short Title}}
 
 <!--
-Verwendung: Eine atomare Anforderung pro Datei.
-Dateiname: requirements/req/REQ-NNN-kurzname.md (3-stellig nummeriert)
+Usage: One atomic requirement per file.
+File name: requirements/req/REQ-NNN-shortname.md (numbered with 3 digits)
 -->
 
-## Aussage
+## Statement
 
-Das System **MUSS / SOLL / DARF NICHT** {{konkrete Anforderung in einem Satz}}.
+The system **MUST / SHOULD / MUST NOT** {{concrete requirement in one sentence}}.
 
-<!-- RFC-2119-Schlüsselwörter verwenden:
-  MUSS / MUST = Pflicht
-  SOLL / SHOULD = empfohlen, kann mit Begründung abweichen
-  DARF NICHT / MUST NOT = verbotenes Verhalten
-  KANN / MAY = optional
+<!-- Use RFC 2119 keywords:
+  MUST = mandatory
+  SHOULD = recommended, may deviate with justification
+  MUST NOT = prohibited behavior
+  MAY = optional
 -->
 
-## Begründung
+## Rationale
 
-Warum existiert diese Anforderung? Welcher Stakeholder fordert sie? Welche Gefahr besteht ohne sie?
+Why does this requirement exist? Which stakeholder demands it? What danger exists without it?
 
-## Kontext
+## Context
 
-Hintergrund-Information, falls die Aussage allein nicht ausreicht. Welche Situation? Welche Voraussetzungen?
+Background information, if the statement alone is not sufficient. Which situation? Which prerequisites?
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-<!-- Je nach Typ unterschiedliche Pflichtfelder. Nur den passenden Block ausfüllen. -->
+<!-- Different mandatory fields depending on the type. Fill in only the matching block. -->
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- {{was kommt rein}}
+**Inputs**:
+- {{what comes in}}
 
-**Verarbeitung**:
-- {{was muss passieren}}
+**Processing**:
+- {{what must happen}}
 
-**Ausgaben**:
-- {{was kommt raus}}
+**Outputs**:
+- {{what comes out}}
 
-**Fehlerfälle**:
-- {{wann und wie reagiert das System auf Fehler}}
+**Error cases**:
+- {{when and how the system reacts to errors}}
 
-### Bei type=non-functional
+### For type=non-functional
 
-**Kategorie**: performance | scalability | reliability | availability | security | maintainability | usability | portability | compatibility | sustainability
+**Category**: performance | scalability | reliability | availability | security | maintainability | usability | portability | compatibility | sustainability
 
-**Messbare Zielwerte**:
+**Measurable target values**:
 
-| Metrik | Zielwert | Schwellwert (warning) | Schwellwert (critical) | Scope |
+| Metric | Target Value | Threshold (warning) | Threshold (critical) | Scope |
 |---|---|---|---|---|
-| {{Metrik}} | {{Wert + Einheit}} | {{Wert}} | {{Wert}} | {{bei welcher Datenmenge}} |
+| {{metric}} | {{value + unit}} | {{value}} | {{value}} | {{at which data volume}} |
 
-**Beispiel**: "p95 Response-Zeit < 200ms bei 1000 Entities im Repository"
+**Example**: "p95 response time < 200ms with 1000 entities in the repository"
 
-### Bei type=constraint
+### For type=constraint
 
-**Art der Beschränkung**: technical | legal | organizational | physical
+**Type of constraint**: technical | legal | organizational | physical
 
-**Quelle**: {{Wer/Was schreibt die Beschränkung vor – Norm, Gesetz, ARB-Entscheidung}}
+**Source**: {{Who/what prescribes the constraint – standard, law, ARB decision}}
 
-**Bindungsstärke**: hard (nicht umgehbar) | soft (mit Ausnahme möglich)
+**Binding strength**: hard (cannot be circumvented) | soft (exception possible)
 
-**Auswirkung bei Nichtbeachtung**: {{Konsequenz}}
+**Impact of non-compliance**: {{consequence}}
 
-### Bei type=business-rule
+### For type=business-rule
 
-**Auslöser**: onCreate | onUpdate | onDelete | onRead | continuous
+**Trigger**: onCreate | onUpdate | onDelete | onRead | continuous
 
-**Betroffene Business Objects**: [{{object-id}}](../business-objects/{{object-id}}.md)
+**Affected business objects**: [{{object-id}}](../business-objects/{{object-id}}.md)
 
-**Formale Aussage** (falls möglich in formaler Notation, z.B. JSON Logic, OCL):
+**Formal statement** (if possible in formal notation, e.g. JSON Logic, OCL):
 ```
-{{regelausdruck}}
+{{rule expression}}
 ```
 
-**Beispiel**: "Customer mit `isPersonalData=true` MUSS `legalBasis` gesetzt haben (DSGVO Art. 6)"
+**Example**: "Customer with `isPersonalData=true` MUST have `legalBasis` set (GDPR Art. 6)"
 
-### Bei type=data
+### For type=data
 
-**Betroffene Datenstruktur**: {{Business Object oder Attribut}}
+**Affected data structure**: {{business object or attribute}}
 
-**Datentyp**: string | integer | decimal | boolean | date | datetime | enum | reference | composite
+**Data type**: string | integer | decimal | boolean | date | datetime | enum | reference | composite
 
 **Constraints**:
-- Pflichtfeld: ja/nein
-- Format: {{z.B. ISO 8601, E.164}}
-- Wertebereich: {{z.B. 0-100, regex...}}
-- Eindeutigkeit: {{lokal / global eindeutig}}
+- Mandatory field: yes/no
+- Format: {{e.g. ISO 8601, E.164}}
+- Value range: {{e.g. 0-100, regex...}}
+- Uniqueness: {{locally / globally unique}}
 
-**Default-Wert**: {{falls anwendbar}}
+**Default value**: {{if applicable}}
 
-### Bei type=interface
+### For type=interface
 
-**Schnittstelle**: REST | GraphQL | AsyncAPI | CLI | File-Format
+**Interface**: REST | GraphQL | AsyncAPI | CLI | file format
 
-**Spezifikation**: {{Pfad zu OpenAPI/AsyncAPI/etc.}}
+**Specification**: {{path to OpenAPI/AsyncAPI/etc.}}
 
-**Verträge**:
-- Endpunkt/Pfad: {{z.B. POST /api/v1/applications}}
-- Request-Schema: {{Verweis}}
-- Response-Schema: {{Verweis}}
-- Fehlercodes: {{200, 400, 401, 403, 404, 500}}
+**Contracts**:
+- Endpoint/path: {{e.g. POST /api/v1/applications}}
+- Request schema: {{reference}}
+- Response schema: {{reference}}
+- Error codes: {{200, 400, 401, 403, 404, 500}}
 
-### Bei type=compliance
+### For type=compliance
 
-**Regelwerk**: {{DSGVO, ISO 27001, DORA, NIS2, FINMA-Rundschreiben...}}
+**Regulatory framework**: {{GDPR, ISO 27001, DORA, NIS2, FINMA circulars...}}
 
-**Konkrete Vorschrift**: {{Artikel, Abschnitt, Paragraph}}
+**Specific provision**: {{article, section, paragraph}}
 
-**Nachweis-Anforderung**: {{Was muss dokumentiert sein, wie nachgewiesen werden}}
+**Evidence requirement**: {{what must be documented, how it is to be evidenced}}
 
-**Audit-Relevanz**: {{ja/nein, ggf. Häufigkeit der Audits}}
+**Audit relevance**: {{yes/no, frequency of audits if applicable}}
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-Prüfbare Bedingungen, die erfüllt sein müssen. Bevorzugt Given-When-Then, alternativ Checkliste.
+Verifiable conditions that must be met. Preferably Given-When-Then, alternatively a checklist.
 
 **AC1**:
-- Gegeben: {{Ausgangssituation}}
-- Wenn: {{Aktion oder Bedingung}}
-- Dann: {{erwartetes Ergebnis}}
+- Given: {{initial situation}}
+- When: {{action or condition}}
+- Then: {{expected result}}
 
 **AC2**:
-- Gegeben:
-- Wenn:
-- Dann:
+- Given:
+- When:
+- Then:
 
-<!-- Mindestens ein AC ist Pflicht. -->
+<!-- At least one AC is mandatory. -->
 
-## Verifikationsmethode
+## Verification Method
 
-Wie wird geprüft, ob die Anforderung erfüllt ist?
+How is it verified whether the requirement is met?
 
-- [ ] Methode: test (automatisiert) | inspection (manuell) | demonstration | analysis | monitoring
-- [ ] Test-Setup: {{Beschreibung}}
-- [ ] Mess-Werkzeug: {{Tool/Framework}}
-- [ ] Bestanden-Kriterium: {{konkret}}
-- [ ] In CI integriert: ja/nein
+- [ ] Method: test (automated) | inspection (manual) | demonstration | analysis | monitoring
+- [ ] Test setup: {{description}}
+- [ ] Measuring tool: {{tool/framework}}
+- [ ] Pass criterion: {{concrete}}
+- [ ] Integrated in CI: yes/no
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-XXX, REQ-YYY (müssen vorher erfüllt sein)
-- **Folgewirkungen**: REQ-XXX (wird durch dieses ermöglicht)
-- **Konflikte**: REQ-XXX (steht in Spannung zu dieser Anforderung)
+- **Prerequisites**: REQ-XXX, REQ-YYY (must be fulfilled beforehand)
+- **Follow-on effects**: REQ-XXX (is enabled by this one)
+- **Conflicts**: REQ-XXX (is in tension with this requirement)
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-Was passiert, wenn diese Anforderung nicht erfüllt wird?
+What happens if this requirement is not fulfilled?
 
-- Risiko 1: {{Beschreibung, Schweregrad}}
-- Risiko 2: {{...}}
+- Risk 1: {{description, severity}}
+- Risk 2: {{...}}
 
 ## Trade-offs
 
-Welche anderen Anforderungen werden möglicherweise eingeschränkt, um diese zu erfüllen?
+Which other requirements may be restricted in order to fulfill this one?
 
-- vs. REQ-XXX: {{Konflikt-Beschreibung}}
+- vs. REQ-XXX: {{description of conflict}}
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-Hinweise für Solution Architect und Engineering-Agents – aber **keine Lösungs-Vorgaben**:
+Notes for the solution architect and engineering agents – but **no solution prescriptions**:
 
-- {{Hinweis, der die Implementierung leitet}}
-- {{Bekannte technische Herausforderungen}}
+- {{note guiding the implementation}}
+- {{known technical challenges}}
 
-<!-- ACHTUNG: Konkrete Technologie-Wahl gehört NICHT hierher.
-"System MUSS Redis als Cache verwenden" → das ist Solution Design, nicht Requirement.
-Stattdessen: "System MUSS Cache-Layer haben, der >95% Hit-Rate bei wiederholten Lookups erreicht" -->
+<!-- ATTENTION: Concrete technology choices do NOT belong here.
+"System MUST use Redis as cache" → that is solution design, not a requirement.
+Instead: "System MUST have a cache layer that achieves a >95% hit rate for repeated lookups" -->
 
-## Realisierung
+## Implementation
 
-<!-- Wird beim Bauen ausgefüllt. -->
+<!-- Filled in during the build. -->
 
-- ADR(s): {{Bezug zu Entscheidungen, die zur Umsetzung getroffen wurden}}
-- Implementiert durch: {{User Stories, Commits, PRs}}
-- Tests: {{Verweis auf Test-Suite}}
-- Status der Verifikation: {{not-verified | verified | failed}}
+- ADR(s): {{reference to decisions made for the implementation}}
+- Implemented by: {{user stories, commits, PRs}}
+- Tests: {{reference to test suite}}
+- Verification status: {{not-verified | verified | failed}}
 
-## Notizen
+## Notes
 
-Diskussion, offene Fragen, Verlauf.
+Discussion, open questions, history.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | YYYY-MM-DD | requirements-engineer | Initial draft aus UC-NN |
+| 0.1.0 | YYYY-MM-DD | requirements-engineer | Initial draft from UC-NN |

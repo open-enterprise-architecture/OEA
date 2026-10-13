@@ -1,47 +1,46 @@
-# Ableitung aus: requirements/req/req-033-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-033-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @should @UC-04
-Feature: REQ-033 – Metamodell aus Datei importieren
+Feature: REQ-033 – Import metamodel from file
 
-  Das System MUSS Personen mit Metamodell-Bearbeiter-Berechtigung
-  ermöglichen, eine Metamodell-Konfigurationsdatei (YAML oder JSON)
-  hochzuladen; das System MUSS die Datei vor dem Import validieren,
-  eine Vorschau der Änderungen (Diff: neue Typen, Konflikte,
-  unveränderte Typen) anzeigen und erst nach expliziter Bestätigung
-  importieren.
+  The system MUST enable persons with metamodel editor permission to
+  upload a metamodel configuration file (YAML or JSON); the system
+  MUST validate the file before import, show a preview of the changes
+  (diff: new types, conflicts, unchanged types), and import only after
+  explicit confirmation.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – eine gültige YAML-Datei mit 3 neuen Custom EntityTypes
-    Given eine gültige YAML-Datei mit 3 neuen Custom EntityTypes
-    When  Kurt die Datei hochlädt und die Vorschau bestätigt
-    Then  sind alle 3 Typen in der MetamodelConfiguration vorhanden; Audit-Log enthält 3 Einträge
+  Scenario: AC1 – a valid YAML file with 3 new custom EntityTypes
+    Given a valid YAML file with 3 new custom EntityTypes
+    When  Kurt uploads the file and confirms the preview
+    Then  all 3 types are present in the MetamodelConfiguration; audit log contains 3 entries
 
   @AC2
-  Scenario: AC2 – eine YAML-Datei, die einen Typ mit dem Namen `ApplicationComponent` (bui...
-    Given eine YAML-Datei, die einen Typ mit dem Namen `ApplicationComponent` (built-in) definiert
-    When  Kurt die Datei hochlädt
-    Then  zeigt die Vorschau diesen Eintrag als rot/Konflikt an mit „nicht importierbar (built-in)"; er kann nicht bestätigt werden
+  Scenario: AC2 – a YAML file that defines a type named `ApplicationComponent` (built-...
+    Given a YAML file that defines a type named `ApplicationComponent` (built-in)
+    When  Kurt uploads the file
+    Then  the preview shows this entry as red/conflict with "not importable (built-in)"; it cannot be confirmed
 
   @AC3
-  Scenario: AC3 – eine syntaktisch ungültige YAML-Datei
-    Given eine syntaktisch ungültige YAML-Datei
-    When  Kurt sie hochlädt
-    Then  erscheint sofort eine Fehlermeldung mit Zeilen- und Spaltenangabe; keine Vorschau
+  Scenario: AC3 – a syntactically invalid YAML file
+    Given a syntactically invalid YAML file
+    When  Kurt uploads it
+    Then  an error message with line and column appears immediately; no preview
 
   @AC4
-  Scenario: AC4 – eine gültige Datei mit 2 neuen und 1 konfliktbehaftetem (überschreibbare...
-    Given eine gültige Datei mit 2 neuen und 1 konfliktbehaftetem (überschreibbarem Custom-Typ)
-    When  Kurt nur die 2 neuen Typen bestätigt und den Konflikt überspringt
-    Then  werden nur die 2 neuen importiert; der bestehende Custom-Typ bleibt unverändert
+  Scenario: AC4 – a valid file with 2 new types and 1 conflicting (overwritable custom...
+    Given a valid file with 2 new types and 1 conflicting (overwritable custom type)
+    When  Kurt confirms only the 2 new types and skips the conflict
+    Then  only the 2 new ones are imported; the existing custom type remains unchanged
 
   @AC5
-  Scenario: AC5 – eine JSON-Datei mit identischer Struktur wie die YAML-Variante
-    Given eine JSON-Datei mit identischer Struktur wie die YAML-Variante
-    When  Kurt sie hochlädt
-    Then  wird sie genauso behandelt (Format auto-detektiert)
+  Scenario: AC5 – a JSON file with the same structure as the YAML variant
+    Given a JSON file with the same structure as the YAML variant
+    When  Kurt uploads it
+    Then  it is handled the same way (format auto-detected)

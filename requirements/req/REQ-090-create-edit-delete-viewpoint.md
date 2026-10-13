@@ -1,6 +1,6 @@
 ---
 id: REQ-090
-title: Viewpoint anlegen, bearbeiten und löschen
+title: Create, edit and delete viewpoint
 type: functional
 priority: must
 status: proposed
@@ -21,43 +21,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-090: Viewpoint anlegen, bearbeiten und löschen
+# REQ-090: Create, edit and delete viewpoint
 
-## Aussage
+## Statement
 
-Das System MUSS das Anlegen, Bearbeiten und Löschen von user-defined `ViewpointDefinition`-Einträgen ermöglichen. Ein Viewpoint besteht aus: `name` (Pflicht, eindeutig in der Instanz), `notation` (Pflicht: `archimate3|uml|bpmn20`), `allowedEntityTypes[]`, `allowedConnectionTypes[]` und `notationMappings[]` (pro EntityType: `notationElement`, `defaultWidth`, `defaultHeight`). Bearbeitung erfolgt in einem dreistufigen Formular: Basisfelder → Typ-Auswahl → Notation-Mappings.
+The system MUST enable creating, editing and deleting user-defined `ViewpointDefinition` entries. A viewpoint consists of: `name` (mandatory, unique in the instance), `notation` (mandatory: `archimate3|uml|bpmn20`), `allowedEntityTypes[]`, `allowedConnectionTypes[]` and `notationMappings[]` (per EntityType: `notationElement`, `defaultWidth`, `defaultHeight`). Editing takes place in a three-step form: base fields → type selection → notation mappings.
 
-## Begründung
+## Rationale
 
-Organisationen haben spezifische Sichtweisen (Cloud Security, Domänen-Übersicht), die sich nicht in Standard-Viewpoints abbilden lassen. User-defined Viewpoints ermöglichen die Anpassung des Werkzeugs an organisationsspezifische Notationskonventionen.
+Organizations have specific perspectives (cloud security, domain overview) that cannot be represented in standard viewpoints. User-defined viewpoints enable adapting the tool to organization-specific notation conventions.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Viewpoint anlegen):
-- Wenn: ein neuer Viewpoint mit 3 EntityTypes angelegt wird
-- Dann: antwortet die API mit HTTP 201; der Viewpoint ist sofort für neue Diagramme auswählbar
+**AC1** (Create viewpoint):
+- When: a new viewpoint with 3 EntityTypes is created
+- Then: the API responds with HTTP 201; the viewpoint is immediately selectable for new diagrams
 
-**AC2** (EntityType entfernen mit Warnung):
-- Wenn: beim Bearbeiten ein EntityType aus `allowedEntityTypes` entfernt wird, der in bestehenden Diagrammen genutzt wird
-- Dann: zeigt das System eine Warnung "N Diagramme betroffen"; die Bearbeitung wird nicht blockiert
+**AC2** (Remove EntityType with warning):
+- When: during editing, an EntityType that is used in existing diagrams is removed from `allowedEntityTypes`
+- Then: the system shows a warning "N diagrams affected"; editing is not blocked
 
-**AC3** (Viewpoint löschen):
-- Wenn: ein user-defined Viewpoint gelöscht wird
-- Dann: wird er aus der `MetamodelConfiguration` entfernt
+**AC3** (Delete viewpoint):
+- When: a user-defined viewpoint is deleted
+- Then: it is removed from the `MetamodelConfiguration`
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-032 (EntityTypeDefinition vorhanden); REQ-058/059 (Export/Import bereits vorhanden)
-- **Folgewirkungen**: REQ-091 (Notation-Mapping), REQ-092 (system-defined Schreibschutz), REQ-093 (Lösch-Warnung)
+- **Prerequisites**: REQ-032 (EntityTypeDefinition present); REQ-058/059 (export/import already present)
+- **Downstream effects**: REQ-091 (notation mapping), REQ-092 (system-defined write protection), REQ-093 (delete warning)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Dreistufiges Formular mit Schritt-Indikatoren im UI
-- Eindeutigkeit des `name`-Feldes per DB-Constraint auf Instanzebene sicherstellen
-- `allowedEntityTypes` und `allowedConnectionTypes` als Array-Felder in der DB
+- Three-step form with step indicators in the UI
+- Ensure uniqueness of the `name` field via DB constraint at instance level
+- `allowedEntityTypes` and `allowedConnectionTypes` as array fields in the DB
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
