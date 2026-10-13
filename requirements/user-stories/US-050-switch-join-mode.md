@@ -12,7 +12,7 @@ As a catalog visitor, I want to be able to switch the join mode for a join betwe
 ## Reference
 
 **Use Case**: [UC-06: Create, Configure and Use an Architecture Catalog](../use-cases/UC-06-create-and-use-catalog.md)
-**Persona**: All stakeholders (SH-01 to SH-07)
+**Persona**: All stakeholders (SH-01 to SH-09)
 **Requirement**: [REQ-049: Switch Join Mode at Runtime](../req/REQ-049-join-mode-runtime.md)
 
 ## Acceptance Criteria

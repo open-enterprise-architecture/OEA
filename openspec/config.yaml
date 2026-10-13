@@ -58,10 +58,10 @@ rules:
     - Tests are written as part of the change, never ahead of it – each task group contains its own tests
     - Cucumber scenarios (ADR-029) belong in the respective task group, not in a collective group at the end
     - Flyway migrations as separate tasks with version number
-    - Last group 'Wrap-up' contains doc sync (US status, traceability.md, SCREENS.md, data-model.puml) and link validation
+    - Last group 'Wrap-up' contains doc sync (US status, SCREENS.md, data-model.puml), regenerating requirements/traceability.md via scripts/generate_traceability.py, and link validation
 
 operations:
   archive:
     guidance:
       - Before archiving, set the status of the referenced user stories to realized and record the implementation hash (AGENTS.md)
-      - Extend requirements/traceability.md with a reference to the created/changed capability
+      - Regenerate requirements/traceability.md (python3 scripts/generate_traceability.py)

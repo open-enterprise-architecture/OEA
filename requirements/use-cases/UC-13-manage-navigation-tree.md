@@ -19,7 +19,7 @@ references:
     - person
     - role
   user_stories:
-    - requirements/user-stories/US-054-navigationsbaum-strukturieren.md
+    - requirements/user-stories/US-054-catalog-navigation-tree.md
   concept:
     - concept/20-entities/06-core-entity-types.md
   related_use_cases:

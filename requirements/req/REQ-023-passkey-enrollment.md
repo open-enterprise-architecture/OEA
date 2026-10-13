@@ -91,7 +91,7 @@ Triggered as a required action during the first login (UC-03 Alternative A1): af
 ## Verification Method
 
 - [x] Method: test (automated)
-- [x] Test setup: virtual WebAuthn authenticator implementation (e.g., go-webauthn test utilities or browser stack with virtual authenticator)
+- [x] Test setup: virtual WebAuthn authenticator implementation (e.g., the test utilities of the Java WebAuthn server library used, or a browser stack with virtual authenticator)
 - [x] Measurement tool: test suite of the enrollment module
 - [x] Pass criterion: AC1–AC4 green; login after enrollment (AC1) works via REQ-009
 - [ ] Integrated in CI: yes, once the implementation exists

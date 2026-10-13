@@ -6,6 +6,8 @@ Concrete end-to-end example for a first feature in the walking skeleton. The doc
 
 **Duration**: Realistically 1-2 weeks, depending on the depth of the reviews.
 
+> **Note**: This example predates the implementation phase. Implementation now runs through OpenSpec changes (see `openspec/README.md`) instead of `tasks/` files, and the tech stack is decided in ADR-011 (Vue 3) and ADR-012 (Java 21 + Spring Boot 3). The phases before implementation still apply.
+
 ---
 
 ## Phase 0 – Check Prerequisites
@@ -125,16 +127,16 @@ An independently deployable software unit that encapsulates application function
 
 **Backend Engineer** responds with a comparison table and recommendation. Example:
 
-> **Recommendation**: Python + FastAPI + Pydantic + SQLAlchemy 2.0
+> **Recommendation**: Java 21 + Spring Boot 3 + Hibernate + Flyway
 > 
 > Rationale:
-> - OpenAPI natively from Pydantic (perfect for spec-first)
-> - Type hints + mypy strict satisfies the type safety requirement
-> - Medium resource footprint (suitable for Max)
-> - Large OSS community for attracting contributors
-> - Secondary choices: PostgreSQL + Apache AGE (graph + SQL), Redis for cache
+> - Spec-first with `openapi-generator` from `api/openapi.yaml`
+> - Static typing satisfies the type safety requirement
+> - Single container image, mature operations tooling (suitable for Max)
+> - Large enterprise OSS community for attracting contributors
+> - Secondary choices: PostgreSQL + JSONB
 > 
-> Alternative for performance focus: Rust + Axum (steeper learning curve)
+> Alternative: Kotlin + Ktor (smaller ecosystem in the target organizations)
 
 **Frontend Engineer** in parallel:
 
@@ -148,7 +150,7 @@ An independently deployable software unit that encapsulates application function
 
 **You decide**:
 
-> Backend Python+FastAPI, frontend Vue 3. Please document as ADR-006 and ADR-007.
+> Backend Java 21 + Spring Boot 3, frontend Vue 3. Please document as ADR-012 and ADR-011.
 
 Solution Architect or you yourself create the ADR files.
 
@@ -279,8 +281,8 @@ Each ticket references the specs, requirements, and acceptance criteria.
 
 > Backend Engineer, implement `tasks/uc-01-capture-application-component/backend-task.md`.
 
-**Backend Engineer** reads the spec, generates the FastAPI setup with Pydantic models, writes:
-- DB migration for the `application_components` table
+**Backend Engineer** reads the spec, generates the Spring Boot setup with the OpenAPI-generated interfaces, writes:
+- Flyway migration for the `application_components` table
 - POST endpoint with validation, audit log, OIDC check
 - Unit and contract tests against the OpenAPI spec
 

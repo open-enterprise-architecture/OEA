@@ -302,7 +302,7 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 - Dashboard data is calculated live on every call; no caching layer in v1.0 (performance NFR still to be defined)
 - PropertyAggregation queries: server-side as an aggregation API on the entity store; no client-side calculation
 - CatalogQueryDataSource takes over the query logic of the referenced catalog completely (incl. joins, SavedView filter); the dashboard delegates to the catalog API
-- Rendering in the web portal: standard chart library (selection still open, presumably recharts or chart.js); no canvas/React Flow needed (pure SVG/canvas charts)
+- Rendering in the web portal: standard chart library (selection still open, presumably Chart.js or Apache ECharts); no canvas/Vue Flow needed (pure SVG/canvas charts)
 - Grid layout: CSS Grid or react-grid-layout as a basis; drag-and-drop only in the edit mode of the client app; display only in the web portal
 
 ## Realizing Components

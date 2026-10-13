@@ -91,7 +91,7 @@ This REQ describes the **default target value** (self-hosted, HA setup / SaaS). 
 ## Dependencies
 
 - **Prerequisites**: Deployment concept (ADR for the deployment stack still open — group A ADRs)
-- **Downstream effects**: Backup strategy and data loss NFR (REQ-074) must be consistent
+- **Downstream effects**: Backup strategy and data loss NFR (REQ-082) must be consistent
 
 ## Risks of Non-Fulfillment
 

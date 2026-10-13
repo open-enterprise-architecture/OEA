@@ -48,7 +48,7 @@ requirements/
 ├── glossary.md                 ← project-specific term definitions
 ├── stakeholders/
 │   ├── SH-01-stefan-solution-architect.md
-│   ├── SH-02-anna-enterprise-architect.md
+│   ├── SH-08-anna-business-analyst.md
 │   └── ...
 ├── use-cases/
 │   ├── UC-01-capture-application.md

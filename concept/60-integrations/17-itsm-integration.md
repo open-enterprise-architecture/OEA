@@ -113,7 +113,7 @@ Property (M2 level) gains:
 - **Roles in the metamodel**: Model EA owner, data steward, CI owner as relations – in case of conflicts the system knows whom to notify.
 - **Do not enforce retroactive cleanup**: Grown service catalogs are not bent into shape. Design new services jointly, migrate old ones over time.
 
-### 9.9 View Proposals
+### 17.9 View Proposals
 
 - **Service Catalog Alignment**: shows EA services without a catalog entry, catalog entries without an EA service, services with reference drift
 - **CMDB Coverage**: shows EA applications/technologies without a linked CI and vice versa

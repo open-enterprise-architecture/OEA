@@ -20,7 +20,7 @@ references:
     - SH-04
   concept:
     - concept/20-entities/06-core-entity-types.md
-    - concept/20-entities/11-temporal-model.md
+    - concept/30-dynamics/11-temporal-model.md
   adrs: []
 supersedes: []
 superseded_by: []

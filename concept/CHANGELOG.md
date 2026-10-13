@@ -2,6 +2,14 @@
 
 This document records how the concept paper itself has evolved. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows Semantic Versioning (at concept level: major = fundamentally new concepts, minor = new chapters/sections, patch = corrections).
 
+## [v0.17.3] – Corrections found during translation
+
+### Fixed
+- §17: last subsection renumbered from 9.9 to 17.9
+- §20: link text to the API chapter corrected (§21, not §22); typo "GPDR" corrected to "GDPR"
+- §21.9: "Schwalbach tests" corrected to contract tests against the spec (e.g. Schemathesis)
+- §22: reference to stored views corrected (§22.8, not §22.7)
+
 ## [v0.17.2] – Concept paper translated to English
 
 ### Changed

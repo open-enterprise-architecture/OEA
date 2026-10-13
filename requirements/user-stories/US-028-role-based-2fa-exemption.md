@@ -49,7 +49,7 @@ As an operator, I want to be able to define which OEA roles are exempt from the 
 
 ## Dependencies
 
-- Waiting on: US-020 (2FA enforcement REQ-020 must be implemented so that the exemption can take effect); OEA role model must exist
+- Waiting on: US-031 (2FA enforcement REQ-020 must be implemented so that the exemption can take effect); OEA role model must exist
 - Blocks: none
 
 ## Notes

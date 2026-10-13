@@ -8,7 +8,7 @@ last_updated: 2026-06-27
 author: business-engineer
 references:
   concept:
-    - concept/20-entities/14-extensibility.md
+    - concept/40-extensibility/14-extensibility.md
   stakeholders:
     - SH-03
     - SH-04

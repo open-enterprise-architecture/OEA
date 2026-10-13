@@ -18,13 +18,11 @@ references:
     - person
     - role
   requirements:
-    - requirements/req/REQ-058-viewpoint-export.md
-    - requirements/req/REQ-059-viewpoint-import.md
+    - requirements/req/REQ-059-viewpoint-import-export.md
   user_stories:
-    - requirements/user-stories/US-078-viewpoint-exportieren.md
-    - requirements/user-stories/US-079-viewpoint-importieren.md
+    - requirements/user-stories/US-079-export-and-import-viewpoint.md
   concept:
-    - concept/20-entities/12-domain-views.md
+    - concept/30-dynamics/12-domain-views.md
   related_use_cases:
     - UC-04
     - UC-05

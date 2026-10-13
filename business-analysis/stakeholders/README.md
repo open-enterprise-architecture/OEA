@@ -1,6 +1,6 @@
 # Stakeholders
 
-Seven persona profiles as primary users and sponsors of OEA. Each profile follows a uniform schema.
+Nine persona profiles as primary users and sponsors of OEA. Each profile follows a uniform schema.
 
 ## Overview
 
@@ -18,11 +18,11 @@ Seven persona profiles as primary users and sponsors of OEA. Each profile follow
 
 ## Characteristics of the Selection
 
-The seven personas cover three orthogonal spectrums:
+The nine personas cover three orthogonal spectrums:
 
-**Size classes**: SME (Kurt, Max), mid-sized company (Lukas, Michael), corporate group (Franz, CIO, Sabine).
+**Size classes**: SME (Kurt, Max), mid-sized company (Lukas, Michael, Anna), corporate group (Franz, CIO, Sabine).
 
-**Experience levels**: Junior (Franz), Professional (Max), Senior (Lukas, Sabine), Lead (Kurt), Solution (Michael), C-level (CIO).
+**Experience levels**: Junior (Franz), Professional (Max), Senior (Lukas, Sabine), Lead (Kurt), Solution (Michael), C-level (CIO); additionally the business analyst (Anna) and the product owner (Rigobert).
 
 **Tool backgrounds**: Greenfield, wiki-based, Avolution, Sparx, multi-tool corporate group, business-object-oriented, operations-focused.
 

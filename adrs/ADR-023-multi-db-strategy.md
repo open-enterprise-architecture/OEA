@@ -2,7 +2,7 @@
 
 **Status**: accepted
 **Date**: 2026-06-29
-**Deciders**: [Lukas – Repository Owner](../business-analysis/stakeholders/SH-01-lukas-enterprise-architect.md)
+**Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 
 ---
 
@@ -99,6 +99,6 @@ More control, but not justifiable effort for open-source v1. **Rejected**.
 
 ## Related ADRs
 
-- ADR-006: Backend tech stack (Java/Spring)
+- ADR-012: Backend tech stack (Java/Spring)
 - ADR-022: Structured property model
 - ADR-024: Audit separation

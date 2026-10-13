@@ -13,7 +13,7 @@ aliases:
 related_capabilities: []
 references:
   - concept: concept/20-entities/06-core-entity-types.md
-  - concept: concept/20-entities/12-domain-views.md
+  - concept: concept/30-dynamics/12-domain-views.md
   - concept: concept/70-platform/21-api-architecture.md
 ---
 

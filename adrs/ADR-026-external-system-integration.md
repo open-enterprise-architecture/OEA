@@ -2,7 +2,7 @@
 
 **Status**: accepted
 **Date**: 2026-06-29
-**Deciders**: [Lukas – Repository Owner](../business-analysis/stakeholders/SH-01-lukas-enterprise-architect.md)
+**Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 
 ---
 

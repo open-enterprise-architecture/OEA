@@ -21,7 +21,7 @@ references:
     - SH-04
     - SH-08
   concept:
-    - concept/20-entities/14-extensibility.md
+    - concept/40-extensibility/14-extensibility.md
   adrs: []
 supersedes: []
 superseded_by: []

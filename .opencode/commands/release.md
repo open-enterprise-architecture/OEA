@@ -18,9 +18,8 @@ Creates a release entry in the CHANGELOG and updates the status in the concept R
    Format: `**Status:** Draft vX.Y`
 
 2. **Calculate the new version**:
-   - `minor`: Y stays, X+1 → v(X+1).0 — NO: correction:
-     - `minor`: X.Y → X.(Y+1) (new section/chapter)
-     - `patch`: X.Y → X.Y+1 as patch: X.Y.Z → X.Y.(Z+1)
+   - `minor`: vX.Y(.Z) → vX.(Y+1) (new section/chapter)
+   - `patch`: vX.Y.Z → vX.Y.(Z+1); a two-part vX.Y becomes vX.Y.1 (correction)
    - Check the current scheme: `vX.Y` (two-part) or `vX.Y.Z` (three-part)
 
 3. **Update the CHANGELOG** (`concept/CHANGELOG.md`):

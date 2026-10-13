@@ -22,8 +22,8 @@ references:
     - SH-04
     - SH-03
   concept:
-    - concept/20-entities/11-temporal-model.md
-    - concept/20-entities/12-domain-views.md
+    - concept/30-dynamics/11-temporal-model.md
+    - concept/30-dynamics/12-domain-views.md
   adrs: []
 supersedes: []
 superseded_by: []

@@ -72,4 +72,4 @@ As a Solution Architect, I want to be able to place and name a new entity direct
 
 8 SP because of the canvas component (new UI module) and the typeahead logic. The core idea is that the diagram context gives the architect immediate feedback: "Does this already exist?" – without having to open a separate search. This prevents the common mistake of creating an already existing component a second time as `new`.
 
-[ADR-007](../../adrs/ADR-007-canvas-library.md) (React Flow) must be set to `accepted` before this story is implemented.
+[ADR-007](../../adrs/ADR-007-canvas-library.md) (Vue Flow) must be set to `accepted` before this story is implemented.

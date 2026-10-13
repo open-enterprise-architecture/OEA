@@ -112,9 +112,10 @@ Every PR needs:
 Before every merge to `main`:
 
 1. **Link validation**: `python3 scripts/validate_links.py` – must pass
-2. **Markdown lint** (once set up)
-3. **ADR consistency**: every ADR referenced in `adrs/` exists
-4. **Use case completeness**: every use case has a persona, acceptance criteria and a concept reference
+2. **Traceability matrix**: `requirements/traceability.md` is generated – run `python3 scripts/generate_traceability.py` after changing UCs, REQs or USs (CI checks it with `--check`)
+3. **Markdown lint** (once set up)
+4. **ADR consistency**: every ADR referenced in `adrs/` exists
+5. **Use case completeness**: every use case has a persona, acceptance criteria and a concept reference
 
 ## Versioning
 

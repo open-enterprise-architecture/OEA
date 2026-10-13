@@ -28,7 +28,7 @@ Example: `/new-adr Logging strategy`
 
    **Status**: draft
    **Date**: {{YYYY-MM-DD}}
-   **Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+   **Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
    **Consulted**: {{if applicable: Requirements Engineer, Business Engineer, …}}
    **Informed**: –
 
@@ -80,7 +80,7 @@ Example: `/new-adr Logging strategy`
    - Decision drivers explicit (no "because it is standard")?
    - Consequences (both directions) present?
    - Concept reference set?
-   - `Deciders` set to Rigobert (SH-09)?
+   - `Deciders` set to the repository owner (Lukas Mathis)?
 
 5. **Avoid anti-patterns**:
    - No ADR on stock — only when there is a concrete need for a decision

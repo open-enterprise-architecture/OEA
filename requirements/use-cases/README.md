@@ -21,4 +21,4 @@ Goal-oriented scenarios from the stakeholder's perspective. One file per use cas
 | [UC-06](./UC-06-create-and-use-catalog.md) | Create, Configure and Use an Architecture Catalog | SH-03 (all) | must | draft |
 | [UC-07](./UC-07-create-and-use-dashboard.md) | Create, Configure and Use a Dashboard in the Web Portal | SH-03 (all) | should | draft |
 | [UC-08](./UC-08-model-data-lineage.md) | Model and Analyze a Data Flow Map (Data Lineage) | SH-02 | should | draft |
-| [UC-09](./UC-09-document-solution-architecture-arc42.md) | Document Solution Architecture According to Arc42 | SH-04 | should | draft |
+| [UC-09](./UC-09-document-solution-architecture-arc42.md) | Document an Entity in a Structured Way (Arc42) | SH-04 | should | draft |

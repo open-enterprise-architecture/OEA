@@ -19,8 +19,8 @@ references:
     - role
   concept:
     - concept/20-entities/06-core-entity-types.md
-    - concept/20-entities/11-temporal-model.md
-    - concept/20-entities/12-domain-views.md
+    - concept/30-dynamics/11-temporal-model.md
+    - concept/30-dynamics/12-domain-views.md
     - concept/50-walkthrough/16-example-walkthrough.md
   related_use_cases:
     - UC-01
@@ -212,8 +212,8 @@ If many entities are affected:
 ## Concept References
 
 - [§6 Core Entity Types](../../concept/20-entities/06-core-entity-types.md) – EntityTypes used in deltas
-- [§11 Temporal Model](../../concept/20-entities/11-temporal-model.md) – Current state vs. target state; plateau time windows
-- [§12 Domain Views](../../concept/20-entities/12-domain-views.md) – Scope delimitation as a domain view concept
+- [§11 Temporal Model](../../concept/30-dynamics/11-temporal-model.md) – Current state vs. target state; plateau time windows
+- [§12 Domain Views](../../concept/30-dynamics/12-domain-views.md) – Scope delimitation as a domain view concept
 - [§16 Example Walkthrough](../../concept/50-walkthrough/16-example-walkthrough.md) – End-to-end example with solution and EntityDeltas
 
 ## Implementation Notes

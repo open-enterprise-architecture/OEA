@@ -28,7 +28,7 @@ created: 2026-06-26
 
 ## Technical Notes
 
-- React Flow `parentId` for pool/lane containment; `bpmn-contained-in` connection as repository representation
+- Vue Flow `parentId` for pool/lane containment; `bpmn-contained-in` connection as repository representation
 - Palette grouping: "Containers" (pool, lane, subprocess), "Tasks", "Events", "Gateways"
 - Lane resize: lane must be vertically resizable; the pool adjusts automatically
 

@@ -46,7 +46,7 @@ The business analyst persona (SH-08) needs ready-to-use BPMN types immediately �
 
 ## Context
 
-All process elements are regular `ArchitectureEntities` in the shared integer ID space (entity.md). The React Flow canvas uses nested nodes for the pool/lane hierarchy: a pool is a `GroupNode`; lanes are subgroups; tasks/events/gateways are regular nodes with `parentId`. The pool/lane hierarchy is stored in the repository via `bpmn-contained-in` and `bpmn-lane-in-pool` connections; the canvas reads these connections on loading and builds up the nested layout.
+All process elements are regular `ArchitectureEntities` in the shared integer ID space (entity.md). The Vue Flow canvas uses nested nodes for the pool/lane hierarchy: a pool is a `GroupNode`; lanes are subgroups; tasks/events/gateways are regular nodes with `parentId`. The pool/lane hierarchy is stored in the repository via `bpmn-contained-in` and `bpmn-lane-in-pool` connections; the canvas reads these connections on loading and builds up the nested layout.
 
 ## Type-Specific Fields
 
@@ -122,12 +122,12 @@ All process elements are regular `ArchitectureEntities` in the shared integer ID
 
 ## Dependencies
 
-- **Prerequisites**: metamodel-configuration.md (EntityTypeDefinition with `extends`); entity.md (integer ID space); ADR-007 (React Flow with nested node support)
+- **Prerequisites**: metamodel-configuration.md (EntityTypeDefinition with `extends`); entity.md (integer ID space); ADR-007 (Vue Flow with nested node support)
 - **Downstream effects**: REQ-077 (assignment connections in the UI), REQ-040 (EntityDeltas → canvas), REQ-066 (creation wizard for BPMN elements)
 
 ## Implementation
 
-- ADR(s): ADR-007 (React Flow — nested nodes via `parentId`)
+- ADR(s): ADR-007 (Vue Flow — nested nodes via `parentId`)
 - Implemented by: –
 - Tests: –
 - Verification status: not-verified

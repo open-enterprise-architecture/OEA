@@ -64,7 +64,7 @@ What I consolidated:
 - Templates README extended with the two new templates (business object, requirement)
 - Agents README extended with Business Engineer and Requirements Engineer
 - Workflow diagram in Agents README extended
-- CLAUDE.md updated: OEA as project name, new folders, new slash commands, new agents, Apache 2.0 instead of TBD
+- CLAUDE.md updated: OEA as project name, new folders, new slash commands, new agents, Apache 2.0 instead of TBD (superseded: the project is dual-licensed AGPL-3.0 / proprietary, see `NOTICE`)
 - Vision written out in `business-analysis/vision.md` (was previously a placeholder)
 - 2 new slash commands: `/new-business-object`, `/new-requirement`
 - `business-objects/`, `requirements/req/` created with README

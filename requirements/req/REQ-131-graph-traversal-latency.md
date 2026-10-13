@@ -20,7 +20,7 @@ references:
     - SH-03
     - SH-04
   concept:
-    - concept/06-core-entity-types.md
+    - concept/20-entities/06-core-entity-types.md
   adrs: []
 supersedes: []
 superseded_by: []

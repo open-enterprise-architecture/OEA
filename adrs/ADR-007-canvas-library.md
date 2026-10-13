@@ -26,7 +26,7 @@ This requires a **web canvas library** that:
 
 ## Decision Drivers
 
-- **OSS compatibility**: OEA is licensed under Apache 2.0; the canvas library must have a compatible open-source license (MIT, Apache 2.0, BSD)
+- **OSS compatibility**: OEA is dual-licensed (AGPL-3.0 Community / proprietary Enterprise, see `NOTICE`); the canvas library must have a permissive open-source license that allows both (MIT, Apache 2.0, BSD)
 - **Vue 3/TypeScript-native**: the frontend is developed as a Vue 3 application (ADR-011); the library should fit naturally into this ecosystem
 - **In-place editing**: name input directly on the canvas node (US-045 AC1–AC3)
 - **Serializability**: diagram state as diffable JSON; no proprietary binary format (concern SH-04: Git-native workflow)
@@ -93,7 +93,7 @@ Commercial canvas library with professional EA diagram support.
   - Very powerful, mature EA/UML support
   - Excellent documentation
 - **Con**:
-  - Commercial license (per-developer fee); incompatible with an Apache 2.0 OSS project
+  - Commercial license (per-developer fee); incompatible with an AGPL-3.0 OSS project
   - Ruled out
 
 ## Decision
@@ -101,7 +101,7 @@ Commercial canvas library with professional EA diagram support.
 We choose **Option 1: Vue Flow** (`@vue-flow/core`), because it offers the best integration into the Vue 3/TypeScript stack (ADR-011), in-place editing is trivially realizable through Vue components as nodes, state is available as a diffable JSON array, and the concepts were adopted 1:1 from React Flow (minimal porting effort, documentation transferable).
 
 The EA-specific gaps (auto-layout, ArchiMate shape library) are known, solvable problems:
-- Auto-layout will be retrofitted via **ELK.js** (Eclipse Layout Kernel, EPL 2.0; usable via bundling in an Apache 2.0-compatible way) as soon as the requirement becomes concrete
+- Auto-layout will be retrofitted via **ELK.js** (Eclipse Layout Kernel, EPL 2.0; license compatibility with AGPL-3.0 must be verified first, see below) as soon as the requirement becomes concrete
 - Custom shapes (ApplicationComponent, Interface, BusinessProcess, etc.) are defined as Vue SFCs directly in the OEA frontend — no third-party shape set needed
 
 GoJS is ruled out due to its commercial license. maxGraph and AntV X6 are technically suitable, but have no native Vue 3 integration. Vue Flow is the most natural choice for the present stack.
@@ -152,6 +152,6 @@ ELK.js (Eclipse Layout Kernel) is licensed under **EPL 2.0** (Eclipse Public Lic
 | **Source code availability** | ELK.js is included unmodified as an npm package | No action required: upstream repo (`eclipse/elk`) is public; a link in the NOTICE file suffices |
 | **Copyleft contagion** | EPL 2.0 is a "weak copyleft" — applies only on modification or direct redistribution of the EPL file | OEA does not modify ELK.js → no copyleft on OEA's own code |
 | **NOTICE file obligation** | Distribution of the Electron bundle (`.dmg`, `.exe`, `.AppImage`) contains ELK.js | NOTICE file must contain: `ELK.js (Eclipse Layout Kernel) – Eclipse Public License 2.0 – https://github.com/eclipse/elk` |
-| **Compatibility with Apache 2.0** | EPL 2.0 contains a "Secondary License" clause that allows combination with Apache 2.0 in the same product | No conflict; OEA project license (Apache 2.0) remains unaffected |
+| **Compatibility with AGPL-3.0** | EPL 2.0 is incompatible with the GNU GPL family unless the initial contributor designates a GPL "Secondary License" (EPL 2.0 Exhibit A) | **Open**: verify whether ELK.js designates a Secondary License before adopting it; otherwise choose an MIT/Apache 2.0 layout library. The proprietary Enterprise Edition is not affected by EPL 2.0 |
 
-**Conclusion**: ELK.js is usable in OEA under EPL 2.0. The only obligation upon distribution: NOTICE file entry. If ELK.js is replaced at a later point by an MIT/Apache 2.0 alternative (e.g. `elkjs` wrapper with a different build), the condition no longer applies.
+**Conclusion**: ELK.js may only be adopted once its compatibility with AGPL-3.0 is confirmed (see table). If it is usable, the obligation upon distribution is a NOTICE file entry. If ELK.js is replaced at a later point by an MIT/Apache 2.0 alternative (e.g. `elkjs` wrapper with a different build), the condition no longer applies.

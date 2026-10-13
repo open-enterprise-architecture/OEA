@@ -69,7 +69,7 @@ Disadvantages: Often a compromise in expressiveness, risk of a proprietary DSL.
 /api/v1/analytics/views/{name}  ← predefined named views
 ```
 
-Beginners use the typed endpoints, advanced users reach for Cypher/SQL. The stored named views (see [§22.7 (Analyzability)](22-analyzability.md)) cover standard cases without query knowledge.
+Beginners use the typed endpoints, advanced users reach for Cypher/SQL. The stored named views (see [§22.8 (Analyzability)](22-analyzability.md)) cover standard cases without query knowledge.
 
 ### 22.5 Reified Relations in Queries
 
