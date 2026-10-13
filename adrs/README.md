@@ -58,10 +58,11 @@ In `.opencode/commands/`:
 | [ADR-020](./ADR-020-explorer-navigation-model.md) | Explorer Browser Navigation Model in the Native Client | proposed | 2026-06-28 | – |
 | [ADR-021](./ADR-021-implicit-parent-child-connection.md) | Implicit Parent-Child Connection on Component Nesting | proposed | 2026-06-28 | – |
 | [ADR-022](./ADR-022-structured-property-model.md) | Structured Property Model with Category, Temporal Mapping, and Delta Versioning | accepted | 2026-06-29 | – |
-| [ADR-023](./ADR-023-multi-db-strategy.md) | Multi-DB Strategy — Database Abstraction via JPA/Hibernate | accepted | 2026-06-29 | – |
+| [ADR-023](./ADR-023-multi-db-strategy.md) | Multi-DB Strategy — Database Abstraction via JPA/Hibernate | superseded by ADR-030 | 2026-06-29 | – |
 | [ADR-024](./ADR-024-audit-separation.md) | Audit Data Storage — Separate Schema, Configurable as External Database | accepted | 2026-06-29 | – |
 | [ADR-025](./ADR-025-i18n-strategy.md) | I18N Strategy — Two-Layer with ETag Caching and SSE Invalidation | accepted | 2026-06-29 | – |
 | [ADR-026](./ADR-026-external-system-integration.md) | External System Integration — Write Access via API (optional) | accepted | 2026-06-29 | – |
 | [ADR-027](./ADR-027-project-setup-monorepo.md) | Project Setup — Mono-Repo, Maven Structure, Package Naming, Docker Compose | accepted | 2026-06-29 | – |
 | [ADR-028](./ADR-028-backend-layered-architecture.md) | Backend Layered Architecture — API / Application / Core | accepted | 2026-06-29 | – |
 | [ADR-029](./ADR-029-cucumber-test-framework.md) | Test Framework for BDD System Tests — Cucumber JVM | accepted | 2026-06-30 | – |
+| [ADR-030](./ADR-030-postgresql-only.md) | PostgreSQL as the Only Supported Database | accepted | 2026-10-13 | ADR-023 |

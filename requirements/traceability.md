@@ -5,7 +5,7 @@
 Traceability from use cases through requirements to user stories, derived from the
 frontmatter and reference sections of the artifacts.
 
-**Total UCs**: 22 | **Total REQs**: 155 | **Total USs**: 142
+**Total UCs**: 22 | **Total REQs**: 156 | **Total USs**: 142
 
 ---
 
@@ -56,8 +56,9 @@ frontmatter and reference sections of the artifacts.
 | [REQ-082](req/REQ-082-data-backup-retention.md) | Data backup and point-in-time recovery | non-functional | must | – |
 | [REQ-135](req/REQ-135-dark-mode-system-default.md) | Dark Mode Support with System Default and User Preference | functional | should | – |
 | [REQ-136](req/REQ-136-local-auth-configurable.md) | Local Authentication Configurable by Operator | functional | must | – |
-| [REQ-150](req/REQ-150-multi-db-support.md) | Multi-Database Support | constraint | must | [US-139](user-stories/US-139-multi-db-operation.md) |
+| [REQ-150](req/REQ-150-multi-db-support.md) | Multi-Database Support _(rejected)_ | constraint | must | [US-139](user-stories/US-139-multi-db-operation.md) _(rejected)_ |
 | [REQ-155](req/REQ-155-service-account-management.md) | Service Account Management for External Systems | functional | should | [US-142](user-stories/US-142-create-service-account.md) |
+| [REQ-156](req/REQ-156-postgresql-only-database.md) | PostgreSQL as the only supported database | constraint | must | – |
 
 ### [UC-03](use-cases/UC-03-set-up-authentication-method.md): Set Up Authentication Method (Required Action at First Login)
 
@@ -65,7 +66,7 @@ frontmatter and reference sections of the artifacts.
 
 | REQ | Title | Type | Priority | USs |
 |---|---|---|---|---|
-| [REQ-021](req/REQ-021-enrollment-token-validation.md) | Enrollment token validation and single use | functional | must | [US-020](user-stories/US-020-enrollment-entry-invitation-link.md) |
+| [REQ-021](req/REQ-021-enrollment-token-validation.md) | Enrollment token validation and single use _(rejected)_ | functional | must | [US-020](user-stories/US-020-enrollment-entry-invitation-link.md) _(rejected)_ |
 | [REQ-022](req/REQ-022-totp-enrollment.md) | TOTP secret enrollment (setting up an authenticator app) | functional | should | [US-021](user-stories/US-021-totp-enrollment.md) |
 | [REQ-023](req/REQ-023-passkey-enrollment.md) | Passkey enrollment (WebAuthn credential registration) | functional | should | [US-022](user-stories/US-022-passkey-enrollment.md) |
 | [REQ-024](req/REQ-024-initial-password-admin.md) | Set initial password by administrator | functional | must | [US-023](user-stories/US-023-initial-password-admin.md) |
@@ -384,7 +385,7 @@ frontmatter and reference sections of the artifacts.
 | non-functional | 11 |
 | business-rule | 5 |
 | compliance | 5 |
-| constraint | 3 |
+| constraint | 4 |
 | interface | 2 |
 | data | 1 |
 
@@ -393,7 +394,7 @@ frontmatter and reference sections of the artifacts.
 | UC | USs | Story Points |
 |---|---|---|
 | UC-01 | 14 | 48 |
-| UC-02 | 9 | 31 |
+| UC-02 | 8 | 26 |
 | UC-03 | 9 | 32 |
 | UC-04 | 12 | 49 |
 | UC-05 | 12 | 55 |
@@ -414,13 +415,13 @@ frontmatter and reference sections of the artifacts.
 | UC-20 | 3 | 13 |
 | UC-21 | 5 | 22 |
 | UC-22 | 1 | 5 |
-| **Total** | | **587** |
+| **Total** | | **582** |
 
 ## 5. Coverage Gaps
 
 ### REQs without US
 
-[REQ-071](req/REQ-071-catalog-query-latency.md), [REQ-072](req/REQ-072-canvas-rendering-latency.md), [REQ-073](req/REQ-073-system-availability.md), [REQ-074](req/REQ-074-concurrent-user-scalability.md), [REQ-075](req/REQ-075-platform-independent-deployment.md), [REQ-082](req/REQ-082-data-backup-retention.md), [REQ-083](req/REQ-083-audit-log-retention.md), [REQ-129](req/REQ-129-data-encryption.md), [REQ-130](req/REQ-130-wcag-accessibility.md), [REQ-131](req/REQ-131-graph-traversal-latency.md), [REQ-135](req/REQ-135-dark-mode-system-default.md), [REQ-136](req/REQ-136-local-auth-configurable.md), [REQ-137](req/REQ-137-auto-sso-redirect.md), [REQ-143](req/REQ-143-inline-column-filter.md), [REQ-144](req/REQ-144-shape-palette-panel.md), [REQ-145](req/REQ-145-shape-drag-entity-lookup.md), [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md), [REQ-147](req/REQ-147-api-completeness-automation.md), [REQ-151](req/REQ-151-audit-schema-separation.md)
+[REQ-071](req/REQ-071-catalog-query-latency.md), [REQ-072](req/REQ-072-canvas-rendering-latency.md), [REQ-073](req/REQ-073-system-availability.md), [REQ-074](req/REQ-074-concurrent-user-scalability.md), [REQ-075](req/REQ-075-platform-independent-deployment.md), [REQ-082](req/REQ-082-data-backup-retention.md), [REQ-083](req/REQ-083-audit-log-retention.md), [REQ-129](req/REQ-129-data-encryption.md), [REQ-130](req/REQ-130-wcag-accessibility.md), [REQ-131](req/REQ-131-graph-traversal-latency.md), [REQ-135](req/REQ-135-dark-mode-system-default.md), [REQ-136](req/REQ-136-local-auth-configurable.md), [REQ-137](req/REQ-137-auto-sso-redirect.md), [REQ-143](req/REQ-143-inline-column-filter.md), [REQ-144](req/REQ-144-shape-palette-panel.md), [REQ-145](req/REQ-145-shape-drag-entity-lookup.md), [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md), [REQ-147](req/REQ-147-api-completeness-automation.md), [REQ-151](req/REQ-151-audit-schema-separation.md), [REQ-156](req/REQ-156-postgresql-only-database.md)
 
 ### REQs without UC reference
 

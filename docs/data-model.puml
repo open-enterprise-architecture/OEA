@@ -24,7 +24,7 @@ hide empty methods
 ' {FK}   Foreign Key
 ' {UQ}   Unique Constraint
 ' {NN}   NOT NULL (implicit for PK; explicit for others)
-' TEXT   = VARCHAR / CLOB depending on DB dialect (ADR-023: no JSONB)
+' Database: PostgreSQL ≥ 15 only (ADR-030); JSONB allowed for structured documents
 ' Enums as comment: -- enum: a|b|c
 ' ─────────────────────────────────────────────────────
 
@@ -178,7 +178,7 @@ package "Auth" #FFF8E1 {
 }
 
 ' ╔══════════════════════════════════════════════════════╗
-' ║  I18N (ADR-023)                                     ║
+' ║  I18N (ADR-025)                                     ║
 ' ╚══════════════════════════════════════════════════════╝
 package "I18N" #FFF3E0 {
 
@@ -230,9 +230,9 @@ package "Metamodel" #E8F5E9 {
     + rules_edit_mode  : TEXT             {NN} DEFAULT 'gui-and-import'
     + last_modified_at : TIMESTAMPTZ      {NN} DEFAULT NOW()
     + last_modified_by : BIGINT           {NN} {FK→persons.id}
-    == Configuration as TEXT/CLOB (ADR-023) ==
-    + config           : TEXT             {NN} DEFAULT '{}'
-    .. JSON string; serialized via JPA @Converter ..
+    == Configuration as JSONB (ADR-030) ==
+    + config           : JSONB            {NN} DEFAULT '{}'
+    .. mapped via @JdbcTypeCode(SqlTypes.JSON) ..
     .. viewpoints[], architectureLayers[] ..
     .. constraintRules[], stereotypes[]   ..
     .. documentCollectionDefinitions[]    ..
@@ -297,7 +297,7 @@ package "Metamodel – Properties" #E0F2F1 {
     + category_id     : UUID              {FK→property_categories.id}
     + ref_metatype_id : UUID              {FK→metatypes.id}
     .. only for data_type='reference' ..
-    == Constraints as individual columns (ADR-023, no JSONB) ==
+    == Constraints as individual columns (ADR-022) ==
     + max_length      : INTEGER
     + min_value       : NUMERIC
     + max_value       : NUMERIC
@@ -659,9 +659,9 @@ package "Navigation & Presentation" #EDE7F6 {
     + created_at          : TIMESTAMPTZ   {NN} DEFAULT NOW()
     + last_modified_at    : TIMESTAMPTZ   {NN} DEFAULT NOW()
     + last_modified_by    : BIGINT        {NN} {FK→persons.id}
-    == Configuration as TEXT/CLOB (ADR-023) ==
-    + config              : TEXT          {NN} DEFAULT '{}'
-    .. JSON string; columns[], joinDefinitions[] ..
+    == Configuration as JSONB (ADR-030) ==
+    + config              : JSONB         {NN} DEFAULT '{}'
+    .. columns[], joinDefinitions[] ..
     .. savedFilters[], savedViews[]       ..
   }
 
