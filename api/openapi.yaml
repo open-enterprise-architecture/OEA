@@ -38,6 +38,34 @@ components:
       scheme: bearer
       bearerFormat: JWT
 
+  # ── Responses ───────────────────────────────────────────────────────────────
+  responses:
+    BadRequest:
+      description: Invalid request parameters or malformed body
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Forbidden:
+      description: Authenticated, but the required role is missing
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: Resource not found
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    ValidationFailed:
+      description: Request body violates the metamodel or business rules
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
   # ── Parameters ──────────────────────────────────────────────────────────────
   parameters:
     PageParam:
@@ -1162,6 +1190,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TreeNode' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  VIEW – DIAGRAMS (SCR-021/022)                                         ║
@@ -1357,6 +1386,8 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/MetatypeDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
     post:
       operationId: createMetatype
       summary: Create new metatype
@@ -1449,6 +1480,8 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/MetatypePropertyMapping' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
     post:
       operationId: createPropertyMapping
       summary: Create property mapping (or effective-date change)
@@ -1466,6 +1499,10 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MetatypePropertyMapping' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /metamodel/property-categories:
     get:
@@ -1480,6 +1517,7 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/PropertyCategory' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
     post:
       operationId: createPropertyCategory
       summary: Create property category
@@ -1495,6 +1533,9 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PropertyCategory' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /metamodel/property-categories/{id}:
     put:
@@ -1554,6 +1595,8 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/PropertyDefinitionDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
     post:
       operationId: createPropertyDefinition
       summary: Create property definition
@@ -1569,6 +1612,9 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PropertyDefinitionDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /metamodel/property-definitions/{id}:
     put:
@@ -1623,6 +1669,8 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/PropertyEnumValue' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
     post:
       operationId: createEnumValue
       summary: Create enum value
@@ -1645,6 +1693,10 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PropertyEnumValue' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  ADMIN (SCR-031–038)                                                   ║
@@ -1662,6 +1714,8 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/ViewpointConfig' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /admin/viewpoints/{id}:
     get:
@@ -1704,6 +1758,10 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ViewpointConfig' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /admin/property-visibility:
     get:
@@ -1718,6 +1776,8 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/PropertyVisibilityEntry' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
     put:
       operationId: updatePropertyVisibility
       summary: Update property visibility (SCR-032)
@@ -1737,6 +1797,9 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/PropertyVisibilityEntry' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /admin/trm:
     get:
@@ -1764,6 +1827,9 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/TRMEntry' }
                   page: { $ref: '#/components/schemas/PageMeta' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
     post:
       operationId: createTRMEntry
       summary: Create TRM entry (SCR-033)
@@ -1779,6 +1845,9 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TRMEntry' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /admin/trm/{id}:
     put:
@@ -1812,6 +1881,9 @@ paths:
       responses:
         '204':
           description: Deleted
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /admin/continuum:
     get:
@@ -1835,6 +1907,8 @@ paths:
                         name:        { type: string }
                         description: { type: string }
                         sortOrder:   { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
     put:
       operationId: updateContinuumConfig
       summary: Update continuum configuration (SCR-034)
@@ -1858,6 +1932,9 @@ paths:
       responses:
         '200':
           description: Updated
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /admin/continuum/import:
     post:
@@ -1912,6 +1989,9 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ConformanceResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /admin/auth/providers:
     get:
@@ -1926,6 +2006,8 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/AuthProvider' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
     post:
       operationId: createAuthProvider
       summary: Create auth provider (SCR-037)
@@ -1941,6 +2023,9 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AuthProvider' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /admin/auth/providers/{id}:
     get:
@@ -1977,6 +2062,10 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AuthProvider' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
     delete:
       operationId: deleteAuthProvider
       summary: Delete auth provider (SCR-037)
@@ -2005,6 +2094,9 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AuthProviderTestResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   # ── Service accounts (ADR-026, REQ-155) ───────────────────────────────────
   /admin/service-accounts:
@@ -2025,6 +2117,9 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/ServiceAccount' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
     post:
       operationId: createServiceAccount
       summary: Create service account (REQ-155)
@@ -2100,6 +2195,9 @@ paths:
       responses:
         '204':
           description: Deactivated
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /admin/service-accounts/{id}/credentials/rotate:
     post:
@@ -2134,6 +2232,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/SystemSettings' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
     put:
       operationId: updateSystemSettings
       summary: Update system settings (SCR-038)
@@ -2149,6 +2249,9 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/SystemSettings' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  AUDIT (Schema: audit.*, ADR-024, SCR-026/054)                        ║
@@ -2409,6 +2512,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ValidationResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
   /entities/batch:
     post:
@@ -2503,6 +2608,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AllowedConnectionResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
   # ── Metamodel package import/export (ADR-026) ───────────────────────────────
   /admin/metamodel/export:
@@ -2530,6 +2637,9 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MetamodelPackage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /admin/metamodel/import:
     post:
@@ -2624,6 +2734,10 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/ShapeAssignment' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  PORTAL (Read-only, SCR-050–054)                                       ║
@@ -2760,6 +2874,8 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/AuditEvent' }
                   page: { $ref: '#/components/schemas/PageMeta' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  SSE – invalidation channel (ADR-025)                                  ║
@@ -2784,6 +2900,7 @@ paths:
                   data: {"type":"i18n_invalidated","locale":"de"}
 
                   data: {"type":"metamodel_updated"}
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TAGS

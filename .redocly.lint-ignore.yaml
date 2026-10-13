@@ -1,0 +1,9 @@
+# This file instructs Redocly's linter to ignore the rules contained for specific parts of your API.
+# See https://redocly.com/docs/cli/ for more information.
+#
+# no-ambiguous-paths: /entities/{id}/history and /entities/by-external-id/{externalId}
+# cannot collide at runtime because {id} is an integer (EntityIdParam) and
+# "by-external-id" is not. The path is fixed by ADR-026 (external write API).
+api/openapi.yaml:
+  no-ambiguous-paths:
+    - '#/paths/~1entities~1by-external-id~1{externalId}'

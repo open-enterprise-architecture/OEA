@@ -12,8 +12,8 @@ jobs:
     name: Link validation (concept/)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: Check relative links
@@ -24,8 +24,8 @@ jobs:
     name: Agent configuration in sync
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: Check single source of truth
@@ -36,7 +36,7 @@ jobs:
     name: Requirements completeness
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Traceability matrix up to date
         run: python3 scripts/generate_traceability.py --check
@@ -118,10 +118,10 @@ jobs:
     name: OpenAPI validation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '24'
       - name: Install Redocly CLI
         run: npm install -g @redocly/cli@latest
       - name: Validate OpenAPI
@@ -132,8 +132,8 @@ jobs:
     name: Markdown lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: DavidAnson/markdownlint-cli2-action@v16
+      - uses: actions/checkout@v7
+      - uses: DavidAnson/markdownlint-cli2-action@v24
         with:
           globs: |
             **/*.md
@@ -147,8 +147,8 @@ jobs:
   #   name: Backend Build & Test
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-java@v4
+  #     - uses: actions/checkout@v7
+  #     - uses: actions/setup-java@v6
   #       with: { java-version: '21', distribution: 'temurin' }
   #     - run: ./mvnw verify
   #
@@ -156,7 +156,7 @@ jobs:
   #   name: Frontend Build & Typecheck
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-node@v4
-  #       with: { node-version: '20' }
+  #     - uses: actions/checkout@v7
+  #     - uses: actions/setup-node@v7
+  #       with: { node-version: '24' }
   #     - run: cd frontend && npm ci && npm run type-check && npm run build
