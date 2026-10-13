@@ -109,7 +109,7 @@ components:
         - type: object
           properties:
             isConnection:       { type: boolean }
-            architectureLayer:  { type: string, nullable: true }
+            architectureLayer:  { type: [string, 'null'] }
             sortOrder:          { type: integer }
             isBuiltin:          { type: boolean }
             propertyMappings:
@@ -130,7 +130,7 @@ components:
         name:                 { type: string }
         abbreviation:         { type: string }
         isConnection:         { type: boolean, default: false }
-        architectureLayerId:  { type: string, nullable: true }
+        architectureLayerId:  { type: [string, 'null'] }
         sortOrder:            { type: integer, default: 0 }
         configId:             { type: string, format: uuid }
 
@@ -141,7 +141,7 @@ components:
       properties:
         id:          { type: string, format: uuid }
         name:        { type: string }
-        description: { type: string, nullable: true }
+        description: { type: [string, 'null'] }
         sortOrder:   { type: integer }
 
     PropertyCategoryWrite:
@@ -172,12 +172,12 @@ components:
         dataType:
           type: string
           enum: [string, integer, boolean, enum, reference, date, url, text]
-        category:       { $ref: '#/components/schemas/PropertyCategory', nullable: true }
-        refMetatype:    { $ref: '#/components/schemas/MetatypeSummary', nullable: true }
-        maxLength:      { type: integer, nullable: true }
-        minValue:       { type: number, nullable: true }
-        maxValue:       { type: number, nullable: true }
-        pattern:        { type: string, nullable: true }
+        category:       { oneOf: [ { $ref: '#/components/schemas/PropertyCategory' }, { type: 'null' } ] }
+        refMetatype:    { oneOf: [ { $ref: '#/components/schemas/MetatypeSummary' }, { type: 'null' } ] }
+        maxLength:      { type: [integer, 'null'] }
+        minValue:       { type: [number, 'null'] }
+        maxValue:       { type: [number, 'null'] }
+        pattern:        { type: [string, 'null'] }
         enumValues:
           type: array
           items: { $ref: '#/components/schemas/PropertyEnumValue' }
@@ -190,12 +190,12 @@ components:
         dataType:
           type: string
           enum: [string, integer, boolean, enum, reference, date, url, text]
-        categoryId:     { type: string, format: uuid, nullable: true }
-        refMetatypeId:  { type: string, format: uuid, nullable: true }
-        maxLength:      { type: integer, nullable: true }
-        minValue:       { type: number, nullable: true }
-        maxValue:       { type: number, nullable: true }
-        pattern:        { type: string, nullable: true }
+        categoryId:     { type: [string, 'null'], format: uuid }
+        refMetatypeId:  { type: [string, 'null'], format: uuid }
+        maxLength:      { type: [integer, 'null'] }
+        minValue:       { type: [number, 'null'] }
+        maxValue:       { type: [number, 'null'] }
+        pattern:        { type: [string, 'null'] }
 
     # ── Metatyp-Property-Mapping ───────────────────────────────────────────────
     MetatypePropertyMapping:
@@ -210,8 +210,7 @@ components:
         validFrom:          { type: string, format: date }
         sortOrder:          { type: integer }
         defaultValue:
-          type: object
-          nullable: true
+          type: [object, 'null']
           description: Optionaler Vorbelegungswert (typisiert)
           properties:
             valueText:  { type: string }
@@ -231,8 +230,7 @@ components:
         validFrom:     { type: string, format: date }
         sortOrder:     { type: integer, default: 0 }
         defaultValue:
-          type: object
-          nullable: true
+          type: [object, 'null']
           properties:
             valueText:  { type: string }
             valueInt:   { type: integer }
@@ -251,14 +249,13 @@ components:
         dataType:
           type: string
           enum: [string, integer, boolean, enum, reference, date, url, text]
-        valueText:  { type: string, nullable: true }
-        valueInt:   { type: integer, nullable: true }
-        valueBool:  { type: boolean, nullable: true }
-        valueDate:  { type: string, format: date, nullable: true }
-        valueEnum:  { type: string, nullable: true }
+        valueText:  { type: [string, 'null'] }
+        valueInt:   { type: [integer, 'null'] }
+        valueBool:  { type: [boolean, 'null'] }
+        valueDate:  { type: [string, 'null'], format: date }
+        valueEnum:  { type: [string, 'null'] }
         valueRef:
-          type: object
-          nullable: true
+          type: [object, 'null']
           properties:
             id:           { type: integer }
             name:         { type: string }
@@ -290,8 +287,8 @@ components:
         description: { type: string }
         metatype:    { $ref: '#/components/schemas/MetatypeSummary' }
         isLogical:   { type: boolean }
-        lifecycle:   { type: string, nullable: true }
-        deletedAt:   { type: string, format: date-time, nullable: true }
+        lifecycle:   { type: [string, 'null'] }
+        deletedAt:   { type: [string, 'null'], format: date-time }
         createdAt:   { type: string, format: date-time }
         updatedAt:   { type: string, format: date-time }
 
@@ -308,8 +305,7 @@ components:
               type: array
               items: { $ref: '#/components/schemas/RelationSummary' }
             parentEntity:
-              type: object
-              nullable: true
+              type: [object, 'null']
               properties:
                 id:   { type: integer }
                 name: { type: string }
@@ -346,7 +342,7 @@ components:
         referenceId:  { type: string }
         displayLabel: { type: string }
         sortOrder:    { type: integer }
-        metatype:     { $ref: '#/components/schemas/MetatypeSummary', nullable: true }
+        metatype:     { oneOf: [ { $ref: '#/components/schemas/MetatypeSummary' }, { type: 'null' } ] }
         isDeleted:    { type: boolean, default: false }
 
     TreeNode:
@@ -378,8 +374,7 @@ components:
         width:      { type: number }
         height:     { type: number }
         styleOverrides:
-          type: object
-          nullable: true
+          type: [object, 'null']
           additionalProperties: true
 
     DiagramView:
@@ -388,7 +383,7 @@ components:
       properties:
         id:          { type: string, format: uuid }
         name:        { type: string }
-        viewpoint:   { type: string, nullable: true }
+        viewpoint:   { type: [string, 'null'] }
         description: { type: string }
         shapes:
           type: array
@@ -418,8 +413,7 @@ components:
           enum: [source, transform, target]
         metatype: { $ref: '#/components/schemas/MetatypeSummary' }
         metrics:
-          type: object
-          nullable: true
+          type: [object, 'null']
           properties:
             recordsPerDay: { type: integer }
             latencyMs:     { type: integer }
@@ -441,7 +435,7 @@ components:
             properties:
               sourceId: { type: integer }
               targetId: { type: integer }
-              label:    { type: string, nullable: true }
+              label:    { type: [string, 'null'] }
 
     # ── Dashboard ─────────────────────────────────────────────────────────────
     WidgetConfig:
@@ -461,8 +455,7 @@ components:
             width:  { type: integer }
             height: { type: integer }
         queryConfig:
-          type: object
-          nullable: true
+          type: [object, 'null']
           description: Endpoint und Filter-Parameter für Widget-Daten
           additionalProperties: true
 
@@ -527,7 +520,7 @@ components:
           type: string
           enum: [planned, active, retiring, retired]
         isDeprecated:  { type: boolean, default: false }
-        successorId:   { type: integer, nullable: true }
+        successorId:   { type: [integer, 'null'] }
 
     PlateauBand:
       type: object
@@ -540,8 +533,8 @@ components:
             id:        { type: string, format: uuid }
             name:      { type: string }
             status:    { type: string, enum: [baseline, transition, target, realized] }
-            validFrom: { type: string, format: date, nullable: true }
-            validTo:   { type: string, format: date, nullable: true }
+            validFrom: { type: [string, 'null'], format: date }
+            validTo:   { type: [string, 'null'], format: date }
         entities:
           type: array
           items: { $ref: '#/components/schemas/RoadmapEntityCard' }
@@ -564,8 +557,8 @@ components:
         fieldName:    { type: string, description: "Property-Name oder System-Feld (name, lifecycle, …)" }
         label:        { type: string, description: "Übersetzter Label" }
         isSystemField: { type: boolean }
-        oldValue:     { type: string, nullable: true }
-        newValue:     { type: string, nullable: true }
+        oldValue:     { type: [string, 'null'] }
+        newValue:     { type: [string, 'null'] }
 
     EntityVersionSummary:
       type: object
@@ -638,8 +631,8 @@ components:
             Muss für die OEA-Instanz eindeutig sein.
         description:  { type: string }
         isLogical:    { type: boolean, default: true }
-        lifecycle:    { type: string, nullable: true }
-        parentId:     { type: integer, nullable: true, description: "Übergeordnete Entität" }
+        lifecycle:    { type: [string, 'null'] }
+        parentId:     { type: [integer, 'null'], description: "Übergeordnete Entität" }
         properties:
           type: array
           items: { $ref: '#/components/schemas/PropertyWriteValue' }
@@ -694,9 +687,9 @@ components:
         index:      { type: integer, description: "0-basierter Index im Request-Array" }
         itemType:   { type: string, enum: [entity, connection] }
         status:     { type: string, enum: [created, updated, skipped, error] }
-        id:         { type: integer, nullable: true, description: "Interne ID nach Create/Update" }
-        externalId: { type: string, nullable: true }
-        error:      { type: string, nullable: true, description: "Fehlermeldung bei status=error" }
+        id:         { type: [integer, 'null'], description: "Interne ID nach Create/Update" }
+        externalId: { type: [string, 'null'] }
+        error:      { type: [string, 'null'], description: "Fehlermeldung bei status=error" }
 
     BatchWriteResponse:
       type: object
@@ -732,8 +725,7 @@ components:
           type: array
           items: { $ref: '#/components/schemas/ValidationError' }
         preview:
-          type: object
-          nullable: true
+          type: [object, 'null']
           description: Nur bei dryRun=true; zeigt was persistiert würde
           properties:
             wouldCreate: { type: integer }
@@ -763,7 +755,7 @@ components:
       properties:
         formatVersion:       { type: string, example: "1.0" }
         exportedAt:          { type: string, format: date-time }
-        sourceInstanceId:    { type: string, nullable: true }
+        sourceInstanceId:    { type: [string, 'null'] }
         metatypes:
           type: array
           items: { $ref: '#/components/schemas/MetatypeDetail' }
@@ -791,9 +783,9 @@ components:
         viewpointKey:  { type: string, description: "Slug des Viewpoints in config.viewpoints[]" }
         metatypeId:    { type: string, format: uuid }
         shapeKey:      { type: string, description: "Icon/Shape-Schlüssel im Design-System" }
-        fillColor:     { type: string, nullable: true }
-        borderColor:   { type: string, nullable: true }
-        iconKey:       { type: string, nullable: true }
+        fillColor:     { type: [string, 'null'] }
+        borderColor:   { type: [string, 'null'] }
+        iconKey:       { type: [string, 'null'] }
 
     # ── Service-Accounts (ADR-026) ────────────────────────────────────────────
     ServiceAccount:
@@ -803,14 +795,14 @@ components:
         id:          { type: string, format: uuid, description: "client_id; stabil; = agent_id im Audit-Log" }
         personId:    { type: integer, description: "persons.id (person_type=service-account)" }
         name:        { type: string }
-        description: { type: string, nullable: true }
+        description: { type: [string, 'null'] }
         roles:
           type: array
           items: { type: string, example: "integration-writer" }
         active:      { type: boolean }
         createdAt:   { type: string, format: date-time }
-        lastUsedAt:  { type: string, format: date-time, nullable: true }
-        rotatedAt:   { type: string, format: date-time, nullable: true }
+        lastUsedAt:  { type: [string, 'null'], format: date-time }
+        rotatedAt:   { type: [string, 'null'], format: date-time }
 
     ServiceAccountWrite:
       type: object
@@ -843,8 +835,8 @@ components:
       properties:
         propertyName:  { type: string }
         isSystemField: { type: boolean }
-        oldValue:      { type: string, nullable: true }
-        newValue:      { type: string, nullable: true }
+        oldValue:      { type: [string, 'null'] }
+        newValue:      { type: [string, 'null'] }
 
     AuditEvent:
       type: object
@@ -852,16 +844,16 @@ components:
       properties:
         id:          { type: integer }
         eventType:   { type: string, example: "entity.property_changed" }
-        entityId:    { type: integer, nullable: true }
-        entityName:  { type: string, nullable: true }
-        actorId:     { type: integer, nullable: true }
+        entityId:    { type: [integer, 'null'] }
+        entityName:  { type: [string, 'null'] }
+        actorId:     { type: [integer, 'null'] }
         actorName:   { type: string }
         actorEmail:  { type: string }
         source:
           type: string
           enum: [UI, API, Job, Import]
         occurredAt:  { type: string, format: date-time }
-        requestId:   { type: string, nullable: true }
+        requestId:   { type: [string, 'null'] }
         changes:
           type: array
           items: { $ref: '#/components/schemas/AuditEventChange' }
@@ -906,9 +898,9 @@ components:
         status:
           type: string
           enum: [approved, tolerated, prohibited, under-evaluation]
-        version:     { type: string, nullable: true }
-        validUntil:  { type: string, format: date, nullable: true }
-        notes:       { type: string, nullable: true }
+        version:     { type: [string, 'null'] }
+        validUntil:  { type: [string, 'null'], format: date }
+        notes:       { type: [string, 'null'] }
 
     TRMEntryWrite:
       type: object
@@ -936,7 +928,7 @@ components:
           type: string
           enum: [critical, high, medium, info]
         message:    { type: string }
-        propertyName: { type: string, nullable: true }
+        propertyName: { type: [string, 'null'] }
 
     ConformanceResult:
       type: object
@@ -961,8 +953,8 @@ components:
           type: string
           enum: [oidc, ldap, local]
         enabled:   { type: boolean }
-        issuerUrl: { type: string, nullable: true }
-        clientId:  { type: string, nullable: true }
+        issuerUrl: { type: [string, 'null'] }
+        clientId:  { type: [string, 'null'] }
 
     AuthProviderWrite:
       type: object
@@ -993,7 +985,7 @@ components:
             properties:
               step:    { type: string }
               status:  { type: string, enum: [ok, error, skipped] }
-              message: { type: string, nullable: true }
+              message: { type: [string, 'null'] }
 
     # ── Admin – System-Einstellungen ──────────────────────────────────────────
     SystemSettings:
@@ -1004,7 +996,7 @@ components:
         sessionTimeoutMin:  { type: integer }
         maxUploadMb:        { type: integer }
         auditRetentionDays: { type: integer }
-        licenseKey:         { type: string, nullable: true }
+        licenseKey:         { type: [string, 'null'] }
         sseEnabled:         { type: boolean }
 
     # ── I18N ─────────────────────────────────────────────────────────────────
@@ -1105,7 +1097,7 @@ paths:
           schema: { type: boolean }
         - name: deleted
           in: query
-          schema: { type: string, enum: [false, true, only], default: "false" }
+          schema: { type: string, enum: ["false", "true", "only"], default: "false" }
       responses:
         '200':
           description: Entitätenliste
