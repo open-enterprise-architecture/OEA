@@ -267,6 +267,36 @@ Update client:
 | macOS | Gatekeeper blocks the first start ("cannot be opened because the developer cannot be verified" or "Apple could not verify …"); **automatic in-app updates are not available** because macOS update installation requires a signed app | How to verify checksum and attestation; opening via System Settings → Privacy & Security → "Open Anyway"; the client notifies about new versions and links to the release page for manual download |
 | Linux | No OS-level signature check for AppImage; distribution packages are not in a signed repository | Verify checksum and attestation before running; AppImage auto-update with checksum verification as above |
 
+### 10a. Update control (owner decision Q22)
+
+Updates are steerable so that the client fits both small installations and centrally managed enterprise environments.
+
+**Update modes** (`clientUpdateMode`):
+
+| Mode | Update source | Typical use |
+|---|---|---|
+| `public` | Official release source of the project (GitHub Releases) | Single users and small organizations without software distribution |
+| `server` | The organization's OEA server serves the client release that matches its API version (update metadata and packages mirrored from the official release) | Organizations without central software distribution; networks without internet access |
+| `managed` | None – the client never downloads updates; IT deploys new versions (Intune, SCCM/ConfigMgr, Jamf) | Enterprises with central software distribution |
+
+**Precedence** (highest first; a lower level can never weaken a higher one):
+
+1. **Device policy** set by IT: Windows `HKLM\Software\Policies\OEA` (registry values deployable via Intune/Group Policy; the project ships an ADMX/ADML template), macOS managed preferences (configuration profile via Jamf/Intune), Linux `/etc/oea/policy.json` (root-owned). Users cannot override it.
+2. **Operator setting** on the OEA server (`clientUpdateMode`, `minClientVersion`, `recommendedClientVersion`), read by the client from the public endpoint `GET /api/v1/client-compatibility` before login.
+3. **Default**: `public`.
+
+**Version compatibility** (all modes, including `managed`):
+
+- Below `minClientVersion` the client refuses to work with the server and shows "Please update – contact your IT department" (`managed`) or offers the update (`public`, `server`). This enforces security updates without IT having to disable old clients separately.
+- Below `recommendedClientVersion` the client only shows a notice.
+- `GET /api/v1/client-compatibility` is public (it must work before login) and returns only version information and the update mode – no instance data.
+
+**Integrity is independent of the source**: in mode `server` the client still verifies every package against the checksum and build provenance attestation of the official project release (section 10). A compromised or misconfigured OEA server can therefore only offer official releases, never an arbitrary binary; it cannot force a downgrade (`allowDowngrade = false`).
+
+**Packaging for software distribution**: the release additionally publishes a per-machine **MSI** for Windows (Intune Win32/MSI deployment) and a PKG for macOS. Per-machine installations default to mode `managed` unless a device policy says otherwise.
+
+**macOS**: without OS code signing (Q12) automatic in-app updates are not possible; on macOS only `managed` and manual updates apply until signing is introduced.
+
 ### 11. Verification in CI
 
 | Check | Tool / method | Fails the build when |
@@ -348,6 +378,8 @@ Update client:
 - [Security review requirements baseline 2026-10](../security-reviews/requirements-baseline-2026-10.md) – SEC-18, SEC-19, SEC-29; owner decisions Q9, Q11, Q12
 
 ## Notes
+
+- Owner confirmation (2026-10-13): the details beyond the original brief are confirmed – main-process API proxy (renderer never sees tokens), offline cache limited to the absolute session lifetime, Electron security fixes (high/critical) shipped within 14 days, no token or offline cache without an OS keyring on Linux, no automatic updates on macOS until OS code signing is introduced.
 
 - The main-process API proxy was preferred over injecting the `Authorization` header with `session.webRequest.onBeforeSendHeaders` for direct renderer requests: the proxy keeps all API traffic same-origin (no CORS rule for a custom-scheme origin on the server, REQ-187) and gives one place to restrict the target to the configured server.
 - Electron defaults evolve; the values in section 2 are set explicitly even where they equal the current default, so that a default change in a future Electron version does not weaken the baseline silently.

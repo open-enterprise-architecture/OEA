@@ -371,6 +371,8 @@ The business engineer updates `docs/data-model.puml` and the business objects; t
 
 ## Notes
 
+- Owner confirmation (2026-10-13): Cypher is deferred until a graph-engine decision (refines Q8); raw analytics are disabled by default (`analytics.enabled = false`).
+
 - The review's original proposal PR-23 ("no raw query languages") corresponds to option (a); it was overruled by owner decision Q8.
 - Masking in the view projection, not in a `WHERE` clause, is essential: row filtering alone cannot express property-level visibility, and predicates on masked output columns cannot act as an oracle for the unmasked values.
 - Confirmation by the owner that "Cypher deferred to the graph-engine ADR" is an acceptable reading of Q8 is recorded as an open point in the hand-over of this ADR.

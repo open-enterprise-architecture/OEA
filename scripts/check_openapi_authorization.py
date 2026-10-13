@@ -32,6 +32,7 @@ from pathlib import Path
 # Extending this list is a security decision and needs a review.
 PUBLIC_ALLOWLIST = {
     "issueClientCredentialsToken",
+    "getClientCompatibility",  # REQ-195: version check before login, no instance data
 }
 
 ACCESS_VALUES = {"public", "authenticated", "permission"}
