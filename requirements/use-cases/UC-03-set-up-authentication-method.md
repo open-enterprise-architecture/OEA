@@ -98,7 +98,7 @@ Instances without an external identity provider use local authentication (userna
 
 ## Basic Flow
 
-*Default case: TOTP setup as a required action, triggered by first login*
+*Default case: TOTP setup as a required action, triggered by first login.*
 
 1. **Kurt**: enters username and initial password in the login form (UC-01 A5, steps 1–2)
 2. **System**: validates the password; determines that the required action "2FA setup" is pending; redirects Kurt to the setup page – without a session and without access to the application
@@ -111,16 +111,20 @@ Instances without an external identity provider use local authentication (userna
 ## Alternative Flows
 
 **A1 – Passkey as required action**: At step 3, if Kurt selects passkey (or the instance has only activated passkey):
+
 1. System starts the WebAuthn registration challenge
 2. Kurt confirms with a compatible authenticator
 3. System verifies the registration response, persists public key and credential ID
+
 - Returns to step 6 (clear required-action flag, create session)
 
 **A2 – 2FA not enforced**: If REQ-020 is inactive:
+
 - UC-03 is not triggered; UC-01 A5 grants access directly after password verification
 - Kurt optionally sets up a further method via his profile settings (A3)
 
 **A3 – Additional method for an already logged-in person**: If Kurt is already authenticated and wants to set up an additional local method:
+
 1. Kurt navigates to the security settings of his profile
 2. System shows available methods that have not been set up yet
 3. Method-specific flow as in the basic flow (TOTP) or A1 (passkey); no required-action context
@@ -129,16 +133,19 @@ Instances without an external identity provider use local authentication (userna
 ## Exception Flows
 
 **E1 – TOTP verification fails**:
+
 - Condition: Kurt enters a wrong or expired code (step 5)
 - Expected reaction: System shows an error message, no secret is persisted; required-action flag remains set
 - Resumption: Kurt enters the next code; the setup page remains open
 
 **E2 – Passkey registration fails**:
+
 - Condition: Kurt cancels the authenticator confirmation or the authenticator reports an error
 - Expected reaction: System shows a generic error message, no credential persisted; required-action flag remains set
 - Resumption: Kurt can try again or switch to TOTP (if available)
 
 **E3 – Kurt cancels the required action**:
+
 - Condition: Kurt closes the browser or explicitly cancels the setup
 - Expected reaction: no session, no credential; at the next login attempt UC-03 starts over
 - Resumption: Kurt logs in again

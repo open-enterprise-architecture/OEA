@@ -34,14 +34,17 @@ Without a `restoredFields` log, it is not recognizable in the timeline what was 
 ## Acceptance Criteria
 
 **AC1** (restoredFields in the version entry):
+
 - When: a partial restore is executed with `description` and `properties.owner`
 - Then: the new EntityVersion entry contains `restoredFields=["description","properties.owner"]`
 
 **AC2** (Reject empty selection):
+
 - When: no fields were selected and the confirm button is clicked
 - Then: the button is disabled; an API call with empty `restoredFields` is rejected with HTTP 422
 
 **AC3** (Timeline readability):
+
 - When: the timeline is displayed after a partial restore
 - Then: the entry shows "Partially restored from v4 (description, properties.owner)"
 

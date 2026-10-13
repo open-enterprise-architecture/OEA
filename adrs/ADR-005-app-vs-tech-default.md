@@ -29,20 +29,24 @@ The open question: Which variant is the **default delivery state** of OEA?
 ## Considered Options
 
 ### Option 1: Variant A as default ("Platform-as-Technology")
+
 - Pro: more classic TOGAF reading; more familiar to senior EAs
 - Con: does not fit product orgs (growing majority); could be perceived as bias
 
 ### Option 2: Variant B as default ("Platform-as-Application")
+
 - Pro: fits modern product/platform engineering trends
 - Con: deviates from classic EA teaching; unfamiliar to traditional EA departments
 
 ### Option 3 (chosen): Deliberately undefined + two starter packages
+
 - OEA is delivered without an enforced app/tech principle
 - During bootstrapping, the admin chooses from two optional starter packages (or starts without)
 - **Pro**: no bias; respects the organization's decision; low entry barrier through concrete examples
 - **Con**: First-time users must make a decision (but this is deliberately intended)
 
 ### Option 4: Variant A as default, switching possible at any time
+
 - Pro: pragmatic middle ground
 - Con: "switching possible at any time" is in fact laborious once 10,000 entities have already been modeled; the supposed advantage is illusory
 
@@ -53,6 +57,7 @@ The open question: Which variant is the **default delivery state** of OEA?
 OEA has **no enforced default** for Application vs. Technology. Instead there are two optional starter packages (ADR-002 import mechanism) that are offered during bootstrapping (UC-02):
 
 ### Starter Package A: `oea-starter-togaf-classic`
+
 Modeled after the classic TOGAF/ArchiMate reading (Variant A: Platform-as-Technology):
 
 | EntityType | Category | Example |
@@ -66,6 +71,7 @@ Modeled after the classic TOGAF/ArchiMate reading (Variant A: Platform-as-Techno
 | `network-node` | Technology | Load balancer |
 
 ### Starter Package B: `oea-starter-product-org`
+
 Modeled after the modern product-org reading (Variant B: Platform-as-Application):
 
 | EntityType | Category | Example |
@@ -77,11 +83,13 @@ Modeled after the modern product-org reading (Variant B: Platform-as-Application
 | `runtime-platform` | Technology | EKS cluster, VM farm |
 
 ### Bootstrapping Flow (complements UC-02)
+
 1. On first login, the admin is asked: "Import starter configuration?"
 2. Options: `oea-starter-togaf-classic`, `oea-starter-product-org`, "Start empty"
 3. The choice imports the package as `scope=imported`; the admin can then add own types or fork existing ones
 
 ### No Enforcement
+
 - Both packages can be freely modified after import (fork via "As own copy" → `scope=organization`)
 - Admin can import both packages at the same time (some organizations have hybrid models)
 - No code path in the backend depends on the choice — they are pure EntityTypeDefinition configurations
@@ -89,22 +97,26 @@ Modeled after the modern product-org reading (Variant B: Platform-as-Application
 ## Consequences
 
 ### Positive Consequences
+
 - No bias towards one classification principle
 - Low entry barrier through concrete starter configurations
 - Full extensibility: org can add its own subtypes (`private-cloud-app extends application-component`)
 - Consistent with ADR-002 (import mechanism) and ADR-003 (work-initiative as metamodel type)
 
 ### Negative Consequences / Trade-offs
+
 - Two starter packages must be maintained (standalone OSS artifacts)
 - First-time users must make a conscious decision during bootstrapping — but this is a conceptual necessity, not a weakness
 
 ### Follow-up Decisions
+
 - UC-02 (bootstrapping) receives a step for starter configuration (complements REQ-013/014)
 - `oea-starter-togaf-classic` and `oea-starter-product-org` are managed as standalone package files in the repository (`packages/` directory — comes with the Walking Skeleton)
 
 ## References
 
 **Concept Chapters**:
+
 - [§6.1.1 Application vs. Technology](../concept/20-entities/06-core-entity-types.md)
 
 **Dependent ADRs**: ADR-002 (import mechanism for starter packages), ADR-003 (product/project as configurable types)

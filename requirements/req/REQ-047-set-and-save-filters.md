@@ -80,34 +80,41 @@ Filters are passed as query parameters to `GET /api/v1/catalogs/{id}/query` (cf.
 ## Acceptance Criteria
 
 **AC1** (Create SavedFilter, happy path):
+
 - When: `POST /api/v1/catalogs/{id}/filters` with `{ name: "Active systems only", logicalOperator: "and", expressions: [{attributePath: "status", operator: "eq", value: "active"}] }`
 - Then: HTTP 201; SavedFilter in catalog; offered in quick selection on the next query
 
 **AC2** (Apply SavedFilter):
+
 - Given: SavedFilter "Active systems only" with id=filter-1 exists
 - When: `GET /api/v1/catalogs/{id}/query?savedFilterIds[]=filter-1`
 - Then: only entities with status=active in the response; `totalCount` reduced accordingly
 
 **AC3** (BR-04 – invalid attributePath):
+
 - Given: primaryEntityType ApplicationComponent has no attribute `nonexistent`
 - When: FilterExpression with `attributePath: "nonexistent"`
 - Then: HTTP 422 "The attribute ‹nonexistent› is not defined for the type ‹ApplicationComponent›"
 
 **AC4** (Dot notation on join):
+
 - Given: JoinDefinition "Interfaces" with targetEntityType Interface, attribute `protocol`
 - When: FilterExpression with `attributePath: "Interfaces.protocol", operator: "eq", value: "REST"`
 - Then: HTTP 201; the filter filters join results to protocol=REST
 
 **AC5** (OR combination):
+
 - When: SavedFilter with `logicalOperator: "or"` and two expressions: `status=active` OR `status=deprecated`
 - Then: the query returns entities with status=active or status=deprecated
 
 **AC6** (Scope check):
+
 - Given: Franz has only the visitor role (no write permission)
 - When: Franz tries to create a SavedFilter with scope=instance
 - Then: HTTP 403; Franz can only create SavedFilters with scope=personal
 
 **AC7** (Delete SavedFilter and clean up SavedView):
+
 - Given: SavedView "Compact view" references SavedFilter id=filter-1
 - When: `DELETE /api/v1/catalogs/{id}/filters/filter-1`
 - Then: HTTP 200; SavedFilter deleted; SavedView cleaned up (filter-1 removed from `activeFilterIds`)

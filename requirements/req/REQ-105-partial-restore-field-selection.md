@@ -34,14 +34,17 @@ Accidentally selecting identical fields would be confusing. Properties that did 
 ## Acceptance Criteria
 
 **AC1** (Identical fields grayed out):
+
 - When: a field is identical in the source and the current state
 - Then: the checkbox is grayed out and not clickable
 
 **AC2** (New properties labeled):
+
 - When: a property "cost-center" was not yet present in the source version
 - Then: the wizard shows "(not present in source version)"; checkbox not selectable
 
 **AC3** (Preview on field selection):
+
 - When: the checkbox of a changed field is activated
 - Then: the value from the source version is displayed as a preview
 

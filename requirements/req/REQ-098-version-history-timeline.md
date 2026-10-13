@@ -35,14 +35,17 @@ Without a traceable change history, an architecture repository is not a trustwor
 ## Acceptance Criteria
 
 **AC1** (Timeline with versions):
+
 - When: an entity with 5 versions is opened
 - Then: the timeline shows 5 entries, newest first
 
 **AC2** (Filter by actor):
+
 - When: the timeline is filtered by actor "Michael"
 - Then: only versions created by Michael are displayed
 
 **AC3** (Entity without history):
+
 - When: an entity without a change history is opened
 - Then: the tab shows "No changes since creation. Created on [date] by [person]."
 

@@ -58,16 +58,19 @@ Applies to the server-side portion of the catalog query (`GET /api/v1/catalogs/{
 ## Acceptance Criteria
 
 **AC1** (Without join):
+
 - Given: Repository with 10,000 ApplicationComponent entities; catalog without joins; no filter
 - When: 95% of the queries are measured
 - Then: Server processing time < 200ms
 
 **AC2** (3 joins, aggregate mode):
+
 - Given: Repository with 10,000 ApplicationComponent entities; catalog with 3 JoinDefinitions; on average 5 join results per entity
 - When: 95% of the queries are measured
 - Then: Server processing time < 500ms
 
 **AC3** (Filter + 3 joins):
+
 - Given: as AC2 + 1 SavedFilter with 2 AND-combined conditions
 - When: 95% of the queries are measured
 - Then: Server processing time < 600ms

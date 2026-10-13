@@ -41,7 +41,7 @@ Purely internal use without SaaS operation and without distribution is possible 
 License fees depend on the scope of use and the size of the organization.
 Contact for an individual offer:
 
-**Email**: luek.mathis@gmail.com
+**Email**: <luek.mathis@gmail.com>
 **Subject**: OEA Enterprise License Inquiry
 
 ## Terms

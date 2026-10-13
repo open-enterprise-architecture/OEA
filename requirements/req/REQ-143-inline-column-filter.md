@@ -74,28 +74,34 @@ Inline filters and SavedFilters are combinable: both are applied AND-combined to
 ## Acceptance Criteria
 
 **AC1** (Inline filter sets result):
+
 - Given: catalog "Application Inventory" with 47 ApplicationComponent entries
 - When: the user types "Catalog" into the inline filter field of the "Name" column
 - Then: the table shows only entities whose name contains "Catalog" (contains); status bar updates the count
 
 **AC2** (AND combination of multiple inline filters):
+
 - When: the user sets inline filter Name="Service" AND Layer="Application"
 - Then: only entities that meet BOTH conditions appear in the table
 
 **AC3** (Combination of inline filter + SavedFilter):
+
 - Given: SavedFilter "Active systems only" is active
 - When: additionally inline filter Layer="Application" is set
 - Then: result = active AND layer=Application (all filters AND-combined)
 
 **AC4** (Inline filter not persistent):
+
 - When: the user sets an inline filter, leaves the catalog, and opens it again
 - Then: inline filters are cleared; SavedFilters remain active (since persisted)
 
 **AC5** (No API call to save):
+
 - When: an inline filter is set
 - Then: no `POST /api/v1/catalogs/{id}/filters` — only a GET query with an inline parameter
 
 **AC6** (OR note):
+
 - Given: the user wants to filter Name="Gateway" OR Name="Service"
 - Then: the inline filter does not support OR; the user is referred to the "+ Filter" dialog by a tooltip/note
 

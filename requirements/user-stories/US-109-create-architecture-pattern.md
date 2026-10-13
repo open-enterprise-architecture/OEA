@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to create `ArchitecturePattern` en
 ## Acceptance Criteria
 
 **AC1** (Create pattern):
+
 - When: I create a pattern with `problem` and `solution`
 - Then: the system saves it with HTTP 201; it is visible in the library
 
 **AC2** (Mandatory field problem):
+
 - When: I try to save a pattern without the `problem` field
 - Then: I receive HTTP 422 "problem is a mandatory field"
 
 **AC3** (Link relatedPatterns):
+
 - When: I link `relatedPatterns` with other patterns via multi-select
 - Then: the links are saved and displayed in the detail view
 

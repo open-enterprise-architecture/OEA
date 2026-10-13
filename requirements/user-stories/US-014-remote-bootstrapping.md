@@ -18,11 +18,13 @@ As an operator with an already configured Entra ID or Authentik, I want to be ab
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a configured claim mapping to an IdP group
 - When: a person with this group claim in the identity token signs in
 - Then: the session receives system admin permissions
 
 **AC2**:
+
 - Given: the same mapping
 - When: a person without this claim signs in
 - Then: the session receives no system admin permissions via this route

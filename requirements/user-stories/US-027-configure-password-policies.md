@@ -18,21 +18,25 @@ As an operator, I want to define instance-wide which character types passwords m
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Max opens the instance configuration
 - When: he enables `requireUppercase`, `requireDigits`, `requireSpecialChars` and sets `minLength=16`
 - Then: these rules are enforced from now on for every password set or change
 
 **AC2**:
+
 - Given: `expiryDays=90` is configured
 - When: a person logs in after 91 days
 - Then: they are prompted to change their password before they gain access
 
 **AC3**:
+
 - Given: `historyCount=5` is configured
 - When: a person sets a password that was one of the last 5
 - Then: it is rejected with an understandable error message
 
 **AC4**:
+
 - Given: Max tries to enable `minLength=2` with all four character types
 - When: he wants to save
 - Then: a validation error appears; the configuration is not saved

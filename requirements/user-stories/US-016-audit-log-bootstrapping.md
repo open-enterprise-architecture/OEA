@@ -18,11 +18,13 @@ As an operator, I want every bootstrapping process to be logged, so that I can p
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a successfully completed bootstrapping process (local or remote)
 - When: it is completed
 - Then: the audit log contains an entry with timestamp, mode and result `success`
 
 **AC2**:
+
 - Given: a rejected bootstrapping attempt
 - When: the rejection occurs
 - Then: the audit log contains an entry with timestamp and result `rejected`

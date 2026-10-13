@@ -25,20 +25,24 @@ Every entity in the EA repository needs a unique, stable ID. This ID appears in 
 ## Considered Options
 
 ### Option 1: UUID v4 internally
+
 - Pro: global uniqueness without instance context
 - Con: not human-readable; worse than integer for DB performance in JOIN operations
 
 ### Option 2: Descriptive URN with hierarchy
+
 - Pro: self-describing (`urn:ea:org:application:crm-system`)
 - Con: unstable on renaming — directly contradicts the stability driver
 
 ### Option 3 (chosen): Internal integer ID + constructible external URN
+
 - **Internal**: positive integer (already established by entity.md)
 - **External / cross-reference**: `urn:oea:{instance-slug}:{integer-id}` (e.g. `urn:oea:acme-corp:42`)
 - Pro: best DB performance; stability guaranteed; externally constructible; no duplicate maintenance effort
 - Con: external URN without semantic content hint (type is not in the URN)
 
 ### Option 4: ULID / sortable IDs
+
 - Pro: sortable by time
 - Con: not human-readable; no added value over integer for this use case
 
@@ -58,23 +62,27 @@ Every entity in the EA repository needs a unique, stable ID. This ID appears in 
 ## Consequences
 
 ### Positive Consequences
+
 - Integer IDs are native in PostgreSQL, SQL JOINs, and optimal for cursor pagination (REQ-071)
 - External URN is deterministically constructible from known parts — no separate URN table needed
 - Entity mention format `[[Name|entity:42]]` (REQ-070) is consistent with this decision
 - Stable IDs are a prerequisite for ID-stable linking in Arc42 documents (BR-07)
 
 ### Negative Consequences / Trade-offs
+
 - `instance-slug` must be set during bootstrapping and is immutable afterwards (otherwise all external URNs become invalid)
 - No type information in the ID — external systems must query the type via the API
 - Cross-instance references (e.g. OEA instance A references an entity in OEA instance B) are possible via URN, but v1.0 does not resolve these references automatically
 
 ### Follow-up Decisions
+
 - Bootstrapping REQ must include `instance-slug` as a mandatory field (complements REQ-013/014)
 - Export format for audit log and package import (ADR-002) uses URN format
 
 ## References
 
 **Concept Chapters**:
+
 - [§2 Meta-Metamodel](../concept/00-overview/02-meta-metamodel.md)
 - [§15 Schema Evolution](../concept/40-extensibility/15-schema-evolution.md)
 

@@ -36,14 +36,17 @@ Technology diversity is a frequent cost driver. Visibility of categories with ma
 ## Acceptance Criteria
 
 **AC1** (Highlight standardization potential):
+
 - When: the TRM category "Container Orchestration" has 3 distinct SBBs in use
 - Then: this category is highlighted as "Standardization potential"
 
 **AC2** (List missing standards):
+
 - When: TRM categories without a configured `preferredStandard` exist
 - Then: they appear in a separate list "Missing standards"
 
 **AC3** (PDF export with executive summary):
+
 - When: the export as PDF is triggered
 - Then: the document contains an executive summary section with the top 3 risks (prohibited entities, gap ratio, diversity hotspots) and detail tables per analysis section
 

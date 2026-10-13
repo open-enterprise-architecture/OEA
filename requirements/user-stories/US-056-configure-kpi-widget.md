@@ -18,25 +18,30 @@ As a Lead Enterprise Architect, I want to add a KPI widget to a dashboard that d
 ## Acceptance Criteria
 
 **AC1** (create widget with sum):
+
 - Given: MetamodelConfiguration contains EntityType `plateau` with PropertyDefinition `investmentCostForecast` (kind=int); 3 plateau instances with values 5,000,000, 12,000,000, 25,000,000
 - When: Kurt creates KPI widget: title="Total Investment Forecast", entityType=plateau, propertyName=investmentCostForecast, aggregationFn=sum, unit="CHF"
 - Then: Widget saved; on data retrieval the widget shows "42,000,000 CHF"
 
 **AC2** (count aggregation):
+
 - Given: 15 plateau instances in the repository
 - When: Kurt creates KPI widget: propertyName=id, aggregationFn=count, unit="Plateaus"
 - Then: Widget shows "15 Plateaus"
 
 **AC3** (invalid aggregation: varchar property with sum):
+
 - When: Kurt selects propertyName=name (kind=varchar), aggregationFn=sum
 - Then: Error message "sum requires an integer property"; widget not saved
 
 **AC4** (no data → null display):
+
 - Given: EntityType `plateau` has no instances with a populated property
 - When: Retrieve data
 - Then: Widget shows "– (no data)" instead of a number; no error status
 
 **AC5** (comparisonMode=vs-target without targetValue):
+
 - When: Kurt sets comparisonMode=vs-target without targetValue
 - Then: Error "targetValue is mandatory for comparisonMode=vs-target"
 

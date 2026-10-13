@@ -18,11 +18,13 @@ As a security officer, I want failed login attempts to allow no conclusions abou
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a login attempt with a non-existent identity
 - When: the login fails
 - Then: the error message is identical to that for an existing but incorrectly authenticated identity
 
 **AC2**:
+
 - Given: two failed login attempts (existing vs. non-existent identity)
 - When: the response times are compared
 - Then: they do not differ in an analyzable way (no timing side channel)

@@ -34,14 +34,17 @@ Organizations have specific perspectives (cloud security, domain overview) that 
 ## Acceptance Criteria
 
 **AC1** (Create viewpoint):
+
 - When: a new viewpoint with 3 EntityTypes is created
 - Then: the API responds with HTTP 201; the viewpoint is immediately selectable for new diagrams
 
 **AC2** (Remove EntityType with warning):
+
 - When: during editing, an EntityType that is used in existing diagrams is removed from `allowedEntityTypes`
 - Then: the system shows a warning "N diagrams affected"; editing is not blocked
 
 **AC3** (Delete viewpoint):
+
 - When: a user-defined viewpoint is deleted
 - Then: it is removed from the `MetamodelConfiguration`
 

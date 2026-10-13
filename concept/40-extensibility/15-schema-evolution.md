@@ -172,7 +172,8 @@ Workflow: tags are introduced experimentally, the data obtained is evaluated, an
 Schema changes are not only technical but organizational. The tool supports:
 
 **Impact analysis before a schema change:**
-```
+
+```text
 "Add property dataClassification as mandatory?
  Scope 'all tier-1 applications' affects 47 entities.
  Affected owners: Finance IT (23), Sales IT (14), Corporate (10).

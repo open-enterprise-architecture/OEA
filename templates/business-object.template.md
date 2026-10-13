@@ -39,6 +39,7 @@ Extended description: context, business purpose, typical lifetime.
 | | | | | | |
 
 **Notation**:
+
 - `reference` → points to another business object, with `target: <object-id>`
 - `enum` → list the value set, e.g. `[active, inactive, archived]`
 - `composite` → embedded structure, break down in a separate table
@@ -53,6 +54,7 @@ Relationships to other business objects:
 | | | | | |
 
 **Notes**:
+
 - Relationship direction is semantically important (e.g. "Order belongsTo Customer")
 - For n:m: model a separate connection object if applicable
 
@@ -60,17 +62,19 @@ Relationships to other business objects:
 
 States the business object can pass through:
 
-```
+```text
 {{initial-state}} → {{state-1}} → {{state-2}} → {{terminal-state}}
                        ↓
                    {{alternative-state}}
 ```
 
 **States**:
+
 - `{{state}}`: meaning, how it is reached, what is allowed in this state
 - ...
 
 **Transitions**:
+
 - `{{from}} → {{to}}`: trigger, permission, consequences
 
 ## Business Rules
@@ -89,12 +93,14 @@ For complex rules: separate file in `business-objects/rules/BR-NN-name.md` and l
 Concrete examples help with understanding:
 
 **Example 1**: {{name}}
+
 ```yaml
 {{attribute1}}: {{value1}}
 {{attribute2}}: {{value2}}
 ```
 
 **Example 2**: {{name}}
+
 ```yaml
 {{...}}
 ```

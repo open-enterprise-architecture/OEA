@@ -82,7 +82,7 @@ A viewpoint is assigned to exactly one notation. The notation controls how the e
 
 ### Interplay with MetamodelConfiguration
 
-```
+```text
 MetamodelConfiguration (scope=instance)
   ├── EntityTypeDefinitions: application-component, data-flow, security-zone, ...
   ├── Stereotypes: saas-application, ...
@@ -237,6 +237,7 @@ Viewpoints have no standalone status lifecycle. They exist as a configuration el
 ## Examples
 
 **User-defined viewpoint – Cloud Security View (ArchiMate 3)**:
+
 ```yaml
 viewpoint:
   id: cloud-security-view
@@ -270,6 +271,7 @@ viewpoint:
 ```
 
 **System-defined viewpoint – Application Architecture View (ArchiMate 3)**:
+
 ```yaml
 viewpoint:
   id: application-architecture-view
@@ -302,6 +304,7 @@ viewpoint:
 ```
 
 **BPMN viewpoint – Process View**:
+
 ```yaml
 viewpoint:
   id: process-view

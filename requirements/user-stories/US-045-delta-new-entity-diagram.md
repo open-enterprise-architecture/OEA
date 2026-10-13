@@ -18,31 +18,37 @@ As a Solution Architect, I want to be able to place and name a new entity direct
 ## Acceptance Criteria
 
 **AC1** (new entity, no match):
+
 - Given: The IT landscape contains `CRM-Legacy` and `ERP-Core`; Michael is working in the diagram
 - When: he places a new element on the canvas and types "Salesforce"
 - Then: a suggestion list with matches from the landscape appears (substring search); "Salesforce" finds no match; Michael confirms → `Salesforce` is created as `deltaType=new`
 
 **AC2** (existing entity recognized):
+
 - Given: The landscape contains `CRM-Legacy (ApplicationComponent)`
 - When: Michael types "CRM"
 - Then: `CRM-Legacy` appears in the suggestion list; if Michael selects it, the element is created as `deltaType=retiring` (or `modified`), **not** as `new`
 
 **AC3** (suggestion list always contains landscape entries):
+
 - Given: The landscape contains 30 entities
 - When: Michael creates a new diagram element and focuses the name input area (before he types)
 - Then: the suggestion list immediately shows all entities of the landscape (unfiltered), sorted by EntityType and name
 
 **AC4** (diagram element without name selection stays new):
+
 - Given: Michael types "NewApp" and the suggestion list shows no matches
 - When: he closes the selection and confirms with the typed name
 - Then: `NewApp` is created as `deltaType=new` with the entered name
 
 **AC5** (consistency with catalog path):
+
 - Given: Michael has created `Salesforce (new)` in the diagram
 - When: he switches to the catalog view
 - Then: `Salesforce` is visible in the delta list – identical to a delta created via US-040
 
 **AC6** (duplicate protection also applies in the diagram):
+
 - Given: `Salesforce (new)` already exists as a delta in this solution
 - When: Michael tries to create another entity with the same name in the diagram
 - Then: a warning appears "Entity 'Salesforce' already exists as a delta in this solution"; no second delta is created

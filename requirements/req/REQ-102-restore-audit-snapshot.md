@@ -34,14 +34,17 @@ Every restore must itself be traceable. Without an audit snapshot, a restore wou
 ## Acceptance Criteria
 
 **AC1** (Snapshot entry after restore):
+
 - When: a restore is executed
 - Then: a new EntityVersion entry with `restoredFromVersion=N` is visible in the timeline
 
 **AC2** (Marking in timeline):
+
 - When: the timeline is displayed after a restore
 - Then: the new entry shows the marking "Restored from vN"
 
 **AC3** (Snapshot before restore retained):
+
 - When: the restore is completed
 - Then: the state BEFORE the restore is present as an independent snapshot in `entity_versions`
 

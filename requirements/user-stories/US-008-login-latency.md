@@ -18,11 +18,13 @@ As an operator, I want the login process to stay within a defined latency budget
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a repository with 10,000 persons and 1,000 roles
 - When: 95% of OIDC login processes are measured
 - Then: the server-side processing time is below 300ms
 
 **AC2**:
+
 - Given: a repository with 10,000 active API keys
 - When: 95% of API key validations are measured
 - Then: the processing time is below 100ms

@@ -18,21 +18,25 @@ As an already logged-in person, I want to set up another local authentication me
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Kurt is logged in and has not yet set up a TOTP method
 - When: he adds TOTP in the security settings and completes the setup
 - Then: TOTP is persisted as an additional method; no enrollment token was needed
 
 **AC2**:
+
 - Given: Kurt is logged in and wants to add a second passkey
 - When: he performs the passkey registration
 - Then: the new public key is persisted; both passkeys can be used for login
 
 **AC3**:
+
 - Given: Kurt has already set up all methods available for the instance
 - When: he opens the security settings
 - Then: he sees an informational notice, not an error
 
 **AC4**:
+
 - Given: a request to the enrollment endpoint without a valid session
 - When: the request arrives
 - Then: it is rejected and redirected to the login

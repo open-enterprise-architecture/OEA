@@ -38,22 +38,27 @@ Without configurable collections, Arc42 would be a rigid format that does not fi
 ## Acceptance Criteria
 
 **AC1** (Create collection):
+
 - When: Admin posts `{ id: "arc42-sme", name: "Arc42 SME", questions: [...], assignedEntityTypeIds: ["application-component"] }`
 - Then: HTTP 201; collection stored in MetamodelConfiguration; EntityType `application-component` shows the collection when opened
 
 **AC2** (Add question):
+
 - When: Admin adds `{ questionId: "context", title: "Context", questionText: "...", sortOrder: 1 }` to a collection
 - Then: Question appears at position 1 in the collection
 
 **AC3** (Import built-in standard collection):
+
 - When: Admin clicks "Import standard Arc42"
 - Then: Collection `arc42-standard` with 12 questions is created as a user-defined copy (editable); original remains immutable
 
 **AC4** (Multiple assigned EntityTypes):
+
 - When: `assignedEntityTypeIds: ["application-component", "technology-component"]`
 - Then: Both EntityTypes show the collection in the Arc42 tab
 
 **AC5** (Delete collection):
+
 - When: Admin deletes a collection that already has answer entities
 - Then: HTTP 422; message: "Collection has {N} answers — first remove answers or mark the collection as inactive"; no data loss
 

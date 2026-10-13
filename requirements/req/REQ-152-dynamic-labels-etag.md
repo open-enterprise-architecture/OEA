@@ -39,6 +39,7 @@ Two label categories: static UI labels (vue-i18n bundle, no API call) and dynami
 **Specification**: `api/openapi.yaml` → `GET /i18n/{locale}`
 
 **Contracts**:
+
 - Endpoint: `GET /api/v1/i18n/{locale}` (locale: de | en | fr | it)
 - Response schema: I18nBundle (flat key-value map)
 - Header: `ETag`, `Cache-Control: max-age=300, stale-while-revalidate=3600`
@@ -47,16 +48,19 @@ Two label categories: static UI labels (vue-i18n bundle, no API call) and dynami
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: label set for `de` not changed since the last request
 - When: `GET /api/v1/i18n/de` with `If-None-Match: "<etag>"`
 - Then: 304 Not Modified; no response body
 
 **AC2**:
+
 - Given: admin changes a MetaType name in the metamodel editor
 - When: `GET /api/v1/i18n/de` without If-None-Match
 - Then: 200 OK; new ETag; bundle contains the updated label
 
 **AC3** (SSE, optional):
+
 - Given: client has `GET /api/v1/events/stream` open
 - When: admin saves a label change
 - Then: SSE event `{"type":"i18n_invalidated","locale":"de"}` received within 2s

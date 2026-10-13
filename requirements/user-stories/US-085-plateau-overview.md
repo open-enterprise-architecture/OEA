@@ -18,10 +18,12 @@ As Kurt – Lead Enterprise Architect, I want to see a structured overview of al
 ## Acceptance Criteria
 
 **AC1** (Grouped display):
+
 - When: I open the plateau overview
 - Then: I see the baseline highlighted, targets with `validFrom`, and realized plateaus in a collapsible section
 
 **AC2** (Empty target section):
+
 - When: no target plateaus exist
 - Then: the target section shows "No target plateau planned yet"
 

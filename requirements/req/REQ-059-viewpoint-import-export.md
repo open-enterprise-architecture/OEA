@@ -49,28 +49,34 @@ Viewpoints encapsulate visual knowledge (which types, which representation, whic
 ### Export
 
 **Inputs**:
+
 - Viewpoint ID (single export)
 - Optional: bulk export of all user-defined viewpoints of the instance
 
 **Processing**:
+
 1. Read the viewpoint from the database
 2. Serialize as YAML (JSON as an option)
 3. Insert a header comment with export timestamp, OEA version, source instance ID
 
 **Outputs**:
+
 - File download; filename: `oea-viewpoint-{viewpointId}-{ISO8601date}.yaml`
 - Bulk: `oea-viewpoints-{instanceId}-{ISO8601date}.zip` (one file per viewpoint)
 
 **Error Cases**:
+
 - Viewpoint not found → HTTP 404
 - No permission → HTTP 403
 
 ### Import
 
 **Inputs**:
+
 - Viewpoint YAML file (multipart upload)
 
 **Processing**:
+
 1. Accept the file; max. size: 256 KB
 2. Parsing: YAML → internal data structure; syntax errors → immediate error message
 3. Schema validation: mandatory fields present (`id`, `name`, `notation`, `viewpointType`, `allowedEntityTypes`)
@@ -80,10 +86,12 @@ Viewpoints encapsulate visual knowledge (which types, which representation, whic
 7. Persist; audit log entry
 
 **Outputs**:
+
 - HTTP 201 with the created ViewpointDefinition (JSON)
 - Audit log entry: `viewpoint.imported` with file name and source instance ID from the header comment
 
 **Error Cases**:
+
 - Missing EntityType IDs → HTTP 422 with list of the unknown IDs
 - ID conflict (without user resolution) → HTTP 409 with proposed alternative ID
 - File too large → HTTP 413
@@ -92,30 +100,36 @@ Viewpoints encapsulate visual knowledge (which types, which representation, whic
 ## Acceptance Criteria
 
 **AC1** (Export single viewpoint):
+
 - Given: User-defined viewpoint `cloud-security-view` with 4 allowedEntityTypes, 3 notationMappings
 - When: Kurt exports this viewpoint as YAML
 - Then: YAML contains all fields including notationMappings with defaultWidth/defaultHeight; ID `cloud-security-view` is included
 
 **AC2** (Roundtrip):
+
 - When: Kurt imports the exported YAML file into another instance (all referenced EntityType IDs present)
 - Then: HTTP 201; viewpoint exists in the target instance with identical configuration
 
 **AC3** (Missing EntityType IDs):
+
 - Given: YAML references `allowedEntityTypes: [security-zone]`; target instance does not know an EntityType ID `security-zone`
 - When: Kurt imports the file
 - Then: HTTP 422; error message contains `unknown entityTypeId: security-zone`; no viewpoint created
 
 **AC4** (ID conflict):
+
 - Given: Target instance already has a viewpoint with ID `cloud-security-view`
 - When: Kurt uploads a viewpoint file with the same ID
 - Then: HTTP 409; response contains a proposed alternative ID (e.g., `cloud-security-view-2`); no import without explicit confirmation
 
 **AC5** (System-defined not importable):
+
 - Given: YAML with `viewpointType: system-defined`
 - When: Kurt imports the file
 - Then: System ignores `viewpointType=system-defined`; imports the viewpoint as `user-defined`; HTTP 201
 
 **AC6** (Bulk export):
+
 - When: Kurt exports all user-defined viewpoints
 - Then: ZIP download with one YAML file per user-defined viewpoint; system-defined viewpoints included (optional, as helpful for roundtrip)
 

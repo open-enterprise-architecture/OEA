@@ -136,6 +136,7 @@ at the same time integrates natively into the Spring Boot stack (ADR-012, ADR-02
 ## References
 
 **Related ADRs**:
+
 - ADR-012: Backend stack Java 21 + Spring Boot 3 (target stack of the step definitions)
 - ADR-027: Mono-repo and Maven module structure (directory `backend/src/test/`)
 - ADR-028: Backend layered architecture (app services as test target of the step definitions)

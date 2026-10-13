@@ -28,6 +28,7 @@ AGENTS.md prescribes: **exactly one end-to-end use case**. The skeleton is imple
 UC-06 depends only on UC-01 (login) and UC-04 (metamodel), not on UC-05 (see preconditions in UC-06). UC-05 later supplements the catalog with the business path of capturing entities as a delta of a solution.
 
 **What the skeleton proves**:
+
 - Docker Compose starts (REQ-075): backend, DB, auth, frontend
 - Persistence: Flyway migrations, entity persistence with JSONB properties, metamodel query, audit events (ADR-015, ADR-016, ADR-024)
 - OIDC auth: token validation, role mapping (ADR-006)
@@ -71,7 +72,7 @@ The omitted acceptance criteria of US-141 and US-049 are caught up in the expans
 
 ## Walking Skeleton Scenario (End-to-End Flow)
 
-```
+```text
 1. Admin starts docker compose up
    → PostgreSQL, backend, Keycloak, frontend start
    → Flyway migrations run through
@@ -147,6 +148,7 @@ This scenario proves all technical layers end to end. The architecture works.
 ## DoD Criterion
 
 The walking skeleton counts as implemented when the scenario above runs through completely:
+
 - `docker compose up` starts without errors
 - Bootstrapping step completed
 - OIDC login successful

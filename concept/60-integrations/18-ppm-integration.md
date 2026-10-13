@@ -89,17 +89,20 @@ EntityType: Risk
 ### 18.3 Extensions of Existing Entities
 
 **WorkPackage** gains:
+
 - `realizedByProject: Project[]` – which projects implement it
 - `requiredSkills: Skill[]` – competence demand
 - `estimatedEffort, estimatedCost` – for portfolio planning
 
 **PhysicalApplicationComponent** optionally gains:
+
 - `tco: { licenseCost, operationalCost, developmentCost }` per year
 - `costCenter`
 - `financialLifecycle: invest | sustain | rationalize | retire`
 - `activeProjects: Project[]` (currently working on this application)
 
 **Capability** optionally gains:
+
 - `investmentLevel: heavy | moderate | minimal | divest`
 - `strategicPriority: high | medium | low`
 - `timeCategorization: tolerate | invest | migrate | eliminate` (TIME model, Gartner)
@@ -115,12 +118,14 @@ This derivation is impossible in pure PPM tools because they lack the architectu
 ### 18.5 Mastership per Concept
 
 **EA is master for:**
+
 - Work package, gap, plateau
 - Strategic goal, capability, driver, outcome
 - Architecture-specific risks (obsolescence, technical debt)
 - Architecture principles, standards
 
 **PPM is master for:**
+
 - Project, program, portfolio (operational units)
 - Demand / initiative (preliminary stages)
 - Resources, budgets, concrete milestones
@@ -129,6 +134,7 @@ This derivation is impossible in pure PPM tools because they lack the architectu
 - Business cases
 
 **Jointly (property mastership):**
+
 - Work package ↔ project: EA master for *what* is implemented, PPM master for *when/who/how much*
 - Roadmap dates: the EA plan is influenced by project dates, PPM dates must fit the plateaus
 - Benefits: EA master for strategic assignment, PPM master for realization status
@@ -143,6 +149,7 @@ EA and PPM work with different planning horizons that must be synchronized:
 - Agile PIs/sprints: weeks to quarters
 
 The `planningConfidence` property on projects allows roadmaps to be visualized in tiers:
+
 - `committed`: budget approved, team allocated
 - `planned`: in current portfolio planning
 - `proposed`: in the backlog, not yet prioritized
@@ -212,6 +219,7 @@ EntityType: ArchitectureReview
 ### 18.10 PPM Tool Integration
 
 Relevant PPM tools:
+
 - **Enterprise**: ServiceNow SPM, Planview, Clarity PPM, Jira Align
 - **Mid-sized company / open source**: OpenProject, Jira + portfolio plugins
 - **Agile-native**: Jira Advanced Roadmaps, AzureDevOps, Linear

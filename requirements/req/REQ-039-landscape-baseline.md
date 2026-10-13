@@ -49,11 +49,13 @@ The baseline is context-bound: it appears only within a concrete solution and se
 ### For type=functional
 
 **Inputs**:
+
 - Solution ID (context; the solution the architect is working in)
 - Optional: search term (free text, name of the entity)
 - Optional: filter by EntityType (dropdown of available types)
 
 **Processing**:
+
 - Determine the mode: `solution.fromPlateauId == null` → project mode; otherwise plateau mode
 - Project mode: aggregate all EntityDeltas from solutions with status=`implemented`; determine the end result per entityId (latest-wins for `modified`; `retiring` removes the entity)
 - Plateau mode: load the entities of the `fromPlateau` (including plateau inheritance)
@@ -61,40 +63,48 @@ The baseline is context-bound: it appears only within a concrete solution and se
 - Special case empty baseline: output a notice; disable the `modified` and `retiring` options in delta capture
 
 **Outputs**:
+
 - Ordered, paginated entity list: EntityType, name, relevant properties (short view)
 - If applicable, notice "No implemented entities available – you can only create new entities"
 
 **Error Cases**:
+
 - Solution ID unknown or no permission → 403/404
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: two implemented solutions exist; solution A has entity `CRM-Legacy` (new), solution B has entity `ERP-Core` (new)
 - When: Michael opens a new solution (project mode) and loads the baseline
 - Then: `CRM-Legacy` and `ERP-Core` are shown in the list; no other entities
 
 **AC2**:
+
 - Given: solution A (implemented) has entity `CRM-Legacy` (modified: name changed to "CRM-Legacy-v2"); solution B (implemented, more recent) has modified the same entity again
 - When: the baseline is computed
 - Then: it shows the state from solution B (the newer implementation wins)
 
 **AC3**:
+
 - Given: solution A (implemented) has marked entity `CRM-Legacy` as retiring
 - When: the baseline is computed
 - Then: `CRM-Legacy` is **not** in the baseline (retiring from an implemented solution removes the entity)
 
 **AC4**:
+
 - Given: plateau P0 (baseline) with entities `ERP-Core` and `CRM-Legacy`; solution with `fromPlateauId=P0` (plateau mode)
 - When: Michael loads the baseline
 - Then: exactly the entities of P0 are shown (including inherited entities, if any)
 
 **AC5**:
+
 - Given: no implemented solutions present (empty landscape, project mode)
 - When: Michael loads the baseline
 - Then: the notice "No implemented entities available" appears; the `modified` and `retiring` options are disabled
 
 **AC6**:
+
 - Given: baseline with 50 entities of various types
 - When: Michael filters by `ApplicationComponent`
 - Then: only entities of type `ApplicationComponent` are shown

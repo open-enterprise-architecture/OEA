@@ -18,16 +18,19 @@ As an operator of a simple self-hosting instance, I want to be able to deliberat
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: an instance on which this variant has been explicitly enabled, and a person with the correct password
 - When: they sign in
 - Then: they receive a session according to their active role assignments
 
 **AC2**:
+
 - Given: a freshly installed, unconfigured OEA instance
 - When: its authentication setup is checked
 - Then: this variant is disabled by default
 
 **AC3**:
+
 - Given: every login via this variant
 - When: the audit log entry is created
 - Then: it is recognizable that no second factor was used

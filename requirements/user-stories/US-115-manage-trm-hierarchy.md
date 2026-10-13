@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to create, rename, delete, and reo
 ## Acceptance Criteria
 
 **AC1** (Automatic level):
+
 - When: I create a subcategory under "Security Services"
 - Then: the `level` field is automatically set to `parent.level + 1`
 
 **AC2** (Delete with child nodes):
+
 - When: I want to delete a category with 3 child nodes
 - Then: I receive HTTP 422 "Child nodes must be removed first"
 
 **AC3** (Drag & drop cycle protection):
+
 - When: I drag a category via drag & drop under one of its own descendants
 - Then: the drop is visually blocked; an API attempt responds with HTTP 422
 

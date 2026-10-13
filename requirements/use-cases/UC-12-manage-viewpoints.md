@@ -103,7 +103,7 @@ A viewpoint defines: which entity and connection types may appear in diagrams of
 
 ## Basic Flow
 
-*Default case: Kurt creates a new user-defined viewpoint*
+*Default case: Kurt creates a new user-defined viewpoint.*
 
 1. **Kurt**: navigates to the metamodel configuration → section "Viewpoints" (`/settings/metamodel/viewpoints`)
 2. **System**: shows all viewpoints in two groups:
@@ -132,7 +132,7 @@ A viewpoint defines: which entity and connection types may appear in diagrams of
 
 ## Alternative Flows
 
-**A1 – Edit existing user-defined viewpoint**
+### A1 – Edit existing user-defined viewpoint
 
 1. **Kurt**: clicks a user-defined viewpoint in the viewpoint list → "Edit"
 2. **System**: opens edit form with prefilled values (identical structure to the creation flow)
@@ -141,7 +141,7 @@ A viewpoint defines: which entity and connection types may appear in diagrams of
 4. **Kurt**: saves; system validates and persists
 5. Existing diagrams that use this viewpoint are revalidated the next time they are opened (BR-05)
 
-**A2 – Delete user-defined viewpoint**
+### A2 – Delete user-defined viewpoint
 
 1. **Kurt**: clicks a user-defined viewpoint → "Delete"
 2. **System**: checks whether the viewpoint is used by existing diagrams
@@ -150,7 +150,7 @@ A viewpoint defines: which entity and connection types may appear in diagrams of
 3. **Kurt**: confirms the deletion
 4. **System**: removes the viewpoint from the MetamodelConfiguration; affected diagrams no longer reference a valid viewpoint (UI shows a notice when opening these diagrams)
 
-**A3 – Export viewpoints (REQ-058, US-078)**
+### A3 – Export viewpoints (REQ-058, US-078)
 
 1. **Kurt**: clicks "Export viewpoints" in the viewpoint overview
 2. **System**: opens selection dialog: all viewpoints, user-defined preselected; system-defined optionally selectable
@@ -158,6 +158,7 @@ A viewpoint defines: which entity and connection types may appear in diagrams of
 4. **System**: generates JSON file in viewpoint format and starts download
 
 Exported format (example):
+
 ```json
 {
   "schemaVersion": "1.0",
@@ -176,7 +177,7 @@ Exported format (example):
 }
 ```
 
-**A4 – Import viewpoints (REQ-059, US-079)**
+### A4 – Import viewpoints (REQ-059, US-079)
 
 1. **Kurt**: clicks "Import viewpoints" and selects a JSON file
 2. **System**: validates the file (BR-08: all referenced EntityType IDs must exist in the instance)
@@ -187,27 +188,32 @@ Exported format (example):
 
 ## Exception Flows
 
-**E1 – Name not unique**
+### E1 – Name not unique
+
 - Condition: Chosen name already exists in the MetamodelConfiguration (BR-01)
 - Expected reaction: Inline validation error on the name field; saving blocked
 - Resumption: Kurt chooses a different name
 
-**E2 – EntityType not present in MetamodelConfiguration**
+### E2 – EntityType not present in MetamodelConfiguration
+
 - Condition: Kurt tries to reference an EntityType that does not (or no longer) exist in the MetamodelConfiguration (can occur during import, BR-03/BR-08)
 - Expected reaction: Validation error with list of missing IDs; no partial import
 - Resumption: Kurt creates the EntityType via UC-04 or adjusts the import file
 
-**E3 – Notation element prefix does not match the notation (BR-07)**
+### E3 – Notation element prefix does not match the notation (BR-07)
+
 - Condition: Kurt selects a `notationElement` with the wrong prefix (e.g., `bpmn:Task` in an ArchiMate viewpoint)
 - Expected reaction: Dropdown shows only elements of the selected notation; free-text input is rejected with a validation error on save
 - Resumption: Kurt selects a matching notation element
 
-**E4 – Attempt to delete a system-defined viewpoint**
+### E4 – Attempt to delete a system-defined viewpoint
+
 - Condition: Kurt tries to delete a viewpoint with `viewpointType=system-defined` (BR-02)
 - Expected reaction: Delete button not visible / disabled for system-defined viewpoints
 - Resumption: not necessary; UI prevents the action
 
-**E5 – Missing permission**
+### E5 – Missing permission
+
 - Condition: Logged-in person has no metamodel permission
 - Expected reaction: 403 Forbidden; create/edit/delete not accessible
 - Resumption: Person contacts the admin (UC-02)

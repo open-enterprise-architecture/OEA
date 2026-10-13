@@ -44,10 +44,12 @@ Triggered as a required action during the first login (UC-03 Alternative A1): af
 ### For type=functional
 
 **Inputs**:
+
 - Triggered enrollment step "Passkey"
 - Authenticator response: `PublicKeyCredential` (contains attestation object, client data JSON, credential ID)
 
 **Processing**:
+
 - System generates `PublicKeyCredentialCreationOptions` (contains challenge, RP ID, user handle, list of algorithms)
 - Client passes the options to the authenticator (platform or roaming); the authenticator creates a new key pair
 - Authenticator returns `PublicKeyCredential`; the system verifies:
@@ -58,10 +60,12 @@ Triggered as a required action during the first login (UC-03 Alternative A1): af
 - On successful verification: the system persists public key, credential ID, and signature counter, linked to the person; multiple credentials per person are supported
 
 **Outputs**:
+
 - Success message with a note on successful registration
 - On error: generic error message, no credential is stored
 
 **Error Cases**:
+
 - User cancels the authenticator confirmation (E3 from UC-03) → no credential persisted, token remains valid, error message
 - RP ID/origin mismatch → technical error, no credential persisted
 - Authenticator not compatible → generic error message; Kurt can choose an alternative method
@@ -69,21 +73,25 @@ Triggered as a required action during the first login (UC-03 Alternative A1): af
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Kurt has chosen passkey as the method and has a compatible authenticator
 - When: he completes the authenticator confirmation
 - Then: the public key is stored persistently and login via passkey (UC-01 A3) is possible immediately
 
 **AC2**:
+
 - Given: Kurt cancels the authenticator confirmation
 - When: the cancellation occurs
 - Then: no credential is stored, the enrollment token remains valid
 
 **AC3**:
+
 - Given: a person already has a registered passkey
 - When: they register another passkey (e.g., second device)
 - Then: both credentials are stored and individually usable for login
 
 **AC4**:
+
 - Given: a registration response with a wrong origin or RP ID
 - When: the system processes it
 - Then: it is rejected, no credential persisted

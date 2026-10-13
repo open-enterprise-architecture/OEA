@@ -4,7 +4,7 @@ The tool is designed as a **modular system**: a lean core with a stable, version
 
 ### 21.1 Architecture Layers
 
-```
+```text
 ┌──────────────────────────────────────────────────────┐
 │  UI / CLI / Pipeline tools / Add-on modules          │  ← Consumers
 ├──────────────────────────────────────────────────────┤
@@ -25,6 +25,7 @@ The API is the **hard contract to the outside**. Everything above the API line (
 ### 21.2 Core vs. Modules
 
 **The core contains**:
+
 - Meta-metamodel and schema engine
 - Entity and relation management (CRUD + validation)
 - Plateau and lifecycle management
@@ -34,6 +35,7 @@ The API is the **hard contract to the outside**. Everything above the API line (
 - Versioning and history
 
 **Modules are business extensions** that communicate via the API:
+
 - **BPMN module** – import/export of BPMN XML, mapping to abstract process entities
 - **ITSM connectors** – ServiceNow, BMC Helix, Jira SM (see [§17 (ITSM Integration)](../60-integrations/17-itsm-integration.md))
 - **PPM connectors** – Jira, OpenProject, ServiceNow SPM (see [§18 (PPM Integration)](../60-integrations/18-ppm-integration.md))
@@ -125,7 +127,7 @@ This avoids later notation decisions requiring extensive rework of the concept.
 
 ### 21.4 API Endpoints Overview
 
-```
+```text
 # Entity management
 GET    /api/v1/entities?type=Application&...
 POST   /api/v1/entities
@@ -187,6 +189,7 @@ Event types:
 ```
 
 Consumers:
+
 - BPMN module reacts to ApplicationComponent changes (potential process implications)
 - ITSM connector synchronizes property changes in both directions
 - Renderers invalidate cached diagrams for affected entities
@@ -304,7 +307,7 @@ Properties of the audit trail:
 - **Subject to retention**: Configurable according to regulatory requirements (GDPR, ISO 27001 typically 3+ years)
 - **Itself access-protected**: Reading audit logs requires its own permission (typically the "Auditor" role)
 
-**Delimitation: audit log, change log, and entity change history**
+#### Delimitation: audit log, change log, and entity change history
 
 Three related but different concepts are cleanly separated in the tool:
 

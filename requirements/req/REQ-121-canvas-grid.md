@@ -34,14 +34,17 @@ A grid with visual orientation (thin/thick rhythm) considerably facilitates the 
 ## Acceptance Criteria
 
 **AC1** (Grid display):
+
 - When: the canvas is opened
 - Then: grid visible with a pattern of 4 thin + 1 thick line; the thicker line has a clearly higher visual contrast than the thin ones
 
 **AC2** (Entity snapping):
+
 - When: an entity is moved or created on the canvas
 - Then: position and size snap to the nearest grid unit; sub-grid positioning is not possible
 
 **AC3** (Show/hide grid):
+
 - When: the user presses `G` or clicks the toolbar button
 - Then: grid lines are no longer visible; snapping remains active
 

@@ -104,7 +104,7 @@ def build_stats_block():
 | ADRs | {n_adr} |
 | Business Objects | {n_bo} |
 
-_Concept: {ver} · Last update: {today}_"""
+_Concept: {ver} · Last update: {today}._"""
 
 
 def build_stakeholders_block():

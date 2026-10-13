@@ -56,7 +56,7 @@ The query logic is a **read-only** operation on the entity repository. The catal
 | pageSize | integer | optional | Entries per page, default: 50, max: 500 |
 | sortBy | string | optional | attributeName of the primary entity; default: `name` asc |
 | sortDir | enum | optional | `asc` or `desc`; default: `asc` |
-| joinMode | object | optional | `{ joinDefinitionId: "rows" | "aggregate", ... }` – overrides catalog/JoinDefinition defaults for this call |
+| joinMode | object | optional | `{ joinDefinitionId: "rows" \| "aggregate", ... }` – overrides catalog/JoinDefinition defaults for this call |
 | filter | object | optional | Ad hoc FilterExpressions as JSON; in addition to active SavedFilters |
 | savedFilterIds | string[] | optional | IDs of SavedFilters to be applied additionally |
 
@@ -107,31 +107,37 @@ In `rows` mode for the same catalog:
 ## Acceptance Criteria
 
 **AC1** (Happy path, aggregate mode):
+
 - Given: catalog "Application Inventory", primaryEntityType=ApplicationComponent, 2 columns (name, status), 1 join (DataFlow→Interface, aggregate); the repository contains CRM-System (status=active) with 2 interfaces
 - When: `GET /api/v1/catalogs/{id}/query`
 - Then: the response contains 1 row for CRM-System; `joinResults.Interfaces` is an array with 2 entries
 
 **AC2** (rows mode):
+
 - Given: as AC1
 - When: `GET /api/v1/catalogs/{id}/query?joinMode[join-id]=rows`
 - Then: the response contains 2 rows (one per interface); `columns.name` = "CRM-System" in both rows
 
 **AC3** (Filter):
+
 - Given: the repository contains 5 ApplicationComponents, 2 of them with status=active
 - When: `GET /api/v1/catalogs/{id}/query?filter[status][eq]=active`
 - Then: `totalCount=2`; only the 2 active entities in the data array
 
 **AC4** (Entity without join results):
+
 - Given: ERP-Core (ApplicationComponent) has no DataFlow connections
 - When: query in aggregate mode
 - Then: ERP-Core appears in the response with `joinResults.Interfaces = []`; is NOT excluded from the result set (LEFT JOIN semantics)
 
 **AC5** (Sorting and pagination):
+
 - Given: 60 ApplicationComponents
 - When: `GET /api/v1/catalogs/{id}/query?page=1&pageSize=20&sortBy=name&sortDir=asc`
 - Then: `totalCount=60`; `data` contains entries 21–40 alphabetically by name
 
 **AC6** (Empty repository):
+
 - Given: primaryEntityType has no entities in the repository
 - When: query
 - Then: HTTP 200 with `totalCount=0`, `data=[]`; no error

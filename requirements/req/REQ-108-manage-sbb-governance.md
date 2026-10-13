@@ -34,14 +34,17 @@ SBBs with governance status are the mechanism for technology standards enforceme
 ## Acceptance Criteria
 
 **AC1** (Create SBB):
+
 - When: an SBB is created with `governanceStatus=approved` and `implements=[ABB-UUID]`
 - Then: the system responds with HTTP 201
 
 **AC2** (Prohibited warning on entities):
+
 - When: an SBB is set to `governanceStatus=prohibited`
 - Then: all entities with `instanceOfSBBId=this-SBB` show the note "Product in use prohibited – migration required" in the UI
 
 **AC3** (ABB reference warning):
+
 - When: an SBB is created without `implements` ABBs
 - Then: the system shows a governance warning "SBB without ABB reference is only a product catalog entry" without blocking saving
 

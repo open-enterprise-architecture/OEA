@@ -53,21 +53,25 @@ Concerns all enrollment paths from UC-03: TOTP (REQ-022), passkey (REQ-023), pas
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: an enrollment process is completed successfully (REQ-022, REQ-023, or REQ-024)
 - When: the method is persisted
 - Then: the audit log contains an entry with: timestamp (ISO 8601), person ID, method type (totp | passkey | password), result `success`
 
 **AC2**:
+
 - Given: an enrollment process fails (e.g., TOTP verification failed, passkey cancellation, password too weak)
 - When: the failure occurs
 - Then: the audit log contains an entry with timestamp, person ID (where determinable from the token), method type, result `failure`, and failure reason (generic, without sensitive details)
 
 **AC3**:
+
 - Given: an audit log entry for an enrollment process
 - When: it is stored in the log infrastructure
 - Then: it contains no credential values (no TOTP secret, no password hash, no public key)
 
 **AC4**:
+
 - Given: an invalid enrollment token is submitted (E1 from UC-03)
 - When: the failure occurs
 - Then: the audit log contains an entry with timestamp, result `failure`, failure reason `invalid_token`; no person ID (token is invalid, person not determinable)

@@ -46,20 +46,24 @@ Dashboards can contain confidential company metrics. Scope control ensures that 
 ### API Endpoints and Visibility Rules
 
 **Retrieve list**:
+
 - `GET /api/v1/dashboards`
 - Returns: all `scope=instance` dashboards + own `scope=personal` dashboards
 - Does NOT return: `scope=personal` dashboards of other users
 
 **Retrieve dashboard configuration**:
+
 - `GET /api/v1/dashboards/{id}`
 - `scope=instance`: HTTP 200 for all authenticated users
 - `scope=personal` + requester ≠ creator: HTTP 403
 
 **Retrieve dashboard data**:
+
 - `GET /api/v1/dashboards/{id}/data`
 - Same visibility rule as for the configuration
 
 **Web portal (public instance)**:
+
 - If the OEA instance is configured as public: `scope=instance` dashboards are readable without login
 - If the instance requires login: all endpoints require authentication (UC-01)
 
@@ -76,26 +80,31 @@ Dashboards can contain confidential company metrics. Scope control ensures that 
 ## Acceptance Criteria
 
 **AC1** (instance dashboard: everyone sees it):
+
 - Given: Kurt has created a `scope=instance` dashboard
 - When: Franz calls `GET /api/v1/dashboards`
 - Then: Kurt's dashboard appears in the list
 
 **AC2** (personal dashboard: no data leak):
+
 - Given: Franz has created a `scope=personal` dashboard
 - When: Kurt calls `GET /api/v1/dashboards` or `GET /api/v1/dashboards/{franz-dashboard-id}`
 - Then: Franz's dashboard neither appears in the list nor can it be retrieved by ID (403)
 
 **AC3** (personal URL access blocked):
+
 - Given: Kurt has the ID of Franz's personal dashboard (e.g., guessed or from logs)
 - When: `GET /api/v1/dashboards/{id}/data` is called directly
 - Then: HTTP 403
 
 **AC4** (Scope upgrade):
+
 - Given: Franz has a personal dashboard; he subsequently receives dashboard write permission
 - When: `PUT /api/v1/dashboards/{id}` with scope=instance
 - Then: HTTP 200; dashboard is visible to everyone from now on
 
 **AC5** (Downgrade blocked if other users):
+
 - Given: Kurt has an instance dashboard; 5 other users have opened it
 - When: Kurt tries PUT with scope=personal
 - Then: HTTP 409 "Dashboard is used by other users; downgrade not possible"

@@ -18,11 +18,13 @@ As a machine client (e.g. CI script, discovery adapter), I want to authenticate 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a request with a valid, non-revoked API key
 - When: it is made against a protected resource
 - Then: it is authorized without a redirect, according to the roles of the associated identity
 
 **AC2**:
+
 - Given: a request with an invalid or revoked API key
 - When: it is made
 - Then: it is rejected without an authorization context being created

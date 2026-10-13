@@ -35,11 +35,13 @@ As {{role}}, I want {{action}} so that {{benefit}}.
 Given-When-Then format recommended, alternatively a checklist.
 
 **AC1**:
+
 - Given: <initial situation>
 - When: <action>
 - Then: <expected result>
 
 **AC2**:
+
 - Given:
 - When:
 - Then:

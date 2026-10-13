@@ -30,6 +30,7 @@ superseded_by: []
 For properties with `visibilityMode = connection-scoped`, the entity API MUST check at runtime via graph traversal whether the requesting user has a path to the requested entity via the configured `scopingConnectionType`. The value MAY only be returned if such a path exists. Otherwise the value MUST be replaced with `null` — analogous to the enforcement for `role-restricted` (REQ-126).
 
 **Traversal logic** (depth 1, extensible):
+
 1. Determine all entities in which the current user (via their `Person` entity) is involved via the `scopingConnectionType` (as source or target)
 2. Check whether the requested entity is contained in this set
 3. Yes → release the value; No → return `null`
@@ -41,23 +42,28 @@ Connection-based visibility allows dynamic, organizational-structure-driven acce
 ## Acceptance Criteria
 
 **AC1** (Traversal positive):
+
 - Given: property `securityClassification` with `visibilityMode=connection-scoped`, `scopingConnectionType=DomainAssignment`
 - When: Michael (domain architect) is connected to `ApplicationComponent A` via a `DomainAssignment` connection and retrieves entity A
 - Then: the `securityClassification` value is contained in the response
 
 **AC2** (Traversal negative):
+
 - When: Michael is **not** connected to entity B via `DomainAssignment` and retrieves entity B
 - Then: `securityClassification` is `null`; no value in the response
 
 **AC3** (Write protection):
+
 - When: a user without a path tries to write to the field via PATCH
 - Then: HTTP 403; value unchanged
 
 **AC4** (Catalog consistency):
+
 - When: a catalog query contains connection-scoped properties
 - Then: values are filtered individually per row; the user only sees values for entities in their own scope
 
 **AC5** (Performance):
+
 - When: a graph traversal is triggered for an entity with connection-scoped properties
 - Then: response time p95 ≤ 200 ms additional latency compared to an unrestricted query (with ≤ 500 directly connected entities per user; cached)
 

@@ -102,7 +102,7 @@ The TOGAF Enterprise Continuum separates reusable blueprints from concrete organ
 
 ## Basic Flow
 
-*Default case: Kurt creates a new organization-specific ABB and the associated SBB*
+*Default case: Kurt creates a new organization-specific ABB and the associated SBB.*
 
 1. **Kurt**: opens the continuum library (navigation area "Enterprise Continuum")
 2. **System**: shows the library divided into four areas: ABBs, SBBs, patterns, reference architectures; each with filters by `continuumLevel`, `maturityLevel`, `governanceStatus`
@@ -117,7 +117,7 @@ The TOGAF Enterprise Continuum separates reusable blueprints from concrete organ
 
 ## Alternative Flows
 
-**A1 – Create architecture pattern**
+### A1 – Create architecture pattern
 
 1. **Kurt**: selects "New pattern" in the pattern area
 2. **System**: opens the form with fields: name, problem (Markdown), solution (Markdown), applicability, consequences, `maturityLevel`, tags
@@ -125,20 +125,20 @@ The TOGAF Enterprise Continuum separates reusable blueprints from concrete organ
 4. **Kurt**: links the pattern to existing patterns via "Related patterns" (multi-select)
 5. **System**: saves; pattern is visible to all users in the library
 
-**A2 – Compose reference architecture from ABBs and patterns**
+### A2 – Compose reference architecture from ABBs and patterns
 
 1. **Kurt**: selects "New reference architecture"
 2. **System**: opens the form; then multi-select for `composedOf` (ABBs) and `basedOnPatterns` (patterns)
 3. **Kurt**: selects 5 ABBs and 2 patterns; sets `continuumLevel = organization`, `governanceStatus = approved`
 4. **System**: saves; reference architecture appears as a blueprint for plateau creation (UC-11)
 
-**A3 – Change SBB governance status (product EOL)**
+### A3 – Change SBB governance status (product EOL)
 
 1. **Kurt**: searches for the SBB "Oracle Database 11g" in the library
 2. **Kurt**: opens the SBB and sets `governanceStatus = prohibited`, enters `evaluationNotes` (EOL October 2023, no more security updates)
 3. **System**: saves; all entities with `instanceOfSBBId = Oracle-11g-UUID` receive a notice in the UI "Product used is prohibited; migration required"
 
-**A4 – Edit ABB refinement hierarchy**
+### A4 – Edit ABB refinement hierarchy
 
 1. **Kurt**: edits an existing ABB
 2. **Kurt**: changes the `refines` field (dropdown: only ABBs without cycle risk selectable)
@@ -152,17 +152,20 @@ The TOGAF Enterprise Continuum separates reusable blueprints from concrete organ
 
 ## Exception Flows
 
-**E1 – Cycle in ABB refinement**
+### E1 – Cycle in ABB refinement
+
 - Condition: Kurt sets `refines` to an ABB that itself (directly or indirectly) refines this ABB
 - Expected reaction: HTTP 422 "Refinement cycle detected: [ABB-A] → [ABB-B] → [ABB-A]"; no change
 - Resumption: Kurt selects a different base ABB
 
-**E2 – Deleting an ABB with dependent SBBs or entities**
+### E2 – Deleting an ABB with dependent SBBs or entities
+
 - Condition: Kurt tries to delete an ABB that is referenced by SBBs or set as `conformsToABBId` by entities
 - Expected reaction: Warning with the number of dependent SBBs and entities; no automatic blocking — Kurt decides
 - Resumption: Kurt cleans up the references beforehand or deletes despite the warning
 
-**E3 – SBB without ABB reference**
+### E3 – SBB without ABB reference
+
 - Condition: Kurt saves an SBB without `implements` ABBs
 - Expected reaction: Governance warning "An SBB without an ABB reference is only a product catalog entry"; no block
 - Resumption: Kurt can add the ABB reference later

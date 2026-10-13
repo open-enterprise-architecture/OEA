@@ -62,7 +62,7 @@ Layers are not a system concept in v1.0. `EntityTypeDefinition.architectureLayer
 
 `EntityTypeDefinition` retains `architectureLayerId` as an optional reference — but the reference points to operator-defined layer entries in the `MetamodelConfiguration`, not to a system enum:
 
-```
+```text
 MetamodelConfiguration
   └── layerDefinitions[]          ← operator-defined (e.g. "business", "application", "technology")
         id: string                ← free ID, no system enum

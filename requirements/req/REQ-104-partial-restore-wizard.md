@@ -34,14 +34,17 @@ A full restore overwrites correct changes. The wizard enables surgical correctio
 ## Acceptance Criteria
 
 **AC1** (Source version prefilled):
+
 - When: the wizard is started from the timeline (UC-14) for version v3
 - Then: source version v3 is prefilled
 
 **AC2** (Automatic skipping):
+
 - When: step 1 contains no differences in general properties
 - Then: step 1 is skipped automatically with the note "No differences in general properties"; wizard switches directly to step 2
 
 **AC3** (Confirm button on empty selection):
+
 - When: no fields were selected in any step
 - Then: the confirm button is disabled (per REQ-106)
 

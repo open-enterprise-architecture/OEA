@@ -18,21 +18,25 @@ As a Solution Architect, I want to be able to mark an existing entity from the I
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: `CRM-Legacy (ApplicationComponent)` is in the baseline
 - When: Michael selects `CRM-Legacy` from the baseline and clicks "Retire"
 - Then: `CRM-Legacy` appears in the delta list with `deltaType=retiring`; in the diff view (US-043) it is shown as outgoing
 
 **AC2** (not in baseline):
+
 - Given: Michael enters an entityId that is not present in the baseline
 - When: he saves
 - Then: validation error "Entity not found in the current landscape"
 
 **AC3** (duplicate check):
+
 - Given: `CRM-Legacy` already has a `new` delta in this solution (would be contradictory)
 - When: Michael tries to additionally mark `CRM-Legacy` as `retiring`
 - Then: validation error "A delta already exists for CRM-Legacy in this solution"
 
 **AC4** (solution implemented):
+
 - Given: Solution has status=`implemented`
 - When: Michael tries to mark an entity as retiring
 - Then: 409 Conflict "This solution is completed and can no longer be changed"

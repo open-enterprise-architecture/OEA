@@ -35,14 +35,17 @@ Freedom is the greatest added value. Operators can consciously decide to put a p
 ## Acceptance Criteria
 
 **AC1** (Non-implemented solutions as a warning):
+
 - When: 3 non-implemented solutions exist at go-live
 - Then: the dialog shows the warning "3 solutions not implemented"; go-live remains executable
 
 **AC2** (CEL violations as a warning):
+
 - When: CEL rule violations exist at go-live
 - Then: the dialog shows the warning "N business rule violations"; go-live remains executable
 
 **AC3** (No warning section without warnings):
+
 - When: neither non-implemented solutions nor CEL violations exist at go-live
 - Then: no warning section is displayed in the dialog
 

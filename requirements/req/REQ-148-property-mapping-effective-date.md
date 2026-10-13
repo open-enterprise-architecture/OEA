@@ -34,28 +34,34 @@ Metamodels evolve. A property that is optional today can become mandatory from a
 ## Type-Specific Fields
 
 **Inputs**:
+
 - Existing mapping (metatype_id, property_def_id)
 - New `valid_from`, new `necessity`
 
 **Processing**:
+
 - Create a new record in `metatype_property_mappings` with the new valid_from
 - Existing entries remain unchanged
 - UNIQUE(metatype_id, property_def_id, valid_from) prevents duplicates
 
 **Outputs**:
+
 - 201 Created; new mapping entry
 
 **Error Cases**:
+
 - valid_from already present for this pair → 409 Conflict
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: property P has been mapped as `optional` for MetaType M since 2026-01-01
 - When: an admin creates a new mapping P→M with valid_from=2026-07-01, necessity=mandatory
 - Then: from 2026-07-01, mandatory applies; entities missing P receive a warning/error on validation
 
 **AC2**:
+
 - Given: a mapping entry for valid_from=2026-01-01 exists
 - When: an admin tries to enter the same valid_from again
 - Then: 409 Conflict

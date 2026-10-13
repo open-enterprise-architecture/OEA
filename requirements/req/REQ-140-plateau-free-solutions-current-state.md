@@ -38,6 +38,7 @@ The "Current State" is the aggregated overall state of the architecture — rega
 ## Type-Specific Fields
 
 **Processing**:
+
 1. Solution with `fromPlateauId=null` AND `toPlateauId=null` (project mode):
    - `status=implemented`: contents flow into "Current State" → no top-level node of its own
    - `status ∈ {draft, proposed, approved, in-progress}`: the solution does NOT appear in the browser (only in the solution management view)
@@ -48,16 +49,19 @@ The "Current State" is the aggregated overall state of the architecture — rega
 ## Acceptance Criteria
 
 **AC1** — Project mode: no node of its own:
+
 - Given: solution A (project mode, `status=implemented`), solution B (plateau mode, CURRENT→TARGET)
 - When: the browser panel is opened
 - Then: solution A does NOT appear as a node of its own; solution B appears under the plateau node
 
 **AC2** — Contents in Current State:
+
 - Given: solution A (project mode, `status=implemented`) with 3 components
 - When: "Current State" is expanded in the browser
 - Then: the 3 components are visible under "Current State → Components"
 
 **AC3** — Non-implemented project solutions invisible:
+
 - Given: solution C (project mode, `status=in-progress`)
 - When: the browser panel is displayed
 - Then: solution C is visible neither in "Current State" nor elsewhere in the browser

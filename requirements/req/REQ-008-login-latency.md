@@ -56,11 +56,13 @@ Applies to the server-side portion of the login process (token redemption, perso
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a repository with 10,000 persons and 1,000 roles
 - When: 95% of OIDC login processes are measured (server-side portion)
 - Then: the processing time is below 300ms
 
 **AC2**:
+
 - Given: a repository with 10,000 active API keys
 - When: 95% of API key validations are measured
 - Then: the processing time is below 100ms

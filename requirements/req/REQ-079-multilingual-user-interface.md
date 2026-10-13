@@ -19,40 +19,49 @@ The OEA frontend (client app + web portal) supports multiple UI languages. The d
 ## Scope
 
 All UI strings are affected:
+
 - Navigation, buttons, menus, dialogs, error messages, validation texts
 - EntityType display names (e.g., "Application Component" → "Anwendungskomponente")
 - Catalog column headers (derived from EntityType property definitions)
 - Tooltips, placeholder texts, success/status messages
 
 Not affected (content layer, no automatic translation):
+
 - User-entered content (entity names, Arc42 texts, descriptions)
 - Metamodel configuration (free-text fields from the admin)
 
 ## Acceptance Criteria
 
 **AC1** (Default English):
+
 - A freshly set up OEA instance shows the UI entirely in English without further configuration
 
 **AC2** (Switch language):
+
 - When the admin has activated an additional language
 - Then every user can select this language in the profile settings
 - And the UI switches immediately after selection (no restart needed)
 
 **AC3** (EntityType display name multilingual):
+
 - EntityTypeDefinition supports `displayName: { en: "...", de: "..." }` as a language map
 - The UI always shows the display name in the active user language; fallback: English; second fallback: technical identifier
 
 **AC4** (Fallback for missing translation):
+
 - No empty string in the UI: if a key is missing in the active language, the English text appears (no `undefined`)
 
 **AC5** (Language packs importable):
+
 - Admin can upload and activate JSON language packs via the admin UI
 - Format: flat JSON `{ "entity.create": "Entität anlegen", ... }`
 
 **AC6** (Instance default configurable):
+
 - Selectable during bootstrapping (UC-02): which language is the instance default language (fallback for users without their own preference)
 
 **AC7** (Offline-capable):
+
 - Language packs are loaded and cached at app start; no external CDN access at runtime (REQ-075)
 
 ## Technical Notes

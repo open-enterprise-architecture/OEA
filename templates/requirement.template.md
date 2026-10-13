@@ -58,15 +58,19 @@ Background information, if the statement alone is not sufficient. Which situatio
 ### For type=functional
 
 **Inputs**:
+
 - {{what comes in}}
 
 **Processing**:
+
 - {{what must happen}}
 
 **Outputs**:
+
 - {{what comes out}}
 
 **Error cases**:
+
 - {{when and how the system reacts to errors}}
 
 ### For type=non-functional
@@ -98,7 +102,8 @@ Background information, if the statement alone is not sufficient. Which situatio
 **Affected business objects**: [{{object-id}}](../business-objects/{{object-id}}.md)
 
 **Formal statement** (if possible in formal notation, e.g. JSON Logic, OCL):
-```
+
+```text
 {{rule expression}}
 ```
 
@@ -111,6 +116,7 @@ Background information, if the statement alone is not sufficient. Which situatio
 **Data type**: string | integer | decimal | boolean | date | datetime | enum | reference | composite
 
 **Constraints**:
+
 - Mandatory field: yes/no
 - Format: {{e.g. ISO 8601, E.164}}
 - Value range: {{e.g. 0-100, regex...}}
@@ -125,6 +131,7 @@ Background information, if the statement alone is not sufficient. Which situatio
 **Specification**: {{path to OpenAPI/AsyncAPI/etc.}}
 
 **Contracts**:
+
 - Endpoint/path: {{e.g. POST /api/v1/applications}}
 - Request schema: {{reference}}
 - Response schema: {{reference}}
@@ -145,11 +152,13 @@ Background information, if the statement alone is not sufficient. Which situatio
 Verifiable conditions that must be met. Preferably Given-When-Then, alternatively a checklist.
 
 **AC1**:
+
 - Given: {{initial situation}}
 - When: {{action or condition}}
 - Then: {{expected result}}
 
 **AC2**:
+
 - Given:
 - When:
 - Then:

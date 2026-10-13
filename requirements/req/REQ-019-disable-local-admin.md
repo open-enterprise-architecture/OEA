@@ -48,7 +48,8 @@ Concerns the state after successful remote bootstrapping (UC-02, A1 or A2) – t
 **Affected Business Objects**: [system-admin-account](../../business-objects/system-admin-account.md)
 
 **Formal Statement** (simplified):
-```
+
+```text
 if SystemAdminAccount.mode == "remote" and mapping.isFunctional:
     allow(deactivate(localSystemAdminAccount))
 ```
@@ -58,11 +59,13 @@ if SystemAdminAccount.mode == "remote" and mapping.isFunctional:
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: an active local system admin account and a functional remote mapping
 - When: a system admin deactivates the local account
 - Then: login via the local account is no longer possible afterwards, while the remote path continues to work
 
 **AC2**:
+
 - Given: no functional remote mapping is configured
 - When: an attempt is made to deactivate the local account
 - Then: the system warns of a possible complete lockout but does not necessarily block the action (operator decision)

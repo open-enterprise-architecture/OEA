@@ -17,7 +17,7 @@ The ADR template is located separately in `adrs/adr.template.md` (closer to the 
 
 ## How the Templates Relate
 
-```
+```text
 Stakeholder (SH)
     ↓ has concern → addressed by
 Use Case (UC)
@@ -42,7 +42,7 @@ Tests / Monitoring
 
 ## Recommended Repo Structure
 
-```
+```text
 requirements/
 ├── README.md                   ← entry point, MoSCoW overview, trace matrix
 ├── glossary.md                 ← project-specific term definitions

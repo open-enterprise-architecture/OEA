@@ -37,22 +37,27 @@ Hiding on the client side is not sufficient — a technically savvy user could r
 ## Acceptance Criteria
 
 **AC1** (API response):
+
 - When: a user without an allowed role retrieves an entity with a role-restricted property
 - Then: the API response contains `"investmentCostForecast": null`; no actual value in the response
 
 **AC2** (UI empty and read-only):
+
 - When: a user without permission opens the entity detail form
 - Then: the restricted field is displayed empty; input is disabled; no tooltip with the real value
 
 **AC3** (Write protection):
+
 - When: a user without permission tries to write to the field directly via the API (PATCH)
 - Then: the API responds with HTTP 403; the value is not changed
 
 **AC4** (Authorized user):
+
 - When: a user with one of the `allowedRoles` retrieves the same field
 - Then: the actual value is returned; the field is editable
 
 **AC5** (Catalog consistency):
+
 - When: a catalog (UC-06) shows a column for a role-restricted property
 - Then: the column shows empty cells for unauthorized users; sorting and filtering of this column are disabled for these users
 

@@ -105,15 +105,18 @@ Concretely:
 ## References
 
 **Concept Chapters**:
+
 - [§21 API Architecture and Modularity](../concept/70-platform/21-api-architecture.md)
 
 **Related ADRs**:
+
 - [ADR-008](./ADR-008-gui-architecture-dual-track.md): GUI architecture – client app + web portal
 - [ADR-011](./ADR-011-frontend-framework.md): Vue 3 + TypeScript
 - [ADR-013](./ADR-013-api-style.md): REST + OpenAPI, spec-first
 - [ADR-014](./ADR-014-frontend-component-library.md): PrimeVue + Tailwind CSS
 
 **Screen inventory**:
+
 - [docs/screens/SCREENS.md](../docs/screens/SCREENS.md)
 
 ## Notes

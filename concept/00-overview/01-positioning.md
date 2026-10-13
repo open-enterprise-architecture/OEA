@@ -2,7 +2,7 @@
 
 This document describes the business and conceptual foundation of an enterprise architecture repository. It does **not** define the technical persistence (the DB choice follows after requirements consolidation), but rather the structure used to model architecture information.
 
-**Guiding Principles**
+### Guiding Principles
 
 - **Standards as configuration, not as code**: TOGAF Content Metamodel, Arc42, BPMN 2.0, ArchiMate are mapped as schemas onto a generic meta-metamodel.
 - **Git-friendly, pipeline-capable**: Every entity can be represented as a human-readable file that is diffable and PR-reviewable.

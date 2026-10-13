@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to create, edit, and delete custom
 ## Acceptance Criteria
 
 **AC1** (Create viewpoint):
+
 - When: I create a new viewpoint with 3 EntityTypes
 - Then: I receive HTTP 201; the viewpoint is immediately selectable for new diagrams
 
 **AC2** (Remove EntityType with warning):
+
 - When: I remove a used EntityType while editing
 - Then: I see a warning "N diagrams affected"; editing is not blocked
 
 **AC3** (Delete viewpoint):
+
 - When: I delete a user-defined viewpoint
 - Then: it is removed from the MetamodelConfiguration
 

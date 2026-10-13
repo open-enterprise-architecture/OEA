@@ -42,26 +42,32 @@ Without cross-references, authors have to type chapter names manually — renami
 ## Acceptance Criteria
 
 **AC1** (Autocomplete trigger):
+
 - When: the user types `{{` in the free-text area
 - Then: a dropdown opens with all DocumentItems of the current collection; search via `alias` and `name`; first result preselected
 
 **AC2** (Insert):
+
 - When: the user selects a DocumentItem from the dropdown
 - Then: `{{Chapter name|item:uuid}}` is inserted at the cursor position; the dropdown closes
 
 **AC3** (Rendering — existing name):
+
 - When: a DocumentItem with a cross-reference is rendered and the target exists
 - Then: a clickable inline link with the current `name` of the target item is displayed; clicking navigates to the target chapter
 
 **AC4** (Rendering — renamed target):
+
 - When: the target item is renamed
 - Then: all cross-references to this item automatically show the new name (ID resolution)
 
 **AC5** (Rendering — deleted target):
+
 - When: the target item is deleted
 - Then: the reference shows `[deleted chapter|item:uuid]` in red text; no navigation possible
 
 **AC6** (Code block):
+
 - When: the user types `{{` in a Mermaid or PlantUML block and makes a selection
 - Then: plain `name` text is stored (no `|item:uuid`); no link in the rendering
 

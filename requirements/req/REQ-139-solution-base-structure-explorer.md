@@ -54,6 +54,7 @@ Every solution needs the same base structure. Manual creation via TreeNode CRUD 
 **Inputs**: solution ID → all linked objects from the six categories
 
 **Processing**:
+
 1. The system loads objects of all six categories for the given solution
 2. Each category as a node with count (e.g. "Components (4)")
 3. Empty categories: node remains visible, count "(0)", visually grayed out
@@ -62,16 +63,19 @@ Every solution needs the same base structure. Manual creation via TreeNode CRUD 
 ## Acceptance Criteria
 
 **AC1** — Complete base structure:
+
 - Given: any solution (with or without content)
 - When: the solution is expanded in the browser
 - Then: exactly six categories visible as child nodes
 
 **AC2** — Empty categories visible:
+
 - Given: solution with 0 catalogs
 - When: the solution is expanded in the browser
 - Then: "Catalogs (0)" appears grayed out — not hidden
 
 **AC3** — Count correct:
+
 - Given: the solution has 3 components and 5 connections
 - When: the browser is displayed
 - Then: "Components (3)" and "Connections (5)" are displayed correctly

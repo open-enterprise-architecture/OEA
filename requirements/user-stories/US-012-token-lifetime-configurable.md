@@ -18,11 +18,13 @@ As an operator of an instance with local authentication, I want to be able to co
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: an instance with a locally configured access token lifetime of 15 minutes
 - When: a person signs in via a local mechanism
 - Then: the access token expires after 15 minutes
 
 **AC2**:
+
 - Given: an expired access token, but a still valid refresh token
 - When: a refresh is requested
 - Then: a new access token with the configured lifetime is issued

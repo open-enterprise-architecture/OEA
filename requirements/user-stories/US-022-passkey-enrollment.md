@@ -18,21 +18,25 @@ As a person signing in for the first time with my initial password, I want to re
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Kurt has chosen passkey as the method and has a WebAuthn-capable authenticator
 - When: he completes the authenticator confirmation
 - Then: the public key is persisted; passkey login (UC-01 A3) is possible
 
 **AC2**:
+
 - Given: Kurt cancels the authenticator confirmation
 - When: the cancellation occurs
 - Then: no credential is stored; the enrollment token remains valid
 
 **AC3**:
+
 - Given: a person already has a registered passkey
 - When: they register another one
 - Then: both credentials are stored and can each be used individually for login
 
 **AC4**:
+
 - Given: a registration response with a wrong origin or RP ID
 - When: the system processes it
 - Then: it is rejected; no credential stored

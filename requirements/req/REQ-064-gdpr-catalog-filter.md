@@ -39,6 +39,7 @@ GDPR Art. 30 requires a record of processing activities for all data flows that 
 Filtering runs through the catalog infrastructure (REQ-047). The special case here: filter on properties of *linked* entities via n-connection (carries-data → data-object → personalDataCategories). This is a join query across two levels.
 
 Two variants:
+
 1. **Direct property on data-flow**: `data-flow` itself has a PropertyDefinition `personalDataCategories` → simple filter directly on the data-flow PropertyValue
 2. **Traversing filter**: filter on `personalDataCategories` of the `data-object` entities linked via `carries-data` → join via n-connection
 
@@ -57,7 +58,7 @@ In v1.0, variant 1 is supported (direct property on data-flow, easier to impleme
 
 ### Export Format (CSV)
 
-```
+```text
 id,name,entityTypeId,protocol,personalDataCategories,source,target
 5,ERP→DWH Customer master data,data-flow,JDBC,"Name,Address,Email",SAP ERP,Data Warehouse
 6,DWH→BI Customer master data,data-flow,REST,"Name,Email",Data Warehouse,BI Tool
@@ -66,20 +67,24 @@ id,name,entityTypeId,protocol,personalDataCategories,source,target
 ## Acceptance Criteria
 
 **AC1** (Filter personalDataCategories ≠ empty):
+
 - Given: DataFlow id=5 with `personalDataCategories="Name,Address,Email"` and DataFlow id=7 without personalDataCategories
 - When: Lukas opens a catalog with filter `entityTypeId=data-flow` + `personalDataCategories ≠ empty`
 - Then: Only id=5 appears; id=7 does not
 
 **AC2** (Combined filter):
+
 - When: Lukas additionally adds filter `protocol=JDBC`
 - Then: Only DataFlows with JDBC protocol AND non-empty personalDataCategories appear
 
 **AC3** (CSV export):
+
 - Given: Catalog shows 3 DataFlows after filtering
 - When: Lukas clicks "Export as CSV"
 - Then: CSV download with 3 rows + header; fields as described above; encoding UTF-8
 
 **AC4** (Empty result):
+
 - Given: No DataFlows have personalDataCategories filled
 - When: Filter applied
 - Then: Empty table; no error; export delivers only the header row

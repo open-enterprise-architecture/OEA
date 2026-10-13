@@ -42,10 +42,12 @@ The requirement concerns exclusively the visibility of options in the UI (login 
 ## Type-Specific Fields
 
 **Inputs**:
+
 - Instance configuration: `auth.localAuthEnabled: boolean` (default: `true`)
 - Instance configuration: `auth.oidcEnabled: boolean` (default: `false`, becomes `true` as soon as an IdP is configured)
 
 **Processing**:
+
 1. At startup, the UI reads the instance configuration (via API or embedded config)
 2. `localAuthEnabled: false` → fields for username/password and the passkey link are not displayed; the bootstrapping wizard shows only the OIDC option
 3. `localAuthEnabled: true` and `oidcEnabled: true` → both options are offered equally, none is premarked or labeled "recommended"
@@ -53,35 +55,42 @@ The requirement concerns exclusively the visibility of options in the UI (login 
 5. None of the provider names or method names may carry a "recommended" label
 
 **Outputs**:
+
 - The login screen shows exactly the options released by the operator
 - The bootstrapping wizard shows exactly the bootstrapping modes released by the operator
 
 **Error Cases**:
+
 - `localAuthEnabled: false` and `oidcEnabled: false` at the same time (no provider active): the system shows an error state "No authentication method configured" and blocks login until an operator activates a method
 
 ## Acceptance Criteria
 
 **AC1** — Local auth disabled:
+
 - Given: `auth.localAuthEnabled = false`
 - When: the login screen is opened
 - Then: no username/password form, no passkey link, no local option visible
 
 **AC2** — OIDC disabled:
+
 - Given: `auth.oidcEnabled = false`
 - When: the login screen is opened
 - Then: no SSO button visible; local options are displayed (if enabled)
 
 **AC3** — Both active, no recommendation:
+
 - Given: `auth.localAuthEnabled = true`, `auth.oidcEnabled = true`
 - When: the login screen is opened
 - Then: both options are displayed equally; no option carries the label "recommended", "default", or similar
 
 **AC4** — Bootstrapping wizard follows config:
+
 - Given: `auth.localAuthEnabled = false`
 - When: the bootstrapping wizard is opened
 - Then: only the OIDC bootstrapping option is offered; local mode cannot be displayed
 
 **AC5** — No active provider:
+
 - Given: `auth.localAuthEnabled = false` and `auth.oidcEnabled = false`
 - When: the login screen is accessed
 - Then: error state with a clear message for the operator; no normal login possible

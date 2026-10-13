@@ -35,11 +35,13 @@ The hierarchy of components has semantic meaning in ArchiMate: a parent-child re
 ## Type-Specific Fields
 
 **Inputs**:
+
 - Parent entity A: `isStructuralGrouper=false`, `isConnection=false`
 - Child entity B: `isStructuralGrouper=false`, `isConnection=false`
 - B.`parentEntityId` is set to A
 
 **Processing**:
+
 1. Check: both entities `isStructuralGrouper=false`? → create implicit connection
 2. Check: at least one entity `isStructuralGrouper=true`? → no connection
 3. Creation: new ArchitectureEntity of type `composition` with `autoCreated=true`, `source=A.id`, `target=B.id`
@@ -47,27 +49,32 @@ The hierarchy of components has semantic meaning in ArchiMate: a parent-child re
 5. Manual change of the connection (e.g. switching to aggregation) → `autoCreated=false`; survives detaching
 
 **Output**:
+
 - New connection visible under "Connections" with the label "[auto] Composition: A → B"
 - Clearly marked as automatically created in the connection UI
 
 ## Acceptance Criteria
 
 **AC1** — Implicit connection created:
+
 - Given: entities A and B (`isStructuralGrouper=false`); B.parentEntityId is set to A
 - When: the change is saved
 - Then: a composition connection (autoCreated=true) between A and B exists in "Connections"
 
 **AC2** — No connection for structuring aid:
+
 - Given: structuring aid C (`isStructuralGrouper=true`) and entity D
 - When: D.parentEntityId = C is set
 - Then: no connection is created
 
 **AC3** — Connection deleted on detaching:
+
 - Given: AC1 state (autoCreated connection exists)
 - When: B.parentEntityId is set to null
 - Then: the autoCreated connection is removed automatically
 
 **AC4** — Manually changed connection survives:
+
 - Given: autoCreated connection from AC1; user changes the type to aggregation (`autoCreated=false`)
 - When: B.parentEntityId is set to null
 - Then: the aggregation connection is retained (autoCreated=false)

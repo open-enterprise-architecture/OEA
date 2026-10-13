@@ -44,21 +44,25 @@ Requires a valid session (UC-01 Basic Flow or A1–A5 successful). No enrollment
 ### For type=functional
 
 **Inputs**:
+
 - Authenticated session (cookie or bearer token)
 - Selected new method and method-specific inputs (identical to REQ-022/023/024)
 
 **Processing**:
+
 - System checks that a valid session exists for the requesting person
 - System shows the methods available for the instance that have not yet been set up
 - Method-specific enrollment flow per REQ-022, REQ-023, or REQ-024 (identical, without the token step)
 - CSRF protection: session-bound token or SameSite cookie policy
 
 **Outputs**:
+
 - List of available methods not yet set up
 - Success message after completed enrollment
 - Error message for invalid session or unavailable method
 
 **Error Cases**:
+
 - Session expired or invalid → redirect to login (UC-01)
 - All methods already set up → informational note, no error
 - Method not enabled by the instance → method is not offered
@@ -66,26 +70,31 @@ Requires a valid session (UC-01 Basic Flow or A1–A5 successful). No enrollment
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Kurt is logged in and has not yet set up a TOTP method
 - When: he adds TOTP in the security settings and completes the setup
 - Then: TOTP is persisted as an additional method; no enrollment token was needed
 
 **AC2**:
+
 - Given: Kurt is logged in and wants to add a second passkey
 - When: he performs the passkey registration
 - Then: the new public key is persisted; both passkeys are usable for login
 
 **AC3**:
+
 - Given: Kurt has already set up passkey, TOTP, and password
 - When: he opens the security settings
 - Then: the system shows that all methods are already set up (no error)
 
 **AC4**:
+
 - Given: a request to the enrollment endpoint without a valid session
 - When: the request arrives
 - Then: it is rejected; redirect to login
 
 **AC5**:
+
 - Given: a request without a CSRF token (in a POST form-based flow)
 - When: the request arrives
 - Then: it is rejected with a corresponding error

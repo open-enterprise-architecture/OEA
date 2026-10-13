@@ -36,14 +36,17 @@ Go-live is irreversible. A two-step confirmation prevents accidental transitions
 ## Acceptance Criteria
 
 **AC1** (Button disabled without name entry):
+
 - When: the confirmation dialog is displayed without a name entry
 - Then: the "Confirm go-live" button is disabled
 
 **AC2** (Wrong name):
+
 - When: a wrong plateau name is entered
 - Then: the button remains disabled; no error message is required
 
 **AC3** (Correct name):
+
 - When: the exact plateau name is entered
 - Then: the button is enabled and go-live can be executed
 

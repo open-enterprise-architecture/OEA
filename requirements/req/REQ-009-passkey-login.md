@@ -44,34 +44,41 @@ Assumes that the person has previously registered a passkey (enrollment is a sep
 ### For type=functional
 
 **Inputs**:
+
 - WebAuthn assertion (signed challenge-response) from the client authenticator, for discoverable credentials without prior username entry
 
 **Processing**:
+
 - System generates a WebAuthn challenge (for discoverable credentials without prior identity indication, the so-called usernameless flow)
 - Client signs the challenge with the private key of the registered passkey
 - System determines the person via the user handle contained in the assertion (discoverable credential) or via the previously entered identity (non-resident credential, fallback)
 - System verifies the signature against the person's stored public key
 
 **Outputs**:
+
 - On successful verification: continue with person/role lookup (see REQ-001, step 6 of the Basic Flow)
 
 **Error Cases**:
+
 - No registered passkeys for the given identity → generic error message (see REQ-006), no indication of non-existence
 - Signature verification failed → rejection, audit log entry (see REQ-005)
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a person with a previously registered passkey
 - When: they log in with this passkey
 - Then: they receive a session according to their active role assignments
 
 **AC2**:
+
 - Given: a failed passkey verification
 - When: the login attempt is completed
 - Then: no session is created and the error message is indistinguishable from other error cases (e.g., E1, E2)
 
 **AC3**:
+
 - Given: a person with a passkey registered as a discoverable credential
 - When: they log in
 - Then: no prior entry of a username or password is required

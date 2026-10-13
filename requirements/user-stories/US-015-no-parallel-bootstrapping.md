@@ -18,11 +18,13 @@ As an operator, I want only one bootstrapping process per instance to complete s
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: two nearly simultaneously started bootstrapping attempts on the same fresh instance
 - When: both compete for completion
 - Then: exactly one completes successfully, the other is rejected
 
 **AC2**:
+
 - Given: an instance with an already existing system admin account
 - When: a repeated bootstrapping attempt is made
 - Then: it is rejected without an explicit reset action

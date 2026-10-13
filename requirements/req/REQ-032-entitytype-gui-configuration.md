@@ -47,6 +47,7 @@ GUI configuration is the primary path for organization-specific metamodel extens
 **Inputs** (per CRUD operation):
 
 *Create EntityType*:
+
 - Name (string, PascalCase, mandatory)
 - Base type (dropdown of all EntityTypes, optional)
 - Description (string, optional)
@@ -54,26 +55,32 @@ GUI configuration is the primary path for organization-specific metamodel extens
 - Relations (0..n): relation name, target type (dropdown), cardinality (format: `0..n`, `1..1`, etc.)
 
 *Update EntityType* (custom only):
+
 - All fields editable as in Create
 - Properties/relations can be added, changed, or removed
 
 *Delete EntityType* (custom only):
+
 - Deletion only possible if no entity instances of this type exist in the repository (BR-03)
 
 *Create/Update/Delete Stereotype*:
+
 - Stereotype name (PascalCase), base type (dropdown), additional properties
 
 **Processing**:
+
 - Validation: name unique (across built-in + custom), base type valid, cardinality format correct, enum values not empty for type=enum
 - On delete: check whether the type still has instances (BR-03); if so → error message with the count
 - Persistence as an entry in `MetamodelConfiguration`
 - Audit log entry after a successful operation
 
 **Outputs**:
+
 - Updated EntityType list with the new/changed/deleted type
 - Audit log entry
 
 **Error Cases**:
+
 - Name collision (BR-01) → validation error with a specific message
 - Attempt to edit/delete a built-in (BR-02) → error message
 - Attempt to delete an in-use custom type (BR-03) → error message with the number of affected entities
@@ -82,26 +89,31 @@ GUI configuration is the primary path for organization-specific metamodel extens
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Kurt has metamodel editor permission
 - When: he creates a new EntityType `SecurityZone` with property `trustLevel` (enum, mandatory) and relation `contains → TechnologyComponent (0..n)` via the form
 - Then: `SecurityZone` appears in the type list; when creating a new entity, `SecurityZone` is selectable
 
 **AC2**:
+
 - Given: Kurt tries to create an EntityType with the name `ApplicationComponent` (built-in)
 - When: he saves
 - Then: an error message appears: "Name 'ApplicationComponent' already taken (built-in)"; no entry is created
 
 **AC3**:
+
 - Given: custom EntityType `SecurityZone` has 5 entity instances in the repository
 - When: Kurt tries to delete `SecurityZone`
 - Then: an error message appears: "5 entities of type SecurityZone must first be deleted or migrated"; no deletion
 
 **AC4**:
+
 - Given: Kurt edits a custom EntityType (adds an optional property)
 - When: he saves
 - Then: the new property is visible; existing entities of this type do not become invalid (optional property, no breaking change)
 
 **AC5**:
+
 - Given: built-in EntityType `ApplicationComponent` in the list
 - When: Kurt clicks on it
 - Then: it is displayed as read-only; no edit or delete buttons

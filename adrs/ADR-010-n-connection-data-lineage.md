@@ -49,12 +49,13 @@ The lineage API parses this string server-side and follows the IDs.
 ### Option B: n-connection (`carries-data`)
 
 A new EntityType `carries-data` (isConnection=true) is defined in the metamodel:
+
 - `sourceEntityId` → ID of a `data-flow` connection (isConnection=**true**)
 - `targetEntityId` → ID of a `data-object` entity (isConnection=false)
 
 This presupposes that BR-04 in `entity.md` is relaxed: `sourceEntityId` may also point to an ArchitectureEntity whose meta type is `isConnection=true` — provided the own EntityType explicitly allows it (`allowsConnectionSource=true` on EntityTypeDefinition, or regulated via metamodel constraint).
 
-```
+```text
 SAP ERP (1) ──[data-flow: 5]──► Data Warehouse (2)
                    │
              [carries-data: 103]
@@ -127,18 +128,22 @@ A connection that is linked to further entities via n-connections (i.e. is itsel
 ## References
 
 **Concept Chapters**:
+
 - §6 Core Entity Types
 - §13 Business–Technology Linking (lineage as bridge)
 - §14 Extensibility
 
 **Related ADRs**:
+
 - [ADR-007](./ADR-007-canvas-library.md) – Vue Flow as canvas; renderer capabilities relevant for n-connection
 - [ADR-004](./ADR-004-reification-details.md) – Reification (connections as first-class objects); conceptually related
 
 **Use Cases / Requirements**:
+
 - [UC-08: Model and Analyze Data Flow Map (Data Lineage)](../requirements/use-cases/UC-08-model-data-lineage.md)
 
 **Business Objects**:
+
 - [entity.md](../business-objects/entity.md) – BR-04 is directly affected by this decision
 - [metamodel-configuration.md](../business-objects/metamodel-configuration.md) – possibly `allowsConnectionAsSource` on EntityTypeDefinition
 

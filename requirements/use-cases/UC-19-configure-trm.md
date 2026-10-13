@@ -96,7 +96,7 @@ Kurt must build the TRM initially (possibly based on an imported TOGAF TRM packa
 
 ## Basic Flow
 
-*Default case: Kurt enriches an imported TRM category with SBB standards*
+*Default case: Kurt enriches an imported TRM category with SBB standards.*
 
 1. **Kurt**: opens the TRM view in the navigation area "Enterprise Continuum → TRM"
 2. **System**: shows the TRM as an expandable tree; imported nodes with badge "TOGAF 10"; own extensions without badge; each category shows: `preferredStandard` (or "—"), number of `acceptedAlternatives`, number of classified entities
@@ -111,20 +111,20 @@ Kurt must build the TRM initially (possibly based on an imported TOGAF TRM packa
 
 ## Alternative Flows
 
-**A1 – Create new TRM category below an existing one**
+### A1 – Create new TRM category below an existing one
 
 1. **Kurt**: opens an existing category (e.g., "Security Services") and clicks "Add subcategory"
 2. **System**: opens the category form: name (mandatory), description, `evaluationCriteria`; `level` is automatically set = parent.level + 1
 3. **Kurt**: enters name: "Zero Trust Network Access", clicks "Save"
 4. **System**: inserts the new node into the hierarchy; `scope=organization`, no `sourcePackage`
 
-**A2 – Reorganize TRM tree structure via drag & drop**
+### A2 – Reorganize TRM tree structure via drag & drop
 
 1. **Kurt**: drags an own (`scope=organization`) category via drag & drop under another node
 2. **System**: checks: target must not be a descendant of the category being moved (BR-02 in trm-category.md); `level` is adjusted automatically
 3. **System**: moves the node; `level` field of all affected descendants is updated
 
-**A3 – Keep review date current**
+### A3 – Keep review date current
 
 1. **Kurt**: opens the TRM overview and activates the filter "Last reviewed > 12 months ago"
 2. **System**: shows all TRM categories whose `lastReviewedAt` is more than 12 months ago or null
@@ -132,17 +132,20 @@ Kurt must build the TRM initially (possibly based on an imported TOGAF TRM packa
 
 ## Exception Flows
 
-**E1 – Cycle when moving a category**
+### E1 – Cycle when moving a category
+
 - Condition: Kurt tries to move a category under one of its own descendants
 - Expected reaction: Drop target visually marked as invalid; API attempt → HTTP 422
 - Resumption: Kurt selects a different target
 
 **E2 – Editing an `imported` category**
+
 - Condition: Kurt opens a TRM category with `scope=imported`
 - Expected reaction: Name and hierarchy read-only; only SBB assignments (`preferredStandard`, `acceptedAlternatives`, `deprecatedOptions`) and `evaluationCriteria` are editable (since these are organization-specific decisions)
 - Resumption: Kurt can edit the SBB assignments despite `imported` scope
 
-**E3 – Deleting a category with assigned entities**
+### E3 – Deleting a category with assigned entities
+
 - Condition: Kurt tries to delete a category to which entities are assigned (`classifiedEntities` not empty)
 - Expected reaction: Warning "N entities are assigned to this category"; no automatic block
 - Resumption: Kurt cleans up the assignments or deletes despite the warning

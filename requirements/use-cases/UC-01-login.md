@@ -118,32 +118,42 @@ Kurt manages the architecture repository via Git/Markdown, but also uses UI and 
 ## Alternative Flows
 
 **A1 – Existing valid session**: At step 2, if a valid session already exists, then:
+
 1. System skips the redirect to the identity provider
 2. System proceeds directly with the authorization check required for the operation
+
 - Returns to step 7 (confirmation is omitted since no new login took place)
 
 **A2 – API key authentication (machine-to-machine)**: At step 2, if the request uses an API key instead of a browser login (see concept §21.8):
+
 1. System validates the API key directly, without redirect to the identity provider
 2. System determines the person/service identity assigned to the API key and its roles
+
 - Returns to step 6 of the basic flow
 
 **A3 – Passkey login (local authentication, without external IdP)**: At step 2, if the OEA instance does not use an OIDC provider but local authentication with passkey (see concept §21.8):
+
 1. System prompts Kurt for passkey authentication (WebAuthn challenge), **without prior entry of username or password** – provided the registered passkey is a discoverable credential (resident key), the authenticator itself identifies the person (FIDO2/WebAuthn standard)
 2. Kurt confirms with the registered passkey (e.g., platform authenticator, security key)
 3. System verifies the WebAuthn signature and determines the person via the user handle contained in the credential
+
 - Returns to step 6 of the basic flow
 - Non-discoverable credentials (non-resident keys) that require prior username entry remain possible as a fallback, but are not the recommended default case
 
 **A4 – Username/password with TOTP (local authentication, second factor)**: At step 2, if the OEA instance uses local authentication with username/password and TOTP:
+
 1. Kurt enters username and password
 2. System checks the password hash; on success it requests the current TOTP code
 3. Kurt enters the TOTP code from his authenticator app
 4. System verifies the TOTP code against the person's registered secret
+
 - Returns to step 6 of the basic flow
 
 **A5 – Username/password without second factor (local authentication, minimal variant)**: At step 2, if the OEA instance uses local authentication without a second factor:
+
 1. Kurt enters username and password
 2. System checks the password hash
+
 - Returns to step 6 of the basic flow
 - This variant is deliberately riskier (no second factor) and is flagged accordingly in the audit log (see REQ-005)
 - The operator can block this variant instance-wide for all regular persons by enabling enforcement of a second factor (see REQ-020); this block applies exclusively to regular persons, not to the system admin account from UC-02
@@ -151,21 +161,25 @@ Kurt manages the architecture repository via Git/Markdown, but also uses UI and 
 ## Exception Flows
 
 **E1 – Identity provider rejects authentication**:
+
 - Condition: Kurt enters wrong credentials or cancels the login at the provider
 - Expected reaction: System shows a generic error message ("Login unsuccessful"), no session is created
 - Resumption: Kurt can restart the login attempt (back to step 2)
 
 **E2 – Person does not exist or is `offboarded` in the repository**:
+
 - Condition: Identity token is valid, but no assigned active person exists in the repository
 - Expected reaction: System refuses session creation, audit log records the rejected access attempt
 - Resumption: Kurt must be enabled in the repository by a role with the appropriate authority (e.g., admin)
 
 **E3 – Person has no active role assignment**:
+
 - Condition: BR-01 from [person.md](../../business-objects/person.md) is violated (no `fillsRoles` assignment with a valid period)
 - Expected reaction: Session is created, but without permissions beyond publicly readable content; Kurt receives a notice that no role is assigned
 - Resumption: Kurt contacts a person with authorization to assign roles
 
 **E4 – Identity provider unreachable**:
+
 - Condition: Timeout or network error at steps 2–5
 - Expected reaction: System shows a technical error message with a hint to retry, no session
 - Resumption: Kurt retries as soon as the provider is reachable

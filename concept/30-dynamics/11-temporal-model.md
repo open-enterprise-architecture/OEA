@@ -6,7 +6,7 @@ This is the conceptual centerpiece of the tool.
 
 A **plateau** (term from ArchiMate) represents a consistent architecture state at a point in time or for a period.
 
-```
+```yaml
 Plateau {
   id: "baseline-2026-q1"
   name: "Current State Q1 2026"
@@ -47,7 +47,7 @@ A **gap** is the difference of an entity (or group) between two plateaus. Gaps a
 
 A **work package** closes one or more gaps:
 
-```
+```yaml
 WorkPackage {
   id: "wp-crm-migration"
   name: "CRM replacement Salesforce → HubSpot"
@@ -116,7 +116,7 @@ PlateauDiff:
 
 **API endpoint**:
 
-```
+```http
 POST /api/v1/plateaus/{a}/diff/{b}
 Body: { filter: { domain: "...", entityTypes: [...] }, aggregateBy: "domain" | "capability" | ... }
 Response: PlateauDiff (structured)

@@ -93,6 +93,7 @@ Max is the **operations persona** that was systematically missing in the first f
 **Most demanding operator profile**: Regulated SMEs are often harder to operate than corporate groups because they are under regulatory pressure but do not have the staff of a large company. Max has to meet many obligations alone.
 
 **Configuration philosophy as the core**: "Configure once, then leave alone" is not only a convenience requirement but a **security and compliance requirement**. Configuration drift is a known risk in regulated environments. The tool should:
+
 - Configuration declarative in a file (YAML/TOML), schema-validated at startup
 - Configuration versionable in Git (GitOps pattern)
 - Detect and warn about configuration drift (desired vs. actual)
@@ -100,11 +101,13 @@ Max is the **operations persona** that was systematically missing in the first f
 - Clear separation of "configuration" (static, declarative) and "runtime data" (dynamic, in the repository)
 
 **Hybrid reality**: "Own servers + individual cloud services" is typical for SMEs and shapes the requirements:
+
 - Container suitability is mandatory (for on-prem servers)
 - But: no hard cloud dependency (also fully operable locally)
 - Cloud services only as optional integration (e.g. S3-compatible backup)
 
 **Compliance is not optional**: FINMA, MaRisk, BAIT, DORA, NIS2, KRITIS – different requirements depending on the industry, but all with a similar thrust:
+
 - Complete audit trails
 - Demonstrable access controls
 - Backup and recovery concepts
@@ -118,6 +121,7 @@ The tool can score here because many OSS alternatives are weak in exactly these 
 **Connection to Lukas (SH-02) and Kurt (SH-03)**: Both work in mid-sized companies/SMEs with an on-premises tendency. They depend on someone like Max – if the tool is operable for Max, it is usable for their companies.
 
 **Anti-pattern for the tool**: Max will reject the tool if:
+
 - it runs only in the cloud
 - it enforces its own user management without SSO
 - configuration is only possible via UI

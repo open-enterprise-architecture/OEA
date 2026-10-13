@@ -145,6 +145,7 @@ entity_plateau_states (
 ### Graph Traversal (v1.0 without AGE)
 
 Recursive CTE for impact analysis (depth up to 5):
+
 ```sql
 WITH RECURSIVE impact(entity_id, depth) AS (
   SELECT target_entity_id, 1 FROM entities WHERE source_entity_id = $start AND entity_type_id = ANY($connection_types)

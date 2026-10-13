@@ -18,26 +18,31 @@ As a Solution Architect, I want to be able to mark an existing entity from the I
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: `ERP-Core (ApplicationComponent, version=v4)` is in the baseline
 - When: Michael marks `ERP-Core` as modified and changes `version` from "v4" to "v5"
 - Then: the delta contains `changes = {version: {before: "v4", after: "v5"}}`; `ERP-Core` appears in the delta list with `deltaType=modified`
 
 **AC2** (before value from baseline):
+
 - Given: `ERP-Core` has `version=v4` in the baseline
 - When: Michael opens the `modified` form for `ERP-Core`
 - Then: the `before` value for `version` is automatically prefilled with "v4" (from baseline)
 
 **AC3** (entity not in baseline):
+
 - Given: Michael enters an entityId that is not present in the baseline
 - When: he saves
 - Then: validation error "Entity not found in the current landscape"; no delta saved
 
 **AC4** (solution implemented):
+
 - Given: Solution has status=`implemented`
 - When: Michael tries to add a modified delta
 - Then: 409 Conflict "This solution is completed and can no longer be changed"
 
 **AC5** (duplicate check):
+
 - Given: `ERP-Core` already has a `retiring` delta in this solution
 - When: Michael tries to additionally capture `ERP-Core` as `modified`
 - Then: validation error "A delta already exists for ERP-Core in this solution"

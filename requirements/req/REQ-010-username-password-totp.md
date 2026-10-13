@@ -44,29 +44,35 @@ Assumes that the person has previously set a password and registered a TOTP secr
 ### For type=functional
 
 **Inputs**:
+
 - Username, password
 - TOTP code (6 digits, time-based)
 
 **Processing**:
+
 - Check the password hash against the person's stored hash
 - If the password is correct: request the TOTP code
 - Verify the TOTP code against the person's registered secret (including time window tolerance)
 
 **Outputs**:
+
 - On successful verification of both factors: continue with person/role lookup (see REQ-001, step 6)
 
 **Error Cases**:
+
 - Wrong password → generic error message (see REQ-006), no indication whether the username exists
 - Wrong or expired TOTP code → generic error message, no indication that the password was correct (prevents partial information disclosure)
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a person with a correct password and a valid TOTP code
 - When: they log in
 - Then: they receive a session according to their active role assignments
 
 **AC2**:
+
 - Given: a correct password but a wrong TOTP code
 - When: the login attempt is completed
 - Then: no session is created, and the error message does not reveal that the password was correct

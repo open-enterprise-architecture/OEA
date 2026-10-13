@@ -18,20 +18,24 @@ As a Solution Architect, I want to be able to create my own editable metamodel e
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: instance metamodel with `editMode=import-only`; solution "Cloud Migration 2027" exists (baseline P0 → target P1)
 - When: Kurt creates an extension configuration with `editMode=gui-and-import` for this solution and defines `CloudService`
 - Then: `CloudService` is available only in "Cloud Migration 2027"; the instance metamodel remains untouched and locked
 
 **AC2**:
+
 - Given: solution "Cloud Migration 2027" with extension
 - When: an architect creates a new entity in this solution
 - Then: both groups are available in the type selection: standard (from instance) and solution-specific; `CloudService` appears with a badge as a solution type
 
 **AC3**:
+
 - Given: Kurt tries to define a type `ApplicationComponent` (instance type) in the solution extension
 - Then: an error appears; no entry is created
 
 **AC4**:
+
 - Given: solution extension with `editMode=gui-and-import`
 - When: another architect (with permission) also creates types in the extension
 - Then: these appear in the extension; the audit log attributes the changes to the correct person

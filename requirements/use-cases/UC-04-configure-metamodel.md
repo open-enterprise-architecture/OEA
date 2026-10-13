@@ -105,7 +105,7 @@ Before architects can capture entities in the repository, the architecture team 
 
 ## Basic Flow
 
-*Default case: Kurt creates a new custom EntityType via the GUI*
+*Default case: Kurt creates a new custom EntityType via the GUI.*
 
 1. **Kurt**: navigates to the metamodel configuration (admin or architecture area)
 2. **System**: shows all EntityTypes (built-in + custom) in a clear list; built-in marked as read-only
@@ -120,6 +120,7 @@ Before architects can capture entities in the repository, the architecture team 
 
 **A1 – Import from file**:
 If Kurt has an existing metamodel definition as a file:
+
 1. Kurt selects "Import"
 2. System shows an import dialog with format selection (YAML, JSON)
 3. Kurt uploads the file
@@ -129,18 +130,21 @@ If Kurt has an existing metamodel definition as a file:
 7. On confirmation: System imports all conflict-free types; audit log entry for each imported entry
 
 **A2 – Add stereotype**:
+
 1. Kurt selects an existing EntityType (built-in or custom)
 2. Kurt selects "Add stereotype"
 3. Form: stereotype name (PascalCase), additional properties
 4. System saves the stereotype and links it to the base type
 
 **A3 – Define constraint rule**:
+
 1. Kurt selects an EntityType and opens "Constraint rules"
 2. Kurt defines: rule name, expression (rule expression), severity (hint/warning/error), error message
 3. System saves the rule; it is applied at the next validation
 
 **A4 – Edit existing EntityType**:
 Only custom EntityTypes (not built-in) can be edited:
+
 1. Kurt selects the EntityType
 2. Kurt changes description, properties or relations
 3. System checks whether existing entities would become invalid due to the change (e.g., mandatory field added → warning, no blocking)
@@ -148,6 +152,7 @@ Only custom EntityTypes (not built-in) can be edited:
 
 **A5 – Another architect makes changes**:
 Lukas (SH-02) also has the Metamodel Editor role:
+
 - Identical flow to the basic flow or A1–A4
 - All changes are attributed to Lukas in the audit log
 - Simultaneous editing of the same EntityType: last-write-wins with a warning on collision (optimistic locking)
@@ -155,21 +160,25 @@ Lukas (SH-02) also has the Metamodel Editor role:
 ## Exception Flows
 
 **E1 – Name already taken**:
+
 - Condition: Kurt tries to create an EntityType with a name that already exists (built-in or custom)
 - Expected reaction: Validation error "Name 'X' is already taken (built-in/custom)"; form remains open
 - Resumption: Kurt chooses a different name
 
 **E2 – Base type does not exist**:
+
 - Condition: During import, an `extends` reference contains an unknown type
 - Expected reaction: Import preview marks the entry as an error; import confirmation not possible without resolving this conflict
 - Resumption: Kurt corrects the file or imports without the faulty entries (partial import)
 
 **E3 – Custom EntityType is used by existing entities**:
+
 - Condition: Kurt tries to delete a custom EntityType to which entities in the repository are still assigned
 - Expected reaction: Error message with the number of affected entities; deletion blocked
 - Resumption: Kurt first deletes the affected entities or archives them
 
 **E4 – Missing permission**:
+
 - Condition: A person without the Metamodel Editor role tries to make a change
 - Expected reaction: 403 Forbidden; audit log entry for unauthorized access attempt
 - Resumption: No access; the person contacts the admin

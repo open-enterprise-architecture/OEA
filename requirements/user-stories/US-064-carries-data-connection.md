@@ -18,25 +18,30 @@ As a Data Architect, I want to create a `carries-data` connection between a data
 ## Acceptance Criteria
 
 **AC1** (create carries-data):
+
 - Given: DataFlow id=5 (`data-flow`, `allowsConnectionAsSource=true`); DataObject id=42
 - When: Lukas creates carries-data (sourceEntityId=5, targetEntityId=42)
 - Then: carries-data receives its own integer ID (e.g. 103); sourceEntityId=5 and targetEntityId=42 set correctly
 
 **AC2** (rejection: source without allowsConnectionAsSource):
+
 - Given: ApplicationComponent id=1 (`allowsConnectionAsSource=false`)
 - When: Lukas tries to create carries-data with sourceEntityId=1
 - Then: HTTP 422; error message: "application-component does not allow a connection source"
 
 **AC3** (rejection: target is a connection):
+
 - When: Lukas tries to create carries-data with targetEntityId=5 (DataFlow, isConnection=true)
 - Then: HTTP 422
 
 **AC4** (depth limit v1.0):
+
 - Given: carries-data id=103 (`allowsConnectionAsSource=false`)
 - When: Lukas tries to create another connection with sourceEntityId=103
 - Then: HTTP 422 "n-connection depth exceeded"
 
 **AC5** (source/target immutable):
+
 - Given: carries-data id=103 with sourceEntityId=5
 - When: Lukas tries to change sourceEntityId to 6
 - Then: HTTP 422; sourceEntityId remains 5

@@ -36,14 +36,17 @@ Without plateau creation, no strategic architecture planning can take place in p
 ## Acceptance Criteria
 
 **AC1** (Create initial baseline):
+
 - When: a plateau is created without a `succeeds` reference and with `status=baseline`
 - Then: the API responds with HTTP 201 and `status=baseline`
 
 **AC2** (Create target):
+
 - When: a plateau is created with `status=target` and `succeeds`=baseline ID
 - Then: the API responds with HTTP 201; `status=target` and `succeeds` are set correctly
 
 **AC3** (Reject second baseline):
+
 - When: a further plateau with `status=baseline` is created although a baseline plateau already exists
 - Then: the API responds with HTTP 422 ("A baseline plateau already exists")
 

@@ -92,7 +92,7 @@ Important: A restore creates a **new** version entry. The state before the resto
 
 ## Basic Flow
 
-*Default case: Kurt resets an entity to an earlier version*
+*Default case: Kurt resets an entity to an earlier version.*
 
 1. **Kurt**: is in the version history of an entity (UC-14) and has identified version v4 as the target state
 2. **Kurt**: clicks "Restore this version" in the detail view of v4
@@ -112,7 +112,7 @@ Important: A restore creates a **new** version entry. The state before the resto
 
 ## Alternative Flows
 
-**A1 – Restore directly from the entity detail view**
+### A1 – Restore directly from the entity detail view
 
 1. **Kurt**: is on the detail view of an entity (not in the history)
 2. **Kurt**: clicks "Reset to earlier version"
@@ -121,21 +121,25 @@ Important: A restore creates a **new** version entry. The state before the resto
 
 ## Exception Flows
 
-**E1 – Validation error caused by restore**
+### E1 – Validation error caused by restore
+
 - Condition: The earlier state violates current metamodel rules (e.g., a property has meanwhile been marked `mandatory` and would have had no value in the old state)
 - Expected reaction: System shows validation warnings in the confirmation dialog (no block — Kurt decides); after the restore, the affected properties appear with a validation warning (as with a normal save with `validationMode=warning`)
 - Resumption: After the restore, Kurt corrects the affected fields
 
-**E2 – Cancellation by Kurt**
+### E2 – Cancellation by Kurt
+
 - Condition: Kurt closes the confirmation dialog without confirming
 - Expected reaction: no change; entity unchanged
 
-**E3 – Missing write permission**
+### E3 – Missing write permission
+
 - Condition: Kurt has read permission, but no write permission on the entity
 - Expected reaction: Button "Restore" not visible; on direct API call 403
 - Resumption: Person contacts the admin (UC-02)
 
-**E4 – Optimistic lock conflict**
+### E4 – Optimistic lock conflict
+
 - Condition: Someone else changed the entity between Kurt's view and his confirmation
 - Expected reaction: HTTP 409; dialog stays open with notice "The entity has meanwhile been changed by [person]. Please check the current version and start the restore again."
 - Resumption: Kurt opens UC-14 again and checks the current state

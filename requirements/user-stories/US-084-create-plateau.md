@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to create plateaus with status `ba
 ## Acceptance Criteria
 
 **AC1** (Create baseline):
+
 - When: I create a plateau without `succeeds` with `status=baseline`
 - Then: the API responds with HTTP 201 and `status=baseline`
 
 **AC2** (Create target):
+
 - When: I create a plateau with `status=target` and `succeeds`=baseline ID
 - Then: HTTP 201 is returned; `succeeds` is set correctly
 
 **AC3** (Reject second baseline):
+
 - When: I try to create another plateau with `status=baseline`
 - Then: I receive HTTP 422 with the message "A baseline plateau already exists"
 

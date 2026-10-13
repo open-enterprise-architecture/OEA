@@ -55,46 +55,55 @@ The policies apply instance-wide to all persons with a local password credential
 | `historyCount` | integer | 0 | Number of previous passwords that must not be reused (0 = no check) |
 
 **Processing**:
+
 - Policies are checked synchronously on password setting (REQ-024), password change, and generator call (REQ-027)
 - If `expiryDays > 0`: the system checks `LocalCredential.lastUsedAt` / `createdAt` at login; if the password has expired, the required action "Change password" is triggered (analogous to UC-03 for 2FA)
 - If `historyCount > 0`: the system keeps the last N password hashes per person and rejects reuse (comparison via hash verification, not plain-text comparison)
 
 **Outputs**:
+
 - Validation result on password check: success or a list of errors with the specific unmet rules
 - Operator configuration: stored and active for new password operations
 
 **Error Cases**:
+
 - Configuration is inconsistent (e.g., `minLength < number of enforced character types`) → validation error when saving the configuration, not only at first password use
 - `historyCount` requires storing old hashes that no longer exist as `LocalCredential` with `status=active` → separate `password_history` table
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: the operator enables `requireUppercase`, `requireLowercase`, `requireDigits`, `requireSpecialChars` and sets `minLength=16`
 - When: a person sets a password that contains only lowercase letters
 - Then: it is rejected with an error message that names all unmet rules
 
 **AC2**:
+
 - Given: the operator sets `expiryDays=90`
 - When: a person logs in 91 days after the last password change
 - Then: the required action "Change password" is triggered; no full access until the change
 
 **AC3**:
+
 - Given: the operator sets `historyCount=5`
 - When: a person tries to set a password that matches one of the last 5 passwords
 - Then: it is rejected with a note on the reuse prohibition
 
 **AC4**:
+
 - Given: the operator sets an inconsistent configuration (`minLength=3`, all 4 character types enforced)
 - When: the configuration is to be saved
 - Then: it is rejected with a specific error message (minimum length must be ≥ 4)
 
 **AC5**:
+
 - Given: all rules are at default (false / 0)
 - When: a password with the minimum length is set
 - Then: it is accepted, even if it contains only lowercase letters
 
 **AC6**:
+
 - Given: `requireSpecialChars=true`
 - When: a password is checked
 - Then: all printable ASCII special characters are accepted as valid (no restricted subset check)

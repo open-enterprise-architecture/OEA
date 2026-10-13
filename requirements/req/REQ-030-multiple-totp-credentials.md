@@ -44,20 +44,24 @@ Applies to `LocalCredential.type=totp`. Password credentials (`type=password`) r
 ### For type=functional
 
 **Inputs**:
+
 - Label (user-assigned, optional; max. 255 characters, e.g., "iPhone – Google Authenticator", "YubiKey TOTP")
 - TOTP enrollment flow as defined in REQ-022 and UC-03
 
 **Processing during enrollment**:
+
 - A new TOTP credential is created and linked to the person; existing TOTP credentials remain active
 - No implicit revocation of the previous TOTP; only the user can explicitly delete credentials
 
 **Processing during login (REQ-010)**:
+
 - System loads all active TOTP credentials of the person
 - Verifies the entered code against each credential sequentially (order: most recently used first, for performance)
 - As soon as a credential verifies the code: login successful; update `lastUsedAt` of this credential
 - No "which credential" field needed for the user at login – the code is the only input
 
 **Error Cases**:
+
 - Label empty → permitted; the system assigns a default label (e.g., "TOTP authenticator 2026-06-25")
 - Label longer than 255 characters → validation error at enrollment
 - No active TOTP credential → login behavior per REQ-010 (no second factor available)
@@ -65,26 +69,31 @@ Applies to `LocalCredential.type=totp`. Password credentials (`type=password`) r
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a person has two active TOTP credentials (different secrets, different devices)
 - When: a valid TOTP code from the second credential is entered
 - Then: the login is successful; `lastUsedAt` of the second credential is updated
 
 **AC2**:
+
 - Given: a person has an existing active TOTP credential
 - When: they set up another TOTP credential via UC-03 A3
 - Then: they have two active TOTP credentials afterwards; the first one is not revoked
 
 **AC3**:
+
 - Given: two active TOTP credentials
 - When: the person opens their security settings
 - Then: both credentials are shown with their label and `createdAt`/`lastUsedAt`
 
 **AC4**:
+
 - Given: a person sets up a TOTP without a label
 - When: the credential is created
 - Then: it receives a sensible default label (e.g., "TOTP authenticator" + date)
 
 **AC5**:
+
 - Given: two active TOTP credentials
 - When: an invalid code (not attributable to any of the credentials) is entered
 - Then: the login fails; no information about which credential was not matched (no leak)

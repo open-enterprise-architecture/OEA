@@ -70,7 +70,7 @@ The plateau concept originates from TOGAF and ArchiMate and forms the basis for 
 
 ## Lifecycle
 
-```
+```text
 target / transition → realized → (becomes the new baseline)
                                   old baseline → realized
 ```

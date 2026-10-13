@@ -83,13 +83,16 @@ The initial **system admin access** of an instance can likewise optionally be re
 ## References
 
 **Concept Chapters**:
+
 - [§21.8 Security and Authorization](../concept/70-platform/21-api-architecture.md)
 - [§8.2 Role](../concept/20-entities/08-organization-roles-persons.md)
 
 **Related ADRs**:
+
 - none
 
 **Use Cases / Requirements**:
+
 - [UC-01: Login](../requirements/use-cases/UC-01-login.md)
 - [UC-02: System Admin Bootstrapping](../requirements/use-cases/UC-02-system-admin-bootstrapping.md)
 - [REQ-001: OIDC-Based Login and Session Creation](../requirements/req/REQ-001-oidc-login-session.md)

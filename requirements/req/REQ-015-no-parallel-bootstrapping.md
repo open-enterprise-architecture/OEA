@@ -48,7 +48,8 @@ Applies to the period of initial installation (race condition protection) as wel
 **Affected Business Objects**: [system-admin-account](../../business-objects/system-admin-account.md)
 
 **Formal Statement** (simplified):
-```
+
+```text
 if exists(SystemAdminAccount for instance) or bootstrappingInProgress(instance):
     reject(new bootstrapping attempt)
 ```
@@ -58,11 +59,13 @@ if exists(SystemAdminAccount for instance) or bootstrappingInProgress(instance):
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: two bootstrapping attempts started almost simultaneously on the same fresh instance
 - When: both compete to complete
 - Then: exactly one completes successfully, the other is rejected
 
 **AC2**:
+
 - Given: an instance with an already existing system admin account
 - When: a new bootstrapping attempt is made
 - Then: it is rejected without an explicit reset action by an existing system admin account

@@ -18,21 +18,25 @@ As an administrator or person, I want to have a secure password generated at the
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Max sets an initial password for a person (admin UI)
 - When: he clicks "Generate password"
 - Then: a password is displayed that meets all active policies (REQ-028)
 
 **AC2**:
+
 - Given: the instance has `requireSpecialChars=true` configured
 - When: a password is generated
 - Then: it contains a special character from the full ASCII special character set
 
 **AC3**:
+
 - Given: a generated password is displayed
 - When: Max generates it again
 - Then: the new password is with high probability different (CSPRNG)
 
 **AC4**:
+
 - Given: a person changes their password
 - When: they click "Generate password"
 - Then: the same generator is also available in the user context

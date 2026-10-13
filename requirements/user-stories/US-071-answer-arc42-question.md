@@ -18,22 +18,27 @@ As a Solution Architect, I want to answer each chapter question individually in 
 ## Acceptance Criteria
 
 **AC1** (tab + questions visible):
+
 - When: Michael opens the CRM system entity
 - Then: Tab "Arc42 Documentation" visible; all questions of the assigned collection listed
 
 **AC2** (create answer):
+
 - When: Michael clicks "Answer now", writes text, saves
 - Then: Answer entity created; question shows green checkmark icon; progress indicator updated
 
 **AC3** (edit answer):
+
 - When: Michael clicks "Edit" on an answered question
 - Then: Editor opens with existing content; changes can be saved
 
 **AC4** (progress indicator):
+
 - When: 3 of 12 answered
 - Then: Chip "3 / 12 answered" and open questions visually marked
 
 **AC5** (web portal read-only):
+
 - When: CIO opens the same entity
 - Then: Content readable; no edit button
 

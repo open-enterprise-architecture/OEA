@@ -70,34 +70,41 @@ OEA consists of several services, all of which must be operable in a platform-in
 ## Acceptance Criteria
 
 **AC1** (Docker Compose on Linux):
+
 - When: `docker compose up` is executed on a Linux system (Ubuntu 22.04 LTS) without prior configuration
 - Then: OEA API, database and auth service start; `GET /health` responds with HTTP 200 within 60 seconds
 
 **AC2** (Docker Compose on macOS and Windows):
+
 - Same as AC1, on macOS 14+ (Docker Desktop) and Windows 11 (Docker Desktop WSL2)
 - Then: identical result as AC1; no platform-specific adjustments needed
 
 **AC3** (Kubernetes / Kind cluster):
+
 - Given: Helm chart for OEA; local Kind cluster
 - When: `helm install oea ./chart` executed
 - Then: all pods `Running` within 120 seconds; `GET /health` HTTP 200
 
 **AC4** (PostgreSQL without proprietary extensions):
+
 - Given: vanilla PostgreSQL 15 (no AWS Aurora, no Azure Flexible Server, no Cloud SQL)
 - When: OEA connected to this database
 - Then: all functions work correctly; no extension except `uuid-ossp` (if needed) or none
 
 **AC5** (MinIO instead of AWS S3):
+
 - Given: MinIO instance configured as object storage (S3-compatible API)
 - When: OEA writes and reads files/blobs
 - Then: correct function; no AWS SDK-specific code path
 
 **AC6** (Keycloak instead of commercial IdP):
+
 - Given: Keycloak configured as OIDC provider
 - When: User logs in via OIDC
 - Then: Login successful; roles transferred correctly; no Entra ID-specific API used
 
 **AC7** (No proprietary environment variables as a requirement):
+
 - When: OEA started without AWS_ACCESS_KEY, AZURE_CLIENT_ID or similar cloud-specific env variables
 - Then: System starts (configured with an S3-compatible alternative); no exception
 

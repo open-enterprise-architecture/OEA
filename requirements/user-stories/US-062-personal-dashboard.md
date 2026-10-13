@@ -18,26 +18,31 @@ As a Solution Architect, I want to create a personal dashboard for my own analys
 ## Acceptance Criteria
 
 **AC1** (create personal dashboard without special permission):
+
 - Given: Michael is logged in (role Solution Architect; no dashboard write permission)
 - When: Michael creates a dashboard with scope=personal
 - Then: HTTP 201; dashboard created
 
 **AC2** (not in other users' list):
+
 - Given: Michael has a scope=personal dashboard
 - When: Kurt, Franz or the CIO call GET /api/v1/dashboards
 - Then: Michael's dashboard appears in none of these lists
 
 **AC3** (direct access via ID blocked):
+
 - Given: Third parties know Michael's dashboard ID (e.g. by guessing)
 - When: Direct GET /api/v1/dashboards/{id} or /data without permission
 - Then: HTTP 403
 
 **AC4** (scope upgrade with permission):
+
 - Given: Michael subsequently receives the dashboard write permission
 - When: PUT with scope=instance
 - Then: HTTP 200; dashboard is visible to everyone from now on
 
 **AC5** (scope=instance rejected without permission):
+
 - Given: Michael has no dashboard write permission
 - When: PUT with scope=instance
 - Then: HTTP 403

@@ -18,21 +18,25 @@ As an administrator, I want to reset a person's local password and hand over a n
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Max opens the user management and selects a person
 - When: he chooses "Reset password" and enters (or generates) a new password
 - Then: the old password becomes invalid; the new password appears once; Max can pass it on to the person
 
 **AC2**:
+
 - Given: the password has been reset
 - When: the person logs in with the new password
 - Then: they are immediately prompted to choose their own password; they have no app access until this is done
 
 **AC3**:
+
 - Given: the password has been reset
 - When: the person tries to log in with the old password
 - Then: the login fails
 
 **AC4**:
+
 - Given: Max performs a password reset
 - Then: an audit log entry appears with Max's ID, the person ID and the timestamp; no password plaintext in the log
 

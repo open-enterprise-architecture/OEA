@@ -7,12 +7,14 @@ Two TOGAF concepts that are fundamental to the repository structure and often un
 The Enterprise Continuum distinguishes **reusable blueprints** from **concrete organization instances**. This distinction runs through the entire repository.
 
 **Architecture Continuum** (specifying, from generic to specific):
+
 - Foundation Architectures (universal building blocks)
 - Common Systems Architectures (cross-industry)
 - Industry Architectures (industry-specific, e.g., TM Forum Frameworx)
 - Organization-Specific Architectures
 
 **Solutions Continuum** (implementing, parallel to it):
+
 - Foundation Solutions
 - Common Systems Solutions
 - Industry Solutions
@@ -31,7 +33,7 @@ This is the same logical/physical logic as at instance level – but at a higher
 
 ### 4.3 Repository Structure
 
-```
+```text
 Repository:
 ├── /continuum/                    (reusable blueprints)
 │   ├── /architecture-building-blocks/

@@ -18,19 +18,23 @@ As a Data Architect, I want to create a data object (e.g. "Customer Master") as 
 ## Acceptance Criteria
 
 **AC1** (creation with ID):
+
 - When: Lukas creates entity "Customer Master" with entityTypeId=`data-object`
 - Then: Entity receives integer ID ≥ 1; ID is unique across the entire instance (no collision with other entities or connections)
 
 **AC2** (populate properties):
+
 - When: Lukas sets `dataClassification=confidential`, `personalDataCategories="Name,Address,Email"`
 - Then: Properties saved; entity retrievable with correct values
 
 **AC3** (mandatory validation):
+
 - Given: `dataClassification` is mandatory
 - When: Lukas tries to save without dataClassification
 - Then: Error message names the missing property; nothing saved
 
 **AC4** (entityTypeId immutable):
+
 - When: Lukas tries to change the EntityType of an existing entity
 - Then: Change rejected; error message explains immutability
 

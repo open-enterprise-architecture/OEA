@@ -36,14 +36,17 @@ ABBs without conforming instances show where defined standards have not arrived 
 ## Acceptance Criteria
 
 **AC1** (Gap ratio calculation):
+
 - When: 5 approved ABBs exist, 2 of them without an instance
 - Then: the analysis shows gap ratio = 40%; the table shows all 5 ABBs with their instance counts
 
 **AC2** (ABB detail view):
+
 - When: an ABB is opened in the analysis table
 - Then: implementing SBBs and conforming entities are visible as clickable links
 
 **AC3** (Empty state):
+
 - When: no ABBs are configured yet
 - Then: the system shows the note "No ABBs configured yet; start with UC-17"
 

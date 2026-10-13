@@ -18,15 +18,18 @@ As a Lead Enterprise Architect, I want to be able to define new entity types in 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Kurt is logged in and has metamodel editor permission
 - When: he creates `SecurityZone` via the form with property `trustLevel (enum, mandatory)` and relation `contains → TechnologyComponent (0..n)`
 - Then: `SecurityZone` immediately appears in the type list and can be selected when creating new entities
 
 **AC2**:
+
 - Given: Kurt tries to create a type with the name `ApplicationComponent` (built-in)
 - Then: an error message appears; no entry is created
 
 **AC3**:
+
 - Given: Lukas (SH-02) also has metamodel editor permission
 - When: Lukas creates another type
 - Then: this one also appears in the shared type list; both changes are attributed to the respective person in the audit log

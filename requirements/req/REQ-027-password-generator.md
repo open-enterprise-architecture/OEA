@@ -43,10 +43,12 @@ The generator produces passwords in plain text that are hashed immediately after
 ### For type=functional
 
 **Inputs**:
+
 - Desired length (optional; default: instance configuration or fallback default of 20 characters)
 - Active password policies (from REQ-028, read at runtime)
 
 **Processing**:
+
 - Assemble the character pool from enabled character types (uppercase, lowercase, digits, special characters)
 - Use a cryptographically secure random source (CSPRNG, e.g., `java.security.SecureRandom` or OS entropy)
 - Guarantee at least one character for each enforced character type (REQ-028)
@@ -56,36 +58,43 @@ The generator produces passwords in plain text that are hashed immediately after
   `!"#$%&'()*+,-./:;<=>?@[\]^_` `` ` `` `{|}~`
 
 **Outputs**:
+
 - Plain-text password (string)
 - No persistence by the generator itself; the caller is responsible for hashing and secure handover
 
 **Error Cases**:
+
 - Configured minimum length (REQ-028) is too short to satisfy all enforced character types → error with a specific message (e.g., "Minimum length must be at least 4 if all four character types are enforced")
 - CSPRNG not available → error; the generator MUST NOT fall back to a weaker random source
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: the instance configuration enforces uppercase, lowercase, digits, and special characters
 - When: the generator creates a password
 - Then: it contains at least one character of each enforced type
 
 **AC2**:
+
 - Given: special characters are enabled
 - When: the generator creates 1000 passwords
 - Then: each contains at least one special character from the full ASCII special character set (not just `!@#$%` or similar)
 
 **AC3**:
+
 - Given: a generated password
 - When: it is checked against REQ-028 policies
 - Then: it satisfies all active rules (no rework by the caller needed)
 
 **AC4**:
+
 - Given: CSPRNG is available
 - When: 1000 passwords of the same length are generated
 - Then: all are different (no collisions in this sample)
 
 **AC5**:
+
 - Given: the minimum length configuration is too low for the enforced character types
 - When: the generator is called
 - Then: it returns an error instead of creating a non-compliant password

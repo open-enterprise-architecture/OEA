@@ -4,7 +4,7 @@ Use cases, user stories, and non-functional requirements for OEA.
 
 ## Contents
 
-```
+```text
 requirements/
 ├── README.md                    ← this document
 ├── traceability.md              ← trace matrix use case × concept × ADR
@@ -25,6 +25,7 @@ requirements/
 ## Templates
 
 Templates are located in `../templates/`:
+
 - `use-case.template.md`
 - `user-story.template.md`
 - `nfr.template.md`
@@ -52,6 +53,7 @@ Templates are located in `../templates/`:
 ## Slash Commands
 
 In `.opencode/commands/`:
+
 - `/new-usecase` – creates a new use case
 - `/new-story` – creates a new user story
 - `/new-nfr` – creates a new NFR

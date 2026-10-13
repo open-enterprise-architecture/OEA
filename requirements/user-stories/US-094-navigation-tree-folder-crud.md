@@ -18,18 +18,22 @@ As Kurt – Lead Enterprise Architect, I want to create, rename, and delete fold
 ## Acceptance Criteria
 
 **AC1** (Create folder):
+
 - When: I create a new folder under a parent
 - Then: I receive HTTP 201 and the folder is visible in the tree
 
 **AC2** (Reject duplicate name):
+
 - When: I create a folder with an already existing name under the same parent
 - Then: I receive HTTP 422 "Name already exists"
 
 **AC3** (Recursive deletion):
+
 - When: I delete a folder with child folders and items
 - Then: all child folders and items are removed; referenced entities remain untouched
 
 **AC4** (Root node protection):
+
 - When: I try to delete the root node
 - Then: I receive HTTP 422 "Root node cannot be deleted"
 

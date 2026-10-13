@@ -43,29 +43,35 @@ Assumes that an OIDC provider is already configured for the instance (Entra ID o
 ### For type=functional
 
 **Inputs**:
+
 - Configuration: provider (Entra ID or Authentik), `claimType` (group | role), `claimValue` (name of the group/role)
 - Identity token with claims on subsequent logins
 
 **Processing**:
+
 - Store the mapping as a system admin account with `mode: remote`
 - On every login: check whether the identity token contains the configured claim with the configured value
 - On a match: the session receives system admin permissions in addition to any existing regular roles
 
 **Outputs**:
+
 - System admin account record with `mode: remote`
 - On a matching login: session with system admin permissions
 
 **Error Cases**:
+
 - Identity token does not contain the configured claim or contains it with a different value → no system admin permissions, the regular login flow (UC-01) remains unaffected
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a configured claim mapping to an IdP group
 - When: a person with this group claim in the identity token logs in
 - Then: the session receives system admin permissions
 
 **AC2**:
+
 - Given: the same mapping
 - When: a person without this claim logs in
 - Then: the session does not receive system admin permissions via this path

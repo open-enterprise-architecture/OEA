@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to see a confirmation dialog with 
 ## Acceptance Criteria
 
 **AC1** (Button disabled without name input):
+
 - When: I open the go-live dialog without entering a name
 - Then: the "Confirm go-live" button is disabled
 
 **AC2** (Wrong name):
+
 - When: I enter a wrong plateau name
 - Then: the button stays disabled
 
 **AC3** (Correct name):
+
 - When: I enter the exact plateau name
 - Then: the button is enabled and the go-live can be executed
 

@@ -52,7 +52,7 @@ OrgUnits can be modeled as **configurable EntityTypes** in the metamodel. The bu
 
 ### Built-in EntityType: `organizational-unit`
 
-```
+```yaml
 EntityTypeDefinition {
   id:           "organizational-unit"
   name:         "Organizational Unit"
@@ -66,7 +66,7 @@ EntityTypeDefinition {
 
 ### Built-in Connection: `org-unit-part-of`
 
-```
+```yaml
 EntityTypeDefinition {
   id:                    "org-unit-part-of"
   isConnection:          true
@@ -166,6 +166,7 @@ The `bpmn-data-output-association` connection carries properties that describe *
 | `condition` | string | no | Condition under which the association is active (e.g. "only on approval") |
 
 Example: A `bpmn-user-task` "Review Order" has:
+
 - `bpmn-data-input-association` → `data-object` Order (read)
 - `bpmn-data-output-association` → `data-object` Order with `transformationType: enrich`, `affectedAttributes: ["status", "reviewedBy", "reviewedAt"]` (enrich)
 
@@ -173,7 +174,7 @@ Example: A `bpmn-user-task` "Review Order" has:
 
 The two-layer lineage connects the business process level and the technical level:
 
-```
+```text
 [bpmn-task "Review Order"]
   └─ bpmn-data-output-association (enrich) ──▶ [data-object "Order"]
                                                     └─ carries-data (ADR-010) ──▶ [data-flow "ERP → Archive"]
@@ -181,6 +182,7 @@ The two-layer lineage connects the business process level and the technical leve
 ```
 
 **Query example** — "Which tasks create or change the DataObject 'Order'?":
+
 ```cypher
 MATCH (t)-[r:bpmn-data-output-association]->(d:data-object {name: "Order"})
 RETURN t.name, r.transformationType, r.affectedAttributes
@@ -188,6 +190,7 @@ ORDER BY t.name
 ```
 
 **Query example** — "Which process is behind a technical DataFlow?":
+
 ```cypher
 MATCH (flow:data-flow {id: 42})-[:carries-data]->(d:data-object)
 MATCH (t)-[:bpmn-data-output-association]->(d)

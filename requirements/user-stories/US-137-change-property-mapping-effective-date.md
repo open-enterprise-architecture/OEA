@@ -18,11 +18,13 @@ As a metamodel administrator, I want to change the necessity of a property assig
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: property `version` has been mapped as `optional` for MetaType `ApplicationComponent` since 2026-01-01
 - When: admin creates a new mapping with `valid_from=2026-07-01`, `necessity=mandatory` via `POST /metamodel/metatypes/{id}/property-mappings`
 - Then: both entries present in the DB; GET returns `mandatory` for today (≥ 2026-07-01)
 
 **AC2**:
+
 - Given: an effective-date entry for (metatype, property, valid_from) exists
 - When: admin tries to create the same valid_from again
 - Then: 409 Conflict; no duplicate

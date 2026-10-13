@@ -5,12 +5,14 @@ An architecture repository is only as valuable as its analyzability. Two fundame
 ### 22.1 The Two Query Paradigms
 
 **Graph traversal** answers questions such as:
+
 - "Start at application X, follow all interfaces – which business services are transitively affected?"
 - "What is the shortest path between capability A and technology B?"
 - "Show all entities within 2 hops of interface Y"
 - "Which ADRs transitively affect application Z?"
 
 **Analytical aggregation** answers questions such as:
+
 - "Sum of the TCO of all applications per capability per plateau"
 - "Number of applications per domain × lifecycle state, filtered by criticality"
 - "Average reviews per standard per year"
@@ -48,6 +50,7 @@ Analytics capabilities:
 ### 22.4 Query Interface: Two Languages or One?
 
 **Option A – Two specialized languages**:
+
 - Graph queries in a graph language (Cypher, Gremlin, GQL)
 - Analytics queries in SQL or an SQL-like dialect
 
@@ -55,6 +58,7 @@ Advantages: Each language is optimal in its domain, high expressiveness.
 Disadvantages: Two learning curves, results hard to combine, two engines in the background.
 
 **Option B – One unified query language**:
+
 - One DSL that covers both paradigms (example: GraphQL with extensions, or a custom EA query language)
 
 Advantages: One learning curve, combinable queries, consistent API.
@@ -62,7 +66,7 @@ Disadvantages: Often a compromise in expressiveness, risk of a proprietary DSL.
 
 **Recommendation**: **Offer both languages**, but via a common abstraction layer:
 
-```
+```text
 /api/v1/graph/traverse          ← typed graph operations (easy entry)
 /api/v1/graph/cypher            ← Cypher for powerful graph queries
 /api/v1/analytics/query         ← SQL or SQL-like for analytics
@@ -76,27 +80,33 @@ Beginners use the typed endpoints, advanced users reach for Cypher/SQL. The stor
 Because relations are first-class objects (see [§2 (Meta-Metamodel)](../00-overview/02-meta-metamodel.md)), they have consequences for the query architecture. Three scenarios:
 
 **Scenario 1 – Traverse the relation as an edge**: the normal case.
+
 ```cypher
 MATCH (a:Application)-[:uses]->(b:Application)
 RETURN a, b
 ```
+
 The relation is treated like a classic graph edge. Works in any graph DB.
 
 **Scenario 2 – Relation as a node, because it is the target of another relation**:
+
 ```cypher
 MATCH (adr:ADR)-[:affects]->(r:Relation {type: 'uses'})
 MATCH (src)-[r]->(tgt)
 RETURN adr, src, tgt
 ```
+
 The relation appears once as a node (target of `affects`) and once as an edge (between src and tgt). This is the reification case.
 
 **Scenario 3 – Analytically aggregate a relation with properties**:
+
 ```sql
 SELECT r.protocol, COUNT(*) as count, AVG(r.avg_data_volume_mb) as avg_volume
 FROM relations r
 WHERE r.type = 'interface_uses'
 GROUP BY r.protocol;
 ```
+
 Relations with properties can be queried in analytics just like entities.
 
 **Implementation notes per persistence option** (cf. [§22.6 (Analyzability)](22-analyzability.md)):
@@ -113,24 +123,28 @@ Relations with properties can be queried in analytics just like entities.
 The API architecture from [§21 (API Architecture)](21-api-architecture.md) allows persistence to be kept interchangeable. Realistic options for your tool:
 
 **Option 1 – Postgres + JSONB + Apache AGE**:
+
 - Postgres as a solid base, JSONB for flexible properties
 - Apache AGE as a graph extension (openCypher support)
 - One database, two query paradigms, transactionally consistent
 - *Recommended starting stack for the walking skeleton*
 
 **Option 2 – Neo4j or Memgraph + read model**:
+
 - Native property graph DB as primary persistence
 - For analytics: CQRS read model in Postgres or DuckDB
 - Event stream from [§21.5 (API Architecture)](21-api-architecture.md) keeps the read model in sync
 - Strong graph performance, somewhat higher complexity
 
 **Option 3 – Git as source + DuckDB/Postgres as index**:
+
 - YAML/JSON files in Git as source of truth (maximally git-friendly)
 - DuckDB or Postgres as index, rebuildable from Git
 - Apache AGE or external graph service for traversal
 - *Ideal for small to medium installations, poor for very large ones*
 
 **Option 4 – Kuzu (embedded graph DB)**:
+
 - Embedded property graph DB, Cypher support
 - No server installation, good for CLI tools
 - Analytics capabilities limited, but under development
@@ -221,6 +235,7 @@ View "tco-by-capability":
 ```
 
 Advantages:
+
 - Reuse without query knowledge
 - Versionable and reviewable in Git
 - API endpoint `/api/v1/analytics/views/{name}?plateauId=...` for simple consumption
@@ -249,12 +264,14 @@ The event system from [§21.5 (API Architecture)](21-api-architecture.md) is cen
 Analyzability must also work **without a running server** – for CI pipelines, local analyses, offline work:
 
 **CLI tool** with a local query engine:
+
 - Reads repository snapshots (Git export or API dump)
 - Executes queries locally (embedded DuckDB or Kuzu)
 - Identical query languages as the server
 - Enables pipeline checks: "CI build fails if new applications without capability assignment exist"
 
 **Example CI check**:
+
 ```bash
 ea-tool query --local \
   "MATCH (a:Application) WHERE NOT (a)-[:realizes]->(:Capability) RETURN a.urn" \
@@ -266,6 +283,7 @@ ea-tool query --local \
 Beyond the forensic audit log (see [§21.8 (API Architecture & Modularity)](21-api-architecture.md)), the tool offers a **curated repository changelog** for stakeholder communication. While the audit log contains every change, the changelog summarizes **important** changes into release units.
 
 **Delimitation**:
+
 - Audit log: raw, gapless forensics (for auditors)
 - Changelog: curated, communicable summary (for stakeholders)
 
@@ -319,7 +337,7 @@ EntityType: ChangeEntry
 
 **API endpoints**:
 
-```
+```text
 GET    /api/v1/releases                    # all releases
 GET    /api/v1/releases/{tag}              # specific release
 GET    /api/v1/releases/{a}/diff/{b}       # diff between two releases

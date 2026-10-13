@@ -73,25 +73,30 @@ The column configuration can be replaced completely (PUT) or supplemented/change
 ## Acceptance Criteria
 
 **AC1** (Set columns, happy path):
+
 - Given: catalog "Application Inventory" with primaryEntityType=ApplicationComponent
 - When: PUT `/api/v1/catalogs/{id}/columns` with `[{attributeName: "name", sortOrder: 0}, {attributeName: "status", sortOrder: 1, displayLabel: "Operating status"}]`
 - Then: HTTP 200; the catalog has 2 columns; the second column has displayLabel "Operating status"
 
 **AC2** (Invalid attribute):
+
 - Given: ApplicationComponent has no attribute `nonExistingField`
 - When: PUT with `attributeName: "nonExistingField"`
 - Then: HTTP 422 "The attribute ‹nonExistingField› is not defined for the type ‹ApplicationComponent›"
 
 **AC3** (No visible column):
+
 - When: PUT with `visible: false` entries only
 - Then: HTTP 422 "At least one column must be visible"
 
 **AC4** (SavedView cleanup):
+
 - Given: SavedView "Compact view" contains `columnOrder: ["name", "vendor"]`; column "vendor" is removed from columns
 - When: PUT without the `vendor` column
 - Then: HTTP 200; response contains `warnings: [{type: "savedViewColumnRemoved", savedViewId: "...", removedColumns: ["vendor"]}]`; SavedView `columnOrder` is cleaned up to `["name"]`
 
 **AC5** (Order):
+
 - When: columns with sortOrder [2, 0, 1] are sent
 - Then: the system orders columns by sortOrder; the first displayed column is the one with sortOrder=0
 

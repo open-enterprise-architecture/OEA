@@ -27,7 +27,7 @@ This approach creates two problems:
 
 Introduction of a **four-layer structured property model**:
 
-```
+```text
 property_categories          (grouping of property definitions)
       ↓
 property_definitions         (reusable property types)
@@ -58,6 +58,7 @@ min/max) and `i18n_labels JSONB` for multilingual labels.
 ### Layer 3 – metatype_property_mappings
 
 Links a property definition to a meta type and specifies:
+
 - `necessity`: `mandatory` | `warning` | `optional`
 - `default_value JSONB`: optional preset value when creating a new entity (not mandatory)
 - `valid_from DATE`: effective date of this necessity setting
@@ -81,6 +82,7 @@ This allows conformance queries for arbitrary historical dates (UC-20).
 One row per (entity_id, property_def_id) — current value. No JSONB blob in `entities` anymore.
 
 For versioning, `entity_property_value_history` is maintained as a delta table:
+
 - **One row per changed property** with the value *before* the change
 - Unchanged properties produce no entry → no redundancy
 - Restore (UC-15/UC-16): backward application of all delta rows up to the target version
@@ -99,10 +101,12 @@ constraintRules, stereotypes, documentCollectionDefinitions.
 ## Rejected Alternatives
 
 ### A – Pure JSONB (previous approach)
+
 Simplest schema, but data redundancy per version and no indexability of individual values.
 **Rejected**: Redundancy grows linearly with number of properties × versions.
 
 ### C – Event Sourcing (append-only)
+
 Perfect audit log, no data loss. But too complex for v1: requires its own event-fold infrastructure.
 **Deferred**: can be introduced in v2, the model is compatible.
 
@@ -111,6 +115,7 @@ Perfect audit log, no data loss. But too complex for v1: requires its own event-
 ## Consequences
 
 **Positive:**
+
 - Versioning redundancy is eliminated (only deltas stored)
 - Individual property values are indexable and directly queryable
 - Conformance (UC-20) can be evaluated historically and forward-looking (effective date)
@@ -118,6 +123,7 @@ Perfect audit log, no data loss. But too complex for v1: requires its own event-
 - Default values per mapping reduce manual effort when creating entities
 
 **Negative / Compromises:**
+
 - Schema complexity increases (+4 tables)
 - Restore logic (UC-15): backward delta application is more complex than loading a snapshot
 - Reading all properties of an entity requires a JOIN on `entity_property_values`

@@ -18,20 +18,24 @@ As a Data Architect, I want to filter out in the catalog all data flows that tra
 ## Acceptance Criteria
 
 **AC1** (filter on personalDataCategories):
+
 - Given: DataFlow id=5 with `personalDataCategories="Name,Address,Email"` and DataFlow id=7 without personalDataCategories
 - When: Lukas opens the catalog with filter `entityTypeId=data-flow` + `personalDataCategories is not empty`
 - Then: Only DataFlow id=5 appears; id=7 does not
 
 **AC2** (combined filter):
+
 - When: Lukas additionally adds `protocol=JDBC`
 - Then: Only JDBC data flows with personalDataCategories displayed
 
 **AC3** (CSV export):
+
 - Given: Catalog shows 3 DataFlows after filtering
 - When: Lukas clicks "Export as CSV"
 - Then: CSV download; contains header + 3 data rows; fields: id, name, protocol, personalDataCategories, source, target; UTF-8 encoding
 
 **AC4** (empty result is not an error):
+
 - Given: No DataFlows with personalDataCategories
 - When: Filter applied
 - Then: Empty table; export delivers only header; no error

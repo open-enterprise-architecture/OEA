@@ -7,6 +7,7 @@ This document summarizes the naming decision and possible future adjustments. **
 **Official designation**: OEA – Open Enterprise Architecture
 
 **Rationale**:
+
 - Clearly descriptive: everyone understands immediately what it is
 - Low trademark risk (no known conflicts)
 - No risk of confusion with OpenAI or other protected brands

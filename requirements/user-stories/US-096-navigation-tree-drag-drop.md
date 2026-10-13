@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to move and rearrange folders and 
 ## Acceptance Criteria
 
 **AC1** (Cycle protection):
+
 - When: I drag folder A under a descendant of A
 - Then: the drop target is marked as invalid; an API attempt responds with HTTP 422
 
 **AC2** (Reordering items):
+
 - When: I rearrange items within a folder
 - Then: `sortOrder` is updated correctly and the order is persistent
 
 **AC3** (Move item between folders):
+
 - When: I move an item from folder A to folder B
 - Then: the item is in B and no longer in A
 

@@ -2,6 +2,7 @@
 
 **As of:** 2026-10-04 (walking skeleton moved to the beginning, see `docs/walking-skeleton.md`)  
 **Basic assumptions:**
+
 - 2-week sprints, ~30 SP/sprint
 - LLM assistant: Devstral (Mistral API, 128k context)
 - Total: ~577 SP + project setup → 21 sprints ≈ 10.5 months
@@ -94,7 +95,7 @@ create → capture delta → detect conflict → plateau → history → restore
 
 ## UC Dependencies (Order Not Negotiable)
 
-```
+```text
 UC-02 (no predecessor — bootstrapping is the first step)
 └── UC-01 (login requires person+role created by UC-02)
     ├── UC-03 (set up auth method)

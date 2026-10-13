@@ -36,10 +36,12 @@ Real enterprise architectures are hierarchical: an "ERP system" contains modules
 ## Type-Specific Fields
 
 **Inputs**:
+
 - ArchitectureEntity with `parentEntityId` set or null
 - `isStructuralGrouper: boolean`
 
 **Processing**:
+
 1. Under "Components" of a solution, the system shows all elements with `parentEntityId=null` as the first level
 2. Elements with `parentEntityId` are indented as children of their parent element
 3. Structuring aids (`isStructuralGrouper=true`) appear as nodes without an ArchiMate icon (folder icon instead)
@@ -48,7 +50,8 @@ Real enterprise architectures are hierarchical: an "ERP system" contains modules
 6. Cyclic parent-child references are forbidden (BR validation)
 
 **Output**:
-```
+
+```text
 ▼ Components (6)
   ▼ [AC] SAP S/4HANA            ← instantiated
       [AC] Finance module        ← child, implicit composition (REQ-142)
@@ -61,16 +64,19 @@ Real enterprise architectures are hierarchical: an "ERP system" contains modules
 ## Acceptance Criteria
 
 **AC1** — Nesting displayed:
+
 - Given: entity A has `parentEntityId = Entity B`
 - When: the "Components" node is expanded
 - Then: entity A appears indented under entity B
 
 **AC2** — Structuring aids without ArchiMate icon:
+
 - Given: entity C with `isStructuralGrouper=true`
 - When: the browser is displayed
 - Then: entity C appears with a folder icon, no ArchiMate icon
 
 **AC3** — Flat elements at the top level:
+
 - Given: entity D with `parentEntityId=null`
 - When: "Components" is expanded
 - Then: entity D appears at the first indentation level

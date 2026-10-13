@@ -10,6 +10,7 @@
 ## Context
 
 Audit logs are subject to special requirements in regulated industries:
+
 - **Immutability**: no UPDATE/DELETE by the application
 - **Retention obligation**: 7–10 years (depending on regulation)
 - **Separate access rights**: auditors need read access, the app only INSERT
@@ -48,12 +49,14 @@ and writes to `audit.*` of the same DB.
 ### Database Permissions
 
 The app user receives only `INSERT` permissions on `audit.*`:
+
 ```sql
 GRANT INSERT ON ALL TABLES IN SCHEMA audit TO oea_app;
 REVOKE UPDATE, DELETE ON ALL TABLES IN SCHEMA audit FROM oea_app;
 ```
 
 A separate read user for auditors:
+
 ```sql
 GRANT SELECT ON ALL TABLES IN SCHEMA audit TO oea_auditor;
 ```
@@ -63,7 +66,8 @@ GRANT SELECT ON ALL TABLES IN SCHEMA audit TO oea_auditor;
 No JSONB payload. Every field is directly queryable and indexable.
 
 **`audit.events`** — event header:
-```
+
+```text
 id             BIGSERIAL PK
 event_type     TEXT NN   -- e.g. 'entity.created', 'entity.property_changed', 'entity.deleted'
 entity_id      INTEGER   -- soft reference (no FK — audit DB can be external)
@@ -79,7 +83,8 @@ record_hash    TEXT      -- SHA-256(prev_hash || event_type || entity_id || occu
 ```
 
 **`audit.event_changes`** — property deltas per event:
-```
+
+```text
 id               BIGSERIAL PK
 event_id         BIGINT NN   -- FK→audit.events.id (or soft ref for external DB)
 property_name    TEXT NN     -- denormalized ('name', 'lifecycle', 'version', …)
@@ -109,11 +114,13 @@ oea:
 ### Retention
 
 Configurable retention policy via cron job (DELETE WHERE occurred_at < NOW() - INTERVAL):
+
 ```yaml
 oea:
   audit:
     retention-days: ${OEA_AUDIT_RETENTION_DAYS:2555}  # default: 7 years
 ```
+
 The delete job runs as the `oea_audit_cleanup` user with DELETE permission — not the app user.
 
 ---
@@ -137,12 +144,15 @@ Both tables are populated in parallel when an entity change occurs.
 ## Rejected Alternatives
 
 ### JSONB payload (previous approach)
+
 Not indexable, not portable (ADR-023), not regulatorily queryable. **Rejected**.
 
 ### External audit system (CloudTrail, Azure Monitor)
+
 Maximum isolation, but vendor lock-in, self-hosting not possible. **Rejected** for open source.
 
 ### Event sourcing as primary model
+
 Would have audit as a by-product. Too complex for v1. **Deferred** to v2.
 
 ---
@@ -150,6 +160,7 @@ Would have audit as a by-product. Too complex for v1. **Deferred** to v2.
 ## Consequences
 
 **Positive:**
+
 - Regulatorily compliant (immutability, retention, separation)
 - DB-agnostic (no JSONB)
 - Auditors get their own read-only user
@@ -157,6 +168,7 @@ Would have audit as a by-product. Too complex for v1. **Deferred** to v2.
 - Tamper chain can be retrofitted for enterprise requirements
 
 **Negative / Compromises:**
+
 - Two DataSources increase the complexity of the Spring configuration
 - Denormalization (actor_name etc.) must be actively populated when writing
 - Cleanup job needs a separate DB user

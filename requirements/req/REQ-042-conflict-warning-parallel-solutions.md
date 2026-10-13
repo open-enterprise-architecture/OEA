@@ -46,50 +46,60 @@ An "active" conflict exists when another solution – regardless of its concrete
 ### For type=functional
 
 **Inputs**:
+
 - Solution ID (current solution)
 - entityId (of the delta just captured/updated)
 
 **Processing**:
+
 - Query: is there at least one other solution with status ∉ {`implemented`, `archived`} and a delta for the same entityId?
 - If so: generate a warning with name and owner (person name, person ID) of the conflicting solution(s)
 - If several conflicts: list all
 - No blocking: the delta is saved in any case
 
 **Outputs**:
+
 - Warning: "Attention: This entity is also being changed in solution '{Name}' (owner: {Person}). The conflict must be resolved in the review process."
 - Display the warning persistently on the solution and on the affected delta (not only once as a toast)
 
 **Error Cases**:
+
 - Conflict check fails (e.g., database error): the delta is saved anyway; the warning is omitted (error log, no user message)
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: solution A (draft, owner: Maria) contains a delta for entity `CRM-Legacy`
 - When: Michael creates a delta for `CRM-Legacy` in another solution B
 - Then: a warning appears "This entity is also being changed in solution 'Solution A' (owner: Maria)"; the delta in solution B is saved anyway
 
 **AC2**:
+
 - Given: solution A (implemented) contains a delta for entity `CRM-Legacy`
 - When: Michael creates a delta for `CRM-Legacy` in solution B
 - Then: **no** warning (implemented is not an active conflict)
 
 **AC3**:
+
 - Given: solution A (archived) contains a delta for entity `CRM-Legacy`
 - When: Michael creates a delta for `CRM-Legacy` in solution B
 - Then: **no** warning (archived is not an active conflict)
 
 **AC4**:
+
 - Given: two other solutions (A and B) each have a delta for `CRM-Legacy`
 - When: Michael creates a delta for `CRM-Legacy` in solution C
 - Then: two warnings appear (one per conflicting solution)
 
 **AC5**:
+
 - Given: a warning was displayed for `CRM-Legacy` in solution B
 - When: Michael reloads solution B or opens the delta list
 - Then: the warning is still visible (no one-time toast, persistent display on the delta)
 
 **AC6**:
+
 - Given: solution A is set to `implemented` (go-live)
 - When: Michael opens solution B with the delta for `CRM-Legacy`
 - Then: the warning disappears (conflict resolved by go-live of A)

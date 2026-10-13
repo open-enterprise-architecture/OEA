@@ -47,16 +47,19 @@ The database schema uses neither JSONB nor database-specific array types. Config
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: OEA Docker image with env variable `SPRING_DATASOURCE_URL=jdbc:mysql://...`
 - When: `docker compose up`
 - Then: Flyway migrations run through; API responds correctly; all CRUD operations work
 
 **AC2**:
+
 - Given: test environment with H2 in-memory (CI)
 - When: unit and integration tests run
 - Then: all tests green without a PostgreSQL instance
 
 **AC3**:
+
 - Given: schema migration V1 in SQL
 - When: running Flyway on SQL Server 2019
 - Then: no syntax-specific errors; all tables created

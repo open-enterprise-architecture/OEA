@@ -43,26 +43,32 @@ Takes effect during configuration of the remote mapping (UC-02, A1, step 2), not
 ### For type=functional
 
 **Inputs**:
+
 - Configured provider, claim type, and claim value for the remote mapping
 
 **Processing**:
+
 - Where technically possible (depending on provider API access): check whether the specified group/role exists and has at least one member
 - Display a warning if the check is negative or cannot be performed
 
 **Outputs**:
+
 - Warning to the operator (Max), together with the advice to additionally keep the local bootstrapping path (REQ-013) active
 
 **Error Cases**:
+
 - Provider API for the check unreachable → warning is output as "check not possible", configuration is not blocked (no hard stop)
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a remote mapping to a group that is empty or non-existent at configuration time
 - When: Max saves the configuration
 - Then: he receives a warning that this mapping currently grants nobody access
 
 **AC2**:
+
 - Given: the same situation
 - When: Max acknowledges the warning
 - Then: he can still save the configuration (no hard block), ideally with an active local fallback (REQ-013)

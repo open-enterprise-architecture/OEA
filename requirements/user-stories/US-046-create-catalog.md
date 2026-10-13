@@ -18,20 +18,24 @@ As a Lead Enterprise Architect, I want to be able to create a new catalog with n
 ## Acceptance Criteria
 
 **AC1** (creation, happy path):
+
 - Given: Kurt is logged in; MetamodelConfiguration contains `ApplicationComponent`
 - When: Kurt fills in the form (Name="Application Inventory", Type=ApplicationComponent, Scope=instance, Join mode=aggregate) and confirms
 - Then: Catalog appears in the catalog overview; it is empty (no columns, no joins)
 
 **AC2** (name collision):
+
 - Given: A catalog "Application Inventory" already exists
 - When: Kurt creates another one with the same name
 - Then: Inline error message in the form "A catalog with this name already exists"; no record created
 
 **AC3** (scope=personal):
+
 - When: Sabine creates a catalog with scope=personal
 - Then: Catalog appears only in Sabine's catalog overview; Franz does not see it
 
 **AC4** (missing permission):
+
 - Given: Franz has only the visitor role
 - When: Franz opens the catalog overview
 - Then: Button "Create new catalog" is not visible or disabled

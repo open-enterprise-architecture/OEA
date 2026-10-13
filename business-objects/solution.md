@@ -35,7 +35,7 @@ A solution supports two **operating modes**, chosen depending on the organizatio
 
 Suitable for: organizations that manage formal architecture states (baseline / target) and need governance over plateau transitions (TOGAF maturity).
 
-```
+```text
 Baseline P0 (currently productive)
   │
   └── Solution "Salesforce Introduction" (plateau mode)
@@ -53,7 +53,7 @@ Baseline P0 (currently productive)
 
 Suitable for: SMEs and organizations that do not work with the plateau principle but carry out projects and continuously evolve the landscape.
 
-```
+```text
 Solution "Salesforce Introduction" (project mode, no plateau)
   deltas:
     CRM-Legacy:  retiring
@@ -133,7 +133,7 @@ Solution "Salesforce Introduction" (project mode, no plateau)
 
 ## Lifecycle
 
-```
+```text
 draft → proposed → approved → in-progress → implemented
               ↘ archived (abandoned)
 ```
@@ -145,7 +145,8 @@ draft → proposed → approved → in-progress → implemented
 ## Examples
 
 **Project mode (SME, no plateau)**:
-```
+
+```yaml
 Solution: "Salesforce Introduction" (project mode)
   fromPlateau: null
   toPlateau:   null
@@ -155,10 +156,12 @@ Solution: "Salesforce Introduction" (project mode)
     - Salesforce:  deltaType=new, type=ApplicationComponent
     - Integration: deltaType=new, type=Interface
 ```
+
 After `implemented`, the realized overall state is the sum of all `implemented` solutions of the instance.
 
 **Plateau mode (Enterprise)**:
-```
+
+```text
 Baseline P0: CRM-Legacy [active], ERP-Core [active]
 
 Solution: "Salesforce Introduction" (plateau mode)

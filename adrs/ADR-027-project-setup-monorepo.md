@@ -26,7 +26,7 @@ only be changed later at high cost:
 All layers — backend, frontend (client app + web portal), API spec,
 documentation, and requirements — live in a single Git repository.
 
-```
+```text
 oea/
 ├── backend/              ← Java 21 / Spring Boot (ADR-012)
 │   ├── src/
@@ -56,7 +56,7 @@ runs as a single `docker compose up`.
 The backend is a **single Maven module** (`backend/pom.xml`). Internal
 package structure replaces module boundaries:
 
-```
+```text
 backend/src/main/java/io/oea/
 ├── api/          ← REST controllers, request/response DTOs, OpenAPI (ADR-028)
 ├── app/          ← application services: stable interfaces + commands/queries (ADR-028)
@@ -98,7 +98,7 @@ registered domain that does not exist at the time of the project.
 
 ### 4. Local Development: Docker Compose
 
-```
+```bash
 docker compose up
 ```
 
@@ -112,6 +112,7 @@ services:
 ```
 
 Additional compose files for other DBs (REQ-150):
+
 - `docker-compose.mysql.yml`    — MySQL 8
 - `docker-compose.sqlserver.yml` — SQL Server 2019
 
@@ -123,6 +124,7 @@ compose service (`--profile keycloak`).
 ### 5. Frontend Package Manager: npm (no Yarn, no pnpm)
 
 Vite and Vue 3 support all three. npm is chosen because:
+
 - No additional tool needed (npm comes with Node.js)
 - GitHub Actions caching for npm available out-of-the-box
 - No `.npmrc` configuration for private registries needed (OSS)
@@ -172,12 +174,14 @@ Vite and Vue 3 support all three. npm is chosen because:
 ## Consequences
 
 **Positive:**
+
 - First `git clone` + `docker compose up` = runnable development environment
 - No cross-repo versioning needed
 - API spec and generated client always in sync
 - CI can coordinate backend and frontend in one pipeline
 
 **Negative / Compromises:**
+
 - Git repository grows with code (acceptable; no large binary content)
 - Electron build (code signing, platform-specific releases) runs in the same
   pipeline — complexity in CI, not in the repo

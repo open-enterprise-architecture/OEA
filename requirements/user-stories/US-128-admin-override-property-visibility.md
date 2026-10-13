@@ -18,18 +18,22 @@ As Max – Operator and system administrator, I want to be able to read all prop
 ## Acceptance Criteria
 
 **AC1** (Override effective):
+
 - When: a system admin retrieves an entity with restricted properties
 - Then: all values are returned; `visibilityMode` has no effect
 
 **AC2** (Audit log):
+
 - When: a system admin reads a restricted property
 - Then: audit log contains an entry `property-override-access` with user ID, entity ID, property name, and timestamp
 
 **AC3** (Override roles configurable):
+
 - When: Kurt adjusts the override role list in the metamodel editor
 - Then: change takes effect immediately; new roles have override access; removed roles lose it
 
 **AC4** (No implicit override):
+
 - When: a user has the `EA-Manager` role, but it is not in the override list
 - Then: restrictions apply normally; no automatic override
 

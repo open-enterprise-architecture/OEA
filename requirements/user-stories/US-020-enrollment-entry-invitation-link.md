@@ -18,21 +18,25 @@ As an invited person, I want to reach the enrollment interface via an invitation
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a valid, unconsumed, unexpired enrollment token in the link
 - When: Kurt opens the link
 - Then: he sees the enrollment interface with the methods enabled for the instance
 
 **AC2**:
+
 - Given: an already consumed or expired token
 - When: Kurt opens the link
 - Then: he sees a generic error message ("Setup link invalid or expired"), no form
 
 **AC3**:
+
 - Given: a successfully completed enrollment
 - When: the same link is opened again
 - Then: AC2 applies (token is consumed)
 
 **AC4**:
+
 - Given: the system processes a token
 - When: server logs are written
 - Then: the token plaintext is not contained in the logs

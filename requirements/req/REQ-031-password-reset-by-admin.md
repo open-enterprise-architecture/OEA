@@ -44,10 +44,12 @@ Concerns exclusively persons with an active local password credential (`LocalCre
 ### For type=functional
 
 **Inputs**:
+
 - Target person (person ID or username)
 - New password: entered manually or via generator (REQ-027)
 
 **Processing** (atomar / transaktional):
+
 1. Authorization check: the executing user must have the admin role
 2. The target person must exist and have an active `LocalCredential.type=password`
 3. Validate the new password against REQ-028 policies
@@ -59,11 +61,13 @@ Concerns exclusively persons with an active local password credential (`LocalCre
 9. Return the new plain-text password once
 
 **Outputs**:
+
 - Plain-text password: one-time display in the admin UI or CLI stdout, not retrievable afterwards
 - Confirmation: "Password reset. The person must set a new password at next login."
 - On error: error message; no partial state change (transaction rollback)
 
 **Error Cases**:
+
 - Person has no active password credential → error message ("Person has no local password; set the initial password via REQ-024")
 - New password does not meet REQ-028 policies → error message; no credential change
 - Executing user has no admin permission → 403 Forbidden; audit log entry for the unauthorized access attempt
@@ -72,31 +76,37 @@ Concerns exclusively persons with an active local password credential (`LocalCre
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a person has an active password credential and can currently log in
 - When: an administrator resets the password
 - Then: the old password credential is `revoked`; a new one is `active`; the new plain-text password appears once
 
 **AC2**:
+
 - Given: the password has been reset
 - When: the person logs in with the new password
 - Then: the required action `password_change` is detected; the person gets no application access until the password has been changed
 
 **AC3**:
+
 - Given: the password has been reset
 - When: the person tries to log in with the old password
 - Then: the login fails (old credential is revoked)
 
 **AC4**:
+
 - Given: an administrator resets a password
 - When: the audit log is evaluated
 - Then: it contains admin person ID, target person ID, timestamp, action `password_reset`; no plain-text password in the log
 
 **AC5**:
+
 - Given: the process fails after step 4 (e.g., DB error)
 - When: the error occurs
 - Then: neither is the old credential revoked nor a new one created (complete rollback)
 
 **AC6**:
+
 - Given: the system admin account is to be reset
 - When: the admin makes the request
 - Then: it is rejected with an error; no credential changed

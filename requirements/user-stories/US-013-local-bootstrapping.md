@@ -18,11 +18,13 @@ As an operator of a freshly installed OEA instance, I want to be able to set up 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a freshly installed instance without a system admin account
 - When: it is started or accessed for the first time
 - Then: the system offers the local bootstrapping process without requiring an external IdP
 
 **AC2**:
+
 - Given: a completed local bootstrapping process
 - When: the operator signs in with the defined credential
 - Then: they gain access with system admin permissions

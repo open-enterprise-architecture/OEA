@@ -68,13 +68,16 @@ at runtime.
 ## Rejected Alternatives
 
 ### PostgreSQL-only
+
 Simplest setup, best ecosystem (JSONB, pg_trgm, etc.). But: restricts adoption in
 SQL Server- and MySQL-heavy companies. **Rejected**: Market opportunity too high.
 
 ### Document database (MongoDB) in parallel
+
 Would solve JSON data elegantly, but increases operational complexity considerably. **Rejected** for v1.
 
 ### Abstraction via repository pattern without JPA
+
 More control, but not justifiable effort for open-source v1. **Rejected**.
 
 ---
@@ -82,11 +85,13 @@ More control, but not justifiable effort for open-source v1. **Rejected**.
 ## Consequences
 
 **Positive:**
+
 - OEA runs on all common enterprise databases without adjustment
 - Tests can run with H2 in-memory (no PostgreSQL needed)
 - No vendor lock-in at database level
 
 **Negative / Compromises:**
+
 - `config` fields (metamodel, catalogs) as TEXT/CLOB: no DB-side JSON query possible
 - Flyway migrations may need DB-specific variants (PostgreSQL vs. SQL Server dialect)
 - Hibernate dialect must be configured per deployment

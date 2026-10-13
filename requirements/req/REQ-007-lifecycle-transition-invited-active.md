@@ -46,7 +46,8 @@ Concerns persons who were newly created/referenced in the repository but have no
 **Affected Business Objects**: [person](../../business-objects/person.md)
 
 **Formal Statement** (vereinfacht):
-```
+
+```text
 if Person.status == "invited" and Login.result == "success":
     Person.status = "active"
 ```
@@ -56,11 +57,13 @@ if Person.status == "invited" and Login.result == "success":
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a person with status `invited`
 - When: they log in successfully for the first time
 - Then: their status changes to `active`
 
 **AC2**:
+
 - Given: a person with status `active`
 - When: they log in again
 - Then: their status remains `active` unchanged (no repeated transition, no side effects)

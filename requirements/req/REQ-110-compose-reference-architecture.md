@@ -36,14 +36,17 @@ Reference architectures without building blocks are empty phrases. Linking with 
 ## Acceptance Criteria
 
 **AC1** (Create reference architecture and make available as blueprint):
+
 - When: a reference architecture is created with 3 ABBs and 1 pattern and `governanceStatus=approved` is set
 - Then: the system responds with HTTP 201; the reference architecture is selectable as a blueprint in UC-11 (plateau creation)
 
 **AC2** (Empty composition warning):
+
 - When: a reference architecture without ABBs and without patterns is to be saved
 - Then: the system shows a governance warning; saving is not blocked
 
 **AC3** (Mandatory field targetIndustry):
+
 - When: a reference architecture with `continuumLevel=industry` is to be saved without `targetIndustry`
 - Then: the system responds with HTTP 422
 

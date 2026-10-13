@@ -35,14 +35,17 @@ A JSON blob diff is unreadable for business users. A field-by-field diff allows 
 ## Acceptance Criteria
 
 **AC1** (Only changed fields):
+
 - When: a version is clicked
 - Then: the diff shows only the changed fields; identical fields are hidden
 
 **AC2** (Dot notation for properties):
+
 - When: `properties.owner` was changed
 - Then: the entry appears as "properties.owner: 'Kurt' → 'Michael'"
 
 **AC3** (Cumulative diff):
+
 - When: versions v2 and v7 are selected for comparison
 - Then: the system shows the cumulative diff over all 5 transitions (v2→v3, …, v6→v7)
 

@@ -35,14 +35,17 @@ The diff alone is not sufficient for compliance evidence. Sometimes it must be p
 ## Acceptance Criteria
 
 **AC1** (Complete state expandable):
+
 - When: "Show complete state v4" is clicked in the timeline
 - Then: all fields of the snapshot, including empty properties, are displayed
 
 **AC2** (Deletion rejected):
+
 - When: a DELETE request is sent to `/entity-versions/{id}`
 - Then: the API responds with HTTP 405 Method Not Allowed
 
 **AC3** (Editing rejected):
+
 - When: a PUT request is sent to `/entity-versions/{id}`
 - Then: the API responds with HTTP 405 Method Not Allowed
 

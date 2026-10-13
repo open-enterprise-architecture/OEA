@@ -105,7 +105,7 @@ OEA supports this process by allowing Kurt to create the initial baseline, plan 
 
 ## Basic Flow
 
-*Default case: Kurt performs a go-live transition for an existing target plateau*
+*Default case: Kurt performs a go-live transition for an existing target plateau.*
 
 1. **Kurt**: navigates to the plateau overview (`/plateaus`)
 2. **System**: shows all plateaus in a structured way:
@@ -135,9 +135,9 @@ OEA supports this process by allowing Kurt to create the initial baseline, plan 
 
 ## Alternative Flows
 
-**A1 – Create initial baseline plateau**
+### A1 – Create initial baseline plateau
 
-*If no baseline exists yet in plateau mode (initial setup)*
+*If no baseline exists yet in plateau mode (initial setup).*
 
 1. **System**: shows a notice on the plateau overview: "No baseline plateau exists yet. Create the initial baseline to begin strategic EA planning."
 2. **Kurt**: clicks "Create initial baseline"
@@ -150,9 +150,9 @@ OEA supports this process by allowing Kurt to create the initial baseline, plan 
 6. **System**: shows notice: "Initial baseline created. Now capture the existing architecture directly in the baseline or create a target plateau for the target architecture (A2)."
 7. Continue: Kurt captures entities in the baseline or proceeds with A2
 
-**A2 – Create target plateau**
+### A2 – Create target plateau
 
-*If a new target architecture is to be planned*
+*If a new target architecture is to be planned.*
 
 1. **Kurt**: clicks "Create new target plateau" in the plateau overview
 2. **System**: opens creation form:
@@ -164,9 +164,9 @@ OEA supports this process by allowing Kurt to create the initial baseline, plan 
 4. **System**: creates plateau with `status=target`; `succeeds` reference set
 5. **System**: shows the plateau detail view; solution architects can now assign solutions to this target plateau (UC-05 A1)
 
-**A3 – Transition plateau as intermediate state**
+### A3 – Transition plateau as intermediate state
 
-*If a staged intermediate state between baseline and target makes sense*
+*If a staged intermediate state between baseline and target makes sense.*
 
 1. Identical flow to A2, but Kurt selects `status=transition` instead of `target`
 2. Transition plateaus follow the same rules as target plateaus; they can also go live (basic flow)
@@ -174,22 +174,26 @@ OEA supports this process by allowing Kurt to create the initial baseline, plan 
 
 ## Exception Flows
 
-**E1 – No baseline present at go-live attempt**
+### E1 – No baseline present at go-live attempt
+
 - Condition: Kurt attempts go-live, but no `status=baseline` plateau exists
 - Expected reaction: System shows error message "No baseline plateau exists. Create an initial baseline first."; link to A1
 - Resumption: Kurt performs A1
 
-**E2 – Go-live confirmation canceled**
+### E2 – Go-live confirmation canceled
+
 - Condition: Kurt cancels the confirmation dialog (steps 7–8) or enters the wrong plateau name
 - Expected reaction: Dialog closes; no change to data; plateau remains in `status=target`
 - Resumption: Kurt can start a new go-live attempt at any time
 
-**E3 – Atomic transition fails (technical error)**
+### E3 – Atomic transition fails (technical error)
+
 - Condition: DB error, constraint violation or timeout during the transition in step 9
 - Expected reaction: complete rollback; both plateaus (P0, P1) remain in their original status; error message with technical hint
 - Resumption: Kurt can retry go-live; no data loss
 
-**E4 – Missing permission**
+### E4 – Missing permission
+
 - Condition: The logged-in person does not have the role "EA Manager" or a comparable permission
 - Expected reaction: 403 Forbidden; buttons "Go-live" and "Create" are not visible or disabled
 - Resumption: Person contacts the admin (UC-02)

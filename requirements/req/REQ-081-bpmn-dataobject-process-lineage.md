@@ -19,33 +19,41 @@ BPMN processes can contain DataObjects and DataStores. Via input and output asso
 ## Acceptance Criteria
 
 **AC1** (DataObject in the process diagram):
+
 - Business analyst can drag `bpmn-data-object` and `bpmn-data-store` from the BPMN palette onto the process diagram
 - DataObjects can be placed within lanes or freely at process level
 
 **AC2** (Create input/output association):
+
 - Business analyst draws a dashed line (BPMN notation) from a DataObject to a task (input) or from the task to a DataObject (output)
 - On creation, the UI asks: direction (input / output) and optionally `transformationType` (create / enrich / overwrite / delete / read-only)
 
 **AC3** (Enrichment annotation):
+
 - Detail panel of a `bpmn-data-output-association` shows fields: `transformationType` (dropdown), `affectedAttributes` (tag input), `condition` (free text)
 - These properties are stored in the repository and are queryable via API
 
 **AC4** (Reference existing data-object):
+
 - When creating a `bpmn-data-object`, the business analyst can select a `data-object` already present in the EA repository (autocomplete via `[[` trigger, REQ-070)
 - The BPMN element then shows the name and ID of the referenced object; no duplicate is created
 
 **AC5** (Link DataStore with technical infrastructure):
+
 - `bpmn-data-store` can be linked via a `realizes` connection with a `data-component` from the EA repository
 - Link: context menu "Realized by" → search in the EA repository
 
 **AC6** (Lineage query through process):
+
 - `GET /api/v1/entities/{id}/lineage?direction=downstream` for a `data-object` also returns BPMN tasks that enrich this object via `bpmn-data-output-association`
 - Analogously upstream: tasks that read it as input
 
 **AC7** (Catalog join on process data):
+
 - A catalog with `data-object` as primaryEntityType can show via a join on `bpmn-data-output-association` which process tasks create or enrich each DataObject
 
 **AC8** (Web portal read-only):
+
 - BPMN diagram with DataObjects is readable in the web portal; DataObject names and transformationType annotations visible
 
 ## Technical Notes

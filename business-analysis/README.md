@@ -4,7 +4,7 @@ Stakeholder profiles, concerns, and pain points. Foundation for the requirements
 
 ## Contents
 
-```
+```text
 business-analysis/
 ├── README.md                    ← this document
 ├── vision.md                    ← a vision in one sentence, supplemented by context
@@ -39,6 +39,7 @@ Per stakeholder, the biggest problems today. What costs time? What does not work
 ### Step 4: Derive Concerns
 
 Cross-stakeholder worries that the tool must address. Examples:
+
 - "Architecture documentation becomes outdated quickly"
 - "EA tools are expensive and proprietary"
 - "Compliance evidence is manual and error-prone"
@@ -54,5 +55,6 @@ Concerns are later translated into use cases.
 ## Slash Commands
 
 The following should be available in `.opencode/commands/`:
+
 - `/new-stakeholder` – creates a new stakeholder profile
 - `/list-stakeholders` – shows all stakeholders with use case reference

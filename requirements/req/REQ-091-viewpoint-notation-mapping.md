@@ -34,14 +34,17 @@ An ArchiMate viewpoint with UML elements would lead to inconsistent diagrams tha
 ## Acceptance Criteria
 
 **AC1** (Dropdown filter by notation):
+
 - When: `notation=archimate3` is selected
 - Then: the dropdown shows only `archimate3:*` elements
 
 **AC2** (API validation):
+
 - When: an API call tries to save a `bpmn:Task` element in an `archimate3` viewpoint
 - Then: the API responds with HTTP 422
 
 **AC3** (Dropdown reset on notation change):
+
 - When: the notation is changed in the form
 - Then: the dropdown contents update immediately; already selected incompatible elements are reset
 

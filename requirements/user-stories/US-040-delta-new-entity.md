@@ -18,21 +18,25 @@ As a Solution Architect, I want to be able to create a new entity (deltaType=new
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Michael is working on a solution in status `draft`
 - When: in the area "Create new entity" he enters the type `ApplicationComponent` and the name `Salesforce` and saves
 - Then: `Salesforce` appears in the solution's delta list with `deltaType=new`; it is **not** in the baseline (does not yet exist in the landscape)
 
 **AC2**:
+
 - Given: Solution has status=`implemented`
 - When: Michael tries to create a new entity
 - Then: 409 Conflict "This solution is completed and can no longer be changed"
 
 **AC3**:
+
 - Given: Michael creates `Salesforce (new)`, and the delta list already shows `Salesforce`
 - When: he tries to add another delta for `Salesforce`
 - Then: validation error "A delta already exists for this entity in this solution"
 
 **AC4**:
+
 - Given: Michael enters an EntityType that does not exist in the MetamodelConfiguration
 - When: he saves
 - Then: validation error; only typed entities from the metamodel are allowed

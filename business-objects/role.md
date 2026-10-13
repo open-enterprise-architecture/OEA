@@ -46,11 +46,12 @@ Roles from the EA metamodel (§8.2) are used directly as authorization roles in 
 
 ## Lifecycle
 
-```
+```text
 draft → active → deprecated
 ```
 
 **States**:
+
 - `draft`: Role is defined but not yet in use
 - `active`: Role is actively assigned and used for authorization
 - `deprecated`: Role is no longer newly assigned, existing assignments expire
@@ -65,6 +66,7 @@ draft → active → deprecated
 ## Examples
 
 **Example 1**: Architectural role
+
 ```yaml
 name: Enterprise Architect
 type: architectural

@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to retrieve the complete entity st
 ## Acceptance Criteria
 
 **AC1** (Complete state expandable):
+
 - When: I click "Show complete state v4"
 - Then: all fields of the snapshot, including empty properties, are displayed
 
 **AC2** (Delete rejected):
+
 - When: a DELETE request is sent to `/entity-versions/{id}`
 - Then: the API responds with HTTP 405
 
 **AC3** (Edit rejected):
+
 - When: a PUT request is sent to `/entity-versions/{id}`
 - Then: the API responds with HTTP 405
 

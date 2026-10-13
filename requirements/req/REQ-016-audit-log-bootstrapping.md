@@ -53,11 +53,13 @@ Applies to the Basic Flow (local), Alternative A1 (remote) and A2 (combined), as
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a successfully completed local or remote bootstrapping process
 - When: it is completed
 - Then: the audit log contains an entry with timestamp, mode, and result `success`
 
 **AC2**:
+
 - Given: a rejected bootstrapping attempt (e.g., due to REQ-015)
 - When: the rejection occurs
 - Then: the audit log contains an entry with timestamp and result `rejected`

@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to see a field-by-field diff when 
 ## Acceptance Criteria
 
 **AC1** (Changed fields only):
+
 - When: I click a version
 - Then: I see only the changed fields; identical fields are hidden
 
 **AC2** (Dot notation for properties):
+
 - When: `properties.owner` was changed
 - Then: the entry appears as "properties.owner: 'Kurt' → 'Michael'"
 
 **AC3** (Cumulative diff):
+
 - When: I select versions v2 and v7 for comparison
 - Then: I see the cumulative diff across all transitions from v2 to v7
 

@@ -17,6 +17,7 @@ The concept allows reified relations: relations can themselves be endpoints of o
 3. **UI representation**: How are reified relations displayed on the canvas?
 
 **Prior decisions already made**:
+
 - **entity.md v0.2.0**: All ArchitectureEntities (elements AND connections) share the same integer ID space. `sourceEntityId` may point to a connection if `allowsConnectionAsSource=true` (ADR-010).
 - **ADR-010 (accepted, 2026-06-26)**: n-connection for data lineage: `carries-data` connects DataFlow (connection) with DataObject; max. 1 level deep for v1.0; `allowsConnectionAsSource` flag on EntityTypeDefinition.
 - **REQ-063 + US-066**: Canvas shows 3-dot-circle indicator on connections with n-connections; double-click opens connection panel.
@@ -33,6 +34,7 @@ The ADR decision confirms and consolidates these implicit prior decisions.
 ## Question 1: Maximum Reification Depth
 
 ### Options
+
 - Option A (chosen): Default 1 level (v1.0); configurable in MetamodelConfiguration for v2.0
 - Option B: Hard limit of 1 level, not configurable
 - Option C: Unlimited with warning
@@ -47,6 +49,7 @@ The ADR decision confirms and consolidates these implicit prior decisions.
 ## Question 2: Addressing
 
 ### Options
+
 - Option A (chosen): All connections have an integer ID and are directly addressable (`/api/v1/entities/{id}`)
 - Option B: Only connections with meta properties have their own ID
 - Option C: ID only on demand at first use of reification
@@ -61,6 +64,7 @@ The ADR decision confirms and consolidates these implicit prior decisions.
 ## Question 3: UI Representation
 
 ### Options
+
 - Option A: Reified connection as its own node in diagrams
 - Option B (chosen): Small symbol (3-dot circle) on the edge
 - Option C: Tooltip/detail view on click
@@ -84,18 +88,21 @@ The ADR decision confirms and consolidates these implicit prior decisions.
 ## Consequences
 
 ### Positive Consequences
+
 - Uniform API: no distinction between connection and element in `/api/v1/entities/{id}`
 - Performance: integer ID join optimal for connections as well (REQ-071, REQ-074)
 - Canvas stays clear: 3-dot symbol instead of additional nodes
 - v2.0 extension to deeper reification possible without breaking change (`maxConnectionDepth` configurable)
 
 ### Negative Consequences / Trade-offs
+
 - 1-level limit restricts some graph topologies; deliberate simplification for v1.0
 - 3-dot indicator requires that Vue Flow (ADR-007) supports edge overlays (available via `EdgeLabelRenderer` in `@vue-flow/core`)
 
 ## References
 
 **Concept Chapters**:
+
 - [§2.1 Reification](../concept/00-overview/02-meta-metamodel.md)
 
 **Dependent ADRs**: ADR-010 (n-connection data lineage — special case of reification)

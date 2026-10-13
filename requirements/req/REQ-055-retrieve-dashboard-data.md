@@ -117,31 +117,37 @@ Live calculation ensures that C-level dashboards always show the current reposit
 ## Acceptance Criteria
 
 **AC1** (Successful dashboard with mixed widgets):
+
 - Given: Dashboard with KPI, chart and table widget (all valid DataSources)
 - When: GET /api/v1/dashboards/{id}/data
 - Then: HTTP 200; all 3 widgets with `status=ok`; `calculatedAt` contains the current timestamp
 
 **AC2** (Error isolation):
+
 - Given: Dashboard with 3 widgets; widget 2 has an invalid PropertyDefinition (metamodel changed)
 - When: GET /api/v1/dashboards/{id}/data
 - Then: Widgets 1 and 3 → `status=ok`; widget 2 → `status=error` with error message; HTTP 200 (not 500)
 
 **AC3** (KPI: value = null for empty data):
+
 - Given: PropertyAggregation on an EntityType without instances
 - When: Retrieve data
 - Then: `{ "status": "ok", "data": { "value": null } }`; no error
 
 **AC4** (Apply globalFilter):
+
 - Given: Dashboard with globalFilter `status eq 'active'`; KPI widget aggregates over `plateau`
 - When: GET /api/v1/dashboards/{id}/data
 - Then: Only plateaus with status=active are included in the aggregation
 
 **AC5** (Text widget):
+
 - Given: Dashboard has a text widget
 - When: Retrieve data
 - Then: `{ "status": "static", "type": "text" }`; no DB call for this widget
 
 **AC6** (Live data):
+
 - Given: Plateau instance receives a new value for investmentCostForecast
 - When: GET /api/v1/dashboards/{id}/data immediately afterwards
 - Then: KPI value reflects the new value (no stale cache)

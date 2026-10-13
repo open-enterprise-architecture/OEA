@@ -50,7 +50,8 @@ Concerns the instance configuration from UC-01 (regular person logins: REQ-001 O
 **Affected Business Objects**: [person](../../business-objects/person.md) (affected), [system-admin-account](../../business-objects/system-admin-account.md) (explicitly NOT affected)
 
 **Formal Statement** (simplified):
-```
+
+```text
 if instanceConfig.enforceSecondFactor == true:
     disallow(REQ-011 for any Person login)
     require(login.factorCount >= 2) for OIDC-Logins (e.g., via amr/acr claim check, if provided by the IdP)
@@ -62,16 +63,19 @@ if instanceConfig.enforceSecondFactor == true:
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: an instance on which "enforce second factor" was activated at commissioning
 - When: an attempt is made to enable REQ-011 (username/password without second factor) for regular persons
 - Then: this is rejected as long as the enforcement is active
 
 **AC2**:
+
 - Given: the same instance with active enforcement
 - When: the system admin account from UC-02 logs in (local or remote)
 - Then: this login is unaffected by the enforcement and works as specified in UC-02
 
 **AC3**:
+
 - Given: an instance without activated enforcement (default)
 - When: the authentication setup is checked
 - Then: REQ-011 can still be enabled according to its own conditions (no default compulsion)

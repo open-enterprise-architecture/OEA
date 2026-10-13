@@ -34,10 +34,12 @@ Realized plateaus represent immutable architecture history. Subsequent changes w
 ## Acceptance Criteria
 
 **AC1** (API write protection):
+
 - When: a PUT request is sent to `/plateaus/{id}` for a realized plateau
 - Then: the API responds with HTTP 422 "Realized plateau is read-only"
 
 **AC2** (UI write protection):
+
 - When: a realized plateau is displayed in the overview
 - Then: no edit button is visible
 

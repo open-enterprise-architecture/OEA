@@ -44,32 +44,39 @@ Concerns exclusively instances that explicitly forgo a second factor and passkey
 ### For type=functional
 
 **Inputs**:
+
 - Username, password
 
 **Processing**:
+
 - Check the password hash against the person's stored hash
 - Check whether this authentication variant is enabled for the instance; if not, it is treated like a non-existent mechanism
 
 **Outputs**:
+
 - If the password is correct: continue with person/role lookup (see REQ-001, step 6)
 
 **Error Cases**:
+
 - Wrong password → generic error message (see REQ-006)
 - Variant is disabled instance-wide → mechanism is not offered
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: an instance on which this variant has been explicitly enabled, and a person with a correct password
 - When: they log in
 - Then: they receive a session according to their active role assignments
 
 **AC2**:
+
 - Given: a newly installed, unconfigured OEA instance
 - When: its authentication setup is checked
 - Then: this variant is disabled by default
 
 **AC3**:
+
 - Given: every successful or failed login via this variant
 - When: the audit log entry is created (see REQ-005)
 - Then: the entry shows that no second factor was used

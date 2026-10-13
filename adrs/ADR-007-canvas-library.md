@@ -9,7 +9,7 @@
 **Updated**: 2026-06-28 — remaining React artifacts cleaned up; EPL 2.0 license terms for ELK.js explicitly documented; ADR-008 status corrected to accepted
 
 > **Previously deferred** (until ADR-008 was decided): [ADR-008](./ADR-008-gui-architecture-dual-track.md) (accepted) determines that the interactive diagram canvas runs in the **client app**. This removes the reason for the blocker.
-
+>
 > **Update 2026-06-26**: [ADR-011](./ADR-011-frontend-framework.md) decides the frontend framework as **Vue 3 + TypeScript**. The original choice of React Flow is therefore replaced by **Vue Flow** (`@vue-flow/core`, MIT) — a direct port of React Flow for Vue 3 with identical concepts (nodes, edges, composables instead of hooks).
 
 ## Context and Problem
@@ -17,6 +17,7 @@
 UC-05 (describe the architecture vision of a change initiative) requires that solution architects can place and name entities directly in an **interactive diagram** (canvas). US-045 specifies a special behavioral requirement: when entering the name of a new entity on the canvas, a suggestion list with existing components from the IT landscape must appear, so that the architect immediately sees whether a component already exists and should create a `modified` or `retiring` delta instead of a `new` delta.
 
 This requires a **web canvas library** that:
+
 - Makes nodes (entities) and edges (relations) interactively placeable and editable
 - Supports in-place text editing directly on the canvas element (no separate dialog)
 - Integrates into a Vue 3/TypeScript web application
@@ -101,6 +102,7 @@ Commercial canvas library with professional EA diagram support.
 We choose **Option 1: Vue Flow** (`@vue-flow/core`), because it offers the best integration into the Vue 3/TypeScript stack (ADR-011), in-place editing is trivially realizable through Vue components as nodes, state is available as a diffable JSON array, and the concepts were adopted 1:1 from React Flow (minimal porting effort, documentation transferable).
 
 The EA-specific gaps (auto-layout, ArchiMate shape library) are known, solvable problems:
+
 - Auto-layout will be retrofitted via **ELK.js** (Eclipse Layout Kernel, EPL 2.0; license compatibility with AGPL-3.0 must be verified first, see below) as soon as the requirement becomes concrete
 - Custom shapes (ApplicationComponent, Interface, BusinessProcess, etc.) are defined as Vue SFCs directly in the OEA frontend — no third-party shape set needed
 
@@ -129,12 +131,15 @@ GoJS is ruled out due to its commercial license. maxGraph and AntV X6 are techni
 ## References
 
 **Concept Chapters**:
+
 - [§21.2.1 Visualization Strategy](../concept/70-platform/21-api-architecture.md)
 
 **Related ADRs**:
+
 - [ADR-008](./ADR-008-gui-architecture-dual-track.md) (accepted): client app + web portal; Vue Flow runs in the client app context (Electron)
 
 **Use Cases / Requirements**:
+
 - [UC-05: Describe the Architecture Vision of a Change Initiative](../requirements/use-cases/UC-05-describe-architecture-vision.md)
 - [REQ-040: Capture EntityDeltas of a Solution](../requirements/req/REQ-040-capture-entity-deltas.md)
 - [US-045: Create New Entity in Diagram as Delta](../requirements/user-stories/US-045-delta-new-entity-diagram.md)

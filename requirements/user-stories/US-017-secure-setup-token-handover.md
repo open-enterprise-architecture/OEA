@@ -18,11 +18,13 @@ As an operator, I want the initial setup token to be accessible only via a chann
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a freshly installed instance
 - When: the setup token is generated
 - Then: it can only be retrieved via a channel that already requires privileged access (e.g. CLI output at startup, container exec)
 
 **AC2**:
+
 - Given: the initial setup web interface (if UI-based)
 - When: it is accessed without a valid setup token
 - Then: it refuses to set a password

@@ -42,7 +42,7 @@ Via [connection types](./metamodel-configuration.md) (EntityTypes with `isConnec
 
 **Example**: Catalog "Applications & Interfaces"
 
-```
+```text
 Primary entity: ApplicationComponent
 Join: via DataFlow (connection) → Interface (target entity)
 ```
@@ -199,7 +199,7 @@ Catalogs have no formal status lifecycle. They are configuration objects that ca
 
 **Catalog "Application Overview with Interfaces"**:
 
-```
+```yaml
 primaryEntityType: ApplicationComponent
 defaultJoinMode: aggregate
 columns:

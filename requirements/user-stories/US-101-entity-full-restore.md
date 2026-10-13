@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to reset an entity to any earlier 
 ## Acceptance Criteria
 
 **AC1** (Restore to earlier state):
+
 - When: I restore an entity to version v3
 - Then: `name`, `description`, and `properties` are set to v3 values; `id` is unchanged
 
 **AC2** (Confirmation dialog with diff):
+
 - When: I initiate the restore
 - Then: the dialog shows which fields differ between the current state and the target version
 
 **AC3** (Cancel without change):
+
 - When: I cancel the dialog
 - Then: the entity remains unchanged
 

@@ -18,21 +18,25 @@ As an administrator, I want to set (or have generated) an initial password when 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Max creates a new person and enables local authentication
 - When: he chooses "Generate password" or enters his own
 - Then: the hash is stored as `LocalCredential (type=password)` and the plaintext is displayed once
 
 **AC2**:
+
 - Given: the initial password has been displayed
 - When: Max leaves the page and comes back
 - Then: the plaintext is no longer visible (only the hash in the DB)
 
 **AC3**:
+
 - Given: the initial password is set
 - When: the person signs in with it (UC-01 A5)
 - Then: the login succeeds; if 2FA is enforced, UC-03 (required action) starts directly in the login flow
 
 **AC4**:
+
 - Given: the system processes the request
 - When: server logs are written
 - Then: the password plaintext is not contained in the logs

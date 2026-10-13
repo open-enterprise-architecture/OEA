@@ -36,18 +36,22 @@ Without an admin override, EA managers and system admins are blind in an emergen
 ## Acceptance Criteria
 
 **AC1** (Override effective):
+
 - When: a user with the `system-admin` role retrieves an entity with restricted properties
 - Then: all values are returned; `visibilityMode` has no effect
 
 **AC2** (Audit log entry):
+
 - When: an override user reads a `role-restricted` or `connection-scoped` field
 - Then: the audit log contains an entry with type `property-override-access`, user ID, entity ID, and property name
 
 **AC3** (Override configurable):
+
 - When: Kurt edits the override role list in the metamodel editor and adds another role
 - Then: users of this role receive override access from now on
 
 **AC4** (No implicit override):
+
 - When: a user has the `EA-Manager` role, but `EA-Manager` is not in the override list
 - Then: visibility restrictions apply normally; no automatic override through a hierarchy assumption
 

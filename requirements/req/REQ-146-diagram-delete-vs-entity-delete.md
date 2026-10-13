@@ -84,7 +84,7 @@ Soft delete means: `deleted_at`, `deleted_by`, `deletionReason` set (ADR-019); t
 
 **Context menu structure** (on right-click of a shape):
 
-```
+```text
 Edit Properties
 Add Connection
 ────────────────────
@@ -100,27 +100,33 @@ Delete Entity          Ctrl+DEL
 ## Acceptance Criteria
 
 **AC1** (Remove from Diagram — model untouched):
+
 - Given: shape "Catalog-Service" [AC] is in diagrams A and B
 - When: the user presses DEL on the shape in diagram A
 - Then: shape in diagram A gone; shape in diagram B unchanged; entity present in the explorer
 
 **AC2** (Delete Entity — confirmation dialog):
+
 - When: the user presses Ctrl+DEL on a shape
 - Then: confirmation dialog appears with the warning "affects all diagrams"; proceed only on confirmation
 
 **AC3** (Delete Entity — soft delete):
+
 - When: the user confirms Delete Entity
 - Then: the entity has `deleted_at` set; no longer appears in normal catalog queries; is restorable via the audit log (UC-15)
 
 **AC4** (Delete Entity — other diagrams marked):
+
 - When: an entity is deleted that appears as a shape in 3 further diagrams
 - Then: in these 3 diagrams the shape is marked as "deleted" (gray, warning); no silent data loss
 
 **AC5** (Context menu accessibility):
+
 - When: the user right-clicks on a shape
 - Then: the context menu appears with both options incl. shortcuts; DEL and Ctrl+DEL also work without the context menu
 
 **AC6** (Undo Remove from Diagram):
+
 - When: the user has removed a shape from the diagram via DEL
 - Then: Ctrl+Z restores the shape (local undo, no API call)
 

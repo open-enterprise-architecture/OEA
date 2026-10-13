@@ -60,15 +60,19 @@ How is it verified whether the requirement is met?
 ## References
 
 **Concept reference**:
+
 - [§N (Chapter)](../../concept/...)
 
 **Stakeholders**:
+
 - [SH-NN: Name](../stakeholders/SH-NN-kurzname.md)
 
 **Related use cases / stories**:
+
 - [UC-NN: Title](../use-cases/UC-NN-kurzname.md)
 
 **Related ADRs**:
+
 - ADR-NN (e.g. persistence decision, because performance-relevant)
 
 ## Risks of Non-Fulfillment

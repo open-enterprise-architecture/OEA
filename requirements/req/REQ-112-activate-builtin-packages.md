@@ -38,14 +38,17 @@ Manually recreating the TOGAF TRM would be prohibitively laborious for operators
 ## Acceptance Criteria
 
 **AC1** (Package preview):
+
 - When: the package list is opened
 - Then: "TOGAF 10 TRM" is visible with a preview (47 ABBs, 38 TRM categories, 12 patterns)
 
 **AC2** (Import by click):
+
 - When: "Import" is clicked
 - Then: the import is executed atomically; an import log shows the result
 
 **AC3** (Already imported package):
+
 - When: a package has already been imported
 - Then: the UI shows an "Already imported" badge and a note about conflict handling
 

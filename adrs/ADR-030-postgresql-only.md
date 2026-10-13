@@ -112,16 +112,19 @@ These ADRs keep their status; only the listed parts are superseded by this ADR:
 ## References
 
 **Concept Chapters**:
+
 - [§6 Core Entity Types](../concept/20-entities/06-core-entity-types.md)
 - [§15 Schema Evolution](../concept/40-extensibility/15-schema-evolution.md)
 - [§21 API Architecture and Modularity](../concept/70-platform/21-api-architecture.md)
 
 **Related ADRs**:
+
 - [ADR-016](./ADR-016-persistence-strategy.md): Persistence strategy – PostgreSQL 15 + JSONB
 - [ADR-023](./ADR-023-multi-db-strategy.md): Multi-DB strategy (superseded)
 - [ADR-029](./ADR-029-cucumber-test-framework.md): Cucumber + Testcontainers
 
 **Use Cases / Requirements**:
+
 - [REQ-156: PostgreSQL as the only supported database](../requirements/req/REQ-156-postgresql-only-database.md)
 - [REQ-075: Platform-independent deployment](../requirements/req/REQ-075-platform-independent-deployment.md)
 

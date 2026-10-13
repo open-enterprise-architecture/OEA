@@ -18,16 +18,19 @@ As a user, I want to see MetaType names, property labels, and enum values in my 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: user with ui_language=`de` is logged in
 - When: app loads
 - Then: Pinia store loads `GET /api/v1/i18n/de`; MetaType names visible in German
 
 **AC2**:
+
 - Given: ETag of the current label bundle known
 - When: store refresh after 5 minutes
 - Then: `If-None-Match` header sent; if state unchanged → 304; no re-render
 
 **AC3**:
+
 - Given: SSE enabled (`oea.sse.enabled=true`); admin changes label
 - When: `i18n_invalidated` event received
 - Then: store reloads bundle; affected labels in the UI updated without reload

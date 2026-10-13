@@ -14,6 +14,7 @@ The TOGAF architecture domains are mapped 1:1 as layers:
 The TOGAF definitions are **structural**: ApplicationComponent encapsulates application functionality, TechnologyComponent encapsulates technology infrastructure. In practice, the distinction is nevertheless disputed for many objects – modern architectures (cloud-native, serverless, SaaS, platform products) blur the boundaries. The tool must be able to handle this fuzziness without escalating every borderline debate to the ARB.
 
 **Why the distinction is difficult**:
+
 - Causal interdependence: every technology ultimately exists to enable applications
 - Perspective dependence: the same object can be an application for the operating team and a technology for the consuming team
 - Platform products (Kafka, Kubernetes, Keycloak, Control-M) play both roles at the same time
@@ -91,6 +92,7 @@ The three views work on the same repository but show different levels of detail.
 To support the step-by-step build-up, the tool can optionally offer **automatic logical stub generation**: If a PhysicalApplicationComponent is created without an explicit logical reference, the tool generates in the background a stub logical component ("`<Name> Logical`") that can later be enriched by the user or merged with other logicals.
 
 This auto-generation is:
+
 - Optional (can be enabled/disabled via schema configuration)
 - Visibly marked as "auto-generated, pending review"
 - Not semantically loaded – the stub inherits no business meaning, only the name

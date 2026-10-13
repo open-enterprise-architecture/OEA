@@ -83,7 +83,7 @@ behalf of the organization.
 
 ## Questions
 
-For questions about the CLA: **luek.mathis@gmail.com**
+For questions about the CLA: **<luek.mathis@gmail.com>**
 
 ---
 

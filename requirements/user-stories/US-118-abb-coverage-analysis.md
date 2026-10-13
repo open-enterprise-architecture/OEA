@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to see for all approved ABBs how m
 ## Acceptance Criteria
 
 **AC1** (Gap rate):
+
 - When: 5 approved ABBs exist, 2 of them without an instance
 - Then: the analysis shows gap rate = 40%; the table shows all 5 ABBs with instance counts
 
 **AC2** (ABB detail view):
+
 - When: I open an ABB in the analysis table
 - Then: I see implementing SBBs and conforming entities as clickable links
 
 **AC3** (Empty state):
+
 - When: no ABBs are configured yet
 - Then: the system shows the note "No ABBs configured yet; start with UC-17"
 

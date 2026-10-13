@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want imported and built-in continuum bu
 ## Acceptance Criteria
 
 **AC1** (API write protection):
+
 - When: a PUT or DELETE request is issued on a building block with `scope=imported`
 - Then: the system responds with HTTP 422
 
 **AC2** (UI write protection and badge):
+
 - When: I open a building block with `scope=imported` in the UI
 - Then: edit and delete buttons are not visible; a badge "Imported – TOGAF 10 TRM" is visible
 
 **AC3** (SBB assignments editable):
+
 - When: I open a TRM category with `scope=imported`
 - Then: I can edit SBB assignments; name and parent category are locked
 

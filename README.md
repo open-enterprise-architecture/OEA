@@ -37,12 +37,12 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | ADRs | 31 |
 | Business Objects | 22 |
 
-_Concept: v0.18 · Last update: 2026-10-13_
+_Concept: v0.18 · Last update: 2026-10-13._
 <!-- /AUTO-GENERATED: stats -->
 
 **Next step**: Walking Skeleton based on UC-06 (Catalog Browser).
 
-- Concept: complete (24 chapters + changelog, v0.18.0), see [`concept/`](concept/)
+- Concept: complete (24 chapters + changelog, v0.18.1), see [`concept/`](concept/)
 - Requirements: completed – all 21 UCs, 155 REQs, 142 USs, 29 ADRs defined
 - Tech stack: decided (Java 21 / Vue 3 / PostgreSQL 15 / Electron)
 - Code: not started yet
@@ -154,6 +154,7 @@ Copyright 2026 Lukas Mathis – see [NOTICE](NOTICE). The copyright holder and l
 ## References
 
 OEA builds on established standards:
+
 - TOGAF Content Metamodel (The Open Group)
 - ArchiMate (The Open Group)
 - BPMN 2.0 (OMG)

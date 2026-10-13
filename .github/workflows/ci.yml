@@ -131,17 +131,15 @@ jobs:
   markdown-lint:
     name: Markdown lint
     runs-on: ubuntu-latest
-    # continue-on-error until existing files are cleaned up
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: DavidAnson/markdownlint-cli2-action@v16
         with:
           globs: |
-            requirements/**/*.md
-            adrs/*.md
-            business-analysis/**/*.md
-            docs/*.md
+            **/*.md
+            !.claude/**
+            !.opencode/**
+            !**/node_modules/**
           config: .markdownlint.json
 
   # ── Placeholder: backend build (arrives with the Walking Skeleton) ───────────────

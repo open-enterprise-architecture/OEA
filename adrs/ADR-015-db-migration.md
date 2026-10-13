@@ -73,7 +73,7 @@ Migrations run automatically at app start before the first DB access.
 
 ### Migration Convention
 
-```
+```text
 src/main/resources/db/migration/
   V1__init_core_schema.sql        ← entities, entity_versions, audit_events
   V2__init_plateau_schema.sql     ← plateaus, entity_plateau_states

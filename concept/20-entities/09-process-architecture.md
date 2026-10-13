@@ -1,6 +1,7 @@
 ## 9. Process Architecture
 
 Process modeling in OEA has two levels:
+
 - **Process landscape (L1–L4)**: processes are modeled **abstractly and notation-neutrally** (value chains, process groups, processes) and linked with capabilities, applications, data and roles.
 - **Process flow (L5)**: OEA includes a BPMN 2.0 editor that covers the **Descriptive Process Modeling Conformance sub-class** of BPMN 2.0.2 (REQ-076, REQ-081, UC-10). This is enough to document and analyze processes in the EA context.
 
@@ -9,6 +10,7 @@ OEA is **not** a process execution or simulation platform. Executable process mo
 ### 9.1 Modeling Philosophy
 
 **The process landscape uses abstract process concepts**, not BPMN specifics. Advantages:
+
 - Portability to BPMN, EPC, value stream maps, future standards
 - No coupling to BPMN version changes
 - Focus on architecturally relevant properties (ownership, cross-references, KPIs)
@@ -118,6 +120,7 @@ EntityType: KPI
 ```
 
 Typical process KPIs:
+
 - Cycle time, lead time
 - Error rate, first-time-right rate
 - Cost per process instance
@@ -199,20 +202,24 @@ EntityType: ValueStreamStep
 Process ownership is multi-layered:
 
 **Process Owner** (strategic):
+
 - Responsible for the process across its lifecycle
 - Decides on process design and changes
 - Typical: line management
 
 **Process Manager** (operational):
+
 - Steers ongoing process execution
 - Responsible for achieving KPIs
 - Typical: team leader
 
 **Process Architect** (methodological):
+
 - Standardization, cross-process consistency
 - Part of the EA/BPM function
 
 **Process Participant**:
+
 - Performs activities
 - Internal or external (customer, partner)
 
@@ -231,6 +238,7 @@ Process gains:
 The tool should add value at the following level:
 
 **What the tool should do**:
+
 - Maintain the process hierarchy (L1–L5)
 - BPMN 2.0 diagram editor at the Descriptive conformance level (pools, lanes, tasks, events, gateways, data, annotations)
 - Cross-layer links (Process ↔ Capability, Application, Data, Role, OrganizationalUnit, Person)
@@ -241,6 +249,7 @@ The tool should add value at the following level:
 - Process ownership and RACI
 
 **What the tool should NOT do**:
+
 - Execution-level BPMN modeling (conditions, loops, multi-instance, process variables, event sub-processes)
 - Process simulation / execution engine
 - Form generation from processes

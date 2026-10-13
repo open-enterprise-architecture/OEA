@@ -18,21 +18,25 @@ As an Enterprise Architect, I want to be able to define connection types in the 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Kurt creates `DataFlow` with `isConnection=true`, `allowedSourceTypes=[ApplicationComponent, DataFlow]`, `allowedTargetTypes=[ApplicationComponent, DataFlow]` and property `protocol (enum)`
 - When: an architect wants to create a DataFlow instance without a source
 - Then: saving fails with a specific error message
 
 **AC2**:
+
 - Given: DataFlow instance DF-1 (AppA→AppB) exists
 - When: Kurt creates DataFlow instance DF-2 with `source=DF-1`, `target=AppC`
 - Then: the T relationship is saved (DF-2 branches off from DF-1)
 
 **AC3**:
+
 - Given: `isConnection=true` and `allowedSourceTypes=[ApplicationComponent]` (without DataFlow)
 - When: Kurt tries to set `source=DF-1` (a connection instance)
 - Then: validation error; no saving
 
 **AC4**:
+
 - Given: YAML import with an `isConnection: true` definition
 - When: Kurt imports the file
 - Then: the type is correctly imported as a connection type and marked as such in the GUI

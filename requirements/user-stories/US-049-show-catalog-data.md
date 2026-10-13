@@ -18,29 +18,35 @@ As a catalog visitor, I want to see the entities of a catalog as a sortable tabl
 ## Acceptance Criteria
 
 **AC1** (display table):
+
 - Given: Catalog "Application Inventory" with primaryEntityType=ApplicationComponent, columns [name, status], join "Interfaces" (aggregate), repository contains 3 ApplicationComponents
 - When: Franz opens the catalog
 - Then: Table with 3 rows (one per application), columns "name" and "status" visible; column "Interfaces" shows aggregated interface names
 
 **AC2** (sort ascending):
+
 - When: Franz clicks on column header "name"
 - Then: Table sorted alphabetically ascending by name; header shows arrow ↑
 
 **AC3** (switch sorting):
+
 - When: Franz clicks the "name" header again
 - Then: Table sorted descending; second click → no sorting (back to default)
 
 **AC4** (empty repository):
+
 - Given: primaryEntityType has no entities
 - When: Franz opens the catalog
 - Then: Empty table with hint text "No entries found. Entities can be captured as a delta in a solution."
 
 **AC5** (pagination):
+
 - Given: Repository contains 120 ApplicationComponents
 - When: Franz opens the catalog (pageSize=50 default)
 - Then: First page shows 50 entries; pagination control shows "Page 1 of 3" (120 / 50); page 2 reachable via pagination control
 
 **AC6** (apply default SavedView):
+
 - Given: Catalog has default SavedView "Compact view" (only columns name, status; filter "Active systems only" active)
 - When: Franz opens the catalog
 - Then: Table shows only columns name and status; only active entities visible; active filter is visibly marked in the filter bar

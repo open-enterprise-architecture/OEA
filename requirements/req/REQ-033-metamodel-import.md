@@ -43,10 +43,12 @@ YAML is the primary import format (corresponds to the format from §14 of the co
 ### For type=functional
 
 **Inputs**:
+
 - File (YAML or JSON); format is detected automatically
 - Confirmation by the user after the preview
 
 **Processing**:
+
 1. Upload: accept the file; maximum size TBD (proposal: 1 MB)
 2. Parsing: convert YAML/JSON into an internal data structure; syntax errors → immediate error message
 3. Schema validation: mandatory fields present, types correct, cardinality format valid, enum values not empty
@@ -58,11 +60,13 @@ YAML is the primary import format (corresponds to the format from §14 of the co
 6. Import: all conflict-free new types are persisted; for overwritable conflicts only those explicitly confirmed
 
 **Outputs**:
+
 - Preview diff (before the import)
 - Summary after import: X types imported, Y conflicts skipped
 - Audit log entries for each imported/updated type
 
 **Error Cases**:
+
 - File not parseable (invalid YAML/JSON) → syntax error with line and column
 - Schema violation (e.g., missing mandatory field `name`) → list of all validation errors
 - All entries of the file are conflicts → import not possible without confirmation; the user must correct the file
@@ -71,26 +75,31 @@ YAML is the primary import format (corresponds to the format from §14 of the co
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a valid YAML file with 3 new custom EntityTypes
 - When: Kurt uploads the file and confirms the preview
 - Then: all 3 types are present in the MetamodelConfiguration; the audit log contains 3 entries
 
 **AC2**:
+
 - Given: a YAML file that defines a type with the name `ApplicationComponent` (built-in)
 - When: Kurt uploads the file
 - Then: the preview shows this entry as red/conflict with "not importable (built-in)"; it cannot be confirmed
 
 **AC3**:
+
 - Given: a syntactically invalid YAML file
 - When: Kurt uploads it
 - Then: an error message with line and column appears immediately; no preview
 
 **AC4**:
+
 - Given: a valid file with 2 new types and 1 conflicting (overwritable custom type)
 - When: Kurt confirms only the 2 new types and skips the conflict
 - Then: only the 2 new ones are imported; the existing custom type remains unchanged
 
 **AC5**:
+
 - Given: a JSON file with a structure identical to the YAML variant
 - When: Kurt uploads it
 - Then: it is handled in the same way (format auto-detected)

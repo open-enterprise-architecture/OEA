@@ -18,15 +18,18 @@ As a Lead Enterprise Architect, I want to be able to see who made which changes 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Kurt has created `SecurityZone`, Lukas has deleted another type
 - When: Kurt opens the audit log
 - Then: he sees both entries with the respective person names, timestamps and element names
 
 **AC2**:
+
 - Given: 5 types were imported via import (REQ-033)
 - Then: the audit log shows 5 entries as a coherent import batch (same batch ID)
 
 **AC3**:
+
 - Given: a write error in the audit log system
 - When: Kurt makes a change
 - Then: the change is saved; the audit log entry is caught up asynchronously

@@ -16,7 +16,7 @@ One-page overview for lookup. Print it or keep it next to the screen.
 
 ## Workflow Order
 
-```
+```text
 PO → Solution Architect → Business Engineer → (PO decides)
    → Use Case (PO + Solution Architect)
    → Requirements Engineer → (PO reviews)
@@ -29,12 +29,14 @@ PO → Solution Architect → Business Engineer → (PO decides)
 ## Invocation Patterns
 
 **Explicit role**:
-```
+
+```text
 Please act as <agent-name> (.opencode/agents/<agent-name>.md) and ...
 ```
 
 **Via slash command**:
-```
+
+```text
 /new-business-object
 /new-usecase
 /new-requirement
@@ -43,7 +45,8 @@ Please act as <agent-name> (.opencode/agents/<agent-name>.md) and ...
 ```
 
 **Direct sub-agent call** (if OpenCode supports this natively):
-```
+
+```text
 @solution-architect please clarify ...
 @business-engineer model ...
 ```

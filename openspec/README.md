@@ -4,7 +4,7 @@ OpenSpec ([openspec.dev](https://openspec.dev)) bridges the requirements artifac
 
 ## Structure
 
-```
+```bash
 openspec/
 ├── config.yaml            ← project context (stack, conventions) and rules per artifact
 ├── schemas/oea/           ← project-specific schema (fork of spec-driven)

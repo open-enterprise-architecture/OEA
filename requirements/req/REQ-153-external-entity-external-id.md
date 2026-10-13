@@ -34,35 +34,42 @@ External systems (scanners, CI/CD pipelines, import tools) do not know internal 
 ## Type-Specific Fields
 
 **Inputs**:
+
 - `externalId` in the URL path (URL-encoded)
 - EntityWrite body (name, metatypeId, properties[])
 
 **Processing**:
+
 - Search for `external_id = externalId` in `entities`
 - Not present → INSERT; 201 Created
 - Present → UPDATE; 200 OK
 - Metamodel validation (REQ-149) runs in both cases
 
 **Outputs**:
+
 - 200 OK (update) or 201 Created (insert) with EntityDetail body
 
 **Error Cases**:
+
 - MetaType not found → 422
 - mandatory property missing → 422 with errors[]
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: no entity with `external_id = "git:acme/order-service"`
 - When: `PUT /api/v1/entities/by-external-id/git%3Aacme%2Forder-service` with a valid body
 - Then: 201 Created; entity in DB; `external_id` stored
 
 **AC2**:
+
 - Given: entity with `external_id = "git:acme/order-service"` already exists
 - When: same call with a changed `name`
 - Then: 200 OK; `name` updated; no second entity created
 
 **AC3**:
+
 - Given: two calls with identical data in succession
 - When: second call
 - Then: 200 OK; data unchanged; version counter not incremented (no no-op write)

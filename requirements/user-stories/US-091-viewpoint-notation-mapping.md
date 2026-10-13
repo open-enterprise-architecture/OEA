@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to be able to select only notation
 ## Acceptance Criteria
 
 **AC1** (Dropdown filtered by notation):
+
 - When: I select `notation=archimate3`
 - Then: the dropdown shows only `archimate3:*` elements
 
 **AC2** (API validation):
+
 - When: an API call saves a `bpmn:Task` element in an `archimate3` viewpoint
 - Then: I receive HTTP 422
 
 **AC3** (Dropdown reset on change):
+
 - When: I change the notation in the form
 - Then: the dropdown updates immediately; incompatible elements are reset
 

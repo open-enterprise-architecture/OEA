@@ -18,11 +18,13 @@ As an operator, I want to be warned when configuring a remote bootstrapping mapp
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a remote mapping to a group that is empty or non-existent at configuration time
 - When: Max saves the configuration
 - Then: he receives a warning that this mapping currently grants access to nobody
 
 **AC2**:
+
 - Given: the same situation
 - When: Max acknowledges the warning
 - Then: he can still save the configuration (no hard block)

@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to see a grid with 4 thin and 1 th
 ## Acceptance Criteria
 
 **AC1** (Grid visible):
+
 - When: the canvas is opened
 - Then: grid with pattern 4 thin + 1 thick line visible; thick line clearly distinguishable
 
 **AC2** (Snapping):
+
 - When: an entity is moved on the canvas
 - Then: the position snaps to the nearest grid point; free positioning not possible
 
 **AC3** (Show/hide):
+
 - When: `G` pressed or toolbar button clicked
 - Then: grid lines hidden; snapping remains active
 

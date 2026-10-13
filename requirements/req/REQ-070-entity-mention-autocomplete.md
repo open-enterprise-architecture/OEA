@@ -38,6 +38,7 @@ Arc42 documentation describes systems that are modeled in the EA repository. Wit
 ## Context
 
 `[[` (double square bracket) is the trigger for entity mentions. This syntax is known from wiki tools (Obsidian, Confluence, Logseq, Roam Research) as "link to a page/object". It is unambiguous in every context:
+
 - Not in URLs (URLs contain no `[[`)
 - Not in email addresses
 - Not in Mermaid/PlantUML syntax
@@ -59,11 +60,12 @@ The previously evaluated `/@` pattern was discarded: `/@` appears in GitHub rout
 
 ### Search Request and Response
 
-```
+```http
 GET /api/v1/entities/search?q={term}&limit=10
 ```
 
 Response:
+
 ```json
 [
   { "id": 1, "name": "CRM-System", "entityTypeId": "application-component", "entityTypeName": "ApplicationComponent" },
@@ -78,6 +80,7 @@ Response:
 ### Dropdown Display
 
 Each result shows:
+
 - Entity name (bold)
 - EntityType name (gray, small) — e.g., "ApplicationComponent"
 - Entity ID (right, monospace) — e.g., "#1"
@@ -94,7 +97,7 @@ Rendering: inline badge with the current name (ID-resolved), clickable → opens
 
 **Mermaid code block** (inside ` ```mermaid `):
 
-```
+```text
 CRM-System
 ```
 
@@ -102,7 +105,7 @@ Plain text name — no link markup, since Mermaid syntax does not support hyperl
 
 **PlantUML code block** (inside ` ```plantuml `):
 
-```
+```text
 CRM-System
 ```
 
@@ -110,7 +113,7 @@ Plain text name — analogous to Mermaid.
 
 **Draw.io code block** (inside ` ```drawio `):
 
-```
+```text
 CRM-System
 ```
 
@@ -119,6 +122,7 @@ Plain text name in the shape label of the active shape in the Draw.io editor —
 ### Rendering of `[[Name|entity:ID]]` in Free Text
 
 When reading the `content` field, the backend (or the frontend via API call) MUST reload the current `name` of the entity with the given ID:
+
 - Entity exists + name unchanged: normal badge with current name
 - Entity exists + renamed: badge shows new name (transparent to the reader)
 - Entity deleted: badge shows `[deleted]` + red font + no link
@@ -126,39 +130,48 @@ When reading the `content` field, the backend (or the frontend via API call) MUS
 ## Acceptance Criteria
 
 **AC1** (Dropdown opens in free text):
+
 - When: Michael types `[[` in the Markdown free text of the editor
 - Then: Autocomplete dropdown appears with top 10 entities; no page load needed
 
 **AC2** (Live search filters results):
+
 - When: Michael types `[[CRM`
 - Then: Dropdown shows only entities whose name contains "CRM" (case-insensitive); results update with every additional character
 
 **AC3** (Mention in free text — ID-stable):
+
 - When: Michael selects "CRM-System" (id=1) in the dropdown
 - Then: `[[CRM-System|entity:1]]` is inserted; rendering shows a clickable badge "CRM-System"
 
 **AC4** (Renaming is reflected in rendering):
+
 - Given: Entity id=1 is renamed from "CRM-System" to "Salesforce CRM"
 - When: Michael reopens the Arc42 answer
 - Then: Badge shows "Salesforce CRM"; raw text in `content` remains `[[CRM-System|entity:1]]` (unchanged raw value)
 
 **AC5** (Deleted entity):
+
 - Given: Entity id=1 was deleted
 - When: Arc42 answer with `[[CRM-System|entity:1]]` opened
 - Then: Badge shows `[deleted]` in red font; no link; no exception
 
 **AC6** (Dropdown in Mermaid block):
+
 - When: Michael types `[[CRM` inside a ` ```mermaid ` code block (in edit mode)
 - Then: Autocomplete dropdown appears; after selection only the text name `CRM-System` is inserted (no link markup)
 
 **AC7** (Dropdown in PlantUML block):
+
 - Same as AC6, for a PlantUML code block
 
 **AC8** (ESC closes dropdown without change):
+
 - When: Michael types `[[CR` and presses ESC
 - Then: Dropdown closes; `[[CR` remains as raw text
 
 **AC9** (Web portal: mentions rendered, no edit):
+
 - When: CIO opens Arc42 documentation in the web portal
 - Then: Mentions rendered as badges (with current name); no dropdown trigger when clicking a badge in read mode (badge opens entity detail)
 

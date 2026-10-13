@@ -18,14 +18,17 @@ As a metamodel administrator, I want to create an Arc42 chapter collection, defi
 ## Acceptance Criteria
 
 **AC1** (create collection):
+
 - When: Admin creates collection "Arc42 Standard" with 12 questions and assigns it to `application-component`
 - Then: Collection saved; ApplicationComponent entities show the Arc42 tab
 
 **AC2** (import built-in):
+
 - When: Admin clicks "Import standard Arc42"
 - Then: 12-question collection available as an editable copy
 
 **AC3** (change question order):
+
 - When: Admin changes the sortOrder of the questions
 - Then: New order displayed correctly in the tab
 

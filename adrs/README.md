@@ -28,6 +28,7 @@ See [§23 Open Issues](../concept/90-backlog/23-open-issues.md) – currently 47
 ## Slash Command
 
 In `.opencode/commands/`:
+
 - `/new-adr` – creates a new ADR with the next free number
 
 ## Overview of All ADRs

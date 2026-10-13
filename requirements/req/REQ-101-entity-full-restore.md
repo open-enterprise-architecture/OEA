@@ -34,14 +34,17 @@ Faulty changes happen. Without a restore option, changes have to be reverted man
 ## Acceptance Criteria
 
 **AC1** (Restore to earlier state):
+
 - When: an entity is restored to version v3
 - Then: `name`, `description` and `properties` are set to v3 values; `id` is unchanged
 
 **AC2** (Confirmation dialog with diff):
+
 - When: the restore is initiated
 - Then: the confirmation dialog shows which fields differ between the current state and the target version
 
 **AC3** (Cancel without change):
+
 - When: the dialog is canceled
 - Then: the entity remains unchanged
 

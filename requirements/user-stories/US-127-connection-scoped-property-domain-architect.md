@@ -18,19 +18,23 @@ As Michael – Solution Architect, I want to see sensitive properties (e.g. `sec
 ## Acceptance Criteria
 
 **AC1** (Traversal positive — own domain):
+
 - Given: `securityClassification` has `visibilityMode=connection-scoped`, `scopingConnectionType=DomainAssignment`
 - When: Michael retrieves entity A, which is connected to Michael's domain via `DomainAssignment`
 - Then: value is visible and editable
 
 **AC2** (Traversal negative — other domain):
+
 - When: Michael retrieves entity B, which is NOT connected to Michael's domain via `DomainAssignment`
 - Then: field is empty and not editable
 
 **AC3** (Catalog view):
+
 - When: a catalog contains a connection-scoped property as a column
 - Then: rows of the own domain show the value; rows of other domains show an empty cell
 
 **AC4** (Performance):
+
 - When: Michael's domain has up to 500 directly assigned entities
 - Then: traversal overhead p95 ≤ 200 ms (cached, TTL 60 s)
 

@@ -34,14 +34,17 @@ System-defined viewpoints (ArchiMate 3, UML, BPMN 2.0) are part of the OEA core 
 ## Acceptance Criteria
 
 **AC1** (API write protection):
+
 - When: a DELETE request is sent to `/viewpoints/{system-defined-id}`
 - Then: the API responds with HTTP 422
 
 **AC2** (UI write protection):
+
 - When: system-defined viewpoints are displayed in the list
 - Then: edit and delete buttons are not visible
 
 **AC3** (Import write protection):
+
 - When: system-defined viewpoints are contained in an import (REQ-059)
 - Then: they are not overwritten
 

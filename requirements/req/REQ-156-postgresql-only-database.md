@@ -46,21 +46,25 @@ Replaces REQ-150 (multi-database support). Configuration documents (`metamodel_c
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: `docker compose up` with the default configuration
 - When: the application starts
 - Then: it connects to PostgreSQL, Flyway applies all migrations from a single location `db/migration`, and no dialect-specific migration paths exist
 
 **AC2**:
+
 - Given: the CI pipeline
 - When: integration and Cucumber system tests run
 - Then: they use a PostgreSQL Testcontainer of the minimum supported version; no H2 or other in-memory database is used
 
 **AC3**:
+
 - Given: a configured datasource pointing to a PostgreSQL version below 15
 - When: the application starts
 - Then: startup fails with a clear error message naming the minimum supported version
 
 **AC4**:
+
 - Given: a metamodel configuration stored in `metamodel_configurations.config`
 - When: the column type is inspected
 - Then: it is `JSONB`

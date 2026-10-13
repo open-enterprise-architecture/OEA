@@ -42,7 +42,7 @@ during the implementation phase.
 
 ## Tag Schema
 
-```
+```text
 @functional         – Functional requirement
 @non-functional     – Non-functional requirement
 @performance        – Latency measurement / load test (always with @non-functional)
@@ -109,7 +109,7 @@ during the implementation phase.
 
 ### 2. Directory Structure in the Backend
 
-```
+```text
 backend/src/test/
 ├── java/
 │   └── io/oea/

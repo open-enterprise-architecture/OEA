@@ -34,14 +34,17 @@ The SBB governance assignment is the core of the technology standards mechanism.
 ## Acceptance Criteria
 
 **AC1** (Set preferredStandard and deviation note):
+
 - When: `preferredStandard=PostgreSQL 17` is set in the category "Database Management"
 - Then: all entities in this category with a different `instanceOfSBBId` show the note "Deviation from TRM standard"
 
 **AC2** (Mutually exclusive):
+
 - When: the same SBB is to be set in both `preferredStandard` and `acceptedAlternatives`
 - Then: the system responds with HTTP 422 "SBB may only appear in one list"
 
 **AC3** (Imported category editable):
+
 - When: a TRM category with `scope=imported` is opened
 - Then: SBB assignments are editable; name and parent category are locked
 

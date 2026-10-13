@@ -35,18 +35,22 @@ The navigation tree is the primary structuring instrument for the EA repository.
 ## Acceptance Criteria
 
 **AC1** (Create folder):
+
 - When: a new folder is created under a parent
 - Then: the API responds with HTTP 201; the folder is visible in the tree
 
 **AC2** (Reject duplicate name):
+
 - When: a folder is created with a name that already exists under the same parent
 - Then: the API responds with HTTP 422 "Name already exists"
 
 **AC3** (Recursive deletion):
+
 - When: a folder with 3 child folders and 10 items is deleted
 - Then: child folders and items are removed; referenced entities remain untouched
 
 **AC4** (Root node protection):
+
 - When: a DELETE request is sent to `/tree-nodes/root`
 - Then: the API responds with HTTP 422 "Root node cannot be deleted"
 

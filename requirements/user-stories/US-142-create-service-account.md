@@ -18,21 +18,25 @@ As a system administrator, I want to create service accounts and assign them the
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: admin is logged in
 - When: POST /admin/service-accounts `{name: "ci-scanner", role: "integration-writer"}`
 - Then: 201 Created; response contains `clientId` (UUID) and, once only, `clientSecret` (plaintext); `persons` entry with `person_type=service-account` in DB
 
 **AC2**:
+
 - Given: service account with `clientId` + `clientSecret`
 - When: OAuth2 client credentials grant against the auth provider
 - Then: JWT with claim `person_type=service-account`, `agent_id=<clientId>`, role `integration-writer` received
 
 **AC3**:
+
 - Given: admin rotates credentials
 - When: POST /admin/service-accounts/{id}/credentials/rotate
 - Then: new secret returned (once only); old secret immediately invalid (401 on use)
 
 **AC4**:
+
 - Given: service account without the `integration-writer` role
 - When: PUT /entities/by-external-id/...
 - Then: 403 Forbidden

@@ -18,21 +18,25 @@ As an operator, I want to be able to define instance-wide that all regular perso
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Max enables `enforce2FA=true` in the instance configuration
 - When: a person tries to log in via REQ-011 (password without second factor)
 - Then: the login is rejected
 
 **AC2**:
+
 - Given: `enforce2FA=true` is active
 - When: a person without a set-up 2FA credential logs in
 - Then: UC-03 required action is triggered; they must set up a second factor before they gain access
 
 **AC3**:
+
 - Given: `enforce2FA=true` is active
 - When: the system admin account logs in via UC-02
 - Then: it is unaffected by the enforcement
 
 **AC4**:
+
 - Given: `enforce2FA=false` (default)
 - When: a person logs in with a password without a second factor
 - Then: this remains permitted (no obligation)

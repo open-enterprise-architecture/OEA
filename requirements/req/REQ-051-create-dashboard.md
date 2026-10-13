@@ -45,8 +45,10 @@ Dashboard management actions take place exclusively in the **client app** (ADR-0
 ### API Endpoints
 
 **Create**:
+
 - `POST /api/v1/dashboards`
 - Request Body:
+
   ```json
   {
     "name": "IT Investment Planning 2026–2030",
@@ -54,15 +56,18 @@ Dashboard management actions take place exclusively in the **client app** (ADR-0
     "scope": "instance"
   }
   ```
+
 - Response 201: `{ "id": "uuid", "name": "...", "scope": "instance", "createdBy": "person-uuid", "widgets": [] }`
 - Response 409: name already taken in the scope
 - Response 403: scope=instance without permission
 
 **Edit (metadata)**:
+
 - `PUT /api/v1/dashboards/{id}` – update name, description, scope
 - Scope upgrade (`personal` → `instance`) also requires dashboard write permission
 
 **List**:
+
 - `GET /api/v1/dashboards` – returns `scope=instance` dashboards + own `personal` dashboards; never other people's `personal` dashboards
 
 ## Business Rules
@@ -77,26 +82,31 @@ Dashboard management actions take place exclusively in the **client app** (ADR-0
 ## Acceptance Criteria
 
 **AC1** (Create with scope=instance):
+
 - Given: Kurt (role Enterprise Architect) is logged in
 - When: `POST /api/v1/dashboards` with name="IT Investment Planning" and scope=instance
 - Then: HTTP 201; dashboard object in DB; visible to all users in GET /api/v1/dashboards
 
 **AC2** (Duplicate name):
+
 - Given: dashboard "IT Investment Planning" (scope=instance) already exists
 - When: second POST with the same name
 - Then: HTTP 409 with error message "Name already taken"
 
 **AC3** (Missing permission for scope=instance):
+
 - Given: Franz (role Junior Domain Architect, no dashboard write permission) is logged in
 - When: POST with scope=instance
 - Then: HTTP 403; no dashboard created
 
 **AC4** (Personal dashboard for any user):
+
 - Given: Franz (without write permission) is logged in
 - When: POST with scope=personal, name="My analysis"
 - Then: HTTP 201; the dashboard is visible only to Franz (not included in GET /api/v1/dashboards for other users)
 
 **AC5** (Scope upgrade):
+
 - Given: Franz has a personal dashboard; later he receives the dashboard permission
 - When: PUT with scope=instance
 - Then: HTTP 200; the dashboard is visible to everyone from now on

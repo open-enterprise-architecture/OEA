@@ -89,6 +89,7 @@ This use case covers two complementary roles:
 **Primary Actor**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 
 **Other actors (usage as visitor)**:
+
 - [Franz – Junior Domain Architect](../../business-analysis/stakeholders/SH-01-franz-junior-domain-architect.md) – reads catalogs to understand the landscape
 - [Lukas – Senior Data Architect](../../business-analysis/stakeholders/SH-02-lukas-senior-data-architect.md) – uses data-centric catalogs for data architecture analyses
 - [Michael – Solution Architect](../../business-analysis/stakeholders/SH-04-michael-solution-architect.md) – uses catalogs for baseline analysis before creating a solution
@@ -136,7 +137,7 @@ As a user of the architecture repository, I want to open an existing catalog, fi
 
 ## Basic Flow
 
-*Default case: Kurt creates a new catalog "Application Inventory" and configures it for all users*
+*Default case: Kurt creates a new catalog "Application Inventory" and configures it for all users.*
 
 1. **Kurt**: navigates to "Catalogs" in the main menu or in the navigation tree
 2. **System**: shows an overview of all existing catalogs (scope=instance + own personal), ordered by name
@@ -159,7 +160,7 @@ As a user of the architecture repository, I want to open an existing catalog, fi
 
 **A1 – Open and use catalog as visitor (all actors)**:
 
-*Franz opens the catalog "Application Inventory" to get acquainted with the existing IT landscape*
+*Franz opens the catalog "Application Inventory" to get acquainted with the existing IT landscape.*
 
 1. **Franz**: opens the catalog via the navigation tree or the catalog overview
 2. **System**: shows the default view (isDefault SavedView, if defined): entities as table rows, columns as configured
@@ -201,21 +202,25 @@ As a user of the architecture repository, I want to open an existing catalog, fi
 ## Exception Flows
 
 **E1 – Primary entity type no longer present in the metamodel**:
+
 - Condition: The EntityType of an existing Catalog was removed from the MetamodelConfiguration (UC-04)
 - Expected reaction: When opening the Catalog, a warning appears "Primary type ‹ApplicationComponent› no longer in the metamodel. The catalog cannot load data." With a hint to UC-04
 - Resumption: Catalog Manager must manually migrate the catalog to a valid type or delete it
 
 **E2 – No EntityType attribute for the chosen FilterExpression**:
+
 - Condition: A SavedFilter references an attribute that was removed from the EntityType
 - Expected reaction: SavedFilter is marked with a warning icon; the filter cannot be executed; manager is informed
 - Resumption: Manager adjusts the SavedFilter
 
 **E3 – Missing permission for Catalog Manager actions**:
+
 - Condition: Visitor without write permission tries to create or edit a catalog
 - Expected reaction: Button "Create new catalog" / "Configure" not visible or disabled; on direct API access: 403 Forbidden
 - Resumption: Visitor contacts a Catalog Manager
 
 **E4 – Empty repository (no result)**:
+
 - Condition: The primary entity type has no entities in the repository
 - Expected reaction: Table with 0 rows; informative notice "No entries found. Entities of type ‹ApplicationComponent› can be captured as a delta in a solution (UC-05)."
 - Resumption: no block; catalog remains usable as soon as entities exist

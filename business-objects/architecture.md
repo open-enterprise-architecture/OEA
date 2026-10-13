@@ -19,6 +19,7 @@ references:
 # Architecture Model: Overview
 
 > **Note**: This file was originally modeled as a generic "scope container" (v0.1.0). With v0.2.0 it becomes the overview file of the overall model. The concrete BOs are:
+>
 > - [Plateau](./plateau.md) — stable architecture state (baseline, target, transition)
 > - [Solution](./solution.md) — initiative that moves entities from one plateau to another
 
@@ -47,7 +48,7 @@ In OEA, an enterprise architecture is described in two complementary dimensions:
 
 A **[Plateau](./plateau.md)** is a stable, named state of the overall architecture at a point in time. The OEA instance always has exactly one **baseline plateau** (current production state) and any number of **target plateaus** (planned target states).
 
-```
+```text
 Plateau P0 (Baseline, productive)
   ├── ApplicationComponent: CRM-Legacy        [active]
   ├── ApplicationComponent: ERP-Core          [active]
@@ -64,7 +65,7 @@ Plateau P1 (Target 2027, not yet productive)
 
 A **[Solution](./solution.md)** describes the **delta** between two plateaus: which entities are created, change, or are decommissioned. It is the workspace of the solution architect.
 
-```
+```yaml
 Solution: "Salesforce Introduction"
   fromPlateau: P0 (Baseline)
   toPlateau:   P1 (Target 2027)
@@ -79,7 +80,7 @@ Solution: "Salesforce Introduction"
 
 This corresponds to the **plateau principle** from TOGAF / ArchiMate 3:
 
-```
+```text
 Plateau P0 (Baseline)
       │
       ├── Solution A ──────────────── Plateau P1 (Target A)
@@ -95,7 +96,7 @@ Plateau P0 → realized (read-only)
 
 The instance metamodel ([MetamodelConfiguration](./metamodel-configuration.md) `scope=instance`) applies instance-wide. A solution can have its own metamodel extension (`scope=solution`) to try out new entity types without modifying the locked instance default metamodel (REQ-037).
 
-```
+```text
 MetamodelConfiguration (scope=instance, editMode=import-only)
 └── Solution extension (scope=solution, editMode=gui-and-import)
       └── own custom types, visible only within this solution
@@ -128,7 +129,7 @@ MetamodelConfiguration (scope=instance, editMode=import-only)
 
 ## Conceptual Model (Project Mode / SME)
 
-```
+```text
 OEA instance (no plateau)
   │
   ├── Solution "Salesforce Introduction" [implemented]

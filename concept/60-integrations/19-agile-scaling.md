@@ -36,7 +36,7 @@ The TOGAF capability remains the primary capability term; the SAFe capability is
 
 **Portfolio epic as a first-class bridge**: In SAFe, portfolio epics are the explicit place where strategy meets implementation. They have a **lean business case**, pass through a **portfolio Kanban**, and are implemented in **ARTs**. This is already a complete PPM structure that can be cleanly integrated with the EA repository:
 
-```
+```text
 Strategic Theme (EA: Goal)
   ↓ realizedBy
 Portfolio Epic (EA: Work Package, Stereotype: SAFePortfolioEpic)
@@ -69,6 +69,7 @@ ArchitectureDecision gains:
 LeSS is the opposite of SAFe: minimal structure, radical focus on product instead of project, deliberately **skeptical of enterprise architecture** as a discipline.
 
 LeSS basic principles with EA relevance:
+
 - **One product, one product backlog, one product owner** – even with 8 teams
 - **No additional roles** beyond Scrum (no ARB, no enterprise architect as a separate role)
 - **Architecture emerges from the code** (in the sense of DDD, continuous architecture)
@@ -77,6 +78,7 @@ LeSS basic principles with EA relevance:
 **What does this mean for your OEA?**
 
 The philosophical tension: LeSS does not say "EA is wrong" but "EA as a separate discipline with separate roles is harmful". Instead:
+
 - Architecture is the result of continuous decisions in the team
 - Cross-team coordination takes place in design workshops, not in ARBs
 - Documentation is as lean as possible (LeSS demands "whisper" documentation)
@@ -84,6 +86,7 @@ The philosophical tension: LeSS does not say "EA is wrong" but "EA as a separate
 **Where does it still dock onto EA?**
 
 LeSS organizations also have:
+
 - **Multi-team products** with shared technical infrastructure
 - **Cross-system interfaces** to other products / SaaS / legacy
 - **Compliance requirements** that must be documented
@@ -124,6 +127,7 @@ excludes:
 ```
 
 **Team-centric views**: While SAFe views are often ART-centric, LeSS views are team-centric:
+
 - Which team maintains which components? (ownership)
 - Which cross-team dependencies exist?
 - Which interfaces are "contracts" between teams?
@@ -133,6 +137,7 @@ excludes:
 A tool that wants to serve *both* worlds (and it should, as an open-source standard) must:
 
 **1. Offer entities for SAFe AND product-centric work:**
+
 - Project, Program, Portfolio → for SAFe/classic PPM
 - Product → for LeSS/product-centric orgs
 - Both can coexist, depending on schema configuration
@@ -160,17 +165,20 @@ Organizations choose their profile at setup. The meta-metamodel stays the same, 
 ### 19.4 Summary: Metamodel Extensions for Agile Scaling
 
 **New EntityTypes:**
+
 - `Product` (for product-centric organizations)
 - `ProgramIncrement` (SAFe PI as a time-period entity)
 - `AgileReleaseTrain` (SAFe ART as an OrganizationUnit stereotype)
 
 **New stereotypes:**
+
 - `SAFeCapability` on WorkPackage
 - `SAFePortfolioEpic` on WorkPackage
 - `ArchitecturalRunway` on WorkPackage
 - `EnablerEpic` on WorkPackage
 
 **New properties on existing types:**
+
 - `ArchitectureDecision.origin: intentional | emergent`
 - `Project.methodology: waterfall | agile-scaled | agile-product | hybrid`
 - `WorkPackage.safeState` (optional, only with SAFe profile)

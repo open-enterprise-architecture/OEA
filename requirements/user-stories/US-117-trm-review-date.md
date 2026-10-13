@@ -18,10 +18,12 @@ As Kurt – Lead Enterprise Architect, I want `lastReviewedAt` to be updated aut
 ## Acceptance Criteria
 
 **AC1** (Automatic lastReviewedAt):
+
 - When: I save a TRM category
 - Then: `lastReviewedAt` is set to the current UTC date
 
 **AC2** (Filter by review date):
+
 - When: I activate the filter "Last reviewed > 12 months ago" in the TRM overview
 - Then: categories with `lastReviewedAt` < today − 12 months or `lastReviewedAt = null` are highlighted
 

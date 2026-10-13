@@ -35,36 +35,43 @@ Service accounts are `persons` with `person_type=service-account`. Credentials i
 ## Type-Specific Fields
 
 **Inputs**:
+
 - Name, description of the service account
 - Role to be assigned (integration-writer)
 
 **Processing**:
+
 - Create a person entry with `person_type=service-account`
 - Create a `machine_credentials` entry with `client_id` (UUID) and `client_secret_hash`
 - Role assignment via `person_roles`
 - Credential rotation: new secret; old one immediately invalid
 
 **Outputs**:
+
 - `client_id` + `client_secret` (plaintext, once) on creation and rotation
 - Afterwards: only `client_id` visible (secret is hashed)
 
 **Error Cases**:
+
 - Role `integration-writer` not present → 422
 - Service account without a role → must not call write endpoints
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: admin is logged in
 - When: POST /admin/service-accounts with `{name: "ci-scanner", role: "integration-writer"}`
 - Then: 201 Created; response contains `clientSecret` once; DB contains a `machine_credentials` entry
 
 **AC2**:
+
 - Given: service account with valid client_id/secret
 - When: OAuth2 client credentials flow → receive JWT; PUT /entities/by-external-id/...
 - Then: 200/201; audit log shows `source=API`, `agent_id=<client_id>`
 
 **AC3**:
+
 - Given: admin rotates the credentials of a service account
 - When: old secret is used for an auth request
 - Then: 401 Unauthorized; new secret required

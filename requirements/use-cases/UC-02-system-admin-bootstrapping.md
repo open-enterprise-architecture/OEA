@@ -102,33 +102,40 @@ A freshly installed OEA instance contains neither persons nor roles nor an IdP c
 ## Alternative Flows
 
 **A1 – Remote bootstrapping (system admin via external IdP)**: At step 3, if Max selects the mode **remote** (see ADR-006):
+
 1. Max configures the OIDC provider (Entra ID or Authentik) for the instance
 2. Max defines which group/role claim of the IdP grants system admin rights (e.g., Entra ID group `oea-system-admins`)
 3. System stores this mapping as a [System Admin Account](../../business-objects/system-admin-account.md) with `mode: remote`
 4. Max logs in via the configured IdP; if the identity token contains the configured claim, the session receives system admin rights
+
 - Returns to step 7 of the basic flow
 
 **A2 – Combined bootstrapping**: Max first sets up locally (basic flow), then additionally configures remote mapping (A1) as a second, parallel access
+
 - Both accesses remain usable until one of them is deliberately deactivated (see `system-admin-account.md`, Business Rule BR-02)
 
 ## Exception Flows
 
 **E1 – Setup token/password lost or process aborted**:
+
 - Condition: Max does not complete the bootstrapping process or loses the setup token before the first login
 - Expected reaction: As long as no system admin account has been finally created, the process can be restarted (back to step 2)
 - Resumption: Max restarts the bootstrapping process via CLI/setup wizard
 
 **E2 – Remote mapping points to a non-existent or empty group**:
+
 - Condition: The configured claim (A1, step 2) does not correspond to an actually populated group at the IdP
 - Expected reaction: Nobody receives system admin rights via this path; the system already warns at configuration time if the group is verifiably empty at that time
 - Resumption: Max corrects the mapping or alternatively uses the local mode (basic flow) so as not to be locked out
 
 **E3 – Repeated bootstrapping attempt despite existing system admin account**:
+
 - Condition: A system admin account already exists for the instance
 - Expected reaction: System refuses repeated bootstrapping without an explicit reset action by an existing system admin account
 - Resumption: Max logs in with the existing account and deliberately resets the bootstrapping if needed
 
 **E4 – Neither local access nor remote mapping usable anymore (complete lockout)**:
+
 - Condition: Password/setup token lost and IdP mapping no longer valid (e.g., group deleted)
 - Expected reaction: System offers no regular self-service way back into the instance; a documented recovery procedure (e.g., CLI command with access to the server/database) is necessary
 - Resumption: outside the scope of this use case (see "Open Questions")

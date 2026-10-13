@@ -75,25 +75,30 @@ The navigation tree is a shared structure for all repository content: entities, 
 ## Acceptance Criteria
 
 **AC1** (Placement, happy path):
+
 - Given: catalog "Application Inventory" and TreeNode "IT Landscape" exist
 - When: `POST /api/v1/tree-nodes/{nodeId}/items` with `{ itemType: "catalog", referenceId: "{catalogId}" }`
 - Then: HTTP 201; TreeNodeItem created; the catalog appears in the navigation tree under "IT Landscape"
 
 **AC2** (Soft reference – multiple placement):
+
 - Given: catalog "Application Inventory" is already attached in "IT Landscape"
 - When: the catalog is additionally attached in "Compliance/ISO 27001 View"
 - Then: HTTP 201; the catalog appears in both nodes; there is one catalog record (no duplicate)
 
 **AC3** (BR-05 – removal does not delete the catalog):
+
 - When: `DELETE /api/v1/tree-nodes/{nodeId}/items/{itemId}` (remove the TreeNodeItem)
 - Then: HTTP 200; TreeNodeItem deleted; `GET /api/v1/catalogs/{catalogId}` still returns HTTP 200
 
 **AC4** (Open via navigation tree):
+
 - Given: the catalog is attached in the navigation tree
 - When: a visitor clicks the entry in the navigation tree
 - Then: the catalog is opened directly (identical to opening via the catalog overview); the default SavedView is applied (REQ-048)
 
 **AC5** (displayLabel override):
+
 - When: `{ itemType: "catalog", referenceId: "{catalogId}", displayLabel: "System inventory" }`
 - Then: in the navigation tree the catalog appears under the name "System inventory"; the name of the catalog object itself remains "Application Inventory"
 

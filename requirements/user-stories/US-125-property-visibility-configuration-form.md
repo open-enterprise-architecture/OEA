@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to see at a glance which propertie
 ## Acceptance Criteria
 
 **AC1** (Badge in property list):
+
 - When: a property has `visibilityMode ≠ public`
 - Then: shows a "Restricted" badge (icon or label) in the property list row
 
 **AC2** (Conditional fields):
+
 - When: mode selector changed
 - Then: only relevant helper fields visible; unneeded ones hidden (no layout shift)
 
 **AC3** (Inline validation):
+
 - When: saving with an empty mandatory field
 - Then: inline error hint appears; no server request sent
 

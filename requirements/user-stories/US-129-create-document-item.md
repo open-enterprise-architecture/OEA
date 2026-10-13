@@ -18,18 +18,22 @@ As Michael – Solution Architect, I want to create chapters as DocumentItems in
 ## Acceptance Criteria
 
 **AC1** (Create):
+
 - When: Michael clicks "New chapter" in a collection
 - Then: new DocumentItem appears with focus on the `name` field; `content` empty; `sortOrder` automatically set to the end
 
 **AC2** (Set alias):
+
 - When: Michael sets an alias value that already exists in this collection
 - Then: inline error; saving prevented
 
 **AC3** (Chapter navigation):
+
 - When: a collection with multiple items is opened
 - Then: navigation shows all `name` values by `sortOrder`; active item highlighted
 
 **AC4** (WYSIWYG content):
+
 - When: Michael opens a chapter and inserts Markdown, Mermaid, or Draw.io
 - Then: contents are rendered correctly (REQ-068)
 

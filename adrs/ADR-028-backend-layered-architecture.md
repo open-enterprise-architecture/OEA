@@ -28,7 +28,7 @@ message queue), the same logic must be called in two places.
 The backend uses three clearly separated layers with a strict
 dependency rule: **dependencies always point inward.**
 
-```
+```text
 ┌─────────────────────────────────────────┐
 │  io.oea.api   (REST adapter)            │  ← knows app, not core
 │  Controllers, request/response DTOs     │
@@ -48,6 +48,7 @@ dependency rule: **dependencies always point inward.**
 ### Layer 1 — `io.oea.api` (REST Adapter)
 
 Responsible for:
+
 - HTTP mapping (paths, methods, status codes)
 - Request validation (`@Valid`)
 - Translation request DTO → command/query
@@ -70,6 +71,7 @@ public ResponseEntity<EntityDetailResponse> upsert(
 ### Layer 2 — `io.oea.app` (Application Services)
 
 Responsible for:
+
 - **Stable interfaces** — these are the contracts that the API layer calls
 - Use case orchestration (reading + writing in the right order)
 - Transaction boundaries (`@Transactional` lives here, not in `core/`)
@@ -99,6 +101,7 @@ simple records — no command bus, no mediator, no infrastructure.
 ### Layer 3 — `io.oea.core` (Domain)
 
 Responsible for:
+
 - Domain entities (`Entity`, `Metatype`, `PropertyDefinition`, ...)
 - Repository interfaces (Spring Data JPA implementations here)
 - Domain services for complex rules (property validation, constraint checks)
@@ -115,7 +118,7 @@ public class PropertyValidationService {
 
 ## Package Structure (complete)
 
-```
+```text
 io.oea/
 ├── api/
 │   ├── v1/
@@ -206,6 +209,7 @@ as `v1/`. The translation from new v2 DTOs to commands lives in `api/v2/`.
 ## Consequences
 
 **Positive:**
+
 - Core refactoring never touches the REST controllers
 - API v2 possible without core changes
 - App services are testable with Spring tests without the HTTP stack
@@ -213,6 +217,7 @@ as `v1/`. The translation from new v2 DTOs to commands lives in `api/v2/`.
 - Audit log writing consistent after every app service call
 
 **Negative / Compromises:**
+
 - Approx. 2–3 more classes per feature (interface, impl, command)
 - Discipline needed: core must never import `api/` (no compiler enforcement
   without Maven multi-module — hence code review obligation)

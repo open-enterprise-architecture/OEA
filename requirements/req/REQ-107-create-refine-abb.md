@@ -34,14 +34,17 @@ ABBs are the central specification building blocks of the Enterprise Continuum. 
 ## Acceptance Criteria
 
 **AC1** (Create ABB):
+
 - When: an ABB is created with `continuumLevel=organization` and `maturityLevel=established`
 - Then: the system responds with HTTP 201; the ABB is visible in the library
 
 **AC2** (Cycle detection):
+
 - When: ABB "B" is set to `refines=A` and ABB "A" is subsequently to be set to `refines=B`
 - Then: the system responds with HTTP 422 "Cycle detected: A → B → A" and rejects saving
 
 **AC3** (Mandatory field industry):
+
 - When: an ABB with `continuumLevel=industry` is to be saved without the `industry` field
 - Then: the system responds with HTTP 422
 

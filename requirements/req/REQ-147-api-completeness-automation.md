@@ -111,30 +111,36 @@ Each of the following operations MUST exist as a standalone endpoint before the 
 ## Acceptance Criteria
 
 **AC1** (API completeness):
+
 - Given: a new UI feature is marked as *done*
 - Then: for every state-changing action of the feature, a documented endpoint exists in the OpenAPI spec (`/api/docs`)
 - Verification: code review checklist; CI fails if a new controller method has no OpenAPI annotation
 
 **AC2** (Bulk import):
+
 - When: `POST /api/v1/entities/bulk` is called with 500 ApplicationComponent objects
 - Then: all 500 objects are created or an atomic rollback response is returned; response time < 10 s; no timeout
 - Scope: test database with 10,000 existing entities
 
 **AC3** (Idempotency):
+
 - When: `PUT /api/v1/entities/{id}` is called twice with an identical body
 - Then: the second call returns 200 without a duplicate entry in the audit log
 - When: an endpoint cannot be idempotent: it is documented in the OpenAPI spec as `x-idempotent: false`
 
 **AC4** (No UI coupling):
+
 - When: an external client retrieves and modifies all entities of a catalog without ever loading the UI
 - Then: all operations (read, create, update, delete, query) are fully executable via the API; no endpoint requires a browser session cookie
 - Verification: integration test with plain `curl` / Python `requests`
 
 **AC5** (Webhook notification):
+
 - When: an entity is updated via `PUT /api/v1/entities/{id}`
 - Then: all registered webhooks for the event `entity.updated` receive an HTTP POST with a correct HMAC signature within 5 s
 
 **AC6** (Deprecation policy):
+
 - When: an endpoint is removed or changed incompatibly in a new API version
 - Then: the old endpoint remains reachable for at least 6 months after the announcement and responds with `Deprecation` and `Sunset` headers (RFC 8594)
 

@@ -24,10 +24,12 @@ Modern IT organizations work product-oriented (long-term responsibility, no end 
 ## Considered Options
 
 ### Option 1: Separate EntityTypes (hardcoded)
+
 - Pro: properties clearly separated; no stereotype concept needed
 - Con: contradicts metamodel approach; org cannot define its own sub-variants; code duplication in the backend
 
 ### Option 2 (chosen): Common built-in concept + subtypes in the metamodel
+
 - `work-initiative` as built-in EntityType (scope=built-in, isBuiltIn=true)
 - `product` and `project` as built-in subtypes (`extends: work-initiative`)
 - Lifecycle differences via properties and `creationSteps` (REQ-066 wizard)
@@ -36,6 +38,7 @@ Modern IT organizations work product-oriented (long-term responsibility, no end 
 - Con: Admin must understand that product/project are configurable types (not "built in")
 
 ### Option 3: WorkPackage as base
+
 - Pro: consistency with the WorkPackage concept
 - Con: WorkPackage is tactical (sprint, task); Product/Project are strategic — conceptually wrong base
 
@@ -45,7 +48,7 @@ Modern IT organizations work product-oriented (long-term responsibility, no end 
 
 **Built-in EntityTypes** (scope=built-in, as starter package `oea-togaf-starter`):
 
-```
+```text
 work-initiative (built-in)
   ├── product        extends: work-initiative
   └── project        extends: work-initiative
@@ -64,32 +67,38 @@ work-initiative (built-in)
 | `budget` | optional | optional | optional |
 
 **CreationSteps** (REQ-066 wizard):
+
 - `project`: Step 1 = basic info (name, startDate, endDate), Step 2 = domain assignment
 - `product`: Step 1 = basic info (name, owner), Step 2 = domain assignment
 
 **Connection types** (built-in):
+
 - `initiative-realizes-solution` (work-initiative → solution): links initiative with EA solution
 - `initiative-part-of` (work-initiative → work-initiative): program/project hierarchy
 
 ## Consequences
 
 ### Positive Consequences
+
 - No special treatment in the backend; product/project are regular EntityTypeDefinitions
 - Extensible: `capex-project extends project` without code change
 - Catalog + dashboard (UC-06, UC-07) work without adjustment for these types
 - Wizard (REQ-066) covers the different mandatory fields via `creationSteps`
 
 ### Negative Consequences / Trade-offs
+
 - First-time users without metamodel knowledge might be confused that "create project" happens via a configurable type
 - Lifecycle validation (endDate mandatory for project) must be implemented in the wizard/API as a constraint — not as a hard DB schema constraint
 
 ### Follow-up Decisions
+
 - `initiative-realizes-solution` connection is added in solution.md
 - `work-initiative` types as part of the `oea-togaf-starter` package (ADR-002)
 
 ## References
 
 **Concept Chapters**:
+
 - [§18 PPM Integration](../concept/60-integrations/18-ppm-integration.md)
 - [§11 Temporal Model](../concept/30-dynamics/11-temporal-model.md)
 
