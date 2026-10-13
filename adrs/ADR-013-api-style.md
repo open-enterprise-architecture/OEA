@@ -2,7 +2,7 @@
 
 **Status**: accepted
 **Date**: 2026-06-26
-**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Consulted**: Requirements Engineer
 **Informed**: –
 **Updated**: 2026-06-28 — NestJS references replaced by SpringDoc OpenAPI (Spring Boot 3) and Gradle workflow; ADR-012 chose Java 21 + Spring Boot 3, not NestJS

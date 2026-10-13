@@ -19,7 +19,7 @@ Feature: REQ-076 – BPMN process elements and OrganizationalUnit in the metamod
   Scenario: AC1 – Built-in BPMN types present – OEA instance started; admin opens MetamodelConfiguration
     Given the precondition according to the requirement is met
     When  OEA instance started; admin opens MetamodelConfiguration
-    Then  all 19 built-in BPMN EntityTypes and 9 built-in connections are visible (isBuiltIn=true); immutable in their base properties
+    Then  all 19 built-in BPMN EntityTypes, `organizational-unit` and 10 built-in connections (4 BPMN, 1 org unit, 5 assignment) are visible (isBuiltIn=true); immutable in their base properties
 
   @AC2
   Scenario: AC2 – Extensibility – admin creates `EntityTypeDefinition { id: "approval-t...

@@ -2,7 +2,7 @@
 
 **Status**: accepted
 **Date**: 2026-06-26
-**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Consulted**: Requirements Engineer (UC-05, UC-06, US-045), Business Engineer (Viewpoint BO, Catalog BO)
 **Informed**: –
 **Updated**: 2026-06-28 — React SPA references updated to Vue 3 SPA (following ADR-011); ADR-007 status corrected from deferred to accepted (Vue Flow chosen)

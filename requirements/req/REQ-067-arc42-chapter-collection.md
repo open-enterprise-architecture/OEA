@@ -38,7 +38,7 @@ Without configurable collections, Arc42 would be a rigid format that does not fi
 ## Acceptance Criteria
 
 **AC1** (Create collection):
-- When: Admin posts `{ id: "arc42-kmu", name: "Arc42 SME", questions: [...], assignedEntityTypeIds: ["application-component"] }`
+- When: Admin posts `{ id: "arc42-sme", name: "Arc42 SME", questions: [...], assignedEntityTypeIds: ["application-component"] }`
 - Then: HTTP 201; collection stored in MetamodelConfiguration; EntityType `application-component` shows the collection when opened
 
 **AC2** (Add question):

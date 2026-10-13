@@ -33,7 +33,7 @@ The system MUST allow an administrator to set an initial password when creating 
 
 ## Rationale
 
-Local authentication without an external IdP needs a starting point: before a person can log in, they must have credentials. The initial password bridges this gap – it is the starting point for the first login (UC-01 A5), after which UC-03 (required action) sets up the 2nd factor. The administrator sets the password once, passes it on to the person (any channel), and the person changes it at first login (REQ-024b – password change at first login, enforced if necessary). Addresses SH-06's requirement for local user management without email infrastructure.
+Local authentication without an external IdP needs a starting point: before a person can log in, they must have credentials. The initial password bridges this gap – it is the starting point for the first login (UC-01 A5), after which UC-03 (required action) sets up the 2nd factor. The administrator sets the password once, passes it on to the person (any channel), and the person changes it at first login (separate required action "Change password", not yet specified as a requirement – see Context). Addresses SH-06's requirement for local user management without email infrastructure.
 
 ## Context
 

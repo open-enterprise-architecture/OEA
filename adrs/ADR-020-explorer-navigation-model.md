@@ -4,8 +4,7 @@ title: Explorer Browser Navigation Model in the Native Client
 status: proposed
 date: 2026-06-28
 deciders:
-  - Lead Enterprise Architect
-  - Solution Architect
+  - Repository Owner
 categories:
   - UX
   - Navigation
@@ -28,7 +27,8 @@ references:
 
 Proposed
 
-**Deciders**: [Kurt – Lead Enterprise Architect](../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md) (SH-03), [Michael – Solution Architect](../business-analysis/stakeholders/SH-04-michael-solution-architect.md) (SH-04)
+**Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
+**Consulted**: [Kurt – Lead Enterprise Architect](../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md) (SH-03), [Michael – Solution Architect](../business-analysis/stakeholders/SH-04-michael-solution-architect.md) (SH-04)
 
 ## Context
 

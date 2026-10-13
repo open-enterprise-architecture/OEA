@@ -76,8 +76,8 @@ Not all properties of an entity may be visible to all users. Investment costs, c
 
 ## Trigger
 
-1. A new property `investitionskostenPrognose` (EUR) is added to the metamodel → Kurt restricts visibility to the roles `EA-Manager` and `Budget-Owner`
-2. The domain architect should see `sicherheitseinstufung` only for entities of their domain → Kurt configures `connection-scoped` with connection type `DomainAssignment`
+1. A new property `investmentCostForecast` (EUR) is added to the metamodel → Kurt restricts visibility to the roles `EA-Manager` and `Budget-Owner`
+2. The domain architect should see `securityClassification` only for entities of their domain → Kurt configures `connection-scoped` with connection type `DomainAssignment`
 3. A previously public field is to be restricted retroactively → Existing values are retained, but are displayed empty for unauthorized users
 
 ## Preconditions
@@ -99,7 +99,7 @@ Not all properties of an entity may be visible to all users. Investment costs, c
 ## Basic Flow
 
 1. Kurt opens the metamodel editor (UC-04) and navigates to an EntityType (e.g., `ApplicationComponent`)
-2. Kurt selects the property `investitionskostenPrognose` for editing
+2. Kurt selects the property `investmentCostForecast` for editing
 3. Kurt sets `visibilityMode = role-restricted` and selects the roles `EA-Manager`, `Budget-Owner` from the role list
 4. Kurt saves — the system validates and persists the configuration
 5. From now on, the entity API returns the value of this field only to users with the configured roles; all others receive `null` and the field is marked in the UI as empty and not editable

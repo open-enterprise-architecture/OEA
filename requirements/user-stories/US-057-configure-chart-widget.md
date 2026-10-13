@@ -18,8 +18,8 @@ As a Lead Enterprise Architect, I want to add chart widgets (bar, line, pie, don
 ## Acceptance Criteria
 
 **AC1** (bar chart: costs per plateau):
-- Given: 3 plateau instances with investitionskostenPrognose: P1=5M, P2=12M, P3=25M
-- When: Kurt configures chart widget: chartType=bar, entityType=plateau, propertyName=investitionskostenPrognose, aggregationFn=sum, groupBy=name
+- Given: 3 plateau instances with investmentCostForecast: P1=5M, P2=12M, P3=25M
+- When: Kurt configures chart widget: chartType=bar, entityType=plateau, propertyName=investmentCostForecast, aggregationFn=sum, groupBy=name
 - Then: Bar chart with 3 bars; X axis = plateau name; Y axis = amount; bar heights correct
 
 **AC2** (pie chart: applications by domain):
@@ -41,8 +41,8 @@ As a Lead Enterprise Architect, I want to add chart widgets (bar, line, pie, don
 - Then: Chart renders legend and direct value labels on the chart elements
 
 **AC6** (invalid groupBy reference):
-- When: groupBy=nichtVorhandenesProperty
-- Then: HTTP 422 "groupBy 'nichtVorhandenesProperty' is not a valid PropertyDefinition name on EntityType 'application-component' and not a system value"
+- When: groupBy=nonExistentProperty
+- Then: HTTP 422 "groupBy 'nonExistentProperty' is not a valid PropertyDefinition name on EntityType 'application-component' and not a system value"
 
 ## Technical Notes
 

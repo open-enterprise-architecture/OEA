@@ -2,7 +2,7 @@
 # V-model system test specification – created 2026-06-30
 # Verification: method: test (automated)
 
-@functional @should @UC-19
+@functional @should @UC-22
 Feature: REQ-154 – Batch write for entities and connections
 
   The system **MUST** provide an endpoint that creates or updates up to 500

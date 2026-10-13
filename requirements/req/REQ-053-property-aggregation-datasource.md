@@ -94,8 +94,8 @@ The special word `id` is always valid for `propertyName` with `aggregationFn=cou
 ## Acceptance Criteria
 
 **AC1** (Valid int aggregation, no groupBy):
-- Given: EntityType `plateau` with PropertyDefinition `investitionskostenPrognose` (kind=int); 3 plateau instances with values 5000, 12000, 25000
-- When: DataSource configured with entityType=plateau, propertyName=investitionskostenPrognose, aggregationFn=sum
+- Given: EntityType `plateau` with PropertyDefinition `investmentCostForecast` (kind=int); 3 plateau instances with values 5000, 12000, 25000
+- When: DataSource configured with entityType=plateau, propertyName=investmentCostForecast, aggregationFn=sum
 - Then: data calculation returns `{ "value": 42000 }`
 
 **AC2** (Valid count aggregation with groupBy):

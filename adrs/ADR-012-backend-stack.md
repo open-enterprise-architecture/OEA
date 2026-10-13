@@ -2,7 +2,7 @@
 
 **Status**: accepted
 **Date**: 2026-06-27
-**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Consulted**: Business Engineer
 **Informed**: ADR-013 (API style), ADR-015 (DB migration), ADR-016 (persistence)
 **Supersedes**: –

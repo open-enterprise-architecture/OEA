@@ -5,7 +5,7 @@
 Traceability from use cases through requirements to user stories, derived from the
 frontmatter and reference sections of the artifacts.
 
-**Total UCs**: 21 | **Total REQs**: 155 | **Total USs**: 142
+**Total UCs**: 22 | **Total REQs**: 155 | **Total USs**: 142
 
 ---
 
@@ -315,8 +315,6 @@ frontmatter and reference sections of the artifacts.
 | [REQ-115](req/REQ-115-manage-trm-hierarchy.md) | Manage TRM Category Hierarchy | functional | must | [US-115](user-stories/US-115-manage-trm-hierarchy.md) |
 | [REQ-116](req/REQ-116-trm-sbb-governance-assignment.md) | SBB Governance Assignment per TRM Category | functional | must | [US-116](user-stories/US-116-trm-sbb-governance-assignment.md) |
 | [REQ-117](req/REQ-117-trm-review-date.md) | Automatically Set and Filter TRM Category Review Date | functional | must | [US-117](user-stories/US-117-trm-review-date.md) |
-| [REQ-153](req/REQ-153-external-entity-external-id.md) | Create and Update Entities Idempotently via external_id | functional | should | [US-141](user-stories/US-141-entity-batch-import.md) |
-| [REQ-154](req/REQ-154-batch-write-upsert.md) | Batch Write for Entities and Connections | functional | should | [US-141](user-stories/US-141-entity-batch-import.md) |
 
 ### [UC-20](use-cases/UC-20-analyze-continuum-conformance.md): Analyze Architecture Conformance to the Continuum
 
@@ -341,6 +339,15 @@ frontmatter and reference sections of the artifacts.
 | [REQ-128](req/REQ-128-property-visibility-admin-override.md) | Admin Override for Property Visibility | functional | should | [US-128](user-stories/US-128-admin-override-property-visibility.md) |
 | [REQ-129](req/REQ-129-data-encryption.md) | Data Encryption (at-rest and in-transit) | non-functional | must | – |
 | [REQ-131](req/REQ-131-graph-traversal-latency.md) | Graph Traversal Latency (ABAC connection-scoped) | non-functional | must | – |
+
+### [UC-22](use-cases/UC-22-import-current-state-from-source-system.md): Import Current State from Source System
+
+**Primary Actor**: SH-06 | **Priority**: should | **Status**: draft
+
+| REQ | Title | Type | Priority | USs |
+|---|---|---|---|---|
+| [REQ-153](req/REQ-153-external-entity-external-id.md) | Create and Update Entities Idempotently via external_id | functional | should | [US-141](user-stories/US-141-entity-batch-import.md) |
+| [REQ-154](req/REQ-154-batch-write-upsert.md) | Batch Write for Entities and Connections | functional | should | [US-141](user-stories/US-141-entity-batch-import.md) |
 
 ## 2. UC × Concept × ADR
 
@@ -367,6 +374,7 @@ frontmatter and reference sections of the artifacts.
 | [UC-19](use-cases/UC-19-configure-trm.md) | [§4 Enterprise Continuum and Technical Reference Model](../concept/10-foundations/04-enterprise-continuum-trm.md) | – |
 | [UC-20](use-cases/UC-20-analyze-continuum-conformance.md) | [§4 Enterprise Continuum and Technical Reference Model](../concept/10-foundations/04-enterprise-continuum-trm.md) | – |
 | [UC-21](use-cases/UC-21-configure-property-visibility.md) | [§6 Core Entity Types](../concept/20-entities/06-core-entity-types.md), [§8 Organization, Roles, and Persons](../concept/20-entities/08-organization-roles-persons.md) | – |
+| [UC-22](use-cases/UC-22-import-current-state-from-source-system.md) | [§21 API Architecture and Modularity](../concept/70-platform/21-api-architecture.md), [§17 ITSM Integration (CMDB and Service Catalog)](../concept/60-integrations/17-itsm-integration.md), [§11 Temporal Model](../concept/30-dynamics/11-temporal-model.md) | [ADR-024](../adrs/ADR-024-audit-separation.md), [ADR-026](../adrs/ADR-026-external-system-integration.md) |
 
 ## 3. REQ Type Overview
 
@@ -402,9 +410,10 @@ frontmatter and reference sections of the artifacts.
 | UC-16 | 3 | 16 |
 | UC-17 | 5 | 20 |
 | UC-18 | 3 | 13 |
-| UC-19 | 4 | 17 |
+| UC-19 | 3 | 12 |
 | UC-20 | 3 | 13 |
 | UC-21 | 5 | 22 |
+| UC-22 | 1 | 5 |
 | **Total** | | **587** |
 
 ## 5. Coverage Gaps
@@ -439,4 +448,4 @@ None.
 
 ## 6. Concept Chapters Without Use Case
 
-[§1 Positioning and Objectives](../concept/00-overview/01-positioning.md), [§2 Meta-Metamodel: The Three Levels](../concept/00-overview/02-meta-metamodel.md), [§3 Relationship to Arc42 and TOGAF](../concept/10-foundations/03-framework-relationship.md), [§5 Architecture Principles, Standards, and Decisions](../concept/10-foundations/05-principles-standards-adrs.md), [§7 Motivation, Stakeholders, and Goals](../concept/20-entities/07-motivation-stakeholders-goals.md), [§10 Additional Cross-Cutting Concepts](../concept/20-entities/10-cross-cutting.md), [§17 ITSM Integration (CMDB and Service Catalog)](../concept/60-integrations/17-itsm-integration.md), [§18 Project Portfolio Integration (PPM)](../concept/60-integrations/18-ppm-integration.md), [§19 Agile Scaling Frameworks (SAFe, LeSS)](../concept/60-integrations/19-agile-scaling.md), [§22 Analyzability and Query Architecture](../concept/70-platform/22-analyzability.md), [§23 Open Issues – Status Overview](../concept/90-backlog/23-open-issues.md), [§24 Next Steps](../concept/90-backlog/24-next-steps.md)
+[§1 Positioning and Objectives](../concept/00-overview/01-positioning.md), [§2 Meta-Metamodel: The Three Levels](../concept/00-overview/02-meta-metamodel.md), [§3 Relationship to Arc42 and TOGAF](../concept/10-foundations/03-framework-relationship.md), [§5 Architecture Principles, Standards, and Decisions](../concept/10-foundations/05-principles-standards-adrs.md), [§7 Motivation, Stakeholders, and Goals](../concept/20-entities/07-motivation-stakeholders-goals.md), [§10 Additional Cross-Cutting Concepts](../concept/20-entities/10-cross-cutting.md), [§18 Project Portfolio Integration (PPM)](../concept/60-integrations/18-ppm-integration.md), [§19 Agile Scaling Frameworks (SAFe, LeSS)](../concept/60-integrations/19-agile-scaling.md), [§22 Analyzability and Query Architecture](../concept/70-platform/22-analyzability.md), [§23 Open Issues – Status Overview](../concept/90-backlog/23-open-issues.md), [§24 Next Steps](../concept/90-backlog/24-next-steps.md)

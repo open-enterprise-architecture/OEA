@@ -41,13 +41,13 @@ Connection-based visibility allows dynamic, organizational-structure-driven acce
 ## Acceptance Criteria
 
 **AC1** (Traversal positive):
-- Given: property `sicherheitseinstufung` with `visibilityMode=connection-scoped`, `scopingConnectionType=DomainAssignment`
+- Given: property `securityClassification` with `visibilityMode=connection-scoped`, `scopingConnectionType=DomainAssignment`
 - When: Michael (domain architect) is connected to `ApplicationComponent A` via a `DomainAssignment` connection and retrieves entity A
-- Then: the `sicherheitseinstufung` value is contained in the response
+- Then: the `securityClassification` value is contained in the response
 
 **AC2** (Traversal negative):
 - When: Michael is **not** connected to entity B via `DomainAssignment` and retrieves entity B
-- Then: `sicherheitseinstufung` is `null`; no value in the response
+- Then: `securityClassification` is `null`; no value in the response
 
 **AC3** (Write protection):
 - When: a user without a path tries to write to the field via PATCH

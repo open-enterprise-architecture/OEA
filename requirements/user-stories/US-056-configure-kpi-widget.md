@@ -18,8 +18,8 @@ As a Lead Enterprise Architect, I want to add a KPI widget to a dashboard that d
 ## Acceptance Criteria
 
 **AC1** (create widget with sum):
-- Given: MetamodelConfiguration contains EntityType `plateau` with PropertyDefinition `investitionskostenPrognose` (kind=int); 3 plateau instances with values 5,000,000, 12,000,000, 25,000,000
-- When: Kurt creates KPI widget: title="Total Investment Forecast", entityType=plateau, propertyName=investitionskostenPrognose, aggregationFn=sum, unit="CHF"
+- Given: MetamodelConfiguration contains EntityType `plateau` with PropertyDefinition `investmentCostForecast` (kind=int); 3 plateau instances with values 5,000,000, 12,000,000, 25,000,000
+- When: Kurt creates KPI widget: title="Total Investment Forecast", entityType=plateau, propertyName=investmentCostForecast, aggregationFn=sum, unit="CHF"
 - Then: Widget saved; on data retrieval the widget shows "42,000,000 CHF"
 
 **AC2** (count aggregation):

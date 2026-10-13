@@ -22,3 +22,16 @@ Goal-oriented scenarios from the stakeholder's perspective. One file per use cas
 | [UC-07](./UC-07-create-and-use-dashboard.md) | Create, Configure and Use a Dashboard in the Web Portal | SH-03 (all) | should | draft |
 | [UC-08](./UC-08-model-data-lineage.md) | Model and Analyze a Data Flow Map (Data Lineage) | SH-02 | should | draft |
 | [UC-09](./UC-09-document-solution-architecture-arc42.md) | Document an Entity in a Structured Way (Arc42) | SH-04 | should | draft |
+| [UC-10](./UC-10-model-business-processes.md) | Model Business Processes According to BPMN 2.0 | SH-08 | must | draft |
+| [UC-11](./UC-11-define-plateau-and-go-live.md) | Define Architecture Plateau and Put It into Production | SH-03 | must | draft |
+| [UC-12](./UC-12-manage-viewpoints.md) | Create and Manage Viewpoints | SH-03 | must | draft |
+| [UC-13](./UC-13-manage-navigation-tree.md) | Manage Navigation Tree | SH-03 | must | draft |
+| [UC-14](./UC-14-view-change-history.md) | View the Change History of an Entity | SH-03 | must | draft |
+| [UC-15](./UC-15-restore-entity-state.md) | Restore Entity State | SH-03 | should | draft |
+| [UC-16](./UC-16-partial-entity-restore.md) | Partially Restore an Entity | SH-03 | should | draft |
+| [UC-17](./UC-17-manage-continuum-building-blocks.md) | Manage Reusable Architecture Building Blocks | SH-03 | must | draft |
+| [UC-18](./UC-18-import-continuum-package.md) | Import Continuum Package | SH-03 | should | draft |
+| [UC-19](./UC-19-configure-trm.md) | Configure Technical Reference Model | SH-03 | must | draft |
+| [UC-20](./UC-20-analyze-continuum-conformance.md) | Analyze Architecture Conformance to the Continuum | SH-03 | should | draft |
+| [UC-21](./UC-21-configure-property-visibility.md) | Configure Property Visibility | SH-03 | must | draft |
+| [UC-22](./UC-22-import-current-state-from-source-system.md) | Import Current State from Source System | SH-06 | should | draft |

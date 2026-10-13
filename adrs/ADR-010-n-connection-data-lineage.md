@@ -2,7 +2,7 @@
 
 **Status**: accepted
 **Date**: 2026-06-26
-**Deciders**: SH-02 (Lukas – Data Architect), SH-03 (Kurt – Lead EA)
+**Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Consulted**: SH-02 (Lukas), SH-03 (Kurt)
 **Informed**: all stakeholders
 

@@ -44,7 +44,7 @@ Feature: REQ-055 – Compute and retrieve dashboard data live
     Then  `{ "status": "static", "type": "text" }`; no DB call for this widget
 
   @AC6
-  Scenario: AC6 – Live data – plateau instance receives new value for investitionskostenPrognose
-    Given plateau instance receives new value for investitionskostenPrognose
+  Scenario: AC6 – Live data – plateau instance receives new value for investmentCostForecast
+    Given plateau instance receives new value for investmentCostForecast
     When  GET /api/v1/dashboards/{id}/data immediately afterwards
     Then  KPI value reflects the new value (no stale cache)

@@ -10,7 +10,7 @@ last_updated: 2026-06-29
 author: requirements-engineer
 references:
   use_cases:
-    - UC-19
+    - UC-22
   adrs:
     - ADR-026
 supersedes: []

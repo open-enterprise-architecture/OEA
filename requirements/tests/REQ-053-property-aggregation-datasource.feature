@@ -18,8 +18,8 @@ Feature: REQ-053 – Configure and validate PropertyAggregation DataSource
 
   @AC1
   Scenario: AC1 – Valid int aggregation, no groupBy – EntityType `plateau` with Propert...
-    Given EntityType `plateau` with PropertyDefinition `investitionskostenPrognose` (kind=int); 3 plateau instances with values 5000, 12000, 25000
-    When  DataSource configured with entityType=plateau, propertyName=investitionskostenPrognose, aggregationFn=sum
+    Given EntityType `plateau` with PropertyDefinition `investmentCostForecast` (kind=int); 3 plateau instances with values 5000, 12000, 25000
+    When  DataSource configured with entityType=plateau, propertyName=investmentCostForecast, aggregationFn=sum
     Then  data computation returns `{ "value": 42000 }`
 
   @AC2

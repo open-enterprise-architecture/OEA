@@ -18,7 +18,7 @@ Feature: REQ-126 – Enforcement of role-restricted property visibility
   Scenario: AC1 – API response – user without allowed role retrieves entity with role-restricted property
     Given the precondition according to the requirement is met
     When  user without allowed role retrieves entity with role-restricted property
-    Then  API response contains `"investitionskostenPrognose": null`; no actual value in the response
+    Then  API response contains `"investmentCostForecast": null`; no actual value in the response
 
   @AC2
   Scenario: AC2 – UI empty and read-only – user without permission opens the entity detail form

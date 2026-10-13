@@ -2,7 +2,7 @@
 
 **Status**: accepted
 **Date**: 2026-06-26
-**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Consulted**: Requirements Engineer (entity.md, ADR-010, REQ-063, US-066)
 **Informed**: all stakeholders
 

@@ -162,7 +162,7 @@ dashboard:
       title: "Total Investment Costs (Forecast)"
       dataSource:
         entityType: plateau
-        propertyName: investitionskostenPrognose
+        propertyName: investmentCostForecast
         aggregationFn: sum
       unit: "CHF m"
       gridPosition: { col: 1, row: 1, width: 3, height: 1 }
@@ -172,11 +172,11 @@ dashboard:
       chartType: bar
       dataSource:
         entityType: plateau
-        propertyName: investitionskostenPrognose
+        propertyName: investmentCostForecast
         aggregationFn: sum
         groupBy: name
       xAxis: { propertyName: name, label: "Plateau" }
-      yAxis: { propertyName: investitionskostenPrognose, label: "CHF" }
+      yAxis: { propertyName: investmentCostForecast, label: "CHF" }
       gridPosition: { col: 4, row: 1, width: 9, height: 3 }
 
     - widgetType: chart
@@ -191,7 +191,7 @@ dashboard:
       gridPosition: { col: 1, row: 2, width: 6, height: 3 }
 ```
 
-**Precondition**: The plateau EntityType (or a stereotype `ManagedPlateau`) must have `PropertyDefinition { name: investitionskostenPrognose, dataType: { kind: int }, validationMode: warning, category: "Costs" }` defined.
+**Precondition**: The plateau EntityType (or a stereotype `ManagedPlateau`) must have `PropertyDefinition { name: investmentCostForecast, dataType: { kind: int }, validationMode: warning, category: "Costs" }` defined.
 
 ## Delimitation from Similar Objects
 

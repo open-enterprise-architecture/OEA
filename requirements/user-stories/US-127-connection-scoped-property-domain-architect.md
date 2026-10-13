@@ -7,7 +7,7 @@
 
 ## Story
 
-As Michael – Solution Architect, I want to see sensitive properties (e.g. `sicherheitseinstufung`) only for entities assigned to my domain via a `DomainAssignment` connection, so that I do not view confidentiality data of other organizational areas.
+As Michael – Solution Architect, I want to see sensitive properties (e.g. `securityClassification`) only for entities assigned to my domain via a `DomainAssignment` connection, so that I do not view confidentiality data of other organizational areas.
 
 ## Reference
 
@@ -18,7 +18,7 @@ As Michael – Solution Architect, I want to see sensitive properties (e.g. `sic
 ## Acceptance Criteria
 
 **AC1** (Traversal positive — own domain):
-- Given: `sicherheitseinstufung` has `visibilityMode=connection-scoped`, `scopingConnectionType=DomainAssignment`
+- Given: `securityClassification` has `visibilityMode=connection-scoped`, `scopingConnectionType=DomainAssignment`
 - When: Michael retrieves entity A, which is connected to Michael's domain via `DomainAssignment`
 - Then: value is visible and editable
 
