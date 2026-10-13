@@ -1,10 +1,10 @@
 ---
 id: process
 title: Process Modeling (BPMN 2.0)
-version: 0.2.0
+version: 0.3.0
 status: draft
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-10-13
 references:
   concept:
     - concept/20-entities/09-process-architecture.md
@@ -97,9 +97,14 @@ All process elements are ArchitectureEntities. The following types are built-in;
 | `bpmn-receive-task` | ReceiveTask | `bpmn:ReceiveTask` | Receive a message |
 | `bpmn-business-rule-task` | BusinessRuleTask | `bpmn:BusinessRuleTask` | Rule evaluation |
 | `bpmn-script-task` | ScriptTask | `bpmn:ScriptTask` | Script execution |
-| `bpmn-sub-process` | SubProcess | `bpmn:SubProcess` | Embedded process |
+| `bpmn-sub-process` | SubProcess | `bpmn:SubProcess` | Embedded process; expanded/collapsed is a per-diagram display state |
+| `bpmn-call-activity` | CallActivity | `bpmn:CallActivity` | Calls a reusable process (`bpmn-calls`) |
 | `bpmn-start-event` | StartEvent | `bpmn:StartEvent` | Process start |
 | `bpmn-end-event` | EndEvent | `bpmn:EndEvent` | Process end |
+| `bpmn-message-start-event` | MessageStartEvent | `bpmn:StartEvent` + `messageEventDefinition` | Process starts on a message |
+| `bpmn-timer-start-event` | TimerStartEvent | `bpmn:StartEvent` + `timerEventDefinition` | Process starts at a time or interval |
+| `bpmn-message-end-event` | MessageEndEvent | `bpmn:EndEvent` + `messageEventDefinition` | Process ends by sending a message |
+| `bpmn-terminate-end-event` | TerminateEndEvent | `bpmn:EndEvent` + `terminateEventDefinition` | Ends the whole process immediately |
 | `bpmn-intermediate-catch-event` | IntermediateCatchEvent | `bpmn:IntermediateCatchEvent` | Intermediate event (receive) |
 | `bpmn-intermediate-throw-event` | IntermediateThrowEvent | `bpmn:IntermediateThrowEvent` | Intermediate event (send) |
 | `bpmn-exclusive-gateway` | ExclusiveGateway | `bpmn:ExclusiveGateway` | XOR branching |
@@ -108,6 +113,8 @@ All process elements are ArchitectureEntities. The following types are built-in;
 | `bpmn-event-gateway` | EventBasedGateway | `bpmn:EventBasedGateway` | Event-based branching |
 | `bpmn-data-object` | DataObject | `bpmn:DataObject` | Data object in the process; extends `data-object` from entity.md; `isCollection: boolean` property |
 | `bpmn-data-store` | DataStore | `bpmn:DataStoreReference` | Persistent data store (e.g. database, archive); sits outside of pools |
+| `bpmn-text-annotation` | TextAnnotation | `bpmn:TextAnnotation` | Annotation text = entity `description` |
+| `bpmn-group` | Group | `bpmn:Group` | Visual grouping; property `category` (string) for `categoryRef` |
 
 ### Connections (isConnection=true)
 
@@ -117,6 +124,10 @@ All process elements are ArchitectureEntities. The following types are built-in;
 | `bpmn-message-flow` | MessageFlow | `bpmn:MessageFlow` | Pool or task | Pool or task |
 | `bpmn-contained-in` | ContainedIn | – | Any BPMN element | `bpmn-lane` or `bpmn-pool` |
 | `bpmn-lane-in-pool` | LaneInPool | – | `bpmn-lane` | `bpmn-pool` |
+| `bpmn-lane-in-lane` | LaneSet (childLaneSet) | `bpmn:LaneSet` | `bpmn-lane` | `bpmn-lane` |
+| `bpmn-pool-references-process` | Participant.processRef | `processRef` | `bpmn-pool` | `bpmn-process` |
+| `bpmn-calls` | CallActivity.calledElement | `calledElement` | `bpmn-call-activity` | `bpmn-process` |
+| `bpmn-association` | Association | `bpmn:Association` | `bpmn-text-annotation` or any BPMN element | any BPMN element or `bpmn-text-annotation`; property `associationDirection` (none \| one \| both) |
 | `bpmn-data-input-association` | DataInputAssociation | `bpmn:DataInputAssociation` | `data-object` / `bpmn-data-object` / `bpmn-data-store` | `bpmn-task` (+ all task subtypes) |
 | `bpmn-data-output-association` | DataOutputAssociation | `bpmn:DataOutputAssociation` | `bpmn-task` (+ all task subtypes) | `data-object` / `bpmn-data-object` / `bpmn-data-store` |
 
@@ -265,5 +276,6 @@ EntityTypeDefinition:
 
 | Version | Date | Author | Change |
 |---|---|---|---|
+| 0.3.0 | 2026-10-13 | Lukas Mathis | Full BPMN 2.0.2 Descriptive conformance (REQ-076 v0.2.0): call activity, message/timer start events, message/terminate end events, text annotation, group, association, nested lanes, pool processRef |
 | 0.2.0 | 2026-06-26 | business-engineer | DataObject/DataStore integration: bpmn-data-object (extends data-object), bpmn-data-store; DataAssociation connections; process data lineage (§4); BR-07/08; Vue Flow |
 | 0.1.0 | 2026-06-26 | business-engineer | Initial draft: OrganizationalUnit, BPMN types, assignment connections, BR-01–06 |

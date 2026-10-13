@@ -18,7 +18,8 @@ created: 2026-06-26
 ## Acceptance Criteria
 
 - [ ] Viewpoint "bpmn-process-view" is available for selection when creating a diagram
-- [ ] Canvas palette shows all built-in BPMN elements grouped: pools/lanes, tasks, events, gateways
+- [ ] Canvas palette shows all built-in BPMN elements grouped: pools/lanes, tasks (incl. call activity), events (incl. message/timer start, message/terminate end), gateways, data, artifacts (text annotation, group)
+- [ ] Every element of the BPMN 2.0.2 Descriptive conformance sub-class can be placed and saved (REQ-076 AC7); lanes can be nested
 - [ ] A pool can be dragged onto the canvas; a pool is a container; lanes can be inserted into the pool
 - [ ] Elements (tasks, events, gateways) can be dropped from the palette into a lane by drag; a `bpmn-contained-in` connection is created automatically
 - [ ] A SequenceFlow can be connected between two BPMN elements by handle drag
