@@ -2,7 +2,7 @@
 identifier: metamodel-configuration
 name_de: Metamodell-Konfiguration
 name_en: Metamodel Configuration
-version: 1.2.0
+version: 1.3.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -17,6 +17,7 @@ references:
   - concept: concept/40-extensibility/15-schema-evolution.md
   - adr: adrs/ADR-017-architecture-layer-strategy.md
   - adr: adrs/ADR-018-business-rule-engine.md
+  - adr: adrs/ADR-034-secured-raw-analytics.md
 ---
 
 # Business Object: MetamodelConfiguration
@@ -108,6 +109,7 @@ Changes to the configuration are versioned and recorded in the audit log.
 |---|---|---|---|---|---|
 | name | string | required | | camelCase; unique per EntityType | Technical attribute name (e.g. `investmentCostForecast`) |
 | displayLabel | string | optional | | max. 100 characters | Display name in the GUI; overrides `name` if set |
+| sqlColumnName | string | required | derived from `name` (snake_case) | regex `^[a-z][a-z0-9_]{0,62}$`; unique across all property definitions; not one of the reserved entity column names (`id`, `urn`, `metatype_id`, `name`, `description`, `is_logical`, `created_at`, `updated_at`); immutable after creation | Stable column name of the property in the generated reporting views `reporting.<metatype>` (ADR-034 DM-6); keeps analysts' SQL working when `name` or `displayLabel` change |
 | dataType | PropertyDataType | required | | | Data type definition (details: PropertyDataType) |
 | validationMode | enum | required | `optional` | `[mandatory, warning, optional]` | `mandatory` = error on save if empty; `warning` = notice, but saving allowed; `optional` = no check |
 | category | string | required | | max. 100 characters; freely selectable | Category assignment (e.g. `"Costs"`, `"Organization"`, `"Compliance"`, `"Security"`) |
@@ -261,6 +263,8 @@ Describes a single page (step) in the creation wizard that is run through when c
 | BR-21 | `CreationStep.connectionType`, if set, must be a valid EntityType ID with `isConnection=true` in the same MetamodelConfiguration | onCreate, onUpdate | – |
 | BR-22 | When the creation wizard is started (`creationSteps` not empty): the entity is persisted only after clicking "Finish"; a cancellation (ESC or X) creates no entity and leaves no state in the repository | onEntityCreate | – |
 | BR-23 | `readRoles` and `writeRoles` reference authorization role IDs, never business roles; an authorization role referenced there cannot be deleted; every entry of `writeRoles` must be contained in `readRoles` | onCreate, onUpdate; onDelete of the role | REQ-124, ADR-032 DM-9 |
+| BR-24 | `PropertyDefinition.sqlColumnName` is derived from `name` on creation (lowercase snake_case; on collision a numeric suffix is appended), is unique across all property definitions and never changes afterwards, also not when the property is renamed | onCreate, onUpdate | ADR-034 DM-6 |
+| BR-25 | Every change of EntityTypes or PropertyDefinitions regenerates the affected reporting views `reporting.<metatype>`; every generated column applies the same masking expression as `reporting.property_values` | onCreate, onUpdate, onDelete | ADR-034 §3.1, REQ-160 |
 
 ## Examples
 
@@ -409,6 +413,10 @@ mandatoryConnectionConstraints:
 
 - [UC-04: Configure Metamodel](../requirements/use-cases/UC-04-configure-metamodel.md) (creates and manages MetamodelConfiguration incl. viewpoints)
 
+## Notes
+
+Version 1.3.0 implements ADR-034 DM-6: raw SQL analytics expose one wide view per metatype with one column per property. Deriving column names from `name` at query time would break analysts' queries on every rename, hence a separate, immutable `sqlColumnName` (column `property_definitions.sql_column_name` in `docs/data-model.puml`). Uniqueness is global because property definitions are a shared table that can be mapped to several metatypes. Naming rules for the per-metatype view names are still open (ADR-034 follow-up).
+
 ## Change History
 
 | Version | Date | Author | Change |
@@ -425,3 +433,4 @@ mandatoryConnectionConstraints:
 | 1.0.0 | 2026-06-27 | Business Engineer | `arc42Collections` → `documentCollectionDefinitions`; Arc42-specific naming generalized; Arc42 becomes a template, not a system concept (reference to document-collection.md) |
 | 1.1.0 | 2026-06-28 | Business Engineer | Extended `PropertyDefinition` with `visibilityMode`, `allowedRoles`, `scopingConnectionType` (UC-21, REQ-124); three visibility modes: `public` (default), `role-restricted`, `connection-scoped` (ABAC via graph traversal) |
 | 1.2.0 | 2026-10-13 | Business Engineer | REQ-124 v0.2.0 / ADR-032 DM-9: `allowedRoles` split into `readRoles`/`writeRoles` referencing authorization role IDs (persisted in `property_visibility_roles`); visibility fields require `visibility:configure`; BR-05 reworded to permissions; BR-23 added. Reason: security review SEC-03 (one list for read and write, self-escalation via metamodel editing) |
+| 1.3.0 | 2026-10-13 | Business Engineer | ADR-034 DM-6: `PropertyDefinition.sqlColumnName` (stable, immutable SQL column name for generated reporting views); BR-24, BR-25 added |

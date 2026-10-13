@@ -83,7 +83,9 @@ Numbers are never reused.
 - **OpenAPI 3.1**: Spec-first, generated on both sides
 - **Self-hosting first**: no hard cloud dependencies
 - **Property-level AuthZ**: Mandatory, not optional
-- **Audit trail**: Append-only, stored separately
+- **Audit trail**: Append-only, stored separately, hash-chained in all editions, pseudonymous actors, retention floor 1 year; no operation modifies or deletes audit records (ADR-024, ADR-033)
+- **No authentication stub**: development and tests use a real OIDC IdP (Keycloak dev realm, `compose.dev.yaml`); production rules apply outside the Spring profile `dev` (ADR-036)
+- **Raw analytics**: SQL only, on the masked reporting schema, permission `analytics:query`, disabled by default; no Cypher in v1 (ADR-034)
 
 ## Mandatory Before Every Merge
 

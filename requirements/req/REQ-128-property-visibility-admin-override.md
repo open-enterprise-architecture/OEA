@@ -4,7 +4,7 @@ title: Admin Override for Property Visibility
 type: functional
 priority: should
 status: proposed
-version: 0.3.0
+version: 0.4.0
 created: 2026-06-28
 last_updated: 2026-10-13
 author: requirements-engineer
@@ -21,6 +21,7 @@ references:
     - SH-06
   adrs:
     - ADR-032
+    - ADR-034
 supersedes: []
 superseded_by: []
 ---
@@ -29,7 +30,7 @@ superseded_by: []
 
 ## Statement
 
-The system MUST provide a configurable **property-visibility override**: principals holding an authorization role marked `overridesPropertyVisibility=true` MUST be able to read all properties of the objects they can already read, regardless of `visibilityMode`. The override role list MUST be **empty by default** – no role, including `system-admin` and `security-admin`, holds the override unless it is added explicitly; without the override, access to a restricted property is granted only through its `readRoles` (REQ-124, REQ-126). The override MUST NOT grant access to objects the principal cannot otherwise read. Every read of a restricted property through the override MUST be recorded in the audit log. The override role list MUST be changeable only by principals holding `visibility:configure` (not by metamodel administrators); every change of the list MUST be audited, and a change that adds a role the acting principal holds MUST be flagged as self-benefiting (REQ-161).
+The system MUST provide a configurable **property-visibility override**: principals holding an authorization role marked `overridesPropertyVisibility=true` MUST be able to read all properties of the objects they can already read, regardless of `visibilityMode`. The override role list MUST be **empty by default** – no role, including `system-admin` and `security-admin`, holds the override unless it is added explicitly; without the override, access to a restricted property is granted only through its `readRoles` (REQ-124, REQ-126). The override MUST NOT grant access to objects the principal cannot otherwise read. Every read of a restricted property through the override MUST be recorded in the audit log. The override MUST NOT apply to raw analytics (REQ-179). The override role list MUST be changeable only by principals holding `visibility:configure` (not by metamodel administrators); every change of the list MUST be audited, and a change that adds a role the acting principal holds MUST be flagged as self-benefiting (REQ-161).
 
 ## Rationale
 
@@ -38,6 +39,8 @@ Exceptional situations (error analysis, data migration) may require a principal 
 Security review SEC-03 / owner decision Q4 (2026-10-13): if the metamodel editor (EA manager) can add their own role to the override list, the restriction is circumvented by the people it is meant to restrict. Override configuration therefore belongs to security administration, separate from metamodel administration.
 
 Owner decision Q14 (2026-10-13, ADR-032 §4): nobody reads restricted properties by default, not even administrators. Administrators are not implicitly trusted with restricted content (e.g. security classifications, personal data categories); access follows `readRoles` like for any other role, and the override is an explicit, audited exception.
+
+ADR-034 §3.2: the override does not apply to raw analytics, because the audit record required per override read cannot be produced per value inside SQL. Principals read restricted properties in raw analytics only through `readRoles` or connection scope.
 
 ## Type-Specific Fields
 
@@ -49,7 +52,7 @@ Owner decision Q14 (2026-10-13, ADR-032 §4): nobody reads restricted properties
 
 **Processing**:
 
-- On every read channel (REQ-160): a restricted property is readable if the principal holds a role in its `readRoles`, satisfies the connection scope (REQ-127), or holds a role in the override role list
+- On every read channel (REQ-160) except raw analytics (REQ-179): a restricted property is readable if the principal holds a role in its `readRoles`, satisfies the connection scope (REQ-127), or holds a role in the override role list
 - The override is evaluated only for objects that pass object-level authorization (REQ-159)
 
 **Outputs**:
@@ -103,17 +106,23 @@ Owner decision Q14 (2026-10-13, ADR-032 §4): nobody reads restricted properties
 - When: it retrieves an entity
 - Then: the request is rejected with 403
 
+**AC8** (Not applied to raw analytics):
+
+- Given: a principal holding `analytics:query` and a role in the override role list, but no role in the `readRoles` of a `role-restricted` property
+- When: it queries that property through raw analytics (REQ-179)
+- Then: the values are masked (`NULL`, redaction marker set) and no `property-override-access` event is written
+
 ## Verification Method
 
 - [ ] Method: test (automated)
 - [ ] Test setup: fresh instance with default configuration; property with `role-restricted` visibility; principals with and without override roles
-- [ ] Pass criterion: AC1–AC7 green
+- [ ] Pass criterion: AC1–AC8 green
 - [ ] Integrated in CI: yes, once the implementation exists
 
 ## Dependencies
 
 - **Prerequisites**: REQ-124 (data model), REQ-126 (enforcement), REQ-005 (audit log), REQ-157 (permission model), REQ-161 (governance of visibility configuration)
-- **Consequences**: REQ-160 (override applies on every read channel)
+- **Consequences**: REQ-160 (override applies on every read channel except raw analytics), REQ-179
 
 ## Notes
 
@@ -126,3 +135,4 @@ Owner decision Q14 (2026-10-13, ADR-032 §4): nobody reads restricted properties
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-03 / owner decision Q4: override list configurable only with `visibility:configure`, audited, self-benefit flagged (AC3 rewritten, AC5 added) |
 | 0.3.0 | 2026-10-13 | requirements-engineer | ADR-032 / owner decision Q14: override role list empty by default (no implicit `system-admin` override); restricted properties readable only via `readRoles` unless a role is explicitly added; override grants no object access; AC1 rewritten, AC6–AC7 and verification method added |
+| 0.4.0 | 2026-10-13 | requirements-engineer | ADR-034 §3.2: override does not apply to raw analytics (statement, processing, AC8) |

@@ -1,7 +1,7 @@
 # Walking Skeleton – Definition
 
-**As of**: 2026-10-04
-**Status**: defined (revised: story list updated, entities via batch API instead of form, placement in S1–S2)
+**As of**: 2026-10-13
+**Status**: defined (revised: story list updated, entities via batch API instead of form, placement in S1–S2; development environment and IdP per ADR-036, audit and migration setup per ADR-033)
 
 ---
 
@@ -29,9 +29,11 @@ UC-06 depends only on UC-01 (login) and UC-04 (metamodel), not on UC-05 (see pre
 
 **What the skeleton proves**:
 
-- Docker Compose starts (REQ-075): backend, DB, auth, frontend
-- Persistence: Flyway migrations, entity persistence with JSONB properties, metamodel query, audit events (ADR-015, ADR-016, ADR-024)
-- OIDC auth: token validation, role mapping (ADR-006)
+- Development environment starts with one command (REQ-075, ADR-036): `compose.dev.yaml` with Compose profile `dev` – PostgreSQL, one-shot migration step, backend (Spring profile `dev`), Keycloak with the realm `oea-dev`, frontend; all ports bound to `127.0.0.1`
+- Operator setup is safe by default (ADR-036, REQ-183): the operator file `compose.yaml` contains no IdP and no default secrets and refuses to start until every secret is set
+- Persistence: Flyway migrations in a separate migration step with the owner role, application running with the runtime role (ADR-033 §1–§2); entity persistence with JSONB properties, metamodel query (ADR-015, ADR-016)
+- Audit: audit events in the separate schema, append-only for the runtime role, hash-chained, pseudonymous actors (ADR-024, ADR-033)
+- OIDC auth: authorization code flow with PKCE `S256` against a real IdP, token validation, role mapping via IdP group identifiers – no JWT stub or other authentication bypass (ADR-006, ADR-032, ADR-036)
 - REST API spec-first from `api/openapi.yaml`: metamodel import, entity batch, catalog creation, catalog query (ADR-013)
 - Frontend: Vue app renders in the browser; catalog creation and catalog table (ADR-011, ADR-014)
 - End-to-end data flow: import script → API → DB → table in the browser
@@ -64,7 +66,7 @@ These 6 user stories form the walking skeleton. Everything else comes afterwards
 | 5 | [US-046](../requirements/user-stories/US-046-create-catalog.md): Create catalog | UC-06 | 3 | complete (incl. primary entity type) | Catalog configuration, metamodel API, role check |
 | 6 | [US-049](../requirements/user-stories/US-049-show-catalog-data.md): Display catalog data | UC-06 | 5 | Table, sorting, empty state; default columns `name` and `status` as long as no columns are configured; joins, pagination, and SavedViews follow later | Query API, table in the Vue frontend |
 
-**Total: 31 story points** plus one-time project setup (Maven module `backend/`, Vue project `frontend/`, `api/openapi.yaml`, Docker Compose with PostgreSQL and Keycloak, CI). Planned for **sprint S1–S2**.
+**Total: 31 story points** plus one-time project setup (Maven module `backend/`, Vue project `frontend/`, `api/openapi.yaml`, operator file `compose.yaml`, development file `compose.dev.yaml` with PostgreSQL, migration step and Keycloak realm `dev/keycloak/realm-oea-dev.json`, CI incl. the ADR-036 build checks). Planned for **sprint S1–S2**.
 
 The omitted acceptance criteria of US-141 and US-049 are caught up in the expansion sprints; the stories only count as `done` then.
 
@@ -73,19 +75,26 @@ The omitted acceptance criteria of US-141 and US-049 are caught up in the expans
 ## Walking Skeleton Scenario (End-to-End Flow)
 
 ```text
-1. Admin starts docker compose up
-   → PostgreSQL, backend, Keycloak, frontend start
-   → Flyway migrations run through
+1. Developer starts the development environment (helper script / make target):
+   docker compose -f compose.dev.yaml --profile dev up
+   → PostgreSQL starts; the migrate service runs Flyway with the owner role
+     (application and audit schema, roles per ADR-033) and exits
+   → Keycloak starts and imports the realm "oea-dev"
+     (issuer http://localhost:8180/realms/oea-dev)
+   → backend (Spring profile "dev", runtime role) and frontend start
 
-2. Admin opens browser: https://oea.local
+2. Admin opens browser: http://localhost:5173
    → Vue app loads
 
 3. Admin calls /setup (no admin exists yet)
-   → US-013: enters instance-slug "acme-corp" and OIDC config
+   → US-013: enters instance-slug "acme-corp" and the OIDC configuration
+     of the Keycloak dev realm
    → Result: first admin user stored; instance-slug = "acme-corp"
 
 4. Admin logs in (UC-01)
-   → US-001: OIDC redirect → token → session (token storage after security review, not in LocalStorage)
+   → US-001: OIDC redirect to Keycloak (authorization code flow, PKCE S256)
+     → test user of the dev realm → token → session
+     (no token in localStorage/sessionStorage, REQ-165)
    → Admin lands on an empty start page
 
 5. Admin imports starter package
@@ -95,6 +104,7 @@ The omitted acceptance criteria of US-141 and US-049 are caught up in the expans
 6. Import script creates entities
    → US-141: POST /api/v1/entities/batch (strategy=upsert) with e.g. 3 ApplicationComponents
    → "CRM System", "ERP", "Intranet" are in the repository; audit events written
+     (hash-chained, pseudonymous actor reference)
 
 7. Admin creates catalog
    → US-046: "New catalog" → name "Application Inventory", primary entity type ApplicationComponent
@@ -131,17 +141,17 @@ This scenario proves all technical layers end to end. The architecture works.
 
 | Layer | Decision | ADR |
 |---|---|---|
-| Deployment | Docker Compose; `docker compose up` = runnable | REQ-075, ADR-027 |
+| Deployment | Docker Compose; development: `docker compose -f compose.dev.yaml --profile dev up`; operator: `compose.yaml` with all secrets required | REQ-075, ADR-027, ADR-036 |
 | Backend | Java 21 + Spring Boot 3 + Hibernate; Maven module `backend/`; layers api/app/core | ADR-012, ADR-027, ADR-028 |
-| Database | PostgreSQL 15 + JSONB; Flyway migrations | ADR-015, ADR-016 |
+| Database | PostgreSQL 15 + JSONB; Flyway migrations in a one-shot migration step with the owner role; application with the runtime role | ADR-015, ADR-016, ADR-033 |
 | API | REST, JSON; OpenAPI 3.x spec-first (`api/openapi.yaml`) | ADR-013 |
-| Auth | OIDC; Keycloak locally, Entra ID / Authentik in production | ADR-006 |
+| Auth | OIDC with PKCE `S256`; Keycloak dev realm in development and tests (no JWT stub), Entra ID / Authentik in production | ADR-006, ADR-036 |
 | Frontend | Vue 3 + TypeScript + PrimeVue (DataTable) | ADR-011, ADR-014 |
-| Tests | Cucumber JVM for the feature files of the skeleton REQs | ADR-029 |
+| Tests | Cucumber JVM for the feature files of the skeleton REQs; PostgreSQL and Keycloak Testcontainers; tokens only through real login flows | ADR-029, ADR-036 |
 | Entity IDs | Integer; instance-slug set during bootstrapping | ADR-001 |
 | Metamodel | scope: built-in / imported / organization | ADR-002 |
 | Starter package | oea-starter-togaf-classic as JSON import | ADR-005 |
-| Audit | Audit events in a separate schema, from the start | ADR-024 |
+| Audit | Audit events in a separate schema, from the start; owner/runtime role separation in the first migration; hash chain | ADR-024, ADR-033 |
 
 ---
 
@@ -149,9 +159,10 @@ This scenario proves all technical layers end to end. The architecture works.
 
 The walking skeleton counts as implemented when the scenario above runs through completely:
 
-- `docker compose up` starts without errors
+- `docker compose -f compose.dev.yaml --profile dev up` starts without errors
+- The first Flyway migration creates the owner/runtime role separation for the audit schema; the application refuses to start if the runtime role owns audit objects or holds UPDATE/DELETE on them (ADR-033 §1, sign-off condition of the security review)
 - Bootstrapping step completed
-- OIDC login successful
+- OIDC login against the Keycloak dev realm with PKCE successful; no authentication stub in the production artifact (ADR-036 build checks green)
 - Starter package imported
 - Entities created via batch API
 - Catalog created, entities visible and sortable in the catalog table

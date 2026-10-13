@@ -44,6 +44,29 @@ info:
     (scanners, CI/CD pipelines, import tools) via upsert endpoints and batch write,
     enabled by feature flag `oea.integration.enabled=true`. Service accounts and persons
     need the same permission `entity:write` for write operations.
+    The request headers `X-Agent-Id` and `X-Agent-Run` are **informational only**
+    (ADR-033 §7): `X-Agent-Id` is stored untrusted as `agentLabel` (max. 100 characters,
+    control characters removed) and never used for attribution, filtering or
+    authorization. `agentId` in the audit log is always the `client_id` of the
+    authenticated service account (`null` for persons and the local system admin
+    account). JWT claims such as `agent_id` are ignored.
+
+    **Audit trail** (ADR-033): append-only. There is no operation that modifies or
+    deletes audit records, for any permission; the only audit operations are reading,
+    exporting (`GET /audit/events/export`, JSON Lines) and verifying
+    (`GET /audit/integrity`), all requiring `audit:read`. Actors are pseudonymous
+    (`actorType` + `actorRef`); names are resolved at read time only. Records are
+    deleted solely by the retention purge (`/admin/audit/retention`, floor 365 days).
+
+    **Raw analytics** (ADR-034): `POST /analytics/query` accepts SQL only, executed
+    against the masked reporting schema (`GET /analytics/schema`), permission
+    `analytics:query`, disabled by default (`analytics.enabled`). There is no
+    `/graph/cypher` and no `/analytics/views/{name}` in v1.
+
+    **Local data purge signal** (ADR-035 §8, REQ-164, REQ-181): when a session has
+    ended or the principal has lost all access, responses carry the header
+    `OEA-Purge-Local-Data`, and the event stream sends `session_ended` before it is
+    closed. Clients delete their offline cache and stored tokens on either signal.
 
     Versioning: URL path (`/api/v1/`). Breaking changes → new major version.
     Error format: RFC 9457 Problem Details (`application/problem+json`).
@@ -77,8 +100,8 @@ x-oea-permissions: [
   {"id": "viewpoint:manage", "adminClass": false, "description": "Manage viewpoints and the navigation tree (UC-12, UC-13)"},
   {"id": "plateau:go-live", "adminClass": false, "description": "Put a plateau into production (UC-11)"},
   {"id": "webhook:manage", "adminClass": false, "description": "Register and manage webhooks"},
-  {"id": "analytics:query", "adminClass": false, "description": "Submit raw SQL/Cypher analytics queries (REQ-179)"},
-  {"id": "audit:read", "adminClass": false, "description": "Read and export the audit log (incl. SIEM export) and the access review"},
+  {"id": "analytics:query", "adminClass": false, "description": "Submit raw SQL analytics queries against the masked reporting schema (REQ-179, ADR-034; Cypher deferred)"},
+  {"id": "audit:read", "adminClass": false, "description": "Read, export (SIEM, JSON Lines) and verify the audit log, see resolved actor names and the audit retention, and read the access review"},
   {"id": "metamodel:write", "adminClass": true, "description": "Change the metamodel except visibility fields; metamodel and continuum package import/export"},
   {"id": "visibility:configure", "adminClass": true, "description": "Change visibilityMode, readRoles, writeRoles, scopingConnectionType and the override role list"},
   {"id": "visibility-scope:assign", "adminClass": true, "description": "Create, change and delete connections of types used as scopingConnectionType"},
@@ -139,6 +162,32 @@ components:
         Client authentication at the token endpoint only (`client_id:client_secret`,
         RFC 6749 §2.3.1).
 
+  # ── Headers ─────────────────────────────────────────────────────────────────
+  headers:
+    PurgeLocalData:
+      description: |
+        Server signal to delete client-side data (ADR-035 §8, REQ-164, REQ-181 AC4).
+        Present only when it applies; absent otherwise. On receipt the Electron client
+        (main-process API proxy) deletes the offline cache and the stored tokens of
+        the user for this server and returns to the login screen; the web portal
+        discards in-memory data and reloads to the login page. Values:
+        - `session-ended`: the session or refresh token presented is no longer valid
+          because of logout, server-side revocation (lifecycle change, credential or
+          password reset, role assignment revoked), refresh token reuse, idle timeout
+          or absolute lifetime (REQ-164, REQ-165). Sent with `401`.
+        - `access-revoked`: the session is valid, but the principal no longer holds any
+          effective role (REQ-164 AC3, all roles lost). Sent with `403` and with every
+          further response of that session.
+        The value is never sent for a `401` caused by a request without credentials, so
+        a client cannot be made to purge data by an unauthenticated response it did
+        not provoke with its own session.
+      schema:
+        type: string
+        enum: [session-ended, access-revoked]
+    RetryAfter:
+      description: Seconds after which the request may be retried (RFC 9110 §10.2.3)
+      schema: { type: integer, minimum: 1 }
+
   # ── Responses ───────────────────────────────────────────────────────────────
   responses:
     BadRequest:
@@ -147,7 +196,13 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
     Unauthorized:
-      description: Not authenticated (missing, expired or revoked credentials or session)
+      description: |
+        Not authenticated (missing, expired or revoked credentials or session). When a
+        previously valid session or refresh token was presented and has ended, the
+        header `OEA-Purge-Local-Data: session-ended` is set and the problem `type` is
+        `urn:oea:problem:session-ended`.
+      headers:
+        OEA-Purge-Local-Data: { $ref: '#/components/headers/PurgeLocalData' }
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
@@ -157,6 +212,17 @@ components:
         a separation-of-duties rule forbids the action (e.g. self-administration, SoD-1),
         or a privileged role is not effective because the session lacks a second factor
         (SoD-8). The problem body is generic and does not reveal the missing permission.
+        If the principal holds no effective role at all, the header
+        `OEA-Purge-Local-Data: access-revoked` is set.
+      headers:
+        OEA-Purge-Local-Data: { $ref: '#/components/headers/PurgeLocalData' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    TooManyRequests:
+      description: Rate or concurrency limit exceeded (REQ-186)
+      headers:
+        Retry-After: { $ref: '#/components/headers/RetryAfter' }
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
@@ -223,6 +289,21 @@ components:
       in: path
       required: true
       schema: { $ref: '#/components/schemas/RoleId' }
+    AgentIdHeader:
+      name: X-Agent-Id
+      in: header
+      required: false
+      schema: { type: string, maxLength: 100 }
+      description: |
+        Informational label of the calling tool (ADR-026, ADR-033 §7). Stored untrusted
+        as `agentLabel`; never used for attribution, filtering or authorization.
+        Longer values are truncated to 100 characters; control characters are removed.
+    AgentRunHeader:
+      name: X-Agent-Run
+      in: header
+      required: false
+      schema: { type: string, maxLength: 100 }
+      description: Informational correlation ID of a run of the calling tool (stored as `agentRun`)
 
   # ── Schemas ────────────────────────────────────────────────────────────────
   schemas:
@@ -1010,10 +1091,19 @@ components:
                 Store securely — e.g. as a CI/CD secret.
 
     # ── Audit ─────────────────────────────────────────────────────────────────
+    AuditActorType:
+      type: string
+      enum: [person, service-account, system-admin-account, system, unauthenticated]
+      description: Kind of principal that caused the event (ADR-033 §3)
+
     AuditEventChange:
       type: object
-      required: [propertyName, isSystemField]
+      required: [propertyName, isSystemField, redacted]
       properties:
+        propertyDefinitionId:
+          type: [string, 'null']
+          format: uuid
+          description: Property definition (soft reference); visibility is evaluated on it, not on `propertyName`
         propertyName:  { type: string }
         isSystemField: { type: boolean }
         oldValue:      { type: [string, 'null'], description: "`null` if redacted" }
@@ -1021,27 +1111,308 @@ components:
         redacted:
           type: boolean
           default: false
-          description: "`true` = old and new value masked by property visibility (REQ-160)"
+          description: |
+            `true` = old and new value withheld. Values of properties that were restricted
+            at the time of the event are stored encrypted and decrypted only for callers
+            who may read the property under the current visibility configuration
+            (ADR-033 §3, REQ-160 AC4).
 
     AuditEvent:
       type: object
-      required: [id, eventType, actorName, source, occurredAt]
+      required: [id, chainSeq, recordHash, eventType, category, severity, outcome, actorType, source, occurredAt]
+      description: |
+        Audit record (ADR-033). Contains no names or e-mail addresses of OEA users;
+        actors are pseudonymous references resolved at read time.
       properties:
-        id:          { type: integer }
-        eventType:   { type: string, example: "entity.property_changed" }
-        entityId:    { type: [integer, 'null'] }
-        entityName:  { type: [string, 'null'] }
-        actorId:     { type: [integer, 'null'] }
-        actorName:   { type: string }
-        actorEmail:  { type: string }
+        id:          { type: integer, format: int64 }
+        chainSeq:    { type: integer, format: int64, description: Position in the audit hash chain }
+        recordHash:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+          description: SHA-256 hash of this chain link (hex)
+        eventType:
+          type: string
+          example: "entity.property-changed"
+          description: Stable event type name from the event catalog (`docs/audit-event-catalog.md`, follow-up)
+        category:
+          type: string
+          enum: [change, security, access, system]
+        severity:
+          type: string
+          enum: [info, warning, high, critical]
+        outcome:
+          type: string
+          enum: [success, failure, denied]
+        occurredAt:  { type: string, format: date-time }
+        actorType:   { $ref: '#/components/schemas/AuditActorType' }
+        actorRef:
+          type: [string, 'null']
+          description: |
+            Pseudonymous key of the actor: `persons.id` (decimal) for `person` and
+            `service-account`, `system_admin_accounts.id` (UUID) for
+            `system-admin-account`; `null` for `system` and `unauthenticated`.
+        actorDisplayName:
+          type: [string, 'null']
+          description: |
+            Name resolved at read time from the identity tables (caller holds `audit:read`).
+            `null` for anonymized persons (REQ-189), `system` and `unauthenticated`.
+            Never part of the export.
+        agentId:
+          type: [string, 'null']
+          format: uuid
+          description: "`client_id` of the authenticated service account; `null` for persons and the system admin account"
+        agentLabel:
+          type: [string, 'null']
+          maxLength: 100
+          description: Untrusted value of the `X-Agent-Id` request header; informational only
+        agentRun:    { type: [string, 'null'], description: "Value of `X-Agent-Run`; informational only" }
         source:
           type: string
           enum: [UI, API, Job, Import]
-        occurredAt:  { type: string, format: date-time }
+        sourceIp:    { type: [string, 'null'], description: IPv4 or IPv6 address of the client }
         requestId:   { type: [string, 'null'] }
+        targetType:
+          type: [string, 'null']
+          example: "entity"
+          description: Kind of the affected object (entity, person, role, assignment, setting, service-account, …)
+        targetId:    { type: [string, 'null'] }
+        entityId:    { type: [integer, 'null'] }
+        entityName:
+          type: [string, 'null']
+          description: Denormalized for completeness; `null` for entities of metatype `person`
+        details:
+          type: [object, 'null']
+          additionalProperties: true
+          description: Event-type-specific supplementary fields (e.g. role, validity, `sodConflict`)
         changes:
           type: array
           items: { $ref: '#/components/schemas/AuditEventChange' }
+
+    AuditExportRecord:
+      type: object
+      description: |
+        One line of the JSON Lines export (ADR-033 §9): exactly one link of the audit hash
+        chain, with all chain fields, so that consumers can check continuity and recompute
+        `recordHash` without OEA secrets. The ordered field list per table, the
+        `tableTag` values and the canonical serialization are specified in
+        `docs/audit-hash-chain.md` (follow-up). Actors are pseudonymous keys; restricted
+        values are exported as ciphertext (base64) with `keyId`; no names, no e-mail
+        addresses, no decrypted values.
+      required: [chainSeq, hashVersion, prevHash, recordHash, table, fields]
+      properties:
+        chainSeq:    { type: integer, format: int64 }
+        hashVersion: { type: integer, minimum: 1 }
+        prevHash:    { type: string, pattern: '^[0-9a-f]{64}$' }
+        recordHash:  { type: string, pattern: '^[0-9a-f]{64}$' }
+        table:
+          type: string
+          enum: [events, event_changes, retention_settings]
+        fields:
+          type: object
+          additionalProperties: true
+          description: Column values of the link as hashed (`hash_version` field list)
+        checkpointSignature:
+          type: [string, 'null']
+          description: Ed25519 signature (base64) for `audit.checkpoint` links, if a signing key is configured
+
+    AuditCheckpoint:
+      type: object
+      required: [chainSeq, recordHash, createdAt]
+      properties:
+        chainSeq:   { type: integer, format: int64 }
+        recordHash: { type: string, pattern: '^[0-9a-f]{64}$' }
+        createdAt:  { type: string, format: date-time }
+        signature:  { type: [string, 'null'], description: Ed25519 signature (base64); `null` if unsigned }
+
+    AuditIntegrityStatus:
+      type: object
+      required: [status, headSeq]
+      description: Result of the latest chain verification (ADR-033 §5) and the latest checkpoint
+      properties:
+        status:
+          type: string
+          enum: [verified, violation, not-yet-verified]
+        headSeq:          { type: integer, format: int64, description: Highest `chainSeq` in the database }
+        verifiedAt:       { type: [string, 'null'], format: date-time }
+        verifiedFromSeq:  { type: [integer, 'null'], format: int64, description: Start of the verified range (purge anchor or genesis) }
+        verifiedToSeq:    { type: [integer, 'null'], format: int64 }
+        firstBrokenLink:
+          type: [object, 'null']
+          description: Present only for `violation`
+          required: [chainSeq, table]
+          properties:
+            chainSeq:     { type: integer, format: int64 }
+            table:        { type: string, enum: [events, event_changes, retention_settings] }
+            expectedHash: { type: [string, 'null'] }
+            actualHash:   { type: [string, 'null'] }
+            reason:       { type: string, enum: [hash-mismatch, sequence-gap, prev-hash-mismatch] }
+        purgeAnchor:
+          type: [object, 'null']
+          description: Last link deleted by the retention purge; verification starts after it
+          properties:
+            chainSeq:   { type: integer, format: int64 }
+            recordHash: { type: string, pattern: '^[0-9a-f]{64}$' }
+        latestCheckpoint:
+          oneOf:
+            - $ref: '#/components/schemas/AuditCheckpoint'
+            - type: 'null'
+
+    AuditRetentionValue:
+      type: object
+      required: [retentionDays, effectiveFrom, recordedAt]
+      properties:
+        retentionDays: { type: integer, minimum: 365 }
+        effectiveFrom: { type: string, format: date-time }
+        recordedAt:    { type: string, format: date-time }
+        recordedByType: { $ref: '#/components/schemas/AuditActorType' }
+        recordedByRef:  { type: [string, 'null'], description: Pseudonymous actor key as in `AuditEvent.actorRef` }
+
+    AuditRetention:
+      type: object
+      required: [floorDays, inForce]
+      description: Audit retention (ADR-033 §4); stored as an append-only series
+      properties:
+        floorDays:
+          type: integer
+          const: 365
+          description: Fixed floor, not configurable (owner decision Q10)
+        inForce: { $ref: '#/components/schemas/AuditRetentionValue' }
+        pending:
+          description: A recorded reduction that is not yet effective (`effectiveFrom` = recording + 30 days)
+          oneOf:
+            - $ref: '#/components/schemas/AuditRetentionValue'
+            - type: 'null'
+
+    AuditRetentionWrite:
+      type: object
+      required: [retentionDays]
+      properties:
+        retentionDays:
+          type: integer
+          minimum: 365
+          description: Days; values below 365 are rejected with `422`. Default of a new installation is 2555 (7 years).
+
+    # ── Analytics (ADR-034) ─────────────────────────────────────────────────
+    AnalyticsQueryRequest:
+      type: object
+      required: [language, query]
+      additionalProperties: false
+      properties:
+        language:
+          type: string
+          enum: [sql]
+          description: Only `sql` in v1; other values (e.g. `cypher`) are rejected with `400`
+        query:
+          type: string
+          minLength: 1
+          maxLength: 20000
+          description: Exactly one `SELECT` statement over views of the schema `reporting`; longer text → `413`
+        parameters:
+          type: array
+          maxItems: 50
+          description: Values bound to `$1` … `$n`, in order
+          items:
+            type: [string, number, integer, boolean, 'null']
+        maxRows:
+          type: integer
+          minimum: 1
+          maximum: 100000
+          description: Lowers the instance row limit for this request; higher values are capped
+        timeoutSeconds:
+          type: integer
+          minimum: 1
+          maximum: 120
+          description: Lowers the instance statement timeout for this request; higher values are capped
+
+    AnalyticsColumn:
+      type: object
+      required: [name, type]
+      properties:
+        name: { type: string }
+        type: { type: string, description: PostgreSQL type name of the result column, example: "text" }
+
+    AnalyticsQueryResult:
+      type: object
+      required: [columns, rows, rowCount, truncated, durationMs, requestId]
+      properties:
+        columns:
+          type: array
+          items: { $ref: '#/components/schemas/AnalyticsColumn' }
+        rows:
+          type: array
+          description: Result rows; each row is an array in the order of `columns`. Restricted values are `null`.
+          items:
+            type: array
+            items: {}
+        rowCount:   { type: integer }
+        truncated:  { type: boolean }
+        truncatedReason:
+          type: [string, 'null']
+          enum: [rows, size, null]
+        durationMs: { type: integer }
+        requestId:  { type: string }
+
+    AnalyticsProblem:
+      description: Problem details of a rejected or failed analytics query (no internal object names, no raw database messages)
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            reasonCode:
+              type: string
+              enum: [V1, V2, V3, V4, V5, V6, V7, syntax-error, timeout, execution-error, too-many-columns]
+              description: Validation rule (ADR-034 §4) or execution failure
+            position:
+              type: [integer, 'null']
+              description: Character position in the query text, if applicable
+            requestId: { type: string }
+
+    AnalyticsSchema:
+      type: object
+      required: [views]
+      description: Reporting schema introspection for the caller (same content as `reporting.columns`)
+      properties:
+        views:
+          type: array
+          items:
+            type: object
+            required: [name, generated, columns]
+            properties:
+              name:        { type: string, example: "entities" }
+              description: { type: [string, 'null'] }
+              generated:
+                type: boolean
+                description: "`true` for generated per-metatype views (`reporting.<metatype>`)"
+              columns:
+                type: array
+                items:
+                  type: object
+                  required: [name, type, readable]
+                  properties:
+                    name:     { type: string }
+                    type:     { type: string }
+                    readable:
+                      type: boolean
+                      description: "`false` = values of this column are always masked for the caller"
+
+    AnalyticsSettings:
+      type: object
+      description: Instance settings `analytics.*` (ADR-034 §5, §7)
+      properties:
+        enabled:
+          type: boolean
+          default: false
+          description: Raw analytics enabled; requires provisioned `oea_analytics` credentials
+        statementTimeoutSeconds: { type: integer, minimum: 1, maximum: 120, default: 30 }
+        maxRows:                 { type: integer, minimum: 1, maximum: 100000, default: 10000 }
+        maxResultBytes:          { type: integer, minimum: 1, default: 10485760 }
+        maxConcurrentPerPrincipal: { type: integer, minimum: 1, default: 2 }
+        queriesPerMinute:        { type: integer, minimum: 1, default: 30 }
+        poolSize:
+          type: integer
+          minimum: 1
+          default: 4
+          description: Size of the separate analytics connection pool; takes effect after restart
 
     # ── Admin – Viewpoints ────────────────────────────────────────────────────
     ViewpointConfig:
@@ -1471,6 +1842,29 @@ components:
           description: Union of the permissions of all effective roles, with their sources
           items: { $ref: '#/components/schemas/EffectivePermission' }
 
+    # ── Event stream payloads (`GET /events/stream`) ─────────────────────────
+    SessionEndedEvent:
+      type: object
+      required: [type, reason, purgeLocalData]
+      description: Last event of a stream before the server closes it (ADR-035 §8, REQ-164)
+      properties:
+        type:   { type: string, const: session_ended }
+        reason:
+          type: string
+          enum: [logout, revoked, refresh-reuse, idle-timeout, lifetime-expired]
+          description: "`revoked` covers lifecycle changes, credential or password resets and revoked role assignments"
+        purgeLocalData: { type: boolean, const: true }
+
+    AccessChangedEvent:
+      type: object
+      required: [type, purgeLocalData]
+      description: Effective roles or permissions of the caller changed; re-read `GET /me` and re-synchronize
+      properties:
+        type: { type: string, const: access_changed }
+        purgeLocalData:
+          type: boolean
+          description: "`true` if the caller holds no effective role any more"
+
     # ── OAuth2 token endpoint (REQ-176) ───────────────────────────────────────
     TokenRequest:
       type: object
@@ -1612,12 +2006,14 @@ components:
 
     SystemSettings:
       type: object
+      description: |
+        Generic instance settings. The audit retention is not part of them; it is changed
+        only through `/admin/audit/retention` (ADR-033 §4).
       properties:
         instanceName:       { type: string }
         defaultLocale:      { type: string, enum: [de, en, fr, it] }
         sessionTimeoutMin:  { type: integer }
         maxUploadMb:        { type: integer }
-        auditRetentionDays: { type: integer }
         privilegedAssignmentApproval:
           type: boolean
           default: false
@@ -1654,6 +2050,7 @@ components:
             are deleted immediately when a session ends.
         licenseKey:         { type: [string, 'null'] }
         sseEnabled:         { type: boolean }
+        analytics: { $ref: '#/components/schemas/AnalyticsSettings' }
 
     # ── I18N ─────────────────────────────────────────────────────────────────
     I18nBundle:
@@ -3070,6 +3467,54 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
+  /admin/audit/retention:
+    get:
+      operationId: getAuditRetention
+      summary: Audit retention in force and pending reduction (ADR-033 §4)
+      description: |
+        Readable by system administrators and auditors, so that a pending reduction is
+        visible to auditors before it takes effect.
+      tags: [Audit]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["settings:manage", "audit:read"]}
+      responses:
+        '200':
+          description: Retention
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditRetention' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      operationId: setAuditRetention
+      summary: Set the audit retention (ADR-033 §4)
+      description: |
+        Appends a new value to the retention series (no record is changed). An increase
+        takes effect immediately; a reduction takes effect 30 days after recording and
+        is returned as `pending` until then. The database records the change as audit
+        event `settings.audit-retention-changed`. The floor of 365 days is enforced in
+        the database as well.
+      tags: [Audit]
+      x-oea-authorization: {"access": "permission", "permissions": ["settings:manage"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AuditRetentionWrite' }
+      responses:
+        '200':
+          description: Recorded; returns the value in force and a pending reduction
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditRetention' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422':
+          description: "`retentionDays` below the floor of 365 days"
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  ACCESS CONTROL (ADR-032, UC-23)                                       ║
   # ╚═════════════════════════════════════════════════════════════════════════╝
@@ -3675,20 +4120,40 @@ paths:
       operationId: listAuditEvents
       summary: Compliance audit log (SCR-054)
       description: |
-        Reads from `audit.events` + `audit.event_changes` (ADR-024).
-        Property values the caller may not read are redacted (REQ-160).
+        Reads from `audit.events` + `audit.event_changes` (ADR-024, ADR-033).
+        Actor names are resolved at read time (`actorDisplayName`); restricted property
+        values are decrypted only if the caller may read the property, otherwise the
+        change is returned with `redacted: true` (REQ-160).
+        Read-only: there is no operation that modifies or deletes audit records.
       tags: [Audit]
       x-oea-authorization: {"access": "permission", "permissions": ["audit:read"]}
       parameters:
         - name: entityId
           in: query
           schema: { type: integer }
-        - name: actorId
+        - name: actorType
           in: query
-          schema: { type: integer }
+          schema: { $ref: '#/components/schemas/AuditActorType' }
+        - name: actorRef
+          in: query
+          schema: { type: string }
+          description: Pseudonymous actor key (see `AuditEvent.actorRef`)
+        - name: agentId
+          in: query
+          schema: { type: string, format: uuid }
+          description: "`client_id` of a service account"
         - name: eventType
           in: query
           schema: { type: string }
+        - name: category
+          in: query
+          schema: { type: string, enum: [change, security, access, system] }
+        - name: severity
+          in: query
+          schema: { type: string, enum: [info, warning, high, critical] }
+        - name: outcome
+          in: query
+          schema: { type: string, enum: [success, failure, denied] }
         - name: source
           in: query
           schema: { type: string, enum: [UI, API, Job, Import] }
@@ -3736,6 +4201,153 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /audit/events/export:
+    get:
+      operationId: exportAuditEvents
+      summary: SIEM export of the audit hash chain as JSON Lines (ADR-033 §9)
+      description: |
+        Returns chain links ordered by `chainSeq`, one `AuditExportRecord` per line,
+        starting after `afterSeq`. Intended for incremental polling by a SIEM collector
+        or a service account with the role `auditor`: the next request uses the value of
+        the response header `OEA-Last-Chain-Seq` as `afterSeq`. Checkpoints
+        (`audit.checkpoint`) are part of the stream.
+        If links after `afterSeq` have been removed by the retention purge, the response
+        starts at the first retained link; the gap is documented by the
+        `audit.retention-purged` event.
+        Contains no names, no e-mail addresses and no decrypted restricted values. Every
+        export request is itself audited (`audit.exported`, REQ-175 AC4).
+      tags: [Audit]
+      x-oea-authorization: {"access": "permission", "permissions": ["audit:read"]}
+      parameters:
+        - name: afterSeq
+          in: query
+          schema: { type: integer, format: int64, minimum: 0, default: 0 }
+          description: Cursor; only links with `chainSeq` greater than this value are returned
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000, default: 1000 }
+          description: Maximum number of lines
+      responses:
+        '200':
+          description: JSON Lines stream (UTF-8, one JSON object per line, `\n` separated)
+          headers:
+            OEA-Last-Chain-Seq:
+              description: "`chainSeq` of the last line returned; equals `afterSeq` if no line was returned"
+              schema: { type: integer, format: int64 }
+            OEA-Has-More:
+              description: "`true` if further links exist after the last line returned"
+              schema: { type: boolean }
+            Cache-Control:
+              schema: { type: string, example: "no-store" }
+          content:
+            application/jsonl:
+              schema:
+                type: string
+                description: Each line is one JSON object that validates against `AuditExportRecord`
+                contentMediaType: application/json
+                contentSchema: { $ref: '#/components/schemas/AuditExportRecord' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /audit/integrity:
+    get:
+      operationId: getAuditIntegrity
+      summary: Last audit chain verification result and latest checkpoint (ADR-033 §5)
+      description: |
+        Returns the result of the latest scheduled verification of the hash chain
+        (incremental, daily) and the latest checkpoint. Does not trigger a verification;
+        full verification runs with the command `oea audit verify`.
+      tags: [Audit]
+      x-oea-authorization: {"access": "permission", "permissions": ["audit:read"]}
+      responses:
+        '200':
+          description: Integrity status
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditIntegrityStatus' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ╔═════════════════════════════════════════════════════════════════════════╗
+  # ║  ANALYTICS (ADR-034, REQ-179)                                          ║
+  # ╚═════════════════════════════════════════════════════════════════════════╝
+  /analytics/query:
+    post:
+      operationId: runAnalyticsQuery
+      summary: Run a raw SQL analytics query on the reporting schema (ADR-034)
+      description: |
+        Executes one read-only `SELECT` statement against the views of the schema
+        `reporting` under the database role `oea_analytics`. Restricted property values
+        are masked for the caller in the views (REQ-160). Synchronous only; no saved
+        queries, no file export in v1. Disabled by default (`analytics.enabled`).
+        Every authenticated request is audited (`analytics.query.executed` or
+        `analytics.query.rejected`); the result is not returned if the audit write
+        fails. Missing permission is audited as `authz.denied`.
+        Limits (instance settings, request values can only lower them): statement
+        timeout 30 s, 10,000 rows, 10 MB result, 200 columns, 2 concurrent queries and
+        30 queries per minute per principal.
+      tags: [Analytics]
+      x-oea-authorization: {"access": "permission", "permissions": ["analytics:query"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AnalyticsQueryRequest' }
+      responses:
+        '200':
+          description: Result (possibly truncated, see `truncated`)
+          headers:
+            Cache-Control:
+              schema: { type: string, example: "no-store" }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnalyticsQueryResult' }
+        '400':
+          description: Malformed body, unsupported `language` or SQL parse error (with position)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/AnalyticsProblem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413':
+          description: Query text longer than 20,000 characters
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/AnalyticsProblem' }
+        '422':
+          description: Validation rule violated (V1–V7), statement timeout, execution error or too many result columns
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/AnalyticsProblem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503':
+          description: Raw analytics disabled on this instance (`analytics.enabled = false`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /analytics/schema:
+    get:
+      operationId: getAnalyticsSchema
+      summary: Reporting views and columns for the caller (ADR-034 §3.1)
+      tags: [Analytics]
+      x-oea-authorization: {"access": "permission", "permissions": ["analytics:query"]}
+      responses:
+        '200':
+          description: Reporting schema
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnalyticsSchema' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503':
+          description: Raw analytics disabled on this instance (`analytics.enabled = false`)
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
@@ -3898,6 +4510,8 @@ paths:
           required: true
           schema: { type: string }
           description: "Stable source identifier (URL-encoded, e.g. `git%3Aorg%2Frepo%2Fsvc`)"
+        - $ref: '#/components/parameters/AgentIdHeader'
+        - $ref: '#/components/parameters/AgentRunHeader'
       requestBody:
         required: true
         content:
@@ -3961,6 +4575,8 @@ paths:
         - name: dryRun
           in: query
           schema: { type: boolean, default: false }
+        - $ref: '#/components/parameters/AgentIdHeader'
+        - $ref: '#/components/parameters/AgentRunHeader'
       requestBody:
         required: true
         content:
@@ -4344,8 +4960,23 @@ paths:
       operationId: getEventStream
       summary: Server-Sent Events — cache invalidation (ADR-025)
       description: |
-        Persistent SSE connection for cache invalidation.
-        Events: `i18n_invalidated`, `metamodel_updated`.
+        Persistent SSE connection for cache invalidation and session signals.
+        Events:
+        - `i18n_invalidated`, `metamodel_updated`: cache invalidation (ADR-025)
+        - `access_changed`: the caller's effective roles or permissions changed (role
+          assignment, IdP group re-evaluation, visibility configuration). The client
+          re-reads `GET /me` and re-synchronizes its offline cache so that values the
+          caller can no longer read do not survive (ADR-035 §8). If no effective role
+          remains, `purgeLocalData: true` is set and the client deletes its offline
+          cache and stored tokens.
+        - `session_ended`: sent immediately before the server closes the stream because
+          the session ended (logout, revocation within 60 s per REQ-164, refresh token
+          reuse, idle timeout or absolute lifetime per REQ-165). The client deletes its
+          offline cache and stored tokens for this server (ADR-035 §8, REQ-181 AC4);
+          equivalent to `OEA-Purge-Local-Data: session-ended`.
+        Clients must treat the header `OEA-Purge-Local-Data` on any response as the
+        authoritative signal; the stream events are a fast path and may be missed
+        (stream disabled or disconnected).
         Authenticated via the session cookie or the bearer header; tokens are never
         passed in the URL. Streams are closed when the session is revoked.
         Can be disabled via `oea.sse.enabled=false`.
@@ -4358,10 +4989,20 @@ paths:
             text/event-stream:
               schema:
                 type: string
+                description: Each `data:` line is a JSON event; security-relevant event types are specified in `contentSchema`.
+                contentMediaType: application/json
+                contentSchema:
+                  oneOf:
+                    - $ref: '#/components/schemas/SessionEndedEvent'
+                    - $ref: '#/components/schemas/AccessChangedEvent'
                 example: |
                   data: {"type":"i18n_invalidated","locale":"de"}
 
                   data: {"type":"metamodel_updated"}
+
+                  data: {"type":"access_changed","purgeLocalData":false}
+
+                  data: {"type":"session_ended","reason":"revoked","purgeLocalData":true}
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
@@ -4389,13 +5030,15 @@ tags:
   - name: Admin
     description: Administration screens (SCR-031–038)
   - name: Audit
-    description: Compliance-Audit-Log (ADR-024, SCR-054)
+    description: Compliance audit log, SIEM export, integrity status and retention (ADR-024, ADR-033, SCR-054)
   - name: Portal
     description: Web portal read-only endpoints (SCR-050–054)
   - name: I18N
     description: Dynamic labels with ETag caching (ADR-025)
   - name: Events
-    description: Server-Sent Events for cache invalidation
+    description: Server-Sent Events for cache invalidation and session signals
+  - name: Analytics
+    description: Secured raw SQL analytics on the masked reporting schema (ADR-034, REQ-179)
   - name: Access Control
     description: Permission catalog, authorization roles, role assignments, four-eyes approval, IdP group mappings and access review (ADR-032, UC-23)
   - name: Identity

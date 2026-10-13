@@ -1,10 +1,10 @@
 ---
 id: entity-version
 title: EntityVersion – Entity Version Snapshot
-version: 0.1.0
+version: 0.1.1
 status: draft
 created: 2026-06-27
-last_updated: 2026-06-27
+last_updated: 2026-10-13
 author: business-engineer
 references:
   business_objects:
@@ -79,7 +79,7 @@ On restore (UC-15), despite the complete snapshot, only the **restorable** field
 | Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
 | BR-01 | Before **every** update to an `ArchitectureEntity`, an `EntityVersion` record of the current state MUST be written before the change is applied | onUpdate (entity) | ADR-016 |
-| BR-02 | `EntityVersion` records are **immutable and not deletable** after creation — neither via API nor via GUI | always | ADR-016 |
+| BR-02 | `EntityVersion` records are **immutable and not deletable** after creation — neither via API nor via GUI; the runtime database role holds only INSERT and SELECT on the history tables; rows are removed only by the purge of soft-deleted entities (REQ-190) | always | ADR-016, ADR-033 §10 |
 | BR-03 | `versionNumber` + `entityId` together form a unique key; no second snapshot may exist for the same entity and the same version number | onCreate | – |
 | BR-04 | Writing the `EntityVersion` record and applying the entity change MUST happen in the **same DB transaction**; if the transaction fails, neither snapshot nor change is persisted | onUpdate (entity) | ADR-016 |
 | BR-05 | `changedFields` MUST contain at least one element; an update that changes no field value must not create an `EntityVersion` and MUST be rejected with HTTP 304 | onCreate | – |
@@ -90,7 +90,9 @@ On restore (UC-15), despite the complete snapshot, only the **restorable** field
 
 `EntityVersion` records have no lifecycle. They are created on every entity update and exist permanently. There is no `deleted` state.
 
-Exception: if an `ArchitectureEntity` is hard-deleted (no UC for this yet), it must be decided whether the associated `EntityVersion` records are deleted in cascade or retained as "orphaned" audit records. Until the decision: no deletion.
+Exception: if an `ArchitectureEntity` is hard-deleted (no UC for this yet), it must be decided whether the associated `EntityVersion` records are deleted in cascade or retained as "orphaned" audit records. Until the decision: no deletion. ADR-033 §10 states that history rows are removed only by the purge of soft-deleted entities (REQ-190); the [audit events](./audit-event.md) remain independently.
+
+Note (2026-10-13): `docs/data-model.puml` stores the history delta-based (`entity_version_headers`, `entity_property_value_history`, `entity_system_field_history`) instead of the JSON snapshot described here; aligning this business object with the delta model is open.
 
 ## Example
 
@@ -109,3 +111,4 @@ Snapshot 3 shows `restoredFromVersion=1`: Kurt reset the entity to the state of 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-27 | Business Engineer | Initial draft; basis for UC-14 (change history) and UC-15 (restore); snapshot content, BRs, and lifecycle defined |
+| 0.1.1 | 2026-10-13 | Business Engineer | BR-02: append-only for the runtime role, deletion only by the REQ-190 purge (ADR-033 §10, DM-A9); the entity history is not the audit trail (see [audit-event](./audit-event.md)) |

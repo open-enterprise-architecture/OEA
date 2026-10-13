@@ -2,7 +2,7 @@
 identifier: person
 name_de: Person (Konto)
 name_en: Person (Account)
-version: 0.4.0
+version: 0.5.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -16,6 +16,7 @@ related_capabilities: []
 references:
   - concept: concept/20-entities/08-organization-roles-persons.md
   - adr: adrs/ADR-032-authorization-model.md
+  - adr: adrs/ADR-033-audit-trail-hardening.md
 ---
 
 # Business Object: Person (Account)
@@ -38,20 +39,22 @@ In the EA repository, a person is typically **referenced, not mastered**: master
 
 **Service accounts** (`personType = service-account`) represent external systems (ADR-026). They authenticate only with [machine credentials](./machine-credential.md), hold only roles flagged `assignableToServiceAccounts`, have no sessions, no identity binding and no account link.
 
+**Protected identity mapping and anonymization** ([ADR-033](../adrs/ADR-033-audit-trail-hardening.md) §3, REQ-189): [audit events](./audit-event.md) reference a person only by actor type and surrogate key (`persons.id`); names and e-mail addresses exist only in this business object (and in the system admin account) and are resolved at read time for principals holding `audit:read`. Anonymizing a person sets `detailLevel = anonymized`, replaces `name` by a pseudonym and removes `email`, `employeeId` and `externalReference`. Audit records are never modified; they keep the key, which then points to a pseudonymous account.
+
 ## Attributes
 
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
 | personType | enum | required | human | `[human, service-account]`; immutable | Kind of principal |
-| name | string | required | | | Display name |
-| employeeId | string | optional | | null for service accounts | Internal employee number, if available |
-| email | string | required | | valid email address; unique | Contact address; **not** a login identity (REQ-166) |
+| name | string | required | | anonymized: replaced by the pseudonym `anonymized-<id>` | Display name |
+| employeeId | string | optional | | null for service accounts; removed on anonymization | Internal employee number, if available |
+| email | string | conditional | | valid email address; unique; required unless `detailLevel = anonymized`, then empty | Contact address; **not** a login identity (REQ-166) |
 | status | enum | required | invited | `[invited, active, inactive, offboarded]`; service accounts never `invited` | Lifecycle status (replaces `active: boolean`) |
 | statusChangedAt | datetime | required | | | Time of the last status change |
 | statusChangedBy | principal | optional | | person or system admin account; empty = system transition | Actor of the last status change |
 | startDate | date | optional | | | Start of affiliation |
 | endDate | date | optional | | | End of affiliation |
-| externalReference | composite | optional | | fields `system`, `id` | Reference to the HR master system (§8.7); not used for login |
+| externalReference | composite | optional | | fields `system`, `id`; removed on anonymization | Reference to the HR master system (§8.7); not used for login |
 | identities | composite (list) | optional | | human only; see Identity Binding | Bindings to identity providers |
 | entityId | reference | optional | | target: Person entity (metatype `person`); unique; human only | Account link to EA content (ADR-032 DM-7) |
 | entityLinkedAt / entityLinkedBy | datetime / principal | conditional | | set with `entityId`; principal ≠ this account | Who set the account link and when |
@@ -123,6 +126,8 @@ invited → active ⇄ inactive
 | BR-05 | The account link `entityId` is set only by a principal with `person:manage`, never for its own account (or the account linked to its system admin account), and is audited | onUpdate | ADR-032 SoD-1, DM-7 |
 | BR-06 | Service accounts have no identity binding, no local credentials, no sessions, no account link and are never targets of IdP group mappings | onCreate, onUpdate | ADR-032 SoD-4, REQ-176 |
 | BR-07 | Reactivation of an `offboarded` person is rejected unless the setting `allowReactivationOfOffboarded` is enabled; a reactivated person starts in `invited` without role assignments and without local credentials | onUpdate | owner decision Q19, REQ-004 |
+| BR-08 | Anonymization sets `detailLevel = anonymized`, replaces `name` by the pseudonym `anonymized-<id>` and removes `email`, `employeeId` and `externalReference`; audit records are not changed and keep referencing the person key. `email` may be empty only for anonymized persons | onAnonymize | REQ-189, ADR-033 §3, GDPR Art. 17(3)(b) |
+| BR-09 | Names and e-mail addresses of persons are never copied into audit records; they are resolved from this object only for principals holding `audit:read` | onAuditWrite, onAuditRead | ADR-033 §3, REQ-189 AC3 |
 
 ## Examples
 
@@ -176,10 +181,11 @@ detailLevel: reference-only
 
 First modeled in the context of UC-01 Login. Version 0.3.0 implements ADR-032 DM-4/DM-7 and the security review follow-ups SEC-06/SEC-07: the boolean `active` could not express `inactive` vs. `offboarded` and REQ-004 checks the lifecycle status; e-mail-based matching allowed account takeover, hence the separate identity binding with a unique (`issuer`, `subject`) constraint. The binding is a separate table instead of reusing `external_ref_system/external_ref_id`, because those reference the HR master system and a person may log in through more than one provider. `personType` was already in the data model and is now documented here.
 
+Version 0.5.0 implements ADR-033 DM-A10: audit records no longer contain actor names or e-mail addresses, so anonymization can be done in this object alone without touching append-only audit records. `email` therefore became nullable for anonymized persons (DB CHECK in `docs/data-model.puml`).
+
 Open questions:
 
-- Can an `offboarded` account be reactivated (re-hire), or is a new account created?
-- Retention and anonymization of offboarded accounts (security review SEC-28, PR-33).
+- Retention period and trigger of anonymization for offboarded accounts (security review SEC-28, PR-33); whether identity bindings (`issuer`, `subject`) and the account link are removed on anonymization as well.
 
 ## Change History
 
@@ -189,3 +195,4 @@ Open questions:
 | 0.2.0 | 2026-06-28 | Business Engineer | Added `uiTheme` attribute (REQ-135: dark mode preference per person, persisted server-side) |
 | 0.3.0 | 2026-10-13 | Business Engineer | ADR-032 / security review: `active` → lifecycle `status`; identity binding (`issuer`, `subject`, unique); account link `entityId` to the Person entity (DM-7); `personType` documented; `fillsRoles` limited to business roles, authorization via `role-assignment` (DM-4); BR-01 reworded, BR-03 to BR-06 added |
 | 0.4.0 | 2026-10-13 | Lukas Mathis | Reactivation of offboarded persons configurable (`allowReactivationOfOffboarded`, default off; owner decision Q19) |
+| 0.5.0 | 2026-10-13 | Business Engineer | ADR-033 DM-A10 / REQ-189: protected identity mapping documented; anonymization (pseudonymous name, `email`/`employeeId`/`externalReference` removed, audit keeps the key); `email` conditional; BR-08, BR-09 added |

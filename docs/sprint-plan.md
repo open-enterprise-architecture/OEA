@@ -1,6 +1,6 @@
 # Sprint Plan: OEA Implementation Order
 
-**As of:** 2026-10-04 (walking skeleton moved to the beginning, see `docs/walking-skeleton.md`)  
+**As of:** 2026-10-13 (walking skeleton moved to the beginning, see `docs/walking-skeleton.md`; S1 setup aligned with ADR-033 and ADR-036)  
 **Basic assumptions:**
 
 - 2-week sprints, ~30 SP/sprint
@@ -17,7 +17,7 @@
 
 | Sprint | UC | Content | SP |
 |--------|----|--------|----|
-| **S1** | Setup + UC-02 + UC-01 | **⭐ Walking Skeleton (1/2):** project setup (Maven `backend/`, Vue `frontend/`, `api/openapi.yaml`, Docker Compose, CI), US-013 local bootstrapping, US-001 OIDC login | 13 + setup |
+| **S1** | Setup + UC-02 + UC-01 | **⭐ Walking Skeleton (1/2):** project setup (Maven `backend/`, Vue `frontend/`, `api/openapi.yaml`, operator `compose.yaml` and development `compose.dev.yaml` with Keycloak dev realm (ADR-036), migration step with owner/runtime role separation (ADR-033), CI), US-013 local bootstrapping, US-001 OIDC login | 13 + setup |
 | **S2** | UC-04 + UC-06 + UC-19 | **⭐ Walking Skeleton (2/2):** US-033 import starter package, US-141 batch creation (AC1), US-046 create catalog, US-049 display catalog data (basis) | 18 + E2E hardening |
 | **S3** | UC-02 (remainder) | System admin bootstrapping: setup token, remote bootstrapping, break-glass, audit log | ~30 |
 | **S4** | UC-01 (1/2) | Login: session hardening, minimal password, generic error messages | ~25 |

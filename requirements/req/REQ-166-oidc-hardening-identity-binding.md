@@ -4,7 +4,7 @@ title: OIDC relying-party hardening with mandatory PKCE and immutable identity b
 type: constraint
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-10-13
 last_updated: 2026-10-13
 author: requirements-engineer
@@ -22,6 +22,7 @@ references:
   adrs:
     - ADR-006
     - ADR-009
+    - ADR-036
 supersedes: []
 superseded_by: []
 ---
@@ -84,13 +85,14 @@ Source: security review SEC-07 (proposal PR-10); owner decision (2026-10-13, add
 
 ## Verification Method
 
-- [ ] Method: test (automated, against a mock IdP with crafted tokens) + inspection of the Electron login flow
+- [ ] Method: test (automated, against the development IdP – Keycloak Testcontainer with the versioned dev realm, ADR-036 – plus crafted invalid tokens) + inspection of the Electron login flow
+- [ ] Test setup: tokens obtained only through the real authorization code flow with PKCE; wrong `aud` via the client `oea-test-foreign-app`, changed `sub` with matching e-mail via `dev-email-twin`, unverified e-mail via `dev-email-unverified`, expiry via the injectable application clock, `nonce` mismatch by manipulating the authorization request; tokens with `alg: none` or `HS256` crafted in test code; the application never trusts a key other than the IdP's JWKS. The Authentik reference suite runs nightly and before every release
 - [ ] Pass criterion: AC1–AC5 green
 - [ ] Integrated in CI: yes
 
 ## Dependencies
 
-- **Prerequisites**: REQ-001, ADR-006
+- **Prerequisites**: REQ-001, ADR-006, ADR-036 (development and test IdP)
 - **Follow-on effects**: REQ-004 (matching on (`iss`, `sub`)), REQ-014, REQ-167
 - **Conflicts**: none known
 
@@ -107,3 +109,4 @@ Source: security review SEC-07 (proposal PR-10); owner decision (2026-10-13, add
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-07 (PR-10) with owner decision on mandatory PKCE |
+| 0.2.0 | 2026-10-13 | requirements-engineer | ADR-036 CH-4: verification against the Keycloak Testcontainer plus crafted invalid tokens instead of a mock IdP; test setup added |

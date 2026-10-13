@@ -4,7 +4,7 @@ title: Data subject rights and minimization for persons
 type: compliance
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-10-13
 last_updated: 2026-10-13
 author: requirements-engineer
@@ -22,6 +22,7 @@ references:
     - concept/60-integrations/20-grc-gdpr-isms-integration.md
   adrs:
     - ADR-024
+    - ADR-033
 supersedes: []
 superseded_by: []
 ---
@@ -38,7 +39,7 @@ OEA stores personal data of its own users and of modeled persons (e.g. process t
 
 ## Context
 
-Source: security review SEC-28 (proposal PR-33). ADR-024 stores `actor_name` and `actor_email` as mandatory, immutable fields and the portal audit endpoint returns `actorEmail` to every reader; a new ADR is needed for pseudonymous actor references (follow-up for the solution architect). The legal basis for retaining pseudonymous audit records must be documented in the operator documentation.
+Source: security review SEC-28 (proposal PR-33). ADR-024 stored `actor_name` and `actor_email` as mandatory, immutable fields and the portal audit endpoint returned `actorEmail` to every reader. ADR-033 §3 replaces this with pseudonymous actors: audit records contain only the actor type and the surrogate key of the principal (`actor_person_id` or `actor_admin_id`), no names and no e-mail addresses; the protected identity mapping is the set of identity tables (`persons`, `system_admin_accounts`), from which names and e-mail addresses are resolved at read time and only for principals holding `audit:read`. Anonymization removes name and e-mail from the identity tables; append-only audit records are not modified. Failed logins with an unknown identifier store the attempted identifier only as a keyed HMAC. Names of modeled persons (EA content, metatype `person`) are not copied into audit records (`entity_name` is NULL; owner confirmation 2026-10-13). `/portal/audit/events` is removed or requires `audit:read`. The legal basis for retaining pseudonymous audit records must be documented in the operator documentation.
 
 ## Type-Specific Fields
 
@@ -64,7 +65,13 @@ Source: security review SEC-28 (proposal PR-33). ADR-024 stores `actor_name` and
 
 - Given: the same person anonymized
 - When: audit events and entity history are retrieved
-- Then: actor name and e-mail are replaced by a pseudonym and no table outside the protected identity mapping contains the original e-mail
+- Then: actor name and e-mail are replaced by a pseudonym and no table outside the protected identity mapping contains the original e-mail; the audit records themselves are unchanged and still reference the person's surrogate key
+
+**AC5** (No identity data in the audit store):
+
+- Given: audit events created by a person, a service account and the local system admin account, and an audit event for a change of a modeled person entity
+- When: the columns of `audit.events` and `audit.event_changes` and the SIEM export are inspected
+- Then: they contain actor type and surrogate keys only, no actor name or e-mail address, and the event of the modeled person has no `entity_name`
 
 **AC3**:
 
@@ -81,14 +88,14 @@ Source: security review SEC-28 (proposal PR-33). ADR-024 stores `actor_name` and
 ## Verification Method
 
 - [ ] Method: test (automated) + inspection (record of processing in operator documentation)
-- [ ] Pass criterion: AC1–AC3 green
-- [ ] Integrated in CI: yes (AC1–AC3)
+- [ ] Pass criterion: AC1–AC5 green
+- [ ] Integrated in CI: yes (AC1–AC3, AC5)
 
 ## Dependencies
 
 - **Prerequisites**: REQ-151, REQ-157
 - **Follow-on effects**: REQ-083, REQ-175, REQ-190
-- **Conflicts**: ADR-024 (`actor_email` NOT NULL, denormalized)
+- **Conflicts**: none known (ADR-024 `actor_email` NOT NULL, denormalized, is superseded by ADR-033 §3)
 
 ## Risks of Non-Fulfillment
 
@@ -104,3 +111,4 @@ Source: security review SEC-28 (proposal PR-33). ADR-024 stores `actor_name` and
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-28 (PR-33) |
 | 0.2.0 | 2026-10-13 | Lukas Mathis | AC4: retention of ended sessions (owner decision Q20) |
+| 0.3.0 | 2026-10-13 | requirements-engineer | ADR-033 §3: pseudonymous actor (actor type + surrogate key), identity resolved only for `audit:read`, no names of modeled persons in audit records; AC2 clarified, AC5 added; ADR-024 conflict resolved |

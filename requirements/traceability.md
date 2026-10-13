@@ -188,7 +188,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-147](req/REQ-147-api-completeness-automation.md) | API Completeness and Automation Suitability (API-First) | interface | must | – |
 | [REQ-149](req/REQ-149-property-validation-necessity.md) | Property Validation by Necessity | functional | must | [US-138](user-stories/US-138-property-validation-mandatory-warning.md) |
 | [REQ-152](req/REQ-152-dynamic-labels-etag.md) | Dynamic Labels with ETag Caching | interface | must | [US-140](user-stories/US-140-load-dynamic-labels.md) |
-| [REQ-179](req/REQ-179-secured-raw-query-analytics.md) | Secured raw SQL and Cypher analytics | functional | must | – |
+| [REQ-179](req/REQ-179-secured-raw-query-analytics.md) | Secured raw SQL analytics | functional | must | – |
 | [REQ-186](req/REQ-186-rate-limits-resource-quotas.md) | Rate limiting and resource quotas | non-functional | must | – |
 
 ### [UC-07](use-cases/UC-07-create-and-use-dashboard.md): Create, Configure and Use a Dashboard in the Web Portal
@@ -382,7 +382,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-118](req/REQ-118-abb-coverage-analysis.md) | ABB Coverage Analysis (Gap Ratio) | functional | should | [US-118](user-stories/US-118-abb-coverage-analysis.md) |
 | [REQ-119](req/REQ-119-standards-drift-analysis.md) | Standards Drift Analysis (Prohibited and Deviation Report) | functional | should | [US-119](user-stories/US-119-standards-drift-analysis.md) |
 | [REQ-120](req/REQ-120-technology-diversity-analysis.md) | Technology Diversity Analysis with Executive Summary Export | functional | should | [US-120](user-stories/US-120-technology-diversity-analysis.md) |
-| [REQ-179](req/REQ-179-secured-raw-query-analytics.md) | Secured raw SQL and Cypher analytics | functional | must | – |
+| [REQ-179](req/REQ-179-secured-raw-query-analytics.md) | Secured raw SQL analytics | functional | must | – |
 | [REQ-185](req/REQ-185-bounded-expression-evaluation.md) | Bounded evaluation of user-defined expressions | non-functional | must | – |
 
 ### [UC-21](use-cases/UC-21-configure-property-visibility.md): Configure Property Visibility

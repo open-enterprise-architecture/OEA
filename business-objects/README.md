@@ -32,7 +32,7 @@ The Business Engineer (see `.opencode/agents/business-engineer.md`) models here.
 
 | ID | Name (DE) | Name (EN) | Status | Version |
 |---|---|---|---|---|
-| [person](./person.md) | Person (Konto) | Person (Account) | draft | 0.3.0 |
+| [person](./person.md) | Person (Konto) | Person (Account) | draft | 0.5.0 |
 | [role](./role.md) | Rolle (Geschäftsrolle) | Role (Business Role, EA content) | draft | 0.2.0 |
 | [authorization-role](./authorization-role.md) | Berechtigungsrolle | Authorization Role (incl. permission catalog) | draft | 0.1.0 |
 | [role-assignment](./role-assignment.md) | Rollenzuweisung (Berechtigung) | Role Assignment | draft | 0.1.0 |
@@ -42,13 +42,20 @@ The Business Engineer (see `.opencode/agents/business-engineer.md`) models here.
 | [local-credential](./local-credential.md) | Lokaler Credential | Local Credential | draft | 0.3.0 |
 | [machine-credential](./machine-credential.md) | Maschinen-Credential | Machine Credential | draft | 0.1.0 |
 
+### Audit & Operations
+
+| ID | Name (DE) | Name (EN) | Status | Version |
+|---|---|---|---|---|
+| [audit-event](./audit-event.md) | Audit-Ereignis | Audit Event (incl. change details, retention setting) | draft | 0.1.0 |
+| [system-settings](./system-settings.md) | Instanz-Einstellungen | System Settings | draft | 0.1.0 |
+
 ### Architecture Repository
 
 | ID | Name (DE) | Name (EN) | Status | Version |
 |---|---|---|---|---|
 | [architecture](./architecture.md) | Architektur-Repository | Architecture | draft | 0.3.0 |
 | [entity](./entity.md) | Architektur-Entität | Architecture Entity | draft | 0.1.0 |
-| [entity-version](./entity-version.md) | Entitäts-Versionsschnappschuss | Entity Version | draft | 0.1.0 |
+| [entity-version](./entity-version.md) | Entitäts-Versionsschnappschuss | Entity Version | draft | 0.1.1 |
 | [plateau](./plateau.md) | Plateau | Plateau | draft | 0.1.0 |
 | [solution](./solution.md) | Solution / Änderungsinitiative | Solution | draft | 0.1.0 |
 
@@ -56,7 +63,7 @@ The Business Engineer (see `.opencode/agents/business-engineer.md`) models here.
 
 | ID | Name (DE) | Name (EN) | Status | Version |
 |---|---|---|---|---|
-| [metamodel-configuration](./metamodel-configuration.md) | Metamodell-Konfiguration | Metamodel Configuration | draft | 1.2.0 |
+| [metamodel-configuration](./metamodel-configuration.md) | Metamodell-Konfiguration | Metamodel Configuration | draft | 1.3.0 |
 | [viewpoint](./viewpoint.md) | Viewpoint / Architektursicht | Viewpoint | draft | 0.2.0 |
 | [document-collection](./document-collection.md) | Strukturierte Dokumentation | Document Collection | draft | 0.2.0 |
 
