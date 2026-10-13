@@ -92,7 +92,7 @@ All process elements are regular `ArchitectureEntities` in the shared integer ID
 
 **AC1** (Built-in BPMN types present):
 - When: OEA instance started; admin opens MetamodelConfiguration
-- Then: All 19 built-in BPMN EntityTypes and 9 built-in connections are visible (isBuiltIn=true); immutable in their base properties
+- Then: All 19 built-in BPMN EntityTypes, `organizational-unit` and 10 built-in connections (4 BPMN, 1 org unit, 5 assignment) are visible (isBuiltIn=true); immutable in their base properties
 
 **AC2** (Extensibility):
 - When: Admin creates `EntityTypeDefinition { id: "approval-task", extends: "bpmn-user-task" }`
@@ -118,7 +118,7 @@ All process elements are regular `ArchitectureEntities` in the shared integer ID
 ## Verification Method
 
 - [x] Method: test (automated, API and integration tests)
-- [x] Pass criterion: `GET /api/v1/metamodel/entity-types?builtIn=true` returns all 19+7 BPMN types; AC2 via integration test; AC4 via Playwright snapshot test
+- [x] Pass criterion: `GET /api/v1/metamodel/entity-types?builtIn=true` returns all 19 BPMN EntityTypes + `organizational-unit` and the 10 built-in connections; AC2 via integration test; AC4 via Playwright snapshot test
 
 ## Dependencies
 

@@ -28,7 +28,7 @@ superseded_by: []
 
 ## Statement
 
-The system MUST store a `GridPosition` for each widget of a dashboard and return it at runtime; it determines where the widget is placed in the dashboard's **12-column grid**. The system MUST reject `col + width > 12` (exceeding the grid width) as a validation error. Vertical rows are unlimited (the dashboard scrolls); widget overlap is not checked server-side (client responsibility).
+The system MUST store a `GridPosition` for each widget of a dashboard and return it at runtime; it determines where the widget is placed in the dashboard's **12-column grid**. The system MUST reject `col + width > 13` (i.e. the last occupied column `col + width − 1` exceeds 12) (exceeding the grid width) as a validation error. Vertical rows are unlimited (the dashboard scrolls); widget overlap is not checked server-side (client responsibility).
 
 ## Rationale
 

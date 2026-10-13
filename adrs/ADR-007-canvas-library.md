@@ -2,7 +2,7 @@
 
 **Status**: accepted
 **Date**: 2026-06-26
-**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Consulted**: Requirements Engineer (UC-05, US-045, REQ-040)
 **Informed**: –
 **Updated**: 2026-06-26 — React Flow → **Vue Flow** following ADR-011 (frontend framework: Vue 3)  

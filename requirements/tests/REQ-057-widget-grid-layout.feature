@@ -7,7 +7,7 @@ Feature: REQ-057 – Configure widget grid layout (GridPosition)
   For each widget of a dashboard, the system MUST store a
   `GridPosition` and return it at runtime, which determines where the
   widget is placed in the dashboard's **12-column grid**. The system
-  MUST reject `col + width > 12` (exceeding the grid width) as a
+  MUST reject `col + width > 13` (exceeding the grid width) as a
   validation error.
 
   Background:

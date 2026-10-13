@@ -38,7 +38,7 @@ Hiding on the client side is not sufficient — a technically savvy user could r
 
 **AC1** (API response):
 - When: a user without an allowed role retrieves an entity with a role-restricted property
-- Then: the API response contains `"investitionskostenPrognose": null`; no actual value in the response
+- Then: the API response contains `"investmentCostForecast": null`; no actual value in the response
 
 **AC2** (UI empty and read-only):
 - When: a user without permission opens the entity detail form

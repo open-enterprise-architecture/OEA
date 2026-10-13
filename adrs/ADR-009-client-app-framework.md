@@ -2,7 +2,7 @@
 
 **Status**: accepted
 **Date**: 2026-06-26
-**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Consulted**: Requirements Engineer (US-045), Frontend Engineer
 **Informed**: –
 **Updated**: 2026-06-28 — React Flow → Vue Flow and React/TypeScript → Vue/TypeScript following [ADR-011](./ADR-011-frontend-framework.md) (frontend framework: Vue 3); rationale and decision remain valid in substance, since Vue Flow uses the same DOM rendering approach as React Flow

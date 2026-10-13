@@ -31,7 +31,7 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | Artifact | Count |
 |---|---|
 | Stakeholder profiles | 9 |
-| Use Cases | 21 |
+| Use Cases | 22 |
 | Requirements | 155 |
 | User Stories | 142 |
 | ADRs | 29 |

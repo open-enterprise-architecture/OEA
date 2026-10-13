@@ -16,7 +16,7 @@ Feature: REQ-052 – Add, configure, and remove widgets
   @AC1
   Scenario: AC1 – Create KPI widget – `POST /api/v1/dashboards/{id}/widgets` with type=...
     Given the precondition according to the requirement is met
-    When  `POST /api/v1/dashboards/{id}/widgets` with type=kpi, title="Total costs", dataSource={PropertyAggregation, entityType=plateau, propertyName=investitionskostenPrognose, aggregationFn=sum}, gridPosition={col:1,row:1,width:3,height:1}
+    When  `POST /api/v1/dashboards/{id}/widgets` with type=kpi, title="Total costs", dataSource={PropertyAggregation, entityType=plateau, propertyName=investmentCostForecast, aggregationFn=sum}, gridPosition={col:1,row:1,width:3,height:1}
     Then  HTTP 201; widget saved in DB; GET /api/v1/dashboards/{id} contains the widget
 
   @AC2

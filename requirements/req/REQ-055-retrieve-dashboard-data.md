@@ -91,7 +91,7 @@ Live calculation ensures that C-level dashboards always show the current reposit
     "<widgetId-broken>": {
       "status": "error",
       "type": "kpi",
-      "error": "PropertyDefinition 'investitionskostenPrognose' not found on EntityType 'plateau'"
+      "error": "PropertyDefinition 'investmentCostForecast' not found on EntityType 'plateau'"
     }
   }
 }
@@ -142,7 +142,7 @@ Live calculation ensures that C-level dashboards always show the current reposit
 - Then: `{ "status": "static", "type": "text" }`; no DB call for this widget
 
 **AC6** (Live data):
-- Given: Plateau instance receives a new value for investitionskostenPrognose
+- Given: Plateau instance receives a new value for investmentCostForecast
 - When: GET /api/v1/dashboards/{id}/data immediately afterwards
 - Then: KPI value reflects the new value (no stale cache)
 

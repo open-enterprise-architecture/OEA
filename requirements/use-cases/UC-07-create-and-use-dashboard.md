@@ -144,7 +144,7 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 8. **System**: opens the widget configurator: title, DataSource type (CatalogQuery / PropertyAggregation), DataSource parameters
 9. **Kurt**: configures KPI widget:
    - Title: "Total investment costs (forecast)"
-   - DataSource: `PropertyAggregation` → EntityType: `plateau`, property: `investitionskostenPrognose`, aggregation: `sum`
+   - DataSource: `PropertyAggregation` → EntityType: `plateau`, property: `investmentCostForecast`, aggregation: `sum`
    - Unit: "CHF million", comparisonMode: `none`
 10. **Kurt**: places the KPI widget at the top left (columns 1–3, row 1); confirms
 11. **Kurt**: again clicks "Add widget" → selects type `Chart`
@@ -152,7 +152,7 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 13. **Kurt**: configures bar chart:
     - Title: "Investment costs per plateau"
     - ChartType: `bar`
-    - DataSource: `PropertyAggregation` → EntityType: `plateau`, property: `investitionskostenPrognose`, aggregation: `sum`, GroupBy: `name`
+    - DataSource: `PropertyAggregation` → EntityType: `plateau`, property: `investmentCostForecast`, aggregation: `sum`, GroupBy: `name`
     - X-axis: plateau name; y-axis: amount in CHF
 14. **Kurt**: places the chart widget to the right of it (columns 4–12, rows 1–3)
 15. **Kurt**: clicks "Add widget" → selects type `Chart` → configures pie chart:
@@ -212,8 +212,8 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 ## Exception Flows
 
 **E1 – PropertyDefinition not found on EntityType**:
-- Condition: A widget references `propertyName=investitionskostenPrognose` on EntityType `plateau`, but this property does not exist in the current MetamodelConfiguration (e.g., after a metamodel change via UC-04)
-- Expected reaction: The widget shows an error notice "Property ‹investitionskostenPrognose› not found on EntityType ‹plateau›. Please check the dashboard configuration." Other widgets continue to be rendered
+- Condition: A widget references `propertyName=investmentCostForecast` on EntityType `plateau`, but this property does not exist in the current MetamodelConfiguration (e.g., after a metamodel change via UC-04)
+- Expected reaction: The widget shows an error notice "Property ‹investmentCostForecast› not found on EntityType ‹plateau›. Please check the dashboard configuration." Other widgets continue to be rendered
 - Resumption: Dashboard Manager opens the widget editor and selects a valid property
 
 **E2 – Referenced catalog no longer exists**:
@@ -227,8 +227,8 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 - Resumption: Actor creates a personal dashboard or contacts a Dashboard Manager
 
 **E4 – No data for aggregation**:
-- Condition: The EntityType `plateau` contains no entities, or none of the plateau instances has the property value `investitionskostenPrognose` filled
-- Expected reaction: KPI widget shows "– (no data)"; chart widget shows an empty chart with notice "No data available. Maintain property ‹investitionskostenPrognose› on the existing entities."
+- Condition: The EntityType `plateau` contains no entities, or none of the plateau instances has the property value `investmentCostForecast` filled
+- Expected reaction: KPI widget shows "– (no data)"; chart widget shows an empty chart with notice "No data available. Maintain property ‹investmentCostForecast› on the existing entities."
 - Resumption: no block; widget shows data as soon as properties are filled
 
 ## Data Flow
@@ -324,7 +324,7 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 
 The difference to [UC-06 (Catalog)](./UC-06-create-and-use-catalog.md) is fundamental: A catalog is a **row view** with configurable columns – each entity is a row. A dashboard is a **condensation view** – data is aggregated, grouped and presented as metrics or charts. Both concepts are complementary: a dashboard can use a catalog as DataSource for an embedded table, but can also calculate PropertyAggregations directly on EntityTypes.
 
-The connection to the [PropertyDefinitions](../../business-objects/metamodel-configuration.md) (v0.6.0) is the key prerequisite for meaningful dashboards: Only when properties such as `investitionskostenPrognose`, `betriebskostenPrognose` or `lifecycleStatus` are defined as typed, validated properties on the EntityType and filled in the entity instances can dashboards deliver meaningful aggregations. Dashboard and metamodel maintenance (UC-04) are closely linked.
+The connection to the [PropertyDefinitions](../../business-objects/metamodel-configuration.md) (v0.6.0) is the key prerequisite for meaningful dashboards: Only when properties such as `investmentCostForecast`, `operatingCostForecast` or `lifecycleStatus` are defined as typed, validated properties on the EntityType and filled in the entity instances can dashboards deliver meaningful aggregations. Dashboard and metamodel maintenance (UC-04) are closely linked.
 
 ## Change History
 

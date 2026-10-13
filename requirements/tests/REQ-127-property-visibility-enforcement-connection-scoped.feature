@@ -15,16 +15,16 @@ Feature: REQ-127 – Enforcement of connection-scoped property visibility (ABAC)
     And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Traversal positive – property `sicherheitseinstufung` with `visibilityMode=connection-scoped`,...
-    Given property `sicherheitseinstufung` with `visibilityMode=connection-scoped`, `scopingConnectionType=DomainAssignment`
+  Scenario: AC1 – Traversal positive – property `securityClassification` with `visibilityMode=connection-scoped`,...
+    Given property `securityClassification` with `visibilityMode=connection-scoped`, `scopingConnectionType=DomainAssignment`
     When  Michael (domain architect) is connected to `ApplicationComponent A` via a `DomainAssignment` connection and retrieves entity A
-    Then  `sicherheitseinstufung` value is contained in the response
+    Then  `securityClassification` value is contained in the response
 
   @AC2
   Scenario: AC2 – Traversal negative – Michael is **not** connected to entity B via `DomainAssignment` and...
     Given the precondition according to the requirement is met
     When  Michael is **not** connected to entity B via `DomainAssignment` and retrieves entity B
-    Then  `sicherheitseinstufung` is `null`; no value in the response
+    Then  `securityClassification` is `null`; no value in the response
 
   @AC3
   Scenario: AC3 – Write protection – user without path tries to write the field via PATCH

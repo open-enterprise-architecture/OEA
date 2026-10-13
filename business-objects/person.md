@@ -82,12 +82,12 @@ invited → active → inactive
 **Example 1**: Referenced person (standard case)
 ```yaml
 name: Kurt Lead Enterprise Architect
-email: kurt@example-kmu.de
+email: kurt@example-sme.com
 active: true
 detailLevel: reference-only
 externalReference:
   system: oidc-provider
-  id: kurt.architekt
+  id: kurt.architect
 fillsRoles:
   - role: enterprise-architect
 ```

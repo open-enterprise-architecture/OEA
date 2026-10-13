@@ -80,7 +80,7 @@ Widget configuration takes place in the **client app**. The **web portal** rende
 ## Acceptance Criteria
 
 **AC1** (Create KPI widget):
-- When: `POST /api/v1/dashboards/{id}/widgets` with type=kpi, title="Total costs", dataSource={PropertyAggregation, entityType=plateau, propertyName=investitionskostenPrognose, aggregationFn=sum}, gridPosition={col:1,row:1,width:3,height:1}
+- When: `POST /api/v1/dashboards/{id}/widgets` with type=kpi, title="Total costs", dataSource={PropertyAggregation, entityType=plateau, propertyName=investmentCostForecast, aggregationFn=sum}, gridPosition={col:1,row:1,width:3,height:1}
 - Then: HTTP 201; widget stored in DB; GET /api/v1/dashboards/{id} contains the widget
 
 **AC2** (Chart widget, chartType=pie → no xAxis allowed):

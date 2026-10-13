@@ -103,7 +103,7 @@ Changes to the configuration are versioned and recorded in the audit log.
 
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| name | string | required | | camelCase; unique per EntityType | Technical attribute name (e.g. `investitionskostenPrognose`) |
+| name | string | required | | camelCase; unique per EntityType | Technical attribute name (e.g. `investmentCostForecast`) |
 | displayLabel | string | optional | | max. 100 characters | Display name in the GUI; overrides `name` if set |
 | dataType | PropertyDataType | required | | | Data type definition (details: PropertyDataType) |
 | validationMode | enum | required | `optional` | `[mandatory, warning, optional]` | `mandatory` = error on save if empty; `warning` = notice, but saving allowed; `optional` = no check |
@@ -275,7 +275,7 @@ properties:
     dataType: { kind: varchar, maxLength: 200 }
     validationMode: optional
     category: "Compliance"
-  - name: investitionskostenPrognose
+  - name: investmentCostForecast
     displayLabel: "Investment Cost Forecast (CHF)"
     dataType: { kind: int }
     validationMode: warning

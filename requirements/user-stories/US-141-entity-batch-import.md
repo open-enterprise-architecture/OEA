@@ -11,7 +11,7 @@ As an external system (scanner, CI/CD pipeline, import script), I want to create
 
 ## Reference
 
-**Use Case**: [UC-19: Import Current State from Source System](../use-cases/UC-19-ist-zustand-importieren.md)
+**Use Case**: [UC-22: Import Current State from Source System](../use-cases/UC-22-import-current-state-from-source-system.md)
 **Persona**: External system with service account
 **Requirements**: REQ-153, REQ-154
 

@@ -2,7 +2,7 @@
 # V-model system test specification – created 2026-06-30
 # Verification: method: test (automated)
 
-@functional @should @UC-19
+@functional @should @UC-22
 Feature: REQ-153 – Create and update entities idempotently via external_id
 
   The system **MUST** make it possible to create or update an entity under a
