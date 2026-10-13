@@ -9,9 +9,9 @@ One-page overview for lookup. Print it or keep it next to the screen.
 | **Business Engineer** | New business domain, clarify terms | `business-objects/*.md`, business rules | Concept §6, §7, persona SH-07 |
 | **Solution Architect** | Clarification with PO, scope, specs, tickets | OpenAPI/schema specs, tasks per agent | Concept INDEX, ADRs |
 | **Requirements Engineer** | After use cases, before implementation | `requirements/req/REQ-NNN-*.md` | Use cases, business objects |
-| **UI Designer** | Mockup needs, design tokens | Penpot files, `design/<feature>/` | Personas, UC specs |
+| **UI Designer** | Screen prototypes, design tokens | Storybook stories in `frontend/src/screens/`, `SCREENS.md` | Personas, UC specs, OpenAPI spec |
 | **Backend Engineer** | Backend implementation from spec | Code in `backend/`, tests, migrations | OpenAPI spec, schema |
-| **Frontend Engineer** | Frontend implementation from spec | Code in `frontend/`, stories, E2E tests | OpenAPI spec, mockups |
+| **Frontend Engineer** | Frontend implementation from spec | Code in `frontend/`, stories, E2E tests | OpenAPI spec, screen prototypes |
 | **Security Engineer** | Before every merge, for spec reviews | Reviews in `security-reviews/` | Code, specs, configuration |
 
 ## Workflow Order
@@ -105,7 +105,7 @@ Numbers are never reused.
 - Implementation (the engineers do that)
 - Detailed modeling (Business Engineer, Requirements Engineer)
 - Security audit (Security Engineer)
-- Mockup creation (UI Designer)
+- Screen prototypes (UI Designer, Storybook)
 
 ## Slash Commands at a Glance
 
@@ -152,7 +152,7 @@ python3 scripts/validate_links.py
 | Tech stack proposal | 1 hr (once per stack) | 0 |
 | Formulate use case | 1 hr | 30 min |
 | Derive requirements | 1-2 hrs | 30 min |
-| UI mockups | 2-4 hrs | 1-2 hrs |
+| UI prototypes | 2-4 hrs | 1-2 hrs |
 | Backend implementation | 1-3 days | 0.5-1 day |
 | Frontend implementation | 1-3 days | 0.5-1 day |
 | Security review | 1-2 hrs | 30 min |

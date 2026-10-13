@@ -41,7 +41,7 @@ This document summarizes what is contained in the consolidated tar archive and w
 ### Optional
 - [ ] Design a logo (not strictly necessary for the first release)
 - [ ] Trademark search for "OEA" / "Open Enterprise Architecture" in DE, EU, US (conflicts unlikely, but good practice)
-- [ ] Set up Penpot workspace (for UI designer)
+- [ ] ~~Set up Penpot workspace (for UI designer)~~ – obsolete, replaced by Storybook prototypes (ADR-031)
 
 ## What Is Deliberately Empty
 

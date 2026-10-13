@@ -41,6 +41,9 @@ jobs:
       - name: Traceability matrix up to date
         run: python3 scripts/generate_traceability.py --check
 
+      - name: Screen inventory consistent
+        run: python3 scripts/check_screens.py
+
       - name: Artifact count
         run: |
           echo "SH:  $(ls business-analysis/stakeholders/SH-*.md 2>/dev/null | wc -l)"

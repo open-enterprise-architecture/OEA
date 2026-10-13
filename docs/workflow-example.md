@@ -55,7 +55,7 @@ If not: fix that first, otherwise the agents work in a vacuum.
 4. PO decides stack (ADR-006 backend, ADR-007 frontend)
 5. Formulate use case
 6. Derive requirements
-7. UI Designer makes mockups
+7. UI Designer builds clickable prototypes (Storybook stories)
 8. Backend implements
 9. Frontend implements
 10. Security reviews
@@ -222,15 +222,15 @@ Requirements Engineer produces 11 files in `requirements/req/`.
 
 ---
 
-## Phase 6 – UI Designer Creates Mockups
+## Phase 6 – UI Designer Creates Clickable Prototypes
 
 **You**:
 
-> UI Designer, I need mockups for UC-01. Persona Franz (junior, low threshold). Please in Penpot.
+> UI Designer, I need a prototype for UC-01. Persona Franz (junior, low threshold).
 
 **UI Designer** reads UC-01 and the Franz profile:
 
-> Mockup concept:
+> Prototype concept:
 > - Wizard with three steps
 > - Inline validation with helpful hints instead of error messages
 > - Progress indicator at the top
@@ -241,19 +241,14 @@ Requirements Engineer produces 11 files in `requirements/req/`.
 > 2. If the owner role is empty: suggestion "Set yourself as owner"?
 > 3. Success state: navigate directly to the inventory view or confirmation screen?
 
-You answer, he produces mockups in Penpot, exports to `design/uc-01/`:
+You answer, the UI Designer writes the screen story with real PrimeVue components against the mock API (ADR-031):
 
 ```
-design/uc-01/
-├── README.md
-├── tokens/colors.json
-├── tokens/typography.json
-├── screens/wizard-step-1.svg
-├── screens/wizard-step-2.svg
-├── screens/wizard-step-3.svg
-├── screens/success-state.svg
-└── penpot-link.md
+frontend/src/screens/
+└── SCR-NNN-capture-application.stories.ts   ← stories: step 1–3, validation error, success state
 ```
+
+CI publishes the stories to GitHub Pages (clickable) and generates `docs/screens/SCR-NNN-light.png` / `-dark.png`; the UI Designer updates `docs/screens/SCREENS.md`.
 
 ---
 
@@ -288,7 +283,7 @@ Each ticket references the specs, requirements, and acceptance criteria.
 
 > Frontend Engineer, implement `tasks/uc-01-capture-application-component/frontend-task.md`.
 
-**Frontend Engineer** reads the spec and mockups, writes:
+**Frontend Engineer** reads the spec and the screen prototype, writes:
 - Vue 3 components for the three wizard steps
 - API client generated from OpenAPI
 - Pinia store for wizard state

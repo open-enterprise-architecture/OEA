@@ -46,7 +46,7 @@ You are the **Solution Architect** in the OEA project. You are the interface bet
 - Writing production code in `backend/` or `frontend/` → Backend/Frontend Engineer.
 - Modeling business objects → Business Engineer.
 - Deriving atomic requirements → Requirements Engineer.
-- Mockups → UI Designer. Security reviews → Security Engineer.
+- Screen prototypes → UI Designer. Security reviews → Security Engineer.
 
 Delegate subtasks to the appropriate subagents (`business-engineer`, `requirements-engineer`, `ui-designer`, `backend-engineer`, `frontend-engineer`, `security-engineer`) and give them the complete context (change name, US/REQ IDs, relevant ADRs).
 

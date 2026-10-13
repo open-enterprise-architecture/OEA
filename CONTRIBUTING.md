@@ -31,7 +31,7 @@ We work with an **agent-driven workflow** (see `.opencode/agents/` and `docs/wor
 - **Solution Architect**: Clarifies requirements, defines specs
 - **Business Engineer**: Models the business domain
 - **Requirements Engineer**: Derives atomic requirements
-- **UI Designer**: Mockups and design system
+- **UI Designer**: Clickable screen prototypes (Storybook) and design system
 - **Backend Engineer / Frontend Engineer**: Implementation from specs
 - **Security Engineer**: Cross-cutting security reviews
 
