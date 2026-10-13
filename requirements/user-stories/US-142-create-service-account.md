@@ -27,7 +27,7 @@ As a system administrator, I want to create service accounts and assign them the
 
 - Given: service account with `clientId` + `clientSecret`
 - When: OAuth2 client credentials grant against the auth provider
-- Then: JWT with claim `person_type=service-account`, `agent_id=<clientId>`, role `integration-writer` received
+- Then: an access token identifying the service account by its `client_id` is received; it carries no roles or permissions, and requests with it are authorized with the permissions of `integration-writer` resolved server-side (ADR-032 §7)
 
 **AC3**:
 
@@ -46,8 +46,9 @@ As a system administrator, I want to create service accounts and assign them the
 - `persons.person_type TEXT NN DEFAULT 'human'` (enum: human | service-account)
 - New table `machine_credentials` (client_id UUID PK, person_id FK, client_secret_hash, active, created_at, last_used_at)
 - Role `integration-writer` in the `roles` table as a default role (is_builtin=true)
-- JWT claims: `sub=<person_id>`, `agent_id=<client_id>`, `roles=[...]`
-- `X-Agent-Id` header as an alternative to the JWT claim (for systems without OAuth2 support)
+- Token claims: `client_id` only; no `roles` claim – permissions are resolved server-side per request (ADR-032 §7, aligned 2026-10-13)
+- Only roles flagged `assignableToServiceAccounts` may be assigned (ADR-032 SoD-4, US-149)
+- `agent_id` is taken only from the authenticated client (`client_id` of the token); an `X-Agent-Id` header is ignored (REQ-154, REQ-174)
 
 ## Definition of Done
 

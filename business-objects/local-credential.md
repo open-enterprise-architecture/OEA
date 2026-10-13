@@ -2,7 +2,7 @@
 identifier: local-credential
 name_de: Lokales Credential
 name_en: Local Credential
-version: 0.2.0
+version: 0.3.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -19,7 +19,7 @@ references:
 
 ## Definition
 
-A Local Credential is the cryptographic authentication material that a [Person](./person.md) has set up for one of the three local authentication mechanisms (passkey, TOTP, password) and that OEA verifies at login without an external identity provider.
+A Local Credential is the cryptographic authentication material that a [Person](./person.md) or the [System Admin Account](./system-admin-account.md) has set up for one of the local authentication mechanisms (passkey, TOTP, password) or for account recovery (recovery codes), and that OEA verifies without an external identity provider.
 
 ## Description
 
@@ -27,13 +27,14 @@ As soon as an OEA instance has enabled local authentication (no external OIDC pr
 
 `LocalCredential` is deliberately kept **separate from the business Person object**: credential data is highly sensitive, has a different lifecycle than the business identity, and must not appear in EA repository exports or audit reports (unlike a person's name, role, or area of responsibility). A Person object can simultaneously own multiple LocalCredentials of different types.
 
-The BO has three variants, distinguished via `type`:
+The BO has four variants, distinguished via `type`:
 
-- **passkey**: WebAuthn credential (public key + credential ID); multiple per person permitted (different devices)
-- **totp**: TOTP secret per RFC 6238; multiple active per person permitted (REQ-030), each with its own label
-- **password**: argon2id or bcrypt hash; at most one active per person
+- **passkey**: WebAuthn credential (public key + credential ID); multiple per owner permitted (different devices)
+- **totp**: TOTP secret per RFC 6238; multiple active per owner permitted (REQ-030), each with its own label; replay protection via the last accepted time step (REQ-170)
+- **password**: argon2id hash only (REQ-169); at most one active per owner; may be a **temporary password** (initial, admin reset, break-glass) with mandatory expiry that only allows the password change (REQ-173)
+- **recovery-codes**: a set of single-use recovery codes for a lost second factor (REQ-173); at most one active set per owner
 
-The [System Admin Account](./system-admin-account.md) has no `LocalCredential`; its credential is modeled directly in that BO, since it exists independently of the person/role system.
+**Owner**: exactly one of a human [Person](./person.md) or the [System Admin Account](./system-admin-account.md). Since version 0.3.0 the system admin account uses local credentials as well (password plus mandatory second factor, REQ-171; break-glass recovery password, REQ-173) instead of an embedded hash. Service accounts never own local credentials; they use [machine credentials](./machine-credential.md).
 
 ## Attributes
 
@@ -42,13 +43,15 @@ The [System Admin Account](./system-admin-account.md) has no `LocalCredential`; 
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
 | id | string | required | | UUID v4, globally unique | Internal primary key |
-| personId | reference | required | | target: person; immutable after creation | Link to the person |
-| type | enum | required | | `[passkey, totp, password]`; immutable | Type of the credential |
+| personId | reference | conditional | | target: person with `personType=human`; immutable; exactly one of `personId`/`systemAdminAccountId` | Owning person |
+| systemAdminAccountId | reference | conditional | | target: system-admin-account; immutable | Owning system admin account |
+| type | enum | required | | `[passkey, totp, password, recovery-codes]`; immutable | Type of the credential |
 | status | enum | required | active | `[active, revoked]` | Current state |
 | createdAt | datetime | required | | ISO 8601, UTC | Time of enrollment |
 | lastUsedAt | datetime | optional | | ISO 8601, UTC | Last successful login with this credential |
 | revokedAt | datetime | optional | | only set if `status=revoked` | Time of deactivation |
-| revokedReason | enum | optional | | `[device_lost, superseded, admin_action, person_request]`; only set if `status=revoked` | Reason for deactivation |
+| revokedReason | enum | optional | | `[device_lost, superseded, admin_action, person_request, factor_reset]`; only set if `status=revoked` | Reason for deactivation (`factor_reset`: admin-initiated reset of a lost second factor, REQ-173 AC5) |
+| revokedBy | principal | optional | | person or system admin account | Who revoked the credential |
 
 ### Type-Specific Attributes: `type=passkey`
 
@@ -64,30 +67,40 @@ The [System Admin Account](./system-admin-account.md) has no `LocalCredential`; 
 
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| secretEncrypted | string | required | | AES-256-GCM-encrypted, Base64url; key outside the DB | RFC 6238 TOTP secret (160 bits in plaintext, Base32-encoded) |
+| secretEncrypted | string | required | | AES-256-GCM-encrypted, Base64url; key-encryption key outside the DB (REQ-188) | RFC 6238 TOTP secret (160 bits in plaintext, Base32-encoded) |
+| keyId | string | required | | identifier of the key-encryption key version | Enables key rotation without data loss (REQ-188 AC2) |
 | algorithm | enum | required | SHA1 | `[SHA1, SHA256, SHA512]` | HMAC algorithm (SHA1 for maximum authenticator app compatibility) |
 | digits | integer | required | 6 | `[6, 8]` | Length of the generated code |
 | period | integer | required | 30 | seconds | Validity window per code |
+| lastUsedTimeStep | integer | optional | | RFC 6238 time step (Unix time / period); only increases | Last accepted time step; a code is accepted only if its time step is greater (replay protection, REQ-170) |
 | label | string | optional | auto-generated | max. 255 characters; user-assigned | Readable name for the device/app, e.g. "iPhone – Google Authenticator"; default: "TOTP Authenticator YYYY-MM-DD" |
 
 ### Type-Specific Attributes: `type=password`
 
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| passwordHash | string | required | | argon2id or bcrypt encoded string; contains algorithm parameters | Hashed password; plaintext is not retained after hashing |
-| algorithm | enum | required | argon2id | `[argon2id, bcrypt]` | Hash algorithm used |
+| passwordHash | string | required | | argon2id only, PHC string `$argon2id$…`; parameters m ≥ 19 MiB, t ≥ 2, p = 1 (REQ-169) | Hashed password; rehashed on successful login if parameters are outdated; plaintext is not retained |
+| origin | enum | required | self-set | `[self-set, initial, admin-reset, break-glass]` | How the password was set; everything except `self-set` is a **temporary password** |
+| expiresAt | datetime | conditional | | required iff `origin ≠ self-set`; default issue time + 72 h (configurable) | Expiry of a temporary password (REQ-173 AC1); after login only the password change is reachable (AC2) |
+
+### Type-Specific Attributes: `type=recovery-codes`
+
+| Attribute | Type | Optional | Default | Constraints | Description |
+|---|---|---|---|---|---|
+| codes | composite (list) | required | | e.g. 10 entries; each `codeHash` (argon2id) and `usedAt` | Single-use recovery codes; plaintext shown once at generation (REQ-173) |
 
 ## Relationships
 
 | Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
-| belongsTo | [person](./person.md) | n:1 | no | Each credential belongs to exactly one person |
+| belongsTo | [person](./person.md) | n:1 | conditional | Owning human person |
+| belongsTo | [system-admin-account](./system-admin-account.md) | n:1 | conditional | Owning system admin account (exactly one owner) |
 
 **Notes**:
 
-- A person can have any number of `passkey` credentials (one per registered device).
-- A person can have multiple active `totp` credentials (REQ-030; BR-02 repealed).
-- A person has at most one active `password` credential (BR-03).
+- An owner can have any number of `passkey` credentials (one per registered device).
+- An owner can have multiple active `totp` credentials (REQ-030; BR-02 repealed).
+- An owner has at most one active `password` credential (BR-03) and at most one active `recovery-codes` set (BR-08).
 - LocalCredential is **not** part of the business EA metamodel; no relationships to architecture objects (ApplicationComponent, Capability, etc.).
 
 ## Lifecycle
@@ -115,6 +128,12 @@ created → active → revoked
 | BR-03 | At most one `LocalCredential` with `type=password` and `status=active` may exist per person at any time; when a new password is set, the previous one is automatically set to `revoked` | onCreate | – |
 | BR-04 | LocalCredentials are not part of the business EA repository export; they MUST NOT be contained in snapshots, reports, or graph exports of the EA model | onExport | – |
 | BR-05 | The `signCount` of a passkey credential MUST be compared with the submitted value on every login; if the submitted value is less than or equal to the stored value, the login MUST be rejected (replay protection) | onLogin | – |
+| BR-06 | Passwords MUST be hashed with argon2id (m ≥ 19 MiB, t ≥ 2, p = 1); bcrypt and other algorithms are not accepted; outdated parameters are rehashed on successful login | onCreate, onLogin | REQ-169 |
+| BR-07 | A TOTP code is accepted only if its time step is greater than `lastUsedTimeStep` of the same credential; on acceptance `lastUsedTimeStep` is updated; other credentials of the owner are unaffected | onLogin | REQ-170 |
+| BR-08 | A temporary password (`origin ≠ self-set`) MUST have `expiresAt`; after expiry it is rejected with the generic error of REQ-006; after a successful login with it only the password change is possible | onCreate, onLogin | REQ-173 |
+| BR-09 | Recovery codes are single use; at most one active set per owner; generating a new set revokes the previous one (`superseded`) | onCreate, onLogin | REQ-173 |
+| BR-10 | Revoking a credential, resetting a password or resetting a factor revokes all sessions of the owner | onUpdate | REQ-164, REQ-173 AC5 |
+| BR-11 | Exactly one owner (person with `personType=human` or system admin account) per credential | onCreate | ADR-032 §1 |
 
 ## Examples
 
@@ -156,8 +175,9 @@ id: "cred-9e1d5c3a-..."
 personId: "person-max-..."
 type: password
 status: revoked
-passwordHash: "$argon2id$v=19$m=65536,t=3,p=4$..."
-algorithm: argon2id
+passwordHash: "$argon2id$v=19$m=65536,t=3,p=1$..."
+origin: initial
+expiresAt: "2026-06-27T11:00:00Z"
 createdAt: "2026-06-24T11:00:00Z"
 revokedAt: "2026-06-25T10:00:00Z"
 revokedReason: superseded
@@ -175,7 +195,9 @@ revokedReason: superseded
 ## Delimitation from Similar Objects
 
 - **NOT** [person](./person.md): Person is the business identity in the EA repository; `LocalCredential` is exclusively authentication material without business EA content.
-- **NOT** [system-admin-account](./system-admin-account.md): The system admin account exists before the person/role system and has a directly embedded credential for bootstrapping; `LocalCredential` presupposes an existing person.
+- **NOT** [system-admin-account](./system-admin-account.md): the system admin account is an owner of local credentials, not a credential itself.
+- **NOT** [machine-credential](./machine-credential.md): client secrets of service accounts for the OAuth2 client credentials grant.
+- **NOT** [session](./session.md) / refresh token: result of a login, not the material that makes it possible.
 - **NOT** enrollment token: The token from UC-03 is a one-time access code for the enrollment itself and is invalidated after use; `LocalCredential` is the permanent result of the enrollment.
 - **NOT** OIDC session / access token: These arise after a successful login and authorize individual operations; `LocalCredential` is the persistent material that makes the login possible in the first place.
 
@@ -192,13 +214,17 @@ revokedReason: superseded
 
 First modeling in the context of UC-03 (enrollment). Deliberately modeled as one BO with a type discriminator instead of three separate BOs (`PasskeyCredential`, `TotpCredential`, `PasswordCredential`): the shared fields (personId, status, lifecycle, audit attributes) outweigh the type-specific differences; separate BOs would needlessly bloat the traceability matrix.
 
+Version 0.3.0 applies the security review follow-ups (SEC-09, SEC-10, SEC-12): argon2id only (bcrypt truncates at 72 bytes), TOTP replay protection, temporary-password expiry, recovery codes as a further `type` (answers the former open question), and the system admin account as a second owner type so that its password and mandatory second factor follow the same rules (REQ-171). REQ-173 allows recovery codes or an admin factor reset; both are supported by the model.
+
 Open questions:
 
 - Should `deviceLabel` (passkey) be freely editable by the user, or is a default label from the authenticator (`authenticatorAttachment`) preferable?
-- Will a separate recovery code mechanism (recovery codes for lockout prevention) be modeled as a further `type` in this BO, or as a standalone BO?
+- Number and format of recovery codes (proposal: 10 codes, 10 Base32 characters each).
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | Business Engineer | Initial draft in the context of UC-03 enrollment |
+| 0.2.0 | 2026-06-28 | Business Engineer | Multiple active TOTP credentials per person (REQ-030); BR-02 repealed |
+| 0.3.0 | 2026-10-13 | Business Engineer | Security review / ADR-032: owner may be the system admin account; argon2id only (REQ-169); `lastUsedTimeStep` (REQ-170); temporary passwords with `origin`/`expiresAt` and type `recovery-codes` (REQ-173); `keyId` (REQ-188); `factor_reset`, `revokedBy`; BR-06 to BR-11 |

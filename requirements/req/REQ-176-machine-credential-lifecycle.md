@@ -14,7 +14,8 @@ references:
     - UC-02
   business_objects:
     - person
-    - role
+    - authorization-role
+    - machine-credential
   business_rules: []
   stakeholders:
     - SH-06

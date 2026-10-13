@@ -4,21 +4,23 @@ title: Admin Override for Property Visibility
 type: functional
 priority: should
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-28
 last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
     - UC-21
+    - UC-23
   business_objects:
     - metamodel-configuration
-    - role
+    - authorization-role
     - entity
   stakeholders:
     - SH-03
     - SH-06
-  adrs: []
+  adrs:
+    - ADR-032
 supersedes: []
 superseded_by: []
 ---
@@ -27,20 +29,45 @@ superseded_by: []
 
 ## Statement
 
-The system MUST provide a configurable **admin override**: users with a system role marked as `overridesPropertyVisibility=true` (default: `system-admin`) MUST be able to read all properties, regardless of `visibilityMode`. The override status MUST be recorded in the audit log when a restricted property is read by an override user. The list of override roles MUST be configurable only by principals holding the security administration permission `visibility:configure` (not by metamodel administrators); every change of the list MUST be audited, and a change that adds a role the acting principal holds MUST be flagged as self-benefiting (REQ-161).
+The system MUST provide a configurable **property-visibility override**: principals holding an authorization role marked `overridesPropertyVisibility=true` MUST be able to read all properties of the objects they can already read, regardless of `visibilityMode`. The override role list MUST be **empty by default** – no role, including `system-admin` and `security-admin`, holds the override unless it is added explicitly; without the override, access to a restricted property is granted only through its `readRoles` (REQ-124, REQ-126). The override MUST NOT grant access to objects the principal cannot otherwise read. Every read of a restricted property through the override MUST be recorded in the audit log. The override role list MUST be changeable only by principals holding `visibility:configure` (not by metamodel administrators); every change of the list MUST be audited, and a change that adds a role the acting principal holds MUST be flagged as self-benefiting (REQ-161).
 
 ## Rationale
 
-Without an admin override, security administrators and system admins are blind in an emergency (e.g. error analysis, data migration) to fields they restricted themselves. The override is explicitly configurable instead of hardcoded so that it can be adapted to the organization.
+Exceptional situations (error analysis, data migration) may require a principal to see restricted fields without being added to the `readRoles` of every property. The override is explicitly configurable instead of hardcoded so that it can be adapted to the organization.
 
 Security review SEC-03 / owner decision Q4 (2026-10-13): if the metamodel editor (EA manager) can add their own role to the override list, the restriction is circumvented by the people it is meant to restrict. Override configuration therefore belongs to security administration, separate from metamodel administration.
 
+Owner decision Q14 (2026-10-13, ADR-032 §4): nobody reads restricted properties by default, not even administrators. Administrators are not implicitly trusted with restricted content (e.g. security classifications, personal data categories); access follows `readRoles` like for any other role, and the override is an explicit, audited exception.
+
+## Type-Specific Fields
+
+### For type=functional
+
+**Inputs**:
+
+- Override role list (set of authorization role IDs), default: empty
+
+**Processing**:
+
+- On every read channel (REQ-160): a restricted property is readable if the principal holds a role in its `readRoles`, satisfies the connection scope (REQ-127), or holds a role in the override role list
+- The override is evaluated only for objects that pass object-level authorization (REQ-159)
+
+**Outputs**:
+
+- Audit event `property-override-access` per override read; audit event `visibility.override-changed` per list change
+
+**Error cases**:
+
+- Change of the override role list without `visibility:configure` → 403, list unchanged
+- Unknown role ID in the override role list → 422, list unchanged
+
 ## Acceptance Criteria
 
-**AC1** (Override effective):
+**AC1** (Override effective once configured):
 
-- When: a user with the `system-admin` role retrieves an entity with restricted properties
-- Then: all values are returned; `visibilityMode` has no effect
+- Given: the override role list contains the role `migration-support`
+- When: a principal holding `migration-support` and `viewer` retrieves an entity with restricted properties
+- Then: all property values are returned; `visibilityMode` has no effect
 
 **AC2** (Audit log entry):
 
@@ -64,10 +91,33 @@ Security review SEC-03 / owner decision Q4 (2026-10-13): if the metamodel editor
 - When: they try to change the override role list via UI or API
 - Then: the request is rejected with 403 and the list is unchanged
 
+**AC6** (Empty by default):
+
+- Given: a fresh instance with the default configuration and a property with `visibilityMode=role-restricted` whose `readRoles` contain only `iso`
+- When: a principal holding `system-admin`, `security-admin` and `viewer`, but not `iso`, retrieves an entity with this property
+- Then: the property value is not returned (redacted, REQ-160), and the override role list retrieved via the admin API is empty
+
+**AC7** (No object access through the override):
+
+- Given: a principal holding only a role from the override role list (no `entity:read`, no `portal:read`)
+- When: it retrieves an entity
+- Then: the request is rejected with 403
+
+## Verification Method
+
+- [ ] Method: test (automated)
+- [ ] Test setup: fresh instance with default configuration; property with `role-restricted` visibility; principals with and without override roles
+- [ ] Pass criterion: AC1–AC7 green
+- [ ] Integrated in CI: yes, once the implementation exists
+
 ## Dependencies
 
 - **Prerequisites**: REQ-124 (data model), REQ-126 (enforcement), REQ-005 (audit log), REQ-157 (permission model), REQ-161 (governance of visibility configuration)
-- **Consequences**: –
+- **Consequences**: REQ-160 (override applies on every read channel)
+
+## Notes
+
+- US-128 and existing test material that assume `system-admin` as default override role must be aligned with the empty default (AC6).
 
 ## Change History
 
@@ -75,3 +125,4 @@ Security review SEC-03 / owner decision Q4 (2026-10-13): if the metamodel editor
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-03 / owner decision Q4: override list configurable only with `visibility:configure`, audited, self-benefit flagged (AC3 rewritten, AC5 added) |
+| 0.3.0 | 2026-10-13 | requirements-engineer | ADR-032 / owner decision Q14: override role list empty by default (no implicit `system-admin` override); restricted properties readable only via `readRoles` unless a role is explicitly added; override grants no object access; AC1 rewritten, AC6–AC7 and verification method added |

@@ -5,6 +5,7 @@
 **Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Consulted**: Requirements Engineer (UC-01 Login, REQ-001–REQ-011)
 **Informed**: –
+**Partially superseded**: 2026-10-13 by [ADR-032](./ADR-032-authorization-model.md) — authorization model (see ADR-032, Relation to Existing ADRs)
 
 ## Context and Problem
 

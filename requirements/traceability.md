@@ -5,7 +5,7 @@
 Traceability from use cases through requirements to user stories, derived from the
 frontmatter and reference sections of the artifacts.
 
-**Total UCs**: 22 | **Total REQs**: 193 | **Total USs**: 142
+**Total UCs**: 23 | **Total REQs**: 194 | **Total USs**: 150
 
 ---
 
@@ -19,8 +19,8 @@ frontmatter and reference sections of the artifacts.
 |---|---|---|---|---|
 | [REQ-001](req/REQ-001-oidc-login-session.md) | OIDC-based login and session creation | functional | must | [US-001](user-stories/US-001-oidc-login.md) |
 | [REQ-002](req/REQ-002-api-key-authentication.md) | API key authentication for machine-to-machine access _(rejected)_ | functional | should | [US-002](user-stories/US-002-api-key-auth.md) _(rejected)_ |
-| [REQ-003](req/REQ-003-access-without-role-assignment.md) | Restricted access without an active role assignment | business-rule | must | [US-003](user-stories/US-003-access-without-role.md) |
-| [REQ-004](req/REQ-004-reject-unknown-offboarded-person.md) | Rejection of session creation for unknown or offboarded persons | functional | must | [US-004](user-stories/US-004-reject-unknown-person.md) |
+| [REQ-003](req/REQ-003-access-without-role-assignment.md) | Restricted access without an active role assignment | business-rule | must | [US-003](user-stories/US-003-access-without-role.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md) |
+| [REQ-004](req/REQ-004-reject-unknown-offboarded-person.md) | Rejection of session creation for unknown or offboarded persons | functional | must | [US-004](user-stories/US-004-reject-unknown-person.md), [US-148](user-stories/US-148-revoke-access-on-offboarding.md) |
 | [REQ-005](req/REQ-005-audit-log-login.md) | Audit log entry for every login attempt | compliance | must | [US-005](user-stories/US-005-audit-log-login.md) |
 | [REQ-006](req/REQ-006-no-account-existence-disclosure.md) | No disclosure of account existence on failed login | constraint | must | [US-006](user-stories/US-006-generic-error-message.md) |
 | [REQ-007](req/REQ-007-lifecycle-transition-invited-active.md) | Lifecycle transition invited→active on first successful login | business-rule | should | [US-007](user-stories/US-007-lifecycle-invited-active.md) |
@@ -38,17 +38,17 @@ frontmatter and reference sections of the artifacts.
 | [REQ-135](req/REQ-135-dark-mode-system-default.md) | Dark Mode Support with System Default and User Preference | functional | should | – |
 | [REQ-136](req/REQ-136-local-auth-configurable.md) | Local Authentication Configurable by Operator | functional | must | – |
 | [REQ-137](req/REQ-137-auto-sso-redirect.md) | Automatic SSO Redirect to the Configured Identity Provider | functional | should | – |
-| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | – |
-| [REQ-158](req/REQ-158-deny-by-default-authorization.md) | Deny-by-default authorization on every API operation | constraint | must | – |
+| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md) |
+| [REQ-158](req/REQ-158-deny-by-default-authorization.md) | Deny-by-default authorization on every API operation | constraint | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md) |
 | [REQ-159](req/REQ-159-object-level-authorization.md) | Object-level authorization for addressed resources | functional | must | – |
 | [REQ-163](req/REQ-163-no-anonymous-access.md) | No anonymous access – every access requires authentication | constraint | must | – |
-| [REQ-164](req/REQ-164-session-termination-revocation.md) | Session termination and server-side revocation | functional | must | – |
-| [REQ-165](req/REQ-165-session-timeouts-token-storage.md) | Session timeouts and client token storage | non-functional | must | – |
+| [REQ-164](req/REQ-164-session-termination-revocation.md) | Session termination and server-side revocation | functional | must | [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-148](user-stories/US-148-revoke-access-on-offboarding.md) |
+| [REQ-165](req/REQ-165-session-timeouts-token-storage.md) | Session timeouts and client token storage | non-functional | must | [US-147](user-stories/US-147-map-idp-group-to-role.md) |
 | [REQ-166](req/REQ-166-oidc-hardening-identity-binding.md) | OIDC relying-party hardening with mandatory PKCE and immutable identity binding | constraint | must | – |
 | [REQ-168](req/REQ-168-local-auth-throttling.md) | Brute-force protection for local authentication | non-functional | must | – |
 | [REQ-170](req/REQ-170-totp-replay-protection.md) | TOTP replay protection | business-rule | should | – |
 | [REQ-171](req/REQ-171-mfa-privileged-accounts.md) | Mandatory MFA for privileged accounts | business-rule | must | – |
-| [REQ-175](req/REQ-175-security-event-logging.md) | Security event logging | compliance | must | – |
+| [REQ-175](req/REQ-175-security-event-logging.md) | Security event logging | compliance | must | [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-148](user-stories/US-148-revoke-access-on-offboarding.md), [US-150](user-stories/US-150-four-eyes-approval-privileged-assignment.md) |
 | [REQ-181](req/REQ-181-electron-hardening-local-data.md) | Electron runtime hardening and local data protection | constraint | must | – |
 | [REQ-187](req/REQ-187-http-security-baseline.md) | HTTP security headers, CORS, CSRF and cookie attributes | interface | must | – |
 | [REQ-193](req/REQ-193-generic-error-responses.md) | Generic error responses without internal details | interface | must | – |
@@ -65,21 +65,21 @@ frontmatter and reference sections of the artifacts.
 | [REQ-016](req/REQ-016-audit-log-bootstrapping.md) | Audit log entry for the bootstrapping process | compliance | must | [US-016](user-stories/US-016-audit-log-bootstrapping.md) |
 | [REQ-017](req/REQ-017-secure-setup-token-handover.md) | Secure handover of the setup token | constraint | must | [US-017](user-stories/US-017-secure-setup-token-handover.md) |
 | [REQ-018](req/REQ-018-warning-empty-admin-claim.md) | Warning on empty or non-existent remote admin claim | functional | should | [US-018](user-stories/US-018-warning-empty-admin-claim.md) |
-| [REQ-019](req/REQ-019-disable-local-admin.md) | Ability to deactivate the local system admin account when a remote mapping is active | business-rule | should | [US-019](user-stories/US-019-disable-local-admin.md) |
+| [REQ-019](req/REQ-019-disable-local-admin.md) | Ability to deactivate the local system admin account when a remote mapping is active | business-rule | should | [US-019](user-stories/US-019-disable-local-admin.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md) |
 | [REQ-075](req/REQ-075-platform-independent-deployment.md) | Platform independence and cloud operability | non-functional | must | – |
 | [REQ-082](req/REQ-082-data-backup-retention.md) | Data backup and point-in-time recovery | non-functional | must | – |
 | [REQ-135](req/REQ-135-dark-mode-system-default.md) | Dark Mode Support with System Default and User Preference | functional | should | – |
 | [REQ-136](req/REQ-136-local-auth-configurable.md) | Local Authentication Configurable by Operator | functional | must | – |
 | [REQ-150](req/REQ-150-multi-db-support.md) | Multi-Database Support _(rejected)_ | constraint | must | [US-139](user-stories/US-139-multi-db-operation.md) _(rejected)_ |
-| [REQ-155](req/REQ-155-service-account-management.md) | Service Account Management for External Systems | functional | should | [US-142](user-stories/US-142-create-service-account.md) |
+| [REQ-155](req/REQ-155-service-account-management.md) | Service Account Management for External Systems | functional | should | [US-142](user-stories/US-142-create-service-account.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md) |
 | [REQ-156](req/REQ-156-postgresql-only-database.md) | PostgreSQL as the only supported database | constraint | must | – |
-| [REQ-167](req/REQ-167-immutable-admin-claim-mapping.md) | Immutable claim values for remote admin mapping | business-rule | must | – |
+| [REQ-167](req/REQ-167-immutable-admin-claim-mapping.md) | Immutable claim values for remote admin mapping | business-rule | must | [US-147](user-stories/US-147-map-idp-group-to-role.md) |
 | [REQ-168](req/REQ-168-local-auth-throttling.md) | Brute-force protection for local authentication | non-functional | must | – |
 | [REQ-169](req/REQ-169-password-storage-quality.md) | Password storage and password quality | non-functional | must | – |
 | [REQ-171](req/REQ-171-mfa-privileged-accounts.md) | Mandatory MFA for privileged accounts | business-rule | must | – |
 | [REQ-172](req/REQ-172-reauthentication-sensitive-actions.md) | Re-authentication and notification for sensitive account actions | functional | should | – |
 | [REQ-173](req/REQ-173-account-recovery-temporary-passwords.md) | Account recovery and temporary password lifecycle | functional | must | – |
-| [REQ-176](req/REQ-176-machine-credential-lifecycle.md) | Machine credential lifecycle and scoping (OAuth2 client credentials only) | functional | must | – |
+| [REQ-176](req/REQ-176-machine-credential-lifecycle.md) | Machine credential lifecycle and scoping (OAuth2 client credentials only) | functional | must | [US-149](user-stories/US-149-assign-roles-to-service-account.md) |
 | [REQ-178](req/REQ-178-outbound-request-controls.md) | Controls for server-side outbound requests | constraint | must | – |
 | [REQ-182](req/REQ-182-signed-client-updates.md) | Signed client builds and verified updates | constraint | must | – |
 | [REQ-183](req/REQ-183-production-safe-defaults.md) | Production-safe defaults without development authentication bypass | constraint | must | – |
@@ -135,7 +135,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-148](req/REQ-148-property-mapping-effective-date.md) | Property Mapping Effective Date Changeable | functional | should | [US-137](user-stories/US-137-change-property-mapping-effective-date.md) |
 | [REQ-149](req/REQ-149-property-validation-necessity.md) | Property Validation by Necessity | functional | must | [US-138](user-stories/US-138-property-validation-mandatory-warning.md) |
 | [REQ-152](req/REQ-152-dynamic-labels-etag.md) | Dynamic Labels with ETag Caching | interface | must | [US-140](user-stories/US-140-load-dynamic-labels.md) |
-| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | – |
+| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md) |
 | [REQ-184](req/REQ-184-safe-import-parsing.md) | Safe parsing of imported files | constraint | must | – |
 | [REQ-185](req/REQ-185-bounded-expression-evaluation.md) | Bounded evaluation of user-defined expressions | non-functional | must | – |
 
@@ -309,7 +309,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-151](req/REQ-151-audit-schema-separation.md) | Audit Data Storage Immutable and Schema-Separated | compliance | must | – |
 | [REQ-160](req/REQ-160-visibility-on-all-read-channels.md) | Property visibility enforced on every read channel | functional | must | – |
 | [REQ-174](req/REQ-174-audit-tamper-resistance.md) | Audit store tamper resistance | compliance | must | – |
-| [REQ-175](req/REQ-175-security-event-logging.md) | Security event logging | compliance | must | – |
+| [REQ-175](req/REQ-175-security-event-logging.md) | Security event logging | compliance | must | [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-148](user-stories/US-148-revoke-access-on-offboarding.md), [US-150](user-stories/US-150-four-eyes-approval-privileged-assignment.md) |
 | [REQ-189](req/REQ-189-data-subject-rights-persons.md) | Data subject rights and minimization for persons | compliance | must | – |
 | [REQ-190](req/REQ-190-soft-deleted-data-retention.md) | Retention of soft-deleted data | compliance | should | – |
 
@@ -397,9 +397,9 @@ frontmatter and reference sections of the artifacts.
 | [REQ-128](req/REQ-128-property-visibility-admin-override.md) | Admin Override for Property Visibility | functional | should | [US-128](user-stories/US-128-admin-override-property-visibility.md) |
 | [REQ-129](req/REQ-129-data-encryption.md) | Data Encryption (at-rest and in-transit) | non-functional | must | – |
 | [REQ-131](req/REQ-131-graph-traversal-latency.md) | Graph Traversal Latency (ABAC connection-scoped) | non-functional | must | – |
-| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | – |
+| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md) |
 | [REQ-160](req/REQ-160-visibility-on-all-read-channels.md) | Property visibility enforced on every read channel | functional | must | – |
-| [REQ-161](req/REQ-161-visibility-configuration-governance.md) | Governance of visibility configuration and scoping connections | business-rule | must | – |
+| [REQ-161](req/REQ-161-visibility-configuration-governance.md) | Governance of visibility configuration and scoping connections | business-rule | must | [US-128](user-stories/US-128-admin-override-property-visibility.md) |
 | [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | – |
 
 ### [UC-22](use-cases/UC-22-import-current-state-from-source-system.md): Import Current State from Source System
@@ -412,16 +412,28 @@ frontmatter and reference sections of the artifacts.
 | [REQ-154](req/REQ-154-batch-write-upsert.md) | Batch Write for Entities and Connections | functional | should | [US-141](user-stories/US-141-entity-batch-import.md) |
 | [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | – |
 | [REQ-174](req/REQ-174-audit-tamper-resistance.md) | Audit store tamper resistance | compliance | must | – |
-| [REQ-176](req/REQ-176-machine-credential-lifecycle.md) | Machine credential lifecycle and scoping (OAuth2 client credentials only) | functional | must | – |
+| [REQ-176](req/REQ-176-machine-credential-lifecycle.md) | Machine credential lifecycle and scoping (OAuth2 client credentials only) | functional | must | [US-149](user-stories/US-149-assign-roles-to-service-account.md) |
 | [REQ-177](req/REQ-177-external-id-ownership.md) | Ownership of external ID namespaces | business-rule | should | – |
 | [REQ-186](req/REQ-186-rate-limits-resource-quotas.md) | Rate limiting and resource quotas | non-functional | must | – |
 | [REQ-193](req/REQ-193-generic-error-responses.md) | Generic error responses without internal details | interface | must | – |
+
+### [UC-23](use-cases/UC-23-manage-roles-and-role-assignments.md): Manage Roles and Role Assignments
+
+**Primary Actor**: SH-06 | **Priority**: must | **Status**: draft
+
+| REQ | Title | Type | Priority | USs |
+|---|---|---|---|---|
+| [REQ-003](req/REQ-003-access-without-role-assignment.md) | Restricted access without an active role assignment | business-rule | must | [US-003](user-stories/US-003-access-without-role.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md) |
+| [REQ-128](req/REQ-128-property-visibility-admin-override.md) | Admin Override for Property Visibility | functional | should | [US-128](user-stories/US-128-admin-override-property-visibility.md) |
+| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md) |
+| [REQ-165](req/REQ-165-session-timeouts-token-storage.md) | Session timeouts and client token storage | non-functional | must | [US-147](user-stories/US-147-map-idp-group-to-role.md) |
+| [REQ-194](req/REQ-194-privileged-assignment-four-eyes-approval.md) | Optional four-eyes approval for privileged role assignments | business-rule | should | [US-150](user-stories/US-150-four-eyes-approval-privileged-assignment.md) |
 
 ## 2. UC × Concept × ADR
 
 | UC | Concept Chapters | ADRs |
 |---|---|---|
-| [UC-01](use-cases/UC-01-login.md) | [§21 API Architecture and Modularity](../concept/70-platform/21-api-architecture.md), [§8 Organization, Roles, and Persons](../concept/20-entities/08-organization-roles-persons.md) | [ADR-006](../adrs/ADR-006-auth-stack-choice.md) |
+| [UC-01](use-cases/UC-01-login.md) | [§21 API Architecture and Modularity](../concept/70-platform/21-api-architecture.md), [§8 Organization, Roles, and Persons](../concept/20-entities/08-organization-roles-persons.md) | [ADR-006](../adrs/ADR-006-auth-stack-choice.md), [ADR-032](../adrs/ADR-032-authorization-model.md) |
 | [UC-02](use-cases/UC-02-system-admin-bootstrapping.md) | [§21 API Architecture and Modularity](../concept/70-platform/21-api-architecture.md) | [ADR-006](../adrs/ADR-006-auth-stack-choice.md) |
 | [UC-03](use-cases/UC-03-set-up-authentication-method.md) | [§21 API Architecture and Modularity](../concept/70-platform/21-api-architecture.md), [§8 Organization, Roles, and Persons](../concept/20-entities/08-organization-roles-persons.md) | [ADR-006](../adrs/ADR-006-auth-stack-choice.md) |
 | [UC-04](use-cases/UC-04-configure-metamodel.md) | [§6 Core Entity Types](../concept/20-entities/06-core-entity-types.md), [§14 Extensibility](../concept/40-extensibility/14-extensibility.md), [§15 Schema Evolution](../concept/40-extensibility/15-schema-evolution.md) | – |
@@ -443,6 +455,7 @@ frontmatter and reference sections of the artifacts.
 | [UC-20](use-cases/UC-20-analyze-continuum-conformance.md) | [§4 Enterprise Continuum and Technical Reference Model](../concept/10-foundations/04-enterprise-continuum-trm.md) | – |
 | [UC-21](use-cases/UC-21-configure-property-visibility.md) | [§6 Core Entity Types](../concept/20-entities/06-core-entity-types.md), [§8 Organization, Roles, and Persons](../concept/20-entities/08-organization-roles-persons.md) | – |
 | [UC-22](use-cases/UC-22-import-current-state-from-source-system.md) | [§21 API Architecture and Modularity](../concept/70-platform/21-api-architecture.md), [§17 ITSM Integration (CMDB and Service Catalog)](../concept/60-integrations/17-itsm-integration.md), [§11 Temporal Model](../concept/30-dynamics/11-temporal-model.md) | [ADR-024](../adrs/ADR-024-audit-separation.md), [ADR-026](../adrs/ADR-026-external-system-integration.md) |
+| [UC-23](use-cases/UC-23-manage-roles-and-role-assignments.md) | [§21 API Architecture and Modularity](../concept/70-platform/21-api-architecture.md), [§8 Organization, Roles, and Persons](../concept/20-entities/08-organization-roles-persons.md) | [ADR-006](../adrs/ADR-006-auth-stack-choice.md), [ADR-026](../adrs/ADR-026-external-system-integration.md), [ADR-032](../adrs/ADR-032-authorization-model.md) |
 
 ## 3. REQ Type Overview
 
@@ -451,7 +464,7 @@ frontmatter and reference sections of the artifacts.
 | functional | 136 |
 | constraint | 16 |
 | non-functional | 16 |
-| business-rule | 11 |
+| business-rule | 12 |
 | compliance | 9 |
 | interface | 4 |
 | data | 1 |
@@ -482,13 +495,14 @@ frontmatter and reference sections of the artifacts.
 | UC-20 | 3 | 13 |
 | UC-21 | 5 | 22 |
 | UC-22 | 1 | 5 |
-| **Total** | | **579** |
+| UC-23 | 8 | 30 |
+| **Total** | | **609** |
 
 ## 5. Coverage Gaps
 
 ### REQs without US
 
-[REQ-071](req/REQ-071-catalog-query-latency.md), [REQ-072](req/REQ-072-canvas-rendering-latency.md), [REQ-073](req/REQ-073-system-availability.md), [REQ-074](req/REQ-074-concurrent-user-scalability.md), [REQ-075](req/REQ-075-platform-independent-deployment.md), [REQ-082](req/REQ-082-data-backup-retention.md), [REQ-083](req/REQ-083-audit-log-retention.md), [REQ-129](req/REQ-129-data-encryption.md), [REQ-130](req/REQ-130-wcag-accessibility.md), [REQ-131](req/REQ-131-graph-traversal-latency.md), [REQ-135](req/REQ-135-dark-mode-system-default.md), [REQ-136](req/REQ-136-local-auth-configurable.md), [REQ-137](req/REQ-137-auto-sso-redirect.md), [REQ-143](req/REQ-143-inline-column-filter.md), [REQ-144](req/REQ-144-shape-palette-panel.md), [REQ-145](req/REQ-145-shape-drag-entity-lookup.md), [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md), [REQ-147](req/REQ-147-api-completeness-automation.md), [REQ-151](req/REQ-151-audit-schema-separation.md), [REQ-156](req/REQ-156-postgresql-only-database.md), [REQ-157](req/REQ-157-permission-model.md), [REQ-158](req/REQ-158-deny-by-default-authorization.md), [REQ-159](req/REQ-159-object-level-authorization.md), [REQ-160](req/REQ-160-visibility-on-all-read-channels.md), [REQ-161](req/REQ-161-visibility-configuration-governance.md), [REQ-162](req/REQ-162-property-write-protection-all-paths.md), [REQ-163](req/REQ-163-no-anonymous-access.md), [REQ-164](req/REQ-164-session-termination-revocation.md), [REQ-165](req/REQ-165-session-timeouts-token-storage.md), [REQ-166](req/REQ-166-oidc-hardening-identity-binding.md), [REQ-167](req/REQ-167-immutable-admin-claim-mapping.md), [REQ-168](req/REQ-168-local-auth-throttling.md), [REQ-169](req/REQ-169-password-storage-quality.md), [REQ-170](req/REQ-170-totp-replay-protection.md), [REQ-171](req/REQ-171-mfa-privileged-accounts.md), [REQ-172](req/REQ-172-reauthentication-sensitive-actions.md), [REQ-173](req/REQ-173-account-recovery-temporary-passwords.md), [REQ-174](req/REQ-174-audit-tamper-resistance.md), [REQ-175](req/REQ-175-security-event-logging.md), [REQ-176](req/REQ-176-machine-credential-lifecycle.md), [REQ-177](req/REQ-177-external-id-ownership.md), [REQ-178](req/REQ-178-outbound-request-controls.md), [REQ-179](req/REQ-179-secured-raw-query-analytics.md), [REQ-180](req/REQ-180-safe-rendering-user-content.md), [REQ-181](req/REQ-181-electron-hardening-local-data.md), [REQ-182](req/REQ-182-signed-client-updates.md), [REQ-183](req/REQ-183-production-safe-defaults.md), [REQ-184](req/REQ-184-safe-import-parsing.md), [REQ-185](req/REQ-185-bounded-expression-evaluation.md), [REQ-186](req/REQ-186-rate-limits-resource-quotas.md), [REQ-187](req/REQ-187-http-security-baseline.md), [REQ-188](req/REQ-188-secrets-key-management.md), [REQ-189](req/REQ-189-data-subject-rights-persons.md), [REQ-190](req/REQ-190-soft-deleted-data-retention.md), [REQ-191](req/REQ-191-supply-chain-integrity.md), [REQ-192](req/REQ-192-ci-least-privilege.md), [REQ-193](req/REQ-193-generic-error-responses.md)
+[REQ-071](req/REQ-071-catalog-query-latency.md), [REQ-072](req/REQ-072-canvas-rendering-latency.md), [REQ-073](req/REQ-073-system-availability.md), [REQ-074](req/REQ-074-concurrent-user-scalability.md), [REQ-075](req/REQ-075-platform-independent-deployment.md), [REQ-082](req/REQ-082-data-backup-retention.md), [REQ-083](req/REQ-083-audit-log-retention.md), [REQ-129](req/REQ-129-data-encryption.md), [REQ-130](req/REQ-130-wcag-accessibility.md), [REQ-131](req/REQ-131-graph-traversal-latency.md), [REQ-135](req/REQ-135-dark-mode-system-default.md), [REQ-136](req/REQ-136-local-auth-configurable.md), [REQ-137](req/REQ-137-auto-sso-redirect.md), [REQ-143](req/REQ-143-inline-column-filter.md), [REQ-144](req/REQ-144-shape-palette-panel.md), [REQ-145](req/REQ-145-shape-drag-entity-lookup.md), [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md), [REQ-147](req/REQ-147-api-completeness-automation.md), [REQ-151](req/REQ-151-audit-schema-separation.md), [REQ-156](req/REQ-156-postgresql-only-database.md), [REQ-159](req/REQ-159-object-level-authorization.md), [REQ-160](req/REQ-160-visibility-on-all-read-channels.md), [REQ-162](req/REQ-162-property-write-protection-all-paths.md), [REQ-163](req/REQ-163-no-anonymous-access.md), [REQ-166](req/REQ-166-oidc-hardening-identity-binding.md), [REQ-168](req/REQ-168-local-auth-throttling.md), [REQ-169](req/REQ-169-password-storage-quality.md), [REQ-170](req/REQ-170-totp-replay-protection.md), [REQ-171](req/REQ-171-mfa-privileged-accounts.md), [REQ-172](req/REQ-172-reauthentication-sensitive-actions.md), [REQ-173](req/REQ-173-account-recovery-temporary-passwords.md), [REQ-174](req/REQ-174-audit-tamper-resistance.md), [REQ-177](req/REQ-177-external-id-ownership.md), [REQ-178](req/REQ-178-outbound-request-controls.md), [REQ-179](req/REQ-179-secured-raw-query-analytics.md), [REQ-180](req/REQ-180-safe-rendering-user-content.md), [REQ-181](req/REQ-181-electron-hardening-local-data.md), [REQ-182](req/REQ-182-signed-client-updates.md), [REQ-183](req/REQ-183-production-safe-defaults.md), [REQ-184](req/REQ-184-safe-import-parsing.md), [REQ-185](req/REQ-185-bounded-expression-evaluation.md), [REQ-186](req/REQ-186-rate-limits-resource-quotas.md), [REQ-187](req/REQ-187-http-security-baseline.md), [REQ-188](req/REQ-188-secrets-key-management.md), [REQ-189](req/REQ-189-data-subject-rights-persons.md), [REQ-190](req/REQ-190-soft-deleted-data-retention.md), [REQ-191](req/REQ-191-supply-chain-integrity.md), [REQ-192](req/REQ-192-ci-least-privilege.md), [REQ-193](req/REQ-193-generic-error-responses.md)
 
 ### REQs without UC reference
 

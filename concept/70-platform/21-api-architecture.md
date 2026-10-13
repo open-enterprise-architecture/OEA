@@ -242,23 +242,23 @@ Further process notations (EPC, VSM, DMN for decision logic) can follow as analo
 
 ```yaml
 Authentication:
-  - OAuth 2.0 / OIDC (standard, incl. SSO via existing identity provider session)
-  - API keys for machine-to-machine
+  - OAuth 2.0 / OIDC with PKCE (standard, incl. SSO via existing identity provider session)
+  - OAuth 2.0 client credentials for machine-to-machine (service accounts, no API keys)
   - Optional mutual TLS for highest security requirements
   - Local authentication (optional, for self-hosting without an external IdP):
     - Passkey / WebAuthn (passwordless, standard for local auth)
     - Username/password with TOTP as second factor
     - Username/password without a second factor (minimal variant, not recommended)
 
-Authorization:
-  - Role-based (RBAC) as standard
-  - Attribute-based (ABAC) optional – for domain/scope-specific permissions
-  - Permission level: read | write | admin per resource
-  - Special permissions: schema-modify, plateau-create, waiver-grant
-  - Property-level authorization (mandatory feature)
+Authorization (ADR-032):
+  - RBAC with a fixed, versioned permission catalog (e.g. entity:write, metamodel:write, visibility:configure, analytics:query)
+  - Roles are configurable sets of permissions; built-in roles cannot be changed
+  - Deny by default: every API operation declares its required permission
+  - Object-level checks and property-level authorization (mandatory feature)
+  - Separation of duties: nobody changes their own access; metamodel and security administration are separate roles
 ```
 
-Roles in the metamodel (see [§8.2 (Organization & Roles)](../20-entities/08-organization-roles-persons.md)) can be used directly as authorization roles – a person who holds the role "Enterprise Architect" also gets the corresponding API permissions.
+**Authorization roles are not business roles.** The roles modeled in the repository (see [§8.2 (Organization & Roles)](../20-entities/08-organization-roles-persons.md), e.g. "Process Owner" or "Enterprise Architect" as an organizational role) are EA content: they describe the organization and never grant permissions in OEA. Access to OEA is controlled only by authorization roles, assigned locally or mapped from IdP groups via immutable identifiers (ADR-032). A person account may be linked to its EA person entity, which is used for connection-scoped property visibility.
 
 **Local authentication**: OIDC presupposes an existing identity provider. For single-user and SME self-hosting without a dedicated IdP team (see stakeholders SH-03, SH-06), OEA must also be operable without an external IdP. The local mechanisms are deliberately tiered: passkey/WebAuthn as the recommended standard (passwordless, phishing-resistant), username/password with TOTP as second factor for environments without WebAuthn support, and username/password without a second factor as a deliberately risky minimal variant that is flagged accordingly in the audit log. All local mechanisms are optional and do not exclude OIDC – an OEA instance can offer both paths in parallel.
 

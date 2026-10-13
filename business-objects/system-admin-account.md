@@ -2,7 +2,7 @@
 identifier: system-admin-account
 name_de: System-Admin-Account
 name_en: System Admin Account
-version: 0.1.0
+version: 0.2.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -12,41 +12,52 @@ aliases:
 related_capabilities: []
 references:
   - concept: concept/70-platform/21-api-architecture.md
+  - adr: adrs/ADR-032-authorization-model.md
 ---
 
 # Business Object: System Admin Account
 
 ## Definition
 
-A system admin account is a privileged, instance-wide access for administering an OEA instance itself (initial configuration, IdP setup, emergency access) – independent of the [Person](./person.md) and [Role](./role.md) objects modeled in the EA repository from a business perspective.
+A system admin account is the local, privileged bootstrap account for administering an OEA instance (initial configuration, IdP setup, emergency access). It is not a [person](./person.md) and holds exactly the permissions of the built-in [authorization role](./authorization-role.md) `system-admin`.
 
 ## Description
 
-The system admin account solves the chicken-and-egg problem of a freshly installed OEA instance: before any person with a RoleAssignment exists in the repository, an access must already exist in order to be able to configure the instance at all (see [UC-02 Bootstrapping](../requirements/use-cases/UC-02-system-admin-bootstrapping.md)). It is therefore deliberately decoupled from person/role and is not, for example, a special RoleAssignment.
+The system admin account solves the chicken-and-egg problem of a freshly installed OEA instance: before any person holds an authorization role, an access must exist in order to configure the instance (see [UC-02 Bootstrapping](../requirements/use-cases/UC-02-system-admin-bootstrapping.md)). It is therefore deliberately decoupled from persons and role assignments.
 
-According to [ADR-006](../adrs/ADR-006-auth-stack-choice.md), a system admin account can be realized in two ways:
+**Paths to system administration** ([ADR-032](../adrs/ADR-032-authorization-model.md) §1, §7, DM-6):
 
-- **local**: a built-in account with its own credential (password or setup token), independent of any external identity provider
-- **remote**: a mapping "whoever logs in with group/role claim X at Entra ID/Authentik receives system admin rights" – without a locally stored credential
+- **local**: this business object – a built-in account with its own [local credentials](./local-credential.md) (password and second factor)
+- **remote**: an [IdP group mapping](./idp-group-mapping.md) with role `system-admin` ("whoever logs in with group ID X from issuer Y receives `system-admin`"). The remote mode is no longer an attribute of this business object; it is configured and audited like any other IdP group mapping, with an immutable group identifier (REQ-014, REQ-167).
+- **assigned**: a [role assignment](./role-assignment.md) of `system-admin` to an active person
+
+SoD-7 requires at least one usable path at all times; deactivating the local account is rejected if it is the last one.
+
+The account may be linked to the person of the administrator (`linkedPerson`). For separation of duties (SoD-1) both count as the same principal: the account cannot change the role assignments, IdP mappings or account link of the linked person.
 
 ## Attributes
 
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| mode | enum | required | local | `[local, remote]` | Bootstrapping mode |
-| localCredentialHash | string | optional | | only set if `mode=local` | Password/setup token hash (never plaintext) |
-| remoteIdpReference | composite | optional | | only set if `mode=remote`; fields: `provider` (entra-id \| authentik), `claimType` (group \| role), `claimValue` (string) | Mapping to an IdP claim that grants system admin rights |
+| id | string | required | | UUID | Primary key |
+| loginName | string | required | | unique | Login name of the local account |
+| status | enum | required | bootstrapped | `[bootstrapped, active, deactivated]` | Lifecycle status (replaces `active: boolean`) |
+| linkedPerson | reference | optional | | target: person (human); unique | Optional link to the administrator's person (SoD-1) |
 | createdAt | datetime | required | | | Time of bootstrapping |
+| firstLoginAt | datetime | optional | | | First login – the only login without second factor; enrollment is forced in it (REQ-171 AC1) |
 | lastUsedAt | datetime | optional | | | Last successful use |
-| active | boolean | required | true | | Whether the account is currently usable |
+| deactivatedAt / deactivatedBy | datetime / principal | optional | | | Deactivation |
+
+Removed in 0.2.0: `mode`, `remoteIdpReference` (now an IdP group mapping, DM-6), `localCredentialHash` (now a password [local credential](./local-credential.md) owned by this account, argon2id only per REQ-169), `active` (now `status`).
 
 ## Relationships
 
 | Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
-| optionallyLinkedTo | [person](./person.md) | 1:1 | yes | Subsequent, purely informational link to a person, in case the admin later also maps themselves as a regular person with a role in the repository – no business necessity |
-
-**Notes**: There is deliberately **no** mandatory relationship to person or role – that is the entire purpose of this object compared to the regular authentication from UC-01.
+| ownsCredentials | [local-credential](./local-credential.md) | 1:n | no (after bootstrap) | Password, second factor, break-glass recovery password |
+| linkedTo | [person](./person.md) | 1:1 | yes | Same principal for SoD-1 |
+| hasSessions | [session](./session.md) | 1:n | yes | Login sessions |
+| alternativePath | [idp-group-mapping](./idp-group-mapping.md) (role `system-admin`) | – | yes | Remote system administration (counts for SoD-7) |
 
 ## Lifecycle
 
@@ -56,54 +67,61 @@ bootstrapped → active → deactivated
 
 **States**:
 
-- `bootstrapped`: Account was created during initial installation, not yet used
-- `active`: Account is actively usable
-- `deactivated`: Account was deliberately deactivated (e.g. after establishing regular IdP governance, see business rule BR-02)
+- `bootstrapped`: created during installation, not yet used
+- `active`: usable; second factor enrolled
+- `deactivated`: deliberately deactivated (e.g. after establishing IdP governance, BR-02); sessions revoked
 
 **Transitions**:
 
-- `bootstrapped → active`: first successful login with the account
-- `active → deactivated`: manually by an existing system admin account or a person with the corresponding authority
+- `bootstrapped → active`: first successful login including enrollment of a second factor (REQ-171 AC1)
+- `active → deactivated`: by a principal with `system-admin` permissions; rejected if no other path to `system-admin` remains (SoD-7)
 
 ## Business Rules
 
 | Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
-| BR-01 | At most one bootstrapping process may be active per instance at any time (no parallel initial setup) | onCreate | – |
-| BR-02 | A local system admin account SHOULD be deactivatable as soon as at least one external IdP with an admin mapping is configured (recommendation, not a hard constraint) | onUpdate | – |
-| BR-03 | Instance-wide enforcement of a second factor for regular persons (see REQ-020) does NOT apply to the system admin account | onLogin | – |
+| BR-01 | At most one bootstrapping process may be active per instance at any time (no parallel initial setup) | onCreate | REQ-015 |
+| BR-02 | A local system admin account SHOULD be deactivatable as soon as at least one active IdP group mapping to `system-admin` exists (recommendation, not a hard constraint) | onUpdate | REQ-019 |
+| BR-03 | The system admin account MUST use a second factor (passkey or TOTP) for every login after the first bootstrap login; the first login forces enrollment before any administrative action; no configuration (REQ-020, REQ-029) can exempt it | onLogin | REQ-171 (replaces the former exemption) |
+| BR-04 | The account holds exactly the permissions of `system-admin` and no other role | onRequest | ADR-032 §1 |
+| BR-05 | The account and its linked person count as one principal for SoD-1 | onUpdate (authorization configuration) | ADR-032 SoD-1 |
+| BR-06 | Deactivating the account is rejected (409) if it is the last usable path to `system-admin` | onUpdate | ADR-032 SoD-7 |
 
 ## Examples
 
 **Example 1**: Local bootstrap admin
 
 ```yaml
-mode: local
-localCredentialHash: "<argon2id-hash>"
+loginName: admin
+status: active
 createdAt: 2026-06-24T10:00:00Z
-active: true
+firstLoginAt: 2026-06-24T10:05:00Z
+credentials:
+  - type: password        # argon2id
+  - type: totp
 ```
 
-**Example 2**: Remote-mapped admin (Entra ID)
+**Example 2**: Remote system admin (IdP group mapping, not this object)
 
 ```yaml
-mode: remote
-remoteIdpReference:
-  provider: entra-id
-  claimType: group
-  claimValue: "oea-system-admins"
-createdAt: 2026-06-24T10:00:00Z
-active: true
+# idp-group-mapping
+authProvider: entra-prod
+claimType: group
+groupIdentifier: "3f2b9c1e-6a4d-4b8e-9f10-2c7d5e8a1b44"   # group object ID, never the display name
+displayLabel: "oea-system-admins"
+role: system-admin
 ```
 
 ## Delimitation from Similar Objects
 
-- **NOT** [person](./person.md) / [role](./role.md): These model business responsibility within the EA repository; the system admin account is pure instance administration and may exist before any person is created in the repository.
-- **NOT** the regular local authentication from REQ-011 (username/password without a second factor): that presupposes an already existing person with a RoleAssignment; the system admin account exists independently of this and explicitly serves bootstrapping.
+- **NOT** [person](./person.md): the system admin account exists before any person and is pure instance administration.
+- **NOT** a [role assignment](./role-assignment.md) of `system-admin`: that requires an existing person.
+- **NOT** the regular local authentication (REQ-011) of persons.
 
 ## Usage in Use Cases
 
 - [UC-02: System Admin Bootstrapping](../requirements/use-cases/UC-02-system-admin-bootstrapping.md)
+- [UC-23: Manage Roles and Role Assignments](../requirements/use-cases/UC-23-manage-roles-and-role-assignments.md) (administration path, SoD-1/SoD-7)
 
 ## Concept Reference
 
@@ -111,10 +129,13 @@ active: true
 
 ## Notes
 
-First modeling in the context of UC-02 (bootstrapping). Deliberately kept minimal – multi-admin scenarios (several parallel system admin accounts) and recovery/break-glass procedures are noted as open questions in UC-02, not decided here in advance.
+Version 0.2.0 aligns the business object with ADR-032 DM-6, REQ-167 (immutable claim identifiers, security review SEC-08), REQ-171 (MFA, SEC-10), REQ-169 (argon2id) and REQ-173 (break-glass recovery credential = temporary password credential with expiry). The account was previously not represented in `docs/data-model.puml`; it is now the table `system_admin_accounts`. Its credentials reuse `local_credentials` (owner = system admin account) instead of an embedded hash, so that password policy, second factor, revocation and break-glass follow the same rules as for persons.
+
+Open: multi-admin scenarios (several local system admin accounts) are not constrained by the data model; UC-02 keeps this as an open question.
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | Business Engineer | Initial draft in the context of UC-02 Bootstrapping |
+| 0.2.0 | 2026-10-13 | Business Engineer | ADR-032 DM-6: remote mode = IdP group mapping to `system-admin` (immutable IDs, REQ-167); BR-03 aligned with REQ-171 (MFA after first login); credentials moved to `local-credential`; `status` lifecycle; `linkedPerson` for SoD-1; BR-04 to BR-06 |

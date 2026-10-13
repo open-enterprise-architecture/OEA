@@ -5,7 +5,7 @@ status: draft
 priority: must
 target_release: walking-skeleton
 complexity: small
-version: 0.5.1
+version: 0.6.0
 created: 2026-06-24
 last_updated: 2026-10-13
 primary_actor: SH-03
@@ -22,6 +22,7 @@ references:
   related_use_cases:
     - UC-02
     - UC-03
+    - UC-23
 ---
 
 # UC-01: Login
@@ -85,7 +86,7 @@ Kurt manages the architecture repository via Git/Markdown, but also uses UI and 
 ## Preconditions
 
 - [ ] A [Person](../../business-objects/person.md) with a valid `email`/`externalReference` exists
-- [ ] The person is assigned at least one active [Role](../../business-objects/role.md) (RoleAssignment with `validFrom <= today <= validTo`)
+- [ ] The person holds at least one active authorization role ([ADR-032](../../adrs/ADR-032-authorization-model.md)): a local role assignment (`validFrom <= now`, `validTo` not reached, not revoked) or a role derived from an IdP group mapping, granted via [UC-23](./UC-23-manage-roles-and-role-assignments.md). Business roles modeled as EA content (RoleAssignment connection to a Role entity, concept §8.3) grant no access
 - [ ] At least one authentication mechanism is configured for the OEA instance (see concept §21.8): OIDC identity provider (incl. SSO), and/or local authentication (passkey, username/password optionally with TOTP)
 - [ ] If the operator has enabled enforcement of a second factor during commissioning (see REQ-020): A5 (username/password without a second factor) is not usable for regular persons – the system admin account from UC-02 is exempt only for its first bootstrap login; privileged accounts always need a second factor (REQ-171)
 - [ ] If local authentication with passkey or TOTP is used: the person has previously registered the respective factor (enrollment, see "Out of Scope")
@@ -112,7 +113,7 @@ Kurt manages the architecture repository via Git/Markdown, but also uses UI and 
 3. **Kurt**: authenticates with the identity provider (e.g., with a corporate account)
 4. **Identity provider**: confirms the identity, redirects back to OEA with an authorization code
 5. **System**: redeems the authorization code with the identity provider, receives the identity token, and verifies its validity (by default local signature verification against the provider's JWKS; optionally additionally an online check with the IdP, e.g., token introspection, if configured for the instance)
-6. **System**: matches the identity contained in the token with the [Person](../../business-objects/person.md) object in the repository and loads its active [Role](../../business-objects/role.md) assignments
+6. **System**: matches the identity contained in the token with the [Person](../../business-objects/person.md) object in the repository and determines its active authorization roles (local role assignments and roles derived from IdP group mappings, ADR-032 §7)
 7. **System**: creates a session with the corresponding permissions, confirms the successful login to Kurt and shows his role-based entry area
 
 ## Alternative Flows
@@ -174,9 +175,9 @@ Kurt manages the architecture repository via Git/Markdown, but also uses UI and 
 
 **E3 – Person has no active role assignment**:
 
-- Condition: BR-01 from [person.md](../../business-objects/person.md) is violated (no `fillsRoles` assignment with a valid period)
+- Condition: the person holds no active authorization role (no valid local role assignment and no role derived from an IdP group mapping, ADR-032); business roles (`fillsRoles`) are not considered
 - Expected reaction: Session is created, but without any permission to repository content (REQ-003; there is no public content in v1); Kurt receives a notice that no role is assigned
-- Resumption: Kurt contacts a person with authorization to assign roles
+- Resumption: Kurt contacts a principal with `role:assign` (UC-23)
 
 **E4 – Identity provider unreachable**:
 
@@ -192,7 +193,7 @@ Kurt manages the architecture repository via Git/Markdown, but also uses UI and 
 | 3–4 | Credentials, authorization code | Kurt ↔ identity provider, provider → system | never in plain text through the OEA backend |
 | 5 | Authorization code → identity token (access token, ID token) | System ↔ identity provider | server-to-server, TLS |
 | 6 | Identity claims (e.g., email, subject ID) | System internal | matching with Person.externalReference |
-| 6 | RoleAssignment query | System internal | only active assignments (validFrom/validTo) |
+| 6 | Authorization role assignments and IdP group claims | System internal | only active local assignments (validFrom/validTo, not revoked) and active IdP group mappings; permissions resolved server-side, not embedded in tokens (ADR-032) |
 | 7 | Session confirmation | System → Kurt | contains no sensitive token content in the UI |
 
 ## Involved Business Objects
@@ -200,7 +201,7 @@ Kurt manages the architecture repository via Git/Markdown, but also uses UI and 
 | Business Object | Operation | Note |
 |---|---|---|
 | [person](../../business-objects/person.md) | read, update | `update` if the lifecycle transition `invited → active` takes place on first login |
-| [role](../../business-objects/role.md) | read | Active RoleAssignments are read to derive permissions |
+| [role](../../business-objects/role.md) | read | Active authorization role assignments are read to derive permissions; the split into business role and authorization role is pending in the data model (ADR-032 DM-1 to DM-5) |
 
 ## Acceptance Criteria
 
@@ -217,7 +218,7 @@ Kurt manages the architecture repository via Git/Markdown, but also uses UI and 
 ## Out of Scope
 
 - Self-service registration of new persons in the identity provider (this is the task of the IdP/HR system, not of OEA)
-- Management of roles and role assignments themselves (separate use case, e.g., "Manage role assignment")
+- Management of roles and role assignments themselves (see [UC-23](./UC-23-manage-roles-and-role-assignments.md))
 - Property-level authorization on individual fields (see concept §21.8) – this concerns follow-up use cases after successful login
 - Password reset for OIDC-managed accounts (lies with the identity provider)
 - Enrollment/setup of passkeys, TOTP secrets or local passwords (separate use case, e.g., "Set up authentication method") – UC-01 assumes a completed registration
@@ -231,8 +232,7 @@ Kurt manages the architecture repository via Git/Markdown, but also uses UI and 
 
 ## Implementation Notes
 
-- EntityTypes: `Person`, `Role`
-- Relations: `RoleAssignment` (role, person, validFrom, validTo, assignmentType, percentage)
+- Authorization: authorization roles, role assignments (person, role, validFrom, validTo, source, revokedAt) and IdP group mappings per ADR-032; the EA content `Person`/`Role`/`RoleAssignment` (assignmentType, percentage) is not evaluated for access
 - Constraints: `person-minimum-role` (concept §8.8) – deliberately treated as a warning instead of a hard block in E3, so as not to block onboarding
 - Performance notes: Login is a high-frequency, latency-critical path – role assignments should be cached, not re-resolved on every request
 - Local authentication (A3–A5) requires additional data storage per person: WebAuthn public keys, TOTP secrets, password hashes – storage separate from the rest of the Person object is recommended (sensitive, not part of the business EA model)
@@ -274,3 +274,4 @@ Local authentication (passkey, TOTP, username/password) was added as an optional
 | 0.4.1 | 2026-06-24 | Requirements Engineer | Clarification in postconditions: login and visible functional scope concern all roles, not only "Enterprise Architect" |
 | 0.5.0 | 2026-06-24 | Requirements Engineer | Added REQ-020: instance-wide enforcement of a second factor for regular persons, explicitly excluding the system admin account from UC-02 |
 | 0.5.1 | 2026-10-13 | requirements-engineer | Security review SEC-05/06/10/15 (owner decisions Q1, Q5): A2 uses service accounts with client credentials instead of API keys; no public content for persons without role; system admin 2FA exemption limited to the first bootstrap login; session lifetime note |
+| 0.6.0 | 2026-10-13 | requirements-engineer | ADR-032: precondition "active role", step 6, E3, data flow and implementation notes refer to authorization roles (local assignments, IdP group mappings) instead of business RoleAssignments; role management referenced as UC-23 |

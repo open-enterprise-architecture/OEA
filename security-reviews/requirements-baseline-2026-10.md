@@ -829,6 +829,10 @@ Answers of the repository owner (Lukas Mathis) to the open questions. They are b
 | Q10 | Audit retention configurable by the operator with a floor of 1 year; default 7 years | PR-18, REQ-083, REQ-151 aligned |
 | Q11 | PKCE mandatory for all OIDC clients; MFA mandatory for all privileged accounts; brute-force protection in the application (reverse proxy only as an additional layer); no JWT stub – a real IdP container in development and tests | PR-10, PR-12, PR-15, PR-27 |
 | Q12 | OS code signing certificates (Authenticode, Apple notarization) are an open point until Enterprise license revenue covers them; Community releases use free integrity protection (checksums, build provenance attestations, HTTPS-only updates with checksum verification) | PR-26 → REQ-182 |
+| Q13 | A person may hold metamodel-admin and security-admin together; the combination is flagged in audit and access review; operators may enable a strict mode | ADR-032 SoD-3 |
+| Q14 | Restricted properties are readable only via their `readRoles`; the override role list (REQ-128) is empty by default | ADR-032, REQ-128 |
+| Q15 | Four-eyes approval for privileged role assignments is optional (operator setting, default off); assignments are always audited and notified | ADR-032, new requirement |
+| Q16 | Removal from an IdP group takes effect in OEA within 15 minutes (re-evaluation at every token refresh) | ADR-032, REQ-165 |
 
 ## Sign-off
 

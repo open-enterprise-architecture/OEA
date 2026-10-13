@@ -13,7 +13,7 @@ references:
     - UC-21
   business_objects:
     - metamodel-configuration
-    - role
+    - authorization-role
   stakeholders:
     - SH-03
   adrs: []
@@ -30,8 +30,8 @@ The data model of the `PropertyDefinition` (in `MetamodelConfiguration`) MUST be
 | Field | Type | Default | Constraint |
 |---|---|---|---|
 | `visibilityMode` | enum | `public` | `[public, role-restricted, connection-scoped]` |
-| `readRoles` | Role[] | [] | Mandatory if `visibilityMode = role-restricted`; at least 1 entry |
-| `writeRoles` | Role[] | [] | Optional; every entry must also be contained in `readRoles`; empty = nobody may write the value under `role-restricted` except via the override of REQ-128 |
+| `readRoles` | AuthorizationRoleId[] | [] | Mandatory if `visibilityMode = role-restricted`; at least 1 entry |
+| `writeRoles` | AuthorizationRoleId[] | [] | Optional; every entry must also be contained in `readRoles`; empty = nobody may write the value under `role-restricted` except via the override of REQ-128 |
 | `scopingConnectionType` | string | null | Mandatory if `visibilityMode = connection-scoped`; must reference a valid `ConnectionType` ID |
 
 **Semantics of the modes**:

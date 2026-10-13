@@ -32,7 +32,7 @@ As a person without an active role assignment, I want to still be able to sign i
 ## Technical Notes
 
 - Affected components: authorization module
-- Affected EntityTypes/Relations: `Person`, `Role`, `RoleAssignment`
+- Affected EntityTypes/Relations: `persons`, authorization roles, role assignments and IdP group mappings (ADR-032); business `Role`/`RoleAssignment` EA content is not evaluated
 - API endpoints: authorization check on every protected endpoint
 - Database changes: no additional ones
 
@@ -53,4 +53,4 @@ As a person without an active role assignment, I want to still be able to sign i
 
 ## Notes
 
-Covers exception flow E3 from UC-01. Implements the concept constraint `person-minimum-role` as a warning, not a hard block. 2026-10-13: "publicly readable content" removed (REQ-003 v0.2.0, security review SEC-05, owner decision Q1 – no anonymous or public access in v1).
+Covers exception flow E3 from UC-01. Implements the concept constraint `person-minimum-role` as a warning, not a hard block. 2026-10-13: "publicly readable content" removed (REQ-003 v0.2.0, security review SEC-05, owner decision Q1 – no anonymous or public access in v1). 2026-10-13: "active role assignment" means an active authorization role per ADR-032 (REQ-003 v0.3.0), not a business RoleAssignment in the EA model.
