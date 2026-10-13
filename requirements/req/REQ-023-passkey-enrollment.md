@@ -1,6 +1,6 @@
 ---
 id: REQ-023
-title: Passkey-Enrollment (WebAuthn-Credential-Registrierung)
+title: Passkey enrollment (WebAuthn credential registration)
 type: functional
 priority: should
 status: proposed
@@ -18,120 +18,120 @@ references:
     - SH-03
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-023: Passkey-Enrollment (WebAuthn-Credential-Registrierung)
+# REQ-023: Passkey enrollment (WebAuthn credential registration)
 
-## Aussage
+## Statement
 
-Das System SOLL das Registrieren eines Passkeys (WebAuthn Level 2 / FIDO2) als lokale Authentifizierungsmethode ermöglichen, indem es eine Registrierungs-Challenge generiert, die Authenticator-Antwort verifiziert und den Public Key des registrierten Credentials persistent mit dem Person-Objekt verknüpft.
+The system SHOULD allow registering a passkey (WebAuthn Level 2 / FIDO2) as a local authentication method by generating a registration challenge, verifying the authenticator response, and persistently linking the public key of the registered credential to the Person object.
 
-## Begründung
+## Rationale
 
-Passkey ist der empfohlene Standard für lokale Authentifizierung gemäß Konzept §21.8 (passwortlos, phishing-resistent). UC-03 Alternative A1. Ohne Passkey-Enrollment ist UC-01 Alternative A3 (Passkey-Login) nicht nutzbar. Passkeys sind für SH-03 und SH-06 im Self-Hosting-Szenario ohne externen IdP die sicherste lokale Option.
+Passkey is the recommended standard for local authentication according to concept §21.8 (passwordless, phishing-resistant). UC-03 Alternative A1. Without passkey enrollment, UC-01 Alternative A3 (passkey login) is not usable. Passkeys are the most secure local option for SH-03 and SH-06 in the self-hosting scenario without an external IdP.
 
-## Kontext
+## Context
 
-Wird als Required Action im Rahmen des ersten Logins ausgelöst (UC-03 Alternative A1): Das System erkennt nach erfolgreicher Passwort-Prüfung, dass 2FA erzwungen ist (REQ-020) und noch kein Passkey existiert. Alternativ kann ein Passkey über die Profil-Einstellungen einer bereits eingeloggten Person hinzugefügt werden (REQ-026). Der registrierte Public Key wird beim Login durch REQ-009 (Passkey-Login) verwendet. Der private Schlüssel verlässt den Authenticator zu keinem Zeitpunkt.
+Triggered as a required action during the first login (UC-03 Alternative A1): after a successful password check, the system detects that 2FA is enforced (REQ-020) and no passkey exists yet. Alternatively, a passkey can be added via the profile settings of an already logged-in person (REQ-026). The registered public key is used at login by REQ-009 (passkey login). The private key never leaves the authenticator.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- Ausgelöster Enrollment-Schritt "Passkey"
-- Authenticator-Antwort: `PublicKeyCredential` (enthält Attestation Object, Client Data JSON, Credential ID)
+**Inputs**:
+- Triggered enrollment step "Passkey"
+- Authenticator response: `PublicKeyCredential` (contains attestation object, client data JSON, credential ID)
 
-**Verarbeitung**:
-- System generiert `PublicKeyCredentialCreationOptions` (enthält Challenge, RP-ID, User-Handle, Algorithmen-Liste)
-- Client übermittelt Options an den Authenticator (Plattform oder Roaming); der Authenticator erzeugt ein neues Key-Pair
-- Authenticator gibt `PublicKeyCredential` zurück; System verifiziert:
-  - Signatur über Client Data JSON
-  - RP-ID und Origin korrekt
-  - Challenge-Abgleich (Replay-Schutz)
-  - Attestation (Format: `none` als Default; andere Formate optional)
-- Bei bestandener Verifikation: System persistiert Public Key, Credential-ID und Signatur-Counter, verknüpft mit Person; mehrere Credentials pro Person werden unterstützt
+**Processing**:
+- System generates `PublicKeyCredentialCreationOptions` (contains challenge, RP ID, user handle, list of algorithms)
+- Client passes the options to the authenticator (platform or roaming); the authenticator creates a new key pair
+- Authenticator returns `PublicKeyCredential`; the system verifies:
+  - Signature over client data JSON
+  - RP ID and origin correct
+  - Challenge match (replay protection)
+  - Attestation (format: `none` as default; other formats optional)
+- On successful verification: the system persists public key, credential ID, and signature counter, linked to the person; multiple credentials per person are supported
 
-**Ausgaben**:
-- Erfolgsmeldung mit Hinweis auf erfolgreiche Registrierung
-- Bei Fehler: allgemeine Fehlermeldung, kein Credential wird gespeichert
+**Outputs**:
+- Success message with a note on successful registration
+- On error: generic error message, no credential is stored
 
-**Fehlerfälle**:
-- Nutzer bricht die Authenticator-Bestätigung ab (E3 aus UC-03) → kein Credential persistiert, Token bleibt gültig, Fehlermeldung
-- RP-ID/Origin-Mismatch → technischer Fehler, kein Credential persistiert
-- Authenticator nicht kompatibel → allgemeine Fehlermeldung; Kurt kann alternative Methode wählen
+**Error Cases**:
+- User cancels the authenticator confirmation (E3 from UC-03) → no credential persisted, token remains valid, error message
+- RP ID/origin mismatch → technical error, no credential persisted
+- Authenticator not compatible → generic error message; Kurt can choose an alternative method
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Kurt hat Passkey als Methode gewählt und einen kompatiblen Authenticator
-- Wenn: er die Authenticator-Bestätigung abschließt
-- Dann: ist der Public Key persistent gespeichert und der Login per Passkey (UC-01 A3) ist ab sofort möglich
+- Given: Kurt has chosen passkey as the method and has a compatible authenticator
+- When: he completes the authenticator confirmation
+- Then: the public key is stored persistently and login via passkey (UC-01 A3) is possible immediately
 
 **AC2**:
-- Gegeben: Kurt bricht die Authenticator-Bestätigung ab
-- Wenn: der Abbruch eintritt
-- Dann: wird kein Credential gespeichert, das Enrollment-Token bleibt gültig
+- Given: Kurt cancels the authenticator confirmation
+- When: the cancellation occurs
+- Then: no credential is stored, the enrollment token remains valid
 
 **AC3**:
-- Gegeben: eine Person hat bereits einen registrierten Passkey
-- Wenn: sie einen weiteren Passkey registriert (z.B. zweites Gerät)
-- Dann: sind beide Credentials gespeichert und einzeln für den Login verwendbar
+- Given: a person already has a registered passkey
+- When: they register another passkey (e.g., second device)
+- Then: both credentials are stored and individually usable for login
 
 **AC4**:
-- Gegeben: eine Registrierungsantwort mit falschem Origin oder RP-ID
-- Wenn: das System sie verarbeitet
-- Dann: wird sie abgelehnt, kein Credential persistiert
+- Given: a registration response with a wrong origin or RP ID
+- When: the system processes it
+- Then: it is rejected, no credential persisted
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: virtuelle WebAuthn-Authenticator-Implementierung (z.B. go-webauthn Test-Utilities oder Browser-Stack mit virtualem Authenticator)
-- [x] Mess-Werkzeug: Test-Suite des Enrollment-Moduls
-- [x] Bestanden-Kriterium: AC1–AC4 grün; Login nach Enrollment (AC1) funktioniert via REQ-009
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: virtual WebAuthn authenticator implementation (e.g., go-webauthn test utilities or browser stack with virtual authenticator)
+- [x] Measurement tool: test suite of the enrollment module
+- [x] Pass criterion: AC1–AC4 green; login after enrollment (AC1) works via REQ-009
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: UC-03 Required-Action-Trigger (erster Login mit initialem Passwort, REQ-024) oder REQ-026 (Session-Auth für Profil-Einstellungen)
-- **Folgewirkungen**: REQ-009 (Passkey-Login setzt registrierten Public Key voraus)
-- **Konflikte**: keine bekannt
+- **Prerequisites**: UC-03 required action trigger (first login with initial password, REQ-024) or REQ-026 (session authentication for profile settings)
+- **Downstream effects**: REQ-009 (passkey login requires a registered public key)
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne Passkey-Enrollment nur Passwort/TOTP als lokale Optionen – geringere Sicherheit (Phishing-Anfälligkeit), mittlerer Schweregrad
-- Risiko 2: Fehlerhafter Origin/RP-ID-Check erlaubt Cross-Origin-Credential-Registrierung, schwerwiegend (durch AC4 mitigiert)
+- Risk 1: Without passkey enrollment, only password/TOTP as local options – lower security (susceptibility to phishing), medium severity
+- Risk 2: A faulty origin/RP ID check allows cross-origin credential registration, severe (mitigated by AC4)
 
 ## Trade-offs
 
-- vs. Implementierungsaufwand: WebAuthn-Registrierung ist komplexer als TOTP/Passwort; lohnt sich wegen deutlich höherer Sicherheit
+- vs. implementation effort: WebAuthn registration is more complex than TOTP/password; worthwhile because of significantly higher security
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Attestation: `none` als Default (kein Attestation-CA-Betrieb nötig, besserer Datenschutz); `direct` oder `indirect` bei Bedarf konfigurierbar
-- Algorithmen: ES256 (P-256) und RS256 (RSA-2048) mindestens unterstützen; Reihenfolge in `PublicKeyCredentialParameters` bevorzugt ES256
-- Signatur-Counter: speichern und bei jedem Login-Versuch prüfen (Replay-Schutz, UC-01 A3)
-- User-Handle: opaque, nicht personenbezogen (z.B. UUID der Person), darf nicht die E-Mail-Adresse sein (FIDO2-Spec)
-- Credential-Tabelle getrennt vom Person-Objekt; Spalten: `credential_id`, `public_key`, `sign_count`, `aaguid`, `person_id`, `created_at`, `last_used_at`
+- Attestation: `none` as default (no attestation CA operation needed, better data protection); `direct` or `indirect` configurable if needed
+- Algorithms: support at least ES256 (P-256) and RS256 (RSA-2048); order in `PublicKeyCredentialParameters` prefers ES256
+- Signature counter: store and check on every login attempt (replay protection, UC-01 A3)
+- User handle: opaque, not personally identifiable (e.g., UUID of the person), must not be the email address (FIDO2 spec)
+- Credential table separate from the Person object; columns: `credential_id`, `public_key`, `sign_count`, `aaguid`, `person_id`, `created_at`, `last_used_at`
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-03 Alternative A1 und Exception Flow E3. Dass mehrere Passkeys pro Person (AC3) unterstützt werden müssen, folgt aus der offenen Frage in UC-03; hier als Anforderung festgeschrieben, da ein Geräteverlust sonst zum vollständigen Lockout führt.
+Derived from UC-03 Alternative A1 and Exception Flow E3. That multiple passkeys per person (AC3) must be supported follows from the open question in UC-03; stated here as a requirement because a lost device would otherwise lead to a complete lockout.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft aus UC-03 |
+| 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft from UC-03 |

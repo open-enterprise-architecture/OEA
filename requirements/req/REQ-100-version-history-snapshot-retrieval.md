@@ -1,6 +1,6 @@
 ---
 id: REQ-100
-title: Historischer Entitätszustand als unveränderlicher Snapshot
+title: Historical entity state as an immutable snapshot
 type: functional
 priority: must
 status: proposed
@@ -22,43 +22,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-100: Historischer Entitätszustand als unveränderlicher Snapshot
+# REQ-100: Historical entity state as an immutable snapshot
 
-## Aussage
+## Statement
 
-Das System MUSS den vollständigen Entitätszustand zu jeder historischen Version abrufbar machen (aus `entity_versions.snapshot`). Der vollständige Stand MUSS in der UI aufklappbar sein ("Vollständiger Stand vN anzeigen") und alle Felder inkl. `propertyDefinitions` enthalten. Die Snapshots MÜSSEN unveränderlich sein — kein Löschen, kein Editieren.
+The system MUST make the complete entity state of every historical version retrievable (from `entity_versions.snapshot`). The complete state MUST be expandable in the UI ("Show complete state vN") and contain all fields including `propertyDefinitions`. The snapshots MUST be immutable — no deleting, no editing.
 
-## Begründung
+## Rationale
 
-Der Diff allein reicht für Compliance-Nachweise nicht aus. Manchmal muss belegt werden, wie eine Entität zu einem bestimmten Zeitpunkt vollständig ausgesehen hat — z.B. für Audits oder Regulierungs-Nachweise.
+The diff alone is not sufficient for compliance evidence. Sometimes it must be proven how an entity looked completely at a certain point in time — e.g., for audits or regulatory evidence.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Vollständiger Stand aufklappbar):
-- Wenn: "Vollständiger Stand v4 anzeigen" in der Zeitlinie geklickt wird
-- Dann: werden alle Felder inkl. leerer Properties des Snapshots dargestellt
+**AC1** (Complete state expandable):
+- When: "Show complete state v4" is clicked in the timeline
+- Then: all fields of the snapshot, including empty properties, are displayed
 
-**AC2** (Löschen abgewiesen):
-- Wenn: ein DELETE-Request an `/entity-versions/{id}` gesendet wird
-- Dann: antwortet die API mit HTTP 405 Method Not Allowed
+**AC2** (Deletion rejected):
+- When: a DELETE request is sent to `/entity-versions/{id}`
+- Then: the API responds with HTTP 405 Method Not Allowed
 
-**AC3** (Bearbeiten abgewiesen):
-- Wenn: ein PUT-Request an `/entity-versions/{id}` gesendet wird
-- Dann: antwortet die API mit HTTP 405 Method Not Allowed
+**AC3** (Editing rejected):
+- When: a PUT request is sent to `/entity-versions/{id}`
+- Then: the API responds with HTTP 405 Method Not Allowed
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-098 (Zeitlinie), REQ-102 (Snapshot-Anlage)
-- **Folgewirkungen**: REQ-099 (Diff), REQ-101 (Vollwiederherstellung)
+- **Prerequisites**: REQ-098 (timeline), REQ-102 (snapshot creation)
+- **Downstream effects**: REQ-099 (diff), REQ-101 (full restore)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- `entity_versions.snapshot` als JSONB in PostgreSQL; nicht normalisiert
-- HTTP 405 statt 422 — die Methode ist generell nicht erlaubt, nicht nur im Einzelfall
-- `propertyDefinitions` werden zum Zeitpunkt der Snapshot-Erstellung eingefroren
+- `entity_versions.snapshot` as JSONB in PostgreSQL; not normalized
+- HTTP 405 instead of 422 — the method is not allowed in general, not just in an individual case
+- `propertyDefinitions` are frozen at the time of snapshot creation
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

@@ -1,6 +1,6 @@
 ---
 id: REQ-014
-title: Remote-Bootstrapping über IdP-Claim-Mapping
+title: Remote bootstrapping via IdP claim mapping
 type: functional
 priority: should
 status: proposed
@@ -17,98 +17,98 @@ references:
   stakeholders:
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-014: Remote-Bootstrapping über IdP-Claim-Mapping
+# REQ-014: Remote bootstrapping via IdP claim mapping
 
-## Aussage
+## Statement
 
-Das System SOLL es ermöglichen, System-Admin-Rechte über ein Mapping auf einen Gruppen- oder Rollen-Claim eines konfigurierten externen Identity-Providers (Entra ID oder Authentik, siehe ADR-006) zu vergeben, ohne dass dafür ein lokales Credential angelegt werden muss.
+The system SHOULD make it possible to grant system admin permissions via a mapping to a group or role claim of a configured external identity provider (Entra ID or Authentik, see ADR-006), without having to create a local credential for this.
 
-## Begründung
+## Rationale
 
-Organisationen mit etablierter IdP-Governance (z.B. SH-05-artige Konzern-Umgebungen, aber auch SH-06 als Operator mit Anbindung an bestehendes OIDC/LDAP) wollen System-Admin-Rechte über die zentrale Identity-Verwaltung steuern, nicht über ein zusätzliches lokales Credential. UC-02, Alternative A1.
+Organizations with established IdP governance (e.g., SH-05-style corporate group environments, but also SH-06 as an operator connected to an existing OIDC/LDAP) want to control system admin permissions via central identity management, not via an additional local credential. UC-02, Alternative A1.
 
-## Kontext
+## Context
 
-Setzt voraus, dass für die Instanz bereits ein OIDC-Provider konfiguriert ist (Entra ID oder Authentik). Das Mapping wird als Teil des [System-Admin-Accounts](../../business-objects/system-admin-account.md) mit `mode: remote` gespeichert.
+Assumes that an OIDC provider is already configured for the instance (Entra ID or Authentik). The mapping is stored as part of the [system admin account](../../business-objects/system-admin-account.md) with `mode: remote`.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- Konfiguration: Provider (Entra ID oder Authentik), `claimType` (group | role), `claimValue` (Name der Gruppe/Rolle)
-- Identity-Token mit Claims bei nachfolgenden Logins
+**Inputs**:
+- Configuration: provider (Entra ID or Authentik), `claimType` (group | role), `claimValue` (name of the group/role)
+- Identity token with claims on subsequent logins
 
-**Verarbeitung**:
-- Speicherung des Mappings als System-Admin-Account mit `mode: remote`
-- Bei jedem Login: Prüfung, ob das Identity-Token den konfigurierten Claim mit dem konfigurierten Wert enthält
-- Bei Treffer: Session erhält System-Admin-Rechte zusätzlich zu ggf. vorhandenen regulären Rollen
+**Processing**:
+- Store the mapping as a system admin account with `mode: remote`
+- On every login: check whether the identity token contains the configured claim with the configured value
+- On a match: the session receives system admin permissions in addition to any existing regular roles
 
-**Ausgaben**:
-- System-Admin-Account-Datensatz mit `mode: remote`
-- Bei passendem Login: Session mit System-Admin-Rechten
+**Outputs**:
+- System admin account record with `mode: remote`
+- On a matching login: session with system admin permissions
 
-**Fehlerfälle**:
-- Identity-Token enthält den konfigurierten Claim nicht oder mit abweichendem Wert → keine System-Admin-Rechte, regulärer Login-Ablauf (UC-01) bleibt unberührt
+**Error Cases**:
+- Identity token does not contain the configured claim or contains it with a different value → no system admin permissions, the regular login flow (UC-01) remains unaffected
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein konfiguriertes Claim-Mapping auf eine IdP-Gruppe
-- Wenn: eine Person mit diesem Gruppen-Claim im Identity-Token sich anmeldet
-- Dann: erhält die Session System-Admin-Rechte
+- Given: a configured claim mapping to an IdP group
+- When: a person with this group claim in the identity token logs in
+- Then: the session receives system admin permissions
 
 **AC2**:
-- Gegeben: dasselbe Mapping
-- Wenn: eine Person ohne diesen Claim sich anmeldet
-- Dann: erhält die Session keine System-Admin-Rechte über diesen Weg
+- Given: the same mapping
+- When: a person without this claim logs in
+- Then: the session does not receive system admin permissions via this path
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Test-IdP mit konfigurierbaren Claims, Login mit und ohne passenden Claim
-- [x] Mess-Werkzeug: Test-Suite des Auth-Moduls
-- [x] Bestanden-Kriterium: AC1, AC2 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: test IdP with configurable claims, login with and without a matching claim
+- [x] Measurement tool: test suite of the auth module
+- [x] Pass criterion: AC1, AC2 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-001 (OIDC-Login muss funktionieren, bevor Claims geprüft werden können)
-- **Folgewirkungen**: REQ-018 (Warnung bei leerem Claim), REQ-019 (Deaktivierbarkeit des lokalen Zugangs)
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-001 (OIDC login must work before claims can be checked)
+- **Downstream effects**: REQ-018 (warning on empty claim), REQ-019 (ability to disable local access)
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne Remote-Mapping müssten Organisationen mit strikter IdP-Governance dennoch ein lokales Credential pflegen – widerspricht deren Sicherheitsrichtlinien, mittlerer Schweregrad
+- Risk 1: Without remote mapping, organizations with strict IdP governance would still have to maintain a local credential – contradicts their security policies, medium severity
 
 ## Trade-offs
 
-- vs. REQ-013 (lokales Bootstrapping): Remote-Mapping ist von der Verfügbarkeit und korrekten Konfiguration des IdP abhängig; beide Wege sollten parallel verfügbar bleiben (siehe UC-02, A2)
+- vs. REQ-013 (local bootstrapping): remote mapping depends on the availability and correct configuration of the IdP; both paths should remain available in parallel (see UC-02, A2)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Claim-Mapping-Konventionen je Provider (Entra-ID-`groups`-Claim vs. Authentik-Gruppen/Properties) sind technische Spezifikation, nicht Teil dieses Requirements (siehe ADR-006, Folgeentscheidungen)
+- Claim mapping conventions per provider (Entra ID `groups` claim vs. Authentik groups/properties) are technical specification, not part of this requirement (see ADR-006, Follow-up Decisions)
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-02, Alternative A1.
+Derived from UC-02, Alternative A1.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft aus UC-02 |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-02 |

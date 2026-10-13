@@ -1,44 +1,44 @@
-# US-071: Arc42-Frage für ein System beantworten und bearbeiten
+# US-071: Answer and Edit an Arc42 Question for a System
 
 **ID**: US-071
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Solution Architekt möchte ich im System-Detail-Tab „Arc42 Dokumentation" jede Kapitel-Frage einzeln beantworten und später bearbeiten – damit die Architekturdokumentation direkt im EA-Repository lebt und mit dem Modell verknüpft ist.
+As a Solution Architect, I want to answer each chapter question individually in the system detail tab "Arc42 Documentation" and edit it later – so that the architecture documentation lives directly in the EA repository and is linked to the model.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-09](../use-cases/UC-09-loesungsarchitektur-arc42-dokumentieren.md)
-**Persona**: Michael – Solution Architekt (SH-04)
-**Requirements**: [REQ-069](../req/REQ-069-arc42-dokumentation-bearbeiten.md)
+**Use Case**: [UC-09](../use-cases/UC-09-document-solution-architecture-arc42.md)
+**Persona**: Michael – Solution Architect (SH-04)
+**Requirements**: [REQ-069](../req/REQ-069-edit-arc42-documentation.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Tab + Fragen sichtbar):
-- Wenn: Michael öffnet CRM-System-Entität
-- Dann: Tab „Arc42 Dokumentation" sichtbar; alle Fragen der zugewiesenen Collection aufgelistet
+**AC1** (tab + questions visible):
+- When: Michael opens the CRM system entity
+- Then: Tab "Arc42 Documentation" visible; all questions of the assigned collection listed
 
-**AC2** (Antwort anlegen):
-- Wenn: Michael klickt „Jetzt beantworten", schreibt Text, speichert
-- Dann: Antwort-Entität angelegt; Frage zeigt grünes Haken-Icon; Fortschrittsanzeige aktualisiert
+**AC2** (create answer):
+- When: Michael clicks "Answer now", writes text, saves
+- Then: Answer entity created; question shows green checkmark icon; progress indicator updated
 
-**AC3** (Antwort bearbeiten):
-- Wenn: Michael klickt „Bearbeiten" bei beantworteter Frage
-- Dann: Editor öffnet sich mit bestehendem Content; Änderungen speicherbar
+**AC3** (edit answer):
+- When: Michael clicks "Edit" on an answered question
+- Then: Editor opens with existing content; changes can be saved
 
-**AC4** (Fortschrittsanzeige):
-- Wenn: 3 von 12 beantwortet
-- Dann: Chip „3 / 12 beantwortet" und offene Fragen visuell markiert
+**AC4** (progress indicator):
+- When: 3 of 12 answered
+- Then: Chip "3 / 12 answered" and open questions visually marked
 
-**AC5** (Web Portal read-only):
-- Wenn: CIO öffnet dieselbe Entität
-- Dann: Inhalte lesbar; kein Bearbeitungs-Button
+**AC5** (web portal read-only):
+- When: CIO opens the same entity
+- Then: Content readable; no edit button
 
 ## Definition of Done
 
-- [ ] AC1–AC5 erfüllt
-- [ ] Tests: Tab, Antwort anlegen, bearbeiten, Fortschritt, read-only
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC5 met
+- [ ] Tests: tab, create answer, edit, progress, read-only
+- [ ] Code review; linter green; entered in trace matrix

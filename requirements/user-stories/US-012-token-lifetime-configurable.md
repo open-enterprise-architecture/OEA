@@ -1,54 +1,54 @@
-# US-012: Konfigurierbare Token-Lebensdauer bei lokaler Authentifizierung
+# US-012: Configurable Token Lifetime for Local Authentication
 
 **ID**: US-012
 **Story Points**: 2
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Betreiber einer Instanz mit lokaler Authentifizierung möchte ich die Lebensdauer von Access- und Refresh-Token konfigurieren können, damit ich die Abwägung zwischen Sicherheit und Usability selbst treffen kann.
+As an operator of an instance with local authentication, I want to be able to configure the lifetime of access and refresh tokens, so that I can make the trade-off between security and usability myself.
 
-## Bezug
+## Reference
 
 **Use Case**: [UC-01: Login](../use-cases/UC-01-login.md)
-**Persona**: [SH-06: Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Requirement**: [REQ-012: Konfigurierbare Token-Lebensdauer bei lokaler Authentifizierung](../req/REQ-012-token-lebensdauer-lokal.md)
+**Persona**: [SH-06: Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Requirement**: [REQ-012: Configurable Token Lifetime for Local Authentication](../req/REQ-012-token-lifetime-local.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine Instanz mit lokal konfigurierter Access-Token-Lebensdauer von 15 Minuten
-- Wenn: eine Person sich über einen lokalen Mechanismus anmeldet
-- Dann: läuft das Access-Token nach 15 Minuten ab
+- Given: an instance with a locally configured access token lifetime of 15 minutes
+- When: a person signs in via a local mechanism
+- Then: the access token expires after 15 minutes
 
 **AC2**:
-- Gegeben: ein abgelaufenes Access-Token, aber ein noch gültiges Refresh-Token
-- Wenn: ein Refresh angefordert wird
-- Dann: wird ein neues Access-Token mit der konfigurierten Lebensdauer ausgestellt
+- Given: an expired access token, but a still valid refresh token
+- When: a refresh is requested
+- Then: a new access token with the configured lifetime is issued
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Instanz-Konfiguration, Token-Erstellung (lokale Mechanismen)
-- Betroffene EntityTypes/Relations: keine fachlichen
-- API-Endpunkte: Token-Refresh-Endpunkt
-- Datenbank-Änderungen: Konfigurationswerte `accessTokenLifetime`, `refreshTokenLifetime`
+- Affected components: instance configuration, token creation (local mechanisms)
+- Affected EntityTypes/Relations: no business ones
+- API endpoints: token refresh endpoint
+- Database changes: configuration values `accessTokenLifetime`, `refreshTokenLifetime`
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (Ablauf- und Refresh-Verhalten bei unterschiedlichen Werten)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (expiry and refresh behavior with different values)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-009, US-010 oder US-011 (mindestens ein lokaler Mechanismus muss existieren)
-- Blockiert: keine
+- Waiting on: US-009, US-010 or US-011 (at least one local mechanism must exist)
+- Blocks: none
 
-## Notizen
+## Notes
 
-Gilt nicht für extern ausgestellte Token (dort bestimmt der IdP die Lebensdauer, siehe US-001 AC3).
+Does not apply to externally issued tokens (there the IdP determines the lifetime, see US-001 AC3).

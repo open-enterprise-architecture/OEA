@@ -1,6 +1,6 @@
 ---
 id: REQ-072
-title: Canvas-Rendering-Latenz (Diagramm laden und rendern)
+title: Canvas rendering latency (load and render diagram)
 type: non-functional
 priority: must
 status: proposed
@@ -19,100 +19,100 @@ references:
     - SH-03
     - SH-04
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-007
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-072: Canvas-Rendering-Latenz (Diagramm laden und rendern)
+# REQ-072: Canvas rendering latency (load and render diagram)
 
-## Aussage
+## Statement
 
-Das System MUSS ein Architektur-Diagramm — vom Öffnen bis zur vollständig interaktiven Darstellung aller Shapes und Connections auf dem Canvas — innerhalb eines definierten Zeitbudgets darstellen.
+The system MUST display an architecture diagram — from opening until the fully interactive display of all shapes and connections on the canvas — within a defined time budget.
 
-## Begründung
+## Rationale
 
-Der Diagramm-Canvas (React Flow, ADR-007) ist das primäre Arbeitsmittel für EA-Modellierer (SH-03, SH-04). Ein Diagramm mit 150+ Elementen (realistisch für Bebauungspläne und Systemkontextdiagramme in Mittelstandsunternehmen) muss schnell genug laden, damit der Modellier-Flow nicht unterbrochen wird. Zu langes Rendering erhöht Frustration und führt zu flachen, unvollständigen Diagrammen.
+The diagram canvas (React Flow, ADR-007) is the primary working tool for EA modelers (SH-03, SH-04). A diagram with 150+ elements (realistic for landscape maps (Bebauungspläne) and system context diagrams in mid-sized companies) must load fast enough that the modeling flow is not interrupted. Rendering that takes too long increases frustration and leads to flat, incomplete diagrams.
 
-## Kontext
+## Context
 
-Gemessen wird die Zeit von API-Response bis zur vollständig gerenderten, interaktiven Canvas (Time-to-Interactive, TTI). Umfasst: Datenabruf, React-Flow-Render, SVG-Layout. Nicht umfasst: initiales App-Laden (eigene NFR) oder Mermaid/PlantUML-Rendering im Arc42-Editor.
+The measured time is from API response to the fully rendered, interactive canvas (time-to-interactive, TTI). Includes: data retrieval, React Flow render, SVG layout. Does not include: initial app loading (separate NFR) or Mermaid/PlantUML rendering in the Arc42 editor.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=non-functional
+### For type=non-functional
 
-**Kategorie**: performance
+**Category**: performance
 
-**Messbare Zielwerte**:
+**Measurable Target Values**:
 
-| Metrik | Zielwert | Schwellwert (warning) | Schwellwert (critical) | Scope |
+| Metric | Target value | Threshold (warning) | Threshold (critical) | Scope |
 |---|---|---|---|---|
-| Time-to-Interactive, kleines Diagramm | < 500ms | 800ms | 1.500ms | 50 Entities + 30 Connections |
-| Time-to-Interactive, mittleres Diagramm | < 1.500ms | 2.500ms | 4.000ms | 150 Entities + 100 Connections |
-| Time-to-Interactive, grosses Diagramm | < 3.000ms | 5.000ms | 8.000ms | 400 Entities + 300 Connections |
-| Frame-Rate beim Verschieben von Shapes | ≥ 30 fps | < 30 fps | < 15 fps | mittleres Diagramm; modernem Desktop-Browser |
+| Time-to-interactive, small diagram | < 500ms | 800ms | 1,500ms | 50 entities + 30 connections |
+| Time-to-interactive, medium diagram | < 1,500ms | 2,500ms | 4,000ms | 150 entities + 100 connections |
+| Time-to-interactive, large diagram | < 3,000ms | 5,000ms | 8,000ms | 400 entities + 300 connections |
+| Frame rate when moving shapes | ≥ 30 fps | < 30 fps | < 15 fps | medium diagram; modern desktop browser |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Kleines Diagramm):
-- Gegeben: Diagramm mit 50 Entities + 30 Connections; Chrome auf Standard-Developer-Hardware
-- Wenn: Diagramm geöffnet
-- Dann: Canvas interaktiv in < 500ms (gemessen ab vollständiger API-Response)
+**AC1** (Small diagram):
+- Given: Diagram with 50 entities + 30 connections; Chrome on standard developer hardware
+- When: Diagram opened
+- Then: Canvas interactive in < 500ms (measured from complete API response)
 
-**AC2** (Mittleres Diagramm):
-- Gegeben: 150 Entities + 100 Connections
-- Wenn: Diagramm geöffnet
-- Dann: Time-to-Interactive < 1.500ms
+**AC2** (Medium diagram):
+- Given: 150 entities + 100 connections
+- When: Diagram opened
+- Then: Time-to-interactive < 1,500ms
 
-**AC3** (Grosses Diagramm):
-- Gegeben: 400 Entities + 300 Connections
-- Wenn: Diagramm geöffnet
-- Dann: Time-to-Interactive < 3.000ms; keine Browser-Freezes > 100ms
+**AC3** (Large diagram):
+- Given: 400 entities + 300 connections
+- When: Diagram opened
+- Then: Time-to-interactive < 3,000ms; no browser freezes > 100ms
 
-**AC4** (Pan/Zoom flüssig):
-- Gegeben: mittleres Diagramm (150+100)
-- Wenn: Nutzer zieht Canvas oder zoomt mit Mausrad
-- Dann: Frame-Rate ≥ 30 fps (kein sichtbares Ruckeln)
+**AC4** (Smooth pan/zoom):
+- Given: medium diagram (150+100)
+- When: User drags the canvas or zooms with the mouse wheel
+- Then: Frame rate ≥ 30 fps (no visible stuttering)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert, Performance-Test im Browser)
-- [x] Test-Setup: synthetische Diagramme mit definierten Entity-/Connection-Zahlen; Chrome DevTools Performance-Profil oder Playwright-Messungen
-- [x] Mess-Werkzeug: Playwright + Chrome Performance-API (`performance.measure`)
-- [x] Bestanden-Kriterium: Time-to-Interactive-Werte gemäss Tabelle; FPS via `requestAnimationFrame`-Loop
-- [ ] In CI integriert: ja, als Performance-Gate (Playwright headless)
+- [x] Method: test (automated, performance test in the browser)
+- [x] Test setup: synthetic diagrams with defined entity/connection counts; Chrome DevTools performance profile or Playwright measurements
+- [x] Measuring tool: Playwright + Chrome performance API (`performance.measure`)
+- [x] Pass criterion: time-to-interactive values according to table; FPS via `requestAnimationFrame` loop
+- [ ] Integrated in CI: yes, as a performance gate (Playwright headless)
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: ADR-007 (React Flow, accepted); REQ-040 (EntityDeltas → Canvas)
-- **Folgewirkungen**: grosse Diagramme können Virtualisierung erfordern (React Flow Virtualization / windowing)
+- **Prerequisites**: ADR-007 (React Flow, accepted); REQ-040 (EntityDeltas → canvas)
+- **Downstream effects**: large diagrams may require virtualization (React Flow virtualization / windowing)
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Modellierer fragmentieren grosse Bebauungspläne in viele kleine Diagramme, um Latenz zu umgehen; Kohärenz geht verloren
+- Modelers fragment large landscape maps (Bebauungspläne) into many small diagrams to avoid latency; coherence is lost
 
 ## Trade-offs
 
-- React-Flow-Virtualisierung (nur sichtbare Nodes rendern): drastische Latenzverbesserung bei grossen Diagrammen, aber Layout-Algorithmen werden komplexer
-- Initiales Auto-Layout (z.B. ELK.js): erhöht TTI um 200–500ms, aber erspart manuelle Positionierung
+- React Flow virtualization (render only visible nodes): drastic latency improvement for large diagrams, but layout algorithms become more complex
+- Initial auto-layout (e.g., ELK.js): increases TTI by 200–500ms, but saves manual positioning
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- React Flow `nodesDraggable` und `elementsSelectable` erst nach erstem Render aktivieren (reduziert blockierendes JS)
-- Für Diagramme > 300 Nodes: `<ReactFlow>` mit `onlyRenderVisibleElements` aktivieren
+- Activate React Flow `nodesDraggable` and `elementsSelectable` only after the first render (reduces blocking JS)
+- For diagrams > 300 nodes: enable `<ReactFlow>` with `onlyRenderVisibleElements`
 
-## Realisierung
+## Implementation
 
 - ADR(s): ADR-007
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |

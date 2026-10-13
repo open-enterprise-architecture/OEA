@@ -1,6 +1,6 @@
 ---
 id: REQ-152
-title: Dynamische Labels mit ETag-Caching
+title: Dynamic Labels with ETag Caching
 type: interface
 priority: must
 status: proposed
@@ -18,63 +18,63 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-152: Dynamische Labels mit ETag-Caching
+# REQ-152: Dynamic Labels with ETag Caching
 
-## Aussage
+## Statement
 
-Das System **MUSS** konfigurierbare Labels (MetaTyp-Namen, Property-Labels, Enum-Werte) via `GET /api/v1/i18n/{locale}` bereitstellen und **MUSS** ETag-basiertes Caching unterstützen, sodass unveränderte Label-Sets mit HTTP 304 beantwortet werden.
+The system **MUST** provide configurable labels (MetaType names, property labels, enum values) via `GET /api/v1/i18n/{locale}` and **MUST** support ETag-based caching so that unchanged label sets are answered with HTTP 304.
 
-## Begründung
+## Rationale
 
-MetaTyp-Namen und Property-Labels werden von Administratoren zur Laufzeit geändert. Ohne Cache-Mechanismus würden Labels nach einer Admin-Änderung bis zu mehreren Minuten veraltet im Frontend angezeigt (wenn überhaupt aktualisiert). ETag löst das Stale-Problem ohne unnötigen Traffic.
+MetaType names and property labels are changed by administrators at runtime. Without a cache mechanism, labels would be displayed stale in the frontend for up to several minutes after an admin change (if updated at all). ETag solves the staleness problem without unnecessary traffic.
 
-## Kontext
+## Context
 
-Zwei Label-Kategorien: statische UI-Labels (vue-i18n Bundle, kein API-Call) und dynamische Konfigurations-Labels (`i18n_entries`-Tabelle, via API). ETag-Wert = SHA-256 über `MAX(updated_at)` aller `i18n_entries` für die angefragte Locale. (ADR-025)
+Two label categories: static UI labels (vue-i18n bundle, no API call) and dynamic configuration labels (`i18n_entries` table, via API). ETag value = SHA-256 over `MAX(updated_at)` of all `i18n_entries` for the requested locale. (ADR-025)
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-**Schnittstelle**: REST
+**Interface**: REST
 
-**Spezifikation**: `api/openapi.yaml` → `GET /i18n/{locale}`
+**Specification**: `api/openapi.yaml` → `GET /i18n/{locale}`
 
-**Verträge**:
-- Endpunkt: `GET /api/v1/i18n/{locale}` (locale: de | en | fr | it)
-- Response-Schema: I18nBundle (flache Key-Value-Map)
+**Contracts**:
+- Endpoint: `GET /api/v1/i18n/{locale}` (locale: de | en | fr | it)
+- Response schema: I18nBundle (flat key-value map)
 - Header: `ETag`, `Cache-Control: max-age=300, stale-while-revalidate=3600`
-- 304 Not Modified bei unverändertem ETag
+- 304 Not Modified on unchanged ETag
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Label-Set für `de` nicht verändert seit letztem Request
-- Wenn: `GET /api/v1/i18n/de` mit `If-None-Match: "<etag>"`
-- Dann: 304 Not Modified; kein Response-Body
+- Given: label set for `de` not changed since the last request
+- When: `GET /api/v1/i18n/de` with `If-None-Match: "<etag>"`
+- Then: 304 Not Modified; no response body
 
 **AC2**:
-- Gegeben: Admin ändert MetaTyp-Namen im Metamodell-Editor
-- Wenn: `GET /api/v1/i18n/de` ohne If-None-Match
-- Dann: 200 OK; neuer ETag; Bundle enthält aktualisierten Label
+- Given: admin changes a MetaType name in the metamodel editor
+- When: `GET /api/v1/i18n/de` without If-None-Match
+- Then: 200 OK; new ETag; bundle contains the updated label
 
 **AC3** (SSE, optional):
-- Gegeben: Client hat `GET /api/v1/events/stream` offen
-- Wenn: Admin speichert Label-Änderung
-- Dann: SSE-Event `{"type":"i18n_invalidated","locale":"de"}` empfangen innerhalb 2s
+- Given: client has `GET /api/v1/events/stream` open
+- When: admin saves a label change
+- Then: SSE event `{"type":"i18n_invalidated","locale":"de"}` received within 2s
 
-## Verifikationsmethode
+## Verification Method
 
-- [ ] Methode: test (automatisiert)
-- [ ] Test-Setup: Integration-Test; Label ändern; zweiten Request mit ETag senden
-- [ ] Bestanden-Kriterium: 304 bei unverändertem Stand; 200 nach Änderung
-- [ ] In CI integriert: ja
+- [ ] Method: test (automated)
+- [ ] Test setup: integration test; change a label; send a second request with ETag
+- [ ] Pass criterion: 304 on unchanged state; 200 after change
+- [ ] Integrated in CI: yes
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-150 (Multi-DB; i18n_entries-Tabelle muss portabel sein)
-- **Folgewirkungen**: US-140
+- **Prerequisites**: REQ-150 (multi-DB; i18n_entries table must be portable)
+- **Consequences**: US-140
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft aus ADR-025 |
+| 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft from ADR-025 |

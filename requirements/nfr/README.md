@@ -1,22 +1,22 @@
-# Nicht-funktionale Anforderungen
+# Non-Functional Requirements
 
-Qualitätseigenschaften des Systems mit messbaren Zielwerten. Pro NFR eine Datei mit Schema `NFR-NN-kurzname.md`.
+Quality attributes of the system with measurable target values. One file per NFR, named `NFR-NN-shortname.md`.
 
-## Pflicht: messbar
+## Mandatory: Measurable
 
-NFRs ohne messbare Zielwerte sind Wunschdenken. Pflichtfelder:
-- Zielwert mit Einheit
-- Verifikationsmethode
-- Scope (bei welcher Datenmenge gilt der Wert)
+NFRs without measurable target values are wishful thinking. Mandatory fields:
+- Target value with unit
+- Verification method
+- Scope (at which data volume the value applies)
 
-## Kategorien
+## Categories
 
 - performance | scalability | reliability | availability
 - security | maintainability | usability | portability
 - compatibility | cost | sustainability
 
-## Übersicht
+## Overview
 
-| ID | Titel | Kategorie | Zielwert | Status |
+| ID | Title | Category | Target Value | Status |
 |---|---|---|---|---|
 | | | | | |

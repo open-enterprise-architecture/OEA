@@ -1,6 +1,6 @@
 ---
 id: REQ-087
-title: Go-Live ohne Enforcement durch Warnungen
+title: Go-live without enforcement through warnings
 type: functional
 priority: must
 status: proposed
@@ -22,43 +22,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-087: Go-Live ohne Enforcement durch Warnungen
+# REQ-087: Go-live without enforcement through warnings
 
-## Aussage
+## Statement
 
-Go-Live DARF NICHT durch nicht-implemented Solutions oder offene CEL-Rule-Violations blockiert werden. Diese Zustände MÜSSEN als Warnungen im Bestätigungsdialog angezeigt werden (Anzahl + Liste), blockieren die Ausführung jedoch nicht.
+Go-live MUST NOT be blocked by non-implemented solutions or open CEL rule violations. These states MUST be displayed as warnings in the confirmation dialog (count + list), but do not block execution.
 
-## Begründung
+## Rationale
 
-Freiheit ist der grösste Mehrwert. Betreiber können bewusst entscheiden, ein Plateau produktiv zu setzen, auch wenn nicht alle Solutions implementiert sind — z.B. bei Phasenmigration. Eine erzwungene Blockierung würde reale Übergangssituationen nicht abbilden.
+Freedom is the greatest added value. Operators can consciously decide to put a plateau into production even if not all solutions are implemented — e.g., in a phased migration. Enforced blocking would not reflect real transition situations.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Nicht-implemented Solutions als Warnung):
-- Wenn: bei Go-Live 3 nicht-implemented Solutions existieren
-- Dann: zeigt der Dialog die Warnung "3 Solutions nicht implementiert"; Go-Live bleibt ausführbar
+**AC1** (Non-implemented solutions as a warning):
+- When: 3 non-implemented solutions exist at go-live
+- Then: the dialog shows the warning "3 solutions not implemented"; go-live remains executable
 
-**AC2** (CEL-Violations als Warnung):
-- Wenn: bei Go-Live CEL-Rule-Violations existieren
-- Dann: zeigt der Dialog die Warnung "N Business-Rule-Violations"; Go-Live bleibt ausführbar
+**AC2** (CEL violations as a warning):
+- When: CEL rule violations exist at go-live
+- Then: the dialog shows the warning "N business rule violations"; go-live remains executable
 
-**AC3** (Kein Warnungsabschnitt ohne Warnungen):
-- Wenn: bei Go-Live weder nicht-implemented Solutions noch CEL-Violations existieren
-- Dann: wird kein Warnungsabschnitt im Dialog angezeigt
+**AC3** (No warning section without warnings):
+- When: neither non-implemented solutions nor CEL violations exist at go-live
+- Then: no warning section is displayed in the dialog
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-086 (Bestätigungsdialog)
-- **Folgewirkungen**: REQ-088 (Go-Live-Ausführung)
+- **Prerequisites**: REQ-086 (confirmation dialog)
+- **Downstream effects**: REQ-088 (go-live execution)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Warnungen sind informativ; kein HTTP-Fehler-Status für diese Zustände
-- Entscheidung liegt beim Nutzer; kein automatisches Blocking durch das System
-- Warnungsliste: Solution-Namen und Violations als aufklappbare Liste im Dialog
+- Warnings are informative; no HTTP error status for these states
+- The decision lies with the user; no automatic blocking by the system
+- Warning list: solution names and violations as an expandable list in the dialog
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

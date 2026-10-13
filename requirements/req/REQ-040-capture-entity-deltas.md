@@ -1,6 +1,6 @@
 ---
 id: REQ-040
-title: EntityDeltas einer Solution erfassen
+title: Capture the EntityDeltas of a solution
 type: functional
 priority: must
 status: proposed
@@ -19,133 +19,133 @@ references:
   stakeholders:
     - SH-04
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
-    - concept/20-entities/11-temporales-modell.md
+    - concept/20-entities/06-core-entity-types.md
+    - concept/20-entities/11-temporal-model.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-040: EntityDeltas einer Solution erfassen
+# REQ-040: Capture the EntityDeltas of a solution
 
-## Aussage
+## Statement
 
-Das System MUSS dem Solution Architekten ermöglichen, innerhalb einer Solution EntityDeltas der Typen `new`, `modified` und `retiring` zu erfassen, zu bearbeiten und zu entfernen; Solutions mit status=`implemented` DÜRFEN NICHT veränderbar sein (BR-03). Neue Entitäten (`deltaType=new`) MÜSSEN sowohl über den **Katalog** (Formular) als auch über das **Diagramm** (Canvas) anlegbar sein; im Diagramm MUSS beim Eingeben des Namens eine Vorschlagsliste mit bestehenden Komponenten aus der aktuellen IT-Landschaft angezeigt werden.
+The system MUST allow the solution architect to capture, edit, and remove EntityDeltas of the types `new`, `modified`, and `retiring` within a solution; solutions with status=`implemented` MUST NOT be modifiable (BR-03). New entities (`deltaType=new`) MUST be creatable both via the **catalog** (form) and via the **diagram** (canvas); in the diagram, a suggestion list with existing components from the current IT landscape MUST be displayed when entering the name.
 
-## Begründung
+## Rationale
 
-EntityDeltas sind der Kern der Architektur-Vision: Sie beschreiben präzise, welche Entitäten durch diese Initiative entstehen, sich verändern oder ausser Betrieb gehen. Ohne diese strukturierte Delta-Erfassung bleibt die Solution ein Freitext-Dokument ohne maschinenlesbare Scope-Abgrenzung – Konflikt-Erkennung, Diff-Ansicht und spätere Auswirkungsanalysen wären nicht möglich.
+EntityDeltas are the core of the architecture vision: they describe precisely which entities arise, change, or go out of service through this initiative. Without this structured delta capture, the solution remains a free-text document without machine-readable scope delimitation – conflict detection, diff view, and later impact analyses would not be possible.
 
-## Kontext
+## Context
 
-Ein `EntityDelta` ist ein Werteobjekt (kein eigenes Business Object) und Teil der Solution. Es referenziert entweder eine bereits existierende Entität aus der IT-Landschaft (`modified`, `retiring`) oder beschreibt eine neue Entität, die durch diese Solution erstmalig angelegt wird (`new`). Pro Entität und Solution ist exakt ein Delta erlaubt (kein simultanes `new` + `retiring` für dieselbe Entität).
+An `EntityDelta` is a value object (not a business object of its own) and part of the solution. It references either an already existing entity from the IT landscape (`modified`, `retiring`) or describes a new entity that is created for the first time by this solution (`new`). Exactly one delta is allowed per entity and solution (no simultaneous `new` + `retiring` for the same entity).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
+**Inputs**:
 
-*deltaType=new – Katalog-Pfad (Formular)*:
-- EntityType (Dropdown aus verfügbaren Typen lt. MetamodelConfiguration)
-- Name (string, Pflicht)
-- Properties (gemäss EntityType-Schema)
+*deltaType=new – catalog path (form)*:
+- EntityType (dropdown of available types per MetamodelConfiguration)
+- Name (string, mandatory)
+- Properties (per EntityType schema)
 
-*deltaType=new – Diagramm-Pfad (Canvas)*:
-- Entität auf dem Canvas platzieren (Drag aus Palette oder Doppelklick)
-- Name-Eingabe direkt auf dem Canvas-Element; während der Eingabe: Vorschlagsliste mit Entitäten aus der aktuellen IT-Landschaft (REQ-039), gefiltert nach dem eingetippten Text (Präfix- und Teilstring-Suche); Auswahl aus der Liste markiert die Entität als `deltaType=modified` oder `retiring` statt `new`
-- EntityType wählbar über Kontextmenü oder Palette
+*deltaType=new – diagram path (canvas)*:
+- Place the entity on the canvas (drag from palette or double-click)
+- Name input directly on the canvas element; while typing: suggestion list with entities from the current IT landscape (REQ-039), filtered by the typed text (prefix and substring search); selecting from the list marks the entity as `deltaType=modified` or `retiring` instead of `new`
+- EntityType selectable via context menu or palette
 
 *deltaType=modified*:
-- entityId (Referenz auf eine Entität aus der Ausgangsbasis, REQ-039)
-- `changes`-Map: betroffene Properties mit Vorher- und Nachher-Wert
+- entityId (reference to an entity from the baseline, REQ-039)
+- `changes` map: affected properties with before and after value
 
 *deltaType=retiring*:
-- entityId (Referenz auf eine Entität aus der Ausgangsbasis, REQ-039)
-- Kein weiterer Inhalt erforderlich
+- entityId (reference to an entity from the baseline, REQ-039)
+- No further content required
 
-**Verarbeitung**:
-- BR-03: Solution.status == `implemented` → alle Schreibzugriffe auf Deltas mit 409 Conflict ablehnen
-- Eindeutigkeitsprüfung: pro entityId darf eine Solution maximal ein Delta besitzen; bei Duplikat → Validierungsfehler
-- `modified`/`retiring` validieren, dass die referenzierte entityId in der Ausgangsbasis (REQ-039) vorhanden ist
-- `new` benötigt keine Referenzprüfung gegen Ausgangsbasis (Entität existiert noch nicht)
-- Delta persistieren als Teil der Solution (kein eigener DB-Record; in Solution eingebettet oder eng verknüpft)
+**Processing**:
+- BR-03: Solution.status == `implemented` → reject all write access to deltas with 409 Conflict
+- Uniqueness check: a solution may have at most one delta per entityId; on duplicate → validation error
+- `modified`/`retiring` validate that the referenced entityId is present in the baseline (REQ-039)
+- `new` needs no reference check against the baseline (entity does not exist yet)
+- Persist the delta as part of the solution (no separate DB record; embedded in the solution or closely linked)
 
-**Ausgaben**:
-- Aktualisierte Delta-Liste der Solution
-- Auslöser für Aktualisierung der Diff-Ansicht (REQ-041) und Prüfung auf Konflikt (REQ-042)
+**Outputs**:
+- Updated delta list of the solution
+- Trigger for updating the diff view (REQ-041) and checking for conflicts (REQ-042)
 
-**Fehlerfälle**:
-- Solution status=`implemented` → 409 Conflict: „Diese Solution ist abgeschlossen und kann nicht mehr verändert werden"
-- Doppeltes Delta für dieselbe entityId → Validierungsfehler: „Für diese Entität existiert bereits ein Delta in dieser Solution"
-- Unbekannte entityId bei `modified`/`retiring` → Validierungsfehler: „Entität nicht in der aktuellen Landschaft gefunden"
-- Fehlende Berechtigung → 403 Forbidden
+**Error Cases**:
+- Solution status=`implemented` → 409 Conflict: "This solution is completed and can no longer be modified"
+- Duplicate delta for the same entityId → validation error: "A delta already exists for this entity in this solution"
+- Unknown entityId for `modified`/`retiring` → validation error: "Entity not found in the current landscape"
+- Missing permission → 403 Forbidden
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Michael arbeitet an einer Solution im Status `draft`; Entity `CRM-Legacy` (ApplicationComponent) ist in der Ausgangsbasis
-- Wenn: er `CRM-Legacy` als `retiring` markiert
-- Dann: erscheint `CRM-Legacy` in der Delta-Liste der Solution als `deltaType=retiring`; Diff-Ansicht (REQ-041) zeigt sie als „ausser Betrieb"
+- Given: Michael is working on a solution in status `draft`; entity `CRM-Legacy` (ApplicationComponent) is in the baseline
+- When: he marks `CRM-Legacy` as `retiring`
+- Then: `CRM-Legacy` appears in the solution's delta list as `deltaType=retiring`; the diff view (REQ-041) shows it as "out of service"
 
 **AC2**:
-- Gegeben: Gleiche Ausgangssituation wie AC1
-- Wenn: Michael eine neue Entität `Salesforce` vom Typ `ApplicationComponent` mit `deltaType=new` anlegt
-- Dann: erscheint `Salesforce` in der Delta-Liste als `deltaType=new`; `Salesforce` ist noch **nicht** in der Ausgangsbasis (kommt durch diese Solution neu hinzu)
+- Given: same starting situation as AC1
+- When: Michael creates a new entity `Salesforce` of type `ApplicationComponent` with `deltaType=new`
+- Then: `Salesforce` appears in the delta list as `deltaType=new`; `Salesforce` is **not** yet in the baseline (it is newly added by this solution)
 
 **AC3**:
-- Gegeben: Entity `ERP-Core` (ApplicationComponent) ist in der Ausgangsbasis
-- Wenn: Michael `ERP-Core` als `modified` markiert und die Version von v4 auf v5 ändert
-- Dann: enthält das Delta `changes = {version: {before: "v4", after: "v5"}}`; Diff-Ansicht zeigt die Änderung
+- Given: entity `ERP-Core` (ApplicationComponent) is in the baseline
+- When: Michael marks `ERP-Core` as `modified` and changes the version from v4 to v5
+- Then: the delta contains `changes = {version: {before: "v4", after: "v5"}}`; the diff view shows the change
 
 **AC4**:
-- Gegeben: Solution hat status=`implemented`
-- Wenn: Michael versucht, ein neues Delta hinzuzufügen
-- Dann: 409 Conflict mit Meldung „Diese Solution ist abgeschlossen und kann nicht mehr verändert werden"
+- Given: the solution has status=`implemented`
+- When: Michael tries to add a new delta
+- Then: 409 Conflict with message "This solution is completed and can no longer be modified"
 
 **AC5**:
-- Gegeben: `CRM-Legacy` hat bereits ein `retiring`-Delta in dieser Solution
-- Wenn: Michael versucht, `CRM-Legacy` erneut als `modified` hinzuzufügen
-- Dann: Validierungsfehler „Für CRM-Legacy existiert bereits ein Delta in dieser Solution"
+- Given: `CRM-Legacy` already has a `retiring` delta in this solution
+- When: Michael tries to add `CRM-Legacy` again as `modified`
+- Then: validation error "A delta already exists for CRM-Legacy in this solution"
 
 **AC6**:
-- Gegeben: Michael gibt als `modified`-Delta eine entityId ein, die nicht in der Ausgangsbasis ist
-- Wenn: er speichert
-- Dann: Validierungsfehler „Entität nicht in der aktuellen Landschaft gefunden"
+- Given: Michael enters, as a `modified` delta, an entityId that is not in the baseline
+- When: he saves
+- Then: validation error "Entity not found in the current landscape"
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Delta new/modified/retiring anlegen; BR-03 (implemented read-only); Duplikat-Prüfung; ungültige entityId
-- [x] Mess-Werkzeug: Backend-Test-Suite
-- [x] Bestanden-Kriterium: AC1–AC6 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: create delta new/modified/retiring; BR-03 (implemented read-only); duplicate check; invalid entityId
+- [x] Measurement tool: backend test suite
+- [x] Pass criterion: AC1–AC6 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-038 (Solution muss existieren, status=`draft`); REQ-039 (Ausgangsbasis als Referenz für `modified`/`retiring`); MetamodelConfiguration für EntityType-Dropdown
-- **Folgewirkungen**: REQ-041 (Diff-Ansicht) liest die Deltas; REQ-042 (Konflikt-Warnung) prüft Überschneidungen mit anderen Solutions
+- **Prerequisites**: REQ-038 (the solution must exist, status=`draft`); REQ-039 (baseline as reference for `modified`/`retiring`); MetamodelConfiguration for the EntityType dropdown
+- **Downstream effects**: REQ-041 (diff view) reads the deltas; REQ-042 (conflict warning) checks overlaps with other solutions
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne strukturierte Delta-Erfassung ist die Solution nur ein Freitext ohne maschinenlesbare Scope-Abgrenzung – Automatisierung (Konflikt-Erkennung, Diff, spätere Auswirkungsanalysen) ist nicht möglich, schwerwiegend
+- Risk 1: Without structured delta capture, the solution is only free text without machine-readable scope delimitation – automation (conflict detection, diff, later impact analyses) is not possible, severe
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
 - `POST/PUT/DELETE /api/v1/solutions/{id}/deltas`
-- Ob EntityDelta als eingebettetes JSON-Array in der Solution oder als eigene Tabelle mit FK gespeichert wird, ist Solution-Design-Entscheidung; beides ist zulässig
-- `changes`-Map für `modified`: `{propertyName: {before: any, after: any}}`; Vorher-Wert kann automatisch aus der Ausgangsbasis vorbelegt werden (UX-Verbesserung, nicht Pflicht für MVP)
+- Whether the EntityDelta is stored as an embedded JSON array in the solution or as a separate table with FK is a solution design decision; both are permissible
+- `changes` map for `modified`: `{propertyName: {before: any, after: any}}`; the before value can be prefilled automatically from the baseline (UX improvement, not mandatory for MVP)
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft aus UC-05 |
-| 0.2.0 | 2026-06-26 | requirements-engineer | Zwei Erstellungspfade ergänzt (Katalog + Diagramm); Diagramm-Namensvervollständigung mit Landschafts-Vorschlägen spezifiziert |
+| 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft from UC-05 |
+| 0.2.0 | 2026-06-26 | requirements-engineer | Added two creation paths (catalog + diagram); specified diagram name completion with landscape suggestions |

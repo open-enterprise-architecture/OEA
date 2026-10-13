@@ -1,64 +1,64 @@
-# US-020: Enrollment-Einstieg über Einladungslink
+# US-020: Enrollment Entry via Invitation Link
 
 **ID**: US-020
 **Story Points**: 3
 **Status**: rejected
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als eingeladene Person möchte ich über einen Einladungslink zur Enrollment-Oberfläche gelangen, damit ich sehe, welche Authentifizierungsmethoden ich einrichten kann – ohne mich vorher einloggen zu müssen.
+As an invited person, I want to reach the enrollment interface via an invitation link, so that I can see which authentication methods I can set up – without having to log in beforehand.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-03: Authentifizierungsmethode einrichten](../use-cases/UC-03-authentifizierungsmethode-einrichten.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-021: Enrollment-Token-Validierung und Einmaligkeit](../req/REQ-021-enrollment-token-validierung.md)
+**Use Case**: [UC-03: Set Up Authentication Method](../use-cases/UC-03-set-up-authentication-method.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-021: Enrollment Token Validation and Single Use](../req/REQ-021-enrollment-token-validation.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein gültiges, nicht verbrauchtes, nicht abgelaufenes Enrollment-Token im Link
-- Wenn: Kurt den Link öffnet
-- Dann: sieht er die Enrollment-Oberfläche mit den für die Instanz aktivierten Methoden
+- Given: a valid, unconsumed, unexpired enrollment token in the link
+- When: Kurt opens the link
+- Then: he sees the enrollment interface with the methods enabled for the instance
 
 **AC2**:
-- Gegeben: ein bereits verbrauchtes oder abgelaufenes Token
-- Wenn: Kurt den Link öffnet
-- Dann: sieht er eine allgemeine Fehlermeldung ("Einrichtungslink ungültig oder abgelaufen"), kein Formular
+- Given: an already consumed or expired token
+- When: Kurt opens the link
+- Then: he sees a generic error message ("Setup link invalid or expired"), no form
 
 **AC3**:
-- Gegeben: ein erfolgreich abgeschlossenes Enrollment
-- Wenn: derselbe Link erneut geöffnet wird
-- Dann: greift AC2 (Token ist verbraucht)
+- Given: a successfully completed enrollment
+- When: the same link is opened again
+- Then: AC2 applies (token is consumed)
 
 **AC4**:
-- Gegeben: das System verarbeitet einen Token
-- Wenn: Server-Logs geschrieben werden
-- Dann: ist der Token-Klartext nicht in den Logs enthalten
+- Given: the system processes a token
+- When: server logs are written
+- Then: the token plaintext is not contained in the logs
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Enrollment-Modul (Backend), Enrollment-Einstiegsseite (Frontend)
-- Betroffene EntityTypes/Relations: Enrollment-Token-Tabelle (`token_hash`, `person_id`, `expires_at`, `consumed_at`)
-- API-Endpunkte: `POST /auth/enrollment/validate` (Token-Prüfung; Token per Request-Body, nicht als Query-Parameter, damit er nicht in Server-Logs landet)
-- Datenbank-Änderungen: neue Tabelle `enrollment_tokens`
+- Affected components: enrollment module (backend), enrollment entry page (frontend)
+- Affected EntityTypes/Relations: enrollment token table (`token_hash`, `person_id`, `expires_at`, `consumed_at`)
+- API endpoints: `POST /auth/enrollment/validate` (token check; token via request body, not as query parameter, so that it does not end up in server logs)
+- Database changes: new table `enrollment_tokens`
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (gültiges, verbrauchtes, abgelaufenes Token)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (valid, consumed, expired token)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: keine (kann als erste Enrollment-Story gebaut werden)
-- Blockiert: US-021, US-022, US-023 (alle benötigen valides Token als Startpunkt)
+- Waiting on: none (can be built as the first enrollment story)
+- Blocks: US-021, US-022, US-023 (all require a valid token as a starting point)
 
-## Notizen
+## Notes
 
-**Rejected 2026-06-25**: Enrollment-via-Einladungslink verworfen. Der Token-Ansatz hätte einen sicheren Zustellungskanal (E-Mail o.ä.) vorausgesetzt. Ersetzt durch Just-in-Time-Enrollment als Required Action beim ersten Login (UC-03 v0.2.0); der Nutzer meldet sich mit initialem Passwort an und richtet den 2. Faktor direkt im Login-Flow ein. Entspricht REQ-021 `rejected`.
+**Rejected 2026-06-25**: Enrollment via invitation link rejected. The token approach would have required a secure delivery channel (email or similar). Replaced by just-in-time enrollment as a required action at first login (UC-03 v0.2.0); the user signs in with the initial password and sets up the second factor directly in the login flow. Corresponds to REQ-021 `rejected`.

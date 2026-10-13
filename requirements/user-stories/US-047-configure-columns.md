@@ -1,53 +1,53 @@
-# US-047: Spalten eines Katalogs konfigurieren
+# US-047: Configure the Columns of a Catalog
 
 **ID**: US-047
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Lead Enterprise Architekt möchte ich für einen Katalog konfigurieren, welche Attribute des primären Entitätstyps als Spalten angezeigt werden, in welcher Reihenfolge sie erscheinen und mit welchem Label – damit die Tabelle genau die Information zeigt, die für die Zielgruppe des Katalogs relevant ist.
+As a Lead Enterprise Architect, I want to configure for a catalog which attributes of the primary entity type are displayed as columns, in which order they appear and with which label – so that the table shows exactly the information that is relevant for the catalog's target audience.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-06: Architektur-Katalog anlegen, konfigurieren und verwenden](../use-cases/UC-06-katalog-anlegen-und-verwenden.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-044: Spalten eines Katalogs konfigurieren](../req/REQ-044-spalten-konfigurieren.md)
+**Use Case**: [UC-06: Create, Configure and Use an Architecture Catalog](../use-cases/UC-06-create-and-use-catalog.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-044: Configure the Columns of a Catalog](../req/REQ-044-configure-columns.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Alle Attribute verfügbar):
-- Gegeben: Katalog mit primaryEntityType=ApplicationComponent; Metamodell definiert built-in-Attribute (name, status, description) und custom-Attribute (vendor, supportEndDate)
-- Wenn: Kurt öffnet den Spalten-Konfigurator
-- Dann: Alle Attribute (built-in + custom) erscheinen als wählbare Spalten
+**AC1** (all attributes available):
+- Given: Catalog with primaryEntityType=ApplicationComponent; metamodel defines built-in attributes (name, status, description) and custom attributes (vendor, supportEndDate)
+- When: Kurt opens the column configurator
+- Then: All attributes (built-in + custom) appear as selectable columns
 
-**AC2** (Reihenfolge per Drag-and-Drop):
-- Wenn: Kurt zieht die Spalte „status" vor „name"
-- Dann: In der Katalog-Ansicht erscheint „status" als erste Spalte; Reihenfolge ist nach Speichern persistent
+**AC2** (order via drag and drop):
+- When: Kurt drags the column "status" before "name"
+- Then: In the catalog view "status" appears as the first column; order is persistent after saving
 
-**AC3** (Display-Label anpassen):
-- Wenn: Kurt setzt für Attribut `status` den displayLabel „Betriebsstatus"
-- Dann: Spalten-Header in der Tabelle zeigt „Betriebsstatus"; das Attribut heisst intern weiterhin `status`
+**AC3** (customize display label):
+- When: Kurt sets the displayLabel "Operational Status" for attribute `status`
+- Then: Column header in the table shows "Operational Status"; the attribute is still called `status` internally
 
-**AC4** (Sichtbarkeit umschalten):
-- Wenn: Kurt markiert Spalte `description` als unsichtbar (visible=false)
-- Dann: Spalte erscheint nicht in der Tabelle; bleibt aber in der Konfiguration und kann wieder eingeblendet werden
+**AC4** (toggle visibility):
+- When: Kurt marks column `description` as invisible (visible=false)
+- Then: Column does not appear in the table; but remains in the configuration and can be shown again
 
-**AC5** (Mindestens eine sichtbare Spalte):
-- Wenn: Kurt versucht, alle Spalten auf visible=false zu setzen
-- Dann: Inline-Fehler „Mind. eine Spalte muss sichtbar sein"; Speichern blockiert
+**AC5** (at least one visible column):
+- When: Kurt tries to set all columns to visible=false
+- Then: Inline error "At least one column must be visible"; saving blocked
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Spalten-Konfigurator im Katalog-Konfigurationsbereich, Backend `PUT /api/v1/catalogs/{id}/columns`
-- UX: zwei-spaltige Darstellung: links „Verfügbare Attribute", rechts „Gewählte Spalten" (Drag-and-Drop zwischen beiden); Alternative: Checkbox-Liste mit Reihenfolge-Griffen
-- Abhängigkeit: US-046 muss abgeschlossen sein
+- Affected components: column configurator in the catalog configuration area, backend `PUT /api/v1/catalogs/{id}/columns`
+- UX: two-column layout: left "Available attributes", right "Selected columns" (drag and drop between the two); alternative: checkbox list with order handles
+- Dependency: US-046 must be completed
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien AC1–AC5 erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests: Attribute-Liste vollständig, Reihenfolge persistiert, Label-Override, visible=false, Mindest-Spalte-Validierung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria AC1–AC5 met
+- [ ] Code review by a second person
+- [ ] Tests: attribute list complete, order persisted, label override, visible=false, minimum column validation
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix

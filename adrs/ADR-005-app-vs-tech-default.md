@@ -1,112 +1,112 @@
-# ADR-005: Application-vs-Technology-Klassifikations-Prinzip (Default)
+# ADR-005: Application-vs-Technology Classification Principle (Default)
 
 **Status**: accepted
-**Datum**: 2026-06-26
-**Entscheider**: [Rigobert – Produkt Owner](../business-analysis/stakeholders/SH-09-rigobert-produkt-owner.md) (SH-09)
-**Konsultiert**: Requirements Engineer (metamodel-configuration.md, ADR-002)
-**Informiert**: alle Stakeholder
+**Date**: 2026-06-26
+**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Consulted**: Requirements Engineer (metamodel-configuration.md, ADR-002)
+**Informed**: all stakeholders
 
 ---
 
-## Kontext und Problem
+## Context and Problem
 
-§6.1.1 des Konzepts fordert von jeder Organisation ein verbindliches Architektur-Prinzip, das die Abgrenzung Application vs. Technology festlegt:
+§6.1.1 of the concept requires every organization to have a binding architecture principle that defines the distinction between Application and Technology:
 
-- **Variante A** ("Plattform-as-Technology"): Plattform-Services sind Technology, auch bei eigenem Betriebsteam — klassische TOGAF-Lesart
-- **Variante B** ("Plattform-as-Application"): Produkte mit Product Owner sind Applications, auch bei technischem Charakter — moderne Product-Org-Lesart
+- **Variant A** ("Platform-as-Technology"): Platform services are Technology, even with their own operations team — classic TOGAF reading
+- **Variant B** ("Platform-as-Application"): Products with a Product Owner are Applications, even with a technical character — modern product-org reading
 
-Die offene Frage: Welche Variante ist der **Default-Auslieferungszustand** von OEA?
+The open question: Which variant is the **default delivery state** of OEA?
 
-**Bereits getroffene Vorentscheidung** (metamodel-configuration.md + ADR-002): OEA ist vollständig metamodell-getrieben. Es gibt keine hardcodierten EntityTypes „ApplicationComponent" oder „TechnologyComponent" im Code — diese sind konfigurierbare EntityTypeDefinitions. Der Begriff „Default" bedeutet daher: **welche Starter-Konfiguration wird beim Bootstrapping angeboten?**
+**Prior decision already made** (metamodel-configuration.md + ADR-002): OEA is fully metamodel-driven. There are no hardcoded EntityTypes "ApplicationComponent" or "TechnologyComponent" in the code — these are configurable EntityTypeDefinitions. The term "default" therefore means: **which starter configuration is offered during bootstrapping?**
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- **Open-Source-Charakter**: Ein starres Default-Prinzip könnte bestimmte Organisationen ausschliessen oder bevorzugen
-- **Nicht-Erzwingung**: OEA soll Modellierungs-Entscheidungen unterstützen, nicht abnehmen
-- **Niedrige Einstiegshürde**: Ohne irgendeinen Startpunkt steht Erstnutzer vor leerem Metamodell — Frustration
-- **Konsistenz mit ADR-002**: Starter-Konfigurationen als importierbare Pakete; kein Hardcoding
+- **Open-source character**: A rigid default principle could exclude or favor certain organizations
+- **Non-enforcement**: OEA should support modeling decisions, not make them
+- **Low entry barrier**: Without any starting point, first-time users face an empty metamodel — frustration
+- **Consistency with ADR-002**: Starter configurations as importable packages; no hardcoding
 
-## Betrachtete Optionen
+## Considered Options
 
-### Option 1: Variante A als Default ("Plattform-as-Technology")
-- Pro: klassischere TOGAF-Lesart; bekannter für EA-Seniors
-- Contra: passt nicht zu Product-Orgs (wachsende Mehrheit); könnte als Bias wahrgenommen werden
+### Option 1: Variant A as default ("Platform-as-Technology")
+- Pro: more classic TOGAF reading; more familiar to senior EAs
+- Con: does not fit product orgs (growing majority); could be perceived as bias
 
-### Option 2: Variante B als Default ("Plattform-as-Application")
-- Pro: passt zu modernen Product/Platform-Engineering-Trends
-- Contra: weicht von klassischer EA-Lehre ab; unvertraut für traditionelle EA-Abteilungen
+### Option 2: Variant B as default ("Platform-as-Application")
+- Pro: fits modern product/platform engineering trends
+- Con: deviates from classic EA teaching; unfamiliar to traditional EA departments
 
-### Option 3 (gewählt): Bewusst undefiniert + zwei Starter-Pakete
-- OEA wird ohne erzwungenes App/Tech-Prinzip ausgeliefert
-- Beim Bootstrapping wählt der Admin aus zwei optionalen Starter-Paketen (oder startet ohne)
-- **Pro**: kein Bias; respektiert Organisations-Entscheidung; niedrige Einstiegshürde durch konkrete Beispiele
-- **Contra**: Erstnutzer muss eine Entscheidung treffen (aber das ist bewusst gewollt)
+### Option 3 (chosen): Deliberately undefined + two starter packages
+- OEA is delivered without an enforced app/tech principle
+- During bootstrapping, the admin chooses from two optional starter packages (or starts without)
+- **Pro**: no bias; respects the organization's decision; low entry barrier through concrete examples
+- **Con**: First-time users must make a decision (but this is deliberately intended)
 
-### Option 4: Variante A als Default, Wechsel jederzeit möglich
-- Pro: pragmatischer Mittelweg
-- Contra: „Wechsel jederzeit möglich" ist faktisch aufwändig wenn bereits 10.000 Entitäten modelliert sind; der vermeintliche Vorteil ist illusorisch
+### Option 4: Variant A as default, switching possible at any time
+- Pro: pragmatic middle ground
+- Con: "switching possible at any time" is in fact laborious once 10,000 entities have already been modeled; the supposed advantage is illusory
 
-## Entscheidung
+## Decision
 
-**Option 3 ist die Entscheidung.**
+**Option 3 is the decision.**
 
-OEA hat **keinen erzwungenen Default** für Application vs. Technology. Stattdessen gibt es zwei optionale Starter-Pakete (ADR-002 Import-Mechanismus), die beim Bootstrapping (UC-02) angeboten werden:
+OEA has **no enforced default** for Application vs. Technology. Instead there are two optional starter packages (ADR-002 import mechanism) that are offered during bootstrapping (UC-02):
 
-### Starter-Paket A: `oea-starter-togaf-classic`
-Modelliert nach klassischer TOGAF/ArchiMate-Lesart (Variante A: Plattform-as-Technology):
+### Starter Package A: `oea-starter-togaf-classic`
+Modeled after the classic TOGAF/ArchiMate reading (Variant A: Platform-as-Technology):
 
-| EntityType | Kategorie | Beispiel |
+| EntityType | Category | Example |
 |---|---|---|
-| `application-component` | Application | CRM-System, ERP |
-| `application-service` | Application | Kunden-API |
-| `data-object` | Application | Kundenstamm |
-| `technology-component` | Technology | Kubernetes-Cluster, PostgreSQL |
-| `technology-service` | Technology | Datenbank-Service |
+| `application-component` | Application | CRM system, ERP |
+| `application-service` | Application | Customer API |
+| `data-object` | Application | Customer master data |
+| `technology-component` | Technology | Kubernetes cluster, PostgreSQL |
+| `technology-service` | Technology | Database service |
 | `system-software` | Technology | Linux, JVM |
-| `network-node` | Technology | Load-Balancer |
+| `network-node` | Technology | Load balancer |
 
-### Starter-Paket B: `oea-starter-product-org`
-Modelliert nach moderner Product-Org-Lesart (Variante B: Plattform-as-Application):
+### Starter Package B: `oea-starter-product-org`
+Modeled after the modern product-org reading (Variant B: Platform-as-Application):
 
-| EntityType | Kategorie | Beispiel |
+| EntityType | Category | Example |
 |---|---|---|
-| `product` (aus ADR-003) | Application | CRM-Plattform, Data-Platform |
-| `service` | Application | Kunden-API, Analytics-Service |
-| `data-product` | Application | Kundenstamm-Datensatz |
-| `infrastructure` | Technology | Cloud-Region, On-Prem-DC |
-| `runtime-platform` | Technology | EKS-Cluster, VM-Farm |
+| `product` (from ADR-003) | Application | CRM platform, data platform |
+| `service` | Application | Customer API, analytics service |
+| `data-product` | Application | Customer master data set |
+| `infrastructure` | Technology | Cloud region, on-prem DC |
+| `runtime-platform` | Technology | EKS cluster, VM farm |
 
-### Bootstrapping-Ablauf (ergänzt UC-02)
-1. Admin wählt beim ersten Login: „Starter-Konfiguration importieren?"
-2. Optionen: `oea-starter-togaf-classic`, `oea-starter-product-org`, „Leer starten"
-3. Wahl importiert das Paket als `scope=imported`; Admin kann danach eigene Typen ergänzen oder vorhandene forken
+### Bootstrapping Flow (complements UC-02)
+1. On first login, the admin is asked: "Import starter configuration?"
+2. Options: `oea-starter-togaf-classic`, `oea-starter-product-org`, "Start empty"
+3. The choice imports the package as `scope=imported`; the admin can then add own types or fork existing ones
 
-### Kein Zwang
-- Beide Pakete können nach dem Import frei modifiziert werden (via „Als eigene Kopie" forken → `scope=organization`)
-- Admin kann beide Pakete gleichzeitig importieren (manche Organisationen haben Hybridmodelle)
-- Kein Code-Pfad im Backend ist von der Wahl abhängig — es sind reine EntityTypeDefinition-Konfigurationen
+### No Enforcement
+- Both packages can be freely modified after import (fork via "As own copy" → `scope=organization`)
+- Admin can import both packages at the same time (some organizations have hybrid models)
+- No code path in the backend depends on the choice — they are pure EntityTypeDefinition configurations
 
-## Konsequenzen
+## Consequences
 
-### Positiv
-- Kein Bias gegenüber einem Klassifikationsprinzip
-- Niedrige Einstiegshürde durch konkrete Starter-Konfigurationen
-- Vollständige Erweiterbarkeit: Org kann eigene Subtypen (`private-cloud-app extends application-component`) ergänzen
-- Konsistent mit ADR-002 (Import-Mechanismus) und ADR-003 (work-initiative als Metamodell-Typ)
+### Positive Consequences
+- No bias towards one classification principle
+- Low entry barrier through concrete starter configurations
+- Full extensibility: org can add its own subtypes (`private-cloud-app extends application-component`)
+- Consistent with ADR-002 (import mechanism) and ADR-003 (work-initiative as metamodel type)
 
-### Negativ / Trade-offs
-- Zwei Starter-Pakete müssen gepflegt werden (eigenständige OSS-Artefakte)
-- Erstnutzer muss beim Bootstrapping eine bewusste Entscheidung treffen — aber das ist eine konzeptionelle Notwendigkeit, keine Schwäche
+### Negative Consequences / Trade-offs
+- Two starter packages must be maintained (standalone OSS artifacts)
+- First-time users must make a conscious decision during bootstrapping — but this is a conceptual necessity, not a weakness
 
-### Folgeentscheidungen
-- UC-02 (Bootstrapping) erhält Schritt für Starter-Konfiguration (ergänzt REQ-013/014)
-- `oea-starter-togaf-classic` und `oea-starter-product-org` werden als eigenständige Paket-Dateien im Repository verwaltet (`packages/` Verzeichnis — kommt mit Walking Skeleton)
+### Follow-up Decisions
+- UC-02 (bootstrapping) receives a step for starter configuration (complements REQ-013/014)
+- `oea-starter-togaf-classic` and `oea-starter-product-org` are managed as standalone package files in the repository (`packages/` directory — comes with the Walking Skeleton)
 
-## Bezüge
+## References
 
-**Konzept-Kapitel**:
-- [§6.1.1 Application vs. Technology](../concept/20-entities/06-kern-entitaetstypen.md)
+**Concept Chapters**:
+- [§6.1.1 Application vs. Technology](../concept/20-entities/06-core-entity-types.md)
 
-**Abhängige ADRs**: ADR-002 (Import-Mechanismus für Starter-Pakete), ADR-003 (product/project als konfigurierbare Typen)
+**Dependent ADRs**: ADR-002 (import mechanism for starter packages), ADR-003 (product/project as configurable types)
 
-**Bezogene Requirements**: REQ-013/014 (Bootstrapping), UC-02, UC-04 (Metamodell konfigurieren)
+**Related Requirements**: REQ-013/014 (bootstrapping), UC-02, UC-04 (configure metamodel)

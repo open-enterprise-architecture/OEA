@@ -1,54 +1,54 @@
-# US-019: Deaktivierbarkeit des lokalen System-Admin-Accounts
+# US-019: Ability to Disable the Local System Admin Account
 
 **ID**: US-019
 **Story Points**: 2
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als System-Admin mit funktionierendem Remote-Mapping möchte ich den ursprünglichen lokalen Bootstrap-Account deaktivieren können, damit die Instanz nach Erstkonfiguration keinen zusätzlichen, unkontrollierten Zugang mehr offen hat.
+As a system admin with a working remote mapping, I want to be able to disable the original local bootstrap account, so that after initial configuration the instance no longer has an additional, uncontrolled access left open.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-02: System-Admin-Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
-**Persona**: [SH-06: Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Requirement**: [REQ-019: Deaktivierbarkeit des lokalen System-Admin-Accounts](../req/REQ-019-deaktivierbarkeit-lokaler-admin.md)
+**Use Case**: [UC-02: System Admin Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
+**Persona**: [SH-06: Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Requirement**: [REQ-019: Ability to Disable the Local System Admin Account](../req/REQ-019-disable-local-admin.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein aktiver lokaler System-Admin-Account und ein funktionsfähiges Remote-Mapping
-- Wenn: ein System-Admin den lokalen Account deaktiviert
-- Dann: ist eine Anmeldung über den lokalen Account danach nicht mehr möglich, während der Remote-Weg weiter funktioniert
+- Given: an active local system admin account and a functioning remote mapping
+- When: a system admin disables the local account
+- Then: signing in via the local account is no longer possible afterwards, while the remote route continues to work
 
 **AC2**:
-- Gegeben: kein funktionsfähiges Remote-Mapping konfiguriert
-- Wenn: versucht wird, den lokalen Account zu deaktivieren
-- Dann: warnt das System vor einem möglichen vollständigen Lockout, blockiert die Aktion aber nicht zwingend
+- Given: no functioning remote mapping configured
+- When: an attempt is made to disable the local account
+- Then: the system warns of a possible complete lockout, but does not necessarily block the action
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Admin-Verwaltungs-UI/CLI
-- Betroffene EntityTypes/Relations: `SystemAdminAccount.active`
-- API-Endpunkte: Verwaltungs-Endpunkt für System-Admin-Accounts
-- Datenbank-Änderungen: keine zusätzlichen (Lifecycle-Übergang `active → deactivated`)
+- Affected components: admin management UI/CLI
+- Affected EntityTypes/Relations: `SystemAdminAccount.active`
+- API endpoints: management endpoint for system admin accounts
+- Database changes: no additional ones (lifecycle transition `active → deactivated`)
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (Deaktivierung mit/ohne funktionsfähiges Remote-Mapping)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (disabling with/without functioning remote mapping)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-013, US-014, US-018
-- Blockiert: keine
+- Waiting on: US-013, US-014, US-018
+- Blocks: none
 
-## Notizen
+## Notes
 
-Warnung statt Hard-Block, um nicht selbst einen Lockout (UC-02, E4) zu erzeugen.
+Warning instead of hard block, so as not to cause a lockout ourselves (UC-02, E4).

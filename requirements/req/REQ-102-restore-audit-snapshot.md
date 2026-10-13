@@ -1,6 +1,6 @@
 ---
 id: REQ-102
-title: Audit-Snapshot vor jeder Wiederherstellung
+title: Audit snapshot before every restore
 type: functional
 priority: should
 status: proposed
@@ -21,43 +21,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-102: Audit-Snapshot vor jeder Wiederherstellung
+# REQ-102: Audit snapshot before every restore
 
-## Aussage
+## Statement
 
-Vor jeder Wiederherstellung (vollständig UC-15 oder teilweise UC-16) MUSS das System den aktuellen Entitätszustand als unveränderlichen EntityVersion-Snapshot sichern. Der neue EntityVersion-Eintrag MUSS `restoredFromVersion` (Quellversion) enthalten. Dieser Snapshot MUSS in der Zeitlinie (UC-14) als Wiederherstellungs-Eintrag sichtbar sein.
+Before every restore (full UC-15 or partial UC-16), the system MUST save the current entity state as an immutable EntityVersion snapshot. The new EntityVersion entry MUST contain `restoredFromVersion` (source version). This snapshot MUST be visible in the timeline (UC-14) as a restore entry.
 
-## Begründung
+## Rationale
 
-Jede Wiederherstellung muss selbst nachvollziehbar sein. Ohne Audit-Snapshot würde eine Wiederherstellung den aktuellen Stand unsichtbar löschen — was den Audit-Trail bricht und Compliance-Anforderungen verletzt.
+Every restore must itself be traceable. Without an audit snapshot, a restore would invisibly erase the current state — which breaks the audit trail and violates compliance requirements.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Snapshot-Eintrag nach Wiederherstellung):
-- Wenn: eine Wiederherstellung ausgeführt wird
-- Dann: ist ein neuer EntityVersion-Eintrag mit `restoredFromVersion=N` in der Zeitlinie sichtbar
+**AC1** (Snapshot entry after restore):
+- When: a restore is executed
+- Then: a new EntityVersion entry with `restoredFromVersion=N` is visible in the timeline
 
-**AC2** (Markierung in Zeitlinie):
-- Wenn: die Zeitlinie nach einer Wiederherstellung angezeigt wird
-- Dann: zeigt der neue Eintrag die Markierung "Wiederhergestellt aus vN"
+**AC2** (Marking in timeline):
+- When: the timeline is displayed after a restore
+- Then: the new entry shows the marking "Restored from vN"
 
-**AC3** (Snapshot vor Wiederherstellung erhalten):
-- Wenn: die Wiederherstellung abgeschlossen ist
-- Dann: ist der Zustand VOR der Wiederherstellung als eigenständiger Snapshot in `entity_versions` vorhanden
+**AC3** (Snapshot before restore retained):
+- When: the restore is completed
+- Then: the state BEFORE the restore is present as an independent snapshot in `entity_versions`
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-098 (Zeitlinie), REQ-103 (atomare Transaktion)
-- **Folgewirkungen**: REQ-101 (Vollwiederherstellung), REQ-104–REQ-106 (Teilwiederherstellung)
+- **Prerequisites**: REQ-098 (timeline), REQ-103 (atomic transaction)
+- **Downstream effects**: REQ-101 (full restore), REQ-104–REQ-106 (partial restore)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Snapshot-Erstellung als erster Schritt innerhalb der Transaktion (vor dem Entitäts-Update)
-- `restoredFromVersion`-Feld in `entity_versions`-Tabelle ergänzen
-- Zeitlinie-Darstellung: Icon/Label für Wiederherstellungs-Einträge
+- Snapshot creation as the first step within the transaction (before the entity update)
+- Add `restoredFromVersion` field to the `entity_versions` table
+- Timeline display: icon/label for restore entries
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Erzeugt Gherkin Feature Files aus OEA-Requirement-Dateien.
-V-Modell: Systemtestspezifikation wird parallel zur Requirements-Phase erstellt.
+Generates Gherkin feature files from OEA requirement files.
+V-model: the system test specification is created in parallel to the requirements phase.
 
 Usage: python3 scripts/generate_feature_files.py
 """
@@ -13,12 +13,12 @@ from pathlib import Path
 REQ_DIR = Path("requirements/req")
 OUT_DIR = Path("requirements/tests")
 
-# Bootstrap-REQs brauchen keinen Login als Vorbedingung
+# Bootstrap REQs do not need a login as precondition
 BOOTSTRAP_REQS = {
     "REQ-013", "REQ-014", "REQ-015", "REQ-016",
     "REQ-017", "REQ-018", "REQ-019",
 }
-# Login-REQs beschreiben den Login selbst
+# Login REQs describe the login itself
 LOGIN_REQS = {
     "REQ-001", "REQ-002", "REQ-003", "REQ-004", "REQ-005",
     "REQ-006", "REQ-007", "REQ-008", "REQ-009", "REQ-010",
@@ -37,11 +37,11 @@ TYPE_TAGS = {
 
 
 # ---------------------------------------------------------------------------
-# Frontmatter-Parser (ohne externe YAML-Bibliothek)
+# Frontmatter parser (without an external YAML library)
 # ---------------------------------------------------------------------------
 
 def parse_frontmatter(content: str) -> tuple:
-    """Liest YAML-Frontmatter und gibt (meta_dict, body) zurück."""
+    """Reads YAML frontmatter and returns (meta_dict, body)."""
     meta = {}
     if not content.startswith("---"):
         return meta, content
@@ -51,7 +51,7 @@ def parse_frontmatter(content: str) -> tuple:
     fm = parts[1]
     body = parts[2]
 
-    # Einfacher Zeilenparser (reicht für die REQ-Felder)
+    # Simple line parser (sufficient for the REQ fields)
     for line in fm.splitlines():
         line = line.rstrip()
         if not line or line.startswith("#"):
@@ -60,7 +60,7 @@ def parse_frontmatter(content: str) -> tuple:
             k, _, v = line.partition(":")
             v = v.strip().strip('"').strip("'")
             meta[k.strip()] = v if v else None
-        # use_cases / UC-Referenzen als Liste
+        # use_cases / UC references as a list
         if line.strip().startswith("- UC-"):
             uc = line.strip().lstrip("- ").strip()
             meta.setdefault("_uc_refs", []).append(uc)
@@ -72,21 +72,26 @@ def parse_frontmatter(content: str) -> tuple:
 
 
 # ---------------------------------------------------------------------------
-# Markdown-Abschnitt extrahieren
+# Extract Markdown section
 # ---------------------------------------------------------------------------
 
-def extract_section(body: str, heading: str) -> str:
-    pattern = rf"##\s+{re.escape(heading)}\s*\n(.*?)(?=\n##\s|\Z)"
-    m = re.search(pattern, body, re.DOTALL)
-    return m.group(1).strip() if m else ""
+def extract_section(body: str, *headings: str) -> str:
+    """Return the first matching section; several headings act as fallbacks
+    (English heading first, legacy German heading second)."""
+    for heading in headings:
+        pattern = rf"##\s+{re.escape(heading)}\s*\n(.*?)(?=\n##\s|\Z)"
+        m = re.search(pattern, body, re.DOTALL)
+        if m:
+            return m.group(1).strip()
+    return ""
 
 
 # ---------------------------------------------------------------------------
-# Akzeptanzkriterien parsen
+# Parse acceptance criteria
 # ---------------------------------------------------------------------------
 
 def parse_acs(ac_text: str) -> list:
-    """Zerlegt den AC-Block in strukturierte Szenarien."""
+    """Splits the AC block into structured scenarios."""
     acs = []
     blocks = re.split(r'\n(?=\*\*AC\d+)', ac_text)
     for block in blocks:
@@ -104,12 +109,13 @@ def parse_acs(ac_text: str) -> list:
         given, when, then, other = [], [], [], []
         for raw_line in body.splitlines():
             line = raw_line.strip()
-            if re.match(r'^- Gegeben[: ]', line):
-                given.append(re.sub(r'^- Gegeben[: ]+', '', line).strip())
-            elif re.match(r'^- Wenn[: ]', line):
-                when.append(re.sub(r'^- Wenn[: ]+', '', line).strip())
-            elif re.match(r'^- Dann[: ]', line):
-                then.append(re.sub(r'^- Dann[: ]+', '', line).strip())
+            # English keywords first, legacy German keywords as fallback
+            if re.match(r'^- (?:Given|Gegeben)[: ]', line):
+                given.append(re.sub(r'^- (?:Given|Gegeben)[: ]+', '', line).strip())
+            elif re.match(r'^- (?:When|Wenn)[: ]', line):
+                when.append(re.sub(r'^- (?:When|Wenn)[: ]+', '', line).strip())
+            elif re.match(r'^- (?:Then|Dann)[: ]', line):
+                then.append(re.sub(r'^- (?:Then|Dann)[: ]+', '', line).strip())
             elif line and not line.startswith("#"):
                 other.append(line)
 
@@ -123,11 +129,11 @@ def parse_acs(ac_text: str) -> list:
 
 
 # ---------------------------------------------------------------------------
-# Feature-File bauen
+# Build feature file
 # ---------------------------------------------------------------------------
 
 def scenario_name(ac: dict) -> str:
-    """Kurzer, beschreibender Szenario-Name aus den AC-Inhalten."""
+    """Short, descriptive scenario name derived from the AC content."""
     candidates = ac["given"] + ac["when"]
     if candidates:
         name = candidates[0]
@@ -139,7 +145,7 @@ def scenario_name(ac: dict) -> str:
 
 
 def wrap(text: str, indent: str = "  ", width: int = 72) -> list:
-    """Bricht langen Text auf mehrere eingerückte Zeilen."""
+    """Wraps long text into several indented lines."""
     words = text.split()
     lines, cur = [], indent
     for w in words:
@@ -156,31 +162,31 @@ def wrap(text: str, indent: str = "  ", width: int = 72) -> list:
 def build_background(req_id: str, req_type: str, uc_refs: list) -> list:
     lines = []
     if req_type != "functional":
-        return lines   # NFR / compliance haben eigenen Kontext
+        return lines   # NFR / compliance have their own context
     lines.append("  Background:")
     if req_id in BOOTSTRAP_REQS:
-        lines.append("    Given eine frisch installierte OEA-Instanz ohne System-Admin-Account")
+        lines.append("    Given a freshly installed OEA instance without a system admin account")
     elif req_id in LOGIN_REQS:
-        lines.append("    Given eine OEA-Instanz mit konfiguriertem Authentifizierungsmechanismus")
-        lines.append("    And eine Person mit E-Mail \"test@example.com\" und aktiver Rolle existiert")
+        lines.append("    Given an OEA instance with a configured authentication mechanism")
+        lines.append("    And a person with email \"test@example.com\" and an active role exists")
     else:
-        lines.append("    Given eine laufende OEA-Instanz")
-        lines.append("    And ein Nutzer mit der erforderlichen Rolle ist angemeldet")
+        lines.append("    Given a running OEA instance")
+        lines.append("    And a user with the required role is logged in")
     lines.append("")
     return lines
 
 
 def build_feature(meta: dict, body: str) -> str:
     req_id   = meta.get("id", "REQ-???")
-    title    = meta.get("title", "Unbekannt")
+    title    = meta.get("title", "Unknown")
     req_type = meta.get("type", "functional")
     priority = meta.get("priority", "must")
     status   = meta.get("status", "proposed")
     uc_refs  = meta.get("_uc_refs", [])
 
-    aussage   = extract_section(body, "Aussage")
-    ac_text   = extract_section(body, "Akzeptanzkriterien")
-    verif     = extract_section(body, "Verifikationsmethode")
+    statement  = extract_section(body, "Statement", "Aussage")
+    ac_text    = extract_section(body, "Acceptance Criteria", "Akzeptanzkriterien")
+    verif      = extract_section(body, "Verification Method", "Verifikationsmethode")
     acs       = parse_acs(ac_text)
 
     # Tags
@@ -191,27 +197,27 @@ def build_feature(meta: dict, body: str) -> str:
     if uc_refs:
         tags += [f"@{uc}" for uc in uc_refs]
 
-    # Verifikationshinweis
+    # Verification hint
     verif_hint = ""
     for vl in verif.splitlines():
         vl = vl.strip().lstrip("- [x] ").lstrip("- [ ] ").strip()
-        if vl.startswith("Methode:"):
+        if vl.startswith(("Method:", "Methode:")):
             verif_hint = vl
             break
 
     out = []
-    out.append(f"# Ableitung aus: requirements/req/{req_id.lower().replace('-', '-', 1)}-*.md")
-    out.append("# V-Modell Systemtestspezifikation – erstellt 2026-06-30")
+    out.append(f"# Derived from: requirements/req/{req_id.lower().replace('-', '-', 1)}-*.md")
+    out.append("# V-model system test specification – created 2026-06-30")
     if verif_hint:
-        out.append(f"# Verifikation: {verif_hint}")
+        out.append(f"# Verification: {verif_hint}")
     out.append("")
     out.append(" ".join(tags))
     out.append(f"Feature: {req_id} – {title}")
     out.append("")
 
-    # Kurzbeschreibung (erste 2 Sätze der Aussage)
-    if aussage:
-        sentences = re.split(r'(?<=[.!?])\s+', aussage)
+    # Short description (first 2 sentences of the statement)
+    if statement:
+        sentences = re.split(r'(?<=[.!?])\s+', statement)
         short = " ".join(sentences[:2])
         out += wrap(short, "  ")
         out.append("")
@@ -219,7 +225,7 @@ def build_feature(meta: dict, body: str) -> str:
     # Background
     out += build_background(req_id, req_type, uc_refs)
 
-    # Szenarien
+    # Scenarios
     if acs:
         for ac in acs:
             lbl = f" – {ac['label']}" if ac['label'] else ""
@@ -232,51 +238,51 @@ def build_feature(meta: dict, body: str) -> str:
                     out.append(f"    {'Given' if first else 'And  '} {g}")
                     first = False
                 if not ac["given"]:
-                    out.append("    Given die Vorbedingung gemäß Anforderung ist erfüllt")
+                    out.append("    Given the precondition according to the requirement is met")
 
                 first = True
                 for w in ac["when"]:
                     out.append(f"    {'When ' if first else 'And  '} {w}")
                     first = False
                 if not ac["when"]:
-                    out.append("    When die beschriebene Aktion ausgeführt wird")
+                    out.append("    When the described action is performed")
 
                 first = True
                 for t in ac["then"]:
                     out.append(f"    {'Then ' if first else 'And  '} {t}")
                     first = False
                 if not ac["then"]:
-                    out.append("    Then ist das erwartete Ergebnis eingetreten")
+                    out.append("    Then the expected result has occurred")
             else:
-                # Kein strukturiertes Given/When/Then – Rohtext als Kommentar
-                out.append("    # TODO: AC ohne Standard-Struktur – manuell verfeinern")
+                # No structured Given/When/Then – raw text as comment
+                out.append("    # TODO: AC without standard structure – refine manually")
                 for raw_line in ac["raw"].splitlines()[:6]:
                     if raw_line.strip():
                         out.append(f"    # {raw_line.strip()}")
-                out.append("    Given die Vorbedingung gemäß Anforderung ist erfüllt")
-                out.append("    When die beschriebene Aktion ausgeführt wird")
-                out.append("    Then verhält sich das System gemäß der Aussage")
+                out.append("    Given the precondition according to the requirement is met")
+                out.append("    When the described action is performed")
+                out.append("    Then the system behaves according to the statement")
 
             out.append("")
     else:
-        out.append("  # TODO: Keine Akzeptanzkriterien gefunden – manuell ergänzen")
-        out.append("  Scenario: Anforderung ist erfüllt")
-        out.append("    Given die Vorbedingungen gemäß Anforderungsdokument sind erfüllt")
-        out.append("    When die beschriebene Aktion ausgeführt wird")
-        out.append("    Then verhält sich das System gemäß der Aussage")
+        out.append("  # TODO: No acceptance criteria found – add manually")
+        out.append("  Scenario: Requirement is fulfilled")
+        out.append("    Given the preconditions according to the requirement document are met")
+        out.append("    When the described action is performed")
+        out.append("    Then the system behaves according to the statement")
         out.append("")
 
     return "\n".join(out)
 
 
 # ---------------------------------------------------------------------------
-# Haupt-Routine
+# Main routine
 # ---------------------------------------------------------------------------
 
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     req_files = sorted(REQ_DIR.glob("REQ-*.md"))
-    print(f"Verarbeite {len(req_files)} Anforderungs-Dateien ...\n")
+    print(f"Processing {len(req_files)} requirement files ...\n")
 
     ok = skip = warn = 0
     for req_file in req_files:
@@ -284,7 +290,7 @@ def main():
         meta, body = parse_frontmatter(content)
 
         if not meta.get("id"):
-            print(f"  SKIP (kein id):  {req_file.name}")
+            print(f"  SKIP (no id):  {req_file.name}")
             skip += 1
             continue
 
@@ -293,22 +299,22 @@ def main():
             out_path = OUT_DIR / req_file.name.replace(".md", ".feature")
             out_path.write_text(feature, encoding="utf-8")
 
-            acs = parse_acs(extract_section(body, "Akzeptanzkriterien"))
+            acs = parse_acs(extract_section(body, "Acceptance Criteria", "Akzeptanzkriterien"))
             structured = sum(1 for a in acs if a["has_structure"])
             flag = "⚠" if structured < len(acs) else "✓"
-            print(f"  {flag} {out_path.name}  ({len(acs)} ACs, {structured} strukturiert)")
+            print(f"  {flag} {out_path.name}  ({len(acs)} ACs, {structured} structured)")
             if structured < len(acs):
                 warn += 1
             ok += 1
         except Exception as e:
-            print(f"  ✗ FEHLER {req_file.name}: {e}")
+            print(f"  ✗ ERROR {req_file.name}: {e}")
             skip += 1
 
     print(f"\n{'='*60}")
-    print(f"  Erstellt:  {ok} Feature Files")
-    print(f"  Warnungen: {warn} (ACs ohne Standard-Struktur, TODO-Markierung)")
-    print(f"  Übersprungen: {skip}")
-    print(f"  Ausgabe:   {OUT_DIR}/")
+    print(f"  Created:  {ok} feature files")
+    print(f"  Warnings: {warn} (ACs without standard structure, TODO marker)")
+    print(f"  Skipped: {skip}")
+    print(f"  Output:   {OUT_DIR}/")
     print(f"{'='*60}")
 
 

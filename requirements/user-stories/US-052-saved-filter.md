@@ -1,51 +1,51 @@
-# US-052: Gesetzten Filter als SavedFilter speichern
+# US-052: Save a Set Filter as a SavedFilter
 
 **ID**: US-052
 **Story Points**: 2
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Katalog-Nutzer möchte ich einen ad-hoc gesetzten Filter benennen und speichern können, damit ich ihn beim nächsten Besuch des Katalogs per Schnellauswahl wieder aktivieren kann, ohne ihn neu einzugeben.
+As a catalog user, I want to be able to name and save an ad-hoc set filter, so that on my next visit to the catalog I can reactivate it via quick select without re-entering it.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-06: Architektur-Katalog anlegen, konfigurieren und verwenden](../use-cases/UC-06-katalog-anlegen-und-verwenden.md)
-**Persona**: Alle Stakeholder (SH-01 bis SH-07); Katalog-Manager (SH-03, SH-07) können zusätzlich scope=instance wählen
-**Requirement**: [REQ-047: Filter setzen und als SavedFilter speichern](../req/REQ-047-filter-setzen-und-speichern.md)
+**Use Case**: [UC-06: Create, Configure and Use an Architecture Catalog](../use-cases/UC-06-create-and-use-catalog.md)
+**Persona**: All stakeholders (SH-01 to SH-07); catalog managers (SH-03, SH-07) can additionally choose scope=instance
+**Requirement**: [REQ-047: Set Filters and Save as SavedFilter](../req/REQ-047-set-and-save-filters.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Filter speichern, Happy Path):
-- Gegeben: Kurt hat Filter `status = "active"` gesetzt (US-051)
-- Wenn: Kurt klickt „Filter speichern", gibt Name „Nur aktive Systeme" ein und bestätigt
-- Dann: SavedFilter in der Katalog-Konfiguration persistiert; erscheint in der Schnellauswahl-Liste für alle Besucher (scope=instance, weil Kurt Manager ist)
+**AC1** (save filter, happy path):
+- Given: Kurt has set filter `status = "active"` (US-051)
+- When: Kurt clicks "Save filter", enters the name "Active systems only" and confirms
+- Then: SavedFilter persisted in the catalog configuration; appears in the quick-select list for all visitors (scope=instance, because Kurt is a manager)
 
-**AC2** (SavedFilter aktivieren):
-- Gegeben: SavedFilter „Nur aktive Systeme" existiert
-- Wenn: Franz öffnet den Katalog und klickt in der Schnellauswahl auf „Nur aktive Systeme"
-- Dann: Filter sofort aktiv; Tabelle zeigt nur aktive Entitäten
+**AC2** (activate SavedFilter):
+- Given: SavedFilter "Active systems only" exists
+- When: Franz opens the catalog and clicks "Active systems only" in the quick select
+- Then: Filter immediately active; table shows only active entities
 
-**AC3** (Persönlicher Filter – scope=personal):
-- Gegeben: Franz hat Besucher-Rolle (keine Schreibberechtigung)
-- Wenn: Franz setzt einen Filter und klickt „Filter speichern"
-- Dann: Filter als scope=personal gespeichert; erscheint nur in Franzens Schnellauswahl
+**AC3** (personal filter – scope=personal):
+- Given: Franz has the visitor role (no write permission)
+- When: Franz sets a filter and clicks "Save filter"
+- Then: Filter saved as scope=personal; appears only in Franz's quick select
 
-**AC4** (AND / OR zwischen Expressions):
-- Wenn: Kurt speichert Filter mit 2 Expressions und wählt OR als Kombination
-- Dann: SavedFilter mit `logicalOperator=or` gespeichert; Abfrage liefert Entitäten die mind. eine Bedingung erfüllen
+**AC4** (AND / OR between expressions):
+- When: Kurt saves a filter with 2 expressions and chooses OR as the combination
+- Then: SavedFilter saved with `logicalOperator=or`; query returns entities that meet at least one condition
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: „Filter speichern"-Button in Filter-Leiste, Name-Eingabe-Dialog, Backend `POST /api/v1/catalogs/{id}/filters`
-- UX: minimales Modal: Name + AND/OR-Auswahl + Bestätigung
-- Abhängigkeit: US-051
+- Affected components: "Save filter" button in the filter bar, name input dialog, backend `POST /api/v1/catalogs/{id}/filters`
+- UX: minimal modal: name + AND/OR selection + confirmation
+- Dependency: US-051
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien AC1–AC4 erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests: Filter speichern (instance), in Schnellauswahl sichtbar, personal scope für Besucher, AND/OR-Kombination
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria AC1–AC4 met
+- [ ] Code review by a second person
+- [ ] Tests: save filter (instance), visible in quick select, personal scope for visitors, AND/OR combination
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix

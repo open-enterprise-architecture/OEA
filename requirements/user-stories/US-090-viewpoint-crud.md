@@ -1,36 +1,36 @@
-# US-090: Viewpoint anlegen, bearbeiten und löschen
+# US-090: Create, Edit, and Delete a Viewpoint
 
 **ID**: US-090
 **Story Points**: 8
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich eigene Viewpoints mit Notation, erlaubten Entity- und Verbindungstypen sowie Notation-Mappings anlegen, bearbeiten und löschen, damit ich organisationsspezifische Sichtweisen im EA-Repository abbilden kann.
+As Kurt – Lead Enterprise Architect, I want to create, edit, and delete custom viewpoints with notation, allowed entity and connection types, and notation mappings, so that I can represent organization-specific perspectives in the EA repository.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-12](../use-cases/UC-12-viewpoint-verwalten.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-090](../req/REQ-090-viewpoint-anlegen-bearbeiten-loeschen.md)
+**Use Case**: [UC-12](../use-cases/UC-12-manage-viewpoints.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-090](../req/REQ-090-create-edit-delete-viewpoint.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Viewpoint anlegen):
-- Wenn: ich einen neuen Viewpoint mit 3 EntityTypes anlege
-- Dann: erhalte ich HTTP 201; der Viewpoint ist sofort für neue Diagramme auswählbar
+**AC1** (Create viewpoint):
+- When: I create a new viewpoint with 3 EntityTypes
+- Then: I receive HTTP 201; the viewpoint is immediately selectable for new diagrams
 
-**AC2** (EntityType entfernen mit Warnung):
-- Wenn: ich beim Bearbeiten einen genutzten EntityType entferne
-- Dann: sehe ich eine Warnung "N Diagramme betroffen"; die Bearbeitung ist nicht blockiert
+**AC2** (Remove EntityType with warning):
+- When: I remove a used EntityType while editing
+- Then: I see a warning "N diagrams affected"; editing is not blocked
 
-**AC3** (Viewpoint löschen):
-- Wenn: ich einen user-defined Viewpoint lösche
-- Dann: wird er aus der MetamodelConfiguration entfernt
+**AC3** (Delete viewpoint):
+- When: I delete a user-defined viewpoint
+- Then: it is removed from the MetamodelConfiguration
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

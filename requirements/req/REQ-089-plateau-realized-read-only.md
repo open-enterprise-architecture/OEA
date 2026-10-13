@@ -1,6 +1,6 @@
 ---
 id: REQ-089
-title: Realized-Plateau schreibgeschützt
+title: Realized plateau read-only
 type: functional
 priority: must
 status: proposed
@@ -21,39 +21,39 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-089: Realized-Plateau schreibgeschützt
+# REQ-089: Realized plateau read-only
 
-## Aussage
+## Statement
 
-Plateaus mit `status=realized` MÜSSEN für alle Schreib-Operationen gesperrt sein (read-only). Versuche, Name, Beschreibung, `validFrom` oder verknüpfte Solutions eines realized-Plateaus zu ändern, MÜSSEN mit HTTP 422 abgewiesen werden.
+Plateaus with `status=realized` MUST be locked for all write operations (read-only). Attempts to change the name, description, `validFrom` or linked solutions of a realized plateau MUST be rejected with HTTP 422.
 
-## Begründung
+## Rationale
 
-Realisierte Plateaus repräsentieren unveränderliche Architektur-Historie. Nachträgliche Änderungen würden die Audit-Integrität des Repositories untergraben und Compliance-Nachweise entwerten.
+Realized plateaus represent immutable architecture history. Subsequent changes would undermine the audit integrity of the repository and invalidate compliance evidence.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (API-Schreibschutz):
-- Wenn: ein PUT-Request an `/plateaus/{id}` für ein realized-Plateau gesendet wird
-- Dann: antwortet die API mit HTTP 422 "Realisiertes Plateau ist read-only"
+**AC1** (API write protection):
+- When: a PUT request is sent to `/plateaus/{id}` for a realized plateau
+- Then: the API responds with HTTP 422 "Realized plateau is read-only"
 
-**AC2** (UI-Schreibschutz):
-- Wenn: ein realized-Plateau in der Übersicht angezeigt wird
-- Dann: ist keine Bearbeiten-Schaltfläche sichtbar
+**AC2** (UI write protection):
+- When: a realized plateau is displayed in the overview
+- Then: no edit button is visible
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-088 (Go-Live-Transition setzt Plateau auf realized)
-- **Folgewirkungen**: keine
+- **Prerequisites**: REQ-088 (go-live transition sets plateau to realized)
+- **Downstream effects**: none
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Schreibschutz gilt nicht für interne System-Updates (z.B. `validTo`-Setzen durch Go-Live)
-- Guard-Logik im Service-Layer vor jedem Schreib-Endpunkt implementieren
-- UI-Buttons per Plateau-Status-Prüfung beim Rendern der Übersicht ausblenden
+- Write protection does not apply to internal system updates (e.g., setting `validTo` by go-live)
+- Implement guard logic in the service layer before every write endpoint
+- Hide UI buttons via plateau status check when rendering the overview
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

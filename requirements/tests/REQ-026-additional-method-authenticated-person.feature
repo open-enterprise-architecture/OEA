@@ -1,46 +1,45 @@
-# Ableitung aus: requirements/req/req-026-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-026-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @should @UC-03
-Feature: REQ-026 – Weitere Authentifizierungsmethode für eingeloggte Person einrichten
+Feature: REQ-026 – Set up an additional authentication method for a logged-in person
 
-  Das System SOLL einer bereits authentifizierten Person ermöglichen,
-  über die eigenen Sicherheitseinstellungen eine weitere lokale
-  Authentifizierungsmethode einzurichten, ohne dafür ein
-  Enrollment-Token zu benötigen; die Session MUSS dabei als
-  Authentifizierungsnachweis dienen.
+  The system SHOULD enable an already authenticated person to set up
+  an additional local authentication method via their own security
+  settings without requiring an enrollment token; the session MUST
+  serve as proof of authentication in this case.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Kurt ist eingeloggt und hat noch keine TOTP-Methode eingerichtet
-    Given Kurt ist eingeloggt und hat noch keine TOTP-Methode eingerichtet
-    When  er in den Sicherheitseinstellungen TOTP hinzufügt und die Einrichtung abschließt
-    Then  ist TOTP als zusätzliche Methode persistiert; kein Enrollment-Token wurde benötigt
+  Scenario: AC1 – Kurt is logged in and has not yet set up a TOTP method
+    Given Kurt is logged in and has not yet set up a TOTP method
+    When  he adds TOTP in the security settings and completes the setup
+    Then  TOTP is persisted as an additional method; no enrollment token was required
 
   @AC2
-  Scenario: AC2 – Kurt ist eingeloggt und möchte einen zweiten Passkey hinzufügen
-    Given Kurt ist eingeloggt und möchte einen zweiten Passkey hinzufügen
-    When  er die Passkey-Registrierung durchführt
-    Then  ist der neue Public Key persistiert; beide Passkeys sind für den Login verwendbar
+  Scenario: AC2 – Kurt is logged in and wants to add a second passkey
+    Given Kurt is logged in and wants to add a second passkey
+    When  he performs the passkey registration
+    Then  the new public key is persisted; both passkeys are usable for login
 
   @AC3
-  Scenario: AC3 – Kurt hat bereits Passkey, TOTP und Passwort eingerichtet
-    Given Kurt hat bereits Passkey, TOTP und Passwort eingerichtet
-    When  er die Sicherheitseinstellungen öffnet
-    Then  zeigt das System an, dass alle Methoden bereits eingerichtet sind (kein Fehler)
+  Scenario: AC3 – Kurt has already set up passkey, TOTP and password
+    Given Kurt has already set up passkey, TOTP and password
+    When  he opens the security settings
+    Then  the system indicates that all methods are already set up (no error)
 
   @AC4
-  Scenario: AC4 – eine Anfrage an den Enrollment-Endpunkt ohne gültige Session
-    Given eine Anfrage an den Enrollment-Endpunkt ohne gültige Session
-    When  die Anfrage eingeht
-    Then  wird sie abgelehnt; Weiterleitung zum Login
+  Scenario: AC4 – a request to the enrollment endpoint without a valid session
+    Given a request to the enrollment endpoint without a valid session
+    When  the request arrives
+    Then  it is rejected; redirect to login
 
   @AC5
-  Scenario: AC5 – eine Anfrage ohne CSRF-Token (bei POST-Formular-basiertem Flow)
-    Given eine Anfrage ohne CSRF-Token (bei POST-Formular-basiertem Flow)
-    When  die Anfrage eingeht
-    Then  wird sie mit einem entsprechenden Fehler abgelehnt
+  Scenario: AC5 – a request without a CSRF token (for a POST-form-based flow)
+    Given a request without a CSRF token (for a POST-form-based flow)
+    When  the request arrives
+    Then  it is rejected with a corresponding error

@@ -1,89 +1,89 @@
-# Beispiel-Workflow: Vom PO-Request zum gemergten Feature
+# Example Workflow: From PO Request to Merged Feature
 
-Konkretes End-to-End-Beispiel für ein erstes Feature im Walking Skeleton. Das Dokument zeigt jeden Schritt mit Beispiel-Prompts an die Agents und realistische Antworten.
+Concrete end-to-end example for a first feature in the walking skeleton. The document shows every step with example prompts to the agents and realistic responses.
 
-**Szenario**: Du willst, dass Franz (SH-01, Junior Domain Architekt) eine Application Component im Tool erfassen kann. Das ist eines der ersten Walking-Skeleton-Features.
+**Scenario**: You want Franz (SH-01, junior domain architect) to be able to capture an Application Component in the tool. This is one of the first walking skeleton features.
 
-**Dauer**: Realistisch 1-2 Wochen, je nach Tiefe der Reviews.
-
----
-
-## Phase 0 – Voraussetzungen prüfen
-
-Bevor du startest, vergewissere dich:
-
-- [ ] Vision in `business-analysis/vision.md` ist formuliert
-- [ ] Mindestens Franz (SH-01) als Stakeholder vorhanden
-- [ ] AGENTS.md ist im Repo
-- [ ] Sieben Agent-Dateien sind in `.opencode/agents/`
-- [ ] Templates sind in `templates/`
-
-Wenn nicht: das vorher fixen, sonst arbeiten die Agents im luftleeren Raum.
+**Duration**: Realistically 1-2 weeks, depending on the depth of the reviews.
 
 ---
 
-## Phase 1 – Initial-Klärung mit Solution Architect
+## Phase 0 – Check Prerequisites
 
-**Du** (im OpenCode Chat):
+Before you start, make sure:
 
-> Ich möchte mit dem Walking Skeleton starten. Als erstes Feature soll Franz (SH-01) eine Application Component erfassen können. Bitte agiere als Solution Architect (`.opencode/agents/solution-architect.md`) und klär mit mir das Vorgehen.
+- [ ] Vision in `business-analysis/vision.md` is formulated
+- [ ] At least Franz (SH-01) exists as a stakeholder
+- [ ] AGENTS.md is in the repo
+- [ ] Seven agent files are in `.opencode/agents/`
+- [ ] Templates are in `templates/`
 
-**Solution Architect** liest Konzept und Persona, antwortet etwa:
+If not: fix that first, otherwise the agents work in a vacuum.
 
-> Bevor wir starten, drei Klärungsfragen:
+---
+
+## Phase 1 – Initial Clarification with Solution Architect
+
+**You** (in the OpenCode chat):
+
+> I want to start with the walking skeleton. As the first feature, Franz (SH-01) should be able to capture an Application Component. Please act as Solution Architect (`.opencode/agents/solution-architect.md`) and clarify the approach with me.
+
+**Solution Architect** reads the concept and persona, responds roughly:
+
+> Before we start, three clarifying questions:
 > 
-> 1. **Business Object existiert noch nicht**. Application Component ist in §6 konzeptionell beschrieben, aber wir haben kein `business-objects/application-component.md`. Soll der Business Engineer das zuerst modellieren?
+> 1. **The business object does not exist yet**. Application Component is described conceptually in §6, but we have no `business-objects/application-component.md`. Should the Business Engineer model it first?
 > 
-> 2. **Offene ADRs sind relevant**: ADR-001 (URN-Schema) und die noch fehlende ADR zu Persistenz. Wollen wir die zuerst entscheiden oder iterativ klären?
+> 2. **Open ADRs are relevant**: ADR-001 (URN schema) and the still-missing ADR on persistence. Do we want to decide these first or clarify iteratively?
 > 
-> 3. **Tech-Stack noch offen**: Backend und Frontend Engineer haben noch keinen Vorschlag gemacht. Soll das vor oder parallel passieren?
+> 3. **Tech stack still open**: Backend and frontend engineers have not yet made a proposal. Should that happen before or in parallel?
 
-**Du** entscheidest:
+**You** decide:
 
-> Business Object zuerst – das ist die Basis. ADRs iterativ – ich entscheide, wenn ein konkreter Konflikt auftaucht. Tech-Stack parallel – frag die zwei Engineering-Agents heute noch nach Vorschlägen.
+> Business object first – that is the basis. ADRs iteratively – I decide when a concrete conflict arises. Tech stack in parallel – ask the two engineering agents for proposals today.
 
-**Solution Architect** legt einen `tasks/uc-01-application-component-erfassen/` Ordner an mit einer `architect-notes.md`, die den Plan dokumentiert. Dort steht:
+**Solution Architect** creates a `tasks/uc-01-capture-application-component/` folder with an `architect-notes.md` documenting the plan. It contains:
 
 ```markdown
-# Plan: UC-01 Application Component erfassen
+# Plan: UC-01 Capture Application Component
 
-1. Business Engineer modelliert Application Component (business-objects/application-component.md)
-2. Backend Engineer macht Stack-Vorschlag
-3. Frontend Engineer macht Stack-Vorschlag
-4. PO entscheidet Stack (ADR-006 Backend, ADR-007 Frontend)
-5. Use Case formulieren
-6. Requirements ableiten
-7. UI Designer macht Mockups
-8. Backend implementiert
-9. Frontend implementiert
-10. Security reviewt
-11. Integration und PO-Akzeptanz
+1. Business Engineer models Application Component (business-objects/application-component.md)
+2. Backend Engineer makes stack proposal
+3. Frontend Engineer makes stack proposal
+4. PO decides stack (ADR-006 backend, ADR-007 frontend)
+5. Formulate use case
+6. Derive requirements
+7. UI Designer makes mockups
+8. Backend implements
+9. Frontend implements
+10. Security reviews
+11. Integration and PO acceptance
 ```
 
 ---
 
-## Phase 2 – Business Object modellieren
+## Phase 2 – Model Business Object
 
-**Du**:
+**You**:
 
-> Bitte agiere jetzt als Business Engineer und modelliere "Application Component" als Business Object. Nutze `templates/business-object.template.md`.
+> Please act as Business Engineer now and model "Application Component" as a business object. Use `templates/business-object.template.md`.
 
-**Business Engineer** liest Template, §6.1.1 (Application vs. Technology) und §6.1, fragt:
+**Business Engineer** reads the template, §6.1.1 (Application vs. Technology) and §6.1, asks:
 
-> Klärungsfragen:
-> 1. Logical/Physical-Trennung: Soll Application Component für den Walking Skeleton nur Physical sein, oder beide Layer? §6.1.1 sagt Logical ist optional.
-> 2. Owner: Soll das ein freier Text sein oder eine Referenz auf Stakeholder/Role?
-> 3. Lifecycle: Welche Zustände sind initial sinnvoll? Vorschlag: `proposed → active → sunset → retired`. Passt das?
-> 4. Beziehung zu Capability: 1:n (eine Application gehört zu einer Capability) oder n:m?
+> Clarifying questions:
+> 1. Logical/physical separation: Should Application Component be physical only for the walking skeleton, or both layers? §6.1.1 says logical is optional.
+> 2. Owner: Should this be free text or a reference to stakeholder/role?
+> 3. Lifecycle: Which states make sense initially? Proposal: `proposed → active → sunset → retired`. Does that fit?
+> 4. Relationship to capability: 1:n (an application belongs to one capability) or n:m?
 
-**Du** beantwortest:
+**You** answer:
 
-> 1. Walking Skeleton nur Physical. Logical kommt später.
-> 2. Owner ist Referenz auf Role.
-> 3. Vier Zustände sind ok – plus `planned` davor.
-> 4. n:m. Eine Application kann mehreren Capabilities dienen.
+> 1. Walking skeleton physical only. Logical comes later.
+> 2. Owner is a reference to Role.
+> 3. Four states are fine – plus `planned` before them.
+> 4. n:m. An application can serve several capabilities.
 
-**Business Engineer** produziert `business-objects/application-component.md`:
+**Business Engineer** produces `business-objects/application-component.md`:
 
 ```markdown
 ---
@@ -95,151 +95,151 @@ status: draft
 owner_role: domain-architect
 references:
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
+    - concept/20-entities/06-core-entity-types.md
 ---
 
 # Business Object: Application Component
 
 ## Definition
-Eine eigenständig deploybare Software-Einheit, die Application Functionality 
-kapselt (TOGAF Content Metamodel).
+An independently deployable software unit that encapsulates application functionality 
+(TOGAF Content Metamodel).
 
-## Attribute
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+## Attributes
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| name | string | required | - | 3-255 Zeichen | Eindeutiger Name |
-| owner | reference→Role | required | - | - | Verantwortliche Rolle |
-| description | string | optional | - | max 2000 | Fachliche Beschreibung |
+| name | string | required | - | 3-255 characters | Unique name |
+| owner | reference→Role | required | - | - | Responsible role |
+| description | string | optional | - | max 2000 | Business description |
 ...
 ```
 
-**Du reviewst** und akzeptierst, oder forderst Änderungen.
+**You review** and accept, or request changes.
 
 ---
 
-## Phase 3 – Tech-Stack-Vorschläge parallel einholen
+## Phase 3 – Obtain Tech Stack Proposals in Parallel
 
-**Du** (zwei separate Sessions oder Sub-Agents):
+**You** (two separate sessions or sub-agents):
 
-> Backend Engineer: Bitte mach einen Stack-Vorschlag für das Backend. Berücksichtige die Persona Max (SH-06) und die Typsicherheits-Anforderung.
+> Backend Engineer: Please make a stack proposal for the backend. Take persona Max (SH-06) and the type safety requirement into account.
 
-**Backend Engineer** antwortet mit einer Vergleichstabelle und Empfehlung. Beispiel:
+**Backend Engineer** responds with a comparison table and recommendation. Example:
 
-> **Empfehlung**: Python + FastAPI + Pydantic + SQLAlchemy 2.0
+> **Recommendation**: Python + FastAPI + Pydantic + SQLAlchemy 2.0
 > 
-> Begründung:
-> - OpenAPI nativ aus Pydantic (perfekt für Spec-First)
-> - Type Hints + mypy strict erfüllt Typsicherheits-Anforderung
-> - Mittlerer Ressourcen-Footprint (Max-tauglich)
-> - Große OSS-Community für Contributor-Anziehung
-> - Sekundäre Wahlen: PostgreSQL + Apache AGE (Graph + SQL), Redis für Cache
+> Rationale:
+> - OpenAPI natively from Pydantic (perfect for spec-first)
+> - Type hints + mypy strict satisfies the type safety requirement
+> - Medium resource footprint (suitable for Max)
+> - Large OSS community for attracting contributors
+> - Secondary choices: PostgreSQL + Apache AGE (graph + SQL), Redis for cache
 > 
-> Alternative für Performance-Fokus: Rust + Axum (höhere Lernkurve)
+> Alternative for performance focus: Rust + Axum (steeper learning curve)
 
-**Frontend Engineer** parallel:
+**Frontend Engineer** in parallel:
 
-> **Empfehlung**: Vue 3 + TypeScript + Vite + Pinia + PrimeVue
+> **Recommendation**: Vue 3 + TypeScript + Vite + Pinia + PrimeVue
 > 
-> Begründung:
-> - Erstklassiger TypeScript-Support seit Vue 3.3
-> - Sanftere Lernkurve als React (gut für OSS-Contributors)
-> - PrimeVue: A11y eingebaut, Design-Token-fähig, dark mode
-> - openapi-typescript für API-Client-Generation
+> Rationale:
+> - First-class TypeScript support since Vue 3.3
+> - Gentler learning curve than React (good for OSS contributors)
+> - PrimeVue: A11y built in, design-token capable, dark mode
+> - openapi-typescript for API client generation
 
-**Du entscheidest**:
+**You decide**:
 
-> Backend Python+FastAPI, Frontend Vue 3. Bitte als ADR-006 und ADR-007 dokumentieren.
+> Backend Python+FastAPI, frontend Vue 3. Please document as ADR-006 and ADR-007.
 
-Solution Architect oder du selbst erstellt die ADR-Dateien.
+Solution Architect or you yourself create the ADR files.
 
 ---
 
-## Phase 4 – Use Case formulieren
+## Phase 4 – Formulate Use Case
 
-**Du**:
+**You**:
 
-> Solution Architect, lass uns UC-01 formulieren. Persona Franz, er soll eine Application Component erfassen.
+> Solution Architect, let's formulate UC-01. Persona Franz, he should capture an Application Component.
 
-**Solution Architect** schlägt Struktur vor:
+**Solution Architect** proposes a structure:
 
-> Vorschlag für UC-01:
-> - Titel: "Application Component im Repository erfassen"
-> - Hauptablauf: Wizard mit drei Schritten (Name → Owner → Capability-Zuordnung)
-> - Vorbedingungen: Franz ist angemeldet, hat Rolle "domain-architect"
-> - Akzeptanzkriterien: Application Component erscheint in Inventar-Sicht (§12.4)
+> Proposal for UC-01:
+> - Title: "Capture Application Component in the repository"
+> - Basic flow: Wizard with three steps (name → owner → capability assignment)
+> - Preconditions: Franz is logged in, has role "domain-architect"
+> - Acceptance criteria: Application Component appears in the inventory view (§12.4)
 > 
-> Klärungsfragen:
-> 1. Mehrere Capabilities zuordnen oder nur eine im MVP?
-> 2. Bei doppeltem Namen: hart blockieren oder warnen?
-> 3. Soll der Wizard speicherbar sein als Draft, oder nur "fertig oder abbrechen"?
+> Clarifying questions:
+> 1. Assign multiple capabilities or only one in the MVP?
+> 2. For a duplicate name: block hard or warn?
+> 3. Should the wizard be saveable as a draft, or only "finish or cancel"?
 
-**Du beantwortest**, Solution Architect produziert `requirements/use-cases/UC-01-application-component-erfassen.md` nach Template.
+**You answer**, Solution Architect produces `requirements/use-cases/UC-01-capture-application-component.md` according to the template.
 
 ---
 
-## Phase 5 – Requirements ableiten
+## Phase 5 – Derive Requirements
 
-**Du**:
+**You**:
 
-> Requirements Engineer, leite die Requirements aus UC-01 ab.
+> Requirements Engineer, derive the requirements from UC-01.
 
-**Requirements Engineer** liest UC-01 und das Application-Component-Business-Object, denkt durch die sieben Typen:
+**Requirements Engineer** reads UC-01 and the Application Component business object, thinks through the seven types:
 
-> Aus UC-01 ergeben sich:
+> The following result from UC-01:
 > 
-> **Funktional**:
-> - REQ-001: System MUSS Application Component anlegen können
-> - REQ-002: System MUSS Wizard mit Schritt-Navigation anbieten
-> - REQ-003: System MUSS Application Component sofort nach Anlage in Inventar-Sicht anzeigen
+> **Functional**:
+> - REQ-001: System MUST be able to create Application Component
+> - REQ-002: System MUST offer a wizard with step navigation
+> - REQ-003: System MUST display the Application Component in the inventory view immediately after creation
 > 
-> **Daten**:
-> - REQ-004: Pflichtfelder Name, Owner; Constraints aus Business Object
-> - REQ-005: URN wird automatisch generiert (siehe ADR-001)
+> **Data**:
+> - REQ-004: Mandatory fields name, owner; constraints from the business object
+> - REQ-005: URN is generated automatically (see ADR-001)
 > 
 > **Non-Functional**:
-> - REQ-006: Wizard-Schritt-Übergang p95 <300ms
-> - REQ-007: Anlage-Endpoint p95 <500ms bei Repository <1000 Entities
+> - REQ-006: Wizard step transition p95 <300ms
+> - REQ-007: Creation endpoint p95 <500ms with repository <1000 entities
 > 
 > **Interface**:
-> - REQ-008: POST /api/v1/applications nach OpenAPI 3.1
-> - REQ-009: Response enthält generierte URN und Audit-ID
+> - REQ-008: POST /api/v1/applications per OpenAPI 3.1
+> - REQ-009: Response contains generated URN and audit ID
 > 
 > **Compliance**:
-> - REQ-010: Audit-Log-Eintrag bei jeder Anlage (Pflicht aus §21.8)
+> - REQ-010: Audit log entry on every creation (mandatory per §21.8)
 > 
 > **Constraint**:
-> - REQ-011: Nur authentifizierte Nutzer mit Rolle "domain-architect" oder höher dürfen anlegen
+> - REQ-011: Only authenticated users with role "domain-architect" or higher may create
 > 
-> Soll ich alle als Drafts anlegen oder priorisieren?
+> Should I create all as drafts or prioritize?
 
-**Du**:
+**You**:
 
-> Alle als Drafts. REQ-006 und REQ-007 sind SHOULD, der Rest MUST.
+> All as drafts. REQ-006 and REQ-007 are SHOULD, the rest MUST.
 
-Requirements Engineer produziert 11 Dateien in `requirements/req/`.
+Requirements Engineer produces 11 files in `requirements/req/`.
 
 ---
 
-## Phase 6 – UI Designer macht Mockups
+## Phase 6 – UI Designer Creates Mockups
 
-**Du**:
+**You**:
 
-> UI Designer, ich brauche Mockups für UC-01. Persona Franz (Junior, niederschwellig). Bitte in Penpot.
+> UI Designer, I need mockups for UC-01. Persona Franz (junior, low threshold). Please in Penpot.
 
-**UI Designer** liest UC-01 und Franz-Profil:
+**UI Designer** reads UC-01 and the Franz profile:
 
-> Mockup-Konzept:
-> - Wizard mit drei Schritten
-> - Inline-Validierung mit hilfreichen Hinweisen statt Fehlermeldungen
-> - Progress-Indicator oben
-> - "Speichern und beenden" als sekundärer Button neben "Weiter"
+> Mockup concept:
+> - Wizard with three steps
+> - Inline validation with helpful hints instead of error messages
+> - Progress indicator at the top
+> - "Save and exit" as a secondary button next to "Next"
 > 
-> Fragen:
-> 1. Capability-Auswahl: Multiselect-Dropdown oder Tag-Eingabe?
-> 2. Wenn Owner-Rolle leer ist: Vorschlag "Du als Owner setzen"?
-> 3. Erfolgsstate: Sofort in Inventar-Sicht navigieren oder Bestätigungs-Screen?
+> Questions:
+> 1. Capability selection: multiselect dropdown or tag input?
+> 2. If the owner role is empty: suggestion "Set yourself as owner"?
+> 3. Success state: navigate directly to the inventory view or confirmation screen?
 
-Du beantwortest, er produziert Mockups in Penpot, exportiert nach `design/uc-01/`:
+You answer, he produces mockups in Penpot, exports to `design/uc-01/`:
 
 ```
 design/uc-01/
@@ -255,131 +255,131 @@ design/uc-01/
 
 ---
 
-## Phase 7 – Specs und Tickets
+## Phase 7 – Specs and Tickets
 
-**Solution Architect** erstellt jetzt die Schnittstellen-Specs und Tickets:
+**Solution Architect** now creates the interface specs and tickets:
 
 ```
 api/openapi/applications.yaml          ← POST /api/v1/applications
-api/schemas/application-component.json ← Datenstruktur
-tasks/uc-01-application-component-erfassen/
+api/schemas/application-component.json ← data structure
+tasks/uc-01-capture-application-component/
 ├── README.md
 ├── backend-task.md
 ├── frontend-task.md
-└── security-review.md (Vorbereitung)
+└── security-review.md (preparation)
 ```
 
-Jedes Ticket referenziert die Specs, Requirements und Akzeptanzkriterien.
+Each ticket references the specs, requirements, and acceptance criteria.
 
 ---
 
-## Phase 8 – Implementierung parallel
+## Phase 8 – Implementation in Parallel
 
-**Du** rufst Backend und Frontend Engineer auf (parallel oder sequenziell – beide haben den Spec als gemeinsame Grundlage):
+**You** invoke backend and frontend engineer (in parallel or sequentially – both have the spec as a common basis):
 
-> Backend Engineer, implementiere `tasks/uc-01-application-component-erfassen/backend-task.md`.
+> Backend Engineer, implement `tasks/uc-01-capture-application-component/backend-task.md`.
 
-**Backend Engineer** liest Spec, generiert FastAPI-Setup mit Pydantic-Models, schreibt:
-- DB-Migration für `application_components`-Tabelle
-- POST-Endpoint mit Validierung, Audit-Log, OIDC-Check
-- Unit- und Contract-Tests gegen OpenAPI-Spec
+**Backend Engineer** reads the spec, generates the FastAPI setup with Pydantic models, writes:
+- DB migration for the `application_components` table
+- POST endpoint with validation, audit log, OIDC check
+- Unit and contract tests against the OpenAPI spec
 
-> Frontend Engineer, implementiere `tasks/uc-01-application-component-erfassen/frontend-task.md`.
+> Frontend Engineer, implement `tasks/uc-01-capture-application-component/frontend-task.md`.
 
-**Frontend Engineer** liest Spec und Mockups, schreibt:
-- Vue-3-Komponenten für die drei Wizard-Schritte
-- API-Client aus OpenAPI generiert
-- Pinia-Store für Wizard-State
-- Storybook-Stories für jede neue Komponente
-- E2E-Test mit Playwright
+**Frontend Engineer** reads the spec and mockups, writes:
+- Vue 3 components for the three wizard steps
+- API client generated from OpenAPI
+- Pinia store for wizard state
+- Storybook stories for each new component
+- E2E test with Playwright
 
 ---
 
 ## Phase 9 – Security Review
 
-**Du**:
+**You**:
 
-> Security Engineer, bitte reviewe die Implementation in PR #1 für UC-01.
+> Security Engineer, please review the implementation in PR #1 for UC-01.
 
-**Security Engineer** prüft Spec, Backend-Code, Frontend-Code, Konfiguration:
+**Security Engineer** checks spec, backend code, frontend code, configuration:
 
-> Security Review UC-01:
+> Security review UC-01:
 > 
-> **Critical**: keine
+> **Critical**: none
 > 
 > **High**:
-> - Audit-Log enthält Username im Klartext – sollte pseudonymisiert sein
-> - POST-Endpoint hat kein Rate-Limiting (siehe ADR zu Rate Limits)
+> - Audit log contains username in plain text – should be pseudonymized
+> - POST endpoint has no rate limiting (see ADR on rate limits)
 > 
 > **Medium**:
-> - Fehlermeldungen leaken interne Pfade in Stack Traces (Production-Logger anpassen)
+> - Error messages leak internal paths in stack traces (adjust production logger)
 > 
 > **Low**:
-> - CORS-Header zu permissiv für lokales Setup
+> - CORS header too permissive for local setup
 > 
-> Sign-off möglich, sobald High-Findings adressiert sind.
+> Sign-off possible once the high findings are addressed.
 
-**Du entscheidest**, was vor Merge gefixt wird. Backend Engineer fixt die High-Findings. Security Engineer signed off.
+**You decide** what gets fixed before merge. Backend Engineer fixes the high findings. Security Engineer signs off.
 
 ---
 
-## Phase 10 – Integration und Akzeptanz
+## Phase 10 – Integration and Acceptance
 
-**Solution Architect** prüft Konsistenz:
+**Solution Architect** checks consistency:
 
-> Integration Check UC-01:
-> - Spec, Backend, Frontend konsistent: ✓
-> - Tests grün: ✓
-> - Audit-Log funktioniert: ✓
-> - Security Sign-off: ✓
-> - Doku aktualisiert: ✓
+> Integration check UC-01:
+> - Spec, backend, frontend consistent: ✓
+> - Tests green: ✓
+> - Audit log works: ✓
+> - Security sign-off: ✓
+> - Documentation updated: ✓
 > 
-> Bereit für PO-Akzeptanz.
+> Ready for PO acceptance.
 
-**Du** als PO testest selbst (oder mental aus Franz' Perspektive):
-- Logge dich ein
-- Klicke "Neue Application Component"
-- Wizard durchlaufen
-- Prüfen, ob Component in Inventar-Sicht erscheint
+**You** as PO test it yourself (or mentally from Franz's perspective):
+- Log in
+- Click "New Application Component"
+- Go through the wizard
+- Check whether the component appears in the inventory view
 
-Wenn ok: Merge auf `main`. Status der Artefakte auf `realized`:
+If ok: merge to `main`. Set status of the artifacts to `realized`:
 - UC-01: status `realized`
-- REQ-001 bis REQ-011: status `realized`
+- REQ-001 to REQ-011: status `realized`
 - Tasks: status `done`
 
-Trace-Matrix in `requirements/traceability.md` aktualisieren.
+Update the trace matrix in `requirements/traceability.md`.
 
 ---
 
-## Was du in dieser Sequenz gelernt hast
+## What You Learned in This Sequence
 
-Wenn du das einmal durchgespielt hast, weißt du:
+Once you have played this through, you know:
 
-1. **Jeder Agent fragt, statt anzunehmen** – das ist Feature, nicht Bug
-2. **Du bist nie aus dem Loop** – aber du musst auch nicht jeden Schritt mikromanagen
-3. **Specs sind die Wahrheit** – Backend und Frontend können parallel arbeiten, ohne sich abzustimmen
-4. **Reviews sind Quality Gates** – Security Engineer ist nicht optional
-5. **Traceability ist Pflicht** – am Ende ist jedes Artefakt mit jedem verlinkt
+1. **Every agent asks instead of assuming** – that is a feature, not a bug
+2. **You are never out of the loop** – but you do not have to micromanage every step either
+3. **Specs are the truth** – backend and frontend can work in parallel without coordinating
+4. **Reviews are quality gates** – the security engineer is not optional
+5. **Traceability is mandatory** – in the end every artifact is linked to every other
 
-## Nächste Iteration: schneller werden
+## Next Iteration: Getting Faster
 
-Beim zweiten Use Case wird vieles automatisch klarer:
+With the second use case, much becomes clearer automatically:
 
-- Tech-Stack-Diskussion entfällt (ADR-006/007 sind getroffen)
-- Business Object existiert vielleicht schon
-- Templates sind bekannt
-- Du weißt, welche Agents wann sinnvoll sind
+- Tech stack discussion is dropped (ADR-006/007 are made)
+- The business object may already exist
+- Templates are known
+- You know which agents make sense when
 
-Realistisch: UC-02 dauert die Hälfte der Zeit von UC-01. UC-10 ein Drittel.
+Realistically: UC-02 takes half the time of UC-01. UC-10 a third.
 
-## Wenn etwas schiefgeht
+## When Something Goes Wrong
 
-**Agent macht eine Annahme, die nicht zu deiner Welt passt**: sofort korrigieren, nicht durchwinken. Die Korrektur ist wertvoll, das spätere Refactoring ist teuer.
+**Agent makes an assumption that does not fit your world**: correct immediately, do not wave it through. The correction is valuable, the later refactoring is expensive.
 
-**Du verlierst den Überblick**: Solution Architect aufrufen, "gib mir Status zu allen offenen Tasks". Er hat den Überblick, weil er die Tasks erzeugt hat.
+**You lose the overview**: Invoke Solution Architect, "give me the status of all open tasks". He has the overview because he created the tasks.
 
-**Security Engineer blockiert wegen "Theater"**: gemeinsam prüfen, ob das Finding realistisch ist. Wenn nicht: Begründung dokumentieren, weiter.
+**Security Engineer blocks because of "theater"**: review together whether the finding is realistic. If not: document the rationale, move on.
 
-**Backend und Frontend driften vom Spec ab**: Solution Architect anrufen, er muss den Spec re-synchronisieren.
+**Backend and frontend drift from the spec**: Call the Solution Architect, he must re-synchronize the spec.
 
-**Du bist müde**: hör auf, dokumentiere wo du bist. Die Agents vergessen nichts (die Artefakte sind im Repo). Du kannst morgen weitermachen.
+**You are tired**: stop, document where you are. The agents forget nothing (the artifacts are in the repo). You can continue tomorrow.

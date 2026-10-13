@@ -1,29 +1,29 @@
-# Ableitung aus: requirements/req/req-088-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-088-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-11
-Feature: REQ-088 – Go-Live als atomare DB-Transaktion
+Feature: REQ-088 – Go-live as atomic DB transaction
 
-  Die Go-Live-Transition MUSS als atomare DB-Transaktion ausgeführt
-  werden und folgende Änderungen umfassen: (1) P1: `status→baseline`,
-  `validFrom=jetzt(UTC)`; (2) P0: `status→realized`,
-  `validTo=jetzt(UTC)`, read-only; (3) alle Entitäten in P1 mit
-  `lifecycle_state=retiring` → `lifecycle_state=retired`. Bei
-  technischem Fehler MUSS ein vollständiger Rollback erfolgen; kein
-  Inkonsistenz-Zustand ist zulässig.
+  The go-live transition MUST be executed as an atomic DB transaction
+  and comprise the following changes: (1) P1: `status→baseline`,
+  `validFrom=now(UTC)`; (2) P0: `status→realized`,
+  `validTo=now(UTC)`, read-only; (3) all entities in P1 with
+  `lifecycle_state=retiring` → `lifecycle_state=retired`. On a
+  technical error a complete rollback MUST occur; no
+  inconsistent state is permissible.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Rollback bei DB-Fehler – ein simulierter DB-Fehler nach dem P1-Update auftritt
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein simulierter DB-Fehler nach dem P1-Update auftritt
-    Then  erfolgt ein vollständiger Rollback; P0 und P1 sind unverändert
+  Scenario: AC1 – Rollback on DB error – a simulated DB error occurs after the P1 update
+    Given the precondition according to the requirement is met
+    When  a simulated DB error occurs after the P1 update
+    Then  a complete rollback occurs; P0 and P1 are unchanged
 
   @AC2
-  Scenario: AC2 – Erfolgreicher Go-Live – Go-Live erfolgreich ausgeführt wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Go-Live erfolgreich ausgeführt wird
-    Then  hat P1 `status=baseline`, P0 hat `status=realized`; alle `retiring`-Entitäten in P1 haben `lifecycle_state=retired`; alle Zustände sind konsistent
+  Scenario: AC2 – Successful go-live – go-live is executed successfully
+    Given the precondition according to the requirement is met
+    When  go-live is executed successfully
+    Then  P1 has `status=baseline`, P0 has `status=realized`; all `retiring` entities in P1 have `lifecycle_state=retired`; all states are consistent

@@ -1,6 +1,6 @@
 ---
 id: REQ-121
-title: Canvas-Raster mit Orientierungslinien
+title: Canvas Grid with Orientation Lines
 type: functional
 priority: must
 status: proposed
@@ -21,43 +21,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-121: Canvas-Raster mit Orientierungslinien
+# REQ-121: Canvas Grid with Orientation Lines
 
-## Aussage
+## Statement
 
-Der Diagramm-Canvas MUSS ein sichtbares Raster darstellen, das aus **4 dünnen Hilfslinien** gefolgt von **1 dickeren Orientierungslinie** besteht (Wiederholungsperiode: 5 Rastereinheiten). Entities, die auf dem Canvas platziert oder in der Grösse verändert werden, MÜSSEN auf den Rasterpunkten einrasten. Das Raster MUSS über einen Toolbar-Button oder das Tastenkürzel `G` ein- und ausgeblendet werden können; das Einrasten bleibt auch bei ausgeblendetem Raster aktiv.
+The diagram canvas MUST display a visible grid consisting of **4 thin guide lines** followed by **1 thicker orientation line** (repeat period: 5 grid units). Entities that are placed or resized on the canvas MUST snap to the grid points. The grid MUST be showable and hideable via a toolbar button or the keyboard shortcut `G`; snapping remains active even when the grid is hidden.
 
-## Begründung
+## Rationale
 
-Ein Raster mit visueller Orientierung (dünn/dick-Rhythmus) erleichtert die präzise Ausrichtung von Entities erheblich. Ohne Einrasten entstehen unregelmässige Abstände, die Diagramme unlesbar machen und in automatisch generierten Exportformaten zu Artefakten führen.
+A grid with visual orientation (thin/thick rhythm) considerably facilitates the precise alignment of entities. Without snapping, irregular spacing arises, which makes diagrams unreadable and leads to artifacts in automatically generated export formats.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Raster-Darstellung):
-- Wenn: Canvas geöffnet wird
-- Dann: Raster sichtbar mit Muster 4 dünne + 1 dicke Linie; dickere Linie hat deutlich höheren visuellen Kontrast als dünne
+**AC1** (Grid display):
+- When: the canvas is opened
+- Then: grid visible with a pattern of 4 thin + 1 thick line; the thicker line has a clearly higher visual contrast than the thin ones
 
-**AC2** (Entity-Einrasten):
-- Wenn: Eine Entity auf dem Canvas verschoben oder angelegt wird
-- Dann: Position und Grösse rasten auf die nächste Rastereinheit ein; sub-Raster-Positionierung ist nicht möglich
+**AC2** (Entity snapping):
+- When: an entity is moved or created on the canvas
+- Then: position and size snap to the nearest grid unit; sub-grid positioning is not possible
 
-**AC3** (Raster ein-/ausblenden):
-- Wenn: Nutzer `G` drückt oder Toolbar-Button klickt
-- Dann: Raster-Linien nicht mehr sichtbar; Einrasten bleibt weiterhin aktiv
+**AC3** (Show/hide grid):
+- When: the user presses `G` or clicks the toolbar button
+- Then: grid lines are no longer visible; snapping remains active
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: UC-05 Canvas vorhanden
-- **Folgewirkungen**: REQ-122 (Orthogonal-Routing nutzt Rastereinheiten), REQ-123 (Ankerpunkte rasten auf Raster)
+- **Prerequisites**: UC-05 canvas available
+- **Consequences**: REQ-122 (orthogonal routing uses grid units), REQ-123 (anchor points snap to the grid)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Rastereinheit: 10 px bei 100 % Zoom; skaliert mit Zoom-Faktor
-- Dickere Linie alle 5 Einheiten = 50 px-Raster als Orientierungsraster
-- Vue Flow / React Flow: `snapToGrid={true}` mit `snapGrid={[10,10]}`; Grid-Hintergrund via CSS `background-size`
+- Grid unit: 10 px at 100% zoom; scales with the zoom factor
+- Thicker line every 5 units = 50 px grid as orientation grid
+- Vue Flow / React Flow: `snapToGrid={true}` with `snapGrid={[10,10]}`; grid background via CSS `background-size`
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

@@ -1,54 +1,54 @@
-# US-002: API-Key-Authentifizierung für Maschine-zu-Maschine-Zugriffe
+# US-002: API Key Authentication for Machine-to-Machine Access
 
 **ID**: US-002
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Maschinen-Client (z.B. CI-Skript, Discovery-Adapter) möchte ich mich mit einem API-Key authentifizieren, damit ich geschützte Ressourcen ansprechen kann, ohne einen Browser-OIDC-Flow zu durchlaufen.
+As a machine client (e.g. CI script, discovery adapter), I want to authenticate with an API key, so that I can access protected resources without going through a browser OIDC flow.
 
-## Bezug
+## Reference
 
 **Use Case**: [UC-01: Login](../use-cases/UC-01-login.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-002: API-Key-Authentifizierung](../req/REQ-002-api-key-authentication.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-002: API Key Authentication](../req/REQ-002-api-key-authentication.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein Request mit gültigem, nicht widerrufenem API-Key
-- Wenn: er gegen eine geschützte Ressource gestellt wird
-- Dann: wird er ohne Redirect autorisiert, gemäß den Rollen der zugeordneten Identität
+- Given: a request with a valid, non-revoked API key
+- When: it is made against a protected resource
+- Then: it is authorized without a redirect, according to the roles of the associated identity
 
 **AC2**:
-- Gegeben: ein Request mit ungültigem oder widerrufenem API-Key
-- Wenn: er gestellt wird
-- Dann: wird er abgelehnt, ohne dass ein Autorisierungs-Kontext entsteht
+- Given: a request with an invalid or revoked API key
+- When: it is made
+- Then: it is rejected without an authorization context being created
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Auth-Modul (API-Key-Validierung)
-- Betroffene EntityTypes/Relations: `Person`/Service-Identität, `Role`
-- API-Endpunkte: alle geschützten Endpunkte, zusätzlicher Header `Authorization: ApiKey ...`
-- Datenbank-Änderungen: Speicherung von API-Keys (Hash, nicht Klartext), Scoping-Metadaten
+- Affected components: auth module (API key validation)
+- Affected EntityTypes/Relations: `Person`/service identity, `Role`
+- API endpoints: all protected endpoints, additional header `Authorization: ApiKey ...`
+- Database changes: storage of API keys (hash, not plaintext), scoping metadata
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (Unit, Integration)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (unit, integration)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-001 (gemeinsames Rollen-/Autorisierungsmodell)
-- Blockiert: keine
+- Waiting on: US-001 (shared role/authorization model)
+- Blocks: none
 
-## Notizen
+## Notes
 
-Deckt Alternative A2 aus UC-01 ab.
+Covers alternative A2 from UC-01.

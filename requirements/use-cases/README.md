@@ -1,24 +1,24 @@
 # Use Cases
 
-Zielorientierte Szenarien aus Stakeholder-Sicht. Pro Use Case eine Datei mit Schema `UC-NN-kurzname.md`.
+Goal-oriented scenarios from the stakeholder's perspective. One file per use case, following the schema `UC-NN-short-name.md`.
 
-## Anti-Patterns vermeiden
+## Avoid Anti-Patterns
 
-- **Nicht CRUD-orientiert**: "ApplicationComponent anlegen" ist kein Use Case. Use Cases beschreiben Ziele.
-- **Mit Persona**: Jeder Use Case hat einen primären Stakeholder aus `../../business-analysis/stakeholders/`.
-- **Mit Konzept-Bezug**: Jeder Use Case verweist auf mindestens ein Konzept-Kapitel.
-- **Akzeptanzkriterien sind prüfbar**: "Soll schnell sein" ist kein Akzeptanzkriterium.
+- **Not CRUD-oriented**: "Create ApplicationComponent" is not a use case. Use cases describe goals.
+- **With persona**: Every use case has a primary stakeholder from `../../business-analysis/stakeholders/`.
+- **With concept reference**: Every use case refers to at least one concept chapter.
+- **Acceptance criteria are verifiable**: "Should be fast" is not an acceptance criterion.
 
-## Übersicht
+## Overview
 
-| ID | Titel | Persona | Priority | Status |
+| ID | Title | Persona | Priority | Status |
 |---|---|---|---|---|
 | [UC-01](./UC-01-login.md) | Login | SH-03 | must | draft |
-| [UC-02](./UC-02-system-admin-bootstrapping.md) | System-Admin-Bootstrapping | SH-06 | must | draft |
-| [UC-03](./UC-03-authentifizierungsmethode-einrichten.md) | Authentifizierungsmethode einrichten | SH-04 | must | draft |
-| [UC-04](./UC-04-metamodell-konfigurieren.md) | Metamodell gemeinsam konfigurieren | SH-03 | must | draft |
-| [UC-05](./UC-05-architektur-vision-beschreiben.md) | Architektur-Vision einer Änderungsinitiative beschreiben | SH-04 | must | draft |
-| [UC-06](./UC-06-katalog-anlegen-und-verwenden.md) | Architektur-Katalog anlegen, konfigurieren und verwenden | SH-03 (alle) | must | draft |
-| [UC-07](./UC-07-dashboard-anlegen-und-verwenden.md) | Dashboard anlegen, konfigurieren und im Web Portal verwenden | SH-03 (alle) | should | draft |
-| [UC-08](./UC-08-data-lineage-modellieren.md) | Datenflusskarte (Data Lineage) modellieren und analysieren | SH-02 | should | draft |
-| [UC-09](./UC-09-loesungsarchitektur-arc42-dokumentieren.md) | Lösungsarchitektur nach Arc42 dokumentieren | SH-04 | should | draft |
+| [UC-02](./UC-02-system-admin-bootstrapping.md) | System Admin Bootstrapping | SH-06 | must | draft |
+| [UC-03](./UC-03-set-up-authentication-method.md) | Set Up Authentication Method | SH-04 | must | draft |
+| [UC-04](./UC-04-configure-metamodel.md) | Configure Metamodel Collaboratively | SH-03 | must | draft |
+| [UC-05](./UC-05-describe-architecture-vision.md) | Describe the Architecture Vision of a Change Initiative | SH-04 | must | draft |
+| [UC-06](./UC-06-create-and-use-catalog.md) | Create, Configure and Use an Architecture Catalog | SH-03 (all) | must | draft |
+| [UC-07](./UC-07-create-and-use-dashboard.md) | Create, Configure and Use a Dashboard in the Web Portal | SH-03 (all) | should | draft |
+| [UC-08](./UC-08-model-data-lineage.md) | Model and Analyze a Data Flow Map (Data Lineage) | SH-02 | should | draft |
+| [UC-09](./UC-09-document-solution-architecture-arc42.md) | Document Solution Architecture According to Arc42 | SH-04 | should | draft |

@@ -1,6 +1,6 @@
 ---
 id: REQ-120
-title: Technology-Diversity-Analyse mit Executive-Summary-Export
+title: Technology Diversity Analysis with Executive Summary Export
 type: functional
 priority: should
 status: proposed
@@ -23,43 +23,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-120: Technology-Diversity-Analyse mit Executive-Summary-Export
+# REQ-120: Technology Diversity Analysis with Executive Summary Export
 
-## Aussage
+## Statement
 
-Das System MUSS eine Technology-Diversity-Analyse anbieten, die je TRM-Kategorie die Anzahl unterschiedlicher, tatsächlich genutzter SBBs (via `entity.instanceOfSBBId`) ausweist. TRM-Kategorien mit mehr als einem genutzten SBB MÜSSEN als „Standardisierungspotenzial" hervorgehoben werden. TRM-Kategorien ohne konfigurierten `preferredStandard` MÜSSEN separat aufgelistet werden. Die Analyse MUSS als PDF oder CSV exportierbar sein und eine Executive-Summary-Sektion (Top-3-Risiken: prohibited Entitäten, Gap-Quote, Diversity-Hotspots) enthalten.
+The system MUST offer a technology diversity analysis that reports, per TRM category, the number of distinct SBBs actually in use (via `entity.instanceOfSBBId`). TRM categories with more than one SBB in use MUST be highlighted as "Standardization potential". TRM categories without a configured `preferredStandard` MUST be listed separately. The analysis MUST be exportable as PDF or CSV and MUST contain an executive summary section (top 3 risks: prohibited entities, gap ratio, diversity hotspots).
 
-## Begründung
+## Rationale
 
-Technology Diversity ist ein häufiger Kostentreiber. Die Sichtbarkeit von Kategorien mit vielen verschiedenen Produkten ermöglicht gezielte Standardisierungs-Initiativen und liefert Entscheidungsträgern export-fähige Analysegrundlagen.
+Technology diversity is a frequent cost driver. Visibility of categories with many different products enables targeted standardization initiatives and gives decision makers exportable analysis bases.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Standardisierungspotenzial hervorheben):
-- Wenn: die TRM-Kategorie „Container Orchestration" 3 unterschiedliche genutzte SBBs aufweist
-- Dann: wird diese Kategorie als „Standardisierungspotenzial" hervorgehoben
+**AC1** (Highlight standardization potential):
+- When: the TRM category "Container Orchestration" has 3 distinct SBBs in use
+- Then: this category is highlighted as "Standardization potential"
 
-**AC2** (Fehlende Standards auflisten):
-- Wenn: TRM-Kategorien ohne konfigurierten `preferredStandard` vorhanden sind
-- Dann: erscheinen diese in einer separaten Liste „Fehlende Standards"
+**AC2** (List missing standards):
+- When: TRM categories without a configured `preferredStandard` exist
+- Then: they appear in a separate list "Missing standards"
 
-**AC3** (PDF-Export mit Executive Summary):
-- Wenn: der Export als PDF ausgelöst wird
-- Dann: enthält das Dokument eine Executive-Summary-Sektion mit Top-3-Risiken (prohibited Entitäten, Gap-Quote, Diversity-Hotspots) und Detailtabellen je Analyse-Sektion
+**AC3** (PDF export with executive summary):
+- When: the export as PDF is triggered
+- Then: the document contains an executive summary section with the top 3 risks (prohibited entities, gap ratio, diversity hotspots) and detail tables per analysis section
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-118 (Gap-Quote für Executive Summary), REQ-119 (prohibited Entitäten für Executive Summary), REQ-116 (preferredStandard)
-- **Folgewirkungen**: keine
+- **Prerequisites**: REQ-118 (gap ratio for executive summary), REQ-119 (prohibited entities for executive summary), REQ-116 (preferredStandard)
+- **Consequences**: none
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Diversity-Berechnung: `COUNT(DISTINCT entity.instance_of_sbb_id) GROUP BY entity.trm_category_id`
-- PDF-Export: Server-seitige Generierung (z.B. via Puppeteer oder WeasyPrint); CSV via Stream
-- Executive Summary: Top-3 nach Schweregrad; prohibited > Gap > Diversity-Hotspot
+- Diversity calculation: `COUNT(DISTINCT entity.instance_of_sbb_id) GROUP BY entity.trm_category_id`
+- PDF export: server-side generation (e.g. via Puppeteer or WeasyPrint); CSV via stream
+- Executive summary: top 3 by severity; prohibited > gap > diversity hotspot
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

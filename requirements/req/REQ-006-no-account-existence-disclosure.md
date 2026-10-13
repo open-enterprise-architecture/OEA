@@ -1,6 +1,6 @@
 ---
 id: REQ-006
-title: Keine Preisgabe der Account-Existenz bei fehlgeschlagenem Login
+title: No disclosure of account existence on failed login
 type: constraint
 priority: must
 status: proposed
@@ -17,89 +17,89 @@ references:
   stakeholders:
     - SH-03
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-006: Keine Preisgabe der Account-Existenz bei fehlgeschlagenem Login
+# REQ-006: No disclosure of account existence on failed login
 
-## Aussage
+## Statement
 
-Das System DARF NICHT durch unterschiedliche Fehlermeldungen oder Antwortzeiten erkennbar machen, ob eine angefragte Identität (E-Mail-Adresse, Subject-ID) im Repository existiert oder nicht.
+The system MUST NOT reveal, through different error messages or response times, whether a requested identity (email address, subject ID) exists in the repository or not.
 
-## Begründung
+## Rationale
 
-Verhindert User-Enumeration-Angriffe, bei denen ein Angreifer durch systematisches Ausprobieren herausfindet, welche Identitäten im System bekannt sind. UC-01, Nachbedingung bei Misserfolg sowie Akzeptanzkriterien.
+Prevents user enumeration attacks in which an attacker finds out through systematic trial which identities are known in the system. UC-01, postcondition on failure and acceptance criteria.
 
-## Kontext
+## Context
 
-Betrifft insbesondere die Exception Flows E1 (Identity-Provider lehnt ab) und E2 (Person nicht auffindbar/offboarded) – beide müssen nach außen identisch wirken.
+Concerns in particular Exception Flows E1 (identity provider rejects) and E2 (person not found/offboarded) – both must appear identical to the outside.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=constraint
+### For type=constraint
 
-**Art der Beschränkung**: technical
+**Type of constraint**: technical
 
-**Quelle**: Security-Best-Practice gegen User-Enumeration (OWASP); keine externe Norm zwingend vorgeschrieben, aber etablierter Standard
+**Source**: Security best practice against user enumeration (OWASP); no external standard strictly prescribed, but an established standard
 
-**Bindungsstärke**: hard (nicht umgehbar)
+**Binding strength**: hard (cannot be bypassed)
 
-**Auswirkung bei Nichtbeachtung**: Angreifer können gültige Identitäten im System identifizieren und gezielt weiterangreifen (z.B. Phishing, Credential-Stuffing)
+**Impact of non-compliance**: Attackers can identify valid identities in the system and attack them in a targeted way (e.g., phishing, credential stuffing)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein Login-Versuch mit nicht-existierender Identität
-- Wenn: der Login fehlschlägt
-- Dann: ist die nach außen sichtbare Fehlermeldung identisch zu der bei einer existierenden, aber falsch authentifizierten Identität
+- Given: a login attempt with a non-existent identity
+- When: the login fails
+- Then: the externally visible error message is identical to that for an existing but incorrectly authenticated identity
 
 **AC2**:
-- Gegeben: zwei Login-Fehlversuche, einmal mit existierender, einmal mit nicht-existierender Identität
-- Wenn: die Antwortzeiten verglichen werden
-- Dann: unterscheiden sie sich nicht in einer für Angreifer auswertbaren Weise (kein Timing-Seitenkanal)
+- Given: two failed login attempts, one with an existing and one with a non-existent identity
+- When: the response times are compared
+- Then: they do not differ in a way that an attacker can exploit (no timing side channel)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Vergleich von Fehlermeldungs-Inhalt und Antwortzeit-Verteilung für existierende vs. nicht-existierende Identitäten
-- [x] Mess-Werkzeug: Test-Suite des Auth-Moduls, ggf. Timing-Analyse-Skript
-- [x] Bestanden-Kriterium: AC1 exakt, AC2 innerhalb tolerierter Varianz (Schwellwert in Realisierung festzulegen)
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: compare error message content and response time distribution for existing vs. non-existent identities
+- [x] Measurement tool: test suite of the auth module, possibly a timing analysis script
+- [x] Pass criterion: AC1 exact, AC2 within tolerated variance (threshold to be set during implementation)
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-001, REQ-004
-- **Folgewirkungen**: keine bekannt
-- **Konflikte**: REQ-005 (internes Audit-Log darf/soll detaillierter sein als die nach außen sichtbare Meldung)
+- **Prerequisites**: REQ-001, REQ-004
+- **Downstream effects**: none known
+- **Conflicts**: REQ-005 (the internal audit log may/should be more detailed than the externally visible message)
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: User-Enumeration ermöglicht gezielte Angriffe auf bekannte Mitarbeitende (Phishing, Credential-Stuffing) – schwerwiegend, besonders relevant für ein Tool mit sensiblen Architektur-/Compliance-Daten
+- Risk 1: User enumeration enables targeted attacks on known employees (phishing, credential stuffing) – severe, especially relevant for a tool with sensitive architecture/compliance data
 
 ## Trade-offs
 
-- vs. Usability: generische Fehlermeldungen sind für legitime Nutzer weniger hilfreich beim Debuggen eigener Login-Probleme
+- vs. usability: generic error messages are less helpful for legitimate users when debugging their own login problems
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Konstante Antwortzeit (z.B. durch künstliche Verzögerung) kann nötig sein, um Timing-Seitenkanäle zu vermeiden
+- A constant response time (e.g., through artificial delay) may be necessary to avoid timing side channels
 
-## Realisierung
+## Implementation
 
-- ADR(s): keine
-- Implementiert durch: –
+- ADR(s): none
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-01 Login, Akzeptanzkriterien und Exception Flow E1/E2.
+Derived from UC-01 Login, acceptance criteria, and Exception Flow E1/E2.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft aus UC-01 |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |

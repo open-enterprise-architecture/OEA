@@ -1,53 +1,53 @@
-# US-140: Dynamische Labels im Frontend nachladen
+# US-140: Reload Dynamic Labels in the Frontend
 
 **ID**: US-140
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Benutzer möchte ich MetaTyp-Namen, Property-Labels und Enum-Werte in meiner eingestellten Sprache sehen, und nach einer Admin-Änderung sollen diese Labels ohne Seiten-Reload aktualisiert werden, damit ich immer die aktuellen Bezeichnungen sehe.
+As a user, I want to see MetaType names, property labels, and enum values in my configured language, and after an admin change these labels should be updated without a page reload, so that I always see the current designations.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-04: Metamodell konfigurieren](../use-cases/UC-04-metamodell-konfigurieren.md)
-**Persona**: Alle eingeloggten Benutzer
+**Use Case**: [UC-04: Configure Metamodel](../use-cases/UC-04-configure-metamodel.md)
+**Persona**: All logged-in users
 **Requirements**: REQ-152
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Benutzer mit ui_language=`de` ist eingeloggt
-- Wenn: App lädt
-- Dann: Pinia-Store lädt `GET /api/v1/i18n/de`; MetaTyp-Namen auf Deutsch sichtbar
+- Given: user with ui_language=`de` is logged in
+- When: app loads
+- Then: Pinia store loads `GET /api/v1/i18n/de`; MetaType names visible in German
 
 **AC2**:
-- Gegeben: ETag des aktuellen Label-Bundles bekannt
-- Wenn: Store-Refresh nach 5 Minuten
-- Dann: `If-None-Match`-Header gesendet; bei unverändertem Stand → 304; kein Re-Render
+- Given: ETag of the current label bundle known
+- When: store refresh after 5 minutes
+- Then: `If-None-Match` header sent; if state unchanged → 304; no re-render
 
 **AC3**:
-- Gegeben: SSE aktiviert (`oea.sse.enabled=true`); Admin ändert Label
-- Wenn: `i18n_invalidated`-Event empfangen
-- Dann: Store lädt Bundle neu; betroffene Labels im UI aktualisiert ohne Reload
+- Given: SSE enabled (`oea.sse.enabled=true`); admin changes label
+- When: `i18n_invalidated` event received
+- Then: store reloads bundle; affected labels in the UI updated without reload
 
-## Technische Hinweise
+## Technical Notes
 
-- Pinia-Store `useI18nStore` verwaltet Bundle + ETag
-- Refresh-Intervall: 5 Minuten (Cache-Control: max-age=300)
-- SSE-Listener auf `GET /api/v1/events/stream` (EventSource-API im Browser)
-- Statische UI-Labels (Menüs, Buttons) weiterhin via vue-i18n Bundle — kein API-Call
-- `persons.ui_language` bestimmt die Locale des API-Calls
+- Pinia store `useI18nStore` manages bundle + ETag
+- Refresh interval: 5 minutes (Cache-Control: max-age=300)
+- SSE listener on `GET /api/v1/events/stream` (EventSource API in the browser)
+- Static UI labels (menus, buttons) continue via the vue-i18n bundle — no API call
+- `persons.ui_language` determines the locale of the API call
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] ETag-Handling im Pinia-Store implementiert
-- [ ] SSE-Listener optional (Feature-Flag)
-- [ ] Unit-Test: Store lädt korrekte Locale; ETag-Update korrekt
+- [ ] Acceptance criteria fulfilled
+- [ ] ETag handling implemented in the Pinia store
+- [ ] SSE listener optional (feature flag)
+- [ ] Unit test: store loads correct locale; ETag update correct
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-001 (Login; ui_language aus JWT-Claim oder Profil)
-- Wartet auf: US-033 (Metamodell importiert; Labels existieren in i18n_entries)
+- Waits for: US-001 (login; ui_language from JWT claim or profile)
+- Waits for: US-033 (metamodel imported; labels exist in i18n_entries)

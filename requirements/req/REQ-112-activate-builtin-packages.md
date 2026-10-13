@@ -1,6 +1,6 @@
 ---
 id: REQ-112
-title: Eingebettete Continuum-Pakete aktivieren
+title: Activate Embedded Continuum Packages
 type: functional
 priority: should
 status: proposed
@@ -25,43 +25,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-112: Eingebettete Continuum-Pakete aktivieren
+# REQ-112: Activate Embedded Continuum Packages
 
-## Aussage
+## Statement
 
-Das System MUSS eine Liste von eingebetteten Continuum-Paketen anbieten (mindestens: „TOGAF 10 – Technical Reference Model"). Jedes Paket MUSS vor dem Import eine Vorschau anzeigen: Anzahl ABBs, SBBs, Patterns, Reference Architectures und TRM-Kategorien sowie die wichtigsten Kategorie-Namen. Die Aktivierung MUSS per Klick auf „Importieren" ausführbar sein — ohne Datei-Upload.
+The system MUST offer a list of embedded continuum packages (at least: "TOGAF 10 – Technical Reference Model"). Before import, each package MUST show a preview: number of ABBs, SBBs, patterns, reference architectures, and TRM categories, as well as the most important category names. Activation MUST be executable by clicking "Import" — without a file upload.
 
-## Begründung
+## Rationale
 
-Manuelle Nachbildung des TOGAF TRM wäre für Betreiber prohibitiv aufwendig. Built-in-Pakete senken die Einstiegshürde auf einen Klick und ermöglichen sofortigen produktiven Betrieb mit einem branchenweit anerkannten Standard-Framework.
+Manually recreating the TOGAF TRM would be prohibitively laborious for operators. Built-in packages lower the entry barrier to a single click and enable immediate productive operation with an industry-recognized standard framework.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Paket-Vorschau):
-- Wenn: die Paketliste geöffnet wird
-- Dann: ist „TOGAF 10 TRM" mit Vorschau (47 ABBs, 38 TRM-Kategorien, 12 Patterns) sichtbar
+**AC1** (Package preview):
+- When: the package list is opened
+- Then: "TOGAF 10 TRM" is visible with a preview (47 ABBs, 38 TRM categories, 12 patterns)
 
-**AC2** (Import per Klick):
-- Wenn: auf „Importieren" geklickt wird
-- Dann: wird der Import atomar ausgeführt; ein Import-Protokoll zeigt das Ergebnis
+**AC2** (Import by click):
+- When: "Import" is clicked
+- Then: the import is executed atomically; an import log shows the result
 
-**AC3** (Bereits importiertes Paket):
-- Wenn: ein Paket bereits importiert wurde
-- Dann: zeigt die UI ein Badge „Bereits importiert" und einen Hinweis auf Konflikt-Handling
+**AC3** (Already imported package):
+- When: a package has already been imported
+- Then: the UI shows an "Already imported" badge and a note about conflict handling
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-111 (Scope-Schutz; importierte Bausteine erhalten `scope=built-in`)
-- **Folgewirkungen**: REQ-114 (atomare Import-Transaktion gilt auch für built-in Pakete)
+- **Prerequisites**: REQ-111 (scope protection; imported building blocks receive `scope=built-in`)
+- **Consequences**: REQ-114 (atomic import transaction also applies to built-in packages)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Built-in-Pakete als JSON-Dateien im Servercode eingebettet (kein externer Download)
-- Import-Endpunkt: `POST /api/continuum/packages/{packageId}/activate`
-- Import-Protokoll: Anzahl importierter Bausteine je Typ + etwaige übersprungene Konflikte
+- Built-in packages embedded as JSON files in the server code (no external download)
+- Import endpoint: `POST /api/continuum/packages/{packageId}/activate`
+- Import log: number of imported building blocks per type + any skipped conflicts
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

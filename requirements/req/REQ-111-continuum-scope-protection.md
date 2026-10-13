@@ -1,6 +1,6 @@
 ---
 id: REQ-111
-title: Schreibschutz für importierte und built-in Continuum-Bausteine
+title: Write Protection for Imported and Built-in Continuum Building Blocks
 type: functional
 priority: must
 status: proposed
@@ -24,43 +24,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-111: Schreibschutz für importierte und built-in Continuum-Bausteine
+# REQ-111: Write Protection for Imported and Built-in Continuum Building Blocks
 
-## Aussage
+## Statement
 
-Alle Continuum-Bausteine (ABB, SBB, Pattern, Reference Architecture) mit `scope=imported` oder `scope=built-in` MÜSSEN für alle Schreib-Operationen gesperrt sein. In der UI DÜRFEN Bearbeiten- und Löschen-Aktionen für diese Bausteine nicht sichtbar sein; API-Versuche MÜSSEN mit HTTP 422 abgewiesen werden. `scope=imported`-Bausteine MÜSSEN mit einem Badge „Importiert – [sourcePackage]" erkennbar sein.
+All continuum building blocks (ABB, SBB, pattern, reference architecture) with `scope=imported` or `scope=built-in` MUST be locked for all write operations. In the UI, edit and delete actions MUST NOT be visible for these building blocks; API attempts MUST be rejected with HTTP 422. Building blocks with `scope=imported` MUST be recognizable by a badge "Imported – [sourcePackage]".
 
-## Begründung
+## Rationale
 
-Importierte Bausteine sind die unveränderliche Grundlage der Continuum-Bibliothek. Änderungen würden Paket-Updates korrumpieren und die Traceability zu den Ursprungs-Frameworks brechen.
+Imported building blocks are the immutable foundation of the continuum library. Changes would corrupt package updates and break traceability to the originating frameworks.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (API-Schreibschutz):
-- Wenn: ein PUT- oder DELETE-Request auf einen ABB mit `scope=imported` abgesetzt wird
-- Dann: antwortet das System mit HTTP 422
+**AC1** (API write protection):
+- When: a PUT or DELETE request is issued on an ABB with `scope=imported`
+- Then: the system responds with HTTP 422
 
-**AC2** (UI-Schreibschutz und Badge):
-- Wenn: ein Baustein mit `scope=imported` in der UI angezeigt wird
-- Dann: sind Bearbeiten- und Löschen-Buttons nicht sichtbar; ein Badge „Importiert – TOGAF 10 TRM" ist sichtbar
+**AC2** (UI write protection and badge):
+- When: a building block with `scope=imported` is displayed in the UI
+- Then: edit and delete buttons are not visible; a badge "Imported – TOGAF 10 TRM" is visible
 
-**AC3** (SBB-Zuordnungen editierbar):
-- Wenn: eine TRM-Kategorie mit `scope=imported` geöffnet wird
-- Dann: sind SBB-Zuordnungen (`preferredStandard`, `acceptedAlternatives`, `deprecatedOptions`) editierbar; Name und Parent-Kategorie sind gesperrt
+**AC3** (SBB assignments editable):
+- When: a TRM category with `scope=imported` is opened
+- Then: SBB assignments (`preferredStandard`, `acceptedAlternatives`, `deprecatedOptions`) are editable; name and parent category are locked
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-112 (Import-Mechanismus erzeugt scope=imported)
-- **Folgewirkungen**: REQ-107, REQ-108, REQ-109, REQ-110 (alle Baustein-CRUDs müssen Scope prüfen)
+- **Prerequisites**: REQ-112 (import mechanism produces scope=imported)
+- **Consequences**: REQ-107, REQ-108, REQ-109, REQ-110 (all building block CRUDs must check scope)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Middleware-Guard auf allen PUT/PATCH/DELETE-Endpunkten: `scope` prüfen vor Datenbankoperation
-- UI: `scope`-Feld aus API-Response bestimmt sichtbare Aktionen (keine client-seitige Sicherheit allein)
-- Badge-Inhalt: `sourcePackage`-Feld aus dem Baustein-Datensatz
+- Middleware guard on all PUT/PATCH/DELETE endpoints: check `scope` before the database operation
+- UI: the `scope` field from the API response determines visible actions (no client-side security alone)
+- Badge content: `sourcePackage` field from the building block record
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

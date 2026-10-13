@@ -1,6 +1,6 @@
 ---
 id: REQ-010
-title: Username/Passwort-Login mit TOTP als zweitem Faktor
+title: Username/password login with TOTP as second factor
 type: functional
 priority: should
 status: proposed
@@ -18,99 +18,99 @@ references:
     - SH-03
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-010: Username/Passwort-Login mit TOTP als zweitem Faktor
+# REQ-010: Username/password login with TOTP as second factor
 
-## Aussage
+## Statement
 
-Das System SOLL Personen die Anmeldung mit Username/Passwort und einem TOTP-Code als zweitem Faktor ermöglichen, wenn die OEA-Instanz lokale Authentifizierung ohne Passkey-Unterstützung anbietet.
+The system SHOULD allow persons to log in with username/password and a TOTP code as second factor when the OEA instance offers local authentication without passkey support.
 
-## Begründung
+## Rationale
 
-Konzept §21.8: TOTP als zweiter Faktor ist für Umgebungen vorgesehen, die WebAuthn/Passkey nicht unterstützen (z.B. ältere Clients). UC-01, Alternative A4.
+Concept §21.8: TOTP as second factor is intended for environments that do not support WebAuthn/passkey (e.g., older clients). UC-01, Alternative A4.
 
-## Kontext
+## Context
 
-Setzt voraus, dass die Person zuvor ein Passwort gesetzt und ein TOTP-Secret registriert hat (Enrollment ist eigener Use Case).
+Assumes that the person has previously set a password and registered a TOTP secret (enrollment is a separate use case).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- Username, Passwort
-- TOTP-Code (6-stellig, zeitbasiert)
+**Inputs**:
+- Username, password
+- TOTP code (6 digits, time-based)
 
-**Verarbeitung**:
-- Prüfung des Passwort-Hashes gegen den gespeicherten Hash der Person
-- Bei korrektem Passwort: Anforderung des TOTP-Codes
-- Verifikation des TOTP-Codes gegen das registrierte Secret der Person (inkl. Zeitfenster-Toleranz)
+**Processing**:
+- Check the password hash against the person's stored hash
+- If the password is correct: request the TOTP code
+- Verify the TOTP code against the person's registered secret (including time window tolerance)
 
-**Ausgaben**:
-- Bei erfolgreicher Verifikation beider Faktoren: Fortsetzung mit Person-/Rollen-Lookup (siehe REQ-001, Schritt 6)
+**Outputs**:
+- On successful verification of both factors: continue with person/role lookup (see REQ-001, step 6)
 
-**Fehlerfälle**:
-- Falsches Passwort → generische Fehlermeldung (siehe REQ-006), kein Hinweis, ob Username existiert
-- Falscher oder abgelaufener TOTP-Code → generische Fehlermeldung, kein Hinweis darauf, dass das Passwort korrekt war (verhindert partielle Informationspreisgabe)
+**Error Cases**:
+- Wrong password → generic error message (see REQ-006), no indication whether the username exists
+- Wrong or expired TOTP code → generic error message, no indication that the password was correct (prevents partial information disclosure)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine Person mit korrektem Passwort und gültigem TOTP-Code
-- Wenn: sie sich anmeldet
-- Dann: erhält sie eine Session gemäß ihren aktiven Rollenzuweisungen
+- Given: a person with a correct password and a valid TOTP code
+- When: they log in
+- Then: they receive a session according to their active role assignments
 
 **AC2**:
-- Gegeben: ein korrektes Passwort, aber ein falscher TOTP-Code
-- Wenn: der Login-Versuch abgeschlossen wird
-- Dann: wird keine Session erstellt, und die Fehlermeldung lässt nicht erkennen, dass das Passwort korrekt war
+- Given: a correct password but a wrong TOTP code
+- When: the login attempt is completed
+- Then: no session is created, and the error message does not reveal that the password was correct
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Login-Versuche mit korrektem/falschem Passwort kombiniert mit korrektem/falschem TOTP-Code
-- [x] Mess-Werkzeug: Test-Suite des Auth-Moduls
-- [x] Bestanden-Kriterium: AC1, AC2 grün, keine partielle Informationspreisgabe
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: login attempts with correct/wrong password combined with correct/wrong TOTP code
+- [x] Measurement tool: test suite of the auth module
+- [x] Pass criterion: AC1, AC2 green, no partial information disclosure
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-022 (TOTP-Enrollment) und REQ-024 (Passwort-Enrollment) müssen vorher abgeschlossen sein
-- **Folgewirkungen**: keine bekannt
-- **Konflikte**: REQ-006 (Fehlermeldungen dürfen Passwort-Korrektheit nicht durchsickern lassen)
+- **Prerequisites**: REQ-022 (TOTP enrollment) and REQ-024 (password enrollment) must have been completed beforehand
+- **Downstream effects**: none known
+- **Conflicts**: REQ-006 (error messages must not leak password correctness)
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne TOTP als Option bleibt für Clients ohne WebAuthn-Unterstützung nur reines Passwort (REQ-011), was schwächer ist – mittlerer Schweregrad
+- Risk 1: Without TOTP as an option, only a plain password (REQ-011) remains for clients without WebAuthn support, which is weaker – medium severity
 
 ## Trade-offs
 
-- vs. Usability: zusätzlicher Eingabeschritt (TOTP-Code) erhöht Login-Aufwand gegenüber reinem Passwort oder Passkey
+- vs. usability: the additional input step (TOTP code) increases login effort compared to a plain password or passkey
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Passwort-Hash (z.B. Argon2id) und TOTP-Secret getrennt vom fachlichen Person-Objekt speichern (sensible Credential-Daten)
-- Rate-Limiting für TOTP-Versuche vorsehen (Brute-Force-Schutz bei nur 6-stelligem Code)
+- Store password hash (e.g., Argon2id) and TOTP secret separately from the business Person object (sensitive credential data)
+- Provide rate limiting for TOTP attempts (brute-force protection given only a 6-digit code)
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-01 Login, Alternative A4.
+Derived from UC-01 Login, Alternative A4.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft aus UC-01 |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |

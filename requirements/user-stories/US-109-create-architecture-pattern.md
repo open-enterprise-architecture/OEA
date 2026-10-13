@@ -1,36 +1,36 @@
-# US-109: Architecture Pattern anlegen
+# US-109: Create an Architecture Pattern
 
 **ID**: US-109
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich `ArchitecturePattern`-Einträge mit Problembeschreibung und Lösung anlegen, damit die Continuum-Bibliothek wiederverwendbare und vollständige Lösungsmuster enthält.
+As Kurt – Lead Enterprise Architect, I want to create `ArchitecturePattern` entries with a problem description and solution, so that the continuum library contains reusable and complete solution patterns.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-17](../use-cases/UC-17-continuum-bausteine-verwalten.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-109](../req/REQ-109-architecture-pattern-anlegen.md)
+**Use Case**: [UC-17](../use-cases/UC-17-manage-continuum-building-blocks.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-109](../req/REQ-109-create-architecture-pattern.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Pattern anlegen):
-- Wenn: ich ein Pattern mit `problem` und `solution` anlege
-- Dann: speichert das System es mit HTTP 201; es ist in der Bibliothek sichtbar
+**AC1** (Create pattern):
+- When: I create a pattern with `problem` and `solution`
+- Then: the system saves it with HTTP 201; it is visible in the library
 
-**AC2** (Pflichtfeld problem):
-- Wenn: ich ein Pattern ohne `problem`-Feld speichern möchte
-- Dann: erhalte ich HTTP 422 „problem ist ein Pflichtfeld"
+**AC2** (Mandatory field problem):
+- When: I try to save a pattern without the `problem` field
+- Then: I receive HTTP 422 "problem is a mandatory field"
 
-**AC3** (relatedPatterns verknüpfen):
-- Wenn: ich `relatedPatterns` per Multi-Select mit anderen Patterns verknüpfe
-- Dann: werden die Verknüpfungen gespeichert und in der Detailansicht angezeigt
+**AC3** (Link relatedPatterns):
+- When: I link `relatedPatterns` with other patterns via multi-select
+- Then: the links are saved and displayed in the detail view
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

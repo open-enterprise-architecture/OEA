@@ -1,30 +1,30 @@
 ---
-name: Feature-Anfrage
-about: Neue Funktionalität oder Änderung vorschlagen
+name: Feature Request
+about: Propose new functionality or a change
 title: 'feat: '
 labels: enhancement
 assignees: ''
 ---
 
-## Beschreibung
+## Description
 
-<!-- Was soll das System können? -->
+<!-- What should the system be able to do? -->
 
 ## Motivation
 
-<!-- Welches Problem wird damit gelöst? Welcher Stakeholder profitiert? -->
+<!-- Which problem does this solve? Which stakeholder benefits? -->
 
-## Bezug zu bestehenden Artefakten
+## Reference to Existing Artifacts
 
 - **Stakeholder**: SH-
-- **Use Case (bestehend oder neu)**: UC-
-- **Betroffene Business Objects**:
+- **Use Case (existing or new)**: UC-
+- **Affected Business Objects**:
 
-## Akzeptanzkriterien (Vorschlag)
+## Acceptance Criteria (Proposal)
 
 - [ ]
 - [ ]
 
-## Abgrenzung
+## Out of Scope
 
-<!-- Was gehört explizit NICHT zu dieser Anfrage? -->
+<!-- What is explicitly NOT part of this request? -->

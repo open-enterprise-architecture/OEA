@@ -1,71 +1,71 @@
-# US-NN: {{Sprechender Titel}}
+# US-NN: {{Descriptive Title}}
 
 <!--
-Verwendung: Eine User Story pro Datei, granularer als Use Cases.
-Dateiname: user-stories/US-NN-kurzname.md
+Usage: One user story per file, more granular than use cases.
+File name: user-stories/US-NN-shortname.md
 
-User Stories sind kleiner als Use Cases. Ein Use Case wird oft in mehrere Stories zerlegt.
-Eine Story sollte in 1-3 Tagen implementierbar sein (INVEST-Kriterien).
+User stories are smaller than use cases. A use case is often broken down into several stories.
+A story should be implementable in 1-3 days (INVEST criteria).
 
 INVEST:
-  - Independent: möglichst unabhängig von anderen Stories
-  - Negotiable: Details verhandelbar
-  - Valuable: liefert Wert
-  - Estimable: aufwand schätzbar
-  - Small: in 1-3 Tagen umsetzbar
-  - Testable: prüfbares Akzeptanzkriterium
+  - Independent: as independent of other stories as possible
+  - Negotiable: details are negotiable
+  - Valuable: delivers value
+  - Estimable: effort can be estimated
+  - Small: implementable in 1-3 days
+  - Testable: verifiable acceptance criterion
 -->
 
 **ID**: US-NN
 **Story Points**: 1 | 2 | 3 | 5 | 8 | 13
 **Status**: backlog | ready | in-progress | review | done
-**Sprint**: nicht-zugeordnet | Sprint-NN
+**Sprint**: not-assigned | Sprint-NN
 
 ## Story
 
-Als {{Rolle}} möchte ich {{Aktion}}, damit {{Nutzen}}.
+As {{role}}, I want {{action}} so that {{benefit}}.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-NN: Titel](../use-cases/UC-NN-kurzname.md)
+**Use Case**: [UC-NN: Title](../use-cases/UC-NN-kurzname.md)
 **Persona**: [SH-NN: Name](../stakeholders/SH-NN-kurzname.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-Given-When-Then-Format empfohlen, alternativ Checkliste.
+Given-When-Then format recommended, alternatively a checklist.
 
 **AC1**:
-- Gegeben: <Ausgangssituation>
-- Wenn: <Aktion>
-- Dann: <erwartetes Ergebnis>
+- Given: <initial situation>
+- When: <action>
+- Then: <expected result>
 
 **AC2**:
-- Gegeben:
-- Wenn:
-- Dann:
+- Given:
+- When:
+- Then:
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten:
-- Betroffene EntityTypes/Relations:
-- API-Endpunkte:
-- Datenbank-Änderungen:
+- Affected components:
+- Affected EntityTypes/Relations:
+- API endpoints:
+- Database changes:
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (Unit, ggf. Integration)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (unit, integration where applicable)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-NN, ADR-NN
-- Blockiert: US-NN
+- Waiting for: US-NN, ADR-NN
+- Blocks: US-NN
 
-## Notizen
+## Notes
 
-Diskussion, Fragen, Implementierungs-Details.
+Discussion, questions, implementation details.

@@ -31,58 +31,58 @@ superseded_by: []
 
 # REQ-146: Delete from Diagram (DEL) vs. Delete Entity (Ctrl+DEL) via Context Menu
 
-## Aussage
+## Statement
 
-Das System MUSS im Diagramm-Editor zwei semantisch verschiedene Lösch-Operationen anbieten:
+The system MUST offer two semantically different delete operations in the diagram editor:
 
-1. **"Remove from Diagram" (DEL)**: Entfernt die Shape aus dem aktuellen Diagramm. Die referenzierte Entität in der Solution bleibt unverändert erhalten. Andere Diagramme, die dieselbe Entität referenzieren, sind nicht betroffen.
+1. **"Remove from Diagram" (DEL)**: Removes the shape from the current diagram. The referenced entity in the solution remains unchanged. Other diagrams that reference the same entity are not affected.
 
-2. **"Delete Entity" (Ctrl+DEL)**: Löscht die Entität aus der Solution mittels Soft-Delete (ADR-019). Die Shape wird aus dem aktuellen Diagramm entfernt. Alle anderen Diagramme, die diese Entität referenzieren, MÜSSEN die Shape als "deleted" markieren oder automatisch entfernen (konfigurierbar). Die Entität ist über den Audit-Log wiederherstellbar (UC-15).
+2. **"Delete Entity" (Ctrl+DEL)**: Deletes the entity from the solution using soft delete (ADR-019). The shape is removed from the current diagram. All other diagrams that reference this entity MUST mark the shape as "deleted" or remove it automatically (configurable). The entity is restorable via the audit log (UC-15).
 
-Beide Operationen MÜSSEN im Kontextmenü (Rechtsklick auf eine Shape) sowie als Tastenkürzel verfügbar sein.
+Both operations MUST be available in the context menu (right-click on a shape) as well as as keyboard shortcuts.
 
-## Begründung
+## Rationale
 
-Das Diagramm ist eine Sicht auf das Modell — keine eigenständige Datenquelle. Ein Architektelement existiert im Modell, bevor es in Diagrammen sichtbar gemacht wird. Diese Trennung muss auch beim Löschen klar kommuniziert werden. Irrtümliches "Delete Entity" kann Auswirkungen auf viele Diagramme haben und ist durch den Soft-Delete (ADR-019) reversibel — aber der Nutzer muss explizit bestätigen.
+The diagram is a view of the model — not a standalone data source. An architecture element exists in the model before it is made visible in diagrams. This separation must also be communicated clearly when deleting. An erroneous "Delete Entity" can affect many diagrams and is reversible through soft delete (ADR-019) — but the user must confirm explicitly.
 
-## Kontext
+## Context
 
-| Operation | Shortcut | Scope | Entity in Solution | Andere Diagramme |
+| Operation | Shortcut | Scope | Entity in solution | Other diagrams |
 |---|---|---|---|---|
-| Remove from Diagram | DEL | nur dieses Diagramm | unverändert | unberührt |
-| Delete Entity | Ctrl+DEL | Solution-weit | soft-deleted | Shape als "deleted" markiert |
+| Remove from Diagram | DEL | this diagram only | unchanged | untouched |
+| Delete Entity | Ctrl+DEL | solution-wide | soft-deleted | shape marked as "deleted" |
 
-Soft-Delete bedeutet: `deleted_at`, `deleted_by`, `deletionReason` gesetzt (ADR-019); Entität bleibt in DB, erscheint nicht in normalen Abfragen.
+Soft delete means: `deleted_at`, `deleted_by`, `deletionReason` set (ADR-019); the entity remains in the DB and does not appear in normal queries.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
+**Inputs**:
 
-| Feld | Typ | Beschreibung |
+| Field | Type | Description |
 |---|---|---|
-| shapeId | uuid | ausgewählte Shape im Diagramm |
-| operation | "remove-from-diagram" \| "delete-entity" | gewählte Lösch-Operation |
+| shapeId | uuid | selected shape in the diagram |
+| operation | "remove-from-diagram" \| "delete-entity" | chosen delete operation |
 
-**Verarbeitung — Remove from Diagram**:
+**Processing — Remove from Diagram**:
 
-1. Nutzer drückt DEL oder wählt "Remove from Diagram" im Kontextmenü
-2. Kein Bestätigungsdialog (nicht-destruktiv für das Modell)
+1. User presses DEL or selects "Remove from Diagram" in the context menu
+2. No confirmation dialog (non-destructive for the model)
 3. `DELETE /api/v1/diagrams/{diagramId}/shapes/{shapeId}`
-4. Shape verschwindet sofort aus dem Canvas
+4. Shape disappears from the canvas immediately
 5. Log: "[INFO] Shape removed from diagram: <Name> — entity preserved"
 
-**Verarbeitung — Delete Entity**:
+**Processing — Delete Entity**:
 
-1. Nutzer drückt Ctrl+DEL oder wählt "Delete Entity" im Kontextmenü
-2. System zeigt Bestätigungsdialog: "Delete entity '<Name>' from the solution? This affects all diagrams referencing this entity. The entity can be restored via Audit Log."
-3. Nutzer bestätigt → `DELETE /api/v1/entities/{entityId}` (Soft-Delete per ADR-019)
-4. Shape wird aus aktuellem Diagramm entfernt
-5. Alle anderen Diagramme: Shape wird als `status: deleted` markiert (grau, durchgestrichen) oder entfernt — abhängig von Nutzer-/Systemeinstellung
+1. User presses Ctrl+DEL or selects "Delete Entity" in the context menu
+2. System shows a confirmation dialog: "Delete entity '<Name>' from the solution? This affects all diagrams referencing this entity. The entity can be restored via Audit Log."
+3. User confirms → `DELETE /api/v1/entities/{entityId}` (soft delete per ADR-019)
+4. Shape is removed from the current diagram
+5. All other diagrams: shape is marked as `status: deleted` (gray, strikethrough) or removed — depending on user/system setting
 6. Log: "[WARN] Entity deleted: <Name> (<Type>) — soft-deleted, recoverable via Audit Log"
 
-**Kontextmenü-Struktur** (auf Rechtsklick einer Shape):
+**Context menu structure** (on right-click of a shape):
 
 ```
 Edit Properties
@@ -92,46 +92,46 @@ Remove from Diagram    DEL
 Delete Entity          Ctrl+DEL
 ```
 
-**Ausgaben**:
+**Outputs**:
 
-- Für "Remove": Shape nicht mehr auf Canvas; Entität weiterhin in Katalog/Explorer sichtbar
-- Für "Delete Entity": Entität in Katalog als "deleted" markiert; Shape aus allen Diagrammen entfernt oder markiert
+- For "Remove": shape no longer on the canvas; entity still visible in catalog/explorer
+- For "Delete Entity": entity marked as "deleted" in the catalog; shape removed from or marked in all diagrams
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Remove from Diagram — Modell unberührt):
-- Gegeben: Shape "Catalog-Service" [AC] ist in Diagramm A und B
-- Wenn: Nutzer drückt DEL auf Shape in Diagramm A
-- Dann: Shape in Diagramm A weg; Shape in Diagramm B unverändert; Entität im Explorer vorhanden
+**AC1** (Remove from Diagram — model untouched):
+- Given: shape "Catalog-Service" [AC] is in diagrams A and B
+- When: the user presses DEL on the shape in diagram A
+- Then: shape in diagram A gone; shape in diagram B unchanged; entity present in the explorer
 
-**AC2** (Delete Entity — Bestätigungsdialog):
-- Wenn: Nutzer drückt Ctrl+DEL auf Shape
-- Dann: Bestätigungsdialog erscheint mit Warnung "affects all diagrams"; nur bei Bestätigung fortfahren
+**AC2** (Delete Entity — confirmation dialog):
+- When: the user presses Ctrl+DEL on a shape
+- Then: confirmation dialog appears with the warning "affects all diagrams"; proceed only on confirmation
 
-**AC3** (Delete Entity — Soft-Delete):
-- Wenn: Nutzer bestätigt Delete Entity
-- Dann: Entität hat `deleted_at` gesetzt; erscheint nicht mehr in normalen Katalog-Abfragen; ist über Audit Log wiederherstellbar (UC-15)
+**AC3** (Delete Entity — soft delete):
+- When: the user confirms Delete Entity
+- Then: the entity has `deleted_at` set; no longer appears in normal catalog queries; is restorable via the audit log (UC-15)
 
-**AC4** (Delete Entity — andere Diagramme markiert):
-- Wenn: Entität gelöscht, die in 3 weiteren Diagrammen als Shape vorkommt
-- Dann: In diesen 3 Diagrammen wird die Shape als "deleted" markiert (grau, Warnung); kein stiller Datenverlust
+**AC4** (Delete Entity — other diagrams marked):
+- When: an entity is deleted that appears as a shape in 3 further diagrams
+- Then: in these 3 diagrams the shape is marked as "deleted" (gray, warning); no silent data loss
 
-**AC5** (Kontextmenü-Erreichbarkeit):
-- Wenn: Nutzer rechtsklickt auf eine Shape
-- Dann: Kontextmenü erscheint mit beiden Optionen inkl. Shortcuts; DEL und Ctrl+DEL funktionieren auch ohne Kontextmenü
+**AC5** (Context menu accessibility):
+- When: the user right-clicks on a shape
+- Then: the context menu appears with both options incl. shortcuts; DEL and Ctrl+DEL also work without the context menu
 
 **AC6** (Undo Remove from Diagram):
-- Wenn: Nutzer hat Shape via DEL aus Diagramm entfernt
-- Dann: Ctrl+Z stellt die Shape wieder her (lokales Undo, kein API-Call)
+- When: the user has removed a shape from the diagram via DEL
+- Then: Ctrl+Z restores the shape (local undo, no API call)
 
-## Abhängigkeiten
+## Dependencies
 
-- Blockiert durch: REQ-145 (Shape-Insert), ADR-019 (Soft-Delete)
-- Zusammenhang: UC-14 (Audit Log), UC-15 (Restore)
-- Betrifft: alle Diagramme die die gelöschte Entität referenzieren
+- Blocked by: REQ-145 (shape insert), ADR-019 (soft delete)
+- Related: UC-14 (audit log), UC-15 (restore)
+- Affects: all diagrams that reference the deleted entity
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-29 | Requirements Engineer | Initial draft |

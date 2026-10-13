@@ -1,50 +1,50 @@
-# Ableitung aus: requirements/req/req-143-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-143-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-06
 Feature: REQ-143 – Inline column filter in catalog table (AND-combined)
 
-  Das System MUSS in der Katalog-Tabellenansicht direkt unterhalb der
-  Spalten-Header eine Filtereingabe-Zeile anbieten. Jede Spalte MUSS
-  ein eigenes Eingabefeld besitzen, das einen Schnellfilter auf dem
-  jeweiligen Attribut ermöglicht.
+  The system MUST offer a filter input row directly below the
+  column headers in the catalog table view. Each column MUST have
+  its own input field that enables a quick filter on the
+  respective attribute.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Inline-Filter setzt Ergebnis – Katalog „Application Inventory" mit 47 ApplicationComponent-Einträgen
-    Given Katalog „Application Inventory" mit 47 ApplicationComponent-Einträgen
-    When  Nutzer tippt „Catalog" in das Inline-Filter-Feld der Spalte „Name"
-    Then  Tabelle zeigt nur Entitäten deren Name „Catalog" enthält (contains); Statusleiste aktualisiert Anzahl
+  Scenario: AC1 – Inline filter sets result – catalog "Application Inventory" with 47 ApplicationComponent entries
+    Given catalog "Application Inventory" with 47 ApplicationComponent entries
+    When  user types "Catalog" into the inline filter field of the "Name" column
+    Then  table shows only entities whose name contains "Catalog" (contains); status bar updates count
 
   @AC2
-  Scenario: AC2 – AND-Kombination mehrerer Inline-Filter – Nutzer setzt Inline-Filter Name=„Service" UND Layer=„Application"
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer setzt Inline-Filter Name=„Service" UND Layer=„Application"
-    Then  Nur Entitäten, die BEIDE Bedingungen erfüllen, erscheinen in der Tabelle
+  Scenario: AC2 – AND combination of multiple inline filters – user sets inline filter Name="Service" AND Layer="Application"
+    Given the precondition according to the requirement is met
+    When  user sets inline filter Name="Service" AND Layer="Application"
+    Then  only entities that satisfy BOTH conditions appear in the table
 
   @AC3
-  Scenario: AC3 – Kombination Inline-Filter + SavedFilter – SavedFilter „Active systems only" ist aktiv
-    Given SavedFilter „Active systems only" ist aktiv
-    When  Zusätzlich Inline-Filter Layer=„Application" gesetzt
-    Then  Ergebnis = active AND layer=Application (alle Filter AND-kombiniert)
+  Scenario: AC3 – Combination inline filter + SavedFilter – SavedFilter "Active systems only" is active
+    Given SavedFilter "Active systems only" is active
+    When  inline filter Layer="Application" is additionally set
+    Then  result = active AND layer=Application (all filters AND-combined)
 
   @AC4
-  Scenario: AC4 – Inline-Filter nicht persistent – Nutzer setzt Inline-Filter, verlässt den Katalog und öffnet ihn erneut
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer setzt Inline-Filter, verlässt den Katalog und öffnet ihn erneut
-    Then  Inline-Filter sind geleert; SavedFilter bleiben aktiv (da persistiert)
+  Scenario: AC4 – Inline filter not persistent – user sets inline filter, leaves the catalog and opens it again
+    Given the precondition according to the requirement is met
+    When  user sets inline filter, leaves the catalog and opens it again
+    Then  inline filters are cleared; SavedFilters remain active (since persisted)
 
   @AC5
-  Scenario: AC5 – Kein API-Call zum Speichern – Inline-Filter gesetzt wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Inline-Filter gesetzt wird
-    Then  Kein `POST /api/v1/catalogs/{id}/filters` — nur GET-Abfrage mit Inline-Parameter
+  Scenario: AC5 – No API call to save – inline filter is set
+    Given the precondition according to the requirement is met
+    When  inline filter is set
+    Then  no `POST /api/v1/catalogs/{id}/filters` — only GET query with inline parameter
 
   @AC6
-  Scenario: AC6 – OR-Hinweis – Nutzer möchte Name=„Gateway" OR Name=„Service" filtern
-    Given Nutzer möchte Name=„Gateway" OR Name=„Service" filtern
-    When die beschriebene Aktion ausgeführt wird
-    Then  Inline-Filter unterstützt kein OR; Nutzer wird durch Tooltip/Hinweis auf „+ Filter"-Dialog verwiesen
+  Scenario: AC6 – OR hint – user wants to filter Name="Gateway" OR Name="Service"
+    Given user wants to filter Name="Gateway" OR Name="Service"
+    When the described action is performed
+    Then  inline filter does not support OR; user is pointed to the "+ Filter" dialog via tooltip/hint

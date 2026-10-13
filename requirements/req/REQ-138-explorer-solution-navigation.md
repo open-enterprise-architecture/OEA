@@ -1,6 +1,6 @@
 ---
 id: REQ-138
-title: Browser-Panel zeigt Solutions als primäre Navigationsebene
+title: Browser Panel Shows Solutions as the Primary Navigation Level
 type: functional
 priority: must
 status: proposed
@@ -23,62 +23,62 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-138: Browser-Panel zeigt Solutions als primäre Navigationsebene
+# REQ-138: Browser Panel Shows Solutions as the Primary Navigation Level
 
-## Aussage
+## Statement
 
-Der Browser-Panel im Native Client MUSS Solutions als primäre Navigationsknoten auf der obersten Ebene anzeigen. Als erster Knoten MUSS ein virtueller „Aktueller Stand"-Knoten erscheinen, der die aggregierten Inhalte aller realisierten Lösungen darstellt. Darunter folgen plateau-gebundene Solutions, gruppiert nach Plateau.
+The browser panel in the native client MUST display solutions as primary navigation nodes at the top level. A virtual "Current State" node MUST appear as the first node, representing the aggregated contents of all realized solutions. Below it follow plateau-bound solutions, grouped by plateau.
 
-## Begründung
+## Rationale
 
-Solution Architekten arbeiten primär im Kontext einer Solution. Die Navigation soll diesen Arbeitskontext direkt widerspiegeln. Der „Aktueller Stand"-Knoten ist der wichtigste Einstiegspunkt für Analysen und Reviews.
+Solution architects work primarily in the context of a solution. The navigation should reflect this working context directly. The "Current State" node is the most important entry point for analyses and reviews.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-**Eingaben**:
-- Alle Solutions mit `status ∈ {draft, proposed, approved, in-progress, implemented}` (nicht `archived`)
-- Plateau-Informationen (fromPlateauId, toPlateauId) aus dem Solution-Objekt
+**Inputs**:
+- All solutions with `status ∈ {draft, proposed, approved, in-progress, implemented}` (not `archived`)
+- Plateau information (fromPlateauId, toPlateauId) from the solution object
 
-**Verarbeitung**:
-1. „Aktueller Stand"-Knoten immer als erstes Element anzeigen (aggregiert alle `status=implemented`-Solutions und plateau-freie Inhalte)
-2. Solutions mit Plateau-Mapping werden unter dem entsprechenden Plateau-Knoten gruppiert
-3. Solutions ohne Plateau-Mapping (`fromPlateauId=null`, `toPlateauId=null`) erscheinen NUR im „Aktueller Stand"-Knoten — nicht als eigener Top-Level-Knoten (→ REQ-140)
-4. Innerhalb eines Plateaus: Solutions alphabetisch sortiert
-5. Solutions mit `status=archived` werden nicht angezeigt
+**Processing**:
+1. Always display the "Current State" node as the first element (aggregates all `status=implemented` solutions and plateau-free contents)
+2. Solutions with plateau mapping are grouped under the corresponding plateau node
+3. Solutions without plateau mapping (`fromPlateauId=null`, `toPlateauId=null`) appear ONLY in the "Current State" node — not as their own top-level node (→ REQ-140)
+4. Within a plateau: solutions sorted alphabetically
+5. Solutions with `status=archived` are not displayed
 
-**Ausgaben**:
-- Hierarchische Tree-Ansicht: [Aktueller Stand] → [Plateau A] → [Solution 1] → [Grundstruktur]
+**Outputs**:
+- Hierarchical tree view: [Current State] → [Plateau A] → [Solution 1] → [Base Structure]
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** — Aktueller-Stand-Knoten:
-- Gegeben: Mindestens eine implementierte Solution existiert
-- Wenn: Browser-Panel geöffnet wird
-- Dann: „Aktueller Stand" erscheint als erster Knoten
+**AC1** — Current State node:
+- Given: at least one implemented solution exists
+- When: the browser panel is opened
+- Then: "Current State" appears as the first node
 
-**AC2** — Plateau-Gruppierung:
-- Gegeben: Solution mit `fromPlateauId=P1, toPlateauId=P2`
-- Wenn: Browser-Panel geladen wird
-- Dann: Solution erscheint unter Plateau-Knoten (z.B. „IST → SOLL 2027")
+**AC2** — Plateau grouping:
+- Given: solution with `fromPlateauId=P1, toPlateauId=P2`
+- When: the browser panel is loaded
+- Then: the solution appears under the plateau node (e.g. "CURRENT → TARGET 2027")
 
-**AC3** — Keine archivierten Solutions:
-- Gegeben: Solution mit `status=archived`
-- Wenn: Browser-Panel angezeigt wird
-- Dann: Archivierte Solution ist nicht sichtbar
+**AC3** — No archived solutions:
+- Given: solution with `status=archived`
+- When: the browser panel is displayed
+- Then: the archived solution is not visible
 
-## Verifikationsmethode
+## Verification Method
 
-- [ ] Methode: test (automatisiert) + demonstration
-- [ ] Test-Setup: Playwright; Solutions mit verschiedenen Status und Plateau-Mappings
-- [ ] Bestanden-Kriterium: AC1–AC3 alle grün
+- [ ] Method: test (automated) + demonstration
+- [ ] Test setup: Playwright; solutions with various statuses and plateau mappings
+- [ ] Pass criterion: AC1–AC3 all green
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: ADR-020 (Explorer-Navigationsmodell)
-- **Folgewirkungen**: REQ-139 (Grundstruktur), REQ-140 (plateau-freie Solutions)
+- **Prerequisites**: ADR-020 (explorer navigation model)
+- **Consequences**: REQ-139 (base structure), REQ-140 (plateau-free solutions)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft; abgeleitet aus ADR-020 und Mockup-Feedback |
+| 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft; derived from ADR-020 and mockup feedback |

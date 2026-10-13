@@ -1,37 +1,37 @@
-# Ableitung aus: requirements/req/req-094-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-094-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-13
-Feature: REQ-094 – Navigationsbaum Ordner-CRUD
+Feature: REQ-094 – Navigation tree folder CRUD
 
-  Das System MUSS das Anlegen, Umbenennen und Löschen von
-  TreeNode-Ordnern im Navigationsbaum ermöglichen. Ordnernamen MÜSSEN
-  unter Geschwistern eindeutig sein (BR-01).
+  The system MUST allow creating, renaming and deleting
+  TreeNode folders in the navigation tree. Folder names MUST be
+  unique among siblings (BR-01).
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Ordner anlegen – ein neuer Ordner unter einem Parent angelegt wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein neuer Ordner unter einem Parent angelegt wird
-    Then  antwortet die API mit HTTP 201; der Ordner ist im Baum sichtbar
+  Scenario: AC1 – Create folder – a new folder is created under a parent
+    Given the precondition according to the requirement is met
+    When  a new folder is created under a parent
+    Then  the API responds with HTTP 201; the folder is visible in the tree
 
   @AC2
-  Scenario: AC2 – Doppelter Name abweisen – ein Ordner mit einem unter demselben Parent bereits vorhandenen Namen an...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein Ordner mit einem unter demselben Parent bereits vorhandenen Namen angelegt wird
-    Then  antwortet die API mit HTTP 422 "Name bereits vorhanden"
+  Scenario: AC2 – Reject duplicate name – a folder is created with a name that already exists under the same parent...
+    Given the precondition according to the requirement is met
+    When  a folder is created with a name that already exists under the same parent
+    Then  the API responds with HTTP 422 "Name already exists"
 
   @AC3
-  Scenario: AC3 – Rekursives Löschen – ein Ordner mit 3 Kind-Ordnern und 10 Items gelöscht wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein Ordner mit 3 Kind-Ordnern und 10 Items gelöscht wird
-    Then  werden Kind-Ordner und Items entfernt; referenzierte Entitäten bleiben unberührt
+  Scenario: AC3 – Recursive deletion – a folder with 3 child folders and 10 items is deleted
+    Given the precondition according to the requirement is met
+    When  a folder with 3 child folders and 10 items is deleted
+    Then  child folders and items are removed; referenced entities remain untouched
 
   @AC4
-  Scenario: AC4 – Wurzelknoten-Schutz – ein DELETE-Request an `/tree-nodes/root` gesendet wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein DELETE-Request an `/tree-nodes/root` gesendet wird
-    Then  antwortet die API mit HTTP 422 "Wurzelknoten kann nicht gelöscht werden"
+  Scenario: AC4 – Root node protection – a DELETE request is sent to `/tree-nodes/root`
+    Given the precondition according to the requirement is met
+    When  a DELETE request is sent to `/tree-nodes/root`
+    Then  the API responds with HTTP 422 "Root node cannot be deleted"

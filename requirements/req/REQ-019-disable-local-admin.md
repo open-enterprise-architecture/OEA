@@ -1,6 +1,6 @@
 ---
 id: REQ-019
-title: Deaktivierbarkeit des lokalen System-Admin-Accounts bei aktivem Remote-Mapping
+title: Ability to deactivate the local system admin account when a remote mapping is active
 type: business-rule
 priority: should
 status: proposed
@@ -18,94 +18,94 @@ references:
   stakeholders:
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-019: Deaktivierbarkeit des lokalen System-Admin-Accounts bei aktivem Remote-Mapping
+# REQ-019: Ability to deactivate the local system admin account when a remote mapping is active
 
-## Aussage
+## Statement
 
-Sobald für eine Instanz mindestens ein funktionsfähiges Remote-Bootstrapping-Mapping (REQ-014) konfiguriert ist, SOLL der lokale System-Admin-Account (REQ-013) durch einen System-Admin gezielt deaktivierbar sein.
+As soon as at least one functional remote bootstrapping mapping (REQ-014) is configured for an instance, the local system admin account (REQ-013) SHOULD be deliberately deactivatable by a system admin.
 
-## Begründung
+## Rationale
 
-Organisationen mit etablierter IdP-Governance wollen nach Erstkonfiguration keinen zusätzlichen, außerhalb der zentralen Identity-Verwaltung liegenden Zugang offen lassen. Business Rule BR-02 aus `system-admin-account.md`; ADR-006, Negative Konsequenzen.
+Organizations with established IdP governance do not want to leave an additional access outside central identity management open after initial configuration. Business Rule BR-02 from `system-admin-account.md`; ADR-006, Negative Consequences.
 
-## Kontext
+## Context
 
-Betrifft den Zustand nach erfolgreichem Remote-Bootstrapping (UC-02, A1 oder A2) – das lokale Credential bleibt standardmäßig aktiv, bis es bewusst deaktiviert wird.
+Concerns the state after successful remote bootstrapping (UC-02, A1 or A2) – the local credential remains active by default until it is deliberately deactivated.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=business-rule
+### For type=business-rule
 
-**Auslöser**: onUpdate (manuelle Aktion eines System-Admins)
+**Trigger**: onUpdate (manual action by a system admin)
 
-**Betroffene Business Objects**: [system-admin-account](../../business-objects/system-admin-account.md)
+**Affected Business Objects**: [system-admin-account](../../business-objects/system-admin-account.md)
 
-**Formale Aussage** (vereinfacht):
+**Formal Statement** (simplified):
 ```
 if SystemAdminAccount.mode == "remote" and mapping.isFunctional:
     allow(deactivate(localSystemAdminAccount))
 ```
 
-**Beispiel**: Nachdem Max ein funktionierendes Remote-Mapping auf eine Entra-ID-Gruppe eingerichtet hat, deaktiviert er den ursprünglichen lokalen Bootstrap-Account, um die Angriffsfläche zu reduzieren.
+**Example**: After Max has set up a working remote mapping to an Entra ID group, he deactivates the original local bootstrap account to reduce the attack surface.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein aktiver lokaler System-Admin-Account und ein funktionsfähiges Remote-Mapping
-- Wenn: ein System-Admin den lokalen Account deaktiviert
-- Dann: ist eine Anmeldung über den lokalen Account danach nicht mehr möglich, während der Remote-Weg weiter funktioniert
+- Given: an active local system admin account and a functional remote mapping
+- When: a system admin deactivates the local account
+- Then: login via the local account is no longer possible afterwards, while the remote path continues to work
 
 **AC2**:
-- Gegeben: kein funktionsfähiges Remote-Mapping konfiguriert
-- Wenn: versucht wird, den lokalen Account zu deaktivieren
-- Dann: warnt das System vor einem möglichen vollständigen Lockout, blockiert die Aktion aber nicht zwingend (Operator-Entscheidung)
+- Given: no functional remote mapping is configured
+- When: an attempt is made to deactivate the local account
+- Then: the system warns of a possible complete lockout but does not necessarily block the action (operator decision)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Deaktivierung des lokalen Accounts mit und ohne funktionsfähiges Remote-Mapping
-- [x] Mess-Werkzeug: Test-Suite des Auth-Moduls
-- [x] Bestanden-Kriterium: AC1, AC2 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: deactivation of the local account with and without a functional remote mapping
+- [x] Measurement tool: test suite of the auth module
+- [x] Pass criterion: AC1, AC2 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-013, REQ-014
-- **Folgewirkungen**: keine bekannt
-- **Konflikte**: erhöht das Risiko aus UC-02 Exception Flow E4 (vollständiger Lockout), falls unüberlegt deaktiviert – daher AC2 als Warnung statt Hard-Block
+- **Prerequisites**: REQ-013, REQ-014
+- **Downstream effects**: none known
+- **Conflicts**: increases the risk from UC-02 Exception Flow E4 (complete lockout) if deactivated without consideration – hence AC2 as a warning instead of a hard block
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne Deaktivierungs-Option bleibt dauerhaft ein zusätzlicher, nicht über die zentrale IdP-Governance kontrollierbarer Zugang bestehen – Compliance-/Sicherheitsrisiko für Organisationen mit strikten Vorgaben
+- Risk 1: Without a deactivation option, an additional access that cannot be controlled via central IdP governance remains permanently – compliance/security risk for organizations with strict requirements
 
 ## Trade-offs
 
-- vs. Lockout-Risiko (E4): unüberlegte Deaktivierung ohne funktionsfähigen Remote-Zugang kann die Instanz vollständig unadministrierbar machen – deshalb Warnung statt Verbot
+- vs. lockout risk (E4): deactivation without consideration and without functional remote access can make the instance completely unadministrable – hence warning instead of prohibition
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- "Funktionsfähig" beim Remote-Mapping sollte sich nach Möglichkeit auf REQ-018 (Warnung bei leerem Claim) stützen, ist aber letztlich nicht zur Laufzeit hundertprozentig verifizierbar
+- "Functional" for the remote mapping should rely on REQ-018 (warning on empty claim) where possible, but cannot ultimately be verified 100% at runtime
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-02, offene Frage zur BR-02-Umsetzung, und ADR-006, Folgeentscheidungen.
+Derived from UC-02, open question on BR-02 implementation, and ADR-006, Follow-up Decisions.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft aus UC-02 |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-02 |

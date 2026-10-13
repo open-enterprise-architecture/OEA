@@ -1,53 +1,52 @@
-# Ableitung aus: requirements/req/req-039-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-039-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @must @UC-05
-Feature: REQ-039 – Aktuelle IT-Landschaft als Solution-Ausgangsbasis anzeigen
+Feature: REQ-039 – Show current IT landscape as solution baseline
 
-  Das System MUSS innerhalb einer Solution den aktuellen Stand der
-  IT-Landschaft als durchsuchbare und filterbare Ausgangsbasis
-  anzeigen; im **Projekt-Modus** MUSS dieser Stand aus der Aggregation
-  aller Entitäten von Solutions mit status=`implemented` berechnet
-  werden, im **Plateau-Modus** aus den Entitäten des `fromPlateau` der
-  Solution.
+  Within a solution, the system MUST display the current state of the
+  IT landscape as a searchable and filterable baseline; in **project
+  mode**, this state MUST be computed from the aggregation of all
+  entities of solutions with status=`implemented`, in **plateau mode**
+  from the entities of the solution's `fromPlateau`.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Zwei implemented-Solutions existieren; Solution A hat Entity `CRM-Legacy...
-    Given Zwei implemented-Solutions existieren; Solution A hat Entity `CRM-Legacy` (new), Solution B hat Entity `ERP-Core` (new)
-    When  Michael eine neue Solution öffnet (Projekt-Modus) und die Ausgangsbasis lädt
-    Then  werden `CRM-Legacy` und `ERP-Core` in der Liste angezeigt; keine anderen Entitäten
+  Scenario: AC1 – two implemented solutions exist; solution A has entity `CRM-Legacy` (...
+    Given two implemented solutions exist; solution A has entity `CRM-Legacy` (new), solution B has entity `ERP-Core` (new)
+    When  Michael opens a new solution (project mode) and loads the baseline
+    Then  `CRM-Legacy` and `ERP-Core` are shown in the list; no other entities
 
   @AC2
-  Scenario: AC2 – Solution A (implemented) hat Entity `CRM-Legacy` (modified: name geänder...
-    Given Solution A (implemented) hat Entity `CRM-Legacy` (modified: name geändert auf „CRM-Legacy-v2"); Solution B (implemented, neueren Datums) hat dieselbe Entity erneut modified
-    When  die Ausgangsbasis berechnet wird
-    Then  zeigt sie den Stand aus Solution B (neuere Implementation gewinnt)
+  Scenario: AC2 – solution A (implemented) has entity `CRM-Legacy` (modified: name chan...
+    Given solution A (implemented) has entity `CRM-Legacy` (modified: name changed to "CRM-Legacy-v2"); solution B (implemented, more recent) has modified the same entity again
+    When  the baseline is computed
+    Then  it shows the state from solution B (more recent implementation wins)
 
   @AC3
-  Scenario: AC3 – Solution A (implemented) hat Entity `CRM-Legacy` als retiring markiert
-    Given Solution A (implemented) hat Entity `CRM-Legacy` als retiring markiert
-    When  die Ausgangsbasis berechnet wird
-    Then  ist `CRM-Legacy` **nicht** in der Ausgangsbasis (retiring aus implemented-Solution entfernt die Entität)
+  Scenario: AC3 – solution A (implemented) has marked entity `CRM-Legacy` as retiring
+    Given solution A (implemented) has marked entity `CRM-Legacy` as retiring
+    When  the baseline is computed
+    Then  `CRM-Legacy` is **not** in the baseline (retiring from an implemented solution removes the entity)
 
   @AC4
-  Scenario: AC4 – Plateau P0 (baseline) mit Entitäten `ERP-Core` und `CRM-Legacy`; Solutio...
-    Given Plateau P0 (baseline) mit Entitäten `ERP-Core` und `CRM-Legacy`; Solution mit `fromPlateauId=P0` (Plateau-Modus)
-    When  Michael die Ausgangsbasis lädt
-    Then  werden genau die Entitäten von P0 angezeigt (inkl. ggf. geerbter Entitäten)
+  Scenario: AC4 – plateau P0 (baseline) with entities `ERP-Core` and `CRM-Legacy`; solu...
+    Given plateau P0 (baseline) with entities `ERP-Core` and `CRM-Legacy`; solution with `fromPlateauId=P0` (plateau mode)
+    When  Michael loads the baseline
+    Then  exactly the entities of P0 are shown (including inherited entities, if any)
 
   @AC5
-  Scenario: AC5 – Kein implemented-Solutions vorhanden (leere Landschaft, Projekt-Modus)
-    Given Kein implemented-Solutions vorhanden (leere Landschaft, Projekt-Modus)
-    When  Michael die Ausgangsbasis lädt
-    Then  erscheint der Hinweis „Keine realisierten Entitäten vorhanden"; `modified`- und `retiring`-Optionen sind deaktiviert
+  Scenario: AC5 – no implemented solutions present (empty landscape, project mode)
+    Given no implemented solutions present (empty landscape, project mode)
+    When  Michael loads the baseline
+    Then  the notice "No realized entities available" appears; `modified` and `retiring` options are disabled
 
   @AC6
-  Scenario: AC6 – Ausgangsbasis mit 50 Entitäten verschiedener Typen
-    Given Ausgangsbasis mit 50 Entitäten verschiedener Typen
-    When  Michael nach `ApplicationComponent` filtert
-    Then  werden nur Entitäten vom Typ `ApplicationComponent` angezeigt
+  Scenario: AC6 – baseline with 50 entities of different types
+    Given baseline with 50 entities of different types
+    When  Michael filters by `ApplicationComponent`
+    Then  only entities of type `ApplicationComponent` are shown

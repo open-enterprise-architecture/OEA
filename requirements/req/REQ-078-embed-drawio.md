@@ -1,6 +1,6 @@
 ---
 id: REQ-078
-title: Draw.io-Diagramme im WYSIWYG-Editor einbetten
+title: Embed Draw.io diagrams in the WYSIWYG editor
 type: functional
 priority: should
 status: proposed
@@ -21,33 +21,33 @@ references:
     - SH-04
     - SH-08
   concept:
-    - concept/20-entities/14-erweiterbarkeit.md
+    - concept/20-entities/14-extensibility.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-078: Draw.io-Diagramme im WYSIWYG-Editor einbetten
+# REQ-078: Embed Draw.io diagrams in the WYSIWYG editor
 
-## Aussage
+## Statement
 
-Das System MUSS im WYSIWYG-Editor (Arc42, UC-09) das Einbetten von Draw.io-Diagrammen als Codeblock (`drawio`) ermöglichen. Der Codeblock enthält Draw.io-XML (`<mxGraphModel>`); das System MUSS dieses XML als SVG-Vorschau rendern. Beim Klick auf die Vorschau MUSS ein Modal mit dem draw.io-Editor öffnen; nach dem Speichern im Editor wird das XML im Codeblock aktualisiert. Das System MUSS beim Bearbeiten von Shape-Labels im draw.io-Editor das Entity-Mention-Autocomplete via `[[` anbieten (reiner Textname als Ergebnis, REQ-070 BR-08).
+The system MUST enable embedding Draw.io diagrams as a code block (`drawio`) in the WYSIWYG editor (Arc42, UC-09). The code block contains Draw.io XML (`<mxGraphModel>`); the system MUST render this XML as an SVG preview. Clicking the preview MUST open a modal with the draw.io editor; after saving in the editor, the XML in the code block is updated. When editing shape labels in the draw.io editor, the system MUST offer entity mention autocomplete via `[[` (plain text name as the result, REQ-070 BR-08).
 
-## Begründung
+## Rationale
 
-Arc42-Dokumentationen enthalten häufig strukturierte Diagramme, die weder in Mermaid noch in PlantUML gut modellierbar sind: detaillierte Komponentendiagramme, Deployment-Topologien, freie Skizzen. Draw.io ist das meistgenutzte freie Diagramm-Tool (Marktführer in dieser Nische, VS Code Extension + Confluence App). Die Einbettung als Plugin ermöglicht, dass Solution Architekten (SH-04) und Business Analysts (SH-08) bestehende Draw.io-Diagramme direkt in die Architekturdokumentation einbetten, ohne Screenshot-Workarounds.
+Arc42 documentation often contains structured diagrams that cannot be modeled well in either Mermaid or PlantUML: detailed component diagrams, deployment topologies, free-form sketches. Draw.io is the most widely used free diagramming tool (market leader in this niche, VS Code extension + Confluence app). Embedding it as a plugin enables solution architects (SH-04) and business analysts (SH-08) to embed existing Draw.io diagrams directly into the architecture documentation, without screenshot workarounds.
 
-## Kontext
+## Context
 
-Draw.io (aka diagrams.net) ist Open Source (Apache 2.0) und stellt eine Embed-API bereit (`diagrams.net/js/viewer-static.min.js` für Read-only-Rendering und `embed.diagrams.net` für Editor-Embedding via postMessage-Protokoll). Beide Ansätze funktionieren lokal (kein externer Server nötig, wenn die JS-Bibliothek mitgeliefert wird).
+Draw.io (aka diagrams.net) is open source (Apache 2.0) and provides an embed API (`diagrams.net/js/viewer-static.min.js` for read-only rendering and `embed.diagrams.net` for editor embedding via the postMessage protocol). Both approaches work locally (no external server needed if the JS library is shipped along).
 
-Das XML-Format (`mxGraphModel`) ist stabil; OEA speichert es raw im `content`-Feld des WYSIWYG-Editors als `drawio`-Codeblock — identisch zur Handhabung von `mermaid` und `plantuml` Codeblöcken.
+The XML format (`mxGraphModel`) is stable; OEA stores it raw in the `content` field of the WYSIWYG editor as a `drawio` code block — identical to the handling of `mermaid` and `plantuml` code blocks.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Codeblock-Format
+### Code Block Format
 
-Im `content`-Feld des Arc42MetaObject wird ein Draw.io-Diagramm wie folgt gespeichert:
+In the `content` field of the Arc42MetaObject, a Draw.io diagram is stored as follows:
 
 ````
 ```drawio
@@ -61,7 +61,7 @@ Im `content`-Feld des Arc42MetaObject wird ein Draw.io-Diagramm wie folgt gespei
     <mxCell id="3" value="SAP ERP" style="rounded=1;..." vertex="1" parent="1">
       <mxGeometry x="360" y="80" width="160" height="60" as="geometry"/>
     </mxCell>
-    <mxCell id="4" value="sendet Daten" style="edgeStyle=..." edge="1" source="2" target="3" parent="1">
+    <mxCell id="4" value="sends data" style="edgeStyle=..." edge="1" source="2" target="3" parent="1">
       <mxGeometry relative="1" as="geometry"/>
     </mxCell>
   </root>
@@ -69,105 +69,105 @@ Im `content`-Feld des Arc42MetaObject wird ein Draw.io-Diagramm wie folgt gespei
 ```
 ````
 
-### Rendering-Verhalten
+### Rendering Behavior
 
-| Zustand | Darstellung |
+| State | Display |
 |---|---|
-| Leseansicht | SVG-Rendering des XML via draw.io-Viewer-Library; kein interaktiver Editor |
-| Bearbeitungsansicht | Vorschau-SVG mit „Öffnen in Draw.io"-Button oben rechts |
-| Editor-Modal geöffnet | `iframe` oder Popup mit draw.io-Editor; `embed.diagrams.net` via `postMessage` |
-| Nach Editor-Speichern | Modal schliesst; XML im Codeblock wird durch aktualisiertes XML ersetzt |
-| Kein XML (leerer Block) | Platzhalter „Draw.io-Diagramm hinzufügen" mit „Öffnen"-Button |
+| Read view | SVG rendering of the XML via draw.io viewer library; no interactive editor |
+| Edit view | Preview SVG with "Open in Draw.io" button at the top right |
+| Editor modal open | `iframe` or popup with draw.io editor; `embed.diagrams.net` via `postMessage` |
+| After editor save | Modal closes; XML in the code block is replaced by the updated XML |
+| No XML (empty block) | Placeholder "Add Draw.io diagram" with "Open" button |
 
-### Entity-Mention im draw.io-Editor
+### Entity Mention in the draw.io Editor
 
-Wenn der Nutzer im draw.io-Editor ein Shape-Label bearbeitet und `[[` tippt:
-- OEA-Integration (via draw.io-Embed-API postMessage) fängt das Tastatur-Event ab
-- Autocomplete-Dropdown erscheint über dem draw.io-Modal
-- Auswahl fügt den Entitätsnamen als reinen Text in das Shape-Label ein
-- Kein ID-Link im XML (BR-08 / BR-09)
+When the user edits a shape label in the draw.io editor and types `[[`:
+- OEA integration (via draw.io embed API postMessage) intercepts the keyboard event
+- Autocomplete dropdown appears above the draw.io modal
+- Selection inserts the entity name as plain text into the shape label
+- No ID link in the XML (BR-08 / BR-09)
 
-Die Integration benötigt eine kleine JavaScript-Brücke zwischen dem draw.io-iframe und dem TipTap-Editor.
+The integration requires a small JavaScript bridge between the draw.io iframe and the TipTap editor.
 
-### Sicherheit
+### Security
 
-- Das `<mxGraphModel>`-XML MUSS vor dem Rendering via DOMParser sanitisiert werden (BR-09)
-- Verbotene Elemente: `<script>`, Event-Handler-Attribute (`onload`, `onclick`, etc.), `javascript:`-URIs in `href`-Attributen
-- Erlaubte Elemente: alle `mxCell`-Elemente und draw.io-spezifische Tags
-- Das erzeugte SVG des Viewer-Library muss ebenfalls sanitisiert werden (SVG kann inline-Scripts enthalten)
-- `iframe` für draw.io-Editor: `sandbox="allow-scripts allow-same-origin"` + `Content-Security-Policy`
+- The `<mxGraphModel>` XML MUST be sanitized via DOMParser before rendering (BR-09)
+- Forbidden elements: `<script>`, event handler attributes (`onload`, `onclick`, etc.), `javascript:` URIs in `href` attributes
+- Allowed elements: all `mxCell` elements and draw.io-specific tags
+- The SVG generated by the viewer library must also be sanitized (SVG can contain inline scripts)
+- `iframe` for the draw.io editor: `sandbox="allow-scripts allow-same-origin"` + `Content-Security-Policy`
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Rendering aus Leseansicht):
-- Gegeben: Arc42-Antwort mit `drawio`-Codeblock
-- Wenn: Nutzer öffnet die Antwort
-- Dann: Draw.io-Diagramm als SVG gerendert (nicht als XML-Text); korrekte Shapes und Connections sichtbar
+**AC1** (Rendering from read view):
+- Given: Arc42 answer with `drawio` code block
+- When: User opens the answer
+- Then: Draw.io diagram rendered as SVG (not as XML text); correct shapes and connections visible
 
-**AC2** (Editor-Modal öffnen):
-- Gegeben: Nutzer ist im Bearbeitungsmodus der Arc42-Antwort
-- Wenn: Klick auf „In Draw.io öffnen"
-- Dann: Modal öffnet sich mit dem vollen draw.io-Editor; vorhandenes XML ist geladen; Nutzer kann Shapes hinzufügen, verschieben, beschriften
+**AC2** (Open editor modal):
+- Given: User is in edit mode of the Arc42 answer
+- When: Click on "Open in Draw.io"
+- Then: Modal opens with the full draw.io editor; existing XML is loaded; user can add, move and label shapes
 
-**AC3** (Änderungen übernehmen):
-- Wenn: Nutzer im draw.io-Editor speichert (Ctrl+S oder Speichern-Button)
-- Dann: Modal schliesst; aktualisiertes XML erscheint im `drawio`-Codeblock; SVG-Vorschau wird sofort aktualisiert
+**AC3** (Apply changes):
+- When: User saves in the draw.io editor (Ctrl+S or Save button)
+- Then: Modal closes; updated XML appears in the `drawio` code block; SVG preview is updated immediately
 
-**AC4** (Neues leeres Diagramm):
-- Wenn: Nutzer fügt einen leeren `drawio`-Codeblock ein und klickt „Öffnen"
-- Dann: draw.io-Editor öffnet mit leerem Canvas; nach Speichern steht XML im Block
+**AC4** (New empty diagram):
+- When: User inserts an empty `drawio` code block and clicks "Open"
+- Then: draw.io editor opens with an empty canvas; after saving, XML is in the block
 
-**AC5** (Entity-Mention in Shape-Label):
-- Wenn: Nutzer bearbeitet ein Shape-Label im draw.io-Editor und tippt `[[CRM`
-- Dann: Autocomplete-Dropdown öffnet sich über dem draw.io-Modal; nach Auswahl wird `CRM-System` als reiner Text ins Shape-Label eingefügt
+**AC5** (Entity mention in shape label):
+- When: User edits a shape label in the draw.io editor and types `[[CRM`
+- Then: Autocomplete dropdown opens above the draw.io modal; after selection `CRM-System` is inserted as plain text into the shape label
 
-**AC6** (Sicherheit — kein XSS):
-- Gegeben: Draw.io-XML mit `<mxCell value="<script>alert(1)</script>"/>`
-- Wenn: Rendering
-- Dann: Script-Tag wird entfernt oder escaped; kein JavaScript ausgeführt
+**AC6** (Security — no XSS):
+- Given: Draw.io XML with `<mxCell value="<script>alert(1)</script>"/>`
+- When: Rendering
+- Then: Script tag is removed or escaped; no JavaScript executed
 
-**AC7** (Web-Portal read-only):
-- Wenn: Nutzer im Web-Portal Arc42-Dokumentation öffnet
-- Dann: Draw.io-Diagramm als SVG sichtbar; kein Editor-Button; kein postMessage-Bridge aktiv
+**AC7** (Web portal read-only):
+- When: User opens Arc42 documentation in the web portal
+- Then: Draw.io diagram visible as SVG; no editor button; no postMessage bridge active
 
-**AC8** (Offline-fähig):
-- Gegeben: OEA-Instanz ohne Internetzugang; draw.io-Viewer-Library ist lokal mitgeliefert
-- Wenn: Nutzer öffnet Antwort mit `drawio`-Block
-- Dann: SVG-Rendering funktioniert ohne externe Anfragen; draw.io-Editor-Popup verwendet ebenfalls lokale draw.io-Installation (wenn konfiguriert)
+**AC8** (Offline-capable):
+- Given: OEA instance without internet access; draw.io viewer library is shipped locally
+- When: User opens an answer with a `drawio` block
+- Then: SVG rendering works without external requests; draw.io editor popup also uses a local draw.io installation (if configured)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (Playwright E2E für AC1–AC5, AC7) + manuell (AC6 Security-Review, AC8)
-- [x] Bestanden-Kriterium: SVG sichtbar (kein `<xml>`-Text); Editor öffnet; XML nach Speichern korrekt; keine Script-Execution
+- [x] Method: test (Playwright E2E for AC1–AC5, AC7) + manual (AC6 security review, AC8)
+- [x] Pass criterion: SVG visible (no `<xml>` text); editor opens; XML correct after saving; no script execution
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-068 (WYSIWYG-Editor existiert); REQ-070 (`[[`-Trigger für Entity-Mentions)
-- **Neue Bibliothek**: `draw.io-viewer-static.min.js` (Apache 2.0; kann lokal mitgeliefert werden); `embed.diagrams.net` als Editor-Embedding-Option oder Self-hosted draw.io-Instanz
-- **Konfiguration**: `drawioEditorUrl` in MetamodelConfiguration → Default `https://embed.diagrams.net`; für Air-gapped Umgebungen: URL zu lokaler draw.io-Instanz
-- **Beeinflusst**: REQ-075 (Plattformunabhängigkeit): lokale draw.io-Instanz als Docker-Container konfigurierbar
+- **Prerequisites**: REQ-068 (WYSIWYG editor exists); REQ-070 (`[[` trigger for entity mentions)
+- **New library**: `draw.io-viewer-static.min.js` (Apache 2.0; can be shipped locally); `embed.diagrams.net` as editor embedding option or self-hosted draw.io instance
+- **Configuration**: `drawioEditorUrl` in MetamodelConfiguration → default `https://embed.diagrams.net`; for air-gapped environments: URL to a local draw.io instance
+- **Influences**: REQ-075 (platform independence): local draw.io instance configurable as a Docker container
 
 ## Trade-offs
 
-- draw.io online (`embed.diagrams.net`) ist einfacher einzurichten, setzt aber Internetverbindung voraus — widerspricht REQ-075 für Air-gapped-Deployments
-- Lokale draw.io-Instanz (selbst gehostet via `jgraph/drawio` Docker-Image) ist vollständig offline, erfordert aber eine weitere Abhängigkeit im Deployment
-- Lösung: `drawioEditorUrl` als konfigurierbare Option; Default = online; Air-gapped-Betreiber setzen die URL auf ihre lokale Instanz
+- draw.io online (`embed.diagrams.net`) is easier to set up, but requires an internet connection — conflicts with REQ-075 for air-gapped deployments
+- Local draw.io instance (self-hosted via the `jgraph/drawio` Docker image) is fully offline, but requires another dependency in the deployment
+- Solution: `drawioEditorUrl` as a configurable option; default = online; air-gapped operators set the URL to their local instance
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- TipTap CodeBlock-Extension mit Language-Attribut `drawio`; Language-spezifisches Rendering (andere Codeblöcke: Syntax-Highlighting; `drawio`: SVG-Vorschau)
-- draw.io-Embed-Protokoll: `postMessage({action: 'load', xml: '...'})` → Editor lädt; auf `{event: 'save', xml: '...'}` reagieren → XML ins TipTap-Dokument schreiben
-- XML-Sanitizing: DOMParser → traversal → Whitelist-basiertes Filtering; kein `innerHTML`-Assignment ohne Sanitizing
+- TipTap CodeBlock extension with language attribute `drawio`; language-specific rendering (other code blocks: syntax highlighting; `drawio`: SVG preview)
+- draw.io embed protocol: `postMessage({action: 'load', xml: '...'})` → editor loads; react to `{event: 'save', xml: '...'}` → write XML into the TipTap document
+- XML sanitizing: DOMParser → traversal → whitelist-based filtering; no `innerHTML` assignment without sanitizing
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |

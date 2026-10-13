@@ -1,51 +1,51 @@
-## 4. Enterprise Continuum und Technical Reference Model
+## 4. Enterprise Continuum and Technical Reference Model
 
-Zwei TOGAF-Konzepte, die für die Repository-Struktur grundlegend sind und oft unterschätzt werden: das **Enterprise Continuum** als Klassifizierungs- und Organisationsstruktur für wiederverwendbare Architektur-Artefakte, und das **Technical Reference Model (TRM)** als taxonomische Einordnung von Technology-Services.
+Two TOGAF concepts that are fundamental to the repository structure and often underestimated: the **Enterprise Continuum** as a classification and organization structure for reusable architecture artifacts, and the **Technical Reference Model (TRM)** as a taxonomic classification of technology services.
 
-### 4.1 Enterprise Continuum als eigenständiger Repository-Bereich
+### 4.1 Enterprise Continuum as a Separate Repository Area
 
-Das Enterprise Continuum unterscheidet **wiederverwendbare Blueprints** von **konkreten Organisations-Instanzen**. Diese Unterscheidung zieht sich durch das gesamte Repository.
+The Enterprise Continuum distinguishes **reusable blueprints** from **concrete organization instances**. This distinction runs through the entire repository.
 
-**Architecture Continuum** (spezifikatorisch, von generisch zu spezifisch):
-- Foundation Architectures (universelle Building Blocks)
-- Common Systems Architectures (branchenübergreifend)
-- Industry Architectures (branchenspezifisch, z.B. TM Forum Frameworx)
+**Architecture Continuum** (specifying, from generic to specific):
+- Foundation Architectures (universal building blocks)
+- Common Systems Architectures (cross-industry)
+- Industry Architectures (industry-specific, e.g., TM Forum Frameworx)
 - Organization-Specific Architectures
 
-**Solutions Continuum** (implementierend, parallel dazu):
+**Solutions Continuum** (implementing, parallel to it):
 - Foundation Solutions
 - Common Systems Solutions
 - Industry Solutions
 - Organization-Specific Solutions
 
-### 4.2 Architecture Building Blocks und Solution Building Blocks
+### 4.2 Architecture Building Blocks and Solution Building Blocks
 
-Zentrale Unterscheidung im Enterprise Continuum:
+Central distinction in the Enterprise Continuum:
 
-- **Architecture Building Block (ABB)**: Spezifikation einer wiederverwendbaren Architektur-Einheit. Beschreibt *was* etwas tut und *welche Eigenschaften* es haben muss, technologie-neutral.
-- **Solution Building Block (SBB)**: Konkrete Implementierung eines ABBs durch ein Produkt oder eine Komponente.
+- **Architecture Building Block (ABB)**: Specification of a reusable architecture unit. Describes *what* something does and *which properties* it must have, technology-neutral.
+- **Solution Building Block (SBB)**: Concrete implementation of an ABB by a product or a component.
 
-Beispiel: ABB "Identity Provider" (muss SAML 2.0 sprechen, muss MFA unterstützen) wird implementiert durch SBB "Keycloak 23.0" oder SBB "Azure AD".
+Example: ABB "Identity Provider" (must speak SAML 2.0, must support MFA) is implemented by SBB "Keycloak 23.0" or SBB "Azure AD".
 
-Dies ist dieselbe Logical/Physical-Logik wie auf Instanz-Ebene – aber auf höherer Abstraktion: es geht nicht um eine konkrete Instanz *in* der Organisation, sondern um Blueprints *für* die Organisation.
+This is the same logical/physical logic as at instance level – but at a higher level of abstraction: it is not about a concrete instance *in* the organization, but about blueprints *for* the organization.
 
-### 4.3 Repository-Struktur
+### 4.3 Repository Structure
 
 ```
 Repository:
-├── /continuum/                    (wiederverwendbare Blueprints)
+├── /continuum/                    (reusable blueprints)
 │   ├── /architecture-building-blocks/
 │   ├── /solution-building-blocks/
 │   ├── /patterns/
 │   └── /reference-architectures/
 │
-└── /instances/                    (konkrete Organisations-Entities)
+└── /instances/                    (concrete organization entities)
     ├── /applications/
     ├── /technologies/
     └── ...
 ```
 
-Eine Organisations-Instanz referenziert ABBs/SBBs:
+An organization instance references ABBs/SBBs:
 
 ```yaml
 PhysicalApplicationComponent "acme-keycloak-prod":
@@ -53,7 +53,7 @@ PhysicalApplicationComponent "acme-keycloak-prod":
   conformsToABB: "identity-provider"
 ```
 
-### 4.4 Neue EntityTypes
+### 4.4 New EntityTypes
 
 ```yaml
 EntityType: ArchitectureBuildingBlock (ABB)
@@ -64,9 +64,9 @@ EntityType: ArchitectureBuildingBlock (ABB)
     - governanceStatus: proposed | approved | deprecated
     - specifications: text / structured
     - requirements: Requirement[]
-    - industry: string (für Industry-Level)
+    - industry: string (for industry level)
   relations:
-    - refinesABB: ABB (Hierarchie: spezifischer ABB verfeinert generischeren)
+    - refinesABB: ABB (hierarchy: more specific ABB refines more generic one)
     - implementedBy: SBB[]
 
 EntityType: SolutionBuildingBlock (SBB)
@@ -85,7 +85,7 @@ EntityType: ArchitecturePattern
     - applicability, consequences
     - maturityLevel
   relations:
-    - appliedIn: Entity[] (wo ist das Pattern konkret umgesetzt?)
+    - appliedIn: Entity[] (where is the pattern concretely implemented?)
     - relatedPatterns: ArchitecturePattern[]
 
 EntityType: ReferenceArchitecture
@@ -94,29 +94,29 @@ EntityType: ReferenceArchitecture
   relations:
     - composedOf: ABB[]
     - basedOnPatterns: ArchitecturePattern[]
-    - instantiatedAs: Plateau (als Zielbild nutzbar)
+    - instantiatedAs: Plateau (usable as target state)
 ```
 
-### 4.5 Analysen über das Enterprise Continuum
+### 4.5 Analyses over the Enterprise Continuum
 
-Die Trennung von Continuum und Instanzen eröffnet neue Sicht-Möglichkeiten:
+Separating the continuum from instances opens up new view possibilities:
 
-- **ABB-Abdeckung**: Welche ABBs haben wir definiert, aber keine Instanz dafür? (Lücke)
-- **SBB-Diversität**: Wie viele verschiedene SBBs erfüllen denselben ABB? (Ungewollte Vielfalt)
-- **Standards-Drift**: Welche Instanzen weichen von ihrem referenzierten SBB ab (z.B. nicht-genehmigte Version)?
-- **Continuum-Reife**: Welche Organization-Specific-Artefakte haben das Potenzial, als Common Systems oder Industry Blueprint zurück ins Continuum zu wandern?
+- **ABB coverage**: Which ABBs have we defined but have no instance for? (gap)
+- **SBB diversity**: How many different SBBs fulfill the same ABB? (unwanted diversity)
+- **Standards drift**: Which instances deviate from their referenced SBB (e.g., non-approved version)?
+- **Continuum maturity**: Which organization-specific artifacts have the potential to migrate back into the continuum as a common systems or industry blueprint?
 
 ### 4.6 Technical Reference Model (TRM)
 
-Das TRM ist ein konkretes Beispiel einer Foundation Architecture: eine **Taxonomie von Technology-Services** mit Kategorien und Subkategorien. TOGAF liefert ein Beispiel-TRM mit, das organisationsspezifisch angepasst werden sollte.
+The TRM is a concrete example of a foundation architecture: a **taxonomy of technology services** with categories and subcategories. TOGAF ships an example TRM that should be adapted to the organization.
 
-Das TRM ist im Metamodell eine **eigenständige Klassifikations-Hierarchie**:
+In the metamodel, the TRM is a **separate classification hierarchy**:
 
 ```yaml
 EntityType: TRMCategory
   properties:
     - name, description
-    - level: 1 | 2 | 3  (Hierarchie-Tiefe)
+    - level: 1 | 2 | 3  (hierarchy depth)
   relations:
     - parent: TRMCategory
     - children: TRMCategory[]
@@ -127,28 +127,28 @@ EntityType: TRMCategory
     - lastReviewed: date
 ```
 
-Jede `PhysicalTechnologyComponent` kann einer oder mehreren TRM-Kategorien zugeordnet werden:
+Each `PhysicalTechnologyComponent` can be assigned to one or more TRM categories:
 
 ```yaml
-PhysicalTechnologyComponent erhält:
+PhysicalTechnologyComponent gains:
   - trmClassification: TRMCategory[] (n:m)
 ```
 
-### 4.7 TRM-basierte Analysen
+### 4.7 TRM-Based Analyses
 
-- **Technology Diversity**: Wie viele Produkte haben wir pro TRM-Kategorie? Fünf Message-Broker, wenn zwei reichen würden?
-- **TRM Coverage**: Welche TRM-Services haben wir abgedeckt, welche fehlen?
-- **Standard Enforcement**: Welche Technologien weichen vom Preferred Standard ihrer TRM-Kategorie ab?
-- **Lifecycle pro Kategorie**: Bebauungsplan gefiltert auf eine TRM-Kategorie zeigt Wandel innerhalb eines Service-Bereichs
+- **Technology diversity**: How many products do we have per TRM category? Five message brokers when two would suffice?
+- **TRM coverage**: Which TRM services have we covered, which are missing?
+- **Standard enforcement**: Which technologies deviate from the preferred standard of their TRM category?
+- **Lifecycle per category**: Landscape map (Bebauungsplan) filtered to one TRM category shows change within a service area
 
-### 4.8 Nutzung im Workflow
+### 4.8 Use in the Workflow
 
-Das Enterprise Continuum ist nicht nur Dokumentation, sondern **aktiv im Architektur-Workflow**:
+The Enterprise Continuum is not just documentation but **active in the architecture workflow**:
 
-1. **Neues Projekt startet** → prüfe, ob existierende ABBs/SBBs/Patterns wiederverwendet werden können
-2. **Neue Technologie wird evaluiert** → einordnen in TRM, prüfen gegen bestehende Standards
-3. **Architekturentscheidung** → nutzt ABBs/Patterns als Referenz in ADRs
-4. **Erfahrung aus Projekt** → wenn Organization-Specific-Artefakt wiederverwendbar wird, rückwärts ins Continuum promovieren
+1. **New project starts** → check whether existing ABBs/SBBs/patterns can be reused
+2. **New technology is evaluated** → classify in the TRM, check against existing standards
+3. **Architecture decision** → uses ABBs/patterns as a reference in ADRs
+4. **Experience from a project** → if an organization-specific artifact becomes reusable, promote it backwards into the continuum
 
 ### 4.9 Constraints
 
@@ -162,15 +162,15 @@ constraint: technology-has-trm-classification
   appliesTo: PhysicalTechnologyComponent
   rule: "entity.trmClassification.length >= 1"
   severity: warning
-  message: "Technology nicht ins TRM eingeordnet – Standards-Governance nicht möglich"
+  message: "Technology not classified in the TRM – standards governance not possible"
 
 constraint: sbb-implements-abb
   appliesTo: SolutionBuildingBlock
   rule: "entity.implements.length >= 1"
   severity: warning
-  message: "SBB ohne ABB-Referenz ist nur ein Produktkatalog-Eintrag"
+  message: "An SBB without an ABB reference is just a product catalog entry"
 ```
 
 ---
 
-← [Framework-Verhältnis](03-framework-verhaeltnis.md) · [🏠 Übersicht](../README.md) · [Prinzipien, Standards & ADRs](05-prinzipien-standards-adrs.md) →
+← [Framework Relationship](03-framework-relationship.md) · [🏠 Overview](../README.md) · [Principles, Standards & ADRs](05-principles-standards-adrs.md) →

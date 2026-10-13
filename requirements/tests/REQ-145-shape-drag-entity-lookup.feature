@@ -1,44 +1,44 @@
-# Ableitung aus: requirements/req/req-145-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-145-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-05
 Feature: REQ-145 – Shape Drag-to-Canvas with Entity Lookup and Inline Creation
 
-  Das System MUSS nach dem Ablegen einer Shape-Vorlage aus der Palette
-  auf den Canvas einen Entity-Lookup-Dialog anzeigen. Der Dialog MUSS
-  ein Texteingabefeld enthalten, das während der Eingabe bestehende
-  Entitäten desselben Typs als Autocomplete-Vorschläge anzeigt.
+  After a shape template from the palette is dropped
+  onto the canvas, the system MUST display an entity lookup dialog. The dialog MUST
+  contain a text input field that, while typing, displays existing
+  entities of the same type as autocomplete suggestions.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Bestehende Entität einfügen – Entität "Catalog-Service" [AC] existiert in der Solution
-    Given Entität "Catalog-Service" [AC] existiert in der Solution
-    When  Nutzer zieht [AC]-Shape auf Canvas, tippt "Catalog", sieht "Catalog-Service (existing)", wählt es
-    Then  Shape erscheint auf Canvas; kein neues Objekt im Modell; Log zeigt "existing"
+  Scenario: AC1 – Insert existing entity – entity "Catalog-Service" [AC] exists in the solution
+    Given entity "Catalog-Service" [AC] exists in the solution
+    When  user drags [AC] shape onto canvas, types "Catalog", sees "Catalog-Service (existing)", selects it
+    Then  shape appears on canvas; no new object in the model; log shows "existing"
 
   @AC2
-  Scenario: AC2 – Neue Entität anlegen – Nutzer tippt "New-Reporting-Service", kein Autocomplete-Match, drückt OK
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer tippt "New-Reporting-Service", kein Autocomplete-Match, drückt OK
-    Then  Neue Entität "New-Reporting-Service" [AC] wird angelegt; Shape erscheint auf Canvas; Explorer-Tree aktualisiert
+  Scenario: AC2 – Create new entity – user types "New-Reporting-Service", no autocomplete match, presses OK
+    Given the precondition according to the requirement is met
+    When  user types "New-Reporting-Service", no autocomplete match, presses OK
+    Then  new entity "New-Reporting-Service" [AC] is created; shape appears on canvas; explorer tree updated
 
   @AC3
-  Scenario: AC3 – Autocomplete bei Eingabe – Nutzer tippt "auth"
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer tippt "auth"
-    Then  Dropdown zeigt max. 8 Entitäten mit "auth" im Namen; Antwortzeit < 300 ms bei 10 000 Entitäten
+  Scenario: AC3 – Autocomplete on input – user types "auth"
+    Given the precondition according to the requirement is met
+    When  user types "auth"
+    Then  dropdown shows max. 8 entities with "auth" in the name; response time < 300 ms with 10,000 entities
 
   @AC4
-  Scenario: AC4 – Cancel = kein Side-Effect – Nutzer drückt Cancel oder ESC nach dem Drop
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer drückt Cancel oder ESC nach dem Drop
-    Then  Keine Entität angelegt, keine Shape im Diagramm, Drop vollständig rückgängig
+  Scenario: AC4 – Cancel = no side effect – user presses Cancel or ESC after the drop
+    Given the precondition according to the requirement is met
+    When  user presses Cancel or ESC after the drop
+    Then  no entity created, no shape in the diagram, drop completely undone
 
   @AC5
-  Scenario: AC5 – Duplikat-Warnung – Nutzer zieht dieselbe Entität ein zweites Mal in das gleiche Diagramm
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer zieht dieselbe Entität ein zweites Mal in das gleiche Diagramm
-    Then  System zeigt Warnung "Entity already on canvas — insert again?" mit Ja/Nein
+  Scenario: AC5 – Duplicate warning – user drags the same entity into the same diagram a second time
+    Given the precondition according to the requirement is met
+    When  user drags the same entity into the same diagram a second time
+    Then  system shows warning "Entity already on canvas — insert again?" with Yes/No

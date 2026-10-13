@@ -1,60 +1,60 @@
-# US-036: Connection-EntityType mit Start und Ziel definieren
+# US-036: Define Connection EntityType with Source and Target
 
 **ID**: US-036
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Enterprise Architekt möchte ich im Metamodell Verbindungstypen definieren können, die ein Start- und ein Zielobjekt erzwingen und selbst Attribute tragen können, damit ich Datenflüsse, Netzwerkverbindungen oder andere gerichtete Beziehungen als eigenständige, referenzierbare Objekte im EA-Repository erfassen kann.
+As an Enterprise Architect, I want to be able to define connection types in the metamodel that enforce a source and a target object and can themselves carry attributes, so that I can capture data flows, network connections or other directed relationships as independent, referenceable objects in the EA repository.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-04: Metamodell gemeinsam konfigurieren](../use-cases/UC-04-metamodell-konfigurieren.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-036: Connection-EntityType im Metamodell](../req/REQ-036-connection-entitytype.md)
+**Use Case**: [UC-04: Configure the Metamodel Collaboratively](../use-cases/UC-04-configure-metamodel.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-036: Connection EntityType in the Metamodel](../req/REQ-036-connection-entitytype.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Kurt legt `DataFlow` mit `isConnection=true`, `allowedSourceTypes=[ApplicationComponent, DataFlow]`, `allowedTargetTypes=[ApplicationComponent, DataFlow]` und Property `protocol (enum)` an
-- Wenn: ein Architekt eine DataFlow-Instanz ohne source anlegen möchte
-- Dann: schlägt das Speichern fehl mit konkreter Fehlermeldung
+- Given: Kurt creates `DataFlow` with `isConnection=true`, `allowedSourceTypes=[ApplicationComponent, DataFlow]`, `allowedTargetTypes=[ApplicationComponent, DataFlow]` and property `protocol (enum)`
+- When: an architect wants to create a DataFlow instance without a source
+- Then: saving fails with a specific error message
 
 **AC2**:
-- Gegeben: DataFlow-Instanz DF-1 (AppA→AppB) existiert
-- Wenn: Kurt DataFlow-Instanz DF-2 mit `source=DF-1`, `target=AppC` anlegt
-- Dann: wird die T-Beziehung gespeichert (DF-2 zweigt von DF-1 ab)
+- Given: DataFlow instance DF-1 (AppA→AppB) exists
+- When: Kurt creates DataFlow instance DF-2 with `source=DF-1`, `target=AppC`
+- Then: the T relationship is saved (DF-2 branches off from DF-1)
 
 **AC3**:
-- Gegeben: `isConnection=true` und `allowedSourceTypes=[ApplicationComponent]` (ohne DataFlow)
-- Wenn: Kurt `source=DF-1` (eine Connection-Instanz) zu setzen versucht
-- Dann: Validierungsfehler; kein Speichern
+- Given: `isConnection=true` and `allowedSourceTypes=[ApplicationComponent]` (without DataFlow)
+- When: Kurt tries to set `source=DF-1` (a connection instance)
+- Then: validation error; no saving
 
 **AC4**:
-- Gegeben: YAML-Import mit `isConnection: true`-Definition
-- Wenn: Kurt die Datei importiert
-- Dann: ist der Typ korrekt als Connection-Typ importiert und im GUI als solcher markiert
+- Given: YAML import with an `isConnection: true` definition
+- When: Kurt imports the file
+- Then: the type is correctly imported as a connection type and marked as such in the GUI
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: EntityType-Formular (neuer `isConnection`-Toggle + `allowedTypes`-Multiselect), Instanz-Anlage-Flow (source/target-Pflichtfelder), DB-Schema (zwei FK-Spalten)
-- DB: `source_entity_id`, `target_entity_id` in Entitäts-Tabelle; Self-Join ermöglicht T-Beziehungen
-- Graph-View: Connection-Instanzen als Kanten mit Richtungspfeil; T-Junction-Rendering
+- Affected components: EntityType form (new `isConnection` toggle + `allowedTypes` multiselect), instance creation flow (source/target mandatory fields), DB schema (two FK columns)
+- DB: `source_entity_id`, `target_entity_id` in entity table; self-join enables T relationships
+- Graph view: connection instances as edges with direction arrow; T-junction rendering
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Tests: isConnection-Flag, source/target-Pflicht, allowedTypes-Validierung, T-Beziehung, YAML-Import
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Tests: isConnection flag, source/target mandatory, allowedTypes validation, T relationship, YAML import
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-032 (EntityType-Formular als Basis; wird um isConnection erweitert); US-033 (Import um isConnection erweitert)
-- Blockiert: künftiger US für Entitäts-Anlage (muss source/target-Felder rendern, wenn Connection-Typ gewählt)
+- Waiting on: US-032 (EntityType form as basis; extended with isConnection); US-033 (import extended with isConnection)
+- Blocks: future US for entity creation (must render source/target fields when a connection type is chosen)
 
-## Notizen
+## Notes
 
-5 SP wegen: DB-Schema-Anpassung, Formular-Erweiterung, source/target-Validierungslogik, T-Beziehungs-Support im Graphen. Die Zirkularitäts-Prüfung (Connection → Connection → ... → start) ist im MVP nicht implementiert; der View-Layer muss mit Zyklen umgehen können.
+5 SP because of: DB schema adjustment, form extension, source/target validation logic, T-relationship support in the graph. The circularity check (connection → connection → ... → start) is not implemented in the MVP; the view layer must be able to handle cycles.

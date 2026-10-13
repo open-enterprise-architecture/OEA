@@ -1,61 +1,61 @@
-# US-042: Bestehende Entität in einer Solution als retiring markieren
+# US-042: Mark an Existing Entity in a Solution as Retiring
 
 **ID**: US-042
 **Story Points**: 2
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Solution Architekt möchte ich eine bestehende Entität aus der IT-Landschaft in einer Solution als „ausser Betrieb gehend" markieren können (deltaType=retiring), damit der Scope der Initiative klar zeigt, welche Systeme oder Komponenten durch diese Initiative abgelöst werden.
+As a Solution Architect, I want to be able to mark an existing entity from the IT landscape in a solution as "being retired" (deltaType=retiring), so that the scope of the initiative clearly shows which systems or components are replaced by this initiative.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-05: Architektur-Vision einer Änderungsinitiative beschreiben](../use-cases/UC-05-architektur-vision-beschreiben.md)
-**Persona**: [SH-04: Michael – Solution Architekt](../../business-analysis/stakeholders/SH-04-michael-solution-architekt.md)
-**Requirement**: [REQ-040: EntityDeltas einer Solution erfassen](../req/REQ-040-entity-deltas-erfassen.md)
+**Use Case**: [UC-05: Describe the Architecture Vision of a Change Initiative](../use-cases/UC-05-describe-architecture-vision.md)
+**Persona**: [SH-04: Michael – Solution Architect](../../business-analysis/stakeholders/SH-04-michael-solution-architect.md)
+**Requirement**: [REQ-040: Capture EntityDeltas of a Solution](../req/REQ-040-capture-entity-deltas.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: `CRM-Legacy (ApplicationComponent)` ist in der Ausgangsbasis
-- Wenn: Michael `CRM-Legacy` aus der Ausgangsbasis auswählt und „Ausser Betrieb nehmen" klickt
-- Dann: erscheint `CRM-Legacy` in der Delta-Liste mit `deltaType=retiring`; in der Diff-Ansicht (US-043) wird sie als abgehend dargestellt
+- Given: `CRM-Legacy (ApplicationComponent)` is in the baseline
+- When: Michael selects `CRM-Legacy` from the baseline and clicks "Retire"
+- Then: `CRM-Legacy` appears in the delta list with `deltaType=retiring`; in the diff view (US-043) it is shown as outgoing
 
-**AC2** (nicht in Ausgangsbasis):
-- Gegeben: Michael gibt eine entityId ein, die nicht in der Ausgangsbasis vorhanden ist
-- Wenn: er speichert
-- Dann: Validierungsfehler „Entität nicht in der aktuellen Landschaft gefunden"
+**AC2** (not in baseline):
+- Given: Michael enters an entityId that is not present in the baseline
+- When: he saves
+- Then: validation error "Entity not found in the current landscape"
 
-**AC3** (Duplikat-Prüfung):
-- Gegeben: `CRM-Legacy` hat bereits ein `new`-Delta in dieser Solution (wäre widersprüchlich)
-- Wenn: Michael versucht, `CRM-Legacy` zusätzlich als `retiring` zu markieren
-- Dann: Validierungsfehler „Für CRM-Legacy existiert bereits ein Delta in dieser Solution"
+**AC3** (duplicate check):
+- Given: `CRM-Legacy` already has a `new` delta in this solution (would be contradictory)
+- When: Michael tries to additionally mark `CRM-Legacy` as `retiring`
+- Then: validation error "A delta already exists for CRM-Legacy in this solution"
 
-**AC4** (Solution implemented):
-- Gegeben: Solution hat status=`implemented`
-- Wenn: Michael versucht, eine Entität als retiring zu markieren
-- Dann: 409 Conflict „Diese Solution ist abgeschlossen und kann nicht mehr verändert werden"
+**AC4** (solution implemented):
+- Given: Solution has status=`implemented`
+- When: Michael tries to mark an entity as retiring
+- Then: 409 Conflict "This solution is completed and can no longer be changed"
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Solution-Detailansicht (Delta-Erfassung, Aktion „Ausser Betrieb nehmen" direkt in der Ausgangsbasis-Liste), Backend `POST /api/v1/solutions/{id}/deltas`
-- Request-Body: `{ entityId: UUID, deltaType: "retiring" }` – minimaler Payload, kein `changes`-Map nötig
-- UI: Direktaktion in der Ausgangsbasis-Liste (Button oder Kontextmenü pro Zeile); kein separates Formular nötig
+- Affected components: solution detail view (delta capture, action "Retire" directly in the baseline list), backend `POST /api/v1/solutions/{id}/deltas`
+- Request body: `{ entityId: UUID, deltaType: "retiring" }` – minimal payload, no `changes` map needed
+- UI: direct action in the baseline list (button or context menu per row); no separate form needed
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien AC1–AC4 erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests: retiring anlegen, ungültige entityId, Duplikat-Prüfung, Solution=implemented blockiert
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria AC1–AC4 met
+- [ ] Code review by a second person
+- [ ] Tests: create retiring, invalid entityId, duplicate check, solution=implemented blocks
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-038 (Solution), US-039 (Ausgangsbasis muss laden, damit Direktaktion möglich ist)
-- Blockiert: US-043 (retiring-Deltas sind Kernbestandteil der Diff-Ansicht)
+- Waiting on: US-038 (solution), US-039 (baseline must load for the direct action to be possible)
+- Blocks: US-043 (retiring deltas are a core component of the diff view)
 
-## Notizen
+## Notes
 
-2 SP: minimaler Backend-Aufwand (kein `changes`-Map). UI: Direktaktion in der Ausgangsbasis-Liste ist die natürlichste Interaktion – Michael sieht die Entität und markiert sie mit einem Klick. Gemeinsamer Backend-Endpunkt mit US-040 und US-041 (`POST /solutions/{id}/deltas`).
+2 SP: minimal backend effort (no `changes` map). UI: direct action in the baseline list is the most natural interaction – Michael sees the entity and marks it with one click. Shared backend endpoint with US-040 and US-041 (`POST /solutions/{id}/deltas`).

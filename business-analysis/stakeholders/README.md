@@ -1,43 +1,43 @@
-# Stakeholder
+# Stakeholders
 
-Sieben Persona-Profile als primäre Anwender und Sponsoren von OEA. Jedes Profil folgt einem einheitlichen Schema.
+Seven persona profiles as primary users and sponsors of OEA. Each profile follows a uniform schema.
 
-## Übersicht
+## Overview
 
-| ID | Name | Rolle | Organisation | Tool-Hintergrund |
+| ID | Name | Role | Organization | Tool Background |
 |---|---|---|---|---|
-| [SH-01](SH-01-franz-junior-domain-architekt.md) | Franz | Junior Domain Architekt | Konzern | Greenfield |
-| [SH-02](SH-02-lukas-senior-data-architekt.md) | Lukas | Senior Data Architekt | Mittelstand | Avolution |
-| [SH-03](SH-03-kurt-lead-enterprise-architekt.md) | Kurt | Lead Enterprise Architekt | KMU | Wiki |
-| [SH-04](SH-04-michael-solution-architekt.md) | Michael | Solution Architekt | Mittelstand | Sparx |
-| [SH-05](SH-05-cio-konzern.md) | CIO | CIO | Konzern | Multi-Tool (Ardoq, Avolution, LeanIX, Sparx) |
-| [SH-06](SH-06-max-operator-kmu.md) | Max | Operator | reguliertes KMU | hybride Infra, gemischter Stack |
-| [SH-07](SH-07-sabine-business-engineer.md) | Sabine | Senior Business Engineer | Globalkonzern | strukturierte Business-Modellierung |
-| [SH-08](SH-08-anna-business-analyst.md) | Anna | Business Analyst / Prozessverantwortliche | Mittelstand | – |
-| [SH-09](SH-09-rigobert-produkt-owner.md) | Rigobert | Produkt Owner / Repository-Inhaber | – | OEA (eigene Instanz) |
+| [SH-01](SH-01-franz-junior-domain-architect.md) | Franz | Junior Domain Architect | Corporate group | Greenfield |
+| [SH-02](SH-02-lukas-senior-data-architect.md) | Lukas | Senior Data Architect | Mid-sized company | Avolution |
+| [SH-03](SH-03-kurt-lead-enterprise-architect.md) | Kurt | Lead Enterprise Architect | SME | Wiki |
+| [SH-04](SH-04-michael-solution-architect.md) | Michael | Solution Architect | Mid-sized company | Sparx |
+| [SH-05](SH-05-cio-corporate-group.md) | CIO | CIO | Corporate group | Multi-tool (Ardoq, Avolution, LeanIX, Sparx) |
+| [SH-06](SH-06-max-operator-sme.md) | Max | Operator | Regulated SME | Hybrid infrastructure, mixed stack |
+| [SH-07](SH-07-sabine-business-engineer.md) | Sabine | Senior Business Engineer | Global corporate group | Structured business modeling |
+| [SH-08](SH-08-anna-business-analyst.md) | Anna | Business Analyst / Process Owner | Mid-sized company | – |
+| [SH-09](SH-09-rigobert-product-owner.md) | Rigobert | Product Owner / Repository Owner | – | OEA (own instance) |
 
-## Eigenschaften der Auswahl
+## Characteristics of the Selection
 
-Die sieben Personas decken drei orthogonale Spektren ab:
+The seven personas cover three orthogonal spectrums:
 
-**Größenklassen**: KMU (Kurt, Max), Mittelstand (Lukas, Michael), Konzern (Franz, CIO, Sabine).
+**Size classes**: SME (Kurt, Max), mid-sized company (Lukas, Michael), corporate group (Franz, CIO, Sabine).
 
-**Erfahrungsstufen**: Junior (Franz), Professional (Max), Senior (Lukas, Sabine), Lead (Kurt), Solution (Michael), C-Level (CIO).
+**Experience levels**: Junior (Franz), Professional (Max), Senior (Lukas, Sabine), Lead (Kurt), Solution (Michael), C-level (CIO).
 
-**Tool-Hintergründe**: Greenfield, Wiki-basiert, Avolution, Sparx, Multi-Tool-Konzern, Business-Object-orientiert, Operations-fokussiert.
+**Tool backgrounds**: Greenfield, wiki-based, Avolution, Sparx, multi-tool corporate group, business-object-oriented, operations-focused.
 
-## Wiederkehrende Muster
+## Recurring Patterns
 
-Beim Schreiben sind drei Muster aufgefallen:
+Three patterns stood out while writing:
 
-**Erstens, Migration ist der einzige Multi-Persona-blockierende Concern**: Lukas (Avolution), Michael (Sparx) und CIO (Multi-Tool) haben Migration als `blocking` markiert. Das macht **Migration-Tauglichkeit zum impliziten Walking-Skeleton-Kriterium**.
+**First, migration is the only concern that blocks multiple personas**: Lukas (Avolution), Michael (Sparx), and CIO (multi-tool) have marked migration as `blocking`. This makes **migration suitability an implicit walking skeleton criterion**.
 
-**Zweitens, Max hat die meisten `blocking`-Concerns** (acht): das ist nicht Schreibfehler, sondern Realität regulierter KMUs. Operationale Grundvoraussetzungen sind in solchen Umgebungen tatsächlich Mindestanforderungen, nicht Wünsche.
+**Second, Max has the most `blocking` concerns** (eight): this is not a typo but the reality of regulated SMEs. Operational prerequisites in such environments are actually minimum requirements, not wishes.
 
-**Drittens, der CIO ist die einzige Sponsor-Persona**: alle anderen sind direkte Nutzer. Diese Asymmetrie spiegelt die echte Welt – Tool-Entscheidungen werden von Sponsoren getroffen, aber von Nutzern getragen.
+**Third, the CIO is the only sponsor persona**: all others are direct users. This asymmetry mirrors the real world – tool decisions are made by sponsors but carried by users.
 
-## Vorgehen
+## Approach
 
-Bei neuem Stakeholder: `/new-stakeholder` Slash-Command nutzen, basierend auf `../../templates/stakeholder.template.md`.
+For a new stakeholder: use the `/new-stakeholder` slash command, based on `../../templates/stakeholder.template.md`.
 
-Bei Persona-Anpassung: Versionierung im Frontmatter, Änderung in Concerns oder Pain Points dokumentieren.
+For persona adjustments: versioning in the frontmatter, document the change in concerns or pain points.

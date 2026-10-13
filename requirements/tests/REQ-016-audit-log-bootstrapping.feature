@@ -1,22 +1,22 @@
-# Ableitung aus: requirements/req/req-016-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-016-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @compliance @must @UC-02
-Feature: REQ-016 – Audit-Log-Eintrag für den Bootstrapping-Vorgang
+Feature: REQ-016 – Audit log entry for the bootstrapping process
 
-  Das System MUSS jeden abgeschlossenen oder abgelehnten
-  Bootstrapping-Vorgang mit Zeitpunkt, gewähltem Modus (lokal/remote)
-  und Ergebnis im Audit-Log erfassen.
+  The system MUST record every completed or rejected bootstrapping
+  process in the audit log with timestamp, chosen mode (local/remote),
+  and result.
 
   @AC1
-  Scenario: AC1 – ein erfolgreich abgeschlossener lokaler oder remote Bootstrapping-Vorgang
-    Given ein erfolgreich abgeschlossener lokaler oder remote Bootstrapping-Vorgang
-    When  er abgeschlossen ist
-    Then  enthält das Audit-Log einen Eintrag mit Zeitpunkt, Modus und Ergebnis `success`
+  Scenario: AC1 – a successfully completed local or remote bootstrapping process
+    Given a successfully completed local or remote bootstrapping process
+    When  it is completed
+    Then  the audit log contains an entry with timestamp, mode and result `success`
 
   @AC2
-  Scenario: AC2 – ein abgelehnter Bootstrapping-Versuch (z.B. wegen REQ-015)
-    Given ein abgelehnter Bootstrapping-Versuch (z.B. wegen REQ-015)
-    When  die Ablehnung erfolgt
-    Then  enthält das Audit-Log einen Eintrag mit Zeitpunkt und Ergebnis `rejected`
+  Scenario: AC2 – a rejected bootstrapping attempt (e.g. due to REQ-015)
+    Given a rejected bootstrapping attempt (e.g. due to REQ-015)
+    When  the rejection occurs
+    Then  the audit log contains an entry with timestamp and result `rejected`

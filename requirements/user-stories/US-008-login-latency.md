@@ -1,54 +1,54 @@
-# US-008: Login-Latenz-Ziele erfüllen und messen
+# US-008: Meet and Measure Login Latency Targets
 
 **ID**: US-008
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Betreiber möchte ich, dass der Login-Vorgang ein definiertes Latenzbudget einhält, damit die tägliche Nutzung des Tools nicht durch langsame Anmeldung beeinträchtigt wird.
+As an operator, I want the login process to stay within a defined latency budget, so that daily use of the tool is not impaired by slow sign-in.
 
-## Bezug
+## Reference
 
 **Use Case**: [UC-01: Login](../use-cases/UC-01-login.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-008: Login-Latenz](../req/REQ-008-login-latenz.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-008: Login Latency](../req/REQ-008-login-latency.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein Repository mit 10.000 Personen und 1.000 Rollen
-- Wenn: 95% der OIDC-Login-Vorgänge gemessen werden
-- Dann: liegt die serverseitige Verarbeitungszeit unter 300ms
+- Given: a repository with 10,000 persons and 1,000 roles
+- When: 95% of OIDC login processes are measured
+- Then: the server-side processing time is below 300ms
 
 **AC2**:
-- Gegeben: ein Repository mit 10.000 aktiven API-Keys
-- Wenn: 95% der API-Key-Validierungen gemessen werden
-- Dann: liegt die Verarbeitungszeit unter 100ms
+- Given: a repository with 10,000 active API keys
+- When: 95% of API key validations are measured
+- Then: the processing time is below 100ms
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Auth-Modul, Caching-Layer für Rollenzuweisungen
-- Betroffene EntityTypes/Relations: `Person`, `Role`, `RoleAssignment`
-- API-Endpunkte: alle Login-/Auth-Endpunkte
-- Datenbank-Änderungen: ggf. zusätzliche Indizes, Cache-Layer (Lösung offen, kein Solution-Design hier)
+- Affected components: auth module, caching layer for role assignments
+- Affected EntityTypes/Relations: `Person`, `Role`, `RoleAssignment`
+- API endpoints: all login/auth endpoints
+- Database changes: additional indexes if needed, cache layer (solution open, no solution design here)
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Lasttest mit synthetischem Datensatz geschrieben und in CI als Performance-Gate integriert
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung (z.B. Cache-Strategie)
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Load test with synthetic dataset written and integrated into CI as a performance gate
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision (e.g. cache strategy)
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-001, US-002
-- Blockiert: keine
+- Waiting on: US-001, US-002
+- Blocks: none
 
-## Notizen
+## Notes
 
-Zielwerte sind vorläufige Walking-Skeleton-Annahmen (siehe REQ-008), bei realer Lastmessung zu validieren. Sollte erst sinnvoll messbar sein, wenn US-001/US-002 stehen.
+Target values are preliminary walking skeleton assumptions (see REQ-008) and must be validated with real load measurement. Should only be meaningfully measurable once US-001/US-002 are in place.

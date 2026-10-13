@@ -1,6 +1,6 @@
 ---
 id: REQ-004
-title: Ablehnung der Session-Erstellung für unbekannte oder offboardete Personen
+title: Rejection of session creation for unknown or offboarded persons
 type: functional
 priority: must
 status: proposed
@@ -17,96 +17,96 @@ references:
   stakeholders:
     - SH-03
   concept:
-    - concept/20-entities/08-organisation-rollen-personen.md
+    - concept/20-entities/08-organization-roles-persons.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-004: Ablehnung der Session-Erstellung für unbekannte oder offboardete Personen
+# REQ-004: Rejection of session creation for unknown or offboarded persons
 
-## Aussage
+## Statement
 
-Das System MUSS die Session-Erstellung verweigern, wenn ein gültiges Identity-Token keiner aktiven [Person](../../business-objects/person.md) im Repository zugeordnet werden kann oder die zugeordnete Person den Lifecycle-Status `offboarded` hat.
+The system MUST refuse session creation if a valid identity token cannot be mapped to an active [Person](../../business-objects/person.md) in the repository or if the mapped person has the lifecycle status `offboarded`.
 
-## Begründung
+## Rationale
 
-Ein gültiges Identity-Token allein genügt nicht für Zugriff – die Person muss im EA-Repository als aktiv bekannt sein. Verhindert Zugriff durch ehemalige Mitarbeitende, deren Identity-Provider-Account ggf. noch nicht deprovisioniert wurde. UC-01, Exception Flow E2.
+A valid identity token alone is not sufficient for access – the person must be known as active in the EA repository. Prevents access by former employees whose identity provider account may not yet have been deprovisioned. UC-01, Exception Flow E2.
 
-## Kontext
+## Context
 
-Person-Mastership liegt meist beim HR-System (Konzept §8.7); der `active`/`offboarded`-Status im Repository kann dem Identity-Provider-Status zeitlich vorauseilen oder nachlaufen.
+Person mastership usually lies with the HR system (concept §8.7); the `active`/`offboarded` status in the repository may precede or lag behind the identity provider status in time.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- Gültiges Identity-Token mit Identity-Claims (z.B. E-Mail, Subject-ID)
+**Inputs**:
+- Valid identity token with identity claims (e.g., email, subject ID)
 
-**Verarbeitung**:
-- Abgleich der Claims gegen `Person.externalReference`
-- Prüfung des Lifecycle-Status der gefundenen Person (`active` erforderlich)
+**Processing**:
+- Match the claims against `Person.externalReference`
+- Check the lifecycle status of the person found (`active` required)
 
-**Ausgaben**:
-- Bei Treffer mit `active`-Status: Session wird erstellt (siehe REQ-001)
-- Bei keinem Treffer oder Status `offboarded`: Ablehnung
+**Outputs**:
+- On a match with `active` status: session is created (see REQ-001)
+- On no match or status `offboarded`: rejection
 
-**Fehlerfälle**:
-- Kein Treffer → Ablehnung, Audit-Log-Eintrag (siehe REQ-005)
-- Treffer mit Status `offboarded` → Ablehnung, Audit-Log-Eintrag
+**Error Cases**:
+- No match → rejection, audit log entry (see REQ-005)
+- Match with status `offboarded` → rejection, audit log entry
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein gültiges Identity-Token, das keiner Person im Repository zugeordnet werden kann
-- Wenn: der Login-Vorgang abgeschlossen wird
-- Dann: wird keine Session erstellt
+- Given: a valid identity token that cannot be mapped to a person in the repository
+- When: the login process is completed
+- Then: no session is created
 
 **AC2**:
-- Gegeben: ein gültiges Identity-Token, dessen zugeordnete Person den Status `offboarded` hat
-- Wenn: der Login-Vorgang abgeschlossen wird
-- Dann: wird keine Session erstellt
+- Given: a valid identity token whose mapped person has the status `offboarded`
+- When: the login process is completed
+- Then: no session is created
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Login-Versuch mit Token ohne Person-Zuordnung bzw. mit `offboarded`-Person
-- [x] Mess-Werkzeug: Test-Suite des Auth-Moduls
-- [x] Bestanden-Kriterium: AC1, AC2 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: login attempt with a token without person mapping or with an `offboarded` person
+- [x] Measurement tool: test suite of the auth module
+- [x] Pass criterion: AC1, AC2 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-001
-- **Folgewirkungen**: REQ-005 (Audit-Log)
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-001
+- **Downstream effects**: REQ-005 (Audit-Log)
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Offboardete Personen könnten bei verzögerter IdP-Deprovisionierung weiter Zugriff auf das EA-Repository haben – schwerwiegend, insbesondere bei sensiblen Architektur-/Compliance-Daten
+- Risk 1: Offboarded persons could continue to have access to the EA repository in case of delayed IdP deprovisioning – severe, especially with sensitive architecture/compliance data
 
 ## Trade-offs
 
-- vs. REQ-001 (Geschwindigkeit des Login-Flows): zusätzlicher Lookup-Schritt gegen das Person-Objekt verlängert die Login-Latenz minimal
+- vs. REQ-001 (speed of the login flow): the additional lookup step against the Person object slightly increases login latency
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Lookup sollte über `externalReference` indiziert sein, um Login-Latenz gering zu halten (siehe Performance-Hinweis in UC-01)
+- The lookup should be indexed via `externalReference` to keep login latency low (see performance note in UC-01)
 
-## Realisierung
+## Implementation
 
-- ADR(s): keine
-- Implementiert durch: –
+- ADR(s): none
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-01 Login, Exception Flow E2.
+Derived from UC-01 Login, Exception Flow E2.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft aus UC-01 |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |

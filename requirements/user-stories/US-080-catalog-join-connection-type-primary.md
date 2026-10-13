@@ -1,6 +1,6 @@
 ---
 id: US-080
-title: Katalog mit Connection-Typ als primärem EntityType und n-Connection-Traversal
+title: Catalog with Connection Type as Primary EntityType and n-Connection Traversal
 use_case: UC-06
 requirement: REQ-065
 priority: should
@@ -9,23 +9,23 @@ story_points: 5
 created: 2026-06-26
 ---
 
-# US-080: Katalog mit Connection-Typ als primärem EntityType und n-Connection-Traversal
+# US-080: Catalog with Connection Type as Primary EntityType and n-Connection Traversal
 
-**Als** Data Architekt (Lukas, SH-02)  
-**möchte ich** einen Katalog anlegen, bei dem `data-flow` (eine Connection) der primäre EntityType ist,  
-**damit** ich alle DataFlow-Verbindungen tabellarisch auflisten und über `carries-data` auf verknüpfte DataObjects joinen kann.
+**As** a Data Architect (Lukas, SH-02)  
+**I want** to create a catalog in which `data-flow` (a connection) is the primary EntityType,  
+**so that** I can list all DataFlow connections in tabular form and join linked DataObjects via `carries-data`.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] Beim Katalog-Anlegen (US-046/047) kann ein Connection-EntityType (`isConnection=true`) als `primaryEntityType` gewählt werden
-- [ ] Katalog-Tabelle zeigt für Connection-primaries automatisch virtuelle Spalten `sourceEntityName` und `targetEntityName`
-- [ ] Join über `carries-data` (n-Connection): Join-Spalte zeigt Name des verknüpften DataObjects
-- [ ] Traversal: `WHERE sourceEntityId = primaryEntity.id AND connectionType = 'carries-data'` (1 Ebene, ADR-004)
-- [ ] Filter auf `sourceEntityName` und `targetEntityName` funktioniert wie bei regulären Spalten
-- [ ] DSGVO-Katalog-Beispiel (REQ-064): DataFlow-Katalog mit Join auf `carries-data.dataClassification` ergibt korrekte Filterliste
+- [ ] When creating a catalog (US-046/047), a connection EntityType (`isConnection=true`) can be chosen as `primaryEntityType`
+- [ ] For connection primaries, the catalog table automatically shows virtual columns `sourceEntityName` and `targetEntityName`
+- [ ] Join via `carries-data` (n-connection): the join column shows the name of the linked DataObject
+- [ ] Traversal: `WHERE sourceEntityId = primaryEntity.id AND connectionType = 'carries-data'` (1 level, ADR-004)
+- [ ] Filtering on `sourceEntityName` and `targetEntityName` works like on regular columns
+- [ ] GDPR catalog example (REQ-064): DataFlow catalog with join on `carries-data.dataClassification` yields a correct filter list
 
-## Technische Hinweise
+## Technical Notes
 
-- Alle Entities teilen Integer-ID-Raum (entity.md, ADR-001) → Join-Query ändert sich strukturell nicht
-- REQ-065 definiert API-Erweiterung: `GET /api/v1/catalogs/{id}/data` liefert bei Connection-Primary `sourceEntityName`/`targetEntityName` als virtuelle Felder
-- max. 1 Traversal-Ebene für n-Connections (ADR-004)
+- All entities share the integer ID space (entity.md, ADR-001) → the join query does not change structurally
+- REQ-065 defines API extension: `GET /api/v1/catalogs/{id}/data` returns `sourceEntityName`/`targetEntityName` as virtual fields for a connection primary
+- max. 1 traversal level for n-connections (ADR-004)

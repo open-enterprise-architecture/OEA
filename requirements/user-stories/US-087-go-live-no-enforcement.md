@@ -1,36 +1,36 @@
-# US-087: Go-Live trotz Warnungen ausführen
+# US-087: Execute Go-Live Despite Warnings
 
 **ID**: US-087
 **Story Points**: 2
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich einen Go-Live auch dann ausführen können, wenn nicht-implemented Solutions oder CEL-Violations vorhanden sind, damit ich bewusst Kompromisse eingehen kann ohne durch das System blockiert zu werden.
+As Kurt – Lead Enterprise Architect, I want to be able to execute a go-live even if non-implemented solutions or CEL violations exist, so that I can consciously accept compromises without being blocked by the system.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-11](../use-cases/UC-11-plateau-definieren-und-go-live.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-087](../req/REQ-087-go-live-kein-enforcement.md)
+**Use Case**: [UC-11](../use-cases/UC-11-define-plateau-and-go-live.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-087](../req/REQ-087-go-live-no-enforcement.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Nicht-implemented Solutions als Warnung):
-- Wenn: 3 nicht-implemented Solutions beim Go-Live existieren
-- Dann: zeigt der Dialog "3 Solutions nicht implementiert"; Go-Live bleibt ausführbar
+**AC1** (Non-implemented solutions as warning):
+- When: 3 non-implemented solutions exist at go-live
+- Then: the dialog shows "3 solutions not implemented"; go-live remains executable
 
-**AC2** (CEL-Violations als Warnung):
-- Wenn: CEL-Violations beim Go-Live vorliegen
-- Dann: zeigt der Dialog "N Business-Rule-Violations"; Go-Live bleibt ausführbar
+**AC2** (CEL violations as warning):
+- When: CEL violations exist at go-live
+- Then: the dialog shows "N business rule violations"; go-live remains executable
 
-**AC3** (Keine Warnung ohne Probleme):
-- Wenn: keine Warnungen vorliegen
-- Dann: wird kein Warnungsabschnitt im Dialog angezeigt
+**AC3** (No warning without problems):
+- When: no warnings exist
+- Then: no warning section is displayed in the dialog
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

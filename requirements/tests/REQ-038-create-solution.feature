@@ -1,47 +1,46 @@
-# Ableitung aus: requirements/req/req-038-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-038-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @must @UC-05
-Feature: REQ-038 – Solution anlegen und Architektur-Vision beschreiben
+Feature: REQ-038 – Create solution and describe architecture vision
 
-  Das System MUSS Personen mit Solution-Architekt-Berechtigung
-  ermöglichen, eine Solution mit Name, Architektur-Vision (Freitext:
-  Ziel und Scope der Initiative) und – im Plateau-Modus – den
-  Plateau-Referenzen (`fromPlateauId`, `toPlateauId`) anzulegen; das
-  System MUSS die Business Rules BR-01 und BR-02 der Solution
-  erzwingen.
+  The system MUST enable persons with solution architect permission to
+  create a solution with name, architecture vision (free text: goal
+  and scope of the initiative) and – in plateau mode – the plateau
+  references (`fromPlateauId`, `toPlateauId`); the system MUST enforce
+  business rules BR-01 and BR-02 of the solution.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Michael hat Solution-Architekt-Berechtigung; kein Plateau-Modus
-    Given Michael hat Solution-Architekt-Berechtigung; kein Plateau-Modus
-    When  er Name „ERP-Erweiterung Logistics" und einen Beschreibungstext eingibt und speichert
-    Then  Solution existiert mit status=`draft`, `ownerId=Michael`, `fromPlateauId=null`, `toPlateauId=null`; in der Solution-Übersicht sichtbar
+  Scenario: AC1 – Michael has solution architect permission; no plateau mode
+    Given Michael has solution architect permission; no plateau mode
+    When  he enters the name "ERP Extension Logistics" and a description text and saves
+    Then  solution exists with status=`draft`, `ownerId=Michael`, `fromPlateauId=null`, `toPlateauId=null`; visible in the solution overview
 
   @AC2
-  Scenario: AC2 – Instanz im Plateau-Modus; Plateau P0 (baseline) und P1 (target) existieren
-    Given Instanz im Plateau-Modus; Plateau P0 (baseline) und P1 (target) existieren
-    When  Michael `fromPlateauId=P0` und `toPlateauId=P1` setzt und speichert
-    Then  Solution angelegt mit beiden Plateau-Referenzen; BR-02 ist erfüllt
+  Scenario: AC2 – instance in plateau mode; plateau P0 (baseline) and P1 (target) exist
+    Given instance in plateau mode; plateau P0 (baseline) and P1 (target) exist
+    When  Michael sets `fromPlateauId=P0` and `toPlateauId=P1` and saves
+    Then  solution created with both plateau references; BR-02 is satisfied
 
   @AC3
-  Scenario: AC3 – Michael gibt `fromPlateauId=P0` ein, lässt `toPlateauId` leer
-    Given Michael gibt `fromPlateauId=P0` ein, lässt `toPlateauId` leer
-    When  er speichert
-    Then  Validierungsfehler „Beide Plateau-Referenzen müssen gesetzt oder beide leer sein"; kein Objekt wird angelegt (BR-01)
+  Scenario: AC3 – Michael enters `fromPlateauId=P0`, leaves `toPlateauId` empty
+    Given Michael enters `fromPlateauId=P0`, leaves `toPlateauId` empty
+    When  he saves
+    Then  validation error "Both plateau references must be set or both empty"; no object is created (BR-01)
 
   @AC4
-  Scenario: AC4 – Eine Solution mit Name „ERP-Erweiterung Logistics" existiert bereits
-    Given Eine Solution mit Name „ERP-Erweiterung Logistics" existiert bereits
-    When  Michael eine zweite Solution mit demselben Namen anlegen will
-    Then  Validierungsfehler „Name 'ERP-Erweiterung Logistics' ist bereits vergeben"
+  Scenario: AC4 – a solution with the name "ERP Extension Logistics" already exists
+    Given a solution with the name "ERP Extension Logistics" already exists
+    When  Michael wants to create a second solution with the same name
+    Then  validation error "Name 'ERP Extension Logistics' is already taken"
 
   @AC5
-  Scenario: AC5 – Person ohne Solution-Architekt-Berechtigung
-    Given Person ohne Solution-Architekt-Berechtigung
-    When  sie versucht, eine Solution anzulegen
-    Then  403 Forbidden; kein Objekt wird angelegt
+  Scenario: AC5 – person without solution architect permission
+    Given person without solution architect permission
+    When  they try to create a solution
+    Then  403 Forbidden; no object is created

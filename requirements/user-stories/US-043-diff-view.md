@@ -1,77 +1,77 @@
-# US-043: Diff-Ansicht einer Solution anzeigen
+# US-043: Show the Diff View of a Solution
 
 **ID**: US-043
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Solution Architekt möchte ich eine Diff-Ansicht sehen, die mir zeigt, welche Entitäten sich durch diese Solution verändern und wie der Zielzustand im Vergleich zum aktuellen Stand aussieht, damit ich den Scope auf einen Blick überprüfen und sicherstellen kann, dass alle geplanten Änderungen korrekt erfasst sind.
+As a Solution Architect, I want to see a diff view that shows me which entities change through this solution and how the target state compares to the current state, so that I can check the scope at a glance and make sure all planned changes are captured correctly.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-05: Architektur-Vision einer Änderungsinitiative beschreiben](../use-cases/UC-05-architektur-vision-beschreiben.md)
-**Persona**: [SH-04: Michael – Solution Architekt](../../business-analysis/stakeholders/SH-04-michael-solution-architekt.md)
-**Requirement**: [REQ-041: Diff-Ansicht aktueller Stand vs. Zielzustand einer Solution](../req/REQ-041-diff-ansicht.md)
+**Use Case**: [UC-05: Describe the Architecture Vision of a Change Initiative](../use-cases/UC-05-describe-architecture-vision.md)
+**Persona**: [SH-04: Michael – Solution Architect](../../business-analysis/stakeholders/SH-04-michael-solution-architect.md)
+**Requirement**: [REQ-041: Diff View of Current State vs. Target State of a Solution](../req/REQ-041-diff-view.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1** (retiring):
-- Gegeben: Solution hat ein `retiring`-Delta für `CRM-Legacy`
-- Wenn: Michael die Diff-Ansicht öffnet
-- Dann: erscheint `CRM-Legacy` einmal; linke Seite zeigt sie im aktuellen Stand, rechte Seite zeigt sie rot/durchgestrichen als „ausser Betrieb"
+- Given: Solution has a `retiring` delta for `CRM-Legacy`
+- When: Michael opens the diff view
+- Then: `CRM-Legacy` appears once; left side shows it in the current state, right side shows it in red/struck through as "out of service"
 
 **AC2** (new):
-- Gegeben: Solution hat ein `new`-Delta für `Salesforce (ApplicationComponent)`
-- Wenn: Michael die Diff-Ansicht öffnet
-- Dann: erscheint `Salesforce` einmal; linke Seite leer (existiert noch nicht), rechte Seite grün als neue Entität
+- Given: Solution has a `new` delta for `Salesforce (ApplicationComponent)`
+- When: Michael opens the diff view
+- Then: `Salesforce` appears once; left side empty (does not yet exist), right side green as a new entity
 
 **AC3** (modified):
-- Gegeben: Solution hat ein `modified`-Delta für `ERP-Core` (version: v4 → v5)
-- Wenn: Michael die Diff-Ansicht öffnet
-- Dann: erscheint `ERP-Core` einmal; links `version=v4`, rechts `version=v5`; nur das geänderte Property ist hervorgehoben
+- Given: Solution has a `modified` delta for `ERP-Core` (version: v4 → v5)
+- When: Michael opens the diff view
+- Then: `ERP-Core` appears once; left `version=v4`, right `version=v5`; only the changed property is highlighted
 
-**AC4** (kein Dump der Gesamtlandschaft):
-- Gegeben: Solution hat 3 Deltas; die Ausgangsbasis enthält 100 Entitäten
-- Wenn: Michael die Diff-Ansicht öffnet
-- Dann: werden genau 3 Einträge angezeigt; alle anderen 97 Entitäten sind **nicht** sichtbar
+**AC4** (no dump of the entire landscape):
+- Given: Solution has 3 deltas; the baseline contains 100 entities
+- When: Michael opens the diff view
+- Then: exactly 3 entries are displayed; all other 97 entities are **not** visible
 
-**AC5** (leere Delta-Liste):
-- Gegeben: Solution hat noch keine Deltas
-- Wenn: Michael die Diff-Ansicht öffnet
-- Dann: erscheint der Hinweis „Noch keine Änderungen erfasst"; kein Fehler
+**AC5** (empty delta list):
+- Given: Solution has no deltas yet
+- When: Michael opens the diff view
+- Then: the notice "No changes captured yet" appears; no error
 
-**AC6** (Live-Update):
-- Gegeben: Michael hat die Diff-Ansicht geöffnet
-- Wenn: er ein weiteres Delta speichert (in US-040–042)
-- Dann: aktualisiert sich die Diff-Ansicht ohne vollständiges Seiten-Neuladen
+**AC6** (live update):
+- Given: Michael has the diff view open
+- When: he saves another delta (in US-040–042)
+- Then: the diff view updates without a full page reload
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Solution-Detailansicht (Tab oder Bereich „Diff"), Backend `GET /api/v1/solutions/{id}/diff`
-- Berechnung on-the-fly: Ausgangsbasis (REQ-039-Daten) + EntityDeltas → Diff-Ergebnis; nicht persistiert
-- Response-Struktur: `[{ entityId, entityName, entityType, deltaType, before: {props}, after: {props} }]`
-- UI-Layout: Split-Panel oder Before/After-Karten; visuelle Differenzierung:
-  - `new`: grüner Hintergrund / Plus-Icon; linke Spalte leer
-  - `retiring`: roter Hintergrund / Durchstreichung; rechte Spalte ausgegraut
-  - `modified`: geänderte Properties farblich hervorgehoben (gelb oder blau); unveränderte Properties gedimmt
-- Live-Update: nach Delta-Speicherung (US-040–042) Diff-Endpunkt erneut aufrufen; kein WebSocket für MVP nötig
+- Affected components: solution detail view (tab or area "Diff"), backend `GET /api/v1/solutions/{id}/diff`
+- Computed on the fly: baseline (REQ-039 data) + EntityDeltas → diff result; not persisted
+- Response structure: `[{ entityId, entityName, entityType, deltaType, before: {props}, after: {props} }]`
+- UI layout: split panel or before/after cards; visual differentiation:
+  - `new`: green background / plus icon; left column empty
+  - `retiring`: red background / strikethrough; right column greyed out
+  - `modified`: changed properties highlighted in color (yellow or blue); unchanged properties dimmed
+- Live update: after saving a delta (US-040–042), call the diff endpoint again; no WebSocket needed for MVP
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien AC1–AC6 erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests: Diff mit new/modified/retiring; leere Delta-Liste; Gesamt-Entitätsliste bleibt aus Diff ausgeblendet; Live-Update nach Delta-Save
-- [ ] Snapshot-Test für visuelle Differenzierung (Farben/Symbole)
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria AC1–AC6 met
+- [ ] Code review by a second person
+- [ ] Tests: diff with new/modified/retiring; empty delta list; full entity list stays hidden from diff; live update after delta save
+- [ ] Snapshot test for visual differentiation (colors/symbols)
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-039 (Ausgangsbasis-Backend), US-040 (new-Deltas), US-041 (modified-Deltas), US-042 (retiring-Deltas)
-- Blockiert: keine (Diff-Ansicht ist Endpunkt des UC-05-Workflows; Review-Workflow folgt in künftigem UC)
+- Waiting on: US-039 (baseline backend), US-040 (new deltas), US-041 (modified deltas), US-042 (retiring deltas)
+- Blocks: none (diff view is the endpoint of the UC-05 workflow; review workflow follows in a future UC)
 
-## Notizen
+## Notes
 
-5 SP wegen der Split-Panel-UI und der Property-Level-Diff-Darstellung für `modified` (Vorher/Nachher pro Property, gedimmte unveränderte Properties). Das Backend-Diff ist O(n) in der Anzahl der Deltas und damit unproblematisch. Die UI ist der aufwendigere Teil dieser Story.
+5 SP because of the split-panel UI and the property-level diff display for `modified` (before/after per property, dimmed unchanged properties). The backend diff is O(n) in the number of deltas and thus unproblematic. The UI is the more laborious part of this story.

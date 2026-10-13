@@ -1,6 +1,6 @@
 ---
 id: REQ-052
-title: Widget hinzufügen, konfigurieren und entfernen
+title: Add, configure, and remove a widget
 type: functional
 priority: should
 status: proposed
@@ -18,101 +18,101 @@ references:
     - SH-03
     - SH-07
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-052: Widget hinzufügen, konfigurieren und entfernen
+# REQ-052: Add, configure, and remove a widget
 
-## Aussage
+## Statement
 
-Das System MUSS es dem Dashboard-Ersteller ermöglichen, einem bestehenden [Dashboard](../../business-objects/dashboard.md) Widgets hinzuzufügen, zu konfigurieren und zu entfernen. Es MÜSSEN vier Widget-Typen unterstützt werden: `kpi`, `chart`, `table`, `text`. Der Widget-Typ ist nach dem Anlegen unveränderlich; zum Wechseln des Typs muss das Widget gelöscht und neu angelegt werden. Alle Pflichtfelder eines Widget-Typs MÜSSEN bei der Erstellung vollständig befüllt sein; das System MUSS unvollständige Konfigurationen mit HTTP 422 ablehnen.
+The system MUST allow the dashboard creator to add widgets to an existing [Dashboard](../../business-objects/dashboard.md), configure them, and remove them. Four widget types MUST be supported: `kpi`, `chart`, `table`, `text`. The widget type is immutable after creation; to change the type, the widget must be deleted and recreated. All mandatory fields of a widget type MUST be completely filled in at creation; the system MUST reject incomplete configurations with HTTP 422.
 
-## Begründung
+## Rationale
 
-Widgets sind die fachlichen Bausteine eines Dashboards. Die Typen sind strukturell verschieden genug, dass sie separate Validierungsregeln benötigen, aber über eine gemeinsame API verwaltet werden können. Unveränderlichkeit des Typs vermeidet Migrations-Komplexität (z.B. DataSource-Format-Wechsel).
+Widgets are the business building blocks of a dashboard. The types are structurally different enough that they need separate validation rules, but they can be managed via a common API. Immutability of the type avoids migration complexity (e.g., DataSource format change).
 
-## Kontext
+## Context
 
-Widget-Konfiguration erfolgt in der **Client App**. Das **Web Portal** rendert Widgets read-only. DataSource-Details (PropertyAggregation, CatalogQuery) werden in REQ-053/REQ-054 spezifiziert.
+Widget configuration takes place in the **client app**. The **web portal** renders widgets read-only. DataSource details (PropertyAggregation, CatalogQuery) are specified in REQ-053/REQ-054.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### API-Endpunkte
+### API Endpoints
 
-**Hinzufügen**:
+**Add**:
 - `POST /api/v1/dashboards/{dashboardId}/widgets`
-- Request: Widget-Konfiguration (type + typspezifische Felder + gridPosition)
-- Response 201: erstelltes Widget mit id
-- Response 422: Validierungsfehler (fehlende Pflichtfelder, ungültige DataSource)
-- Response 403: Requester ist nicht der Ersteller des Dashboards
+- Request: widget configuration (type + type-specific fields + gridPosition)
+- Response 201: created widget with id
+- Response 422: validation error (missing mandatory fields, invalid DataSource)
+- Response 403: requester is not the creator of the dashboard
 
-**Konfigurieren (Update)**:
+**Configure (update)**:
 - `PUT /api/v1/dashboards/{dashboardId}/widgets/{widgetId}`
-- widgetType darf NICHT geändert werden → 422 wenn abweichend
+- widgetType must NOT be changed → 422 if different
 
-**Entfernen**:
+**Remove**:
 - `DELETE /api/v1/dashboards/{dashboardId}/widgets/{widgetId}`
-- Response 204; kein Block wenn Dashboard dadurch 0 Widgets hat (leeres Dashboard erlaubt)
+- Response 204; no block if the dashboard thereby has 0 widgets (empty dashboard allowed)
 
-### Widget-Typen und Pflichtfelder
+### Widget Types and Mandatory Fields
 
-| widgetType | Pflichtfelder | Optionale Felder |
+| widgetType | Mandatory fields | Optional fields |
 |---|---|---|
 | `kpi` | title, dataSource (PropertyAggregation) | unit, comparisonMode, targetValue, numberFormat |
-| `chart` | title, chartType, dataSource, yAxis | xAxis (nicht bei pie/donut/treemap), colorScheme, showLegend, showDataLabels |
+| `chart` | title, chartType, dataSource, yAxis | xAxis (not for pie/donut/treemap), colorScheme, showLegend, showDataLabels |
 | `table` | title, dataSource (CatalogQuery) | pageSize, columnOverrides |
 | `text` | title, content | – |
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser |
+| Rule-ID | Statement | Trigger |
 |---|---|---|
-| BR-01 | `widgetType` ist nach dem Anlegen unveränderlich | onUpdate |
-| BR-02 | `chartType=pie` oder `chartType=donut` darf genau eine Y-Achse konfigurieren | onCreate, onUpdate |
-| BR-03 | `kpi`-Widget muss `dataSource` vom Typ `PropertyAggregation` haben; `CatalogQuery` ist ungültig | onCreate, onUpdate |
-| BR-04 | `table`-Widget muss `dataSource` vom Typ `CatalogQuery` haben; `PropertyAggregation` ist ungültig | onCreate, onUpdate |
-| BR-05 | `kpi`-Widget mit `comparisonMode=vs-target` erfordert `targetValue` | onCreate, onUpdate |
-| BR-06 | Nur der Dashboard-Ersteller oder ein Admin darf Widgets hinzufügen, ändern, entfernen | onCreate, onUpdate, onDelete |
+| BR-01 | `widgetType` is immutable after creation | onUpdate |
+| BR-02 | `chartType=pie` or `chartType=donut` may configure exactly one Y axis | onCreate, onUpdate |
+| BR-03 | A `kpi` widget must have a `dataSource` of type `PropertyAggregation`; `CatalogQuery` is invalid | onCreate, onUpdate |
+| BR-04 | A `table` widget must have a `dataSource` of type `CatalogQuery`; `PropertyAggregation` is invalid | onCreate, onUpdate |
+| BR-05 | A `kpi` widget with `comparisonMode=vs-target` requires `targetValue` | onCreate, onUpdate |
+| BR-06 | Only the dashboard creator or an admin may add, change, or remove widgets | onCreate, onUpdate, onDelete |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (KPI-Widget anlegen):
-- Wenn: `POST /api/v1/dashboards/{id}/widgets` mit type=kpi, title="Gesamtkosten", dataSource={PropertyAggregation, entityType=plateau, propertyName=investitionskostenPrognose, aggregationFn=sum}, gridPosition={col:1,row:1,width:3,height:1}
-- Dann: HTTP 201; Widget in DB gespeichert; GET /api/v1/dashboards/{id} enthält das Widget
+**AC1** (Create KPI widget):
+- When: `POST /api/v1/dashboards/{id}/widgets` with type=kpi, title="Total costs", dataSource={PropertyAggregation, entityType=plateau, propertyName=investitionskostenPrognose, aggregationFn=sum}, gridPosition={col:1,row:1,width:3,height:1}
+- Then: HTTP 201; widget stored in DB; GET /api/v1/dashboards/{id} contains the widget
 
-**AC2** (Chart-Widget, chartType=pie → kein xAxis erlaubt):
-- Wenn: POST mit type=chart, chartType=pie, zwei yAxis-Einträge
-- Dann: HTTP 422 „pie/donut erlaubt genau eine Y-Achse"
+**AC2** (Chart widget, chartType=pie → no xAxis allowed):
+- When: POST with type=chart, chartType=pie, two yAxis entries
+- Then: HTTP 422 "pie/donut allows exactly one Y axis"
 
-**AC3** (Type-Änderung abgelehnt):
-- Gegeben: Widget type=kpi existiert
-- Wenn: PUT mit widgetType=chart
-- Dann: HTTP 422 „widgetType ist unveränderlich"
+**AC3** (Type change rejected):
+- Given: a widget type=kpi exists
+- When: PUT with widgetType=chart
+- Then: HTTP 422 "widgetType is immutable"
 
-**AC4** (Ungültige DataSource für table):
-- Wenn: POST mit type=table, dataSource=PropertyAggregation
-- Dann: HTTP 422 „Table-Widget erfordert CatalogQuery DataSource"
+**AC4** (Invalid DataSource for table):
+- When: POST with type=table, dataSource=PropertyAggregation
+- Then: HTTP 422 "Table widget requires a CatalogQuery DataSource"
 
-**AC5** (Entfernen):
-- Wenn: DELETE /api/v1/dashboards/{id}/widgets/{widgetId}
-- Dann: HTTP 204; Widget nicht mehr in GET /api/v1/dashboards/{id} enthalten
+**AC5** (Remove):
+- When: DELETE /api/v1/dashboards/{id}/widgets/{widgetId}
+- Then: HTTP 204; the widget is no longer contained in GET /api/v1/dashboards/{id}
 
-**AC6** (Fremdes Dashboard):
-- Gegeben: Franz versucht, ein Widget auf Kurts Dashboard hinzuzufügen
-- Wenn: POST ohne Berechtigung
-- Dann: HTTP 403
+**AC6** (Someone else's dashboard):
+- Given: Franz tries to add a widget to Kurt's dashboard
+- When: POST without permission
+- Then: HTTP 403
 
-## Abhängigkeiten
+## Dependencies
 
-- Blockiert durch: REQ-051 (Dashboard muss existieren)
-- Bezieht DataSource-Validierung aus: REQ-053 (PropertyAggregation), REQ-054 (CatalogQuery)
-- Ermöglicht: REQ-055 (Daten werden aus den Widget-Konfigurationen berechnet), REQ-057 (GridPosition)
+- Blocked by: REQ-051 (the dashboard must exist)
+- Takes DataSource validation from: REQ-053 (PropertyAggregation), REQ-054 (CatalogQuery)
+- Enables: REQ-055 (data is computed from the widget configurations), REQ-057 (GridPosition)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; alle 4 Widget-Typen, Typ-Unveränderlichkeit, BR-01–06 |
+| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; all 4 widget types, type immutability, BR-01–06 |

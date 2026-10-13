@@ -6,53 +6,53 @@ status: draft
 created: 2026-06-26
 ---
 
-# Stakeholder: Anna – Business Analyst im Mittelstand
+# Stakeholder: Anna – Business Analyst in a Mid-Sized Company
 
-## Rolle und Verantwortung
+## Role and Responsibility
 
-Anna ist Senior Business Analyst in einem mittelständischen Fertigungsunternehmen. Sie modelliert Geschäftsprozesse, erhebt Anforderungen und ist die Schnittstelle zwischen Fachabteilungen und IT. Ihre Diagramme bilden die Grundlage für Automatisierungs- und Digitalisierungsprojekte.
+Anna is a senior business analyst at a mid-sized manufacturing company. She models business processes, elicits requirements, and is the interface between business units and IT. Her diagrams form the basis for automation and digitalization projects.
 
-- **Erfahrungsniveau**: sehr hoch in BPMN 2.0 und EPK; gut in ArchiMate-Basisbegriffen; kein UML-Spezialist
-- **Toolerfahrung**: ARIS, Signavio (SAP), Microsoft Visio; vereinzelt Camunda Modeler
-- **Arbeitsweise**: prozesszentriert, fachbereichsnah; modelliert Ist-Prozesse (AS-IS) und Soll-Prozesse (TO-BE) in Sprints; braucht schnelle, intuitive Werkzeuge
-- **Kontext**: Arbeitet oft ohne direkten IT-Zugang; Ergebnisse müssen für Fachanwender lesbar sein
+- **Experience level**: very high in BPMN 2.0 and EPC; good in ArchiMate basic concepts; not a UML specialist
+- **Tool experience**: ARIS, Signavio (SAP), Microsoft Visio; occasionally Camunda Modeler
+- **Way of working**: process-centric, close to the business units; models current processes (AS-IS) and target processes (TO-BE) in sprints; needs fast, intuitive tools
+- **Context**: Often works without direct IT access; results must be readable for business users
 
-## Ziele
+## Goals
 
-1. Geschäftsprozesse in BPMN 2.0 direkt im EA-Tool modellieren — kein separates Prozess-Tool mehr
-2. Rollen und Organisationseinheiten den Lanes und Pools zuordnen — Verantwortlichkeiten auf einen Blick
-3. Personen konkret einer Aufgabe (Task) zuweisen für Prozess-Ownership
-4. Prozessmodelle mit dem EA-Modell verknüpfen: welche Applikation unterstützt diesen Task?
-5. Prozesse versionieren und als Soll-Prozess mit EA-Solutions verknüpfen
+1. Model business processes in BPMN 2.0 directly in the EA tool — no separate process tool anymore
+2. Assign roles and organizational units to lanes and pools — responsibilities at a glance
+3. Assign persons concretely to a task for process ownership
+4. Link process models to the EA model: which application supports this task?
+5. Version processes and link them as target process with EA solutions
 
 ## Concerns
 
-| Concern | Typ | Wichtigkeit |
+| Concern | Type | Importance |
 |---|---|---|
-| BPMN-Pool/Lane-Struktur auf Canvas | functional | critical |
-| Rollen- und OrgUnit-Zuordnung zu Lanes | functional | critical |
-| Personen-Zuordnung zu Tasks | functional | high |
-| Verknüpfung Task → Applikation (UC-05) | functional | high |
-| Metamodell-Konfigurierbarkeit der Prozesstypen | functional | high |
-| Lesbarkeit für Fachanwender (kein EA-Jargon) | usability | high |
-| Export als PDF oder BPMN 2.0 XML | functional | medium |
-| Import aus Camunda/Signavio | functional | low |
+| BPMN pool/lane structure on canvas | functional | critical |
+| Role and OrgUnit assignment to lanes | functional | critical |
+| Person assignment to tasks | functional | high |
+| Link task → application (UC-05) | functional | high |
+| Metamodel configurability of process types | functional | high |
+| Readability for business users (no EA jargon) | usability | high |
+| Export as PDF or BPMN 2.0 XML | functional | medium |
+| Import from Camunda/Signavio | functional | low |
 
-## Beteiligung
+## Involvement
 
-| UC | Rolle |
+| UC | Role |
 |---|---|
-| [UC-10](../../requirements/use-cases/UC-10-geschaeftsprozesse-modellieren.md) | Primärer Akteur |
-| [UC-04](../../requirements/use-cases/UC-04-metamodell-konfigurieren.md) | Konsultiert (Prozesstypen konfigurieren) |
-| [UC-05](../../requirements/use-cases/UC-05-architektur-vision-beschreiben.md) | Konsultiert (Task → Applikation verknüpfen) |
+| [UC-10](../../requirements/use-cases/UC-10-model-business-processes.md) | Primary actor |
+| [UC-04](../../requirements/use-cases/UC-04-configure-metamodel.md) | Consulted (configure process types) |
+| [UC-05](../../requirements/use-cases/UC-05-describe-architecture-vision.md) | Consulted (link task → application) |
 
-## Frustrationen mit bisherigen Tools
+## Frustrations with Previous Tools
 
-- ARIS/Signavio: Mächtig, aber weit vom EA-Modell entfernt; doppelte Pflege von Applikations- und Prozessmodellen
-- Visio: Keine Semantik; nur Grafik; keine Rollen-/Personen-Verlinkung mit lebendem Verzeichnis
-- Camunda Modeler: Gut für technische BPMN, aber keine EA-Perspektive; keine OrgUnit-Zuordnung
+- ARIS/Signavio: Powerful, but far from the EA model; duplicate maintenance of application and process models
+- Visio: No semantics; graphics only; no role/person linking with a living directory
+- Camunda Modeler: Good for technical BPMN, but no EA perspective; no OrgUnit assignment
 
-## Konzept-Bezug
+## Concept Reference
 
-- [§9 Prozess-Architektur](../../concept/20-entities/09-prozess-architektur.md)
-- [§6 Kern-Entitätstypen](../../concept/20-entities/06-kern-entitaetstypen.md)
+- [§9 Process Architecture](../../concept/20-entities/09-process-architecture.md)
+- [§6 Core Entity Types](../../concept/20-entities/06-core-entity-types.md)

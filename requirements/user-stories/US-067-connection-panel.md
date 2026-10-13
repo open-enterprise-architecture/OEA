@@ -1,58 +1,58 @@
-# US-067: Verbindungs-Panel per Doppelklick öffnen und nach Typ filtern
+# US-067: Open the Connection Panel via Double-Click and Filter by Type
 
 **ID**: US-067
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Data Architekt möchte ich per Doppelklick auf den 3-Punkte-Indikator einer Connection ein Panel öffnen, das alle verknüpften n-Connections auflistet – und diese nach Connection-Typ filtern können – damit ich sofort sehe, welche Datenobjekte ein Datenfluss trägt und welche Sicherheitskontrollen darauf angewendet werden.
+As a Data Architect, I want to open a panel by double-clicking the 3-dot indicator of a connection that lists all linked n-connections – and be able to filter them by connection type – so that I immediately see which data objects a data flow carries and which security controls are applied to it.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-08](../use-cases/UC-08-data-lineage-modellieren.md)
-**Persona**: Lukas – Senior Data Architekt (SH-02); Kurt – Lead EA (SH-03)
-**Requirements**: [REQ-063](../req/REQ-063-n-connection-canvas-darstellung.md)
+**Use Case**: [UC-08](../use-cases/UC-08-model-data-lineage.md)
+**Persona**: Lukas – Senior Data Architect (SH-02); Kurt – Lead EA (SH-03)
+**Requirements**: [REQ-063](../req/REQ-063-n-connection-canvas-rendering.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Panel öffnet sich):
-- Wenn: Lukas doppelklickt auf 3-Punkte-Indikator von DataFlow id=5
-- Dann: Verbindungs-Panel öffnet sich; Header zeigt „ERP → DWH (data-flow)"; Liste aller n-Connections sichtbar
+**AC1** (panel opens):
+- When: Lukas double-clicks the 3-dot indicator of DataFlow id=5
+- Then: Connection panel opens; header shows "ERP → DWH (data-flow)"; list of all n-connections visible
 
-**AC2** (Filter-Chips in Panel):
-- Gegeben: DataFlow id=5 hat carries-data (×2) und security-control (×1)
-- Wenn: Panel geöffnet
-- Dann: Filter-Bar zeigt Chips `carries-data (2)` und `security-control (1)`; alle initial aktiv
+**AC2** (filter chips in panel):
+- Given: DataFlow id=5 has carries-data (×2) and security-control (×1)
+- When: Panel opened
+- Then: Filter bar shows chips `carries-data (2)` and `security-control (1)`; all initially active
 
-**AC3** (Chip-Toggle filtert Liste):
-- Wenn: Lukas klickt Chip `security-control`
-- Dann: Nur security-control-Einträge sichtbar; carries-data ausgeblendet
+**AC3** (chip toggle filters list):
+- When: Lukas clicks chip `security-control`
+- Then: Only security-control entries visible; carries-data hidden
 
-**AC4** (Mehrere Chips gleichzeitig aktiv):
-- Wenn: Lukas aktiviert carries-data und security-control
-- Dann: Beide Typen sichtbar; Gesamtliste aller n-Connections beider Typen
+**AC4** (multiple chips active simultaneously):
+- When: Lukas activates carries-data and security-control
+- Then: Both types visible; overall list of all n-connections of both types
 
-**AC5** (Ziel-Entität sichtbar):
-- Gegeben: carries-data id=103 verbindet DataFlow id=5 mit DataObject „Kundenstamm" (id=42)
-- Wenn: Panel mit carries-data gefiltert
-- Dann: Eintrag zeigt: „carries-data #103 → Kundenstamm (data-object, ID 42)"
+**AC5** (target entity visible):
+- Given: carries-data id=103 connects DataFlow id=5 with DataObject "Customer Master" (id=42)
+- When: Panel filtered by carries-data
+- Then: Entry shows: "carries-data #103 → Customer Master (data-object, ID 42)"
 
-**AC6** (Web Portal read-only):
-- Wenn: CIO öffnet Panel im Web Portal
-- Dann: Panel zeigt Einträge; kein „Neue n-Connection anlegen"-Button; keine Bearbeitungs-Icons
+**AC6** (web portal read-only):
+- When: CIO opens panel in the web portal
+- Then: Panel shows entries; no "Create new n-connection" button; no edit icons
 
-## Technische Hinweise
+## Technical Notes
 
-- Panel lädt via `GET /api/v1/entities/{id}/n-connections` (Filter-State lokal im Frontend)
-- Referenz UI-Muster: Obsidian Backlink-Panel / Hover-Preview
+- Panel loads via `GET /api/v1/entities/{id}/n-connections` (filter state local in the frontend)
+- Reference UI pattern: Obsidian backlink panel / hover preview
 
 ## Definition of Done
 
-- [ ] AC1–AC6 erfüllt
-- [ ] Tests: Panel-Öffnen, Filter-Chips, Toggle, Ziel-Entität, Web Portal read-only
-- [ ] E2E-Test (Playwright) für Doppelklick → Panel → Filter-Interaktion
-- [ ] Code-Review
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] AC1–AC6 met
+- [ ] Tests: panel opening, filter chips, toggle, target entity, web portal read-only
+- [ ] E2E test (Playwright) for double-click → panel → filter interaction
+- [ ] Code review
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix

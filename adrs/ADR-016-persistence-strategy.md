@@ -1,107 +1,107 @@
-# ADR-016: Persistenz-Strategie – PostgreSQL 15 + JSONB
+# ADR-016: Persistence Strategy – PostgreSQL 15 + JSONB
 
 **Status**: accepted
-**Datum**: 2026-06-27
-**Entscheider**: [Rigobert – Produkt Owner](../business-analysis/stakeholders/SH-09-rigobert-produkt-owner.md) (SH-09)
-**Konsultiert**: Requirements Engineer
-**Informiert**: ADR-012 (Backend), ADR-015 (Migration)
+**Date**: 2026-06-27
+**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Consulted**: Requirements Engineer
+**Informed**: ADR-012 (backend), ADR-015 (migration)
 **Supersedes**: –
-**Aktualisiert**: 2026-06-28 — Kontext korrigiert: ADR-012 hat nicht Drizzle ORM + `pg` gewählt, sondern Java 21 + Spring Boot 3 + Hibernate; Option-1-Pro entsprechend angepasst
+**Updated**: 2026-06-28 — Context corrected: ADR-012 did not choose Drizzle ORM + `pg`, but Java 21 + Spring Boot 3 + Hibernate; Option 1 pros adjusted accordingly
 
-## Kontext und Problem
+## Context and Problem
 
-ADR-012 (Backend-Stack) hat Java 21 + Spring Boot 3 + Hibernate als Backend-Stack gewählt und dabei PostgreSQL als Persistenz-Stack angenommen. Diese Annahme war nicht als formale Entscheidung dokumentiert. ADR-016 schliesst diese Lücke und klärt:
+ADR-012 (backend stack) chose Java 21 + Spring Boot 3 + Hibernate as the backend stack and assumed PostgreSQL as the persistence stack. This assumption was not documented as a formal decision. ADR-016 closes this gap and clarifies:
 
-1. Welche DB-Technologie (inkl. Erweiterungen)?
-2. Wie wird Content-History (Versionierung einzelner Entitäten) gehandhabt?
-3. Wie wird Concurrency gehandhabt (Optimistic Locking)?
-4. Ist horizontale Skalierung ein relevanter Faktor für die DB-Wahl?
+1. Which DB technology (incl. extensions)?
+2. How is content history (versioning of individual entities) handled?
+3. How is concurrency handled (optimistic locking)?
+4. Is horizontal scaling a relevant factor for the DB choice?
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- **JSONB-Pflicht**: Entity-Properties sind metamodell-getrieben und zur Laufzeit konfigurierbar — kein fixes Spalten-Schema möglich
-- **SQL-Kompetenz**: primärer Entwickler kennt SQL; kein neues Query-Paradigma erzwingen
-- **Operationale Einfachheit**: `docker compose up` soll reichen (REQ-075)
-- **Horizontale Skalierung**: EA-Datenvolumen ist strukturell begrenzt (s.u.); horizontale DB-Skalierung ist kein v1.0-Kriterium
-- **Content-History**: Benutzer müssen sehen können, was sich wann an einer Entität geändert hat
-- **Concurrency**: Kollisions-Erkennung bei gleichzeitiger Bearbeitung derselben Entität
+- **JSONB mandatory**: Entity properties are metamodel-driven and configurable at runtime — no fixed column schema possible
+- **SQL competence**: primary developer knows SQL; do not force a new query paradigm
+- **Operational simplicity**: `docker compose up` should suffice (REQ-075)
+- **Horizontal scaling**: EA data volume is structurally limited (see below); horizontal DB scaling is not a v1.0 criterion
+- **Content history**: Users must be able to see what changed on an entity and when
+- **Concurrency**: Collision detection on simultaneous editing of the same entity
 
-## Zur Frage der horizontalen Skalierung
+## On the Question of Horizontal Scaling
 
-**Ist horizontale Skalierung für die DB-Grösse relevant?**
+**Is horizontal scaling relevant for the DB size?**
 
-Nein — nicht für v1.0 und realistischerweise auch nicht für v2.0.
+No — not for v1.0 and realistically not for v2.0 either.
 
-EA-Datenvolumen wächst strukturell langsam:
+EA data volume grows structurally slowly:
 
-| Grösse | Entitäten | Properties (∅20, ∅500B) | entity_versions (∅10 Versionen) |
+| Size | Entities | Properties (∅20, ∅500B) | entity_versions (∅10 versions) |
 |---|---|---|---|
-| Kleines KMU | ~1 000 | ~10 MB | ~100 MB |
-| Grosses Unternehmen | ~50 000 | ~500 MB | ~5 GB |
-| Sehr grosses Enterprise | ~100 000 | ~1 GB | ~10 GB |
+| Small SME | ~1,000 | ~10 MB | ~100 MB |
+| Large company | ~50,000 | ~500 MB | ~5 GB |
+| Very large enterprise | ~100,000 | ~1 GB | ~10 GB |
 
-Ein einzelner PostgreSQL 15-Server mit 32 GB RAM und SSD verwaltet 10 GB EA-Daten mit Millisekunden-Antwortzeiten. EA-Tools dieser Art (Ardoq, LeanIX, BizzDesign) laufen intern alle auf single-node PostgreSQL.
+A single PostgreSQL 15 server with 32 GB RAM and SSD manages 10 GB of EA data with millisecond response times. EA tools of this kind (Ardoq, LeanIX, BizzDesign) all run internally on single-node PostgreSQL.
 
-**Wann würde horizontale Skalierung relevant?**
-Nur bei multi-tenanter SaaS-Betrieb mit tausenden unabhängiger Organisationen auf einer Instanz — ein Deployment-Modell, das OEA in v1.0 nicht anstrebt (self-hosted). Für diesen Fall wäre `schema-per-tenant` (eine PostgreSQL-Instanz, ein Schema pro Org) die erste Option; Citus oder CockroachDB kämen erst danach.
+**When would horizontal scaling become relevant?**
+Only in multi-tenant SaaS operation with thousands of independent organizations on one instance — a deployment model that OEA does not pursue in v1.0 (self-hosted). For this case `schema-per-tenant` (one PostgreSQL instance, one schema per org) would be the first option; Citus or CockroachDB would come only after that.
 
-**Konsequenz für die DB-Wahl**: horizontale Skalierung soll die Entscheidung nicht beeinflussen.
+**Consequence for the DB choice**: horizontal scaling should not influence the decision.
 
-## Betrachtete Optionen
+## Considered Options
 
-### Option 1: PostgreSQL 15 + JSONB (kein AGE in v1.0) ✓
+### Option 1: PostgreSQL 15 + JSONB (no AGE in v1.0) ✓
 
 - **Pro**:
-  - Bewährteste Open-Source-Datenbank; GIN-Indexe für JSONB-Suche
-  - Recursive CTEs (`WITH RECURSIVE`) für Graph-Traversal bis ~5 Hops — ausreichend für alle v1.0-Use-Cases (Impact-Analyse, Lineage)
-  - Keine externe Extension; einfacheres `docker compose up`
-  - Hibernate + `@JdbcTypeCode(SqlTypes.JSON)` unterstützt JSONB nativ (Spring Boot 3, ADR-012); typsichere Schema-Definition via JPA
-  - Lizenz: PostgreSQL License (sehr permissiv)
-- **Contra**: Graph-Traversal tiefer als 5 Hops oder komplexe Pfad-Queries (shortest path) sind mit Recursive CTEs umständlich — betrifft v1.0 nicht
+  - Most proven open-source database; GIN indexes for JSONB search
+  - Recursive CTEs (`WITH RECURSIVE`) for graph traversal up to ~5 hops — sufficient for all v1.0 use cases (impact analysis, lineage)
+  - No external extension; simpler `docker compose up`
+  - Hibernate + `@JdbcTypeCode(SqlTypes.JSON)` supports JSONB natively (Spring Boot 3, ADR-012); type-safe schema definition via JPA
+  - License: PostgreSQL License (very permissive)
+- **Con**: Graph traversal deeper than 5 hops or complex path queries (shortest path) are cumbersome with recursive CTEs — does not affect v1.0
 
 ### Option 2: PostgreSQL 15 + JSONB + Apache AGE
 
-- **Pro**: openCypher-Queries für komplexe Graph-Traversals; elegantere Syntax für Lineage-Abfragen
-- **Contra**: AGE ist eine PostgreSQL-Extension mit eigenem Build-Prozess; Docker-Image muss AGE installiert haben (kein Standard-`postgres:15`-Image); `@apache-age/pg` npm-Paket ist wenig verbreitet; Risiko bei PostgreSQL-Minor-Version-Updates; Komplexität für wenig Mehrwert in v1.0
-- Deferred: AGE als optionale Extension in v2.0, wenn Graph-Queries der Lineage-Auswertung Bottleneck werden
+- **Pro**: openCypher queries for complex graph traversals; more elegant syntax for lineage queries
+- **Con**: AGE is a PostgreSQL extension with its own build process; Docker image must have AGE installed (not a standard `postgres:15` image); `@apache-age/pg` npm package is not widespread; risk on PostgreSQL minor version updates; complexity for little added value in v1.0
+- Deferred: AGE as an optional extension in v2.0, if graph queries of the lineage analysis become a bottleneck
 
-### Option 3: Neo4j / Memgraph (native Graph-DB)
+### Option 3: Neo4j / Memgraph (native graph DB)
 
-- **Pro**: Beste Graph-Performance; native Cypher-Unterstützung
-- **Contra**: SQL-Analytics schwächer; separates Backup/Restore-Verfahren; kein Drizzle ORM-Support; zweites Paradigma neben SQL; operationale Komplexität
-- Scheidet aus
+- **Pro**: Best graph performance; native Cypher support
+- **Con**: SQL analytics weaker; separate backup/restore procedure; no Drizzle ORM support; second paradigm alongside SQL; operational complexity
+- Ruled out
 
-## Entscheidung
+## Decision
 
-**Option 1: PostgreSQL 15 + JSONB (kein AGE in v1.0).**
+**Option 1: PostgreSQL 15 + JSONB (no AGE in v1.0).**
 
-Apache AGE bleibt deferred für v2.0 — separat zu entscheiden, wenn die Lineage-Abfragen in der Praxis Probleme zeigen.
+Apache AGE remains deferred for v2.0 — to be decided separately if the lineage queries show problems in practice.
 
-### Tabellen-Struktur (Kerntabellen)
+### Table Structure (Core Tables)
 
 ```sql
--- Alle ArchitectureEntities (Elemente + Verbindungen)
+-- All ArchitectureEntities (elements + connections)
 entities (
   id            SERIAL PRIMARY KEY,
   entity_type_id TEXT NOT NULL,          -- FK → entity_types.id
-  name          TEXT NOT NULL,           -- General: Name
-  description   TEXT NOT NULL DEFAULT '', -- General: Beschreibung (immer vorhanden)
-  is_logical    BOOLEAN NOT NULL DEFAULT TRUE, -- General: true=logisch, false=physisch
-  version       INTEGER NOT NULL DEFAULT 1, -- Optimistic Lock
-  source_entity_id INTEGER,             -- nur Verbindungen (isConnection=true)
-  target_entity_id INTEGER,             -- nur Verbindungen (isConnection=true)
-  properties    JSONB NOT NULL DEFAULT '{}', -- Custom Properties (nicht-General)
+  name          TEXT NOT NULL,           -- General: name
+  description   TEXT NOT NULL DEFAULT '', -- General: description (always present)
+  is_logical    BOOLEAN NOT NULL DEFAULT TRUE, -- General: true=logical, false=physical
+  version       INTEGER NOT NULL DEFAULT 1, -- Optimistic lock
+  source_entity_id INTEGER,             -- connections only (isConnection=true)
+  target_entity_id INTEGER,             -- connections only (isConnection=true)
+  properties    JSONB NOT NULL DEFAULT '{}', -- Custom properties (non-General)
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by    INTEGER NOT NULL,
   updated_at    TIMESTAMPTZ,
   updated_by    INTEGER
 )
 
--- Content-History: Snapshot pro Änderung
+-- Content history: snapshot per change
 entity_versions (
   id            BIGSERIAL PRIMARY KEY,
   entity_id     INTEGER NOT NULL REFERENCES entities(id),
-  version       INTEGER NOT NULL,        -- korrespondiert mit entities.version
+  version       INTEGER NOT NULL,        -- corresponds to entities.version
   name          TEXT NOT NULL,
   description   TEXT NOT NULL,
   is_logical    BOOLEAN NOT NULL,
@@ -111,7 +111,7 @@ entity_versions (
   UNIQUE (entity_id, version)
 )
 
--- Strukturelle Audit-Events (Löschungen, Typ-Änderungen, etc.)
+-- Structural audit events (deletions, type changes, etc.)
 audit_events (
   id            BIGSERIAL PRIMARY KEY,
   event_type    TEXT NOT NULL,           -- 'entity.deleted', 'entity_type.modified', ...
@@ -121,7 +121,7 @@ audit_events (
   payload       JSONB NOT NULL DEFAULT '{}'
 )
 
--- Entity-Zustand pro Plateau
+-- Entity state per plateau
 entity_plateau_states (
   entity_id     INTEGER NOT NULL REFERENCES entities(id),
   plateau_id    INTEGER NOT NULL,        -- FK → plateaus.id
@@ -132,19 +132,19 @@ entity_plateau_states (
 
 ### Optimistic Locking
 
-- Jede `UPDATE`-Operation auf `entities` erhöht `version` um 1
-- Client sendet `version` im Request-Body mit; Backend prüft: `WHERE id = ? AND version = ?`
-- Stimmt nicht → HTTP 409 Conflict; Client muss neu laden und Änderung wiederholen
+- Every `UPDATE` operation on `entities` increments `version` by 1
+- Client sends `version` in the request body; backend checks: `WHERE id = ? AND version = ?`
+- If it does not match → HTTP 409 Conflict; client must reload and repeat the change
 
-### Content-History (entity_versions)
+### Content History (entity_versions)
 
-- Bei jedem Update auf `entities` wird **vor** dem Update ein Snapshot in `entity_versions` geschrieben (`entity_id`, `version` = alter Wert, alle Felder)
-- Query "Wie sah Entität 42 am 2025-03-01 aus?": `SELECT * FROM entity_versions WHERE entity_id = 42 AND changed_at <= '2025-03-01' ORDER BY version DESC LIMIT 1`
-- Keine Event-Replay nötig; direkte Zeitpunkt-Query
+- On every update to `entities`, a snapshot is written to `entity_versions` **before** the update (`entity_id`, `version` = old value, all fields)
+- Query "What did entity 42 look like on 2025-03-01?": `SELECT * FROM entity_versions WHERE entity_id = 42 AND changed_at <= '2025-03-01' ORDER BY version DESC LIMIT 1`
+- No event replay needed; direct point-in-time query
 
-### Graph-Traversal (v1.0 ohne AGE)
+### Graph Traversal (v1.0 without AGE)
 
-Recursive CTE für Impact-Analyse (Tiefe bis 5):
+Recursive CTE for impact analysis (depth up to 5):
 ```sql
 WITH RECURSIVE impact(entity_id, depth) AS (
   SELECT target_entity_id, 1 FROM entities WHERE source_entity_id = $start AND entity_type_id = ANY($connection_types)
@@ -156,30 +156,30 @@ WITH RECURSIVE impact(entity_id, depth) AS (
 SELECT DISTINCT entity_id FROM impact;
 ```
 
-## Konsequenzen
+## Consequences
 
-### Positive Konsequenzen
+### Positive Consequences
 
-- Standard-`postgres:15`-Docker-Image — kein Custom-Build nötig; einfaches Deployment
-- JSONB + GIN-Index: Volltext-Suche über Properties ohne zusätzliche Engine
-- Optimistic Locking: Kollisions-Erkennung ohne Datenbank-Locks; hohe Parallelität
-- `entity_versions`: direkter historischer Query ohne Event-Replay; UI kann "Änderungshistorie" zeigen
+- Standard `postgres:15` Docker image — no custom build needed; simple deployment
+- JSONB + GIN index: full-text search over properties without an additional engine
+- Optimistic locking: collision detection without database locks; high concurrency
+- `entity_versions`: direct historical query without event replay; UI can show "change history"
 
-### Negative Konsequenzen / Trade-offs
+### Negative Consequences / Trade-offs
 
-- Recursive CTEs: bei sehr tiefen Graph-Traversals (>5 Hops) oder sehr grossen Graphen (>1M Verbindungen) werden sie langsam — AGE als v2.0-Option
-- `entity_versions` wächst mit der Zeit; Retention-Policy (z.B. max. 50 Versionen pro Entität) soll in v2.0 definiert werden
+- Recursive CTEs: with very deep graph traversals (>5 hops) or very large graphs (>1M connections) they become slow — AGE as a v2.0 option
+- `entity_versions` grows over time; a retention policy (e.g. max. 50 versions per entity) should be defined in v2.0
 
-### Folgeentscheidungen
+### Follow-up Decisions
 
-- **ADR-012**: Java 21 + Spring Boot 3 + Hibernate; `@JdbcTypeCode(SqlTypes.JSON)` ersetzt JSONB als DB-neutraler Ansatz; Optimistic Locking via Hibernate `@Version` (konform mit diesem ADR)
-- **ADR-013**: `POST /api/v1/graph/cypher` (AGE) entfernen; Graph-Traversal via REST-Endpunkt `POST /api/v1/entities/{id}/impact`
-- **ADR-015**: Flyway (Spring-nativ) statt Drizzle Kit; AGE-Init-Migration entfällt
+- **ADR-012**: Java 21 + Spring Boot 3 + Hibernate; `@JdbcTypeCode(SqlTypes.JSON)` replaces JSONB as the DB-neutral approach; optimistic locking via Hibernate `@Version` (conforms to this ADR)
+- **ADR-013**: remove `POST /api/v1/graph/cypher` (AGE); graph traversal via REST endpoint `POST /api/v1/entities/{id}/impact`
+- **ADR-015**: Flyway (Spring-native) instead of Drizzle Kit; AGE init migration dropped
 
-## Bezüge
+## References
 
-**Verwandte ADRs**: [ADR-012](./ADR-012-backend-stack.md), [ADR-013](./ADR-013-api-stil.md), [ADR-015](./ADR-015-db-migration.md)
+**Related ADRs**: [ADR-012](./ADR-012-backend-stack.md), [ADR-013](./ADR-013-api-style.md), [ADR-015](./ADR-015-db-migration.md)
 
 **Business Objects**: [entity.md](../business-objects/entity.md) (abstraction_level, version, entity_versions)
 
-**Konzept**: [§23 Offene Punkte #1 Persistenz](../concept/90-backlog/23-offene-punkte.md), [§23 #3 Bitemporalität (deferred)](../concept/90-backlog/23-offene-punkte.md)
+**Concept**: [§23 Open Issues #1 Persistence](../concept/90-backlog/23-open-issues.md), [§23 #3 Bitemporality (deferred)](../concept/90-backlog/23-open-issues.md)

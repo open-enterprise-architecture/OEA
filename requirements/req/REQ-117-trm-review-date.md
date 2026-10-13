@@ -1,6 +1,6 @@
 ---
 id: REQ-117
-title: TRM-Kategorie Review-Datum automatisch setzen und filtern
+title: Automatically Set and Filter TRM Category Review Date
 type: functional
 priority: must
 status: proposed
@@ -19,39 +19,39 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-117: TRM-Kategorie Review-Datum automatisch setzen und filtern
+# REQ-117: Automatically Set and Filter TRM Category Review Date
 
-## Aussage
+## Statement
 
-Das System MUSS `lastReviewedAt` bei jedem Speichern eines TRM-Kategorie-Eintrags automatisch auf das aktuelle UTC-Datum setzen. Das System MUSS einen Filter „Zuletzt überprüft vor > N Monaten" (parametrierbar, default: 12 Monate) in der TRM-Übersicht anbieten, der Kategorien mit veraltetem oder fehlendem Review-Datum hervorhebt.
+The system MUST automatically set `lastReviewedAt` to the current UTC date on every save of a TRM category entry. The system MUST offer a filter "Last reviewed more than N months ago" (configurable, default: 12 months) in the TRM overview that highlights categories with an outdated or missing review date.
 
-## Begründung
+## Rationale
 
-Ohne Review-Datum-Tracking veraltet das TRM still und unbemerkt. Der Filter macht veraltete Kategorien direkt auffindbar und unterstützt periodische TRM-Governance-Reviews.
+Without review date tracking, the TRM becomes outdated silently and unnoticed. The filter makes outdated categories directly findable and supports periodic TRM governance reviews.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (automatisches lastReviewedAt):
-- Wenn: eine TRM-Kategorie gespeichert wird
-- Dann: ist `lastReviewedAt` auf das aktuelle UTC-Datum gesetzt
+**AC1** (Automatic lastReviewedAt):
+- When: a TRM category is saved
+- Then: `lastReviewedAt` is set to the current UTC date
 
-**AC2** (Filter nach Review-Datum):
-- Wenn: der Filter „Zuletzt überprüft vor > 12 Monaten" in der TRM-Übersicht aktiviert wird
-- Dann: werden Kategorien mit `lastReviewedAt` < heute − 12 Monate oder `lastReviewedAt = null` hervorgehoben
+**AC2** (Filter by review date):
+- When: the filter "Last reviewed more than 12 months ago" is activated in the TRM overview
+- Then: categories with `lastReviewedAt` < today − 12 months or `lastReviewedAt = null` are highlighted
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-115 (TRM-Kategorien müssen existieren)
-- **Folgewirkungen**: keine
+- **Prerequisites**: REQ-115 (TRM categories must exist)
+- **Consequences**: none
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- `lastReviewedAt` als UTC-Timestamp; serverseitig gesetzt, nicht aus dem Request-Body übernommen
-- Filter: Query-Parameter `?staleSince=12` (Monate); SQL: `WHERE last_reviewed_at < NOW() - INTERVAL '12 months' OR last_reviewed_at IS NULL`
-- UI: Highlight als gelber Rahmen oder Icon in der Kategorie-Liste
+- `lastReviewedAt` as a UTC timestamp; set server-side, not taken from the request body
+- Filter: query parameter `?staleSince=12` (months); SQL: `WHERE last_reviewed_at < NOW() - INTERVAL '12 months' OR last_reviewed_at IS NULL`
+- UI: highlight as a yellow border or icon in the category list
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

@@ -1,92 +1,92 @@
-# ADR-002: Enterprise Continuum – Ein Repository oder zwei?
+# ADR-002: Enterprise Continuum – One Repository or Two?
 
 **Status**: accepted
-**Datum**: 2026-06-26
-**Entscheider**: [Rigobert – Produkt Owner](../business-analysis/stakeholders/SH-09-rigobert-produkt-owner.md) (SH-09)
-**Konsultiert**: Requirements Engineer (metamodel-configuration.md, ADR-005)
-**Informiert**: alle Stakeholder
+**Date**: 2026-06-26
+**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Consulted**: Requirements Engineer (metamodel-configuration.md, ADR-005)
+**Informed**: all stakeholders
 
 ---
 
-## Kontext und Problem
+## Context and Problem
 
-Das TOGAF Enterprise Continuum unterscheidet zwischen allgemein wiederverwendbaren Bausteinen (Foundation/Industry/Common-Systems-Architecture) und organisationsspezifischen Inhalten. Die offene Frage: Werden diese in einem Repository mit Scope-Markierung gehalten, oder in zwei getrennten Repositorys?
+The TOGAF Enterprise Continuum distinguishes between generally reusable building blocks (Foundation/Industry/Common Systems Architecture) and organization-specific content. The open question: Are these kept in one repository with scope marking, or in two separate repositories?
 
-**Bereits getroffene Vorentscheidung** (metamodel-configuration.md): Das Metamodell kennt bereits das Attribut `isBuiltIn: boolean` auf EntityTypeDefinition. Built-in Typen (`bpmn-user-task`, `arc42-meta-object`, `organizational-unit` etc.) sind Teil der Software-Auslieferung. Dieses Konzept ist der Startpunkt für die ADR-Entscheidung.
+**Prior decision already made** (metamodel-configuration.md): The metamodel already has the attribute `isBuiltIn: boolean` on EntityTypeDefinition. Built-in types (`bpmn-user-task`, `arc42-meta-object`, `organizational-unit`, etc.) are part of the software delivery. This concept is the starting point for the ADR decision.
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- **Einfachheit**: Kein zweites Repository für Erstnutzer
-- **Wiederverwendbarkeit**: Continuum-Inhalte sollen zwischen OEA-Instanzen teilbar sein
-- **Update-Pfad**: Neue Continuum-Versionen (z.B. TOGAF TRM 2025) müssen einspielbrar sein ohne lokale Anpassungen zu verlieren
-- **OSS-Verteilung**: Continuum-Pakete als unabhängige Pakete veröffentlichbar
+- **Simplicity**: No second repository for first-time users
+- **Reusability**: Continuum content should be shareable between OEA instances
+- **Update path**: New continuum versions (e.g. TOGAF TRM 2025) must be importable without losing local customizations
+- **OSS distribution**: Continuum packages publishable as independent packages
 
-## Betrachtete Optionen
+## Considered Options
 
-### Option 1 (gewählt): Ein Repository + Import-Mechanismus
+### Option 1 (chosen): One repository + import mechanism
 
-Alle Inhalte (built-in, importiert, organisationsspezifisch) in einer OEA-Instanz. Differenzierung über `scope`-Property auf EntityTypeDefinition:
-- `built-in`: Teil der Software-Auslieferung; unveränderlich; Update via OEA-Release
-- `imported`: aus einem Continuum-Paket importiert; unveränderlich ausser explizite „Gabel"
-- `organization`: organisationsspezifisch; frei veränderbar
+All content (built-in, imported, organization-specific) in one OEA instance. Differentiation via a `scope` property on EntityTypeDefinition:
+- `built-in`: part of the software delivery; immutable; update via OEA release
+- `imported`: imported from a continuum package; immutable except for an explicit "fork"
+- `organization`: organization-specific; freely modifiable
 
-Continuum-Pakete sind JSON/YAML-Dateien mit EntityTypeDefinitions und Connection-Typen, die per `POST /api/v1/metamodel/import` importiert werden.
+Continuum packages are JSON/YAML files with EntityTypeDefinitions and connection types, imported via `POST /api/v1/metamodel/import`.
 
-**Pro**: einfache Architektur; einheitliche API; keine Sync-Probleme; kein zweites Repository zu betreiben
-**Contra**: Trennung von Continuum und Org-Inhalten ist nur per `scope`-Filter möglich, nicht durch physische Trennung
+**Pro**: simple architecture; uniform API; no sync problems; no second repository to operate
+**Con**: Separation of continuum and org content is only possible via `scope` filter, not by physical separation
 
-### Option 2: Zwei getrennte Repositorys
-- Pro: Continuum als eigenes OSS-Paket; klare Trennung
-- Contra: zwei APIs, zwei Repositories, Versions-Management, Referenz-Resolution zwischen Repos — erhebliche Komplexität für v1.0
+### Option 2: Two separate repositories
+- Pro: Continuum as its own OSS package; clear separation
+- Con: two APIs, two repositories, version management, reference resolution between repos — considerable complexity for v1.0
 
-### Option 3: Sub-Repository-Mechanismus
-- Pro: Continuum eingebettet, separat versioniert
-- Contra: Git-Submodule oder Paket-Mechanismus erhöht Deployment-Komplexität; overkill für v1.0
+### Option 3: Sub-repository mechanism
+- Pro: Continuum embedded, versioned separately
+- Con: Git submodules or package mechanism increase deployment complexity; overkill for v1.0
 
-## Entscheidung
+## Decision
 
-**Option 1 ist die Entscheidung.**
+**Option 1 is the decision.**
 
-**Scope-Modell** auf EntityTypeDefinition (ergänzt metamodel-configuration.md):
+**Scope model** on EntityTypeDefinition (complements metamodel-configuration.md):
 
-| Scope | Beschreibung | Veränderbar? | Herkunft |
+| Scope | Description | Modifiable? | Origin |
 |---|---|---|---|
-| `built-in` | Teil der OEA-Software; immer vorhanden | nein (read-only) | OEA-Release |
-| `imported` | Aus Continuum-Paket importiert | nein; „Gabel" erzeugt org-Kopie | Paket-Import |
-| `organization` | Organisationsspezifisch | ja | Admin |
+| `built-in` | Part of the OEA software; always present | no (read-only) | OEA release |
+| `imported` | Imported from continuum package | no; "fork" creates org copy | Package import |
+| `organization` | Organization-specific | yes | Admin |
 
-**Paket-Format** (Continuum-Bibliothek):
-- JSON oder YAML; enthält EntityTypeDefinitions, Connection-Typen, optionale Beispiel-Entitäten
-- Identifiziert durch `packageId` (z.B. `oea-togaf-trm:1.0`) und `publisher`
+**Package format** (continuum library):
+- JSON or YAML; contains EntityTypeDefinitions, connection types, optional example entities
+- Identified by `packageId` (e.g. `oea-togaf-trm:1.0`) and `publisher`
 - Import via API: `POST /api/v1/metamodel/packages/import`
-- Nach Import: Typen sind `scope=imported`; unveränderlich; Organisations-Fork via „Als eigene Kopie übernehmen"-Aktion
+- After import: types are `scope=imported`; immutable; organization fork via "Adopt as own copy" action
 
-**Auslieferungs-Pakete** (v1.0):
-- `oea-bpmn-2.0` — BPMN 2.0 Typen (bereits als built-in in process.md)
-- `oea-arc42` — Arc42-Typen (bereits als built-in in arc42.md)
-- `oea-togaf-starter` — Basis-TOGAF-Typen (ApplicationComponent, TechnologyComponent, DataObject etc.)
+**Delivery packages** (v1.0):
+- `oea-bpmn-2.0` — BPMN 2.0 types (already built-in in process.md)
+- `oea-arc42` — Arc42 types (already built-in in arc42.md)
+- `oea-togaf-starter` — basic TOGAF types (ApplicationComponent, TechnologyComponent, DataObject, etc.)
 
-## Konsequenzen
+## Consequences
 
-### Positiv
-- Einheitliche API für alle EntityType-Operationen (kein zweites Repository)
-- Continuum-Pakete sind als eigenständige OSS-Artefakte veröffentlichbar und versionierbar
-- `scope=imported` schützt Paket-Inhalte vor unbeabsichtigter Änderung
-- Update-Pfad: neues Paket importieren → bestehende `imported`-Typen aktualisiert; Org-Forks bleiben unverändert
+### Positive Consequences
+- Uniform API for all EntityType operations (no second repository)
+- Continuum packages are publishable and versionable as standalone OSS artifacts
+- `scope=imported` protects package content from unintended modification
+- Update path: import new package → existing `imported` types updated; org forks remain unchanged
 
-### Negativ / Trade-offs
-- Physische Trennung von Continuum und Org-Inhalten nur per Filter, nicht per Repository
-- Paket-Import-Mechanismus muss für v1.0 implementiert werden (zusätzlicher Scope)
+### Negative Consequences / Trade-offs
+- Physical separation of continuum and org content only via filter, not via repository
+- Package import mechanism must be implemented for v1.0 (additional scope)
 
-### Folgeentscheidungen
-- metamodel-configuration.md wird um `scope`-Property auf EntityTypeDefinition ergänzt
-- REQ-004 (Metamodell konfigurieren, UC-04) erhält neuen REQ für Paket-Import
+### Follow-up Decisions
+- metamodel-configuration.md is extended with the `scope` property on EntityTypeDefinition
+- REQ-004 (configure metamodel, UC-04) receives a new REQ for package import
 
-## Bezüge
+## References
 
-**Konzept-Kapitel**:
-- [§4 Enterprise Continuum und TRM](../concept/10-foundations/04-enterprise-continuum-trm.md)
+**Concept Chapters**:
+- [§4 Enterprise Continuum & TRM](../concept/10-foundations/04-enterprise-continuum-trm.md)
 
-**Abhängige ADRs**: ADR-005 (Starter-Konfiguration nutzt Import-Pakete)
+**Dependent ADRs**: ADR-005 (starter configuration uses import packages)
 
-**Bezogene Business Objects**: metamodel-configuration.md (EntityTypeDefinition + scope), process.md (BPMN built-in), arc42.md (Arc42 built-in)
+**Related Business Objects**: metamodel-configuration.md (EntityTypeDefinition + scope), process.md (BPMN built-in), arc42.md (Arc42 built-in)

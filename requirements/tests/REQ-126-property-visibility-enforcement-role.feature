@@ -1,46 +1,45 @@
-# Ableitung aus: requirements/req/req-126-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-126-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-21
-Feature: REQ-126 – Enforcement role-restricted Property-Sichtbarkeit
+Feature: REQ-126 – Enforcement of role-restricted property visibility
 
-  Die Entity-API MUSS bei Rückgabe einer Entität alle
-  `PropertyDefinition`-Werte mit `visibilityMode = role-restricted` für
-  Nutzer ohne eine der konfigurierten `allowedRoles` durch `null`
-  ersetzen. Das Frontend MUSS ein `null`-Wert-Feld mit `visibilityMode
-  ≠ public` als **leer und nicht editierbar** darstellen — ohne Hinweis
-  auf den tatsächlichen Wert.
+  When returning an entity, the entity API MUST replace all
+  `PropertyDefinition` values with `visibilityMode = role-restricted` by `null`
+  for users without one of the configured `allowedRoles`. The frontend MUST display a `null`-value field with `visibilityMode
+  ≠ public` as **empty and not editable** — without any hint
+  of the actual value.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – API-Response – Nutzer ohne erlaubte Rolle Entity mit role-restricted Property abruft
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer ohne erlaubte Rolle Entity mit role-restricted Property abruft
-    Then  API-Response enthält `"investitionskostenPrognose": null`; kein tatsächlicher Wert im Response
+  Scenario: AC1 – API response – user without allowed role retrieves entity with role-restricted property
+    Given the precondition according to the requirement is met
+    When  user without allowed role retrieves entity with role-restricted property
+    Then  API response contains `"investitionskostenPrognose": null`; no actual value in the response
 
   @AC2
-  Scenario: AC2 – UI leer und read-only – Nutzer ohne Berechtigung das Entity-Detailformular öffnet
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer ohne Berechtigung das Entity-Detailformular öffnet
-    Then  Eingeschränktes Feld ist leer dargestellt; Eingabe ist deaktiviert; kein Tooltip mit echtem Wert
+  Scenario: AC2 – UI empty and read-only – user without permission opens the entity detail form
+    Given the precondition according to the requirement is met
+    When  user without permission opens the entity detail form
+    Then  restricted field is displayed empty; input is disabled; no tooltip with real value
 
   @AC3
-  Scenario: AC3 – Schreibschutz – Nutzer ohne Berechtigung versucht, das Feld via API direkt zu beschreibe...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer ohne Berechtigung versucht, das Feld via API direkt zu beschreiben (PATCH)
-    Then  API antwortet mit HTTP 403; Wert wird nicht geändert
+  Scenario: AC3 – Write protection – user without permission tries to write the field directly via API...
+    Given the precondition according to the requirement is met
+    When  user without permission tries to write the field directly via API (PATCH)
+    Then  API responds with HTTP 403; value is not changed
 
   @AC4
-  Scenario: AC4 – Berechtigter Nutzer – Nutzer mit einer der `allowedRoles` dasselbe Feld abruft
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer mit einer der `allowedRoles` dasselbe Feld abruft
-    Then  Tatsächlicher Wert wird zurückgegeben; Feld ist editierbar
+  Scenario: AC4 – Authorized user – user with one of the `allowedRoles` retrieves the same field
+    Given the precondition according to the requirement is met
+    When  user with one of the `allowedRoles` retrieves the same field
+    Then  actual value is returned; field is editable
 
   @AC5
-  Scenario: AC5 – Katalog-Konsistenz – Katalog (UC-06) eine Spalte auf ein role-restricted Property zeigt
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Katalog (UC-06) eine Spalte auf ein role-restricted Property zeigt
-    Then  Spalte zeigt für nicht-berechtigte Nutzer leere Zellen; Sortierung und Filterung dieser Spalte sind für diese Nutzer deaktiviert
+  Scenario: AC5 – Catalog consistency – catalog (UC-06) shows a column for a role-restricted property
+    Given the precondition according to the requirement is met
+    When  catalog (UC-06) shows a column for a role-restricted property
+    Then  column shows empty cells for unauthorized users; sorting and filtering of this column are disabled for these users

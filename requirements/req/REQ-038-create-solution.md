@@ -1,6 +1,6 @@
 ---
 id: REQ-038
-title: Solution anlegen und Architektur-Vision beschreiben
+title: Create a solution and describe the architecture vision
 type: functional
 priority: must
 status: proposed
@@ -22,115 +22,115 @@ references:
     - SH-04
     - SH-03
   concept:
-    - concept/20-entities/11-temporales-modell.md
-    - concept/20-entities/12-domain-sichten.md
+    - concept/20-entities/11-temporal-model.md
+    - concept/20-entities/12-domain-views.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-038: Solution anlegen und Architektur-Vision beschreiben
+# REQ-038: Create a solution and describe the architecture vision
 
-## Aussage
+## Statement
 
-Das System MUSS Personen mit Solution-Architekt-Berechtigung ermöglichen, eine Solution mit Name, Architektur-Vision (Freitext: Ziel und Scope der Initiative) und – im Plateau-Modus – den Plateau-Referenzen (`fromPlateauId`, `toPlateauId`) anzulegen; das System MUSS die Business Rules BR-01 und BR-02 der Solution erzwingen.
+The system MUST allow persons with solution architect permission to create a solution with name, architecture vision (free text: goal and scope of the initiative) and – in plateau mode – the plateau references (`fromPlateauId`, `toPlateauId`); the system MUST enforce the business rules BR-01 and BR-02 of the solution.
 
-## Begründung
+## Rationale
 
-Bevor Entitätsänderungen erfasst werden können, braucht die Initiative einen Container mit klarer Identität. Name und Architektur-Vision-Text etablieren den Kontext: Wer liest diesen UC oder REQ nachher, muss verstehen, warum die Initiative existiert und was sie leisten soll. Ohne diesen Einstiegs-Schritt würde der Solution Architekt direkt in Entitäts-Editierung einsteigen, ohne den Scope dokumentiert zu haben.
+Before entity changes can be captured, the initiative needs a container with a clear identity. Name and architecture vision text establish the context: whoever reads this UC or REQ later must understand why the initiative exists and what it is supposed to achieve. Without this entry step, the solution architect would jump straight into entity editing without having documented the scope.
 
-## Kontext
+## Context
 
-Im **Projekt-Modus** (KMU) sind `fromPlateauId` und `toPlateauId` beide null – der Solution Architekt braucht keinen Plateau-Bezug. Im **Plateau-Modus** (Enterprise) wählt er ein Baseline-Plateau (`fromPlateauId`) und ein Ziel-Plateau (`toPlateauId`); die Validierung stellt Konsistenz sicher (BR-01/BR-02).
+In **project mode** (SME), `fromPlateauId` and `toPlateauId` are both null – the solution architect needs no plateau reference. In **plateau mode** (enterprise), they select a baseline plateau (`fromPlateauId`) and a target plateau (`toPlateauId`); validation ensures consistency (BR-01/BR-02).
 
-Eine bestehende Solution im Status `draft` kann jederzeit weiterbearbeitet werden (Schritte 4-5 im Hauptablauf entfallen, da die Solution schon existiert).
+An existing solution in status `draft` can be edited further at any time (steps 4-5 in the Basic Flow do not apply, since the solution already exists).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- `name` (string, Pflicht): lesbarer Initiativenname, max. 255 Zeichen; eindeutig innerhalb der Instanz
-- `description` (string, optional): Architecture-Vision-Freitext (Ziel, Scope, Begründung), max. 2000 Zeichen
-- `fromPlateauId` (reference, optional): nur Plateau-Modus; Dropdown aus Plateaus mit status=`baseline`
-- `toPlateauId` (reference, optional): nur Plateau-Modus; Dropdown aus Plateaus mit status=`target` oder `transition`
+**Inputs**:
+- `name` (string, mandatory): readable initiative name, max. 255 characters; unique within the instance
+- `description` (string, optional): architecture vision free text (goal, scope, rationale), max. 2000 characters
+- `fromPlateauId` (reference, optional): plateau mode only; dropdown of plateaus with status=`baseline`
+- `toPlateauId` (reference, optional): plateau mode only; dropdown of plateaus with status=`target` or `transition`
 
-**Verarbeitung**:
-- Name auf Eindeutigkeit prüfen (innerhalb der Instanz, über alle nicht-archivierten Solutions)
-- BR-01 prüfen: entweder beide Plateau-IDs gesetzt oder beide null; Mischzustand → Validierungsfehler
-- BR-02 prüfen (nur wenn Plateau-Modus): `fromPlateauId ≠ toPlateauId`; `toPlateauId.status` ∈ {`target`, `transition`}
-- Solution mit status=`draft`, `ownerId=currentUser`, `createdAt=now()` persistieren
+**Processing**:
+- Check the name for uniqueness (within the instance, across all non-archived solutions)
+- Check BR-01: either both plateau IDs set or both null; mixed state → validation error
+- Check BR-02 (plateau mode only): `fromPlateauId ≠ toPlateauId`; `toPlateauId.status` ∈ {`target`, `transition`}
+- Persist the solution with status=`draft`, `ownerId=currentUser`, `createdAt=now()`
 
-**Ausgaben**:
-- Persistierte Solution mit allen Feldern; Anzeige in der Solution-Übersicht
-- System navigiert zur Solution-Detailansicht (Ausgangspunkt für REQ-039/REQ-040)
+**Outputs**:
+- Persisted solution with all fields; display in the solution overview
+- System navigates to the solution detail view (starting point for REQ-039/REQ-040)
 
-**Fehlerfälle**:
-- Name bereits vergeben → Validierungsfehler: „Name '{X}' ist bereits vergeben"
-- BR-01-Verletzung (eine Plateau-ID gesetzt, andere null) → Validierungsfehler: „Beide Plateau-Referenzen müssen gesetzt oder beide leer sein"
-- BR-02-Verletzung → Validierungsfehler mit konkreter Ursache
-- Fehlende Berechtigung → 403 Forbidden
+**Error Cases**:
+- Name already taken → validation error: "Name '{X}' is already taken"
+- BR-01 violation (one plateau ID set, the other null) → validation error: "Both plateau references must be set or both empty"
+- BR-02 violation → validation error with the specific cause
+- Missing permission → 403 Forbidden
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Michael hat Solution-Architekt-Berechtigung; kein Plateau-Modus
-- Wenn: er Name „ERP-Erweiterung Logistics" und einen Beschreibungstext eingibt und speichert
-- Dann: Solution existiert mit status=`draft`, `ownerId=Michael`, `fromPlateauId=null`, `toPlateauId=null`; in der Solution-Übersicht sichtbar
+- Given: Michael has solution architect permission; no plateau mode
+- When: he enters the name "ERP Extension Logistics" and a description text and saves
+- Then: a solution exists with status=`draft`, `ownerId=Michael`, `fromPlateauId=null`, `toPlateauId=null`; visible in the solution overview
 
 **AC2**:
-- Gegeben: Instanz im Plateau-Modus; Plateau P0 (baseline) und P1 (target) existieren
-- Wenn: Michael `fromPlateauId=P0` und `toPlateauId=P1` setzt und speichert
-- Dann: Solution angelegt mit beiden Plateau-Referenzen; BR-02 ist erfüllt
+- Given: instance in plateau mode; plateau P0 (baseline) and P1 (target) exist
+- When: Michael sets `fromPlateauId=P0` and `toPlateauId=P1` and saves
+- Then: solution created with both plateau references; BR-02 is satisfied
 
 **AC3**:
-- Gegeben: Michael gibt `fromPlateauId=P0` ein, lässt `toPlateauId` leer
-- Wenn: er speichert
-- Dann: Validierungsfehler „Beide Plateau-Referenzen müssen gesetzt oder beide leer sein"; kein Objekt wird angelegt (BR-01)
+- Given: Michael enters `fromPlateauId=P0` and leaves `toPlateauId` empty
+- When: he saves
+- Then: validation error "Both plateau references must be set or both empty"; no object is created (BR-01)
 
 **AC4**:
-- Gegeben: Eine Solution mit Name „ERP-Erweiterung Logistics" existiert bereits
-- Wenn: Michael eine zweite Solution mit demselben Namen anlegen will
-- Dann: Validierungsfehler „Name 'ERP-Erweiterung Logistics' ist bereits vergeben"
+- Given: a solution with the name "ERP Extension Logistics" already exists
+- When: Michael wants to create a second solution with the same name
+- Then: validation error "Name 'ERP Extension Logistics' is already taken"
 
 **AC5**:
-- Gegeben: Person ohne Solution-Architekt-Berechtigung
-- Wenn: sie versucht, eine Solution anzulegen
-- Dann: 403 Forbidden; kein Objekt wird angelegt
+- Given: a person without solution architect permission
+- When: they try to create a solution
+- Then: 403 Forbidden; no object is created
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Solution anlegen (Projekt-Modus, Plateau-Modus, Fehlerfall BR-01, BR-02, Name-Kollision, fehlende Berechtigung)
-- [x] Mess-Werkzeug: Backend-Test-Suite (Integration Tests)
-- [x] Bestanden-Kriterium: AC1–AC5 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: create solution (project mode, plateau mode, error case BR-01, BR-02, name collision, missing permission)
+- [x] Measurement tool: backend test suite (integration tests)
+- [x] Pass criterion: AC1–AC5 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: Rollen-Modell (Solution-Architekt-Berechtigung); UC-01 (eingeloggte Person); im Plateau-Modus: mindestens ein Baseline-Plateau (UC-06)
-- **Folgewirkungen**: REQ-039 (Ausgangsbasis anzeigen), REQ-040 (EntityDeltas erfassen), REQ-041 (Diff-Ansicht) setzen eine existierende Solution voraus
+- **Prerequisites**: Role model (solution architect permission); UC-01 (logged-in person); in plateau mode: at least one baseline plateau (UC-06)
+- **Downstream effects**: REQ-039 (show baseline), REQ-040 (capture EntityDeltas), REQ-041 (diff view) require an existing solution
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne Solution-Anlage kein Container für EntityDeltas – der gesamte UC-05-Workflow ist blockiert, kritisch
-- Risiko 2: Fehlende BR-01/BR-02-Validierung erzeugt inkonsistente Plateau-Referenzen, die spätere Diff-Berechnungen korrumpieren
+- Risk 1: Without solution creation there is no container for EntityDeltas – the entire UC-05 workflow is blocked, critical
+- Risk 2: Missing BR-01/BR-02 validation produces inconsistent plateau references that corrupt later diff calculations
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- `POST /api/v1/solutions` (RBAC: Solution-Architekt-Rolle)
-- `fromPlateauId`/`toPlateauId`-Felder nur rendern wenn die Instanz im Plateau-Modus konfiguriert ist (Instanz-Level-Setting, TBD)
-- Eindeutigkeits-Prüfung des Namens: case-insensitiv, trimmed
+- `POST /api/v1/solutions` (RBAC: solution architect role)
+- Render the `fromPlateauId`/`toPlateauId` fields only if the instance is configured in plateau mode (instance-level setting, TBD)
+- Name uniqueness check: case-insensitive, trimmed
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft aus UC-05 |
+| 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft from UC-05 |

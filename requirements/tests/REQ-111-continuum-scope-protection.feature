@@ -1,33 +1,33 @@
-# Ableitung aus: requirements/req/req-111-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-111-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-17
-Feature: REQ-111 – Schreibschutz für importierte und built-in Continuum-Bausteine
+Feature: REQ-111 – Write protection for imported and built-in continuum building blocks
 
-  Alle Continuum-Bausteine (ABB, SBB, Pattern, Reference Architecture)
-  mit `scope=imported` oder `scope=built-in` MÜSSEN für alle
-  Schreib-Operationen gesperrt sein. In der UI DÜRFEN Bearbeiten- und
-  Löschen-Aktionen für diese Bausteine nicht sichtbar sein;
-  API-Versuche MÜSSEN mit HTTP 422 abgewiesen werden.
+  All continuum building blocks (ABB, SBB, pattern, reference architecture)
+  with `scope=imported` or `scope=built-in` MUST be locked for all
+  write operations. In the UI, edit and delete actions
+  for these building blocks MUST NOT be visible;
+  API attempts MUST be rejected with HTTP 422.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – API-Schreibschutz – ein PUT- oder DELETE-Request auf einen ABB mit `scope=imported` abgesetz...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein PUT- oder DELETE-Request auf einen ABB mit `scope=imported` abgesetzt wird
-    Then  antwortet das System mit HTTP 422
+  Scenario: AC1 – API write protection – a PUT or DELETE request is issued on an ABB with `scope=imported`...
+    Given the precondition according to the requirement is met
+    When  a PUT or DELETE request is issued on an ABB with `scope=imported`
+    Then  the system responds with HTTP 422
 
   @AC2
-  Scenario: AC2 – UI-Schreibschutz und Badge – ein Baustein mit `scope=imported` in der UI angezeigt wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein Baustein mit `scope=imported` in der UI angezeigt wird
-    Then  sind Bearbeiten- und Löschen-Buttons nicht sichtbar; ein Badge „Importiert – TOGAF 10 TRM" ist sichtbar
+  Scenario: AC2 – UI write protection and badge – a building block with `scope=imported` is displayed in the UI
+    Given the precondition according to the requirement is met
+    When  a building block with `scope=imported` is displayed in the UI
+    Then  edit and delete buttons are not visible; a badge "Imported – TOGAF 10 TRM" is visible
 
   @AC3
-  Scenario: AC3 – SBB-Zuordnungen editierbar – eine TRM-Kategorie mit `scope=imported` geöffnet wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  eine TRM-Kategorie mit `scope=imported` geöffnet wird
-    Then  sind SBB-Zuordnungen (`preferredStandard`, `acceptedAlternatives`, `deprecatedOptions`) editierbar; Name und Parent-Kategorie sind gesperrt
+  Scenario: AC3 – SBB assignments editable – a TRM category with `scope=imported` is opened
+    Given the precondition according to the requirement is met
+    When  a TRM category with `scope=imported` is opened
+    Then  SBB assignments (`preferredStandard`, `acceptedAlternatives`, `deprecatedOptions`) are editable; name and parent category are locked

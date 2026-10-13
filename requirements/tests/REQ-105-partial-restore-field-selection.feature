@@ -1,31 +1,31 @@
-# Ableitung aus: requirements/req/req-105-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-105-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @should @UC-16
-Feature: REQ-105 – Teilwiederherstellung selektive Feldauswahl
+Feature: REQ-105 – Partial restore selective field selection
 
-  Im Wizard MÜSSEN ausschliesslich Felder auswählbar sein, die sich
-  zwischen Quelle und aktuellem Stand unterscheiden. Identische Felder
-  MÜSSEN ausgegraut und nicht anwählbar sein.
+  In the wizard, exclusively fields that differ
+  between source and current state MUST be selectable. Identical fields
+  MUST be grayed out and not selectable.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Identische Felder ausgegraut – ein Feld in Quelle und aktuellem Stand identisch ist
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein Feld in Quelle und aktuellem Stand identisch ist
-    Then  ist die Checkbox ausgegraut und nicht anklickbar
+  Scenario: AC1 – Identical fields grayed out – a field is identical in source and current state
+    Given the precondition according to the requirement is met
+    When  a field is identical in source and current state
+    Then  the checkbox is grayed out and not clickable
 
   @AC2
-  Scenario: AC2 – Neue Properties gekennzeichnet – eine Property "cost-center" in der Quellversion noch nicht vorhanden war
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  eine Property "cost-center" in der Quellversion noch nicht vorhanden war
-    Then  zeigt der Wizard "(in Quellversion nicht vorhanden)"; Checkbox nicht anwählbar
+  Scenario: AC2 – New properties flagged – a property "cost-center" did not yet exist in the source version
+    Given the precondition according to the requirement is met
+    When  a property "cost-center" did not yet exist in the source version
+    Then  the wizard shows "(not present in source version)"; checkbox not selectable
 
   @AC3
-  Scenario: AC3 – Vorschau bei Feldauswahl – die Checkbox eines geänderten Feldes aktiviert wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  die Checkbox eines geänderten Feldes aktiviert wird
-    Then  wird der Wert aus der Quellversion als Vorschau angezeigt
+  Scenario: AC3 – Preview on field selection – the checkbox of a changed field is activated
+    Given the precondition according to the requirement is met
+    When  the checkbox of a changed field is activated
+    Then  the value from the source version is displayed as a preview

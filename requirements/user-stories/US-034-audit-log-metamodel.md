@@ -1,55 +1,55 @@
-# US-034: Metamodell-Änderungen im Audit-Log nachvollziehen
+# US-034: Trace Metamodel Changes in the Audit Log
 
 **ID**: US-034
 **Story Points**: 2
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Lead Enterprise Architekt möchte ich sehen können, wer wann welche Änderungen am Metamodell vorgenommen hat, damit ich bei unbeabsichtigten Änderungen den Verursacher identifizieren und die Änderung nachvollziehen kann.
+As a Lead Enterprise Architect, I want to be able to see who made which changes to the metamodel and when, so that in the case of unintended changes I can identify the originator and trace the change.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-04: Metamodell gemeinsam konfigurieren](../use-cases/UC-04-metamodell-konfigurieren.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-034: Audit-Log für Metamodell-Änderungen](../req/REQ-034-audit-log-metamodell.md)
+**Use Case**: [UC-04: Configure the Metamodel Collaboratively](../use-cases/UC-04-configure-metamodel.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-034: Audit Log for Metamodel Changes](../req/REQ-034-audit-log-metamodel.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Kurt hat `SecurityZone` angelegt, Lukas hat einen anderen Typ gelöscht
-- Wenn: Kurt den Audit-Log aufruft
-- Dann: sieht er beide Einträge mit den jeweiligen Personen-Namen, Zeitstempeln und Element-Namen
+- Given: Kurt has created `SecurityZone`, Lukas has deleted another type
+- When: Kurt opens the audit log
+- Then: he sees both entries with the respective person names, timestamps and element names
 
 **AC2**:
-- Gegeben: 5 Typen wurden per Import (REQ-033) importiert
-- Dann: zeigt der Audit-Log 5 Einträge als zusammengehörigen Import-Batch (gleiche Batch-ID)
+- Given: 5 types were imported via import (REQ-033)
+- Then: the audit log shows 5 entries as a coherent import batch (same batch ID)
 
 **AC3**:
-- Gegeben: ein Schreibfehler im Audit-Log-System
-- Wenn: Kurt eine Änderung vornimmt
-- Dann: wird die Änderung gespeichert; der Audit-Log-Eintrag wird asynchron nachgeholt
+- Given: a write error in the audit log system
+- When: Kurt makes a change
+- Then: the change is saved; the audit log entry is caught up asynchronously
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Audit-Log-Infrastruktur (gleiche wie REQ-005/REQ-025); neues `eventType`-Namespace `metamodel.*`
-- API-Endpunkte: `GET /admin/audit-log?eventType=metamodel.*` (Filterung nach Metamodell-Events)
-- Datenbank-Änderungen: keine neuen Tabellen; neues `eventType` in bestehender Audit-Tabelle
+- Affected components: audit log infrastructure (same as REQ-005/REQ-025); new `eventType` namespace `metamodel.*`
+- API endpoints: `GET /admin/audit-log?eventType=metamodel.*` (filtering by metamodel events)
+- Database changes: no new tables; new `eventType` in existing audit table
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests: Anlegen/Bearbeiten/Löschen löst Audit-Eintrag aus; Import-Batch korrekt; Audit-Log-Fehler blockiert nicht die Hauptoperation
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests: create/edit/delete triggers audit entry; import batch correct; audit log error does not block the main operation
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-032 (Operationen, die geloggt werden müssen), US-033 (Import-Batch-Logging); bestehende Audit-Log-Infrastruktur
-- Blockiert: keine
+- Waiting on: US-032 (operations that must be logged), US-033 (import batch logging); existing audit log infrastructure
+- Blocks: none
 
-## Notizen
+## Notes
 
-2 SP, da die Audit-Log-Infrastruktur bereits existiert (REQ-005/REQ-025). Nur neues `eventType`-Namespace und `importBatch`-Feld hinzuzufügen. Kein neues UI benötigt, wenn der bestehende Audit-Log-View Filterung nach Event-Typ unterstützt.
+2 SP because the audit log infrastructure already exists (REQ-005/REQ-025). Only the new `eventType` namespace and `importBatch` field need to be added. No new UI needed if the existing audit log view supports filtering by event type.

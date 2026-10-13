@@ -1,64 +1,64 @@
-# US-027: Passwort-Richtlinien als Betreiber konfigurieren
+# US-027: Configure Password Policies as Operator
 
 **ID**: US-027
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Betreiber möchte ich instanzweit festlegen, welche Zeichentypen Passwörter enthalten müssen, wie lange sie gültig sind und wie viele frühere Passwörter nicht wiederverwendet werden dürfen, damit die Passwort-Policy meiner Organisation in OEA durchgesetzt wird.
+As an operator, I want to define instance-wide which character types passwords must contain, how long they are valid and how many previous passwords may not be reused, so that my organization's password policy is enforced in OEA.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-03: Authentifizierungsmethode einrichten](../use-cases/UC-03-authentifizierungsmethode-einrichten.md)
-**Persona**: [SH-06: Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Requirement**: [REQ-028: Passwort-Richtlinien durch Betreiber konfigurieren](../req/REQ-028-passwort-richtlinien.md)
+**Use Case**: [UC-03: Set Up Authentication Method](../use-cases/UC-03-set-up-authentication-method.md)
+**Persona**: [SH-06: Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Requirement**: [REQ-028: Configure Password Policies by Operator](../req/REQ-028-password-policies.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Max öffnet die Instanz-Konfiguration
-- Wenn: er `requireUppercase`, `requireDigits`, `requireSpecialChars` aktiviert und `minLength=16` setzt
-- Dann: werden diese Regeln ab sofort bei jeder Passwort-Setzung oder -Änderung durchgesetzt
+- Given: Max opens the instance configuration
+- When: he enables `requireUppercase`, `requireDigits`, `requireSpecialChars` and sets `minLength=16`
+- Then: these rules are enforced from now on for every password set or change
 
 **AC2**:
-- Gegeben: `expiryDays=90` ist konfiguriert
-- Wenn: eine Person sich nach 91 Tagen einloggt
-- Dann: wird sie zur Passwort-Änderung aufgefordert, bevor sie Zugriff erhält
+- Given: `expiryDays=90` is configured
+- When: a person logs in after 91 days
+- Then: they are prompted to change their password before they gain access
 
 **AC3**:
-- Gegeben: `historyCount=5` ist konfiguriert
-- Wenn: eine Person ein Passwort setzt, das eines der letzten 5 war
-- Dann: wird es abgelehnt mit einer verständlichen Fehlermeldung
+- Given: `historyCount=5` is configured
+- When: a person sets a password that was one of the last 5
+- Then: it is rejected with an understandable error message
 
 **AC4**:
-- Gegeben: Max versucht, `minLength=2` mit allen vier Zeichentypen zu aktivieren
-- Wenn: er speichern möchte
-- Dann: erscheint ein Validierungsfehler; die Konfiguration wird nicht gespeichert
+- Given: Max tries to enable `minLength=2` with all four character types
+- When: he wants to save
+- Then: a validation error appears; the configuration is not saved
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Admin-Konfigurationsmodul, Auth-Modul (Validierungslogik liest Richtlinien), Login-Flow (Ablauf-Check)
-- Betroffene EntityTypes/Relations: `instance_config`-Tabelle oder YAML-Config (Felder: `password_min_length`, `password_require_uppercase`, `password_require_lowercase`, `password_require_digits`, `password_require_special_chars`, `password_expiry_days`, `password_history_count`)
-- API-Endpunkte: `GET/PUT /admin/config/password-policy`
-- Datenbank-Änderungen: neue Tabelle `password_history` (`person_id`, `password_hash`, `created_at`) für History-Check
+- Affected components: admin configuration module, auth module (validation logic reads policies), login flow (expiry check)
+- Affected EntityTypes/Relations: `instance_config` table or YAML config (fields: `password_min_length`, `password_require_uppercase`, `password_require_lowercase`, `password_require_digits`, `password_require_special_chars`, `password_expiry_days`, `password_history_count`)
+- API endpoints: `GET/PUT /admin/config/password-policy`
+- Database changes: new table `password_history` (`person_id`, `password_hash`, `created_at`) for history check
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (alle Regelkombinationen; Ablauf-Simulation; History-Check; Inkonsistenz-Ablehnung)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (all rule combinations; expiry simulation; history check; rejection of inconsistency)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-023 (Passwort-Setzen muss existieren, damit Richtlinien-Prüfung greift), US-011 (Login-Flow für Ablauf-Check)
-- Blockiert: US-026 (Generator liest Richtlinien)
+- Waiting on: US-023 (setting a password must exist so that policy checking takes effect), US-011 (login flow for expiry check)
+- Blocks: US-026 (generator reads policies)
 
-## Notizen
+## Notes
 
-Alle Regeln haben sinnvolle Defaults (off / 0), damit OEA ohne explizite Konfiguration betreibbar ist. Max aktiviert nur, was seine Organisation tatsächlich vorschreibt. Die Validierungslogik ist eine shared Funktion zwischen Admin-Konfiguration, Passwort-Setzen (REQ-024), Generator (REQ-027) und künftigem Passwort-Änderungs-UC – kein Duplikat-Code.
+All rules have sensible defaults (off / 0) so that OEA can be operated without explicit configuration. Max only enables what his organization actually mandates. The validation logic is a shared function between admin configuration, setting a password (REQ-024), generator (REQ-027) and the future password change UC – no duplicate code.

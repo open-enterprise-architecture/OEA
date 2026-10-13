@@ -1,68 +1,68 @@
-# US-041: Bestehende Entität in einer Solution als modified erfassen
+# US-041: Capture an Existing Entity in a Solution as Modified
 
 **ID**: US-041
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Solution Architekt möchte ich eine bestehende Entität aus der IT-Landschaft in einer Solution als „verändert" markieren und die konkreten Property-Änderungen (Vorher/Nachher) beschreiben können, damit der Scope der Initiative klar zeigt, was sich an dieser Entität ändert.
+As a Solution Architect, I want to be able to mark an existing entity from the IT landscape in a solution as "modified" and describe the concrete property changes (before/after), so that the scope of the initiative clearly shows what changes about this entity.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-05: Architektur-Vision einer Änderungsinitiative beschreiben](../use-cases/UC-05-architektur-vision-beschreiben.md)
-**Persona**: [SH-04: Michael – Solution Architekt](../../business-analysis/stakeholders/SH-04-michael-solution-architekt.md)
-**Requirement**: [REQ-040: EntityDeltas einer Solution erfassen](../req/REQ-040-entity-deltas-erfassen.md)
+**Use Case**: [UC-05: Describe the Architecture Vision of a Change Initiative](../use-cases/UC-05-describe-architecture-vision.md)
+**Persona**: [SH-04: Michael – Solution Architect](../../business-analysis/stakeholders/SH-04-michael-solution-architect.md)
+**Requirement**: [REQ-040: Capture EntityDeltas of a Solution](../req/REQ-040-capture-entity-deltas.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: `ERP-Core (ApplicationComponent, version=v4)` ist in der Ausgangsbasis
-- Wenn: Michael `ERP-Core` als modified markiert und `version` von „v4" auf „v5" ändert
-- Dann: enthält das Delta `changes = {version: {before: "v4", after: "v5"}}`; in der Delta-Liste erscheint `ERP-Core` mit `deltaType=modified`
+- Given: `ERP-Core (ApplicationComponent, version=v4)` is in the baseline
+- When: Michael marks `ERP-Core` as modified and changes `version` from "v4" to "v5"
+- Then: the delta contains `changes = {version: {before: "v4", after: "v5"}}`; `ERP-Core` appears in the delta list with `deltaType=modified`
 
-**AC2** (Vorher-Wert aus Ausgangsbasis):
-- Gegeben: `ERP-Core` hat in der Ausgangsbasis `version=v4`
-- Wenn: Michael das `modified`-Formular für `ERP-Core` öffnet
-- Dann: ist der `before`-Wert für `version` automatisch auf „v4" vorbelegt (aus Ausgangsbasis)
+**AC2** (before value from baseline):
+- Given: `ERP-Core` has `version=v4` in the baseline
+- When: Michael opens the `modified` form for `ERP-Core`
+- Then: the `before` value for `version` is automatically prefilled with "v4" (from baseline)
 
-**AC3** (Entität nicht in Ausgangsbasis):
-- Gegeben: Michael gibt eine entityId ein, die nicht in der Ausgangsbasis vorhanden ist
-- Wenn: er speichert
-- Dann: Validierungsfehler „Entität nicht in der aktuellen Landschaft gefunden"; kein Delta gespeichert
+**AC3** (entity not in baseline):
+- Given: Michael enters an entityId that is not present in the baseline
+- When: he saves
+- Then: validation error "Entity not found in the current landscape"; no delta saved
 
-**AC4** (Solution implemented):
-- Gegeben: Solution hat status=`implemented`
-- Wenn: Michael versucht, ein modified-Delta hinzuzufügen
-- Dann: 409 Conflict „Diese Solution ist abgeschlossen und kann nicht mehr verändert werden"
+**AC4** (solution implemented):
+- Given: Solution has status=`implemented`
+- When: Michael tries to add a modified delta
+- Then: 409 Conflict "This solution is completed and can no longer be changed"
 
-**AC5** (Duplikat-Prüfung):
-- Gegeben: `ERP-Core` hat bereits ein `retiring`-Delta in dieser Solution
-- Wenn: Michael versucht, `ERP-Core` zusätzlich als `modified` zu erfassen
-- Dann: Validierungsfehler „Für ERP-Core existiert bereits ein Delta in dieser Solution"
+**AC5** (duplicate check):
+- Given: `ERP-Core` already has a `retiring` delta in this solution
+- When: Michael tries to additionally capture `ERP-Core` as `modified`
+- Then: validation error "A delta already exists for ERP-Core in this solution"
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Solution-Detailansicht (Delta-Erfassung, Unterbereich „Entität ändern"), Backend `POST /api/v1/solutions/{id}/deltas`
-- Request-Body: `{ entityId: UUID, deltaType: "modified", changes: { propertyName: { before: any, after: any }, ... } }`
-- `before`-Werte: können beim Laden des Formulars aus der Ausgangsbasis (REQ-039-Endpunkt) vorbelegt werden; der Nutzer kann sie überschreiben
-- Nur Properties, die sich ändern, müssen im `changes`-Map erscheinen (sparse diff)
-- UI: Property-Liste der Entität mit je zwei Eingabefeldern (Vorher / Nachher); nicht geänderte Properties können leer bleiben
+- Affected components: solution detail view (delta capture, subarea "Modify entity"), backend `POST /api/v1/solutions/{id}/deltas`
+- Request body: `{ entityId: UUID, deltaType: "modified", changes: { propertyName: { before: any, after: any }, ... } }`
+- `before` values: can be prefilled from the baseline (REQ-039 endpoint) when loading the form; the user can overwrite them
+- Only properties that change need to appear in the `changes` map (sparse diff)
+- UI: property list of the entity with two input fields each (before / after); unchanged properties can remain empty
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien AC1–AC5 erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests: modified-Delta mit Vorher/Nachher, Vorbelegen aus Ausgangsbasis, ungültige entityId, Solution=implemented blockiert, Duplikat-Prüfung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria AC1–AC5 met
+- [ ] Code review by a second person
+- [ ] Tests: modified delta with before/after, prefilling from baseline, invalid entityId, solution=implemented blocks, duplicate check
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-038 (Solution), US-039 (Ausgangsbasis liefert Vorher-Werte und Validierungsbasis)
-- Blockiert: US-043 (Diff-Ansicht braucht modified-Deltas für aussagekräftige Diff)
+- Waiting on: US-038 (solution), US-039 (baseline provides before values and validation basis)
+- Blocks: US-043 (diff view needs modified deltas for a meaningful diff)
 
-## Notizen
+## Notes
 
-5 SP wegen des Property-Diff-Editors: das UI muss die Properties der Entität laden (aus MetamodelConfiguration), zwei Spalten (Vorher/Nachher) darstellen und nur ausgefüllte Felder in den `changes`-Map aufnehmen. Der `before`-Wert aus der Ausgangsbasis ist eine UX-Verbesserung (kein MVP-Blocker, aber stark empfohlen für Usability).
+5 SP because of the property diff editor: the UI must load the entity's properties (from MetamodelConfiguration), display two columns (before/after) and include only filled-in fields in the `changes` map. The `before` value from the baseline is a UX improvement (not an MVP blocker, but strongly recommended for usability).

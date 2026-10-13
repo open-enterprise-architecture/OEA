@@ -1,6 +1,6 @@
 ---
 id: REQ-070
-title: Entity-Mention via [[ im WYSIWYG-Editor (Autocomplete + Verlinkung)
+title: Entity mention via [[ in the WYSIWYG editor (autocomplete + linking)
 type: functional
 priority: should
 status: proposed
@@ -25,39 +25,39 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-070: Entity-Mention via [[ im WYSIWYG-Editor (Autocomplete + Verlinkung)
+# REQ-070: Entity mention via [[ in the WYSIWYG editor (autocomplete + linking)
 
-## Aussage
+## Statement
 
-Das System MUSS im WYSIWYG-Editor überall — in Markdown-Freitext-Abschnitten, in Mermaid-/PlantUML-Codeblöcken und in Draw.io-Shape-Labels — beim Tippen von `[[` ein Autocomplete-Dropdown öffnen, das Entitäten aus dem Architecture-Repository live durchsucht. Nach Auswahl einer Entität MUSS das System den Mention kontextabhängig einfügen: als strukturierten Wiki-Link `[[Name|entity:ID]]` im Freitext, als reinen Textnamen in allen Codeblock-Kontexten. Beim Rendering von Freitext-Mentions MUSS der aktuelle Name der Entität via ID aufgelöst werden.
+The system MUST, everywhere in the WYSIWYG editor — in Markdown free-text sections, in Mermaid/PlantUML code blocks and in Draw.io shape labels — open an autocomplete dropdown when `[[` is typed, which live-searches entities from the architecture repository. After an entity is selected, the system MUST insert the mention context-dependently: as a structured wiki link `[[Name|entity:ID]]` in free text, as a plain text name in all code block contexts. When rendering free-text mentions, the entity's current name MUST be resolved via ID.
 
-## Begründung
+## Rationale
 
-Arc42-Dokumentation beschreibt Systeme, die im EA-Repository modelliert sind. Ohne `[[`-Verlinkung entstehen doppelt gepflegte Namen: der Architekt schreibt „CRM-System" als Text, das Modell kennt die Entität mit id=1. Bei Umbenennung divergieren Dokumentation und Modell. Die ID-stabile Verlinkung im Freitext stellt sicher, dass Umbenennungen im Repository automatisch in allen Arc42-Dokumenten nachgezogen werden. In Codeblöcken ist dies technisch nicht möglich (Diagrammsprachen kennen kein Link-Konzept), daher greift dort reiner Textname als pragmatische Lösung.
+Arc42 documentation describes systems that are modeled in the EA repository. Without `[[` linking, names are maintained twice: the architect writes "CRM-System" as text, while the model knows the entity with id=1. On renaming, documentation and model diverge. ID-stable linking in free text ensures that renamings in the repository are automatically carried over into all Arc42 documents. In code blocks this is technically not possible (diagram languages have no link concept), so a plain text name is used there as a pragmatic solution.
 
-## Kontext
+## Context
 
-`[[` (doppelte eckige Klammer) ist der Trigger für Entity-Mentions. Diese Syntax ist aus Wiki-Tools (Obsidian, Confluence, Logseq, Roam Research) als „Link zu einer Seite/einem Objekt" bekannt. Sie ist in keinem Kontext mehrdeutig:
-- Nicht in URLs (URLs enthalten keine `[[`)
-- Nicht in E-Mail-Adressen
-- Nicht in Mermaid/PlantUML-Syntax
-- Nicht in Draw.io-XML
-- Nicht in Markdown-Standard-Syntax
+`[[` (double square bracket) is the trigger for entity mentions. This syntax is known from wiki tools (Obsidian, Confluence, Logseq, Roam Research) as "link to a page/object". It is unambiguous in every context:
+- Not in URLs (URLs contain no `[[`)
+- Not in email addresses
+- Not in Mermaid/PlantUML syntax
+- Not in Draw.io XML
+- Not in standard Markdown syntax
 
-Das früher evaluierte `/@`-Muster wurde verworfen: `/@` taucht in GitHub-Routing-URLs auf und hat kognitive Überschneidung mit OEA-Slash-Commands.
+The previously evaluated `/@` pattern was discarded: `/@` appears in GitHub routing URLs and has cognitive overlap with OEA slash commands.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Autocomplete-Verhalten
+### Autocomplete Behavior
 
-| Phase | Verhalten |
+| Phase | Behavior |
 |---|---|
-| Nutzer tippt `[[` | Dropdown öffnet sich sofort; zeigt Top-10 Entitäten nach Relevanz (zuletzt verwendet / Alphabetisch) |
-| Nutzer tippt weiter (z.B. `[[CRM`) | Live-Suche gegen `GET /api/v1/entities/search?q=CRM&limit=10`; Ergebnis wird gefiltert |
-| Nutzer wählt Entität | Mention wird eingefügt; `[[CRM` wird durch Mention ersetzt; Dropdown schliesst sich |
-| Nutzer drückt ESC | Dropdown schliesst sich; `[[`-Text bleibt als Rohtext |
+| User types `[[` | Dropdown opens immediately; shows top 10 entities by relevance (recently used / alphabetical) |
+| User keeps typing (e.g., `[[CRM`) | Live search against `GET /api/v1/entities/search?q=CRM&limit=10`; result is filtered |
+| User selects entity | Mention is inserted; `[[CRM` is replaced by the mention; dropdown closes |
+| User presses ESC | Dropdown closes; `[[` text remains as raw text |
 
-### Suchanfrage und Response
+### Search Request and Response
 
 ```
 GET /api/v1/entities/search?q={term}&limit=10
@@ -67,125 +67,125 @@ Response:
 ```json
 [
   { "id": 1, "name": "CRM-System", "entityTypeId": "application-component", "entityTypeName": "ApplicationComponent" },
-  { "id": 5, "name": "ERP→CRM Kundenstamm-Sync", "entityTypeId": "data-flow", "entityTypeName": "DataFlow" }
+  { "id": 5, "name": "ERP→CRM Customer master data sync", "entityTypeId": "data-flow", "entityTypeName": "DataFlow" }
 ]
 ```
 
-- Suche: Case-insensitive, Prefix-Match auf `name`; optional Fuzzy-Match
-- Scope: alle ArchitectureEntities der aktuellen Instanz (Elemente und Connections)
-- Sortierung: Exact-Match vor Prefix-Match vor Fuzzy-Match; bei Gleichstand alphabetisch
+- Search: case-insensitive, prefix match on `name`; optionally fuzzy match
+- Scope: all ArchitectureEntities of the current instance (elements and connections)
+- Sorting: exact match before prefix match before fuzzy match; alphabetical on ties
 
-### Dropdown-Darstellung
+### Dropdown Display
 
-Jedes Ergebnis zeigt:
-- Entitätsname (fett)
-- EntityType-Name (grau, klein) — z.B. „ApplicationComponent"
-- Entitäts-ID (rechts, monospace) — z.B. „#1"
+Each result shows:
+- Entity name (bold)
+- EntityType name (gray, small) — e.g., "ApplicationComponent"
+- Entity ID (right, monospace) — e.g., "#1"
 
-### Einfüge-Format je Kontext
+### Insertion Format per Context
 
-**Markdown-Freitext** (ausserhalb von Codeblöcken):
+**Markdown free text** (outside code blocks):
 
 ```markdown
 [[CRM-System|entity:1]]
 ```
 
-Rendering: Inline-Badge mit aktuellem Namen (ID-aufgelöst), klickbar → öffnet Entity-Detail. Wenn Entität nicht mehr existiert: `[[gelöscht|entity:1]]` in roter Schrift.
+Rendering: inline badge with the current name (ID-resolved), clickable → opens entity detail. If the entity no longer exists: `[[deleted|entity:1]]` in red font.
 
-**Mermaid-Codeblock** (innerhalb von ` ```mermaid `):
-
-```
-CRM-System
-```
-
-Reiner Textname — kein Link-Markup, da Mermaid-Syntax keine Hyperlinks in Node-Labels unterstützt.
-
-**PlantUML-Codeblock** (innerhalb von ` ```plantuml `):
+**Mermaid code block** (inside ` ```mermaid `):
 
 ```
 CRM-System
 ```
 
-Reiner Textname — analog zu Mermaid.
+Plain text name — no link markup, since Mermaid syntax does not support hyperlinks in node labels.
 
-**Draw.io-Codeblock** (innerhalb von ` ```drawio `):
+**PlantUML code block** (inside ` ```plantuml `):
 
 ```
 CRM-System
 ```
 
-Reiner Textname im Shape-Label des aktiven Shapes im Draw.io-Editor — kein Link-Markup, da Draw.io-XML-Format keine OEA-spezifischen Link-Konzepte kennt (v1.0).
+Plain text name — analogous to Mermaid.
 
-### Rendering von `[[Name|entity:ID]]` im Freitext
+**Draw.io code block** (inside ` ```drawio `):
 
-Beim Lesen des `content`-Felds MUSS das Backend (oder das Frontend via API-Call) den aktuellen `name` der Entität mit der gegebenen ID nachladen:
-- Entität existiert + Name unverändert: normales Badge mit aktuellem Namen
-- Entität existiert + umbenannt: Badge zeigt neuen Namen (transparent für den Leser)
-- Entität gelöscht: Badge zeigt `[gelöscht]` + rote Schrift + kein Link
+```
+CRM-System
+```
 
-## Akzeptanzkriterien
+Plain text name in the shape label of the active shape in the Draw.io editor — no link markup, since the Draw.io XML format does not know OEA-specific link concepts (v1.0).
 
-**AC1** (Dropdown öffnet sich im Freitext):
-- Wenn: Michael tippt `[[` im Markdown-Freitext des Editors
-- Dann: Autocomplete-Dropdown erscheint mit Top-10 Entitäten; kein Seitenaufruf nötig
+### Rendering of `[[Name|entity:ID]]` in Free Text
 
-**AC2** (Live-Suche filtert Ergebnisse):
-- Wenn: Michael tippt `[[CRM`
-- Dann: Dropdown zeigt nur Entitäten, deren Name „CRM" enthält (case-insensitive); Ergebnisse aktualisieren sich mit jedem weiteren Zeichen
+When reading the `content` field, the backend (or the frontend via API call) MUST reload the current `name` of the entity with the given ID:
+- Entity exists + name unchanged: normal badge with current name
+- Entity exists + renamed: badge shows new name (transparent to the reader)
+- Entity deleted: badge shows `[deleted]` + red font + no link
 
-**AC3** (Mention im Freitext — ID-stable):
-- Wenn: Michael wählt „CRM-System" (id=1) im Dropdown
-- Dann: `[[CRM-System|entity:1]]` wird eingefügt; Rendering zeigt klickbares Badge „CRM-System"
+## Acceptance Criteria
 
-**AC4** (Umbenennung spiegelt sich in Rendering wider):
-- Gegeben: Entität id=1 wird von „CRM-System" auf „Salesforce CRM" umbenannt
-- Wenn: Michael öffnet die Arc42-Antwort erneut
-- Dann: Badge zeigt „Salesforce CRM"; Rohtext im `content` bleibt `[[CRM-System|entity:1]]` (unveränderter Rohwert)
+**AC1** (Dropdown opens in free text):
+- When: Michael types `[[` in the Markdown free text of the editor
+- Then: Autocomplete dropdown appears with top 10 entities; no page load needed
 
-**AC5** (Gelöschte Entität):
-- Gegeben: Entität id=1 wurde gelöscht
-- Wenn: Arc42-Antwort mit `[[CRM-System|entity:1]]` geöffnet
-- Dann: Badge zeigt `[gelöscht]` in roter Schrift; kein Link; keine Exception
+**AC2** (Live search filters results):
+- When: Michael types `[[CRM`
+- Then: Dropdown shows only entities whose name contains "CRM" (case-insensitive); results update with every additional character
 
-**AC6** (Dropdown im Mermaid-Block):
-- Wenn: Michael tippt `[[CRM` innerhalb eines ` ```mermaid `-Codeblocks (im Edit-Modus)
-- Dann: Autocomplete-Dropdown erscheint; nach Auswahl wird nur der Textname `CRM-System` eingefügt (kein Link-Markup)
+**AC3** (Mention in free text — ID-stable):
+- When: Michael selects "CRM-System" (id=1) in the dropdown
+- Then: `[[CRM-System|entity:1]]` is inserted; rendering shows a clickable badge "CRM-System"
 
-**AC7** (Dropdown im PlantUML-Block):
-- Wie AC6, für PlantUML-Codeblock
+**AC4** (Renaming is reflected in rendering):
+- Given: Entity id=1 is renamed from "CRM-System" to "Salesforce CRM"
+- When: Michael reopens the Arc42 answer
+- Then: Badge shows "Salesforce CRM"; raw text in `content` remains `[[CRM-System|entity:1]]` (unchanged raw value)
 
-**AC8** (ESC schliesst Dropdown ohne Änderung):
-- Wenn: Michael tippt `[[CR` und drückt ESC
-- Dann: Dropdown schliesst; `[[CR` bleibt als Rohtext
+**AC5** (Deleted entity):
+- Given: Entity id=1 was deleted
+- When: Arc42 answer with `[[CRM-System|entity:1]]` opened
+- Then: Badge shows `[deleted]` in red font; no link; no exception
 
-**AC9** (Web Portal: Mentions gerendert, kein Edit):
-- Wenn: CIO öffnet Arc42-Dokumentation im Web Portal
-- Dann: Mentions als Badges gerendert (mit aktuellem Namen); kein Dropdown-Trigger bei Klick auf Badge im Lese-Modus (Badge öffnet Entity-Detail)
+**AC6** (Dropdown in Mermaid block):
+- When: Michael types `[[CRM` inside a ` ```mermaid ` code block (in edit mode)
+- Then: Autocomplete dropdown appears; after selection only the text name `CRM-System` is inserted (no link markup)
 
-## Abhängigkeiten
+**AC7** (Dropdown in PlantUML block):
+- Same as AC6, for a PlantUML code block
 
-- **Voraussetzungen**: REQ-068 (WYSIWYG-Editor existiert); REQ-069 (Arc42-Tab)
-- **Neuer Backend-Endpoint**: `GET /api/v1/entities/search?q=&limit=` (auch für andere Features nutzbar, z.B. UC-05 Entity-Auswahl in Deltas)
-- **Rendering-Auflösung**: Entweder server-seitig (API liefert bereits aufgelöste Namen) oder client-seitig (Frontend löst via ID-Batch-Request auf)
+**AC8** (ESC closes dropdown without change):
+- When: Michael types `[[CR` and presses ESC
+- Then: Dropdown closes; `[[CR` remains as raw text
 
-## Realisierungs-Hinweise
+**AC9** (Web portal: mentions rendered, no edit):
+- When: CIO opens Arc42 documentation in the web portal
+- Then: Mentions rendered as badges (with current name); no dropdown trigger when clicking a badge in read mode (badge opens entity detail)
 
-- Editor-Extension: TipTap-MentionExtension (kompatibel); Trigger: `[[`; eigene SuggestionList-Komponente
-- Entitäts-Suche-Debounce: 150 ms nach letztem Tastendruck; max. 10 Ergebnisse
-- In Codeblöcken: Editor-Erweiterung muss erkennen, ob Cursor innerhalb eines Codeblocks ist → dann Text-only Insertion statt Link-Node; TipTap Code-Block-Node kennt diese Information
-- Batch-ID-Auflösung beim Öffnen: `POST /api/v1/entities/batch?ids=[1,5,42]` — einzelne Calls pro Mention wären zu viele Requests
-- XSS: Entity-Namen werden HTML-escaped vor dem Einfügen ins DOM
+## Dependencies
 
-## Realisierung
+- **Prerequisites**: REQ-068 (WYSIWYG editor exists); REQ-069 (Arc42 tab)
+- **New backend endpoint**: `GET /api/v1/entities/search?q=&limit=` (also usable for other features, e.g., UC-05 entity selection in deltas)
+- **Rendering resolution**: Either server-side (API already delivers resolved names) or client-side (frontend resolves via ID batch request)
+
+## Implementation Notes
+
+- Editor extension: TipTap MentionExtension (compatible); trigger: `[[`; custom SuggestionList component
+- Entity search debounce: 150 ms after the last keystroke; max. 10 results
+- In code blocks: the editor extension must detect whether the cursor is inside a code block → then text-only insertion instead of link node; the TipTap code block node knows this information
+- Batch ID resolution on opening: `POST /api/v1/entities/batch?ids=[1,5,42]` — individual calls per mention would be too many requests
+- XSS: entity names are HTML-escaped before insertion into the DOM
+
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |
-| 0.2.0 | 2026-06-26 | requirements-engineer | Trigger geändert von `/@` zu `[[`; Speicherformat `[[Name\|entity:ID]]`; Draw.io-Codeblock als weiterer Kontext ergänzt |
+| 0.2.0 | 2026-06-26 | requirements-engineer | Trigger changed from `/@` to `[[`; storage format `[[Name\|entity:ID]]`; Draw.io code block added as a further context |

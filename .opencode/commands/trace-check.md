@@ -1,50 +1,50 @@
-# /trace-check – Verknüpfungs-Konsistenz aller Artefakte prüfen
+# /trace-check – Check the linkage consistency of all artifacts
 
-Prüft die Konsistenz aller Requirements-Engineering-Artefakte im OEA-Repository.
+Checks the consistency of all requirements engineering artifacts in the OEA repository.
 
-## Was wird geprüft
+## What is checked
 
-1. **Zählung**: SH / UC / REQ / US / ADR
-2. **UC-Vollständigkeit**: jeder UC hat `primary_actor`, Akzeptanzkriterien, Konzept-Bezug
-3. **REQ-Vollständigkeit**: jeder REQ hat `type`, `status`, UC-Referenz
-4. **US-Vollständigkeit**: jede US hat UC-Referenz und REQ-Referenz
-5. **ADR-Vollständigkeit**: jeder ADR hat `Entscheider`
-6. **Verwaiste Referenzen**: US→REQ und US→UC auf Existenz prüfen
-7. **Stale-Referenzen**: "Inhaber des Repositorys" und "Lukas (Repository-Inhaber)"
-8. **Link-Validierung**: `python3 scripts/validate_links.py`
+1. **Count**: SH / UC / REQ / US / ADR
+2. **UC completeness**: every UC has `primary_actor`, acceptance criteria, concept reference
+3. **REQ completeness**: every REQ has `type`, `status`, UC reference
+4. **US completeness**: every US has a UC reference and a REQ reference
+5. **ADR completeness**: every ADR has `Deciders`
+6. **Orphaned references**: check US→REQ and US→UC for existence
+7. **Stale references**: "Owner of the repository" and "Lukas (Repository Owner)"
+8. **Link validation**: `python3 scripts/validate_links.py`
 
-## Ausführung
+## Execution
 
-Führe die folgenden Bash-Kommandos aus und berichte das Ergebnis als Tabelle:
+Run the following bash commands and report the result as a table:
 
 ```bash
 cd /run/host/home/lukas/Projects/oea
 
-# Zählung
+# Count
 echo "SH: $(ls business-analysis/stakeholders/SH-*.md | wc -l)"
 echo "UC: $(ls requirements/use-cases/UC-*.md | wc -l)"
 echo "REQ: $(ls requirements/req/REQ-*.md | wc -l)"
 echo "US: $(ls requirements/user-stories/US-*.md | wc -l)"
 echo "ADR: $(ls adrs/ADR-*.md | wc -l)"
 
-# UC-Vollständigkeit
+# UC completeness
 for f in requirements/use-cases/UC-*.md; do
-  grep -q "^primary_actor:" "$f" || echo "FEHLT primary_actor: $f"
-  grep -q "Akzeptanzkriteri" "$f" || echo "FEHLT AK: $f"
-  grep -q "concept\|konzept\|§\|Konzept" "$f" || echo "FEHLT Konzept-Bezug: $f"
+  grep -q "^primary_actor:" "$f" || echo "MISSING primary_actor: $f"
+  grep -q "Acceptance Criteria" "$f" || echo "MISSING AC: $f"
+  grep -qi "concept\|§" "$f" || echo "MISSING concept reference: $f"
 done
 
-# REQ-Vollständigkeit
+# REQ completeness
 for f in requirements/req/REQ-*.md; do
-  grep -q "^type:" "$f" || echo "FEHLT type: $f"
-  grep -q "^status:" "$f" || echo "FEHLT status: $f"
-  grep -q "UC-" "$f" || echo "FEHLT UC-Ref: $f"
+  grep -q "^type:" "$f" || echo "MISSING type: $f"
+  grep -q "^status:" "$f" || echo "MISSING status: $f"
+  grep -q "UC-" "$f" || echo "MISSING UC-Ref: $f"
 done
 
-# US-Vollständigkeit + verwaiste Refs
+# US completeness + orphaned refs
 for f in requirements/user-stories/US-*.md; do
-  grep -q "UC-" "$f" || echo "FEHLT UC-Ref: $f"
-  grep -q "REQ-" "$f" || echo "FEHLT REQ-Ref: $f"
+  grep -q "UC-" "$f" || echo "MISSING UC-Ref: $f"
+  grep -q "REQ-" "$f" || echo "MISSING REQ-Ref: $f"
   for req in $(grep -o "REQ-[0-9]*" "$f"); do
     num=${req#REQ-}
     ls requirements/req/REQ-${num}-*.md >/dev/null 2>&1 || echo "BROKEN REQ-Ref: $f → $req"
@@ -55,18 +55,18 @@ for f in requirements/user-stories/US-*.md; do
   done
 done
 
-# ADR-Vollständigkeit
+# ADR completeness
 for f in adrs/ADR-*.md; do
-  grep -q "Entscheider" "$f" || echo "FEHLT Entscheider: $f"
+  grep -q "Deciders" "$f" || echo "MISSING Deciders: $f"
 done
 
-# Stale-Referenzen
-grep -rn "Inhaber des Repositorys\|Lukas (Repository-Inhaber)" adrs/ requirements/ business-analysis/ || echo "Keine stale Referenzen"
+# Stale references
+grep -rn "Owner of the repository\|Lukas (Repository Owner)" adrs/ requirements/ business-analysis/ || echo "No stale references"
 
-# Link-Validierung
+# Link validation
 python3 scripts/validate_links.py
 ```
 
-## Ausgabe-Format
+## Output format
 
-Tabelle mit Anzahl und ✅ / ⚠️ / ❌ pro Kategorie. Warnungen einzeln aufführen.
+Table with count and ✅ / ⚠️ / ❌ per category. List warnings individually.

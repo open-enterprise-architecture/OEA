@@ -1,32 +1,31 @@
-# Ableitung aus: requirements/req/req-115-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-115-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-19
-Feature: REQ-115 – TRM-Kategorie-Hierarchie verwalten
+Feature: REQ-115 – Manage TRM category hierarchy
 
-  Das System MUSS das Anlegen, Umbenennen und Löschen von
-  TRM-Kategorien mit `scope=organization` ermöglichen. Beim Anlegen
-  MUSS das `level`-Feld automatisch als `parent.level + 1` gesetzt
-  werden.
+  The system MUST allow creating, renaming and deleting
+  TRM categories with `scope=organization`. On creation,
+  the `level` field MUST be set automatically to `parent.level + 1`.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Automatisches level – eine Unterkategorie unter „Security Services" angelegt wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  eine Unterkategorie unter „Security Services" angelegt wird
-    Then  ist das `level`-Feld automatisch auf `parent.level + 1` gesetzt
+  Scenario: AC1 – Automatic level – a subcategory is created under "Security Services"
+    Given the precondition according to the requirement is met
+    When  a subcategory is created under "Security Services"
+    Then  the `level` field is automatically set to `parent.level + 1`
 
   @AC2
-  Scenario: AC2 – Löschen mit Unterknoten – eine Kategorie mit 3 Unterknoten gelöscht werden soll
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  eine Kategorie mit 3 Unterknoten gelöscht werden soll
-    Then  antwortet das System mit HTTP 422 „Unterknoten müssen zuerst entfernt werden"
+  Scenario: AC2 – Delete with child nodes – a category with 3 child nodes is to be deleted
+    Given the precondition according to the requirement is met
+    When  a category with 3 child nodes is to be deleted
+    Then  the system responds with HTTP 422 "Child nodes must be removed first"
 
   @AC3
-  Scenario: AC3 – Drag & Drop Zyklus-Schutz – eine Kategorie per Drag & Drop unter einen ihrer eigenen Nachkommen gezo...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  eine Kategorie per Drag & Drop unter einen ihrer eigenen Nachkommen gezogen wird
-    Then  wird der Drop visuell blockiert; ein API-Versuch antwortet mit HTTP 422
+  Scenario: AC3 – Drag & drop cycle protection – a category is dragged via drag & drop under one of its own descendants...
+    Given the precondition according to the requirement is met
+    When  a category is dragged via drag & drop under one of its own descendants
+    Then  the drop is visually blocked; an API attempt responds with HTTP 422

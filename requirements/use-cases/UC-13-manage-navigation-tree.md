@@ -1,6 +1,6 @@
 ---
 id: UC-13
-title: Navigationsbaum verwalten
+title: Manage Navigation Tree
 status: draft
 priority: must
 target_release: v1.0
@@ -21,31 +21,31 @@ references:
   user_stories:
     - requirements/user-stories/US-054-navigationsbaum-strukturieren.md
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
+    - concept/20-entities/06-core-entity-types.md
   related_use_cases:
     - UC-05
     - UC-06
     - UC-11
 ---
 
-# UC-13: Navigationsbaum verwalten
+# UC-13: Manage Navigation Tree
 
-## Diagramm
+## Diagram
 
 ```plantuml
-@startuml UC-13-Navigationsbaum
+@startuml UC-13-NavigationTree
 left to right direction
 skinparam actorStyle awesome
 
 actor "Kurt\n(Lead EA)" as Kurt
-actor "Michael\n(Solution Architekt)" as Michael
+actor "Michael\n(Solution Architect)" as Michael
 
-rectangle "OEA – Navigationsbaum verwalten" {
-  usecase "Ordner anlegen" as UC_Folder
-  usecase "Item hinzufügen\n(Entität / Diagramm / Katalog)" as UC_Item
-  usecase "Ordner umbenennen\n& verschieben" as UC_Rename
-  usecase "Ordner löschen\n(Soft-Reference-Prinzip)" as UC_Delete
-  usecase "Repository-Inhalt\nbrowsen" as UC_Browse
+rectangle "OEA – Manage Navigation Tree" {
+  usecase "Create Folder" as UC_Folder
+  usecase "Add Item\n(Entity / Diagram / Catalog)" as UC_Item
+  usecase "Rename &\nMove Folder" as UC_Rename
+  usecase "Delete Folder\n(Soft-Reference Principle)" as UC_Delete
+  usecase "Browse Repository\nContent" as UC_Browse
 }
 
 Kurt --> UC_Folder
@@ -61,176 +61,176 @@ UC_Folder ..> UC_Item : <<extend>>
 
 ## Goal in Context
 
-Ein wachsendes EA-Repository — mit Hunderten von Entitäten, Diagrammen und Katalogen — braucht eine fachlich sinnvolle Struktur, die unabhängig von der internen Datenhaltung ist. Der Lead Enterprise Architekt organisiert Repository-Inhalte im Navigationsbaum so, dass alle Nutzerinnen und Nutzer den Inhalt schnell finden und in einer vertrauten Logik durchsuchen können.
+A growing EA repository — with hundreds of entities, diagrams and catalogs — needs a business-meaningful structure that is independent of the internal data storage. The Lead Enterprise Architect organizes repository content in the navigation tree so that all users can find content quickly and browse it in a familiar logic.
 
-Wichtig: Der Navigationsbaum ist reine Navigation. Er speichert keine Inhalte; er verweist auf bestehende Entitäten, Diagramme und Kataloge. Das Löschen eines Ordners löscht nie die referenzierten Inhalte — nur den Navigationseintrag (Soft-Reference-Prinzip).
+Important: The navigation tree is pure navigation. It stores no content; it refers to existing entities, diagrams and catalogs. Deleting a folder never deletes the referenced content — only the navigation entry (soft-reference principle).
 
-## Persona und Story
+## Persona and Story
 
-**Primärer Akteur**: [Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
+**Primary Actor**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 
-**Weitere Beteiligte**: [Michael – Solution Architekt](../../business-analysis/stakeholders/SH-04-michael-solution-architekt.md) (legt Inhalte an, die Kurt in den Baum einhängt; kein aktiver Schritt in diesem UC)
+**Other Stakeholders**: [Michael – Solution Architect](../../business-analysis/stakeholders/SH-04-michael-solution-architect.md) (creates content that Kurt attaches to the tree; no active step in this UC)
 
-**Story**: Als Lead Enterprise Architekt möchte ich das Architecture-Repository in einer Ordnerstruktur organisieren, damit alle Beteiligten Entitäten, Diagramme und Kataloge schnell finden — ohne die semantische Verknüpfung der Daten zu verändern.
+**Story**: As a Lead Enterprise Architect, I want to organize the architecture repository in a folder structure so that all stakeholders can quickly find entities, diagrams and catalogs — without changing the semantic linking of the data.
 
 ## Trigger
 
-1. Eine neue Fachdomäne oder Initiative soll im Repository strukturiert werden → neuer Ordner anlegen
-2. Ein Inhalt (Entität, Diagramm, Katalog) wurde neu angelegt und soll im Baum sichtbar sein → Item hinzufügen
-3. Die bestehende Ordnerstruktur passt nicht mehr zur Organisation → Ordner umbenennen, verschieben oder reorganisieren
-4. Ein veralteter Ordner soll entfernt werden → Ordner löschen
+1. A new business domain or initiative is to be structured in the repository → create new folder
+2. Content (entity, diagram, catalog) has been newly created and is to be visible in the tree → add item
+3. The existing folder structure no longer fits the organization → rename, move or reorganize folders
+4. An obsolete folder is to be removed → delete folder
 
-## Vorbedingungen (Pre-Conditions)
+## Preconditions
 
-- [ ] Kurt ist eingeloggt (UC-01) und hat die Rolle „EA-Manager" oder eine Rolle mit Repository-Organisations-Berechtigung
-- [ ] Die OEA-Instanz ist eingerichtet; der Wurzelknoten existiert (wird automatisch beim Instanz-Setup angelegt)
-- [ ] Für das Hinzufügen von Items: die Entität, das Diagramm oder der Katalog existiert bereits im Repository
+- [ ] Kurt is logged in (UC-01) and has the role "EA Manager" or a role with repository organization permission
+- [ ] The OEA instance is set up; the root node exists (created automatically during instance setup)
+- [ ] For adding items: the entity, diagram or catalog already exists in the repository
 
-## Nachbedingungen (Post-Conditions)
+## Postconditions
 
-### Bei Erfolg
+### On Success
 
-- Der Navigationsbaum reflektiert die gewünschte Struktur
-- Referenzierte Objekte (Entitäten, Diagramme, Kataloge) sind inhaltlich unverändert
-- `sortOrder`-Werte sind konsistent (keine Lücken nötig; das System erlaubt beliebige Reihenfolgen)
+- The navigation tree reflects the desired structure
+- Referenced objects (entities, diagrams, catalogs) are unchanged in content
+- `sortOrder` values are consistent (no gaps necessary; the system allows arbitrary orders)
 
-### Bei Misserfolg
+### On Failure
 
-- Keine Änderung am Baum; betroffene Knoten und Items unverändert
-- Fehlermeldung mit konkretem Hinweis
+- No change to the tree; affected nodes and items unchanged
+- Error message with a concrete hint
 
-## Hauptablauf (Basic Flow)
+## Basic Flow
 
-*Standardfall: Kurt legt einen neuen Ordner an und hängt Inhalte ein*
+*Default case: Kurt creates a new folder and attaches content*
 
-1. **Kurt**: öffnet den Navigationsbaum im Client App oder Web Portal
-2. **System**: zeigt den Baum ab Wurzelknoten; Ordner aufklappbar/zuklappbar; Items mit Typ-Icon (Entität, Diagramm, Katalog)
-3. **Kurt**: wählt einen bestehenden Knoten als Elternknoten und klickt „Neuer Ordner"
-4. **System**: legt einen neuen TreeNode direkt im Baum als editierbaren Inline-Eintrag an
-5. **Kurt**: gibt Namen ein und bestätigt (Enter oder Fokus-Verlust)
-6. **System**: validiert (BR-01: Name eindeutig unter Geschwistern); persistiert; zeigt neuen Ordner im Baum
-7. **Kurt**: wählt den neuen Ordner aus und klickt „Inhalt hinzufügen"
-8. **System**: öffnet einen Such-Dialog über alle Repository-Inhalte:
-   - Suche nach Name / Entitätstyp / Katalogtitel
-   - Filter nach Inhaltstyp: Entität, Diagramm, Katalog
-   - Mehrfachauswahl möglich
-9. **Kurt**: wählt einen oder mehrere Inhalte aus und bestätigt
-10. **System**: legt `TreeNodeItem`-Einträge an; zeigt Items im Ordner
-11. **Kurt**: passt die Reihenfolge per Drag & Drop an (sortOrder)
-12. **System**: persistiert die neue `sortOrder`-Reihenfolge
+1. **Kurt**: opens the navigation tree in the client app or web portal
+2. **System**: shows the tree starting from the root node; folders expandable/collapsible; items with type icon (entity, diagram, catalog)
+3. **Kurt**: selects an existing node as parent node and clicks "New folder"
+4. **System**: creates a new TreeNode directly in the tree as an editable inline entry
+5. **Kurt**: enters a name and confirms (Enter or focus loss)
+6. **System**: validates (BR-01: name unique among siblings); persists; shows new folder in the tree
+7. **Kurt**: selects the new folder and clicks "Add content"
+8. **System**: opens a search dialog across all repository content:
+   - Search by name / entity type / catalog title
+   - Filter by content type: entity, diagram, catalog
+   - Multi-select possible
+9. **Kurt**: selects one or more content items and confirms
+10. **System**: creates `TreeNodeItem` entries; shows items in the folder
+11. **Kurt**: adjusts the order via drag & drop (sortOrder)
+12. **System**: persists the new `sortOrder` order
 
-## Alternative Abläufe (Alternative Flows)
+## Alternative Flows
 
-**A1 – Ordner umbenennen**
+**A1 – Rename folder**
 
-1. **Kurt**: doppelklickt auf einen Ordnernamen (oder Kontextmenü → „Umbenennen")
-2. **System**: macht den Namen inline editierbar
-3. **Kurt**: ändert den Namen und bestätigt
-4. **System**: validiert (BR-01); persistiert; zeigt neuen Namen
+1. **Kurt**: double-clicks a folder name (or context menu → "Rename")
+2. **System**: makes the name inline editable
+3. **Kurt**: changes the name and confirms
+4. **System**: validates (BR-01); persists; shows new name
 
-**A2 – Ordner oder Item verschieben**
+**A2 – Move folder or item**
 
-1. **Kurt**: zieht einen Ordner oder ein Item per Drag & Drop auf einen anderen Elternknoten
-2. **System**: prüft:
-   - BR-03: kein Zyklus (Ordner darf nicht in einen eigenen Nachkommen verschoben werden)
-   - BR-01: Name des verschobenen Ordners muss im Zielknoten eindeutig sein
-3. **System**: aktualisiert `parentId` und `sortOrder`; zeigt den Baum aktualisiert
+1. **Kurt**: drags a folder or an item via drag & drop onto another parent node
+2. **System**: checks:
+   - BR-03: no cycle (a folder must not be moved into one of its own descendants)
+   - BR-01: name of the moved folder must be unique in the target node
+3. **System**: updates `parentId` and `sortOrder`; shows the updated tree
 
-**A3 – Item aus einem Ordner entfernen**
+**A3 – Remove item from a folder**
 
-1. **Kurt**: wählt ein Item im Ordner → Kontextmenü → „Aus diesem Ordner entfernen"
-2. **System**: zeigt Hinweis: „Nur der Navigationseintrag wird entfernt. Die Entität / das Diagramm / der Katalog bleibt erhalten."
-3. **Kurt**: bestätigt
-4. **System**: entfernt das `TreeNodeItem`; das referenzierte Objekt ist unverändert; verbleibende Verweise auf dasselbe Objekt in anderen Ordnern bleiben gültig (BR-06)
+1. **Kurt**: selects an item in the folder → context menu → "Remove from this folder"
+2. **System**: shows notice: "Only the navigation entry is removed. The entity / diagram / catalog is retained."
+3. **Kurt**: confirms
+4. **System**: removes the `TreeNodeItem`; the referenced object is unchanged; remaining references to the same object in other folders stay valid (BR-06)
 
-**A4 – Ordner löschen**
+**A4 – Delete folder**
 
-1. **Kurt**: wählt einen Ordner → Kontextmenü → „Ordner löschen"
-2. **System**: prüft BR-02 (Wurzelknoten nicht löschbar); zeigt Warnung:
-   - „Dieser Ordner und alle N Unterordner und M Einträge werden gelöscht."
-   - „Die referenzierten Entitäten, Diagramme und Kataloge bleiben erhalten." (BR-05)
-3. **Kurt**: bestätigt
-4. **System**: löscht den Ordner rekursiv (alle Kinder und Items); referenzierte Objekte unberührt (BR-05)
+1. **Kurt**: selects a folder → context menu → "Delete folder"
+2. **System**: checks BR-02 (root node not deletable); shows warning:
+   - "This folder and all N subfolders and M entries will be deleted."
+   - "The referenced entities, diagrams and catalogs are retained." (BR-05)
+3. **Kurt**: confirms
+4. **System**: deletes the folder recursively (all children and items); referenced objects untouched (BR-05)
 
-**A5 – Dasselbe Objekt in mehrere Ordner einhängen**
+**A5 – Attach the same object to several folders**
 
-1. **Kurt**: navigiert zu einem zweiten Ordner und klickt „Inhalt hinzufügen" (Schritt 7)
-2. **Kurt**: sucht und wählt dasselbe Objekt (z.B. denselben Katalog), das bereits in einem anderen Ordner liegt
-3. **System**: legt einen zweiten `TreeNodeItem`-Eintrag an (anderer Ordner, selbe `referenceId`) — BR-06 explizit erlaubt
-4. **System**: zeigt das Objekt jetzt in beiden Ordnern; kein Duplikat der Daten
+1. **Kurt**: navigates to a second folder and clicks "Add content" (step 7)
+2. **Kurt**: searches and selects the same object (e.g., the same catalog) that already lies in another folder
+3. **System**: creates a second `TreeNodeItem` entry (different folder, same `referenceId`) — explicitly allowed by BR-06
+4. **System**: now shows the object in both folders; no duplicate of the data
 
-**A6 – Wurzelknoten umbenennen**
+**A6 – Rename root node**
 
-1. **Kurt**: doppelklickt auf den Wurzelknoten
-2. **System**: macht den Namen editierbar (BR-02: nur Umbenennen erlaubt, kein Löschen)
-3. **Kurt**: gibt neuen Namen ein (z.B. Unternehmensname) und bestätigt
-4. **System**: persistiert; zeigt neuen Wurzelnamen
+1. **Kurt**: double-clicks the root node
+2. **System**: makes the name editable (BR-02: only renaming allowed, no deletion)
+3. **Kurt**: enters a new name (e.g., company name) and confirms
+4. **System**: persists; shows new root name
 
-## Ausnahmen / Fehlerfälle (Exception Flows)
+## Exception Flows
 
-**E1 – Name nicht eindeutig unter Geschwistern (BR-01)**
-- Bedingung: Ein Ordner oder umbenannter Ordner hat denselben Namen wie ein Geschwisterknoten
-- Erwartete Reaktion: Inline-Validierungsfehler; Speichern blockiert bis der Name geändert wird
-- Wiederaufnahme: Kurt wählt einen anderen Namen
+**E1 – Name not unique among siblings (BR-01)**
+- Condition: A folder or renamed folder has the same name as a sibling node
+- Expected reaction: Inline validation error; saving blocked until the name is changed
+- Resumption: Kurt chooses a different name
 
-**E2 – Zyklus beim Verschieben (BR-03)**
-- Bedingung: Kurt versucht, einen Ordner in einen seiner eigenen Nachkommen zu ziehen
-- Erwartete Reaktion: Drag & Drop visuell blockiert (kein gültiges Drop-Target); bei API-Versuch 422 mit Fehlermeldung
-- Wiederaufnahme: Kurt wählt ein gültiges Ziel
+**E2 – Cycle when moving (BR-03)**
+- Condition: Kurt tries to drag a folder into one of its own descendants
+- Expected reaction: Drag & drop visually blocked (no valid drop target); on API attempt 422 with error message
+- Resumption: Kurt selects a valid target
 
-**E3 – Wurzelknoten löschen versucht (BR-02)**
-- Bedingung: Kurt versucht, den Wurzelknoten zu löschen
-- Erwartete Reaktion: Löschen-Option im Kontextmenü des Wurzelknotens nicht vorhanden
-- Wiederaufnahme: nicht nötig; UI verhindert die Aktion
+**E3 – Attempt to delete root node (BR-02)**
+- Condition: Kurt tries to delete the root node
+- Expected reaction: Delete option not present in the context menu of the root node
+- Resumption: not necessary; UI prevents the action
 
-**E4 – Referenziertes Objekt existiert nicht mehr (BR-04)**
-- Bedingung: Ein `TreeNodeItem` verweist auf ein Objekt, das zwischenzeitlich gelöscht wurde (z.B. Katalog gelöscht)
-- Erwartete Reaktion: Item wird im Baum mit „[Inhalt nicht mehr vorhanden]" und Warnsymbol angezeigt; Kurt kann es über „Entfernen" bereinigen
-- Wiederaufnahme: Kurt entfernt das verwaiste Item (A3) oder stellt das Objekt wieder her
+**E4 – Referenced object no longer exists (BR-04)**
+- Condition: A `TreeNodeItem` refers to an object that has been deleted in the meantime (e.g., catalog deleted)
+- Expected reaction: Item is shown in the tree with "[Content no longer available]" and warning symbol; Kurt can clean it up via "Remove"
+- Resumption: Kurt removes the orphaned item (A3) or restores the object
 
-**E5 – Fehlende Berechtigung**
-- Bedingung: Eingeloggte Person hat keine Repository-Organisations-Berechtigung
-- Erwartete Reaktion: Baum ist lesbar (read-only); Bearbeitungsoptionen (Neuer Ordner, Verschieben, Löschen) nicht sichtbar
-- Wiederaufnahme: Person wendet sich an Admin (UC-02)
+**E5 – Missing permission**
+- Condition: Logged-in person has no repository organization permission
+- Expected reaction: Tree is readable (read-only); editing options (new folder, move, delete) not visible
+- Resumption: Person contacts the admin (UC-02)
 
-## Datenfluss
+## Data Flow
 
-| Schritt | Daten | Richtung | Bemerkung |
+| Step | Data | Direction | Remark |
 |---|---|---|---|
-| 2 | Baumstruktur (TreeNodes + Items mit Typ und Name) | System → Kurt | Vollständig ab Wurzelknoten; lazy-loaded bei tiefen Bäumen |
-| 5 | Name des neuen Ordners | Kurt → System | Inline-Eingabe |
-| 8–9 | Suche + Auswahl (referenceId, itemType, displayLabel) | Kurt → System | Mehrfachauswahl möglich |
-| 11 | sortOrder-Änderungen (ItemId, neuer sortOrder) | Kurt → System | Drag & Drop |
-| A2 | parentId, sortOrder (verschobener Knoten) | Kurt → System | Drag & Drop; BR-01/BR-03 geprüft |
+| 2 | Tree structure (TreeNodes + items with type and name) | System → Kurt | Complete from root node; lazy-loaded for deep trees |
+| 5 | Name of the new folder | Kurt → System | Inline input |
+| 8–9 | Search + selection (referenceId, itemType, displayLabel) | Kurt → System | Multi-select possible |
+| 11 | sortOrder changes (ItemId, new sortOrder) | Kurt → System | Drag & drop |
+| A2 | parentId, sortOrder (moved node) | Kurt → System | Drag & drop; BR-01/BR-03 checked |
 
-## Beteiligte Business Objects
+## Involved Business Objects
 
-| Business Object | Operation | Notiz |
+| Business Object | Operation | Note |
 |---|---|---|
-| [tree-node](../../business-objects/tree-node.md) | create, update, delete | Kern-Objekt; Wurzelknoten nicht löschbar (BR-02) |
-| [catalog](../../business-objects/catalog.md) | read | Als Item-Ziel referenzierbar; inhaltlich unverändert |
-| [entity](../../business-objects/entity.md) | read | Als Item-Ziel referenzierbar; inhaltlich unverändert |
-| [person](../../business-objects/person.md) | read | `createdBy`; Berechtigungsprüfung |
-| [role](../../business-objects/role.md) | read | Repository-Organisations-Berechtigung prüfen |
+| [tree-node](../../business-objects/tree-node.md) | create, update, delete | Core object; root node not deletable (BR-02) |
+| [catalog](../../business-objects/catalog.md) | read | Referenceable as item target; unchanged in content |
+| [entity](../../business-objects/entity.md) | read | Referenceable as item target; unchanged in content |
+| [person](../../business-objects/person.md) | read | `createdBy`; permission check |
+| [role](../../business-objects/role.md) | read | Check repository organization permission |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] Neuen Ordner unter beliebigem Elternknoten anlegen; Inline-Bearbeitung des Namens
-- [ ] E1: Doppelter Name unter Geschwistern wird mit Inline-Fehler abgelehnt (BR-01)
-- [ ] Items hinzufügen via Such-Dialog (Entität, Diagramm, Katalog); Mehrfachauswahl
-- [ ] A5: Dasselbe Objekt kann in mehreren Ordnern gleichzeitig referenziert sein (BR-06)
-- [ ] A1: Ordner umbenennen via Doppelklick / Inline-Edit
-- [ ] A2: Ordner und Items per Drag & Drop verschieben; BR-03 (Zyklus) visuell verhindert
-- [ ] A3: Item aus Ordner entfernen mit Hinweis auf Soft-Reference; referenziertes Objekt bleibt erhalten
-- [ ] A4: Ordner löschen mit Warnung (N Kinder, M Items betroffen); referenzierte Objekte bleiben erhalten (BR-05)
-- [ ] E3: Wurzelknoten hat keine Löschen-Option (BR-02); Umbenennen via A6 möglich
-- [ ] E4: Verwaiste Items (Ziel gelöscht) werden mit Warnsymbol angezeigt und können entfernt werden
-- [ ] E5: Ohne Berechtigung ist der Baum read-only; Bearbeitungsoptionen nicht sichtbar
-- [ ] US-054: Navigationsbaum strukturieren ist vollständig durch diesen UC abgedeckt
+- [ ] Create a new folder under any parent node; inline editing of the name
+- [ ] E1: Duplicate name among siblings is rejected with an inline error (BR-01)
+- [ ] Add items via search dialog (entity, diagram, catalog); multi-select
+- [ ] A5: The same object can be referenced in several folders at the same time (BR-06)
+- [ ] A1: Rename folder via double-click / inline edit
+- [ ] A2: Move folders and items via drag & drop; BR-03 (cycle) visually prevented
+- [ ] A3: Remove item from folder with notice about soft reference; referenced object is retained
+- [ ] A4: Delete folder with warning (N children, M items affected); referenced objects are retained (BR-05)
+- [ ] E3: Root node has no delete option (BR-02); renaming possible via A6
+- [ ] E4: Orphaned items (target deleted) are shown with a warning symbol and can be removed
+- [ ] E5: Without permission, the tree is read-only; editing options not visible
+- [ ] US-054: Structuring the navigation tree is fully covered by this UC
 
-## Nicht im Scope
+## Out of Scope
 
-- **Inhalte anlegen**: Entitäten, Diagramme und Kataloge werden in ihren eigenen UCs angelegt (UC-05, UC-06, künftige Diagramm-UCs); UC-13 organisiert nur bestehende Inhalte
-- **Berechtigungen pro Ordner**: Zugriffssteuerung über TreeNodes ist nicht geplant (v1.0); Berechtigungen werden rollen- und instanzweit vergeben
-- **Mehrere Bäume pro Instanz**: In v1.0 gibt es genau einen Navigationsbaum pro Instanz; mehrere benannte Bäume sind deferred
-- **Baum-Export/Import**: kein v1.0-Feature; der Baum ist instanzspezifische Navigation, kein portables Artefakt
+- **Creating content**: entities, diagrams and catalogs are created in their own UCs (UC-05, UC-06, future diagram UCs); UC-13 only organizes existing content
+- **Permissions per folder**: access control via TreeNodes is not planned (v1.0); permissions are assigned role-based and instance-wide
+- **Multiple trees per instance**: In v1.0 there is exactly one navigation tree per instance; multiple named trees are deferred
+- **Tree export/import**: not a v1.0 feature; the tree is instance-specific navigation, not a portable artifact

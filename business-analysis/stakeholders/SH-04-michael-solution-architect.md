@@ -1,82 +1,82 @@
-# Stakeholder: Michael – Solution Architekt im Mittelstand
+# Stakeholder: Michael – Solution Architect in a Mid-Sized Company
 
 **ID**: SH-04
-**Typ**: persona
-**Bezug zum Tool**: primary
+**Type**: persona
+**Relation to the Tool**: primary
 **Internal/External**: internal
 
-## Kurzbeschreibung
+## Short Description
 
-Michael ist Solution Architekt in einem Mittelstands-Unternehmen, das Sparx Enterprise Architect einsetzt. Er arbeitet projektnah, modelliert konkrete Lösungen mit UML, BPMN und ArchiMate. Sparx ist mächtig, aber für sein Pipeline- und Code-Review-orientiertes Arbeiten ein Fremdkörper.
+Michael is a solution architect in a mid-sized company that uses Sparx Enterprise Architect. He works close to projects and models concrete solutions with UML, BPMN, and ArchiMate. Sparx is powerful, but for his pipeline- and code-review-oriented way of working it is a foreign body.
 
-## Rolle und Verantwortung
+## Role and Responsibility
 
-- **Aktuelle Rolle**: Solution Architekt (5-8 Jahre Erfahrung, davon mehrere mit Sparx)
-- **Organisation/Branche**: Mittelstand, oft Software-getriebene Branche
-- **Erfahrungsniveau**: hoch in UML/BPMN/ArchiMate-Modellierung, hoch in Software-Engineering
-- **Tägliche Hauptaufgaben**:
-  - Solution-Design für konkrete Projekte
-  - Sequenz- und Komponentendiagramme erstellen
-  - Schnittstellen-Verträge dokumentieren
-  - Code-Reviews mit Architektur-Bezug
-  - Mentoring von Junior-Entwicklern bei Design-Fragen
+- **Current role**: Solution architect (5-8 years of experience, several of them with Sparx)
+- **Organization/industry**: Mid-sized company, often software-driven industry
+- **Experience level**: high in UML/BPMN/ArchiMate modeling, high in software engineering
+- **Main daily tasks**:
+  - Solution design for concrete projects
+  - Create sequence and component diagrams
+  - Document interface contracts
+  - Code reviews with architecture relevance
+  - Mentoring junior developers on design questions
 
-## Beziehung zum OEA
+## Relation to OEA
 
-- **Nutzungsfrequenz**: täglich (während aktiver Projekte)
-- **Hauptnutzung**: pflegen (modellieren), exportieren (für Doku und Reviews)
-- **Technisches Niveau**: sehr hoch (Git, IDE-Integration, CI/CD-Workflows)
-- **Bevorzugte Schnittstelle**: CLI mit Editor-Integration, UI nur wo zwingend nötig
+- **Usage frequency**: daily (during active projects)
+- **Main usage**: maintain (model), export (for documentation and reviews)
+- **Technical level**: very high (Git, IDE integration, CI/CD workflows)
+- **Preferred interface**: CLI with editor integration, UI only where absolutely necessary
 
-## Aktuelle Pain Points
+## Current Pain Points
 
-- **Sparx ist nicht Git-fähig**: Die `.eap`-Datei ist binär, lässt sich nicht diff-en und nicht in Pull Requests reviewen. XMI-Export ist ein notdürftiger Workaround.
-- **Wissens-Monopol durch Tool-Komplexität**: Sparx-Kenntnis ist selten, also wird Michael zur Bottleneck für jede Modell-Änderung. Reviews finden nicht statt, weil andere Sparx nicht öffnen wollen.
-- **Lizenzkosten skalieren mit Nutzern**: Sparx wird nicht jeder Solution Architekt bekommen, also entsteht ein Silo. Fachbereich kann ohnehin nicht zugreifen.
-- **Visuelle Qualität bleibt hinter modernen Tools zurück**: Sparx-Diagramme sehen technisch korrekt aus, aber Stakeholder reagieren auf moderne Tools deutlich besser.
-- **Diagramm-Updates verteilen sich nicht automatisch**: Eine Architektur-Änderung erfordert manuelles Nachziehen vieler Diagramme. Inkonsistenzen sind die Regel.
-- **Sequenzdiagramme sind sein täglich Brot**: Hier ist Sparx mächtig, aber Pflege bleibt umständlich. PlantUML wäre für ihn fast besser, aber es ist nicht ins OEA integriert.
+- **Sparx is not Git-capable**: The `.eap` file is binary, cannot be diffed, and cannot be reviewed in pull requests. XMI export is a makeshift workaround.
+- **Knowledge monopoly due to tool complexity**: Sparx knowledge is rare, so Michael becomes the bottleneck for every model change. Reviews do not take place because others do not want to open Sparx.
+- **License costs scale with users**: Not every solution architect will get Sparx, so a silo emerges. The business unit cannot access it anyway.
+- **Visual quality lags behind modern tools**: Sparx diagrams look technically correct, but stakeholders respond noticeably better to modern tools.
+- **Diagram updates do not propagate automatically**: An architecture change requires manually updating many diagrams. Inconsistencies are the rule.
+- **Sequence diagrams are his daily bread**: Sparx is powerful here, but maintenance remains cumbersome. PlantUML would almost be better for him, but it is not integrated into OEA.
 
 ## Concerns
 
-| Concern | Kategorie | Severity |
+| Concern | Category | Severity |
 |---|---|---|
-| Git-natives Arbeiten (Pull Requests, Diffs, CI) | functional | blocking |
-| Brauchbare UML- und Sequenz-Diagramme | functional | blocking |
-| Migration aus Sparx (XMI-Import) machbar | compatibility | blocking |
-| Fachbereich kann Modelle lesen ohne Tool-Lizenz | usability | worrying |
-| Visuelle Qualität für Stakeholder-Präsentationen | usability | worrying |
-| BPMN-Modellierung als integriertes Konzept | functional | worrying |
-| Schnittstellen-Verträge versionierbar in Pipelines | functional | worrying |
-| Skill-Übertragbarkeit auf Junior-Entwickler | usability | worrying |
+| Git-native working (pull requests, diffs, CI) | functional | blocking |
+| Usable UML and sequence diagrams | functional | blocking |
+| Migration from Sparx (XMI import) feasible | compatibility | blocking |
+| Business unit can read models without tool license | usability | worrying |
+| Visual quality for stakeholder presentations | usability | worrying |
+| BPMN modeling as an integrated concept | functional | worrying |
+| Interface contracts versionable in pipelines | functional | worrying |
+| Skill transferability to junior developers | usability | worrying |
 
-## Erfolgskriterien
+## Success Criteria
 
-- [ ] Architektur-Modelle in PRs reviewbar (Diff sichtbar, Kommentare möglich)
-- [ ] Sequenzdiagramme aus Repository-Daten generierbar, vergleichbarer Qualität wie Sparx oder PlantUML
-- [ ] >70% des bestehenden Sparx-Modells automatisch migrierbar
-- [ ] Junior-Entwickler können Modelle lesen ohne Tool-Lizenz und ohne EA-Vorerfahrung
-- [ ] BPMN-Prozesse modellierbar oder importierbar mit klarer Mapping-Konvention
-- [ ] Inkonsistenzen zwischen Modell und Code automatisch erkennbar (CI-Validierung)
+- [ ] Architecture models reviewable in PRs (diff visible, comments possible)
+- [ ] Sequence diagrams generatable from repository data, of comparable quality to Sparx or PlantUML
+- [ ] >70% of the existing Sparx model automatically migratable
+- [ ] Junior developers can read models without tool license and without prior EA experience
+- [ ] BPMN processes modelable or importable with a clear mapping convention
+- [ ] Inconsistencies between model and code automatically detectable (CI validation)
 
-## Beteiligte Use Cases
+## Involved Use Cases
 
-<!-- Wird gefüllt, sobald Use Cases definiert sind -->
+<!-- To be filled once use cases are defined -->
 
-## Konzept-Bezüge
+## Concept References
 
-- [§6 Kern-Entitätstypen](../../concept/20-entities/06-kern-entitaetstypen.md) – BPMN-Integration relevant
-- [§9 Prozess-Architektur](../../concept/20-entities/09-prozess-architektur.md) – BPMN als Adapter-Modul
-- [§13 Verlinkung Fach- und Technik-Ebene](../../concept/30-dynamics/13-fach-technik-verlinkung.md)
-- [§21 API-Architektur und Modularität](../../concept/70-platform/21-api-architektur.md) – Pipeline-Tauglichkeit
-- [§21.2.1 Visualisierungs-Strategie](../../concept/70-platform/21-api-architektur.md) – Sequenzdiagramme als Use Case
+- [§6 Core Entity Types](../../concept/20-entities/06-core-entity-types.md) – BPMN integration relevant
+- [§9 Process Architecture](../../concept/20-entities/09-process-architecture.md) – BPMN as adapter module
+- [§13 Business–Technology Linking](../../concept/30-dynamics/13-business-technology-linking.md)
+- [§21 API Architecture and Modularity](../../concept/70-platform/21-api-architecture.md) – pipeline suitability
+- [§21.2.1 Visualization Strategy](../../concept/70-platform/21-api-architecture.md) – sequence diagrams as a use case
 
-## Notizen
+## Notes
 
-Michael ist der **Entwickler-affine Architekt**. Er erwartet vom Tool dieselbe Workflow-Qualität wie von modernen Dev-Tools (Git, IDE, CI/CD). Sparx fühlt sich für ihn wie ein Fremdkörper an.
+Michael is the **developer-affine architect**. He expects the same workflow quality from the tool as from modern dev tools (Git, IDE, CI/CD). Sparx feels like a foreign body to him.
 
-**Sequenzdiagramme als Killer-Feature**: Hier ist die Konzept-Entscheidung "PlantUML für Sequenzdiagramme" aus §21.2.1 direkt für Michael relevant. Wenn Sequenzdiagramme schlechter sind als in Sparx oder PlantUML solo, ist das ein KO-Kriterium.
+**Sequence diagrams as a killer feature**: Here the concept decision "PlantUML for sequence diagrams" from §21.2.1 is directly relevant for Michael. If sequence diagrams are worse than in Sparx or PlantUML standalone, that is a knockout criterion.
 
-**Sparx-Vergleichsmaßstab**: Sparx kann viel, ist aber nicht in jedem Aspekt gut. Pipeline-Eignung und Git-Workflow sind klare Gewinne für das neue Tool – Layout-Kontrolle und UML-Reichhaltigkeit sind die kritischen Verlust-Risiken.
+**Sparx benchmark**: Sparx can do a lot, but is not good in every aspect. Pipeline suitability and Git workflow are clear wins for the new tool – layout control and UML richness are the critical risks of loss.
 
-**Brücke zu Entwicklern**: Wenn das Tool für Michael funktioniert, ist es auch für Entwickler attraktiv, die Architektur-Dokumentation lesen sollen. Das ist ein wichtiger Multiplikator.
+**Bridge to developers**: If the tool works for Michael, it is also attractive for developers who are supposed to read architecture documentation. This is an important multiplier.

@@ -1,8 +1,8 @@
-## 10. Weitere Cross-Cutting-Konzepte
+## 10. Additional Cross-Cutting Concepts
 
-Kürzer gefasste Ergänzungen, die das Metamodell abrunden.
+Briefer supplements that round out the metamodel.
 
-### 10.1 Location und Geography
+### 10.1 Location and Geography
 
 ```yaml
 EntityType: Location
@@ -10,7 +10,7 @@ EntityType: Location
     - name
     - type: country | region | city | site | building | room | zone | cloud-region
     - coordinates: {lat, lng}
-    - jurisdictionalRegion: string  # für Compliance (EU, US, APAC)
+    - jurisdictionalRegion: string  # for compliance (EU, US, APAC)
     - dataResidencyZone: string
   relations:
     - partOf: Location
@@ -18,13 +18,13 @@ EntityType: Location
     - regulatedBy: ComplianceRequirement[]
 ```
 
-**Wichtige Anwendungen**:
-- Data Residency Nachweis (DSGVO, BDSG)
-- Disaster-Recovery-Planung (Multi-Region)
-- Sovereign Cloud Compliance
-- Latenz-kritische Anwendungen (Node-Verteilung)
+**Important applications**:
+- Data residency evidence (GDPR, BDSG)
+- Disaster recovery planning (multi-region)
+- Sovereign cloud compliance
+- Latency-critical applications (node distribution)
 
-### 10.2 Security-Modellierung
+### 10.2 Security Modeling
 
 ```yaml
 EntityType: SecurityZone
@@ -34,17 +34,17 @@ EntityType: SecurityZone
     - networkSegment: string
   relations:
     - contains: TechnologyComponent[] | ApplicationComponent[]
-    - connectedTo: SecurityZone[] (über TrustBoundary)
+    - connectedTo: SecurityZone[] (via TrustBoundary)
 
 EntityType: TrustBoundary
   properties:
     - description
-    - securityControls: string[]    # z.B. "firewall", "waf", "idp"
+    - securityControls: string[]    # e.g. "firewall", "waf", "idp"
   relations:
     - separates: SecurityZone, SecurityZone
     - monitoredBy: ApplicationComponent
 
-EntityType: DataClassification (als Enum erweitert)
+EntityType: DataClassification (extended as enum)
   values: public | internal | confidential | restricted | pii | phi | pci
   relations:
     - appliesTo: DataEntity
@@ -58,13 +58,13 @@ EntityType: SecurityControl
     - protects: Entity[]
     - mandatedBy: ComplianceRequirement[]
 
-# CIA-Schutzbedarfsklassifikation nach ISO 27005 / BSI Grundschutz
+# CIA protection need classification per ISO 27005 / BSI IT-Grundschutz
 EntityType: ProtectionNeed
   properties:
     - confidentiality: normal | high | very-high
     - integrity: normal | high | very-high
     - availability: normal | high | very-high
-    - justification: text            # Begründung der Einstufung
+    - justification: text            # rationale for the classification
     - assessedBy: Role
     - assessedDate: date
     - nextReview: date
@@ -72,52 +72,52 @@ EntityType: ProtectionNeed
     - appliesTo: Entity              # Application, Technology, DataEntity, Process, ...
 ```
 
-**Schutzbedarfsvererbung**: Der Schutzbedarf eines Application Components kann vom Maximum der Schutzbedarfe der verarbeiteten Data Entities abgeleitet werden. Das Metamodell erlaubt sowohl explizite Pflege als auch berechnete Ableitung.
+**Protection need inheritance**: The protection need of an application component can be derived from the maximum of the protection needs of the processed data entities. The metamodel allows both explicit maintenance and calculated derivation.
 
 ### 10.3 Sustainability / Green IT
 
-Zunehmend wichtig für Enterprise-Reporting (CSRD, GHG Protocol):
+Increasingly important for enterprise reporting (CSRD, GHG Protocol):
 
 ```yaml
-ApplicationComponent, TechnologyComponent erhalten optional:
+ApplicationComponent, TechnologyComponent optionally gain:
   - estimatedAnnualCarbonKg: number
   - energyEfficiencyRating: string
   - powerConsumptionKwh: number
-  - sustainabilityCertifications: string[]  # z.B. "ENERGY STAR"
+  - sustainabilityCertifications: string[]  # e.g. "ENERGY STAR"
 
 EntityType: CarbonAssessment
   properties:
     - entity: reference
-    - assessmentMethod: string        # z.B. "SCI", "GHG Protocol Scope 3"
+    - assessmentMethod: string        # e.g. "SCI", "GHG Protocol Scope 3"
     - co2eKgPerYear: number
     - confidence: low | medium | high
     - assessmentDate: date
   relations:
     - assesses: Entity
-    - contributesToGoal: Goal         # z.B. "Net Zero 2030"
+    - contributesToGoal: Goal         # e.g. "Net Zero 2030"
 ```
 
-**Anwendungen**:
-- Carbon-Hotspot-Analyse (welche Applications/Technologies verursachen die meisten Emissionen)
-- Sustainability-Zielbild (Plateau mit niedrigerer Gesamt-CO2-Bilanz)
-- Vendor-Selection unter Nachhaltigkeits-Aspekten
-- CSRD-Reporting
+**Applications**:
+- Carbon hotspot analysis (which applications/technologies cause the most emissions)
+- Sustainability target state (plateau with a lower total CO2 footprint)
+- Vendor selection under sustainability aspects
+- CSRD reporting
 
-### 10.4 Lokalisierung und Internationalisierung
+### 10.4 Localization and Internationalization
 
-Für global aufgestellte Organisationen:
+For globally positioned organizations:
 
 ```yaml
-Entity erhält optional:
+Entity optionally gains:
   - supportedLanguages: string[]     # ISO 639-1
   - supportedRegions: string[]
   - i18nStatus: not-applicable | planned | partial | complete
 
-ApplicationComponent erweitert um:
-  - localizationScope: string[]      # was ist lokalisiert (UI, Content, Date-Formats, Currency)
+ApplicationComponent extended by:
+  - localizationScope: string[]      # what is localized (UI, content, date formats, currency)
 ```
 
-### 10.5 Contract-Modellierung (TOGAF Governance Extension)
+### 10.5 Contract Modeling (TOGAF Governance Extension)
 
 ```yaml
 EntityType: Contract
@@ -128,19 +128,19 @@ EntityType: Contract
     - autoRenew: boolean
   relations:
     - parties: OrganizationUnit[] | Vendor[]
-    - governs: Entity[]               # was regelt der Vertrag
+    - governs: Entity[]               # what the contract governs
     - hasMetrics: KPI[]
     - documentLocation: url
 ```
 
-Wichtig besonders für:
-- SaaS-Verträge (Lizenz-Compliance)
-- Outsourcing-Beziehungen
-- Data-Sharing-Agreements (DSGVO-relevant)
+Especially important for:
+- SaaS contracts (license compliance)
+- Outsourcing relationships
+- Data sharing agreements (GDPR-relevant)
 
 ### 10.6 Deliverable (Implementation Layer)
 
-Aus ArchiMate fehlt noch:
+Still missing from ArchiMate:
 
 ```yaml
 EntityType: Deliverable
@@ -152,68 +152,68 @@ EntityType: Deliverable
   relations:
     - producedBy: WorkPackage | Project
     - handedOverTo: Role | OrganizationUnit
-    - enables: Plateau                # Deliverable ermöglicht Plateau-Übergang
+    - enables: Plateau                # deliverable enables the plateau transition
 ```
 
-### 10.7 Requirements-Repository-Aspekte
+### 10.7 Requirements Repository Aspects
 
-Der Requirement-EntityType selbst ist in [§7.2 (Motivation, Stakeholder, Ziele)](07-motivation-stakeholder-ziele.md) definiert. Dieser Abschnitt ergänzt die operativen Aspekte: Lifecycle, Verknüpfungs-Disziplin, Sichten und Constraints, die das Tool als **Architecture Requirements Repository** ausmachen.
+The Requirement EntityType itself is defined in [§7.2 (Motivation, Stakeholders, Goals)](07-motivation-stakeholders-goals.md). This section adds the operational aspects: lifecycle, linking discipline, views, and constraints that make the tool an **Architecture Requirements Repository**.
 
-**Lifecycle**: Anforderungen durchlaufen einen klar definierten Status-Workflow:
+**Lifecycle**: Requirements pass through a clearly defined status workflow:
 
 ```
 identified → analyzed → approved → allocated → realized → verified
                               ↓
                           rejected | deferred
                               ↓
-                          retired (am Lebensende)
+                          retired (at end of life)
 ```
 
-Kritische Übergänge:
-- `identified → analyzed`: Erste fachliche Bewertung, Begründung dokumentiert
-- `analyzed → approved`: Akzeptanzkriterium ist Pflicht (siehe Constraints unten)
-- `approved → allocated`: Zuordnung zu Plateau und WorkPackage
-- `allocated → realized`: Implementierung abgeschlossen, Realisierungs-Relation gepflegt
-- `realized → verified`: Akzeptanzkriterium erfolgreich geprüft
+Critical transitions:
+- `identified → analyzed`: First business assessment, rationale documented
+- `analyzed → approved`: Acceptance criterion is mandatory (see constraints below)
+- `approved → allocated`: Assignment to plateau and work package
+- `allocated → realized`: Implementation completed, realization relation maintained
+- `realized → verified`: Acceptance criterion successfully verified
 
-**Erlaubte Verknüpfungen**: Requirements sind das zentrale Bindeglied zwischen Strategie und Umsetzung. Sinnvolle Verbindungen sind:
+**Permitted links**: Requirements are the central link between strategy and implementation. Meaningful connections are:
 
-| Verbindung | Bedeutung | Wertigkeit |
+| Link | Meaning | Weight |
 |---|---|---|
-| Requirement ↔ Goal/Outcome | Strategische Begründung | Soll für jede Architecture Requirement existieren |
-| Requirement ↔ Stakeholder/Concern | Quelle und Adressat | Wichtig für Priorisierung |
-| Requirement ↔ Entity / Relation | Realisierung | Kern der Trace-Matrix |
-| Requirement ↔ Standard / ADR | Etablierung über Norm-/Entscheidungs-Bezug | Zentral für Governance |
-| Requirement ↔ ComplianceRequirement | Regulatorische Quelle | Pflicht für compliance-getriebene Anforderungen |
-| Requirement ↔ Plateau | Zeitliche Verortung | Pflicht für approved+ |
-| Requirement ↔ WorkPackage | Umsetzungs-Allokation | Pflicht für allocated+ |
-| Requirement ↔ Requirement | Hierarchie und Beziehungen | refines/dependsOn/conflictsWith |
-| Requirement ↔ Risk | Risiko-Mitigation | Bei sicherheits-/compliance-Anforderungen |
+| Requirement ↔ Goal/Outcome | Strategic rationale | Should exist for every architecture requirement |
+| Requirement ↔ Stakeholder/Concern | Source and addressee | Important for prioritization |
+| Requirement ↔ Entity / Relation | Realization | Core of the trace matrix |
+| Requirement ↔ Standard / ADR | Establishment via standard/decision reference | Central for governance |
+| Requirement ↔ ComplianceRequirement | Regulatory source | Mandatory for compliance-driven requirements |
+| Requirement ↔ Plateau | Temporal placement | Mandatory for approved+ |
+| Requirement ↔ WorkPackage | Implementation allocation | Mandatory for allocated+ |
+| Requirement ↔ Requirement | Hierarchy and relationships | refines/dependsOn/conflictsWith |
+| Requirement ↔ Risk | Risk mitigation | For security/compliance requirements |
 
-**Vorsichtig zu nutzende Verknüpfungen**:
+**Links to be used with caution**:
 
-- Requirement → Process: nur auf Prozess-Ebene, nicht auf einzelne Aktivitäten (das wäre BPM-Tool-Detail)
-- Requirement → Interface: nur wenn schnittstellen-spezifisch; allgemeine API-Anforderungen gehören in Standards
-- Requirement → Capability: legitim, aber Überlapp mit Goal vermeiden
+- Requirement → Process: only at process level, not to individual activities (that would be BPM tool detail)
+- Requirement → Interface: only if interface-specific; general API requirements belong in standards
+- Requirement → Capability: legitimate, but avoid overlap with Goal
 
-**Nicht erlaubte Verknüpfungen**:
+**Links not permitted**:
 
-- Requirement → Person (statt Rolle/Stakeholder): DSGVO- und Personalwechsel-Problem
-- Requirement → Code-Artefakte (Repos, Branches, Files): gehört nicht ins EA, sondern ins ALM
-- Requirement → konkrete Dev-Tickets: läuft über WorkPackage, nicht direkt
-- Requirement → Test-Implementierungen: Akzeptanzkriterium ja, Test-Code nein
+- Requirement → Person (instead of role/stakeholder): GDPR and personnel change problem
+- Requirement → code artifacts (repos, branches, files): belongs in ALM, not in EA
+- Requirement → concrete dev tickets: goes via WorkPackage, not directly
+- Requirement → test implementations: acceptance criterion yes, test code no
 
-**Anti-Pattern: Anforderung als Aufgabe formuliert**: "System X muss auf Cloud migriert werden" ist ein WorkPackage, keine Anforderung. Die Anforderung wäre: "System X muss in einer skalierbaren, geografisch verteilten Umgebung lauffähig sein, mit Verfügbarkeit ≥ 99.9%". Das Tool sollte durch Templates und Validierungen das **Was** statt das **Was wir tun werden** fördern.
+**Anti-pattern: requirement formulated as a task**: "System X must be migrated to the cloud" is a WorkPackage, not a requirement. The requirement would be: "System X must be able to run in a scalable, geographically distributed environment with availability ≥ 99.9%". The tool should promote the **what** instead of **what we will do** through templates and validations.
 
-**Sichten und Reports**:
+**Views and reports**:
 
-- **Trace-Matrix**: alle Requirements × alle realisierenden Entitäten, mit Coverage-Indikator
-- **Coverage-Lücken**: Requirements mit Status `approved` oder höher, aber ohne `realizedBy`-Verbindung
-- **Verifikations-Status**: Requirements mit Status `realized`, aber ohne erfolgreiche Verifikation
-- **Konflikt-Sicht**: alle `conflictsWith`-Beziehungen mit Auflösungs-Status
-- **Plateau-Coverage**: Requirements pro Plateau, gefiltert auf nicht-`verified`
-- **Stakeholder-Sicht**: Requirements gruppiert nach `raisedBy`, mit Status pro Stakeholder
-- **Compliance-Trace**: ComplianceRequirement → ArchitectureRequirement → realisierende Entities
+- **Trace matrix**: all requirements × all realizing entities, with coverage indicator
+- **Coverage gaps**: requirements with status `approved` or higher but without a `realizedBy` link
+- **Verification status**: requirements with status `realized` but without successful verification
+- **Conflict view**: all `conflictsWith` relationships with resolution status
+- **Plateau coverage**: requirements per plateau, filtered to non-`verified`
+- **Stakeholder view**: requirements grouped by `raisedBy`, with status per stakeholder
+- **Compliance trace**: ComplianceRequirement → ArchitectureRequirement → realizing entities
 
 **Constraints**:
 
@@ -223,7 +223,7 @@ constraint: approved-requirement-has-acceptance-criteria
   when: "entity.status in [approved, allocated, realized, verified]"
   rule: "entity.acceptanceCriteria != null AND entity.acceptanceCriteria != ''"
   severity: error
-  message: "Genehmigte Anforderung ohne Akzeptanzkriterium ist Wunschvorstellung, kein Engineering-Artefakt"
+  message: "An approved requirement without an acceptance criterion is wishful thinking, not an engineering artifact"
 
 constraint: approved-requirement-has-rationale
   appliesTo: Requirement
@@ -231,7 +231,7 @@ constraint: approved-requirement-has-rationale
   rule: "entity.derivedFromGoal.length >= 1 OR entity.derivedFromCompliance.length >= 1 
          OR entity.addresses.length >= 1"
   severity: warning
-  message: "Genehmigte Anforderung ohne strategische, regulatorische oder Stakeholder-Begründung"
+  message: "Approved requirement without strategic, regulatory, or stakeholder rationale"
 
 constraint: realized-requirement-has-realization
   appliesTo: Requirement
@@ -258,10 +258,10 @@ constraint: system-requirement-has-target-system
   severity: error
 ```
 
-**Versionierung**: Jede semantische Änderung an einer Anforderung erzeugt eine neue Version. Die alte Version bleibt referenzierbar (für ADR- und Audit-Nachvollziehbarkeit). Genutzt wird der allgemeine Versionierungs-Mechanismus aus dem temporalen Modell – Anforderungen sind keine Sonderfälle.
+**Versioning**: Every semantic change to a requirement creates a new version. The old version remains referenceable (for ADR and audit traceability). The general versioning mechanism from the temporal model is used – requirements are not special cases.
 
-**Was das Repository nicht ist**: Kein Issue-Tracker (keine Kommentar-Threads, Watcher, Activity-Streams), kein Test-Management-Tool (keine Test-Execution), kein Document-Management-System. Diese Funktionen würden den EA-Fokus verwässern – wer sie braucht, integriert spezialisierte Tools über die API.
+**What the repository is not**: Not an issue tracker (no comment threads, watchers, activity streams), not a test management tool (no test execution), not a document management system. These functions would dilute the EA focus – those who need them integrate specialized tools via the API.
 
 ---
 
-← [Prozess-Architektur](09-prozess-architektur.md) · [🏠 Übersicht](../README.md) · [Temporales Modell](../30-dynamics/11-temporales-modell.md) →
+← [Process Architecture](09-process-architecture.md) · [🏠 Overview](../README.md) · [Temporal Model](../30-dynamics/11-temporal-model.md) →

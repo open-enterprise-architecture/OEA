@@ -1,34 +1,34 @@
-# Ableitung aus: requirements/req/req-116-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-116-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-19
-Feature: REQ-116 – SBB-Governance-Zuordnung je TRM-Kategorie
+Feature: REQ-116 – SBB governance assignment per TRM category
 
-  Das System MUSS für jede TRM-Kategorie (auch `scope=imported`) das
-  Setzen von `preferredStandard` (Einzelauswahl eines SBBs),
-  `acceptedAlternatives` (Multi-Select SBBs) und `deprecatedOptions`
-  (Multi-Select SBBs) ermöglichen. Ein SBB DARF in derselben Kategorie
-  nicht in mehr als einer der drei Listen erscheinen (mutually
+  The system MUST allow, for every TRM category (also `scope=imported`),
+  setting `preferredStandard` (single selection of an SBB),
+  `acceptedAlternatives` (multi-select SBBs) and `deprecatedOptions`
+  (multi-select SBBs). An SBB MUST NOT appear in the same category
+  in more than one of the three lists (mutually
   exclusive).
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – preferredStandard setzen und Abweichungs-Hinweis – `preferredStandard=PostgreSQL 17` in der Kategorie „Database Management"...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  `preferredStandard=PostgreSQL 17` in der Kategorie „Database Management" gesetzt wird
-    Then  zeigen alle Entitäten in dieser Kategorie mit einem anderen `instanceOfSBBId` den Hinweis „Abweichung vom TRM-Standard"
+  Scenario: AC1 – Set preferredStandard and deviation note – `preferredStandard=PostgreSQL 17` is set in the category "Database Management"...
+    Given the precondition according to the requirement is met
+    When  `preferredStandard=PostgreSQL 17` is set in the category "Database Management"
+    Then  all entities in this category with a different `instanceOfSBBId` show the note "Deviation from TRM standard"
 
   @AC2
-  Scenario: AC2 – Mutually exclusive – derselbe SBB gleichzeitig in `preferredStandard` und `acceptedAlternativ...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  derselbe SBB gleichzeitig in `preferredStandard` und `acceptedAlternatives` gesetzt werden soll
-    Then  antwortet das System mit HTTP 422 „SBB darf nur in einer Liste erscheinen"
+  Scenario: AC2 – Mutually exclusive – the same SBB is to be set simultaneously in `preferredStandard` and `acceptedAlternativ...
+    Given the precondition according to the requirement is met
+    When  the same SBB is to be set simultaneously in `preferredStandard` and `acceptedAlternatives`
+    Then  the system responds with HTTP 422 "SBB may appear in only one list"
 
   @AC3
-  Scenario: AC3 – imported-Kategorie editierbar – eine TRM-Kategorie mit `scope=imported` geöffnet wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  eine TRM-Kategorie mit `scope=imported` geöffnet wird
-    Then  sind SBB-Zuordnungen editierbar; Name und Parent-Kategorie sind gesperrt
+  Scenario: AC3 – Imported category editable – a TRM category with `scope=imported` is opened
+    Given the precondition according to the requirement is met
+    When  a TRM category with `scope=imported` is opened
+    Then  SBB assignments are editable; name and parent category are locked

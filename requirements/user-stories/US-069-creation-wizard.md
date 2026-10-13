@@ -1,58 +1,58 @@
-# US-069: Entität anlegen über konfigurierten Anlage-Workflow (Wizard)
+# US-069: Create an Entity via a Configured Creation Workflow (Wizard)
 
 **ID**: US-069
 **Story Points**: 8
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Enterprise Architekt möchte ich beim Anlegen einer neuen Applikation durch einen konfigurierbaren, mehrseitigen Wizard geführt werden – damit ich sofort alle Pflichtfelder, die Domänen-Zuordnung und die Capability-Verknüpfung setze, bevor das Objekt im Katalog oder Diagramm erscheint.
+As an Enterprise Architect, I want to be guided through a configurable, multi-page wizard when creating a new application – so that I immediately set all mandatory fields, the domain assignment and the capability link before the object appears in the catalog or diagram.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-05](../use-cases/UC-05-architektur-vision-beschreiben.md), [UC-06](../use-cases/UC-06-katalog-anlegen-und-verwenden.md)
-**Persona**: Kurt – Lead EA (SH-03); alle anderen Canvas-/Katalog-Nutzer
-**Requirements**: [REQ-066](../req/REQ-066-entity-anlage-workflow.md)
+**Use Case**: [UC-05](../use-cases/UC-05-describe-architecture-vision.md), [UC-06](../use-cases/UC-06-create-and-use-catalog.md)
+**Persona**: Kurt – Lead EA (SH-03); all other canvas/catalog users
+**Requirements**: [REQ-066](../req/REQ-066-entity-creation-workflow.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Wizard öffnet sich im Katalog):
-- Gegeben: ApplicationComponent hat 3 creationSteps (Basisdaten, Domäne, Capability)
-- Wenn: Kurt klickt „+ Neue Entität" im ApplicationComponent-Katalog
-- Dann: Wizard öffnet sich auf Seite 1 (kein altes Ein-Seiten-Modal)
+**AC1** (wizard opens in the catalog):
+- Given: ApplicationComponent has 3 creationSteps (basic data, domain, capability)
+- When: Kurt clicks "+ New entity" in the ApplicationComponent catalog
+- Then: Wizard opens on page 1 (no old single-page modal)
 
-**AC2** (Schritte durchlaufen):
-- Wenn: Kurt füllt Schritt 1 aus → klickt „Weiter" → Schritt 2 → „Weiter" → Schritt 3 → „Fertig"
-- Dann: 3 Klicks; auf Schritt 1 und 2 heisst der Button „Weiter"; auf Schritt 3 „Fertig"
+**AC2** (go through steps):
+- When: Kurt fills in step 1 → clicks "Next" → step 2 → "Next" → step 3 → "Finish"
+- Then: 3 clicks; on steps 1 and 2 the button is called "Next"; on step 3 "Finish"
 
-**AC3** (Fertig → Entität sichtbar):
-- Wenn: Kurt klickt „Fertig"
-- Dann: Entität erscheint als neue Zeile im Katalog; keine Reload-Pause > 2 s
+**AC3** (Finish → entity visible):
+- When: Kurt clicks "Finish"
+- Then: Entity appears as a new row in the catalog; no reload pause > 2 s
 
-**AC4** (Wizard öffnet sich im Diagramm):
-- Wenn: Kurt zieht ein ApplicationComponent-Element aus der Palette auf den Canvas
-- Dann: Wizard öffnet sich; Element ist auf Canvas erst nach „Fertig" sichtbar
+**AC4** (wizard opens in the diagram):
+- When: Kurt drags an ApplicationComponent element from the palette onto the canvas
+- Then: Wizard opens; element is visible on the canvas only after "Finish"
 
-**AC5** (Abbruch = kein Objekt):
-- Wenn: Kurt schliesst Wizard auf Schritt 2 (ESC oder X)
-- Dann: Kein Eintrag im Katalog; kein Shape auf dem Canvas
+**AC5** (cancel = no object):
+- When: Kurt closes the wizard on step 2 (ESC or X)
+- Then: No entry in the catalog; no shape on the canvas
 
-**AC6** (Mandatory-Validation):
-- Wenn: Pflichtfeld leer + Kurt klickt „Fertig"
-- Dann: Fehlermeldung auf dem entsprechenden Schritt; keine Persistierung
+**AC6** (mandatory validation):
+- When: Mandatory field empty + Kurt clicks "Finish"
+- Then: Error message on the corresponding step; no persistence
 
-## Technische Hinweise
+## Technical Notes
 
-- Wizard-State: lokal im Frontend; Payload als ein Request nach Fertig
-- AC3 Latenz: Frontend-seitiger optimistischer Eintrag + Rollback bei Fehler
+- Wizard state: local in the frontend; payload as a single request after Finish
+- AC3 latency: frontend-side optimistic entry + rollback on error
 
 ## Definition of Done
 
-- [ ] AC1–AC6 erfüllt
-- [ ] Tests: Wizard-Öffnen Katalog, Wizard-Öffnen Diagramm, Navigation, Fertig, Abbruch, Validation
-- [ ] E2E-Test (Playwright) für den kompletten 3-Schritt-Flow
-- [ ] Konfiguration von creationSteps über MetamodelConfiguration-Import testbar
-- [ ] Code-Review
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] AC1–AC6 met
+- [ ] Tests: wizard opening catalog, wizard opening diagram, navigation, Finish, cancel, validation
+- [ ] E2E test (Playwright) for the complete 3-step flow
+- [ ] Configuration of creationSteps testable via MetamodelConfiguration import
+- [ ] Code review
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix

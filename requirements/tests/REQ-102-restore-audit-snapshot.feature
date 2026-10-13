@@ -1,32 +1,32 @@
-# Ableitung aus: requirements/req/req-102-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-102-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @should @UC-15
-Feature: REQ-102 – Audit-Snapshot vor jeder Wiederherstellung
+Feature: REQ-102 – Audit snapshot before every restore
 
-  Vor jeder Wiederherstellung (vollständig UC-15 oder teilweise UC-16)
-  MUSS das System den aktuellen Entitätszustand als unveränderlichen
-  EntityVersion-Snapshot sichern. Der neue EntityVersion-Eintrag MUSS
-  `restoredFromVersion` (Quellversion) enthalten.
+  Before every restore (full UC-15 or partial UC-16)
+  the system MUST save the current entity state as an immutable
+  EntityVersion snapshot. The new EntityVersion entry MUST
+  contain `restoredFromVersion` (source version).
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Snapshot-Eintrag nach Wiederherstellung – eine Wiederherstellung ausgeführt wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  eine Wiederherstellung ausgeführt wird
-    Then  ist ein neuer EntityVersion-Eintrag mit `restoredFromVersion=N` in der Zeitlinie sichtbar
+  Scenario: AC1 – Snapshot entry after restore – a restore is executed
+    Given the precondition according to the requirement is met
+    When  a restore is executed
+    Then  a new EntityVersion entry with `restoredFromVersion=N` is visible in the timeline
 
   @AC2
-  Scenario: AC2 – Markierung in Zeitlinie – die Zeitlinie nach einer Wiederherstellung angezeigt wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  die Zeitlinie nach einer Wiederherstellung angezeigt wird
-    Then  zeigt der neue Eintrag die Markierung "Wiederhergestellt aus vN"
+  Scenario: AC2 – Marker in timeline – the timeline is displayed after a restore
+    Given the precondition according to the requirement is met
+    When  the timeline is displayed after a restore
+    Then  the new entry shows the marker "Restored from vN"
 
   @AC3
-  Scenario: AC3 – Snapshot vor Wiederherstellung erhalten – die Wiederherstellung abgeschlossen ist
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  die Wiederherstellung abgeschlossen ist
-    Then  ist der Zustand VOR der Wiederherstellung als eigenständiger Snapshot in `entity_versions` vorhanden
+  Scenario: AC3 – Snapshot preserved before restore – the restore is completed
+    Given the precondition according to the requirement is met
+    When  the restore is completed
+    Then  the state BEFORE the restore is present as an independent snapshot in `entity_versions`

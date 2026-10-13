@@ -1,36 +1,36 @@
-# US-102: Automatischer Audit-Snapshot vor Wiederherstellung
+# US-102: Automatic Audit Snapshot Before Restore
 
 **ID**: US-102
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich, dass vor jeder Wiederherstellung automatisch ein Snapshot des aktuellen Zustands gesichert wird und dieser in der Zeitlinie als Wiederherstellungs-Eintrag sichtbar ist, damit der Audit-Trail lückenlos bleibt.
+As Kurt – Lead Enterprise Architect, I want a snapshot of the current state to be saved automatically before every restore and to be visible in the timeline as a restore entry, so that the audit trail remains gapless.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-15](../use-cases/UC-15-entitaetsstand-wiederherstellen.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-102](../req/REQ-102-wiederherstellung-audit-snapshot.md)
+**Use Case**: [UC-15](../use-cases/UC-15-restore-entity-state.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-102](../req/REQ-102-restore-audit-snapshot.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Snapshot-Eintrag sichtbar):
-- Wenn: eine Wiederherstellung ausgeführt wurde
-- Dann: ist ein neuer Zeitlinie-Eintrag mit `restoredFromVersion=N` sichtbar
+**AC1** (Snapshot entry visible):
+- When: a restore has been executed
+- Then: a new timeline entry with `restoredFromVersion=N` is visible
 
-**AC2** (Markierung in Zeitlinie):
-- Wenn: ich die Zeitlinie nach einer Wiederherstellung ansehe
-- Dann: zeigt der Eintrag "Wiederhergestellt aus vN"
+**AC2** (Marker in timeline):
+- When: I view the timeline after a restore
+- Then: the entry shows "Restored from vN"
 
-**AC3** (Snapshot vor Wiederherstellung erhalten):
-- Wenn: die Wiederherstellung abgeschlossen ist
-- Dann: ist der Zustand vor der Wiederherstellung als eigenständiger Snapshot vorhanden
+**AC3** (Snapshot before restore preserved):
+- When: the restore is completed
+- Then: the state before the restore exists as an independent snapshot
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

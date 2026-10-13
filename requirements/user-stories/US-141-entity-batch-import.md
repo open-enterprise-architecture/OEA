@@ -1,61 +1,61 @@
-# US-141: Entitäten per Batch anlegen oder aktualisieren
+# US-141: Create or Update Entities in Batch
 
 **ID**: US-141
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als externes System (Scanner, CI/CD-Pipeline, Import-Skript) möchte ich viele Entitäten und Verbindungen in einem einzigen API-Aufruf anlegen oder aktualisieren können, damit der Ist-Zustand der IT-Landschaft effizient und idempotent befüllt werden kann.
+As an external system (scanner, CI/CD pipeline, import script), I want to create or update many entities and connections in a single API call, so that the current state of the IT landscape can be populated efficiently and idempotently.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-19: Ist-Zustand aus Quellsystem importieren](../use-cases/UC-19-ist-zustand-importieren.md)
-**Persona**: Externes System mit Service-Account
+**Use Case**: [UC-19: Import Current State from Source System](../use-cases/UC-19-ist-zustand-importieren.md)
+**Persona**: External system with service account
 **Requirements**: REQ-153, REQ-154
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: 200 ApplicationComponent-Entitäten aus einem Repository-Scan; strategy=upsert
-- Wenn: POST /api/v1/entities/batch
-- Dann: Neue Entitäten angelegt (201-äquivalent in summary.created); bestehende aktualisiert (summary.updated); keine Duplikate
+- Given: 200 ApplicationComponent entities from a repository scan; strategy=upsert
+- When: POST /api/v1/entities/batch
+- Then: new entities created (201-equivalent in summary.created); existing ones updated (summary.updated); no duplicates
 
 **AC2**:
-- Gegeben: Batch mit Entitäten und Verbindungen; externalId-Referenzen im selben Batch
-- Wenn: POST /api/v1/entities/batch
-- Dann: Entitäten zuerst geschrieben; Verbindungen danach aufgelöst (sourceExternalId korrekt verknüpft)
+- Given: batch with entities and connections; externalId references within the same batch
+- When: POST /api/v1/entities/batch
+- Then: entities written first; connections resolved afterwards (sourceExternalId linked correctly)
 
 **AC3**:
-- Gegeben: dryRun=true; 5 Entitäten mit mandatory-Verletzung
-- Wenn: POST /api/v1/entities/batch?dryRun=true
-- Dann: ValidationResult; kein DB-Write; alle 5 Fehler aufgelistet mit Property-Name
+- Given: dryRun=true; 5 entities with mandatory violation
+- When: POST /api/v1/entities/batch?dryRun=true
+- Then: ValidationResult; no DB write; all 5 errors listed with property name
 
 **AC4**:
-- Gegeben: Service-Account mit `integration-writer`-Rolle
-- Wenn: Batch-Request ausgeführt
-- Dann: Audit-Log enthält `agent_id = <client_id>`, `agent_run = <X-Agent-Run-Header>` für jeden Event
+- Given: service account with `integration-writer` role
+- When: batch request executed
+- Then: audit log contains `agent_id = <client_id>`, `agent_run = <X-Agent-Run header>` for every event
 
-## Technische Hinweise
+## Technical Notes
 
 - Endpoint: POST /api/v1/entities/batch
-- Request-Schema: BatchWriteRequest (entities[], connections[], strategy, atomic)
-- Reihenfolge: erst alle Entitäten; dann alle Verbindungen
-- Verbindungen können via externalId referenzieren (auch aus demselben Batch)
-- Max. 500 Entitäten + 500 Verbindungen pro Request (konfigurierbar)
-- `X-Agent-Run` Header → `audit.events.agent_run`
+- Request schema: BatchWriteRequest (entities[], connections[], strategy, atomic)
+- Order: first all entities; then all connections
+- Connections can reference via externalId (also from the same batch)
+- Max. 500 entities + 500 connections per request (configurable)
+- `X-Agent-Run` header → `audit.events.agent_run`
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Integration-Test: 200-Item-Batch; Upsert-Logik korrekt
-- [ ] dryRun: kein Write, korrekte Fehlerauflistung
-- [ ] Audit-Log: agent_id und agent_run gesetzt
-- [ ] Performance: 500 Entitäten in < 5s (p95, PostgreSQL)
+- [ ] Acceptance criteria fulfilled
+- [ ] Integration test: 200-item batch; upsert logic correct
+- [ ] dryRun: no write, correct error listing
+- [ ] Audit log: agent_id and agent_run set
+- [ ] Performance: 500 entities in < 5s (p95, PostgreSQL)
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-142 (Service-Account muss existieren)
-- Wartet auf: US-051 (Single-Entity-Write als Basis)
-- Blockiert: Scanner-Integration (externes System)
+- Waits for: US-142 (service account must exist)
+- Waits for: US-051 (single-entity write as a basis)
+- Blocks: scanner integration (external system)

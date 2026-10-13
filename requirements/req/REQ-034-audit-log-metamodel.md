@@ -1,6 +1,6 @@
 ---
 id: REQ-034
-title: Audit-Log für Metamodell-Änderungen
+title: Audit log for metamodel changes
 type: compliance
 priority: should
 status: proposed
@@ -19,104 +19,104 @@ references:
     - SH-03
     - SH-06
   concept:
-    - concept/40-extensibility/14-erweiterbarkeit.md
+    - concept/40-extensibility/14-extensibility.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-034: Audit-Log für Metamodell-Änderungen
+# REQ-034: Audit log for metamodel changes
 
-## Aussage
+## Statement
 
-Das System MUSS jeden Create-, Update- und Delete-Vorgang an der `MetamodelConfiguration` (EntityTypeDefinition, Stereotype, ConstraintRule) in einem Audit-Log festhalten; jeder Eintrag MUSS mindestens enthalten: Person-ID der ändernden Person, Zeitstempel (UTC), Art der Änderung (create/update/delete), Element-Typ (entity-type/stereotype/constraint-rule), Element-Name.
+The system MUST record every create, update, and delete operation on the `MetamodelConfiguration` (EntityTypeDefinition, Stereotype, ConstraintRule) in an audit log; each entry MUST contain at least: person ID of the changing person, timestamp (UTC), type of change (create/update/delete), element type (entity-type/stereotype/constraint-rule), element name.
 
-## Begründung
+## Rationale
 
-Das Metamodell ist die Grundlage aller EA-Modell-Inhalte einer Instanz. Änderungen daran haben weitreichende Auswirkungen (neue Typen, geänderte Properties, Constraint-Regeländerungen). Für Governance, Nachvollziehbarkeit und Fehleranalyse muss lückenlos nachvollziehbar sein, wer wann welche Änderung vorgenommen hat. Dies ist besonders relevant bei kollaborativer Bearbeitung durch mehrere Architekten (UC-04 A5).
+The metamodel is the foundation of all EA model content of an instance. Changes to it have far-reaching effects (new types, changed properties, constraint rule changes). For governance, traceability, and error analysis it must be possible to trace without gaps who made which change and when. This is particularly relevant for collaborative editing by several architects (UC-04 A5).
 
-## Kontext
+## Context
 
-Der Audit-Log für das Metamodell ist konzeptionell analog zu den bestehenden Audit-Logs (REQ-005 Login, REQ-016 Bootstrapping, REQ-025 Enrollment). Er wird in derselben Audit-Log-Infrastruktur geführt, aber mit anderem Event-Typ gekennzeichnet. Kein Credential-Material wird geloggt (nicht relevant, da die MetamodelConfiguration keine sensitiven Daten enthält).
+The audit log for the metamodel is conceptually analogous to the existing audit logs (REQ-005 login, REQ-016 bootstrapping, REQ-025 enrollment). It is kept in the same audit log infrastructure but marked with a different event type. No credential material is logged (not relevant, since the MetamodelConfiguration contains no sensitive data).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=compliance
+### For type=compliance
 
-**Pflichtfelder pro Log-Eintrag**:
+**Mandatory fields per log entry**:
 
-| Feld | Typ | Beschreibung |
+| Field | Type | Description |
 |---|---|---|
-| `eventType` | string | `metamodel.entity_type.created`, `.updated`, `.deleted`; analog für `stereotype`, `constraint_rule` |
-| `personId` | string | UUID der ausführenden Person |
+| `eventType` | string | `metamodel.entity_type.created`, `.updated`, `.deleted`; analogous for `stereotype`, `constraint_rule` |
+| `personId` | string | UUID of the executing person |
 | `timestamp` | datetime | ISO 8601, UTC |
 | `elementType` | enum | `entity-type`, `stereotype`, `constraint-rule` |
-| `elementName` | string | Name des betroffenen Elements (z.B. `SecurityZone`) |
-| `importBatch` | string | optional; UUID einer Import-Aktion, wenn der Eintrag durch Import (REQ-033) erzeugt wurde |
+| `elementName` | string | Name of the affected element (e.g., `SecurityZone`) |
+| `importBatch` | string | optional; UUID of an import action if the entry was created by an import (REQ-033) |
 
-**Optional/erweiterbar** (nicht für MVP verpflichtend):
-- `changeDetail`: strukturierter Diff (vorher/nachher für Update-Vorgänge)
-- `ipAddress`: IP der anfragenden Session
+**Optional/extensible** (not mandatory for MVP):
+- `changeDetail`: structured diff (before/after for update operations)
+- `ipAddress`: IP of the requesting session
 
-**Auslöser**: nach jeder erfolgreichen persistierten Änderung an der MetamodelConfiguration (nicht bei Validierungsfehlern, nicht bei Read-Zugriffen)
+**Trigger**: after every successfully persisted change to the MetamodelConfiguration (not on validation errors, not on read access)
 
-**Fehlerfälle**:
-- Audit-Log-Schreibfehler darf die eigentliche Operation NICHT rückgängig machen; stattdessen: asynchrones Retry oder Alarm (Monitoring-Alert)
+**Error Cases**:
+- An audit log write error MUST NOT roll back the actual operation; instead: asynchronous retry or alarm (monitoring alert)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Kurt legt einen Custom EntityType `SecurityZone` an (Hauptablauf UC-04)
-- Wenn: der Audit-Log ausgewertet wird
-- Dann: enthält er einen Eintrag mit `eventType=metamodel.entity_type.created`, `elementName=SecurityZone`, Kurts Person-ID, Zeitstempel
+- Given: Kurt creates a custom EntityType `SecurityZone` (Basic Flow UC-04)
+- When: the audit log is evaluated
+- Then: it contains an entry with `eventType=metamodel.entity_type.created`, `elementName=SecurityZone`, Kurt's person ID, timestamp
 
 **AC2**:
-- Gegeben: Kurt importiert 3 EntityTypes via REQ-033
-- Wenn: der Import abgeschlossen ist
-- Dann: enthält der Audit-Log 3 Einträge mit jeweils `importBatch=<gleiche UUID>` – damit ist der Import als zusammengehöriger Vorgang erkennbar
+- Given: Kurt imports 3 EntityTypes via REQ-033
+- When: the import is completed
+- Then: the audit log contains 3 entries, each with `importBatch=<same UUID>` – so the import is recognizable as a coherent operation
 
 **AC3**:
-- Gegeben: Lukas (anderer Architekt) löscht einen Custom EntityType
-- Wenn: der Audit-Log ausgewertet wird
-- Dann: ist der Eintrag Lukas' Person-ID zugeordnet (nicht Kurts), `eventType=metamodel.entity_type.deleted`
+- Given: Lukas (another architect) deletes a custom EntityType
+- When: the audit log is evaluated
+- Then: the entry is assigned to Lukas' person ID (not Kurt's), `eventType=metamodel.entity_type.deleted`
 
 **AC4**:
-- Gegeben: Audit-Log-Infrastruktur ist kurzzeitig nicht verfügbar
-- Wenn: Kurt eine Änderung vornimmt
-- Dann: wird die Änderung in der MetamodelConfiguration gespeichert; der Audit-Log-Eintrag wird asynchron nachgeholt (kein Rollback der Änderung)
+- Given: the audit log infrastructure is briefly unavailable
+- When: Kurt makes a change
+- Then: the change is saved in the MetamodelConfiguration; the audit log entry is made up asynchronously (no rollback of the change)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert) + inspection
-- [x] Test-Setup: EntityType anlegen/bearbeiten/löschen; Import-Batch; Audit-Log-Einträge prüfen
-- [x] Mess-Werkzeug: Test-Suite des Metamodell-Moduls
-- [x] Bestanden-Kriterium: AC1–AC4 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated) + inspection
+- [x] Test setup: create/edit/delete EntityType; import batch; check audit log entries
+- [x] Measurement tool: test suite of the metamodel module
+- [x] Pass criterion: AC1–AC4 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-032 (GUI-Konfiguration – erzeugt die zu loggenden Ereignisse); REQ-033 (Import – erzeugt Batch-Ereignisse); bestehende Audit-Log-Infrastruktur aus REQ-005/REQ-016/REQ-025
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-032 (GUI configuration – generates the events to be logged); REQ-033 (import – generates batch events); existing audit log infrastructure from REQ-005/REQ-016/REQ-025
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne Audit-Log ist bei unbeabsichtigten Metamodell-Änderungen (z.B. falscher Löschung) nicht nachvollziehbar, wer wann was geändert hat – erschwert Fehleranalyse und Governance erheblich
+- Risk 1: Without an audit log, in the case of unintended metamodel changes (e.g., wrong deletion) it is not traceable who changed what and when – considerably complicates error analysis and governance
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Gleiche Audit-Log-Tabelle wie REQ-005/REQ-025; neues `eventType`-Namespace `metamodel.*`
-- `importBatch`: UUID wird einmalig pro Import-Bestätigung erzeugt und für alle daraus resultierenden Einträge verwendet
-- Async Retry für Audit-Log-Schreibfehler: Message-Queue oder Outbox-Pattern; nicht blockierend
+- Same audit log table as REQ-005/REQ-025; new `eventType` namespace `metamodel.*`
+- `importBatch`: UUID is generated once per import confirmation and used for all resulting entries
+- Async retry for audit log write errors: message queue or outbox pattern; non-blocking
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |

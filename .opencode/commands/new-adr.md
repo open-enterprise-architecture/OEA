@@ -1,97 +1,97 @@
-# /new-adr – Neuen ADR anlegen
+# /new-adr – Create a new ADR
 
-Legt einen neuen Architectural Decision Record in `adrs/` an. Nächste freie Nummer wird automatisch ermittelt.
+Creates a new Architectural Decision Record in `adrs/`. The next free number is determined automatically.
 
-## Argumente
+## Arguments
 
-`$ARGUMENTS` enthält den Kurztitel des ADRs (optional).
-Beispiel: `/new-adr Logging-Strategie`
+`$ARGUMENTS` contains the short title of the ADR (optional).
+Example: `/new-adr Logging strategy`
 
-## Ausführung
+## Execution
 
-1. **Nächste freie Nummer ermitteln**:
+1. **Determine the next free number**:
    ```bash
    ls adrs/ADR-*.md | sed 's/.*ADR-//' | sed 's/-.*//' | sort -n | tail -1
    ```
-   Nächste Nummer = höchste Nummer + 1, dreistellig mit führenden Nullen (z.B. `ADR-019`).
-   ADR-Nummern werden **niemals wiederverwendet** — auch nicht bei `rejected`.
+   Next number = highest number + 1, three digits with leading zeros (e.g. `ADR-019`).
+   ADR numbers are **never reused** — not even for `rejected`.
 
-2. **Dateinamen ableiten**:
-   `adrs/ADR-NNN-kurzname.md`
-   - Kurzname aus `$ARGUMENTS`: englisch, kebab-case, 2-4 Wörter
-   - Beispiel: "Logging-Strategie" → `ADR-019-logging-strategie.md`
+2. **Derive the file name**:
+   `adrs/ADR-NNN-shortname.md`
+   - Short name from `$ARGUMENTS`: English, kebab-case, 2-4 words
+   - Example: "Logging strategy" → `ADR-019-logging-strategy.md`
 
-3. **Datei anlegen** mit folgendem Grundgerüst:
+3. **Create the file** with the following skeleton:
 
    ```markdown
-   # ADR-NNN: {{Titel}}
+   # ADR-NNN: {{Title}}
 
    **Status**: draft
-   **Datum**: {{YYYY-MM-DD}}
-   **Entscheider**: [Rigobert – Produkt Owner](../business-analysis/stakeholders/SH-09-rigobert-produkt-owner.md) (SH-09)
-   **Konsultiert**: {{ggf. Requirements Engineer, Business Engineer, …}}
-   **Informiert**: –
+   **Date**: {{YYYY-MM-DD}}
+   **Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+   **Consulted**: {{if applicable: Requirements Engineer, Business Engineer, …}}
+   **Informed**: –
 
-   ## Kontext und Problem
+   ## Context and Problem
 
-   {{Was ist das konkrete Problem, das diese Entscheidung löst? Welche Situation erzwingt die Entscheidung jetzt?}}
+   {{What is the concrete problem this decision solves? Which situation forces the decision now?}}
 
-   ## Entscheidungstreiber
+   ## Decision Drivers
 
-   - {{Treiber 1}}
-   - {{Treiber 2}}
+   - {{Driver 1}}
+   - {{Driver 2}}
 
-   ## Betrachtete Optionen
+   ## Considered Options
 
    ### Option 1: {{Name}}
 
    - **Pro**: …
-   - **Contra**: …
+   - **Con**: …
 
    ### Option 2: {{Name}}
 
    - **Pro**: …
-   - **Contra**: …
+   - **Con**: …
 
-   ## Entscheidung
+   ## Decision
 
-   Wir wählen **Option N: {{Name}}**.
+   We choose **Option N: {{Name}}**.
 
-   **Begründung**: …
+   **Rationale**: …
 
-   ## Konsequenzen
+   ## Consequences
 
-   ### Positive Konsequenzen
-
-   - …
-
-   ### Negative Konsequenzen / Trade-offs
+   ### Positive Consequences
 
    - …
 
-   ## Bezüge
+   ### Negative Consequences / Trade-offs
 
-   **Verwandte ADRs**: …
-   **Konzept**: …
+   - …
+
+   ## References
+
+   **Related ADRs**: …
+   **Concept**: …
    ```
 
-4. **Pflicht-Checks**:
-   - Mindestens 2 Optionen mit je Pro/Contra?
-   - Entscheidungstreiber explizit (kein "weil Standard")?
-   - Konsequenzen (beide Richtungen) vorhanden?
-   - Konzept-Bezug gesetzt?
-   - `Entscheider` auf Rigobert (SH-09) gesetzt?
+4. **Mandatory checks**:
+   - At least 2 options, each with pro/con?
+   - Decision drivers explicit (no "because it is standard")?
+   - Consequences (both directions) present?
+   - Concept reference set?
+   - `Deciders` set to Rigobert (SH-09)?
 
-5. **Anti-Pattern vermeiden**:
-   - Kein ADR auf Vorrat — nur bei konkretem Entscheidungsbedarf
-   - Kein ADR ohne dokumentierte Alternativen
-   - Kein ADR ohne Konsequenzen
+5. **Avoid anti-patterns**:
+   - No ADR on stock — only when there is a concrete need for a decision
+   - No ADR without documented alternatives
+   - No ADR without consequences
 
-6. **Ausgabe**:
-   Pfad, Nummer, Titel, Status `draft`.
+6. **Output**:
+   Path, number, title, status `draft`.
 
-## Konventionen
+## Conventions
 
-- `draft` → `proposed` → `accepted | rejected`; später ggf. `superseded by ADR-NNN`
-- Nummern niemals wiederverwenden
-- Filename: Deutsch oder Englisch — konsistent mit bestehendem Stil (bisher deutsch)
+- `draft` → `proposed` → `accepted | rejected`; later possibly `superseded by ADR-NNN`
+- Never reuse numbers
+- Filename: English, kebab-case

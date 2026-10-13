@@ -1,64 +1,64 @@
-# Ableitung aus: requirements/req/req-080-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-080-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @could
-Feature: REQ-080 – Rechtschreibungsprüfung im WYSIWYG-Editor
+Feature: REQ-080 – Spell checking in the WYSIWYG editor
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Browser-native Basis – TipTap-Editor-Element hat `spellcheck="true"` gesetzt
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - TipTap-Editor-Element hat `spellcheck="true"` gesetzt
-    # - Der Browser markiert falsch geschriebene Wörter mit roter Unterstreichung
-    # - Rechtsklick → Browser-Korrekturvorschläge (Standardverhalten)
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC1 – Browser-native baseline – TipTap editor element has `spellcheck="true"` set
+    # TODO: AC without standard structure – refine manually
+    # - TipTap editor element has `spellcheck="true"` set
+    # - The browser marks misspelled words with a red underline
+    # - Right-click → browser correction suggestions (default behavior)
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement
 
   @AC2
-  Scenario: AC2 – Sprache der Prüfung – LanguageTool aktiv: Prüfsprache folgt der in REQ-079 gewählten UI-Sprach...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  LanguageTool aktiv: Prüfsprache folgt der in REQ-079 gewählten UI-Sprache des Nutzers; explizit im Editor überschreibbar
-    Then ist das erwartete Ergebnis eingetreten
+  Scenario: AC2 – Language of the check – LanguageTool active: check language follows the UI language of the user selected in REQ-079...
+    Given the precondition according to the requirement is met
+    When  LanguageTool active: check language follows the UI language of the user selected in REQ-079; explicitly overridable in the editor
+    Then the expected result has occurred
 
   @AC3
-  Scenario: AC3 – LanguageTool konfigurierbar – konfiguriert: Editor sendet Text an LanguageTool-API und zeigt Fehler mi...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  konfiguriert: Editor sendet Text an LanguageTool-API und zeigt Fehler mit farblicher Unterstreichung an
-    Then ist das erwartete Ergebnis eingetreten
+  Scenario: AC3 – LanguageTool configurable – configured: editor sends text to the LanguageTool API and shows errors with colored underline...
+    Given the precondition according to the requirement is met
+    When  configured: editor sends text to the LanguageTool API and shows errors with colored underline
+    Then the expected result has occurred
 
   @AC4
-  Scenario: AC4 – Fehlertypen mit LanguageTool – Rechtschreibfehler: rote Unterstreichung
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - Rechtschreibfehler: rote Unterstreichung
-    # - Grammatikfehler: blaue Unterstreichung
-    # - Stil-Hinweise: graue Unterstreichung (deaktivierbar per Nutzer-Einstellung)
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC4 – Error types with LanguageTool – Spelling errors: red underline
+    # TODO: AC without standard structure – refine manually
+    # - Spelling errors: red underline
+    # - Grammar errors: blue underline
+    # - Style hints: gray underline (can be disabled via user setting)
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement
 
   @AC5
-  Scenario: AC5 – Fallback bei Nicht-Erreichbarkeit – LanguageTool nicht erreichbar: kein Fehler in der UI; Browser-nativer Sp...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  LanguageTool nicht erreichbar: kein Fehler in der UI; Browser-nativer Spellcheck bleibt aktiv
-    Then ist das erwartete Ergebnis eingetreten
+  Scenario: AC5 – Fallback when unreachable – LanguageTool unreachable: no error in the UI; browser-native spellcheck remains active
+    Given the precondition according to the requirement is met
+    When  LanguageTool unreachable: no error in the UI; browser-native spellcheck remains active
+    Then the expected result has occurred
 
   @AC6
-  Scenario: AC6 – Offline / Air-gapped – Self-hosted LanguageTool (`languagetool/languagetool` Docker-Image, LGPL...
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - Self-hosted LanguageTool (`languagetool/languagetool` Docker-Image, LGPL) konfigurierbar; konsistent mit REQ-075
-    # - Kein externer Dienst-Aufruf wenn `languageToolUrl` nicht gesetzt
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC6 – Offline / air-gapped – Self-hosted LanguageTool (`languagetool/languagetool` Docker image, LGPL)...
+    # TODO: AC without standard structure – refine manually
+    # - Self-hosted LanguageTool (`languagetool/languagetool` Docker image, LGPL) configurable; consistent with REQ-075
+    # - No external service call if `languageToolUrl` is not set
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement
 
   @AC7
-  Scenario: AC7 – Deaktivierbar – Nutzer kann Rechtschreibprüfung im Editor über Toolbar-Button deaktivier...
-    # TODO: AC ohne Standard-Struktur – manuell verfeinern
-    # - Nutzer kann Rechtschreibprüfung im Editor über Toolbar-Button deaktivieren (Präferenz wird gespeichert)
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When die beschriebene Aktion ausgeführt wird
-    Then verhält sich das System gemäß der Aussage
+  Scenario: AC7 – Can be disabled – User can disable spell checking in the editor via toolbar button...
+    # TODO: AC without standard structure – refine manually
+    # - User can disable spell checking in the editor via toolbar button (preference is saved)
+    Given the precondition according to the requirement is met
+    When the described action is performed
+    Then the system behaves according to the statement

@@ -1,17 +1,17 @@
-## 12. Domain-Konzept und Sichten
+## 12. Domain Concept and Views
 
-### 12.1 Domain als n:m-Klassifikation
+### 12.1 Domain as an n:m Classification
 
 ```
 Domain {
   id: "domain-finance"
   name: "Finance"
-  parent: "domain-corporate" (optional, hierarchisch)
+  parent: "domain-corporate" (optional, hierarchical)
   owner: OrganizationUnit
 }
 ```
 
-Entitäten werden Domains **zugeordnet**, nicht in sie eingebettet:
+Entities are **assigned** to domains, not embedded in them:
 
 ```
 belongsTo-Relation {
@@ -26,28 +26,28 @@ belongsTo-Relation {
 }
 ```
 
-Eine primäre Zuordnung + beliebig viele sekundäre. Das löst das Cross-Domain-Problem sauber.
+One primary assignment + any number of secondary ones. This solves the cross-domain problem cleanly.
 
-### 12.2 Bebauungsplan – Struktur und Varianten
+### 12.2 Landscape Map (Bebauungsplan) – Structure and Variants
 
-Ein Bebauungsplan ist eine **Sicht**, definiert durch:
+A landscape map is a **view**, defined by:
 
-- Scope: Domain(s) / Layer / Capability-Teilbaum
-- Zeithorizont: Liste von Plateaus (z.B. Ist → T+1 → T+2 → Ziel)
-- Dimension: Y-Achse (Capability / Domain / OrgUnit), X-Achse (Zeit)
-- Darzustellende Entitäten: ApplicationComponent, Interface, Technology etc.
+- Scope: domain(s) / layer / capability subtree
+- Time horizon: list of plateaus (e.g., current state → T+1 → T+2 → target)
+- Dimension: Y axis (capability / domain / OrgUnit), X axis (time)
+- Entities to display: ApplicationComponent, Interface, Technology, etc.
 
-Typische Bebauungsplan-Varianten:
+Typical landscape map variants:
 
-1. **Domain-Bebauungsplan** – z.B. "Finance-Landschaft 2026–2030"
-2. **Capability-Bebauungsplan** – Anwendungen pro Capability über Zeit
-3. **Layer-Bebauungsplan** – z.B. nur Application-Layer unternehmensweit
-4. **Programm-Bebauungsplan** – gefiltert auf Work Packages eines Programms
-5. **Konsolidierter Gesamtplan** – für Management-Reporting
+1. **Domain landscape map** – e.g., "Finance landscape 2026–2030"
+2. **Capability landscape map** – applications per capability over time
+3. **Layer landscape map** – e.g., application layer only, enterprise-wide
+4. **Program landscape map** – filtered to the work packages of a program
+5. **Consolidated overall map** – for management reporting
 
-Alle sind **definierte und gespeicherte Sichten**, nicht separate Datenbestände.
+All of them are **defined and stored views**, not separate data stores.
 
-### 12.3 Sichten-Definition
+### 12.3 View Definition
 
 ```
 View {
@@ -64,34 +64,34 @@ View {
 }
 ```
 
-Eine View ist deklarativ beschrieben und wird bei Bedarf gerendert – das ist die Grundlage für die Pipeline-Integration.
+A view is described declaratively and rendered on demand – this is the basis for pipeline integration.
 
-### 12.4 Progressive Disclosure – drei Sichten für unterschiedliche Reife
+### 12.4 Progressive Disclosure – Three Views for Different Maturity Levels
 
-Die in [§6.1.1 (Kern-Entitätstypen)](../20-entities/06-kern-entitaetstypen.md) beschriebene kognitive Realität – dass Menschen in konkreten Lösungen denken, nicht in Schichten – findet ihre konkrete Umsetzung in drei vordefinierten Sichten, die je nach Reifegrad der Modellierung und Stakeholder-Bedarf eingesetzt werden.
+The cognitive reality described in [§6.1.1 (Core Entity Types)](../20-entities/06-core-entity-types.md) – that people think in concrete solutions, not in layers – finds its concrete implementation in three predefined views, used depending on the maturity of the modeling and the needs of stakeholders.
 
-#### Sicht: Inventar (Default für Einsteiger und Fachbereiche)
+#### View: Inventory (default for beginners and business units)
 
 ```yaml
 View "inventory":
   type: list
   scope:
     entityTypes: [PhysicalApplicationComponent, PhysicalTechnologyComponent]
-  groupBy: none           # flache Liste, keine Schichten-Strukturierung
+  groupBy: none           # flat list, no layer structuring
   display:
-    visualMarkers:        # farbliche Differenzierung
+    visualMarkers:        # color differentiation
       PhysicalApplicationComponent: blue
       PhysicalTechnologyComponent: grey
     columns: [name, type, owner, status, domain]
   filters: [search, owner, domain, status]
-  detailView: schichten-sicht        # Klick öffnet Sicht 2
+  detailView: layer-view        # click opens view 2
 ```
 
-Die Inventar-Sicht ist die **Einstiegssicht** ins Tool: flach, durchsuchbar, ohne konzeptionelle Vorkenntnisse nutzbar. Application und Technology stehen nebeneinander, visuell unterscheidbar, aber gleichwertig auffindbar. Ein Fachbereichsvertreter findet hier alle Systeme, die er kennt, ohne lernen zu müssen, was "Logical Application Component" bedeutet.
+The inventory view is the **entry view** into the tool: flat, searchable, usable without conceptual prior knowledge. Application and technology are side by side, visually distinguishable but equally findable. A business unit representative finds all systems they know here without having to learn what "Logical Application Component" means.
 
-**Wichtig**: Diese Sicht funktioniert auch dann, wenn keine Logical-Schicht gepflegt ist – sie zeigt nur, was tatsächlich existiert.
+**Important**: This view also works when no logical layer is maintained – it shows only what actually exists.
 
-#### Sicht: Schichten (für Architekten)
+#### View: Layers (for architects)
 
 ```yaml
 View "layered-detail":
@@ -102,34 +102,34 @@ View "layered-detail":
   display:
     showLayers: true
     expandableHierarchy: true
-  detailView: bebauungsplan-sicht
+  detailView: landscape-map-view
 ```
 
-Hier wird die strukturelle Einbettung sichtbar: Welche Logical Application steht hinter einer Physical Application, welche Technology Components laufen darunter, welche Services werden exponiert. Diese Sicht wird gefordert, wenn analytische Tiefe gebraucht wird.
+Here the structural embedding becomes visible: Which logical application stands behind a physical application, which technology components run beneath it, which services are exposed. This view is requested when analytical depth is needed.
 
-Wenn die Logical-Schicht nicht gepflegt ist, zeigt die Sicht das transparent an: "Diese Physical Application hat keinen Logical-Bezug. [Logical generieren?]" – mit der Option zur automatischen Stub-Generierung.
+If the logical layer is not maintained, the view shows this transparently: "This physical application has no logical reference. [Generate logical?]" – with the option of automatic stub generation.
 
-#### Sicht: Bebauungsplan (für strategische Entscheidungen)
+#### View: Landscape Map (for strategic decisions)
 
-Die in [§12.2 (Domain & Sichten)](12-domain-sichten.md) beschriebenen Bebauungspläne nutzen die Logical/Physical-Trennung gezielt: Logical bleibt über Plateaus stabil, Physical wechselt. Diese Sicht erfordert eine ausgereifte Modellierung mit gepflegter Logical-Schicht.
+The landscape maps (Bebauungspläne) described in [§12.2 (Domain & Views)](12-domain-views.md) deliberately use the logical/physical separation: logical stays stable across plateaus, physical changes. This view requires mature modeling with a maintained logical layer.
 
-#### Progressiver Aufbau im Repository
+#### Progressive Build-up in the Repository
 
-Die drei Sichten sind nicht alternativlos hierarchisch – sie unterstützen einen **schrittweisen Aufbau** des Modells:
+The three views are not an exclusive hierarchy – they support a **step-by-step build-up** of the model:
 
-| Reifestufe | Was modelliert ist | Welche Sichten nutzbar |
+| Maturity level | What is modeled | Which views are usable |
 |---|---|---|
-| 1 – Initial | Nur Physical Applications und Technologies | Inventar ✓, Schichten ⚠️ (mit Lücken), Bebauungsplan ✗ |
-| 2 – Strukturiert | + Logical Applications, ApplicationServices | Inventar ✓, Schichten ✓, Bebauungsplan ⚠️ (ohne Plateaus) |
-| 3 – Temporal | + Plateaus, Lifecycle-Zuordnung pro Plateau | Alle Sichten ✓ |
-| 4 – Vollständig | + Capabilities, Goals, Bebauungsplan-Varianten | Alle Sichten ✓ mit voller Mächtigkeit |
+| 1 – Initial | Only physical applications and technologies | Inventory ✓, Layers ⚠️ (with gaps), Landscape map ✗ |
+| 2 – Structured | + Logical applications, ApplicationServices | Inventory ✓, Layers ✓, Landscape map ⚠️ (without plateaus) |
+| 3 – Temporal | + Plateaus, lifecycle assignment per plateau | All views ✓ |
+| 4 – Complete | + Capabilities, goals, landscape map variants | All views ✓ with full power |
 
-Eine Organisation kann auf jeder Stufe stehenbleiben und sinnvoll mit dem Tool arbeiten. Der Aufstieg zu höheren Stufen passiert, wenn der konkrete Bedarf entsteht – nicht weil das Tool es erzwingt.
+An organization can stay at any level and work with the tool meaningfully. Moving up to higher levels happens when the concrete need arises – not because the tool enforces it.
 
-#### Implementierung: Sichten als gespeicherte Queries
+#### Implementation: Views as Stored Queries
 
-Alle drei Sichten sind als gespeicherte Sichten (siehe [§22.8 (Auswertbarkeit & Query-Architektur)](../70-platform/22-auswertbarkeit.md)) realisiert und werden mit dem Tool ausgeliefert. Organisationen können sie übernehmen, anpassen oder eigene Varianten definieren.
+All three views are implemented as stored views (see [§22.8 (Analyzability & Query Architecture)](../70-platform/22-analyzability.md)) and are shipped with the tool. Organizations can adopt them, adapt them, or define their own variants.
 
 ---
 
-← [Temporales Modell](11-temporales-modell.md) · [🏠 Übersicht](../README.md) · [Fach-Technik-Verlinkung](13-fach-technik-verlinkung.md) →
+← [Temporal Model](11-temporal-model.md) · [🏠 Overview](../README.md) · [Business–Technology Linking](13-business-technology-linking.md) →

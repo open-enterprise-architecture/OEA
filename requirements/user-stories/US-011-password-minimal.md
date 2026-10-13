@@ -1,59 +1,59 @@
-# US-011: Username/Passwort-Login ohne zweiten Faktor (Minimal-Variante)
+# US-011: Username/Password Login Without a Second Factor (Minimal Variant)
 
 **ID**: US-011
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Operator einer einfachen Self-Hosting-Instanz möchte ich bewusst die Minimal-Variante Username/Passwort ohne zweiten Faktor aktivieren können, damit ich auch ohne Passkey- oder TOTP-Infrastruktur einen lokalen Zugang anbieten kann.
+As an operator of a simple self-hosting instance, I want to be able to deliberately enable the minimal variant of username/password without a second factor, so that I can offer local access even without passkey or TOTP infrastructure.
 
-## Bezug
+## Reference
 
 **Use Case**: [UC-01: Login](../use-cases/UC-01-login.md)
-**Persona**: [SH-06: Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Requirement**: [REQ-011: Username/Passwort-Login ohne zweiten Faktor](../req/REQ-011-username-passwort-minimal.md)
+**Persona**: [SH-06: Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Requirement**: [REQ-011: Username/Password Login Without a Second Factor](../req/REQ-011-username-password-minimal.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine Instanz, auf der diese Variante explizit aktiviert wurde, und eine Person mit korrektem Passwort
-- Wenn: sie sich anmeldet
-- Dann: erhält sie eine Session gemäß ihren aktiven Rollenzuweisungen
+- Given: an instance on which this variant has been explicitly enabled, and a person with the correct password
+- When: they sign in
+- Then: they receive a session according to their active role assignments
 
 **AC2**:
-- Gegeben: eine neu installierte, nicht konfigurierte OEA-Instanz
-- Wenn: ihr Authentifizierungs-Setup geprüft wird
-- Dann: ist diese Variante standardmäßig deaktiviert
+- Given: a freshly installed, unconfigured OEA instance
+- When: its authentication setup is checked
+- Then: this variant is disabled by default
 
 **AC3**:
-- Gegeben: jeder Login über diese Variante
-- Wenn: der Audit-Log-Eintrag erzeugt wird
-- Dann: ist erkennbar, dass kein zweiter Faktor verwendet wurde
+- Given: every login via this variant
+- When: the audit log entry is created
+- Then: it is recognizable that no second factor was used
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Auth-Modul, Instanz-Konfiguration
-- Betroffene EntityTypes/Relations: Passwort-Hash (geteilt mit US-010)
-- API-Endpunkte: Login-Endpunkt (einstufig)
-- Datenbank-Änderungen: Konfigurations-Flag für Aktivierung dieser Variante
+- Affected components: auth module, instance configuration
+- Affected EntityTypes/Relations: password hash (shared with US-010)
+- API endpoints: login endpoint (single-step)
+- Database changes: configuration flag for enabling this variant
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person (mit Fokus Security, da schwächster Mechanismus)
-- [ ] Tests geschrieben (inkl. Default-Konfiguration einer frischen Installation)
-- [ ] Dokumentation aktualisiert (inkl. Sicherheits-Warnhinweis im Setup-Wizard)
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person (with focus on security, as the weakest mechanism)
+- [ ] Tests written (incl. default configuration of a fresh installation)
+- [ ] Documentation updated (incl. security warning in the setup wizard)
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-001, US-006, US-023 (Passwort-Enrollment muss existieren)
-- Blockiert: keine
+- Waiting on: US-001, US-006, US-023 (password enrollment must exist)
+- Blocks: none
 
-## Notizen
+## Notes
 
-Aktivierung muss eine bewusste, mit Warnung versehene Konfigurationsentscheidung sein, nicht in einer Config-Datei versteckt (siehe REQ-011, Realisierungs-Hinweise).
+Enabling must be a deliberate configuration decision accompanied by a warning, not hidden in a config file (see REQ-011, Implementation Notes).

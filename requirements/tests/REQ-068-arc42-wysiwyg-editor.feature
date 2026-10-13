@@ -1,56 +1,56 @@
-# Ableitung aus: requirements/req/req-068-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-068-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @should @UC-09
-Feature: REQ-068 – Arc42 WYSIWYG-Editor mit Mermaid- und PlantUML-Rendering
+Feature: REQ-068 – Arc42 WYSIWYG editor with Mermaid and PlantUML rendering
 
-  Das System MUSS für das `content`-Feld einer Arc42MetaObject-Entität
-  einen WYSIWYG-Editor bereitstellen, der Markdown-Formatierung,
-  `mermaid`-Codeblöcke und `plantuml`-Codeblöcke unterstützt.
-  Mermaid-Blöcke MÜSSEN client-seitig als SVG gerendert werden.
+  For the `content` field of an Arc42MetaObject entity, the system
+  MUST provide a WYSIWYG editor that supports Markdown formatting,
+  `mermaid` code blocks, and `plantuml` code blocks. Mermaid blocks
+  MUST be rendered client-side as SVG.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Mermaid gerendert – content enthält:
-    Given content enthält:
-    When  Michael öffnet die Arc42-Antwort
-    Then  Ein SVG-Diagramm (A→B→C) ist im Editor sichtbar; kein Roh-Code
+  Scenario: AC1 – Mermaid rendered – content contains:
+    Given content contains:
+    When  Michael opens the Arc42 answer
+    Then  an SVG diagram (A→B→C) is visible in the editor; no raw code
 
   @AC2
-  Scenario: AC2 – PlantUML via Server – `plantumlServerUrl` konfiguriert; content mit PlantUML-Block
-    Given `plantumlServerUrl` konfiguriert; content mit PlantUML-Block
-    When  Editor geöffnet
-    Then  SVG vom Server geladen und angezeigt
+  Scenario: AC2 – PlantUML via server – `plantumlServerUrl` configured; content with PlantUML block
+    Given `plantumlServerUrl` configured; content with PlantUML block
+    When  editor opened
+    Then  SVG loaded from the server and displayed
 
   @AC3
-  Scenario: AC3 – PlantUML Fallback – kein Server – kein PlantUML-Server konfiguriert und WASM nicht geladen
-    Given kein PlantUML-Server konfiguriert und WASM nicht geladen
-    When  Editor geöffnet
-    Then  Roh-Code angezeigt; Warning-Icon; Meldung „PlantUML nicht verfügbar"
+  Scenario: AC3 – PlantUML fallback – no server – no PlantUML server configured and WASM not loaded
+    Given no PlantUML server configured and WASM not loaded
+    When  editor opened
+    Then  raw code displayed; warning icon; message "PlantUML not available"
 
   @AC4
-  Scenario: AC4 – Edit-Toggle – Michael klickt auf Mermaid-Diagramm → „Bearbeiten"
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Michael klickt auf Mermaid-Diagramm → „Bearbeiten"
-    Then  Code-Editor öffnet sich; Änderungen live nachgerendert
+  Scenario: AC4 – Edit toggle – Michael clicks on Mermaid diagram → "Edit"
+    Given the precondition according to the requirement is met
+    When  Michael clicks on Mermaid diagram → "Edit"
+    Then  code editor opens; changes re-rendered live
 
   @AC5
-  Scenario: AC5 – Speichern als Markdown – Michael speichert
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Michael speichert
-    Then  `content`-Feld enthält Markdown-String mit unveränderten Codeblöcken; kein SVG in DB
+  Scenario: AC5 – Save as Markdown – Michael saves
+    Given the precondition according to the requirement is met
+    When  Michael saves
+    Then  `content` field contains Markdown string with unchanged code blocks; no SVG in DB
 
   @AC6
-  Scenario: AC6 – Zeichenlimit – content > 100.000 Zeichen
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  content > 100.000 Zeichen
-    Then  Fehlermeldung; Speichern verhindert
+  Scenario: AC6 – Character limit – content > 100,000 characters
+    Given the precondition according to the requirement is met
+    When  content > 100,000 characters
+    Then  error message; saving prevented
 
   @AC7
-  Scenario: AC7 – Web Portal rendering – CIO öffnet Arc42-Dokumentation im Web Portal
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  CIO öffnet Arc42-Dokumentation im Web Portal
-    Then  Mermaid und PlantUML werden gerendert (read-only); kein Editor
+  Scenario: AC7 – Web portal rendering – CIO opens Arc42 documentation in the web portal
+    Given the precondition according to the requirement is met
+    When  CIO opens Arc42 documentation in the web portal
+    Then  Mermaid and PlantUML are rendered (read-only); no editor

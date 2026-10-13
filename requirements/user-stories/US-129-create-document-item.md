@@ -1,40 +1,40 @@
-# US-129: DocumentItem mit Name, Alias und WYSIWYG-Inhalt anlegen
+# US-129: Create a DocumentItem with Name, Alias, and WYSIWYG Content
 
 **ID**: US-129
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Michael – Solution Architekt möchte ich in einer DocumentCollection Kapitel als DocumentItems anlegen können, die jeweils einen Namen, einen optionalen Alias und einen WYSIWYG-Inhalt tragen, damit ich Architekturdokumentation strukturiert und direkt im EA-Tool erfassen kann.
+As Michael – Solution Architect, I want to create chapters as DocumentItems in a DocumentCollection, each carrying a name, an optional alias, and WYSIWYG content, so that I can capture architecture documentation in a structured way directly in the EA tool.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-09](../use-cases/UC-09-loesungsarchitektur-arc42-dokumentieren.md)
-**Persona**: Michael – Solution Architekt (SH-04)
-**Requirements**: [REQ-132](../req/REQ-132-document-item-struktur.md)
+**Use Case**: [UC-09](../use-cases/UC-09-document-solution-architecture-arc42.md)
+**Persona**: Michael – Solution Architect (SH-04)
+**Requirements**: [REQ-132](../req/REQ-132-document-item-structure.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Anlegen):
-- Wenn: Michael in einer Collection „Neues Kapitel" klickt
-- Dann: Neues DocumentItem erscheint mit Fokus auf dem `name`-Feld; `content` leer; `sortOrder` automatisch ans Ende gesetzt
+**AC1** (Create):
+- When: Michael clicks "New chapter" in a collection
+- Then: new DocumentItem appears with focus on the `name` field; `content` empty; `sortOrder` automatically set to the end
 
-**AC2** (Alias setzen):
-- Wenn: Michael den Alias-Wert setzt, der in dieser Collection schon existiert
-- Dann: Inline-Fehler; Speichern verhindert
+**AC2** (Set alias):
+- When: Michael sets an alias value that already exists in this collection
+- Then: inline error; saving prevented
 
-**AC3** (Kapitelnavigation):
-- Wenn: Collection mit mehreren Items geöffnet wird
-- Dann: Navigation zeigt alle `name`-Werte nach `sortOrder`; aktives Item hervorgehoben
+**AC3** (Chapter navigation):
+- When: a collection with multiple items is opened
+- Then: navigation shows all `name` values by `sortOrder`; active item highlighted
 
-**AC4** (WYSIWYG-Inhalt):
-- Wenn: Michael ein Kapitel öffnet und Markdown, Mermaid oder Draw.io einfügt
-- Dann: Inhalte werden korrekt gerendert (REQ-068)
+**AC4** (WYSIWYG content):
+- When: Michael opens a chapter and inserts Markdown, Mermaid, or Draw.io
+- Then: contents are rendered correctly (REQ-068)
 
 ## Definition of Done
 
-- [ ] AC1–AC4 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC4 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

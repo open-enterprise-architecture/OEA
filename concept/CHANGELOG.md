@@ -1,196 +1,205 @@
-# Changelog des Konzeptpapiers
+# Concept Paper Changelog
 
-Dieses Dokument hält fest, wie sich das Konzeptpapier selbst entwickelt hat. Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach Semantic Versioning (auf Konzept-Ebene: Major = grundlegend neue Konzepte, Minor = neue Kapitel/Abschnitte, Patch = Korrekturen).
+This document records how the concept paper itself has evolved. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows Semantic Versioning (at concept level: major = fundamentally new concepts, minor = new chapters/sections, patch = corrections).
 
-## [v0.17.1] – §24 an aktuelle ADRs und Sprint-Plan angeglichen
+## [v0.17.2] – Concept paper translated to English
 
-### Geändert
-- §24 (Nächste Schritte): Tech-Stack-Angaben korrigiert (Java 21 + Spring Boot 3 + Hibernate statt NestJS/Drizzle, Flyway statt Drizzle Kit, OpenAPI spec-first statt code-first) gemäß ADR-012, ADR-013, ADR-015
-- §24: Walking Skeleton auf aktualisierte Definition umgestellt (31 SP, S1–S2, Entitäten per Batch-API); Modul-Sprint-Liste durch Verweis auf `docs/sprint-plan.md` ersetzt; ITSM/DSGVO/Security als nach v1.0 zurückgestellt gekennzeichnet (§23)
+### Changed
+- All chapters, README, INDEX and this changelog translated from German to English; content and section numbering unchanged
+- Chapter file names translated (e.g. `06-kern-entitaetstypen.md` → `06-core-entity-types.md`); all links updated
 
-### Begründung
-§24 widersprach den accepted ADRs (Stack-Wechsel auf Java in ADR-012) und dem Sprint-Plan. Fehlerhafte UC-Bezeichnungen („UC-05 Canvas“, „UC-01 Entity-Management“) sind entfernt.
+### Rationale
+The project language for documentation and code is English (AGENTS.md). The translation is a pure language change; no concept content was altered.
 
-## [v0.17] – §23 Offene Punkte vollständig abgearbeitet; §24 auf Implementation ausgerichtet
+## [v0.17.1] – §24 aligned with current ADRs and sprint plan
 
-### Geändert
-- §23 (Offene Punkte): alle 47 ursprünglichen Punkte kategorisiert und abgeschlossen
-  - 9 Punkte geschlossen durch ADRs oder Business Objects (ADR-001–007, process.md)
-  - 14 Punkte für v1.0 im Konzept entschieden (Persistenz PostgreSQL+AGE, Bitemporalität, Diff-Semantik, Query-Sprachen/openCypher, Event-Transport/SSE, Modul-Isolierung/Monolith, Audit-Trail, u.a.)
-  - 24 Punkte bewusst auf Integration-Phase oder v2.0 zurückgestellt (ITSM/PPM/GRC/DSGVO-Konnektoren, Spezial-Taxonomien, fortgeschrittene Governance-Features)
-- §24 (Nächste Schritte): aktualisiert auf Implementation-Phase; ausstehende Tech-ADRs (ADR-012–015) explizit benannt; Walking-Skeleton-Scope und Module-Sprint-Reihenfolge dokumentiert
+### Changed
+- §24 (Next Steps): tech stack details corrected (Java 21 + Spring Boot 3 + Hibernate instead of NestJS/Drizzle, Flyway instead of Drizzle Kit, OpenAPI spec-first instead of code-first) per ADR-012, ADR-013, ADR-015
+- §24: walking skeleton switched to the updated definition (31 SP, S1–S2, entities via batch API); module sprint list replaced by a reference to `docs/sprint-plan.md`; ITSM/GDPR/security marked as deferred beyond v1.0 (§23)
 
-### Begründung
-Requirements-Phase ist abgeschlossen (alle DoD-Kriterien erfüllt, Trace-Check grün). §23 war der letzte inhaltlich offene Block im Konzept. Mit der Kategorisierung ist klargestellt, was v1.0 enthalten muss und was bewusst für spätere Phasen zurückgestellt wird.
+### Rationale
+§24 contradicted the accepted ADRs (stack switch to Java in ADR-012) and the sprint plan. Erroneous UC designations ("UC-05 Canvas", "UC-01 Entity Management") have been removed.
 
-## [v0.16] – Lokale Authentifizierung als Alternative zu OIDC
+## [v0.17] – §23 Open issues fully worked through; §24 oriented toward implementation
 
-### Hinzugefügt
-- §21.8 Sicherheit und Autorisierung: lokale Authentifizierungsmechanismen für Self-Hosting ohne externen Identity-Provider (Passkey/WebAuthn als Standard, Username/Passwort mit TOTP als zweitem Faktor, Username/Passwort ohne zweiten Faktor als bewusst riskante Minimal-Variante)
-- Klarstellung, dass OIDC SSO über eine vorhandene Identity-Provider-Session einschließt
+### Changed
+- §23 (Open Issues): all 47 original items categorized and closed
+  - 9 items closed by ADRs or business objects (ADR-001–007, process.md)
+  - 14 items decided for v1.0 in the concept (persistence PostgreSQL+AGE, bitemporality, diff semantics, query languages/openCypher, event transport/SSE, module isolation/monolith, audit trail, among others)
+  - 24 items deliberately deferred to the integration phase or v2.0 (ITSM/PPM/GRC/GDPR connectors, special taxonomies, advanced governance features)
+- §24 (Next Steps): updated to the implementation phase; pending tech ADRs (ADR-012–015) explicitly named; walking skeleton scope and module sprint order documented
 
-### Begründung
-UC-01 (Login) und Stakeholder SH-06 (Max, Operator KMU) fordern explizit, dass OEA keine eigene Nutzerverwaltung ohne SSO erzwingt, aber auch ohne externen IdP self-hosting-fähig bleibt. OAuth 2.0/OIDC allein setzt einen IdP voraus, der im Single-User-KMU-Fall (SH-03 Kurt) nicht zwingend vorhanden ist.
+### Rationale
+The requirements phase is complete (all DoD criteria met, trace check green). §23 was the last open block in the concept in terms of content. The categorization clarifies what v1.0 must contain and what is deliberately deferred to later phases.
 
-## [v0.15] – Visualisierungs-Strategie als offene Entscheidung verankert
+## [v0.16] – Local authentication as an alternative to OIDC
 
-### Hinzugefügt
-- §21.2.1 Visualisierungs-Strategie: bewusst offene Entscheidung über Diagramm-Notation
-- Trade-off-Tabelle textbasierte DSL vs. grafische Editoren (10 Kriterien)
-- Use-Case-bezogene Renderer-Wahl als Skizze (sieben Diagramm-Typen mit möglichen Backends)
-- Fünf zu klärende Fragen vor Notations-Entscheidung
-- Übergangs-Empfehlung für die Konzept-Dokumentation (deskriptiv statt DSL-spezifisch)
-- Offene Punkte 46 (Visualisierungs-Strategie) und 47 (Bestandstool-Migration)
+### Added
+- §21.8 Security and authorization: local authentication mechanisms for self-hosting without an external identity provider (passkey/WebAuthn as standard, username/password with TOTP as second factor, username/password without a second factor as a deliberately risky minimal variant)
+- Clarification that OIDC includes SSO via an existing identity provider session
 
-### Geändert
-- §21.2: Renderer-Eintrag entschärft – konkrete Notationen entfernt, Verweis auf §21.2.1
-- Positionierung: Diagramm-Notation ist Implementation-Detail, nicht Konzept-Kern
+### Rationale
+UC-01 (Login) and stakeholder SH-06 (Max, SME operator) explicitly require that OEA does not enforce its own user management without SSO, but also remains self-hosting capable without an external IdP. OAuth 2.0/OIDC alone presupposes an IdP, which is not necessarily present in the single-user SME case (SH-03 Kurt).
 
-### Begründung
-Die Notations-Entscheidung sollte nach Abschluss der Requirements-Engineering-Phase getroffen werden, wenn Personas, Use Cases und Nutzungsmuster klar sind. Bis dahin sind alle Optionen offen.
+## [v0.15] – Visualization strategy anchored as an open decision
 
-## [v0.14] – Progressive Disclosure und Nicht-Erzwingung der Logical-Schicht
+### Added
+- §21.2.1 Visualization strategy: deliberately open decision on diagram notation
+- Trade-off table text-based DSL vs. graphical editors (10 criteria)
+- Use-case-specific renderer choice as a sketch (seven diagram types with possible backends)
+- Five questions to be clarified before a notation decision
+- Interim recommendation for the concept documentation (descriptive instead of DSL-specific)
+- Open items 46 (visualization strategy) and 47 (legacy tool migration)
 
-### Hinzugefügt
-- Neues Leitprinzip im README: "Progressive Disclosure statt erzwungener Tiefe" – konzeptionelle Korrektheit wird unterstützt, nicht erzwungen
-- §6.1.1 Abschnitt zur kognitiven Realität ("Menschen denken in Lösungen, nicht in Schichten") mit drei Erkenntnissen:
-  - Logical-Schicht ist optional, nicht obligatorisch
-  - Progressive Disclosure über drei Sichten (Inventar, Schichten, Bebauungsplan)
-  - Optionale Auto-Generierung von Logical-Stubs aus Physical
-- §12.4 Progressive Disclosure mit konkreter Sichten-Definition (Inventar, Schichten, Bebauungsplan) und vier Reifestufen für stufenweisen Aufbau
-- Trade-off explizit dokumentiert: OSS-Tool muss niederschwellig sein, darf analytische Sauberkeit nicht erzwingen
+### Changed
+- §21.2: renderer entry toned down – concrete notations removed, reference to §21.2.1
+- Positioning: diagram notation is an implementation detail, not the concept core
 
-### Geändert
-- Constraints zur Logical-Schicht durchgängig als `warning` oder `hint` markiert, nicht als `error`
+### Rationale
+The notation decision should be made after the requirements engineering phase is complete, when personas, use cases, and usage patterns are clear. Until then, all options are open.
 
-## [v0.13] – Change-Log-Konzepte ausgearbeitet
+## [v0.14] – Progressive disclosure and non-enforcement of the logical layer
 
-### Hinzugefügt
-- §11.5 Plateau-Diff als strukturierter Vergleich zwischen Plateaus (Diff-Dimensionen, Berechnungsregeln, Filterung, API-Endpunkt)
-- §22.11 Repository-Changelog und Release-Notes (RepositoryRelease + ChangeEntry, drei Erzeugungs-Wege, Aggregations-Sichten)
-- Abgrenzung von Audit-Log, Change-Log und Entity Change History in §21.8
-- Dieses CHANGELOG-Dokument
+### Added
+- New guiding principle in the README: "Progressive disclosure instead of enforced depth" – conceptual correctness is supported, not enforced
+- §6.1.1 section on cognitive reality ("People think in solutions, not in layers") with three insights:
+  - The logical layer is optional, not mandatory
+  - Progressive disclosure via three views (inventory, layers, landscape map (Bebauungsplan))
+  - Optional auto-generation of logical stubs from physical
+- §12.4 Progressive disclosure with concrete view definition (inventory, layers, landscape map) and four maturity levels for step-by-step build-up
+- Trade-off explicitly documented: an OSS tool must be low-threshold and must not enforce analytical cleanliness
 
-### Geändert
-- §22 Unterkapitel-Nummerierung (alte 22.11–22.13 sind jetzt 22.12–22.14)
+### Changed
+- Constraints on the logical layer consistently marked as `warning` or `hint`, not as `error`
 
-## [v0.12] – Requirements-Repository
+## [v0.13] – Change log concepts elaborated
 
-### Hinzugefügt
-- §7.2 Requirement-EntityType deutlich erweitert (Lifecycle, Trace-Verbindungen aufwärts/abwärts, Risiko-Verbindungen, Hierarchie- und Beziehungstypen)
-- Drei Stereotypen: ArchitectureRequirement (Default), SystemRequirement (mit externalReference), QualityRequirement
-- §10.7 Requirements-Repository-Aspekte (Verknüpfungs-Disziplin, Sichten, Constraints, Anti-Patterns)
-- Drei neue offene Punkte: Versionierungs-Trigger, System-Requirements-Scope, ReqIF-Integration
+### Added
+- §11.5 Plateau diff as a structured comparison between plateaus (diff dimensions, calculation rules, filtering, API endpoint)
+- §22.11 Repository changelog and release notes (RepositoryRelease + ChangeEntry, three creation paths, aggregation views)
+- Delimitation of audit log, change log, and entity change history in §21.8
+- This CHANGELOG document
 
-### Geändert
-- INDEX-Beschreibung von §10 um Requirements-Repository ergänzt
+### Changed
+- §22 subsection numbering (old 22.11–22.13 are now 22.12–22.14)
 
-## [v0.11] – Application-vs-Technology-Abgrenzung präzisiert
+## [v0.12] – Requirements repository
 
-### Hinzugefügt
-- §6.1.1 Abgrenzung Application vs. Technology mit vier Entscheidungs-Prinzipien (Business-Purpose, Austauschbarkeit, Ownership, Katalogisierung)
-- Anerkennung der inhärenten Schwierigkeit der Abgrenzung
-- Zwei legitime Organisations-Prinzip-Varianten als Vorlagen
-- Drei Dual-Modellierungs-Optionen für Plattform-Produkte (beide Entities, Stereotype, ApplicationService als Brücke)
-- Constraint-Beispiel zur Durchsetzung organisations-weiter Klassifikations-Entscheidung
-- Offener Punkt 40 zur Default-Klassifikations-Wahl
+### Added
+- §7.2 Requirement EntityType significantly expanded (lifecycle, trace connections upward/downward, risk connections, hierarchy and relationship types)
+- Three stereotypes: ArchitectureRequirement (default), SystemRequirement (with externalReference), QualityRequirement
+- §10.7 Requirements repository aspects (linking discipline, views, constraints, anti-patterns)
+- Three new open items: versioning trigger, system requirements scope, ReqIF integration
 
-### Korrigiert
-- Frühere didaktische Zuspitzung "Kann ein Business-Stakeholder etwas damit anfangen?" als TOGAF-Test war ungenau; korrekte TOGAF-Definition ist strukturell (Funktionalität vs. Infrastruktur)
+### Changed
+- INDEX description of §10 extended by requirements repository
 
-## [v0.10] – GRC-, DSGVO- und ISMS-Integration
+## [v0.11] – Application-vs-technology delimitation refined
 
-### Hinzugefügt
-- §20 GRC-, DSGVO- und ISMS-Integration als neues Kapitel (DSGVO Art. 30, Drittlandtransfers, ISO 27005 Asset-Modell, Audit-Trail, Property-Level-AuthZ, Segregation of Duties)
-- §10.2 ProtectionNeed-EntityType (CIA-Schutzbedarf nach ISO 27005 / BSI Grundschutz)
-- §21.8 Property-Level-Autorisierung als Pflicht-Feature, Audit-Trail-Spezifikation
-- Drei neue Leitprinzipien (EA als Asset-Stammdatenlieferant, Property-Level-AuthZ, vollständiger Audit-Trail)
-- Sieben neue offene Punkte zu GRC/DSGVO/ISMS
+### Added
+- §6.1.1 Delimitation of application vs. technology with four decision principles (business purpose, replaceability, ownership, cataloging)
+- Acknowledgment of the inherent difficulty of the delimitation
+- Two legitimate organizational principle variants as templates
+- Three dual modeling options for platform products (both entities, stereotype, ApplicationService as a bridge)
+- Constraint example for enforcing an organization-wide classification decision
+- Open item 40 on the default classification choice
 
-### Geändert
-- Kapitel-Umnummerierung: alte §20 (API) → §21, alte §21 (Auswertbarkeit) → §22, alte §22 (Offene Punkte) → §23, alte §23 (Nächste Schritte) → §24
-- Datei-Umbenennungen entsprechend
+### Fixed
+- The earlier didactic sharpening "Can a business stakeholder do something with it?" as a TOGAF test was inaccurate; the correct TOGAF definition is structural (functionality vs. infrastructure)
 
-## [v0.9] – Reifikation von Relationen
+## [v0.10] – GRC, GDPR, and ISMS integration
 
-### Hinzugefügt
-- §2.1 Relationen als First-Class-Objekte (Reifikation) – RelationTypes können EntityType ODER RelationType als Start/Ziel haben
-- Reifikations-Tiefe (Default 2, pro Schema konfigurierbar)
-- §13 InformationFlow als Relation-Modellierung (Option B als Empfehlung)
-- §22.5 Reifizierte Relationen in Queries mit drei Szenarien
-- ADR.affects, Waiver.grantedFor, ComplianceDeviation.affects akzeptieren jetzt Entity[] | Relation[]
-- Drei neue offene Punkte zu Reifikation (Max-Tiefe, Adressierung, UI-Darstellung)
+### Added
+- §20 GRC, GDPR, and ISMS integration as a new chapter (GDPR Art. 30, third-country transfers, ISO 27005 asset model, audit trail, property-level authZ, segregation of duties)
+- §10.2 ProtectionNeed EntityType (CIA protection need per ISO 27005 / BSI IT-Grundschutz)
+- §21.8 Property-level authorization as a mandatory feature, audit trail specification
+- Three new guiding principles (EA as asset master data supplier, property-level authZ, complete audit trail)
+- Seven new open items on GRC/GDPR/ISMS
 
-### Geändert
-- §22 Unterkapitel-Nummerierung verschoben (Reifikations-Abschnitt eingeschoben)
+### Changed
+- Chapter renumbering: old §20 (API) → §21, old §21 (analyzability) → §22, old §22 (open issues) → §23, old §23 (next steps) → §24
+- File renames accordingly
 
-## [v0.8] – API-Architektur und Auswertbarkeit
+## [v0.9] – Reification of relations
 
-### Hinzugefügt
-- §20 API-Architektur und Modularität (Schichten, Module, Events, SDK)
-- §21 Auswertbarkeit und Query-Architektur (zwei Query-Paradigmen, Persistenz-Optionen, gespeicherte Views)
-- BPMN als exemplarisches Zusatzmodul
-- Sieben neue offene Punkte zu API/Query
+### Added
+- §2.1 Relations as first-class objects (reification) – RelationTypes can have EntityType OR RelationType as source/target
+- Reification depth (default 2, configurable per schema)
+- §13 InformationFlow as relation modeling (option B as recommendation)
+- §22.5 Reified relations in queries with three scenarios
+- ADR.affects, Waiver.grantedFor, ComplianceDeviation.affects now accept Entity[] | Relation[]
+- Three new open items on reification (max depth, addressing, UI representation)
 
-### Geändert
-- Scope-Beschreibung um API-zentrierte Architektur und modulare Erweiterung
-- Zwei neue Leitprinzipien: API-first und Persistenz-Neutralität
+### Changed
+- §22 subsection numbering shifted (reification section inserted)
 
-## [v0.7] – Motivation, Organisation, Prozesse, Cross-Cutting
+## [v0.8] – API architecture and analyzability
 
-### Hinzugefügt
-- §7 Motivation, Stakeholder und Ziele (Vision, Driver, Goal, Outcome, Stakeholder, Concern, Requirement, Glossar)
-- §8 Organisation, Rollen und Personen (DSGVO-bewusst, mit Skills, RACI, GovernanceBody)
-- §9 Prozess-Architektur (abstrakte Modellierung, BPMN als Adapter, Process Landscape, CRUD-Matrix, Value Streams)
-- §10 Cross-Cutting (Location, Security, Sustainability, Lokalisierung, Contract, Deliverable)
-- Empfehlung Option 3 für Prozess-Modellierung (abstrakt mit BPMN/EPK als Export-Formate)
+### Added
+- §20 API architecture and modularity (layers, modules, events, SDK)
+- §21 Analyzability and query architecture (two query paradigms, persistence options, stored views)
+- BPMN as an exemplary add-on module
+- Seven new open items on API/query
 
-## [v0.6] – Architekturprinzipien, Standards und Entscheidungen
+### Changed
+- Scope description extended by API-centric architecture and modular extension
+- Two new guiding principles: API-first and persistence neutrality
 
-### Hinzugefügt
-- §5 Architekturprinzipien, Standards und Entscheidungen (Prinzip vs. Standard vs. Guideline)
-- ArchitectureWaiver mit Pflicht-Ablaufdatum
-- ComplianceDeviation als drei Zustände (deviation, waiver, violation)
-- ADR mit Superseding und n:m-Affects-Relation
-- Navigationskette Goal → Principle → Standard → ADR → Entity → Deviation → Waiver → ADR
+## [v0.7] – Motivation, organization, processes, cross-cutting
 
-## [v0.5] – Enterprise Continuum und Schema-Evolution
+### Added
+- §7 Motivation, stakeholders, and goals (vision, driver, goal, outcome, stakeholder, concern, requirement, glossary)
+- §8 Organization, roles, and persons (GDPR-aware, with skills, RACI, GovernanceBody)
+- §9 Process architecture (abstract modeling, BPMN as adapter, process landscape, CRUD matrix, value streams)
+- §10 Cross-cutting (location, security, sustainability, localization, contract, deliverable)
+- Recommendation of option 3 for process modeling (abstract with BPMN/EPC as export formats)
 
-### Hinzugefügt
-- §4 Enterprise Continuum und Technical Reference Model (ABBs, SBBs, Patterns, Reference Architectures, TRM)
-- §15 Schema-Evolution (subjektive Scopes, Evolutions-Patterns, Versionierung, Data Quality Scores, Tag-basierte Pilotierung)
-- Schema-Profile als organisatorische Konfiguration
+## [v0.6] – Architecture principles, standards, and decisions
 
-## [v0.4] – PPM- und Agile-Integration
+### Added
+- §5 Architecture principles, standards, and decisions (principle vs. standard vs. guideline)
+- ArchitectureWaiver with mandatory expiry date
+- ComplianceDeviation as three states (deviation, waiver, violation)
+- ADR with superseding and n:m affects relation
+- Navigation chain Goal → Principle → Standard → ADR → Entity → Deviation → Waiver → ADR
 
-### Hinzugefügt
-- §18 PPM-Integration (Project, Program, Portfolio, Demand, BusinessCase, Benefit, Architecture Review Board)
-- §19 Agile Skalierungs-Frameworks (SAFe und LeSS mit unterschiedlichen Philosophien, Schema-Profile)
-- TIME-Modell-Kategorisierung
-- Architectural Runway als Stereotype
+## [v0.5] – Enterprise continuum and schema evolution
 
-## [v0.3] – Verhältnis zu Frameworks präzisiert
+### Added
+- §4 Enterprise continuum and technical reference model (ABBs, SBBs, patterns, reference architectures, TRM)
+- §15 Schema evolution (subjective scopes, evolution patterns, versioning, data quality scores, tag-based piloting)
+- Schema profiles as organizational configuration
 
-### Hinzugefügt
-- §3 Verhältnis zu Arc42 und TOGAF (sieben Reibungspunkte mit Auflösungen, gemeinsames Metamodell als Brücke)
+## [v0.4] – PPM and agile integration
 
-## [v0.2] – ITSM-Integration
+### Added
+- §18 PPM integration (project, program, portfolio, demand, business case, benefit, architecture review board)
+- §19 Agile scaling frameworks (SAFe and LeSS with different philosophies, schema profiles)
+- TIME model categorization
+- Architectural runway as a stereotype
 
-### Hinzugefügt
-- §17 ITSM-Integration (CMDB- und Service-Catalog-Mastership, ITIL-4-Practices, Service-Begriffs-Abgrenzung)
-- ITSM-Koexistenz als Leitprinzip
-- Externe-Referenz-Mechanismus mit Property-Level-Mastership
+## [v0.3] – Relationship to frameworks refined
 
-## [v0.1] – Erste Version
+### Added
+- §3 Relationship to Arc42 and TOGAF (seven friction points with resolutions, common metamodel as a bridge)
 
-### Hinzugefügt
-- §1 Einordnung und Zielsetzung mit ursprünglichen Leitprinzipien
-- §2 Meta-Metamodell (M2/M1/M0)
-- §6 Kern-Entitätstypen (TOGAF Content Metamodel, Arc42, BPMN-Mapping)
-- §11 Temporales Modell (Plateaus, Lifecycle, Gaps, Work Packages, Zielbilder)
-- §12 Domain-Konzept und Sichten (n:m-Klassifikation, Bebauungspläne, gespeicherte Views)
-- §13 Verlinkung Fach- und Technik-Ebene
-- §14 Erweiterbarkeit (Custom EntityTypes, Stereotypen, Constraints)
-- §16 Beispiel-Walkthrough (CRM-Migration)
-- §23 Offene Punkte (initiale ADR-Kandidaten)
-- §24 Nächste Schritte
+## [v0.2] – ITSM integration
+
+### Added
+- §17 ITSM integration (CMDB and service catalog mastership, ITIL 4 practices, delimitation of the service term)
+- ITSM coexistence as a guiding principle
+- External reference mechanism with property-level mastership
+
+## [v0.1] – First version
+
+### Added
+- §1 Positioning and objectives with original guiding principles
+- §2 Meta-metamodel (M2/M1/M0)
+- §6 Core entity types (TOGAF content metamodel, Arc42, BPMN mapping)
+- §11 Temporal model (plateaus, lifecycle, gaps, work packages, target states)
+- §12 Domain concept and views (n:m classification, landscape maps (Bebauungspläne), stored views)
+- §13 Linking the business and technology levels
+- §14 Extensibility (custom EntityTypes, stereotypes, constraints)
+- §16 Example walkthrough (CRM migration)
+- §23 Open issues (initial ADR candidates)
+- §24 Next steps

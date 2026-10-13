@@ -1,58 +1,58 @@
-# ADR-010: Modellierung der DataFlow↔DataObject-Beziehung (n-Connection vs. Property-String)
+# ADR-010: Modeling the DataFlow↔DataObject Relationship (n-Connection vs. Property String)
 
 **Status**: accepted
-**Datum**: 2026-06-26
-**Entscheider**: SH-02 (Lukas – Data Architekt), SH-03 (Kurt – Lead EA)
-**Konsultiert**: SH-02 (Lukas), SH-03 (Kurt)
-**Informiert**: alle Stakeholder
+**Date**: 2026-06-26
+**Deciders**: SH-02 (Lukas – Data Architect), SH-03 (Kurt – Lead EA)
+**Consulted**: SH-02 (Lukas), SH-03 (Kurt)
+**Informed**: all stakeholders
 
-## Kontext und Problem
+## Context and Problem
 
-In [UC-08 (Data Lineage)](../requirements/use-cases/UC-08-data-lineage-modellieren.md) muss modelliert werden, welche **Datenobjekte** (`data-object`-Entitäten) ein **Datenfluss** (`data-flow`-Connection) transportiert. Das ist die Schlüsselbeziehung für traversierbare Lineage: „Welche Systeme berühren Datenobjekt X?"
+In [UC-08 (Data Lineage)](../requirements/use-cases/UC-08-model-data-lineage.md) it must be modeled which **data objects** (`data-object` entities) a **data flow** (`data-flow` connection) transports. This is the key relationship for traversable lineage: "Which systems touch data object X?"
 
-Es gibt zwei grundlegend verschiedene Modellierungsansätze:
+There are two fundamentally different modeling approaches:
 
-1. **Property-String** (`carriedDataObjectIds`): Der DataFlow speichert die referenzierten DataObject-IDs als kommaseparierten String in einem PropertyValue.
-2. **n-Connection** (`carries-data`): Ein eigenständiger Connection-Typ verbindet die DataFlow-Connection als Quell-Entity mit der DataObject-Entity als Ziel. Eine Connection zeigt auf eine andere Connection als Quelle — das ist eine **n-Connection** (Connection zweiten Grades).
+1. **Property string** (`carriedDataObjectIds`): The DataFlow stores the referenced DataObject IDs as a comma-separated string in a PropertyValue.
+2. **n-connection** (`carries-data`): A standalone connection type connects the DataFlow connection as source entity with the DataObject entity as target. A connection pointing to another connection as its source is an **n-connection** (second-degree connection).
 
-Abacus (Avolution) und viele andere EA-Tools unterstützen ausschliesslich direkte Kanten zwischen Knoten. Connections sind dort keine First-Class-Objekte, die selbst wieder als Endpunkt einer anderen Connection fungieren können. Dies ist eine strukturelle Einschränkung, die komplexe Beziehungsmodelle verhindert — z.B. „welche Sicherheitskontrolle greift auf welchen Datenfluss?" oder „welche Compliance-Anforderung gilt für welche Schnittstelle?".
+Abacus (Avolution) and many other EA tools support only direct edges between nodes. Connections there are not first-class objects that can themselves act as the endpoint of another connection. This is a structural limitation that prevents complex relationship models — e.g. "which security control applies to which data flow?" or "which compliance requirement applies to which interface?".
 
-OEA hat durch die `isConnection=true`-Semantik auf `EntityTypeDefinition` und das `sourceEntityId`/`targetEntityId`-Modell in `ArchitectureEntity` die **architektonische Grundlage für n-Connections** — die Frage ist, ob und wie weit dies freigegeben wird.
+OEA, through the `isConnection=true` semantics on `EntityTypeDefinition` and the `sourceEntityId`/`targetEntityId` model in `ArchitectureEntity`, has the **architectural foundation for n-connections** — the question is whether and how far this is enabled.
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- **Ausdrucksstärke**: Kann das Modell beliebig komplexe Beziehungen zwischen Relationen abbilden? (Differenzierungsmerkmal gegenüber Abacus)
-- **Abfragbarkeit**: Wie aufwändig ist die Lineage-Traversierung im Backend?
-- **Renderer-Komplexität**: Kann React Flow (ADR-007) Kanten, die selbst Knoten einer anderen Kante sind, sinnvoll darstellen?
-- **Migrierbarkeit**: Kann eine einfachere Lösung in v1.0 später ohne Datenverlust auf die mächtigere Lösung migriert werden?
-- **Metamodell-Kontrolle**: Sollen Organisationen selbst entscheiden, welche Modellierungstiefe sie für Datenflüsse brauchen? (unterschiedliche Bedürfnisse je nach Compliance-Anforderungen)
+- **Expressiveness**: Can the model represent arbitrarily complex relationships between relations? (differentiator compared to Abacus)
+- **Queryability**: How laborious is lineage traversal in the backend?
+- **Renderer complexity**: Can React Flow (ADR-007) meaningfully display edges that are themselves nodes of another edge?
+- **Migratability**: Can a simpler solution in v1.0 later be migrated to the more powerful solution without data loss?
+- **Metamodel control**: Should organizations decide themselves which modeling depth they need for data flows? (different needs depending on compliance requirements)
 
-## Betrachtete Optionen
+## Considered Options
 
-### Option A: Property-String (`carriedDataObjectIds`)
+### Option A: Property string (`carriedDataObjectIds`)
 
-Der `data-flow`-EntityType erhält eine PropertyDefinition `carriedDataObjectIds` (varchar). Werte: kommaseparierte Integer-IDs von `data-object`-Entitäten. Beispiel: `"42,43"`.
+The `data-flow` EntityType receives a PropertyDefinition `carriedDataObjectIds` (varchar). Values: comma-separated integer IDs of `data-object` entities. Example: `"42,43"`.
 
-Die Lineage-API parst diesen String serverseitig und folgt den IDs.
+The lineage API parses this string server-side and follows the IDs.
 
 - **Pro**:
-  - Keine Änderung am Entity-Modell (BR-04 bleibt unverändert)
-  - Einfach zu implementieren; kein spezielles Renderer-Handling
-  - Funktioniert mit dem PropertyValue-System aus v0.6.0
-- **Contra**:
-  - Soft-Referenz: keine FK-Constraint; IDs können ungültig werden (entity.md E2)
-  - String-Parsing im Backend bei jeder Lineage-Query (Performance bei vielen Datenflüssen)
-  - Keine Typsicherheit: ein falscher Wert bricht die Lineage still
-  - Nur ein fester Property-Name; für andere Relationship-Annotation-Bedarfe (z.B. Sicherheitskontrollen auf Datenflüssen) müssten weitere Property-Strings erfunden werden
-  - Schwer erweiterbar: Column-Level-Lineage (Feld zu Feld) lässt sich in einem String nicht sauber abbilden
+  - No change to the entity model (BR-04 remains unchanged)
+  - Simple to implement; no special renderer handling
+  - Works with the PropertyValue system from v0.6.0
+- **Con**:
+  - Soft reference: no FK constraint; IDs can become invalid (entity.md E2)
+  - String parsing in the backend on every lineage query (performance with many data flows)
+  - No type safety: a wrong value silently breaks the lineage
+  - Only one fixed property name; for other relationship annotation needs (e.g. security controls on data flows), further property strings would have to be invented
+  - Hard to extend: column-level lineage (field to field) cannot be cleanly represented in a string
 
-### Option B: n-Connection (`carries-data`)
+### Option B: n-connection (`carries-data`)
 
-Ein neuer EntityType `carries-data` (isConnection=true) wird im Metamodell definiert:
-- `sourceEntityId` → ID einer `data-flow`-Connection (isConnection=**true**)
-- `targetEntityId` → ID einer `data-object`-Entity (isConnection=false)
+A new EntityType `carries-data` (isConnection=true) is defined in the metamodel:
+- `sourceEntityId` → ID of a `data-flow` connection (isConnection=**true**)
+- `targetEntityId` → ID of a `data-object` entity (isConnection=false)
 
-Dies setzt voraus, dass BR-04 in `entity.md` gelockert wird: `sourceEntityId` darf auch auf eine ArchitectureEntity zeigen, deren Metatyp `isConnection=true` ist — sofern der eigene EntityType dies explizit erlaubt (`allowsConnectionSource=true` auf EntityTypeDefinition, oder über Metamodell-Constraint geregelt).
+This presupposes that BR-04 in `entity.md` is relaxed: `sourceEntityId` may also point to an ArchitectureEntity whose meta type is `isConnection=true` — provided the own EntityType explicitly allows it (`allowsConnectionSource=true` on EntityTypeDefinition, or regulated via metamodel constraint).
 
 ```
 SAP ERP (1) ──[data-flow: 5]──► Data Warehouse (2)
@@ -60,92 +60,92 @@ SAP ERP (1) ──[data-flow: 5]──► Data Warehouse (2)
              [carries-data: 103]
                    │
                    ▼
-            Kundenstamm (42)
+            Customer master data (42)
 ```
 
 - **Pro**:
-  - Echter FK: `carries-data`-Entität hat sourceEntityId=5 (DataFlow) und targetEntityId=42 (DataObject); referentielle Integrität vollständig modellierbar
-  - Erweiterbar: `carries-data` kann eigene PropertyDefinitions bekommen (z.B. `columnMapping`, `transformationRule`, `mandatory`)
-  - n-Connection als allgemeines Prinzip: dasselbe Muster gilt für `security-control → data-flow`, `compliance-requirement → interface`, etc. — keine Sonderlösung, sondern generisches Modell
-  - Column-Level-Lineage in v2.0 ohne Schemabruch erweiterbar (Property auf `carries-data`)
-  - Traversierung sauber: Standard-Graph-Query ohne String-Parsing
-  - **Klarer Wettbewerbsvorteil gegenüber Abacus**: Abacus kann keine Connections als Endpunkte anderer Connections modellieren; dies ist eine oft zitierte strukturelle Schwäche
-- **Contra**:
-  - BR-04 in `entity.md` muss angepasst werden (sourceEntityId darf auf Connection-Entity zeigen, wenn Metamodell dies erlaubt)
-  - React Flow (ADR-007) rendert Kanten normalerweise zwischen Knoten; eine Kante, deren Quelle selbst eine Kante ist, benötigt spezielle Canvas-Darstellung (z.B. Kante als Ankerpunkt auf einer anderen Kante — Pattern bekannt aus Hypergraphen und BPMN-Annotations)
-  - Komplexer im Backend: Graphtraversierung muss Connection-Entities als traversierbare Knoten verstehen
-  - Benutzer müssen verstehen, dass eine Connection selbst auch als Source/Target auftreten kann — Learning Curve
+  - True FK: `carries-data` entity has sourceEntityId=5 (DataFlow) and targetEntityId=42 (DataObject); referential integrity fully modelable
+  - Extensible: `carries-data` can get its own PropertyDefinitions (e.g. `columnMapping`, `transformationRule`, `mandatory`)
+  - n-connection as a general principle: the same pattern applies to `security-control → data-flow`, `compliance-requirement → interface`, etc. — no special solution, but a generic model
+  - Column-level lineage extensible in v2.0 without schema break (property on `carries-data`)
+  - Clean traversal: standard graph query without string parsing
+  - **Clear competitive advantage over Abacus**: Abacus cannot model connections as endpoints of other connections; this is an often-cited structural weakness
+- **Con**:
+  - BR-04 in `entity.md` must be adjusted (sourceEntityId may point to connection entity if the metamodel allows it)
+  - React Flow (ADR-007) normally renders edges between nodes; an edge whose source is itself an edge needs a special canvas representation (e.g. edge as anchor point on another edge — pattern known from hypergraphs and BPMN annotations)
+  - More complex in the backend: graph traversal must understand connection entities as traversable nodes
+  - Users must understand that a connection can itself appear as source/target — learning curve
 
-### Option C: Hybridansatz (A für v1.0, Migration zu B in v2.0)
+### Option C: Hybrid approach (A for v1.0, migration to B in v2.0)
 
-In v1.0 wird Option A implementiert (`carriedDataObjectIds` als Property-String). Das Datenmodell wird so designed, dass eine spätere Migration zu Option B möglich ist: die Property-IDs werden als Seed für die Generierung von `carries-data`-Verbindungen genutzt (Migrations-Skript).
+In v1.0 Option A is implemented (`carriedDataObjectIds` as property string). The data model is designed so that a later migration to Option B is possible: the property IDs are used as a seed for generating `carries-data` connections (migration script).
 
 - **Pro**:
-  - v1.0 kann schneller geliefert werden
-  - Kein Renderer-Sonderfall in v1.0
-  - Migration zu B ist möglich, ohne bestehende DataFlow-Entitäten zu ändern
-- **Contra**:
-  - Technische Schuld: Property-String und n-Connection koexistieren temporär
-  - Migrations-Skript ist fehleranfällig (was passiert mit unaufgelösten IDs?)
-  - Wenn die Migration nie stattfindet, bleibt das Modell dauerhaft schwächer als es sein könnte
+  - v1.0 can be delivered faster
+  - No renderer special case in v1.0
+  - Migration to B is possible without changing existing DataFlow entities
+- **Con**:
+  - Technical debt: property string and n-connection coexist temporarily
+  - Migration script is error-prone (what happens with unresolved IDs?)
+  - If the migration never takes place, the model remains permanently weaker than it could be
 
-## Entscheidung
+## Decision
 
-Wir wählen **Option B (n-Connection)**, weil es dem Kern-Designprinzip von OEA (Connections als First-Class-Entities mit Integer-IDs) entspricht, einen klaren Wettbewerbsvorteil gegenüber Abacus schafft und die Renderer-Frage durch das **3-Punkte-Kreis-Muster** gelöst ist.
+We choose **Option B (n-connection)**, because it corresponds to OEA's core design principle (connections as first-class entities with integer IDs), creates a clear competitive advantage over Abacus, and the renderer question is solved by the **3-dot-circle pattern**.
 
-**Renderer-Lösung (3-Punkte-Kreis, Referenz Obsidian)**:
-Eine Connection, die über n-Connections mit weiteren Entitäten verknüpft ist (d.h. selbst `sourceEntityId` einer anderen Connection ist), erhält auf ihrer Linie im Canvas einen kleinen Kreis mit drei Punkten (`•••`). Doppelklick öffnet ein **Verbindungs-Panel** mit allen verknüpften Entitäten und Connections. Am oberen Rand des Panels befinden sich Filter-Chips, einen pro vorhandenem Connection-Typ (z.B. `carries-data (2)`, `security-control (1)`). Die Grundidee stammt aus Obsidians Graph-View / Hover-Preview.
+**Renderer solution (3-dot circle, reference Obsidian)**:
+A connection that is linked to further entities via n-connections (i.e. is itself the `sourceEntityId` of another connection) receives a small circle with three dots (`•••`) on its line in the canvas. Double-click opens a **connection panel** with all linked entities and connections. At the top edge of the panel are filter chips, one per existing connection type (e.g. `carries-data (2)`, `security-control (1)`). The basic idea comes from Obsidian's graph view / hover preview.
 
-**Metamodell-Kontrolle**:
-`allowsConnectionAsSource: bool` (Default: `false`) wird als neues Feld auf `EntityTypeDefinition` in MetamodelConfiguration ergänzt. Nur EntityTypes mit `allowsConnectionAsSource=true` (z.B. `data-flow`) dürfen als `sourceEntityId` in einer anderen Connection auftreten. Dies regelt `entity.md BR-04` (Lockerung von `isConnection=false`-Pflicht auf `allowsConnectionAsSource=true`).
+**Metamodel control**:
+`allowsConnectionAsSource: bool` (default: `false`) is added as a new field on `EntityTypeDefinition` in MetamodelConfiguration. Only EntityTypes with `allowsConnectionAsSource=true` (e.g. `data-flow`) may appear as `sourceEntityId` in another connection. This is regulated by `entity.md BR-04` (relaxation of the `isConnection=false` obligation to `allowsConnectionAsSource=true`).
 
-**Tiefe**: n-Connections sind für v1.0 **einmal verschachtelt** (Connection-of-Connection). Connection-of-Connection-of-Connection ist nicht im Scope von v1.0.
+**Depth**: n-connections are **nested once** for v1.0 (connection-of-connection). Connection-of-connection-of-connection is not in scope for v1.0.
 
-**Ausstehend vor Acceptance**: Formale Bestätigung, dass die Änderung von BR-04 (entity.md) und das neue Feld `allowsConnectionAsSource` auf EntityTypeDefinition freigegeben sind.
+**Pending before acceptance**: Formal confirmation that the change of BR-04 (entity.md) and the new field `allowsConnectionAsSource` on EntityTypeDefinition are approved.
 
-## Konsequenzen (vorläufig, je nach Entscheidung)
+## Consequences (preliminary, depending on decision)
 
-### Positive Konsequenzen
+### Positive Consequences
 
-- **entity.md BR-04** wird gelockert: `sourceEntityId` darf auf eine ArchitectureEntity zeigen, deren Metatyp `isConnection=true` ist, sofern deren EntityTypeDefinition `allowsConnectionAsSource=true` hat
-- **metamodel-configuration.md**: `allowsConnectionAsSource: bool` (Default: `false`) auf EntityTypeDefinition; nur explizit freigegebene Typen (z.B. `data-flow`) können in n-Connections als Quelle auftreten
-- **Canvas**: 3-Punkte-Kreis-Indikator auf Connection-Linie; Doppelklick → Verbindungs-Panel mit Typ-Filtern (REQ-063)
-- **Lineage-API**: Graph-Traversierung versteht Connection-Entities als traversierbare Zwischenknoten; keine String-Parserei (REQ-062)
-- **Erweiterbar**: `carries-data` kann in v2.0 um `columnMapping`-Property für Column-Level-Lineage erweitert werden ohne Schemabruch
+- **entity.md BR-04** is relaxed: `sourceEntityId` may point to an ArchitectureEntity whose meta type is `isConnection=true`, provided its EntityTypeDefinition has `allowsConnectionAsSource=true`
+- **metamodel-configuration.md**: `allowsConnectionAsSource: bool` (default: `false`) on EntityTypeDefinition; only explicitly approved types (e.g. `data-flow`) can appear as source in n-connections
+- **Canvas**: 3-dot-circle indicator on connection line; double-click → connection panel with type filters (REQ-063)
+- **Lineage API**: graph traversal understands connection entities as traversable intermediate nodes; no string parsing (REQ-062)
+- **Extensible**: `carries-data` can be extended in v2.0 with a `columnMapping` property for column-level lineage without schema break
 
-### Negative Konsequenzen / Trade-offs
+### Negative Consequences / Trade-offs
 
-- Komplexerer Canvas-Renderer (3-Punkte-Indikator muss bei jedem Laden berechnet werden: hat diese Connection n-Connections?)
-- Backend muss Connection-Entities als Graphknoten (nicht nur Kanten) verstehen
-- Nutzer-Lernkurve: dass eine Linie selbst ein Objekt ist, das weitere Verbindungen haben kann, ist konzeptuell anspruchsvoller als Property-Strings
+- More complex canvas renderer (3-dot indicator must be computed on every load: does this connection have n-connections?)
+- Backend must understand connection entities as graph nodes (not only edges)
+- User learning curve: that a line is itself an object that can have further connections is conceptually more demanding than property strings
 
-### Folgeentscheidungen
+### Follow-up Decisions
 
-- entity.md BR-04 anpassen (Freigabe `allowsConnectionAsSource=true`-Typen als source)
-- MetamodelConfiguration v0.7.0: `allowsConnectionAsSource` auf EntityTypeDefinition
+- Adjust entity.md BR-04 (approval of `allowsConnectionAsSource=true` types as source)
+- MetamodelConfiguration v0.7.0: `allowsConnectionAsSource` on EntityTypeDefinition
 
-## Bezüge
+## References
 
-**Konzept-Kapitel**:
-- §6 Kern-Entitätstypen
-- §13 Fach-Technik-Verlinkung (Lineage als Brücke)
-- §14 Erweiterbarkeit
+**Concept Chapters**:
+- §6 Core Entity Types
+- §13 Business–Technology Linking (lineage as bridge)
+- §14 Extensibility
 
-**Verwandte ADRs**:
-- [ADR-007](./ADR-007-canvas-bibliothek.md) – React Flow als Canvas; Renderer-Fähigkeiten für n-Connection relevant
-- [ADR-004](./ADR-004-reifikation-details.md) – Reifikation (Verbindungen als First-Class-Objekte); konzeptuell verwandt
+**Related ADRs**:
+- [ADR-007](./ADR-007-canvas-library.md) – React Flow as canvas; renderer capabilities relevant for n-connection
+- [ADR-004](./ADR-004-reification-details.md) – Reification (connections as first-class objects); conceptually related
 
 **Use Cases / Requirements**:
-- [UC-08: Datenflusskarte (Data Lineage) modellieren und analysieren](../requirements/use-cases/UC-08-data-lineage-modellieren.md)
+- [UC-08: Model and Analyze Data Flow Map (Data Lineage)](../requirements/use-cases/UC-08-model-data-lineage.md)
 
 **Business Objects**:
-- [entity.md](../business-objects/entity.md) – BR-04 ist von dieser Entscheidung direkt betroffen
-- [metamodel-configuration.md](../business-objects/metamodel-configuration.md) – ggf. `allowsConnectionAsSource` auf EntityTypeDefinition
+- [entity.md](../business-objects/entity.md) – BR-04 is directly affected by this decision
+- [metamodel-configuration.md](../business-objects/metamodel-configuration.md) – possibly `allowsConnectionAsSource` on EntityTypeDefinition
 
-## Notizen
+## Notes
 
-Abacus (Avolution) Schwäche: Connections sind dort reine Kanten (Relationships), keine First-Class-Objekte. Es ist nicht möglich, eine Connection als Source oder Target einer anderen Connection zu definieren. Typische Folge: Annotation von Datenflüssen mit Sicherheitskontrollen, Compliance-Anforderungen oder Daten-Klassifikationen muss über Workarounds (Custom-Attribute auf der Kante als Freitext) realisiert werden – semantisch arm, nicht abfragbar.
+Abacus (Avolution) weakness: Connections there are pure edges (relationships), not first-class objects. It is not possible to define a connection as source or target of another connection. Typical consequence: annotating data flows with security controls, compliance requirements, or data classifications must be realized via workarounds (custom attributes on the edge as free text) – semantically poor, not queryable.
 
-OEA's Integer-ID auf jeder ArchitectureEntity (inklusive Connections) schafft die technische Grundlage für n-Connections. Die offene Frage ist nicht ob es geht, sondern **wie weit der Metamodell-Freiheitsgrad aufgemacht wird** und welche Darstellungslösung für den Canvas gewählt wird.
+OEA's integer ID on every ArchitectureEntity (including connections) creates the technical foundation for n-connections. The open question is not whether it works, but **how far the metamodel degree of freedom is opened** and which display solution is chosen for the canvas.
 
-Column-Level-Lineage (Feld-zu-Feld-Mapping) ist für v1.0 explizit nicht im Scope (UC-08), aber der n-Connection-Ansatz (Option B) würde es ermöglichen, `carries-data` in v2.0 um eine `columnMapping`-Property zu erweitern — ohne Schemabruch.
+Column-level lineage (field-to-field mapping) is explicitly not in scope for v1.0 (UC-08), but the n-connection approach (Option B) would make it possible to extend `carries-data` in v2.0 with a `columnMapping` property — without schema break.

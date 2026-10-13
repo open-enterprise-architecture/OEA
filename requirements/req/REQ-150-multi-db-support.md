@@ -1,6 +1,6 @@
 ---
 id: REQ-150
-title: Multi-Datenbank-Unterstützung
+title: Multi-Database Support
 type: constraint
 priority: must
 status: proposed
@@ -17,60 +17,60 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-150: Multi-Datenbank-Unterstützung
+# REQ-150: Multi-Database Support
 
-## Aussage
+## Statement
 
-Das System **MUSS** mit PostgreSQL 14+, MySQL 8+, MariaDB 10.6+ und SQL Server 2019+ betrieben werden können, ohne Änderungen am Applikationscode; der Datenbanktyp wird ausschliesslich über Konfiguration gewählt.
+The system **MUST** be operable with PostgreSQL 14+, MySQL 8+, MariaDB 10.6+, and SQL Server 2019+ without changes to the application code; the database type is selected exclusively via configuration.
 
-## Begründung
+## Rationale
 
-Unternehmen betreiben bereits lizenzierte Datenbanken. Eine PostgreSQL-Pflicht erhöht die Adoptionsschwelle. Nur wer keine neue Infrastruktur einführen muss, adoptiert das Werkzeug.
+Companies already operate licensed databases. A PostgreSQL obligation raises the adoption threshold. Only those who do not have to introduce new infrastructure will adopt the tool.
 
-## Kontext
+## Context
 
-Das Datenbankschema verwendet weder JSONB noch datenbankspezifische Array-Typen. Konfigurationsblobs werden als TEXT/CLOB gespeichert und via JPA `@Converter` serialisiert. (ADR-023)
+The database schema uses neither JSONB nor database-specific array types. Configuration blobs are stored as TEXT/CLOB and serialized via a JPA `@Converter`. (ADR-023)
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-**Art der Beschränkung**: technical
+**Type of Constraint**: technical
 
-**Quelle**: ADR-023, Marktanforderung
+**Source**: ADR-023, market requirement
 
-**Bindungsstärke**: hard
+**Binding Strength**: hard
 
-**Auswirkung bei Nichtbeachtung**: Adoption auf PostgreSQL-Installationen begrenzt; Ausschluss von SQL-Server- und MySQL-Kunden
+**Impact of Non-Compliance**: adoption limited to PostgreSQL installations; exclusion of SQL Server and MySQL customers
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: OEA-Docker-Image mit Env-Variable `SPRING_DATASOURCE_URL=jdbc:mysql://...`
-- Wenn: `docker compose up`
-- Dann: Flyway-Migrations laufen durch; API antwortet korrekt; alle CRUD-Operationen funktionieren
+- Given: OEA Docker image with env variable `SPRING_DATASOURCE_URL=jdbc:mysql://...`
+- When: `docker compose up`
+- Then: Flyway migrations run through; API responds correctly; all CRUD operations work
 
 **AC2**:
-- Gegeben: Testumgebung mit H2 in-memory (CI)
-- Wenn: Unit- und Integration-Tests laufen
-- Dann: Alle Tests grün ohne PostgreSQL-Instanz
+- Given: test environment with H2 in-memory (CI)
+- When: unit and integration tests run
+- Then: all tests green without a PostgreSQL instance
 
 **AC3**:
-- Gegeben: Schema-Migration V1 in SQL
-- Wenn: Flyway auf SQL Server 2019 ausführen
-- Dann: Keine syntax-spezifischen Fehler; alle Tabellen angelegt
+- Given: schema migration V1 in SQL
+- When: running Flyway on SQL Server 2019
+- Then: no syntax-specific errors; all tables created
 
-## Verifikationsmethode
+## Verification Method
 
-- [ ] Methode: test (automatisiert) + demonstration
-- [ ] Test-Setup: CI-Matrix mit PostgreSQL, MySQL, H2; manueller Smoke-Test SQL Server
-- [ ] Bestanden-Kriterium: CI-Matrix grün; Smoke-Test auf SQL Server erfolgreich
-- [ ] In CI integriert: ja (PostgreSQL + H2); SQL Server als optionaler Job
+- [ ] Method: test (automated) + demonstration
+- [ ] Test setup: CI matrix with PostgreSQL, MySQL, H2; manual smoke test SQL Server
+- [ ] Pass criterion: CI matrix green; smoke test on SQL Server successful
+- [ ] Integrated in CI: yes (PostgreSQL + H2); SQL Server as an optional job
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: ADR-015 (Flyway), ADR-023
+- **Prerequisites**: ADR-015 (Flyway), ADR-023
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft aus ADR-023 |
+| 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft from ADR-023 |

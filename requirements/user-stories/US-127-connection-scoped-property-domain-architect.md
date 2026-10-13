@@ -1,42 +1,42 @@
-# US-127: Domain Architekt sieht sensible Felder nur für eigene Domäne
+# US-127: Domain Architect Sees Sensitive Fields Only for Their Own Domain
 
 **ID**: US-127
 **Story Points**: 8
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Michael – Solution Architekt möchte ich sensible Properties (z.B. `sicherheitseinstufung`) nur für Entitäten sehen, die meiner Domäne über eine `DomainAssignment`-Connection zugeordnet sind, damit ich keine organisationsfremden Vertraulichkeitsdaten einsehe.
+As Michael – Solution Architect, I want to see sensitive properties (e.g. `sicherheitseinstufung`) only for entities assigned to my domain via a `DomainAssignment` connection, so that I do not view confidentiality data of other organizational areas.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-21](../use-cases/UC-21-property-sichtbarkeit-konfigurieren.md)
-**Persona**: Michael – Solution Architekt (SH-04)
-**Requirements**: [REQ-127](../req/REQ-127-property-sichtbarkeit-enforcement-connection-scoped.md)
+**Use Case**: [UC-21](../use-cases/UC-21-configure-property-visibility.md)
+**Persona**: Michael – Solution Architect (SH-04)
+**Requirements**: [REQ-127](../req/REQ-127-property-visibility-enforcement-connection-scoped.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Traversal positiv — eigene Domäne):
-- Gegeben: `sicherheitseinstufung` hat `visibilityMode=connection-scoped`, `scopingConnectionType=DomainAssignment`
-- Wenn: Michael ruft Entity A ab, die über `DomainAssignment` mit Michaels Domäne verbunden ist
-- Dann: Wert ist sichtbar und editierbar
+**AC1** (Traversal positive — own domain):
+- Given: `sicherheitseinstufung` has `visibilityMode=connection-scoped`, `scopingConnectionType=DomainAssignment`
+- When: Michael retrieves entity A, which is connected to Michael's domain via `DomainAssignment`
+- Then: value is visible and editable
 
-**AC2** (Traversal negativ — fremde Domäne):
-- Wenn: Michael ruft Entity B ab, die NICHT über `DomainAssignment` mit Michaels Domäne verbunden ist
-- Dann: Feld ist leer und nicht editierbar
+**AC2** (Traversal negative — other domain):
+- When: Michael retrieves entity B, which is NOT connected to Michael's domain via `DomainAssignment`
+- Then: field is empty and not editable
 
-**AC3** (Katalog-View):
-- Wenn: Katalog enthält connection-scoped Property als Spalte
-- Dann: Zeilen der eigenen Domäne zeigen den Wert; fremde Domänen-Zeilen zeigen leere Zelle
+**AC3** (Catalog view):
+- When: a catalog contains a connection-scoped property as a column
+- Then: rows of the own domain show the value; rows of other domains show an empty cell
 
 **AC4** (Performance):
-- Wenn: Michaels Domäne hat bis zu 500 direkt zugeordnete Entitäten
-- Dann: Traversal-Overhead p95 ≤ 200 ms (gecacht, TTL 60 s)
+- When: Michael's domain has up to 500 directly assigned entities
+- Then: traversal overhead p95 ≤ 200 ms (cached, TTL 60 s)
 
 ## Definition of Done
 
-- [ ] AC1–AC4 erfüllt
-- [ ] Graph-Traversal-Logik mit Unit-Tests abgedeckt
-- [ ] Cache-Invalidierung bei Connection-Änderung getestet
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC4 fulfilled
+- [ ] Graph traversal logic covered by unit tests
+- [ ] Cache invalidation on connection change tested
+- [ ] Code review; linter green; entered in trace matrix

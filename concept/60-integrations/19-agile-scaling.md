@@ -1,40 +1,40 @@
-## 19. Agile Skalierungs-Frameworks (SAFe, LeSS)
+## 19. Agile Scaling Frameworks (SAFe, LeSS)
 
-Große Organisationen arbeiten heute oft nach skalierten agilen Methoden. Die zwei verbreitetsten – SAFe (Scaled Agile Framework) und LeSS (Large Scale Scrum) – haben **fundamental unterschiedliche Philosophien** und stellen unterschiedliche Anforderungen an die EA-Integration.
+Large organizations today often work with scaled agile methods. The two most widespread – SAFe (Scaled Agile Framework) and LeSS (Large-Scale Scrum) – have **fundamentally different philosophies** and place different demands on EA integration.
 
-### 19.1 SAFe – Framework-reich und EA-freundlich
+### 19.1 SAFe – Framework-Rich and EA-Friendly
 
-SAFe ist ein umfangreiches Framework mit expliziten EA-Konzepten. Die Integration mit einem EA-Repository ist vergleichsweise geradlinig, weil SAFe viele Konzepte **benennt und strukturiert**, die in einem OEA ohnehin existieren.
+SAFe is a comprehensive framework with explicit EA concepts. Integration with an EA repository is comparatively straightforward because SAFe **names and structures** many concepts that exist in an OEA anyway.
 
-**Relevante SAFe-Konzepte und ihre EA-Entsprechungen:**
+**Relevant SAFe concepts and their EA counterparts:**
 
-| SAFe-Konzept | EA-Entsprechung | Anmerkung |
+| SAFe concept | EA counterpart | Remark |
 |---|---|---|
-| Strategic Theme | Goal / Outcome | 3–5 Jahre Horizont, portfolio-weit |
-| Portfolio Canvas | Portfolio + Capability Map | Strategischer Rahmen |
-| Portfolio Epic | Work Package (groß) | Bewegt sich zwischen Portfolio Kanban-Stufen |
-| Enabler Epic | Work Package (technisch) | Infrastruktur-, Compliance-, Research-Arbeit |
-| Solution | LogicalApplicationComponent (Suite) | System-of-Systems |
-| Capability (SAFe) | Eigener Typ! Nicht EA-Capability! | Verwirrend: gleicher Begriff, andere Bedeutung |
-| Feature | Feature / große User Story | Umsetzbar in einem PI |
-| Architectural Runway | Technical Enabler + Roadmap | "Vorinvestition in Architektur" |
-| Intentional Architecture | Gesteuerte Architektur-Entscheidungen | Gegenpol zu "Emergent Design" |
-| System Team | OrganizationUnit | Übergreifend für Integration |
-| ART (Agile Release Train) | OrganizationUnit + Solution-Zuordnung | 50–125 Personen um eine Solution |
+| Strategic Theme | Goal / Outcome | 3–5 year horizon, portfolio-wide |
+| Portfolio Canvas | Portfolio + Capability Map | Strategic framework |
+| Portfolio Epic | Work Package (large) | Moves between Portfolio Kanban stages |
+| Enabler Epic | Work Package (technical) | Infrastructure, compliance, research work |
+| Solution | LogicalApplicationComponent (suite) | System of systems |
+| Capability (SAFe) | Its own type! Not EA capability! | Confusing: same term, different meaning |
+| Feature | Feature / large user story | Implementable within one PI |
+| Architectural Runway | Technical enabler + roadmap | "Upfront investment in architecture" |
+| Intentional Architecture | Steered architecture decisions | Counterpart to "emergent design" |
+| System Team | OrganizationUnit | Cross-cutting for integration |
+| ART (Agile Release Train) | OrganizationUnit + solution assignment | 50–125 people around a solution |
 
-**Die Capability-Falle**: SAFe verwendet "Capability" für etwas anderes als TOGAF. In SAFe ist Capability eine **große Feature-Einheit, mehrere PIs umspannend**. In TOGAF ist Capability eine **langfristige Unternehmensfähigkeit**. Im Metamodell empfehle ich:
+**The capability trap**: SAFe uses "capability" for something different than TOGAF. In SAFe, a capability is a **large feature unit spanning several PIs**. In TOGAF, a capability is a **long-term enterprise ability**. In the metamodel, I recommend:
 
 ```yaml
 Stereotype: SAFeCapability
 basedOn: WorkPackage
 properties:
   - safeState: funnel | analyzing | portfolio-backlog | implementing | done
-  - targetPI: string  # z.B. "PI-2026-Q2"
+  - targetPI: string  # e.g. "PI-2026-Q2"
 ```
 
-Die TOGAF-Capability bleibt der primäre Capability-Begriff, SAFe-Capability wird als Stereotype auf WorkPackage abgebildet. Das vermeidet semantische Kollisionen.
+The TOGAF capability remains the primary capability term; the SAFe capability is mapped as a stereotype on WorkPackage. This avoids semantic collisions.
 
-**Portfolio Epic als First-Class-Brücke**: Portfolio Epics sind in SAFe der explizite Ort, wo Strategie auf Umsetzung trifft. Sie haben ein **Lean Business Case**, durchlaufen ein **Portfolio Kanban** und werden in **ARTs** umgesetzt. Das ist bereits eine komplette PPM-Struktur, die sauber mit dem EA-Repository integrierbar ist:
+**Portfolio epic as a first-class bridge**: In SAFe, portfolio epics are the explicit place where strategy meets implementation. They have a **lean business case**, pass through a **portfolio Kanban**, and are implemented in **ARTs**. This is already a complete PPM structure that can be cleanly integrated with the EA repository:
 
 ```
 Strategic Theme (EA: Goal)
@@ -46,52 +46,52 @@ Capability (SAFe) / Feature
 Program Increment (PI) via ART
 ```
 
-**Architectural Runway** – ein EA-Konzept mit neuem Namen: SAFe bezeichnet die Vorinvestition in Architektur ("Runway"), die erlaubt, zukünftige Features schnell zu liefern. Das ist nichts anderes als das, was klassische EA als "technische Infrastruktur-Zielbilder" kennt. Im Metamodell:
+**Architectural runway** – an EA concept with a new name: SAFe denotes the upfront investment in architecture ("runway") that allows future features to be delivered quickly. This is nothing other than what classic EA knows as "technical infrastructure target states". In the metamodel:
 
 ```yaml
 Stereotype: ArchitecturalRunway
 basedOn: WorkPackage
 additionalProperties:
-  - enablesCapabilities: Capability[]  (welche zukünftigen Fähigkeiten werden ermöglicht)
+  - enablesCapabilities: Capability[]  (which future capabilities are enabled)
   - runwayType: infrastructure | compliance | performance | usability
 ```
 
-**Intentional Architecture vs. Emergent Design**: SAFe fordert eine Balance. Das EA-Repository repräsentiert die *Intentional Architecture* – die bewusst geplante Struktur. Emergent Design passiert in Teams und sollte **rückwirkend dokumentiert** werden, wenn es signifikant wird. Das Repository erlaubt beides, aber die Unterscheidung kann als Property markiert werden:
+**Intentional architecture vs. emergent design**: SAFe demands a balance. The EA repository represents the *intentional architecture* – the deliberately planned structure. Emergent design happens in teams and should be **documented retroactively** when it becomes significant. The repository allows both, but the distinction can be marked as a property:
 
 ```yaml
-ArchitectureDecision erhält:
+ArchitectureDecision gains:
   - origin: intentional | emergent
   - decidedIn: ARB | ART-SystemTeam | Team
 ```
 
-### 19.2 LeSS – Framework-arm und EA-kritisch
+### 19.2 LeSS – Framework-Poor and EA-Critical
 
-LeSS ist das Gegenteil von SAFe: minimale Struktur, radikaler Fokus auf Produkt statt Projekt, bewusst **skeptisch gegenüber Enterprise-Architektur** als Disziplin.
+LeSS is the opposite of SAFe: minimal structure, radical focus on product instead of project, deliberately **skeptical of enterprise architecture** as a discipline.
 
-LeSS-Grundprinzipien mit EA-Relevanz:
-- **Ein Produkt, ein Product Backlog, ein Product Owner** – auch bei 8 Teams
-- **Keine zusätzlichen Rollen** jenseits von Scrum (kein ARB, kein Enterprise Architect als eigene Rolle)
-- **Architektur entsteht aus dem Code** (im Sinne von DDD, Continuous Architecture)
-- **Vermeidung von "Architects Without Code"** – Architekten sind idealerweise auch Entwickler
+LeSS basic principles with EA relevance:
+- **One product, one product backlog, one product owner** – even with 8 teams
+- **No additional roles** beyond Scrum (no ARB, no enterprise architect as a separate role)
+- **Architecture emerges from the code** (in the sense of DDD, continuous architecture)
+- **Avoidance of "architects without code"** – architects are ideally also developers
 
-**Was heißt das für dein OEA?**
+**What does this mean for your OEA?**
 
-Die philosophische Spannung: LeSS sagt nicht "EA ist falsch", sondern "EA als separate Disziplin mit separaten Rollen schadet". Stattdessen:
-- Architektur ist Ergebnis kontinuierlicher Entscheidungen im Team
-- Cross-Team-Koordination erfolgt in Design-Workshops, nicht in ARBs
-- Dokumentation ist so schlank wie möglich (LeSS fordert "whisper"-Dokumentation)
+The philosophical tension: LeSS does not say "EA is wrong" but "EA as a separate discipline with separate roles is harmful". Instead:
+- Architecture is the result of continuous decisions in the team
+- Cross-team coordination takes place in design workshops, not in ARBs
+- Documentation is as lean as possible (LeSS demands "whisper" documentation)
 
-**Wo andockt das trotzdem an EA?**
+**Where does it still dock onto EA?**
 
-Auch LeSS-Organisationen haben:
-- **Multi-Team-Produkte** mit gemeinsamer technischer Infrastruktur
-- **Systemübergreifende Interfaces** zu anderen Produkten / SaaS / Legacy
-- **Compliance-Anforderungen**, die dokumentiert werden müssen
-- **Portfolio-Ebene**, auf der Produkte finanziert und abgegrenzt werden
+LeSS organizations also have:
+- **Multi-team products** with shared technical infrastructure
+- **Cross-system interfaces** to other products / SaaS / legacy
+- **Compliance requirements** that must be documented
+- **Portfolio level**, at which products are funded and delimited
 
-Für ein LeSS-kompatibles Tool-Design bedeutet das:
+For a LeSS-compatible tool design, this means:
 
-**Primäre Entität ist "Product", nicht "Project"**:
+**The primary entity is "Product", not "Project"**:
 
 ```yaml
 EntityType: Product
@@ -105,39 +105,39 @@ EntityType: Product
     - realizedBy: LogicalApplicationComponent[]
 ```
 
-Ein Product ist langlebiger als ein Project – es existiert, solange das Produkt existiert. Projects werden in LeSS-Kontexten nicht benötigt, oder nur als temporäre Cost-Container.
+A product is longer-lived than a project – it exists as long as the product exists. Projects are not needed in LeSS contexts, or only as temporary cost containers.
 
-**Schlanke Documentation-Policy**: Das Tool sollte nicht jede Entität zur Pflicht machen. Ein **Minimal Schema Set** für LeSS-Kontexte wäre hilfreich:
+**Lean documentation policy**: The tool should not make every entity mandatory. A **minimal schema set** for LeSS contexts would be helpful:
 
 ```yaml
 minimalSchema: less-core
 includes:
   - Product
-  - ApplicationComponent (hierarchisch)
+  - ApplicationComponent (hierarchical)
   - Interface
-  - Capability (nur auf Product-Level)
+  - Capability (only at product level)
   - ADR
 excludes:
-  - Program (gibt es nicht)
-  - Portfolio-Epic (gibt es nicht)
-  - ARB (gibt es nicht)
+  - Program (does not exist)
+  - Portfolio-Epic (does not exist)
+  - ARB (does not exist)
 ```
 
-**Team-zentrische Sichten**: Während SAFe-Sichten oft ART-zentriert sind, sind LeSS-Sichten team-zentrisch:
-- Welches Team pflegt welche Components? (Ownership)
-- Welche Cross-Team-Dependencies existieren?
-- Welche Interfaces sind "Contracts" zwischen Teams?
+**Team-centric views**: While SAFe views are often ART-centric, LeSS views are team-centric:
+- Which team maintains which components? (ownership)
+- Which cross-team dependencies exist?
+- Which interfaces are "contracts" between teams?
 
-### 19.3 Die praktische Konsequenz für dein Tool
+### 19.3 The Practical Consequence for Your Tool
 
-Ein Tool, das *beide* Welten bedienen will (und das sollte es als Open-Source-Standard), muss:
+A tool that wants to serve *both* worlds (and it should, as an open-source standard) must:
 
-**1. Entitäten für SAFe UND Produkt-zentrische Arbeit anbieten:**
-- Project, Program, Portfolio → für SAFe/klassische PPM
-- Product → für LeSS/produktzentrierte Orgs
-- Beide können koexistieren, je nach Schema-Konfiguration
+**1. Offer entities for SAFe AND product-centric work:**
+- Project, Program, Portfolio → for SAFe/classic PPM
+- Product → for LeSS/product-centric orgs
+- Both can coexist, depending on schema configuration
 
-**2. Unterschiedliche Schema-Profile erlauben:**
+**2. Allow different schema profiles:**
 
 ```yaml
 profiles:
@@ -151,32 +151,32 @@ profiles:
       includes: [togaf-core-slim, arc42, adr-only]
 ```
 
-Organisationen wählen beim Setup ihr Profil. Das Meta-Metamodell bleibt gleich, aber die Schema-Aktivierung variiert.
+Organizations choose their profile at setup. The meta-metamodel stays the same, but schema activation varies.
 
-**3. Vokabular neutral halten**: Das Tool sollte nicht in seiner UI permanent "Project" sagen, wenn eine Organisation auf Products arbeitet. Konfigurierbare Labels pro Entity-Type helfen, die jeweilige Org-Sprache zu sprechen.
+**3. Keep vocabulary neutral**: The tool should not permanently say "Project" in its UI when an organization works on products. Configurable labels per entity type help to speak the respective organization's language.
 
-**4. Governance-Flexibilität**: Ein ARB ist in SAFe optional, in LeSS bewusst abgelehnt. Das Tool sollte Governance-Prozesse *unterstützen*, wenn sie existieren, aber nicht *erzwingen*. Approval-Workflows als Plugin, nicht als Core.
+**4. Governance flexibility**: An ARB is optional in SAFe and deliberately rejected in LeSS. The tool should *support* governance processes where they exist but not *enforce* them. Approval workflows as a plugin, not as core.
 
-### 19.4 Zusammenfassung: Metamodell-Erweiterungen für agile Skalierung
+### 19.4 Summary: Metamodel Extensions for Agile Scaling
 
-**Neue EntityTypes:**
-- `Product` (für produktzentrierte Organisationen)
-- `ProgramIncrement` (SAFe-PI als Zeitraum-Entität)
-- `AgileReleaseTrain` (SAFe-ART als OrganizationUnit-Stereotype)
+**New EntityTypes:**
+- `Product` (for product-centric organizations)
+- `ProgramIncrement` (SAFe PI as a time-period entity)
+- `AgileReleaseTrain` (SAFe ART as an OrganizationUnit stereotype)
 
-**Neue Stereotypes:**
-- `SAFeCapability` auf WorkPackage
-- `SAFePortfolioEpic` auf WorkPackage
-- `ArchitecturalRunway` auf WorkPackage
-- `EnablerEpic` auf WorkPackage
+**New stereotypes:**
+- `SAFeCapability` on WorkPackage
+- `SAFePortfolioEpic` on WorkPackage
+- `ArchitecturalRunway` on WorkPackage
+- `EnablerEpic` on WorkPackage
 
-**Neue Properties an bestehenden Typen:**
+**New properties on existing types:**
 - `ArchitectureDecision.origin: intentional | emergent`
 - `Project.methodology: waterfall | agile-scaled | agile-product | hybrid`
-- `WorkPackage.safeState` (optional, nur bei SAFe-Profil)
+- `WorkPackage.safeState` (optional, only with SAFe profile)
 
-**Schema-Profile** als organisatorische Konfiguration, wie in [§19.3 (Agile Skalierung)](19-agile-skalierung.md) skizziert.
+**Schema profiles** as organizational configuration, as outlined in [§19.3 (Agile Scaling)](19-agile-scaling.md).
 
 ---
 
-← [PPM-Integration](18-ppm-integration.md) · [🏠 Übersicht](../README.md) · [GRC-, DSGVO- und ISMS-Integration](20-grc-dsgvo-isms-integration.md) →
+← [PPM Integration](18-ppm-integration.md) · [🏠 Overview](../README.md) · [GRC, GDPR, and ISMS Integration](20-grc-gdpr-isms-integration.md) →

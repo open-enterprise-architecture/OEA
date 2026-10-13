@@ -1,6 +1,6 @@
 ---
 id: UC-03
-title: Authentifizierungsmethode einrichten (Required Action beim ersten Login)
+title: Set Up Authentication Method (Required Action at First Login)
 status: draft
 priority: must
 target_release: walking-skeleton
@@ -16,32 +16,32 @@ references:
     - person
     - local-credential
   concept:
-    - concept/70-platform/21-api-architektur.md
-    - concept/20-entities/08-organisation-rollen-personen.md
+    - concept/70-platform/21-api-architecture.md
+    - concept/20-entities/08-organization-roles-persons.md
   related_use_cases:
     - UC-01
     - UC-02
 ---
 
-# UC-03: Authentifizierungsmethode einrichten (Required Action beim ersten Login)
+# UC-03: Set Up Authentication Method (Required Action at First Login)
 
-## Diagramm
+## Diagram
 
 ```plantuml
-@startuml UC-03-AuthMethode
+@startuml UC-03-AuthMethod
 left to right direction
 skinparam actorStyle awesome
 
 actor "Kurt\n(Lead EA)" as Kurt
 actor "Max\n(Operator)" as Max
 
-rectangle "OEA – Authentifizierungsmethode einrichten" {
-  usecase "TOTP einrichten\n(Required Action)" as UC_TOTP
-  usecase "Passkey einrichten\n(Required Action)" as UC_Passkey
-  usecase "Weitere Methode\nhinzufügen (eingeloggt)" as UC_Extra
-  usecase "2FA-Erzwingung\nkonfigurieren" as UC_2FA
-  usecase "Credential persistieren\n& Required Action löschen" as UC_Cred
-  usecase "Audit-Log schreiben" as UC_Audit
+rectangle "OEA – Set Up Authentication Method" {
+  usecase "Set Up TOTP\n(Required Action)" as UC_TOTP
+  usecase "Set Up Passkey\n(Required Action)" as UC_Passkey
+  usecase "Add Another Method\n(logged in)" as UC_Extra
+  usecase "Configure 2FA\nEnforcement" as UC_2FA
+  usecase "Persist Credential\n& Clear Required Action" as UC_Cred
+  usecase "Write Audit Log" as UC_Audit
 }
 
 Kurt --> UC_TOTP
@@ -58,171 +58,171 @@ UC_Cred ..> UC_Audit : <<include>>
 
 ## Goal in Context
 
-Instanzen ohne externen Identity-Provider nutzen lokale Authentifizierung (Username/Passwort, optional mit 2. Faktor). Der Administrator legt eine Person an und setzt ein initiales Passwort. Beim ersten Login erkennt das System, welche „Required Actions" noch ausstehen: Ist 2FA instanzweit erzwungen (REQ-020) und noch kein zweiter Faktor eingerichtet, wird die Person direkt zur Einrichtungsseite weitergeleitet – sie erhält keinen Zugriff auf die Applikation, bis die Required Action abgeschlossen ist. Ist 2FA nicht erzwungen, entfällt UC-03 vollständig; der Login (UC-01 A5) gewährt direkt Zugriff.
+Instances without an external identity provider use local authentication (username/password, optionally with a second factor). The administrator creates a person and sets an initial password. At first login, the system detects which "required actions" are still pending: if 2FA is enforced instance-wide (REQ-020) and no second factor has been set up yet, the person is redirected directly to the setup page – they get no access to the application until the required action is completed. If 2FA is not enforced, UC-03 is omitted entirely; the login (UC-01 A5) grants access directly.
 
-## Persona und Story
+## Persona and Story
 
-**Primärer Akteur**: [Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Weitere Beteiligte**: [Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md) – Max konfiguriert, ob 2FA erzwungen wird und welche lokalen Methoden verfügbar sind
+**Primary Actor**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Other Stakeholders**: [Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md) – Max configures whether 2FA is enforced and which local methods are available
 
-**Story**: Als Person, die sich zum ersten Mal mit ihrem initialen Passwort anmeldet, möchte ich im Rahmen des Logins einen zweiten Faktor einrichten, damit ich danach vollen Zugriff gemäß meiner Rolle erhalte.
+**Story**: As a person logging in for the first time with my initial password, I want to set up a second factor as part of the login so that I subsequently get full access according to my role.
 
 ## Trigger
 
-- Systeminterner Anlass: UC-01 erkennt nach erfolgreicher Passwort-Prüfung, dass eine Required Action aussteht (2FA erzwungen, aber noch kein `LocalCredential` vom Typ `totp` oder `passkey` vorhanden)
-- Zeitpunkt: beim ersten Login nach Personen-Anlage durch Administrator; oder nach einem Admin-Reset der Required Actions
-- Vorgänger-Use-Case: UC-01 (Login, Schritt 1–2 des Hauptablaufs A5 sind bereits ausgeführt)
+- System-internal cause: After successful password verification, UC-01 detects that a required action is pending (2FA enforced, but no `LocalCredential` of type `totp` or `passkey` present yet)
+- Timing: at the first login after the person was created by an administrator; or after an admin reset of the required actions
+- Predecessor use case: UC-01 (Login, steps 1–2 of the basic flow A5 have already been executed)
 
-## Vorbedingungen (Pre-Conditions)
+## Preconditions
 
-- [ ] Eine [Person](../../business-objects/person.md) mit Lifecycle-Status `invited` existiert im System
-- [ ] Der Administrator hat ein initiales Passwort für die Person gesetzt (REQ-024); die Person kennt dieses Passwort
-- [ ] Die OEA-Instanz hat 2FA-Erzwingung aktiviert (REQ-020) und mindestens eine 2FA-Methode freigeschaltet (TOTP oder Passkey)
-- [ ] Die Person hat noch kein aktives [LocalCredential](../../business-objects/local-credential.md) vom Typ `totp` oder `passkey`
+- [ ] A [Person](../../business-objects/person.md) with lifecycle status `invited` exists in the system
+- [ ] The administrator has set an initial password for the person (REQ-024); the person knows this password
+- [ ] The OEA instance has enabled 2FA enforcement (REQ-020) and has activated at least one 2FA method (TOTP or passkey)
+- [ ] The person does not yet have an active [LocalCredential](../../business-objects/local-credential.md) of type `totp` or `passkey`
 
-## Nachbedingungen (Post-Conditions)
+## Postconditions
 
-### Bei Erfolg
+### On Success
 
-- Ein neues [LocalCredential](../../business-objects/local-credential.md) (TOTP-Secret oder Passkey-Public-Key) ist persistiert und mit der Person verknüpft
-- Die Required-Action-Flag "2FA-Einrichtung" ist für die Person gelöscht
-- Audit-Log enthält einen Eintrag: Person-ID, Zeitpunkt, eingerichtete Methode
-- System gewährt Kurt nun vollständigen Zugriff (Session mit Berechtigungen gemäß Rollen)
-- Lifecycle-Status der Person wechselt von `invited` zu `active` (erster erfolgreicher Login-Abschluss)
+- A new [LocalCredential](../../business-objects/local-credential.md) (TOTP secret or passkey public key) is persisted and linked to the person
+- The required-action flag "2FA setup" is cleared for the person
+- The audit log contains an entry: person ID, timestamp, method set up
+- The system now grants Kurt full access (session with permissions according to roles)
+- The person's lifecycle status changes from `invited` to `active` (first successful login completion)
 
-### Bei Misserfolg
+### On Failure
 
-- Kein Credential wird persistiert
-- Required-Action-Flag bleibt gesetzt
-- Kurt erhält keine Session; er kann es erneut versuchen oder den Browser schließen
+- No credential is persisted
+- The required-action flag remains set
+- Kurt receives no session; he can try again or close the browser
 
-## Hauptablauf (Basic Flow)
+## Basic Flow
 
-*Standardfall: TOTP-Einrichtung als Required Action, ausgelöst durch ersten Login*
+*Default case: TOTP setup as a required action, triggered by first login*
 
-1. **Kurt**: gibt Username und initiales Passwort in die Login-Maske ein (UC-01 A5, Schritte 1–2)
-2. **System**: validiert das Passwort; stellt fest, dass Required Action "2FA-Einrichtung" aussteht; leitet Kurt auf die Einrichtungsseite weiter – ohne Session und ohne Zugriff auf die Applikation
-3. **Kurt**: wählt TOTP als Methode (oder System zeigt direkt TOTP, falls es die einzige verfügbare Methode ist)
-4. **System**: generiert ein neues TOTP-Secret, zeigt es als QR-Code (`otpauth://`-URI-Format) und im Klartext zur manuellen Eingabe an
-5. **Kurt**: scannt den QR-Code mit einer Authenticator-App und gibt den aktuell angezeigten 6-stelligen Code zur Verifikation ein
-6. **System**: verifiziert den Code gegen das Secret (Zeittoleranz ±1 Fenster à 30 s); bei Erfolg persistiert es das Secret verschlüsselt, löscht die Required-Action-Flag, schreibt Audit-Log-Eintrag
-7. **System**: erstellt die Session mit Kurts Berechtigungen, leitet ihn in den rollenbasierten Einstiegsbereich weiter; Lifecycle-Übergang `invited → active`
+1. **Kurt**: enters username and initial password in the login form (UC-01 A5, steps 1–2)
+2. **System**: validates the password; determines that the required action "2FA setup" is pending; redirects Kurt to the setup page – without a session and without access to the application
+3. **Kurt**: selects TOTP as the method (or the system shows TOTP directly if it is the only available method)
+4. **System**: generates a new TOTP secret, displays it as a QR code (`otpauth://` URI format) and in plain text for manual entry
+5. **Kurt**: scans the QR code with an authenticator app and enters the currently displayed 6-digit code for verification
+6. **System**: verifies the code against the secret (time tolerance ±1 window of 30 s); on success it persists the secret encrypted, clears the required-action flag, writes an audit log entry
+7. **System**: creates the session with Kurt's permissions, redirects him to the role-based entry area; lifecycle transition `invited → active`
 
-## Alternative Abläufe (Alternative Flows)
+## Alternative Flows
 
-**A1 – Passkey als Required Action**: Bei Schritt 3, wenn Kurt Passkey wählt (oder die Instanz nur Passkey aktiviert hat):
-1. System startet WebAuthn-Registrierungs-Challenge
-2. Kurt bestätigt mit kompatiblem Authenticator
-3. System verifiziert Registrierungsantwort, persistiert Public Key und Credential-ID
-- Mündet zurück in Schritt 6 (Required-Action-Flag löschen, Session erstellen)
+**A1 – Passkey as required action**: At step 3, if Kurt selects passkey (or the instance has only activated passkey):
+1. System starts the WebAuthn registration challenge
+2. Kurt confirms with a compatible authenticator
+3. System verifies the registration response, persists public key and credential ID
+- Returns to step 6 (clear required-action flag, create session)
 
-**A2 – 2FA nicht erzwungen**: Wenn REQ-020 inaktiv ist:
-- UC-03 wird nicht ausgelöst; UC-01 A5 gewährt nach Passwort-Prüfung direkt Zugriff
-- Kurt richtet optional über seine Profil-Einstellungen eine weitere Methode ein (A3)
+**A2 – 2FA not enforced**: If REQ-020 is inactive:
+- UC-03 is not triggered; UC-01 A5 grants access directly after password verification
+- Kurt optionally sets up a further method via his profile settings (A3)
 
-**A3 – Weitere Methode für bereits eingeloggte Person**: Wenn Kurt bereits authentifiziert ist und eine zusätzliche lokale Methode einrichten möchte:
-1. Kurt navigiert zu den Sicherheitseinstellungen seines Profils
-2. System zeigt verfügbare, noch nicht eingerichtete Methoden
-3. Methodenspezifischer Ablauf wie Hauptablauf (TOTP) oder A1 (Passkey); kein Required-Action-Kontext
-4. System persistiert die neue Methode; Session bleibt aktiv
+**A3 – Additional method for an already logged-in person**: If Kurt is already authenticated and wants to set up an additional local method:
+1. Kurt navigates to the security settings of his profile
+2. System shows available methods that have not been set up yet
+3. Method-specific flow as in the basic flow (TOTP) or A1 (passkey); no required-action context
+4. System persists the new method; session remains active
 
-## Ausnahmen / Fehlerfälle (Exception Flows)
+## Exception Flows
 
-**E1 – TOTP-Verifikation schlägt fehl**:
-- Bedingung: Kurt gibt einen falschen oder abgelaufenen Code ein (Schritt 5)
-- Erwartete Reaktion: System zeigt Fehlermeldung, kein Secret wird persistiert; Required-Action-Flag bleibt gesetzt
-- Wiederaufnahme: Kurt gibt den nächsten Code ein; die Einrichtungsseite bleibt geöffnet
+**E1 – TOTP verification fails**:
+- Condition: Kurt enters a wrong or expired code (step 5)
+- Expected reaction: System shows an error message, no secret is persisted; required-action flag remains set
+- Resumption: Kurt enters the next code; the setup page remains open
 
-**E2 – Passkey-Registrierung schlägt fehl**:
-- Bedingung: Kurt bricht die Authenticator-Bestätigung ab oder der Authenticator meldet einen Fehler
-- Erwartete Reaktion: System zeigt allgemeine Fehlermeldung, kein Credential persistiert; Required-Action-Flag bleibt gesetzt
-- Wiederaufnahme: Kurt kann es erneut versuchen oder auf TOTP wechseln (falls verfügbar)
+**E2 – Passkey registration fails**:
+- Condition: Kurt cancels the authenticator confirmation or the authenticator reports an error
+- Expected reaction: System shows a generic error message, no credential persisted; required-action flag remains set
+- Resumption: Kurt can try again or switch to TOTP (if available)
 
-**E3 – Kurt bricht die Required Action ab**:
-- Bedingung: Kurt schließt den Browser oder bricht die Einrichtung explizit ab
-- Erwartete Reaktion: keine Session, kein Credential; beim nächsten Login-Versuch beginnt UC-03 von vorn
-- Wiederaufnahme: Kurt meldet sich erneut an
+**E3 – Kurt cancels the required action**:
+- Condition: Kurt closes the browser or explicitly cancels the setup
+- Expected reaction: no session, no credential; at the next login attempt UC-03 starts over
+- Resumption: Kurt logs in again
 
-## Datenfluss
+## Data Flow
 
-| Schritt | Daten | Richtung | Bemerkung |
+| Step | Data | Direction | Remark |
 |---|---|---|---|
-| 1–2 | Username, Passwort-Klartext | Kurt → System | Passwort nur für Verifikation, nie persistiert |
-| 2 | Required-Action-Status | System intern | Flag-Abfrage nach Passwort-Prüfung |
-| 4 (TOTP) | TOTP-Secret, QR-Code-URI | System → Kurt | Secret nur einmalig anzeigen |
-| 5 (TOTP) | Verifikations-Code (6 Stellen) | Kurt → System | |
-| A1 (Passkey) | WebAuthn-Challenge, RP-ID, Nutzer-Handle | System → Kurt | |
-| A1 (Passkey) | Public Key, Credential-ID, Attestation | Kurt → System | Privater Schlüssel verlässt den Authenticator nie |
-| 6 | Credential-Persistierung, Flag-Löschung, Audit-Log | System intern | Credentials getrennt vom Person-Objekt speichern |
-| 7 | Session-Token | System → Kurt | |
+| 1–2 | Username, plain-text password | Kurt → System | Password only for verification, never persisted |
+| 2 | Required-action status | System internal | Flag query after password verification |
+| 4 (TOTP) | TOTP secret, QR code URI | System → Kurt | Show secret only once |
+| 5 (TOTP) | Verification code (6 digits) | Kurt → System | |
+| A1 (passkey) | WebAuthn challenge, RP ID, user handle | System → Kurt | |
+| A1 (passkey) | Public key, credential ID, attestation | Kurt → System | Private key never leaves the authenticator |
+| 6 | Credential persistence, flag clearing, audit log | System internal | Store credentials separately from the Person object |
+| 7 | Session token | System → Kurt | |
 
-## Beteiligte Business Objects
+## Involved Business Objects
 
-| Business Object | Operation | Notiz |
+| Business Object | Operation | Note |
 |---|---|---|
-| [person](../../business-objects/person.md) | read, update | Lifecycle-Übergang `invited → active` bei Abschluss; Required-Action-Flag lesen/löschen |
-| [local-credential](../../business-objects/local-credential.md) | create | TOTP-Secret (verschlüsselt) oder Passkey-Public-Key wird angelegt und mit der Person verknüpft |
+| [person](../../business-objects/person.md) | read, update | Lifecycle transition `invited → active` on completion; read/clear required-action flag |
+| [local-credential](../../business-objects/local-credential.md) | create | TOTP secret (encrypted) or passkey public key is created and linked to the person |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] Hauptablauf (TOTP als Required Action beim ersten Login) vollständig durchlaufbar
-- [ ] A1 (Passkey als Required Action) funktioniert; Passkey-Login (UC-01 A3) ist danach möglich
-- [ ] A2 (2FA nicht erzwungen): UC-03 wird nicht ausgelöst; Login (UC-01 A5) gewährt direkt Zugriff
-- [ ] A3 (Weitere Methode in Profil-Einstellungen) funktioniert ohne Required-Action-Kontext
-- [ ] Ohne abgeschlossene Required Action erhält Kurt keine Session (kein Partial-Access)
-- [ ] E1 (TOTP-Fehler): Fehlermeldung, kein Credential, Required-Action-Flag bleibt gesetzt
-- [ ] E2 (Passkey-Fehler): Fehlermeldung, kein Credential, Required-Action-Flag bleibt gesetzt
-- [ ] Audit-Log enthält nach Abschluss: Person-ID, Zeitpunkt, eingerichtete Methode (`totp` oder `passkey`)
-- [ ] TOTP-Secret erscheint nicht in Server-Logs
-- [ ] Nach abgeschlossener Required Action ist der Login mit der neuen Methode (UC-01 A3/A4) möglich
+- [ ] Basic flow (TOTP as required action at first login) can be fully completed
+- [ ] A1 (passkey as required action) works; passkey login (UC-01 A3) is possible afterwards
+- [ ] A2 (2FA not enforced): UC-03 is not triggered; login (UC-01 A5) grants access directly
+- [ ] A3 (additional method in profile settings) works without required-action context
+- [ ] Without a completed required action, Kurt receives no session (no partial access)
+- [ ] E1 (TOTP error): error message, no credential, required-action flag remains set
+- [ ] E2 (passkey error): error message, no credential, required-action flag remains set
+- [ ] After completion, the audit log contains: person ID, timestamp, method set up (`totp` or `passkey`)
+- [ ] The TOTP secret does not appear in server logs
+- [ ] After the required action is completed, login with the new method (UC-01 A3/A4) is possible
 
-## Nicht im Scope
+## Out of Scope
 
-- Enrollment via separatem Einladungslink (bewusst verworfen; siehe REQ-021 `rejected`)
-- Anlegen der Person und Setzen des initialen Passworts durch Administrator (eigener UC; REQ-024 modelliert das Passwort-Hashing)
-- Passwort-Reset für lokal verwaltete Accounts (separater Use Case)
-- Verwaltung (Anzeige, Löschen) bereits registrierter Methoden (separater Use Case)
-- Recovery-Codes bei vollständigem Methodenverlust (separater Use Case / Break-Glass-Verfahren)
-- Enrollment für den System-Admin-Account (UC-02)
-- OIDC-Account-Verknüpfung (Person hat bereits `externalReference`; kein Enrollment nötig)
+- Enrollment via a separate invitation link (deliberately rejected; see REQ-021 `rejected`)
+- Creating the person and setting the initial password by the administrator (separate UC; REQ-024 models the password hashing)
+- Password reset for locally managed accounts (separate use case)
+- Management (display, deletion) of already registered methods (separate use case)
+- Recovery codes on complete loss of methods (separate use case / break-glass procedure)
+- Enrollment for the system admin account (UC-02)
+- OIDC account linking (person already has `externalReference`; no enrollment needed)
 
-## Konzept-Bezüge
+## Concept References
 
-- [§21.8 Authentifizierung/Autorisierung – Lokale Authentifizierung](../../concept/70-platform/21-api-architektur.md)
-- [§8.3 Person](../../concept/20-entities/08-organisation-rollen-personen.md)
+- [§21.8 Authentication/Authorization – Local Authentication](../../concept/70-platform/21-api-architecture.md)
+- [§8.3 Person](../../concept/20-entities/08-organization-roles-persons.md)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Required-Action-Mechanismus: nach erfolgreicher Passwort-Prüfung (UC-01 A5) prüft das System, ob offene Required Actions vorliegen; Session wird erst nach deren Abschluss erstellt (kein Early-Session-Grant)
-- TOTP: RFC 6238, 30-Sekunden-Fenster, SHA-1; Secret AES-256-GCM-verschlüsselt persistieren
-- Passkey: WebAuthn Level 2, `attestation: none` als Default; discoverable credentials bevorzugen
-- EntityTypes: `Person` (Required-Action-Flag), `LocalCredential` (Ergebnis)
-- A3 (Profil-Einstellungen): CSRF-Schutz via SameSite=Strict-Cookie; dieselbe Enrollment-Logik wie Hauptablauf, nur anderer Auth-Gate
+- Required-action mechanism: after successful password verification (UC-01 A5), the system checks whether open required actions exist; the session is created only after their completion (no early session grant)
+- TOTP: RFC 6238, 30-second window, SHA-1; persist secret AES-256-GCM-encrypted
+- Passkey: WebAuthn Level 2, `attestation: none` as default; prefer discoverable credentials
+- EntityTypes: `Person` (required-action flag), `LocalCredential` (result)
+- A3 (profile settings): CSRF protection via SameSite=Strict cookie; same enrollment logic as the basic flow, only a different auth gate
 
-## Realisierende Bestandteile
+## Realizing Components
 
-- Requirements: [REQ-022](../req/REQ-022-totp-enrollment.md), [REQ-023](../req/REQ-023-passkey-enrollment.md), [REQ-024](../req/REQ-024-initiales-passwort-admin.md), [REQ-025](../req/REQ-025-audit-log-enrollment.md), [REQ-026](../req/REQ-026-weitere-methode-authentifizierte-person.md)
-- User Stories: [US-021](../user-stories/US-021-totp-enrollment.md), [US-022](../user-stories/US-022-passkey-enrollment.md), [US-023](../user-stories/US-023-initiales-passwort-admin.md), [US-024](../user-stories/US-024-audit-log-enrollment.md), [US-025](../user-stories/US-025-weitere-methode-eingeloggte-person.md)
-- Verworfen: [REQ-021](../req/REQ-021-enrollment-token-validierung.md) (`rejected`), [US-020](../user-stories/US-020-enrollment-einstieg-einladungslink.md) (`rejected`)
-- ADRs: [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md) (lokale Auth als Option)
-- Test Cases: noch keine
-- Implementation: noch keine
+- Requirements: [REQ-022](../req/REQ-022-totp-enrollment.md), [REQ-023](../req/REQ-023-passkey-enrollment.md), [REQ-024](../req/REQ-024-initial-password-admin.md), [REQ-025](../req/REQ-025-audit-log-enrollment.md), [REQ-026](../req/REQ-026-additional-method-authenticated-person.md)
+- User Stories: [US-021](../user-stories/US-021-totp-enrollment.md), [US-022](../user-stories/US-022-passkey-enrollment.md), [US-023](../user-stories/US-023-initial-password-admin.md), [US-024](../user-stories/US-024-audit-log-enrollment.md), [US-025](../user-stories/US-025-additional-method-logged-in-person.md)
+- Rejected: [REQ-021](../req/REQ-021-enrollment-token-validation.md) (`rejected`), [US-020](../user-stories/US-020-enrollment-entry-invitation-link.md) (`rejected`)
+- ADRs: [ADR-006](../../adrs/ADR-006-auth-stack-choice.md) (local auth as an option)
+- Test Cases: none yet
+- Implementation: none yet
 
-## Offene Fragen
+## Open Questions
 
-- [x] Welches Business Object modelliert die lokalen Credentials? → [local-credential](../../business-objects/local-credential.md)
-- [x] Soll ein Nutzer mehrere Passkeys registrieren können? → Ja (BR-02 in `local-credential.md`)
-- [x] Enrollment via Einladungslink oder beim ersten Login? → First-Login Required Action (2026-06-25); Einladungslink-Ansatz verworfen
-- [ ] Wird für die Minimal-Passkey-Einrichtung im Walking Skeleton nur discoverable credentials unterstützt, oder auch non-resident?
-- [ ] Required-Action-Flag: im Person-Objekt als zusätzliches Attribut (`requiredActions: [totp_setup]`) oder als separate Tabelle?
+- [x] Which business object models the local credentials? → [local-credential](../../business-objects/local-credential.md)
+- [x] Should a user be able to register multiple passkeys? → Yes (BR-02 in `local-credential.md`)
+- [x] Enrollment via invitation link or at first login? → First-login required action (2026-06-25); invitation link approach rejected
+- [ ] Does the minimal passkey setup in the walking skeleton support only discoverable credentials, or also non-resident ones?
+- [ ] Required-action flag: as an additional attribute in the Person object (`requiredActions: [totp_setup]`) or as a separate table?
 
-## Notizen
+## Notes
 
-v0.2.0: Architektonische Grundentscheidung revidiert. Der ursprüngliche Enrollment-Token-Ansatz (v0.1.0) wurde verworfen, weil er einen separaten Link-Zustellungsmechanismus (E-Mail o.ä.) vorausgesetzt hätte. Das Just-in-Time-Enrollment als Required Action beim ersten Login ist der Industriestandard (Keycloak, Authentik, AWS IAM) und kommt ohne zusätzliche Infrastruktur aus. Der OIDC-Pfad (UC-01 Hauptablauf) ist davon unberührt; UC-03 betrifft ausschließlich die lokale Authentifizierung.
+v0.2.0: Fundamental architectural decision revised. The original enrollment token approach (v0.1.0) was rejected because it would have required a separate link delivery mechanism (email or similar). Just-in-time enrollment as a required action at first login is the industry standard (Keycloak, Authentik, AWS IAM) and needs no additional infrastructure. The OIDC path (UC-01 basic flow) is unaffected; UC-03 concerns local authentication exclusively.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-25 | Requirements Engineer | Initial draft (Enrollment via Einladungslink) |
-| 0.2.0 | 2026-06-25 | Requirements Engineer | Architektur-Revision: Enrollment-Token-Ansatz verworfen; Required-Action-beim-ersten-Login als neuer Hauptablauf |
+| 0.1.0 | 2026-06-25 | Requirements Engineer | Initial draft (enrollment via invitation link) |
+| 0.2.0 | 2026-06-25 | Requirements Engineer | Architecture revision: enrollment token approach rejected; required action at first login as new basic flow |

@@ -1,31 +1,31 @@
-# Ableitung aus: requirements/req/req-109-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-109-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-17
-Feature: REQ-109 – Architecture Pattern anlegen und verwalten
+Feature: REQ-109 – Create and manage architecture pattern
 
-  Das System MUSS das Anlegen, Bearbeiten und Löschen von
-  `ArchitecturePattern`-Einträgen ermöglichen. Pflichtfelder: `name`,
+  The system MUST allow creating, editing and deleting
+  `ArchitecturePattern` entries. Mandatory fields: `name`,
   `problem` (Markdown), `solution` (Markdown).
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Pattern anlegen – ein Pattern mit `problem` und `solution` angelegt wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein Pattern mit `problem` und `solution` angelegt wird
-    Then  antwortet das System mit HTTP 201; das Pattern ist in der Bibliothek sichtbar
+  Scenario: AC1 – Create pattern – a pattern is created with `problem` and `solution`
+    Given the precondition according to the requirement is met
+    When  a pattern is created with `problem` and `solution`
+    Then  the system responds with HTTP 201; the pattern is visible in the library
 
   @AC2
-  Scenario: AC2 – Pflichtfeld problem – ein Pattern ohne `problem`-Feld gespeichert werden soll
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  ein Pattern ohne `problem`-Feld gespeichert werden soll
-    Then  antwortet das System mit HTTP 422 „problem ist ein Pflichtfeld"
+  Scenario: AC2 – Mandatory field problem – a pattern is to be saved without the `problem` field
+    Given the precondition according to the requirement is met
+    When  a pattern is to be saved without the `problem` field
+    Then  the system responds with HTTP 422 "problem is a mandatory field"
 
   @AC3
-  Scenario: AC3 – relatedPatterns verknüpfen – `relatedPatterns` per Multi-Select mit anderen Patterns verknüpft werden
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  `relatedPatterns` per Multi-Select mit anderen Patterns verknüpft werden
-    Then  werden die Verknüpfungen gespeichert und in der Detailansicht angezeigt
+  Scenario: AC3 – Link relatedPatterns – `relatedPatterns` are linked to other patterns via multi-select
+    Given the precondition according to the requirement is met
+    When  `relatedPatterns` are linked to other patterns via multi-select
+    Then  the links are saved and displayed in the detail view

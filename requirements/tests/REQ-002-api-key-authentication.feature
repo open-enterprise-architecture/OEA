@@ -1,27 +1,27 @@
-# Ableitung aus: requirements/req/req-002-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-002-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @should @UC-01
-Feature: REQ-002 – API-Key-Authentifizierung für Maschine-zu-Maschine-Zugriffe
+Feature: REQ-002 – API key authentication for machine-to-machine access
 
-  Das System SOLL Anfragen mit gültigem API-Key direkt validieren
-  können, ohne Redirect zu einem OIDC-Identity-Provider, und die dem
-  API-Key zugeordnete Identität samt aktiven Rollenzuweisungen
-  ermitteln.
+  The system SHOULD be able to validate requests with a valid API key
+  directly, without a redirect to an OIDC identity provider, and
+  determine the identity assigned to the API key together with its
+  active role assignments.
 
   Background:
-    Given eine OEA-Instanz mit konfiguriertem Authentifizierungsmechanismus
-    And eine Person mit E-Mail "test@example.com" und aktiver Rolle existiert
+    Given an OEA instance with a configured authentication mechanism
+    And a person with email "test@example.com" and an active role exists
 
   @AC1
-  Scenario: AC1 – ein Request enthält einen gültigen, nicht widerrufenen API-Key
-    Given ein Request enthält einen gültigen, nicht widerrufenen API-Key
-    When  der Request gegen eine geschützte Ressource gestellt wird
-    Then  wird er ohne Redirect autorisiert, gemäß den Rollen der zugeordneten Identität
+  Scenario: AC1 – a request contains a valid, non-revoked API key
+    Given a request contains a valid, non-revoked API key
+    When  the request is made against a protected resource
+    Then  it is authorized without a redirect, according to the roles of the assigned identity
 
   @AC2
-  Scenario: AC2 – ein Request enthält einen ungültigen oder widerrufenen API-Key
-    Given ein Request enthält einen ungültigen oder widerrufenen API-Key
-    When  der Request gestellt wird
-    Then  wird er abgelehnt, ohne dass ein Autorisierungs-Kontext entsteht
+  Scenario: AC2 – a request contains an invalid or revoked API key
+    Given a request contains an invalid or revoked API key
+    When  the request is made
+    Then  it is rejected without an authorization context being created

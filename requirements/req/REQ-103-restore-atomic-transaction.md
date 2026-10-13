@@ -1,6 +1,6 @@
 ---
 id: REQ-103
-title: Wiederherstellung als atomare Transaktion
+title: Restore as an atomic transaction
 type: functional
 priority: should
 status: proposed
@@ -21,39 +21,39 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-103: Wiederherstellung als atomare Transaktion
+# REQ-103: Restore as an atomic transaction
 
-## Aussage
+## Statement
 
-Snapshot-Sicherung, Entitäts-Update und Schreiben des neuen EntityVersion-Eintrags MÜSSEN bei jeder Wiederherstellung (UC-15 und UC-16) in einer einzigen DB-Transaktion erfolgen. Bei technischem Fehler MUSS ein vollständiger Rollback erfolgen; kein Inkonsistenz-Zustand (Snapshot ohne Update oder Update ohne Snapshot) ist zulässig.
+Snapshot backup, entity update and writing of the new EntityVersion entry MUST occur in a single DB transaction for every restore (UC-15 and UC-16). In case of a technical error, a complete rollback MUST occur; no inconsistent state (snapshot without update or update without snapshot) is permissible.
 
-## Begründung
+## Rationale
 
-Partielles Commit würde entweder einen verlorenen Audit-Snapshot oder eine ungültige Entität erzeugen. Beide Zustände beschädigen den Audit-Trail dauerhaft und können nicht automatisch erkannt oder repariert werden.
+A partial commit would produce either a lost audit snapshot or an invalid entity. Both states permanently damage the audit trail and cannot be detected or repaired automatically.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Rollback bei DB-Fehler):
-- Wenn: ein simulierter DB-Fehler nach dem Snapshot-Schreiben auftritt
-- Dann: erfolgt ein vollständiger Rollback; Entität ist unverändert; kein Snapshot in `entity_versions`
+**AC1** (Rollback on DB error):
+- When: a simulated DB error occurs after the snapshot is written
+- Then: a complete rollback occurs; entity is unchanged; no snapshot in `entity_versions`
 
-**AC2** (Erfolgreiche Wiederherstellung):
-- Wenn: die Wiederherstellung erfolgreich abgeschlossen wird
-- Dann: sind Snapshot, Entitäts-Update und Versionseintrag alle vorhanden und konsistent
+**AC2** (Successful restore):
+- When: the restore completes successfully
+- Then: snapshot, entity update and version entry are all present and consistent
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: keine (fundamentales technisches Requirement)
-- **Folgewirkungen**: REQ-101 (Vollwiederherstellung), REQ-102 (Audit-Snapshot), REQ-106 (Teilwiederherstellung)
+- **Prerequisites**: none (fundamental technical requirement)
+- **Downstream effects**: REQ-101 (full restore), REQ-102 (audit snapshot), REQ-106 (partial restore)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Spring `@Transactional` mit explizitem Rollback auf alle Exceptions
-- Isolation mindestens `REPEATABLE READ`
-- Reihenfolge in der Transaktion: (1) Snapshot, (2) Entitäts-Update, (3) EntityVersion-Eintrag
+- Spring `@Transactional` with explicit rollback on all exceptions
+- Isolation at least `REPEATABLE READ`
+- Order within the transaction: (1) snapshot, (2) entity update, (3) EntityVersion entry
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

@@ -12,81 +12,81 @@ aliases:
   - Credential
 related_capabilities: []
 references:
-  - concept: concept/70-platform/21-api-architektur.md
+  - concept: concept/70-platform/21-api-architecture.md
 ---
 
 # Business Object: Local Credential
 
 ## Definition
 
-Ein Local Credential ist das kryptographische Authentifizierungsmaterial, das eine [Person](./person.md) für einen der drei lokalen Authentifizierungsmechanismen (Passkey, TOTP, Passwort) eingerichtet hat und das OEA beim Login ohne externen Identity-Provider prüft.
+A Local Credential is the cryptographic authentication material that a [Person](./person.md) has set up for one of the three local authentication mechanisms (passkey, TOTP, password) and that OEA verifies at login without an external identity provider.
 
-## Beschreibung
+## Description
 
-Sobald eine OEA-Instanz lokale Authentifizierung aktiviert hat (kein externer OIDC-Provider vorhanden oder als Ergänzung konfiguriert), müssen Persons ihre Credentials vorab registrieren (Enrollment, [UC-03](../requirements/use-cases/UC-03-authentifizierungsmethode-einrichten.md)). Das Ergebnis dieses Vorgangs ist je ein `LocalCredential`-Objekt pro eingerichteter Methode.
+As soon as an OEA instance has enabled local authentication (no external OIDC provider present or configured as a supplement), persons must register their credentials in advance (enrollment, [UC-03](../requirements/use-cases/UC-03-set-up-authentication-method.md)). The result of this process is one `LocalCredential` object per method set up.
 
-`LocalCredential` ist bewusst **getrennt vom fachlichen Person-Objekt** gehalten: Credential-Daten sind hochsensibel, haben einen anderen Lifecycle als die fachliche Identität und dürfen nicht in EA-Repository-Exporten oder Audit-Reports erscheinen (anders als Name, Rolle oder Verantwortungsbereich einer Person). Ein Person-Objekt kann gleichzeitig mehrere LocalCredentials verschiedener Typen besitzen.
+`LocalCredential` is deliberately kept **separate from the business Person object**: credential data is highly sensitive, has a different lifecycle than the business identity, and must not appear in EA repository exports or audit reports (unlike a person's name, role, or area of responsibility). A Person object can simultaneously own multiple LocalCredentials of different types.
 
-Das BO hat drei Ausprägungen, die über `type` unterschieden werden:
-- **passkey**: WebAuthn-Credential (Public Key + Credential-ID); mehrere pro Person zulässig (verschiedene Geräte)
-- **totp**: TOTP-Secret nach RFC 6238; mehrere pro Person aktiv zulässig (REQ-030), je mit eigenem Label
-- **password**: argon2id- oder bcrypt-Hash; maximal eines pro Person aktiv
+The BO has three variants, distinguished via `type`:
+- **passkey**: WebAuthn credential (public key + credential ID); multiple per person permitted (different devices)
+- **totp**: TOTP secret per RFC 6238; multiple active per person permitted (REQ-030), each with its own label
+- **password**: argon2id or bcrypt hash; at most one active per person
 
-Der [System-Admin-Account](./system-admin-account.md) besitzt kein `LocalCredential`; sein Credential ist direkt im dortigen BO modelliert, da er unabhängig vom Person/Role-System existiert.
+The [System Admin Account](./system-admin-account.md) has no `LocalCredential`; its credential is modeled directly in that BO, since it exists independently of the person/role system.
 
-## Attribute
+## Attributes
 
-### Gemeinsame Attribute (alle Typen)
+### Common Attributes (all types)
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| id | string | required | | UUID v4, global eindeutig | Interner Primärschlüssel |
-| personId | reference | required | | target: person; immutable nach Anlage | Verknüpfung zur Person |
-| type | enum | required | | `[passkey, totp, password]`; immutable | Typ des Credentials |
-| status | enum | required | active | `[active, revoked]` | Aktueller Zustand |
-| createdAt | datetime | required | | ISO 8601, UTC | Zeitpunkt des Enrollments |
-| lastUsedAt | datetime | optional | | ISO 8601, UTC | Letzter erfolgreicher Login mit diesem Credential |
-| revokedAt | datetime | optional | | nur gesetzt, wenn `status=revoked` | Zeitpunkt der Deaktivierung |
-| revokedReason | enum | optional | | `[device_lost, superseded, admin_action, person_request]`; nur gesetzt, wenn `status=revoked` | Grund der Deaktivierung |
+| id | string | required | | UUID v4, globally unique | Internal primary key |
+| personId | reference | required | | target: person; immutable after creation | Link to the person |
+| type | enum | required | | `[passkey, totp, password]`; immutable | Type of the credential |
+| status | enum | required | active | `[active, revoked]` | Current state |
+| createdAt | datetime | required | | ISO 8601, UTC | Time of enrollment |
+| lastUsedAt | datetime | optional | | ISO 8601, UTC | Last successful login with this credential |
+| revokedAt | datetime | optional | | only set if `status=revoked` | Time of deactivation |
+| revokedReason | enum | optional | | `[device_lost, superseded, admin_action, person_request]`; only set if `status=revoked` | Reason for deactivation |
 
-### Typ-spezifische Attribute: `type=passkey`
+### Type-Specific Attributes: `type=passkey`
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| credentialId | string | required | | Base64url-kodiert; eindeutig über alle Passkey-Credentials | WebAuthn Credential ID (vom Authenticator erzeugt) |
-| publicKey | string | required | | CBOR-kodierter COSE-Key, Base64url | Public Key des registrierten Authenticators |
-| signCount | integer | required | 0 | ≥ 0; wird bei jedem Login aktualisiert | Signatur-Zähler für Replay-Schutz |
-| aaguid | string | optional | | UUID-Format | Authenticator-Modell-ID (für zukünftige Attestation-Checks) |
-| deviceLabel | string | optional | | max. 255 Zeichen; nutzer-vergeben | Lesbarer Name für das Gerät, z.B. "MacBook Pro" |
+| credentialId | string | required | | Base64url-encoded; unique across all passkey credentials | WebAuthn credential ID (generated by the authenticator) |
+| publicKey | string | required | | CBOR-encoded COSE key, Base64url | Public key of the registered authenticator |
+| signCount | integer | required | 0 | ≥ 0; updated on every login | Signature counter for replay protection |
+| aaguid | string | optional | | UUID format | Authenticator model ID (for future attestation checks) |
+| deviceLabel | string | optional | | max. 255 characters; user-assigned | Readable name for the device, e.g. "MacBook Pro" |
 
-### Typ-spezifische Attribute: `type=totp`
+### Type-Specific Attributes: `type=totp`
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| secretEncrypted | string | required | | AES-256-GCM-verschlüsselt, Base64url; Schlüssel außerhalb der DB | RFC 6238-TOTP-Secret (im Klartext 160 Bit, Base32-kodiert) |
-| algorithm | enum | required | SHA1 | `[SHA1, SHA256, SHA512]` | HMAC-Algorithmus (SHA1 für maximale Authenticator-App-Kompatibilität) |
-| digits | integer | required | 6 | `[6, 8]` | Länge des generierten Codes |
-| period | integer | required | 30 | Sekunden | Gültigkeitsfenster pro Code |
-| label | string | optional | auto-generiert | max. 255 Zeichen; nutzer-vergeben | Lesbarer Name für das Gerät/die App, z.B. "iPhone – Google Authenticator"; Default: "TOTP-Authenticator YYYY-MM-DD" |
+| secretEncrypted | string | required | | AES-256-GCM-encrypted, Base64url; key outside the DB | RFC 6238 TOTP secret (160 bits in plaintext, Base32-encoded) |
+| algorithm | enum | required | SHA1 | `[SHA1, SHA256, SHA512]` | HMAC algorithm (SHA1 for maximum authenticator app compatibility) |
+| digits | integer | required | 6 | `[6, 8]` | Length of the generated code |
+| period | integer | required | 30 | seconds | Validity window per code |
+| label | string | optional | auto-generated | max. 255 characters; user-assigned | Readable name for the device/app, e.g. "iPhone – Google Authenticator"; default: "TOTP Authenticator YYYY-MM-DD" |
 
-### Typ-spezifische Attribute: `type=password`
+### Type-Specific Attributes: `type=password`
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| passwordHash | string | required | | argon2id- oder bcrypt-Encoded-String; enthält Algorithmus-Parameter | Gehashtes Passwort; Klartext wird nach dem Hashing nicht gehalten |
-| algorithm | enum | required | argon2id | `[argon2id, bcrypt]` | Verwendeter Hash-Algorithmus |
+| passwordHash | string | required | | argon2id or bcrypt encoded string; contains algorithm parameters | Hashed password; plaintext is not retained after hashing |
+| algorithm | enum | required | argon2id | `[argon2id, bcrypt]` | Hash algorithm used |
 
-## Beziehungen
+## Relationships
 
-| Beziehung | Ziel-Objekt | Kardinalität | Optional | Beschreibung |
+| Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
-| belongsTo | [person](./person.md) | n:1 | no | Jedes Credential gehört genau einer Person |
+| belongsTo | [person](./person.md) | n:1 | no | Each credential belongs to exactly one person |
 
-**Hinweise**:
-- Eine Person kann beliebig viele `passkey`-Credentials haben (ein pro registriertem Gerät).
-- Eine Person kann mehrere aktive `totp`-Credentials haben (REQ-030; BR-02 aufgehoben).
-- Eine Person hat höchstens ein aktives `password`-Credential (BR-03).
-- LocalCredential gehört **nicht** zum fachlichen EA-Metamodell; keine Beziehungen zu Architecture-Objekten (ApplicationComponent, Capability etc.).
+**Notes**:
+- A person can have any number of `passkey` credentials (one per registered device).
+- A person can have multiple active `totp` credentials (REQ-030; BR-02 repealed).
+- A person has at most one active `password` credential (BR-03).
+- LocalCredential is **not** part of the business EA metamodel; no relationships to architecture objects (ApplicationComponent, Capability, etc.).
 
 ## Lifecycle
 
@@ -94,27 +94,27 @@ Der [System-Admin-Account](./system-admin-account.md) besitzt kein `LocalCredent
 created → active → revoked
 ```
 
-**Zustände**:
-- `active`: Credential ist gültig und für den Login verwendbar (UC-01 A3/A4/A5).
-- `revoked`: Credential wurde deaktiviert. Einträge werden nicht gelöscht (Audit-Nachvollziehbarkeit), aber beim Login ignoriert.
+**States**:
+- `active`: Credential is valid and usable for login (UC-01 A3/A4/A5).
+- `revoked`: Credential has been deactivated. Entries are not deleted (audit traceability) but are ignored at login.
 
-**Übergänge**:
-- `created → active`: sofort nach erfolgreichem Enrollment (UC-03); kein separater Aktivierungsschritt.
-- `active → revoked`: durch die Person selbst in den Sicherheitseinstellungen, durch einen Administrator, oder automatisch beim Ersetzen durch ein neues Credential (nur bei `type=password`, BR-03).
+**Transitions**:
+- `created → active`: immediately after successful enrollment (UC-03); no separate activation step.
+- `active → revoked`: by the person themselves in the security settings, by an administrator, or automatically when replaced by a new credential (only for `type=password`, BR-03).
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser | Compliance-Bezug |
+| Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
-| BR-01 | Credential-Werte (`publicKey`, `secretEncrypted`, `passwordHash`) DÜRFEN NICHT in Audit-Logs, Application-Logs oder API-Responses erscheinen | onCreate, onRead, onUpdate | – |
-| BR-02 | ~~Pro Person darf zu einem Zeitpunkt höchstens ein `LocalCredential` mit `type=totp` und `status=active` existieren~~ – aufgehoben durch [REQ-030](../requirements/req/REQ-030-mehrere-totp-credentials.md); mehrere aktive TOTP-Credentials pro Person sind zulässig; kein Auto-Revoke beim Anlegen eines weiteren TOTP | – | – |
-| BR-03 | Pro Person darf zu einem Zeitpunkt höchstens ein `LocalCredential` mit `type=password` und `status=active` existieren; wird ein neues Passwort gesetzt, wird das bisherige automatisch auf `revoked` gesetzt | onCreate | – |
-| BR-04 | LocalCredentials sind nicht Bestandteil des fachlichen EA-Repository-Exports; sie DÜRFEN NICHT in Snapshots, Berichten oder Graph-Exporten des EA-Modells enthalten sein | onExport | – |
-| BR-05 | `signCount` eines Passkey-Credentials MUSS bei jedem Login mit dem übermittelten Wert verglichen werden; ist der übermittelte Wert kleiner oder gleich dem gespeicherten, MUSS der Login abgelehnt werden (Replay-Schutz) | onLogin | – |
+| BR-01 | Credential values (`publicKey`, `secretEncrypted`, `passwordHash`) MUST NOT appear in audit logs, application logs, or API responses | onCreate, onRead, onUpdate | – |
+| BR-02 | ~~At most one `LocalCredential` with `type=totp` and `status=active` may exist per person at any time~~ – repealed by [REQ-030](../requirements/req/REQ-030-multiple-totp-credentials.md); multiple active TOTP credentials per person are permitted; no auto-revoke when another TOTP is created | – | – |
+| BR-03 | At most one `LocalCredential` with `type=password` and `status=active` may exist per person at any time; when a new password is set, the previous one is automatically set to `revoked` | onCreate | – |
+| BR-04 | LocalCredentials are not part of the business EA repository export; they MUST NOT be contained in snapshots, reports, or graph exports of the EA model | onExport | – |
+| BR-05 | The `signCount` of a passkey credential MUST be compared with the submitted value on every login; if the submitted value is less than or equal to the stored value, the login MUST be rejected (replay protection) | onLogin | – |
 
-## Beispiele
+## Examples
 
-**Beispiel 1**: Passkey-Credential (discoverable credential, MacBook)
+**Example 1**: Passkey credential (discoverable credential, MacBook)
 ```yaml
 id: "cred-7f3a9b2e-..."
 personId: "person-kurt-..."
@@ -129,7 +129,7 @@ createdAt: "2026-06-25T09:15:00Z"
 lastUsedAt: "2026-06-25T14:30:00Z"
 ```
 
-**Beispiel 2**: TOTP-Credential
+**Example 2**: TOTP credential
 ```yaml
 id: "cred-2a8c4d1f-..."
 personId: "person-kurt-..."
@@ -143,7 +143,7 @@ createdAt: "2026-06-25T09:20:00Z"
 lastUsedAt: "2026-06-25T14:30:00Z"
 ```
 
-**Beispiel 3**: Passwort-Credential (revoked, durch neues ersetzt)
+**Example 3**: Password credential (revoked, replaced by a new one)
 ```yaml
 id: "cred-9e1d5c3a-..."
 personId: "person-max-..."
@@ -156,41 +156,41 @@ revokedAt: "2026-06-25T10:00:00Z"
 revokedReason: superseded
 ```
 
-## Begriffs-Mapping
+## Terminology Mapping
 
-| Bereich | Bezeichnung | Hinweis |
+| Area | Term | Note |
 |---|---|---|
-| WebAuthn-Spec | Credential / Public Key Credential | `credentialId` entspricht `id` der WebAuthn-Spec |
-| FIDO2 | Authenticator Credential | `aaguid` ist FIDO2-Begriff |
-| RFC 6238 | TOTP Secret | entspricht `secretEncrypted` (entschlüsselt) |
-| OWASP | Password Hash | entspricht `passwordHash` |
+| WebAuthn spec | Credential / Public Key Credential | `credentialId` corresponds to `id` of the WebAuthn spec |
+| FIDO2 | Authenticator Credential | `aaguid` is a FIDO2 term |
+| RFC 6238 | TOTP Secret | corresponds to `secretEncrypted` (decrypted) |
+| OWASP | Password Hash | corresponds to `passwordHash` |
 
-## Abgrenzung zu ähnlichen Objekten
+## Delimitation from Similar Objects
 
-- **NICHT** [person](./person.md): Person ist die fachliche Identität im EA-Repository; `LocalCredential` ist ausschließlich Authentifizierungsmaterial ohne fachlichen EA-Inhalt.
-- **NICHT** [system-admin-account](./system-admin-account.md): Der System-Admin-Account existiert vor dem Person/Role-System und hat ein direkt eingebettetes Credential für das Bootstrapping; `LocalCredential` setzt eine existierende Person voraus.
-- **NICHT** Enrollment-Token: Das Token aus UC-03 ist ein einmaliger Zugangscode für das Enrollment selbst und wird nach Verbrauch invalidiert; `LocalCredential` ist das dauerhafte Ergebnis des Enrollments.
-- **NICHT** OIDC-Session / Access-Token: Diese entstehen nach einem erfolgreichen Login und berechtigen zu einzelnen Operationen; `LocalCredential` ist das persistente Material, das den Login überhaupt erst ermöglicht.
+- **NOT** [person](./person.md): Person is the business identity in the EA repository; `LocalCredential` is exclusively authentication material without business EA content.
+- **NOT** [system-admin-account](./system-admin-account.md): The system admin account exists before the person/role system and has a directly embedded credential for bootstrapping; `LocalCredential` presupposes an existing person.
+- **NOT** enrollment token: The token from UC-03 is a one-time access code for the enrollment itself and is invalidated after use; `LocalCredential` is the permanent result of the enrollment.
+- **NOT** OIDC session / access token: These arise after a successful login and authorize individual operations; `LocalCredential` is the persistent material that makes the login possible in the first place.
 
-## Verwendung in Use Cases
+## Usage in Use Cases
 
-- [UC-01: Login](../requirements/use-cases/UC-01-login.md) (Alternative Flows A3, A4, A5 – Login setzt vorhandenes Credential voraus)
-- [UC-03: Authentifizierungsmethode einrichten](../requirements/use-cases/UC-03-authentifizierungsmethode-einrichten.md) (erzeugt LocalCredential)
+- [UC-01: Login](../requirements/use-cases/UC-01-login.md) (alternative flows A3, A4, A5 – login presupposes an existing credential)
+- [UC-03: Set Up Authentication Method](../requirements/use-cases/UC-03-set-up-authentication-method.md) (creates LocalCredential)
 
-## Konzept-Bezug
+## Concept Reference
 
-- [§21.8 Authentifizierung/Autorisierung – Lokale Authentifizierung](../concept/70-platform/21-api-architektur.md)
+- [§21.8 Authentication/Authorization – Local Authentication](../concept/70-platform/21-api-architecture.md)
 
-## Notizen
+## Notes
 
-Erste Modellierung im Rahmen von UC-03 (Enrollment). Bewusst als ein BO mit Type-Diskriminator modelliert statt drei separater BOs (`PasskeyCredential`, `TotpCredential`, `PasswordCredential`): Die gemeinsamen Felder (personId, status, lifecycle, Audit-Attribute) überwiegen die typ-spezifischen Unterschiede; separate BOs würden die Traceability-Matrix unnötig aufblähen.
+First modeling in the context of UC-03 (enrollment). Deliberately modeled as one BO with a type discriminator instead of three separate BOs (`PasskeyCredential`, `TotpCredential`, `PasswordCredential`): the shared fields (personId, status, lifecycle, audit attributes) outweigh the type-specific differences; separate BOs would needlessly bloat the traceability matrix.
 
-Offene Fragen:
-- Soll `deviceLabel` (Passkey) vom Nutzer frei editierbar sein, oder ist ein Standard-Label aus dem Authenticator (`authenticatorAttachment`) vorzuziehen?
-- Wird ein separater Recovery-Code-Mechanismus (Recovery Codes für Lockout-Prävention) als weiterer `type` in diesem BO modelliert, oder als eigenständiges BO?
+Open questions:
+- Should `deviceLabel` (passkey) be freely editable by the user, or is a default label from the authenticator (`authenticatorAttachment`) preferable?
+- Will a separate recovery code mechanism (recovery codes for lockout prevention) be modeled as a further `type` in this BO, or as a standalone BO?
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-25 | Business Engineer | Initial draft im Rahmen von UC-03 Enrollment |
+| 0.1.0 | 2026-06-25 | Business Engineer | Initial draft in the context of UC-03 enrollment |

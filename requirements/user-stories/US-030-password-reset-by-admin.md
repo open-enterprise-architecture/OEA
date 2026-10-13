@@ -1,63 +1,63 @@
-# US-030: Passwort eines Nutzers als Administrator zurücksetzen
+# US-030: Reset a User's Password as Administrator
 
 **ID**: US-030
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Administrator möchte ich das lokale Passwort einer Person zurücksetzen und ihr ein neues Einmalpasswort übergeben können, damit sie sich nach einem vergessenen Passwort oder einem Sicherheitsvorfall wieder anmelden kann, ohne dass ich dauerhaften Kenntnis von ihrem Passwort habe.
+As an administrator, I want to reset a person's local password and hand over a new one-time password to them, so that they can log in again after a forgotten password or a security incident, without me having permanent knowledge of their password.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-03: Authentifizierungsmethode einrichten](../use-cases/UC-03-authentifizierungsmethode-einrichten.md)
-**Persona**: [SH-06: Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Requirement**: [REQ-031: Passwort-Reset durch Administrator](../req/REQ-031-passwort-reset-durch-admin.md)
+**Use Case**: [UC-03: Set Up Authentication Method](../use-cases/UC-03-set-up-authentication-method.md)
+**Persona**: [SH-06: Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Requirement**: [REQ-031: Password Reset by Administrator](../req/REQ-031-password-reset-by-admin.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Max öffnet die Nutzerverwaltung und wählt eine Person aus
-- Wenn: er „Passwort zurücksetzen" wählt und ein neues Passwort eingibt (oder generiert)
-- Dann: wird das alte Passwort ungültig; das neue Passwort erscheint einmalig; Max kann es an die Person weitergeben
+- Given: Max opens the user management and selects a person
+- When: he chooses "Reset password" and enters (or generates) a new password
+- Then: the old password becomes invalid; the new password appears once; Max can pass it on to the person
 
 **AC2**:
-- Gegeben: das Passwort wurde zurückgesetzt
-- Wenn: die Person sich mit dem neuen Passwort einloggt
-- Dann: wird sie sofort aufgefordert, ein eigenes Passwort zu wählen; sie hat keinen App-Zugriff, bis das erledigt ist
+- Given: the password has been reset
+- When: the person logs in with the new password
+- Then: they are immediately prompted to choose their own password; they have no app access until this is done
 
 **AC3**:
-- Gegeben: das Passwort wurde zurückgesetzt
-- Wenn: die Person versucht, sich mit dem alten Passwort einzuloggen
-- Dann: schlägt der Login fehl
+- Given: the password has been reset
+- When: the person tries to log in with the old password
+- Then: the login fails
 
 **AC4**:
-- Gegeben: Max führt einen Passwort-Reset durch
-- Dann: erscheint ein Audit-Log-Eintrag mit Max' ID, der Person-ID und dem Zeitpunkt; kein Passwort-Klartext im Log
+- Given: Max performs a password reset
+- Then: an audit log entry appears with Max's ID, the person ID and the timestamp; no password plaintext in the log
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Admin-Nutzerverwaltungs-UI, Auth-Modul (Required-Action-Mechanismus), Audit-Log
-- API-Endpunkte: `POST /admin/persons/{id}/reset-password` (admin-only, RBAC-geschützt)
-- Datenbank-Änderungen: kein Schema-Change; bestehende `local_credentials` und Required-Actions-Mechanismus wird genutzt
-- Transaktionalität: Revoke altes Credential + Create neues + Set Required Action müssen atomar sein (AC5 in REQ-031)
+- Affected components: admin user management UI, auth module (required action mechanism), audit log
+- API endpoints: `POST /admin/persons/{id}/reset-password` (admin-only, RBAC-protected)
+- Database changes: no schema change; existing `local_credentials` and required actions mechanism are used
+- Transactionality: revoke old credential + create new + set required action must be atomic (AC5 in REQ-031)
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (Reset-Flow, Login mit altem Passwort, Required-Action-Check, Audit-Log, Rollback bei Fehler)
-- [ ] Dokumentation aktualisiert
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (reset flow, login with old password, required action check, audit log, rollback on error)
+- [ ] Documentation updated
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-023 (initiales Passwort setzen – gleiche UI-Elemente und Sicherheitsmuster); US-027 (Passwort-Richtlinien müssen für Validierung des neuen Passworts aktiv sein)
-- Empfohlen vorher: US-026 (Passwort-Generator für das neue Einmalpasswort)
-- Blockiert: künftiger US für "Passwort bei Required Action ändern" (Login-Flow nach Reset)
+- Waiting on: US-023 (set initial password – same UI elements and security patterns); US-027 (password policies must be active for validating the new password)
+- Recommended beforehand: US-026 (password generator for the new one-time password)
+- Blocks: future US for "change password on required action" (login flow after reset)
 
-## Notizen
+## Notes
 
-Der erzwungene Passwort-Wechsel nach dem Reset ist nicht konfigurierbar – er ist immer aktiv. Max setzt nur ein Einmalpasswort, kein dauerhaftes. Das Pattern entspricht Active Directory "User must change password at next logon" und Keycloak "update password" Required Action. Die Required Action `password_change` nutzt denselben Mechanismus wie die 2FA-Required Action in UC-03.
+The forced password change after the reset is not configurable – it is always active. Max only sets a one-time password, not a permanent one. The pattern corresponds to Active Directory "User must change password at next logon" and the Keycloak "update password" required action. The required action `password_change` uses the same mechanism as the 2FA required action in UC-03.

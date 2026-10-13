@@ -1,6 +1,6 @@
 ---
 id: UC-02
-title: System-Admin-Bootstrapping
+title: System Admin Bootstrapping
 status: draft
 priority: must
 target_release: walking-skeleton
@@ -15,14 +15,14 @@ references:
   business_objects:
     - system-admin-account
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   related_use_cases:
     - UC-01
 ---
 
-# UC-02: System-Admin-Bootstrapping
+# UC-02: System Admin Bootstrapping
 
-## Diagramm
+## Diagram
 
 ```plantuml
 @startuml UC-02-Bootstrapping
@@ -31,12 +31,12 @@ skinparam actorStyle awesome
 
 actor "Max\n(Operator)" as Max
 
-rectangle "OEA – System-Admin-Bootstrapping" {
-  usecase "Lokales Bootstrapping\n(Setup-Token / Passwort)" as UC_Local
-  usecase "Remote-Bootstrapping\n(IdP-Claim-Mapping)" as UC_Remote
-  usecase "Kombiniertes\nBootstrapping" as UC_Combined
-  usecase "System-Admin-Account\nanlegen" as UC_Account
-  usecase "Audit-Log schreiben" as UC_Audit
+rectangle "OEA – System Admin Bootstrapping" {
+  usecase "Local Bootstrapping\n(Setup Token / Password)" as UC_Local
+  usecase "Remote Bootstrapping\n(IdP Claim Mapping)" as UC_Remote
+  usecase "Combined\nBootstrapping" as UC_Combined
+  usecase "Create System Admin\nAccount" as UC_Account
+  usecase "Write Audit Log" as UC_Audit
 }
 
 Max --> UC_Local
@@ -53,153 +53,153 @@ UC_Account ..> UC_Audit : <<include>>
 
 ## Goal in Context
 
-Eine frisch installierte OEA-Instanz enthält weder Personen noch Rollen noch eine IdP-Konfiguration. UC-01 (Login) setzt voraus, dass bereits eine [Person](../../business-objects/person.md) mit aktiver [Role](../../business-objects/role.md) existiert – das ist bei der Erstinstallation per Definition nicht der Fall (Henne-Ei-Problem). Max muss daher einen ersten privilegierten Zugang erhalten, bevor er die Instanz für den eigentlichen Betrieb (IdP-Anbindung, erste Personen/Rollen) konfigurieren kann.
+A freshly installed OEA instance contains neither persons nor roles nor an IdP configuration. UC-01 (Login) requires that a [Person](../../business-objects/person.md) with an active [Role](../../business-objects/role.md) already exists – by definition this is not the case at initial installation (chicken-and-egg problem). Max therefore needs to obtain a first privileged access before he can configure the instance for actual operation (IdP connection, first persons/roles).
 
-## Persona und Story
+## Persona and Story
 
-**Primärer Akteur**: [Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Weitere Beteiligte**: [Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md) – im Single-User-KMU-Szenario ist Max oft zugleich Kurt selbst
+**Primary Actor**: [Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Other Stakeholders**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md) – in the single-user SME scenario, Max is often Kurt himself
 
-**Story**: Als Operator einer frisch installierten OEA-Instanz möchte ich einen ersten privilegierten Zugang erhalten, damit ich die Instanz konfigurieren kann, ohne dass bereits Personen oder Rollen im Repository existieren müssen.
+**Story**: As the operator of a freshly installed OEA instance, I want to obtain a first privileged access so that I can configure the instance without persons or roles having to exist in the repository already.
 
 ## Trigger
 
-- Externer Anlass: Erstinstallation einer OEA-Instanz (z.B. Container-Start)
-- Zeitpunkt: einmalig pro Instanz, unmittelbar nach der Installation
-- Vorgänger-Use-Case: keiner – Bootstrapping ist der Einstiegspunkt vor UC-01
+- External cause: Initial installation of an OEA instance (e.g., container start)
+- Timing: once per instance, immediately after installation
+- Predecessor use case: none – bootstrapping is the entry point before UC-01
 
-## Vorbedingungen (Pre-Conditions)
+## Preconditions
 
-- [ ] Die OEA-Instanz ist frisch installiert
-- [ ] Es existiert noch kein [System-Admin-Account](../../business-objects/system-admin-account.md) für diese Instanz
-- [ ] Es existieren noch keine [Person](../../business-objects/person.md)/[Role](../../business-objects/role.md)-Daten, über die ein regulärer Login (UC-01) möglich wäre
+- [ ] The OEA instance is freshly installed
+- [ ] No [System Admin Account](../../business-objects/system-admin-account.md) exists yet for this instance
+- [ ] No [Person](../../business-objects/person.md)/[Role](../../business-objects/role.md) data exist yet through which a regular login (UC-01) would be possible
 
-## Nachbedingungen (Post-Conditions)
+## Postconditions
 
-### Bei Erfolg
+### On Success
 
-- Ein [System-Admin-Account](../../business-objects/system-admin-account.md) existiert (lokal oder remote-gemappt, siehe [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md))
-- Max kann sich mit diesem Account anmelden und die Instanz weiter konfigurieren (IdP einrichten, erste Person/Role anlegen)
-- Audit-Log enthält einen Eintrag über den abgeschlossenen Bootstrapping-Vorgang
-- Ein erneuter Bootstrapping-Vorgang ist für diese Instanz nicht mehr möglich, ohne den bestehenden System-Admin-Account explizit zurückzusetzen (siehe E3)
+- A [System Admin Account](../../business-objects/system-admin-account.md) exists (local or remote-mapped, see [ADR-006](../../adrs/ADR-006-auth-stack-choice.md))
+- Max can log in with this account and continue configuring the instance (set up IdP, create first Person/Role)
+- The audit log contains an entry about the completed bootstrapping process
+- A repeated bootstrapping process is no longer possible for this instance without explicitly resetting the existing system admin account (see E3)
 
-### Bei Misserfolg
+### On Failure
 
-- Kein System-Admin-Account wird angelegt
-- Die Instanz bleibt im Zustand "nicht administrierbar"
-- Max erhält eine verständliche Fehlermeldung
+- No system admin account is created
+- The instance remains in the state "not administrable"
+- Max receives an understandable error message
 
-## Hauptablauf (Basic Flow)
+## Basic Flow
 
-1. **Max**: startet die OEA-Instanz zum ersten Mal
-2. **System**: erkennt, dass kein System-Admin-Account existiert, und initiiert den Bootstrapping-Vorgang (z.B. Setup-Wizard in der UI oder CLI-Kommando)
-3. **Max**: wählt den Bootstrapping-Modus **lokal** (Standardfall ohne externen IdP)
-4. **System**: generiert ein einmaliges Setup-Token oder fordert Max zur Festlegung eines initialen Admin-Passworts auf
-5. **Max**: entnimmt das Setup-Token (z.B. aus CLI-Output/Log) bzw. setzt das initiale Passwort
-6. **System**: legt den lokalen System-Admin-Account an, markiert das Bootstrapping als abgeschlossen und schreibt einen Audit-Log-Eintrag
-7. **Max**: meldet sich mit dem System-Admin-Account an und beginnt mit der Weiterkonfiguration der Instanz (IdP-Anbindung, erste Person/Role)
+1. **Max**: starts the OEA instance for the first time
+2. **System**: detects that no system admin account exists and initiates the bootstrapping process (e.g., setup wizard in the UI or CLI command)
+3. **Max**: selects the bootstrapping mode **local** (default case without external IdP)
+4. **System**: generates a one-time setup token or prompts Max to set an initial admin password
+5. **Max**: retrieves the setup token (e.g., from CLI output/log) or sets the initial password
+6. **System**: creates the local system admin account, marks the bootstrapping as completed and writes an audit log entry
+7. **Max**: logs in with the system admin account and starts further configuration of the instance (IdP connection, first Person/Role)
 
-## Alternative Abläufe (Alternative Flows)
+## Alternative Flows
 
-**A1 – Remote-Bootstrapping (System-Admin über externen IdP)**: Bei Schritt 3, wenn Max den Modus **remote** wählt (siehe ADR-006):
-1. Max konfiguriert den OIDC-Provider (Entra ID oder Authentik) für die Instanz
-2. Max legt fest, welcher Gruppen-/Rollen-Claim des IdP System-Admin-Rechte verleiht (z.B. Entra-ID-Gruppe `oea-system-admins`)
-3. System speichert dieses Mapping als [System-Admin-Account](../../business-objects/system-admin-account.md) mit `mode: remote`
-4. Max meldet sich über den konfigurierten IdP an; enthält das Identity-Token den konfigurierten Claim, erhält die Session System-Admin-Rechte
-- Mündet zurück in Schritt 7 des Hauptablaufs
+**A1 – Remote bootstrapping (system admin via external IdP)**: At step 3, if Max selects the mode **remote** (see ADR-006):
+1. Max configures the OIDC provider (Entra ID or Authentik) for the instance
+2. Max defines which group/role claim of the IdP grants system admin rights (e.g., Entra ID group `oea-system-admins`)
+3. System stores this mapping as a [System Admin Account](../../business-objects/system-admin-account.md) with `mode: remote`
+4. Max logs in via the configured IdP; if the identity token contains the configured claim, the session receives system admin rights
+- Returns to step 7 of the basic flow
 
-**A2 – Kombiniertes Bootstrapping**: Max richtet zunächst lokal ein (A-Hauptablauf), konfiguriert danach zusätzlich Remote-Mapping (A1) als zweiten, parallelen Zugang
-- Beide Zugänge bleiben nutzbar, bis einer davon bewusst deaktiviert wird (siehe `system-admin-account.md`, Business Rule BR-02)
+**A2 – Combined bootstrapping**: Max first sets up locally (basic flow), then additionally configures remote mapping (A1) as a second, parallel access
+- Both accesses remain usable until one of them is deliberately deactivated (see `system-admin-account.md`, Business Rule BR-02)
 
-## Ausnahmen / Fehlerfälle (Exception Flows)
+## Exception Flows
 
-**E1 – Setup-Token/Passwort verloren oder Vorgang abgebrochen**:
-- Bedingung: Max schließt den Bootstrapping-Vorgang nicht ab oder verliert das Setup-Token vor erstem Login
-- Erwartete Reaktion: Solange kein System-Admin-Account final angelegt wurde, kann der Vorgang erneut gestartet werden (zurück zu Schritt 2)
-- Wiederaufnahme: Max startet den Bootstrapping-Vorgang erneut über CLI/Setup-Wizard
+**E1 – Setup token/password lost or process aborted**:
+- Condition: Max does not complete the bootstrapping process or loses the setup token before the first login
+- Expected reaction: As long as no system admin account has been finally created, the process can be restarted (back to step 2)
+- Resumption: Max restarts the bootstrapping process via CLI/setup wizard
 
-**E2 – Remote-Mapping zeigt auf nicht existierende oder leere Gruppe**:
-- Bedingung: Der konfigurierte Claim (A1, Schritt 2) entspricht keiner tatsächlich befüllten Gruppe beim IdP
-- Erwartete Reaktion: Niemand erhält über diesen Weg System-Admin-Rechte; System warnt bereits bei der Konfiguration, falls die Gruppe zum Konfigurationszeitpunkt prüfbar leer ist
-- Wiederaufnahme: Max korrigiert das Mapping oder nutzt ersatzweise den lokalen Modus (Hauptablauf), um nicht ausgesperrt zu sein
+**E2 – Remote mapping points to a non-existent or empty group**:
+- Condition: The configured claim (A1, step 2) does not correspond to an actually populated group at the IdP
+- Expected reaction: Nobody receives system admin rights via this path; the system already warns at configuration time if the group is verifiably empty at that time
+- Resumption: Max corrects the mapping or alternatively uses the local mode (basic flow) so as not to be locked out
 
-**E3 – Erneuter Bootstrapping-Versuch trotz bestehendem System-Admin-Account**:
-- Bedingung: Ein System-Admin-Account existiert bereits für die Instanz
-- Erwartete Reaktion: System verweigert ein erneutes Bootstrapping ohne explizite Reset-Aktion durch einen bestehenden System-Admin-Account
-- Wiederaufnahme: Max meldet sich mit dem bestehenden Account an und setzt das Bootstrapping bei Bedarf bewusst zurück
+**E3 – Repeated bootstrapping attempt despite existing system admin account**:
+- Condition: A system admin account already exists for the instance
+- Expected reaction: System refuses repeated bootstrapping without an explicit reset action by an existing system admin account
+- Resumption: Max logs in with the existing account and deliberately resets the bootstrapping if needed
 
-**E4 – Sowohl lokaler Zugang als auch Remote-Mapping nicht mehr nutzbar (vollständiger Lockout)**:
-- Bedingung: Passwort/Setup-Token verloren und IdP-Mapping nicht mehr gültig (z.B. Gruppe gelöscht)
-- Erwartete Reaktion: System bietet keinen regulären Self-Service-Weg zurück in die Instanz; ein dokumentiertes Recovery-Verfahren (z.B. CLI-Befehl mit Zugriff auf den Server/die Datenbank) ist nötig
-- Wiederaufnahme: außerhalb des Scopes dieses Use Case (siehe "Offene Fragen")
+**E4 – Neither local access nor remote mapping usable anymore (complete lockout)**:
+- Condition: Password/setup token lost and IdP mapping no longer valid (e.g., group deleted)
+- Expected reaction: System offers no regular self-service way back into the instance; a documented recovery procedure (e.g., CLI command with access to the server/database) is necessary
+- Resumption: outside the scope of this use case (see "Open Questions")
 
-## Datenfluss
+## Data Flow
 
-| Schritt | Daten | Richtung | Bemerkung |
+| Step | Data | Direction | Remark |
 |---|---|---|---|
-| 4 | Setup-Token oder initiales Passwort | System → Max | einmalig, niemals im Klartext persistiert |
-| 5 | Bestätigtes Credential | Max → System | wird sofort gehasht gespeichert |
-| 6 | System-Admin-Account-Datensatz | System intern | siehe [system-admin-account](../../business-objects/system-admin-account.md) |
-| 6 | Audit-Log-Eintrag | System intern | Zeitpunkt, Modus (lokal/remote), Ergebnis |
-| A1.2 | Claim-Mapping-Konfiguration | Max → System | provider, claimType, claimValue |
+| 4 | Setup token or initial password | System → Max | one-time, never persisted in plain text |
+| 5 | Confirmed credential | Max → System | is stored hashed immediately |
+| 6 | System admin account record | System internal | see [system-admin-account](../../business-objects/system-admin-account.md) |
+| 6 | Audit log entry | System internal | timestamp, mode (local/remote), result |
+| A1.2 | Claim mapping configuration | Max → System | provider, claimType, claimValue |
 
-## Beteiligte Business Objects
+## Involved Business Objects
 
-| Business Object | Operation | Notiz |
+| Business Object | Operation | Note |
 |---|---|---|
-| [system-admin-account](../../business-objects/system-admin-account.md) | create | einmalig pro Instanz im Hauptablauf, ggf. ein weiteres Mal bei A2 |
+| [system-admin-account](../../business-objects/system-admin-account.md) | create | once per instance in the basic flow, possibly one more time in A2 |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] Hauptablauf (lokales Bootstrapping) auf einer frisch installierten Instanz vollständig durchlaufbar
-- [ ] Alternative A1 (Remote-Bootstrapping über Entra ID oder Authentik) funktioniert
-- [ ] Alternative A2 (kombiniertes Bootstrapping) erlaubt beide Zugänge parallel
-- [ ] Ein zweiter Bootstrapping-Versuch wird abgelehnt, solange ein System-Admin-Account existiert (E3)
-- [ ] Fehlerfälle E1–E4 sind dokumentiert behandelt; E4 verweist auf ein gesondertes Recovery-Verfahren
-- [ ] Audit-Log enthält einen Eintrag über den abgeschlossenen Bootstrapping-Vorgang inkl. gewähltem Modus
-- [ ] Nach erfolgreichem Bootstrapping ist ein regulärer Login gemäß UC-01 für weitere Personen möglich, sobald diese mit Rolle angelegt wurden
+- [ ] Basic flow (local bootstrapping) can be fully completed on a freshly installed instance
+- [ ] Alternative A1 (remote bootstrapping via Entra ID or Authentik) works
+- [ ] Alternative A2 (combined bootstrapping) allows both accesses in parallel
+- [ ] A second bootstrapping attempt is rejected as long as a system admin account exists (E3)
+- [ ] Exception flows E1–E4 are handled as documented; E4 refers to a separate recovery procedure
+- [ ] The audit log contains an entry about the completed bootstrapping process including the selected mode
+- [ ] After successful bootstrapping, a regular login according to UC-01 is possible for further persons as soon as they have been created with a role
 
-Eine instanzweite Erzwingung eines zweiten Faktors für reguläre Personen (siehe [REQ-020](../req/REQ-020-erzwingung-zweiter-faktor.md), UC-01) gilt explizit **nicht** für den System-Admin-Account: Bootstrapping muss auch dann funktionieren, wenn der Betreiber 2FA für reguläre Personen erzwungen hat, da der System-Admin-Account außerhalb des regulären Person-/Role-Modells steht und über eigene Mechanismen (REQ-017, sichere Setup-Token-Übergabe) abgesichert ist.
+An instance-wide enforcement of a second factor for regular persons (see [REQ-020](../req/REQ-020-enforce-second-factor.md), UC-01) explicitly does **not** apply to the system admin account: bootstrapping must work even if the operator has enforced 2FA for regular persons, since the system admin account lies outside the regular Person/Role model and is secured through its own mechanisms (REQ-017, secure setup token handover).
 
-## Nicht im Scope
+## Out of Scope
 
-- Reguläre Anmeldung bestehender Personen mit Rolle (siehe UC-01)
-- Anlegen der ersten fachlichen Person/Role-Datensätze im Repository (eigener, nachfolgender Use Case)
-- Vollständiges Recovery-/Break-Glass-Verfahren bei komplettem Lockout (E4) – nur als offene Frage vermerkt
-- Verwaltung mehrerer gleichzeitiger System-Admin-Accounts über das Minimum hinaus (A2 deckt den einfachen Fall ab, kein vollständiges Admin-Management)
+- Regular login of existing persons with a role (see UC-01)
+- Creating the first business Person/Role records in the repository (separate, subsequent use case)
+- Complete recovery/break-glass procedure for complete lockout (E4) – only noted as an open question
+- Management of multiple simultaneous system admin accounts beyond the minimum (A2 covers the simple case, no full admin management)
 
-## Konzept-Bezüge
+## Concept References
 
-- [§21.8 Sicherheit und Autorisierung](../../concept/70-platform/21-api-architektur.md)
+- [§21.8 Security and Authorization](../../concept/70-platform/21-api-architecture.md)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- EntityTypes: `SystemAdminAccount` (siehe `system-admin-account.md`) – bewusst kein EA-Metamodell-Entity
-- Setup-Token-Übergabe sollte über einen Kanal erfolgen, auf den nur der Operator Zugriff hat (CLI-Output beim ersten Start, nicht über die Web-UI ohne vorherige Authentifizierung)
-- Erkennung "kein System-Admin-Account vorhanden" muss robust gegen Race Conditions sein (BR-01 aus `system-admin-account.md`: kein paralleles Bootstrapping)
-- Lokaler System-Admin-Account sollte gemäß ADR-006-Folgeentscheidung deaktivierbar sein, sobald Remote-Mapping aktiv ist
+- EntityTypes: `SystemAdminAccount` (see `system-admin-account.md`) – deliberately not an EA metamodel entity
+- Setup token handover should take place via a channel only the operator has access to (CLI output at first start, not via the web UI without prior authentication)
+- Detection of "no system admin account present" must be robust against race conditions (BR-01 from `system-admin-account.md`: no parallel bootstrapping)
+- The local system admin account should be deactivatable according to the ADR-006 follow-up decision as soon as remote mapping is active
 
-## Realisierende Bestandteile
+## Realizing Components
 
-- Requirements: [REQ-013](../req/REQ-013-lokales-bootstrapping.md), [REQ-014](../req/REQ-014-remote-bootstrapping.md), [REQ-015](../req/REQ-015-kein-paralleles-bootstrapping.md), [REQ-016](../req/REQ-016-audit-log-bootstrapping.md), [REQ-017](../req/REQ-017-sichere-setup-token-uebergabe.md), [REQ-018](../req/REQ-018-warnung-leerer-admin-claim.md), [REQ-019](../req/REQ-019-deaktivierbarkeit-lokaler-admin.md)
-- User Stories: [US-013](../user-stories/US-013-lokales-bootstrapping.md), [US-014](../user-stories/US-014-remote-bootstrapping.md), [US-015](../user-stories/US-015-kein-paralleles-bootstrapping.md), [US-016](../user-stories/US-016-audit-log-bootstrapping.md), [US-017](../user-stories/US-017-sichere-setup-token-uebergabe.md), [US-018](../user-stories/US-018-warnung-leerer-admin-claim.md), [US-019](../user-stories/US-019-deaktivierbarkeit-lokaler-admin.md)
-- ADRs: [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Test Cases: noch keine
-- Implementation: noch keine
+- Requirements: [REQ-013](../req/REQ-013-local-bootstrapping.md), [REQ-014](../req/REQ-014-remote-bootstrapping.md), [REQ-015](../req/REQ-015-no-parallel-bootstrapping.md), [REQ-016](../req/REQ-016-audit-log-bootstrapping.md), [REQ-017](../req/REQ-017-secure-setup-token-handover.md), [REQ-018](../req/REQ-018-warning-empty-admin-claim.md), [REQ-019](../req/REQ-019-disable-local-admin.md)
+- User Stories: [US-013](../user-stories/US-013-local-bootstrapping.md), [US-014](../user-stories/US-014-remote-bootstrapping.md), [US-015](../user-stories/US-015-no-parallel-bootstrapping.md), [US-016](../user-stories/US-016-audit-log-bootstrapping.md), [US-017](../user-stories/US-017-secure-setup-token-handover.md), [US-018](../user-stories/US-018-warning-empty-admin-claim.md), [US-019](../user-stories/US-019-disable-local-admin.md)
+- ADRs: [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Test Cases: none yet
+- Implementation: none yet
 
-## Offene Fragen
+## Open Questions
 
-- [ ] Wie wird das initiale Setup-Token sicher übergeben (CLI-Stdout, temporäre Datei, einmalige Setup-URL)?
-- [ ] Wie sieht das Recovery-/Break-Glass-Verfahren bei vollständigem Lockout (E4) konkret aus – z.B. ein CLI-Befehl mit direktem Datenbankzugriff?
-- [x] Soll die Instanz beim Start aktiv warnen/blockieren, wenn der lokale System-Admin-Account trotz aktivem Remote-Mapping nicht deaktiviert wurde? → [REQ-019](../req/REQ-019-deaktivierbarkeit-lokaler-admin.md): deaktivierbar, aber kein Zwang (Operator-Entscheidung)
-- [x] Wie wird geprüft, ob eine konfigurierte IdP-Gruppe (A1) zum Konfigurationszeitpunkt tatsächlich befüllt ist? → [REQ-018](../req/REQ-018-warnung-leerer-admin-claim.md): Best-Effort-Warnung, kein Hard-Block
+- [ ] How is the initial setup token handed over securely (CLI stdout, temporary file, one-time setup URL)?
+- [ ] What does the recovery/break-glass procedure for complete lockout (E4) look like concretely – e.g., a CLI command with direct database access?
+- [x] Should the instance actively warn/block at startup if the local system admin account was not deactivated despite active remote mapping? → [REQ-019](../req/REQ-019-disable-local-admin.md): deactivatable, but not mandatory (operator decision)
+- [x] How is it verified whether a configured IdP group (A1) is actually populated at configuration time? → [REQ-018](../req/REQ-018-warning-empty-admin-claim.md): best-effort warning, no hard block
 
-## Notizen
+## Notes
 
-UC-02 löst die in [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md) als Folgeentscheidung benannte Lücke: UC-01 (Login) setzt bereits existierende Person-/Role-Daten voraus und kann daher das Henne-Ei-Problem der Erstinstallation nicht lösen. Primärer Akteur ist SH-06 (Max), weil Bootstrapping eine Operator-Tätigkeit ist, nicht die einer EA-Persona – auch wenn im Single-User-KMU-Fall (SH-03 Kurt) beide Rollen in derselben Person zusammenfallen.
+UC-02 closes the gap named as a follow-up decision in [ADR-006](../../adrs/ADR-006-auth-stack-choice.md): UC-01 (Login) presupposes already existing Person/Role data and therefore cannot solve the chicken-and-egg problem of initial installation. The primary actor is SH-06 (Max), because bootstrapping is an operator activity, not that of an EA persona – even though in the single-user SME case (SH-03 Kurt) both roles coincide in the same person.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | Requirements Engineer | Initial draft, löst Folgeentscheidung aus ADR-006 |
+| 0.1.0 | 2026-06-24 | Requirements Engineer | Initial draft, resolves follow-up decision from ADR-006 |

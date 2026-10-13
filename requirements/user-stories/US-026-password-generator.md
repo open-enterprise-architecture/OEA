@@ -1,64 +1,64 @@
-# US-026: Sicheres Passwort per Generator erstellen
+# US-026: Create a Secure Password via Generator
 
 **ID**: US-026
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Administrator oder Person möchte ich ein sicheres Passwort auf Knopfdruck generieren lassen, damit ich nicht selbst ein regelkonformes Passwort erfinden muss und sicher sein kann, dass es die konfigurierten Richtlinien erfüllt.
+As an administrator or person, I want to have a secure password generated at the push of a button, so that I do not have to invent a compliant password myself and can be sure that it meets the configured policies.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-03: Authentifizierungsmethode einrichten](../use-cases/UC-03-authentifizierungsmethode-einrichten.md)
-**Persona**: [SH-06: Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Requirement**: [REQ-027: Passwort-Generator](../req/REQ-027-passwort-generator.md)
+**Use Case**: [UC-03: Set Up Authentication Method](../use-cases/UC-03-set-up-authentication-method.md)
+**Persona**: [SH-06: Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Requirement**: [REQ-027: Password Generator](../req/REQ-027-password-generator.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Max setzt ein initiales Passwort für eine Person (Admin-UI)
-- Wenn: er auf „Passwort generieren" klickt
-- Dann: wird ein Passwort angezeigt, das alle aktiven Richtlinien (REQ-028) erfüllt
+- Given: Max sets an initial password for a person (admin UI)
+- When: he clicks "Generate password"
+- Then: a password is displayed that meets all active policies (REQ-028)
 
 **AC2**:
-- Gegeben: die Instanz hat `requireSpecialChars=true` konfiguriert
-- Wenn: ein Passwort generiert wird
-- Dann: enthält es ein Sonderzeichen aus dem vollständigen ASCII-Sonderzeichen-Zeichensatz
+- Given: the instance has `requireSpecialChars=true` configured
+- When: a password is generated
+- Then: it contains a special character from the full ASCII special character set
 
 **AC3**:
-- Gegeben: ein generiertes Passwort wird angezeigt
-- Wenn: Max es erneut generiert
-- Dann: ist das neue Passwort mit hoher Wahrscheinlichkeit verschieden (CSPRNG)
+- Given: a generated password is displayed
+- When: Max generates it again
+- Then: the new password is with high probability different (CSPRNG)
 
 **AC4**:
-- Gegeben: eine Person ändert ihr Passwort
-- Wenn: sie auf „Passwort generieren" klickt
-- Dann: steht derselbe Generator auch im Nutzer-Kontext zur Verfügung
+- Given: a person changes their password
+- When: they click "Generate password"
+- Then: the same generator is also available in the user context
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Auth-Modul (Generator-Funktion), Admin-UI (Initiales-Passwort-Formular), Passwort-Änderungs-Formular (künftig)
-- Betroffene EntityTypes/Relations: keine eigenen; Generator ist reine Hilfsfunktion
-- API-Endpunkte: `GET /auth/utils/generate-password?length=20` (gibt Klartext-Passwort zurück; nur über HTTPS; keine Persistierung)
-- Datenbank-Änderungen: keine
+- Affected components: auth module (generator function), admin UI (initial password form), password change form (future)
+- Affected EntityTypes/Relations: none of its own; generator is a pure helper function
+- API endpoints: `GET /auth/utils/generate-password?length=20` (returns plaintext password; HTTPS only; no persistence)
+- Database changes: none
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (Richtlinien-Compliance, CSPRNG-Nutzung, vollständiger Sonderzeichen-Zeichensatz)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (policy compliance, CSPRNG usage, full special character set)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-028 (Passwort-Richtlinien-Konfiguration sollte vorher existieren, damit Generator konfigurationsgetrieben arbeitet); US-023 (Admin-Passwort-Setzen-Formular muss existieren)
-- Blockiert: keine
+- Waiting on: US-028 (password policy configuration should exist beforehand so that the generator works configuration-driven); US-023 (admin set-password form must exist)
+- Blocks: none
 
-## Notizen
+## Notes
 
-Der Generator-Endpunkt gibt das Passwort im Klartext zurück (kurzzeitig, nur in der HTTP-Response); der Client zeigt es einmalig an. Keine clientseitige Generierung (würde Browser-Entropie voraussetzen), stattdessen serverseitig mit CSPRNG. Die Länge kann optional als Parameter übergeben werden; Default ist der konfigurierte Empfehlungswert oder 20 Zeichen.
+The generator endpoint returns the password in plaintext (briefly, only in the HTTP response); the client displays it once. No client-side generation (would presuppose browser entropy), instead server-side with CSPRNG. The length can optionally be passed as a parameter; the default is the configured recommended value or 20 characters.

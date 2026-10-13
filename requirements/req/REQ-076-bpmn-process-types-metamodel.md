@@ -1,6 +1,6 @@
 ---
 id: REQ-076
-title: BPMN-Prozesselemente und OrganizationalUnit im Metamodell
+title: BPMN process elements and OrganizationalUnit in the metamodel
 type: functional
 priority: must
 status: proposed
@@ -27,39 +27,39 @@ references:
     - SH-08
     - SH-07
   concept:
-    - concept/20-entities/09-prozess-architektur.md
-    - concept/20-entities/06-kern-entitaetstypen.md
+    - concept/20-entities/09-process-architecture.md
+    - concept/20-entities/06-core-entity-types.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-076: BPMN-Prozesselemente und OrganizationalUnit im Metamodell
+# REQ-076: BPMN process elements and OrganizationalUnit in the metamodel
 
-## Aussage
+## Statement
 
-Das System MUSS einen vollständigen Satz built-in `EntityTypeDefinitions` für BPMN 2.0-Prozessmodellierung bereitstellen (Pool, Lane, Task-Varianten, Events, Gateways, SequenceFlow, MessageFlow). Zusätzlich MUSS `organizational-unit` als built-in EntityType verfügbar sein. Alle built-in BPMN-Typen und `organizational-unit` MÜSSEN via `extends` zu unternehmensspezifischen Subtypen erweiterbar sein, ohne die Basis-Typen zu verändern.
+The system MUST provide a complete set of built-in `EntityTypeDefinitions` for BPMN 2.0 process modeling (pool, lane, task variants, events, gateways, SequenceFlow, MessageFlow). In addition, `organizational-unit` MUST be available as a built-in EntityType. All built-in BPMN types and `organizational-unit` MUST be extensible via `extends` to company-specific subtypes without modifying the base types.
 
-## Begründung
+## Rationale
 
-Die Business Analyst-Persona (SH-08) benötigt sofort einsatzbereite BPMN-Typen — ohne dass der Administrator zuerst alle Typen manuell konfigurieren muss. Gleichzeitig müssen Unternehmen ihre eigenen Prozesstypen (z.B. „Review-Task", „SAP-Service-Task") definieren können. Die `organizational-unit` ist ein neues Konzept im EA-Repository, das Rollen, Personen und Prozess-Lanes miteinander verknüpft.
+The business analyst persona (SH-08) needs ready-to-use BPMN types immediately — without the administrator first having to configure all types manually. At the same time, companies must be able to define their own process types (e.g., "Review task", "SAP service task"). The `organizational-unit` is a new concept in the EA repository that links roles, persons and process lanes with each other.
 
-## Kontext
+## Context
 
-Alle Prozess-Elemente sind reguläre `ArchitectureEntities` im gemeinsamen Integer-ID-Raum (entity.md). Der React-Flow-Canvas nutzt Nested-Nodes für Pool/Lane-Hierarchie: ein Pool ist ein `GroupNode`; Lanes sind Subgruppen; Tasks/Events/Gateways sind reguläre Nodes mit `parentId`. Die Pool/Lane-Hierarchie wird im Repository über `bpmn-contained-in`- und `bpmn-lane-in-pool`-Connections gespeichert; der Canvas liest diese Connections beim Laden aus und baut das verschachtelte Layout auf.
+All process elements are regular `ArchitectureEntities` in the shared integer ID space (entity.md). The React Flow canvas uses nested nodes for the pool/lane hierarchy: a pool is a `GroupNode`; lanes are subgroups; tasks/events/gateways are regular nodes with `parentId`. The pool/lane hierarchy is stored in the repository via `bpmn-contained-in` and `bpmn-lane-in-pool` connections; the canvas reads these connections on loading and builds up the nested layout.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Umfang der built-in EntityTypes** (alle `isBuiltIn: true`; alle per `extends` erweiterbar):
+**Scope of the built-in EntityTypes** (all `isBuiltIn: true`; all extensible via `extends`):
 
-**Prozess-Container**:
+**Process containers**:
 - `bpmn-process` (bpmn:Process)
 - `bpmn-pool` (bpmn:Pool)
 - `bpmn-lane` (bpmn:Lane)
 
-**Tasks** (alle `isConnection: false`):
+**Tasks** (all `isConnection: false`):
 - `bpmn-task`, `bpmn-user-task`, `bpmn-service-task`, `bpmn-send-task`, `bpmn-receive-task`, `bpmn-business-rule-task`, `bpmn-script-task`, `bpmn-sub-process`
 
 **Events**:
@@ -69,71 +69,71 @@ Alle Prozess-Elemente sind reguläre `ArchitectureEntities` im gemeinsamen Integ
 - `bpmn-exclusive-gateway`, `bpmn-parallel-gateway`, `bpmn-inclusive-gateway`, `bpmn-event-gateway`
 
 **Connections** (isConnection=true, isBuiltIn=true):
-- `bpmn-sequence-flow` (SequenceFlow zwischen Prozess-Elementen)
-- `bpmn-message-flow` (MessageFlow zwischen Pools)
-- `bpmn-contained-in` (Element → Lane/Pool; für Nested-Node-Layout)
-- `bpmn-lane-in-pool` (Lane → Pool)
+- `bpmn-sequence-flow` (SequenceFlow between process elements)
+- `bpmn-message-flow` (MessageFlow between pools)
+- `bpmn-contained-in` (element → lane/pool; for nested-node layout)
+- `bpmn-lane-in-pool` (lane → pool)
 
 **OrganizationalUnit** (isConnection=false, isBuiltIn=true):
-- `organizational-unit` (Basistyp; erweiterbar zu `department`, `team`, etc.)
-- `org-unit-part-of` (Connection, isConnection=true; OrgUnit → übergeordnete OrgUnit; Hierarchie)
+- `organizational-unit` (base type; extensible to `department`, `team`, etc.)
+- `org-unit-part-of` (connection, isConnection=true; OrgUnit → parent OrgUnit; hierarchy)
 
-**Zuordnungs-Connections** (isConnection=true, isBuiltIn=true):
+**Assignment connections** (isConnection=true, isBuiltIn=true):
 - `bpmn-lane-performs-role` (bpmn-lane → role)
 - `bpmn-lane-belongs-to-org-unit` (bpmn-lane → organizational-unit)
 - `bpmn-pool-represents-org-unit` (bpmn-pool → organizational-unit)
 - `bpmn-task-assigned-to` (bpmn-user-task → person)
 - `bpmn-task-requires-role` (bpmn-task → role)
 
-**Built-in Viewpoint** (ergänzend zu UC-06/REQ-037):
-- `bpmn-process-view`: Viewpoint mit Notation `bpmn2`; allowedEntityTypes: alle BPMN-Typen; Pool/Lane-Layout-Modus aktiviert
+**Built-in viewpoint** (supplementing UC-06/REQ-037):
+- `bpmn-process-view`: viewpoint with notation `bpmn2`; allowedEntityTypes: all BPMN types; pool/lane layout mode enabled
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Built-in BPMN-Typen vorhanden):
-- Wenn: OEA-Instanz gestartet; Admin öffnet MetamodelConfiguration
-- Dann: Alle 19 built-in BPMN-EntityTypes und 9 built-in Connections sind sichtbar (isBuiltIn=true); unveränderlich in ihren Basiseigenschaften
+**AC1** (Built-in BPMN types present):
+- When: OEA instance started; admin opens MetamodelConfiguration
+- Then: All 19 built-in BPMN EntityTypes and 9 built-in connections are visible (isBuiltIn=true); immutable in their base properties
 
-**AC2** (Erweiterbarkeit):
-- Wenn: Admin legt `EntityTypeDefinition { id: "approval-task", extends: "bpmn-user-task" }` an
-- Dann: `approval-task` erbt alle Attribute von `bpmn-user-task`; erscheint in BPMN-Palette; kann in Prozessdiagrammen genutzt werden
+**AC2** (Extensibility):
+- When: Admin creates `EntityTypeDefinition { id: "approval-task", extends: "bpmn-user-task" }`
+- Then: `approval-task` inherits all attributes of `bpmn-user-task`; appears in the BPMN palette; can be used in process diagrams
 
-**AC3** (OrganizationalUnit Typ):
-- Wenn: Admin öffnet MetamodelConfiguration
-- Dann: `organizational-unit` als built-in EntityType sichtbar; per `extends` zu `department`, `team`, `business-unit` etc. erweiterbar
+**AC3** (OrganizationalUnit type):
+- When: Admin opens MetamodelConfiguration
+- Then: `organizational-unit` visible as a built-in EntityType; extensible via `extends` to `department`, `team`, `business-unit`, etc.
 
-**AC4** (Pool/Lane Nested-Layout):
-- Gegeben: Prozessdiagramm mit Pool → Lane → Task-Hierarchie via `bpmn-contained-in`-Connections
-- Wenn: Canvas lädt das Diagramm
-- Dann: Pool erscheint als äusserer Container; Lanes als Swim-Lanes; Tasks innerhalb der korrekten Lanes; Layout korrekt verschachtelt
+**AC4** (Pool/lane nested layout):
+- Given: Process diagram with pool → lane → task hierarchy via `bpmn-contained-in` connections
+- When: Canvas loads the diagram
+- Then: Pool appears as the outer container; lanes as swim lanes; tasks within the correct lanes; layout correctly nested
 
-**AC5** (SequenceFlow Constraint):
-- Wenn: Nutzer versucht, einen `bpmn-sequence-flow` von einem BPMN-Task zu einer Nicht-BPMN-Entität (z.B. ApplicationComponent) zu ziehen
-- Dann: API gibt HTTP 422 zurück (BR-01); UI zeigt Fehlermeldung
+**AC5** (SequenceFlow constraint):
+- When: User tries to draw a `bpmn-sequence-flow` from a BPMN task to a non-BPMN entity (e.g., ApplicationComponent)
+- Then: API returns HTTP 422 (BR-01); UI shows error message
 
-**AC6** (BPMN-Viewpoint):
-- Wenn: Nutzer legt neues Diagramm an und wählt den built-in Viewpoint `bpmn-process-view`
-- Dann: Palette zeigt ausschliesslich BPMN-konforme Elemente; Pool/Lane-Modus ist aktiv (Container-Drop möglich)
+**AC6** (BPMN viewpoint):
+- When: User creates a new diagram and selects the built-in viewpoint `bpmn-process-view`
+- Then: Palette shows exclusively BPMN-compliant elements; pool/lane mode is active (container drop possible)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert, API- und Integrationstests)
-- [x] Bestanden-Kriterium: `GET /api/v1/metamodel/entity-types?builtIn=true` gibt alle 19+7 BPMN-Typen zurück; AC2 per Integrationstest; AC4 per Playwright-Snapshot-Test
+- [x] Method: test (automated, API and integration tests)
+- [x] Pass criterion: `GET /api/v1/metamodel/entity-types?builtIn=true` returns all 19+7 BPMN types; AC2 via integration test; AC4 via Playwright snapshot test
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: metamodel-configuration.md (EntityTypeDefinition mit `extends`); entity.md (Integer-ID-Raum); ADR-007 (React Flow mit Nested-Node-Support)
-- **Folgewirkungen**: REQ-077 (Zuordnungs-Connections im UI), REQ-040 (EntityDeltas → Canvas), REQ-066 (Anlage-Wizard für BPMN-Elemente)
+- **Prerequisites**: metamodel-configuration.md (EntityTypeDefinition with `extends`); entity.md (integer ID space); ADR-007 (React Flow with nested node support)
+- **Downstream effects**: REQ-077 (assignment connections in the UI), REQ-040 (EntityDeltas → canvas), REQ-066 (creation wizard for BPMN elements)
 
-## Realisierung
+## Implementation
 
-- ADR(s): ADR-007 (React Flow — Nested Nodes via `parentId`)
-- Implementiert durch: –
+- ADR(s): ADR-007 (React Flow — nested nodes via `parentId`)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |

@@ -1,58 +1,58 @@
-# US-073: Entität per /@ im Arc42-Editor einbetten
+# US-073: Embed an Entity via /@ in the Arc42 Editor
 
 **ID**: US-073
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Solution Architekt möchte ich im Arc42-Editor durch Tippen von `/@` und anschliessendem Suchen eine Entität aus dem Repository einbetten – damit meine Dokumentation direkt auf das Modell verweist und Umbenennungen automatisch nachgezogen werden.
+As a Solution Architect, I want to embed an entity from the repository in the Arc42 editor by typing `/@` and then searching, so that my documentation references the model directly and renames are picked up automatically.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-09](../use-cases/UC-09-loesungsarchitektur-arc42-dokumentieren.md)
-**Persona**: Michael – Solution Architekt (SH-04)
+**Use Case**: [UC-09](../use-cases/UC-09-document-solution-architecture-arc42.md)
+**Persona**: Michael – Solution Architect (SH-04)
 **Requirements**: [REQ-070](../req/REQ-070-entity-mention-autocomplete.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Dropdown im Freitext):
-- Wenn: Michael tippt `/@CRM` im Markdown-Bereich
-- Dann: Autocomplete-Dropdown mit passenden Entitäten erscheint
+**AC1** (Dropdown in free text):
+- When: Michael types `/@CRM` in the Markdown area
+- Then: An autocomplete dropdown with matching entities appears
 
-**AC2** (Auswahl → ID-stabiler Link):
-- Wenn: Michael wählt „CRM-System" (id=1)
-- Dann: `[@CRM-System](entity:1)` eingefügt; gerendert als klickbares Badge
+**AC2** (Selection → ID-stable link):
+- When: Michael selects "CRM-System" (id=1)
+- Then: `[@CRM-System](entity:1)` is inserted; rendered as a clickable badge
 
-**AC3** (Umbenennung automatisch):
-- Gegeben: Entität id=1 heisst neu „Salesforce CRM"
-- Wenn: Michael öffnet die Antwort erneut
-- Dann: Badge zeigt „Salesforce CRM"; Rohtext unverändert
+**AC3** (Rename automatic):
+- Given: Entity id=1 is now named "Salesforce CRM"
+- When: Michael reopens the answer
+- Then: The badge shows "Salesforce CRM"; raw text unchanged
 
-**AC4** (Dropdown im Mermaid-Block):
-- Wenn: Michael tippt `/@CRM` innerhalb eines Mermaid-Codeblocks
-- Dann: Dropdown erscheint; nach Auswahl wird Textname `CRM-System` ohne Link eingefügt
+**AC4** (Dropdown in Mermaid block):
+- When: Michael types `/@CRM` inside a Mermaid code block
+- Then: The dropdown appears; after selection the text name `CRM-System` is inserted without a link
 
-**AC5** (PlantUML-Block analog zu AC4):
-- Wenn: `/@CRM` in PlantUML-Block
-- Dann: Textname wird eingefügt
+**AC5** (PlantUML block analogous to AC4):
+- When: `/@CRM` in a PlantUML block
+- Then: The text name is inserted
 
-**AC6** (Gelöschte Entität):
-- Gegeben: Entität id=1 gelöscht
-- Wenn: Antwort mit Mention geöffnet
-- Dann: Badge zeigt `[gelöscht]` in roter Schrift
+**AC6** (Deleted entity):
+- Given: Entity id=1 deleted
+- When: Answer with mention is opened
+- Then: The badge shows `[deleted]` in red font
 
-## Technische Hinweise
+## Technical Notes
 
-- `GET /api/v1/entities/search?q=CRM&limit=10` für Live-Suche (Debounce 150 ms)
-- Batch-Auflösung beim Öffnen: `POST /api/v1/entities/batch?ids=[...]`
-- TipTap MentionExtension; Code-Block-Erkennung für Text-only-Insertion
+- `GET /api/v1/entities/search?q=CRM&limit=10` for live search (debounce 150 ms)
+- Batch resolution on open: `POST /api/v1/entities/batch?ids=[...]`
+- TipTap MentionExtension; code block detection for text-only insertion
 
 ## Definition of Done
 
-- [ ] AC1–AC6 erfüllt
-- [ ] Tests: Dropdown-Trigger, Auswahl, ID-Auflösung, Umbenennung, Löschen, Codeblock-Mode
-- [ ] E2E-Test (Playwright) für Freitext- und Mermaid-Flow
-- [ ] XSS-Prevention auf Entity-Namen verifiziert
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC6 fulfilled
+- [ ] Tests: dropdown trigger, selection, ID resolution, rename, delete, code block mode
+- [ ] E2E test (Playwright) for free-text and Mermaid flow
+- [ ] XSS prevention on entity names verified
+- [ ] Code review; linter green; entered in trace matrix

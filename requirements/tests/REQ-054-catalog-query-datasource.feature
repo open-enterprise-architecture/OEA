@@ -1,47 +1,47 @@
-# Ableitung aus: requirements/req/req-054-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-054-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @should @UC-07
-Feature: REQ-054 – CatalogQuery-DataSource konfigurieren und validieren
+Feature: REQ-054 – Configure and validate CatalogQuery DataSource
 
-  Das System MUSS eine `CatalogQueryDataSource`-Konfiguration für
-  `table`-Widgets validieren und bei der Daten-Berechnung (REQ-055) auf
-  die Katalog-Abfrage-API (REQ-046) delegieren. Die DataSource MUSS
-  `catalogId` als Pflichtfeld voraussetzen und MUSS zur Schreibzeit
-  prüfen, ob der referenzierte
-  [Katalog](../../business-objects/catalog.md) für den anfragenden
-  Nutzer sichtbar ist.
+  The system MUST validate a `CatalogQueryDataSource` configuration
+  for `table` widgets and delegate to the catalog query API (REQ-046)
+  during data computation (REQ-055). The DataSource MUST require
+  `catalogId` as a mandatory field and MUST check at write time
+  whether the referenced
+  [catalog](../../business-objects/catalog.md) is visible to the
+  requesting user.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Gültige DataSource – Katalog „Application Inventory" (scope=instance) existiert; Kurt ist ein...
-    Given Katalog „Application Inventory" (scope=instance) existiert; Kurt ist eingeloggt
-    When  Widget anlegen mit type=table, catalogId=<id>
-    Then  HTTP 201; DataSource gespeichert
+  Scenario: AC1 – Valid DataSource – catalog "Application Inventory" (scope=instance) exists; Kurt is logged in
+    Given catalog "Application Inventory" (scope=instance) exists; Kurt is logged in
+    When  create widget with type=table, catalogId=<id>
+    Then  HTTP 201; DataSource saved
 
   @AC2
-  Scenario: AC2 – Ungültige catalogId – Widget anlegen mit nicht-existierender catalogId
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Widget anlegen mit nicht-existierender catalogId
-    Then  HTTP 422 „Katalog nicht gefunden oder nicht sichtbar"
+  Scenario: AC2 – Invalid catalogId – create widget with non-existent catalogId
+    Given the precondition according to the requirement is met
+    When  create widget with non-existent catalogId
+    Then  HTTP 422 "Catalog not found or not visible"
 
   @AC3
-  Scenario: AC3 – Fremder personal-Katalog – Franz hat einen scope=personal-Katalog
-    Given Franz hat einen scope=personal-Katalog
-    When  Kurt versucht, diesen Katalog als DataSource zu verwenden
-    Then  HTTP 403 „Katalog nicht sichtbar"
+  Scenario: AC3 – Another user's personal catalog – Franz has a scope=personal catalog
+    Given Franz has a scope=personal catalog
+    When  Kurt tries to use this catalog as a DataSource
+    Then  HTTP 403 "Catalog not visible"
 
   @AC4
-  Scenario: AC4 – savedViewId gültig – Katalog hat SavedView „Kompaktansicht"
-    Given Katalog hat SavedView „Kompaktansicht"
-    When  Widget anlegen mit savedViewId=<view-id>
-    Then  HTTP 201; beim Daten-Abruf werden Spalten und Filter der SavedView angewendet
+  Scenario: AC4 – savedViewId valid – catalog has SavedView "Compact view"
+    Given catalog has SavedView "Compact view"
+    When  create widget with savedViewId=<view-id>
+    Then  HTTP 201; on data retrieval, the columns and filters of the SavedView are applied
 
   @AC5
-  Scenario: AC5 – Katalog später gelöscht – Widget mit CatalogQueryDataSource existiert; Katalog wird danach gelöscht
-    Given Widget mit CatalogQueryDataSource existiert; Katalog wird danach gelöscht
+  Scenario: AC5 – Catalog deleted later – widget with CatalogQueryDataSource exists; catalog is deleted afterwards
+    Given widget with CatalogQueryDataSource exists; catalog is deleted afterwards
     When  GET /api/v1/dashboards/{id}/data
-    Then  dieses Widget liefert `{ "status": "error", "error": "Katalog nicht gefunden" }`; andere Widgets rendern normal
+    Then  this widget returns `{ "status": "error", "error": "Catalog not found" }`; other widgets render normally

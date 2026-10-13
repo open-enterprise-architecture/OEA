@@ -1,6 +1,6 @@
 ---
 id: REQ-096
-title: Navigationsbaum Drag & Drop mit Zyklus-Schutz
+title: Navigation tree drag & drop with cycle protection
 type: functional
 priority: must
 status: proposed
@@ -22,43 +22,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-096: Navigationsbaum Drag & Drop mit Zyklus-Schutz
+# REQ-096: Navigation tree drag & drop with cycle protection
 
-## Aussage
+## Statement
 
-Das System MUSS das Neuanordnen von Items (`sortOrder`) und das Verschieben von Ordnern und Items per Drag & Drop unterstützen. Beim Verschieben eines Ordners MUSS das System Zyklen erkennen (BR-03: Ordner darf nicht in einen eigenen Nachkommen verschoben werden) und das Drop-Target visuell als ungültig markieren; API-Versuche mit Zyklus MÜSSEN mit HTTP 422 abgewiesen werden.
+The system MUST support rearranging items (`sortOrder`) and moving folders and items via drag & drop. When moving a folder, the system MUST detect cycles (BR-03: a folder must not be moved into one of its own descendants) and visually mark the drop target as invalid; API attempts with a cycle MUST be rejected with HTTP 422.
 
-## Begründung
+## Rationale
 
-Drag & Drop ist die ergonomischste Form der Baum-Reorganisation. Ohne Zyklus-Schutz würde ein versehentliches Verschieben den Baum inkonsistent machen und zu einer unendlichen Traversierung führen.
+Drag & drop is the most ergonomic form of tree reorganization. Without cycle protection, an accidental move would make the tree inconsistent and lead to an infinite traversal.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Zyklus-Erkennung):
-- Wenn: Ordner A per Drag & Drop unter Ordner B gezogen wird und B ein Nachkomme von A ist
-- Dann: wird das Drop-Target visuell als ungültig markiert; ein API-Versuch antwortet mit HTTP 422
+**AC1** (Cycle detection):
+- When: folder A is dragged under folder B via drag & drop and B is a descendant of A
+- Then: the drop target is visually marked as invalid; an API attempt responds with HTTP 422
 
-**AC2** (Neuanordnung von Items):
-- Wenn: Items innerhalb eines Ordners per Drag & Drop neu angeordnet werden
-- Dann: wird `sortOrder` korrekt aktualisiert; die neue Reihenfolge ist persistent
+**AC2** (Rearranging items):
+- When: items within a folder are rearranged via drag & drop
+- Then: `sortOrder` is updated correctly; the new order is persistent
 
-**AC3** (Item verschieben zwischen Ordnern):
-- Wenn: ein Item per Drag & Drop von Ordner A nach Ordner B verschoben wird
-- Dann: ist das Item in B vorhanden und nicht mehr in A
+**AC3** (Move item between folders):
+- When: an item is moved from folder A to folder B via drag & drop
+- Then: the item is present in B and no longer in A
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-094 (Ordner-CRUD), REQ-095 (Items)
-- **Folgewirkungen**: keine
+- **Prerequisites**: REQ-094 (folder CRUD), REQ-095 (items)
+- **Downstream effects**: none
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Zyklus-Prüfung: Ancestor-Traversierung vor dem Move (rekursive Parent-Prüfung)
-- `sortOrder` als Integer-Feld; bei Neuordnung werden betroffene Nachbarn aktualisiert
-- Drag & Drop-Bibliothek muss valide Drop-Targets in Echtzeit markieren können
+- Cycle check: ancestor traversal before the move (recursive parent check)
+- `sortOrder` as an integer field; on reordering, affected neighbors are updated
+- The drag & drop library must be able to mark valid drop targets in real time
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

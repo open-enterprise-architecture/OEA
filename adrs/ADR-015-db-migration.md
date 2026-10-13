@@ -1,63 +1,63 @@
-# ADR-015: Datenbank-Migrations-Tool – Flyway
+# ADR-015: Database Migration Tool – Flyway
 
 **Status**: accepted
-**Datum**: 2026-06-27
-**Entscheider**: [Rigobert – Produkt Owner](../business-analysis/stakeholders/SH-09-rigobert-produkt-owner.md) (SH-09)
-**Konsultiert**: Business Engineer
-**Informiert**: –
+**Date**: 2026-06-27
+**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Consulted**: Business Engineer
+**Informed**: –
 
-## Kontext und Problem
+## Context and Problem
 
-Das Datenbankschema (Tabellen, Indizes, Constraints) muss versioniert und automatisch migriert werden — bei jedem Deployment und bei `docker compose up`. OEA unterstützt fünf Zieldatenbanken (PostgreSQL, MySQL, MariaDB, SQL Server, Oracle; ADR-012). Das Migrations-Tool muss in den Java/Spring-Boot-Stack (ADR-012) passen und alle fünf Datenbanken unterstützen.
+The database schema (tables, indexes, constraints) must be versioned and migrated automatically — on every deployment and on `docker compose up`. OEA supports five target databases (PostgreSQL, MySQL, MariaDB, SQL Server, Oracle; ADR-012). The migration tool must fit into the Java/Spring Boot stack (ADR-012) and support all five databases.
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- **Multi-DB-Support**: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle müssen alle unterstützt werden
-- **Spring-Boot-Integration**: automatische Migrations bei App-Start ohne separaten Container
-- **SQL-Transparenz**: plain SQL-Dateien, reviewbar und git-diffbar
-- **OSS**: keine kommerziellen Features nötig; Community Edition muss ausreichen
-- **REQ-075**: `docker compose up` soll ohne manuelle Migrations-Schritte funktionieren
+- **Multi-DB support**: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle must all be supported
+- **Spring Boot integration**: automatic migrations at app start without a separate container
+- **SQL transparency**: plain SQL files, reviewable and git-diffable
+- **OSS**: no commercial features needed; community edition must suffice
+- **REQ-075**: `docker compose up` should work without manual migration steps
 
-## Betrachtete Optionen
+## Considered Options
 
 ### Option 1: Flyway Community ✓
 
-Flyway ist das de-facto-Standard-Migrations-Tool im Java/Spring-Ökosystem.
+Flyway is the de facto standard migration tool in the Java/Spring ecosystem.
 
 - **Pro**:
-  - Spring Boot hat nativen Flyway-Support (`spring.flyway.*`): Migrations laufen automatisch beim App-Start
-  - Unterstützt alle 5 Ziel-DBs in der Community Edition: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle
-  - plain SQL-Migrationsdateien (`V1__init.sql`, `V2__add_index.sql`) — lesbar, reviewbar, versioniert
-  - Battle-tested: im Einsatz in tausenden von Java-Enterprise-Projekten
-  - Apache 2.0-Lizenz (Community Edition)
-- **Contra**: Kein automatisches Schema-Diff aus Java-Entities (Migrations werden manuell geschrieben); Rollback-Support nur in kommerzieller Edition — Down-Migrations müssen manuell als neue Migration geschrieben werden
+  - Spring Boot has native Flyway support (`spring.flyway.*`): migrations run automatically at app start
+  - Supports all 5 target DBs in the community edition: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle
+  - Plain SQL migration files (`V1__init.sql`, `V2__add_index.sql`) — readable, reviewable, versioned
+  - Battle-tested: in use in thousands of Java enterprise projects
+  - Apache 2.0 license (community edition)
+- **Con**: No automatic schema diff from Java entities (migrations are written manually); rollback support only in the commercial edition — down migrations must be written manually as a new migration
 
 ### Option 2: Liquibase Community
 
-Ähnlich Flyway, aber XML/YAML/SQL-Formate.
+Similar to Flyway, but XML/YAML/SQL formats.
 
-- **Pro**: Rollback-Support in Community Edition; mehrere Formats
-- **Contra**: XML-Changeset-Format für DB-neutrale Migrations ist weniger lesbar als plain SQL; höhere Komplexität; Apache 2.0 Community, proprietäre Features
-- Scheidet aus: Flyway mit plain SQL ist einfacher und ausreichend
+- **Pro**: Rollback support in community edition; multiple formats
+- **Con**: XML changeset format for DB-neutral migrations is less readable than plain SQL; higher complexity; Apache 2.0 community, proprietary features
+- Ruled out: Flyway with plain SQL is simpler and sufficient
 
 ### Option 3: Drizzle Kit (Node.js)
 
-Migrations-Tool von Drizzle ORM; war an TypeScript/NestJS-Stack gebunden.
+Migration tool of Drizzle ORM; was tied to the TypeScript/NestJS stack.
 
-- **Contra**: Node.js-basiert; kein Java/Spring-Integration; kein Oracle-Support; entfällt mit ADR-012-Entscheidung für Java
+- **Con**: Node.js-based; no Java/Spring integration; no Oracle support; dropped with the ADR-012 decision for Java
 
 ### Option 4: Hibernate `hbm2ddl` / `validate`
 
-Hibernate kann das Schema automatisch aus Entities generieren (`spring.jpa.hibernate.ddl-auto=update`).
+Hibernate can generate the schema automatically from entities (`spring.jpa.hibernate.ddl-auto=update`).
 
-- **Pro**: kein separates Tool; immer synchron mit Entities
-- **Contra**: **Nicht für Produktion geeignet** — unkontrollierte Schema-Änderungen bei Code-Änderungen; kein Versions-Tracking; keine Rollback-Möglichkeit; scheidet aus für produktive Deployments
+- **Pro**: no separate tool; always in sync with entities
+- **Con**: **Not suitable for production** — uncontrolled schema changes on code changes; no version tracking; no rollback possibility; ruled out for productive deployments
 
-## Entscheidung
+## Decision
 
 **Option 1: Flyway Community (Apache 2.0).**
 
-Spring Boot integriert Flyway nativ — kein separater Container, kein manueller Schritt:
+Spring Boot integrates Flyway natively — no separate container, no manual step:
 
 ```yaml
 # application.yml
@@ -68,58 +68,58 @@ spring:
     baseline-on-migrate: true
 ```
 
-Migrations laufen automatisch beim App-Start vor dem ersten DB-Zugriff.
+Migrations run automatically at app start before the first DB access.
 
-### Migrations-Konvention
+### Migration Convention
 
 ```
 src/main/resources/db/migration/
   V1__init_core_schema.sql        ← entities, entity_versions, audit_events
   V2__init_plateau_schema.sql     ← plateaus, entity_plateau_states
   V3__init_metamodel_schema.sql   ← metamodel_configurations, entity_type_definitions
-  V4__add_indexes.sql             ← Indizes (DB-neutral: B-Tree)
+  V4__add_indexes.sql             ← indexes (DB-neutral: B-tree)
 ```
 
-Naming-Schema: `V{version}__{beschreibung}.sql` (Flyway-Standard).
+Naming scheme: `V{version}__{description}.sql` (Flyway standard).
 
-### DB-spezifische Migrations
+### DB-Specific Migrations
 
-Für DB-spezifische Optimierungen (z.B. GIN-Index auf PostgreSQL) werden separate Flyway-Locations pro Dialekt genutzt:
+For DB-specific optimizations (e.g. GIN index on PostgreSQL), separate Flyway locations per dialect are used:
 
 ```yaml
 spring:
   flyway:
     locations:
-      - classpath:db/migration          # DB-neutral (Pflicht)
-      - classpath:db/migration/${DB_DIALECT:postgresql}  # DB-spezifisch (optional)
+      - classpath:db/migration          # DB-neutral (mandatory)
+      - classpath:db/migration/${DB_DIALECT:postgresql}  # DB-specific (optional)
 ```
 
-So erhalten PostgreSQL-Deployments GIN-Indexe, ohne dass andere Datenbanken scheitern.
+This way PostgreSQL deployments get GIN indexes without other databases failing.
 
-### Rollback-Strategie
+### Rollback Strategy
 
-Flyway Community unterstützt kein automatisches Rollback. Strategie für v1.0:
+Flyway Community does not support automatic rollback. Strategy for v1.0:
 
-- **Forward-only**: Fehlerhafte Migrations werden durch eine neue `V{n+1}__rollback_*.sql`-Migration rückgängig gemacht
-- **Pre-Migration-Backup**: Betreiber sichern die DB vor jedem Deployment (empfohlen in Betriebsdokumentation)
+- **Forward-only**: Faulty migrations are reverted by a new `V{n+1}__rollback_*.sql` migration
+- **Pre-migration backup**: Operators back up the DB before every deployment (recommended in operations documentation)
 
-## Konsequenzen
+## Consequences
 
-### Positive Konsequenzen
+### Positive Consequences
 
-- `docker compose up` führt automatisch alle ausstehenden Migrations aus — zero-config für Betreiber
-- plain SQL-Migrations: im Repository versioniert, im PR reviewbar, für alle 5 DBs portabel
-- Spring-nativer Start: kein separater Migrations-Container
-- Unterstützung aller 5 Zieldatenbanken ohne Lizenzkosten
+- `docker compose up` automatically runs all pending migrations — zero-config for operators
+- Plain SQL migrations: versioned in the repository, reviewable in the PR, portable for all 5 DBs
+- Spring-native start: no separate migration container
+- Support for all 5 target databases without license costs
 
-### Negative Konsequenzen / Trade-offs
+### Negative Consequences / Trade-offs
 
-- Migrations werden manuell geschrieben (kein Schema-Diff aus Hibernate-Entities); erfordert Disziplin beim Entwickler
-- Kein automatisches Rollback; Down-Migrations als neue Version schreiben
-- `baseline-on-migrate: true` für Installationen mit bestehendem Schema nötig (Upgrade-Szenarien)
+- Migrations are written manually (no schema diff from Hibernate entities); requires discipline from the developer
+- No automatic rollback; write down migrations as a new version
+- `baseline-on-migrate: true` required for installations with an existing schema (upgrade scenarios)
 
-## Bezüge
+## References
 
-**Verwandte ADRs**: [ADR-012](./ADR-012-backend-stack.md) (Java + Spring Boot), [ADR-016](./ADR-016-persistenz-strategie.md) (Persistenz-Strategie)
+**Related ADRs**: [ADR-012](./ADR-012-backend-stack.md) (Java + Spring Boot), [ADR-016](./ADR-016-persistence-strategy.md) (persistence strategy)
 
-**Requirements**: [REQ-075](../requirements/req/REQ-075-plattformunabhaengigkeit-deployment.md)
+**Requirements**: [REQ-075](../requirements/req/REQ-075-platform-independent-deployment.md)

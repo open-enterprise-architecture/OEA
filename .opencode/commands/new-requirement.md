@@ -1,51 +1,51 @@
-# /new-requirement – Neue atomare Anforderung anlegen
+# /new-requirement – Create a new atomic requirement
 
-Legt eine atomare Anforderung in `requirements/req/` an. Unterstützt alle 7 Typen.
+Creates an atomic requirement in `requirements/req/`. Supports all 7 types.
 
-## Argumente
+## Arguments
 
-`$ARGUMENTS` enthält optional: `<UC-NN> <type> <Kurztitel>`
-Beispiel: `/new-requirement UC-05 functional Entität im Diagramm platzieren`
+`$ARGUMENTS` optionally contains: `<UC-NN> <type> <short title>`
+Example: `/new-requirement UC-05 functional Place entity in diagram`
 
-## Erlaubte Typen
+## Allowed types
 
 `functional` | `non-functional` | `constraint` | `business-rule` | `data` | `interface` | `compliance`
 
-## Ausführung
+## Execution
 
-1. **Nächste freie ID ermitteln**:
+1. **Determine the next free ID**:
    ```bash
    ls requirements/req/REQ-*.md | sed 's/.*REQ-//' | sed 's/-.*//' | sort -n | tail -1
    ```
-   Nächste ID = höchste Nummer + 1, dreistellig (z.B. `REQ-135`).
+   Next ID = highest number + 1, three digits (e.g. `REQ-135`).
 
-2. **UC-Referenz prüfen**:
-   - UC-NN aus `$ARGUMENTS` oder erfragen
-   - Verifizieren: `ls requirements/use-cases/UC-NN-*.md`
-   - Falls UC nicht existiert: STOP
+2. **Check the UC reference**:
+   - UC-NN from `$ARGUMENTS` or ask
+   - Verify: `ls requirements/use-cases/UC-NN-*.md`
+   - If the UC does not exist: STOP
 
-3. **Typ bestimmen**:
-   - `type` aus `$ARGUMENTS` oder erfragen
-   - Bei `non-functional`: messbare Zielwerte sind Pflicht (keine "soll schnell sein"-Aussagen)
-   - Bei `compliance`: Regelwerk und konkreter Artikel sind Pflicht
+3. **Determine the type**:
+   - `type` from `$ARGUMENTS` or ask
+   - For `non-functional`: measurable target values are mandatory (no "should be fast" statements)
+   - For `compliance`: regulation and concrete article are mandatory
 
-4. **Datei anlegen**:
-   Kopiere `templates/requirement.template.md` nach `requirements/req/REQ-NNN-kurzname.md`
-   - Frontmatter: `id`, `title`, `type`, `priority`, `status: proposed`, `created` (heute)
-   - `references.use_cases` mit UC-NN befüllen
-   - Nur den zum Typ passenden Block unter "Typ-spezifische Felder" behalten, Rest entfernen
-   - Mindestens ein Akzeptanzkriterium (AC1) formulieren
+4. **Create the file**:
+   Copy `templates/requirement.template.md` to `requirements/req/REQ-NNN-shortname.md`
+   - Frontmatter: `id`, `title`, `type`, `priority`, `status: proposed`, `created` (today)
+   - Fill `references.use_cases` with UC-NN
+   - Keep only the block matching the type under "Type-Specific Fields", remove the rest
+   - Formulate at least one acceptance criterion (AC1)
 
-5. **Pflicht-Checks**:
-   - Aussage enthält RFC-2119-Schlüsselwort (MUSS / SOLL / DARF NICHT / KANN)?
-   - Verifikationsmethode angegeben?
-   - Bei `non-functional`: Scope-Angabe vorhanden?
+5. **Mandatory checks**:
+   - Does the statement contain an RFC 2119 keyword (MUST / SHOULD / MUST NOT / MAY)?
+   - Verification method given?
+   - For `non-functional`: scope given?
 
-6. **Ausgabe**:
-   Pfad, ID, Typ, UC-Bezug, und Hinweis auf noch offene Pflichtfelder.
+6. **Output**:
+   Path, ID, type, UC reference, and a note on mandatory fields that are still open.
 
-## Konventionen
+## Conventions
 
-- Dateiname: `REQ-NNN-kurzname.md` (dreistellig; Kurzname englisch, kebab-case)
-- Eine Anforderung = eine Aussage. Mehrere Aussagen → mehrere REQs
-- Keine Technologie-Vorgaben in der Aussage (Solution Design ≠ Requirement)
+- File name: `REQ-NNN-shortname.md` (three digits; short name English, kebab-case)
+- One requirement = one statement. Multiple statements → multiple REQs
+- No technology specifications in the statement (solution design ≠ requirement)

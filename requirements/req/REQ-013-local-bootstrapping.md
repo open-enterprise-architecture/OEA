@@ -1,6 +1,6 @@
 ---
 id: REQ-013
-title: Lokales Bootstrapping bei fehlendem System-Admin-Account
+title: Local bootstrapping when no system admin account exists
 type: functional
 priority: must
 status: proposed
@@ -18,99 +18,99 @@ references:
     - SH-06
     - SH-03
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-013: Lokales Bootstrapping bei fehlendem System-Admin-Account
+# REQ-013: Local bootstrapping when no system admin account exists
 
-## Aussage
+## Statement
 
-Das System MUSS erkennen, wenn für eine Instanz noch kein [System-Admin-Account](../../business-objects/system-admin-account.md) existiert, und in diesem Fall einen lokalen Bootstrapping-Vorgang anbieten, der ohne externen Identity-Provider auskommt.
+The system MUST detect when no [system admin account](../../business-objects/system-admin-account.md) exists for an instance yet and, in that case, offer a local bootstrapping process that works without an external identity provider.
 
-## Begründung
+## Rationale
 
-Eine frisch installierte OEA-Instanz hat per Definition keine Person-/Role-Daten und ggf. keinen konfigurierten IdP. Ohne einen Weg, der ohne externe Abhängigkeit funktioniert, könnte eine Instanz ohne bereits eingerichteten IdP nie administriert werden. UC-02, Hauptablauf.
+A freshly installed OEA instance by definition has no person/role data and possibly no configured IdP. Without a path that works without an external dependency, an instance without an already configured IdP could never be administered. UC-02, Basic Flow.
 
-## Kontext
+## Context
 
-Betrifft ausschließlich den Zustand "kein System-Admin-Account vorhanden" einer Instanz. Sobald ein Account existiert, greift REQ-015 (keine wiederholten Bootstrapping-Vorgänge).
+Concerns exclusively the state "no system admin account present" of an instance. As soon as an account exists, REQ-015 applies (no repeated bootstrapping processes).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- Start der Instanz ohne vorhandenen System-Admin-Account
-- Vom Operator gewähltes initiales Credential (Passwort) oder entgegengenommenes generiertes Setup-Token
+**Inputs**:
+- Start of the instance without an existing system admin account
+- Initial credential (password) chosen by the operator or accepted generated setup token
 
-**Verarbeitung**:
-- Prüfung beim Start/ersten Zugriff, ob ein System-Admin-Account existiert
-- Falls nicht: Generierung eines einmaligen Setup-Tokens oder Aufforderung zur Passwort-Festlegung
-- Anlegen des System-Admin-Accounts mit `mode: local` nach Bestätigung des Credentials
+**Processing**:
+- Check at startup/first access whether a system admin account exists
+- If not: generate a one-time setup token or prompt for setting a password
+- Create the system admin account with `mode: local` after the credential is confirmed
 
-**Ausgaben**:
-- Lokaler System-Admin-Account im Zustand `bootstrapped`
-- Bestätigung an den Operator, dass das Bootstrapping abgeschlossen ist
+**Outputs**:
+- Local system admin account in the state `bootstrapped`
+- Confirmation to the operator that bootstrapping is complete
 
-**Fehlerfälle**:
-- Vorgang wird abgebrochen, bevor das Credential bestätigt ist → kein Account wird angelegt, Vorgang kann erneut gestartet werden (siehe UC-02, E1)
+**Error Cases**:
+- Process is aborted before the credential is confirmed → no account is created, the process can be restarted (see UC-02, E1)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine frisch installierte Instanz ohne System-Admin-Account
-- Wenn: sie zum ersten Mal gestartet bzw. aufgerufen wird
-- Dann: bietet das System den lokalen Bootstrapping-Vorgang an, ohne einen externen IdP vorauszusetzen
+- Given: a freshly installed instance without a system admin account
+- When: it is started or accessed for the first time
+- Then: the system offers the local bootstrapping process without requiring an external IdP
 
 **AC2**:
-- Gegeben: ein abgeschlossener lokaler Bootstrapping-Vorgang
-- Wenn: der Operator sich mit dem festgelegten Credential anmeldet
-- Dann: erhält er Zugriff mit System-Admin-Rechten
+- Given: a completed local bootstrapping process
+- When: the operator logs in with the chosen credential
+- Then: they gain access with system admin permissions
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Start einer Instanz ohne vorhandene Konfiguration, Durchlauf des Bootstrapping-Vorgangs
-- [x] Mess-Werkzeug: Test-Suite des Auth-Moduls / Integrationstest auf frischer Instanz
-- [x] Bestanden-Kriterium: AC1, AC2 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: start an instance without existing configuration, run through the bootstrapping process
+- [x] Measurement tool: test suite of the auth module / integration test on a fresh instance
+- [x] Pass criterion: AC1, AC2 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: keine
-- **Folgewirkungen**: REQ-015 (keine wiederholten Vorgänge), REQ-016 (Audit-Log), REQ-017 (sichere Token-Übergabe)
-- **Konflikte**: keine bekannt
+- **Prerequisites**: none
+- **Downstream effects**: REQ-015 (no repeated processes), REQ-016 (audit log), REQ-017 (secure token handover)
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne lokalen Bootstrapping-Weg wäre jede Instanz ohne vorab eingerichteten IdP unadministrierbar – schwerwiegend, blockiert jegliche Nutzung
+- Risk 1: Without a local bootstrapping path, every instance without a previously configured IdP would be unadministrable – severe, blocks any use
 
 ## Trade-offs
 
-- vs. Sicherheit: ein lokaler Bootstrap-Weg ist ein zusätzlicher Angriffsvektor, der nach Erstkonfiguration ggf. deaktiviert werden sollte (siehe REQ-019)
+- vs. security: a local bootstrap path is an additional attack vector that should possibly be disabled after initial configuration (see REQ-019)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Erkennung "kein Account vorhanden" muss race-condition-sicher sein (siehe REQ-015)
-- Setup-Token-Übergabe siehe REQ-017
+- Detection of "no account present" must be race-condition safe (see REQ-015)
+- For setup token handover see REQ-017
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-02, Hauptablauf.
+Derived from UC-02, Basic Flow.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft aus UC-02 |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-02 |

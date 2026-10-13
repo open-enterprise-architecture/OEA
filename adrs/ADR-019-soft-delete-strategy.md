@@ -1,151 +1,151 @@
-# ADR-019: Soft-Delete-Strategie für Entities und Connections
+# ADR-019: Soft-Delete Strategy for Entities and Connections
 
 **Status**: accepted
-**Datum**: 2026-06-28
-**Entscheider**: [Rigobert – Produkt Owner](../business-analysis/stakeholders/SH-09-rigobert-produkt-owner.md) (SH-09)
-**Konsultiert**: Requirements Engineer
-**Informiert**: ADR-016 (Persistenz-Strategie)
+**Date**: 2026-06-28
+**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Consulted**: Requirements Engineer
+**Informed**: ADR-016 (persistence strategy)
 
-## Kontext und Problem
+## Context and Problem
 
-Architektur-Entitäten (Elements und Connections in der `entities`-Tabelle) werden im Laufe der Zeit gelöscht — wenn eine Komponente abgekündigt wird, eine Verbindung wegfällt oder ein Modellierungsfehler korrigiert wird. Zwei Fragen sind offen:
+Architecture entities (elements and connections in the `entities` table) are deleted over time — when a component is decommissioned, a connection ceases to exist, or a modeling error is corrected. Two questions are open:
 
-1. **Wie wird gelöscht?** Hard-Delete (Zeile entfernt) oder Soft-Delete (`deleted_at` gesetzt)?
-2. **Wiederherstellbarkeit?** Können versehentlich gelöschte Entitäten wiederhergestellt werden?
+1. **How is deletion done?** Hard delete (row removed) or soft delete (`deleted_at` set)?
+2. **Restorability?** Can accidentally deleted entities be restored?
 
-Hard-Delete ist in einem Audit-pflichtigen EA-Repository nicht akzeptabel: Referenzen aus `entity_versions`, `entity_deltas`, `audit_events` und `entity_plateau_states` würden dangling, und historische Abfragen (z.B. „Wie sah die Landschaft am 2026-01-01 aus?") würden fehlerhafte Ergebnisse liefern.
+Hard delete is not acceptable in an audit-obligated EA repository: references from `entity_versions`, `entity_deltas`, `audit_events`, and `entity_plateau_states` would become dangling, and historical queries (e.g. "What did the landscape look like on 2026-01-01?") would deliver erroneous results.
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- **Wiederherstellbarkeit**: Versehentliche Löschung muss rückgängig gemacht werden können (expliziter Nutzerwunsch)
-- **Referenzintegrität**: `entity_versions`, `entity_deltas`, `audit_events` referenzieren `entities.id`; diese FKs dürfen nicht dangling werden
-- **Historische Abfragen**: Plateau-Snapshots und Content-History müssen auch gelöschte Entitäten rekonstruieren können
-- **Operative Einfachheit**: Alle Standard-Queries (`GET /api/v1/entities`) sollen gelöschte Entitäten automatisch ausblenden
-- **Connection-Konsistenz**: Wird ein Element gelöscht, müssen abhängige Connections (die dieses Element als `source_entity_id` oder `target_entity_id` referenzieren) konsistent mitbehandelt werden
+- **Restorability**: Accidental deletion must be reversible (explicit user request)
+- **Referential integrity**: `entity_versions`, `entity_deltas`, `audit_events` reference `entities.id`; these FKs must not become dangling
+- **Historical queries**: Plateau snapshots and content history must also be able to reconstruct deleted entities
+- **Operational simplicity**: All standard queries (`GET /api/v1/entities`) should automatically hide deleted entities
+- **Connection consistency**: If an element is deleted, dependent connections (which reference this element as `source_entity_id` or `target_entity_id`) must be treated consistently
 
-## Betrachtete Optionen
+## Considered Options
 
-### Option 1: Soft-Delete via `deleted_at`-Timestamp ✓
+### Option 1: Soft delete via `deleted_at` timestamp ✓
 
-Drei neue Spalten in `entities`:
+Three new columns in `entities`:
 
 ```sql
-deleted_at      TIMESTAMPTZ   -- null = aktiv; gesetzt = gelöscht
+deleted_at      TIMESTAMPTZ   -- null = active; set = deleted
 deleted_by      BIGINT        REFERENCES persons(id)
-deletion_reason TEXT          -- optional; Freitext oder Enum
+deletion_reason TEXT          -- optional; free text or enum
 ```
 
-Alle Standard-Queries filtern `WHERE deleted_at IS NULL`. Ein partieller Index optimiert den häufigen Fall:
+All standard queries filter `WHERE deleted_at IS NULL`. A partial index optimizes the frequent case:
 
 ```sql
 CREATE INDEX idx_entities_active ON entities(id) WHERE deleted_at IS NULL;
 ```
 
-Wiederherstellung: `UPDATE entities SET deleted_at = NULL, deleted_by = NULL, deletion_reason = NULL WHERE id = ?`
+Restore: `UPDATE entities SET deleted_at = NULL, deleted_by = NULL, deletion_reason = NULL WHERE id = ?`
 
-- **Pro**: Volle Referenzintegrität; alle FKs bleiben gültig; historische Abfragen funktionieren korrekt; einfache Restore-Operation; kein Schema-Aufwand für Archiv-Tabellen
-- **Contra**: Alle Queries müssen `WHERE deleted_at IS NULL` enthalten (diszipliniertes ORM/Repository-Pattern erforderlich); Tabelle wächst mit der Zeit (Retention-Policy nötig)
+- **Pro**: Full referential integrity; all FKs remain valid; historical queries work correctly; simple restore operation; no schema effort for archive tables
+- **Con**: All queries must contain `WHERE deleted_at IS NULL` (disciplined ORM/repository pattern required); table grows over time (retention policy needed)
 
-### Option 2: Hard-Delete + Archiv-Tabelle (`entities_archive`)
+### Option 2: Hard delete + archive table (`entities_archive`)
 
-Beim Löschen wird die Zeile in eine `entities_archive`-Tabelle (identisches Schema) verschoben; aus `entities` wird sie entfernt.
+On deletion, the row is moved to an `entities_archive` table (identical schema); it is removed from `entities`.
 
-- **Pro**: `entities`-Tabelle bleibt schlank; FKs bleiben intern gültig
-- **Contra**: Alle FK-Referenzen aus `entity_versions`, `entity_deltas`, `entity_plateau_states` müssen auf `entities_archive` umgebogen oder gelöst werden; Restore erfordert Zeilen-Rückbewegung inklusive aller Referenzen; hoher Implementierungsaufwand
+- **Pro**: `entities` table stays lean; FKs remain internally valid
+- **Con**: All FK references from `entity_versions`, `entity_deltas`, `entity_plateau_states` must be redirected to `entities_archive` or dissolved; restore requires moving rows back including all references; high implementation effort
 
-### Option 3: Hard-Delete ohne Restore
+### Option 3: Hard delete without restore
 
-Entitäten werden permanent gelöscht; kein Restore möglich. Referenzen werden via `ON DELETE CASCADE` oder `ON DELETE SET NULL` behandelt.
+Entities are permanently deleted; no restore possible. References are handled via `ON DELETE CASCADE` or `ON DELETE SET NULL`.
 
-- **Pro**: Einfachste Implementierung; kein zusätzliches Schema
-- **Contra**: Keine Wiederherstellbarkeit; Referenz-Verlust in `entity_versions` und `audit_events`; historische Abfragen liefern Lücken; explizit abgelehnt durch Nutzerwunsch
+- **Pro**: Simplest implementation; no additional schema
+- **Con**: No restorability; reference loss in `entity_versions` and `audit_events`; historical queries deliver gaps; explicitly rejected by user request
 
-## Entscheidung
+## Decision
 
-**Option 1: Soft-Delete via `deleted_at`-Timestamp.**
+**Option 1: Soft delete via `deleted_at` timestamp.**
 
-### Spalten in `entities`
+### Columns in `entities`
 
 ```sql
 ALTER TABLE entities ADD COLUMN deleted_at      TIMESTAMPTZ;
 ALTER TABLE entities ADD COLUMN deleted_by      BIGINT REFERENCES persons(id);
 ALTER TABLE entities ADD COLUMN deletion_reason TEXT;
 
--- Partieller Index für alle Aktiv-Queries
+-- Partial index for all active queries
 CREATE INDEX idx_entities_active ON entities(id)      WHERE deleted_at IS NULL;
 CREATE INDEX idx_entities_deleted ON entities(deleted_at) WHERE deleted_at IS NOT NULL;
 ```
 
-### Cascade-Soft-Delete für Connections
+### Cascade Soft Delete for Connections
 
-Wenn eine Element-Entität (`isConnection=false`) gelöscht wird, werden alle Connections, die dieses Element als `source_entity_id` oder `target_entity_id` tragen, **automatisch mitgelöscht** (Cascade-Soft-Delete im Service-Layer, nicht per DB-Trigger):
+When an element entity (`isConnection=false`) is deleted, all connections that carry this element as `source_entity_id` or `target_entity_id` are **automatically deleted along with it** (cascade soft delete in the service layer, not via DB trigger):
 
 ```
 DELETE Entity 42 (ApplicationComponent)
-  → Cascade-Soft-Delete:
+  → Cascade soft delete:
       Entity 99 (DataFlow, source_entity_id=42)
       Entity 107 (RunsOn, target_entity_id=42)
 ```
 
-Die Cascade-Soft-Delete-Zeilen erhalten dasselbe `deleted_at`-Timestamp und `deleted_by` wie die primäre Löschung. `deletion_reason` enthält einen Verweis: `"cascade: entity 42 deleted"`.
+The cascade-soft-deleted rows receive the same `deleted_at` timestamp and `deleted_by` as the primary deletion. `deletion_reason` contains a reference: `"cascade: entity 42 deleted"`.
 
-### Restore-Semantik
+### Restore Semantics
 
-**Einfacher Restore** (nur die Entität):
+**Simple restore** (the entity only):
 ```sql
 UPDATE entities SET deleted_at = NULL, deleted_by = NULL, deletion_reason = NULL
 WHERE id = ?;
 ```
 
-**Cascade-Restore** (Entität + ihre Connections, die im selben Zug gelöscht wurden):
-- API-Parameter `?cascade=true` auf `POST /api/v1/entities/{id}/restore`
-- Backend findet alle Connections mit `deleted_at = <gleicher Timestamp wie primäre Entität>` und gleichem `deleted_by` → stellt sie gemeinsam wieder her
-- Connections, die **vor** der Primär-Löschung bereits gelöscht waren, werden nicht wiederhergestellt
+**Cascade restore** (entity + its connections that were deleted in the same operation):
+- API parameter `?cascade=true` on `POST /api/v1/entities/{id}/restore`
+- Backend finds all connections with `deleted_at = <same timestamp as primary entity>` and the same `deleted_by` → restores them together
+- Connections that were already deleted **before** the primary deletion are not restored
 
-### Audit-Events
+### Audit Events
 
-| Event-Typ | Wann | Payload |
+| Event type | When | Payload |
 |---|---|---|
-| `entity.soft-deleted` | Soft-Delete einer Entität | `{ id, entity_type_id, deletion_reason }` |
-| `entity.cascade-deleted` | Cascade-Soft-Delete einer Connection | `{ id, triggered_by_entity_id }` |
-| `entity.restored` | Restore einer Entität | `{ id, was_cascade_of? }` |
+| `entity.soft-deleted` | Soft delete of an entity | `{ id, entity_type_id, deletion_reason }` |
+| `entity.cascade-deleted` | Cascade soft delete of a connection | `{ id, triggered_by_entity_id }` |
+| `entity.restored` | Restore of an entity | `{ id, was_cascade_of? }` |
 
-### Verhalten gelöschter Entitäten in Plateau-Abfragen
+### Behavior of Deleted Entities in Plateau Queries
 
-Gelöschte Entitäten (`deleted_at IS NOT NULL`) erscheinen **nicht** in aktiven Plateau-Sichten. Ihre `entity_plateau_states`-Zeilen bleiben erhalten und werden für historische Rekonstruktionen verwendet (Query: „Wie sah Plateau P0 am 2026-03-01 aus?").
+Deleted entities (`deleted_at IS NOT NULL`) do **not** appear in active plateau views. Their `entity_plateau_states` rows are retained and used for historical reconstructions (query: "What did plateau P0 look like on 2026-03-01?").
 
-### API-Kontrakt
+### API Contract
 
-| Endpunkt | Verhalten |
+| Endpoint | Behavior |
 |---|---|
-| `DELETE /api/v1/entities/{id}` | Soft-Delete; Cascade optional via `?cascade=true` (Default: true) |
-| `POST /api/v1/entities/{id}/restore` | Restore; Cascade-Restore via `?cascade=true` (Default: true) |
-| `GET /api/v1/entities?includeDeleted=true` | Gibt auch gelöschte Entitäten zurück (nur Admin-Rolle) |
-| `GET /api/v1/entities/{id}` (gelöscht) | HTTP 404 für normale Rollen; HTTP 410 Gone für Admins mit `deleted_at` im Body |
+| `DELETE /api/v1/entities/{id}` | Soft delete; cascade optional via `?cascade=true` (default: true) |
+| `POST /api/v1/entities/{id}/restore` | Restore; cascade restore via `?cascade=true` (default: true) |
+| `GET /api/v1/entities?includeDeleted=true` | Also returns deleted entities (admin role only) |
+| `GET /api/v1/entities/{id}` (deleted) | HTTP 404 for normal roles; HTTP 410 Gone for admins with `deleted_at` in the body |
 
-## Konsequenzen
+## Consequences
 
-### Positive Konsequenzen
+### Positive Consequences
 
-- Vollständige Wiederherstellbarkeit; versehentliche Löschungen sind reversibel
-- Referenzintegrität aller FKs aus `entity_versions`, `entity_deltas`, `audit_events` bleibt erhalten
-- Historische Plateau-Rekonstruktionen liefern korrekte Ergebnisse
-- Partieller Index hält Query-Performance auf dem Niveau eines Hard-Delete
+- Full restorability; accidental deletions are reversible
+- Referential integrity of all FKs from `entity_versions`, `entity_deltas`, `audit_events` is preserved
+- Historical plateau reconstructions deliver correct results
+- Partial index keeps query performance at the level of a hard delete
 
-### Negative Konsequenzen / Trade-offs
+### Negative Consequences / Trade-offs
 
-- **Jedes Repository-Pattern** muss `WHERE deleted_at IS NULL` als Default enthalten; Vergessen führt zu „Geister-Entitäten" in Abfragen → Hibernate-`@Where`-Annotation oder Global-Filter erzwingen
-- **Tabellenwachstum**: Soft-deleted Entities akkumulieren; Retention-Policy (max. Haltedauer gelöschter Entitäten) ist deferred für v2.0; in v1.0 kein automatisches Purge
-- **Cascade-Restore-Ambiguität**: Wenn Connection C zwischen Element A und B existiert und Element A zuerst, Element B danach gelöscht wird, haben beide Löschungen unterschiedliche `deleted_at`-Timestamps; Cascade-Restore von A stellt C **nicht** automatisch wieder her (B ist noch gelöscht → C hätte dangling target); explizite Nutzer-Entscheidung erforderlich
+- **Every repository pattern** must contain `WHERE deleted_at IS NULL` as default; forgetting it leads to "ghost entities" in queries → enforce via Hibernate `@Where` annotation or global filter
+- **Table growth**: Soft-deleted entities accumulate; retention policy (max. retention period of deleted entities) is deferred to v2.0; no automatic purge in v1.0
+- **Cascade restore ambiguity**: If connection C exists between element A and B and element A is deleted first, then element B, both deletions have different `deleted_at` timestamps; cascade restore of A does **not** automatically restore C (B is still deleted → C would have a dangling target); explicit user decision required
 
-### Folgeentscheidungen / Offene Punkte
+### Follow-up Decisions / Open Questions
 
-- **Retention-Policy**: Nach wie vielen Monaten werden Soft-deleted Entities permanent bereinigt? → v2.0
-- **Admin-UI für Papierkorb**: Liste aller gelöschten Entitäten mit Restore-Funktion; eigenes UC
-- **Cascade-Ambiguität-Handling**: UX für den Fall, dass Cascade-Restore nicht vollständig möglich ist (ein verbundenes Element noch gelöscht)
+- **Retention policy**: After how many months are soft-deleted entities permanently purged? → v2.0
+- **Admin UI for trash bin**: List of all deleted entities with restore function; own UC
+- **Cascade ambiguity handling**: UX for the case where cascade restore is not fully possible (a connected element is still deleted)
 
-## Bezüge
+## References
 
-**Verwandte ADRs**: [ADR-016](./ADR-016-persistenz-strategie.md) (Persistenz; `entities`-Tabellen-Schema)
+**Related ADRs**: [ADR-016](./ADR-016-persistence-strategy.md) (persistence; `entities` table schema)
 
-**Konzept**: §23 Offene Punkte #1 (Persistenz)
+**Concept**: §23 Open Issues #1 (persistence)

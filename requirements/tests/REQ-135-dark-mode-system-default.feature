@@ -1,57 +1,57 @@
-# Ableitung aus: requirements/req/req-135-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert) + demonstration (manuell)
+# Derived from: requirements/req/req-135-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: method: test (automated) + demonstration (manual)
 
 @functional @should @UC-01 @UC-02 @UC-03
-Feature: REQ-135 – Dark-Mode-Unterstützung mit System-Default und Benutzer-Präferenz
+Feature: REQ-135 – Dark mode support with system default and user preference
 
-  Die OEA-Benutzeroberfläche **MUSS** ein helles und ein dunkles
-  Farbschema unterstützen. Das aktive Schema **MUSS** pro Benutzer
-  serverseitig am `Person`-Objekt persistiert werden können (Werte:
+  The OEA user interface **MUST** support a light and a dark
+  color scheme. The active scheme **MUST** be persistable per user
+  server-side on the `Person` object (values:
   `light` | `dark` | `system`).
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – `person.uiTheme = system`, OS hat Light-Mode aktiv
-    Given `person.uiTheme = system`, OS hat Light-Mode aktiv
-    When  Login abgeschlossen, App initialisiert
-    Then  Light-Schema wird ohne Benutzerinteraktion angezeigt
+  Scenario: AC1 – `person.uiTheme = system`, OS has light mode active
+    Given `person.uiTheme = system`, OS has light mode active
+    When  login completed, app initialized
+    Then  light scheme is displayed without user interaction
 
   @AC2
-  Scenario: AC2 – `person.uiTheme = system`, OS hat Dark-Mode aktiv
-    Given `person.uiTheme = system`, OS hat Dark-Mode aktiv
-    When  Login abgeschlossen, App initialisiert
-    Then  Dark-Schema wird ohne Benutzerinteraktion angezeigt
+  Scenario: AC2 – `person.uiTheme = system`, OS has dark mode active
+    Given `person.uiTheme = system`, OS has dark mode active
+    When  login completed, app initialized
+    Then  dark scheme is displayed without user interaction
 
   @AC3
-  Scenario: AC3 – `person.uiTheme = system`, OS wechselt während der Laufzeit das Schema
-    Given `person.uiTheme = system`, OS wechselt während der Laufzeit das Schema
-    When  OS-Präferenz ändert sich (z. B. automatischer Nacht-Modus)
-    Then  UI wechselt innerhalb von 1 Sekunde auf neues Schema ohne Seitenreload
+  Scenario: AC3 – `person.uiTheme = system`, OS switches the scheme at runtime
+    Given `person.uiTheme = system`, OS switches the scheme at runtime
+    When  OS preference changes (e.g. automatic night mode)
+    Then  UI switches to the new scheme within 1 second without page reload
 
   @AC4
-  Scenario: AC4 – Benutzer setzt in Profil-Einstellungen auf Gerät A den Override „Dunkel"
-    Given Benutzer setzt in Profil-Einstellungen auf Gerät A den Override „Dunkel"
-    When  Benutzer meldet sich auf Gerät B an
-    Then  Dark-Schema wird auf Gerät B ohne weitere Aktion angewendet (`person.uiTheme = dark` kommt mit Session)
+  Scenario: AC4 – User sets the override "Dark" in profile settings on device A
+    Given user sets the override "Dark" in profile settings on device A
+    When  user logs in on device B
+    Then  dark scheme is applied on device B without further action (`person.uiTheme = dark` comes with the session)
 
   @AC5
   Scenario: AC5 – `person.uiTheme = dark`
     Given `person.uiTheme = dark`
-    When  Benutzer wählt „System-Einstellung" in Profil-Einstellungen
-    Then  `person.uiTheme` wird auf `system` gesetzt, OS-Präferenz gilt sofort wieder
+    When  user selects "System setting" in profile settings
+    Then  `person.uiTheme` is set to `system`, OS preference applies immediately again
 
   @AC6
-  Scenario: AC6 – Dark-Mode ist aktiv
-    Given Dark-Mode ist aktiv
-    When  beliebiger Fließtext gegen seinen Hintergrund geprüft wird
-    Then  Kontrastverhältnis ≥ 4.5:1
+  Scenario: AC6 – Dark mode is active
+    Given dark mode is active
+    When  any body text is checked against its background
+    Then  contrast ratio ≥ 4.5:1
 
   @AC7
-  Scenario: AC7 – Benutzer ist nicht eingeloggt (Bootstrapping-Wizard, Login-Screen)
-    Given Benutzer ist nicht eingeloggt (Bootstrapping-Wizard, Login-Screen)
-    When  App gestartet wird
-    Then  `prefers-color-scheme` des Clients wird angewendet (kein Server-Kontext verfügbar)
+  Scenario: AC7 – User is not logged in (bootstrapping wizard, login screen)
+    Given user is not logged in (bootstrapping wizard, login screen)
+    When  app is started
+    Then  `prefers-color-scheme` of the client is applied (no server context available)

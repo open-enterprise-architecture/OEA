@@ -1,6 +1,6 @@
 ---
 id: US-076
-title: Aufgabe (UserTask) einer Person zuordnen
+title: Assign a Task (UserTask) to a Person
 use_case: UC-10
 requirement: REQ-077
 priority: must
@@ -9,24 +9,24 @@ story_points: 3
 created: 2026-06-26
 ---
 
-# US-076: Aufgabe (UserTask) einer Person zuordnen
+# US-076: Assign a Task (UserTask) to a Person
 
-**Als** Business Analyst (Anna, SH-08)  
-**möchte ich** einem UserTask direkt im Prozessdiagramm eine konkrete Person aus dem EA-Repository zuordnen,  
-**damit** für jede manuelle Aufgabe im Prozess ein klarer Owner benannt ist.
+**As** a Business Analyst (Anna, SH-08)  
+**I want** to assign a specific person from the EA repository to a UserTask directly in the process diagram,  
+**so that** a clear owner is named for every manual task in the process.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] Detail-Panel eines `bpmn-user-task` zeigt das Feld „Verantwortliche Person" mit Autocomplete gegen `person`-Entitäten
-- [ ] Auswahl einer Person legt `bpmn-task-assigned-to`-Connection an
-- [ ] Task-Shape auf Canvas zeigt Initialen (z.B. „MM") als Avatar-Icon in der rechten oberen Ecke
-- [ ] Feld „Erforderliche Rolle" im Detail-Panel ermöglicht Zuordnung über `bpmn-task-requires-role` (auch für `bpmn-task`-Basistyp)
-- [ ] Zuordnung entfernen: „×" im Detail-Panel löscht Connection; Avatar-Icon verschwindet
-- [ ] Katalog für `bpmn-user-task` kann Join-Spalte „Person" (`bpmn-task-assigned-to.name`) anzeigen (AC7 REQ-077)
-- [ ] Web-Portal: Personen-Avatar sichtbar im read-only-Canvas; Tooltip zeigt vollständigen Namen
+- [ ] The detail panel of a `bpmn-user-task` shows the field "Responsible person" with autocomplete against `person` entities
+- [ ] Selecting a person creates a `bpmn-task-assigned-to` connection
+- [ ] The task shape on the canvas shows initials (e.g. "MM") as an avatar icon in the upper right corner
+- [ ] The field "Required role" in the detail panel allows assignment via `bpmn-task-requires-role` (also for the `bpmn-task` base type)
+- [ ] Remove assignment: "×" in the detail panel deletes the connection; avatar icon disappears
+- [ ] The catalog for `bpmn-user-task` can display a join column "Person" (`bpmn-task-assigned-to.name`) (AC7 REQ-077)
+- [ ] Web portal: person avatar visible in the read-only canvas; tooltip shows the full name
 
-## Technische Hinweise
+## Technical Notes
 
 - Connection: `bpmn-task-assigned-to` (isBuiltIn=true; source=bpmn-user-task; target=person)
-- BR-05: UI warnt wenn mehr als 1 Person zugeordnet wird (SHOULD-Regel; kein hartes Reject)
-- Person-Entitäten: built-in EntityType `person` (aus role.md, geplant; Fallback: manuell angelegte person-Entity)
+- BR-05: UI warns if more than 1 person is assigned (SHOULD rule; no hard reject)
+- Person entities: built-in EntityType `person` (from role.md, planned; fallback: manually created person entity)

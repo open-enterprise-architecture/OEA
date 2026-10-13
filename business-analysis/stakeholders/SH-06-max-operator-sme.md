@@ -1,128 +1,128 @@
-# Stakeholder: Max – Operator im regulierten KMU
+# Stakeholder: Max – Operator in a Regulated SME
 
 **ID**: SH-06
-**Typ**: persona
-**Bezug zum Tool**: primary
+**Type**: persona
+**Relation to the Tool**: primary
 **Internal/External**: internal
 
-## Kurzbeschreibung
+## Short Description
 
-Max ist Professional-Level IT-Operator in einem regulierten KMU (Finance, Health oder kritische Infrastruktur). Er ist klassisch ausgebildet, aber automatisierungs-affin – er nutzt Ansible und Skripte, wo es Sinn ergibt, ist aber kein DevOps-Engineer im engeren Sinne. Seine Infrastruktur ist hybrid (eigene Server plus einzelne Cloud-Services), sein Deployment-Stack pragmatisch gemischt. Er betreibt OEA für sein Unternehmen und ist verantwortlich, dass es zuverlässig läuft und alle Compliance-Anforderungen erfüllt.
+Max is a professional-level IT operator in a regulated SME (finance, health, or critical infrastructure). He has a classical education but is automation-affine – he uses Ansible and scripts where it makes sense, but is not a DevOps engineer in the narrower sense. His infrastructure is hybrid (own servers plus individual cloud services), his deployment stack pragmatically mixed. He operates OEA for his company and is responsible for it running reliably and meeting all compliance requirements.
 
-## Rolle und Verantwortung
+## Role and Responsibility
 
-- **Aktuelle Rolle**: IT-Operator / System Administrator, Professional-Level (5-10 Jahre Erfahrung)
-- **Organisation/Branche**: KMU im regulierten Sektor (Finance, Health, kritische Infrastruktur, ggf. FINMA/BaFin/MaRisk/KRITIS/NIS2-betroffen)
-- **Erfahrungsniveau**: hoch in Betrieb und Sicherheit, mittel-hoch in Automatisierung
-- **Tägliche Hauptaufgaben**:
-  - Server-Betrieb (on-prem und Cloud-Services)
-  - Patch-Management und Sicherheits-Updates
-  - Backup-Disziplin und Restore-Tests
-  - Monitoring, Alerting, Incident-Response
-  - Compliance-Vorbereitung (Audit-Trails, Zugriffsprotokolle, Verschlüsselungs-Nachweise)
-  - Identity-Management-Anbindung (LDAP/AD/OIDC)
-  - Dokumentation der Betriebs-Verfahren
+- **Current role**: IT operator / system administrator, professional level (5-10 years of experience)
+- **Organization/industry**: SME in a regulated sector (finance, health, critical infrastructure, possibly affected by FINMA/BaFin/MaRisk/KRITIS/NIS2)
+- **Experience level**: high in operations and security, medium-high in automation
+- **Main daily tasks**:
+  - Server operations (on-prem and cloud services)
+  - Patch management and security updates
+  - Backup discipline and restore tests
+  - Monitoring, alerting, incident response
+  - Compliance preparation (audit trails, access logs, encryption evidence)
+  - Identity management integration (LDAP/AD/OIDC)
+  - Documentation of operating procedures
 
-## Beziehung zum OEA
+## Relation to OEA
 
-- **Nutzungsfrequenz**: täglich (im Hintergrund: Monitoring), wöchentlich aktiv (Wartung, Updates)
-- **Hauptnutzung**: betreiben, überwachen, sichern, aktualisieren
-- **Technisches Niveau**: hoch (Linux, Git, Ansible, Docker/Podman, TLS/PKI, Backup-Strategien)
-- **Bevorzugte Schnittstelle**: CLI für alles, Konfigurations-Dateien, Health-Endpoints, strukturierte Logs
+- **Usage frequency**: daily (in the background: monitoring), weekly active (maintenance, updates)
+- **Main usage**: operate, monitor, secure, update
+- **Technical level**: high (Linux, Git, Ansible, Docker/Podman, TLS/PKI, backup strategies)
+- **Preferred interface**: CLI for everything, configuration files, health endpoints, structured logs
 
-## Aktuelle Pain Points
+## Current Pain Points
 
-- **Tools, die "nur in der Cloud" laufen**: Viele moderne Tools setzen Hyperscaler-Stacks voraus. Im regulierten KMU ist das oft nicht möglich (Datenschutz, Branchenstandards) oder wirtschaftlich nicht sinnvoll.
-- **Konfigurations-Wildwuchs**: Tools, die "alles über UI" konfigurieren wollen, sind unwartbar. Klick-Anleitungen für Wiederherstellung nach Disaster sind unrealistisch.
-- **Vendor-Updates ohne klare Roadmap**: Plötzliche Breaking Changes, undokumentierte DB-Migrationen, "wir empfehlen ein Reinstall" – das ist Albtraum für regulierte Umgebungen.
-- **Mangelnde Audit-Tauglichkeit**: Tools loggen oft schlecht oder gar nicht. Wer hat wann was geändert? Bei FINMA-Audits muss er das beantworten können.
-- **Identity-Lock-in**: Tools mit eigener Nutzerverwaltung sind operational unzumutbar. Er muss Nutzer in 15 verschiedenen Tools nicht parallel pflegen.
-- **Backup-feindliche Architekturen**: Wenn ein Tool seine Daten in komplexen Schemas verteilt, ist Konsistenz-Backup schwierig. Er bevorzugt Tools, die einfach gesichert werden können.
-- **Health-Endpoints fehlen oder lügen**: Monitoring zeigt "OK", aber das Tool ist tatsächlich tot. Schlechte Health-Checks sind Sicherheitsrisiko.
-- **"Es läuft bei mir"-Mentalität von Entwicklern**: Tools, die nur in genau einer Konfiguration laufen, sind in heterogenen Umgebungen problematisch.
+- **Tools that run "only in the cloud"**: Many modern tools presuppose hyperscaler stacks. In a regulated SME this is often not possible (data protection, industry standards) or not economically sensible.
+- **Proliferation of configuration**: Tools that want to configure "everything via UI" are unmaintainable. Click-through instructions for recovery after a disaster are unrealistic.
+- **Vendor updates without a clear roadmap**: Sudden breaking changes, undocumented DB migrations, "we recommend a reinstall" – this is a nightmare for regulated environments.
+- **Lack of audit suitability**: Tools often log poorly or not at all. Who changed what and when? In FINMA audits he must be able to answer that.
+- **Identity lock-in**: Tools with their own user management are operationally unacceptable. He must not maintain users in 15 different tools in parallel.
+- **Backup-hostile architectures**: When a tool distributes its data across complex schemas, consistent backup is difficult. He prefers tools that can be backed up easily.
+- **Health endpoints missing or lying**: Monitoring shows "OK", but the tool is actually dead. Bad health checks are a security risk.
+- **"Works on my machine" mentality of developers**: Tools that run in exactly one configuration only are problematic in heterogeneous environments.
 
 ## Concerns
 
-| Concern | Kategorie | Severity |
+| Concern | Category | Severity |
 |---|---|---|
-| Deploybar in containerisierter Form (Docker/Podman/Kubernetes je nach Bedarf) | functional | blocking |
-| Vollständig deklarative Konfiguration in einer Datei | functional | blocking |
-| Konfiguration in Git versionierbar (Infrastructure as Code) | functional | blocking |
-| Audit-Trail-Tauglichkeit (DORA/MaRisk/FINMA/NIS2) | compliance | blocking |
-| Identity-Federation (LDAP/AD/OIDC) statt lokale Nutzer | security | blocking |
-| Backup-Strategie klar dokumentiert und konsistent | reliability | blocking |
-| On-Premises-Betrieb ohne Cloud-Pflicht möglich | portability | blocking |
-| Strukturierte Logs (JSON) und brauchbare Health-Endpoints | observability | worrying |
-| Klare Update-Pfade und Migrations-Skripte | maintainability | worrying |
-| Sinnvolle Defaults (nicht jeder Parameter muss gesetzt werden) | usability | worrying |
-| Verschlüsselung at-rest und in-transit als Standard | security | blocking |
-| Wiederherstellbar in <4h nach Total-Ausfall | reliability | worrying |
-| Ressourcen-Fußabdruck dokumentiert (CPU, RAM, Storage) | cost | worrying |
+| Deployable in containerized form (Docker/Podman/Kubernetes as needed) | functional | blocking |
+| Fully declarative configuration in one file | functional | blocking |
+| Configuration versionable in Git (infrastructure as code) | functional | blocking |
+| Audit trail suitability (DORA/MaRisk/FINMA/NIS2) | compliance | blocking |
+| Identity federation (LDAP/AD/OIDC) instead of local users | security | blocking |
+| Backup strategy clearly documented and consistent | reliability | blocking |
+| On-premises operation possible without cloud obligation | portability | blocking |
+| Structured logs (JSON) and usable health endpoints | observability | worrying |
+| Clear update paths and migration scripts | maintainability | worrying |
+| Sensible defaults (not every parameter has to be set) | usability | worrying |
+| Encryption at rest and in transit as standard | security | blocking |
+| Recoverable in <4h after total failure | reliability | worrying |
+| Resource footprint documented (CPU, RAM, storage) | cost | worrying |
 
-## Erfolgskriterien
+## Success Criteria
 
-- [ ] Erste Installation in <2h auf einem Test-Server möglich (Container-Image + Config-Datei + Start)
-- [ ] Konfiguration vollständig in einer Datei (z.B. YAML), mit Schema-Validierung beim Start
-- [ ] Nach erster Konfiguration kein Re-Konfigurations-Aufwand für normale Updates
-- [ ] Disaster-Recovery-Test in <4h erfolgreich durchführbar
-- [ ] Audit-Log über REST-API für SIEM-Integration zugänglich
-- [ ] Identity-Anbindung an bestehende OIDC/LDAP-Lösung ohne Custom-Code
-- [ ] Backup-Strategie als Single-File (oder DB-Dump + Files) konsistent
-- [ ] Health-Endpoint liefert ehrlichen Status (nicht nur "200 OK ohne Inhalt")
-- [ ] Strukturierte Logs (JSON) für Log-Aggregation einsetzbar
-- [ ] Update auf neue Version ohne Datenverlust, mit klarem Migration-Pfad
-- [ ] Ressourcen-Anforderungen unter typischer Last dokumentiert (kann Hardware planen)
-- [ ] Compliance-Reports automatisch generierbar (Zugriffsprotokolle, Änderungshistorie)
+- [ ] First installation possible in <2h on a test server (container image + config file + start)
+- [ ] Configuration entirely in one file (e.g. YAML), with schema validation at startup
+- [ ] After the first configuration, no reconfiguration effort for normal updates
+- [ ] Disaster recovery test successfully executable in <4h
+- [ ] Audit log accessible via REST API for SIEM integration
+- [ ] Identity integration with an existing OIDC/LDAP solution without custom code
+- [ ] Backup strategy consistent as a single file (or DB dump + files)
+- [ ] Health endpoint delivers honest status (not just "200 OK without content")
+- [ ] Structured logs (JSON) usable for log aggregation
+- [ ] Update to a new version without data loss, with a clear migration path
+- [ ] Resource requirements under typical load documented (can plan hardware)
+- [ ] Compliance reports automatically generatable (access logs, change history)
 
-## Beteiligte Use Cases
+## Involved Use Cases
 
-- [UC-01: Login](../../requirements/use-cases/UC-01-login.md) – weiterer Beteiligter (entscheidet über verfügbare Authentifizierungsmechanismen: SSO via OIDC oder lokale Authentifizierung)
-- [UC-02: System-Admin-Bootstrapping](../../requirements/use-cases/UC-02-system-admin-bootstrapping.md) – primärer Akteur
+- [UC-01: Login](../../requirements/use-cases/UC-01-login.md) – other stakeholder (decides on available authentication mechanisms: SSO via OIDC or local authentication)
+- [UC-02: System Admin Bootstrapping](../../requirements/use-cases/UC-02-system-admin-bootstrapping.md) – primary actor
 
-## Konzept-Bezüge
+## Concept References
 
-- [§20 GRC-, DSGVO- und ISMS-Integration](../../concept/60-integrations/20-grc-dsgvo-isms-integration.md) – Audit-Trail und Compliance
-- [§21 API-Architektur und Modularität](../../concept/70-platform/21-api-architektur.md) – Deployment-Architektur
-- [§21.8 Sicherheit, Audit-Trail](../../concept/70-platform/21-api-architektur.md) – Property-Level-AuthZ und Audit-Trail
-- [§22.11 Repository-Changelog](../../concept/70-platform/22-auswertbarkeit.md) – Audit-Reports
+- [§20 GRC/GDPR/ISMS Integration](../../concept/60-integrations/20-grc-gdpr-isms-integration.md) – audit trail and compliance
+- [§21 API Architecture and Modularity](../../concept/70-platform/21-api-architecture.md) – deployment architecture
+- [§21.8 Security, Audit Trail](../../concept/70-platform/21-api-architecture.md) – property-level AuthZ and audit trail
+- [§22.11 Repository Changelog](../../concept/70-platform/22-analyzability.md) – audit reports
 
-## Notizen
+## Notes
 
-Max ist die **Betriebs-Persona**, die in den ersten fünf Personas systematisch gefehlt hat. Ohne ihn gibt es keinen produktiven Einsatz – Modellierer und Konsumenten nützen nichts, wenn das Tool nicht zuverlässig läuft.
+Max is the **operations persona** that was systematically missing in the first five personas. Without him there is no productive use – modelers and consumers are of no use if the tool does not run reliably.
 
-**Anspruchsvollstes Operator-Profil**: Regulierte KMU sind oft härter zu betreiben als Konzerne, weil sie unter regulatorischem Druck stehen, aber nicht das Personal eines grossen Unternehmens haben. Max muss vielen Pflichten alleine nachkommen.
+**Most demanding operator profile**: Regulated SMEs are often harder to operate than corporate groups because they are under regulatory pressure but do not have the staff of a large company. Max has to meet many obligations alone.
 
-**Konfigurations-Philosophie als Kern**: "Einmalig konfigurieren, danach in Ruhe lassen" ist nicht nur eine Komfort-Anforderung, sondern eine **Sicherheits- und Compliance-Anforderung**. Konfigurations-Drift ist ein bekanntes Risiko in regulierten Umgebungen. Das Tool sollte:
-- Konfiguration deklarativ in einer Datei (YAML/TOML), schema-validiert beim Start
-- Konfiguration versionierbar in Git (GitOps-Pattern)
-- Konfigurations-Drift erkennen und warnen (Soll vs. Ist)
-- Sinnvolle Defaults, sodass nicht jeder Parameter explizit gesetzt werden muss
-- Klare Trennung von "Konfiguration" (statisch, deklarativ) und "Laufzeitdaten" (dynamisch, im Repository)
+**Configuration philosophy as the core**: "Configure once, then leave alone" is not only a convenience requirement but a **security and compliance requirement**. Configuration drift is a known risk in regulated environments. The tool should:
+- Configuration declarative in a file (YAML/TOML), schema-validated at startup
+- Configuration versionable in Git (GitOps pattern)
+- Detect and warn about configuration drift (desired vs. actual)
+- Sensible defaults so that not every parameter has to be set explicitly
+- Clear separation of "configuration" (static, declarative) and "runtime data" (dynamic, in the repository)
 
-**Hybrid-Realität**: "Eigene Server + einzelne Cloud-Services" ist KMU-typisch und prägt die Anforderungen:
-- Container-Tauglichkeit ist Pflicht (für On-Prem-Server)
-- Aber: keine harte Cloud-Abhängigkeit (auch lokal komplett betreibbar)
-- Cloud-Services nur als optionale Integration (z.B. S3-kompatibles Backup)
+**Hybrid reality**: "Own servers + individual cloud services" is typical for SMEs and shapes the requirements:
+- Container suitability is mandatory (for on-prem servers)
+- But: no hard cloud dependency (also fully operable locally)
+- Cloud services only as optional integration (e.g. S3-compatible backup)
 
-**Compliance ist nicht optional**: FINMA, MaRisk, BAIT, DORA, NIS2, KRITIS – je nach Branche andere Anforderungen, aber alle mit ähnlicher Stossrichtung:
-- Vollständige Audit-Trails
-- Nachweisbare Zugriffskontrollen
-- Backup- und Recovery-Konzepte
-- Incident-Response-Fähigkeit
-- Verschlüsselung at-rest und in-transit
+**Compliance is not optional**: FINMA, MaRisk, BAIT, DORA, NIS2, KRITIS – different requirements depending on the industry, but all with a similar thrust:
+- Complete audit trails
+- Demonstrable access controls
+- Backup and recovery concepts
+- Incident response capability
+- Encryption at rest and in transit
 
-Das Tool kann hier punkten, weil viele OSS-Alternativen genau in diesen Punkten schwach sind.
+The tool can score here because many OSS alternatives are weak in exactly these points.
 
-**Verbindung zu CIO (SH-05)**: Max liefert dem CIO die operative Bestätigung, dass das Tool im Konzern-Umfeld einsetzbar ist. Wenn Max "ja, kann ich betreiben" sagt, ist die strategische Hürde halb genommen.
+**Connection to CIO (SH-05)**: Max provides the CIO with operational confirmation that the tool is usable in a corporate group environment. When Max says "yes, I can operate this", the strategic hurdle is half cleared.
 
-**Verbindung zu Lukas (SH-02) und Kurt (SH-03)**: Beide arbeiten in Mittelstand/KMU mit On-Premises-Tendenz. Sie sind auf jemanden wie Max angewiesen – wenn das Tool für Max betreibbar ist, ist es für ihre Unternehmen einsetzbar.
+**Connection to Lukas (SH-02) and Kurt (SH-03)**: Both work in mid-sized companies/SMEs with an on-premises tendency. They depend on someone like Max – if the tool is operable for Max, it is usable for their companies.
 
-**Anti-Pattern für das Tool**: Max wird das Tool ablehnen, wenn:
-- es nur in der Cloud läuft
-- es eine eigene Nutzerverwaltung ohne SSO erzwingt
-- Konfiguration nur über UI möglich ist
-- Updates undokumentiert DB-Migrationen erfordern
-- Logs nicht maschinell auswertbar sind
-- keine Health-Endpoints existieren
+**Anti-pattern for the tool**: Max will reject the tool if:
+- it runs only in the cloud
+- it enforces its own user management without SSO
+- configuration is only possible via UI
+- updates require undocumented DB migrations
+- logs are not machine-evaluable
+- no health endpoints exist
 
-Jeder dieser Punkte ist für sich schon ein Killer im regulierten Umfeld.
+Each of these points alone is already a killer in a regulated environment.

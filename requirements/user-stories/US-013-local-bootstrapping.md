@@ -1,54 +1,54 @@
-# US-013: Lokales Bootstrapping bei fehlendem System-Admin-Account
+# US-013: Local Bootstrapping When No System Admin Account Exists
 
 **ID**: US-013
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Operator einer frisch installierten OEA-Instanz möchte ich einen lokalen System-Admin-Account einrichten können, damit ich die Instanz konfigurieren kann, ohne vorher einen externen Identity-Provider anbinden zu müssen.
+As an operator of a freshly installed OEA instance, I want to be able to set up a local system admin account, so that I can configure the instance without having to connect an external identity provider first.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-02: System-Admin-Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
-**Persona**: [SH-06: Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Requirement**: [REQ-013: Lokales Bootstrapping bei fehlendem System-Admin-Account](../req/REQ-013-lokales-bootstrapping.md)
+**Use Case**: [UC-02: System Admin Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
+**Persona**: [SH-06: Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Requirement**: [REQ-013: Local Bootstrapping When No System Admin Account Exists](../req/REQ-013-local-bootstrapping.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine frisch installierte Instanz ohne System-Admin-Account
-- Wenn: sie zum ersten Mal gestartet bzw. aufgerufen wird
-- Dann: bietet das System den lokalen Bootstrapping-Vorgang an, ohne einen externen IdP vorauszusetzen
+- Given: a freshly installed instance without a system admin account
+- When: it is started or accessed for the first time
+- Then: the system offers the local bootstrapping process without requiring an external IdP
 
 **AC2**:
-- Gegeben: ein abgeschlossener lokaler Bootstrapping-Vorgang
-- Wenn: der Operator sich mit dem festgelegten Credential anmeldet
-- Dann: erhält er Zugriff mit System-Admin-Rechten
+- Given: a completed local bootstrapping process
+- When: the operator signs in with the defined credential
+- Then: they gain access with system admin permissions
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Setup-Wizard/CLI, Auth-Modul
-- Betroffene EntityTypes/Relations: `SystemAdminAccount` (siehe `system-admin-account.md`)
-- API-Endpunkte: Bootstrapping-Endpunkt (nur erreichbar, solange kein Account existiert)
-- Datenbank-Änderungen: neue Tabelle/Collection für `SystemAdminAccount`
+- Affected components: setup wizard/CLI, auth module
+- Affected EntityTypes/Relations: `SystemAdminAccount` (see `system-admin-account.md`)
+- API endpoints: bootstrapping endpoint (reachable only as long as no account exists)
+- Database changes: new table/collection for `SystemAdminAccount`
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (Integrationstest auf frischer Instanz)
-- [ ] Dokumentation aktualisiert (Installationsanleitung)
-- [ ] ADR erstellt, falls Architekturentscheidung (siehe ADR-006)
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (integration test on a fresh instance)
+- [ ] Documentation updated (installation guide)
+- [ ] ADR created if architecture decision (see ADR-006)
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: keine
-- Blockiert: US-014, US-015, US-016, US-017, US-019
+- Waiting on: none
+- Blocks: US-014, US-015, US-016, US-017, US-019
 
-## Notizen
+## Notes
 
-Deckt den Hauptablauf aus UC-02 ab. Setup-Token-Übergabe selbst ist Gegenstand von US-017.
+Covers the basic flow from UC-02. The setup token handover itself is the subject of US-017.

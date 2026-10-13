@@ -1,54 +1,54 @@
-# US-017: Sichere Übergabe des Setup-Tokens
+# US-017: Secure Handover of the Setup Token
 
 **ID**: US-017
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Betreiber möchte ich, dass das initiale Setup-Token nur über einen Kanal zugänglich ist, der bereits privilegierten Zugriff auf den Server voraussetzt, damit niemand ohne Infrastruktur-Zugriff die Instanz übernehmen kann.
+As an operator, I want the initial setup token to be accessible only via a channel that already requires privileged access to the server, so that nobody without infrastructure access can take over the instance.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-02: System-Admin-Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
-**Persona**: [SH-06: Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Requirement**: [REQ-017: Sichere Übergabe des Setup-Tokens](../req/REQ-017-sichere-setup-token-uebergabe.md)
+**Use Case**: [UC-02: System Admin Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
+**Persona**: [SH-06: Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Requirement**: [REQ-017: Secure Handover of the Setup Token](../req/REQ-017-secure-setup-token-handover.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: eine frisch installierte Instanz
-- Wenn: das Setup-Token generiert wird
-- Dann: ist es ausschließlich über einen Kanal abrufbar, der bereits privilegierten Zugriff voraussetzt (z.B. CLI-Ausgabe beim Start, Container-Exec)
+- Given: a freshly installed instance
+- When: the setup token is generated
+- Then: it can only be retrieved via a channel that already requires privileged access (e.g. CLI output at startup, container exec)
 
 **AC2**:
-- Gegeben: das initiale Setup-Webinterface (falls UI-basiert)
-- Wenn: es ohne gültiges Setup-Token aufgerufen wird
-- Dann: verweigert es die Passwortvergabe
+- Given: the initial setup web interface (if UI-based)
+- When: it is accessed without a valid setup token
+- Then: it refuses to set a password
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Setup-Wizard/CLI, Container-Entrypoint
-- Betroffene EntityTypes/Relations: keine fachlichen
-- API-Endpunkte: Setup-Endpunkt mit Token-Prüfung
-- Datenbank-Änderungen: kurzlebiger Setup-Token-Speicher (z.B. mit Ablaufzeit)
+- Affected components: setup wizard/CLI, container entrypoint
+- Affected EntityTypes/Relations: no business ones
+- API endpoints: setup endpoint with token check
+- Database changes: short-lived setup token store (e.g. with expiry time)
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person (mit Fokus Security)
-- [ ] Tests geschrieben (Prüfung, dass Token nicht über offene Netzwerk-Endpunkte abrufbar ist)
-- [ ] Dokumentation aktualisiert (Installationsanleitung)
-- [ ] ADR erstellt, falls Architekturentscheidung (konkreter Übergabe-Kanal)
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person (with focus on security)
+- [ ] Tests written (verification that the token cannot be retrieved via open network endpoints)
+- [ ] Documentation updated (installation guide)
+- [ ] ADR created if architecture decision (concrete handover channel)
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-013
-- Blockiert: keine
+- Waiting on: US-013
+- Blocks: none
 
-## Notizen
+## Notes
 
-Konkreter Übergabe-Kanal (CLI-Stdout, temporäre Datei, einmalige Setup-URL) ist in UC-02 als offene Frage vermerkt – sollte vor Implementierung dieser Story per ADR oder Solution-Design entschieden werden.
+The concrete handover channel (CLI stdout, temporary file, one-time setup URL) is recorded in UC-02 as an open question – should be decided via ADR or solution design before implementing this story.

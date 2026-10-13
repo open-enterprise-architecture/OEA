@@ -1,60 +1,60 @@
-# US-142: Service-Account für externe Systeme anlegen
+# US-142: Create a Service Account for External Systems
 
 **ID**: US-142
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Systemadministrator möchte ich Service-Accounts anlegen und ihnen die Rolle `integration-writer` zuweisen, damit externe Systeme ohne menschliche Benutzeranmeldung schreibend auf die API zugreifen können und deren Aktionen im Audit-Log als maschinell identifizierbar sind.
+As a system administrator, I want to create service accounts and assign them the role `integration-writer`, so that external systems can write to the API without human user login and their actions are identifiable as machine-originated in the audit log.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-02: System-Administration Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
-**Persona**: [SH-07: Systemadministrator](../../business-analysis/stakeholders/SH-07-systemadmin.md)
+**Use Case**: [UC-02: System Administration Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
+**Persona**: [SH-07: System Administrator](../../business-analysis/stakeholders/SH-07-systemadmin.md)
 **Requirements**: REQ-155
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Admin ist eingeloggt
-- Wenn: POST /admin/service-accounts `{name: "ci-scanner", role: "integration-writer"}`
-- Dann: 201 Created; Response enthält `clientId` (UUID) und einmalig `clientSecret` (Klartext); `persons`-Eintrag mit `person_type=service-account` in DB
+- Given: admin is logged in
+- When: POST /admin/service-accounts `{name: "ci-scanner", role: "integration-writer"}`
+- Then: 201 Created; response contains `clientId` (UUID) and, once only, `clientSecret` (plaintext); `persons` entry with `person_type=service-account` in DB
 
 **AC2**:
-- Gegeben: Service-Account mit `clientId` + `clientSecret`
-- Wenn: OAuth2 Client-Credentials-Grant gegen Auth-Provider
-- Dann: JWT mit Claim `person_type=service-account`, `agent_id=<clientId>`, Rolle `integration-writer` erhalten
+- Given: service account with `clientId` + `clientSecret`
+- When: OAuth2 client credentials grant against the auth provider
+- Then: JWT with claim `person_type=service-account`, `agent_id=<clientId>`, role `integration-writer` received
 
 **AC3**:
-- Gegeben: Admin rotiert Credentials
-- Wenn: POST /admin/service-accounts/{id}/credentials/rotate
-- Dann: Neues Secret zurückgegeben (einmalig); altes Secret sofort ungültig (401 bei Verwendung)
+- Given: admin rotates credentials
+- When: POST /admin/service-accounts/{id}/credentials/rotate
+- Then: new secret returned (once only); old secret immediately invalid (401 on use)
 
 **AC4**:
-- Gegeben: Service-Account ohne `integration-writer`-Rolle
-- Wenn: PUT /entities/by-external-id/...
-- Dann: 403 Forbidden
+- Given: service account without the `integration-writer` role
+- When: PUT /entities/by-external-id/...
+- Then: 403 Forbidden
 
-## Technische Hinweise
+## Technical Notes
 
 - `persons.person_type TEXT NN DEFAULT 'human'` (enum: human | service-account)
-- Neue Tabelle `machine_credentials` (client_id UUID PK, person_id FK, client_secret_hash, active, created_at, last_used_at)
-- Rolle `integration-writer` in `roles`-Tabelle als Standard-Rolle (is_builtin=true)
-- JWT-Claims: `sub=<person_id>`, `agent_id=<client_id>`, `roles=[...]`
-- `X-Agent-Id`-Header als Alternative zu JWT-Claim (für Systeme ohne OAuth2-Support)
+- New table `machine_credentials` (client_id UUID PK, person_id FK, client_secret_hash, active, created_at, last_used_at)
+- Role `integration-writer` in the `roles` table as a default role (is_builtin=true)
+- JWT claims: `sub=<person_id>`, `agent_id=<client_id>`, `roles=[...]`
+- `X-Agent-Id` header as an alternative to the JWT claim (for systems without OAuth2 support)
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] `persons.person_type` Spalte + `machine_credentials` Tabelle in Flyway-Migration
-- [ ] Rolle `integration-writer` im Starter-Daten-Script
-- [ ] Integration-Test: Client-Credentials-Flow → Schreib-API → Audit-Log
-- [ ] Credential-Rotation: altes Secret ungültig nach Rotation
+- [ ] Acceptance criteria fulfilled
+- [ ] `persons.person_type` column + `machine_credentials` table in Flyway migration
+- [ ] Role `integration-writer` in the starter data script
+- [ ] Integration test: client credentials flow → write API → audit log
+- [ ] Credential rotation: old secret invalid after rotation
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-013 (Bootstrapping; persons-Tabelle muss existieren)
-- Wartet auf: US-001 (Auth-Stack; Client-Credentials-Flow basiert auf ADR-006)
-- Blockiert: US-141 (Batch-Import braucht Service-Account)
+- Waits for: US-013 (bootstrapping; persons table must exist)
+- Waits for: US-001 (auth stack; client credentials flow is based on ADR-006)
+- Blocks: US-141 (batch import needs a service account)

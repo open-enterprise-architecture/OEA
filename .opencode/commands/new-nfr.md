@@ -1,44 +1,44 @@
-# /new-nfr – Neue NFR anlegen (Legacy)
+# /new-nfr – Create a new NFR (legacy)
 
-> **Hinweis**: Dieser Command ist Legacy. Neue nicht-funktionale Anforderungen bevorzugt mit
-> `/new-requirement` anlegen und `type: non-functional` setzen — dann landet die Anforderung
-> in `requirements/req/` mit einheitlichem Tracking. `/new-nfr` schreibt nach `requirements/nfr/`
-> und ist für ältere NFRs im Legacy-Format.
+> **Note**: This command is legacy. Prefer creating new non-functional requirements with
+> `/new-requirement` and setting `type: non-functional` — then the requirement ends up
+> in `requirements/req/` with uniform tracking. `/new-nfr` writes to `requirements/nfr/`
+> and is meant for older NFRs in the legacy format.
 
-## Argumente
+## Arguments
 
-`$ARGUMENTS` enthält den Titel der NFR (optional).
+`$ARGUMENTS` contains the title of the NFR (optional).
 
-## Ausführung
+## Execution
 
-1. **Nächste freie ID ermitteln**:
+1. **Determine the next free ID**:
    ```bash
    ls requirements/nfr/NFR-*.md 2>/dev/null | sed 's/.*NFR-//' | sed 's/-.*//' | sort -n | tail -1
    ```
-   Nächste ID = höchste Nummer + 1, zweistellig (z.B. `NFR-06`).
+   Next ID = highest number + 1, two digits (e.g. `NFR-06`).
 
-2. **Kategorie klären**:
+2. **Clarify the category**:
    `performance` | `scalability` | `reliability` | `availability` | `security` |
    `maintainability` | `usability` | `portability` | `compatibility` | `cost` | `sustainability`
 
-3. **Datei anlegen**:
-   Kopiere `templates/nfr.template.md` nach `requirements/nfr/NFR-NN-kurzname.md`
-   - `ID`, `Kategorie`, `Priority`, `Status: proposed` setzen
-   - Anforderung in einem Satz formulieren
+3. **Create the file**:
+   Copy `templates/nfr.template.md` to `requirements/nfr/NFR-NN-shortname.md`
+   - Set `ID`, `Category`, `Priority`, `Status: proposed`
+   - Formulate the requirement in one sentence
 
-4. **Pflicht-Checks** (ohne diese wird die NFR nicht akzeptiert):
-   - [ ] **Messbarer Zielwert** mit Einheit und Schwellwert in der Tabelle?
-   - [ ] **Scope** angegeben (bei welcher Datenmenge / welchem Lastprofil gilt der Wert)?
-   - [ ] **Verifikationsmethode** konkret (Werkzeug, Test-Setup, Bestanden-Kriterium)?
-   - Keine "soll performant sein"-Aussagen — immer konkrete Zahlen
+4. **Mandatory checks** (without these the NFR is not accepted):
+   - [ ] **Measurable target value** with unit and threshold in the table?
+   - [ ] **Scope** given (for which data volume / load profile does the value apply)?
+   - [ ] **Verification method** concrete (tool, test setup, pass criterion)?
+   - No "should be performant" statements — always concrete numbers
 
-5. **Stakeholder-Bezug**: mindestens ein SH, der diese NFR gefordert hat oder betroffen ist.
+5. **Stakeholder reference**: at least one SH who requested this NFR or is affected by it.
 
-6. **Ausgabe**:
-   Pfad, ID, Kategorie, Zielwert-Zusammenfassung.
+6. **Output**:
+   Path, ID, category, summary of the target value.
 
-## Konventionen
+## Conventions
 
-- Dateiname: `NFR-NN-kurzname.md` (zweistellig; Kurzname englisch, kebab-case)
-- NFR ohne messbare Zielwerte ist ein Wunsch, keine Anforderung
-- Für neue Projekte: `/new-requirement type=non-functional` bevorzugen
+- File name: `NFR-NN-shortname.md` (two digits; short name English, kebab-case)
+- An NFR without measurable target values is a wish, not a requirement
+- For new projects: prefer `/new-requirement type=non-functional`

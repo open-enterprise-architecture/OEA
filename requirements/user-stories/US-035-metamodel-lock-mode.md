@@ -1,51 +1,51 @@
-# US-035: Metamodell auf Import-only sperren
+# US-035: Lock Metamodel to Import-Only
 
 **ID**: US-035
 **Story Points**: 2
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Betreiber möchte ich das Metamodell in einen Sperrmodus versetzen können, in dem ausschliesslich YAML-Importe Änderungen vornehmen dürfen, damit das Metamodell meiner Organisation ausschliesslich aus einem versionierten Repository heraus verwaltet wird und keine ungeplanten manuellen Änderungen möglich sind.
+As an operator, I want to be able to put the metamodel into a lock mode in which only YAML imports may make changes, so that my organization's metamodel is managed exclusively from a versioned repository and no unplanned manual changes are possible.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-04: Metamodell gemeinsam konfigurieren](../use-cases/UC-04-metamodell-konfigurieren.md)
-**Persona**: [SH-06: Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Requirement**: [REQ-035: Metamodell-Sperrmodus](../req/REQ-035-metamodell-sperrmodus.md)
+**Use Case**: [UC-04: Configure the Metamodel Collaboratively](../use-cases/UC-04-configure-metamodel.md)
+**Persona**: [SH-06: Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Requirement**: [REQ-035: Metamodel Lock Mode](../req/REQ-035-metamodel-lock-mode.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Max setzt `editMode=import-only`
-- Wenn: Kurt versucht, über die GUI einen EntityType anzulegen
-- Dann: ist die Aktion nicht verfügbar (Button fehlt oder deaktiviert); API-Aufruf gibt 403
+- Given: Max sets `editMode=import-only`
+- When: Kurt tries to create an EntityType via the GUI
+- Then: the action is not available (button missing or disabled); API call returns 403
 
 **AC2**:
-- Gegeben: `editMode=import-only`
-- Wenn: Kurt eine YAML-Datei importiert
-- Dann: wird der Import normal verarbeitet
+- Given: `editMode=import-only`
+- When: Kurt imports a YAML file
+- Then: the import is processed normally
 
 **AC3**:
-- Gegeben: `editMode=import-only`
-- Wenn: Kurt die EntityType-Liste aufruft
-- Dann: sieht er alle Typen; ein sichtbarer Hinweis erklärt den Sperrmodus und verweist auf den Import-Pfad
+- Given: `editMode=import-only`
+- When: Kurt opens the EntityType list
+- Then: he sees all types; a visible notice explains the lock mode and points to the import path
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Betreiber-Konfigurationsmodul, Metamodell-API-Guard, Frontend
-- API-Endpunkte: `PUT /admin/config/metamodel-edit-mode` (Betreiber-only); GUI-Middleware prüft `editMode` vor jeder schreibenden Metamodell-Operation
-- Kein Neustart nötig; Konfiguration wird zur Laufzeit ausgewertet
+- Affected components: operator configuration module, metamodel API guard, frontend
+- API endpoints: `PUT /admin/config/metamodel-edit-mode` (operator-only); GUI middleware checks `editMode` before every write metamodel operation
+- No restart needed; configuration is evaluated at runtime
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Tests: GUI-Block bei import-only; Import weiterhin möglich; Umschalten runtime-wirksam
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Tests: GUI block on import-only; import still possible; switching takes effect at runtime
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-032 (GUI-Bearbeitung muss existieren, damit Sperren Sinn ergibt); US-033 (Import-Pfad muss aktiv bleiben)
-- Blockiert: keine
+- Waiting on: US-032 (GUI editing must exist for locking to make sense); US-033 (import path must remain active)
+- Blocks: none

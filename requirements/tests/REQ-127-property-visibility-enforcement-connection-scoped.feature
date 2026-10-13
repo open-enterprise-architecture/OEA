@@ -1,45 +1,45 @@
-# Ableitung aus: requirements/req/req-127-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-127-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-21
-Feature: REQ-127 – Enforcement connection-scoped Property-Sichtbarkeit (ABAC)
+Feature: REQ-127 – Enforcement of connection-scoped property visibility (ABAC)
 
-  Die Entity-API MUSS bei Eigenschaften mit `visibilityMode =
-  connection-scoped` zur Laufzeit per Graph-Traversal prüfen, ob der
-  anfragende Nutzer über den konfigurierten `scopingConnectionType`
-  einen Pfad zur angefragten Entität hat. Nur wenn ein solcher Pfad
-  existiert, DARF der Wert zurückgegeben werden.
+  For properties with `visibilityMode =
+  connection-scoped`, the entity API MUST check at runtime via graph traversal whether the
+  requesting user has a path to the requested entity via the configured
+  `scopingConnectionType`. Only if such a path
+  exists MAY the value be returned.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Traversal positiv – Property `sicherheitseinstufung` mit `visibilityMode=connection-scoped`,...
-    Given Property `sicherheitseinstufung` mit `visibilityMode=connection-scoped`, `scopingConnectionType=DomainAssignment`
-    When  Michael (Domain Architekt) ist über eine `DomainAssignment`-Connection mit `ApplicationComponent A` verbunden und ruft Entity A ab
-    Then  `sicherheitseinstufung`-Wert ist im Response enthalten
+  Scenario: AC1 – Traversal positive – property `sicherheitseinstufung` with `visibilityMode=connection-scoped`,...
+    Given property `sicherheitseinstufung` with `visibilityMode=connection-scoped`, `scopingConnectionType=DomainAssignment`
+    When  Michael (domain architect) is connected to `ApplicationComponent A` via a `DomainAssignment` connection and retrieves entity A
+    Then  `sicherheitseinstufung` value is contained in the response
 
   @AC2
-  Scenario: AC2 – Traversal negativ – Michael ist **nicht** über `DomainAssignment` mit Entity B verbunden und...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Michael ist **nicht** über `DomainAssignment` mit Entity B verbunden und ruft Entity B ab
-    Then  `sicherheitseinstufung` ist `null`; kein Wert im Response
+  Scenario: AC2 – Traversal negative – Michael is **not** connected to entity B via `DomainAssignment` and...
+    Given the precondition according to the requirement is met
+    When  Michael is **not** connected to entity B via `DomainAssignment` and retrieves entity B
+    Then  `sicherheitseinstufung` is `null`; no value in the response
 
   @AC3
-  Scenario: AC3 – Schreibschutz – Nutzer ohne Pfad versucht, Feld via PATCH zu beschreiben
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer ohne Pfad versucht, Feld via PATCH zu beschreiben
-    Then  HTTP 403; Wert unverändert
+  Scenario: AC3 – Write protection – user without path tries to write the field via PATCH
+    Given the precondition according to the requirement is met
+    When  user without path tries to write the field via PATCH
+    Then  HTTP 403; value unchanged
 
   @AC4
-  Scenario: AC4 – Katalog-Konsistenz – Katalog-Abfrage enthält connection-scoped Properties
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Katalog-Abfrage enthält connection-scoped Properties
-    Then  Werte werden pro Zeile individuell gefiltert; Nutzer sieht nur Werte für Entitäten im eigenen Scope
+  Scenario: AC4 – Catalog consistency – catalog query contains connection-scoped properties
+    Given the precondition according to the requirement is met
+    When  catalog query contains connection-scoped properties
+    Then  values are filtered individually per row; user sees only values for entities in their own scope
 
   @AC5
-  Scenario: AC5 – Performance – Graph-Traversal für eine Entity mit connection-scoped Properties ausgelö...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Graph-Traversal für eine Entity mit connection-scoped Properties ausgelöst wird
-    Then  Antwortzeit p95 ≤ 200 ms zusätzliche Latenz gegenüber unrestricted Query (bei ≤ 500 direkt verbundenen Entitäten pro Nutzer; gecacht)
+  Scenario: AC5 – Performance – graph traversal is triggered for an entity with connection-scoped properties
+    Given the precondition according to the requirement is met
+    When  graph traversal is triggered for an entity with connection-scoped properties
+    Then  response time p95 ≤ 200 ms additional latency compared to unrestricted query (with ≤ 500 directly connected entities per user; cached)

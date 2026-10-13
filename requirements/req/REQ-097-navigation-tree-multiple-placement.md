@@ -1,6 +1,6 @@
 ---
 id: REQ-097
-title: Navigationsbaum Mehrfach-Einordnung von Objekten
+title: Navigation tree multiple placement of objects
 type: functional
 priority: must
 status: proposed
@@ -22,39 +22,39 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-097: Navigationsbaum Mehrfach-Einordnung von Objekten
+# REQ-097: Navigation tree multiple placement of objects
 
-## Aussage
+## Statement
 
-Dasselbe Repository-Objekt (Entität, Diagramm oder Katalog) MUSS gleichzeitig als Item in mehreren Ordnern referenziert sein dürfen. Jeder Ordnereintrag ist ein eigenständiges TreeNodeItem mit eigener `referenceId`; keine Datenduplizierung des Objekts.
+The same repository object (entity, diagram or catalog) MUST be allowed to be referenced as an item in multiple folders at the same time. Each folder entry is an independent TreeNodeItem with its own `referenceId`; no data duplication of the object.
 
-## Begründung
+## Rationale
 
-Ein Applikations-Cluster kann gleichzeitig zur Domäne "Finance" und zur Initiative "Cloud-Migration" gehören. Exklusive Einordnung würde die Abbildung realer Strukturen einschränken und Nutzer zur Datenduplizierung zwingen.
+An application cluster can belong to the domain "Finance" and to the initiative "Cloud Migration" at the same time. Exclusive placement would restrict the representation of real structures and force users into data duplication.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Mehrfach-Einordnung):
-- Wenn: die Entität "SAP ERP" als Item in Ordner "Finance" und "Cloud-Migration" eingehängt wird
-- Dann: existieren zwei eigenständige TreeNodeItems mit derselben `referenceId`; die Entität selbst ist unverändert
+**AC1** (Multiple placement):
+- When: the entity "SAP ERP" is attached as an item in the folders "Finance" and "Cloud Migration"
+- Then: two independent TreeNodeItems with the same `referenceId` exist; the entity itself is unchanged
 
-**AC2** (Unabhängige Entfernung):
-- Wenn: das Item "SAP ERP" aus Ordner "Finance" entfernt wird
-- Dann: ist der Eintrag in "Finance" gelöscht; der Eintrag in "Cloud-Migration" bleibt gültig
+**AC2** (Independent removal):
+- When: the item "SAP ERP" is removed from the folder "Finance"
+- Then: the entry in "Finance" is deleted; the entry in "Cloud Migration" remains valid
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-095 (Soft-Reference-Prinzip)
-- **Folgewirkungen**: keine
+- **Prerequisites**: REQ-095 (soft-reference principle)
+- **Downstream effects**: none
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Kein Unique-Constraint auf `(folderId, referenceId)` — Mehrfach-Einordnung explizit erlaubt
-- TreeNodeItem hat eigene ID (`referenceId`) unabhängig vom referenzierten Objekt
-- Kein Datenbankmodell-Duplikat des Objekts; nur der Verknüpfungs-Eintrag wird mehrfach angelegt
+- No unique constraint on `(folderId, referenceId)` — multiple placement explicitly allowed
+- TreeNodeItem has its own ID (`referenceId`) independent of the referenced object
+- No database model duplicate of the object; only the link entry is created multiple times
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

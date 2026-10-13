@@ -1,134 +1,134 @@
-# Sprint-Plan: OEA Implementierungsreihenfolge
+# Sprint Plan: OEA Implementation Order
 
-**Stand:** 2026-10-04 (Walking Skeleton an den Anfang gezogen, siehe `docs/walking-skeleton.md`)  
-**Grundannahmen:**
-- 2-Wochen-Sprints, ~30 SP/Sprint
-- LLM-Assistent: Devstral (Mistral API, 128k Kontext)
-- Gesamt: ~577 SP + Projekt-Setup → 21 Sprints ≈ 10,5 Monate
-- Reihenfolge: Walking Skeleton zuerst (dünner E2E-Durchstich), danach Abhängigkeiten > MoSCoW-Priorität > thematische Kohärenz
-- UC-01 (66 SP, 19 USs) und UC-05 (55 SP) werden bewusst gestreckt
+**As of:** 2026-10-04 (walking skeleton moved to the beginning, see `docs/walking-skeleton.md`)  
+**Basic assumptions:**
+- 2-week sprints, ~30 SP/sprint
+- LLM assistant: Devstral (Mistral API, 128k context)
+- Total: ~577 SP + project setup → 21 sprints ≈ 10.5 months
+- Order: walking skeleton first (thin E2E slice), then dependencies > MoSCoW priority > thematic coherence
+- UC-01 (66 SP, 19 USs) and UC-05 (55 SP) are deliberately stretched
 
 ---
 
-## Milestone 1 — Walking Skeleton + Fundament (Sprints 1–8)
+## Milestone 1 — Walking Skeleton + Foundation (Sprints 1–8)
 
-**Ziel:** In S1–S2 ein dünner End-to-End-Durchstich (Bootstrapping → Login → Metamodell-Import → Entitäten → Katalog), danach Ausbau von Auth und Metamodell auf diesem Gerüst.
+**Goal:** A thin end-to-end slice in S1–S2 (bootstrapping → login → metamodel import → entities → catalog), then expansion of auth and metamodel on this scaffold.
 
-| Sprint | UC | Inhalt | SP |
+| Sprint | UC | Content | SP |
 |--------|----|--------|----|
-| **S1** | Setup + UC-02 + UC-01 | **⭐ Walking Skeleton (1/2):** Projekt-Setup (Maven `backend/`, Vue `frontend/`, `api/openapi.yaml`, Docker Compose, CI), US-013 Lokales Bootstrapping, US-001 OIDC-Login | 13 + Setup |
-| **S2** | UC-04 + UC-06 + UC-19 | **⭐ Walking Skeleton (2/2):** US-033 Starter-Paket importieren, US-141 Batch-Anlage (AC1), US-046 Katalog anlegen, US-049 Katalog-Daten anzeigen (Basis) | 18 + E2E-Härtung |
-| **S3** | UC-02 (Rest) | System-Admin-Bootstrapping: Setup-Token, Remote-Bootstrapping, Break-Glass, Audit-Log | ~30 |
-| **S4** | UC-01 (1/2) | Login: Session-Härtung, Passwort-Minimal, generische Fehlermeldungen | ~25 |
-| **S5** | UC-01 (2/2) | Login: Passkey, TOTP, Token-Lebensdauer konfigurierbar, Lifecycle invited→active, Audit-Log | ~33 |
-| **S6** | UC-03 | Authentifizierungsmethode einrichten: 2FA-Enrollment (TOTP + Passkey), Passwort-Policies, Passwort-Reset | 39 |
-| **S7** | UC-04 (1/2) | Metamodell: EntityTypes anlegen/bearbeiten, Basis-PropertyDefinitions, GUI-Konfiguration | ~27 |
-| **S8** | UC-04 (2/2) + UC-06 | Metamodell: Connection-EntityTypes, Architektur-Erweiterung, Sperrmodus, Audit-Log + US-047 Spalten konfigurieren | ~22 + 5 |
+| **S1** | Setup + UC-02 + UC-01 | **⭐ Walking Skeleton (1/2):** project setup (Maven `backend/`, Vue `frontend/`, `api/openapi.yaml`, Docker Compose, CI), US-013 local bootstrapping, US-001 OIDC login | 13 + setup |
+| **S2** | UC-04 + UC-06 + UC-19 | **⭐ Walking Skeleton (2/2):** US-033 import starter package, US-141 batch creation (AC1), US-046 create catalog, US-049 display catalog data (basis) | 18 + E2E hardening |
+| **S3** | UC-02 (remainder) | System admin bootstrapping: setup token, remote bootstrapping, break-glass, audit log | ~30 |
+| **S4** | UC-01 (1/2) | Login: session hardening, minimal password, generic error messages | ~25 |
+| **S5** | UC-01 (2/2) | Login: passkey, TOTP, configurable token lifetime, lifecycle invited→active, audit log | ~33 |
+| **S6** | UC-03 | Set up authentication method: 2FA enrollment (TOTP + passkey), password policies, password reset | 39 |
+| **S7** | UC-04 (1/2) | Metamodel: create/edit EntityTypes, basic PropertyDefinitions, GUI configuration | ~27 |
+| **S8** | UC-04 (2/2) + UC-06 | Metamodel: connection EntityTypes, architecture extension, lock mode, audit log + US-047 configure columns | ~22 + 5 |
 
-**Deliverable S2:** Walking Skeleton lauffähig (DoD in `docs/walking-skeleton.md`):
-Admin-Bootstrap → OIDC-Login → Starter-Paket → Entitäten per Batch-API → Katalog-Tabelle.
+**Deliverable S2:** Walking skeleton runnable (DoD in `docs/walking-skeleton.md`):
+admin bootstrap → OIDC login → starter package → entities via batch API → catalog table.
 
-**Deliverable S8:** Auth (UC-01, UC-02, UC-03) und Metamodell (UC-04) vollständig.
+**Deliverable S8:** Auth (UC-01, UC-02, UC-03) and metamodel (UC-04) complete.
 
-> Nach S2: Retrospektive zur Architektur; Erkenntnisse aus dem Durchstich fließen in S3 ff. ein.
+> After S2: retrospective on the architecture; insights from the slice feed into S3 onward.
 
 ---
 
 ## Milestone 2 — Core Platform (Sprints 9–14)
 
-**Ziel:** Vollständiger Katalog, Property-Modell, Solution-Lifecycle
+**Goal:** Complete catalog, property model, solution lifecycle
 
-| Sprint | UC | Inhalt | SP |
+| Sprint | UC | Content | SP |
 |--------|----|--------|----|
-| **S9** | UC-06 (2/2) | Katalog: Join-Definition, Join-Modus Laufzeit, Filter, Paginierung, Saved Views (inkl. Rest von US-049) | ~30 |
-| **S10** | UC-21 + UC-05 (1/3) | Property-Sichtbarkeit konfigurieren + Solution anlegen, Ausgangsbasis definieren | 22 + ~8 |
-| **S11** | UC-05 (2/3) | Solution: Entity-Deltas erfassen, Diff-Ansicht, parallele-Solution-Konfliktwarnung | ~25 |
-| **S12** | UC-05 (3/3) + UC-14 | Solution: Freigabe-Workflow (proposed→approved) + Änderungshistorie einsehen | ~22 + 13 |
-| **S13** | UC-15 + UC-16 | Entitätsstand wiederherstellen (vollständig) + Teilwiederherstellung einzelner Properties | 11 + 16 |
-| **S14** | UC-11 | Plateau definieren, Go-Live durchführen, Zeitachse, Implementierungsstatus | 31 |
+| **S9** | UC-06 (2/2) | Catalog: join definition, join mode runtime, filters, pagination, saved views (incl. remainder of US-049) | ~30 |
+| **S10** | UC-21 + UC-05 (1/3) | Configure property visibility + create solution, define baseline | 22 + ~8 |
+| **S11** | UC-05 (2/3) | Solution: capture entity deltas, diff view, parallel-solution conflict warning | ~25 |
+| **S12** | UC-05 (3/3) + UC-14 | Solution: approval workflow (proposed→approved) + view change history | ~22 + 13 |
+| **S13** | UC-15 + UC-16 | Restore entity state (full) + partial restore of individual properties | 11 + 16 |
+| **S14** | UC-11 | Define plateau, perform go-live, timeline, implementation status | 31 |
 
-**Deliverable S14:** Vollständiger Solution-Lifecycle:
-anlegen → Delta erfassen → Konflikt erkennen → Plateau → History → Restore.
+**Deliverable S14:** Complete solution lifecycle:
+create → capture delta → detect conflict → plateau → history → restore.
 
 ---
 
-## Milestone 3 — EA-Ansichten & Navigation (Sprints 15–18)
+## Milestone 3 — EA Views & Navigation (Sprints 15–18)
 
-**Ziel:** Viewpoints, Navigationsbaum, Dashboard, Geschäftsprozesse — alle MUST-UCs abgedeckt
+**Goal:** Viewpoints, navigation tree, dashboard, business processes — all MUST UCs covered
 
-| Sprint | UC | Inhalt | SP |
+| Sprint | UC | Content | SP |
 |--------|----|--------|----|
-| **S15** | UC-12 + UC-13 (1/2) | Viewpoint verwalten + Navigationsbaum-Grundstruktur | 15 + ~17 |
-| **S16** | UC-13 (2/2) + UC-07 (1/2) | Navigationsbaum fertig + Dashboard-Grundgerüst, erste Widgets | ~17 + ~15 |
-| **S17** | UC-07 (2/2) + UC-10 | Dashboard: Charts, KPI-Karten, PropertyAggregation + Geschäftsprozesse modellieren | ~16 + 24 |
-| **S18** | UC-08 | Datenflusskarte (Data Lineage): n-Connection-Modell (ADR-010), Visualisierung, Analyse | 24 |
+| **S15** | UC-12 + UC-13 (1/2) | Manage viewpoint + navigation tree basic structure | 15 + ~17 |
+| **S16** | UC-13 (2/2) + UC-07 (1/2) | Navigation tree finished + dashboard scaffold, first widgets | ~17 + ~15 |
+| **S17** | UC-07 (2/2) + UC-10 | Dashboard: charts, KPI cards, PropertyAggregation + model business processes | ~16 + 24 |
+| **S18** | UC-08 | Data flow map (data lineage): n-connection model (ADR-010), visualization, analysis | 24 |
 
-**Deliverable S18:** Vollständiges Navigations- und Visualisierungsset; alle 14 MUST-UCs implementiert.
+**Deliverable S18:** Complete navigation and visualization set; all 14 MUST UCs implemented.
 
 ---
 
-## Milestone 4 — Erweiterte Features / SHOULD (Sprints 19–21)
+## Milestone 4 — Extended Features / SHOULD (Sprints 19–21)
 
-**Ziel:** Arc42-Dokumentation, Continuum, TRM, Conformance-Analyse
+**Goal:** Arc42 documentation, continuum, TRM, conformance analysis
 
-| Sprint | UC | Inhalt | SP |
+| Sprint | UC | Content | SP |
 |--------|----|--------|----|
-| **S19** | UC-09 (1/2) | Lösungsarchitektur nach Arc42: Grundstruktur, Kontextdiagramm, Bausteinsicht | ~23 |
-| **S20** | UC-09 (2/2) + UC-17 | Arc42 fertig (Laufzeit-, Verteilungssicht) + Continuum-Bausteine verwalten | ~23 + 25 |
-| **S21** | UC-18 + UC-19 + UC-20 | Continuum-Paket importieren + TRM konfigurieren + Conformance-Analyse | 13 + 17 + 13 |
+| **S19** | UC-09 (1/2) | Solution architecture per Arc42: basic structure, context diagram, building block view | ~23 |
+| **S20** | UC-09 (2/2) + UC-17 | Arc42 finished (runtime, deployment view) + manage continuum building blocks | ~23 + 25 |
+| **S21** | UC-18 + UC-19 + UC-20 | Import continuum package + configure TRM + conformance analysis | 13 + 17 + 13 |
 
-**Deliverable S21:** Vollständiges Feature-Set v1.0, produktionsbereit.
+**Deliverable S21:** Complete v1.0 feature set, production-ready.
 
 ---
 
-## Gesamtübersicht
+## Overall Overview
 
-| Milestone | Sprints | Thema | MUST-UCs | SHOULD-UCs |
+| Milestone | Sprints | Topic | MUST UCs | SHOULD UCs |
 |-----------|---------|-------|----------|------------|
-| Walking Skeleton + Fundament | S1–S8 | E2E-Durchstich (S1–S2), dann Auth + Metamodell vollständig | UC-01, UC-02, UC-03, UC-04, UC-06 (teil) | UC-19 (US-141 teil) |
-| Core Platform | S9–S14 | Katalog vollst. + Solution-Lifecycle | UC-06, UC-11, UC-14, UC-21 | — |
-| EA-Ansichten | S15–S18 | Navigation + Dashboard + Prozesse | UC-10, UC-12, UC-13 | UC-07, UC-08 |
-| SHOULD-Features | S19–S21 | Arc42 + Continuum + TRM | — | UC-09, UC-17, UC-18, UC-19, UC-20 |
+| Walking skeleton + foundation | S1–S8 | E2E slice (S1–S2), then auth + metamodel complete | UC-01, UC-02, UC-03, UC-04, UC-06 (partial) | UC-19 (US-141 partial) |
+| Core platform | S9–S14 | Catalog complete + solution lifecycle | UC-06, UC-11, UC-14, UC-21 | — |
+| EA views | S15–S18 | Navigation + dashboard + processes | UC-10, UC-12, UC-13 | UC-07, UC-08 |
+| SHOULD features | S19–S21 | Arc42 + continuum + TRM | — | UC-09, UC-17, UC-18, UC-19, UC-20 |
 
 ---
 
-## UC-Abhängigkeiten (Reihenfolge nicht verhandelbar)
+## UC Dependencies (Order Not Negotiable)
 
 ```
-UC-02 (kein Vorgänger — Bootstrapping ist erster Schritt)
-└── UC-01 (Login setzt Person+Role voraus, die UC-02 anlegt)
-    ├── UC-03 (Auth-Methode einrichten)
-    └── UC-04 (Metamodell setzt Login voraus)
-        ├── UC-06 (Katalog setzt Metamodell voraus; Vorbedingungen in UC-06)
-        │   └── UC-07 (Dashboard baut auf Katalog auf)
-        ├── UC-05 (Solution setzt Metamodell voraus; ergänzt UC-06, ist aber keine Vorbedingung)
-        │   └── UC-11 (Plateau/Go-Live setzt Solutions voraus)
-        └── UC-21 (Property-Sichtbarkeit setzt PropertyDefinitions voraus)
+UC-02 (no predecessor — bootstrapping is the first step)
+└── UC-01 (login requires person+role created by UC-02)
+    ├── UC-03 (set up auth method)
+    └── UC-04 (metamodel requires login)
+        ├── UC-06 (catalog requires metamodel; preconditions in UC-06)
+        │   └── UC-07 (dashboard builds on catalog)
+        ├── UC-05 (solution requires metamodel; complements UC-06, but is not a precondition)
+        │   └── UC-11 (plateau/go-live requires solutions)
+        └── UC-21 (property visibility requires PropertyDefinitions)
 ```
 
-Entitäten für den Katalog entstehen im Walking Skeleton per Batch-API (US-141); der fachliche Weg über Solution-Deltas (UC-05) folgt in Milestone 2.
+Entities for the catalog are created in the walking skeleton via the batch API (US-141); the business path via solution deltas (UC-05) follows in milestone 2.
 
-Die SHOULD-UCs (UC-08, UC-09, UC-15, UC-16, UC-18, UC-20) haben keine harten Vorgänger
-außer UC-01/UC-04 und können ab Milestone 2 bei Bedarf vorgezogen werden.
+The SHOULD UCs (UC-08, UC-09, UC-15, UC-16, UC-18, UC-20) have no hard predecessors
+other than UC-01/UC-04 and can be pulled forward from milestone 2 on if needed.
 
 ---
 
-## Hinweise
+## Notes
 
-**UC-01 ist mit 66 SP der größte Einzelblock.** Auth-Bugs pflanzen sich durch alle späteren
-Sprints fort — OIDC-Basis im Walking Skeleton (S1), Rest bewusst auf S4+S5 gestreckt und vor dem
-Metamodell-Ausbau abgeschlossen.
+**UC-01 is the largest single block at 66 SP.** Auth bugs propagate through all later
+sprints — OIDC basis in the walking skeleton (S1), remainder deliberately stretched over S4+S5 and completed before
+the metamodel expansion.
 
-**Offene Auth-Punkte müssen in S1–S2 entschieden werden** (kein DoD-Blocker, aber vor S3
-kritisch): Setup-Token-Übergabekanal (REQ-017), Recovery/Break-Glass (UC-02 E4),
-Claim-Mapping Entra-ID→OEA-Rollen. Siehe [UC-02](../requirements/use-cases/UC-02-system-admin-bootstrapping.md),
-[ADR-006](../adrs/ADR-006-auth-stack-wahl.md) und [US-018](../requirements/user-stories/US-018-warnung-leerer-admin-claim.md).
+**Open auth points must be decided in S1–S2** (no DoD blocker, but critical before S3):
+setup token handover channel (REQ-017), recovery/break-glass (UC-02 E4),
+claim mapping Entra ID→OEA roles. See [UC-02](../requirements/use-cases/UC-02-system-admin-bootstrapping.md),
+[ADR-006](../adrs/ADR-006-auth-stack-choice.md) and [US-018](../requirements/user-stories/US-018-warning-empty-admin-claim.md).
 
-**Devstral (Mistral API, 128k Kontext) empfohlen** für mehrdateiige Spring-Boot-Features
-(ADR-028: api/app/core-Schichtentrennung). Der Kontexter erlaubt, vollständige Feature-Branches
-in einem Request zu bearbeiten. Für hochkomplexe Architekturentscheidungen ggf. mit
-einem Frontier-Modell (Claude Sonnet) gegenlesen.
+**Devstral (Mistral API, 128k context) recommended** for multi-file Spring Boot features
+(ADR-028: api/app/core layer separation). The context window allows processing complete feature branches
+in a single request. For highly complex architecture decisions, cross-check
+with a frontier model (Claude Sonnet) if needed.
 
-**SHOULD-UCs können bei Stakeholder-Anfrage vorgezogen werden** — die Abhängigkeiten
-sind dokumentiert; UC-07 (Dashboard) und UC-08 (Data Lineage) haben keine Vorgänger
-außer UC-01/UC-04/UC-06.
+**SHOULD UCs can be pulled forward on stakeholder request** — the dependencies
+are documented; UC-07 (dashboard) and UC-08 (data lineage) have no predecessors
+other than UC-01/UC-04/UC-06.

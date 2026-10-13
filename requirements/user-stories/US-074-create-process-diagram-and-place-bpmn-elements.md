@@ -1,6 +1,6 @@
 ---
 id: US-074
-title: Prozessdiagramm anlegen und BPMN-Elemente platzieren
+title: Create a Process Diagram and Place BPMN Elements
 use_case: UC-10
 requirement: REQ-076
 priority: must
@@ -9,30 +9,30 @@ story_points: 8
 created: 2026-06-26
 ---
 
-# US-074: Prozessdiagramm anlegen und BPMN-Elemente platzieren
+# US-074: Create a Process Diagram and Place BPMN Elements
 
-**Als** Business Analyst (Anna, SH-08)  
-**möchte ich** ein neues Diagramm mit dem Viewpoint „Prozess-Modell (BPMN 2.0)" anlegen und Pools, Lanes, Tasks, Events und Gateways auf der Canvas platzieren,  
-**damit** ich Geschäftsprozesse direkt im EA-Repository modellieren kann ohne ein separates Tool zu benötigen.
+**As** a Business Analyst (Anna, SH-08)  
+**I want** to create a new diagram with the viewpoint "Process Model (BPMN 2.0)" and place pools, lanes, tasks, events, and gateways on the canvas,  
+**so that** I can model business processes directly in the EA repository without needing a separate tool.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] Viewpoint „bpmn-process-view" steht bei Diagramm-Anlage zur Auswahl
-- [ ] Canvas-Palette zeigt alle built-in BPMN-Elemente gruppiert: Pools/Lanes, Tasks, Events, Gateways
-- [ ] Pool kann auf Canvas gezogen werden; Pool ist ein Container; Lanes können in den Pool eingefügt werden
-- [ ] Elemente (Tasks, Events, Gateways) können per Drag aus Palette in eine Lane fallen gelassen werden; `bpmn-contained-in`-Connection wird automatisch angelegt
-- [ ] SequenceFlow kann zwischen zwei BPMN-Elementen per Handle-Drag verbunden werden
-- [ ] Verbindung von SequenceFlow zu einem Nicht-BPMN-Element wird mit Fehlermeldung abgelehnt (BR-01)
-- [ ] Diagramm speichert alle Entities und Connections atomar; nach Reload ist Layout korrekt wiederhergestellt
-- [ ] Unternehmensspezifische Subtypen (z.B. `approval-task`) erscheinen ebenfalls in der Palette (AC2 REQ-076)
+- [ ] Viewpoint "bpmn-process-view" is available for selection when creating a diagram
+- [ ] Canvas palette shows all built-in BPMN elements grouped: pools/lanes, tasks, events, gateways
+- [ ] A pool can be dragged onto the canvas; a pool is a container; lanes can be inserted into the pool
+- [ ] Elements (tasks, events, gateways) can be dropped from the palette into a lane by drag; a `bpmn-contained-in` connection is created automatically
+- [ ] A SequenceFlow can be connected between two BPMN elements by handle drag
+- [ ] Connecting a SequenceFlow to a non-BPMN element is rejected with an error message (BR-01)
+- [ ] The diagram saves all entities and connections atomically; after reload the layout is restored correctly
+- [ ] Company-specific subtypes (e.g. `approval-task`) also appear in the palette (AC2 REQ-076)
 
-## Technische Hinweise
+## Technical Notes
 
-- React Flow `parentId` für Pool/Lane-Containment; `bpmn-contained-in`-Connection als Repository-Abbild
-- Palette-Gruppierung: „Container" (Pool, Lane, SubProcess), „Aufgaben", „Ereignisse", „Gateways"
-- Lane-Resize: Lane muss vertikal grössenveränderbar sein; Pool passt sich automatisch an
+- React Flow `parentId` for pool/lane containment; `bpmn-contained-in` connection as repository representation
+- Palette grouping: "Containers" (pool, lane, subprocess), "Tasks", "Events", "Gateways"
+- Lane resize: lane must be vertically resizable; the pool adjusts automatically
 
-## Nicht im Scope
+## Out of Scope
 
-- BPMN 2.0 XML-Export
-- Automatisches Layout (ELK.js für BPMN — v2.0)
+- BPMN 2.0 XML export
+- Automatic layout (ELK.js for BPMN — v2.0)

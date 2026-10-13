@@ -1,72 +1,72 @@
-# ADR-NNN: {{Kurztitel der Entscheidung}}
+# ADR-NNN: {{Short title of the decision}}
 
 <!--
-Dateiname: adrs/ADR-NNN-kurzname.md
-Format orientiert sich an MADR (Markdown Architectural Decision Records).
+File name: adrs/ADR-NNN-shortname.md
+Format is based on MADR (Markdown Architectural Decision Records).
 -->
 
 **Status**: proposed | accepted | rejected | deprecated | superseded by ADR-NNN
-**Datum**: YYYY-MM-DD
-**Entscheider**: <Name oder Rolle>
-**Konsultiert**: <Personen/Rollen, die Input geliefert haben>
-**Informiert**: <Personen/Rollen, die nur benachrichtigt wurden>
+**Date**: YYYY-MM-DD
+**Deciders**: <name or role>
+**Consulted**: <persons/roles who provided input>
+**Informed**: <persons/roles who were only notified>
 
-## Kontext und Problem
+## Context and Problem
 
-Was ist die Situation? Welches Problem löst die Entscheidung? Welche Kräfte wirken auf die Entscheidung?
+What is the situation? Which problem does the decision solve? Which forces act on the decision?
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- Treiber 1 (z.B. "Open-Source-Charakter")
-- Treiber 2 (z.B. "Skalierungs-Anforderung 10.000 Entities")
-- Treiber 3
+- Driver 1 (e.g. "open-source character")
+- Driver 2 (e.g. "scaling requirement of 10,000 entities")
+- Driver 3
 
-## Betrachtete Optionen
+## Considered Options
 
 ### Option 1: {{Name}}
 
-Beschreibung der Option.
+Description of the option.
 
 - **Pro**:
-  - Vorteil 1
-- **Contra**:
-  - Nachteil 1
+  - Advantage 1
+- **Con**:
+  - Disadvantage 1
 
 ### Option 2: {{Name}}
 
 ### Option 3: {{Name}}
 
-## Entscheidung
+## Decision
 
-Wir wählen **Option N**, weil {{Begründung}}.
+We choose **Option N**, because {{rationale}}.
 
-## Konsequenzen
+## Consequences
 
-### Positive Konsequenzen
+### Positive Consequences
 
-- Folge 1
+- Consequence 1
 
-### Negative Konsequenzen / Trade-offs
+### Negative Consequences / Trade-offs
 
-- Folge 1
-- Was wir bewusst aufgeben
+- Consequence 1
+- What we knowingly give up
 
-### Folgeentscheidungen
+### Follow-up Decisions
 
-- ADR-XXX (anstehend)
+- ADR-XXX (pending)
 
-## Bezüge
+## References
 
-**Konzept-Kapitel**:
-- [§N (Kapitel)](../concept/...)
+**Concept Chapters**:
+- [§N (Chapter)](../concept/...)
 
-**Verwandte ADRs**:
+**Related ADRs**:
 - ADR-NNN
 
 **Use Cases / Requirements**:
-- [UC-NN: Titel](../requirements/use-cases/UC-NN-kurzname.md)
-- [NFR-NN: Titel](../requirements/nfr/NFR-NN-kurzname.md)
+- [UC-NN: Title](../requirements/use-cases/UC-NN-shortname.md)
+- [NFR-NN: Title](../requirements/nfr/NFR-NN-shortname.md)
 
-## Notizen
+## Notes
 
-Diskussion, Quellen, weiterführende Links.
+Discussion, sources, further links.

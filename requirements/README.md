@@ -1,22 +1,22 @@
 # Requirements
 
-Use Cases, User Stories und nicht-funktionale Anforderungen für OEA.
+Use cases, user stories, and non-functional requirements for OEA.
 
-## Inhalt
+## Contents
 
 ```
 requirements/
-├── README.md                    ← dieses Dokument
-├── traceability.md              ← Trace-Matrix Use Case × Konzept × ADR
-├── use-cases/                   ← zielorientierte Szenarien
+├── README.md                    ← this document
+├── traceability.md              ← trace matrix use case × concept × ADR
+├── use-cases/                   ← goal-oriented scenarios
 │   ├── README.md
 │   ├── UC-01-...md
 │   └── ...
-├── user-stories/                ← granulare Backlog-Items
+├── user-stories/                ← granular backlog items
 │   ├── README.md
 │   ├── US-001-...md
 │   └── ...
-└── nfr/                         ← nicht-funktionale Anforderungen
+└── nfr/                         ← non-functional requirements
     ├── README.md
     ├── NFR-01-...md
     └── ...
@@ -24,35 +24,35 @@ requirements/
 
 ## Templates
 
-Vorlagen liegen in `../templates/`:
+Templates are located in `../templates/`:
 - `use-case.template.md`
 - `user-story.template.md`
 - `nfr.template.md`
 
-## Vorgehen
+## Approach
 
-1. **Stakeholder zuerst** (in `../business-analysis/stakeholders/`), nicht direkt mit Use Cases starten
-2. **Use Cases** aus Stakeholder-Concerns und Pain Points ableiten
-3. **NFRs** parallel zu Use Cases, mit messbaren Zielwerten
-4. **Priorisierung** nach MoSCoW (must/should/could/wont)
-5. **User Stories** erst, wenn Use Cases priorisiert sind – als Zerlegung der MUST-Use-Cases für den Walking Skeleton
-6. **Traceability** regelmäßig prüfen mit `/trace-check`
+1. **Stakeholders first** (in `../business-analysis/stakeholders/`), do not start directly with use cases
+2. **Use cases** derived from stakeholder concerns and pain points
+3. **NFRs** in parallel with use cases, with measurable target values
+4. **Prioritization** by MoSCoW (must/should/could/wont)
+5. **User stories** only once use cases are prioritized – as a breakdown of the MUST use cases for the walking skeleton
+6. **Traceability** checked regularly with `/trace-check`
 
-## MoSCoW-Übersicht
+## MoSCoW Overview
 
-<!-- Hier nach Priorisierung manuell aktuell halten oder per Skript generieren -->
+<!-- Keep manually up to date after prioritization or generate via script -->
 
-| Priorität | Use Cases | NFRs |
+| Priority | Use Cases | NFRs |
 |---|---|---|
 | MUST (Walking Skeleton) | | |
 | SHOULD (v1.0) | | |
 | COULD (v1.x) | | |
-| WONT (für diese Phase) | | |
+| WONT (for this phase) | | |
 
-## Slash-Commands
+## Slash Commands
 
 In `.opencode/commands/`:
-- `/new-usecase` – legt neuen Use Case an
-- `/new-story` – legt neue User Story an
-- `/new-nfr` – legt neue NFR an
-- `/trace-check` – prüft Verknüpfungs-Konsistenz
+- `/new-usecase` – creates a new use case
+- `/new-story` – creates a new user story
+- `/new-nfr` – creates a new NFR
+- `/trace-check` – checks link consistency

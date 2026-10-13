@@ -1,18 +1,18 @@
-## Beschreibung
+## Description
 
-<!-- Was ändert dieser PR? Warum? -->
+<!-- What does this PR change? Why? -->
 
-## Typ der Änderung
+## Type of Change
 
-- [ ] `feat` – neue Funktionalität
-- [ ] `docs` – Dokumentation / Requirements
-- [ ] `fix` – Fehlerbehebung
-- [ ] `chore` – Wartung (ADRs, Scripts, CI)
-- [ ] `refactor` – Umstrukturierung ohne Verhaltensänderung
+- [ ] `feat` – new functionality
+- [ ] `docs` – documentation / requirements
+- [ ] `fix` – bug fix
+- [ ] `chore` – maintenance (ADRs, scripts, CI)
+- [ ] `refactor` – restructuring without behavior change
 
-## Bezug
+## Reference
 
-<!-- Mindestens einen Link angeben -->
+<!-- Provide at least one link -->
 
 - Use Case: [UC-NN](requirements/use-cases/UC-NN-...)
 - ADR: [ADR-NNN](adrs/ADR-NNN-...)
@@ -20,14 +20,14 @@
 
 ## Quality Gates
 
-- [ ] `python3 scripts/validate_links.py` grün
-- [ ] Alle neuen Use Cases haben `primary_actor`, Akzeptanzkriterien, Konzept-Bezug
-- [ ] Alle neuen REQs haben `type`, `status`, UC-Referenz
-- [ ] Alle neuen ADRs haben `Entscheider`, Optionen mit Pro/Contra, Konsequenzen
-- [ ] Neue Datenmodell-Änderungen in `docs/data-model.puml` nachgezogen
-- [ ] Neue Screen-Änderungen in `docs/screens/SCREENS.md` nachgezogen
-- [ ] CI grün
+- [ ] `python3 scripts/validate_links.py` green
+- [ ] All new use cases have `primary_actor`, acceptance criteria, concept reference
+- [ ] All new REQs have `type`, `status`, UC reference
+- [ ] All new ADRs have `Deciders`, options with pros/cons, consequences
+- [ ] New data model changes carried over to `docs/data-model.puml`
+- [ ] New screen changes carried over to `docs/screens/SCREENS.md`
+- [ ] CI green
 
-## Kontext für Reviewer
+## Context for Reviewers
 
-<!-- Was soll besonders geprüft werden? Gibt es Trade-offs oder offene Fragen? -->
+<!-- What should be reviewed with particular care? Are there trade-offs or open questions? -->

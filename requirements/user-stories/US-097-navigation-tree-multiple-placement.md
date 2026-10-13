@@ -1,32 +1,32 @@
-# US-097: Dasselbe Objekt in mehreren Ordnern einordnen
+# US-097: Place the Same Object in Multiple Folders
 
 **ID**: US-097
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich dasselbe Repository-Objekt gleichzeitig in mehreren Ordnern referenzieren können, damit ich Querverbindungen (z.B. Domäne und Initiative) ohne Datenduplizierung abbilden kann.
+As Kurt – Lead Enterprise Architect, I want to reference the same repository object in multiple folders simultaneously, so that I can represent cross-connections (e.g. domain and initiative) without data duplication.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-13](../use-cases/UC-13-navigationsbaum-verwalten.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-097](../req/REQ-097-navigationsbaum-mehrfach-einordnung.md)
+**Use Case**: [UC-13](../use-cases/UC-13-manage-navigation-tree.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-097](../req/REQ-097-navigation-tree-multiple-placement.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Mehrfach-Einordnung):
-- Wenn: ich "SAP ERP" in Ordner "Finance" und "Cloud-Migration" einhänge
-- Dann: existieren zwei eigenständige TreeNodeItems; die Entität selbst ist unverändert
+**AC1** (Multiple placement):
+- When: I attach "SAP ERP" to folder "Finance" and "Cloud-Migration"
+- Then: two independent TreeNodeItems exist; the entity itself is unchanged
 
-**AC2** (Unabhängige Entfernung):
-- Wenn: ich das Item aus "Finance" entferne
-- Dann: bleibt der Eintrag in "Cloud-Migration" gültig
+**AC2** (Independent removal):
+- When: I remove the item from "Finance"
+- Then: the entry in "Cloud-Migration" remains valid
 
 ## Definition of Done
 
-- [ ] AC1–AC2 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC2 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

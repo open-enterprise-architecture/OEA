@@ -1,46 +1,46 @@
-# Ableitung aus: requirements/req/req-137-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert) + demonstration (manuell)
+# Derived from: requirements/req/req-137-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: method: test (automated) + demonstration (manual)
 
 @functional @should @UC-01
-Feature: REQ-137 – Automatische SSO-Weiterleitung zum konfigurierten Identity Provider
+Feature: REQ-137 – Automatic SSO redirect to the configured identity provider
 
-  Das System **SOLL** konfigurierbar sein, beim Aufruf der Login-Seite
-  automatisch und ohne Benutzerinteraktion zum konfigurierten
-  OIDC-Identity-Provider weiterzuleiten (Auto-SSO-Redirect), sofern der
-  Betreiber diese Option aktiviert hat und ausschließlich OIDC als
-  Authentifizierungsmethode konfiguriert ist.
+  The system **SHOULD** be configurable to redirect automatically and
+  without user interaction to the configured OIDC identity provider
+  when the login page is opened (auto-SSO redirect), provided the
+  operator has enabled this option and only OIDC is configured as the
+  authentication method.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
   Scenario: AC1 – `autoSsoRedirect = true`, `oidcEnabled = true`, `localAuthEnabled = false`
     Given `autoSsoRedirect = true`, `oidcEnabled = true`, `localAuthEnabled = false`
-    When  Nutzer ruft Login-URL auf (ohne `?noredirect=1`)
-    Then  Übergangsseite erscheint kurz, danach automatischer Redirect zur OIDC-Authorization-URL; kein Login-Formular sichtbar
+    When  user opens the login URL (without `?noredirect=1`)
+    Then  transition page appears briefly, then automatic redirect to the OIDC authorization URL; no login form visible
 
   @AC2
-  Scenario: AC2 – `autoSsoRedirect = true` (Auto-Redirect wäre aktiv)
-    Given `autoSsoRedirect = true` (Auto-Redirect wäre aktiv)
-    When  Nutzer ruft Login-URL mit `?noredirect=1` auf
-    Then  Normaler Login-Screen wird angezeigt; kein automatischer Redirect
+  Scenario: AC2 – `autoSsoRedirect = true` (auto redirect would be active)
+    Given `autoSsoRedirect = true` (auto redirect would be active)
+    When  user opens the login URL with `?noredirect=1`
+    Then  normal login screen is displayed; no automatic redirect
 
   @AC3
   Scenario: AC3 – `autoSsoRedirect = true`, `oidcEnabled = true`, `localAuthEnabled = true`
     Given `autoSsoRedirect = true`, `oidcEnabled = true`, `localAuthEnabled = true`
-    When  Nutzer ruft Login-URL auf
-    Then  Normaler Login-Screen mit beiden Optionen; kein Auto-Redirect
+    When  user opens the login URL
+    Then  normal login screen with both options; no auto redirect
 
   @AC4
-  Scenario: AC4 – Auto-Redirect ist aktiv, Übergangsseite wird angezeigt
-    Given Auto-Redirect ist aktiv, Übergangsseite wird angezeigt
-    When  Nutzer klickt „Anderweitig anmelden"
-    Then  Redirect wird abgebrochen, normaler Login-Screen erscheint (äquivalent zu `?noredirect=1`)
+  Scenario: AC4 – Auto redirect is active, transition page is displayed
+    Given auto redirect is active, transition page is displayed
+    When  user clicks "Sign in another way"
+    Then  redirect is aborted, normal login screen appears (equivalent to `?noredirect=1`)
 
   @AC5
-  Scenario: AC5 – Auto-Redirect aktiv, IdP gibt 3× keinen erfolgreichen Login zurück
-    Given Auto-Redirect aktiv, IdP gibt 3× keinen erfolgreichen Login zurück
-    When  OEA erkennt Schleife
-    Then  Login-Screen mit Fehlermeldung „Automatische Anmeldung fehlgeschlagen" und Link „Manuell anmelden"
+  Scenario: AC5 – Auto redirect active, IdP returns no successful login 3 times
+    Given auto redirect active, IdP returns no successful login 3 times
+    When  OEA detects a loop
+    Then  login screen with error message "Automatic sign-in failed" and link "Sign in manually"

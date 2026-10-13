@@ -1,6 +1,6 @@
 ---
 id: UC-06
-title: Architektur-Katalog anlegen, konfigurieren und verwenden
+title: Create, Configure and Use an Architecture Catalog
 status: draft
 priority: must
 target_release: v1.0
@@ -24,35 +24,35 @@ references:
     - person
     - role
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
-    - concept/20-entities/12-domain-sichten.md
+    - concept/20-entities/06-core-entity-types.md
+    - concept/20-entities/12-domain-views.md
   related_use_cases:
     - UC-01
     - UC-04
     - UC-05
 ---
 
-# UC-06: Architektur-Katalog anlegen, konfigurieren und verwenden
+# UC-06: Create, Configure and Use an Architecture Catalog
 
-## Diagramm
+## Diagram
 
 ```plantuml
-@startuml UC-06-Katalog
+@startuml UC-06-Catalog
 left to right direction
 skinparam actorStyle awesome
 
-actor "Kurt\n(Katalog-Manager)" as Kurt
-actor "Sabine\n(Katalog-Manager)" as Sabine
-actor "Franz / Lukas /\nMichael / CIO / Max\n(Besucher)" as Visitors
+actor "Kurt\n(Catalog Manager)" as Kurt
+actor "Sabine\n(Catalog Manager)" as Sabine
+actor "Franz / Lukas /\nMichael / CIO / Max\n(Visitors)" as Visitors
 
-rectangle "OEA – Architektur-Katalog" {
-  usecase "Katalog anlegen" as UC_Create
-  usecase "Spalten konfigurieren" as UC_Cols
-  usecase "Join-Definition\nkonfigurieren" as UC_Join
-  usecase "Saved View speichern" as UC_SavedView
-  usecase "Katalog öffnen &\nabfragen" as UC_Query
-  usecase "Filter setzen &\nspeichern" as UC_Filter
-  usecase "Join-Modus wechseln\n(Laufzeit)" as UC_JoinRT
+rectangle "OEA – Architecture Catalog" {
+  usecase "Create Catalog" as UC_Create
+  usecase "Configure Columns" as UC_Cols
+  usecase "Configure Join\nDefinition" as UC_Join
+  usecase "Save Saved View" as UC_SavedView
+  usecase "Open &\nQuery Catalog" as UC_Query
+  usecase "Set & Save Filter" as UC_Filter
+  usecase "Switch Join Mode\n(Runtime)" as UC_JoinRT
 }
 
 Kurt --> UC_Create
@@ -75,257 +75,257 @@ UC_Query ..> UC_JoinRT : <<extend>>
 
 ## Goal in Context
 
-Das Architecture-Repository enthält im laufenden Betrieb hunderte Entitäten unterschiedlicher Typen mit ihren Attributen und Verbindungen. Ohne strukturierte Sichten sind diese Daten schwer konsumierbar: für Compliance-Audits, Reporting an die Geschäftsleitung, die Vorbereitung von Architecture Reviews oder die tägliche Wartung der Landschaft.
+In ongoing operation, the architecture repository contains hundreds of entities of different types with their attributes and connections. Without structured views, this data is hard to consume: for compliance audits, reporting to management, the preparation of architecture reviews or the daily maintenance of the landscape.
 
-OEA löst dieses Problem mit **Katalogen**: benannten, wiederverwendbaren Tabellenansichten auf das Repository, die Entitäten gezielt filtern, Attribute als Spalten konfigurieren und verwandte Entitäten über Connections joinen – analog zu parametrisierten SQL-Abfragen, aber ohne SQL-Kenntnisse.
+OEA solves this problem with **catalogs**: named, reusable table views on the repository that filter entities in a targeted way, configure attributes as columns and join related entities via connections – analogous to parameterized SQL queries, but without SQL knowledge.
 
-Dieser Use Case deckt zwei komplementäre Rollen ab:
+This use case covers two complementary roles:
 
-- **Katalog-Manager** (SH-03, SH-07): legt Kataloge an, konfiguriert Spalten, Joins, gespeicherte Filter und gespeicherte Views, platziert den Katalog im Navigationsbaum
-- **Katalog-Besucher** (alle): öffnet einen bestehenden Katalog, filtert und sortiert, wechselt den Join-Modus und speichert eigene Filter-Kombinationen
+- **Catalog Manager** (SH-03, SH-07): creates catalogs, configures columns, joins, saved filters and saved views, places the catalog in the navigation tree
+- **Catalog Visitor** (all): opens an existing catalog, filters and sorts, switches the join mode and saves their own filter combinations
 
-## Persona und Story
+## Persona and Story
 
-**Primärer Akteur**: [Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
+**Primary Actor**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 
-**Weitere Akteure (Nutzung als Besucher)**:
-- [Franz – Junior Domain Architekt](../../business-analysis/stakeholders/SH-01-franz-junior-domain-architekt.md) – liest Kataloge, um die Landschaft zu verstehen
-- [Lukas – Senior Data Architekt](../../business-analysis/stakeholders/SH-02-lukas-senior-data-architekt.md) – nutzt datenzentrierte Kataloge für datenarchitektonische Analysen
-- [Michael – Solution Architekt](../../business-analysis/stakeholders/SH-04-michael-solution-architekt.md) – nutzt Kataloge zur Ausgangsbasis-Analyse vor der Solution-Erstellung
-- [CIO](../../business-analysis/stakeholders/SH-05-cio-konzern.md) – konsumiert Executive-Kataloge als Entscheidungsgrundlage
-- [Max – Operator](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md) – nutzt Compliance-Kataloge für Audit-Vorbereitung
-- [Sabine – Senior Business Engineer](../../business-analysis/stakeholders/SH-07-sabine-business-engineer.md) – legt domänspezifische Kataloge für Business-Analyse an
+**Other actors (usage as visitor)**:
+- [Franz – Junior Domain Architect](../../business-analysis/stakeholders/SH-01-franz-junior-domain-architect.md) – reads catalogs to understand the landscape
+- [Lukas – Senior Data Architect](../../business-analysis/stakeholders/SH-02-lukas-senior-data-architect.md) – uses data-centric catalogs for data architecture analyses
+- [Michael – Solution Architect](../../business-analysis/stakeholders/SH-04-michael-solution-architect.md) – uses catalogs for baseline analysis before creating a solution
+- [CIO](../../business-analysis/stakeholders/SH-05-cio-corporate-group.md) – consumes executive catalogs as a basis for decisions
+- [Max – Operator](../../business-analysis/stakeholders/SH-06-max-operator-sme.md) – uses compliance catalogs for audit preparation
+- [Sabine – Senior Business Engineer](../../business-analysis/stakeholders/SH-07-sabine-business-engineer.md) – creates domain-specific catalogs for business analysis
 
-**Story Katalog-Manager (Kurt)**:
-Als Lead Enterprise Architekt möchte ich wiederverwendbare Tabellenansichten auf das Architecture-Repository anlegen, damit alle Beteiligten konsistente, vorgefilterte Sichten auf die für sie relevanten Entitäten haben – ohne jedes Mal neu filtern und konfigurieren zu müssen.
+**Story Catalog Manager (Kurt)**:
+As a Lead Enterprise Architect, I want to create reusable table views on the architecture repository so that all stakeholders have consistent, pre-filtered views of the entities relevant to them – without having to filter and configure anew each time.
 
-**Story Katalog-Besucher (alle)**:
-Als Nutzer des Architecture-Repositorys möchte ich einen bestehenden Katalog öffnen, live filtern und den Join-Modus anpassen – damit ich gezielt die Informationen finde, die ich für meine aktuelle Aufgabe brauche.
+**Story Catalog Visitor (all)**:
+As a user of the architecture repository, I want to open an existing catalog, filter live and adjust the join mode – so that I can find precisely the information I need for my current task.
 
 ## Trigger
 
-- Kurt möchte eine standardisierte Application-Inventory-Sicht für alle EA-Nutzer bereitstellen
-- Sabine braucht eine domänspezifische Sicht auf Geschäftsprozesse und ihre Schnittstellen
-- Franz öffnet einen Katalog, um sich die bestehende IT-Landschaft zu erschliessen
-- Michael sucht vor der Erstellung einer Solution nach betroffenen Systemen (komplementär zu UC-05 / REQ-039)
-- Max bereitet einen Compliance-Audit vor und braucht eine filterbare Systemübersicht
+- Kurt wants to provide a standardized application inventory view for all EA users
+- Sabine needs a domain-specific view of business processes and their interfaces
+- Franz opens a catalog to get acquainted with the existing IT landscape
+- Before creating a solution, Michael searches for affected systems (complementary to UC-05 / REQ-039)
+- Max prepares a compliance audit and needs a filterable system overview
 
-## Vorbedingungen (Pre-Conditions)
+## Preconditions
 
-- [ ] Akteur ist eingeloggt (UC-01) und hat eine Rolle mit Leseberechtigung auf das Repository
-- [ ] Die MetamodelConfiguration der Instanz enthält mindestens einen EntityType (UC-04)
-- [ ] Das Repository enthält mindestens eine Entity (für sinnvolle Ergebnisse; Katalog ist auch bei leerem Repository anlegbar)
-- [ ] **Für Katalog-Manager-Aktionen zusätzlich**: Akteur hat die Rolle „Enterprise Architekt" oder eine Rolle mit Schreibberechtigung für Kataloge
+- [ ] Actor is logged in (UC-01) and has a role with read permission on the repository
+- [ ] The instance's MetamodelConfiguration contains at least one EntityType (UC-04)
+- [ ] The repository contains at least one entity (for meaningful results; a catalog can also be created with an empty repository)
+- [ ] **Additionally for Catalog Manager actions**: Actor has the role "Enterprise Architect" or a role with write permission for catalogs
 
-## Nachbedingungen (Post-Conditions)
+## Postconditions
 
-### Bei Erfolg (Katalog anlegen)
+### On Success (create catalog)
 
-- Ein [Catalog](../../business-objects/catalog.md)-Objekt existiert mit allen konfigurierten Spalten, Joins und SavedFilters
-- Der Katalog ist, sofern `scope=instance`, für alle Nutzer der Instanz sichtbar
-- Optional: der Katalog ist einem [TreeNode](../../business-objects/tree-node.md) im Navigationsbaum hinzugefügt
+- A [Catalog](../../business-objects/catalog.md) object exists with all configured columns, joins and SavedFilters
+- The catalog is visible to all users of the instance, provided `scope=instance`
+- Optional: the catalog has been added to a [TreeNode](../../business-objects/tree-node.md) in the navigation tree
 
-### Bei Erfolg (Katalog besuchen)
+### On Success (visit catalog)
 
-- Der Akteur sieht die Entitäten des Catalogs mit den konfigurierten Spalten und aktiven Filtern
-- Optional gespeicherte Filter / Views sind persistiert und beim nächsten Öffnen verfügbar
+- The actor sees the entities of the catalog with the configured columns and active filters
+- Optionally saved filters / views are persisted and available the next time it is opened
 
-### Bei Misserfolg
+### On Failure
 
-- Kein Katalog-Objekt wurde persistiert; Fehlermeldung mit konkretem Hinweis
+- No catalog object was persisted; error message with a concrete hint
 
-## Hauptablauf (Basic Flow)
+## Basic Flow
 
-*Standardfall: Kurt legt einen neuen Katalog „Application Inventory" an und konfiguriert ihn für alle Nutzer*
+*Default case: Kurt creates a new catalog "Application Inventory" and configures it for all users*
 
-1. **Kurt**: navigiert zu „Kataloge" im Hauptmenü oder im Navigationsbaum
-2. **System**: zeigt eine Übersicht aller vorhandenen Kataloge (scope=instance + eigene personal), geordnet nach Name
-3. **Kurt**: klickt „Neuen Katalog anlegen"
-4. **System**: öffnet Konfigurationsformular: Name, Beschreibung, primärer Entitätstyp (Dropdown aus MetamodelConfiguration), Scope (instance / personal), Default-Join-Modus (rows / aggregate)
-5. **Kurt**: wählt `ApplicationComponent` als primären Typ; setzt Name = „Application Inventory", Scope = `instance`, Default-Join-Modus = `aggregate`
-6. **System**: zeigt den **Spalten-Konfigurator**: alle Attribute des gewählten EntityTypes als verfügbare Spalten (inkl. Built-in-Attribute: name, status, description, createdAt, sowie alle Custom-Attribute aus dem Metamodell)
-7. **Kurt**: wählt Spalten aus, ordnet sie per Drag-and-Drop, setzt optional abweichende Spalten-Labels (z.B. `name` → „Applikationsname")
-8. **Kurt**: klickt „Join hinzufügen"
-9. **System**: öffnet Join-Konfigurator: Connection-Typ (Dropdown: alle Connection-EntityTypes, die `ApplicationComponent` als Source haben), Zielentitätstyp, Join-Richtung, Spalten der Zielentität, Default-Join-Modus dieses Joins
-10. **Kurt**: wählt Connection-Typ `DataFlow` → Zielentität `Interface`, Spalten: name + protocol, Join-Modus: `aggregate`
-11. **Kurt**: speichert den Katalog
-12. **System**: persistiert den Catalog; zeigt die **Live-Katalog-Ansicht** mit den Entitäten aus dem Repository
-13. **Kurt**: legt einen SavedFilter an: klickt „Filter speichern" → Name „Nur aktive Systeme", Expression: `status eq 'active'`
-14. **Kurt**: legt eine SavedView an: klickt „Ansicht speichern" → Name „Kompaktansicht", wählt nur Spalten name + status, aktiviert Filter „Nur aktive Systeme", isDefault = true
-15. **Kurt**: platziert den Katalog im Navigationsbaum: zieht ihn in den Ordner „IT-Landschaft" oder wählt über das Kontextmenü „In Baum einhängen"
-16. **System**: erstellt einen [TreeNodeItem](../../business-objects/tree-node.md)-Eintrag im gewählten Ordner; der Katalog erscheint im Navigationsbaum
+1. **Kurt**: navigates to "Catalogs" in the main menu or in the navigation tree
+2. **System**: shows an overview of all existing catalogs (scope=instance + own personal), ordered by name
+3. **Kurt**: clicks "Create new catalog"
+4. **System**: opens configuration form: name, description, primary entity type (dropdown from MetamodelConfiguration), scope (instance / personal), default join mode (rows / aggregate)
+5. **Kurt**: selects `ApplicationComponent` as primary type; sets name = "Application Inventory", scope = `instance`, default join mode = `aggregate`
+6. **System**: shows the **column configurator**: all attributes of the selected EntityType as available columns (incl. built-in attributes: name, status, description, createdAt, as well as all custom attributes from the metamodel)
+7. **Kurt**: selects columns, arranges them via drag-and-drop, optionally sets deviating column labels (e.g., `name` → "Application Name")
+8. **Kurt**: clicks "Add join"
+9. **System**: opens join configurator: connection type (dropdown: all connection EntityTypes that have `ApplicationComponent` as source), target entity type, join direction, columns of the target entity, default join mode of this join
+10. **Kurt**: selects connection type `DataFlow` → target entity `Interface`, columns: name + protocol, join mode: `aggregate`
+11. **Kurt**: saves the catalog
+12. **System**: persists the Catalog; shows the **live catalog view** with the entities from the repository
+13. **Kurt**: creates a SavedFilter: clicks "Save filter" → name "Active systems only", expression: `status eq 'active'`
+14. **Kurt**: creates a SavedView: clicks "Save view" → name "Compact view", selects only columns name + status, activates filter "Active systems only", isDefault = true
+15. **Kurt**: places the catalog in the navigation tree: drags it into the folder "IT Landscape" or selects "Attach to tree" via the context menu
+16. **System**: creates a [TreeNodeItem](../../business-objects/tree-node.md) entry in the selected folder; the catalog appears in the navigation tree
 
-## Alternative Abläufe (Alternative Flows)
+## Alternative Flows
 
-**A1 – Katalog als Besucher öffnen und nutzen (alle Akteure)**:
+**A1 – Open and use catalog as visitor (all actors)**:
 
-*Franz öffnet den Katalog „Application Inventory", um sich die bestehende IT-Landschaft zu erschliessen*
+*Franz opens the catalog "Application Inventory" to get acquainted with the existing IT landscape*
 
-1. **Franz**: öffnet den Katalog über den Navigationsbaum oder die Katalog-Übersicht
-2. **System**: zeigt die Standard-Ansicht (isDefault-SavedView, sofern definiert): Entitäten als Tabellenzeilen, Spalten gemäss Konfiguration
-3. **Franz**: sortiert die Tabelle nach einer Spalte (Klick auf Spalten-Header)
-4. **Franz**: aktiviert einen vorhandenen SavedFilter „Nur aktive Systeme" per Schnellauswahl
-5. **System**: filtert die Ergebnisse live; zeigt nur Entitäten die der Filterbedingung entsprechen
-6. **Franz**: setzt einen ad-hoc-Filter zusätzlich (z.B. `layer = 'application'`) ohne ihn zu speichern
-7. **System**: wendet auch den Ad-hoc-Filter an; Ergebnisliste aktualisiert sich
-8. **Franz**: wechselt für den Join „Schnittstellen" den Modus von `aggregate` zu `rows`
-9. **System**: stellt die Tabelle auf Zeile-pro-Interface um; die Hauptentität wiederholt sich für jede Schnittstelle
+1. **Franz**: opens the catalog via the navigation tree or the catalog overview
+2. **System**: shows the default view (isDefault SavedView, if defined): entities as table rows, columns as configured
+3. **Franz**: sorts the table by a column (click on column header)
+4. **Franz**: activates an existing SavedFilter "Active systems only" via quick selection
+5. **System**: filters the results live; shows only entities matching the filter condition
+6. **Franz**: additionally sets an ad-hoc filter (e.g., `layer = 'application'`) without saving it
+7. **System**: also applies the ad-hoc filter; result list updates
+8. **Franz**: switches the mode for the join "Interfaces" from `aggregate` to `rows`
+9. **System**: converts the table to one row per interface; the main entity repeats for each interface
 
-**A2 – Ad-hoc-Filter speichern (alle Akteure)**:
+**A2 – Save ad-hoc filter (all actors)**:
 
-1. Besucher hat einen Ad-hoc-Filter gesetzt (wie in A1, Schritt 6)
-2. Besucher klickt „Filter speichern"
-3. **System**: fragt nach Name und ob der Filter `scope=personal` (nur für mich) oder, wenn Besucher Katalog-Manager-Berechtigung hat, `scope=instance` (für alle)
-4. Besucher bestätigt; der Filter erscheint ab sofort in der Schnellauswahl
+1. Visitor has set an ad-hoc filter (as in A1, step 6)
+2. Visitor clicks "Save filter"
+3. **System**: asks for a name and whether the filter is `scope=personal` (only for me) or, if the visitor has Catalog Manager permission, `scope=instance` (for everyone)
+4. Visitor confirms; the filter appears from now on in the quick selection
 
-**A3 – Bestehenden Katalog bearbeiten (Katalog-Manager)**:
+**A3 – Edit existing catalog (Catalog Manager)**:
 
-1. Kurt öffnet den Katalog; klickt „Konfigurieren"
-2. **System**: öffnet den Konfigurations-Editor (identisch mit dem Erstellungsformular, vorausgefüllt)
-3. Kurt ändert Spalten, fügt einen weiteren Join hinzu oder entfernt einen
-4. Kurt speichert; **System** wendet die Änderungen sofort auf alle Besucher-Sichten an
-5. Alle bestehenden SavedViews bleiben erhalten; Spalten-Referenzen die nicht mehr existieren werden aus SavedViews entfernt und der Manager informiert
+1. Kurt opens the catalog; clicks "Configure"
+2. **System**: opens the configuration editor (identical to the creation form, prefilled)
+3. Kurt changes columns, adds another join or removes one
+4. Kurt saves; **System** applies the changes immediately to all visitor views
+5. All existing SavedViews are retained; column references that no longer exist are removed from SavedViews and the manager is informed
 
-**A4 – Persönlichen Katalog anlegen (alle Akteure)**:
+**A4 – Create personal catalog (all actors)**:
 
-1. Akteur legt einen neuen Katalog an (wie Hauptablauf Schritt 3–11); wählt `scope=personal`
-2. **System**: erstellt den Katalog; er ist nur für den Akteur selbst sichtbar
-3. Akteur kann den persönlichen Katalog später auf `scope=instance` hochstufen (falls er die Berechtigung hat)
+1. Actor creates a new catalog (as basic flow steps 3–11); selects `scope=personal`
+2. **System**: creates the catalog; it is visible only to the actor themselves
+3. Actor can later promote the personal catalog to `scope=instance` (if they have the permission)
 
-**A5 – Spalten eines Joins konfigurieren (Detail)**:
+**A5 – Configure columns of a join (detail)**:
 
-1. Beim Konfigurieren eines Joins (Hauptablauf Schritt 9–10) wählt Kurt welche Attribute der Zielentität als Spalten erscheinen sollen
-2. Im `aggregate`-Modus: die Ziel-Attribute werden komma-separiert oder als Unter-Tabelle in einer Zelle dargestellt
-3. Im `rows`-Modus: jedes Ziel-Attribut wird zur eigenen Spalte; die primäre Entität wiederholt sich pro Ergebniszeile
+1. When configuring a join (basic flow steps 9–10), Kurt selects which attributes of the target entity should appear as columns
+2. In `aggregate` mode: the target attributes are shown comma-separated or as a sub-table in a cell
+3. In `rows` mode: each target attribute becomes its own column; the primary entity repeats per result row
 
-## Ausnahmen / Fehlerfälle (Exception Flows)
+## Exception Flows
 
-**E1 – Primärer Entitätstyp nicht mehr im Metamodell vorhanden**:
-- Bedingung: Der EntityType eines bestehenden Catalogs wurde aus der MetamodelConfiguration entfernt (UC-04)
-- Erwartete Reaktion: Beim Öffnen des Catalogs erscheint eine Warnung „Primärer Typ ‹ApplicationComponent› nicht mehr im Metamodell. Der Katalog kann keine Daten laden." Mit Hinweis auf UC-04
-- Wiederaufnahme: Katalog-Manager muss den Katalog manuell auf einen gültigen Typ migrieren oder löschen
+**E1 – Primary entity type no longer present in the metamodel**:
+- Condition: The EntityType of an existing Catalog was removed from the MetamodelConfiguration (UC-04)
+- Expected reaction: When opening the Catalog, a warning appears "Primary type ‹ApplicationComponent› no longer in the metamodel. The catalog cannot load data." With a hint to UC-04
+- Resumption: Catalog Manager must manually migrate the catalog to a valid type or delete it
 
-**E2 – Kein EntityType-Attribut für gewählte FilterExpression**:
-- Bedingung: Ein SavedFilter referenziert ein Attribut, das aus dem EntityType entfernt wurde
-- Erwartete Reaktion: SavedFilter wird mit Warnung-Icon markiert; der Filter kann nicht ausgeführt werden; Manager wird informiert
-- Wiederaufnahme: Manager passt den SavedFilter an
+**E2 – No EntityType attribute for the chosen FilterExpression**:
+- Condition: A SavedFilter references an attribute that was removed from the EntityType
+- Expected reaction: SavedFilter is marked with a warning icon; the filter cannot be executed; manager is informed
+- Resumption: Manager adjusts the SavedFilter
 
-**E3 – Fehlende Berechtigung für Katalog-Manager-Aktionen**:
-- Bedingung: Besucher ohne Schreibberechtigung versucht, einen Katalog anzulegen oder zu bearbeiten
-- Erwartete Reaktion: Schaltfläche „Neuen Katalog anlegen" / „Konfigurieren" nicht sichtbar oder deaktiviert; bei direktem API-Zugriff: 403 Forbidden
-- Wiederaufnahme: Besucher wendet sich an einen Katalog-Manager
+**E3 – Missing permission for Catalog Manager actions**:
+- Condition: Visitor without write permission tries to create or edit a catalog
+- Expected reaction: Button "Create new catalog" / "Configure" not visible or disabled; on direct API access: 403 Forbidden
+- Resumption: Visitor contacts a Catalog Manager
 
-**E4 – Leeres Repository (kein Ergebnis)**:
-- Bedingung: Der primäre Entitätstyp hat keine Entitäten im Repository
-- Erwartete Reaktion: Tabelle mit 0 Zeilen; informativer Hinweis „Keine Einträge gefunden. Entitäten des Typs ‹ApplicationComponent› können in einer Solution als Delta erfasst werden (UC-05)."
-- Wiederaufnahme: kein Block; Katalog bleibt nutzbar sobald Entitäten vorhanden sind
+**E4 – Empty repository (no result)**:
+- Condition: The primary entity type has no entities in the repository
+- Expected reaction: Table with 0 rows; informative notice "No entries found. Entities of type ‹ApplicationComponent› can be captured as a delta in a solution (UC-05)."
+- Resumption: no block; catalog remains usable as soon as entities exist
 
-## Datenfluss
+## Data Flow
 
-| Schritt | Daten | Richtung | Bemerkung |
+| Step | Data | Direction | Remark |
 |---|---|---|---|
-| 4–11 | Catalog-Konfiguration (name, primaryEntityType, columns, joinDefinitions, defaultJoinMode, scope) | Manager → System | Persistiert als Catalog-Objekt |
-| 12 | Entitätsliste mit Attributwerten und Join-Ergebnissen | System → Akteur | Live-Abfrage auf Repository; nicht persistiert |
-| 13 | SavedFilter (name, expressions) | Manager → System | Persistiert im Catalog-Objekt |
-| 14 | SavedView (name, columnOrder, activeFilterIds, joinModeOverrides, isDefault) | Manager → System | Persistiert im Catalog-Objekt |
-| 15–16 | TreeNodeItem (catalogId, parentNodeId, sortOrder) | Manager → System | Persistiert im TreeNode |
-| A1 Schritt 8 | Join-Modus-Override (rows/aggregate) | Besucher → System | Laufzeit-Override; optional persistent als SavedView |
+| 4–11 | Catalog configuration (name, primaryEntityType, columns, joinDefinitions, defaultJoinMode, scope) | Manager → System | Persisted as Catalog object |
+| 12 | Entity list with attribute values and join results | System → Actor | Live query on repository; not persisted |
+| 13 | SavedFilter (name, expressions) | Manager → System | Persisted in the Catalog object |
+| 14 | SavedView (name, columnOrder, activeFilterIds, joinModeOverrides, isDefault) | Manager → System | Persisted in the Catalog object |
+| 15–16 | TreeNodeItem (catalogId, parentNodeId, sortOrder) | Manager → System | Persisted in the TreeNode |
+| A1 step 8 | Join mode override (rows/aggregate) | Visitor → System | Runtime override; optionally persistent as SavedView |
 
-## Beteiligte Business Objects
+## Involved Business Objects
 
-| Business Object | Operation | Notiz |
+| Business Object | Operation | Note |
 |---|---|---|
-| [catalog](../../business-objects/catalog.md) | create, read, update | Kern-Objekt; enthält ColumnConfig, JoinDefinitions, SavedFilters, SavedViews |
-| [tree-node](../../business-objects/tree-node.md) | update | Katalog wird per TreeNodeItem in Baum eingehängt |
-| [metamodel-configuration](../../business-objects/metamodel-configuration.md) | read | Liefert verfügbare EntityTypes, Attribute, Connection-Typen für Konfiguration |
-| [person](../../business-objects/person.md) | read | Authentifizierung; `createdBy`, `lastModifiedBy` des Catalogs |
-| [role](../../business-objects/role.md) | read | Berechtigungsprüfung: Lesen vs. Konfigurieren |
+| [catalog](../../business-objects/catalog.md) | create, read, update | Core object; contains ColumnConfig, JoinDefinitions, SavedFilters, SavedViews |
+| [tree-node](../../business-objects/tree-node.md) | update | Catalog is attached to the tree via TreeNodeItem |
+| [metamodel-configuration](../../business-objects/metamodel-configuration.md) | read | Provides available EntityTypes, attributes, connection types for configuration |
+| [person](../../business-objects/person.md) | read | Authentication; `createdBy`, `lastModifiedBy` of the Catalog |
+| [role](../../business-objects/role.md) | read | Permission check: read vs. configure |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-### Katalog anlegen und konfigurieren
+### Create and configure catalog
 
-- [ ] Katalog mit beliebigem EntityType als primärer Entität anlegbar; alle Attribute des Typs sind als Spalten verfügbar
-- [ ] Spalten können ausgewählt, geordnet und mit eigenem Label versehen werden
-- [ ] Mind. ein Join über einen Connection-EntityType (`isConnection=true`) ist konfigurierbar; Richtung (outbound/inbound/both) ist wählbar
-- [ ] Default-Join-Modus (`rows` / `aggregate`) ist auf Katalog-Ebene und pro JoinDefinition konfigurierbar
+- [ ] Catalog can be created with any EntityType as primary entity; all attributes of the type are available as columns
+- [ ] Columns can be selected, ordered and given their own label
+- [ ] At least one join via a connection EntityType (`isConnection=true`) is configurable; direction (outbound/inbound/both) is selectable
+- [ ] Default join mode (`rows` / `aggregate`) is configurable at catalog level and per JoinDefinition
 
-### Filter und Views
+### Filters and views
 
-- [ ] Ad-hoc-Filter können gesetzt und als benannte SavedFilter gespeichert werden
-- [ ] SavedFilters unterstützen mind. die Operatoren: eq, neq, contains, in, isNull, isNotNull
-- [ ] SavedFilters können kombiniert werden (AND / OR)
-- [ ] SavedViews speichern Spaltenreihenfolge + aktive Filter + Join-Modus-Overrides
-- [ ] Eine SavedView kann als Default markiert werden (isDefault=true); nur eine pro Katalog
-- [ ] Besucher ohne Manager-Berechtigung können persönliche SavedFilters und SavedViews anlegen
+- [ ] Ad-hoc filters can be set and saved as named SavedFilters
+- [ ] SavedFilters support at least the operators: eq, neq, contains, in, isNull, isNotNull
+- [ ] SavedFilters can be combined (AND / OR)
+- [ ] SavedViews store column order + active filters + join mode overrides
+- [ ] A SavedView can be marked as default (isDefault=true); only one per catalog
+- [ ] Visitors without manager permission can create personal SavedFilters and SavedViews
 
-### Katalog besuchen
+### Visit catalog
 
-- [ ] Alle Akteure können Kataloge mit scope=instance öffnen
-- [ ] Spalten sind per Klick auf den Header sortierbar (auf- und absteigend)
-- [ ] Join-Modus ist pro Join zur Laufzeit zwischen `rows` und `aggregate` umschaltbar
-- [ ] Wechsel des Join-Modus aktualisiert die Tabelle ohne Seiten-Reload
-- [ ] Im `aggregate`-Modus erscheinen alle verknüpften Objekte in einer Zelle; im `rows`-Modus entsteht eine Zeile pro Kombination
+- [ ] All actors can open catalogs with scope=instance
+- [ ] Columns are sortable by clicking the header (ascending and descending)
+- [ ] Join mode is switchable at runtime per join between `rows` and `aggregate`
+- [ ] Switching the join mode updates the table without a page reload
+- [ ] In `aggregate` mode, all linked objects appear in one cell; in `rows` mode, one row is created per combination
 
-### Navigationsbaum
+### Navigation tree
 
-- [ ] Katalog kann einem TreeNode (Ordner) im Navigationsbaum zugewiesen werden
-- [ ] Derselbe Katalog kann in mehreren TreeNodes verlinkt werden (Soft-Reference)
-- [ ] Katalog ist über den Navigationsbaum direkt öffenbar
+- [ ] A catalog can be assigned to a TreeNode (folder) in the navigation tree
+- [ ] The same catalog can be linked in several TreeNodes (soft reference)
+- [ ] Catalog can be opened directly via the navigation tree
 
-### Sicherheit
+### Security
 
-- [ ] Anlegen, Bearbeiten und Löschen von Katalogen erfordert die Rolle „Enterprise Architekt" oder eine vergleichbare Schreibberechtigung
-- [ ] Kataloge mit scope=personal sind nur für den Ersteller sichtbar; kein Datenleck auf andere Nutzer
-- [ ] E3: Direkte API-Aufrufe ohne Berechtigung werden mit 403 abgelehnt
+- [ ] Creating, editing and deleting catalogs requires the role "Enterprise Architect" or a comparable write permission
+- [ ] Catalogs with scope=personal are visible only to the creator; no data leak to other users
+- [ ] E3: Direct API calls without permission are rejected with 403
 
-## Nicht im Scope
+## Out of Scope
 
-- **Katalog löschen / archivieren**: Admin-Funktion; separater UC oder Admin-Panel
-- **Export (PDF, CSV) des Katalog-Inhalts**: separater Export-UC; der Katalog selbst ist die persistierbare Abfrage
-- **Berechtigungen pro Katalog** (z.B. bestimmte Nutzer ausschliessen): Berechtigungskonzept noch offen; aktuell instance = alle, personal = nur Ersteller
-- **Aggregationsfunktionen im `aggregate`-Modus** (z.B. COUNT, SUM): aktuell nur List-Aggregation; numerische Aggregation ist ein Erweiterungskandidat
-- **Volltext-Suche über mehrere Kataloge**: Repository-weite Suche ist ein eigener UC
-- **Pivot-Ansicht** (Spalten und Zeilen tauschen): nicht im Scope v1.0
-- **Versionierung von Katalog-Konfigurationen**: TBD
-- **Plateaus und Go-Live-Übergänge**: künftiger UC (TBD)
+- **Delete / archive catalog**: admin function; separate UC or admin panel
+- **Export (PDF, CSV) of the catalog content**: separate export UC; the catalog itself is the persistable query
+- **Permissions per catalog** (e.g., excluding certain users): permission concept still open; currently instance = everyone, personal = creator only
+- **Aggregation functions in `aggregate` mode** (e.g., COUNT, SUM): currently only list aggregation; numeric aggregation is an extension candidate
+- **Full-text search across several catalogs**: repository-wide search is a separate UC
+- **Pivot view** (swap columns and rows): not in scope v1.0
+- **Versioning of catalog configurations**: TBD
+- **Plateaus and go-live transitions**: future UC (TBD)
 
-## Konzept-Bezüge
+## Concept References
 
-- [§6 Kern-Entitätstypen](../../concept/20-entities/06-kern-entitaetstypen.md) – EntityTypes und ihre Attribute die in Katalogen abgefragt werden
-- [§12 Domain-Sichten](../../concept/20-entities/12-domain-sichten.md) – Kataloge als tabellarische Ergänzung zu graphischen Domain-Sichten
+- [§6 Core Entity Types](../../concept/20-entities/06-core-entity-types.md) – EntityTypes and their attributes queried in catalogs
+- [§12 Domain Views](../../concept/20-entities/12-domain-views.md) – Catalogs as a tabular complement to graphical domain views
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Katalog-Abfrage: serverseitig als parametrisiertes Query-Objekt realisiert; die Join-Logik folgt der Connection-Semantik des Repositorys (nicht SQL-JOIN auf DB-Ebene, sondern Traversierung des Entity-Graphen)
-- `aggregate`-Modus: alle verbundenen Entitäten werden serverseitig pro Haupt-Entität gesammelt und als Array geliefert; das Frontend rendert als komma-separierte Liste oder eingebettete Tabelle
-- `rows`-Modus: das Backend expandiert die Liste; eine Haupt-Entität mit N verbundenen Entitäten ergibt N Zeilen im Response
-- Laufzeit-Filter werden als Query-Parameter übergeben; sie verändern die gespeicherte Katalog-Konfiguration nicht
-- SavedViews und SavedFilters sind im Catalog-Objekt eingebettet (kein eigenes Repository); bei scope=personal-Katalogen gilt das für alle darin gespeicherten Views/Filter
+- Catalog query: implemented server-side as a parameterized query object; the join logic follows the connection semantics of the repository (not SQL JOIN at DB level, but traversal of the entity graph)
+- `aggregate` mode: all connected entities are collected server-side per main entity and delivered as an array; the frontend renders as a comma-separated list or embedded table
+- `rows` mode: the backend expands the list; one main entity with N connected entities yields N rows in the response
+- Runtime filters are passed as query parameters; they do not change the stored catalog configuration
+- SavedViews and SavedFilters are embedded in the Catalog object (no repository of their own); for scope=personal catalogs this applies to all views/filters stored in them
 
-## Realisierende Bestandteile
+## Realizing Components
 
-- Requirements: [REQ-043](../req/REQ-043-katalog-anlegen.md), [REQ-044](../req/REQ-044-spalten-konfigurieren.md), [REQ-045](../req/REQ-045-join-definition-konfigurieren.md), [REQ-046](../req/REQ-046-katalog-abfrage.md), [REQ-047](../req/REQ-047-filter-setzen-und-speichern.md), [REQ-048](../req/REQ-048-saved-view.md), [REQ-049](../req/REQ-049-join-modus-laufzeit.md), [REQ-050](../req/REQ-050-katalog-navigationsbaum.md)
-- User Stories: [US-046](../user-stories/US-046-katalog-anlegen.md), [US-047](../user-stories/US-047-spalten-konfigurieren.md), [US-048](../user-stories/US-048-join-hinzufuegen.md), [US-049](../user-stories/US-049-katalog-daten-anzeigen.md), [US-050](../user-stories/US-050-join-modus-wechseln.md), [US-051](../user-stories/US-051-ad-hoc-filter.md), [US-052](../user-stories/US-052-saved-filter.md), [US-053](../user-stories/US-053-saved-view.md), [US-054](../user-stories/US-054-katalog-navigationsbaum.md)
+- Requirements: [REQ-043](../req/REQ-043-create-catalog.md), [REQ-044](../req/REQ-044-configure-columns.md), [REQ-045](../req/REQ-045-configure-join-definition.md), [REQ-046](../req/REQ-046-catalog-query.md), [REQ-047](../req/REQ-047-set-and-save-filters.md), [REQ-048](../req/REQ-048-saved-view.md), [REQ-049](../req/REQ-049-join-mode-runtime.md), [REQ-050](../req/REQ-050-catalog-navigation-tree.md)
+- User Stories: [US-046](../user-stories/US-046-create-catalog.md), [US-047](../user-stories/US-047-configure-columns.md), [US-048](../user-stories/US-048-add-join.md), [US-049](../user-stories/US-049-show-catalog-data.md), [US-050](../user-stories/US-050-switch-join-mode.md), [US-051](../user-stories/US-051-ad-hoc-filter.md), [US-052](../user-stories/US-052-saved-filter.md), [US-053](../user-stories/US-053-saved-view.md), [US-054](../user-stories/US-054-catalog-navigation-tree.md)
 - ADRs: –
-- Test Cases: noch keine
-- Implementation: noch keine
+- Test Cases: none yet
+- Implementation: none yet
 
-## Offene Fragen
+## Open Questions
 
-- [ ] Können Joins mehrschichtig sein (z.B. ApplicationComponent → DataFlow → Interface → UsedBy → Role)? Multi-Hop-Joins würden den Konfigurator erheblich komplexer machen. V1.0: max. ein Join-Level (nur direkte Verbindungen).
-- [ ] Sollen Kataloge eine maximale Ergebnismenge erzwingen (Paginierung Pflicht), oder sind unbegrenzte Exporte erlaubt? Relevant für grosse Repositories.
-- [ ] Können SavedViews auch Join-Modus-Overrides für alle Joins gleichzeitig setzen (globaler Override), oder nur pro Join?
-- [ ] Braucht der CIO (SH-05) einfache Chart/KPI-Widgets (z.B. „Anzahl Applikationen = 47") zusätzlich zur Tabelle? Das wäre ein separates „Dashboard"-Konzept.
+- [ ] Can joins be multi-level (e.g., ApplicationComponent → DataFlow → Interface → UsedBy → Role)? Multi-hop joins would make the configurator considerably more complex. V1.0: max. one join level (direct connections only).
+- [ ] Should catalogs enforce a maximum result set (pagination mandatory), or are unlimited exports allowed? Relevant for large repositories.
+- [ ] Can SavedViews also set join mode overrides for all joins at once (global override), or only per join?
+- [ ] Does the CIO (SH-05) need simple chart/KPI widgets (e.g., "Number of applications = 47") in addition to the table? That would be a separate "dashboard" concept.
 
-## Notizen
+## Notes
 
-UC-06 unterscheidet bewusst zwischen zwei Nutzungsrollen: dem **Katalog-Manager** (SH-03, SH-07), der Kataloge als wiederverwendbare, geteilte Abfragen für das Team anlegt, und dem **Katalog-Besucher** (alle Akteure), der diese Abfragen konsumiert und zur Laufzeit anpasst. Diese Trennung ermöglicht, dass die Komplexität der Konfiguration vom EA-Experten getragen wird, während alle anderen Stakeholder eine einfache, vorkonfigurierte Sicht erhalten.
+UC-06 deliberately distinguishes between two usage roles: the **Catalog Manager** (SH-03, SH-07), who creates catalogs as reusable, shared queries for the team, and the **Catalog Visitor** (all actors), who consumes these queries and adapts them at runtime. This separation allows the complexity of the configuration to be borne by the EA expert, while all other stakeholders get a simple, preconfigured view.
 
-Die Join-Logik (rows vs. aggregate) ist das zentrale Differenzierungsmerkmal gegenüber einfachen Listen-Views. Sie erlaubt es, verwandte Entitäten kontextabhängig entweder flach (rows: analytisch, gut für Export und Pivot) oder kompakt (aggregate: gut für Überblick und Dashboards) darzustellen – und das am selben Katalog, ohne neue Konfiguration.
+The join logic (rows vs. aggregate) is the central differentiating feature compared to simple list views. It allows related entities to be displayed context-dependently either flat (rows: analytical, good for export and pivot) or compact (aggregate: good for overview and dashboards) – and on the same catalog, without new configuration.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; Hauptablauf Katalog-Manager, A1–A5 Besucher-Flows, alle 7 Stakeholder als Akteure |
+| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; basic flow Catalog Manager, A1–A5 visitor flows, all 7 stakeholders as actors |

@@ -1,6 +1,6 @@
 ---
 id: REQ-137
-title: Automatische SSO-Weiterleitung zum konfigurierten Identity Provider
+title: Automatic SSO Redirect to the Configured Identity Provider
 type: functional
 priority: should
 status: proposed
@@ -18,113 +18,113 @@ references:
     - SH-04
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-137: Automatische SSO-Weiterleitung zum konfigurierten Identity Provider
+# REQ-137: Automatic SSO Redirect to the Configured Identity Provider
 
-## Aussage
+## Statement
 
-Das System **SOLL** konfigurierbar sein, beim Aufruf der Login-Seite automatisch und ohne Benutzerinteraktion zum konfigurierten OIDC-Identity-Provider weiterzuleiten (Auto-SSO-Redirect), sofern der Betreiber diese Option aktiviert hat und ausschließlich OIDC als Authentifizierungsmethode konfiguriert ist.
+The system **SHOULD** be configurable to redirect automatically and without user interaction to the configured OIDC identity provider when the login page is called (auto SSO redirect), provided the operator has enabled this option and OIDC is configured as the only authentication method.
 
-## Begründung
+## Rationale
 
-Im Enterprise-Kontext nutzen alle Benutzer denselben Identity-Provider (z.B. Entra ID). Das explizite Klicken auf „Via Unternehmens-SSO anmelden" ist dann ein unnötiger Schritt. Tools wie Jira, Confluence und GitHub Enterprise leiten in solchen Setups automatisch weiter — Nutzer erleben OEA als nahtlos in die bestehende IT-Infrastruktur integriert. SH-03 (Kurt) und SH-04 arbeiten typischerweise in genau diesem Kontext.
+In the enterprise context, all users use the same identity provider (e.g. Entra ID). Explicitly clicking "Sign in via corporate SSO" is then an unnecessary step. Tools such as Jira, Confluence, and GitHub Enterprise redirect automatically in such setups — users experience OEA as seamlessly integrated into the existing IT infrastructure. SH-03 (Kurt) and SH-04 typically work in exactly this context.
 
-## Kontext
+## Context
 
-Auto-SSO-Redirect gilt nur, wenn:
-- `auth.oidcEnabled = true` (mindestens ein IdP konfiguriert)
-- `auth.localAuthEnabled = false` (keine lokale Authentifizierung aktiv) — bei gemischtem Setup ist Auto-Redirect inhärent mehrdeutig und wird nicht ausgelöst
-- `auth.autoSsoRedirect = true` (Betreiber hat Auto-Redirect explizit aktiviert)
+Auto SSO redirect only applies if:
+- `auth.oidcEnabled = true` (at least one IdP configured)
+- `auth.localAuthEnabled = false` (no local authentication active) — in a mixed setup, auto redirect is inherently ambiguous and is not triggered
+- `auth.autoSsoRedirect = true` (operator has explicitly enabled auto redirect)
 
-Die Anforderung betrifft nur den initialen Aufruf der Login-Seite. Bereits authentifizierte Sitzungen sind davon unberührt (UC-01 A1).
+The requirement concerns only the initial call of the login page. Already authenticated sessions are unaffected (UC-01 A1).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-**Eingaben**:
-- Instanz-Konfiguration: `auth.autoSsoRedirect: boolean` (Default: `false`)
-- Optionale Konfiguration: `auth.autoSsoRedirectDelay: integer` (Millisekunden, Default: `0`)
-- Query-Parameter `?noredirect=1` als Escape-Hatch für Betreiber und Notfallzugang
+**Inputs**:
+- Instance configuration: `auth.autoSsoRedirect: boolean` (default: `false`)
+- Optional configuration: `auth.autoSsoRedirectDelay: integer` (milliseconds, default: `0`)
+- Query parameter `?noredirect=1` as an escape hatch for operators and emergency access
 
-**Verarbeitung**:
-1. Nutzer ruft OEA-Login-URL auf (oder wird nach abgelaufener Session dorthin geleitet)
-2. System prüft: `autoSsoRedirect = true` AND `oidcEnabled = true` AND `localAuthEnabled = false`
-3. Bedingung erfüllt: kurze Übergangsseite „Weiterleitung zu [IdP-Name] …" für `autoSsoRedirectDelay` ms anzeigen, dann sofort OIDC-Redirect auslösen
-4. `?noredirect=1` im URL: Auto-Redirect unterdrücken, normalen Login-Screen anzeigen (Escape-Hatch für Betreiber-Notfallzugang)
-5. Bedingung nicht erfüllt: normaler Login-Screen gemäß REQ-136
+**Processing**:
+1. User calls the OEA login URL (or is redirected there after an expired session)
+2. System checks: `autoSsoRedirect = true` AND `oidcEnabled = true` AND `localAuthEnabled = false`
+3. Condition met: display a short transition page "Redirecting to [IdP name] …" for `autoSsoRedirectDelay` ms, then trigger the OIDC redirect immediately
+4. `?noredirect=1` in the URL: suppress auto redirect, display the normal login screen (escape hatch for operator emergency access)
+5. Condition not met: normal login screen according to REQ-136
 
-**Ausgaben**:
-- HTTP-Redirect (302 / clientseitiger Redirect) zur OIDC-Authorization-URL des konfigurierten Providers
-- Übergangsseite zeigt: OEA-Logo, Provider-Name, kurze Ladeanimation, Link „Anderweitig anmelden" (aktiviert `?noredirect=1`)
+**Outputs**:
+- HTTP redirect (302 / client-side redirect) to the OIDC authorization URL of the configured provider
+- The transition page shows: OEA logo, provider name, short loading animation, link "Sign in another way" (activates `?noredirect=1`)
 
-**Fehlerfälle**:
-- IdP nicht erreichbar (Timeout beim Redirect): OEA zeigt Fehlermeldung mit Option, manuell den Login-Screen zu öffnen (`?noredirect=1`)
-- Auto-Redirect in Schleife (z.B. IdP leitet zurück ohne erfolgreichen Login): nach 3 fehlgeschlagenen Redirect-Zyklen Login-Screen anzeigen und Auto-Redirect für diese Session deaktivieren
+**Error Cases**:
+- IdP unreachable (timeout on redirect): OEA shows an error message with the option to open the login screen manually (`?noredirect=1`)
+- Auto redirect in a loop (e.g. IdP redirects back without successful login): after 3 failed redirect cycles, show the login screen and disable auto redirect for this session
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** — Auto-Redirect aktiv:
-- Gegeben: `autoSsoRedirect = true`, `oidcEnabled = true`, `localAuthEnabled = false`
-- Wenn: Nutzer ruft Login-URL auf (ohne `?noredirect=1`)
-- Dann: Übergangsseite erscheint kurz, danach automatischer Redirect zur OIDC-Authorization-URL; kein Login-Formular sichtbar
+**AC1** — Auto redirect active:
+- Given: `autoSsoRedirect = true`, `oidcEnabled = true`, `localAuthEnabled = false`
+- When: the user calls the login URL (without `?noredirect=1`)
+- Then: the transition page appears briefly, followed by an automatic redirect to the OIDC authorization URL; no login form visible
 
-**AC2** — Escape-Hatch:
-- Gegeben: `autoSsoRedirect = true` (Auto-Redirect wäre aktiv)
-- Wenn: Nutzer ruft Login-URL mit `?noredirect=1` auf
-- Dann: Normaler Login-Screen wird angezeigt; kein automatischer Redirect
+**AC2** — Escape hatch:
+- Given: `autoSsoRedirect = true` (auto redirect would be active)
+- When: the user calls the login URL with `?noredirect=1`
+- Then: the normal login screen is displayed; no automatic redirect
 
-**AC3** — Gemischtes Setup: kein Auto-Redirect:
-- Gegeben: `autoSsoRedirect = true`, `oidcEnabled = true`, `localAuthEnabled = true`
-- Wenn: Nutzer ruft Login-URL auf
-- Dann: Normaler Login-Screen mit beiden Optionen; kein Auto-Redirect
+**AC3** — Mixed setup: no auto redirect:
+- Given: `autoSsoRedirect = true`, `oidcEnabled = true`, `localAuthEnabled = true`
+- When: the user calls the login URL
+- Then: normal login screen with both options; no auto redirect
 
-**AC4** — „Anderweitig anmelden"-Link auf Übergangsseite:
-- Gegeben: Auto-Redirect ist aktiv, Übergangsseite wird angezeigt
-- Wenn: Nutzer klickt „Anderweitig anmelden"
-- Dann: Redirect wird abgebrochen, normaler Login-Screen erscheint (äquivalent zu `?noredirect=1`)
+**AC4** — "Sign in another way" link on the transition page:
+- Given: auto redirect is active, the transition page is displayed
+- When: the user clicks "Sign in another way"
+- Then: the redirect is aborted, the normal login screen appears (equivalent to `?noredirect=1`)
 
-**AC5** — Redirect-Schleife:
-- Gegeben: Auto-Redirect aktiv, IdP gibt 3× keinen erfolgreichen Login zurück
-- Wenn: OEA erkennt Schleife
-- Dann: Login-Screen mit Fehlermeldung „Automatische Anmeldung fehlgeschlagen" und Link „Manuell anmelden"
+**AC5** — Redirect loop:
+- Given: auto redirect active, IdP returns no successful login 3 times
+- When: OEA detects a loop
+- Then: login screen with the error message "Automatic sign-in failed" and link "Sign in manually"
 
-## Verifikationsmethode
+## Verification Method
 
-- [ ] Methode: test (automatisiert) + demonstration (manuell)
-- [ ] Test-Setup: Playwright mit OIDC-Mock-Provider; Konfigurationsvarianten via API-Interceptor
-- [ ] Bestanden-Kriterium: AC1–AC5 alle grün; Redirect-URL enthält korrekte OIDC-Parameter (state, nonce, redirect_uri)
-- [ ] In CI integriert: ja (nach Implementierung)
+- [ ] Method: test (automated) + demonstration (manual)
+- [ ] Test setup: Playwright with OIDC mock provider; configuration variants via API interceptor
+- [ ] Pass criterion: AC1–AC5 all green; redirect URL contains correct OIDC parameters (state, nonce, redirect_uri)
+- [ ] Integrated in CI: yes (after implementation)
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-136 (Betreiber-Konfiguration `auth.localAuthEnabled`, `auth.oidcEnabled`); ADR-006 (Auth-Stack: OIDC via Entra ID / Authentik)
-- **Folgewirkungen**: keine
-- **Konflikte**: REQ-136 AC3 definiert, wann Auto-Redirect explizit nicht ausgelöst wird
+- **Prerequisites**: REQ-136 (operator configuration `auth.localAuthEnabled`, `auth.oidcEnabled`); ADR-006 (auth stack: OIDC via Entra ID / Authentik)
+- **Consequences**: none
+- **Conflicts**: REQ-136 AC3 defines when auto redirect is explicitly not triggered
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Enterprise-Nutzer müssen bei jedem Login manuell auf SSO-Button klicken → wahrgenommene Schwerfälligkeit gegenüber vergleichbaren Tools (niedrig bis mittel)
-- Risiko 2: Kein Escape-Hatch → Betreiber bei IdP-Ausfall ausgesperrt → Recovery-Aufwand (hoch, daher Escape-Hatch als Pflicht in AC2)
+- Risk 1: enterprise users have to click the SSO button manually on every login → perceived sluggishness compared to comparable tools (low to medium)
+- Risk 2: no escape hatch → operator locked out during an IdP outage → recovery effort (high, hence escape hatch as mandatory in AC2)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- `?noredirect=1` muss auch nach dem OIDC-Callback erhalten bleiben (State-Parameter mitführen), damit nach einem Fehler nicht erneut Auto-Redirect ausgelöst wird
-- `autoSsoRedirectDelay` (Default 0) erlaubt Betreibern, eine kurze Verzögerung einzubauen damit Nutzer die Übergangsseite wahrnehmen — empfohlener Wert falls gesetzt: 800–1500ms
+- `?noredirect=1` must also be preserved after the OIDC callback (carry along in the state parameter) so that auto redirect is not triggered again after an error
+- `autoSsoRedirectDelay` (default 0) allows operators to build in a short delay so that users notice the transition page — recommended value if set: 800–1500ms
 
-## Realisierung
+## Implementation
 
 - ADR(s): ADR-006
-- Implementiert durch: (noch offen)
-- Tests: (noch offen)
-- Status der Verifikation: not-verified
+- Implemented by: (still open)
+- Tests: (still open)
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft aus Feedback Mockup-Session |
+| 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft from mockup session feedback |

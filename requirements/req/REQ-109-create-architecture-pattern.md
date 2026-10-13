@@ -1,6 +1,6 @@
 ---
 id: REQ-109
-title: Architecture Pattern anlegen und verwalten
+title: Create and Manage Architecture Patterns
 type: functional
 priority: must
 status: proposed
@@ -21,43 +21,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-109: Architecture Pattern anlegen und verwalten
+# REQ-109: Create and Manage Architecture Patterns
 
-## Aussage
+## Statement
 
-Das System MUSS das Anlegen, Bearbeiten und Löschen von `ArchitecturePattern`-Einträgen ermöglichen. Pflichtfelder: `name`, `problem` (Markdown), `solution` (Markdown). Optional: `applicability`, `consequences`, `maturityLevel`, `tags`, `relatedPatterns` (Multi-Select). `problem` und `solution` MÜSSEN beide gesetzt sein; ein Pattern ohne Problembeschreibung MUSS mit HTTP 422 abgewiesen werden.
+The system MUST allow creating, editing, and deleting `ArchitecturePattern` entries. Mandatory fields: `name`, `problem` (Markdown), `solution` (Markdown). Optional: `applicability`, `consequences`, `maturityLevel`, `tags`, `relatedPatterns` (multi-select). `problem` and `solution` MUST both be set; a pattern without a problem description MUST be rejected with HTTP 422.
 
-## Begründung
+## Rationale
 
-Patterns ohne Problembeschreibung sind keine Patterns — sie sind unverständlich und nicht anwendbar. Die Pflichtfeld-Validierung stellt sicher, dass die Bibliothek ausschließlich vollständige, nutzbare Patterns enthält.
+Patterns without a problem description are not patterns — they are incomprehensible and not applicable. The mandatory field validation ensures that the library contains only complete, usable patterns.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Pattern anlegen):
-- Wenn: ein Pattern mit `problem` und `solution` angelegt wird
-- Dann: antwortet das System mit HTTP 201; das Pattern ist in der Bibliothek sichtbar
+**AC1** (Create pattern):
+- When: a pattern is created with `problem` and `solution`
+- Then: the system responds with HTTP 201; the pattern is visible in the library
 
-**AC2** (Pflichtfeld problem):
-- Wenn: ein Pattern ohne `problem`-Feld gespeichert werden soll
-- Dann: antwortet das System mit HTTP 422 „problem ist ein Pflichtfeld"
+**AC2** (Mandatory field problem):
+- When: a pattern is to be saved without the `problem` field
+- Then: the system responds with HTTP 422 "problem is a mandatory field"
 
-**AC3** (relatedPatterns verknüpfen):
-- Wenn: `relatedPatterns` per Multi-Select mit anderen Patterns verknüpft werden
-- Dann: werden die Verknüpfungen gespeichert und in der Detailansicht angezeigt
+**AC3** (Link relatedPatterns):
+- When: `relatedPatterns` are linked to other patterns via multi-select
+- Then: the links are saved and displayed in the detail view
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-111 (Scope-Schutz für importierte Patterns)
-- **Folgewirkungen**: REQ-110 (Reference Architecture referenziert Patterns), REQ-118 (Abdeckungs-Analyse)
+- **Prerequisites**: REQ-111 (scope protection for imported patterns)
+- **Consequences**: REQ-110 (reference architecture references patterns), REQ-118 (coverage analysis)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- `problem` und `solution` als LONGTEXT/TEXT-Felder mit Markdown-Rendering in der UI
-- `relatedPatterns` als Many-to-Many-Self-Relation; keine Zyklus-Prüfung notwendig
-- `tags` als String-Array; Freitext-Eingabe mit Autocomplete aus bestehenden Tags
+- `problem` and `solution` as LONGTEXT/TEXT fields with Markdown rendering in the UI
+- `relatedPatterns` as a many-to-many self-relation; no cycle check necessary
+- `tags` as a string array; free-text input with autocomplete from existing tags
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

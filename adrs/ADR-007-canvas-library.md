@@ -1,157 +1,157 @@
-# ADR-007: Canvas-Bibliothek für interaktive Diagramm-Editierung
+# ADR-007: Canvas Library for Interactive Diagram Editing
 
 **Status**: accepted
-**Datum**: 2026-06-26
-**Entscheider**: [Rigobert – Produkt Owner](../business-analysis/stakeholders/SH-09-rigobert-produkt-owner.md) (SH-09)
-**Konsultiert**: Requirements Engineer (UC-05, US-045, REQ-040)
-**Informiert**: –
-**Aktualisiert**: 2026-06-26 — React Flow → **Vue Flow** infolge ADR-011 (Frontend-Framework: Vue 3)  
-**Aktualisiert**: 2026-06-28 — verbliebene React-Artefakte bereinigt; EPL 2.0-Lizenzbedingungen für ELK.js explizit dokumentiert; ADR-008-Status auf accepted korrigiert
+**Date**: 2026-06-26
+**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Consulted**: Requirements Engineer (UC-05, US-045, REQ-040)
+**Informed**: –
+**Updated**: 2026-06-26 — React Flow → **Vue Flow** following ADR-011 (frontend framework: Vue 3)  
+**Updated**: 2026-06-28 — remaining React artifacts cleaned up; EPL 2.0 license terms for ELK.js explicitly documented; ADR-008 status corrected to accepted
 
-> **Zuvor zurückgestellt** (bis ADR-008 entschieden): [ADR-008](./ADR-008-gui-architektur-dual-track.md) (accepted) legt fest, dass der interaktive Diagramm-Canvas in der **Client App** läuft. Damit ist der Blockierungsgrund entfallen.
+> **Previously deferred** (until ADR-008 was decided): [ADR-008](./ADR-008-gui-architecture-dual-track.md) (accepted) determines that the interactive diagram canvas runs in the **client app**. This removes the reason for the blocker.
 
-> **Update 2026-06-26**: [ADR-011](./ADR-011-frontend-framework.md) entscheidet das Frontend-Framework auf **Vue 3 + TypeScript**. Damit wird die ursprüngliche Wahl React Flow durch **Vue Flow** (`@vue-flow/core`, MIT) ersetzt — ein direkter Port von React Flow für Vue 3 mit identischen Konzepten (Nodes, Edges, Composables statt Hooks).
+> **Update 2026-06-26**: [ADR-011](./ADR-011-frontend-framework.md) decides the frontend framework as **Vue 3 + TypeScript**. The original choice of React Flow is therefore replaced by **Vue Flow** (`@vue-flow/core`, MIT) — a direct port of React Flow for Vue 3 with identical concepts (nodes, edges, composables instead of hooks).
 
-## Kontext und Problem
+## Context and Problem
 
-UC-05 (Architektur-Vision einer Änderungsinitiative beschreiben) erfordert, dass Solution Architekten Entitäten direkt in einem **interaktiven Diagramm** (Canvas) platzieren und benennen können. US-045 spezifiziert dabei eine besondere Verhaltensanforderung: Beim Eingeben des Namens einer neuen Entität auf dem Canvas muss eine Vorschlagsliste mit bestehenden Komponenten aus der IT-Landschaft erscheinen, damit der Architekt sofort erkennt, ob eine Komponente schon existiert und er statt eines `new`-Deltas ein `modified`- oder `retiring`-Delta anlegen sollte.
+UC-05 (describe the architecture vision of a change initiative) requires that solution architects can place and name entities directly in an **interactive diagram** (canvas). US-045 specifies a special behavioral requirement: when entering the name of a new entity on the canvas, a suggestion list with existing components from the IT landscape must appear, so that the architect immediately sees whether a component already exists and should create a `modified` or `retiring` delta instead of a `new` delta.
 
-Dafür wird eine **Web-Canvas-Bibliothek** benötigt, die:
-- Knoten (Entitäten) und Kanten (Relationen) interaktiv platzierbar und editierbar macht
-- In-Place-Texteditierung direkt auf dem Canvas-Element unterstützt (kein separater Dialog)
-- Sich in eine Vue 3/TypeScript-Webanwendung integriert
-- State als sauberes JSON serialisiert (Git-taugliche Diffs, kein Binärformat)
+This requires a **web canvas library** that:
+- Makes nodes (entities) and edges (relations) interactively placeable and editable
+- Supports in-place text editing directly on the canvas element (no separate dialog)
+- Integrates into a Vue 3/TypeScript web application
+- Serializes state as clean JSON (Git-friendly diffs, no binary format)
 
-§21.2.1 des Konzepts hat die Visualisierungsstrategie bewusst auf nach dem Requirements Engineering verschoben. Dieser ADR adressiert nur den **interaktiven Editier-Canvas** (Kernanforderung für UC-05 / Walking Skeleton), nicht die gesamte Visualisierungsstrategie (Rendering-Backends für read-only Diagramme, Notationsunterstützung etc.) – das bleibt ADR-008.
+§21.2.1 of the concept deliberately postponed the visualization strategy until after requirements engineering. This ADR addresses only the **interactive editing canvas** (core requirement for UC-05 / Walking Skeleton), not the entire visualization strategy (rendering backends for read-only diagrams, notation support, etc.) – that remains ADR-008.
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- **OSS-Kompatibilität**: OEA steht unter Apache 2.0; die Canvas-Bibliothek muss eine kompatible Open-Source-Lizenz haben (MIT, Apache 2.0, BSD)
-- **Vue 3/TypeScript-native**: das Frontend wird als Vue 3-Anwendung entwickelt (ADR-011); die Bibliothek soll sich natürlich in dieses Ökosystem einfügen
-- **In-Place-Editierung**: Name-Eingabe direkt auf dem Canvas-Knoten (US-045 AC1–AC3)
-- **Serialisierbarkeit**: Diagramm-State als diff-bares JSON; kein proprietäres Binärformat (Concern SH-04: Git-nativer Workflow)
-- **Custom Node Shapes**: verschiedene Entitätstypen (ApplicationComponent, Interface, BusinessProcess …) brauchen unterschiedliche visuelle Darstellungen
-- **Aktive Community / Wartung**: Bibliothek muss langfristig gepflegt sein; keine toten Forks
-- **Lizenzkosten**: keine pro-Seat- oder pro-Deployment-Gebühren (OSS-Prinzip)
+- **OSS compatibility**: OEA is licensed under Apache 2.0; the canvas library must have a compatible open-source license (MIT, Apache 2.0, BSD)
+- **Vue 3/TypeScript-native**: the frontend is developed as a Vue 3 application (ADR-011); the library should fit naturally into this ecosystem
+- **In-place editing**: name input directly on the canvas node (US-045 AC1–AC3)
+- **Serializability**: diagram state as diffable JSON; no proprietary binary format (concern SH-04: Git-native workflow)
+- **Custom node shapes**: different entity types (ApplicationComponent, Interface, BusinessProcess …) need different visual representations
+- **Active community / maintenance**: library must be maintained long-term; no dead forks
+- **License costs**: no per-seat or per-deployment fees (OSS principle)
 
-## Betrachtete Optionen
+## Considered Options
 
-### Option 1: Vue Flow (`@vue-flow/core`) ✓ GEWÄHLT
+### Option 1: Vue Flow (`@vue-flow/core`) ✓ CHOSEN
 
-Vue Flow ist ein direkter Port von React Flow für Vue 3. MIT-lizenziert. Nodes sind Vue 3-Komponenten.
-
-- **Pro**:
-  - Beste Vue 3/TypeScript-Integration; Nodes sind plain Vue-Komponenten (SFCs)
-  - Gleiche Konzepte wie React Flow (Nodes, Edges, Handles, MiniMap, Controls) — React-Flow-Dokumentation ist übertragbar
-  - `useVueFlow()` Composable statt React-Hooks — idiomatisches Vue 3
-  - In-Place-Editierung einfach implementierbar (Input-Element in Node-SFC)
-  - State (Nodes, Edges) als JSON-Array; diff-freundlich
-  - MIT-Lizenz, keine Einschränkungen
-  - Aktiv gepflegt; GitHub: `bcakmakoglu/vue-flow`
-- **Contra**:
-  - Kleinere Community als React Flow (aber ähnliche API → React-Flow-Ressourcen nutzbar)
-  - Ursprünglich für Flow/DAG-Diagramme optimiert; EA-spezifisches Layout muss selbst gebaut werden
-  - Auto-Layout (hierarchisch, layered) braucht externe Bibliothek (ELK.js, dagre)
-  - Für sehr grosse Graphen (>1000 Knoten) ggf. Performance-Optimierungen nötig
-
-### Option 2: maxGraph (Community-Fork von mxGraph)
-
-maxGraph ist der Apache 2.0-lizenzierte Community-Fork von mxGraph, auf dem draw.io / diagrams.net basiert. Sehr mächtige, battle-tested Bibliothek mit Jahrzehnten EA-Diagramm-Unterstützung.
+Vue Flow is a direct port of React Flow for Vue 3. MIT-licensed. Nodes are Vue 3 components.
 
 - **Pro**:
-  - Extrem feature-reich: Auto-Layout, vordefinierte EA-Shape-Bibliotheken, Gruppen, Swimlanes
-  - Battle-tested in draw.io (Millionen von Nutzern)
-  - Apache 2.0-Lizenz
-  - Gut geeignet für komplexe architektonische Layouts (layered, orthogonal Routing)
-- **Contra**:
-  - Keine native React-Integration; erfordert Wrapper-Schicht
-  - API ist konzeptionell älter (mxGraph-Erbe aus frühen 2000ern); TypeScript-Types unvollständig
-  - Kleinere Community als React Flow; Dokumentation lückenhafter
-  - Steilere Lernkurve; In-Place-Editierung ist konfigurierbar, aber nicht React-nativ
-  - maxGraph ist junger Fork (seit 2022); Stabilität des Projekts noch im Aufbau
+  - Best Vue 3/TypeScript integration; nodes are plain Vue components (SFCs)
+  - Same concepts as React Flow (nodes, edges, handles, MiniMap, controls) — React Flow documentation is transferable
+  - `useVueFlow()` composable instead of React hooks — idiomatic Vue 3
+  - In-place editing easy to implement (input element in node SFC)
+  - State (nodes, edges) as JSON array; diff-friendly
+  - MIT license, no restrictions
+  - Actively maintained; GitHub: `bcakmakoglu/vue-flow`
+- **Con**:
+  - Smaller community than React Flow (but similar API → React Flow resources usable)
+  - Originally optimized for flow/DAG diagrams; EA-specific layout must be built in-house
+  - Auto-layout (hierarchical, layered) needs an external library (ELK.js, dagre)
+  - Performance optimizations may be needed for very large graphs (>1000 nodes)
+
+### Option 2: maxGraph (community fork of mxGraph)
+
+maxGraph is the Apache 2.0-licensed community fork of mxGraph, on which draw.io / diagrams.net is based. A very powerful, battle-tested library with decades of EA diagram support.
+
+- **Pro**:
+  - Extremely feature-rich: auto-layout, predefined EA shape libraries, groups, swimlanes
+  - Battle-tested in draw.io (millions of users)
+  - Apache 2.0 license
+  - Well suited for complex architectural layouts (layered, orthogonal routing)
+- **Con**:
+  - No native React integration; requires a wrapper layer
+  - API is conceptually older (mxGraph legacy from the early 2000s); TypeScript types incomplete
+  - Smaller community than React Flow; documentation more patchy
+  - Steeper learning curve; in-place editing is configurable, but not React-native
+  - maxGraph is a young fork (since 2022); project stability still being established
 
 ### Option 3: AntV X6
 
-AntV X6 ist eine Apache 2.0-lizenzierte Graph-Editor-Bibliothek von Ant Group (Alibaba). Feature-reich, gute React-Integration, für interaktive Diagramm-Editierung konzipiert.
+AntV X6 is an Apache 2.0-licensed graph editor library from Ant Group (Alibaba). Feature-rich, good React integration, designed for interactive diagram editing.
 
 - **Pro**:
-  - Apache 2.0-Lizenz
-  - Starke Graph-Editierungs-Features (inklusive In-Place-Edit, Custom Shapes, Ports)
-  - Gute React-Integration (@antv/x6-react-shape)
-  - Aktiv gepflegt, professioneller Backing durch Ant Group
-- **Contra**:
-  - Primäre Dokumentation und Community auf Chinesisch; englische Dokumentation lückenhaft
-  - Weniger Verbreitung im westlichen Open-Source-Ökosystem; weniger StackOverflow-/GitHub-Issues-Unterstützung
-  - API hat zwischen v1 und v2 Breaking Changes eingeführt; langfristige Stabilität schwerer abschätzbar
-  - TypeScript-Typen vollständig, aber API-Ergonomie weniger konsistent als React Flow
+  - Apache 2.0 license
+  - Strong graph editing features (including in-place edit, custom shapes, ports)
+  - Good React integration (@antv/x6-react-shape)
+  - Actively maintained, professional backing by Ant Group
+- **Con**:
+  - Primary documentation and community in Chinese; English documentation patchy
+  - Less widespread in the Western open-source ecosystem; less StackOverflow/GitHub issues support
+  - API introduced breaking changes between v1 and v2; long-term stability harder to assess
+  - TypeScript types complete, but API ergonomics less consistent than React Flow
 
 ### Option 4: GoJS
 
-Kommerzielle Canvas-Bibliothek mit professioneller EA-Diagramm-Unterstützung.
+Commercial canvas library with professional EA diagram support.
 
 - **Pro**:
-  - Sehr mächtig, ausgereifte EA-/UML-Unterstützung
-  - Exzellente Dokumentation
-- **Contra**:
-  - Kommerzielle Lizenz (per-Developer-Gebühr); inkompatibel mit Apache 2.0 OSS-Projekt
-  - Scheidet aus
+  - Very powerful, mature EA/UML support
+  - Excellent documentation
+- **Con**:
+  - Commercial license (per-developer fee); incompatible with an Apache 2.0 OSS project
+  - Ruled out
 
-## Entscheidung
+## Decision
 
-Wir wählen **Option 1: Vue Flow** (`@vue-flow/core`), weil es die beste Integration in den Vue 3/TypeScript-Stack bietet (ADR-011), die In-Place-Editierung durch Vue-Komponenten als Nodes trivial realisierbar ist, der State als diff-bares JSON-Array vorliegt, und die Konzepte 1:1 von React Flow übernommen wurden (Portierungsaufwand minimal, Doku übertragbar).
+We choose **Option 1: Vue Flow** (`@vue-flow/core`), because it offers the best integration into the Vue 3/TypeScript stack (ADR-011), in-place editing is trivially realizable through Vue components as nodes, state is available as a diffable JSON array, and the concepts were adopted 1:1 from React Flow (minimal porting effort, documentation transferable).
 
-Die EA-spezifischen Lücken (Auto-Layout, ArchiMate-Shape-Bibliothek) sind bekannte, lösbare Probleme:
-- Auto-Layout wird über **ELK.js** (Eclipse Layout Kernel, EPL 2.0; per Bundling Apache 2.0-kompatibel verwendbar) nachgerüstet, sobald die Anforderung konkret wird
-- Custom Shapes (ApplicationComponent, Interface, BusinessProcess etc.) werden als Vue-SFCs direkt im OEA-Frontend definiert — kein Third-Party-Shape-Set nötig
+The EA-specific gaps (auto-layout, ArchiMate shape library) are known, solvable problems:
+- Auto-layout will be retrofitted via **ELK.js** (Eclipse Layout Kernel, EPL 2.0; usable via bundling in an Apache 2.0-compatible way) as soon as the requirement becomes concrete
+- Custom shapes (ApplicationComponent, Interface, BusinessProcess, etc.) are defined as Vue SFCs directly in the OEA frontend — no third-party shape set needed
 
-GoJS scheidet wegen kommerzieller Lizenz aus. maxGraph und AntV X6 sind technisch geeignet, haben aber keine native Vue 3-Integration. Vue Flow ist für den vorliegenden Stack die natürlichste Wahl.
+GoJS is ruled out due to its commercial license. maxGraph and AntV X6 are technically suitable, but have no native Vue 3 integration. Vue Flow is the most natural choice for the present stack.
 
-## Konsequenzen
+## Consequences
 
-### Positive Konsequenzen
+### Positive Consequences
 
-- US-045 (Neue Entität im Diagramm anlegen) ist implementierbar: Typeahead-Vorschlagsliste und In-Place-Edit sind über Vue-Node-SFCs direkt realisierbar
-- Entwickler müssen keine neue Abstraktionsschicht erlernen — Vue Flow ist Vue 3
-- Diagramm-State (Nodes, Edges, Positionen) ist als JSON in der Datenbank speicherbar und git-diff-freundlich
+- US-045 (create new entity in diagram) is implementable: typeahead suggestion list and in-place edit are directly realizable via Vue node SFCs
+- Developers do not have to learn a new abstraction layer — Vue Flow is Vue 3
+- Diagram state (nodes, edges, positions) is storable as JSON in the database and git-diff-friendly
 
-### Negative Konsequenzen / Trade-offs
+### Negative Consequences / Trade-offs
 
-- Auto-Layout für grosse EA-Diagramme (Bebauungsplan-Ansicht) ist nicht out-of-the-box; ELK.js-Integration ist eine eigene Aufgabe, wenn diese Ansicht gebaut wird
-- Vue Flow ist nicht speziell für ArchiMate oder TOGAF-Notation gebaut; alle domänenspezifischen Shapes müssen im OEA-Frontend selbst gepflegt werden
-- Performance bei sehr grossen Graphen (> 500 Knoten sichtbar) erfordert ggf. eigene Virtualisierungsoptimierungen; für Walking Skeleton kein Problem
+- Auto-layout for large EA diagrams (landscape map (Bebauungsplan) view) is not available out of the box; ELK.js integration is a separate task when this view is built
+- Vue Flow is not built specifically for ArchiMate or TOGAF notation; all domain-specific shapes must be maintained in the OEA frontend itself
+- Performance with very large graphs (> 500 visible nodes) may require custom virtualization optimizations; not a problem for the Walking Skeleton
 
-### Folgeentscheidungen
+### Follow-up Decisions
 
-- **ADR-008** (accepted): Vollständige Visualisierungsstrategie – welche Diagramm-Typen (ArchiMate Layer Views, C4, Sequenz, BPMN) rendert OEA, und mit welchen Backends (textbasiert vs. Canvas)? Vue Flow ist der Canvas-Baustein für die Client App (§21.2.1)
-- **ELK.js-Integration**: wenn hierarchisches Auto-Layout für Bebauungsplan-Ansichten gebraucht wird; als separates Requirement zu spezifizieren
-- **Shape-Bibliothek**: ArchiMate-konforme Node-Shapes (ApplicationComponent, Interface, BusinessProcess, DataObject …) als Vue-SFCs – Designaufgabe für UI-Designerin (SH-UI-Designer-Agent)
+- **ADR-008** (accepted): Full visualization strategy – which diagram types (ArchiMate layer views, C4, sequence, BPMN) does OEA render, and with which backends (text-based vs. canvas)? Vue Flow is the canvas building block for the client app (§21.2.1)
+- **ELK.js integration**: when hierarchical auto-layout is needed for landscape map views; to be specified as a separate requirement
+- **Shape library**: ArchiMate-compliant node shapes (ApplicationComponent, Interface, BusinessProcess, DataObject …) as Vue SFCs – design task for the UI designer (SH-UI-Designer agent)
 
-## Bezüge
+## References
 
-**Konzept-Kapitel**:
-- [§21.2.1 Visualisierungs-Strategie](../concept/70-platform/21-api-architektur.md)
+**Concept Chapters**:
+- [§21.2.1 Visualization Strategy](../concept/70-platform/21-api-architecture.md)
 
-**Verwandte ADRs**:
-- [ADR-008](./ADR-008-gui-architektur-dual-track.md) (accepted): Client App + Web Portal; Vue Flow läuft im Client-App-Kontext (Electron)
+**Related ADRs**:
+- [ADR-008](./ADR-008-gui-architecture-dual-track.md) (accepted): client app + web portal; Vue Flow runs in the client app context (Electron)
 
 **Use Cases / Requirements**:
-- [UC-05: Architektur-Vision einer Änderungsinitiative beschreiben](../requirements/use-cases/UC-05-architektur-vision-beschreiben.md)
-- [REQ-040: EntityDeltas einer Solution erfassen](../requirements/req/REQ-040-entity-deltas-erfassen.md)
-- [US-045: Neue Entität im Diagramm als Delta anlegen](../requirements/user-stories/US-045-delta-neue-entitaet-diagramm.md)
+- [UC-05: Describe the Architecture Vision of a Change Initiative](../requirements/use-cases/UC-05-describe-architecture-vision.md)
+- [REQ-040: Capture EntityDeltas of a Solution](../requirements/req/REQ-040-capture-entity-deltas.md)
+- [US-045: Create New Entity in Diagram as Delta](../requirements/user-stories/US-045-delta-new-entity-diagram.md)
 
-## Notizen
+## Notes
 
-Vue Flow: `@vue-flow/core` (MIT). GitHub: `bcakmakoglu/vue-flow`. Setzt Vue 3.x voraus. Vor Implementierung aktuelle Stable-Version prüfen.
+Vue Flow: `@vue-flow/core` (MIT). GitHub: `bcakmakoglu/vue-flow`. Requires Vue 3.x. Check the current stable version before implementation.
 
-### ELK.js – EPL 2.0 Lizenzbedingungen
+### ELK.js – EPL 2.0 License Terms
 
-ELK.js (Eclipse Layout Kernel) steht unter **EPL 2.0** (Eclipse Public License 2.0). EPL 2.0 ist ein schwaches Copyleft: es gilt nur für den EPL-lizenzierten Code selbst, nicht für das gesamte Projekt. Für OEA gelten folgende Bedingungen:
+ELK.js (Eclipse Layout Kernel) is licensed under **EPL 2.0** (Eclipse Public License 2.0). EPL 2.0 is a weak copyleft: it applies only to the EPL-licensed code itself, not to the entire project. The following terms apply to OEA:
 
-| Bedingung | OEA-Situation | Massnahme |
+| Term | OEA situation | Measure |
 |---|---|---|
-| **Quellcode-Verfügbarkeit** | ELK.js wird unverändert als npm-Paket eingebunden | Kein Handlungsbedarf: upstream-Repo (`eclipse/elk`) ist öffentlich; Link im NOTICE-File genügt |
-| **Copyleft-Ansteckung** | EPL 2.0 ist ein „weak copyleft" — tritt nur bei Modifikation oder direkter Weitergabe der EPL-Datei auf | OEA modifiziert ELK.js nicht → kein Copyleft auf OEA-Eigencode |
-| **NOTICE-File-Pflicht** | Distribution des Electron-Bundles (`.dmg`, `.exe`, `.AppImage`) enthält ELK.js | NOTICE-File muss enthalten: `ELK.js (Eclipse Layout Kernel) – Eclipse Public License 2.0 – https://github.com/eclipse/elk` |
-| **Kompatibilität mit Apache 2.0** | EPL 2.0 enthält eine „Secondary License"-Klausel, die Kombination mit Apache 2.0 im gleichen Produkt erlaubt | Kein Konflikt; OEA-Projekt-Lizenz (Apache 2.0) bleibt unberührt |
+| **Source code availability** | ELK.js is included unmodified as an npm package | No action required: upstream repo (`eclipse/elk`) is public; a link in the NOTICE file suffices |
+| **Copyleft contagion** | EPL 2.0 is a "weak copyleft" — applies only on modification or direct redistribution of the EPL file | OEA does not modify ELK.js → no copyleft on OEA's own code |
+| **NOTICE file obligation** | Distribution of the Electron bundle (`.dmg`, `.exe`, `.AppImage`) contains ELK.js | NOTICE file must contain: `ELK.js (Eclipse Layout Kernel) – Eclipse Public License 2.0 – https://github.com/eclipse/elk` |
+| **Compatibility with Apache 2.0** | EPL 2.0 contains a "Secondary License" clause that allows combination with Apache 2.0 in the same product | No conflict; OEA project license (Apache 2.0) remains unaffected |
 
-**Fazit**: ELK.js ist in OEA unter EPL 2.0 nutzbar. Einzige Pflicht bei Distribution: NOTICE-File-Eintrag. Wenn ELK.js zu einem späteren Zeitpunkt durch eine MIT/Apache-2.0-Alternative ersetzt wird (z.B. `elkjs`-Wrapper mit anderem Build), entfällt die Bedingung.
+**Conclusion**: ELK.js is usable in OEA under EPL 2.0. The only obligation upon distribution: NOTICE file entry. If ELK.js is replaced at a later point by an MIT/Apache 2.0 alternative (e.g. `elkjs` wrapper with a different build), the condition no longer applies.

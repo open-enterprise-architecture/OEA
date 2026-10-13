@@ -1,52 +1,52 @@
 # Vision
 
-## Vision in einem Satz
+## Vision in One Sentence
 
-> Enterprise Architecture als versionierte, modulare und werkzeugoffene Open-Source-Disziplin – konzeptionell so rigoros wie nötig, pragmatisch so niederschwellig wie möglich.
+> Enterprise architecture as a versioned, modular, and tool-open open-source discipline – conceptually as rigorous as necessary, as pragmatic and low-threshold as possible.
 
-## Mit Erklärung
+## With Explanation
 
-OEA macht die Architektur einer Organisation zur gemeinsamen, versionierten Wahrheit – für Architekten als Pflegewerkzeug, für Fachbereiche als Inventar, für Compliance als Asset-Quelle, für automatisierte Pipelines als prüfbares Artefakt.
+OEA makes an organization's architecture the shared, versioned truth – for architects as a maintenance tool, for business units as an inventory, for compliance as an asset source, for automated pipelines as a verifiable artifact.
 
-Drei bewusste Designprinzipien prägen OEA:
+Three deliberate design principles shape OEA:
 
-- **Offene, textbasierte Repräsentation statt proprietärer Formate**, weil Architektur-Wissen den Hersteller überleben muss.
-- **Progressive Disclosure statt erzwungener Modellierungs-Tiefe**, weil unterschiedliche Rollen unterschiedliche Sichten brauchen.
-- **Modulare, schnittstellen-orientierte Architektur statt Monolith**, weil das Tool nicht alles selbst können muss, sondern in eine bestehende Tool-Landschaft passen soll.
+- **Open, text-based representation instead of proprietary formats**, because architecture knowledge must outlive the vendor.
+- **Progressive disclosure instead of enforced modeling depth**, because different roles need different views.
+- **Modular, interface-oriented architecture instead of a monolith**, because the tool does not have to do everything itself but should fit into an existing tool landscape.
 
-## Zielgruppe (primär)
+## Target Audience (Primary)
 
-Sieben Persona-Profile beschreiben die primären Adressaten:
-- Junior bis Lead Architekten in KMU, Mittelstand und Konzern (SH-01, SH-03, SH-04)
-- Spezialisierte Architekten für Data und Business (SH-02, SH-07)
-- Operations-Verantwortliche in regulierten Umgebungen (SH-06)
-- Strategische Sponsoren auf C-Level (SH-05)
+Seven persona profiles describe the primary addressees:
+- Junior to lead architects in SMEs, mid-sized companies, and corporate groups (SH-01, SH-03, SH-04)
+- Specialized architects for data and business (SH-02, SH-07)
+- Operations owners in regulated environments (SH-06)
+- Strategic sponsors at C-level (SH-05)
 
-Siehe [stakeholders/](stakeholders/) für detaillierte Profile.
+See [stakeholders/](stakeholders/) for detailed profiles.
 
-## Erfolgskriterien
+## Success Criteria
 
-OEA ist erfolgreich, wenn:
-- Stakeholder unterschiedlicher Erfahrungsstufen produktiv damit arbeiten können
-- Migrationen aus bestehenden EA-Tools (Sparx, Avolution, LeanIX, Wiki) realistisch durchführbar sind
-- Compliance-Anforderungen regulierter Branchen ohne nachträgliches Tooling erfüllt werden
-- Es als ernsthafte OSS-Alternative im EA-Bereich wahrgenommen wird
+OEA is successful when:
+- Stakeholders of different experience levels can work productively with it
+- Migrations from existing EA tools (Sparx, Avolution, LeanIX, wiki) are realistically feasible
+- Compliance requirements of regulated industries are met without subsequent tooling
+- It is perceived as a serious OSS alternative in the EA field
 
-## Nicht-Ziele
+## Non-Goals
 
-- Kein Ersatz für klassische Requirements-Tools (Doors, Jama)
-- Kein Code-Generator
-- Kein Multi-Tenant-SaaS-Angebot in der ersten Version
-- Keine Visualisierungs-Plattform für nicht-architektonische Daten
-- Keine vollständige BPM-Suite (BPMN-Modellierung als optionales Adapter-Modul)
+- Not a replacement for classic requirements tools (Doors, Jama)
+- Not a code generator
+- No multi-tenant SaaS offering in the first version
+- Not a visualization platform for non-architectural data
+- Not a full BPM suite (BPMN modeling as an optional adapter module)
 
-## Designprinzipien (Vertiefung)
+## Design Principles (In Depth)
 
-### Offene, textbasierte Repräsentation
-Architektur-Inhalte liegen als versionierte Text-Artefakte vor: Markdown, YAML, JSON Schema. Versionskontrolle ist nativ, Diff-Tauglichkeit selbstverständlich, kein proprietäres Binärformat blockiert Migration.
+### Open, Text-Based Representation
+Architecture content exists as versioned text artifacts: Markdown, YAML, JSON Schema. Version control is native, diff-friendliness is a given, no proprietary binary format blocks migration.
 
 ### Progressive Disclosure
-Die Logical-Schicht ist optional, nicht obligatorisch. Inventar-Sicht ist der niederschwellige Einstieg, Schichten-Sicht und Bebauungsplan sind nur dort sichtbar, wo sie gebraucht werden. Komplexität auf Knopfdruck zugänglich, nicht aufgezwungen.
+The logical layer is optional, not mandatory. The inventory view is the low-threshold entry point; layer view and landscape map (Bebauungsplan) are only visible where they are needed. Complexity accessible at the push of a button, not imposed.
 
-### Modulare, schnittstellen-orientierte Architektur
-API-first (OpenAPI 3.1 für REST, AsyncAPI für Events). Module sind austauschbar: BPMN-Integration, GRC-Adapter, ITSM-Brücke. Das Tool ist nicht allumfassend, sondern integrationsfähig.
+### Modular, Interface-Oriented Architecture
+API-first (OpenAPI 3.1 for REST, AsyncAPI for events). Modules are exchangeable: BPMN integration, GRC adapter, ITSM bridge. The tool is not all-encompassing but integration-capable.

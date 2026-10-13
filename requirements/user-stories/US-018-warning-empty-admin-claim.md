@@ -1,54 +1,54 @@
-# US-018: Warnung bei leerem oder nicht-existierendem Remote-Admin-Claim
+# US-018: Warning for Empty or Non-Existent Remote Admin Claim
 
 **ID**: US-018
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Operator möchte ich beim Konfigurieren eines Remote-Bootstrapping-Mappings gewarnt werden, wenn die angegebene Gruppe leer oder nicht vorhanden ist, damit ich mich nicht versehentlich aus der Instanz aussperre.
+As an operator, I want to be warned when configuring a remote bootstrapping mapping if the specified group is empty or does not exist, so that I do not accidentally lock myself out of the instance.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-02: System-Admin-Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
-**Persona**: [SH-06: Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Requirement**: [REQ-018: Warnung bei leerem Remote-Admin-Claim](../req/REQ-018-warnung-leerer-admin-claim.md)
+**Use Case**: [UC-02: System Admin Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
+**Persona**: [SH-06: Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Requirement**: [REQ-018: Warning for Empty Remote Admin Claim](../req/REQ-018-warning-empty-admin-claim.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein Remote-Mapping auf eine zum Konfigurationszeitpunkt leere oder nicht existierende Gruppe
-- Wenn: Max die Konfiguration speichert
-- Dann: erhält er eine Warnung, dass dieses Mapping aktuell niemandem Zugriff verleiht
+- Given: a remote mapping to a group that is empty or non-existent at configuration time
+- When: Max saves the configuration
+- Then: he receives a warning that this mapping currently grants access to nobody
 
 **AC2**:
-- Gegeben: dieselbe Situation
-- Wenn: Max die Warnung zur Kenntnis nimmt
-- Dann: kann er die Konfiguration trotzdem speichern (kein Hard-Block)
+- Given: the same situation
+- When: Max acknowledges the warning
+- Then: he can still save the configuration (no hard block)
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Konfigurations-UI/CLI für Remote-Mapping, IdP-API-Client
-- Betroffene EntityTypes/Relations: `SystemAdminAccount` mit `mode: remote`
-- API-Endpunkte: Konfigurations-Endpunkt für Claim-Mapping (Validierungs-Aufruf)
-- Datenbank-Änderungen: keine zusätzlichen
+- Affected components: configuration UI/CLI for remote mapping, IdP API client
+- Affected EntityTypes/Relations: `SystemAdminAccount` with `mode: remote`
+- API endpoints: configuration endpoint for claim mapping (validation call)
+- Database changes: no additional ones
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (Test-IdP mit leerer/nicht-existierender Gruppe)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (test IdP with empty/non-existent group)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-014
-- Blockiert: keine
+- Waiting on: US-014
+- Blocks: none
 
-## Notizen
+## Notes
 
-Prüfung ist Best-Effort (abhängig von Provider-API-Zugriff, z.B. Microsoft Graph), kein verpflichtender Hard-Block.
+The check is best-effort (dependent on provider API access, e.g. Microsoft Graph), not a mandatory hard block.

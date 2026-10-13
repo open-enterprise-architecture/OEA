@@ -1,64 +1,64 @@
-# US-024: Enrollment-Vorgänge im Audit-Log protokollieren
+# US-024: Log Enrollment Processes in the Audit Log
 
 **ID**: US-024
 **Story Points**: 2
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Betreiber möchte ich, dass jeder Enrollment-Vorgang im Audit-Log festgehalten wird, damit ich im Sicherheitsfall nachvollziehen kann, wer wann welche Authentifizierungsmethode eingerichtet hat.
+As an operator, I want every enrollment process to be recorded in the audit log, so that in a security incident I can trace who set up which authentication method and when.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-03: Authentifizierungsmethode einrichten](../use-cases/UC-03-authentifizierungsmethode-einrichten.md)
-**Persona**: [SH-06: Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Requirement**: [REQ-025: Audit-Log-Eintrag für jeden Enrollment-Vorgang](../req/REQ-025-audit-log-enrollment.md)
+**Use Case**: [UC-03: Set Up Authentication Method](../use-cases/UC-03-set-up-authentication-method.md)
+**Persona**: [SH-06: Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Requirement**: [REQ-025: Audit Log Entry for Every Enrollment Process](../req/REQ-025-audit-log-enrollment.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein Enrollment-Vorgang wird erfolgreich abgeschlossen (TOTP, Passkey oder Passwort)
-- Wenn: die Methode persistiert ist
-- Dann: enthält das Audit-Log einen Eintrag mit Zeitpunkt (ISO 8601), Person-ID, Methoden-Typ (`totp` | `passkey` | `password`), Ergebnis `success`
+- Given: an enrollment process completes successfully (TOTP, passkey or password)
+- When: the method is persisted
+- Then: the audit log contains an entry with timestamp (ISO 8601), person ID, method type (`totp` | `passkey` | `password`), result `success`
 
 **AC2**:
-- Gegeben: ein Enrollment-Vorgang schlägt fehl (falscher TOTP-Code, Passkey-Abbruch, Passwort zu schwach)
-- Wenn: der Fehlschlag eintritt
-- Dann: enthält das Audit-Log einen Eintrag mit Zeitpunkt, Person-ID, Methoden-Typ, Ergebnis `failure` und generischem Fehlergrund
+- Given: an enrollment process fails (wrong TOTP code, passkey cancellation, password too weak)
+- When: the failure occurs
+- Then: the audit log contains an entry with timestamp, person ID, method type, result `failure` and a generic failure reason
 
 **AC3**:
-- Gegeben: ein ungültiges Enrollment-Token wird eingereicht
-- Wenn: der Fehlschlag eintritt
-- Dann: enthält das Audit-Log einen Eintrag mit Zeitpunkt, Ergebnis `failure`, Fehlergrund `invalid_token`; keine Person-ID (nicht ermittelbar)
+- Given: an invalid enrollment token is submitted
+- When: the failure occurs
+- Then: the audit log contains an entry with timestamp, result `failure`, failure reason `invalid_token`; no person ID (cannot be determined)
 
 **AC4**:
-- Gegeben: ein Audit-Log-Eintrag für einen Enrollment-Vorgang
-- Wenn: er in der Log-Infrastruktur gespeichert ist
-- Dann: enthält er keine Credentials-Werte (kein TOTP-Secret, kein Passwort-Hash, kein Public Key)
+- Given: an audit log entry for an enrollment process
+- When: it is stored in the log infrastructure
+- Then: it contains no credential values (no TOTP secret, no password hash, no public key)
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Audit-Log-Modul, Enrollment-Modul (alle Pfade: TOTP, Passkey, Passwort, Token-Validierung)
-- Betroffene EntityTypes/Relations: Audit-Log-Schema (konsistent mit REQ-005/US-005: gleiche Tabellenstruktur / gleicher Append-Only-Store)
-- API-Endpunkte: kein eigener Endpunkt; Logging intern in jedem Enrollment-Endpunkt
-- Datenbank-Änderungen: neue Event-Typen im Audit-Log (`enrollment_success`, `enrollment_failure`, `enrollment_token_invalid`)
+- Affected components: audit log module, enrollment module (all paths: TOTP, passkey, password, token validation)
+- Affected EntityTypes/Relations: audit log schema (consistent with REQ-005/US-005: same table structure / same append-only store)
+- API endpoints: no dedicated endpoint; logging happens internally in every enrollment endpoint
+- Database changes: new event types in the audit log (`enrollment_success`, `enrollment_failure`, `enrollment_token_invalid`)
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (Erfolg und Fehlschlag für alle drei Methoden + ungültiges Token; Credential-Freiheit im Log prüfen)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (success and failure for all three methods + invalid token; verify credential-freedom of the log)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-021, US-022, US-023 (mindestens ein Enrollment-Pfad muss existieren); US-005 (Login-Audit-Log als Referenz für Schema-Konsistenz)
-- Blockiert: keine
+- Waiting on: US-021, US-022, US-023 (at least one enrollment path must exist); US-005 (login audit log as reference for schema consistency)
+- Blocks: none
 
-## Notizen
+## Notes
 
-Sollte parallel zur Fertigstellung der jeweiligen Enrollment-Story erweiterbar sein – ähnlich der Empfehlung in US-005, iterativ zu vorgehen. Schema-Konsistenz mit Login-Audit-Log (US-005) ist wichtig für spätere Audit-Report-Use-Cases (Konzept §22).
+Should be extensible in parallel with the completion of each enrollment story – similar to the recommendation in US-005 to proceed iteratively. Schema consistency with the login audit log (US-005) is important for later audit report use cases (concept §22).

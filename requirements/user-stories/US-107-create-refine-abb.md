@@ -1,36 +1,36 @@
-# US-107: ABB anlegen und Verfeinerungs-Hierarchie aufbauen
+# US-107: Create an ABB and Build a Refinement Hierarchy
 
 **ID**: US-107
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich `ArchitectureBuildingBlock`-Einträge anlegen, bearbeiten und in einer Verfeinerungs-Hierarchie verknüpfen, damit ich eine organisationsspezifische Continuum-Bibliothek aufbauen und verwalten kann.
+As Kurt – Lead Enterprise Architect, I want to create and edit `ArchitectureBuildingBlock` entries and link them in a refinement hierarchy, so that I can build and manage an organization-specific continuum library.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-17](../use-cases/UC-17-continuum-bausteine-verwalten.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-107](../req/REQ-107-abb-anlegen-verfeinern.md)
+**Use Case**: [UC-17](../use-cases/UC-17-manage-continuum-building-blocks.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-107](../req/REQ-107-create-refine-abb.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (ABB anlegen):
-- Wenn: ich einen ABB mit `continuumLevel=organization` und `maturityLevel=established` anlege
-- Dann: speichert das System ihn mit HTTP 201; er ist sofort in der Bibliothek sichtbar
+**AC1** (Create ABB):
+- When: I create an ABB with `continuumLevel=organization` and `maturityLevel=established`
+- Then: the system saves it with HTTP 201; it is immediately visible in the library
 
-**AC2** (Zyklus-Erkennung):
-- Wenn: ich ABB „B" auf `refines=A` setze und dann ABB „A" auf `refines=B` setzen will
-- Dann: lehnt das System die Speicherung mit HTTP 422 „Zyklus erkannt: A → B → A" ab
+**AC2** (Cycle detection):
+- When: I set ABB "B" to `refines=A` and then want to set ABB "A" to `refines=B`
+- Then: the system rejects saving with HTTP 422 "Cycle detected: A → B → A"
 
-**AC3** (Pflichtfeld industry):
-- Wenn: ich einen ABB mit `continuumLevel=industry` ohne das Feld `industry` speichere
-- Dann: erhalte ich HTTP 422
+**AC3** (Mandatory field industry):
+- When: I save an ABB with `continuumLevel=industry` without the `industry` field
+- Then: I receive HTTP 422
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

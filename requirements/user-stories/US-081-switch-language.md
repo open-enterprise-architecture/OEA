@@ -1,6 +1,6 @@
 ---
 id: US-081
-title: UI-Sprache konfigurieren und wechseln
+title: Configure and Switch the UI Language
 use_case: UC-04
 requirement: REQ-079
 priority: should
@@ -9,24 +9,24 @@ story_points: 8
 created: 2026-06-26
 ---
 
-# US-081: UI-Sprache konfigurieren und wechseln
+# US-081: Configure and Switch the UI Language
 
-**Als** Lead Enterprise Architekt (Kurt, SH-03)  
-**möchte ich** als Admin weitere UI-Sprachen aktivieren und als Nutzer meine bevorzugte Sprache in den Profil-Einstellungen wählen,  
-**damit** internationale Teams OEA in ihrer Arbeitssprache nutzen können.
+**As** a Lead Enterprise Architect (Kurt, SH-03)  
+**I want** to activate additional UI languages as admin and, as a user, choose my preferred language in the profile settings,  
+**so that** international teams can use OEA in their working language.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] Admin-Bereich: Sprachen aktivieren/deaktivieren; Sprach-Pakete als JSON hochladen
-- [ ] Profil-Einstellungen: Dropdown mit allen aktivierten Sprachen; Auswahl wechselt UI sofort (kein Reload)
-- [ ] Instanz-Default-Sprache konfigurierbar beim Bootstrapping und nachträglich im Admin-Bereich
-- [ ] Alle UI-Strings (Navigation, Buttons, Fehlermeldungen, Validierungstexte) werden übersetzt
-- [ ] EntityType-Anzeigenamen (`displayName`-Map) folgen der aktiven Sprache
-- [ ] Fallback auf Englisch wenn ein Key in der aktiven Sprache fehlt (kein leerer String)
-- [ ] Built-in-Sprachpakete: EN + DE werden mit OEA ausgeliefert
+- [ ] Admin area: activate/deactivate languages; upload language packs as JSON
+- [ ] Profile settings: dropdown with all activated languages; selection switches the UI immediately (no reload)
+- [ ] Instance default language configurable during bootstrapping and afterwards in the admin area
+- [ ] All UI strings (navigation, buttons, error messages, validation texts) are translated
+- [ ] EntityType display names (`displayName` map) follow the active language
+- [ ] Fallback to English if a key is missing in the active language (no empty string)
+- [ ] Built-in language packs: EN + DE are shipped with OEA
 
-## Technische Hinweise
+## Technical Notes
 
-- vue-i18n; Sprach-JSON-Dateien nach Namespace getrennt
-- `EntityTypeDefinition.displayName: Record<string, string>` statt `string`
-- API-Response enthält immer vollständiges `displayName`-Objekt; Client-seitige Sprachauswahl
+- vue-i18n; language JSON files separated by namespace
+- `EntityTypeDefinition.displayName: Record<string, string>` instead of `string`
+- API response always contains the complete `displayName` object; client-side language selection

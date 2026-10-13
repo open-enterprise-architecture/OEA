@@ -1,6 +1,6 @@
 ---
 id: UC-14
-title: Änderungshistorie einer Entität einsehen
+title: View the Change History of an Entity
 status: draft
 priority: must
 target_release: v1.0
@@ -18,17 +18,17 @@ references:
     - person
     - role
   adrs:
-    - adrs/ADR-016-persistenz-strategie.md
+    - adrs/ADR-016-persistence-strategy.md
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
+    - concept/20-entities/06-core-entity-types.md
   related_use_cases:
     - UC-05
     - UC-15
 ---
 
-# UC-14: Änderungshistorie einer Entität einsehen
+# UC-14: View the Change History of an Entity
 
-## Diagramm
+## Diagram
 
 ```plantuml
 @startuml UC-14-History
@@ -36,13 +36,13 @@ left to right direction
 skinparam actorStyle awesome
 
 actor "Kurt\n(Lead EA)" as Kurt
-actor "Lukas\n(Data Architekt)" as Lukas
-actor "Michael\n(Solution Architekt)" as Michael
+actor "Lukas\n(Data Architect)" as Lukas
+actor "Michael\n(Solution Architect)" as Michael
 
-rectangle "OEA – Änderungshistorie einsehen" {
-  usecase "Versionshistorie\nanzeigen (Zeitlinie)" as UC_History
-  usecase "Diff zweier Versionen\nanzeigen" as UC_Diff
-  usecase "Version für Wieder-\nherstellung auswählen" as UC_Select
+rectangle "OEA – View Change History" {
+  usecase "Show Version History\n(Timeline)" as UC_History
+  usecase "Show Diff of\nTwo Versions" as UC_Diff
+  usecase "Select Version for\nRestore" as UC_Select
 }
 
 Kurt --> UC_History
@@ -59,126 +59,126 @@ UC_History ..> UC_Select : <<extend>>
 
 ## Goal in Context
 
-Ein Architecture Repository ist nur dann vertrauenswürdig, wenn nachvollziehbar ist, wer was wann geändert hat. Der Lead Enterprise Architekt und berechtigte Nutzer müssen die vollständige Änderungshistorie einer Entität einsehen können — als Zeitlinie mit Diff-Ansicht, ohne separates Audit-Tool.
+An architecture repository is only trustworthy if it is traceable who changed what and when. The Lead Enterprise Architect and authorized users must be able to view the complete change history of an entity — as a timeline with diff view, without a separate audit tool.
 
-OEA speichert vor jedem Update einen unveränderlichen Snapshot des Vorzustands in `entity_versions` (ADR-016, BR-12/BR-13 in entity.md). UC-14 macht diese Snapshots für Nutzer zugänglich.
+OEA stores an immutable snapshot of the previous state in `entity_versions` before every update (ADR-016, BR-12/BR-13 in entity.md). UC-14 makes these snapshots accessible to users.
 
-## Persona und Story
+## Persona and Story
 
-**Primärer Akteur**: [Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
+**Primary Actor**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 
-**Weitere Beteiligte**:
-- [Lukas – Senior Data Architekt](../../business-analysis/stakeholders/SH-02-lukas-senior-data-architekt.md) (Audit- und Compliance-Zwecke)
-- [Michael – Solution Architekt](../../business-analysis/stakeholders/SH-04-michael-solution-architekt.md) (prüft Änderungen in seinem Zuständigkeitsbereich)
+**Other Stakeholders**:
+- [Lukas – Senior Data Architect](../../business-analysis/stakeholders/SH-02-lukas-senior-data-architect.md) (audit and compliance purposes)
+- [Michael – Solution Architect](../../business-analysis/stakeholders/SH-04-michael-solution-architect.md) (reviews changes in his area of responsibility)
 
-**Story**: Als Lead Enterprise Architekt möchte ich nachvollziehen können, wer eine Entität wann geändert hat und was genau verändert wurde — damit ich Änderungen begründen, Fehler erkennen und bei Bedarf zur vorherigen Version zurückkehren kann (UC-15).
+**Story**: As a Lead Enterprise Architect, I want to be able to trace who changed an entity when and what exactly was changed — so that I can justify changes, detect errors and, if needed, return to the previous version (UC-15).
 
 ## Trigger
 
-1. Eine Entität zeigt einen unerwarteten Zustand — Kurt will wissen, wann und durch wen die Änderung eingetreten ist
-2. Compliance-Anforderung: Lukas muss belegen, dass eine Entität zu einem bestimmten Zeitpunkt einen definierten Zustand hatte
-3. Vorbereitung einer Wiederherstellung (UC-15): Kurt prüft den Verlauf, bevor er einen alten Stand auswählt
+1. An entity shows an unexpected state — Kurt wants to know when and by whom the change occurred
+2. Compliance requirement: Lukas must prove that an entity had a defined state at a certain point in time
+3. Preparation of a restore (UC-15): Kurt reviews the history before selecting an old state
 
-## Vorbedingungen (Pre-Conditions)
+## Preconditions
 
-- [ ] Kurt ist eingeloggt (UC-01) und hat Leseberechtigung auf die betreffende Entität
-- [ ] Die Entität existiert im Repository und hat mindestens eine Änderungsversion (d.h. wurde seit Anlage mindestens einmal bearbeitet)
+- [ ] Kurt is logged in (UC-01) and has read permission on the entity in question
+- [ ] The entity exists in the repository and has at least one change version (i.e., it has been edited at least once since creation)
 
-## Nachbedingungen (Post-Conditions)
+## Postconditions
 
-### Bei Erfolg
+### On Success
 
-- Kurt sieht die vollständige Versionshistorie der Entität als Zeitlinie
-- Kein Datensatz wurde verändert; der UC ist rein lesend
+- Kurt sees the complete version history of the entity as a timeline
+- No record was changed; the UC is purely read-only
 
-### Bei Misserfolg
+### On Failure
 
-- Fehlermeldung mit Hinweis (fehlende Berechtigung, Entität nicht gefunden)
+- Error message with hint (missing permission, entity not found)
 
-## Hauptablauf (Basic Flow)
+## Basic Flow
 
-*Standardfall: Kurt öffnet die Versionshistorie einer Entität und betrachtet eine Änderung im Detail*
+*Default case: Kurt opens the version history of an entity and looks at a change in detail*
 
-1. **Kurt**: öffnet die Detailansicht einer Entität (z.B. „SAP ERP", id=42)
-2. **System**: zeigt die Entitätsdetails; im Header ist ein „Historie"-Tab sichtbar (sofern `entity_versions`-Einträge vorhanden)
-3. **Kurt**: klickt auf „Historie"
-4. **System**: zeigt eine chronologische Zeitlinie aller Versionen, neueste zuerst:
-   - Versionsnummer (v1, v2, v3 …)
-   - Zeitstempel (UTC)
-   - Geändert von (Name der Person, verlinkt auf Profil)
-   - Änderungsgrund (falls beim Update angegeben; sonst leer)
-   - Kurzübersicht geänderter Felder (z.B. „name, description" oder „properties.owner")
-5. **Kurt**: klickt auf eine Version (z.B. v4)
-6. **System**: zeigt einen Diff zwischen v4 und v5 (dem Nachfolger):
-   - Geänderte Felder mit Vorher/Nachher-Werten (farblich hervorgehoben: rot = entfernt, grün = hinzugefügt)
-   - Unveränderte Felder werden nicht angezeigt (Fokus auf Änderungen)
-7. **Kurt**: kann optional „Vollständiger Stand v4" aufklappen, um den gesamten Entitätszustand zu diesem Zeitpunkt zu sehen
+1. **Kurt**: opens the detail view of an entity (e.g., "SAP ERP", id=42)
+2. **System**: shows the entity details; a "History" tab is visible in the header (provided `entity_versions` entries exist)
+3. **Kurt**: clicks "History"
+4. **System**: shows a chronological timeline of all versions, newest first:
+   - Version number (v1, v2, v3 …)
+   - Timestamp (UTC)
+   - Changed by (name of the person, linked to profile)
+   - Change reason (if specified at update; otherwise empty)
+   - Brief overview of changed fields (e.g., "name, description" or "properties.owner")
+5. **Kurt**: clicks a version (e.g., v4)
+6. **System**: shows a diff between v4 and v5 (its successor):
+   - Changed fields with before/after values (highlighted in color: red = removed, green = added)
+   - Unchanged fields are not shown (focus on changes)
+7. **Kurt**: can optionally expand "Complete state v4" to see the entire entity state at that point in time
 
-## Alternative Abläufe (Alternative Flows)
+## Alternative Flows
 
-**A1 – Zeitraumfilter setzen**
+**A1 – Set time range filter**
 
-1. **Kurt**: klickt in der Zeitlinie auf „Filtern"
-2. **System**: zeigt Datumsfilter (Von / Bis) und Actor-Filter (Person auswählen)
-3. **Kurt**: setzt Filter; System zeigt nur Versionen im gewählten Zeitraum / von der gewählten Person
+1. **Kurt**: clicks "Filter" in the timeline
+2. **System**: shows date filter (from / to) and actor filter (select person)
+3. **Kurt**: sets filter; system shows only versions in the selected period / by the selected person
 
-**A2 – Zwei Versionen direkt vergleichen**
+**A2 – Compare two versions directly**
 
-1. **Kurt**: wählt in der Zeitlinie zwei Versionen per Checkbox aus (z.B. v2 und v7)
-2. **System**: zeigt Diff zwischen v2 und v7 — alle Änderungen über den gesamten Zeitraum kumuliert
+1. **Kurt**: selects two versions in the timeline via checkbox (e.g., v2 and v7)
+2. **System**: shows diff between v2 and v7 — all changes over the entire period cumulated
 
-**A3 – Von Historie direkt zur Wiederherstellung wechseln**
+**A3 – Switch from history directly to restore**
 
-1. **Kurt**: sieht in der Detailansicht einer Version die Schaltfläche „Diese Version wiederherstellen"
-2. **Kurt**: klickt die Schaltfläche → System leitet zu UC-15 mit vorausgefüllter Versionsnummer weiter
+1. **Kurt**: sees the button "Restore this version" in the detail view of a version
+2. **Kurt**: clicks the button → system redirects to UC-15 with prefilled version number
 
-**A4 – Entität ohne Änderungshistorie**
+**A4 – Entity without change history**
 
-1. **Kurt**: öffnet eine Entität, die seit Anlage nie bearbeitet wurde
-2. **System**: zeigt im Historie-Tab: „Keine Änderungen seit Anlage. Erstellt am [Datum] von [Person]."
+1. **Kurt**: opens an entity that has never been edited since creation
+2. **System**: shows in the history tab: "No changes since creation. Created on [date] by [person]."
 
-## Ausnahmen / Fehlerfälle (Exception Flows)
+## Exception Flows
 
-**E1 – Fehlende Leseberechtigung**
-- Bedingung: Kurt hat keine Leseberechtigung auf die Entität (z.B. Solution-scoped Entität ausserhalb seines Bereichs)
-- Erwartete Reaktion: 403; Historie-Tab nicht sichtbar
-- Wiederaufnahme: Person wendet sich an Admin (UC-02)
+**E1 – Missing read permission**
+- Condition: Kurt has no read permission on the entity (e.g., solution-scoped entity outside his area)
+- Expected reaction: 403; history tab not visible
+- Resumption: Person contacts the admin (UC-02)
 
-**E2 – Entität nicht gefunden**
-- Bedingung: Direkt-Link auf Entität mit gelöschter ID
-- Erwartete Reaktion: 404 mit klarer Meldung
-- Wiederaufnahme: Kurt navigiert zurück zum Katalog
+**E2 – Entity not found**
+- Condition: Direct link to entity with deleted ID
+- Expected reaction: 404 with clear message
+- Resumption: Kurt navigates back to the catalog
 
-## Datenfluss
+## Data Flow
 
-| Schritt | Daten | Richtung | Bemerkung |
+| Step | Data | Direction | Remark |
 |---|---|---|---|
-| 4 | Versionsliste (version, changedAt, changedBy, changedFields[], changeReason) | System → Kurt | Absteigend sortiert; paginiert bei > 50 Einträgen |
-| 6 | Diff (fieldName, oldValue, newValue) je geändertem Feld | System → Kurt | Nur geänderte Felder; Properties-Objekt wird feldweise aufgebrochen |
-| 7 | Vollständiger Entitätszustand zur gewählten Version | System → Kurt | Snapshot aus `entity_versions` |
+| 4 | Version list (version, changedAt, changedBy, changedFields[], changeReason) | System → Kurt | Sorted descending; paginated for > 50 entries |
+| 6 | Diff (fieldName, oldValue, newValue) per changed field | System → Kurt | Changed fields only; properties object is broken down field by field |
+| 7 | Complete entity state at the selected version | System → Kurt | Snapshot from `entity_versions` |
 
-## Beteiligte Business Objects
+## Involved Business Objects
 
-| Business Object | Operation | Notiz |
+| Business Object | Operation | Note |
 |---|---|---|
-| [entity](../../business-objects/entity.md) | read | Aktuelle Version + Versionssnapshots aus `entity_versions` |
-| [person](../../business-objects/person.md) | read | `changedBy` in jeder Versionszeile |
-| [role](../../business-objects/role.md) | read | Leseberechtigung auf die Entität prüfen |
+| [entity](../../business-objects/entity.md) | read | Current version + version snapshots from `entity_versions` |
+| [person](../../business-objects/person.md) | read | `changedBy` in each version row |
+| [role](../../business-objects/role.md) | read | Check read permission on the entity |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-- [ ] Historie-Tab erscheint auf jeder Entität mit mindestens einer gespeicherten Version
-- [ ] Zeitlinie zeigt alle Versionen mit Nummer, Zeitstempel, Actor und geänderten Feldern
-- [ ] Diff-Ansicht zeigt Vorher/Nachher pro Feld; Properties werden feldweise aufgebrochen, nicht als JSON-Blob
-- [ ] A1: Zeitraum- und Actor-Filter reduzieren die angezeigte Versionsliste korrekt
-- [ ] A2: Zwei beliebige Versionen können direkt miteinander verglichen werden
-- [ ] A3: Von der Versionsdetailansicht kann UC-15 (Wiederherstellen) direkt gestartet werden
-- [ ] A4: Entitäten ohne Änderungshistorie zeigen einen aussagekräftigen Hinweis
-- [ ] E1: Ohne Leseberechtigung ist der Historie-Tab nicht sichtbar (403)
-- [ ] Rein lesender UC: keine Datenveränderung möglich
+- [ ] History tab appears on every entity with at least one stored version
+- [ ] Timeline shows all versions with number, timestamp, actor and changed fields
+- [ ] Diff view shows before/after per field; properties are broken down field by field, not as a JSON blob
+- [ ] A1: Time range and actor filters reduce the displayed version list correctly
+- [ ] A2: Any two versions can be compared directly with each other
+- [ ] A3: From the version detail view, UC-15 (restore) can be started directly
+- [ ] A4: Entities without change history show a meaningful notice
+- [ ] E1: Without read permission, the history tab is not visible (403)
+- [ ] Purely read-only UC: no data change possible
 
-## Nicht im Scope
+## Out of Scope
 
-- **MetamodelConfiguration-Historie**: Änderungen am Metamodell (EntityTypes, Layers, Rules) werden in einem eigenen Audit-Log festgehalten; UC-14 deckt nur `ArchitectureEntity`-Versionen ab
-- **Massenhistorie** (alle Änderungen aller Entitäten): globales Audit-Log ist ein eigener UC (noch nicht angelegt; Compliance-Anforderung)
-- **Export der Historie** als PDF/CSV: deferred v2.0
+- **MetamodelConfiguration history**: Changes to the metamodel (EntityTypes, layers, rules) are recorded in a separate audit log; UC-14 covers only `ArchitectureEntity` versions
+- **Mass history** (all changes of all entities): global audit log is a separate UC (not yet created; compliance requirement)
+- **Export of the history** as PDF/CSV: deferred v2.0

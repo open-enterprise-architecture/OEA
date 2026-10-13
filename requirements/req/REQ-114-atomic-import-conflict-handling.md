@@ -1,6 +1,6 @@
 ---
 id: REQ-114
-title: Atomarer Paket-Import mit Konflikt-Handling
+title: Atomic Package Import with Conflict Handling
 type: functional
 priority: should
 status: proposed
@@ -25,43 +25,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-114: Atomarer Paket-Import mit Konflikt-Handling
+# REQ-114: Atomic Package Import with Conflict Handling
 
-## Aussage
+## Statement
 
-Der Paket-Import MUSS als atomare Transaktion ausgeführt werden: entweder werden alle validen Bausteine importiert oder keiner (Rollback bei Fehler). Wenn das Paket Bausteine mit einer ID enthält, die bereits im System existiert, MUSS das System diese Konflikte als Liste anzeigen und zwischen „Überspringen" (default) und „Aktualisieren" wählen lassen. „Aktualisieren" darf nur für Bausteine mit `scope=imported` vom selben `sourcePackage` zulässig sein — nicht für `scope=organization`-Bausteine. Ein Zyklus im ABB-Verfeinerungs-Graphen innerhalb des Pakets MUSS den Import vollständig abbrechen.
+The package import MUST be executed as an atomic transaction: either all valid building blocks are imported or none (rollback on error). If the package contains building blocks with an ID that already exists in the system, the system MUST display these conflicts as a list and let the user choose between "Skip" (default) and "Update". "Update" MUST only be permitted for building blocks with `scope=imported` from the same `sourcePackage` — not for `scope=organization` building blocks. A cycle in the ABB refinement graph within the package MUST abort the import completely.
 
-## Begründung
+## Rationale
 
-Partieller Import erzeugt inkonsistente Referenzen zwischen Bausteinen. Konflikt-Handling schützt organisationsspezifische Anpassungen vor unbeabsichtigter Überschreibung durch Paket-Updates.
+A partial import creates inconsistent references between building blocks. Conflict handling protects organization-specific customizations from unintended overwriting by package updates.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Zyklus-Abbruch):
-- Wenn: das importierte Paket einen Zyklus im ABB-Verfeinerungs-Graphen enthält
-- Dann: bricht der Import ab; kein Baustein wird importiert; die Fehlermeldung beschreibt den Zyklus
+**AC1** (Abort on cycle):
+- When: the imported package contains a cycle in the ABB refinement graph
+- Then: the import aborts; no building block is imported; the error message describes the cycle
 
-**AC2** (Konflikt-Liste):
-- Wenn: das Paket 3 Bausteine mit bereits vorhandenen IDs enthält
-- Dann: zeigt das System die Konflikt-Liste; der Default ist „Überspringen" für alle Konflikte
+**AC2** (Conflict list):
+- When: the package contains 3 building blocks with already existing IDs
+- Then: the system shows the conflict list; the default is "Skip" for all conflicts
 
-**AC3** (Rollback bei DB-Fehler):
-- Wenn: nach dem Import von 20 von 50 Bausteinen ein Datenbankfehler auftritt
-- Dann: wird ein vollständiger Rollback ausgeführt; 0 Bausteine sind importiert
+**AC3** (Rollback on DB error):
+- When: a database error occurs after 20 of 50 building blocks have been imported
+- Then: a complete rollback is executed; 0 building blocks are imported
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-112 (built-in Pakete), REQ-113 (Datei-Upload), REQ-111 (Scope-Schutz)
-- **Folgewirkungen**: keine
+- **Prerequisites**: REQ-112 (built-in packages), REQ-113 (file upload), REQ-111 (scope protection)
+- **Consequences**: none
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Transaktion: Datenbankebene (BEGIN/COMMIT/ROLLBACK); kein zweiphasiges Commit notwendig bei Single-DB
-- Zyklus-Erkennung: topologische Sortierung des ABB-Graphen im Paket vor Transaktion-Beginn
-- „Aktualisieren" für fremde `scope=organization`-Bausteine: im Backend per Guard blockiert, nicht nur UI
+- Transaction: database level (BEGIN/COMMIT/ROLLBACK); no two-phase commit necessary with a single DB
+- Cycle detection: topological sort of the ABB graph in the package before the transaction begins
+- "Update" for foreign `scope=organization` building blocks: blocked in the backend by a guard, not only in the UI
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

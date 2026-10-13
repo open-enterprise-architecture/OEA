@@ -1,6 +1,6 @@
 ---
 id: REQ-092
-title: System-definierte Viewpoints schreibgeschützt
+title: System-defined viewpoints read-only
 type: functional
 priority: must
 status: proposed
@@ -21,43 +21,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-092: System-definierte Viewpoints schreibgeschützt
+# REQ-092: System-defined viewpoints read-only
 
-## Aussage
+## Statement
 
-Viewpoints mit `viewpointType=system-defined` MÜSSEN für alle Schreib-Operationen gesperrt sein. In der UI DÜRFEN Bearbeiten- und Löschen-Aktionen für system-defined Viewpoints nicht verfügbar sein. API-Versuche MÜSSEN mit HTTP 422 abgewiesen werden.
+Viewpoints with `viewpointType=system-defined` MUST be locked for all write operations. In the UI, edit and delete actions MUST NOT be available for system-defined viewpoints. API attempts MUST be rejected with HTTP 422.
 
-## Begründung
+## Rationale
 
-System-definierte Viewpoints (ArchiMate 3, UML, BPMN 2.0) sind Teil der OEA-Grundfunktionalität. Ihre Veränderung würde das Rendering-System beschädigen und zu inkonsistenten Diagramm-Darstellungen führen.
+System-defined viewpoints (ArchiMate 3, UML, BPMN 2.0) are part of the OEA core functionality. Changing them would damage the rendering system and lead to inconsistent diagram representations.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (API-Schreibschutz):
-- Wenn: ein DELETE-Request an `/viewpoints/{system-defined-id}` gesendet wird
-- Dann: antwortet die API mit HTTP 422
+**AC1** (API write protection):
+- When: a DELETE request is sent to `/viewpoints/{system-defined-id}`
+- Then: the API responds with HTTP 422
 
-**AC2** (UI-Schreibschutz):
-- Wenn: system-defined Viewpoints in der Liste angezeigt werden
-- Dann: sind Bearbeiten- und Löschen-Buttons nicht sichtbar
+**AC2** (UI write protection):
+- When: system-defined viewpoints are displayed in the list
+- Then: edit and delete buttons are not visible
 
-**AC3** (Import-Schreibschutz):
-- Wenn: beim Import (REQ-059) system-defined Viewpoints enthalten sind
-- Dann: werden diese nicht überschrieben
+**AC3** (Import write protection):
+- When: system-defined viewpoints are contained in an import (REQ-059)
+- Then: they are not overwritten
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-090 (Viewpoint-Verwaltung)
-- **Folgewirkungen**: keine
+- **Prerequisites**: REQ-090 (viewpoint management)
+- **Downstream effects**: none
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- `viewpointType`-Feld in der DB; Guard-Logik im Service-Layer prüft Typ vor jeder Schreib-Operation
-- UI rendert Aktions-Buttons konditional basierend auf `viewpointType`
-- System-defined Viewpoints werden bei DB-Migration initial befüllt und nicht durch Nutzeraktionen überschreibbar
+- `viewpointType` field in the DB; guard logic in the service layer checks the type before every write operation
+- UI renders action buttons conditionally based on `viewpointType`
+- System-defined viewpoints are initially populated during DB migration and cannot be overwritten by user actions
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

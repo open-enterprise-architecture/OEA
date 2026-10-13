@@ -1,33 +1,33 @@
-# Ableitung aus: requirements/req/req-153-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-153-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: method: test (automated)
 
 @functional @should @UC-19
-Feature: REQ-153 – Entitäten per external_id idempotent anlegen und aktualisieren
+Feature: REQ-153 – Create and update entities idempotently via external_id
 
-  Das System **MUSS** es ermöglichen, eine Entität unter einer
-  stabilen, vom aufrufenden System vergebenen Kennung (`external_id`)
-  anzulegen oder zu aktualisieren, sodass wiederholte Aufrufe mit
-  identischen Daten keine doppelten Einträge erzeugen.
+  The system **MUST** make it possible to create or update an entity under a
+  stable identifier (`external_id`) assigned by the calling system,
+  so that repeated calls with
+  identical data do not produce duplicate entries.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Keine Entität mit `external_id = "git:acme/order-service"`
-    Given Keine Entität mit `external_id = "git:acme/order-service"`
-    When  `PUT /api/v1/entities/by-external-id/git%3Aacme%2Forder-service` mit gültigem Body
-    Then  201 Created; Entität in DB; `external_id` gespeichert
+  Scenario: AC1 – No entity with `external_id = "git:acme/order-service"`
+    Given no entity with `external_id = "git:acme/order-service"`
+    When  `PUT /api/v1/entities/by-external-id/git%3Aacme%2Forder-service` with valid body
+    Then  201 Created; entity in DB; `external_id` stored
 
   @AC2
-  Scenario: AC2 – Entität mit `external_id = "git:acme/order-service"` existiert bereits
-    Given Entität mit `external_id = "git:acme/order-service"` existiert bereits
-    When  Gleicher Aufruf mit geändertem `name`
-    Then  200 OK; `name` aktualisiert; keine zweite Entität angelegt
+  Scenario: AC2 – Entity with `external_id = "git:acme/order-service"` already exists
+    Given entity with `external_id = "git:acme/order-service"` already exists
+    When  same call with changed `name`
+    Then  200 OK; `name` updated; no second entity created
 
   @AC3
-  Scenario: AC3 – Zwei Aufrufe mit identischen Daten in Folge
-    Given Zwei Aufrufe mit identischen Daten in Folge
-    When  Zweiter Aufruf
-    Then  200 OK; Daten unverändert; Versionszähler nicht erhöht (kein no-op Write)
+  Scenario: AC3 – Two calls with identical data in succession
+    Given two calls with identical data in succession
+    When  second call
+    Then  200 OK; data unchanged; version counter not incremented (no no-op write)

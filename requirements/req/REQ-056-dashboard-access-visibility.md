@@ -1,6 +1,6 @@
 ---
 id: REQ-056
-title: Dashboard-Zugriff und Sichtbarkeit (scope-Logik)
+title: Dashboard access and visibility (scope logic)
 type: functional
 priority: should
 status: proposed
@@ -25,88 +25,88 @@ references:
     - SH-06
     - SH-07
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-056: Dashboard-Zugriff und Sichtbarkeit (scope-Logik)
+# REQ-056: Dashboard access and visibility (scope logic)
 
-## Aussage
+## Statement
 
-Das System MUSS die Sichtbarkeit von [Dashboards](../../business-objects/dashboard.md) anhand des `scope`-Attributs durchsetzen: `scope=instance`-Dashboards MÜSSEN für alle eingeloggten Nutzer der Instanz sichtbar und lesbar sein; `scope=personal`-Dashboards DÜRFEN ausschliesslich für den Ersteller sichtbar sein. Kein Nutzer darf `scope=personal`-Dashboards anderer Nutzer lesen, auch nicht per direktem API-Zugriff.
+The system MUST enforce the visibility of [dashboards](../../business-objects/dashboard.md) based on the `scope` attribute: `scope=instance` dashboards MUST be visible and readable for all logged-in users of the instance; `scope=personal` dashboards MAY be visible exclusively to the creator. No user may read `scope=personal` dashboards of other users, not even via direct API access.
 
-## Begründung
+## Rationale
 
-Dashboards können vertrauliche Unternehmenskennzahlen enthalten. Die scope-Kontrolle stellt sicher, dass persönliche Analysen nicht unbeabsichtigt öffentlich werden und dass C-Level-Dashboards konsistent für alle zugänglich sind.
+Dashboards can contain confidential company metrics. Scope control ensures that personal analyses do not become public unintentionally and that C-level dashboards are consistently accessible to everyone.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### API-Endpunkte und Sichtbarkeitsregeln
+### API Endpoints and Visibility Rules
 
-**Liste abrufen**:
+**Retrieve list**:
 - `GET /api/v1/dashboards`
-- Liefert: alle `scope=instance`-Dashboards + eigene `scope=personal`-Dashboards
-- Liefert NICHT: `scope=personal`-Dashboards anderer Nutzer
+- Returns: all `scope=instance` dashboards + own `scope=personal` dashboards
+- Does NOT return: `scope=personal` dashboards of other users
 
-**Dashboard-Konfiguration abrufen**:
+**Retrieve dashboard configuration**:
 - `GET /api/v1/dashboards/{id}`
-- `scope=instance`: HTTP 200 für alle authentifizierten Nutzer
-- `scope=personal` + Requester ≠ Ersteller: HTTP 403
+- `scope=instance`: HTTP 200 for all authenticated users
+- `scope=personal` + requester ≠ creator: HTTP 403
 
-**Dashboard-Daten abrufen**:
+**Retrieve dashboard data**:
 - `GET /api/v1/dashboards/{id}/data`
-- Gleiche Sichtbarkeitsregel wie bei Konfiguration
+- Same visibility rule as for the configuration
 
-**Web Portal (öffentliche Instanz)**:
-- Wenn die OEA-Instanz als öffentlich konfiguriert ist: `scope=instance`-Dashboards ohne Login lesbar
-- Wenn die Instanz Login erfordert: alle Endpunkte erfordern Authentication (UC-01)
+**Web portal (public instance)**:
+- If the OEA instance is configured as public: `scope=instance` dashboards are readable without login
+- If the instance requires login: all endpoints require authentication (UC-01)
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser |
+| Rule-ID | Statement | Trigger |
 |---|---|---|
-| BR-01 | `scope=personal`-Dashboards sind ausschliesslich für den Ersteller und Admins sichtbar | onRead, onList |
-| BR-02 | `scope=instance`-Dashboards sind für alle authentifizierten Nutzer der Instanz lesbar | onRead |
-| BR-03 | Schreib-Zugriff (create, update, delete) ist ausschliesslich dem Ersteller des Dashboards und Admins erlaubt; plus: Dashboard-Schreibberechtigung für scope=instance (REQ-051 BR-02) | onWrite |
-| BR-04 | Ein Dashboard kann von `personal` zu `instance` hochgestuft werden, wenn der Ersteller die Dashboard-Schreibberechtigung hat; Downgrade von `instance` zu `personal` ist nicht möglich, wenn andere Nutzer das Dashboard bereits verwenden | onUpdate |
-| BR-05 | Direkte URL-Kenntnis einer `scope=personal`-Dashboard-ID umgeht die Sichtbarkeitsprüfung nicht; die API prüft immer den Ersteller gegen den Requester | onRead |
+| BR-01 | `scope=personal` dashboards are visible exclusively to the creator and admins | onRead, onList |
+| BR-02 | `scope=instance` dashboards are readable for all authenticated users of the instance | onRead |
+| BR-03 | Write access (create, update, delete) is allowed exclusively to the creator of the dashboard and admins; plus: dashboard write permission for scope=instance (REQ-051 BR-02) | onWrite |
+| BR-04 | A dashboard can be promoted from `personal` to `instance` if the creator has the dashboard write permission; downgrading from `instance` to `personal` is not possible if other users are already using the dashboard | onUpdate |
+| BR-05 | Knowing the direct URL of a `scope=personal` dashboard ID does not bypass the visibility check; the API always checks the creator against the requester | onRead |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (instance-Dashboard: alle sehen es):
-- Gegeben: Kurt hat ein `scope=instance`-Dashboard angelegt
-- Wenn: Franz ruft `GET /api/v1/dashboards` auf
-- Dann: Kurts Dashboard erscheint in der Liste
+**AC1** (instance dashboard: everyone sees it):
+- Given: Kurt has created a `scope=instance` dashboard
+- When: Franz calls `GET /api/v1/dashboards`
+- Then: Kurt's dashboard appears in the list
 
-**AC2** (personal-Dashboard: kein Datenleck):
-- Gegeben: Franz hat ein `scope=personal`-Dashboard angelegt
-- Wenn: Kurt ruft `GET /api/v1/dashboards` oder `GET /api/v1/dashboards/{franz-dashboard-id}` auf
-- Dann: Franzs Dashboard erscheint weder in der Liste noch ist es per ID abrufbar (403)
+**AC2** (personal dashboard: no data leak):
+- Given: Franz has created a `scope=personal` dashboard
+- When: Kurt calls `GET /api/v1/dashboards` or `GET /api/v1/dashboards/{franz-dashboard-id}`
+- Then: Franz's dashboard neither appears in the list nor can it be retrieved by ID (403)
 
-**AC3** (personal-URL-Zugriff geblockt):
-- Gegeben: Kurts hat die ID von Franzs personal-Dashboard (z.B. erraten oder aus Logs)
-- Wenn: `GET /api/v1/dashboards/{id}/data` direkt aufgerufen
-- Dann: HTTP 403
+**AC3** (personal URL access blocked):
+- Given: Kurt has the ID of Franz's personal dashboard (e.g., guessed or from logs)
+- When: `GET /api/v1/dashboards/{id}/data` is called directly
+- Then: HTTP 403
 
-**AC4** (Scope-Upgrade):
-- Gegeben: Franz hat ein personal-Dashboard; er erhält danach Dashboard-Schreibberechtigung
-- Wenn: `PUT /api/v1/dashboards/{id}` mit scope=instance
-- Dann: HTTP 200; Dashboard ab sofort für alle sichtbar
+**AC4** (Scope upgrade):
+- Given: Franz has a personal dashboard; he subsequently receives dashboard write permission
+- When: `PUT /api/v1/dashboards/{id}` with scope=instance
+- Then: HTTP 200; dashboard is visible to everyone from now on
 
-**AC5** (Downgrade blockiert wenn andere Nutzer):
-- Gegeben: Kurt hat ein instance-Dashboard; 5 weitere Nutzer haben es aufgerufen
-- Wenn: Kurt versucht PUT mit scope=personal
-- Dann: HTTP 409 „Dashboard wird von anderen Nutzern verwendet; Downgrade nicht möglich"
+**AC5** (Downgrade blocked if other users):
+- Given: Kurt has an instance dashboard; 5 other users have opened it
+- When: Kurt tries PUT with scope=personal
+- Then: HTTP 409 "Dashboard is used by other users; downgrade not possible"
 
-## Abhängigkeiten
+## Dependencies
 
-- Bezieht Authentifizierung aus: REQ-001–007 (UC-01 Login)
-- Berechtigungsmodell: Rolle „Enterprise Architekt" = Dashboard-Schreibberechtigung (analog zu Katalog-Berechtigung)
+- Obtains authentication from: REQ-001–007 (UC-01 Login)
+- Permission model: role "Enterprise Architect" = dashboard write permission (analogous to catalog permission)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; scope-Durchsetzung, URL-Zugriff-Schutz, Upgrade/Downgrade-Logik |
+| 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; scope enforcement, URL access protection, upgrade/downgrade logic |

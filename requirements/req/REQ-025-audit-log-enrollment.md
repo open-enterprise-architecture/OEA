@@ -1,6 +1,6 @@
 ---
 id: REQ-025
-title: Audit-Log-Eintrag für jeden Enrollment-Vorgang
+title: Audit log entry for every enrollment process
 type: compliance
 priority: must
 status: proposed
@@ -18,102 +18,102 @@ references:
     - SH-03
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-025: Audit-Log-Eintrag für jeden Enrollment-Vorgang
+# REQ-025: Audit log entry for every enrollment process
 
-## Aussage
+## Statement
 
-Das System MUSS für jeden abgeschlossenen Enrollment-Vorgang – erfolgreich oder fehlgeschlagen – einen Audit-Log-Eintrag mit Zeitpunkt, betroffener Person-ID, eingerichteter Methode und Ergebnis erzeugen; Credentials-Werte (Secrets, Hashes, Public Keys) DÜRFEN NICHT im Audit-Log erscheinen.
+The system MUST create an audit log entry with timestamp, affected person ID, method set up, and result for every completed enrollment process – successful or failed; credential values (secrets, hashes, public keys) MUST NOT appear in the audit log.
 
-## Begründung
+## Rationale
 
-Die Registrierung einer Authentifizierungsmethode ist ein sicherheitskritisches Ereignis, das vollständig nachvollziehbar sein muss: Wer hat wann welche Methode eingerichtet? Bei einem Sicherheitsvorfall (z.B. Enrollment durch unberechtigte Person nach Token-Kompromittierung) muss der Zeitpunkt und die Methode aus dem Audit-Log rekonstruierbar sein. Entspricht der Nachvollziehbarkeits-Philosophie von OEA (Konzept §22) und ergänzt REQ-005 (Audit-Log Login).
+Registering an authentication method is a security-critical event that must be fully traceable: who set up which method and when? In the event of a security incident (e.g., enrollment by an unauthorized person after token compromise), the time and method must be reconstructable from the audit log. Corresponds to OEA's traceability philosophy (concept §22) and complements REQ-005 (audit log for login).
 
-## Kontext
+## Context
 
-Betrifft alle Enrollment-Pfade aus UC-03: TOTP (REQ-022), Passkey (REQ-023), Passwort (REQ-024) sowie das Hinzufügen weiterer Methoden für authentifizierte Personen (REQ-026). Fehlgeschlagene Versuche (z.B. falscher TOTP-Verifikations-Code, Passkey-Abbruch) müssen ebenfalls geloggt werden, jedoch ohne den Klartextwert des eingegebenen Codes.
+Concerns all enrollment paths from UC-03: TOTP (REQ-022), passkey (REQ-023), password (REQ-024), and the addition of further methods for authenticated persons (REQ-026). Failed attempts (e.g., wrong TOTP verification code, passkey cancellation) must also be logged, but without the plain-text value of the entered code.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=compliance
+### For type=compliance
 
-**Regelwerk**: internes Audit-/Nachvollziehbarkeits-Prinzip von OEA (Konzept §22); kompatibel zu ISO 27001 Annex A.8.15 (Logging) und DORA Art. 10 (ICT-Sicherheit)
+**Rule set**: OEA's internal audit/traceability principle (concept §22); compatible with ISO 27001 Annex A.8.15 (Logging) and DORA Art. 10 (ICT security)
 
-**Konkrete Vorschrift**: Jeder Enrollment-Vorgang ist mit Zeitpunkt, betroffener Identität, Methoden-Typ und Ergebnis zu protokollieren
+**Specific provision**: Every enrollment process must be logged with timestamp, affected identity, method type, and result
 
-**Nachweis-Anforderung**: Audit-Log muss über den instanzweit konfigurierten Aufbewahrungszeitraum abrufbar und exportierbar sein
+**Evidence requirement**: The audit log must be retrievable and exportable over the instance-wide configured retention period
 
-**Audit-Relevanz**: ja; Enrollment-Ereignisse sind Teil des Security-Event-Logs
+**Audit relevance**: yes; enrollment events are part of the security event log
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein Enrollment-Vorgang wird erfolgreich abgeschlossen (REQ-022, REQ-023 oder REQ-024)
-- Wenn: die Methode persistiert ist
-- Dann: enthält das Audit-Log einen Eintrag mit: Zeitpunkt (ISO 8601), Person-ID, Methoden-Typ (totp | passkey | password), Ergebnis `success`
+- Given: an enrollment process is completed successfully (REQ-022, REQ-023, or REQ-024)
+- When: the method is persisted
+- Then: the audit log contains an entry with: timestamp (ISO 8601), person ID, method type (totp | passkey | password), result `success`
 
 **AC2**:
-- Gegeben: ein Enrollment-Vorgang schlägt fehl (z.B. TOTP-Verifikation fehlgeschlagen, Passkey-Abbruch, Passwort zu schwach)
-- Wenn: der Fehlschlag eintritt
-- Dann: enthält das Audit-Log einen Eintrag mit Zeitpunkt, Person-ID (soweit aus Token ermittelbar), Methoden-Typ, Ergebnis `failure` und Fehlergrund (generisch, ohne sensible Details)
+- Given: an enrollment process fails (e.g., TOTP verification failed, passkey cancellation, password too weak)
+- When: the failure occurs
+- Then: the audit log contains an entry with timestamp, person ID (where determinable from the token), method type, result `failure`, and failure reason (generic, without sensitive details)
 
 **AC3**:
-- Gegeben: ein Audit-Log-Eintrag für einen Enrollment-Vorgang
-- Wenn: er in der Log-Infrastruktur gespeichert ist
-- Dann: enthält er keine Credentials-Werte (kein TOTP-Secret, kein Passwort-Hash, kein Public Key)
+- Given: an audit log entry for an enrollment process
+- When: it is stored in the log infrastructure
+- Then: it contains no credential values (no TOTP secret, no password hash, no public key)
 
 **AC4**:
-- Gegeben: ein ungültiges Enrollment-Token wird eingereicht (E1 aus UC-03)
-- Wenn: der Fehlschlag eintritt
-- Dann: enthält das Audit-Log einen Eintrag mit Zeitpunkt, Ergebnis `failure`, Fehlergrund `invalid_token`; keine Person-ID (Token ist ungültig, Person nicht ermittelbar)
+- Given: an invalid enrollment token is submitted (E1 from UC-03)
+- When: the failure occurs
+- Then: the audit log contains an entry with timestamp, result `failure`, failure reason `invalid_token`; no person ID (token is invalid, person not determinable)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Enrollment-Versuche (Erfolg und Fehlschlag) gegen Audit-Log-Inhalt prüfen
-- [x] Mess-Werkzeug: Test-Suite des Enrollment-Moduls + Audit-Log-Reader
-- [x] Bestanden-Kriterium: AC1–AC4 grün für alle Enrollment-Pfade
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: check enrollment attempts (success and failure) against the audit log content
+- [x] Measurement tool: test suite of the enrollment module + audit log reader
+- [x] Pass criterion: AC1–AC4 green for all enrollment paths
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-022, REQ-023, REQ-024 (REQ-021 war Token-Validierung, wurde rejected; Person-ID-Kontext kommt nun aus dem JIT-Login-Flow)
-- **Folgewirkungen**: spätere Use Cases zu Audit-Reports (Konzept §22)
-- **Konflikte**: REQ-022 AC4 / REQ-024 AC4 (Audit-Log darf keine Secrets enthalten – durch AC3 geregelt)
+- **Prerequisites**: REQ-022, REQ-023, REQ-024 (REQ-021 was token validation and was rejected; the person ID context now comes from the JIT login flow)
+- **Downstream effects**: later use cases on audit reports (concept §22)
+- **Conflicts**: REQ-022 AC4 / REQ-024 AC4 (the audit log must not contain secrets – covered by AC3)
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne Enrollment-Audit-Log ist eine nachträgliche Kompromittierungs-Analyse (wann wurde welche Methode registriert?) nicht möglich – schwerwiegend
-- Risiko 2: Credentials im Audit-Log wären ein eigenständiger Leak-Vektor – schwerwiegend (durch AC3 mitigiert)
+- Risk 1: Without an enrollment audit log, a subsequent compromise analysis (when was which method registered?) is not possible – severe
+- Risk 2: Credentials in the audit log would be a separate leak vector – severe (mitigated by AC3)
 
 ## Trade-offs
 
-- Keine: Audit-Logging für sicherheitskritische Ereignisse ist nicht verhandelbar
+- None: audit logging for security-critical events is non-negotiable
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Audit-Log-Schema sollte konsistent mit REQ-005 (Login-Audit) sein: gleiche Felder, gleiche Formate
-- Methoden-Typ als enum-Wert, nicht als Freitext (Typo-Vermeidung bei Log-Auswertung)
-- AC4 (ungültiges Token): da Person-ID nicht ermittelbar, ggf. Token-Hash (nicht Klartext) im Log vermerken, um wiederholte Versuche zu erkennen
+- The audit log schema should be consistent with REQ-005 (login audit): same fields, same formats
+- Method type as an enum value, not free text (avoids typos in log analysis)
+- AC4 (invalid token): since the person ID is not determinable, possibly record the token hash (not plain text) in the log to detect repeated attempts
 
-## Realisierung
+## Implementation
 
-- ADR(s): keine
-- Implementiert durch: –
+- ADR(s): none
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-03 Nachbedingungen (Audit-Log-Eintrag) und analog zu REQ-005 (Audit-Log Login). Bewusst als `compliance`-Typ klassifiziert, da das Audit-Logging eine Nachvollziehbarkeits-Anforderung ist, keine funktionale Kernanforderung.
+Derived from UC-03 postconditions (audit log entry) and analogous to REQ-005 (audit log for login). Deliberately classified as type `compliance`, since audit logging is a traceability requirement, not a functional core requirement.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft aus UC-03 |
+| 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft from UC-03 |

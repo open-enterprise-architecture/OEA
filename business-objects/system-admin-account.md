@@ -11,41 +11,41 @@ aliases:
   - Break-Glass-Account
 related_capabilities: []
 references:
-  - concept: concept/70-platform/21-api-architektur.md
+  - concept: concept/70-platform/21-api-architecture.md
 ---
 
 # Business Object: System Admin Account
 
 ## Definition
 
-Ein System-Admin-Account ist ein privilegierter, instanzweiter Zugang zur Administration einer OEA-Instanz selbst (Erst-Konfiguration, IdP-Einrichtung, Notfallzugriff) – unabhängig von den im EA-Repository fachlich modellierten [Person](./person.md)- und [Role](./role.md)-Objekten.
+A system admin account is a privileged, instance-wide access for administering an OEA instance itself (initial configuration, IdP setup, emergency access) – independent of the [Person](./person.md) and [Role](./role.md) objects modeled in the EA repository from a business perspective.
 
-## Beschreibung
+## Description
 
-System-Admin-Account löst das Henne-Ei-Problem einer frisch installierten OEA-Instanz: Bevor irgendeine Person mit einer RoleAssignment im Repository existiert, muss bereits ein Zugang vorhanden sein, um die Instanz überhaupt konfigurieren zu können (siehe [UC-02 Bootstrapping](../requirements/use-cases/UC-02-system-admin-bootstrapping.md)). Er ist deshalb bewusst von Person/Role entkoppelt, nicht etwa eine besondere RoleAssignment.
+The system admin account solves the chicken-and-egg problem of a freshly installed OEA instance: before any person with a RoleAssignment exists in the repository, an access must already exist in order to be able to configure the instance at all (see [UC-02 Bootstrapping](../requirements/use-cases/UC-02-system-admin-bootstrapping.md)). It is therefore deliberately decoupled from person/role and is not, for example, a special RoleAssignment.
 
-Gemäß [ADR-006](../adrs/ADR-006-auth-stack-wahl.md) kann ein System-Admin-Account auf zwei Arten realisiert sein:
-- **lokal**: ein eingebauter Account mit eigenem Credential (Passwort oder Setup-Token), unabhängig von jedem externen Identity-Provider
-- **remote**: eine Zuordnung "wer mit Gruppen-/Rollen-Claim X bei Entra ID/Authentik einloggt, erhält System-Admin-Rechte" – ohne lokal gespeichertes Credential
+According to [ADR-006](../adrs/ADR-006-auth-stack-choice.md), a system admin account can be realized in two ways:
+- **local**: a built-in account with its own credential (password or setup token), independent of any external identity provider
+- **remote**: a mapping "whoever logs in with group/role claim X at Entra ID/Authentik receives system admin rights" – without a locally stored credential
 
-## Attribute
+## Attributes
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| mode | enum | required | local | `[local, remote]` | Bootstrapping-Modus |
-| localCredentialHash | string | optional | | nur gesetzt, wenn `mode=local` | Passwort-/Setup-Token-Hash (niemals Klartext) |
-| remoteIdpReference | composite | optional | | nur gesetzt, wenn `mode=remote`; Felder: `provider` (entra-id \| authentik), `claimType` (group \| role), `claimValue` (string) | Mapping auf einen IdP-Claim, der System-Admin-Rechte verleiht |
-| createdAt | datetime | required | | | Zeitpunkt des Bootstrappings |
-| lastUsedAt | datetime | optional | | | letzte erfolgreiche Nutzung |
-| active | boolean | required | true | | Ob der Account aktuell nutzbar ist |
+| mode | enum | required | local | `[local, remote]` | Bootstrapping mode |
+| localCredentialHash | string | optional | | only set if `mode=local` | Password/setup token hash (never plaintext) |
+| remoteIdpReference | composite | optional | | only set if `mode=remote`; fields: `provider` (entra-id \| authentik), `claimType` (group \| role), `claimValue` (string) | Mapping to an IdP claim that grants system admin rights |
+| createdAt | datetime | required | | | Time of bootstrapping |
+| lastUsedAt | datetime | optional | | | Last successful use |
+| active | boolean | required | true | | Whether the account is currently usable |
 
-## Beziehungen
+## Relationships
 
-| Beziehung | Ziel-Objekt | Kardinalität | Optional | Beschreibung |
+| Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
-| optionallyLinkedTo | [person](./person.md) | 1:1 | yes | Nachträgliche, rein informative Verknüpfung zu einer Person, falls der Admin sich später auch als reguläre Person mit Rolle im Repository abbildet – keine fachliche Notwendigkeit |
+| optionallyLinkedTo | [person](./person.md) | 1:1 | yes | Subsequent, purely informational link to a person, in case the admin later also maps themselves as a regular person with a role in the repository – no business necessity |
 
-**Hinweise**: Es besteht bewusst **keine** Pflicht-Beziehung zu Person oder Role – das ist der ganze Zweck dieses Objekts gegenüber der regulären Authentifizierung aus UC-01.
+**Notes**: There is deliberately **no** mandatory relationship to person or role – that is the entire purpose of this object compared to the regular authentication from UC-01.
 
 ## Lifecycle
 
@@ -53,26 +53,26 @@ Gemäß [ADR-006](../adrs/ADR-006-auth-stack-wahl.md) kann ein System-Admin-Acco
 bootstrapped → active → deactivated
 ```
 
-**Zustände**:
-- `bootstrapped`: Account wurde während der Erstinstallation angelegt, noch nicht genutzt
-- `active`: Account ist aktiv nutzbar
-- `deactivated`: Account wurde bewusst deaktiviert (z.B. nach Etablierung einer regulären IdP-Governance, siehe Business Rule BR-02)
+**States**:
+- `bootstrapped`: Account was created during initial installation, not yet used
+- `active`: Account is actively usable
+- `deactivated`: Account was deliberately deactivated (e.g. after establishing regular IdP governance, see business rule BR-02)
 
-**Übergänge**:
-- `bootstrapped → active`: erste erfolgreiche Anmeldung mit dem Account
-- `active → deactivated`: manuell durch einen bestehenden System-Admin-Account oder eine Person mit entsprechender Autorität
+**Transitions**:
+- `bootstrapped → active`: first successful login with the account
+- `active → deactivated`: manually by an existing system admin account or a person with the corresponding authority
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser | Compliance-Bezug |
+| Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
-| BR-01 | Pro Instanz darf zu einem Zeitpunkt höchstens ein Bootstrapping-Vorgang aktiv sein (kein paralleles Erst-Setup) | onCreate | – |
-| BR-02 | Ein lokaler System-Admin-Account SOLL deaktivierbar sein, sobald mindestens ein externer IdP mit Admin-Mapping konfiguriert ist (Empfehlung, kein Hard-Constraint) | onUpdate | – |
-| BR-03 | Eine instanzweite Erzwingung eines zweiten Faktors für reguläre Personen (siehe REQ-020) gilt NICHT für den System-Admin-Account | onLogin | – |
+| BR-01 | At most one bootstrapping process may be active per instance at any time (no parallel initial setup) | onCreate | – |
+| BR-02 | A local system admin account SHOULD be deactivatable as soon as at least one external IdP with an admin mapping is configured (recommendation, not a hard constraint) | onUpdate | – |
+| BR-03 | Instance-wide enforcement of a second factor for regular persons (see REQ-020) does NOT apply to the system admin account | onLogin | – |
 
-## Beispiele
+## Examples
 
-**Beispiel 1**: Lokaler Bootstrap-Admin
+**Example 1**: Local bootstrap admin
 ```yaml
 mode: local
 localCredentialHash: "<argon2id-hash>"
@@ -80,7 +80,7 @@ createdAt: 2026-06-24T10:00:00Z
 active: true
 ```
 
-**Beispiel 2**: Remote-gemappter Admin (Entra ID)
+**Example 2**: Remote-mapped admin (Entra ID)
 ```yaml
 mode: remote
 remoteIdpReference:
@@ -91,25 +91,25 @@ createdAt: 2026-06-24T10:00:00Z
 active: true
 ```
 
-## Abgrenzung zu ähnlichen Objekten
+## Delimitation from Similar Objects
 
-- **NICHT** [person](./person.md) / [role](./role.md): Diese modellieren fachliche Verantwortung innerhalb des EA-Repositorys; der System-Admin-Account ist reine Instanz-Administration, existiert ggf. bevor überhaupt eine Person im Repository angelegt ist.
-- **NICHT** die reguläre lokale Authentifizierung aus REQ-011 (Username/Passwort ohne zweiten Faktor): jene setzt eine bereits existierende Person mit RoleAssignment voraus; der System-Admin-Account existiert unabhängig davon und dient explizit dem Bootstrapping.
+- **NOT** [person](./person.md) / [role](./role.md): These model business responsibility within the EA repository; the system admin account is pure instance administration and may exist before any person is created in the repository.
+- **NOT** the regular local authentication from REQ-011 (username/password without a second factor): that presupposes an already existing person with a RoleAssignment; the system admin account exists independently of this and explicitly serves bootstrapping.
 
-## Verwendung in Use Cases
+## Usage in Use Cases
 
-- [UC-02: System-Admin-Bootstrapping](../requirements/use-cases/UC-02-system-admin-bootstrapping.md)
+- [UC-02: System Admin Bootstrapping](../requirements/use-cases/UC-02-system-admin-bootstrapping.md)
 
-## Konzept-Bezug
+## Concept Reference
 
-- [§21.8 Sicherheit und Autorisierung](../concept/70-platform/21-api-architektur.md)
+- [§21.8 Security and Authorization](../concept/70-platform/21-api-architecture.md)
 
-## Notizen
+## Notes
 
-Erste Modellierung im Rahmen von UC-02 (Bootstrapping). Bewusst minimal gehalten – Multi-Admin-Szenarien (mehrere parallele System-Admin-Accounts) und Recovery/Break-Glass-Verfahren sind als offene Fragen in UC-02 vermerkt, nicht hier vorab entschieden.
+First modeling in the context of UC-02 (bootstrapping). Deliberately kept minimal – multi-admin scenarios (several parallel system admin accounts) and recovery/break-glass procedures are noted as open questions in UC-02, not decided here in advance.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | Business Engineer | Initial draft im Rahmen von UC-02 Bootstrapping |
+| 0.1.0 | 2026-06-24 | Business Engineer | Initial draft in the context of UC-02 Bootstrapping |

@@ -1,6 +1,6 @@
 ---
 id: REQ-030
-title: Mehrere aktive TOTP-Credentials pro Person
+title: Multiple active TOTP credentials per person
 type: functional
 priority: should
 status: proposed
@@ -18,121 +18,121 @@ references:
     - SH-06
     - SH-03
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-030: Mehrere aktive TOTP-Credentials pro Person
+# REQ-030: Multiple active TOTP credentials per person
 
-## Aussage
+## Statement
 
-Das System MUSS es einer Person erlauben, gleichzeitig mehrere aktive TOTP-Credentials (`LocalCredential.type=totp`) zu hinterlegen; beim Login (REQ-010) MUSS ein gültiger TOTP-Code aus irgendeinem der aktiven TOTP-Credentials der Person akzeptiert werden; jedes TOTP-Credential MUSS ein nutzer-vergebbares Label tragen, damit die Person ihre Credentials voneinander unterscheiden kann.
+The system MUST allow a person to hold several active TOTP credentials (`LocalCredential.type=totp`) at the same time; at login (REQ-010) a valid TOTP code from any of the person's active TOTP credentials MUST be accepted; each TOTP credential MUST carry a user-assignable label so that the person can tell their credentials apart.
 
-## Begründung
+## Rationale
 
-Eine Person kann mehrere Geräte (Smartphone, Tablet, Hardware-Token) als TOTP-Authenticator nutzen wollen. Besonders bei Personen mit administrativen Rollen ist ein Backup-Authenticator für Recovery-Szenarien sinnvoll. Die bisherige Beschränkung auf ein aktives TOTP pro Person (aufgehoben durch dieses Requirement) spiegelt nicht die tatsächliche Praxis wider: dasselbe Secret auf mehrere Geräte zu replizieren (was Secrets-Sharing bedeutet) ist schlechter als separate Registrierungen mit eigenem Secret pro Gerät. Dieses Verhalten entspricht bereits dem Passkey-Modell im selben BO (mehrere Passkeys pro Person sind schon erlaubt, BR-02 war für TOTP restriktiver).
+A person may want to use several devices (smartphone, tablet, hardware token) as TOTP authenticators. Especially for persons with administrative roles, a backup authenticator for recovery scenarios makes sense. The previous restriction to one active TOTP per person (lifted by this requirement) does not reflect actual practice: replicating the same secret onto several devices (which means secret sharing) is worse than separate registrations with their own secret per device. This behavior already corresponds to the passkey model in the same BO (multiple passkeys per person are already allowed; BR-02 was more restrictive for TOTP).
 
-## Kontext
+## Context
 
-Gilt für `LocalCredential.type=totp`. Passwort-Credentials (`type=password`) bleiben auf maximal eines pro Person beschränkt (BR-03 in `local-credential.md`). Das Requirement hebt die bisherige BR-02 ("maximal ein aktives TOTP pro Person") auf und ersetzt sie durch: "mehrere aktive TOTP-Credentials pro Person zulässig; jedes mit eigenem Secret und Label". Ein neues TOTP invalidiert vorhandene NICHT mehr automatisch (bisheriges Verhalten gestrichen). Die Person verwaltet ihre TOTP-Credentials selbst (Löschen über Profil-Einstellungen, separater UC).
+Applies to `LocalCredential.type=totp`. Password credentials (`type=password`) remain limited to at most one per person (BR-03 in `local-credential.md`). The requirement lifts the previous BR-02 ("at most one active TOTP per person") and replaces it with: "multiple active TOTP credentials per person permitted; each with its own secret and label". A new TOTP NO LONGER automatically invalidates existing ones (previous behavior removed). The person manages their TOTP credentials themselves (deletion via profile settings, separate UC).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- Label (nutzer-vergeben, optional; max. 255 Zeichen, z.B. "iPhone – Google Authenticator", "YubiKey TOTP")
-- TOTP-Enrollment-Ablauf wie in REQ-022 und UC-03 definiert
+**Inputs**:
+- Label (user-assigned, optional; max. 255 characters, e.g., "iPhone – Google Authenticator", "YubiKey TOTP")
+- TOTP enrollment flow as defined in REQ-022 and UC-03
 
-**Verarbeitung beim Enrollment**:
-- Neues TOTP-Credential wird angelegt und zur Person verknüpft; vorhandene TOTP-Credentials bleiben aktiv
-- Kein implizites Revoken des bisherigen TOTP; nur der Nutzer kann Credentials explizit löschen
+**Processing during enrollment**:
+- A new TOTP credential is created and linked to the person; existing TOTP credentials remain active
+- No implicit revocation of the previous TOTP; only the user can explicitly delete credentials
 
-**Verarbeitung beim Login (REQ-010)**:
-- System lädt alle aktiven TOTP-Credentials der Person
-- Verifiziert den eingegebenen Code gegen jedes Credential sequenziell (Reihenfolge: zuletzt genutzt zuerst, für Performance)
-- Sobald ein Credential den Code verifiziert: Login erfolgreich; `lastUsedAt` dieses Credentials aktualisieren
-- Kein "welches Credential"-Feld für den Nutzer beim Login nötig – der Code ist der einzige Input
+**Processing during login (REQ-010)**:
+- System loads all active TOTP credentials of the person
+- Verifies the entered code against each credential sequentially (order: most recently used first, for performance)
+- As soon as a credential verifies the code: login successful; update `lastUsedAt` of this credential
+- No "which credential" field needed for the user at login – the code is the only input
 
-**Fehlerfälle**:
-- Label leer → zulässig; System vergibt Default-Label (z.B. "TOTP-Authenticator 2026-06-25")
-- Label länger als 255 Zeichen → Validierungsfehler beim Enrollment
-- Kein aktives TOTP-Credential → Login-Verhalten gemäß REQ-010 (kein zweiter Faktor verfügbar)
+**Error Cases**:
+- Label empty → permitted; the system assigns a default label (e.g., "TOTP authenticator 2026-06-25")
+- Label longer than 255 characters → validation error at enrollment
+- No active TOTP credential → login behavior per REQ-010 (no second factor available)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Person hat zwei aktive TOTP-Credentials (unterschiedliche Secrets, unterschiedliche Geräte)
-- Wenn: ein gültiger TOTP-Code aus dem zweiten Credential eingegeben wird
-- Dann: ist der Login erfolgreich; `lastUsedAt` des zweiten Credentials wird aktualisiert
+- Given: a person has two active TOTP credentials (different secrets, different devices)
+- When: a valid TOTP code from the second credential is entered
+- Then: the login is successful; `lastUsedAt` of the second credential is updated
 
 **AC2**:
-- Gegeben: Person hat ein bestehendes aktives TOTP-Credential
-- Wenn: sie über UC-03 A3 ein weiteres TOTP-Credential einrichtet
-- Dann: hat sie danach zwei aktive TOTP-Credentials; das erste ist nicht revoked
+- Given: a person has an existing active TOTP credential
+- When: they set up another TOTP credential via UC-03 A3
+- Then: they have two active TOTP credentials afterwards; the first one is not revoked
 
 **AC3**:
-- Gegeben: zwei aktive TOTP-Credentials
-- Wenn: die Person ihre Sicherheitseinstellungen aufruft
-- Dann: werden beide Credentials mit ihrem Label und `createdAt`/`lastUsedAt` angezeigt
+- Given: two active TOTP credentials
+- When: the person opens their security settings
+- Then: both credentials are shown with their label and `createdAt`/`lastUsedAt`
 
 **AC4**:
-- Gegeben: Person richtet ein TOTP ohne Label ein
-- Wenn: das Credential angelegt wird
-- Dann: erhält es ein sinnvolles Default-Label (z.B. "TOTP-Authenticator" + Datum)
+- Given: a person sets up a TOTP without a label
+- When: the credential is created
+- Then: it receives a sensible default label (e.g., "TOTP authenticator" + date)
 
 **AC5**:
-- Gegeben: zwei aktive TOTP-Credentials
-- Wenn: ein ungültiger Code (keinem der Credentials zuordenbar) eingegeben wird
-- Dann: schlägt der Login fehl; keine Information darüber, welches Credential nicht getroffen wurde (kein Leak)
+- Given: two active TOTP credentials
+- When: an invalid code (not attributable to any of the credentials) is entered
+- Then: the login fails; no information about which credential was not matched (no leak)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Person mit 2 TOTP-Credentials anlegen; Login mit Code aus jedem Credential testen; Enrollment-Test (kein Auto-Revoke); Default-Label-Test
-- [x] Mess-Werkzeug: Test-Suite des Auth-Moduls
-- [x] Bestanden-Kriterium: AC1–AC5 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: create a person with 2 TOTP credentials; test login with a code from each credential; enrollment test (no auto-revoke); default label test
+- [x] Measurement tool: test suite of the auth module
+- [x] Pass criterion: AC1–AC5 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-022 (TOTP-Enrollment), REQ-010 (Login-Flow mit TOTP)
-- **Folgewirkungen**: `local-credential.md` BR-02 muss aktualisiert werden (Einschränkung aufgehoben); `label`-Attribut wird zu TOTP-Typ-spezifischen Attributen hinzugefügt
-- **Konflikte**: bisher BR-02 in `local-credential.md` – wird durch dieses REQ aufgehoben
+- **Prerequisites**: REQ-022 (TOTP enrollment), REQ-010 (login flow with TOTP)
+- **Downstream effects**: `local-credential.md` BR-02 must be updated (restriction lifted); the `label` attribute is added to the TOTP-type-specific attributes
+- **Conflicts**: previously BR-02 in `local-credential.md` – is lifted by this REQ
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne mehrere TOTP-Credentials sind Personen gezwungen, ein Secret auf mehrere Geräte zu kopieren (Secrets-Sharing) – schlechter als separate Credentials; moderater Schweregrad
-- Risiko 2: Ohne Backup-TOTP riskieren Nutzer Lock-out bei Geräteverlust – höhere Support-Last für Betreiber
+- Risk 1: Without multiple TOTP credentials, persons are forced to copy a secret to several devices (secret sharing) – worse than separate credentials; moderate severity
+- Risk 2: Without a backup TOTP, users risk lockout on device loss – higher support load for operators
 
 ## Trade-offs
 
-- Mehrere TOTP-Credentials erhöhen die Angriffsfläche minimal (jedes Credential ist ein potentieller Angriffspunkt). Mitigiert durch: separates Secret pro Credential (kein Secrets-Sharing), `lastUsedAt`-Tracking, Audit-Log bei Enrollment/Nutzung.
-- Performance-Overhead bei Login: sequentielle Verifikation aller TOTP-Credentials. Bei vernünftigen Werten (max. 5–10 Credentials) negligierbar; zuletzt-genutzt-zuerst-Sortierung mitigiert den Overhead weiter.
+- Multiple TOTP credentials minimally increase the attack surface (each credential is a potential point of attack). Mitigated by: separate secret per credential (no secret sharing), `lastUsedAt` tracking, audit log on enrollment/use.
+- Performance overhead at login: sequential verification of all TOTP credentials. Negligible at reasonable values (max. 5–10 credentials); most-recently-used-first ordering further mitigates the overhead.
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- DB-Query beim Login: `SELECT * FROM local_credentials WHERE person_id = ? AND type = 'totp' AND status = 'active' ORDER BY last_used_at DESC NULLS LAST`
-- Verifikationsschleife bricht bei erstem Treffer ab
-- Label-Input: Freitextfeld im Enrollment-UI ("Wie möchtest du dieses Gerät nennen?"); optional mit Vorschlägen (iOS, Android, Hardware-Token)
-- Kein UI-Select "welches Credential beim Login" – der TOTP-Code ist selbst die Unterscheidung; multi-Credential-Lookup ist serverseitig transparent
+- DB query at login: `SELECT * FROM local_credentials WHERE person_id = ? AND type = 'totp' AND status = 'active' ORDER BY last_used_at DESC NULLS LAST`
+- Verification loop stops at the first match
+- Label input: free-text field in the enrollment UI ("What would you like to call this device?"); optionally with suggestions (iOS, Android, hardware token)
+- No UI select "which credential at login" – the TOTP code itself is the distinction; multi-credential lookup is transparent on the server side
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus Betreiber-Anforderung (SH-06): "mehrere 2. Faktoren vom gleichen Typ hinterlegen". Insbesondere für Instanzen mit mehreren Administratoren sinnvoll: jeder Admin kann seinen eigenen Backup-TOTP-Authenticator einrichten, ohne andere Credentials zu beeinflussen. Hebt BR-02 in `local-credential.md` auf.
+Derived from operator requirement (SH-06): "store multiple 2nd factors of the same type". Particularly useful for instances with several administrators: each admin can set up their own backup TOTP authenticator without affecting other credentials. Lifts BR-02 in `local-credential.md`.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft; hebt BR-02 in local-credential.md auf |
+| 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft; lifts BR-02 in local-credential.md |

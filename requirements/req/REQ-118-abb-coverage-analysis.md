@@ -1,6 +1,6 @@
 ---
 id: REQ-118
-title: ABB-Abdeckungs-Analyse (Gap-Quote)
+title: ABB Coverage Analysis (Gap Ratio)
 type: functional
 priority: should
 status: proposed
@@ -23,43 +23,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-118: ABB-Abdeckungs-Analyse (Gap-Quote)
+# REQ-118: ABB Coverage Analysis (Gap Ratio)
 
-## Aussage
+## Statement
 
-Das System MUSS eine ABB-Abdeckungs-Analyse anbieten, die für jeden ABB mit `governanceStatus=approved` ausweist: Anzahl konformer Entitäten (`conformsToABBId`), Anzahl implementierender SBBs und ob ein Gap vorliegt (keine konformen Entitäten). Die Gesamtquote (ABBs mit mindestens einer Instanz / alle approved ABBs) MUSS als Prozentzahl „Gap-Quote" sichtbar sein. Die Analyse ist rein lesend.
+The system MUST offer an ABB coverage analysis that reports for every ABB with `governanceStatus=approved`: the number of conforming entities (`conformsToABBId`), the number of implementing SBBs, and whether a gap exists (no conforming entities). The overall ratio (ABBs with at least one instance / all approved ABBs) MUST be visible as a percentage "gap ratio". The analysis is read-only.
 
-## Begründung
+## Rationale
 
-ABBs ohne konforme Instanzen zeigen, wo definierte Standards nicht in der Landschaft angekommen sind — die wesentliche Governance-Aussage des Architecture Continuum. Die Gap-Quote ermöglicht Trending über Zeit.
+ABBs without conforming instances show where defined standards have not arrived in the landscape — the essential governance statement of the Architecture Continuum. The gap ratio enables trending over time.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Gap-Quote-Berechnung):
-- Wenn: 5 approved ABBs vorhanden sind, davon 2 ohne Instanz
-- Dann: zeigt die Analyse Gap-Quote = 40%; die Tabelle zeigt alle 5 ABBs mit ihren Instanz-Zählungen
+**AC1** (Gap ratio calculation):
+- When: 5 approved ABBs exist, 2 of them without an instance
+- Then: the analysis shows gap ratio = 40%; the table shows all 5 ABBs with their instance counts
 
-**AC2** (ABB-Detailansicht):
-- Wenn: ein ABB in der Analyse-Tabelle geöffnet wird
-- Dann: sind implementierende SBBs und konforme Entitäten als anklickbare Links sichtbar
+**AC2** (ABB detail view):
+- When: an ABB is opened in the analysis table
+- Then: implementing SBBs and conforming entities are visible as clickable links
 
-**AC3** (Leer-Zustand):
-- Wenn: noch keine ABBs konfiguriert sind
-- Dann: zeigt das System den Hinweis „Noch keine ABBs konfiguriert; starte mit UC-17"
+**AC3** (Empty state):
+- When: no ABBs are configured yet
+- Then: the system shows the note "No ABBs configured yet; start with UC-17"
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-107 (ABBs), REQ-108 (SBBs)
-- **Folgewirkungen**: REQ-120 (Technology-Diversity-Analyse nutzt dieselben Daten für Executive Summary)
+- **Prerequisites**: REQ-107 (ABBs), REQ-108 (SBBs)
+- **Consequences**: REQ-120 (technology diversity analysis uses the same data for the executive summary)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Gap-Quote: SQL-Aggregation; kein Caching erforderlich bei erster Version
-- Konforme Entitäten: JOIN auf `entity.conformsToABBId`; Links navigieren zur Entitäts-Detailansicht
-- Analyse: rein lesender GET-Endpoint; keine Schreiboperationen
+- Gap ratio: SQL aggregation; no caching required in the first version
+- Conforming entities: JOIN on `entity.conformsToABBId`; links navigate to the entity detail view
+- Analysis: read-only GET endpoint; no write operations
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

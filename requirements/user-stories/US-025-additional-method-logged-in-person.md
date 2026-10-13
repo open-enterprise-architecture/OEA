@@ -1,64 +1,64 @@
-# US-025: Weitere Authentifizierungsmethode als eingeloggte Person hinzufügen
+# US-025: Add Another Authentication Method as a Logged-In Person
 
 **ID**: US-025
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als bereits eingeloggte Person möchte ich in meinen Sicherheitseinstellungen eine weitere lokale Authentifizierungsmethode einrichten, damit ich nach einem Geräteverlust oder als Backup-Option weiterhin Zugang habe – ohne einen neuen Einladungslink anfordern zu müssen.
+As an already logged-in person, I want to set up another local authentication method in my security settings, so that I retain access after losing a device or as a backup option – without having to request a new invitation link.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-03: Authentifizierungsmethode einrichten](../use-cases/UC-03-authentifizierungsmethode-einrichten.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-026: Weitere Authentifizierungsmethode für eingeloggte Person einrichten](../req/REQ-026-weitere-methode-authentifizierte-person.md)
+**Use Case**: [UC-03: Set Up Authentication Method](../use-cases/UC-03-set-up-authentication-method.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-026: Set Up Additional Authentication Method for a Logged-In Person](../req/REQ-026-additional-method-authenticated-person.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Kurt ist eingeloggt und hat noch keine TOTP-Methode eingerichtet
-- Wenn: er in den Sicherheitseinstellungen TOTP hinzufügt und die Einrichtung abschließt
-- Dann: ist TOTP als zusätzliche Methode persistiert; kein Enrollment-Token wurde benötigt
+- Given: Kurt is logged in and has not yet set up a TOTP method
+- When: he adds TOTP in the security settings and completes the setup
+- Then: TOTP is persisted as an additional method; no enrollment token was needed
 
 **AC2**:
-- Gegeben: Kurt ist eingeloggt und möchte einen zweiten Passkey hinzufügen
-- Wenn: er die Passkey-Registrierung durchführt
-- Dann: ist der neue Public Key persistiert; beide Passkeys sind für den Login verwendbar
+- Given: Kurt is logged in and wants to add a second passkey
+- When: he performs the passkey registration
+- Then: the new public key is persisted; both passkeys can be used for login
 
 **AC3**:
-- Gegeben: Kurt hat alle für die Instanz verfügbaren Methoden bereits eingerichtet
-- Wenn: er die Sicherheitseinstellungen öffnet
-- Dann: sieht er einen informativen Hinweis, kein Fehler
+- Given: Kurt has already set up all methods available for the instance
+- When: he opens the security settings
+- Then: he sees an informational notice, not an error
 
 **AC4**:
-- Gegeben: eine Anfrage an den Enrollment-Endpunkt ohne gültige Session
-- Wenn: die Anfrage eingeht
-- Dann: wird sie abgelehnt und auf den Login weitergeleitet
+- Given: a request to the enrollment endpoint without a valid session
+- When: the request arrives
+- Then: it is rejected and redirected to the login
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Enrollment-Modul (wiederverwendet US-021/022/023-Endpunkte mit Session-Auth statt Token-Auth), Profil/Sicherheitseinstellungen-Seite (Frontend)
-- Betroffene EntityTypes/Relations: keine neuen; bestehende `local_credentials`- und `passkey_credentials`-Tabellen
-- API-Endpunkte: dieselben Enrollment-Endpunkte wie US-021/022/023, aber über einen authentifizierten Gate-Pfad erreichbar (Session statt Token); CSRF-Schutz via SameSite=Strict-Cookie
-- Datenbank-Änderungen: keine neuen; Eintrag in bestehender `local_credentials`- oder `passkey_credentials`-Tabelle
+- Affected components: enrollment module (reuses US-021/022/023 endpoints with session auth instead of token auth), profile/security settings page (frontend)
+- Affected EntityTypes/Relations: no new ones; existing `local_credentials` and `passkey_credentials` tables
+- API endpoints: the same enrollment endpoints as US-021/022/023, but reachable via an authenticated gate path (session instead of token); CSRF protection via SameSite=Strict cookie
+- Database changes: none new; entry in existing `local_credentials` or `passkey_credentials` table
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (eingeloggte Person fügt Methode hinzu; unauthentifizierter Zugriff; alle Methoden bereits vorhanden)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (logged-in person adds method; unauthenticated access; all methods already present)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-021, US-022 oder US-023 (mindestens ein methodenspezifischer Enrollment-Endpunkt muss existieren); UC-01 Login muss funktionieren (Session-Grundlage)
-- Blockiert: keine
+- Waiting on: US-021, US-022 or US-023 (at least one method-specific enrollment endpoint must exist); UC-01 login must work (session foundation)
+- Blocks: none
 
-## Notizen
+## Notes
 
-3 SP, weil der eigentliche Enrollment-Code aus US-021/022/023 wiederverwendet wird; der Mehraufwand liegt im Session-Auth-Gate, der Sicherheitseinstellungen-Seite im Frontend und den CSRF-Tests. Diagramm: der Enrollment-Code-Pfad sollte einen einzigen Auth-Adapter haben (Token oder Session), kein duplizierter Enrollment-Code.
+3 SP because the actual enrollment code from US-021/022/023 is reused; the additional effort lies in the session auth gate, the security settings page in the frontend and the CSRF tests. Diagram: the enrollment code path should have a single auth adapter (token or session), no duplicated enrollment code.

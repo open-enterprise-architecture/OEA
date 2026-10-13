@@ -1,6 +1,6 @@
 ---
 id: REQ-027
-title: Passwort-Generator für sichere lokale Passwörter
+title: Password generator for secure local passwords
 type: functional
 priority: must
 status: proposed
@@ -17,122 +17,122 @@ references:
   stakeholders:
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-027: Passwort-Generator für sichere lokale Passwörter
+# REQ-027: Password generator for secure local passwords
 
-## Aussage
+## Statement
 
-Das System MUSS einen kryptographisch sicheren Passwort-Generator bereitstellen, der Passwörter aus dem vollständigen druckbaren ASCII-Sonderzeichen-Zeichensatz erzeugt und die jeweils konfigurierten Passwort-Richtlinien (REQ-028) automatisch erfüllt; der Generator MUSS sowohl im Admin-Kontext (initiales Passwort setzen, REQ-024) als auch im Nutzer-Kontext (Passwort ändern) verfügbar sein.
+The system MUST provide a cryptographically secure password generator that produces passwords from the full printable ASCII special character set and automatically satisfies the respective configured password policies (REQ-028); the generator MUST be available both in the admin context (setting the initial password, REQ-024) and in the user context (changing the password).
 
-## Begründung
+## Rationale
 
-Administratoren und Nutzer sollen nicht selbst starke Passwörter erfinden müssen. Ein integrierter Generator stellt sicher, dass erzeugte Passwörter die konfigurierten Richtlinien (REQ-028) von Anfang an erfüllen und keine schwachen Passwörter entstehen. Adressiert SH-06s Anforderung an sichere lokale Benutzerverwaltung ohne externe Passwort-Manager-Pflicht. Der vollständige Sonderzeichen-Zeichensatz (alle druckbaren ASCII-Sonderzeichen, nicht nur eine eingeschränkte Teilmenge) maximiert die Entropie pro Zeichen.
+Administrators and users should not have to invent strong passwords themselves. An integrated generator ensures that generated passwords satisfy the configured policies (REQ-028) from the start and that no weak passwords arise. Addresses SH-06's requirement for secure local user management without a mandatory external password manager. The full special character set (all printable ASCII special characters, not just a restricted subset) maximizes entropy per character.
 
-## Kontext
+## Context
 
-Der Generator erzeugt Passwörter im Klartext, die unmittelbar danach gehasht werden (REQ-024, künftiger Passwort-Änderungs-UC). Er ist kein eigenständiger Dienst, sondern eine Hilfsfunktion innerhalb des Auth-Moduls. Generierte Passwörter müssen die aktuelle Instanz-Konfiguration (REQ-028) berücksichtigen, damit ein erzeugtes Passwort die Richtlinien garantiert erfüllt.
+The generator produces passwords in plain text that are hashed immediately afterwards (REQ-024, future password change UC). It is not a standalone service but a helper function within the auth module. Generated passwords must take the current instance configuration (REQ-028) into account so that a generated password is guaranteed to satisfy the policies.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- Gewünschte Länge (optional; Default: Instanz-Konfiguration oder Fallback-Default 20 Zeichen)
-- Aktive Passwort-Richtlinien (aus REQ-028, zur Laufzeit gelesen)
+**Inputs**:
+- Desired length (optional; default: instance configuration or fallback default of 20 characters)
+- Active password policies (from REQ-028, read at runtime)
 
-**Verarbeitung**:
-- Zeichenpool zusammenstellen aus aktivierten Zeichentypen (Großbuchstaben, Kleinbuchstaben, Ziffern, Sonderzeichen)
-- Kryptographisch sichere Zufallsquelle verwenden (CSPRNG, z.B. `crypto/rand` oder OS-Entropy)
-- Für jeden erzwungenen Zeichentyp (REQ-028) mindestens ein Zeichen garantiert einschließen
-- Restliche Zeichen zufällig aus dem Gesamtpool wählen
-- Reihenfolge der Zeichen zufällig permutieren (Fisher-Yates), damit erzwungene Zeichen nicht immer an fester Position stehen
-- Sonderzeichen-Zeichensatz: alle druckbaren ASCII-Sonderzeichen (Code 33–126, exklusive A-Z, a-z, 0-9):
+**Processing**:
+- Assemble the character pool from enabled character types (uppercase, lowercase, digits, special characters)
+- Use a cryptographically secure random source (CSPRNG, e.g., `crypto/rand` or OS entropy)
+- Guarantee at least one character for each enforced character type (REQ-028)
+- Choose the remaining characters randomly from the overall pool
+- Randomly permute the order of characters (Fisher-Yates) so that enforced characters are not always at fixed positions
+- Special character set: all printable ASCII special characters (codes 33–126, excluding A-Z, a-z, 0-9):
   `!"#$%&'()*+,-./:;<=>?@[\]^_` `` ` `` `{|}~`
 
-**Ausgaben**:
-- Passwort-Klartext (String)
-- Keine Persistierung durch den Generator selbst; Aufrufer ist für Hashing und sichere Weitergabe verantwortlich
+**Outputs**:
+- Plain-text password (string)
+- No persistence by the generator itself; the caller is responsible for hashing and secure handover
 
-**Fehlerfälle**:
-- Konfigurierte Mindestlänge (REQ-028) ist zu kurz, um alle erzwungenen Zeichentypen zu erfüllen → Fehler mit konkreter Meldung (z.B. "Mindestlänge muss mindestens 4 betragen, wenn alle vier Zeichentypen erzwungen sind")
-- CSPRNG nicht verfügbar → Fehler; Generator DARF NICHT auf schwächere Zufallsquelle ausweichen
+**Error Cases**:
+- Configured minimum length (REQ-028) is too short to satisfy all enforced character types → error with a specific message (e.g., "Minimum length must be at least 4 if all four character types are enforced")
+- CSPRNG not available → error; the generator MUST NOT fall back to a weaker random source
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Instanz-Konfiguration erzwingt Großbuchstaben, Kleinbuchstaben, Ziffern und Sonderzeichen
-- Wenn: der Generator ein Passwort erzeugt
-- Dann: enthält es mindestens je ein Zeichen aus jedem erzwungenen Typ
+- Given: the instance configuration enforces uppercase, lowercase, digits, and special characters
+- When: the generator creates a password
+- Then: it contains at least one character of each enforced type
 
 **AC2**:
-- Gegeben: Sonderzeichen sind aktiviert
-- Wenn: der Generator 1000 Passwörter erzeugt
-- Dann: enthält jedes mindestens ein Sonderzeichen aus dem vollständigen ASCII-Sonderzeichen-Zeichensatz (nicht nur `!@#$%` o.ä.)
+- Given: special characters are enabled
+- When: the generator creates 1000 passwords
+- Then: each contains at least one special character from the full ASCII special character set (not just `!@#$%` or similar)
 
 **AC3**:
-- Gegeben: ein generiertes Passwort
-- Wenn: es gegen REQ-028-Richtlinien geprüft wird
-- Dann: erfüllt es alle aktiven Regeln (kein Nachbessern durch den Aufrufer nötig)
+- Given: a generated password
+- When: it is checked against REQ-028 policies
+- Then: it satisfies all active rules (no rework by the caller needed)
 
 **AC4**:
-- Gegeben: CSPRNG ist verfügbar
-- Wenn: 1000 Passwörter gleicher Länge generiert werden
-- Dann: sind alle verschieden (keine Kollisionen in dieser Stichprobe)
+- Given: CSPRNG is available
+- When: 1000 passwords of the same length are generated
+- Then: all are different (no collisions in this sample)
 
 **AC5**:
-- Gegeben: die Mindestlänge-Konfiguration ist zu niedrig für die erzwungenen Zeichentypen
-- Wenn: der Generator aufgerufen wird
-- Dann: gibt er einen Fehler zurück, anstatt ein nicht-konformes Passwort zu erzeugen
+- Given: the minimum length configuration is too low for the enforced character types
+- When: the generator is called
+- Then: it returns an error instead of creating a non-compliant password
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Generator mit verschiedenen Richtlinien-Kombinationen aufrufen; Ausgaben statistisch auf Zeichentypen prüfen; CSPRNG-Mock für Fehlerfall
-- [x] Mess-Werkzeug: Test-Suite des Auth-Moduls
-- [x] Bestanden-Kriterium: AC1–AC5 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: call the generator with various policy combinations; statistically check outputs for character types; CSPRNG mock for the error case
+- [x] Measurement tool: test suite of the auth module
+- [x] Pass criterion: AC1–AC5 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-028 (Passwort-Richtlinien müssen konfigurierbar sein, damit Generator sie lesen kann)
-- **Folgewirkungen**: REQ-024 (Admin nutzt Generator beim Setzen des initialen Passworts); künftiger Passwort-Änderungs-UC (Nutzer nutzt Generator)
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-028 (password policies must be configurable so that the generator can read them)
+- **Downstream effects**: REQ-024 (admin uses the generator when setting the initial password); future password change UC (user uses the generator)
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne Generator wählen Admins schwache oder vorhersagbare initiale Passwörter – erhöhtes Risiko durch schwache Credentials, mittlerer Schweregrad
-- Risiko 2: Generator mit schwacher Zufallsquelle (z.B. `Math.random()`) ist vorhersagbar – schwerwiegend (durch AC4/CSPRNG-Pflicht mitigiert)
+- Risk 1: Without a generator, admins choose weak or predictable initial passwords – increased risk from weak credentials, medium severity
+- Risk 2: A generator with a weak random source (e.g., `Math.random()`) is predictable – severe (mitigated by AC4/CSPRNG obligation)
 
 ## Trade-offs
 
-- Vollständiger ASCII-Sonderzeichen-Zeichensatz kann in seltenen Fällen zu Inkompatibilitäten mit Anwendungen führen, die bestimmte Sonderzeichen nicht akzeptieren. Da OEA die Passwörter selbst verwaltet, ist das kein Problem; der Generator erzeugt Passwörter nur für OEA-eigene Credentials.
+- The full ASCII special character set can in rare cases lead to incompatibilities with applications that do not accept certain special characters. Since OEA manages the passwords itself, this is not a problem; the generator only creates passwords for OEA's own credentials.
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- CSPRNG: Betriebssystem-Entropy (`/dev/urandom`, `CryptGenRandom`, `crypto/rand`) – niemals `rand()`, `Math.random()` o.ä.
-- Fisher-Yates-Shuffle nach Zeichenauswahl, um Positionen der erzwungenen Zeichen zu randomisieren
-- Generator als reine Funktion (Input: Richtlinien-Objekt → Output: String); kein State, keine Seiteneffekte; einfach testbar
-- UI: "Passwort generieren"-Button neben dem Passwort-Feld; generiertes Passwort sofort anzeigen (einmalig, dann ausblenden)
+- CSPRNG: operating system entropy (`/dev/urandom`, `CryptGenRandom`, `crypto/rand`) – never `rand()`, `Math.random()`, or similar
+- Fisher-Yates shuffle after character selection to randomize the positions of enforced characters
+- Generator as a pure function (input: policy object → output: string); no state, no side effects; easy to test
+- UI: "Generate password" button next to the password field; display the generated password immediately (once, then hide)
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus Betreiber-Anforderung (SH-06): Passwort-Generator mit vollständigem Sonderzeichen-Zeichensatz. "Alle Sonderzeichen erlaubt" bedeutet: kein Ausschluss von Zeichen wie `"`, `\`, `<`, `>` etc., die manche Systeme einschränken.
+Derived from operator requirement (SH-06): password generator with the full special character set. "All special characters allowed" means: no exclusion of characters such as `"`, `\`, `<`, `>`, etc., which some systems restrict.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |

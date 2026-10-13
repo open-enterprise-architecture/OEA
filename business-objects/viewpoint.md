@@ -12,75 +12,75 @@ aliases:
   - View Definition
 related_capabilities: []
 references:
-  - concept: concept/20-entities/06-kern-entitaetstypen.md
-  - concept: concept/20-entities/12-domain-sichten.md
-  - concept: concept/70-platform/21-api-architektur.md
+  - concept: concept/20-entities/06-core-entity-types.md
+  - concept: concept/20-entities/12-domain-views.md
+  - concept: concept/70-platform/21-api-architecture.md
 ---
 
 # Business Object: Viewpoint
 
 ## Definition
 
-Ein `Viewpoint` ist eine benannte Architektursicht, die festlegt, welche Entitätstypen und Verbindungstypen in einem Diagramm dieses Typs erscheinen dürfen, in welcher Notation sie dargestellt werden und mit welchen Standard-Abmessungen und Darstellungstypen sie gerendert werden. Er ist die Brücke zwischen dem semantischen Metamodell (EntityTypes, Connections) und der visuellen Repräsentation.
+A `Viewpoint` is a named architecture view that determines which entity types and connection types may appear in a diagram of this type, in which notation they are displayed, and with which default dimensions and presentation types they are rendered. It is the bridge between the semantic metamodel (EntityTypes, connections) and the visual representation.
 
-Jeder Entitätstyp und Verbindungstyp besitzt eine **stabile, eindeutige ID** (kebab-case; z.B. `application-component`). Viewpoints referenzieren diese IDs – nicht die Anzeigenamen. Dadurch bleiben Viewpoint-Definitionen beim Import/Export zwischen OEA-Instanzen konsistent, auch wenn Anzeigenamen lokalisiert oder umbenannt werden.
+Every entity type and connection type has a **stable, unique ID** (kebab-case; e.g. `application-component`). Viewpoints reference these IDs – not the display names. This keeps viewpoint definitions consistent during import/export between OEA instances, even if display names are localized or renamed.
 
-## Beschreibung
+## Description
 
-Ein Viewpoint beantwortet drei Fragen:
+A viewpoint answers three questions:
 
-1. **Was darf in dieser Sicht erscheinen?** – Auswahl aus den im Metamodell definierten EntityTypes und Connection-Typen (referenziert via ID)
-2. **Wie wird es dargestellt?** – Wahl einer Notation: ArchiMate 3, UML oder BPMN 2.0; pro EntityType ein konkretes Notation-Element (z.B. `archimate:ApplicationComponent`, `bpmn:UserTask`)
-3. **In welcher Standardgrösse?** – pro EntityType eine Default-Breite und -Höhe in Pixel, die der Canvas-Editor beim Einfügen neuer Elemente verwendet
+1. **What may appear in this view?** – Selection from the EntityTypes and connection types defined in the metamodel (referenced via ID)
+2. **How is it displayed?** – Choice of a notation: ArchiMate 3, UML, or BPMN 2.0; per EntityType a concrete notation element (e.g. `archimate:ApplicationComponent`, `bpmn:UserTask`)
+3. **In which default size?** – per EntityType a default width and height in pixels, which the canvas editor uses when inserting new elements
 
-Jede Instanz einer OEA-[MetamodelConfiguration](./metamodel-configuration.md) enthält eine Menge von Viewpoints, analog zu den EntityTypes und Stereotypes. Einige Viewpoints sind **system-definiert** (built-in, nicht löschbar), andere werden vom Architekturteam als **user-defined** ergänzt.
+Every instance of an OEA [MetamodelConfiguration](./metamodel-configuration.md) contains a set of viewpoints, analogous to the EntityTypes and stereotypes. Some viewpoints are **system-defined** (built-in, not deletable); others are added by the architecture team as **user-defined**.
 
 ---
 
-### Eingebaute Viewpoints (system-defined)
+### Built-in Viewpoints (system-defined)
 
-OEA liefert standardmässig eine Reihe vordefinierter Viewpoints aus den drei unterstützten Notationen:
+OEA ships a set of predefined viewpoints from the three supported notations by default:
 
-**ArchiMate 3 (Auswahl)**:
+**ArchiMate 3 (selection)**:
 
-| Name | Erlaubte Schichten | Typische Entitätstypen |
+| Name | Allowed Layers | Typical Entity Types |
 |---|---|---|
 | Business Architecture View | Business | Actor, Role, BusinessProcess, BusinessFunction, BusinessService, Capability |
 | Application Architecture View | Application | ApplicationComponent, ApplicationService, ApplicationFunction, Interface |
 | Technology Architecture View | Technology | TechnologyComponent, Platform, Node, CommunicationPath |
-| Application Cooperation View | Application | ApplicationComponent, ApplicationService, Interface (Beziehungen im Fokus) |
-| Layered View | Alle | Alle Schichten sichtbar; volle Landschaft |
+| Application Cooperation View | Application | ApplicationComponent, ApplicationService, Interface (focus on relationships) |
+| Layered View | All | All layers visible; full landscape |
 
-**UML (Auswahl)**:
+**UML (selection)**:
 
-| Name | Diagramm-Typ | Typische Entitätstypen |
+| Name | Diagram Type | Typical Entity Types |
 |---|---|---|
-| Component Diagram | Komponenten | ApplicationComponent, Interface, Dependency |
-| Class Diagram | Klassen/Daten | DataEntity, LogicalDataComponent, Property |
+| Component Diagram | Components | ApplicationComponent, Interface, Dependency |
+| Class Diagram | Classes/data | DataEntity, LogicalDataComponent, Property |
 | Deployment Diagram | Deployment | Node, TechnologyComponent, ApplicationComponent |
 
-**BPMN 2.0 (Auswahl)**:
+**BPMN 2.0 (selection)**:
 
-| Name | Diagramm-Typ | Typische Entitätstypen |
+| Name | Diagram Type | Typical Entity Types |
 |---|---|---|
-| Process View | Prozessfluss | BusinessProcess, Task, Event, Gateway, SequenceFlow |
-| Collaboration View | Zusammenarbeit | Pool, Lane, MessageFlow, BusinessProcess |
+| Process View | Process flow | BusinessProcess, Task, Event, Gateway, SequenceFlow |
+| Collaboration View | Collaboration | Pool, Lane, MessageFlow, BusinessProcess |
 
 ---
 
-### Notation und Darstellung
+### Notation and Presentation
 
-Ein Viewpoint ist genau einer Notation zugeordnet. Die Notation steuert, wie die Elemente visuell gerendert werden:
+A viewpoint is assigned to exactly one notation. The notation controls how the elements are rendered visually:
 
-| Notation | Charakteristik | Typischer Einsatz |
+| Notation | Characteristic | Typical Use |
 |---|---|---|
-| `archimate3` | Box-basiert, farbcodierte TOGAF-Schichten, standardisierte Symbole | Landschaftsübersichten, Plateaus, Geschäfts-IT-Alignment |
-| `uml` | Strukturdiagramme (Component, Class, Deployment), Verhaltensdiagramme (Sequence, Activity) | Software-Architektur, Schnittstellen-Verträge |
-| `bpmn2` | Flow-basiert, Ereignisse/Aufgaben/Gateways, Pool-Lane-Struktur | Geschäftsprozesse, Abläufe, Organisationsübergänge |
+| `archimate3` | Box-based, color-coded TOGAF layers, standardized symbols | Landscape overviews, plateaus, business-IT alignment |
+| `uml` | Structure diagrams (component, class, deployment), behavior diagrams (sequence, activity) | Software architecture, interface contracts |
+| `bpmn2` | Flow-based, events/tasks/gateways, pool-lane structure | Business processes, workflows, organizational handovers |
 
 ---
 
-### Zusammenspiel mit MetamodelConfiguration
+### Interplay with MetamodelConfiguration
 
 ```
 MetamodelConfiguration (scope=instance)
@@ -101,50 +101,50 @@ MetamodelConfiguration (scope=instance)
               allowedConnectionTypes: [data-flow]
 ```
 
-Ein Diagram in OEA referenziert immer genau einen Viewpoint. Entitäten und Connections, die nicht im `allowedEntityTypes`/`allowedConnectionTypes`-Set des Viewpoints enthalten sind, können diesem Diagramm nicht hinzugefügt werden.
+A diagram in OEA always references exactly one viewpoint. Entities and connections that are not in the viewpoint's `allowedEntityTypes`/`allowedConnectionTypes` set cannot be added to this diagram.
 
 ---
 
-### Notation-Mappings und Standardgrössen
+### Notation Mappings and Default Sizes
 
-Für jeden EntityType existiert eine **Standard-Mapping-Tabelle** (system-defined), die den OEA-Typ auf das entsprechende Notation-Element und die üblichen Standardabmessungen abbildet:
+For each EntityType there is a **default mapping table** (system-defined) that maps the OEA type to the corresponding notation element and the usual default dimensions:
 
 | OEA EntityType (ID) | ArchiMate 3 | UML | BPMN 2.0 | Default W×H (px) |
 |---|---|---|---|---|
 | `application-component` | `archimate:ApplicationComponent` | `uml:Component` | – | 120 × 55 |
 | `business-process` | `archimate:BusinessProcess` | `uml:Activity` | `bpmn:Process` | 120 × 55 |
 | `interface` | `archimate:ApplicationInterface` | `uml:Interface` | – | 100 × 55 |
-| `data-flow` (Connection) | `archimate:FlowRelationship` | `uml:Dependency` | `bpmn:MessageFlow` | – |
-| `sequence-flow` (Connection) | `archimate:TriggeringRelationship` | – | `bpmn:SequenceFlow` | – |
-| Custom EntityType | `archimate:ApplicationComponent` (Fallback) | `uml:Class` (Fallback) | `bpmn:Task` (Fallback) | 120 × 55 |
+| `data-flow` (connection) | `archimate:FlowRelationship` | `uml:Dependency` | `bpmn:MessageFlow` | – |
+| `sequence-flow` (connection) | `archimate:TriggeringRelationship` | – | `bpmn:SequenceFlow` | – |
+| Custom EntityType | `archimate:ApplicationComponent` (fallback) | `uml:Class` (fallback) | `bpmn:Task` (fallback) | 120 × 55 |
 
-User-defined Viewpoints können für ihre Custom EntityTypes optional eigene Notation-Mappings hinterlegen, um das Default-Rendering zu überschreiben (z.B. spezifische ArchiMate-Symbole für Custom-Typen, abweichende Standardgrössen).
+User-defined viewpoints can optionally store their own notation mappings for their custom EntityTypes to override the default rendering (e.g. specific ArchiMate symbols for custom types, deviating default sizes).
 
-## Notation-Element-Katalog
+## Notation Element Catalog
 
-Gültige Werte für `NotationMapping.notationElement`, gegliedert nach Notation-Standard. Das Präfix bestimmt den Standard (`archimate:`, `uml:`, `bpmn:`). Der Viewpoint darf nur Elemente seiner eigenen Notation verwenden.
+Valid values for `NotationMapping.notationElement`, organized by notation standard. The prefix determines the standard (`archimate:`, `uml:`, `bpmn:`). The viewpoint may only use elements of its own notation.
 
-### ArchiMate 3 – Elemente (Präfix `archimate:`)
+### ArchiMate 3 – Elements (prefix `archimate:`)
 
-**Business-Schicht**: `archimate:BusinessActor` · `archimate:BusinessRole` · `archimate:BusinessProcess` · `archimate:BusinessService` · `archimate:BusinessFunction` · `archimate:BusinessInteraction` · `archimate:BusinessEvent` · `archimate:BusinessObject` · `archimate:Contract` · `archimate:Capability` · `archimate:ValueStream`
+**Business layer**: `archimate:BusinessActor` · `archimate:BusinessRole` · `archimate:BusinessProcess` · `archimate:BusinessService` · `archimate:BusinessFunction` · `archimate:BusinessInteraction` · `archimate:BusinessEvent` · `archimate:BusinessObject` · `archimate:Contract` · `archimate:Capability` · `archimate:ValueStream`
 
-**Application-Schicht**: `archimate:ApplicationComponent` · `archimate:ApplicationService` · `archimate:ApplicationFunction` · `archimate:ApplicationInterface` · `archimate:ApplicationCollaboration` · `archimate:DataObject`
+**Application layer**: `archimate:ApplicationComponent` · `archimate:ApplicationService` · `archimate:ApplicationFunction` · `archimate:ApplicationInterface` · `archimate:ApplicationCollaboration` · `archimate:DataObject`
 
-**Technology-Schicht**: `archimate:TechnologyComponent` · `archimate:TechnologyService` · `archimate:TechnologyFunction` · `archimate:Node` · `archimate:Device` · `archimate:SystemSoftware` · `archimate:CommunicationNetwork` · `archimate:Path` · `archimate:Artifact`
+**Technology layer**: `archimate:TechnologyComponent` · `archimate:TechnologyService` · `archimate:TechnologyFunction` · `archimate:Node` · `archimate:Device` · `archimate:SystemSoftware` · `archimate:CommunicationNetwork` · `archimate:Path` · `archimate:Artifact`
 
-**Beziehungen (Connections)**: `archimate:AssociationRelationship` · `archimate:CompositionRelationship` · `archimate:AggregationRelationship` · `archimate:RealizationRelationship` · `archimate:AssignmentRelationship` · `archimate:ServingRelationship` · `archimate:AccessRelationship` · `archimate:TriggeringRelationship` · `archimate:FlowRelationship` · `archimate:InfluenceRelationship` · `archimate:SpecializationRelationship`
+**Relationships (connections)**: `archimate:AssociationRelationship` · `archimate:CompositionRelationship` · `archimate:AggregationRelationship` · `archimate:RealizationRelationship` · `archimate:AssignmentRelationship` · `archimate:ServingRelationship` · `archimate:AccessRelationship` · `archimate:TriggeringRelationship` · `archimate:FlowRelationship` · `archimate:InfluenceRelationship` · `archimate:SpecializationRelationship`
 
-### UML – Elemente (Präfix `uml:`)
+### UML – Elements (prefix `uml:`)
 
-**Struktur**: `uml:Class` · `uml:Interface` · `uml:Component` · `uml:Package` · `uml:Node` · `uml:Artifact` · `uml:Collaboration`
+**Structure**: `uml:Class` · `uml:Interface` · `uml:Component` · `uml:Package` · `uml:Node` · `uml:Artifact` · `uml:Collaboration`
 
-**Verhalten**: `uml:Actor` · `uml:UseCase` · `uml:Activity` · `uml:State`
+**Behavior**: `uml:Actor` · `uml:UseCase` · `uml:Activity` · `uml:State`
 
-**Beziehungen (Connections)**: `uml:Dependency` · `uml:Association` · `uml:Realization` · `uml:Generalization` · `uml:Composition` · `uml:Aggregation`
+**Relationships (connections)**: `uml:Dependency` · `uml:Association` · `uml:Realization` · `uml:Generalization` · `uml:Composition` · `uml:Aggregation`
 
-**Sonstiges**: `uml:Note`
+**Other**: `uml:Note`
 
-### BPMN 2.0 – Elemente (Präfix `bpmn:`)
+### BPMN 2.0 – Elements (prefix `bpmn:`)
 
 **Tasks**: `bpmn:Task` · `bpmn:UserTask` · `bpmn:ServiceTask` · `bpmn:SendTask` · `bpmn:ReceiveTask` · `bpmn:ManualTask` · `bpmn:BusinessRuleTask` · `bpmn:ScriptTask` · `bpmn:SubProcess` · `bpmn:CallActivity`
 
@@ -152,91 +152,91 @@ Gültige Werte für `NotationMapping.notationElement`, gegliedert nach Notation-
 
 **Gateways**: `bpmn:ExclusiveGateway` · `bpmn:InclusiveGateway` · `bpmn:ParallelGateway` · `bpmn:EventBasedGateway`
 
-**Flows (Connections)**: `bpmn:SequenceFlow` · `bpmn:MessageFlow`
+**Flows (connections)**: `bpmn:SequenceFlow` · `bpmn:MessageFlow`
 
-**Daten & Struktur**: `bpmn:DataObject` · `bpmn:DataStore` · `bpmn:Pool` · `bpmn:Lane` · `bpmn:Group`
+**Data & structure**: `bpmn:DataObject` · `bpmn:DataStore` · `bpmn:Pool` · `bpmn:Lane` · `bpmn:Group`
 
-### Generischer Fallback
+### Generic Fallback
 
-`generic:Box` (Entity ohne spezifisches Notation-Element) · `generic:Arrow` (Connection ohne spezifisches Notation-Element)
+`generic:Box` (entity without a specific notation element) · `generic:Arrow` (connection without a specific notation element)
 
 ---
 
-### Empfohlene Standardgrössen nach Notation-Element
+### Recommended Default Sizes by Notation Element
 
-| Kategorie | Beispiel-Elemente | Empfehlung W×H (px) |
+| Category | Example Elements | Recommendation W×H (px) |
 |---|---|---|
-| ArchiMate Box (Schicht-Elemente) | `archimate:ApplicationComponent`, `archimate:BusinessProcess` | 120 × 55 |
-| ArchiMate Node / Device | `archimate:Node`, `archimate:Device` | 120 × 70 |
-| UML Class / Component | `uml:Class`, `uml:Component` | 140 × 80 |
-| UML Actor | `uml:Actor` | 40 × 60 |
-| BPMN Task | `bpmn:Task`, `bpmn:UserTask`, `bpmn:ServiceTask` | 100 × 80 |
-| BPMN SubProcess | `bpmn:SubProcess`, `bpmn:CallActivity` | 140 × 80 |
-| BPMN Event (Kreis) | `bpmn:StartEvent`, `bpmn:EndEvent`, `bpmn:IntermediateCatchEvent` | 36 × 36 |
-| BPMN Gateway (Raute) | `bpmn:ExclusiveGateway`, `bpmn:ParallelGateway` | 50 × 50 |
-| BPMN Pool | `bpmn:Pool` | 600 × 150 |
-| BPMN Lane | `bpmn:Lane` | 600 × 120 |
+| ArchiMate box (layer elements) | `archimate:ApplicationComponent`, `archimate:BusinessProcess` | 120 × 55 |
+| ArchiMate node / device | `archimate:Node`, `archimate:Device` | 120 × 70 |
+| UML class / component | `uml:Class`, `uml:Component` | 140 × 80 |
+| UML actor | `uml:Actor` | 40 × 60 |
+| BPMN task | `bpmn:Task`, `bpmn:UserTask`, `bpmn:ServiceTask` | 100 × 80 |
+| BPMN subprocess | `bpmn:SubProcess`, `bpmn:CallActivity` | 140 × 80 |
+| BPMN event (circle) | `bpmn:StartEvent`, `bpmn:EndEvent`, `bpmn:IntermediateCatchEvent` | 36 × 36 |
+| BPMN gateway (diamond) | `bpmn:ExclusiveGateway`, `bpmn:ParallelGateway` | 50 × 50 |
+| BPMN pool | `bpmn:Pool` | 600 × 150 |
+| BPMN lane | `bpmn:Lane` | 600 × 120 |
 
-Die Werte sind Empfehlungen; jeder user-defined Viewpoint kann pro EntityType abweichende Werte in `NotationMapping.defaultWidth`/`defaultHeight` hinterlegen.
+The values are recommendations; every user-defined viewpoint can store deviating values per EntityType in `NotationMapping.defaultWidth`/`defaultHeight`.
 
 ---
 
-## Attribute
+## Attributes
 
 ### ViewpointDefinition
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| id | string | required | | kebab-case, eindeutig innerhalb der MetamodelConfiguration | Stabiler Bezeichner (z.B. `application-architecture-view`) |
-| name | string | required | | max. 255 Zeichen, eindeutig innerhalb der MetamodelConfiguration | Anzeigename |
-| description | string | optional | | max. 1000 Zeichen | Fachliche Beschreibung, wofür dieser Viewpoint genutzt wird |
-| notation | enum | required | | `[archimate3, uml, bpmn2]` | Notation für die Darstellung; ein Viewpoint gehört genau einer Notation an |
-| viewpointType | enum | required | `user-defined` | `[system-defined, user-defined]` | `system-defined` = built-in (read-only); `user-defined` = vom Architekturteam angelegt |
-| allowedEntityTypes | string[] | required | [] | Werte sind `EntityTypeDefinition.id` (kebab-case); alle IDs müssen in der zugehörigen MetamodelConfiguration existieren | EntityTypes, die in Diagrammen dieses Viewpoints verwendet werden dürfen |
-| allowedConnectionTypes | string[] | required | [] | Werte sind `EntityTypeDefinition.id`; alle IDs müssen auf Typen zeigen, für die `isConnection=true` gilt | Connection-Typen, die als Kanten in Diagrammen dieses Viewpoints erlaubt sind |
-| notationMappings | NotationMapping[] | optional | [] | Überschreibt Default-Mapping pro EntityType; empfohlen für alle custom EntityTypes | Notation-Element, Darstellungstyp und Standardgrösse pro EntityType |
-| createdBy | reference | optional | null | target: person; nur bei `viewpointType=user-defined` | Erstellende Person |
-| createdAt | datetime | optional | null | ISO 8601, UTC; nur bei `viewpointType=user-defined` | Zeitpunkt der Anlage |
+| id | string | required | | kebab-case, unique within the MetamodelConfiguration | Stable identifier (e.g. `application-architecture-view`) |
+| name | string | required | | max. 255 characters, unique within the MetamodelConfiguration | Display name |
+| description | string | optional | | max. 1000 characters | Business description of what this viewpoint is used for |
+| notation | enum | required | | `[archimate3, uml, bpmn2]` | Notation for the presentation; a viewpoint belongs to exactly one notation |
+| viewpointType | enum | required | `user-defined` | `[system-defined, user-defined]` | `system-defined` = built-in (read-only); `user-defined` = created by the architecture team |
+| allowedEntityTypes | string[] | required | [] | Values are `EntityTypeDefinition.id` (kebab-case); all IDs must exist in the associated MetamodelConfiguration | EntityTypes that may be used in diagrams of this viewpoint |
+| allowedConnectionTypes | string[] | required | [] | Values are `EntityTypeDefinition.id`; all IDs must point to types for which `isConnection=true` holds | Connection types allowed as edges in diagrams of this viewpoint |
+| notationMappings | NotationMapping[] | optional | [] | Overrides default mapping per EntityType; recommended for all custom EntityTypes | Notation element, presentation type, and default size per EntityType |
+| createdBy | reference | optional | null | target: person; only for `viewpointType=user-defined` | Creating person |
+| createdAt | datetime | optional | null | ISO 8601, UTC; only for `viewpointType=user-defined` | Time of creation |
 
-### NotationMapping (Werteobjekt)
+### NotationMapping (value object)
 
-| Attribut | Typ | Optional | Beschreibung |
+| Attribute | Type | Optional | Description |
 |---|---|---|---|
-| entityTypeId | string | required | `EntityTypeDefinition.id` (kebab-case) des OEA-Typs, für den das Mapping gilt |
-| notationElement | string | required | Notation-spezifisches Element aus dem Katalog (z.B. `archimate:ApplicationFunction`, `uml:Interface`, `bpmn:SubProcess`); Präfix muss zur `notation` des Viewpoints passen |
-| defaultWidth | integer | optional | Standard-Breite in Pixel, die der Canvas-Editor beim Einfügen verwendet (muss > 0 sein) |
-| defaultHeight | integer | optional | Standard-Höhe in Pixel, die der Canvas-Editor beim Einfügen verwendet (muss > 0 sein) |
-| visualHint | string | optional | Optionaler Stil-Override (z.B. Füllfarbe `#ffcccc`, Icon-Override); Format TBD |
+| entityTypeId | string | required | `EntityTypeDefinition.id` (kebab-case) of the OEA type to which the mapping applies |
+| notationElement | string | required | Notation-specific element from the catalog (e.g. `archimate:ApplicationFunction`, `uml:Interface`, `bpmn:SubProcess`); prefix must match the viewpoint's `notation` |
+| defaultWidth | integer | optional | Default width in pixels that the canvas editor uses on insertion (must be > 0) |
+| defaultHeight | integer | optional | Default height in pixels that the canvas editor uses on insertion (must be > 0) |
+| visualHint | string | optional | Optional style override (e.g. fill color `#ffcccc`, icon override); format TBD |
 
-## Beziehungen
+## Relationships
 
-| Beziehung | Ziel-Objekt | Kardinalität | Optional | Beschreibung |
+| Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
-| definedIn | [metamodel-configuration](./metamodel-configuration.md) | n:1 | no | Jeder Viewpoint gehört zu einer MetamodelConfiguration |
-| allowsEntityTypes | EntityTypeDefinition (via id) | n:n | no | Welche Typen in diesem Viewpoint erscheinen dürfen |
-| allowsConnectionTypes | EntityTypeDefinition (isConnection=true, via id) | n:n | no | Welche Connection-Typen als Kanten erscheinen dürfen |
-| usedBy | Diagram[] | 1:n | yes | Diagramme, die diesen Viewpoint verwenden |
+| definedIn | [metamodel-configuration](./metamodel-configuration.md) | n:1 | no | Each viewpoint belongs to a MetamodelConfiguration |
+| allowsEntityTypes | EntityTypeDefinition (via id) | n:n | no | Which types may appear in this viewpoint |
+| allowsConnectionTypes | EntityTypeDefinition (isConnection=true, via id) | n:n | no | Which connection types may appear as edges |
+| usedBy | Diagram[] | 1:n | yes | Diagrams that use this viewpoint |
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser | Compliance-Bezug |
+| Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
-| BR-01 | `ViewpointDefinition.name` MUSS innerhalb einer MetamodelConfiguration eindeutig sein | onCreate, onUpdate | – |
-| BR-02 | Ein Viewpoint mit `viewpointType=system-defined` DARF NICHT gelöscht oder in `allowedEntityTypes`, `allowedConnectionTypes` und `notation` verändert werden | onDelete, onUpdate | – |
-| BR-03 | Alle Einträge in `allowedEntityTypes` MÜSSEN auf gültige `EntityTypeDefinition.id`-Werte der zugehörigen MetamodelConfiguration zeigen (built-in + custom) | onCreate, onUpdate | – |
-| BR-04 | Alle Einträge in `allowedConnectionTypes` MÜSSEN auf `EntityTypeDefinition.id`-Werte zeigen, für die `isConnection=true` gilt | onCreate, onUpdate | – |
-| BR-05 | Ein Diagramm DARF nur Entitäten und Connections des Typs enthalten, der im verknüpften Viewpoint's `allowedEntityTypes`/`allowedConnectionTypes` gelistet ist | onDiagramEdit | – |
-| BR-06 | Ein `NotationMapping.entityTypeId` MUSS in `allowedEntityTypes` dieses Viewpoints enthalten sein | onCreate, onUpdate | – |
-| BR-07 | `NotationMapping.notationElement` MUSS mit dem Präfix der `notation` des Viewpoints übereinstimmen (archimate3 → `archimate:*`, uml → `uml:*`, bpmn2 → `bpmn:*`) oder den Wert `generic:Box` / `generic:Arrow` haben | onCreate, onUpdate | – |
-| BR-08 | Beim Import eines Viewpoints MÜSSEN alle IDs in `allowedEntityTypes` und `allowedConnectionTypes` in der Ziel-MetamodelConfiguration existieren; fehlende IDs werden als Validierungsfehler gemeldet (kein Partial-Import auf Type-Ebene) | onImport | – |
+| BR-01 | `ViewpointDefinition.name` MUST be unique within a MetamodelConfiguration | onCreate, onUpdate | – |
+| BR-02 | A viewpoint with `viewpointType=system-defined` MUST NOT be deleted or changed in `allowedEntityTypes`, `allowedConnectionTypes`, and `notation` | onDelete, onUpdate | – |
+| BR-03 | All entries in `allowedEntityTypes` MUST point to valid `EntityTypeDefinition.id` values of the associated MetamodelConfiguration (built-in + custom) | onCreate, onUpdate | – |
+| BR-04 | All entries in `allowedConnectionTypes` MUST point to `EntityTypeDefinition.id` values for which `isConnection=true` holds | onCreate, onUpdate | – |
+| BR-05 | A diagram MUST only contain entities and connections of the type listed in the linked viewpoint's `allowedEntityTypes`/`allowedConnectionTypes` | onDiagramEdit | – |
+| BR-06 | A `NotationMapping.entityTypeId` MUST be contained in `allowedEntityTypes` of this viewpoint | onCreate, onUpdate | – |
+| BR-07 | `NotationMapping.notationElement` MUST match the prefix of the viewpoint's `notation` (archimate3 → `archimate:*`, uml → `uml:*`, bpmn2 → `bpmn:*`) or have the value `generic:Box` / `generic:Arrow` | onCreate, onUpdate | – |
+| BR-08 | When importing a viewpoint, all IDs in `allowedEntityTypes` and `allowedConnectionTypes` MUST exist in the target MetamodelConfiguration; missing IDs are reported as validation errors (no partial import at type level) | onImport | – |
 
 ## Lifecycle
 
-Viewpoints haben keinen eigenständigen Status-Lifecycle. Sie existieren als Konfigurationselement innerhalb der MetamodelConfiguration und folgen deren Änderungs-Tracking (Audit-Log, schemaVersion).
+Viewpoints have no standalone status lifecycle. They exist as a configuration element within the MetamodelConfiguration and follow its change tracking (audit log, schemaVersion).
 
-## Beispiele
+## Examples
 
-**User-defined Viewpoint – Cloud Security View (ArchiMate 3)**:
+**User-defined viewpoint – Cloud Security View (ArchiMate 3)**:
 ```yaml
 viewpoint:
   id: cloud-security-view
@@ -244,15 +244,15 @@ viewpoint:
   notation: archimate3
   viewpointType: user-defined
   description: >
-    Zeigt Cloud-Komponenten und deren Sicherheitszonen-Zuordnung;
-    geeignet für Security-Reviews und Compliance-Dokumentation.
+    Shows cloud components and their security zone assignment;
+    suitable for security reviews and compliance documentation.
   allowedEntityTypes:
     - application-component
     - technology-component
     - security-zone        # custom EntityType (ID kebab-case)
     - node
   allowedConnectionTypes:
-    - data-flow            # custom Connection-Typ mit protocol/dataClassification
+    - data-flow            # custom connection type with protocol/dataClassification
   notationMappings:
     - entityTypeId: security-zone
       notationElement: archimate:TechnologyComponent
@@ -269,7 +269,7 @@ viewpoint:
       defaultHeight: 55
 ```
 
-**System-defined Viewpoint – Application Architecture View (ArchiMate 3)**:
+**System-defined viewpoint – Application Architecture View (ArchiMate 3)**:
 ```yaml
 viewpoint:
   id: application-architecture-view
@@ -285,7 +285,7 @@ viewpoint:
     - data-entity
   allowedConnectionTypes:
     - data-flow
-    - used-by        # built-in Connection-Typ: Application → Application
+    - used-by        # built-in connection type: Application → Application
   notationMappings:
     - entityTypeId: application-component
       notationElement: archimate:ApplicationComponent
@@ -301,14 +301,14 @@ viewpoint:
       defaultHeight: 55
 ```
 
-**BPMN-Viewpoint – Process View**:
+**BPMN viewpoint – Process View**:
 ```yaml
 viewpoint:
   id: process-view
   name: Process View
   notation: bpmn2
   viewpointType: system-defined
-  description: Standard BPMN 2.0 Prozessdiagramm
+  description: Standard BPMN 2.0 process diagram
   allowedEntityTypes:
     - business-process
     - user-task
@@ -345,26 +345,26 @@ viewpoint:
       defaultHeight: 150
 ```
 
-## Abgrenzung
+## Delimitation
 
-- **NICHT** [MetamodelConfiguration](./metamodel-configuration.md): Ein Viewpoint *wählt aus* dem Metamodell aus; er definiert keine neuen Typen. Das Metamodell ist die Grundlage, der Viewpoint ist ein Filter darauf.
-- **NICHT** ein Diagram: Ein Viewpoint ist die Definition; ein konkretes Diagramm ist eine Instanz dieses Viewpoints mit konkreten Entitäten und deren Positionen.
-- **NICHT** eine Domain-Sicht (§12): Domain-Sichten strukturieren das Modell fachlich (z.B. nach Domäne/Bounded Context); Viewpoints strukturieren die *visuelle Darstellung* nach Notation und erlaubten Typen. Beides kann kombiniert werden.
+- **NOT** [MetamodelConfiguration](./metamodel-configuration.md): A viewpoint *selects from* the metamodel; it defines no new types. The metamodel is the foundation, the viewpoint is a filter on it.
+- **NOT** a diagram: A viewpoint is the definition; a concrete diagram is an instance of this viewpoint with concrete entities and their positions.
+- **NOT** a domain view (§12): Domain views structure the model by business criteria (e.g. by domain/bounded context); viewpoints structure the *visual presentation* by notation and allowed types. Both can be combined.
 
-## Verwendung in Use Cases
+## Usage in Use Cases
 
-- Künftig: UC für Viewpoints verwalten (Anlegen, Bearbeiten user-defined Viewpoints)
-- [UC-04: Metamodell gemeinsam konfigurieren](../requirements/use-cases/UC-04-metamodell-konfigurieren.md) – Viewpoints sind Teil der MetamodelConfiguration, die UC-04 verwaltet
+- Future: UC for managing viewpoints (creating, editing user-defined viewpoints)
+- [UC-04: Configure Metamodel Collaboratively](../requirements/use-cases/UC-04-configure-metamodel.md) – viewpoints are part of the MetamodelConfiguration that UC-04 manages
 
-## Offene Fragen
+## Open Questions
 
-- Kann ein einzelner EntityType in mehreren Viewpoints unterschiedliche `notationMappings` haben (d.h. ArchiMate Box in einem View, UML-Klasse in einem anderen)? → Ja, per Design; jeder Viewpoint hat seine eigene Mapping-Tabelle.
-- Wie werden Viewpoints in einer Client App vs. Web Portal unterschiedlich genutzt? Client App: voller Editier-Umfang inkl. Drag & Drop (ADR-008 accepted: Client App = Electron, ADR-009 accepted); Web Portal: read-only Rendering.
-- Brauchen BPMN-Viewpoints explizite Pool/Lane-Konfiguration, oder reicht der EntityType `pool`/`lane`? → Offen; vermutlich über `allowedEntityTypes` abbildbar.
+- Can a single EntityType have different `notationMappings` in several viewpoints (i.e. ArchiMate box in one view, UML class in another)? → Yes, by design; each viewpoint has its own mapping table.
+- How are viewpoints used differently in a client app vs. web portal? Client app: full editing scope incl. drag & drop (ADR-008 accepted: client app = Electron, ADR-009 accepted); web portal: read-only rendering.
+- Do BPMN viewpoints need explicit pool/lane configuration, or is the EntityType `pool`/`lane` sufficient? → Open; probably representable via `allowedEntityTypes`.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.2.0 | 2026-06-26 | Business Engineer | ID-basierte Referenzen (entityTypeId statt Name); defaultWidth/defaultHeight in NotationMapping; Notation-Element-Katalog (ArchiMate 3, UML, BPMN 2.0); BR-07/BR-08 (Präfix-Konsistenz, Import-Validierung); Import/Export-Grundlage durch REQ-058–060 |
-| 0.1.0 | 2026-06-26 | Business Engineer | Initial draft; ArchiMate 3, UML, BPMN 2.0 als Notationen; system-defined + user-defined Viewpoints; NotationMapping als optionales Werteobjekt |
+| 0.2.0 | 2026-06-26 | Business Engineer | ID-based references (entityTypeId instead of name); defaultWidth/defaultHeight in NotationMapping; notation element catalog (ArchiMate 3, UML, BPMN 2.0); BR-07/BR-08 (prefix consistency, import validation); import/export basis through REQ-058–060 |
+| 0.1.0 | 2026-06-26 | Business Engineer | Initial draft; ArchiMate 3, UML, BPMN 2.0 as notations; system-defined + user-defined viewpoints; NotationMapping as optional value object |

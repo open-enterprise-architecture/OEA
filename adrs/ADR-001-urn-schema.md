@@ -1,83 +1,83 @@
-# ADR-001: URN-Schema und Stabilitäts-Garantien
+# ADR-001: URN Schema and Stability Guarantees
 
 **Status**: accepted
-**Datum**: 2026-06-26
-**Entscheider**: [Rigobert – Produkt Owner](../business-analysis/stakeholders/SH-09-rigobert-produkt-owner.md) (SH-09)
-**Konsultiert**: Requirements Engineer (entity.md, REQ-070)
-**Informiert**: alle Stakeholder
+**Date**: 2026-06-26
+**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Consulted**: Requirements Engineer (entity.md, REQ-070)
+**Informed**: all stakeholders
 
 ---
 
-## Kontext und Problem
+## Context and Problem
 
-Jede Entität im EA-Repository braucht eine eindeutige, stabile ID. Diese ID erscheint in API-Endpunkten, Querverweisen zwischen Entitäten, Audit-Logs, Versionsverfolgung und in externen Systemen (CMDB, GRC, PPM), die OEA referenzieren. Die Wahl prägt viele Folgeentscheidungen.
+Every entity in the EA repository needs a unique, stable ID. This ID appears in API endpoints, cross-references between entities, audit logs, version tracking, and in external systems (CMDB, GRC, PPM) that reference OEA. The choice shapes many follow-up decisions.
 
-**Bereits getroffene Vorentscheidung** (entity.md v0.2.0): ArchitectureEntity.id ist ein **positiver ganzzahliger Wert (integer ≥ 1)**, instanzweit eindeutig, fortlaufend, unveränderlich nach Anlage. Alle bisherigen Requirements (REQ-070: `[[Name|entity:ID]]`), API-Endpunkte (`/api/v1/entities/{id}`) und User Stories verwenden bereits diese Integer-IDs. Die ADR-Entscheidung bestätigt und ergänzt diese implizite Vorentscheidung.
+**Prior decision already made** (entity.md v0.2.0): ArchitectureEntity.id is a **positive integer value (integer ≥ 1)**, unique per instance, sequential, immutable after creation. All existing requirements (REQ-070: `[[Name|entity:ID]]`), API endpoints (`/api/v1/entities/{id}`), and user stories already use these integer IDs. The ADR decision confirms and complements this implicit prior decision.
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- **Stabilität**: ID muss über Jahre stabil bleiben, auch bei Umbenennung der Entität
-- **Einfachheit der API**: Integer-IDs sind in REST-Pfaden, Joins und SQL nativ
-- **Menschenlesbarkeit** der Verlinkung: `[[CRM-System|entity:42]]` — Name ist sichtbar, ID im Hintergrund
-- **Globale Eindeutigkeit** für externe Referenzen (CMDB, Cross-Instanz)
-- **Performance**: Integer-Join ist schneller als String-UUID-Join (relevant bei 500k Entitäten, REQ-074)
+- **Stability**: ID must remain stable for years, even when the entity is renamed
+- **API simplicity**: Integer IDs are native in REST paths, joins, and SQL
+- **Human readability** of linking: `[[CRM-System|entity:42]]` — name is visible, ID in the background
+- **Global uniqueness** for external references (CMDB, cross-instance)
+- **Performance**: Integer join is faster than string UUID join (relevant at 500k entities, REQ-074)
 
-## Betrachtete Optionen
+## Considered Options
 
-### Option 1: UUID v4 intern
-- Pro: globale Eindeutigkeit ohne Instanz-Kontext
-- Contra: nicht menschenlesbar; schlechter als Integer für DB-Performance bei JOIN-Operationen
+### Option 1: UUID v4 internally
+- Pro: global uniqueness without instance context
+- Con: not human-readable; worse than integer for DB performance in JOIN operations
 
-### Option 2: Sprechende URN mit Hierarchie
-- Pro: selbst-beschreibend (`urn:ea:org:application:crm-system`)
-- Contra: instabil bei Umbenennung — widerspricht Stabilität-Treiber direkt
+### Option 2: Descriptive URN with hierarchy
+- Pro: self-describing (`urn:ea:org:application:crm-system`)
+- Con: unstable on renaming — directly contradicts the stability driver
 
-### Option 3 (gewählt): Integer-ID intern + konstruierbare externe URN
-- **Intern**: positiver Integer (bereits durch entity.md etabliert)
-- **Extern / Cross-Referenz**: `urn:oea:{instance-slug}:{integer-id}` (z.B. `urn:oea:acme-corp:42`)
-- Pro: beste DB-Performance; Stabilität gewährleistet; extern konstruierbar; kein doppelter Pflege-Aufwand
-- Contra: externe URN ohne semantischen Inhaltshinweis (Type nicht im URN)
+### Option 3 (chosen): Internal integer ID + constructible external URN
+- **Internal**: positive integer (already established by entity.md)
+- **External / cross-reference**: `urn:oea:{instance-slug}:{integer-id}` (e.g. `urn:oea:acme-corp:42`)
+- Pro: best DB performance; stability guaranteed; externally constructible; no duplicate maintenance effort
+- Con: external URN without semantic content hint (type is not in the URN)
 
 ### Option 4: ULID / sortable IDs
-- Pro: zeitlich sortierbar
-- Contra: nicht menschenlesbar; kein Mehrwert gegenüber Integer für diesen Anwendungsfall
+- Pro: sortable by time
+- Con: not human-readable; no added value over integer for this use case
 
-## Entscheidung
+## Decision
 
-**Option 3 ist die Entscheidung.**
+**Option 3 is the decision.**
 
-- **Primär-ID**: `integer` (positiver Ganzzahl-Wert, automatisch vergeben, unveränderlich)
-- **Externe Referenz-URN** (für CMDB-Integration, Cross-Instanz-Referenzen, Audit-Export): `urn:oea:{instance-slug}:{id}`
-  - `instance-slug`: konfigurierbar beim Bootstrapping (z.B. `acme-corp`, `oea-demo`); unveränderlich nach erster Nutzung
-  - `id`: die Integer-ID der Entität
-  - Beispiel: `urn:oea:acme-corp:42`
-- Der `name` einer Entität ist **kein Bestandteil der ID** — er ist ein veränderliches Attribut
-- API-intern: immer Integer-Pfad (`/api/v1/entities/42`)
-- Export-Format (ADR-002 Pakete, Audit-Log): URN-Format
+- **Primary ID**: `integer` (positive integer value, assigned automatically, immutable)
+- **External reference URN** (for CMDB integration, cross-instance references, audit export): `urn:oea:{instance-slug}:{id}`
+  - `instance-slug`: configurable during bootstrapping (e.g. `acme-corp`, `oea-demo`); immutable after first use
+  - `id`: the integer ID of the entity
+  - Example: `urn:oea:acme-corp:42`
+- The `name` of an entity is **not part of the ID** — it is a mutable attribute
+- API-internal: always integer path (`/api/v1/entities/42`)
+- Export format (ADR-002 packages, audit log): URN format
 
-## Konsequenzen
+## Consequences
 
-### Positiv
-- Integer-IDs sind nativ in PostgreSQL, SQL-JOINs, Cursor-Paginierung (REQ-071) optimal
-- Externe URN ist deterministisch aus bekannten Teilen konstruierbar — keine separate URN-Tabelle nötig
-- Entity-Mention-Format `[[Name|entity:42]]` (REQ-070) ist konsistent mit dieser Entscheidung
-- Stabile IDs sind Voraussetzung für ID-stabile Verlinkung in Arc42-Dokumenten (BR-07)
+### Positive Consequences
+- Integer IDs are native in PostgreSQL, SQL JOINs, and optimal for cursor pagination (REQ-071)
+- External URN is deterministically constructible from known parts — no separate URN table needed
+- Entity mention format `[[Name|entity:42]]` (REQ-070) is consistent with this decision
+- Stable IDs are a prerequisite for ID-stable linking in Arc42 documents (BR-07)
 
-### Negativ / Trade-offs
-- `instance-slug` muss beim Bootstrapping gesetzt werden und ist danach unveränderlich (sonst werden alle externen URNs ungültig)
-- Keine Type-Information in der ID — externe Systeme müssen Type über API abfragen
-- Cross-Instanz-Referenzen (z.B. OEA-Instanz A verweist auf Entität in OEA-Instanz B) sind über URN möglich, aber v1.0 löst diese Referenzen nicht automatisch auf
+### Negative Consequences / Trade-offs
+- `instance-slug` must be set during bootstrapping and is immutable afterwards (otherwise all external URNs become invalid)
+- No type information in the ID — external systems must query the type via the API
+- Cross-instance references (e.g. OEA instance A references an entity in OEA instance B) are possible via URN, but v1.0 does not resolve these references automatically
 
-### Folgeentscheidungen
-- Bootstrapping-REQ muss `instance-slug` als Pflichtfeld aufnehmen (ergänzt REQ-013/014)
-- Export-Format für Audit-Log und Paket-Import (ADR-002) verwendet URN-Format
+### Follow-up Decisions
+- Bootstrapping REQ must include `instance-slug` as a mandatory field (complements REQ-013/014)
+- Export format for audit log and package import (ADR-002) uses URN format
 
-## Bezüge
+## References
 
-**Konzept-Kapitel**:
-- [§2 Meta-Metamodell](../concept/00-overview/02-meta-metamodell.md)
-- [§15 Schema-Evolution](../concept/40-extensibility/15-schema-evolution.md)
+**Concept Chapters**:
+- [§2 Meta-Metamodel](../concept/00-overview/02-meta-metamodel.md)
+- [§15 Schema Evolution](../concept/40-extensibility/15-schema-evolution.md)
 
-**Abhängige ADRs**: ADR-002 (Paket-Format nutzt URN), ADR-004 (Reifikation — Connections haben ebenfalls Integer-IDs)
+**Dependent ADRs**: ADR-002 (package format uses URN), ADR-004 (reification — connections also have integer IDs)
 
-**Bezogene Requirements**: entity.md (BR-01–04), REQ-070 (Entity-Mention), REQ-013/014 (Bootstrapping)
+**Related Requirements**: entity.md (BR-01–04), REQ-070 (entity mention), REQ-013/014 (bootstrapping)

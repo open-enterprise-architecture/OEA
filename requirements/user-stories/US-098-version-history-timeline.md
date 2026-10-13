@@ -1,36 +1,36 @@
-# US-098: Änderungshistorie einer Entität als Zeitlinie einsehen
+# US-098: View an Entity's Change History as a Timeline
 
 **ID**: US-098
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich die vollständige Änderungshistorie einer Entität chronologisch einsehen und nach Zeitraum oder Person filtern können, damit ich Änderungen nachvollziehen und Compliance-Anforderungen erfüllen kann.
+As Kurt – Lead Enterprise Architect, I want to view the complete change history of an entity chronologically and filter it by time period or person, so that I can trace changes and meet compliance requirements.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-14](../use-cases/UC-14-aenderungshistorie-einsehen.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-098](../req/REQ-098-versionshistorie-zeitlinie.md)
+**Use Case**: [UC-14](../use-cases/UC-14-view-change-history.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-098](../req/REQ-098-version-history-timeline.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Zeitlinie mit Versionen):
-- Wenn: ich eine Entität mit 5 Versionen öffne
-- Dann: sehe ich 5 Einträge in der Zeitlinie, neueste zuerst
+**AC1** (Timeline with versions):
+- When: I open an entity with 5 versions
+- Then: I see 5 entries in the timeline, newest first
 
-**AC2** (Filter nach Actor):
-- Wenn: ich die Zeitlinie nach Actor "Michael" filtere
-- Dann: werden nur Versionen von Michael angezeigt
+**AC2** (Filter by actor):
+- When: I filter the timeline by actor "Michael"
+- Then: only versions by Michael are displayed
 
-**AC3** (Entität ohne Historie):
-- Wenn: ich eine Entität ohne Änderungshistorie öffne
-- Dann: zeigt der Tab "Keine Änderungen seit Anlage. Erstellt am [Datum] von [Person]."
+**AC3** (Entity without history):
+- When: I open an entity without change history
+- Then: the tab shows "No changes since creation. Created on [date] by [person]."
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

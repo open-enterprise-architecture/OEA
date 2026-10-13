@@ -1,36 +1,36 @@
-# US-101: Entität auf früheren Stand vollständig wiederherstellen
+# US-101: Fully Restore an Entity to an Earlier State
 
 **ID**: US-101
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich eine Entität auf einen beliebigen früheren Stand zurücksetzen können und dabei einen Bestätigungsdialog mit Diff sehen, damit ich fehlerhafte Änderungen sicher und nachvollziehbar rückgängig machen kann.
+As Kurt – Lead Enterprise Architect, I want to reset an entity to any earlier state and see a confirmation dialog with a diff while doing so, so that I can reliably and traceably undo erroneous changes.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-15](../use-cases/UC-15-entitaetsstand-wiederherstellen.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-101](../req/REQ-101-entitaet-vollwiederherstellung.md)
+**Use Case**: [UC-15](../use-cases/UC-15-restore-entity-state.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-101](../req/REQ-101-entity-full-restore.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Wiederherstellung auf früheren Stand):
-- Wenn: ich eine Entität auf Version v3 wiederherstelle
-- Dann: sind `name`, `description` und `properties` auf v3-Werte gesetzt; `id` ist unverändert
+**AC1** (Restore to earlier state):
+- When: I restore an entity to version v3
+- Then: `name`, `description`, and `properties` are set to v3 values; `id` is unchanged
 
-**AC2** (Bestätigungsdialog mit Diff):
-- Wenn: ich die Wiederherstellung initiiere
-- Dann: zeigt der Dialog, welche Felder sich zwischen aktuellem Stand und Zielversion unterscheiden
+**AC2** (Confirmation dialog with diff):
+- When: I initiate the restore
+- Then: the dialog shows which fields differ between the current state and the target version
 
-**AC3** (Abbruch ohne Änderung):
-- Wenn: ich den Dialog abbreche
-- Dann: bleibt die Entität unverändert
+**AC3** (Cancel without change):
+- When: I cancel the dialog
+- Then: the entity remains unchanged
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

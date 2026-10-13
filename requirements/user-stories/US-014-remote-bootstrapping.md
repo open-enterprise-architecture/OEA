@@ -1,54 +1,54 @@
-# US-014: Remote-Bootstrapping über IdP-Claim-Mapping
+# US-014: Remote Bootstrapping via IdP Claim Mapping
 
 **ID**: US-014
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Operator mit bereits konfiguriertem Entra ID oder Authentik möchte ich System-Admin-Rechte über einen Gruppen-/Rollen-Claim vergeben können, damit ich keinen zusätzlichen lokalen Account pflegen muss.
+As an operator with an already configured Entra ID or Authentik, I want to be able to assign system admin permissions via a group/role claim, so that I do not have to maintain an additional local account.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-02: System-Admin-Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
-**Persona**: [SH-06: Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Requirement**: [REQ-014: Remote-Bootstrapping über IdP-Claim-Mapping](../req/REQ-014-remote-bootstrapping.md)
+**Use Case**: [UC-02: System Admin Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
+**Persona**: [SH-06: Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Requirement**: [REQ-014: Remote Bootstrapping via IdP Claim Mapping](../req/REQ-014-remote-bootstrapping.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein konfiguriertes Claim-Mapping auf eine IdP-Gruppe
-- Wenn: eine Person mit diesem Gruppen-Claim im Identity-Token sich anmeldet
-- Dann: erhält die Session System-Admin-Rechte
+- Given: a configured claim mapping to an IdP group
+- When: a person with this group claim in the identity token signs in
+- Then: the session receives system admin permissions
 
 **AC2**:
-- Gegeben: dasselbe Mapping
-- Wenn: eine Person ohne diesen Claim sich anmeldet
-- Dann: erhält die Session keine System-Admin-Rechte über diesen Weg
+- Given: the same mapping
+- When: a person without this claim signs in
+- Then: the session receives no system admin permissions via this route
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Auth-Modul (Claim-Auswertung), Instanz-Konfiguration
-- Betroffene EntityTypes/Relations: `SystemAdminAccount` mit `mode: remote`
-- API-Endpunkte: Konfigurations-Endpunkt für Claim-Mapping
-- Datenbank-Änderungen: Speicherung von `provider`, `claimType`, `claimValue`
+- Affected components: auth module (claim evaluation), instance configuration
+- Affected EntityTypes/Relations: `SystemAdminAccount` with `mode: remote`
+- API endpoints: configuration endpoint for claim mapping
+- Database changes: storage of `provider`, `claimType`, `claimValue`
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (Test-IdP mit konfigurierbaren Claims)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (test IdP with configurable claims)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-001 (OIDC-Login muss funktionieren), US-013
-- Blockiert: US-018, US-019
+- Waiting on: US-001 (OIDC login must work), US-013
+- Blocks: US-018, US-019
 
-## Notizen
+## Notes
 
-Deckt Alternative A1 aus UC-02 ab. Claim-Mapping-Konventionen je Provider sind technische Spezifikation, nicht Teil dieser Story.
+Covers alternative A1 from UC-02. Claim mapping conventions per provider are a technical specification, not part of this story.

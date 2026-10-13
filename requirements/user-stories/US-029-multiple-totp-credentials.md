@@ -1,62 +1,62 @@
-# US-029: Mehrere TOTP-Authenticatoren registrieren
+# US-029: Register Multiple TOTP Authenticators
 
 **ID**: US-029
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Person möchte ich mehrere TOTP-Authenticatoren auf verschiedenen Geräten registrieren können, damit ich bei Geräteverlust einen Backup-Authenticator habe und mich von jedem meiner Geräte aus mit TOTP anmelden kann.
+As a person, I want to be able to register multiple TOTP authenticators on different devices, so that I have a backup authenticator if I lose a device and can log in with TOTP from any of my devices.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-03: Authentifizierungsmethode einrichten](../use-cases/UC-03-authentifizierungsmethode-einrichten.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-030: Mehrere aktive TOTP-Credentials pro Person](../req/REQ-030-mehrere-totp-credentials.md)
+**Use Case**: [UC-03: Set Up Authentication Method](../use-cases/UC-03-set-up-authentication-method.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-030: Multiple Active TOTP Credentials per Person](../req/REQ-030-multiple-totp-credentials.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Kurt hat bereits ein TOTP-Credential registriert
-- Wenn: er in den Profil-Einstellungen ein weiteres TOTP-Credential einrichtet (UC-03 A3)
-- Dann: hat er danach zwei aktive TOTP-Credentials; das erste bleibt unverändert
+- Given: Kurt has already registered a TOTP credential
+- When: he sets up another TOTP credential in the profile settings (UC-03 A3)
+- Then: he afterwards has two active TOTP credentials; the first remains unchanged
 
 **AC2**:
-- Gegeben: Kurt hat zwei aktive TOTP-Credentials
-- Wenn: er sich einloggt und den Code seines zweiten Authenticators eingibt
-- Dann: ist der Login erfolgreich
+- Given: Kurt has two active TOTP credentials
+- When: he logs in and enters the code of his second authenticator
+- Then: the login is successful
 
 **AC3**:
-- Gegeben: Kurt richtet ein neues TOTP ein
-- Wenn: er dem Credential einen Label-Namen gibt (z.B. "Backup-YubiKey")
-- Dann: erscheint dieses Label in der Übersicht seiner Sicherheitseinstellungen
+- Given: Kurt sets up a new TOTP
+- When: he gives the credential a label name (e.g. "Backup-YubiKey")
+- Then: this label appears in the overview of his security settings
 
 **AC4**:
-- Gegeben: Kurt richtet ein TOTP ohne Label ein
-- Wenn: das Credential gespeichert wird
-- Dann: erhält es ein automatisch vergebenes Default-Label
+- Given: Kurt sets up a TOTP without a label
+- When: the credential is saved
+- Then: it receives an automatically assigned default label
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Auth-Modul (Login-Verifikation gegen mehrere TOTP-Credentials), UC-03 Enrollment-Flow (kein Auto-Revoke mehr), Profil-Sicherheitseinstellungen
-- Betroffene EntityTypes/Relations: `local_credentials` (kein `UNIQUE(person_id, type)` mehr für TOTP; neues Feld `label`)
-- Datenbank-Änderungen: `label`-Spalte zu `local_credentials` hinzufügen; UNIQUE-Constraint für `(person_id, type=totp)` entfernen
+- Affected components: auth module (login verification against multiple TOTP credentials), UC-03 enrollment flow (no more auto-revoke), profile security settings
+- Affected EntityTypes/Relations: `local_credentials` (no more `UNIQUE(person_id, type)` for TOTP; new field `label`)
+- Database changes: add `label` column to `local_credentials`; remove UNIQUE constraint for `(person_id, type=totp)`
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (Multi-TOTP-Login, Enrollment ohne Auto-Revoke, Label-Default)
-- [ ] Dokumentation aktualisiert
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (multi-TOTP login, enrollment without auto-revoke, label default)
+- [ ] Documentation updated
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-021 (TOTP-Enrollment-Grundlage), US-025 (Weitere Methode über Profil-Einstellungen)
-- Blockiert: keine
+- Waiting on: US-021 (TOTP enrollment foundation), US-025 (additional method via profile settings)
+- Blocks: none
 
-## Notizen
+## Notes
 
-Spiegelt das bestehende Passkey-Modell (mehrere Passkeys pro Person seit Beginn erlaubt). Kein UI-Select "welcher Authenticator" beim Login nötig: der Code identifiziert das Credential implizit. Label-Freitextfeld beim Enrollment ("Wie möchtest du dieses Gerät nennen?"). Betrifft auch `local-credential.md` BR-02 (aufgehoben durch REQ-030).
+Mirrors the existing passkey model (multiple passkeys per person allowed from the start). No UI select "which authenticator" is needed at login: the code implicitly identifies the credential. Free-text label field during enrollment ("What would you like to call this device?"). Also affects `local-credential.md` BR-02 (superseded by REQ-030).

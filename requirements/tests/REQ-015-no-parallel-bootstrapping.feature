@@ -1,24 +1,24 @@
-# Ableitung aus: requirements/req/req-015-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-015-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @business-rule @must @UC-02
-Feature: REQ-015 – Kein paralleles oder wiederholtes Bootstrapping
+Feature: REQ-015 – No parallel or repeated bootstrapping
 
-  Das System DARF NICHT mehr als einen aktiven Bootstrapping-Vorgang
-  gleichzeitig zulassen, und MUSS einen erneuten Bootstrapping-Versuch
-  verweigern, sobald für die Instanz bereits ein
-  [System-Admin-Account](../../business-objects/system-admin-account.md)
-  existiert.
+  The system MUST NOT allow more than one active bootstrapping
+  process at a time, and MUST refuse a repeated bootstrapping attempt
+  as soon as a
+  [system admin account](../../business-objects/system-admin-account.md)
+  already exists for the instance.
 
   @AC1
-  Scenario: AC1 – zwei nahezu gleichzeitig gestartete Bootstrapping-Versuche auf derselben...
-    Given zwei nahezu gleichzeitig gestartete Bootstrapping-Versuche auf derselben frischen Instanz
-    When  beide um Abschluss konkurrieren
-    Then  wird genau einer erfolgreich abgeschlossen, der andere abgelehnt
+  Scenario: AC1 – two bootstrapping attempts started almost simultaneously on the same...
+    Given two bootstrapping attempts started almost simultaneously on the same fresh instance
+    When  both compete to complete
+    Then  exactly one completes successfully and the other is rejected
 
   @AC2
-  Scenario: AC2 – eine Instanz mit bereits bestehendem System-Admin-Account
-    Given eine Instanz mit bereits bestehendem System-Admin-Account
-    When  ein erneuter Bootstrapping-Versuch unternommen wird
-    Then  wird dieser ohne explizite Reset-Aktion durch einen bestehenden System-Admin-Account abgelehnt
+  Scenario: AC2 – an instance with an already existing system admin account
+    Given an instance with an already existing system admin account
+    When  a repeated bootstrapping attempt is made
+    Then  it is rejected unless an existing system admin account performs an explicit reset action

@@ -1,51 +1,51 @@
-# ADR-025: I18N-Strategie — Zweischichtig mit ETag-Caching und SSE-Invalidierung
+# ADR-025: I18N Strategy — Two-Layer with ETag Caching and SSE Invalidation
 
 **Status**: accepted
-**Datum**: 2026-06-29
-**Entscheider**: [Lukas – Repository-Inhaber](../business-analysis/stakeholders/SH-01-lukas-enterprise-architect.md)
+**Date**: 2026-06-29
+**Deciders**: [Lukas – Repository Owner](../business-analysis/stakeholders/SH-01-lukas-enterprise-architect.md)
 
 ---
 
-## Kontext
+## Context
 
-OEA ist mehrsprachig (ADR-023). Zwei Kategorien von Labels müssen übersetzt werden:
+OEA is multilingual (ADR-023). Two categories of labels must be translated:
 
-1. **Statische UI-Labels**: Menüs, Buttons, Validierungsmeldungen, Systemnachrichten —
-   diese ändern sich nur bei einem neuen Software-Release.
+1. **Static UI labels**: menus, buttons, validation messages, system messages —
+   these only change with a new software release.
 
-2. **Dynamische Konfigurations-Labels**: MetaTyp-Namen, Property-Labels, Enum-Werte,
-   Kategorie-Namen — diese werden durch Administratoren zur Laufzeit via Metamodell-Editor
-   (SCR-030) geändert und sind in `i18n_entries` (DB) gespeichert.
+2. **Dynamic configuration labels**: meta type names, property labels, enum values,
+   category names — these are changed by administrators at runtime via the metamodel editor
+   (SCR-030) and are stored in `i18n_entries` (DB).
 
-Für Kategorie 2 besteht die Herausforderung: wie stellt der Frontend sicher, dass Labels
-nach einer Admin-Änderung zeitnah aktualisiert werden, ohne unnötige API-Aufrufe?
+For category 2 the challenge is: how does the frontend ensure that labels
+are updated promptly after an admin change, without unnecessary API calls?
 
-### Sprach-Entscheide
-- **Datensatz-Felder** (name, description von Entitäten, Business Objects) werden in der
-  **Konzernsprache** der jeweiligen OEA-Instanz gespeichert — keine Mehrsprachigkeit auf Datenebene.
-- **UI und Konfigurations-Labels** sind mehrsprachig. Die Sprache der Darstellung richtet sich
-  nach `persons.ui_language` (BCP 47: `de`, `en`, `fr`, `it`).
+### Language Decisions
+- **Record fields** (name, description of entities, business objects) are stored in the
+  **corporate language** of the respective OEA instance — no multilingualism at the data level.
+- **UI and configuration labels** are multilingual. The display language is determined by
+  `persons.ui_language` (BCP 47: `de`, `en`, `fr`, `it`).
 
 ---
 
-## Entscheidung
+## Decision
 
-### Schicht 1 — Statische Labels: vue-i18n Bundle
+### Layer 1 — Static Labels: vue-i18n Bundle
 
-Alle fixen UI-Labels werden als statische JSON-Dateien in die Vue-3-Applikation eingebunden
-und via `vue-i18n` zur Laufzeit aufgelöst. Kein API-Call, keine Latenz.
+All fixed UI labels are embedded as static JSON files in the Vue 3 application
+and resolved at runtime via `vue-i18n`. No API call, no latency.
 
 ```
 frontend/src/i18n/
-  de.json   ← Menüs, Buttons, Validierungsmeldungen
+  de.json   ← menus, buttons, validation messages
   en.json
   fr.json
   it.json
 ```
 
-Neue Sprache = neues Bundle. Keine Datenbankänderung nötig.
+New language = new bundle. No database change needed.
 
-### Schicht 2 — Dynamische Labels: API-Endpoint mit ETag-Caching
+### Layer 2 — Dynamic Labels: API Endpoint with ETag Caching
 
 ```
 GET /api/v1/i18n/{locale}
@@ -60,44 +60,44 @@ Content-Type: application/json
 
 {
   "metatype.ac.name": "Application Component",
-  "metatype.ac.description": "Eine Anwendung ...",
+  "metatype.ac.description": "An application ...",
   "property.version.label": "Version",
-  "enum.lifecycle.planned.label": "Geplant",
+  "enum.lifecycle.planned.label": "Planned",
   ...
 }
 ```
 
-Der `ETag`-Wert ist ein Hash über `MAX(updated_at)` aller `i18n_entries` für die angefragte
-Locale. Ändert sich kein Eintrag, bleibt der ETag identisch.
+The `ETag` value is a hash over `MAX(updated_at)` of all `i18n_entries` for the requested
+locale. If no entry changes, the ETag remains identical.
 
-**Folge-Requests (Browser / Pinia-Store):**
+**Subsequent requests (browser / Pinia store):**
 ```http
 GET /api/v1/i18n/de
 If-None-Match: "a3f8c2d1"
 
-→ 304 Not Modified   (kein Body, kein Traffic — kein Stale-Problem)
-→ 200 OK + neuer ETag (nur bei Änderung durch Admin)
+→ 304 Not Modified   (no body, no traffic — no stale problem)
+→ 200 OK + new ETag (only on change by admin)
 ```
 
-`max-age=300` (5 Minuten): Client fragt spätestens alle 5 Minuten nach.
-`stale-while-revalidate=3600`: Client zeigt cached Labels sofort, prüft im Hintergrund.
+`max-age=300` (5 minutes): Client asks again at the latest every 5 minutes.
+`stale-while-revalidate=3600`: Client shows cached labels immediately, checks in the background.
 
-### Schicht 2b — Sofortige Invalidierung: Server-Sent Events (optional, Enterprise)
+### Layer 2b — Immediate Invalidation: Server-Sent Events (optional, Enterprise)
 
-Wenn ein Admin Labels im Metamodell-Editor speichert, sendet der Server ein SSE-Event:
+When an admin saves labels in the metamodel editor, the server sends an SSE event:
 
 ```
-GET /api/v1/events/stream   (SSE-Kanal, bleibt offen)
+GET /api/v1/events/stream   (SSE channel, stays open)
 
 data: {"type": "i18n_invalidated", "locale": "de"}
 ```
 
-Der Pinia-Store invalidiert daraufhin sofort den i18n-Cache und lädt den Endpoint neu.
-Alle eingeloggten Benutzer sehen die Änderung in Echtzeit ohne Seite neu zu laden.
+The Pinia store then immediately invalidates the i18n cache and reloads the endpoint.
+All logged-in users see the change in real time without reloading the page.
 
-Im Community-Betrieb: deaktivierbar via `oea.sse.enabled=false`.
+In Community operation: can be disabled via `oea.sse.enabled=false`.
 
-### Label-Key-Konvention
+### Label Key Convention
 
 ```
 {entity_type}.{entity_id_or_slug}.{field}
@@ -112,56 +112,56 @@ role.enterprise-architect.name
 
 ---
 
-## Abgrenzung
+## Distinction
 
-| Was | Wo |
+| What | Where |
 |---|---|
-| Menüs, Buttons, Toast-Messages | vue-i18n Bundle (statisch) |
-| MetaTyp-Namen/-Beschreibungen | `GET /api/v1/i18n/{locale}` + ETag |
-| Property-Labels, Enum-Werte | `GET /api/v1/i18n/{locale}` + ETag |
-| Datensatz-Felder (name, description) | Konzernsprache, einsprachig |
-| Benutzer-Sprache | `persons.ui_language`, gesetzt beim Login |
+| Menus, buttons, toast messages | vue-i18n bundle (static) |
+| Meta type names/descriptions | `GET /api/v1/i18n/{locale}` + ETag |
+| Property labels, enum values | `GET /api/v1/i18n/{locale}` + ETag |
+| Record fields (name, description) | Corporate language, single-language |
+| User language | `persons.ui_language`, set at login |
 
 ---
 
-## Verworfene Alternativen
+## Rejected Alternatives
 
-### Kein Caching (immer nachladen)
-Jede Navigation → API-Call → spürbare Latenz bei grossen Metamodellen. **Verworfen**.
+### No caching (always reload)
+Every navigation → API call → noticeable latency with large metamodels. **Rejected**.
 
-### Infinity-Cache (einmalig laden)
-Stale-Problem bei Admin-Änderungen ohne Seiten-Reload. **Verworfen**.
+### Infinity cache (load once)
+Stale problem on admin changes without page reload. **Rejected**.
 
-### Labels in jede API-Response einbetten
-Jeder Endpoint müsste i18n-aware sein; massiver Overhead bei grossen Payloads. **Verworfen**.
+### Embed labels in every API response
+Every endpoint would have to be i18n-aware; massive overhead with large payloads. **Rejected**.
 
-### WebSocket statt SSE
-SSE reicht für unidirektionale Server→Client-Invalidierung; WebSocket ist hier Overengineering.
-**Vereinfacht zu SSE**.
-
----
-
-## Konsequenzen
-
-**Positiv:**
-- Stale-Problem gelöst via ETag (304 bei unverändertem Stand)
-- Kein unnötiger Traffic (kein Payload bei 304)
-- Admin-Änderungen propagieren innerhalb von max. 5 Minuten passiv,
-  oder sofort via SSE (Enterprise)
-- Statische und dynamische Labels klar getrennt — einfach testbar
-
-**Negativ / Kompromisse:**
-- Backend muss ETag-Hash über `i18n_entries` pflegen (einfach: `MAX(updated_at)`)
-- SSE-Kanal erhöht Anzahl offener Verbindungen (pro eingeloggtem User eine)
-- Label-Key-Konvention muss konsistent in App und DB eingehalten werden
+### WebSocket instead of SSE
+SSE suffices for unidirectional server→client invalidation; WebSocket is overengineering here.
+**Simplified to SSE**.
 
 ---
 
-## Betroffene Konzept-Kapitel
+## Consequences
 
-- §21 (Tech-Stack Frontend), §9 (Metamodell), §15 (Mehrsprachigkeit)
+**Positive:**
+- Stale problem solved via ETag (304 on unchanged state)
+- No unnecessary traffic (no payload on 304)
+- Admin changes propagate within max. 5 minutes passively,
+  or immediately via SSE (Enterprise)
+- Static and dynamic labels clearly separated — easy to test
 
-## Verwandte ADRs
+**Negative / Compromises:**
+- Backend must maintain the ETag hash over `i18n_entries` (simple: `MAX(updated_at)`)
+- SSE channel increases the number of open connections (one per logged-in user)
+- Label key convention must be adhered to consistently in app and DB
 
-- ADR-023: Multi-DB-Strategie (i18n_entries-Tabelle)
-- ADR-008/009: Frontend-Plattform (Vue 3)
+---
+
+## Affected Concept Chapters
+
+- §21 (Tech Stack Frontend), §9 (Metamodel), §15 (Multilingualism)
+
+## Related ADRs
+
+- ADR-023: Multi-DB strategy (i18n_entries table)
+- ADR-008/009: Frontend platform (Vue 3)

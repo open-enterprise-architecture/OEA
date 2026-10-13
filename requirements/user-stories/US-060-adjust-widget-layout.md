@@ -1,53 +1,53 @@
-# US-060: Widget-Layout im 12-Spalten-Raster anpassen
+# US-060: Adjust Widget Layout in the 12-Column Grid
 
 **ID**: US-060
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Lead Enterprise Architekt möchte ich die Widgets auf einem Dashboard per Drag-and-Drop in einem 12-Spalten-Raster positionieren und in Grösse und Position anpassen – damit das Dashboard eine übersichtliche, C-Level-gerechte Anordnung hat.
+As a Lead Enterprise Architect, I want to position the widgets on a dashboard via drag and drop in a 12-column grid and adjust their size and position – so that the dashboard has a clear arrangement suitable for C-level.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-07](../use-cases/UC-07-dashboard-anlegen-und-verwenden.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-057: Widget-Grid-Layout](../req/REQ-057-widget-grid-layout.md), [REQ-052](../req/REQ-052-widget-konfigurieren.md)
+**Use Case**: [UC-07](../use-cases/UC-07-create-and-use-dashboard.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-057: Widget Grid Layout](../req/REQ-057-widget-grid-layout.md), [REQ-052](../req/REQ-052-configure-widget.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Widget positionieren):
-- Wenn: Kurt zieht ein KPI-Widget auf Spalte 1, Zeile 1, Breite 3, Höhe 1 und ein Chart-Widget auf Spalte 4, Zeile 1, Breite 9, Höhe 3
-- Dann: Beide GridPositions werden via PUT /api/v1/dashboards/{id}/widgets/{widgetId} gespeichert; bei Neu-Laden des Dashboards sind die Positionen erhalten
+**AC1** (position widget):
+- When: Kurt drags a KPI widget to column 1, row 1, width 3, height 1 and a chart widget to column 4, row 1, width 9, height 3
+- Then: Both GridPositions are saved via PUT /api/v1/dashboards/{id}/widgets/{widgetId}; when the dashboard is reloaded the positions are retained
 
-**AC2** (Ungültige Breite abgelehnt):
-- Wenn: Kurt zieht Widget auf Spalte 5, Breite 9 (col + width = 14)
-- Dann: Fehlermeldung „Widget überschreitet die Rasterbreite"; Position wird nicht gespeichert
+**AC2** (invalid width rejected):
+- When: Kurt drags widget to column 5, width 9 (col + width = 14)
+- Then: Error message "Widget exceeds the grid width"; position is not saved
 
-**AC3** (Dashboard scrollt vertikal):
-- Wenn: Kurt positioniert Widgets auf Zeile 1–8 (mehr als auf den Bildschirm passt)
-- Dann: Dashboard scrollt vertikal; keine Fehlermeldung; alle Widgets abrufbar
+**AC3** (dashboard scrolls vertically):
+- When: Kurt positions widgets on rows 1–8 (more than fits on the screen)
+- Then: Dashboard scrolls vertically; no error message; all widgets retrievable
 
-**AC4** (Overlapping-Warnung client-seitig):
-- Wenn: Kurt positioniert zwei Widgets so, dass sie sich überlappen
-- Dann: Client zeigt optische Warnung (z.B. rote Umrandung); Server akzeptiert beide Positionen (kein 422)
+**AC4** (overlap warning client-side):
+- When: Kurt positions two widgets so that they overlap
+- Then: Client shows a visual warning (e.g. red border); server accepts both positions (no 422)
 
-**AC5** (Layout im Web Portal read-only):
-- Wenn: CIO öffnet Dashboard im Web Portal
-- Dann: Widgets sind in der gespeicherten GridPosition dargestellt; kein Drag-and-Drop; kein Edit-Modus
+**AC5** (layout read-only in the web portal):
+- When: CIO opens dashboard in the web portal
+- Then: Widgets are displayed in the saved GridPosition; no drag and drop; no edit mode
 
-## Technische Hinweise
+## Technical Notes
 
-- Drag-and-Drop nur in der **Client App** (Electron); Web Portal rendert statisch
-- Empfohlene Bibliothek: `react-grid-layout` oder ähnliches; keine eigene ADR nötig
-- GridPosition-Update: `PUT /api/v1/dashboards/{id}/widgets/{widgetId}` mit nur geänderten GridPosition-Feldern
-- Batch-Update (mehrere Widgets gleichzeitig verschieben): optional in v1.0; alternativ sequenzielle PUTs
+- Drag and drop only in the **client app** (Electron); web portal renders statically
+- Recommended library: `react-grid-layout` or similar; no dedicated ADR needed
+- GridPosition update: `PUT /api/v1/dashboards/{id}/widgets/{widgetId}` with only changed GridPosition fields
+- Batch update (moving multiple widgets at once): optional in v1.0; alternatively sequential PUTs
 
 ## Definition of Done
 
-- [ ] AC1–AC5 erfüllt
-- [ ] Tests: Position speichern, ungültige Breite, vertikales Scrollen, read-only im Web Portal
-- [ ] Code-Review
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] AC1–AC5 met
+- [ ] Tests: save position, invalid width, vertical scrolling, read-only in web portal
+- [ ] Code review
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix

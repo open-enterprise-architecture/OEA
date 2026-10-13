@@ -1,6 +1,6 @@
 ---
 id: REQ-039
-title: Aktuelle IT-Landschaft als Solution-Ausgangsbasis anzeigen
+title: Show the current IT landscape as the solution baseline
 type: functional
 priority: must
 status: proposed
@@ -18,124 +18,124 @@ references:
   stakeholders:
     - SH-04
   concept:
-    - concept/20-entities/11-temporales-modell.md
-    - concept/20-entities/12-domain-sichten.md
-    - concept/20-entities/06-kern-entitaetstypen.md
+    - concept/20-entities/11-temporal-model.md
+    - concept/20-entities/12-domain-views.md
+    - concept/20-entities/06-core-entity-types.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-039: Aktuelle IT-Landschaft als Solution-Ausgangsbasis anzeigen
+# REQ-039: Show the current IT landscape as the solution baseline
 
-## Aussage
+## Statement
 
-Das System MUSS innerhalb einer Solution den aktuellen Stand der IT-Landschaft als durchsuchbare und filterbare Ausgangsbasis anzeigen; im **Projekt-Modus** MUSS dieser Stand aus der Aggregation aller Entitäten von Solutions mit status=`implemented` berechnet werden, im **Plateau-Modus** aus den Entitäten des `fromPlateau` der Solution.
+Within a solution, the system MUST show the current state of the IT landscape as a searchable and filterable baseline; in **project mode** this state MUST be computed from the aggregation of all entities of solutions with status=`implemented`, in **plateau mode** from the entities of the solution's `fromPlateau`.
 
-## Begründung
+## Rationale
 
-Der Solution Architekt kann nur dann sinnvoll Änderungs-Deltas erfassen, wenn er sieht, was bereits existiert. Ohne diese Ausgangsbasis müsste er alle Entitäten aus dem Gedächtnis oder externen Dokumenten kennen – ein zuverlässiges Scope-Management ist dann nicht möglich. Die Ausgangsbasis ist gleichzeitig die Grundlage der Diff-Ansicht (REQ-041) und der Konflikt-Warnung (REQ-042).
+The solution architect can only meaningfully capture change deltas if they can see what already exists. Without this baseline, they would have to know all entities from memory or external documents – reliable scope management is then not possible. The baseline is at the same time the foundation of the diff view (REQ-041) and the conflict warning (REQ-042).
 
-## Kontext
+## Context
 
-Die Ausgangsbasis ist kontextgebunden: sie erscheint nur im Rahmen einer konkreten Solution und dient ausschliesslich als Referenzpunkt für die Delta-Erfassung. Sie wird nicht separat persistiert, sondern bei Bedarf berechnet.
+The baseline is context-bound: it appears only within a concrete solution and serves exclusively as a reference point for delta capture. It is not persisted separately but computed on demand.
 
-**Berechnungsregeln (Projekt-Modus)**: Pro `entityId` wird die zuletzt in einer `implemented`-Solution gesetzte State-Information verwendet. Wenn mehrere `implemented`-Solutions dieselbe Entität `modified` haben, gilt die zuletzt implementierte Version (sortiert nach dem Go-Live-Zeitstempel der Solution). `retiring`-Deltas in `implemented`-Solutions entfernen die Entität aus der Ausgangsbasis.
+**Computation rules (project mode)**: For each `entityId`, the state information most recently set in an `implemented` solution is used. If several `implemented` solutions have `modified` the same entity, the most recently implemented version applies (sorted by the solution's go-live timestamp). `retiring` deltas in `implemented` solutions remove the entity from the baseline.
 
-**Berechnungsregeln (Plateau-Modus)**: Entitäten werden direkt aus dem verknüpften `fromPlateau` gelesen (inkl. aller geerbten Entitäten, falls das Plateau selbst von einem vorherigen Plateau erbt).
+**Computation rules (plateau mode)**: Entities are read directly from the linked `fromPlateau` (including all inherited entities, if the plateau itself inherits from a previous plateau).
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- Solution-ID (Kontext; die Solution, in der der Architekt arbeitet)
-- Optional: Suchbegriff (Freitext, Name der Entität)
-- Optional: Filter nach EntityType (Dropdown aus verfügbaren Typen)
+**Inputs**:
+- Solution ID (context; the solution the architect is working in)
+- Optional: search term (free text, name of the entity)
+- Optional: filter by EntityType (dropdown of available types)
 
-**Verarbeitung**:
-- Modus ermitteln: `solution.fromPlateauId == null` → Projekt-Modus; sonst Plateau-Modus
-- Projekt-Modus: Alle EntityDeltas aus Solutions mit status=`implemented` aggregieren; Endergebnis pro entityId bestimmen (latest-wins für `modified`; `retiring` entfernt die Entität)
-- Plateau-Modus: Entitäten des `fromPlateau` laden (inkl. Plateau-Erbschaft)
-- Ergebnis nach Suchbegriff und EntityType-Filter einschränken (client- oder serverseitig)
-- Sonderfall leere Ausgangsbasis: Hinweismeldung ausgeben; `modified`- und `retiring`-Optionen in der Delta-Erfassung deaktivieren
+**Processing**:
+- Determine the mode: `solution.fromPlateauId == null` → project mode; otherwise plateau mode
+- Project mode: aggregate all EntityDeltas from solutions with status=`implemented`; determine the end result per entityId (latest-wins for `modified`; `retiring` removes the entity)
+- Plateau mode: load the entities of the `fromPlateau` (including plateau inheritance)
+- Restrict the result by search term and EntityType filter (client- or server-side)
+- Special case empty baseline: output a notice; disable the `modified` and `retiring` options in delta capture
 
-**Ausgaben**:
-- Geordnete, paginierte Entitätsliste: EntityType, Name, relevante Properties (Kurzansicht)
-- Ggf. Hinweismeldung „Keine realisierten Entitäten vorhanden – du kannst ausschliesslich neue Entitäten anlegen"
+**Outputs**:
+- Ordered, paginated entity list: EntityType, name, relevant properties (short view)
+- If applicable, notice "No implemented entities available – you can only create new entities"
 
-**Fehlerfälle**:
-- Solution-ID unbekannt oder keine Berechtigung → 403/404
+**Error Cases**:
+- Solution ID unknown or no permission → 403/404
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Zwei implemented-Solutions existieren; Solution A hat Entity `CRM-Legacy` (new), Solution B hat Entity `ERP-Core` (new)
-- Wenn: Michael eine neue Solution öffnet (Projekt-Modus) und die Ausgangsbasis lädt
-- Dann: werden `CRM-Legacy` und `ERP-Core` in der Liste angezeigt; keine anderen Entitäten
+- Given: two implemented solutions exist; solution A has entity `CRM-Legacy` (new), solution B has entity `ERP-Core` (new)
+- When: Michael opens a new solution (project mode) and loads the baseline
+- Then: `CRM-Legacy` and `ERP-Core` are shown in the list; no other entities
 
 **AC2**:
-- Gegeben: Solution A (implemented) hat Entity `CRM-Legacy` (modified: name geändert auf „CRM-Legacy-v2"); Solution B (implemented, neueren Datums) hat dieselbe Entity erneut modified
-- Wenn: die Ausgangsbasis berechnet wird
-- Dann: zeigt sie den Stand aus Solution B (neuere Implementation gewinnt)
+- Given: solution A (implemented) has entity `CRM-Legacy` (modified: name changed to "CRM-Legacy-v2"); solution B (implemented, more recent) has modified the same entity again
+- When: the baseline is computed
+- Then: it shows the state from solution B (the newer implementation wins)
 
 **AC3**:
-- Gegeben: Solution A (implemented) hat Entity `CRM-Legacy` als retiring markiert
-- Wenn: die Ausgangsbasis berechnet wird
-- Dann: ist `CRM-Legacy` **nicht** in der Ausgangsbasis (retiring aus implemented-Solution entfernt die Entität)
+- Given: solution A (implemented) has marked entity `CRM-Legacy` as retiring
+- When: the baseline is computed
+- Then: `CRM-Legacy` is **not** in the baseline (retiring from an implemented solution removes the entity)
 
 **AC4**:
-- Gegeben: Plateau P0 (baseline) mit Entitäten `ERP-Core` und `CRM-Legacy`; Solution mit `fromPlateauId=P0` (Plateau-Modus)
-- Wenn: Michael die Ausgangsbasis lädt
-- Dann: werden genau die Entitäten von P0 angezeigt (inkl. ggf. geerbter Entitäten)
+- Given: plateau P0 (baseline) with entities `ERP-Core` and `CRM-Legacy`; solution with `fromPlateauId=P0` (plateau mode)
+- When: Michael loads the baseline
+- Then: exactly the entities of P0 are shown (including inherited entities, if any)
 
 **AC5**:
-- Gegeben: Kein implemented-Solutions vorhanden (leere Landschaft, Projekt-Modus)
-- Wenn: Michael die Ausgangsbasis lädt
-- Dann: erscheint der Hinweis „Keine realisierten Entitäten vorhanden"; `modified`- und `retiring`-Optionen sind deaktiviert
+- Given: no implemented solutions present (empty landscape, project mode)
+- When: Michael loads the baseline
+- Then: the notice "No implemented entities available" appears; the `modified` and `retiring` options are disabled
 
 **AC6**:
-- Gegeben: Ausgangsbasis mit 50 Entitäten verschiedener Typen
-- Wenn: Michael nach `ApplicationComponent` filtert
-- Dann: werden nur Entitäten vom Typ `ApplicationComponent` angezeigt
+- Given: baseline with 50 entities of various types
+- When: Michael filters by `ApplicationComponent`
+- Then: only entities of type `ApplicationComponent` are shown
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Aggregation aus mehreren implemented-Solutions (inkl. Überschneidungen, retiring); Plateau-Modus-Variante; leere Landschaft; Filter
-- [x] Mess-Werkzeug: Backend-Test-Suite (Aggregationslogik als Unit-Test); E2E-Test für UI-Anzeige
-- [x] Bestanden-Kriterium: AC1–AC6 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: aggregation from several implemented solutions (including overlaps, retiring); plateau mode variant; empty landscape; filter
+- [x] Measurement tool: backend test suite (aggregation logic as unit test); E2E test for UI display
+- [x] Pass criterion: AC1–AC6 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-038 (Solution muss existieren); Solutions mit status=`implemented` (Projekt-Modus) oder Plateau (Plateau-Modus) als Datenquelle
-- **Folgewirkungen**: REQ-040 (EntityDeltas erfassen) nutzt die Ausgangsbasis als Referenzpunkt; REQ-041 (Diff-Ansicht) baut auf ihr auf; REQ-042 (Konflikt-Warnung) prüft ebenfalls gegen diese Datenbasis
+- **Prerequisites**: REQ-038 (the solution must exist); solutions with status=`implemented` (project mode) or plateau (plateau mode) as data source
+- **Downstream effects**: REQ-040 (capture EntityDeltas) uses the baseline as a reference point; REQ-041 (diff view) builds on it; REQ-042 (conflict warning) also checks against this data basis
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne Ausgangsbasis muss Michael den aktuellen Stand manuell kennen – Scope-Fehler (vergessene Entitäten, falsch angenommene Zustände) sind wahrscheinlich, schwerwiegend
-- Risiko 2: Falsche Aggregationslogik (z.B. retirete Entitäten bleiben sichtbar) erzeugt eine inkorrekte Basis für Deltas und Diff-Ansicht
+- Risk 1: Without a baseline, Michael has to know the current state manually – scope errors (forgotten entities, wrongly assumed states) are likely, severe
+- Risk 2: Wrong aggregation logic (e.g., retired entities remain visible) creates an incorrect basis for deltas and the diff view
 
 ## Trade-offs
 
-- Aggregation on-the-fly vs. materialized view: On-the-fly ist korrekt aber ggf. langsam bei vielen Solutions. Für MVP akzeptabel; bei Performance-Problemen → Materialized View oder Cache (dann REQ-Ergänzung nötig)
+- Aggregation on the fly vs. materialized view: on the fly is correct but possibly slow with many solutions. Acceptable for MVP; in case of performance problems → materialized view or cache (then a REQ addition is needed)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- `GET /api/v1/solutions/{id}/landscape` (berechnet Ausgangsbasis on-the-fly)
-- Pagination empfohlen: Cursor-based, da Entitätslisten potentiell gross werden können
-- Aggregations-Query: `JOIN entity_deltas ON solution.status='implemented' GROUP BY entity_id ORDER BY solution.implemented_at DESC` – `retiring`-Deltas als Tombstone behandeln
+- `GET /api/v1/solutions/{id}/landscape` (computes the baseline on the fly)
+- Pagination recommended: cursor-based, since entity lists can potentially become large
+- Aggregation query: `JOIN entity_deltas ON solution.status='implemented' GROUP BY entity_id ORDER BY solution.implemented_at DESC` – treat `retiring` deltas as tombstones
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft aus UC-05 |
+| 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft from UC-05 |

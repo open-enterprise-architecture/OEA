@@ -1,6 +1,6 @@
 ---
 id: REQ-148
-title: Property-Mapping Stichtag änderbar
+title: Property Mapping Effective Date Changeable
 type: functional
 priority: should
 status: proposed
@@ -17,63 +17,63 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-148: Property-Mapping Stichtag änderbar
+# REQ-148: Property Mapping Effective Date Changeable
 
-## Aussage
+## Statement
 
-Das System **MUSS** es ermöglichen, die Notwendigkeit (mandatory/warning/optional) einer Property-Zuordnung zu einem MetaTyp per Stichtag zu ändern, ohne bestehende Werte zu löschen oder historische Zuordnungen zu überschreiben.
+The system **MUST** make it possible to change the necessity (mandatory/warning/optional) of a property assignment to a MetaType by effective date, without deleting existing values or overwriting historical assignments.
 
-## Begründung
+## Rationale
 
-Metamodelle entwickeln sich. Eine Property, die heute optional ist, kann ab einem bestimmten Datum mandatory werden. Ohne Stichtag-Mechanismus müssten entweder alle historischen Zuordnungen geändert werden (Verlust der Nachvollziehbarkeit) oder es entstehen Ad-hoc-Lösungen.
+Metamodels evolve. A property that is optional today can become mandatory from a certain date. Without an effective date mechanism, either all historical assignments would have to be changed (loss of traceability) or ad hoc solutions arise.
 
-## Kontext
+## Context
 
-`metatype_property_mappings.valid_from` ist der Stichtag. Das System ermittelt die aktive Zuordnung nach "neuester valid_from, der ≤ heute ist". Ältere Einträge bleiben erhalten (History). (ADR-022)
+`metatype_property_mappings.valid_from` is the effective date. The system determines the active assignment by "latest valid_from that is ≤ today". Older entries are retained (history). (ADR-022)
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-**Eingaben**:
-- Bestehendes Mapping (metatype_id, property_def_id)
-- Neues `valid_from`, neue `necessity`
+**Inputs**:
+- Existing mapping (metatype_id, property_def_id)
+- New `valid_from`, new `necessity`
 
-**Verarbeitung**:
-- Neuer Datensatz in `metatype_property_mappings` mit neuem valid_from anlegen
-- Bestehende Einträge bleiben unverändert
-- UNIQUE(metatype_id, property_def_id, valid_from) verhindert Duplikate
+**Processing**:
+- Create a new record in `metatype_property_mappings` with the new valid_from
+- Existing entries remain unchanged
+- UNIQUE(metatype_id, property_def_id, valid_from) prevents duplicates
 
-**Ausgaben**:
-- 201 Created; neuer Mapping-Eintrag
+**Outputs**:
+- 201 Created; new mapping entry
 
-**Fehlerfälle**:
-- valid_from bereits vorhanden für dieses Paar → 409 Conflict
+**Error Cases**:
+- valid_from already present for this pair → 409 Conflict
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Property P ist für MetaTyp M seit 2026-01-01 als `optional` gemappt
-- Wenn: Admin legt neues Mapping P→M mit valid_from=2026-07-01, necessity=mandatory an
-- Dann: Ab 2026-07-01 gilt mandatory; Entitäten die P fehlt, erhalten Warning/Error bei Validierung
+- Given: property P has been mapped as `optional` for MetaType M since 2026-01-01
+- When: an admin creates a new mapping P→M with valid_from=2026-07-01, necessity=mandatory
+- Then: from 2026-07-01, mandatory applies; entities missing P receive a warning/error on validation
 
 **AC2**:
-- Gegeben: Ein Mapping-Eintrag für valid_from=2026-01-01 existiert
-- Wenn: Admin versucht, denselben valid_from nochmals einzutragen
-- Dann: 409 Conflict
+- Given: a mapping entry for valid_from=2026-01-01 exists
+- When: an admin tries to enter the same valid_from again
+- Then: 409 Conflict
 
-## Verifikationsmethode
+## Verification Method
 
-- [ ] Methode: test (automatisiert)
-- [ ] Test-Setup: Integration-Test gegen H2-DB
-- [ ] Bestanden-Kriterium: POST /metamodel/metatypes/{id}/property-mappings erzeugt zweiten Eintrag; GET liefert neueste Zuordnung
-- [ ] In CI integriert: ja
+- [ ] Method: test (automated)
+- [ ] Test setup: integration test against H2 DB
+- [ ] Pass criterion: POST /metamodel/metatypes/{id}/property-mappings creates a second entry; GET returns the latest assignment
+- [ ] Integrated in CI: yes
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-149 (Validierung nach necessity)
-- **Folgewirkungen**: US-137
+- **Prerequisites**: REQ-149 (validation by necessity)
+- **Consequences**: US-137
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft aus ADR-022 |
+| 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft from ADR-022 |

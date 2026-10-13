@@ -1,88 +1,88 @@
-## 17. ITSM-Integration (CMDB und Service Catalog)
+## 17. ITSM Integration (CMDB and Service Catalog)
 
-Das EA-Repository existiert nicht im luftleeren Raum. In jeder Enterprise-Umgebung koexistiert es mit ITSM-Werkzeugen (ServiceNow, BMC Helix, Ivanti, Jira Service Management, o.ä.), die eine **CMDB** und einen **Service Catalog** pflegen. Saubere Abgrenzung ist erfolgskritisch, weil sonst doppelte Pflege, widersprüchliche Daten und Vertrauensverlust drohen.
+The EA repository does not exist in a vacuum. In every enterprise environment it coexists with ITSM tools (ServiceNow, BMC Helix, Ivanti, Jira Service Management, or similar) that maintain a **CMDB** and a **service catalog**. Clean delimitation is critical to success, because otherwise duplicate maintenance, contradictory data, and loss of trust threaten.
 
-### 17.1 Grundlegende Rollenverteilung
+### 17.1 Basic Division of Roles
 
-EA-Repository und CMDB adressieren unterschiedliche Fragen:
+The EA repository and the CMDB address different questions:
 
-| EA-Repository beantwortet | CMDB/ITSM beantwortet |
+| EA repository answers | CMDB/ITSM answers |
 |---|---|
-| Was sollten wir haben? | Was haben wir aktuell? |
-| Warum haben wir es? | Wie läuft es gerade? |
-| Wann ändern wir es? (Planung) | Wann ändern wir es? (Execution) |
-| Wer nutzt es fachlich? | Wer supportet es operativ? |
-| Wie sieht 2028 aus? | Welche Version läuft auf Node-42? |
+| What should we have? | What do we currently have? |
+| Why do we have it? | How is it running right now? |
+| When do we change it? (planning) | When do we change it? (execution) |
+| Who uses it from a business perspective? | Who supports it operationally? |
+| What does 2028 look like? | Which version is running on node-42? |
 
-EA denkt in **Plateaus und Zielbildern** (Monate bis Jahre), CMDB in **Konfigurationszuständen** (Sekunden bis Wochen).
+EA thinks in **plateaus and target states** (months to years), the CMDB in **configuration states** (seconds to weeks).
 
-### 17.2 Entitätsbezogene Mastership
+### 17.2 Entity-Related Mastership
 
-Die Frage "wer ist Master?" wird **pro EntityType und teilweise pro Property** entschieden:
+The question "who is master?" is decided **per EntityType and partly per property**:
 
-**EA ist Master für:**
-- Alle Logical-Entitäten (LogicalApplication/-Technology/-Data)
-- Business-Architecture-Entitäten (Capability, ValueStream, BusinessService, BusinessFunction, Process, OrgUnit, InformationObject, InformationFlow)
-- Zeitliche und strategische Entitäten (Plateau, Goal, Driver, WorkPackage, Gap, ADR, Principle, Standard)
-- Planungsrelevante Properties auf Physical-Entitäten (`lifecycleState` pro Plateau, `strategicClassification`, `targetArchitecture`-Zugehörigkeit)
+**EA is master for:**
+- All logical entities (LogicalApplication/-Technology/-Data)
+- Business architecture entities (Capability, ValueStream, BusinessService, BusinessFunction, Process, OrgUnit, InformationObject, InformationFlow)
+- Temporal and strategic entities (Plateau, Goal, Driver, WorkPackage, Gap, ADR, Principle, Standard)
+- Planning-relevant properties on physical entities (`lifecycleState` per plateau, `strategicClassification`, `targetArchitecture` membership)
 
-**CMDB/ITSM ist Master für:**
-- Konkrete Laufzeit-CIs (Server, VMs, Container, Netzwerk-Geräte, Storage)
-- Software-Installationen inkl. Patchlevel, konkrete Versionen, Hostnamen, IPs
-- Deployment-Instanzen (DEV/TEST/PROD)
-- Operative Properties (Status, Uptime, Metriken, Incident-/Change-Historie, SLA-Bindung)
+**CMDB/ITSM is master for:**
+- Concrete runtime CIs (servers, VMs, containers, network devices, storage)
+- Software installations incl. patch level, concrete versions, hostnames, IPs
+- Deployment instances (DEV/TEST/PROD)
+- Operational properties (status, uptime, metrics, incident/change history, SLA binding)
 
-**Gemeinsam gepflegt** (mit Property-Level-Mastership):
-- `PhysicalApplicationComponent`: EA-Master für Existenz, Fachzuordnung, strategische Bewertung; CMDB-Master für aktuelle Version, Deployment-Instanzen, operative Status
-- `PhysicalTechnologyComponent`: EA-Master für Standards, Zielbild, Lifecycle-Planung; CMDB-Master für Patchstand, Konfiguration, Instanzen
-- `Interface`: EA-Master für fachliche Semantik, Informationsfluss-Zuordnung, geplante Interfaces; CMDB-Master für aktive Endpoints, Monitoring-Status
+**Jointly maintained** (with property-level mastership):
+- `PhysicalApplicationComponent`: EA master for existence, business assignment, strategic assessment; CMDB master for current version, deployment instances, operational status
+- `PhysicalTechnologyComponent`: EA master for standards, target state, lifecycle planning; CMDB master for patch level, configuration, instances
+- `Interface`: EA master for business semantics, information flow assignment, planned interfaces; CMDB master for active endpoints, monitoring status
 
-### 17.3 Services – die besondere Schnittmenge
+### 17.3 Services – the Special Intersection
 
-"Service" ist in EA und ITSM hoffnungslos überladen. Die saubere Zuordnung:
+"Service" is hopelessly overloaded in EA and ITSM. The clean assignment:
 
-| EA-Konzept | ITSM-Konzept | Mastership |
+| EA concept | ITSM concept | Mastership |
 |---|---|---|
-| BusinessService | Business Service (Service Catalog Entry) | EA: fachliche Definition, Realisierung, Capability-Zuordnung. ITSM: Bestellweg, SLA, Pricing, Service Owner (operativ) |
-| ApplicationService | Technical Service (falls im Catalog) | EA: funktionale Definition, Realisierungskette. ITSM: technisches SLA, Support-Level |
-| PlatformService | Technical/Infrastructure Service | EA: Technologie-Standard, Zielbild. ITSM: Betriebs-Verantwortung, SLA |
+| BusinessService | Business Service (service catalog entry) | EA: business definition, realization, capability assignment. ITSM: ordering path, SLA, pricing, service owner (operational) |
+| ApplicationService | Technical Service (if in the catalog) | EA: functional definition, realization chain. ITSM: technical SLA, support level |
+| PlatformService | Technical/Infrastructure Service | EA: technology standard, target state. ITSM: operational responsibility, SLA |
 
-**Strukturelle Asymmetrie**: EA strukturiert Services nach Realisierungsketten (Business → Application → Platform), ITSM nach Dependency-Ketten (Customer-facing → Supporting → Infrastructure). Beide Sichten sind legitim und sollten parallel existieren dürfen.
+**Structural asymmetry**: EA structures services by realization chains (business → application → platform), ITSM by dependency chains (customer-facing → supporting → infrastructure). Both views are legitimate and should be allowed to exist in parallel.
 
-**Governance-Regel**: Wenn ein EA-Service für externe Konsumenten bestimmt ist, *sollte* ein Service Catalog Entry existieren. Umgekehrt *sollte* jeder Service Catalog Entry mit fachlicher Funktionalität mindestens einen EA-Service referenzieren. Nicht jeder EA-Service braucht einen Catalog-Eintrag (z.B. interne technische Interfaces).
+**Governance rule**: If an EA service is intended for external consumers, a service catalog entry *should* exist. Conversely, every service catalog entry with business functionality *should* reference at least one EA service. Not every EA service needs a catalog entry (e.g., internal technical interfaces).
 
-### 17.4 Cross-Reference-Mechanismus
+### 17.4 Cross-Reference Mechanism
 
-Stabile Identifier sind die Grundlage der Integration:
+Stable identifiers are the basis of the integration:
 
 ```
-EA-URN-Schema:    urn:ea:<org>:<type>:<id>
-                  z.B. urn:ea:acme:application:sap-fi
+EA URN scheme:    urn:ea:<org>:<type>:<id>
+                  e.g. urn:ea:acme:application:sap-fi
                        urn:ea:acme:bizservice:invoicing
 
-CMDB-Referenz:    cmdb-ci-id: CI0042-SAP-FI-PROD
+CMDB reference:   cmdb-ci-id: CI0042-SAP-FI-PROD
 ```
 
-Beide Seiten tragen die jeweils andere ID als Property:
-- EA-Entity hat Property `externalReferences[]` mit CMDB-CI-IDs
-- CMDB-CI hat Property `eaReference` mit EA-URN
+Both sides carry the respective other ID as a property:
+- The EA entity has a property `externalReferences[]` with CMDB CI IDs
+- The CMDB CI has a property `eaReference` with the EA URN
 
-Daraus ergibt sich bidirektionale Navigierbarkeit ohne harte Kopplung.
+This yields bidirectional navigability without hard coupling.
 
-### 17.5 Synchronisations-Muster
+### 17.5 Synchronization Patterns
 
-**CMDB → EA (Discovery-Richtung)**: Neue CIs, die durch automatische Discovery in der CMDB auftauchen, werden als Stub-Entities im EA angelegt. Shadow-IT wird sichtbar.
+**CMDB → EA (discovery direction)**: New CIs that appear in the CMDB through automatic discovery are created as stub entities in the EA. Shadow IT becomes visible.
 
-**EA → CMDB (Planungs-Richtung)**: Neu geplante Applications/Technologies werden als "ordered" CIs in die CMDB gepusht, damit Betrieb und Service Management sich vorbereiten können.
+**EA → CMDB (planning direction)**: Newly planned applications/technologies are pushed into the CMDB as "ordered" CIs so that operations and service management can prepare.
 
-**Bidirektional mit Property-Mastership**: Für gemeinsame Entitäten synchronisiert der Konnektor nur die Properties, deren Master die andere Seite ist. Der eigene Master-Bereich bleibt unverändert.
+**Bidirectional with property mastership**: For jointly maintained entities, the connector synchronizes only the properties whose master is the other side. The own master area remains unchanged.
 
-### 17.6 Erweiterung des Meta-Metamodells
+### 17.6 Extension of the Meta-Metamodel
 
-Das Meta-Metamodell wird um folgende Konzepte ergänzt:
+The meta-metamodel is supplemented with the following concepts:
 
 ```yaml
-EntityType erhält optionale Properties:
+EntityType gains optional properties:
   - externalReferences: ExternalReference[]
 
 ExternalReference:
@@ -92,33 +92,33 @@ ExternalReference:
   - lastSynced: datetime
   - mastership: enum[ea, external, shared-per-property]
 
-Property (M2-Ebene) erhält:
-  - masterSystem: enum[ea, external]  # für shared-per-property
+Property (M2 level) gains:
+  - masterSystem: enum[ea, external]  # for shared-per-property
 ```
 
-### 17.7 ITIL-4-Practices und Andockpunkte
+### 17.7 ITIL 4 Practices and Docking Points
 
-| ITIL-4-Practice | Andockpunkt im EA |
+| ITIL 4 practice | Docking point in EA |
 |---|---|
-| Service Configuration Management | CI-Types mappen auf EntityTypes; EA-URN als externe Referenz am CI |
-| Service Catalog Management | `publishedAs`-Relation von EA-Service zu Catalog Entry |
-| Change Enablement | Major Changes werden gegen EA-Standards und Zielbilder geprüft (Architecture Review Board) |
-| Service Level Management | EA pflegt strategische Kritikalitätsklasse, daraus leitet ITSM die SLA ab |
-| Incident/Problem Management | Aggregierte Statistiken können als Bewertungs-Input ("Technical Debt") ins EA fließen |
+| Service Configuration Management | Map CI types to EntityTypes; EA URN as external reference on the CI |
+| Service Catalog Management | `publishedAs` relation from EA service to catalog entry |
+| Change Enablement | Major changes are checked against EA standards and target states (Architecture Review Board) |
+| Service Level Management | EA maintains the strategic criticality class, ITSM derives the SLA from it |
+| Incident/Problem Management | Aggregated statistics can flow into EA as assessment input ("technical debt") |
 
-### 17.8 Praxisprinzipien
+### 17.8 Practical Principles
 
-- **Nur das ins EA, was architekturrelevant ist**. Nicht jede VM, jeder Switch, jede Patchinstanz gehört modelliert. Faustregel: *Wird darüber jemals eine Architekturentscheidung getroffen?*
-- **Property-Mastership explizit machen**. Wenn beide Seiten dieselbe Property pflegen ohne definierten Master, driften die Daten.
-- **Rollen im Metamodell**: EA-Owner, Data-Steward, CI-Owner als Relationen modellieren – bei Konflikten weiß das System, wen es benachrichtigen muss.
-- **Keine rückwirkende Bereinigung erzwingen**: Gewachsene Service-Kataloge werden nicht umgebogen. Neue Services gemeinsam designen, Altes über Zeit migrieren.
+- **Only what is architecture-relevant goes into EA**. Not every VM, every switch, every patch instance needs to be modeled. Rule of thumb: *Will an architecture decision ever be made about it?*
+- **Make property mastership explicit**. If both sides maintain the same property without a defined master, the data drifts.
+- **Roles in the metamodel**: Model EA owner, data steward, CI owner as relations – in case of conflicts the system knows whom to notify.
+- **Do not enforce retroactive cleanup**: Grown service catalogs are not bent into shape. Design new services jointly, migrate old ones over time.
 
-### 9.9 Sicht-Vorschläge
+### 9.9 View Proposals
 
-- **Service Catalog Alignment**: zeigt EA-Services ohne Catalog-Entry, Catalog-Entries ohne EA-Service, Services mit Referenz-Drift
-- **CMDB Coverage**: zeigt EA-Applications/Technologies ohne verlinktes CI und umgekehrt
-- **Mastership-Konflikte**: Properties, bei denen EA und CMDB unterschiedliche Werte haben
+- **Service Catalog Alignment**: shows EA services without a catalog entry, catalog entries without an EA service, services with reference drift
+- **CMDB Coverage**: shows EA applications/technologies without a linked CI and vice versa
+- **Mastership conflicts**: properties for which EA and CMDB have different values
 
 ---
 
-← [Beispiel-Walkthrough](../50-walkthrough/16-beispiel-walkthrough.md) · [🏠 Übersicht](../README.md) · [PPM-Integration](18-ppm-integration.md) →
+← [Example Walkthrough](../50-walkthrough/16-example-walkthrough.md) · [🏠 Overview](../README.md) · [PPM Integration](18-ppm-integration.md) →

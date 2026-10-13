@@ -1,32 +1,32 @@
-# US-117: Veraltete TRM-Kategorien per Review-Datum-Filter finden
+# US-117: Find Outdated TRM Categories via Review Date Filter
 
 **ID**: US-117
 **Story Points**: 2
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich, dass `lastReviewedAt` bei jedem Speichern automatisch aktualisiert wird und ich in der TRM-Übersicht nach veralteten Kategorien filtern kann, damit ich periodische TRM-Governance-Reviews effizient durchführen kann.
+As Kurt – Lead Enterprise Architect, I want `lastReviewedAt` to be updated automatically on every save and to be able to filter by outdated categories in the TRM overview, so that I can conduct periodic TRM governance reviews efficiently.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-19](../use-cases/UC-19-trm-konfigurieren.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-117](../req/REQ-117-trm-review-datum.md)
+**Use Case**: [UC-19](../use-cases/UC-19-configure-trm.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-117](../req/REQ-117-trm-review-date.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (automatisches lastReviewedAt):
-- Wenn: ich eine TRM-Kategorie speichere
-- Dann: ist `lastReviewedAt` auf das aktuelle UTC-Datum gesetzt
+**AC1** (Automatic lastReviewedAt):
+- When: I save a TRM category
+- Then: `lastReviewedAt` is set to the current UTC date
 
-**AC2** (Filter nach Review-Datum):
-- Wenn: ich den Filter „Zuletzt überprüft vor > 12 Monaten" in der TRM-Übersicht aktiviere
-- Dann: werden Kategorien mit `lastReviewedAt` < heute − 12 Monate oder `lastReviewedAt = null` hervorgehoben
+**AC2** (Filter by review date):
+- When: I activate the filter "Last reviewed > 12 months ago" in the TRM overview
+- Then: categories with `lastReviewedAt` < today − 12 months or `lastReviewedAt = null` are highlighted
 
 ## Definition of Done
 
-- [ ] AC1–AC2 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC2 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

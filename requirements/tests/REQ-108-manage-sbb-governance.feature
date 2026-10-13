@@ -1,32 +1,32 @@
-# Ableitung aus: requirements/req/req-108-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-108-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @must @UC-17
-Feature: REQ-108 – SBB Governance-Status verwalten
+Feature: REQ-108 – Manage SBB governance status
 
-  Das System MUSS das Anlegen, Bearbeiten und Löschen von
-  `SolutionBuildingBlock`-Einträgen (SBBs) mit `scope=organization`
-  ermöglichen. Pflichtfelder: `name`, `governanceStatus` (`[approved,
+  The system MUST allow creating, editing and deleting
+  `SolutionBuildingBlock` entries (SBBs) with `scope=organization`.
+  Mandatory fields: `name`, `governanceStatus` (`[approved,
   acceptable, deprecated, prohibited]`).
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – SBB anlegen – eine SBB mit `governanceStatus=approved` und `implements=[ABB-UUID]` ang...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  eine SBB mit `governanceStatus=approved` und `implements=[ABB-UUID]` angelegt wird
-    Then  antwortet das System mit HTTP 201
+  Scenario: AC1 – Create SBB – an SBB is created with `governanceStatus=approved` and `implements=[ABB-UUID]`...
+    Given the precondition according to the requirement is met
+    When  an SBB is created with `governanceStatus=approved` and `implements=[ABB-UUID]`
+    Then  the system responds with HTTP 201
 
   @AC2
-  Scenario: AC2 – Prohibited-Warnung auf Entitäten – eine SBB auf `governanceStatus=prohibited` gesetzt wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  eine SBB auf `governanceStatus=prohibited` gesetzt wird
-    Then  zeigen alle Entitäten mit `instanceOfSBBId=dieser-SBB` in der UI den Hinweis „Verwendetes Produkt verboten – Migration erforderlich"
+  Scenario: AC2 – Prohibited warning on entities – an SBB is set to `governanceStatus=prohibited`
+    Given the precondition according to the requirement is met
+    When  an SBB is set to `governanceStatus=prohibited`
+    Then  all entities with `instanceOfSBBId=this-SBB` show the note "Product in use prohibited – migration required" in the UI
 
   @AC3
-  Scenario: AC3 – ABB-Referenz-Warnung – eine SBB ohne `implements`-ABBs angelegt wird
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  eine SBB ohne `implements`-ABBs angelegt wird
-    Then  zeigt das System eine Governance-Warnung „SBB ohne ABB-Referenz ist nur Produktkatalog-Eintrag" ohne die Speicherung zu blockieren
+  Scenario: AC3 – ABB reference warning – an SBB is created without `implements` ABBs
+    Given the precondition according to the requirement is met
+    When  an SBB is created without `implements` ABBs
+    Then  the system shows a governance warning "SBB without ABB reference is only a product catalog entry" without blocking saving

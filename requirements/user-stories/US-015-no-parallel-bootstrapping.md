@@ -1,54 +1,54 @@
-# US-015: Kein paralleles oder wiederholtes Bootstrapping
+# US-015: No Parallel or Repeated Bootstrapping
 
 **ID**: US-015
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Betreiber möchte ich, dass nur ein Bootstrapping-Vorgang pro Instanz erfolgreich abgeschlossen werden kann, damit kein unautorisierter zweiter System-Admin-Account entstehen kann.
+As an operator, I want only one bootstrapping process per instance to complete successfully, so that no unauthorized second system admin account can come into existence.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-02: System-Admin-Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
-**Persona**: [SH-06: Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Requirement**: [REQ-015: Kein paralleles oder wiederholtes Bootstrapping](../req/REQ-015-kein-paralleles-bootstrapping.md)
+**Use Case**: [UC-02: System Admin Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
+**Persona**: [SH-06: Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Requirement**: [REQ-015: No Parallel or Repeated Bootstrapping](../req/REQ-015-no-parallel-bootstrapping.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: zwei nahezu gleichzeitig gestartete Bootstrapping-Versuche auf derselben frischen Instanz
-- Wenn: beide um Abschluss konkurrieren
-- Dann: wird genau einer erfolgreich abgeschlossen, der andere abgelehnt
+- Given: two nearly simultaneously started bootstrapping attempts on the same fresh instance
+- When: both compete for completion
+- Then: exactly one completes successfully, the other is rejected
 
 **AC2**:
-- Gegeben: eine Instanz mit bereits bestehendem System-Admin-Account
-- Wenn: ein erneuter Bootstrapping-Versuch unternommen wird
-- Dann: wird dieser ohne explizite Reset-Aktion abgelehnt
+- Given: an instance with an already existing system admin account
+- When: a repeated bootstrapping attempt is made
+- Then: it is rejected without an explicit reset action
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Bootstrapping-Endpunkt
-- Betroffene EntityTypes/Relations: `SystemAdminAccount`
-- API-Endpunkte: Bootstrapping-Endpunkt
-- Datenbank-Änderungen: atomarer Check-and-Set-Mechanismus (DB-Constraint oder Distributed Lock)
+- Affected components: bootstrapping endpoint
+- Affected EntityTypes/Relations: `SystemAdminAccount`
+- API endpoints: bootstrapping endpoint
+- Database changes: atomic check-and-set mechanism (DB constraint or distributed lock)
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person (mit Fokus Concurrency)
-- [ ] Tests geschrieben (Concurrency-Test für AC1)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person (with focus on concurrency)
+- [ ] Tests written (concurrency test for AC1)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-013
-- Blockiert: keine
+- Waiting on: US-013
+- Blocks: none
 
-## Notizen
+## Notes
 
-Deckt Exception Flow E3 aus UC-02 ab. Sicherheitskritisch – Race-Condition-Tests sind Pflichtbestandteil des Tests, nicht optional.
+Covers exception flow E3 from UC-02. Security-critical – race condition tests are a mandatory part of testing, not optional.

@@ -1,36 +1,36 @@
-# US-106: Wiederhergestellte Felder im Audit-Trail protokollieren
+# US-106: Log Restored Fields in the Audit Trail
 
 **ID**: US-106
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich, dass nach jeder Teilwiederherstellung die exakt wiederhergestellten Felder im Zeitlinie-Eintrag sichtbar sind, damit der Audit-Trail vollständig und nachvollziehbar bleibt.
+As Kurt – Lead Enterprise Architect, I want the exact restored fields to be visible in the timeline entry after every partial restore, so that the audit trail remains complete and traceable.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-16](../use-cases/UC-16-teilwiederherstellung-entitaet.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-106](../req/REQ-106-teilwiederherstellung-restored-fields.md)
+**Use Case**: [UC-16](../use-cases/UC-16-partial-entity-restore.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-106](../req/REQ-106-partial-restore-restored-fields.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (restoredFields im Versionseintrag):
-- Wenn: ich `description` und `properties.owner` teilweise wiederherstelle
-- Dann: enthält der Versionseintrag `restoredFields=["description","properties.owner"]`
+**AC1** (restoredFields in version entry):
+- When: I partially restore `description` and `properties.owner`
+- Then: the version entry contains `restoredFields=["description","properties.owner"]`
 
-**AC2** (Leere Auswahl abweisen):
-- Wenn: keine Felder ausgewählt sind und ich bestätigen will
-- Dann: ist der Button deaktiviert; ein API-Aufruf mit leerem `restoredFields` wird mit HTTP 422 abgewiesen
+**AC2** (Reject empty selection):
+- When: no fields are selected and I want to confirm
+- Then: the button is disabled; an API call with empty `restoredFields` is rejected with HTTP 422
 
-**AC3** (Zeitlinie-Lesbarkeit):
-- Wenn: ich die Zeitlinie nach der Teilwiederherstellung ansehe
-- Dann: zeigt der Eintrag "Teilweise wiederhergestellt aus v4 (description, properties.owner)"
+**AC3** (Timeline readability):
+- When: I view the timeline after the partial restore
+- Then: the entry shows "Partially restored from v4 (description, properties.owner)"
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

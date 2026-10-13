@@ -1,54 +1,54 @@
-# US-006: Generische Fehlermeldung ohne Preisgabe der Account-Existenz
+# US-006: Generic Error Message Without Disclosing Account Existence
 
 **ID**: US-006
 **Story Points**: 2
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Sicherheitsverantwortlicher möchte ich, dass fehlgeschlagene Login-Versuche keine Rückschlüsse auf die Existenz eines Accounts erlauben, damit Angreifer keine User-Enumeration betreiben können.
+As a security officer, I want failed login attempts to allow no conclusions about the existence of an account, so that attackers cannot perform user enumeration.
 
-## Bezug
+## Reference
 
 **Use Case**: [UC-01: Login](../use-cases/UC-01-login.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-006: Keine Preisgabe der Account-Existenz](../req/REQ-006-keine-preisgabe-account-existenz.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-006: No Disclosure of Account Existence](../req/REQ-006-no-account-existence-disclosure.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein Login-Versuch mit nicht-existierender Identität
-- Wenn: der Login fehlschlägt
-- Dann: ist die Fehlermeldung identisch zu der bei einer existierenden, aber falsch authentifizierten Identität
+- Given: a login attempt with a non-existent identity
+- When: the login fails
+- Then: the error message is identical to that for an existing but incorrectly authenticated identity
 
 **AC2**:
-- Gegeben: zwei Login-Fehlversuche (existierende vs. nicht-existierende Identität)
-- Wenn: die Antwortzeiten verglichen werden
-- Dann: unterscheiden sie sich nicht in auswertbarer Weise (kein Timing-Seitenkanal)
+- Given: two failed login attempts (existing vs. non-existent identity)
+- When: the response times are compared
+- Then: they do not differ in an analyzable way (no timing side channel)
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Auth-Modul (Fehlerbehandlung, alle Mechanismen)
-- Betroffene EntityTypes/Relations: keine
-- API-Endpunkte: alle Login-Endpunkte
-- Datenbank-Änderungen: keine
+- Affected components: auth module (error handling, all mechanisms)
+- Affected EntityTypes/Relations: none
+- API endpoints: all login endpoints
+- Database changes: none
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person (mit Fokus Security)
-- [ ] Tests geschrieben (inkl. Timing-Vergleich)
-- [ ] Dokumentation aktualisiert
-- [ ] ADR erstellt, falls Architekturentscheidung
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person (with focus on security)
+- [ ] Tests written (incl. timing comparison)
+- [ ] Documentation updated
+- [ ] ADR created if architecture decision
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-001, US-004
-- Blockiert: keine
+- Waiting on: US-001, US-004
+- Blocks: none
 
-## Notizen
+## Notes
 
-Sollte bei jedem neuen lokalen Mechanismus (US-010, US-011) erneut verifiziert werden, da dort Passwort-Korrektheit ein zusätzlicher Leak-Vektor ist (siehe REQ-010).
+Should be verified again for every new local mechanism (US-010, US-011), since password correctness is an additional leak vector there (see REQ-010).

@@ -1,32 +1,32 @@
-# US-085: Plateau-Übersicht nach Status
+# US-085: Plateau Overview by Status
 
 **ID**: US-085
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich eine strukturierte Übersicht aller Plateaus nach Status gruppiert sehen, damit ich auf einen Blick erkenne, welcher Zustand aktuell produktiv ist und welche Zielzustände geplant sind.
+As Kurt – Lead Enterprise Architect, I want to see a structured overview of all plateaus grouped by status, so that I can see at a glance which state is currently in production and which target states are planned.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-11](../use-cases/UC-11-plateau-definieren-und-go-live.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-085](../req/REQ-085-plateau-uebersicht.md)
+**Use Case**: [UC-11](../use-cases/UC-11-define-plateau-and-go-live.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-085](../req/REQ-085-plateau-overview.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Gruppierte Anzeige):
-- Wenn: ich die Plateau-Übersicht aufrufe
-- Dann: sehe ich das Baseline hervorgehoben, Targets mit `validFrom` und Realized-Plateaus in einer einklappbaren Sektion
+**AC1** (Grouped display):
+- When: I open the plateau overview
+- Then: I see the baseline highlighted, targets with `validFrom`, and realized plateaus in a collapsible section
 
-**AC2** (Leere Target-Sektion):
-- Wenn: keine Target-Plateaus existieren
-- Dann: zeigt die Target-Sektion "Noch kein Ziel-Plateau geplant"
+**AC2** (Empty target section):
+- When: no target plateaus exist
+- Then: the target section shows "No target plateau planned yet"
 
 ## Definition of Done
 
-- [ ] AC1–AC2 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC2 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

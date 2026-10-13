@@ -1,149 +1,149 @@
-## 22. Auswertbarkeit und Query-Architektur
+## 22. Analyzability and Query Architecture
 
-Ein Architektur-Repository ist nur so wertvoll wie seine Auswertbarkeit. Zwei fundamental unterschiedliche Query-Typen sind zu unterstützen: **Graph-Traversierung** (element- und connection-bezogenes Folgen) und **analytische Aggregation** (Repository-weite Joins und Gruppierungen).
+An architecture repository is only as valuable as its analyzability. Two fundamentally different query types must be supported: **graph traversal** (element- and connection-related following) and **analytical aggregation** (repository-wide joins and groupings).
 
-### 22.1 Die zwei Query-Paradigmen
+### 22.1 The Two Query Paradigms
 
-**Graph-Traversierung** beantwortet Fragen wie:
-- "Starte bei Application X, folge allen Interfaces – welche Business Services werden transitiv betroffen?"
-- "Welcher kürzeste Pfad existiert zwischen Capability A und Technology B?"
-- "Zeige alle Entitäten im Umkreis von 2 Hops um Interface Y"
-- "Welche ADRs betreffen transitiv die Application Z?"
+**Graph traversal** answers questions such as:
+- "Start at application X, follow all interfaces – which business services are transitively affected?"
+- "What is the shortest path between capability A and technology B?"
+- "Show all entities within 2 hops of interface Y"
+- "Which ADRs transitively affect application Z?"
 
-**Analytische Aggregation** beantwortet Fragen wie:
-- "Summe der TCO aller Applications pro Capability pro Plateau"
-- "Anzahl Applications pro Domain × Lifecycle-State, gefiltert auf Kritikalität"
-- "Durchschnittliche Reviews pro Standard pro Jahr"
-- "Top 10 Capabilities nach Anzahl aktiver Projekte"
+**Analytical aggregation** answers questions such as:
+- "Sum of the TCO of all applications per capability per plateau"
+- "Number of applications per domain × lifecycle state, filtered by criticality"
+- "Average reviews per standard per year"
+- "Top 10 capabilities by number of active projects"
 
-Beide Paradigmen müssen **gleich gut** unterstützt werden – keines darf zum Fremdkörper verkümmern.
+Both paradigms must be supported **equally well** – neither may wither into a foreign body.
 
-### 22.2 Graph-Traversierung – Anforderungen
-
-```yaml
-Traversierungs-Fähigkeiten:
-  - Start-Entity + Traversal-Regeln (welche Relations folgen, in welche Richtung)
-  - Tiefen-Limit / Breiten-Limit
-  - Filter auf Zwischen-Entitäten (nur bestimmte Typen, nur bestimmte Properties)
-  - Rückgabe als Subgraph, Pfad-Liste oder Endknoten-Liste
-  - Unterstützung für gerichtete und ungerichtete Traversierung
-  - Transitive Closure ("alle erreichbaren Knoten")
-  - Pfad-Algorithmen: shortest path, all paths bis Länge N
-```
-
-### 22.3 Analytische Aggregation – Anforderungen
+### 22.2 Graph Traversal – Requirements
 
 ```yaml
-Analytics-Fähigkeiten:
-  - Multi-Entity-Joins über beliebige Relationen
-  - Aggregationsfunktionen: count, sum, avg, min, max, percentile
-  - Gruppierung nach mehreren Dimensionen
-  - Pivotierung (Kreuztabellen)
-  - Zeitbezogene Aggregation (pro Plateau, pro Jahr, rolling windows)
-  - Berechnete Felder (z.B. TCO-Summen-Formeln)
-  - Window-Funktionen (running totals, rankings)
-  - Subqueries und CTEs
+Traversal capabilities:
+  - Start entity + traversal rules (which relations to follow, in which direction)
+  - Depth limit / breadth limit
+  - Filters on intermediate entities (only certain types, only certain properties)
+  - Return as subgraph, path list, or end node list
+  - Support for directed and undirected traversal
+  - Transitive closure ("all reachable nodes")
+  - Path algorithms: shortest path, all paths up to length N
 ```
 
-### 22.4 Query-Interface: zwei Sprachen oder eine?
+### 22.3 Analytical Aggregation – Requirements
 
-**Option A – Zwei spezialisierte Sprachen**:
-- Graph-Queries in einer Graph-Sprache (Cypher, Gremlin, GQL)
-- Analytics-Queries in SQL oder einem SQL-ähnlichen Dialekt
-
-Vorteile: Jede Sprache ist in ihrer Domäne optimal, hohe Ausdrucksstärke.
-Nachteile: Zwei Lernkurven, Ergebnisse schwer kombinierbar, zwei Engines im Hintergrund.
-
-**Option B – Eine einheitliche Query-Sprache**:
-- Eine DSL, die beide Paradigmen abdeckt (Beispiel: GraphQL mit Erweiterungen, oder eine eigene EA-Query-Language)
-
-Vorteile: Eine Lernkurve, kombinierbare Queries, konsistente API.
-Nachteile: Oft Kompromiss bei Ausdrucksstärke, Risiko einer proprietären DSL.
-
-**Empfehlung**: **Beide Sprachen anbieten**, aber über eine gemeinsame Abstraktionsebene:
-
-```
-/api/v1/graph/traverse          ← typisierte Graph-Operationen (einfacher Einstieg)
-/api/v1/graph/cypher            ← Cypher für mächtige Graph-Queries
-/api/v1/analytics/query         ← SQL oder SQL-ähnlich für Analytics
-/api/v1/analytics/views/{name}  ← vordefinierte benannte Views
+```yaml
+Analytics capabilities:
+  - Multi-entity joins across arbitrary relations
+  - Aggregation functions: count, sum, avg, min, max, percentile
+  - Grouping by multiple dimensions
+  - Pivoting (cross tabulations)
+  - Time-related aggregation (per plateau, per year, rolling windows)
+  - Calculated fields (e.g., TCO sum formulas)
+  - Window functions (running totals, rankings)
+  - Subqueries and CTEs
 ```
 
-Einsteiger nutzen die typisierten Endpunkte, fortgeschrittene Nutzer greifen zu Cypher/SQL. Die gespeicherten benannten Views (siehe [§22.7 (Auswertbarkeit)](22-auswertbarkeit.md)) decken Standard-Fälle ohne Query-Kenntnisse ab.
+### 22.4 Query Interface: Two Languages or One?
 
-### 22.5 Reifizierte Relationen in Queries
+**Option A – Two specialized languages**:
+- Graph queries in a graph language (Cypher, Gremlin, GQL)
+- Analytics queries in SQL or an SQL-like dialect
 
-Weil Relationen First-Class-Objekte sind (siehe [§2 (Meta-Metamodell)](../00-overview/02-meta-metamodell.md)), haben sie Konsequenzen für die Query-Architektur. Drei Szenarien:
+Advantages: Each language is optimal in its domain, high expressiveness.
+Disadvantages: Two learning curves, results hard to combine, two engines in the background.
 
-**Szenario 1 – Relation als Kante traversieren**: der Normalfall.
+**Option B – One unified query language**:
+- One DSL that covers both paradigms (example: GraphQL with extensions, or a custom EA query language)
+
+Advantages: One learning curve, combinable queries, consistent API.
+Disadvantages: Often a compromise in expressiveness, risk of a proprietary DSL.
+
+**Recommendation**: **Offer both languages**, but via a common abstraction layer:
+
+```
+/api/v1/graph/traverse          ← typed graph operations (easy entry)
+/api/v1/graph/cypher            ← Cypher for powerful graph queries
+/api/v1/analytics/query         ← SQL or SQL-like for analytics
+/api/v1/analytics/views/{name}  ← predefined named views
+```
+
+Beginners use the typed endpoints, advanced users reach for Cypher/SQL. The stored named views (see [§22.7 (Analyzability)](22-analyzability.md)) cover standard cases without query knowledge.
+
+### 22.5 Reified Relations in Queries
+
+Because relations are first-class objects (see [§2 (Meta-Metamodel)](../00-overview/02-meta-metamodel.md)), they have consequences for the query architecture. Three scenarios:
+
+**Scenario 1 – Traverse the relation as an edge**: the normal case.
 ```cypher
 MATCH (a:Application)-[:uses]->(b:Application)
 RETURN a, b
 ```
-Die Relation wird wie eine klassische Graph-Kante behandelt. Funktioniert in jeder Graph-DB.
+The relation is treated like a classic graph edge. Works in any graph DB.
 
-**Szenario 2 – Relation als Knoten, weil sie Ziel einer anderen Relation ist**:
+**Scenario 2 – Relation as a node, because it is the target of another relation**:
 ```cypher
 MATCH (adr:ADR)-[:affects]->(r:Relation {type: 'uses'})
 MATCH (src)-[r]->(tgt)
 RETURN adr, src, tgt
 ```
-Die Relation tritt einmal als Knoten (Ziel von `affects`) und einmal als Kante (zwischen src und tgt) auf. Das ist der Reifikations-Fall.
+The relation appears once as a node (target of `affects`) and once as an edge (between src and tgt). This is the reification case.
 
-**Szenario 3 – Relation mit Eigenschaften analytisch aggregieren**:
+**Scenario 3 – Analytically aggregate a relation with properties**:
 ```sql
 SELECT r.protocol, COUNT(*) as count, AVG(r.avg_data_volume_mb) as avg_volume
 FROM relations r
 WHERE r.type = 'interface_uses'
 GROUP BY r.protocol;
 ```
-Relationen mit Properties sind in Analytics genauso abfragbar wie Entitäten.
+Relations with properties can be queried in analytics just like entities.
 
-**Implementierungs-Hinweise pro Persistenz-Option** (vgl. [§22.6 (Auswertbarkeit)](22-auswertbarkeit.md)):
+**Implementation notes per persistence option** (cf. [§22.6 (Analyzability)](22-analyzability.md)):
 
-- **Postgres + Apache AGE**: Relationen sind Kanten in AGE-Graph plus eine normale Zeile in einer `relations`-Tabelle (mit URN und Properties). Queries nutzen je nach Bedarf SQL oder Cypher. Guter Kompromiss.
-- **Neo4j 5.x**: Relationships haben Properties nativ; Reifikation erfordert einen zusätzlichen "Relation-Knoten", der per Konvention mit der Kante verknüpft ist. Etwas Mehraufwand beim Modellieren, aber gängiges Muster.
-- **RDF/SPARQL**: Reifikation ist nativ (RDF-star/RDF 1.2). Semantisch am saubersten, aber Query-Sprache steil.
-- **Git+YAML-Dateien**: Jede Relation ist eine YAML-Datei mit eigener URN. Entity- und Relation-URNs werden gleich behandelt. Einfachste Mental-Model, aber Query-Performance muss über Index-Layer sichergestellt werden.
+- **Postgres + Apache AGE**: Relations are edges in the AGE graph plus a normal row in a `relations` table (with URN and properties). Queries use SQL or Cypher as needed. Good compromise.
+- **Neo4j 5.x**: Relationships natively have properties; reification requires an additional "relation node" linked to the edge by convention. Some extra effort in modeling, but a common pattern.
+- **RDF/SPARQL**: Reification is native (RDF-star/RDF 1.2). Semantically cleanest, but the query language is steep.
+- **Git+YAML files**: Each relation is a YAML file with its own URN. Entity and relation URNs are treated the same. Simplest mental model, but query performance must be ensured via an index layer.
 
-**Praktische Konsequenz**: Für den Walking Skeleton ist die Wahl pragmatisch. Postgres + AGE unterstützt beide Fälle ohne Bruch: Einfache Relationen bleiben Kanten, reifizierte bekommen zusätzlich eine Tabellenzeile mit Properties. Die API versteckt diese Unterscheidung vor Konsumenten.
+**Practical consequence**: For the walking skeleton, the choice is pragmatic. Postgres + AGE supports both cases without a break: simple relations remain edges, reified ones additionally get a table row with properties. The API hides this distinction from consumers.
 
-### 22.6 Persistenz-Optionen
+### 22.6 Persistence Options
 
-Die API-Architektur aus [§21 (API-Architektur)](21-api-architektur.md) erlaubt, die Persistenz austauschbar zu halten. Realistische Optionen für dein Tool:
+The API architecture from [§21 (API Architecture)](21-api-architecture.md) allows persistence to be kept interchangeable. Realistic options for your tool:
 
 **Option 1 – Postgres + JSONB + Apache AGE**:
-- Postgres als solide Basis, JSONB für flexible Properties
-- Apache AGE als Graph-Extension (openCypher-Support)
-- Eine Datenbank, zwei Query-Paradigmen, transaktional konsistent
-- *Empfohlener Start-Stack für den Walking Skeleton*
+- Postgres as a solid base, JSONB for flexible properties
+- Apache AGE as a graph extension (openCypher support)
+- One database, two query paradigms, transactionally consistent
+- *Recommended starting stack for the walking skeleton*
 
-**Option 2 – Neo4j oder Memgraph + Read-Model**:
-- Native Property-Graph-DB als primäre Persistenz
-- Für Analytics: CQRS-Read-Model in Postgres oder DuckDB
-- Event-Stream aus [§21.5 (API-Architektur)](21-api-architektur.md) hält Read-Model synchron
-- Starke Graph-Performance, etwas höhere Komplexität
+**Option 2 – Neo4j or Memgraph + read model**:
+- Native property graph DB as primary persistence
+- For analytics: CQRS read model in Postgres or DuckDB
+- Event stream from [§21.5 (API Architecture)](21-api-architecture.md) keeps the read model in sync
+- Strong graph performance, somewhat higher complexity
 
-**Option 3 – Git als Quelle + DuckDB/Postgres als Index**:
-- YAML/JSON-Files in Git als Source of Truth (maximal git-friendly)
-- DuckDB oder Postgres als Index, aus Git rebuildbar
-- Apache AGE oder externer Graph-Service für Traversierung
-- *Ideal für kleine bis mittlere Installationen, schlecht für sehr große*
+**Option 3 – Git as source + DuckDB/Postgres as index**:
+- YAML/JSON files in Git as source of truth (maximally git-friendly)
+- DuckDB or Postgres as index, rebuildable from Git
+- Apache AGE or external graph service for traversal
+- *Ideal for small to medium installations, poor for very large ones*
 
-**Option 4 – Kuzu (embedded Graph-DB)**:
-- Embedded Property-Graph-DB, Cypher-Support
-- Keine Server-Installation, gut für CLI-Tools
-- Analytics-Fähigkeiten begrenzt, aber in Entwicklung
-- *Interessant für lokale Entwickler-Installationen*
+**Option 4 – Kuzu (embedded graph DB)**:
+- Embedded property graph DB, Cypher support
+- No server installation, good for CLI tools
+- Analytics capabilities limited, but under development
+- *Interesting for local developer installations*
 
-**Entscheidung vertagen**: Die API-Definition erlaubt, mit Option 1 oder 3 zu starten und später zu migrieren, falls Performance-Anforderungen es verlangen.
+**Defer the decision**: The API definition allows starting with option 1 or 3 and migrating later if performance requirements demand it.
 
-### 22.7 Query-Beispiele
+### 22.7 Query Examples
 
-**Graph-Traversierung (Cypher-Style)**:
+**Graph traversal (Cypher style)**:
 
 ```cypher
-// Welche Business Services sind von Application X abhängig?
+// Which business services depend on application X?
 MATCH (app:Application {urn: 'urn:ea:acme:application:sap-fi'})
 MATCH path = (app)-[:realizes|dependsOn|exposedBy*1..4]->(svc:BusinessService)
 RETURN svc, length(path) AS hops
@@ -151,7 +151,7 @@ ORDER BY hops
 ```
 
 ```cypher
-// Welche Entitäten ändern sich zwischen Baseline und Target-Plateau?
+// Which entities change between baseline and target plateau?
 MATCH (e)-[r:hasLifecycleState]->(s)
 WHERE r.plateau = 'baseline-2026' AND r.state = 'active'
 MATCH (e)-[r2:hasLifecycleState]->(s2)
@@ -159,10 +159,10 @@ WHERE r2.plateau = 'target-2028' AND r2.state IN ['sunset', 'retired']
 RETURN e.urn, e.name
 ```
 
-**Analytics (SQL-Style)**:
+**Analytics (SQL style)**:
 
 ```sql
--- TCO pro Capability pro Plateau
+-- TCO per capability per plateau
 SELECT 
   c.name AS capability,
   p.name AS plateau,
@@ -179,7 +179,7 @@ ORDER BY p.name, total_tco DESC;
 ```
 
 ```sql
--- Standards-Compliance pro Domain
+-- Standards compliance per domain
 SELECT 
   d.name AS domain,
   s.name AS standard,
@@ -196,9 +196,9 @@ GROUP BY d.name, s.name
 ORDER BY d.name, deviating DESC;
 ```
 
-### 22.8 Gespeicherte Views als benannte Queries
+### 22.8 Stored Views as Named Queries
 
-Standard-Auswertungen werden als **benannte, parametrisierte Views** im Repository gepflegt:
+Standard analyses are maintained in the repository as **named, parameterized views**:
 
 ```yaml
 View "impact-analysis-application":
@@ -217,67 +217,67 @@ View "tco-by-capability":
     - plateauId: string (default: 'current')
     - domainFilter: string[] (optional)
   query: |
-    SELECT ... (wie oben, parametrisiert)
+    SELECT ... (as above, parameterized)
 ```
 
-Vorteile:
-- Wiederverwendung ohne Query-Kenntnisse
-- Versionierbar und review-bar in Git
-- API-Endpunkt `/api/v1/analytics/views/{name}?plateauId=...` für einfache Konsumption
-- Grundlage für Dashboards und Reports
+Advantages:
+- Reuse without query knowledge
+- Versionable and reviewable in Git
+- API endpoint `/api/v1/analytics/views/{name}?plateauId=...` for simple consumption
+- Basis for dashboards and reports
 
-### 22.9 Performance-Anforderungen und Caching
+### 22.9 Performance Requirements and Caching
 
 ```yaml
-Performance-Ziele (Richtwerte):
-  - Einzelne Entity-Abfrage: < 50ms (p95)
-  - Graph-Traversierung bis 3 Hops bei 10k Entities: < 500ms (p95)
-  - Analytics-Query über volles Repo (10k Entities): < 2s (p95)
-  - Arc42-Dokument-Generierung: < 5s
+Performance targets (guideline values):
+  - Single entity query: < 50ms (p95)
+  - Graph traversal up to 3 hops at 10k entities: < 500ms (p95)
+  - Analytics query over the full repo (10k entities): < 2s (p95)
+  - Arc42 document generation: < 5s
 
-Caching-Strategie:
-  - Query-Result-Cache mit TTL für Analytics (invalidiert durch Events)
-  - Materialized Views für teure Aggregationen
-  - Graph-Path-Cache für häufige Traversierungs-Muster
-  - Schema-Cache clientseitig (dank Introspection-Endpoint)
+Caching strategy:
+  - Query result cache with TTL for analytics (invalidated by events)
+  - Materialized views for expensive aggregations
+  - Graph path cache for frequent traversal patterns
+  - Schema cache on the client side (thanks to introspection endpoint)
 ```
 
-Das Event-System aus [§21.5 (API-Architektur)](21-api-architektur.md) ist zentral für Cache-Invalidierung: Änderung an Entity X invalidiert alle Caches, die X referenzieren.
+The event system from [§21.5 (API Architecture)](21-api-architecture.md) is central to cache invalidation: a change to entity X invalidates all caches that reference X.
 
-### 22.10 Offline- und Pipeline-Nutzung
+### 22.10 Offline and Pipeline Use
 
-Die Auswertbarkeit muss auch **ohne laufenden Server** funktionieren – für CI-Pipelines, lokale Analysen, Offline-Arbeit:
+Analyzability must also work **without a running server** – for CI pipelines, local analyses, offline work:
 
-**CLI-Tool** mit lokaler Query-Engine:
-- Liest Repository-Snapshots (Git-Export oder API-Dump)
-- Führt Queries lokal aus (embedded DuckDB oder Kuzu)
-- Identische Query-Sprachen wie Server
-- Ermöglicht Pipeline-Checks: "CI-Build bricht ab, wenn neue Applications ohne Capability-Zuordnung existieren"
+**CLI tool** with a local query engine:
+- Reads repository snapshots (Git export or API dump)
+- Executes queries locally (embedded DuckDB or Kuzu)
+- Identical query languages as the server
+- Enables pipeline checks: "CI build fails if new applications without capability assignment exist"
 
-**Beispiel CI-Check**:
+**Example CI check**:
 ```bash
 ea-tool query --local \
   "MATCH (a:Application) WHERE NOT (a)-[:realizes]->(:Capability) RETURN a.urn" \
   --expect-empty
 ```
 
-### 22.11 Repository-Changelog und Release-Notes
+### 22.11 Repository Changelog and Release Notes
 
-Über das forensische Audit-Log hinaus (siehe [§21.8 (API-Architektur & Modularität)](21-api-architektur.md)) bietet das Tool einen **kuratierten Repository-Changelog** für Stakeholder-Kommunikation. Während das Audit-Log jede Änderung enthält, fasst der Changelog **wichtige** Änderungen zu Release-Einheiten zusammen.
+Beyond the forensic audit log (see [§21.8 (API Architecture & Modularity)](21-api-architecture.md)), the tool offers a **curated repository changelog** for stakeholder communication. While the audit log contains every change, the changelog summarizes **important** changes into release units.
 
-**Abgrenzung**:
-- Audit-Log: rohe, lückenlose Forensik (für Auditoren)
-- Changelog: kuratierte, kommunizierbare Zusammenfassung (für Stakeholder)
+**Delimitation**:
+- Audit log: raw, gapless forensics (for auditors)
+- Changelog: curated, communicable summary (for stakeholders)
 
-**Mechanik**:
+**Mechanics**:
 
 ```yaml
 EntityType: RepositoryRelease
   properties:
-    - tag: string                     # z.B. "2027-Q2-Release"
+    - tag: string                     # e.g. "2027-Q2-Release"
     - releaseDate: date
     - releaseType: snapshot | milestone | quarterly | on-demand
-    - description: text               # narrative Zusammenfassung
+    - description: text               # narrative summary
     - status: draft | published
   relations:
     - includesChanges: ChangeEntry[]
@@ -288,8 +288,8 @@ EntityType: ChangeEntry
   properties:
     - changeType: added | modified | retired | reclassified | reorganized
     - significance: major | minor | patch
-    - summary: text                   # für Stakeholder, in Klartext
-    - rationale: text                 # warum die Änderung
+    - summary: text                   # for stakeholders, in plain language
+    - rationale: text                 # why the change
   relations:
     - affectsEntities: Entity[]
     - affectsRelations: Relation[]
@@ -298,34 +298,34 @@ EntityType: ChangeEntry
     - relatedWorkPackage: WorkPackage
 ```
 
-**Drei Wege, Changelog-Einträge zu erzeugen**:
+**Three ways to create changelog entries**:
 
-1. **Manuell**: Architekt schreibt einen ChangeEntry beim Commit kritischer Änderungen
-2. **Halb-automatisch**: Tool schlägt aus dem Audit-Log automatisch Kandidaten vor (insb. lifecycle-Übergänge, neue Entities, retired Entities), Architekt kuratiert
-3. **Automatisch**: Bestimmte strukturelle Änderungen (Plateau-Aktivierung, ADR-Approval) erzeugen automatisch ChangeEntries
+1. **Manually**: Architect writes a ChangeEntry when committing critical changes
+2. **Semi-automatically**: Tool automatically suggests candidates from the audit log (esp. lifecycle transitions, new entities, retired entities), architect curates
+3. **Automatically**: Certain structural changes (plateau activation, ADR approval) automatically create ChangeEntries
 
-**Release-Aggregation**: Mehrere ChangeEntries werden zu einem RepositoryRelease zusammengefasst. Typische Trigger:
+**Release aggregation**: Several ChangeEntries are combined into a RepositoryRelease. Typical triggers:
 
-- Plateau-Wechsel (z.B. "Plateau-2027-Q2 ist neuer Ist-Zustand")
-- Quartalsweise als Reporting-Rhythmus
-- Bei größeren Architektur-Programmen als Meilenstein
+- Plateau change (e.g., "Plateau-2027-Q2 is the new current state")
+- Quarterly as a reporting rhythm
+- For larger architecture programs as a milestone
 
-**Sichten**:
+**Views**:
 
-- **Was hat sich seit Release X geändert?** – Diff zwischen zwei Releases
-- **Changelog für Domain Y im Q2** – gefilterte Änderungen pro Bereich
-- **Kommunikations-Report** – PDF/HTML-Export für Stakeholder-Mailings, generiert aus aktiven RepositoryRelease-Einträgen
-- **Trend-Sicht** – wie viele Änderungen pro Monat/Quartal, gruppiert nach significance
+- **What has changed since release X?** – diff between two releases
+- **Changelog for domain Y in Q2** – filtered changes per area
+- **Communication report** – PDF/HTML export for stakeholder mailings, generated from active RepositoryRelease entries
+- **Trend view** – how many changes per month/quarter, grouped by significance
 
-**API-Endpunkte**:
+**API endpoints**:
 
 ```
-GET    /api/v1/releases                    # alle Releases
-GET    /api/v1/releases/{tag}              # spezifischer Release
-GET    /api/v1/releases/{a}/diff/{b}       # Diff zwischen zwei Releases
-POST   /api/v1/changelog/suggest           # Vorschläge aus Audit-Log generieren
-POST   /api/v1/releases                    # neuen Release-Tag setzen
-GET    /api/v1/entities/{urn}/history      # Entity Change History
+GET    /api/v1/releases                    # all releases
+GET    /api/v1/releases/{tag}              # specific release
+GET    /api/v1/releases/{a}/diff/{b}       # diff between two releases
+POST   /api/v1/changelog/suggest           # generate suggestions from audit log
+POST   /api/v1/releases                    # set a new release tag
+GET    /api/v1/entities/{urn}/history      # entity change history
 ```
 
 **Constraints**:
@@ -336,40 +336,40 @@ constraint: published-release-has-description
   when: "entity.status == 'published'"
   rule: "entity.description != null AND entity.description.length > 50"
   severity: error
-  message: "Veröffentlichter Release muss aussagekräftige Beschreibung haben"
+  message: "A published release must have a meaningful description"
 
 constraint: major-change-has-rationale
   appliesTo: ChangeEntry
   when: "entity.significance == 'major'"
   rule: "entity.rationale != null AND (entity.documentedInADR != null OR entity.addressesRequirement != null)"
   severity: warning
-  message: "Major-Change sollte ADR oder Requirement-Bezug haben"
+  message: "A major change should have an ADR or requirement reference"
 ```
 
-### 22.12 Auditierbarkeit und Query-Logging
+### 22.12 Auditability and Query Logging
 
-Für Enterprise-Nutzung wichtig: Wer hat was wann abgefragt?
+Important for enterprise use: Who queried what and when?
 
 ```yaml
-Query-Audit-Log:
+Query audit log:
   - user: Role | Person | ApiKey
   - timestamp
   - endpoint, parameters, query-hash
-  - result-metadata (nicht Inhalt – Datenschutz)
+  - result-metadata (not content – data protection)
   - execution-time
   - client (UI, module, script)
 ```
 
-Audit-Log ist separater Event-Stream, kann in SIEM (Splunk, Elastic) integriert werden.
+The audit log is a separate event stream and can be integrated into SIEM (Splunk, Elastic).
 
-### 22.13 Constraints und Governance
+### 22.13 Constraints and Governance
 
 ```yaml
 constraint: query-complexity-limit
   appliesTo: ApiQuery
   rule: "query.estimated-cost < threshold"
   severity: error
-  message: "Query zu komplex – bitte Filter hinzufügen oder Pagination nutzen"
+  message: "Query too complex – please add filters or use pagination"
 
 constraint: named-view-has-owner
   appliesTo: View
@@ -380,21 +380,21 @@ constraint: view-query-tested
   appliesTo: View (published)
   rule: "entity.hasTestCases == true"
   severity: warning
-  message: "Veröffentlichte View sollte Test-Cases haben"
+  message: "A published view should have test cases"
 ```
 
-### 22.14 Empfehlung für Walking Skeleton
+### 22.14 Recommendation for the Walking Skeleton
 
-Für den initialen Walking Skeleton:
+For the initial walking skeleton:
 
-1. **Persistenz**: Postgres + JSONB + Apache AGE (einfachster produktionsreifer Stack)
-2. **Query-API**: typisierte Graph-Endpunkte + SQL-Analytics, Cypher als Stretch-Ziel
-3. **Eine gespeicherte View**: "Impact-Analyse" als vorgefertigte Graph-Traversierung
-4. **CLI-Query-Tool**: ab v0.1 verfügbar, weil Pipeline-Integration von Anfang an Anforderung ist
-5. **OpenAPI-Spec**: generiert aus Code, in CI geprüft
+1. **Persistence**: Postgres + JSONB + Apache AGE (simplest production-ready stack)
+2. **Query API**: typed graph endpoints + SQL analytics, Cypher as a stretch goal
+3. **One stored view**: "Impact analysis" as a prebuilt graph traversal
+4. **CLI query tool**: available from v0.1, because pipeline integration is a requirement from the start
+5. **OpenAPI spec**: generated from code, verified in CI
 
-Das ergibt einen kleinen, aber vollständigen Durchstich, der Graph und Analytics beides abdeckt.
+This yields a small but complete vertical slice that covers both graph and analytics.
 
 ---
 
-← [API-Architektur & Modularität](21-api-architektur.md) · [🏠 Übersicht](../README.md) · [Offene Punkte](../90-backlog/23-offene-punkte.md) →
+← [API Architecture & Modularity](21-api-architecture.md) · [🏠 Overview](../README.md) · [Open Issues](../90-backlog/23-open-issues.md) →

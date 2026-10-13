@@ -1,39 +1,39 @@
 ---
-name: ADR-Vorschlag
-about: Architekturentscheidung zur Diskussion stellen
+name: ADR Proposal
+about: Put an architecture decision up for discussion
 title: 'chore(adrs): ADR-NNN '
 labels: adr, architecture
 assignees: ''
 ---
 
-## Problem / Kontext
+## Problem / Context
 
-<!-- Welche Frage muss entschieden werden? Warum jetzt? -->
+<!-- Which question needs to be decided? Why now? -->
 
-## Entscheidungstreiber
+## Decision Drivers
 
 - 
 - 
 
-## Betrachtete Optionen
+## Considered Options
 
 ### Option A: ...
 - Pro:
-- Contra:
+- Con:
 
 ### Option B: ...
 - Pro:
-- Contra:
+- Con:
 
-## Präferenz
+## Preference
 
-<!-- Welche Option wird bevorzugt und warum? -->
+<!-- Which option is preferred and why? -->
 
-## Betroffene Konzept-Kapitel / ADRs
+## Affected Concept Chapters / ADRs
 
-- Konzept §
+- Concept §
 - ADR-
 
-## Offene Fragen
+## Open Questions
 
 - [ ]

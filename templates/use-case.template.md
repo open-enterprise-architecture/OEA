@@ -1,6 +1,6 @@
 ---
 id: UC-{{NN}}
-title: {{Sprechender Titel}}
+title: {{Descriptive Title}}
 status: draft  # draft | reviewed | approved | implemented | verified
 priority: must  # must | should | could | wont (MoSCoW)
 target_release: walking-skeleton  # walking-skeleton | v1.0 | v1.x | future
@@ -20,175 +20,175 @@ references:
     - UC-NN
 ---
 
-# UC-{{NN}}: {{Sprechender Titel}}
+# UC-{{NN}}: {{Descriptive Title}}
 
 <!--
-Verwendung: Ein Use Case pro Datei, zielorientiert aus Nutzersicht.
-Dateiname: requirements/use-cases/UC-NN-kurzname.md
+Usage: One use case per file, goal-oriented from the user's perspective.
+File name: requirements/use-cases/UC-NN-shortname.md
 
-WICHTIG: Use Cases beschreiben WAS jemand erreichen will, nicht WIE das Tool funktioniert.
-Schlecht: "ApplicationComponent anlegen"
-Gut:     "Neue Anwendung im Landschafts-Repository erfassen, damit sie in Sichten erscheint"
+IMPORTANT: Use cases describe WHAT someone wants to achieve, not HOW the tool works.
+Bad:  "Create ApplicationComponent"
+Good: "Capture a new application in the landscape repository so that it appears in views"
 -->
 
 ## Goal in Context
 
-In welchem größeren Kontext steht dieser Use Case? Was ist das übergeordnete Ziel der Persona, wozu trägt der UC bei?
+In which larger context does this use case sit? What is the persona's overarching goal, and what does the UC contribute to it?
 
-## Persona und Story
+## Persona and Story
 
-**Primärer Akteur**: [{{Name}}](../../business-analysis/stakeholders/SH-NN-kurzname.md)
-**Weitere Beteiligte**: [{{Name}}](../../business-analysis/stakeholders/SH-NN-kurzname.md) (optional)
+**Primary Actor**: [{{Name}}](../../business-analysis/stakeholders/SH-NN-kurzname.md)
+**Other Stakeholders**: [{{Name}}](../../business-analysis/stakeholders/SH-NN-kurzname.md) (optional)
 
-**Story**: Als {{Persona}} möchte ich {{Aktion/Capability}}, damit {{Nutzen}}.
+**Story**: As {{persona}}, I want {{action/capability}} so that {{benefit}}.
 
 ## Trigger
 
-Was löst diesen Use Case aus?
-- Externer Anlass: {{z.B. Workshop-Vorbereitung, Kunden-Anfrage}}
-- Zeitpunkt: {{z.B. quartalsweise, ad-hoc}}
-- Vorgänger-Use-Case: {{z.B. nach UC-NN}}
+What triggers this use case?
+- External occasion: {{e.g. workshop preparation, customer request}}
+- Timing: {{e.g. quarterly, ad hoc}}
+- Predecessor use case: {{e.g. after UC-NN}}
 
-## Vorbedingungen (Pre-Conditions)
+## Preconditions
 
-Was muss gegeben sein, bevor der Use Case starten kann?
+What must hold before the use case can start?
 
-- [ ] Persona ist im System angemeldet
-- [ ] Persona hat Rolle X
-- [ ] Business Object Y existiert
-- [ ] {{weitere Vorbedingungen}}
+- [ ] Persona is logged in to the system
+- [ ] Persona has role X
+- [ ] Business object Y exists
+- [ ] {{further preconditions}}
 
-## Nachbedingungen (Post-Conditions)
+## Postconditions
 
-### Bei Erfolg
+### On Success
 
-Was ist nach erfolgreichem Ablauf wahr?
+What is true after a successful flow?
 
-- {{z.B. Application Component existiert im Repository}}
-- {{Audit-Log-Eintrag wurde geschrieben}}
-- {{Persona sieht die Erfolgsbestätigung}}
+- {{e.g. Application Component exists in the repository}}
+- {{Audit log entry was written}}
+- {{Persona sees the success confirmation}}
 
-### Bei Misserfolg
+### On Failure
 
-Was bleibt unverändert, wenn der UC fehlschlägt?
+What remains unchanged if the UC fails?
 
-- {{z.B. keine Daten wurden geschrieben}}
-- {{Persona erhält klare Fehlermeldung}}
+- {{e.g. no data was written}}
+- {{Persona receives a clear error message}}
 
-## Hauptablauf (Basic Flow)
+## Basic Flow
 
-Schritt-für-Schritt, was die Persona tut (und was das System antwortet):
+Step by step, what the persona does (and what the system responds):
 
-1. **Persona**: {{Aktion}}
-2. **System**: {{Reaktion}}
-3. **Persona**: {{Aktion}}
-4. **System**: {{Reaktion}}
-5. **Persona**: {{Aktion}}
-6. **System**: {{Bestätigung}}
+1. **Persona**: {{action}}
+2. **System**: {{reaction}}
+3. **Persona**: {{action}}
+4. **System**: {{reaction}}
+5. **Persona**: {{action}}
+6. **System**: {{confirmation}}
 
-<!-- 5-10 Schritte sind typisch. Mehr → vermutlich Prozess statt UC. -->
+<!-- 5-10 steps are typical. More → probably a process rather than a UC. -->
 
-## Alternative Abläufe (Alternative Flows)
+## Alternative Flows
 
-Verzweigungen im Hauptablauf:
+Branches in the basic flow:
 
-**A1 – {{Alternative}}**: Bei Schritt {{N}}, wenn {{Bedingung}}, dann:
-1. {{abweichender Schritt}}
+**A1 – {{Alternative}}**: At step {{N}}, if {{condition}}, then:
+1. {{deviating step}}
 2. {{...}}
-- Mündet zurück in Schritt {{M}} des Hauptablaufs oder endet hier
+- Rejoins at step {{M}} of the basic flow or ends here
 
-**A2 – {{weitere Alternative}}**:
+**A2 – {{further alternative}}**:
 - {{...}}
 
-## Ausnahmen / Fehlerfälle (Exception Flows)
+## Exception Flows
 
-Was muss das System tun, wenn etwas schiefgeht?
+What must the system do if something goes wrong?
 
-**E1 – {{Fehler}}**:
-- Bedingung: {{wann tritt der Fehler auf}}
-- Erwartete Reaktion: {{Fehlermeldung, Rollback, Fallback}}
-- Wiederaufnahme: {{kann der Nutzer fortfahren? Wo?}}
+**E1 – {{Error}}**:
+- Condition: {{when does the error occur}}
+- Expected reaction: {{error message, rollback, fallback}}
+- Resumption: {{can the user continue? Where?}}
 
-**E2 – {{Fehler}}**:
+**E2 – {{Error}}**:
 - {{...}}
 
-## Datenfluss
+## Data Flow
 
-Welche Daten fließen wie?
+Which data flows how?
 
-| Schritt | Daten | Richtung | Bemerkung |
+| Step | Data | Direction | Remark |
 |---|---|---|---|
-| 1 | {{Eingabe}} | Persona → System | |
-| 2 | {{Validierung}} | System intern | |
-| 3 | {{Persistierung}} | System → DB | |
-| 4 | {{Confirmation}} | System → Persona | |
+| 1 | {{input}} | Persona → System | |
+| 2 | {{validation}} | System internal | |
+| 3 | {{persistence}} | System → DB | |
+| 4 | {{confirmation}} | System → Persona | |
 
-## Beteiligte Business Objects
+## Involved Business Objects
 
-Welche Business Objects werden gelesen, geschrieben, verändert?
+Which business objects are read, written, changed?
 
-| Business Object | Operation | Notiz |
+| Business Object | Operation | Note |
 |---|---|---|
 | [{{object-id}}](../../business-objects/{{object-id}}.md) | read \| create \| update \| delete | |
 | | | |
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-Prüfbare Bedingungen, die erfüllt sein müssen, damit der Use Case als umgesetzt gilt.
+Verifiable conditions that must be met for the use case to count as implemented.
 
-- [ ] Hauptablauf vollständig durchlaufbar
-- [ ] Vorbedingungen werden geprüft
-- [ ] Nachbedingungen werden erreicht
-- [ ] Alternative Abläufe A1, A2 funktionieren
-- [ ] Fehlerfälle E1, E2 werden korrekt behandelt
-- [ ] Audit-Log enthält {{erwartete Einträge}}
-- [ ] {{weitere konkrete und messbare Kriterien}}
+- [ ] Basic flow can be run through completely
+- [ ] Preconditions are checked
+- [ ] Postconditions are reached
+- [ ] Alternative flows A1, A2 work
+- [ ] Error cases E1, E2 are handled correctly
+- [ ] Audit log contains {{expected entries}}
+- [ ] {{further concrete and measurable criteria}}
 
-## Nicht im Scope
+## Out of Scope
 
-Was bewusst NICHT zu diesem Use Case gehört, auch wenn es nahe liegt.
+What deliberately does NOT belong to this use case, even if it seems close.
 
-- {{ähnliches Szenario, das aber separater UC ist}}
-- {{Feature, das in v2 kommt}}
+- {{similar scenario that is a separate UC, however}}
+- {{feature coming in v2}}
 
-## Konzept-Bezüge
+## Concept References
 
-Mindestens ein Konzept-Kapitel ist Pflicht:
+At least one concept chapter is mandatory:
 
-- [§N {{Kapitel}}](../../concept/...)
+- [§N {{Chapter}}](../../concept/...)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-Hinweise an Solution Architect und Engineering-Agents:
+Notes for the solution architect and engineering agents:
 
-- EntityTypes: {{die im Metamodell verwendet werden}}
-- Relations: {{die im Metamodell relevant sind}}
-- Constraints: {{die zu beachten sind}}
-- Performance-Hinweise: {{erwartete Größenordnungen}}
+- EntityTypes: {{used in the metamodel}}
+- Relations: {{relevant in the metamodel}}
+- Constraints: {{to be observed}}
+- Performance notes: {{expected orders of magnitude}}
 
-## Realisierende Bestandteile
+## Realizing Components
 
-<!-- Wird gefüllt, wenn Requirements/User Stories existieren. -->
+<!-- To be filled once requirements/user stories exist. -->
 
 - Requirements: REQ-NNN, REQ-NNN
-- User Stories: [US-NNN: Titel](../user-stories/US-NNN-kurzname.md)
+- User Stories: [US-NNN: Title](../user-stories/US-NNN-kurzname.md)
 - ADRs: ADR-NNN
-- Test Cases: {{Verweis auf Test-Suite}}
-- Implementation: {{Commit-Hash oder PR-Link}}
+- Test Cases: {{reference to test suite}}
+- Implementation: {{commit hash or PR link}}
 
-## Offene Fragen
+## Open Questions
 
-Was muss vor Implementierung geklärt werden?
+What must be clarified before implementation?
 
-- [ ] Frage 1
-- [ ] Frage 2
+- [ ] Question 1
+- [ ] Question 2
 
-## Notizen
+## Notes
 
-Freitext, Diskussionen, Verlauf.
+Free text, discussions, history.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | YYYY-MM-DD | {{Autor}} | Initial draft |
+| 0.1.0 | YYYY-MM-DD | {{Author}} | Initial draft |

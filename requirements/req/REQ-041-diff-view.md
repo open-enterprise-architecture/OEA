@@ -1,6 +1,6 @@
 ---
 id: REQ-041
-title: Diff-Ansicht aktueller Stand vs. Zielzustand einer Solution
+title: Diff view of current state vs. target state of a solution
 type: functional
 priority: should
 status: proposed
@@ -19,121 +19,121 @@ references:
     - SH-04
     - SH-03
   concept:
-    - concept/20-entities/11-temporales-modell.md
-    - concept/20-entities/12-domain-sichten.md
+    - concept/20-entities/11-temporal-model.md
+    - concept/20-entities/12-domain-views.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-041: Diff-Ansicht aktueller Stand vs. Zielzustand einer Solution
+# REQ-041: Diff view of current state vs. target state of a solution
 
-## Aussage
+## Statement
 
-Das System SOLL innerhalb einer Solution eine Diff-Ansicht bereitstellen, die den aktuellen Stand der betroffenen Entitäten (Ausgangsbasis aus REQ-039) dem Zielzustand nach Anwendung aller EntityDeltas (REQ-040) gegenüberstellt und die Unterschiede visuell hervorhebt; die Diff-Ansicht SOLL nach jeder Delta-Änderung aktualisiert werden und DARF NICHT separat persistiert werden.
+Within a solution, the system SHOULD provide a diff view that compares the current state of the affected entities (baseline from REQ-039) with the target state after applying all EntityDeltas (REQ-040) and visually highlights the differences; the diff view SHOULD be updated after every delta change and MUST NOT be persisted separately.
 
-## Begründung
+## Rationale
 
-Ohne Diff-Ansicht muss der Solution Architekt die Auswirkungen seiner Delta-Erfassungen im Kopf zusammensetzen – bei mehr als fünf bis zehn Entitäten ist das fehleranfällig. Die Diff-Ansicht macht den Scope sofort überprüfbar: Michael sieht auf einen Blick, ob er alle relevanten Entitäten erfasst hat und ob der Zielzustand seinen Vorstellungen entspricht. Sie ist auch das Kernstück späterer Review-Workflows (Kurt sieht in der Diff-Ansicht, was er freigeben soll).
+Without a diff view, the solution architect has to piece together the effects of their delta captures in their head – error-prone with more than five to ten entities. The diff view makes the scope immediately verifiable: Michael sees at a glance whether he has captured all relevant entities and whether the target state matches his expectations. It is also the centerpiece of later review workflows (Kurt sees in the diff view what he is to approve).
 
-## Kontext
+## Context
 
-Die Diff-Ansicht ist eine Berechnungsfunktion (read-only, nicht persistiert): Sie kombiniert die Ausgangsbasis (REQ-039) mit den aktuellen Deltas (REQ-040) und zeigt das Ergebnis. Der `should`-Status reflektiert, dass eine MVP-Variante (reine Delta-Liste ohne Gegenüberstellung) für den Start ausreichend sein könnte; die vollständige Diff-Ansicht ist jedoch für einen nutzbaren Review-Workflow nötig.
+The diff view is a computation function (read-only, not persisted): it combines the baseline (REQ-039) with the current deltas (REQ-040) and shows the result. The `should` status reflects that an MVP variant (a plain delta list without side-by-side comparison) could be sufficient for the start; however, the full diff view is needed for a usable review workflow.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- Solution-ID (Kontext)
+**Inputs**:
+- Solution ID (context)
 
-**Verarbeitung**:
+**Processing**:
 
-1. Ausgangsbasis laden (REQ-039): alle Entitäten des aktuellen Stands
-2. EntityDeltas der Solution laden (REQ-040)
-3. Nur betroffene Entitäten (= Entitäten mit mindestens einem Delta in dieser Solution) berücksichtigen
-4. Für jede betroffene Entität:
-   - `deltaType=new`: kein Eintrag in Ausgangsbasis (Entität existiert noch nicht); Zielzustand = neue Entität mit allen Properties
-   - `deltaType=modified`: Ausgangsbasis-Zustand links/oben, Zielzustand (mit geänderten Properties) rechts/unten
-   - `deltaType=retiring`: Ausgangsbasis-Zustand links/oben; Zielzustand zeigt Entität als „ausser Betrieb"
+1. Load the baseline (REQ-039): all entities of the current state
+2. Load the EntityDeltas of the solution (REQ-040)
+3. Consider only affected entities (= entities with at least one delta in this solution)
+4. For each affected entity:
+   - `deltaType=new`: no entry in the baseline (entity does not exist yet); target state = new entity with all properties
+   - `deltaType=modified`: baseline state left/top, target state (with changed properties) right/bottom
+   - `deltaType=retiring`: baseline state left/top; target state shows the entity as "out of service"
 
-**Ausgaben (Anzeige)**:
+**Outputs (display)**:
 
-| Delta-Typ | Linke Seite (Aktueller Stand) | Rechte Seite (Zielzustand) | Visuelle Markierung |
+| Delta type | Left side (current state) | Right side (target state) | Visual marking |
 |---|---|---|---|
-| `new` | – (leer) | Neue Entität mit Properties | Grün hervorgehoben |
-| `modified` | Entität mit alten Property-Werten | Entität mit geänderten Property-Werten | Geänderte Properties gelb/blau markiert |
-| `retiring` | Entität im aktuellen Zustand | Entität durchgestrichen / ausgegraut | Rot markiert |
+| `new` | – (empty) | New entity with properties | Highlighted in green |
+| `modified` | Entity with old property values | Entity with changed property values | Changed properties marked yellow/blue |
+| `retiring` | Entity in current state | Entity struck through / grayed out | Marked red |
 
-Die Diff-Ansicht zeigt **ausschliesslich betroffene Entitäten** (kein vollständiger Landschafts-Dump).
+The diff view shows **only affected entities** (no complete landscape dump).
 
-**Fehlerfälle**:
-- Solution-ID unbekannt → 404
-- Keine Deltas vorhanden → Diff-Ansicht ist leer (mit Hinweis „Noch keine Änderungen erfasst")
+**Error Cases**:
+- Solution ID unknown → 404
+- No deltas present → diff view is empty (with the note "No changes captured yet")
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Solution hat ein `new`-Delta für `Salesforce (ApplicationComponent)` und ein `retiring`-Delta für `CRM-Legacy`
-- Wenn: Michael die Diff-Ansicht öffnet
-- Dann: erscheinen genau zwei Einträge; `Salesforce` grün markiert (kein Eintrag links), `CRM-Legacy` rot/durchgestrichen rechts
+- Given: the solution has a `new` delta for `Salesforce (ApplicationComponent)` and a `retiring` delta for `CRM-Legacy`
+- When: Michael opens the diff view
+- Then: exactly two entries appear; `Salesforce` marked green (no entry on the left), `CRM-Legacy` red/struck through on the right
 
 **AC2**:
-- Gegeben: Solution hat ein `modified`-Delta für `ERP-Core` (version: v4 → v5)
-- Wenn: Michael die Diff-Ansicht öffnet
-- Dann: erscheint `ERP-Core` einmal; linke Seite zeigt `version=v4`, rechte Seite `version=v5`; nur das geänderte Property ist hervorgehoben
+- Given: the solution has a `modified` delta for `ERP-Core` (version: v4 → v5)
+- When: Michael opens the diff view
+- Then: `ERP-Core` appears once; the left side shows `version=v4`, the right side `version=v5`; only the changed property is highlighted
 
 **AC3**:
-- Gegeben: Michael fügt ein weiteres Delta hinzu (nach dem Öffnen der Diff-Ansicht)
-- Wenn: er das Delta speichert
-- Dann: aktualisiert sich die Diff-Ansicht ohne vollständiges Neuladen und zeigt die neue Entität
+- Given: Michael adds another delta (after opening the diff view)
+- When: he saves the delta
+- Then: the diff view updates without a full reload and shows the new entity
 
 **AC4**:
-- Gegeben: Solution hat keine Deltas
-- Wenn: Michael die Diff-Ansicht öffnet
-- Dann: erscheint der Hinweis „Noch keine Änderungen erfasst"; kein Fehler
+- Given: the solution has no deltas
+- When: Michael opens the diff view
+- Then: the note "No changes captured yet" appears; no error
 
 **AC5**:
-- Gegeben: Solution hat 20 Deltas verschiedener Typen
-- Wenn: Michael die Diff-Ansicht öffnet
-- Dann: werden alle 20 Deltas dargestellt; Entitäten ohne Delta sind **nicht** sichtbar (kein Landschafts-Dump)
+- Given: the solution has 20 deltas of various types
+- When: Michael opens the diff view
+- Then: all 20 deltas are displayed; entities without a delta are **not** visible (no landscape dump)
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert) + exploration (UI-Test)
-- [x] Test-Setup: Diff-Ansicht mit new/modified/retiring; leere Delta-Liste; Live-Update nach Delta-Hinzufügen
-- [x] Mess-Werkzeug: E2E-Test-Suite; Snapshot-Tests für visuelle Hervorhebung
-- [x] Bestanden-Kriterium: AC1–AC5 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated) + exploration (UI-Test)
+- [x] Test setup: diff view with new/modified/retiring; empty delta list; live update after adding a delta
+- [x] Measurement tool: E2E test suite; snapshot tests for visual highlighting
+- [x] Pass criterion: AC1–AC5 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-038 (Solution), REQ-039 (Ausgangsbasis), REQ-040 (EntityDeltas)
-- **Folgewirkungen**: Diff-Ansicht ist Basis für künftige Review-/Freigabe-Workflows (UC-06 oder separater UC); dort sieht Kurt genau diese Ansicht, bevor er freigibt
+- **Prerequisites**: REQ-038 (solution), REQ-039 (baseline), REQ-040 (EntityDeltas)
+- **Downstream effects**: The diff view is the basis for future review/approval workflows (UC-06 or a separate UC); there Kurt sees exactly this view before approving
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne Diff-Ansicht kann Michael den Scope nicht überprüfen; Kurt kann keine sinnvolle Review durchführen – Review-Workflow wäre funktionsunfähig, schwerwiegend
+- Risk 1: Without a diff view, Michael cannot verify the scope; Kurt cannot perform a meaningful review – the review workflow would be non-functional, severe
 
 ## Trade-offs
 
-- Live-Update vs. Manual-Refresh: Live-Update erhöht Komplexität (WebSocket oder Polling), ist aber für den interaktiven Erfassungs-Workflow wichtig. Für MVP: Re-render nach jeder Delta-Speicherung (kein Streaming nötig).
+- Live update vs. manual refresh: live update increases complexity (WebSocket or polling), but is important for the interactive capture workflow. For MVP: re-render after every delta save (no streaming needed).
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- `GET /api/v1/solutions/{id}/diff` (berechnet on-the-fly; nicht persistiert)
-- Frontend: Split-Panel oder Before/After-Layout; Änderungen auf Property-Ebene im `modified`-Fall hervorheben (diff der `changes`-Map)
-- Effizienz: Die Diff-Berechnung ist O(n) in der Anzahl der Deltas – auch bei grossen Landscapes schnell, da nur betroffene Entitäten berechnet werden
+- `GET /api/v1/solutions/{id}/diff` (computed on the fly; not persisted)
+- Frontend: split panel or before/after layout; highlight changes at property level in the `modified` case (diff of the `changes` map)
+- Efficiency: the diff computation is O(n) in the number of deltas – fast even with large landscapes, since only affected entities are computed
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft aus UC-05 |
+| 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft from UC-05 |

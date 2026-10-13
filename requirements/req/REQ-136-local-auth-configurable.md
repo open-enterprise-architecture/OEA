@@ -1,6 +1,6 @@
 ---
 id: REQ-136
-title: Lokale Authentifizierung durch Betreiber konfigurierbar
+title: Local Authentication Configurable by Operator
 type: functional
 priority: must
 status: proposed
@@ -18,106 +18,106 @@ references:
   stakeholders:
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-136: Lokale Authentifizierung durch Betreiber konfigurierbar
+# REQ-136: Local Authentication Configurable by Operator
 
-## Aussage
+## Statement
 
-Der Betreiber **MUSS** pro OEA-Instanz konfigurieren können, ob die lokale Authentifizierung (Username/Passwort, Passkey, TOTP) als Anmeldeoption in der Benutzeroberfläche angeboten wird. OEA **DARF NICHT** eine Authentifizierungsmethode als empfohlen kennzeichnen oder vorauswählen — diese Entscheidung liegt ausschließlich beim Betreiber.
+The operator **MUST** be able to configure per OEA instance whether local authentication (username/password, passkey, TOTP) is offered as a login option in the user interface. OEA **MUST NOT** mark an authentication method as recommended or preselect it — this decision lies exclusively with the operator.
 
-## Begründung
+## Rationale
 
-Ob lokale Authentifizierung für eine Organisation sinnvoll ist, hängt von deren Sicherheitsrichtlinien und IT-Infrastruktur ab. Unternehmen mit bestehendem Identity-Provider (Entra ID, Authentik) wollen ausschließlich OIDC anbieten; kleinere Betreiber ohne IdP benötigen lokale Authentifizierung. OEA als Hersteller trifft diese Entscheidung nicht — sie liegt beim Betreiber (SH-06). Eine eingebaute „empfohlen"-Kennzeichnung würde die Betreiber-Autonomie einschränken und falsche Erwartungen wecken.
+Whether local authentication makes sense for an organization depends on its security policies and IT infrastructure. Companies with an existing identity provider (Entra ID, Authentik) want to offer OIDC exclusively; smaller operators without an IdP need local authentication. OEA as the vendor does not make this decision — it lies with the operator (SH-06). A built-in "recommended" label would restrict operator autonomy and raise false expectations.
 
-## Kontext
+## Context
 
-Die Anforderung betrifft ausschließlich die Sichtbarkeit von Optionen in der UI (Login-Screen, Bootstrapping-Wizard). Die technische Implementierung lokaler Authentifizierungsmethoden bleibt unberührt — nur ob sie dem Endnutzer angeboten werden, ist konfigurierbar.
+The requirement concerns exclusively the visibility of options in the UI (login screen, bootstrapping wizard). The technical implementation of local authentication methods remains unaffected — only whether they are offered to the end user is configurable.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-**Eingaben**:
-- Instanz-Konfiguration: `auth.localAuthEnabled: boolean` (Default: `true`)
-- Instanz-Konfiguration: `auth.oidcEnabled: boolean` (Default: `false`, wird `true` sobald ein IdP konfiguriert ist)
+**Inputs**:
+- Instance configuration: `auth.localAuthEnabled: boolean` (default: `true`)
+- Instance configuration: `auth.oidcEnabled: boolean` (default: `false`, becomes `true` as soon as an IdP is configured)
 
-**Verarbeitung**:
-1. UI liest beim Start die Instanz-Konfiguration (via API oder eingebetteter Config)
-2. `localAuthEnabled: false` → Felder für Username/Passwort, Passkey-Link werden nicht angezeigt; Bootstrapping-Wizard zeigt nur OIDC-Option
-3. `localAuthEnabled: true` und `oidcEnabled: true` → beide Optionen werden gleichwertig angeboten, keine ist vormarkiert oder als „empfohlen" gekennzeichnet
-4. `localAuthEnabled: true` und `oidcEnabled: false` → nur lokale Optionen anzeigen
-5. Keiner der Provider-Namen oder Methodennamen darf mit einem „empfohlen"-Label versehen sein
+**Processing**:
+1. At startup, the UI reads the instance configuration (via API or embedded config)
+2. `localAuthEnabled: false` → fields for username/password and the passkey link are not displayed; the bootstrapping wizard shows only the OIDC option
+3. `localAuthEnabled: true` and `oidcEnabled: true` → both options are offered equally, none is premarked or labeled "recommended"
+4. `localAuthEnabled: true` and `oidcEnabled: false` → show only local options
+5. None of the provider names or method names may carry a "recommended" label
 
-**Ausgaben**:
-- Login-Screen zeigt exakt die vom Betreiber freigegebenen Optionen
-- Bootstrapping-Wizard zeigt exakt die vom Betreiber freigegebenen Bootstrapping-Modi
+**Outputs**:
+- The login screen shows exactly the options released by the operator
+- The bootstrapping wizard shows exactly the bootstrapping modes released by the operator
 
-**Fehlerfälle**:
-- `localAuthEnabled: false` und `oidcEnabled: false` gleichzeitig (kein Provider aktiv): System zeigt Fehlerzustand „Keine Authentifizierungsmethode konfiguriert" und blockiert den Login bis ein Betreiber eine Methode aktiviert
+**Error Cases**:
+- `localAuthEnabled: false` and `oidcEnabled: false` at the same time (no provider active): the system shows an error state "No authentication method configured" and blocks login until an operator activates a method
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** — Lokale Auth deaktiviert:
-- Gegeben: `auth.localAuthEnabled = false`
-- Wenn: Login-Screen geöffnet wird
-- Dann: Kein Username/Passwort-Formular, kein Passkey-Link, keine lokale Option sichtbar
+**AC1** — Local auth disabled:
+- Given: `auth.localAuthEnabled = false`
+- When: the login screen is opened
+- Then: no username/password form, no passkey link, no local option visible
 
-**AC2** — OIDC deaktiviert:
-- Gegeben: `auth.oidcEnabled = false`
-- Wenn: Login-Screen geöffnet wird
-- Dann: Kein SSO-Button sichtbar; lokale Optionen werden angezeigt (sofern aktiviert)
+**AC2** — OIDC disabled:
+- Given: `auth.oidcEnabled = false`
+- When: the login screen is opened
+- Then: no SSO button visible; local options are displayed (if enabled)
 
-**AC3** — Beide aktiv, keine Empfehlung:
-- Gegeben: `auth.localAuthEnabled = true`, `auth.oidcEnabled = true`
-- Wenn: Login-Screen geöffnet wird
-- Dann: Beide Optionen werden gleichwertig angezeigt; keine Option trägt das Label „empfohlen", „Standard" oder ähnliches
+**AC3** — Both active, no recommendation:
+- Given: `auth.localAuthEnabled = true`, `auth.oidcEnabled = true`
+- When: the login screen is opened
+- Then: both options are displayed equally; no option carries the label "recommended", "default", or similar
 
-**AC4** — Bootstrapping-Wizard folgt Config:
-- Gegeben: `auth.localAuthEnabled = false`
-- Wenn: Bootstrapping-Wizard geöffnet wird
-- Dann: Nur OIDC-Bootstrapping-Option angeboten; lokaler Modus nicht anzeigbar
+**AC4** — Bootstrapping wizard follows config:
+- Given: `auth.localAuthEnabled = false`
+- When: the bootstrapping wizard is opened
+- Then: only the OIDC bootstrapping option is offered; local mode cannot be displayed
 
-**AC5** — Kein aktiver Provider:
-- Gegeben: `auth.localAuthEnabled = false` und `auth.oidcEnabled = false`
-- Wenn: Login-Screen aufgerufen wird
-- Dann: Fehlerzustand mit klarer Meldung für den Betreiber; kein normaler Login möglich
+**AC5** — No active provider:
+- Given: `auth.localAuthEnabled = false` and `auth.oidcEnabled = false`
+- When: the login screen is accessed
+- Then: error state with a clear message for the operator; no normal login possible
 
-## Verifikationsmethode
+## Verification Method
 
-- [ ] Methode: test (automatisiert)
-- [ ] Test-Setup: Playwright-Tests mit verschiedenen Konfigurationskombinationen; Config-Mocking via API-Interceptor
-- [ ] Bestanden-Kriterium: AC1–AC5 alle grün; kein „empfohlen"-Label im DOM bei gemischter Konfiguration
-- [ ] In CI integriert: ja (nach Implementierung)
+- [ ] Method: test (automated)
+- [ ] Test setup: Playwright tests with various configuration combinations; config mocking via API interceptor
+- [ ] Pass criterion: AC1–AC5 all green; no "recommended" label in the DOM with mixed configuration
+- [ ] Integrated in CI: yes (after implementation)
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: ADR-006 (Auth-Stack-Wahl); Instanz-Konfigurationskonzept (noch kein eigener ADR)
-- **Folgewirkungen**: REQ-137 (Auto-SSO) baut auf `oidcEnabled`-Flag auf
-- **Konflikte**: keine
+- **Prerequisites**: ADR-006 (auth stack choice); instance configuration concept (no ADR of its own yet)
+- **Consequences**: REQ-137 (auto SSO) builds on the `oidcEnabled` flag
+- **Conflicts**: none
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Betreiber mit reinem OIDC-Setup sieht unnötige lokale Auth-Optionen → Verwirrung und Support-Aufwand (mittel)
-- Risiko 2: „empfohlen"-Label führt Betreiber in eine aus Sicherheitssicht ungeeignete Richtung → Vertrauensverlust (mittel)
+- Risk 1: an operator with a pure OIDC setup sees unnecessary local auth options → confusion and support effort (medium)
+- Risk 2: a "recommended" label leads the operator in a direction unsuitable from a security perspective → loss of trust (medium)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Konfiguration als Teil der Instanz-Konfiguration (Environment-Variable oder Admin-Config-Datei), nicht als Datenbank-Einstellung — muss vor dem ersten Login auswertbar sein
-- Frontend liest Config einmalig beim App-Start; kein Nachladen während der Session nötig
+- Configuration as part of the instance configuration (environment variable or admin config file), not as a database setting — must be evaluable before the first login
+- The frontend reads the config once at app start; no reloading during the session necessary
 
-## Realisierung
+## Implementation
 
 - ADR(s): ADR-006
-- Implementiert durch: (noch offen)
-- Tests: (noch offen)
-- Status der Verifikation: not-verified
+- Implemented by: (still open)
+- Tests: (still open)
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft; Trennung Betreiber-Konfiguration von Hersteller-Default |
+| 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft; separation of operator configuration from vendor default |

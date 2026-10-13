@@ -1,41 +1,40 @@
-# Ableitung aus: requirements/req/req-128-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
+# Derived from: requirements/req/req-128-*.md
+# V-model system test specification – created 2026-06-30
 
 @functional @should @UC-21
-Feature: REQ-128 – Admin-Override für Property-Sichtbarkeit
+Feature: REQ-128 – Admin override for property visibility
 
-  Das System MUSS einen konfigurierbaren **Admin-Override**
-  bereitstellen: Nutzer mit einer als
-  `overridesPropertyVisibility=true` markierten Systemrolle (Standard:
-  `system-admin`) MÜSSEN alle Properties lesen können, unabhängig von
-  `visibilityMode`. Der Override-Status MUSS im Audit-Log vermerkt
-  werden, wenn ein eingeschränktes Property von einem Override-Nutzer
-  gelesen wird.
+  The system MUST provide a configurable **admin override**:
+  users with a system role marked as
+  `overridesPropertyVisibility=true` (default:
+  `system-admin`) MUST be able to read all properties, regardless of
+  `visibilityMode`. The override status MUST be noted in the audit log
+  when a restricted property is read by an override user.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Override wirksam – Nutzer mit `system-admin`-Rolle eine Entität mit eingeschränkten Propert...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer mit `system-admin`-Rolle eine Entität mit eingeschränkten Properties abruft
-    Then  Alle Werte werden zurückgegeben; `visibilityMode` hat keinen Effekt
+  Scenario: AC1 – Override effective – user with `system-admin` role retrieves an entity with restricted properties
+    Given the precondition according to the requirement is met
+    When  user with `system-admin` role retrieves an entity with restricted properties
+    Then  all values are returned; `visibilityMode` has no effect
 
   @AC2
-  Scenario: AC2 – Audit-Log-Eintrag – Override-Nutzer ein `role-restricted` oder `connection-scoped` Feld liest
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Override-Nutzer ein `role-restricted` oder `connection-scoped` Feld liest
-    Then  Audit-Log enthält Eintrag mit Typ `property-override-access`, Nutzer-ID, Entitäts-ID und Property-Name
+  Scenario: AC2 – Audit log entry – override user reads a `role-restricted` or `connection-scoped` field
+    Given the precondition according to the requirement is met
+    When  override user reads a `role-restricted` or `connection-scoped` field
+    Then  audit log contains entry with type `property-override-access`, user ID, entity ID and property name
 
   @AC3
-  Scenario: AC3 – Override konfigurierbar – Kurt im Metamodell-Editor die Override-Rollen-Liste bearbeitet und eine ...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Kurt im Metamodell-Editor die Override-Rollen-Liste bearbeitet und eine weitere Rolle hinzufügt
-    Then  Nutzer dieser Rolle erhalten ab sofort Override-Zugriff
+  Scenario: AC3 – Override configurable – Kurt edits the override role list in the metamodel editor and adds another role...
+    Given the precondition according to the requirement is met
+    When  Kurt edits the override role list in the metamodel editor and adds another role
+    Then  users of this role receive override access from now on
 
   @AC4
-  Scenario: AC4 – Kein impliziter Override – Nutzer hat `EA-Manager`-Rolle, aber `EA-Manager` ist nicht in der Overri...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Nutzer hat `EA-Manager`-Rolle, aber `EA-Manager` ist nicht in der Override-Liste
-    Then  Sichtbarkeits-Einschränkungen greifen normal; kein automatischer Override durch Hierarchie-Annahme
+  Scenario: AC4 – No implicit override – user has `EA-Manager` role, but `EA-Manager` is not in the override list...
+    Given the precondition according to the requirement is met
+    When  user has `EA-Manager` role, but `EA-Manager` is not in the override list
+    Then  visibility restrictions apply normally; no automatic override through hierarchy assumption

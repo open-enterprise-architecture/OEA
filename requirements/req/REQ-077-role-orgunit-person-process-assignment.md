@@ -1,6 +1,6 @@
 ---
 id: REQ-077
-title: Rollen, Organisationseinheiten und Personen Prozesselementen zuordnen
+title: Assign roles, organizational units and persons to process elements
 type: functional
 priority: must
 status: proposed
@@ -21,114 +21,114 @@ references:
   stakeholders:
     - SH-08
   concept:
-    - concept/20-entities/09-prozess-architektur.md
+    - concept/20-entities/09-process-architecture.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-077: Rollen, Organisationseinheiten und Personen Prozesselementen zuordnen
+# REQ-077: Assign roles, organizational units and persons to process elements
 
-## Aussage
+## Statement
 
-Das System MUSS es ermöglichen, direkt im Prozessdiagramm:
-1. Lanes eine **Organisationseinheit** (`bpmn-lane-belongs-to-org-unit`) und beliebig viele **Rollen** (`bpmn-lane-performs-role`) zuzuordnen
-2. Pools eine **Organisationseinheit** zuzuordnen (`bpmn-pool-represents-org-unit`)
-3. UserTasks eine **Person** aus dem Repository zuzuordnen (`bpmn-task-assigned-to`)
+The system MUST make it possible, directly in the process diagram, to:
+1. Assign lanes an **organizational unit** (`bpmn-lane-belongs-to-org-unit`) and any number of **roles** (`bpmn-lane-performs-role`)
+2. Assign pools an **organizational unit** (`bpmn-pool-represents-org-unit`)
+3. Assign UserTasks a **person** from the repository (`bpmn-task-assigned-to`)
 
-Alle Zuordnungen werden als `ArchitectureEntity`-Connections im gemeinsamen ID-Raum gespeichert und sind über Katalog-Abfragen auswertbar.
+All assignments are stored as `ArchitectureEntity` connections in the shared ID space and are analyzable via catalog queries.
 
-## Begründung
+## Rationale
 
-Prozessmodelle ohne Verantwortlichkeiten sind für die Business Analyst-Persona (SH-08) nicht nutzbar — sie braucht auf einen Blick: „Wer macht was?" Die Speicherung als reguläre Connections (nicht als Metadaten) bedeutet, dass alle Abfrage-Mechanismen (Katalog, Join, Lineage) ohne Sonderbehandlung für Prozesse funktionieren. Beispiel: „Zeige alle Tasks, die Abteilung Einkauf zugeordnet sind" ist eine Katalog-Abfrage mit Join über `bpmn-lane-belongs-to-org-unit` und `bpmn-contained-in`.
+Process models without responsibilities are not usable for the business analyst persona (SH-08) — she needs at a glance: "Who does what?" Storing them as regular connections (not as metadata) means that all query mechanisms (catalog, join, lineage) work without special handling for processes. Example: "Show all tasks assigned to the Purchasing department" is a catalog query with a join via `bpmn-lane-belongs-to-org-unit` and `bpmn-contained-in`.
 
-## Kontext
+## Context
 
-OrganizationalUnits, Rollen und Personen müssen im Repository als Entitäten existieren, bevor sie zugeordnet werden können. Falls sie noch nicht existieren, bietet das UI einen Schnell-Anlegen-Dialog (ähnlich A1 in UC-10). Zuordnungen sind optional — ein gültiges Prozessdiagramm muss keine Zuordnungen haben.
+OrganizationalUnits, roles and persons must exist as entities in the repository before they can be assigned. If they do not exist yet, the UI offers a quick-create dialog (similar to A1 in UC-10). Assignments are optional — a valid process diagram does not have to have any assignments.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**UI-Interaktionen im Canvas**:
+**UI interactions in the canvas**:
 
-| Element | Zuordnungs-Aktion | Speicherung |
+| Element | Assignment action | Storage |
 |---|---|---|
-| Lane | Rechtsklick → „Organisationseinheit zuordnen" | `bpmn-lane-belongs-to-org-unit` Connection |
-| Lane | Rechtsklick → „Rolle zuordnen" (mehrere möglich) | `bpmn-lane-performs-role` Connection(s) |
-| Pool | Rechtsklick → „Teilnehmer (OrgUnit) setzen" | `bpmn-pool-represents-org-unit` Connection |
-| UserTask | Detail-Panel → Feld „Verantwortliche Person" | `bpmn-task-assigned-to` Connection |
-| UserTask / Task | Detail-Panel → Feld „Erforderliche Rolle" | `bpmn-task-requires-role` Connection |
+| Lane | Right-click → "Assign organizational unit" | `bpmn-lane-belongs-to-org-unit` connection |
+| Lane | Right-click → "Assign role" (multiple possible) | `bpmn-lane-performs-role` connection(s) |
+| Pool | Right-click → "Set participant (OrgUnit)" | `bpmn-pool-represents-org-unit` connection |
+| UserTask | Detail panel → field "Responsible person" | `bpmn-task-assigned-to` connection |
+| UserTask / Task | Detail panel → field "Required role" | `bpmn-task-requires-role` connection |
 
-**Autocomplete**: Alle Zuordnungsfelder nutzen denselben `/api/v1/entities/search`-Endpunkt (REQ-070), gefiltert nach EntityType (`organizational-unit`, `role`, `person`).
+**Autocomplete**: All assignment fields use the same `/api/v1/entities/search` endpoint (REQ-070), filtered by EntityType (`organizational-unit`, `role`, `person`).
 
-**Visuelle Indikatoren auf Canvas**:
-- Lane: Organisations-Badge (OrgUnit-Kürzel oder -Name) + Rollen-Chips unterhalb des Lane-Namens
-- UserTask: Personen-Avatar (Initials) als kleines Icon in der rechten oberen Ecke des Task-Shapes
+**Visual indicators on the canvas**:
+- Lane: organization badge (OrgUnit abbreviation or name) + role chips below the lane name
+- UserTask: person avatar (initials) as a small icon in the upper right corner of the task shape
 
-**Katalog-Auswertbarkeit**:
-- Ein Katalog mit `primaryEntityType: bpmn-user-task` kann via Join über `bpmn-task-assigned-to` die verantwortliche Person als Spalte anzeigen
-- Ein Katalog mit `primaryEntityType: bpmn-lane` kann OrgUnit und Rollen als Join-Spalten anzeigen
+**Catalog analyzability**:
+- A catalog with `primaryEntityType: bpmn-user-task` can display the responsible person as a column via a join over `bpmn-task-assigned-to`
+- A catalog with `primaryEntityType: bpmn-lane` can display OrgUnit and roles as join columns
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (OrgUnit → Lane):
-- Wenn: Anna rechtsklickt auf eine Lane und wählt „Organisationseinheit zuordnen"; sucht „Einkauf"; wählt die OrgUnit
-- Dann: `bpmn-lane-belongs-to-org-unit`-Connection gespeichert; Lane zeigt OrgUnit-Badge
+**AC1** (OrgUnit → lane):
+- When: Anna right-clicks a lane and selects "Assign organizational unit"; searches "Purchasing"; selects the OrgUnit
+- Then: `bpmn-lane-belongs-to-org-unit` connection stored; lane shows OrgUnit badge
 
-**AC2** (Mehrere Rollen → Lane):
-- Wenn: Anna einer Lane die Rollen „Genehmiger" und „Prüfer" zuordnet
-- Dann: Zwei `bpmn-lane-performs-role`-Connections gespeichert; beide Rollen als Chips in der Lane sichtbar
+**AC2** (Multiple roles → lane):
+- When: Anna assigns the roles "Approver" and "Reviewer" to a lane
+- Then: Two `bpmn-lane-performs-role` connections stored; both roles visible as chips in the lane
 
-**AC3** (OrgUnit → Pool):
-- Wenn: Anna den Pool mit der OrgUnit „Unternehmensbereich Vertrieb" verknüpft
-- Dann: `bpmn-pool-represents-org-unit`-Connection gespeichert; Pool-Header zeigt OrgUnit-Namen
+**AC3** (OrgUnit → pool):
+- When: Anna links the pool with the OrgUnit "Sales Division"
+- Then: `bpmn-pool-represents-org-unit` connection stored; pool header shows the OrgUnit name
 
 **AC4** (Person → UserTask):
-- Wenn: Anna im Detail-Panel eines UserTasks die Person „Maria Müller" sucht und zuordnet
-- Dann: `bpmn-task-assigned-to`-Connection gespeichert; Task-Shape zeigt Initialen „MM" als Avatar-Icon
+- When: Anna searches for and assigns the person "Maria Müller" in the detail panel of a UserTask
+- Then: `bpmn-task-assigned-to` connection stored; task shape shows initials "MM" as avatar icon
 
-**AC5** (Zuordnung entfernen):
-- Wenn: Anna eine bestehende Zuordnung (z.B. OrgUnit einer Lane) entfernt
-- Dann: Connection wird aus Repository gelöscht; Badge/Chip verschwindet sofort aus dem Canvas
+**AC5** (Remove assignment):
+- When: Anna removes an existing assignment (e.g., the OrgUnit of a lane)
+- Then: Connection is deleted from the repository; badge/chip disappears from the canvas immediately
 
-**AC6** (Katalog-Join OrgUnit):
-- Gegeben: Mehrere Lanes haben OrgUnit-Zuordnungen
-- Wenn: Katalog für `bpmn-lane` mit Join-Spalte `bpmn-lane-belongs-to-org-unit.name` geöffnet
-- Dann: OrgUnit-Name als Spalte sichtbar; Filter auf OrgUnit möglich
+**AC6** (Catalog join OrgUnit):
+- Given: Several lanes have OrgUnit assignments
+- When: Catalog for `bpmn-lane` opened with join column `bpmn-lane-belongs-to-org-unit.name`
+- Then: OrgUnit name visible as a column; filtering by OrgUnit possible
 
-**AC7** (Katalog-Join Person):
-- Gegeben: Mehrere UserTasks haben Personen-Zuordnungen
-- Wenn: Katalog für `bpmn-user-task` mit Join-Spalte `bpmn-task-assigned-to.name` geöffnet
-- Dann: Personen-Name als Spalte; Tasks ohne Zuordnung zeigen leere Zelle
+**AC7** (Catalog join person):
+- Given: Several UserTasks have person assignments
+- When: Catalog for `bpmn-user-task` opened with join column `bpmn-task-assigned-to.name`
+- Then: Person name as a column; tasks without assignment show an empty cell
 
-**AC8** (Schnell-Anlegen OrgUnit):
-- Wenn: Anna im Zuordnungsdialog eine OrgUnit sucht, die nicht existiert, und „Neu anlegen" wählt
-- Dann: Mini-Wizard öffnet sich (Name, Typ auswählen); nach Bestätigung ist die neue OrgUnit sofort zugewiesen
+**AC8** (Quick-create OrgUnit):
+- When: Anna searches in the assignment dialog for an OrgUnit that does not exist and selects "Create new"
+- Then: Mini wizard opens (name, select type); after confirmation the new OrgUnit is assigned immediately
 
-**AC9** (Web-Portal read-only):
-- Wenn: Viewer-Nutzer das Prozessdiagramm im Web-Portal öffnet
-- Dann: OrgUnit-Badges und Personen-Avatare sichtbar; keine Edit-Aktionen verfügbar; Tooltips mit vollständigem Namen
+**AC9** (Web portal read-only):
+- When: Viewer user opens the process diagram in the web portal
+- Then: OrgUnit badges and person avatars visible; no edit actions available; tooltips with full name
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (Integrationstest + Playwright E2E)
-- [x] Bestanden-Kriterium: AC1–AC5 via Playwright (Canvas-Interaktion + API-Verifikation); AC6–AC7 via API-Test (Katalog-Join-Query); AC8–AC9 manuell oder Playwright
+- [x] Method: test (integration test + Playwright E2E)
+- [x] Pass criterion: AC1–AC5 via Playwright (canvas interaction + API verification); AC6–AC7 via API test (catalog join query); AC8–AC9 manual or Playwright
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-076 (built-in BPMN-Typen und Zuordnungs-Connections); REQ-070 (Entity-Mention-Autocomplete / Search-API); REQ-044–046 (Katalog-Join für Connections)
-- **Konflikte**: keine bekannt
+- **Prerequisites**: REQ-076 (built-in BPMN types and assignment connections); REQ-070 (entity mention autocomplete / search API); REQ-044–046 (catalog join for connections)
+- **Conflicts**: none known
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |

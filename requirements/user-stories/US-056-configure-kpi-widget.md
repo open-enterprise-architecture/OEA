@@ -1,55 +1,55 @@
-# US-056: KPI-Widget mit PropertyAggregation konfigurieren
+# US-056: Configure a KPI Widget with PropertyAggregation
 
 **ID**: US-056
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Lead Enterprise Architekt möchte ich einem Dashboard ein KPI-Widget hinzufügen, das eine aggregierte Kennzahl (z.B. Summe der Investitionskosten aller Plateaus) als einzelne prominente Zahl darstellt – damit der CIO auf einen Blick die wichtigste Kenngrösse sieht.
+As a Lead Enterprise Architect, I want to add a KPI widget to a dashboard that displays an aggregated metric (e.g. sum of the investment costs of all plateaus) as a single prominent number – so that the CIO sees the most important metric at a glance.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-07](../use-cases/UC-07-dashboard-anlegen-und-verwenden.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-052: Widget konfigurieren](../req/REQ-052-widget-konfigurieren.md), [REQ-053: PropertyAggregation-DataSource](../req/REQ-053-property-aggregation-datasource.md), [REQ-055: Daten abrufen](../req/REQ-055-dashboard-daten-abrufen.md)
+**Use Case**: [UC-07](../use-cases/UC-07-create-and-use-dashboard.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-052: Configure Widget](../req/REQ-052-configure-widget.md), [REQ-053: PropertyAggregation DataSource](../req/REQ-053-property-aggregation-datasource.md), [REQ-055: Retrieve Data](../req/REQ-055-retrieve-dashboard-data.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Widget anlegen mit sum):
-- Gegeben: MetamodelConfiguration enthält EntityType `plateau` mit PropertyDefinition `investitionskostenPrognose` (kind=int); 3 Plateau-Instanzen mit Werten 5 000 000, 12 000 000, 25 000 000
-- Wenn: Kurt legt KPI-Widget an: title="Gesamtinvestition Prognose", entityType=plateau, propertyName=investitionskostenPrognose, aggregationFn=sum, unit="CHF"
-- Dann: Widget gespeichert; beim Daten-Abruf zeigt das Widget „42 000 000 CHF"
+**AC1** (create widget with sum):
+- Given: MetamodelConfiguration contains EntityType `plateau` with PropertyDefinition `investitionskostenPrognose` (kind=int); 3 plateau instances with values 5,000,000, 12,000,000, 25,000,000
+- When: Kurt creates KPI widget: title="Total Investment Forecast", entityType=plateau, propertyName=investitionskostenPrognose, aggregationFn=sum, unit="CHF"
+- Then: Widget saved; on data retrieval the widget shows "42,000,000 CHF"
 
-**AC2** (count-Aggregation):
-- Gegeben: 15 Plateau-Instanzen im Repository
-- Wenn: Kurt legt KPI-Widget an: propertyName=id, aggregationFn=count, unit="Plateaus"
-- Dann: Widget zeigt „15 Plateaus"
+**AC2** (count aggregation):
+- Given: 15 plateau instances in the repository
+- When: Kurt creates KPI widget: propertyName=id, aggregationFn=count, unit="Plateaus"
+- Then: Widget shows "15 Plateaus"
 
-**AC3** (Ungültige Aggregation: varchar-Property mit sum):
-- Wenn: Kurt wählt propertyName=name (kind=varchar), aggregationFn=sum
-- Dann: Fehlermeldung „sum erfordert ein Integer-Property"; Widget nicht gespeichert
+**AC3** (invalid aggregation: varchar property with sum):
+- When: Kurt selects propertyName=name (kind=varchar), aggregationFn=sum
+- Then: Error message "sum requires an integer property"; widget not saved
 
-**AC4** (Keine Daten → null-Anzeige):
-- Gegeben: EntityType `plateau` hat keine Instanzen mit befülltem Property
-- Wenn: Daten abrufen
-- Dann: Widget zeigt „– (keine Daten)" statt einer Zahl; kein Fehler-Status
+**AC4** (no data → null display):
+- Given: EntityType `plateau` has no instances with a populated property
+- When: Retrieve data
+- Then: Widget shows "– (no data)" instead of a number; no error status
 
-**AC5** (comparisonMode=vs-target ohne targetValue):
-- Wenn: Kurt setzt comparisonMode=vs-target ohne targetValue
-- Dann: Fehler „targetValue ist Pflicht bei comparisonMode=vs-target"
+**AC5** (comparisonMode=vs-target without targetValue):
+- When: Kurt sets comparisonMode=vs-target without targetValue
+- Then: Error "targetValue is mandatory for comparisonMode=vs-target"
 
-## Technische Hinweise
+## Technical Notes
 
-- Widget-Typ: `kpi`; DataSource muss `PropertyAggregation` sein (CatalogQuery → 422)
-- Zahlendarstellung: numberFormat aus Widget-Konfiguration; Default: locale-sensitives Format ohne Nachkommastellen
-- `value=null` bei leeren Daten: Frontend rendert „–" statt 0
+- Widget type: `kpi`; DataSource must be `PropertyAggregation` (CatalogQuery → 422)
+- Number display: numberFormat from widget configuration; default: locale-sensitive format without decimal places
+- `value=null` on empty data: frontend renders "–" instead of 0
 
 ## Definition of Done
 
-- [ ] AC1–AC5 erfüllt
-- [ ] Tests: sum, count, ungültige Aggregation, null-Daten, fehlender targetValue
-- [ ] Code-Review
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] AC1–AC5 met
+- [ ] Tests: sum, count, invalid aggregation, null data, missing targetValue
+- [ ] Code review
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix

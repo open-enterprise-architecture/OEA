@@ -1,45 +1,45 @@
-# Ableitung aus: requirements/req/req-061-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-061-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @should @UC-08
-Feature: REQ-061 – n-Connection carries-data — DataFlow mit DataObject verknüpfen
+Feature: REQ-061 – n-Connection carries-data — link DataFlow with DataObject
 
-  Das System MUSS es ermöglichen, eine ArchitectureEntity vom Typ
-  `carries-data` (`isConnection=true`) anzulegen, bei der
-  `sourceEntityId` auf eine Connection-Entity (d.h. eine
-  ArchitectureEntity mit `isConnection=true`, z.B.
+  The system MUST make it possible to create an ArchitectureEntity of
+  type `carries-data` (`isConnection=true`) whose `sourceEntityId`
+  points to a connection entity (i.e. an ArchitectureEntity with
+  `isConnection=true`, e.g.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – carries-data anlegen – DataFlow id=5 (`data-flow`, `allowsConnectionAsSource=true`); DataObject...
+  Scenario: AC1 – Create carries-data – DataFlow id=5 (`data-flow`, `allowsConnectionAs...
     Given DataFlow id=5 (`data-flow`, `allowsConnectionAsSource=true`); DataObject id=42 (`data-object`)
-    When  Lukas legt `carries-data`-Connection an mit sourceEntityId=5, targetEntityId=42
-    Then  HTTP 201; carries-data erhält eigene Integer-ID (z.B. 103); sourceEntityId=5 und targetEntityId=42 gesetzt
+    When  Lukas creates `carries-data` connection with sourceEntityId=5, targetEntityId=42
+    Then  HTTP 201; carries-data receives its own integer ID (e.g. 103); sourceEntityId=5 and targetEntityId=42 set
 
   @AC2
-  Scenario: AC2 – Ablehnung wenn source kein allowsConnectionAsSource – ApplicationComponent id=1 (`application-component`, `allowsConnectionAsS...
+  Scenario: AC2 – Rejection if source is not allowsConnectionAsSource – ApplicationComp...
     Given ApplicationComponent id=1 (`application-component`, `allowsConnectionAsSource=false`)
-    When  Lukas versucht carries-data mit sourceEntityId=1 anzulegen
-    Then  HTTP 422; Fehlermeldung benennt `application-component` als nicht als Connection-Quelle erlaubt
+    When  Lukas tries to create carries-data with sourceEntityId=1
+    Then  HTTP 422; error message names `application-component` as not allowed as a connection source
 
   @AC3
-  Scenario: AC3 – Ablehnung target=Connection – DataFlow id=5 (isConnection=true) als potenzielle targetEntityId
-    Given DataFlow id=5 (isConnection=true) als potenzielle targetEntityId
-    When  Lukas versucht carries-data mit targetEntityId=5 anzulegen
+  Scenario: AC3 – Rejection target=connection – DataFlow id=5 (isConnection=true) as potential targetEntityId
+    Given DataFlow id=5 (isConnection=true) as potential targetEntityId
+    When  Lukas tries to create carries-data with targetEntityId=5
     Then  HTTP 422
 
   @AC4
-  Scenario: AC4 – Unveränderlichkeit source/target – carries-data id=103 mit sourceEntityId=5, targetEntityId=42
-    Given carries-data id=103 mit sourceEntityId=5, targetEntityId=42
-    When  Lukas versucht PUT mit sourceEntityId=6
-    Then  HTTP 422; source/target wurden nicht geändert
+  Scenario: AC4 – Immutability of source/target – carries-data id=103 with sourceEntityId=5, targetEntityId=42
+    Given carries-data id=103 with sourceEntityId=5, targetEntityId=42
+    When  Lukas tries PUT with sourceEntityId=6
+    Then  HTTP 422; source/target were not changed
 
   @AC5
-  Scenario: AC5 – Tiefenbegrenzung v1.0 – carries-data id=103; carries-data hat `allowsConnectionAsSource=false`
-    Given carries-data id=103; carries-data hat `allowsConnectionAsSource=false`
-    When  Lukas versucht, eine weitere Connection mit sourceEntityId=103 anzulegen
-    Then  HTTP 422 „n-Connection-Tiefe überschritten"
+  Scenario: AC5 – Depth limit v1.0 – carries-data id=103; carries-data has `allowsConnectionAsSource=false`
+    Given carries-data id=103; carries-data has `allowsConnectionAsSource=false`
+    When  Lukas tries to create another connection with sourceEntityId=103
+    Then  HTTP 422 "n-Connection depth exceeded"

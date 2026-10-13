@@ -30,89 +30,89 @@ superseded_by: []
 
 # REQ-145: Shape Drag-to-Canvas with Entity Lookup and Inline Creation
 
-## Aussage
+## Statement
 
-Das System MUSS nach dem Ablegen einer Shape-Vorlage aus der Palette auf den Canvas einen Entity-Lookup-Dialog anzeigen. Der Dialog MUSS ein Texteingabefeld enthalten, das während der Eingabe bestehende Entitäten desselben Typs als Autocomplete-Vorschläge anzeigt. Wenn der Nutzer eine bestehende Entität auswählt, MUSS diese als Shape-Referenz in das Diagramm eingefügt werden (keine Neuanlage). Wenn keine passende Entität gefunden wird und der Nutzer "OK" bestätigt, MUSS eine neue Entität des entsprechenden Typs angelegt und gleichzeitig in das Diagramm eingefügt werden. Wird "Cancel" gedrückt oder die Ablage rückgängig gemacht, DARF keine Entität angelegt werden.
+After a shape template from the palette is dropped onto the canvas, the system MUST display an entity lookup dialog. The dialog MUST contain a text input field that shows existing entities of the same type as autocomplete suggestions while typing. If the user selects an existing entity, it MUST be inserted into the diagram as a shape reference (no new creation). If no matching entity is found and the user confirms with "OK", a new entity of the corresponding type MUST be created and simultaneously inserted into the diagram. If "Cancel" is pressed or the drop is undone, NO entity may be created.
 
-## Begründung
+## Rationale
 
-In OEA gibt es eine strikte Trennung zwischen dem Modell (Entitäten in der Solution) und der Darstellung (Shapes im Diagramm). Jede Shape im Diagramm ist eine Referenz auf eine Entität — nicht die Entität selbst. Dieser Dialog stellt sicher, dass der Nutzer bewusst entscheidet, ob er eine bestehende Entität referenziert oder eine neue anlegt. Das verhindert versehentliche Duplikate und fördert die Wiederverwendung bestehender Architekturelemente.
+In OEA there is a strict separation between the model (entities in the solution) and the representation (shapes in the diagram). Every shape in the diagram is a reference to an entity — not the entity itself. This dialog ensures that the user consciously decides whether to reference an existing entity or create a new one. This prevents accidental duplicates and promotes reuse of existing architecture elements.
 
-## Kontext
+## Context
 
-| Szenario | Ergebnis |
+| Scenario | Result |
 |---|---|
-| Nutzer zieht AC-Shape auf Canvas, tippt "Catalog-Service", wählt bestehende Entität aus | Shape wird eingefügt, Entität unverändert |
-| Nutzer zieht AC-Shape auf Canvas, tippt "New-Service", kein Match, drückt OK | Neue Entität "New-Service" [AC] wird angelegt + Shape eingefügt |
-| Nutzer zieht AC-Shape auf Canvas, drückt Cancel | Shape und Drop werden rückgängig gemacht |
-| Nutzer zieht gleiche Entität ein zweites Mal in dasselbe Diagramm | System warnt: "Diese Entität ist bereits im Diagramm vorhanden. Nochmals einfügen?" |
+| User drags AC shape onto canvas, types "Catalog-Service", selects existing entity | Shape is inserted, entity unchanged |
+| User drags AC shape onto canvas, types "New-Service", no match, presses OK | New entity "New-Service" [AC] is created + shape inserted |
+| User drags AC shape onto canvas, presses Cancel | Shape and drop are undone |
+| User drags the same entity a second time into the same diagram | System warns: "This entity is already present in the diagram. Insert again?" |
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben (nach Drop)**:
+**Inputs (after drop)**:
 
-| Feld | Typ | Beschreibung |
+| Field | Type | Description |
 |---|---|---|
-| dropPosition | {x, y} | Canvas-Koordinate des Drops |
-| entityType | string | Metamodell-Typ der abgelegten Shape (z.B. "ApplicationComponent") |
-| searchQuery | string | Vom Nutzer eingegebener Text im Lookup-Feld |
+| dropPosition | {x, y} | Canvas coordinate of the drop |
+| entityType | string | Metamodel type of the dropped shape (e.g. "ApplicationComponent") |
+| searchQuery | string | Text entered by the user in the lookup field |
 
-**Verarbeitung**:
+**Processing**:
 
-1. Nach Drop: Entity-Lookup-Dialog erscheint inline auf dem Canvas nahe der Drop-Position
-2. Dialog zeigt Typ-Badge (z.B. [AC]) und Typ-Label als Kontext
-3. Während der Eingabe: `GET /api/v1/entities?type={entityType}&q={searchQuery}` — Debounce 200ms
-4. Autocomplete listet max. 8 Treffer mit Typ-Badge und Namen; bestehende Entitäten werden mit "existing" markiert
-5. Nutzer wählt bestehende Entität → `POST /api/v1/diagrams/{id}/shapes` mit `entityId` (kein Anlegen)
-6. Nutzer tippt neuen Namen + OK → `POST /api/v1/entities` (Anlegen) + `POST /api/v1/diagrams/{id}/shapes`
-7. Nutzer Cancel → Drop rückgängig, keine API-Calls
+1. After drop: the entity lookup dialog appears inline on the canvas near the drop position
+2. The dialog shows the type badge (e.g. [AC]) and type label as context
+3. While typing: `GET /api/v1/entities?type={entityType}&q={searchQuery}` — debounce 200ms
+4. Autocomplete lists at most 8 hits with type badge and names; existing entities are marked "existing"
+5. User selects an existing entity → `POST /api/v1/diagrams/{id}/shapes` with `entityId` (no creation)
+6. User types a new name + OK → `POST /api/v1/entities` (creation) + `POST /api/v1/diagrams/{id}/shapes`
+7. User Cancel → drop undone, no API calls
 
-**Ausgaben**:
+**Outputs**:
 
-- Shape erscheint auf Canvas an der Drop-Position
-- Neue Entität wird im Explorer-Tree unter dem entsprechenden Typ-Ordner sichtbar
+- Shape appears on the canvas at the drop position
+- New entity becomes visible in the explorer tree under the corresponding type folder
 - Log: "[INFO] Shape inserted: <Name> (<Type>)  ·  entity: existing|new"
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Bestehende Entität einfügen):
-- Gegeben: Entität "Catalog-Service" [AC] existiert in der Solution
-- Wenn: Nutzer zieht [AC]-Shape auf Canvas, tippt "Catalog", sieht "Catalog-Service (existing)", wählt es
-- Dann: Shape erscheint auf Canvas; kein neues Objekt im Modell; Log zeigt "existing"
+**AC1** (Insert existing entity):
+- Given: entity "Catalog-Service" [AC] exists in the solution
+- When: the user drags an [AC] shape onto the canvas, types "Catalog", sees "Catalog-Service (existing)", selects it
+- Then: the shape appears on the canvas; no new object in the model; log shows "existing"
 
-**AC2** (Neue Entität anlegen):
-- Wenn: Nutzer tippt "New-Reporting-Service", kein Autocomplete-Match, drückt OK
-- Dann: Neue Entität "New-Reporting-Service" [AC] wird angelegt; Shape erscheint auf Canvas; Explorer-Tree aktualisiert
+**AC2** (Create new entity):
+- When: the user types "New-Reporting-Service", no autocomplete match, presses OK
+- Then: a new entity "New-Reporting-Service" [AC] is created; the shape appears on the canvas; explorer tree updated
 
-**AC3** (Autocomplete bei Eingabe):
-- Wenn: Nutzer tippt "auth"
-- Dann: Dropdown zeigt max. 8 Entitäten mit "auth" im Namen; Antwortzeit < 300 ms bei 10 000 Entitäten
+**AC3** (Autocomplete while typing):
+- When: the user types "auth"
+- Then: the dropdown shows at most 8 entities with "auth" in the name; response time < 300 ms with 10,000 entities
 
-**AC4** (Cancel = kein Side-Effect):
-- Wenn: Nutzer drückt Cancel oder ESC nach dem Drop
-- Dann: Keine Entität angelegt, keine Shape im Diagramm, Drop vollständig rückgängig
+**AC4** (Cancel = no side effect):
+- When: the user presses Cancel or ESC after the drop
+- Then: no entity created, no shape in the diagram, drop completely undone
 
-**AC5** (Duplikat-Warnung):
-- Wenn: Nutzer zieht dieselbe Entität ein zweites Mal in das gleiche Diagramm
-- Dann: System zeigt Warnung "Entity already on canvas — insert again?" mit Ja/Nein
+**AC5** (Duplicate warning):
+- When: the user drags the same entity a second time into the same diagram
+- Then: the system shows the warning "Entity already on canvas — insert again?" with Yes/No
 
-## Abhängigkeiten
+## Dependencies
 
-- Blockiert durch: REQ-144 (Shape-Palette), REQ-031 (Entity anlegen)
-- Zusammenhang: REQ-047 (Filter-Abfragen), REQ-146 (Delete-Verhalten)
-- Betrifft: ADR-007 (Canvas-Bibliothek — Drag-and-Drop-API)
+- Blocked by: REQ-144 (shape palette), REQ-031 (create entity)
+- Related: REQ-047 (filter queries), REQ-146 (delete behavior)
+- Affects: ADR-007 (canvas library — drag-and-drop API)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Lookup-Endpoint: `GET /api/v1/entities?type=ApplicationComponent&q=catalog&solutionId=…&limit=8`
-- Shape-Insert: `POST /api/v1/diagrams/{id}/shapes` `{ entityId, x, y, w, h }`
-- Entity-Create + Shape-Insert ist eine atomare Transaktion (beides schlägt fehl oder beides gelingt)
-- Der Lookup-Dialog erscheint inline auf dem Canvas (kein modales Overlay), damit der Nutzer die Drop-Position sieht
+- Lookup endpoint: `GET /api/v1/entities?type=ApplicationComponent&q=catalog&solutionId=…&limit=8`
+- Shape insert: `POST /api/v1/diagrams/{id}/shapes` `{ entityId, x, y, w, h }`
+- Entity create + shape insert is an atomic transaction (both fail or both succeed)
+- The lookup dialog appears inline on the canvas (no modal overlay) so that the user sees the drop position
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-29 | Requirements Engineer | Initial draft |

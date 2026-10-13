@@ -1,18 +1,18 @@
-## 1. Einordnung und Zielsetzung
+## 1. Positioning and Objectives
 
-Dieses Dokument beschreibt das fachlich-konzeptionelle Fundament eines Enterprise-Architecture-Repositories. Es legt **nicht** die technische Persistenz fest (DB-Wahl erfolgt nach Anforderungs-Konsolidierung), sondern definiert die Struktur, mit der Architekturinformationen modelliert werden.
+This document describes the business and conceptual foundation of an enterprise architecture repository. It does **not** define the technical persistence (the DB choice follows after requirements consolidation), but rather the structure used to model architecture information.
 
-**Leitprinzipien**
+**Guiding Principles**
 
-- **Standards als Konfiguration, nicht als Code**: TOGAF Content Metamodel, Arc42, BPMN 2.0, ArchiMate werden als Schemata auf einem generischen Meta-Metamodell abgebildet.
-- **Git-friendly, pipelinefähig**: Jede Entität ist als menschenlesbare Datei repräsentierbar, diff-bar, PR-reviewbar.
-- **Zeit als First-Class-Citizen**: Ist-Zustand, Zielbilder und Bebauungspläne sind keine Sonderfälle, sondern Grundkonzepte des Metamodells.
-- **Sichten statt Silos**: Domains, Layer und Bebauungspläne sind Filter über das Repository, nicht eigene Datenhaltungen.
-- **ITSM-Koexistenz, nicht -Konkurrenz**: Das EA-Repository ergänzt CMDB und Service Catalog durch Planungs- und Strategie-Sicht. Mastership wird auf Property-Ebene definiert, nicht auf Entitäts-Ebene.
-- **API-first**: Alle Funktionalität ist über eine stabile, versionierte API zugänglich. UI, Renderer, Integrationen, Zusatzmodule – alle nutzen dieselbe API. Keine privilegierten Zugriffswege.
-- **Modulare Architektur**: Der Kern ist klein und unabhängig. Fachliche Ergänzungen (BPMN, ITSM-Konnektoren, PPM-Konnektoren, Renderer) sind Module, die über die API andocken.
-- **Persistenz-Neutralität**: Die API definiert Query-Fähigkeiten; die Implementierung darunter ist austauschbar. Ermöglicht Migration zu anderen Datenbanken ohne API-Breaking-Change.
+- **Standards as configuration, not as code**: TOGAF Content Metamodel, Arc42, BPMN 2.0, ArchiMate are mapped as schemas onto a generic meta-metamodel.
+- **Git-friendly, pipeline-capable**: Every entity can be represented as a human-readable file that is diffable and PR-reviewable.
+- **Time as a first-class citizen**: Current state, target states, and landscape maps (Bebauungspläne) are not special cases but basic concepts of the metamodel.
+- **Views instead of silos**: Domains, layers, and landscape maps are filters over the repository, not separate data stores.
+- **ITSM coexistence, not competition**: The EA repository complements the CMDB and service catalog with a planning and strategy view. Mastership is defined at property level, not at entity level.
+- **API-first**: All functionality is accessible through a stable, versioned API. UI, renderers, integrations, additional modules – all use the same API. No privileged access paths.
+- **Modular architecture**: The core is small and independent. Business extensions (BPMN, ITSM connectors, PPM connectors, renderers) are modules that dock on via the API.
+- **Persistence neutrality**: The API defines query capabilities; the implementation underneath is interchangeable. Enables migration to other databases without an API breaking change.
 
 ---
 
-[🏠 Übersicht](../README.md) · [Meta-Metamodell](02-meta-metamodell.md) →
+[🏠 Overview](../README.md) · [Meta-Metamodel](02-meta-metamodel.md) →

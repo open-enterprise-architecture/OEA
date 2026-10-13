@@ -1,46 +1,45 @@
-# Ableitung aus: requirements/req/req-058-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-058-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @should @UC-04
-Feature: REQ-058 – Metamodell-Konfiguration exportieren
+Feature: REQ-058 – Export metamodel configuration
 
-  Das System MUSS Personen mit Metamodell-Bearbeiter-Berechtigung
-  ermöglichen, die vollständige MetamodelConfiguration der eigenen
-  Instanz als YAML-Datei oder JSON-Datei herunterzuladen; die
-  exportierte Datei MUSS als Eingabe für den Import nach REQ-033 einer
-  anderen OEA-Instanz dienen können.
+  The system MUST enable persons with metamodel editor permission to
+  download the complete MetamodelConfiguration of their own instance
+  as a YAML file or JSON file; the exported file MUST be usable as
+  input for the import according to REQ-033 of another OEA instance.
 
   Background:
-    Given eine laufende OEA-Instanz
-    And ein Nutzer mit der erforderlichen Rolle ist angemeldet
+    Given a running OEA instance
+    And a user with the required role is logged in
 
   @AC1
-  Scenario: AC1 – Export als YAML – Kurt hat Metamodell-Bearbeiter-Berechtigung; Instanz hat 5 custom Entity...
-    Given Kurt hat Metamodell-Bearbeiter-Berechtigung; Instanz hat 5 custom EntityTypes, 2 ArchitectureLayers, 3 Viewpoints
-    When  Kurt exportiert als YAML
-    Then  Download startet; YAML enthält alle 5 custom EntityTypes, 2 ArchitectureLayers, 3 Viewpoints mit notationMappings inkl. defaultWidth/defaultHeight
+  Scenario: AC1 – Export as YAML – Kurt has metamodel editor permission; instance has 5...
+    Given Kurt has metamodel editor permission; instance has 5 custom EntityTypes, 2 ArchitectureLayers, 3 Viewpoints
+    When  Kurt exports as YAML
+    Then  download starts; YAML contains all 5 custom EntityTypes, 2 ArchitectureLayers, 3 Viewpoints with notationMappings incl. defaultWidth/defaultHeight
 
   @AC2
-  Scenario: AC2 – Export als JSON – Gleiche Konfiguration wie AC1
-    Given Gleiche Konfiguration wie AC1
-    When  Kurt exportiert als JSON
-    Then  Download startet; JSON ist strukturell äquivalent zur YAML-Version
+  Scenario: AC2 – Export as JSON – same configuration as AC1
+    Given same configuration as AC1
+    When  Kurt exports as JSON
+    Then  download starts; JSON is structurally equivalent to the YAML version
 
   @AC3
-  Scenario: AC3 – Roundtrip-Kompatibilität – Kurt die exportierte YAML-Datei in eine andere OEA-Instanz via REQ-033 i...
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Kurt die exportierte YAML-Datei in eine andere OEA-Instanz via REQ-033 importiert
-    Then  Alle non-built-in Typen werden korrekt importiert (Diff zeigt: X neue Typen, 0 Syntaxfehler)
+  Scenario: AC3 – Roundtrip compatibility – Kurt imports the exported YAML file into a...
+    Given the precondition according to the requirement is met
+    When  Kurt imports the exported YAML file into another OEA instance via REQ-033
+    Then  all non-built-in types are imported correctly (diff shows: X new types, 0 syntax errors)
 
   @AC4
-  Scenario: AC4 – Ohne Berechtigung – Franz hat keine Metamodell-Bearbeiter-Berechtigung
-    Given Franz hat keine Metamodell-Bearbeiter-Berechtigung
-    When  Franz den Export-Endpunkt aufruft
-    Then  HTTP 403; kein Download
+  Scenario: AC4 – Without permission – Franz has no metamodel editor permission
+    Given Franz has no metamodel editor permission
+    When  Franz calls the export endpoint
+    Then  HTTP 403; no download
 
   @AC5
-  Scenario: AC5 – includeBuiltins=false – Kurt exportiert mit `includeBuiltins=false`
-    Given die Vorbedingung gemäß Anforderung ist erfüllt
-    When  Kurt exportiert mit `includeBuiltins=false`
-    Then  Exportierte Datei enthält nur custom EntityTypes und user-defined Konfigurationselemente; keine built-in EntityTypes
+  Scenario: AC5 – includeBuiltins=false – Kurt exports with `includeBuiltins=false`
+    Given the precondition according to the requirement is met
+    When  Kurt exports with `includeBuiltins=false`
+    Then  exported file contains only custom EntityTypes and user-defined configuration elements; no built-in EntityTypes

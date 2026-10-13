@@ -1,57 +1,57 @@
-# US-028: 2FA-Ausnahme für Admin-Rollen konfigurieren
+# US-028: Configure 2FA Exemption for Admin Roles
 
 **ID**: US-028
 **Story Points**: 2
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Betreiber möchte ich festlegen können, welche OEA-Rollen von der instanzweiten 2FA-Pflicht ausgenommen sind, damit Administratoren auch ohne eingerichteten zweiten Faktor Zugang erhalten und ich nicht gezwungen bin, 2FA für alle oder niemanden zu erzwingen.
+As an operator, I want to be able to define which OEA roles are exempt from the instance-wide 2FA requirement, so that administrators get access even without a set-up second factor and I am not forced to enforce 2FA for everyone or for nobody.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-01: Regulärer Login](../use-cases/UC-01-login.md)
-**Persona**: [SH-06: Max – Operator im KMU](../../business-analysis/stakeholders/SH-06-max-operator-kmu.md)
-**Requirement**: [REQ-029: Rollen-basierte 2FA-Ausnahme](../req/REQ-029-rollen-basierte-2fa-ausnahme.md)
+**Use Case**: [UC-01: Regular Login](../use-cases/UC-01-login.md)
+**Persona**: [SH-06: Max – Operator in an SME](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
+**Requirement**: [REQ-029: Role-Based 2FA Exemption](../req/REQ-029-role-based-2fa-exemption.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Max hat `enforce2FA=true` und `twoFactorExemptRoles=['administrator']` konfiguriert
-- Wenn: eine Person mit Admin-Rolle sich ohne 2FA-Credential einloggt
-- Dann: erhält sie direkten Zugriff ohne Required Action
+- Given: Max has configured `enforce2FA=true` and `twoFactorExemptRoles=['administrator']`
+- When: a person with the admin role logs in without a 2FA credential
+- Then: they get direct access without a required action
 
 **AC2**:
-- Gegeben: dieselbe Konfiguration
-- Wenn: eine Person ohne Admin-Rolle sich ohne 2FA-Credential einloggt
-- Dann: wird UC-03 Required Action ausgelöst
+- Given: the same configuration
+- When: a person without the admin role logs in without a 2FA credential
+- Then: UC-03 required action is triggered
 
 **AC3**:
-- Gegeben: Max versucht, eine nicht-existente Rollen-ID als Ausnahme einzutragen
-- Wenn: er speichert
-- Dann: erscheint ein Validierungsfehler; Konfiguration wird nicht gespeichert
+- Given: Max tries to enter a non-existent role ID as an exemption
+- When: he saves
+- Then: a validation error appears; the configuration is not saved
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Admin-Konfigurationsmodul, Login-Flow (UC-01/UC-03 Required-Action-Check)
-- API-Endpunkte: `GET/PUT /admin/config/auth` (erweitert um `twoFactorExemptRoles`)
-- Datenbank-Änderungen: keine neue Tabelle; neues Feld in `instance_config`
+- Affected components: admin configuration module, login flow (UC-01/UC-03 required action check)
+- API endpoints: `GET/PUT /admin/config/auth` (extended with `twoFactorExemptRoles`)
+- Database changes: no new table; new field in `instance_config`
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests geschrieben (ausgenommene Rolle, nicht-ausgenommene Rolle, ungültige Rollen-ID)
-- [ ] Dokumentation aktualisiert
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests written (exempt role, non-exempt role, invalid role ID)
+- [ ] Documentation updated
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: US-020 (2FA-Erzwingung REQ-020 muss implementiert sein, damit Ausnahme wirken kann); OEA-Rollen-Modell muss existieren
-- Blockiert: keine
+- Waiting on: US-020 (2FA enforcement REQ-020 must be implemented so that the exemption can take effect); OEA role model must exist
+- Blocks: none
 
-## Notizen
+## Notes
 
-Default: `twoFactorExemptRoles=[]` – kein Unterschied zum bisherigen REQ-020-Verhalten. Max aktiviert die Ausnahme nur, wenn er es bewusst will. Der System-Admin-Account (UC-02) ist davon unabhängig immer ausgenommen.
+Default: `twoFactorExemptRoles=[]` – no difference from the previous REQ-020 behavior. Max enables the exemption only if he deliberately wants it. The system admin account (UC-02) is always exempt, independent of this.

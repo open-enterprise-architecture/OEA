@@ -1,398 +1,398 @@
-# Anti-Pattern-Katalog für das Arbeiten mit Agents
+# Anti-Pattern Catalog for Working with Agents
 
-Häufige Fehler im Vibe-Coding-Workflow und wie man sie vermeidet. Geschrieben als Prophylaxe – wenn du diese Muster kennst, fällst du seltener hinein.
+Common mistakes in the vibe coding workflow and how to avoid them. Written as prophylaxis – if you know these patterns, you fall into them less often.
 
-## Über die Struktur
+## About the Structure
 
-Pro Anti-Pattern:
-- **Symptom**: woran du es erkennst
-- **Ursache**: warum es passiert
-- **Konsequenz**: was schiefläuft, wenn es bleibt
-- **Gegenmaßnahme**: was du stattdessen tust
-
----
-
-## Kategorie 1: PO-Rolle
-
-### AP-01: Mikromanagement der Agents
-
-**Symptom**: Du genehmigst jeden Satz, den ein Agent schreibt. Du redest in jeden Modellierungs-Entscheid hinein. Du gibst Vorgaben bis auf Klassennamen.
-
-**Ursache**: Unsicherheit, ob die Agents wirklich gut arbeiten. Verstärkt durch erste positive Erfahrungen ("vielleicht ist Detail-Kontrolle der Schlüssel zum Erfolg").
-
-**Konsequenz**: Du bist Bottleneck, alles dauert mit dir doppelt so lange. Agents werden vorsichtig und fragen bei jedem Detail – das war nicht gewollt. Du verschwendest deine Zeit in falsche Detailtiefe.
-
-**Gegenmaßnahme**: Definiere klare Akzeptanz-Häppchen. Reviewe pro Use Case, nicht pro Satz. Lass die Agents 2-3 Stunden arbeiten, dann reviewe. Mikrokontrollen sind teuer.
+Per anti-pattern:
+- **Symptom**: how you recognize it
+- **Cause**: why it happens
+- **Consequence**: what goes wrong if it persists
+- **Countermeasure**: what you do instead
 
 ---
 
-### AP-02: PO als Bottleneck durch Abwesenheit
+## Category 1: PO Role
 
-**Symptom**: Agents fragen, du antwortest nicht für Tage. Wenn du zurückkommst, sind Annahmen getroffen oder Stillstand.
+### AP-01: Micromanaging the Agents
 
-**Ursache**: PO-Rolle wird als nebenher betrachtet. Vibe Coding wird unterschätzt – "die Agents machen das schon".
+**Symptom**: You approve every sentence an agent writes. You interfere in every modeling decision. You specify requirements down to class names.
 
-**Konsequenz**: Falsche Annahmen pflanzen sich fort. Refactoring später ist teuer. Agents lernen, dass Fragen wenig Sinn machen, und treffen mehr Annahmen.
+**Cause**: Uncertainty whether the agents really work well. Reinforced by first positive experiences ("maybe detailed control is the key to success").
 
-**Gegenmaßnahme**: Plane PO-Zeit ein wie Meeting-Slots. Mindestens 2-3 Stunden pro Tag während aktiver Phase. Wenn keine Zeit: Slot mit Agents kommunizieren ("bin morgen 14-16 Uhr verfügbar").
+**Consequence**: You are the bottleneck, everything takes twice as long with you. Agents become cautious and ask about every detail – that was not intended. You waste your time on the wrong level of detail.
 
----
-
-### AP-03: Vision-Drift durch schweigende Akzeptanz
-
-**Symptom**: Über Wochen schleichen sich Features ein, die nicht zur Vision passen. Du merkst es, akzeptierst aber, "weil schon halb fertig".
-
-**Ursache**: Reviews fokussieren auf "funktioniert es" statt "passt es zur Vision". Verstärkt durch Sunk-Cost-Fallacy.
-
-**Konsequenz**: Tool wird zur Frankenstein-Mischung aus widersprüchlichen Konzepten. Vision wird formal beibehalten, real ignoriert.
-
-**Gegenmaßnahme**: Bei jedem Review explizit fragen: "Würde das in der Vision-Aussage Platz finden?" Wenn nein: blockieren oder Vision-Revision begründen. Vision-Drift ist tödlicher als Bug.
+**Countermeasure**: Define clear acceptance chunks. Review per use case, not per sentence. Let the agents work for 2-3 hours, then review. Micro-controls are expensive.
 
 ---
 
-### AP-04: PO als Implementierer
+### AP-02: PO as Bottleneck Through Absence
 
-**Symptom**: Du schreibst selbst Code, weil "schneller als erklären". Du modellierst Business Objects selbst, weil "ich weiß doch was ich will".
+**Symptom**: Agents ask, you do not answer for days. When you come back, assumptions have been made or work has stalled.
 
-**Ursache**: Mangel an Geduld, technisches Selbstbewusstsein, Vertrauen-Aufbau zu Agents fehlt.
+**Cause**: The PO role is regarded as a side job. Vibe coding is underestimated – "the agents will manage".
 
-**Konsequenz**: Du wirst von PO zu Solo-Entwickler. Agents werden überflüssig. Vibe Coding als Idee scheitert.
+**Consequence**: Wrong assumptions propagate. Refactoring later is expensive. Agents learn that asking makes little sense and make more assumptions.
 
-**Gegenmaßnahme**: Diszipliniert. Wenn du den Wunsch zu coden hast: Stop. Frage dich, welcher Agent das machen sollte. Erklären statt coden ist eine Fähigkeit – sie zu trainieren ist die eigentliche Investition.
-
----
-
-## Kategorie 2: Agent-Nutzung
-
-### AP-05: Falscher Agent für die Aufgabe
-
-**Symptom**: Du fragst den Frontend Engineer nach Datenmodellierung. Du fragst den Backend Engineer nach UI-Layout. Du fragst den Solution Architect nach detaillierter Implementation.
-
-**Ursache**: Unklarheit über die Rollen, oder bequem den Agent zu fragen, mit dem du gerade arbeitest.
-
-**Konsequenz**: Antworten sind oberflächlich oder falsch. Agents arbeiten außerhalb ihres Mandats. Verantwortlichkeiten verschwimmen.
-
-**Gegenmaßnahme**: Quick Reference griffbereit. Im Zweifel: Solution Architect fragen, wer dafür zuständig ist. Er ist der Koordinator.
+**Countermeasure**: Plan PO time like meeting slots. At least 2-3 hours per day during the active phase. If no time: communicate the slot to the agents ("available tomorrow 2-4 pm").
 
 ---
 
-### AP-06: Mehrere Agents in einem Chat vermischen
+### AP-03: Vision Drift Through Silent Acceptance
 
-**Symptom**: Du wechselst im selben Chat zwischen Rollen ("jetzt als Backend Engineer ... jetzt als Frontend ..."). Antworten werden zunehmend allgemein und verlieren Rollen-Schärfe.
+**Symptom**: Over weeks, features creep in that do not fit the vision. You notice but accept "because it's already half done".
 
-**Ursache**: Bequemlichkeit, weniger Klicks. Verstärkt durch lange Sessions, in denen du müde wirst.
+**Cause**: Reviews focus on "does it work" instead of "does it fit the vision". Reinforced by the sunk cost fallacy.
 
-**Konsequenz**: Agent-Definitionen verwässern. Spezialisierung geht verloren. Du bekommst durchschnittliche statt rollen-spezifische Antworten.
+**Consequence**: The tool becomes a Frankenstein mix of contradictory concepts. The vision is formally retained, really ignored.
 
-**Gegenmaßnahme**: Eine Aufgabe = ein Agent = eine Session (wenn möglich). Bei längeren Phasen: Sessions pro Agent. Sub-Agent-Mechanismus (wenn verfügbar) nutzen.
-
----
-
-### AP-07: Persona als Agent missverstehen
-
-**Symptom**: Du sagst "Lass uns Franz fragen, was er will" – als ob Franz ein Agent wäre.
-
-**Ursache**: Persona-Konzept und Agent-Konzept werden verwechselt, weil beide "Rollen" beschreiben.
-
-**Konsequenz**: Agents werden falsch instruiert. Personas werden falsch verwendet. Klärungen verirren sich.
-
-**Gegenmaßnahme**: Personas sind fiktive *Nutzer* deines Endprodukts. Agents sind *Helfer* in der Entwicklung. Persona Franz fragt nicht – du fragst, **für Franz**. Falsche Formulierung: "Frag Franz". Richtige Formulierung: "Solution Architect, was würde Franz brauchen für ..."
+**Countermeasure**: In every review, explicitly ask: "Would this fit in the vision statement?" If not: block it or justify a vision revision. Vision drift is deadlier than a bug.
 
 ---
 
-### AP-08: Agent als Wissens-Orakel
+### AP-04: PO as Implementer
 
-**Symptom**: "Backend Engineer, was ist der Unterschied zwischen JWT und Session-Cookies?" – allgemeine Wissensfragen, nicht projektspezifisch.
+**Symptom**: You write code yourself because it is "faster than explaining". You model business objects yourself because "I know what I want".
 
-**Ursache**: Agents sind hilfsbereit und antworten. Es fühlt sich kosteneffizient an.
+**Cause**: Lack of patience, technical self-confidence, trust in agents not yet built.
 
-**Konsequenz**: Agent-Sessions werden lang, Tokens verbraucht. Antworten sind nicht besser als bei normalem Claude. Rollen-Klarheit leidet.
+**Consequence**: You turn from PO into a solo developer. Agents become superfluous. Vibe coding as an idea fails.
 
-**Gegenmaßnahme**: Allgemeine Wissensfragen direkt fragen, ohne Agent-Rolle. Agents sind für rollen-spezifische Arbeit, nicht für Recherche.
-
----
-
-## Kategorie 3: Anforderungs-Pipeline
-
-### AP-09: Sprung in die Implementation
-
-**Symptom**: Du sagst "lass uns das einfach mal bauen", überspringst Business Object, Use Case, Requirements. Engineer fängt an, du klärst während der Implementation.
-
-**Ursache**: Pragmatismus-Druck, "Time to first Feature" als Metrik.
-
-**Konsequenz**: Im Code stecken implizite Annahmen, die keiner dokumentiert hat. Refactoring später teuer. Onboarding neuer Personen unmöglich.
-
-**Gegenmaßnahme**: Erinnere dich, dass Anforderungs-Pipeline kein Bürokratie ist, sondern Wissens-Sicherung. Selbst für kleine Features ein Mini-Use-Case und 2-3 Requirements. Wenn nichts geschrieben wird, ist es zu klein, um Agents zu nutzen.
+**Countermeasure**: Be disciplined. If you feel the urge to code: stop. Ask yourself which agent should do it. Explaining instead of coding is a skill – training it is the actual investment.
 
 ---
 
-### AP-10: Use Case als CRUD-Liste
+## Category 2: Agent Usage
 
-**Symptom**: UC-01: "Application Component anlegen". UC-02: "Application Component lesen". UC-03: "Application Component ändern". UC-04: "Application Component löschen".
+### AP-05: Wrong Agent for the Task
 
-**Ursache**: Denken in Tabellen-Operationen statt in Zielen.
+**Symptom**: You ask the Frontend Engineer about data modeling. You ask the Backend Engineer about UI layout. You ask the Solution Architect about detailed implementation.
 
-**Konsequenz**: 100 Use Cases, alle bedeutungslos. Niemand erkennt mehr, was dem Endnutzer Wert bringt. Priorisierung wird unmöglich.
+**Cause**: Unclarity about the roles, or convenience of asking the agent you are currently working with.
 
-**Gegenmaßnahme**: Use Cases sind zielorientiert. "Franz will eine neue Anwendung erfassen, damit sie in der Inventar-Sicht erscheint" – das ist ein Use Case. CRUD-Operationen sind Requirements, die aus dem UC entstehen.
+**Consequence**: Answers are superficial or wrong. Agents work outside their mandate. Responsibilities blur.
+
+**Countermeasure**: Keep the quick reference at hand. If in doubt: ask the Solution Architect who is responsible. He is the coordinator.
 
 ---
 
-### AP-11: NFR ohne Zahlen
+### AP-06: Mixing Multiple Agents in One Chat
 
-**Symptom**: REQ-007: "System muss performant sein." REQ-008: "System muss sicher sein." REQ-009: "System muss benutzerfreundlich sein."
+**Symptom**: In the same chat you switch between roles ("now as Backend Engineer ... now as Frontend ..."). Answers become increasingly generic and lose role sharpness.
 
-**Ursache**: Schwierigkeit, konkrete Zielwerte zu bestimmen. Vermeidungs-Strategie.
+**Cause**: Convenience, fewer clicks. Reinforced by long sessions in which you get tired.
 
-**Konsequenz**: NFRs sind unprüfbar, also wertlos. Niemand kann nachweisen, dass sie erfüllt sind. Auditor wird unglücklich.
+**Consequence**: Agent definitions get diluted. Specialization is lost. You get average instead of role-specific answers.
 
-**Gegenmaßnahme**: Requirements Engineer ist explizit instruiert, NFRs ohne messbare Werte abzulehnen. Wenn du selbst keine Zahl weißt: Recherche oder geschätzte Zahl als Hypothese (besser als nichts). Beispiel: "p95 Response <500ms bei <1000 Entities". Korrigierbar.
+**Countermeasure**: One task = one agent = one session (if possible). For longer phases: sessions per agent. Use the sub-agent mechanism (if available).
+
+---
+
+### AP-07: Misunderstanding Persona as Agent
+
+**Symptom**: You say "Let's ask Franz what he wants" – as if Franz were an agent.
+
+**Cause**: Persona concept and agent concept are confused because both describe "roles".
+
+**Consequence**: Agents are instructed wrongly. Personas are used wrongly. Clarifications go astray.
+
+**Countermeasure**: Personas are fictional *users* of your end product. Agents are *helpers* in development. Persona Franz does not ask – you ask, **on behalf of Franz**. Wrong formulation: "Ask Franz". Right formulation: "Solution Architect, what would Franz need for ..."
+
+---
+
+### AP-08: Agent as Knowledge Oracle
+
+**Symptom**: "Backend Engineer, what is the difference between JWT and session cookies?" – general knowledge questions, not project-specific.
+
+**Cause**: Agents are helpful and answer. It feels cost-efficient.
+
+**Consequence**: Agent sessions get long, tokens are consumed. Answers are no better than with regular Claude. Role clarity suffers.
+
+**Countermeasure**: Ask general knowledge questions directly, without an agent role. Agents are for role-specific work, not for research.
+
+---
+
+## Category 3: Requirements Pipeline
+
+### AP-09: Jumping Into Implementation
+
+**Symptom**: You say "let's just build it", skipping business object, use case, requirements. The engineer starts, you clarify during implementation.
+
+**Cause**: Pragmatism pressure, "time to first feature" as a metric.
+
+**Consequence**: The code contains implicit assumptions that nobody documented. Refactoring later is expensive. Onboarding new people is impossible.
+
+**Countermeasure**: Remember that the requirements pipeline is not bureaucracy but knowledge preservation. Even for small features, a mini use case and 2-3 requirements. If nothing is written down, it is too small to use agents.
+
+---
+
+### AP-10: Use Case as CRUD List
+
+**Symptom**: UC-01: "Create Application Component". UC-02: "Read Application Component". UC-03: "Change Application Component". UC-04: "Delete Application Component".
+
+**Cause**: Thinking in table operations instead of goals.
+
+**Consequence**: 100 use cases, all meaningless. Nobody recognizes anymore what brings value to the end user. Prioritization becomes impossible.
+
+**Countermeasure**: Use cases are goal-oriented. "Franz wants to capture a new application so that it appears in the inventory view" – that is a use case. CRUD operations are requirements that arise from the UC.
+
+---
+
+### AP-11: NFR Without Numbers
+
+**Symptom**: REQ-007: "System must be performant." REQ-008: "System must be secure." REQ-009: "System must be user-friendly."
+
+**Cause**: Difficulty determining concrete target values. Avoidance strategy.
+
+**Consequence**: NFRs are unverifiable, hence worthless. Nobody can prove they are fulfilled. The auditor becomes unhappy.
+
+**Countermeasure**: The Requirements Engineer is explicitly instructed to reject NFRs without measurable values. If you do not know a number yourself: research or an estimated number as a hypothesis (better than nothing). Example: "p95 response <500ms with <1000 entities". Correctable.
 
 ---
 
 ### AP-12: Compound Requirement
 
-**Symptom**: REQ-042: "Das System muss Application Components anlegen, ändern, löschen können und dabei Audit-Log schreiben und Validierung durchführen."
+**Symptom**: REQ-042: "The system must be able to create, change, delete Application Components and write an audit log and perform validation while doing so."
 
-**Ursache**: Bequemlichkeit, "klingt wie eine zusammenhängende Anforderung".
+**Cause**: Convenience, "sounds like one coherent requirement".
 
-**Konsequenz**: Bei der Verifikation unklar, ob "anlegen funktioniert, aber Audit-Log fehlt" ein Pass oder Fail ist. Status-Tracking unmöglich.
+**Consequence**: During verification it is unclear whether "creating works, but the audit log is missing" is a pass or fail. Status tracking is impossible.
 
-**Gegenmaßnahme**: Atomarität ist Pflicht. Ein Requirement = ein MUSS. Compound trennen in mehrere REQs.
+**Countermeasure**: Atomicity is mandatory. One requirement = one MUST. Split compound requirements into several REQs.
 
 ---
 
 ### AP-13: Solution in Requirement
 
-**Symptom**: REQ-055: "Das System MUSS Redis als Cache verwenden." REQ-056: "Das System MUSS Postgres als Datenbank verwenden."
+**Symptom**: REQ-055: "The system MUST use Redis as cache." REQ-056: "The system MUST use Postgres as database."
 
-**Ursache**: Verwechslung von "was" und "wie".
+**Cause**: Confusion of "what" and "how".
 
-**Konsequenz**: Solution Design verlagert sich in Requirements. Solution Architect verliert seinen Spielraum. Falsche Tech-Wahl wird zementiert.
+**Consequence**: Solution design shifts into requirements. The Solution Architect loses his room for maneuver. Wrong tech choice gets cemented.
 
-**Gegenmaßnahme**: Requirement beschreibt nur **was** das System leisten muss, nicht **wie**. Statt "Redis als Cache" → "Wiederholte Lookups mit Hit-Rate >95% bei kohärenten Daten". Tech-Wahl ist Lösungs-Design, kommt in ADR.
-
----
-
-### AP-14: Requirement ohne Use-Case-Bezug
-
-**Symptom**: REQ-100 existiert, keiner weiß warum. Bei Frage "wer braucht das" zuckt jeder mit den Schultern.
-
-**Ursache**: Anforderung wurde vorausschauend angelegt, "weil mal sicher gebraucht".
-
-**Konsequenz**: Backlog wächst um Requirements, die nie implementiert werden, aber Lärm in Priorisierung erzeugen.
-
-**Gegenmaßnahme**: Jedes Requirement muss mindestens einen Use-Case-Bezug haben. Wenn keiner existiert: Requirement löschen oder erst Use Case formulieren. "Trace-check" hilft dabei.
+**Countermeasure**: A requirement describes only **what** the system must achieve, not **how**. Instead of "Redis as cache" → "Repeated lookups with hit rate >95% for coherent data". Tech choice is solution design, goes into an ADR.
 
 ---
 
-## Kategorie 4: Spec-Disziplin
+### AP-14: Requirement Without Use Case Reference
 
-### AP-15: Spec-Code-Drift
+**Symptom**: REQ-100 exists, nobody knows why. When asked "who needs this", everyone shrugs.
 
-**Symptom**: OpenAPI sagt POST /api/v1/applications nimmt JSON mit Field "name". Backend nimmt aber "title" entgegen. Frontend sendet "name". 500-Fehler.
+**Cause**: The requirement was created in advance, "because it will surely be needed some day".
 
-**Ursache**: Backend hat während Implementation Feldname geändert, Spec nicht aktualisiert.
+**Consequence**: The backlog grows by requirements that are never implemented but create noise in prioritization.
 
-**Konsequenz**: Vertrauen in Specs bricht zusammen. Frontend und Backend brauchen eigene Tests gegeneinander. Spec wird sinnlos.
-
-**Gegenmaßnahme**: Contract-Tests in CI: jeder PR validiert Spec gegen Implementation. Spec-Änderung ist eigener PR mit Solution-Architect-Review. Backend/Frontend dürfen Spec nicht eigenmächtig ändern.
+**Countermeasure**: Every requirement must have at least one use case reference. If none exists: delete the requirement or formulate the use case first. "Trace check" helps with this.
 
 ---
 
-### AP-16: Spec mit Implementation gemischt
+## Category 4: Spec Discipline
 
-**Symptom**: OpenAPI-Spec enthält Hinweise wie "wird via SQL aus tabelle X geholt" oder "verwendet Redis-Cache".
+### AP-15: Spec-Code Drift
 
-**Ursache**: Implementer schreibt Implementations-Details in Spec, weil "praktisch zur Doku".
+**Symptom**: OpenAPI says POST /api/v1/applications takes JSON with field "name". The backend, however, accepts "title". The frontend sends "name". 500 error.
 
-**Konsequenz**: Spec ist nicht mehr unabhängig vom Backend. Frontend sieht Backend-Details. Migration zu anderem Backend wird unmöglich.
+**Cause**: The backend changed the field name during implementation, the spec was not updated.
 
-**Gegenmaßnahme**: Spec beschreibt nur die Schnittstelle: Endpunkt, Method, Request, Response. Implementations-Hinweise gehören in Code-Kommentare oder Backend-README, nicht in Spec.
+**Consequence**: Trust in specs collapses. Frontend and backend need their own tests against each other. The spec becomes pointless.
 
----
-
-### AP-17: Spec-First in der Theorie, Code-First in der Praxis
-
-**Symptom**: Spec wird "irgendwann" geschrieben, nachdem Backend bereits implementiert wurde. Frontend wartet.
-
-**Ursache**: Bequemlichkeit, "ich denke beim Coden schon, wie die API aussieht".
-
-**Konsequenz**: Spec ist nicht mehr Quelle der Wahrheit, sondern nachträgliche Dokumentation. Frontend kann nicht parallel starten. Vorteil von Spec-First geht verloren.
-
-**Gegenmaßnahme**: Solution Architect erstellt Spec **vor** Tickets. Backend und Frontend bekommen Tickets erst, wenn Spec ready ist. CI prüft Spec-Existenz.
+**Countermeasure**: Contract tests in CI: every PR validates spec against implementation. A spec change is its own PR with Solution Architect review. Backend/frontend must not change the spec on their own authority.
 
 ---
 
-## Kategorie 5: Sicherheit und Compliance
+### AP-16: Spec Mixed with Implementation
 
-### AP-18: Security als Nachgedanke
+**Symptom**: The OpenAPI spec contains notes such as "is fetched via SQL from table X" or "uses Redis cache".
 
-**Symptom**: Feature wird gebaut, dann Security Engineer dazu geholt. Findings sind Critical, alles muss umgebaut werden.
+**Cause**: The implementer writes implementation details into the spec because it is "handy as documentation".
 
-**Ursache**: Security wird als Quality Gate verstanden, nicht als Design-Constraint.
+**Consequence**: The spec is no longer independent of the backend. The frontend sees backend details. Migration to another backend becomes impossible.
 
-**Konsequenz**: Massiv teures Refactoring. Frust bei Engineers. Security-Engineer wird als Bremsklotz wahrgenommen.
-
-**Gegenmaßnahme**: Security Engineer ist bei Spec-Reviews dabei, nicht erst beim Code-Review. Threat-Modeling als Teil der Architektur-Klärung. Sichere Defaults von Anfang an.
+**Countermeasure**: The spec describes only the interface: endpoint, method, request, response. Implementation notes belong in code comments or the backend README, not in the spec.
 
 ---
 
-### AP-19: Audit-Trail als Toggle
+### AP-17: Spec-First in Theory, Code-First in Practice
 
-**Symptom**: Konfiguration enthält "audit_log_enabled: false" als Option. Begründung: "manche Nutzer wollen weniger Logging".
+**Symptom**: The spec is written "some time" after the backend has already been implemented. The frontend waits.
 
-**Ursache**: Pseudo-Flexibilität, Bequemlichkeit für Development-Umgebung.
+**Cause**: Convenience, "I already think about what the API looks like while coding".
 
-**Konsequenz**: In Produktion wird vergessen, Audit zu aktivieren. Compliance-Audit findet Lücken. Tool unbrauchbar in regulierten Umgebungen.
+**Consequence**: The spec is no longer the source of truth but retroactive documentation. The frontend cannot start in parallel. The advantage of spec-first is lost.
 
-**Gegenmaßnahme**: Audit-Trail ist Pflicht, nicht Toggle. Punkt. Wenn Development-Umgebung leichteres Logging braucht: andere Log-Stufe, aber Audit bleibt.
-
----
-
-### AP-20: Property-Level-AuthZ "macht später"
-
-**Symptom**: MVP wird mit Entity-Level-AuthZ gebaut. Property-Level kommt "nach dem Walking Skeleton".
-
-**Ursache**: Komplexitäts-Vermeidung, Performance-Sorgen.
-
-**Konsequenz**: Architektur-Refactoring später unbezahlbar. Personas SH-05 (CIO) und SH-06 (Max) lehnen Tool ab. OSS-Adoption in regulierten Umgebungen blockiert.
-
-**Gegenmaßnahme**: Property-Level-AuthZ ist im Konzept als Pflicht definiert. Von Anfang an in der Architektur denken. Auch wenn initial wenige Properties geschützt sind, das Framework muss stehen.
+**Countermeasure**: The Solution Architect creates the spec **before** tickets. Backend and frontend only get tickets once the spec is ready. CI checks the spec's existence.
 
 ---
 
-## Kategorie 6: Dokumentations-Disziplin
+## Category 5: Security and Compliance
 
-### AP-21: Veraltete Konzept-Verweise
+### AP-18: Security as an Afterthought
 
-**Symptom**: ADR verweist auf "§7 Motivation". Aber im Konzept ist §7 jetzt "Stakeholder & Goals". Niemand merkt es, bis ein neuer Contributor verwirrt ist.
+**Symptom**: The feature is built, then the Security Engineer is brought in. Findings are critical, everything must be rebuilt.
 
-**Ursache**: Konzept evolviert, Querverweise bleiben starr.
+**Cause**: Security is understood as a quality gate, not as a design constraint.
 
-**Konsequenz**: Vertrauen in Doku bricht. Refactoring wird vermieden. Konzept driftet von Realität.
+**Consequence**: Massively expensive refactoring. Frustration among engineers. The Security Engineer is perceived as a drag.
 
-**Gegenmaßnahme**: Link-Validierung in CI (`scripts/validate_links.py`). Bei jedem Konzept-Release Verweise prüfen. Solution Architect ist verantwortlich für Konsistenz.
-
----
-
-### AP-22: Doku als Nachgedanke
-
-**Symptom**: Code wird gemerged, README wird "irgendwann" aktualisiert.
-
-**Ursache**: Doku gilt als "nicht-funktional", "kann nachgeholt werden".
-
-**Konsequenz**: Doku driftet, neue Contributors verlieren sich, Onboarding wird teuer.
-
-**Gegenmaßnahme**: Doku ist Teil der Definition of Done. Kein Merge ohne aktualisierte Doku. AGENTS.md ist verbindlich.
+**Countermeasure**: The Security Engineer takes part in spec reviews, not only in the code review. Threat modeling as part of the architecture clarification. Secure defaults from the start.
 
 ---
 
-### AP-23: Geheime Annahmen
+### AP-19: Audit Trail as a Toggle
 
-**Symptom**: Backend-Implementation funktioniert nur, wenn die DB UTF-8 hat. Steht nirgends. Bei Deployment auf anderer DB: Bug.
+**Symptom**: Configuration contains "audit_log_enabled: false" as an option. Justification: "some users want less logging".
 
-**Ursache**: Implementer macht Annahmen, die für ihn offensichtlich sind, vergisst Dokumentation.
+**Cause**: Pseudo-flexibility, convenience for the development environment.
 
-**Konsequenz**: Operations-Probleme (Max wäre erbost). Reproduzierbarkeit leidet.
+**Consequence**: In production, activating audit is forgotten. The compliance audit finds gaps. The tool is unusable in regulated environments.
 
-**Gegenmaßnahme**: Solution Architect prüft bei Integration: "Was sind die unausgesprochenen Voraussetzungen?" Diese kommen in README oder NFR.
-
----
-
-## Kategorie 7: Skalierung der Arbeit
-
-### AP-24: Über-Spezifikation auf Vorrat
-
-**Symptom**: Du modellierst 50 Business Objects "weil mal sicher gebraucht". UC-Katalog hat 100 Einträge, davon nur 5 priorisiert.
-
-**Ursache**: Vollständigkeits-Wunsch, akademisches Denken.
-
-**Konsequenz**: Modellierung kostet Wochen, ohne dass Code entsteht. Demotivation. Modelle altern, bevor sie implementiert werden.
-
-**Gegenmaßnahme**: Just-in-Time-Modellierung. Modelliere, was du in den nächsten 2-4 Wochen brauchst. Mehr ist Verschwendung, weniger ist Risiko.
+**Countermeasure**: The audit trail is mandatory, not a toggle. Period. If the development environment needs lighter logging: a different log level, but audit stays.
 
 ---
 
-### AP-25: Walking Skeleton als Big Bang
+### AP-20: Property-Level AuthZ "Later"
 
-**Symptom**: Walking Skeleton soll "alle wichtigen Features" enthalten. 20+ Use Cases sind MUST.
+**Symptom**: The MVP is built with entity-level AuthZ. Property level comes "after the walking skeleton".
 
-**Ursache**: Falsches Verständnis. Walking Skeleton ist nicht "minimaler Marktwert", sondern "end-to-end-funktionierender Durchstich".
+**Cause**: Complexity avoidance, performance concerns.
 
-**Konsequenz**: Walking Skeleton dauert 6 Monate. Vibe Coding scheitert vorher.
+**Consequence**: Architecture refactoring later is unaffordable. Personas SH-05 (CIO) and SH-06 (Max) reject the tool. OSS adoption in regulated environments blocked.
 
-**Gegenmaßnahme**: Walking Skeleton ist ein **einziger** End-to-End-Durchstich: ein einfacher Use Case, der die gesamte Architektur testet. Vielleicht "Application Component anlegen und in Liste sehen". Mehr nicht. Alles andere baut darauf auf.
-
----
-
-### AP-26: Refactoring als Tabu
-
-**Symptom**: Ein Use Case wurde modelliert, später stellt sich heraus, er war falsch. Statt zu ändern, wird die falsche Annahme im ganzen System mitgeschleppt.
-
-**Ursache**: Sunk-Cost-Fallacy. Angst vor Mehraufwand.
-
-**Konsequenz**: Falsche Strukturen verstärken sich. Schulden wachsen.
-
-**Gegenmaßnahme**: Falsche Annahmen früh korrigieren ist immer billiger. ADR-Mechanismus erlaubt, Entscheidungen explizit als `superseded` zu markieren. Use Cases haben Versionierung.
+**Countermeasure**: Property-level AuthZ is defined as mandatory in the concept. Think about it in the architecture from the start. Even if initially few properties are protected, the framework must be in place.
 
 ---
 
-## Kategorie 8: Mensch-Maschine-Dynamik
+## Category 6: Documentation Discipline
 
-### AP-27: Übertriebenes Vertrauen
+### AP-21: Outdated Concept References
 
-**Symptom**: Du akzeptierst alles, was Agents produzieren, ohne kritisch zu prüfen.
+**Symptom**: An ADR refers to "§7 Motivation". But in the concept §7 is now "Stakeholders & Goals". Nobody notices until a new contributor is confused.
 
-**Ursache**: Erste positive Erfahrungen, Energie-Sparen, Vertrauen-Aufbau zu Agents.
+**Cause**: The concept evolves, cross-references stay rigid.
 
-**Konsequenz**: Subtile Fehler schleichen sich ein. Du bemerkst sie erst spät, wenn Refactoring teuer ist.
+**Consequence**: Trust in documentation collapses. Refactoring is avoided. The concept drifts from reality.
 
-**Gegenmaßnahme**: Kritisch reviewen ist Pflicht. Agents sind nicht unfehlbar. Trust but verify.
-
----
-
-### AP-28: Übertriebenes Misstrauen
-
-**Symptom**: Du hinterfragst jedes Detail, schreibst alles um, Agents werden nutzlos.
-
-**Ursache**: Negative Erfahrung in der Vergangenheit, Kontrollbedürfnis.
-
-**Konsequenz**: Vibe Coding kostet mehr Zeit als Solo-Arbeit. Du verlierst Motivation.
-
-**Gegenmaßnahme**: Vertrauen aufbauen durch positive Erfahrung. Erlaube Agents, Aufgaben vollständig zu erledigen, bevor du reviewst. Lerne, welche Agents in welchen Bereichen zuverlässig sind.
+**Countermeasure**: Link validation in CI (`scripts/validate_links.py`). Check references with every concept release. The Solution Architect is responsible for consistency.
 
 ---
 
-### AP-29: Agents als Therapeuten
+### AP-22: Documentation as an Afterthought
 
-**Symptom**: Du diskutierst stundenlang mit Solution Architect, wann der "richtige Moment" für eine Entscheidung ist.
+**Symptom**: Code is merged, the README is updated "some time".
 
-**Ursache**: Entscheidungsunsicherheit. Agents sind höflich, blockieren nicht.
+**Cause**: Documentation is regarded as "non-functional", "can be caught up later".
 
-**Konsequenz**: Massive Token-Verschwendung. Keine Fortschritte.
+**Consequence**: Documentation drifts, new contributors get lost, onboarding becomes expensive.
 
-**Gegenmaßnahme**: Wenn du dreimal über dieselbe Sache redest: Entscheide. Auch falsche Entscheidung ist besser als Nicht-Entscheidung. ADRs sind reversibel.
+**Countermeasure**: Documentation is part of the definition of done. No merge without updated documentation. AGENTS.md is binding.
 
 ---
 
-## Notfall-Checkliste
+### AP-23: Secret Assumptions
 
-Wenn etwas spürbar schiefläuft, gehe diese Liste durch:
+**Symptom**: The backend implementation only works if the DB is UTF-8. This is written nowhere. On deployment to another DB: bug.
 
-- [ ] Bin ich noch in der Vision? (Vision-Dokument lesen)
-- [ ] Habe ich vor 3 Tagen eine Annahme akzeptiert, die ich heute hinterfragen würde?
-- [ ] Sind die Specs noch Quelle der Wahrheit?
-- [ ] Hat ein Agent eine falsche Rolle übernommen?
-- [ ] Wurden Tests übersprungen?
-- [ ] Security-Review umgangen?
-- [ ] Persona-Bezug aller Artefakte noch klar?
-- [ ] Trace-Matrix gepflegt?
+**Cause**: The implementer makes assumptions that are obvious to them and forgets documentation.
 
-Wenn 2+ Punkte "nein": Pause machen, mit Solution Architect den aktuellen Stand reflektieren, ggf. Korrektur planen.
+**Consequence**: Operations problems (Max would be furious). Reproducibility suffers.
 
-## Drei goldene Schutz-Regeln
+**Countermeasure**: During integration, the Solution Architect checks: "What are the unspoken prerequisites?" These go into the README or an NFR.
 
-1. **Bei Zweifel: Eine Frage statt zehn Annahmen**. Agents fragen lassen ist besser als später raten.
-2. **Bei Konflikt: PO entscheidet, ADR dokumentiert**. Keine Konflikte aussitzen.
-3. **Bei Hektik: Stoppen ist billiger als später Reparieren**. Müde macht Bugs.
+---
+
+## Category 7: Scaling the Work
+
+### AP-24: Over-Specification in Advance
+
+**Symptom**: You model 50 business objects "because they will surely be needed some day". The UC catalog has 100 entries, of which only 5 are prioritized.
+
+**Cause**: Desire for completeness, academic thinking.
+
+**Consequence**: Modeling costs weeks without any code being produced. Demotivation. Models age before they are implemented.
+
+**Countermeasure**: Just-in-time modeling. Model what you need in the next 2-4 weeks. More is waste, less is risk.
+
+---
+
+### AP-25: Walking Skeleton as Big Bang
+
+**Symptom**: The walking skeleton is supposed to contain "all important features". 20+ use cases are MUST.
+
+**Cause**: Wrong understanding. A walking skeleton is not "minimal market value" but "an end-to-end working slice".
+
+**Consequence**: The walking skeleton takes 6 months. Vibe coding fails before that.
+
+**Countermeasure**: The walking skeleton is a **single** end-to-end slice: one simple use case that tests the entire architecture. Perhaps "create Application Component and see it in a list". Nothing more. Everything else builds on it.
+
+---
+
+### AP-26: Refactoring as Taboo
+
+**Symptom**: A use case was modeled, later it turns out it was wrong. Instead of changing it, the wrong assumption is carried along through the whole system.
+
+**Cause**: Sunk cost fallacy. Fear of additional effort.
+
+**Consequence**: Wrong structures reinforce themselves. Debt grows.
+
+**Countermeasure**: Correcting wrong assumptions early is always cheaper. The ADR mechanism allows decisions to be explicitly marked as `superseded`. Use cases have versioning.
+
+---
+
+## Category 8: Human-Machine Dynamics
+
+### AP-27: Excessive Trust
+
+**Symptom**: You accept everything agents produce without checking critically.
+
+**Cause**: First positive experiences, saving energy, building trust in agents.
+
+**Consequence**: Subtle errors creep in. You notice them late, when refactoring is expensive.
+
+**Countermeasure**: Critical review is mandatory. Agents are not infallible. Trust but verify.
+
+---
+
+### AP-28: Excessive Distrust
+
+**Symptom**: You question every detail, rewrite everything, agents become useless.
+
+**Cause**: Negative experience in the past, need for control.
+
+**Consequence**: Vibe coding costs more time than solo work. You lose motivation.
+
+**Countermeasure**: Build trust through positive experience. Allow agents to complete tasks fully before you review. Learn which agents are reliable in which areas.
+
+---
+
+### AP-29: Agents as Therapists
+
+**Symptom**: You discuss with the Solution Architect for hours when the "right moment" for a decision is.
+
+**Cause**: Indecision. Agents are polite, they do not block.
+
+**Consequence**: Massive token waste. No progress.
+
+**Countermeasure**: If you talk about the same thing three times: decide. Even a wrong decision is better than no decision. ADRs are reversible.
+
+---
+
+## Emergency Checklist
+
+If something noticeably goes wrong, go through this list:
+
+- [ ] Am I still within the vision? (read the vision document)
+- [ ] Did I accept an assumption 3 days ago that I would question today?
+- [ ] Are the specs still the source of truth?
+- [ ] Has an agent taken on a wrong role?
+- [ ] Were tests skipped?
+- [ ] Security review bypassed?
+- [ ] Is the persona reference of all artifacts still clear?
+- [ ] Is the trace matrix maintained?
+
+If 2+ items are "no": take a break, reflect on the current state with the Solution Architect, plan a correction if needed.
+
+## Three Golden Protection Rules
+
+1. **When in doubt: one question instead of ten assumptions**. Letting agents ask is better than guessing later.
+2. **In case of conflict: PO decides, ADR documents**. Do not sit out conflicts.
+3. **In case of haste: stopping is cheaper than repairing later**. Tired makes bugs.

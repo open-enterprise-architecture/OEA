@@ -1,6 +1,6 @@
 ---
 id: REQ-008
-title: Login-Latenz
+title: Login latency
 type: non-functional
 priority: should
 status: proposed
@@ -18,93 +18,93 @@ references:
   stakeholders:
     - SH-03
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-008: Login-Latenz
+# REQ-008: Login latency
 
-## Aussage
+## Statement
 
-Das System SOLL den Login-Vorgang (ab Einlösen des Authorization Codes bzw. Validierung des API-Keys bis zur Session-Bestätigung) innerhalb eines definierten Zeitbudgets abschließen.
+The system SHOULD complete the login process (from redeeming the authorization code or validating the API key to session confirmation) within a defined time budget.
 
-## Begründung
+## Rationale
 
-UC-01, Realisierungs-Hinweise: Login ist ein hochfrequenter, latenzkritischer Pfad. Lange Login-Zeiten beeinträchtigen die tägliche Nutzung, insbesondere für SH-03 (Kurt), der das Tool täglich nutzt.
+UC-01, Implementation Notes: Login is a high-frequency, latency-critical path. Long login times impair daily use, especially for SH-03 (Kurt), who uses the tool daily.
 
-## Kontext
+## Context
 
-Gilt für den serverseitigen Anteil des Login-Vorgangs (Token-Einlösung, Person-/Rollen-Lookup, Session-Erstellung); die Zeit, die eine Person beim externen Identity-Provider selbst verbringt (Credential-Eingabe), ist nicht Teil dieses Requirements.
+Applies to the server-side portion of the login process (token redemption, person/role lookup, session creation); the time a person spends at the external identity provider itself (entering credentials) is not part of this requirement.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=non-functional
+### For type=non-functional
 
-**Kategorie**: performance
+**Category**: performance
 
-**Messbare Zielwerte**:
+**Measurable Target Values**:
 
-| Metrik | Zielwert | Schwellwert (warning) | Schwellwert (critical) | Scope |
+| Metric | Target value | Threshold (warning) | Threshold (critical) | Scope |
 |---|---|---|---|---|
-| p95 Server-Verarbeitungszeit Login (Token-Einlösung bis Session-Bestätigung) | < 300ms | 500ms | 1000ms | bei bis zu 10.000 Personen und 1.000 Rollen im Repository |
-| p95 API-Key-Validierung | < 100ms | 200ms | 500ms | bei bis zu 10.000 aktiven API-Keys |
+| p95 server processing time for login (token redemption to session confirmation) | < 300ms | 500ms | 1000ms | with up to 10,000 persons and 1,000 roles in the repository |
+| p95 API key validation | < 100ms | 200ms | 500ms | with up to 10,000 active API keys |
 
-**Beispiel**: "p95 Login-Verarbeitungszeit < 300ms bei 10.000 Personen im Repository"
+**Example**: "p95 login processing time < 300ms with 10,000 persons in the repository"
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: ein Repository mit 10.000 Personen und 1.000 Rollen
-- Wenn: 95% der OIDC-Login-Vorgänge gemessen werden (serverseitiger Anteil)
-- Dann: liegt die Verarbeitungszeit unter 300ms
+- Given: a repository with 10,000 persons and 1,000 roles
+- When: 95% of OIDC login processes are measured (server-side portion)
+- Then: the processing time is below 300ms
 
 **AC2**:
-- Gegeben: ein Repository mit 10.000 aktiven API-Keys
-- Wenn: 95% der API-Key-Validierungen gemessen werden
-- Dann: liegt die Verarbeitungszeit unter 100ms
+- Given: a repository with 10,000 active API keys
+- When: 95% of API key validations are measured
+- Then: the processing time is below 100ms
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert, Lasttest)
-- [x] Test-Setup: Lasttest mit synthetischem Repository-Datensatz (10.000 Personen, 1.000 Rollen, 10.000 API-Keys)
-- [x] Mess-Werkzeug: Last-/Performance-Test-Tool (konkrete Wahl: Solution-Design, nicht hier festzulegen)
-- [x] Bestanden-Kriterium: p95-Werte gemäß Tabelle eingehalten
-- [ ] In CI integriert: ja, als Performance-Gate sobald Implementation existiert
+- [x] Method: test (automatisiert, Lasttest)
+- [x] Test setup: load test with a synthetic repository dataset (10,000 persons, 1,000 roles, 10,000 API keys)
+- [x] Measurement tool: load/performance test tool (specific choice: solution design, not to be fixed here)
+- [x] Pass criterion: p95 values met per the table
+- [ ] Integrated in CI: yes, as a performance gate once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-001, REQ-002
-- **Folgewirkungen**: keine bekannt
-- **Konflikte**: REQ-004, REQ-006 (zusätzliche Lookup-/Anti-Timing-Maßnahmen dürfen das Latenzbudget nicht sprengen)
+- **Prerequisites**: REQ-001, REQ-002
+- **Downstream effects**: none known
+- **Conflicts**: REQ-004, REQ-006 (additional lookup/anti-timing measures must not blow the latency budget)
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Spürbar langsamer Login mindert tägliche Akzeptanz, besonders bei häufiger Nutzung – mittlerer Schweregrad
+- Risk 1: Noticeably slow login reduces daily acceptance, especially with frequent use – medium severity
 
 ## Trade-offs
 
-- vs. REQ-006 (konstante Antwortzeit gegen Timing-Seitenkanäle): künstliche Verzögerung zur Anti-Timing-Maßnahme darf das hier definierte Budget nicht überschreiten
+- vs. REQ-006 (constant response time against timing side channels): the artificial delay used as an anti-timing measure must not exceed the budget defined here
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Rollenzuweisungen sollten gecacht werden, nicht bei jedem Login neu aus dem Repository aufgelöst (siehe UC-01 Realisierungs-Hinweise)
-- Konkrete Zielwerte sind vorläufig (Walking-Skeleton-Annahme) und bei realer Lastmessung zu validieren
+- Role assignments should be cached rather than resolved anew from the repository on every login (see UC-01 Implementation Notes)
+- The specific target values are provisional (walking skeleton assumption) and must be validated through real load measurement
 
-## Realisierung
+## Implementation
 
-- ADR(s): keine
-- Implementiert durch: –
+- ADR(s): none
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Zielwerte sind erste Schätzung für den Walking-Skeleton-Scope, keine validierten Produktions-SLAs. Bei Bedarf in Review anpassen.
+Target values are a first estimate for the walking skeleton scope, not validated production SLAs. Adjust in review if needed.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft aus UC-01 |
+| 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |

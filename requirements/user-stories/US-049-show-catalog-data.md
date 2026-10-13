@@ -1,61 +1,61 @@
-# US-049: Katalog-Daten anzeigen und sortieren
+# US-049: Display and Sort Catalog Data
 
 **ID**: US-049
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Katalog-Besucher möchte ich die Entitäten eines Katalogs als sortierbare Tabelle mit den konfigurierten Spalten sehen – damit ich einen schnellen strukturierten Überblick über die Architektur-Landschaft bekomme, ohne das Repository manuell durchsuchen zu müssen.
+As a catalog visitor, I want to see the entities of a catalog as a sortable table with the configured columns – so that I get a quick structured overview of the architecture landscape without having to search the repository manually.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-06: Architektur-Katalog anlegen, konfigurieren und verwenden](../use-cases/UC-06-katalog-anlegen-und-verwenden.md)
-**Persona**: Alle Stakeholder (SH-01 bis SH-07)
-**Requirement**: [REQ-046: Katalog-Abfrage ausführen](../req/REQ-046-katalog-abfrage.md)
+**Use Case**: [UC-06: Create, Configure and Use an Architecture Catalog](../use-cases/UC-06-create-and-use-catalog.md)
+**Persona**: All stakeholders (SH-01 to SH-07)
+**Requirement**: [REQ-046: Execute Catalog Query](../req/REQ-046-catalog-query.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Tabelle anzeigen):
-- Gegeben: Katalog „Application Inventory" mit primaryEntityType=ApplicationComponent, Spalten [name, status], Join „Schnittstellen" (aggregate), Repository enthält 3 ApplicationComponents
-- Wenn: Franz öffnet den Katalog
-- Dann: Tabelle mit 3 Zeilen (je eine Applikation), Spalten „name" und „status" sichtbar; Spalte „Schnittstellen" zeigt aggregierte Interface-Namen
+**AC1** (display table):
+- Given: Catalog "Application Inventory" with primaryEntityType=ApplicationComponent, columns [name, status], join "Interfaces" (aggregate), repository contains 3 ApplicationComponents
+- When: Franz opens the catalog
+- Then: Table with 3 rows (one per application), columns "name" and "status" visible; column "Interfaces" shows aggregated interface names
 
-**AC2** (Sortierung aufsteigend):
-- Wenn: Franz klickt auf Spalten-Header „name"
-- Dann: Tabelle sortiert alphabetisch aufsteigend nach name; Header zeigt Pfeil ↑
+**AC2** (sort ascending):
+- When: Franz clicks on column header "name"
+- Then: Table sorted alphabetically ascending by name; header shows arrow ↑
 
-**AC3** (Sortierung wechseln):
-- Wenn: Franz klickt erneut auf „name"-Header
-- Dann: Tabelle sortiert absteigend; zweiter Klick → keine Sortierung (zurück zu Default)
+**AC3** (switch sorting):
+- When: Franz clicks the "name" header again
+- Then: Table sorted descending; second click → no sorting (back to default)
 
-**AC4** (Leeres Repository):
-- Gegeben: primaryEntityType hat keine Entitäten
-- Wenn: Franz öffnet den Katalog
-- Dann: Leere Tabelle mit Hinweistext „Keine Einträge gefunden. Entitäten können als Delta in einer Solution erfasst werden."
+**AC4** (empty repository):
+- Given: primaryEntityType has no entities
+- When: Franz opens the catalog
+- Then: Empty table with hint text "No entries found. Entities can be captured as a delta in a solution."
 
-**AC5** (Paginierung):
-- Gegeben: Repository enthält 120 ApplicationComponents
-- Wenn: Franz öffnet den Katalog (pageSize=50 Default)
-- Dann: Erste Seite zeigt 50 Einträge; Paginierungssteuerung zeigt „Seite 1 von 3" (120 / 50); Seite 2 über Paginierungs-Kontrolle erreichbar
+**AC5** (pagination):
+- Given: Repository contains 120 ApplicationComponents
+- When: Franz opens the catalog (pageSize=50 default)
+- Then: First page shows 50 entries; pagination control shows "Page 1 of 3" (120 / 50); page 2 reachable via pagination control
 
-**AC6** (Default-SavedView anwenden):
-- Gegeben: Katalog hat Default-SavedView „Kompaktansicht" (nur Spalten name, status; Filter „Nur aktive Systeme" aktiv)
-- Wenn: Franz öffnet den Katalog
-- Dann: Tabelle zeigt nur Spalten name und status; nur aktive Entitäten sichtbar; aktiver Filter ist in der Filter-Leiste sichtbar markiert
+**AC6** (apply default SavedView):
+- Given: Catalog has default SavedView "Compact view" (only columns name, status; filter "Active systems only" active)
+- When: Franz opens the catalog
+- Then: Table shows only columns name and status; only active entities visible; active filter is visibly marked in the filter bar
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Katalog-Detailansicht (Tabellen-Komponente), Backend `GET /api/v1/catalogs/{id}/query`
-- Sortierung: sortBy + sortDir als Query-Parameter; Klick auf Header setzt/wechselt diese Parameter
-- Join-Spalten im aggregate-Modus: komma-separierte Liste der ersten N Werte; Tooltip oder Popover für vollständige Liste wenn > N Werte
-- Abhängigkeit: US-046 muss abgeschlossen sein; US-047 sollte abgeschlossen sein (sonst keine Spalten konfiguriert)
+- Affected components: catalog detail view (table component), backend `GET /api/v1/catalogs/{id}/query`
+- Sorting: sortBy + sortDir as query parameters; clicking a header sets/changes these parameters
+- Join columns in aggregate mode: comma-separated list of the first N values; tooltip or popover for the full list if > N values
+- Dependency: US-046 must be completed; US-047 should be completed (otherwise no columns configured)
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien AC1–AC6 erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests: Tabelle befüllt, Sortierung asc/desc, leere Tabelle, Paginierung, Default-SavedView angewendet
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria AC1–AC6 met
+- [ ] Code review by a second person
+- [ ] Tests: table populated, sorting asc/desc, empty table, pagination, default SavedView applied
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix

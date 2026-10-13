@@ -32,80 +32,80 @@ superseded_by: []
 
 # REQ-144: Collapsible Shape Palette Panel in Diagram Editor
 
-## Aussage
+## Statement
 
-Das System MUSS im Diagramm-Editor eine Shape-Palette anbieten, die als eigenständiges Panel zwischen dem Explorer und dem Diagram-Canvas positioniert ist. Das Panel MUSS per Toggle-Button (◀ / ▶) vollständig ein- und ausgeblendet werden können. Die Palette MUSS die verfügbaren Metamodell-Entitäten als ziehbare Shape-Vorlagen anzeigen, gefiltert nach dem aktuell aktiven Viewpoint (REQ-047 Viewpoint-Definition). Entitätstypen, die für den aktiven Viewpoint nicht erlaubt sind, MÜSSEN ausgegraut oder ausgeblendet sein.
+The system MUST offer a shape palette in the diagram editor, positioned as a standalone panel between the explorer and the diagram canvas. The panel MUST be completely showable and hideable via a toggle button (◀ / ▶). The palette MUST display the available metamodel entities as draggable shape templates, filtered by the currently active viewpoint (REQ-047 viewpoint definition). Entity types that are not allowed for the active viewpoint MUST be grayed out or hidden.
 
-## Begründung
+## Rationale
 
-Architekten modellieren Diagramme durch Drag-and-Drop von Shapes aus einer Palette. Die Filterung nach Viewpoint stellt sicher, dass nur semantisch erlaubte Elemente in ein Diagramm eingefügt werden können — ein Kernprinzip von ArchiMate-Viewpoints (vgl. Konzept §8 Viewpoint-Mechanismus). Das Panel ist kollabierbar, um auf kleinen Bildschirmen Platz zu sparen.
+Architects model diagrams by dragging and dropping shapes from a palette. Filtering by viewpoint ensures that only semantically allowed elements can be inserted into a diagram — a core principle of ArchiMate viewpoints (cf. concept §8 viewpoint mechanism). The panel is collapsible to save space on small screens.
 
-## Kontext
+## Context
 
-Die Shape-Palette ist das primäre Eingabewerkzeug für die manuelle Diagrammerstellung:
+The shape palette is the primary input tool for manual diagram creation:
 
-| Panel | Position | Inhalt |
+| Panel | Position | Content |
 |---|---|---|
-| Explorer | ganz links | Navigation im Modell-Tree |
-| Shape-Palette (dieses REQ) | zwischen Explorer und Canvas | ziehbare Shape-Vorlagen, nach Viewpoint gefiltert |
-| Canvas | Mitte | Diagramm-Zeichenfläche |
-| Properties | rechts | Eigenschaften des ausgewählten Elements |
+| Explorer | far left | navigation in the model tree |
+| Shape palette (this REQ) | between explorer and canvas | draggable shape templates, filtered by viewpoint |
+| Canvas | center | diagram drawing area |
+| Properties | right | properties of the selected element |
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
+**Inputs**:
 
-| Feld | Typ | Beschreibung |
+| Field | Type | Description |
 |---|---|---|
-| activeViewpoint | Viewpoint \| null | aktueller Viewpoint; null = alle Typen erlaubt |
-| collapseState | boolean | true = Panel kollabiert (nur Toggle-Button sichtbar) |
+| activeViewpoint | Viewpoint \| null | current viewpoint; null = all types allowed |
+| collapseState | boolean | true = panel collapsed (only toggle button visible) |
 
-**Verarbeitung**:
+**Processing**:
 
-1. Beim Öffnen des Diagramm-Editors: Palette standardmässig eingeblendet
-2. Aktiver Viewpoint → nur erlaubte Metamodell-Typen werden angezeigt
-3. Kein Viewpoint → alle konfigurierten Metamodell-Typen anzeigen
-4. Toggle-Button (◀/▶) wechselt zwischen expanded und collapsed
-5. Collapsed-State: Panel reduziert auf 28px breiten Streifen mit Toggle-Icon
-6. Zustand wird pro Nutzer in den Benutzereinstellungen persistiert
+1. When opening the diagram editor: palette shown by default
+2. Active viewpoint → only allowed metamodel types are displayed
+3. No viewpoint → display all configured metamodel types
+4. Toggle button (◀/▶) switches between expanded and collapsed
+5. Collapsed state: panel reduced to a 28px wide strip with a toggle icon
+6. The state is persisted per user in the user settings
 
-**Ausgaben**:
+**Outputs**:
 
-- Palette zeigt Shape-Kacheln je Metamodell-Typ (Abbreviation-Badge + Typname + Mini-Preview)
-- Drag-Indikator aktiviert sich sobald der Nutzer eine Kachel anfasst
-- Beim Drop auf Canvas: Auslösen des REQ-145 Entity-Lookup-Dialogs
+- The palette shows shape tiles per metamodel type (abbreviation badge + type name + mini preview)
+- Drag indicator activates as soon as the user grabs a tile
+- On drop onto the canvas: trigger the REQ-145 entity lookup dialog
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Palette zeigt nur erlaubte Typen):
-- Gegeben: Viewpoint "Application Layer View" erlaubt AC, AS, AI, AF, AP
-- Wenn: Diagramm-Editor mit diesem Viewpoint geöffnet wird
-- Dann: Palette zeigt nur die 5 erlaubten Typen; Technology-Typen sind ausgegraut/ausgeblendet
+**AC1** (Palette shows only allowed types):
+- Given: viewpoint "Application Layer View" allows AC, AS, AI, AF, AP
+- When: the diagram editor is opened with this viewpoint
+- Then: the palette shows only the 5 allowed types; technology types are grayed out/hidden
 
-**AC2** (Kein Viewpoint = alle Typen):
-- Gegeben: Diagramm-Editor ohne aktiven Viewpoint (free-form)
-- Dann: Alle konfigurierten Metamodell-Typen erscheinen in der Palette
+**AC2** (No viewpoint = all types):
+- Given: diagram editor without an active viewpoint (free-form)
+- Then: all configured metamodel types appear in the palette
 
-**AC3** (Kollabieren/Expandieren):
-- Wenn: Nutzer klickt auf Toggle-Button (◀)
-- Dann: Panel kollabiert auf 28px breiten Streifen; Canvas gewinnt den freigewordenen Platz
-- Wenn: Nutzer klickt erneut (▶)
-- Dann: Panel expandiert wieder auf Standardbreite
+**AC3** (Collapse/expand):
+- When: the user clicks the toggle button (◀)
+- Then: the panel collapses to a 28px wide strip; the canvas gains the freed space
+- When: the user clicks again (▶)
+- Then: the panel expands again to the default width
 
-**AC4** (Persistenz des Zustands):
-- Wenn: Nutzer kollabiert die Palette und schliesst den Editor
-- Dann: Beim nächsten Öffnen ist die Palette weiterhin kollabiert
+**AC4** (Persistence of the state):
+- When: the user collapses the palette and closes the editor
+- Then: the next time it is opened, the palette is still collapsed
 
-## Abhängigkeiten
+## Dependencies
 
-- Blockiert durch: UC-05 (Diagramm-Editor), REQ-040 (Viewpoint-Mechanismus)
-- Zusammenhang: REQ-145 (Drag & Drop + Entity-Lookup), REQ-146 (Delete-Verhalten)
-- Betrifft: ADR-007 (Canvas-Bibliothek), ADR-020 (Explorer-Navigationsmodell)
+- Blocked by: UC-05 (diagram editor), REQ-040 (viewpoint mechanism)
+- Related: REQ-145 (drag & drop + entity lookup), REQ-146 (delete behavior)
+- Affects: ADR-007 (canvas library), ADR-020 (explorer navigation model)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-29 | Requirements Engineer | Initial draft |

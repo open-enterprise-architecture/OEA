@@ -1,55 +1,55 @@
-# US-032: Neuen Entity-Typ im Metamodell anlegen
+# US-032: Create a New Entity Type in the Metamodel
 
 **ID**: US-032
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Lead Enterprise Architekt möchte ich gemeinsam mit meinem Architekturteam neue Entitätstypen über ein GUI-Formular im Metamodell definieren können, damit alle Architekten organisations-spezifische Typen (z.B. `SecurityZone`, `DataPipeline`) für die Modellierung nutzen können.
+As a Lead Enterprise Architect, I want to be able to define new entity types in the metamodel together with my architecture team via a GUI form, so that all architects can use organization-specific types (e.g. `SecurityZone`, `DataPipeline`) for modeling.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-04: Metamodell gemeinsam konfigurieren](../use-cases/UC-04-metamodell-konfigurieren.md)
-**Persona**: [SH-03: Kurt – Lead Enterprise Architekt](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md)
-**Requirement**: [REQ-032: Custom EntityTypes via GUI konfigurieren](../req/REQ-032-entitytype-gui-konfiguration.md)
+**Use Case**: [UC-04: Configure the Metamodel Collaboratively](../use-cases/UC-04-configure-metamodel.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
+**Requirement**: [REQ-032: Configure Custom EntityTypes via GUI](../req/REQ-032-entitytype-gui-configuration.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Kurt ist eingeloggt und hat Metamodell-Bearbeiter-Berechtigung
-- Wenn: er über das Formular `SecurityZone` mit Property `trustLevel (enum, pflicht)` und Relation `contains → TechnologyComponent (0..n)` anlegt
-- Dann: erscheint `SecurityZone` sofort in der Typ-Liste und ist beim Anlegen neuer Entitäten auswählbar
+- Given: Kurt is logged in and has metamodel editor permission
+- When: he creates `SecurityZone` via the form with property `trustLevel (enum, mandatory)` and relation `contains → TechnologyComponent (0..n)`
+- Then: `SecurityZone` immediately appears in the type list and can be selected when creating new entities
 
 **AC2**:
-- Gegeben: Kurt versucht, einen Typ mit dem Namen `ApplicationComponent` (built-in) anzulegen
-- Dann: erscheint eine Fehlermeldung; kein Eintrag wird angelegt
+- Given: Kurt tries to create a type with the name `ApplicationComponent` (built-in)
+- Then: an error message appears; no entry is created
 
 **AC3**:
-- Gegeben: Lukas (SH-02) hat ebenfalls Metamodell-Bearbeiter-Berechtigung
-- Wenn: Lukas einen weiteren Typ anlegt
-- Dann: erscheint auch dieser in der gemeinsamen Typ-Liste; beide Änderungen sind im Audit-Log der jeweiligen Person zugeordnet
+- Given: Lukas (SH-02) also has metamodel editor permission
+- When: Lukas creates another type
+- Then: this one also appears in the shared type list; both changes are attributed to the respective person in the audit log
 
-## Technische Hinweise
+## Technical Notes
 
-- Betroffene Komponenten: Metamodell-Admin-UI, Backend `POST /admin/metamodel/entity-types`
-- Datenbank-Änderungen: neuer Eintrag in `metamodel_entity_types` (oder JSON-Feld in `metamodel_configuration`)
-- Optimistic Locking über `schemaVersion`
+- Affected components: metamodel admin UI, backend `POST /admin/metamodel/entity-types`
+- Database changes: new entry in `metamodel_entity_types` (or JSON field in `metamodel_configuration`)
+- Optimistic locking via `schemaVersion`
 
 ## Definition of Done
 
-- [ ] Akzeptanzkriterien erfüllt
-- [ ] Code-Review durch zweite Person
-- [ ] Tests: Anlegen, Namens-Kollision, Built-in-Schutz, mehrere Bearbeiter
-- [ ] Linter und Type-Checks grün
-- [ ] In Trace-Matrix eingetragen
+- [ ] Acceptance criteria met
+- [ ] Code review by a second person
+- [ ] Tests: creation, name collision, built-in protection, multiple editors
+- [ ] Linter and type checks green
+- [ ] Entered in trace matrix
 
-## Abhängigkeiten
+## Dependencies
 
-- Wartet auf: Rollen-Modell (Metamodell-Bearbeiter-Berechtigung muss existieren); US-001 (Login als Vorbedingung)
-- Blockiert: US-033 (Import setzt dasselbe Backend-Schema voraus)
+- Waiting on: role model (metamodel editor permission must exist); US-001 (login as precondition)
+- Blocks: US-033 (import presupposes the same backend schema)
 
-## Notizen
+## Notes
 
-5 SP wegen der Formular-Komplexität (dynamisch hinzufügbare Properties und Relationen, Dropdown für Basis-Typen und Ziel-Typen aus dem bestehenden Metamodell). Built-in-Typen sind im UI durch Badge oder greyed-out dargestellt.
+5 SP because of the form complexity (dynamically addable properties and relations, dropdown for base types and target types from the existing metamodel). Built-in types are shown in the UI by badge or greyed out.

@@ -1,57 +1,57 @@
-# Migrations- und Namens-Notizen
+# Migration and Naming Notes
 
-Dieses Dokument fasst die Namens-Entscheidung und mögliche zukünftige Anpassungen zusammen. **Nach Etablierung kann diese Datei gelöscht werden.**
+This document summarizes the naming decision and possible future adjustments. **Once established, this file can be deleted.**
 
-## Projektname: OEA
+## Project Name: OEA
 
-**Offizielle Bezeichnung**: OEA – Open Enterprise Architecture
+**Official designation**: OEA – Open Enterprise Architecture
 
-**Begründung**:
-- Klar deskriptiv: jeder versteht sofort, was es ist
-- Niedriges Trademark-Risiko (keine bekannten Konflikte)
-- Kein Verwechslungsrisiko mit OpenAI oder anderen geschützten Marken
-- "Open" als Präfix folgt etablierter OSS-Konvention (OpenSSH, OpenStack, OpenStreetMap)
-- "EA" ist im Fach-Diskurs etablierter Begriff für Enterprise Architecture
+**Rationale**:
+- Clearly descriptive: everyone understands immediately what it is
+- Low trademark risk (no known conflicts)
+- No risk of confusion with OpenAI or other protected brands
+- "Open" as a prefix follows established OSS convention (OpenSSH, OpenStack, OpenStreetMap)
+- "EA" is an established term in the professional discourse for Enterprise Architecture
 
-## Verwendung im Repo
+## Usage in the Repo
 
-- **Eigenname**: OEA (Großbuchstaben, ohne Artikel im Deutschen)
-- **Langform**: Open Enterprise Architecture
-- **Repo-Slug**: `oea`
-- **Domain**: TBD (`oea.dev`, `oea.org` oder `open-enterprise-architecture.org`)
-- **Identifier in Configs**: `oea`
+- **Proper name**: OEA (capital letters, without article)
+- **Long form**: Open Enterprise Architecture
+- **Repo slug**: `oea`
+- **Domain**: TBD (`oea.dev`, `oea.org`, or `open-enterprise-architecture.org`)
+- **Identifier in configs**: `oea`
 
-## Wichtige Abgrenzungen
+## Important Distinctions
 
-Bei Texten und Code-Kommentaren sorgfältig unterscheiden:
+Distinguish carefully in texts and code comments:
 
-- **OEA** = unser Projekt
-- **EA** = Enterprise Architecture als Disziplin
-- **EA-Tools** (Plural) = Marktbezug auf existierende kommerzielle Tools (Sparx EA, Avolution, LeanIX, Ardoq etc.)
-- **EA-Disziplin**, **EA-Bereich**, **EA-Modell** = Fachbegriffe, bleiben unverändert
+- **OEA** = our project
+- **EA** = enterprise architecture as a discipline
+- **EA tools** (plural) = market reference to existing commercial tools (Sparx EA, Avolution, LeanIX, Ardoq, etc.)
+- **EA discipline**, **EA area**, **EA model** = technical terms, remain unchanged
 
-## Vor Go-Live einzurichten
+## To Set Up Before Go-Live
 
-- [ ] Domain reservieren: prüfe Verfügbarkeit von `oea.dev`, `oea.org`, `oea.ch`, `open-enterprise-architecture.org`
-- [ ] E-Mail-Adressen einrichten:
+- [ ] Reserve domain: check availability of `oea.dev`, `oea.org`, `oea.ch`, `open-enterprise-architecture.org`
+- [ ] Set up email addresses:
   - `security@<domain>` (SECURITY.md)
   - `conduct@<domain>` (CODE_OF_CONDUCT.md)
   - `maintainers@<domain>` (MAINTAINERS.md)
-- [ ] Trademark-Recherche für DE, EU, US (auch wenn Konflikte unwahrscheinlich sind)
-- [ ] Repository-URL in `.github/ISSUE_TEMPLATE/config.yml` aktualisieren
-- [ ] MAINTAINERS.md: Lead-Maintainer-Zeile mit deinem Namen füllen
-- [ ] Logo gestalten (für ersten Release nicht zwingend)
+- [ ] Trademark search for DE, EU, US (even if conflicts are unlikely)
+- [ ] Update repository URL in `.github/ISSUE_TEMPLATE/config.yml`
+- [ ] MAINTAINERS.md: fill the lead maintainer line with your name
+- [ ] Design a logo (not strictly necessary for the first release)
 
-## Hinweis zur Schreibweise
+## Note on Spelling
 
-Im Deutschen funktioniert "OEA" als Eigenname ohne Artikel:
+In German, "OEA" works as a proper name without an article:
 
 - ✓ "OEA unterstützt Use Cases"
 - ✓ "OEA wird als Open Source entwickelt"
-- ✗ "Das OEA macht..." (klingt wie "das BMW")
+- ✗ "Das OEA macht..." (sounds like "das BMW")
 
-In Listen oder im technischen Kontext sind kurze Bezüge wie "im OEA-Repository" oder "OEA-Konfiguration" idiomatisch.
+In lists or in a technical context, short references such as "im OEA-Repository" or "OEA-Konfiguration" are idiomatic.
 
-## Falls OEA später doch geändert werden muss
+## If OEA Must Be Changed Later After All
 
-Die meisten Erwähnungen sind über `grep -r "OEA"` und `grep -r "Open Enterprise Architecture"` schnell findbar. Auf "EA"-Fachbegriffe (siehe Liste oben) bei Massenersetzungen besonders achten.
+Most mentions are quickly findable via `grep -r "OEA"` and `grep -r "Open Enterprise Architecture"`. Pay particular attention to "EA" technical terms (see list above) during bulk replacements.

@@ -1,6 +1,6 @@
 ---
 id: REQ-128
-title: Admin-Override für Property-Sichtbarkeit
+title: Admin Override for Property Visibility
 type: functional
 priority: should
 status: proposed
@@ -23,41 +23,41 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-128: Admin-Override für Property-Sichtbarkeit
+# REQ-128: Admin Override for Property Visibility
 
-## Aussage
+## Statement
 
-Das System MUSS einen konfigurierbaren **Admin-Override** bereitstellen: Nutzer mit einer als `overridesPropertyVisibility=true` markierten Systemrolle (Standard: `system-admin`) MÜSSEN alle Properties lesen können, unabhängig von `visibilityMode`. Der Override-Status MUSS im Audit-Log vermerkt werden, wenn ein eingeschränktes Property von einem Override-Nutzer gelesen wird. Die Liste der Override-Rollen MUSS im Metamodell-Editor konfigurierbar sein (EA-Manager kann weitere Rollen hinzufügen oder entfernen).
+The system MUST provide a configurable **admin override**: users with a system role marked as `overridesPropertyVisibility=true` (default: `system-admin`) MUST be able to read all properties, regardless of `visibilityMode`. The override status MUST be recorded in the audit log when a restricted property is read by an override user. The list of override roles MUST be configurable in the metamodel editor (EA manager can add or remove further roles).
 
-## Begründung
+## Rationale
 
-Ohne Admin-Override sind EA-Manager und System-Admins im Notfall (z.B. Fehleranalyse, Datenmigration) blind für Felder, die sie selbst eingeschränkt haben. Der Override ist explizit konfigurierbar statt hardcodiert, damit er organisationsspezifisch angepasst werden kann.
+Without an admin override, EA managers and system admins are blind in an emergency (e.g. error analysis, data migration) to fields they restricted themselves. The override is explicitly configurable instead of hardcoded so that it can be adapted to the organization.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Override wirksam):
-- Wenn: Nutzer mit `system-admin`-Rolle eine Entität mit eingeschränkten Properties abruft
-- Dann: Alle Werte werden zurückgegeben; `visibilityMode` hat keinen Effekt
+**AC1** (Override effective):
+- When: a user with the `system-admin` role retrieves an entity with restricted properties
+- Then: all values are returned; `visibilityMode` has no effect
 
-**AC2** (Audit-Log-Eintrag):
-- Wenn: Override-Nutzer ein `role-restricted` oder `connection-scoped` Feld liest
-- Dann: Audit-Log enthält Eintrag mit Typ `property-override-access`, Nutzer-ID, Entitäts-ID und Property-Name
+**AC2** (Audit log entry):
+- When: an override user reads a `role-restricted` or `connection-scoped` field
+- Then: the audit log contains an entry with type `property-override-access`, user ID, entity ID, and property name
 
-**AC3** (Override konfigurierbar):
-- Wenn: Kurt im Metamodell-Editor die Override-Rollen-Liste bearbeitet und eine weitere Rolle hinzufügt
-- Dann: Nutzer dieser Rolle erhalten ab sofort Override-Zugriff
+**AC3** (Override configurable):
+- When: Kurt edits the override role list in the metamodel editor and adds another role
+- Then: users of this role receive override access from now on
 
-**AC4** (Kein impliziter Override):
-- Wenn: Nutzer hat `EA-Manager`-Rolle, aber `EA-Manager` ist nicht in der Override-Liste
-- Dann: Sichtbarkeits-Einschränkungen greifen normal; kein automatischer Override durch Hierarchie-Annahme
+**AC4** (No implicit override):
+- When: a user has the `EA-Manager` role, but `EA-Manager` is not in the override list
+- Then: visibility restrictions apply normally; no automatic override through a hierarchy assumption
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-124 (Datenmodell), REQ-126 (Enforcement), REQ-005 (Audit-Log)
-- **Folgewirkungen**: –
+- **Prerequisites**: REQ-124 (data model), REQ-126 (enforcement), REQ-005 (audit log)
+- **Consequences**: –
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

@@ -1,6 +1,6 @@
 ---
 id: REQ-031
-title: Passwort-Reset durch Administrator
+title: Password reset by administrator
 type: functional
 priority: must
 status: proposed
@@ -18,138 +18,138 @@ references:
   stakeholders:
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-031: Passwort-Reset durch Administrator
+# REQ-031: Password reset by administrator
 
-## Aussage
+## Statement
 
-Das System MUSS einem Administrator ermöglichen, das lokale Passwort einer beliebigen Person zurückzusetzen; dabei MUSS das bisherige Passwort-Credential sofort revoked werden, ein neues Passwort-Credential gesetzt werden (compliant mit REQ-028), dem Administrator einmalig im Klartext angezeigt werden, und für die betroffene Person MUSS automatisch die Required Action „Passwort bei nächstem Login ändern" gesetzt werden, die sämtlichen Applikationszugriff bis zur Ausführung blockiert.
+The system MUST allow an administrator to reset the local password of any person; in doing so, the previous password credential MUST be revoked immediately, a new password credential MUST be set (compliant with REQ-028) and displayed to the administrator once in plain text, and the required action "Change password at next login" MUST be set automatically for the affected person, blocking all application access until it has been performed.
 
-## Begründung
+## Rationale
 
-Passwort-Reset ist eine Kernanforderung jeder lokalen Nutzerverwaltung: Personen vergessen Passwörter, Accounts müssen nach Sicherheitsvorfällen gesperrt und neu initialisiert werden. Der Betreiber (SH-06) muss diesen Ablauf ohne externe Infrastruktur (kein Self-Service-Reset via E-Mail) durchführen können. Die erzwungene Required Action „Passwort ändern" stellt sicher, dass das admin-gesetzte Passwort nur als einmaliger Überbrückungscode dient und die Person sofort ein eigenes Passwort wählt – analog zum Pattern beim initialen Passwort (REQ-024), aber für bestehende Accounts.
+Password reset is a core requirement of any local user management: persons forget passwords, and accounts must be locked and reinitialized after security incidents. The operator (SH-06) must be able to perform this process without external infrastructure (no self-service reset via email). The enforced required action "Change password" ensures that the admin-set password serves only as a one-time bridging code and the person immediately chooses their own password – analogous to the pattern for the initial password (REQ-024), but for existing accounts.
 
-## Kontext
+## Context
 
-Betrifft ausschließlich Personen mit aktivem lokalem Password-Credential (`LocalCredential.type=password`, `status=active`). Gilt nicht für den System-Admin-Account (UC-02), dessen Passwort über einen separaten Mechanismus (REQ-013/REQ-014) verwaltet wird. OIDC-Personen haben kein lokales Password-Credential; für sie ist dieser Vorgang nicht anwendbar. Der Reset ist eine Admin-Aktion mit Audit-Pflicht.
+Concerns exclusively persons with an active local password credential (`LocalCredential.type=password`, `status=active`). Does not apply to the system admin account (UC-02), whose password is managed via a separate mechanism (REQ-013/REQ-014). OIDC persons have no local password credential; this process is not applicable to them. The reset is an admin action with an audit obligation.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- Ziel-Person (Person-ID oder Username)
-- Neues Passwort: manuell eingegeben oder per Generator (REQ-027)
+**Inputs**:
+- Target person (person ID or username)
+- New password: entered manually or via generator (REQ-027)
 
-**Verarbeitung** (atomar / transaktional):
-1. Berechtigungsprüfung: ausführender Nutzer muss Admin-Rolle haben
-2. Ziel-Person muss existieren und ein aktives `LocalCredential.type=password` besitzen
-3. Neues Passwort gegen REQ-028-Richtlinien validieren
-4. Neues Passwort hashen (argon2id bevorzugt; bcrypt als Fallback)
-5. Bisheriges aktives Password-Credential der Person auf `status=revoked`, `revokedReason=admin_action`, `revokedAt=now` setzen
-6. Neues `LocalCredential (type=password, status=active)` anlegen und mit der Person verknüpfen
-7. Required Action `password_change` für die Person setzen (im Person-Objekt oder separater Required-Actions-Tabelle)
-8. Audit-Log-Eintrag schreiben: Admin-Person-ID, Ziel-Person-ID, Zeitpunkt, Aktion `password_reset`
-9. Neues Passwort-Klartext einmalig zurückgeben
+**Processing** (atomar / transaktional):
+1. Authorization check: the executing user must have the admin role
+2. The target person must exist and have an active `LocalCredential.type=password`
+3. Validate the new password against REQ-028 policies
+4. Hash the new password (argon2id preferred; bcrypt as fallback)
+5. Set the person's previous active password credential to `status=revoked`, `revokedReason=admin_action`, `revokedAt=now`
+6. Create a new `LocalCredential (type=password, status=active)` and link it to the person
+7. Set the required action `password_change` for the person (in the Person object or a separate required actions table)
+8. Write an audit log entry: admin person ID, target person ID, timestamp, action `password_reset`
+9. Return the new plain-text password once
 
-**Ausgaben**:
-- Passwort-Klartext: einmalige Anzeige im Admin-UI oder CLI-Stdout, danach nicht mehr abrufbar
-- Bestätigung: "Passwort zurückgesetzt. Die Person muss beim nächsten Login ein neues Passwort setzen."
-- Bei Fehler: Fehlermeldung; kein partieller Zustandswechsel (Transaktion rollback)
+**Outputs**:
+- Plain-text password: one-time display in the admin UI or CLI stdout, not retrievable afterwards
+- Confirmation: "Password reset. The person must set a new password at next login."
+- On error: error message; no partial state change (transaction rollback)
 
-**Fehlerfälle**:
-- Person hat kein aktives Password-Credential → Fehlermeldung ("Person hat kein lokales Passwort; initiales Passwort über REQ-024 setzen")
-- Neues Passwort erfüllt REQ-028-Richtlinien nicht → Fehlermeldung; kein Credential-Wechsel
-- Ausführender Nutzer hat keine Admin-Berechtigung → 403 Forbidden; Audit-Log-Eintrag für unbefugten Zugriffsversuch
-- System-Admin-Account als Ziel → 400 Bad Request; dieser Mechanismus gilt nicht für System-Admin-Account
+**Error Cases**:
+- Person has no active password credential → error message ("Person has no local password; set the initial password via REQ-024")
+- New password does not meet REQ-028 policies → error message; no credential change
+- Executing user has no admin permission → 403 Forbidden; audit log entry for the unauthorized access attempt
+- System admin account as target → 400 Bad Request; this mechanism does not apply to the system admin account
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Person hat ein aktives Password-Credential und kann sich aktuell einloggen
-- Wenn: ein Administrator das Passwort zurücksetzt
-- Dann: ist das alte Password-Credential `revoked`; ein neues ist `active`; das neue Passwort-Klartext erscheint einmalig
+- Given: a person has an active password credential and can currently log in
+- When: an administrator resets the password
+- Then: the old password credential is `revoked`; a new one is `active`; the new plain-text password appears once
 
 **AC2**:
-- Gegeben: Passwort wurde zurückgesetzt
-- Wenn: die Person sich mit dem neuen Passwort einloggt
-- Dann: wird Required Action `password_change` erkannt; die Person erhält keinen Applikationszugriff, bis das Passwort geändert wurde
+- Given: the password has been reset
+- When: the person logs in with the new password
+- Then: the required action `password_change` is detected; the person gets no application access until the password has been changed
 
 **AC3**:
-- Gegeben: Passwort wurde zurückgesetzt
-- Wenn: die Person versucht, sich mit dem alten Passwort einzuloggen
-- Dann: schlägt der Login fehl (altes Credential ist revoked)
+- Given: the password has been reset
+- When: the person tries to log in with the old password
+- Then: the login fails (old credential is revoked)
 
 **AC4**:
-- Gegeben: Administrator setzt Passwort zurück
-- Wenn: der Audit-Log ausgewertet wird
-- Dann: enthält er Admin-Person-ID, Ziel-Person-ID, Zeitpunkt, Aktion `password_reset`; kein Passwort-Klartext im Log
+- Given: an administrator resets a password
+- When: the audit log is evaluated
+- Then: it contains admin person ID, target person ID, timestamp, action `password_reset`; no plain-text password in the log
 
 **AC5**:
-- Gegeben: der Vorgang schlägt nach Schritt 4 fehl (z.B. DB-Fehler)
-- Wenn: der Fehler auftritt
-- Dann: sind weder das alte Credential revoked noch ein neues angelegt (vollständiger Rollback)
+- Given: the process fails after step 4 (e.g., DB error)
+- When: the error occurs
+- Then: neither is the old credential revoked nor a new one created (complete rollback)
 
 **AC6**:
-- Gegeben: System-Admin-Account soll zurückgesetzt werden
-- Wenn: der Admin die Anfrage stellt
-- Dann: wird sie mit einem Fehler abgelehnt; kein Credential geändert
+- Given: the system admin account is to be reset
+- When: the admin makes the request
+- Then: it is rejected with an error; no credential changed
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: Admin setzt Passwort zurück; Login mit altem Passwort (AC3); Login mit neuem Passwort + Required-Action-Check (AC2); Audit-Log-Prüfung (AC4); Rollback-Test (AC5)
-- [x] Mess-Werkzeug: Test-Suite des Admin-Moduls und Auth-Moduls; DB-Inspektion im Test
-- [x] Bestanden-Kriterium: AC1–AC6 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: admin resets password; login with old password (AC3); login with new password + required action check (AC2); audit log check (AC4); rollback test (AC5)
+- [x] Measurement tool: test suite of the admin module and auth module; DB inspection in the test
+- [x] Pass criterion: AC1–AC6 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**:
-  - REQ-024 (Passwort setzen, gleiche Sicherheitsanforderungen gelten)
-  - REQ-027 (Passwort-Generator, empfohlen für das neue Passwort)
-  - REQ-028 (Passwort-Richtlinien; neues Passwort muss compliant sein)
-  - LocalCredential BO (BR-03: max. 1 aktives Password-Credential; Reset-Prozess hält dies aufrecht)
-- **Folgewirkungen**: Person muss nach dem Reset beim nächsten Login ihr Passwort ändern (Required Action `password_change`); dieser Required-Action-Flow ist Gegenstand eines künftigen UCs (Passwort-Änderung beim Login)
-- **Konflikte**: REQ-013/REQ-014 (System-Admin-Account hat eigenen Mechanismus; dieser REQ gilt explizit nicht für ihn)
+- **Prerequisites**:
+  - REQ-024 (setting a password, same security requirements apply)
+  - REQ-027 (password generator, recommended for the new password)
+  - REQ-028 (password policies; the new password must be compliant)
+  - LocalCredential BO (BR-03: max. 1 active password credential; the reset process maintains this)
+- **Downstream effects**: After the reset, the person must change their password at next login (required action `password_change`); this required action flow is the subject of a future UC (password change at login)
+- **Conflicts**: REQ-013/REQ-014 (the system admin account has its own mechanism; this REQ explicitly does not apply to it)
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne Passwort-Reset muss der Administrator eine Person löschen und neu anlegen, um den Zugang wiederherzustellen – hoher Aufwand, Datenverlust (Rollenzuweisungen etc.), schwerwiegend
-- Risiko 2: Ohne erzwungene Required Action bleibt das admin-gesetzte Passwort dauerhaft gültig – Betreiber kennt das Passwort des Nutzers, Datenschutz- und Sicherheitsrisiko, mittlerer Schweregrad
+- Risk 1: Without a password reset, the administrator has to delete and recreate a person to restore access – high effort, data loss (role assignments etc.), severe
+- Risk 2: Without an enforced required action, the admin-set password remains valid permanently – the operator knows the user's password, data protection and security risk, medium severity
 
 ## Trade-offs
 
-- Required Action ist obligatorisch, nicht optional: Der Admin kann den erzwungenen Passwort-Wechsel nicht abschalten. Trade-off: weniger Flexibilität, aber klare Sicherheitsgarantie (Betreiber kennt Passwort des Nutzers nie dauerhaft).
-- Transaktionale Atomarität: alter Credential revoken + neuer anlegen + Required Action setzen müssen in einer DB-Transaktion erfolgen. Verhindert inkonsistente Zustände (AC5), erfordert sorgfältige Implementierung.
+- The required action is mandatory, not optional: the admin cannot switch off the enforced password change. Trade-off: less flexibility, but a clear security guarantee (the operator never permanently knows the user's password).
+- Transactional atomicity: revoking the old credential + creating the new one + setting the required action must happen in one DB transaction. Prevents inconsistent states (AC5), requires careful implementation.
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Gleiche Sicherheitsanforderungen wie REQ-024: Klartext nur im Arbeitsspeicher; nach Rückgabe sofort aus Memory verwerfen; nie in Logs
-- Admin-UI: einmaliges Modal/Popup mit dem neuen Passwort; "Passwort kopieren"-Button; dann geschlossen und nicht wieder abrufbar
-- CLI: `oea user reset-password --user <id>` → gibt neues Passwort auf Stdout aus; mit `--generate` für automatisch generiertes Passwort
-- Required Action `password_change` im selben Mechanismus wie der 2FA-Required-Action-Check (UC-03): nach Passwort-Prüfung Required-Actions-Liste lesen; bei `password_change` → Weiterleitung zur Passwort-Änderungs-Seite
-- API-Endpunkt: `POST /admin/persons/{id}/reset-password` (admin-only, RBAC-geschützt)
+- Same security requirements as REQ-024: plain text only in working memory; discard from memory immediately after returning; never in logs
+- Admin UI: one-time modal/popup with the new password; "Copy password" button; then closed and not retrievable again
+- CLI: `oea user reset-password --user <id>` → outputs the new password to stdout; with `--generate` for an automatically generated password
+- The required action `password_change` uses the same mechanism as the 2FA required action check (UC-03): after the password check read the required actions list; for `password_change` → redirect to the password change page
+- API endpoint: `POST /admin/persons/{id}/reset-password` (admin-only, RBAC-protected)
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus Betreiber-Anforderung (SH-06): manueller Passwort-Reset für Anwender. Der erzwungene Passwort-Wechsel nach dem Reset ist eine explizite Sicherheitsentscheidung: Der Betreiber soll Passwörter nur als temporären Zugangscode vergeben, nie dauerhaft das Passwort eines Nutzers kennen. Dieses Pattern ist Standard (Active Directory "must change password at next logon", Keycloak "update password" Required Action).
+Derived from operator requirement (SH-06): manual password reset for users. The enforced password change after the reset is an explicit security decision: the operator should issue passwords only as a temporary access code and never permanently know a user's password. This pattern is standard (Active Directory "must change password at next logon", Keycloak "update password" required action).
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |

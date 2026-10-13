@@ -1,19 +1,19 @@
 ---
 id: ADR-020
-title: Explorer-Browser-Navigationsmodell im Native Client
+title: Explorer Browser Navigation Model in the Native Client
 status: proposed
 date: 2026-06-28
 deciders:
-  - Lead Enterprise Architekt
-  - Solution Architekt
+  - Lead Enterprise Architect
+  - Solution Architect
 categories:
   - UX
   - Navigation
   - Frontend
 references:
   concept:
-    - concept/20-entities/06-kern-entitaetstypen.md
-    - concept/20-entities/12-domain-sichten.md
+    - concept/20-entities/06-core-entity-types.md
+    - concept/20-entities/12-domain-views.md
   requirements:
     - REQ-138
     - REQ-139
@@ -22,71 +22,71 @@ references:
     - ADR-021
 ---
 
-# ADR-020: Explorer-Browser-Navigationsmodell im Native Client
+# ADR-020: Explorer Browser Navigation Model in the Native Client
 
 ## Status
 
 Proposed
 
-**Entscheider**: [Kurt – Lead Enterprise Architekt](../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architekt.md) (SH-03), [Michael – Solution Architekt](../business-analysis/stakeholders/SH-04-michael-solution-architekt.md) (SH-04)
+**Deciders**: [Kurt – Lead Enterprise Architect](../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md) (SH-03), [Michael – Solution Architect](../business-analysis/stakeholders/SH-04-michael-solution-architect.md) (SH-04)
 
-## Kontext
+## Context
 
-Der Native Client benötigt einen Browser-Panel (linke Seitenleiste), der Nutzern schnelle Navigation durch das EA-Repository ermöglicht. Gleichzeitig existiert bereits ein manueller Navigationsbaum (TreeNode / UC-13), den der Lead Enterprise Architekt frei gestaltet.
+The Native Client needs a browser panel (left sidebar) that enables users to navigate quickly through the EA repository. At the same time, a manual navigation tree (TreeNode / UC-13) already exists, which the lead enterprise architect designs freely.
 
-Drei Navigationsmodelle stehen zur Wahl.
+Three navigation models are available.
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- Solution Architekten arbeiten primär innerhalb einer Solution — die Navigation soll diesen Kontext sofort widerspiegeln
-- Jede Solution braucht dieselben sechs Grundkategorien; manuelle Anlage per TreeNode-CRUD wäre repetitiv
-- Ein aggregierter "Aktueller Stand"-Knoten ist für Analysen und Reporting der wichtigste Einstiegspunkt
-- Die manuelle Baumstruktur (UC-13) hat weiterhin Daseinsberechtigung für kundenspezifische Sichten
+- Solution architects work primarily within a solution — the navigation should reflect this context immediately
+- Every solution needs the same six basic categories; manual creation via TreeNode CRUD would be repetitive
+- An aggregated "Current State" node is the most important entry point for analyses and reporting
+- The manual tree structure (UC-13) retains its justification for customer-specific views
 
-## Optionen
+## Options
 
-### Option A — Solution-zentriert (auto-generiert)
+### Option A — Solution-centric (auto-generated)
 
-Solutions erscheinen als Hauptknoten. Darunter je sechs auto-generierte Grundkategorien (Komponenten, Verbindungen, Kataloge, Functional Building Blocks, Solution Building Blocks, Diagramme). Zusätzlich ein virtueller „Aktueller Stand"-Knoten, der alle implementierten Inhalte aggregiert. Solutions ohne Plateau-Mapping sind ausschliesslich im „Aktueller Stand"-Knoten sichtbar.
+Solutions appear as main nodes. Below each, six auto-generated basic categories (components, connections, catalogs, functional building blocks, solution building blocks, diagrams). Additionally a virtual "Current State" node that aggregates all implemented content. Solutions without plateau mapping are visible exclusively in the "Current State" node.
 
-**Pro**: Direkter Arbeitskontext; kein manueller Aufwand für Grundstruktur; konsistente Navigation für alle Nutzer
-**Contra**: Wenig Flexibilität für ungewöhnliche Organisationsformen; Solutions-Liste kann bei vielen Projekten lang werden
+**Pro**: Direct working context; no manual effort for the basic structure; consistent navigation for all users
+**Con**: Little flexibility for unusual organizational forms; solutions list can become long with many projects
 
-### Option B — Freie Baumstruktur (manuell, aktuell UC-13)
+### Option B — Free tree structure (manual, currently UC-13)
 
-Der Lead EA Architekt organisiert Inhalte manuell in Ordnern (TreeNode). Keine Auto-Struktur; volle Freiheit.
+The lead EA organizes content manually in folders (TreeNode). No auto structure; full freedom.
 
-**Pro**: Maximale Flexibilität; passt zu jeder Organisationsstruktur
-**Contra**: Administrativer Aufwand; neue Solutions müssen jedes Mal manuell eingehängt werden; Konsistenz abhängig von Disziplin
+**Pro**: Maximum flexibility; fits any organizational structure
+**Con**: Administrative effort; new solutions must be attached manually every time; consistency depends on discipline
 
-### Option C — Entity-Typ-zentriert (nach ArchiMate-Schicht)
+### Option C — Entity-type-centric (by ArchiMate layer)
 
-Inhalte nach ArchiMate-Schicht oder Entitätstyp organisiert (Anwendungsschicht, Technologieschicht, Geschäftsschicht…).
+Content organized by ArchiMate layer or entity type (application layer, technology layer, business layer…).
 
-**Pro**: Klassisches ArchiMate-Browsing; vertraut für ArchiMate-Nutzer
-**Contra**: Widerspricht dem Solution-Konzept; Solutions (thematische Einheiten) werden zerrissen; nicht TOGAF-konform
+**Pro**: Classic ArchiMate browsing; familiar for ArchiMate users
+**Con**: Contradicts the solution concept; solutions (thematic units) are torn apart; not TOGAF-compliant
 
-## Entscheidung
+## Decision
 
-**Option A — Solution-zentriert** wird als Standard-Tab „Browser" implementiert.
+**Option A — Solution-centric** is implemented as the default "Browser" tab.
 
-Der Browser-Panel zeigt Solutions als primäre Navigationsebene. Jede Solution erhält automatisch die sechs Grundkategorien als Unterknoten. Ein virtueller „Aktueller Stand"-Knoten erscheint als erster Knoten und aggregiert alle realisierten Inhalte. Die manuelle Baumstruktur (Option B) bleibt als separater Tab „Architektur-Baum" im Browser-Panel erhalten — beide Tabs sind frei im Layout verschiebbar.
+The browser panel shows solutions as the primary navigation level. Each solution automatically receives the six basic categories as child nodes. A virtual "Current State" node appears as the first node and aggregates all realized content. The manual tree structure (Option B) remains available as a separate "Architecture Tree" tab in the browser panel — both tabs are freely movable in the layout.
 
-## Konsequenzen
+## Consequences
 
-- REQ-138, REQ-139, REQ-140, REQ-141, REQ-142 werden aus dieser Entscheidung abgeleitet
-- UC-13 (Navigationsbaum verwalten) beschreibt weiterhin den zweiten Tab „Architektur-Baum"
-- Der „Aktueller Stand"-Knoten ist read-only und wird aus dem Solution-Status und Plateau-Mapping berechnet — keine manuelle Pflege nötig
-- Solutions mit `status=archived` erscheinen nicht im Browser (nur in der Solution-Verwaltung)
-- Die Grundstruktur (6 Kategorien) ist nicht konfigurierbar auf Instanzebene; sie ist fester Bestandteil jeder Solution
+- REQ-138, REQ-139, REQ-140, REQ-141, REQ-142 are derived from this decision
+- UC-13 (manage navigation tree) continues to describe the second tab "Architecture Tree"
+- The "Current State" node is read-only and is computed from solution status and plateau mapping — no manual maintenance needed
+- Solutions with `status=archived` do not appear in the browser (only in solution management)
+- The basic structure (6 categories) is not configurable at instance level; it is a fixed part of every solution
 
-## Betroffene Konzept-Kapitel
+## Affected Concept Chapters
 
-- §6 Kern-Entitätstypen
-- §12 Domain-Sichten
+- §6 Core Entity Types
+- §12 Domain Views
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-28 | Solution Architekt | Initial draft |
+| 0.1.0 | 2026-06-28 | Solution Architect | Initial draft |

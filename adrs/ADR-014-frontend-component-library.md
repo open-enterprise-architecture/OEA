@@ -1,119 +1,119 @@
-# ADR-014: Frontend-Komponentenbibliothek und WYSIWYG-Editor
+# ADR-014: Frontend Component Library and WYSIWYG Editor
 
 **Status**: accepted
-**Datum**: 2026-06-26
-**Entscheider**: [Rigobert – Produkt Owner](../business-analysis/stakeholders/SH-09-rigobert-produkt-owner.md) (SH-09)
-**Konsultiert**: Requirements Engineer
-**Informiert**: –
+**Date**: 2026-06-26
+**Deciders**: [Rigobert – Product Owner](../business-analysis/stakeholders/SH-09-rigobert-product-owner.md) (SH-09)
+**Consulted**: Requirements Engineer
+**Informed**: –
 
-## Kontext und Problem
+## Context and Problem
 
-Das Vue 3-Frontend (ADR-011) benötigt:
-1. Eine **UI-Komponentenbibliothek** für alle Standard-UI-Elemente (Tabellen, Dialoge, Formulare, Bäume, Menüs)
-2. Einen **WYSIWYG-Editor** für Arc42-Kapitel und Entity-Beschreibungen (REQ-068, REQ-069, REQ-070, REQ-078, REQ-080)
+The Vue 3 frontend (ADR-011) requires:
+1. A **UI component library** for all standard UI elements (tables, dialogs, forms, trees, menus)
+2. A **WYSIWYG editor** for Arc42 chapters and entity descriptions (REQ-068, REQ-069, REQ-070, REQ-078, REQ-080)
 
-OEA ist ein EA-Tool mit anspruchsvollen Daten-UI-Anforderungen: sortierbare/filterbare Tabellen mit vielen Spalten (UC-06 Katalog), verschachtelter Navigationsbaum (TreeNode), komplexe Formulare für Metamodell-Konfiguration.
+OEA is an EA tool with demanding data UI requirements: sortable/filterable tables with many columns (UC-06 catalog), nested navigation tree (TreeNode), complex forms for metamodel configuration.
 
-## Entscheidungstreiber
+## Decision Drivers
 
-- **DataTable-Qualität**: UC-06 (Katalog) ist der Walking-Skeleton-UC; die Tabellen-Komponente ist kritisch (Sortierung, Filter, Pagination, Column Resize, ggf. Virtualisierung bei grossen Repos)
-- **TreeView**: NavigationsTree (UC-06, US-054) braucht verschachtelten, lazy-loadbaren Baum
-- **WYSIWYG-Erweiterbarkeit**: Editor muss `[[`-Mention-Trigger (REQ-070), `drawio`-Codeblöcke (REQ-078), Mermaid/PlantUML-Blöcke (REQ-068) als Custom-Extensions unterstützen
-- **Vue 3 + TypeScript-native**: keine Wrapper-Bibliotheken, direkte Vue 3 Composition API
-- **OSS-Kompatibilität**: MIT oder Apache 2.0
-- **Offline-Fähigkeit**: keine CDN-Abhängigkeit zur Laufzeit (REQ-075)
+- **DataTable quality**: UC-06 (catalog) is the Walking Skeleton UC; the table component is critical (sorting, filter, pagination, column resize, possibly virtualization for large repos)
+- **TreeView**: NavigationTree (UC-06, US-054) needs a nested, lazy-loadable tree
+- **WYSIWYG extensibility**: Editor must support the `[[` mention trigger (REQ-070), `drawio` code blocks (REQ-078), Mermaid/PlantUML blocks (REQ-068) as custom extensions
+- **Vue 3 + TypeScript-native**: no wrapper libraries, direct Vue 3 Composition API
+- **OSS compatibility**: MIT or Apache 2.0
+- **Offline capability**: no CDN dependency at runtime (REQ-075)
 
-## Betrachtete Optionen – Komponentenbibliothek
+## Considered Options – Component Library
 
 ### Option 1: PrimeVue 4 ✓
 
-Enterprise-Komponentenbibliothek speziell für Vue 3. Grösster Komponentenumfang im Vue-Ökosystem.
+Enterprise component library specifically for Vue 3. Largest component scope in the Vue ecosystem.
 
 - **Pro**:
-  - **DataTable**: beste Vue-DataTable (Virtual Scroll, Column Resize, Row Grouping, Export) — direkt für UC-06
-  - **TreeView**: vollständige Tree-Komponente mit lazy-loading, Checkbox-Selektion
-  - Vollständiger Komponentensatz: Dialog, Sidebar, Accordion, Toast, AutoComplete, Dropdown, FileUpload, Steps
-  - Theming: Tailwind-basiert (PrimeVue 4 + Tailwind CSS), komplett anpassbar
-  - PrimeIcons enthalten (800+ Icons)
-  - MIT-Lizenz, aktiv gepflegt
-- **Contra**: Tailwind-Integration erfordert Setup; etwas grössere Bundle-Grösse als headless-Alternativen
+  - **DataTable**: best Vue DataTable (virtual scroll, column resize, row grouping, export) — directly for UC-06
+  - **TreeView**: complete tree component with lazy loading, checkbox selection
+  - Complete component set: Dialog, Sidebar, Accordion, Toast, AutoComplete, Dropdown, FileUpload, Steps
+  - Theming: Tailwind-based (PrimeVue 4 + Tailwind CSS), fully customizable
+  - PrimeIcons included (800+ icons)
+  - MIT license, actively maintained
+- **Con**: Tailwind integration requires setup; somewhat larger bundle size than headless alternatives
 
 ### Option 2: Vuetify 3
 
-Material Design Component Framework.
+Material Design component framework.
 
-- **Pro**: Sehr ausgereift, grosse Community, DataTable vorhanden
-- **Contra**: Material-Design-Ästhetik ist für Enterprise-EA-Tools oft zu "Consumer-App"-artig; weniger flexibel in Theming; DataTable weniger feature-reich als PrimeVue für EA-Tool-Anwendungsfälle
-- Scheidet aus
+- **Pro**: Very mature, large community, DataTable available
+- **Con**: Material Design aesthetics are often too "consumer app"-like for enterprise EA tools; less flexible in theming; DataTable less feature-rich than PrimeVue for EA tool use cases
+- Ruled out
 
 ### Option 3: Radix Vue (headless)
 
-Unstyled, zugängliche Primitive-Komponenten.
+Unstyled, accessible primitive components.
 
-- **Pro**: Maximale Styling-Flexibilität, minimal bundle
-- **Contra**: Kein DataTable, kein Tree; müsste selbst gebaut werden — unnötiger Aufwand für v1.0
-- Scheidet aus
+- **Pro**: Maximum styling flexibility, minimal bundle
+- **Con**: No DataTable, no tree; would have to be built in-house — unnecessary effort for v1.0
+- Ruled out
 
-## Betrachtete Optionen – WYSIWYG-Editor
+## Considered Options – WYSIWYG Editor
 
 ### Option 1: TipTap 2.x ✓
 
-Headless, erweiterungsbasierter Rich-Text-Editor auf ProseMirror-Basis. `@tiptap/vue-3` ist der offizielle Vue 3-Wrapper.
+Headless, extension-based rich text editor based on ProseMirror. `@tiptap/vue-3` is the official Vue 3 wrapper.
 
 - **Pro**:
-  - Custom Extensions: `[[`-Mention (REQ-070), drawio-Block (REQ-078), Mermaid/PlantUML-CodeBlock (REQ-068) als eigene Tiptap-Extensions implementierbar
+  - Custom extensions: `[[` mention (REQ-070), drawio block (REQ-078), Mermaid/PlantUML code block (REQ-068) implementable as own Tiptap extensions
   - TypeScript-first API
-  - `spellcheck`-Attribut einfach setzbar (REQ-080)
-  - LanguageTool-Integration via Custom-Extension (REQ-080)
-  - Aktive Community, gute Dokumentation
-  - MIT-Lizenz (Core; Pro-Extensions optional, nicht benötigt)
-- **Contra**: Headless — Styling der Toolbar muss selbst gebaut werden (PrimeVue-Buttons verwenden)
+  - `spellcheck` attribute easily settable (REQ-080)
+  - LanguageTool integration via custom extension (REQ-080)
+  - Active community, good documentation
+  - MIT license (core; Pro extensions optional, not needed)
+- **Con**: Headless — toolbar styling must be built in-house (use PrimeVue buttons)
 
 ### Option 2: Quill 2.x
 
-- **Pro**: Sehr bekannt, einfache API
-- **Contra**: Deutlich weniger erweiterbar als TipTap; Custom-Extensions für `[[`-Trigger schwieriger; TypeScript-Support schwächer
-- Scheidet aus
+- **Pro**: Very well known, simple API
+- **Con**: Significantly less extensible than TipTap; custom extensions for the `[[` trigger harder; weaker TypeScript support
+- Ruled out
 
-## Entscheidung
+## Decision
 
-**Komponentenbibliothek**: **PrimeVue 4** (MIT) + **Tailwind CSS** (MIT)
-**WYSIWYG-Editor**: **TipTap 2.x** (MIT, `@tiptap/vue-3`)
+**Component library**: **PrimeVue 4** (MIT) + **Tailwind CSS** (MIT)
+**WYSIWYG editor**: **TipTap 2.x** (MIT, `@tiptap/vue-3`)
 
-Begründung: PrimeVue's DataTable-Qualität ist für UC-06 (Walking Skeleton) entscheidend. TipTap ist bereits in allen WYSIWYG-REQs als implizite Wahl verankert; seine Extensions-API ist die einzige realistische Option für die Kombination aus `[[`-Mention, Mermaid/PlantUML-Blöcken und draw.io-Embed.
+Rationale: PrimeVue's DataTable quality is decisive for UC-06 (Walking Skeleton). TipTap is already anchored as the implicit choice in all WYSIWYG REQs; its extensions API is the only realistic option for the combination of `[[` mention, Mermaid/PlantUML blocks, and draw.io embed.
 
-**Pakete:**
+**Packages:**
 
-| Zweck | Package | Lizenz |
+| Purpose | Package | License |
 |---|---|---|
-| UI-Komponenten | `primevue` | MIT |
+| UI components | `primevue` | MIT |
 | Icons | `primeicons` | MIT |
-| CSS-Framework | `tailwindcss` | MIT |
-| WYSIWYG Core | `@tiptap/vue-3`, `@tiptap/starter-kit` | MIT |
-| WYSIWYG Mention | `@tiptap/extension-mention` | MIT |
-| WYSIWYG Code | `@tiptap/extension-code-block-lowlight` | MIT |
-| Syntax-Highlighting | `lowlight` + Sprach-Pakete | MIT |
+| CSS framework | `tailwindcss` | MIT |
+| WYSIWYG core | `@tiptap/vue-3`, `@tiptap/starter-kit` | MIT |
+| WYSIWYG mention | `@tiptap/extension-mention` | MIT |
+| WYSIWYG code | `@tiptap/extension-code-block-lowlight` | MIT |
+| Syntax highlighting | `lowlight` + language packages | MIT |
 
-## Konsequenzen
+## Consequences
 
-### Positive Konsequenzen
+### Positive Consequences
 
-- UC-06 Walking Skeleton: PrimeVue DataTable deckt alle Katalog-Anforderungen (Sortierung, Filter, Pagination, Column Resize) out-of-the-box
-- TipTap Extensions decken REQ-068/069/070/078/080 vollständig ab
-- Tailwind CSS ermöglicht konsistentes Design-System ohne eigene CSS-Architektur
+- UC-06 Walking Skeleton: PrimeVue DataTable covers all catalog requirements (sorting, filter, pagination, column resize) out-of-the-box
+- TipTap extensions fully cover REQ-068/069/070/078/080
+- Tailwind CSS enables a consistent design system without own CSS architecture
 
-### Negative Konsequenzen / Trade-offs
+### Negative Consequences / Trade-offs
 
-- Tailwind CSS + PrimeVue Setup erfordert Konfigurationsaufwand beim Projekt-Setup
-- TipTap-Toolbar muss selbst gebaut werden (PrimeVue-Buttons + eigene Toolbar-Komponente)
+- Tailwind CSS + PrimeVue setup requires configuration effort during project setup
+- TipTap toolbar must be built in-house (PrimeVue buttons + own toolbar component)
 
-### Folgeentscheidungen
+### Follow-up Decisions
 
-- **Design-System / Farbschema**: Tailwind-Config mit OEA-Brandfarben — Entscheidung beim ersten UI-Sprint
-- **TipTap-Extensions-Bibliothek**: separate `packages/editor-extensions` für wiederverwendbare Custom-Extensions (Mention, drawio, Mermaid)
+- **Design system / color scheme**: Tailwind config with OEA brand colors — decision at the first UI sprint
+- **TipTap extensions library**: separate `packages/editor-extensions` for reusable custom extensions (mention, drawio, Mermaid)
 
-## Bezüge
+## References
 
-**Verwandte ADRs**: [ADR-011](./ADR-011-frontend-framework.md) (Vue 3), [ADR-007](./ADR-007-canvas-bibliothek.md) (Vue Flow für Canvas)
+**Related ADRs**: [ADR-011](./ADR-011-frontend-framework.md) (Vue 3), [ADR-007](./ADR-007-canvas-library.md) (Vue Flow for canvas)
 
-**Requirements**: [REQ-068](../requirements/req/REQ-068-arc42-wysiwyg-editor.md), [REQ-070](../requirements/req/REQ-070-entity-mention-autocomplete.md), [REQ-078](../requirements/req/REQ-078-drawio-einbetten.md), [REQ-080](../requirements/req/REQ-080-rechtschreibungspruefung-wysiwyg.md)
+**Requirements**: [REQ-068](../requirements/req/REQ-068-arc42-wysiwyg-editor.md), [REQ-070](../requirements/req/REQ-070-entity-mention-autocomplete.md), [REQ-078](../requirements/req/REQ-078-embed-drawio.md), [REQ-080](../requirements/req/REQ-080-spell-checking-wysiwyg.md)

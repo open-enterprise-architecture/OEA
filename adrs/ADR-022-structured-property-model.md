@@ -1,70 +1,70 @@
-# ADR-022: Strukturiertes Property-Modell mit Kategorie, temporalem Mapping und Delta-Versionierung
+# ADR-022: Structured Property Model with Category, Temporal Mapping, and Delta Versioning
 
 **Status**: accepted
-**Datum**: 2026-06-29
-**Entscheider**: [Lukas – Repository-Inhaber](../business-analysis/stakeholders/SH-01-lukas-enterprise-architect.md)
+**Date**: 2026-06-29
+**Deciders**: [Lukas – Repository Owner](../business-analysis/stakeholders/SH-01-lukas-enterprise-architect.md)
 
 ---
 
-## Kontext
+## Context
 
-Das bisherige Modell speichert benutzerdefinierte Eigenschaften von Entitäten als `properties JSONB`
-direkt in der `entities`-Tabelle. Versionierung erfolgt durch vollständige Snapshots in
+The previous model stores user-defined properties of entities as `properties JSONB`
+directly in the `entities` table. Versioning is done through full snapshots in
 `entity_versions.properties JSONB`.
 
-Dieses Vorgehen erzeugt zwei Probleme:
+This approach creates two problems:
 
-1. **Datenredundanz**: Bei jeder Änderung werden alle Properties einer Entität erneut gespeichert,
-   auch die unveränderten. Bei 20 Properties und einer Änderung entsteht eine 20× Redundanz pro Version.
-2. **Fehlende Strukturierung**: Property-Definitionen sind im JSONB der `metamodel_configurations`
-   vergraben — kein echter DB-FK, kein echtes Schema, keine indexierbare Abfrage auf einzelne Werte.
-3. **Starrheit im Mapping**: Ob eine Property für einen MetaTyp obligatorisch ist, lässt sich nicht
-   per Stichtag ändern. Konformanzregeln können sich nicht im Zeitverlauf anpassen.
+1. **Data redundancy**: On every change, all properties of an entity are stored again,
+   including the unchanged ones. With 20 properties and one change, this results in 20× redundancy per version.
+2. **Lack of structure**: Property definitions are buried in the JSONB of `metamodel_configurations`
+   — no real DB FK, no real schema, no indexable query on individual values.
+3. **Rigidity in mapping**: Whether a property is mandatory for a meta type cannot be changed
+   per effective date. Conformance rules cannot adapt over time.
 
 ---
 
-## Entscheidung
+## Decision
 
-Einführung eines **vierschichtigen strukturierten Property-Modells**:
+Introduction of a **four-layer structured property model**:
 
 ```
-property_categories          (Gruppierung von Property-Definitionen)
+property_categories          (grouping of property definitions)
       ↓
-property_definitions         (wiederverwendbare Property-Typen)
+property_definitions         (reusable property types)
       ↓
-metatype_property_mappings   (Verbindung Property ↔ MetaTyp, mit Necessity + Stichtag)
+metatype_property_mappings   (link property ↔ meta type, with necessity + effective date)
       ↓
-entity_property_values       (effektive Werte pro Entity-Instanz)
+entity_property_values       (effective values per entity instance)
 ```
 
-### Schicht 1 – property_categories
+### Layer 1 – property_categories
 
-Flache (einstufige) Kategorisierung von Property-Definitionen zur Strukturierung der UI
-(z.B. «Allgemein», «Technisch», «Governance», «Compliance»).
+Flat (single-level) categorization of property definitions for structuring the UI
+(e.g. "General", "Technical", "Governance", "Compliance").
 
-Keine Hierarchie (parent_id) in v1 — kann later ohne Datenverlust via parent_id ergänzt werden.
+No hierarchy (parent_id) in v1 — can be added later via parent_id without data loss.
 
-### Schicht 2 – property_definitions
+### Layer 2 – property_definitions
 
-Globale, MetaTyp-unabhängige Typdefinitionen. Eine Property-Definition (z.B. «version») kann in
-mehreren MetaTypen mit unterschiedlicher Necessity gemappt werden.
+Global, meta-type-independent type definitions. A property definition (e.g. "version") can be mapped in
+several meta types with different necessity.
 
-Typed-Value-Spalten statt polymorphem JSONB:
+Typed-value columns instead of polymorphic JSONB:
 `value_text`, `value_int`, `value_bool`, `value_date`, `value_ref` (FK→entities), `value_enum`
 
-Zusätzlich: `constraints JSONB` für datentypspezifische Validierungsregeln (max_length, pattern,
-min/max) und `i18n_labels JSONB` für mehrsprachige Bezeichnungen.
+Additionally: `constraints JSONB` for data-type-specific validation rules (max_length, pattern,
+min/max) and `i18n_labels JSONB` for multilingual labels.
 
-### Schicht 3 – metatype_property_mappings
+### Layer 3 – metatype_property_mappings
 
-Verbindet eine Property-Definition mit einem MetaTyp und legt fest:
+Links a property definition to a meta type and specifies:
 - `necessity`: `mandatory` | `warning` | `optional`
-- `default_value JSONB`: optionaler Vorbelegungswert beim Anlegen einer neuen Entität (nicht zwingend)
-- `valid_from DATE`: Stichtag dieser Necessity-Festlegung
+- `default_value JSONB`: optional preset value when creating a new entity (not mandatory)
+- `valid_from DATE`: effective date of this necessity setting
 
-**Temporales Muster (valid_from only, kein valid_to)**:
-Beim Ermitteln der aktuellen Necessity wird die Zeile mit dem höchsten `valid_from ≤ CURRENT_DATE`
-herangezogen. Keine Updates auf bestehenden Zeilen — neue Stichtage werden als neue Zeile eingefügt.
+**Temporal pattern (valid_from only, no valid_to)**:
+When determining the current necessity, the row with the highest `valid_from ≤ CURRENT_DATE`
+is used. No updates on existing rows — new effective dates are inserted as a new row.
 
 ```sql
 SELECT necessity FROM metatype_property_mappings
@@ -74,64 +74,64 @@ ORDER BY valid_from DESC
 LIMIT 1;
 ```
 
-Dies erlaubt Konformanz-Abfragen für beliebige historische Daten (UC-20).
+This allows conformance queries for arbitrary historical dates (UC-20).
 
-### Schicht 4 – entity_property_values
+### Layer 4 – entity_property_values
 
-Eine Zeile pro (entity_id, property_def_id) — aktueller Wert. Kein JSONB-Blob mehr in `entities`.
+One row per (entity_id, property_def_id) — current value. No JSONB blob in `entities` anymore.
 
-Für die Versionierung wird `entity_property_value_history` als Delta-Tabelle geführt:
-- **Pro geänderte Property** eine Zeile mit dem Wert *vor* der Änderung
-- Unveränderte Properties erzeugen keinen Eintrag → keine Redundanz
-- Restore (UC-15/UC-16): Rückwärts-Anwendung aller Delta-Zeilen bis zur Zielversion
+For versioning, `entity_property_value_history` is maintained as a delta table:
+- **One row per changed property** with the value *before* the change
+- Unchanged properties produce no entry → no redundancy
+- Restore (UC-15/UC-16): backward application of all delta rows up to the target version
 
-### Zusätzliche Konsequenz – metatypes als echte Tabelle
+### Additional Consequence – metatypes as a Real Table
 
-Da `metatype_property_mappings.metatype_id` einen echten FK braucht, werden MetaTypen aus dem
-`metamodel_configurations.config`-JSONB herausgelöst und in eine eigene `metatypes`-Tabelle
-überführt. `entities.entity_type_id TEXT` (Soft-Referenz) wird zu `metatype_id UUID FK→metatypes.id`.
+Since `metatype_property_mappings.metatype_id` needs a real FK, meta types are extracted from the
+`metamodel_configurations.config` JSONB and moved into their own `metatypes` table.
+`entities.entity_type_id TEXT` (soft reference) becomes `metatype_id UUID FK→metatypes.id`.
 
-Das `config`-JSONB in `metamodel_configurations` behält: viewpoints, architectureLayers,
+The `config` JSONB in `metamodel_configurations` retains: viewpoints, architectureLayers,
 constraintRules, stereotypes, documentCollectionDefinitions.
 
 ---
 
-## Verworfene Alternativen
+## Rejected Alternatives
 
-### A – Pure JSONB (bisheriger Ansatz)
-Einfachstes Schema, aber Datenredundanz pro Version und keine Indexierbarkeit einzelner Werte.
-**Verworfen**: Redundanz wächst linear mit Anzahl Properties × Versionen.
+### A – Pure JSONB (previous approach)
+Simplest schema, but data redundancy per version and no indexability of individual values.
+**Rejected**: Redundancy grows linearly with number of properties × versions.
 
 ### C – Event Sourcing (append-only)
-Perfektes Audit Log, kein Datenverlust. Aber zu komplex für v1: erfordert eigene Event-Fold-Infrastruktur.
-**Zurückgestellt**: kann in v2 eingeführt werden, das Modell ist kompatibel.
+Perfect audit log, no data loss. But too complex for v1: requires its own event-fold infrastructure.
+**Deferred**: can be introduced in v2, the model is compatible.
 
 ---
 
-## Konsequenzen
+## Consequences
 
-**Positiv:**
-- Versionierungsredundanz entfällt (nur Deltas gespeichert)
-- Einzelne Property-Werte sind indexierbar und direkt abfragbar
-- Konformanz (UC-20) kann historisch und zukunftsgerichtet ausgewertet werden (Stichtag)
-- Property-Definitionen sind wiederverwendbar über MetaTypen hinweg
-- Default-Werte pro Mapping reduzieren manuellen Aufwand beim Anlegen von Entitäten
+**Positive:**
+- Versioning redundancy is eliminated (only deltas stored)
+- Individual property values are indexable and directly queryable
+- Conformance (UC-20) can be evaluated historically and forward-looking (effective date)
+- Property definitions are reusable across meta types
+- Default values per mapping reduce manual effort when creating entities
 
-**Negativ / Kompromisse:**
-- Schema-Komplexität steigt (+4 Tabellen)
-- Restore-Logik (UC-15): Delta-Rückwärts-Anwendung ist komplexer als Snapshot-Laden
-- Lesen aller Properties einer Entity erfordert JOIN auf `entity_property_values`
-  (Standard-SQL, mit Index auf `entity_id` effizient)
-- Migration bestehender JSONB-Daten erfordert Transformations-Script
+**Negative / Compromises:**
+- Schema complexity increases (+4 tables)
+- Restore logic (UC-15): backward delta application is more complex than loading a snapshot
+- Reading all properties of an entity requires a JOIN on `entity_property_values`
+  (standard SQL, efficient with an index on `entity_id`)
+- Migration of existing JSONB data requires a transformation script
 
 ---
 
-## Betroffene Konzept-Kapitel
+## Affected Concept Chapters
 
-- §6 (Entity-Modell), §9 (Metamodell), §14 (Audit und Versionierung), §20 (Konformanz)
+- §6 (Entity Model), §9 (Metamodel), §14 (Audit and Versioning), §20 (Conformance)
 
-## Verwandte ADRs
+## Related ADRs
 
-- ADR-016: Optimistic Locking (version-Spalte in entities bleibt)
-- ADR-019: Soft-Delete-Strategie (deleted_at in entities bleibt)
-- ADR-021: parent_entity_id / Strukturierungs-Grupper
+- ADR-016: Optimistic locking (version column in entities remains)
+- ADR-019: Soft-delete strategy (deleted_at in entities remains)
+- ADR-021: parent_entity_id / structural grouper

@@ -1,6 +1,6 @@
 ---
 id: REQ-084
-title: Plateau anlegen
+title: Create plateau
 type: functional
 priority: must
 status: proposed
@@ -23,43 +23,43 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-084: Plateau anlegen
+# REQ-084: Create plateau
 
-## Aussage
+## Statement
 
-Das System MUSS das Anlegen von Plateaus mit den Status `baseline`, `target` und `transition` ermöglichen. Pflichtfeld: `name`; optional: `description` (max. 2000 Zeichen), `validFrom`, `succeeds` (Referenz auf bestehendes Plateau). Pro Instanz darf maximal ein Plateau den Status `baseline` haben.
+The system MUST enable the creation of plateaus with the statuses `baseline`, `target` and `transition`. Mandatory field: `name`; optional: `description` (max. 2000 characters), `validFrom`, `succeeds` (reference to an existing plateau). At most one plateau per instance may have the status `baseline`.
 
-## Begründung
+## Rationale
 
-Ohne Plateau-Anlage kann keine strategische Architekturplanung im Plateau-Modus stattfinden. Das Plateau ist die zentrale Einheit zur Strukturierung von Ist- und Zielzuständen im EA-Repository.
+Without plateau creation, no strategic architecture planning can take place in plateau mode. The plateau is the central unit for structuring current and target states in the EA repository.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Initiales Baseline anlegen):
-- Wenn: ein Plateau ohne `succeeds`-Referenz und mit `status=baseline` angelegt wird
-- Dann: antwortet die API mit HTTP 201 und `status=baseline`
+**AC1** (Create initial baseline):
+- When: a plateau is created without a `succeeds` reference and with `status=baseline`
+- Then: the API responds with HTTP 201 and `status=baseline`
 
-**AC2** (Target anlegen):
-- Wenn: ein Plateau mit `status=target` und `succeeds`=Baseline-ID angelegt wird
-- Dann: antwortet die API mit HTTP 201; `status=target` und `succeeds` sind korrekt gesetzt
+**AC2** (Create target):
+- When: a plateau is created with `status=target` and `succeeds`=baseline ID
+- Then: the API responds with HTTP 201; `status=target` and `succeeds` are set correctly
 
-**AC3** (Zweites Baseline abweisen):
-- Wenn: ein weiteres Plateau mit `status=baseline` angelegt wird, obwohl bereits ein Baseline-Plateau existiert
-- Dann: antwortet die API mit HTTP 422 ("Es existiert bereits ein Baseline-Plateau")
+**AC3** (Reject second baseline):
+- When: a further plateau with `status=baseline` is created although a baseline plateau already exists
+- Then: the API responds with HTTP 422 ("A baseline plateau already exists")
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: UC-11 aktiv (Plateau-Modus für die Instanz aktiviert)
-- **Folgewirkungen**: REQ-085 (Übersicht), REQ-086 (Go-Live-Bestätigung)
+- **Prerequisites**: UC-11 active (plateau mode enabled for the instance)
+- **Downstream effects**: REQ-085 (overview), REQ-086 (go-live confirmation)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Plateau-Status ist nach Go-Live (`realized`) immutabel; kein erneutes Schreiben erlaubt
-- `succeeds`-Referenz ist optional und wird nur bei `target`-Plateaus sinnvoll gesetzt
-- Unique-Constraint auf `status=baseline` pro Instanz in der DB absichern
+- Plateau status is immutable after go-live (`realized`); no further writing allowed
+- `succeeds` reference is optional and only meaningfully set for `target` plateaus
+- Secure the unique constraint on `status=baseline` per instance in the DB
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

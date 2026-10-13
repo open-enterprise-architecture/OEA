@@ -1,36 +1,36 @@
-# US-114: Paket-Import atomar ausführen und Konflikte behandeln
+# US-114: Execute Package Import Atomically and Handle Conflicts
 
 **ID**: US-114
 **Story Points**: 5
 **Status**: backlog
-**Sprint**: nicht-zugeordnet
+**Sprint**: unassigned
 
 ## Story
 
-Als Kurt – Lead Enterprise Architekt möchte ich, dass der Paket-Import als atomare Transaktion ausgeführt wird und mir ID-Konflikte zur Auflösung anzeigt, damit weder ein partieller Import entsteht noch organisationsspezifische Bausteine unbeabsichtigt überschrieben werden.
+As Kurt – Lead Enterprise Architect, I want the package import to run as an atomic transaction and to be shown ID conflicts for resolution, so that neither a partial import occurs nor organization-specific building blocks are overwritten unintentionally.
 
-## Bezug
+## Reference
 
-**Use Case**: [UC-18](../use-cases/UC-18-continuum-paket-importieren.md)
-**Persona**: Kurt – Lead Enterprise Architekt (SH-03)
-**Requirements**: [REQ-114](../req/REQ-114-atomarer-import-konflikt-handling.md)
+**Use Case**: [UC-18](../use-cases/UC-18-import-continuum-package.md)
+**Persona**: Kurt – Lead Enterprise Architect (SH-03)
+**Requirements**: [REQ-114](../req/REQ-114-atomic-import-conflict-handling.md)
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Zyklus-Abbruch):
-- Wenn: das importierte Paket einen Zyklus im ABB-Verfeinerungs-Graphen enthält
-- Dann: bricht der Import ab; kein Baustein wird importiert; ich sehe eine Fehlermeldung mit Zyklus-Beschreibung
+**AC1** (Cycle abort):
+- When: the imported package contains a cycle in the ABB refinement graph
+- Then: the import aborts; no building block is imported; I see an error message with a cycle description
 
-**AC2** (Konflikt-Liste):
-- Wenn: das Paket 3 Bausteine mit bereits vorhandenen IDs enthält
-- Dann: sehe ich die Konflikt-Liste; der Default ist „Überspringen" für alle Konflikte
+**AC2** (Conflict list):
+- When: the package contains 3 building blocks with already existing IDs
+- Then: I see the conflict list; the default is "Skip" for all conflicts
 
-**AC3** (Rollback bei DB-Fehler):
-- Wenn: nach dem Import von 20 von 50 Bausteinen ein Datenbankfehler auftritt
-- Dann: wird ein vollständiger Rollback ausgeführt; 0 Bausteine sind importiert
+**AC3** (Rollback on DB error):
+- When: a database error occurs after the import of 20 of 50 building blocks
+- Then: a full rollback is executed; 0 building blocks are imported
 
 ## Definition of Done
 
-- [ ] AC1–AC3 erfüllt
-- [ ] Tests vorhanden
-- [ ] Code-Review; Linter grün; In Trace-Matrix eingetragen
+- [ ] AC1–AC3 fulfilled
+- [ ] Tests present
+- [ ] Code review; linter green; entered in trace matrix

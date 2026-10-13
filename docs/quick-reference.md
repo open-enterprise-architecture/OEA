@@ -1,39 +1,39 @@
-# Quick Reference – Agents auf einen Blick
+# Quick Reference – Agents at a Glance
 
-Einseitige Übersicht zum Nachschlagen. Drucken oder neben den Bildschirm legen.
+One-page overview for lookup. Print it or keep it next to the screen.
 
-## Die sieben Agents
+## The Seven Agents
 
-| Agent | Wann aufrufen | Output | Reading: |
+| Agent | When to Invoke | Output | Reading: |
 |---|---|---|---|
-| **Business Engineer** | Neue fachliche Domäne, Begriffe klären | `business-objects/*.md`, Business Rules | Konzept §6, §7, Persona SH-07 |
-| **Solution Architect** | Klärung mit PO, Scope, Specs, Tickets | OpenAPI/Schema-Specs, Tasks pro Agent | Konzept INDEX, ADRs |
-| **Requirements Engineer** | Nach Use Cases, vor Implementation | `requirements/req/REQ-NNN-*.md` | Use Cases, Business Objects |
-| **UI Designer** | Mockup-Bedarf, Design-Tokens | Penpot-Files, `design/<feature>/` | Personas, UC-Specs |
-| **Backend Engineer** | Backend-Implementation aus Spec | Code in `backend/`, Tests, Migrations | OpenAPI-Spec, Schema |
-| **Frontend Engineer** | Frontend-Implementation aus Spec | Code in `frontend/`, Stories, E2E-Tests | OpenAPI-Spec, Mockups |
-| **Security Engineer** | Vor jedem Merge, bei Spec-Reviews | Reviews in `security-reviews/` | Code, Specs, Konfiguration |
+| **Business Engineer** | New business domain, clarify terms | `business-objects/*.md`, business rules | Concept §6, §7, persona SH-07 |
+| **Solution Architect** | Clarification with PO, scope, specs, tickets | OpenAPI/schema specs, tasks per agent | Concept INDEX, ADRs |
+| **Requirements Engineer** | After use cases, before implementation | `requirements/req/REQ-NNN-*.md` | Use cases, business objects |
+| **UI Designer** | Mockup needs, design tokens | Penpot files, `design/<feature>/` | Personas, UC specs |
+| **Backend Engineer** | Backend implementation from spec | Code in `backend/`, tests, migrations | OpenAPI spec, schema |
+| **Frontend Engineer** | Frontend implementation from spec | Code in `frontend/`, stories, E2E tests | OpenAPI spec, mockups |
+| **Security Engineer** | Before every merge, for spec reviews | Reviews in `security-reviews/` | Code, specs, configuration |
 
-## Workflow-Reihenfolge
+## Workflow Order
 
 ```
-PO → Solution Architect → Business Engineer → (PO entscheidet)
+PO → Solution Architect → Business Engineer → (PO decides)
    → Use Case (PO + Solution Architect)
-   → Requirements Engineer → (PO reviewt)
-   → UI Designer + Backend + Frontend (parallel auf Spec)
-   → Security Engineer (querschneidend)
-   → Solution Architect (Integration)
-   → PO (Akzeptanz, Merge)
+   → Requirements Engineer → (PO reviews)
+   → UI Designer + Backend + Frontend (in parallel on spec)
+   → Security Engineer (cross-cutting)
+   → Solution Architect (integration)
+   → PO (acceptance, merge)
 ```
 
-## Aufruf-Muster
+## Invocation Patterns
 
-**Explizite Rolle**:
+**Explicit role**:
 ```
-Bitte agiere als <agent-name> (.opencode/agents/<agent-name>.md) und ...
+Please act as <agent-name> (.opencode/agents/<agent-name>.md) and ...
 ```
 
-**Über Slash-Command**:
+**Via slash command**:
 ```
 /new-business-object
 /new-usecase
@@ -42,136 +42,136 @@ Bitte agiere als <agent-name> (.opencode/agents/<agent-name>.md) und ...
 /trace-check
 ```
 
-**Direkter Sub-Agent-Call** (wenn OpenCode das nativ unterstützt):
+**Direct sub-agent call** (if OpenCode supports this natively):
 ```
-@solution-architect klär doch ...
-@business-engineer modelliere ...
+@solution-architect please clarify ...
+@business-engineer model ...
 ```
 
-## Schnittstellen-Specs (verbindlich)
+## Interface Specs (Binding)
 
-| Typ | Standard | Pfad |
+| Type | Standard | Path |
 |---|---|---|
 | REST API | OpenAPI 3.1 | `api/openapi/` |
-| Async Events | AsyncAPI 3.0 | `api/asyncapi/` |
-| Daten | JSON Schema | `api/schemas/` |
+| Async events | AsyncAPI 3.0 | `api/asyncapi/` |
+| Data | JSON Schema | `api/schemas/` |
 | CLI | Markdown | `api/cli/` |
 
-Backend + Frontend generieren Stubs aus Specs. Specs sind die Wahrheit.
+Backend + frontend generate stubs from specs. Specs are the truth.
 
-## ID-Konventionen
+## ID Conventions
 
-| Artefakt | Schema | Beispiel |
+| Artifact | Scheme | Example |
 |---|---|---|
 | Stakeholder | SH-NN | SH-01 |
 | Use Case | UC-NN | UC-01 |
 | User Story | US-NNN | US-001 |
 | Requirement | REQ-NNN | REQ-042 |
-| NFR (Legacy) | NFR-NN | NFR-03 |
+| NFR (legacy) | NFR-NN | NFR-03 |
 | ADR | ADR-NNN | ADR-006 |
 | Business Object | english-kebab-case | `application-component` |
 | Business Rule | BR-NN | BR-12 |
 
-Nummern werden niemals wiederverwendet.
+Numbers are never reused.
 
-## Verbindliche Tech-Anforderungen
+## Binding Tech Requirements
 
-- **Typsicherheit**: Frontend TypeScript Pflicht, Backend mit ausgereiftem Type-Layer
-- **OpenAPI 3.1**: Spec-First, beidseitig generiert
-- **Self-Hosting first**: keine harten Cloud-Abhängigkeiten
-- **Property-Level-AuthZ**: Pflicht, nicht optional
-- **Audit-Trail**: Append-only, separat gespeichert
+- **Type safety**: Frontend TypeScript mandatory, backend with a mature type layer
+- **OpenAPI 3.1**: Spec-first, generated on both sides
+- **Self-hosting first**: no hard cloud dependencies
+- **Property-level AuthZ**: Mandatory, not optional
+- **Audit trail**: Append-only, stored separately
 
-## Pflicht vor jedem Merge
+## Mandatory Before Every Merge
 
-- [ ] Conventional-Commits-Format
-- [ ] Tests grün (Unit, Integration, Contract)
-- [ ] Spec-Konsistenz (Backend/Frontend gegen Spec validiert)
-- [ ] Security-Review Sign-off
-- [ ] Link-Validierung (`scripts/validate_links.py`)
-- [ ] A11y-Check (für Frontend)
-- [ ] Doku aktualisiert
+- [ ] Conventional Commits format
+- [ ] Tests green (unit, integration, contract)
+- [ ] Spec consistency (backend/frontend validated against spec)
+- [ ] Security review sign-off
+- [ ] Link validation (`scripts/validate_links.py`)
+- [ ] A11y check (for frontend)
+- [ ] Documentation updated
 
-## PO-Verantwortlichkeiten
+## PO Responsibilities
 
-- Vision und Priorisierung (nicht delegierbar)
-- Entscheidung bei Konflikten zwischen Personas
-- Akzeptanz von Artefakten und Code
-- Stakeholder-Übersetzung (echte Welt → Tool)
-- Klärung von Ambiguitäten, wenn Agents fragen
+- Vision and prioritization (not delegable)
+- Decision in case of conflicts between personas
+- Acceptance of artifacts and code
+- Stakeholder translation (real world → tool)
+- Clarification of ambiguities when agents ask
 
-## PO-Nicht-Verantwortlichkeiten
+## PO Non-Responsibilities
 
-- Implementierung (das machen die Engineers)
-- Detail-Modellierung (Business Engineer, Requirements Engineer)
-- Security-Audit (Security Engineer)
-- Mockup-Erstellung (UI Designer)
+- Implementation (the engineers do that)
+- Detailed modeling (Business Engineer, Requirements Engineer)
+- Security audit (Security Engineer)
+- Mockup creation (UI Designer)
 
-## Slash-Commands im Überblick
+## Slash Commands at a Glance
 
-| Command | Wirkung |
+| Command | Effect |
 |---|---|
-| `/new-stakeholder` | Stakeholder-Profil anlegen |
-| `/new-business-object` | Business Object anlegen |
-| `/new-usecase` | Use Case anlegen |
-| `/new-requirement` | Requirement anlegen |
-| `/new-story` | User Story anlegen |
-| `/new-nfr` | NFR anlegen (Legacy-Pfad) |
-| `/new-adr` | ADR anlegen |
-| `/trace-check` | Konsistenz-Check über alle Artefakte |
-| `/release` | Version hochziehen |
+| `/new-stakeholder` | Create stakeholder profile |
+| `/new-business-object` | Create business object |
+| `/new-usecase` | Create use case |
+| `/new-requirement` | Create requirement |
+| `/new-story` | Create user story |
+| `/new-nfr` | Create NFR (legacy path) |
+| `/new-adr` | Create ADR |
+| `/trace-check` | Consistency check across all artifacts |
+| `/release` | Bump version |
 
-## Quality-Gate-Befehle
+## Quality Gate Commands
 
 ```bash
-# Link-Validierung
+# Link validation
 python3 scripts/validate_links.py
 
-# Trace-Check
-# (via Slash-Command in OpenCode)
+# Trace check
+# (via slash command in OpenCode)
 /trace-check
 ```
 
-## Bei Problemen
+## When Problems Occur
 
-| Problem | Schritt |
+| Problem | Step |
 |---|---|
-| Agent macht Annahme, die falsch ist | sofort korrigieren, nicht durchwinken |
-| Verlorener Überblick | Solution Architect: "Status aller offenen Tasks?" |
-| Security Theater (Findings ohne Substanz) | gemeinsam prüfen, dokumentierte Ablehnung möglich |
-| Backend/Frontend driften vom Spec | Solution Architect re-synchronisieren lassen |
-| Konflikt zwischen Personas | PO entscheidet, ADR dokumentieren |
-| Tech-Frage außerhalb der Agents | Konzept-Kapitel prüfen, ggf. neue ADR vorbereiten |
+| Agent makes an assumption that is wrong | correct immediately, do not wave it through |
+| Lost overview | Solution Architect: "Status of all open tasks?" |
+| Security theater (findings without substance) | review together, documented rejection possible |
+| Backend/frontend drift from the spec | have the Solution Architect re-synchronize |
+| Conflict between personas | PO decides, document ADR |
+| Tech question outside the agents | check concept chapter, prepare new ADR if needed |
 
-## Realistischer Zeitrahmen
+## Realistic Timeframe
 
-| Phase | Erste Iteration | Spätere Iterationen |
+| Phase | First Iteration | Later Iterations |
 |---|---|---|
-| Initial-Klärung mit Solution Architect | 30-60 Min | 10 Min |
-| Business Object modellieren | 1-2 Std | 0 (existiert oft) |
-| Tech-Stack-Vorschlag | 1 Std (einmalig pro Stack) | 0 |
-| Use Case formulieren | 1 Std | 30 Min |
-| Requirements ableiten | 1-2 Std | 30 Min |
-| UI-Mockups | 2-4 Std | 1-2 Std |
-| Backend-Implementation | 1-3 Tage | 0,5-1 Tag |
-| Frontend-Implementation | 1-3 Tage | 0,5-1 Tag |
-| Security-Review | 1-2 Std | 30 Min |
-| Integration + PO-Akzeptanz | 1-2 Std | 30 Min |
-| **Gesamt** | **1-2 Wochen** | **2-4 Tage** |
+| Initial clarification with Solution Architect | 30-60 min | 10 min |
+| Model business object | 1-2 hrs | 0 (often exists) |
+| Tech stack proposal | 1 hr (once per stack) | 0 |
+| Formulate use case | 1 hr | 30 min |
+| Derive requirements | 1-2 hrs | 30 min |
+| UI mockups | 2-4 hrs | 1-2 hrs |
+| Backend implementation | 1-3 days | 0.5-1 day |
+| Frontend implementation | 1-3 days | 0.5-1 day |
+| Security review | 1-2 hrs | 30 min |
+| Integration + PO acceptance | 1-2 hrs | 30 min |
+| **Total** | **1-2 weeks** | **2-4 days** |
 
-## Drei goldene Regeln
+## Three Golden Rules
 
-1. **Stakeholder zuerst, Templates später**: Investition in echte Personas zahlt sich x-fach aus
-2. **Specs vor Code**: Spec-Code-Drift ist der teuerste Bug
-3. **Security ist Pflicht, nicht Wahl**: Audit-Trail und AuthZ von Anfang an
+1. **Stakeholders first, templates later**: Investing in real personas pays off many times over
+2. **Specs before code**: Spec-code drift is the most expensive bug
+3. **Security is mandatory, not optional**: Audit trail and AuthZ from the start
 
-## Wo du nachschlägst
+## Where to Look Things Up
 
-- Konzept-Übersicht: `concept/README.md` → Lesepfade je nach Rolle
-- Kapitel-Index: `concept/INDEX.md`
-- Offene Punkte: `concept/90-backlog/23-offene-punkte.md`
+- Concept overview: `concept/README.md` → reading paths by role
+- Chapter index: `concept/INDEX.md`
+- Open issues: `concept/90-backlog/23-open-issues.md`
 - Vision: `business-analysis/vision.md`
 - Personas: `business-analysis/stakeholders/`
-- Workflow-Beispiel: `docs/workflow-example.md`
-- Anti-Patterns: `docs/anti-patterns.md`
-- Diese Quick Reference: `docs/quick-reference.md`
+- Workflow example: `docs/workflow-example.md`
+- Anti-patterns: `docs/anti-patterns.md`
+- This quick reference: `docs/quick-reference.md`

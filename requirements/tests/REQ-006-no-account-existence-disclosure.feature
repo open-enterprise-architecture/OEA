@@ -1,22 +1,22 @@
-# Ableitung aus: requirements/req/req-006-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-006-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @constraint @must @UC-01
-Feature: REQ-006 – Keine Preisgabe der Account-Existenz bei fehlgeschlagenem Login
+Feature: REQ-006 – No disclosure of account existence on failed login
 
-  Das System DARF NICHT durch unterschiedliche Fehlermeldungen oder
-  Antwortzeiten erkennbar machen, ob eine angefragte Identität
-  (E-Mail-Adresse, Subject-ID) im Repository existiert oder nicht.
+  The system MUST NOT reveal, through different error messages or
+  response times, whether a requested identity (email address,
+  subject ID) exists in the repository or not.
 
   @AC1
-  Scenario: AC1 – ein Login-Versuch mit nicht-existierender Identität
-    Given ein Login-Versuch mit nicht-existierender Identität
-    When  der Login fehlschlägt
-    Then  ist die nach außen sichtbare Fehlermeldung identisch zu der bei einer existierenden, aber falsch authentifizierten Identität
+  Scenario: AC1 – a login attempt with a non-existent identity
+    Given a login attempt with a non-existent identity
+    When  the login fails
+    Then  the externally visible error message is identical to that for an existing but incorrectly authenticated identity
 
   @AC2
-  Scenario: AC2 – zwei Login-Fehlversuche, einmal mit existierender, einmal mit nicht-exis...
-    Given zwei Login-Fehlversuche, einmal mit existierender, einmal mit nicht-existierender Identität
-    When  die Antwortzeiten verglichen werden
-    Then  unterscheiden sie sich nicht in einer für Angreifer auswertbaren Weise (kein Timing-Seitenkanal)
+  Scenario: AC2 – two failed login attempts, one with an existing and one with a non-ex...
+    Given two failed login attempts, one with an existing and one with a non-existent identity
+    When  the response times are compared
+    Then  they do not differ in a way an attacker could exploit (no timing side channel)

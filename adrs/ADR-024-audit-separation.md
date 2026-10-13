@@ -1,103 +1,103 @@
-# ADR-024: Audit-Datenhaltung — separates Schema, konfigurierbar als externe Datenbank
+# ADR-024: Audit Data Storage — Separate Schema, Configurable as External Database
 
 **Status**: accepted
-**Datum**: 2026-06-29
-**Entscheider**: [Lukas – Repository-Inhaber](../business-analysis/stakeholders/SH-01-lukas-enterprise-architect.md)
+**Date**: 2026-06-29
+**Deciders**: [Lukas – Repository Owner](../business-analysis/stakeholders/SH-01-lukas-enterprise-architect.md)
 
 ---
 
-## Kontext
+## Context
 
-Audit-Logs unterliegen in regulierten Branchen besonderen Anforderungen:
-- **Unveränderlichkeit**: kein UPDATE/DELETE durch die Applikation
-- **Aufbewahrungspflicht**: 7–10 Jahre (je nach Regulierung)
-- **Separate Zugriffsrechte**: Revisoren brauchen Lesezugriff, die App nur INSERT
-- **Regulatorische Abfragbarkeit**: einzelne Felder müssen direkt indiziert sein (kein JSONB-Payload)
-- **Trennung von Systemdaten**: bei Compliance-Audits darf der Audit-Trail nicht mit Betriebsdaten
-  vermischt sein
+Audit logs are subject to special requirements in regulated industries:
+- **Immutability**: no UPDATE/DELETE by the application
+- **Retention obligation**: 7–10 years (depending on regulation)
+- **Separate access rights**: auditors need read access, the app only INSERT
+- **Regulatory queryability**: individual fields must be indexed directly (no JSONB payload)
+- **Separation from system data**: during compliance audits the audit trail must not be mixed
+  with operational data
 
-Das bisherige `audit_events`-Modell mit `payload JSONB` erfüllt keine dieser Anforderungen.
+The previous `audit_events` model with `payload JSONB` fulfills none of these requirements.
 
 ---
 
-## Entscheidung
+## Decision
 
-### Schema-Separation
+### Schema Separation
 
-Alle Audit-Tabellen werden im Schema **`audit`** geführt, getrennt vom Applikationsschema `public`.
+All audit tables are kept in the schema **`audit`**, separate from the application schema `public`.
 
-**Default (Community / einfache Deployments)**: `audit`-Schema in derselben Datenbank wie die
-Applikationsdaten. Konfigurierbar via `oea.datasource.audit.url` — falls gesetzt, schreibt OEA
-die Audit-Daten in eine eigene Datenbank.
+**Default (Community / simple deployments)**: `audit` schema in the same database as the
+application data. Configurable via `oea.datasource.audit.url` — if set, OEA writes
+the audit data to its own database.
 
 ```yaml
-# application.yml (Auszug)
+# application.yml (excerpt)
 oea:
   datasource:
     audit:
-      url:      ${OEA_AUDIT_DB_URL:}          # leer = App-DB verwenden
+      url:      ${OEA_AUDIT_DB_URL:}          # empty = use app DB
       username: ${OEA_AUDIT_DB_USER:}
       password: ${OEA_AUDIT_DB_PASS:}
 ```
 
-Spring konfiguriert bei gesetzter URL eine zweite `DataSource` und einen zweiten
-`EntityManagerFactory` für das `audit`-Package. Ist die URL leer, verwendet OEA die App-`DataSource`
-und schreibt in `audit.*` derselben DB.
+If the URL is set, Spring configures a second `DataSource` and a second
+`EntityManagerFactory` for the `audit` package. If the URL is empty, OEA uses the app `DataSource`
+and writes to `audit.*` of the same DB.
 
-### Datenbankrechte
+### Database Permissions
 
-Der App-Benutzer erhält auf `audit.*` ausschliesslich `INSERT`-Rechte:
+The app user receives only `INSERT` permissions on `audit.*`:
 ```sql
 GRANT INSERT ON ALL TABLES IN SCHEMA audit TO oea_app;
 REVOKE UPDATE, DELETE ON ALL TABLES IN SCHEMA audit FROM oea_app;
 ```
 
-Ein separater Lese-Benutzer für Revisoren:
+A separate read user for auditors:
 ```sql
 GRANT SELECT ON ALL TABLES IN SCHEMA audit TO oea_auditor;
 ```
 
-### Normalisierte Tabellenstruktur
+### Normalized Table Structure
 
-Kein JSONB-Payload. Jedes Feld ist direkt abfragbar und indizierbar.
+No JSONB payload. Every field is directly queryable and indexable.
 
-**`audit.events`** — Event-Header:
+**`audit.events`** — event header:
 ```
 id             BIGSERIAL PK
-event_type     TEXT NN   -- z.B. 'entity.created', 'entity.property_changed', 'entity.deleted'
-entity_id      INTEGER   -- Soft-Referenz (kein FK — Audit-DB kann extern sein)
-entity_name    TEXT      -- denormalisiert für Tamper-Nachweis
-actor_id       BIGINT    -- Soft-Referenz
-actor_name     TEXT NN   -- denormalisiert (Person kann später anonymisiert werden)
-actor_email    TEXT NN   -- denormalisiert
+event_type     TEXT NN   -- e.g. 'entity.created', 'entity.property_changed', 'entity.deleted'
+entity_id      INTEGER   -- soft reference (no FK — audit DB can be external)
+entity_name    TEXT      -- denormalized for tamper evidence
+actor_id       BIGINT    -- soft reference
+actor_name     TEXT NN   -- denormalized (person may be anonymized later)
+actor_email    TEXT NN   -- denormalized
 source         TEXT NN   -- enum: UI | API | Job | Import
 occurred_at    TIMESTAMPTZ NN DEFAULT NOW()
-request_id     TEXT      -- Korrelations-ID (HTTP-Request oder Job-Run)
-prev_hash      TEXT      -- SHA-256 des Vorgänger-Records (Enterprise: Tamper-Chain)
+request_id     TEXT      -- correlation ID (HTTP request or job run)
+prev_hash      TEXT      -- SHA-256 of the predecessor record (Enterprise: tamper chain)
 record_hash    TEXT      -- SHA-256(prev_hash || event_type || entity_id || occurred_at || …)
 ```
 
-**`audit.event_changes`** — Property-Deltas pro Event:
+**`audit.event_changes`** — property deltas per event:
 ```
 id               BIGSERIAL PK
-event_id         BIGINT NN   -- FK→audit.events.id (oder Soft-Ref bei externer DB)
-property_name    TEXT NN     -- denormalisiert ('name', 'lifecycle', 'version', …)
-system_field     BOOLEAN NN DEFAULT false  -- true = System-Feld, false = user-defined Property
-old_value        TEXT        -- serialisiert als Text (DB-agnostisch)
-new_value        TEXT        -- serialisiert als Text
+event_id         BIGINT NN   -- FK→audit.events.id (or soft ref for external DB)
+property_name    TEXT NN     -- denormalized ('name', 'lifecycle', 'version', …)
+system_field     BOOLEAN NN DEFAULT false  -- true = system field, false = user-defined property
+old_value        TEXT        -- serialized as text (DB-agnostic)
+new_value        TEXT        -- serialized as text
 ```
 
-### Denormalisierung für Tamper-Nachweis
+### Denormalization for Tamper Evidence
 
-`actor_name`, `actor_email` und `entity_name` werden zum Zeitpunkt des Events gespeichert,
-auch wenn die Person später anonymisiert oder die Entität gelöscht wird. Der Audit-Trail
-bleibt vollständig und unveränderlich.
+`actor_name`, `actor_email`, and `entity_name` are stored at the time of the event,
+even if the person is later anonymized or the entity is deleted. The audit trail
+remains complete and immutable.
 
-### Tamper-Chain (optional, Enterprise)
+### Tamper Chain (optional, Enterprise)
 
-`prev_hash` und `record_hash` ermöglichen eine kryptographische Verkettung aller Audit-Records.
-Eine Lücke oder Manipulation ist rechnerisch nachweisbar. Im Community-Betrieb werden diese
-Felder nicht befüllt (NULL). Im Enterprise-Betrieb aktivierbar via Konfiguration:
+`prev_hash` and `record_hash` enable a cryptographic chaining of all audit records.
+A gap or manipulation is computationally provable. In Community operation these
+fields are not populated (NULL). In Enterprise operation they can be activated via configuration:
 
 ```yaml
 oea:
@@ -105,69 +105,69 @@ oea:
     hash-chain-enabled: ${OEA_AUDIT_HASH_CHAIN:false}
 ```
 
-### Aufbewahrung
+### Retention
 
-Konfigurierbare Retention-Policy via Cron-Job (DELETE WHERE occurred_at < NOW() - INTERVAL):
+Configurable retention policy via cron job (DELETE WHERE occurred_at < NOW() - INTERVAL):
 ```yaml
 oea:
   audit:
-    retention-days: ${OEA_AUDIT_RETENTION_DAYS:2555}  # Default: 7 Jahre
+    retention-days: ${OEA_AUDIT_RETENTION_DAYS:2555}  # default: 7 years
 ```
-Der Delete-Job läuft als `oea_audit_cleanup`-Benutzer mit DELETE-Recht — nicht der App-Benutzer.
+The delete job runs as the `oea_audit_cleanup` user with DELETE permission — not the app user.
 
 ---
 
-## Abgrenzung zu entity_property_value_history
+## Distinction from entity_property_value_history
 
-| Aspekt | `entity_property_value_history` | `audit.event_changes` |
+| Aspect | `entity_property_value_history` | `audit.event_changes` |
 |---|---|---|
-| Zweck | Restore (UC-15/UC-16) | Compliance, Nachvollziehbarkeit (UC-14) |
+| Purpose | Restore (UC-15/UC-16) | Compliance, traceability (UC-14) |
 | Schema | `public` | `audit` |
-| Zugriff App | READ + WRITE | INSERT only |
-| Denormalisierung | nein (FKs) | ja (actor_name, entity_name) |
-| Aufbewahrung | solange Entity existiert | konfigurierbar (Default 7 Jahre) |
-| Inhalt | typed value-Spalten | TEXT (serialisiert) |
-| Tamper-Schutz | nein | optional (hash_chain) |
+| App access | READ + WRITE | INSERT only |
+| Denormalization | no (FKs) | yes (actor_name, entity_name) |
+| Retention | as long as the entity exists | configurable (default 7 years) |
+| Content | typed value columns | TEXT (serialized) |
+| Tamper protection | no | optional (hash_chain) |
 
-Beide Tabellen werden parallel befüllt, wenn eine Entity-Änderung eintritt.
-
----
-
-## Verworfene Alternativen
-
-### JSONB payload (bisheriger Ansatz)
-Nicht indizierbar, nicht portable (ADR-023), nicht regulatorisch abfragbar. **Verworfen**.
-
-### Externes Audit-System (CloudTrail, Azure Monitor)
-Maximale Isolation, aber Vendor-Lock-in, kein Self-Hosting möglich. **Verworfen** für Open-Source.
-
-### Event Sourcing als primäres Modell
-Hätte Audit als Nebenprodukt. Zu komplex für v1. **Zurückgestellt** auf v2.
+Both tables are populated in parallel when an entity change occurs.
 
 ---
 
-## Konsequenzen
+## Rejected Alternatives
 
-**Positiv:**
-- Regulatorisch konform (Unveränderlichkeit, Aufbewahrung, Trennung)
-- DB-agnostisch (kein JSONB)
-- Revisoren bekommen eigenen Read-Only-Benutzer
-- Optionale externe Audit-DB ohne Applikationsanpassung (nur Config)
-- Tamper-Chain für Enterprise-Anforderungen nachrüstbar
+### JSONB payload (previous approach)
+Not indexable, not portable (ADR-023), not regulatorily queryable. **Rejected**.
 
-**Negativ / Kompromisse:**
-- Zwei DataSources erhöhen Komplexität der Spring-Konfiguration
-- Denormalisierung (actor_name etc.) muss aktiv befüllt werden beim Schreiben
-- Cleanup-Job braucht separaten DB-Benutzer
+### External audit system (CloudTrail, Azure Monitor)
+Maximum isolation, but vendor lock-in, self-hosting not possible. **Rejected** for open source.
+
+### Event sourcing as primary model
+Would have audit as a by-product. Too complex for v1. **Deferred** to v2.
 
 ---
 
-## Betroffene Konzept-Kapitel
+## Consequences
 
-- §14 (Audit und Versionierung), §15 (Sicherheit), §20 (Compliance/Konformanz)
+**Positive:**
+- Regulatorily compliant (immutability, retention, separation)
+- DB-agnostic (no JSONB)
+- Auditors get their own read-only user
+- Optional external audit DB without application changes (config only)
+- Tamper chain can be retrofitted for enterprise requirements
 
-## Verwandte ADRs
+**Negative / Compromises:**
+- Two DataSources increase the complexity of the Spring configuration
+- Denormalization (actor_name etc.) must be actively populated when writing
+- Cleanup job needs a separate DB user
 
-- ADR-019: Soft-Delete-Strategie
-- ADR-022: Strukturiertes Property-Modell (entity_property_value_history)
-- ADR-023: Multi-DB-Strategie (kein JSONB)
+---
+
+## Affected Concept Chapters
+
+- §14 (Audit and Versioning), §15 (Security), §20 (Compliance/Conformance)
+
+## Related ADRs
+
+- ADR-019: Soft-delete strategy
+- ADR-022: Structured property model (entity_property_value_history)
+- ADR-023: Multi-DB strategy (no JSONB)

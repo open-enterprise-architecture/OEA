@@ -1,6 +1,6 @@
 ---
 id: REQ-155
-title: Service-Account-Verwaltung für externe Systeme
+title: Service Account Management for External Systems
 type: functional
 priority: should
 status: proposed
@@ -18,71 +18,71 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-155: Service-Account-Verwaltung für externe Systeme
+# REQ-155: Service Account Management for External Systems
 
-## Aussage
+## Statement
 
-Das System **MUSS** es Administratoren ermöglichen, Service-Accounts anzulegen, ihnen die Rolle `integration-writer` zuzuweisen und rotierende Client-Credentials zu vergeben, damit externe Systeme ohne menschliche Benutzeranmeldung auf die Schreib-API zugreifen können.
+The system **MUST** enable administrators to create service accounts, assign them the role `integration-writer`, and issue rotating client credentials, so that external systems can access the write API without human user login.
 
-## Begründung
+## Rationale
 
-Externe Systeme (Scanner, CI/CD) dürfen keine menschlichen Benutzerkonten verwenden. Service-Accounts haben eingeschränkte Rollen und rotierbare Credentials. Ohne diese Trennung entsteht ein Sicherheits- und Audit-Problem: menschliche Aktionen und automatisierte Writes sind nicht unterscheidbar.
+External systems (scanners, CI/CD) must not use human user accounts. Service accounts have restricted roles and rotatable credentials. Without this separation, a security and audit problem arises: human actions and automated writes are indistinguishable.
 
-## Kontext
+## Context
 
-Service-Accounts sind `persons` mit `person_type=service-account`. Credentials in `machine_credentials`. Die Rolle `integration-writer` hat Schreibrecht auf Entitäten/Verbindungen, aber keine Admin-Rechte. Im Audit-Log werden `agent_id` und `agent_run` aus dem JWT-Claim gesetzt. (ADR-026)
+Service accounts are `persons` with `person_type=service-account`. Credentials in `machine_credentials`. The role `integration-writer` has write permission on entities/connections, but no admin rights. In the audit log, `agent_id` and `agent_run` are set from the JWT claim. (ADR-026)
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-**Eingaben**:
-- Name, Beschreibung des Service-Accounts
-- Zuzuweisende Rolle (integration-writer)
+**Inputs**:
+- Name, description of the service account
+- Role to be assigned (integration-writer)
 
-**Verarbeitung**:
-- Person-Eintrag mit `person_type=service-account` anlegen
-- `machine_credentials`-Eintrag mit `client_id` (UUID) und `client_secret_hash` anlegen
-- Rollen-Zuweisung via `person_roles`
-- Credential-Rotation: neues Secret; altes sofort ungültig
+**Processing**:
+- Create a person entry with `person_type=service-account`
+- Create a `machine_credentials` entry with `client_id` (UUID) and `client_secret_hash`
+- Role assignment via `person_roles`
+- Credential rotation: new secret; old one immediately invalid
 
-**Ausgaben**:
-- `client_id` + `client_secret` (Klartext, einmalig) bei Anlage und Rotation
-- Danach: nur noch `client_id` sichtbar (Secret ist gehasht)
+**Outputs**:
+- `client_id` + `client_secret` (plaintext, once) on creation and rotation
+- Afterwards: only `client_id` visible (secret is hashed)
 
-**Fehlerfälle**:
-- Rolle `integration-writer` nicht vorhanden → 422
-- Service-Account ohne Rolle → darf keine Schreib-Endpoints aufrufen
+**Error Cases**:
+- Role `integration-writer` not present → 422
+- Service account without a role → must not call write endpoints
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Admin ist eingeloggt
-- Wenn: POST /admin/service-accounts mit `{name: "ci-scanner", role: "integration-writer"}`
-- Dann: 201 Created; Response enthält einmalig `clientSecret`; DB enthält `machine_credentials`-Eintrag
+- Given: admin is logged in
+- When: POST /admin/service-accounts with `{name: "ci-scanner", role: "integration-writer"}`
+- Then: 201 Created; response contains `clientSecret` once; DB contains a `machine_credentials` entry
 
 **AC2**:
-- Gegeben: Service-Account mit gültigem client_id/secret
-- Wenn: OAuth2 Client-Credentials-Flow → JWT erhalten; PUT /entities/by-external-id/...
-- Dann: 200/201; Audit-Log zeigt `source=API`, `agent_id=<client_id>`
+- Given: service account with valid client_id/secret
+- When: OAuth2 client credentials flow → receive JWT; PUT /entities/by-external-id/...
+- Then: 200/201; audit log shows `source=API`, `agent_id=<client_id>`
 
 **AC3**:
-- Gegeben: Admin rotiert Credentials eines Service-Accounts
-- Wenn: Altes Secret für Auth-Request verwendet
-- Dann: 401 Unauthorized; neues Secret erforderlich
+- Given: admin rotates the credentials of a service account
+- When: old secret is used for an auth request
+- Then: 401 Unauthorized; new secret required
 
-## Verifikationsmethode
+## Verification Method
 
-- [ ] Methode: test (automatisiert) + demonstration
-- [ ] Test-Setup: Integration-Test mit Client-Credentials-Flow; Audit-Log-Prüfung
-- [ ] Bestanden-Kriterium: Service-Account kann schreiben; Audit-Log enthält agent_id
-- [ ] In CI integriert: ja
+- [ ] Method: test (automated) + demonstration
+- [ ] Test setup: integration test with client credentials flow; audit log check
+- [ ] Pass criterion: service account can write; audit log contains agent_id
+- [ ] Integrated in CI: yes
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: ADR-006 (Auth-Stack), ADR-026
-- **Folgewirkungen**: US-142, REQ-153, REQ-154
+- **Prerequisites**: ADR-006 (auth stack), ADR-026
+- **Consequences**: US-142, REQ-153, REQ-154
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft aus ADR-026 |
+| 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft from ADR-026 |

@@ -11,38 +11,38 @@ aliases:
   - Verantwortlichkeit
 related_capabilities: []
 references:
-  - concept: concept/20-entities/08-organisation-rollen-personen.md
+  - concept: concept/20-entities/08-organization-roles-persons.md
 ---
 
 # Business Object: Role
 
 ## Definition
 
-Eine Role ist eine fachlich-funktionale Verantwortung im EA-Repository, unabhängig von der Person, die sie aktuell ausfüllt. Rollen sind von Personen entkoppelt, damit Personalwechsel keine Architektur-Änderungen auslösen.
+A role is a business-functional responsibility in the EA repository, independent of the person who currently fills it. Roles are decoupled from persons so that personnel changes do not trigger architecture changes.
 
-## Beschreibung
+## Description
 
-Rollen aus dem EA-Metamodell (§8.2) werden direkt als Autorisierungs-Rollen im Sinne von RBAC genutzt (siehe Konzept §21.8): Eine Person, die eine bestimmte Role ausfüllt, erhält die entsprechenden Zugriffsrechte im System. Damit ist Role das zentrale Bindeglied zwischen fachlicher Verantwortung im EA-Repository und technischer Autorisierung beim Login.
+Roles from the EA metamodel (§8.2) are used directly as authorization roles in the sense of RBAC (see concept §21.8): a person who fills a specific role receives the corresponding access rights in the system. Role is thus the central link between business responsibility in the EA repository and technical authorization at login.
 
-## Attribute
+## Attributes
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| name | string | required | | | Rollenbezeichnung, z.B. "Enterprise Architect" |
-| description | string | optional | | | Freitext-Beschreibung |
-| type | enum | required | | `[functional, process, project, governance, architectural]` | Rollen-Typ |
-| responsibilities | string | optional (Liste) | | min. 1 Eintrag empfohlen | Was die Rolle verantwortet |
-| authorities | string | optional (Liste) | | | Was die Rolle entscheiden darf |
-| isStandardRole | boolean | required | false | | Aus Referenzmodell vs. organisationsspezifisch |
-| permissionLevel | enum | required | read | `[read, write, admin]` | Default-Zugriffslevel pro Ressource für die Autorisierung (siehe §21.8) |
+| name | string | required | | | Role designation, e.g. "Enterprise Architect" |
+| description | string | optional | | | Free-text description |
+| type | enum | required | | `[functional, process, project, governance, architectural]` | Role type |
+| responsibilities | string | optional (list) | | min. 1 entry recommended | What the role is responsible for |
+| authorities | string | optional (list) | | | What the role may decide |
+| isStandardRole | boolean | required | false | | From reference model vs. organization-specific |
+| permissionLevel | enum | required | read | `[read, write, admin]` | Default access level per resource for authorization (see §21.8) |
 
-## Beziehungen
+## Relationships
 
-| Beziehung | Ziel-Objekt | Kardinalität | Optional | Beschreibung |
+| Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
-| filledBy | [person](./person.md) | n:m | yes | Aktuell mit dieser Rolle betraute Personen (über RoleAssignment) |
-| belongsToUnit | organization-unit | 1:1 | yes | Organisationseinheit, der die Rolle zugeordnet ist |
-| reportsToRole | role | 1:1 | yes | Übergeordnete Rolle |
+| filledBy | [person](./person.md) | n:m | yes | Persons currently entrusted with this role (via RoleAssignment) |
+| belongsToUnit | organization-unit | 1:1 | yes | Organizational unit to which the role is assigned |
+| reportsToRole | role | 1:1 | yes | Superior role |
 
 ## Lifecycle
 
@@ -50,53 +50,53 @@ Rollen aus dem EA-Metamodell (§8.2) werden direkt als Autorisierungs-Rollen im 
 draft → active → deprecated
 ```
 
-**Zustände**:
-- `draft`: Rolle ist definiert, aber noch nicht im Einsatz
-- `active`: Rolle wird aktiv zugewiesen und für Autorisierung genutzt
-- `deprecated`: Rolle wird nicht mehr neu zugewiesen, bestehende Zuweisungen laufen aus
+**States**:
+- `draft`: Role is defined but not yet in use
+- `active`: Role is actively assigned and used for authorization
+- `deprecated`: Role is no longer newly assigned, existing assignments expire
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser | Compliance-Bezug |
+| Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
-| BR-01 | Jede `active`-Role MUSS mindestens eine `responsibility` haben (Konzept-Constraint `role-has-responsibilities`) | onCreate, onUpdate | – |
-| BR-02 | Pro Activity darf höchstens eine Role mit RACI-Status `accountable` zugewiesen sein (Konzept-Constraint `single-accountable-per-activity`) | onUpdate | – |
+| BR-01 | Every `active` role MUST have at least one `responsibility` (concept constraint `role-has-responsibilities`) | onCreate, onUpdate | – |
+| BR-02 | At most one role with RACI status `accountable` may be assigned per activity (concept constraint `single-accountable-per-activity`) | onUpdate | – |
 
-## Beispiele
+## Examples
 
-**Beispiel 1**: Architectural Role
+**Example 1**: Architectural role
 ```yaml
 name: Enterprise Architect
 type: architectural
 responsibilities:
-  - Architektur-Reviews durchführen
-  - ADR-Workflow moderieren
+  - Conduct architecture reviews
+  - Moderate the ADR workflow
 authorities:
-  - Architektur-Entscheidungen mit ARB freigeben
+  - Approve architecture decisions with the ARB
 isStandardRole: true
 permissionLevel: admin
 ```
 
-## Abgrenzung zu ähnlichen Objekten
+## Delimitation from Similar Objects
 
-- **NICHT** [person](./person.md): Role ist die Funktion, Person der konkrete Mensch, der sie ausfüllt.
-- **NICHT** organization-unit: Role ist fachlich-funktional, OrganizationUnit ist strukturell.
+- **NOT** [person](./person.md): Role is the function, person is the actual human who fills it.
+- **NOT** organization-unit: Role is business-functional, OrganizationUnit is structural.
 
-## Verwendung in Use Cases
+## Usage in Use Cases
 
 - [UC-01: Login](../requirements/use-cases/UC-01-login.md)
 
-## Konzept-Bezug
+## Concept Reference
 
-- [§8.2 Role](../concept/20-entities/08-organisation-rollen-personen.md)
-- [§21.8 Authentifizierung/Autorisierung](../concept/70-platform/21-api-architektur.md)
+- [§8.2 Role](../concept/20-entities/08-organization-roles-persons.md)
+- [§21.8 Authentication/Authorization](../concept/70-platform/21-api-architecture.md)
 
-## Notizen
+## Notes
 
-Erste Modellierung im Rahmen von UC-01 Login. `permissionLevel` ist eine Vereinfachung des in §21.8 beschriebenen RBAC/ABAC-Modells für den Walking-Skeleton-Scope; Property-Level-Autorisierung folgt einem späteren Use Case.
+First modeling in the context of UC-01 Login. `permissionLevel` is a simplification of the RBAC/ABAC model described in §21.8 for the walking skeleton scope; property-level authorization will follow in a later use case.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-24 | Business Engineer | Initial draft im Rahmen von UC-01 Login |
+| 0.1.0 | 2026-06-24 | Business Engineer | Initial draft in the context of UC-01 Login |

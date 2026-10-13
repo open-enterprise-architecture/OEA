@@ -1,26 +1,26 @@
-# Ableitung aus: requirements/req/req-018-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert)
+# Derived from: requirements/req/req-018-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated)
 
 @functional @should @UC-02
-Feature: REQ-018 – Warnung bei leerem oder nicht-existierendem Remote-Admin-Claim
+Feature: REQ-018 – Warning for an empty or non-existent remote admin claim
 
-  Das System SOLL beim Konfigurieren eines
-  Remote-Bootstrapping-Mappings (REQ-014) warnen, wenn die angegebene
-  Gruppe/Rolle beim Identity-Provider zum Konfigurationszeitpunkt
-  prüfbar nicht existiert oder keine Mitglieder hat.
+  When a remote bootstrapping mapping (REQ-014) is configured, the
+  system SHOULD warn if the specified group/role verifiably does not
+  exist at the identity provider at configuration time or has no
+  members.
 
   Background:
-    Given eine frisch installierte OEA-Instanz ohne System-Admin-Account
+    Given a freshly installed OEA instance without a system admin account
 
   @AC1
-  Scenario: AC1 – ein Remote-Mapping auf eine zum Konfigurationszeitpunkt leere oder nicht...
-    Given ein Remote-Mapping auf eine zum Konfigurationszeitpunkt leere oder nicht existierende Gruppe
-    When  Max die Konfiguration speichert
-    Then  erhält er eine Warnung, dass dieses Mapping aktuell niemandem Zugriff verleiht
+  Scenario: AC1 – a remote mapping to a group that is empty or non-existent at configur...
+    Given a remote mapping to a group that is empty or non-existent at configuration time
+    When  Max saves the configuration
+    Then  he receives a warning that this mapping currently grants access to nobody
 
   @AC2
-  Scenario: AC2 – dieselbe Situation
-    Given dieselbe Situation
-    When  Max die Warnung zur Kenntnis nimmt
-    Then  kann er die Konfiguration trotzdem speichern (kein Hard-Block), idealerweise mit aktivem lokalem Fallback (REQ-013)
+  Scenario: AC2 – the same situation
+    Given the same situation
+    When  Max acknowledges the warning
+    Then  he can still save the configuration (no hard block), ideally with an active local fallback (REQ-013)

@@ -1,6 +1,6 @@
 ---
 id: REQ-026
-title: Weitere Authentifizierungsmethode für eingeloggte Person einrichten
+title: Set up an additional authentication method for a logged-in person
 type: functional
 priority: should
 status: proposed
@@ -18,119 +18,119 @@ references:
     - SH-03
     - SH-06
   concept:
-    - concept/70-platform/21-api-architektur.md
+    - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-026: Weitere Authentifizierungsmethode für eingeloggte Person einrichten
+# REQ-026: Set up an additional authentication method for a logged-in person
 
-## Aussage
+## Statement
 
-Das System SOLL einer bereits authentifizierten Person ermöglichen, über die eigenen Sicherheitseinstellungen eine weitere lokale Authentifizierungsmethode einzurichten, ohne dafür ein Enrollment-Token zu benötigen; die Session MUSS dabei als Authentifizierungsnachweis dienen.
+The system SHOULD allow an already authenticated person to set up an additional local authentication method via their own security settings without needing an enrollment token; the session MUST serve as proof of authentication.
 
-## Begründung
+## Rationale
 
-Nicht jeder Enrollment-Bedarf entsteht beim ersten Zugang (via Einladungslink). Eine bereits aktive Person (via OIDC oder bestehender lokaler Methode eingeloggt) muss nachträglich eine lokale Methode hinzufügen können – z.B. einen zweiten Passkey für ein neues Gerät oder TOTP als Fallback wenn der primäre Passkey verloren geht. UC-03 Alternative A3. Ohne diese Fähigkeit wäre Recovery bei Geräteverlust nur über Administrative Eingriffe möglich.
+Not every enrollment need arises at first access (via invitation link). An already active person (logged in via OIDC or an existing local method) must be able to add a local method afterwards – e.g., a second passkey for a new device or TOTP as a fallback if the primary passkey is lost. UC-03 Alternative A3. Without this capability, recovery after device loss would only be possible through administrative intervention.
 
-## Kontext
+## Context
 
-Setzt eine gültige Session voraus (UC-01 Hauptablauf oder A1–A5 erfolgreich). Kein Enrollment-Token erforderlich; stattdessen CSRF-Schutz der Session. Die methodenspezifische Durchführung (TOTP, Passkey, Passwort) entspricht REQ-022, REQ-023 bzw. REQ-024, jedoch ohne Token-Validierungsschritt am Anfang.
+Requires a valid session (UC-01 Basic Flow or A1–A5 successful). No enrollment token required; instead CSRF protection of the session. The method-specific execution (TOTP, passkey, password) corresponds to REQ-022, REQ-023, and REQ-024 respectively, but without the token validation step at the beginning.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben**:
-- Authentifizierte Session (Cookie oder Bearer-Token)
-- Ausgewählte neue Methode und Methoden-spezifische Eingaben (identisch zu REQ-022/023/024)
+**Inputs**:
+- Authenticated session (cookie or bearer token)
+- Selected new method and method-specific inputs (identical to REQ-022/023/024)
 
-**Verarbeitung**:
-- System prüft, dass eine gültige Session für die anfragende Person vorliegt
-- System zeigt die für die Instanz verfügbaren, noch nicht eingerichteten Methoden
-- Methodenspezifischer Enrollment-Ablauf gemäß REQ-022, REQ-023 oder REQ-024 (identisch, ohne Token-Schritt)
-- CSRF-Schutz: Session-gebundenes Token oder SameSite-Cookie-Richtlinie
+**Processing**:
+- System checks that a valid session exists for the requesting person
+- System shows the methods available for the instance that have not yet been set up
+- Method-specific enrollment flow per REQ-022, REQ-023, or REQ-024 (identical, without the token step)
+- CSRF protection: session-bound token or SameSite cookie policy
 
-**Ausgaben**:
-- Liste verfügbarer, noch nicht eingerichteter Methoden
-- Erfolgsmeldung nach abgeschlossenem Enrollment
-- Fehlermeldung bei ungültiger Session oder nicht verfügbarer Methode
+**Outputs**:
+- List of available methods not yet set up
+- Success message after completed enrollment
+- Error message for invalid session or unavailable method
 
-**Fehlerfälle**:
-- Session abgelaufen oder ungültig → Weiterleitung zum Login (UC-01)
-- Alle Methoden bereits eingerichtet → informativer Hinweis, kein Fehler
-- Methode von Instanz nicht aktiviert → Methode wird nicht angeboten
+**Error Cases**:
+- Session expired or invalid → redirect to login (UC-01)
+- All methods already set up → informational note, no error
+- Method not enabled by the instance → method is not offered
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Kurt ist eingeloggt und hat noch keine TOTP-Methode eingerichtet
-- Wenn: er in den Sicherheitseinstellungen TOTP hinzufügt und die Einrichtung abschließt
-- Dann: ist TOTP als zusätzliche Methode persistiert; kein Enrollment-Token wurde benötigt
+- Given: Kurt is logged in and has not yet set up a TOTP method
+- When: he adds TOTP in the security settings and completes the setup
+- Then: TOTP is persisted as an additional method; no enrollment token was needed
 
 **AC2**:
-- Gegeben: Kurt ist eingeloggt und möchte einen zweiten Passkey hinzufügen
-- Wenn: er die Passkey-Registrierung durchführt
-- Dann: ist der neue Public Key persistiert; beide Passkeys sind für den Login verwendbar
+- Given: Kurt is logged in and wants to add a second passkey
+- When: he performs the passkey registration
+- Then: the new public key is persisted; both passkeys are usable for login
 
 **AC3**:
-- Gegeben: Kurt hat bereits Passkey, TOTP und Passwort eingerichtet
-- Wenn: er die Sicherheitseinstellungen öffnet
-- Dann: zeigt das System an, dass alle Methoden bereits eingerichtet sind (kein Fehler)
+- Given: Kurt has already set up passkey, TOTP, and password
+- When: he opens the security settings
+- Then: the system shows that all methods are already set up (no error)
 
 **AC4**:
-- Gegeben: eine Anfrage an den Enrollment-Endpunkt ohne gültige Session
-- Wenn: die Anfrage eingeht
-- Dann: wird sie abgelehnt; Weiterleitung zum Login
+- Given: a request to the enrollment endpoint without a valid session
+- When: the request arrives
+- Then: it is rejected; redirect to login
 
 **AC5**:
-- Gegeben: eine Anfrage ohne CSRF-Token (bei POST-Formular-basiertem Flow)
-- Wenn: die Anfrage eingeht
-- Dann: wird sie mit einem entsprechenden Fehler abgelehnt
+- Given: a request without a CSRF token (in a POST form-based flow)
+- When: the request arrives
+- Then: it is rejected with a corresponding error
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert)
-- [x] Test-Setup: eingeloggte Person fügt Methoden hinzu; unauthentifizierter Zugriff auf Endpunkt testen
-- [x] Mess-Werkzeug: Test-Suite des Enrollment-Moduls
-- [x] Bestanden-Kriterium: AC1–AC5 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated)
+- [x] Test setup: logged-in person adds methods; test unauthenticated access to the endpoint
+- [x] Measurement tool: test suite of the enrollment module
+- [x] Pass criterion: AC1–AC5 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: UC-01 (Login muss funktionieren); REQ-022, REQ-023 oder REQ-024 (methodenspezifisches Enrollment)
-- **Folgewirkungen**: Recovery bei Geräteverlust (erleichtert, aber kein vollständiger Recovery-UC)
-- **Konflikte**: keine bekannt
+- **Prerequisites**: UC-01 (login must work); REQ-022, REQ-023, or REQ-024 (method-specific enrollment)
+- **Downstream effects**: recovery after device loss (made easier, but not a complete recovery UC)
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne diese Funktion können Personen nach Geräteverlust keine neuen Credentials einrichten; erhöhter Admin-Aufwand für Token-Neuausstellung – mittlerer Schweregrad
+- Risk 1: Without this function, persons cannot set up new credentials after device loss; increased admin effort for token reissuance – medium severity
 
 ## Trade-offs
 
-- vs. Sicherheit: Enrollment ohne Enrollment-Token erhöht die Angriffsfläche minimal (Session muss kompromittiert sein); mitigiert durch CSRF-Schutz und Session-Validierung
+- vs. security: enrollment without an enrollment token minimally increases the attack surface (the session must be compromised); mitigated by CSRF protection and session validation
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Profil/Sicherheitseinstellungen-Seite: authentifizierter Bereich, gleicher Aufbau wie Enrollment-Seite, aber ohne Token-URL
-- CSRF: SameSite=Strict auf Session-Cookie ist ausreichend für Browser-Schutz; zusätzliches CSRF-Token bei Formularen ist defense-in-depth
-- Endpunkt sollte derselbe Enrollment-Code-Pfad sein wie Token-basiertes Enrollment (nur der Authentifizierungs-Gate-Schritt unterscheidet sich), um Duplikation zu vermeiden
+- Profile/security settings page: authenticated area, same structure as the enrollment page, but without a token URL
+- CSRF: SameSite=Strict on the session cookie is sufficient for browser protection; an additional CSRF token on forms is defense in depth
+- The endpoint should be the same enrollment code path as token-based enrollment (only the authentication gate step differs) to avoid duplication
 
-## Realisierung
+## Implementation
 
-- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-wahl.md)
-- Implementiert durch: –
+- ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Notizen
+## Notes
 
-Abgeleitet aus UC-03 Alternative A3. Priorisierung als `should` statt `must`, weil der primäre Enrollment-Weg (Einladungstoken) ausreicht; A3 ist eine wesentliche Verbesserung der Nutzererfahrung und des Recovery-Szenarios, aber keine harte Anforderung für den initialen Betrieb.
+Derived from UC-03 Alternative A3. Prioritized as `should` instead of `must` because the primary enrollment path (invitation token) suffices; A3 is a substantial improvement of the user experience and the recovery scenario, but not a hard requirement for initial operation.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft aus UC-03 |
+| 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft from UC-03 |

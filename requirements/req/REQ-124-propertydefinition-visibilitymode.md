@@ -1,6 +1,6 @@
 ---
 id: REQ-124
-title: PropertyDefinition um visibilityMode erweitern
+title: Extend PropertyDefinition with visibilityMode
 type: functional
 priority: must
 status: proposed
@@ -21,52 +21,52 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-124: PropertyDefinition um visibilityMode erweitern
+# REQ-124: Extend PropertyDefinition with visibilityMode
 
-## Aussage
+## Statement
 
-Das Datenmodell der `PropertyDefinition` (in `MetamodelConfiguration`) MUSS um drei neue Felder erweitert werden:
+The data model of the `PropertyDefinition` (in `MetamodelConfiguration`) MUST be extended by three new fields:
 
-| Feld | Typ | Default | Constraint |
+| Field | Type | Default | Constraint |
 |---|---|---|---|
 | `visibilityMode` | enum | `public` | `[public, role-restricted, connection-scoped]` |
-| `allowedRoles` | Role[] | [] | Pflicht wenn `visibilityMode = role-restricted`; mind. 1 Eintrag |
-| `scopingConnectionType` | string | null | Pflicht wenn `visibilityMode = connection-scoped`; muss gültige `ConnectionType`-ID referenzieren |
+| `allowedRoles` | Role[] | [] | Mandatory if `visibilityMode = role-restricted`; at least 1 entry |
+| `scopingConnectionType` | string | null | Mandatory if `visibilityMode = connection-scoped`; must reference a valid `ConnectionType` ID |
 
-**Semantik der Modi**:
-- `public`: Wert ist für jeden authentifizierten Nutzer lesbar und schreibbar (aktuelles Verhalten, Default)
-- `role-restricted`: Wert ist nur für Nutzer lesbar/schreibbar, deren aktive Rolle in `allowedRoles` enthalten ist
-- `connection-scoped`: Wert ist nur für Nutzer lesbar/schreibbar, die über den Connection-Typ `scopingConnectionType` einen Pfad zur angefragten Entität im Graphen haben
+**Semantics of the modes**:
+- `public`: value is readable and writable for every authenticated user (current behavior, default)
+- `role-restricted`: value is only readable/writable for users whose active role is contained in `allowedRoles`
+- `connection-scoped`: value is only readable/writable for users who have a path in the graph to the requested entity via the connection type `scopingConnectionType`
 
-## Begründung
+## Rationale
 
-Ohne Erweiterung der `PropertyDefinition` kann keine feingranulare Sichtbarkeitssteuerung erfolgen. Die Konfiguration muss deklarativ im Metamodell liegen, damit kein Code-Eingriff bei neuen Feldern nötig ist.
+Without extending the `PropertyDefinition`, no fine-grained visibility control is possible. The configuration must reside declaratively in the metamodel so that no code change is needed for new fields.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Datenmodell):
-- Wenn: Eine `PropertyDefinition` angelegt oder bearbeitet wird
-- Dann: `visibilityMode` ist speicherbar; Default `public` ist korrekt
+**AC1** (Data model):
+- When: a `PropertyDefinition` is created or edited
+- Then: `visibilityMode` is storable; default `public` is correct
 
-**AC2** (Validierung role-restricted):
-- Wenn: `visibilityMode = role-restricted` und `allowedRoles` leer
-- Dann: Speichern wird mit Validierungsfehler abgelehnt
+**AC2** (Validation role-restricted):
+- When: `visibilityMode = role-restricted` and `allowedRoles` is empty
+- Then: saving is rejected with a validation error
 
-**AC3** (Validierung connection-scoped):
-- Wenn: `visibilityMode = connection-scoped` und `scopingConnectionType` zeigt auf nicht-existierende ConnectionType-ID
-- Dann: Speichern wird mit Validierungsfehler abgelehnt
+**AC3** (Validation connection-scoped):
+- When: `visibilityMode = connection-scoped` and `scopingConnectionType` points to a non-existent ConnectionType ID
+- Then: saving is rejected with a validation error
 
-**AC4** (Abwärtskompatibilität):
-- Wenn: Bestehende `PropertyDefinition` ohne `visibilityMode`
-- Dann: Default `public` wird angewandt; bestehende Werte bleiben erhalten
+**AC4** (Backward compatibility):
+- When: an existing `PropertyDefinition` without `visibilityMode`
+- Then: default `public` is applied; existing values are retained
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-032 (PropertyDefinition bereits modelliert), REQ-036 (ConnectionType definiert)
-- **Folgewirkungen**: REQ-125 (Konfigurationsmaske), REQ-126 (Enforcement role-restricted), REQ-127 (Enforcement connection-scoped)
+- **Prerequisites**: REQ-032 (PropertyDefinition already modeled), REQ-036 (ConnectionType defined)
+- **Consequences**: REQ-125 (configuration form), REQ-126 (enforcement role-restricted), REQ-127 (enforcement connection-scoped)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |

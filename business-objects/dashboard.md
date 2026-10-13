@@ -11,164 +11,164 @@ aliases:
   - Auswertungs-Dashboard
 related_capabilities: []
 references:
-  - concept: concept/70-platform/21-api-architektur.md
+  - concept: concept/70-platform/21-api-architecture.md
 ---
 
 # Business Object: Dashboard
 
 ## Definition
 
-Ein `Dashboard` ist eine konfigurierbare Ansicht im **Web Portal**, die mehrere Widgets zu einem zusammenhängenden C-Level-Bericht kombiniert. Widgets visualisieren aggregierte Metriken, Kostenprognosen und Verteilungen aus dem Architektur-Repository.
+A `Dashboard` is a configurable view in the **Web Portal** that combines several widgets into a coherent C-level report. Widgets visualize aggregated metrics, cost forecasts, and distributions from the architecture repository.
 
-## Beschreibung
+## Description
 
-Dashboards richten sich primär an C-Level-Entscheidungsträger (CIO, Bereichsleitungen), die keine Rohdaten aus Katalogen lesen, sondern verdichtete Kennzahlen und Trends benötigen. Ein typisches Beispiel ist die Auswertung von Investitionskosten-Prognosen über mehrere Plateaus hinweg, um Budgetentscheidungen zu unterstützen.
+Dashboards primarily target C-level decision makers (CIO, division heads) who do not read raw data from catalogs but need condensed metrics and trends. A typical example is the evaluation of investment cost forecasts across several plateaus to support budget decisions.
 
-**Datenquellen**: Widgets beziehen ihre Daten aus zwei Quellen:
-1. **CatalogQueryDataSource**: nutzt einen bestehenden [Katalog](./catalog.md) inkl. seiner Joins, Spalten und Filter als Daten-Basis
-2. **PropertyAggregationDataSource**: aggregiert direkt [PropertyDefinitions](./metamodel-configuration.md) über Entitäten eines bestimmten Typs – ohne Katalog als Zwischenschicht; unterstützt Gruppen und Aggregationsfunktionen
+**Data sources**: Widgets obtain their data from two sources:
+1. **CatalogQueryDataSource**: uses an existing [catalog](./catalog.md) including its joins, columns, and filters as the data basis
+2. **PropertyAggregationDataSource**: aggregates [PropertyDefinitions](./metamodel-configuration.md) directly across entities of a given type – without a catalog as an intermediate layer; supports groups and aggregation functions
 
-**Scope**: Dashboards haben denselben Scope-Mechanismus wie Kataloge – `instance` (für alle sichtbar) oder `personal` (nur für den Ersteller).
+**Scope**: Dashboards have the same scope mechanism as catalogs – `instance` (visible to all) or `personal` (only the creator).
 
-## Attribute
+## Attributes
 
-### Dashboard (Wurzel-Objekt)
+### Dashboard (root object)
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| id | string | required | | UUID v4 | Primärschlüssel |
-| name | string | required | | max. 200 Zeichen; eindeutig pro Scope | Bezeichnung des Dashboards |
-| description | string | optional | | max. 1000 Zeichen | Zweck und Zielgruppe |
-| scope | enum | required | `instance` | `[instance, personal]` | `instance` = für alle sichtbar; `personal` = nur Ersteller |
-| createdBy | reference | required | | target: person | Ersteller |
-| instanceId | reference | required | | target: instance | Verknüpfung zur OEA-Instanz |
-| widgets | Widget[] | required | [] | min. 1 Widget | Enthaltene Widgets |
-| globalFilters | FilterExpression[] | optional | [] | gleiche Syntax wie Katalog-Filter | Filter, die alle datengetriebenen Widgets einschränken |
+| id | string | required | | UUID v4 | Primary key |
+| name | string | required | | max. 200 characters; unique per scope | Name of the dashboard |
+| description | string | optional | | max. 1000 characters | Purpose and target audience |
+| scope | enum | required | `instance` | `[instance, personal]` | `instance` = visible to all; `personal` = creator only |
+| createdBy | reference | required | | target: person | Creator |
+| instanceId | reference | required | | target: instance | Link to the OEA instance |
+| widgets | Widget[] | required | [] | min. 1 widget | Contained widgets |
+| globalFilters | FilterExpression[] | optional | [] | same syntax as catalog filters | Filters that restrict all data-driven widgets |
 
-### Widget (abstrakte Basis)
+### Widget (abstract base)
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| id | string | required | | UUID v4, eindeutig im Dashboard | Interne Widget-ID |
-| widgetType | enum | required | | `[kpi, chart, table, text]` | Art des Widgets |
-| title | string | required | | max. 150 Zeichen | Anzeigetitel |
-| gridPosition | GridPosition | required | | | Position im Dashboard-Raster (Spalte, Zeile, Breite, Höhe) |
+| id | string | required | | UUID v4, unique within the dashboard | Internal widget ID |
+| widgetType | enum | required | | `[kpi, chart, table, text]` | Kind of widget |
+| title | string | required | | max. 150 characters | Display title |
+| gridPosition | GridPosition | required | | | Position in the dashboard grid (column, row, width, height) |
 
 ### KPIWidget
 
-Zeigt eine einzelne Kennzahl prominent an (Zahl + Einheit, optional mit Vergleichswert).
+Displays a single metric prominently (number + unit, optionally with a comparison value).
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| dataSource | PropertyAggregationDataSource | required | | | Datenquelle; muss aggregationFn enthalten |
-| unit | string | optional | | max. 20 Zeichen | Einheit (z.B. "CHF", "Mio. EUR", "%") |
-| comparisonMode | enum | optional | `none` | `[none, vs-previous-value, vs-target]` | Vergleichsmodus für Trend-Pfeil |
-| targetValue | decimal | conditional | | nur wenn comparisonMode=vs-target | Zielwert |
-| numberFormat | string | optional | | z.B. "#,##0" | Zahlenformat (Locale-sensitiv) |
+| dataSource | PropertyAggregationDataSource | required | | | Data source; must contain aggregationFn |
+| unit | string | optional | | max. 20 characters | Unit (e.g. "CHF", "EUR m", "%") |
+| comparisonMode | enum | optional | `none` | `[none, vs-previous-value, vs-target]` | Comparison mode for the trend arrow |
+| targetValue | decimal | conditional | | only if comparisonMode=vs-target | Target value |
+| numberFormat | string | optional | | e.g. "#,##0" | Number format (locale-sensitive) |
 
 ### ChartWidget
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| chartType | enum | required | | `[bar, line, pie, donut, area, treemap]` | Diagrammtyp |
-| dataSource | CatalogQueryDataSource \| PropertyAggregationDataSource | required | | | Datenquelle |
-| xAxis | AxisConfig | conditional | | nicht bei chartType=pie/donut/treemap | X-Achsen-Konfiguration |
-| yAxis | AxisConfig | conditional | | min. 1 bei bar/line/area; genau 1 bei pie/donut | Y-Achsen-Konfiguration |
-| colorScheme | string | optional | `default` | | Farbpalette |
-| showLegend | boolean | optional | true | | Legende anzeigen |
-| showDataLabels | boolean | optional | false | | Werte direkt auf Chart |
+| chartType | enum | required | | `[bar, line, pie, donut, area, treemap]` | Chart type |
+| dataSource | CatalogQueryDataSource \| PropertyAggregationDataSource | required | | | Data source |
+| xAxis | AxisConfig | conditional | | not for chartType=pie/donut/treemap | X-axis configuration |
+| yAxis | AxisConfig | conditional | | min. 1 for bar/line/area; exactly 1 for pie/donut | Y-axis configuration |
+| colorScheme | string | optional | `default` | | Color palette |
+| showLegend | boolean | optional | true | | Show legend |
+| showDataLabels | boolean | optional | false | | Values directly on the chart |
 
 ### TableWidget
 
-Zeigt Katalogergebnisse direkt im Dashboard (read-only, keine Konfiguration).
+Displays catalog results directly in the dashboard (read-only, no configuration).
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| dataSource | CatalogQueryDataSource | required | | | Datenquelle; muss auf existenten Katalog zeigen |
-| pageSize | integer | optional | 10 | 5–100 | Zeilen pro Seite |
-| columnOverrides | ColumnOverride[] | optional | [] | | Override für Spaltentitel oder -breite im Dashboard-Kontext |
+| dataSource | CatalogQueryDataSource | required | | | Data source; must point to an existing catalog |
+| pageSize | integer | optional | 10 | 5–100 | Rows per page |
+| columnOverrides | ColumnOverride[] | optional | [] | | Override for column title or width in the dashboard context |
 
 ### TextWidget
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| content | string | required | | max. 10 000 Zeichen; Markdown | Freier Text mit Markdown-Formatierung; keine Datenbindung |
+| content | string | required | | max. 10 000 characters; Markdown | Free text with Markdown formatting; no data binding |
 
 ### CatalogQueryDataSource
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| catalogId | reference | required | | target: catalog | Referenzierter Katalog inkl. Joins und Spalten |
-| savedViewId | reference | optional | | target: SavedView im referenzierten Katalog | Vorauswahl einer SavedView; null = Standard-View des Katalogs |
-| additionalFilters | FilterExpression[] | optional | [] | | Weitere Filter on top der Katalog-Filter |
+| catalogId | reference | required | | target: catalog | Referenced catalog including joins and columns |
+| savedViewId | reference | optional | | target: SavedView in the referenced catalog | Preselection of a SavedView; null = default view of the catalog |
+| additionalFilters | FilterExpression[] | optional | [] | | Further filters on top of the catalog filters |
 
 ### PropertyAggregationDataSource
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| entityType | string | required | | gültiger EntityType-ID (built-in oder custom) | Entitätstyp, über den aggregiert wird |
-| propertyName | string | required | | muss als PropertyDefinition auf entityType existieren; dataType.kind muss `int` sein für sum/avg/min/max | Aggregiertes Attribut |
-| aggregationFn | enum | required | | `[sum, count, avg, min, max]` | Aggregierungsfunktion |
-| groupBy | string | optional | null | gültiger PropertyName oder `architectureLayerId` oder `architectureDomainId` | Gruppierungsfeld; null = keine Gruppierung (ein einziges Ergebnis) |
-| filters | FilterExpression[] | optional | [] | gleiche Syntax wie Katalog-Filter | Vorfilter auf die Entitäten |
+| entityType | string | required | | valid EntityType ID (built-in or custom) | Entity type over which to aggregate |
+| propertyName | string | required | | must exist as a PropertyDefinition on entityType; dataType.kind must be `int` for sum/avg/min/max | Aggregated attribute |
+| aggregationFn | enum | required | | `[sum, count, avg, min, max]` | Aggregation function |
+| groupBy | string | optional | null | valid PropertyName or `architectureLayerId` or `architectureDomainId` | Grouping field; null = no grouping (a single result) |
+| filters | FilterExpression[] | optional | [] | same syntax as catalog filters | Pre-filters on the entities |
 
 ### AxisConfig
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| label | string | optional | | | Achsenbeschriftung |
-| propertyName | string | required | | muss aus Datenquelle verfügbar sein | Datenbindung |
-| numberFormat | string | optional | | | Zahlenformat; nur bei numerischen Achsen |
+| label | string | optional | | | Axis label |
+| propertyName | string | required | | must be available from the data source | Data binding |
+| numberFormat | string | optional | | | Number format; only for numeric axes |
 
 ### GridPosition
 
-| Attribut | Typ | Optional | Default | Constraints | Beschreibung |
+| Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| col | integer | required | | 1–12 | Startspalte im 12-Spalten-Raster |
-| row | integer | required | | ≥ 1 | Startzeile |
-| width | integer | required | | 1–12; col+width ≤ 13 | Spaltenbreite |
-| height | integer | required | | 1–6 | Zeilenhöhe (in Rastereinheiten) |
+| col | integer | required | | 1–12 | Start column in the 12-column grid |
+| row | integer | required | | ≥ 1 | Start row |
+| width | integer | required | | 1–12; col+width ≤ 13 | Column width |
+| height | integer | required | | 1–6 | Row height (in grid units) |
 
-## Beziehungen
+## Relationships
 
-| Beziehung | Ziel-Objekt | Kardinalität | Optional | Beschreibung |
+| Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
-| belongsTo | instance | n:1 | no | Dashboard gehört zur OEA-Instanz |
-| createdBy | [person](./person.md) | n:1 | no | Ersteller |
-| references | [catalog](./catalog.md) | n:m | yes | Optionale Datenquelle für Table- und Chart-Widgets |
+| belongsTo | instance | n:1 | no | Dashboard belongs to the OEA instance |
+| createdBy | [person](./person.md) | n:1 | no | Creator |
+| references | [catalog](./catalog.md) | n:m | yes | Optional data source for table and chart widgets |
 
 ## Business Rules
 
-| Rule-ID | Aussage | Auslöser | Compliance-Bezug |
+| Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
-| BR-01 | `Dashboard.name` muss pro Scope eindeutig sein (`instance`: global; `personal`: pro Nutzer) | onCreate, onUpdate | – |
-| BR-02 | `CatalogQueryDataSource.catalogId` muss auf einen existierenden und für den anfragenden Nutzer sichtbaren Katalog zeigen | onCreate, onUpdate, onQuery | – |
-| BR-03 | `PropertyAggregationDataSource.propertyName` muss eine gültige `PropertyDefinition` auf dem referenzierten `entityType` sein | onCreate, onUpdate | – |
-| BR-04 | `PropertyAggregationDataSource.aggregationFn` = `sum` / `avg` / `min` / `max` erfordert `propertyName` mit `dataType.kind=int` | onCreate, onUpdate | – |
-| BR-05 | `ChartWidget` mit `chartType=pie` oder `chartType=donut` darf genau eine Y-Achse haben | onCreate, onUpdate | – |
-| BR-06 | `KPIWidget` mit `comparisonMode=vs-target` muss `targetValue` gesetzt haben | onCreate, onUpdate | – |
-| BR-07 | `GridPosition.col + GridPosition.width` darf 13 nicht überschreiten | onCreate, onUpdate | – |
-| BR-08 | Dashboards mit `scope=personal` sind für andere Nutzer nicht sichtbar und nicht über Sharing-Links teilbar | onRead | – |
+| BR-01 | `Dashboard.name` must be unique per scope (`instance`: global; `personal`: per user) | onCreate, onUpdate | – |
+| BR-02 | `CatalogQueryDataSource.catalogId` must point to an existing catalog that is visible to the requesting user | onCreate, onUpdate, onQuery | – |
+| BR-03 | `PropertyAggregationDataSource.propertyName` must be a valid `PropertyDefinition` on the referenced `entityType` | onCreate, onUpdate | – |
+| BR-04 | `PropertyAggregationDataSource.aggregationFn` = `sum` / `avg` / `min` / `max` requires `propertyName` with `dataType.kind=int` | onCreate, onUpdate | – |
+| BR-05 | `ChartWidget` with `chartType=pie` or `chartType=donut` may have exactly one Y-axis | onCreate, onUpdate | – |
+| BR-06 | `KPIWidget` with `comparisonMode=vs-target` must have `targetValue` set | onCreate, onUpdate | – |
+| BR-07 | `GridPosition.col + GridPosition.width` must not exceed 13 | onCreate, onUpdate | – |
+| BR-08 | Dashboards with `scope=personal` are not visible to other users and cannot be shared via sharing links | onRead | – |
 
-## Beispiel: Investitionskosten-Dashboard für CIO
+## Example: Investment Cost Dashboard for the CIO
 
 ```yaml
 dashboard:
-  name: "IT-Investitionsplanung 2026–2030"
+  name: "IT Investment Planning 2026–2030"
   scope: instance
   globalFilters: []
   widgets:
     - widgetType: kpi
-      title: "Gesamte Investitionskosten (Prognose)"
+      title: "Total Investment Costs (Forecast)"
       dataSource:
         entityType: plateau
         propertyName: investitionskostenPrognose
         aggregationFn: sum
-      unit: "Mio. CHF"
+      unit: "CHF m"
       gridPosition: { col: 1, row: 1, width: 3, height: 1 }
 
     - widgetType: chart
-      title: "Investitionskosten pro Plateau"
+      title: "Investment Costs per Plateau"
       chartType: bar
       dataSource:
         entityType: plateau
@@ -180,28 +180,28 @@ dashboard:
       gridPosition: { col: 4, row: 1, width: 9, height: 3 }
 
     - widgetType: chart
-      title: "Entitäten nach Architekturdomäne"
+      title: "Entities by Architecture Domain"
       chartType: pie
       dataSource:
         entityType: application-component
         propertyName: id
         aggregationFn: count
         groupBy: architectureDomainId
-      yAxis: { propertyName: id, label: "Anzahl" }
+      yAxis: { propertyName: id, label: "Count" }
       gridPosition: { col: 1, row: 2, width: 6, height: 3 }
 ```
 
-**Voraussetzung**: Das Plateau-EntityType (oder ein Stereotype `ManagedPlateau`) muss `PropertyDefinition { name: investitionskostenPrognose, dataType: { kind: int }, validationMode: warning, category: "Kosten" }` definiert haben.
+**Precondition**: The plateau EntityType (or a stereotype `ManagedPlateau`) must have `PropertyDefinition { name: investitionskostenPrognose, dataType: { kind: int }, validationMode: warning, category: "Costs" }` defined.
 
-## Abgrenzung zu ähnlichen Objekten
+## Delimitation from Similar Objects
 
-- **NICHT** [catalog](./catalog.md): Ein Katalog ist eine tabellarische Zeilenansicht ohne Aggregation; ein Dashboard aggregiert, visualisiert und verdichtet auf Kennzahlen und Charts. Dashboards nutzen Kataloge optional als Datenquelle.
-- **NICHT** Bericht / Report-Export: Ein Report ist ein Punkt-in-Zeit-Export (PDF, Excel) für Archivierung und Weitergabe; ein Dashboard ist live und interaktiv im Web Portal.
-- **NICHT** Diagramm / Canvas: Diagramme zeigen Architektur-Notation (ArchiMate-Entitäten, Verbindungen); Dashboards zeigen Business-Metriken in Standard-Chart-Typen.
-- **NICHT** [viewpoint](./viewpoint.md): Ein Viewpoint steuert, welche EntityTypes in einem Architektur-Diagramm erscheinen dürfen; ein Dashboard ist eine Reporting-Ansicht ohne Modellierungs-Funktion.
+- **NOT** [catalog](./catalog.md): A catalog is a tabular row view without aggregation; a dashboard aggregates, visualizes, and condenses into metrics and charts. Dashboards optionally use catalogs as a data source.
+- **NOT** report / report export: A report is a point-in-time export (PDF, Excel) for archiving and distribution; a dashboard is live and interactive in the Web Portal.
+- **NOT** diagram / canvas: Diagrams show architecture notation (ArchiMate entities, connections); dashboards show business metrics in standard chart types.
+- **NOT** [viewpoint](./viewpoint.md): A viewpoint controls which EntityTypes may appear in an architecture diagram; a dashboard is a reporting view without modeling function.
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
-| 0.1.0 | 2026-06-26 | Business Engineer | Initial draft: KPI-, Chart-, Table-, Text-Widgets; CatalogQuery- und PropertyAggregation-DataSource; C-Level-Investitionskosten-Beispiel |
+| 0.1.0 | 2026-06-26 | Business Engineer | Initial draft: KPI, chart, table, text widgets; CatalogQuery and PropertyAggregation data sources; C-level investment cost example |

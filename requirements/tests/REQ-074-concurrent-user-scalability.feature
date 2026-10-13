@@ -1,37 +1,37 @@
-# Ableitung aus: requirements/req/req-074-*.md
-# V-Modell Systemtestspezifikation – erstellt 2026-06-30
-# Verifikation: Methode: test (automatisiert, Lasttest)
+# Derived from: requirements/req/req-074-*.md
+# V-model system test specification – created 2026-06-30
+# Verification: Method: test (automated, load test)
 
 @non-functional @performance @should @UC-05 @UC-06
-Feature: REQ-074 – Gleichzeitige Nutzer und Skalierbarkeit
+Feature: REQ-074 – Concurrent users and scalability
 
-  Das System MUSS unter Last von **50 gleichzeitigen aktiven Nutzern**
-  die in REQ-008, REQ-071 und REQ-072 definierten Latenzziele
-  einhalten, ohne Degradierung der p95-Werte um mehr als den Faktor 2.
-  Das System SOLL ein Architecture-Repository mit bis zu **500.000
-  ArchitectureEntities** (Elemente und Connections kombiniert) ohne
-  funktionale Einschränkungen unterstützen.
+  Under a load of **50 concurrent active users**, the system MUST
+  meet the latency targets defined in REQ-008, REQ-071, and REQ-072
+  without degrading the p95 values by more than a factor of 2. The
+  system SHOULD support an architecture repository with up to
+  **500,000 ArchitectureEntities** (elements and connections
+  combined) without functional restrictions.
 
   @AC1
-  Scenario: AC1 – 50 gleichzeitige Nutzer — Katalog – 50 virtuelle Nutzer senden gleichzeitig `GET /api/v1/catalogs/{id}/data`...
-    Given 50 virtuelle Nutzer senden gleichzeitig `GET /api/v1/catalogs/{id}/data`; Repository mit 10.000 Entitäten
-    When  Lasttest läuft 5 Minuten
-    Then  p95-Latenz ≤ 2 × 500ms = 1.000ms (REQ-071-Zielwert × 2); kein HTTP 5xx; kein Timeout
+  Scenario: AC1 – 50 concurrent users — catalog – 50 virtual users simultaneously send...
+    Given 50 virtual users simultaneously send `GET /api/v1/catalogs/{id}/data`; repository with 10,000 entities
+    When  load test runs for 5 minutes
+    Then  p95 latency ≤ 2 × 500ms = 1,000ms (REQ-071 target × 2); no HTTP 5xx; no timeout
 
   @AC2
-  Scenario: AC2 – 50 gleichzeitige Nutzer — Login – 50 virtuelle Nutzer senden gleichzeitig OIDC-Token-Einlösung
-    Given 50 virtuelle Nutzer senden gleichzeitig OIDC-Token-Einlösung
-    When  Lasttest 1 Minute
-    Then  p95-Login-Latenz ≤ 2 × 300ms = 600ms (REQ-008-Zielwert × 2)
+  Scenario: AC2 – 50 concurrent users — login – 50 virtual users simultaneously send OIDC token redemption
+    Given 50 virtual users simultaneously send OIDC token redemption
+    When  load test for 1 minute
+    Then  p95 login latency ≤ 2 × 300ms = 600ms (REQ-008 target × 2)
 
   @AC3
-  Scenario: AC3 – 500.000 Entitäten — Funktionalität – Repository mit 500.000 ArchitectureEntities (verschiedene EntityTypes)
-    Given Repository mit 500.000 ArchitectureEntities (verschiedene EntityTypes)
-    When  Standard-Katalog-Abfrage, Diagramm-Öffnen, Lineage-Query
-    Then  Keine Timeouts; keine OOM-Fehler; korrekte Ergebnisse
+  Scenario: AC3 – 500,000 entities — functionality – repository with 500,000 ArchitectureEntities (various EntityTypes)
+    Given repository with 500,000 ArchitectureEntities (various EntityTypes)
+    When  standard catalog query, diagram opening, lineage query
+    Then  no timeouts; no OOM errors; correct results
 
   @AC4
-  Scenario: AC4 – 500.000 Entitäten — Katalog-Latenz – 500.000 Entitäten; Katalog für primaryEntityType mit 50.000 Instanzen
-    Given 500.000 Entitäten; Katalog für primaryEntityType mit 50.000 Instanzen
-    When  Katalog-Abfrage, erste Seite (50 Einträge), kein Join
-    Then  p95 < 500ms (durch Cursor-Paginierung ist das unabhängig von Gesamtgrösse)
+  Scenario: AC4 – 500,000 entities — catalog latency – 500,000 entities; catalog for pr...
+    Given 500,000 entities; catalog for primaryEntityType with 50,000 instances
+    When  catalog query, first page (50 entries), no join
+    Then  p95 < 500ms (due to cursor pagination this is independent of total size)

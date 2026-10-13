@@ -1,29 +1,29 @@
-# ADR-027: Projekt-Setup — Mono-Repo, Maven-Struktur, Package-Naming, Docker Compose
+# ADR-027: Project Setup — Mono-Repo, Maven Structure, Package Naming, Docker Compose
 
 **Status**: accepted
-**Datum**: 2026-06-29
-**Entscheider**: [Lukas – Repository-Inhaber](../business-analysis/stakeholders/SH-01-lukas-enterprise-architect.md)
+**Date**: 2026-06-29
+**Deciders**: [Lukas – Repository Owner](../business-analysis/stakeholders/SH-01-lukas-enterprise-architect.md)
 
 ---
 
-## Kontext
+## Context
 
-Vor dem ersten Code-Commit müssen vier strukturelle Fragen entschieden werden, die
-nachträglich nur mit hohem Aufwand zu ändern sind:
+Before the first code commit, four structural questions must be decided that can
+only be changed later at high cost:
 
-1. **Repository-Strategie**: Ein Repo für alles oder separate Repos pro Schicht?
-2. **Backend-Modul-Struktur**: Ein Maven-Modul oder mehrere?
-3. **Java-Package-Naming**: Welches Basis-Package für alle Java-Klassen?
-4. **Lokale Entwicklungsumgebung**: Wie startet man OEA auf einem Entwickler-Laptop?
+1. **Repository strategy**: One repo for everything or separate repos per layer?
+2. **Backend module structure**: One Maven module or several?
+3. **Java package naming**: Which base package for all Java classes?
+4. **Local development environment**: How does one start OEA on a developer laptop?
 
 ---
 
-## Entscheidungen
+## Decisions
 
 ### 1. Mono-Repo
 
-Alle Schichten — Backend, Frontend (Client-App + Web Portal), API-Spec,
-Dokumentation und Requirements — leben in einem einzigen Git-Repository.
+All layers — backend, frontend (client app + web portal), API spec,
+documentation, and requirements — live in a single Git repository.
 
 ```
 oea/
@@ -31,55 +31,55 @@ oea/
 │   ├── src/
 │   └── pom.xml
 ├── frontend/             ← Vue 3 + TypeScript (ADR-011)
-│   ├── src/              ← Shared Code: Komponenten, Stores, Router
-│   ├── electron/         ← Electron Main Process + Preload (ADR-008)
-│   └── portal/           ← Web-Portal Entry Point (kein Electron)
-├── api/                  ← openapi.yaml (Vertrag zwischen Backend + Frontend)
+│   ├── src/              ← shared code: components, stores, router
+│   ├── electron/         ← Electron main process + preload (ADR-008)
+│   └── portal/           ← web portal entry point (no Electron)
+├── api/                  ← openapi.yaml (contract between backend + frontend)
 ├── adrs/                 ← Architectural Decision Records
-├── requirements/         ← Use Cases, REQs, User Stories
-├── business-analysis/    ← Stakeholder, Vision
-├── business-objects/     ← Domain Model
-├── docs/                 ← Datenmodell, Walking Skeleton, Screens
-├── scripts/              ← Hilfsskripte
-├── docker-compose.yml    ← Lokale Entwicklungsumgebung
+├── requirements/         ← use cases, REQs, user stories
+├── business-analysis/    ← stakeholders, vision
+├── business-objects/     ← domain model
+├── docs/                 ← data model, Walking Skeleton, screens
+├── scripts/              ← helper scripts
+├── docker-compose.yml    ← local development environment
 └── AGENTS.md
 ```
 
-**Begründung**: Backend-API und Frontend sind tight-coupled (OpenAPI-Vertrag).
-Eine Breaking-Change in der API erfordert simultane Anpassung im Frontend — das
-gehört in einen einzigen PR. Contributors klonen ein Repo. Der Walking Skeleton
-läuft als ein `docker compose up`.
+**Rationale**: Backend API and frontend are tightly coupled (OpenAPI contract).
+A breaking change in the API requires simultaneous adjustment in the frontend — this
+belongs in a single PR. Contributors clone one repo. The Walking Skeleton
+runs as a single `docker compose up`.
 
-### 2. Backend: Einzelnes Maven-Modul für v1
+### 2. Backend: Single Maven Module for v1
 
-Das Backend ist ein **einziges Maven-Modul** (`backend/pom.xml`). Interne
-Paketstruktur ersetzt Modul-Grenzen:
+The backend is a **single Maven module** (`backend/pom.xml`). Internal
+package structure replaces module boundaries:
 
 ```
 backend/src/main/java/io/oea/
-├── api/          ← REST-Controller, Request/Response DTOs, OpenAPI (ADR-028)
-├── app/          ← Application Services: stabile Interfaces + Commands/Queries (ADR-028)
-├── core/         ← Domain Model, Repositories, Domain-Services
-├── audit/        ← Audit-Schema-Handling (ADR-024)
-├── integration/  ← Externer Schreibzugriff / Service-Accounts (ADR-026)
-└── config/       ← Spring-Konfiguration, Security, Flyway
+├── api/          ← REST controllers, request/response DTOs, OpenAPI (ADR-028)
+├── app/          ← application services: stable interfaces + commands/queries (ADR-028)
+├── core/         ← domain model, repositories, domain services
+├── audit/        ← audit schema handling (ADR-024)
+├── integration/  ← external write access / service accounts (ADR-026)
+└── config/       ← Spring configuration, security, Flyway
 ```
 
-Die Kommunikationsregeln zwischen den drei Schichten (`api → app → core`)
-sind in ADR-028 beschrieben.
+The communication rules between the three layers (`api → app → core`)
+are described in ADR-028.
 
-**Warum nicht Multi-Modul?** Maven-Multi-Module-Projekte (mehrere `pom.xml`-Dateien
-in einer Eltern-Kind-Hierarchie) bringen erst ab mehreren Teams oder wiederverwendbaren
-Libraries echten Nutzen. Für v1 mit einem Entwickler bedeutet es nur Overhead:
-separate Build-Schritte, Inter-Modul-Abhängigkeiten in XML pflegen, längere
-Konfigurationszeit.
+**Why not multi-module?** Maven multi-module projects (several `pom.xml` files
+in a parent-child hierarchy) only bring real benefit with multiple teams or reusable
+libraries. For v1 with one developer it only means overhead:
+separate build steps, maintaining inter-module dependencies in XML, longer
+configuration time.
 
-**Nachrüstbar**: Wenn OEA wächst und z.B. ein `oea-client-lib` für externe
-API-Clients sinnvoll wird, kann das Modul ohne Breaking Changes herausgelöst werden.
+**Retrofittable**: If OEA grows and e.g. an `oea-client-lib` for external
+API clients becomes useful, the module can be extracted without breaking changes.
 
-### 3. Java-Package-Naming: `io.oea`
+### 3. Java Package Naming: `io.oea`
 
-Alle Java-Klassen verwenden `io.oea` als Basis-Package:
+All Java classes use `io.oea` as the base package:
 
 ```java
 io.oea.api.v1.controller.EntityController
@@ -91,108 +91,108 @@ io.oea.audit.service.AuditEventWriter
 io.oea.integration.service.BatchWriteService
 ```
 
-**Begründung**: `io.oea` ist kurz, technisch korrekt (Reverse-Domain-Konvention)
-und eindeutig. Alternativen wie `com.openea` oder `org.openea` würden eine
-registrierte Domain voraussetzen, die zum Projektzeitpunkt nicht existiert.
+**Rationale**: `io.oea` is short, technically correct (reverse-domain convention)
+and unambiguous. Alternatives like `com.openea` or `org.openea` would presuppose a
+registered domain that does not exist at the time of the project.
 
-### 4. Lokale Entwicklung: Docker Compose
+### 4. Local Development: Docker Compose
 
 ```
 docker compose up
 ```
 
-startet alle Dienste, die für den Walking Skeleton nötig sind:
+starts all services required for the Walking Skeleton:
 
 ```yaml
 services:
-  db:        # PostgreSQL 15 (primäre Entwicklungs-DB)
-  api:       # Spring Boot Backend (Profil: dev)
-  frontend:  # Vite Dev-Server mit HMR
+  db:        # PostgreSQL 15 (primary development DB)
+  api:       # Spring Boot backend (profile: dev)
+  frontend:  # Vite dev server with HMR
 ```
 
-Zusätzliche Compose-Dateien für andere DBs (REQ-150):
+Additional compose files for other DBs (REQ-150):
 - `docker-compose.mysql.yml`    — MySQL 8
 - `docker-compose.sqlserver.yml` — SQL Server 2019
 
-**Kein Keycloak im Compose für den Walking Skeleton**: Auth via OIDC (ADR-006)
-wird im Dev-Modus mit einem vereinfachten JWT-Stub überbrückt, der lokal keinen
-externen OIDC-Provider erfordert. Für Integrationstests: Keycloak als optionaler
-Compose-Service (`--profile keycloak`).
+**No Keycloak in the compose for the Walking Skeleton**: Auth via OIDC (ADR-006)
+is bridged in dev mode with a simplified JWT stub that requires no
+external OIDC provider locally. For integration tests: Keycloak as an optional
+compose service (`--profile keycloak`).
 
-### 5. Frontend-Package-Manager: npm (kein Yarn, kein pnpm)
+### 5. Frontend Package Manager: npm (no Yarn, no pnpm)
 
-Vite und Vue 3 unterstützen alle drei. npm wird gewählt weil:
-- Kein zusätzliches Tool nötig (npm kommt mit Node.js)
-- GitHub Actions Caching für npm out-of-the-box verfügbar
-- Keine `.npmrc`-Konfiguration für private Registries nötig (OSS)
+Vite and Vue 3 support all three. npm is chosen because:
+- No additional tool needed (npm comes with Node.js)
+- GitHub Actions caching for npm available out-of-the-box
+- No `.npmrc` configuration for private registries needed (OSS)
 
 ---
 
-## Verzeichnis-Konventionen
+## Directory Conventions
 
-| Pfad | Inhalt |
+| Path | Content |
 |---|---|
-| `backend/src/main/java/io/oea/` | Java-Quellcode |
-| `backend/src/main/resources/` | `application.yml`, Flyway-Migrations (`db/migration/`) |
-| `backend/src/test/java/io/oea/` | Unit- und Integration-Tests |
-| `frontend/src/components/` | Vue-Komponenten (shared) |
-| `frontend/src/stores/` | Pinia-Stores |
-| `frontend/src/api/` | Generierter OpenAPI-Client (nicht manuell editieren) |
-| `frontend/electron/main.ts` | Electron Main Process |
-| `frontend/portal/main.ts` | Web-Portal Entry Point |
+| `backend/src/main/java/io/oea/` | Java source code |
+| `backend/src/main/resources/` | `application.yml`, Flyway migrations (`db/migration/`) |
+| `backend/src/test/java/io/oea/` | Unit and integration tests |
+| `frontend/src/components/` | Vue components (shared) |
+| `frontend/src/stores/` | Pinia stores |
+| `frontend/src/api/` | Generated OpenAPI client (do not edit manually) |
+| `frontend/electron/main.ts` | Electron main process |
+| `frontend/portal/main.ts` | Web portal entry point |
 
 ---
 
-## Verworfene Alternativen
+## Rejected Alternatives
 
-### Multi-Repo (Backend + Frontend getrennt)
+### Multi-Repo (backend + frontend separate)
 
-- **Pro**: Unabhängige CI-Pipelines; Electron-Build isoliert
-- **Contra**: Cross-Repo-Koordination bei API-Änderungen; zwei Repos für Contributors;
-  Walking Skeleton über Repo-Grenzen hinweg unhandlich
-- **Verworfen**: Overhead ohne Nutzen für v1
+- **Pro**: Independent CI pipelines; Electron build isolated
+- **Con**: Cross-repo coordination on API changes; two repos for contributors;
+  Walking Skeleton unwieldy across repo boundaries
+- **Rejected**: Overhead without benefit for v1
 
-### Maven-Multi-Modul von Anfang an
+### Maven Multi-Module from the Start
 
-- **Pro**: Erzwingt saubere Modul-Grenzen früh
-- **Contra**: Konfigurationsaufwand (3–5 `pom.xml`); inter-Modul-Builds langsamer;
-  für einen Entwickler kein Mehrwert
-- **Verworfen**: YAGNI — nachrüstbar wenn nötig
+- **Pro**: Enforces clean module boundaries early
+- **Con**: Configuration effort (3–5 `pom.xml`); inter-module builds slower;
+  no added value for one developer
+- **Rejected**: YAGNI — retrofittable when needed
 
-### Gradle statt Maven
+### Gradle instead of Maven
 
-- **Pro**: Kürzere Build-Files (Kotlin DSL); inkrementelle Builds schneller
-- **Contra**: Spring Boot Initializr generiert Maven; Team-Kontext kennt Maven;
-  ADR-012 impliziert Maven (`./mvnw`)
-- **Verworfen**: Konsistenz mit ADR-012
-
----
-
-## Konsequenzen
-
-**Positiv:**
-- Erster `git clone` + `docker compose up` = lauffähige Entwicklungsumgebung
-- Kein Cross-Repo-Versioning nötig
-- API-Spec und generierter Client immer synchron
-- CI kann Backend und Frontend in einer Pipeline koordinieren
-
-**Negativ / Kompromisse:**
-- Git-Repository wächst mit Code (akzeptabel; kein grosser Binary-Content)
-- Electron-Build (Code-Signing, plattformspezifische Releases) läuft in derselben
-  Pipeline — Komplexität in CI, nicht im Repo
-- Einzelnes Maven-Modul: Paket-Disziplin erfordert Code-Review statt Compiler-Enforcement
+- **Pro**: Shorter build files (Kotlin DSL); incremental builds faster
+- **Con**: Spring Boot Initializr generates Maven; team context knows Maven;
+  ADR-012 implies Maven (`./mvnw`)
+- **Rejected**: Consistency with ADR-012
 
 ---
 
-## Betroffene Konzept-Kapitel
+## Consequences
 
-- §21 (Tech-Stack), §6 (Repository-Struktur)
+**Positive:**
+- First `git clone` + `docker compose up` = runnable development environment
+- No cross-repo versioning needed
+- API spec and generated client always in sync
+- CI can coordinate backend and frontend in one pipeline
 
-## Verwandte ADRs
+**Negative / Compromises:**
+- Git repository grows with code (acceptable; no large binary content)
+- Electron build (code signing, platform-specific releases) runs in the same
+  pipeline — complexity in CI, not in the repo
+- Single Maven module: package discipline requires code review instead of compiler enforcement
+
+---
+
+## Affected Concept Chapters
+
+- §21 (Tech Stack), §6 (Repository Structure)
+
+## Related ADRs
 
 - ADR-011: Frontend Vue 3
 - ADR-012: Backend Java/Spring Boot
-- ADR-015: Flyway Migrations
+- ADR-015: Flyway migrations
 - ADR-023: Multi-DB (docker-compose.mysql.yml)
-- ADR-026: Externe Integration (backend/integration/)
-- ADR-028: Backend-Schichtenarchitektur api/app/core (Kommunikationsregeln)
+- ADR-026: External integration (backend/integration/)
+- ADR-028: Backend layered architecture api/app/core (communication rules)

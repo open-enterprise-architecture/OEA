@@ -1,6 +1,6 @@
 ---
 id: REQ-032
-title: Custom EntityTypes via GUI konfigurieren
+title: Configure custom EntityTypes via GUI
 type: functional
 priority: must
 status: proposed
@@ -19,131 +19,131 @@ references:
     - SH-02
     - SH-07
   concept:
-    - concept/40-extensibility/14-erweiterbarkeit.md
-    - concept/20-entities/06-kern-entitaetstypen.md
+    - concept/40-extensibility/14-extensibility.md
+    - concept/20-entities/06-core-entity-types.md
   adrs: []
 supersedes: []
 superseded_by: []
 ---
 
-# REQ-032: Custom EntityTypes via GUI konfigurieren
+# REQ-032: Configure custom EntityTypes via GUI
 
-## Aussage
+## Statement
 
-Das System MUSS Personen mit Metamodell-Bearbeiter-Berechtigung ermöglichen, Custom EntityTypes (inkl. Properties, Relationen, optionalem Basis-Typ und Stereotypen) über ein grafisches Formular zu erstellen, zu bearbeiten und zu löschen; Built-in EntityTypes MÜSSEN sichtbar, aber NICHT editierbar oder löschbar sein.
+The system MUST allow persons with metamodel editor permission to create, edit, and delete custom EntityTypes (including properties, relations, optional base type, and stereotypes) via a graphical form; built-in EntityTypes MUST be visible but NOT editable or deletable.
 
-## Begründung
+## Rationale
 
-Architekturteams müssen ihr Metamodell kontinuierlich an organisations-spezifische Anforderungen anpassen (neue Branchen-Typen, Governance-Anforderungen, technische Plattform-Typen). Eine GUI-basierte Konfiguration ohne Code-Deployment ermöglicht es, das Metamodell direkt im Tool zu pflegen, ohne Entwickler einzubinden. Der Ausschluss der Built-in-Typen (§6) von der Editierbarkeit schützt die konzeptionelle Integrität des TOGAF-basierten Kern-Metamodells.
+Architecture teams must continuously adapt their metamodel to organization-specific requirements (new industry types, governance requirements, technical platform types). GUI-based configuration without code deployment makes it possible to maintain the metamodel directly in the tool without involving developers. Excluding the built-in types (§6) from editability protects the conceptual integrity of the TOGAF-based core metamodel.
 
-## Kontext
+## Context
 
-Die GUI-Konfiguration ist der primäre Pfad für organisations-spezifische Metamodell-Erweiterungen. Alternativ steht Import (REQ-033) zur Verfügung. Beide Wege führen zum gleichen Ergebnis: ein validierter Eintrag in der `MetamodelConfiguration`. Die Konfiguration gilt instanzweit und ist sofort wirksam.
+GUI configuration is the primary path for organization-specific metamodel extensions. Import (REQ-033) is available as an alternative. Both paths lead to the same result: a validated entry in the `MetamodelConfiguration`. The configuration applies instance-wide and takes effect immediately.
 
-## Typ-spezifische Felder
+## Type-Specific Fields
 
-### Bei type=functional
+### For type=functional
 
-**Eingaben** (pro CRUD-Operation):
+**Inputs** (per CRUD operation):
 
 *Create EntityType*:
-- Name (string, PascalCase, Pflicht)
-- Basis-Typ (Dropdown aus allen EntityTypes, optional)
-- Beschreibung (string, optional)
-- Properties (0..n): Name, Typ (string/integer/float/boolean/date/enum/string[]), Pflichtfeld, EnumValues (bei type=enum), Beschreibung
-- Relationen (0..n): Relationsname, Ziel-Typ (Dropdown), Kardinalität (Format: `0..n`, `1..1` etc.)
+- Name (string, PascalCase, mandatory)
+- Base type (dropdown of all EntityTypes, optional)
+- Description (string, optional)
+- Properties (0..n): name, type (string/integer/float/boolean/date/enum/string[]), mandatory field, EnumValues (for type=enum), description
+- Relations (0..n): relation name, target type (dropdown), cardinality (format: `0..n`, `1..1`, etc.)
 
-*Update EntityType* (nur Custom):
-- Alle Felder wie bei Create editierbar
-- Properties/Relationen können hinzugefügt, geändert oder entfernt werden
+*Update EntityType* (custom only):
+- All fields editable as in Create
+- Properties/relations can be added, changed, or removed
 
-*Delete EntityType* (nur Custom):
-- Löschen nur möglich, wenn keine Entitäts-Instanzen dieses Typs im Repository vorhanden (BR-03)
+*Delete EntityType* (custom only):
+- Deletion only possible if no entity instances of this type exist in the repository (BR-03)
 
 *Create/Update/Delete Stereotype*:
-- Stereotyp-Name (PascalCase), Basis-Typ (Dropdown), zusätzliche Properties
+- Stereotype name (PascalCase), base type (dropdown), additional properties
 
-**Verarbeitung**:
-- Validierung: Name eindeutig (über built-in + custom), Basis-Typ gültig, Kardinalitäts-Format korrekt, Enum-Values nicht leer bei type=enum
-- Bei Delete: Prüfung ob Typ noch Instanzen hat (BR-03); falls ja → Fehlermeldung mit Anzahl
-- Persistierung als Eintrag in `MetamodelConfiguration`
-- Audit-Log-Eintrag nach erfolgreicher Operation
+**Processing**:
+- Validation: name unique (across built-in + custom), base type valid, cardinality format correct, enum values not empty for type=enum
+- On delete: check whether the type still has instances (BR-03); if so → error message with the count
+- Persistence as an entry in `MetamodelConfiguration`
+- Audit log entry after a successful operation
 
-**Ausgaben**:
-- Aktualisierte EntityType-Liste mit dem neuen/geänderten/gelöschten Typ
-- Audit-Log-Eintrag
+**Outputs**:
+- Updated EntityType list with the new/changed/deleted type
+- Audit log entry
 
-**Fehlerfälle**:
-- Name-Kollision (BR-01) → Validierungsfehler mit konkreter Meldung
-- Versuch, Built-in zu editieren/löschen (BR-02) → Fehlermeldung
-- Versuch, belegten Custom-Typ zu löschen (BR-03) → Fehlermeldung mit Anzahl betroffener Entitäten
-- Fehlende Berechtigung → 403 Forbidden
+**Error Cases**:
+- Name collision (BR-01) → validation error with a specific message
+- Attempt to edit/delete a built-in (BR-02) → error message
+- Attempt to delete an in-use custom type (BR-03) → error message with the number of affected entities
+- Missing permission → 403 Forbidden
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
 **AC1**:
-- Gegeben: Kurt hat Metamodell-Bearbeiter-Berechtigung
-- Wenn: er einen neuen EntityType `SecurityZone` mit Property `trustLevel` (enum, pflicht) und Relation `contains → TechnologyComponent (0..n)` über das Formular anlegt
-- Dann: erscheint `SecurityZone` in der Typ-Liste; beim Anlegen einer neuen Entität ist `SecurityZone` auswählbar
+- Given: Kurt has metamodel editor permission
+- When: he creates a new EntityType `SecurityZone` with property `trustLevel` (enum, mandatory) and relation `contains → TechnologyComponent (0..n)` via the form
+- Then: `SecurityZone` appears in the type list; when creating a new entity, `SecurityZone` is selectable
 
 **AC2**:
-- Gegeben: Kurt versucht, einen EntityType mit dem Namen `ApplicationComponent` (built-in) anzulegen
-- Wenn: er speichert
-- Dann: erscheint eine Fehlermeldung „Name 'ApplicationComponent' bereits vergeben (built-in)"; kein Eintrag wird angelegt
+- Given: Kurt tries to create an EntityType with the name `ApplicationComponent` (built-in)
+- When: he saves
+- Then: an error message appears: "Name 'ApplicationComponent' already taken (built-in)"; no entry is created
 
 **AC3**:
-- Gegeben: Custom EntityType `SecurityZone` hat 5 Entitäts-Instanzen im Repository
-- Wenn: Kurt versucht, `SecurityZone` zu löschen
-- Dann: erscheint eine Fehlermeldung mit „5 Entitäten vom Typ SecurityZone müssen zuerst gelöscht oder migriert werden"; kein Löschen
+- Given: custom EntityType `SecurityZone` has 5 entity instances in the repository
+- When: Kurt tries to delete `SecurityZone`
+- Then: an error message appears: "5 entities of type SecurityZone must first be deleted or migrated"; no deletion
 
 **AC4**:
-- Gegeben: Kurt bearbeitet einen Custom EntityType (fügt ein optionales Property hinzu)
-- Wenn: er speichert
-- Dann: ist das neue Property sichtbar; bestehende Entitäten dieses Typs werden nicht invalide (optionales Property, kein Breaking Change)
+- Given: Kurt edits a custom EntityType (adds an optional property)
+- When: he saves
+- Then: the new property is visible; existing entities of this type do not become invalid (optional property, no breaking change)
 
 **AC5**:
-- Gegeben: Built-in EntityType `ApplicationComponent` in der Liste
-- Wenn: Kurt darauf klickt
-- Dann: wird er als schreibgeschützt dargestellt; keine Edit- oder Delete-Buttons
+- Given: built-in EntityType `ApplicationComponent` in the list
+- When: Kurt clicks on it
+- Then: it is displayed as read-only; no edit or delete buttons
 
-## Verifikationsmethode
+## Verification Method
 
-- [x] Methode: test (automatisiert) + exploration (UI-Test)
-- [x] Test-Setup: EntityType anlegen, bearbeiten, löschen (mit und ohne Instanzen); Built-in-Editierversuch; Name-Kollision
-- [x] Mess-Werkzeug: Test-Suite des Metamodell-Moduls; E2E-Test für UI-Flows
-- [x] Bestanden-Kriterium: AC1–AC5 grün
-- [ ] In CI integriert: ja, sobald Implementation existiert
+- [x] Method: test (automated) + exploration (UI-Test)
+- [x] Test setup: create, edit, delete EntityType (with and without instances); built-in edit attempt; name collision
+- [x] Measurement tool: test suite of the metamodel module; E2E test for UI flows
+- [x] Pass criterion: AC1–AC5 green
+- [ ] Integrated in CI: yes, once the implementation exists
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: Rollen-Modell (Person mit Metamodell-Bearbeiter-Berechtigung muss existieren); MetamodelConfiguration BO
-- **Folgewirkungen**: Newly defined EntityTypes müssen im Entitäts-Anlege-Dialog (künftiger UC-05/UC-06) auswählbar sein
-- **Konflikte**: keine bekannt
+- **Prerequisites**: Role model (a person with metamodel editor permission must exist); MetamodelConfiguration BO
+- **Downstream effects**: Newly defined EntityTypes must be selectable in the entity creation dialog (future UC-05/UC-06)
+- **Conflicts**: none known
 
-## Risiken bei Nichterfüllung
+## Risks of Non-Fulfillment
 
-- Risiko 1: Ohne GUI-Konfiguration muss das Metamodell per Code-Deployment angepasst werden – hohe Hürde für Architekturteams ohne Entwicklerzugang, schwerwiegend
-- Risiko 2: Editierbarkeit von Built-in-Typen würde die Kern-Integrität gefährden und potentiell Instanzen korrupieren, schwerwiegend (durch BR-02 mitigiert)
+- Risk 1: Without GUI configuration, the metamodel must be adapted via code deployment – high barrier for architecture teams without developer access, severe
+- Risk 2: Editability of built-in types would endanger core integrity and potentially corrupt instances, severe (mitigated by BR-02)
 
 ## Trade-offs
 
-- Optimistic Locking für gleichzeitige Bearbeitung: einfach zu implementieren, aber bei Kollision verliert einer der Architekten seine Änderungen. Für Metamodell-Änderungen (selten, im Team abgesprochen) vertretbar.
+- Optimistic locking for concurrent editing: easy to implement, but on collision one of the architects loses their changes. Acceptable for metamodel changes (rare, agreed within the team).
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
 - Backend: `POST/PUT/DELETE /admin/metamodel/entity-types` (admin-only, RBAC)
-- Frontend: Liste mit integrierten Built-in-Typen (read-only Badge) + Custom-Typen (Edit/Delete-Icons); Formular-Komponente für Properties und Relationen (dynamisch hinzufügbar/entfernbar)
-- Validierung: clientseitig für UX-Feedback, serverseitig für Sicherheit
+- Frontend: list with integrated built-in types (read-only badge) + custom types (edit/delete icons); form component for properties and relations (dynamically addable/removable)
+- Validation: client-side for UX feedback, server-side for security
 
-## Realisierung
+## Implementation
 
 - ADR(s): –
-- Implementiert durch: –
+- Implemented by: –
 - Tests: –
-- Status der Verifikation: not-verified
+- Verification status: not-verified
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |

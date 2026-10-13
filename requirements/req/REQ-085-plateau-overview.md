@@ -1,6 +1,6 @@
 ---
 id: REQ-085
-title: Plateau-Übersicht nach Status gruppiert
+title: Plateau overview grouped by status
 type: functional
 priority: must
 status: proposed
@@ -23,38 +23,38 @@ supersedes: []
 superseded_by: []
 ---
 
-# REQ-085: Plateau-Übersicht nach Status gruppiert
+# REQ-085: Plateau overview grouped by status
 
-## Aussage
+## Statement
 
-Das System MUSS Plateaus in einer strukturierten Übersicht nach Status gruppiert anzeigen: aktuelles Baseline (hervorgehoben), Target-Plateaus (mit geplantem `validFrom`), realisierte Plateaus (einklappbar, chronologisch absteigend). Jedes Plateau zeigt Name, Status, `validFrom`/`validTo` und verknüpfte Solutions-Anzahl.
+The system MUST display plateaus in a structured overview grouped by status: current baseline (highlighted), target plateaus (with planned `validFrom`), realized plateaus (collapsible, chronologically descending). Each plateau shows name, status, `validFrom`/`validTo` and the number of linked solutions.
 
-## Begründung
+## Rationale
 
-Ohne strukturierte Übersicht kann Kurt nicht schnell erkennen, welcher Zustand aktuell produktiv ist und welche Zielzustände geplant sind. Die Gruppierung nach Status macht den Planungsstand auf einen Blick sichtbar.
+Without a structured overview, Kurt cannot quickly see which state is currently productive and which target states are planned. Grouping by status makes the planning state visible at a glance.
 
-## Akzeptanzkriterien
+## Acceptance Criteria
 
-**AC1** (Gruppierte Übersicht):
-- Wenn: die Plateau-Übersicht aufgerufen wird und Baseline-, Target- und Realized-Plateaus existieren
-- Dann: wird das Baseline hervorgehoben, Targets mit `validFrom` angezeigt und Realized-Plateaus als einklappbare Sektion dargestellt
+**AC1** (Grouped overview):
+- When: the plateau overview is opened and baseline, target and realized plateaus exist
+- Then: the baseline is highlighted, targets are shown with `validFrom` and realized plateaus are displayed as a collapsible section
 
-**AC2** (Leere Target-Sektion):
-- Wenn: keine Target-Plateaus existieren
-- Dann: wird die Target-Sektion mit dem Hinweis "Noch kein Ziel-Plateau geplant" angezeigt
+**AC2** (Empty target section):
+- When: no target plateaus exist
+- Then: the target section is displayed with the note "No target plateau planned yet"
 
-## Abhängigkeiten
+## Dependencies
 
-- **Voraussetzungen**: REQ-084 (Plateau muss angelegt werden können)
-- **Folgewirkungen**: REQ-086 (Go-Live-Übergang ist über die Übersicht erreichbar)
+- **Prerequisites**: REQ-084 (plateau must be creatable)
+- **Downstream effects**: REQ-086 (go-live transition is reachable via the overview)
 
-## Realisierungs-Hinweise
+## Implementation Notes
 
-- Paginierung für Realized-Plateaus wenn mehr als 20 Einträge vorhanden
-- Solutions-Anzahl als aggregierter Zähler pro Plateau (DB-Query mit JOIN)
+- Pagination for realized plateaus if more than 20 entries exist
+- Solution count as an aggregated counter per plateau (DB query with JOIN)
 
-## Änderungshistorie
+## Change History
 
-| Version | Datum | Autor | Änderung |
+| Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
