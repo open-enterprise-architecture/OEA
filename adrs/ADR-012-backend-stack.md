@@ -7,6 +7,7 @@
 **Informed**: ADR-013 (API style), ADR-015 (DB migration), ADR-016 (persistence)
 **Supersedes**: –
 **Updated**: 2026-10-04 — OpenAPI spec-first instead of SpringDoc code-first (ADR-013); build with Maven instead of Gradle, directory `backend/` (ADR-027)
+**Partially superseded**: 2026-10-13 by [ADR-030](./ADR-030-postgresql-only.md) — multi-database parts no longer apply (PostgreSQL only)
 
 ## Context and Problem
 

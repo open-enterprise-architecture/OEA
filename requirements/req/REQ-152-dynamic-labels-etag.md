@@ -70,7 +70,7 @@ Two label categories: static UI labels (vue-i18n bundle, no API call) and dynami
 
 ## Dependencies
 
-- **Prerequisites**: REQ-150 (multi-DB; i18n_entries table must be portable)
+- **Prerequisites**: REQ-156 (PostgreSQL; `i18n_entries` table)
 - **Consequences**: US-140
 
 ## Change History

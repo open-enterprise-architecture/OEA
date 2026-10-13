@@ -3,10 +3,10 @@ id: REQ-150
 title: Multi-Database Support
 type: constraint
 priority: must
-status: proposed
+status: rejected
 version: 0.1.0
 created: 2026-06-29
-last_updated: 2026-06-29
+last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
@@ -14,10 +14,13 @@ references:
   adrs:
     - ADR-023
 supersedes: []
-superseded_by: []
+superseded_by:
+  - REQ-156
 ---
 
 # REQ-150: Multi-Database Support
+
+> **Rejected** (2026-10-13): superseded by [REQ-156](REQ-156-postgresql-only-database.md) following [ADR-030](../../adrs/ADR-030-postgresql-only.md).
 
 ## Statement
 
@@ -74,3 +77,4 @@ The database schema uses neither JSONB nor database-specific array types. Config
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft from ADR-023 |
+| 0.2.0 | 2026-10-13 | Lukas Mathis | Rejected: ADR-023 superseded by ADR-030 (PostgreSQL only); replaced by REQ-156 |

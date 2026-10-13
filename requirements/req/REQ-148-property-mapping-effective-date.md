@@ -63,7 +63,7 @@ Metamodels evolve. A property that is optional today can become mandatory from a
 ## Verification Method
 
 - [ ] Method: test (automated)
-- [ ] Test setup: integration test against H2 DB
+- [ ] Test setup: integration test against PostgreSQL (Testcontainers, ADR-030)
 - [ ] Pass criterion: POST /metamodel/metatypes/{id}/property-mappings creates a second entry; GET returns the latest assignment
 - [ ] Integrated in CI: yes
 

@@ -5,6 +5,7 @@
 **Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Consulted**: Business Engineer
 **Informed**: –
+**Partially superseded**: 2026-10-13 by [ADR-030](./ADR-030-postgresql-only.md) — multi-database parts no longer apply (PostgreSQL only)
 
 ## Context and Problem
 

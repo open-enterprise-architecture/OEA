@@ -1,6 +1,6 @@
 # ADR-023: Multi-DB Strategy — Database Abstraction via JPA/Hibernate
 
-**Status**: accepted
+**Status**: superseded by [ADR-030](./ADR-030-postgresql-only.md)
 **Date**: 2026-06-29
 **Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 

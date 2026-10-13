@@ -2,8 +2,10 @@
 
 **ID**: US-139
 **Story Points**: 5
-**Status**: backlog
+**Status**: rejected
 **Sprint**: unassigned
+
+> **Rejected** (2026-10-13): OEA supports PostgreSQL only ([ADR-030](../../adrs/ADR-030-postgresql-only.md), [REQ-156](../req/REQ-156-postgresql-only-database.md)).
 
 ## Story
 

@@ -154,8 +154,10 @@ def render(ucs, reqs, uss):
         out += ["| REQ | Title | Type | Priority | USs |", "|---|---|---|---|---|"]
         for rid in rids:
             r = reqs[rid]
-            us_links = ", ".join(link(s, uss[s]["file"]) for s in sorted(req_to_us.get(rid, []), key=num)) or "–"
-            out.append(f"| {link(rid, r['file'])} | {r['title']} | {r['type']} | {r['prio']} | {us_links} |")
+            us_links = ", ".join(link(s, uss[s]["file"]) + (" _(rejected)_" if uss[s]["status"] == "rejected" else "")
+                                 for s in sorted(req_to_us.get(rid, []), key=num)) or "–"
+            title = r["title"] + (" _(rejected)_" if r["status"] == "rejected" else "")
+            out.append(f"| {link(rid, r['file'])} | {title} | {r['type']} | {r['prio']} | {us_links} |")
         out.append("")
 
     out += ["## 2. UC × Concept × ADR", "", "| UC | Concept Chapters | ADRs |", "|---|---|---|"]

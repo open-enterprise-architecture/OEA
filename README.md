@@ -32,9 +32,9 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 |---|---|
 | Stakeholder profiles | 9 |
 | Use Cases | 22 |
-| Requirements | 155 |
+| Requirements | 156 |
 | User Stories | 142 |
-| ADRs | 29 |
+| ADRs | 30 |
 | Business Objects | 22 |
 
 _Concept: v0.18 · Last update: 2026-10-13_
@@ -110,13 +110,14 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 | [ADR-020](adrs/ADR-020-explorer-navigation-model.md) | Explorer Browser Navigation Model in the Native Client | proposed |
 | [ADR-021](adrs/ADR-021-implicit-parent-child-connection.md) | Implicit Parent-Child Connection on Component Nesting | proposed |
 | [ADR-022](adrs/ADR-022-structured-property-model.md) | Structured Property Model with Category, Temporal Mapping, and Delta Versioning | accepted |
-| [ADR-023](adrs/ADR-023-multi-db-strategy.md) | Multi-DB Strategy — Database Abstraction via JPA/Hibernate | accepted |
+| [ADR-023](adrs/ADR-023-multi-db-strategy.md) | Multi-DB Strategy — Database Abstraction via JPA/Hibernate | superseded |
 | [ADR-024](adrs/ADR-024-audit-separation.md) | Audit Data Storage — Separate Schema, Configurable as External Database | accepted |
 | [ADR-025](adrs/ADR-025-i18n-strategy.md) | I18N Strategy — Two-Layer with ETag Caching and SSE Invalidation | accepted |
 | [ADR-026](adrs/ADR-026-external-system-integration.md) | External System Integration — Write Access via API (optional) | accepted |
 | [ADR-027](adrs/ADR-027-project-setup-monorepo.md) | Project Setup — Mono-Repo, Maven Structure, Package Naming, Docker Compose | accepted |
 | [ADR-028](adrs/ADR-028-backend-layered-architecture.md) | Backend Layered Architecture — API / Application / Core | accepted |
 | [ADR-029](adrs/ADR-029-cucumber-test-framework.md) | Test Framework for BDD System Tests — Cucumber JVM | accepted |
+| [ADR-030](adrs/ADR-030-postgresql-only.md) | PostgreSQL as the Only Supported Database | accepted |
 <!-- /AUTO-GENERATED: adrs -->
 
 ## Contributing
