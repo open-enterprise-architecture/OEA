@@ -2,6 +2,16 @@
 
 This document records how the concept paper itself has evolved. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows Semantic Versioning (at concept level: major = fundamentally new concepts, minor = new chapters/sections, patch = corrections).
 
+## [v0.18.0] – §9 BPMN modeling within OEA
+
+### Changed
+- §9 (Process Architecture): OEA now includes a BPMN 2.0 editor that covers the Descriptive Process Modeling Conformance sub-class of BPMN 2.0.2; the process landscape (L1–L4) stays abstract and notation-neutral
+- §9.1, §9.6: BPMN elements are built-in `bpmn-*` entities; BPMN XML import/export at Descriptive level; reference-only mode for externally maintained models kept
+- §9.9: tool scope updated – execution-level BPMN, simulation and workflow execution remain out of scope
+
+### Rationale
+§9 excluded BPMN authoring, while REQ-076, REQ-081 and UC-10 already required modeling BPMN processes directly in OEA. The concept now follows the requirements; the Descriptive level is sufficient for documentation and analysis in the EA context.
+
 ## [v0.17.3] – Corrections found during translation
 
 ### Fixed
