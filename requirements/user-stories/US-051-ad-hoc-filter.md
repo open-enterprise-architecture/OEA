@@ -12,7 +12,7 @@ As a catalog visitor, I want to be able to set filter conditions on columns of t
 ## Reference
 
 **Use Case**: [UC-06: Create, Configure and Use an Architecture Catalog](../use-cases/UC-06-create-and-use-catalog.md)
-**Persona**: All stakeholders (SH-01 to SH-09)
+**Persona**: All stakeholders (SH-01 to SH-08)
 **Requirement**: [REQ-047: Set Filters and Save as SavedFilter](../req/REQ-047-set-and-save-filters.md)
 
 ## Acceptance Criteria

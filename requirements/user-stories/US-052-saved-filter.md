@@ -12,7 +12,7 @@ As a catalog user, I want to be able to name and save an ad-hoc set filter, so t
 ## Reference
 
 **Use Case**: [UC-06: Create, Configure and Use an Architecture Catalog](../use-cases/UC-06-create-and-use-catalog.md)
-**Persona**: All stakeholders (SH-01 to SH-09); catalog managers (SH-03, SH-07) can additionally choose scope=instance
+**Persona**: All stakeholders (SH-01 to SH-08); catalog managers (SH-03, SH-07) can additionally choose scope=instance
 **Requirement**: [REQ-047: Set Filters and Save as SavedFilter](../req/REQ-047-set-and-save-filters.md)
 
 ## Acceptance Criteria
