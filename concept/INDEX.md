@@ -18,7 +18,7 @@ Chronological list of all chapters with a short description.
 6. [Core Entity Types](20-entities/06-core-entity-types.md) – TOGAF mapping, Arc42 mapping, BPMN integration
 7. [Motivation, Stakeholders, and Goals](20-entities/07-motivation-stakeholders-goals.md) – Vision, driver, goal, stakeholder, glossary
 8. [Organization, Roles, and Persons](20-entities/08-organization-roles-persons.md) – Org hierarchy, role types, skills, RACI, governance bodies
-9. [Process Architecture](20-entities/09-process-architecture.md) – Abstract process modeling, process landscape, CRUD matrix, value streams
+9. [Process Architecture](20-entities/09-process-architecture.md) – Process landscape (abstract), BPMN 2.0 editor at Descriptive conformance level, CRUD matrix, value streams
 10. [Additional Cross-Cutting Concepts](20-entities/10-cross-cutting.md) – Location, security, sustainability, contracts, deliverables, protection need, requirements repository
 
 ## 30 – Dynamics

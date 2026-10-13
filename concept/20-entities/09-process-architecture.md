@@ -1,16 +1,23 @@
 ## 9. Process Architecture
 
-Process modeling in the EA context is **not** process authoring. Specialized BPM tools (Camunda, Signavio, BIC, ARIS) exist for that. This tool models processes **abstractly and notation-neutrally**, with BPMN and other notations as import/export formats.
+Process modeling in OEA has two levels:
+- **Process landscape (L1–L4)**: processes are modeled **abstractly and notation-neutrally** (value chains, process groups, processes) and linked with capabilities, applications, data and roles.
+- **Process flow (L5)**: OEA includes a BPMN 2.0 editor that covers the **Descriptive Process Modeling Conformance sub-class** of BPMN 2.0.2 (REQ-076, REQ-081, UC-10). This is enough to document and analyze processes in the EA context.
+
+OEA is **not** a process execution or simulation platform. Executable process models (BPMN Analytic/Common Executable level, workflow engines) remain in specialized BPM tools (Camunda, Signavio, BIC, ARIS); OEA exchanges models with them via BPMN XML.
 
 ### 9.1 Modeling Philosophy
 
-**The metamodel knows abstract process concepts**, not BPMN specifics. Advantages:
+**The process landscape uses abstract process concepts**, not BPMN specifics. Advantages:
 - Portability to BPMN, EPC, value stream maps, future standards
 - No coupling to BPMN version changes
 - Focus on architecturally relevant properties (ownership, cross-references, KPIs)
-- Detailed process modeling remains in the business BPM tool
 
-**Bidirectional integration with BPM tools**: Process models are imported from external BPM tools, referenced in the repository, and linked with EA entities. Changes to the process flow happen in the BPM tool, architectural links in OEA.
+**The process flow uses built-in BPMN types.** BPMN elements are regular entities (`bpmn-*` types, see [process.md](../../business-objects/process.md)) in the shared repository. They are therefore directly linkable with roles, organizational units, persons, data objects and applications, and queryable in catalogs and lineage analyses. Organizations extend them with their own subtypes via `extends`.
+
+**Scope boundary**: OEA supports BPMN at the Descriptive conformance level (pools, lanes, tasks, sub-processes, call activities, start/end events incl. message, timer and terminate, exclusive/parallel gateways, data objects/stores, annotations, groups). Execution-level details (conditions, loop and multi-instance characteristics, process variables) are out of scope.
+
+**Integration with BPM tools**: Organizations that already model in a BPM tool can import BPMN XML into OEA or keep the model there and only reference it (`ProcessModel`, see §9.6).
 
 ### 9.2 Process Hierarchy (Process Landscape)
 
@@ -132,11 +139,15 @@ From this, a **CRUD matrix** can be generated automatically: processes × data o
 
 ### 9.6 BPMN Integration
 
-BPMN is integrated via an adapter:
+BPMN is supported in two ways:
 
-**Import**: BPMN XML files are parsed, elements (Pool, Lane, Task, Flow, DataObject, MessageFlow) are mapped to abstract process entities. The BPMN file is referenced as externalDefinition, not duplicated.
+**Native modeling**: The built-in BPMN editor creates and maintains process flows directly in OEA at the Descriptive conformance level (REQ-076). A `bpmn-process` details an abstract `Process` (L4) of the process landscape.
 
-**Export**: BPMN XML can be generated from the abstract process model (bidirectional, with BPMN-specific details such as gateway conditions remaining maintained in the BPM tool).
+**Import**: BPMN XML files are parsed and their Descriptive-level elements (pools, lanes, tasks, events, gateways, flows, data objects, annotations) are created as `bpmn-*` entities. Elements beyond the Descriptive level are preserved in the referenced source file but not interpreted.
+
+**Export**: BPMN XML is generated from the `bpmn-*` entities; execution-level details are not part of the export.
+
+**Reference only**: If the process flow is maintained in an external BPM tool, OEA keeps a `ProcessModel` reference (externalDefinition) instead of a copy.
 
 **Annotation**: BPMN elements are annotated with EA references (see [§6.3 (Core Entity Types)](06-core-entity-types.md) BPMN integration table).
 
@@ -221,20 +232,21 @@ The tool should add value at the following level:
 
 **What the tool should do**:
 - Maintain the process hierarchy (L1–L5)
-- Cross-layer links (Process ↔ Capability, Application, Data, Role)
+- BPMN 2.0 diagram editor at the Descriptive conformance level (pools, lanes, tasks, events, gateways, data, annotations)
+- Cross-layer links (Process ↔ Capability, Application, Data, Role, OrganizationalUnit, Person)
 - Generate the CRUD matrix
 - KPI assignment and tracking
 - PCF mapping for benchmarking
-- BPMN import/export via adapter
+- BPMN XML import/export
 - Process ownership and RACI
 
 **What the tool should NOT do**:
-- BPMN diagram editor with swimlanes, gateways, event subprocesses
+- Execution-level BPMN modeling (conditions, loops, multi-instance, process variables, event sub-processes)
 - Process simulation / execution engine
 - Form generation from processes
 - Workflow execution
 
-Those who need full process authoring use Camunda/Signavio in parallel and link.
+Those who need executable process models use Camunda/Signavio in parallel and exchange or link the models.
 
 ### 9.10 Constraints
 
