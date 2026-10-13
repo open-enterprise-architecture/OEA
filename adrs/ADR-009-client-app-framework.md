@@ -6,6 +6,7 @@
 **Consulted**: Requirements Engineer (US-045), Frontend Engineer
 **Informed**: –
 **Updated**: 2026-06-28 — React Flow → Vue Flow and React/TypeScript → Vue/TypeScript following [ADR-011](./ADR-011-frontend-framework.md) (frontend framework: Vue 3); rationale and decision remain valid in substance, since Vue Flow uses the same DOM rendering approach as React Flow
+**Partially superseded**: 2026-10-13 by [ADR-035](./ADR-035-electron-security-baseline.md) — Electron security baseline (see ADR-035)
 
 ## Context and Problem
 

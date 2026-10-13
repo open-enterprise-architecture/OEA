@@ -46,7 +46,7 @@ Chronological list of all chapters with a short description.
 ## 70 – Platform
 
 21. [API Architecture and Modularity](70-platform/21-api-architecture.md) – Layers, modules (incl. BPMN), events, SDK, property-level authZ
-22. [Analyzability and Query Architecture](70-platform/22-analyzability.md) – Graph traversal, analytics, persistence options
+22. [Analyzability and Query Architecture](70-platform/22-analyzability.md) – Graph traversal, secured SQL analytics on reporting views, persistence decision (ADR-034)
 
 ## 90 – Backlog
 

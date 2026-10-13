@@ -4,6 +4,7 @@
 **Date**: 2026-06-29
 **Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Partially superseded**: 2026-10-13 by [ADR-030](./ADR-030-postgresql-only.md) — multi-database parts no longer apply (PostgreSQL only)
+**Partially superseded**: 2026-10-13 by [ADR-033](./ADR-033-audit-trail-hardening.md) — audit trail hardening (see ADR-033)
 
 ---
 

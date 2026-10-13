@@ -2,6 +2,18 @@
 
 This document records how the concept paper itself has evolved. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows Semantic Versioning (at concept level: major = fundamentally new concepts, minor = new chapters/sections, patch = corrections).
 
+## [v0.19.0] – Security decisions ADR-033 to ADR-036
+
+### Changed
+
+- §21.8 audit trail: append-only also for administrators (separate owner role), hash chain with checkpoints in all editions, pseudonymous principals, encrypted values of restricted properties, retention floor 1 year (ADR-033)
+- §21.4: analytics endpoints annotated (SQL against the reporting schema, `analytics:query`, disabled by default; named views deferred)
+- §22: decision status added; PostgreSQL without a graph extension; raw analytics SQL-only against per-principal masked reporting views with hard limits; Cypher and named views deferred; walking skeleton recommendation updated (ADR-030, ADR-034)
+
+### Rationale
+
+Follow-up of the security review 2026-10 (SEC-13, SEC-17): the concept still recommended Apache AGE and Cypher and allowed hashes instead of protection for sensitive audit values.
+
 ## [v0.18.2] – §21.8 authorization model aligned with ADR-032
 
 ### Changed

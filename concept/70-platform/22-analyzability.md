@@ -1,5 +1,7 @@
 ## 22. Analyzability and Query Architecture
 
+> **Decision status (v0.19)**: PostgreSQL only, without a graph extension in v1.0 ([ADR-030](../../adrs/ADR-030-postgresql-only.md)). Raw analytics are SQL only, executed against the `reporting` schema with per-principal masking, a read-only role and hard limits, behind the permission `analytics:query` and disabled by default ([ADR-034](../../adrs/ADR-034-secured-raw-analytics.md)). Cypher is deferred until a graph-engine decision (v2.0 at the earliest). Options and examples below remain as rationale; where they differ, the ADRs apply.
+
 An architecture repository is only as valuable as its analyzability. Two fundamentally different query types must be supported: **graph traversal** (element- and connection-related following) and **analytical aggregation** (repository-wide joins and groupings).
 
 ### 22.1 The Two Query Paradigms
@@ -68,12 +70,13 @@ Disadvantages: Often a compromise in expressiveness, risk of a proprietary DSL.
 
 ```text
 /api/v1/graph/traverse          ← typed graph operations (easy entry)
-/api/v1/graph/cypher            ← Cypher for powerful graph queries
-/api/v1/analytics/query         ← SQL or SQL-like for analytics
-/api/v1/analytics/views/{name}  ← predefined named views
+/api/v1/graph/cypher            ← deferred (no graph engine in v1.0, ADR-034)
+/api/v1/analytics/query         ← SQL against the reporting schema only (ADR-034, analytics:query)
+/api/v1/analytics/schema        ← reporting views and columns visible to the caller
+/api/v1/analytics/views/{name}  ← deferred (named views, §22.8)
 ```
 
-Beginners use the typed endpoints, advanced users reach for Cypher/SQL. The stored named views (see [§22.8 (Analyzability)](22-analyzability.md)) cover standard cases without query knowledge.
+Beginners use the typed endpoints, advanced users with the permission `analytics:query` use SQL against the reporting schema. The stored named views (see [§22.8 (Analyzability)](22-analyzability.md)) cover standard cases without query knowledge.
 
 ### 22.5 Reified Relations in Queries
 
@@ -116,7 +119,7 @@ Relations with properties can be queried in analytics just like entities.
 - **RDF/SPARQL**: Reification is native (RDF-star/RDF 1.2). Semantically cleanest, but the query language is steep.
 - **Git+YAML files**: Each relation is a YAML file with its own URN. Entity and relation URNs are treated the same. Simplest mental model, but query performance must be ensured via an index layer.
 
-**Practical consequence**: For the walking skeleton, the choice is pragmatic. Postgres + AGE supports both cases without a break: simple relations remain edges, reified ones additionally get a table row with properties. The API hides this distinction from consumers.
+**Practical consequence**: OEA uses PostgreSQL without AGE (ADR-016, ADR-030). Relations are rows with their own IDs and properties; traversal uses `WITH RECURSIVE` and the typed impact endpoint, analytics use the reporting views `reporting.connections` and `reporting.entities` (ADR-034). The API hides the storage from consumers.
 
 ### 22.6 Persistence Options
 
@@ -127,7 +130,7 @@ The API architecture from [§21 (API Architecture)](21-api-architecture.md) allo
 - Postgres as a solid base, JSONB for flexible properties
 - Apache AGE as a graph extension (openCypher support)
 - One database, two query paradigms, transactionally consistent
-- *Recommended starting stack for the walking skeleton*
+- *Superseded*: OEA uses PostgreSQL + JSONB without AGE in v1.0 (ADR-016, ADR-030); a graph engine is a later decision
 
 **Option 2 – Neo4j or Memgraph + read model**:
 
@@ -150,11 +153,13 @@ The API architecture from [§21 (API Architecture)](21-api-architecture.md) allo
 - Analytics capabilities limited, but under development
 - *Interesting for local developer installations*
 
-**Defer the decision**: The API definition allows starting with option 1 or 3 and migrating later if performance requirements demand it.
+**Decided**: PostgreSQL + JSONB without a graph extension (ADR-016, ADR-030). The API definition still allows adding a graph engine later if performance requirements demand it.
 
 ### 22.7 Query Examples
 
-**Graph traversal (Cypher style)**:
+The examples illustrate the kinds of questions; table names are exemplary. In v1.0, raw queries are SQL against the `reporting` views (ADR-034); the Cypher examples describe a possible future graph engine.
+
+**Graph traversal (Cypher style – future)**:
 
 ```cypher
 // Which business services depend on application X?
@@ -212,6 +217,8 @@ ORDER BY d.name, deviating DESC;
 
 ### 22.8 Stored Views as Named Queries
 
+> Deferred after v1.0 (ADR-034); dashboards and catalogs cover the standard cases until then.
+
 Standard analyses are maintained in the repository as **named, parameterized views**:
 
 ```yaml
@@ -250,6 +257,10 @@ Performance targets (guideline values):
   - Analytics query over the full repo (10k entities): < 2s (p95)
   - Arc42 document generation: < 5s
 
+Raw analytics limits (ADR-034 defaults, configurable):
+  - Statement timeout 30 s, at most 10,000 rows and 10 MB per result
+  - At most 2 concurrent and 30 queries per minute per principal
+
 Caching strategy:
   - Query result cache with TTL for analytics (invalidated by events)
   - Materialized views for expensive aggregations
@@ -267,14 +278,14 @@ Analyzability must also work **without a running server** – for CI pipelines, 
 
 - Reads repository snapshots (Git export or API dump)
 - Executes queries locally (embedded DuckDB or Kuzu)
-- Identical query languages as the server
+- Same SQL against the same reporting views as the server; snapshots contain only data the exporting principal may read
 - Enables pipeline checks: "CI build fails if new applications without capability assignment exist"
 
 **Example CI check**:
 
 ```bash
 ea-tool query --local \
-  "MATCH (a:Application) WHERE NOT (a)-[:realizes]->(:Capability) RETURN a.urn" \
+  "SELECT e.id FROM reporting.entities e WHERE e.entity_type = 'application-component' AND NOT EXISTS (SELECT 1 FROM reporting.connections c WHERE c.source_entity_id = e.id AND c.connection_type = 'realizes')" \
   --expect-empty
 ```
 
@@ -369,13 +380,13 @@ constraint: major-change-has-rationale
 Important for enterprise use: Who queried what and when?
 
 ```yaml
-Query audit log:
-  - user: Role | Person | ApiKey
+Query audit log (ADR-033, ADR-034):
+  - principal: person or service account (no API keys)
   - timestamp
-  - endpoint, parameters, query-hash
-  - result-metadata (not content – data protection)
-  - execution-time
-  - client (UI, module, script)
+  - endpoint, query hash and fingerprint without literals (no parameter values)
+  - result metadata: row count, truncation, size (never content – data protection)
+  - execution time, outcome (executed | rejected)
+  - client (web portal, Electron, script)
 ```
 
 The audit log is a separate event stream and can be integrated into SIEM (Splunk, Elastic).
@@ -385,9 +396,9 @@ The audit log is a separate event stream and can be integrated into SIEM (Splunk
 ```yaml
 constraint: query-complexity-limit
   appliesTo: ApiQuery
-  rule: "query.estimated-cost < threshold"
+  rule: "statement timeout, row and size limits of ADR-034 are enforced by the server"
   severity: error
-  message: "Query too complex – please add filters or use pagination"
+  message: "Query exceeds the analytics limits – please add filters"
 
 constraint: named-view-has-owner
   appliesTo: View
@@ -405,13 +416,13 @@ constraint: view-query-tested
 
 For the initial walking skeleton:
 
-1. **Persistence**: Postgres + JSONB + Apache AGE (simplest production-ready stack)
-2. **Query API**: typed graph endpoints + SQL analytics, Cypher as a stretch goal
-3. **One stored view**: "Impact analysis" as a prebuilt graph traversal
-4. **CLI query tool**: available from v0.1, because pipeline integration is a requirement from the start
-5. **OpenAPI spec**: generated from code, verified in CI
+1. **Persistence**: PostgreSQL + JSONB, no graph extension (ADR-016, ADR-030)
+2. **Query API**: typed endpoints (catalog query, impact traversal); secured SQL analytics (ADR-034) follow after the walking skeleton and stay disabled by default
+3. **Impact analysis** as a typed traversal endpoint (`WITH RECURSIVE`)
+4. **CLI query tool**: after the walking skeleton
+5. **OpenAPI spec**: spec-first in `api/openapi.yaml`, verified in CI (ADR-013)
 
-This yields a small but complete vertical slice that covers both graph and analytics.
+This yields a small vertical slice; analytics extend it without changing the persistence.
 
 ---
 

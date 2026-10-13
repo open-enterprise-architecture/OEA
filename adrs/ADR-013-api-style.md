@@ -7,6 +7,7 @@
 **Informed**: –
 **Updated**: 2026-06-28 — NestJS references replaced by SpringDoc OpenAPI (Spring Boot 3) and Gradle workflow; ADR-012 chose Java 21 + Spring Boot 3, not NestJS
 **Updated**: 2026-10-04 — Switch from code-first to **spec-first**: `api/openapi.yaml` is the binding contract (ADR-027), backend interfaces and frontend types are generated from it; build with Maven instead of Gradle (ADR-027)
+**Partially superseded**: 2026-10-13 by [ADR-034](./ADR-034-secured-raw-analytics.md) — secured raw analytics (see ADR-034)
 
 ## Context and Problem
 

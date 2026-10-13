@@ -145,9 +145,10 @@ POST   /api/v1/graph/traverse              ← see [§22 (Analyzability)](22-ana
 POST   /api/v1/graph/shortest-path
 POST   /api/v1/graph/neighborhood
 
-# Analytics / aggregation
+# Analytics / aggregation (ADR-034: SQL against the reporting schema, analytics:query, disabled by default)
 POST   /api/v1/analytics/query             ← see [§22 (Analyzability)](22-analyzability.md)
-GET    /api/v1/analytics/views/{name}
+GET    /api/v1/analytics/schema
+GET    /api/v1/analytics/views/{name}      ← deferred
 
 # Schema and metamodel
 GET    /api/v1/schema
@@ -285,27 +286,28 @@ API behavior:
 - Schema introspection (`/api/v1/schema/types/{name}`) shows only the properties for which the requesting principal has at least read permission
 - The audit log records who queried which protected properties and when (see audit trail below)
 
-**Audit trail (mandatory feature)**: All changes and sensitive read operations are logged immutably:
+**Audit trail (mandatory feature)**: All changes, security events and sensitive read operations are logged tamper-evidently (ADR-024, hardened by [ADR-033](../../adrs/ADR-033-audit-trail-hardening.md)):
 
 ```yaml
 AuditLog entry:
   - timestamp
-  - principal: User | ApiKey | Role
+  - principal: person, service account or system admin account (pseudonymous reference, no name or e-mail)
   - action: create | update | delete | read-sensitive
   - target: URN
   - property: string (for granular changes)
-  - oldValue, newValue (for changes; for sensitive data: hash instead of plaintext)
+  - oldValue, newValue (for changes; values of restricted properties encrypted, ADR-033)
   - clientContext: UI | Module | Script
   - changeReason: string (optional, for commit messages or change tickets)
 ```
 
 Properties of the audit trail:
 
-- **Append-only**: Entries are immutable after creation
-- **Separate storage**: Audit data resides in a separate store so that access rights can be configured independently of the main repo
-- **Exportable**: JSON/CSV for external SIEM integration (Splunk, Elastic)
-- **Subject to retention**: Configurable according to regulatory requirements (GDPR, ISO 27001 typically 3+ years)
-- **Itself access-protected**: Reading audit logs requires its own permission (typically the "Auditor" role)
+- **Append-only, also for administrators**: the runtime database role may only insert and read; schema ownership and migrations use a separate role (ADR-033)
+- **Tamper-evident**: every record is part of a hash chain with periodic checkpoints in all editions; integrity can be verified via the API
+- **Separate storage**: Audit data resides in a separate schema or database so that access rights can be configured independently of the main repo
+- **Exportable**: JSON Lines for external SIEM integration (Splunk, Elastic)
+- **Subject to retention**: configurable with a floor of 1 year and a default of 7 years; records are deleted only by the retention policy (owner decisions Q3/Q10)
+- **Itself access-protected**: Reading audit logs requires the permission `audit:read` (role `auditor`, ADR-032)
 
 #### Delimitation: audit log, change log, and entity change history
 

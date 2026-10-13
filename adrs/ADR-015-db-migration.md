@@ -6,6 +6,7 @@
 **Consulted**: Business Engineer
 **Informed**: –
 **Partially superseded**: 2026-10-13 by [ADR-030](./ADR-030-postgresql-only.md) — multi-database parts no longer apply (PostgreSQL only)
+**Partially superseded**: 2026-10-13 by [ADR-033](./ADR-033-audit-trail-hardening.md) — migrations run as a separate owner-role step (see ADR-033)
 
 ## Context and Problem
 
