@@ -7,7 +7,8 @@ Feature: REQ-076 – BPMN process elements and OrganizationalUnit in the metamod
 
   The system MUST provide a complete set of built-in
   `EntityTypeDefinitions` for BPMN 2.0 process modeling (pool, lane,
-  task variants, events, gateways, SequenceFlow, MessageFlow).
+  task variants, events, gateways, SequenceFlow, MessageFlow) that covers
+  the BPMN 2.0.2 Descriptive Process Modeling Conformance sub-class.
   Additionally, `organizational-unit` MUST be available as a built-in
   EntityType.
 
@@ -50,3 +51,15 @@ Feature: REQ-076 – BPMN process elements and OrganizationalUnit in the metamod
     Given the precondition according to the requirement is met
     When  user creates a new diagram and selects the built-in viewpoint `bpmn-process-view`
     Then  palette shows exclusively BPMN-compliant elements; pool/lane mode is active (container drop possible)
+
+  @AC7
+  Scenario: AC7 – Descriptive conformance – a process with every Descriptive element is saved and reloaded
+    Given the precondition according to the requirement is met
+    When  user models a process that contains every element of the Descriptive conformance mapping table and saves it
+    Then  all elements and their listed attributes are stored and restored unchanged after reload
+
+  @AC8
+  Scenario: AC8 – Sub-process display – an expanded sub-process is collapsed
+    Given the precondition according to the requirement is met
+    When  user collapses an expanded `bpmn-sub-process` in a diagram
+    Then  the sub-process shows the collapsed marker; contained elements remain unchanged; the display state is stored per diagram

@@ -148,6 +148,10 @@ The business analyst persona can model business processes directly in the OEA to
 - When: User with role "Viewer" (web portal) opens the process diagram
 - Then: BPMN canvas visible read-only; OrgUnit and person assignments as tooltips
 
+**AC8** (BPMN Descriptive conformance):
+- When: Anna models a process using any element of the BPMN 2.0.2 Descriptive conformance sub-class (e.g. call activity, timer start event, text annotation, group, nested lanes)
+- Then: The element is available in the palette, can be placed and saved, and is restored unchanged after reload (REQ-076)
+
 ## Out of Scope
 
 - BPMN 2.0 XML export/import (separate, priority: medium — SH-08 concern)
