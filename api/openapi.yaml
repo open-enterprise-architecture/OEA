@@ -1597,6 +1597,19 @@ components:
               message: { type: [string, 'null'] }
 
     # ── Admin – System settings ──────────────────────────────────────────
+    ClientCompatibility:
+      type: object
+      required: [clientUpdateMode, minClientVersion, apiVersion]
+      properties:
+        clientUpdateMode: { type: string, enum: [public, server, managed] }
+        minClientVersion: { type: string, description: "Semantic version; older clients refuse to connect" }
+        recommendedClientVersion: { type: [string, 'null'], description: "Older clients show a non-blocking notice" }
+        apiVersion: { type: string }
+        updateFeedUrl:
+          type: [string, 'null']
+          format: uri
+          description: Update metadata URL on this server (mode `server` only)
+
     SystemSettings:
       type: object
       properties:
@@ -1620,6 +1633,17 @@ components:
           description: |
             Whether persons in status `offboarded` may be reactivated (owner decision Q19).
             A reactivated person returns to `invited` without roles and without factors.
+        clientUpdateMode:
+          type: string
+          enum: [public, server, managed]
+          default: public
+          description: Update mode for desktop clients (REQ-195); a device policy on the client always takes precedence
+        minClientVersion:
+          type: [string, 'null']
+          description: Minimum desktop client version allowed to connect (REQ-195)
+        recommendedClientVersion:
+          type: [string, 'null']
+          description: Desktop client version recommended to users (REQ-195)
         sessionRetentionDays:
           type: integer
           minimum: 0
@@ -1688,6 +1712,28 @@ paths:
               schema: { $ref: '#/components/schemas/Me' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+
+  /client-compatibility:
+    get:
+      operationId: getClientCompatibility
+      summary: Client update mode and version compatibility (REQ-195, ADR-035 §10a)
+      description: |
+        Public, because the desktop client must check compatibility before login.
+        Returns only version information and the update mode – no instance data.
+      tags: [Identity]
+      security: []
+      x-oea-authorization: {"access": "public"}
+      responses:
+        '200':
+          description: Compatibility information
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClientCompatibility' }
+        '429':
+          description: Too many requests (rate limit for public endpoints, REQ-186)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
 
   /oauth2/token:
     post:

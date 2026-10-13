@@ -355,5 +355,7 @@ The business engineer updates `docs/data-model.puml` and the business objects; t
 
 ## Notes
 
+- Owner confirmation (2026-10-13): shortening the retention takes effect only after 30 days; names of modeled persons are not copied into audit records.
+
 - The 30-day effectiveness delay for retention reductions and the omission of `entity_name` for modeled persons go beyond the literal owner decisions; both are consistent with Q3/Q10 and REQ-189 and are recorded here so that the requirements can be aligned.
 - ADR-024 named the cleanup role `oea_audit_cleanup`; the name is kept, but the role no longer holds a DELETE privilege.

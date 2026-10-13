@@ -32,7 +32,7 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 |---|---|
 | Stakeholder profiles | 8 |
 | Use Cases | 23 |
-| Requirements | 194 |
+| Requirements | 195 |
 | User Stories | 150 |
 | ADRs | 36 |
 | Business Objects | 27 |

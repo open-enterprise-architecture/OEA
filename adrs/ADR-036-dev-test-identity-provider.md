@@ -325,5 +325,7 @@ Development secrets are deliberately public and therefore worthless outside the 
 
 ## Notes
 
+- Owner confirmation (2026-10-13): reverse guard for the `dev` profile (all issuers must be loopback addresses) and the list of known dev secret hashes are confirmed.
+
 - Startup times of Keycloak and Authentik in Testcontainers were compared qualitatively; the first implementation change measures them and records the values in its design document.
 - License status as of the decision date: Keycloak Apache-2.0, `testcontainers-keycloak` Apache-2.0, Authentik core MIT (enterprise directory under a separate license), `mock-oauth2-server` MIT. None of these tools is distributed with OEA.
