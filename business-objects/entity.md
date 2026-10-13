@@ -152,7 +152,7 @@ A version snapshot is created automatically for every update on an ArchitectureE
 | Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
 | instanceOf | [metamodel-configuration](./metamodel-configuration.md) → EntityTypeDefinition | n:1 | **no** | Each entity belongs to exactly one meta-type; MANDATORY |
-| hasSterotypes | [metamodel-configuration](./metamodel-configuration.md) → StereotypeDefinition | n:0..n | yes | Assigned stereotypes |
+| hasStereotypes | [metamodel-configuration](./metamodel-configuration.md) → StereotypeDefinition | n:0..n | yes | Assigned stereotypes |
 | source | ArchitectureEntity (isConnection=false) | 1:0..1 | conditional | Source entity (connections only) |
 | target | ArchitectureEntity (isConnection=false) | 1:0..1 | conditional | Target entity (connections only) |
 | referencedBy | EntityDelta (in [solution](./solution.md)) | 1:0..n | yes | Solutions that change this entity |

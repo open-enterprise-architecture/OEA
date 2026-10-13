@@ -12,7 +12,7 @@ As a system administrator, I want to be able to operate OEA on PostgreSQL, MySQL
 ## Reference
 
 **Use Case**: [UC-02: System Administration Bootstrapping](../use-cases/UC-02-system-admin-bootstrapping.md)
-**Persona**: [SH-07: System Administrator](../../business-analysis/stakeholders/SH-07-systemadmin.md)
+**Persona**: [SH-06: Max – Operator](../../business-analysis/stakeholders/SH-06-max-operator-sme.md)
 **Requirements**: REQ-150
 
 ## Acceptance Criteria

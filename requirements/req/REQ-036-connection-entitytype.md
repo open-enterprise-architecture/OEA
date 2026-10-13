@@ -123,7 +123,7 @@ Connection types are full EntityTypes with all features: properties, own ID, lif
 ## Trade-offs
 
 - Circularity check (connection A → connection B → connection A) is not implemented in MVP – permitted, since EA models avoid circular references from a business standpoint; the view layer must be able to handle cycles (cycle detection when rendering)
-- `allowedSourceTypes` / `allowedTargetTypes` empty = everything allowed: maximum flexibility, but no protection against business-wise meaningless connections; constraint rules (REQ-032 A3) can compensate for this
+- `allowedSourceTypes` / `allowedTargetTypes` empty = everything allowed: maximum flexibility, but no protection against business-wise meaningless connections; constraint rules (UC-04 A3) can compensate for this
 
 ## Implementation Notes
 

@@ -21,7 +21,7 @@ references:
     - SH-07
   concept:
     - concept/40-extensibility/14-extensibility.md
-    - concept/20-entities/12-domain-views.md
+    - concept/30-dynamics/12-domain-views.md
   adrs: []
 supersedes: []
 superseded_by: []

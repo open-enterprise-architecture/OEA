@@ -41,7 +41,7 @@ The export contains all configurable elements of MetamodelConfiguration v0.6.0:
 - EntityTypeDefinitions (built-in + custom)
 - Stereotypes
 - ConstraintRules
-- Viewpoints (including NotationMappings with defaultWidth/defaultHeight; cf. REQ-060)
+- Viewpoints (including NotationMappings with defaultWidth/defaultHeight; cf. REQ-059)
 - ArchitectureLayerDefinitions
 - ArchitectureDomainDefinitions
 - MandatoryConnectionConstraints

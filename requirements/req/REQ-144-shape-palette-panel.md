@@ -34,7 +34,7 @@ superseded_by: []
 
 ## Statement
 
-The system MUST offer a shape palette in the diagram editor, positioned as a standalone panel between the explorer and the diagram canvas. The panel MUST be completely showable and hideable via a toggle button (◀ / ▶). The palette MUST display the available metamodel entities as draggable shape templates, filtered by the currently active viewpoint (REQ-047 viewpoint definition). Entity types that are not allowed for the active viewpoint MUST be grayed out or hidden.
+The system MUST offer a shape palette in the diagram editor, positioned as a standalone panel between the explorer and the diagram canvas. The panel MUST be completely showable and hideable via a toggle button (◀ / ▶). The palette MUST display the available metamodel entities as draggable shape templates, filtered by the currently active viewpoint (REQ-090 viewpoint definition). Entity types that are not allowed for the active viewpoint MUST be grayed out or hidden.
 
 ## Rationale
 

@@ -34,11 +34,11 @@ The system MUST display an architecture diagram — from opening until the fully
 
 ## Rationale
 
-The diagram canvas (React Flow, ADR-007) is the primary working tool for EA modelers (SH-03, SH-04). A diagram with 150+ elements (realistic for landscape maps (Bebauungspläne) and system context diagrams in mid-sized companies) must load fast enough that the modeling flow is not interrupted. Rendering that takes too long increases frustration and leads to flat, incomplete diagrams.
+The diagram canvas (Vue Flow, ADR-007) is the primary working tool for EA modelers (SH-03, SH-04). A diagram with 150+ elements (realistic for landscape maps (Bebauungspläne) and system context diagrams in mid-sized companies) must load fast enough that the modeling flow is not interrupted. Rendering that takes too long increases frustration and leads to flat, incomplete diagrams.
 
 ## Context
 
-The measured time is from API response to the fully rendered, interactive canvas (time-to-interactive, TTI). Includes: data retrieval, React Flow render, SVG layout. Does not include: initial app loading (separate NFR) or Mermaid/PlantUML rendering in the Arc42 editor.
+The measured time is from API response to the fully rendered, interactive canvas (time-to-interactive, TTI). Includes: data retrieval, Vue Flow render, SVG layout. Does not include: initial app loading (separate NFR) or Mermaid/PlantUML rendering in the Arc42 editor.
 
 ## Type-Specific Fields
 
@@ -87,8 +87,8 @@ The measured time is from API response to the fully rendered, interactive canvas
 
 ## Dependencies
 
-- **Prerequisites**: ADR-007 (React Flow, accepted); REQ-040 (EntityDeltas → canvas)
-- **Downstream effects**: large diagrams may require virtualization (React Flow virtualization / windowing)
+- **Prerequisites**: ADR-007 (Vue Flow, accepted); REQ-040 (EntityDeltas → canvas)
+- **Downstream effects**: large diagrams may require virtualization (Vue Flow virtualization / windowing)
 
 ## Risks of Non-Fulfillment
 
@@ -96,12 +96,12 @@ The measured time is from API response to the fully rendered, interactive canvas
 
 ## Trade-offs
 
-- React Flow virtualization (render only visible nodes): drastic latency improvement for large diagrams, but layout algorithms become more complex
+- Vue Flow virtualization (render only visible nodes): drastic latency improvement for large diagrams, but layout algorithms become more complex
 - Initial auto-layout (e.g., ELK.js): increases TTI by 200–500ms, but saves manual positioning
 
 ## Implementation Notes
 
-- Activate React Flow `nodesDraggable` and `elementsSelectable` only after the first render (reduces blocking JS)
+- Activate Vue Flow `nodes-draggable` and `elements-selectable` only after the first render (reduces blocking JS)
 - For diagrams > 300 nodes: enable `<ReactFlow>` with `onlyRenderVisibleElements`
 
 ## Implementation

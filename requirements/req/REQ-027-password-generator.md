@@ -48,7 +48,7 @@ The generator produces passwords in plain text that are hashed immediately after
 
 **Processing**:
 - Assemble the character pool from enabled character types (uppercase, lowercase, digits, special characters)
-- Use a cryptographically secure random source (CSPRNG, e.g., `crypto/rand` or OS entropy)
+- Use a cryptographically secure random source (CSPRNG, e.g., `java.security.SecureRandom` or OS entropy)
 - Guarantee at least one character for each enforced character type (REQ-028)
 - Choose the remaining characters randomly from the overall pool
 - Randomly permute the order of characters (Fisher-Yates) so that enforced characters are not always at fixed positions
@@ -115,7 +115,7 @@ The generator produces passwords in plain text that are hashed immediately after
 
 ## Implementation Notes
 
-- CSPRNG: operating system entropy (`/dev/urandom`, `CryptGenRandom`, `crypto/rand`) – never `rand()`, `Math.random()`, or similar
+- CSPRNG: operating system entropy (`/dev/urandom`, `CryptGenRandom`, `java.security.SecureRandom`) – never `rand()`, `Math.random()`, or similar
 - Fisher-Yates shuffle after character selection to randomize the positions of enforced characters
 - Generator as a pure function (input: policy object → output: string); no state, no side effects; easy to test
 - UI: "Generate password" button next to the password field; display the generated password immediately (once, then hide)

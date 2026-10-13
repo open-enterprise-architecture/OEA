@@ -12,7 +12,7 @@ As an architect, I want to see immediately when creating or editing an entity wh
 ## Reference
 
 **Use Case**: [UC-06: Create and Use Catalog](../use-cases/UC-06-create-and-use-catalog.md)
-**Persona**: [SH-03: Kurt – Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-enterprise-architect.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 **Requirements**: REQ-149
 
 ## Acceptance Criteria

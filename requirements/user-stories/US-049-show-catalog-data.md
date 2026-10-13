@@ -12,7 +12,7 @@ As a catalog visitor, I want to see the entities of a catalog as a sortable tabl
 ## Reference
 
 **Use Case**: [UC-06: Create, Configure and Use an Architecture Catalog](../use-cases/UC-06-create-and-use-catalog.md)
-**Persona**: All stakeholders (SH-01 to SH-07)
+**Persona**: All stakeholders (SH-01 to SH-09)
 **Requirement**: [REQ-046: Execute Catalog Query](../req/REQ-046-catalog-query.md)
 
 ## Acceptance Criteria

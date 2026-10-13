@@ -23,7 +23,7 @@ OEA, through the `isConnection=true` semantics on `EntityTypeDefinition` and the
 
 - **Expressiveness**: Can the model represent arbitrarily complex relationships between relations? (differentiator compared to Abacus)
 - **Queryability**: How laborious is lineage traversal in the backend?
-- **Renderer complexity**: Can React Flow (ADR-007) meaningfully display edges that are themselves nodes of another edge?
+- **Renderer complexity**: Can Vue Flow (ADR-007) meaningfully display edges that are themselves nodes of another edge?
 - **Migratability**: Can a simpler solution in v1.0 later be migrated to the more powerful solution without data loss?
 - **Metamodel control**: Should organizations decide themselves which modeling depth they need for data flows? (different needs depending on compliance requirements)
 
@@ -72,7 +72,7 @@ SAP ERP (1) ──[data-flow: 5]──► Data Warehouse (2)
   - **Clear competitive advantage over Abacus**: Abacus cannot model connections as endpoints of other connections; this is an often-cited structural weakness
 - **Con**:
   - BR-04 in `entity.md` must be adjusted (sourceEntityId may point to connection entity if the metamodel allows it)
-  - React Flow (ADR-007) normally renders edges between nodes; an edge whose source is itself an edge needs a special canvas representation (e.g. edge as anchor point on another edge — pattern known from hypergraphs and BPMN annotations)
+  - Vue Flow (ADR-007) normally renders edges between nodes; an edge whose source is itself an edge needs a special canvas representation (e.g. edge as anchor point on another edge — pattern known from hypergraphs and BPMN annotations)
   - More complex in the backend: graph traversal must understand connection entities as traversable nodes
   - Users must understand that a connection can itself appear as source/target — learning curve
 
@@ -101,9 +101,9 @@ A connection that is linked to further entities via n-connections (i.e. is itsel
 
 **Depth**: n-connections are **nested once** for v1.0 (connection-of-connection). Connection-of-connection-of-connection is not in scope for v1.0.
 
-**Pending before acceptance**: Formal confirmation that the change of BR-04 (entity.md) and the new field `allowsConnectionAsSource` on EntityTypeDefinition are approved.
+**Prerequisite for acceptance (fulfilled)**: Formal confirmation that the change of BR-04 (entity.md) and the new field `allowsConnectionAsSource` on EntityTypeDefinition are approved – done with entity.md v0.2.0 (BR-04 extended, 2026-06-26).
 
-## Consequences (preliminary, depending on decision)
+## Consequences
 
 ### Positive Consequences
 
@@ -132,7 +132,7 @@ A connection that is linked to further entities via n-connections (i.e. is itsel
 - §14 Extensibility
 
 **Related ADRs**:
-- [ADR-007](./ADR-007-canvas-library.md) – React Flow as canvas; renderer capabilities relevant for n-connection
+- [ADR-007](./ADR-007-canvas-library.md) – Vue Flow as canvas; renderer capabilities relevant for n-connection
 - [ADR-004](./ADR-004-reification-details.md) – Reification (connections as first-class objects); conceptually related
 
 **Use Cases / Requirements**:

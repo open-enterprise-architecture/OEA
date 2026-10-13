@@ -121,7 +121,7 @@ YAML is the primary import format (corresponds to the format from §14 of the co
 ## Implementation Notes
 
 - Backend: `POST /admin/metamodel/import` with multipart form data; response: diff object; `POST /admin/metamodel/import/confirm` with the selection of entries to import
-- YAML parsing: established library (e.g., `gopkg.in/yaml.v3` for Go, `js-yaml` for Node.js)
+- YAML parsing: established library (e.g., Jackson `jackson-dataformat-yaml` / SnakeYAML in the Java backend, ADR-012)
 - Diff: calculated server-side, not client-side (file is never parsed directly in the browser)
 
 ## Implementation

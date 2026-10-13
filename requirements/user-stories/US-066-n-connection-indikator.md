@@ -39,7 +39,7 @@ As a Data Architect, I want to see at a glance which connections in the diagram 
 ## Technical Notes
 
 - `hasNConnections: bool` and `nConnectionCount: int` from the backend on diagram load
-- React Flow custom edge with optional circle marker
+- Vue Flow custom edge with optional circle marker
 
 ## Definition of Done
 

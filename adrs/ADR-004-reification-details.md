@@ -28,7 +28,7 @@ The ADR decision confirms and consolidates these implicit prior decisions.
 - **Avoid complexity**: Too deep reification leads to incomprehensible models
 - **Performance**: Every addressable connection costs storage and index effort (important for REQ-074: 500k entities)
 - **Consistency**: Uniform entity and connection addressing
-- **Visualizability**: React Flow (ADR-007) must be able to render the representation
+- **Visualizability**: Vue Flow (ADR-007) must be able to render the representation
 
 ## Question 1: Maximum Reification Depth
 
@@ -91,7 +91,7 @@ The ADR decision confirms and consolidates these implicit prior decisions.
 
 ### Negative Consequences / Trade-offs
 - 1-level limit restricts some graph topologies; deliberate simplification for v1.0
-- 3-dot indicator requires that React Flow (ADR-007) supports edge overlays (correct: `EdgeLabelRenderer` in React Flow 11+)
+- 3-dot indicator requires that Vue Flow (ADR-007) supports edge overlays (available via `EdgeLabelRenderer` in `@vue-flow/core`)
 
 ## References
 

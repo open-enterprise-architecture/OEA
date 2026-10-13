@@ -33,7 +33,7 @@ Arc42 thrives on diagrams: context boundary, building block view, deployment vie
 
 ## Context
 
-The editor is not a whiteboard canvas (that is ADR-007 / React Flow). It is a **rich-text editor** with code block rendering, comparable to Notion or Confluence. The diagrams are generated from text — no drag & drop.
+The editor is not a whiteboard canvas (that is ADR-007 / Vue Flow). It is a **rich-text editor** with code block rendering, comparable to Notion or Confluence. The diagrams are generated from text — no drag & drop.
 
 ## Type-Specific Fields
 
@@ -44,7 +44,7 @@ The editor is not a whiteboard canvas (that is ADR-007 / React Flow). It is a **
 
 **Mermaid**:
 - Trigger: code block with language `mermaid`
-- Rendering: client-side via mermaid.js (already in the bundle if ADR-007 React Flow is used)
+- Rendering: client-side via mermaid.js (separate dependency, independent of the canvas library in ADR-007)
 - Supported types: flowchart, sequenceDiagram, classDiagram, C4Context, erDiagram, gantt, among others
 
 **PlantUML**:
@@ -110,7 +110,7 @@ The editor is not a whiteboard canvas (that is ADR-007 / React Flow). It is a **
 
 ## Implementation Notes
 
-- Editor library: TipTap or ProseMirror (compatible with React); custom Mermaid/PlantUML node extension
+- Editor library: TipTap or ProseMirror (Vue 3 integration via `@tiptap/vue-3`, ADR-014); custom Mermaid/PlantUML node extension
 - mermaid.js is license-compatible (MIT); plantuml-wasm is GPL → prefer the server variant or WASM only locally in Electron (client app)
 - SVG rendering: always sanitized (XSS prevention on SVG content)
 

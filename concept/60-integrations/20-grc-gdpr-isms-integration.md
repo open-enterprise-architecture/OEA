@@ -186,7 +186,7 @@ The tool should support several formats in order to serve different target syste
 
 **GDPR-specific**:
 - Export of the record of processing activities in the format of the respective supervisory authority (varies by country)
-- GPDR-compliant data export for data subject access requests (structured)
+- GDPR-compliant data export for data subject access requests (structured)
 
 ### 20.8 Adapter Architecture
 
@@ -235,7 +235,7 @@ propertyAuthorization:
     write: [ISO]
 ```
 
-For implementation details see [§22 (API Architecture)](../70-platform/21-api-architecture.md).
+For implementation details see [§21 (API Architecture)](../70-platform/21-api-architecture.md).
 
 ### 20.10 Audit Trail Requirements
 

@@ -13,7 +13,7 @@ categories:
 references:
   concept:
     - concept/20-entities/06-core-entity-types.md
-    - concept/20-entities/12-domain-views.md
+    - concept/30-dynamics/12-domain-views.md
   requirements:
     - REQ-138
     - REQ-139

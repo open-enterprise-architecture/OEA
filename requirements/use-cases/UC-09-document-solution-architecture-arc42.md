@@ -16,7 +16,7 @@ references:
     - metamodel-configuration
     - entity
   concept:
-    - concept/20-entities/14-extensibility.md
+    - concept/40-extensibility/14-extensibility.md
 ---
 
 # UC-09: Document an Entity in a Structured Way

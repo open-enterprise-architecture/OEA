@@ -142,7 +142,7 @@ The TOGAF Enterprise Continuum separates reusable blueprints from concrete organ
 
 1. **Kurt**: edits an existing ABB
 2. **Kurt**: changes the `refines` field (dropdown: only ABBs without cycle risk selectable)
-3. **System**: checks cycle freedom (BR-03); on a cycle → HTTP 422 with notice
+3. **System**: checks cycle freedom (BR-03 in architecture-building-block.md); on a cycle → HTTP 422 with notice
 
 **A5 – Open `imported` building block (read-only)**
 

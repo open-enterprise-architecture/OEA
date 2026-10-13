@@ -38,6 +38,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Traceability matrix up to date
+        run: python3 scripts/generate_traceability.py --check
+
       - name: Artifact count
         run: |
           echo "SH:  $(ls business-analysis/stakeholders/SH-*.md 2>/dev/null | wc -l)"

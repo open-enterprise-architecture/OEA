@@ -54,7 +54,7 @@ A grid with visual orientation (thin/thick rhythm) considerably facilitates the 
 
 - Grid unit: 10 px at 100% zoom; scales with the zoom factor
 - Thicker line every 5 units = 50 px grid as orientation grid
-- Vue Flow / React Flow: `snapToGrid={true}` with `snapGrid={[10,10]}`; grid background via CSS `background-size`
+- Vue Flow: `:snap-to-grid="true"` with `:snap-grid="[10, 10]"`; grid background via CSS `background-size`
 
 ## Change History
 

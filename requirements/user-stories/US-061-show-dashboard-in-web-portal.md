@@ -47,7 +47,7 @@ As a CIO, I want to open a dashboard in the web portal in the browser and see th
 
 ## Technical Notes
 
-- Web portal: React SPA (ADR-008); no React Flow/canvas needed; standard chart library (e.g. recharts, chart.js)
+- Web portal: Vue 3 SPA (ADR-008, ADR-011); no Vue Flow/canvas needed; standard chart library (e.g. Chart.js, Apache ECharts)
 - Initial load: `GET /api/v1/dashboards/{id}` (configuration) + `GET /api/v1/dashboards/{id}/data` (live data) in parallel
 - Refresh: v1.0 manual (page reload or refresh button); no polling
 - Markdown in text widgets: sanitized HTML; no XSS

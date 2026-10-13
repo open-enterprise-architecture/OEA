@@ -25,7 +25,7 @@ references:
     - role
   concept:
     - concept/20-entities/06-core-entity-types.md
-    - concept/20-entities/12-domain-views.md
+    - concept/30-dynamics/12-domain-views.md
   related_use_cases:
     - UC-01
     - UC-04
@@ -293,7 +293,7 @@ As a user of the architecture repository, I want to open an existing catalog, fi
 ## Concept References
 
 - [§6 Core Entity Types](../../concept/20-entities/06-core-entity-types.md) – EntityTypes and their attributes queried in catalogs
-- [§12 Domain Views](../../concept/20-entities/12-domain-views.md) – Catalogs as a tabular complement to graphical domain views
+- [§12 Domain Views](../../concept/30-dynamics/12-domain-views.md) – Catalogs as a tabular complement to graphical domain views
 
 ## Implementation Notes
 

@@ -25,7 +25,7 @@ references:
     - adrs/ADR-018-business-rule-engine.md
   concept:
     - concept/20-entities/06-core-entity-types.md
-    - concept/20-entities/11-temporal-model.md
+    - concept/30-dynamics/11-temporal-model.md
   related_use_cases:
     - UC-04
     - UC-05

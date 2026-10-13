@@ -2,7 +2,7 @@
 
 **Status**: accepted
 **Date**: 2026-06-30
-**Deciders**: [Lukas – Repository Owner](../business-analysis/stakeholders/SH-01-lukas-enterprise-architect.md)
+**Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 
 ---
 
@@ -89,7 +89,7 @@ We choose **Option 1: Cucumber JVM**
 version 7.15.0), executed via Maven/JUnit Platform
 (`mvn test -Dcucumber.filter.tags="..."`).
 
-The Java step definitions under `backend/src/test/java/de/oea/steps/` are
+The Java step definitions under `backend/src/test/java/io/oea/steps/` are
 generated during the implementation phase per feature file by **Qwen2.5-14B-Instruct**
 (Q4_K_M, local headless via Ollama, see `requirements/tests/README.md`)
 — one prompt per feature file, with Spring Boot/RestAssured/

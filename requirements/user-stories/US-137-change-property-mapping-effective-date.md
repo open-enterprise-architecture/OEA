@@ -12,7 +12,7 @@ As a metamodel administrator, I want to change the necessity of a property assig
 ## Reference
 
 **Use Case**: [UC-04: Configure Metamodel](../use-cases/UC-04-configure-metamodel.md)
-**Persona**: [SH-03: Kurt – Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-enterprise-architect.md)
+**Persona**: [SH-03: Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 **Requirements**: REQ-148
 
 ## Acceptance Criteria

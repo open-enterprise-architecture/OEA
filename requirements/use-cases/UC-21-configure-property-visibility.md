@@ -20,8 +20,8 @@ references:
     - person
   adrs: []
   concept:
-    - concept/06-core-entity-types.md
-    - concept/08-organization-roles-persons.md
+    - concept/20-entities/06-core-entity-types.md
+    - concept/20-entities/08-organization-roles-persons.md
   related_use_cases:
     - UC-04
     - UC-01
@@ -70,7 +70,7 @@ Not all properties of an entity may be visible to all users. Investment costs, c
 
 **Other Stakeholders**:
 - [Michael – Solution Architect](../../business-analysis/stakeholders/SH-04-michael-solution-architect.md) (Domain Architect, experiences the connection-based restriction)
-- [Anna – Business Analyst](../../business-analysis/stakeholders/SH-02-anna-business-analyst.md) (sees restricted fields empty)
+- [Anna – Business Analyst](../../business-analysis/stakeholders/SH-08-anna-business-analyst.md) (sees restricted fields empty)
 
 **Story**: As a Lead Enterprise Architect, I want to define per property in the metamodel who may see and edit the value — either role-based or depending on the entity's domain membership — so that sensitive data such as costs is not visible organization-wide.
 

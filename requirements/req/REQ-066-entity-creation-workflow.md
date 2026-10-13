@@ -26,8 +26,8 @@ references:
     - SH-03
     - SH-07
   concept:
-    - concept/20-entities/14-extensibility.md
-    - concept/20-entities/15-schema-evolution.md
+    - concept/40-extensibility/14-extensibility.md
+    - concept/40-extensibility/15-schema-evolution.md
   adrs: []
 supersedes: []
 superseded_by: []

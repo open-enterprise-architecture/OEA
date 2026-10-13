@@ -121,7 +121,7 @@ Kurt must build the TRM initially (possibly based on an imported TOGAF TRM packa
 **A2 – Reorganize TRM tree structure via drag & drop**
 
 1. **Kurt**: drags an own (`scope=organization`) category via drag & drop under another node
-2. **System**: checks: target must not be a descendant of the category being moved (BR-02); `level` is adjusted automatically
+2. **System**: checks: target must not be a descendant of the category being moved (BR-02 in trm-category.md); `level` is adjusted automatically
 3. **System**: moves the node; `level` field of all affected descendants is updated
 
 **A3 – Keep review date current**

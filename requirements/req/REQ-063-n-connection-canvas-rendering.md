@@ -41,7 +41,7 @@ A connection that is itself the source of further connections would be invisibly
 ## Context
 
 Affected by this REQ:
-- **Client app** (Electron, ADR-009): full canvas editor (React Flow, ADR-007); the 3-dot indicator and connection panel are implemented here
+- **Client app** (Electron, ADR-009): full canvas editor (Vue Flow, ADR-007); the 3-dot indicator and connection panel are implemented here
 - **Web portal**: read-only; also shows the indicator (but no edit mode in the panel)
 
 The indicator is precalculated server-side when a diagram is loaded: for each connection in the diagram, the system checks whether it occurs as `sourceEntityId` in an n-connection (`SELECT * FROM architecture_entities WHERE source_entity_id = ?`). The result flows into the diagram response as `hasNConnections: bool`.
@@ -113,19 +113,19 @@ The indicator is precalculated server-side when a diagram is loaded: for each co
 
 ## Dependencies
 
-- **Prerequisites**: REQ-061 (carries-data connections must exist); ADR-007 (React Flow); ADR-009 (Electron)
+- **Prerequisites**: REQ-061 (carries-data connections must exist); ADR-007 (Vue Flow); ADR-009 (Electron)
 - **Downstream effects**: no direct ones
 
 ## Implementation Notes
 
 - `hasNConnections` flag in the diagram load response (backend calculates on load)
-- React Flow custom edge: when `hasNConnections=true`, a custom EdgeMarker (circle with `•••`) is rendered along with it
-- Panel as React side panel / popover; loads n-connection data via `GET /api/v1/entities/{id}/n-connections`
+- Vue Flow custom edge: when `hasNConnections=true`, a custom EdgeMarker (circle with `•••`) is rendered along with it
+- Panel as Vue side panel / popover; loads n-connection data via `GET /api/v1/entities/{id}/n-connections`
 - Filter state: local in the frontend (no server call when filtering)
 
 ## Implementation
 
-- ADR(s): [ADR-010](../../adrs/ADR-010-n-connection-data-lineage.md) (proposed), [ADR-007](../../adrs/ADR-007-canvas-library.md), [ADR-009](../../adrs/ADR-009-client-app-framework.md)
+- ADR(s): [ADR-010](../../adrs/ADR-010-n-connection-data-lineage.md) (accepted), [ADR-007](../../adrs/ADR-007-canvas-library.md), [ADR-009](../../adrs/ADR-009-client-app-framework.md)
 - Implemented by: –
 - Tests: –
 - Verification status: not-verified

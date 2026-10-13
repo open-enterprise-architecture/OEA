@@ -324,7 +324,7 @@ Details on the business use of these mechanisms in [§20 (GRC/GDPR/ISMS Integrat
 
 ### 21.9 Documentation and Discoverability
 
-**OpenAPI specification** for the complete API, generated from code. Schwalbach tests against the spec in CI.
+**OpenAPI specification** for the complete API, generated from code. Contract tests against the spec in CI (e.g. Schemathesis).
 
 **Schema introspection**: The API knows its own metamodel and makes it available. Tools can dynamically discover the currently active EntityTypes and properties.
 

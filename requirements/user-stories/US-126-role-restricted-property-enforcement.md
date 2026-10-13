@@ -12,7 +12,7 @@ As Anna – Business Analyst, I want to simply see an empty (non-editable) field
 ## Reference
 
 **Use Case**: [UC-21](../use-cases/UC-21-configure-property-visibility.md)
-**Persona**: Anna – Business Analyst (SH-02)
+**Persona**: Anna – Business Analyst (SH-08)
 **Requirements**: [REQ-126](../req/REQ-126-property-visibility-enforcement-role.md)
 
 ## Acceptance Criteria

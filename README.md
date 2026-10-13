@@ -42,9 +42,9 @@ _Concept: v0.17 · Last update: 2026-10-13_
 
 **Next step**: Walking Skeleton based on UC-06 (Catalog Browser).
 
-- Concept: complete (24 chapters + changelog, v0.17.2), see [`concept/`](concept/)
+- Concept: complete (24 chapters + changelog, v0.17.3), see [`concept/`](concept/)
 - Requirements: completed – all 21 UCs, 155 REQs, 142 USs, 29 ADRs defined
-- Tech stack: decided (Java 21 / Vue 3 / PostgreSQL 15 / Tauri)
+- Tech stack: decided (Java 21 / Vue 3 / PostgreSQL 15 / Electron)
 - Code: not started yet
 - v1.0-Release: TBD
 

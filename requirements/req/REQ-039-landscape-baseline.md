@@ -18,8 +18,8 @@ references:
   stakeholders:
     - SH-04
   concept:
-    - concept/20-entities/11-temporal-model.md
-    - concept/20-entities/12-domain-views.md
+    - concept/30-dynamics/11-temporal-model.md
+    - concept/30-dynamics/12-domain-views.md
     - concept/20-entities/06-core-entity-types.md
   adrs: []
 supersedes: []
