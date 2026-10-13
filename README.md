@@ -34,15 +34,15 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | Use Cases | 23 |
 | Requirements | 194 |
 | User Stories | 150 |
-| ADRs | 32 |
+| ADRs | 36 |
 | Business Objects | 27 |
 
-_Concept: v0.18 · Last update: 2026-10-13._
+_Concept: v0.19 · Last update: 2026-10-13._
 <!-- /AUTO-GENERATED: stats -->
 
 **Next step**: Walking Skeleton based on UC-06 (Catalog Browser).
 
-- Concept: complete (24 chapters + changelog, v0.18.2), see [`concept/`](concept/)
+- Concept: complete (24 chapters + changelog, v0.19.0), see [`concept/`](concept/)
 - Requirements: completed – all 21 UCs, 155 REQs, 142 USs, 29 ADRs defined
 - Tech stack: decided (Java 21 / Vue 3 / PostgreSQL 15 / Electron)
 - Code: not started yet
@@ -119,6 +119,10 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 | [ADR-030](adrs/ADR-030-postgresql-only.md) | PostgreSQL as the Only Supported Database | accepted |
 | [ADR-031](adrs/ADR-031-ui-prototyping-storybook.md) | UI Prototyping with Clickable Vue Prototypes in Storybook | accepted |
 | [ADR-032](adrs/ADR-032-authorization-model.md) | Authorization Model – RBAC with a Fixed Permission Catalog and Configurable Roles | accepted |
+| [ADR-033](adrs/ADR-033-audit-trail-hardening.md) | Audit Trail Hardening – Owner/Runtime Role Separation, Hash Chain in All Editions, Retention Floor and Pseudonymous Actors | accepted |
+| [ADR-034](adrs/ADR-034-secured-raw-analytics.md) | Secured Raw SQL Analytics on a Masked Reporting Schema; Cypher Deferred | accepted |
+| [ADR-035](adrs/ADR-035-electron-security-baseline.md) | Electron Security Baseline – Hardened Runtime, Local Data Protection and Release Integrity | accepted |
+| [ADR-036](adrs/ADR-036-dev-test-identity-provider.md) | Development and Test Identity Provider Without Authentication Stub | accepted |
 <!-- /AUTO-GENERATED: adrs -->
 
 ## Contributing

@@ -69,3 +69,7 @@ In `.opencode/commands/`:
 | [ADR-030](./ADR-030-postgresql-only.md) | PostgreSQL as the Only Supported Database | accepted | 2026-10-13 | ADR-023 |
 | [ADR-031](./ADR-031-ui-prototyping-storybook.md) | UI Prototyping with Clickable Vue Prototypes in Storybook | accepted | 2026-10-13 | – |
 | [ADR-032](./ADR-032-authorization-model.md) | Authorization model: RBAC with a fixed permission catalog and configurable roles | accepted | 2026-10-13 | – (partially: ADR-006, ADR-008, ADR-026) |
+| [ADR-033](./ADR-033-audit-trail-hardening.md) | Audit Trail Hardening – Owner/Runtime Role Separation, Hash Chain in All Editions, Retention Floor and Pseudonymous Actors | accepted | 2026-10-13 | – (partially ADR-024, ADR-015, ADR-026) |
+| [ADR-034](./ADR-034-secured-raw-analytics.md) | Secured Raw SQL Analytics on a Masked Reporting Schema; Cypher Deferred | accepted | 2026-10-13 | – (partially ADR-013) |
+| [ADR-035](./ADR-035-electron-security-baseline.md) | Electron Security Baseline – Hardened Runtime, Local Data Protection and Release Integrity | accepted | 2026-10-13 | – (partially ADR-009) |
+| [ADR-036](./ADR-036-dev-test-identity-provider.md) | Development and Test Identity Provider Without Authentication Stub | accepted | 2026-10-13 | – (partially ADR-027) |
