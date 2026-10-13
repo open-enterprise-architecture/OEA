@@ -4,7 +4,7 @@ title: Rate limiting and resource quotas
 type: non-functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-10-13
 last_updated: 2026-10-13
 author: requirements-engineer
@@ -21,6 +21,7 @@ references:
     - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-026
+    - ADR-034
 supersedes: []
 superseded_by: []
 ---
@@ -37,7 +38,7 @@ A single low-privileged user or leaked service account can otherwise saturate th
 
 ## Context
 
-Source: security review SEC-23 (proposal PR-30); owner decision Q2 (portal may be internet-exposed → priority must). The maximum batch size was inconsistent (REQ-147: 1,000; REQ-154 and ADR-026: 500) and is harmonized to 500 here. Login throttling is specified separately in REQ-168.
+Source: security review SEC-23 (proposal PR-30); owner decision Q2 (portal may be internet-exposed → priority must). The maximum batch size was inconsistent (REQ-147: 1,000; REQ-154 and ADR-026: 500) and is harmonized to 500 here. Login throttling is specified separately in REQ-168. Raw analytics limits (ADR-034 §5) are listed below; statement timeout, row and result size limits are specified in REQ-179. Per-principal analytics limits use the same shared rate-limit store as all other limits; the global analytics concurrency is additionally capped by the connection limit of the analytics database role.
 
 ## Type-Specific Fields
 
@@ -56,6 +57,9 @@ Source: security review SEC-23 (proposal PR-30); owner decision Q2 (portal may b
 | Page size | max 200 | – | – | all list endpoints |
 | Graph traversal depth | max 5 | – | – | impact, lineage, traversal endpoints |
 | Concurrent event streams per principal | max 5 | – | – | event stream endpoint |
+| Analytics queries per principal | 30 / min | – | – | raw analytics endpoint (REQ-179) |
+| Concurrent analytics queries per principal | max 2 | – | – | raw analytics endpoint (REQ-179) |
+| Analytics connection pool (global concurrency) | 4 connections; waiting > 5 s → 429 | – | – | raw analytics endpoint, separate from the application pool |
 | p95 catalog latency of other principals while one principal is throttled | within REQ-071 | – | above REQ-071 | repository per REQ-071 |
 
 ## Acceptance Criteria
@@ -84,10 +88,16 @@ Source: security review SEC-23 (proposal PR-30); owner decision Q2 (portal may b
 - When: submitted
 - Then: it is rejected with 400 or capped at 200 as documented in the contract
 
+**AC5** (Analytics limits):
+
+- Given: a principal with `analytics:query` that has submitted 30 analytics queries in the current minute, or has 2 analytics queries running
+- When: it submits the next analytics query
+- Then: the response is 429 with `Retry-After`, and catalog queries of other principals stay within REQ-071
+
 ## Verification Method
 
 - [ ] Method: test (automated, load test)
-- [ ] Pass criterion: AC1–AC4 green
+- [ ] Pass criterion: AC1–AC5 green
 - [ ] Integrated in CI: yes (functional limits); load test as release gate
 
 ## Dependencies
@@ -105,3 +115,4 @@ Source: security review SEC-23 (proposal PR-30); owner decision Q2 (portal may b
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-23 (PR-30), owner decision Q2 |
+| 0.2.0 | 2026-10-13 | requirements-engineer | ADR-034 §5: analytics rows (30 queries/min, 2 concurrent per principal, pool 4) in the target value table; AC5 added |

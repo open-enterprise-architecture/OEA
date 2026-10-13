@@ -4,7 +4,7 @@ title: Security event logging
 type: compliance
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-10-13
 last_updated: 2026-10-13
 author: requirements-engineer
@@ -23,6 +23,8 @@ references:
     - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-024
+    - ADR-033
+    - ADR-034
 supersedes: []
 superseded_by: []
 ---
@@ -31,7 +33,7 @@ superseded_by: []
 
 ## Statement
 
-The system **MUST** record in the audit log, with timestamp, principal, source address, outcome and correlation ID: logout and session revocation, authorization failures (403), role and role-assignment changes, authentication provider and settings changes, visibility configuration changes, service account creation, rotation and deactivation, throttling and lockout events, analytics queries and bulk exports; application logs **MUST NOT** contain secrets, tokens, passwords or TOTP codes.
+The system **MUST** record in the audit log, with timestamp, principal, source address, outcome and correlation ID: logout and session revocation, authorization failures (403), role and role-assignment changes, authentication provider and settings changes, visibility configuration changes, service account creation, rotation and deactivation, throttling and lockout events, analytics queries and bulk exports, using the event types of the audit event catalog; repeated authorization failures, throttling and failed-login events of the same principal or source address and operation **MUST** be recorded individually up to 20 per minute and beyond that as one summary event per minute carrying the count; application logs **MUST NOT** contain secrets, tokens, passwords or TOTP codes.
 
 ## Rationale
 
@@ -40,6 +42,10 @@ Without these events an incident responder cannot reconstruct a 403 probe storm,
 ## Context
 
 Source: security review SEC-14 (proposal PR-19). Existing audit REQs: REQ-005 (login), REQ-016 (bootstrap), REQ-025 (enrollment), REQ-031 (reset), REQ-128 (override reads).
+
+ADR-033 §8: security events are records of the same audit trail and hash chain as change events (no separate security log), with the common fields `event_category`, `severity`, `outcome`, pseudonymous actor fields (REQ-189), `agent_id`, `source`, `source_ip`, `request_id`, `target_type`, `target_id` and event-specific `details`. The event catalog with stable type names (e.g. `auth.login`, `auth.logout`, `session.revoked`, `authz.denied`, `auth.throttled`, `role.assigned`, `role.revoked`, `idp-mapping.changed`, `auth-provider.changed`, `settings.changed`, `settings.audit-retention-changed`, `visibility.changed`, `visibility.override-changed`, `service-account.created|secret-rotated|deactivated`, `audit.exported`, `audit.checkpoint`, `audit.retention-purged`, `audit.integrity-verified|violation`) is maintained in `docs/audit-event-catalog.md` (follow-up of ADR-033). Because audit records cannot be deleted before the retention period, the suppression rule bounds audit flooding (owner decision Q2); rate limits (REQ-186) apply in addition.
+
+ADR-034 §6: raw analytics produce exactly one event per authenticated request, `analytics.query.executed` or `analytics.query.rejected`, with principal, query hash, literal-free query fingerprint, referenced reporting views, outcome and metrics (duration, row count, result bytes); missing permission produces `authz.denied` instead.
 
 ## Type-Specific Fields
 
@@ -79,17 +85,29 @@ Source: security review SEC-14 (proposal PR-19). Existing audit REQs: REQ-005 (l
 - When: exported via the API by a principal with `audit:read`
 - Then: the export is available as JSON Lines suitable for SIEM ingestion, and the export itself is audited
 
+**AC5** (Flood suppression):
+
+- Given: a principal that triggers 50 requests rejected with 403 on the same operation within one minute
+- When: the audit log for that minute is inspected
+- Then: it contains 20 individual `authz.denied` events and one summary event with the count of the further 30 rejections
+
+**AC6** (Analytics events):
+
+- Given: a principal with `analytics:query` that submits one valid query and one query rejected by the statement validator
+- When: the audit log is inspected
+- Then: it contains one `analytics.query.executed` and one `analytics.query.rejected` event, each with principal, query hash, query fingerprint and outcome
+
 ## Verification Method
 
 - [ ] Method: test (automated) + log scan in CI
-- [ ] Pass criterion: AC1–AC4 green
+- [ ] Pass criterion: AC1–AC6 green
 - [ ] Integrated in CI: yes
 
 ## Dependencies
 
 - **Prerequisites**: REQ-151, REQ-174
-- **Follow-on effects**: REQ-161, REQ-164, REQ-168, REQ-176, REQ-179
-- **Conflicts**: REQ-189 (personal data in audit records is pseudonymized)
+- **Follow-on effects**: REQ-161, REQ-164, REQ-168, REQ-176, REQ-179, REQ-186
+- **Conflicts**: REQ-189 (personal data in audit records is pseudonymized; resolved by the pseudonymous actor fields of ADR-033 §3)
 
 ## Risks of Non-Fulfillment
 
@@ -100,3 +118,4 @@ Source: security review SEC-14 (proposal PR-19). Existing audit REQs: REQ-005 (l
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-14 (PR-19) |
+| 0.2.0 | 2026-10-13 | requirements-engineer | ADR-033: reference to the audit event catalog and common fields; suppression rule for repeated events (statement, AC5). ADR-034: analytics event types `analytics.query.executed`/`analytics.query.rejected` (AC6) |

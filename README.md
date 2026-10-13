@@ -35,7 +35,7 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | Requirements | 195 |
 | User Stories | 150 |
 | ADRs | 36 |
-| Business Objects | 27 |
+| Business Objects | 29 |
 
 _Concept: v0.19 · Last update: 2026-10-13._
 <!-- /AUTO-GENERATED: stats -->

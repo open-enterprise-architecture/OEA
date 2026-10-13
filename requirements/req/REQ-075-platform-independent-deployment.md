@@ -4,9 +4,9 @@ title: Platform independence and cloud operability
 type: non-functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
@@ -19,7 +19,8 @@ references:
     - SH-06
   concept:
     - concept/70-platform/21-api-architecture.md
-  adrs: []
+  adrs:
+    - ADR-036
 supersedes: []
 superseded_by: []
 ---
@@ -48,6 +49,8 @@ OEA consists of several services, all of which must be operable in a platform-in
 | Object storage (files, Arc42 content blobs) | S3-compatible API (AWS S3, MinIO, GCS with S3 gateway, Azure Blob via adapter) |
 | PlantUML server | optional; Docker image `plantuml/plantuml-server` |
 
+Operator vs. development Compose file (ADR-036 §3, §8): the repository root `compose.yaml` is the operator file. It contains PostgreSQL and the OEA services but no IdP service (operators connect their own OIDC provider), and it defaults no secret: every secret is a required variable, so the configuration is not runnable without a filled `.env` (from `.env.example`, which lists all variables with empty values) or Compose secrets. A one-shot migration service runs before the API (ADR-033 §2). The development environment is `compose.dev.yaml`, started with `docker compose -f compose.dev.yaml --profile dev up`, with Keycloak and fixed development secrets bound to `127.0.0.1`.
+
 ## Type-Specific Fields
 
 ### For type=non-functional
@@ -71,8 +74,15 @@ OEA consists of several services, all of which must be operable in a platform-in
 
 **AC1** (Docker Compose on Linux):
 
-- When: `docker compose up` is executed on a Linux system (Ubuntu 22.04 LTS) without prior configuration
-- Then: OEA API, database and auth service start; `GET /health` responds with HTTP 200 within 60 seconds
+- Given: a Linux system (Ubuntu 22.04 LTS), the operator Compose file and an `.env` in which every required secret and the issuer of a reachable OIDC provider are set
+- When: `docker compose up` is executed
+- Then: the migration step completes, OEA API and database start; `GET /health` responds with HTTP 200 within 60 seconds
+
+**AC1a** (Secrets required):
+
+- Given: the operator Compose file and an empty environment (no `.env`)
+- When: `docker compose up` is executed
+- Then: it fails with a message naming the missing variables, and no service starts with default credentials
 
 **AC2** (Docker Compose on macOS and Windows):
 
@@ -110,10 +120,10 @@ OEA consists of several services, all of which must be operable in a platform-in
 
 ## Verification Method
 
-- [x] Method: test (automated for AC1, AC3–AC6) + manual (AC2, AC7)
+- [x] Method: test (automated for AC1, AC1a, AC3–AC6) + manual (AC2, AC7)
 - [x] Test setup: CI pipeline with Docker build + Kind cluster + MinIO + Keycloak + Postgres 15
 - [x] Pass criterion: all ACs green; no proprietary SDK as a transitive mandatory dependency
-- [ ] Integrated in CI: AC1, AC3–AC6 as CI job; AC2 manually at release
+- [ ] Integrated in CI: AC1, AC1a, AC3–AC6 as CI job; AC2 manually at release
 
 ## Dependencies
 
@@ -152,3 +162,4 @@ OEA consists of several services, all of which must be operable in a platform-in
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-10-13 | requirements-engineer | ADR-036 CH-3: operator Compose file requires all secrets explicitly and ships no IdP; AC1 rewritten, AC1a added; operator vs. development Compose file in Context |

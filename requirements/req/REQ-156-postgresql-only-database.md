@@ -4,7 +4,7 @@ title: PostgreSQL as the only supported database
 type: constraint
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-10-13
 last_updated: 2026-10-13
 author: Lukas Mathis
@@ -14,6 +14,8 @@ references:
   adrs:
     - ADR-030
     - ADR-016
+    - ADR-033
+    - ADR-036
 supersedes:
   - REQ-150
 superseded_by: []
@@ -33,6 +35,8 @@ Supporting several databases requires a test matrix and dialect-specific migrati
 
 Replaces REQ-150 (multi-database support). Configuration documents (`metamodel_configurations.config`, `catalogs.config`) are stored as JSONB. Existing normalized structures (`i18n_entries`, constraint columns, join tables) remain.
 
+ADR-036 §3: the repository root `compose.yaml` is the operator file; it defaults no secret, so `docker compose up` succeeds only after all required secrets are supplied (e.g. `.env` filled from `.env.example`) and is not runnable with an empty environment. Development uses `compose.dev.yaml` with the Compose profile `dev`. ADR-033 §2: migrations run in a separate one-shot migration step under the owner role, with one location per schema (`db/migration` for the application schemas, `db/migration-audit` for the audit schema); both are PostgreSQL-only, so the "no dialect-specific paths" rule of ADR-030 is unaffected. The Keycloak container used in development and tests keeps its own internal store, which is not OEA application data.
+
 ## Type-Specific Fields
 
 **Type of Constraint**: technical
@@ -47,9 +51,9 @@ Replaces REQ-150 (multi-database support). Configuration documents (`metamodel_c
 
 **AC1**:
 
-- Given: `docker compose up` with the default configuration
-- When: the application starts
-- Then: it connects to PostgreSQL, Flyway applies all migrations from a single location `db/migration`, and no dialect-specific migration paths exist
+- Given: the operator Compose file with all required secrets supplied explicitly
+- When: `docker compose up` is executed
+- Then: the migration step applies all migrations from `db/migration` and `db/migration-audit` to PostgreSQL, the application connects to PostgreSQL, and no dialect-specific migration paths exist; with any required secret unset, `docker compose up` fails before any service starts
 
 **AC2**:
 
@@ -78,7 +82,7 @@ Replaces REQ-150 (multi-database support). Configuration documents (`metamodel_c
 
 ## Dependencies
 
-- **Prerequisites**: ADR-030, ADR-016, ADR-015 (Flyway), ADR-029 (Testcontainers)
+- **Prerequisites**: ADR-030, ADR-016, ADR-015 (Flyway), ADR-029 (Testcontainers), ADR-033 (migration step), ADR-036 (operator and development Compose files)
 - **Downstream effects**: REQ-152 (dynamic labels; `i18n_entries` table), REQ-075 (deployment via Docker Compose)
 
 ## Risks of Non-Compliance
@@ -95,3 +99,4 @@ Replaces REQ-150 (multi-database support). Configuration documents (`metamodel_c
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | Lukas Mathis | Initial draft from ADR-030; supersedes REQ-150 |
+| 0.2.0 | 2026-10-13 | requirements-engineer | ADR-036 CH-3: AC1 requires all secrets explicitly for the operator Compose file; ADR-033 §2: migration step with locations `db/migration` and `db/migration-audit` (AC1, Context) |

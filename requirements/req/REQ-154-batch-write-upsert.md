@@ -4,7 +4,7 @@ title: Batch Write for Entities and Connections
 type: functional
 priority: should
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-29
 last_updated: 2026-10-13
 author: requirements-engineer
@@ -13,6 +13,7 @@ references:
     - UC-22
   adrs:
     - ADR-026
+    - ADR-033
 supersedes: []
 superseded_by: []
 ---
@@ -31,7 +32,7 @@ Code scanners and import tools analyze entire repositories or CMDB snapshots and
 
 `POST /api/v1/entities/batch`. Strategies: upsert (default), create-only, skip-existing. Atomicity optional (atomic: true/false). (ADR-026)
 
-Security review SEC-04, SEC-13, SEC-23 (2026-10-13): the limit of 500 entities and 500 connections per request is the single maximum batch size for all batch endpoints (REQ-147, REQ-186); batch writes are subject to per-service-account rate limits (REQ-186), property write protection (REQ-162), `external_id` namespace ownership (REQ-177) and the scoping-connection permission (REQ-161); the audit `agent_id` is taken from the authenticated `client_id`, never from a request header (REQ-174).
+Security review SEC-04, SEC-13, SEC-23 (2026-10-13): the limit of 500 entities and 500 connections per request is the single maximum batch size for all batch endpoints (REQ-147, REQ-186); batch writes are subject to per-service-account rate limits (REQ-186), property write protection (REQ-162), `external_id` namespace ownership (REQ-177) and the scoping-connection permission (REQ-161); the audit `agent_id` is taken from the authenticated `client_id`, never from a request header (REQ-174). ADR-033 §7 (partially superseding ADR-026 §7): the `X-Agent-Id` header is stored, if present, only in the informational audit field `agent_label` (untrusted, truncated to 100 characters, control characters removed) and is never used for filtering, authorization or attribution; JWT claims other than the client identity are ignored. Audit records of a batch are inserted immediately before commit to keep the hash-chain lock short (ADR-033 §5).
 
 ## Type-Specific Fields
 
@@ -88,7 +89,7 @@ Security review SEC-04, SEC-13, SEC-23 (2026-10-13): the limit of 500 entities a
 
 - Given: a service account request with header `X-Agent-Id: human-ui`
 - When: the batch is persisted
-- Then: the audit `agent_id` equals the authenticated `client_id`; the header value is stored only as an untrusted informational field
+- Then: the audit `agent_id` equals the authenticated `client_id`; the header value is stored only in the informational field `agent_label`
 
 ## Verification Method
 
@@ -108,3 +109,4 @@ Security review SEC-04, SEC-13, SEC-23 (2026-10-13): the limit of 500 entities a
 |---|---|---|---|
 | 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft from ADR-026 |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-04/13/23: 500 as single max batch size (AC4); write protection; `agent_id` from authenticated client only (AC5) |
+| 0.3.0 | 2026-10-13 | requirements-engineer | ADR-033 §7: `agent_id` = `client_id`; `X-Agent-Id` only informational as `agent_label` (Context, AC5) |

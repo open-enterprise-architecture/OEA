@@ -30,7 +30,20 @@ hide empty methods
 '   account is not a person, so actor columns come in pairs
 '   <x>_by_person_id {FK→persons.id} + <x>_by_admin_id {FK→system_admin_accounts.id};
 '   CHECK: at most one of the pair is set; both NULL = system-initiated.
+' <<View>> / <<Function>>: database views and functions (not tables)
 ' ─────────────────────────────────────────────────────
+
+legend top left
+  **Database roles** (not tables; ADR-033 §1, ADR-034 §2; names configurable)
+  No OEA role is SUPERUSER, CREATEROLE, CREATEDB or BYPASSRLS; no OEA role is a member of another.
+  |= Role |= Login |= Used by |= Rights |
+  | oea_owner | yes | one-shot migration step only | owns schemas public, audit and all objects in them; never given to the running app |
+  | oea_app | yes | application runtime | table-specific DML on public; entity history tables INSERT + SELECT only; audit.events / event_changes / retention_settings INSERT + SELECT only; nothing on audit.chain_head |
+  | oea_audit_cleanup | yes | retention job | USAGE on schema audit; EXECUTE audit.purge_expired() only |
+  | oea_auditor | yes | oea audit verify; external auditors | SELECT on all audit tables |
+  | oea_reporting_owner | no | owner of reporting and reporting_ctx | SELECT on exactly the base tables/columns the views read; nothing on audit, credentials, sessions, authorization, settings |
+  | oea_analytics | yes | raw SQL analytics (REQ-179) | USAGE on reporting; SELECT on reporting views; EXECUTE reporting_ctx.current_context() and allowlisted helpers; read-only defaults, CONNECTION LIMIT = pool size; no access to audit |
+end legend
 
 ' ╔══════════════════════════════════════════════════════╗
 ' ║  AUTH – IDENTITIES AND CREDENTIALS                  ║
@@ -44,10 +57,13 @@ package "Auth" #FFF8E1 {
     .. enum: human | service-account ..
     .. service-account: no ui_language/ui_theme required ..
     + name                : TEXT          {NN}
-    + email               : TEXT          {NN} {UQ}
+    .. anonymized (REQ-189): replaced by the pseudonym 'anonymized-<id>' ..
+    + email               : TEXT          {UQ}
     .. contact attribute; NEVER used to match a login (REQ-166) ..
+    .. CHECK: email IS NOT NULL OR detail_level = 'anonymized' ..
+    .. anonymized: set to NULL (ADR-033 §3, REQ-189) ..
     + employee_id         : TEXT
-    .. null for service-account ..
+    .. null for service-account; set to NULL on anonymization ..
     == Lifecycle (replaces 'active BOOLEAN'; REQ-004, REQ-007, REQ-164) ==
     + status              : TEXT          {NN} DEFAULT 'invited'
     .. enum: invited | active | inactive | offboarded ..
@@ -65,7 +81,7 @@ package "Auth" #FFF8E1 {
     + external_ref_system : TEXT
     + external_ref_id     : TEXT
     .. reference to the HR master system (§8.7); NOT the login identity ..
-    .. (login identity: person_identities) ..
+    .. (login identity: person_identities); set to NULL on anonymization ..
     == Account link to the EA Person entity (ADR-032 DM-7, REQ-127) ==
     + entity_id           : INTEGER       {UQ} {FK→entities.id}
     .. nullable; target entity must be of metatype 'person' ..
@@ -81,6 +97,19 @@ package "Auth" #FFF8E1 {
     .. enum: light | dark | system ..
     + created_at          : TIMESTAMPTZ   {NN} DEFAULT NOW()
   }
+
+  note right of persons
+    Protected identity mapping (ADR-033 §3):
+    persons and system_admin_accounts are the only
+    place where actor names / e-mail addresses live.
+    Audit records store only actor_type + key
+    (pseudonymous); names are resolved at read time
+    for principals holding audit:read (REQ-189 AC3).
+    Anonymization (REQ-189): detail_level='anonymized',
+    name → pseudonym, email/employee_id/external_ref_*
+    → NULL; audit rows are never modified and keep
+    pointing at persons.id.
+  end note
 
   class auth_providers <<Table>> #FFECB3 {
     + id               : UUID             {PK}
@@ -687,6 +716,11 @@ package "Metamodel – Properties" #E0F2F1 {
     --
     + name            : TEXT              {NN}
     .. corporate language; translations in i18n_entries ..
+    + sql_column_name : TEXT              {NN} {UQ}
+    .. stable column name in generated reporting.<metatype> views (ADR-034 DM-6) ..
+    .. CHECK: sql_column_name ~ '^[a-z][a-z0-9_]{0,62}$'; not a reserved column ..
+    .. (id, urn, metatype_id, name, description, is_logical, created_at, updated_at) ..
+    .. derived from name on creation; immutable afterwards (renames do not change it) ..
     + data_type       : TEXT              {NN}
     .. enum: string | integer | boolean | enum | reference | date | url | text ..
     + category_id     : UUID              {FK→property_categories.id}
@@ -966,6 +1000,18 @@ package "Repository" #FCE4EC {
     Consistent with entity_property_value_history.
   end note
 
+  note bottom of entity_property_value_history
+    Entity history (ADR-033 §10; DM-A9):
+    entity_version_headers, entity_property_value_history,
+    entity_system_field_history are owned by oea_owner and
+    APPEND-ONLY for the runtime role oea_app (INSERT + SELECT;
+    no UPDATE, DELETE, TRUNCATE). Rows are removed only by the
+    purge of soft-deleted entities (REQ-190) through an
+    owner-defined function executed by a dedicated purge role.
+    Not the audit trail and not part of the hash chain;
+    lifecycle follows the entity, not the audit retention.
+  end note
+
   class entity_plateau_states <<Table>> #F8BBD9 {
     + entity_id       : INTEGER           {PK} {FK→entities.id}
     + plateau_id      : UUID              {PK} {FK→plateaus.id}
@@ -991,71 +1037,371 @@ package "Repository" #FCE4EC {
 }
 
 ' ╔══════════════════════════════════════════════════════╗
-' ║  AUDIT (Schema: audit.*) (ADR-024)                  ║
+' ║  AUDIT (Schema: audit.*) (ADR-024, ADR-033)         ║
 ' ╚══════════════════════════════════════════════════════╝
 package "Audit  [Schema: audit]" #EFEBE9 {
 
   class "audit.events" <<Table>> #D7CCC8 {
-    + id           : BIGSERIAL            {PK}
+    + id             : BIGSERIAL          {PK}
+    .. technical key; the chain order is chain_seq ..
     --
-    + event_type   : TEXT                 {NN}
-    .. e.g. 'entity.created', 'entity.property_changed', 'entity.deleted' ..
-    + entity_id    : INTEGER
-    .. soft ref (no FK; audit DB can be external) ..
-    + entity_name  : TEXT
-    .. denormalized for tamper evidence ..
-    + actor_id     : BIGINT
-    .. soft ref ..
-    + actor_name   : TEXT                 {NN}
-    .. denormalized; retained even after anonymization ..
-    + actor_email  : TEXT                 {NN}
-    .. denormalized ..
-    + source       : TEXT                 {NN}
+    + event_type     : TEXT               {NN}
+    .. stable name from the event catalog (ADR-033 §8), e.g. 'entity.created', ..
+    .. 'auth.login', 'authz.denied', 'settings.audit-retention-changed', ..
+    .. 'analytics.query.executed', 'audit.checkpoint' ..
+    + event_category : TEXT               {NN}
+    .. enum: change | security | access | system ..
+    + severity       : TEXT               {NN}
+    .. enum: info | warning | high | critical ..
+    + outcome        : TEXT               {NN}
+    .. enum: success | failure | denied ..
+    + occurred_at    : TIMESTAMPTZ        {NN} DEFAULT NOW()
+    + source         : TEXT               {NN}
     .. enum: UI | API | Job | Import ..
-    + occurred_at  : TIMESTAMPTZ          {NN} DEFAULT NOW()
-    + request_id   : TEXT
+    + source_ip      : INET
+    + request_id     : TEXT
     .. HTTP correlation ID or job run ID ..
-    == External integration (ADR-026, optional) ==
-    + agent_id     : TEXT
-    .. Identifier of the writing system (e.g. 'oea-scanner/1.0') ..
-    .. client_id of the authenticated service account only; X-Agent-Id header is ignored (REQ-154, REQ-174) ..
-    + agent_run    : TEXT
-    .. Correlation ID of a run (all writes of the same run) ..
-    + prev_hash    : TEXT
-    .. SHA-256 of the predecessor record (Enterprise: tamper chain) ..
-    + record_hash  : TEXT
-    .. SHA-256(prev_hash || event_type || entity_id || occurred_at) ..
+    == Actor (pseudonymous, ADR-033 §3) ==
+    + actor_type     : TEXT               {NN}
+    .. enum: person | service-account | system-admin-account | system | unauthenticated ..
+    + actor_person_id : BIGINT
+    .. soft ref → persons.id (no FK; audit DB can be external) ..
+    + actor_admin_id : UUID
+    .. soft ref → system_admin_accounts.id ..
+    .. CHECK: actor_type IN (person, service-account) ⇔ actor_person_id NOT NULL ..
+    .. CHECK: actor_type = system-admin-account ⇔ actor_admin_id NOT NULL ..
+    .. CHECK: at most one of the pair set; both NULL for system | unauthenticated ..
+    .. no actor names or e-mail addresses in the audit schema ..
+    == Target ==
+    + target_type    : TEXT
+    .. e.g. entity | person | role | role-assignment | setting | service-account ..
+    + target_id      : TEXT
+    + entity_id      : INTEGER
+    .. soft ref → entities.id ..
+    + entity_name    : TEXT
+    .. denormalized for completeness (not evidence); NULL for metatype 'person' ..
+    .. (names of modeled persons are not copied, owner confirmation 2026-10-13) ..
+    + details        : JSONB
+    .. event-type-specific supplement (e.g. role, validity, sodConflict, ..
+    .. analytics queryHash/queryFingerprint/referencedViews/metrics); ..
+    .. fields needed for regulatory queries are columns, not payload ..
+    == External integration (ADR-026, ADR-033 §7) ==
+    + agent_id       : TEXT
+    .. client_id (UUID text) of the authenticated service account ONLY; ..
+    .. NULL for humans and the system admin account ..
+    + agent_label    : TEXT
+    .. untrusted X-Agent-Id header; CHECK char_length(agent_label) <= 100; ..
+    .. control characters removed; never used for decisions ..
+    + agent_run      : TEXT
+    .. correlation ID of a run (X-Agent-Run); informational ..
+    == Hash chain (mandatory, all editions; ADR-033 §5) ==
+    + chain_seq      : BIGINT             {NN} {UQ}
+    + hash_version   : SMALLINT           {NN}
+    + prev_hash      : BYTEA              {NN}
+    .. 32 bytes; genesis = 32 zero bytes ..
+    + record_hash    : BYTEA              {NN}
+    .. 32 bytes; SHA-256 over canonical serialization (docs/audit-hash-chain.md) ..
   }
 
   class "audit.event_changes" <<Table>> #D7CCC8 {
-    + id            : BIGSERIAL           {PK}
+    + id               : BIGSERIAL        {PK}
     --
-    + event_id      : BIGINT              {NN} {FK→audit.events.id}
-    + property_name : TEXT                {NN}
+    + event_id         : BIGINT           {NN} {FK→audit.events.id}
+    + property_def_id  : UUID
+    .. soft ref → property_definitions.id; visibility evaluated on the definition ..
+    + property_name    : TEXT             {NN}
     .. denormalized ('name', 'lifecycle', 'version', …) ..
-    + system_field  : BOOLEAN             {NN} DEFAULT false
+    + system_field     : BOOLEAN          {NN} DEFAULT false
     .. true = system field; false = user-defined property ..
-    + old_value     : TEXT
-    .. serialized as text (DB-agnostic) ..
-    + new_value     : TEXT
+    == Values (REQ-160 AC4) ==
+    + value_protection : TEXT             {NN} DEFAULT 'plain'
+    .. enum: plain | encrypted ..
+    .. encrypted iff visibility_mode <> 'public' at the time of the event ..
+    + old_value        : TEXT
+    .. plaintext, serialized as text ..
+    + new_value        : TEXT
+    + old_value_enc    : BYTEA
+    .. AES-256-GCM ciphertext ..
+    + new_value_enc    : BYTEA
+    + key_id           : TEXT
+    .. audit value key (wrapped by the KEK of REQ-188) ..
+    .. CHECK: value_protection = 'encrypted' ⇒ old_value IS NULL AND ..
+    .. new_value IS NULL AND key_id IS NOT NULL; ..
+    .. value_protection = 'plain' ⇒ *_enc IS NULL AND key_id IS NULL ..
+    == Hash chain ==
+    + chain_seq        : BIGINT           {NN} {UQ}
+    + hash_version     : SMALLINT         {NN}
+    + prev_hash        : BYTEA            {NN}
+    + record_hash      : BYTEA            {NN}
+  }
+
+  class "audit.retention_settings" <<Table>> #D7CCC8 {
+    + id                  : BIGSERIAL     {PK}
+    --
+    + retention_days      : INTEGER       {NN}
+    .. CHECK (retention_days >= 365); floor not configurable (Q10) ..
+    .. seeded by the first audit migration with 2555 (7 years) ..
+    + recorded_at         : TIMESTAMPTZ   {NN} DEFAULT NOW()
+    + effective_from      : TIMESTAMPTZ   {NN}
+    .. = recorded_at + 30 days if lower than the value in force, ..
+    .. otherwise = recorded_at ..
+    + recorded_by_person_id : BIGINT
+    .. soft ref → persons.id ..
+    + recorded_by_admin_id  : UUID
+    .. soft ref → system_admin_accounts.id ..
+    .. CHECK: at most one set; both NULL = migration seed ..
+    == Hash chain ==
+    + chain_seq           : BIGINT        {NN} {UQ}
+    + hash_version        : SMALLINT      {NN}
+    + prev_hash           : BYTEA         {NN}
+    + record_hash         : BYTEA         {NN}
+  }
+
+  note right of "audit.retention_settings"
+    Append-only series; value in force = latest row
+    with effective_from <= now. Only principals with
+    settings:manage add rows (dedicated operation;
+    replaces SystemSettings.auditRetentionDays).
+    An owner-defined trigger appends
+    'settings.audit-retention-changed' (old, new,
+    effective date, actor) in the same transaction.
+  end note
+
+  class "audit.chain_head" <<Table>> #D7CCC8 {
+    + id          : SMALLINT              {PK}
+    .. CHECK (id = 1): single row ..
+    --
+    + last_seq    : BIGINT                {NN}
+    + last_hash   : BYTEA                 {NN}
+    + updated_at  : TIMESTAMPTZ           {NN}
+  }
+
+  note right of "audit.chain_head"
+    Owner only; NO grants to oea_app.
+    Maintained by the BEFORE INSERT trigger
+    (SECURITY DEFINER, owner oea_owner) on all three
+    chain tables: locks the row, assigns chain_seq,
+    sets prev_hash, computes record_hash; values
+    supplied by the application are overwritten.
+    One chain across events, event_changes and
+    retention_settings (ADR-033 §5).
+  end note
+
+  class "audit.purge_expired()" <<Function>> #EFEBE9 {
+    SECURITY DEFINER; owner oea_owner; fixed search_path
+    --
+    deletes the oldest contiguous chain range older than
+    GREATEST(retention in force, 365) days, in batches;
+    appends 'audit.retention-purged' (first/last chain_seq,
+    count, retention, record_hash of the last deleted link)
+    EXECUTE: oea_audit_cleanup only
   }
 
   note right of "audit.events"
-    App user: INSERT only (ADR-024).
-    Audit user: SELECT only.
-    prev_hash / record_hash: NULL in
-    Community operation; can be enabled via
-    oea.audit.hash-chain-enabled=true.
-    Retention: configurable,
-    default 7 years (2555 days).
-    Configurable as an external DB via
-    oea.datasource.audit.url.
-    agent_id / agent_run: NULL for
-    manual UI/API access; set
-    when an external system writes (ADR-026).
+    ADR-033 (replaces the ADR-024 note), DM-A8:
+    Owner of schema and all objects: oea_owner.
+    oea_app: INSERT + SELECT on events, event_changes,
+    retention_settings only (USAGE on sequences);
+    no UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER;
+    no rights on chain_head.
+    oea_audit_cleanup: EXECUTE audit.purge_expired() only.
+    oea_auditor: SELECT on all audit tables.
+    oea_analytics / reporting roles: no access.
+    Retention floor 1 year (DB CHECK + function),
+    default 7 years (2555 days); reductions take
+    effect after 30 days. No API/UI operation
+    modifies or deletes audit records.
+    Hash chain mandatory in all editions
+    (flag oea.audit.hash-chain-enabled removed);
+    checkpoints ('audit.checkpoint') exported to the
+    application log and the SIEM export (§6).
+    Migrations: db/migration-audit, history table
+    audit.flyway_schema_history; additive only.
+    Optional external DB: oea.datasource.audit.url.
+    Event types of ADR-034 (DM-4):
+    'analytics.query.executed' | 'analytics.query.rejected'
+    with details: queryHash (SHA-256), queryFingerprint
+    (literal-free), referencedViews[], analyticsOutcome
+    (ok | truncated-rows | truncated-size | timeout |
+    rejected-<rule> | rate-limited | execution-error),
+    durationMs, rowCount, resultBytes, sessionId.
+    Never result content or bound parameter values.
+    Unauthenticated events: attempted login identifier
+    only as keyed HMAC-SHA-256 in details.
   end note
 
   "audit.events" "1" --o{ "0..*" "audit.event_changes" : details
+
+}
+
+' ╔══════════════════════════════════════════════════════╗
+' ║  REPORTING (Schema: reporting.*) (ADR-034)          ║
+' ╚══════════════════════════════════════════════════════╝
+package "Reporting  [Schema: reporting]" #E0F7FA {
+
+  class "reporting.entity_types" <<View>> #B2EBF2 {
+    id, key, label, layer, is_connection
+    .. is_connection = false; no masking ..
+  }
+
+  class "reporting.connection_types" <<View>> #B2EBF2 {
+    id, key, label, layer, is_connection
+    .. is_connection = true; no masking ..
+  }
+
+  class "reporting.property_definitions" <<View>> #B2EBF2 {
+    id, key, metatype, data_type, visibility_mode,
+    sql_column_name, readable
+    .. readable: for the calling principal ..
+    .. readRoles/writeRoles, scoping type and override list NOT exposed ..
+  }
+
+  class "reporting.entities" <<View>> #B2EBF2 {
+    id, urn, metatype_id, name, description,
+    is_logical, created_at, updated_at
+    .. non-deleted, non-connection entities ..
+    .. no actor columns (created_by/updated_by, REQ-189) ..
+  }
+
+  class "reporting.connections" <<View>> #B2EBF2 {
+    id, urn, connection_type_id,
+    source_entity_id, target_entity_id, name
+    .. non-deleted connections; basis for WITH RECURSIVE ..
+  }
+
+  class "reporting.property_values" <<View>> #B2EBF2 {
+    entity_id, property_definition_id, property_key,
+    value_text, value_number, value_date,
+    value_boolean, value_ref_entity_id, redacted
+    .. long format; values NULL and redacted = true ..
+    .. if the caller may not read the property for that entity ..
+  }
+
+  class "reporting.plateaus" <<View>> #B2EBF2 {
+    id, name, status, valid_from, valid_to, succeeds_id
+  }
+
+  class "reporting.entity_plateau_states" <<View>> #B2EBF2 {
+    entity_id, plateau_id, lifecycle_state
+  }
+
+  class "reporting.<metatype>" <<View>> #B2EBF2 {
+    entity columns + one column per mapped property
+    named property_definitions.sql_column_name
+    .. generated per metatype; regenerated on metamodel change ..
+    .. same masking expression per column ..
+  }
+
+  class "reporting.columns" <<View>> #B2EBF2 {
+    view_name, column_name, data_type, readable
+    .. replaces information_schema / pg_catalog for analysts ..
+  }
+
+  note bottom of "reporting.property_values"
+    Masking rule (ADR-034 §3.2, REQ-160):
+    every view is WITH (security_barrier = true) and
+    resolves reporting_ctx.current_context() once per
+    statement. Restricted values are masked in the
+    PROJECTION, e.g.
+      CASE WHEN pd.id = ANY(ctx.readable_all)
+             OR v.entity_id = ANY(ctx.scoped[pd.id])
+           THEN v.value_text END
+    so WHERE, GROUP BY, aggregates and errors only see
+    masked values. Property-visibility override
+    (REQ-128) does not apply. Soft-deleted rows excluded.
+    Not exposed in v1: entity history, audit data,
+    accounts, credentials, sessions, roles/assignments,
+    service accounts, settings, auth providers,
+    catalog/dashboard configuration.
+    Owner: oea_reporting_owner; oea_analytics: SELECT.
+    Documented, versioned interface (ADR-013 rules).
+  end note
+
+}
+
+' ╔══════════════════════════════════════════════════════╗
+' ║  REPORTING CONTEXT (Schema: reporting_ctx.*)        ║
+' ║  (ADR-034)                                          ║
+' ╚══════════════════════════════════════════════════════╝
+package "Reporting Context  [Schema: reporting_ctx]" #E0F2F1 {
+
+  class "reporting_ctx.keys" <<Table>> #B2DFDB {
+    + key_id       : TEXT                 {PK}
+    --
+    + key_material : BYTEA                {NN}
+    .. HMAC-SHA-256 key for the visibility context ..
+    + valid_from   : TIMESTAMPTZ          {NN} DEFAULT NOW()
+    + valid_to     : TIMESTAMPTZ
+    .. NULL = current; CHECK valid_to > valid_from ..
+  }
+
+  class "reporting_ctx.current_context()" <<Function>> #E0F2F1 {
+    SECURITY DEFINER, STABLE; owner oea_reporting_owner
+    --
+    reads oea.ctx / oea.ctx_sig (transaction-local),
+    verifies HMAC with reporting_ctx.keys,
+    checks backend PID and expiry,
+    returns the parsed visibility context;
+    missing/expired/foreign/invalid → error (fail closed)
+    EXECUTE: oea_analytics
+  }
+
+  note right of "reporting_ctx.keys"
+    Readable only by oea_reporting_owner;
+    no USAGE on reporting_ctx tables for
+    oea_analytics or oea_app.
+    Replicates with the schema (read replica, §9).
+  end note
+
+  "reporting_ctx.current_context()" ..> "reporting_ctx.keys" : verifies with
+
+}
+
+' ╔══════════════════════════════════════════════════════╗
+' ║  SETTINGS (instance settings)                       ║
+' ╚══════════════════════════════════════════════════════╝
+package "Settings" #F1F8E9 {
+
+  class system_settings <<Table>> #DCEDC8 {
+    + id                     : SMALLINT   {PK}
+    .. CHECK (id = 1): single row per instance ..
+    --
+    == Authorization / sessions (ADR-032, Q15, Q18, Q19, Q20) ==
+    + privileged_assignment_approval : BOOLEAN {NN} DEFAULT false
+    + allow_reactivation_of_offboarded : BOOLEAN {NN} DEFAULT false
+    + session_retention_days : INTEGER    {NN} DEFAULT 30
+    .. CHECK > 0 ..
+    == Raw analytics (ADR-034 §5, §7; DM-5) ==
+    + analytics_enabled      : BOOLEAN    {NN} DEFAULT false
+    + analytics_statement_timeout_seconds : INTEGER {NN} DEFAULT 30
+    .. CHECK BETWEEN 1 AND 120 ..
+    + analytics_max_rows     : INTEGER    {NN} DEFAULT 10000
+    .. CHECK BETWEEN 1 AND 100000 ..
+    + analytics_max_result_bytes : INTEGER {NN} DEFAULT 10485760
+    .. 10 MB; CHECK > 0 ..
+    + analytics_max_concurrent_per_principal : INTEGER {NN} DEFAULT 2
+    .. CHECK > 0 ..
+    + analytics_queries_per_minute : INTEGER {NN} DEFAULT 30
+    .. CHECK > 0 ..
+    + analytics_pool_size    : INTEGER    {NN} DEFAULT 4
+    .. CHECK > 0; must match CONNECTION LIMIT of oea_analytics ..
+    == Change tracking ==
+    + updated_at             : TIMESTAMPTZ {NN} DEFAULT NOW()
+    + updated_by_person_id   : BIGINT     {FK→persons.id}
+    + updated_by_admin_id    : UUID       {FK→system_admin_accounts.id}
+  }
+
+  note right of system_settings
+    Writable only with settings:manage; every change
+    audited ('settings.changed'). Audit retention is
+    NOT here: audit.retention_settings (ADR-033 §4;
+    auditRetentionDays removed from SystemSettings).
+    API naming: analytics.enabled,
+    analytics.statementTimeoutSeconds, analytics.maxRows,
+    analytics.maxResultBytes,
+    analytics.maxConcurrentPerPrincipal,
+    analytics.queriesPerMinute, analytics.poolSize.
+  end note
 
 }
 
@@ -1176,6 +1522,23 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   (argon2id only, TOTP last time step, temporary passwords, recovery codes,
 '   owner may be the system admin account; REQ-169, REQ-170, REQ-171, REQ-173);
 '   machine_credentials with expiry and stable client_id (REQ-176).
+' 2026-10-13 (ADR-033 audit trail hardening, DM-A1..DM-A10):
+'   audit.events: actor_id/actor_name/actor_email replaced by actor_type +
+'   actor_person_id/actor_admin_id (pseudonymous, SEC-28/REQ-189);
+'   event_category, severity, outcome, source_ip, target_type, target_id,
+'   details; entity_name NULL for modeled persons; agent_id = client_id only,
+'   agent_label for the untrusted X-Agent-Id; chain fields BYTEA NN on all
+'   chain tables; event_changes with property_def_id and encrypted values
+'   (REQ-160 AC4); new audit.chain_head, audit.retention_settings
+'   (floor 365, seed 2555), audit.purge_expired(); audit note replaced;
+'   entity history append-only note; persons.email nullable only when
+'   anonymized (REQ-189). Reason: SEC-13, SEC-14, SEC-28.
+' 2026-10-13 (ADR-034 secured raw analytics, DM-1..DM-6):
+'   schemas reporting (masking views) and reporting_ctx (keys,
+'   current_context()); roles legend incl. oea_reporting_owner and
+'   oea_analytics; analytics audit event types; system_settings with
+'   analytics.* (table newly modeled, previously only in the API);
+'   property_definitions.sql_column_name. Reason: SEC-17, SEC-23, Q8.
 ' ─────────────────────────────────────────────────────
 
 @enduml
