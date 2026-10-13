@@ -320,7 +320,9 @@ components:
 
     Problem:
       type: object
-      description: RFC 9457 Problem Details
+      description: |
+        RFC 9457 Problem Details. Problem type URIs follow `urn:oea:problem:<kebab-case-name>`
+        (ADR-037 §6); `about:blank` is used where no specific type is defined.
       required: [type, title, status]
       properties:
         type:     { type: string, format: uri }
@@ -1270,7 +1272,10 @@ components:
     AuditRetention:
       type: object
       required: [floorDays, inForce]
-      description: Audit retention (ADR-033 §4); stored as an append-only series
+      description: |
+        Audit retention (ADR-033 §4); stored as an append-only series. A reduction takes
+        effect 30 days after it is recorded; an increase takes effect immediately and
+        cancels a pending reduction (ADR-037 §6).
       properties:
         floorDays:
           type: integer
@@ -2090,6 +2095,34 @@ paths:
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  IDENTITY (ADR-032 §9, REQ-176)                                        ║
   # ╚═════════════════════════════════════════════════════════════════════════╝
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: End the current session server-side (REQ-164 AC1, ADR-037)
+      description: |
+        Revokes the current session and its refresh tokens; the response carries
+        `OEA-Purge-Local-Data: session-ended` so that the Electron client clears its
+        offline cache. For OIDC sessions the response includes the IdP end-session URL
+        if the provider supports RP-initiated logout.
+      tags: [Identity]
+      x-oea-authorization: {"access": "authenticated"}
+      responses:
+        '200':
+          description: Session ended
+          headers:
+            OEA-Purge-Local-Data: { $ref: '#/components/headers/PurgeLocalData' }
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  endSessionUrl:
+                    type: [string, 'null']
+                    format: uri
+                    description: IdP RP-initiated logout URL (OIDC sessions only)
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   /me:
     get:
       operationId: getCurrentPrincipal

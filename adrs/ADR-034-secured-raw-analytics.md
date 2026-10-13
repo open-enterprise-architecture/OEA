@@ -6,6 +6,7 @@
 **Consulted**: Solution Architect, Security Engineer (security review 2026-10, SEC-17, SEC-23), Requirements Engineer (REQ-179, REQ-160, REQ-186)
 **Informed**: Business Engineer (data model follow-up), Backend Engineer, Frontend Engineer
 **Partially supersedes**: [ADR-013](./ADR-013-api-style.md) (Decision table row "Analytics: `POST /api/v1/analytics/query` (SQL analytics, §22)", which places no restriction on the query text, the database objects reachable or the principals allowed to call it)
+**Partially superseded**: 2026-10-13 by [ADR-037](./ADR-037-database-roles-provisioning.md) — database roles and provisioning (see ADR-037)
 
 ## Context and Problem
 

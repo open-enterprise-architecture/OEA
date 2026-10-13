@@ -34,7 +34,7 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | Use Cases | 23 |
 | Requirements | 195 |
 | User Stories | 150 |
-| ADRs | 36 |
+| ADRs | 37 |
 | Business Objects | 29 |
 
 _Concept: v0.19 · Last update: 2026-10-13._
@@ -123,6 +123,7 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 | [ADR-034](adrs/ADR-034-secured-raw-analytics.md) | Secured Raw SQL Analytics on a Masked Reporting Schema; Cypher Deferred | accepted |
 | [ADR-035](adrs/ADR-035-electron-security-baseline.md) | Electron Security Baseline – Hardened Runtime, Local Data Protection and Release Integrity | accepted |
 | [ADR-036](adrs/ADR-036-dev-test-identity-provider.md) | Development and Test Identity Provider Without Authentication Stub | accepted |
+| [ADR-037](adrs/ADR-037-database-roles-provisioning.md) | Database Roles and Provisioning | accepted |
 <!-- /AUTO-GENERATED: adrs -->
 
 ## Contributing

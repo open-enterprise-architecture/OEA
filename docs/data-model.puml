@@ -34,14 +34,15 @@ hide empty methods
 ' ─────────────────────────────────────────────────────
 
 legend top left
-  **Database roles** (not tables; ADR-033 §1, ADR-034 §2; names configurable)
+  **Database roles** (not tables; ADR-037, refining ADR-033 §1 and ADR-034 §2; names configurable)
+  Created once by a provisioning step with superuser rights (Compose init script / operator SQL script).
   No OEA role is SUPERUSER, CREATEROLE, CREATEDB or BYPASSRLS; no OEA role is a member of another.
   |= Role |= Login |= Used by |= Rights |
   | oea_owner | yes | one-shot migration step only | owns schemas public, audit and all objects in them; never given to the running app |
   | oea_app | yes | application runtime | table-specific DML on public; entity history tables INSERT + SELECT only; audit.events / event_changes / retention_settings INSERT + SELECT only; nothing on audit.chain_head |
   | oea_audit_cleanup | yes | retention job | USAGE on schema audit; EXECUTE audit.purge_expired() only |
   | oea_auditor | yes | oea audit verify; external auditors | SELECT on all audit tables |
-  | oea_reporting_owner | no | owner of reporting and reporting_ctx | SELECT on exactly the base tables/columns the views read; nothing on audit, credentials, sessions, authorization, settings |
+  | oea_reporting_owner | yes | migration step only (db/migration-reporting); owner of reporting and reporting_ctx | SELECT on exactly the base tables/columns the views read; nothing on audit, credentials, sessions, authorization, settings |
   | oea_analytics | yes | raw SQL analytics (REQ-179) | USAGE on reporting; SELECT on reporting views; EXECUTE reporting_ctx.current_context() and allowlisted helpers; read-only defaults, CONNECTION LIMIT = pool size; no access to audit |
 end legend
 
@@ -1288,7 +1289,8 @@ package "Reporting  [Schema: reporting]" #E0F7FA {
   class "reporting.<metatype>" <<View>> #B2EBF2 {
     entity columns + one column per mapped property
     named property_definitions.sql_column_name
-    .. generated per metatype; regenerated on metamodel change ..
+    .. generated per metatype; regenerated via reporting.refresh_metatype_views() ..
+    .. (SECURITY DEFINER, owned by oea_reporting_owner, EXECUTE for oea_app only; ADR-037) ..
     .. same masking expression per column ..
   }
 

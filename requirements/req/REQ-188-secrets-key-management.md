@@ -4,7 +4,7 @@ title: Secrets and encryption key management
 type: constraint
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-10-13
 last_updated: 2026-10-13
 author: requirements-engineer
@@ -49,6 +49,8 @@ Source: security review SEC-26, SEC-27 (proposal PR-32). Client secrets of servi
 **Binding strength**: hard
 
 **Impact of non-compliance**: mass credential compromise from a database dump or backup
+
+**Documented exception (ADR-037 §5)**: the HMAC key for the analytics request context is stored in `reporting_ctx.keys` inside the database. It protects only the integrity of an analyst's masking context, not data at rest, and is rotated at least every 90 days.
 
 ## Acceptance Criteria
 
@@ -97,3 +99,4 @@ Source: security review SEC-26, SEC-27 (proposal PR-32). Client secrets of servi
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-26/SEC-27 (PR-32) |
+| 0.2.0 | 2026-10-13 | Lukas Mathis | Documented exception for the analytics context key (ADR-037 §5) |

@@ -6,6 +6,7 @@
 **Consulted**: Solution Architect, Security Engineer (security review 2026-10, SEC-13/SEC-14/SEC-28), Requirements Engineer (REQ-083, REQ-151, REQ-174, REQ-175, REQ-189)
 **Informed**: Business Engineer (data model follow-up), Backend Engineer, Frontend Engineer
 **Partially supersedes**: [ADR-024](./ADR-024-audit-separation.md) (database permissions, actor fields, optional Enterprise-only tamper chain, retention mechanics, app write access to `entity_property_value_history`), [ADR-026](./ADR-026-external-system-integration.md) (§7: source of `agent_id`), [ADR-015](./ADR-015-db-migration.md) (migrations executed by the application at start) – see [Relation to Existing ADRs](#relation-to-existing-adrs)
+**Partially superseded**: 2026-10-13 by [ADR-037](./ADR-037-database-roles-provisioning.md) — database roles and provisioning (see ADR-037)
 
 ## Context and Problem
 

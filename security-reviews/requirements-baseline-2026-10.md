@@ -839,6 +839,7 @@ Answers of the repository owner (Lukas Mathis) to the open questions. They are b
 | Q20 | Ended sessions: tokens deleted immediately, record kept 30 days (configurable) | REQ-189, session.md |
 | Q21 | Details of ADR-033 to ADR-036 beyond the brief confirmed (Cypher deferred, analytics off by default, 30-day delay for shorter retention, no names of modeled persons in audit, main-process API proxy, offline cache bound to session lifetime, Electron security fixes within 14 days, no keyring – no persistence, no macOS auto-update before signing, reverse dev guard) | ADR-033 to ADR-036 Notes |
 | Q22 | Client updates steerable: modes public / server / managed; precedence device policy (Intune/GPO, macOS profile) > operator setting > default; minimum client version enforced in every mode | ADR-035 §10a, REQ-195 |
+| Q23 | Contradictions between ADR-033 and ADR-034 resolved: role names, provisioning step creates roles, definer function for view regeneration, analytics context key in the database as documented exception; retention increase cancels pending reduction; analytics limits capped; problem type URIs; anonymization removes identity bindings; logout endpoint | ADR-037 |
 
 ## Sign-off
 
