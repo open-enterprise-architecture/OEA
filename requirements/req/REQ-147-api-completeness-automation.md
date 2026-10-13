@@ -30,7 +30,6 @@ references:
     - SH-05
     - SH-06
     - SH-07
-    - SH-09
   concept:
     - concept/70-platform/21-api-architecture.md
   adrs:
@@ -49,7 +48,7 @@ Every model-changing operation that can be executed via the OEA user interface M
 
 OEA is API-first (ADR-013, guiding principle `concept/README.md`). This principle remains abstract without a verifiable requirement. In practice, "UI-only" operations frequently arise that technically use HTTP but do not constitute stable, external API contracts — e.g. session-bound endpoints, UI-specific aggregation responses, or missing batch endpoints. This REQ ensures that the API-first principle is enforced operationally during the development of every new feature.
 
-Concrete use cases: the CIO of a corporate group (SH-05) wants to import 2,000 application components from the CMDB into OEA via script. The operator (Max, SH-06) wants an ITSM system to be notified automatically when an entity is marked as `deprecated`. The product owner (Rigobert, SH-09) wants a CI pipeline to switch the plateau status automatically after each release branch merge. All three scenarios fail without this requirement.
+Concrete use cases: the CIO of a corporate group (SH-05) wants to import 2,000 application components from the CMDB into OEA via script. The operator (Max, SH-06) wants an ITSM system to be notified automatically when an entity is marked as `deprecated`. The solution architect (Michael, SH-04) wants a CI pipeline to switch the plateau status automatically after each release branch merge. All three scenarios fail without this requirement.
 
 ## Context
 

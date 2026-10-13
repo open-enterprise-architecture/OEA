@@ -30,7 +30,7 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 <!-- AUTO-GENERATED: stats -->
 | Artifact | Count |
 |---|---|
-| Stakeholder profiles | 9 |
+| Stakeholder profiles | 8 |
 | Use Cases | 22 |
 | Requirements | 156 |
 | User Stories | 142 |
@@ -70,7 +70,7 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 ## Who Benefits from OEA
 
 <!-- AUTO-GENERATED: stakeholders -->
-9 persona profiles have been worked out (see [`business-analysis/stakeholders/`](business-analysis/stakeholders/)):
+8 persona profiles have been worked out (see [`business-analysis/stakeholders/`](business-analysis/stakeholders/)):
 
 - **SH-01** Franz – Junior Domain Architect in a Corporate Group
 - **SH-02** Lukas – Senior Data Architect in a Mid-Sized Company
@@ -80,7 +80,6 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 - **SH-06** Max – Operator in a Regulated SME
 - **SH-07** Sabine – Senior Business Engineer in a Global Corporate Group
 - **SH-08** Anna – Business Analyst in a Mid-Sized Company
-- **SH-09** Rigobert – Product Owner and Repository Owner
 <!-- /AUTO-GENERATED: stakeholders -->
 
 ## Technology Decisions

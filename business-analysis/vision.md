@@ -16,13 +16,12 @@ Three deliberate design principles shape OEA:
 
 ## Target Audience (Primary)
 
-Nine persona profiles describe the primary addressees:
+Eight persona profiles describe the primary addressees:
 - Junior to lead architects in SMEs, mid-sized companies, and corporate groups (SH-01, SH-03, SH-04)
 - Specialized architects for data and business (SH-02, SH-07)
 - Operations owners in regulated environments (SH-06)
 - Strategic sponsors at C-level (SH-05)
 - Business analysts and process owners (SH-08)
-- The product owner who runs OEA itself (SH-09)
 
 See [stakeholders/](stakeholders/) for detailed profiles.
 

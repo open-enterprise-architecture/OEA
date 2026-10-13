@@ -1,6 +1,6 @@
 # Stakeholders
 
-Nine persona profiles as primary users and sponsors of OEA. Each profile follows a uniform schema.
+Eight persona profiles as primary users and sponsors of OEA. Each profile follows a uniform schema.
 
 ## Overview
 
@@ -14,15 +14,14 @@ Nine persona profiles as primary users and sponsors of OEA. Each profile follows
 | [SH-06](SH-06-max-operator-sme.md) | Max | Operator | Regulated SME | Hybrid infrastructure, mixed stack |
 | [SH-07](SH-07-sabine-business-engineer.md) | Sabine | Senior Business Engineer | Global corporate group | Structured business modeling |
 | [SH-08](SH-08-anna-business-analyst.md) | Anna | Business Analyst / Process Owner | Mid-sized company | – |
-| [SH-09](SH-09-rigobert-product-owner.md) | Rigobert | Product Owner / Repository Owner | – | OEA (own instance) |
 
 ## Characteristics of the Selection
 
-The nine personas cover three orthogonal spectrums:
+The eight personas cover three orthogonal spectrums:
 
 **Size classes**: SME (Kurt, Max), mid-sized company (Lukas, Michael, Anna), corporate group (Franz, CIO, Sabine).
 
-**Experience levels**: Junior (Franz), Professional (Max), Senior (Lukas, Sabine), Lead (Kurt), Solution (Michael), C-level (CIO); additionally the business analyst (Anna) and the product owner (Rigobert).
+**Experience levels**: Junior (Franz), Professional (Max), Senior (Lukas, Sabine), Lead (Kurt), Solution (Michael), C-level (CIO); additionally the business analyst (Anna).
 
 **Tool backgrounds**: Greenfield, wiki-based, Avolution, Sparx, multi-tool corporate group, business-object-oriented, operations-focused.
 
