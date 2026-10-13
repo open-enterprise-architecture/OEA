@@ -2,7 +2,7 @@
 identifier: idp-group-mapping
 name_de: IdP-Gruppen-Zuordnung
 name_en: IdP Group Mapping
-version: 0.1.0
+version: 0.2.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -77,6 +77,7 @@ active ⇄ inactive → deleted (soft)
 | BR-04 | Service accounts are never targets of IdP group mappings (they have no IdP sessions) | onLogin | ADR-032 SoD-4 |
 | BR-05 | Group claims are re-evaluated at every token refresh, at the latest every 15 minutes | onRefresh | Q16 |
 | BR-06 | Deleting or deactivating the last path to `system-admin` is rejected (409) | onUpdate, onDelete | ADR-032 SoD-7 |
+| BR-07 | While `privilegedAssignmentApproval` is enabled, creating a mapping to a privileged role or changing a mapping's target to a privileged role stays `pending` until a second administrator (not the requester) approves; only approved, active mappings are evaluated | onCreate, onUpdate | owner decision Q18, REQ-194 |
 
 ## Examples
 
@@ -124,3 +125,4 @@ Created for ADR-032 DM-5 and DM-6, REQ-167 and owner decision Q16. References an
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | Business Engineer | Initial draft from ADR-032 DM-5/DM-6, REQ-167, Q16 |
+| 0.2.0 | 2026-10-13 | Lukas Mathis | BR-07: four-eyes approval for mappings to privileged roles (owner decision Q18) |

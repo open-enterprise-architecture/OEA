@@ -833,6 +833,10 @@ Answers of the repository owner (Lukas Mathis) to the open questions. They are b
 | Q14 | Restricted properties are readable only via their `readRoles`; the override role list (REQ-128) is empty by default | ADR-032, REQ-128 |
 | Q15 | Four-eyes approval for privileged role assignments is optional (operator setting, default off); assignments are always audited and notified | ADR-032, new requirement |
 | Q16 | Removal from an IdP group takes effect in OEA within 15 minutes (re-evaluation at every token refresh) | ADR-032, REQ-165 |
+| Q17 | IdP unreachable or refresh rejected: IdP-derived roles no longer apply (fail closed); local roles stay | REQ-165 AC6 |
+| Q18 | Four-eyes approval, when enabled, also covers IdP mappings to privileged roles and admin-class permissions on custom roles | REQ-194 |
+| Q19 | Reactivation of offboarded persons configurable, default off | REQ-004, person.md |
+| Q20 | Ended sessions: tokens deleted immediately, record kept 30 days (configurable) | REQ-189, session.md |
 
 ## Sign-off
 
