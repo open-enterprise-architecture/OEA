@@ -4,9 +4,9 @@ title: Set initial password by administrator
 type: functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-25
-last_updated: 2026-06-25
+last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
@@ -29,15 +29,17 @@ superseded_by: []
 
 ## Statement
 
-The system MUST allow an administrator to set an initial password when creating a person for local authentication; this password MUST be persisted as a secure hash (argon2id or bcrypt) immediately after being set and MUST be displayed to the administrator in plain text exactly once, and not be retrievable afterwards.
+The system MUST allow an administrator to set an initial password when creating a person for local authentication; this password MUST be persisted as an argon2id hash (parameters per REQ-169) immediately after being set, MUST be displayed to the administrator in plain text exactly once and not be retrievable afterwards, MUST expire after a configurable period (default 72 hours, REQ-173) and MUST only allow reaching the mandatory password change.
 
 ## Rationale
 
-Local authentication without an external IdP needs a starting point: before a person can log in, they must have credentials. The initial password bridges this gap – it is the starting point for the first login (UC-01 A5), after which UC-03 (required action) sets up the 2nd factor. The administrator sets the password once, passes it on to the person (any channel), and the person changes it at first login (separate required action "Change password", not yet specified as a requirement – see Context). Addresses SH-06's requirement for local user management without email infrastructure.
+Local authentication without an external IdP needs a starting point: before a person can log in, they must have credentials. The initial password bridges this gap – it is the starting point for the first login (UC-01 A5), after which UC-03 (required action) sets up the 2nd factor. The administrator sets the password once, passes it on to the person (any channel), and the person changes it at first login (mandatory required action `password_change`, see Context). Addresses SH-06's requirement for local user management without email infrastructure.
 
 ## Context
 
-The initial password is a temporary credential: it suffices to perform UC-01 A5 (password login) and to trigger UC-03 (required action). A password change at first login is recommended, but is to be modeled separately as an independent required action (not decided here). No enrollment token or invitation link is needed.
+The initial password is a temporary credential: it suffices to perform UC-01 A5 (password login) and to trigger UC-03 (required action). No enrollment token or invitation link is needed.
+
+Security review SEC-12 (2026-10-13): an initial password without expiry and without mandatory change can be used by whoever obtains it first, who then completes just-in-time enrollment with their own second factor. Since version 0.3.0 the password change at first login is mandatory (required action `password_change`, same mechanism as REQ-031) and the initial password expires (REQ-173). Hashing follows REQ-169 (argon2id only; bcrypt is no longer permitted because it truncates at 72 bytes).
 
 ## Type-Specific Fields
 
@@ -50,8 +52,9 @@ The initial password is a temporary credential: it suffices to perform UC-01 A5 
 **Processing**:
 
 - System checks the password against configurable minimum requirements (minimum length; optional complexity rules)
-- System creates a hash (argon2id preferred; bcrypt as fallback)
-- Hash is persisted as a `LocalCredential` with `type=password` and linked to the person
+- System creates an argon2id hash (REQ-169)
+- Hash is persisted as a `LocalCredential` with `type=password` and linked to the person, marked as temporary with an expiry timestamp (default now + 72 h)
+- System sets the required action `password_change` for the person
 - Plain-text password is displayed once in the admin UI / CLI output, afterwards not retrievable
 - Optional: the system can automatically generate a cryptographically strong password (recommended)
 
@@ -98,12 +101,24 @@ The initial password is a temporary credential: it suffices to perform UC-01 A5 
 - When: it is generated
 - Then: it has at least 16 characters and sufficient entropy (upper/lower case/digits/special characters)
 
+**AC6**:
+
+- Given: an initial password set 73 hours ago and never used (default expiry 72 h)
+- When: the person tries to log in with it
+- Then: the login fails with the generic error of REQ-006 and the administrator must issue a new initial password
+
+**AC7**:
+
+- Given: a person logs in successfully with the initial password
+- When: the login completes
+- Then: no application access is possible until the person has set a new password (required action `password_change`)
+
 ## Verification Method
 
 - [x] Method: test (automated)
 - [x] Test setup: set password, check hash format, attempt plain-text retrieval, log scan
 - [x] Measurement tool: test suite of the admin module; DB inspection in the test
-- [x] Pass criterion: AC1–AC5 green; login with the set password (AC3) works via REQ-011
+- [x] Pass criterion: AC1–AC7 green; login with the set password (AC3) works via REQ-011
 - [ ] Integrated in CI: yes, once the implementation exists
 
 ## Dependencies
@@ -111,6 +126,7 @@ The initial password is a temporary credential: it suffices to perform UC-01 A5 
 - **Prerequisites**: The person must be created in the system (no separate UC so far); REQ-028 (password policies must be configured so that validation takes effect)
 - **Downstream effects**: REQ-011 (password login); UC-03 required action (requires an initial password)
 - **Recommended**: REQ-027 (password generator automatically creates a policy-compliant password)
+- **Related**: REQ-169 (password storage), REQ-173 (temporary password lifecycle)
 - **Follow-up requirement**: REQ-031 (password reset for existing users – same pattern, but with revocation of the old credential and forced password change)
 - **Conflicts**: none known
 
@@ -147,3 +163,4 @@ v0.2.0: Completely rewritten. v0.1.0 (password enrollment by the user themselves
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft: password enrollment by user via enrollment token |
 | 0.2.0 | 2026-06-25 | requirements-engineer | Complete revision: admin sets initial password; token approach rejected |
+| 0.3.0 | 2026-10-13 | requirements-engineer | Security review SEC-12/SEC-09: expiry (default 72 h), mandatory password change (AC6, AC7); argon2id only per REQ-169 |

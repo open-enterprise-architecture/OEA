@@ -4,9 +4,9 @@ title: OIDC-based login and session creation
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-24
-last_updated: 2026-06-24
+last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
@@ -95,7 +95,7 @@ Concept §21.8 defines OAuth 2.0/OIDC as the standard authentication mechanism. 
 
 - Given: a token issued by the external IdP with a validity period set by the IdP
 - When: OEA creates the session
-- Then: OEA adopts this validity period unchanged, without shortening or extending it
+- Then: OEA never extends this validity period; the OEA session additionally ends at the idle timeout or absolute lifetime of REQ-165, whichever comes first
 
 ## Verification Method
 
@@ -142,3 +142,4 @@ Derived from UC-01 Login, Basic Flow and Alternative A1.
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |
+| 0.2.0 | 2026-10-13 | Lukas Mathis | AC4: IdP token lifetime is an upper bound; OEA session limits (REQ-165) may shorten it (security review SEC-06) |

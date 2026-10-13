@@ -3,10 +3,10 @@ id: REQ-002
 title: API key authentication for machine-to-machine access
 type: functional
 priority: should
-status: proposed
-version: 0.1.0
+status: rejected
+version: 0.2.0
 created: 2026-06-24
-last_updated: 2026-06-24
+last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
@@ -21,10 +21,13 @@ references:
     - concept/70-platform/21-api-architecture.md
   adrs: []
 supersedes: []
-superseded_by: []
+superseded_by:
+  - REQ-176
 ---
 
 # REQ-002: API key authentication for machine-to-machine access
+
+> **Rejected (2026-10-13)**: owner decision Q5 of the security review `security-reviews/requirements-baseline-2026-10.md` (finding SEC-15). Machine access is provided only through service accounts with OAuth2 client credentials (REQ-155, REQ-176). API keys are not offered. The content below is kept for traceability only.
 
 ## Statement
 
@@ -116,3 +119,4 @@ Derived from UC-01 Login, Alternative A2.
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |
+| 0.2.0 | 2026-10-13 | requirements-engineer | Rejected per security review SEC-15 / owner decision Q5; superseded by REQ-176 (service accounts with OAuth2 client credentials only) |

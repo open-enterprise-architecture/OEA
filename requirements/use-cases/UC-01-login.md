@@ -5,9 +5,9 @@ status: draft
 priority: must
 target_release: walking-skeleton
 complexity: small
-version: 0.5.0
+version: 0.5.1
 created: 2026-06-24
-last_updated: 2026-06-24
+last_updated: 2026-10-13
 primary_actor: SH-03
 secondary_actors:
   - SH-06
@@ -42,7 +42,7 @@ rectangle "OEA – Login" {
   usecase "Passkey Login" as UC_Passkey
   usecase "TOTP + Password" as UC_TOTP
   usecase "Password Login\n(Minimal)" as UC_PW
-  usecase "API Key Authentication" as UC_API
+  usecase "Service Account\n(Client Credentials)" as UC_API
   usecase "Create Session &\nLoad Permissions" as UC_Session
   usecase "Write Audit Log" as UC_Audit
 }
@@ -87,7 +87,7 @@ Kurt manages the architecture repository via Git/Markdown, but also uses UI and 
 - [ ] A [Person](../../business-objects/person.md) with a valid `email`/`externalReference` exists
 - [ ] The person is assigned at least one active [Role](../../business-objects/role.md) (RoleAssignment with `validFrom <= today <= validTo`)
 - [ ] At least one authentication mechanism is configured for the OEA instance (see concept §21.8): OIDC identity provider (incl. SSO), and/or local authentication (passkey, username/password optionally with TOTP)
-- [ ] If the operator has enabled enforcement of a second factor during commissioning (see REQ-020): A5 (username/password without a second factor) is not usable for regular persons – this enforcement does not apply to the system admin account from UC-02
+- [ ] If the operator has enabled enforcement of a second factor during commissioning (see REQ-020): A5 (username/password without a second factor) is not usable for regular persons – the system admin account from UC-02 is exempt only for its first bootstrap login; privileged accounts always need a second factor (REQ-171)
 - [ ] If local authentication with passkey or TOTP is used: the person has previously registered the respective factor (enrollment, see "Out of Scope")
 
 ## Postconditions
@@ -124,10 +124,10 @@ Kurt manages the architecture repository via Git/Markdown, but also uses UI and 
 
 - Returns to step 7 (confirmation is omitted since no new login took place)
 
-**A2 – API key authentication (machine-to-machine)**: At step 2, if the request uses an API key instead of a browser login (see concept §21.8):
+**A2 – Service account authentication (machine-to-machine)**: At step 2, if the request comes from a machine client instead of a browser login. API keys are not supported (owner decision Q5 of the 2026-10 security review, REQ-002 rejected); machine clients use service accounts with OAuth2 client credentials (REQ-155, REQ-176):
 
-1. System validates the API key directly, without redirect to the identity provider
-2. System determines the person/service identity assigned to the API key and its roles
+1. The machine client obtains a short-lived access token with its client credentials and presents it, without redirect to the identity provider
+2. System validates the token and determines the service account and its roles
 
 - Returns to step 6 of the basic flow
 
@@ -156,7 +156,7 @@ Kurt manages the architecture repository via Git/Markdown, but also uses UI and 
 
 - Returns to step 6 of the basic flow
 - This variant is deliberately riskier (no second factor) and is flagged accordingly in the audit log (see REQ-005)
-- The operator can block this variant instance-wide for all regular persons by enabling enforcement of a second factor (see REQ-020); this block applies exclusively to regular persons, not to the system admin account from UC-02
+- The operator can block this variant instance-wide for all regular persons by enabling enforcement of a second factor (see REQ-020); independently of this setting, privileged accounts including the system admin account from UC-02 (after its first bootstrap login) always need a second factor (REQ-171)
 
 ## Exception Flows
 
@@ -175,7 +175,7 @@ Kurt manages the architecture repository via Git/Markdown, but also uses UI and 
 **E3 – Person has no active role assignment**:
 
 - Condition: BR-01 from [person.md](../../business-objects/person.md) is violated (no `fillsRoles` assignment with a valid period)
-- Expected reaction: Session is created, but without permissions beyond publicly readable content; Kurt receives a notice that no role is assigned
+- Expected reaction: Session is created, but without any permission to repository content (REQ-003; there is no public content in v1); Kurt receives a notice that no role is assigned
 - Resumption: Kurt contacts a person with authorization to assign roles
 
 **E4 – Identity provider unreachable**:
@@ -207,12 +207,12 @@ Kurt manages the architecture repository via Git/Markdown, but also uses UI and 
 - [ ] Basic flow can be fully completed with a configured OIDC provider
 - [ ] Preconditions (valid person, active role assignment) are checked before session creation
 - [ ] Postconditions on success are met: session exists, audit log entry present, role-based entry area visible
-- [ ] Alternative flows A1 (existing session) and A2 (API key) work
+- [ ] Alternative flows A1 (existing session) and A2 (service account with client credentials) work
 - [ ] If Kurt already has an active session with the configured OIDC identity provider (SSO), he is logged in without re-entering credentials
 - [ ] Alternative flows A3 (passkey), A4 (username/password + TOTP) and A5 (username/password without second factor) work, provided the instance offers local authentication
-- [ ] Exception flows E1–E4 are handled correctly without leaking security-relevant information (no user enumeration vector) – applies to all authentication mechanisms (OIDC, API key, passkey, local login)
+- [ ] Exception flows E1–E4 are handled correctly without leaking security-relevant information (no user enumeration vector) – applies to all authentication mechanisms (OIDC, service account, passkey, local login)
 - [ ] The audit log contains, for every login attempt (successful or not), at least: timestamp, mechanism used (incl. whether with/without second factor), result
-- [ ] A person without an active role assignment can log in, but only gets access to publicly readable content (E3)
+- [ ] A person without an active role assignment can log in, but gets no access to repository content (E3)
 
 ## Out of Scope
 
@@ -251,7 +251,7 @@ Kurt manages the architecture repository via Git/Markdown, but also uses UI and 
 - [x] Which concrete identity provider/auth stack is used? → decided in [ADR-006](../../adrs/ADR-006-auth-stack-choice.md): Entra ID + Authentik mandatory, local auth optional
 - [ ] Which local authentication mechanism (passkey, TOTP, or only username/password) is implemented first for the walking skeleton, if not all at the same time?
 - [x] Bootstrapping use case for the initial system admin access → see [UC-02: System Admin Bootstrapping](./UC-02-system-admin-bootstrapping.md)
-- [x] How long is a session valid, and how is refresh handled? → with an external IdP, the IdP dictates the lifetime (REQ-001, AC4); with local authentication it is configurable instance-wide (REQ-012)
+- [x] How long is a session valid, and how is refresh handled? → with an external IdP, the IdP dictates the lifetime (REQ-001, AC4); with local authentication it is configurable instance-wide (REQ-012). Superseded 2026-10-13 by the security review (SEC-06): OEA enforces its own idle timeout and absolute session lifetime independent of the IdP, plus logout and revocation (REQ-164, REQ-165); REQ-001 AC4 and REQ-012 need alignment
 - [ ] Should the minimal variant A5 (username/password without second factor) be disabled by default and have to be deliberately enabled by a role with admin authority?
 - [ ] Should the optional online token validation against the IdP (REQ-001) be configurable instance-wide, or per role/permission level (e.g., mandatory only for `admin` operations)?
 - [ ] Which WebAuthn authenticator requirements are assumed for discoverable credentials (e.g., only platform authenticator, or also external security keys)?
@@ -273,3 +273,4 @@ Local authentication (passkey, TOTP, username/password) was added as an optional
 | 0.4.0 | 2026-06-24 | Requirements Engineer | Linked ADR-006 (auth stack choice: Entra ID + Authentik mandatory, local auth optional, system admin local/remote); clarified token lifetime (external: dictated by IdP, local: configurable, REQ-012) |
 | 0.4.1 | 2026-06-24 | Requirements Engineer | Clarification in postconditions: login and visible functional scope concern all roles, not only "Enterprise Architect" |
 | 0.5.0 | 2026-06-24 | Requirements Engineer | Added REQ-020: instance-wide enforcement of a second factor for regular persons, explicitly excluding the system admin account from UC-02 |
+| 0.5.1 | 2026-10-13 | requirements-engineer | Security review SEC-05/06/10/15 (owner decisions Q1, Q5): A2 uses service accounts with client credentials instead of API keys; no public content for persons without role; system admin 2FA exemption limited to the first bootstrap login; session lifetime note |

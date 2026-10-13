@@ -4,9 +4,9 @@ title: Data backup and point-in-time recovery
 type: non-functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-27
-last_updated: 2026-06-27
+last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
@@ -39,6 +39,8 @@ EA data are strategic corporate resources (SH-05: investment decisions; SH-06: s
 
 Applies to production OEA instances. The concrete backup mechanics are the deployment responsibility of the operator; however, OEA MUST create the necessary prerequisites (pg_dump compatibility, documentation, optionally: built-in backup trigger). The REQ describes the requirement; the implementation technique (pg_dump, WAL archiving, managed DB snapshot) is chosen by the operator.
 
+Security review SEC-27 (2026-10-13): operators following plain `pg_dump` instructions store plaintext dumps that contain the whole repository including restricted properties. The documented procedure therefore produces encrypted backups and keeps the backup key and the key-encryption key of REQ-188 separate from the backup files. A restored backup rolls back the audit trail to the backup time; this limitation is documented.
+
 ## Type-Specific Fields
 
 ### For type=non-functional
@@ -60,7 +62,7 @@ Applies to production OEA instances. The concrete backup mechanics are the deplo
 
 - Given: fresh OEA installation via `docker compose up`
 - When: Operator reads the documentation
-- Then: Step-by-step instructions for `pg_dump`-based backup and restore are present; setup effort < 30 minutes
+- Then: Step-by-step instructions for `pg_dump`-based backup and restore are present; the instructions produce encrypted backup files only, store the backup encryption key and the key-encryption key of REQ-188 separately from the backup files, and state that a restore rolls back the audit trail to the backup time; setup effort < 30 minutes
 
 **AC2** (Restore test):
 
@@ -89,7 +91,7 @@ Applies to production OEA instances. The concrete backup mechanics are the deplo
 
 ## Dependencies
 
-- **Prerequisites**: ADR-016 (PostgreSQL 15; pg_dump-compatible); REQ-073 (availability)
+- **Prerequisites**: ADR-016 (PostgreSQL 15; pg_dump-compatible); REQ-073 (availability); REQ-129 (encryption scope); REQ-188 (key management)
 - **Downstream effects**: Backup procedure must be documented in `docs/operations.md` (before walking skeleton release)
 
 ## Risks of Non-Fulfillment
@@ -119,3 +121,4 @@ Applies to production OEA instances. The concrete backup mechanics are the deplo
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-27 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-27: AC1 requires encrypted backups with separately stored keys and documents audit rollback on restore |

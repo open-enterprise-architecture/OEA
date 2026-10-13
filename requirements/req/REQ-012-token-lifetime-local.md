@@ -4,9 +4,9 @@ title: Configurable token lifetime for local authentication
 type: data
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-24
-last_updated: 2026-06-24
+last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
@@ -54,7 +54,7 @@ Concerns exclusively sessions created via the local authentication mechanisms fr
 - Value range: `accessTokenLifetime` < `refreshTokenLifetime`; both > 0
 - Uniqueness: uniform instance-wide (not configurable per person)
 
-**Default Value**: provisionally `accessTokenLifetime: PT15M`, `refreshTokenLifetime: P7D` (walking skeleton assumption, to be adjusted in review if needed)
+**Default Value**: `accessTokenLifetime: PT15M`, `refreshTokenLifetime: PT12H`; the refresh token lifetime never exceeds the absolute session lifetime of REQ-165
 
 ## Acceptance Criteria
 
@@ -106,10 +106,11 @@ Concerns exclusively sessions created via the local authentication mechanisms fr
 
 ## Notes
 
-Resolves the question left open in UC-01, "How long is a session valid, and how is refresh handled?", for the local authentication case; for external IdPs the question is answered by REQ-001 AC4 (set by the IdP).
+Resolves the question left open in UC-01, "How long is a session valid, and how is refresh handled?", for the local authentication case; for external IdPs the question is answered by REQ-001 AC4 (IdP lifetime as upper bound) together with REQ-165 (OEA idle and absolute session limits).
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft, clarifies token lifetime separately for external IdP (REQ-001) and local authentication |
+| 0.2.0 | 2026-10-13 | Lukas Mathis | Refresh token default PT12H, bounded by the absolute session lifetime of REQ-165 (security review SEC-06) |

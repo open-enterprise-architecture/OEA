@@ -4,9 +4,9 @@ title: Login latency
 type: non-functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-24
-last_updated: 2026-06-24
+last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
@@ -28,7 +28,7 @@ superseded_by: []
 
 ## Statement
 
-The system SHOULD complete the login process (from redeeming the authorization code or validating the API key to session confirmation) within a defined time budget.
+The system SHOULD complete the login process (from redeeming the authorization code to session confirmation, and from a client credentials token request to token issuance) within a defined time budget.
 
 ## Rationale
 
@@ -49,7 +49,7 @@ Applies to the server-side portion of the login process (token redemption, perso
 | Metric | Target value | Threshold (warning) | Threshold (critical) | Scope |
 |---|---|---|---|---|
 | p95 server processing time for login (token redemption to session confirmation) | < 300ms | 500ms | 1000ms | with up to 10,000 persons and 1,000 roles in the repository |
-| p95 API key validation | < 100ms | 200ms | 500ms | with up to 10,000 active API keys |
+| p95 client credentials token issuance (service accounts, REQ-155/REQ-176) | < 300ms | 500ms | 1000ms | with up to 1,000 active service accounts; secret verification with the argon2id parameters of REQ-176 included |
 
 **Example**: "p95 login processing time < 300ms with 10,000 persons in the repository"
 
@@ -63,21 +63,21 @@ Applies to the server-side portion of the login process (token redemption, perso
 
 **AC2**:
 
-- Given: a repository with 10,000 active API keys
-- When: 95% of API key validations are measured
-- Then: the processing time is below 100ms
+- Given: a repository with 1,000 active service accounts
+- When: 95% of client credentials token requests are measured (server-side portion)
+- Then: the processing time is below 300ms
 
 ## Verification Method
 
 - [x] Method: test (automatisiert, Lasttest)
-- [x] Test setup: load test with a synthetic repository dataset (10,000 persons, 1,000 roles, 10,000 API keys)
+- [x] Test setup: load test with a synthetic repository dataset (10,000 persons, 1,000 roles, 1,000 service accounts)
 - [x] Measurement tool: load/performance test tool (specific choice: solution design, not to be fixed here)
 - [x] Pass criterion: p95 values met per the table
 - [ ] Integrated in CI: yes, as a performance gate once the implementation exists
 
 ## Dependencies
 
-- **Prerequisites**: REQ-001, REQ-002
+- **Prerequisites**: REQ-001, REQ-155, REQ-176 (REQ-002 API keys rejected)
 - **Downstream effects**: none known
 - **Conflicts**: REQ-004, REQ-006 (additional lookup/anti-timing measures must not blow the latency budget)
 
@@ -110,3 +110,4 @@ Target values are a first estimate for the walking skeleton scope, not validated
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |
+| 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-15 / owner decision Q5: API key validation target replaced by client credentials token issuance |

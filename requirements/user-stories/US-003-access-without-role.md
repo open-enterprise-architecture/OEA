@@ -7,7 +7,7 @@
 
 ## Story
 
-As a person without an active role assignment, I want to still be able to sign in, so that I can at least see publicly readable content and receive a notice that no role has been assigned to me yet.
+As a person without an active role assignment, I want to still be able to sign in, so that I receive a notice that no role has been assigned to me yet.
 
 ## Reference
 
@@ -21,12 +21,12 @@ As a person without an active role assignment, I want to still be able to sign i
 
 - Given: a successfully authenticated person without an active role assignment
 - When: they access the repository
-- Then: they receive access only to publicly readable content and a notice that no role is assigned
+- Then: every request for repository content is rejected with 403 and they see a notice that no role is assigned
 
 **AC2**:
 
 - Given: a person subsequently receives an active role assignment
-- When: they sign in again or the session is refreshed
+- When: they make the next request after at most 60 seconds
 - Then: their permissions reflect the new role
 
 ## Technical Notes
@@ -53,4 +53,4 @@ As a person without an active role assignment, I want to still be able to sign i
 
 ## Notes
 
-Covers exception flow E3 from UC-01. Implements the concept constraint `person-minimum-role` as a warning, not a hard block.
+Covers exception flow E3 from UC-01. Implements the concept constraint `person-minimum-role` as a warning, not a hard block. 2026-10-13: "publicly readable content" removed (REQ-003 v0.2.0, security review SEC-05, owner decision Q1 – no anonymous or public access in v1).

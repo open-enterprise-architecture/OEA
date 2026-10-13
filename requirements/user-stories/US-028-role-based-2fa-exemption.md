@@ -1,4 +1,4 @@
-# US-028: Configure 2FA Exemption for Admin Roles
+# US-028: Configure 2FA Exemption for Non-Privileged Roles
 
 **ID**: US-028
 **Story Points**: 2
@@ -7,7 +7,7 @@
 
 ## Story
 
-As an operator, I want to be able to define which OEA roles are exempt from the instance-wide 2FA requirement, so that administrators get access even without a set-up second factor and I am not forced to enforce 2FA for everyone or for nobody.
+As an operator, I want to be able to define which OEA roles are exempt from the instance-wide 2FA requirement, so that selected low-risk roles get access even without a set-up second factor and I am not forced to enforce 2FA for everyone or for nobody.
 
 ## Reference
 
@@ -19,19 +19,19 @@ As an operator, I want to be able to define which OEA roles are exempt from the 
 
 **AC1**:
 
-- Given: Max has configured `enforce2FA=true` and `twoFactorExemptRoles=['administrator']`
-- When: a person with the admin role logs in without a 2FA credential
+- Given: Max has configured `enforce2FA=true` and `twoFactorExemptRoles=['viewer']`
+- When: a person whose only role is `viewer` logs in without a 2FA credential
 - Then: they get direct access without a required action
 
 **AC2**:
 
 - Given: the same configuration
-- When: a person without the admin role logs in without a 2FA credential
+- When: a person with any role not in the exemption list (including a person holding `viewer` and another role) logs in without a 2FA credential
 - Then: UC-03 required action is triggered
 
 **AC3**:
 
-- Given: Max tries to enter a non-existent role ID as an exemption
+- Given: Max tries to enter a non-existent role ID, or a role with an `admin`-class permission, as an exemption
 - When: he saves
 - Then: a validation error appears; the configuration is not saved
 
@@ -57,4 +57,4 @@ As an operator, I want to be able to define which OEA roles are exempt from the 
 
 ## Notes
 
-Default: `twoFactorExemptRoles=[]` – no difference from the previous REQ-020 behavior. Max enables the exemption only if he deliberately wants it. The system admin account (UC-02) is always exempt, independent of this.
+Default: `twoFactorExemptRoles=[]` – no difference from the previous REQ-020 behavior. Max enables the exemption only if he deliberately wants it. 2026-10-13 (security review SEC-10, REQ-029 v0.2.0): admin roles cannot be exempted, a person is exempt only if all roles are exempt, and the system admin account needs a second factor after its first bootstrap login (REQ-171).

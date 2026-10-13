@@ -2,7 +2,7 @@
 
 **ID**: US-002
 **Story Points**: 3
-**Status**: backlog
+**Status**: rejected
 **Sprint**: unassigned
 
 ## Story
@@ -54,3 +54,5 @@ As a machine client (e.g. CI script, discovery adapter), I want to authenticate 
 ## Notes
 
 Covers alternative A2 from UC-01.
+
+**Rejected (2026-10-13)**: REQ-002 was rejected by owner decision Q5 of the security review (finding SEC-15). Machine access uses service accounts with OAuth2 client credentials only (REQ-155, REQ-176, US-142). This story is not implemented.
