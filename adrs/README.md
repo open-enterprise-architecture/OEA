@@ -68,3 +68,4 @@ In `.opencode/commands/`:
 | [ADR-029](./ADR-029-cucumber-test-framework.md) | Test Framework for BDD System Tests — Cucumber JVM | accepted | 2026-06-30 | – |
 | [ADR-030](./ADR-030-postgresql-only.md) | PostgreSQL as the Only Supported Database | accepted | 2026-10-13 | ADR-023 |
 | [ADR-031](./ADR-031-ui-prototyping-storybook.md) | UI Prototyping with Clickable Vue Prototypes in Storybook | accepted | 2026-10-13 | – |
+| [ADR-032](./ADR-032-authorization-model.md) | Authorization model: RBAC with a fixed permission catalog and configurable roles | accepted | 2026-10-13 | – (partially: ADR-006, ADR-008, ADR-026) |

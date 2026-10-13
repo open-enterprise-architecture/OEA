@@ -26,10 +26,14 @@ hide empty methods
 ' {NN}   NOT NULL (implicit for PK; explicit for others)
 ' Database: PostgreSQL ≥ 15 only (ADR-030); JSONB allowed for structured documents
 ' Enums as comment: -- enum: a|b|c
+' Actor references in the Auth package (ADR-032): the local system admin
+'   account is not a person, so actor columns come in pairs
+'   <x>_by_person_id {FK→persons.id} + <x>_by_admin_id {FK→system_admin_accounts.id};
+'   CHECK: at most one of the pair is set; both NULL = system-initiated.
 ' ─────────────────────────────────────────────────────
 
 ' ╔══════════════════════════════════════════════════════╗
-' ║  AUTH                                               ║
+' ║  AUTH – IDENTITIES AND CREDENTIALS                  ║
 ' ╚══════════════════════════════════════════════════════╝
 package "Auth" #FFF8E1 {
 
@@ -41,9 +45,18 @@ package "Auth" #FFF8E1 {
     .. service-account: no ui_language/ui_theme required ..
     + name                : TEXT          {NN}
     + email               : TEXT          {NN} {UQ}
+    .. contact attribute; NEVER used to match a login (REQ-166) ..
     + employee_id         : TEXT
     .. null for service-account ..
-    + active              : BOOLEAN       {NN} DEFAULT true
+    == Lifecycle (replaces 'active BOOLEAN'; REQ-004, REQ-007, REQ-164) ==
+    + status              : TEXT          {NN} DEFAULT 'invited'
+    .. enum: invited | active | inactive | offboarded ..
+    .. service-account: CHECK status <> 'invited' (created as 'active') ..
+    .. session creation only for 'invited' | 'active' (REQ-004) ..
+    + status_changed_at   : TIMESTAMPTZ   {NN} DEFAULT NOW()
+    + status_changed_by_person_id : BIGINT {FK→persons.id}
+    + status_changed_by_admin_id  : UUID   {FK→system_admin_accounts.id}
+    .. both NULL = system transition (first login invited→active, REQ-007) ..
     + start_date          : DATE
     + end_date            : DATE
     + detail_level        : TEXT          {NN} DEFAULT 'reference-only'
@@ -51,6 +64,16 @@ package "Auth" #FFF8E1 {
     .. service-account: always 'reference-only' ..
     + external_ref_system : TEXT
     + external_ref_id     : TEXT
+    .. reference to the HR master system (§8.7); NOT the login identity ..
+    .. (login identity: person_identities) ..
+    == Account link to the EA Person entity (ADR-032 DM-7, REQ-127) ==
+    + entity_id           : INTEGER       {UQ} {FK→entities.id}
+    .. nullable; target entity must be of metatype 'person' ..
+    .. set only with person:manage, never for the own account (SoD-1); audited ..
+    + entity_linked_at    : TIMESTAMPTZ
+    + entity_linked_by_person_id : BIGINT {FK→persons.id}
+    + entity_linked_by_admin_id  : UUID   {FK→system_admin_accounts.id}
+    == UI preferences ==
     + ui_language         : TEXT          {NN} DEFAULT 'de'
     .. BCP 47: 'de' | 'en' | 'fr' | 'it' ..
     .. ignored for person_type=service-account ..
@@ -59,84 +82,94 @@ package "Auth" #FFF8E1 {
     + created_at          : TIMESTAMPTZ   {NN} DEFAULT NOW()
   }
 
-  class machine_credentials <<Table>> #FFECB3 {
-    + client_id           : UUID          {PK}
-    .. stable; used as agent_id in the audit log ..
+  class auth_providers <<Table>> #FFECB3 {
+    + id               : UUID             {PK}
     --
-    + person_id           : BIGINT        {NN} {FK→persons.id}
-    .. CHECK: persons.person_type = 'service-account' ..
-    + client_secret_hash  : TEXT          {NN}
-    .. argon2id; plaintext returned only once on creation/rotation ..
-    + active              : BOOLEAN       {NN} DEFAULT true
-    + created_at          : TIMESTAMPTZ   {NN} DEFAULT NOW()
-    + last_used_at        : TIMESTAMPTZ
-    + rotated_at          : TIMESTAMPTZ
-    .. null = never rotated ..
-  }
-
-  note right of machine_credentials
-    Credentials for service accounts (ADR-026).
-    OAuth2 Client-Credentials-Grant:
-    client_id + client_secret → JWT.
-    client_id = agent_id in the audit log.
-    Rotation: new secret; old one immediately
-    invalid (active=false on the old entry,
-    new entry created).
-  end note
-
-  class roles <<Table>> #FFECB3 {
-    + id               : TEXT             {PK}
-    .. kebab-case, e.g. 'enterprise-architect' ..
-    --
+    + provider_type    : TEXT             {NN}
+    .. enum: entra-id | authentik | generic-oidc (ADR-006; no LDAP, Q6) ..
     + name             : TEXT             {NN}
-    .. corporate language; translation via i18n_entries(field='name') ..
-    + description      : TEXT
-    .. corporate language; translation via i18n_entries(field='description') ..
-    + type             : TEXT             {NN}
-    .. enum: functional | process | project | governance | architectural | system ..
-    .. system = for internal roles (integration-writer, auditor) ..
-    + permission_level : TEXT             {NN} DEFAULT 'read'
-    .. enum: read | write | admin ..
-    + is_standard_role : BOOLEAN          {NN} DEFAULT false
-    + is_builtin       : BOOLEAN          {NN} DEFAULT false
-    .. is_builtin=true: not deletable; part of the starter data script ..
+    + issuer           : TEXT             {NN} {UQ}
+    .. exact 'iss' value; claims from other issuers are ignored ..
+    + active           : BOOLEAN          {NN} DEFAULT true
+    + created_at       : TIMESTAMPTZ      {NN} DEFAULT NOW()
   }
 
-  note right of roles
-    Builtin-Rollen (is_builtin=true):
-    'enterprise-architect' (write)
-    'viewer'               (read)
-    'auditor'              (read, audit-schema)
-    'integration-writer'   (write, entities/
-      connections only; no admin access)
-      → only for service-account persons
-    Role assignment via person_roles
-    (valid from valid_from, optionally until valid_to).
+  note right of auth_providers
+    PLACEHOLDER (ADR-032 DM-5 needs the FK).
+    Only the columns referenced by identity
+    binding and IdP group mappings are modeled.
+    Client ID, encrypted client secret (REQ-188),
+    claim names and 2FA policy follow with a
+    dedicated business object 'auth-provider'.
   end note
 
-  class person_roles <<Table>> #FFECB3 {
-    + person_id       : BIGINT            {PK} {FK→persons.id}
-    + role_id         : TEXT              {PK} {FK→roles.id}
-    + valid_from      : DATE              {PK}
+  class person_identities <<Table>> #FFECB3 {
+    + id                : UUID            {PK}
     --
-    + valid_to        : DATE
-    + assignment_type : TEXT
-    + percentage      : SMALLINT
+    + person_id         : BIGINT          {NN} {FK→persons.id}
+    .. CHECK: persons.person_type = 'human' ..
+    + auth_provider_id  : UUID            {NN} {FK→auth_providers.id}
+    + issuer            : TEXT            {NN}
+    .. = auth_providers.issuer; denormalized for the login lookup ..
+    + subject           : TEXT            {NN}
+    .. immutable subject of the provider ('sub'; Entra ID: 'oid', tenant in issuer) ..
+    .. UNIQUE(issuer, subject) – login lookup key (REQ-004, REQ-166) ..
+    + link_method       : TEXT            {NN}
+    .. enum: admin-entered | email-match ..
+    + linked_at         : TIMESTAMPTZ     {NN} DEFAULT NOW()
+    + confirmed_at      : TIMESTAMPTZ
+    .. CHECK: NOT NULL before use if link_method = 'email-match' ..
+    .. (email_verified=true + admin confirmation, REQ-166 AC4) ..
+    + confirmed_by_person_id : BIGINT     {FK→persons.id}
+    + confirmed_by_admin_id  : UUID       {FK→system_admin_accounts.id}
+    + last_login_at     : TIMESTAMPTZ
   }
+
+  class system_admin_accounts <<Table>> #FFECB3 {
+    + id                 : UUID           {PK}
+    --
+    + login_name         : TEXT           {NN} {UQ}
+    + status             : TEXT           {NN} DEFAULT 'bootstrapped'
+    .. enum: bootstrapped | active | deactivated ..
+    + linked_person_id   : BIGINT         {UQ} {FK→persons.id}
+    .. optionallyLinkedTo; SoD-1 treats both as one principal ..
+    + created_at         : TIMESTAMPTZ    {NN} DEFAULT NOW()
+    + first_login_at     : TIMESTAMPTZ
+    .. only login without second factor; enrollment forced (REQ-171 AC1) ..
+    + last_used_at       : TIMESTAMPTZ
+    + deactivated_at     : TIMESTAMPTZ
+    + deactivated_by_person_id : BIGINT   {FK→persons.id}
+    + deactivated_by_admin_id  : UUID     {FK→system_admin_accounts.id}
+    .. deactivation rejected if it removes the last path to system-admin (SoD-7) ..
+  }
+
+  note right of system_admin_accounts
+    Local system admin account (UC-02, ADR-032 §1):
+    holds exactly the permissions of the built-in
+    role 'system-admin'. Password and second factor
+    are rows in local_credentials
+    (system_admin_account_id). The former "remote
+    mode" is an idp_group_mappings row with
+    role_id = 'system-admin' (DM-6, REQ-014/REQ-167).
+  end note
 
   class local_credentials <<Table>> #FFECB3 {
     + id             : UUID               {PK}
     --
-    + person_id      : BIGINT             {NN} {FK→persons.id}
+    + person_id      : BIGINT             {FK→persons.id}
+    + system_admin_account_id : UUID      {FK→system_admin_accounts.id}
+    .. CHECK: exactly one owner set; person must be person_type='human' ..
     + type           : TEXT               {NN}
-    .. enum: passkey | totp | password ..
+    .. enum: passkey | totp | password | recovery-codes ..
     + status         : TEXT               {NN} DEFAULT 'active'
     .. enum: active | revoked ..
     + created_at     : TIMESTAMPTZ        {NN} DEFAULT NOW()
     + last_used_at   : TIMESTAMPTZ
     + revoked_at     : TIMESTAMPTZ
     + revoked_reason : TEXT
-    .. enum: device_lost | superseded | admin_action | person_request ..
+    .. enum: device_lost | superseded | admin_action | person_request | factor_reset ..
+    + revoked_by_person_id : BIGINT       {FK→persons.id}
+    + revoked_by_admin_id  : UUID         {FK→system_admin_accounts.id}
   }
 
   class passkey_credentials <<Table>> #FFECB3 {
@@ -152,28 +185,363 @@ package "Auth" #FFF8E1 {
   }
 
   class totp_credentials <<Table>> #FFECB3 {
-    + credential_id  : UUID               {PK} {FK→local_credentials.id}
+    + credential_id       : UUID          {PK} {FK→local_credentials.id}
     --
-    + totp_secret    : TEXT               {NN}
-    .. AES-encrypted; RFC 6238 ..
-    + totp_label     : TEXT
+    + secret_encrypted    : TEXT          {NN}
+    .. AES-256-GCM; key-encryption key outside the DB (REQ-188); RFC 6238 ..
+    + key_id              : TEXT          {NN}
+    .. version of the key-encryption key; enables key rotation (REQ-188) ..
+    + algorithm           : TEXT          {NN} DEFAULT 'SHA1'
+    .. enum: SHA1 | SHA256 | SHA512 ..
+    + digits              : SMALLINT      {NN} DEFAULT 6
+    .. CHECK: 6 | 8 ..
+    + period_seconds      : SMALLINT      {NN} DEFAULT 30
+    + last_used_time_step : BIGINT
+    .. replay protection: accept only time step > value (REQ-170) ..
+    + label               : TEXT
   }
 
   class password_credentials <<Table>> #FFECB3 {
     + credential_id  : UUID               {PK} {FK→local_credentials.id}
-    .. max. 1 active per person ..
+    .. max. 1 active per owner ..
     --
     + password_hash  : TEXT               {NN}
-    .. argon2id ..
+    .. argon2id ONLY, PHC string '$argon2id$…' (REQ-169) ..
+    .. m ≥ 19 MiB, t ≥ 2, p = 1; rehash on login if parameters outdated ..
+    + origin         : TEXT               {NN} DEFAULT 'self-set'
+    .. enum: self-set | initial | admin-reset | break-glass ..
+    + expires_at     : TIMESTAMPTZ
+    .. CHECK: NOT NULL iff origin <> 'self-set' (default +72 h, REQ-173) ..
+    .. temporary password: only the password change is reachable ..
   }
 
-  persons           "1"  --o{ "0..*" person_roles        : fills
-  roles             "1"  --o{ "0..*" person_roles        : assigned via
-  persons           "1"  --o{ "0..*" local_credentials   : owns (human only)
-  local_credentials "1"  --||        passkey_credentials : type=passkey
-  local_credentials "1"  --||        totp_credentials    : type=totp
-  local_credentials "1"  --||        password_credentials: type=password
-  persons           "1"  --o{ "0..*" machine_credentials : owns (service-account only)
+  class recovery_codes <<Table>> #FFECB3 {
+    + id             : UUID               {PK}
+    --
+    + credential_id  : UUID               {NN} {FK→local_credentials.id}
+    .. local_credentials.type = 'recovery-codes' ..
+    + code_hash      : TEXT               {NN}
+    .. argon2id; plaintext shown once at generation (REQ-173) ..
+    + used_at        : TIMESTAMPTZ
+    .. single use ..
+  }
+
+  class machine_credentials <<Table>> #FFECB3 {
+    + id                  : UUID          {PK}
+    --
+    + client_id           : UUID          {NN}
+    .. stable per service account across rotations; agent_id in the audit log ..
+    .. UNIQUE(client_id) WHERE status = 'active' ..
+    + person_id           : BIGINT        {NN} {FK→persons.id}
+    .. CHECK: persons.person_type = 'service-account' ..
+    + client_secret_hash  : TEXT          {NN}
+    .. argon2id; plaintext returned only once on creation/rotation ..
+    + status              : TEXT          {NN} DEFAULT 'active'
+    .. enum: active | rotated | revoked ..
+    + created_at          : TIMESTAMPTZ   {NN} DEFAULT NOW()
+    + created_by_person_id : BIGINT       {FK→persons.id}
+    + created_by_admin_id  : UUID         {FK→system_admin_accounts.id}
+    + expires_at          : TIMESTAMPTZ   {NN}
+    .. mandatory; default created_at + 90 days; maximum configurable (REQ-176) ..
+    + last_used_at        : TIMESTAMPTZ
+    + revoked_at          : TIMESTAMPTZ
+    .. set on rotation (status 'rotated') or revocation ..
+    + revoked_by_person_id : BIGINT       {FK→persons.id}
+    + revoked_by_admin_id  : UUID         {FK→system_admin_accounts.id}
+  }
+
+  note right of machine_credentials
+    Credentials for service accounts (ADR-026, REQ-155, REQ-176).
+    OAuth2 client credentials grant only (Q5):
+    client_id + client_secret → access token (≤ 900 s,
+    carries only client_id, no permissions).
+    Rotation: new row with the SAME client_id;
+    old row status='rotated', immediately invalid.
+    Expired secret → 401 + audit event; admin UI lists
+    secrets expiring within 14 days.
+  end note
+
+  persons               "1"    --o{ "0..*" person_identities     : bound to (human only)
+  auth_providers        "1"    --o{ "0..*" person_identities     : issues
+  persons               "0..1" --o| "0..1" system_admin_accounts : linked_person_id
+  persons               "1"    --o{ "0..*" local_credentials     : owns (human only)
+  system_admin_accounts "1"    --o{ "0..*" local_credentials     : owns
+  local_credentials     "1"    --||        passkey_credentials   : type=passkey
+  local_credentials     "1"    --||        totp_credentials      : type=totp
+  local_credentials     "1"    --||        password_credentials  : type=password
+  local_credentials     "1"    --o{ "1..*" recovery_codes        : type=recovery-codes
+  persons               "1"    --o{ "0..*" machine_credentials   : owns (service-account only)
+
+}
+
+' ╔══════════════════════════════════════════════════════╗
+' ║  AUTHORIZATION (ADR-032)                            ║
+' ╚══════════════════════════════════════════════════════╝
+package "Authorization" #FFFDE7 {
+
+  class permissions <<Table>> #FFF59D {
+    + id           : TEXT                 {PK}
+    .. '<resource>:<action>', e.g. 'entity:write' (ADR-032 §3) ..
+    --
+    + category     : TEXT                 {NN}
+    .. resource part, e.g. 'entity' | 'metamodel' | 'role' ..
+    + admin_class  : BOOLEAN              {NN}
+    .. true = privileged (MFA REQ-171; never for service accounts SoD-4) ..
+    + sort_order   : INTEGER              {NN} DEFAULT 0
+  }
+
+  note right of permissions
+    Fixed catalog, seeded per release by Flyway;
+    runtime DB role: SELECT only (DM-2).
+    Descriptions are system texts (vue-i18n bundle).
+    admin_class = true: metamodel:write,
+    visibility:configure, visibility-scope:assign,
+    role:assign, person:manage,
+    service-account:manage, auth-config:manage,
+    settings:manage.
+  end note
+
+  class authorization_roles <<Table>> #FFF59D {
+    + id               : TEXT             {PK}
+    .. kebab-case, e.g. 'enterprise-architect', 'iso' ..
+    --
+    + name             : TEXT             {NN}
+    .. corporate language; translation via i18n_entries(field='name') ..
+    + description      : TEXT
+    .. corporate language; translation via i18n_entries(field='description') ..
+    + is_builtin       : BOOLEAN          {NN} DEFAULT false
+    .. true: not deletable; permission set immutable (SoD-5) ..
+    + assignable_to_service_accounts : BOOLEAN {NN} DEFAULT false
+    .. only if the role has no admin_class permission (SoD-4, REQ-176) ..
+    + overrides_property_visibility  : BOOLEAN {NN} DEFAULT false
+    .. REQ-128 override list; false for every built-in role (Q14); ..
+    .. changeable only with visibility:configure; audited (SoD-6) ..
+    + created_at       : TIMESTAMPTZ      {NN} DEFAULT NOW()
+    + created_by_person_id : BIGINT       {FK→persons.id}
+    + created_by_admin_id  : UUID         {FK→system_admin_accounts.id}
+    + updated_at       : TIMESTAMPTZ
+    + updated_by_person_id : BIGINT       {FK→persons.id}
+    + updated_by_admin_id  : UUID         {FK→system_admin_accounts.id}
+    == Soft delete (custom roles only) ==
+    + deleted_at       : TIMESTAMPTZ
+    .. rejected while referenced by a granted/pending assignment, an active ..
+    .. IdP group mapping or property visibility configuration (ADR-032 §5) ..
+    + deleted_by_person_id : BIGINT       {FK→persons.id}
+    + deleted_by_admin_id  : UUID         {FK→system_admin_accounts.id}
+  }
+
+  note right of authorization_roles
+    Authorization roles ONLY (ADR-032 DM-1, DM-3).
+    Business roles ("Process Owner") are EA content:
+    entities of metatype 'role' (DM-8) – no link to
+    this table, no effect on access.
+    privileged (derived) = has an admin_class permission.
+    Built-in roles (is_builtin=true), matrix ADR-032 §4:
+    portal-reader, viewer, analyst,
+    enterprise-architect, integration-writer, auditor,
+    metamodel-admin*, security-admin*, system-admin*
+    (* privileged). Assignable to service accounts:
+    viewer, integration-writer, auditor.
+    SoD-2: no role holds metamodel:write together with
+    visibility:configure or visibility-scope:assign.
+  end note
+
+  class role_permissions <<Table>> #FFF59D {
+    + role_id        : TEXT               {PK} {FK→authorization_roles.id}
+    + permission_id  : TEXT               {PK} {FK→permissions.id}
+  }
+
+  class role_assignments <<Table>> #FFF59D {
+    + id               : UUID             {PK}
+    --
+    + person_id        : BIGINT           {NN} {FK→persons.id}
+    .. human or service account; service account only for roles with ..
+    .. assignable_to_service_accounts = true (SoD-4) ..
+    + role_id          : TEXT             {NN} {FK→authorization_roles.id}
+    + source           : TEXT             {NN} DEFAULT 'local'
+    .. enum: local (IdP-derived roles live in session_idp_roles) ..
+    + status           : TEXT             {NN} DEFAULT 'granted'
+    .. enum: pending | granted | rejected | revoked ..
+    .. pending only if approval_required (Q15) ..
+    + valid_from       : TIMESTAMPTZ      {NN} DEFAULT NOW()
+    + valid_to         : TIMESTAMPTZ
+    .. CHECK: valid_to > valid_from; reaching valid_to = expiry (no status change) ..
+    + reason           : TEXT
+    .. justification, e.g. ticket number ..
+    + granted_at       : TIMESTAMPTZ      {NN} DEFAULT NOW()
+    + granted_by_person_id : BIGINT       {FK→persons.id}
+    + granted_by_admin_id  : UUID         {FK→system_admin_accounts.id}
+    .. CHECK: exactly one set; never the assignee itself (SoD-1) ..
+    == Four-eyes approval (Q15, setting privilegedAssignmentApproval) ==
+    + approval_required : BOOLEAN         {NN} DEFAULT false
+    .. snapshot: role privileged AND setting on at creation time ..
+    + decided_at       : TIMESTAMPTZ
+    + decided_by_person_id : BIGINT       {FK→persons.id}
+    + decided_by_admin_id  : UUID         {FK→system_admin_accounts.id}
+    .. approver ≠ requester (granted_by) and ≠ assignee ..
+    + decision_comment : TEXT
+    == Revocation (no hard delete) ==
+    + revoked_at       : TIMESTAMPTZ
+    + revoked_by_person_id : BIGINT       {FK→persons.id}
+    + revoked_by_admin_id  : UUID         {FK→system_admin_accounts.id}
+    + revocation_reason : TEXT
+  }
+
+  note right of role_assignments
+    Replaces person_roles (DM-4). Never hard-deleted;
+    runtime DB role has no DELETE grant.
+    Effective iff status = 'granted'
+      AND valid_from <= now < COALESCE(valid_to, ∞)
+      AND persons.status = 'active'.
+    CHECK: status='revoked' ⇔ revoked_at NOT NULL;
+           status IN ('granted','rejected') AND
+           approval_required ⇒ decided_at NOT NULL.
+    assignment_type / percentage moved to the EA
+    RoleAssignment connection (§8.3, DM-8).
+    INDEX(person_id) WHERE status = 'granted'.
+  end note
+
+  class idp_group_mappings <<Table>> #FFF59D {
+    + id                : UUID            {PK}
+    --
+    + auth_provider_id  : UUID            {NN} {FK→auth_providers.id}
+    + issuer            : TEXT            {NN}
+    .. = auth_providers.issuer; claims from other issuers are ignored ..
+    + claim_type        : TEXT            {NN} DEFAULT 'group'
+    .. enum: group | app-role ..
+    + group_identifier  : TEXT            {NN}
+    .. immutable provider ID (Entra group object ID / app role, ..
+    .. Authentik group UUID); display names rejected (REQ-167) ..
+    + display_label     : TEXT
+    .. informational only; never evaluated ..
+    + role_id           : TEXT            {NN} {FK→authorization_roles.id}
+    .. role_id = 'system-admin' = remote system admin (DM-6, REQ-014) ..
+    + active            : BOOLEAN         {NN} DEFAULT true
+    + created_at        : TIMESTAMPTZ     {NN} DEFAULT NOW()
+    + created_by_person_id : BIGINT       {FK→persons.id}
+    + created_by_admin_id  : UUID         {FK→system_admin_accounts.id}
+    + updated_at        : TIMESTAMPTZ
+    + updated_by_person_id : BIGINT       {FK→persons.id}
+    + updated_by_admin_id  : UUID         {FK→system_admin_accounts.id}
+    + deleted_at        : TIMESTAMPTZ
+    + deleted_by_person_id : BIGINT       {FK→persons.id}
+    + deleted_by_admin_id  : UUID         {FK→system_admin_accounts.id}
+    .. UNIQUE(auth_provider_id, claim_type, group_identifier, role_id) ..
+    .. WHERE deleted_at IS NULL ..
+  }
+
+  permissions         "1" --o{ "0..*" role_permissions   : granted by
+  authorization_roles "1" --o{ "0..*" role_permissions   : contains
+  authorization_roles "1" --o{ "0..*" role_assignments   : assigned via
+  persons             "1" --o{ "0..*" role_assignments   : holds
+  authorization_roles "1" --o{ "0..*" idp_group_mappings : target role
+  auth_providers      "1" --o{ "0..*" idp_group_mappings : group source
+
+}
+
+' ╔══════════════════════════════════════════════════════╗
+' ║  SESSIONS (REQ-164, REQ-165, ADR-032 DM-10)         ║
+' ╚══════════════════════════════════════════════════════╝
+package "Sessions" #FFF3E0 {
+
+  class sessions <<Table>> #FFE0B2 {
+    + id                  : UUID          {PK}
+    .. opaque session ID; OEA access tokens carry it as 'sid' ..
+    .. permissions are never stored in sessions or tokens (ADR-032 §7) ..
+    --
+    + person_id           : BIGINT        {FK→persons.id}
+    + system_admin_account_id : UUID      {FK→system_admin_accounts.id}
+    .. CHECK: exactly one set; person must be human ..
+    .. (service accounts: client credentials tokens only, REQ-176) ..
+    + client_type         : TEXT          {NN}
+    .. enum: web-portal | electron ..
+    + auth_method         : TEXT          {NN}
+    .. enum: oidc | passkey | password-totp | password ..
+    + auth_provider_id    : UUID          {FK→auth_providers.id}
+    .. NOT NULL iff auth_method = 'oidc' ..
+    + second_factor_verified : BOOLEAN    {NN} DEFAULT false
+    .. local: passkey/TOTP; OIDC: amr/acr (REQ-020, REQ-171) ..
+    .. privileged roles effective only if true (SoD-8) ..
+    + required_action     : TEXT
+    .. enum: change-password | enroll-second-factor; NULL = none ..
+    .. session restricted to this action (REQ-171 AC4, REQ-173 AC2) ..
+    + created_at          : TIMESTAMPTZ   {NN} DEFAULT NOW()
+    + authenticated_at    : TIMESTAMPTZ   {NN}
+    .. last (re-)authentication; step-up check (REQ-172) ..
+    + last_activity_at    : TIMESTAMPTZ   {NN}
+    .. idle timeout, default 30 min (REQ-165) ..
+    + absolute_expires_at : TIMESTAMPTZ   {NN}
+    .. created_at + absolute lifetime, default 12 h (REQ-165) ..
+    + client_ip           : INET
+    + user_agent          : TEXT
+    == IdP group re-evaluation (Q16, DM-10) ==
+    + idp_refresh_token_encrypted : TEXT
+    .. AES-256-GCM (REQ-188); server-side only, never returned ..
+    + idp_claims_evaluated_at : TIMESTAMPTZ
+    .. last evaluation of the groups claim; max. 15 min old ..
+    + idp_groups_claim_status : TEXT
+    .. enum: present | missing | truncated; NULL for local logins ..
+    .. missing/truncated → no IdP-derived roles + warning (fail closed) ..
+    == Revocation (REQ-164) ==
+    + revoked_at          : TIMESTAMPTZ
+    + revoked_reason      : TEXT
+    .. enum: logout | person-status-change | role-change | credential-revoked | ..
+    .. password-reset | factor-reset | refresh-token-reuse | idp-refresh-failed | admin-action ..
+    + revoked_by_person_id : BIGINT       {FK→persons.id}
+    + revoked_by_admin_id  : UUID         {FK→system_admin_accounts.id}
+  }
+
+  class session_idp_roles <<Table>> #FFE0B2 {
+    + session_id           : UUID         {PK} {FK→sessions.id}
+    + idp_group_mapping_id : UUID         {PK} {FK→idp_group_mappings.id}
+    --
+    + role_id              : TEXT         {NN} {FK→authorization_roles.id}
+    .. copied from the mapping at derivation time (access review) ..
+    + derived_at           : TIMESTAMPTZ  {NN} DEFAULT NOW()
+  }
+
+  note right of session_idp_roles
+    IdP-derived roles per session (DM-10).
+    Replaced at login and at every IdP refresh
+    (at the latest every 15 min, Q16); every change
+    of the set is audited. Effective only while the
+    mapping is active and not deleted (cache ≤ 60 s).
+  end note
+
+  class refresh_tokens <<Table>> #FFE0B2 {
+    + id               : UUID             {PK}
+    --
+    + session_id       : UUID             {NN} {FK→sessions.id}
+    .. the session is the token family (REQ-165 AC2) ..
+    + token_hash       : TEXT             {NN} {UQ}
+    .. SHA-256 of a 256-bit random token; plaintext only in the client ..
+    .. (HttpOnly cookie / OS credential store, REQ-165) ..
+    + status           : TEXT             {NN} DEFAULT 'active'
+    .. enum: active | rotated | revoked ..
+    .. UNIQUE(session_id) WHERE status = 'active' ..
+    + issued_at        : TIMESTAMPTZ      {NN} DEFAULT NOW()
+    + expires_at       : TIMESTAMPTZ      {NN}
+    .. ≤ sessions.absolute_expires_at ..
+    + rotated_at       : TIMESTAMPTZ
+    + replaced_by_id   : UUID             {UQ} {FK→refresh_tokens.id}
+    + revoked_at       : TIMESTAMPTZ
+  }
+
+  note right of refresh_tokens
+    Rotation on every use: old token → 'rotated',
+    new token issued. Presenting a 'rotated' token
+    = reuse → session and all its tokens revoked
+    (revoked_reason = refresh-token-reuse), audit event.
+    Revoking a session revokes all its tokens.
+  end note
+
+  persons               "1" --o{ "0..*" sessions          : logs in (human only)
+  system_admin_accounts "1" --o{ "0..*" sessions          : logs in
+  auth_providers        "1" --o{ "0..*" sessions          : authenticated by
+  sessions              "1" --o{ "0..*" session_idp_roles : derived roles
+  idp_group_mappings    "1" --o{ "0..*" session_idp_roles : derived from
+  sessions              "1" --o{ "0..*" refresh_tokens    : token family
+  refresh_tokens        "0..1" --o| "0..1" refresh_tokens : replaced_by_id
 
 }
 
@@ -187,7 +555,8 @@ package "I18N" #FFF3E0 {
     --
     + entity_type  : TEXT                 {NN}
     .. enum: metatype | property_def | enum_value | ..
-    .. property_category | role ..
+    .. property_category | authorization_role ..
+    .. business roles are EA entities (monolingual), not translated here ..
     + entity_id    : TEXT                 {NN}
     .. UUID or TEXT ID of the referenced entry ..
     .. no DB FK (polymorphic) ..
@@ -303,9 +672,31 @@ package "Metamodel – Properties" #E0F2F1 {
     + max_value       : NUMERIC
     + pattern         : TEXT
     .. regular expression for validation ..
+    == Visibility (REQ-124; changeable only with visibility:configure) ==
+    + visibility_mode : TEXT              {NN} DEFAULT 'public'
+    .. enum: public | role-restricted | connection-scoped ..
+    .. role-restricted: ≥ 1 read entry in property_visibility_roles ..
+    + scoping_connection_type_id : UUID   {FK→metatypes.id}
+    .. NOT NULL iff visibility_mode = 'connection-scoped'; ..
+    .. metatype must have is_connection = true (REQ-127) ..
     + created_at      : TIMESTAMPTZ       {NN} DEFAULT NOW()
     + created_by      : BIGINT            {FK→persons.id}
   }
+
+  class property_visibility_roles <<Table>> #B2DFDB {
+    + property_def_id : UUID              {PK} {FK→property_definitions.id}
+    + role_id         : TEXT              {PK} {FK→authorization_roles.id}
+    + access          : TEXT              {PK}
+    .. enum: read | write (REQ-124 readRoles / writeRoles) ..
+    .. CHECK (app): every 'write' row has a matching 'read' row ..
+  }
+
+  note right of property_visibility_roles
+    readRoles / writeRoles reference AUTHORIZATION
+    role IDs (ADR-032 DM-9). A role referenced here
+    cannot be deleted (ADR-032 §5). Roles used here
+    may have an empty permission set (e.g. 'iso').
+  end note
 
   class property_enum_values <<Table>> #B2DFDB {
     + id              : UUID              {PK}
@@ -344,6 +735,8 @@ package "Metamodel – Properties" #E0F2F1 {
   property_definitions "1"    --o{ "0..*" property_enum_values       : defines values
   metatypes            "1"    --o{ "0..*" metatype_property_mappings : mapped in
   property_definitions "1"    --o{ "0..*" metatype_property_mappings : used by
+  property_definitions "1"    --o{ "0..*" property_visibility_roles  : visible to
+  metatypes            "0..1" --o{ "0..*" property_definitions       : scoping_connection_type_id
 
 }
 
@@ -599,7 +992,7 @@ package "Audit  [Schema: audit]" #EFEBE9 {
     == External integration (ADR-026, optional) ==
     + agent_id     : TEXT
     .. Identifier of the writing system (e.g. 'oea-scanner/1.0') ..
-    .. from X-Agent-Id header or JWT claim 'agent_id' ..
+    .. client_id of the authenticated service account only; X-Agent-Id header is ignored (REQ-154, REQ-174) ..
     + agent_run    : TEXT
     .. Correlation ID of a run (all writes of the same run) ..
     + prev_hash    : TEXT
@@ -738,5 +1131,25 @@ persons "1" --o{ "0..*" catalogs                          : created_by / last_mo
 persons "1" --o{ "0..*" tree_nodes                        : created_by
 persons "1" --o{ "0..*" entity_version_headers              : changed_by
 persons "1" --o{ "0..*" entity_system_field_history         : changed_by
+persons "0..1" --o| "0..1" entities                         : entity_id (account link, DM-7)
+authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role (DM-9)
+
+' ─────────────────────────────────────────────────────
+' Change notes
+' 2026-10-13 (ADR-032, security review 2026-10):
+'   roles → authorization_roles without business attributes (DM-1, DM-3);
+'   permissions + role_permissions (DM-2); person_roles → role_assignments
+'   with source/grant/approval/revocation data, no hard delete (DM-4, Q15);
+'   idp_group_mappings (DM-5); remote system admin = mapping to
+'   'system-admin' (DM-6); persons.entity_id account link (DM-7);
+'   property_visibility_roles with authorization role IDs (DM-9);
+'   sessions/session_idp_roles/refresh_tokens (DM-10, REQ-164, REQ-165, Q16);
+'   persons.active → persons.status lifecycle (REQ-004, REQ-164);
+'   person_identities (iss, sub) binding (REQ-166); system_admin_accounts
+'   table (UC-02, previously only in the BO); local_credentials extended
+'   (argon2id only, TOTP last time step, temporary passwords, recovery codes,
+'   owner may be the system admin account; REQ-169, REQ-170, REQ-171, REQ-173);
+'   machine_credentials with expiry and stable client_id (REQ-176).
+' ─────────────────────────────────────────────────────
 
 @enduml

@@ -32,10 +32,15 @@ The Business Engineer (see `.opencode/agents/business-engineer.md`) models here.
 
 | ID | Name (DE) | Name (EN) | Status | Version |
 |---|---|---|---|---|
-| [person](./person.md) | Person | Person | draft | 0.1.0 |
-| [role](./role.md) | Rolle | Role | draft | 0.1.0 |
-| [system-admin-account](./system-admin-account.md) | System-Admin-Account | System Admin Account | draft | 0.1.0 |
-| [local-credential](./local-credential.md) | Lokaler Credential | Local Credential | draft | 0.1.0 |
+| [person](./person.md) | Person (Konto) | Person (Account) | draft | 0.3.0 |
+| [role](./role.md) | Rolle (Geschäftsrolle) | Role (Business Role, EA content) | draft | 0.2.0 |
+| [authorization-role](./authorization-role.md) | Berechtigungsrolle | Authorization Role (incl. permission catalog) | draft | 0.1.0 |
+| [role-assignment](./role-assignment.md) | Rollenzuweisung (Berechtigung) | Role Assignment | draft | 0.1.0 |
+| [idp-group-mapping](./idp-group-mapping.md) | IdP-Gruppen-Zuordnung | IdP Group Mapping | draft | 0.1.0 |
+| [session](./session.md) | Sitzung | Session (incl. refresh tokens) | draft | 0.1.0 |
+| [system-admin-account](./system-admin-account.md) | System-Admin-Account | System Admin Account | draft | 0.2.0 |
+| [local-credential](./local-credential.md) | Lokaler Credential | Local Credential | draft | 0.3.0 |
+| [machine-credential](./machine-credential.md) | Maschinen-Credential | Machine Credential | draft | 0.1.0 |
 
 ### Architecture Repository
 
@@ -51,7 +56,7 @@ The Business Engineer (see `.opencode/agents/business-engineer.md`) models here.
 
 | ID | Name (DE) | Name (EN) | Status | Version |
 |---|---|---|---|---|
-| [metamodel-configuration](./metamodel-configuration.md) | Metamodell-Konfiguration | Metamodel Configuration | draft | 1.0.0 |
+| [metamodel-configuration](./metamodel-configuration.md) | Metamodell-Konfiguration | Metamodel Configuration | draft | 1.2.0 |
 | [viewpoint](./viewpoint.md) | Viewpoint / Architektursicht | Viewpoint | draft | 0.2.0 |
 | [document-collection](./document-collection.md) | Strukturierte Dokumentation | Document Collection | draft | 0.2.0 |
 

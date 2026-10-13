@@ -6,6 +6,7 @@
 **Consulted**: Requirements Engineer (UC-05, UC-06, US-045), Business Engineer (Viewpoint BO, Catalog BO)
 **Informed**: –
 **Updated**: 2026-06-28 — React SPA references updated to Vue 3 SPA (following ADR-011); ADR-007 status corrected from deferred to accepted (Vue Flow chosen)
+**Partially superseded**: 2026-10-13 by [ADR-032](./ADR-032-authorization-model.md) — authorization model (see ADR-032, Relation to Existing ADRs)
 
 ## Context and Problem
 

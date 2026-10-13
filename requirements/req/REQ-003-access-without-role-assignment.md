@@ -4,13 +4,14 @@ title: Restricted access without an active role assignment
 type: business-rule
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-24
 last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
     - UC-01
+    - UC-23
   business_objects:
     - person
     - role
@@ -20,7 +21,8 @@ references:
     - SH-03
   concept:
     - concept/20-entities/08-organization-roles-persons.md
-  adrs: []
+  adrs:
+    - ADR-032
 supersedes: []
 superseded_by: []
 ---
@@ -29,7 +31,7 @@ superseded_by: []
 
 ## Statement
 
-A successfully authenticated person WITHOUT an active role assignment MUST NOT access any repository content; the session MUST hold no permission of the permission model (REQ-157) and MUST only allow viewing the own profile and a notice that no role is assigned.
+A successfully authenticated person WITHOUT an active authorization role (ADR-032: neither an active local role assignment nor a role derived from an IdP group mapping) MUST NOT access any repository content; the session MUST hold no permission of the permission model (REQ-157) and MUST only allow viewing the own profile and a notice that no role is assigned.
 
 ## Rationale
 
@@ -37,7 +39,7 @@ The concept constraint `person-minimum-role` (§8.8) is modeled as a warning, no
 
 ## Context
 
-Concerns the case that a person was successfully authenticated at the identity provider but has (not yet) an active `RoleAssignment` in the EA repository.
+Concerns the case that a person was successfully authenticated at the identity provider but has (not yet) an active authorization role. Since ADR-032, authorization roles are separate from business roles modeled as EA content: a `RoleAssignment` connection between a Person entity and a business Role entity (`Person.fillsRoles`, concept §8.3) grants no permission and does not count as an active role for this rule.
 
 Security review SEC-05 (2026-10-13): "publicly readable content" and `PUBLIC_READ_ONLY` were defined nowhere; there is no anonymous or "public" access in v1 (owner decision Q1, REQ-163). Version 0.2.0 therefore grants no repository content without a role (deny by default, REQ-158). Role changes take effect within 60 seconds (REQ-164).
 
@@ -52,11 +54,21 @@ Security review SEC-05 (2026-10-13): "publicly readable content" and `PUBLIC_REA
 **Formal Statement** (simplified):
 
 ```text
-if Person.fillsRoles.filter(active=true).isEmpty():
-    Session.permissions = {}   # own profile and "no role assigned" notice only
+activeRoles(principal, now) =
+      { a.role | a in roleAssignments(principal),          # local authorization role assignments (ADR-032 §7.1)
+                 a.validFrom <= now,
+                 a.validTo is null or now < a.validTo,
+                 a.revokedAt is null,
+                 principal.status = active }
+    ∪ { m.role | m in idpGroupMappings,                   # IdP group mappings (ADR-032 §7.2)
+                 m.active,
+                 m.groupIdentifier in session.evaluatedGroupClaims(m.issuer) }
+if activeRoles(principal, now).isEmpty():
+    effectivePermissions(principal) = {}   # own profile and "no role assigned" notice only
+# Person.fillsRoles (business roles, EA content) is not part of this evaluation
 ```
 
-**Example**: A newly invited person has not yet been given a role assignment. They can log in but see only a notice that no role is assigned until a person with authorization rights assigns them a role.
+**Example**: A newly invited person has not yet been given an authorization role. They can log in but see only a notice that no role is assigned until a principal with `role:assign` assigns them a role (UC-23), or until they log in as a member of an IdP group mapped to a role. Modeling them as "Enterprise Architect" in the EA repository does not change this.
 
 ## Acceptance Criteria
 
@@ -75,7 +87,7 @@ if Person.fillsRoles.filter(active=true).isEmpty():
 ## Verification Method
 
 - [x] Method: test (automated)
-- [x] Test setup: login with a test person without RoleAssignment, check the resulting permissions
+- [x] Test setup: login with a test person without authorization role assignment and without mapped IdP group (optionally with a business RoleAssignment connection in the EA model), check the resulting permissions
 - [x] Measurement tool: test suite of the auth/authorization module
 - [x] Pass criterion: AC1, AC2 green
 - [ ] Integrated in CI: yes, once the implementation exists
@@ -98,11 +110,11 @@ if Person.fillsRoles.filter(active=true).isEmpty():
 
 ## Implementation Notes
 
-- A session refresh mechanism is needed so that newly assigned roles take effect without a full re-login (see REQ-001 Implementation Notes on caching)
+- Newly assigned roles must take effect without a full re-login; per ADR-032 §7, permissions are not embedded in tokens but resolved server-side per request (cache ≤ 60 s)
 
 ## Implementation
 
-- ADR(s): none
+- ADR(s): ADR-032 (authorization model)
 - Implemented by: –
 - Tests: –
 - Verification status: not-verified
@@ -117,3 +129,4 @@ Derived from UC-01 Login, Exception Flow E3, and the concept constraint `person-
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-05/SEC-06 / owner decision Q1: undefined "publicly readable content" removed – no repository content without a role; role changes effective within 60 s |
+| 0.3.0 | 2026-10-13 | requirements-engineer | ADR-032: statement and formal statement refer to authorization roles (local assignments and IdP group mappings) instead of `Person.fillsRoles`; business roles explicitly excluded; reference to UC-23 |

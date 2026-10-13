@@ -7,12 +7,43 @@ info:
     REST API for OEA. Three layers:
     - **Resource API** (`/api/v1/...`): CRUD and automation (REQ-147)
     - **View API** (`/api/v1/views/...`): aggregated, screen-optimized endpoints (BFF pattern)
-    - **Portal API** (`/api/v1/portal/...`): Read-only, reduced auth scope (Web Portal)
+    - **Portal API** (`/api/v1/portal/...`): read-only endpoints of the web portal
+      for curated, instance-scope content (permission `portal:read`)
+
+    **Authorization** (ADR-032): every operation declares its required permissions
+    in the vendor extension `x-oea-authorization`; permissions are never derived from
+    role names, OAuth scopes or IdP claims. The extension has the fields:
+    - `access`: `public` (no principal; only the allowlisted token endpoint),
+      `authenticated` (any authenticated principal; object-level ownership checks apply)
+      or `permission`
+    - `permissions`: all listed permissions are required
+    - `anyOfPermissions`: at least one of the listed permissions is required (used for
+      reading configuration objects that a managing permission includes, ADR-032 §3)
+    - `conditions`: additional permissions required only when the stated condition
+      applies to the request (e.g. `deleted=true` requires `entity:restore`)
+
+    The permission catalog is the top-level extension `x-oea-permissions`; the built-in
+    roles and their permission sets are `x-oea-builtin-roles` (both fixed per release,
+    also returned by `GET /admin/permissions` and `GET /admin/roles`). Operations
+    without a declaration are denied for all principals (REQ-158).
+    `scripts/check_openapi_authorization.py` checks the declarations.
+
+    Responses: `401` = not authenticated; `403` = a required permission is missing or a
+    separation-of-duties rule forbids the action (generic problem body); `404` is also
+    returned for existence-sensitive objects the caller may not see (REQ-159).
+    Property values the caller may not read are returned as `null` with `redacted: true`
+    (REQ-160).
+
+    There is no anonymous access (REQ-163). Clients authenticate with
+    - `bearerAuth`: OEA access token of the Electron client
+    - `cookieAuth`: session cookie of the web portal
+    - `oauth2ClientCredentials`: access token of a service account obtained at
+      `POST /oauth2/token` (REQ-176); token scopes are not used for OEA permissions
 
     **External integration** (ADR-026, optional): write access by external systems
-    (scanners, CI/CD pipelines, import tools) via upsert endpoints and batch write.
-    Enabled by feature flag `oea.integration.enabled=true`.
-    Requires a service account with the role `integration-writer`.
+    (scanners, CI/CD pipelines, import tools) via upsert endpoints and batch write,
+    enabled by feature flag `oea.integration.enabled=true`. Service accounts and persons
+    need the same permission `entity:write` for write operations.
 
     Versioning: URL path (`/api/v1/`). Breaking changes → new major version.
     Error format: RFC 9457 Problem Details (`application/problem+json`).
@@ -24,8 +55,51 @@ servers:
   - url: /api/v1
     description: Current version
 
+# Alternatives: exactly one of the schemes authenticates a request.
 security:
   - bearerAuth: []
+  - cookieAuth: []
+  - oauth2ClientCredentials: []
+
+# ═════════════════════════════════════════════════════════════════════════════
+# AUTHORIZATION CATALOG (ADR-032 §3, §4) – single source for the contract check
+# Kept as JSON (valid YAML flow style) so that tooling can read it without a
+# YAML parser. Changing it requires a release and an update of ADR-032.
+# ═════════════════════════════════════════════════════════════════════════════
+x-oea-permissions: [
+  {"id": "portal:read", "adminClass": false, "description": "Read shared (instance-scope) dashboards, catalogs and diagrams through the portal endpoints, including the projected entity data; own personal dashboards"},
+  {"id": "entity:read", "adminClass": false, "description": "Read entities, connections, catalogs, diagrams, viewpoints, lineage, roadmap, search, entity history, metamodel and schema introspection"},
+  {"id": "entity:write", "adminClass": false, "description": "Create and change entities and connections (UI, upsert, batch, import of content); excludes connections of scoping types"},
+  {"id": "entity:delete", "adminClass": false, "description": "Soft-delete entities and connections (ADR-019)"},
+  {"id": "entity:restore", "adminClass": false, "description": "See soft-deleted entities, restore entities and versions (UC-15, UC-16)"},
+  {"id": "catalog:manage", "adminClass": false, "description": "Create and configure shared catalogs and shared saved filters"},
+  {"id": "dashboard:manage", "adminClass": false, "description": "Create and configure shared dashboards"},
+  {"id": "viewpoint:manage", "adminClass": false, "description": "Manage viewpoints and the navigation tree (UC-12, UC-13)"},
+  {"id": "plateau:go-live", "adminClass": false, "description": "Put a plateau into production (UC-11)"},
+  {"id": "webhook:manage", "adminClass": false, "description": "Register and manage webhooks"},
+  {"id": "analytics:query", "adminClass": false, "description": "Submit raw SQL/Cypher analytics queries (REQ-179)"},
+  {"id": "audit:read", "adminClass": false, "description": "Read and export the audit log (incl. SIEM export) and the access review"},
+  {"id": "metamodel:write", "adminClass": true, "description": "Change the metamodel except visibility fields; metamodel and continuum package import/export"},
+  {"id": "visibility:configure", "adminClass": true, "description": "Change visibilityMode, readRoles, writeRoles, scopingConnectionType and the override role list"},
+  {"id": "visibility-scope:assign", "adminClass": true, "description": "Create, change and delete connections of types used as scopingConnectionType"},
+  {"id": "role:assign", "adminClass": true, "description": "Define custom roles, assign and revoke roles, approve pending assignments, manage IdP group mappings"},
+  {"id": "person:manage", "adminClass": true, "description": "Invite persons, change their lifecycle status, reset local credentials, set the account link to a Person entity"},
+  {"id": "service-account:manage", "adminClass": true, "description": "Create and deactivate service accounts, issue and rotate client secrets"},
+  {"id": "auth-config:manage", "adminClass": true, "description": "Configure authentication providers, 2FA policy, remote system admin mapping"},
+  {"id": "settings:manage", "adminClass": true, "description": "Change instance settings"}
+  ]
+
+x-oea-builtin-roles: [
+  {"id": "portal-reader", "assignableToServiceAccounts": false, "permissions": ["portal:read"]},
+  {"id": "viewer", "assignableToServiceAccounts": true, "permissions": ["portal:read", "entity:read"]},
+  {"id": "analyst", "assignableToServiceAccounts": false, "permissions": ["portal:read", "entity:read", "analytics:query"]},
+  {"id": "enterprise-architect", "assignableToServiceAccounts": false, "permissions": ["portal:read", "entity:read", "entity:write", "entity:delete", "entity:restore", "catalog:manage", "dashboard:manage", "viewpoint:manage", "plateau:go-live", "webhook:manage"]},
+  {"id": "integration-writer", "assignableToServiceAccounts": true, "permissions": ["entity:read", "entity:write"]},
+  {"id": "auditor", "assignableToServiceAccounts": true, "permissions": ["audit:read"]},
+  {"id": "metamodel-admin", "assignableToServiceAccounts": false, "permissions": ["metamodel:write"]},
+  {"id": "security-admin", "assignableToServiceAccounts": false, "permissions": ["visibility:configure", "visibility-scope:assign", "role:assign", "person:manage"]},
+  {"id": "system-admin", "assignableToServiceAccounts": false, "permissions": ["role:assign", "person:manage", "service-account:manage", "auth-config:manage", "settings:manage"]}
+  ]
 
 # ═════════════════════════════════════════════════════════════════════════════
 # COMPONENTS
@@ -37,6 +111,33 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+      description: |
+        OEA access token of the Electron client. Identifies principal and session only;
+        permissions are resolved server-side per request (ADR-032 §7).
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: OEA_SESSION
+      description: |
+        Session cookie of the web portal (`HttpOnly`, `Secure`, `SameSite=Strict`).
+        State-changing requests additionally require the CSRF token header
+        `X-XSRF-TOKEN`. The session identifies principal and session only.
+    oauth2ClientCredentials:
+      type: oauth2
+      description: |
+        Service accounts only (REQ-176). Access tokens carry only the `client_id`
+        and live at most 15 minutes. Scopes are not used; permissions come from
+        the roles assigned to the service account.
+      flows:
+        clientCredentials:
+          tokenUrl: /api/v1/oauth2/token
+          scopes: {}
+    clientSecretBasic:
+      type: http
+      scheme: basic
+      description: |
+        Client authentication at the token endpoint only (`client_id:client_secret`,
+        RFC 6749 §2.3.1).
 
   # ── Responses ───────────────────────────────────────────────────────────────
   responses:
@@ -46,17 +147,31 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
     Unauthorized:
-      description: Not authenticated
+      description: Not authenticated (missing, expired or revoked credentials or session)
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
     Forbidden:
-      description: Authenticated, but the required role is missing
+      description: |
+        Authenticated, but a permission declared in `x-oea-authorization` is missing,
+        a separation-of-duties rule forbids the action (e.g. self-administration, SoD-1),
+        or a privileged role is not effective because the session lacks a second factor
+        (SoD-8). The problem body is generic and does not reveal the missing permission.
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
     NotFound:
-      description: Resource not found
+      description: |
+        Resource not found, or an existence-sensitive resource the caller may not see
+        (same response for both cases, REQ-159)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Conflict:
+      description: |
+        The request conflicts with the current state, e.g. it would remove the last
+        administration path (SoD-7), the object is still referenced, or a pending
+        request has already been decided
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
@@ -97,6 +212,17 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    PersonIdParam:
+      name: personId
+      in: path
+      required: true
+      schema: { type: integer }
+      description: "`persons.id` of a person or a service account"
+    RoleIdParam:
+      name: roleId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/RoleId' }
 
   # ── Schemas ────────────────────────────────────────────────────────────────
   schemas:
@@ -209,6 +335,14 @@ components:
         enumValues:
           type: array
           items: { $ref: '#/components/schemas/PropertyEnumValue' }
+        visibility:
+          allOf:
+            - $ref: '#/components/schemas/PropertyVisibility'
+          readOnly: true
+          description: |
+            Visibility configuration (REQ-124). Read-only in the metamodel endpoints;
+            changed only via `PUT /admin/property-visibility` with `visibility:configure`
+            (SoD-2). Ignored in metamodel package imports.
 
     PropertyDefinitionWrite:
       type: object
@@ -269,8 +403,15 @@ components:
     # ── Entity ───────────────────────────────────────────────────────────────
     PropertyValue:
       type: object
-      required: [propertyDefId, propertyName, dataType]
+      required: [propertyDefId, propertyName, dataType, redacted]
+      description: |
+        If the caller may not read the property (REQ-124 to REQ-127), all `value*`
+        fields are `null` and `redacted` is `true` (REQ-160).
       properties:
+        redacted:
+          type: boolean
+          default: false
+          description: "`true` = value masked by property visibility; `false` = value shown (may be empty)"
         propertyDefId: { type: string, format: uuid }
         propertyName:  { type: string }
         label:         { type: string }
@@ -585,8 +726,12 @@ components:
         fieldName:    { type: string, description: "Property name or system field (name, lifecycle, …)" }
         label:        { type: string, description: "Translated label" }
         isSystemField: { type: boolean }
-        oldValue:     { type: [string, 'null'] }
-        newValue:     { type: [string, 'null'] }
+        oldValue:     { type: [string, 'null'], description: "`null` if redacted" }
+        newValue:     { type: [string, 'null'], description: "`null` if redacted" }
+        redacted:
+          type: boolean
+          default: false
+          description: "`true` = old and new value masked by property visibility (REQ-160)"
 
     EntityVersionSummary:
       type: object
@@ -818,7 +963,7 @@ components:
     # ── Service-Accounts (ADR-026) ────────────────────────────────────────────
     ServiceAccount:
       type: object
-      required: [id, personId, name, active, createdAt]
+      required: [id, personId, name, status, createdAt]
       properties:
         id:          { type: string, format: uuid, description: "client_id; stable; = agent_id in the audit log" }
         personId:    { type: integer, description: "persons.id (person_type=service-account)" }
@@ -826,8 +971,9 @@ components:
         description: { type: [string, 'null'] }
         roles:
           type: array
-          items: { type: string, example: "integration-writer" }
-        active:      { type: boolean }
+          description: Active authorization roles (IDs) of the service account
+          items: { $ref: '#/components/schemas/RoleId' }
+        status:      { type: string, enum: [active, inactive], description: "Lifecycle status of the service account (persons.status)" }
         createdAt:   { type: string, format: date-time }
         lastUsedAt:  { type: [string, 'null'], format: date-time }
         rotatedAt:   { type: [string, 'null'], format: date-time }
@@ -840,7 +986,14 @@ components:
         description: { type: string }
         roles:
           type: array
-          items: { type: string }
+          maxItems: 20
+          uniqueItems: true
+          description: |
+            Authorization role IDs. Only roles flagged `assignableToServiceAccounts`
+            (built-in: `viewer`, `integration-writer`, `auditor`) are accepted; roles with
+            an admin-class permission are never assignable (SoD-4, REQ-176) → `422`.
+            Setting or changing roles additionally requires `role:assign`.
+          items: { $ref: '#/components/schemas/RoleId' }
           default: ["integration-writer"]
 
     ServiceAccountCreated:
@@ -863,8 +1016,12 @@ components:
       properties:
         propertyName:  { type: string }
         isSystemField: { type: boolean }
-        oldValue:      { type: [string, 'null'] }
-        newValue:      { type: [string, 'null'] }
+        oldValue:      { type: [string, 'null'], description: "`null` if redacted" }
+        newValue:      { type: [string, 'null'], description: "`null` if redacted" }
+        redacted:
+          type: boolean
+          default: false
+          description: "`true` = old and new value masked by property visibility (REQ-160)"
 
     AuditEvent:
       type: object
@@ -901,19 +1058,429 @@ components:
           type: array
           items: { $ref: '#/components/schemas/MetatypeSummary' }
 
-    # ── Admin – Property visibility ─────────────────────────────────────────
-    PropertyVisibilityEntry:
+    # ── Admin – Property visibility (REQ-124, REQ-128, REQ-161) ───────────────
+    PropertyVisibility:
       type: object
-      required: [propertyDefId, propertyName, visibilityByRole]
+      required: [visibilityMode, readRoles, writeRoles]
+      description: |
+        Visibility configuration of a property definition (REQ-124). Role lists contain
+        authorization role IDs (ADR-032 §5); business roles of the EA model are never used.
+        - `public`: readable for every principal that can read the object
+        - `role-restricted`: readable only with a role in `readRoles`, writable only with
+          a role in `writeRoles` (`writeRoles` ⊆ `readRoles`; `readRoles` not empty)
+        - `connection-scoped`: readable/writable only with a path to the entity via
+          `scopingConnectionType` from the caller's linked Person entity (REQ-127)
       properties:
-        propertyDefId:   { type: string, format: uuid }
-        propertyName:    { type: string }
-        visibilityByRole:
+        visibilityMode:
+          type: string
+          enum: [public, role-restricted, connection-scoped]
+          default: public
+        readRoles:
+          type: array
+          maxItems: 50
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/RoleId' }
+          default: []
+        writeRoles:
+          type: array
+          maxItems: 50
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/RoleId' }
+          default: []
+        scopingConnectionType:
+          type: [string, 'null']
+          format: uuid
+          description: Connection metatype ID; mandatory for `connection-scoped`
+
+    PropertyVisibilityEntry:
+      description: Visibility configuration of one property definition (SCR-032)
+      allOf:
+        - type: object
+          required: [propertyDefId]
+          properties:
+            propertyDefId: { type: string, format: uuid }
+            propertyName:  { type: string, readOnly: true }
+            label:         { type: string, readOnly: true, description: "Translated label (session locale)" }
+        - $ref: '#/components/schemas/PropertyVisibility'
+
+    PropertyVisibilityOverride:
+      type: object
+      required: [roles]
+      description: |
+        Roles whose holders read all properties of objects they can already read,
+        regardless of `visibilityMode` (REQ-128). Empty by default (owner decision Q14).
+        Every change is audited (`visibility.override-changed`); a change that adds a
+        role the acting principal holds is flagged as self-benefiting (SoD-6).
+      properties:
+        roles:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/RoleId' }
+          default: []
+
+    # ── Access control (ADR-032, UC-23) ───────────────────────────────────────
+    PermissionId:
+      type: string
+      pattern: '^[a-z][a-z-]*:[a-z][a-z-]*$'
+      maxLength: 64
+      description: Identifier from the permission catalog `x-oea-permissions`
+      example: "entity:write"
+
+    RoleId:
+      type: string
+      pattern: '^[a-z][a-z0-9-]{1,62}$'
+      description: Stable identifier of an authorization role (built-in or custom); immutable
+      example: "enterprise-architect"
+
+    Permission:
+      type: object
+      required: [id, category, adminClass, description]
+      properties:
+        id:          { $ref: '#/components/schemas/PermissionId' }
+        category:    { type: string, description: "Resource part of the identifier", example: "entity" }
+        adminClass:  { type: boolean, description: "A role containing it is privileged (MFA, REQ-171) and never assignable to service accounts" }
+        description: { type: string }
+
+    RoleRef:
+      type: object
+      required: [id, name, privileged]
+      properties:
+        id:         { $ref: '#/components/schemas/RoleId' }
+        name:       { type: string }
+        privileged: { type: boolean }
+
+    PrincipalRef:
+      type: object
+      required: [principalType, displayName]
+      properties:
+        principalType:
+          type: string
+          enum: [person, service-account, system-admin-account]
+        id:
+          type: [integer, 'null']
+          description: "`persons.id`; `null` for the local system admin account"
+        displayName: { type: string }
+
+    AuthorizationRole:
+      type: object
+      required: [id, name, isBuiltin, privileged, assignableToServiceAccounts, overridesPropertyVisibility, permissions]
+      description: |
+        Authorization role (ADR-032 §4/§5). Not related to business roles of the EA model.
+        The list of all roles with their permissions is the permission matrix (REQ-157 AC1).
+      properties:
+        id:          { $ref: '#/components/schemas/RoleId' }
+        name:        { type: string, maxLength: 100 }
+        description: { type: [string, 'null'], maxLength: 1000 }
+        isBuiltin:
+          type: boolean
+          description: Built-in roles cannot be changed or deleted (SoD-5)
+        privileged:
+          type: boolean
+          readOnly: true
+          description: Derived; `true` if the role contains an admin-class permission
+        assignableToServiceAccounts: { type: boolean }
+        overridesPropertyVisibility:
+          type: boolean
+          readOnly: true
+          description: Derived from the override role list (`/admin/property-visibility/override-roles`)
+        permissions:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/PermissionId' }
+        usage:
           type: object
-          description: "roleId → visibility"
-          additionalProperties:
-            type: string
-            enum: [always, default, hidden]
+          readOnly: true
+          description: References that prevent deletion
+          properties:
+            activeAssignments:            { type: integer }
+            idpGroupMappings:             { type: integer }
+            propertyVisibilityReferences: { type: integer }
+
+    AuthorizationRoleWrite:
+      type: object
+      required: [name, permissions]
+      description: |
+        Custom role definition. Rejected with `422` if a permission is unknown, if
+        `metamodel:write` is combined with `visibility:configure` or
+        `visibility-scope:assign` (SoD-2), or if `assignableToServiceAccounts` is set
+        for a role with an admin-class permission (SoD-4). Changing the permission set
+        of a role the caller holds is rejected with `403` (SoD-1).
+      properties:
+        name:        { type: string, minLength: 1, maxLength: 100 }
+        description: { type: [string, 'null'], maxLength: 1000 }
+        permissions:
+          type: array
+          maxItems: 50
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/PermissionId' }
+          description: Explicit list; an empty list grants no permissions (REQ-157 AC3)
+        assignableToServiceAccounts: { type: boolean, default: false }
+
+    AuthorizationRoleCreate:
+      allOf:
+        - type: object
+          required: [id]
+          properties:
+            id: { $ref: '#/components/schemas/RoleId' }
+        - $ref: '#/components/schemas/AuthorizationRoleWrite'
+
+    RoleAssignment:
+      type: object
+      required: [id, personId, role, source, status, validFrom, grantedBy, grantedAt, sodConflict]
+      description: |
+        Local role assignment (ADR-032 §7). Never hard-deleted; revocation sets
+        `revokedAt`/`revokedBy`.
+      properties:
+        id:          { type: string, format: uuid }
+        personId:    { type: integer }
+        role:        { $ref: '#/components/schemas/RoleRef' }
+        source:      { type: string, enum: [local] }
+        status:
+          type: string
+          enum: [scheduled, active, expired, revoked]
+          description: "`scheduled` = `validFrom` in the future; assignments to `invited` persons become effective when the person is `active`"
+        validFrom:   { type: string, format: date-time }
+        validTo:     { type: [string, 'null'], format: date-time }
+        reason:      { type: [string, 'null'] }
+        grantedBy:   { $ref: '#/components/schemas/PrincipalRef' }
+        grantedAt:   { type: string, format: date-time }
+        approvedBy:
+          oneOf:
+            - $ref: '#/components/schemas/PrincipalRef'
+            - type: 'null'
+          description: Second administrator if the assignment went through four-eyes approval
+        revokedBy:
+          oneOf:
+            - $ref: '#/components/schemas/PrincipalRef'
+            - type: 'null'
+        revokedAt:   { type: [string, 'null'], format: date-time }
+        sodConflict:
+          type: boolean
+          description: The person's roles combine `metamodel:write` with visibility permissions (SoD-3)
+
+    RoleAssignmentWrite:
+      type: object
+      required: [roleId]
+      properties:
+        roleId:    { $ref: '#/components/schemas/RoleId' }
+        validFrom: { type: string, format: date-time, description: "Default: now" }
+        validTo:   { type: [string, 'null'], format: date-time, description: "Optional end of a time-boxed assignment" }
+        reason:    { type: [string, 'null'], maxLength: 500, example: "Ticket SEC-1234" }
+        acknowledgeSodConflict:
+          type: boolean
+          default: false
+          description: |
+            Must be `true` if the assignment combines `metamodel:write` with visibility
+            permissions for the person (SoD-3); otherwise the request is rejected with
+            `409` so that the client can show the warning first.
+
+    RoleAssignmentRevoke:
+      type: object
+      properties:
+        reason: { type: [string, 'null'], maxLength: 500 }
+
+    RoleAssignmentRequest:
+      type: object
+      required: [id, person, role, status, validFrom, requestedBy, requestedAt, sodConflict]
+      description: |
+        Pending assignment of a privileged role awaiting four-eyes approval
+        (setting `privilegedAssignmentApproval`, owner decision Q15).
+      properties:
+        id:          { type: string, format: uuid }
+        person:      { $ref: '#/components/schemas/PrincipalRef' }
+        role:        { $ref: '#/components/schemas/RoleRef' }
+        status:      { type: string, enum: [pending, approved, rejected] }
+        validFrom:   { type: string, format: date-time }
+        validTo:     { type: [string, 'null'], format: date-time }
+        reason:      { type: [string, 'null'] }
+        requestedBy: { $ref: '#/components/schemas/PrincipalRef' }
+        requestedAt: { type: string, format: date-time }
+        decidedBy:
+          oneOf:
+            - $ref: '#/components/schemas/PrincipalRef'
+            - type: 'null'
+        decidedAt:      { type: [string, 'null'], format: date-time }
+        decisionReason: { type: [string, 'null'] }
+        assignmentId:
+          type: [string, 'null']
+          format: uuid
+          description: Resulting assignment after approval
+        sodConflict: { type: boolean }
+
+    RoleAssignmentDecision:
+      type: object
+      properties:
+        reason: { type: [string, 'null'], maxLength: 500 }
+
+    IdpGroupMapping:
+      type: object
+      required: [id, authProviderId, issuer, groupIdentifier, roleId, active, createdBy, createdAt]
+      description: |
+        Binds an immutable, provider-controlled group identifier of one issuer to an
+        authorization role (ADR-032 §7, REQ-167). Group claims are re-evaluated at login
+        and at every token refresh, at the latest every 15 minutes (owner decision Q16);
+        a missing or truncated groups claim yields no IdP-derived roles.
+      properties:
+        id:              { type: string, format: uuid }
+        authProviderId:  { type: string, format: uuid }
+        issuer:          { type: string, readOnly: true, description: "Issuer of the provider; claims of other issuers are ignored" }
+        groupIdentifier: { type: string, description: "Entra ID group object ID or app role ID, Authentik group UUID; never a display name" }
+        roleId:          { $ref: '#/components/schemas/RoleId' }
+        active:          { type: boolean }
+        createdBy:       { $ref: '#/components/schemas/PrincipalRef' }
+        createdAt:       { type: string, format: date-time }
+        updatedAt:       { type: [string, 'null'], format: date-time }
+
+    IdpGroupMappingWrite:
+      type: object
+      required: [authProviderId, groupIdentifier, roleId]
+      description: |
+        Rejected with `422` if `groupIdentifier` does not match the identifier format of
+        the provider (REQ-167) and with `403` if the group is contained in the caller's
+        own current token (SoD-1).
+      properties:
+        authProviderId:  { type: string, format: uuid }
+        groupIdentifier: { type: string, minLength: 1, maxLength: 256 }
+        roleId:          { $ref: '#/components/schemas/RoleId' }
+        active:          { type: boolean, default: true }
+
+    PersonEntityLink:
+      type: object
+      required: [entityId]
+      description: |
+        Account link from a person to the Person entity of the EA model, used for
+        connection-scoped visibility (REQ-127). `null` removes the link.
+      properties:
+        entityId: { type: [integer, 'null'] }
+
+    PersonEntityLinkResult:
+      type: object
+      required: [personId, entityId]
+      properties:
+        personId:   { type: integer }
+        entityId:   { type: [integer, 'null'] }
+        entityName: { type: [string, 'null'] }
+        linkedBy:   { $ref: '#/components/schemas/PrincipalRef' }
+        linkedAt:   { type: string, format: date-time }
+
+    RoleGrant:
+      type: object
+      required: [role, source]
+      description: One role held by a principal and where it comes from
+      properties:
+        role:   { $ref: '#/components/schemas/RoleRef' }
+        source:
+          type: string
+          enum: [local, idp, system-admin-account]
+        assignmentId:    { type: [string, 'null'], format: uuid, description: "For `local`" }
+        mappingId:       { type: [string, 'null'], format: uuid, description: "For `idp`" }
+        groupIdentifier: { type: [string, 'null'], description: "For `idp`" }
+        validFrom:       { type: [string, 'null'], format: date-time }
+        validTo:         { type: [string, 'null'], format: date-time }
+        grantedBy:
+          oneOf:
+            - $ref: '#/components/schemas/PrincipalRef'
+            - type: 'null'
+        grantedAt:       { type: [string, 'null'], format: date-time }
+
+    AccessReviewEntry:
+      type: object
+      required: [principal, roles, privileged, sodConflict]
+      properties:
+        principal: { $ref: '#/components/schemas/PrincipalRef' }
+        status:
+          type: [string, 'null']
+          enum: [invited, active, inactive, offboarded, null]
+          description: Lifecycle status of the person or service account
+        lastLoginAt: { type: [string, 'null'], format: date-time }
+        roles:
+          type: array
+          description: Current local assignments, IdP-derived roles of the last login and the system admin account
+          items: { $ref: '#/components/schemas/RoleGrant' }
+        privileged:  { type: boolean }
+        mfaEnrolled: { type: [boolean, 'null'] }
+        sodConflict: { type: boolean }
+        pendingRequests:     { type: integer, description: "Pending four-eyes requests for this principal" }
+        secretExpiresAt:     { type: [string, 'null'], format: date-time, description: "Service accounts only" }
+
+    AccessReview:
+      type: object
+      required: [generatedAt, items, page]
+      properties:
+        generatedAt: { type: string, format: date-time }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/AccessReviewEntry' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+
+    EffectivePermission:
+      type: object
+      required: [permission, grantedBy]
+      properties:
+        permission: { $ref: '#/components/schemas/PermissionId' }
+        grantedBy:
+          type: array
+          items:
+            type: object
+            required: [roleId, source]
+            properties:
+              roleId: { $ref: '#/components/schemas/RoleId' }
+              source: { type: string, enum: [local, idp, system-admin-account] }
+
+    Me:
+      type: object
+      required: [principal, mfaSatisfied, roles, permissions]
+      description: |
+        The caller and its effective permissions, resolved server-side at request time.
+        Clients use it only to hide or disable UI elements (ADR-032 §9).
+      properties:
+        principal: { $ref: '#/components/schemas/PrincipalRef' }
+        email:     { type: [string, 'null'] }
+        mfaSatisfied:
+          type: boolean
+          description: The session was established with a second factor (SoD-8)
+        roles:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/RoleGrant'
+              - type: object
+                required: [effective]
+                properties:
+                  effective: { type: boolean }
+                  notEffectiveReason:
+                    type: [string, 'null']
+                    enum: [mfa-required, not-yet-valid, person-not-active, null]
+        permissions:
+          type: array
+          description: Union of the permissions of all effective roles, with their sources
+          items: { $ref: '#/components/schemas/EffectivePermission' }
+
+    # ── OAuth2 token endpoint (REQ-176) ───────────────────────────────────────
+    TokenRequest:
+      type: object
+      required: [grant_type]
+      properties:
+        grant_type: { type: string, enum: [client_credentials] }
+
+    TokenResponse:
+      type: object
+      required: [access_token, token_type, expires_in]
+      properties:
+        access_token: { type: string }
+        token_type:   { type: string, enum: [Bearer] }
+        expires_in:   { type: integer, maximum: 900 }
+
+    OAuthError:
+      type: object
+      required: [error]
+      description: RFC 6749 §5.2 error response
+      properties:
+        error:
+          type: string
+          enum: [invalid_request, invalid_client, invalid_grant, unauthorized_client, unsupported_grant_type]
+        error_description: { type: string }
 
     # ── Admin – TRM ───────────────────────────────────────────────────────────
     TRMEntry:
@@ -979,7 +1546,7 @@ components:
         name:      { type: string }
         type:
           type: string
-          enum: [oidc, ldap, local]
+          enum: [oidc, local]
         enabled:   { type: boolean }
         issuerUrl: { type: [string, 'null'] }
         clientId:  { type: [string, 'null'] }
@@ -991,7 +1558,7 @@ components:
         name:         { type: string }
         type:
           type: string
-          enum: [oidc, ldap, local]
+          enum: [oidc, local]
         enabled:      { type: boolean, default: true }
         issuerUrl:    { type: string }
         clientId:     { type: string }
@@ -1024,6 +1591,13 @@ components:
         sessionTimeoutMin:  { type: integer }
         maxUploadMb:        { type: integer }
         auditRetentionDays: { type: integer }
+        privilegedAssignmentApproval:
+          type: boolean
+          default: false
+          description: |
+            Four-eyes approval for assignments of privileged roles (owner decision Q15).
+            When `true`, such assignments stay pending until a second principal with
+            `role:assign`, who is neither the requester nor the assignee, approves them.
         licenseKey:         { type: [string, 'null'] }
         sseEnabled:         { type: boolean }
 
@@ -1063,6 +1637,66 @@ components:
 paths:
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
+  # ║  IDENTITY (ADR-032 §9, REQ-176)                                        ║
+  # ╚═════════════════════════════════════════════════════════════════════════╝
+  /me:
+    get:
+      operationId: getCurrentPrincipal
+      summary: Caller and effective permissions
+      description: |
+        Effective permissions with their sources, resolved server-side at request time.
+        Privileged roles are listed with `effective: false` while the session lacks a
+        second factor (SoD-8). For UI adaptation only; every operation is enforced
+        server-side.
+      tags: [Identity]
+      x-oea-authorization: {"access": "authenticated"}
+      responses:
+        '200':
+          description: Current principal
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /oauth2/token:
+    post:
+      operationId: issueClientCredentialsToken
+      summary: OAuth2 token endpoint for service accounts (client credentials, REQ-176)
+      description: |
+        Issues an access token (lifetime ≤ 900 s) carrying only the `client_id`.
+        Client authentication via HTTP Basic (`clientSecretBasic`). Expired or wrong
+        secrets → `401` and an audit event. Rate-limited.
+      tags: [Identity]
+      security:
+        - clientSecretBasic: []
+      x-oea-authorization: {"access": "public"}
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema: { $ref: '#/components/schemas/TokenRequest' }
+      responses:
+        '200':
+          description: Access token
+          headers:
+            Cache-Control:
+              schema: { type: string, example: "no-store" }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+        '400':
+          description: Invalid request or unsupported grant type
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OAuthError' }
+        '401':
+          description: Client authentication failed (unknown client, wrong or expired secret, deactivated account)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OAuthError' }
+
+  # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  I18N                                                                  ║
   # ╚═════════════════════════════════════════════════════════════════════════╝
   /i18n/{locale}:
@@ -1073,6 +1707,7 @@ paths:
         ETag-cached (`MAX(updated_at)` over `i18n_entries`).
         `Cache-Control: max-age=300, stale-while-revalidate=3600`
       tags: [I18N]
+      x-oea-authorization: {"access": "authenticated"}
       parameters:
         - $ref: '#/components/parameters/LocaleParam'
       responses:
@@ -1086,6 +1721,8 @@ paths:
               schema: { $ref: '#/components/schemas/I18nBundle' }
         '304':
           description: Not modified
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Locale not supported
           content:
@@ -1103,6 +1740,7 @@ paths:
         Paginated, filterable entity list. All `filter[*]` parameters
         are implicitly AND-combined (case-insensitive).
       tags: [Views – Catalog]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "query parameter deleted is 'true' or 'only'", "permissions": ["entity:restore"]}]}
       parameters:
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/PageSizeParam'
@@ -1126,6 +1764,7 @@ paths:
         - name: deleted
           in: query
           schema: { type: string, enum: ["false", "true", "only"], default: "false" }
+          description: "`true`/`only` include soft-deleted entities and require `entity:restore` (ADR-019)"
       responses:
         '200':
           description: Entity list
@@ -1145,17 +1784,15 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
-        '401':
-          description: Not authenticated
-          content:
-            application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /views/catalog/{id}:
     get:
       operationId: getCatalogEntityDetail
       summary: Entity detail (SCR-012)
       tags: [Views – Catalog]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
         - $ref: '#/components/parameters/EntityIdParam'
       responses:
@@ -1164,6 +1801,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EntityDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -1184,6 +1823,7 @@ paths:
       summary: Navigation tree (SCR-010/011)
       description: Complete tree node graph for the left explorer panel.
       tags: [Views – Navigation]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       responses:
         '200':
           description: Tree structure
@@ -1191,6 +1831,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/TreeNode' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  VIEW – DIAGRAMS (SCR-021/022)                                         ║
@@ -1200,6 +1841,7 @@ paths:
       operationId: getDiagramView
       summary: Diagram editor data (SCR-021/022)
       tags: [Views – Editoren]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -1208,6 +1850,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DiagramView' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -1222,6 +1866,7 @@ paths:
       operationId: getLineageView
       summary: Data lineage graph (SCR-023)
       tags: [Views – Editoren]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -1230,6 +1875,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/LineageView' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -1244,6 +1891,7 @@ paths:
       operationId: getDashboardConfig
       summary: Dashboard configuration (SCR-024)
       tags: [Views – Editoren]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -1252,6 +1900,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DashboardConfig' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -1264,6 +1914,7 @@ paths:
       summary: Dashboard data (SCR-024)
       description: Current data points for all widgets of a dashboard.
       tags: [Views – Editoren]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -1272,6 +1923,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DashboardData' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -1286,6 +1939,7 @@ paths:
       operationId: getRoadmapView
       summary: Plateau-Roadmap (SCR-025)
       tags: [Views – Editoren]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -1294,6 +1948,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/RoadmapView' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -1312,6 +1968,7 @@ paths:
         Source: `entity_version_headers` + `entity_system_field_history`
         + `entity_property_value_history` (ADR-022).
       tags: [Entities]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
         - $ref: '#/components/parameters/EntityIdParam'
         - $ref: '#/components/parameters/PageParam'
@@ -1322,6 +1979,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EntityHistoryResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Entity not found
           content:
@@ -1334,9 +1993,11 @@ paths:
       summary: Restore entity (SCR-027, UC-15/16)
       description: |
         Restores an entity to an earlier version.
-        Requires role `Architect` or higher.
         Soft-deleted entities can also be restored.
+        Properties the caller may not write are not restored and are reported
+        (REQ-162).
       tags: [Entities]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write", "entity:restore"]}
       parameters:
         - $ref: '#/components/parameters/EntityIdParam'
       requestBody:
@@ -1350,11 +2011,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EntityDetail' }
-        '403':
-          description: Insufficient permissions
-          content:
-            application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Entity or target version not found
           content:
@@ -1374,6 +2032,7 @@ paths:
       operationId: listMetatypes
       summary: List all metatypes
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
       parameters:
         - name: configId
           in: query
@@ -1388,10 +2047,12 @@ paths:
                 items: { $ref: '#/components/schemas/MetatypeDetail' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
     post:
       operationId: createMetatype
       summary: Create new metatype
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       requestBody:
         required: true
         content:
@@ -1403,6 +2064,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MetatypeDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '409':
           description: Name/abbreviation already taken
           content:
@@ -1414,6 +2077,7 @@ paths:
       operationId: getMetatype
       summary: Metatype detail
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -1422,6 +2086,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MetatypeDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -1431,6 +2097,7 @@ paths:
       operationId: updateMetatype
       summary: Update metatype
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -1444,6 +2111,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MetatypeDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -1454,11 +2123,14 @@ paths:
       summary: Delete metatype
       description: Only possible if no entities of this type exist.
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
         '204':
           description: Deleted
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '409':
           description: Metatype still has entities
           content:
@@ -1470,6 +2142,7 @@ paths:
       operationId: listPropertyMappings
       summary: Property mappings of a metatype
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -1481,11 +2154,13 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/MetatypePropertyMapping' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
     post:
       operationId: createPropertyMapping
       summary: Create property mapping (or effective-date change)
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -1509,6 +2184,7 @@ paths:
       operationId: listPropertyCategories
       summary: List property categories
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
       responses:
         '200':
           description: Categories
@@ -1518,10 +2194,12 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/PropertyCategory' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
     post:
       operationId: createPropertyCategory
       summary: Create property category
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       requestBody:
         required: true
         content:
@@ -1542,6 +2220,7 @@ paths:
       operationId: updatePropertyCategory
       summary: Update property category
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -1555,6 +2234,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PropertyCategory' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -1564,11 +2245,14 @@ paths:
       operationId: deletePropertyCategory
       summary: Delete property category
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
         '204':
           description: Deleted
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '409':
           description: Category still has property definitions
           content:
@@ -1580,6 +2264,7 @@ paths:
       operationId: listPropertyDefinitions
       summary: List property definitions
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
       parameters:
         - name: categoryId
           in: query
@@ -1597,10 +2282,12 @@ paths:
                 items: { $ref: '#/components/schemas/PropertyDefinitionDetail' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
     post:
       operationId: createPropertyDefinition
       summary: Create property definition
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       requestBody:
         required: true
         content:
@@ -1621,6 +2308,7 @@ paths:
       operationId: updatePropertyDefinition
       summary: Update property definition
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -1634,6 +2322,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PropertyDefinitionDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -1643,11 +2333,14 @@ paths:
       operationId: deletePropertyDefinition
       summary: Delete property definition
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
         '204':
           description: Deleted
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '409':
           description: Definition still has mappings or values
           content:
@@ -1659,6 +2352,7 @@ paths:
       operationId: listEnumValues
       summary: Enum values of a property definition
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -1670,11 +2364,13 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/PropertyEnumValue' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
     post:
       operationId: createEnumValue
       summary: Create enum value
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -1706,6 +2402,7 @@ paths:
       operationId: listViewpoints
       summary: List viewpoints (SCR-031)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "viewpoint:manage"]}
       responses:
         '200':
           description: Viewpoints
@@ -1722,6 +2419,7 @@ paths:
       operationId: getViewpoint
       summary: Viewpoint detail (SCR-031)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "viewpoint:manage"]}
       parameters:
         - name: id
           in: path
@@ -1733,6 +2431,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ViewpointConfig' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -1742,6 +2442,7 @@ paths:
       operationId: updateViewpoint
       summary: Update viewpoint (SCR-031)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
       parameters:
         - name: id
           in: path
@@ -1768,6 +2469,7 @@ paths:
       operationId: getPropertyVisibility
       summary: Property visibility matrix (SCR-032)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
       responses:
         '200':
           description: Visibility matrix
@@ -1782,6 +2484,7 @@ paths:
       operationId: updatePropertyVisibility
       summary: Update property visibility (SCR-032)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
       requestBody:
         required: true
         content:
@@ -1806,6 +2509,7 @@ paths:
       operationId: listTRMEntries
       summary: Technology Reference Model (SCR-033)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
         - name: status
           in: query
@@ -1834,6 +2538,7 @@ paths:
       operationId: createTRMEntry
       summary: Create TRM entry (SCR-033)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
       requestBody:
         required: true
         content:
@@ -1854,6 +2559,7 @@ paths:
       operationId: updateTRMEntry
       summary: Update TRM entry (SCR-033)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -1867,6 +2573,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TRMEntry' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -1876,6 +2584,7 @@ paths:
       operationId: deleteTRMEntry
       summary: Delete TRM entry (SCR-033)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -1890,6 +2599,7 @@ paths:
       operationId: getContinuumConfig
       summary: Continuum configuration (SCR-034)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
       responses:
         '200':
           description: Continuum level configuration
@@ -1913,6 +2623,7 @@ paths:
       operationId: updateContinuumConfig
       summary: Update continuum configuration (SCR-034)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       requestBody:
         required: true
         content:
@@ -1941,6 +2652,7 @@ paths:
       operationId: importContinuumPackage
       summary: Import continuum package (SCR-035)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       requestBody:
         required: true
         content:
@@ -1962,6 +2674,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ImportResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422':
           description: Invalid file
           content:
@@ -1974,6 +2688,7 @@ paths:
       summary: Conformance analysis (SCR-036)
       description: Checks all active entities against current metamodel rules.
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
         - name: severity
           in: query
@@ -1998,6 +2713,7 @@ paths:
       operationId: listAuthProviders
       summary: List auth providers (SCR-037)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["auth-config:manage"]}
       responses:
         '200':
           description: Provider list
@@ -2012,6 +2728,7 @@ paths:
       operationId: createAuthProvider
       summary: Create auth provider (SCR-037)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["auth-config:manage"]}
       requestBody:
         required: true
         content:
@@ -2032,6 +2749,7 @@ paths:
       operationId: getAuthProvider
       summary: Auth provider detail (SCR-037)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["auth-config:manage"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -2040,6 +2758,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AuthProvider' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -2049,6 +2769,7 @@ paths:
       operationId: updateAuthProvider
       summary: Update auth provider (SCR-037)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["auth-config:manage"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -2070,11 +2791,14 @@ paths:
       operationId: deleteAuthProvider
       summary: Delete auth provider (SCR-037)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["auth-config:manage"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
         '204':
           description: Deleted
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '409':
           description: The last active provider cannot be deleted
           content:
@@ -2086,6 +2810,7 @@ paths:
       operationId: testAuthProvider
       summary: Test auth provider connection (SCR-037)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["auth-config:manage"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -2105,6 +2830,7 @@ paths:
       summary: List service accounts
       description: All service accounts of the instance (person_type=service-account).
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"]}
       parameters:
         - name: active
           in: query
@@ -2128,6 +2854,7 @@ paths:
         and returns `clientSecret` once in plaintext.
         Afterwards only retrievable via rotation.
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"], "conditions": [{"when": "request body sets or changes roles", "permissions": ["role:assign"]}]}
       requestBody:
         required: true
         content:
@@ -2139,6 +2866,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ServiceAccountCreated' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422':
           description: Invalid role or name already taken
           content:
@@ -2150,6 +2879,7 @@ paths:
       operationId: getServiceAccount
       summary: Service account detail
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -2158,6 +2888,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ServiceAccount' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -2167,6 +2899,7 @@ paths:
       operationId: updateServiceAccount
       summary: Update service account (name, description, roles)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"], "conditions": [{"when": "request body sets or changes roles", "permissions": ["role:assign"]}]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -2180,6 +2913,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ServiceAccount' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -2190,6 +2925,7 @@ paths:
       summary: Deactivate service account
       description: Soft deactivation (active=false). Credentials invalid.
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -2207,6 +2943,7 @@ paths:
         Generates a new `clientSecret`. The old secret is invalid immediately.
         The new secret is returned once in plaintext.
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -2215,6 +2952,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ServiceAccountCreated' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -2226,6 +2965,7 @@ paths:
       operationId: getSystemSettings
       summary: System settings (SCR-038)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["settings:manage"]}
       responses:
         '200':
           description: Settings
@@ -2238,6 +2978,7 @@ paths:
       operationId: updateSystemSettings
       summary: Update system settings (SCR-038)
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["settings:manage"]}
       requestBody:
         required: true
         content:
@@ -2254,6 +2995,579 @@ paths:
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
+  # ║  ACCESS CONTROL (ADR-032, UC-23)                                       ║
+  # ╚═════════════════════════════════════════════════════════════════════════╝
+  /admin/permissions:
+    get:
+      operationId: listPermissions
+      summary: Permission catalog (ADR-032 §3)
+      description: Fixed, release-versioned catalog; identical to `x-oea-permissions`.
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["role:assign", "visibility:configure", "service-account:manage"]}
+      responses:
+        '200':
+          description: Permissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Permission' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/roles:
+    get:
+      operationId: listAuthorizationRoles
+      summary: Authorization roles with their permissions (permission matrix, REQ-157 AC1)
+      description: |
+        Built-in and custom roles. Readable with `role:assign` and by principals that
+        reference roles: `visibility:configure` (readRoles/writeRoles) and
+        `service-account:manage` (service account roles).
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["role:assign", "visibility:configure", "service-account:manage"]}
+      parameters:
+        - name: assignableToServiceAccounts
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AuthorizationRole' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      operationId: createAuthorizationRole
+      summary: Create custom role (UC-23 A5)
+      description: Audited as `role.created`.
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AuthorizationRoleCreate' }
+      responses:
+        '201':
+          description: Role created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthorizationRole' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Role ID already taken
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422':
+          description: Unknown permission, SoD-2 violation or admin-class role flagged as assignable to service accounts
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /admin/roles/{roleId}:
+    get:
+      operationId: getAuthorizationRole
+      summary: Authorization role detail
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["role:assign", "visibility:configure", "service-account:manage"]}
+      parameters:
+        - $ref: '#/components/parameters/RoleIdParam'
+      responses:
+        '200':
+          description: Role
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthorizationRole' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: updateAuthorizationRole
+      summary: Update custom role
+      description: |
+        Built-in roles are immutable (SoD-5) → `409`. Changing a role the caller holds
+        → `403` (SoD-1). Removing permissions takes effect for all holders within 60 s.
+        Audited as `role.changed`.
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      parameters:
+        - $ref: '#/components/parameters/RoleIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AuthorizationRoleWrite' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthorizationRole' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422':
+          description: Unknown permission, SoD-2 violation, admin-class permission added to a role assignable to (or assigned to) service accounts
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+    delete:
+      operationId: deleteAuthorizationRole
+      summary: Delete custom role
+      description: |
+        Rejected with `409` for built-in roles and for roles still referenced by an active
+        assignment, an IdP group mapping, property visibility or the override list.
+        Audited as `role.deleted`.
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      parameters:
+        - $ref: '#/components/parameters/RoleIdParam'
+      responses:
+        '204':
+          description: Deleted
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/persons/{personId}/role-assignments:
+    get:
+      operationId: listRoleAssignments
+      summary: Local role assignments of a person or service account
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      parameters:
+        - $ref: '#/components/parameters/PersonIdParam'
+        - name: status
+          in: query
+          schema:
+            type: array
+            items: { type: string, enum: [scheduled, active, expired, revoked] }
+          style: form
+          explode: false
+          description: "Default: `scheduled,active`"
+      responses:
+        '200':
+          description: Assignments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/RoleAssignment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: createRoleAssignment
+      summary: Assign a role (UC-23 basic flow)
+      description: |
+        Creates a local assignment (audited as `role.assigned`, privileged roles with high
+        severity; all administrators are notified of privileged assignments).
+        - Target is the caller itself or the person linked to the caller's local system
+          admin account → `403` (SoD-1)
+        - Service account target and role not flagged `assignableToServiceAccounts` → `422` (SoD-4)
+        - SoD-3 combination without `acknowledgeSodConflict: true` → `409`
+        - Privileged role while `privilegedAssignmentApproval` is enabled → `202` with a
+          pending request; the assignment is created only after approval (Q15)
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      parameters:
+        - $ref: '#/components/parameters/PersonIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoleAssignmentWrite' }
+      responses:
+        '201':
+          description: Assignment created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleAssignment' }
+        '202':
+          description: Privileged role; four-eyes approval pending
+          headers:
+            Location:
+              schema: { type: string }
+              description: URL of the pending request
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleAssignmentRequest' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422':
+          description: Unknown role, role not assignable to service accounts, or `validTo` before `validFrom`
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /admin/persons/{personId}/role-assignments/{assignmentId}/revoke:
+    post:
+      operationId: revokeRoleAssignment
+      summary: Revoke a role assignment (UC-23 A3)
+      description: |
+        Sets `revokedAt`/`revokedBy` (no hard delete), revokes all sessions of the person
+        (REQ-164) and is audited as `role.revoked`. Own assignment → `403` (SoD-1);
+        last administration path to `system-admin` → `409` (SoD-7); already revoked or
+        expired → `409`.
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      parameters:
+        - $ref: '#/components/parameters/PersonIdParam'
+        - name: assignmentId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoleAssignmentRevoke' }
+      responses:
+        '200':
+          description: Assignment revoked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleAssignment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/role-assignment-requests:
+    get:
+      operationId: listRoleAssignmentRequests
+      summary: Pending four-eyes requests for privileged role assignments (Q15)
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, approved, rejected], default: pending }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+      responses:
+        '200':
+          description: Requests
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, page]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/RoleAssignmentRequest' }
+                  page: { $ref: '#/components/schemas/PageMeta' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/role-assignment-requests/{requestId}/approve:
+    post:
+      operationId: approveRoleAssignmentRequest
+      summary: Approve a pending privileged role assignment (four-eyes, Q15)
+      description: |
+        Creates the assignment (`role.assigned` with the approver recorded). The approver
+        must be neither the requester nor the assignee (also not via a linked local system
+        admin account) → otherwise `403`. Request no longer pending, or the assignment is
+        no longer valid (role deleted, target offboarded) → `409`.
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoleAssignmentDecision' }
+      responses:
+        '200':
+          description: Approved; the request references the created assignment
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleAssignmentRequest' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/role-assignment-requests/{requestId}/reject:
+    post:
+      operationId: rejectRoleAssignmentRequest
+      summary: Reject (or, as requester, withdraw) a pending privileged role assignment
+      description: |
+        The assignee cannot decide on their own request → `403` (SoD-1). Request no
+        longer pending → `409`.
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoleAssignmentDecision' }
+      responses:
+        '200':
+          description: Rejected
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleAssignmentRequest' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/idp-group-mappings:
+    get:
+      operationId: listIdpGroupMappings
+      summary: IdP group mappings (UC-23 A1)
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      parameters:
+        - name: authProviderId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: roleId
+          in: query
+          schema: { $ref: '#/components/schemas/RoleId' }
+      responses:
+        '200':
+          description: Mappings
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/IdpGroupMapping' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      operationId: createIdpGroupMapping
+      summary: Map an IdP group to a role
+      description: Audited as `idp-mapping.created`; mappings to privileged roles with high severity.
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/IdpGroupMappingWrite' }
+      responses:
+        '201':
+          description: Mapping created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdpGroupMapping' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Mapping for this provider, group and role already exists
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422':
+          description: Unknown provider or role, or group identifier not in the provider's immutable identifier format
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /admin/idp-group-mappings/{mappingId}:
+    put:
+      operationId: updateIdpGroupMapping
+      summary: Change or deactivate an IdP group mapping
+      description: |
+        Audited as `idp-mapping.changed`. Deactivating or changing the last administration
+        path to `system-admin` → `409` (SoD-7).
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      parameters:
+        - name: mappingId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/IdpGroupMappingWrite' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdpGroupMapping' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422':
+          description: Unknown provider or role, or invalid group identifier format
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+    delete:
+      operationId: deleteIdpGroupMapping
+      summary: Delete an IdP group mapping
+      description: |
+        Audited as `idp-mapping.deleted`; effective for all affected sessions within 60 s.
+        Last administration path to `system-admin` → `409` (SoD-7).
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      parameters:
+        - name: mappingId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Deleted
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/persons/{personId}/entity-link:
+    put:
+      operationId: setPersonEntityLink
+      summary: Link a person account to its Person entity (REQ-127)
+      description: |
+        Sets or removes the account link used for connection-scoped visibility. Audited as
+        `person.account-linked`. Own account (incl. via a linked local system admin
+        account) → `403` (SoD-1); service account target → `422`; entity already linked
+        to another account → `409`.
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
+      parameters:
+        - $ref: '#/components/parameters/PersonIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PersonEntityLink' }
+      responses:
+        '200':
+          description: Link set or removed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PersonEntityLinkResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422':
+          description: Entity is not of the person metatype, or the target is a service account
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /admin/access-review:
+    get:
+      operationId: getAccessReview
+      summary: Access review (UC-23 A8)
+      description: |
+        All principals with their roles, the source of every role (local, IdP group,
+        system admin account), validity, grantor, last login, SoD conflicts, privileged
+        holdings and service accounts with expiring secrets. `text/csv` for the export
+        used as audit evidence.
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["role:assign", "audit:read"]}
+      parameters:
+        - name: principalType
+          in: query
+          schema: { type: string, enum: [person, service-account, system-admin-account] }
+        - name: roleId
+          in: query
+          schema: { $ref: '#/components/schemas/RoleId' }
+        - name: source
+          in: query
+          schema: { type: string, enum: [local, idp, system-admin-account] }
+        - name: privilegedOnly
+          in: query
+          schema: { type: boolean, default: false }
+        - name: sodConflictsOnly
+          in: query
+          schema: { type: boolean, default: false }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+      responses:
+        '200':
+          description: Access review
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccessReview' }
+            text/csv:
+              schema: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/property-visibility/override-roles:
+    get:
+      operationId: getPropertyVisibilityOverride
+      summary: Property visibility override role list (REQ-128)
+      tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
+      responses:
+        '200':
+          description: Override role list (empty by default)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PropertyVisibilityOverride' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      operationId: updatePropertyVisibilityOverride
+      summary: Change the override role list (REQ-128, SoD-6)
+      tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PropertyVisibilityOverride' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PropertyVisibilityOverride' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422':
+          description: Unknown role
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  AUDIT (Schema: audit.*, ADR-024, SCR-026/054)                        ║
   # ╚═════════════════════════════════════════════════════════════════════════╝
   /audit/events:
@@ -2262,8 +3576,9 @@ paths:
       summary: Compliance audit log (SCR-054)
       description: |
         Reads from `audit.events` + `audit.event_changes` (ADR-024).
-        Requires role `Auditor` or `Admin`.
+        Property values the caller may not read are redacted (REQ-160).
       tags: [Audit]
+      x-oea-authorization: {"access": "permission", "permissions": ["audit:read"]}
       parameters:
         - name: entityId
           in: query
@@ -2297,17 +3612,15 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/AuditEvent' }
                   page: { $ref: '#/components/schemas/PageMeta' }
-        '403':
-          description: Insufficient permissions
-          content:
-            application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /audit/events/{id}/changes:
     get:
       operationId: getAuditEventChanges
       summary: Change detail of an audit event (SCR-027)
       tags: [Audit]
+      x-oea-authorization: {"access": "permission", "permissions": ["audit:read"]}
       parameters:
         - name: id
           in: path
@@ -2319,6 +3632,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AuditEvent' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -2337,6 +3652,7 @@ paths:
         Creates a new entity. For idempotent create-or-update
         (with a known `externalId`) please use `PUT /entities/by-external-id/{externalId}`.
       tags: [Entities – Write]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
       requestBody:
         required: true
         content:
@@ -2348,6 +3664,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EntityDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '409':
           description: "`externalId` already taken"
           content:
@@ -2371,6 +3689,7 @@ paths:
       operationId: replaceEntity
       summary: Replace entity (full update)
       tags: [Entities – Write]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
       parameters:
         - $ref: '#/components/parameters/EntityIdParam'
         - name: version
@@ -2388,6 +3707,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EntityDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -2411,6 +3732,7 @@ paths:
         Missing fields remain unchanged.
         `properties` array: only supplied properties are updated.
       tags: [Entities – Write]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
       parameters:
         - $ref: '#/components/parameters/EntityIdParam'
         - name: version
@@ -2427,6 +3749,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EntityDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -2441,6 +3765,7 @@ paths:
       operationId: deleteEntity
       summary: Soft-delete entity
       tags: [Entities – Write]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:delete"]}
       parameters:
         - $ref: '#/components/parameters/EntityIdParam'
         - name: reason
@@ -2449,6 +3774,8 @@ paths:
       responses:
         '204':
           description: Soft-deleted
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -2464,6 +3791,7 @@ paths:
         Returns `201 Created` on creation, `200 OK` on update.
         Repeated calls with identical data are safe.
       tags: [Entities – Write]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
       parameters:
         - name: externalId
           in: path
@@ -2486,6 +3814,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EntityDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422':
           description: Validation error
           content:
@@ -2501,6 +3831,7 @@ paths:
         pattern checks, connection constraints) without persisting.
         Useful for external systems before the actual write.
       tags: [Entities – Write]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
       requestBody:
         required: true
         content:
@@ -2514,6 +3845,7 @@ paths:
               schema: { $ref: '#/components/schemas/ValidationResult' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /entities/batch:
     post:
@@ -2524,6 +3856,7 @@ paths:
         The preferred endpoint for external systems with `strategy: upsert`
         (ADR-026). `?dryRun=true` → validation without persisting.
       tags: [Entities – Write]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"], "conditions": [{"when": "a connection of a type used as scopingConnectionType is written", "permissions": ["visibility-scope:assign"]}]}
       parameters:
         - name: dryRun
           in: query
@@ -2539,6 +3872,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/BatchWriteResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422':
           description: Entire batch invalid (e.g. empty body, atomic=true with error)
           content:
@@ -2554,6 +3889,7 @@ paths:
         Validates against `metatype_connection_constraints`.
         Source/target can be referenced via internal ID or `externalId`.
       tags: [Entities – Write]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"], "conditions": [{"when": "a connection of a type used as scopingConnectionType is written", "permissions": ["visibility-scope:assign"]}]}
       requestBody:
         required: true
         content:
@@ -2565,6 +3901,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EntityDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Source or target entity not found
           content:
@@ -2593,6 +3931,7 @@ paths:
         Writing systems use this endpoint to validate connection writes
         in advance. Source: `metatype_connection_constraints`.
       tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
       parameters:
         - name: sourceMetatypeId
           in: query
@@ -2610,6 +3949,7 @@ paths:
               schema: { $ref: '#/components/schemas/AllowedConnectionResult' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   # ── Metamodel package import/export (ADR-026) ───────────────────────────────
   /admin/metamodel/export:
@@ -2622,6 +3962,7 @@ paths:
         Serves as the basis for metamodel libraries and the upsert workflow
         of external systems (externalId namespace, metatype IDs).
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - name: configId
           in: query
@@ -2651,6 +3992,7 @@ paths:
         `replace`: replaces the metamodel completely (only if no entities
         of the old metamodel exist).
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       requestBody:
         required: true
         content:
@@ -2670,6 +4012,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ImportResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '409':
           description: "`replace` not possible (existing entities of the old metamodel)"
           content:
@@ -2691,6 +4035,7 @@ paths:
         Writing systems and the diagram editor load this palette to
         display entities correctly without hard-coding shape knowledge.
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "viewpoint:manage"]}
       parameters:
         - name: id
           in: path
@@ -2705,6 +4050,8 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/ShapeAssignment' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Viewpoint not found
           content:
@@ -2714,6 +4061,7 @@ paths:
       operationId: updateShapePalette
       summary: Update shape palette
       tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
       parameters:
         - name: id
           in: path
@@ -2747,10 +4095,12 @@ paths:
       operationId: getPortalCatalogView
       summary: Portal catalog (SCR-050)
       description: |
-        Read-only version of `/views/catalog`. Reduced auth scope (portal-reader).
-        Certain properties are hidden according to the property visibility configuration
-        (SCR-032) (visibility `always` / `default` / `hidden`).
+        Read-only version of `/views/catalog` for portal users (`portal:read`, held
+        by the built-in role `portal-reader` among others). Properties the caller may
+        not read are redacted according to the property visibility configuration
+        (REQ-124, REQ-160).
       tags: [Portal]
+      x-oea-authorization: {"access": "permission", "permissions": ["portal:read"]}
       parameters:
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/PageSizeParam'
@@ -2776,11 +4126,8 @@ paths:
                     items: { $ref: '#/components/schemas/EntityListItem' }
                   page:          { $ref: '#/components/schemas/PageMeta' }
                   filterOptions: { $ref: '#/components/schemas/CatalogFilterOptions' }
-        '401':
-          description: Not authenticated
-          content:
-            application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /portal/catalog/{id}:
     get:
@@ -2788,6 +4135,7 @@ paths:
       summary: Portal entity detail (SCR-051)
       description: Read-only. No edit button; properties according to the visibility configuration.
       tags: [Portal]
+      x-oea-authorization: {"access": "permission", "permissions": ["portal:read"]}
       parameters:
         - $ref: '#/components/parameters/EntityIdParam'
       responses:
@@ -2796,6 +4144,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EntityDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -2808,6 +4158,7 @@ paths:
       summary: Portal diagram viewer (SCR-052)
       description: Read-only. No editing; shapes cannot be selected or moved.
       tags: [Portal]
+      x-oea-authorization: {"access": "permission", "permissions": ["portal:read"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -2816,6 +4167,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DiagramView' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -2828,6 +4181,7 @@ paths:
       summary: Portal dashboard data (SCR-053)
       description: Read-only. No widget configuration; data points only.
       tags: [Portal]
+      x-oea-authorization: {"access": "permission", "permissions": ["portal:read"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -2836,6 +4190,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DashboardData' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
@@ -2847,9 +4203,11 @@ paths:
       operationId: getPortalAuditEvents
       summary: Portal change history (SCR-054)
       description: |
-        Read-only view of audit events. No restore button.
-        Filtered to publicly visible event types.
+        Read-only view of audit events for the portal. No restore button.
+        Requires `audit:read` like `/audit/events`; property values the caller may not
+        read are redacted (REQ-160).
       tags: [Portal]
+      x-oea-authorization: {"access": "permission", "permissions": ["audit:read"]}
       parameters:
         - name: entityId
           in: query
@@ -2876,6 +4234,7 @@ paths:
                   page: { $ref: '#/components/schemas/PageMeta' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  SSE – invalidation channel (ADR-025)                                  ║
@@ -2887,8 +4246,11 @@ paths:
       description: |
         Persistent SSE connection for cache invalidation.
         Events: `i18n_invalidated`, `metamodel_updated`.
+        Authenticated via the session cookie or the bearer header; tokens are never
+        passed in the URL. Streams are closed when the session is revoked.
         Can be disabled via `oea.sse.enabled=false`.
       tags: [Events]
+      x-oea-authorization: {"access": "authenticated"}
       responses:
         '200':
           description: SSE stream
@@ -2901,6 +4263,7 @@ paths:
 
                   data: {"type":"metamodel_updated"}
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TAGS
@@ -2916,9 +4279,11 @@ tags:
     description: Entity history and restore (UC-14/15/16)
   - name: Entities – Write
     description: |
-      Write endpoints for entities and connections (ADR-026, optional).
-      Requires feature flag `oea.integration.enabled=true` and role `integration-writer`.
-      `?dryRun=true` available on batch and validate endpoints.
+      Write endpoints for entities and connections (ADR-026). Require the permission
+      `entity:write` for persons and service accounts alike (`entity:delete` for
+      deletion); connections of scoping types additionally require
+      `visibility-scope:assign`. Properties the caller may not write are rejected
+      (REQ-162). `?dryRun=true` available on batch and validate endpoints.
   - name: Metamodel
     description: Metatypes, property definitions and mappings (SCR-030)
   - name: Admin
@@ -2931,3 +4296,7 @@ tags:
     description: Dynamic labels with ETag caching (ADR-025)
   - name: Events
     description: Server-Sent Events for cache invalidation
+  - name: Access Control
+    description: Permission catalog, authorization roles, role assignments, four-eyes approval, IdP group mappings and access review (ADR-032, UC-23)
+  - name: Identity
+    description: Current principal and OAuth2 token endpoint for service accounts

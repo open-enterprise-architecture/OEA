@@ -13,7 +13,8 @@ references:
     - UC-01
   business_objects:
     - person
-    - role
+    - authorization-role
+    - session
   business_rules: []
   stakeholders:
     - SH-03

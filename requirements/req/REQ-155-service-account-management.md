@@ -45,7 +45,7 @@ Service accounts are `persons` with `person_type=service-account`. Credentials i
 
 - Create a person entry with `person_type=service-account`
 - Create a `machine_credentials` entry with `client_id` (UUID) and `client_secret_hash`
-- Role assignment via `person_roles`
+- Role assignment via `role_assignments` (ADR-032; only roles with `assignable_to_service_accounts`)
 - Credential rotation: new secret; old one immediately invalid
 
 **Outputs**:

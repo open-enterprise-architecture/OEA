@@ -15,7 +15,8 @@ references:
   business_objects:
     - system-admin-account
     - person
-    - role
+    - authorization-role
+    - session
   business_rules: []
   stakeholders:
     - SH-06

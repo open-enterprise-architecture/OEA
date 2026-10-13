@@ -31,18 +31,18 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | Artifact | Count |
 |---|---|
 | Stakeholder profiles | 8 |
-| Use Cases | 22 |
-| Requirements | 193 |
-| User Stories | 142 |
-| ADRs | 31 |
-| Business Objects | 22 |
+| Use Cases | 23 |
+| Requirements | 194 |
+| User Stories | 150 |
+| ADRs | 32 |
+| Business Objects | 27 |
 
 _Concept: v0.18 · Last update: 2026-10-13._
 <!-- /AUTO-GENERATED: stats -->
 
 **Next step**: Walking Skeleton based on UC-06 (Catalog Browser).
 
-- Concept: complete (24 chapters + changelog, v0.18.1), see [`concept/`](concept/)
+- Concept: complete (24 chapters + changelog, v0.18.2), see [`concept/`](concept/)
 - Requirements: completed – all 21 UCs, 155 REQs, 142 USs, 29 ADRs defined
 - Tech stack: decided (Java 21 / Vue 3 / PostgreSQL 15 / Electron)
 - Code: not started yet
@@ -118,6 +118,7 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 | [ADR-029](adrs/ADR-029-cucumber-test-framework.md) | Test Framework for BDD System Tests — Cucumber JVM | accepted |
 | [ADR-030](adrs/ADR-030-postgresql-only.md) | PostgreSQL as the Only Supported Database | accepted |
 | [ADR-031](adrs/ADR-031-ui-prototyping-storybook.md) | UI Prototyping with Clickable Vue Prototypes in Storybook | accepted |
+| [ADR-032](adrs/ADR-032-authorization-model.md) | Authorization Model – RBAC with a Fixed Permission Catalog and Configurable Roles | accepted |
 <!-- /AUTO-GENERATED: adrs -->
 
 ## Contributing

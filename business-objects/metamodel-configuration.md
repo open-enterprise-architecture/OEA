@@ -2,7 +2,7 @@
 identifier: metamodel-configuration
 name_de: Metamodell-Konfiguration
 name_en: Metamodel Configuration
-version: 1.1.0
+version: 1.2.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -113,9 +113,10 @@ Changes to the configuration are versioned and recorded in the audit log.
 | category | string | required | | max. 100 characters; freely selectable | Category assignment (e.g. `"Costs"`, `"Organization"`, `"Compliance"`, `"Security"`) |
 | defaultValue | string | optional | null | must match the dataType definition | Default value as string representation |
 | description | string | optional | | max. 500 characters | Business description of the attribute |
-| visibilityMode | enum | optional | `public` | `[public, role-restricted, connection-scoped]` | Controls who may read and write the value (REQ-124); `public` = all; `role-restricted` = only `allowedRoles`; `connection-scoped` = ABAC via graph traversal |
-| allowedRoles | Role[] | conditional | [] | Required if `visibilityMode=role-restricted`; at least 1 entry | Roles that may read and write the value |
-| scopingConnectionType | string | conditional | null | Required if `visibilityMode=connection-scoped`; must reference a valid `isConnection=true` ConnectionType ID | Connection type that defines the scope (e.g. `DomainAssignment`) |
+| visibilityMode | enum | optional | `public` | `[public, role-restricted, connection-scoped]`; changeable only with `visibility:configure` | Controls who may read and write the value (REQ-124); `public` = all; `role-restricted` = only `readRoles`/`writeRoles`; `connection-scoped` = ABAC via graph traversal |
+| readRoles | reference (list) | conditional | [] | target: [authorization-role](./authorization-role.md) IDs (not deleted); required with at least 1 entry if `visibilityMode=role-restricted`; changeable only with `visibility:configure` | Authorization roles that may read the value (REQ-124, ADR-032 DM-9) |
+| writeRoles | reference (list) | optional | [] | target: authorization-role IDs; every entry must also be in `readRoles`; changeable only with `visibility:configure` | Authorization roles that may write the value; empty = nobody under `role-restricted` (REQ-124) |
+| scopingConnectionType | string | conditional | null | Required if `visibilityMode=connection-scoped`; must reference a valid `isConnection=true` ConnectionType ID; changeable only with `visibility:configure` | Connection type that defines the scope (e.g. `DomainAssignment`); creating, changing or deleting connections of this type requires `visibility-scope:assign` (REQ-161) |
 
 ### PropertyDataType
 
@@ -241,7 +242,7 @@ Describes a single page (step) in the creation wizard that is run through when c
 | BR-02 | A built-in EntityType (`isBuiltIn=true`) must not be deleted or changed in its basic structure | onDelete, onUpdate | – |
 | BR-03 | A custom EntityType can only be deleted if no instance of this type exists in the repository | onDelete | – |
 | BR-04 | A `ConstraintRule` with `severity=error` blocks saving of entities that violate the rule | onValidate | – |
-| BR-05 | Changes to the `MetamodelConfiguration` require an authorized configuring person (metamodel editor role) | onCreate, onUpdate, onDelete | – |
+| BR-05 | Changes to the `MetamodelConfiguration` require the permission `metamodel:write`, except the visibility fields of `PropertyDefinition` (`visibilityMode`, `readRoles`, `writeRoles`, `scopingConnectionType`), which require `visibility:configure` (ADR-032 §3, SoD-2) | onCreate, onUpdate, onDelete | REQ-157, REQ-161 |
 | BR-06 | If `editMode=import-only` for a configuration, create, update, and delete operations on EntityTypeDefinitions, stereotypes, and ConstraintRules of this configuration MUST NOT be executed via the GUI API; only the import path (REQ-033) remains active; applies independently per scope level: a solution extension can have `gui-and-import` while the instance configuration is `import-only` | onUpdate | – |
 | BR-09 | A `MetamodelConfiguration` with `scope=solution` MUST NOT contain types that are already defined in the parent object (`parentId`) (no overriding, only supplementing) | onCreate, onUpdate | – |
 | BR-10 | A `MetamodelConfiguration` with `scope=solution` MUST have a valid `parentId` pointing to a `MetamodelConfiguration` with `scope=instance` of the same OEA instance | onCreate | – |
@@ -259,6 +260,7 @@ Describes a single page (step) in the creation wizard that is run through when c
 | BR-20 | `CreationStep.propertyCategory`, if set, must correspond to an existing `PropertyDefinition.category` value of the associated EntityType | onCreate, onUpdate | – |
 | BR-21 | `CreationStep.connectionType`, if set, must be a valid EntityType ID with `isConnection=true` in the same MetamodelConfiguration | onCreate, onUpdate | – |
 | BR-22 | When the creation wizard is started (`creationSteps` not empty): the entity is persisted only after clicking "Finish"; a cancellation (ESC or X) creates no entity and leaves no state in the repository | onEntityCreate | – |
+| BR-23 | `readRoles` and `writeRoles` reference authorization role IDs, never business roles; an authorization role referenced there cannot be deleted; every entry of `writeRoles` must be contained in `readRoles` | onCreate, onUpdate; onDelete of the role | REQ-124, ADR-032 DM-9 |
 
 ## Examples
 
@@ -422,3 +424,4 @@ mandatoryConnectionConstraints:
 | 0.9.0 | 2026-06-26 | Business Engineer | Added `arc42Collections: Arc42ChapterCollection[]` to the root object (reference to arc42.md); declared built-in EntityTypes `arc42-meta-object` and `arc42-describes` (REQ-067) |
 | 1.0.0 | 2026-06-27 | Business Engineer | `arc42Collections` → `documentCollectionDefinitions`; Arc42-specific naming generalized; Arc42 becomes a template, not a system concept (reference to document-collection.md) |
 | 1.1.0 | 2026-06-28 | Business Engineer | Extended `PropertyDefinition` with `visibilityMode`, `allowedRoles`, `scopingConnectionType` (UC-21, REQ-124); three visibility modes: `public` (default), `role-restricted`, `connection-scoped` (ABAC via graph traversal) |
+| 1.2.0 | 2026-10-13 | Business Engineer | REQ-124 v0.2.0 / ADR-032 DM-9: `allowedRoles` split into `readRoles`/`writeRoles` referencing authorization role IDs (persisted in `property_visibility_roles`); visibility fields require `visibility:configure`; BR-05 reworded to permissions; BR-23 added. Reason: security review SEC-03 (one list for read and write, self-escalation via metamodel editing) |

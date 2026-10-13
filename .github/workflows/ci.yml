@@ -126,6 +126,8 @@ jobs:
         run: npm install -g @redocly/cli@latest
       - name: Validate OpenAPI
         run: redocly lint api/openapi.yaml --format=github-actions
+      - name: Check authorization declared on every operation (ADR-032)
+        run: python3 scripts/check_openapi_authorization.py
 
   # ── 4. Markdown lint (informational until baseline is cleaned up) ─────────────────────
   markdown-lint:

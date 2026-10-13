@@ -2,6 +2,16 @@
 
 This document records how the concept paper itself has evolved. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows Semantic Versioning (at concept level: major = fundamentally new concepts, minor = new chapters/sections, patch = corrections).
 
+## [v0.18.2] – §21.8 authorization model aligned with ADR-032
+
+### Changed
+
+- §21.8: authorization roles are separate from business roles of the EA model; RBAC with permission catalog, deny by default and separation of duties (ADR-032); OIDC with PKCE; machine access via OAuth 2.0 client credentials instead of API keys (REQ-176)
+
+### Rationale
+
+The security review (SEC-01) rated the use of business roles as access-control roles as critical: anyone who can edit EA content could grant themselves permissions.
+
 ## [v0.18.1] – Markdown formatting
 
 ### Fixed
