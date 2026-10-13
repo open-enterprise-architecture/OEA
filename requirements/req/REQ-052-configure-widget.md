@@ -43,6 +43,7 @@ Widget configuration takes place in the **client app**. The **web portal** rende
 ### API Endpoints
 
 **Add**:
+
 - `POST /api/v1/dashboards/{dashboardId}/widgets`
 - Request: widget configuration (type + type-specific fields + gridPosition)
 - Response 201: created widget with id
@@ -50,10 +51,12 @@ Widget configuration takes place in the **client app**. The **web portal** rende
 - Response 403: requester is not the creator of the dashboard
 
 **Configure (update)**:
+
 - `PUT /api/v1/dashboards/{dashboardId}/widgets/{widgetId}`
 - widgetType must NOT be changed → 422 if different
 
 **Remove**:
+
 - `DELETE /api/v1/dashboards/{dashboardId}/widgets/{widgetId}`
 - Response 204; no block if the dashboard thereby has 0 widgets (empty dashboard allowed)
 
@@ -80,27 +83,33 @@ Widget configuration takes place in the **client app**. The **web portal** rende
 ## Acceptance Criteria
 
 **AC1** (Create KPI widget):
+
 - When: `POST /api/v1/dashboards/{id}/widgets` with type=kpi, title="Total costs", dataSource={PropertyAggregation, entityType=plateau, propertyName=investmentCostForecast, aggregationFn=sum}, gridPosition={col:1,row:1,width:3,height:1}
 - Then: HTTP 201; widget stored in DB; GET /api/v1/dashboards/{id} contains the widget
 
 **AC2** (Chart widget, chartType=pie → no xAxis allowed):
+
 - When: POST with type=chart, chartType=pie, two yAxis entries
 - Then: HTTP 422 "pie/donut allows exactly one Y axis"
 
 **AC3** (Type change rejected):
+
 - Given: a widget type=kpi exists
 - When: PUT with widgetType=chart
 - Then: HTTP 422 "widgetType is immutable"
 
 **AC4** (Invalid DataSource for table):
+
 - When: POST with type=table, dataSource=PropertyAggregation
 - Then: HTTP 422 "Table widget requires a CatalogQuery DataSource"
 
 **AC5** (Remove):
+
 - When: DELETE /api/v1/dashboards/{id}/widgets/{widgetId}
 - Then: HTTP 204; the widget is no longer contained in GET /api/v1/dashboards/{id}
 
 **AC6** (Someone else's dashboard):
+
 - Given: Franz tries to add a widget to Kurt's dashboard
 - When: POST without permission
 - Then: HTTP 403

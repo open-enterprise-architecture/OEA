@@ -37,14 +37,17 @@ Imported building blocks are the immutable foundation of the continuum library. 
 ## Acceptance Criteria
 
 **AC1** (API write protection):
+
 - When: a PUT or DELETE request is issued on an ABB with `scope=imported`
 - Then: the system responds with HTTP 422
 
 **AC2** (UI write protection and badge):
+
 - When: a building block with `scope=imported` is displayed in the UI
 - Then: edit and delete buttons are not visible; a badge "Imported – TOGAF 10 TRM" is visible
 
 **AC3** (SBB assignments editable):
+
 - When: a TRM category with `scope=imported` is opened
 - Then: SBB assignments (`preferredStandard`, `acceptedAlternatives`, `deprecatedOptions`) are editable; name and parent category are locked
 

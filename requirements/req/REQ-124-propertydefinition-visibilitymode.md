@@ -34,6 +34,7 @@ The data model of the `PropertyDefinition` (in `MetamodelConfiguration`) MUST be
 | `scopingConnectionType` | string | null | Mandatory if `visibilityMode = connection-scoped`; must reference a valid `ConnectionType` ID |
 
 **Semantics of the modes**:
+
 - `public`: value is readable and writable for every authenticated user (current behavior, default)
 - `role-restricted`: value is only readable/writable for users whose active role is contained in `allowedRoles`
 - `connection-scoped`: value is only readable/writable for users who have a path in the graph to the requested entity via the connection type `scopingConnectionType`
@@ -45,18 +46,22 @@ Without extending the `PropertyDefinition`, no fine-grained visibility control i
 ## Acceptance Criteria
 
 **AC1** (Data model):
+
 - When: a `PropertyDefinition` is created or edited
 - Then: `visibilityMode` is storable; default `public` is correct
 
 **AC2** (Validation role-restricted):
+
 - When: `visibilityMode = role-restricted` and `allowedRoles` is empty
 - Then: saving is rejected with a validation error
 
 **AC3** (Validation connection-scoped):
+
 - When: `visibilityMode = connection-scoped` and `scopingConnectionType` points to a non-existent ConnectionType ID
 - Then: saving is rejected with a validation error
 
 **AC4** (Backward compatibility):
+
 - When: an existing `PropertyDefinition` without `visibilityMode`
 - Then: default `public` is applied; existing values are retained
 

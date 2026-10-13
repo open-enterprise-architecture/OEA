@@ -167,6 +167,7 @@ The relationship `ADR.affects` is n:m and accepts both **entities and relations*
 - A **relation between entities** can have an ADR if the decision concerns the connection, not the systems – e.g., "Shop will communicate with ERP asynchronously instead of synchronously" affects the relation `Shop -[uses]-> ERP`, not Shop or ERP themselves
 
 Views that result from this:
+
 - **ADR history of an entity or relation**: all decisions that have shaped this element, chronologically
 - **Impact of an ADR**: all entities and relations affected by this decision
 - **Decision trail**: superseding chain shows how a decision has evolved over time
@@ -176,7 +177,7 @@ Views that result from this:
 
 The complete normative chain in the repository:
 
-```
+```text
 Goal / Driver
     ↓ motivates
 ArchitecturePrinciple

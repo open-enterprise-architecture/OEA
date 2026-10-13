@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to import embedded continuum packa
 ## Acceptance Criteria
 
 **AC1** (Package preview):
+
 - When: I open the package list
 - Then: I see "TOGAF 10 TRM" with a preview (47 ABBs, 38 TRM categories, 12 patterns)
 
 **AC2** (Import with one click):
+
 - When: I click "Import"
 - Then: the import is executed atomically; an import log shows the result
 
 **AC3** (Already imported package):
+
 - When: the package has already been imported
 - Then: the UI shows a badge "Already imported" and a note on conflict handling
 

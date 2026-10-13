@@ -25,6 +25,7 @@ A system admin account is a privileged, instance-wide access for administering a
 The system admin account solves the chicken-and-egg problem of a freshly installed OEA instance: before any person with a RoleAssignment exists in the repository, an access must already exist in order to be able to configure the instance at all (see [UC-02 Bootstrapping](../requirements/use-cases/UC-02-system-admin-bootstrapping.md)). It is therefore deliberately decoupled from person/role and is not, for example, a special RoleAssignment.
 
 According to [ADR-006](../adrs/ADR-006-auth-stack-choice.md), a system admin account can be realized in two ways:
+
 - **local**: a built-in account with its own credential (password or setup token), independent of any external identity provider
 - **remote**: a mapping "whoever logs in with group/role claim X at Entra ID/Authentik receives system admin rights" – without a locally stored credential
 
@@ -49,16 +50,18 @@ According to [ADR-006](../adrs/ADR-006-auth-stack-choice.md), a system admin acc
 
 ## Lifecycle
 
-```
+```text
 bootstrapped → active → deactivated
 ```
 
 **States**:
+
 - `bootstrapped`: Account was created during initial installation, not yet used
 - `active`: Account is actively usable
 - `deactivated`: Account was deliberately deactivated (e.g. after establishing regular IdP governance, see business rule BR-02)
 
 **Transitions**:
+
 - `bootstrapped → active`: first successful login with the account
 - `active → deactivated`: manually by an existing system admin account or a person with the corresponding authority
 
@@ -73,6 +76,7 @@ bootstrapped → active → deactivated
 ## Examples
 
 **Example 1**: Local bootstrap admin
+
 ```yaml
 mode: local
 localCredentialHash: "<argon2id-hash>"
@@ -81,6 +85,7 @@ active: true
 ```
 
 **Example 2**: Remote-mapped admin (Entra ID)
+
 ```yaml
 mode: remote
 remoteIdpReference:

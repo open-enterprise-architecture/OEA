@@ -31,6 +31,7 @@ Every OEA instance has exactly one `MetamodelConfiguration`. It consists of two 
 
 **Built-in elements (built-in, read-only)**:
 The TOGAF-based core entity types from [§6 Core Entity Types](../concept/20-entities/06-core-entity-types.md) are always present:
+
 - Business Architecture: `Actor`, `Role`, `OrganizationUnit`, `BusinessService`, `BusinessFunction`, `BusinessProcess`, `Capability`, `ValueStream`, `InformationObject`
 - Data Architecture: `DataEntity`, `LogicalDataComponent`, `PhysicalDataComponent`
 - Application Architecture: `ApplicationComponent`, `ApplicationService`, `ApplicationFunction`, `Interface`
@@ -40,6 +41,7 @@ These types cannot be deleted or changed in their basic structure. They can be e
 
 **Configurable elements**:
 The architecture team can extend the configuration through seven categories (per [§14 Extensibility](../concept/40-extensibility/14-extensibility.md)):
+
 1. **Custom EntityTypes**: new types that are not part of the TOGAF core (e.g. `SecurityZone`, `DataPipeline`); an EntityType can be marked as a **connection type** that models a connection between two entities and enforces start and target (REQ-036); every EntityType can receive any number of **PropertyDefinitions** with data type, validation mode, and category
 2. **Stereotypes**: non-breaking extensions of existing types with additional properties (e.g. `SaaSApplication` on `ApplicationComponent`)
 3. **ConstraintRules**: declarative expression validation rules for entities (e.g. "every Interface must have an owner")
@@ -50,6 +52,7 @@ The architecture team can extend the configuration through seven categories (per
 The **edit mode** (`editMode`) controls whether changes to the metamodel are possible via GUI and import or exclusively via import. In lock mode `import-only`, GUI editing is disabled for all users; the YAML file becomes the single source of truth (REQ-035).
 
 **Two-level scoping** (REQ-037): A `MetamodelConfiguration` has a `scope`:
+
 - `scope=instance`: the instance default metamodel (singleton per instance); `editMode` can be controlled here; can be locked
 - `scope=solution`: extension configuration for a specific [Solution](./solution.md); inherits all types of the instance configuration (`parentId` points to it); can add its own EntityTypes, stereotypes, and ConstraintRules; has its own `editMode` independent of the parent; solution types are visible only within this solution
 
@@ -210,6 +213,7 @@ Describes a single page (step) in the creation wizard that is run through when c
 | minConnections | integer | optional | 1 | only relevant if `stepType=connectionAssignment`; ≥ 1 | Minimum number of connections; 0 = optional |
 
 **stepType semantics**:
+
 - `properties`: shows all `PropertyDefinitions` of the specified `propertyCategory` as a fillable form
 - `domainAssignment`: shows a multi-select of all `ArchitectureDomainDefinition` entries; the user selects membership
 - `connectionAssignment`: shows a search field + selection for target entities; creates connection(s) upon completion
@@ -224,6 +228,7 @@ Describes a single page (step) in the creation wizard that is run through when c
 | modifiedBy | [person](./person.md) | n:1 | no | The last change is assigned to a person |
 
 **Notes**:
+
 - The `MetamodelConfiguration` is not an EA model element; it is infrastructure that shapes the model.
 - Changes to the configuration affect all entities created in the future; existing entities are migrated through schema evolution (§15).
 - Built-in EntityTypes (`isBuiltIn=true`) are managed in code, not in the DB-stored configuration. They are visible in the API and UI but not editable.
@@ -258,6 +263,7 @@ Describes a single page (step) in the creation wizard that is run through when c
 ## Examples
 
 **Custom EntityType (YAML representation, §14.1)**:
+
 ```yaml
 entityType: SecurityZone
 id: security-zone
@@ -287,6 +293,7 @@ relations:
 ```
 
 **Stereotype (YAML representation, §14.2)**:
+
 ```yaml
 stereotype: SaaSApplication
 basedOn: ApplicationComponent
@@ -304,6 +311,7 @@ properties:
 ```
 
 **Connection EntityType (YAML representation, REQ-036)**:
+
 ```yaml
 entityType: DataFlow
 id: data-flow
@@ -321,9 +329,11 @@ properties:
     required: false
     enumValues: [public, internal, confidential, restricted]
 ```
+
 *T relationship*: `DataFlow.allowedSourceTypes` contains `DataFlow` → a DataFlow can point to another DataFlow, which yields a T connection (e.g. a branch of a data line).
 
 **Constraint rule (YAML representation, §14.3)**:
+
 ```yaml
 name: every-interface-has-owner
 appliesTo: Interface
@@ -333,6 +343,7 @@ message: "Every Interface must have an owner ApplicationComponent assigned"
 ```
 
 **ArchitectureLayer definitions (YAML representation)**:
+
 ```yaml
 architectureLayers:
   - id: business-layer
@@ -353,6 +364,7 @@ architectureLayers:
 ```
 
 **ArchitectureDomain definitions (YAML representation)**:
+
 ```yaml
 architectureDomains:
   - id: finance
@@ -368,6 +380,7 @@ architectureDomains:
 ```
 
 **MandatoryConnectionConstraint (YAML representation)**:
+
 ```yaml
 mandatoryConnectionConstraints:
   - name: appcomp-must-run-on-tech

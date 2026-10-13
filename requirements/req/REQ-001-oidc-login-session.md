@@ -46,10 +46,12 @@ Concept §21.8 defines OAuth 2.0/OIDC as the standard authentication mechanism. 
 ### For type=functional
 
 **Inputs**:
+
 - HTTP request without a valid session to a protected resource
 - Authorization code from the identity provider after a successful redirect
 
 **Processing**:
+
 - Check for an existing valid session; if present, no new redirect (A1)
 - Redirect to the configured OIDC provider with state/nonce protection
 - Redeem the authorization code for an identity token (access token, ID token)
@@ -59,10 +61,12 @@ Concept §21.8 defines OAuth 2.0/OIDC as the standard authentication mechanism. 
 - Create a session bound to the person and active roles
 
 **Outputs**:
+
 - Valid session/access token
 - Login confirmation with a role-based landing area
 
 **Error Cases**:
+
 - Identity provider rejects authentication → see REQ-006 (no session, generic error message)
 - Person not found/offboarded → see REQ-004
 - Identity provider unreachable → technical error message, no session established, retry possible
@@ -70,21 +74,25 @@ Concept §21.8 defines OAuth 2.0/OIDC as the standard authentication mechanism. 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a person without a valid session calls a protected resource
 - When: they successfully authenticate with the configured OIDC provider
 - Then: they receive a session that reflects their active role assignments
 
 **AC2**:
+
 - Given: a person already has a valid session
 - When: they call another protected resource
 - Then: no new redirect to the identity provider occurs
 
 **AC3**:
+
 - Given: an instance for which online token validation against the IdP is configured, and an identity token that is validly signed locally but has already been revoked at the IdP
 - When: the login process is completed
 - Then: session creation is refused
 
 **AC4**:
+
 - Given: a token issued by the external IdP with a validity period set by the IdP
 - When: OEA creates the session
 - Then: OEA adopts this validity period unchanged, without shortening or extending it

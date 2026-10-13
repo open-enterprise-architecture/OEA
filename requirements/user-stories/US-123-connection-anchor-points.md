@@ -18,18 +18,22 @@ As Kurt – Lead Enterprise Architect, I want to set anchor points on connection
 ## Acceptance Criteria
 
 **AC1** (Set anchor point):
+
 - When: click on a selected connection line
 - Then: new anchor point on the nearest grid point; visible as a handle
 
 **AC2** (Snapping always active):
+
 - When: an anchor point is moved via drag & drop
 - Then: snaps to the grid; sub-grid positioning not possible (applies to all routing modes)
 
 **AC3** (Remove anchor point):
+
 - When: double-click on anchor point or context menu "Remove"
 - Then: anchor point removed; connection adjusts its path
 
 **AC4** (Curved + anchor point):
+
 - When: mode = Curved and anchor point set
 - Then: Bézier curve runs through the anchor point; curve handles visible on both sides for curve control
 

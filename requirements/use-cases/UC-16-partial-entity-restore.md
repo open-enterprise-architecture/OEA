@@ -99,7 +99,7 @@ As with UC-15, the partial restore is itself a traceable change: the current sta
 
 ## Basic Flow
 
-*Default case: Kurt opens the partial restore wizard from the version history*
+*Default case: Kurt opens the partial restore wizard from the version history.*
 
 ### Entry
 
@@ -193,37 +193,40 @@ As with UC-15, the partial restore is itself a traceable change: the current sta
 
 ## Alternative Flows
 
-**A1 – Skip step**
+### A1 – Skip step
 
 - At each wizard step, Kurt can click "Skip" without making a selection
 - Skipped steps contribute no fields to the restore
 - The summary shows only the fields actually selected
 
-**A2 – No differences in a step**
+### A2 – No differences in a step
 
 - If all fields of a step are identical between target version and current state, the system shows "No differences in this step" and advances automatically
 
-**A3 – Switch to current version as source**
+### A3 – Switch to current version as source
 
 - Kurt can change the source version at any time in the wizard via a dropdown; the diff is recalculated immediately
 
-**A4 – Nothing selected**
+### A4 – Nothing selected
 
 - If Kurt selects nothing in all steps and the summary is empty, "Partially restore" is disabled; no empty commit possible (BR-03)
 
 ## Exception Flows
 
-**E1 – Validation error due to restoring a field value**
+### E1 – Validation error due to restoring a field value
+
 - Condition: A restored property value violates the current metamodel (e.g., enum value no longer exists)
 - Expected reaction: Warning in the summary; no block — Kurt decides; after the restore the field appears with a validation warning
 - Resumption: Kurt corrects the field after the restore
 
-**E2 – Optimistic lock conflict**
+### E2 – Optimistic lock conflict
+
 - Condition: The entity was changed by someone else between wizard start and confirmation
 - Expected reaction: 409 with notice; wizard stays open; Kurt can reload the diff (A3)
 - Resumption: Kurt loads the current state and restarts the wizard
 
-**E3 – Missing write permission**
+### E3 – Missing write permission
+
 - Condition: Kurt has read permission only
 - Expected reaction: "Partially restore" option not visible; on API attempt 403
 - Resumption: Contact admin (UC-02)

@@ -48,6 +48,7 @@ A [Solution](../../business-objects/solution.md) describes the delta between a b
 ### For type=functional
 
 **Inputs**:
+
 - Solution ID (reference to an existing [Solution](../../business-objects/solution.md))
 - `editMode` for the extension configuration: `gui-and-import` | `import-only`
 - EntityTypeDefinitions, Stereotypes, ConstraintRules (as described in REQ-032/REQ-033, but only for the solution scope)
@@ -55,25 +56,30 @@ A [Solution](../../business-objects/solution.md) describes the delta between a b
 **Processing**:
 
 *Creating a solution extension configuration*:
+
 1. Check: the solution exists and does not yet have a `metamodelExtensionId` (or replaces an existing one)
 2. Create a new `MetamodelConfiguration` with `scope=solution`, `solutionId`, `parentId` → instance configuration, `editMode` (freely selectable)
 3. Set Solution.`metamodelExtensionId`
 
 *Compute the effective metamodel (on entity creation within a solution)*:
+
 1. Load the instance configuration (built-in + instance custom types)
 2. Load the solution extension configuration (if present)
 3. Form the union: all instance types + solution-specific types
 4. On name collision (solution type has the same name as an instance type) → error on creation (BR-09: no overriding)
 
 *Validation of new types in the solution extension*:
+
 - Name uniqueness against built-in types + instance custom types + already existing solution types (BR-09)
 - Base type (`extends`) must be contained in the effective type list (instance or solution)
 
 **Outputs**:
+
 - Solution extension configuration created/updated
 - Effective type list for the solution (union of instance + solution)
 
 **Error Cases**:
+
 - Solution type has the same name as an instance type → error "Type 'X' is already defined in the instance metamodel; solution types cannot override instance types"
 - Solution extension configuration has no valid `parentId` → error
 - `editMode=import-only` of the instance has no influence on the solution extension → it remains editable according to its own `editMode`
@@ -81,31 +87,37 @@ A [Solution](../../business-objects/solution.md) describes the delta between a b
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: instance metamodel with `editMode=import-only`; solution "Cloud-Experiment" without an extension configuration
 - When: Kurt creates a new extension configuration with `editMode=gui-and-import` for "Cloud-Experiment" and defines `CloudService` in it
 - Then: `CloudService` is available in the effective metamodel of "Cloud-Experiment"; the instance default metamodel remains unchanged and locked; `CloudService` does not appear in other solutions
 
 **AC2**:
+
 - Given: solution "Cloud-Experiment" with `CloudService` (solution type) and instance type `ApplicationComponent`
 - When: an architect creates a new entity within "Cloud-Experiment"
 - Then: both types are available for selection: `ApplicationComponent` (from the instance) and `CloudService` (solution-specific)
 
 **AC3**:
+
 - Given: solution extension with `editMode=gui-and-import`
 - When: Kurt adds a new type via the GUI
 - Then: this is possible even though the instance metamodel is `import-only` (independent `editMode` levels)
 
 **AC4**:
+
 - Given: a solution extension configuration is to define a type `ApplicationComponent` (already present as an instance type)
 - When: Kurt saves
 - Then: the error "Type 'ApplicationComponent' is already defined in the instance metamodel" appears; no entry created
 
 **AC5**:
+
 - Given: a solution has no extension configuration (`metamodelExtensionId=null`)
 - When: an architect creates an entity within this solution
 - Then: only instance types are available; no error
 
 **AC6**:
+
 - Given: solution extension with `editMode=import-only`
 - When: Kurt updates the solution extension via a YAML file (REQ-033)
 - Then: the import is possible; GUI editing of this extension is blocked

@@ -12,16 +12,18 @@ assignees: ''
 
 ## Decision Drivers
 
-- 
-- 
+-
+-
 
 ## Considered Options
 
-### Option A: ...
+### Option A: <name>
+
 - Pro:
 - Con:
 
-### Option B: ...
+### Option B: <name>
+
 - Pro:
 - Con:
 

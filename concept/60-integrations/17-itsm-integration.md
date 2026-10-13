@@ -21,18 +21,21 @@ EA thinks in **plateaus and target states** (months to years), the CMDB in **con
 The question "who is master?" is decided **per EntityType and partly per property**:
 
 **EA is master for:**
+
 - All logical entities (LogicalApplication/-Technology/-Data)
 - Business architecture entities (Capability, ValueStream, BusinessService, BusinessFunction, Process, OrgUnit, InformationObject, InformationFlow)
 - Temporal and strategic entities (Plateau, Goal, Driver, WorkPackage, Gap, ADR, Principle, Standard)
 - Planning-relevant properties on physical entities (`lifecycleState` per plateau, `strategicClassification`, `targetArchitecture` membership)
 
 **CMDB/ITSM is master for:**
+
 - Concrete runtime CIs (servers, VMs, containers, network devices, storage)
 - Software installations incl. patch level, concrete versions, hostnames, IPs
 - Deployment instances (DEV/TEST/PROD)
 - Operational properties (status, uptime, metrics, incident/change history, SLA binding)
 
 **Jointly maintained** (with property-level mastership):
+
 - `PhysicalApplicationComponent`: EA master for existence, business assignment, strategic assessment; CMDB master for current version, deployment instances, operational status
 - `PhysicalTechnologyComponent`: EA master for standards, target state, lifecycle planning; CMDB master for patch level, configuration, instances
 - `Interface`: EA master for business semantics, information flow assignment, planned interfaces; CMDB master for active endpoints, monitoring status
@@ -55,7 +58,7 @@ The question "who is master?" is decided **per EntityType and partly per propert
 
 Stable identifiers are the basis of the integration:
 
-```
+```text
 EA URN scheme:    urn:ea:<org>:<type>:<id>
                   e.g. urn:ea:acme:application:sap-fi
                        urn:ea:acme:bizservice:invoicing
@@ -64,6 +67,7 @@ CMDB reference:   cmdb-ci-id: CI0042-SAP-FI-PROD
 ```
 
 Both sides carry the respective other ID as a property:
+
 - The EA entity has a property `externalReferences[]` with CMDB CI IDs
 - The CMDB CI has a property `eaReference` with the EA URN
 

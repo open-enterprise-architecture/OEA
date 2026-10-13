@@ -41,18 +41,22 @@ Without a dedicated configuration form, EA managers would have to manage visibil
 ## Acceptance Criteria
 
 **AC1** (Mode selector visible):
+
 - When: Kurt opens a property in the metamodel editor
 - Then: the visibility section is present; the current mode is preselected (`public` for new properties)
 
 **AC2** (Conditional fields):
+
 - When: the mode selector is set to `Role-based`
 - Then: the role selection appears; the `scopingConnectionType` field is hidden
 
 **AC3** (Badge):
+
 - When: a property has `visibilityMode ≠ public`
 - Then: the property entry in the list shows a "Restricted" badge or a corresponding icon
 
 **AC4** (Save validation in the UI):
+
 - When: Kurt clicks "Save" with empty `allowedRoles` for `role-restricted`
 - Then: an inline error message appears; no server request is sent
 

@@ -18,21 +18,25 @@ As a person signing in for the first time with my initial password, I want to se
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Kurt has chosen TOTP as the method
 - When: the page is loaded
 - Then: he sees a QR code (key URI format `otpauth://totp/…`) and the secret in plaintext for manual entry
 
 **AC2**:
+
 - Given: Kurt scans the QR code and enters the current 6-digit code
 - When: the code is correct (time tolerance ±1 window of 30 s)
 - Then: the secret is persisted in encrypted form; login with TOTP (UC-01 A4) is possible
 
 **AC3**:
+
 - Given: Kurt enters a wrong code
 - When: he submits the form
 - Then: the token remains valid, no secret is stored, Kurt can try again
 
 **AC4**:
+
 - Given: enrollment has been completed
 - When: server logs and database entries are present
 - Then: the TOTP secret is contained neither in plaintext nor as a hash in logs; in the database it is stored encrypted

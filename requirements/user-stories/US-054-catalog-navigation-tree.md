@@ -18,24 +18,29 @@ As a Lead Enterprise Architect, I want to be able to place a catalog in a folder
 ## Acceptance Criteria
 
 **AC1** (attach to tree, happy path):
+
 - Given: Catalog "Application Inventory" and folder "IT Landscape" in the navigation tree exist
 - When: Kurt chooses "Attach to navigation tree" in the catalog context menu and selects folder "IT Landscape"
 - Then: Catalog appears under "IT Landscape" in the navigation tree; TreeNodeItem created
 
 **AC2** (open via tree):
+
 - Given: Catalog is attached in the tree under "IT Landscape"
 - When: Franz clicks the catalog entry in the navigation tree
 - Then: Catalog opens directly; default SavedView is applied (if present)
 
 **AC3** (multiple placement – soft reference):
+
 - When: Kurt additionally attaches "Application Inventory" in "Compliance/ISO 27001 View"
 - Then: Catalog appears in both folders; only one Catalog record exists
 
 **AC4** (removing from tree does not delete the catalog):
+
 - When: Kurt removes the entry from "IT Landscape" (context menu "Remove from tree")
 - Then: TreeNodeItem deleted; catalog in "Compliance/ISO 27001 View" remains; `GET /api/v1/catalogs/{id}` returns HTTP 200
 
 **AC5** (display label in tree):
+
 - When: Kurt attaches the catalog with displayLabel "System Inventory"
 - Then: "System Inventory" appears in the navigation tree; the catalog itself is still called "Application Inventory"
 

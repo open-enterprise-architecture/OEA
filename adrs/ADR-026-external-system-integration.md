@@ -43,13 +43,14 @@ CREATE UNIQUE INDEX uq_entities_external_id ON entities (external_id)
 ```
 
 Rules:
+
 - Assigned by the writing system, not by OEA
 - Unique per OEA instance (namespace convention recommended: `{system}:{id}`)
 - Never generated automatically; remains NULL when created manually
 
 ### 2. Upsert Endpoint
 
-```
+```http
 PUT /api/v1/entities/by-external-id/{externalId}
 ```
 
@@ -81,7 +82,7 @@ Disadvantage: Backend validation errors must be clearly addressed per property.
 
 ### 4. Batch Write
 
-```
+```http
 POST /api/v1/entities/batch
 ```
 
@@ -101,7 +102,7 @@ Maximum batch size: configurable, default 500 items.
 
 ### 5. Create Connections
 
-```
+```http
 POST /api/v1/connections
 ```
 
@@ -116,6 +117,7 @@ source-target meta type combination results in `422 Unprocessable Entity`.
 
 Every writing endpoint accepts the query parameter `?dryRun=true`.
 Validation is executed fully, no persistence. The response contains:
+
 - What would be created / updated / skipped / fail
 - Validation errors per item
 
@@ -138,7 +140,7 @@ The `agent_id` value comes from the `X-Agent-Id` request header or the JWT claim
 
 Writing systems must understand the metamodel before the first write:
 
-```
+```http
 GET /api/v1/metamodel/metatypes?q={freetext}
 GET /api/v1/metamodel/allowed-connections?sourceMetatypeId={id}&targetMetatypeId={id}
 ```
@@ -151,7 +153,7 @@ and which connection meta type is to be used for it?"
 So that external systems know the metamodel of an OEA instance without querying it
 piece by piece, there is a package endpoint:
 
-```
+```text
 GET  /api/v1/admin/metamodel/export   → JSON package: MetaTypes + PropertyDefs + Viewpoints + Shapes
 POST /api/v1/admin/metamodel/import   ← same format; strategy: merge | replace
 ```
@@ -184,12 +186,15 @@ This format is also the basis for exchangeable metamodel libraries
 ## Rejected Alternatives
 
 ### Manual maintenance only
+
 Not scalable for large IT landscapes with frequent changes. Rejected.
 
 ### Own import file format (CSV, Excel)
+
 Every system would have to bring a specific exporter. API is more universal. Rejected.
 
 ### Webhooks / push from source system directly into DB
+
 No metamodel enforcement, no audit trail, no validation. Rejected.
 
 ---
@@ -197,11 +202,13 @@ No metamodel enforcement, no audit trail, no validation. Rejected.
 ## Consequences
 
 **Positive:**
+
 - Current state can be populated automatically and idempotently
 - Arbitrary writing systems integrable without OEA-specific knowledge
 - Audit trail shows the origin of every entity
 
 **Negative / Compromises:**
+
 - `external_id` must be assigned consistently by the writing system
 - Flat write schema increases backend complexity (type conversion + error reporting)
 - Batch atomicity under multi-DB (ADR-023) requires careful transaction control

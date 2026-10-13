@@ -9,6 +9,7 @@
 ## Context and Problem
 
 The Vue 3 frontend (ADR-011) requires:
+
 1. A **UI component library** for all standard UI elements (tables, dialogs, forms, trees, menus)
 2. A **WYSIWYG editor** for Arc42 chapters and entity descriptions (REQ-068, REQ-069, REQ-070, REQ-078, REQ-080)
 

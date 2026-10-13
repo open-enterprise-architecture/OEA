@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to be able to select in the wizard
 ## Acceptance Criteria
 
 **AC1** (Identical fields grayed out):
+
 - When: a field is identical in the source and the current state
 - Then: the checkbox is grayed out and not clickable
 
 **AC2** (New properties marked):
+
 - When: a property did not yet exist in the source version
 - Then: the wizard shows "(not present in source version)"; checkbox not selectable
 
 **AC3** (Preview on field selection):
+
 - When: I activate the checkbox of a changed field
 - Then: the source value is displayed as a preview
 

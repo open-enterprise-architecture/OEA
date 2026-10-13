@@ -55,6 +55,7 @@ Connection types are full EntityTypes with all features: properties, own ID, lif
 | `allowedTargetTypes` | string[] | null | Optional: list of allowed EntityType names for `target`; null = all allowed |
 
 **Processing on instance creation** (when an entity of the connection type is created):
+
 - System enforces the presence of `source` (reference to an existing entity of any type – unless `allowedSourceTypes` restricts it)
 - System enforces the presence of `target` (analogous)
 - Validation: `source` and `target` must reference existing entities of the allowed types
@@ -62,42 +63,50 @@ Connection types are full EntityTypes with all features: properties, own ID, lif
 - A connection instance can additionally have its own properties (like any other EntityType)
 
 **Error Cases** (on instance creation):
+
 - `source` missing → validation error "source is a mandatory field for connection type X"
 - `target` missing → analogous
 - `source` is not an allowed type (per `allowedSourceTypes`) → validation error with a specific message
 - `source` or `target` entity does not exist → validation error "Entity not found"
 
 **Error Cases** (on EntityType definition):
+
 - `allowedSourceTypes` or `allowedTargetTypes` set, but `isConnection=false` → ignored (BR-08); no error message, but a note in the GUI
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: EntityType `DataFlow` with `isConnection=true`, `allowedSourceTypes=[ApplicationComponent, DataFlow]`, `allowedTargetTypes=[ApplicationComponent, DataFlow]`
 - When: Kurt creates a new `DataFlow` instance without specifying `source`
 - Then: the validation error "source is a mandatory field" appears; no object is saved
 
 **AC2**:
+
 - Given: `DataFlow` instance DF-1 (source=AppA, target=AppB) already exists
 - When: Kurt creates a new `DataFlow` instance DF-2 with `source=DF-1` (connection → connection) and `target=AppC`
 - Then: DF-2 is saved; in the graph DF-2 points to DF-1 (T-relationship: DF-2 branches off DF-1, AppC is the endpoint)
 
 **AC3**:
+
 - Given: `DataFlow` has `allowedSourceTypes=[ApplicationComponent]` (DataFlow not in the list)
 - When: Kurt wants to create DF-2 with `source=DF-1` (a connection instance)
 - Then: the validation error "DataFlow is not an allowed source type for DataFlow" appears
 
 **AC4**:
+
 - Given: EntityType `DataFlow` with `isConnection=true` and property `protocol (enum)`
 - When: Kurt creates an instance with `source=AppA`, `target=AppB`, `protocol=REST`
 - Then: the instance is saved with all fields (own properties coexist with source/target)
 
 **AC5**:
+
 - Given: `isConnection=false` (standard EntityType `ApplicationComponent`)
 - When: Kurt creates an `ApplicationComponent` instance
 - Then: `source` and `target` are not mandatory fields; no change to existing behavior
 
 **AC6**:
+
 - Given: a YAML import file (REQ-033) defines `DataFlow` with `isConnection=true`
 - When: Kurt imports the file
 - Then: `DataFlow` is imported correctly as a connection type; `isConnection=true` is visible in the GUI

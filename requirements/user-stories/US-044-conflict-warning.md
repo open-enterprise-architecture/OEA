@@ -18,26 +18,31 @@ As a Solution Architect, I want to see a warning when another active solution al
 ## Acceptance Criteria
 
 **AC1** (conflict detected):
+
 - Given: Solution A (draft, owner: Maria) contains a delta for `CRM-Legacy`
 - When: Michael saves a delta for `CRM-Legacy` in solution B
 - Then: a warning appears "This entity is also being changed in 'Solution A' (owner: Maria). Please coordinate."
 
 **AC2** (no conflict with implemented):
+
 - Given: Solution A (implemented) contains a delta for `CRM-Legacy`
 - When: Michael saves a delta for `CRM-Legacy` in solution B
 - Then: **no** warning (implemented is not an active conflict)
 
 **AC3** (persistent warning):
+
 - Given: the warning for `CRM-Legacy` was displayed when saving the delta
 - When: Michael reloads solution B
 - Then: the warning is still visible on the affected delta (not a one-time toast)
 
 **AC4** (warning disappears at go-live):
+
 - Given: Solution A has a conflicting delta for `CRM-Legacy`; solution B shows a warning for it
 - When: Solution A is set to `implemented`
 - Then: the warning in solution B disappears on the next load (on the fly, no stored flag)
 
 **AC5** (multiple conflicts):
+
 - Given: Solutions A and B each have a delta for `CRM-Legacy`
 - When: Michael creates a delta for `CRM-Legacy` in solution C
 - Then: two warnings appear (one per conflicting solution)

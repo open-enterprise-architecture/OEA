@@ -18,27 +18,33 @@ As a Solution Architect, I want to embed an entity from the repository in the Ar
 ## Acceptance Criteria
 
 **AC1** (Dropdown in free text):
+
 - When: Michael types `/@CRM` in the Markdown area
 - Then: An autocomplete dropdown with matching entities appears
 
 **AC2** (Selection → ID-stable link):
+
 - When: Michael selects "CRM-System" (id=1)
 - Then: `[@CRM-System](entity:1)` is inserted; rendered as a clickable badge
 
 **AC3** (Rename automatic):
+
 - Given: Entity id=1 is now named "Salesforce CRM"
 - When: Michael reopens the answer
 - Then: The badge shows "Salesforce CRM"; raw text unchanged
 
 **AC4** (Dropdown in Mermaid block):
+
 - When: Michael types `/@CRM` inside a Mermaid code block
 - Then: The dropdown appears; after selection the text name `CRM-System` is inserted without a link
 
 **AC5** (PlantUML block analogous to AC4):
+
 - When: `/@CRM` in a PlantUML block
 - Then: The text name is inserted
 
 **AC6** (Deleted entity):
+
 - Given: Entity id=1 deleted
 - When: Answer with mention is opened
 - Then: The badge shows `[deleted]` in red font

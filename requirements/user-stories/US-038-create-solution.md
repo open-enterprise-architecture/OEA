@@ -18,26 +18,31 @@ As a Solution Architect, I want to be able to create a new solution with a name 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Michael is logged in and has solution architect permission; no plateaus present (project mode)
 - When: he enters the name "ERP Extension Logistics" and a description and saves
 - Then: the solution exists with status=`draft`, `ownerId=Michael`, `fromPlateauId=null`, `toPlateauId=null`; it is visible in the solution overview
 
 **AC2**:
+
 - Given: A solution with the name "ERP Extension Logistics" already exists
 - When: Michael wants to create a second solution with the same name
 - Then: a validation error "Name 'ERP Extension Logistics' is already taken" appears; no second solution is created
 
 **AC3** (plateau mode):
+
 - Given: instance in plateau mode; plateau P0 (baseline) and P1 (target) exist
 - When: Michael sets `fromPlateauId=P0` and `toPlateauId=P1` and saves
 - Then: solution created with both references; both null or both set (BR-01 met)
 
 **AC4**:
+
 - Given: Michael enters `fromPlateauId=P0`, leaves `toPlateauId` empty
 - When: he saves
 - Then: validation error "Both plateau references must be set or both empty" (BR-01); no object created
 
 **AC5**:
+
 - Given: person without solution architect permission
 - When: they open the creation form
 - Then: 403 Forbidden; no access to the form

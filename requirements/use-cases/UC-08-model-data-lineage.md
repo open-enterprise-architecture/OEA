@@ -75,6 +75,7 @@ In every company, data flows between systems: customer master data from the ERP 
 OEA solves this problem by managing data objects and data flows as first-class entities in the same architecture model as application components. Each data flow explicitly references which data objects it transports. The result is a **traversable lineage graph**: for any data object, OEA can calculate all source and target systems (upstream / downstream) – not only as a diagram, but as a queryable API response.
 
 This UC is the basis for:
+
 - **GDPR Art. 30**: generate the record of processing activities from the model (side flow A3)
 - **Impact analysis**: which systems are affected if the schema of data object X changes?
 - **Compliance reporting**: which data flows transport personal data without a documented legal basis?
@@ -83,6 +84,7 @@ This UC is the basis for:
 
 **Primary Actor**: [Lukas – Senior Data Architect](../../business-analysis/stakeholders/SH-02-lukas-senior-data-architect.md)
 **Other Stakeholders**:
+
 - [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md) (approves metamodel extension)
 - [Sabine – Business Engineer](../../business-analysis/stakeholders/SH-07-sabine-business-engineer.md) (uses business view of data flows)
 
@@ -120,9 +122,9 @@ This UC is the basis for:
 
 ## Basic Flow
 
-*Default case: Lukas models the customer master data lineage in an existing instance*
+*Default case: Lukas models the customer master data lineage in an existing instance.*
 
-**Phase 1 – Extend metamodel (one-time)**
+### Phase 1 – Extend metamodel (one-time)
 
 1. **Lukas**: opens the metamodel configuration (UC-04)
 2. **System**: shows existing EntityType definitions
@@ -137,7 +139,7 @@ This UC is the basis for:
    - PropertyDefinition `carriedDataObjectIds` (varchar(500); validationMode=optional; category=Lineage) — comma-separated integer IDs of the referenced DataObjects
 5. **Lukas**: creates a lineage viewpoint (notation: `archimate3`; `allowedEntityTypes: [application-component, data-object]`; `allowedConnectionTypes: [data-flow]`) with matching NotationMappings and default sizes
 
-**Phase 2 – Create data objects**
+### Phase 2 – Create data objects
 
 6. **Lukas**: creates ArchitectureEntity `Customer Master` (entityTypeId=`data-object`):
    - `dataClassification`: `confidential`
@@ -148,7 +150,7 @@ This UC is the basis for:
    - `dataClassification`: `internal`
    - → System assigns integer ID, e.g., **43**
 
-**Phase 3 – Model data flows**
+### Phase 3 – Model data flows
 
 8. **Lukas**: creates DataFlow connection: `SAP ERP → Data Warehouse` (entityTypeId=`data-flow`):
    - `protocol`: `JDBC`
@@ -161,10 +163,11 @@ This UC is the basis for:
    - `carriedDataObjectIds`: `42`
    - → System assigns integer ID, e.g., **102**
 
-**Phase 4 – Query lineage**
+### Phase 4 – Query lineage
 
 10. **Lukas**: calls the lineage query: `GET /api/v1/lineage?entityId=42&direction=both`
 11. **System**: traverses the graph along all DataFlows whose `carriedDataObjectIds` contain the ID `42`; returns:
+
     ```json
     {
       "dataObjectId": 42,
@@ -177,6 +180,7 @@ This UC is the basis for:
       ]
     }
     ```
+
 12. **Lukas**: opens the lineage viewpoint; the diagram shows SAP ERP → Data Warehouse → BI Tool with `Customer Master` annotations on the edges
 13. **System**: renders data flows with `personalDataCategories ≠ empty` in a different color (via `visualHint` in the viewpoint)
 
@@ -228,7 +232,7 @@ This UC is the basis for:
 
 ## Data Flow
 
-```
+```text
 Lukas (SH-02)
   │
   ├──[Step 3–5]──► MetamodelConfiguration: EntityTypeDefinition(data-object, data-flow), Viewpoint
@@ -249,31 +253,37 @@ Lukas (SH-02)
 ## Acceptance Criteria
 
 **AC1** (data object with stable ID):
+
 - Given: Lukas creates `Customer Master` (data-object)
 - When: entity saved
 - Then: System assigns integer ID ≥ 1; this ID is immutable; `entityTypeId=data-object` is set
 
 **AC2** (DataFlow references DataObject via ID):
+
 - Given: DataObject with ID 42 exists
 - When: Lukas creates DataFlow with `carriedDataObjectIds="42"`
 - Then: DataFlow is persisted with the correct property; lineage query for ID 42 returns this DataFlow
 
 **AC3** (downstream lineage end-to-end):
+
 - Given: chain SAP ERP →(101)→ DWH →(102)→ BI Tool; both DataFlows contain `carriedDataObjectIds="42"`
 - When: `GET /api/v1/lineage?entityId=42&direction=downstream`
 - Then: Response contains SAP ERP, DWH and BI Tool in the correct order; no system is missing
 
 **AC4** (upstream lineage):
+
 - Given: same chain as AC3
 - When: lineage query from BI Tool backwards for ID 42
 - Then: SAP ERP and DWH appear as sources
 
 **AC5** (cycle detection):
+
 - Given: data flows A→B, B→C, C→A (cycle) with DataObject 42
 - When: lineage query
 - Then: Response contains `cycle_detected=true`; no infinite loop
 
 **AC6** (GDPR filter via catalog):
+
 - Given: DataFlow with `personalDataCategories="Name,Address"` and DataFlow without personalDataCategories
 - When: Lukas opens catalog with filter `entityTypeId=data-flow` AND `personalDataCategories ≠ empty`
 - Then: Only the first DataFlow appears; the second does not

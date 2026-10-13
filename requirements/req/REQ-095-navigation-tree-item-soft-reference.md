@@ -35,10 +35,12 @@ The navigation tree is a pure navigation aid (soft-reference principle). Couplin
 ## Acceptance Criteria
 
 **AC1** (Item removal without data loss):
+
 - When: a TreeNodeItem is removed
 - Then: the TreeNodeItem is deleted; the referenced entity still exists (HTTP 200 on the entity)
 
 **AC2** (Mark orphaned items):
+
 - When: an entity that is referenced as an item in 2 folders is deleted
 - Then: both items show a warning symbol; the entity is not restorable by removing the item
 

@@ -69,6 +69,7 @@ Not all properties of an entity may be visible to all users. Investment costs, c
 **Primary Actor**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 
 **Other Stakeholders**:
+
 - [Michael – Solution Architect](../../business-analysis/stakeholders/SH-04-michael-solution-architect.md) (Domain Architect, experiences the connection-based restriction)
 - [Anna – Business Analyst](../../business-analysis/stakeholders/SH-08-anna-business-analyst.md) (sees restricted fields empty)
 
@@ -89,11 +90,13 @@ Not all properties of an entity may be visible to all users. Investment costs, c
 ## Postconditions
 
 **Success**:
+
 - `PropertyDefinition.visibilityMode` is set; `allowedRoles` or `scopingConnectionType` correctly filled
 - Unauthorized users see the field empty from now on and cannot edit it
 - The change is recorded in the audit log (REQ-034)
 
 **Failure**:
+
 - Configuration invalid (e.g., empty `allowedRoles` with `role-restricted`) → error message; no saving
 
 ## Basic Flow

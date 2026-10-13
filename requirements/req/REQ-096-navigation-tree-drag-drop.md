@@ -35,14 +35,17 @@ Drag & drop is the most ergonomic form of tree reorganization. Without cycle pro
 ## Acceptance Criteria
 
 **AC1** (Cycle detection):
+
 - When: folder A is dragged under folder B via drag & drop and B is a descendant of A
 - Then: the drop target is visually marked as invalid; an API attempt responds with HTTP 422
 
 **AC2** (Rearranging items):
+
 - When: items within a folder are rearranged via drag & drop
 - Then: `sortOrder` is updated correctly; the new order is persistent
 
 **AC3** (Move item between folders):
+
 - When: an item is moved from folder A to folder B via drag & drop
 - Then: the item is present in B and no longer in A
 

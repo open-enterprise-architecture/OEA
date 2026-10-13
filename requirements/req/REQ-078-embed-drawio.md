@@ -49,7 +49,7 @@ The XML format (`mxGraphModel`) is stable; OEA stores it raw in the `content` fi
 
 In the `content` field of the Arc42MetaObject, a Draw.io diagram is stored as follows:
 
-````
+````markdown
 ```drawio
 <mxGraphModel dx="1422" dy="762" grid="1" ...>
   <root>
@@ -82,6 +82,7 @@ In the `content` field of the Arc42MetaObject, a Draw.io diagram is stored as fo
 ### Entity Mention in the draw.io Editor
 
 When the user edits a shape label in the draw.io editor and types `[[`:
+
 - OEA integration (via draw.io embed API postMessage) intercepts the keyboard event
 - Autocomplete dropdown appears above the draw.io modal
 - Selection inserts the entity name as plain text into the shape label
@@ -100,37 +101,45 @@ The integration requires a small JavaScript bridge between the draw.io iframe an
 ## Acceptance Criteria
 
 **AC1** (Rendering from read view):
+
 - Given: Arc42 answer with `drawio` code block
 - When: User opens the answer
 - Then: Draw.io diagram rendered as SVG (not as XML text); correct shapes and connections visible
 
 **AC2** (Open editor modal):
+
 - Given: User is in edit mode of the Arc42 answer
 - When: Click on "Open in Draw.io"
 - Then: Modal opens with the full draw.io editor; existing XML is loaded; user can add, move and label shapes
 
 **AC3** (Apply changes):
+
 - When: User saves in the draw.io editor (Ctrl+S or Save button)
 - Then: Modal closes; updated XML appears in the `drawio` code block; SVG preview is updated immediately
 
 **AC4** (New empty diagram):
+
 - When: User inserts an empty `drawio` code block and clicks "Open"
 - Then: draw.io editor opens with an empty canvas; after saving, XML is in the block
 
 **AC5** (Entity mention in shape label):
+
 - When: User edits a shape label in the draw.io editor and types `[[CRM`
 - Then: Autocomplete dropdown opens above the draw.io modal; after selection `CRM-System` is inserted as plain text into the shape label
 
 **AC6** (Security — no XSS):
+
 - Given: Draw.io XML with `<mxCell value="<script>alert(1)</script>"/>`
 - When: Rendering
 - Then: Script tag is removed or escaped; no JavaScript executed
 
 **AC7** (Web portal read-only):
+
 - When: User opens Arc42 documentation in the web portal
 - Then: Draw.io diagram visible as SVG; no editor button; no postMessage bridge active
 
 **AC8** (Offline-capable):
+
 - Given: OEA instance without internet access; draw.io viewer library is shipped locally
 - When: User opens an answer with a `drawio` block
 - Then: SVG rendering works without external requests; draw.io editor popup also uses a local draw.io installation (if configured)

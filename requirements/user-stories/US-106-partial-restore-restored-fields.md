@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want the exact restored fields to be vi
 ## Acceptance Criteria
 
 **AC1** (restoredFields in version entry):
+
 - When: I partially restore `description` and `properties.owner`
 - Then: the version entry contains `restoredFields=["description","properties.owner"]`
 
 **AC2** (Reject empty selection):
+
 - When: no fields are selected and I want to confirm
 - Then: the button is disabled; an API call with empty `restoredFields` is rejected with HTTP 422
 
 **AC3** (Timeline readability):
+
 - When: I view the timeline after the partial restore
 - Then: the entry shows "Partially restored from v4 (description, properties.owner)"
 

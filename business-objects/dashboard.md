@@ -25,6 +25,7 @@ A `Dashboard` is a configurable view in the **Web Portal** that combines several
 Dashboards primarily target C-level decision makers (CIO, division heads) who do not read raw data from catalogs but need condensed metrics and trends. A typical example is the evaluation of investment cost forecasts across several plateaus to support budget decisions.
 
 **Data sources**: Widgets obtain their data from two sources:
+
 1. **CatalogQueryDataSource**: uses an existing [catalog](./catalog.md) including its joins, columns, and filters as the data basis
 2. **PropertyAggregationDataSource**: aggregates [PropertyDefinitions](./metamodel-configuration.md) directly across entities of a given type – without a catalog as an intermediate layer; supports groups and aggregation functions
 

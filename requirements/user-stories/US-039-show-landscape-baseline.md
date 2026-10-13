@@ -18,26 +18,31 @@ As a Solution Architect, I want to see, within a solution, the current state of 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Two implemented solutions: A has `CRM-Legacy` (new), B has `ERP-Core` (new)
 - When: Michael opens a new solution and loads the baseline
 - Then: `CRM-Legacy` and `ERP-Core` are in the list; no other entities
 
 **AC2**:
+
 - Given: Solution A (implemented) has `CRM-Legacy` (retiring)
 - When: Michael loads the baseline
 - Then: `CRM-Legacy` is **not** in the list (retiring removes the entity from implemented)
 
 **AC3**:
+
 - Given: Solution A has `ERP-Core` as modified (v4); solution B (more recent, implemented) has `ERP-Core` as modified (v5)
 - When: Michael loads the baseline
 - Then: the list shows `ERP-Core` with the state from solution B (more recent implementation wins)
 
 **AC4** (empty landscape):
+
 - Given: no implemented solutions present yet
 - When: Michael loads the baseline
 - Then: the notice "No implemented entities present – you can only create new entities" appears; the `modified` and `retiring` actions are disabled
 
 **AC5** (filter):
+
 - Given: baseline with 20 entities of various types
 - When: Michael filters by EntityType `ApplicationComponent`
 - Then: only entities of type `ApplicationComponent` are displayed

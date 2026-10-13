@@ -44,16 +44,19 @@ The audit trail serves compliance purposes (UC-14). The `audit` schema can resid
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: OEA application user `oea_app` active
 - When: attempt to execute `UPDATE audit.events SET event_type='manipulated'`
 - Then: database error "permission denied"; no record changed
 
 **AC2**:
+
 - Given: entity change via UI
 - When: change persisted
 - Then: entry in `audit.events` with correct `event_type`, `actor_name`, `actor_email`, `occurred_at`; `old_value`/`new_value` in `audit.event_changes`
 
 **AC3**:
+
 - Given: `oea.datasource.audit.url` set (external DB)
 - When: application starts
 - Then: audit writes go to the external DB; application data remains in the main DB

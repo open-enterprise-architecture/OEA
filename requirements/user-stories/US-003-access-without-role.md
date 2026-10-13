@@ -18,11 +18,13 @@ As a person without an active role assignment, I want to still be able to sign i
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a successfully authenticated person without an active role assignment
 - When: they access the repository
 - Then: they receive access only to publicly readable content and a notice that no role is assigned
 
 **AC2**:
+
 - Given: a person subsequently receives an active role assignment
 - When: they sign in again or the session is refreshed
 - Then: their permissions reflect the new role

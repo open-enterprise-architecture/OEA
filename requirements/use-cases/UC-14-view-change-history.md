@@ -68,6 +68,7 @@ OEA stores an immutable snapshot of the previous state in `entity_versions` befo
 **Primary Actor**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 
 **Other Stakeholders**:
+
 - [Lukas – Senior Data Architect](../../business-analysis/stakeholders/SH-02-lukas-senior-data-architect.md) (audit and compliance purposes)
 - [Michael – Solution Architect](../../business-analysis/stakeholders/SH-04-michael-solution-architect.md) (reviews changes in his area of responsibility)
 
@@ -97,7 +98,7 @@ OEA stores an immutable snapshot of the previous state in `entity_versions` befo
 
 ## Basic Flow
 
-*Default case: Kurt opens the version history of an entity and looks at a change in detail*
+*Default case: Kurt opens the version history of an entity and looks at a change in detail.*
 
 1. **Kurt**: opens the detail view of an entity (e.g., "SAP ERP", id=42)
 2. **System**: shows the entity details; a "History" tab is visible in the header (provided `entity_versions` entries exist)
@@ -116,35 +117,37 @@ OEA stores an immutable snapshot of the previous state in `entity_versions` befo
 
 ## Alternative Flows
 
-**A1 – Set time range filter**
+### A1 – Set time range filter
 
 1. **Kurt**: clicks "Filter" in the timeline
 2. **System**: shows date filter (from / to) and actor filter (select person)
 3. **Kurt**: sets filter; system shows only versions in the selected period / by the selected person
 
-**A2 – Compare two versions directly**
+### A2 – Compare two versions directly
 
 1. **Kurt**: selects two versions in the timeline via checkbox (e.g., v2 and v7)
 2. **System**: shows diff between v2 and v7 — all changes over the entire period cumulated
 
-**A3 – Switch from history directly to restore**
+### A3 – Switch from history directly to restore
 
 1. **Kurt**: sees the button "Restore this version" in the detail view of a version
 2. **Kurt**: clicks the button → system redirects to UC-15 with prefilled version number
 
-**A4 – Entity without change history**
+### A4 – Entity without change history
 
 1. **Kurt**: opens an entity that has never been edited since creation
 2. **System**: shows in the history tab: "No changes since creation. Created on [date] by [person]."
 
 ## Exception Flows
 
-**E1 – Missing read permission**
+### E1 – Missing read permission
+
 - Condition: Kurt has no read permission on the entity (e.g., solution-scoped entity outside his area)
 - Expected reaction: 403; history tab not visible
 - Resumption: Person contacts the admin (UC-02)
 
-**E2 – Entity not found**
+### E2 – Entity not found
+
 - Condition: Direct link to entity with deleted ID
 - Expected reaction: 404 with clear message
 - Resumption: Kurt navigates back to the catalog

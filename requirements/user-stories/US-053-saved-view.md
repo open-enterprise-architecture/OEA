@@ -18,25 +18,30 @@ As a Lead Enterprise Architect, I want to create a named view for a catalog that
 ## Acceptance Criteria
 
 **AC1** (create SavedView, happy path):
+
 - Given: Catalog "Application Inventory" with columns [name, status, vendor], SavedFilter "Active systems only", join "Interfaces"
 - When: Kurt creates view "Compact view" with columnOrder=[name, status], activeFilterIds=[filter-active-systems], isDefault=true
 - Then: View saved; the next time the catalog is opened, the compact view appears immediately
 
 **AC2** (view selection):
+
 - Given: Catalog has 2 SavedViews: "Compact view" (default) and "Full view"
 - When: Franz opens the catalog
 - Then: "Compact view" is automatically active; Franz can switch to the "Full view" via dropdown menu
 
 **AC3** (default switch):
+
 - Given: "Compact view" is isDefault=true
 - When: Kurt marks "Full view" as default
 - Then: "Full view" isDefault=true; "Compact view" automatically isDefault=false
 
 **AC4** (JoinMode override in view):
+
 - When: Kurt creates view "Detail view" with joinModeOverrides=[{joinId: join-1, joinMode: rows}]
 - Then: When activating "Detail view", join "Interfaces" switches to rows mode
 
 **AC5** (view without default):
+
 - Given: No isDefault set
 - When: Max opens the catalog
 - Then: All configured columns visible; no filter preselected; join modes as in the configuration

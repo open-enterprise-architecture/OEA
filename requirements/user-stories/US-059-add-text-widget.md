@@ -18,19 +18,23 @@ As a Lead Enterprise Architect, I want to add a text widget with Markdown conten
 ## Acceptance Criteria
 
 **AC1** (create text widget):
+
 - When: Kurt creates text widget: title="Methodological Notes", content="**Investment costs** are based on estimates by the respective solution architects (as of: Q1 2026). Values in CHF, excl. VAT."
 - Then: Widget saved; on data retrieval the widget appears with `status=static`; no DB call for data
 
 **AC2** (Markdown is rendered in the web portal):
+
 - Given: Text widget with Markdown content (bold, lists, links)
 - When: CIO opens dashboard in the web portal
 - Then: Content is displayed as rendered Markdown (HTML); no raw Markdown visible
 
 **AC3** (no DataSource field):
+
 - When: Text widget created without `dataSource`
 - Then: HTTP 201; no 422 due to missing dataSource (text has no dataSource)
 
 **AC4** (empty content allowed):
+
 - When: Text widget created with content=""
 - Then: HTTP 201; empty widget field in the dashboard (no error)
 

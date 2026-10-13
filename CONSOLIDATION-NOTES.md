@@ -24,6 +24,7 @@ This document summarizes what is contained in the consolidated tar archive and w
 ## Manual Steps Before Go-Live
 
 ### Mandatory
+
 - [ ] Set up email addresses and replace placeholders:
   - `security@oea.org` (SECURITY.md)
   - `conduct@oea.org` (CODE_OF_CONDUCT.md)
@@ -34,11 +35,13 @@ This document summarizes what is contained in the consolidated tar archive and w
 - [ ] Update repository URL in `.github/ISSUE_TEMPLATE/config.yml`
 
 ### Recommended Before the First Feature
+
 - [ ] Read through CLAUDE.md and adapt it to your understanding of the workflow
 - [ ] Skim `docs/quick-reference.md` once
 - [ ] First question to the Solution Architect: "What is the minimal walking skeleton use case?"
 
 ### Optional
+
 - [ ] Design a logo (not strictly necessary for the first release)
 - [ ] Trademark search for "OEA" / "Open Enterprise Architecture" in DE, EU, US (conflicts unlikely, but good practice)
 - [ ] ~~Set up Penpot workspace (for UI designer)~~ – obsolete, replaced by Storybook prototypes (ADR-031)
@@ -92,7 +95,7 @@ pre-commit install
 
 Then open in Claude Code and model the first business object with the Business Engineer:
 
-```
+```text
 Please act as Business Engineer (.claude/agents/business-engineer.md) 
 and model "Application Component" as the first business object.
 Use templates/business-object.template.md.

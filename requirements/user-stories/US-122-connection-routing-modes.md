@@ -18,18 +18,22 @@ As Kurt – Lead Enterprise Architect, I want to choose per connection whether i
 ## Acceptance Criteria
 
 **AC1** (Curved):
+
 - When: routing mode = Curved
 - Then: connection as a Bézier curve; no grid binding
 
 **AC2** (Orthogonal):
+
 - When: routing mode = Orthogonal
 - Then: exclusively 90° segments; bend points on grid points
 
 **AC3** (Mode switch):
+
 - When: routing mode of an existing connection is changed
 - Then: immediate re-rendering; existing anchor points are preserved
 
 **AC4** (Viewpoint default):
+
 - When: a new connection is dragged
 - Then: default routing from viewpoint configuration; fallback = Orthogonal
 

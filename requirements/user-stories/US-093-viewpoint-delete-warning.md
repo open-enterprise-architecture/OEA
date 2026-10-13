@@ -18,10 +18,12 @@ As Kurt – Lead Enterprise Architect, I want to see a warning about how many di
 ## Acceptance Criteria
 
 **AC1** (Warning for a used viewpoint):
+
 - When: I delete a viewpoint that is used by 5 diagrams
 - Then: I see the warning "5 diagrams will be affected"; after confirmation it is deleted
 
 **AC2** (No warning for an unused viewpoint):
+
 - When: I delete a viewpoint that is used by no diagram
 - Then: a direct confirmation dialog appears without warning text
 

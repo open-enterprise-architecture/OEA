@@ -18,18 +18,22 @@ As Michael – Solution Architect, I want to reference another chapter of the sa
 ## Acceptance Criteria
 
 **AC1** (Autocomplete trigger):
+
 - When: Michael types `{{` in the free-text area
 - Then: dropdown with all items of the current collection opens; search by alias and name possible
 
 **AC2** (Insertion and rendering):
+
 - When: Michael selects an item from the dropdown
 - Then: clickable inline link with the `name` of the target item appears in the text
 
 **AC3** (Automatic update on rename):
+
 - When: Michael renames the target chapter
 - Then: all cross-references to this chapter automatically show the new name
 
 **AC4** (Deleted target):
+
 - When: the referenced chapter is deleted
 - Then: reference shows `[deleted chapter]` in red font; no broken link
 

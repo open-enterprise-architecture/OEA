@@ -55,32 +55,38 @@ The audit log for the metamodel is conceptually analogous to the existing audit 
 | `importBatch` | string | optional; UUID of an import action if the entry was created by an import (REQ-033) |
 
 **Optional/extensible** (not mandatory for MVP):
+
 - `changeDetail`: structured diff (before/after for update operations)
 - `ipAddress`: IP of the requesting session
 
 **Trigger**: after every successfully persisted change to the MetamodelConfiguration (not on validation errors, not on read access)
 
 **Error Cases**:
+
 - An audit log write error MUST NOT roll back the actual operation; instead: asynchronous retry or alarm (monitoring alert)
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Kurt creates a custom EntityType `SecurityZone` (Basic Flow UC-04)
 - When: the audit log is evaluated
 - Then: it contains an entry with `eventType=metamodel.entity_type.created`, `elementName=SecurityZone`, Kurt's person ID, timestamp
 
 **AC2**:
+
 - Given: Kurt imports 3 EntityTypes via REQ-033
 - When: the import is completed
 - Then: the audit log contains 3 entries, each with `importBatch=<same UUID>` – so the import is recognizable as a coherent operation
 
 **AC3**:
+
 - Given: Lukas (another architect) deletes a custom EntityType
 - When: the audit log is evaluated
 - Then: the entry is assigned to Lukas' person ID (not Kurt's), `eventType=metamodel.entity_type.deleted`
 
 **AC4**:
+
 - Given: the audit log infrastructure is briefly unavailable
 - When: Kurt makes a change
 - Then: the change is saved in the MetamodelConfiguration; the audit log entry is made up asynchronously (no rollback of the change)

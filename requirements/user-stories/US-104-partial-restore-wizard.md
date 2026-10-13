@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to restore an entity selectively v
 ## Acceptance Criteria
 
 **AC1** (Source version prefilled):
+
 - When: I start the wizard from the timeline for version v3
 - Then: the source version v3 is prefilled
 
 **AC2** (Automatic skipping):
+
 - When: step 1 contains no differences
 - Then: it is skipped automatically with a note; the wizard moves to step 2
 
 **AC3** (Confirm button disabled without selection):
+
 - When: no fields have been selected in any step
 - Then: the confirm button is disabled
 

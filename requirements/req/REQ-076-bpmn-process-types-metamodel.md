@@ -55,25 +55,31 @@ All process elements are regular `ArchitectureEntities` in the shared integer ID
 **Scope of the built-in EntityTypes** (all `isBuiltIn: true`; all extensible via `extends`):
 
 **Process containers**:
+
 - `bpmn-process` (bpmn:Process)
 - `bpmn-pool` (bpmn:Pool)
 - `bpmn-lane` (bpmn:Lane)
 
 **Tasks** (all `isConnection: false`):
+
 - `bpmn-task`, `bpmn-user-task`, `bpmn-service-task`, `bpmn-send-task`, `bpmn-receive-task`, `bpmn-business-rule-task`, `bpmn-script-task`, `bpmn-sub-process`, `bpmn-call-activity`
 
 **Events**:
+
 - `bpmn-start-event`, `bpmn-end-event`, `bpmn-intermediate-catch-event`, `bpmn-intermediate-throw-event`
 - `bpmn-message-start-event`, `bpmn-timer-start-event`, `bpmn-message-end-event`, `bpmn-terminate-end-event`
 
 **Gateways**:
+
 - `bpmn-exclusive-gateway`, `bpmn-parallel-gateway`, `bpmn-inclusive-gateway`, `bpmn-event-gateway`
 
 **Artifacts**:
+
 - `bpmn-text-annotation` (bpmn:TextAnnotation; the annotation text is the entity `description`)
 - `bpmn-group` (bpmn:Group; property `category` for `categoryRef`)
 
 **Connections** (isConnection=true, isBuiltIn=true):
+
 - `bpmn-sequence-flow` (SequenceFlow between process elements)
 - `bpmn-message-flow` (MessageFlow between pools)
 - `bpmn-contained-in` (element → lane/pool; for nested-node layout)
@@ -84,10 +90,12 @@ All process elements are regular `ArchitectureEntities` in the shared integer ID
 - `bpmn-association` (text annotation ↔ any BPMN element; property `associationDirection`: none/one/both)
 
 **OrganizationalUnit** (isConnection=false, isBuiltIn=true):
+
 - `organizational-unit` (base type; extensible to `department`, `team`, etc.)
 - `org-unit-part-of` (connection, isConnection=true; OrgUnit → parent OrgUnit; hierarchy)
 
 **Assignment connections** (isConnection=true, isBuiltIn=true):
+
 - `bpmn-lane-performs-role` (bpmn-lane → role)
 - `bpmn-lane-belongs-to-org-unit` (bpmn-lane → organizational-unit)
 - `bpmn-pool-represents-org-unit` (bpmn-pool → organizational-unit)
@@ -119,40 +127,49 @@ All process elements are regular `ArchitectureEntities` in the shared integer ID
 Elements beyond Descriptive (send/receive/business-rule/script tasks, intermediate events, inclusive and event-based gateways) remain built-in as before.
 
 **Built-in viewpoint** (supplementing UC-06/REQ-037):
+
 - `bpmn-process-view`: viewpoint with notation `bpmn2`; allowedEntityTypes: all BPMN types; pool/lane layout mode enabled
 
 ## Acceptance Criteria
 
 **AC1** (Built-in BPMN types present):
+
 - When: OEA instance started; admin opens MetamodelConfiguration
 - Then: All 26 built-in BPMN EntityTypes, `organizational-unit` and 14 built-in connections (8 BPMN, 1 org unit, 5 assignment) are visible (isBuiltIn=true); immutable in their base properties
 
 **AC2** (Extensibility):
+
 - When: Admin creates `EntityTypeDefinition { id: "approval-task", extends: "bpmn-user-task" }`
 - Then: `approval-task` inherits all attributes of `bpmn-user-task`; appears in the BPMN palette; can be used in process diagrams
 
 **AC3** (OrganizationalUnit type):
+
 - When: Admin opens MetamodelConfiguration
 - Then: `organizational-unit` visible as a built-in EntityType; extensible via `extends` to `department`, `team`, `business-unit`, etc.
 
 **AC4** (Pool/lane nested layout):
+
 - Given: Process diagram with pool → lane → task hierarchy via `bpmn-contained-in` connections
 - When: Canvas loads the diagram
 - Then: Pool appears as the outer container; lanes as swim lanes; tasks within the correct lanes; layout correctly nested
 
 **AC5** (SequenceFlow constraint):
+
 - When: User tries to draw a `bpmn-sequence-flow` from a BPMN task to a non-BPMN entity (e.g., ApplicationComponent)
 - Then: API returns HTTP 422 (BR-01); UI shows error message
 
 **AC6** (BPMN viewpoint):
+
 - When: User creates a new diagram and selects the built-in viewpoint `bpmn-process-view`
 - Then: Palette shows exclusively BPMN-compliant elements; pool/lane mode is active (container drop possible)
 
 **AC7** (Descriptive conformance):
+
 - When: User models a process that contains every element of the Descriptive conformance mapping table and saves it
 - Then: All elements and their listed attributes are stored and restored unchanged after reload (including call activity → called process, text annotation with association, group with category, nested lanes, and pool → process reference)
 
 **AC8** (Sub-process display):
+
 - When: User collapses an expanded `bpmn-sub-process` in a diagram
 - Then: The sub-process is shown with the collapsed marker; its contained elements remain unchanged in the repository; the display state is stored per diagram
 

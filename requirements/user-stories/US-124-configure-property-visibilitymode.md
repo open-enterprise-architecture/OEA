@@ -18,18 +18,22 @@ As Kurt – Lead Enterprise Architect, I want to be able to choose a visibility 
 ## Acceptance Criteria
 
 **AC1** (New property):
+
 - When: Kurt creates a new property
 - Then: default mode is `Public`; no further mandatory field
 
 **AC2** (Select role-based):
+
 - When: Kurt selects `Role-based`
 - Then: multi-select for roles appears; saving without role selection not possible
 
 **AC3** (Select connection-based):
+
 - When: Kurt selects `Connection-based`
 - Then: dropdown for connection type appears (only `isConnection=true` types); saving without selection not possible
 
 **AC4** (Backward compatibility):
+
 - When: existing properties without `visibilityMode` in the DB
 - Then: are displayed as `Public`; no data loss
 

@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to set a `preferredStandard`, `acc
 ## Acceptance Criteria
 
 **AC1** (preferredStandard and deviation note):
+
 - When: I set `preferredStandard=PostgreSQL 17` in the category "Database Management"
 - Then: all entities in this category with a different SBB show the note "Deviation from TRM standard"
 
 **AC2** (Mutually exclusive):
+
 - When: I set the same SBB in `preferredStandard` and `acceptedAlternatives` simultaneously
 - Then: I receive HTTP 422 "SBB may appear in only one list"
 
 **AC3** (Imported category editable):
+
 - When: I open a TRM category with `scope=imported`
 - Then: I can edit SBB assignments; name and parent category are locked
 

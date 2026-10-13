@@ -37,14 +37,17 @@ Standards drift silently renders defined governance ineffective. Automatic detec
 ## Acceptance Criteria
 
 **AC1** (Prohibited entities):
+
 - When: 3 entities have `instanceOfSBBId=prohibited-SBB-UUID`
 - Then: all 3 are in the drift list; `prohibited` is highlighted in red
 
 **AC2** (Deviation report):
+
 - When: an entity uses an SBB that does not match the `preferredStandard` of its TRM category
 - Then: the entity appears in the deviation list
 
 **AC3** (Direct link):
+
 - When: an entry in the drift list is clicked
 - Then: the entity detail view opens
 

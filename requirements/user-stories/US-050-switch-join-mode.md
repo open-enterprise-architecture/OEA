@@ -18,20 +18,24 @@ As a catalog visitor, I want to be able to switch the join mode for a join betwe
 ## Acceptance Criteria
 
 **AC1** (switch aggregate→rows):
+
 - Given: Catalog "Application Inventory" in default mode aggregate; CRM system has 2 interfaces
 - When: Franz clicks "Rows" on the join "Interfaces"
 - Then: Table shows 2 rows for CRM system (one per interface); switch without page reload
 
 **AC2** (switch rows→aggregate):
+
 - Given: Table shows rows mode
 - When: Franz clicks "Compact"
 - Then: CRM system appears again as one row with aggregated interfaces
 
 **AC3** (no mutation):
+
 - When: Franz switches multiple times
 - Then: `GET /api/v1/catalogs/{id}` shows unchanged catalog configuration (`defaultJoinMode` unchanged)
 
 **AC4** (multiple joins independent):
+
 - Given: Catalog has 2 joins (Interfaces, Technologies)
 - When: Franz switches only "Interfaces" to rows; "Technologies" stays aggregate
 - Then: Table expands rows for Interfaces; Technologies continue to appear aggregated in one cell

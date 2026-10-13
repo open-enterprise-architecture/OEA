@@ -2,7 +2,7 @@
 
 The requirement "technical objects on interfaces reference modeled information flows" is realized through the following chain:
 
-```
+```text
 BusinessProcess (BPMN)
   └─ Task
       └─ realizedBy → ApplicationService
@@ -23,26 +23,30 @@ BusinessProcess (BPMN)
 `InformationFlow` is a conceptual borderline case. Two modeling options are possible – both supported by the meta-metamodel (see reification in [§2 (Meta-Metamodel)](../00-overview/02-meta-metamodel.md)):
 
 **Option A – InformationFlow as an EntityType**:
-```
+
+```yaml
 InformationFlow "Customer change" (Entity)
   - from: BusinessFunction "Sales"
   - to: BusinessFunction "Accounting"
   - transports: InformationObject "Customer"
 ```
+
 Advantages: Own URN, properties, lifecycle. Easily addressable. Good for flows with rich metadata.
 
 **Option B – InformationFlow as a relation between BusinessFunctions**:
-```
+
+```yaml
 Relation "flows-to" (RelationType)
   - source: BusinessFunction "Sales"
   - target: BusinessFunction "Accounting"
   - transports: InformationObject "Customer"   # property on the relation
 ```
+
 Advantages: Naturally fits the business – a flow *is* a relationship between functions. Less boilerplate.
 
 **Implementation recommendation**: **Option B as the default**, because it represents the business semantics more precisely. The bridge to the technical implementation remains functionally equivalent because relations are reified first-class objects:
 
-```
+```text
 Relation(BF_Sales -[flows-to]-> BF_Accounting)
     ↑ implementedBy
 Interface X (Entity)

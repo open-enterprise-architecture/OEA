@@ -18,16 +18,19 @@ As an architect, I want to see immediately when creating or editing an entity wh
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: MetaType `ApplicationComponent` has property `owner` with necessity=mandatory
 - When: POST /entities without `owner` property
 - Then: 422; `errors[0].code = "MANDATORY_MISSING"`, `errors[0].field` contains the property name
 
 **AC2**:
+
 - Given: MetaType `ApplicationComponent` has property `description` with necessity=warning
 - When: POST /entities without `description` property
 - Then: 201 Created; response body contains `warnings[0]` with the property name
 
 **AC3**:
+
 - Given: dryRun=true in the batch request (REQ-154)
 - When: 50 entities, 10 with mandatory violation
 - Then: `valid=false`; all 10 errors listed; no persistence

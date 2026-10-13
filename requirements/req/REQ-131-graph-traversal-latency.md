@@ -65,21 +65,25 @@ The `connection-scoped` mode requires a graph traversal at runtime, which withou
 ## Acceptance Criteria
 
 **AC1** (Cold traversal ≤ 200 ms):
+
 - Given: user has 500 directly connected scope entities; cache empty
 - When: an entity query with one `connection-scoped` property is executed
 - Then: p95 latency of the traversal portion ≤ 200 ms (measured via APM trace)
 
 **AC2** (Warm cache ≤ 10 ms):
+
 - Given: the traversal result is in the cache (TTL not yet expired)
 - When: another entity query by the same user is executed
 - Then: traversal portion ≤ 10 ms (cache lookup)
 
 **AC3** (Cache invalidation):
+
 - Given: user has a cached traversal result
 - When: a new `DomainAssignment` connection is created for this user
 - Then: at the latest after 1 second, the next entity query returns the updated traversal result
 
 **AC4** (Load test):
+
 - Given: 50 concurrent users (REQ-074) with 500 scope connections each
 - When: all users simultaneously send entity queries with connection-scoped properties
 - Then: p95 latency (total, incl. traversal) ≤ REQ-071 target value + 200 ms

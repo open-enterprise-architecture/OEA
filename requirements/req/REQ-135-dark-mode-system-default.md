@@ -43,11 +43,13 @@ The requirement applies to all UI surfaces of OEA: client app (Electron), web po
 ## Type-Specific Fields
 
 **Inputs**:
+
 - Operating system preference (`prefers-color-scheme: dark | light`) at app start/browser call
 - Server-stored user preference (`person.uiTheme`: `light` | `dark` | `system`) — loaded at login
 - Explicit user action in the profile settings (selection Light / Dark / System)
 
 **Processing**:
+
 1. At login: load `person.uiTheme` from the session response
 2. `system`: evaluate the client's `prefers-color-scheme`; react immediately to an OS change at runtime (no reload needed)
 3. `light` or `dark`: ignore the OS preference, apply a fixed scheme
@@ -55,11 +57,13 @@ The requirement applies to all UI surfaces of OEA: client app (Electron), web po
 5. No login (public pages, bootstrapping wizard): apply `prefers-color-scheme` without server context
 
 **Outputs**:
+
 - The entire UI (backgrounds, cards, texts, icons, input fields, buttons) in consistent color tokens of the selected scheme
 - The active scheme is recognizable for accessibility tools (`<html data-theme="dark|light">` and CSS `color-scheme` property)
 - The session response contains the `uiTheme` field so that the client can apply it directly at login (no separate request needed)
 
 **Error Cases**:
+
 - `prefers-color-scheme` not resolvable (very old browsers/OS): fallback to `light`
 - `person.uiTheme` has an unknown value (e.g. after migration): fallback to `system`
 - Server unreachable when saving the preference: buffer locally, no error dialog
@@ -67,36 +71,43 @@ The requirement applies to all UI surfaces of OEA: client app (Electron), web po
 ## Acceptance Criteria
 
 **AC1** — Default: no override, light OS:
+
 - Given: `person.uiTheme = system`, OS has light mode active
 - When: login completed, app initialized
 - Then: the light scheme is displayed without user interaction
 
 **AC2** — Default: no override, dark OS:
+
 - Given: `person.uiTheme = system`, OS has dark mode active
 - When: login completed, app initialized
 - Then: the dark scheme is displayed without user interaction
 
 **AC3** — Runtime OS switch (no override):
+
 - Given: `person.uiTheme = system`, OS switches the scheme at runtime
 - When: the OS preference changes (e.g. automatic night mode)
 - Then: the UI switches to the new scheme within 1 second without a page reload
 
 **AC4** — Explicit override, across devices:
+
 - Given: the user sets the override "Dark" in the profile settings on device A
 - When: the user logs in on device B
 - Then: the dark scheme is applied on device B without further action (`person.uiTheme = dark` arrives with the session)
 
 **AC5** — Reset override:
+
 - Given: `person.uiTheme = dark`
 - When: the user selects "System setting" in the profile settings
 - Then: `person.uiTheme` is set to `system`, the OS preference applies again immediately
 
 **AC6** — Contrast (WCAG AA):
+
 - Given: dark mode is active
 - When: any body text is checked against its background
 - Then: contrast ratio ≥ 4.5:1
 
 **AC7** — Unauthenticated screens:
+
 - Given: the user is not logged in (bootstrapping wizard, login screen)
 - When: the app is started
 - Then: the client's `prefers-color-scheme` is applied (no server context available)

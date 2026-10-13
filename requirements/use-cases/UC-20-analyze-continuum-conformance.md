@@ -75,6 +75,7 @@ UC-20 is a pure analysis UC — it changes no data, but makes conformance gaps a
 **Primary Actor**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 
 **Other Stakeholders**:
+
 - [CIO](../../business-analysis/stakeholders/SH-05-cio-corporate-group.md) (reads the conformance report as a management summary)
 - [Sabine – Senior Business Engineer](../../business-analysis/stakeholders/SH-07-sabine-business-engineer.md) (uses the analysis for the standardization initiative)
 
@@ -99,7 +100,7 @@ UC-20 is a pure analysis UC — it changes no data, but makes conformance gaps a
 
 ## Basic Flow
 
-*Default case: Kurt opens the conformance dashboard and analyzes the current situation*
+*Default case: Kurt opens the conformance dashboard and analyzes the current situation.*
 
 1. **Kurt**: opens the section "Continuum Conformance" in the EA dashboard
 2. **System**: shows three analysis sections with summaries:
@@ -107,7 +108,7 @@ UC-20 is a pure analysis UC — it changes no data, but makes conformance gaps a
    **Section 1 – ABB Coverage**
    - Total ABBs: 52 (approved) / of which without conforming instance: 14 → gap rate 27%
    - Table: ABB name | continuumLevel | Conforming instances | SBBs present | Status
-   
+
    **Section 2 – Standards Drift (SBB Governance)**
    - Entities with `instanceOfSBBId=prohibited`: 3
    - Entities with `instanceOfSBBId=deprecated`: 7
@@ -126,7 +127,7 @@ UC-20 is a pure analysis UC — it changes no data, but makes conformance gaps a
 
 ## Alternative Flows
 
-**A1 – ABB gap analysis in detail**
+### A1 – ABB gap analysis in detail
 
 1. **Kurt**: expands an ABB in section 1 (e.g., "Message Broker")
 2. **System**: shows:
@@ -135,19 +136,19 @@ UC-20 is a pure analysis UC — it changes no data, but makes conformance gaps a
    - Notice: "No physical message broker classified in the landscape — possibly missing TRM assignment"
 3. **Kurt**: clicks "Search entities" → shows all entities with entity type names that could semantically match (free-text search, no automatic match)
 
-**A2 – Export report for CIO**
+### A2 – Export report for CIO
 
 1. **Kurt**: clicks "Export report" → selects format (PDF, CSV)
 2. **System**: generates a report with executive summary (gap rate, drift count, top 3 risks) and detail tables
 3. **CIO**: receives the report via download or email link
 
-**A3 – Derive technology diversity measure**
+### A3 – Derive technology diversity measure
 
 1. **Kurt**: opens a TRM category with 3 SBBs in use (e.g., "Container Orchestration": Kubernetes EKS, AKS, on-prem Kubernetes)
 2. **System**: shows all entities with SBB references in this category; grouped by SBB
 3. **Kurt**: recognizes: 2 entities use on-prem Kubernetes; planned migration to EKS → enters this insight as a basis for a new solution (UC-05)
 
-**A4 – Filter by plateau or solution**
+### A4 – Filter by plateau or solution
 
 1. **Kurt**: activates the filter "Only entities in plateau P1 (Target 2027)"
 2. **System**: shows conformance analysis filtered to entities of the selected plateau

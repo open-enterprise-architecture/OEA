@@ -26,6 +26,7 @@ OEA makes it possible to maintain structured text documentation directly on enti
 An entity can be assigned to multiple documentation types (1 entity → n DocumentCollections). The content of each chapter is stored as its own `DocumentationEntry` entity and linked to the documented entity via a `documents` connection.
 
 **Two-level model:**
+
 1. **Definition level** (metamodel): Which documentation types exist? Which chapters do they have? (`DocumentCollectionDefinition` in MetamodelConfiguration)
 2. **Instance level**: What was documented for this entity? (`DocumentationEntry` entities per system, linked via `documents`)
 
@@ -192,7 +193,7 @@ Typing `{{` in the free-text area of the WYSIWYG editor opens an autocomplete dr
 | BR-05 | At most one `DocumentationEntry` may exist per (subject entity + `chapterRef` + `collectionRef`); saving again overwrites the existing entry | onCreate, onUpdate | – |
 | BR-06 | `DocumentChapterDefinition.entryEntityTypeId` must be an EntityType that has `documentation-entry` as a direct or transitive parent type (`extends` chain) | onCreate, onUpdate | – |
 | BR-07 | The `content` value may be at most 100,000 characters; code blocks are not rendered before saving | onRead | – |
-| BR-08 | Entity mentions in Markdown free text are stored in the format `[[Name\|entity:ID]]`; on rendering, the system MUST resolve the current `name` value via ID — for a deleted entity: `[deleted|entity:ID]` in red text | onRead | – |
+| BR-08 | Entity mentions in Markdown free text are stored in the format `[[Name\|entity:ID]]`; on rendering, the system MUST resolve the current `name` value via ID — for a deleted entity: `[deleted\|entity:ID]` in red text | onRead | – |
 | BR-09 | Entity mentions within code blocks (Mermaid, PlantUML, Draw.io) are stored as plain text names; no ID resolution on rendering | onCreate, onUpdate | – |
 | BR-10 | Draw.io code blocks (` ```drawio `) contain valid `<mxGraphModel>` XML; an invalid XML structure is flagged as an error before saving; the XML MUST be sanitized server-side or via DOMParser (no `<script>` tags, no `javascript:` URIs in `href` attributes) | onSave, onRead | – |
 | BR-11 | `DocumentItem.parentId` MUST NOT lead to a cycle; the cycle check occurs when setting and changing `parentId` | onCreate, onUpdate | – |

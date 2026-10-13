@@ -89,11 +89,13 @@ Rationale: Vue 3 offers excellent TypeScript support with a significantly lower 
 ## References
 
 **Related ADRs**:
+
 - [ADR-007](./ADR-007-canvas-library.md) — updated to Vue Flow
 - [ADR-008](./ADR-008-gui-architecture-dual-track.md) — GUI architecture (Electron + web portal)
 - [ADR-009](./ADR-009-client-app-framework.md) — Electron as client app shell
 
 **Use Cases**:
+
 - [UC-05](../requirements/use-cases/UC-05-describe-architecture-vision.md) — canvas requirement (Vue Flow)
 - [US-045](../requirements/user-stories/US-045-delta-new-entity-diagram.md) — in-place edit in canvas
 

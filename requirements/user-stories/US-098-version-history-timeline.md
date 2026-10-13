@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to view the complete change histor
 ## Acceptance Criteria
 
 **AC1** (Timeline with versions):
+
 - When: I open an entity with 5 versions
 - Then: I see 5 entries in the timeline, newest first
 
 **AC2** (Filter by actor):
+
 - When: I filter the timeline by actor "Michael"
 - Then: only versions by Michael are displayed
 
 **AC3** (Entity without history):
+
 - When: I open an entity without change history
 - Then: the tab shows "No changes since creation. Created on [date] by [person]."
 

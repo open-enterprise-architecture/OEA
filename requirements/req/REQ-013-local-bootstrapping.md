@@ -44,29 +44,35 @@ Concerns exclusively the state "no system admin account present" of an instance.
 ### For type=functional
 
 **Inputs**:
+
 - Start of the instance without an existing system admin account
 - Initial credential (password) chosen by the operator or accepted generated setup token
 
 **Processing**:
+
 - Check at startup/first access whether a system admin account exists
 - If not: generate a one-time setup token or prompt for setting a password
 - Create the system admin account with `mode: local` after the credential is confirmed
 
 **Outputs**:
+
 - Local system admin account in the state `bootstrapped`
 - Confirmation to the operator that bootstrapping is complete
 
 **Error Cases**:
+
 - Process is aborted before the credential is confirmed → no account is created, the process can be restarted (see UC-02, E1)
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a freshly installed instance without a system admin account
 - When: it is started or accessed for the first time
 - Then: the system offers the local bootstrapping process without requiring an external IdP
 
 **AC2**:
+
 - Given: a completed local bootstrapping process
 - When: the operator logs in with the chosen credential
 - Then: they gain access with system admin permissions

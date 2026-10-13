@@ -34,10 +34,12 @@ A partial commit would produce either a lost audit snapshot or an invalid entity
 ## Acceptance Criteria
 
 **AC1** (Rollback on DB error):
+
 - When: a simulated DB error occurs after the snapshot is written
 - Then: a complete rollback occurs; entity is unchanged; no snapshot in `entity_versions`
 
 **AC2** (Successful restore):
+
 - When: the restore completes successfully
 - Then: snapshot, entity update and version entry are all present and consistent
 

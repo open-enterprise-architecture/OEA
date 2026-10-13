@@ -26,6 +26,7 @@ The TOGAF Enterprise Continuum distinguishes between generally reusable building
 ### Option 1 (chosen): One repository + import mechanism
 
 All content (built-in, imported, organization-specific) in one OEA instance. Differentiation via a `scope` property on EntityTypeDefinition:
+
 - `built-in`: part of the software delivery; immutable; update via OEA release
 - `imported`: imported from a continuum package; immutable except for an explicit "fork"
 - `organization`: organization-specific; freely modifiable
@@ -36,10 +37,12 @@ Continuum packages are JSON/YAML files with EntityTypeDefinitions and connection
 **Con**: Separation of continuum and org content is only possible via `scope` filter, not by physical separation
 
 ### Option 2: Two separate repositories
+
 - Pro: Continuum as its own OSS package; clear separation
 - Con: two APIs, two repositories, version management, reference resolution between repos — considerable complexity for v1.0
 
 ### Option 3: Sub-repository mechanism
+
 - Pro: Continuum embedded, versioned separately
 - Con: Git submodules or package mechanism increase deployment complexity; overkill for v1.0
 
@@ -56,12 +59,14 @@ Continuum packages are JSON/YAML files with EntityTypeDefinitions and connection
 | `organization` | Organization-specific | yes | Admin |
 
 **Package format** (continuum library):
+
 - JSON or YAML; contains EntityTypeDefinitions, connection types, optional example entities
 - Identified by `packageId` (e.g. `oea-togaf-trm:1.0`) and `publisher`
 - Import via API: `POST /api/v1/metamodel/packages/import`
 - After import: types are `scope=imported`; immutable; organization fork via "Adopt as own copy" action
 
 **Delivery packages** (v1.0):
+
 - `oea-bpmn-2.0` — BPMN 2.0 types (already built-in in process.md)
 - `oea-arc42` — Arc42 types (already built-in in arc42.md)
 - `oea-togaf-starter` — basic TOGAF types (ApplicationComponent, TechnologyComponent, DataObject, etc.)
@@ -69,22 +74,26 @@ Continuum packages are JSON/YAML files with EntityTypeDefinitions and connection
 ## Consequences
 
 ### Positive Consequences
+
 - Uniform API for all EntityType operations (no second repository)
 - Continuum packages are publishable and versionable as standalone OSS artifacts
 - `scope=imported` protects package content from unintended modification
 - Update path: import new package → existing `imported` types updated; org forks remain unchanged
 
 ### Negative Consequences / Trade-offs
+
 - Physical separation of continuum and org content only via filter, not via repository
 - Package import mechanism must be implemented for v1.0 (additional scope)
 
 ### Follow-up Decisions
+
 - metamodel-configuration.md is extended with the `scope` property on EntityTypeDefinition
 - REQ-004 (configure metamodel, UC-04) receives a new REQ for package import
 
 ## References
 
 **Concept Chapters**:
+
 - [§4 Enterprise Continuum & TRM](../concept/10-foundations/04-enterprise-continuum-trm.md)
 
 **Dependent ADRs**: ADR-005 (starter configuration uses import packages)

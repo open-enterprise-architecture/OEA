@@ -43,18 +43,22 @@ The previous separation of `DocumentChapterDefinition` (template) and `Documenta
 ## Acceptance Criteria
 
 **AC1** (Create):
+
 - When: a user creates a new chapter in a DocumentCollection
 - Then: the system creates a DocumentItem with `name` (mandatory), optional `alias`, empty `content`, and automatically assigned `sortOrder`
 
 **AC2** (Name in navigation):
+
 - When: the DocumentCollection is opened
 - Then: the chapter navigation shows the `name` of each item; items are sorted by `sortOrder`
 
 **AC3** (Alias unique):
+
 - When: a user sets an `alias` that is already assigned within the collection
 - Then: inline error; saving prevented
 
 **AC4** (Content WYSIWYG):
+
 - When: a user opens a DocumentItem
 - Then: the WYSIWYG editor is available; all supported formats (Markdown, Mermaid, PlantUML, Draw.io, `[[`, `{{`) are usable
 

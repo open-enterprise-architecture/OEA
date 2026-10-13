@@ -58,12 +58,15 @@ We choose **Option N**, because {{rationale}}.
 ## References
 
 **Concept Chapters**:
+
 - [§N (Chapter)](../concept/...)
 
 **Related ADRs**:
+
 - ADR-NNN
 
 **Use Cases / Requirements**:
+
 - [UC-NN: Title](../requirements/use-cases/UC-NN-shortname.md)
 - [NFR-NN: Title](../requirements/nfr/NFR-NN-shortname.md)
 

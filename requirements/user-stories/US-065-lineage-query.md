@@ -18,25 +18,30 @@ As a Data Architect, I want to query via API all source systems (upstream) and a
 ## Acceptance Criteria
 
 **AC1** (downstream end-to-end):
+
 - Given: SAP ERP(1) →[data-flow:5]→ DWH(2) →[data-flow:6]→ BI Tool(14); both flows carry DataObject 42 via carries-data
 - When: `GET /api/v1/lineage?entityId=42&direction=downstream`
 - Then: Response contains SAP ERP, DWH, BI Tool in correct order; `path=[1,2,14]`; `cycleDetected=false`
 
 **AC2** (upstream):
+
 - Given: same configuration
 - When: `GET /api/v1/lineage?entityId=42&direction=upstream`
 - Then: Response contains SAP ERP as source; path backwards correct
 
 **AC3** (impact mode):
+
 - When: `direction=impact` for DataObject 42
 - Then: same nodes as downstream; all annotated with `impact: true`
 
 **AC4** (cycle detection):
+
 - Given: Cycle A→B→C→A, all with DataObject 42
 - When: Lineage query
 - Then: `cycleDetected=true`; no timeout; traversed subgraph returned
 
 **AC5** (no results):
+
 - Given: DataObject 42 not referenced in any carries-data
 - When: Lineage query
 - Then: `nodes=[]`, `edges=[]`, HTTP 200

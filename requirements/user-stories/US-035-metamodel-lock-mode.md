@@ -18,16 +18,19 @@ As an operator, I want to be able to put the metamodel into a lock mode in which
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Max sets `editMode=import-only`
 - When: Kurt tries to create an EntityType via the GUI
 - Then: the action is not available (button missing or disabled); API call returns 403
 
 **AC2**:
+
 - Given: `editMode=import-only`
 - When: Kurt imports a YAML file
 - Then: the import is processed normally
 
 **AC3**:
+
 - Given: `editMode=import-only`
 - When: Kurt opens the EntityType list
 - Then: he sees all types; a visible notice explains the lock mode and points to the import path

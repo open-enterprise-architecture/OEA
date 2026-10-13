@@ -25,7 +25,7 @@ A `SolutionBuildingBlock` (SBB) is the concrete implementation of one or more `A
 
 While an ABB describes *what* a component must deliver, an SBB describes *with what* this can be realized. SBBs are the link between the abstract Architecture Continuum and concrete repository instances:
 
-```
+```text
 ABB "Identity Provider"
   ├── SBB "Keycloak 23.0"      (approved; community-supported)
   ├── SBB "Azure AD B2C"       (acceptable; vendor lock-in risk)
@@ -80,7 +80,7 @@ The `ArchitectureEntity` "acme-keycloak-prod" is an instance of the SBB "Keycloa
 
 ## Lifecycle
 
-```
+```text
 acceptable → approved → deprecated → prohibited
 ```
 

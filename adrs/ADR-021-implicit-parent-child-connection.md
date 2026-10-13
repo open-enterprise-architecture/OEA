@@ -34,6 +34,7 @@ Proposed
 In the explorer (ADR-020), components can be placed hierarchically under other components. The question is whether this structural placement has semantic effects — i.e. whether a connection (ArchiMate composition or aggregation) is automatically created between parent and child nodes.
 
 In addition, a distinction must be made between:
+
 - **Structuring aids** (`isStructuralGrouper=true`): folder-like nodes that serve exclusively for organization and do not represent an EA instance themselves
 - **Instantiated entities** (`isStructuralGrouper=false`): real ArchitectureEntity instances (e.g. "SAP S/4HANA")
 

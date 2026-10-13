@@ -52,11 +52,13 @@ Concerns all paths from UC-01: successful OIDC login, API key login, and all err
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a login attempt (OIDC or API key) is performed
 - When: it succeeds
 - Then: the audit log contains an entry with timestamp, mechanism, result `success`, and identity reference
 
 **AC2**:
+
 - Given: a login attempt fails (E1, E2, or E4)
 - When: the failure occurs
 - Then: the audit log contains an entry with timestamp, mechanism, result `failure`, and – where possible without disclosing security-relevant details – the failure reason

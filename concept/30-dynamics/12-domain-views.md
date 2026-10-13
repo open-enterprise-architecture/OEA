@@ -2,7 +2,7 @@
 
 ### 12.1 Domain as an n:m Classification
 
-```
+```yaml
 Domain {
   id: "domain-finance"
   name: "Finance"
@@ -13,7 +13,7 @@ Domain {
 
 Entities are **assigned** to domains, not embedded in them:
 
-```
+```text
 belongsTo-Relation {
   source: ApplicationComponent "SAP S/4HANA"
   target: Domain "Finance"
@@ -49,7 +49,7 @@ All of them are **defined and stored views**, not separate data stores.
 
 ### 12.3 View Definition
 
-```
+```yaml
 View {
   id: "view-finance-roadmap"
   type: roadmap | landscape | heatmap | matrix | diagram

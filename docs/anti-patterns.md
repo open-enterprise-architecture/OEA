@@ -5,6 +5,7 @@ Common mistakes in the vibe coding workflow and how to avoid them. Written as pr
 ## About the Structure
 
 Per anti-pattern:
+
 - **Symptom**: how you recognize it
 - **Cause**: why it happens
 - **Consequence**: what goes wrong if it persists

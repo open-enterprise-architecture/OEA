@@ -17,6 +17,7 @@ Three deliberate design principles shape OEA:
 ## Target Audience (Primary)
 
 Eight persona profiles describe the primary addressees:
+
 - Junior to lead architects in SMEs, mid-sized companies, and corporate groups (SH-01, SH-03, SH-04)
 - Specialized architects for data and business (SH-02, SH-07)
 - Operations owners in regulated environments (SH-06)
@@ -28,6 +29,7 @@ See [stakeholders/](stakeholders/) for detailed profiles.
 ## Success Criteria
 
 OEA is successful when:
+
 - Stakeholders of different experience levels can work productively with it
 - Migrations from existing EA tools (Sparx, Avolution, LeanIX, wiki) are realistically feasible
 - Compliance requirements of regulated industries are met without subsequent tooling
@@ -44,10 +46,13 @@ OEA is successful when:
 ## Design Principles (In Depth)
 
 ### Open, Text-Based Representation
+
 Architecture content exists as versioned text artifacts: Markdown, YAML, JSON Schema. Version control is native, diff-friendliness is a given, no proprietary binary format blocks migration.
 
 ### Progressive Disclosure
+
 The logical layer is optional, not mandatory. The inventory view is the low-threshold entry point; layer view and landscape map (Bebauungsplan) are only visible where they are needed. Complexity accessible at the push of a button, not imposed.
 
 ### Modular, Interface-Oriented Architecture
+
 API-first (OpenAPI 3.1 for REST, AsyncAPI for events). Modules are exchangeable: BPMN integration, GRC adapter, ITSM bridge. The tool is not all-encompassing but integration-capable.

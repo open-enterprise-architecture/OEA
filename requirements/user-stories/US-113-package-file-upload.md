@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to upload a `.json` or `.yaml` pac
 ## Acceptance Criteria
 
 **AC1** (Valid file – preview):
+
 - When: I upload a valid package file
 - Then: the UI shows a preview with the number and kind of the contained building blocks
 
 **AC2** (Schema violation):
+
 - When: I upload a file with a missing mandatory field
 - Then: I receive HTTP 422 with an error list (line, field, error description); no building block is imported
 
 **AC3** (Import after confirmation):
+
 - When: I confirm the preview
 - Then: the import is executed; all imported building blocks have `scope=imported`
 

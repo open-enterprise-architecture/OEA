@@ -131,14 +131,17 @@ The biggest weakness – bundle size – is acceptable for a professional deskto
 ## References
 
 **Concept Chapters**:
+
 - [§21.2.1 Visualization Strategy](../concept/70-platform/21-api-architecture.md)
 
 **Related ADRs**:
+
 - [ADR-007](./ADR-007-canvas-library.md): Vue Flow as canvas library (accepted, updated following ADR-011) – rendering consistency is the core argument for Electron
 - [ADR-008](./ADR-008-gui-architecture-dual-track.md): Client app + web portal (accepted) – this ADR specifies the client app side
 - [ADR-011](./ADR-011-frontend-framework.md): Vue 3 + TypeScript (accepted) – triggered React Flow → Vue Flow; this ADR should have been updated
 
 **Use Cases / Requirements**:
+
 - [US-045](../requirements/user-stories/US-045-delta-new-entity-diagram.md): Create new entity in diagram as delta – last open blocker, unblocked by this ADR
 
 ## Notes

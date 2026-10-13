@@ -12,7 +12,7 @@ Maintainer status does not confer any rights in the software. The sole copyright
 
 | Area | Name | Contact |
 |---|---|---|
-| Lead maintainer / PO, copyright holder | Lukas Mathis (chasperli) | luek.mathis@gmail.com |
+| Lead maintainer / PO, copyright holder | Lukas Mathis (chasperli) | <luek.mathis@gmail.com> |
 | Concept and documentation | TBD | TBD |
 | Backend | TBD | TBD |
 | Frontend | TBD | TBD |

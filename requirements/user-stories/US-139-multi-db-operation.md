@@ -20,16 +20,19 @@ As a system administrator, I want to be able to operate OEA on PostgreSQL, MySQL
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Docker Compose configuration with MySQL 8 instead of PostgreSQL
 - When: `docker compose up`
 - Then: Flyway migrations run through; bootstrapping reachable; API responds correctly
 
 **AC2**:
+
 - Given: CI pipeline with H2 in-memory
 - When: test suite runs
 - Then: all unit and integration tests green without an external DB
 
 **AC3**:
+
 - Given: no JSONB, no arrays in the schema
 - When: run Flyway migration on SQL Server
 - Then: all tables created without dialect errors

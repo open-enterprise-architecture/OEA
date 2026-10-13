@@ -38,14 +38,17 @@ A partial import creates inconsistent references between building blocks. Confli
 ## Acceptance Criteria
 
 **AC1** (Abort on cycle):
+
 - When: the imported package contains a cycle in the ABB refinement graph
 - Then: the import aborts; no building block is imported; the error message describes the cycle
 
 **AC2** (Conflict list):
+
 - When: the package contains 3 building blocks with already existing IDs
 - Then: the system shows the conflict list; the default is "Skip" for all conflicts
 
 **AC3** (Rollback on DB error):
+
 - When: a database error occurs after 20 of 50 building blocks have been imported
 - Then: a complete rollback is executed; 0 building blocks are imported
 

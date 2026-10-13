@@ -12,6 +12,7 @@
 ## Context and Problem
 
 OEA needs a backend service that:
+
 - provides the REST API (all `/api/v1/...` endpoints)
 - executes the metamodel and the EntityType engine
 - supports multiple databases (PostgreSQL, MySQL, MariaDB, SQL Server, Oracle)
@@ -89,6 +90,7 @@ Hibernate is the only ORM with official, battle-tested support for all five targ
 ### OpenJDK: Eclipse Temurin
 
 Eclipse Temurin is the recommended OpenJDK distribution for OSS projects:
+
 - Publisher: Eclipse Adoptium Working Group (Eclipse Foundation)
 - Fully open source; no Oracle license costs; TCK-certified
 - Docker: `eclipse-temurin:21-jre-alpine` (~170 MB) as standard base image

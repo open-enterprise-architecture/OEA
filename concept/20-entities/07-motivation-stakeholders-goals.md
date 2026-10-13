@@ -6,7 +6,7 @@ An EA repository describes not only *what* exists, but also *why* it exists and 
 
 The concepts build on each other:
 
-```
+```text
 Driver (external/internal driver)
    ↓ triggers
 Assessment (evaluation of the current state)
@@ -215,6 +215,7 @@ EntityType: GlossaryTerm
 ```
 
 Glossaries are particularly valuable for:
+
 - Business unit–IT communication (shared language)
 - Cross-domain projects (customer term in sales vs. support)
 - Compliance audits (terminology traceability)

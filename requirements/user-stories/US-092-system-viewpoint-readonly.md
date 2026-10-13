@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want system-defined viewpoints such as 
 ## Acceptance Criteria
 
 **AC1** (API write protection):
+
 - When: I send a DELETE request for a system-defined viewpoint
 - Then: I receive HTTP 422
 
 **AC2** (UI write protection):
+
 - When: system-defined viewpoints are shown in the list
 - Then: edit and delete buttons are not visible
 
 **AC3** (Import protection):
+
 - When: system-defined viewpoints are contained in an import
 - Then: they are not overwritten
 

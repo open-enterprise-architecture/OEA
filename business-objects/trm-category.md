@@ -27,7 +27,7 @@ The TRM is a **classification hierarchy** — not an instance model. It does not
 
 TOGAF 10 provides an example TRM with three hierarchy levels:
 
-```
+```text
 Level 1: Application Platform Services
   Level 2: Data Interchange Services
     Level 3: Data Formats & Protocols
@@ -82,6 +82,7 @@ Organizations adapt the TOGAF example TRM and add industry-specific categories. 
 ## Lifecycle
 
 TRM categories have no formal lifecycle status. They can:
+
 - for `imported` categories: never be deleted or renamed
 - for `organization` categories: be extended or restructured at any time (if no entities are assigned)
 
@@ -104,7 +105,7 @@ Through this BO, technology entities receive an additional attribute (to be adde
 
 ## Example
 
-```
+```text
 TRM tree (excerpt):
 Level 1: Infrastructure Services
   Level 2: Data Management Services

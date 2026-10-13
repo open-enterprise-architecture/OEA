@@ -34,14 +34,17 @@ Patterns without a problem description are not patterns — they are incomprehen
 ## Acceptance Criteria
 
 **AC1** (Create pattern):
+
 - When: a pattern is created with `problem` and `solution`
 - Then: the system responds with HTTP 201; the pattern is visible in the library
 
 **AC2** (Mandatory field problem):
+
 - When: a pattern is to be saved without the `problem` field
 - Then: the system responds with HTTP 422 "problem is a mandatory field"
 
 **AC3** (Link relatedPatterns):
+
 - When: `relatedPatterns` are linked to other patterns via multi-select
 - Then: the links are saved and displayed in the detail view
 

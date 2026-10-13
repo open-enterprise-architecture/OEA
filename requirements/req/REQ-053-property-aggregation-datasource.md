@@ -66,11 +66,13 @@ The special word `id` is always valid for `propertyName` with `aggregationFn=cou
 ### Output During Data Calculation (REQ-055)
 
 **Without groupBy** (KPI widget):
+
 ```json
 { "value": 42500000 }
 ```
 
 **With groupBy** (chart widget):
+
 ```json
 {
   "series": [
@@ -81,6 +83,7 @@ The special word `id` is always valid for `propertyName` with `aggregationFn=cou
 ```
 
 **With groupBy=architectureDomainId** (pie chart by domain):
+
 ```json
 {
   "series": [
@@ -89,35 +92,42 @@ The special word `id` is always valid for `propertyName` with `aggregationFn=cou
   ]
 }
 ```
+
 `groupLabel` is resolved from `ArchitectureDomainDefinition.name`.
 
 ## Acceptance Criteria
 
 **AC1** (Valid int aggregation, no groupBy):
+
 - Given: EntityType `plateau` with PropertyDefinition `investmentCostForecast` (kind=int); 3 plateau instances with values 5000, 12000, 25000
 - When: DataSource configured with entityType=plateau, propertyName=investmentCostForecast, aggregationFn=sum
 - Then: data calculation returns `{ "value": 42000 }`
 
 **AC2** (Valid count aggregation with groupBy):
+
 - Given: EntityType `application-component`; 20 entities, of which 12 domain=finance, 8 domain=hr
 - When: DataSource with propertyName=id, aggregationFn=count, groupBy=architectureDomainId
 - Then: series=[{group: "finance", value: 12}, {group: "hr", value: 8}]
 
 **AC3** (Invalid propertyName for sum):
+
 - Given: PropertyDefinition `name` (kind=varchar) on EntityType `plateau`
 - When: Create widget with aggregationFn=sum, propertyName=name
 - Then: HTTP 422 "sum/avg/min/max require propertyName with dataType.kind=int"
 
 **AC4** (Invalid entityType):
+
 - When: Create widget with entityType=non-existent-type
 - Then: HTTP 422 "EntityType 'non-existent-type' not found in MetamodelConfiguration"
 
 **AC5** (No entities present):
+
 - Given: EntityType `plateau` has no instances in the repository
 - When: Data calculation with aggregationFn=sum
 - Then: `{ "value": null }` (no error; null means "no data")
 
 **AC6** (groupBy=architectureLayerId):
+
 - Given: 3 EntityTypes each assigned to a layer; 50 entities distributed
 - When: propertyName=id, aggregationFn=count, groupBy=architectureLayerId
 - Then: series with entries per layer ID and their entity count

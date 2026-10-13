@@ -78,25 +78,30 @@ The join logic in OEA is not based on SQL JOINs across database tables but on th
 ## Acceptance Criteria
 
 **AC1** (Add join, happy path):
+
 - Given: catalog "Application Inventory" with primaryEntityType=ApplicationComponent; the MetamodelConfiguration has ConnectionType `DataFlow` (isConnection=true, allowedSourceTypes=[ApplicationComponent], allowedTargetTypes=[Interface])
 - When: `POST /api/v1/catalogs/{id}/joins` with `{ name: "Interfaces", connectionType: "DataFlow", joinDirection: "outbound", targetEntityType: "Interface", targetColumns: [{attributeName: "name", sortOrder: 0}], defaultJoinMode: "aggregate" }`
 - Then: HTTP 201; the catalog contains the new JoinDefinition with a generated id
 
 **AC2** (BR-02 – connectionType is not a connection type):
+
 - Given: `ApplicationComponent` has `isConnection=false`
 - When: `connectionType: "ApplicationComponent"` in the request
 - Then: HTTP 422 "The type ‹ApplicationComponent› is not a connection type (isConnection=false)"
 
 **AC3** (BR-03 – targetEntityType not reachable):
+
 - Given: DataFlow has `allowedTargetTypes=[Interface]`
 - When: `targetEntityType: "TechnologyComponent"` with `joinDirection=outbound`
 - Then: HTTP 422 "The EntityType ‹TechnologyComponent› is not reachable via ‹DataFlow› in direction outbound"
 
 **AC4** (Remove join):
+
 - When: `DELETE /api/v1/catalogs/{id}/joins/{joinId}`
 - Then: HTTP 200; JoinDefinition removed; existing SavedViews are cleaned of JoinModeOverrides for this join
 
 **AC5** (targetColumns validation):
+
 - Given: Interface has no attribute `nonExistingProp`
 - When: targetColumns contains `attributeName: "nonExistingProp"`
 - Then: HTTP 422 "The attribute ‹nonExistingProp› is not defined for the type ‹Interface›"

@@ -33,11 +33,11 @@ If not: fix that first, otherwise the agents work in a vacuum.
 **Solution Architect** reads the concept and persona, responds roughly:
 
 > Before we start, three clarifying questions:
-> 
+>
 > 1. **The business object does not exist yet**. Application Component is described conceptually in §6, but we have no `business-objects/application-component.md`. Should the Business Engineer model it first?
-> 
+>
 > 2. **Open ADRs are relevant**: ADR-001 (URN schema) and the still-missing ADR on persistence. Do we want to decide these first or clarify iteratively?
-> 
+>
 > 3. **Tech stack still open**: Backend and frontend engineers have not yet made a proposal. Should that happen before or in parallel?
 
 **You** decide:
@@ -73,6 +73,7 @@ If not: fix that first, otherwise the agents work in a vacuum.
 **Business Engineer** reads the template, §6.1.1 (Application vs. Technology) and §6.1, asks:
 
 > Clarifying questions:
+>
 > 1. Logical/physical separation: Should Application Component be physical only for the walking skeleton, or both layers? §6.1.1 says logical is optional.
 > 2. Owner: Should this be free text or a reference to stakeholder/role?
 > 3. Lifecycle: Which states make sense initially? Proposal: `proposed → active → sunset → retired`. Does that fit?
@@ -128,21 +129,23 @@ An independently deployable software unit that encapsulates application function
 **Backend Engineer** responds with a comparison table and recommendation. Example:
 
 > **Recommendation**: Java 21 + Spring Boot 3 + Hibernate + Flyway
-> 
+>
 > Rationale:
+>
 > - Spec-first with `openapi-generator` from `api/openapi.yaml`
 > - Static typing satisfies the type safety requirement
 > - Single container image, mature operations tooling (suitable for Max)
 > - Large enterprise OSS community for attracting contributors
 > - Secondary choices: PostgreSQL + JSONB
-> 
+>
 > Alternative: Kotlin + Ktor (smaller ecosystem in the target organizations)
 
 **Frontend Engineer** in parallel:
 
 > **Recommendation**: Vue 3 + TypeScript + Vite + Pinia + PrimeVue
-> 
+>
 > Rationale:
+>
 > - First-class TypeScript support since Vue 3.3
 > - Gentler learning curve than React (good for OSS contributors)
 > - PrimeVue: A11y built in, design-token capable, dark mode
@@ -165,12 +168,14 @@ Solution Architect or you yourself create the ADR files.
 **Solution Architect** proposes a structure:
 
 > Proposal for UC-01:
+>
 > - Title: "Capture Application Component in the repository"
 > - Basic flow: Wizard with three steps (name → owner → capability assignment)
 > - Preconditions: Franz is logged in, has role "domain-architect"
 > - Acceptance criteria: Application Component appears in the inventory view (§12.4)
-> 
+>
 > Clarifying questions:
+>
 > 1. Assign multiple capabilities or only one in the MVP?
 > 2. For a duplicate name: block hard or warn?
 > 3. Should the wizard be saveable as a draft, or only "finish or cancel"?
@@ -188,30 +193,36 @@ Solution Architect or you yourself create the ADR files.
 **Requirements Engineer** reads UC-01 and the Application Component business object, thinks through the seven types:
 
 > The following result from UC-01:
-> 
+>
 > **Functional**:
+>
 > - REQ-001: System MUST be able to create Application Component
 > - REQ-002: System MUST offer a wizard with step navigation
 > - REQ-003: System MUST display the Application Component in the inventory view immediately after creation
-> 
+>
 > **Data**:
+>
 > - REQ-004: Mandatory fields name, owner; constraints from the business object
 > - REQ-005: URN is generated automatically (see ADR-001)
-> 
+>
 > **Non-Functional**:
+>
 > - REQ-006: Wizard step transition p95 <300ms
 > - REQ-007: Creation endpoint p95 <500ms with repository <1000 entities
-> 
+>
 > **Interface**:
+>
 > - REQ-008: POST /api/v1/applications per OpenAPI 3.1
 > - REQ-009: Response contains generated URN and audit ID
-> 
+>
 > **Compliance**:
+>
 > - REQ-010: Audit log entry on every creation (mandatory per §21.8)
-> 
+>
 > **Constraint**:
+>
 > - REQ-011: Only authenticated users with role "domain-architect" or higher may create
-> 
+>
 > Should I create all as drafts or prioritize?
 
 **You**:
@@ -231,19 +242,21 @@ Requirements Engineer produces 11 files in `requirements/req/`.
 **UI Designer** reads UC-01 and the Franz profile:
 
 > Prototype concept:
+>
 > - Wizard with three steps
 > - Inline validation with helpful hints instead of error messages
 > - Progress indicator at the top
 > - "Save and exit" as a secondary button next to "Next"
-> 
+>
 > Questions:
+>
 > 1. Capability selection: multiselect dropdown or tag input?
 > 2. If the owner role is empty: suggestion "Set yourself as owner"?
 > 3. Success state: navigate directly to the inventory view or confirmation screen?
 
 You answer, the UI Designer writes the screen story with real PrimeVue components against the mock API (ADR-031):
 
-```
+```text
 frontend/src/screens/
 └── SCR-NNN-capture-application.stories.ts   ← stories: step 1–3, validation error, success state
 ```
@@ -256,7 +269,7 @@ CI publishes the stories to GitHub Pages (clickable) and generates `docs/screens
 
 **Solution Architect** now creates the interface specs and tickets:
 
-```
+```text
 api/openapi/applications.yaml          ← POST /api/v1/applications
 api/schemas/application-component.json ← data structure
 tasks/uc-01-capture-application-component/
@@ -277,6 +290,7 @@ Each ticket references the specs, requirements, and acceptance criteria.
 > Backend Engineer, implement `tasks/uc-01-capture-application-component/backend-task.md`.
 
 **Backend Engineer** reads the spec, generates the Spring Boot setup with the OpenAPI-generated interfaces, writes:
+
 - Flyway migration for the `application_components` table
 - POST endpoint with validation, audit log, OIDC check
 - Unit and contract tests against the OpenAPI spec
@@ -284,6 +298,7 @@ Each ticket references the specs, requirements, and acceptance criteria.
 > Frontend Engineer, implement `tasks/uc-01-capture-application-component/frontend-task.md`.
 
 **Frontend Engineer** reads the spec and the screen prototype, writes:
+
 - Vue 3 components for the three wizard steps
 - API client generated from OpenAPI
 - Pinia store for wizard state
@@ -301,19 +316,22 @@ Each ticket references the specs, requirements, and acceptance criteria.
 **Security Engineer** checks spec, backend code, frontend code, configuration:
 
 > Security review UC-01:
-> 
+>
 > **Critical**: none
-> 
+>
 > **High**:
+>
 > - Audit log contains username in plain text – should be pseudonymized
 > - POST endpoint has no rate limiting (see ADR on rate limits)
-> 
+>
 > **Medium**:
+>
 > - Error messages leak internal paths in stack traces (adjust production logger)
-> 
+>
 > **Low**:
+>
 > - CORS header too permissive for local setup
-> 
+>
 > Sign-off possible once the high findings are addressed.
 
 **You decide** what gets fixed before merge. Backend Engineer fixes the high findings. Security Engineer signs off.
@@ -325,21 +343,24 @@ Each ticket references the specs, requirements, and acceptance criteria.
 **Solution Architect** checks consistency:
 
 > Integration check UC-01:
+>
 > - Spec, backend, frontend consistent: ✓
 > - Tests green: ✓
 > - Audit log works: ✓
 > - Security sign-off: ✓
 > - Documentation updated: ✓
-> 
+>
 > Ready for PO acceptance.
 
 **You** as PO test it yourself (or mentally from Franz's perspective):
+
 - Log in
 - Click "New Application Component"
 - Go through the wizard
 - Check whether the component appears in the inventory view
 
 If ok: merge to `main`. Set status of the artifacts to `realized`:
+
 - UC-01: status `realized`
 - REQ-001 to REQ-011: status `realized`
 - Tasks: status `done`

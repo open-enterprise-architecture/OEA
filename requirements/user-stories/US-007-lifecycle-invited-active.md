@@ -18,11 +18,13 @@ As a person with status "invited", I want to be automatically marked as "active"
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a person with status `invited`
 - When: they sign in successfully for the first time
 - Then: their status changes to `active`
 
 **AC2**:
+
 - Given: a person with status `active`
 - When: they sign in again
 - Then: their status remains unchanged at `active`

@@ -65,27 +65,33 @@ GridPosition is set and validated on widget creation (REQ-052 POST) and widget u
 ## Acceptance Criteria
 
 **AC1** (Valid GridPosition):
+
 - When: Create widget with gridPosition={col:4, row:1, width:9, height:3}
 - Then: HTTP 201; `col + width = 13` → valid (limit exactly exhausted)
 
 **AC2** (Widget too wide):
+
 - When: Create widget with gridPosition={col:4, row:1, width:10, height:2}
 - Then: HTTP 422 "col + width = 14 exceeds the maximum grid width of 12"
 
 **AC3** (Invalid values):
+
 - When: Create widget with gridPosition={col:0, row:1, width:3, height:1}
 - Then: HTTP 422 "col must be ≥ 1"
 
 **AC4** (Height limit):
+
 - When: Create widget with height=7
 - Then: HTTP 422 "height may be at most 6"
 
 **AC5** (GridPosition in dashboard response):
+
 - Given: Dashboard with 3 widgets with different GridPositions
 - When: GET /api/v1/dashboards/{id}
 - Then: each widget contains its `gridPosition` object; the client renders the layout from it
 
 **AC6** (Overlap not blocked server-side):
+
 - When: Two widgets are created with overlapping GridPositions
 - Then: both widgets are accepted (HTTP 201); overlap is a client problem
 

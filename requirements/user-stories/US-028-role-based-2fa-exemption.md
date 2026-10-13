@@ -18,16 +18,19 @@ As an operator, I want to be able to define which OEA roles are exempt from the 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Max has configured `enforce2FA=true` and `twoFactorExemptRoles=['administrator']`
 - When: a person with the admin role logs in without a 2FA credential
 - Then: they get direct access without a required action
 
 **AC2**:
+
 - Given: the same configuration
 - When: a person without the admin role logs in without a 2FA credential
 - Then: UC-03 required action is triggered
 
 **AC3**:
+
 - Given: Max tries to enter a non-existent role ID as an exemption
 - When: he saves
 - Then: a validation error appears; the configuration is not saved

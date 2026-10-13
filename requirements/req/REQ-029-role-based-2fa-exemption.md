@@ -50,41 +50,49 @@ Applies only if REQ-020 is active (`enforce2FA=true`). If enforcement is inactiv
 | `twoFactorExemptRoles` | string[] | `[]` | List of OEA role IDs exempt from the 2FA obligation; empty = no exemption |
 
 **Processing**:
+
 - After successful password check (UC-01 A5): check whether the person has a role that is in `twoFactorExemptRoles`
 - If yes: UC-03 required action is not triggered, even if no active TOTP/passkey credential exists; login grants access directly
 - If no: normal required action check (UC-03) per REQ-020
 - The exemption for the system admin account (UC-02) is hard-coded; it is not configured via `twoFactorExemptRoles` and applies independently of it
 
 **Outputs**:
+
 - Configuration stored; effective at the next login of the affected persons
 
 **Error Cases**:
+
 - Role ID in `twoFactorExemptRoles` does not exist → validation error on save; no implicit ignoring of unknown IDs
 - Operator tries to set `twoFactorExemptRoles` without `enforce2FA=true` → permitted (is stored but has no effect; admin UI shows a note)
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: `enforce2FA=true` and `twoFactorExemptRoles=['administrator']`
 - When: a person with the role `administrator` logs in with a password and has no 2FA credential
 - Then: they gain access directly, without the UC-03 required action
 
 **AC2**:
+
 - Given: the same configuration
 - When: a person without the role `administrator` logs in with a password and has no 2FA credential
 - Then: the UC-03 required action is triggered (behavior of REQ-020 unchanged)
 
 **AC3**:
+
 - Given: `twoFactorExemptRoles=['administrator']` and `enforce2FA=true`
 - When: a person has both the role `administrator` and `editor`
 - Then: the person is exempt (at least one exempt role suffices)
 
 **AC4**:
+
 - Given: `twoFactorExemptRoles` contains a non-existent role ID
 - When: the operator wants to save
 - Then: the configuration is rejected with a specific error message (unknown role ID)
 
 **AC5**:
+
 - Given: the system admin account from UC-02 and any `twoFactorExemptRoles` configuration
 - When: the system admin account logs in
 - Then: it is always exempt, regardless of this configuration

@@ -45,7 +45,7 @@ Connections are full-fledged entities with their own UUID, their own meta-type, 
 
 The link between `ArchitectureEntity` and its `EntityTypeDefinition` is the structurally most important invariant of the model:
 
-```
+```yaml
 EntityTypeDefinition (in the metamodel)     ArchitectureEntity (instance)
 ─────────────────────────────────────       ────────────────────────────
 id:             application-component  ←── entityTypeId: application-component
@@ -56,6 +56,7 @@ architectureLayerId: application-layer      architectureDomainIds: [finance-doma
 ```
 
 The `entityTypeId` determines:
+
 - which **properties** the entity can and must have (PropertyDefinitions with validationMode)
 - which **notation element** is used (NotationMapping in viewpoints)
 - which **default size** applies on the canvas (NotationMapping.defaultWidth / defaultHeight)
@@ -188,6 +189,7 @@ ArchitectureEntities have no standalone lifecycle status. Their state within the
 ## Examples
 
 **Element entity (ApplicationComponent)**:
+
 ```yaml
 entity:
   id: 1
@@ -209,6 +211,7 @@ entity:
 ```
 
 **Connection entity (DataFlow)** – ID 5, links entity 1 to entity 3:
+
 ```yaml
 entity:
   id: 5
@@ -225,6 +228,7 @@ entity:
 ```
 
 **Entity with mandatory property not filled → warning**:
+
 ```yaml
 entity:
   id: 7

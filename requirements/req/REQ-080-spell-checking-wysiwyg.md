@@ -19,33 +19,40 @@ All WYSIWYG editors in OEA (Arc42 chapters, entity descriptions, free-text prope
 ## Acceptance Criteria
 
 **AC1** (Browser-native basis):
+
 - TipTap editor element has `spellcheck="true"` set
 - The browser marks misspelled words with a red underline
 - Right-click → browser correction suggestions (default behavior)
 
 **AC2** (Language of the check):
+
 - Browser spellcheck follows the system language of the browser/operating system
 - If LanguageTool is active: check language follows the user's UI language selected in REQ-079; explicitly overridable in the editor
 
 **AC3** (LanguageTool configurable):
+
 - Admin can set `languageToolUrl` in the instance settings (e.g., `http://languagetool:8010`)
 - If configured: editor sends text to the LanguageTool API and displays errors with colored underlining
 - Click on an underlined word → popup with correction suggestions; click on a suggestion → replaces text
 
 **AC4** (Error types with LanguageTool):
+
 - Spelling errors: red underline
 - Grammar errors: blue underline
 - Style hints: gray underline (can be disabled per user setting)
 
 **AC5** (Fallback when unreachable):
+
 - If LanguageTool is not reachable: no error in the UI; browser-native spellcheck remains active
 - Connection error is not displayed prominently (no red banner); optionally: small indicator icon in the toolbar
 
 **AC6** (Offline / air-gapped):
+
 - Self-hosted LanguageTool (`languagetool/languagetool` Docker image, LGPL) configurable; consistent with REQ-075
 - No external service call if `languageToolUrl` is not set
 
 **AC7** (Can be disabled):
+
 - User can disable spell checking in the editor via a toolbar button (preference is saved)
 
 ## Technical Notes

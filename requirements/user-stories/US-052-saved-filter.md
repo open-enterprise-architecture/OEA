@@ -18,21 +18,25 @@ As a catalog user, I want to be able to name and save an ad-hoc set filter, so t
 ## Acceptance Criteria
 
 **AC1** (save filter, happy path):
+
 - Given: Kurt has set filter `status = "active"` (US-051)
 - When: Kurt clicks "Save filter", enters the name "Active systems only" and confirms
 - Then: SavedFilter persisted in the catalog configuration; appears in the quick-select list for all visitors (scope=instance, because Kurt is a manager)
 
 **AC2** (activate SavedFilter):
+
 - Given: SavedFilter "Active systems only" exists
 - When: Franz opens the catalog and clicks "Active systems only" in the quick select
 - Then: Filter immediately active; table shows only active entities
 
 **AC3** (personal filter – scope=personal):
+
 - Given: Franz has the visitor role (no write permission)
 - When: Franz sets a filter and clicks "Save filter"
 - Then: Filter saved as scope=personal; appears only in Franz's quick select
 
 **AC4** (AND / OR between expressions):
+
 - When: Kurt saves a filter with 2 expressions and chooses OR as the combination
 - Then: SavedFilter saved with `logicalOperator=or`; query returns entities that meet at least one condition
 

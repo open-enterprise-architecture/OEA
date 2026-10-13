@@ -19,16 +19,19 @@ As an Enterprise Architect, I want to create a structuring aid (folder) in the b
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: user selects "New structuring aid" in the browser context
 - When: name entered and confirmed
 - Then: new node with folder icon (no ArchiMate icon) appears under "Components"; `isStructuralGrouper=true` set
 
 **AC2**:
+
 - Given: structuring aid S and instantiated component K
 - When: K is placed under S
 - Then: K appears as a child of S; NO new connection appears under "Connections"
 
 **AC3**:
+
 - Given: structuring aid S with 3 child components
 - When: S is deleted
 - Then: the 3 child components are moved to root level (no cascade delete); warning appears before deletion

@@ -47,21 +47,25 @@ The PropertyDefinitions in this REQ are recommendations for the standard `data-o
 ### For type=functional
 
 **Inputs**:
+
 - `entityTypeId`: `data-object` (or an equivalent custom type with `isConnection=false`)
 - `name`: display name (e.g., "Customer master data")
 - `properties`: PropertyValue list according to the EntityType's PropertyDefinitions
 
 **Processing**:
+
 1. System assigns the next free integer ID (instance-wide, elements and connections share the number space)
 2. `entityTypeId` is set and is immutable
 3. PropertyValues are validated against the EntityType's PropertyDefinitions (mandatory → 422 if empty; warning → 200 with warning)
 4. Entity is persisted; audit log entry
 
 **Outputs**:
+
 - HTTP 201 with complete entity representation including the assigned integer ID
 - On validation warning: HTTP 200 with `warnings` array in the response
 
 **Error Cases**:
+
 - Invalid `entityTypeId` → HTTP 422
 - Mandatory property empty → HTTP 422 with list of all violated properties
 - No permission → HTTP 403
@@ -69,25 +73,30 @@ The PropertyDefinitions in this REQ are recommendations for the standard `data-o
 ## Acceptance Criteria
 
 **AC1** (Creation with ID assignment):
+
 - When: Lukas creates entity `Customer master data` (entityTypeId=`data-object`)
 - Then: HTTP 201; `id` is an integer ≥ 1; `entityTypeId=data-object` is set; ID is unique in the instance
 
 **AC2** (Mandatory property enforces value):
+
 - Given: `dataClassification` is mandatory
 - When: Lukas creates an entity without `dataClassification`
 - Then: HTTP 422; error message names `dataClassification` as missing
 
 **AC3** (Warning property saves anyway):
+
 - Given: `dataOwner` is warning
 - When: Lukas creates an entity without `dataOwner`
 - Then: HTTP 200; entity saved; response contains `warnings: ["dataOwner: value missing"]`
 
 **AC4** (entityTypeId immutable):
+
 - Given: Entity with id=42 and entityTypeId=`data-object` exists
 - When: Lukas tries to set `entityTypeId=application-component` via PUT
 - Then: HTTP 422; `entityTypeId` was not changed
 
 **AC5** (Deletion removes reference warning):
+
 - Given: Entity id=42 is referenced by carries-data connection id=103
 - When: Lukas deletes entity id=42
 - Then: System warns about referencing connections; after confirmation: entity deleted; carries-data connection id=103 gets `targetEntityId=null` or is also deleted (cascade TBD in ADR)

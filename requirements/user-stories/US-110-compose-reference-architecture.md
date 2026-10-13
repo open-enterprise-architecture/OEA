@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to compose `ReferenceArchitecture`
 ## Acceptance Criteria
 
 **AC1** (Reference architecture with blueprint approval):
+
 - When: I create a reference architecture with 3 ABBs, 1 pattern, and `governanceStatus=approved`
 - Then: the system saves it with HTTP 201; it is selectable as a blueprint in UC-11 (plateau creation)
 
 **AC2** (Empty composition warning):
+
 - When: I try to save a reference architecture without ABBs and without patterns
 - Then: the system shows a governance warning; saving is not blocked
 
 **AC3** (Mandatory field targetIndustry):
+
 - When: I save a reference architecture with `continuumLevel=industry` without `targetIndustry`
 - Then: I receive HTTP 422
 

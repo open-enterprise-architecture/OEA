@@ -18,10 +18,12 @@ As Kurt – Lead Enterprise Architect, I want to be sure that the go-live transi
 ## Acceptance Criteria
 
 **AC1** (Rollback on error):
+
 - When: a technical error occurs during the transition
 - Then: P0 and P1 are unchanged; no partial state is present
 
 **AC2** (Successful go-live):
+
 - When: the go-live is executed successfully
 - Then: P1 has `status=baseline`, P0 has `status=realized`, and all `retiring` entities have `lifecycle_state=retired`
 

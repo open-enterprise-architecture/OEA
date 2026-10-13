@@ -3,17 +3,20 @@
 Complete list of all UI screens. Screens are prototyped as Storybook stories with real Vue/PrimeVue components; screen images are generated from these stories ([ADR-031](../../adrs/ADR-031-ui-prototyping-storybook.md)).
 
 **Platforms** (ADR-008, ADR-009):
+
 - **CA** = Client App (Electron desktop) — full modeling scope
 - **WP** = Web Portal (Vue 3 SPA, browser) — read-only publication
 - **CA+WP** = both platforms
 
 **Status values**:
+
 - `planned` — screen identified, no image yet
 - `legacy-mockup` — static SVG from the former Penpot mockups; replaced as soon as the story exists
 - `prototype` — screen story exists in `frontend/src/screens/`; images generated
 - `implemented` — screen is part of the running application
 
 **Conventions** (ADR-031):
+
 - Story: `frontend/src/screens/SCR-NNN-<short-name>.stories.ts`, title `Screens/SCR-NNN <Name>`
 - Generated images: `docs/screens/SCR-NNN-light.png`, `docs/screens/SCR-NNN-dark.png` – never edited by hand
 - Legacy images: `docs/screens/<name>-light.svg` / `-dark.svg`; deleted when the screen reaches `prototype`

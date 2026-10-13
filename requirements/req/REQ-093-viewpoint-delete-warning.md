@@ -34,10 +34,12 @@ Viewpoints may be used by many diagrams in production. A silent deletion without
 ## Acceptance Criteria
 
 **AC1** (Warning for a used viewpoint):
+
 - When: a viewpoint that is used by 5 diagrams is deleted
 - Then: the system shows the warning "5 diagrams will be affected"; after confirmation it is deleted
 
 **AC2** (No warning for an unused viewpoint):
+
 - When: a viewpoint that is used by no diagram is deleted
 - Then: a direct confirmation occurs without a warning dialog
 

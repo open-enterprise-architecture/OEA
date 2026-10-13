@@ -79,43 +79,54 @@ The current state of an IT landscape already exists in source systems: code repo
 ## Alternative Flows
 
 **A1 – Dry run**: At step 3, the source system sends the batch with `dryRun=true`:
+
 1. The system performs all validations of step 4 without persisting anything
 2. The system returns what would be created, updated or rejected
+
 - Ends here; the source system can correct its data and start again at step 3
 
 **A2 – Single object**: Instead of step 3, the source system writes one object via `PUT /api/v1/entities/by-external-id/{externalId}`:
+
 1. The system creates the entity (201) or updates it (200)
 2. Repeated calls with identical data change nothing and create no new version
+
 - Ends here
 
 **A3 – Repeated import without changes**: At step 5, all objects are unchanged:
+
 1. The system writes nothing and creates no new versions
 2. The summary reports all items as `unchanged`
+
 - Continues at step 6
 
 ## Exception Flows
 
 **E1 – Validation errors with `atomic=false`**:
+
 - Condition: some items violate the metamodel (e.g. missing mandatory property)
 - Expected reaction: valid items are written; faulty items are listed with status `error`, property name and reason
 - Resumption: the source system corrects the faulty items and resends only these
 
 **E2 – Validation errors with `atomic=true`**:
+
 - Condition: at least one item is invalid
 - Expected reaction: no item is written; all errors are listed
 - Resumption: the source system corrects the data and resends the complete batch
 
 **E3 – Unresolvable connection**:
+
 - Condition: a connection references an `external_id` that exists neither in the batch nor in OEA
 - Expected reaction: the connection is rejected with status `error`; entities of the batch are not affected
 - Resumption: the source system sends the missing entity and repeats the connection
 
 **E4 – Missing permission or disabled integration**:
+
 - Condition: the service account lacks the role `integration-writer`, or the `integration` feature flag is off
 - Expected reaction: HTTP 403; nothing is written; the attempt is recorded in the audit log
 - Resumption: Max assigns the role or activates the feature flag (UC-02)
 
 **E5 – Batch too large**:
+
 - Condition: more than the configured maximum of entities or connections per request
 - Expected reaction: HTTP 413 with the configured limit
 - Resumption: the source system splits the import into several batches

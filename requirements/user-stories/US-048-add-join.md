@@ -18,27 +18,33 @@ As a Lead Enterprise Architect, I want to be able to add a join to another entit
 ## Acceptance Criteria
 
 **AC1** (add join, happy path):
+
 - Given: Catalog with primaryEntityType=ApplicationComponent; metamodel has ConnectionType `DataFlow` (allowedSourceTypes=[ApplicationComponent], allowedTargetTypes=[Interface])
 - When: Kurt opens "Add join", selects ConnectionType=DataFlow, direction=outbound, target type=Interface, columns=[name, protocol], mode=aggregate
 - Then: Join appears in the configuration; catalog query returns interface results as an aggregated list per application
 
 **AC2** (only connection types selectable):
+
 - When: Kurt opens the connection type dropdown
 - Then: Only EntityTypes with isConnection=true are selectable; regular EntityTypes do not appear
 
 **AC3** (target type selection adapted to direction):
+
 - When: Kurt selects ConnectionType=DataFlow and direction=outbound
 - Then: Dropdown for target type shows only `allowedTargetTypes` of DataFlow (e.g. Interface); no other type selectable
 
 **AC4** (configure target type columns):
+
 - When: Target type Interface with attributes [name, protocol, version] is selected
 - Then: All 3 attributes selectable as target columns; order and label configurable analogous to US-047
 
 **AC5** (join default mode):
+
 - When: Kurt sets defaultJoinMode=rows for this join
 - Then: Catalog query without override returns row expansion for this join; global Catalog.defaultJoinMode is unaffected
 
 **AC6** (remove join):
+
 - When: Kurt deletes a join via "Remove join"
 - Then: Join removed from configuration; columns of this join no longer appear in the table; SavedViews are cleaned up (JoinModeOverrides for this join removed)
 

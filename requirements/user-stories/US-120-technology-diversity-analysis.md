@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to see per TRM category how many d
 ## Acceptance Criteria
 
 **AC1** (Highlight standardization potential):
+
 - When: the TRM category "Container Orchestration" has 3 different SBBs in use
 - Then: this category is highlighted as "Standardization potential"
 
 **AC2** (List missing standards):
+
 - When: TRM categories without a configured `preferredStandard` exist
 - Then: they appear in a separate list "Missing standards"
 
 **AC3** (PDF export with executive summary):
+
 - When: I trigger the export as PDF
 - Then: the document contains an executive summary section with the top 3 risks (prohibited entities, gap rate, diversity hotspots) and detail tables per analysis section
 

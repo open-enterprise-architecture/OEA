@@ -45,6 +45,7 @@ In which larger context does this use case sit? What is the persona's overarchin
 ## Trigger
 
 What triggers this use case?
+
 - External occasion: {{e.g. workshop preparation, customer request}}
 - Timing: {{e.g. quarterly, ad hoc}}
 - Predecessor use case: {{e.g. after UC-NN}}
@@ -93,11 +94,14 @@ Step by step, what the persona does (and what the system responds):
 Branches in the basic flow:
 
 **A1 – {{Alternative}}**: At step {{N}}, if {{condition}}, then:
+
 1. {{deviating step}}
 2. {{...}}
+
 - Rejoins at step {{M}} of the basic flow or ends here
 
 **A2 – {{further alternative}}**:
+
 - {{...}}
 
 ## Exception Flows
@@ -105,11 +109,13 @@ Branches in the basic flow:
 What must the system do if something goes wrong?
 
 **E1 – {{Error}}**:
+
 - Condition: {{when does the error occur}}
 - Expected reaction: {{error message, rollback, fallback}}
 - Resumption: {{can the user continue? Where?}}
 
 **E2 – {{Error}}**:
+
 - {{...}}
 
 ## Data Flow

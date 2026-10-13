@@ -68,16 +68,19 @@ This REQ describes the **default target value** (self-hosted, HA setup / SaaS). 
 ## Acceptance Criteria
 
 **AC1** (Uptime monitoring):
+
 - Given: Production OEA instance has been running for 30 days
 - When: Monitoring tool checks `GET /health` every 60 seconds
 - Then: Availability ≥ 99.5% of the measurement period (excl. announced maintenance windows)
 
 **AC2** (Automatic restart):
+
 - Given: OEA API process crashes unexpectedly
 - When: Container orchestration reacts (Kubernetes/Docker Compose with restart policy)
 - Then: `/health` responds with HTTP 200 again after 30 minutes at the latest
 
 **AC3** (Health endpoint):
+
 - When: `GET /health` called
 - Then: HTTP 200 at full functionality; HTTP 503 if the database is unreachable or on a critical error; response time < 100ms
 

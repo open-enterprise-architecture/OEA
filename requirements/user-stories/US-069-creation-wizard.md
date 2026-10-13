@@ -18,27 +18,33 @@ As an Enterprise Architect, I want to be guided through a configurable, multi-pa
 ## Acceptance Criteria
 
 **AC1** (wizard opens in the catalog):
+
 - Given: ApplicationComponent has 3 creationSteps (basic data, domain, capability)
 - When: Kurt clicks "+ New entity" in the ApplicationComponent catalog
 - Then: Wizard opens on page 1 (no old single-page modal)
 
 **AC2** (go through steps):
+
 - When: Kurt fills in step 1 → clicks "Next" → step 2 → "Next" → step 3 → "Finish"
 - Then: 3 clicks; on steps 1 and 2 the button is called "Next"; on step 3 "Finish"
 
 **AC3** (Finish → entity visible):
+
 - When: Kurt clicks "Finish"
 - Then: Entity appears as a new row in the catalog; no reload pause > 2 s
 
 **AC4** (wizard opens in the diagram):
+
 - When: Kurt drags an ApplicationComponent element from the palette onto the canvas
 - Then: Wizard opens; element is visible on the canvas only after "Finish"
 
 **AC5** (cancel = no object):
+
 - When: Kurt closes the wizard on step 2 (ESC or X)
 - Then: No entry in the catalog; no shape on the canvas
 
 **AC6** (mandatory validation):
+
 - When: Mandatory field empty + Kurt clicks "Finish"
 - Then: Error message on the corresponding step; no persistence
 

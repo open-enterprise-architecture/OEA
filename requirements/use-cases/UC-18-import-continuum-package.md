@@ -102,7 +102,7 @@ ADR-002 decided: one repository, scope-based. Continuum packages are JSON/YAML f
 
 ## Basic Flow
 
-*Default case: Kurt imports the TOGAF 10 TRM package*
+*Default case: Kurt imports the TOGAF 10 TRM package.*
 
 1. **Kurt**: opens the continuum library, navigates to "Package import"
 2. **System**: shows two options: "Built-in packages" (OEA standard, immediately activatable) and "Upload file" (own or external package)
@@ -115,21 +115,21 @@ ADR-002 decided: one repository, scope-based. Continuum packages are JSON/YAML f
 
 ## Alternative Flows
 
-**A1 – Conflicts on package update (newer version)**
+### A1 – Conflicts on package update (newer version)
 
 1. **Kurt**: imports an updated version of a package that is already partially present
 2. **System**: detects ID conflicts (building blocks with identical ID already present) and shows a conflict list: "12 entries already present — overwrite or skip?"
 3. **Kurt**: selects: skip (default) or update (only for building blocks not changed organization-specifically)
 4. **System**: imports only new building blocks; with "update", the conflicting entries are reset with `scope=imported`; organization-specific extensions are retained
 
-**A2 – File upload (own package)**
+### A2 – File upload (own package)
 
 1. **Kurt**: selects "Upload file" and uploads a `.json` or `.yaml` file
 2. **System**: validates the package schema immediately after upload; on schema error: HTTP 422 with line reference
 3. **Kurt**: sees preview and confirms the import
 4. **System**: imports; `sourcePackage` = file name or name specified in the package
 
-**A3 – Package deactivation (hide building blocks)**
+### A3 – Package deactivation (hide building blocks)
 
 1. **Kurt**: wants to hide an imported package (without deleting — references remain valid)
 2. **System**: sets all building blocks of the package to "archived" (not visible in the library, but still referenceable via IDs)
@@ -137,12 +137,14 @@ ADR-002 decided: one repository, scope-based. Continuum packages are JSON/YAML f
 
 ## Exception Flows
 
-**E1 – Schema validation error**
+### E1 – Schema validation error
+
 - Condition: The uploaded package violates the OEA continuum package schema (missing mandatory field, wrong enum value)
 - Expected reaction: HTTP 422 with error list (line, field, error description); no building block imported
 - Resumption: Kurt corrects the file and uploads again
 
-**E2 – Cycle in imported ABB refinement hierarchy**
+### E2 – Cycle in imported ABB refinement hierarchy
+
 - Condition: The package contains a cycle in the ABB `refines` graph
 - Expected reaction: Import aborted; error message with cycle description
 - Resumption: Contact package provider or correct the package manually

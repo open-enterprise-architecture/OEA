@@ -5,6 +5,7 @@ Quality attributes of the system with measurable target values. One file per NFR
 ## Mandatory: Measurable
 
 NFRs without measurable target values are wishful thinking. Mandatory fields:
+
 - Target value with unit
 - Verification method
 - Scope (at which data volume the value applies)

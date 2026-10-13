@@ -18,10 +18,12 @@ As Kurt – Lead Enterprise Architect, I want to be sure that a restore is eithe
 ## Acceptance Criteria
 
 **AC1** (Rollback on error):
+
 - When: a technical error occurs after the snapshot is written
 - Then: the entity is unchanged; no snapshot exists in `entity_versions`
 
 **AC2** (Successful restore):
+
 - When: the restore is successful
 - Then: snapshot, entity update, and version entry are all present and consistent
 

@@ -36,6 +36,7 @@ superseded_by: []
 The OEA web interface MUST meet conformance level **WCAG 2.1 Level AA** for all pages outside the diagram canvas. The diagram canvas (UC-05, UC-10) is exempt from the WCAG AA obligation and MUST meet at least WCAG 2.1 Level A; for the canvas, an accessible alternative representation (list view of the entities and connections) SHOULD be provided.
 
 **Specific requirements (selection)**:
+
 - All interactive elements are reachable and operable via keyboard (focus management)
 - Color contrast: minimum contrast ratio of 4.5:1 for normal text, 3:1 for large text and UI components
 - All non-text content (icons, diagrams) has text alternatives (`aria-label`, `alt`)
@@ -70,18 +71,22 @@ OEA is an open-source tool with the aspiration of broad usability. Accessibility
 ## Acceptance Criteria
 
 **AC1** (Automated scan green):
+
 - When: an Axe or Lighthouse accessibility scan runs against all web portal pages
 - Then: 0 violations with severity `critical` or `serious`
 
 **AC2** (Keyboard navigation login):
+
 - When: the user uses the Tab key from page load
 - Then: all login fields, buttons, and links are reachable; focus indicator visible
 
 **AC3** (Contrast):
+
 - When: a contrast check is performed against the design system tokens
 - Then: all text/background combinations meet 4.5:1 (normal) / 3:1 (large text)
 
 **AC4** (Canvas alternative representation):
+
 - When: the user opens the canvas
 - Then: a link/button "Show as list" is present; it lists all entities and connections as a structured table
 

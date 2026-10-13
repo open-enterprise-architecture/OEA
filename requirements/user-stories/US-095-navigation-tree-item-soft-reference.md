@@ -18,10 +18,12 @@ As Kurt – Lead Enterprise Architect, I want to attach entities, diagrams, and 
 ## Acceptance Criteria
 
 **AC1** (Remove item without data loss):
+
 - When: I remove a TreeNodeItem
 - Then: the item is deleted; the referenced entity still exists
 
 **AC2** (Mark orphaned items):
+
 - When: an entity is deleted that is referenced as an item in 2 folders
 - Then: both items show a warning symbol
 

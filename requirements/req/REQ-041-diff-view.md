@@ -45,6 +45,7 @@ The diff view is a computation function (read-only, not persisted): it combines 
 ### For type=functional
 
 **Inputs**:
+
 - Solution ID (context)
 
 **Processing**:
@@ -68,32 +69,38 @@ The diff view is a computation function (read-only, not persisted): it combines 
 The diff view shows **only affected entities** (no complete landscape dump).
 
 **Error Cases**:
+
 - Solution ID unknown → 404
 - No deltas present → diff view is empty (with the note "No changes captured yet")
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: the solution has a `new` delta for `Salesforce (ApplicationComponent)` and a `retiring` delta for `CRM-Legacy`
 - When: Michael opens the diff view
 - Then: exactly two entries appear; `Salesforce` marked green (no entry on the left), `CRM-Legacy` red/struck through on the right
 
 **AC2**:
+
 - Given: the solution has a `modified` delta for `ERP-Core` (version: v4 → v5)
 - When: Michael opens the diff view
 - Then: `ERP-Core` appears once; the left side shows `version=v4`, the right side `version=v5`; only the changed property is highlighted
 
 **AC3**:
+
 - Given: Michael adds another delta (after opening the diff view)
 - When: he saves the delta
 - Then: the diff view updates without a full reload and shows the new entity
 
 **AC4**:
+
 - Given: the solution has no deltas
 - When: Michael opens the diff view
 - Then: the note "No changes captured yet" appears; no error
 
 **AC5**:
+
 - Given: the solution has 20 deltas of various types
 - When: Michael opens the diff view
 - Then: all 20 deltas are displayed; entities without a delta are **not** visible (no landscape dump)

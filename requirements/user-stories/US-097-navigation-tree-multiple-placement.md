@@ -18,10 +18,12 @@ As Kurt – Lead Enterprise Architect, I want to reference the same repository o
 ## Acceptance Criteria
 
 **AC1** (Multiple placement):
+
 - When: I attach "SAP ERP" to folder "Finance" and "Cloud-Migration"
 - Then: two independent TreeNodeItems exist; the entity itself is unchanged
 
 **AC2** (Independent removal):
+
 - When: I remove the item from "Finance"
 - Then: the entry in "Cloud-Migration" remains valid
 

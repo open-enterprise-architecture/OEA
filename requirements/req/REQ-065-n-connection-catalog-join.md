@@ -42,6 +42,7 @@ For [Catalog](../../business-objects/catalog.md) instances, the system MUST supp
 ## Rationale
 
 With ADR-010 (n-connection), connections can themselves be the source of further connections (e.g., `data-flow` → `carries-data` → `data-object`). For this structure to become queryable in catalogs — e.g., "Show all data flows with the data objects they transport" — two adjustments must take effect:
+
 - A catalog may have `primaryEntityType=data-flow`
 - The join traversal must find `carries-data` connections even if their source is a connection instance
 
@@ -57,7 +58,7 @@ REQ-045 defines the configuration of JoinDefinitions. REQ-046 defines the query 
 
 ### Extension for Connection Type as Primary (supplement to REQ-046, step 1)
 
-```
+```text
 Step 1 (adjusted): Load all entities of the `primaryEntityType`.
   - If `primaryEntityType.isConnection=false`: all non-connection instances (existing logic)
   - If `primaryEntityType.isConnection=true`: all connection instances of this type
@@ -66,7 +67,7 @@ Step 1 (adjusted): Load all entities of the `primaryEntityType`.
 
 ### Extension for n-Connection Traversal (supplement to REQ-046, step 4)
 
-```
+```text
 Step 4 (adjusted): Join traversal for each primary entity:
   - For joinDirection=outbound: find all instances of JoinDefinition.connectionType
     WHERE sourceEntityId = primary-entity.id
@@ -83,27 +84,32 @@ If `primaryEntityType.isConnection=true` is set, at least one JoinDefinition mus
 ## Acceptance Criteria
 
 **AC1** (Connection type as primary):
+
 - Given: MetamodelConfiguration with EntityType `data-flow` (isConnection=true)
 - When: Catalog manager creates a catalog with `primaryEntityType=data-flow`
 - Then: HTTP 201; catalog is valid; query returns all data-flow instances as rows
 
 **AC2** (n-connection join outbound):
+
 - Given: DataFlow id=5 (data-flow); carries-data id=103 (sourceEntityId=5, targetEntityId=42)
 - Given: Catalog `Data Flow Overview` (primaryEntityType=data-flow) with JoinDefinition: `{ connectionType: carries-data, joinDirection: outbound, targetEntityType: data-object, targetColumns: [{attributeName: "name"}] }`
 - When: Catalog query
 - Then: Row for DataFlow id=5; joinResults contains DataObject id=42 with name "Customer master data"
 
 **AC3** (Non-n-connection remains untouched):
+
 - Given: normal catalog with primaryEntityType=application-component and join data-flow outbound
 - When: Catalog query
 - Then: Result identical to REQ-046 behavior; no regression error
 
 **AC4** (Multiple n-connections aggregated):
+
 - Given: DataFlow id=5 has 2 carries-data connections (data-objects 42 and 43)
 - When: Catalog query, aggregate mode
 - Then: One row for DataFlow id=5; joinResults contains an array with both data-objects
 
 **AC5** (Connection primary: source and target entity available as columns):
+
 - When: Catalog with primaryEntityType=data-flow; columns `sourceEntityName`, `targetEntityName` configured
 - Then: Columns show the names of the source or target entity of each data flow
 

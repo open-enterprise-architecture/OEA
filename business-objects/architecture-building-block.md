@@ -25,7 +25,7 @@ An `ArchitectureBuildingBlock` (ABB) is a reusable, technology-neutral architect
 
 ABBs sit at a higher level of abstraction than concrete `ArchitectureEntity` instances. The relationship chain is:
 
-```
+```text
 ABB „Identity Provider"          ← specification: what must it be able to do?
   └── SBB „Keycloak 23.0"        ← concrete implementation (implements ABB)
         └── Entity „acme-iam"    ← production instance (instanceOf SBB, conformsTo ABB)
@@ -83,7 +83,7 @@ ABBs can refine each other: a specialized ABB `MFA-capable Identity Provider` re
 
 ## Lifecycle
 
-```
+```text
 proposed → approved → deprecated
 ```
 

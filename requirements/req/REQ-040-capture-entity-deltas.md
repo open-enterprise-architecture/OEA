@@ -47,24 +47,29 @@ An `EntityDelta` is a value object (not a business object of its own) and part o
 **Inputs**:
 
 *deltaType=new – catalog path (form)*:
+
 - EntityType (dropdown of available types per MetamodelConfiguration)
 - Name (string, mandatory)
 - Properties (per EntityType schema)
 
 *deltaType=new – diagram path (canvas)*:
+
 - Place the entity on the canvas (drag from palette or double-click)
 - Name input directly on the canvas element; while typing: suggestion list with entities from the current IT landscape (REQ-039), filtered by the typed text (prefix and substring search); selecting from the list marks the entity as `deltaType=modified` or `retiring` instead of `new`
 - EntityType selectable via context menu or palette
 
 *deltaType=modified*:
+
 - entityId (reference to an entity from the baseline, REQ-039)
 - `changes` map: affected properties with before and after value
 
 *deltaType=retiring*:
+
 - entityId (reference to an entity from the baseline, REQ-039)
 - No further content required
 
 **Processing**:
+
 - BR-03: Solution.status == `implemented` → reject all write access to deltas with 409 Conflict
 - Uniqueness check: a solution may have at most one delta per entityId; on duplicate → validation error
 - `modified`/`retiring` validate that the referenced entityId is present in the baseline (REQ-039)
@@ -72,10 +77,12 @@ An `EntityDelta` is a value object (not a business object of its own) and part o
 - Persist the delta as part of the solution (no separate DB record; embedded in the solution or closely linked)
 
 **Outputs**:
+
 - Updated delta list of the solution
 - Trigger for updating the diff view (REQ-041) and checking for conflicts (REQ-042)
 
 **Error Cases**:
+
 - Solution status=`implemented` → 409 Conflict: "This solution is completed and can no longer be modified"
 - Duplicate delta for the same entityId → validation error: "A delta already exists for this entity in this solution"
 - Unknown entityId for `modified`/`retiring` → validation error: "Entity not found in the current landscape"
@@ -84,31 +91,37 @@ An `EntityDelta` is a value object (not a business object of its own) and part o
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Michael is working on a solution in status `draft`; entity `CRM-Legacy` (ApplicationComponent) is in the baseline
 - When: he marks `CRM-Legacy` as `retiring`
 - Then: `CRM-Legacy` appears in the solution's delta list as `deltaType=retiring`; the diff view (REQ-041) shows it as "out of service"
 
 **AC2**:
+
 - Given: same starting situation as AC1
 - When: Michael creates a new entity `Salesforce` of type `ApplicationComponent` with `deltaType=new`
 - Then: `Salesforce` appears in the delta list as `deltaType=new`; `Salesforce` is **not** yet in the baseline (it is newly added by this solution)
 
 **AC3**:
+
 - Given: entity `ERP-Core` (ApplicationComponent) is in the baseline
 - When: Michael marks `ERP-Core` as `modified` and changes the version from v4 to v5
 - Then: the delta contains `changes = {version: {before: "v4", after: "v5"}}`; the diff view shows the change
 
 **AC4**:
+
 - Given: the solution has status=`implemented`
 - When: Michael tries to add a new delta
 - Then: 409 Conflict with message "This solution is completed and can no longer be modified"
 
 **AC5**:
+
 - Given: `CRM-Legacy` already has a `retiring` delta in this solution
 - When: Michael tries to add `CRM-Legacy` again as `modified`
 - Then: validation error "A delta already exists for CRM-Legacy in this solution"
 
 **AC6**:
+
 - Given: Michael enters, as a `modified` delta, an entityId that is not in the baseline
 - When: he saves
 - Then: validation error "Entity not found in the current landscape"

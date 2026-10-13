@@ -18,22 +18,27 @@ As a Solution Architect, I want to write Mermaid and PlantUML code blocks in an 
 ## Acceptance Criteria
 
 **AC1** (Mermaid rendered):
+
 - When: Michael types a ```mermaid block with a C4Context diagram
 - Then: The diagram is displayed inline as SVG; no raw code
 
 **AC2** (PlantUML rendered):
+
 - When: Michael types a ```plantuml block with a sequence diagram
 - Then: The diagram is rendered as SVG via the configured server or WASM
 
 **AC3** (Fallback without PlantUML server):
+
 - When: No server is configured and WASM is not available
 - Then: Raw code is displayed + warning icon; no app crash
 
 **AC4** (Code edit toggle):
+
 - When: Michael clicks a rendered Mermaid diagram → "Edit code"
 - Then: The code editor opens; saving re-renders
 
 **AC5** (Web portal reads diagrams):
+
 - When: The CIO opens the Arc42 tab in the web portal
 - Then: Mermaid and PlantUML are rendered read-only; no editor
 

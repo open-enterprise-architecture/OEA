@@ -53,11 +53,13 @@ Concerns REQ-013 (local bootstrapping): the way Max receives the setup token or 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a freshly installed instance
 - When: the setup token is generated
 - Then: it is retrievable only via a channel that already requires privileged access (e.g., CLI output at startup, local log file, container exec)
 
 **AC2**:
+
 - Given: the initial setup web interface (if UI-based)
 - When: it is called without a valid setup token
 - Then: it refuses password assignment

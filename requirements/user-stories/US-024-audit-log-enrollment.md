@@ -18,21 +18,25 @@ As an operator, I want every enrollment process to be recorded in the audit log,
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: an enrollment process completes successfully (TOTP, passkey or password)
 - When: the method is persisted
 - Then: the audit log contains an entry with timestamp (ISO 8601), person ID, method type (`totp` | `passkey` | `password`), result `success`
 
 **AC2**:
+
 - Given: an enrollment process fails (wrong TOTP code, passkey cancellation, password too weak)
 - When: the failure occurs
 - Then: the audit log contains an entry with timestamp, person ID, method type, result `failure` and a generic failure reason
 
 **AC3**:
+
 - Given: an invalid enrollment token is submitted
 - When: the failure occurs
 - Then: the audit log contains an entry with timestamp, result `failure`, failure reason `invalid_token`; no person ID (cannot be determined)
 
 **AC4**:
+
 - Given: an audit log entry for an enrollment process
 - When: it is stored in the log infrastructure
 - Then: it contains no credential values (no TOTP secret, no password hash, no public key)

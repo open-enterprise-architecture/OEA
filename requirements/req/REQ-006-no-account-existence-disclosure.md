@@ -52,11 +52,13 @@ Concerns in particular Exception Flows E1 (identity provider rejects) and E2 (pe
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a login attempt with a non-existent identity
 - When: the login fails
 - Then: the externally visible error message is identical to that for an existing but incorrectly authenticated identity
 
 **AC2**:
+
 - Given: two failed login attempts, one with an existing and one with a non-existent identity
 - When: the response times are compared
 - Then: they do not differ in a way that an attacker can exploit (no timing side channel)

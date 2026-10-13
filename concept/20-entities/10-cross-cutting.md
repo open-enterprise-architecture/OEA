@@ -19,6 +19,7 @@ EntityType: Location
 ```
 
 **Important applications**:
+
 - Data residency evidence (GDPR, BDSG)
 - Disaster recovery planning (multi-region)
 - Sovereign cloud compliance
@@ -98,6 +99,7 @@ EntityType: CarbonAssessment
 ```
 
 **Applications**:
+
 - Carbon hotspot analysis (which applications/technologies cause the most emissions)
 - Sustainability target state (plateau with a lower total CO2 footprint)
 - Vendor selection under sustainability aspects
@@ -134,6 +136,7 @@ EntityType: Contract
 ```
 
 Especially important for:
+
 - SaaS contracts (license compliance)
 - Outsourcing relationships
 - Data sharing agreements (GDPR-relevant)
@@ -161,7 +164,7 @@ The Requirement EntityType itself is defined in [§7.2 (Motivation, Stakeholders
 
 **Lifecycle**: Requirements pass through a clearly defined status workflow:
 
-```
+```text
 identified → analyzed → approved → allocated → realized → verified
                               ↓
                           rejected | deferred
@@ -170,6 +173,7 @@ identified → analyzed → approved → allocated → realized → verified
 ```
 
 Critical transitions:
+
 - `identified → analyzed`: First business assessment, rationale documented
 - `analyzed → approved`: Acceptance criterion is mandatory (see constraints below)
 - `approved → allocated`: Assignment to plateau and work package

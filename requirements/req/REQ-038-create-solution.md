@@ -50,22 +50,26 @@ An existing solution in status `draft` can be edited further at any time (steps 
 ### For type=functional
 
 **Inputs**:
+
 - `name` (string, mandatory): readable initiative name, max. 255 characters; unique within the instance
 - `description` (string, optional): architecture vision free text (goal, scope, rationale), max. 2000 characters
 - `fromPlateauId` (reference, optional): plateau mode only; dropdown of plateaus with status=`baseline`
 - `toPlateauId` (reference, optional): plateau mode only; dropdown of plateaus with status=`target` or `transition`
 
 **Processing**:
+
 - Check the name for uniqueness (within the instance, across all non-archived solutions)
 - Check BR-01: either both plateau IDs set or both null; mixed state → validation error
 - Check BR-02 (plateau mode only): `fromPlateauId ≠ toPlateauId`; `toPlateauId.status` ∈ {`target`, `transition`}
 - Persist the solution with status=`draft`, `ownerId=currentUser`, `createdAt=now()`
 
 **Outputs**:
+
 - Persisted solution with all fields; display in the solution overview
 - System navigates to the solution detail view (starting point for REQ-039/REQ-040)
 
 **Error Cases**:
+
 - Name already taken → validation error: "Name '{X}' is already taken"
 - BR-01 violation (one plateau ID set, the other null) → validation error: "Both plateau references must be set or both empty"
 - BR-02 violation → validation error with the specific cause
@@ -74,26 +78,31 @@ An existing solution in status `draft` can be edited further at any time (steps 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Michael has solution architect permission; no plateau mode
 - When: he enters the name "ERP Extension Logistics" and a description text and saves
 - Then: a solution exists with status=`draft`, `ownerId=Michael`, `fromPlateauId=null`, `toPlateauId=null`; visible in the solution overview
 
 **AC2**:
+
 - Given: instance in plateau mode; plateau P0 (baseline) and P1 (target) exist
 - When: Michael sets `fromPlateauId=P0` and `toPlateauId=P1` and saves
 - Then: solution created with both plateau references; BR-02 is satisfied
 
 **AC3**:
+
 - Given: Michael enters `fromPlateauId=P0` and leaves `toPlateauId` empty
 - When: he saves
 - Then: validation error "Both plateau references must be set or both empty"; no object is created (BR-01)
 
 **AC4**:
+
 - Given: a solution with the name "ERP Extension Logistics" already exists
 - When: Michael wants to create a second solution with the same name
 - Then: validation error "Name 'ERP Extension Logistics' is already taken"
 
 **AC5**:
+
 - Given: a person without solution architect permission
 - When: they try to create a solution
 - Then: 403 Forbidden; no object is created

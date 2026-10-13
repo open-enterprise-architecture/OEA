@@ -53,19 +53,21 @@ In the context of tool authentication (see [UC-01 Login](../requirements/use-cas
 
 ## Lifecycle
 
-```
+```text
 invited → active → inactive
               ↓
           offboarded
 ```
 
 **States**:
+
 - `invited`: Person is created/referenced in the system but not yet authenticated
 - `active`: Person is active, can log in and fill roles
 - `inactive`: Person is temporarily without access (e.g. parental leave), role assignments are retained
 - `offboarded`: Person has left the company/mandate, access revoked, history is retained for audit
 
 **Transitions**:
+
 - `invited → active`: first successful login (see UC-01)
 - `active → inactive`: by the HR master system or manually by roles with authorization rights
 - `* → offboarded`: triggered by the HR master system, access is denied at the next login attempt
@@ -80,6 +82,7 @@ invited → active → inactive
 ## Examples
 
 **Example 1**: Referenced person (standard case)
+
 ```yaml
 name: Kurt Lead Enterprise Architect
 email: kurt@example-sme.com

@@ -42,28 +42,34 @@ Person mastership usually lies with the HR system (concept §8.7); the `active`/
 ### For type=functional
 
 **Inputs**:
+
 - Valid identity token with identity claims (e.g., email, subject ID)
 
 **Processing**:
+
 - Match the claims against `Person.externalReference`
 - Check the lifecycle status of the person found (`active` required)
 
 **Outputs**:
+
 - On a match with `active` status: session is created (see REQ-001)
 - On no match or status `offboarded`: rejection
 
 **Error Cases**:
+
 - No match → rejection, audit log entry (see REQ-005)
 - Match with status `offboarded` → rejection, audit log entry
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a valid identity token that cannot be mapped to a person in the repository
 - When: the login process is completed
 - Then: no session is created
 
 **AC2**:
+
 - Given: a valid identity token whose mapped person has the status `offboarded`
 - When: the login process is completed
 - Then: no session is created

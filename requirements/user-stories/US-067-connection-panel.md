@@ -18,28 +18,34 @@ As a Data Architect, I want to open a panel by double-clicking the 3-dot indicat
 ## Acceptance Criteria
 
 **AC1** (panel opens):
+
 - When: Lukas double-clicks the 3-dot indicator of DataFlow id=5
 - Then: Connection panel opens; header shows "ERP → DWH (data-flow)"; list of all n-connections visible
 
 **AC2** (filter chips in panel):
+
 - Given: DataFlow id=5 has carries-data (×2) and security-control (×1)
 - When: Panel opened
 - Then: Filter bar shows chips `carries-data (2)` and `security-control (1)`; all initially active
 
 **AC3** (chip toggle filters list):
+
 - When: Lukas clicks chip `security-control`
 - Then: Only security-control entries visible; carries-data hidden
 
 **AC4** (multiple chips active simultaneously):
+
 - When: Lukas activates carries-data and security-control
 - Then: Both types visible; overall list of all n-connections of both types
 
 **AC5** (target entity visible):
+
 - Given: carries-data id=103 connects DataFlow id=5 with DataObject "Customer Master" (id=42)
 - When: Panel filtered by carries-data
 - Then: Entry shows: "carries-data #103 → Customer Master (data-object, ID 42)"
 
 **AC6** (web portal read-only):
+
 - When: CIO opens panel in the web portal
 - Then: Panel shows entries; no "Create new n-connection" button; no edit icons
 

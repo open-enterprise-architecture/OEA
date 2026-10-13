@@ -78,25 +78,30 @@ The output corresponds to the catalog query response from REQ-046, restricted to
 ## Acceptance Criteria
 
 **AC1** (Valid DataSource):
+
 - Given: Catalog "Application Inventory" (scope=instance) exists; Kurt is logged in
 - When: Create widget with type=table, catalogId=<id>
 - Then: HTTP 201; DataSource saved
 
 **AC2** (Invalid catalogId):
+
 - When: Create widget with non-existent catalogId
 - Then: HTTP 422 "Catalog not found or not visible"
 
 **AC3** (Another user's personal catalog):
+
 - Given: Franz has a scope=personal catalog
 - When: Kurt tries to use this catalog as a DataSource
 - Then: HTTP 403 "Catalog not visible"
 
 **AC4** (savedViewId valid):
+
 - Given: Catalog has SavedView "Compact view"
 - When: Create widget with savedViewId=<view-id>
 - Then: HTTP 201; on data retrieval, the columns and filters of the SavedView are applied
 
 **AC5** (Catalog deleted later):
+
 - Given: Widget with CatalogQueryDataSource exists; catalog is deleted afterwards
 - When: GET /api/v1/dashboards/{id}/data
 - Then: this widget returns `{ "status": "error", "error": "Catalog not found" }`; other widgets render normally

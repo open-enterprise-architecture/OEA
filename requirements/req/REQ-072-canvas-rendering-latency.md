@@ -58,21 +58,25 @@ The measured time is from API response to the fully rendered, interactive canvas
 ## Acceptance Criteria
 
 **AC1** (Small diagram):
+
 - Given: Diagram with 50 entities + 30 connections; Chrome on standard developer hardware
 - When: Diagram opened
 - Then: Canvas interactive in < 500ms (measured from complete API response)
 
 **AC2** (Medium diagram):
+
 - Given: 150 entities + 100 connections
 - When: Diagram opened
 - Then: Time-to-interactive < 1,500ms
 
 **AC3** (Large diagram):
+
 - Given: 400 entities + 300 connections
 - When: Diagram opened
 - Then: Time-to-interactive < 3,000ms; no browser freezes > 100ms
 
 **AC4** (Smooth pan/zoom):
+
 - Given: medium diagram (150+100)
 - When: User drags the canvas or zooms with the mouse wheel
 - Then: Frame rate ≥ 30 fps (no visible stuttering)

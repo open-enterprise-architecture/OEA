@@ -18,18 +18,22 @@ As Michael – Solution Architect, I want to nest chapters within a DocumentColl
 ## Acceptance Criteria
 
 **AC1** (Create subchapter):
+
 - When: Michael selects "Create subchapter" on an item
 - Then: new item appears indented below it in the navigation
 
 **AC2** (Drag & drop):
+
 - When: Michael drags an item under another via drag & drop
 - Then: `parentId` and `sortOrder` are updated; structure immediately visible in navigation
 
 **AC3** (Depth limit):
+
 - When: Michael tries to create a subchapter at level 6
 - Then: note "Maximum depth reached"; action not possible
 
 **AC4** (Cascade delete warning):
+
 - When: Michael deletes an item with subchapters
 - Then: warning with the number of affected subchapters; confirmation required
 

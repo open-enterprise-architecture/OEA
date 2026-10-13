@@ -55,12 +55,14 @@ New: `sourceEntityId` may point to an entity with `isConnection=true`, provided 
 ### For type=functional
 
 **Inputs**:
+
 - `entityTypeId`: `carries-data` (isConnection=true; allowsConnectionAsSource=false, since carries-data is itself not a further connection source)
 - `sourceEntityId`: integer ID of an ArchitectureEntity with `isConnection=true` and `allowsConnectionAsSource=true` (e.g., DataFlow id=5)
 - `targetEntityId`: integer ID of an ArchitectureEntity with `isConnection=false` (e.g., DataObject id=42)
 - `name`: optional (e.g., "ERP→DWH carries customer master data")
 
 **Processing**:
+
 1. Check `sourceEntityId`: entity must exist; its EntityType must have `allowsConnectionAsSource=true` → otherwise HTTP 422
 2. Check `targetEntityId`: entity must exist; its EntityType must have `isConnection=false` → otherwise HTTP 422
 3. Check depth: the `sourceEntityId` entity must not itself be an n-connection (`sourceEntityId.entityType.allowsConnectionAsSource` must not reference that carries-data itself is a source) → v1.0: max. 1 level
@@ -68,10 +70,12 @@ New: `sourceEntityId` may point to an entity with `isConnection=true`, provided 
 5. Persist; audit log
 
 **Outputs**:
+
 - HTTP 201 with complete entity representation
 - `sourceEntityId` and `targetEntityId` are immutable after creation
 
 **Error Cases**:
+
 - `sourceEntityId` points to an entity with `allowsConnectionAsSource=false` → HTTP 422 with note "EntityType X does not allow a connection source"
 - `targetEntityId` points to a connection entity → HTTP 422
 - Both IDs identical → HTTP 422
@@ -80,26 +84,31 @@ New: `sourceEntityId` may point to an entity with `isConnection=true`, provided 
 ## Acceptance Criteria
 
 **AC1** (Create carries-data):
+
 - Given: DataFlow id=5 (`data-flow`, `allowsConnectionAsSource=true`); DataObject id=42 (`data-object`)
 - When: Lukas creates a `carries-data` connection with sourceEntityId=5, targetEntityId=42
 - Then: HTTP 201; carries-data receives its own integer ID (e.g., 103); sourceEntityId=5 and targetEntityId=42 set
 
 **AC2** (Rejection if source has no allowsConnectionAsSource):
+
 - Given: ApplicationComponent id=1 (`application-component`, `allowsConnectionAsSource=false`)
 - When: Lukas tries to create carries-data with sourceEntityId=1
 - Then: HTTP 422; error message names `application-component` as not allowed as a connection source
 
 **AC3** (Rejection if target=connection):
+
 - Given: DataFlow id=5 (isConnection=true) as potential targetEntityId
 - When: Lukas tries to create carries-data with targetEntityId=5
 - Then: HTTP 422
 
 **AC4** (Immutability of source/target):
+
 - Given: carries-data id=103 with sourceEntityId=5, targetEntityId=42
 - When: Lukas tries PUT with sourceEntityId=6
 - Then: HTTP 422; source/target were not changed
 
 **AC5** (Depth limit v1.0):
+
 - Given: carries-data id=103; carries-data has `allowsConnectionAsSource=false`
 - When: Lukas tries to create a further connection with sourceEntityId=103
 - Then: HTTP 422 "n-connection depth exceeded"

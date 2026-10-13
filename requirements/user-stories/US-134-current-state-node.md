@@ -19,16 +19,19 @@ As a Lead Enterprise Architect, I want a "Current State" node in the browser pan
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: solution A (project mode, `status=implemented`, 3 components) and solution B (plateau mode, `status=implemented`, 5 components)
 - When: "Current State → Components" expanded
 - Then: 8 components visible (from both solutions combined)
 
 **AC2**:
+
 - Given: solution C (project mode, `status=in-progress`)
 - When: "Current State" is browsed
 - Then: contents of solution C not visible (not yet implemented)
 
 **AC3**:
+
 - Given: the same component appears in two solutions (reference entity)
 - When: "Current State → Components" displayed
 - Then: component appears only once (deduplication by entity ID)

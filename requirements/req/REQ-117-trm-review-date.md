@@ -32,10 +32,12 @@ Without review date tracking, the TRM becomes outdated silently and unnoticed. T
 ## Acceptance Criteria
 
 **AC1** (Automatic lastReviewedAt):
+
 - When: a TRM category is saved
 - Then: `lastReviewedAt` is set to the current UTC date
 
 **AC2** (Filter by review date):
+
 - When: the filter "Last reviewed more than 12 months ago" is activated in the TRM overview
 - Then: categories with `lastReviewedAt` < today − 12 months or `lastReviewedAt = null` are highlighted
 

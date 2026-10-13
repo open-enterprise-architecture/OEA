@@ -175,16 +175,19 @@ Entity extended by:
 The tool should support several formats in order to serve different target systems:
 
 **Generic formats**:
+
 - OSCAL (Open Security Controls Assessment Language, NIST) – modern JSON/YAML format for compliance
 - STIX/TAXII – for threat intelligence exchange (more ISMS focus)
 - JSON/YAML-based custom formats via adapters
 
 **Tool-specific formats**:
+
 - Verinice: XML-based exchange format, open source – good reference adapter
 - ServiceNow GRC: REST API
 - OneTrust: REST API with CSV import for asset inventories
 
 **GDPR-specific**:
+
 - Export of the record of processing activities in the format of the respective supervisory authority (varies by country)
 - GDPR-compliant data export for data subject access requests (structured)
 

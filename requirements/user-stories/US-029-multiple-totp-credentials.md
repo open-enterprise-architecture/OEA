@@ -18,21 +18,25 @@ As a person, I want to be able to register multiple TOTP authenticators on diffe
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Kurt has already registered a TOTP credential
 - When: he sets up another TOTP credential in the profile settings (UC-03 A3)
 - Then: he afterwards has two active TOTP credentials; the first remains unchanged
 
 **AC2**:
+
 - Given: Kurt has two active TOTP credentials
 - When: he logs in and enters the code of his second authenticator
 - Then: the login is successful
 
 **AC3**:
+
 - Given: Kurt sets up a new TOTP
 - When: he gives the credential a label name (e.g. "Backup-YubiKey")
 - Then: this label appears in the overview of his security settings
 
 **AC4**:
+
 - Given: Kurt sets up a TOTP without a label
 - When: the credential is saved
 - Then: it receives an automatically assigned default label

@@ -35,18 +35,22 @@ Without anchor points, connections cannot be routed precisely around entities. S
 ## Acceptance Criteria
 
 **AC1** (Set anchor point):
+
 - When: the user clicks on a selected connection
 - Then: a new anchor point is set on the nearest grid point and is visible as a handle
 
 **AC2** (Anchor point always on grid):
+
 - When: an anchor point is moved via drag & drop (any routing mode)
 - Then: the anchor point snaps to the nearest grid point; sub-grid positioning is not possible
 
 **AC3** (Remove anchor point):
+
 - When: the user double-clicks an anchor point or selects "Remove anchor point" in the context menu
 - Then: the anchor point is removed; the connection adjusts its path automatically
 
 **AC4** (Mode behavior):
+
 - When: connection mode = Curved and anchor point set
 - Then: the Bézier curve runs through the anchor point; curve handles appear on both sides of the anchor point for curve control
 - When: connection mode = Orthogonal and anchor point set

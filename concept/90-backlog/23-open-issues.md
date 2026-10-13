@@ -26,7 +26,7 @@ These items are decided in the concept but still need a formal ADR at implementa
 
 ---
 
-**#1 / #24 — Persistence technology and walking skeleton stack**
+#### #1 / #24 — Persistence technology and walking skeleton stack
 
 **Decision**: PostgreSQL 15 + JSONB + Apache AGE (openCypher graph extension).
 
@@ -50,7 +50,7 @@ PlateauDiff contains: `entitiesAdded`, `entitiesRetired`, `entitiesModified` (pr
 
 ---
 
-**#6 — Referential integrity across plateaus**
+#### #6 — Referential integrity across plateaus
 
 **Decision**: Soft constraint (warning) in v1.0.
 
@@ -58,7 +58,7 @@ If entity A is marked `retired` in plateau P, entity B in plateau P may still re
 
 ---
 
-**#10 — Schema profiles**
+#### #10 — Schema profiles
 
 **Decision**: Schema profiles as a formal concept are dropped.
 
@@ -66,7 +66,7 @@ ADR-005 starter packages take over this function. At bootstrapping, the admin se
 
 ---
 
-**#12 — SAFe capability collision (TOGAF capability vs. SAFe capability)**
+#### #12 — SAFe capability collision (TOGAF capability vs. SAFe capability)
 
 **Decision**: The stereotype approach is final.
 
@@ -77,11 +77,11 @@ The UI displays the full EntityType name (`capability` vs. `safe-capability`). N
 
 ---
 
-**#23 / #25 — Query languages and graph query standard**
+#### #23 / #25 — Query languages and graph query standard
 
 **Decision**: Two-layer approach (§22.4) with openCypher as the graph standard.
 
-```
+```text
 /api/v1/entities/search      ← typed REST queries (easy entry)
 /api/v1/graph/traverse       ← structured traversal API (intermediate)
 /api/v1/graph/cypher         ← openCypher for powerful graph queries (advanced)
@@ -93,7 +93,7 @@ openCypher (instead of Gremlin or ISO GQL): Apache AGE implements openCypher; to
 
 ---
 
-**#26 — Event transport**
+#### #26 — Event transport
 
 **Decision**: Server-Sent Events (SSE) as default in v1.0.
 
@@ -117,11 +117,12 @@ Internal module communication via an internal event bus (no network overhead). M
 
 ---
 
-**#32 — Relation lifecycle per plateau: UI representation**
+#### #32 — Relation lifecycle per plateau: UI representation
 
 **Decision**: Edge color on the canvas by lifecycle state; 3-dot circle for the connection panel.
 
 Color convention (consistent with §11.5 plateau diff visualization):
+
 - `planned` / new in plateau: green
 - `active` / unchanged: gray/neutral
 - `sunset` / `modified`: yellow/orange
@@ -131,7 +132,7 @@ Separate relation list panel: available in the detail panel of the canvas entity
 
 ---
 
-**#36 — Audit trail storage**
+#### #36 — Audit trail storage
 
 **Decision**: Same PostgreSQL instance, separate append-only table `audit_events`.
 

@@ -25,7 +25,7 @@ A `TreeNode` is a folder in the hierarchical navigation tree of an OEA instance.
 
 The architecture repository of an OEA instance can grow quickly: hundreds of entities, many diagrams for different viewpoints, dozens of catalogs. The navigation tree gives the enterprise architect control to present this content in a business-meaningful hierarchy – without changing the internal object identities or their semantic linking.
 
-```
+```text
 Architecture Repository (Root)
 ├── Business Architecture
 │   ├── [Catalog] Business Capabilities
@@ -138,7 +138,8 @@ TreeNodes have no formal status lifecycle. They exist as long as the OEA instanc
 ## Examples
 
 **Structure for an SME (project mode)**:
-```
+
+```text
 Root: "Architecture Repository Sample Company AG"
 ├── Business Architecture
 │   └── [Catalog] Business Capabilities (capabilities)
@@ -154,7 +155,8 @@ Root: "Architecture Repository Sample Company AG"
 ```
 
 **Item that appears multiple times in the tree**:
-```
+
+```text
 [Catalog] "Application Inventory" appears in:
   1. IT Landscape/Application Inventory  ← primary location
   2. Compliance/ISO 27001 View/System Inventory  ← cross-reference

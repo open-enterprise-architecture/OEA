@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want a snapshot of the current state to
 ## Acceptance Criteria
 
 **AC1** (Snapshot entry visible):
+
 - When: a restore has been executed
 - Then: a new timeline entry with `restoredFromVersion=N` is visible
 
 **AC2** (Marker in timeline):
+
 - When: I view the timeline after a restore
 - Then: the entry shows "Restored from vN"
 
 **AC3** (Snapshot before restore preserved):
+
 - When: the restore is completed
 - Then: the state before the restore exists as an independent snapshot
 

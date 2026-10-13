@@ -5,6 +5,7 @@ Granular backlog items, smaller than use cases. One file per story with the sche
 ## INVEST Criteria
 
 Every story should satisfy:
+
 - **Independent**: as independent of other stories as possible
 - **Negotiable**: details negotiable
 - **Valuable**: delivers value

@@ -27,7 +27,7 @@ The binding overview of all ADRs is in [adrs/README.md](../../adrs/README.md).
 
 End-to-end scenario: `docker compose up` → bootstrapping → OIDC login → import starter package → create entities via batch API → create catalog → see entities in the catalog. Details: [docs/walking-skeleton.md](../../docs/walking-skeleton.md)
 
-**Then: expansion sprint by sprint**
+#### Then: expansion sprint by sprint
 
 The order and scope of the sprints are defined by [docs/sprint-plan.md](../../docs/sprint-plan.md) (auth and metamodel complete, then catalog, solution lifecycle with UC-05, EA views, SHOULD features).
 

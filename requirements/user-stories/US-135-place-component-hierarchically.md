@@ -19,16 +19,19 @@ As a Solution Architect, I want to place a component under another component in 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: component B (instantiated, `isStructuralGrouper=false`) and component A
 - When: B is placed under A via drag-and-drop
 - Then: B appears as a child node of A in the browser; automatic composition connection (autoCreated=true) appears under "Connections"
 
 **AC2**:
+
 - Given: structuring aid (folder) C and component D
 - When: D is placed under C
 - Then: D appears as a child node of C; NO connection is created
 
 **AC3**:
+
 - Given: component B is a child of A (with autoCreated connection)
 - When: B is detached from the hierarchy (via drag to root level)
 - Then: B appears at root level again; autoCreated connection disappears

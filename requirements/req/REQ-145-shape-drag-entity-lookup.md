@@ -78,23 +78,28 @@ In OEA there is a strict separation between the model (entities in the solution)
 ## Acceptance Criteria
 
 **AC1** (Insert existing entity):
+
 - Given: entity "Catalog-Service" [AC] exists in the solution
 - When: the user drags an [AC] shape onto the canvas, types "Catalog", sees "Catalog-Service (existing)", selects it
 - Then: the shape appears on the canvas; no new object in the model; log shows "existing"
 
 **AC2** (Create new entity):
+
 - When: the user types "New-Reporting-Service", no autocomplete match, presses OK
 - Then: a new entity "New-Reporting-Service" [AC] is created; the shape appears on the canvas; explorer tree updated
 
 **AC3** (Autocomplete while typing):
+
 - When: the user types "auth"
 - Then: the dropdown shows at most 8 entities with "auth" in the name; response time < 300 ms with 10,000 entities
 
 **AC4** (Cancel = no side effect):
+
 - When: the user presses Cancel or ESC after the drop
 - Then: no entity created, no shape in the diagram, drop completely undone
 
 **AC5** (Duplicate warning):
+
 - When: the user drags the same entity a second time into the same diagram
 - Then: the system shows the warning "Entity already on canvas — insert again?" with Yes/No
 

@@ -42,7 +42,7 @@ The implementation follows the pattern: "detail view of an ArchitectureEntity" +
 
 ### Tab Structure
 
-```
+```text
 [Basic data] [Properties] [Connections] [Diagrams] [Arc42 Documentation]
                                                     ↑ only if collection assigned
 
@@ -101,37 +101,45 @@ Arc42 Documentation
 ## Acceptance Criteria
 
 **AC1** (Tab visible with collection assignment):
+
 - Given: EntityType `application-component` has collection `arc42-standard` assigned
 - When: Michael opens the CRM-System entity (id=1)
 - Then: "Arc42 Documentation" tab visible; 12 questions listed; all initially unanswered
 
 **AC2** (Tab missing without assignment):
+
 - Given: EntityType `technology-component` has no collection
 - When: User opens a technology component entity
 - Then: No Arc42 tab; no error
 
 **AC3** (Create answer):
+
 - When: Michael clicks "Answer now" on question 1, writes content, saves
 - Then: arc42-meta-object entity created (id=201); arc42-describes(source=201, target=1) created; question 1 shows "✓"
 
 **AC4** (Edit answer):
+
 - When: Michael clicks "Edit" on question 1 (id=201)
 - Then: WYSIWYG editor opens with the current content; after saving, entity 201 is updated
 
 **AC5** (Progress indicator):
+
 - When: 4 of 12 questions answered
 - Then: Chip shows "4 / 12"; open questions visually distinguished (color or icon)
 
 **AC6** (Multiple collections):
+
 - Given: EntityType has 2 collections
 - When: Arc42 tab opened
 - Then: Both collections as separate sections (or tabs); progress per collection separate
 
 **AC7** (Web portal read-only):
+
 - When: CIO opens an entity in the web portal
 - Then: Arc42 tab visible; contents with rendered diagrams; no "Answer" button
 
 **AC8** (Delete answer):
+
 - When: Michael clicks "Delete" on an answered question
 - Then: arc42-meta-object entity (201) and arc42-describes connection deleted; question "unanswered" again
 

@@ -68,24 +68,29 @@ Example: `GET /api/v1/catalogs/{id}/query?joinMode[abc-123]=rows&joinMode[def-45
 ## Acceptance Criteria
 
 **AC1** (rows mode via parameter):
+
 - Given: catalog "Application Inventory" with JoinDefinition id=join-1 (DataFlow→Interface), defaultJoinMode=aggregate; CRM-System has 2 interfaces
 - When: `GET /api/v1/catalogs/{id}/query?joinMode[join-1]=rows`
 - Then: the response contains 2 rows for CRM-System (one per interface); Catalog.joinDefinitions[0].defaultJoinMode remains `aggregate` (unchanged)
 
 **AC2** (aggregate mode, stored default applies):
+
 - Given: as AC1
 - When: `GET /api/v1/catalogs/{id}/query` (without joinMode parameter)
 - Then: the response contains 1 row for CRM-System with joinResults.Interfaces as an array
 
 **AC3** (No mutation of the catalog):
+
 - After AC1: `GET /api/v1/catalogs/{id}` (retrieve the catalog configuration)
 - Then: `joinDefinitions[0].defaultJoinMode = "aggregate"` (unchanged)
 
 **AC4** (Unknown joinDefinitionId):
+
 - When: `joinMode[nonexistent-id]=rows`
 - Then: HTTP 400 "JoinDefinition ‹nonexistent-id› not found"
 
 **AC5** (Override several joins at once):
+
 - Given: the catalog has 2 JoinDefinitions (join-1 defaultMode=aggregate, join-2 defaultMode=aggregate)
 - When: `?joinMode[join-1]=rows&joinMode[join-2]=aggregate`
 - Then: join-1 delivers row expansion; join-2 remains aggregated

@@ -101,7 +101,7 @@ OEA solves this problem by having the solution architect create a **Solution** f
 
 ## Basic Flow
 
-*Default case: Michael creates a new solution and describes the architecture vision in project mode (SME)*
+*Default case: Michael creates a new solution and describes the architecture vision in project mode (SME).*
 
 1. **Michael**: navigates to the solution overview
 2. **System**: shows all existing solutions with status and owner
@@ -129,6 +129,7 @@ OEA solves this problem by having the solution architect create a **Solution** f
 
 **A1 – Plateau mode (enterprise)**:
 If the instance works in plateau mode:
+
 1. Step 4: The form additionally contains the fields `fromPlateau` (dropdown: existing plateaus with status=`baseline`) and `toPlateau` (dropdown: plateaus with status=`target`; or "Create new target plateau")
 2. Step 8: System shows the entities of the `fromPlateau` (including all inherited entities) as the current state
 3. EntityDeltas describe the delta from the baseline plateau to the target plateau
@@ -136,11 +137,13 @@ If the instance works in plateau mode:
 
 **A2 – Continue editing an existing solution draft**:
 If a solution draft has already been created for the initiative, but the scope has not yet been elaborated:
+
 1. Michael opens the existing solution via the solution overview
 2. Continue with step 7 of the basic flow
 
 **A3 – Include entities from the current landscape directly in scope**:
 If many entities are affected:
+
 1. In step 8, Michael selects several entities via multi-select
 2. For the whole selection, Michael chooses the delta type (e.g., pre-mark all as `modified`)
 3. Michael then refines each delta individually
@@ -149,21 +152,25 @@ If many entities are affected:
 ## Exception Flows
 
 **E1 – EntityDelta conflict with parallel solution**:
+
 - Condition: Another solution (status≠`implemented`, ≠`archived`) already contains an EntityDelta for the same entity
 - Expected reaction: System shows a warning with a reference to the competing solution and its owner; capturing the delta is nevertheless possible
 - Resumption: Resolution takes place in the review process; Michael can note the conflict hint in the delta
 
 **E2 – Empty landscape (project mode, no implemented solutions yet)**:
+
 - Condition: In project mode, no `implemented` solutions exist yet → the aggregated landscape is empty
 - Expected reaction: System shows a notice "The landscape does not contain any realized entities yet. You can only create new entities (deltaType=new)."; fields for `modified` and `retiring` are disabled
 - Resumption: Michael creates only new entities
 
 **E3 – Entity not found in the current state**:
+
 - Condition: Michael searches for an entity that is not present in the landscape (e.g., not yet captured in OEA)
 - Expected reaction: Search result empty; system suggests creating the entity as `deltaType=new` or capturing it in the baseline data first
 - Resumption: Michael creates it as a new entity or cancels and clarifies whether the entity first needs to be imported
 
 **E4 – Missing permission**:
+
 - Condition: Michael does not have the role "Solution Architect" or a comparable permission
 - Expected reaction: 403 Forbidden with a concrete error message; no data access
 - Resumption: Michael contacts the admin (UC-02)

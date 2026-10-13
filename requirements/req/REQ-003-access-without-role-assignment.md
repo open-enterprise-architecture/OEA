@@ -48,7 +48,8 @@ Concerns the case that a person was successfully authenticated at the identity p
 **Affected Business Objects**: [person](../../business-objects/person.md), [role](../../business-objects/role.md)
 
 **Formal Statement** (simplified):
-```
+
+```text
 if Person.fillsRoles.filter(active=true).isEmpty():
     Session.permissions = PUBLIC_READ_ONLY
 ```
@@ -58,11 +59,13 @@ if Person.fillsRoles.filter(active=true).isEmpty():
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a person is successfully authenticated but has no active role assignment
 - When: they access the repository
 - Then: they receive access to publicly readable content only, and a notice that no role is assigned
 
 **AC2**:
+
 - Given: a person is subsequently given an active role assignment
 - When: they log in again or the session is refreshed
 - Then: their permissions reflect the new role

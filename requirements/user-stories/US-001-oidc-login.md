@@ -18,21 +18,25 @@ As a person with a role stored in the repository, I want to sign in via the conf
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a person without a valid session accesses a protected resource
 - When: they successfully authenticate with the configured OIDC provider
 - Then: they receive a session that reflects their active role assignments
 
 **AC2**:
+
 - Given: a person already has a valid session
 - When: they access another protected resource
 - Then: there is no renewed redirect to the identity provider
 
 **AC3**:
+
 - Given: a token issued by the external IdP with a validity period set by the IdP
 - When: the session is created
 - Then: this validity period is adopted unchanged
 
 **AC4** (optional, configurable):
+
 - Given: an instance for which online token validation against the IdP (e.g. token introspection) is configured, and a token that has already been revoked at the IdP
 - When: the login process is completed
 - Then: session creation is refused

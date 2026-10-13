@@ -4,7 +4,7 @@ Structured business domain model of OEA. One file per business object with stand
 
 ## Structure
 
-```
+```text
 business-objects/
 ├── README.md             ← this document, overview and capability map
 ├── <object-id>.md        ← one file per business object (english-kebab-case)

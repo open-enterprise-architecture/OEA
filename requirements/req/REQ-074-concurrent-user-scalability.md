@@ -59,21 +59,25 @@ OEA is used in corporate groups with large EA teams (SH-05: corporate group with
 ## Acceptance Criteria
 
 **AC1** (50 concurrent users — catalog):
+
 - Given: 50 virtual users simultaneously send `GET /api/v1/catalogs/{id}/data`; repository with 10,000 entities
 - When: Load test runs for 5 minutes
 - Then: p95 latency ≤ 2 × 500ms = 1,000ms (REQ-071 target value × 2); no HTTP 5xx; no timeout
 
 **AC2** (50 concurrent users — login):
+
 - Given: 50 virtual users simultaneously redeem an OIDC token
 - When: Load test for 1 minute
 - Then: p95 login latency ≤ 2 × 300ms = 600ms (REQ-008 target value × 2)
 
 **AC3** (500,000 entities — functionality):
+
 - Given: Repository with 500,000 ArchitectureEntities (various EntityTypes)
 - When: Standard catalog query, opening a diagram, lineage query
 - Then: No timeouts; no OOM errors; correct results
 
 **AC4** (500,000 entities — catalog latency):
+
 - Given: 500,000 entities; catalog for primaryEntityType with 50,000 instances
 - When: Catalog query, first page (50 entries), no join
 - Then: p95 < 500ms (thanks to cursor pagination this is independent of total size)

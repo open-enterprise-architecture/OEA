@@ -20,7 +20,7 @@ Reading the anti-patterns before the first experience is abstract – after the 
 
 ## Relationship to the Concept
 
-These documents are **working documentation**, not concept. The actual concept lives in [`../concept/`](../concept/). 
+These documents are **working documentation**, not concept. The actual concept lives in [`../concept/`](../concept/).
 
 - Concept = what OEA is and does in terms of content
 - docs/ = how we develop and maintain it

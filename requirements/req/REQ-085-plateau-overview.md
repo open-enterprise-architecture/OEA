@@ -36,10 +36,12 @@ Without a structured overview, Kurt cannot quickly see which state is currently 
 ## Acceptance Criteria
 
 **AC1** (Grouped overview):
+
 - When: the plateau overview is opened and baseline, target and realized plateaus exist
 - Then: the baseline is highlighted, targets are shown with `validFrom` and realized plateaus are displayed as a collapsible section
 
 **AC2** (Empty target section):
+
 - When: no target plateaus exist
 - Then: the target section is displayed with the note "No target plateau planned yet"
 

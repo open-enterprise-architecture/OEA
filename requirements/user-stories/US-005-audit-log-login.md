@@ -18,11 +18,13 @@ As an operator, I want every login attempt to be logged, so that in an audit I c
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a successful login attempt (OIDC, API key, passkey, local)
 - When: it is completed
 - Then: the audit log contains an entry with timestamp, mechanism, result `success` and identity reference
 
 **AC2**:
+
 - Given: a failed login attempt
 - When: the failure occurs
 - Then: the audit log contains an entry with timestamp, mechanism, result `failure` and – as far as possible without disclosing security-relevant details – the failure reason

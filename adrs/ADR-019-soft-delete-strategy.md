@@ -80,7 +80,7 @@ CREATE INDEX idx_entities_deleted ON entities(deleted_at) WHERE deleted_at IS NO
 
 When an element entity (`isConnection=false`) is deleted, all connections that carry this element as `source_entity_id` or `target_entity_id` are **automatically deleted along with it** (cascade soft delete in the service layer, not via DB trigger):
 
-```
+```text
 DELETE Entity 42 (ApplicationComponent)
   → Cascade soft delete:
       Entity 99 (DataFlow, source_entity_id=42)
@@ -92,12 +92,14 @@ The cascade-soft-deleted rows receive the same `deleted_at` timestamp and `delet
 ### Restore Semantics
 
 **Simple restore** (the entity only):
+
 ```sql
 UPDATE entities SET deleted_at = NULL, deleted_by = NULL, deletion_reason = NULL
 WHERE id = ?;
 ```
 
 **Cascade restore** (entity + its connections that were deleted in the same operation):
+
 - API parameter `?cascade=true` on `POST /api/v1/entities/{id}/restore`
 - Backend finds all connections with `deleted_at = <same timestamp as primary entity>` and the same `deleted_by` → restores them together
 - Connections that were already deleted **before** the primary deletion are not restored

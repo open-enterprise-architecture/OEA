@@ -28,6 +28,7 @@ superseded_by: []
 The system MUST allow hierarchical nesting of DocumentItems within a DocumentCollection. A DocumentItem MAY reference a parent DocumentItem of the same collection via the field `parentId` (`parentId=null` = root chapter).
 
 **Rules:**
+
 - Maximum depth: **5 levels** (level 0 = root, `parentId=null`)
 - Cycles are forbidden (BR-11); the system MUST perform a cycle check on every `parentId` change
 - `sortOrder` applies relative to sibling items with the same `parentId`
@@ -41,22 +42,27 @@ Without nesting, complex documentation (e.g. Arc42 §5 building block view with 
 ## Acceptance Criteria
 
 **AC1** (Create sub-item):
+
 - When: the user selects "Create sub-chapter" in the chapter navigation
 - Then: a new DocumentItem with the `parentId` of the selected item is created; it appears indented in the navigation
 
 **AC2** (Depth limit):
+
 - When: the user tries to create a sub-chapter at level 6
 - Then: the action is refused with the note "Maximum depth (5) reached"
 
 **AC3** (Cycle protection):
+
 - When: the `parentId` of an item would be set such that a cycle arises (item A → B → A)
 - Then: saving refused; error message
 
 **AC4** (Cascade delete warning):
+
 - When: the user deletes an item with children
 - Then: warning "This chapter has N sub-chapters that will also be deleted"; confirmation required
 
 **AC5** (Drag & drop):
+
 - When: the user moves an item in the chapter navigation via drag & drop
 - Then: `parentId` and `sortOrder` are updated; the navigation shows the new structure immediately
 

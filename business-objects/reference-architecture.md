@@ -80,7 +80,7 @@ A reference architecture can serve as a template for a [Plateau](./plateau.md): 
 
 ## Lifecycle
 
-```
+```text
 proposed → approved → deprecated
 ```
 

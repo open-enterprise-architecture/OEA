@@ -43,18 +43,22 @@ Different diagram types require different connection routing: ArchiMate diagrams
 ## Acceptance Criteria
 
 **AC1** (Curved mode):
+
 - When: routing mode = Curved
 - Then: the connection is rendered as a Bézier curve; the curve path is controllable via Bézier handles (via anchor points, REQ-123); the line follows no grid
 
 **AC2** (Orthogonal mode):
+
 - When: routing mode = Orthogonal
 - Then: the connection makes exclusively 90° bends; all segments run horizontally or vertically; bend points lie on grid points (REQ-121)
 
 **AC3** (Mode switch):
+
 - When: the user changes the routing mode of an existing connection
 - Then: the connection is re-rendered immediately; existing anchor points (REQ-123) are retained and applied to the new routing (rounded to the grid if applicable when switching to Orthogonal)
 
 **AC4** (Viewpoint default):
+
 - When: a new connection is dragged onto the canvas
 - Then: the routing mode corresponds to the default configured in the viewpoint; without configuration = Orthogonal
 

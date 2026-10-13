@@ -34,11 +34,13 @@ superseded_by: []
 The system MUST cryptographically protect all stored data (at-rest) and all data transports (in-transit):
 
 **At-rest**:
+
 - All persisted data (database, backups, export files in storage) MUST be encrypted with **AES-256** or an equivalent, recognized method
 - Backups MUST be stored encrypted; unencrypted backup files MUST NOT remain on storage media
 - Encryption keys MUST NOT be hardcoded; they MUST be configurable via environment variables or a secrets management system
 
 **In-transit**:
+
 - All HTTP connections (browser ↔ API, API ↔ database, API ↔ object storage) MUST be handled over **TLS 1.2** or higher
 - Unencrypted HTTP connections to the API server MUST be redirected to HTTPS (301 redirect) or blocked
 - TLS certificates MUST be configurable (own certificates, Let's Encrypt, proxy termination)
@@ -69,18 +71,22 @@ Applies to all deployment scenarios (self-hosted, SaaS). Encryption at the opera
 ## Acceptance Criteria
 
 **AC1** (TLS enforced):
+
 - When: a browser sends an HTTP request to the OEA API (port 80)
 - Then: the response is a 301 redirect to HTTPS or the connection is refused; no plaintext response
 
 **AC2** (TLS version):
+
 - When: a TLS scan is performed against the API endpoint
 - Then: TLS 1.0 and TLS 1.1 are rejected; TLS 1.2 and 1.3 are accepted
 
 **AC3** (Backup encrypted):
+
 - When: the backup routine is executed
 - Then: the backup file is AES-256-encrypted; no plaintext dump on storage
 
 **AC4** (No hardcoded keys):
+
 - When: static code analysis (secrets scanner) runs against the source code
 - Then: no hits for encryption keys, passwords, or tokens in the source code or in Docker images
 

@@ -36,10 +36,12 @@ Solution architects work primarily in the context of a solution. The navigation 
 ## Type-Specific Fields
 
 **Inputs**:
+
 - All solutions with `status ∈ {draft, proposed, approved, in-progress, implemented}` (not `archived`)
 - Plateau information (fromPlateauId, toPlateauId) from the solution object
 
 **Processing**:
+
 1. Always display the "Current State" node as the first element (aggregates all `status=implemented` solutions and plateau-free contents)
 2. Solutions with plateau mapping are grouped under the corresponding plateau node
 3. Solutions without plateau mapping (`fromPlateauId=null`, `toPlateauId=null`) appear ONLY in the "Current State" node — not as their own top-level node (→ REQ-140)
@@ -47,21 +49,25 @@ Solution architects work primarily in the context of a solution. The navigation 
 5. Solutions with `status=archived` are not displayed
 
 **Outputs**:
+
 - Hierarchical tree view: [Current State] → [Plateau A] → [Solution 1] → [Base Structure]
 
 ## Acceptance Criteria
 
 **AC1** — Current State node:
+
 - Given: at least one implemented solution exists
 - When: the browser panel is opened
 - Then: "Current State" appears as the first node
 
 **AC2** — Plateau grouping:
+
 - Given: solution with `fromPlateauId=P1, toPlateauId=P2`
 - When: the browser panel is loaded
 - Then: the solution appears under the plateau node (e.g. "CURRENT → TARGET 2027")
 
 **AC3** — No archived solutions:
+
 - Given: solution with `status=archived`
 - When: the browser panel is displayed
 - Then: the archived solution is not visible

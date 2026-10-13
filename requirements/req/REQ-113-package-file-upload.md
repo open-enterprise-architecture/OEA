@@ -38,14 +38,17 @@ Schema errors must be visible before the import so that the operator can correct
 ## Acceptance Criteria
 
 **AC1** (Valid file – preview):
+
 - When: a valid package file is uploaded
 - Then: the UI shows a preview with the number and kind of the contained building blocks
 
 **AC2** (Schema violation):
+
 - When: a file with a missing mandatory field is uploaded
 - Then: the system responds with HTTP 422 and an error list (line, field, error description); no building block is imported
 
 **AC3** (Import after confirmation):
+
 - When: the preview is confirmed
 - Then: the import is executed; all imported building blocks have `scope=imported`
 

@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to be able to execute a go-live ev
 ## Acceptance Criteria
 
 **AC1** (Non-implemented solutions as warning):
+
 - When: 3 non-implemented solutions exist at go-live
 - Then: the dialog shows "3 solutions not implemented"; go-live remains executable
 
 **AC2** (CEL violations as warning):
+
 - When: CEL violations exist at go-live
 - Then: the dialog shows "N business rule violations"; go-live remains executable
 
 **AC3** (No warning without problems):
+
 - When: no warnings exist
 - Then: no warning section is displayed in the dialog
 

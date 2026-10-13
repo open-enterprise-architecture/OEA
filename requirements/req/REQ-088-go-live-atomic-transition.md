@@ -36,10 +36,12 @@ The go-live transition affects several tables. A partial commit would lead to an
 ## Acceptance Criteria
 
 **AC1** (Rollback on DB error):
+
 - When: a simulated DB error occurs after the P1 update
 - Then: a complete rollback occurs; P0 and P1 are unchanged
 
 **AC2** (Successful go-live):
+
 - When: go-live is executed successfully
 - Then: P1 has `status=baseline`, P0 has `status=realized`; all `retiring` entities in P1 have `lifecycle_state=retired`; all states are consistent
 

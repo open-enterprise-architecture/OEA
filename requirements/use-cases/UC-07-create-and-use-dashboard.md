@@ -85,6 +85,7 @@ This use case covers two complementary roles:
 **Primary Actor**: [Kurt – Lead Enterprise Architect](../../business-analysis/stakeholders/SH-03-kurt-lead-enterprise-architect.md)
 
 **Other actors**:
+
 - [CIO](../../business-analysis/stakeholders/SH-05-cio-corporate-group.md) – primary consumer of C-level dashboards; needs investment cost overview and domain portfolio
 - [Franz – Junior Domain Architect](../../business-analysis/stakeholders/SH-01-franz-junior-domain-architect.md) – reads dashboards for orientation
 - [Lukas – Senior Data Architect](../../business-analysis/stakeholders/SH-02-lukas-senior-data-architect.md) – tracks data-related metrics
@@ -132,7 +133,7 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 
 ## Basic Flow
 
-*Default case: Kurt creates the investment cost dashboard for the CIO*
+*Default case: Kurt creates the investment cost dashboard for the CIO.*
 
 1. **Kurt**: navigates in the web portal to "Dashboards" in the main menu
 2. **System**: shows an overview of all existing dashboards (`scope=instance` + own `personal`), ordered by name
@@ -169,7 +170,7 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 
 **A1 – Show / view dashboard (all actors, web portal)**:
 
-*The CIO opens the IT investment cost dashboard in the management meeting*
+*The CIO opens the IT investment cost dashboard in the management meeting.*
 
 1. **CIO**: opens the web portal in the browser (no login required if public instance; otherwise UC-01)
 2. **System**: shows the dashboard overview
@@ -186,7 +187,7 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 
 **A3 – Configure table widget with catalog as DataSource**:
 
-*Kurt wants to embed the top 10 most expensive applications directly as a table in the dashboard*
+*Kurt wants to embed the top 10 most expensive applications directly as a table in the dashboard.*
 
 1. Kurt selects widget type `Table`
 2. **System**: shows DataSource selection: only `CatalogQuery` available for table widgets
@@ -212,21 +213,25 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 ## Exception Flows
 
 **E1 – PropertyDefinition not found on EntityType**:
+
 - Condition: A widget references `propertyName=investmentCostForecast` on EntityType `plateau`, but this property does not exist in the current MetamodelConfiguration (e.g., after a metamodel change via UC-04)
 - Expected reaction: The widget shows an error notice "Property ‹investmentCostForecast› not found on EntityType ‹plateau›. Please check the dashboard configuration." Other widgets continue to be rendered
 - Resumption: Dashboard Manager opens the widget editor and selects a valid property
 
 **E2 – Referenced catalog no longer exists**:
+
 - Condition: A table widget references a catalog that has been deleted in the meantime
 - Expected reaction: The widget shows "Catalog ‹Application Inventory› not found." Hint to UC-06
 - Resumption: Dashboard Manager selects another catalog or recreates the catalog
 
 **E3 – Missing permission for instance dashboard**:
+
 - Condition: Actor without dashboard write permission tries to create a `scope=instance` dashboard
 - Expected reaction: Scope selection shows only `personal`; direct API calls with `scope=instance` are rejected with 403
 - Resumption: Actor creates a personal dashboard or contacts a Dashboard Manager
 
 **E4 – No data for aggregation**:
+
 - Condition: The EntityType `plateau` contains no entities, or none of the plateau instances has the property value `investmentCostForecast` filled
 - Expected reaction: KPI widget shows "– (no data)"; chart widget shows an empty chart with notice "No data available. Maintain property ‹investmentCostForecast› on the existing entities."
 - Resumption: no block; widget shows data as soon as properties are filled

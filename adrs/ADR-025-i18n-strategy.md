@@ -22,6 +22,7 @@ For category 2 the challenge is: how does the frontend ensure that labels
 are updated promptly after an admin change, without unnecessary API calls?
 
 ### Language Decisions
+
 - **Record fields** (name, description of entities, business objects) are stored in the
   **corporate language** of the respective OEA instance — no multilingualism at the data level.
 - **UI and configuration labels** are multilingual. The display language is determined by
@@ -36,7 +37,7 @@ are updated promptly after an admin change, without unnecessary API calls?
 All fixed UI labels are embedded as static JSON files in the Vue 3 application
 and resolved at runtime via `vue-i18n`. No API call, no latency.
 
-```
+```text
 frontend/src/i18n/
   de.json   ← menus, buttons, validation messages
   en.json
@@ -48,11 +49,12 @@ New language = new bundle. No database change needed.
 
 ### Layer 2 — Dynamic Labels: API Endpoint with ETag Caching
 
-```
+```http
 GET /api/v1/i18n/{locale}
 ```
 
 **Response:**
+
 ```http
 HTTP/1.1 200 OK
 ETag: "a3f8c2d1"
@@ -72,6 +74,7 @@ The `ETag` value is a hash over `MAX(updated_at)` of all `i18n_entries` for the 
 locale. If no entry changes, the ETag remains identical.
 
 **Subsequent requests (browser / Pinia store):**
+
 ```http
 GET /api/v1/i18n/de
 If-None-Match: "a3f8c2d1"
@@ -87,7 +90,7 @@ If-None-Match: "a3f8c2d1"
 
 When an admin saves labels in the metamodel editor, the server sends an SSE event:
 
-```
+```http
 GET /api/v1/events/stream   (SSE channel, stays open)
 
 data: {"type": "i18n_invalidated", "locale": "de"}
@@ -100,7 +103,7 @@ In Community operation: can be disabled via `oea.sse.enabled=false`.
 
 ### Label Key Convention
 
-```
+```text
 {entity_type}.{entity_id_or_slug}.{field}
 
 metatype.ac.name
@@ -128,15 +131,19 @@ role.enterprise-architect.name
 ## Rejected Alternatives
 
 ### No caching (always reload)
+
 Every navigation → API call → noticeable latency with large metamodels. **Rejected**.
 
 ### Infinity cache (load once)
+
 Stale problem on admin changes without page reload. **Rejected**.
 
 ### Embed labels in every API response
+
 Every endpoint would have to be i18n-aware; massive overhead with large payloads. **Rejected**.
 
 ### WebSocket instead of SSE
+
 SSE suffices for unidirectional server→client invalidation; WebSocket is overengineering here.
 **Simplified to SSE**.
 
@@ -145,6 +152,7 @@ SSE suffices for unidirectional server→client invalidation; WebSocket is overe
 ## Consequences
 
 **Positive:**
+
 - Stale problem solved via ETag (304 on unchanged state)
 - No unnecessary traffic (no payload on 304)
 - Admin changes propagate within max. 5 minutes passively,
@@ -152,6 +160,7 @@ SSE suffices for unidirectional server→client invalidation; WebSocket is overe
 - Static and dynamic labels clearly separated — easy to test
 
 **Negative / Compromises:**
+
 - Backend must maintain the ETag hash over `i18n_entries` (simple: `MAX(updated_at)`)
 - SSE channel increases the number of open connections (one per logged-in user)
 - Label key convention must be adhered to consistently in app and DB

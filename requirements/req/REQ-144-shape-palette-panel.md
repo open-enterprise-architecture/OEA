@@ -80,21 +80,25 @@ The shape palette is the primary input tool for manual diagram creation:
 ## Acceptance Criteria
 
 **AC1** (Palette shows only allowed types):
+
 - Given: viewpoint "Application Layer View" allows AC, AS, AI, AF, AP
 - When: the diagram editor is opened with this viewpoint
 - Then: the palette shows only the 5 allowed types; technology types are grayed out/hidden
 
 **AC2** (No viewpoint = all types):
+
 - Given: diagram editor without an active viewpoint (free-form)
 - Then: all configured metamodel types appear in the palette
 
 **AC3** (Collapse/expand):
+
 - When: the user clicks the toggle button (◀)
 - Then: the panel collapses to a 28px wide strip; the canvas gains the freed space
 - When: the user clicks again (▶)
 - Then: the panel expands again to the default width
 
 **AC4** (Persistence of the state):
+
 - When: the user collapses the palette and closes the editor
 - Then: the next time it is opened, the palette is still collapsed
 

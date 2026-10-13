@@ -94,11 +94,13 @@ Fully native apps without a web technology base.
 We choose **Option 2: Client app + web portal (dual-track delivery)**.
 
 **Client app** (technology choice still open, ADR-009 pending) for:
+
 - Solution architects (SH-04), lead enterprise architects (SH-03), business engineers (SH-07)
 - Interactive diagram editing, metamodel configuration, solution management, catalog configuration
 - All actions that write to the repository
 
 **Web portal** (Vue 3 SPA) for:
+
 - CIO (SH-05), operator (SH-06), domain viewers (SH-01, SH-02 in consumption role)
 - Read-only: browse catalogs, view diagrams, consume architecture reports
 - URL-based access without installation requirement
@@ -149,13 +151,16 @@ Business logic lives exclusively in the backend (API-first); both GUIs are pure 
 ## References
 
 **Concept Chapters**:
+
 - [§21.2.1 Visualization Strategy](../concept/70-platform/21-api-architecture.md)
 
 **Related ADRs**:
+
 - [ADR-007](./ADR-007-canvas-library.md): Canvas library (accepted; Vue Flow chosen; this decision enabled the choice)
 - ADR-009 (pending): Client app framework choice
 
 **Use Cases / Requirements**:
+
 - [UC-05: Describe Architecture Vision](../requirements/use-cases/UC-05-describe-architecture-vision.md) – solution editing in client app; read-only diff in web portal
 - [UC-06: Create and Use Catalog](../requirements/use-cases/UC-06-create-and-use-catalog.md) – catalog configuration in client app; browsing in both
 - [US-045: Create New Entity in Diagram as Delta](../requirements/user-stories/US-045-delta-new-entity-diagram.md) – client app feature; blocked until ADR-007 decided

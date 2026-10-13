@@ -101,7 +101,7 @@ Important: The navigation tree is pure navigation. It stores no content; it refe
 
 ## Basic Flow
 
-*Default case: Kurt creates a new folder and attaches content*
+*Default case: Kurt creates a new folder and attaches content.*
 
 1. **Kurt**: opens the navigation tree in the client app or web portal
 2. **System**: shows the tree starting from the root node; folders expandable/collapsible; items with type icon (entity, diagram, catalog)
@@ -121,14 +121,14 @@ Important: The navigation tree is pure navigation. It stores no content; it refe
 
 ## Alternative Flows
 
-**A1 – Rename folder**
+### A1 – Rename folder
 
 1. **Kurt**: double-clicks a folder name (or context menu → "Rename")
 2. **System**: makes the name inline editable
 3. **Kurt**: changes the name and confirms
 4. **System**: validates (BR-01); persists; shows new name
 
-**A2 – Move folder or item**
+### A2 – Move folder or item
 
 1. **Kurt**: drags a folder or an item via drag & drop onto another parent node
 2. **System**: checks:
@@ -136,14 +136,14 @@ Important: The navigation tree is pure navigation. It stores no content; it refe
    - BR-01: name of the moved folder must be unique in the target node
 3. **System**: updates `parentId` and `sortOrder`; shows the updated tree
 
-**A3 – Remove item from a folder**
+### A3 – Remove item from a folder
 
 1. **Kurt**: selects an item in the folder → context menu → "Remove from this folder"
 2. **System**: shows notice: "Only the navigation entry is removed. The entity / diagram / catalog is retained."
 3. **Kurt**: confirms
 4. **System**: removes the `TreeNodeItem`; the referenced object is unchanged; remaining references to the same object in other folders stay valid (BR-06)
 
-**A4 – Delete folder**
+### A4 – Delete folder
 
 1. **Kurt**: selects a folder → context menu → "Delete folder"
 2. **System**: checks BR-02 (root node not deletable); shows warning:
@@ -152,14 +152,14 @@ Important: The navigation tree is pure navigation. It stores no content; it refe
 3. **Kurt**: confirms
 4. **System**: deletes the folder recursively (all children and items); referenced objects untouched (BR-05)
 
-**A5 – Attach the same object to several folders**
+### A5 – Attach the same object to several folders
 
 1. **Kurt**: navigates to a second folder and clicks "Add content" (step 7)
 2. **Kurt**: searches and selects the same object (e.g., the same catalog) that already lies in another folder
 3. **System**: creates a second `TreeNodeItem` entry (different folder, same `referenceId`) — explicitly allowed by BR-06
 4. **System**: now shows the object in both folders; no duplicate of the data
 
-**A6 – Rename root node**
+### A6 – Rename root node
 
 1. **Kurt**: double-clicks the root node
 2. **System**: makes the name editable (BR-02: only renaming allowed, no deletion)
@@ -168,27 +168,32 @@ Important: The navigation tree is pure navigation. It stores no content; it refe
 
 ## Exception Flows
 
-**E1 – Name not unique among siblings (BR-01)**
+### E1 – Name not unique among siblings (BR-01)
+
 - Condition: A folder or renamed folder has the same name as a sibling node
 - Expected reaction: Inline validation error; saving blocked until the name is changed
 - Resumption: Kurt chooses a different name
 
-**E2 – Cycle when moving (BR-03)**
+### E2 – Cycle when moving (BR-03)
+
 - Condition: Kurt tries to drag a folder into one of its own descendants
 - Expected reaction: Drag & drop visually blocked (no valid drop target); on API attempt 422 with error message
 - Resumption: Kurt selects a valid target
 
-**E3 – Attempt to delete root node (BR-02)**
+### E3 – Attempt to delete root node (BR-02)
+
 - Condition: Kurt tries to delete the root node
 - Expected reaction: Delete option not present in the context menu of the root node
 - Resumption: not necessary; UI prevents the action
 
-**E4 – Referenced object no longer exists (BR-04)**
+### E4 – Referenced object no longer exists (BR-04)
+
 - Condition: A `TreeNodeItem` refers to an object that has been deleted in the meantime (e.g., catalog deleted)
 - Expected reaction: Item is shown in the tree with "[Content no longer available]" and warning symbol; Kurt can clean it up via "Remove"
 - Resumption: Kurt removes the orphaned item (A3) or restores the object
 
-**E5 – Missing permission**
+### E5 – Missing permission
+
 - Condition: Logged-in person has no repository organization permission
 - Expected reaction: Tree is readable (read-only); editing options (new folder, move, delete) not visible
 - Resumption: Person contacts the admin (UC-02)

@@ -18,11 +18,13 @@ As an operator, I want persons who are no longer (or not) known as active in the
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a valid identity token that cannot be mapped to any person in the repository
 - When: the login process is completed
 - Then: no session is created
 
 **AC2**:
+
 - Given: a valid identity token whose associated person has the status `offboarded`
 - When: the login process is completed
 - Then: no session is created

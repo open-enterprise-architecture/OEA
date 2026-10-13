@@ -104,51 +104,62 @@ The business analyst persona can model business processes directly in the OEA to
 ## Alternative Flows
 
 **A1 — OrganizationalUnit does not exist**:
+
 - Step 3/4: Assignment dropdown shows an empty list
 - Anna selects "Create new OrgUnit": mini wizard (name, type) creates the `organizational-unit` entity directly in the assignment dialog
 - Flow continues as in the basic flow
 
 **A2 — Person does not exist in the repository**:
+
 - Step 6: Person not found in autocomplete
 - Anna can leave the field empty (assignment optional) and add it later
 
 **A3 — Viewpoint with standard BPMN types only**:
+
 - Steps 1–9 run without company-specific subtypes; all tasks appear as `bpmn-task` or standard subtype
 
 ## Acceptance Criteria
 
 **AC1** (pool/lane structure):
+
 - Given: Anna has opened the viewpoint "Process Model (BPMN 2.0)"
 - When: She creates a pool and inserts lanes
 - Then: Pool appears as a container on the canvas; lanes as swim lanes within the pool; tasks can be placed in lanes
 
 **AC2** (OrgUnit assignment):
+
 - When: Anna connects a lane with an OrgUnit
 - Then: `bpmn-lane-belongs-to-org-unit` connection stored in the repository; lane shows OrgUnit name as label or badge
 
 **AC3** (role assignment):
+
 - When: Anna connects a lane with a role
 - Then: `bpmn-lane-performs-role` connection stored; several roles per lane possible
 
 **AC4** (person assignment):
+
 - When: Anna assigns a person to a UserTask
 - Then: `bpmn-task-assigned-to` connection stored; task shows person avatar or initials as indicator
 
 **AC5** (process elements in catalog):
+
 - Given: Process diagram is saved
 - When: Anna opens a catalog for `bpmn-user-task`
 - Then: All UserTask entities from all diagrams appear; join column shows assigned person and lane
 
 **AC6** (metamodel configurability):
+
 - Given: Admin has configured a subtype `approval-task extends bpmn-user-task`
 - When: Anna opens the process diagram
 - Then: `approval-task` appears in the palette; can be placed and assigned like any other task
 
 **AC7** (web portal readability):
+
 - When: User with role "Viewer" (web portal) opens the process diagram
 - Then: BPMN canvas visible read-only; OrgUnit and person assignments as tooltips
 
 **AC8** (BPMN Descriptive conformance):
+
 - When: Anna models a process using any element of the BPMN 2.0.2 Descriptive conformance sub-class (e.g. call activity, timer start event, text annotation, group, nested lanes)
 - Then: The element is available in the palette, can be placed and saved, and is restored unchanged after reload (REQ-076)
 

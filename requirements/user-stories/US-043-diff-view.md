@@ -18,31 +18,37 @@ As a Solution Architect, I want to see a diff view that shows me which entities 
 ## Acceptance Criteria
 
 **AC1** (retiring):
+
 - Given: Solution has a `retiring` delta for `CRM-Legacy`
 - When: Michael opens the diff view
 - Then: `CRM-Legacy` appears once; left side shows it in the current state, right side shows it in red/struck through as "out of service"
 
 **AC2** (new):
+
 - Given: Solution has a `new` delta for `Salesforce (ApplicationComponent)`
 - When: Michael opens the diff view
 - Then: `Salesforce` appears once; left side empty (does not yet exist), right side green as a new entity
 
 **AC3** (modified):
+
 - Given: Solution has a `modified` delta for `ERP-Core` (version: v4 → v5)
 - When: Michael opens the diff view
 - Then: `ERP-Core` appears once; left `version=v4`, right `version=v5`; only the changed property is highlighted
 
 **AC4** (no dump of the entire landscape):
+
 - Given: Solution has 3 deltas; the baseline contains 100 entities
 - When: Michael opens the diff view
 - Then: exactly 3 entries are displayed; all other 97 entities are **not** visible
 
 **AC5** (empty delta list):
+
 - Given: Solution has no deltas yet
 - When: Michael opens the diff view
 - Then: the notice "No changes captured yet" appears; no error
 
 **AC6** (live update):
+
 - Given: Michael has the diff view open
 - When: he saves another delta (in US-040–042)
 - Then: the diff view updates without a full page reload

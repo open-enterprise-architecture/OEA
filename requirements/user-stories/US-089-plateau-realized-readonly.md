@@ -18,10 +18,12 @@ As Kurt – Lead Enterprise Architect, I want realized plateaus to no longer be 
 ## Acceptance Criteria
 
 **AC1** (API write protection):
+
 - When: I send a PUT request for a realized plateau
 - Then: I receive HTTP 422 "Realized plateau is read-only"
 
 **AC2** (UI write protection):
+
 - When: I view a realized plateau in the overview
 - Then: no edit button is visible
 

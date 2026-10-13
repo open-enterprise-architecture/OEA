@@ -34,14 +34,17 @@ The TRM is a living taxonomy. Without CRUD and reorganization, an organization c
 ## Acceptance Criteria
 
 **AC1** (Automatic level):
+
 - When: a subcategory is created under "Security Services"
 - Then: the `level` field is automatically set to `parent.level + 1`
 
 **AC2** (Delete with child nodes):
+
 - When: a category with 3 child nodes is to be deleted
 - Then: the system responds with HTTP 422 "Child nodes must be removed first"
 
 **AC3** (Drag & drop cycle protection):
+
 - When: a category is dragged via drag & drop under one of its own descendants
 - Then: the drop is visually blocked; an API attempt responds with HTTP 422
 

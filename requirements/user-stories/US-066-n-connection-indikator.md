@@ -18,21 +18,25 @@ As a Data Architect, I want to see at a glance which connections in the diagram 
 ## Acceptance Criteria
 
 **AC1** (indicator appears for n-connection):
+
 - Given: DataFlow id=5 is sourceEntityId of carries-data id=103
 - When: Lukas opens a diagram with DataFlow id=5
 - Then: Circle with `•••` appears on the connection line; still visible when zooming out
 
 **AC2** (no indicator without n-connection):
+
 - Given: DataFlow id=7 has no n-connections
 - When: Diagram with DataFlow id=7
 - Then: No indicator on this line
 
 **AC3** (total count displayed):
+
 - Given: DataFlow id=5 has 5 n-connections (3 carries-data + 2 security-control)
 - When: Diagram loaded
 - Then: A single indicator with number "5" or `•••`; not 5 separate circles
 
 **AC4** (web portal also shows indicator):
+
 - When: CIO opens a diagram in the web portal with n-connection indicator
 - Then: Indicator visible (read-only; no create button)
 

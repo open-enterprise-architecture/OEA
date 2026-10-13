@@ -38,6 +38,7 @@ In the enterprise context, all users use the same identity provider (e.g. Entra 
 ## Context
 
 Auto SSO redirect only applies if:
+
 - `auth.oidcEnabled = true` (at least one IdP configured)
 - `auth.localAuthEnabled = false` (no local authentication active) — in a mixed setup, auto redirect is inherently ambiguous and is not triggered
 - `auth.autoSsoRedirect = true` (operator has explicitly enabled auto redirect)
@@ -47,11 +48,13 @@ The requirement concerns only the initial call of the login page. Already authen
 ## Type-Specific Fields
 
 **Inputs**:
+
 - Instance configuration: `auth.autoSsoRedirect: boolean` (default: `false`)
 - Optional configuration: `auth.autoSsoRedirectDelay: integer` (milliseconds, default: `0`)
 - Query parameter `?noredirect=1` as an escape hatch for operators and emergency access
 
 **Processing**:
+
 1. User calls the OEA login URL (or is redirected there after an expired session)
 2. System checks: `autoSsoRedirect = true` AND `oidcEnabled = true` AND `localAuthEnabled = false`
 3. Condition met: display a short transition page "Redirecting to [IdP name] …" for `autoSsoRedirectDelay` ms, then trigger the OIDC redirect immediately
@@ -59,36 +62,43 @@ The requirement concerns only the initial call of the login page. Already authen
 5. Condition not met: normal login screen according to REQ-136
 
 **Outputs**:
+
 - HTTP redirect (302 / client-side redirect) to the OIDC authorization URL of the configured provider
 - The transition page shows: OEA logo, provider name, short loading animation, link "Sign in another way" (activates `?noredirect=1`)
 
 **Error Cases**:
+
 - IdP unreachable (timeout on redirect): OEA shows an error message with the option to open the login screen manually (`?noredirect=1`)
 - Auto redirect in a loop (e.g. IdP redirects back without successful login): after 3 failed redirect cycles, show the login screen and disable auto redirect for this session
 
 ## Acceptance Criteria
 
 **AC1** — Auto redirect active:
+
 - Given: `autoSsoRedirect = true`, `oidcEnabled = true`, `localAuthEnabled = false`
 - When: the user calls the login URL (without `?noredirect=1`)
 - Then: the transition page appears briefly, followed by an automatic redirect to the OIDC authorization URL; no login form visible
 
 **AC2** — Escape hatch:
+
 - Given: `autoSsoRedirect = true` (auto redirect would be active)
 - When: the user calls the login URL with `?noredirect=1`
 - Then: the normal login screen is displayed; no automatic redirect
 
 **AC3** — Mixed setup: no auto redirect:
+
 - Given: `autoSsoRedirect = true`, `oidcEnabled = true`, `localAuthEnabled = true`
 - When: the user calls the login URL
 - Then: normal login screen with both options; no auto redirect
 
 **AC4** — "Sign in another way" link on the transition page:
+
 - Given: auto redirect is active, the transition page is displayed
 - When: the user clicks "Sign in another way"
 - Then: the redirect is aborted, the normal login screen appears (equivalent to `?noredirect=1`)
 
 **AC5** — Redirect loop:
+
 - Given: auto redirect active, IdP returns no successful login 3 times
 - When: OEA detects a loop
 - Then: login screen with the error message "Automatic sign-in failed" and link "Sign in manually"

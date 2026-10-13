@@ -34,35 +34,42 @@ Code scanners and import tools analyze entire repositories or CMDB snapshots and
 ## Type-Specific Fields
 
 **Inputs**:
+
 - BatchWriteRequest (entities[], connections[], strategy, atomic)
 - `?dryRun=true` query parameter
 
 **Processing**:
+
 - For each entity: validation, then create/update/skip according to the strategy
 - Connections: processed after entities (referential integrity)
 - With `atomic=true`: one error → rollback of all changes
 - With `dryRun=true`: no persisting; ValidationResult per item
 
 **Outputs**:
+
 - BatchWriteResponse (summary, items[]) with status per item
 
 **Error Cases**:
+
 - `atomic=true` + at least one error → 422; all rolled back
 - `atomic=false` + partial errors → 200 with errors in items[]
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: 100 entities in the batch, 5 with a mandatory property violation, `atomic=false`
 - When: POST /api/v1/entities/batch
 - Then: 200 OK; summary.created=95, summary.errors=5; faulty items with status=error
 
 **AC2**:
+
 - Given: 100 entities, `dryRun=true`
 - When: POST /api/v1/entities/batch?dryRun=true
 - Then: ValidationResult; no entity in DB; response shows what would be created
 
 **AC3**:
+
 - Given: batch with a connection whose `sourceExternalId` does not exist
 - When: POST /api/v1/entities/batch (entities + connections in the same request)
 - Then: entities created first; connection then resolved (sourceExternalId from this batch)

@@ -80,6 +80,7 @@ Format: `<type>(<scope>): <subject>`
 Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`
 
 Examples:
+
 - `feat(backend): add POST /api/v1/applications endpoint`
 - `fix(frontend): correct validation in wizard step 2`
 - `docs(concept): clarify optionality of the logical layer in §6.1.1`

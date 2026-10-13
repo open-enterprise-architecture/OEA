@@ -57,21 +57,25 @@ Applies to production OEA instances. The concrete backup mechanics are the deplo
 ## Acceptance Criteria
 
 **AC1** (Backup procedure documented):
+
 - Given: fresh OEA installation via `docker compose up`
 - When: Operator reads the documentation
 - Then: Step-by-step instructions for `pg_dump`-based backup and restore are present; setup effort < 30 minutes
 
 **AC2** (Restore test):
+
 - Given: Backup of a production instance with 10,000 entities
 - When: Restore onto an empty PostgreSQL instance via the documented procedure
 - Then: All entities, metamodel configuration and audit events fully present; API responds correctly within 4 hours
 
 **AC3** (RPO evidence):
+
 - Given: daily backup at 02:00; database outage at 23:59
 - When: Restore from the last backup
 - Then: Data loss ≤ 22 hours (< 24h RPO)
 
 **AC4** (Retention):
+
 - Given: daily backups over 31 days
 - When: Operator checks the backup archive
 - Then: at least 30 backup generations present; oldest backup not deleted automatically

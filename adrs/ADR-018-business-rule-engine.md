@@ -94,7 +94,7 @@ In both modes the GUI shows a CEL preview (read-only), so that power users can s
 
 The GUI builder produces structured conditions that the backend compiles to CEL:
 
-```
+```text
 [ Property: owner ▼ ] [ Operator: is not empty ▼ ]
 [ AND ]
 [ Property: architectureDomainIds ▼ ] [ Operator: contains at least ▼ ] [ Value: 1 ]

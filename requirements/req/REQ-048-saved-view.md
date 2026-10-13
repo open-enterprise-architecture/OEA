@@ -71,31 +71,37 @@ A SavedView does not change the stored `columns` configuration of the catalog; i
 ## Acceptance Criteria
 
 **AC1** (Create SavedView, happy path):
+
 - Given: the catalog has columns [name, status, vendor] and SavedFilter "Active systems only"
 - When: `POST /api/v1/catalogs/{id}/views` with `{ name: "Compact view", columnOrder: ["name", "status"], activeFilterIds: ["filter-1"], isDefault: true }`
 - Then: HTTP 201; SavedView saved; isDefault=true
 
 **AC2** (BR-06 – default switch):
+
 - Given: SavedView A with isDefault=true exists
 - When: SavedView B is created with isDefault=true
 - Then: HTTP 201; SavedView B isDefault=true; SavedView A isDefault=false (automatically)
 
 **AC3** (BR-05 – invalid columnOrder entry):
+
 - Given: the catalog has no column "unknown"
 - When: `columnOrder: ["name", "unknown"]`
 - Then: HTTP 422 "The attribute ‹unknown› is not in the catalog's column configuration"
 
 **AC4** (Apply default view on open):
+
 - Given: the catalog has SavedView "Compact view" with isDefault=true; columnOrder=[name, status]; activeFilterIds=[filter-active-systems]
 - When: a visitor opens the catalog
 - Then: the table shows only the columns name and status; the filter "Active systems only" is active; `totalCount` filtered accordingly
 
 **AC5** (No default):
+
 - Given: the catalog has no SavedView with isDefault=true
 - When: a visitor opens the catalog
 - Then: all configured columns visible; no filter preselected
 
 **AC6** (Delete SavedView):
+
 - When: `DELETE /api/v1/catalogs/{id}/views/{viewId}` for the default view
 - Then: HTTP 200; view deleted; no other default is set automatically; the next open uses no default
 

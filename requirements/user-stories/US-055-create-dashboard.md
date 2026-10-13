@@ -18,20 +18,24 @@ As a Lead Enterprise Architect, I want to create a new dashboard with name, desc
 ## Acceptance Criteria
 
 **AC1** (creation):
+
 - Given: Kurt is logged in to the client app (role Enterprise Architect)
 - When: Kurt clicks "Create new dashboard", enters name "IT Investment Planning 2026–2030" and scope=instance
 - Then: Dashboard is created; appears in the dashboard list; visible to all users in the web portal
 
 **AC2** (validation: duplicate name):
+
 - Given: Dashboard "IT Investment Planning 2026–2030" already exists
 - When: Kurt tries to create a second dashboard with the same name
 - Then: Error message "Name already taken"; no second dashboard created
 
 **AC3** (empty dashboard after creation):
+
 - When: Dashboard created
 - Then: Dashboard contains no widgets; notice "No widgets yet. Add widget." visible
 
 **AC4** (no access to other users' personal dashboards):
+
 - Given: Franz has a scope=personal dashboard
 - When: Kurt opens the dashboard list
 - Then: Franz's dashboard does not appear

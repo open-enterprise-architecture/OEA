@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want the package import to run as an at
 ## Acceptance Criteria
 
 **AC1** (Cycle abort):
+
 - When: the imported package contains a cycle in the ABB refinement graph
 - Then: the import aborts; no building block is imported; I see an error message with a cycle description
 
 **AC2** (Conflict list):
+
 - When: the package contains 3 building blocks with already existing IDs
 - Then: I see the conflict list; the default is "Skip" for all conflicts
 
 **AC3** (Rollback on DB error):
+
 - When: a database error occurs after the import of 20 of 50 building blocks
 - Then: a full rollback is executed; 0 building blocks are imported
 

@@ -18,11 +18,13 @@ As a system admin with a working remote mapping, I want to be able to disable th
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: an active local system admin account and a functioning remote mapping
 - When: a system admin disables the local account
 - Then: signing in via the local account is no longer possible afterwards, while the remote route continues to work
 
 **AC2**:
+
 - Given: no functioning remote mapping configured
 - When: an attempt is made to disable the local account
 - Then: the system warns of a possible complete lockout, but does not necessarily block the action

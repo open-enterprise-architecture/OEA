@@ -41,6 +41,7 @@ A connection that is itself the source of further connections would be invisibly
 ## Context
 
 Affected by this REQ:
+
 - **Client app** (Electron, ADR-009): full canvas editor (Vue Flow, ADR-007); the 3-dot indicator and connection panel are implemented here
 - **Web portal**: read-only; also shows the indicator (but no edit mode in the panel)
 
@@ -77,29 +78,35 @@ The indicator is precalculated server-side when a diagram is loaded: for each co
 ## Acceptance Criteria
 
 **AC1** (Indicator appears):
+
 - Given: DataFlow id=5 is the `sourceEntityId` of carries-data id=103
 - When: Lukas opens a diagram that contains DataFlow id=5
 - Then: The 3-dot circle indicator appears on the line of DataFlow id=5
 
 **AC2** (No indicator without n-connection):
+
 - Given: DataFlow id=7 is the sourceEntityId in no n-connection
 - When: Diagram with DataFlow id=7 opened
 - Then: No indicator on this line
 
 **AC3** (Double click opens panel):
+
 - When: Lukas double-clicks the 3-dot indicator on DataFlow id=5
 - Then: Connection panel opens; header shows "ERP → DWH (data-flow)"; filter bar shows chip `carries-data (2)`
 
 **AC4** (Filter chip switches view):
+
 - Given: Panel with chips `carries-data (2)` and `security-control (1)` (both active)
 - When: Lukas clicks `security-control`
 - Then: Only `security-control` connections visible; `carries-data` entries hidden
 
 **AC5** (Web portal read-only):
+
 - When: CIO opens a diagram with an n-connection indicator in the web portal
 - Then: Indicator visible; double click opens the panel read-only; "Create new n-connection" button is missing
 
 **AC6** (Multiple indicators on one line):
+
 - Given: DataFlow id=5 has 3 carries-data and 2 security-control connections
 - When: Diagram loaded
 - Then: A single indicator (not 5 separate ones); panel shows both types in the filter bar; total count visible (e.g., `•••  5`)

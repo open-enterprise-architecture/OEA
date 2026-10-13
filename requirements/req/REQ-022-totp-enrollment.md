@@ -44,10 +44,12 @@ Triggered as a required action during the first login (UC-03 Basic Flow): after 
 ### For type=functional
 
 **Inputs**:
+
 - Triggered enrollment step "TOTP" (after token validation or session authentication)
 - Verification code: 6-digit TOTP code, entered by Kurt from his authenticator app
 
 **Processing**:
+
 - System generates a cryptographically random TOTP secret (≥ 160 bits, RFC 4226 compliant)
 - System creates a key URI (`otpauth://totp/...`) and renders a QR code from it
 - System displays the QR code and the plain-text secret (for manual entry) exactly once
@@ -55,37 +57,44 @@ Triggered as a required action during the first login (UC-03 Basic Flow): after 
 - On successful verification: the system persists the secret in encrypted form (AES-256 or equivalent) and links it to the Person object
 
 **Outputs**:
+
 - QR code and plain-text secret (once, during enrollment)
 - Success message after verification is passed
 - On failed verification: error message without any hint of the secret value, nothing persisted
 
 **Error Cases**:
+
 - Wrong or expired verification code (E2 from UC-03) → error message, secret is not persisted, token remains valid; Kurt can try again
 - Secret generation failed (technical error) → generic error message, enrollment is not completed
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: Kurt has chosen TOTP as the method
 - When: the system generates the secret
 - Then: a QR code (key URI format) and the plain-text secret are displayed
 
 **AC2**:
+
 - Given: Kurt scans the QR code and enters the current TOTP code
 - When: the code is correct (within time tolerance ±1 step)
 - Then: the secret is persisted in encrypted form and linked to Kurt's person; login with this TOTP is possible immediately (UC-01 A4)
 
 **AC3**:
+
 - Given: Kurt enters a wrong TOTP code
 - When: verification fails
 - Then: no secret is persisted, the enrollment token remains valid, Kurt can try again
 
 **AC4**:
+
 - Given: enrollment has been completed
 - When: the system writes log entries
 - Then: the TOTP secret is contained in logs neither in plain text nor as a hash
 
 **AC5**:
+
 - Given: the TOTP secret is persisted
 - When: it is stored in the database
 - Then: it is encrypted (not readable in plain text without the decryption key)

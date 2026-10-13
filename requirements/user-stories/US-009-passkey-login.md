@@ -18,16 +18,19 @@ As a person on an instance without an external identity provider, I want to sign
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a person with a previously registered passkey
 - When: they sign in with this passkey
 - Then: they receive a session according to their active role assignments
 
 **AC2**:
+
 - Given: a failed passkey verification
 - When: the login attempt is completed
 - Then: no session is created, error message indistinguishable from other error cases
 
 **AC3**:
+
 - Given: a person with a passkey registered as a discoverable credential
 - When: they sign in
 - Then: no prior entry of username or password is required

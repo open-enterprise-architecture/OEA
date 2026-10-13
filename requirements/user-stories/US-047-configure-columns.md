@@ -18,23 +18,28 @@ As a Lead Enterprise Architect, I want to configure for a catalog which attribut
 ## Acceptance Criteria
 
 **AC1** (all attributes available):
+
 - Given: Catalog with primaryEntityType=ApplicationComponent; metamodel defines built-in attributes (name, status, description) and custom attributes (vendor, supportEndDate)
 - When: Kurt opens the column configurator
 - Then: All attributes (built-in + custom) appear as selectable columns
 
 **AC2** (order via drag and drop):
+
 - When: Kurt drags the column "status" before "name"
 - Then: In the catalog view "status" appears as the first column; order is persistent after saving
 
 **AC3** (customize display label):
+
 - When: Kurt sets the displayLabel "Operational Status" for attribute `status`
 - Then: Column header in the table shows "Operational Status"; the attribute is still called `status` internally
 
 **AC4** (toggle visibility):
+
 - When: Kurt marks column `description` as invisible (visible=false)
 - Then: Column does not appear in the table; but remains in the configuration and can be shown again
 
 **AC5** (at least one visible column):
+
 - When: Kurt tries to set all columns to visible=false
 - Then: Inline error "At least one column must be visible"; saving blocked
 

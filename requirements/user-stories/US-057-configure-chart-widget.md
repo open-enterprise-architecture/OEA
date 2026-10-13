@@ -18,29 +18,35 @@ As a Lead Enterprise Architect, I want to add chart widgets (bar, line, pie, don
 ## Acceptance Criteria
 
 **AC1** (bar chart: costs per plateau):
+
 - Given: 3 plateau instances with investmentCostForecast: P1=5M, P2=12M, P3=25M
 - When: Kurt configures chart widget: chartType=bar, entityType=plateau, propertyName=investmentCostForecast, aggregationFn=sum, groupBy=name
 - Then: Bar chart with 3 bars; X axis = plateau name; Y axis = amount; bar heights correct
 
 **AC2** (pie chart: applications by domain):
+
 - Given: 20 ApplicationComponents, 12 domain=finance, 8 domain=hr
 - When: Chart widget: chartType=pie, entityType=application-component, propertyName=id, aggregationFn=count, groupBy=architectureDomainId
 - Then: Pie chart with 2 segments (Finance 60%, HR 40%); labels show domain names (not IDs)
 
 **AC3** (pie chart: two yAxis rejected):
+
 - When: chartType=pie configured with two yAxis entries
 - Then: HTTP 422 "pie allows exactly one Y axis"
 
 **AC4** (groupBy=architectureLayerId):
+
 - Given: EntityTypes with layer assignment; 50 entities distributed across 3 layers
 - When: Bar chart, aggregationFn=count, groupBy=architectureLayerId
 - Then: 3 bars (Business, Application, Technology); labels from ArchitectureLayerDefinition.name
 
 **AC5** (legend and data labels):
+
 - When: showLegend=true, showDataLabels=true configured
 - Then: Chart renders legend and direct value labels on the chart elements
 
 **AC6** (invalid groupBy reference):
+
 - When: groupBy=nonExistentProperty
 - Then: HTTP 422 "groupBy 'nonExistentProperty' is not a valid PropertyDefinition name on EntityType 'application-component' and not a system value"
 

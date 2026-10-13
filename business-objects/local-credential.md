@@ -28,6 +28,7 @@ As soon as an OEA instance has enabled local authentication (no external OIDC pr
 `LocalCredential` is deliberately kept **separate from the business Person object**: credential data is highly sensitive, has a different lifecycle than the business identity, and must not appear in EA repository exports or audit reports (unlike a person's name, role, or area of responsibility). A Person object can simultaneously own multiple LocalCredentials of different types.
 
 The BO has three variants, distinguished via `type`:
+
 - **passkey**: WebAuthn credential (public key + credential ID); multiple per person permitted (different devices)
 - **totp**: TOTP secret per RFC 6238; multiple active per person permitted (REQ-030), each with its own label
 - **password**: argon2id or bcrypt hash; at most one active per person
@@ -83,6 +84,7 @@ The [System Admin Account](./system-admin-account.md) has no `LocalCredential`; 
 | belongsTo | [person](./person.md) | n:1 | no | Each credential belongs to exactly one person |
 
 **Notes**:
+
 - A person can have any number of `passkey` credentials (one per registered device).
 - A person can have multiple active `totp` credentials (REQ-030; BR-02 repealed).
 - A person has at most one active `password` credential (BR-03).
@@ -90,15 +92,17 @@ The [System Admin Account](./system-admin-account.md) has no `LocalCredential`; 
 
 ## Lifecycle
 
-```
+```text
 created → active → revoked
 ```
 
 **States**:
+
 - `active`: Credential is valid and usable for login (UC-01 A3/A4/A5).
 - `revoked`: Credential has been deactivated. Entries are not deleted (audit traceability) but are ignored at login.
 
 **Transitions**:
+
 - `created → active`: immediately after successful enrollment (UC-03); no separate activation step.
 - `active → revoked`: by the person themselves in the security settings, by an administrator, or automatically when replaced by a new credential (only for `type=password`, BR-03).
 
@@ -115,6 +119,7 @@ created → active → revoked
 ## Examples
 
 **Example 1**: Passkey credential (discoverable credential, MacBook)
+
 ```yaml
 id: "cred-7f3a9b2e-..."
 personId: "person-kurt-..."
@@ -130,6 +135,7 @@ lastUsedAt: "2026-06-25T14:30:00Z"
 ```
 
 **Example 2**: TOTP credential
+
 ```yaml
 id: "cred-2a8c4d1f-..."
 personId: "person-kurt-..."
@@ -144,6 +150,7 @@ lastUsedAt: "2026-06-25T14:30:00Z"
 ```
 
 **Example 3**: Password credential (revoked, replaced by a new one)
+
 ```yaml
 id: "cred-9e1d5c3a-..."
 personId: "person-max-..."
@@ -186,6 +193,7 @@ revokedReason: superseded
 First modeling in the context of UC-03 (enrollment). Deliberately modeled as one BO with a type discriminator instead of three separate BOs (`PasskeyCredential`, `TotpCredential`, `PasswordCredential`): the shared fields (personId, status, lifecycle, audit attributes) outweigh the type-specific differences; separate BOs would needlessly bloat the traceability matrix.
 
 Open questions:
+
 - Should `deviceLabel` (passkey) be freely editable by the user, or is a default label from the authenticator (`authenticatorAttachment`) preferable?
 - Will a separate recovery code mechanism (recovery codes for lockout prevention) be modeled as a further `type` in this BO, or as a standalone BO?
 

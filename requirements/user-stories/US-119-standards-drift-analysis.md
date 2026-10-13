@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to see all entities that use a pro
 ## Acceptance Criteria
 
 **AC1** (Prohibited entities):
+
 - When: 3 entities have `instanceOfSBBId=prohibited-SBB-UUID`
 - Then: all 3 are in the drift list; `prohibited` is highlighted in red
 
 **AC2** (Deviation report):
+
 - When: an entity uses an SBB that does not match the `preferredStandard` of its TRM category
 - Then: it appears in the deviation list
 
 **AC3** (Direct link):
+
 - When: I click an entry in the drift list
 - Then: the entity detail view opens
 

@@ -35,34 +35,41 @@ The active necessity is determined via a "latest valid_from ≤ today" query (AD
 ## Type-Specific Fields
 
 **Inputs**:
+
 - Entity write (POST/PUT/PATCH/batch)
 - Active mappings for the MetaType of the entity
 
 **Processing**:
+
 - For every `mandatory` property: value missing → error (422)
 - For every `warning` property: value missing → warning in the response body
 - `optional` properties: no feedback when missing
 
 **Outputs**:
+
 - 422 Unprocessable Entity on mandatory violation; body with `errors[]` (ValidationError schema)
 - 200/201 with `warnings[]` on warning violation
 
 **Error Cases**:
+
 - MetaType without an active mapping for a property → property is ignored
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: MetaType M has property `version` with necessity=mandatory
 - When: POST /entities with MetaType M without property `version`
 - Then: 422; errors[0].field = "properties", errors[0].code = "MANDATORY_MISSING"
 
 **AC2**:
+
 - Given: MetaType M has property `owner` with necessity=warning
 - When: POST /entities with MetaType M without property `owner`
 - Then: 201 Created; response contains warnings[0].field = "properties[owner]"
 
 **AC3**:
+
 - Given: POST /entities/batch with dryRun=true
 - When: several entities, some with a mandatory violation
 - Then: ValidationResult.valid=false; all errors listed per item; no persistence

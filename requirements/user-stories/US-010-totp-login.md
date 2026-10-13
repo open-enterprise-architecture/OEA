@@ -18,11 +18,13 @@ As a person on an instance without a passkey-capable client, I want to sign in w
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a person with the correct password and a valid TOTP code
 - When: they sign in
 - Then: they receive a session according to their active role assignments
 
 **AC2**:
+
 - Given: a correct password, but a wrong TOTP code
 - When: the login attempt is completed
 - Then: no session is created, and the error message does not reveal that the password was correct

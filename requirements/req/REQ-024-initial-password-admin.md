@@ -44,9 +44,11 @@ The initial password is a temporary credential: it suffices to perform UC-01 A5 
 ### For type=functional
 
 **Inputs**:
+
 - Generated or manually entered initial password by the administrator (admin UI or CLI)
 
 **Processing**:
+
 - System checks the password against configurable minimum requirements (minimum length; optional complexity rules)
 - System creates a hash (argon2id preferred; bcrypt as fallback)
 - Hash is persisted as a `LocalCredential` with `type=password` and linked to the person
@@ -54,37 +56,44 @@ The initial password is a temporary credential: it suffices to perform UC-01 A5 
 - Optional: the system can automatically generate a cryptographically strong password (recommended)
 
 **Outputs**:
+
 - Plain-text password: one-time display in the admin UI or CLI stdout
 - Confirmation: "Initial password set. Please pass it on to the person securely."
 - On error: error message with the unmet requirement
 
 **Error Cases**:
+
 - Password does not meet minimum requirements → error message with the specific requirements, no hash stored
 - Person does not exist or already has an active password credential → error message; existing credentials unchanged
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: an administrator creates a person and sets an initial password
 - When: the request is processed successfully
 - Then: the password hash is persisted as `LocalCredential (type=password)`; the plain text is displayed exactly once
 
 **AC2**:
+
 - Given: the initial password has been set and displayed
 - When: the administrator reopens the admin UI or calls the API again
 - Then: the plain-text password is no longer retrievable (only the hash in the DB)
 
 **AC3**:
+
 - Given: the initial password is set
 - When: the person logs in with this password (UC-01 A5)
 - Then: the login succeeds and UC-03 (required action) is triggered if 2FA is enforced
 
 **AC4**:
+
 - Given: the system processes the password request
 - When: server logs are written
 - Then: the plain-text password is not contained in the logs
 
 **AC5**:
+
 - Given: the system automatically generates a password
 - When: it is generated
 - Then: it has at least 16 characters and sufficient entropy (upper/lower case/digits/special characters)

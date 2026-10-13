@@ -46,11 +46,13 @@ OEA should allow the greatest possible degree of freedom in the metamodel: each 
 ## Context
 
 The `creationSteps` configuration sits on `EntityTypeDefinition` in the MetamodelConfiguration (BO: metamodel-configuration.md, version 0.8.0). Three step types:
+
 - `properties`: shows all properties of a `propertyCategory`
 - `domainAssignment`: shows architecture domain selection (multi-select)
 - `connectionAssignment`: shows target entity search + selection; creates the connection after completion
 
 The wizard applies to **all** creation entry points:
+
 - "+ Entity" in the catalog (catalog context: after Done, the entity appears as a new row)
 - "Place element" in the diagram (diagram context: after Done, the shape appears on the canvas)
 - API (`POST /api/v1/entities` with wizard payload)
@@ -118,43 +120,52 @@ The backend creates the entity and all specified connections in one transaction.
 ## Acceptance Criteria
 
 **AC1** (Wizard opens automatically – catalog context):
+
 - Given: ApplicationComponent has 3 `creationSteps`
 - When: Lukas clicks "+ New entity" in the ApplicationComponent catalog
 - Then: Wizard opens on page 1 "Basic data"; no classic creation modal
 
 **AC2** (Wizard opens automatically – diagram context):
+
 - When: Lukas places an ApplicationComponent element in the diagram (drag & drop from palette)
 - Then: Wizard opens immediately; entity is only visible on the canvas after "Done"
 
 **AC3** (Navigation Next / Done):
+
 - Given: 3 steps
 - When: Lukas navigates: Next → Next → Done
 - Then: Step 1 → step 2 → step 3 → Done; entity and all connections persisted atomically
 
 **AC4** (Back navigation):
+
 - When: Lukas is on step 2 and clicks "Back"
 - Then: Step 1 is displayed again; data entered in step 1 is retained
 
 **AC5** (Mandatory property blocks Done):
+
 - Given: Step 1 has property `owner` (validationMode=mandatory); Lukas leaves it empty
 - When: Lukas clicks "Done" (or tries to reach step 3)
 - Then: Error message on the corresponding step; no persistence
 
 **AC6** (connectionAssignment minConnections=1):
+
 - Given: Step 3 "Capability link" with minConnections=1
 - When: Lukas clicks "Done" without having selected a capability
 - Then: Step 3 shows error "At least 1 capability must be linked"; no persistence
 
 **AC7** (Cancel = no entity):
+
 - When: Lukas closes the wizard (ESC or X) on step 2
 - Then: No entity in the repository; no partially created connection
 
 **AC8** (No wizard without creationSteps):
+
 - Given: EntityType `stereotype` without `creationSteps` (empty list)
 - When: User creates a new instance
 - Then: Classic creation modal (no wizard); no regression error
 
 **AC9** (Atomic persistence):
+
 - Given: Wizard with entity + 2 connections
 - When: The creation of the second connection fails server-side (e.g., target entity deleted)
 - Then: Neither the entity nor the first connection is persistent; HTTP 422 with error description

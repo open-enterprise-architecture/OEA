@@ -38,6 +38,7 @@ A lineage diagram without a query API is merely a static visualization — not q
 ## Context
 
 The traversal follows this pattern:
+
 1. Given: DataObject entity with id=X
 2. Find all `carries-data` connections whose `targetEntityId=X`
 3. For each found `carries-data` connection: `sourceEntityId` is a DataFlow
@@ -80,6 +81,7 @@ The traversal follows this pattern:
 ```
 
 **Error Cases**:
+
 - `entityId` not found → HTTP 404
 - `maxDepth` exceeded → HTTP 400
 - No permission for the entity → HTTP 403
@@ -87,25 +89,30 @@ The traversal follows this pattern:
 ## Acceptance Criteria
 
 **AC1** (Downstream end-to-end):
+
 - Given: SAP ERP(1) →[data-flow:5, carries-data:103→DataObject:42]→ DWH(2) →[data-flow:6, carries-data:104→DataObject:42]→ BI Tool(14)
 - When: `GET /api/v1/lineage?entityId=42&direction=downstream`
 - Then: `nodes` contains id=1 (SAP ERP), id=2 (DWH), id=14 (BI Tool); `path=[1,2,14]`; `cycleDetected=false`
 
 **AC2** (Upstream):
+
 - Given: same configuration as AC1
 - When: `GET /api/v1/lineage?entityId=42&direction=upstream`
 - Then: `nodes` contains id=1 (SAP ERP); DWH only as an intermediate node; path backwards
 
 **AC3** (Cycle detection):
+
 - Given: Cycle A→B→C→A with DataObject 42 in all flows
 - When: `GET /api/v1/lineage?entityId=42&direction=downstream`
 - Then: `cycleDetected=true`; response contains the traversed subgraph; no timeout/endless loop
 
 **AC4** (EntityType filter):
+
 - When: `entityTypeFilter=application-component`
 - Then: Response contains only nodes with `entityTypeId=application-component`; DataFlows appear only in `edges`
 
 **AC5** (Empty result):
+
 - Given: DataObject id=42 is not referenced by any DataFlow via carries-data
 - When: Lineage query for id=42
 - Then: `nodes=[]`, `edges=[]`, HTTP 200; no error

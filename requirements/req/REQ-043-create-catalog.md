@@ -69,26 +69,31 @@ A catalog is a configuration object – it stores the query definition, not the 
 ## Acceptance Criteria
 
 **AC1** (Creation, happy path):
+
 - Given: Kurt is logged in with the role "Enterprise Architect"; the MetamodelConfiguration contains the EntityType `ApplicationComponent`
 - When: `POST /api/v1/catalogs` with `{ name: "Application Inventory", primaryEntityType: "ApplicationComponent", scope: "instance", defaultJoinMode: "aggregate" }`
 - Then: HTTP 201; response contains id, name, primaryEntityType, scope, defaultJoinMode, createdBy=Kurt's ID, empty columns/joinDefinitions/savedFilters/savedViews lists
 
 **AC2** (Name collision):
+
 - Given: a catalog with name="Application Inventory" already exists
 - When: another POST with the same name (whether identical spelling or variations such as leading/trailing spaces)
 - Then: HTTP 422 with the error message "A catalog with this name already exists"
 
 **AC3** (Invalid EntityType):
+
 - Given: the MetamodelConfiguration contains no EntityType "UnknownType"
 - When: POST with `primaryEntityType: "UnknownType"`
 - Then: HTTP 422 "The EntityType ‹UnknownType› is not defined in the MetamodelConfiguration"
 
 **AC4** (Scope=personal):
+
 - Given: Sabine creates a catalog with scope=personal
 - When: Franz (another user) retrieves the catalog overview
 - Then: Sabine's personal catalog does NOT appear in Franz's view; 404 on direct access
 
 **AC5** (Missing permission):
+
 - Given: Franz has only the role "Viewer"
 - When: Franz tries to create a catalog
 - Then: HTTP 403 Forbidden

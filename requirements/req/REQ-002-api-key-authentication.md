@@ -43,27 +43,33 @@ A browser-based OIDC redirect is unsuitable for non-interactive clients. API key
 ### For type=functional
 
 **Inputs**:
+
 - HTTP request with API key (e.g., as a header)
 
 **Processing**:
+
 - Validate the API key (exists, not expired, not revoked)
 - Determine the service identity or person assigned to the API key
 - Load the assigned active role assignments
 
 **Outputs**:
+
 - Authorized request context with the permissions of the assigned roles
 
 **Error Cases**:
+
 - Invalid, expired, or revoked API key → request is rejected with an error, no permission context is created
 
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: a request contains a valid, non-revoked API key
 - When: the request is made against a protected resource
 - Then: it is authorized without a redirect, according to the roles of the assigned identity
 
 **AC2**:
+
 - Given: a request contains an invalid or revoked API key
 - When: the request is made
 - Then: it is rejected without an authorization context being created

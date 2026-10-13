@@ -40,14 +40,17 @@ The editor is not a whiteboard canvas (that is ADR-007 / Vue Flow). It is a **ri
 ### Supported Formats
 
 **Markdown** (CommonMark + GFM):
+
 - Headings H1–H4, lists, tables, links, inline code, bold, italic
 
 **Mermaid**:
+
 - Trigger: code block with language `mermaid`
 - Rendering: client-side via mermaid.js (separate dependency, independent of the canvas library in ADR-007)
 - Supported types: flowchart, sequenceDiagram, classDiagram, C4Context, erDiagram, gantt, among others
 
 **PlantUML**:
+
 - Trigger: code block with language `plantuml`
 - Rendering:
   - Primary: HTTP request to the configured PlantUML server (`/api/admin/config: plantumlServerUrl`)
@@ -68,38 +71,47 @@ The editor is not a whiteboard canvas (that is ADR-007 / Vue Flow). It is a **ri
 ## Acceptance Criteria
 
 **AC1** (Mermaid rendered):
+
 - Given: content contains:
-  ````
+
+  ````markdown
   ```mermaid
   graph LR; A-->B; B-->C;
   ```
   ````
+
 - When: Michael opens the Arc42 answer
 - Then: An SVG diagram (A→B→C) is visible in the editor; no raw code
 
 **AC2** (PlantUML via server):
+
 - Given: `plantumlServerUrl` configured; content with PlantUML block
 - When: Editor opened
 - Then: SVG loaded from the server and displayed
 
 **AC3** (PlantUML fallback – no server):
+
 - Given: no PlantUML server configured and WASM not loaded
 - When: Editor opened
 - Then: Raw code displayed; warning icon; message "PlantUML not available"
 
 **AC4** (Edit toggle):
+
 - When: Michael clicks on a Mermaid diagram → "Edit"
 - Then: Code editor opens; changes re-rendered live
 
 **AC5** (Save as Markdown):
+
 - When: Michael saves
 - Then: `content` field contains a Markdown string with unchanged code blocks; no SVG in DB
 
 **AC6** (Character limit):
+
 - When: content > 100,000 characters
 - Then: Error message; saving prevented
 
 **AC7** (Web portal rendering):
+
 - When: CIO opens Arc42 documentation in the web portal
 - Then: Mermaid and PlantUML are rendered (read-only); no editor
 

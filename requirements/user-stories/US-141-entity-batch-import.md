@@ -18,21 +18,25 @@ As an external system (scanner, CI/CD pipeline, import script), I want to create
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: 200 ApplicationComponent entities from a repository scan; strategy=upsert
 - When: POST /api/v1/entities/batch
 - Then: new entities created (201-equivalent in summary.created); existing ones updated (summary.updated); no duplicates
 
 **AC2**:
+
 - Given: batch with entities and connections; externalId references within the same batch
 - When: POST /api/v1/entities/batch
 - Then: entities written first; connections resolved afterwards (sourceExternalId linked correctly)
 
 **AC3**:
+
 - Given: dryRun=true; 5 entities with mandatory violation
 - When: POST /api/v1/entities/batch?dryRun=true
 - Then: ValidationResult; no DB write; all 5 errors listed with property name
 
 **AC4**:
+
 - Given: service account with `integration-writer` role
 - When: batch request executed
 - Then: audit log contains `agent_id = <client_id>`, `agent_run = <X-Agent-Run header>` for every event

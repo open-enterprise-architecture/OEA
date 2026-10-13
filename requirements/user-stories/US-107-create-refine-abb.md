@@ -18,14 +18,17 @@ As Kurt – Lead Enterprise Architect, I want to create and edit `ArchitectureBu
 ## Acceptance Criteria
 
 **AC1** (Create ABB):
+
 - When: I create an ABB with `continuumLevel=organization` and `maturityLevel=established`
 - Then: the system saves it with HTTP 201; it is immediately visible in the library
 
 **AC2** (Cycle detection):
+
 - When: I set ABB "B" to `refines=A` and then want to set ABB "A" to `refines=B`
 - Then: the system rejects saving with HTTP 422 "Cycle detected: A → B → A"
 
 **AC3** (Mandatory field industry):
+
 - When: I save an ABB with `continuumLevel=industry` without the `industry` field
 - Then: I receive HTTP 422
 

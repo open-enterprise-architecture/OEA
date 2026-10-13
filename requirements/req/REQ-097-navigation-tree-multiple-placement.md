@@ -35,10 +35,12 @@ An application cluster can belong to the domain "Finance" and to the initiative 
 ## Acceptance Criteria
 
 **AC1** (Multiple placement):
+
 - When: the entity "SAP ERP" is attached as an item in the folders "Finance" and "Cloud Migration"
 - Then: two independent TreeNodeItems with the same `referenceId` exist; the entity itself is unchanged
 
 **AC2** (Independent removal):
+
 - When: the item "SAP ERP" is removed from the folder "Finance"
 - Then: the entry in "Finance" is deleted; the entry in "Cloud Migration" remains valid
 

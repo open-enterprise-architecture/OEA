@@ -48,6 +48,7 @@ Concerns exclusively sessions created via the local authentication mechanisms fr
 **Data Type**: composite (two values: `accessTokenLifetime`, `refreshTokenLifetime`, each a duration)
 
 **Constraints**:
+
 - Mandatory field: yes, both values must be set (with a sensible default if not explicitly configured)
 - Format: ISO 8601 duration (e.g., `PT15M` for 15 minutes) or an equivalent configuration notation
 - Value range: `accessTokenLifetime` < `refreshTokenLifetime`; both > 0
@@ -58,11 +59,13 @@ Concerns exclusively sessions created via the local authentication mechanisms fr
 ## Acceptance Criteria
 
 **AC1**:
+
 - Given: an instance with a locally configured access token lifetime of 15 minutes
 - When: a person logs in via a local mechanism (passkey, username/password)
 - Then: the access token expires after 15 minutes
 
 **AC2**:
+
 - Given: an expired access token but a still-valid refresh token from local authentication
 - When: a refresh is requested
 - Then: a new access token with the configured lifetime is issued
