@@ -34,7 +34,7 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | Use Cases | 22 |
 | Requirements | 156 |
 | User Stories | 142 |
-| ADRs | 30 |
+| ADRs | 31 |
 | Business Objects | 22 |
 
 _Concept: v0.18 · Last update: 2026-10-13_
@@ -117,6 +117,7 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 | [ADR-028](adrs/ADR-028-backend-layered-architecture.md) | Backend Layered Architecture — API / Application / Core | accepted |
 | [ADR-029](adrs/ADR-029-cucumber-test-framework.md) | Test Framework for BDD System Tests — Cucumber JVM | accepted |
 | [ADR-030](adrs/ADR-030-postgresql-only.md) | PostgreSQL as the Only Supported Database | accepted |
+| [ADR-031](adrs/ADR-031-ui-prototyping-storybook.md) | UI Prototyping with Clickable Vue Prototypes in Storybook | accepted |
 <!-- /AUTO-GENERATED: adrs -->
 
 ## Contributing
