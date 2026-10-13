@@ -4,9 +4,9 @@ title: Restricted access without an active role assignment
 type: business-rule
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-24
-last_updated: 2026-06-24
+last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
@@ -29,7 +29,7 @@ superseded_by: []
 
 ## Statement
 
-A successfully authenticated person WITHOUT an active role assignment MUST NOT access any repository content other than publicly readable content.
+A successfully authenticated person WITHOUT an active role assignment MUST NOT access any repository content; the session MUST hold no permission of the permission model (REQ-157) and MUST only allow viewing the own profile and a notice that no role is assigned.
 
 ## Rationale
 
@@ -38,6 +38,8 @@ The concept constraint `person-minimum-role` (§8.8) is modeled as a warning, no
 ## Context
 
 Concerns the case that a person was successfully authenticated at the identity provider but has (not yet) an active `RoleAssignment` in the EA repository.
+
+Security review SEC-05 (2026-10-13): "publicly readable content" and `PUBLIC_READ_ONLY` were defined nowhere; there is no anonymous or "public" access in v1 (owner decision Q1, REQ-163). Version 0.2.0 therefore grants no repository content without a role (deny by default, REQ-158). Role changes take effect within 60 seconds (REQ-164).
 
 ## Type-Specific Fields
 
@@ -51,10 +53,10 @@ Concerns the case that a person was successfully authenticated at the identity p
 
 ```text
 if Person.fillsRoles.filter(active=true).isEmpty():
-    Session.permissions = PUBLIC_READ_ONLY
+    Session.permissions = {}   # own profile and "no role assigned" notice only
 ```
 
-**Example**: A newly invited person has not yet been given a role assignment. They can log in but only see publicly released content until a person with authorization rights assigns them a role.
+**Example**: A newly invited person has not yet been given a role assignment. They can log in but see only a notice that no role is assigned until a person with authorization rights assigns them a role.
 
 ## Acceptance Criteria
 
@@ -62,13 +64,13 @@ if Person.fillsRoles.filter(active=true).isEmpty():
 
 - Given: a person is successfully authenticated but has no active role assignment
 - When: they access the repository
-- Then: they receive access to publicly readable content only, and a notice that no role is assigned
+- Then: every request for repository content (entities, catalogs, diagrams, dashboards, portal views) is rejected with 403, and the client shows a notice that no role is assigned
 
 **AC2**:
 
 - Given: a person is subsequently given an active role assignment
-- When: they log in again or the session is refreshed
-- Then: their permissions reflect the new role
+- When: they make the next request after at most 60 seconds
+- Then: their permissions reflect the new role (REQ-164)
 
 ## Verification Method
 
@@ -80,8 +82,9 @@ if Person.fillsRoles.filter(active=true).isEmpty():
 
 ## Dependencies
 
-- **Prerequisites**: REQ-001
+- **Prerequisites**: REQ-001, REQ-157 (permission model), REQ-158 (deny by default)
 - **Downstream effects**: none known
+- **Related**: REQ-163 (no anonymous access), REQ-164 (propagation of role changes)
 - **Conflicts**: none known
 
 ## Risks of Non-Fulfillment
@@ -113,3 +116,4 @@ Derived from UC-01 Login, Exception Flow E3, and the concept constraint `person-
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |
+| 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-05/SEC-06 / owner decision Q1: undefined "publicly readable content" removed – no repository content without a role; role changes effective within 60 s |

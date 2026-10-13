@@ -4,9 +4,9 @@ title: API Completeness and Automation Suitability (API-First)
 type: interface
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-29
-last_updated: 2026-06-29
+last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
@@ -61,8 +61,10 @@ This REQ complements ADR-013 (which technology) with the qualitative dimension (
 | Bulk operations | not specified | MUST exist (AC2) |
 | Idempotency | not specified | MUST or documented exception (AC3) |
 | External consumers | mentioned as a goal | no UI-specific assumptions (AC4) |
-| Webhooks / push | SSE mentioned | full event mechanism (AC5) |
+| Webhooks / push | SSE mentioned | full event mechanism (AC5), secured (AC7–AC9) |
 | Deprecation policy | versioning strategy | consumer protection 6 months (AC6) |
+
+Security review SEC-13, SEC-15, SEC-16, SEC-23 (2026-10-13): webhooks with arbitrary target URLs are an SSRF vector, their payloads leak restricted property values, and the maximum batch size differed between REQ-147 (1,000), REQ-154 and ADR-026 (500). Machine access uses service accounts with OAuth2 client credentials only (owner decision Q5); API keys (REQ-002) are rejected.
 
 ## Type-Specific Fields
 
@@ -75,7 +77,8 @@ This REQ complements ADR-013 (which technology) with the qualitative dimension (
 | Protocol | HTTP/1.1, HTTP/2 |
 | Style | REST, resource-oriented |
 | Specification | OpenAPI 3.x (machine-readable, CI artifact) |
-| Authentication | Bearer JWT (ADR-006), API key (REQ-002) |
+| Authentication | Bearer JWT (ADR-006); machine clients via service accounts with OAuth2 client credentials (REQ-155, REQ-176); no API keys |
+| Authorization | per-operation permission declaration, deny by default (REQ-158) |
 | Base path | `/api/v1/` |
 | Content type | `application/json`; `application/json-patch+json` for partial updates |
 | Error format | RFC 9457 Problem Details (`type`, `title`, `status`, `detail`, `instance`) |
@@ -102,10 +105,11 @@ Each of the following operations MUST exist as a standalone endpoint before the 
 
 | Aspect | Requirement |
 |---|---|
-| Registration | `POST /api/v1/webhooks` with `{ url, events[], secret }` |
+| Registration | `POST /api/v1/webhooks` with `{ url, events[], secret }`; requires a dedicated webhook management permission (REQ-157); target URL validated per REQ-178 |
 | Event types | `entity.created`, `entity.updated`, `entity.deleted`, `diagram.updated`, `plateau.changed` (at least) |
-| Payload | `{ event, timestamp, entityId, entityType, changedBy, diff }` |
-| Security | HMAC-SHA256 signature in the header `X-OEA-Signature` |
+| Payload | `{ event, timestamp, entityId, entityType, changedBy, diff }`; `diff` filtered by the registrant's read permissions (REQ-160) |
+| Security | HMAC-SHA256 signature in the header `X-OEA-Signature`; secret stored encrypted (REQ-188) and never returned by the API |
+| Delivery | outbound request controls of REQ-178 (HTTPS, no private/loopback/link-local/metadata targets, no redirects to disallowed addresses); response bodies are not returned to the registrant |
 | Retry | at least 3 attempts with exponential backoff on an HTTP error response |
 
 ## Acceptance Criteria
@@ -144,17 +148,41 @@ Each of the following operations MUST exist as a standalone endpoint before the 
 - When: an endpoint is removed or changed incompatibly in a new API version
 - Then: the old endpoint remains reachable for at least 6 months after the announcement and responds with `Deprecation` and `Sunset` headers (RFC 8594)
 
+**AC7** (Webhook registration permission):
+
+- Given: a principal without the webhook management permission
+- When: it calls `POST /api/v1/webhooks`
+- Then: the response is 403 and no webhook is registered
+
+**AC8** (Webhook target validation):
+
+- Given: a principal with the webhook management permission
+- When: it registers `http://169.254.169.254/latest/meta-data/` or a hostname resolving to a private address
+- Then: the registration is rejected (REQ-178)
+
+**AC9** (Filtered webhook payload):
+
+- Given: a webhook registered by a principal without read permission on property P
+- When: P of an entity changes
+- Then: the delivered payload contains no value of P
+
+**AC10** (Batch size):
+
+- Given: the bulk endpoint
+- When: a batch with 501 entities is submitted
+- Then: it is rejected with 422 without processing any item (single maximum of 500 items, REQ-186)
+
 ## Dependencies
 
 - Based on: ADR-013 (REST + OpenAPI 3.x — technology decision)
-- Related: REQ-002 (API key authentication), REQ-046 (catalog query endpoint), REQ-047 (SavedFilter)
+- Related: REQ-155/REQ-176 (service accounts, client credentials), REQ-046 (catalog query endpoint), REQ-047 (SavedFilter), REQ-158 (deny-by-default authorization), REQ-160 (visibility on all read channels), REQ-178 (outbound request controls), REQ-186 (rate limits and quotas), REQ-188 (secrets), REQ-193 (error responses)
 - Affects: all future feature REQs — every new feature must satisfy AC1
 - Blocks: Walking Skeleton API design (UC-06)
 
 ## Implementation Notes
 
 - **Spec-first for new endpoints**: OpenAPI annotation (`@Operation`, `@ApiResponse`) MUST be reviewed before implementation
-- **Bulk endpoint design**: transactional (all-or-nothing) with a max batch size of 1,000; error response contains the index of the failed items
+- **Bulk endpoint design**: transactional (all-or-nothing) with a max batch size of 500 (single limit shared with REQ-154 and REQ-186); error response contains the index of the failed items
 - **Webhook service**: separate Spring `@EventListener` on domain events; decoupled from the HTTP request thread; webhook deliveries in a separate table (for retry and audit)
 - **CI gate**: `api/openapi.yaml` must be valid and `./mvnw verify` (interface generation from the spec, ADR-013) green; API breaking-change detector (e.g. `openapi-diff`) fails if no new API version was declared
 
@@ -163,3 +191,4 @@ Each of the following operations MUST exist as a standalone endpoint before the 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-29 | Requirements Engineer | Initial draft; first REQ of type `interface` in the project |
+| 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-13/15/16/23: API keys removed (owner decision Q5); webhook permission, SSRF controls, filtered payloads, encrypted secrets (AC7–AC9); single max batch size 500 (AC10) |

@@ -4,9 +4,9 @@ title: Import metamodel from file
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-25
-last_updated: 2026-06-25
+last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
@@ -49,8 +49,8 @@ YAML is the primary import format (corresponds to the format from §14 of the co
 
 **Processing**:
 
-1. Upload: accept the file; maximum size TBD (proposal: 1 MB)
-2. Parsing: convert YAML/JSON into an internal data structure; syntax errors → immediate error message
+1. Upload: accept the file; maximum size is the single instance-wide import limit of REQ-184 (default 10 MB); larger files are rejected with HTTP 413 before parsing
+2. Parsing: convert YAML/JSON into an internal data structure with a safely configured parser (no type instantiation, bounded alias expansion and nesting depth, REQ-184); syntax errors → immediate error message
 3. Schema validation: mandatory fields present, types correct, cardinality format valid, enum values not empty
 4. Diff calculation:
    - New types (green): name not in built-in and not in existing custom types
@@ -114,7 +114,7 @@ YAML is the primary import format (corresponds to the format from §14 of the co
 
 ## Dependencies
 
-- **Prerequisites**: REQ-032 (the import result corresponds to the same schema as the GUI result; both end up in MetamodelConfiguration)
+- **Prerequisites**: REQ-032 (the import result corresponds to the same schema as the GUI result; both end up in MetamodelConfiguration); REQ-184 (safe parsing and size limit), REQ-185 (bounded evaluation of imported expressions and patterns)
 - **Downstream effects**: none of its own; imported types behave like types created via GUI
 - **Conflicts**: none known
 
@@ -145,3 +145,4 @@ YAML is the primary import format (corresponds to the format from §14 of the co
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-21: size limit harmonized with REQ-184 (single configurable limit, default 10 MB); safe parsing referenced |

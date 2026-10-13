@@ -5,7 +5,7 @@
 Traceability from use cases through requirements to user stories, derived from the
 frontmatter and reference sections of the artifacts.
 
-**Total UCs**: 22 | **Total REQs**: 156 | **Total USs**: 142
+**Total UCs**: 22 | **Total REQs**: 193 | **Total USs**: 142
 
 ---
 
@@ -18,7 +18,7 @@ frontmatter and reference sections of the artifacts.
 | REQ | Title | Type | Priority | USs |
 |---|---|---|---|---|
 | [REQ-001](req/REQ-001-oidc-login-session.md) | OIDC-based login and session creation | functional | must | [US-001](user-stories/US-001-oidc-login.md) |
-| [REQ-002](req/REQ-002-api-key-authentication.md) | API key authentication for machine-to-machine access | functional | should | [US-002](user-stories/US-002-api-key-auth.md) |
+| [REQ-002](req/REQ-002-api-key-authentication.md) | API key authentication for machine-to-machine access _(rejected)_ | functional | should | [US-002](user-stories/US-002-api-key-auth.md) _(rejected)_ |
 | [REQ-003](req/REQ-003-access-without-role-assignment.md) | Restricted access without an active role assignment | business-rule | must | [US-003](user-stories/US-003-access-without-role.md) |
 | [REQ-004](req/REQ-004-reject-unknown-offboarded-person.md) | Rejection of session creation for unknown or offboarded persons | functional | must | [US-004](user-stories/US-004-reject-unknown-person.md) |
 | [REQ-005](req/REQ-005-audit-log-login.md) | Audit log entry for every login attempt | compliance | must | [US-005](user-stories/US-005-audit-log-login.md) |
@@ -38,6 +38,20 @@ frontmatter and reference sections of the artifacts.
 | [REQ-135](req/REQ-135-dark-mode-system-default.md) | Dark Mode Support with System Default and User Preference | functional | should | – |
 | [REQ-136](req/REQ-136-local-auth-configurable.md) | Local Authentication Configurable by Operator | functional | must | – |
 | [REQ-137](req/REQ-137-auto-sso-redirect.md) | Automatic SSO Redirect to the Configured Identity Provider | functional | should | – |
+| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | – |
+| [REQ-158](req/REQ-158-deny-by-default-authorization.md) | Deny-by-default authorization on every API operation | constraint | must | – |
+| [REQ-159](req/REQ-159-object-level-authorization.md) | Object-level authorization for addressed resources | functional | must | – |
+| [REQ-163](req/REQ-163-no-anonymous-access.md) | No anonymous access – every access requires authentication | constraint | must | – |
+| [REQ-164](req/REQ-164-session-termination-revocation.md) | Session termination and server-side revocation | functional | must | – |
+| [REQ-165](req/REQ-165-session-timeouts-token-storage.md) | Session timeouts and client token storage | non-functional | must | – |
+| [REQ-166](req/REQ-166-oidc-hardening-identity-binding.md) | OIDC relying-party hardening with mandatory PKCE and immutable identity binding | constraint | must | – |
+| [REQ-168](req/REQ-168-local-auth-throttling.md) | Brute-force protection for local authentication | non-functional | must | – |
+| [REQ-170](req/REQ-170-totp-replay-protection.md) | TOTP replay protection | business-rule | should | – |
+| [REQ-171](req/REQ-171-mfa-privileged-accounts.md) | Mandatory MFA for privileged accounts | business-rule | must | – |
+| [REQ-175](req/REQ-175-security-event-logging.md) | Security event logging | compliance | must | – |
+| [REQ-181](req/REQ-181-electron-hardening-local-data.md) | Electron runtime hardening and local data protection | constraint | must | – |
+| [REQ-187](req/REQ-187-http-security-baseline.md) | HTTP security headers, CORS, CSRF and cookie attributes | interface | must | – |
+| [REQ-193](req/REQ-193-generic-error-responses.md) | Generic error responses without internal details | interface | must | – |
 
 ### [UC-02](use-cases/UC-02-system-admin-bootstrapping.md): System Admin Bootstrapping
 
@@ -59,6 +73,19 @@ frontmatter and reference sections of the artifacts.
 | [REQ-150](req/REQ-150-multi-db-support.md) | Multi-Database Support _(rejected)_ | constraint | must | [US-139](user-stories/US-139-multi-db-operation.md) _(rejected)_ |
 | [REQ-155](req/REQ-155-service-account-management.md) | Service Account Management for External Systems | functional | should | [US-142](user-stories/US-142-create-service-account.md) |
 | [REQ-156](req/REQ-156-postgresql-only-database.md) | PostgreSQL as the only supported database | constraint | must | – |
+| [REQ-167](req/REQ-167-immutable-admin-claim-mapping.md) | Immutable claim values for remote admin mapping | business-rule | must | – |
+| [REQ-168](req/REQ-168-local-auth-throttling.md) | Brute-force protection for local authentication | non-functional | must | – |
+| [REQ-169](req/REQ-169-password-storage-quality.md) | Password storage and password quality | non-functional | must | – |
+| [REQ-171](req/REQ-171-mfa-privileged-accounts.md) | Mandatory MFA for privileged accounts | business-rule | must | – |
+| [REQ-172](req/REQ-172-reauthentication-sensitive-actions.md) | Re-authentication and notification for sensitive account actions | functional | should | – |
+| [REQ-173](req/REQ-173-account-recovery-temporary-passwords.md) | Account recovery and temporary password lifecycle | functional | must | – |
+| [REQ-176](req/REQ-176-machine-credential-lifecycle.md) | Machine credential lifecycle and scoping (OAuth2 client credentials only) | functional | must | – |
+| [REQ-178](req/REQ-178-outbound-request-controls.md) | Controls for server-side outbound requests | constraint | must | – |
+| [REQ-182](req/REQ-182-signed-client-updates.md) | Signed client builds and verified updates | constraint | must | – |
+| [REQ-183](req/REQ-183-production-safe-defaults.md) | Production-safe defaults without development authentication bypass | constraint | must | – |
+| [REQ-188](req/REQ-188-secrets-key-management.md) | Secrets and encryption key management | constraint | must | – |
+| [REQ-191](req/REQ-191-supply-chain-integrity.md) | Supply chain integrity | constraint | must | – |
+| [REQ-192](req/REQ-192-ci-least-privilege.md) | Least privilege for CI/CD workflows | constraint | should | – |
 
 ### [UC-03](use-cases/UC-03-set-up-authentication-method.md): Set Up Authentication Method (Required Action at First Login)
 
@@ -78,6 +105,12 @@ frontmatter and reference sections of the artifacts.
 | [REQ-030](req/REQ-030-multiple-totp-credentials.md) | Multiple active TOTP credentials per person | functional | should | [US-029](user-stories/US-029-multiple-totp-credentials.md) |
 | [REQ-031](req/REQ-031-password-reset-by-admin.md) | Password reset by administrator | functional | must | [US-030](user-stories/US-030-password-reset-by-admin.md) |
 | [REQ-135](req/REQ-135-dark-mode-system-default.md) | Dark Mode Support with System Default and User Preference | functional | should | – |
+| [REQ-168](req/REQ-168-local-auth-throttling.md) | Brute-force protection for local authentication | non-functional | must | – |
+| [REQ-169](req/REQ-169-password-storage-quality.md) | Password storage and password quality | non-functional | must | – |
+| [REQ-170](req/REQ-170-totp-replay-protection.md) | TOTP replay protection | business-rule | should | – |
+| [REQ-172](req/REQ-172-reauthentication-sensitive-actions.md) | Re-authentication and notification for sensitive account actions | functional | should | – |
+| [REQ-173](req/REQ-173-account-recovery-temporary-passwords.md) | Account recovery and temporary password lifecycle | functional | must | – |
+| [REQ-188](req/REQ-188-secrets-key-management.md) | Secrets and encryption key management | constraint | must | – |
 
 ### [UC-04](use-cases/UC-04-configure-metamodel.md): Configure Metamodel Collaboratively
 
@@ -102,6 +135,9 @@ frontmatter and reference sections of the artifacts.
 | [REQ-148](req/REQ-148-property-mapping-effective-date.md) | Property Mapping Effective Date Changeable | functional | should | [US-137](user-stories/US-137-change-property-mapping-effective-date.md) |
 | [REQ-149](req/REQ-149-property-validation-necessity.md) | Property Validation by Necessity | functional | must | [US-138](user-stories/US-138-property-validation-mandatory-warning.md) |
 | [REQ-152](req/REQ-152-dynamic-labels-etag.md) | Dynamic Labels with ETag Caching | interface | must | [US-140](user-stories/US-140-load-dynamic-labels.md) |
+| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | – |
+| [REQ-184](req/REQ-184-safe-import-parsing.md) | Safe parsing of imported files | constraint | must | – |
+| [REQ-185](req/REQ-185-bounded-expression-evaluation.md) | Bounded evaluation of user-defined expressions | non-functional | must | – |
 
 ### [UC-05](use-cases/UC-05-describe-architecture-vision.md): Describe the Architecture Vision of a Change Initiative
 
@@ -125,6 +161,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-145](req/REQ-145-shape-drag-entity-lookup.md) | Shape Drag-to-Canvas with Entity Lookup and Inline Creation | functional | must | – |
 | [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md) | Delete from Diagram (DEL) vs. Delete Entity (Ctrl+DEL) via Context Menu | functional | must | – |
 | [REQ-147](req/REQ-147-api-completeness-automation.md) | API Completeness and Automation Suitability (API-First) | interface | must | – |
+| [REQ-181](req/REQ-181-electron-hardening-local-data.md) | Electron runtime hardening and local data protection | constraint | must | – |
 
 ### [UC-06](use-cases/UC-06-create-and-use-catalog.md): Create, Configure and Use an Architecture Catalog
 
@@ -150,6 +187,8 @@ frontmatter and reference sections of the artifacts.
 | [REQ-147](req/REQ-147-api-completeness-automation.md) | API Completeness and Automation Suitability (API-First) | interface | must | – |
 | [REQ-149](req/REQ-149-property-validation-necessity.md) | Property Validation by Necessity | functional | must | [US-138](user-stories/US-138-property-validation-mandatory-warning.md) |
 | [REQ-152](req/REQ-152-dynamic-labels-etag.md) | Dynamic Labels with ETag Caching | interface | must | [US-140](user-stories/US-140-load-dynamic-labels.md) |
+| [REQ-179](req/REQ-179-secured-raw-query-analytics.md) | Secured raw SQL and Cypher analytics | functional | must | – |
+| [REQ-186](req/REQ-186-rate-limits-resource-quotas.md) | Rate limiting and resource quotas | non-functional | must | – |
 
 ### [UC-07](use-cases/UC-07-create-and-use-dashboard.md): Create, Configure and Use a Dashboard in the Web Portal
 
@@ -165,6 +204,10 @@ frontmatter and reference sections of the artifacts.
 | [REQ-056](req/REQ-056-dashboard-access-visibility.md) | Dashboard access and visibility (scope logic) | functional | should | [US-055](user-stories/US-055-create-dashboard.md), [US-061](user-stories/US-061-show-dashboard-in-web-portal.md), [US-062](user-stories/US-062-personal-dashboard.md) |
 | [REQ-057](req/REQ-057-widget-grid-layout.md) | Configure widget grid layout (GridPosition) | functional | should | [US-057](user-stories/US-057-configure-chart-widget.md), [US-060](user-stories/US-060-adjust-widget-layout.md) |
 | [REQ-130](req/REQ-130-wcag-accessibility.md) | Accessibility WCAG 2.1 Level AA | non-functional | should | – |
+| [REQ-159](req/REQ-159-object-level-authorization.md) | Object-level authorization for addressed resources | functional | must | – |
+| [REQ-163](req/REQ-163-no-anonymous-access.md) | No anonymous access – every access requires authentication | constraint | must | – |
+| [REQ-180](req/REQ-180-safe-rendering-user-content.md) | Safe rendering of user-supplied content | constraint | must | – |
+| [REQ-187](req/REQ-187-http-security-baseline.md) | HTTP security headers, CORS, CSRF and cookie attributes | interface | must | – |
 
 ### [UC-08](use-cases/UC-08-model-data-lineage.md): Model and Analyze a Data Flow Map (Data Lineage)
 
@@ -195,6 +238,8 @@ frontmatter and reference sections of the artifacts.
 | [REQ-132](req/REQ-132-document-item-structure.md) | DocumentItem as the Atomic Unit of the DocumentCollection | functional | must | [US-129](user-stories/US-129-create-document-item.md) |
 | [REQ-133](req/REQ-133-document-item-nesting.md) | Nesting of DocumentItems (Hierarchical Chapter Structure) | functional | must | [US-130](user-stories/US-130-document-item-nesting.md) |
 | [REQ-134](req/REQ-134-document-item-cross-reference.md) | DocumentItem Cross-Reference via {{ in the WYSIWYG Editor | functional | must | [US-131](user-stories/US-131-document-item-cross-reference.md) |
+| [REQ-178](req/REQ-178-outbound-request-controls.md) | Controls for server-side outbound requests | constraint | must | – |
+| [REQ-180](req/REQ-180-safe-rendering-user-content.md) | Safe rendering of user-supplied content | constraint | must | – |
 
 ### [UC-10](use-cases/UC-10-model-business-processes.md): Model Business Processes According to BPMN 2.0
 
@@ -205,6 +250,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-076](req/REQ-076-bpmn-process-types-metamodel.md) | BPMN process elements and OrganizationalUnit in the metamodel | functional | must | [US-074](user-stories/US-074-create-process-diagram-and-place-bpmn-elements.md) |
 | [REQ-077](req/REQ-077-role-orgunit-person-process-assignment.md) | Assign roles, organizational units and persons to process elements | functional | must | [US-075](user-stories/US-075-assign-lane-orgunit-and-role.md), [US-076](user-stories/US-076-assign-task-to-person.md) |
 | [REQ-081](req/REQ-081-bpmn-dataobject-process-lineage.md) | BPMN DataObject integration and process data lineage | functional | should | [US-083](user-stories/US-083-bpmn-dataobject-enrichment.md) |
+| [REQ-189](req/REQ-189-data-subject-rights-persons.md) | Data subject rights and minimization for persons | compliance | must | – |
 
 ### [UC-11](use-cases/UC-11-define-plateau-and-go-live.md): Define Architecture Plateau and Put It into Production
 
@@ -261,6 +307,11 @@ frontmatter and reference sections of the artifacts.
 | [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md) | Delete from Diagram (DEL) vs. Delete Entity (Ctrl+DEL) via Context Menu | functional | must | – |
 | [REQ-147](req/REQ-147-api-completeness-automation.md) | API Completeness and Automation Suitability (API-First) | interface | must | – |
 | [REQ-151](req/REQ-151-audit-schema-separation.md) | Audit Data Storage Immutable and Schema-Separated | compliance | must | – |
+| [REQ-160](req/REQ-160-visibility-on-all-read-channels.md) | Property visibility enforced on every read channel | functional | must | – |
+| [REQ-174](req/REQ-174-audit-tamper-resistance.md) | Audit store tamper resistance | compliance | must | – |
+| [REQ-175](req/REQ-175-security-event-logging.md) | Security event logging | compliance | must | – |
+| [REQ-189](req/REQ-189-data-subject-rights-persons.md) | Data subject rights and minimization for persons | compliance | must | – |
+| [REQ-190](req/REQ-190-soft-deleted-data-retention.md) | Retention of soft-deleted data | compliance | should | – |
 
 ### [UC-15](use-cases/UC-15-restore-entity-state.md): Restore Entity State
 
@@ -272,6 +323,8 @@ frontmatter and reference sections of the artifacts.
 | [REQ-102](req/REQ-102-restore-audit-snapshot.md) | Audit snapshot before every restore | functional | should | [US-102](user-stories/US-102-restore-audit-snapshot.md) |
 | [REQ-103](req/REQ-103-restore-atomic-transaction.md) | Restore as an atomic transaction | functional | should | [US-103](user-stories/US-103-restore-transaction.md) |
 | [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md) | Delete from Diagram (DEL) vs. Delete Entity (Ctrl+DEL) via Context Menu | functional | must | – |
+| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | – |
+| [REQ-190](req/REQ-190-soft-deleted-data-retention.md) | Retention of soft-deleted data | compliance | should | – |
 
 ### [UC-16](use-cases/UC-16-partial-entity-restore.md): Partially Restore an Entity
 
@@ -282,6 +335,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-104](req/REQ-104-partial-restore-wizard.md) | Partial restore three-step wizard | functional | should | [US-104](user-stories/US-104-partial-restore-wizard.md) |
 | [REQ-105](req/REQ-105-partial-restore-field-selection.md) | Partial Restore Selective Field Selection | functional | should | [US-105](user-stories/US-105-partial-restore-field-selection.md) |
 | [REQ-106](req/REQ-106-partial-restore-restored-fields.md) | Partial Restore restoredFields Log | functional | should | [US-106](user-stories/US-106-partial-restore-restored-fields.md) |
+| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | – |
 
 ### [UC-17](use-cases/UC-17-manage-continuum-building-blocks.md): Manage Reusable Architecture Building Blocks
 
@@ -306,6 +360,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-113](req/REQ-113-package-file-upload.md) | Import Continuum Package via File Upload | functional | should | [US-113](user-stories/US-113-package-file-upload.md) |
 | [REQ-114](req/REQ-114-atomic-import-conflict-handling.md) | Atomic Package Import with Conflict Handling | functional | should | [US-114](user-stories/US-114-atomic-import-conflict-handling.md) |
 | [REQ-147](req/REQ-147-api-completeness-automation.md) | API Completeness and Automation Suitability (API-First) | interface | must | – |
+| [REQ-184](req/REQ-184-safe-import-parsing.md) | Safe parsing of imported files | constraint | must | – |
 
 ### [UC-19](use-cases/UC-19-configure-trm.md): Configure Technical Reference Model
 
@@ -326,6 +381,8 @@ frontmatter and reference sections of the artifacts.
 | [REQ-118](req/REQ-118-abb-coverage-analysis.md) | ABB Coverage Analysis (Gap Ratio) | functional | should | [US-118](user-stories/US-118-abb-coverage-analysis.md) |
 | [REQ-119](req/REQ-119-standards-drift-analysis.md) | Standards Drift Analysis (Prohibited and Deviation Report) | functional | should | [US-119](user-stories/US-119-standards-drift-analysis.md) |
 | [REQ-120](req/REQ-120-technology-diversity-analysis.md) | Technology Diversity Analysis with Executive Summary Export | functional | should | [US-120](user-stories/US-120-technology-diversity-analysis.md) |
+| [REQ-179](req/REQ-179-secured-raw-query-analytics.md) | Secured raw SQL and Cypher analytics | functional | must | – |
+| [REQ-185](req/REQ-185-bounded-expression-evaluation.md) | Bounded evaluation of user-defined expressions | non-functional | must | – |
 
 ### [UC-21](use-cases/UC-21-configure-property-visibility.md): Configure Property Visibility
 
@@ -340,6 +397,10 @@ frontmatter and reference sections of the artifacts.
 | [REQ-128](req/REQ-128-property-visibility-admin-override.md) | Admin Override for Property Visibility | functional | should | [US-128](user-stories/US-128-admin-override-property-visibility.md) |
 | [REQ-129](req/REQ-129-data-encryption.md) | Data Encryption (at-rest and in-transit) | non-functional | must | – |
 | [REQ-131](req/REQ-131-graph-traversal-latency.md) | Graph Traversal Latency (ABAC connection-scoped) | non-functional | must | – |
+| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | – |
+| [REQ-160](req/REQ-160-visibility-on-all-read-channels.md) | Property visibility enforced on every read channel | functional | must | – |
+| [REQ-161](req/REQ-161-visibility-configuration-governance.md) | Governance of visibility configuration and scoping connections | business-rule | must | – |
+| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | – |
 
 ### [UC-22](use-cases/UC-22-import-current-state-from-source-system.md): Import Current State from Source System
 
@@ -349,6 +410,12 @@ frontmatter and reference sections of the artifacts.
 |---|---|---|---|---|
 | [REQ-153](req/REQ-153-external-entity-external-id.md) | Create and Update Entities Idempotently via external_id | functional | should | [US-141](user-stories/US-141-entity-batch-import.md) |
 | [REQ-154](req/REQ-154-batch-write-upsert.md) | Batch Write for Entities and Connections | functional | should | [US-141](user-stories/US-141-entity-batch-import.md) |
+| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | – |
+| [REQ-174](req/REQ-174-audit-tamper-resistance.md) | Audit store tamper resistance | compliance | must | – |
+| [REQ-176](req/REQ-176-machine-credential-lifecycle.md) | Machine credential lifecycle and scoping (OAuth2 client credentials only) | functional | must | – |
+| [REQ-177](req/REQ-177-external-id-ownership.md) | Ownership of external ID namespaces | business-rule | should | – |
+| [REQ-186](req/REQ-186-rate-limits-resource-quotas.md) | Rate limiting and resource quotas | non-functional | must | – |
+| [REQ-193](req/REQ-193-generic-error-responses.md) | Generic error responses without internal details | interface | must | – |
 
 ## 2. UC × Concept × ADR
 
@@ -360,7 +427,7 @@ frontmatter and reference sections of the artifacts.
 | [UC-04](use-cases/UC-04-configure-metamodel.md) | [§6 Core Entity Types](../concept/20-entities/06-core-entity-types.md), [§14 Extensibility](../concept/40-extensibility/14-extensibility.md), [§15 Schema Evolution](../concept/40-extensibility/15-schema-evolution.md) | – |
 | [UC-05](use-cases/UC-05-describe-architecture-vision.md) | [§6 Core Entity Types](../concept/20-entities/06-core-entity-types.md), [§11 Temporal Model](../concept/30-dynamics/11-temporal-model.md), [§12 Domain Concept and Views](../concept/30-dynamics/12-domain-views.md), [§16 Example Walkthrough](../concept/50-walkthrough/16-example-walkthrough.md) | – |
 | [UC-06](use-cases/UC-06-create-and-use-catalog.md) | [§6 Core Entity Types](../concept/20-entities/06-core-entity-types.md), [§12 Domain Concept and Views](../concept/30-dynamics/12-domain-views.md) | – |
-| [UC-07](use-cases/UC-07-create-and-use-dashboard.md) | [§21 API Architecture and Modularity](../concept/70-platform/21-api-architecture.md) | [ADR-001](../adrs/ADR-001-urn-schema.md) |
+| [UC-07](use-cases/UC-07-create-and-use-dashboard.md) | [§21 API Architecture and Modularity](../concept/70-platform/21-api-architecture.md) | – |
 | [UC-08](use-cases/UC-08-model-data-lineage.md) | [§6 Core Entity Types](../concept/20-entities/06-core-entity-types.md), [§13 Linking the Business and Technology Levels](../concept/30-dynamics/13-business-technology-linking.md), [§14 Extensibility](../concept/40-extensibility/14-extensibility.md), [§15 Schema Evolution](../concept/40-extensibility/15-schema-evolution.md), [§20 GRC, GDPR, and ISMS Integration](../concept/60-integrations/20-grc-gdpr-isms-integration.md) | [ADR-010](../adrs/ADR-010-n-connection-data-lineage.md) |
 | [UC-09](use-cases/UC-09-document-solution-architecture-arc42.md) | [§14 Extensibility](../concept/40-extensibility/14-extensibility.md) | – |
 | [UC-10](use-cases/UC-10-model-business-processes.md) | [§9 Process Architecture](../concept/20-entities/09-process-architecture.md), [§6 Core Entity Types](../concept/20-entities/06-core-entity-types.md) | – |
@@ -381,19 +448,19 @@ frontmatter and reference sections of the artifacts.
 
 | Type | Count |
 |---|---|
-| functional | 128 |
-| non-functional | 11 |
-| business-rule | 5 |
-| compliance | 5 |
-| constraint | 4 |
-| interface | 2 |
+| functional | 136 |
+| constraint | 16 |
+| non-functional | 16 |
+| business-rule | 11 |
+| compliance | 9 |
+| interface | 4 |
 | data | 1 |
 
 ## 4. Story Points per Use Case
 
 | UC | USs | Story Points |
 |---|---|---|
-| UC-01 | 14 | 48 |
+| UC-01 | 13 | 45 |
 | UC-02 | 8 | 26 |
 | UC-03 | 9 | 32 |
 | UC-04 | 12 | 49 |
@@ -415,13 +482,13 @@ frontmatter and reference sections of the artifacts.
 | UC-20 | 3 | 13 |
 | UC-21 | 5 | 22 |
 | UC-22 | 1 | 5 |
-| **Total** | | **582** |
+| **Total** | | **579** |
 
 ## 5. Coverage Gaps
 
 ### REQs without US
 
-[REQ-071](req/REQ-071-catalog-query-latency.md), [REQ-072](req/REQ-072-canvas-rendering-latency.md), [REQ-073](req/REQ-073-system-availability.md), [REQ-074](req/REQ-074-concurrent-user-scalability.md), [REQ-075](req/REQ-075-platform-independent-deployment.md), [REQ-082](req/REQ-082-data-backup-retention.md), [REQ-083](req/REQ-083-audit-log-retention.md), [REQ-129](req/REQ-129-data-encryption.md), [REQ-130](req/REQ-130-wcag-accessibility.md), [REQ-131](req/REQ-131-graph-traversal-latency.md), [REQ-135](req/REQ-135-dark-mode-system-default.md), [REQ-136](req/REQ-136-local-auth-configurable.md), [REQ-137](req/REQ-137-auto-sso-redirect.md), [REQ-143](req/REQ-143-inline-column-filter.md), [REQ-144](req/REQ-144-shape-palette-panel.md), [REQ-145](req/REQ-145-shape-drag-entity-lookup.md), [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md), [REQ-147](req/REQ-147-api-completeness-automation.md), [REQ-151](req/REQ-151-audit-schema-separation.md), [REQ-156](req/REQ-156-postgresql-only-database.md)
+[REQ-071](req/REQ-071-catalog-query-latency.md), [REQ-072](req/REQ-072-canvas-rendering-latency.md), [REQ-073](req/REQ-073-system-availability.md), [REQ-074](req/REQ-074-concurrent-user-scalability.md), [REQ-075](req/REQ-075-platform-independent-deployment.md), [REQ-082](req/REQ-082-data-backup-retention.md), [REQ-083](req/REQ-083-audit-log-retention.md), [REQ-129](req/REQ-129-data-encryption.md), [REQ-130](req/REQ-130-wcag-accessibility.md), [REQ-131](req/REQ-131-graph-traversal-latency.md), [REQ-135](req/REQ-135-dark-mode-system-default.md), [REQ-136](req/REQ-136-local-auth-configurable.md), [REQ-137](req/REQ-137-auto-sso-redirect.md), [REQ-143](req/REQ-143-inline-column-filter.md), [REQ-144](req/REQ-144-shape-palette-panel.md), [REQ-145](req/REQ-145-shape-drag-entity-lookup.md), [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md), [REQ-147](req/REQ-147-api-completeness-automation.md), [REQ-151](req/REQ-151-audit-schema-separation.md), [REQ-156](req/REQ-156-postgresql-only-database.md), [REQ-157](req/REQ-157-permission-model.md), [REQ-158](req/REQ-158-deny-by-default-authorization.md), [REQ-159](req/REQ-159-object-level-authorization.md), [REQ-160](req/REQ-160-visibility-on-all-read-channels.md), [REQ-161](req/REQ-161-visibility-configuration-governance.md), [REQ-162](req/REQ-162-property-write-protection-all-paths.md), [REQ-163](req/REQ-163-no-anonymous-access.md), [REQ-164](req/REQ-164-session-termination-revocation.md), [REQ-165](req/REQ-165-session-timeouts-token-storage.md), [REQ-166](req/REQ-166-oidc-hardening-identity-binding.md), [REQ-167](req/REQ-167-immutable-admin-claim-mapping.md), [REQ-168](req/REQ-168-local-auth-throttling.md), [REQ-169](req/REQ-169-password-storage-quality.md), [REQ-170](req/REQ-170-totp-replay-protection.md), [REQ-171](req/REQ-171-mfa-privileged-accounts.md), [REQ-172](req/REQ-172-reauthentication-sensitive-actions.md), [REQ-173](req/REQ-173-account-recovery-temporary-passwords.md), [REQ-174](req/REQ-174-audit-tamper-resistance.md), [REQ-175](req/REQ-175-security-event-logging.md), [REQ-176](req/REQ-176-machine-credential-lifecycle.md), [REQ-177](req/REQ-177-external-id-ownership.md), [REQ-178](req/REQ-178-outbound-request-controls.md), [REQ-179](req/REQ-179-secured-raw-query-analytics.md), [REQ-180](req/REQ-180-safe-rendering-user-content.md), [REQ-181](req/REQ-181-electron-hardening-local-data.md), [REQ-182](req/REQ-182-signed-client-updates.md), [REQ-183](req/REQ-183-production-safe-defaults.md), [REQ-184](req/REQ-184-safe-import-parsing.md), [REQ-185](req/REQ-185-bounded-expression-evaluation.md), [REQ-186](req/REQ-186-rate-limits-resource-quotas.md), [REQ-187](req/REQ-187-http-security-baseline.md), [REQ-188](req/REQ-188-secrets-key-management.md), [REQ-189](req/REQ-189-data-subject-rights-persons.md), [REQ-190](req/REQ-190-soft-deleted-data-retention.md), [REQ-191](req/REQ-191-supply-chain-integrity.md), [REQ-192](req/REQ-192-ci-least-privilege.md), [REQ-193](req/REQ-193-generic-error-responses.md)
 
 ### REQs without UC reference
 

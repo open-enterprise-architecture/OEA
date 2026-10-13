@@ -5,9 +5,9 @@ status: draft
 priority: should
 target_release: v1.0
 complexity: large
-version: 0.1.0
+version: 0.1.1
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-10-13
 primary_actor: SH-03
 secondary_actors:
   - SH-01
@@ -172,7 +172,7 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 
 *The CIO opens the IT investment cost dashboard in the management meeting.*
 
-1. **CIO**: opens the web portal in the browser (no login required if public instance; otherwise UC-01)
+1. **CIO**: opens the web portal in the browser and logs in (UC-01; anonymous access is not offered in v1, see REQ-163)
 2. **System**: shows the dashboard overview
 3. **CIO**: clicks "IT Investment Planning 2026–2030"
 4. **System**: renders all widgets with current data; shows loading animation during calculation
@@ -321,7 +321,7 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 ## Open Questions
 
 - [ ] Should dashboards also be configurable in the client app (Electron), or exclusively in the web portal? The use case (C-level reporting) favors the web portal as the primary location; configuration could nevertheless be offered in the client app.
-- [ ] Does the CIO need a login to the web portal, or are dashboards publicly readable (URL-based access without auth)? This depends on the data protection classification of the architecture data (ADR-001–005 open).
+- [x] Does the CIO need a login to the web portal, or are dashboards publicly readable (URL-based access without auth)? Decided 2026-10-13 (owner decision Q1 of the security review, finding SEC-05): every portal access requires authentication; no anonymous access in v1 (REQ-163).
 - [ ] Which chart library is used for the web portal? No ADR of its own needed (no strategic decision), but to be clarified before implementation.
 - [ ] Does v1.0 also support negative numbers in PropertyAggregation (e.g., savings)?
 
@@ -336,3 +336,4 @@ The connection to the [PropertyDefinitions](../../business-objects/metamodel-con
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; basic flow investment cost dashboard, A1–A5, acceptance criteria, out of scope |
+| 0.1.1 | 2026-10-13 | requirements-engineer | Security review SEC-05 / owner decision Q1: login required for the web portal (A1 step 1, open question closed) |

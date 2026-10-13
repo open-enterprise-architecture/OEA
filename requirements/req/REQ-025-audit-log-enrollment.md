@@ -4,9 +4,9 @@ title: Audit log entry for every enrollment process
 type: compliance
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-25
-last_updated: 2026-06-25
+last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
@@ -62,7 +62,7 @@ Concerns all enrollment paths from UC-03: TOTP (REQ-022), passkey (REQ-023), pas
 
 - Given: an enrollment process fails (e.g., TOTP verification failed, passkey cancellation, password too weak)
 - When: the failure occurs
-- Then: the audit log contains an entry with timestamp, person ID (where determinable from the token), method type, result `failure`, and failure reason (generic, without sensitive details)
+- Then: the audit log contains an entry with timestamp, person ID (from the login transaction), method type, result `failure`, and failure reason (generic, without sensitive details)
 
 **AC3**:
 
@@ -72,9 +72,9 @@ Concerns all enrollment paths from UC-03: TOTP (REQ-022), passkey (REQ-023), pas
 
 **AC4**:
 
-- Given: an invalid enrollment token is submitted (E1 from UC-03)
-- When: the failure occurs
-- Then: the audit log contains an entry with timestamp, result `failure`, failure reason `invalid_token`; no person ID (token is invalid, person not determinable)
+- Given: an enrollment request is submitted without a valid required-action state (no login transaction with a pending enrollment required action, or an expired one)
+- When: the request is rejected
+- Then: the audit log contains an entry with timestamp, result `failure`, failure reason `invalid_required_action_state`, and the person ID only if the login transaction identifies one
 
 ## Verification Method
 
@@ -103,7 +103,7 @@ Concerns all enrollment paths from UC-03: TOTP (REQ-022), passkey (REQ-023), pas
 
 - The audit log schema should be consistent with REQ-005 (login audit): same fields, same formats
 - Method type as an enum value, not free text (avoids typos in log analysis)
-- AC4 (invalid token): since the person ID is not determinable, possibly record the token hash (not plain text) in the log to detect repeated attempts
+- AC4 (invalid required-action state): repeated attempts are additionally subject to throttling (REQ-168)
 
 ## Implementation
 
@@ -121,3 +121,4 @@ Derived from UC-03 postconditions (audit log entry) and analogous to REQ-005 (au
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft from UC-03 |
+| 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-14: AC4 no longer references the rejected enrollment token (REQ-021); replaced by invalid required-action state |

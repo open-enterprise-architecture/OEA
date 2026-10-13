@@ -4,9 +4,9 @@ title: Import and export viewpoints
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
@@ -77,8 +77,8 @@ Viewpoints encapsulate visual knowledge (which types, which representation, whic
 
 **Processing**:
 
-1. Accept the file; max. size: 256 KB
-2. Parsing: YAML → internal data structure; syntax errors → immediate error message
+1. Accept the file; maximum size is the single instance-wide import limit of REQ-184 (default 10 MB); larger files → HTTP 413 before parsing
+2. Parsing: YAML → internal data structure with a safely configured parser (REQ-184); syntax errors → immediate error message
 3. Schema validation: mandatory fields present (`id`, `name`, `notation`, `viewpointType`, `allowedEntityTypes`)
 4. ID validation: all IDs in `allowedEntityTypes`, `allowedConnectionTypes` and `notationMappings.entityTypeId` MUST exist in the target MetamodelConfiguration; missing IDs → list of all errors; no partial import (BR-08 from viewpoint.md)
 5. Conflict check: viewpoint ID already exists → user chooses cancel or new ID suffix
@@ -143,7 +143,7 @@ Viewpoints encapsulate visual knowledge (which types, which representation, whic
 
 ## Dependencies
 
-- **Prerequisites**: viewpoint.md v0.2.0 (ID-based referencing as a stable foundation); REQ-033 (import pattern for diff + confirmation; viewpoint import is stricter: no partial import)
+- **Prerequisites**: viewpoint.md v0.2.0 (ID-based referencing as a stable foundation); REQ-033 (import pattern for diff + confirmation; viewpoint import is stricter: no partial import); REQ-184 (safe parsing, size limit; viewpoint files from a community library are untrusted input)
 - **Downstream effects**: Enables a community library for viewpoints (e.g., ArchiMate standard viewpoints importable from an external source)
 - **Conflicts**: none known
 
@@ -171,3 +171,4 @@ Viewpoints encapsulate visual knowledge (which types, which representation, whic
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-21: size limit harmonized with REQ-184 (was 256 KB); safe parsing referenced |

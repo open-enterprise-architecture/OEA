@@ -25,9 +25,9 @@ As an operator, I want the login process to stay within a defined latency budget
 
 **AC2**:
 
-- Given: a repository with 10,000 active API keys
-- When: 95% of API key validations are measured
-- Then: the processing time is below 100ms
+- Given: a repository with 1,000 active service accounts
+- When: 95% of client credentials token requests are measured (server-side portion)
+- Then: the processing time is below 300ms
 
 ## Technical Notes
 
@@ -48,9 +48,9 @@ As an operator, I want the login process to stay within a defined latency budget
 
 ## Dependencies
 
-- Waiting on: US-001, US-002
+- Waiting on: US-001, US-142 (US-002 rejected)
 - Blocks: none
 
 ## Notes
 
-Target values are preliminary walking skeleton assumptions (see REQ-008) and must be validated with real load measurement. Should only be meaningfully measurable once US-001/US-002 are in place.
+Target values are preliminary walking skeleton assumptions (see REQ-008) and must be validated with real load measurement. Should only be meaningfully measurable once US-001/US-142 are in place. 2026-10-13: AC2 changed from API key validation to client credentials token issuance (REQ-008 v0.2.0, security review SEC-15 / owner decision Q5).

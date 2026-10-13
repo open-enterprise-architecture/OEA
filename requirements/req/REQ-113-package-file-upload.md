@@ -4,9 +4,9 @@ title: Import Continuum Package via File Upload
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-28
-last_updated: 2026-06-28
+last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
@@ -54,17 +54,19 @@ Schema errors must be visible before the import so that the operator can correct
 
 ## Dependencies
 
-- **Prerequisites**: REQ-111 (scope protection), REQ-114 (atomic import transaction)
+- **Prerequisites**: REQ-111 (scope protection), REQ-114 (atomic import transaction), REQ-184 (safe parsing and the single instance-wide upload size limit)
 - **Consequences**: none
 
 ## Implementation Notes
 
 - Schema validation: JSON Schema or Zod on the server; convert YAML to JSON via a parser before validation
 - Error list: array of `{line, field, message}` in the 422 response body
-- File upload: multipart form upload; max file size configurable (default: 10 MB)
+- File upload: multipart form upload; max file size is the single instance-wide import limit of REQ-184 (configurable, default 10 MB); larger files → HTTP 413 before parsing
+- YAML/JSON parsers configured per REQ-184 (no type instantiation, bounded alias expansion and nesting depth)
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-21: size limit and safe parsing referenced to REQ-184 |

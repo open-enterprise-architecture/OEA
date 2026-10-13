@@ -4,9 +4,9 @@ title: Password reset by administrator
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-25
-last_updated: 2026-06-25
+last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
@@ -29,7 +29,7 @@ superseded_by: []
 
 ## Statement
 
-The system MUST allow an administrator to reset the local password of any person; in doing so, the previous password credential MUST be revoked immediately, a new password credential MUST be set (compliant with REQ-028) and displayed to the administrator once in plain text, and the required action "Change password at next login" MUST be set automatically for the affected person, blocking all application access until it has been performed.
+The system MUST allow an administrator to reset the local password of any person; in doing so, the previous password credential MUST be revoked immediately, a new password credential MUST be set (compliant with REQ-028) and displayed to the administrator once in plain text, the required action "Change password at next login" MUST be set automatically for the affected person, blocking all application access until it has been performed, and all existing sessions and refresh tokens of the person MUST be revoked. The reset password MUST expire like an initial password (REQ-173), and the person's existing second factor MUST still be required after the reset.
 
 ## Rationale
 
@@ -38,6 +38,8 @@ Password reset is a core requirement of any local user management: persons forge
 ## Context
 
 Concerns exclusively persons with an active local password credential (`LocalCredential.type=password`, `status=active`). Does not apply to the system admin account (UC-02), whose password is managed via a separate mechanism (REQ-013/REQ-014). OIDC persons have no local password credential; this process is not applicable to them. The reset is an admin action with an audit obligation.
+
+Security review SEC-06, SEC-12 (2026-10-13): a reset that leaves existing sessions running does not help after a device theft; a reset that skips the second factor lets a malicious or compromised admin take over another account; a peer admin resetting another admin's password is an escalation path. Version 0.2.0 therefore revokes sessions (REQ-164), keeps the second factor, and restricts resets of accounts with `admin`-class permissions to the system admin account (REQ-173).
 
 ## Type-Specific Fields
 
@@ -50,15 +52,16 @@ Concerns exclusively persons with an active local password credential (`LocalCre
 
 **Processing** (atomar / transaktional):
 
-1. Authorization check: the executing user must have the admin role
+1. Authorization check: the executing user must hold the permission for person credential management (REQ-157); if the target person holds an `admin`-class permission, the executing principal must be the system admin account
 2. The target person must exist and have an active `LocalCredential.type=password`
 3. Validate the new password against REQ-028 policies
-4. Hash the new password (argon2id preferred; bcrypt as fallback)
+4. Hash the new password with argon2id (REQ-169)
 5. Set the person's previous active password credential to `status=revoked`, `revokedReason=admin_action`, `revokedAt=now`
-6. Create a new `LocalCredential (type=password, status=active)` and link it to the person
+6. Create a new temporary `LocalCredential (type=password, status=active)` with expiry (REQ-173) and link it to the person
 7. Set the required action `password_change` for the person (in the Person object or a separate required actions table)
-8. Write an audit log entry: admin person ID, target person ID, timestamp, action `password_reset`
-9. Return the new plain-text password once
+8. Revoke all sessions and refresh tokens of the target person (REQ-164)
+9. Write an audit log entry: admin person ID, target person ID, timestamp, action `password_reset`
+10. Return the new plain-text password once
 
 **Outputs**:
 
@@ -71,6 +74,7 @@ Concerns exclusively persons with an active local password credential (`LocalCre
 - Person has no active password credential → error message ("Person has no local password; set the initial password via REQ-024")
 - New password does not meet REQ-028 policies → error message; no credential change
 - Executing user has no admin permission → 403 Forbidden; audit log entry for the unauthorized access attempt
+- Target person holds an `admin`-class permission and the executing principal is not the system admin account → 403 Forbidden; audit log entry
 - System admin account as target → 400 Bad Request; this mechanism does not apply to the system admin account
 
 ## Acceptance Criteria
@@ -111,12 +115,30 @@ Concerns exclusively persons with an active local password credential (`LocalCre
 - When: the admin makes the request
 - Then: it is rejected with an error; no credential changed
 
+**AC7**:
+
+- Given: the target person has two active sessions
+- When: the reset completes
+- Then: every further request of these sessions, including refresh token use, is rejected with 401
+
+**AC8**:
+
+- Given: the target person has an active TOTP or passkey credential
+- When: the person logs in with the reset password
+- Then: the second factor is still required before the required action `password_change`
+
+**AC9**:
+
+- Given: an administrator who is not the system admin account and a target person holding an `admin`-class permission
+- When: the administrator requests the reset
+- Then: it is rejected with 403, no credential is changed, and an audit event is written
+
 ## Verification Method
 
 - [x] Method: test (automated)
 - [x] Test setup: admin resets password; login with old password (AC3); login with new password + required action check (AC2); audit log check (AC4); rollback test (AC5)
 - [x] Measurement tool: test suite of the admin module and auth module; DB inspection in the test
-- [x] Pass criterion: AC1–AC6 green
+- [x] Pass criterion: AC1–AC9 green
 - [ ] Integrated in CI: yes, once the implementation exists
 
 ## Dependencies
@@ -126,6 +148,7 @@ Concerns exclusively persons with an active local password credential (`LocalCre
   - REQ-027 (password generator, recommended for the new password)
   - REQ-028 (password policies; the new password must be compliant)
   - LocalCredential BO (BR-03: max. 1 active password credential; the reset process maintains this)
+  - REQ-164 (session revocation), REQ-169 (password storage), REQ-173 (temporary password lifecycle), REQ-172 (re-authentication of the executing admin)
 - **Downstream effects**: After the reset, the person must change their password at next login (required action `password_change`); this required action flow is the subject of a future UC (password change at login)
 - **Conflicts**: REQ-013/REQ-014 (the system admin account has its own mechanism; this REQ explicitly does not apply to it)
 
@@ -163,3 +186,4 @@ Derived from operator requirement (SH-06): manual password reset for users. The 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-06/SEC-12: revoke sessions on reset, keep second factor, expiry of reset password, admin-on-admin reset only by system admin (AC7–AC9); argon2id only |

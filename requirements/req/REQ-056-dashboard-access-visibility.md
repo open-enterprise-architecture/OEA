@@ -4,9 +4,9 @@ title: Dashboard access and visibility (scope logic)
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-10-13
 author: requirements-engineer
 references:
   use_cases:
@@ -62,10 +62,10 @@ Dashboards can contain confidential company metrics. Scope control ensures that 
 - `GET /api/v1/dashboards/{id}/data`
 - Same visibility rule as for the configuration
 
-**Web portal (public instance)**:
+**Web portal**:
 
-- If the OEA instance is configured as public: `scope=instance` dashboards are readable without login
-- If the instance requires login: all endpoints require authentication (UC-01)
+- All endpoints, including the web portal, require authentication (UC-01); there is no public or anonymous mode in v1 (owner decision Q1 of the 2026-10 security review, finding SEC-05; REQ-163)
+- Dashboard data is subject to property visibility on all read channels (REQ-160)
 
 ## Business Rules
 
@@ -111,7 +111,7 @@ Dashboards can contain confidential company metrics. Scope control ensures that 
 
 ## Dependencies
 
-- Obtains authentication from: REQ-001–007 (UC-01 Login)
+- Obtains authentication from: REQ-001–007 (UC-01 Login); REQ-163 (no anonymous access); REQ-159 (object-level authorization)
 - Permission model: role "Enterprise Architect" = dashboard write permission (analogous to catalog permission)
 
 ## Change History
@@ -119,3 +119,4 @@ Dashboards can contain confidential company metrics. Scope control ensures that 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; scope enforcement, URL access protection, upgrade/downgrade logic |
+| 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-05 / owner decision Q1: "public instance" without login removed; references REQ-159, REQ-160, REQ-163 |
