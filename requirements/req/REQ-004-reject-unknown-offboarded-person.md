@@ -4,7 +4,7 @@ title: Rejection of session creation for unknown or offboarded persons
 type: functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-24
 last_updated: 2026-10-13
 author: requirements-engineer
@@ -88,6 +88,12 @@ Security review SEC-06 and SEC-07: only `offboarded` was rejected, so persons in
 - When: the login process is completed
 - Then: no session is created for that person
 
+**AC5** (Reactivation configurable, owner decision Q19):
+
+- Given: a person in status `offboarded` and the setting `allowReactivationOfOffboarded` disabled (default)
+- When: a principal with `person:manage` tries to reactivate the person
+- Then: the request is rejected; with the setting enabled the person returns to `invited` without role assignments and without local credentials, and the login is still rejected until the invitation is completed
+
 ## Verification Method
 
 - [x] Method: test (automated)
@@ -132,3 +138,4 @@ Derived from UC-01 Login, Exception Flow E2.
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-06/SEC-07: reject every status other than `active`/`invited`; match on (`iss`, `sub`) only; AC3, AC4 added |
+| 0.3.0 | 2026-10-13 | Lukas Mathis | AC5: reactivation of offboarded persons only if `allowReactivationOfOffboarded` is enabled (owner decision Q19) |

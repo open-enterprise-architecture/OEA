@@ -2,7 +2,7 @@
 identifier: session
 name_de: Sitzung
 name_en: Session
-version: 0.1.0
+version: 0.2.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -110,6 +110,7 @@ revoked            (logout, revocation triggers of REQ-164, token reuse)
 | BR-04 | Idle timeout (default 30 min) and absolute lifetime (default 12 h) are enforced by OEA regardless of IdP token lifetimes | onRequest | REQ-165 |
 | BR-05 | Group claims are re-evaluated at every IdP refresh, at the latest every 15 minutes; if the refresh fails, the session ends (`idp-refresh-failed`) | onRefresh | Q16 |
 | BR-06 | Permissions, tokens and secrets are never returned from the session store; tokens are stored only as hashes, the IdP refresh token only encrypted | onRead | REQ-165, REQ-188 |
+| BR-07 | When a session ends (revoked or expired), the encrypted IdP refresh token is removed and all refresh tokens of the session are deleted immediately; the session record (principal, times, client IP, user agent, end reason) is deleted after the setting `sessionRetentionDays` (default 30). Security events remain in the audit log (REQ-175) | onSessionEnd, daily job | owner decision Q20, REQ-189 |
 
 ## Examples
 
@@ -152,3 +153,4 @@ Created for REQ-164, REQ-165, ADR-032 DM-10 and owner decision Q16 (security rev
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | Business Engineer | Initial draft from REQ-164, REQ-165, ADR-032 DM-10, Q16 |
+| 0.2.0 | 2026-10-13 | Lukas Mathis | BR-07: retention of ended sessions (secrets immediately, record 30 days configurable; owner decision Q20) |

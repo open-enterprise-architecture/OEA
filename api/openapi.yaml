@@ -1280,18 +1280,32 @@ components:
       properties:
         reason: { type: [string, 'null'], maxLength: 500 }
 
-    RoleAssignmentRequest:
+    ApprovalRequest:
       type: object
-      required: [id, person, role, status, validFrom, requestedBy, requestedAt, sodConflict]
+      required: [id, kind, status, requestedBy, requestedAt, sodConflict]
       description: |
-        Pending assignment of a privileged role awaiting four-eyes approval
-        (setting `privilegedAssignmentApproval`, owner decision Q15).
+        Privileged change awaiting four-eyes approval (setting `privilegedAssignmentApproval`,
+        owner decisions Q15/Q18). Kinds: assignment of a privileged role to a person
+        (`role-assignment`), IdP group mapping to a privileged role (`idp-group-mapping`),
+        and adding an admin-class permission to a custom role (`role-permission`).
       properties:
         id:          { type: string, format: uuid }
-        person:      { $ref: '#/components/schemas/PrincipalRef' }
+        kind:        { type: string, enum: [role-assignment, idp-group-mapping, role-permission] }
+        person:
+          description: Assignee (kind `role-assignment` only)
+          oneOf:
+            - $ref: '#/components/schemas/PrincipalRef'
+            - type: 'null'
         role:        { $ref: '#/components/schemas/RoleRef' }
-        status:      { type: string, enum: [pending, approved, rejected] }
-        validFrom:   { type: string, format: date-time }
+        idpGroupMappingId:
+          type: [string, 'null']
+          format: uuid
+          description: Pending mapping (kind `idp-group-mapping` only)
+        permission:
+          type: [string, 'null']
+          description: Admin-class permission to be added to `role` (kind `role-permission` only)
+        status:      { type: string, enum: [pending, approved, rejected, expired] }
+        validFrom:   { type: [string, 'null'], format: date-time }
         validTo:     { type: [string, 'null'], format: date-time }
         reason:      { type: [string, 'null'] }
         requestedBy: { $ref: '#/components/schemas/PrincipalRef' }
@@ -1305,10 +1319,10 @@ components:
         assignmentId:
           type: [string, 'null']
           format: uuid
-          description: Resulting assignment after approval
+          description: Resulting assignment after approval (kind `role-assignment`)
         sodConflict: { type: boolean }
 
-    RoleAssignmentDecision:
+    ApprovalDecision:
       type: object
       properties:
         reason: { type: [string, 'null'], maxLength: 500 }
@@ -1595,9 +1609,25 @@ components:
           type: boolean
           default: false
           description: |
-            Four-eyes approval for assignments of privileged roles (owner decision Q15).
-            When `true`, such assignments stay pending until a second principal with
-            `role:assign`, who is neither the requester nor the assignee, approves them.
+            Four-eyes approval for privileged changes (owner decisions Q15, Q18): assignments
+            of privileged roles, IdP group mappings to privileged roles, and adding an
+            admin-class permission to a custom role. When `true`, such changes stay pending
+            (`202` with an `ApprovalRequest`) until a second principal with `role:assign`, who
+            is neither the requester nor the assignee, approves them.
+        allowReactivationOfOffboarded:
+          type: boolean
+          default: false
+          description: |
+            Whether persons in status `offboarded` may be reactivated (owner decision Q19).
+            A reactivated person returns to `invited` without roles and without factors.
+        sessionRetentionDays:
+          type: integer
+          minimum: 0
+          default: 30
+          description: |
+            Days an ended session record (principal, times, client IP, user agent, end
+            reason) is kept before deletion (owner decision Q20). Tokens and token hashes
+            are deleted immediately when a session ends.
         licenseKey:         { type: [string, 'null'] }
         sseEnabled:         { type: boolean }
 
@@ -3057,6 +3087,11 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AuthorizationRole' }
+        '202':
+          description: Accepted – change needs four-eyes approval (`privilegedAssignmentApproval`, Q18); the change takes effect after approval
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApprovalRequest' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -3110,6 +3145,11 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AuthorizationRole' }
+        '202':
+          description: Accepted – change needs four-eyes approval (`privilegedAssignmentApproval`, Q18); the change takes effect after approval
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApprovalRequest' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -3202,7 +3242,7 @@ paths:
               description: URL of the pending request
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/RoleAssignmentRequest' }
+              schema: { $ref: '#/components/schemas/ApprovalRequest' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -3248,16 +3288,19 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
 
-  /admin/role-assignment-requests:
+  /admin/approval-requests:
     get:
-      operationId: listRoleAssignmentRequests
-      summary: Pending four-eyes requests for privileged role assignments (Q15)
+      operationId: listApprovalRequests
+      summary: Four-eyes requests for privileged changes (Q15, Q18)
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
       parameters:
         - name: status
           in: query
-          schema: { type: string, enum: [pending, approved, rejected], default: pending }
+          schema: { type: string, enum: [pending, approved, rejected, expired], default: pending }
+        - name: kind
+          in: query
+          schema: { type: string, enum: [role-assignment, idp-group-mapping, role-permission] }
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/PageSizeParam'
       responses:
@@ -3271,21 +3314,22 @@ paths:
                 properties:
                   items:
                     type: array
-                    items: { $ref: '#/components/schemas/RoleAssignmentRequest' }
+                    items: { $ref: '#/components/schemas/ApprovalRequest' }
                   page: { $ref: '#/components/schemas/PageMeta' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
-  /admin/role-assignment-requests/{requestId}/approve:
+  /admin/approval-requests/{requestId}/approve:
     post:
-      operationId: approveRoleAssignmentRequest
-      summary: Approve a pending privileged role assignment (four-eyes, Q15)
+      operationId: approveApprovalRequest
+      summary: Approve a pending privileged change (four-eyes, Q15, Q18)
       description: |
-        Creates the assignment (`role.assigned` with the approver recorded). The approver
+        Applies the change: creates the role assignment, activates the IdP group mapping or
+        adds the permission to the custom role; the approver is recorded. The approver
         must be neither the requester nor the assignee (also not via a linked local system
         admin account) → otherwise `403`. Request no longer pending, or the assignment is
-        no longer valid (role deleted, target offboarded) → `409`.
+        no longer valid (role or mapping deleted, target offboarded) → `409`.
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
       parameters:
@@ -3297,23 +3341,23 @@ paths:
         required: false
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/RoleAssignmentDecision' }
+            schema: { $ref: '#/components/schemas/ApprovalDecision' }
       responses:
         '200':
           description: Approved; the request references the created assignment
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/RoleAssignmentRequest' }
+              schema: { $ref: '#/components/schemas/ApprovalRequest' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
 
-  /admin/role-assignment-requests/{requestId}/reject:
+  /admin/approval-requests/{requestId}/reject:
     post:
-      operationId: rejectRoleAssignmentRequest
-      summary: Reject (or, as requester, withdraw) a pending privileged role assignment
+      operationId: rejectApprovalRequest
+      summary: Reject (or, as requester, withdraw) a pending privileged change
       description: |
         The assignee cannot decide on their own request → `403` (SoD-1). Request no
         longer pending → `409`.
@@ -3328,13 +3372,13 @@ paths:
         required: false
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/RoleAssignmentDecision' }
+            schema: { $ref: '#/components/schemas/ApprovalDecision' }
       responses:
         '200':
           description: Rejected
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/RoleAssignmentRequest' }
+              schema: { $ref: '#/components/schemas/ApprovalRequest' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -3382,6 +3426,11 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/IdpGroupMapping' }
+        '202':
+          description: Accepted – change needs four-eyes approval (`privilegedAssignmentApproval`, Q18); the change takes effect after approval
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApprovalRequest' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -3421,6 +3470,11 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/IdpGroupMapping' }
+        '202':
+          description: Accepted – change needs four-eyes approval (`privilegedAssignmentApproval`, Q18); the change takes effect after approval
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApprovalRequest' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }

@@ -349,6 +349,18 @@ package "Authorization" #FFFDE7 {
   class role_permissions <<Table>> #FFF59D {
     + role_id        : TEXT               {PK} {FK→authorization_roles.id}
     + permission_id  : TEXT               {PK} {FK→permissions.id}
+    + added_at       : TIMESTAMPTZ        {NN} DEFAULT NOW()
+    + added_by_person_id : BIGINT         {FK→persons.id}
+    + added_by_admin_id  : UUID           {FK→system_admin_accounts.id}
+    == Four-eyes approval (Q18, setting privilegedAssignmentApproval) ==
+    + approval_status   : TEXT            {NN} DEFAULT 'approved'
+    .. enum: pending | approved | rejected | expired ..
+    .. pending only for admin-class permissions on custom roles while the setting is on ..
+    + decided_at        : TIMESTAMPTZ
+    + decided_by_person_id : BIGINT       {FK→persons.id}
+    + decided_by_admin_id  : UUID         {FK→system_admin_accounts.id}
+    .. approver ≠ requester ..
+    .. permission effective only when approval_status = approved ..
   }
 
   class role_assignments <<Table>> #FFF59D {
@@ -417,6 +429,15 @@ package "Authorization" #FFFDE7 {
     + role_id           : TEXT            {NN} {FK→authorization_roles.id}
     .. role_id = 'system-admin' = remote system admin (DM-6, REQ-014) ..
     + active            : BOOLEAN         {NN} DEFAULT true
+    == Four-eyes approval (Q18, setting privilegedAssignmentApproval) ==
+    + approval_status   : TEXT            {NN} DEFAULT 'approved'
+    .. enum: pending | approved | rejected | expired ..
+    .. pending only for privileged target roles while the setting is on ..
+    + decided_at        : TIMESTAMPTZ
+    + decided_by_person_id : BIGINT       {FK→persons.id}
+    + decided_by_admin_id  : UUID         {FK→system_admin_accounts.id}
+    .. approver ≠ requester ..
+    .. mapping evaluated only when active AND approval_status = approved ..
     + created_at        : TIMESTAMPTZ     {NN} DEFAULT NOW()
     + created_by_person_id : BIGINT       {FK→persons.id}
     + created_by_admin_id  : UUID         {FK→system_admin_accounts.id}
@@ -489,6 +510,11 @@ package "Sessions" #FFF3E0 {
     .. password-reset | factor-reset | refresh-token-reuse | idp-refresh-failed | admin-action ..
     + revoked_by_person_id : BIGINT       {FK→persons.id}
     + revoked_by_admin_id  : UUID         {FK→system_admin_accounts.id}
+    == Retention (Q20) ==
+    .. on end (revoked or expired): idp_refresh_token_encrypted set to NULL and ..
+    .. refresh_tokens of the session deleted immediately; the session row is ..
+    .. deleted after setting sessionRetentionDays (default 30) ..
+    .. security events remain in the audit log (REQ-175) ..
   }
 
   class session_idp_roles <<Table>> #FFE0B2 {

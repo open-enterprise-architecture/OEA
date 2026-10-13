@@ -4,7 +4,7 @@ title: Optional four-eyes approval for privileged role assignments
 type: business-rule
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-10-13
 last_updated: 2026-10-13
 author: requirements-engineer
@@ -30,7 +30,7 @@ superseded_by: []
 
 ## Statement
 
-When the operator setting `privilegedAssignmentApproval` is enabled (default: disabled), the system **MUST** keep every new local assignment of a privileged authorization role in the state `pending` – without any effect on permissions – until a second principal holding `role:assign`, who is neither the requester nor the assignee, approves it; when the setting is disabled, the system **MUST** notify all administrators of every new privileged role assignment.
+When the operator setting `privilegedAssignmentApproval` is enabled (default: disabled), the system **MUST** keep every privileged change in the state `pending` – without any effect on permissions – namely (a) a new local assignment of a privileged authorization role, (b) a new IdP group mapping to a privileged role or a change of a mapping's target to a privileged role, and (c) adding an admin-class permission to a custom role (owner decision Q18), until a second principal holding `role:assign`, who is neither the requester nor the assignee, approves it; when the setting is disabled, the system **MUST** notify all administrators of every new privileged role assignment.
 
 ## Rationale
 
@@ -133,6 +133,18 @@ on now >= a.requestedAt + approvalTimeout and a.state = pending:
 - When: a principal with `settings:manage` tries to enable `privilegedAssignmentApproval`
 - Then: the change is rejected with 422 and a message that approval requires at least two administrators; every successful change of the setting writes an audit event with old and new value
 
+**AC10** (IdP group mapping to a privileged role):
+
+- Given: `privilegedAssignmentApproval` is enabled
+- When: an administrator creates an IdP group mapping to `security-admin`
+- Then: the mapping is `pending` and not evaluated at login or token refresh until a second administrator approves it
+
+**AC11** (Admin-class permission on a custom role):
+
+- Given: `privilegedAssignmentApproval` is enabled and a custom role `data-steward` without admin-class permissions
+- When: an administrator adds `visibility:configure` to `data-steward`
+- Then: the permission is `pending`, holders of `data-steward` do not gain it, and it becomes effective only after approval by a second administrator
+
 **AC9** (Revocation not delayed):
 
 - Given: `privilegedAssignmentApproval` is enabled
@@ -182,3 +194,4 @@ Open points for owner/PO decision:
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from UC-23, ADR-032 §6 and owner decision Q15 |
+| 0.2.0 | 2026-10-13 | Lukas Mathis | Scope extended to IdP group mappings to privileged roles and admin-class permissions on custom roles (owner decision Q18); AC10, AC11 |

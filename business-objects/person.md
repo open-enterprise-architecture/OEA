@@ -2,7 +2,7 @@
 identifier: person
 name_de: Person (Konto)
 name_en: Person (Account)
-version: 0.3.0
+version: 0.4.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -109,6 +109,7 @@ invited → active ⇄ inactive
 - `invited → active`: first successful login (REQ-007); system transition
 - `active → inactive`, `inactive → active`: principal with `person:manage` or HR master system
 - `* → offboarded`: principal with `person:manage` or HR master system; rejected if it removes the last path to `system-admin` (SoD-7)
+- `offboarded → invited`: reactivation, only if the setting `allowReactivationOfOffboarded` is enabled (default off, owner decision Q19); principal with `person:manage`; the person returns without role assignments and without local factors, and existing identity bindings must be confirmed again
 - Service accounts: created as `active`; `active ⇄ inactive` and `→ offboarded` with `service-account:manage`
 
 ## Business Rules
@@ -121,6 +122,7 @@ invited → active ⇄ inactive
 | BR-04 | Leaving status `active` revokes all sessions and refresh tokens within 60 s; `offboarded` additionally revokes all local role assignments | onUpdate | REQ-164, UC-23 A2 |
 | BR-05 | The account link `entityId` is set only by a principal with `person:manage`, never for its own account (or the account linked to its system admin account), and is audited | onUpdate | ADR-032 SoD-1, DM-7 |
 | BR-06 | Service accounts have no identity binding, no local credentials, no sessions, no account link and are never targets of IdP group mappings | onCreate, onUpdate | ADR-032 SoD-4, REQ-176 |
+| BR-07 | Reactivation of an `offboarded` person is rejected unless the setting `allowReactivationOfOffboarded` is enabled; a reactivated person starts in `invited` without role assignments and without local credentials | onUpdate | owner decision Q19, REQ-004 |
 
 ## Examples
 
@@ -186,3 +188,4 @@ Open questions:
 | 0.1.0 | 2026-06-24 | Business Engineer | Initial draft in the context of UC-01 Login |
 | 0.2.0 | 2026-06-28 | Business Engineer | Added `uiTheme` attribute (REQ-135: dark mode preference per person, persisted server-side) |
 | 0.3.0 | 2026-10-13 | Business Engineer | ADR-032 / security review: `active` → lifecycle `status`; identity binding (`issuer`, `subject`, unique); account link `entityId` to the Person entity (DM-7); `personType` documented; `fillsRoles` limited to business roles, authorization via `role-assignment` (DM-4); BR-01 reworded, BR-03 to BR-06 added |
+| 0.4.0 | 2026-10-13 | Lukas Mathis | Reactivation of offboarded persons configurable (`allowReactivationOfOffboarded`, default off; owner decision Q19) |

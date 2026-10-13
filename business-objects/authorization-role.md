@@ -2,7 +2,7 @@
 identifier: authorization-role
 name_de: Berechtigungsrolle
 name_en: Authorization Role
-version: 0.1.0
+version: 0.2.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -107,6 +107,7 @@ The catalog is seeded per release and read-only at runtime; descriptions are sys
 | BR-06 | The override list is empty by default: no built-in role has `overridesPropertyVisibility = true` on delivery; a change of the flag that benefits the acting principal is audited and flagged `selfBenefiting` (SoD-6) | onCreate (seed), onUpdate | Q14, REQ-128, REQ-161 |
 | BR-07 | A role referenced by a `granted` or `pending` role assignment, an active IdP group mapping or a property visibility configuration MUST NOT be deleted (422) | onDelete | ADR-032 §5 |
 | BR-08 | Effective permissions of a principal = union of the permissions of all its active roles; no implicit hierarchy; privileged permissions are effective only in sessions with a verified second factor (SoD-8) | onRequest | REQ-157, REQ-171 |
+| BR-09 | While `privilegedAssignmentApproval` is enabled, adding an admin-class permission to a custom role stays `pending` until a second administrator (not the requester) approves; a pending permission has no effect | onUpdate | owner decision Q18, REQ-194 |
 
 ## Examples
 
@@ -168,3 +169,4 @@ Soft delete instead of hard delete because revoked role assignments and session 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | Business Engineer | Initial draft from ADR-032 (DM-1, DM-2, DM-3, DM-9) and owner decision Q14 |
+| 0.2.0 | 2026-10-13 | Lukas Mathis | BR-09: four-eyes approval for admin-class permissions on custom roles (owner decision Q18) |

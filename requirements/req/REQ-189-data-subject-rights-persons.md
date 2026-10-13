@@ -4,7 +4,7 @@ title: Data subject rights and minimization for persons
 type: compliance
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-10-13
 last_updated: 2026-10-13
 author: requirements-engineer
@@ -72,6 +72,12 @@ Source: security review SEC-28 (proposal PR-33). ADR-024 stores `actor_name` and
 - When: it calls any portal or view endpoint
 - Then: no actor e-mail is present in any response
 
+**AC4** (Retention of ended sessions, owner decision Q20):
+
+- Given: a session that ended by logout or expiry, and the default setting `sessionRetentionDays = 30`
+- When: the session ends, and again 31 days later
+- Then: the IdP refresh token and all refresh tokens of the session are deleted at the end; the session record (principal, times, client IP, user agent, end reason) is deleted after 30 days, while the login and logout events remain in the audit log
+
 ## Verification Method
 
 - [ ] Method: test (automated) + inspection (record of processing in operator documentation)
@@ -97,3 +103,4 @@ Source: security review SEC-28 (proposal PR-33). ADR-024 stores `actor_name` and
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-28 (PR-33) |
+| 0.2.0 | 2026-10-13 | Lukas Mathis | AC4: retention of ended sessions (owner decision Q20) |

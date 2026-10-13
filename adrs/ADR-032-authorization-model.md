@@ -31,6 +31,10 @@ The owner decisions of 2026-10-13 that shape the model:
 | Q14 | Nobody reads restricted properties by default; access only via `readRoles` of the property | Override role list (REQ-128) is empty by default |
 | Q15 | Four-eyes approval for privileged role assignments is optional and chosen by the operator | Setting `privilegedAssignmentApproval` (default off); assignments are always audited and all admins are notified |
 | Q16 | Removing a person from an IdP group takes effect in OEA within 15 minutes | Group claims are re-evaluated at every token refresh, at the latest every 15 minutes |
+| Q17 | If the IdP cannot be reached or rejects the refresh, IdP-derived roles no longer apply (fail closed); locally assigned roles stay | REQ-165 AC6 |
+| Q18 | When four-eyes approval is enabled, it also covers IdP group mappings to privileged roles and adding admin-class permissions to custom roles | REQ-194 AC10/AC11; approval requests of three kinds |
+| Q19 | Reactivation of offboarded persons is configurable (`allowReactivationOfOffboarded`, default off); a reactivated person starts without roles and factors | REQ-004 AC5 |
+| Q20 | Ended sessions: tokens deleted immediately, session record deleted after 30 days (configurable) | REQ-189 AC4 |
 
 ## Decision Drivers
 
@@ -249,7 +253,7 @@ The following rules are system invariants, enforced in the application layer, in
 - **SoD-7 – Administration cannot be lost**: there must always be at least one usable path to `system-admin`: an active local system admin account, an active IdP group mapping to `system-admin`, or an active assignment of `system-admin` to an active person. Revoking, expiring (setting `validTo`) or deactivating the last such path is rejected (HTTP 409).
 - **SoD-8 – Privileged roles require MFA**: a privileged role becomes effective in a session only if the session was established with a second factor (local: passkey/TOTP; OIDC: `amr`/`acr` per REQ-020/REQ-171). Without it, the person is led to enrollment and holds only the non-privileged part of their permissions.
 
-Collusion of two administrators (e.g. a security admin assigning `system-admin` to a colleague who reciprocates) is made visible by audit events, a notification to all administrators and the access review. Operators with more than one administrator can additionally enable **four-eyes approval** (Q15, setting `privilegedAssignmentApproval`, default off): an assignment of a privileged role then stays pending until a second administrator, who is neither the requester nor the assignee, approves it.
+Collusion of two administrators (e.g. a security admin assigning `system-admin` to a colleague who reciprocates) is made visible by audit events, a notification to all administrators and the access review. Operators with more than one administrator can additionally enable **four-eyes approval** (Q15, setting `privilegedAssignmentApproval`, default off): an assignment of a privileged role then stays pending until a second administrator, who is neither the requester nor the assignee, approves it. The same applies to IdP group mappings to privileged roles and to adding an admin-class permission to a custom role (Q18), so that the approval cannot be bypassed.
 
 ### 7. Where roles come from
 
