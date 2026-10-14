@@ -6,14 +6,20 @@ on:
   pull_request:
     branches: [main]
 
+# Least privilege (REQ-192): read-only token for all jobs
+permissions:
+  contents: read
+
 jobs:
   # ── 1. Link validation ───────────────────────────────────────────────────
   validate-links:
     name: Link validation (concept/)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
       - name: Check relative links
@@ -24,8 +30,10 @@ jobs:
     name: Agent configuration in sync
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
       - name: Check single source of truth
@@ -36,7 +44,9 @@ jobs:
     name: Requirements completeness
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Traceability matrix up to date
         run: python3 scripts/generate_traceability.py --check
@@ -118,12 +128,14 @@ jobs:
     name: OpenAPI validation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
       - name: Install Redocly CLI
-        run: npm install -g @redocly/cli@latest
+        run: npm install -g @redocly/cli@2.63.0
       - name: Validate OpenAPI
         run: redocly lint api/openapi.yaml --format=github-actions
       - name: Check authorization declared on every operation (ADR-032)
@@ -134,8 +146,10 @@ jobs:
     name: Markdown lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: DavidAnson/markdownlint-cli2-action@v24
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff # v24.2.0
         with:
           globs: |
             **/*.md
@@ -149,8 +163,8 @@ jobs:
   #   name: Backend Build & Test
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v7
-  #     - uses: actions/setup-java@v6
+  #     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+  #     - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
   #       with: { java-version: '21', distribution: 'temurin' }
   #     - run: ./mvnw verify
   #
@@ -158,7 +172,7 @@ jobs:
   #   name: Frontend Build & Typecheck
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v7
-  #     - uses: actions/setup-node@v7
+  #     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+  #     - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
   #       with: { node-version: '24' }
   #     - run: cd frontend && npm ci && npm run type-check && npm run build
