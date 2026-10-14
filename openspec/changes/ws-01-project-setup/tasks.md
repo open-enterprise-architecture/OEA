@@ -6,7 +6,7 @@
 - [x] 1.2 Add `GET /health` to `api/openapi.yaml` (public, tag `Operations`, `{ "status": "UP" }`, `429`) and `getHealth` to the public allowlist of `scripts/check_openapi_authorization.py`; verify Redocly lint and the authorization check pass
 - [x] 1.3 Configure `openapi-generator-maven-plugin` (generator `spring`, `interfaceOnly`, `useSpringBoot4`, Jackson 3) to generate server interfaces from `api/openapi.yaml`; verify the build generates `OperationsApi` with `getHealth` (interfaces are grouped by tag) and compiles
 - [x] 1.4 Implement `GET /health` (served as `/api/v1/health` under the contract's server base path) by aggregating the Actuator health indicators without details, all actuator endpoints unexposed; verify with a web slice test that `/health` returns 200 `{"status":"UP"}` (503 `DOWN` if an indicator is down) and with an integration test that `/actuator/env` returns 404
-- [ ] 1.5 Add ArchUnit layer rules for `api → app → core` (ADR-028); verify the architecture test passes and fails on a deliberately wrong dependency in a test fixture
+- [x] 1.5 Add ArchUnit layer rules for `api → app → core` (ADR-028); verify the architecture test passes and fails on a deliberately wrong dependency in a test fixture
 
 ## 2. Database roles, provisioning and migration step
 
