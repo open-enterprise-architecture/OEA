@@ -153,6 +153,16 @@ This scenario proves all technical layers end to end. The architecture works.
 | Starter package | oea-starter-togaf-classic as JSON import | ADR-005 |
 | Audit | Audit events in a separate schema, from the start; owner/runtime role separation in the first migration; hash chain | ADR-024, ADR-033 |
 
+### Repository Security Setup (Tasks for the First Backend Change)
+
+When the first OpenSpec change creates `backend/pom.xml`, it contains these tasks:
+
+- **Dependency submission for Maven**: the GitHub dependency graph reads only the direct dependencies from `pom.xml`; transitive dependencies are known only after Maven resolves them. Either set *Settings → Advanced Security → Automatic dependency submission* to **Enabled** (GitHub-hosted runners), or add a dedicated, SHA-pinned workflow with the official Maven dependency submission action whose job alone has `contents: write` (REQ-191, REQ-192). Decide in the change's design; prefer the dedicated workflow if it keeps all workflows under version control and Dependabot updates.
+- **Verify** that Dependabot alerts show transitive backend dependencies (e.g. Spring Framework modules pulled in by Spring Boot).
+- Frontend and Electron need no dependency submission: `package-lock.json` already contains the full dependency tree.
+
+Repository settings already expected before the walking skeleton (owner, *Settings → Advanced Security*): private vulnerability reporting, dependency graph, Dependabot alerts and secret scanning enabled; automatic dependency submission disabled until `backend/pom.xml` exists.
+
 ---
 
 ## DoD Criterion
@@ -160,12 +170,13 @@ This scenario proves all technical layers end to end. The architecture works.
 The walking skeleton counts as implemented when the scenario above runs through completely:
 
 - `docker compose -f compose.dev.yaml --profile dev up` starts without errors
-- The first Flyway migration creates the owner/runtime role separation for the audit schema; the application refuses to start if the runtime role owns audit objects or holds UPDATE/DELETE on them (ADR-033 §1, sign-off condition of the security review)
+- The provisioning step creates the database roles (ADR-037) and the first audit migration sets the owner/runtime grants; the application refuses to start if the runtime role owns audit objects or holds UPDATE/DELETE on them (ADR-033 §1, sign-off condition of the security review)
 - Bootstrapping step completed
 - OIDC login against the Keycloak dev realm with PKCE successful; no authentication stub in the production artifact (ADR-036 build checks green)
 - Starter package imported
 - Entities created via batch API
 - Catalog created, entities visible and sortable in the catalog table
 - Cucumber scenarios of the skeleton acceptance criteria green in CI
+- Transitive backend dependencies visible in the GitHub dependency graph (dependency submission for Maven active)
 
 **No canvas, no solutions, no joins, no filters, no dashboard** — that is the skeleton.
