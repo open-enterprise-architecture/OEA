@@ -27,7 +27,7 @@
 
 ## 4. Environments
 
-- [ ] 4.1 Write the backend `Dockerfile` (multi-stage, JDK/JRE base images pinned by digest, non-root user, `migrate` and `serve` entry points); verify `docker build` succeeds and the container runs as non-root
+- [x] 4.1 Write the backend `Dockerfile` (multi-stage, JDK/JRE base images pinned by digest, non-root user, `migrate` and `serve` entry points); verify `docker build` succeeds and the container runs as non-root
 - [ ] 4.2 Write `compose.yaml` (PostgreSQL, `migrate`, backend; no IdP; every secret `${VAR:?…}`) and `.env.example` with empty values; add `.env` to `.gitignore`; verify `docker compose -f compose.yaml config` fails with an empty environment naming the missing variables (spec: Empty environment)
 - [ ] 4.3 Write `scripts/check_compose_secrets.py` (no literal secrets or `${VAR:-…}` defaults in `compose.yaml`, all published ports of `compose.dev.yaml` bound to `127.0.0.1`, every development service with `profiles: ["dev"]`); verify it passes and fails on seeded violations
 - [ ] 4.4 Write `dev/keycloak/realm-oea-dev.json` with the clients, groups (fixed UUIDs, `groups` claim as identifiers), test users and TOTP secrets of ADR-036 §4; verify Keycloak imports it and a discovery request to `http://localhost:8180/realms/oea-dev/.well-known/openid-configuration` returns 200
