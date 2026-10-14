@@ -48,6 +48,7 @@ The repository contains requirements, ADRs, the data model and `api/openapi.yaml
 - Configuration guards (secrets, CORS, Swagger UI, inverse `dev` guard) run before the web server starts, on the prepared environment only.
 - Database checks (PostgreSQL version, audit privileges and ownership via `pg_roles`, `has_table_privilege`, `pg_tables.tableowner`) run after the datasource is available and before the web server accepts connections.
 - Both report one error line per offending setting and never print secret values. They live in `io.oea.config` and have no profile condition except the explicit `dev` relaxations of ADR-036 §6.
+- Details fixed during implementation: the configuration guards are an `EnvironmentPostProcessor` (`io.oea.config.startup.ConfigurationGuards`); secrets must have at least 16 characters (KEK rules follow with REQ-188); values containing `dev-only` or `test-only` count as development values; the CORS origins are configured in the new property `oea.security.cors.allowed-origins` (empty by default); the migration step sets `oea.mode=migrate`, so G4 checks the owner passwords there and `spring.datasource.password` in the application. The known-development-secrets list is read from `classpath*:security/known-dev-secrets.sha256`.
 
 ### D4 – Issuer configuration property introduced now
 

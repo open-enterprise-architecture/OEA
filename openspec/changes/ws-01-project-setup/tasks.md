@@ -20,10 +20,10 @@
 
 ## 3. Startup checks
 
-- [ ] 3.1 Implement the PostgreSQL version check (minimum 15); verify with a PostgreSQL 14 Testcontainer that startup fails naming the minimum version (spec: PostgreSQL too old)
-- [ ] 3.2 Implement the fail-closed audit privilege and ownership check; verify with tests that grant UPDATE to `oea_app` resp. transfer ownership of an audit table to it and expect startup to fail naming the privilege or ownership
-- [ ] 3.3 Introduce the property `oea.security.oidc.providers[*].issuer` (empty by default) and the configuration guards: secrets (empty, too short, default, hash in the known-development-secrets list), CORS (`*`, `http`, loopback origins), Swagger UI, and the inverse `dev` guard (non-loopback issuer); verify with one startup test per scenario of "No unsafe settings outside development" and "Development profile only with loopback issuers", each asserting the property name and the absence of the secret value in the log
-- [ ] 3.4 Create the known-development-secrets list `backend/src/main/resources/security/known-dev-secrets.sha256` and `scripts/check_dev_secrets.py` that extracts secret literals from `compose.dev.yaml`, `dev/` and the realm file and fails on unlisted ones; verify the script passes and fails after adding an unlisted test literal (spec: New development secret without hash)
+- [x] 3.1 Implement the PostgreSQL version check (minimum 15); verify with a PostgreSQL 14 Testcontainer that startup fails naming the minimum version (spec: PostgreSQL too old)
+- [x] 3.2 Implement the fail-closed audit privilege and ownership check; verify with tests that grant UPDATE to `oea_app` resp. transfer ownership of an audit table to it and expect startup to fail naming the privilege or ownership
+- [x] 3.3 Introduce the property `oea.security.oidc.providers[*].issuer` (empty by default) and the configuration guards: secrets (empty, too short, default, hash in the known-development-secrets list), CORS (`*`, `http`, loopback origins), Swagger UI, and the inverse `dev` guard (non-loopback issuer); verify with one startup test per scenario of "No unsafe settings outside development" and "Development profile only with loopback issuers", each asserting the property name and the absence of the secret value in the log
+- [x] 3.4 Create the known-development-secrets list `backend/src/main/resources/security/known-dev-secrets.sha256` and `scripts/check_dev_secrets.py` that extracts secret literals from `compose.dev.yaml`, `dev/` and the realm file and fails on unlisted ones; verify the script passes and fails after adding an unlisted test literal (spec: New development secret without hash)
 
 ## 4. Environments
 
