@@ -10,11 +10,11 @@
 
 ## 2. Database roles, provisioning and migration step
 
-- [ ] 2.1 Write `deploy/postgres/initdb/10-oea-roles.sh` creating the six roles of ADR-037 and the schemas with their owners from environment variables; verify with a Testcontainers test that the roles exist without `SUPERUSER`, `CREATEROLE`, `CREATEDB`, `BYPASSRLS` and without mutual membership (spec: Role attributes after provisioning)
-- [ ] 2.2 Flyway migration `db/migration/V1__baseline.sql` (empty baseline of `public`, owner `oea_owner`); verify it is applied by the migration step
+- [x] 2.1 Write `deploy/postgres/initdb/10-oea-roles.sh` creating the six roles of ADR-037 and the schemas with their owners from environment variables; verify with a Testcontainers test that the roles exist without `SUPERUSER`, `CREATEROLE`, `CREATEDB`, `BYPASSRLS` and without mutual membership (spec: Role attributes after provisioning)
+- [x] 2.2 Flyway migration `db/migration/V1__baseline.sql` (empty baseline of `public`, owner `oea_owner`); verify it is applied by the migration step
 - [ ] 2.3 Flyway migration `db/migration-audit/V1__audit_schema.sql`: `audit.events`, `audit.event_changes`, `audit.retention_settings` (seed 2555, CHECK ≥ 365), `audit.chain_head` per `docs/data-model.puml`, grants INSERT/SELECT for `oea_app`, SELECT for `oea_auditor`, `REVOKE ALL … FROM PUBLIC`; verify with a test that the table owner is `oea_owner`
-- [ ] 2.4 Flyway migration `db/migration-reporting/V1__reporting_schema.sql` (empty schemas `reporting`, `reporting_ctx`, owner `oea_reporting_owner`); verify the owner in a test
-- [ ] 2.5 Implement the `migrate` mode (non-web context, Flyway for the three locations with the respective owner credentials, exit code 0/1) and disable auto-migration in the application, which only validates the schema history; verify with Testcontainers tests for both scenarios of "Separate migration step"
+- [x] 2.4 Flyway migration `db/migration-reporting/V1__reporting_schema.sql` (empty schemas `reporting`, `reporting_ctx`, owner `oea_reporting_owner`); verify the owner in a test
+- [x] 2.5 Implement the `migrate` mode (non-web context, Flyway for the three locations with the respective owner credentials, exit code 0/1) and disable auto-migration in the application, which only validates the schema history; verify with Testcontainers tests for both scenarios of "Separate migration step"
 - [ ] 2.6 Write the Cucumber feature `platform/database-roles.feature` with the scenarios "Update rejected" and "Destructive statements rejected" (runtime role against `audit.events`); verify the scenarios pass in CI
 - [ ] 2.7 Document the provisioning script for operator-managed PostgreSQL in `docs/operations.md` (new); verify link validation passes
 
@@ -38,7 +38,7 @@
 
 - [ ] 5.1 Create `io.oea.testsupport.containers` with PostgreSQL (minimum supported major version) and Keycloak singletons, provisioning and migration applied once per JVM; verify an integration test starts the application against them
 - [ ] 5.2 Create the test-scope login helper `io.oea.testsupport.auth` (authorization code flow with PKCE against Keycloak, headless); verify a test obtains a token for `dev-viewer` and the token's `groups` claim contains the group UUID
-- [ ] 5.3 Set up the Cucumber runner `io.oea.steps.CucumberIT` on the JUnit Platform with features from `backend/src/test/resources/features/`; verify the database-roles feature of 2.6 runs through it
+- [x] 5.3 Set up the Cucumber runner `io.oea.steps.CucumberIT` on the JUnit Platform with features from `backend/src/test/resources/features/`; verify the database-roles feature of 2.6 runs through it
 
 ## 6. Build-time checks against test-only authentication code
 
