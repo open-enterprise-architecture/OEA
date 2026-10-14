@@ -1,6 +1,6 @@
 # Meta-Metamodel for an EA and Solution Architecture Tool
 
-**Status:** Draft v0.19.0 – see [CHANGELOG.md](CHANGELOG.md) for the version history
+**Status:** Draft v0.19.1 – see [CHANGELOG.md](CHANGELOG.md) for the version history
 **Scope:** Open-source OEA, TOGAF-compliant (incl. Enterprise Continuum and TRM), Arc42-capable, BPMN 2.0 as an optional add-on module, extensible metamodel with controlled schema evolution, pipeline-capable diagram generation, API-centric architecture with strong analyzability (graph traversal and repository-wide aggregations), ITSM/CMDB, PPM, GRC/GDPR, and ISMS integration as first-class concepts
 
 ## Guiding Principles

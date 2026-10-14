@@ -19,6 +19,7 @@ The repository contains requirements, ADRs, the data model and `api/openapi.yaml
 
 ## Architecture Constraints
 
+- ADR-012 / ADR-038: Java 21, Spring Boot 4.1, Hibernate, Maven
 - ADR-027: monorepo; single Maven module `backend/`; base package `io.oea`; npm for `frontend/`
 - ADR-028: packages `api` → `app` → `core`; `audit`, `integration`, `config` as technical packages
 - ADR-013: spec-first – server interfaces and client types are generated from `api/openapi.yaml`, never the other way round
@@ -54,7 +55,7 @@ The inverse `dev` guard needs a property to inspect. This change introduces `oea
 
 ### D5 – Code generation
 
-- Backend: `openapi-generator-maven-plugin`, generator `spring`, `interfaceOnly`, Jakarta, into `target/generated-sources`; controllers implement the generated interfaces.
+- Backend: `openapi-generator-maven-plugin`, generator `spring`, `interfaceOnly`, `useSpringBoot4`, Jackson 3, into `target/generated-sources`; controllers implement the generated interfaces.
 - Frontend: `openapi-typescript` generates types into `frontend/src/api/generated/` (not committed; generated in `prebuild`).
 
 ### D6 – Health endpoint in the contract
@@ -70,6 +71,10 @@ REQ-075 requires `GET /health`. It is added to `api/openapi.yaml` as a public op
 ### D8 – Container images pinned by digest
 
 PostgreSQL, Keycloak, Node and JDK base images are referenced by tag and digest in `compose.yaml`, `compose.dev.yaml`, the backend `Dockerfile` and the Testcontainers configuration (REQ-191). Dependabot is extended to the `docker` ecosystem.
+
+### D8a – Development ports
+
+Development services bind to `127.0.0.1` with ports that avoid typical local services: PostgreSQL `55432`, Keycloak `8180`, backend `8080`, Vite `5173`. Container names use the Compose project name `oea`.
 
 ### D9 – Maven dependency submission: GitHub automatic submission
 

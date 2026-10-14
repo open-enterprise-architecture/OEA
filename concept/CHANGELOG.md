@@ -2,6 +2,12 @@
 
 This document records how the concept paper itself has evolved. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows Semantic Versioning (at concept level: major = fundamentally new concepts, minor = new chapters/sections, patch = corrections).
 
+## [v0.19.1] – Spring Boot 4.1
+
+### Fixed
+
+- §24: backend stack updated to Spring Boot 4.1 (ADR-038); Spring Boot 3 is out of open-source support
+
 ## [v0.19.0] – Security decisions ADR-033 to ADR-036
 
 ### Changed

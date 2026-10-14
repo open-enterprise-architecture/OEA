@@ -23,7 +23,7 @@ context: |
   template for a bulk conversion.
 
   Tech stack (accepted ADRs):
-  - Backend: Java 21, Spring Boot 3, Hibernate/Spring Data JPA (ADR-012)
+  - Backend: Java 21, Spring Boot 4.1, Hibernate/Spring Data JPA (ADR-012, ADR-038)
   - Layers: api/app/core separation (ADR-028), single Maven module backend/ (ADR-027)
   - DB: PostgreSQL ≥ 15 only, JSONB allowed; tests with Testcontainers, no H2 (ADR-016, ADR-030)
   - Migrations: Flyway (ADR-015)

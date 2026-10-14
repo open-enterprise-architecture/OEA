@@ -2,9 +2,9 @@
 
 ## 1. Backend scaffold
 
-- [ ] 1.1 Create `backend/` as a single Maven module with Maven wrapper, Java 21 and Spring Boot 3, packages `io.oea.{api,app,core,audit,integration,config}` and an application class; verify `./mvnw -q verify` succeeds in `backend/`
+- [ ] 1.1 Create `backend/` as a single Maven module with Maven wrapper, Java 21 and Spring Boot 4.1 (ADR-038), packages `io.oea.{api,app,core,audit,integration,config}` and an application class; verify `./mvnw -q verify` succeeds in `backend/`
 - [ ] 1.2 Add `GET /health` to `api/openapi.yaml` (public, tag `Operations`, `{ "status": "UP" }`, `429`) and `getHealth` to the public allowlist of `scripts/check_openapi_authorization.py`; verify Redocly lint and the authorization check pass
-- [ ] 1.3 Configure `openapi-generator-maven-plugin` (generator `spring`, `interfaceOnly`, Jakarta) to generate server interfaces from `api/openapi.yaml`; verify the build generates `HealthApi` and compiles
+- [ ] 1.3 Configure `openapi-generator-maven-plugin` (generator `spring`, `interfaceOnly`, `useSpringBoot4`, Jackson 3) to generate server interfaces from `api/openapi.yaml`; verify the build generates `HealthApi` and compiles
 - [ ] 1.4 Implement `GET /health` via the Actuator health indicator without details, all other actuator endpoints disabled; verify with a web slice test that `/health` returns 200 `{"status":"UP"}` and `/actuator/env` returns 404
 - [ ] 1.5 Add ArchUnit layer rules for `api → app → core` (ADR-028); verify the architecture test passes and fails on a deliberately wrong dependency in a test fixture
 

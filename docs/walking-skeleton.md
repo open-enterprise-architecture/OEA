@@ -142,7 +142,7 @@ This scenario proves all technical layers end to end. The architecture works.
 | Layer | Decision | ADR |
 |---|---|---|
 | Deployment | Docker Compose; development: `docker compose -f compose.dev.yaml --profile dev up`; operator: `compose.yaml` with all secrets required | REQ-075, ADR-027, ADR-036 |
-| Backend | Java 21 + Spring Boot 3 + Hibernate; Maven module `backend/`; layers api/app/core | ADR-012, ADR-027, ADR-028 |
+| Backend | Java 21 + Spring Boot 4.1 + Hibernate; Maven module `backend/`; layers api/app/core | ADR-012, ADR-038, ADR-027, ADR-028 |
 | Database | PostgreSQL 15 + JSONB; Flyway migrations in a one-shot migration step with the owner role; application with the runtime role | ADR-015, ADR-016, ADR-033 |
 | API | REST, JSON; OpenAPI 3.x spec-first (`api/openapi.yaml`) | ADR-013 |
 | Auth | OIDC with PKCE `S256`; Keycloak dev realm in development and tests (no JWT stub), Entra ID / Authentik in production | ADR-006, ADR-036 |

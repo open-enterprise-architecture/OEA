@@ -16,7 +16,7 @@ As of: 2026-10-04 — Requirements phase completed. All §23 items categorized. 
 
 **Tech ADRs — all decided:**
 
-- ~~ADR-012~~ ✓ Backend: Java 21 + Spring Boot 3 + Hibernate; Maven
+- ~~ADR-012~~ ✓ Backend: Java 21 + Spring Boot 4.1 (ADR-038) + Hibernate; Maven
 - ~~ADR-013~~ ✓ API style: REST + OpenAPI 3.x (spec-first, contract `api/openapi.yaml`)
 - ~~ADR-014~~ ✓ Frontend: PrimeVue 4 + TipTap 2.x (WYSIWYG)
 - ~~ADR-015~~ ✓ DB migration: Flyway
