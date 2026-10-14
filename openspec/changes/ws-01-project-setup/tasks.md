@@ -16,7 +16,7 @@
 - [x] 2.4 Flyway migration `db/migration-reporting/V1__reporting_schema.sql` (empty schemas `reporting`, `reporting_ctx`, owner `oea_reporting_owner`); verify the owner in a test
 - [x] 2.5 Implement the `migrate` mode (non-web context, Flyway for the three locations with the respective owner credentials, exit code 0/1) and disable auto-migration in the application, which only validates the schema history; verify with Testcontainers tests for both scenarios of "Separate migration step"
 - [ ] 2.6 Write the Cucumber feature `platform/database-roles.feature` with the scenarios "Update rejected" and "Destructive statements rejected" (runtime role against `audit.events`); verify the scenarios pass in CI
-- [ ] 2.7 Document the provisioning script for operator-managed PostgreSQL in `docs/operations.md` (new); verify link validation passes
+- [x] 2.7 Document the provisioning script for operator-managed PostgreSQL in `docs/operations.md` (new); verify link validation passes
 
 ## 3. Startup checks
 
