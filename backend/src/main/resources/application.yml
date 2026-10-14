@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: oea-backend
+  jpa:
+    open-in-view: false
+
+# Actuator endpoints are not exposed; the public health probe is GET /api/v1/health (REQ-075).
+management:
+  endpoints:
+    web:
+      discovery:
+        enabled: false
+      exposure:
+        exclude: "*"
+    jmx:
+      exposure:
+        exclude: "*"
