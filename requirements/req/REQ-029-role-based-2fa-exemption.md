@@ -4,9 +4,9 @@ title: Configure role-based 2FA exemption by the operator
 type: functional
 priority: should
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-25
-last_updated: 2026-10-13
+last_updated: 2026-10-15
 author: requirements-engineer
 references:
   use_cases:
@@ -97,7 +97,7 @@ Applies only if REQ-020 is active (`enforce2FA=true`). If enforcement is inactiv
 **AC5**:
 
 - Given: the system admin account from UC-02 and any `twoFactorExemptRoles` configuration
-- When: the system admin account logs in after its first bootstrap login
+- When: the system admin account logs in after the end of the setup phase (ADR-042)
 - Then: a second factor is required regardless of this configuration (REQ-171)
 
 **AC6**:
@@ -154,3 +154,4 @@ Derived from operator requirement (SH-06). Version 0.1.0 allowed exempting admin
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-10: "all roles exempt" semantics; roles with `admin`-class permissions not exemptable (AC6); system admin subject to REQ-171 |
+| 0.3.0 | 2026-10-15 | requirements-engineer | AC5 aligned with ADR-042 (setup phase instead of first bootstrap login) |

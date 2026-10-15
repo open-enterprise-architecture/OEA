@@ -2,7 +2,7 @@
 identifier: system-admin-account
 name_de: System-Admin-Account
 name_en: System Admin Account
-version: 0.3.0
+version: 0.4.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -44,7 +44,7 @@ The account may be linked to the person of the administrator (`linkedPerson`). F
 | status | enum | required | bootstrapped | `[bootstrapped, active, deactivated]` | Lifecycle status (replaces `active: boolean`) |
 | linkedPerson | reference | optional | | target: person (human); unique | Optional link to the administrator's person (SoD-1) |
 | createdAt | datetime | required | | | Time of bootstrapping |
-| firstLoginAt | datetime | optional | | | First login – the only login without second factor; enrollment is forced in it (REQ-171 AC1) |
+| firstLoginAt | datetime | optional | | | First successful login |
 | lastUsedAt | datetime | optional | | | Last successful use |
 | deactivatedAt / deactivatedBy | datetime / principal | optional | | | Deactivation |
 
@@ -68,12 +68,12 @@ bootstrapped → active → deactivated
 **States**:
 
 - `bootstrapped`: created during installation, not yet used
-- `active`: usable; second factor enrolled
+- `active`: used at least once; a second factor is required from the end of the setup phase on (ADR-042)
 - `deactivated`: deliberately deactivated (e.g. after establishing IdP governance, BR-02); sessions revoked
 
 **Transitions**:
 
-- `bootstrapped → active`: first successful login including enrollment of a second factor (REQ-171 AC1)
+- `bootstrapped → active`: first successful login (during the setup phase with password only, ADR-042)
 - `active → deactivated`: by a principal with `system-admin` permissions; rejected if no other path to `system-admin` remains (SoD-7)
 
 ## Business Rules
@@ -82,7 +82,7 @@ bootstrapped → active → deactivated
 |---|---|---|---|
 | BR-01 | At most one bootstrapping process may be active per instance at any time (no parallel initial setup) | onCreate | REQ-015 |
 | BR-02 | A local system admin account SHOULD be deactivatable as soon as at least one active IdP group mapping to `system-admin` exists (recommendation, not a hard constraint) | onUpdate | REQ-019 |
-| BR-03 | The system admin account MUST use a second factor (passkey or TOTP) for every login after the first bootstrap login; the first login forces enrollment before any administrative action; no configuration (REQ-020, REQ-029) can exempt it | onLogin | REQ-171 (replaces the former exemption) |
+| BR-03 | During the setup phase the account logs in with password only; the first action that gives another identity access (identity binding, IdP group mapping, role assignment, person credential, service account) requires an enrolled and confirmed second factor and ends the setup phase; afterwards every login requires the second factor; no configuration (REQ-020, REQ-029) can exempt it | onLogin, onUpdate | REQ-171, ADR-042 |
 | BR-04 | The account holds exactly the permissions of `system-admin` and no other role | onRequest | ADR-032 §1 |
 | BR-05 | The account and its linked person count as one principal for SoD-1 | onUpdate (authorization configuration) | ADR-032 SoD-1 |
 | BR-06 | Deactivating the account is rejected (409) if it is the last usable path to `system-admin` | onUpdate | ADR-032 SoD-7 |
@@ -142,3 +142,4 @@ Open: multi-admin scenarios (several local system admin accounts) are not constr
 | 0.1.0 | 2026-06-24 | Business Engineer | Initial draft in the context of UC-02 Bootstrapping |
 | 0.2.0 | 2026-10-13 | Business Engineer | ADR-032 DM-6: remote mode = IdP group mapping to `system-admin` (immutable IDs, REQ-167); BR-03 aligned with REQ-171 (MFA after first login); credentials moved to `local-credential`; `status` lifecycle; `linkedPerson` for SoD-1; BR-04 to BR-06 |
 | 0.3.0 | 2026-10-15 | Business Engineer | `loginName` pattern; setup token handover and `bootstrap_setup_tokens` (REQ-017) |
+| 0.4.0 | 2026-10-15 | Business Engineer | ADR-042: setup phase without second factor until the first access of another identity (BR-03, lifecycle, `firstLoginAt`) |
