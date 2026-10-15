@@ -2,8 +2,9 @@
 
 **ID**: US-001
 **Story Points**: 8
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: review
+**Sprint**: S1
+**Implementation**: OpenSpec change `us-001-oidc-login` – AC1–AC3 implemented (OIDC login with PKCE through the stored providers, roles from IdP group mappings); AC4 (optional online validation) follows later; commit hash follows when the change is archived
 
 ## Story
 

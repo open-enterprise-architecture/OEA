@@ -38,6 +38,6 @@
 ## 6. Wrap-up
 
 - [x] 6.1 Document the login configuration (`oea.web.public-url`, provider scopes per vendor, redirect URI, removal of `oea.security.oidc.providers`) in `docs/operations.md`, the new event types in `docs/audit-event-catalog.md`, and the provider source in `docs/walking-skeleton.md`; clarify REQ-001 (context "Token validity") and US-001 AC3 with the owner decision of 2026-10-15; verify markdown lint and link validation pass
-- [ ] 6.2 Update the user stories: US-001 AC1–AC3 implemented (status `review`), US-147 AC2, AC3, AC5, AC6 and AC7 implemented; the implementation hash is added when the change is archived after the merge
-- [ ] 6.3 Synchronize `docs/data-model.puml`, `business-objects/` and `docs/screens/SCREENS.md` (unchanged) with the implementation; regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
-- [ ] 6.4 Run `python3 scripts/validate_links.py`, the markdown lint, `scripts/check_screens.py`, `scripts/sync_agent_config.py --check` and the OpenAPI checks and verify all pass
+- [x] 6.2 Update the user stories: US-001 AC1–AC3 implemented (status `review`), US-147 AC2, AC3, AC5, AC6 and AC7 implemented; the implementation hash is added when the change is archived after the merge
+- [x] 6.3 Synchronize `docs/data-model.puml`, `business-objects/` and `docs/screens/SCREENS.md` (unchanged) with the implementation; regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
+- [x] 6.4 Run `python3 scripts/validate_links.py`, the markdown lint, `scripts/check_screens.py`, `scripts/sync_agent_config.py --check` and the OpenAPI checks and verify all pass
