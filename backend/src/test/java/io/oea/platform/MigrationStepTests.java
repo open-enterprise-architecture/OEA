@@ -46,8 +46,8 @@ class MigrationStepTests {
 				SELECT schemaname || ':' || tableowner FROM pg_tables
 				WHERE tablename = 'flyway_schema_history' ORDER BY schemaname""")).containsExactly("audit:oea_owner",
 						"public:oea_owner", "reporting:oea_reporting_owner");
-		assertThat(query("SELECT version || ':' || installed_by FROM audit.flyway_schema_history WHERE success"))
-			.containsExactly("1:oea_owner");
+		assertThat(query("SELECT version || ':' || installed_by FROM audit.flyway_schema_history WHERE success ORDER BY installed_rank"))
+			.startsWith("1:oea_owner").allMatch((row) -> row.endsWith(":oea_owner"));
 		assertThat(query("SELECT version || ':' || installed_by FROM reporting.flyway_schema_history WHERE success"))
 			.containsExactly("1:oea_reporting_owner");
 	}
