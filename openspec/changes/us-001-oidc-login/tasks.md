@@ -10,6 +10,8 @@
 - [x] 2.1 Extend `api/openapi.yaml`: `listLoginProviders`, `startOidcLogin`, `completeOidcLogin` (public, allowlisted), `__Host-OEA_LOGIN` cookie, problem property `reason: self-administration`, provider descriptions (database only, `offline_access` for Entra ID); verify Redocly lint, `scripts/check_openapi_authorization.py` and that the generated interfaces compile
 - [x] 2.2 Remove `oea.security.oidc.providers` and its binding; add `StoredProviderGuard` (G2/G3 outside `dev`, inverse loopback rule in `dev`, enabled providers only) and the G5 rule for `oea.web.public-url`; adapt `dev/backend/application-dev.yml`; verify with startup tests for the specs "Stored provider with an unsafe issuer", "Disabled provider ignored" and "Development profile with a real issuer"
 
+- [x] 2.3 Implement `oea.security.oidc.discovery-locations` (D13) with the G2/G3 rules outside `dev` and the entry for the development realm in `dev/backend/application-dev.yml`; verify with a test that discovery uses the location while `iss` is still checked against the stored issuer, and with guard tests
+
 ## 3. OIDC login
 
 - [x] 3.1 Configure the development realm: method references `pwd`/`otp` on the browser flow so that `amr` is emitted, redirect URI `http://localhost:5173/api/v1/auth/oidc/callback`; verify with a test that the ID tokens of `dev-system-admin` and `dev-admin-no-mfa` carry the expected `amr` and that `check_dev_secrets.py` passes

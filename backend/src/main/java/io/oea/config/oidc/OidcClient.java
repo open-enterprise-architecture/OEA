@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
@@ -40,6 +41,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -51,6 +53,7 @@ import tools.jackson.databind.JsonNode;
  * cached per issuer for an hour; every HTTP call to a provider has a 5-second timeout.
  */
 @Component
+@EnableConfigurationProperties(OidcProperties.class)
 public class OidcClient {
 
 	static final Duration TIMEOUT = Duration.ofSeconds(5);
@@ -73,7 +76,18 @@ public class OidcClient {
 
 	private final Map<String, JwtDecoder> decoders = new ConcurrentHashMap<>();
 
+	private final Map<String, String> discoveryLocations;
+
 	public OidcClient(Clock clock) {
+		this(clock, new OidcProperties(List.of()));
+	}
+
+	@Autowired
+	public OidcClient(Clock clock, OidcProperties properties) {
+		this.discoveryLocations = properties.discoveryLocations()
+			.stream()
+			.collect(java.util.stream.Collectors.toUnmodifiableMap(OidcProperties.DiscoveryLocation::issuer,
+					OidcProperties.DiscoveryLocation::location));
 		JdkClientHttpRequestFactory requests = new JdkClientHttpRequestFactory(
 				HttpClient.newBuilder().connectTimeout(TIMEOUT).followRedirects(HttpClient.Redirect.NEVER).build());
 		requests.setReadTimeout(TIMEOUT);
@@ -218,8 +232,10 @@ public class OidcClient {
 		if (cached != null && cached.fetchedAt().plus(METADATA_LIFETIME).isAfter(now)) {
 			return cached;
 		}
-		String location = issuer.endsWith("/") ? issuer + ".well-known/openid-configuration"
-				: issuer + "/.well-known/openid-configuration";
+		// split-horizon networks (D13): the document may be fetched elsewhere, its issuer is still checked
+		String base = this.discoveryLocations.getOrDefault(issuer, issuer);
+		String location = base.endsWith("/") ? base + ".well-known/openid-configuration"
+				: base + "/.well-known/openid-configuration";
 		JsonNode document;
 		try {
 			document = this.http.get().uri(location).retrieve().body(JsonNode.class);

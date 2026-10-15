@@ -1,5 +1,6 @@
 package io.oea.config.startup;
 
+import io.oea.config.oidc.OidcProperties;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -31,6 +32,8 @@ public class ConfigurationGuards implements EnvironmentPostProcessor, Ordered {
 	public static final String MODE_PROPERTY = "oea.mode";
 
 	static final String CORS_ORIGINS = "oea.security.cors.allowed-origins";
+
+	static final String DISCOVERY_LOCATIONS = "oea.security.oidc.discovery-locations";
 
 	private static final String SPRINGDOC_MARKER = "org.springdoc.core.configuration.SpringDocConfiguration";
 
@@ -65,6 +68,7 @@ public class ConfigurationGuards implements EnvironmentPostProcessor, Ordered {
 			checkSecrets(environment, violations);
 			checkCors(binder, violations);
 			checkPublicUrl(environment, violations);
+			checkDiscoveryLocations(binder, violations);
 			checkSwaggerUi(environment, violations);
 		}
 		return violations;
@@ -140,6 +144,23 @@ public class ConfigurationGuards implements EnvironmentPostProcessor, Ordered {
 			}
 			else if (LoopbackAddresses.isLoopbackUrl(origin)) {
 				violations.add("G5: " + property + " is a loopback origin");
+			}
+		}
+	}
+
+	/** G2/G3 for discovery locations (design D13 of us-001-oidc-login): https and no loopback. */
+	private static void checkDiscoveryLocations(Binder binder, List<String> violations) {
+		List<OidcProperties.DiscoveryLocation> locations = binder
+			.bind(DISCOVERY_LOCATIONS, Bindable.listOf(OidcProperties.DiscoveryLocation.class))
+			.orElse(List.of());
+		for (int i = 0; i < locations.size(); i++) {
+			String location = locations.get(i).location();
+			String property = DISCOVERY_LOCATIONS + "[" + i + "].location";
+			if (location == null || !location.strip().toLowerCase(Locale.ROOT).startsWith("https://")) {
+				violations.add("G3: " + property + " does not use https");
+			}
+			else if (LoopbackAddresses.isLoopbackUrl(location)) {
+				violations.add("G2: " + property + " is a loopback address");
 			}
 		}
 	}

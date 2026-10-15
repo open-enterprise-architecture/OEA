@@ -59,6 +59,17 @@ class ConfigurationGuardsTests {
 	}
 
 	@Test
+	void unsafeDiscoveryLocationsAreRefused() {
+		assertThat(startFails("--oea.security.oidc.discovery-locations[0].issuer=https://login.example.com",
+				"--oea.security.oidc.discovery-locations[0].location=http://idp.internal",
+				"--oea.security.oidc.discovery-locations[1].issuer=https://login.example.com/b",
+				"--oea.security.oidc.discovery-locations[1].location=https://localhost:8443")
+			.getViolations()).containsExactly(
+					"G3: oea.security.oidc.discovery-locations[0].location does not use https",
+					"G2: oea.security.oidc.discovery-locations[1].location is a loopback address");
+	}
+
+	@Test
 	void unsafePublicUrlIsRefused() {
 		assertThat(startFails("--oea.web.public-url=http://oea.example.org").getViolations())
 			.containsExactly("G5: oea.web.public-url is not an https URL");

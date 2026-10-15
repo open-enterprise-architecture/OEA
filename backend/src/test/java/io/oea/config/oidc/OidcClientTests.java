@@ -10,6 +10,7 @@ import io.oea.testsupport.time.MutableClock;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import javax.crypto.Mac;
@@ -92,6 +93,22 @@ class OidcClientTests {
 				CLIENT, null, Set.of("openid"));
 		assertThatExceptionOfType(OidcProviderUnavailableException.class).isThrownBy(
 				() -> this.client.authorizationUri(unreachable, "http://localhost/cb", "s", "n", "c"));
+	}
+
+	@Test
+	void discoveryLocationIsUsedButTheIssuerIsStillChecked() {
+		String issuer = OeaKeycloak.issuer();
+		// the location is used instead of the issuer: an unreachable location makes the provider unavailable
+		OidcClient unreachable = new OidcClient(this.clock, new OidcProperties(
+				List.of(new OidcProperties.DiscoveryLocation(issuer, "http://127.0.0.1:9/realms/oea-dev"))));
+		assertThatExceptionOfType(OidcProviderUnavailableException.class)
+			.isThrownBy(() -> unreachable.authorizationUri(settings(), "http://localhost/cb", "s", "n", "c"));
+		// a document that names another issuer is refused, wherever it was fetched
+		OidcClient otherHost = new OidcClient(this.clock, new OidcProperties(List.of(
+				new OidcProperties.DiscoveryLocation(issuer, issuer.replace("://localhost:", "://127.0.0.1:")))));
+		assertThatExceptionOfType(OidcProviderUnavailableException.class)
+			.isThrownBy(() -> otherHost.authorizationUri(settings(), "http://localhost/cb", "s", "n", "c"))
+			.withMessageContaining("names another issuer");
 	}
 
 	private static OidcClientSettings settings() {
