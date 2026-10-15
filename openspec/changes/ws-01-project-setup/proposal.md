@@ -30,7 +30,7 @@ The change name deviates from the `<us-id>-<short-name>` convention because the 
 
 - OIDC login, token validation and startup guards G1–G3 (issuer and signature rules) – change 3 (US-001), because they need the OIDC configuration
 - Bootstrapping, first admin and instance slug – change 2 (US-013)
-- Audit hash chain, checkpoints and the verification command (REQ-174 AC3, AC5) – change 2, together with the first audited action
+- Audit hash chain, checkpoints, the verification command (REQ-174 AC3, AC5) and the seed row of `audit.retention_settings` (a chain member) – change 2, together with the first audited action
 - Reporting schema views and analytics (ADR-034) – after the walking skeleton
 - Electron client (`frontend/electron/`), web portal entry point, mock API generation and the GitHub Pages / screenshot workflow (ADR-031) – with the first screen in change 6 (catalog) or later
 - Helm chart and Kubernetes (REQ-075 AC3), object storage (AC5) – after the walking skeleton

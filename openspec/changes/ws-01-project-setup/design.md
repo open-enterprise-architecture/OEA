@@ -90,7 +90,7 @@ Vite + Vue 3 + TypeScript (strict) + PrimeVue 4 + Tailwind CSS, `vue-tsc` type c
 No change to `docs/data-model.puml` or `business-objects/`. Planned Flyway migrations:
 
 - `db/migration/V1__baseline.sql` – empty baseline of schema `public` (owner `oea_owner`)
-- `db/migration-audit/V1__audit_schema.sql` – tables `audit.events`, `audit.event_changes`, `audit.retention_settings` (seed 2555 days, CHECK ≥ 365), `audit.chain_head` as modeled; explicit grants (INSERT, SELECT for `oea_app`; SELECT for `oea_auditor`); `REVOKE ALL … FROM PUBLIC`. The hash-chain trigger and the purge function follow in change 2.
+- `db/migration-audit/V1__audit_schema.sql` – tables `audit.events`, `audit.event_changes`, `audit.retention_settings` (CHECK ≥ 365), `audit.chain_head` as modeled; explicit grants (INSERT, SELECT for `oea_app`; SELECT for `oea_auditor`); `REVOKE ALL … FROM PUBLIC`. The hash-chain trigger, the purge function and the seed row of `audit.retention_settings` (2555 days) follow in change 2: the seed is a chain member and needs the trigger to receive valid chain values (owner decision 2026-10-15).
 - `db/migration-reporting/V1__reporting_schema.sql` – empty schemas `reporting` and `reporting_ctx` (owner `oea_reporting_owner`)
 
 ## API
