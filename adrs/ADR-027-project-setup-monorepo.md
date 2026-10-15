@@ -5,6 +5,7 @@
 **Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Partially superseded**: 2026-10-13 by [ADR-030](./ADR-030-postgresql-only.md) — multi-database parts no longer apply (PostgreSQL only)
 **Partially superseded**: 2026-10-13 by [ADR-036](./ADR-036-dev-test-identity-provider.md) — development and test identity provider (see ADR-036)
+**Partially superseded**: 2026-10-15 by [ADR-041](./ADR-041-root-aggregator-pom.md) — root aggregator `pom.xml` for the dependency graph; the backend stays a single module
 
 ---
 
