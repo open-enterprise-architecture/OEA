@@ -24,6 +24,7 @@ there is currently no company or organization acting as a contracting party (see
 - The right to resell or sublicense to third parties (unless explicitly agreed)
 - Warranties without a separate support agreement (the warranty disclaimer remains in place)
 - Usage rights after expiry or termination of the license agreement
+- Rights in third-party components: they remain under their own licenses, which grant their rights directly to every recipient (listed in [THIRD-PARTY-LICENSES.md](../THIRD-PARTY-LICENSES.md)). OEA ships only components whose licenses allow use in the Enterprise Edition without further agreements ([ADR-043](../adrs/ADR-043-third-party-license-policy.md))
 
 ## Who Needs an Enterprise License?
 

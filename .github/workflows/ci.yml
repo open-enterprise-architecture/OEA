@@ -247,3 +247,33 @@ jobs:
         run: npm run build
       - name: Storybook build
         run: npm run build-storybook
+
+  # ── Third-party licenses (ADR-043) ──────────────────────────────────────────
+  third-party-licenses:
+    name: Third-party licenses
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: License report of the backend runtime libraries
+        working-directory: backend
+        run: ./mvnw -B -ntp license:add-third-party
+      - name: Frontend build (manifest of the bundled packages)
+        working-directory: frontend
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+      - name: Allowed licenses and THIRD-PARTY-LICENSES.md up to date
+        run: python3 scripts/generate_third_party_licenses.py --check
