@@ -36,6 +36,7 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * Steps for features/identity/local-login.feature: the real application with its web server
  * on a fresh, bootstrapped database per scenario, driven over HTTP like the login page does.
+ * Other identity steps reuse its instance and session.
  */
 public class LocalLoginSteps {
 
@@ -61,7 +62,7 @@ public class LocalLoginSteps {
 
 	private String password;
 
-	private HttpResponse<String> response;
+	HttpResponse<String> response;
 
 	private final List<HttpResponse<String>> attempts = new ArrayList<>();
 
@@ -423,8 +424,16 @@ public class LocalLoginSteps {
 		assertThat(listed).containsExactlyInAnyOrder(expected.split(","));
 	}
 
+	String sessionToken() {
+		return this.sessionToken;
+	}
+
+	String csrfToken() {
+		return this.csrfToken;
+	}
+
 	/** REQ-175 AC3: the scenario's log output contains no password, session token, TOTP secret or code. */
-	@After(value = "@UC-01", order = 20000)
+	@After(value = "@UC-01 or @UC-23", order = 20000)
 	public void logsWithoutSecrets() {
 		if (this.logs == null) {
 			return;
@@ -442,7 +451,7 @@ public class LocalLoginSteps {
 		}
 	}
 
-	@After(value = "@UC-01", order = 10000)
+	@After(value = "@UC-01 or @UC-23", order = 10000)
 	public void stop() {
 		if (this.application != null) {
 			this.application.close();
@@ -506,7 +515,7 @@ public class LocalLoginSteps {
 		return code;
 	}
 
-	private HttpResponse<String> post(String path, String body, boolean withSession) throws Exception {
+	HttpResponse<String> post(String path, String body, boolean withSession) throws Exception {
 		HttpRequest.Builder request = HttpRequest.newBuilder(uri(path))
 			.header("Content-Type", "application/json")
 			.POST(HttpRequest.BodyPublishers.ofString(body));
@@ -516,11 +525,11 @@ public class LocalLoginSteps {
 		return send(request);
 	}
 
-	private HttpResponse<String> send(HttpRequest.Builder request) throws Exception {
+	HttpResponse<String> send(HttpRequest.Builder request) throws Exception {
 		return this.http.send(request.build(), HttpResponse.BodyHandlers.ofString());
 	}
 
-	private URI uri(String path) {
+	URI uri(String path) {
 		return URI.create("http://localhost:" + this.application.getEnvironment().getProperty("local.server.port") + path);
 	}
 
@@ -537,7 +546,7 @@ public class LocalLoginSteps {
 		return value.toString();
 	}
 
-	private static JsonNode json(HttpResponse<String> response) {
+	static JsonNode json(HttpResponse<String> response) {
 		return JsonMapper.shared().readTree(response.body());
 	}
 
@@ -547,7 +556,7 @@ public class LocalLoginSteps {
 		return copy;
 	}
 
-	private String single(String sql) throws SQLException {
+	String single(String sql) throws SQLException {
 		try (Connection su = OeaDatabases.asSuperuser(this.postgres); Statement statement = su.createStatement();
 				ResultSet rs = statement.executeQuery(sql)) {
 			assertThat(rs.next()).as(sql).isTrue();
@@ -555,7 +564,7 @@ public class LocalLoginSteps {
 		}
 	}
 
-	private void superuser(String sql) throws SQLException {
+	void superuser(String sql) throws SQLException {
 		try (Connection su = OeaDatabases.asSuperuser(this.postgres); Statement statement = su.createStatement()) {
 			statement.executeUpdate(sql);
 		}

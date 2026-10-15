@@ -81,7 +81,9 @@ class AuthorizationMatrixTests {
 				.header(CsrfOriginFilter.HEADER, session.csrfToken());
 		}
 		if (!operation.method().equals("GET") && !operation.method().equals("DELETE")) {
-			request = request.contentType("application/json").content("{}");
+			request = operation.contentType().startsWith("multipart/")
+					? request.contentType(operation.contentType() + "; boundary=oea").content("--oea--\r\n")
+					: request.contentType(operation.contentType()).content("{}");
 		}
 		return request.exchange();
 	}

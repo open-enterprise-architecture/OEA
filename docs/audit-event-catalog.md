@@ -57,6 +57,116 @@ Checkpoint of the chain head; its `chain_seq` and `record_hash` are also written
 | Source | `Job` |
 | Target / details | – |
 
+### `auth.login`
+
+Successful login of the local system admin account (US-013 AC2, REQ-175).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `info` / `success` |
+| Actor | `system-admin-account` |
+| Target | `session`, ID of the new session |
+| Details | `method` (`password` or `password-totp`), `setupPhase` (`true` if the login needed no second factor, [ADR-042](../adrs/ADR-042-setup-phase-without-second-factor.md)) |
+
+### `auth.login-failed`
+
+Rejected local login step ([REQ-168](../requirements/req/REQ-168-local-auth-throttling.md), REQ-175). Written independently of the request transaction; contains no login name, so unknown and existing names cannot be told apart.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `warning` / `failure` |
+| Actor | `unauthenticated` |
+| Target | – |
+| Details | `reason` (`invalid-credentials` for the password step, including throttled attempts; `wrong-second-factor` for the TOTP step) |
+
+### `auth.throttled`
+
+A login name or a source address reached its throttling threshold (REQ-168); written once per lock, not for every throttled attempt.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `warning` / `denied` |
+| Actor | `unauthenticated` |
+| Target | – |
+| Details | `scope` (`account`: 5 failures of one login name within 15 minutes; `address`: 100 failures from one source address within 10 minutes) |
+
+### `auth.logout`
+
+A session was ended by its principal ([REQ-164](../requirements/req/REQ-164-session-termination-revocation.md) AC1).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `info` / `success` |
+| Actor | the principal of the session |
+| Target | `session`, ID of the session |
+| Details | – |
+
+### `auth.factor-added`
+
+A second factor was enrolled and confirmed ([REQ-171](../requirements/req/REQ-171-mfa-privileged-accounts.md)).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` / `success` |
+| Actor | the account that enrolled the factor |
+| Target | `credential`, ID of the local credential |
+| Details | `type` (`totp`), `label` if given; never the secret or a code |
+
+### `system.setup-phase-ended`
+
+The first action that gives another identity access ended the setup phase ([ADR-042](../adrs/ADR-042-setup-phase-without-second-factor.md)).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` / `success` |
+| Actor | `system-admin-account` |
+| Target | `system-settings`, `1` |
+| Details | `triggeringAction` (`identity-binding` or `idp-group-mapping`) |
+
+### `auth-provider.changed`
+
+An OIDC provider was created or changed through the admin API (REQ-175, [REQ-188](../requirements/req/REQ-188-secrets-key-management.md)).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` / `success` |
+| Actor | the administrator |
+| Target | `auth-provider`, ID of the provider |
+| Details | `action` (`created` or `updated`), `issuer`, `enabled`, `clientSecretChanged`; never the client secret |
+
+### `person.created`
+
+A person was created in status `invited` (pre-provisioning).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `info` / `success` |
+| Actor | the administrator |
+| Target | `person`, ID of the person |
+| Details | `status` (`invited`); no name or e-mail address (ADR-033 §3) |
+
+### `person.identity-bound` / `person.identity-unbound`
+
+A person was bound to, or unbound from, the pair of issuer and subject of a provider ([REQ-166](../requirements/req/REQ-166-oidc-hardening-identity-binding.md)).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` / `success` |
+| Actor | the administrator |
+| Target | `person`, ID of the person |
+| Details | `identityId`, `authProviderId`; `linkMethod` (`admin-entered`) for bindings |
+
+### `idp-mapping.created` / `idp-mapping.changed` / `idp-mapping.deleted`
+
+An IdP group mapping was created, changed or (softly) deleted ([REQ-167](../requirements/req/REQ-167-immutable-admin-claim-mapping.md), US-147).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` / `success` |
+| Actor | the administrator |
+| Target | `idp-group-mapping`, ID of the mapping |
+| Details | `authProviderId`, `groupIdentifier`, `roleId`, `active` (state after the change) |
+
 ## Planned Event Types
 
-Named in ADR-033 §8 and written by later changes: `auth.login`, `auth.logout`, `session.revoked`, `authz.denied`, `auth.throttled`, `role.assigned`, `role.revoked`, `idp-mapping.changed`, `auth-provider.changed`, `settings.changed`, `settings.audit-retention-changed`, `visibility.changed`, `visibility.override-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.*`, `metamodel.*`.
+Named in ADR-033 §8 and written by later changes: `session.revoked`, `authz.denied`, `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `visibility.changed`, `visibility.override-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.*`, `metamodel.*`.

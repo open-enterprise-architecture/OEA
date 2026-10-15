@@ -1,6 +1,7 @@
 package io.oea.app.login;
 
 import io.oea.app.security.OeaPrincipal;
+import io.oea.app.security.RecentAuthentication;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
@@ -28,8 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class TotpEnrollment {
 
-	static final Duration FRESH_AUTHENTICATION = Duration.ofMinutes(5);
-
 	static final Duration PENDING_VALIDITY = Duration.ofMinutes(10);
 
 	private final LocalCredentialRepository credentials;
@@ -44,17 +43,20 @@ public class TotpEnrollment {
 
 	private final AuditWriter audit;
 
+	private final RecentAuthentication recentAuthentication;
+
 	private final Clock clock;
 
 	public TotpEnrollment(LocalCredentialRepository credentials, TotpCredentialRepository totps,
 			SystemAdminAccountRepository accounts, SecretCipher cipher, Sessions sessions, AuditWriter audit,
-			Clock clock) {
+			RecentAuthentication recentAuthentication, Clock clock) {
 		this.credentials = credentials;
 		this.totps = totps;
 		this.accounts = accounts;
 		this.cipher = cipher;
 		this.sessions = sessions;
 		this.audit = audit;
+		this.recentAuthentication = recentAuthentication;
 		this.clock = clock;
 	}
 
@@ -69,10 +71,8 @@ public class TotpEnrollment {
 	@Transactional
 	public Started start(OeaPrincipal principal, String label) {
 		requireSystemAdmin(principal);
+		this.recentAuthentication.require(principal);
 		Instant now = this.clock.instant();
-		if (principal.authenticatedAt().plus(FRESH_AUTHENTICATION).isBefore(now)) {
-			throw new ReauthenticationRequiredException();
-		}
 		String secret = TotpAlgorithm.newSecret();
 		LocalCredential credential = this.credentials.save(LocalCredential.pendingTotp(principal.systemAdminAccountId(), now));
 		SecretCipher.Encrypted encrypted = this.cipher.encrypt(secret, TotpCredential.encryptionContext(credential.getId()));

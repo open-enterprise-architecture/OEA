@@ -14,8 +14,12 @@ public final class AuthorizationMatrix {
 	private AuthorizationMatrix() {
 	}
 
-	/** One served operation: HTTP method, a concrete path and its contract rule (or none). */
-	public record Operation(String method, String path, String handler, ContractAuthorizationRules.Rule rule) {
+	/**
+	 * One served operation: HTTP method, a concrete path, its contract rule (or none) and the
+	 * media type of its request body ({@code application/json} unless the handler consumes another).
+	 */
+	public record Operation(String method, String path, String handler, ContractAuthorizationRules.Rule rule,
+			String contentType) {
 	}
 
 	public static List<Operation> operations(RequestMappingHandlerMapping mapping, ContractAuthorizationRules rules) {
@@ -28,9 +32,16 @@ public final class AuthorizationMatrix {
 				String path = pattern.replaceAll("\\{[^}]+}", "1");
 				ContractAuthorizationRules.Rule rule = OperationHandlers.isGeneratedOperation(handler)
 						? rules.rule(handler.getMethod().getName()) : null;
+				String contentType = info.getConsumesCondition()
+					.getConsumableMediaTypes()
+					.stream()
+					.findFirst()
+					.map(Object::toString)
+					.orElse("application/json");
 				for (var method : info.getMethodsCondition().getMethods()) {
 					operations.add(new Operation(method.name(), path,
-							handler.getBeanType().getSimpleName() + "#" + handler.getMethod().getName(), rule));
+							handler.getBeanType().getSimpleName() + "#" + handler.getMethod().getName(), rule,
+							contentType));
 				}
 			}
 		});

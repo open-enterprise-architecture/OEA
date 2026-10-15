@@ -1,18 +1,25 @@
 package io.oea.api;
 
+import io.oea.app.access.AccessConflictException;
+import io.oea.app.access.InvalidAccessRequestException;
 import io.oea.app.login.InvalidCredentialsException;
 import io.oea.app.login.InvalidTotpCodeException;
-import io.oea.app.login.ReauthenticationRequiredException;
 import io.oea.app.login.SecondFactorRequiredException;
+import io.oea.app.security.ReauthenticationRequiredException;
 import io.oea.app.security.SetupPhase;
 import java.net.URI;
+import java.util.List;
 import java.util.NoSuchElementException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 /** RFC 9457 problems for rejections shared by several controllers (problem types of the contract). */
 @RestControllerAdvice
@@ -54,6 +61,35 @@ public class ApiExceptionHandler {
 	ResponseEntity<ProblemDetail> invalidCode(InvalidTotpCodeException ex) {
 		return ResponseEntity.badRequest()
 			.body(problem(HttpStatus.BAD_REQUEST, "invalid-totp-code", "Invalid code", "The code is not valid."));
+	}
+
+	@ExceptionHandler(AccessConflictException.class)
+	ResponseEntity<ProblemDetail> conflict(AccessConflictException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+			.body(problem(HttpStatus.CONFLICT, "conflict", "Conflict", ex.getMessage()));
+	}
+
+	@ExceptionHandler(InvalidAccessRequestException.class)
+	ResponseEntity<ProblemDetail> invalidAccessRequest(InvalidAccessRequestException ex) {
+		ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "validation-failed", "Invalid request",
+				ex.getMessage());
+		problem.setProperty("invalidFields", List.of(ex.getField()));
+		return ResponseEntity.unprocessableContent().body(problem);
+	}
+
+	@ExceptionHandler(MethodArgumentNotValidException.class)
+	ResponseEntity<ProblemDetail> contractViolation(MethodArgumentNotValidException ex) {
+		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid request",
+				"Some fields do not meet the contract.");
+		problem.setProperty("invalidFields",
+				ex.getBindingResult().getFieldErrors().stream().map(FieldError::getField).distinct().sorted().toList());
+		return ResponseEntity.badRequest().body(problem);
+	}
+
+	@ExceptionHandler({ HttpMessageNotReadableException.class, HandlerMethodValidationException.class })
+	ResponseEntity<ProblemDetail> malformedRequest(Exception ex) {
+		return ResponseEntity.badRequest()
+			.body(problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid request", "The request is invalid."));
 	}
 
 	@ExceptionHandler(NoSuchElementException.class)

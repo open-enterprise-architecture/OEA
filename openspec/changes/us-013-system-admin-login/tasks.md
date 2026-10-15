@@ -34,17 +34,17 @@
 
 ## 6. Access administration
 
-- [ ] 6.1 Implement the provider operations with issuer rules G2/G3 outside `dev`, encrypted write-only client secret, fresh-authentication check and audit event `auth-provider.changed` (D10); verify with tests for the specs "Provider with an unsafe issuer" and "Client secret never returned"
-- [ ] 6.2 Implement persons and identity bindings with audit events `person.created`, `person.identity-bound`, `person.identity-unbound`; verify with tests for the specs "Binding created" and "Pair already bound"
-- [ ] 6.3 Implement IdP group mappings (UUID identifiers, soft delete, audit events `idp-mapping.created|changed|deleted`); verify with tests for the specs "Mapping created", "Display name instead of identifier" and "Mapping deleted"
-- [ ] 6.4 Implement the setup-phase gate for bindings and mappings with `system.setup-phase-ended` (D9); verify with tests for the specs "First mapping without second factor" and "First mapping with second factor"
-- [ ] 6.5 Write the Cucumber feature `identity/access-administration.feature` covering the spec scenarios, including the walk from login during the setup phase through TOTP enrollment to the first mapping; verify it passes through `CucumberIT`
-- [ ] 6.6 Document the new event types in `docs/audit-event-catalog.md`, the key file, `oea secrets reencrypt`, the setup phase and the provider/person/mapping administration via API (with `curl` examples for the walking skeleton) in `docs/operations.md`; verify markdown lint and link validation pass
+- [x] 6.1 Implement the provider operations with issuer rules G2/G3 outside `dev`, encrypted write-only client secret, fresh-authentication check and audit event `auth-provider.changed` (D10); verify with tests for the specs "Provider with an unsafe issuer" and "Client secret never returned"
+- [x] 6.2 Implement persons and identity bindings with audit events `person.created`, `person.identity-bound`, `person.identity-unbound`; verify with tests for the specs "Binding created" and "Pair already bound"
+- [x] 6.3 Implement IdP group mappings (UUID identifiers, soft delete, audit events `idp-mapping.created|changed|deleted`); verify with tests for the specs "Mapping created", "Display name instead of identifier" and "Mapping deleted"
+- [x] 6.4 Implement the setup-phase gate for bindings and mappings with `system.setup-phase-ended` (D9); verify with tests for the specs "First mapping without second factor" and "First mapping with second factor"
+- [x] 6.5 Write the Cucumber feature `identity/access-administration.feature` covering the spec scenarios, including the walk from login during the setup phase through TOTP enrollment to the first mapping; verify it passes through `CucumberIT`
+- [x] 6.6 Document the new event types in `docs/audit-event-catalog.md`, the key file, `oea secrets reencrypt`, the setup phase and the provider/person/mapping administration via API (with `curl` examples for the walking skeleton) in `docs/operations.md`; verify markdown lint and link validation pass
 
 ## 7. Frontend
 
-- [ ] 7.1 Add the login page `/login` with the TOTP step and the generic error message, and send `X-XSRF-TOKEN` on state-changing requests; verify with Vitest tests for success, wrong credentials, TOTP step and throttling message
-- [ ] 7.2 Add the TOTP enrollment page (QR code rendered locally from the `otpauth://` URI, manual secret, confirmation, re-authentication message), the profile view and logout; verify with Vitest tests; SCR-001 and SCR-003 keep the status `legacy-mockup` without screen story, as decided for SCR-002 (screen stories with change 6)
+- [x] 7.1 Add the login page `/login` with the TOTP step and the generic error message, and send `X-XSRF-TOKEN` on state-changing requests; verify with Vitest tests for success, wrong credentials, TOTP step and throttling message
+- [x] 7.2 Add the TOTP enrollment page (QR code rendered locally from the `otpauth://` URI, manual secret, confirmation, re-authentication message), the profile view and logout; verify with Vitest tests; SCR-001 and SCR-003 keep the status `legacy-mockup` without screen story, as decided for SCR-002 (screen stories with change 6)
 - [ ] 7.3 Verify the walking-skeleton flow manually in the development environment: bootstrapping, login during the setup phase, provider and person with binding to a Keycloak dev user via `curl`, rejected first mapping without second factor, TOTP enrollment, accepted mapping, login with TOTP afterwards, `oea audit verify` OK; record the result in the PR
 
 ## 8. Wrap-up
