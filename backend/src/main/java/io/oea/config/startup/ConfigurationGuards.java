@@ -21,16 +21,14 @@ import org.springframework.util.ClassUtils;
 
 /**
  * Configuration guards of ADR-036 §6 on the prepared environment, before any bean or the
- * web server exists. Outside the profile {@code dev}: G4 (secrets), G5 (CORS), G6
- * (Swagger UI). With {@code dev}: every configured issuer must be a loopback address.
- * G1-G3 (issuer and signature rules) follow with OIDC login.
+ * web server exists. Outside the profile {@code dev}: G4 (secrets), G5 (CORS origins and the
+ * public URL), G6 (Swagger UI). The issuer rules G1-G3 apply to the stored providers
+ * ({@link StoredProviderGuard}).
  */
 public class ConfigurationGuards implements EnvironmentPostProcessor, Ordered {
 
 	/** Property set by the migration step; selects which secrets are required. */
 	public static final String MODE_PROPERTY = "oea.mode";
-
-	static final String PROVIDERS = "oea.security.oidc.providers";
 
 	static final String CORS_ORIGINS = "oea.security.cors.allowed-origins";
 
@@ -62,34 +60,18 @@ public class ConfigurationGuards implements EnvironmentPostProcessor, Ordered {
 
 	static List<String> check(ConfigurableEnvironment environment, boolean development) {
 		Binder binder = Binder.get(environment);
-		List<OidcProviderSettings> providers = binder.bind(PROVIDERS, Bindable.listOf(OidcProviderSettings.class))
-			.orElse(List.of());
 		List<String> violations = new ArrayList<>();
-		if (development) {
-			checkDevelopmentIssuers(providers, violations);
-		}
-		else {
-			checkSecrets(environment, providers, violations);
+		if (!development) {
+			checkSecrets(environment, violations);
 			checkCors(binder, violations);
+			checkPublicUrl(environment, violations);
 			checkSwaggerUi(environment, violations);
 		}
 		return violations;
 	}
 
-	/** Inverse guard (REQ-183 AC5): the development profile accepts only loopback issuers. */
-	private static void checkDevelopmentIssuers(List<OidcProviderSettings> providers, List<String> violations) {
-		for (int i = 0; i < providers.size(); i++) {
-			String issuer = providers.get(i).issuer();
-			if (issuer != null && !issuer.isBlank() && !LoopbackAddresses.isLoopbackUrl(issuer)) {
-				violations.add(PROVIDERS + "[" + i + "].issuer is not a loopback address, which the profile 'dev' "
-						+ "requires (REQ-183 AC5)");
-			}
-		}
-	}
-
-	/** G4: database passwords and OIDC client secrets. */
-	private static void checkSecrets(ConfigurableEnvironment environment, List<OidcProviderSettings> providers,
-			List<String> violations) {
+	/** G4: database passwords and the key-encryption key; stored client secrets are encrypted. */
+	private static void checkSecrets(ConfigurableEnvironment environment, List<String> violations) {
 		SecretRules rules = SecretRules.load();
 		List<String> secretProperties = new ArrayList<>();
 		if ("migrate".equals(environment.getProperty(MODE_PROPERTY))) {
@@ -109,13 +91,6 @@ public class ConfigurationGuards implements EnvironmentPostProcessor, Ordered {
 		if (environment.containsProperty("spring.datasource.url")
 				|| "secrets-reencrypt".equals(environment.getProperty(MODE_PROPERTY))) {
 			checkKeyEncryptionKey(environment, rules, violations);
-		}
-		for (int i = 0; i < providers.size(); i++) {
-			if (providers.get(i).clientSecret() != null) {
-				String property = PROVIDERS + "[" + i + "].client-secret";
-				rules.check(providers.get(i).clientSecret())
-					.ifPresent((reason) -> violations.add("G4: " + property + " " + reason));
-			}
 		}
 	}
 
@@ -169,6 +144,20 @@ public class ConfigurationGuards implements EnvironmentPostProcessor, Ordered {
 		}
 	}
 
+	/** G5: the public URL of the portal, base of the OIDC redirect URI, is https and not loopback. */
+	private static void checkPublicUrl(ConfigurableEnvironment environment, List<String> violations) {
+		String publicUrl = environment.getProperty(StoredProviderGuard.PUBLIC_URL);
+		if (publicUrl == null || publicUrl.isBlank()) {
+			return;
+		}
+		if (!publicUrl.strip().toLowerCase(Locale.ROOT).startsWith("https://")) {
+			violations.add("G5: " + StoredProviderGuard.PUBLIC_URL + " is not an https URL");
+		}
+		else if (LoopbackAddresses.isLoopbackUrl(publicUrl)) {
+			violations.add("G5: " + StoredProviderGuard.PUBLIC_URL + " is a loopback address");
+		}
+	}
+
 	/** G6: Swagger UI and the OpenAPI UI endpoint stay off (ADR-013, REQ-183 AC3). */
 	private static void checkSwaggerUi(ConfigurableEnvironment environment, List<String> violations) {
 		boolean springdocPresent = ClassUtils.isPresent(SPRINGDOC_MARKER, ConfigurationGuards.class.getClassLoader());
@@ -177,13 +166,6 @@ public class ConfigurationGuards implements EnvironmentPostProcessor, Ordered {
 				violations.add("G6: " + property + " is enabled; Swagger UI and API docs must be disabled");
 			}
 		}
-	}
-
-	/**
-	 * One entry of {@code oea.security.oidc.providers}. Introduced for the guards (design
-	 * D4); OIDC login uses the same property from change 3 on.
-	 */
-	record OidcProviderSettings(String issuer, String clientSecret) {
 	}
 
 }

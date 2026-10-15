@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -27,18 +26,14 @@ class TestInfrastructureTests {
 	@DynamicPropertySource
 	static void containers(DynamicPropertyRegistry registry) {
 		OeaTestDatabase.registerRuntimeDataSource(registry);
-		OeaKeycloak.registerIssuer(registry);
 	}
 
 	@Autowired
 	private MockMvcTester mvc;
 
-	@Autowired
-	private Environment environment;
-
 	@Test
 	void applicationStartsAgainstPostgresAndKeycloakSingletons() {
-		assertThat(this.environment.getProperty("oea.security.oidc.providers[0].issuer")).isEqualTo(OeaKeycloak.issuer());
+		assertThat(OeaKeycloak.issuer()).endsWith("/realms/" + OeaKeycloak.REALM);
 		assertThat(this.mvc.get().uri("/api/v1/health")).hasStatus(HttpStatus.OK);
 	}
 

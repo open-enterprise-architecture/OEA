@@ -2,7 +2,6 @@ package io.oea.testsupport.containers;
 
 import java.nio.file.Path;
 import java.time.Duration;
-import org.springframework.test.context.DynamicPropertyRegistry;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
@@ -45,11 +44,6 @@ public final class OeaKeycloak {
 	public static String issuer() {
 		GenericContainer<?> container = started();
 		return "http://" + container.getHost() + ":" + container.getMappedPort(8080) + "/realms/" + REALM;
-	}
-
-	/** Registers the realm as the first OIDC provider (design D4). */
-	public static void registerIssuer(DynamicPropertyRegistry registry) {
-		registry.add("oea.security.oidc.providers[0].issuer", OeaKeycloak::issuer);
 	}
 
 }

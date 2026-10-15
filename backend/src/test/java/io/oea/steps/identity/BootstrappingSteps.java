@@ -108,8 +108,8 @@ public class BootstrappingSteps {
 	}
 
 	@Then("no identity provider is configured")
-	public void noIdentityProvider() {
-		assertThat(this.application.getEnvironment().getProperty("oea.security.oidc.providers[0].issuer")).isNull();
+	public void noIdentityProvider() throws SQLException {
+		assertThat(single("SELECT count(*)::text FROM auth_providers")).isEqualTo("0");
 	}
 
 	@Then("the setup succeeds")

@@ -19,7 +19,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Configuration;
 
-/** Spec platform/startup-safety: configuration guards G4-G6 and the inverse development guard. */
+/** Spec platform/startup-safety: configuration guards G4-G6 (stored issuers: StoredProviderGuardTests). */
 @ExtendWith(OutputCaptureExtension.class)
 class ConfigurationGuardsTests {
 
@@ -59,10 +59,11 @@ class ConfigurationGuardsTests {
 	}
 
 	@Test
-	void oidcClientSecretIsChecked() {
-		assertThat(startFails("--oea.security.oidc.providers[0].issuer=https://login.example.com",
-				"--oea.security.oidc.providers[0].client-secret=secret")
-			.getViolations()).containsExactly("G4: oea.security.oidc.providers[0].client-secret is a known default value");
+	void unsafePublicUrlIsRefused() {
+		assertThat(startFails("--oea.web.public-url=http://oea.example.org").getViolations())
+			.containsExactly("G5: oea.web.public-url is not an https URL");
+		assertThat(startFails("--oea.web.public-url=https://localhost:5173").getViolations())
+			.containsExactly("G5: oea.web.public-url is a loopback address");
 	}
 
 	@Test
@@ -106,25 +107,13 @@ class ConfigurationGuardsTests {
 	void safeProductionSettingsStart() {
 		assertThatNoException().isThrownBy(() -> start(DATASOURCE_URL, "--spring.datasource.password=" + STRONG_SECRET,
 				"--oea.security.cors.allowed-origins=https://oea.example.org",
-				"--oea.security.oidc.providers[0].issuer=https://login.example.com",
-				"--oea.security.oidc.providers[0].client-secret=" + STRONG_SECRET).close());
+				"--oea.web.public-url=https://oea.example.org").close());
 	}
 
 	@Test
-	void developmentProfileWithRealIssuerIsRefused() {
-		assertThat(startFails("--spring.profiles.active=dev",
-				"--oea.security.oidc.providers[0].issuer=http://localhost:8180/realms/oea-dev",
-				"--oea.security.oidc.providers[1].issuer=https://login.example.com")
-			.getViolations()).containsExactly("oea.security.oidc.providers[1].issuer is not a loopback address, "
-					+ "which the profile 'dev' requires (REQ-183 AC5)");
-	}
-
-	@Test
-	void developmentProfileWithLoopbackIssuersStartsWithRelaxations(CapturedOutput output) {
+	void developmentProfileStartsWithRelaxations(CapturedOutput output) {
 		assertThatNoException().isThrownBy(() -> start("--spring.profiles.active=dev",
-				"--oea.security.oidc.providers[0].issuer=http://localhost:8180/realms/oea-dev",
-				"--oea.security.oidc.providers[1].issuer=http://127.0.0.1:8180/realms/oea-dev",
-				"--spring.datasource.url=jdbc:postgresql://localhost:55432/oea",
+				"--oea.web.public-url=http://localhost:5173", "--spring.datasource.url=jdbc:postgresql://localhost:55432/oea",
 				"--spring.datasource.password=" + LISTED_DEV_SECRET, "--oea.security.cors.allowed-origins=http://localhost:5173")
 			.close());
 		assertThat(output).contains("Spring profile 'dev' is active");
