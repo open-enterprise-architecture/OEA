@@ -62,6 +62,16 @@ The settings can also be passed as environment variables (`OEA_MIGRATION_URL`, `
 | `db/migration-audit` | `oea_owner` | `audit.flyway_schema_history` |
 | `db/migration-reporting` | `oea_reporting_owner` | `reporting.flyway_schema_history` |
 
+## Upgrading PostgreSQL to a New Major Version
+
+The shipped Compose setup uses PostgreSQL 18. Data directories are not compatible across major versions, so a major upgrade (for example from an earlier PostgreSQL in an existing volume) needs a dump and restore or `pg_upgrade`:
+
+1. Stop the backend, keep PostgreSQL running, and dump the database as superuser: `pg_dumpall` (roles and data) or `pg_dump -Fc oea` plus the provisioning script for the roles
+2. Start the new PostgreSQL version on an empty volume; the provisioning script creates the roles again
+3. Restore the dump, then run the migration step and start the application
+
+Since PostgreSQL 18 the official image keeps its data in `/var/lib/postgresql/18/docker`; the Compose volume is therefore mounted at `/var/lib/postgresql`, not at `/var/lib/postgresql/data`. The minimum supported version stays PostgreSQL 15 (REQ-156); the application checks it at startup.
+
 ## Step 3: Application Start
 
 The application connects with the runtime role:
