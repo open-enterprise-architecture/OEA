@@ -120,17 +120,25 @@ package "Auth" #FFF8E1 {
     + name             : TEXT             {NN}
     + issuer           : TEXT             {NN} {UQ}
     .. exact 'iss' value; claims from other issuers are ignored ..
+    .. https and no loopback outside the profile dev (ADR-036 G2/G3) ..
+    + client_id        : TEXT             {NN}
+    + client_secret_encrypted : TEXT
+    .. AES-256-GCM, key-encryption key outside the DB (REQ-188); write-only ..
+    + client_secret_key_id : TEXT
+    .. NOT NULL iff client_secret_encrypted NOT NULL ..
+    + scopes           : TEXT             {NN} DEFAULT 'openid profile email'
     + active           : BOOLEAN          {NN} DEFAULT true
     + created_at       : TIMESTAMPTZ      {NN} DEFAULT NOW()
+    + updated_at       : TIMESTAMPTZ
   }
 
   note right of auth_providers
-    PLACEHOLDER (ADR-032 DM-5 needs the FK).
-    Only the columns referenced by identity
-    binding and IdP group mappings are modeled.
-    Client ID, encrypted client secret (REQ-188),
-    claim names and 2FA policy follow with a
-    dedicated business object 'auth-provider'.
+    Business object auth-provider. Managed with
+    auth-config:manage via the admin API; changes
+    need authentication within 5 min (REQ-172)
+    and are audited (auth-provider.changed).
+    Claim names and 2FA policy follow with the
+    OIDC login.
   end note
 
   class person_identities <<Table>> #FFECB3 {
@@ -204,7 +212,7 @@ package "Auth" #FFF8E1 {
     + type           : TEXT               {NN}
     .. enum: passkey | totp | password | recovery-codes ..
     + status         : TEXT               {NN} DEFAULT 'active'
-    .. enum: active | revoked ..
+    .. enum: pending | active | revoked; pending = TOTP enrollment not yet confirmed (expires after 10 min) ..
     + created_at     : TIMESTAMPTZ        {NN} DEFAULT NOW()
     + last_used_at   : TIMESTAMPTZ
     + revoked_at     : TIMESTAMPTZ
@@ -510,6 +518,10 @@ package "Sessions" #FFF3E0 {
   class sessions <<Table>> #FFE0B2 {
     + id                  : UUID          {PK}
     .. opaque session ID; OEA access tokens carry it as 'sid' ..
+    + token_hash          : BYTEA         {NN} {UQ}
+    .. SHA-256 of the cookie value __Host-OEA_SESSION (256 random bits); value never stored ..
+    + csrf_token_hash     : BYTEA         {NN}
+    .. SHA-256 of the per-session CSRF token (REQ-187) ..
     .. permissions are never stored in sessions or tokens (ADR-032 §7) ..
     --
     + person_id           : BIGINT        {FK→persons.id}
@@ -557,6 +569,29 @@ package "Sessions" #FFF3E0 {
     .. refresh_tokens of the session deleted immediately; the session row is ..
     .. deleted after setting sessionRetentionDays (default 30) ..
     .. security events remain in the audit log (REQ-175) ..
+  }
+
+  class login_transactions <<Table>> #FFE0B2 {
+    + id                  : UUID          {PK}
+    --
+    + token_hash          : BYTEA         {NN} {UQ}
+    .. SHA-256 of the opaque loginTransaction value returned after a correct password ..
+    + system_admin_account_id : UUID      {NN} {FK→system_admin_accounts.id}
+    + created_at          : TIMESTAMPTZ   {NN} DEFAULT NOW()
+    + expires_at          : TIMESTAMPTZ   {NN}
+    .. created_at + 5 min ..
+    + failed_codes        : SMALLINT      {NN} DEFAULT 0
+    .. 5 wrong TOTP codes invalidate the transaction (REQ-168 AC2) ..
+  }
+
+  class auth_throttle <<Table>> #FFE0B2 {
+    + throttle_key        : TEXT          {PK}
+    .. 'account:<login name>' (also unknown names) | 'address:<ip>' ..
+    --
+    + failures            : INTEGER       {NN} DEFAULT 0
+    + window_started_at   : TIMESTAMPTZ   {NN}
+    + locked_until        : TIMESTAMPTZ
+    .. exponential backoff, temporary lock max. 15 min; never permanent (REQ-168) ..
   }
 
   class session_idp_roles <<Table>> #FFE0B2 {
@@ -1380,6 +1415,11 @@ package "Settings" #F1F8E9 {
     + id                     : SMALLINT   {PK}
     .. CHECK (id = 1): single row per instance ..
     --
+    == Setup phase (ADR-042) ==
+    + setup_phase_ended_at   : TIMESTAMPTZ
+    .. NULL while the setup phase lasts; set irreversibly ..
+    + setup_phase_ended_by_action : TEXT
+    .. enum: identity-binding | idp-group-mapping | role-assignment | person-credential | service-account ..
     == Instance (ADR-001) ==
     + instance_slug          : TEXT       {NN}
     .. CHECK ~ '^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$'; set by the bootstrapping, immutable ..
@@ -1561,6 +1601,11 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   system_settings.instance_slug (ADR-001, set by the bootstrapping);
 '   new bootstrap_setup_tokens (setup token hash, REQ-017);
 '   CHECK on system_admin_accounts.login_name. Reason: UC-02 / US-013.
+' 2026-10-15 (us-013-system-admin-login):
+'   auth_providers completed (client settings, encrypted secret; BO auth-provider);
+'   sessions.token_hash and csrf_token_hash; local_credentials status pending;
+'   new login_transactions and auth_throttle; setup phase columns in
+'   system_settings (ADR-042). Reason: US-013 AC2, REQ-165, REQ-168, REQ-187, REQ-188.
 ' ─────────────────────────────────────────────────────
 
 @enduml

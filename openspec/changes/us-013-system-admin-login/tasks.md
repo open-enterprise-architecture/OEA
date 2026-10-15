@@ -2,8 +2,8 @@
 
 ## 1. Data model and migration
 
-- [ ] 1.1 Update `docs/data-model.puml` and `business-objects/` (`session`, `local-credential`, `system-settings`, `auth-provider` or the provider section of `person`) for D1–D10: session token and CSRF hashes, credential status `pending`, `login_transactions`, `auth_throttle`, setup-phase columns, provider client settings; verify the PlantUML file renders and link validation passes
-- [ ] 1.2 Flyway migration `db/migration/V3__identity_and_sessions.sql` with `persons`, `person_identities`, `auth_providers`, `permissions`, `authorization_roles`, `role_permissions`, `idp_group_mappings`, `sessions`, `totp_credentials`, `login_transactions`, `auth_throttle`, the `system_settings` columns and the grants for `oea_app`; seed the permission catalog and the nine built-in roles; verify with tests that owners and grants are as designed and that the seed equals `x-oea-permissions` and `x-oea-builtin-roles` of `api/openapi.yaml`
+- [x] 1.1 Update `docs/data-model.puml` and `business-objects/` (`session`, `local-credential`, `system-settings`, `auth-provider` or the provider section of `person`) for D1–D10: session token and CSRF hashes, credential status `pending`, `login_transactions`, `auth_throttle`, setup-phase columns, provider client settings; verify the PlantUML file renders and link validation passes
+- [x] 1.2 Flyway migration `db/migration/V3__identity_and_sessions.sql` with `persons`, `person_identities`, `auth_providers`, `permissions`, `authorization_roles`, `role_permissions`, `idp_group_mappings`, `sessions`, `totp_credentials`, `login_transactions`, `auth_throttle`, the `system_settings` columns and the grants for `oea_app`; seed the permission catalog and the nine built-in roles; verify with tests that owners and grants are as designed and that the seed equals `x-oea-permissions` and `x-oea-builtin-roles` of `api/openapi.yaml`
 
 ## 2. Contract
 

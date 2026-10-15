@@ -2,7 +2,7 @@
 identifier: system-settings
 name_de: Instanz-Einstellungen
 name_en: System Settings
-version: 0.2.0
+version: 0.3.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -35,6 +35,8 @@ Settings that need protection against the administrators who manage them are del
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
 | instanceSlug | string | required | | `^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$` (3–63 characters); immutable after bootstrapping | Instance part of external URNs `urn:oea:{instance-slug}:{id}` (ADR-001); set once during bootstrapping (UC-02) |
+| setupPhaseEndedAt | datetime | optional | | set once, never reset | End of the setup phase ([ADR-042](../adrs/ADR-042-setup-phase-without-second-factor.md)); `null` while the system admin may log in with password only |
+| setupPhaseEndedByAction | enum | optional | | `[identity-binding, idp-group-mapping, role-assignment, person-credential, service-account]` | Action that ended the setup phase |
 | privilegedAssignmentApproval | boolean | required | false | | Four-eyes approval for privileged role assignments, permissions and IdP group mappings (owner decisions Q15, Q18) |
 | allowReactivationOfOffboarded | boolean | required | false | | Whether an `offboarded` person can be reactivated (owner decision Q19) |
 | sessionRetentionDays | integer | required | 30 | > 0 | Days an ended session record is kept (owner decision Q20, REQ-189 AC4) |
@@ -109,3 +111,4 @@ Resolved (change `us-013-local-bootstrapping`): the audit checkpoint interval (A
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | Business Engineer | Initial draft for ADR-034 DM-5 (analytics settings); existing settings of ADR-032 / Q19 / Q20 consolidated; audit retention excluded (ADR-033 §4) |
 | 0.2.0 | 2026-10-15 | Business Engineer | `instanceSlug` (ADR-001, set by the bootstrapping, UC-02); checkpoint interval resolved as deployment configuration |
+| 0.3.0 | 2026-10-15 | Business Engineer | Setup phase attributes (ADR-042) |

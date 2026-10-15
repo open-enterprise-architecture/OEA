@@ -71,6 +71,11 @@
 			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
 
+		<!-- Reads api/openapi.yaml at runtime for the generated authorization rules (ADR-032 §8) -->
+		<dependency>
+			<groupId>tools.jackson.dataformat</groupId>
+			<artifactId>jackson-dataformat-yaml</artifactId>
+		</dependency>
 		<!-- argon2id password hashing (REQ-169); Bouncy Castle implements Argon2 -->
 		<dependency>
 			<groupId>org.springframework.security</groupId>

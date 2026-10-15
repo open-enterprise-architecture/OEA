@@ -83,12 +83,12 @@ RFC 6238 with SHA-1, 6 digits, 30 s, accepted window ±1 step; 20-byte secret. E
 
 Changes to `docs/data-model.puml` and `business-objects/` (data model rule of AGENTS.md):
 
-- `sessions`: new columns `token_hash BYTEA UNIQUE NOT NULL` and `csrf_token_hash BYTEA NOT NULL` (the cookie value and the CSRF token are never stored); `client_type` `web`; `auth_method` `local-password` | `local-password-totp`
+- `sessions`: new columns `token_hash BYTEA UNIQUE NOT NULL` and `csrf_token_hash BYTEA NOT NULL` (the cookie value and the CSRF token are never stored); modeled values `client_type = web-portal`, `auth_method = password | password-totp`
 - `local_credentials.status`: new value `pending` for an enrollment not yet confirmed
 - New table `login_transactions` (`token_hash`, `system_admin_account_id`, `created_at`, `expires_at`, `failed_codes`)
 - New table `auth_throttle` (`throttle_key`, `failures`, `window_started_at`, `locked_until`)
 - `system_settings`: `setup_phase_ended_at`, `setup_phase_ended_by_action`
-- `auth_providers`: `client_id`, `client_secret_encrypted`, `client_secret_key_id`, `scopes` (the API already has them; the model gains them)
+- `auth_providers`: `client_id`, `client_secret_encrypted`, `client_secret_key_id`, `scopes`, `updated_at` (the API already has them; the model gains them); `provider_type` (`entra-id | authentik | generic-oidc`, modeled) is exposed in the API as `vendor`; new business object `auth-provider`
 - Business objects: `session`, `system-settings`, `local-credential`, `auth-provider` (if present) updated accordingly
 
 Planned Flyway migration `db/migration/V3__identity_and_sessions.sql` (owner `oea_owner`): `persons` (without the entity link columns), `person_identities`, `auth_providers`, `permissions`, `authorization_roles`, `role_permissions` (seeded from the contract's permission catalog and built-in roles), `idp_group_mappings`, `sessions`, `totp_credentials`, `login_transactions`, `auth_throttle`, the new `system_settings` columns, grants for `oea_app` (no DELETE on persons, identities history-relevant tables except `person_identities` unbinding and the transient tables). A test compares the seeded catalog with `x-oea-permissions` and `x-oea-builtin-roles` of the contract.
