@@ -1,5 +1,6 @@
 package io.oea.core.domain.auth;
 
+import io.oea.core.domain.NewAwareEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -10,7 +11,7 @@ import java.time.Instant;
 /** Hash of the one-time setup token while no system admin account exists (REQ-017). */
 @Entity
 @Table(name = "bootstrap_setup_tokens")
-public class BootstrapSetupToken {
+public class BootstrapSetupToken extends NewAwareEntity<Short> {
 
 	public static final short SINGLE_ROW = 1;
 
@@ -25,6 +26,11 @@ public class BootstrapSetupToken {
 
 	@Column(name = "expires_at", nullable = false)
 	private Instant expiresAt;
+
+	@Override
+	public Short getId() {
+		return this.id;
+	}
 
 	protected BootstrapSetupToken() {
 	}

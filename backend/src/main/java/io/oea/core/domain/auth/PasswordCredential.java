@@ -1,5 +1,6 @@
 package io.oea.core.domain.auth;
 
+import io.oea.core.domain.NewAwareEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -9,7 +10,7 @@ import java.util.UUID;
 /** Password of a local credential: argon2id PHC string only (REQ-169). */
 @Entity
 @Table(name = "password_credentials")
-public class PasswordCredential {
+public class PasswordCredential extends NewAwareEntity<UUID> {
 
 	@Id
 	@Column(name = "credential_id")
@@ -36,6 +37,11 @@ public class PasswordCredential {
 	/** A password chosen by the owner; no expiry (REQ-173 applies to passwords set by others). */
 	public static PasswordCredential selfSet(LocalCredential credential, String passwordHash) {
 		return new PasswordCredential(credential.getId(), passwordHash, "self-set");
+	}
+
+	@Override
+	public UUID getId() {
+		return this.credentialId;
 	}
 
 	public UUID getCredentialId() {

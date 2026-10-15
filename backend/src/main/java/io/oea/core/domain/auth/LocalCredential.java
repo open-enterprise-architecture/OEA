@@ -1,5 +1,6 @@
 package io.oea.core.domain.auth;
 
+import io.oea.core.domain.NewAwareEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -10,7 +11,7 @@ import java.util.UUID;
 /** Local credential of a system admin account (business object local-credential). */
 @Entity
 @Table(name = "local_credentials")
-public class LocalCredential {
+public class LocalCredential extends NewAwareEntity<UUID> {
 
 	@Id
 	private UUID id;
@@ -42,6 +43,7 @@ public class LocalCredential {
 		return new LocalCredential(owner.getId(), "password", now);
 	}
 
+	@Override
 	public UUID getId() {
 		return this.id;
 	}

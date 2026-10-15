@@ -21,9 +21,9 @@
 ## 3. Setup token and bootstrapping service
 
 - [x] 3.1 Implement the setup token lifecycle at startup (D1): generate, store the SHA-256 hash with expiry, write the token file with mode `0600`, log only the hint; create `/run/oea` in `backend/Dockerfile`; verify with an integration test that the file contains a token whose hash is stored, that no log line contains the token, and that a restart replaces the token (spec: Token readable only inside the container)
-- [ ] 3.2 Implement the bootstrapping service in `io.oea.app` (D2): token check in constant time, validation of login name, password length 12–128 and instance slug, creation of settings, account and password credential, deletion of token row and file, audit event `system.bootstrapped`; verify with integration tests for the specs "Bootstrapping creates the system admin account" and "Password outside the length limits"
-- [ ] 3.3 Implement rejections (D3) with `system.bootstrap-rejected` in a separate transaction for invalid or expired token, existing account and validation errors; verify with integration tests for the specs "Setup without valid token", "Instance already bootstrapped" and "Rejected bootstrapping", including that the audit details contain neither token nor password
-- [ ] 3.4 Verify concurrency with an integration test that starts two bootstrapping requests in parallel against a fresh database and expects exactly one success and one `409` (spec: Two simultaneous attempts)
+- [x] 3.2 Implement the bootstrapping service in `io.oea.app` (D2): token check in constant time, validation of login name, password length 12–128 and instance slug, creation of settings, account and password credential, deletion of token row and file, audit event `system.bootstrapped`; verify with integration tests for the specs "Bootstrapping creates the system admin account" and "Password outside the length limits"
+- [x] 3.3 Implement rejections (D3) with `system.bootstrap-rejected` in a separate transaction for invalid or expired token, existing account and validation errors; verify with integration tests for the specs "Setup without valid token", "Instance already bootstrapped" and "Rejected bootstrapping", including that the audit details contain neither token nor password
+- [x] 3.4 Verify concurrency with an integration test that starts two bootstrapping requests in parallel against a fresh database and expects exactly one success and one `409` (spec: Two simultaneous attempts)
 
 ## 4. Setup API
 

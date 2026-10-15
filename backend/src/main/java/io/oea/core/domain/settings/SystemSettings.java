@@ -1,5 +1,6 @@
 package io.oea.core.domain.settings;
 
+import io.oea.core.domain.NewAwareEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -15,7 +16,7 @@ import java.util.regex.Pattern;
  */
 @Entity
 @Table(name = "system_settings")
-public class SystemSettings {
+public class SystemSettings extends NewAwareEntity<Short> {
 
 	public static final short SINGLE_ROW = 1;
 
@@ -33,6 +34,11 @@ public class SystemSettings {
 
 	@Column(name = "updated_by_admin_id")
 	private UUID updatedByAdminId;
+
+	@Override
+	public Short getId() {
+		return this.id;
+	}
 
 	protected SystemSettings() {
 	}
