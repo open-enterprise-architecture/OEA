@@ -155,6 +155,17 @@ public class LoginSession extends NewAwareEntity<UUID> {
 		this.idpClaimsEvaluatedAt = now;
 	}
 
+	/** True if the last evaluation of the groups claim is older than the maximum age (Q16). */
+	public boolean isIdpEvaluationDue(Instant now, Duration maximumAge) {
+		return "oidc".equals(this.authMethod)
+				&& (this.idpClaimsEvaluatedAt == null || !now.isBefore(this.idpClaimsEvaluatedAt.plus(maximumAge)));
+	}
+
+	/** The IdP could not be asked; the next attempt is due after the retry delay. */
+	public void scheduleIdpRetry(Instant now, Duration maximumAge, Duration retryDelay) {
+		this.idpClaimsEvaluatedAt = now.minus(maximumAge).plus(retryDelay);
+	}
+
 	/** True if the IdP refresh token has expired (owner decision 2026-10-15). */
 	public boolean isIdpTokenExpired(Instant now) {
 		return this.idpTokenExpiresAt != null && !now.isBefore(this.idpTokenExpiresAt);

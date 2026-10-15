@@ -75,6 +75,11 @@ public class PermissionResolver {
 				String.class, roleId));
 	}
 
+	/** Drops the cached roles of one session after its IdP roles were re-evaluated. */
+	public void evictSession(UUID sessionId) {
+		this.cache.keySet().removeIf((key) -> key.contains(":" + sessionId + ":"));
+	}
+
 	/** Drops cached permission sets after changes of roles, mappings or assignments. */
 	public void evictAll() {
 		this.cache.clear();

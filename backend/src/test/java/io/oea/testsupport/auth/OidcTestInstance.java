@@ -8,6 +8,7 @@ import io.oea.testsupport.containers.OeaApplications;
 import io.oea.testsupport.containers.OeaDatabases;
 import io.oea.testsupport.containers.OeaKeycloak;
 import io.oea.testsupport.containers.OeaTestKeys;
+import io.oea.testsupport.time.OffsetClock;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -47,11 +48,14 @@ public final class OidcTestInstance implements AutoCloseable {
 
 	private final UUID providerId;
 
+	private final OffsetClock clock;
+
 	private OidcTestInstance(PostgreSQLContainer postgres, ConfigurableApplicationContext application,
-			UUID providerId) {
+			UUID providerId, OffsetClock clock) {
 		this.postgres = postgres;
 		this.application = application;
 		this.providerId = providerId;
+		this.clock = clock;
 	}
 
 	/** Starts the instance with the development realm as enabled provider; extra arguments for the application. */
@@ -63,9 +67,15 @@ public final class OidcTestInstance implements AutoCloseable {
 		args[0] = "--spring.profiles.active=dev";
 		args[1] = "--oea.web.public-url=" + PUBLIC_URL;
 		System.arraycopy(arguments, 0, args, 2, arguments.length);
+		OffsetClock clock = new OffsetClock();
 		ConfigurableApplicationContext application = OeaApplications.start(postgres, tokenFile,
-				WebApplicationType.SERVLET, args);
-		return new OidcTestInstance(postgres, application, providerId);
+				WebApplicationType.SERVLET, clock, args);
+		return new OidcTestInstance(postgres, application, providerId, clock);
+	}
+
+	/** Clock of the application; runs with the system time plus the advanced offset. */
+	public OffsetClock clock() {
+		return this.clock;
 	}
 
 	public UUID providerId() {

@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,15 +44,19 @@ public class Sessions {
 
 	private final AuditWriter audit;
 
+	private final ObjectProvider<IdpSessionRefresh> idpRefresh;
+
 	private final Clock clock;
 
 	public Sessions(LoginSessionRepository sessions, SystemAdminAccountRepository accounts, PersonRepository persons,
-			SessionProperties properties, AuditWriter audit, Clock clock) {
+			SessionProperties properties, AuditWriter audit, ObjectProvider<IdpSessionRefresh> idpRefresh,
+			Clock clock) {
 		this.sessions = sessions;
 		this.accounts = accounts;
 		this.persons = persons;
 		this.properties = properties;
 		this.audit = audit;
+		this.idpRefresh = idpRefresh;
 		this.clock = clock;
 	}
 
@@ -101,6 +106,18 @@ public class Sessions {
 			}
 			return Optional.empty();
 		}
+		if ("oidc".equals(session.getAuthMethod())) {
+			// the session ends with the IdP refresh token (owner decision 2026-10-15, REQ-001)
+			boolean usable = !session.isIdpTokenExpired(now);
+			if (usable && session.isIdpEvaluationDue(now, IdpRoles.MAXIMUM_AGE)) {
+				IdpSessionRefresh refresh = this.idpRefresh.getIfAvailable();
+				usable = refresh == null || refresh.refreshIfDue(session);
+			}
+			if (!usable) {
+				end(session, "idp-refresh-failed", now);
+				return Optional.empty();
+			}
+		}
 		session.touch(now);
 		if (session.getPersonId() != null) {
 			return this.persons.findById(session.getPersonId())
@@ -110,6 +127,13 @@ public class Sessions {
 						session.getId(), session.isSecondFactorVerified(), session.getAuthenticatedAt()));
 		}
 		return this.accounts.findById(session.getSystemAdminAccountId()).map((account) -> principal(session, account));
+	}
+
+	private void end(LoginSession session, String reason, Instant now) {
+		session.revoke(reason, null, now);
+		this.audit.append(new AuditEvent("session.revoked", AuditEvent.Category.SECURITY, AuditEvent.Severity.INFO,
+				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, AuditEvent.Actor.system(), "session",
+				session.getId().toString(), Map.of("reason", reason)));
 	}
 
 	/** Second factor confirmed in the running session (design D7, ADR-042). */

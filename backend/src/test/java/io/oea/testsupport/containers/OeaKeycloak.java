@@ -2,6 +2,7 @@ package io.oea.testsupport.containers;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.UUID;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
@@ -22,9 +23,16 @@ public final class OeaKeycloak {
 
 	public static final Path REALM_FILE = Path.of("..", "dev", "keycloak", "realm-oea-dev.json");
 
+	/** Bootstrap admin of the test container (Admin REST API, ADR-036 §5); random per test JVM. */
+	public static final String ADMIN_USER = "oea-test-admin";
+
+	public static final String ADMIN_PASSWORD = UUID.randomUUID().toString();
+
 	private static final GenericContainer<?> CONTAINER = new GenericContainer<>(IMAGE)
 		.withCommand("start-dev", "--import-realm")
 		.withEnv("KC_HEALTH_ENABLED", "true")
+		.withEnv("KC_BOOTSTRAP_ADMIN_USERNAME", ADMIN_USER)
+		.withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", ADMIN_PASSWORD)
 		.withCopyFileToContainer(MountableFile.forHostPath(REALM_FILE, 0644),
 				"/opt/keycloak/data/import/realm-oea-dev.json")
 		.withExposedPorts(8080, 9000)
