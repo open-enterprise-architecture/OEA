@@ -2,9 +2,9 @@
 
 **ID**: US-015
 **Story Points**: 3
-**Status**: review
+**Status**: done
 **Sprint**: S1
-**Implementation**: OpenSpec change `us-013-local-bootstrapping` (commit hash added when the change is archived)
+**Implementation**: OpenSpec change `us-013-local-bootstrapping`, commit c962535 (#24)
 
 ## Story
 
