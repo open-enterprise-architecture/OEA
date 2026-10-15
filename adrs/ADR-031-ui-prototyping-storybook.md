@@ -5,6 +5,7 @@
 **Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Consulted**: –
 **Informed**: all contributors
+**Partially superseded**: 2026-10-15 by [ADR-040](./ADR-040-ui-component-library-after-primevue-license-change.md) — component library Nuxt UI 4 instead of PrimeVue
 
 ## Context and Problem
 

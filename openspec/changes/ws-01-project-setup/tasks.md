@@ -48,7 +48,7 @@
 
 ## 7. Frontend scaffold
 
-- [ ] 7.1 Create `frontend/` with Vite, Vue 3, TypeScript (strict), PrimeVue 4, Tailwind CSS, Vitest and npm; a start page only; verify `npm ci`, `npm run type-check`, `npm run test` and `npm run build` succeed
+- [ ] 7.1 Create `frontend/` with Vite, Vue 3, TypeScript (strict), Nuxt UI 4 (ADR-040), Tailwind CSS 4, Vitest and npm; a start page only; verify `npm ci`, `npm run type-check`, `npm run test` and `npm run build` succeed
 - [ ] 7.2 Generate API types from `api/openapi.yaml` with `openapi-typescript` in `prebuild` (output not committed); verify the build fails if the spec is invalid
 - [ ] 7.3 Configure Storybook (Vue 3 + Vite, accessibility addon) with an empty `src/screens/`; verify `npm run build-storybook` succeeds and `python3 scripts/check_screens.py` stays green
 

@@ -5,6 +5,7 @@
 **Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Consulted**: Requirements Engineer
 **Informed**: –
+**Partially superseded**: 2026-10-15 by [ADR-040](./ADR-040-ui-component-library-after-primevue-license-change.md) — Nuxt UI 4 instead of PrimeVue 4 (license change of PrimeVue 5); TipTap 3 instead of 2.x
 
 ## Context and Problem
 

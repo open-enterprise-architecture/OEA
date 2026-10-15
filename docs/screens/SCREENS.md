@@ -1,6 +1,6 @@
 # OEA Screen Inventory
 
-Complete list of all UI screens. Screens are prototyped as Storybook stories with real Vue/PrimeVue components; screen images are generated from these stories ([ADR-031](../../adrs/ADR-031-ui-prototyping-storybook.md)).
+Complete list of all UI screens. Screens are prototyped as Storybook stories with real Vue/Nuxt UI components; screen images are generated from these stories ([ADR-031](../../adrs/ADR-031-ui-prototyping-storybook.md)).
 
 **Platforms** (ADR-008, ADR-009):
 

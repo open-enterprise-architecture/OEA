@@ -146,7 +146,7 @@ This scenario proves all technical layers end to end. The architecture works.
 | Database | PostgreSQL 15 + JSONB; Flyway migrations in a one-shot migration step with the owner role; application with the runtime role | ADR-015, ADR-016, ADR-033 |
 | API | REST, JSON; OpenAPI 3.x spec-first (`api/openapi.yaml`) | ADR-013 |
 | Auth | OIDC with PKCE `S256`; Keycloak dev realm in development and tests (no JWT stub), Entra ID / Authentik in production | ADR-006, ADR-036 |
-| Frontend | Vue 3 + TypeScript + PrimeVue (DataTable) | ADR-011, ADR-014 |
+| Frontend | Vue 3 + TypeScript + Nuxt UI 4 (TanStack Table) + Tailwind CSS 4 | ADR-011, ADR-014, ADR-040 |
 | Tests | Cucumber JVM for the feature files of the skeleton REQs; PostgreSQL and Keycloak Testcontainers; tokens only through real login flows | ADR-029, ADR-036 |
 | Entity IDs | Integer; instance-slug set during bootstrapping | ADR-001 |
 | Metamodel | scope: built-in / imported / organization | ADR-002 |

@@ -18,7 +18,7 @@ As of: 2026-10-04 — Requirements phase completed. All §23 items categorized. 
 
 - ~~ADR-012~~ ✓ Backend: Java 25 (ADR-039) + Spring Boot 4.1 (ADR-038) + Hibernate; Maven
 - ~~ADR-013~~ ✓ API style: REST + OpenAPI 3.x (spec-first, contract `api/openapi.yaml`)
-- ~~ADR-014~~ ✓ Frontend: PrimeVue 4 + TipTap 2.x (WYSIWYG)
+- ~~ADR-014~~ ✓ Frontend: Nuxt UI 4 (ADR-040, replaces PrimeVue after its license change) + TipTap 3 (WYSIWYG)
 - ~~ADR-015~~ ✓ DB migration: Flyway
 
 The binding overview of all ADRs is in [adrs/README.md](../../adrs/README.md).

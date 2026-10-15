@@ -83,7 +83,7 @@ Transitive Maven dependencies reach the dependency graph through GitHub's *Autom
 
 ### D10 – Frontend scaffold
 
-Vite + Vue 3 + TypeScript (strict) + PrimeVue 4 + Tailwind CSS, `vue-tsc` type check, Vitest for unit tests, Storybook (Vue 3 + Vite) with the accessibility addon. Node 24 LTS. Only a start page and an empty `src/screens/` directory; no screen story yet, so `scripts/check_screens.py` stays green.
+Vite + Vue 3 + TypeScript (strict) + Nuxt UI 4 (ADR-040, via its Vite plugin without Nuxt) + Tailwind CSS 4, `vue-tsc` type check, Vitest for unit tests, Storybook (Vue 3 + Vite) with the accessibility addon. Node 24 LTS. Only a start page and an empty `src/screens/` directory; no screen story yet, so `scripts/check_screens.py` stays green.
 
 ## Data Model
 

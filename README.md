@@ -126,7 +126,7 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 | [ADR-037](adrs/ADR-037-database-roles-provisioning.md) | Database Roles and Provisioning | accepted |
 | [ADR-038](adrs/ADR-038-spring-boot-4.md) | Spring Boot 4.1 Instead of Spring Boot 3 | accepted |
 | [ADR-039](adrs/ADR-039-java-25.md) | Java 25 LTS Instead of Java 21 | accepted |
-| [ADR-040](adrs/ADR-040-ui-component-library-after-primevue-license-change.md) | UI Component Library After the PrimeVue License Change | proposed |
+| [ADR-040](adrs/ADR-040-ui-component-library-after-primevue-license-change.md) | UI Component Library After the PrimeVue License Change | accepted |
 <!-- /AUTO-GENERATED: adrs -->
 
 ## Contributing

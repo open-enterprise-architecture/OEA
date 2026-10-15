@@ -1,11 +1,11 @@
 # ADR-040: UI Component Library After the PrimeVue License Change
 
-**Status**: proposed
+**Status**: accepted
 **Date**: 2026-10-15
 **Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Consulted**: –
 **Informed**: all contributors
-**Partially supersedes (when accepted)**: [ADR-014](./ADR-014-frontend-component-library.md) (component library "PrimeVue 4"; the WYSIWYG decision for TipTap remains)
+**Partially supersedes**: [ADR-014](./ADR-014-frontend-component-library.md) (component library "PrimeVue 4"; the WYSIWYG decision for TipTap remains)
 
 ## Context and Problem
 
@@ -86,9 +86,9 @@ Facts as of 2026-10-15 (npm registry; weekly downloads rounded; component capabi
 
 ## Decision
 
-*Proposed:* **Option 4: Nuxt UI 4 with TanStack Table** on Tailwind CSS 4, used as a Vue/Vite plugin without Nuxt. PrimeVue is not used. TipTap remains the WYSIWYG editor (version 3, see consequences).
+We choose **Option 4: Nuxt UI 4 with TanStack Table** on Tailwind CSS 4, used as a Vue/Vite plugin without Nuxt. PrimeVue is not used. TipTap remains the WYSIWYG editor (version 3, see consequences).
 
-To be confirmed by the repository owner. Alternatives worth considering if Tailwind-native styling matters less than out-of-the-box table and tree features: Option 5 (Naive UI).
+Decided by the repository owner on 2026-10-15. Option 5 (Naive UI) remains the fallback if the Nuxt UI table or tree turns out to be insufficient for the catalog.
 
 ## Consequences
 
@@ -101,7 +101,7 @@ To be confirmed by the repository owner. Alternatives worth considering if Tailw
 ### Negative Consequences / Trade-offs
 
 - Lazy tree loading and some table interactions are built in OEA instead of configured
-- ADR-031 (Storybook with real components) is unaffected in principle, but its wording "PrimeVue" changes to the chosen library
+- ADR-031 (Storybook with real components) is unaffected in principle; its wording "PrimeVue" now means Nuxt UI
 - ADR-014 names TipTap 2.x; TipTap 3 is current and required by Nuxt UI's editor – the version is updated with this ADR (the license and extension model are unchanged, MIT)
 
 ### Follow-up Decisions
@@ -113,7 +113,7 @@ To be confirmed by the repository owner. Alternatives worth considering if Tailw
 | ADR | Effect |
 |---|---|
 | [ADR-014](./ADR-014-frontend-component-library.md) | Partially superseded: component library "PrimeVue 4" replaced; Tailwind CSS and TipTap remain (TipTap 3 instead of 2.x) |
-| [ADR-031](./ADR-031-ui-prototyping-storybook.md) | Wording only: "real Vue/PrimeVue components" becomes "real Vue components of the chosen library" |
+| [ADR-031](./ADR-031-ui-prototyping-storybook.md) | Partially superseded (wording): "real Vue/PrimeVue components" becomes "real Vue/Nuxt UI components" |
 | [ADR-011](./ADR-011-frontend-framework.md) | Unaffected (Vue 3 + TypeScript) |
 
 ## References

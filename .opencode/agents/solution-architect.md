@@ -52,7 +52,7 @@ Delegate subtasks to the appropriate subagents (`business-engineer`, `requiremen
 
 ## Guardrails
 
-- Accepted ADRs are binding (stack: Java 25 / Spring Boot 4.1 / Hibernate, Flyway, Vue 3 + TypeScript, PrimeVue, REST + OpenAPI, Cucumber). Deviation only via a new ADR.
+- Accepted ADRs are binding (stack: Java 25 / Spring Boot 4.1 / Hibernate, Flyway, Vue 3 + TypeScript, Nuxt UI, REST + OpenAPI, Cucumber). Deviation only via a new ADR.
 - Traceability is mandatory: every change refers to US/REQ, every spec requirement carries a `Trace:` line.
 - Personas are users of the product, not conversation partners: "What does Franz (SH-01) need?" instead of "Ask Franz".
 - Status overview on request: open changes (`openspec list`), progress from `tasks.md`, blocking questions.
