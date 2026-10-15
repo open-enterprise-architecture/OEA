@@ -48,6 +48,10 @@ public class OidcLoginSteps {
 		return this.instance;
 	}
 
+	ApplicationLogin lastLogin() {
+		return this.login;
+	}
+
 	@Given("the person bound to {string} has the status {string}")
 	public void person(String username, String status) throws Exception {
 		this.instance.person(username, status);
