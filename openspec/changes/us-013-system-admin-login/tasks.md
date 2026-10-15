@@ -45,10 +45,10 @@
 
 - [x] 7.1 Add the login page `/login` with the TOTP step and the generic error message, and send `X-XSRF-TOKEN` on state-changing requests; verify with Vitest tests for success, wrong credentials, TOTP step and throttling message
 - [x] 7.2 Add the TOTP enrollment page (QR code rendered locally from the `otpauth://` URI, manual secret, confirmation, re-authentication message), the profile view and logout; verify with Vitest tests; SCR-001 and SCR-003 keep the status `legacy-mockup` without screen story, as decided for SCR-002 (screen stories with change 6)
-- [ ] 7.3 Verify the walking-skeleton flow manually in the development environment: bootstrapping, login during the setup phase, provider and person with binding to a Keycloak dev user via `curl`, rejected first mapping without second factor, TOTP enrollment, accepted mapping, login with TOTP afterwards, `oea audit verify` OK; record the result in the PR
+- [x] 7.3 Verify the walking-skeleton flow manually in the development environment: bootstrapping, login during the setup phase, provider and person with binding to a Keycloak dev user via `curl`, rejected first mapping without second factor, TOTP enrollment, accepted mapping, login with TOTP afterwards, `oea audit verify` OK; record the result in the PR
 
 ## 8. Wrap-up
 
-- [ ] 8.1 Update the user stories: US-013 AC2 implemented (status `review`), US-143 AC1/AC2/AC4 and US-147 AC1/AC4/AC7 noted as implemented in this change; the implementation hash is added when the change is archived after the merge
-- [ ] 8.2 Synchronize `docs/data-model.puml`, `business-objects/` and `docs/screens/SCREENS.md` (unchanged) with the implementation; regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
-- [ ] 8.3 Run `python3 scripts/validate_links.py`, the markdown lint, `scripts/check_screens.py`, `scripts/sync_agent_config.py --check` and the OpenAPI checks and verify all pass
+- [x] 8.1 Update the user stories: US-013 AC2 implemented (status `review`), US-143 AC1/AC2/AC4 and US-147 AC1/AC4/AC7 noted as implemented in this change; the implementation hash is added when the change is archived after the merge
+- [x] 8.2 Synchronize `docs/data-model.puml`, `business-objects/` and `docs/screens/SCREENS.md` (unchanged) with the implementation; regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
+- [x] 8.3 Run `python3 scripts/validate_links.py`, the markdown lint, `scripts/check_screens.py`, `scripts/sync_agent_config.py --check` and the OpenAPI checks and verify all pass
