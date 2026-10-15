@@ -4,9 +4,9 @@ title: Instance-wide enforcement of a second factor for regular logins
 type: business-rule
 priority: should
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-24
-last_updated: 2026-10-13
+last_updated: 2026-10-15
 author: requirements-engineer
 references:
   use_cases:
@@ -57,11 +57,11 @@ Concerns the instance configuration from UC-01 (regular person logins: REQ-001 O
 if instanceConfig.enforceSecondFactor == true:
     disallow(REQ-011 for any Person login)
     require(login.factorCount >= 2) for OIDC-Logins (e.g., via amr/acr claim check, if provided by the IdP)
-# SystemAdminAccount (UC-02): exempt only for the first bootstrap login;
+# SystemAdminAccount (UC-02): exempt only during the setup phase (ADR-042);
 # afterwards a second factor is always required (REQ-171), independent of this setting
 ```
 
-**Example**: An operator with elevated security requirements activates "enforce second factor" at commissioning. Afterwards REQ-011 (password without TOTP) can no longer be enabled for regular persons, even if an admin tries. The system admin account from bootstrapping completes its first login without a second factor and must enroll one before any administrative action (REQ-171).
+**Example**: An operator with elevated security requirements activates "enforce second factor" at commissioning. Afterwards REQ-011 (password without TOTP) can no longer be enabled for regular persons, even if an admin tries. The system admin account from bootstrapping logs in without a second factor during the setup phase and must enroll one before the first action that gives another identity access (REQ-171, ADR-042).
 
 ## Acceptance Criteria
 
@@ -74,8 +74,8 @@ if instanceConfig.enforceSecondFactor == true:
 **AC2**:
 
 - Given: the same instance with active enforcement
-- When: the local system admin account from UC-02 performs its first bootstrap login
-- Then: the login succeeds without a second factor, and the account must enroll a second factor before any administrative action is possible; every later local login of this account requires the second factor (REQ-171)
+- When: the local system admin account from UC-02 logs in during the setup phase (ADR-042)
+- Then: the login succeeds without a second factor; the account must enroll a second factor before the first action that gives another identity access, and every login after the setup phase requires the second factor (REQ-171)
 
 **AC3**:
 
@@ -97,12 +97,12 @@ if instanceConfig.enforceSecondFactor == true:
 - **Downstream effects**: restricts REQ-011 once active
 - **Extension**: REQ-029 (configure role-based exemption – the operator can exempt roles from the 2FA requirement)
 - **Related**: REQ-171 (MFA for privileged accounts, applies independently of this setting)
-- **Conflicts**: REQ-013/REQ-014 (system admin bootstrapping) are excluded from this rule only for the first bootstrap login – see Rationale
+- **Conflicts**: REQ-013/REQ-014 (system admin bootstrapping) are excluded from this rule only during the setup phase (ADR-042) – see Rationale
 
 ## Risks of Non-Fulfillment
 
 - Risk 1: Without an instance-wide enforcement option, security-conscious operators could not prevent weak password-only logins from staying active for regular persons
-- Risk 2: If the enforcement also affected the first bootstrap login, bootstrapping (UC-02) could be blocked before a second factor can even be registered – hence the exclusion of exactly that login
+- Risk 2: If the enforcement also affected the setup phase, bootstrapping (UC-02) could be blocked before a second factor can even be registered – hence the exclusion of the setup phase, which ends before any other identity gets access (ADR-042)
 
 ## Trade-offs
 
@@ -122,7 +122,7 @@ if instanceConfig.enforceSecondFactor == true:
 
 ## Notes
 
-The exclusion of the system admin account is an explicit business decision (not derivable from UC-01/UC-02 themselves) and was specified directly by the repository owner. Version 0.2.0 narrows it to the first bootstrap login following security review SEC-10; this narrowing is not covered by an explicit owner decision of 2026-10-13 and needs owner confirmation.
+The exclusion of the system admin account is an explicit business decision (not derivable from UC-01/UC-02 themselves) and was specified directly by the repository owner. Version 0.2.0 narrowed it to the first bootstrap login following security review SEC-10. Version 0.3.0 implements the owner decision of 2026-10-15 ([ADR-042](../../adrs/ADR-042-setup-phase-without-second-factor.md)): the exclusion covers the setup phase, which ends before any other identity gets access.
 
 ## Change History
 
@@ -130,3 +130,4 @@ The exclusion of the system admin account is an explicit business decision (not 
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-10: system admin exemption limited to the first bootstrap login; AC2 rewritten; reference to REQ-171 |
+| 0.3.0 | 2026-10-15 | requirements-engineer | ADR-042: system admin exemption covers the setup phase instead of the first bootstrap login |

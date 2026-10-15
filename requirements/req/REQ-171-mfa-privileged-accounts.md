@@ -4,9 +4,9 @@ title: Mandatory MFA for privileged accounts
 type: business-rule
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-10-13
-last_updated: 2026-10-13
+last_updated: 2026-10-15
 author: requirements-engineer
 references:
   use_cases:
@@ -24,6 +24,7 @@ references:
     - concept/70-platform/21-api-architecture.md
   adrs:
     - ADR-006
+    - ADR-042
 supersedes: []
 superseded_by: []
 ---
@@ -32,7 +33,7 @@ superseded_by: []
 
 ## Statement
 
-The local system admin account and every person holding an `admin`-class permission (REQ-157) – in particular system, security and metamodel administrators – **MUST** use a second factor (passkey or TOTP) for every local login after the first bootstrap login; no configuration, including role-based 2FA exemptions (REQ-029) and the instance-wide setting (REQ-020), **MUST** be able to exempt them.
+The local system admin account and every person holding an `admin`-class permission (REQ-157) – in particular system, security and metamodel administrators – **MUST** use a second factor (passkey or TOTP) for every local login – for the local system admin account from the end of the setup phase on ([ADR-042](../../adrs/ADR-042-setup-phase-without-second-factor.md)), which the account must reach with an enrolled and confirmed second factor before any other identity gets access; no configuration, including role-based 2FA exemptions (REQ-029) and the instance-wide setting (REQ-020), **MUST** be able to exempt them.
 
 ## Rationale
 
@@ -63,11 +64,11 @@ exempt(person) only if all active roles are exempt
 
 ## Acceptance Criteria
 
-**AC1**:
+**AC1** (setup phase, ADR-042):
 
-- Given: a freshly bootstrapped local system admin account
-- When: it completes the first login
-- Then: it must enroll a second factor before any administrative action is possible, and every later login requires it
+- Given: a freshly bootstrapped local system admin account in the setup phase
+- When: it logs in with login name and password and then tries to create the first identity binding, IdP group mapping, role assignment, person credential or service account
+- Then: the login succeeds without a second factor, but the action is rejected until a second factor is enrolled and confirmed in the session; with the first such action the setup phase ends, and every later login of the account requires the second factor
 
 **AC2**:
 
@@ -108,3 +109,4 @@ exempt(person) only if all active roles are exempt
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-10 (PR-15) with owner decision of 2026-10-13 (no exemption for privileged accounts) |
+| 0.2.0 | 2026-10-15 | requirements-engineer | Statement and AC1 aligned with ADR-042: setup phase of the local system admin account without second factor until the first access of another identity (owner decision of 2026-10-15) |

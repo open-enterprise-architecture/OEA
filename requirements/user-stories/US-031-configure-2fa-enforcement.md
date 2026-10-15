@@ -32,8 +32,8 @@ As an operator, I want to be able to define instance-wide that all regular perso
 **AC3**:
 
 - Given: `enforce2FA=true` is active
-- When: the system admin account performs its first bootstrap login via UC-02
-- Then: it is unaffected by the enforcement for this login only; it must enroll a second factor before any administrative action, and later logins require it (REQ-171)
+- When: the system admin account logs in during the setup phase (UC-02, ADR-042)
+- Then: it is unaffected by the enforcement during the setup phase; it must enroll a second factor before the first action that gives another identity access, and later logins require it (REQ-171)
 
 **AC4**:
 

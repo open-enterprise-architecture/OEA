@@ -78,3 +78,4 @@ In `.opencode/commands/`:
 | [ADR-039](./ADR-039-java-25.md) | Java 25 LTS Instead of Java 21 | accepted | 2026-10-15 | – (partially ADR-012, ADR-038) |
 | [ADR-040](./ADR-040-ui-component-library-after-primevue-license-change.md) | UI Component Library After the PrimeVue License Change | accepted | 2026-10-15 | – (partially ADR-014, ADR-031) |
 | [ADR-041](./ADR-041-root-aggregator-pom.md) | Root Aggregator POM for the Dependency Graph | accepted | 2026-10-15 | – (partially ADR-027) |
+| [ADR-042](./ADR-042-setup-phase-without-second-factor.md) | Setup Phase – System Admin Login Without Second Factor Until Other Identities Get Access | accepted | 2026-10-15 | – (partially ADR-032 SoD-8) |

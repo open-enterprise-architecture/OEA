@@ -77,7 +77,7 @@ scripts/dev.sh                                        # development: docker comp
 cp .env.example .env && docker compose up             # operator: every secret required (docs/operations.md)
 ```
 
-Change 2 (`us-013-local-bootstrapping`) adds the local bootstrapping, the audit hash chain with the retention seed, `oea audit verify` and checkpoints; the login of the local system admin account (US-013 AC2) follows after change 3.
+Change 2 (`us-013-local-bootstrapping`) adds the local bootstrapping, the audit hash chain with the retention seed, `oea audit verify` and checkpoints. Change 3 is split (owner decision 2026-10-15): **3a** builds the session infrastructure, the login of the local system admin account with the setup phase of [ADR-042](../adrs/ADR-042-setup-phase-without-second-factor.md) (password only until the first access of another identity, then a second factor) and the administration of persons, identity bindings and IdP group mappings (US-013 AC2); **3b** adds the OIDC login of persons (US-001) with the issuer guards G1–G3.
 
 ---
 

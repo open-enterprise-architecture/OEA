@@ -6,6 +6,7 @@
 **Consulted**: Solution Architect, Security Engineer (security review 2026-10, SEC-01/SEC-03/SEC-05/SEC-15), Requirements Engineer (REQ-157 to REQ-163, REQ-171, REQ-176)
 **Informed**: Business Engineer (data model follow-up), Backend Engineer, Frontend Engineer
 **Partially supersedes**: [ADR-006](./ADR-006-auth-stack-choice.md) (follow-up "claim mapping conventions to OEA roles"), [ADR-008](./ADR-008-gui-architecture-dual-track.md) (portal access "without login effort"), [ADR-026](./ADR-026-external-system-integration.md) (Security section: service account roles, "Entities – Write" role requirement) – see [Relation to Existing ADRs](#relation-to-existing-adrs)
+**Partially superseded**: 2026-10-15 by [ADR-042](./ADR-042-setup-phase-without-second-factor.md) — SoD-8 does not apply to the local system admin account during the setup phase
 
 ## Context and Problem
 
