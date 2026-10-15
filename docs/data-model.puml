@@ -556,6 +556,11 @@ package "Sessions" #FFF3E0 {
     + idp_groups_claim_status : TEXT
     .. enum: present | missing | truncated; NULL for local logins ..
     .. missing/truncated → no IdP-derived roles + warning (fail closed) ..
+    + idp_group_identifiers : TEXT[]
+    .. group identifiers of the last evaluation; SoD-1 check and access review ..
+    + idp_token_expires_at : TIMESTAMPTZ
+    .. expiry of the IdP refresh token (NULL if the IdP sends none); ..
+    .. the session ends at the first of idle, absolute and this time (REQ-001, REQ-165) ..
     == Revocation (REQ-164) ==
     + revoked_at          : TIMESTAMPTZ
     + revoked_reason      : TEXT
@@ -591,6 +596,24 @@ package "Sessions" #FFF3E0 {
     + window_started_at   : TIMESTAMPTZ   {NN}
     + locked_until        : TIMESTAMPTZ
     .. exponential backoff, temporary lock max. 15 min; never permanent (REQ-168) ..
+  }
+
+  class oidc_login_states <<Table>> #FFE0B2 {
+    + state_hash           : BYTEA        {PK}
+    .. SHA-256 of the OIDC state parameter ..
+    --
+    + browser_binding_hash : BYTEA        {NN}
+    .. SHA-256 of the login cookie __Host-OEA_LOGIN (SameSite=Lax, 10 min) ..
+    + auth_provider_id     : UUID         {NN} {FK→auth_providers.id}
+    + nonce                : TEXT         {NN}
+    + code_verifier_encrypted : TEXT      {NN}
+    .. PKCE S256 verifier, AES-256-GCM (REQ-188) ..
+    + code_verifier_key_id : TEXT         {NN}
+    + return_to            : TEXT         {NN}
+    .. relative path inside the portal ..
+    + created_at           : TIMESTAMPTZ  {NN} DEFAULT NOW()
+    + expires_at           : TIMESTAMPTZ  {NN}
+    .. created_at + 10 min; deleted on use (single use) ..
   }
 
   class session_idp_roles <<Table>> #FFE0B2 {
@@ -640,6 +663,7 @@ package "Sessions" #FFF3E0 {
   persons               "1" --o{ "0..*" sessions          : logs in (human only)
   system_admin_accounts "1" --o{ "0..*" sessions          : logs in
   auth_providers        "1" --o{ "0..*" sessions          : authenticated by
+  auth_providers        "1" --o{ "0..*" oidc_login_states : running logins
   sessions              "1" --o{ "0..*" session_idp_roles : derived roles
   idp_group_mappings    "1" --o{ "0..*" session_idp_roles : derived from
   sessions              "1" --o{ "0..*" refresh_tokens    : token family
@@ -1605,6 +1629,11 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   sessions.token_hash (CSRF token derived from the cookie); local_credentials status pending;
 '   new login_transactions and auth_throttle; setup phase columns in
 '   system_settings (ADR-042). Reason: US-013 AC2, REQ-165, REQ-168, REQ-187, REQ-188.
+' 2026-10-15 (us-001-oidc-login):
+'   sessions.idp_group_identifiers (SoD-1) and sessions.idp_token_expires_at
+'   (session lifetime bounded by the IdP refresh token, owner decision 2026-10-15);
+'   new oidc_login_states (state, nonce, PKCE verifier of running logins).
+'   Reason: US-001, US-147 AC5, REQ-001, REQ-165, REQ-166.
 ' ─────────────────────────────────────────────────────
 
 @enduml

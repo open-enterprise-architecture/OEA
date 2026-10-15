@@ -2,8 +2,8 @@
 
 ## 1. Data model and migration
 
-- [ ] 1.1 Update `docs/data-model.puml` and `business-objects/` (`session`, `auth-provider`) for `sessions.idp_token_expires_at`, `sessions.idp_group_identifiers`, `session_idp_roles` and the new table `oidc_login_states` (design, Data Model); verify the PlantUML file renders and link validation passes
-- [ ] 1.2 Flyway migration `db/migration/V4__oidc_login.sql` with the session columns, `session_idp_roles`, `oidc_login_states` and the grants for `oea_app`; verify with schema tests for columns, constraints, owners and grants
+- [x] 1.1 Update `docs/data-model.puml` and `business-objects/` (`session`, `auth-provider`) for `sessions.idp_token_expires_at`, `sessions.idp_group_identifiers`, `session_idp_roles` and the new table `oidc_login_states` (design, Data Model); verify the PlantUML file renders and link validation passes
+- [x] 1.2 Flyway migration `db/migration/V4__oidc_login.sql` with the session columns, `session_idp_roles`, `oidc_login_states` and the grants for `oea_app`; verify with schema tests for columns, constraints, owners and grants
 
 ## 2. Contract and provider source
 

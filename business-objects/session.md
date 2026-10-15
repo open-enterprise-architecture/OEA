@@ -23,7 +23,7 @@ A session is the server-side record of one interactive login of a human person o
 
 ## Description
 
-OEA controls session lifetime itself, independent of IdP token lifetimes (REQ-165). OEA access tokens identify the session (`sid`); permissions are never embedded in tokens or sessions but resolved per request (cache ≤ 60 s, ADR-032 §7). Revoking a session (logout, offboarding, role change, password reset, refresh-token reuse) makes all its tokens invalid within 60 s (REQ-164).
+OEA controls session lifetime itself (REQ-165); a session established through an IdP additionally ends when the IdP refresh token expires or is rejected, so OEA never extends a token issued by the IdP (owner decision 2026-10-15, REQ-001). OEA access tokens identify the session (`sid`); permissions are never embedded in tokens or sessions but resolved per request (cache ≤ 60 s, ADR-032 §7). Revoking a session (logout, offboarding, role change, password reset, refresh-token reuse) makes all its tokens invalid within 60 s (REQ-164).
 
 **Refresh tokens** belong to exactly one session (the session is the token family). Every use rotates the token; presenting an already rotated token is treated as reuse: the session and all its tokens are revoked and an audit event is written (REQ-165 AC2). Only hashes are stored; the plaintext token lives in an `HttpOnly` cookie (web portal) or the OS credential store (Electron).
 
@@ -54,6 +54,8 @@ Service accounts have no sessions; their client-credentials access tokens are sh
 | idpRefreshTokenEncrypted | string | optional | | AES-256-GCM; OIDC only | IdP refresh token for group re-evaluation |
 | idpClaimsEvaluatedAt | datetime | optional | | ≤ 15 min old while the session is used (Q16) | Last evaluation of the groups claim |
 | idpGroupsClaimStatus | enum | optional | | `[present, missing, truncated]`; OIDC only | Result of the last evaluation; `missing`/`truncated` → no IdP-derived roles |
+| idpGroupIdentifiers | list of strings | optional | | OIDC only; identifiers of the provider's issuer | Group identifiers of the last evaluation; used for the self-administration check (SoD-1) and access review |
+| idpTokenExpiresAt | datetime | optional | | OIDC only; NULL if the IdP sends no refresh token expiry | Expiry of the IdP refresh token; the session ends at the first of idle timeout, absolute lifetime and this time |
 | revokedAt | datetime | optional | | | Revocation time |
 | revokedReason | enum | conditional | | `[logout, person-status-change, role-change, credential-revoked, password-reset, factor-reset, refresh-token-reuse, idp-refresh-failed, admin-action]` | Reason |
 | revokedBy | principal | optional | | | Acting principal (none for automatic revocation) |
@@ -108,8 +110,8 @@ revoked            (logout, revocation triggers of REQ-164, token reuse)
 | BR-01 | A session can be created only for a person in status `active` or `invited` (with matching identity binding) or for an active system admin account | onLogin | REQ-004 |
 | BR-02 | All sessions of a person are revoked within 60 s when the person leaves `active`, loses a role assignment, has a credential revoked or the password reset | onUpdate | REQ-164 |
 | BR-03 | Refresh tokens rotate on every use; reuse of a rotated token revokes the session and all its tokens and is audited | onRefresh | REQ-165 |
-| BR-04 | Idle timeout (default 30 min) and absolute lifetime (default 12 h) are enforced by OEA regardless of IdP token lifetimes | onRequest | REQ-165 |
-| BR-05 | Group claims are re-evaluated at every IdP refresh, at the latest every 15 minutes; if the refresh fails, the session ends (`idp-refresh-failed`) | onRefresh | Q16 |
+| BR-04 | Idle timeout (default 30 min) and absolute lifetime (default 12 h) are enforced by OEA; sessions established through an IdP end no later than their IdP refresh token | onRequest | REQ-165, REQ-001 |
+| BR-05 | Group claims are re-evaluated at every IdP refresh, at the latest every 15 minutes; if the IdP rejects the refresh or the refresh token has expired, the session ends (`idp-refresh-failed`); if the IdP cannot be reached, the IdP-derived roles no longer apply until a later evaluation succeeds | onRefresh, onRequest | Q16, Q17 |
 | BR-06 | Permissions, tokens and secrets are never returned from the session store; tokens are stored only as hashes, the IdP refresh token only encrypted | onRead | REQ-165, REQ-188 |
 | BR-07 | When a session ends (revoked or expired), the encrypted IdP refresh token is removed and all refresh tokens of the session are deleted immediately; the session record (principal, times, client IP, user agent, end reason) is deleted after the setting `sessionRetentionDays` (default 30). Security events remain in the audit log (REQ-175) | onSessionEnd, daily job | owner decision Q20, REQ-189 |
 
@@ -156,3 +158,4 @@ Created for REQ-164, REQ-165, ADR-032 DM-10 and owner decision Q16 (security rev
 | 0.1.0 | 2026-10-13 | Business Engineer | Initial draft from REQ-164, REQ-165, ADR-032 DM-10, Q16 |
 | 0.2.0 | 2026-10-13 | Lukas Mathis | BR-07: retention of ended sessions (secrets immediately, record 30 days configurable; owner decision Q20) |
 | 0.3.0 | 2026-10-15 | Business Engineer | `tokenHash` for the web session cookie; the CSRF token is derived from the cookie value and not stored (change `us-013-system-admin-login`, REQ-187) |
+| 0.4.0 | 2026-10-15 | Business Engineer | `idpGroupIdentifiers`, `idpTokenExpiresAt`; session lifetime bounded by the IdP refresh token, BR-04/BR-05 clarified (change `us-001-oidc-login`, owner decision 2026-10-15) |
