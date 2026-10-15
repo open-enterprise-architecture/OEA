@@ -520,8 +520,7 @@ package "Sessions" #FFF3E0 {
     .. opaque session ID; OEA access tokens carry it as 'sid' ..
     + token_hash          : BYTEA         {NN} {UQ}
     .. SHA-256 of the cookie value __Host-OEA_SESSION (256 random bits); value never stored ..
-    + csrf_token_hash     : BYTEA         {NN}
-    .. SHA-256 of the per-session CSRF token (REQ-187) ..
+    .. CSRF token = HMAC-SHA256 of the cookie value; derived per request, not stored (REQ-187) ..
     .. permissions are never stored in sessions or tokens (ADR-032 §7) ..
     --
     + person_id           : BIGINT        {FK→persons.id}
@@ -1603,7 +1602,7 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   CHECK on system_admin_accounts.login_name. Reason: UC-02 / US-013.
 ' 2026-10-15 (us-013-system-admin-login):
 '   auth_providers completed (client settings, encrypted secret; BO auth-provider);
-'   sessions.token_hash and csrf_token_hash; local_credentials status pending;
+'   sessions.token_hash (CSRF token derived from the cookie); local_credentials status pending;
 '   new login_transactions and auth_throttle; setup phase columns in
 '   system_settings (ADR-042). Reason: US-013 AC2, REQ-165, REQ-168, REQ-187, REQ-188.
 ' ─────────────────────────────────────────────────────

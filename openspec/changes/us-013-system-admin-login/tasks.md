@@ -17,12 +17,12 @@
 
 ## 4. Sessions and authorization
 
-- [ ] 4.1 Add Spring Security with stateless configuration, security headers (REQ-187) and CORS for the allowed origins; implement `OeaSessionFilter` with token hash lookup, idle timeout, absolute lifetime and activity update (D1); verify with tests for the specs "Idle or expired session" and "Security headers"
-- [ ] 4.2 Implement the CSRF and origin checks (D2); verify with tests for the spec "Missing CSRF token" including the login endpoint's origin check
-- [ ] 4.3 Implement `ContractAuthorizationRules` from the packaged contract, the authorization interceptor and `PermissionResolver` with 60 s cache (D3, D4); verify with tests that a handler without rule is denied, that an unknown operation in a rule fails startup, and the specs "Request without session" and "Principal without the permission"
-- [ ] 4.4 Write the generated authorization matrix test over all implemented handler methods; verify it passes and fails when a test-only controller without declaration is added (spec: Every implemented operation is covered)
-- [ ] 4.5 Implement `GET /me` and `logout` with audit event `auth.logout`; verify with tests for the specs "Reading the own session" and "Request after logout"
-- [ ] 4.6 Implement `GET /admin/permissions` and `GET /admin/roles`; verify with tests for the specs "Catalog and roles of a fresh instance" and "Reading without role:assign"
+- [x] 4.1 Add Spring Security with stateless configuration, security headers (REQ-187) and CORS for the allowed origins; implement `OeaSessionFilter` with token hash lookup, idle timeout, absolute lifetime and activity update (D1); verify with tests for the specs "Idle or expired session" and "Security headers"
+- [x] 4.2 Implement the CSRF and origin checks (D2); verify with tests for the spec "Missing CSRF token" including the login endpoint's origin check
+- [x] 4.3 Implement `ContractAuthorizationRules` from the packaged contract, the authorization interceptor and `PermissionResolver` with 60 s cache (D3, D4); verify with tests that a handler outside the contract is denied, that an operation without declaration fails startup (and a generated handler without rule fails the coverage check at startup), and the specs "Request without session" and "Principal without the permission"
+- [x] 4.4 Write the generated authorization matrix test over all implemented handler methods; verify it passes and fails when a test-only controller without declaration is added (spec: Every implemented operation is covered)
+- [x] 4.5 Implement `GET /me` and `logout` with audit event `auth.logout`; verify with tests for the specs "Reading the own session" and "Request after logout"
+- [x] 4.6 Implement `GET /admin/permissions` and `GET /admin/roles`; verify with tests for the specs "Catalog and roles of a fresh instance" and "Reading without role:assign"
 
 ## 5. System admin login and second factor
 

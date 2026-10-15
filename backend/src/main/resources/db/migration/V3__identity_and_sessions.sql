@@ -124,7 +124,6 @@ CREATE UNIQUE INDEX idp_group_mappings_live ON idp_group_mappings (issuer, group
 CREATE TABLE sessions (
     id                          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     token_hash                  BYTEA       NOT NULL UNIQUE CHECK (octet_length(token_hash) = 32),
-    csrf_token_hash             BYTEA       NOT NULL CHECK (octet_length(csrf_token_hash) = 32),
     person_id                   BIGINT      REFERENCES persons (id),
     system_admin_account_id     UUID        REFERENCES system_admin_accounts (id),
     client_type                 TEXT        NOT NULL CHECK (client_type IN ('web-portal', 'electron')),

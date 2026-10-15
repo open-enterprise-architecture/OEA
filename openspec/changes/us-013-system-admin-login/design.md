@@ -36,7 +36,7 @@ Changes 1 and 2 delivered the backend with migration step, startup guards, audit
 
 ### D2 – CSRF and origin checks
 
-State-changing requests with the session cookie need the header `X-XSRF-TOKEN` (name given by the contract) matching a per-session token (stored as hash; returned by `GET /me` and by the login response) and an `Origin` header that equals the own origin or one of `oea.security.cors.allowed-origins`; `POST /auth/local/login` (no session yet) is protected by the origin check only. Mismatches: 403. CORS is configured only for the allowed origins, never `*` with credentials.
+State-changing requests with the session cookie need the header `X-XSRF-TOKEN` (name given by the contract) carrying the CSRF token, which is `HMAC-SHA256(cookie value, "oea-csrf")` (Base64url): the server recomputes it from the cookie on every request, so nothing is stored, and a foreign site cannot compute it without reading the `HttpOnly` cookie (signed double submit). The token is returned by the login response and `GET /me` and an `Origin` header that equals the own origin or one of `oea.security.cors.allowed-origins`; `POST /auth/local/login` (no session yet) is protected by the origin check only. Mismatches: 403. CORS is configured only for the allowed origins, never `*` with credentials.
 
 ### D3 – Function-level authorization generated from the contract
 
@@ -83,7 +83,7 @@ RFC 6238 with SHA-1, 6 digits, 30 s, accepted window ±1 step; 20-byte secret. E
 
 Changes to `docs/data-model.puml` and `business-objects/` (data model rule of AGENTS.md):
 
-- `sessions`: new columns `token_hash BYTEA UNIQUE NOT NULL` and `csrf_token_hash BYTEA NOT NULL` (the cookie value and the CSRF token are never stored); modeled values `client_type = web-portal`, `auth_method = password | password-totp`
+- `sessions`: new column `token_hash BYTEA UNIQUE NOT NULL` (the cookie value is never stored; the CSRF token is derived from it, D2); modeled values `client_type = web-portal`, `auth_method = password | password-totp`
 - `local_credentials.status`: new value `pending` for an enrollment not yet confirmed
 - New table `login_transactions` (`token_hash`, `system_admin_account_id`, `created_at`, `expires_at`, `failed_codes`)
 - New table `auth_throttle` (`throttle_key`, `failures`, `window_started_at`, `locked_until`)
