@@ -13,7 +13,7 @@
 ## 3. OIDC login
 
 - [x] 3.1 Configure the development realm: method references `pwd`/`otp` on the browser flow so that `amr` is emitted, redirect URI `http://localhost:5173/api/v1/auth/oidc/callback`; verify with a test that the ID tokens of `dev-system-admin` and `dev-admin-no-mfa` carry the expected `amr` and that `check_dev_secrets.py` passes
-- [ ] 3.2 Implement discovery and ID token validation per provider (D1, asymmetric algorithms only, `nonce`, `azp`); verify with tests for the spec "Invalid identity token" using real tokens of `oea-test-foreign-app` and crafted `none`/`HS256` tokens
+- [x] 3.2 Implement discovery and ID token validation per provider (D1, asymmetric algorithms only, `nonce`, `azp`); verify with tests for the spec "Invalid identity token" using real tokens of `oea-test-foreign-app` and crafted `none`/`HS256` tokens
 - [ ] 3.3 Implement `startOidcLogin` and `completeOidcLogin` with `oidc_login_states`, the login cookie and PKCE (D2, D3); extend the test helper `OidcLogin` to drive the application's flow; verify with tests for the specs "Successful login", "Existing session", "Login without PKCE" and "Only enabled providers offered"
 - [ ] 3.4 Implement the identity binding lookup, the person status rules and the transition `invited → active` with `person.activated` (D5) and the session of a person with `idp_token_expires_at` (D6); verify with tests for the specs "First login of an invited person", "Matching e-mail with a different subject" (`dev-email-twin`) and "Person not active"
 - [ ] 3.5 Implement the generic failures and audit events of D10; verify with tests for the spec "Unknown and inactive identities" and a provider that cannot be reached
