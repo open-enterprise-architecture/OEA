@@ -140,6 +140,44 @@
 	<build>
 		<plugins>
 			<plugin>
+				<!-- ADR-036 §7: test-only authentication libraries never in compile or runtime scope -->
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-enforcer-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>ban-test-only-authentication-libraries</id>
+						<goals>
+							<goal>enforce</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<bannedDependencies>
+									<excludes>
+										<exclude>org.testcontainers:*:*:*:compile</exclude>
+										<exclude>org.testcontainers:*:*:*:runtime</exclude>
+										<exclude>org.springframework.boot:spring-boot-testcontainers:*:*:compile</exclude>
+										<exclude>org.springframework.boot:spring-boot-testcontainers:*:*:runtime</exclude>
+										<exclude>org.keycloak:*:*:*:compile</exclude>
+										<exclude>org.keycloak:*:*:*:runtime</exclude>
+										<exclude>com.github.dasniko:*:*:*:compile</exclude>
+										<exclude>com.github.dasniko:*:*:*:runtime</exclude>
+										<exclude>no.nav.security:mock-oauth2-server:*:*:compile</exclude>
+										<exclude>no.nav.security:mock-oauth2-server:*:*:runtime</exclude>
+										<exclude>org.wiremock:*:*:*:compile</exclude>
+										<exclude>org.wiremock:*:*:*:runtime</exclude>
+										<exclude>com.github.tomakehurst:*:*:*:compile</exclude>
+										<exclude>com.github.tomakehurst:*:*:*:runtime</exclude>
+										<exclude>org.springframework.security:spring-security-test:*:*:compile</exclude>
+										<exclude>org.springframework.security:spring-security-test:*:*:runtime</exclude>
+									</excludes>
+									<message>Test-only authentication libraries must stay in test scope (ADR-036 §7)</message>
+								</bannedDependencies>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
 				<!-- Integration test runners (*IT), e.g. the Cucumber suite (ADR-029) -->
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
