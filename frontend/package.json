@@ -33,7 +33,7 @@
     "@iconify-json/lucide": "^1.2.144",
     "@storybook/addon-a11y": "^10.6.2",
     "@storybook/vue3-vite": "^10.6.2",
-    "@types/node": "^24.13.3",
+    "@types/node": "^26.6.5",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/test-utils": "^2.5.1",
     "@vue/tsconfig": "^0.9.1",
