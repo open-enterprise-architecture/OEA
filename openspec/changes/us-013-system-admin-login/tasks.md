@@ -30,7 +30,7 @@
 - [x] 5.2 Implement throttling in the database (D6) with `auth.throttled`; verify with tests for the specs "Repeated wrong passwords" and "Many names from one address", using an injectable clock
 - [x] 5.3 Implement TOTP enrollment, confirmation and replay protection (D7) with encrypted secrets and audit event `auth.factor-added`; verify with tests for the specs "Enrollment and confirmation", "Enrollment in an old session" and "Code replay"
 - [x] 5.4 Implement the setup phase in login and the TOTP login step (D5, D9); verify with tests for the specs "Login during the setup phase", "Login after the setup phase" and "Wrong codes in one login transaction"
-- [ ] 5.5 Write the Cucumber feature `identity/local-login.feature` for the `identity/local-login` and `identity/sessions` specs against the running application on a fresh database; verify it passes through `CucumberIT` with the log scan of REQ-175 AC3 (no password, TOTP secret or code in the logs)
+- [x] 5.5 Write the Cucumber feature `identity/local-login.feature` for the `identity/local-login` and `identity/sessions` specs against the running application on a fresh database; verify it passes through `CucumberIT` with the log scan of REQ-175 AC3 (no password, TOTP secret or code in the logs)
 
 ## 6. Access administration
 
