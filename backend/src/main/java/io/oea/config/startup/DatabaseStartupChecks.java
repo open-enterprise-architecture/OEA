@@ -25,11 +25,14 @@ public class DatabaseStartupChecks implements InitializingBean {
 
 	private static final Logger logger = LoggerFactory.getLogger(DatabaseStartupChecks.class);
 
+	/** Everything beyond INSERT and SELECT; MAINTAIN exists since PostgreSQL 17. */
 	private static final String EXCESS_AUDIT_PRIVILEGES = """
 			SELECT c.relname || ': ' || p.privilege
 			FROM pg_class c
 			JOIN pg_namespace n ON n.oid = c.relnamespace
-			CROSS JOIN unnest(ARRAY['UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']) AS p(privilege)
+			CROSS JOIN unnest(ARRAY['UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']
+			                  || CASE WHEN current_setting('server_version_num')::int >= 170000
+			                          THEN ARRAY['MAINTAIN'] ELSE ARRAY[]::text[] END) AS p(privilege)
 			WHERE n.nspname = 'audit' AND c.relkind IN ('r', 'p', 'v', 'm')
 			  AND has_table_privilege(current_user, c.oid, p.privilege)
 			ORDER BY 1""";

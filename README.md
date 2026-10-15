@@ -145,7 +145,7 @@ scripts/dev.sh reset      # stop and delete the development volumes
 | Keycloak realm `oea-dev` (test users in `dev/keycloak/realm-oea-dev.json`) | <http://localhost:8180/realms/oea-dev> |
 | PostgreSQL | `localhost:55432` |
 
-Busy host ports can be moved with `OEA_DEV_BACKEND_PORT`, `OEA_DEV_VITE_PORT` and `OEA_DEV_POSTGRES_PORT`. All development credentials are public `*-dev-only` values that the application rejects outside the Spring profile `dev`.
+After a PostgreSQL major upgrade of the development image, run `scripts/dev.sh reset` once (development data is disposable). Busy host ports can be moved with `OEA_DEV_BACKEND_PORT`, `OEA_DEV_VITE_PORT` and `OEA_DEV_POSTGRES_PORT`. All development credentials are public `*-dev-only` values that the application rejects outside the Spring profile `dev`.
 
 Builds and tests: `cd backend && ./mvnw verify` (needs Docker for Testcontainers) and `cd frontend && npm ci && npm run type-check && npm test && npm run build`. Operators use `compose.yaml` with `.env` (see [`docs/operations.md`](docs/operations.md)).
 

@@ -69,8 +69,24 @@ class DatabaseStartupChecksTests {
 		}
 	}
 
+	@Test
+	void shippedVersionStartsAndRefusesMaintainPrivilege() throws SQLException {
+		try (PostgreSQLContainer postgres = provisionedAndMigrated(OeaPostgres.SHIPPED_IMAGE)) {
+			try (ConfigurableApplicationContext context = startAsRuntimeRole(postgres)) {
+				assertThat(context.isActive()).isTrue();
+			}
+			asSuperuser(postgres, "GRANT MAINTAIN ON audit.events TO oea_app");
+			assertThatExceptionOfType(Exception.class).isThrownBy(() -> startAsRuntimeRole(postgres))
+				.withStackTraceContaining("runtime role oea_app holds privilege MAINTAIN on audit.events");
+		}
+	}
+
 	private static PostgreSQLContainer provisionedAndMigrated() {
-		PostgreSQLContainer postgres = OeaPostgres.provisioned();
+		return provisionedAndMigrated(OeaPostgres.MINIMUM_SUPPORTED_IMAGE);
+	}
+
+	private static PostgreSQLContainer provisionedAndMigrated(DockerImageName image) {
+		PostgreSQLContainer postgres = OeaPostgres.provisioned(image);
 		postgres.start();
 		assertThat(MigrateCommand.run(OeaTestDatabase.migrationArguments(postgres))).isZero();
 		return postgres;

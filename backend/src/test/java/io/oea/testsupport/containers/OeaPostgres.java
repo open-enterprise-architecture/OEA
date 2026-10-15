@@ -21,6 +21,11 @@ public final class OeaPostgres {
 		.parse("postgres@sha256:f7d23353e1b15400d22ebe31189f4d314b87a4c129cc400c8c2d8d4ca127bf81")
 		.asCompatibleSubstituteFor("postgres");
 
+	/** PostgreSQL version shipped in compose.yaml: postgres:18-alpine, same digest (REQ-191). */
+	public static final DockerImageName SHIPPED_IMAGE = DockerImageName
+		.parse("postgres@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873")
+		.asCompatibleSubstituteFor("postgres");
+
 	/**
 	 * Role passwords, generated per test JVM: they satisfy the secret guards (G4) and never
 	 * appear as literals in the repository.

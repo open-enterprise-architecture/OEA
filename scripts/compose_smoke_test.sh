@@ -18,7 +18,12 @@ echo "OEA_HTTP_PORT=$port" >> "$env_file"
 
 compose=(docker compose -p oea-smoke --env-file "$env_file" -f compose.yaml ${OEA_HOST_PROJECT_DIR:+--project-directory "$OEA_HOST_PROJECT_DIR"})
 start=$(date +%s)
-"${compose[@]}" up -d --no-build
+if ! "${compose[@]}" up -d --no-build; then
+  echo "✗ a service failed to start"
+  "${compose[@]}" ps -a
+  "${compose[@]}" logs --tail 50
+  exit 1
+fi
 status=000
 while (( $(date +%s) - start <= limit )); do
   status=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/api/v1/health" || true)
