@@ -34,7 +34,7 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | Use Cases | 23 |
 | Requirements | 195 |
 | User Stories | 150 |
-| ADRs | 40 |
+| ADRs | 41 |
 | Business Objects | 29 |
 
 _Concept: v0.19 · Last update: 2026-10-15._
@@ -127,6 +127,7 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 | [ADR-038](adrs/ADR-038-spring-boot-4.md) | Spring Boot 4.1 Instead of Spring Boot 3 | accepted |
 | [ADR-039](adrs/ADR-039-java-25.md) | Java 25 LTS Instead of Java 21 | accepted |
 | [ADR-040](adrs/ADR-040-ui-component-library-after-primevue-license-change.md) | UI Component Library After the PrimeVue License Change | accepted |
+| [ADR-041](adrs/ADR-041-root-aggregator-pom.md) | Root Aggregator POM for the Dependency Graph | accepted |
 <!-- /AUTO-GENERATED: adrs -->
 
 ## Development

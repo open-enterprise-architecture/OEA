@@ -167,7 +167,7 @@ This scenario proves all technical layers end to end. The architecture works.
 
 ### Repository Security Setup (Tasks for the First Backend Change)
 
-Decided in `ws-01-project-setup` (design D9): GitHub's *Automatic dependency submission*, no own workflow. Original task list:
+Decided in `ws-01-project-setup` (design D9): GitHub's *Automatic dependency submission*, no own workflow. Because the setting watches only manifests in the repository root, [ADR-041](../adrs/ADR-041-root-aggregator-pom.md) adds a root aggregator `pom.xml` with the module `backend`. Original task list:
 
 - **Dependency submission for Maven**: the GitHub dependency graph reads only the direct dependencies from `pom.xml`; transitive dependencies are known only after Maven resolves them. Either set *Settings → Advanced Security → Automatic dependency submission* to **Enabled** (GitHub-hosted runners), or add a dedicated, SHA-pinned workflow with the official Maven dependency submission action whose job alone has `contents: write` (REQ-191, REQ-192). Decide in the change's design; prefer the dedicated workflow if it keeps all workflows under version control and Dependabot updates.
 - **Verify** that Dependabot alerts show transitive backend dependencies (e.g. Spring Framework modules pulled in by Spring Boot).
