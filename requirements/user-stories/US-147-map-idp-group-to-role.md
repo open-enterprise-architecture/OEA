@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: in-progress
 **Sprint**: S1
-**Implementation**: OpenSpec change `us-013-system-admin-login`, commit 1fafd95 (#31) – AC1, AC4 and AC7 implemented through the admin API; OpenSpec change `us-001-oidc-login` – AC2, AC3, AC5 and AC6 implemented, AC7 for derived roles of existing sessions (the 409 rule for the last path to `system-admin` follows with US-146); commit hash follows when the change is archived
+**Implementation**: OpenSpec change `us-013-system-admin-login`, commit 1fafd95 (#31) – AC1, AC4 and AC7 implemented through the admin API; OpenSpec change `us-001-oidc-login`, commit a5bbdb8 (#35) – AC2, AC3, AC5 and AC6 implemented, AC7 for derived roles of existing sessions (the 409 rule for the last path to `system-admin` follows with US-146)
 
 ## Story
 
