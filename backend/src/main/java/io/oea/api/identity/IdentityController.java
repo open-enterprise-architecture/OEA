@@ -163,16 +163,22 @@ public class IdentityController implements IdentityApi {
 	public ResponseEntity<Me> getCurrentPrincipal() {
 		OeaAuthentication authentication = current();
 		OeaPrincipal principal = authentication.getPrincipal();
-		List<String> roles = this.permissions.roles(principal);
-		MeRolesInner.SourceEnum roleSource = MeRolesInner.SourceEnum.SYSTEM_ADMIN_ACCOUNT;
-		List<MeRolesInner> roleGrants = roles.stream()
-			.map((role) -> new MeRolesInner(new RoleRef(role, displayName(role), true), roleSource, true))
+		List<PermissionResolver.RoleGrant> grants = this.permissions.grants(principal);
+		List<MeRolesInner> roleGrants = grants.stream()
+			.map((grant) -> new MeRolesInner(new RoleRef(grant.roleId(), grant.roleName(), grant.privileged()),
+					MeRolesInner.SourceEnum.fromValue(grant.source()), grant.effective())
+				.mappingId(grant.mappingId())
+				.notEffectiveReason((grant.notEffectiveReason() != null)
+						? MeRolesInner.NotEffectiveReasonEnum.fromValue(grant.notEffectiveReason()) : null))
 			.toList();
 		List<EffectivePermission> effective = this.permissions.permissions(principal)
 			.stream()
-			.map((permission) -> new EffectivePermission(permission, roles.stream()
-				.map((role) -> new EffectivePermissionGrantedByInner(role,
-						EffectivePermissionGrantedByInner.SourceEnum.SYSTEM_ADMIN_ACCOUNT))
+			.map((permission) -> new EffectivePermission(permission, grants.stream()
+				.filter(PermissionResolver.RoleGrant::effective)
+				.filter((grant) -> this.permissions.rolePermissions(grant.roleId()).contains(permission))
+				.map((grant) -> new EffectivePermissionGrantedByInner(grant.roleId(),
+						EffectivePermissionGrantedByInner.SourceEnum.fromValue(grant.source())))
+				.distinct()
 				.toList()))
 			.toList();
 		Me me = new Me(principalRef(principal), principal.secondFactorVerified(), roleGrants, effective)
@@ -194,13 +200,6 @@ public class IdentityController implements IdentityApi {
 		return new PrincipalRef(type, principal.displayName()).id(id);
 	}
 
-	private static String displayName(String roleId) {
-		StringBuilder name = new StringBuilder();
-		for (String word : roleId.split("-")) {
-			name.append(name.isEmpty() ? "" : " ").append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
-		}
-		return name.toString();
-	}
 
 	private static OeaAuthentication current() {
 		return (OeaAuthentication) SecurityContextHolder.getContext().getAuthentication();

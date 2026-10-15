@@ -76,8 +76,9 @@ public class Sessions {
 			String clientIp, String userAgent) {
 		String token = randomToken();
 		Instant now = this.clock.instant();
-		LoginSession session = this.sessions.save(LoginSession.forPerson(person.getId(), authProviderId, hash(token),
-				secondFactorVerified, now, this.properties.absoluteLifetime(), clientIp, userAgent));
+		// flushed at once: the derived roles are written with plain SQL in the same transaction
+		LoginSession session = this.sessions.saveAndFlush(LoginSession.forPerson(person.getId(), authProviderId,
+				hash(token), secondFactorVerified, now, this.properties.absoluteLifetime(), clientIp, userAgent));
 		return new NewSession(token, csrfToken(token), new OeaPrincipal(OeaPrincipal.Type.PERSON, null, person.getId(),
 				person.getName(), session.getId(), secondFactorVerified, now));
 	}
