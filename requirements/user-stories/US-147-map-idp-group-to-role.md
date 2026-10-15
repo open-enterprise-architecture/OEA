@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: in-progress
 **Sprint**: S1
-**Implementation**: OpenSpec change `us-013-system-admin-login` – AC1, AC4 and AC7 implemented through the admin API; AC2, AC3, AC5 and AC6 (login-related) follow with the OIDC login (change 3b); commit hash follows when the change is archived
+**Implementation**: OpenSpec change `us-013-system-admin-login`, commit 1fafd95 (#31) – AC1, AC4 and AC7 implemented through the admin API; AC2, AC3, AC5 and AC6 (login-related) follow with the OIDC login (change 3b)
 
 ## Story
 
