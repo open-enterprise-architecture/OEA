@@ -75,7 +75,7 @@ PostgreSQL, Keycloak, Node and JDK base images are referenced by tag and digest 
 
 ### D8a – Development ports
 
-Development services bind to `127.0.0.1` with ports that avoid typical local services: PostgreSQL `55432`, Keycloak `8180`, backend `8080`, Vite `5173`. Container names use the Compose project name `oea`.
+Development services bind to `127.0.0.1` with ports that avoid typical local services: PostgreSQL `55432`, Keycloak `8180`, backend `8080`, Vite `5173`. Container names use the Compose project name `oea`. The host ports of PostgreSQL, backend and Vite can be moved with `OEA_DEV_POSTGRES_PORT`, `OEA_DEV_BACKEND_PORT` and `OEA_DEV_VITE_PORT` (found during implementation: a local PlantUML server on 8080); Keycloak stays on `8180` because the issuer is fixed.
 
 ### D9 – Maven dependency submission: GitHub automatic submission
 

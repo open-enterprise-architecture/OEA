@@ -25,7 +25,7 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 
 ## Status
 
-**Pre-Alpha** – requirements engineering completed, Walking Skeleton in preparation.
+**Pre-Alpha** – requirements engineering completed, Walking Skeleton in progress (project setup done).
 
 <!-- AUTO-GENERATED: stats -->
 | Artifact | Count |
@@ -42,10 +42,10 @@ _Concept: v0.19 · Last update: 2026-10-15._
 
 **Next step**: Walking Skeleton based on UC-06 (Catalog Browser).
 
-- Concept: complete (24 chapters + changelog, v0.19.1), see [`concept/`](concept/)
+- Concept: complete (24 chapters + changelog, v0.19.3), see [`concept/`](concept/)
 - Requirements: completed – all 21 UCs, 155 REQs, 142 USs, 29 ADRs defined
 - Tech stack: decided (Java 25 / Vue 3 / PostgreSQL 15 / Electron)
-- Code: not started yet
+- Code: project setup of the walking skeleton – backend (`backend/`), frontend (`frontend/`), Compose setups, CI checks; see [Development](#development)
 - v1.0-Release: TBD
 
 OEA is **not yet ready for production use**. If you want to contribute: [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -128,6 +128,26 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 | [ADR-039](adrs/ADR-039-java-25.md) | Java 25 LTS Instead of Java 21 | accepted |
 | [ADR-040](adrs/ADR-040-ui-component-library-after-primevue-license-change.md) | UI Component Library After the PrimeVue License Change | accepted |
 <!-- /AUTO-GENERATED: adrs -->
+
+## Development
+
+Requirements: Docker with the Compose plugin; for work outside containers JDK 25 and Node.js 24.
+
+```bash
+scripts/dev.sh            # development environment: PostgreSQL, migration step, Keycloak, backend, Vite
+scripts/dev.sh reset      # stop and delete the development volumes
+```
+
+| Service | Address (loopback only) |
+|---|---|
+| Frontend (Vite) | <http://localhost:5173> |
+| Backend health | <http://localhost:8080/api/v1/health> |
+| Keycloak realm `oea-dev` (test users in `dev/keycloak/realm-oea-dev.json`) | <http://localhost:8180/realms/oea-dev> |
+| PostgreSQL | `localhost:55432` |
+
+Busy host ports can be moved with `OEA_DEV_BACKEND_PORT`, `OEA_DEV_VITE_PORT` and `OEA_DEV_POSTGRES_PORT`. All development credentials are public `*-dev-only` values that the application rejects outside the Spring profile `dev`.
+
+Builds and tests: `cd backend && ./mvnw verify` (needs Docker for Testcontainers) and `cd frontend && npm ci && npm run type-check && npm test && npm run build`. Operators use `compose.yaml` with `.env` (see [`docs/operations.md`](docs/operations.md)).
 
 ## Contributing
 

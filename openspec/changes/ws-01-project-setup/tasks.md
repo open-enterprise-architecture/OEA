@@ -31,7 +31,7 @@
 - [x] 4.2 Write `compose.yaml` (PostgreSQL, `migrate`, backend; no IdP; every secret `${VAR:?…}`) and `.env.example` with empty values; add `.env` to `.gitignore`; verify `docker compose -f compose.yaml config` fails with an empty environment naming the missing variables (spec: Empty environment)
 - [x] 4.3 Write `scripts/check_compose_secrets.py` (no literal secrets or `${VAR:-…}` defaults in `compose.yaml`, all published ports of `compose.dev.yaml` bound to `127.0.0.1`, every development service with `profiles: ["dev"]`); verify it passes and fails on seeded violations
 - [x] 4.4 Write `dev/keycloak/realm-oea-dev.json` with the clients, groups (fixed UUIDs, `groups` claim as identifiers), test users and TOTP secrets of ADR-036 §4; verify Keycloak imports it and a discovery request to `http://localhost:8180/realms/oea-dev/.well-known/openid-configuration` returns 200
-- [ ] 4.5 Write `compose.dev.yaml` (profile `dev`: PostgreSQL with `*-dev-only` credentials and the init script, `migrate`, Keycloak with realm import, backend with Spring profile `dev` and `dev/backend/application-dev.yml`, Vite), ports on `127.0.0.1`, images pinned by digest, plus a helper target (`make dev` / `scripts/dev.sh`); verify the scenarios "Development environment starts" and "Development services require the profile" manually and record the result in the PR
+- [x] 4.5 Write `compose.dev.yaml` (profile `dev`: PostgreSQL with `*-dev-only` credentials and the init script, `migrate`, Keycloak with realm import, backend with Spring profile `dev` and `dev/backend/application-dev.yml`, Vite), ports on `127.0.0.1`, images pinned by digest, plus a helper target (`make dev` / `scripts/dev.sh`); verify the scenarios "Development environment starts" and "Development services require the profile" manually and record the result in the PR
 - [x] 4.6 Verify the scenario "All secrets supplied": with a filled `.env`, `docker compose up` migrates, starts and `GET /health` returns 200 within 60 seconds (CI job using Compose)
 
 ## 5. Test foundation
@@ -63,6 +63,6 @@
 ## 9. Wrap-up
 
 - [ ] 9.1 Ask the repository owner to set *Automatic dependency submission* to **Enabled** (design D9) and verify transitive backend dependencies (e.g. Spring Framework modules) appear in the dependency graph
-- [ ] 9.2 Update `docs/walking-skeleton.md` (setup done, actual start commands) and `README.md` (how to start development); no user story status changes (this change has no user story); `docs/screens/SCREENS.md` and `docs/data-model.puml` unchanged
-- [ ] 9.3 Regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
-- [ ] 9.4 Run `python3 scripts/validate_links.py` and the markdown lint and verify both pass
+- [x] 9.2 Update `docs/walking-skeleton.md` (setup done, actual start commands) and `README.md` (how to start development); no user story status changes (this change has no user story); `docs/screens/SCREENS.md` and `docs/data-model.puml` unchanged
+- [x] 9.3 Regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
+- [x] 9.4 Run `python3 scripts/validate_links.py` and the markdown lint and verify both pass

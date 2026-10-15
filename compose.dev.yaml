@@ -1,6 +1,8 @@
 # OEA development environment (ADR-036 §3-§4). Start with scripts/dev.sh or
 #   docker compose -f compose.dev.yaml --profile dev up --build
 # Every service requires the Compose profile "dev"; every port is bound to 127.0.0.1.
+# Host ports can be moved with OEA_DEV_POSTGRES_PORT, OEA_DEV_BACKEND_PORT and
+# OEA_DEV_VITE_PORT if they collide with local services (Keycloak stays on 8180: issuer).
 # All credentials are public development values (*-dev-only), hash-listed in
 # backend/src/main/resources/security/known-dev-secrets.sha256 and rejected by
 # the application outside the Spring profile "dev". Operators use compose.yaml.
@@ -21,7 +23,7 @@ services:
       OEA_AUDITOR_PASSWORD: oea-auditor-dev-only
       OEA_ANALYTICS_PASSWORD: oea-analytics-dev-only
     ports:
-      - "127.0.0.1:55432:5432"
+      - "127.0.0.1:${OEA_DEV_POSTGRES_PORT:-55432}:5432"
     volumes:
       - postgres-dev-data:/var/lib/postgresql/data
       - ./deploy/postgres/initdb:/docker-entrypoint-initdb.d:ro
@@ -76,7 +78,7 @@ services:
       SPRING_DATASOURCE_USERNAME: oea_app
       SPRING_DATASOURCE_PASSWORD: oea-app-dev-only
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:${OEA_DEV_BACKEND_PORT:-8080}:8080"
     volumes:
       - ./dev/backend/application-dev.yml:/config/application-dev.yml:ro
     depends_on:
@@ -89,11 +91,11 @@ services:
     profiles: ["dev"]
     image: docker.io/library/node:24-alpine@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f
     working_dir: /workspace/frontend
-    command: ["sh", "-c", "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"]
+    command: ["sh", "-c", "npm ci --ignore-scripts && npm run dev -- --host 0.0.0.0 --port 5173"]
     environment:
       OEA_API_PROXY_TARGET: http://backend:8080
     ports:
-      - "127.0.0.1:5173:5173"
+      - "127.0.0.1:${OEA_DEV_VITE_PORT:-5173}:5173"
     volumes:
       - ./frontend:/workspace/frontend
       - ./api:/workspace/api:ro

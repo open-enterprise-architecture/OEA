@@ -1,7 +1,7 @@
 # Walking Skeleton – Definition
 
 **As of**: 2026-10-13
-**Status**: defined (revised: story list updated, entities via batch API instead of form, placement in S1–S2; development environment and IdP per ADR-036, audit and migration setup per ADR-033)
+**Status**: in progress – project setup done in OpenSpec change `ws-01-project-setup` (2026-10-15); the six user stories follow (revised before: story list updated, entities via batch API instead of form, placement in S1–S2; development environment and IdP per ADR-036, audit and migration setup per ADR-033)
 
 ---
 
@@ -69,6 +69,15 @@ These 6 user stories form the walking skeleton. Everything else comes afterwards
 **Total: 31 story points** plus one-time project setup (Maven module `backend/`, Vue project `frontend/`, `api/openapi.yaml`, operator file `compose.yaml`, development file `compose.dev.yaml` with PostgreSQL, migration step and Keycloak realm `dev/keycloak/realm-oea-dev.json`, CI incl. the ADR-036 build checks). Planned for **sprint S1–S2**.
 
 The omitted acceptance criteria of US-141 and US-049 are caught up in the expansion sprints; the stories only count as `done` then.
+
+**Project setup – done** (`openspec/changes/ws-01-project-setup/`): Java 25 + Spring Boot 4.1 backend (ADR-038, ADR-039), Vue 3 + Nuxt UI 4 frontend (ADR-040), provisioning script and `oea migrate` step (ADR-037), startup guards, Keycloak realm, CI jobs for backend, frontend and security checks. Start commands:
+
+```bash
+scripts/dev.sh                                        # development: docker compose -f compose.dev.yaml --profile dev up --build
+cp .env.example .env && docker compose up             # operator: every secret required (docs/operations.md)
+```
+
+The audit hash chain and the seed row of `audit.retention_settings` follow with change 2 (US-013).
 
 ---
 
@@ -155,7 +164,7 @@ This scenario proves all technical layers end to end. The architecture works.
 
 ### Repository Security Setup (Tasks for the First Backend Change)
 
-When the first OpenSpec change creates `backend/pom.xml`, it contains these tasks:
+Decided in `ws-01-project-setup` (design D9): GitHub's *Automatic dependency submission*, no own workflow. Original task list:
 
 - **Dependency submission for Maven**: the GitHub dependency graph reads only the direct dependencies from `pom.xml`; transitive dependencies are known only after Maven resolves them. Either set *Settings → Advanced Security → Automatic dependency submission* to **Enabled** (GitHub-hosted runners), or add a dedicated, SHA-pinned workflow with the official Maven dependency submission action whose job alone has `contents: write` (REQ-191, REQ-192). Decide in the change's design; prefer the dedicated workflow if it keeps all workflows under version control and Dependabot updates.
 - **Verify** that Dependabot alerts show transitive backend dependencies (e.g. Spring Framework modules pulled in by Spring Boot).
