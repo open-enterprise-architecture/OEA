@@ -31,9 +31,9 @@
 
 ## 5. Development seed and frontend
 
-- [ ] 5.1 Write `scripts/dev_seed.py` (D11); verify against the development environment that it is idempotent and that `dev-viewer` can log in afterwards
+- [x] 5.1 Write `scripts/dev_seed.py` (D11); verify against the development environment that it is idempotent and that `dev-viewer` can log in afterwards
 - [x] 5.2 Extend the login page with the provider buttons and the error messages, and the profile with role sources and the REQ-003 notice (D12); verify with Vitest tests; SCR-001 keeps the status `legacy-mockup` without screen story (screen stories with change 6, as decided for change 3a)
-- [ ] 5.3 Verify the walking-skeleton steps 3–4 manually in the development environment: bootstrapping, seed, OIDC login as `dev-viewer` (role `viewer`), as `dev-admin-no-mfa` (`system-admin` not effective) and as `dev-system-admin` (effective), removal of `dev-viewer` from its group in Keycloak and loss of `viewer` after 15 minutes (shortened by an expired evaluation time), `oea audit verify` OK; record the result in the PR
+- [x] 5.3 Verify the walking-skeleton steps 3–4 manually in the development environment: bootstrapping, seed, OIDC login as `dev-viewer` (role `viewer`), as `dev-admin-no-mfa` (`system-admin` not effective) and as `dev-system-admin` (effective), removal of `dev-viewer` from its group in Keycloak and loss of `viewer` after 15 minutes (shortened by an expired evaluation time), `oea audit verify` OK; record the result in the PR
 
 ## 6. Wrap-up
 

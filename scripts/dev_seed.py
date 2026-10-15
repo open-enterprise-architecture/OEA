@@ -112,8 +112,13 @@ def login(api: Api, login_name: str, password: str) -> dict:
         secret = os.environ.get("OEA_ADMIN_TOTP_SECRET")
         if not secret:
             fail("the login needs a TOTP code: set OEA_ADMIN_TOTP_SECRET to the secret printed by the first run")
-        status, body, headers = api.call("POST", "/auth/local/login/totp",
-                                         {"loginTransaction": body["loginTransaction"], "code": totp(secret)})
+        transaction = body["loginTransaction"]
+        # a code is accepted only once (REQ-170): if the current one was just used, take the next time step
+        for step in (0, 1):
+            status, body, headers = api.call("POST", "/auth/local/login/totp",
+                                             {"loginTransaction": transaction, "code": totp(secret, step)})
+            if status == 201:
+                break
     if status != 201:
         fail(f"login failed (HTTP {status})")
     api.remember_session(headers, body)
