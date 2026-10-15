@@ -7,7 +7,7 @@
 
 ## 2. Contract and provider source
 
-- [ ] 2.1 Extend `api/openapi.yaml`: `listLoginProviders`, `startOidcLogin`, `completeOidcLogin` (public, allowlisted), `__Host-OEA_LOGIN` cookie, problem property `reason: self-administration`, provider descriptions (database only, `offline_access` for Entra ID); verify Redocly lint, `scripts/check_openapi_authorization.py` and that the generated interfaces compile
+- [x] 2.1 Extend `api/openapi.yaml`: `listLoginProviders`, `startOidcLogin`, `completeOidcLogin` (public, allowlisted), `__Host-OEA_LOGIN` cookie, problem property `reason: self-administration`, provider descriptions (database only, `offline_access` for Entra ID); verify Redocly lint, `scripts/check_openapi_authorization.py` and that the generated interfaces compile
 - [ ] 2.2 Remove `oea.security.oidc.providers` and its binding; add `StoredProviderGuard` (G2/G3 outside `dev`, inverse loopback rule in `dev`, enabled providers only) and the G5 rule for `oea.web.public-url`; adapt `dev/backend/application-dev.yml`; verify with startup tests for the specs "Stored provider with an unsafe issuer", "Disabled provider ignored" and "Development profile with a real issuer"
 
 ## 3. OIDC login

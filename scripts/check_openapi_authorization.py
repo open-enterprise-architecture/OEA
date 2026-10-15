@@ -38,6 +38,9 @@ PUBLIC_ALLOWLIST = {
     "completeSetup",  # US-013: effective only with the setup token from the container (REQ-017)
     "localLogin",  # US-013 AC2: login endpoint (REQ-163), throttled (REQ-168), origin-checked (REQ-187)
     "localLoginTotp",  # REQ-171: second login step with a login transaction
+    "listLoginProviders",  # US-001: provider names for the login page, no client settings
+    "startOidcLogin",  # US-001: redirect to the IdP (L1 login endpoint), state bound to the browser
+    "completeOidcLogin",  # US-001: OIDC callback (L1), single-use state, PKCE and ID token validation
 }
 
 ACCESS_VALUES = {"public", "authenticated", "permission"}
