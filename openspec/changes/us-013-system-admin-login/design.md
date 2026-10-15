@@ -36,7 +36,7 @@ Changes 1 and 2 delivered the backend with migration step, startup guards, audit
 
 ### D2 – CSRF and origin checks
 
-State-changing requests with the session cookie need the header `X-CSRF-Token` matching a per-session token (stored as hash; returned by `GET /me` and by the login response) and an `Origin` header that equals the own origin or one of `oea.security.cors.allowed-origins`; `POST /auth/local/login` (no session yet) is protected by the origin check only. Mismatches: 403. CORS is configured only for the allowed origins, never `*` with credentials.
+State-changing requests with the session cookie need the header `X-XSRF-TOKEN` (name given by the contract) matching a per-session token (stored as hash; returned by `GET /me` and by the login response) and an `Origin` header that equals the own origin or one of `oea.security.cors.allowed-origins`; `POST /auth/local/login` (no session yet) is protected by the origin check only. Mismatches: 403. CORS is configured only for the allowed origins, never `*` with credentials.
 
 ### D3 – Function-level authorization generated from the contract
 
@@ -70,14 +70,14 @@ RFC 6238 with SHA-1, 6 digits, 30 s, accepted window ±1 step; 20-byte secret. E
 
 ### D10 – Administration APIs
 
-- Providers: `type` (`oidc`), `name`, `issuerUrl`, `clientId`, `clientSecret` (write-only, encrypted), `scopes`, `enabled`; responses carry `clientSecretSet`. Outside `dev` the issuer must use `https` and must not be a loopback address (same `LoopbackAddresses` as the startup guards); saving requires fresh authentication (5 minutes). `testAuthProvider` and claim mappings are not implemented in this change; unimplemented operations have no handler and are therefore denied for every principal (D3).
+- Providers: `type` (`oidc`), `name`, `issuerUrl`, `clientId`, `clientSecret` (write-only, encrypted), `scopes`, `enabled`; responses carry `clientSecretSet`. Outside `dev` the issuer must use `https` and must not be a loopback address (same `LoopbackAddresses` as the startup guards); saving requires fresh authentication (5 minutes). `testAuthProvider` and claim mappings are not implemented in this change. The generator groups operations by tag, so a controller cannot implement only part of an interface without stubs; the interfaces are therefore generated with default methods (`skipDefaultInterface=false`) that answer `501 Not Implemented`. Authorization still runs first: an unimplemented operation returns 401/403 without the required authentication or permission and 501 otherwise.
 - Persons: `POST /admin/persons` (`name`, optional `email`; status `invited`), `GET /admin/persons`, `GET /admin/persons/{personId}`.
 - Identity bindings: `POST /admin/persons/{personId}/identities` (`authProviderId`, `subject`), `GET` list, `DELETE`; `link_method = admin-entered`; `UNIQUE(issuer, subject)` → 409.
 - IdP group mappings: as in the contract; `groupIdentifier` must be a UUID (Entra ID object IDs, Authentik and Keycloak group IDs are UUIDs; other formats need a provider-specific rule later); delete is a soft delete (`deleted_at`). The self-administration rule (SoD-1, US-147 AC5) needs the caller's token and follows with change 3b.
 
 ### D11 – Frontend
 
-`/login` (login name, password, TOTP step when requested), `/me/second-factor` (QR code from the `otpauth://` URI rendered locally, manual secret, confirmation), logout in the header, profile view from `GET /me`. API calls use `credentials: 'same-origin'` and send `X-CSRF-Token` from `/me` on state-changing requests. The setup page links to `/login` after success.
+`/login` (login name, password, TOTP step when requested), `/me/second-factor` (QR code from the `otpauth://` URI rendered locally, manual secret, confirmation), logout in the header, profile view from `GET /me`. API calls use `credentials: 'same-origin'` and send `X-XSRF-TOKEN` from `/me` on state-changing requests. The setup page links to `/login` after success.
 
 ## Data Model
 
@@ -101,7 +101,7 @@ Delta to `api/openapi.yaml`:
 - New public operations (allowlist): `localLogin` `POST /auth/local/login`, `localLoginTotp` `POST /auth/local/login/totp`
 - New operations (`access: authenticated`): `startTotpEnrollment` `POST /me/second-factors/totp`, `confirmTotpEnrollment` `POST /me/second-factors/totp/{credentialId}/confirm`
 - New operations: `createPerson`, `listPersons`, `getPerson` (`person:manage`); `listPersonIdentities`, `createPersonIdentity`, `deletePersonIdentity` (`person:manage`)
-- Changed: `AuthProvider` gains `clientSecretSet` and `scopes`; `Me` gains `principalType`, `secondFactorVerified`, `csrfToken`, `permissions`
+- Changed: `AuthProvider` gains `vendor`, `clientSecretSet` and `scopes`, `AuthProviderWrite` gains `vendor`; `Me` gains `csrfToken` (`principal`, `mfaSatisfied` and `permissions` exist already)
 - New problem types: `invalid-credentials`, `second-factor-required` (with `loginTransaction` when issued by login), `reauthentication-required`, `csrf-rejected`
 
 ## Risks / Trade-offs

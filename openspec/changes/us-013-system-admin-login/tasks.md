@@ -7,7 +7,7 @@
 
 ## 2. Contract
 
-- [ ] 2.1 Extend `api/openapi.yaml`: cookie scheme `__Host-OEA_SESSION`; `localLogin`, `localLoginTotp` (public, allowlisted); `startTotpEnrollment`, `confirmTotpEnrollment`; `createPerson`, `listPersons`, `getPerson`, `listPersonIdentities`, `createPersonIdentity`, `deletePersonIdentity`; `AuthProvider.clientSecretSet` and `scopes`; `Me` fields; problem types `invalid-credentials`, `second-factor-required`, `reauthentication-required`, `csrf-rejected`; verify Redocly lint and `scripts/check_openapi_authorization.py` pass and the generated interfaces compile
+- [x] 2.1 Extend `api/openapi.yaml`: cookie scheme `__Host-OEA_SESSION`; `localLogin`, `localLoginTotp` (public, allowlisted); `startTotpEnrollment`, `confirmTotpEnrollment`; `createPerson`, `listPersons`, `getPerson`, `listPersonIdentities`, `createPersonIdentity`, `deletePersonIdentity`; `AuthProvider.clientSecretSet` and `scopes`; `Me` fields; problem types `invalid-credentials`, `second-factor-required`, `reauthentication-required`, `csrf-rejected`; verify Redocly lint and `scripts/check_openapi_authorization.py` pass and the generated interfaces compile
 
 ## 3. Secret storage
 
@@ -43,7 +43,7 @@
 
 ## 7. Frontend
 
-- [ ] 7.1 Add the login page `/login` with the TOTP step and the generic error message, and send `X-CSRF-Token` on state-changing requests; verify with Vitest tests for success, wrong credentials, TOTP step and throttling message
+- [ ] 7.1 Add the login page `/login` with the TOTP step and the generic error message, and send `X-XSRF-TOKEN` on state-changing requests; verify with Vitest tests for success, wrong credentials, TOTP step and throttling message
 - [ ] 7.2 Add the TOTP enrollment page (QR code rendered locally from the `otpauth://` URI, manual secret, confirmation, re-authentication message), the profile view and logout; verify with Vitest tests; SCR-001 and SCR-003 keep the status `legacy-mockup` without screen story, as decided for SCR-002 (screen stories with change 6)
 - [ ] 7.3 Verify the walking-skeleton flow manually in the development environment: bootstrapping, login during the setup phase, provider and person with binding to a Keycloak dev user via `curl`, rejected first mapping without second factor, TOTP enrollment, accepted mapping, login with TOTP afterwards, `oea audit verify` OK; record the result in the PR
 

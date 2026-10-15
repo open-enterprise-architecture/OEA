@@ -230,14 +230,16 @@
 							<library>spring-boot</library>
 							<apiPackage>io.oea.api.generated</apiPackage>
 							<modelPackage>io.oea.api.generated.model</modelPackage>
-							<generateSupportingFiles>false</generateSupportingFiles>
+							<generateSupportingFiles>true</generateSupportingFiles>
+							<!-- only the helper used by the generated default methods (501) -->
+							<supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
 							<generateApiTests>false</generateApiTests>
 							<generateModelTests>false</generateModelTests>
 							<generateApiDocumentation>false</generateApiDocumentation>
 							<generateModelDocumentation>false</generateModelDocumentation>
 							<configOptions>
 								<interfaceOnly>true</interfaceOnly>
-								<skipDefaultInterface>true</skipDefaultInterface>
+								<skipDefaultInterface>false</skipDefaultInterface>
 								<useSpringBoot4>true</useSpringBoot4>
 								<useJackson3>true</useJackson3>
 								<useTags>true</useTags>
