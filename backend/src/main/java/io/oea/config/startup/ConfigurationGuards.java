@@ -91,6 +91,9 @@ public class ConfigurationGuards implements EnvironmentPostProcessor, Ordered {
 			secretProperties.add("oea.migration.owner.password");
 			secretProperties.add("oea.migration.reporting-owner.password");
 		}
+		else if ("audit-verify".equals(environment.getProperty(MODE_PROPERTY))) {
+			secretProperties.add("oea.audit-verify.password");
+		}
 		else if (environment.containsProperty("spring.datasource.url")) {
 			secretProperties.add("spring.datasource.password");
 		}
