@@ -89,6 +89,7 @@ public class IdpGroupMappings {
 			boolean active) {
 		AuthProvider provider = validate(authProviderId, groupIdentifier, roleId);
 		String identifier = groupIdentifier.strip();
+		rejectSelfAdministration(principal, provider, identifier, "createIdpGroupMapping");
 		if (this.mappings.existsLive(provider.getIssuer(), identifier, roleId, new UUID(0, 0))) {
 			throw new AccessConflictException("This group is already mapped to the role.");
 		}
@@ -105,6 +106,8 @@ public class IdpGroupMappings {
 		IdpGroupMapping mapping = live(mappingId);
 		AuthProvider provider = validate(authProviderId, groupIdentifier, roleId);
 		String identifier = groupIdentifier.strip();
+		rejectSelfAdministration(principal, provider, mapping.getGroupIdentifier(), "updateIdpGroupMapping");
+		rejectSelfAdministration(principal, provider, identifier, "updateIdpGroupMapping");
 		if (this.mappings.existsLive(provider.getIssuer(), identifier, roleId, mappingId)) {
 			throw new AccessConflictException("This group is already mapped to the role.");
 		}
@@ -119,6 +122,29 @@ public class IdpGroupMappings {
 		IdpGroupMapping mapping = live(mappingId);
 		mapping.delete(principal.systemAdminAccountId(), principal.personId(), this.clock.instant());
 		append(principal, "idp-mapping.deleted", mapping);
+	}
+
+	/**
+	 * SoD-1 (ADR-032, US-147 AC5): a person must not grant a role to a group of the own current
+	 * groups claim. The system admin account has no IdP groups and is never affected.
+	 */
+	private void rejectSelfAdministration(OeaPrincipal principal, AuthProvider provider, String groupIdentifier,
+			String operation) {
+		if (principal.type() != OeaPrincipal.Type.PERSON || principal.sessionId() == null) {
+			return;
+		}
+		Boolean own = this.jdbc.query("""
+				SELECT ? = ANY (s.idp_group_identifiers)
+				FROM sessions s JOIN auth_providers p ON p.id = s.auth_provider_id
+				WHERE s.id = ? AND p.issuer = ?""", (rs) -> rs.next() && rs.getBoolean(1), groupIdentifier,
+				principal.sessionId(), provider.getIssuer());
+		if (Boolean.TRUE.equals(own)) {
+			this.audit.appendIndependently(new AuditEvent("authz.denied", AuditEvent.Category.SECURITY,
+					AuditEvent.Severity.WARNING, AuditEvent.Outcome.DENIED, AuditEvent.Source.API,
+					Sessions.actor(principal), "idp-group-mapping", null,
+					Map.of("reason", "self-administration", "operation", operation)));
+			throw new SelfAdministrationException();
+		}
 	}
 
 	private IdpGroupMapping live(UUID mappingId) {

@@ -24,7 +24,7 @@
 - [x] 4.1 Implement the classification of the groups claim, the derivation into `session_idp_roles`, `sessions.idp_group_identifiers` and `auth.idp-roles-derived` (D7); extend `PermissionResolver` and `GET /me` with roles of source `idp`; verify with tests for the specs "Role derived at login", "Person without any role", "Groups claim missing or truncated" and "Same group identifier from another issuer"
 - [x] 4.2 Implement the re-evaluation in the session filter with the refresh grant, refresh token rotation and the three outcomes of D7; verify with tests (injectable clock, group removal and session revocation through the Keycloak Admin API) for the specs "Removal from the group in the IdP", "IdP unreachable at re-evaluation", "Mapping deleted in OEA" and "IdP refresh token expired or rejected"
 - [x] 4.3 Implement the second-factor rule for privileged derived roles (D8); verify with tests for the specs "Privileged role without second factor" (`dev-admin-no-mfa`) and "Privileged role with second factor" (`dev-system-admin`)
-- [ ] 4.4 Implement the SoD-1 check on mapping writes (D9); verify with a test for the spec "Own group rejected"
+- [x] 4.4 Implement the SoD-1 check on mapping writes (D9); verify with a test for the spec "Own group rejected"
 - [ ] 4.5 Write the Cucumber feature `identity/idp-roles.feature` for the `identity/idp-roles` spec and the session and mapping scenarios changed by this change; verify it passes through `CucumberIT`
 
 ## 5. Development seed and frontend
