@@ -102,8 +102,11 @@ SPRING_DATASOURCE_URL=jdbc:postgresql://db.example.org:5432/oea \
 SPRING_DATASOURCE_USERNAME=oea_app \
 SPRING_DATASOURCE_PASSWORD="$OEA_APP_PASSWORD" \
 OEA_SECURITY_KEK_CURRENT=/run/secrets/oea_kek \
+OEA_WEB_PUBLIC_URL=https://oea.example.org \
 java -jar oea-backend.jar
 ```
+
+`oea.web.public-url` (`OEA_WEB_PUBLIC_URL`) is the address of the web portal as users reach it; it is required as soon as an identity provider is enabled and must use `https` (not a loopback address) outside the profile `dev`.
 
 If the migration step has not run for the current version, the application refuses to start with a message naming the migration step. The health probe is `GET /api/v1/health`; it returns only the overall status (`UP` or `DOWN`).
 
@@ -193,3 +196,32 @@ curl "${auth[@]}" -X POST "$OEA/auth/logout"
 After the setup phase the password step answers `401` with problem type `urn:oea:problem:second-factor-required` and a `loginTransaction`; the login completes with `POST /auth/local/login/totp` and `{"loginTransaction": "…", "code": "…"}`. Five wrong codes invalidate the login transaction. Wrong passwords are throttled per login name (exponential backoff after 5 failures within 15 minutes, at most 15 minutes) and per source address (100 failures within 10 minutes); throttled responses carry `Retry-After`.
 
 Other operations: `GET`/`PUT /admin/auth/providers/{id}` (deactivate with `"enabled": false`), `GET /admin/persons`, `GET`/`DELETE /admin/persons/{personId}/identities[/{identityId}]`, `GET /admin/idp-group-mappings`, `PUT`/`DELETE /admin/idp-group-mappings/{mappingId}` (soft delete). Group identifiers must be UUIDs (the group object IDs of Entra ID, Authentik and Keycloak); display names are rejected with `422`. In the profile `dev` the issuer may use `http` and a loopback address, for the Keycloak of the development environment.
+
+## Login Through an Identity Provider
+
+Persons log in through the identity providers stored with the admin API (see above); the stored, enabled providers are the only source of the OIDC login. The former property list `oea.security.oidc.providers` no longer exists and is ignored. At startup the application refuses to start if an enabled provider has an issuer without `https` or on a loopback address (outside `dev`, ADR-036 G2/G3); disabled providers are ignored.
+
+**At the provider**: register OEA as confidential web client with the authorization code flow and PKCE (`S256`) and the redirect URI `<public URL>/api/v1/auth/oidc/callback`. The ID token must carry the group membership as immutable group identifiers in the claim `groups` and, for privileged roles, the authentication methods in `amr`:
+
+| Provider | Scopes of the stored provider | Groups | Second factor |
+|---|---|---|---|
+| Microsoft Entra ID | `openid profile email offline_access` (`offline_access` yields the refresh token) | Token configuration: groups claim with group object IDs; too many groups produce an overage indicator, which OEA treats as no groups | `amr` contains `mfa` when a Conditional Access policy required MFA |
+| Authentik | `openid profile email` | Property mapping that emits the group UUIDs as `groups` | Property mapping for `amr` (`pwd`, `otp`, `mfa`) |
+| Keycloak | `openid profile email` | Mapper that emits group identifiers, not names | Authentication flow with method references (`pwd`, `otp`), as in the development realm |
+
+**Persons and roles**: a person gets a session only if the pair of issuer and `sub` is bound to a person in status `invited` or `active` (bindings are never derived from e-mail addresses); the first login changes `invited` to `active`. Roles come from the IdP group mappings of the provider; privileged roles (with admin-class permissions) are effective only if `amr` shows a second factor. A person whose own groups claim contains a group cannot map that group (SoD-1).
+
+**Session lifetime**: a session established through an IdP ends at the first of the OEA idle timeout (30 minutes), the OEA absolute lifetime (12 hours) and the expiry or rejection of the IdP refresh token; OEA never extends an IdP token. Group membership is re-evaluated with the refresh token at the latest 15 minutes after the previous evaluation: removing a person from a group at the IdP removes the derived role within 15 minutes. Without a refresh token, with an unreachable IdP, or with a missing or truncated groups claim, no IdP-derived role applies (fail closed, audit event `auth.idp-groups-unusable`).
+
+**Split-horizon networks**: if the backend reaches the IdP under another address than browsers, map the issuer to the internal address; the issuer in the discovery document and in the tokens is still checked against the stored issuer. Outside `dev` the location must use `https` and must not be a loopback address.
+
+```yaml
+oea:
+  security:
+    oidc:
+      discovery-locations:
+        - issuer: https://login.example.org/realms/oea
+          location: https://idp.internal.example.org/realms/oea
+```
+
+**Failures**: a refused login (unknown identity, inactive person, invalid token, cancelled login) returns the browser to `<public URL>/login?error=login-failed` without revealing the reason; the reason is in the audit event `auth.login-failed`. An unreachable provider leads to `?error=provider-unavailable`; a retry is possible.

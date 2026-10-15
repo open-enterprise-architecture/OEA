@@ -33,7 +33,7 @@ As a person with a role stored in the repository, I want to sign in via the conf
 
 - Given: a token issued by the external IdP with a validity period set by the IdP
 - When: the session is created
-- Then: this validity period is adopted unchanged
+- Then: OEA never extends this validity period; the session ends at the first of the OEA idle timeout, the OEA absolute lifetime (REQ-165) and the expiry or rejection of the IdP refresh token (owner decision 2026-10-15)
 
 **AC4** (optional, configurable):
 
@@ -64,5 +64,7 @@ As a person with a role stored in the repository, I want to sign in via the conf
 - Blocks: US-002, US-003, US-004, US-007
 
 ## Notes
+
+AC3 clarified on 2026-10-15 (owner decision, change `us-001-oidc-login`): "adopted unchanged" meant that OEA does not prolong IdP tokens; the OEA session limits of REQ-165 still apply.
 
 Covers the basic flow and alternative A1 from UC-01. AC4 (optional online token validation) can be added in a separate sprint if needed, without blocking the core login flow.

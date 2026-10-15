@@ -138,7 +138,10 @@ Requirements: Docker with the Compose plugin; for work outside containers JDK 25
 ```bash
 scripts/dev.sh            # development environment: PostgreSQL, migration step, Keycloak, backend, Vite
 scripts/dev.sh reset      # stop and delete the development volumes
+python3 scripts/dev_seed.py   # after the setup at /setup: provider, persons and group mappings of the dev realm
 ```
+
+The seed asks for the password of the system admin account and prints a TOTP secret once (keep it in `OEA_ADMIN_TOTP_SECRET` for later runs). Afterwards the test users of the realm log in with "Log in with Keycloak (development realm)" on the login page.
 
 | Service | Address (loopback only) |
 |---|---|

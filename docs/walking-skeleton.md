@@ -77,7 +77,7 @@ scripts/dev.sh                                        # development: docker comp
 cp .env.example .env && docker compose up             # operator: every secret required (docs/operations.md)
 ```
 
-Change 2 (`us-013-local-bootstrapping`) adds the local bootstrapping, the audit hash chain with the retention seed, `oea audit verify` and checkpoints. Change 3 is split (owner decision 2026-10-15): **3a** builds the session infrastructure, the login of the local system admin account with the setup phase of [ADR-042](../adrs/ADR-042-setup-phase-without-second-factor.md) (password only until the first access of another identity, then a second factor) and the administration of persons, identity bindings and IdP group mappings (US-013 AC2); **3b** adds the OIDC login of persons (US-001) with the issuer guards G1–G3.
+Change 2 (`us-013-local-bootstrapping`) adds the local bootstrapping, the audit hash chain with the retention seed, `oea audit verify` and checkpoints. Change 3 is split (owner decision 2026-10-15): **3a** builds the session infrastructure, the login of the local system admin account with the setup phase of [ADR-042](../adrs/ADR-042-setup-phase-without-second-factor.md) (password only until the first access of another identity, then a second factor) and the administration of persons, identity bindings and IdP group mappings (US-013 AC2); **3b** adds the OIDC login of persons (US-001) with the issuer guards G1–G3 on the stored providers, the roles derived from IdP group mappings with re-evaluation within 15 minutes, and the development seed `scripts/dev_seed.py`.
 
 ---
 
@@ -100,8 +100,10 @@ Change 2 (`us-013-local-bootstrapping`) adds the local bootstrapping, the audit 
    → US-013: enters the token, login name, password and instance-slug "acme-corp"
    → Result: local system admin account stored (argon2id); instance-slug = "acme-corp";
      audit event system.bootstrapped as the first chained record after the retention seed
-   → The OIDC configuration of the Keycloak dev realm comes from the backend
-     properties (change 3, US-001), not from the setup
+   → The provider for the Keycloak dev realm, one person with an identity binding per
+     test user and the group mappings are created through the admin API by
+     scripts/dev_seed.py (change 3b, owner decision 2026-10-15: providers only in the
+     database); the seed enrolls the admin's TOTP factor that the setup phase requires
 
 4. Admin logs in (UC-01)
    → US-001: OIDC redirect to Keycloak (authorization code flow, PKCE S256)

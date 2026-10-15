@@ -59,14 +59,14 @@ Checkpoint of the chain head; its `chain_seq` and `record_hash` are also written
 
 ### `auth.login`
 
-Successful login of the local system admin account (US-013 AC2, REQ-175).
+Successful login of the local system admin account (US-013 AC2) or of a person through an identity provider (US-001, [REQ-005](../requirements/req/REQ-005-audit-log-login.md), REQ-175).
 
 | Field | Value |
 |---|---|
 | Category / severity / outcome | `security` / `info` / `success` |
-| Actor | `system-admin-account` |
+| Actor | `system-admin-account` or `person` |
 | Target | `session`, ID of the new session |
-| Details | `method` (`password` or `password-totp`), `setupPhase` (`true` if the login needed no second factor, [ADR-042](../adrs/ADR-042-setup-phase-without-second-factor.md)) |
+| Details | Local login: `method` (`password` or `password-totp`), `setupPhase` (`true` if the login needed no second factor, [ADR-042](../adrs/ADR-042-setup-phase-without-second-factor.md)). OIDC login: `method` (`oidc`), `providerId`, `secondFactor` (from `amr`) |
 
 ### `auth.login-failed`
 
@@ -77,7 +77,7 @@ Rejected local login step ([REQ-168](../requirements/req/REQ-168-local-auth-thro
 | Category / severity / outcome | `security` / `warning` / `failure` |
 | Actor | `unauthenticated` |
 | Target | – |
-| Details | `reason` (`invalid-credentials` for the password step, including throttled attempts; `wrong-second-factor` for the TOTP step) |
+| Details | Local login: `reason` (`invalid-credentials` for the password step, including throttled attempts; `wrong-second-factor` for the TOTP step). OIDC login: `mechanism` (`oidc`), `providerId` if known, `reason` (`state-invalid`, `cancelled`, `provider-error`, `provider-unavailable`, `token-invalid`, `identity-unknown`, `person-not-active`) |
 
 ### `auth.throttled`
 
@@ -100,6 +100,50 @@ A session was ended by its principal ([REQ-164](../requirements/req/REQ-164-sess
 | Actor | the principal of the session |
 | Target | `session`, ID of the session |
 | Details | – |
+
+### `auth.idp-roles-derived`
+
+Roles derived from IdP group mappings for a session, at login and whenever a re-evaluation changes the set ([US-147](../requirements/user-stories/US-147-map-idp-group-to-role.md), ADR-032 DM-10).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `info` / `success` |
+| Actor | `person` – the session's person |
+| Target | `session`, ID of the session |
+| Details | `trigger` (`login` or `refresh`), `roles` (role IDs), `mappings` (mapping IDs), `groupsClaim` (`present`, `missing`, `truncated` or the reason of a withdrawal) |
+
+### `auth.idp-groups-unusable`
+
+The group claims of an IdP session could not be used, so no IdP-derived role applies (fail closed, US-147 AC3, REQ-165).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `warning` / `failure` |
+| Actor | `person` – the session's person |
+| Target | `session`, ID of the session |
+| Details | `reason` (`missing` or `truncated` groups claim, `idp-unreachable`, `refresh-unavailable`) |
+
+### `session.revoked`
+
+A session was ended by the system ([REQ-164](../requirements/req/REQ-164-session-termination-revocation.md), REQ-165); logouts are `auth.logout`.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `info` / `success` |
+| Actor | `system` |
+| Target | `session`, ID of the session |
+| Details | `reason` (`idp-refresh-failed`: the IdP refresh token expired or was rejected) |
+
+### `authz.denied`
+
+A request was refused by a separation-of-duties rule (ADR-032).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `warning` / `denied` |
+| Actor | the requesting principal |
+| Target | the affected object type, e.g. `idp-group-mapping` |
+| Details | `reason` (`self-administration`: SoD-1, US-147 AC5), `operation` |
 
 ### `auth.factor-added`
 
@@ -145,6 +189,17 @@ A person was created in status `invited` (pre-provisioning).
 | Target | `person`, ID of the person |
 | Details | `status` (`invited`); no name or e-mail address (ADR-033 §3) |
 
+### `person.activated`
+
+The first successful login of an invited person changed its status to `active` ([REQ-007](../requirements/req/REQ-007-lifecycle-transition-invited-active.md)).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `info` / `success` |
+| Actor | `person` – the person itself |
+| Target | `person`, ID of the person |
+| Details | `trigger` (`first-login`) |
+
 ### `person.identity-bound` / `person.identity-unbound`
 
 A person was bound to, or unbound from, the pair of issuer and subject of a provider ([REQ-166](../requirements/req/REQ-166-oidc-hardening-identity-binding.md)).
@@ -169,4 +224,4 @@ An IdP group mapping was created, changed or (softly) deleted ([REQ-167](../requ
 
 ## Planned Event Types
 
-Named in ADR-033 §8 and written by later changes: `session.revoked`, `authz.denied`, `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `visibility.changed`, `visibility.override-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.*`, `metamodel.*`.
+Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `visibility.changed`, `visibility.override-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.*`, `metamodel.*`.
