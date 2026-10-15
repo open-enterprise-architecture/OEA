@@ -28,6 +28,14 @@ SECRET_KEY = re.compile(r"(?i)(password|passwd|pwd|secret|token|credential|priva
 KEY_VALUE = re.compile(r"""^\s*-?\s*["']?(?P<key>[A-Za-z0-9_.\-\[\]]+)["']?\s*[:=]\s*(?P<value>.*?)\s*$""")
 DEFAULT_REF = re.compile(r"\$\{[A-Za-z0-9_]+:?-(?P<default>[^}]*)\}")
 REFERENCE = re.compile(r"^\$\{[^}]*\}$")
+# Keys that match SECRET_KEY but carry no secret (Keycloak mapper switches, OTP metadata)
+NOT_SECRET_KEY = re.compile(r"(?i)(\.claim$|^credentialData$)")
+NOT_SECRET_VALUE = {"true", "false", "null", ""}
+
+
+def is_secret(key: str, value: str) -> bool:
+    return (bool(SECRET_KEY.search(key)) and not NOT_SECRET_KEY.search(key)
+            and value.strip().lower() not in NOT_SECRET_VALUE)
 
 
 def sha256(value: str) -> str:
@@ -58,13 +66,14 @@ def secrets_in_text(text: str):
         if line.lstrip().startswith("#"):
             continue
         match = KEY_VALUE.match(line)
-        if not match or not SECRET_KEY.search(match.group("key")):
+        if not match or not SECRET_KEY.search(match.group("key")) or NOT_SECRET_KEY.search(match.group("key")):
             continue
         value = unquote(match.group("value"))
         for default in DEFAULT_REF.finditer(value):
             if default.group("default"):
                 yield number, match.group("key"), unquote(default.group("default"))
-        if value and not REFERENCE.match(value) and not DEFAULT_REF.search(value) and value not in ("|", ">"):
+        if (is_secret(match.group("key"), value) and not REFERENCE.match(value)
+                and not DEFAULT_REF.search(value) and value not in ("|", ">")):
             yield number, match.group("key"), value
 
 
@@ -82,7 +91,7 @@ def secrets_in_json(node, path: str = "$"):
                     data = {}
                 if isinstance(data, dict) and isinstance(data.get("value"), str):
                     yield child, "secretData", data["value"]
-            elif isinstance(value, str) and SECRET_KEY.search(key) and value:
+            elif isinstance(value, str) and is_secret(key, value):
                 yield child, key, value
             else:
                 yield from secrets_in_json(value, child)

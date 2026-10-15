@@ -1,0 +1,62 @@
+# OEA operator setup (ADR-036 §3). Safe by default: no identity provider, no literal
+# secret and no default for any secret. Copy .env.example to .env and fill in every
+# value, then run `docker compose up`. Development: compose.dev.yaml.
+# Database setup and migration step: docs/operations.md.
+name: oea
+
+services:
+  postgres:
+    image: docker.io/library/postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    environment:
+      POSTGRES_DB: oea
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD (database superuser, provisioning only)}
+      # Role passwords for the provisioning script (ADR-037), used on the first start only
+      OEA_OWNER_PASSWORD: ${OEA_OWNER_PASSWORD:?set OEA_OWNER_PASSWORD (role oea_owner)}
+      OEA_REPORTING_OWNER_PASSWORD: ${OEA_REPORTING_OWNER_PASSWORD:?set OEA_REPORTING_OWNER_PASSWORD (role oea_reporting_owner)}
+      OEA_APP_PASSWORD: ${OEA_APP_PASSWORD:?set OEA_APP_PASSWORD (role oea_app)}
+      OEA_AUDIT_CLEANUP_PASSWORD: ${OEA_AUDIT_CLEANUP_PASSWORD:?set OEA_AUDIT_CLEANUP_PASSWORD (role oea_audit_cleanup)}
+      OEA_AUDITOR_PASSWORD: ${OEA_AUDITOR_PASSWORD:?set OEA_AUDITOR_PASSWORD (role oea_auditor)}
+      OEA_ANALYTICS_PASSWORD: ${OEA_ANALYTICS_PASSWORD:?set OEA_ANALYTICS_PASSWORD (role oea_analytics)}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./deploy/postgres/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d oea"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  migrate:
+    image: ${OEA_BACKEND_IMAGE:-oea-backend:local}
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["migrate"]
+    environment:
+      OEA_MIGRATION_URL: jdbc:postgresql://postgres:5432/oea
+      OEA_MIGRATION_OWNER_PASSWORD: ${OEA_OWNER_PASSWORD:?set OEA_OWNER_PASSWORD (role oea_owner)}
+      OEA_MIGRATION_REPORTINGOWNER_PASSWORD: ${OEA_REPORTING_OWNER_PASSWORD:?set OEA_REPORTING_OWNER_PASSWORD (role oea_reporting_owner)}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    image: ${OEA_BACKEND_IMAGE:-oea-backend:local}
+    command: ["serve"]
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/oea
+      SPRING_DATASOURCE_USERNAME: oea_app
+      SPRING_DATASOURCE_PASSWORD: ${OEA_APP_PASSWORD:?set OEA_APP_PASSWORD (role oea_app)}
+    ports:
+      # Publish behind a TLS reverse proxy only (ADR-036 §8)
+      - "${OEA_HTTP_BIND:-127.0.0.1}:${OEA_HTTP_PORT:-8080}:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
