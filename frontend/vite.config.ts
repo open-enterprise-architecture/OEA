@@ -2,6 +2,7 @@
 import ui from '@nuxt/ui/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
+import { thirdPartyLicenses } from './third-party-licenses.ts'
 
 // OEA frontend (ADR-011, ADR-040). Nuxt UI runs as a Vite plugin without Nuxt.
 export default defineConfig({
@@ -14,6 +15,8 @@ export default defineConfig({
       // Offline at runtime (REQ-075): icons are bundled at build time, never fetched from the Iconify API
       icon: { clientBundle: { scan: true } },
     }),
+    // ADR-043: list and license texts of the bundled third-party packages
+    thirdPartyLicenses(),
   ],
   server: {
     proxy: {

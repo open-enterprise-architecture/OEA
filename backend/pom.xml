@@ -26,6 +26,7 @@
 		<archunit.version>1.5.1</archunit.version>
 		<cucumber.version>8.0.4</cucumber.version>
 		<bouncycastle.version>1.86</bouncycastle.version>
+		<license-maven-plugin.version>2.4.0</license-maven-plugin.version>
 		<!-- Security overrides of versions managed by Spring Boot 4.1.1; remove when Spring Boot
 		     manages these versions or newer (REQ-191) -->
 		<!-- GHSA-cxp5-3px4-pw24, GHSA-gx83-3vf8-gh7j, GHSA-q4xh-88c3-wmh7, GHSA-wjgm-6hv5-3cvf,
@@ -284,6 +285,17 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<!-- Third-party license report of the runtime libraries (ADR-043); run with
+			     ./mvnw license:add-third-party, read by scripts/generate_third_party_licenses.py -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>license-maven-plugin</artifactId>
+				<version>${license-maven-plugin.version}</version>
+				<configuration>
+					<excludedScopes>test,provided,system</excludedScopes>
+					<sortArtifactByName>true</sortArtifactByName>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

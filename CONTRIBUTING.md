@@ -72,6 +72,7 @@ Features often begin as a use case (`requirements/use-cases/`) before they are i
 - **Tests**: Mandatory – unit tests, contract tests against OpenAPI specs
 - **Specs first**: API changes are incorporated into the OpenAPI spec first
 - **Secure defaults**: TLS on, AuthN required, audit log active
+- **Third-party dependencies**: only permissive licenses or weak-copyleft licenses of unmodified libraries ([ADR-043](adrs/ADR-043-third-party-license-policy.md)); regenerate [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md) with `python3 scripts/generate_third_party_licenses.py` after changing dependencies
 
 #### Conventional Commits
 
