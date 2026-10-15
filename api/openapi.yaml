@@ -2002,6 +2002,53 @@ components:
       properties:
         status: { type: string, enum: [UP, DOWN] }
 
+    SetupStatus:
+      type: object
+      required: [setupRequired]
+      properties:
+        setupRequired: { type: boolean, description: "true until the local bootstrapping has completed" }
+
+    SetupRequest:
+      type: object
+      required: [setupToken, loginName, password, instanceSlug]
+      properties:
+        setupToken:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: One-time setup token from the container file (REQ-017)
+        loginName:
+          type: string
+          pattern: '^[a-z][a-z0-9._-]{2,63}$'
+          description: Login name of the local system admin account
+        password:
+          type: string
+          format: password
+          minLength: 12
+          maxLength: 128
+          description: Password of the system admin account, stored only as argon2id hash (REQ-169)
+        instanceSlug:
+          type: string
+          pattern: '^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$'
+          description: Instance part of external URNs `urn:oea:{instance-slug}:{id}`; immutable afterwards (ADR-001)
+
+    SetupResult:
+      type: object
+      required: [loginName, instanceSlug]
+      properties:
+        loginName:    { type: string }
+        instanceSlug: { type: string }
+
+    SetupValidationProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required: [invalidFields]
+          properties:
+            invalidFields:
+              type: array
+              items: { type: string, enum: [loginName, password, instanceSlug] }
+
     ClientCompatibility:
       type: object
       required: [clientUpdateMode, minClientVersion, apiVersion]
@@ -2128,6 +2175,70 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/HealthStatus' }
+
+  # ╔═════════════════════════════════════════════════════════════════════════╗
+  # ║  SETUP (UC-02, US-013, REQ-013 to REQ-017)                             ║
+  # ╚═════════════════════════════════════════════════════════════════════════╝
+  /setup/status:
+    get:
+      operationId: getSetupStatus
+      summary: Whether the instance still needs its local bootstrapping (US-013)
+      description: |
+        Public, because no principal exists before the bootstrapping. Returns only whether
+        setup is required – no token, account or instance data.
+      tags: [Setup]
+      security: []
+      x-oea-authorization: {"access": "public"}
+      responses:
+        '200':
+          description: Setup status
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SetupStatus' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /setup:
+    post:
+      operationId: completeSetup
+      summary: Local bootstrapping – create the system admin account and the instance slug (US-013)
+      description: |
+        Public, but only effective with the one-time setup token, which the backend writes
+        to a file inside its container and never returns or logs (REQ-017, REQ-175). Exactly
+        one bootstrapping can succeed per instance (REQ-015); every attempt is audited as
+        `system.bootstrapped` or `system.bootstrap-rejected` (REQ-016). The request body is
+        never logged.
+      tags: [Setup]
+      security: []
+      x-oea-authorization: {"access": "public"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SetupRequest' }
+      responses:
+        '201':
+          description: System admin account created; the instance is bootstrapped
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SetupResult' }
+        '400':
+          description: |
+            Invalid input (problem type `urn:oea:problem:validation-failed`); `invalidFields`
+            names the rejected fields. Only checked after a valid setup token.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/SetupValidationProblem' }
+        '401':
+          description: Setup token missing, wrong or expired (problem type `urn:oea:problem:invalid-setup-token`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: The instance is already bootstrapped (problem type `urn:oea:problem:already-bootstrapped`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  IDENTITY (ADR-032 §9, REQ-176)                                        ║
@@ -5115,3 +5226,5 @@ tags:
     description: Current principal and OAuth2 token endpoint for service accounts
   - name: Operations
     description: Health and operational endpoints (REQ-075)
+  - name: Setup
+    description: Local bootstrapping of a fresh instance (UC-02, US-013)
