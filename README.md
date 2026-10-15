@@ -34,7 +34,7 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | Use Cases | 23 |
 | Requirements | 195 |
 | User Stories | 150 |
-| ADRs | 42 |
+| ADRs | 43 |
 | Business Objects | 30 |
 
 _Concept: v0.19 · Last update: 2026-10-15._
@@ -129,6 +129,7 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 | [ADR-040](adrs/ADR-040-ui-component-library-after-primevue-license-change.md) | UI Component Library After the PrimeVue License Change | accepted |
 | [ADR-041](adrs/ADR-041-root-aggregator-pom.md) | Root Aggregator POM for the Dependency Graph | accepted |
 | [ADR-042](adrs/ADR-042-setup-phase-without-second-factor.md) | Setup Phase – System Admin Login Without Second Factor Until Other Identities Get Access | accepted |
+| [ADR-043](adrs/ADR-043-third-party-license-policy.md) | License Policy for Third-Party Components | accepted |
 <!-- /AUTO-GENERATED: adrs -->
 
 ## Development

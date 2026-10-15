@@ -22,8 +22,12 @@ This software is dual-licensed:
     modifications, proprietary integrations, SLA/support).
     See LICENSES/LICENSE-ENTERPRISE.md for details and contact information.
 
-Third-party components included or used by this project are listed in
-the documentation. Each component is governed by its own license, which
-must be respected when using or distributing this software.
+Third-party components distributed with this software are listed in
+THIRD-PARTY-LICENSES.md with their licenses. Each component remains under
+its own license, which grants its rights directly to every recipient and
+must be respected when using or distributing this software. Neither the
+AGPL-3.0 nor the Enterprise license extends to third-party components.
+Only permissive licenses and weak-copyleft licenses of unmodified
+libraries are allowed for distributed components (adrs/ADR-043).
 
 For contributor terms, see LICENSES/CLA.md.
