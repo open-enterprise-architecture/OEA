@@ -36,8 +36,8 @@
 
 ## 5. Test foundation
 
-- [ ] 5.1 Create `io.oea.testsupport.containers` with PostgreSQL (minimum supported major version) and Keycloak singletons, provisioning and migration applied once per JVM; verify an integration test starts the application against them
-- [ ] 5.2 Create the test-scope login helper `io.oea.testsupport.auth` (authorization code flow with PKCE against Keycloak, headless); verify a test obtains a token for `dev-viewer` and the token's `groups` claim contains the group UUID
+- [x] 5.1 Create `io.oea.testsupport.containers` with PostgreSQL (minimum supported major version) and Keycloak singletons, provisioning and migration applied once per JVM; verify an integration test starts the application against them
+- [x] 5.2 Create the test-scope login helper `io.oea.testsupport.auth` (authorization code flow with PKCE against Keycloak, headless); verify a test obtains a token for `dev-viewer` and the token's `groups` claim contains the group UUID
 - [x] 5.3 Set up the Cucumber runner `io.oea.steps.CucumberIT` on the JUnit Platform with features from `backend/src/test/resources/features/`; verify the database-roles feature of 2.6 runs through it
 
 ## 6. Build-time checks against test-only authentication code

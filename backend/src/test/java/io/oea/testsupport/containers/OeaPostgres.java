@@ -16,8 +16,10 @@ import org.testcontainers.utility.MountableFile;
  */
 public final class OeaPostgres {
 
-	/** Minimum supported PostgreSQL major version (REQ-156). */
-	public static final DockerImageName MINIMUM_SUPPORTED_IMAGE = DockerImageName.parse("postgres:15-alpine");
+	/** Minimum supported PostgreSQL major version (REQ-156): postgres:15-alpine, pinned by digest (REQ-191). */
+	public static final DockerImageName MINIMUM_SUPPORTED_IMAGE = DockerImageName
+		.parse("postgres@sha256:f7d23353e1b15400d22ebe31189f4d314b87a4c129cc400c8c2d8d4ca127bf81")
+		.asCompatibleSubstituteFor("postgres");
 
 	/**
 	 * Role passwords, generated per test JVM: they satisfy the secret guards (G4) and never

@@ -41,9 +41,9 @@ class ConfigurationGuardsTests {
 			.containsExactly("G4: spring.datasource.password is shorter than 16 characters");
 		assertThat(startFails(DATASOURCE_URL, "--spring.datasource.password=changeme").getViolations())
 			.containsExactly("G4: spring.datasource.password is a known default value");
-		assertThat(startFails(DATASOURCE_URL, "--spring.datasource.password=oea-app-dev-only").getViolations())
+		assertThat(startFails(DATASOURCE_URL, "--spring.datasource.password=unlisted-value-dev-only").getViolations())
 			.containsExactly("G4: spring.datasource.password is marked as a development or default value");
-		assertThat(output).doesNotContain("Sh0rt!pw").doesNotContain("oea-app-dev-only");
+		assertThat(output).doesNotContain("Sh0rt!pw").doesNotContain("unlisted-value-dev-only");
 	}
 
 	@Test

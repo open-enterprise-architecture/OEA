@@ -24,9 +24,14 @@ import org.testcontainers.utility.DockerImageName;
 /** Spec platform/startup-safety (PostgreSQL version) and platform/database-roles (fail closed). */
 class DatabaseStartupChecksTests {
 
+	/** postgres:14-alpine, pinned by digest: one major version below the minimum. */
+	private static final DockerImageName POSTGRES_14 = DockerImageName
+		.parse("postgres@sha256:4ea9e5ed06591da7ea23eb65465e8d3187fe79f4d5ec3ae976d29a33b013e77a")
+		.asCompatibleSubstituteFor("postgres");
+
 	@Test
 	void postgresqlOlderThanMinimumIsRefused() {
-		try (PostgreSQLContainer postgres = new PostgreSQLContainer(DockerImageName.parse("postgres:14-alpine"))
+		try (PostgreSQLContainer postgres = new PostgreSQLContainer(POSTGRES_14)
 			.withPassword("pg14-" + UUID.randomUUID())) {
 			postgres.start();
 			assertThatExceptionOfType(Exception.class)

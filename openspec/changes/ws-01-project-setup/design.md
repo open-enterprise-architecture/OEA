@@ -106,4 +106,6 @@ Delta to `api/openapi.yaml`: new public operation `GET /health` (operationId `ge
 
 ## Open Questions
 
-- Exact Keycloak and PostgreSQL patch versions and digests – fixed when the images are pinned
+- Exact Keycloak and PostgreSQL patch versions and digests – fixed when the images are pinned (resolved: Keycloak 26.8.1, PostgreSQL 17 for Compose, 15 for tests, all by digest)
+- `amr` claim: the realm has the AMR protocol mapper, but Keycloak emits values only when the browser-flow executions carry authenticator reference values (`pwd`, `otp`). Configured together with the MFA checks in change 3 (US-001); this change verifies only that TOTP users pass the second factor
+- Client type of `oea-portal` (ADR-036 §4: as decided by the login design of REQ-001/REQ-165): provisionally confidential with PKCE in the development realm; change 3 confirms or changes it
