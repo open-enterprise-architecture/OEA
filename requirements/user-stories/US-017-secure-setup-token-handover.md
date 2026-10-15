@@ -2,8 +2,9 @@
 
 **ID**: US-017
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: review
+**Sprint**: S1
+**Implementation**: OpenSpec change `us-013-local-bootstrapping` (commit hash added when the change is archived) – token as a file inside the container, never logged (REQ-175)
 
 ## Story
 

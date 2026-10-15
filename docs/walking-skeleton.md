@@ -77,7 +77,7 @@ scripts/dev.sh                                        # development: docker comp
 cp .env.example .env && docker compose up             # operator: every secret required (docs/operations.md)
 ```
 
-The audit hash chain and the seed row of `audit.retention_settings` follow with change 2 (US-013).
+Change 2 (`us-013-local-bootstrapping`) adds the local bootstrapping, the audit hash chain with the retention seed, `oea audit verify` and checkpoints; the login of the local system admin account (US-013 AC2) follows after change 3.
 
 ---
 
@@ -95,10 +95,13 @@ The audit hash chain and the seed row of `audit.retention_settings` follow with 
 2. Admin opens browser: http://localhost:5173
    → Vue app loads
 
-3. Admin calls /setup (no admin exists yet)
-   → US-013: enters instance-slug "acme-corp" and the OIDC configuration
-     of the Keycloak dev realm
-   → Result: first admin user stored; instance-slug = "acme-corp"
+3. Admin reads the one-time setup token inside the backend container
+   (docker compose exec backend cat /run/oea/setup-token) and calls /setup
+   → US-013: enters the token, login name, password and instance-slug "acme-corp"
+   → Result: local system admin account stored (argon2id); instance-slug = "acme-corp";
+     audit event system.bootstrapped as the first chained record after the retention seed
+   → The OIDC configuration of the Keycloak dev realm comes from the backend
+     properties (change 3, US-001), not from the setup
 
 4. Admin logs in (UC-01)
    → US-001: OIDC redirect to Keycloak (authorization code flow, PKCE S256)

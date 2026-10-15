@@ -36,11 +36,11 @@
 
 - [x] 5.1 Add the setup page `/setup` (Nuxt UI form: setup token, login name, password with confirmation, instance slug) using the generated API types, with client-side checks mirroring the API constraints and display of the problem details; verify with Vitest tests for success, validation and the three problem types
 - [x] 5.2 Show a setup hint with a link on the start page while `GET /setup/status` reports `setupRequired`; verify with a Vitest test; SCR-002 keeps the status `legacy-mockup` and gets no screen story in this change (owner decision 2026-10-15, follows with change 6)
-- [ ] 5.3 Verify the walking-skeleton flow manually in the development environment: fresh volume, read the token with `docker compose exec backend cat /run/oea/setup-token`, complete `/setup` in the browser, `oea audit verify` reports OK; record the result in the PR
+- [x] 5.3 Verify the walking-skeleton flow manually in the development environment: fresh volume, read the token with `docker compose exec backend cat /run/oea/setup-token`, complete `/setup` in the browser, `oea audit verify` reports OK; record the result in the PR
 
 ## 6. Wrap-up
 
-- [ ] 6.1 Update the user stories: US-015, US-016 (local mode) and US-017 to `realized` with the implementation hash; US-013 notes AC1 as realized and AC2 as open (login change after change 3); update step 3 of `docs/walking-skeleton.md` (no OIDC configuration in the setup; token from the container)
-- [ ] 6.2 Synchronize `docs/data-model.puml`, `business-objects/` and `docs/screens/SCREENS.md` (SCR-002 unchanged) with the implementation; regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
-- [ ] 6.3 Run `python3 scripts/validate_links.py`, the markdown lint, `scripts/check_screens.py` and `scripts/sync_agent_config.py --check` and verify all pass
+- [x] 6.1 Update the user stories: US-015, US-016 (local mode) and US-017 to `review`, US-013 to `in-progress` with AC1 implemented and AC2 open (login change after change 3); the implementation hash is added when the change is archived after the merge (story statuses `done` then); update step 3 of `docs/walking-skeleton.md` (no OIDC configuration in the setup; token from the container)
+- [x] 6.2 Synchronize `docs/data-model.puml`, `business-objects/` and `docs/screens/SCREENS.md` (SCR-002 unchanged) with the implementation; regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
+- [x] 6.3 Run `python3 scripts/validate_links.py`, the markdown lint, `scripts/check_screens.py` and `scripts/sync_agent_config.py --check` and verify all pass
 - [ ] 6.4 After the merge, verify that *Automatic dependency submission* ran for the changed `backend/pom.xml` and that transitive backend dependencies (e.g. `spring-core`, `bcprov`) appear in the dependency graph; then mark task 9.1 of the archived change `2026-10-15-ws-01-project-setup` as done
