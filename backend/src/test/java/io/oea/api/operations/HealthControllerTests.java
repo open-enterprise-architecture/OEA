@@ -15,11 +15,17 @@ import org.springframework.boot.health.contributor.Status;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
+import io.oea.config.security.SecurityConfiguration;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
-@WebMvcTest(HealthController.class)
+// Controller logic only; authentication and authorization are tested end to end
+@WebMvcTest(controllers = HealthController.class,
+		excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfiguration.class))
 @Import({ ApiPathConfiguration.class, HealthControllerTests.Indicators.class })
 class HealthControllerTests {
 

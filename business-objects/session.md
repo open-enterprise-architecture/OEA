@@ -2,7 +2,7 @@
 identifier: session
 name_de: Sitzung
 name_en: Session
-version: 0.2.0
+version: 0.3.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -38,6 +38,7 @@ Service accounts have no sessions; their client-credentials access tokens are sh
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
 | id | string | required | | UUID, opaque | Session identifier (`sid` in OEA access tokens) |
+| tokenHash | binary | required | | SHA-256, unique | Hash of the web cookie value `__Host-OEA_SESSION` (256 random bits); the value itself is never stored (REQ-187) |
 | principal | reference | required | | exactly one of: person (human), system admin account | Logged-in principal |
 | clientType | enum | required | | `[web-portal, electron]` | Client |
 | authMethod | enum | required | | `[oidc, passkey, password-totp, password]` | How the session was established |
@@ -154,3 +155,4 @@ Created for REQ-164, REQ-165, ADR-032 DM-10 and owner decision Q16 (security rev
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | Business Engineer | Initial draft from REQ-164, REQ-165, ADR-032 DM-10, Q16 |
 | 0.2.0 | 2026-10-13 | Lukas Mathis | BR-07: retention of ended sessions (secrets immediately, record 30 days configurable; owner decision Q20) |
+| 0.3.0 | 2026-10-15 | Business Engineer | `tokenHash` for the web session cookie; the CSRF token is derived from the cookie value and not stored (change `us-013-system-admin-login`, REQ-187) |

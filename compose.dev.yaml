@@ -78,6 +78,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/oea
       SPRING_DATASOURCE_USERNAME: oea_app
       SPRING_DATASOURCE_PASSWORD: oea-app-dev-only
+      OEA_SECURITY_KEK_CURRENT: /run/secrets/oea_kek
+    secrets:
+      - oea_kek
     ports:
       - "127.0.0.1:${OEA_DEV_BACKEND_PORT:-8080}:8080"
     volumes:
@@ -107,3 +110,8 @@ services:
 volumes:
   postgres-dev-data:
   frontend-dev-node-modules:
+
+secrets:
+  oea_kek:
+    # Development key, hash-listed and rejected outside the Spring profile dev
+    file: ./dev/secrets/oea-kek-dev-only.key

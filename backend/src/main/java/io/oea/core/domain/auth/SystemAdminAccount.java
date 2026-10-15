@@ -37,6 +37,12 @@ public class SystemAdminAccount extends NewAwareEntity<UUID> {
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
+	@Column(name = "first_login_at")
+	private Instant firstLoginAt;
+
+	@Column(name = "last_used_at")
+	private Instant lastUsedAt;
+
 	protected SystemAdminAccount() {
 	}
 
@@ -54,6 +60,19 @@ public class SystemAdminAccount extends NewAwareEntity<UUID> {
 			throw new IllegalArgumentException("invalid login name");
 		}
 		return new SystemAdminAccount(UUID.randomUUID(), loginName, now);
+	}
+
+	/** Successful login: {@code bootstrapped → active} at the first one (business object lifecycle). */
+	public void recordLogin(Instant now) {
+		if (getStatus() == Status.BOOTSTRAPPED) {
+			this.status = "active";
+			this.firstLoginAt = now;
+		}
+		this.lastUsedAt = now;
+	}
+
+	public boolean canLogIn() {
+		return getStatus() != Status.DEACTIVATED;
 	}
 
 	@Override

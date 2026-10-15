@@ -5,6 +5,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -28,6 +29,9 @@ public class LocalCredential extends NewAwareEntity<UUID> {
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
+	@Column(name = "last_used_at")
+	private Instant lastUsedAt;
+
 	protected LocalCredential() {
 	}
 
@@ -41,6 +45,25 @@ public class LocalCredential extends NewAwareEntity<UUID> {
 
 	public static LocalCredential password(SystemAdminAccount owner, Instant now) {
 		return new LocalCredential(owner.getId(), "password", now);
+	}
+
+	/** TOTP credential whose enrollment still has to be confirmed (status {@code pending}). */
+	public static LocalCredential pendingTotp(UUID ownerAccountId, Instant now) {
+		LocalCredential credential = new LocalCredential(ownerAccountId, "totp", now);
+		credential.status = "pending";
+		return credential;
+	}
+
+	public boolean isPendingSince(Instant now, Duration maximumAge) {
+		return "pending".equals(this.status) && this.createdAt.plus(maximumAge).isAfter(now);
+	}
+
+	public void activate() {
+		this.status = "active";
+	}
+
+	public void markUsed(Instant now) {
+		this.lastUsedAt = now;
 	}
 
 	@Override

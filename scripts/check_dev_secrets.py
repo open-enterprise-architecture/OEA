@@ -2,7 +2,8 @@
 """Check that every development secret is in the known-development-secrets list.
 
 ADR-036 §6, REQ-183 AC6: the production artifact contains SHA-256 hashes of all
-secret values used in compose.dev.yaml, dev/ and the Keycloak realm file. The
+secret values used in compose.dev.yaml, dev/ (files under dev/secrets/ count as secrets as a whole)
+and the Keycloak realm file. The
 application refuses to start outside the profile 'dev' with any of these values.
 This check extracts secret literals from the development files and fails if the
 hash of one of them is missing from the list. Secret values are never printed.
@@ -109,8 +110,19 @@ def source_files(root: Path):
             yield from sorted(p for p in path.rglob("*") if p.is_file() and p.suffix in TEXT_SUFFIXES)
 
 
+SECRET_FILE_DIRS = [Path("dev/secrets")]
+
+
 def find_secrets(root: Path):
+    for directory in SECRET_FILE_DIRS:
+        path = root / directory
+        if path.is_dir():
+            for file in sorted(p for p in path.rglob("*") if p.is_file()):
+                # every file under dev/secrets/ is a secret as a whole (e.g. key files, REQ-188)
+                yield str(file.relative_to(root)), "file content", file.read_text(encoding="utf-8").strip()
     for path in source_files(root):
+        if any(path.is_relative_to(root / directory) for directory in SECRET_FILE_DIRS):
+            continue
         text = path.read_text(encoding="utf-8")
         relative = path.relative_to(root)
         if path.suffix == ".json":

@@ -140,11 +140,12 @@ components:
     cookieAuth:
       type: apiKey
       in: cookie
-      name: OEA_SESSION
+      name: __Host-OEA_SESSION
       description: |
-        Session cookie of the web portal (`HttpOnly`, `Secure`, `SameSite=Strict`).
-        State-changing requests additionally require the CSRF token header
-        `X-XSRF-TOKEN`. The session identifies principal and session only.
+        Session cookie of the web portal (`__Host-` prefix, `HttpOnly`, `Secure`,
+        `Path=/`, `SameSite=Strict`, REQ-187). State-changing requests additionally
+        require the CSRF token header `X-XSRF-TOKEN` (token from the login response or
+        `GET /me`) and an allowed `Origin`. The session identifies principal and session only.
     oauth2ClientCredentials:
       type: oauth2
       description: |
@@ -1818,6 +1819,104 @@ components:
               roleId: { $ref: '#/components/schemas/RoleId' }
               source: { type: string, enum: [local, idp, system-admin-account] }
 
+    LocalLoginRequest:
+      type: object
+      required: [loginName, password]
+      properties:
+        loginName: { type: string, maxLength: 64 }
+        password:  { type: string, format: password, maxLength: 128 }
+
+    LocalLoginTotpRequest:
+      type: object
+      required: [loginTransaction, code]
+      properties:
+        loginTransaction: { type: string, maxLength: 128 }
+        code:             { type: string, pattern: '^[0-9]{6}$' }
+
+    LoginResult:
+      type: object
+      required: [principal, mfaSatisfied, csrfToken]
+      properties:
+        principal:    { $ref: '#/components/schemas/PrincipalRef' }
+        mfaSatisfied: { type: boolean }
+        csrfToken:    { type: string, description: "Value for the `X-XSRF-TOKEN` header" }
+
+    LoginProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            loginTransaction:
+              type: string
+              description: "Only with `second-factor-required`: opaque, valid 5 minutes"
+
+    TotpEnrollmentRequest:
+      type: object
+      properties:
+        label: { type: string, maxLength: 64 }
+
+    TotpEnrollment:
+      type: object
+      required: [credentialId, secret, otpauthUri, expiresAt]
+      description: Shown once; the secret is never returned again (REQ-188)
+      properties:
+        credentialId: { type: string, format: uuid }
+        secret:       { type: string, description: Base32 secret for manual entry }
+        otpauthUri:   { type: string, description: "`otpauth://totp/…` for QR codes rendered by the client" }
+        expiresAt:    { type: string, format: date-time }
+
+    TotpConfirmation:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, pattern: '^[0-9]{6}$' }
+
+    SecondFactor:
+      type: object
+      required: [credentialId, type, createdAt]
+      properties:
+        credentialId: { type: string, format: uuid }
+        type:         { type: string, enum: [totp, passkey] }
+        label:        { type: [string, 'null'] }
+        createdAt:    { type: string, format: date-time }
+
+    Person:
+      type: object
+      required: [id, personType, name, status, createdAt]
+      properties:
+        id:         { type: integer }
+        personType: { type: string, enum: [human, service-account] }
+        name:       { type: string }
+        email:      { type: [string, 'null'], format: email }
+        status:     { type: string, enum: [invited, active, inactive, offboarded] }
+        createdAt:  { type: string, format: date-time }
+
+    PersonWrite:
+      type: object
+      required: [name, email]
+      properties:
+        name:  { type: string, minLength: 1, maxLength: 200 }
+        email: { type: string, format: email, maxLength: 254 }
+
+    PersonIdentity:
+      type: object
+      required: [id, authProviderId, issuer, subject, linkMethod, linkedAt]
+      properties:
+        id:             { type: string, format: uuid }
+        authProviderId: { type: string, format: uuid }
+        issuer:         { type: string }
+        subject:        { type: string }
+        linkMethod:     { type: string, enum: [admin-entered, email-match] }
+        linkedAt:       { type: string, format: date-time }
+        lastLoginAt:    { type: [string, 'null'], format: date-time }
+
+    PersonIdentityWrite:
+      type: object
+      required: [authProviderId, subject]
+      properties:
+        authProviderId: { type: string, format: uuid }
+        subject:        { type: string, minLength: 1, maxLength: 255, description: "Immutable `sub` of the provider (Entra ID: `oid`)" }
+
     Me:
       type: object
       required: [principal, mfaSatisfied, roles, permissions]
@@ -1846,6 +1945,9 @@ components:
           type: array
           description: Union of the permissions of all effective roles, with their sources
           items: { $ref: '#/components/schemas/EffectivePermission' }
+        csrfToken:
+          type: [string, 'null']
+          description: "Web sessions: value for the `X-XSRF-TOKEN` header (REQ-187)"
 
     # ── Event stream payloads (`GET /events/stream`) ─────────────────────────
     SessionEndedEvent:
@@ -1961,8 +2063,13 @@ components:
           type: string
           enum: [oidc, local]
         enabled:   { type: boolean }
+        vendor:
+          type: string
+          enum: [entra-id, authentik, generic-oidc]
         issuerUrl: { type: [string, 'null'] }
         clientId:  { type: [string, 'null'] }
+        scopes:    { type: [string, 'null'] }
+        clientSecretSet: { type: boolean, description: "Whether a client secret is stored; the secret is never returned (REQ-188)" }
 
     AuthProviderWrite:
       type: object
@@ -1973,7 +2080,11 @@ components:
           type: string
           enum: [oidc, local]
         enabled:      { type: boolean, default: true }
-        issuerUrl:    { type: string }
+        vendor:
+          type: string
+          enum: [entra-id, authentik, generic-oidc]
+          default: generic-oidc
+        issuerUrl:    { type: string, description: "Outside the profile dev `https` and no loopback address (ADR-036 G2/G3)" }
         clientId:     { type: string }
         clientSecret: { type: string, description: "Write-only; never returned in responses" }
         scopes:       { type: string, example: "openid profile email" }
@@ -2271,6 +2382,80 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /auth/local/login:
+    post:
+      operationId: localLogin
+      summary: Local login of the system admin account (US-013 AC2, ADR-042)
+      description: |
+        Login name and password. During the setup phase (ADR-042) a correct password
+        creates the session. Afterwards the response is `401` with problem type
+        `urn:oea:problem:second-factor-required` and a `loginTransaction`, which
+        `POST /auth/local/login/totp` completes with a TOTP code. Wrong login name and
+        wrong password produce the same `401 urn:oea:problem:invalid-credentials`;
+        repeated failures are throttled (REQ-168). Protected by an origin check (REQ-187).
+      tags: [Identity]
+      security: []
+      x-oea-authorization: {"access": "public"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LocalLoginRequest' }
+      responses:
+        '201':
+          description: Session created; the cookie `__Host-OEA_SESSION` is set
+          headers:
+            Set-Cookie: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResult' }
+        '401':
+          description: Invalid credentials, or a second factor is required (with `loginTransaction`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/LoginProblem' }
+        '403':
+          description: Origin not allowed (problem type `urn:oea:problem:csrf-rejected`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/local/login/totp:
+    post:
+      operationId: localLoginTotp
+      summary: Second step of the local login with a TOTP code (REQ-171)
+      description: |
+        Completes a login transaction with a TOTP code. Five wrong codes invalidate the
+        transaction (REQ-168 AC2); a code is never accepted twice (REQ-170).
+      tags: [Identity]
+      security: []
+      x-oea-authorization: {"access": "public"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LocalLoginTotpRequest' }
+      responses:
+        '201':
+          description: Session created with a second factor; the cookie is set
+          headers:
+            Set-Cookie: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResult' }
+        '401':
+          description: Wrong code, or the transaction is unknown, expired or invalidated (`invalid-credentials`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/LoginProblem' }
+        '403':
+          description: Origin not allowed (`csrf-rejected`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /me:
     get:
       operationId: getCurrentPrincipal
@@ -2291,6 +2476,66 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+
+  /me/second-factors/totp:
+    post:
+      operationId: startTotpEnrollment
+      summary: Start the enrollment of a TOTP second factor (REQ-171, ADR-042)
+      description: |
+        Requires an authentication within the last 5 minutes (REQ-172), otherwise `401`
+        with problem type `urn:oea:problem:reauthentication-required`. Returns the secret
+        once; the credential stays `pending` until confirmed (10 minutes).
+      tags: [Identity]
+      x-oea-authorization: {"access": "authenticated"}
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TotpEnrollmentRequest' }
+      responses:
+        '201':
+          description: Enrollment started
+          headers:
+            Cache-Control: { schema: { type: string, const: no-store } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TotpEnrollment' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /me/second-factors/totp/{credentialId}/confirm:
+    post:
+      operationId: confirmTotpEnrollment
+      summary: Confirm a TOTP enrollment with a valid code
+      description: |
+        Activates the credential and marks the current session as confirmed with a
+        second factor; an audit event `auth.factor-added` is written (REQ-172 AC3).
+      tags: [Identity]
+      x-oea-authorization: {"access": "authenticated"}
+      parameters:
+        - name: credentialId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TotpConfirmation' }
+      responses:
+        '200':
+          description: Second factor active; the session is confirmed with it
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SecondFactor' }
+        '400':
+          description: Invalid code (problem type `urn:oea:problem:invalid-totp-code`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /client-compatibility:
     get:
       operationId: getClientCompatibility
@@ -3850,6 +4095,128 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/persons:
+    get:
+      operationId: listPersons
+      summary: List persons
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
+      responses:
+        '200':
+          description: Persons
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Person' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      operationId: createPerson
+      summary: Create a person in status invited (pre-provisioning)
+      description: The person can log in only after an identity binding exists (REQ-004, REQ-166).
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PersonWrite' }
+      responses:
+        '201':
+          description: Person created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Person' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/persons/{personId}:
+    get:
+      operationId: getPerson
+      summary: Read a person
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
+      parameters:
+        - $ref: '#/components/parameters/PersonIdParam'
+      responses:
+        '200':
+          description: Person
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Person' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/persons/{personId}/identities:
+    get:
+      operationId: listPersonIdentities
+      summary: List the identity bindings of a person (REQ-166)
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
+      parameters:
+        - $ref: '#/components/parameters/PersonIdParam'
+      responses:
+        '200':
+          description: Identity bindings
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PersonIdentity' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: createPersonIdentity
+      summary: Bind a person to the immutable subject of a provider (admin-entered)
+      description: |
+        The pair (issuer, subject) can be bound to one person only (`409`). During the
+        setup phase the first binding requires the system admin's confirmed second factor
+        (`403` with problem type `urn:oea:problem:second-factor-required`) and ends the
+        setup phase (ADR-042).
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
+      parameters:
+        - $ref: '#/components/parameters/PersonIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PersonIdentityWrite' }
+      responses:
+        '201':
+          description: Binding created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PersonIdentity' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/persons/{personId}/identities/{identityId}:
+    delete:
+      operationId: deletePersonIdentity
+      summary: Remove an identity binding
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
+      parameters:
+        - $ref: '#/components/parameters/PersonIdParam'
+        - name: identityId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: Binding removed }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /admin/persons/{personId}/role-assignments:
     get:

@@ -3,10 +3,15 @@ package io.oea.config.startup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 
+import io.oea.testsupport.containers.OeaTestKeys;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -71,6 +76,27 @@ class ConfigurationGuardsTests {
 	}
 
 	@Test
+	void keyEncryptionKeyIsChecked(@TempDir Path dir) throws Exception {
+		String password = "--spring.datasource.password=" + STRONG_SECRET;
+		Path missing = dir.resolve("missing.key");
+		assertThat(startFails(DATASOURCE_URL, password, "--oea.security.kek.current=" + missing).getViolations())
+			.containsExactly("G4: oea.security.kek.current names a file that cannot be read");
+		Path shortKey = Files.writeString(dir.resolve("short.key"), Base64.getEncoder().encodeToString(new byte[16]));
+		assertThat(startFails(DATASOURCE_URL, password, "--oea.security.kek.current=" + shortKey).getViolations())
+			.containsExactly("G4: oea.security.kek.current does not contain a Base64-encoded 256-bit key");
+		Path devKey = Path.of("..", "dev", "secrets", "oea-kek-dev-only.key");
+		assertThat(startFails(DATASOURCE_URL, password, "--oea.security.kek.current=" + devKey).getViolations())
+			.containsExactly("G4: oea.security.kek.current is in the known-development-secrets list");
+	}
+
+	@Test
+	void missingKeyIsRefusedWithoutValue(CapturedOutput output) {
+		List<String> violations = startFails(DATASOURCE_URL, "--spring.datasource.password=" + STRONG_SECRET,
+				"--oea.security.kek.current=").getViolations();
+		assertThat(violations).containsExactly("G4: oea.security.kek.current is not set");
+	}
+
+	@Test
 	void swaggerUiIsRefused() {
 		assertThat(startFails("--springdoc.swagger-ui.enabled=true").getViolations())
 			.containsExactly("G6: springdoc.swagger-ui.enabled is enabled; Swagger UI and API docs must be disabled");
@@ -106,6 +132,9 @@ class ConfigurationGuardsTests {
 
 	private static ConfigurableApplicationContext start(String... args) {
 		List<String> arguments = new ArrayList<>(List.of(args));
+		if (arguments.stream().noneMatch((arg) -> arg.startsWith("--oea.security.kek.current="))) {
+			arguments.add("--oea.security.kek.current=" + OeaTestKeys.sharedKeyFile());
+		}
 		arguments.add("--spring.main.banner-mode=off");
 		return new SpringApplicationBuilder(EmptyConfiguration.class).web(WebApplicationType.NONE)
 			.run(arguments.toArray(String[]::new));

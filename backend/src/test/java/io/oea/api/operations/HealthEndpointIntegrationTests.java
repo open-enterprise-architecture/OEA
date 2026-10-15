@@ -28,9 +28,10 @@ class HealthEndpointIntegrationTests {
 
 	@Test
 	void actuatorEndpointsAreNotExposed() {
-		assertThat(this.mvc.get().uri("/actuator/env")).hasStatus(HttpStatus.NOT_FOUND);
-		assertThat(this.mvc.get().uri("/actuator/health")).hasStatus(HttpStatus.NOT_FOUND);
-		assertThat(this.mvc.get().uri("/actuator")).hasStatus(HttpStatus.NOT_FOUND);
+		// without a session every non-public path is rejected first (ADR-032 §8 L1, REQ-163)
+		assertThat(this.mvc.get().uri("/actuator/env")).hasStatus(HttpStatus.UNAUTHORIZED);
+		assertThat(this.mvc.get().uri("/actuator/health")).hasStatus(HttpStatus.UNAUTHORIZED);
+		assertThat(this.mvc.get().uri("/actuator")).hasStatus(HttpStatus.UNAUTHORIZED);
 	}
 
 }

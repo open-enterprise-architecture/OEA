@@ -7,13 +7,13 @@ import java.util.Arrays;
 import java.util.Locale;
 
 /** Recognizes loopback hosts as defined by guard G2 (ADR-036 §6). */
-final class LoopbackAddresses {
+public final class LoopbackAddresses {
 
 	private LoopbackAddresses() {
 	}
 
 	/** True for {@code localhost}, {@code *.localhost}, 127.0.0.0/8, {@code ::1}, {@code 0.0.0.0} and names resolving only to loopback. */
-	static boolean isLoopbackHost(String host) {
+	public static boolean isLoopbackHost(String host) {
 		if (host == null || host.isBlank()) {
 			return false;
 		}
@@ -33,7 +33,7 @@ final class LoopbackAddresses {
 		}
 	}
 
-	static boolean isLoopbackUrl(String url) {
+	public static boolean isLoopbackUrl(String url) {
 		try {
 			return isLoopbackHost(URI.create(url.strip()).getHost());
 		}

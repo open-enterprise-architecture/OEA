@@ -36,6 +36,8 @@ PUBLIC_ALLOWLIST = {
     "getHealth",  # REQ-075: health probe for orchestrators, status only
     "getSetupStatus",  # US-013: before bootstrapping no principal exists; returns a boolean only
     "completeSetup",  # US-013: effective only with the setup token from the container (REQ-017)
+    "localLogin",  # US-013 AC2: login endpoint (REQ-163), throttled (REQ-168), origin-checked (REQ-187)
+    "localLoginTotp",  # REQ-171: second login step with a login transaction
 }
 
 ACCESS_VALUES = {"public", "authenticated", "permission"}

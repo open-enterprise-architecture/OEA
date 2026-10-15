@@ -2,8 +2,9 @@
 
 **ID**: US-143
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: in-progress
+**Sprint**: S1
+**Implementation**: OpenSpec change `us-013-system-admin-login` – AC1, AC2 and AC4 implemented; commit hash follows when the change is archived
 
 ## Story
 

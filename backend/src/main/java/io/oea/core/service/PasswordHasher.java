@@ -39,4 +39,9 @@ public class PasswordHasher {
 		return this.encoder.matches(password, hash);
 	}
 
+	/** True if the hash uses outdated parameters and must be recomputed at the next login (REQ-169). */
+	public boolean needsRehash(String hash) {
+		return this.encoder.upgradeEncoding(hash);
+	}
+
 }

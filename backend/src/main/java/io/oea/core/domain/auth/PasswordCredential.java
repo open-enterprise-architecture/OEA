@@ -44,6 +44,14 @@ public class PasswordCredential extends NewAwareEntity<UUID> {
 		return this.credentialId;
 	}
 
+	/** Rehash with current parameters after a successful login (REQ-169). */
+	public void rehash(String passwordHash) {
+		if (!passwordHash.startsWith("$argon2id$")) {
+			throw new IllegalArgumentException("only argon2id hashes are stored (REQ-169)");
+		}
+		this.passwordHash = passwordHash;
+	}
+
 	public UUID getCredentialId() {
 		return this.credentialId;
 	}

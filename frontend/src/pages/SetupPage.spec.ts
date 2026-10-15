@@ -2,6 +2,7 @@ import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import { routedFetch, type RecordedRequest } from '../test/fetch'
+import { testRouter } from '../test/router'
 import SetupPage from './SetupPage.vue'
 
 const problem = (status: number, type: string, invalidFields?: string[]) => ({
@@ -11,7 +12,7 @@ const problem = (status: number, type: string, invalidFields?: string[]) => ({
 })
 
 async function fillAndSubmit(fetchFn: typeof fetch, overrides: Record<string, string> = {}) {
-  const wrapper = mount(SetupPage, { props: { fetchFn }, global: { plugins: [ui] } })
+  const wrapper = mount(SetupPage, { props: { fetchFn }, global: { plugins: [ui, testRouter()] } })
   const values: Record<string, string> = {
     setupToken: 'tok-1',
     loginName: 'admin',

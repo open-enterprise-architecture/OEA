@@ -2,6 +2,7 @@ package io.oea;
 
 import io.oea.audit.verify.AuditVerifyCommand;
 import io.oea.config.migration.MigrateCommand;
+import io.oea.config.secrets.ReencryptCommand;
 import java.util.Arrays;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -11,7 +12,8 @@ public class OeaBackendApplication {
 
 	/**
 	 * Entry point. {@code migrate} as first argument runs the one-shot migration step and
-	 * exits; {@code audit verify} verifies the audit hash chain and exits; {@code serve} or no
+	 * exits; {@code audit verify} verifies the audit hash chain and exits; {@code secrets
+	 * reencrypt} re-encrypts stored secrets with the current key and exits; {@code serve} or no
 	 * command starts the application.
 	 */
 	public static void main(String[] args) {
@@ -27,9 +29,16 @@ public class OeaBackendApplication {
 				}
 				System.exit(AuditVerifyCommand.run(Arrays.copyOfRange(options, 1, options.length)));
 			}
+			case "secrets" -> {
+				if (options.length == 0 || !"reencrypt".equals(options[0])) {
+					System.err.println("Usage: secrets reencrypt");
+					System.exit(2);
+				}
+				System.exit(ReencryptCommand.run(Arrays.copyOfRange(options, 1, options.length)));
+			}
 			case "serve" -> SpringApplication.run(OeaBackendApplication.class, options);
 			default -> {
-				System.err.println("Unknown command '" + command + "'; use 'serve', 'migrate' or 'audit verify'");
+				System.err.println("Unknown command '" + command + "'; use 'serve', 'migrate', 'audit verify' or 'secrets reencrypt'");
 				System.exit(2);
 			}
 		}

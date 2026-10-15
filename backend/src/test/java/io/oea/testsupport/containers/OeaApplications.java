@@ -6,6 +6,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -38,7 +39,11 @@ public final class OeaApplications {
 		List<String> args = new ArrayList<>(List.of("--spring.datasource.url=" + postgres.getJdbcUrl(),
 				"--spring.datasource.username=oea_app",
 				"--spring.datasource.password=" + OeaPostgres.ROLE_PASSWORDS.get("oea_app"),
-				"--oea.bootstrap.setup-token-file=" + setupTokenFile, "--spring.main.banner-mode=off"));
+				"--oea.bootstrap.setup-token-file=" + setupTokenFile,
+				"--spring.main.banner-mode=off"));
+		if (Arrays.stream(extra).noneMatch((arg) -> arg.startsWith("--oea.security.kek.current="))) {
+			args.add("--oea.security.kek.current=" + OeaTestKeys.sharedKeyFile());
+		}
 		if (webType == WebApplicationType.SERVLET) {
 			args.add("--server.port=0");
 		}

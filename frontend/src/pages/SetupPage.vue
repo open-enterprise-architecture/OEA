@@ -74,6 +74,7 @@ async function submit() {
       variant="subtle"
       title="Setup complete"
       :description="`System admin account “${result.loginName}” created for instance “${result.instanceSlug}”.`"
+      :actions="[{ label: 'Log in', to: '/login' }]"
     />
 
     <template v-else>

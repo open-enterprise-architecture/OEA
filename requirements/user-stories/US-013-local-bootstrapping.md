@@ -2,9 +2,9 @@
 
 **ID**: US-013
 **Story Points**: 5
-**Status**: in-progress
+**Status**: review
 **Sprint**: S1
-**Implementation**: OpenSpec change `us-013-local-bootstrapping`, commit c962535 (#24) – AC1 implemented; AC2 (login of the system admin account with TOTP enrollment and session) follows in a separate change after US-001
+**Implementation**: OpenSpec change `us-013-local-bootstrapping`, commit c962535 (#24) – AC1 implemented; OpenSpec change `us-013-system-admin-login` – AC2 implemented (login during the setup phase of ADR-042, TOTP enrollment, session); commit hash follows when the change is archived
 
 ## Story
 

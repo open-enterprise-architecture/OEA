@@ -51,6 +51,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/oea
       SPRING_DATASOURCE_USERNAME: oea_app
       SPRING_DATASOURCE_PASSWORD: ${OEA_APP_PASSWORD:?set OEA_APP_PASSWORD (role oea_app)}
+      # Key-encryption key for stored secrets (REQ-188), mounted as Compose secret
+      OEA_SECURITY_KEK_CURRENT: /run/secrets/oea_kek
+    secrets:
+      - oea_kek
     ports:
       # Publish behind a TLS reverse proxy only (ADR-036 §8)
       - "${OEA_HTTP_BIND:-127.0.0.1}:${OEA_HTTP_PORT:-8080}:8080"
@@ -61,3 +65,8 @@ services:
 
 volumes:
   postgres-data:
+
+secrets:
+  oea_kek:
+    # File outside the repository and outside database backups (REQ-188 AC4); readable by UID 10001
+    file: ${OEA_KEK_FILE:?set OEA_KEK_FILE (path of the key-encryption key file, see docs/operations.md)}

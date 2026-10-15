@@ -1,0 +1,224 @@
+package io.oea.app.login;
+
+import io.oea.app.security.SetupPhase;
+import io.oea.app.security.Sessions;
+import io.oea.audit.AuditEvent;
+import io.oea.audit.AuditWriter;
+import io.oea.config.secrets.SecretCipher;
+import io.oea.core.domain.auth.LocalCredential;
+import io.oea.core.domain.auth.PasswordCredential;
+import io.oea.core.domain.auth.SystemAdminAccount;
+import io.oea.core.domain.auth.TotpCredential;
+import io.oea.core.repository.LocalCredentialRepository;
+import io.oea.core.repository.PasswordCredentialRepository;
+import io.oea.core.repository.SystemAdminAccountRepository;
+import io.oea.core.repository.TotpCredentialRepository;
+import io.oea.core.service.PasswordHasher;
+import io.oea.core.service.TotpAlgorithm;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.sql.Timestamp;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Base64;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.UUID;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Local login of the system admin account (design D5): password, and after the setup phase
+ * (ADR-042) a TOTP step through a login transaction.
+ */
+@Service
+public class LocalLogin {
+
+	static final Duration TRANSACTION_VALIDITY = Duration.ofMinutes(5);
+
+	static final int MAXIMUM_WRONG_CODES = 5;
+
+	private static final SecureRandom RANDOM = new SecureRandom();
+
+	private final SystemAdminAccountRepository accounts;
+
+	private final PasswordCredentialRepository passwords;
+
+	private final LocalCredentialRepository credentials;
+
+	private final TotpCredentialRepository totps;
+
+	private final PasswordHasher hasher;
+
+	private final SecretCipher cipher;
+
+	private final LoginThrottle throttle;
+
+	private final SetupPhase setupPhase;
+
+	private final Sessions sessions;
+
+	private final AuditWriter audit;
+
+	private final JdbcTemplate jdbc;
+
+	private final Clock clock;
+
+	private final String dummyHash;
+
+	public LocalLogin(SystemAdminAccountRepository accounts, PasswordCredentialRepository passwords,
+			LocalCredentialRepository credentials, TotpCredentialRepository totps, PasswordHasher hasher,
+			SecretCipher cipher, LoginThrottle throttle, SetupPhase setupPhase, Sessions sessions, AuditWriter audit,
+			JdbcTemplate jdbc, Clock clock) {
+		this.accounts = accounts;
+		this.passwords = passwords;
+		this.credentials = credentials;
+		this.totps = totps;
+		this.hasher = hasher;
+		this.cipher = cipher;
+		this.throttle = throttle;
+		this.setupPhase = setupPhase;
+		this.sessions = sessions;
+		this.audit = audit;
+		this.jdbc = jdbc;
+		this.clock = clock;
+		this.dummyHash = hasher.hash("timing-equalizer-" + UUID.randomUUID());
+	}
+
+	/** Client data of the request, for the session and the throttling. */
+	public record Client(String address, String userAgent) {
+	}
+
+	/**
+	 * Password step.
+	 * @return the new session during the setup phase
+	 * @throws SecondFactorRequiredException after the setup phase (with a login transaction)
+	 * @throws InvalidCredentialsException for any wrong or throttled attempt
+	 */
+	@Transactional(noRollbackFor = SecondFactorRequiredException.class)
+	public Sessions.NewSession login(String loginName, String password, Client client) {
+		long wait = this.throttle.retryAfterSeconds(loginName, client.address());
+		if (wait > 0) {
+			throw new InvalidCredentialsException(wait);
+		}
+		Optional<SystemAdminAccount> account = (loginName != null) ? this.accounts.findByLoginName(loginName)
+				: Optional.empty();
+		Optional<PasswordCredential> credential = account.filter(SystemAdminAccount::canLogIn)
+			.flatMap((a) -> this.passwords.findActiveForSystemAdmin(a.getId()));
+		String hash = credential.map(PasswordCredential::getPasswordHash).orElse(this.dummyHash);
+		boolean valid = password != null && password.length() <= PasswordHasher.MAXIMUM_LENGTH
+				&& this.hasher.matches(password, hash) && credential.isPresent();
+		if (!valid) {
+			fail(loginName, client);
+		}
+		this.throttle.recordSuccess(loginName);
+		if (this.hasher.needsRehash(hash)) {
+			credential.get().rehash(this.hasher.hash(password));
+		}
+		SystemAdminAccount admin = account.get();
+		if (!this.setupPhase.isActive()) {
+			throw new SecondFactorRequiredException(newTransaction(admin));
+		}
+		return startSession(admin, false, client);
+	}
+
+	/** TOTP step after the setup phase (REQ-171, REQ-168 AC2, REQ-170). */
+	@Transactional(noRollbackFor = InvalidCredentialsException.class)
+	public Sessions.NewSession loginWithTotp(String loginTransaction, String code, Client client) {
+		Instant now = this.clock.instant();
+		byte[] hash = sha256(loginTransaction);
+		Optional<UUID> accountId = this.jdbc.query("""
+				SELECT system_admin_account_id FROM login_transactions
+				WHERE token_hash = ? AND expires_at > ? AND failed_codes < ? FOR UPDATE""",
+				(rs) -> rs.next() ? Optional.of(rs.getObject(1, UUID.class)) : Optional.<UUID>empty(), hash,
+				Timestamp.from(now), MAXIMUM_WRONG_CODES);
+		if (accountId.isEmpty()) {
+			throw new InvalidCredentialsException(0);
+		}
+		SystemAdminAccount admin = this.accounts.findById(accountId.get()).orElseThrow();
+		if (!acceptCode(admin.getId(), code, now)) {
+			int failed = this.jdbc.queryForObject("""
+					UPDATE login_transactions SET failed_codes = failed_codes + 1 WHERE token_hash = ?
+					RETURNING failed_codes""", Integer.class, hash);
+			if (failed >= MAXIMUM_WRONG_CODES) {
+				this.jdbc.update("DELETE FROM login_transactions WHERE token_hash = ?", (Object) hash);
+			}
+			this.audit.appendIndependently(failedEvent("wrong-second-factor"));
+			throw new InvalidCredentialsException(0);
+		}
+		this.jdbc.update("DELETE FROM login_transactions WHERE token_hash = ?", (Object) hash);
+		return startSession(admin, true, client);
+	}
+
+	/** Verifies a code against the active TOTP credentials of the account and records its time step. */
+	boolean acceptCode(UUID accountId, String code, Instant now) {
+		for (LocalCredential credential : this.credentials.findBySystemAdminAccountIdAndTypeAndStatus(accountId, "totp",
+				"active")) {
+			Optional<TotpCredential> totp = this.totps.findById(credential.getId());
+			if (totp.isEmpty()) {
+				continue;
+			}
+			String secret = this.cipher.decrypt(
+					new SecretCipher.Encrypted(totp.get().getSecretEncrypted(), totp.get().getKeyId()),
+					TotpCredential.encryptionContext(credential.getId()));
+			OptionalLong step = TotpAlgorithm.matchingStep(secret, code, now);
+			if (step.isPresent() && totp.get().acceptTimeStep(step.getAsLong())) {
+				credential.markUsed(now);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private Sessions.NewSession startSession(SystemAdminAccount admin, boolean secondFactor, Client client) {
+		admin.recordLogin(this.clock.instant());
+		Sessions.NewSession session = this.sessions.createForSystemAdmin(admin, secondFactor, client.address(),
+				client.userAgent());
+		this.audit.append(new AuditEvent("auth.login", AuditEvent.Category.SECURITY, AuditEvent.Severity.INFO,
+				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, AuditEvent.Actor.systemAdminAccount(admin.getId()),
+				"session", session.principal().sessionId().toString(),
+				Map.of("method", secondFactor ? "password-totp" : "password", "setupPhase", !secondFactor)));
+		return session;
+	}
+
+	private void fail(String loginName, Client client) {
+		this.throttle.recordFailure(loginName, client.address());
+		this.audit.appendIndependently(failedEvent("invalid-credentials"));
+		throw new InvalidCredentialsException(0);
+	}
+
+	private static AuditEvent failedEvent(String reason) {
+		// pseudonymous: the attempted login name is not recorded (ADR-033 §3)
+		return new AuditEvent("auth.login-failed", AuditEvent.Category.SECURITY, AuditEvent.Severity.WARNING,
+				AuditEvent.Outcome.FAILURE, AuditEvent.Source.API, AuditEvent.Actor.unauthenticated(), null, null,
+				Map.of("reason", reason));
+	}
+
+	private String newTransaction(SystemAdminAccount admin) {
+		byte[] bytes = new byte[32];
+		RANDOM.nextBytes(bytes);
+		String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+		Instant now = this.clock.instant();
+		this.jdbc.update("""
+				INSERT INTO login_transactions (token_hash, system_admin_account_id, created_at, expires_at)
+				VALUES (?, ?, ?, ?)""", sha256(token), admin.getId(), Timestamp.from(now),
+				Timestamp.from(now.plus(TRANSACTION_VALIDITY)));
+		return token;
+	}
+
+	private static byte[] sha256(String value) {
+		try {
+			return MessageDigest.getInstance("SHA-256")
+				.digest(((value != null) ? value : "").getBytes(StandardCharsets.US_ASCII));
+		}
+		catch (NoSuchAlgorithmException ex) {
+			throw new IllegalStateException(ex);
+		}
+	}
+
+}

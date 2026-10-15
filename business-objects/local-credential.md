@@ -2,7 +2,7 @@
 identifier: local-credential
 name_de: Lokales Credential
 name_en: Local Credential
-version: 0.3.0
+version: 0.4.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -46,7 +46,7 @@ The BO has four variants, distinguished via `type`:
 | personId | reference | conditional | | target: person with `personType=human`; immutable; exactly one of `personId`/`systemAdminAccountId` | Owning person |
 | systemAdminAccountId | reference | conditional | | target: system-admin-account; immutable | Owning system admin account |
 | type | enum | required | | `[passkey, totp, password, recovery-codes]`; immutable | Type of the credential |
-| status | enum | required | active | `[active, revoked]` | Current state |
+| status | enum | required | active | `[pending, active, revoked]` | Current state; `pending` = TOTP enrollment started but not yet confirmed with a valid code, expires after 10 minutes |
 | createdAt | datetime | required | | ISO 8601, UTC | Time of enrollment |
 | lastUsedAt | datetime | optional | | ISO 8601, UTC | Last successful login with this credential |
 | revokedAt | datetime | optional | | only set if `status=revoked` | Time of deactivation |
@@ -228,3 +228,4 @@ Open questions:
 | 0.1.0 | 2026-06-25 | Business Engineer | Initial draft in the context of UC-03 enrollment |
 | 0.2.0 | 2026-06-28 | Business Engineer | Multiple active TOTP credentials per person (REQ-030); BR-02 repealed |
 | 0.3.0 | 2026-10-13 | Business Engineer | Security review / ADR-032: owner may be the system admin account; argon2id only (REQ-169); `lastUsedTimeStep` (REQ-170); temporary passwords with `origin`/`expiresAt` and type `recovery-codes` (REQ-173); `keyId` (REQ-188); `factor_reset`, `revokedBy`; BR-06 to BR-11 |
+| 0.4.0 | 2026-10-15 | Business Engineer | Status `pending` for unconfirmed TOTP enrollment (change `us-013-system-admin-login`) |

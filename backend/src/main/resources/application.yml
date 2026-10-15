@@ -1,6 +1,12 @@
 spring:
   application:
     name: oea-backend
+  # No in-memory users: authentication is OEA's own (sessions, ADR-032); the default
+  # configuration would also log a generated password (REQ-175)
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+      - org.springframework.boot.security.autoconfigure.ReactiveUserDetailsServiceAutoConfiguration
   jpa:
     open-in-view: false
   # The application never migrates; it only validates the schema history (ADR-037 §3).

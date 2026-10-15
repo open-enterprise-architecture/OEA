@@ -1,6 +1,11 @@
 package io.oea.config.startup;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import org.apache.commons.logging.Log;
@@ -101,12 +106,48 @@ public class ConfigurationGuards implements EnvironmentPostProcessor, Ordered {
 			rules.check(environment.getProperty(property))
 				.ifPresent((reason) -> violations.add("G4: " + property + " " + reason));
 		}
+		if (environment.containsProperty("spring.datasource.url")
+				|| "secrets-reencrypt".equals(environment.getProperty(MODE_PROPERTY))) {
+			checkKeyEncryptionKey(environment, rules, violations);
+		}
 		for (int i = 0; i < providers.size(); i++) {
 			if (providers.get(i).clientSecret() != null) {
 				String property = PROVIDERS + "[" + i + "].client-secret";
 				rules.check(providers.get(i).clientSecret())
 					.ifPresent((reason) -> violations.add("G4: " + property + " " + reason));
 			}
+		}
+	}
+
+	/** G4 for the key-encryption key file (REQ-188): present, readable, 256 bit, no development key. */
+	private static void checkKeyEncryptionKey(ConfigurableEnvironment environment, SecretRules rules,
+			List<String> violations) {
+		String property = "oea.security.kek.current";
+		String path = environment.getProperty(property);
+		if (path == null || path.isBlank()) {
+			violations.add("G4: " + property + " is not set");
+			return;
+		}
+		String content;
+		try {
+			content = Files.readString(Path.of(path), StandardCharsets.US_ASCII).strip();
+		}
+		catch (IOException | RuntimeException ex) {
+			violations.add("G4: " + property + " names a file that cannot be read");
+			return;
+		}
+		byte[] key;
+		try {
+			key = Base64.getDecoder().decode(content);
+		}
+		catch (IllegalArgumentException ex) {
+			key = new byte[0];
+		}
+		if (key.length != 32) {
+			violations.add("G4: " + property + " does not contain a Base64-encoded 256-bit key");
+		}
+		else if (rules.isKnownDevelopmentSecret(content)) {
+			violations.add("G4: " + property + " is in the known-development-secrets list");
 		}
 	}
 
