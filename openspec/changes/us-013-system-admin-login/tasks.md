@@ -26,10 +26,10 @@
 
 ## 5. System admin login and second factor
 
-- [ ] 5.1 Implement the password login (D5) with session cookie, CSRF token, generic `invalid-credentials`, equal timing for unknown names, argon2id rehash, state change `bootstrapped → active` and audit events `auth.login`, `auth.login-failed`; verify with tests for the specs "Login after bootstrapping", "Unknown login name and wrong password" and "Cookie after login"
-- [ ] 5.2 Implement throttling in the database (D6) with `auth.throttled`; verify with tests for the specs "Repeated wrong passwords" and "Many names from one address", using an injectable clock
-- [ ] 5.3 Implement TOTP enrollment, confirmation and replay protection (D7) with encrypted secrets and audit event `auth.factor-added`; verify with tests for the specs "Enrollment and confirmation", "Enrollment in an old session" and "Code replay"
-- [ ] 5.4 Implement the setup phase in login and the TOTP login step (D5, D9); verify with tests for the specs "Login during the setup phase", "Login after the setup phase" and "Wrong codes in one login transaction"
+- [x] 5.1 Implement the password login (D5) with session cookie, CSRF token, generic `invalid-credentials`, equal timing for unknown names, argon2id rehash, state change `bootstrapped → active` and audit events `auth.login`, `auth.login-failed`; verify with tests for the specs "Login after bootstrapping", "Unknown login name and wrong password" and "Cookie after login"
+- [x] 5.2 Implement throttling in the database (D6) with `auth.throttled`; verify with tests for the specs "Repeated wrong passwords" and "Many names from one address", using an injectable clock
+- [x] 5.3 Implement TOTP enrollment, confirmation and replay protection (D7) with encrypted secrets and audit event `auth.factor-added`; verify with tests for the specs "Enrollment and confirmation", "Enrollment in an old session" and "Code replay"
+- [x] 5.4 Implement the setup phase in login and the TOTP login step (D5, D9); verify with tests for the specs "Login during the setup phase", "Login after the setup phase" and "Wrong codes in one login transaction"
 - [ ] 5.5 Write the Cucumber feature `identity/local-login.feature` for the `identity/local-login` and `identity/sessions` specs against the running application on a fresh database; verify it passes through `CucumberIT` with the log scan of REQ-175 AC3 (no password, TOTP secret or code in the logs)
 
 ## 6. Access administration
