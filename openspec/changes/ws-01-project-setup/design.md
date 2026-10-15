@@ -19,7 +19,7 @@ The repository contains requirements, ADRs, the data model and `api/openapi.yaml
 
 ## Architecture Constraints
 
-- ADR-012 / ADR-038: Java 21, Spring Boot 4.1, Hibernate, Maven
+- ADR-012 / ADR-038 / ADR-039: Java 25, Spring Boot 4.1, Hibernate, Maven
 - ADR-027: monorepo; single Maven module `backend/`; base package `io.oea`; npm for `frontend/`
 - ADR-028: packages `api` → `app` → `core`; `audit`, `integration`, `config` as technical packages
 - ADR-013: spec-first – server interfaces and client types are generated from `api/openapi.yaml`, never the other way round

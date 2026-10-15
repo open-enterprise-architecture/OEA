@@ -2,6 +2,12 @@
 
 This document records how the concept paper itself has evolved. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows Semantic Versioning (at concept level: major = fundamentally new concepts, minor = new chapters/sections, patch = corrections).
 
+## [v0.19.2] – Java 25 LTS
+
+### Fixed
+
+- §24: backend stack updated to Java 25 LTS (ADR-039); longer vendor support than Java 21
+
 ## [v0.19.1] – Spring Boot 4.1
 
 ### Fixed

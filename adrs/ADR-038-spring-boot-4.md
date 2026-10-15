@@ -6,6 +6,7 @@
 **Consulted**: –
 **Informed**: all contributors
 **Partially supersedes**: [ADR-012](./ADR-012-backend-stack.md) (major version "Spring Boot 3"; Java 21, Hibernate, Spring Data JPA and Maven remain)
+**Partially superseded**: 2026-10-15 by [ADR-039](./ADR-039-java-25.md) — Java 25 LTS instead of Java 21
 
 ## Context and Problem
 

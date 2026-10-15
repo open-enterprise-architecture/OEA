@@ -75,3 +75,4 @@ In `.opencode/commands/`:
 | [ADR-036](./ADR-036-dev-test-identity-provider.md) | Development and Test Identity Provider Without Authentication Stub | accepted | 2026-10-13 | – (partially ADR-027) |
 | [ADR-037](./ADR-037-database-roles-provisioning.md) | Database Roles and Provisioning | accepted | 2026-10-13 | – (partially ADR-033, ADR-034) |
 | [ADR-038](./ADR-038-spring-boot-4.md) | Spring Boot 4.1 Instead of Spring Boot 3 | accepted | 2026-10-14 | – (partially ADR-012) |
+| [ADR-039](./ADR-039-java-25.md) | Java 25 LTS Instead of Java 21 | accepted | 2026-10-15 | – (partially ADR-012, ADR-038) |

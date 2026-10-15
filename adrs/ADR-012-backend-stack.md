@@ -9,6 +9,7 @@
 **Updated**: 2026-10-04 — OpenAPI spec-first instead of SpringDoc code-first (ADR-013); build with Maven instead of Gradle, directory `backend/` (ADR-027)
 **Partially superseded**: 2026-10-13 by [ADR-030](./ADR-030-postgresql-only.md) — multi-database parts no longer apply (PostgreSQL only)
 **Partially superseded**: 2026-10-14 by [ADR-038](./ADR-038-spring-boot-4.md) — Spring Boot 4.1 instead of Spring Boot 3
+**Partially superseded**: 2026-10-15 by [ADR-039](./ADR-039-java-25.md) — Java 25 LTS instead of Java 21; container base Eclipse Temurin 25
 
 ## Context and Problem
 

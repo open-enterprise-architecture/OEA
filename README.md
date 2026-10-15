@@ -34,17 +34,17 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | Use Cases | 23 |
 | Requirements | 195 |
 | User Stories | 150 |
-| ADRs | 38 |
+| ADRs | 39 |
 | Business Objects | 29 |
 
-_Concept: v0.19 · Last update: 2026-10-14._
+_Concept: v0.19 · Last update: 2026-10-15._
 <!-- /AUTO-GENERATED: stats -->
 
 **Next step**: Walking Skeleton based on UC-06 (Catalog Browser).
 
 - Concept: complete (24 chapters + changelog, v0.19.1), see [`concept/`](concept/)
 - Requirements: completed – all 21 UCs, 155 REQs, 142 USs, 29 ADRs defined
-- Tech stack: decided (Java 21 / Vue 3 / PostgreSQL 15 / Electron)
+- Tech stack: decided (Java 25 / Vue 3 / PostgreSQL 15 / Electron)
 - Code: not started yet
 - v1.0-Release: TBD
 
@@ -125,6 +125,7 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 | [ADR-036](adrs/ADR-036-dev-test-identity-provider.md) | Development and Test Identity Provider Without Authentication Stub | accepted |
 | [ADR-037](adrs/ADR-037-database-roles-provisioning.md) | Database Roles and Provisioning | accepted |
 | [ADR-038](adrs/ADR-038-spring-boot-4.md) | Spring Boot 4.1 Instead of Spring Boot 3 | accepted |
+| [ADR-039](adrs/ADR-039-java-25.md) | Java 25 LTS Instead of Java 21 | accepted |
 <!-- /AUTO-GENERATED: adrs -->
 
 ## Contributing

@@ -35,7 +35,7 @@ oea/
 └── AGENTS.md             ← this file
 ```
 
-Code is created with the walking skeleton in `backend/` (Java 21 / Spring Boot / Maven), `frontend/` (Vue 3) and `api/openapi.yaml` (spec-first contract), see ADR-027.
+Code is created with the walking skeleton in `backend/` (Java 25 / Spring Boot / Maven), `frontend/` (Vue 3) and `api/openapi.yaml` (spec-first contract), see ADR-027.
 
 ## Current Phase: Implementation (Walking Skeleton)
 
