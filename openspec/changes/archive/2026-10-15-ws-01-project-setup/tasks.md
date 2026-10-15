@@ -62,8 +62,9 @@
 
 ## 9. Wrap-up
 
-- [ ] 9.1 Ask the repository owner to set *Automatic dependency submission* to **Enabled** (design D9) and verify transitive backend dependencies (e.g. Spring Framework modules) appear in the dependency graph
+- [x] 9.1 Ask the repository owner to set *Automatic dependency submission* to **Enabled** (design D9) and verify transitive backend dependencies (e.g. Spring Framework modules) appear in the dependency graph
   - Result (2026-10-15, after #24 changed `backend/pom.xml`): no automatic submission ran; only direct Maven dependencies appear. The setting covers only a root `pom.xml`; D9 needs a follow-up decision
+  - Verified 2026-10-15 after #26 (root aggregator POM, ADR-041): workflow "Automatic Dependency Submission (Maven)" succeeded; the dependency graph lists 184 Maven packages incl. transitive `org.springframework:spring-core` 7.0.9, `org.hibernate.orm:hibernate-core` 7.4.5.Final and `org.apache.tomcat.embed:tomcat-embed-core` 11.0.24
 - [x] 9.2 Update `docs/walking-skeleton.md` (setup done, actual start commands) and `README.md` (how to start development); no user story status changes (this change has no user story); `docs/screens/SCREENS.md` and `docs/data-model.puml` unchanged
 - [x] 9.3 Regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
 - [x] 9.4 Run `python3 scripts/validate_links.py` and the markdown lint and verify both pass
