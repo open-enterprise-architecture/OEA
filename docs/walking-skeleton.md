@@ -70,7 +70,7 @@ These 6 user stories form the walking skeleton. Everything else comes afterwards
 
 The omitted acceptance criteria of US-141 and US-049 are caught up in the expansion sprints; the stories only count as `done` then.
 
-**Project setup – done** (`openspec/changes/ws-01-project-setup/`): Java 25 + Spring Boot 4.1 backend (ADR-038, ADR-039), Vue 3 + Nuxt UI 4 frontend (ADR-040), provisioning script and `oea migrate` step (ADR-037), startup guards, Keycloak realm, CI jobs for backend, frontend and security checks. Start commands:
+**Project setup – done** (archived change `openspec/changes/archive/2026-10-15-ws-01-project-setup/`; specs in `openspec/specs/platform/`): Java 25 + Spring Boot 4.1 backend (ADR-038, ADR-039), Vue 3 + Nuxt UI 4 frontend (ADR-040), provisioning script and `oea migrate` step (ADR-037), startup guards, Keycloak realm, CI jobs for backend, frontend and security checks. Start commands:
 
 ```bash
 scripts/dev.sh                                        # development: docker compose -f compose.dev.yaml --profile dev up --build
