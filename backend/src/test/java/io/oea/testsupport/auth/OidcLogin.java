@@ -31,8 +31,8 @@ import tools.jackson.databind.json.JsonMapper;
  */
 public final class OidcLogin {
 
-	/** Redirect URI registered for the portal client; it is never called. */
-	public static final String PORTAL_REDIRECT_URI = "http://localhost:5173/auth/callback";
+	/** Redirect URI registered for the portal client; the helper stops before calling it. */
+	public static final String PORTAL_REDIRECT_URI = "http://localhost:5173/api/v1/auth/oidc/callback";
 
 	private static final Pattern FORM_ACTION = Pattern.compile("<form[^>]*\\saction=\"([^\"]+)\"");
 
@@ -50,7 +50,16 @@ public final class OidcLogin {
 
 		/** Decoded claims of the access token (no signature check; the application verifies). */
 		public JsonNode accessTokenClaims() {
-			String payload = this.accessToken.split("\\.")[1];
+			return claims(this.accessToken);
+		}
+
+		/** Decoded claims of the ID token (no signature check). */
+		public JsonNode idTokenClaims() {
+			return claims(this.idToken);
+		}
+
+		private static JsonNode claims(String token) {
+			String payload = token.split("\\.")[1];
 			return JsonMapper.shared().readTree(Base64.getUrlDecoder().decode(payload));
 		}
 

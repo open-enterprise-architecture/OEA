@@ -51,6 +51,21 @@ class TestInfrastructureTests {
 		assertThat(groups(claims)).containsExactly(DevRealm.groupId("oea-system-admins"));
 	}
 
+	@Test
+	void idTokensNameTheAuthenticationMethods() {
+		// SoD-8 (ADR-032): privileged roles need a second factor, which OEA reads from amr
+		assertThat(strings(OidcLogin.login(OeaKeycloak.issuer(), "dev-system-admin").idTokenClaims().path("amr")))
+			.containsExactlyInAnyOrder("pwd", "otp");
+		assertThat(strings(OidcLogin.login(OeaKeycloak.issuer(), "dev-admin-no-mfa").idTokenClaims().path("amr")))
+			.containsExactly("pwd");
+	}
+
+	private static List<String> strings(JsonNode array) {
+		List<String> values = new ArrayList<>();
+		array.forEach((value) -> values.add(value.asString()));
+		return values;
+	}
+
 	private static List<String> groups(JsonNode claims) {
 		List<String> groups = new ArrayList<>();
 		claims.path("groups").forEach((group) -> groups.add(group.asString()));
