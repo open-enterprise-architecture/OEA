@@ -1,3 +1,17 @@
 .obsidian/
-oea/
+# Local Obsidian vault in the repository root (not the Java package io/oea)
+/oea/
 .claude/settings.local.json
+
+# Operator secrets (ADR-036 §8); .env.example is the template
+.env
+
+# Build output
+backend/target/
+frontend/node_modules/
+frontend/dist/
+frontend/storybook-static/
+frontend/src/api/generated/
+
+# Python bytecode of the check scripts
+__pycache__/

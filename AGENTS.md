@@ -35,7 +35,7 @@ oea/
 └── AGENTS.md             ← this file
 ```
 
-Code is created with the walking skeleton in `backend/` (Java 21 / Spring Boot / Maven), `frontend/` (Vue 3) and `api/openapi.yaml` (spec-first contract), see ADR-027.
+Code is created with the walking skeleton in `backend/` (Java 25 / Spring Boot / Maven), `frontend/` (Vue 3) and `api/openapi.yaml` (spec-first contract), see ADR-027.
 
 ## Current Phase: Implementation (Walking Skeleton)
 
@@ -266,7 +266,7 @@ find /run/host/var/lib/flatpak/runtime/org.freedesktop.Sdk -name "git" -type f 2
 
 ### On Screen Changes
 
-UI prototypes are Storybook stories with real Vue/PrimeVue components (ADR-031). `docs/screens/SCREENS.md` is the binding screen inventory. It MUST be checked and updated on each of the following events:
+UI prototypes are Storybook stories with real Vue/Nuxt UI components (ADR-031, ADR-040). `docs/screens/SCREENS.md` is the binding screen inventory. It MUST be checked and updated on each of the following events:
 
 | Event | Action |
 |---|---|

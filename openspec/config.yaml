@@ -23,12 +23,12 @@ context: |
   template for a bulk conversion.
 
   Tech stack (accepted ADRs):
-  - Backend: Java 21, Spring Boot 3, Hibernate/Spring Data JPA (ADR-012)
+  - Backend: Java 25, Spring Boot 4.1, Hibernate/Spring Data JPA (ADR-012, ADR-038, ADR-039)
   - Layers: api/app/core separation (ADR-028), single Maven module backend/ (ADR-027)
   - DB: PostgreSQL ≥ 15 only, JSONB allowed; tests with Testcontainers, no H2 (ADR-016, ADR-030)
   - Migrations: Flyway (ADR-015)
   - API: REST + OpenAPI 3.x, contract in api/openapi.yaml (ADR-013)
-  - Frontend: Vue 3 + TypeScript (ADR-011), PrimeVue + WYSIWYG editor (ADR-014)
+  - Frontend: Vue 3 + TypeScript (ADR-011), Nuxt UI 4 + Tailwind CSS 4 + TipTap (ADR-014, ADR-040)
   - Client: Electron + web portal, dual-track GUI (ADR-008, ADR-009)
   - Auth: OIDC-based IdP integration (ADR-006)
   - Soft delete (ADR-019), audit in separate schema (ADR-024), i18n (ADR-025)

@@ -158,21 +158,83 @@ jobs:
             !**/node_modules/**
           config: .markdownlint.json
 
-  # ── Placeholder: backend build (arrives with the Walking Skeleton) ───────────────
-  # backend-build:
-  #   name: Backend Build & Test
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-  #     - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
-  #       with: { java-version: '21', distribution: 'temurin' }
-  #     - run: ./mvnw verify
-  #
-  # frontend-build:
-  #   name: Frontend Build & Typecheck
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-  #     - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-  #       with: { node-version: '24' }
-  #     - run: cd frontend && npm ci && npm run type-check && npm run build
+  # ── 5. Backend build and tests (ws-01-project-setup) ───────────────────────
+  backend:
+    name: Backend build and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Build and test (unit, Testcontainers, ArchUnit, Enforcer, Cucumber)
+        working-directory: backend
+        run: ./mvnw -B -ntp verify 2>&1 | tee ../backend-build.log; exit "${PIPESTATUS[0]}"
+      - name: Testcontainers start times (ADR-036 follow-up)
+        if: always()
+        run: |
+          {
+            echo "### Testcontainers start times"
+            grep -oE "Container [^ ]+ started in PT[0-9.]+S" backend-build.log | sed 's/@sha256:[0-9a-f]*//' | sort | uniq -c || true
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── 6. Security checks (ADR-036 §7) ──────────────────────────────────────────
+  security-checks:
+    name: Security checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Compose files (secrets, profiles, loopback ports)
+        run: python3 scripts/check_compose_secrets.py
+      - name: Known development secrets complete
+        run: python3 scripts/check_dev_secrets.py
+      - name: Package the backend
+        working-directory: backend
+        run: ./mvnw -B -ntp -DskipTests package
+      - name: Build the backend image
+        run: docker build -f backend/Dockerfile -t oea-backend:local .
+      - name: Inspect the production artifact
+        run: python3 scripts/check_production_artifact.py --jar backend/target/oea-backend-*.jar --image oea-backend:local
+      - name: Operator Compose starts with explicit secrets (health within 60 s)
+        run: scripts/compose_smoke_test.sh
+
+  # ── 7. Frontend build (ADR-011, ADR-031, ADR-040) ───────────────────────────
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install (lockfile only, no install scripts)
+        run: npm ci --ignore-scripts
+      - name: Type check (API types generated from api/openapi.yaml)
+        run: npm run type-check
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Storybook build
+        run: npm run build-storybook

@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: oea-backend
+  jpa:
+    open-in-view: false
+  # The application never migrates; it only validates the schema history (ADR-037 §3).
+  flyway:
+    enabled: false
+
+oea:
+  migration:
+    url: ${spring.datasource.url:}
+    owner:
+      username: oea_owner
+    reporting-owner:
+      username: oea_reporting_owner
+
+# Actuator endpoints are not exposed; the public health probe is GET /api/v1/health (REQ-075).
+management:
+  endpoints:
+    web:
+      discovery:
+        enabled: false
+      exposure:
+        exclude: "*"
+    jmx:
+      exposure:
+        exclude: "*"

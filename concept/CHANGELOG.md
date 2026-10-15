@@ -2,6 +2,24 @@
 
 This document records how the concept paper itself has evolved. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows Semantic Versioning (at concept level: major = fundamentally new concepts, minor = new chapters/sections, patch = corrections).
 
+## [v0.19.3] – Nuxt UI instead of PrimeVue
+
+### Fixed
+
+- §24: frontend component library Nuxt UI 4 instead of PrimeVue 4 (ADR-040); PrimeVue 5 is no longer open source
+
+## [v0.19.2] – Java 25 LTS
+
+### Fixed
+
+- §24: backend stack updated to Java 25 LTS (ADR-039); longer vendor support than Java 21
+
+## [v0.19.1] – Spring Boot 4.1
+
+### Fixed
+
+- §24: backend stack updated to Spring Boot 4.1 (ADR-038); Spring Boot 3 is out of open-source support
+
 ## [v0.19.0] – Security decisions ADR-033 to ADR-036
 
 ### Changed

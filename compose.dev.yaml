@@ -1,0 +1,108 @@
+# OEA development environment (ADR-036 §3-§4). Start with scripts/dev.sh or
+#   docker compose -f compose.dev.yaml --profile dev up --build
+# Every service requires the Compose profile "dev"; every port is bound to 127.0.0.1.
+# Host ports can be moved with OEA_DEV_POSTGRES_PORT, OEA_DEV_BACKEND_PORT and
+# OEA_DEV_VITE_PORT if they collide with local services (Keycloak stays on 8180: issuer).
+# All credentials are public development values (*-dev-only), hash-listed in
+# backend/src/main/resources/security/known-dev-secrets.sha256 and rejected by
+# the application outside the Spring profile "dev". Operators use compose.yaml.
+name: oea
+
+services:
+  postgres:
+    profiles: ["dev"]
+    image: docker.io/library/postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    environment:
+      POSTGRES_DB: oea
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres-dev-only
+      OEA_OWNER_PASSWORD: oea-owner-dev-only
+      OEA_REPORTING_OWNER_PASSWORD: oea-reporting-owner-dev-only
+      OEA_APP_PASSWORD: oea-app-dev-only
+      OEA_AUDIT_CLEANUP_PASSWORD: oea-audit-cleanup-dev-only
+      OEA_AUDITOR_PASSWORD: oea-auditor-dev-only
+      OEA_ANALYTICS_PASSWORD: oea-analytics-dev-only
+    ports:
+      - "127.0.0.1:${OEA_DEV_POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+      - ./deploy/postgres/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d oea"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  migrate:
+    profiles: ["dev"]
+    image: oea-backend:dev
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["migrate"]
+    environment:
+      OEA_MIGRATION_URL: jdbc:postgresql://postgres:5432/oea
+      OEA_MIGRATION_OWNER_PASSWORD: oea-owner-dev-only
+      OEA_MIGRATION_REPORTINGOWNER_PASSWORD: oea-reporting-owner-dev-only
+      SPRING_PROFILES_ACTIVE: dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  keycloak:
+    profiles: ["dev"]
+    image: quay.io/keycloak/keycloak:26.8.1@sha256:79c623a22abacf3fe6c00a5fb30f5b7843d717b234033b80995891c06116d244
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: keycloak-admin-dev-only
+      # Browsers and the backend see the same issuer http://localhost:8180/realms/oea-dev;
+      # containers reach Keycloak through the service name (dynamic back channel).
+      KC_HOSTNAME: http://localhost:8180
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "127.0.0.1:8180:8080"
+    volumes:
+      - ./dev/keycloak/realm-oea-dev.json:/opt/keycloak/data/import/realm-oea-dev.json:ro
+
+  backend:
+    profiles: ["dev"]
+    image: oea-backend:dev
+    command: ["serve"]
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_CONFIG_ADDITIONAL_LOCATION: optional:file:/config/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/oea
+      SPRING_DATASOURCE_USERNAME: oea_app
+      SPRING_DATASOURCE_PASSWORD: oea-app-dev-only
+    ports:
+      - "127.0.0.1:${OEA_DEV_BACKEND_PORT:-8080}:8080"
+    volumes:
+      - ./dev/backend/application-dev.yml:/config/application-dev.yml:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_started
+
+  vite:
+    profiles: ["dev"]
+    image: docker.io/library/node:24-alpine@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f
+    working_dir: /workspace/frontend
+    command: ["sh", "-c", "npm ci --ignore-scripts && npm run dev -- --host 0.0.0.0 --port 5173"]
+    environment:
+      OEA_API_PROXY_TARGET: http://backend:8080
+    ports:
+      - "127.0.0.1:${OEA_DEV_VITE_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/workspace/frontend
+      - ./api:/workspace/api:ro
+      - frontend-dev-node-modules:/workspace/frontend/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  postgres-dev-data:
+  frontend-dev-node-modules:

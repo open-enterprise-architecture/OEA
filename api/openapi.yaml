@@ -1858,7 +1858,7 @@ components:
           type: string
           enum: [logout, revoked, refresh-reuse, idle-timeout, lifetime-expired]
           description: "`revoked` covers lifecycle changes, credential or password resets and revoked role assignments"
-        purgeLocalData: { type: boolean, const: true }
+        purgeLocalData: { type: boolean, description: "Always `true`: the client must clear its offline cache" }
 
     AccessChangedEvent:
       type: object
@@ -1996,6 +1996,12 @@ components:
               message: { type: [string, 'null'] }
 
     # ── Admin – System settings ──────────────────────────────────────────
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [UP, DOWN] }
+
     ClientCompatibility:
       type: object
       required: [clientUpdateMode, minClientVersion, apiVersion]
@@ -2091,6 +2097,37 @@ components:
 # PATHS
 # ═════════════════════════════════════════════════════════════════════════════
 paths:
+
+  # ╔═════════════════════════════════════════════════════════════════════════╗
+  # ║  OPERATIONS (REQ-075)                                                  ║
+  # ╚═════════════════════════════════════════════════════════════════════════╝
+
+  /health:
+    get:
+      operationId: getHealth
+      summary: Liveness and readiness of the instance (REQ-075)
+      description: |
+        Public, because orchestrators and load balancers probe it without credentials.
+        Returns only the aggregated status – no component details, versions or instance data.
+      tags: [Operations]
+      security: []
+      x-oea-authorization: {"access": "public"}
+      responses:
+        '200':
+          description: Instance is up
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthStatus' }
+        '429':
+          description: Too many requests (rate limit for public endpoints, REQ-186)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503':
+          description: Instance is not ready (e.g. database unreachable)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthStatus' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  IDENTITY (ADR-032 §9, REQ-176)                                        ║
@@ -2346,7 +2383,7 @@ paths:
     get:
       operationId: getDiagramView
       summary: Diagram editor data (SCR-021/022)
-      tags: [Views – Editoren]
+      tags: [Views – Editors]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
@@ -2371,7 +2408,7 @@ paths:
     get:
       operationId: getLineageView
       summary: Data lineage graph (SCR-023)
-      tags: [Views – Editoren]
+      tags: [Views – Editors]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
@@ -2396,7 +2433,7 @@ paths:
     get:
       operationId: getDashboardConfig
       summary: Dashboard configuration (SCR-024)
-      tags: [Views – Editoren]
+      tags: [Views – Editors]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
@@ -2419,7 +2456,7 @@ paths:
       operationId: getDashboardData
       summary: Dashboard data (SCR-024)
       description: Current data points for all widgets of a dashboard.
-      tags: [Views – Editoren]
+      tags: [Views – Editors]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
@@ -2444,7 +2481,7 @@ paths:
     get:
       operationId: getRoadmapView
       summary: Plateau-Roadmap (SCR-025)
-      tags: [Views – Editoren]
+      tags: [Views – Editors]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
@@ -5047,7 +5084,7 @@ tags:
     description: Catalog browser and entity detail (SCR-020/012)
   - name: Views – Navigation
     description: Explorer / navigation tree (SCR-010/011)
-  - name: Views – Editoren
+  - name: Views – Editors
     description: Diagram, lineage, dashboard and roadmap editors (SCR-021–025)
   - name: Entities
     description: Entity history and restore (UC-14/15/16)
@@ -5076,3 +5113,5 @@ tags:
     description: Permission catalog, authorization roles, role assignments, four-eyes approval, IdP group mappings and access review (ADR-032, UC-23)
   - name: Identity
     description: Current principal and OAuth2 token endpoint for service accounts
+  - name: Operations
+    description: Health and operational endpoints (REQ-075)

@@ -1,0 +1,10 @@
+# Development configuration of the backend (Spring profile "dev", ADR-036).
+# Mounted by compose.dev.yaml; never part of the production artifact.
+oea:
+  security:
+    oidc:
+      providers:
+        # Loopback issuer only: the inverse guard refuses any other issuer in profile "dev"
+        - issuer: http://localhost:8180/realms/oea-dev
+    cors:
+      allowed-origins: http://localhost:5173

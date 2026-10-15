@@ -33,6 +33,7 @@ from pathlib import Path
 PUBLIC_ALLOWLIST = {
     "issueClientCredentialsToken",
     "getClientCompatibility",  # REQ-195: version check before login, no instance data
+    "getHealth",  # REQ-075: health probe for orchestrators, status only
 }
 
 ACCESS_VALUES = {"public", "authenticated", "permission"}

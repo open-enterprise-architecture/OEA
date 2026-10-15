@@ -1,0 +1,4 @@
+org.springframework.boot.EnvironmentPostProcessor=\
+io.oea.config.startup.ConfigurationGuards
+org.springframework.boot.diagnostics.FailureAnalyzer=\
+io.oea.config.startup.StartupGuardFailureAnalyzer

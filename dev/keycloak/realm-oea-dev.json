@@ -1,0 +1,560 @@
+{
+  "realm": "oea-dev",
+  "displayName": "OEA development (dev-only)",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": false,
+  "duplicateEmailsAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": false,
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "otpPolicyLookAheadWindow": 1,
+  "groups": [
+    {
+      "id": "ee471019-4640-58ed-a596-b691de44bbb9",
+      "name": "oea-portal-readers",
+      "path": "/oea-portal-readers",
+      "attributes": {
+        "oea-group-id": [
+          "ee471019-4640-58ed-a596-b691de44bbb9"
+        ]
+      }
+    },
+    {
+      "id": "3ae16c41-56cd-57fb-931a-ef90e7862245",
+      "name": "oea-viewers",
+      "path": "/oea-viewers",
+      "attributes": {
+        "oea-group-id": [
+          "3ae16c41-56cd-57fb-931a-ef90e7862245"
+        ]
+      }
+    },
+    {
+      "id": "9b7f7428-c912-5b64-ad4e-775421ab60c9",
+      "name": "oea-analysts",
+      "path": "/oea-analysts",
+      "attributes": {
+        "oea-group-id": [
+          "9b7f7428-c912-5b64-ad4e-775421ab60c9"
+        ]
+      }
+    },
+    {
+      "id": "97d2a7e4-e51d-5159-a8fc-6fc85f3cbee0",
+      "name": "oea-enterprise-architects",
+      "path": "/oea-enterprise-architects",
+      "attributes": {
+        "oea-group-id": [
+          "97d2a7e4-e51d-5159-a8fc-6fc85f3cbee0"
+        ]
+      }
+    },
+    {
+      "id": "0be71662-0e85-5e00-902c-b06f0d680e4a",
+      "name": "oea-auditors",
+      "path": "/oea-auditors",
+      "attributes": {
+        "oea-group-id": [
+          "0be71662-0e85-5e00-902c-b06f0d680e4a"
+        ]
+      }
+    },
+    {
+      "id": "5cbbe244-4b70-518d-b348-e17d27830366",
+      "name": "oea-metamodel-admins",
+      "path": "/oea-metamodel-admins",
+      "attributes": {
+        "oea-group-id": [
+          "5cbbe244-4b70-518d-b348-e17d27830366"
+        ]
+      }
+    },
+    {
+      "id": "6f01c9fb-d049-552e-9277-cd387d8910f7",
+      "name": "oea-security-admins",
+      "path": "/oea-security-admins",
+      "attributes": {
+        "oea-group-id": [
+          "6f01c9fb-d049-552e-9277-cd387d8910f7"
+        ]
+      }
+    },
+    {
+      "id": "6e9550a4-c001-5fe2-bafd-a0c0bd88d1ac",
+      "name": "oea-system-admins",
+      "path": "/oea-system-admins",
+      "attributes": {
+        "oea-group-id": [
+          "6e9550a4-c001-5fe2-bafd-a0c0bd88d1ac"
+        ]
+      }
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "oea-portal",
+      "name": "OEA web portal (dev-only)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "redirectUris": [
+        "http://localhost:5173/*",
+        "http://localhost:8080/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "+",
+        "oauth2.device.authorization.grant.enabled": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "groups (group identifiers)",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "oea-group-id",
+            "claim.name": "groups",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "aggregate.attrs": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "amr",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-amr-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ],
+      "clientAuthenticatorType": "client-secret",
+      "secret": "oea-portal-dev-only-secret"
+    },
+    {
+      "clientId": "oea-electron",
+      "name": "OEA Electron client (dev-only)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "redirectUris": [
+        "http://127.0.0.1/*"
+      ],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "+",
+        "oauth2.device.authorization.grant.enabled": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "groups (group identifiers)",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "oea-group-id",
+            "claim.name": "groups",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "aggregate.attrs": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "amr",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-amr-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "oea-test-foreign-app",
+      "name": "Foreign application of the same IdP (dev-only)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "redirectUris": [
+        "http://localhost:9999/*"
+      ],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "+",
+        "oauth2.device.authorization.grant.enabled": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "groups (group identifiers)",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "oea-group-id",
+            "claim.name": "groups",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "aggregate.attrs": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "amr",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-amr-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ],
+      "clientAuthenticatorType": "client-secret",
+      "secret": "oea-test-foreign-app-dev-only-secret"
+    }
+  ],
+  "users": [
+    {
+      "id": "059bcc12-d748-51d8-98bd-02d88776dbef",
+      "username": "dev-portal-reader",
+      "enabled": true,
+      "email": "dev-portal-reader@oea.localhost",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Portal Reader",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev-portal-reader-dev-only",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/oea-portal-readers"
+      ]
+    },
+    {
+      "id": "a8002a18-4096-52a9-a792-0b0ff0981a5a",
+      "username": "dev-viewer",
+      "enabled": true,
+      "email": "dev-viewer@oea.localhost",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Viewer",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev-viewer-dev-only",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/oea-viewers"
+      ]
+    },
+    {
+      "id": "d452231d-01ce-5808-8625-ba1f173e836c",
+      "username": "dev-analyst",
+      "enabled": true,
+      "email": "dev-analyst@oea.localhost",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Analyst",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev-analyst-dev-only",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/oea-analysts"
+      ]
+    },
+    {
+      "id": "eae09cc3-7e3c-5423-9977-6e2f386d5748",
+      "username": "dev-architect",
+      "enabled": true,
+      "email": "dev-architect@oea.localhost",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Architect",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev-architect-dev-only",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/oea-enterprise-architects"
+      ]
+    },
+    {
+      "id": "ffb6f07c-f237-5f65-be34-a6db803b44fb",
+      "username": "dev-auditor",
+      "enabled": true,
+      "email": "dev-auditor@oea.localhost",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Auditor",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev-auditor-dev-only",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/oea-auditors"
+      ]
+    },
+    {
+      "id": "381a1cf9-5428-5ac3-acf9-7a11e560ff36",
+      "username": "dev-metamodel-admin",
+      "enabled": true,
+      "email": "dev-metamodel-admin@oea.localhost",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Metamodel Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev-metamodel-admin-dev-only",
+          "temporary": false
+        },
+        {
+          "type": "otp",
+          "userLabel": "dev TOTP",
+          "secretData": "{\"value\": \"Q7R6HCHGFAWPWZJ6JMJBSBXENWA67JFK\"}",
+          "credentialData": "{\"subType\": \"totp\", \"digits\": 6, \"counter\": 0, \"period\": 30, \"algorithm\": \"HmacSHA1\"}"
+        }
+      ],
+      "groups": [
+        "/oea-metamodel-admins"
+      ]
+    },
+    {
+      "id": "dc2d9a03-32bc-56eb-a7de-aca450102da2",
+      "username": "dev-security-admin",
+      "enabled": true,
+      "email": "dev-security-admin@oea.localhost",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Security Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev-security-admin-dev-only",
+          "temporary": false
+        },
+        {
+          "type": "otp",
+          "userLabel": "dev TOTP",
+          "secretData": "{\"value\": \"UJRGKDWQTT3HQRHRWJX5H5QDVQN6GEIS\"}",
+          "credentialData": "{\"subType\": \"totp\", \"digits\": 6, \"counter\": 0, \"period\": 30, \"algorithm\": \"HmacSHA1\"}"
+        }
+      ],
+      "groups": [
+        "/oea-security-admins"
+      ]
+    },
+    {
+      "id": "5e75ac56-0ce4-50dd-8cf1-b6d9a3658b37",
+      "username": "dev-system-admin",
+      "enabled": true,
+      "email": "dev-system-admin@oea.localhost",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "System Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev-system-admin-dev-only",
+          "temporary": false
+        },
+        {
+          "type": "otp",
+          "userLabel": "dev TOTP",
+          "secretData": "{\"value\": \"VX5TY2AGDPRCLSRTGSXUUS75XUKQGX3Z\"}",
+          "credentialData": "{\"subType\": \"totp\", \"digits\": 6, \"counter\": 0, \"period\": 30, \"algorithm\": \"HmacSHA1\"}"
+        }
+      ],
+      "groups": [
+        "/oea-system-admins"
+      ]
+    },
+    {
+      "id": "158791f2-18e2-5230-b550-bcea0372fff6",
+      "username": "dev-admin-no-mfa",
+      "enabled": true,
+      "email": "dev-admin-no-mfa@oea.localhost",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Admin No Mfa",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev-admin-no-mfa-dev-only",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/oea-system-admins"
+      ]
+    },
+    {
+      "id": "449912dc-a74c-5c3b-b322-2dd8b58b882c",
+      "username": "dev-architect-metamodel",
+      "enabled": true,
+      "email": "dev-architect-metamodel@oea.localhost",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Architect Metamodel",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev-architect-metamodel-dev-only",
+          "temporary": false
+        },
+        {
+          "type": "otp",
+          "userLabel": "dev TOTP",
+          "secretData": "{\"value\": \"XTBTH3UEKHABFEO5TEXX7QFJEP5PQIR7\"}",
+          "credentialData": "{\"subType\": \"totp\", \"digits\": 6, \"counter\": 0, \"period\": 30, \"algorithm\": \"HmacSHA1\"}"
+        }
+      ],
+      "groups": [
+        "/oea-enterprise-architects",
+        "/oea-metamodel-admins"
+      ]
+    },
+    {
+      "id": "400caaf4-d5dc-55c9-86cc-97f10be0a359",
+      "username": "dev-sod-combined",
+      "enabled": true,
+      "email": "dev-sod-combined@oea.localhost",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Sod Combined",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev-sod-combined-dev-only",
+          "temporary": false
+        },
+        {
+          "type": "otp",
+          "userLabel": "dev TOTP",
+          "secretData": "{\"value\": \"HKWTX2EPRZXUHQHQ2PNETLJNICHGY6RA\"}",
+          "credentialData": "{\"subType\": \"totp\", \"digits\": 6, \"counter\": 0, \"period\": 30, \"algorithm\": \"HmacSHA1\"}"
+        }
+      ],
+      "groups": [
+        "/oea-metamodel-admins",
+        "/oea-security-admins"
+      ]
+    },
+    {
+      "id": "a64cf242-990b-5945-8f91-e0b7e8d97f49",
+      "username": "dev-no-role",
+      "enabled": true,
+      "email": "dev-no-role@oea.localhost",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "No Role",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev-no-role-dev-only",
+          "temporary": false
+        }
+      ],
+      "groups": []
+    },
+    {
+      "id": "73f0003c-712a-56f4-b972-d33d09af3a29",
+      "username": "dev-email-twin",
+      "enabled": true,
+      "email": "dev-architect@oea.localhost",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Email Twin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev-email-twin-dev-only",
+          "temporary": false
+        }
+      ],
+      "groups": []
+    },
+    {
+      "id": "4248da42-fbbc-5946-bff3-a61daed3edad",
+      "username": "dev-email-unverified",
+      "enabled": true,
+      "email": "dev-email-unverified@oea.localhost",
+      "emailVerified": false,
+      "firstName": "Dev",
+      "lastName": "Email Unverified",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev-email-unverified-dev-only",
+          "temporary": false
+        }
+      ],
+      "groups": []
+    }
+  ]
+}
