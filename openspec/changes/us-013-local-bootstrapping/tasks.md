@@ -29,8 +29,8 @@
 
 - [x] 4.1 Add `GET /setup/status` and `POST /setup` with schemas and problem types to `api/openapi.yaml` (tag `Setup`, public) and both operation IDs to the public allowlist of `scripts/check_openapi_authorization.py`; verify Redocly lint and the authorization check pass
 - [x] 4.2 Implement the setup controller in `io.oea.api` against the generated interface, mapping rejections to RFC 9457 problems (`validation-failed`, `invalid-setup-token`, `already-bootstrapped`); verify with web slice tests for 200/201/400/401/409 and that request bodies are not logged
-- [ ] 4.3 Write the Cucumber feature `identity/bootstrapping.feature` with the scenarios of the `identity/bootstrapping` spec (US-013 AC1, US-015 AC1/AC2, US-016 AC1/AC2, US-017 AC1/AC2) against the running application on the test database; verify it passes through `CucumberIT`
-- [ ] 4.4 Extend the log-scan test of REQ-175 AC3: run the bootstrapping scenarios with log capture and verify that neither the setup token, the password nor the password hash appears in the captured output
+- [x] 4.3 Write the Cucumber feature `identity/bootstrapping.feature` with the scenarios of the `identity/bootstrapping` spec (US-013 AC1, US-015 AC1/AC2, US-016 AC1/AC2, US-017 AC1/AC2) against the running application on the test database; verify it passes through `CucumberIT`
+- [x] 4.4 Extend the log-scan test of REQ-175 AC3: run the bootstrapping scenarios with log capture and verify that neither the setup token, the password nor the password hash appears in the captured output
 
 ## 5. Frontend
 
