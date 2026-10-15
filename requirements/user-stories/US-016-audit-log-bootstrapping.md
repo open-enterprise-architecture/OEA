@@ -2,8 +2,9 @@
 
 **ID**: US-016
 **Story Points**: 2
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: review
+**Sprint**: S1
+**Implementation**: OpenSpec change `us-013-local-bootstrapping` (commit hash added when the change is archived) – local mode; the remote mode is audited together with US-014
 
 ## Story
 

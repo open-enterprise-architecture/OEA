@@ -16,7 +16,8 @@ RUN --mount=type=cache,target=/root/.m2 \
 
 FROM docker.io/library/eclipse-temurin:25-jre-noble@sha256:d9a39a23634650173f1e2bbc176227af9728587ecf0f4b62d53e9355cd7a19ab
 RUN groupadd --system --gid 10001 oea \
- && useradd --system --uid 10001 --gid oea --no-create-home --shell /usr/sbin/nologin oea
+ && useradd --system --uid 10001 --gid oea --no-create-home --shell /usr/sbin/nologin oea \
+ && install -d -o 10001 -g 10001 -m 0700 /run/oea
 WORKDIR /app
 COPY --from=build --chown=root:root --chmod=0444 /workspace/oea-backend.jar /app/oea-backend.jar
 USER 10001:10001

@@ -159,6 +159,7 @@ package "Auth" #FFF8E1 {
     + id                 : UUID           {PK}
     --
     + login_name         : TEXT           {NN} {UQ}
+    .. CHECK: login_name ~ '^[a-z][a-z0-9._-]{2,63}$' ..
     + status             : TEXT           {NN} DEFAULT 'bootstrapped'
     .. enum: bootstrapped | active | deactivated ..
     + linked_person_id   : BIGINT         {UQ} {FK→persons.id}
@@ -171,6 +172,17 @@ package "Auth" #FFF8E1 {
     + deactivated_by_person_id : BIGINT   {FK→persons.id}
     + deactivated_by_admin_id  : UUID     {FK→system_admin_accounts.id}
     .. deactivation rejected if it removes the last path to system-admin (SoD-7) ..
+  }
+
+  class bootstrap_setup_tokens <<Table>> #FFECB3 {
+    + id                 : SMALLINT       {PK}
+    .. CHECK (id = 1): at most one token per instance ..
+    --
+    + token_hash         : BYTEA          {NN}
+    .. SHA-256 of the 256-bit setup token; the token itself only as a file in the container (REQ-017) ..
+    + created_at         : TIMESTAMPTZ    {NN} DEFAULT NOW()
+    + expires_at         : TIMESTAMPTZ    {NN}
+    .. default created_at + 24 h; deleted by the bootstrapping ..
   }
 
   note right of system_admin_accounts
@@ -1368,6 +1380,10 @@ package "Settings" #F1F8E9 {
     + id                     : SMALLINT   {PK}
     .. CHECK (id = 1): single row per instance ..
     --
+    == Instance (ADR-001) ==
+    + instance_slug          : TEXT       {NN}
+    .. CHECK ~ '^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$'; set by the bootstrapping, immutable ..
+    .. the row exists only after bootstrapping (marker "instance bootstrapped") ..
     == Authorization / sessions (ADR-032, Q15, Q18, Q19, Q20) ==
     + privileged_assignment_approval : BOOLEAN {NN} DEFAULT false
     + allow_reactivation_of_offboarded : BOOLEAN {NN} DEFAULT false
@@ -1541,6 +1557,10 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   oea_analytics; analytics audit event types; system_settings with
 '   analytics.* (table newly modeled, previously only in the API);
 '   property_definitions.sql_column_name. Reason: SEC-17, SEC-23, Q8.
+' 2026-10-15 (us-013-local-bootstrapping):
+'   system_settings.instance_slug (ADR-001, set by the bootstrapping);
+'   new bootstrap_setup_tokens (setup token hash, REQ-017);
+'   CHECK on system_admin_accounts.login_name. Reason: UC-02 / US-013.
 ' ─────────────────────────────────────────────────────
 
 @enduml

@@ -34,6 +34,8 @@ PUBLIC_ALLOWLIST = {
     "issueClientCredentialsToken",
     "getClientCompatibility",  # REQ-195: version check before login, no instance data
     "getHealth",  # REQ-075: health probe for orchestrators, status only
+    "getSetupStatus",  # US-013: before bootstrapping no principal exists; returns a boolean only
+    "completeSetup",  # US-013: effective only with the setup token from the container (REQ-017)
 }
 
 ACCESS_VALUES = {"public", "authenticated", "permission"}

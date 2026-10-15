@@ -1,5 +1,6 @@
 package io.oea;
 
+import io.oea.testsupport.containers.OeaApplications;
 import io.oea.testsupport.containers.OeaTestDatabase;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -11,7 +12,10 @@ public class TestcontainersConfiguration {
 
 	@Bean
 	DynamicPropertyRegistrar oeaDatabaseProperties() {
-		return OeaTestDatabase::registerRuntimeDataSource;
+		return (registry) -> {
+			OeaTestDatabase.registerRuntimeDataSource(registry);
+			registry.add("oea.bootstrap.setup-token-file", OeaApplications::sharedSetupTokenFile);
+		};
 	}
 
 }

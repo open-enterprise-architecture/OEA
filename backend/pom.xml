@@ -25,6 +25,7 @@
 		<openapi-generator.version>7.26.0</openapi-generator.version>
 		<archunit.version>1.5.1</archunit.version>
 		<cucumber.version>8.0.4</cucumber.version>
+		<bouncycastle.version>1.86</bouncycastle.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -63,6 +64,16 @@
 			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
 
+		<!-- argon2id password hashing (REQ-169); Bouncy Castle implements Argon2 -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-crypto</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk18on</artifactId>
+			<version>${bouncycastle.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>

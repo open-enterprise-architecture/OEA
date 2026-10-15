@@ -62,6 +62,27 @@ The settings can also be passed as environment variables (`OEA_MIGRATION_URL`, `
 | `db/migration-audit` | `oea_owner` | `audit.flyway_schema_history` |
 | `db/migration-reporting` | `oea_reporting_owner` | `reporting.flyway_schema_history` |
 
+## Audit Trail Verification
+
+Every audit record is a link of a hash chain computed by the database ([audit hash chain](audit-hash-chain.md), ADR-033). The verification command recomputes the chain with the read-only role `oea_auditor`:
+
+```bash
+java -jar oea-backend.jar audit verify \
+  --oea.audit-verify.url=jdbc:postgresql://db.example.org:5432/oea \
+  --oea.audit-verify.password="$OEA_AUDITOR_PASSWORD" \
+  --checkpoints=/var/log/oea/backend.log
+```
+
+With Compose: `docker compose run --rm migrate audit verify --oea.audit-verify.url=jdbc:postgresql://postgres:5432/oea --oea.audit-verify.password=…`. The environment variables `OEA_AUDITVERIFY_URL` and `OEA_AUDITVERIFY_PASSWORD` work as well.
+
+| Exit code | Meaning |
+|---|---|
+| `0` | Chain intact (`OK <links> links, head <chain_seq> <hash>`) |
+| `1` | First broken link, missing link, or a database head behind or diverging from a checkpoint (`BROKEN …`) |
+| `2` | Usage or connection error |
+
+**Checkpoints:** the backend appends a checkpoint every 60 minutes (`oea.audit.checkpoint-interval`, 5–1440 minutes) and at orderly shutdown, and writes a log line `event=audit.checkpoint chainSeq=… recordHash=… at=…`. Keep the application log outside the database host (log shipper, journald, SIEM): checkpoints are only as trustworthy as the place they are stored. Pass the log file with `--checkpoints=` to detect deleted newest records or a restored older backup.
+
 ## Upgrading PostgreSQL to a New Major Version
 
 The shipped Compose setup uses PostgreSQL 18. Data directories are not compatible across major versions, so a major upgrade (for example from an earlier PostgreSQL in an existing volume) needs a dump and restore or `pg_upgrade`:

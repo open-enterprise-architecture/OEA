@@ -14,6 +14,10 @@ oea:
       username: oea_owner
     reporting-owner:
       username: oea_reporting_owner
+  # oea audit verify (ADR-033 §5): read-only auditor role
+  audit-verify:
+    url: ${spring.datasource.url:}
+    username: oea_auditor
 
 # Actuator endpoints are not exposed; the public health probe is GET /api/v1/health (REQ-075).
 management:

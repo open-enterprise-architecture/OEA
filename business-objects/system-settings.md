@@ -2,7 +2,7 @@
 identifier: system-settings
 name_de: Instanz-Einstellungen
 name_en: System Settings
-version: 0.1.0
+version: 0.2.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -12,6 +12,7 @@ aliases:
 related_capabilities: []
 references:
   - concept: concept/70-platform/22-analyzability.md
+  - adr: adrs/ADR-001-urn-schema.md
   - adr: adrs/ADR-032-authorization-model.md
   - adr: adrs/ADR-033-audit-trail-hardening.md
   - adr: adrs/ADR-034-secured-raw-analytics.md
@@ -33,6 +34,7 @@ Settings that need protection against the administrators who manage them are del
 
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
+| instanceSlug | string | required | | `^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$` (3–63 characters); immutable after bootstrapping | Instance part of external URNs `urn:oea:{instance-slug}:{id}` (ADR-001); set once during bootstrapping (UC-02) |
 | privilegedAssignmentApproval | boolean | required | false | | Four-eyes approval for privileged role assignments, permissions and IdP group mappings (owner decisions Q15, Q18) |
 | allowReactivationOfOffboarded | boolean | required | false | | Whether an `offboarded` person can be reactivated (owner decision Q19) |
 | sessionRetentionDays | integer | required | 30 | > 0 | Days an ended session record is kept (owner decision Q20, REQ-189 AC4) |
@@ -99,10 +101,11 @@ privilegedAssignmentApproval: true
 
 Created for ADR-034 DM-5. The settings were so far referenced by other business objects (`privilegedAssignmentApproval`, `allowReactivationOfOffboarded`, `sessionRetentionDays`) and the API schema `SystemSettings`, but not modeled. The storage form (single typed row with database CHECKs instead of a key-value table) is a modeling proposal, chosen so that value ranges are enforced in the database. Further settings defined only in the API (`SystemSettings` in `api/openapi.yaml`) still have to be added here.
 
-Open question: whether the audit checkpoint interval (ADR-033 §6, 5–1440 minutes, default 60) is an instance setting or deployment configuration.
+Resolved (change `us-013-local-bootstrapping`): the audit checkpoint interval (ADR-033 §6, 5–1440 minutes, default 60) is deployment configuration (`oea.audit.checkpoint-interval`), not an instance setting. The single row is created by the bootstrapping together with `instanceSlug`; until then the instance counts as not bootstrapped.
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | Business Engineer | Initial draft for ADR-034 DM-5 (analytics settings); existing settings of ADR-032 / Q19 / Q20 consolidated; audit retention excluded (ADR-033 §4) |
+| 0.2.0 | 2026-10-15 | Business Engineer | `instanceSlug` (ADR-001, set by the bootstrapping, UC-02); checkpoint interval resolved as deployment configuration |
