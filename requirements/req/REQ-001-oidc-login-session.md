@@ -39,7 +39,7 @@ Login is a prerequisite for every use case that goes beyond publicly readable co
 
 Concept §21.8 defines OAuth 2.0/OIDC as the standard authentication mechanism. UC-01, Basic Flow steps 2–7, and Alternative A1 (an existing valid session is not re-authenticated).
 
-**Token validity**: With an external IdP (Entra ID, Authentik, see ADR-006), the identity provider dictates the validity period of access, ID, and refresh tokens; OEA adopts it unchanged and does not enforce its own, deviating lifetime for externally issued tokens. This does not apply to local authentication – see REQ-012.
+**Token validity**: With an external IdP (Entra ID, Authentik, see ADR-006), the identity provider dictates the validity period of access, ID, and refresh tokens; OEA never extends it. A session established through an IdP ends at the first of the OEA idle timeout, the OEA absolute lifetime (REQ-165) and the expiry or rejection of the IdP refresh token (owner decision 2026-10-15). This does not apply to local authentication – see REQ-012.
 
 ## Type-Specific Fields
 
@@ -143,3 +143,4 @@ Derived from UC-01 Login, Basic Flow and Alternative A1.
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |
 | 0.2.0 | 2026-10-13 | Lukas Mathis | AC4: IdP token lifetime is an upper bound; OEA session limits (REQ-165) may shorten it (security review SEC-06) |
+| 0.3.0 | 2026-10-15 | Lukas Mathis | Token validity: the session ends at the first of OEA idle timeout, OEA absolute lifetime and the IdP refresh token (change `us-001-oidc-login`) |

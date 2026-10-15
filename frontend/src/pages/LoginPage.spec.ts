@@ -22,10 +22,15 @@ const problem = (status: number, type: string, extra: Record<string, unknown> = 
   body: { type: `urn:oea:problem:${type}`, title: type, status, ...extra },
 })
 
-async function mountPage(fetchFn: typeof fetch) {
+function byPath(recorded: RecordedRequest[], path: string): RecordedRequest {
+  return recorded.find((request) => request.path === path)!
+}
+
+async function mountPage(fetchFn: typeof fetch, path = '/login', navigate?: (url: string) => void) {
   const router = testRouter()
-  await router.push('/login')
-  const wrapper = mount(LoginPage, { props: { fetchFn }, global: { plugins: [ui, router] } })
+  await router.push(path)
+  const wrapper = mount(LoginPage, { props: { fetchFn, navigate }, global: { plugins: [ui, router] } })
+  await flushPromises()
   return { wrapper, router }
 }
 
@@ -50,8 +55,9 @@ describe('LoginPage', () => {
     )
     const { wrapper, router } = await mountPage(fetchFn)
     await submitPassword(wrapper)
-    expect(JSON.parse(recorded[0]!.init!.body as string)).toEqual({ loginName: 'admin', password: 'secret-pass' })
-    expect(recorded[0]!.init!.credentials).toBe('same-origin')
+    const request = byPath(recorded, '/api/v1/auth/local/login')
+    expect(JSON.parse(request.init!.body as string)).toEqual({ loginName: 'admin', password: 'secret-pass' })
+    expect(request.init!.credentials).toBe('same-origin')
     expect(router.currentRoute.value.path).toBe('/me')
     expect(session.me?.principal.displayName).toBe('admin')
     expect(currentCsrfToken()).toBe('csrf-1')
@@ -86,7 +92,10 @@ describe('LoginPage', () => {
     await wrapper.get('[data-testid="code"] input, input[data-testid="code"]').setValue('123456')
     await wrapper.get('form').trigger('submit')
     await flushPromises()
-    expect(JSON.parse(recorded[1]!.init!.body as string)).toEqual({ loginTransaction: 'tx-1', code: '123456' })
+    expect(JSON.parse(byPath(recorded, '/api/v1/auth/local/login/totp').init!.body as string)).toEqual({
+      loginTransaction: 'tx-1',
+      code: '123456',
+    })
     expect(router.currentRoute.value.path).toBe('/me')
   })
 
@@ -115,5 +124,26 @@ describe('LoginPage', () => {
     const { wrapper } = await mountPage(fetchFn)
     await submitPassword(wrapper)
     expect(wrapper.get('[data-testid="login-failure"]').text()).toContain('Try again in 8 seconds')
+  })
+
+  it('offers the identity providers and starts their login', async () => {
+    const targets: string[] = []
+    const { wrapper } = await mountPage(
+      routedFetch({ '/api/v1/auth/oidc/providers': { body: [{ id: 'p-1', name: 'Corporate IdP' }] } }),
+      '/login',
+      (url) => targets.push(url),
+    )
+    const button = wrapper.get('[data-testid="provider-p-1"]')
+    expect(button.text()).toBe('Log in with Corporate IdP')
+    await button.trigger('click')
+    expect(targets).toEqual(['/api/v1/auth/oidc/p-1/start?returnTo=%2Fme'])
+  })
+
+  it.each([
+    ['login-failed', 'Login failed.'],
+    ['provider-unavailable', 'not reachable'],
+  ])('explains the callback error %s', async (error, message) => {
+    const { wrapper } = await mountPage(routedFetch({}), `/login?error=${error}`)
+    expect(wrapper.get('[data-testid="login-failure"]').text()).toContain(message)
   })
 })

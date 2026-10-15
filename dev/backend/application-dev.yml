@@ -1,10 +1,17 @@
 # Development configuration of the backend (Spring profile "dev", ADR-036).
 # Mounted by compose.dev.yaml; never part of the production artifact.
+# Identity providers are stored through the admin API (scripts/dev_seed.py); in profile
+# "dev" the startup guard accepts only loopback issuers (REQ-183 AC5).
 oea:
+  web:
+    # Portal origin (Vite dev server, proxies /api); base of the OIDC redirect URI
+    public-url: http://localhost:5173
   security:
     oidc:
-      providers:
-        # Loopback issuer only: the inverse guard refuses any other issuer in profile "dev"
+      # Browsers and ID tokens use the issuer http://localhost:8180/realms/oea-dev; inside the
+      # backend container Keycloak is reached through its service name (design D13)
+      discovery-locations:
         - issuer: http://localhost:8180/realms/oea-dev
+          location: http://keycloak:8080/realms/oea-dev
     cors:
       allowed-origins: http://localhost:5173

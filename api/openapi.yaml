@@ -1728,8 +1728,8 @@ components:
       required: [authProviderId, groupIdentifier, roleId]
       description: |
         Rejected with `422` if `groupIdentifier` does not match the identifier format of
-        the provider (REQ-167) and with `403` if the group is contained in the caller's
-        own current token (SoD-1).
+        the provider (REQ-167) and with `403` (problem property `reason: self-administration`)
+        if the group is contained in the groups claim of the caller's own current session (SoD-1).
       properties:
         authProviderId:  { type: string, format: uuid }
         groupIdentifier: { type: string, minLength: 1, maxLength: 256 }
@@ -1832,6 +1832,14 @@ components:
       properties:
         loginTransaction: { type: string, maxLength: 128 }
         code:             { type: string, pattern: '^[0-9]{6}$' }
+
+    LoginProvider:
+      type: object
+      required: [id, name]
+      description: An enabled OIDC provider as offered on the login page
+      properties:
+        id:   { type: string, format: uuid }
+        name: { type: string }
 
     LoginResult:
       type: object
@@ -2056,6 +2064,12 @@ components:
     AuthProvider:
       type: object
       required: [id, name, type, enabled]
+      description: |
+        A stored identity provider. The stored, enabled providers are the only source of the
+        OIDC login (owner decision 2026-10-15); outside the profile `dev` the issuer must use
+        `https` and must not be a loopback address, which is also checked at startup
+        (ADR-036 G2/G3). The redirect URI to register at the provider is
+        `<public URL>/api/v1/auth/oidc/callback`.
       properties:
         id:        { type: string, format: uuid }
         name:      { type: string }
@@ -2087,7 +2101,7 @@ components:
         issuerUrl:    { type: string, description: "Outside the profile dev `https` and no loopback address (ADR-036 G2/G3)" }
         clientId:     { type: string }
         clientSecret: { type: string, description: "Write-only; never returned in responses" }
-        scopes:       { type: string, example: "openid profile email" }
+        scopes:       { type: string, example: "openid profile email", description: "Must include `openid`; Entra ID needs `offline_access` for the refresh token used by the 15-minute group re-evaluation (REQ-165)" }
         claimMappings:
           type: object
           additionalProperties: { type: string }
@@ -2455,6 +2469,82 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/oidc/providers:
+    get:
+      operationId: listLoginProviders
+      summary: Enabled OIDC providers offered on the login page (US-001)
+      description: |
+        Lists the enabled providers stored through the admin API, the only source of the
+        OIDC login. Returns identifiers and names only, never client settings.
+      tags: [Identity]
+      security: []
+      x-oea-authorization: {"access": "public"}
+      responses:
+        '200':
+          description: Enabled providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LoginProvider' }
+
+  /auth/oidc/{providerId}/start:
+    get:
+      operationId: startOidcLogin
+      summary: Start the OIDC login through a provider (US-001, REQ-166)
+      description: |
+        Redirects the browser to the provider's authorization endpoint (authorization code
+        flow with PKCE `S256`, `state` and `nonce`) and sets the login cookie
+        `__Host-OEA_LOGIN` (`HttpOnly`, `Secure`, `Path=/`, `SameSite=Lax`, 10 minutes),
+        which binds the running login to the browser. A provider that is unknown, disabled
+        or unreachable redirects to `<public URL>/login?error=provider-unavailable`.
+      tags: [Identity]
+      security: []
+      x-oea-authorization: {"access": "public"}
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: returnTo
+          in: query
+          required: false
+          description: Relative path inside the portal to open after the login (default `/`)
+          schema: { type: string, pattern: '^/(?!/).*$', maxLength: 512 }
+      responses:
+        '302':
+          description: Redirect to the provider, or to the login page if the provider is unavailable
+          headers:
+            Location: { schema: { type: string, format: uri } }
+            Set-Cookie: { schema: { type: string } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /auth/oidc/callback:
+    get:
+      operationId: completeOidcLogin
+      summary: Callback of the OIDC login (US-001, REQ-004, REQ-166)
+      description: |
+        Redirect URI `<public URL>/api/v1/auth/oidc/callback`. Accepts the callback only
+        with the `state` of a running login and the matching login cookie (single use),
+        redeems the code with the PKCE verifier, validates the ID token, finds the person
+        through the binding (`iss`, `sub`) and creates the session cookie
+        `__Host-OEA_SESSION`. Every failure redirects to `<public URL>/login?error=login-failed`
+        without revealing the reason; the reason is audited (REQ-005, REQ-006).
+      tags: [Identity]
+      security: []
+      x-oea-authorization: {"access": "public"}
+      parameters:
+        - { name: code, in: query, required: false, schema: { type: string, maxLength: 4096 } }
+        - { name: state, in: query, required: false, schema: { type: string, maxLength: 512 } }
+        - { name: error, in: query, required: false, schema: { type: string, maxLength: 256 } }
+      responses:
+        '302':
+          description: Redirect to the portal (`returnTo` of the login) or to the login page with an error
+          headers:
+            Location: { schema: { type: string, format: uri } }
+            Set-Cookie: { schema: { type: string } }
+        '400': { $ref: '#/components/responses/BadRequest' }
 
   /me:
     get:

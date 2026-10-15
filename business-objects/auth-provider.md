@@ -96,8 +96,11 @@ active: true
 
 Created with change `us-013-system-admin-login`; replaces the placeholder note on `auth_providers` in `docs/data-model.puml`. Claim names and provider-specific 2FA policies follow when the OIDC login uses them.
 
+With change `us-001-oidc-login` the stored providers are the only source for the OIDC login (owner decision 2026-10-15): the former property list `oea.security.oidc.providers` is removed, and the startup guards G2/G3 check the stored, enabled providers. Running logins are kept in `oidc_login_states` (state, nonce, encrypted PKCE verifier, 10 minutes).
+
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-15 | Business Engineer | Initial draft for change `us-013-system-admin-login` (providers via admin API, owner decision 2026-10-15) |
+| 0.2.0 | 2026-10-15 | Business Engineer | Only source for the OIDC login; running logins (change `us-001-oidc-login`) |

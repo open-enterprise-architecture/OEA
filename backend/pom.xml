@@ -76,6 +76,16 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
+		<!-- OIDC login (ADR-006): discovery, token requests and ID token validation as libraries;
+		     no oauth2Login() and no Boot auto-configuration (change us-001-oidc-login, design D1) -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-oauth2-client</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-oauth2-jose</artifactId>
+		</dependency>
 		<!-- Reads api/openapi.yaml at runtime for the generated authorization rules (ADR-032 §8) -->
 		<dependency>
 			<groupId>tools.jackson.dataformat</groupId>

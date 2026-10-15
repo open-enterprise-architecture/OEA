@@ -64,4 +64,37 @@ describe('ProfilePage', () => {
     )
     expect(wrapper.get('[data-testid="not-logged-in"]').text()).toContain('not logged in')
   })
+
+  it('shows roles from the identity provider and a role that needs a second factor', async () => {
+    const { wrapper } = await mountPage(
+      routedFetch({
+        '/api/v1/me': {
+          body: {
+            ...ME,
+            principal: { principalType: 'person', displayName: 'Dev Admin' },
+            roles: [
+              { role: { id: 'viewer', name: 'Viewer', privileged: false }, source: 'idp', effective: true },
+              {
+                role: { id: 'system-admin', name: 'System Admin', privileged: true },
+                source: 'idp',
+                effective: false,
+                notEffectiveReason: 'mfa-required',
+              },
+            ],
+          },
+        },
+      }),
+    )
+    expect(wrapper.get('[data-testid="roles"]').text()).toBe(
+      'Viewer (identity provider), System Admin (identity provider) – needs a second factor',
+    )
+    expect(wrapper.find('[data-testid="no-role"]').exists()).toBe(false)
+  })
+
+  it('tells a person without an effective role that no role is assigned (REQ-003)', async () => {
+    const { wrapper } = await mountPage(
+      routedFetch({ '/api/v1/me': { body: { ...ME, roles: [], permissions: [] } } }),
+    )
+    expect(wrapper.get('[data-testid="no-role"]').text()).toContain('No role assigned')
+  })
 })

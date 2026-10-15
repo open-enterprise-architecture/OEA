@@ -2,6 +2,7 @@ package io.oea.api;
 
 import io.oea.app.access.AccessConflictException;
 import io.oea.app.access.InvalidAccessRequestException;
+import io.oea.app.access.SelfAdministrationException;
 import io.oea.app.login.InvalidCredentialsException;
 import io.oea.app.login.InvalidTotpCodeException;
 import io.oea.app.login.SecondFactorRequiredException;
@@ -67,6 +68,14 @@ public class ApiExceptionHandler {
 	ResponseEntity<ProblemDetail> conflict(AccessConflictException ex) {
 		return ResponseEntity.status(HttpStatus.CONFLICT)
 			.body(problem(HttpStatus.CONFLICT, "conflict", "Conflict", ex.getMessage()));
+	}
+
+	@ExceptionHandler(SelfAdministrationException.class)
+	ResponseEntity<ProblemDetail> selfAdministration(SelfAdministrationException ex) {
+		ProblemDetail problem = problem(HttpStatus.FORBIDDEN, "forbidden", "Forbidden",
+				"A group of your own current sign-in cannot be mapped by you (separation of duties).");
+		problem.setProperty("reason", "self-administration");
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
 	}
 
 	@ExceptionHandler(InvalidAccessRequestException.class)

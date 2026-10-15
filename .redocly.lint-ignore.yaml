@@ -4,6 +4,17 @@
 # no-ambiguous-paths: /entities/{id}/history and /entities/by-external-id/{externalId}
 # cannot collide at runtime because {id} is an integer (EntityIdParam) and
 # "by-external-id" is not. The path is fixed by ADR-026 (external write API).
+#
+# operation-2xx-response: the OIDC login endpoints startOidcLogin and completeOidcLogin
+# answer browser navigations with redirects only (302 to the IdP or back to the portal,
+# design D3 of change us-001-oidc-login); there is no 2xx response by design.
+# operation-4xx-response: listLoginProviders is public and has no failure case besides
+# server errors; it returns the enabled providers or an empty list.
 api/openapi.yaml:
+  operation-2xx-response:
+    - '#/paths/~1auth~1oidc~1{providerId}~1start/get/responses'
+    - '#/paths/~1auth~1oidc~1callback/get/responses'
+  operation-4xx-response:
+    - '#/paths/~1auth~1oidc~1providers/get/responses'
   no-ambiguous-paths:
     - '#/paths/~1entities~1by-external-id~1{externalId}'

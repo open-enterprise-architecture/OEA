@@ -2,7 +2,7 @@ package io.oea.testsupport.containers;
 
 import java.nio.file.Path;
 import java.time.Duration;
-import org.springframework.test.context.DynamicPropertyRegistry;
+import java.util.UUID;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
@@ -23,9 +23,16 @@ public final class OeaKeycloak {
 
 	public static final Path REALM_FILE = Path.of("..", "dev", "keycloak", "realm-oea-dev.json");
 
+	/** Bootstrap admin of the test container (Admin REST API, ADR-036 §5); random per test JVM. */
+	public static final String ADMIN_USER = "oea-test-admin";
+
+	public static final String ADMIN_PASSWORD = UUID.randomUUID().toString();
+
 	private static final GenericContainer<?> CONTAINER = new GenericContainer<>(IMAGE)
 		.withCommand("start-dev", "--import-realm")
 		.withEnv("KC_HEALTH_ENABLED", "true")
+		.withEnv("KC_BOOTSTRAP_ADMIN_USERNAME", ADMIN_USER)
+		.withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", ADMIN_PASSWORD)
 		.withCopyFileToContainer(MountableFile.forHostPath(REALM_FILE, 0644),
 				"/opt/keycloak/data/import/realm-oea-dev.json")
 		.withExposedPorts(8080, 9000)
@@ -45,11 +52,6 @@ public final class OeaKeycloak {
 	public static String issuer() {
 		GenericContainer<?> container = started();
 		return "http://" + container.getHost() + ":" + container.getMappedPort(8080) + "/realms/" + REALM;
-	}
-
-	/** Registers the realm as the first OIDC provider (design D4). */
-	public static void registerIssuer(DynamicPropertyRegistry registry) {
-		registry.add("oea.security.oidc.providers[0].issuer", OeaKeycloak::issuer);
 	}
 
 }

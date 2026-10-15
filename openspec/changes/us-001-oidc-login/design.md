@@ -94,6 +94,12 @@ All login failures redirect to `/login?error=login-failed` (one message, REQ-006
 
 `scripts/dev_seed.py` (Python standard library only) logs in as the local system admin, enrolls and confirms TOTP if the setup phase still needs it (printing the secret once), creates the provider `http://localhost:8180/realms/oea-dev` with client `oea-portal` and its development secret, one person with a binding per realm user (subjects from the realm file), and the eight group mappings of ADR-036 §4. It is idempotent and talks only to the API, so no code path exists only for `dev` (ADR-036 §4).
 
+### D13 – Discovery location for split-horizon networks
+
+Found during implementation (owner decision 2026-10-15): in the Compose development environment the backend runs in a container, where the stored issuer `http://localhost:8180/realms/oea-dev` – the address browsers use and Keycloak writes into `iss` – does not reach Keycloak. New optional setting `oea.security.oidc.discovery-locations` (list of `issuer` and `location`): the discovery document of that issuer is fetched from `location` (e.g. `http://keycloak:8080/realms/oea-dev`); Keycloak's dynamic back channel then returns token and key endpoints under the internal address, while the authorization endpoint stays the browser address. The `issuer` of the discovery document and the `iss` claim are still checked against the stored issuer. Outside `dev` a location must use `https` and must not be a loopback address (G2/G3 in `ConfigurationGuards`). The setting also serves deployments where the IdP is reachable internally under another host name.
+
+Alternatives: running the backend in the host network (changes ports and the database address of the development setup) or supporting the OIDC login only with a backend started on the host (leaves `scripts/dev.sh` without OIDC login).
+
 ### D12 – Frontend
 
 The login page loads `listLoginProviders` and shows one button per provider above the local login; a button navigates to `/api/v1/auth/oidc/{providerId}/start?returnTo=…`. `?error=login-failed` and `?error=provider-unavailable` are shown as messages. The profile lists roles with their source and the `mfa-required` reason, and the REQ-003 notice when no role is effective.

@@ -40,6 +40,16 @@ public final class DevRealm {
 		throw new IllegalArgumentException("Unknown client " + clientId);
 	}
 
+	/** Immutable subject ({@code sub}) of the user: the fixed user ID of the realm file. */
+	public static String subject(String username) {
+		for (JsonNode user : REALM.path("users")) {
+			if (username.equals(user.path("username").asString())) {
+				return user.path("id").asString();
+			}
+		}
+		throw new IllegalArgumentException("Unknown user " + username);
+	}
+
 	/** Immutable group identifier as emitted in the {@code groups} claim. */
 	public static String groupId(String groupName) {
 		for (JsonNode group : REALM.path("groups")) {

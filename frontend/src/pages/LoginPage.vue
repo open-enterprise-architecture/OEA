@@ -1,12 +1,46 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { login, loginTotp, type LoginOutcome } from '../api/session'
+import { onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import {
+  fetchLoginProviders,
+  login,
+  loginTotp,
+  oidcLoginUrl,
+  type LoginOutcome,
+  type LoginProvider,
+} from '../api/session'
 import { refreshSession } from '../session/store'
 
-// Login of the local system admin account (US-013 AC2). SCR-001 stays `legacy-mockup` until change 6 (screen story).
-const props = defineProps<{ fetchFn?: typeof fetch }>()
+// Login through an identity provider (US-001) and of the local system admin account (US-013 AC2).
+// SCR-001 stays `legacy-mockup` until change 6 (screen story).
+const props = defineProps<{ fetchFn?: typeof fetch; navigate?: (url: string) => void }>()
 const router = useRouter()
+const route = useRoute()
+
+const providers = ref<LoginProvider[]>([])
+
+// Errors of the OIDC callback arrive as query parameter; one generic message (REQ-006)
+const CALLBACK_ERRORS: Record<string, string> = {
+  'login-failed': 'Login failed. Your account may not be set up for this instance yet; contact an administrator.',
+  'provider-unavailable': 'The identity provider is not reachable at the moment. Try again later.',
+}
+
+onMounted(async () => {
+  const error = route?.query.error
+  if (typeof error === 'string') {
+    failure.value = CALLBACK_ERRORS[error] ?? CALLBACK_ERRORS['login-failed']
+  }
+  providers.value = await fetchLoginProviders(props.fetchFn)
+})
+
+function loginWith(provider: LoginProvider) {
+  const target = oidcLoginUrl(provider.id)
+  if (props.navigate) {
+    props.navigate(target)
+  } else {
+    window.location.assign(target)
+  }
+}
 
 const form = reactive({ loginName: '', password: '', code: '' })
 const loginTransaction = ref<string>()
@@ -81,6 +115,18 @@ function startAgain() {
     <h1 class="text-2xl font-semibold text-highlighted">Log in to OEA</h1>
 
     <UAlert v-if="failure" data-testid="login-failure" color="error" variant="subtle" :description="failure" />
+
+    <div v-if="providers.length > 0 && !loginTransaction" class="flex flex-col gap-3" data-testid="providers">
+      <UButton
+        v-for="provider in providers"
+        :key="provider.id"
+        :data-testid="`provider-${provider.id}`"
+        :label="`Log in with ${provider.name}`"
+        block
+        @click="loginWith(provider)"
+      />
+      <USeparator label="or with the local system admin account" />
+    </div>
 
     <form v-if="!loginTransaction" class="flex flex-col gap-4" novalidate @submit.prevent="submitPassword">
       <UFormField label="Login name" name="loginName" required>

@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -27,18 +26,14 @@ class TestInfrastructureTests {
 	@DynamicPropertySource
 	static void containers(DynamicPropertyRegistry registry) {
 		OeaTestDatabase.registerRuntimeDataSource(registry);
-		OeaKeycloak.registerIssuer(registry);
 	}
 
 	@Autowired
 	private MockMvcTester mvc;
 
-	@Autowired
-	private Environment environment;
-
 	@Test
 	void applicationStartsAgainstPostgresAndKeycloakSingletons() {
-		assertThat(this.environment.getProperty("oea.security.oidc.providers[0].issuer")).isEqualTo(OeaKeycloak.issuer());
+		assertThat(OeaKeycloak.issuer()).endsWith("/realms/" + OeaKeycloak.REALM);
 		assertThat(this.mvc.get().uri("/api/v1/health")).hasStatus(HttpStatus.OK);
 	}
 
@@ -54,6 +49,21 @@ class TestInfrastructureTests {
 		JsonNode claims = OidcLogin.login(OeaKeycloak.issuer(), "dev-system-admin").accessTokenClaims();
 		assertThat(claims.path("preferred_username").asString()).isEqualTo("dev-system-admin");
 		assertThat(groups(claims)).containsExactly(DevRealm.groupId("oea-system-admins"));
+	}
+
+	@Test
+	void idTokensNameTheAuthenticationMethods() {
+		// SoD-8 (ADR-032): privileged roles need a second factor, which OEA reads from amr
+		assertThat(strings(OidcLogin.login(OeaKeycloak.issuer(), "dev-system-admin").idTokenClaims().path("amr")))
+			.containsExactlyInAnyOrder("pwd", "otp");
+		assertThat(strings(OidcLogin.login(OeaKeycloak.issuer(), "dev-admin-no-mfa").idTokenClaims().path("amr")))
+			.containsExactly("pwd");
+	}
+
+	private static List<String> strings(JsonNode array) {
+		List<String> values = new ArrayList<>();
+		array.forEach((value) -> values.add(value.asString()));
+		return values;
 	}
 
 	private static List<String> groups(JsonNode claims) {

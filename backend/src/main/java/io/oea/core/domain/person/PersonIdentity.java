@@ -69,6 +69,10 @@ public class PersonIdentity extends NewAwareEntity<UUID> {
 		return identity;
 	}
 
+	public void recordLogin(Instant now) {
+		this.lastLoginAt = now;
+	}
+
 	@Override
 	public UUID getId() {
 		return this.id;

@@ -111,8 +111,7 @@
       "serviceAccountsEnabled": false,
       "frontchannelLogout": true,
       "redirectUris": [
-        "http://localhost:5173/*",
-        "http://localhost:8080/*"
+        "http://localhost:5173/api/v1/auth/oidc/callback"
       ],
       "webOrigins": [
         "http://localhost:5173"
@@ -555,6 +554,96 @@
         }
       ],
       "groups": []
+    }
+  ],
+  "browserFlow": "oea-browser-amr",
+  "authenticationFlows": [
+    {
+      "alias": "oea-browser-amr",
+      "description": "Browser login with authentication method references (amr)",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false,
+          "authenticator": "auth-cookie"
+        },
+        {
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "autheticatorFlow": true,
+          "flowAlias": "oea-browser-amr forms"
+        }
+      ]
+    },
+    {
+      "alias": "oea-browser-amr forms",
+      "description": "Password and conditional OTP",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false,
+          "authenticator": "auth-username-password-form",
+          "authenticatorConfig": "amr-pwd"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "autheticatorFlow": true,
+          "flowAlias": "oea-browser-amr otp"
+        }
+      ]
+    },
+    {
+      "alias": "oea-browser-amr otp",
+      "description": "OTP for users with an OTP credential",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false,
+          "authenticator": "conditional-user-configured"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false,
+          "authenticator": "auth-otp-form",
+          "authenticatorConfig": "amr-otp"
+        }
+      ]
+    }
+  ],
+  "authenticatorConfig": [
+    {
+      "alias": "amr-pwd",
+      "config": {
+        "default.reference.value": "pwd",
+        "default.reference.maxAge": "0"
+      }
+    },
+    {
+      "alias": "amr-otp",
+      "config": {
+        "default.reference.value": "otp",
+        "default.reference.maxAge": "0"
+      }
     }
   ]
 }
