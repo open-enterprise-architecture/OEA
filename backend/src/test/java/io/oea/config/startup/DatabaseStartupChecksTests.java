@@ -7,6 +7,7 @@ import io.oea.OeaBackendApplication;
 import io.oea.config.migration.MigrateCommand;
 import io.oea.testsupport.containers.OeaPostgres;
 import io.oea.testsupport.containers.OeaTestDatabase;
+import io.oea.testsupport.containers.OeaTestKeys;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -106,7 +107,8 @@ class DatabaseStartupChecksTests {
 	private static ConfigurableApplicationContext start(PostgreSQLContainer postgres, String username, String password,
 			String... extra) {
 		String[] base = { "--spring.datasource.url=" + postgres.getJdbcUrl(), "--spring.datasource.username=" + username,
-				"--spring.datasource.password=" + password, "--spring.main.banner-mode=off" };
+				"--spring.datasource.password=" + password, "--spring.main.banner-mode=off",
+				"--oea.security.kek.current=" + OeaTestKeys.sharedKeyFile() };
 		String[] args = Stream.concat(Arrays.stream(base), Arrays.stream(extra))
 			.toArray(String[]::new);
 		return new SpringApplicationBuilder(OeaBackendApplication.class).web(WebApplicationType.NONE).run(args);

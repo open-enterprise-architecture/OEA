@@ -2,7 +2,8 @@
 """Lint the Compose files against the secret and exposure rules of ADR-036 §3/§7.
 
 compose.yaml (operator file):
-  - no literal secret: every secret-like key gets its value from ${VAR:?message}
+  - no literal secret: every secret-like key gets its value from ${VAR:?message} or is
+    the path of a Compose secret (/run/secrets/...)
   - no ${VAR:-default} or ${VAR-default} for a secret variable
   - `docker compose -f compose.yaml config` fails with an empty environment
 compose.dev.yaml (development file):
@@ -49,6 +50,8 @@ def check_operator_file(path: Path) -> list[str]:
         value = re.sub(r"\s+#.*$", "", kv.group("value"))
         if value in ("", "|", ">") or value.startswith(("[", "{")):
             continue
+        if value.strip("\"'").startswith("/run/secrets/"):
+            continue  # path of a Compose secret, not a secret value
         if not REQUIRED_REF.match(value) and not DEFAULT_REF.search(value):
             errors.append(f"{path.name}:{number}: {kv.group('key')} is not taken from a required variable "
                           f"(${{VAR:?message}})")

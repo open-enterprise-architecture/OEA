@@ -78,6 +78,10 @@ final class SecretRules {
 		return Optional.empty();
 	}
 
+	boolean isKnownDevelopmentSecret(String value) {
+		return this.knownDevHashes.contains(sha256(value));
+	}
+
 	static String sha256(String value) {
 		try {
 			MessageDigest digest = MessageDigest.getInstance("SHA-256");

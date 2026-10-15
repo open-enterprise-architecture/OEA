@@ -38,7 +38,8 @@ public final class OeaApplications {
 		List<String> args = new ArrayList<>(List.of("--spring.datasource.url=" + postgres.getJdbcUrl(),
 				"--spring.datasource.username=oea_app",
 				"--spring.datasource.password=" + OeaPostgres.ROLE_PASSWORDS.get("oea_app"),
-				"--oea.bootstrap.setup-token-file=" + setupTokenFile, "--spring.main.banner-mode=off"));
+				"--oea.bootstrap.setup-token-file=" + setupTokenFile,
+				"--oea.security.kek.current=" + OeaTestKeys.sharedKeyFile(), "--spring.main.banner-mode=off"));
 		if (webType == WebApplicationType.SERVLET) {
 			args.add("--server.port=0");
 		}

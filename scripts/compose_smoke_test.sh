@@ -9,12 +9,16 @@ cd "$(dirname "$0")/.."
 limit=60
 port="${OEA_SMOKE_PORT:-18080}"
 env_file="$(mktemp)"
-trap 'docker compose -p oea-smoke --env-file "$env_file" -f compose.yaml ${OEA_HOST_PROJECT_DIR:+--project-directory "$OEA_HOST_PROJECT_DIR"} down -v >/dev/null 2>&1 || true; rm -f "$env_file"' EXIT
+trap 'docker compose -p oea-smoke --env-file "$env_file" -f compose.yaml ${OEA_HOST_PROJECT_DIR:+--project-directory "$OEA_HOST_PROJECT_DIR"} down -v >/dev/null 2>&1 || true; rm -f "$env_file" "${key_file:-}"' EXIT
 for name in POSTGRES_PASSWORD OEA_OWNER_PASSWORD OEA_REPORTING_OWNER_PASSWORD OEA_APP_PASSWORD \
             OEA_AUDIT_CLEANUP_PASSWORD OEA_AUDITOR_PASSWORD OEA_ANALYTICS_PASSWORD; do
   echo "$name=$(head -c 24 /dev/urandom | base64 | tr -d '/+=')" >> "$env_file"
 done
 echo "OEA_HTTP_PORT=$port" >> "$env_file"
+key_file="$(mktemp)"
+head -c 32 /dev/urandom | base64 > "$key_file"
+chmod 0444 "$key_file"
+echo "OEA_KEK_FILE=$key_file" >> "$env_file"
 
 compose=(docker compose -p oea-smoke --env-file "$env_file" -f compose.yaml ${OEA_HOST_PROJECT_DIR:+--project-directory "$OEA_HOST_PROJECT_DIR"})
 start=$(date +%s)

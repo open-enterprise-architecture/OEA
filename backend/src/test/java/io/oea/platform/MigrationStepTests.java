@@ -7,6 +7,7 @@ import io.oea.OeaBackendApplication;
 import io.oea.config.migration.MigrateCommand;
 import io.oea.testsupport.containers.OeaPostgres;
 import io.oea.testsupport.containers.OeaTestDatabase;
+import io.oea.testsupport.containers.OeaTestKeys;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -91,7 +92,8 @@ class MigrationStepTests {
 	private ConfigurableApplicationContext startApplicationAsRuntimeRole() {
 		return new SpringApplicationBuilder(OeaBackendApplication.class).web(WebApplicationType.NONE)
 			.run("--spring.datasource.url=" + this.postgres.getJdbcUrl(), "--spring.datasource.username=oea_app",
-					"--spring.datasource.password=" + OeaPostgres.ROLE_PASSWORDS.get("oea_app"));
+					"--spring.datasource.password=" + OeaPostgres.ROLE_PASSWORDS.get("oea_app"),
+					"--oea.security.kek.current=" + OeaTestKeys.sharedKeyFile());
 	}
 
 	private List<String> query(String sql) throws SQLException {
