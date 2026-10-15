@@ -2,7 +2,7 @@
 identifier: system-admin-account
 name_de: System-Admin-Account
 name_en: System Admin Account
-version: 0.2.0
+version: 0.3.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -40,7 +40,7 @@ The account may be linked to the person of the administrator (`linkedPerson`). F
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
 | id | string | required | | UUID | Primary key |
-| loginName | string | required | | unique | Login name of the local account |
+| loginName | string | required | | unique; `^[a-z][a-z0-9._-]{2,63}$` | Login name of the local account |
 | status | enum | required | bootstrapped | `[bootstrapped, active, deactivated]` | Lifecycle status (replaces `active: boolean`) |
 | linkedPerson | reference | optional | | target: person (human); unique | Optional link to the administrator's person (SoD-1) |
 | createdAt | datetime | required | | | Time of bootstrapping |
@@ -131,6 +131,8 @@ role: system-admin
 
 Version 0.2.0 aligns the business object with ADR-032 DM-6, REQ-167 (immutable claim identifiers, security review SEC-08), REQ-171 (MFA, SEC-10), REQ-169 (argon2id) and REQ-173 (break-glass recovery credential = temporary password credential with expiry). The account was previously not represented in `docs/data-model.puml`; it is now the table `system_admin_accounts`. Its credentials reuse `local_credentials` (owner = system admin account) instead of an embedded hash, so that password policy, second factor, revocation and break-glass follow the same rules as for persons.
 
+**Setup token** (REQ-017, change `us-013-local-bootstrapping`): while no account exists, the backend keeps one setup token as SHA-256 hash with an expiry in the single-row table `bootstrap_setup_tokens` and hands the token over only as a file inside the container. The bootstrapping deletes the row; a restart without account issues a new token. The token is a short-lived technical artifact and not a business object of its own.
+
 Open: multi-admin scenarios (several local system admin accounts) are not constrained by the data model; UC-02 keeps this as an open question.
 
 ## Change History
@@ -139,3 +141,4 @@ Open: multi-admin scenarios (several local system admin accounts) are not constr
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | Business Engineer | Initial draft in the context of UC-02 Bootstrapping |
 | 0.2.0 | 2026-10-13 | Business Engineer | ADR-032 DM-6: remote mode = IdP group mapping to `system-admin` (immutable IDs, REQ-167); BR-03 aligned with REQ-171 (MFA after first login); credentials moved to `local-credential`; `status` lifecycle; `linkedPerson` for SoD-1; BR-04 to BR-06 |
+| 0.3.0 | 2026-10-15 | Business Engineer | `loginName` pattern; setup token handover and `bootstrap_setup_tokens` (REQ-017) |

@@ -14,8 +14,8 @@
 
 ## 2. Data model and bootstrapping persistence
 
-- [ ] 2.1 Update `docs/data-model.puml` (`system_settings.instance_slug` with CHECK, `bootstrap_setup_tokens`, `login_name` CHECK), `business-objects/system-settings.md` (`instanceSlug`) and `business-objects/system-admin-account.md` (setup token note); verify the PlantUML file renders without errors and link validation passes
-- [ ] 2.2 Flyway migration `db/migration/V2__bootstrapping.sql`: `system_settings`, `system_admin_accounts`, `local_credentials`, `password_credentials`, `bootstrap_setup_tokens` as in design (no `persons` references yet) with the grants for `oea_app`; verify with a test that the tables are owned by `oea_owner`, that `oea_app` cannot delete accounts or credentials, and that the startup audit privilege check still passes
+- [x] 2.1 Update `docs/data-model.puml` (`system_settings.instance_slug` with CHECK, `bootstrap_setup_tokens`, `login_name` CHECK), `business-objects/system-settings.md` (`instanceSlug`) and `business-objects/system-admin-account.md` (setup token note); verify the PlantUML file renders without errors and link validation passes
+- [x] 2.2 Flyway migration `db/migration/V2__bootstrapping.sql`: `system_settings`, `system_admin_accounts`, `local_credentials`, `password_credentials`, `bootstrap_setup_tokens` as in design (no `persons` references yet) with the grants for `oea_app`; verify with a test that the tables are owned by `oea_owner`, that `oea_app` cannot delete accounts or credentials, and that the startup audit privilege check still passes
 - [ ] 2.3 Add the domain model and repositories in `io.oea.core` (system admin account, password credential, system settings, setup token) and argon2id hashing with `spring-security-crypto` and Bouncy Castle (REQ-169 parameters) in `backend/pom.xml`; verify with unit tests that hashes are PHC `$argon2id$` strings with m = 19456, t = 2, p = 1 and that Maven Enforcer and the artifact check stay green
 
 ## 3. Setup token and bootstrapping service
