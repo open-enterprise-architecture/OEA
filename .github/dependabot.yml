@@ -1,4 +1,5 @@
-# Keeps the SHA-pinned GitHub Actions up to date (REQ-191, REQ-192).
+# Keeps the SHA-pinned GitHub Actions, Maven dependencies and digest-pinned
+# container images up to date (REQ-191, REQ-192).
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -10,3 +11,27 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
+
+  - package-ecosystem: maven
+    directory: /backend
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+    groups:
+      spring-boot:
+        patterns: ["org.springframework.boot:*"]
+
+  - package-ecosystem: docker
+    directory: /backend
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
