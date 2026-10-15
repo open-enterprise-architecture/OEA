@@ -46,7 +46,7 @@ Typical lifetime: the retention period in force, at least 1 year, default 7 year
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
 | id | integer | required | | BIGSERIAL; technical key | Technical identifier |
-| eventType | string | required | | stable name from the event catalog (`docs/audit-event-catalog.md`, follow-up), e.g. `entity.created`, `auth.login`, `authz.denied`, `analytics.query.executed` | What happened |
+| eventType | string | required | | stable name from the event catalog ([event catalog](../docs/audit-event-catalog.md)), e.g. `entity.created`, `auth.login`, `authz.denied`, `analytics.query.executed` | What happened |
 | eventCategory | enum | required | | `[change, security, access, system]` | Category for filtering and SIEM routing |
 | severity | enum | required | | `[info, warning, high, critical]` | Severity |
 | outcome | enum | required | | `[success, failure, denied]` | Result of the operation |
