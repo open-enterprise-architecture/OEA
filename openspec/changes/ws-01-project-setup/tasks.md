@@ -42,7 +42,7 @@
 
 ## 6. Build-time checks against test-only authentication code
 
-- [ ] 6.1 Add ArchUnit rules: main classes must not depend on Testcontainers, Keycloak, `io.oea.testsupport..` or `spring-security-test`, no main class name matching the stub pattern, no profile-conditional security bean; integration tests must not use mock authentication; verify the rules pass and fail on fixtures (spec: Stub class in main code)
+- [x] 6.1 Add ArchUnit rules: main classes must not depend on Testcontainers, Keycloak, `io.oea.testsupport..` or `spring-security-test`, no main class name matching the stub pattern, no profile-conditional security bean; integration tests must not use mock authentication; verify the rules pass and fail on fixtures (spec: Stub class in main code)
 - [ ] 6.2 Add Maven Enforcer `bannedDependencies` (Testcontainers, Keycloak, mock OAuth servers, WireMock, `spring-security-test` not in compile/runtime scope); verify the build fails when such a dependency is added with compile scope
 - [ ] 6.3 Write `scripts/check_production_artifact.py` inspecting the Spring Boot jar and the image for forbidden classes, banned libraries, `application-dev*` and realm files; verify it passes on the real artifact and fails on a seeded one (spec: Production artifact inspection)
 
