@@ -13,12 +13,14 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.UnaryOperator;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -130,7 +132,7 @@ public final class OidcLogin {
 	}
 
 	/** Result of a login through the application's own flow (design D2 of us-001-oidc-login). */
-	public record ApplicationLogin(int status, String location, String sessionToken) {
+	public record ApplicationLogin(int status, String location, String sessionToken, List<String> secrets) {
 	}
 
 	/**
@@ -154,7 +156,7 @@ public final class OidcLogin {
 		String authorization = start.headers().firstValue("Location").orElseThrow();
 		String loginCookie = cookie(start, "__Host-OEA_LOGIN");
 		if (loginCookie == null) {
-			return new ApplicationLogin(start.statusCode(), authorization, null);
+			return new ApplicationLogin(start.statusCode(), authorization, null, List.of());
 		}
 		HttpClient idp = HttpClient.newBuilder()
 			.cookieHandler(new LoopbackCookieJar())
@@ -173,8 +175,22 @@ public final class OidcLogin {
 				HttpRequest.newBuilder(URI.create(applicationUrl + callback.substring(publicUrl.length())))
 					.header("Cookie", "__Host-OEA_LOGIN=" + loginCookie)
 					.GET());
-		return new ApplicationLogin(done.statusCode(), done.headers().firstValue("Location").orElse(null),
-				cookie(done, "__Host-OEA_SESSION"));
+		// values that must never appear in logs (REQ-175 AC3)
+		List<String> secrets = new ArrayList<>(List.of(loginCookie, DevRealm.password(username)));
+		String query = URI.create(callback).getRawQuery();
+		if (query != null) {
+			query(query).forEach((name, value) -> {
+				if (name.equals("code") || name.equals("state")) {
+					secrets.add(value);
+				}
+			});
+		}
+		String session = cookie(done, "__Host-OEA_SESSION");
+		if (session != null) {
+			secrets.add(session);
+		}
+		return new ApplicationLogin(done.statusCode(), done.headers().firstValue("Location").orElse(null), session,
+				List.copyOf(secrets));
 	}
 
 	private static String cookie(HttpResponse<String> response, String name) {

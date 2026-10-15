@@ -17,7 +17,7 @@
 - [x] 3.3 Implement `startOidcLogin` and `completeOidcLogin` with `oidc_login_states`, the login cookie and PKCE (D2, D3); extend the test helper `OidcLogin` to drive the application's flow; verify with tests for the specs "Successful login", "Existing session", "Login without PKCE" and "Only enabled providers offered"
 - [x] 3.4 Implement the identity binding lookup, the person status rules and the transition `invited → active` with `person.activated` (D5) and the session of a person with `idp_token_expires_at` (D6); verify with tests for the specs "First login of an invited person", "Matching e-mail with a different subject" (`dev-email-twin`) and "Person not active"
 - [x] 3.5 Implement the generic failures and audit events of D10; verify with tests for the spec "Unknown and inactive identities" and a provider that cannot be reached
-- [ ] 3.6 Write the Cucumber feature `identity/oidc-login.feature` for the `identity/oidc-login` spec against the running application and the Keycloak Testcontainer; verify it passes through `CucumberIT` with the REQ-175 AC3 log scan (no token, code or verifier in the logs)
+- [x] 3.6 Write the Cucumber feature `identity/oidc-login.feature` for the `identity/oidc-login` spec against the running application and the Keycloak Testcontainer; verify it passes through `CucumberIT` with the REQ-175 AC3 log scan (no token, code or verifier in the logs)
 
 ## 4. IdP-derived roles
 
