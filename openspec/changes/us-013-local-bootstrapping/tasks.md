@@ -34,8 +34,8 @@
 
 ## 5. Frontend
 
-- [ ] 5.1 Add the setup page `/setup` (Nuxt UI form: setup token, login name, password with confirmation, instance slug) using the generated API types, with client-side checks mirroring the API constraints and display of the problem details; verify with Vitest tests for success, validation and the three problem types
-- [ ] 5.2 Show a setup hint with a link on the start page while `GET /setup/status` reports `setupRequired`; verify with a Vitest test; SCR-002 keeps the status `legacy-mockup` and gets no screen story in this change (owner decision 2026-10-15, follows with change 6)
+- [x] 5.1 Add the setup page `/setup` (Nuxt UI form: setup token, login name, password with confirmation, instance slug) using the generated API types, with client-side checks mirroring the API constraints and display of the problem details; verify with Vitest tests for success, validation and the three problem types
+- [x] 5.2 Show a setup hint with a link on the start page while `GET /setup/status` reports `setupRequired`; verify with a Vitest test; SCR-002 keeps the status `legacy-mockup` and gets no screen story in this change (owner decision 2026-10-15, follows with change 6)
 - [ ] 5.3 Verify the walking-skeleton flow manually in the development environment: fresh volume, read the token with `docker compose exec backend cat /run/oea/setup-token`, complete `/setup` in the browser, `oea audit verify` reports OK; record the result in the PR
 
 ## 6. Wrap-up
