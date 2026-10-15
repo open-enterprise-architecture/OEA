@@ -32,7 +32,10 @@ public final class ReencryptCommand {
 	 */
 	static final List<Target> TARGETS = List.of(
 			new Target("totp_credentials", "credential_id", "secret_encrypted", "key_id"),
-			new Target("auth_providers", "id", "client_secret_encrypted", "client_secret_key_id"));
+			new Target("auth_providers", "id", "client_secret_encrypted", "client_secret_key_id"),
+			new Target("sessions", "id", "idp_refresh_token_encrypted", "idp_refresh_token_key_id"),
+			new Target("oidc_login_states", "encode(state_hash, 'hex')", "code_verifier_encrypted",
+					"code_verifier_key_id"));
 
 	record Target(String table, String idColumn, String valueColumn, String keyColumn) {
 

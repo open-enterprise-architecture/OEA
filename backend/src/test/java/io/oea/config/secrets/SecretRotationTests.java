@@ -131,7 +131,7 @@ class SecretRotationTests {
 	private void start(Path key) throws Exception {
 		Path tokenFile = Files.createTempDirectory("oea-rotation").resolve("setup-token");
 		this.application = OeaApplications.start(postgres, tokenFile, WebApplicationType.SERVLET,
-				"--oea.security.kek.current=" + key);
+				"--oea.security.kek.current=" + key, "--oea.web.public-url=https://oea.example.org");
 	}
 
 	private HttpResponse<String> login() throws Exception {

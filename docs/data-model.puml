@@ -551,6 +551,8 @@ package "Sessions" #FFF3E0 {
     == IdP group re-evaluation (Q16, DM-10) ==
     + idp_refresh_token_encrypted : TEXT
     .. AES-256-GCM (REQ-188); server-side only, never returned ..
+    + idp_refresh_token_key_id : TEXT
+    .. key ID of the key-encryption key; set iff the token is set (rotation) ..
     + idp_claims_evaluated_at : TIMESTAMPTZ
     .. last evaluation of the groups claim; max. 15 min old ..
     + idp_groups_claim_status : TEXT
@@ -1630,6 +1632,7 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   new login_transactions and auth_throttle; setup phase columns in
 '   system_settings (ADR-042). Reason: US-013 AC2, REQ-165, REQ-168, REQ-187, REQ-188.
 ' 2026-10-15 (us-001-oidc-login):
+'   sessions.idp_refresh_token_key_id (key rotation, REQ-188),
 '   sessions.idp_group_identifiers (SoD-1) and sessions.idp_token_expires_at
 '   (session lifetime bounded by the IdP refresh token, owner decision 2026-10-15);
 '   new oidc_login_states (state, nonce, PKCE verifier of running logins).

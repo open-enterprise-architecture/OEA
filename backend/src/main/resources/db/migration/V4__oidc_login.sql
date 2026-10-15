@@ -1,10 +1,14 @@
 -- OIDC login of persons (change us-001-oidc-login; docs/data-model.puml). Runs as oea_owner.
 
--- Group identifiers of the last evaluation (SoD-1, access review) and the expiry of the
+-- Key ID of the encrypted IdP refresh token (REQ-188, rotation), group identifiers of the last
+-- evaluation (SoD-1, access review) and the expiry of the
 -- IdP refresh token, which bounds the session (owner decision 2026-10-15, REQ-001, REQ-165)
 ALTER TABLE sessions
-    ADD COLUMN idp_group_identifiers TEXT[],
-    ADD COLUMN idp_token_expires_at  TIMESTAMPTZ,
+    ADD COLUMN idp_refresh_token_key_id TEXT,
+    ADD COLUMN idp_group_identifiers    TEXT[],
+    ADD COLUMN idp_token_expires_at     TIMESTAMPTZ,
+    ADD CONSTRAINT sessions_idp_refresh_token_key CHECK (
+        (idp_refresh_token_encrypted IS NULL) = (idp_refresh_token_key_id IS NULL)),
     ADD CONSTRAINT sessions_idp_fields_oidc_only CHECK (
         auth_method = 'oidc' OR (idp_group_identifiers IS NULL AND idp_token_expires_at IS NULL
                                  AND idp_refresh_token_encrypted IS NULL));

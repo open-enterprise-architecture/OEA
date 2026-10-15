@@ -70,6 +70,18 @@ public class Sessions {
 		return new NewSession(token, csrfToken(token), principal(session, account));
 	}
 
+	/** New session of a person established through an OIDC provider (US-001, design D6). */
+	@Transactional
+	public NewSession createForPerson(Person person, UUID authProviderId, boolean secondFactorVerified,
+			String clientIp, String userAgent) {
+		String token = randomToken();
+		Instant now = this.clock.instant();
+		LoginSession session = this.sessions.save(LoginSession.forPerson(person.getId(), authProviderId, hash(token),
+				secondFactorVerified, now, this.properties.absoluteLifetime(), clientIp, userAgent));
+		return new NewSession(token, csrfToken(token), new OeaPrincipal(OeaPrincipal.Type.PERSON, null, person.getId(),
+				person.getName(), session.getId(), secondFactorVerified, now));
+	}
+
 	/** The principal of an active session, or empty for unknown, revoked or expired sessions. */
 	@Transactional
 	public Optional<OeaPrincipal> authenticate(String token) {
@@ -109,7 +121,8 @@ public class Sessions {
 	@Transactional
 	public void logout(OeaPrincipal principal) {
 		this.sessions.findById(principal.sessionId())
-			.ifPresent((session) -> session.revoke("logout", principal.systemAdminAccountId(), this.clock.instant()));
+			.ifPresent((session) -> session.revoke("logout", principal.systemAdminAccountId(), principal.personId(),
+					this.clock.instant()));
 		this.audit.append(new AuditEvent("auth.logout", AuditEvent.Category.SECURITY, AuditEvent.Severity.INFO,
 				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, actor(principal), "session",
 				principal.sessionId().toString(), Map.of()));

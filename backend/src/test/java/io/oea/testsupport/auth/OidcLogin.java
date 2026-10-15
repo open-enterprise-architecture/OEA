@@ -16,6 +16,8 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
+import java.util.function.UnaryOperator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -93,14 +95,8 @@ public final class OidcLogin {
 		authorize.put("code_challenge", challenge(verifier));
 		authorize.put("code_challenge_method", "S256");
 
-		HttpResponse<String> page = send(http,
-				HttpRequest.newBuilder(URI.create(issuer + "/protocol/openid-connect/auth?" + form(authorize))).GET());
-		page = submit(http, page, Map.of("username", username, "password", DevRealm.password(username),
-				"credentialId", ""));
-		String totpSecret = DevRealm.totpSecret(username);
-		if (page.statusCode() == 200 && totpSecret != null) {
-			page = submit(http, page, Map.of("otp", Totp.code(totpSecret, Instant.now())));
-		}
+		HttpResponse<String> page = authenticate(http,
+				URI.create(issuer + "/protocol/openid-connect/auth?" + form(authorize)), username);
 		String location = page.headers().firstValue("Location").orElse(null);
 		if (page.statusCode() != 302 || location == null || !location.startsWith(redirectUri)) {
 			throw new IllegalStateException("Login of " + username + " failed (HTTP " + page.statusCode() + "): "
@@ -131,6 +127,80 @@ public final class OidcLogin {
 		JsonNode body = JsonMapper.shared().readTree(token.body());
 		return new Tokens(body.path("access_token").asString(), body.path("id_token").asString(),
 				body.path("refresh_token").asString());
+	}
+
+	/** Result of a login through the application's own flow (design D2 of us-001-oidc-login). */
+	public record ApplicationLogin(int status, String location, String sessionToken) {
+	}
+
+	/**
+	 * Drives the application's OIDC login like a browser: the start endpoint, the login forms of
+	 * the IdP, then the application's callback with the login cookie. The IdP redirects to the
+	 * public URL; the helper sends that callback to the running application instead.
+	 *
+	 * @param applicationUrl base URL of the running application, e.g. {@code http://localhost:41234}
+	 * @param publicUrl public URL the application is configured with (registered redirect URI)
+	 * @param authorizationRequest lets a test change the authorization request (e.g. drop PKCE)
+	 */
+	public static ApplicationLogin loginThroughApplication(String applicationUrl, String publicUrl, UUID providerId,
+			String username, UnaryOperator<URI> authorizationRequest) {
+		HttpClient browser = HttpClient.newBuilder()
+			.followRedirects(HttpClient.Redirect.NEVER)
+			.connectTimeout(Duration.ofSeconds(10))
+			.build();
+		HttpResponse<String> start = send(browser, HttpRequest
+			.newBuilder(URI.create(applicationUrl + "/api/v1/auth/oidc/" + providerId + "/start?returnTo=/me"))
+			.GET());
+		String authorization = start.headers().firstValue("Location").orElseThrow();
+		String loginCookie = cookie(start, "__Host-OEA_LOGIN");
+		if (loginCookie == null) {
+			return new ApplicationLogin(start.statusCode(), authorization, null);
+		}
+		HttpClient idp = HttpClient.newBuilder()
+			.cookieHandler(new LoopbackCookieJar())
+			.followRedirects(HttpClient.Redirect.NEVER)
+			.connectTimeout(Duration.ofSeconds(10))
+			.build();
+		URI request = authorizationRequest.apply(URI.create(authorization));
+		HttpResponse<String> first = send(idp, HttpRequest.newBuilder(request).GET());
+		HttpResponse<String> page = (first.statusCode() == 200) ? authenticateOnPage(idp, first, username) : first;
+		String callback = page.headers().firstValue("Location").orElseThrow(
+				() -> new IllegalStateException("No redirect from the IdP: " + errorMessage(page.body())));
+		if (!callback.startsWith(publicUrl)) {
+			throw new IllegalStateException("IdP redirected elsewhere: " + callback);
+		}
+		HttpResponse<String> done = send(browser,
+				HttpRequest.newBuilder(URI.create(applicationUrl + callback.substring(publicUrl.length())))
+					.header("Cookie", "__Host-OEA_LOGIN=" + loginCookie)
+					.GET());
+		return new ApplicationLogin(done.statusCode(), done.headers().firstValue("Location").orElse(null),
+				cookie(done, "__Host-OEA_SESSION"));
+	}
+
+	private static String cookie(HttpResponse<String> response, String name) {
+		for (String header : response.headers().allValues("Set-Cookie")) {
+			if (header.startsWith(name + "=")) {
+				String value = header.substring(name.length() + 1, header.indexOf(';'));
+				return value.isEmpty() ? null : value;
+			}
+		}
+		return null;
+	}
+
+	/** Opens the authorization request and passes the password and, if any, the OTP form. */
+	private static HttpResponse<String> authenticate(HttpClient http, URI authorizationRequest, String username) {
+		return authenticateOnPage(http, send(http, HttpRequest.newBuilder(authorizationRequest).GET()), username);
+	}
+
+	private static HttpResponse<String> authenticateOnPage(HttpClient http, HttpResponse<String> loginPage,
+			String username) {
+		HttpResponse<String> page = submit(http, loginPage, Map.of("username", username, "password",
+				DevRealm.password(username), "credentialId", ""));
+		String totpSecret = DevRealm.totpSecret(username);
+		if (page.statusCode() == 200 && totpSecret != null) {
+			page = submit(http, page, Map.of("otp", Totp.code(totpSecret, Instant.now())));
+		}
+		return page;
 	}
 
 	private static HttpResponse<String> submit(HttpClient http, HttpResponse<String> page, Map<String, String> fields) {

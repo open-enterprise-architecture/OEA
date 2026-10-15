@@ -61,6 +61,22 @@ public class Person {
 		return person;
 	}
 
+	/** First successful login of an invited person (REQ-007); returns true if the status changed. */
+	public boolean activateOnFirstLogin(Instant now) {
+		if (!"invited".equals(this.status)) {
+			return false;
+		}
+		this.status = "active";
+		this.statusChangedAt = now;
+		this.statusChangedByAdminId = null;
+		return true;
+	}
+
+	/** Persons in status {@code invited} or {@code active} may log in (REQ-004). */
+	public boolean mayLogIn() {
+		return "invited".equals(this.status) || "active".equals(this.status);
+	}
+
 	public Long getId() {
 		return this.id;
 	}

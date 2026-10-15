@@ -11,4 +11,6 @@ public interface AuthProviderRepository extends JpaRepository<AuthProvider, UUID
 
 	List<AuthProvider> findAllByOrderByName();
 
+	List<AuthProvider> findAllByActiveTrueOrderByName();
+
 }

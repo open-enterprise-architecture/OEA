@@ -11,10 +11,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
 import org.springframework.security.oauth2.client.endpoint.OAuth2RefreshTokenGrantRequest;
 import org.springframework.security.oauth2.client.endpoint.RestClientAuthorizationCodeTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.RestClientRefreshTokenTokenResponseClient;
+import org.springframework.security.oauth2.client.http.OAuth2ErrorResponseErrorHandler;
 import org.springframework.security.oauth2.client.oidc.authentication.OidcIdTokenValidator;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
@@ -31,6 +33,7 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationExch
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationResponse;
 import org.springframework.security.oauth2.core.endpoint.PkceParameterNames;
+import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
 import org.springframework.security.oauth2.core.oidc.endpoint.OidcParameterNames;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -61,6 +64,9 @@ public class OidcClient {
 
 	private final RestClient http;
 
+	/** Token endpoint client: form requests, OAuth2 token responses and error bodies. */
+	private final RestClient tokenHttp;
+
 	private final Clock clock;
 
 	private final Map<String, Metadata> metadata = new ConcurrentHashMap<>();
@@ -72,6 +78,12 @@ public class OidcClient {
 				HttpClient.newBuilder().connectTimeout(TIMEOUT).followRedirects(HttpClient.Redirect.NEVER).build());
 		requests.setReadTimeout(TIMEOUT);
 		this.http = RestClient.builder().requestFactory(requests).build();
+		this.tokenHttp = RestClient.builder()
+			.requestFactory(requests)
+			.configureMessageConverters((converters) -> converters.addCustomConverter(new FormHttpMessageConverter())
+				.addCustomConverter(new OAuth2AccessTokenResponseHttpMessageConverter()))
+			.defaultStatusHandler(new OAuth2ErrorResponseErrorHandler())
+			.build();
 		this.clock = clock;
 	}
 
@@ -123,7 +135,7 @@ public class OidcClient {
 			.state(state)
 			.build();
 		RestClientAuthorizationCodeTokenResponseClient client = new RestClientAuthorizationCodeTokenResponseClient();
-		client.setRestClient(this.http);
+		client.setRestClient(this.tokenHttp);
 		return tokens(() -> client.getTokenResponse(new OAuth2AuthorizationCodeGrantRequest(registration,
 				new OAuth2AuthorizationExchange(request, response))));
 	}
@@ -136,7 +148,7 @@ public class OidcClient {
 		OAuth2AccessToken unused = new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER, "unused",
 				now.minusSeconds(2), now.minusSeconds(1));
 		RestClientRefreshTokenTokenResponseClient client = new RestClientRefreshTokenTokenResponseClient();
-		client.setRestClient(this.http);
+		client.setRestClient(this.tokenHttp);
 		return tokens(() -> client.getTokenResponse(new OAuth2RefreshTokenGrantRequest(registration, unused,
 				new OAuth2RefreshToken(refreshToken, null), registration.getScopes())));
 	}

@@ -52,6 +52,7 @@ Service accounts have no sessions; their client-credentials access tokens are sh
 | clientIp | string | optional | | INET | Source address (security events, REQ-175) |
 | userAgent | string | optional | | | Client description |
 | idpRefreshTokenEncrypted | string | optional | | AES-256-GCM; OIDC only | IdP refresh token for group re-evaluation |
+| idpRefreshTokenKeyId | string | conditional | | required iff `idpRefreshTokenEncrypted` is set | Key ID of the key-encryption key (rotation with `oea secrets reencrypt`) |
 | idpClaimsEvaluatedAt | datetime | optional | | ≤ 15 min old while the session is used (Q16) | Last evaluation of the groups claim |
 | idpGroupsClaimStatus | enum | optional | | `[present, missing, truncated]`; OIDC only | Result of the last evaluation; `missing`/`truncated` → no IdP-derived roles |
 | idpGroupIdentifiers | list of strings | optional | | OIDC only; identifiers of the provider's issuer | Group identifiers of the last evaluation; used for the self-administration check (SoD-1) and access review |
@@ -158,4 +159,4 @@ Created for REQ-164, REQ-165, ADR-032 DM-10 and owner decision Q16 (security rev
 | 0.1.0 | 2026-10-13 | Business Engineer | Initial draft from REQ-164, REQ-165, ADR-032 DM-10, Q16 |
 | 0.2.0 | 2026-10-13 | Lukas Mathis | BR-07: retention of ended sessions (secrets immediately, record 30 days configurable; owner decision Q20) |
 | 0.3.0 | 2026-10-15 | Business Engineer | `tokenHash` for the web session cookie; the CSRF token is derived from the cookie value and not stored (change `us-013-system-admin-login`, REQ-187) |
-| 0.4.0 | 2026-10-15 | Business Engineer | `idpGroupIdentifiers`, `idpTokenExpiresAt`; session lifetime bounded by the IdP refresh token, BR-04/BR-05 clarified (change `us-001-oidc-login`, owner decision 2026-10-15) |
+| 0.4.0 | 2026-10-15 | Business Engineer | `idpRefreshTokenKeyId`, `idpGroupIdentifiers`, `idpTokenExpiresAt`; session lifetime bounded by the IdP refresh token, BR-04/BR-05 clarified (change `us-001-oidc-login`, owner decision 2026-10-15) |

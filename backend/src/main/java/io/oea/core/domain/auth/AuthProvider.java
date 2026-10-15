@@ -106,6 +106,14 @@ public class AuthProvider extends NewAwareEntity<UUID> {
 		return this.active;
 	}
 
+	public String getClientSecretEncrypted() {
+		return this.clientSecretEncrypted;
+	}
+
+	public String getClientSecretKeyId() {
+		return this.clientSecretKeyId;
+	}
+
 	public boolean hasClientSecret() {
 		return this.clientSecretEncrypted != null;
 	}
