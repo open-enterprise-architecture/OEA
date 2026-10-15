@@ -13,7 +13,7 @@
 
 - [x] 3.1 Implement key loading (`oea.security.kek.current`, `oea.security.kek.previous`), key IDs and AES-256-GCM encryption with additional authenticated data (D8); verify with unit tests for round trip, wrong key, swapped row and tampered ciphertext
 - [x] 3.2 Extend guard G4 for the key file (missing, unreadable, shorter than 256 bit, known development key); add `dev/secrets/oea-kek-dev-only.key`, list its hash and extend `scripts/check_dev_secrets.py` to treat files under `dev/secrets/` as secrets; add the key as Compose secret in `compose.yaml` (required) and `compose.dev.yaml`, and `OEA_KEK_FILE` in `.env.example`; verify startup tests for the spec "Missing key" and that `check_dev_secrets.py` and `check_compose_secrets.py` pass
-- [ ] 3.3 Implement `oea secrets reencrypt`; verify with a Testcontainers test for the spec "Rotation" (TOTP login works after rotation) and a dump search for the spec "Database dump"
+- [x] 3.3 Implement `oea secrets reencrypt`; verify with a Testcontainers test for the spec "Rotation" (TOTP login works after rotation) and a dump search for the spec "Database dump"
 
 ## 4. Sessions and authorization
 
