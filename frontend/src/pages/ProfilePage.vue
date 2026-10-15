@@ -9,6 +9,15 @@ const router = useRouter()
 
 const me = computed(() => session.me)
 
+type RoleGrant = NonNullable<typeof session.me>['roles'][number]
+
+// Source and effectiveness of a role (ADR-032 §7, SoD-8)
+function roleLabel(grant: RoleGrant): string {
+  const source = grant.source === 'idp' ? ' (identity provider)' : ''
+  const state = grant.effective ? '' : grant.notEffectiveReason === 'mfa-required' ? ' – needs a second factor' : ' – not effective'
+  return `${grant.role.name}${source}${state}`
+}
+
 onMounted(() => refreshSession(props.fetchFn))
 
 async function logOut() {
@@ -46,8 +55,17 @@ async function logOut() {
           />
         </dd>
         <dt class="text-muted">Roles</dt>
-        <dd data-testid="roles">{{ me.roles.map((grant) => grant.role.name).join(', ') || '–' }}</dd>
+        <dd data-testid="roles">{{ me.roles.map(roleLabel).join(', ') || '–' }}</dd>
       </dl>
+
+      <UAlert
+        v-if="!me.roles.some((grant) => grant.effective)"
+        data-testid="no-role"
+        color="neutral"
+        variant="subtle"
+        title="No role assigned"
+        description="You are logged in, but no role is assigned to you yet. Ask an administrator for access."
+      />
 
       <UButton
         v-if="!me.mfaSatisfied"

@@ -4,6 +4,7 @@ import { readRejection, type Rejection } from './problem'
 export type Me = components['schemas']['Me']
 export type LoginResult = components['schemas']['LoginResult']
 export type TotpEnrollment = components['schemas']['TotpEnrollment']
+export type LoginProvider = components['schemas']['LoginProvider']
 
 /** Outcome of a login step (US-013 AC2, ADR-042). */
 export type LoginOutcome =
@@ -46,6 +47,21 @@ async function loginOutcome(response: Response): Promise<LoginOutcome> {
     return { kind: 'second-factor', loginTransaction: rejection.loginTransaction }
   }
   return { kind: 'rejected', rejection }
+}
+
+/** GET /auth/oidc/providers: enabled identity providers; an unreachable backend yields none. */
+export async function fetchLoginProviders(fetchFn: typeof fetch = fetch): Promise<LoginProvider[]> {
+  try {
+    const response = await fetchFn('/api/v1/auth/oidc/providers', { headers: { Accept: 'application/json' } })
+    return response.ok ? ((await response.json()) as LoginProvider[]) : []
+  } catch {
+    return []
+  }
+}
+
+/** Start URL of the OIDC login; the browser navigates there (US-001, design D3). */
+export function oidcLoginUrl(providerId: string, returnTo = '/me'): string {
+  return `/api/v1/auth/oidc/${encodeURIComponent(providerId)}/start?returnTo=${encodeURIComponent(returnTo)}`
 }
 
 /** POST /auth/local/login: password step. */
