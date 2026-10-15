@@ -1,4 +1,4 @@
-# Keeps the SHA-pinned GitHub Actions, Maven dependencies and digest-pinned
+# Keeps the SHA-pinned GitHub Actions, Maven and npm dependencies and digest-pinned
 # container images up to date (REQ-191, REQ-192).
 version: 2
 updates:
@@ -35,3 +35,15 @@ updates:
       interval: weekly
     commit-message:
       prefix: build
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+    groups:
+      nuxt-ui:
+        patterns: ["@nuxt/ui", "tailwindcss", "@iconify-json/*"]
+      storybook:
+        patterns: ["storybook", "@storybook/*"]

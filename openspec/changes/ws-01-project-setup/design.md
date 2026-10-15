@@ -85,6 +85,8 @@ Transitive Maven dependencies reach the dependency graph through GitHub's *Autom
 
 Vite + Vue 3 + TypeScript (strict) + Nuxt UI 4 (ADR-040, via its Vite plugin without Nuxt) + Tailwind CSS 4, `vue-tsc` type check, Vitest for unit tests, Storybook (Vue 3 + Vite) with the accessibility addon. Node 24 LTS. Only a start page and an empty `src/screens/` directory; no screen story yet, so `scripts/check_screens.py` stays green.
 
+- Details fixed during implementation: Nuxt UI runs through `@nuxt/ui/vite` and `@nuxt/ui/vue-plugin` without Nuxt; icons are bundled at build time (`icon.clientBundle.scan`, `@iconify-json/lucide`). TypeScript 6.0 (the last JavaScript-based release; TypeScript 7 is the native port without the API `vue-tsc` uses); `openapi-typescript` declares a TypeScript 5 peer and is pinned to the project TypeScript through an npm `overrides` entry. CI installs with `npm ci --ignore-scripts`. The start page shows the backend health status and has one component story so that the Storybook build has content.
+
 ## Data Model
 
 No change to `docs/data-model.puml` or `business-objects/`. Planned Flyway migrations:
@@ -108,4 +110,5 @@ Delta to `api/openapi.yaml`: new public operation `GET /health` (operationId `ge
 
 - Exact Keycloak and PostgreSQL patch versions and digests – fixed when the images are pinned (resolved: Keycloak 26.8.1, PostgreSQL 17 for Compose, 15 for tests, all by digest)
 - `amr` claim: the realm has the AMR protocol mapper, but Keycloak emits values only when the browser-flow executions carry authenticator reference values (`pwd`, `otp`). Configured together with the MFA checks in change 3 (US-001); this change verifies only that TOTP users pass the second factor
+- Iconify fallback: the Iconify runtime still contains its public API endpoints for icons that are not bundled. The Content Security Policy of the portal and the Electron client (`connect-src 'self'`, ADR-035) blocks them; a build-time check that every used icon is bundled follows with the first screen (change 6)
 - Client type of `oea-portal` (ADR-036 §4: as decided by the login design of REQ-001/REQ-165): provisionally confidential with PKCE in the development realm; change 3 confirms or changes it

@@ -212,12 +212,29 @@ jobs:
       - name: Operator Compose starts with explicit secrets (health within 60 s)
         run: scripts/compose_smoke_test.sh
 
-  # ── Placeholder: frontend build (after ADR-040) ───────────────────────────
-  # frontend-build:
-  #   name: Frontend Build & Typecheck
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-  #     - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-  #       with: { node-version: '24' }
-  #     - run: cd frontend && npm ci && npm run type-check && npm run build
+  # ── 7. Frontend build (ADR-011, ADR-031, ADR-040) ───────────────────────────
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install (lockfile only, no install scripts)
+        run: npm ci --ignore-scripts
+      - name: Type check (API types generated from api/openapi.yaml)
+        run: npm run type-check
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Storybook build
+        run: npm run build-storybook

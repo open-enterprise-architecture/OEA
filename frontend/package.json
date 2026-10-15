@@ -1,0 +1,53 @@
+{
+  "name": "oea-frontend",
+  "private": true,
+  "version": "0.0.1",
+  "description": "OEA frontend (Vue 3, Nuxt UI 4)",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "generate:api": "openapi-typescript ../api/openapi.yaml -o src/api/generated/schema.d.ts",
+    "predev": "npm run generate:api",
+    "dev": "vite",
+    "pretype-check": "npm run generate:api",
+    "type-check": "vue-tsc --build",
+    "pretest": "npm run generate:api",
+    "test": "vitest run",
+    "prebuild": "npm run generate:api",
+    "build": "vue-tsc --build && vite build",
+    "preview": "vite preview",
+    "storybook": "storybook dev -p 6006",
+    "prebuild-storybook": "npm run generate:api",
+    "build-storybook": "storybook build"
+  },
+  "dependencies": {
+    "@nuxt/ui": "^4.11.3",
+    "tailwindcss": "^4.3.3",
+    "vue": "^3.5.42",
+    "vue-router": "^5.4.0"
+  },
+  "devDependencies": {
+    "@iconify-json/lucide": "^1.2.144",
+    "@storybook/addon-a11y": "^10.6.2",
+    "@storybook/vue3-vite": "^10.6.2",
+    "@types/node": "^24.13.3",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/test-utils": "^2.5.1",
+    "@vue/tsconfig": "^0.9.1",
+    "jsdom": "^30.1.2",
+    "openapi-typescript": "^7.13.0",
+    "storybook": "^10.6.2",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.4",
+    "vue-tsc": "^3.3.11"
+  },
+  "overrides": {
+    "openapi-typescript": {
+      "typescript": "$typescript"
+    }
+  }
+}

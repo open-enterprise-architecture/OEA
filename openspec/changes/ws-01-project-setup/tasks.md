@@ -15,7 +15,7 @@
 - [x] 2.3 Flyway migration `db/migration-audit/V1__audit_schema.sql`: `audit.events`, `audit.event_changes`, `audit.retention_settings` (CHECK ≥ 365; the seed row of 2555 days follows in change 2 with the hash-chain trigger, owner decision 2026-10-15), `audit.chain_head` per `docs/data-model.puml`, grants INSERT/SELECT for `oea_app`, SELECT for `oea_auditor`, `REVOKE ALL … FROM PUBLIC`; verify with a test that the table owner is `oea_owner`
 - [x] 2.4 Flyway migration `db/migration-reporting/V1__reporting_schema.sql` (empty schemas `reporting`, `reporting_ctx`, owner `oea_reporting_owner`); verify the owner in a test
 - [x] 2.5 Implement the `migrate` mode (non-web context, Flyway for the three locations with the respective owner credentials, exit code 0/1) and disable auto-migration in the application, which only validates the schema history; verify with Testcontainers tests for both scenarios of "Separate migration step"
-- [ ] 2.6 Write the Cucumber feature `platform/database-roles.feature` with the scenarios "Update rejected" and "Destructive statements rejected" (runtime role against `audit.events`); verify the scenarios pass in CI
+- [x] 2.6 Write the Cucumber feature `platform/database-roles.feature` with the scenarios "Update rejected" and "Destructive statements rejected" (runtime role against `audit.events`); verify the scenarios pass in CI
 - [x] 2.7 Document the provisioning script for operator-managed PostgreSQL in `docs/operations.md` (new); verify link validation passes
 
 ## 3. Startup checks
@@ -32,7 +32,7 @@
 - [x] 4.3 Write `scripts/check_compose_secrets.py` (no literal secrets or `${VAR:-…}` defaults in `compose.yaml`, all published ports of `compose.dev.yaml` bound to `127.0.0.1`, every development service with `profiles: ["dev"]`); verify it passes and fails on seeded violations
 - [x] 4.4 Write `dev/keycloak/realm-oea-dev.json` with the clients, groups (fixed UUIDs, `groups` claim as identifiers), test users and TOTP secrets of ADR-036 §4; verify Keycloak imports it and a discovery request to `http://localhost:8180/realms/oea-dev/.well-known/openid-configuration` returns 200
 - [ ] 4.5 Write `compose.dev.yaml` (profile `dev`: PostgreSQL with `*-dev-only` credentials and the init script, `migrate`, Keycloak with realm import, backend with Spring profile `dev` and `dev/backend/application-dev.yml`, Vite), ports on `127.0.0.1`, images pinned by digest, plus a helper target (`make dev` / `scripts/dev.sh`); verify the scenarios "Development environment starts" and "Development services require the profile" manually and record the result in the PR
-- [ ] 4.6 Verify the scenario "All secrets supplied": with a filled `.env`, `docker compose up` migrates, starts and `GET /health` returns 200 within 60 seconds (CI job using Compose)
+- [x] 4.6 Verify the scenario "All secrets supplied": with a filled `.env`, `docker compose up` migrates, starts and `GET /health` returns 200 within 60 seconds (CI job using Compose)
 
 ## 5. Test foundation
 
@@ -48,17 +48,17 @@
 
 ## 7. Frontend scaffold
 
-- [ ] 7.1 Create `frontend/` with Vite, Vue 3, TypeScript (strict), Nuxt UI 4 (ADR-040), Tailwind CSS 4, Vitest and npm; a start page only; verify `npm ci`, `npm run type-check`, `npm run test` and `npm run build` succeed
-- [ ] 7.2 Generate API types from `api/openapi.yaml` with `openapi-typescript` in `prebuild` (output not committed); verify the build fails if the spec is invalid
-- [ ] 7.3 Configure Storybook (Vue 3 + Vite, accessibility addon) with an empty `src/screens/`; verify `npm run build-storybook` succeeds and `python3 scripts/check_screens.py` stays green
+- [x] 7.1 Create `frontend/` with Vite, Vue 3, TypeScript (strict), Nuxt UI 4 (ADR-040), Tailwind CSS 4, Vitest and npm; a start page only; verify `npm ci`, `npm run type-check`, `npm run test` and `npm run build` succeed
+- [x] 7.2 Generate API types from `api/openapi.yaml` with `openapi-typescript` in `prebuild` (output not committed); verify the build fails if the spec is invalid
+- [x] 7.3 Configure Storybook (Vue 3 + Vite, accessibility addon) with an empty `src/screens/`; verify `npm run build-storybook` succeeds and `python3 scripts/check_screens.py` stays green
 
 ## 8. CI
 
-- [ ] 8.1 Add the job "Backend build and tests" (`./mvnw verify` incl. Testcontainers, ArchUnit, Enforcer, Cucumber) with `contents: read`, SHA-pinned actions and Maven cache; verify it runs green on the PR
-- [ ] 8.2 Add the job "Frontend build" (type check, unit tests, build, Storybook build); verify it runs green on the PR
-- [ ] 8.3 Add the job "Security checks" running `check_compose_secrets.py`, `check_dev_secrets.py` and, after packaging, `check_production_artifact.py`; verify it runs green and fails on a seeded violation in a test branch
-- [ ] 8.4 Extend `.github/dependabot.yml` with the `maven`, `npm` and `docker` ecosystems; verify the YAML is valid
-- [ ] 8.5 Measure and record the Keycloak and PostgreSQL Testcontainers start times in CI (ADR-036 follow-up); verify the numbers are noted in the PR description
+- [x] 8.1 Add the job "Backend build and tests" (`./mvnw verify` incl. Testcontainers, ArchUnit, Enforcer, Cucumber) with `contents: read`, SHA-pinned actions and Maven cache; verify it runs green on the PR
+- [x] 8.2 Add the job "Frontend build" (type check, unit tests, build, Storybook build); verify it runs green on the PR
+- [x] 8.3 Add the job "Security checks" running `check_compose_secrets.py`, `check_dev_secrets.py` and, after packaging, `check_production_artifact.py`; verify it runs green on the PR; the seeded violations of 4.3, 3.4 and 6.3 were verified locally with the same scripts (CI runs only for pull requests, so no separate test branch)
+- [x] 8.4 Extend `.github/dependabot.yml` with the `maven`, `npm` and `docker` ecosystems; verify the YAML is valid
+- [x] 8.5 Measure and record the Keycloak and PostgreSQL Testcontainers start times in CI (ADR-036 follow-up); verify the numbers are noted in the PR description
 
 ## 9. Wrap-up
 
