@@ -6,6 +6,7 @@
 FROM docker.io/library/eclipse-temurin:25-jdk-noble@sha256:589ff4cc3f71aab462e7048a47a0d10edf57fbccde3fceea2281e610bf5880b4 AS build
 WORKDIR /workspace
 COPY api/openapi.yaml api/openapi.yaml
+COPY packages/*.json packages/
 COPY backend/.mvn backend/.mvn
 COPY backend/mvnw backend/pom.xml backend/
 COPY backend/src/main backend/src/main

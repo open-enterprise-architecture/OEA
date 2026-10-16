@@ -5,9 +5,11 @@ import io.oea.api.generated.model.AuthProvider;
 import io.oea.api.generated.model.AuthProviderWrite;
 import io.oea.api.generated.model.ImportMetamodelPackageRequest;
 import io.oea.api.generated.model.ImportResult;
+import io.oea.api.generated.model.StarterPackage;
 import io.oea.app.access.AuthProviders;
 import io.oea.app.metamodel.PackageConflictException;
 import io.oea.app.metamodel.PackageImporter;
+import io.oea.app.metamodel.StarterPackages;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.config.security.OeaAuthentication;
 import java.util.List;
@@ -29,9 +31,38 @@ public class AdminController implements AdminApi {
 
 	private final PackageImporter packageImporter;
 
-	public AdminController(AuthProviders providers, PackageImporter packageImporter) {
+	private final StarterPackages starterPackages;
+
+	public AdminController(AuthProviders providers, PackageImporter packageImporter,
+			StarterPackages starterPackages) {
 		this.providers = providers;
 		this.packageImporter = packageImporter;
+		this.starterPackages = starterPackages;
+	}
+
+	@Override
+	public ResponseEntity<List<StarterPackage>> listStarterPackages() {
+		return ResponseEntity.ok(this.starterPackages.list()
+			.stream()
+			.map((summary) -> {
+				StarterPackages.Shipped shipped = summary.shipped();
+				return new StarterPackage(shipped.packageId(), shipped.name(), shipped.version(), shipped.publisher(),
+						shipped.description(), shipped.metatypeNames().size(), shipped.propertyDefinitionCount(),
+						shipped.metatypeNames(), summary.imported());
+			})
+			.toList());
+	}
+
+	@Override
+	public ResponseEntity<ImportResult> importStarterPackage(String packageId) {
+		ImportMetamodelPackageRequest request = MetamodelPackages.read(this.starterPackages.get(packageId).content());
+		try {
+			return ResponseEntity.ok(MetamodelPackages
+				.result(this.packageImporter.importPackage(principal(), MetamodelPackages.definition(request))));
+		}
+		catch (PackageConflictException ex) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(MetamodelPackages.result(ex));
+		}
 	}
 
 	@Override

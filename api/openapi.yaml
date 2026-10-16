@@ -1043,6 +1043,8 @@ components:
         packageId:           { type: string, pattern: '^[a-z0-9][a-z0-9-]{1,62}$', example: oea-starter-togaf-classic }
         packageVersion:      { type: string, maxLength: 32, example: "1.0.0" }
         publisher:           { type: string, maxLength: 100, example: OEA }
+        name:                { type: string, maxLength: 200, description: "Display name of the package" }
+        description:         { type: string, maxLength: 2000 }
         exportedAt:          { type: string, format: date-time }
         sourceInstanceId:    { type: [string, 'null'] }
         metatypes:

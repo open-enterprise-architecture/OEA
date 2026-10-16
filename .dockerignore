@@ -1,6 +1,7 @@
-# Allowlist: the backend image needs only the contract and the backend sources.
+# Allowlist: the backend image needs only the contract, the starter packages and the backend sources.
 *
 !api/openapi.yaml
+!packages/*.json
 !backend/.mvn/
 !backend/mvnw
 !backend/pom.xml

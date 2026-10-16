@@ -1,0 +1,193 @@
+{
+  "formatVersion": "1.0",
+  "exportedAt": "2026-10-16T00:00:00Z",
+  "packageId": "oea-starter-togaf-classic",
+  "packageVersion": "1.0.0",
+  "publisher": "OEA",
+  "name": "TOGAF classic starter configuration",
+  "description": "Starter metamodel after the classic TOGAF/ArchiMate reading (platform as technology, ADR-005): application components, services and data objects, technology components, services, system software and network nodes, each with a lifecycle status.",
+  "propertyCategories": [
+    {
+      "id": "54b2a532-1f0e-5c3b-9c19-148cb39e3d0a",
+      "name": "General",
+      "description": "Properties that every element has",
+      "sortOrder": 0
+    }
+  ],
+  "propertyDefinitions": [
+    {
+      "id": "fc59811d-d59e-539e-877a-c9164435eba7",
+      "name": "Status",
+      "dataType": "enum",
+      "category": {
+        "id": "54b2a532-1f0e-5c3b-9c19-148cb39e3d0a",
+        "name": "General",
+        "sortOrder": 0
+      },
+      "enumValues": [
+        {
+          "id": "a3474cb3-3251-5979-82c0-1684659d9d39",
+          "value": "planned",
+          "sortOrder": 0
+        },
+        {
+          "id": "9fc16c24-3814-5c3a-aa99-7aba8ef9ede9",
+          "value": "active",
+          "sortOrder": 1
+        },
+        {
+          "id": "8b87d217-b2a6-5a02-a053-2d9622e2cf0d",
+          "value": "phasing-out",
+          "sortOrder": 2
+        },
+        {
+          "id": "a47b3f75-ddd1-5539-9484-3595136220b1",
+          "value": "retired",
+          "sortOrder": 3
+        }
+      ]
+    }
+  ],
+  "metatypes": [
+    {
+      "id": "bcf1b833-1942-51c6-9e0b-95fd6a30677a",
+      "name": "Application Component",
+      "abbreviation": "AC",
+      "isConnection": false,
+      "sortOrder": 10,
+      "propertyMappings": [
+        {
+          "id": "2e604202-c976-5eac-9d1d-f02a26e91abe",
+          "propertyDefinition": {
+            "id": "fc59811d-d59e-539e-877a-c9164435eba7",
+            "name": "Status",
+            "dataType": "enum"
+          },
+          "necessity": "optional",
+          "validFrom": "2026-01-01",
+          "sortOrder": 0
+        }
+      ]
+    },
+    {
+      "id": "97fa836b-4017-55c9-a218-741b21320780",
+      "name": "Application Service",
+      "abbreviation": "AS",
+      "isConnection": false,
+      "sortOrder": 20,
+      "propertyMappings": [
+        {
+          "id": "41094116-bf56-552b-9f07-40b88608d6dd",
+          "propertyDefinition": {
+            "id": "fc59811d-d59e-539e-877a-c9164435eba7",
+            "name": "Status",
+            "dataType": "enum"
+          },
+          "necessity": "optional",
+          "validFrom": "2026-01-01",
+          "sortOrder": 0
+        }
+      ]
+    },
+    {
+      "id": "92b26412-8c2c-563f-b359-d2160b49b0ab",
+      "name": "Data Object",
+      "abbreviation": "DO",
+      "isConnection": false,
+      "sortOrder": 30,
+      "propertyMappings": [
+        {
+          "id": "7c179621-92d1-58c5-8217-670f388d132a",
+          "propertyDefinition": {
+            "id": "fc59811d-d59e-539e-877a-c9164435eba7",
+            "name": "Status",
+            "dataType": "enum"
+          },
+          "necessity": "optional",
+          "validFrom": "2026-01-01",
+          "sortOrder": 0
+        }
+      ]
+    },
+    {
+      "id": "91bfa93c-abe3-541d-80c7-7492688df9d8",
+      "name": "Technology Component",
+      "abbreviation": "TC",
+      "isConnection": false,
+      "sortOrder": 40,
+      "propertyMappings": [
+        {
+          "id": "643c9c1f-5ed1-5dae-a8c8-a479b198d12f",
+          "propertyDefinition": {
+            "id": "fc59811d-d59e-539e-877a-c9164435eba7",
+            "name": "Status",
+            "dataType": "enum"
+          },
+          "necessity": "optional",
+          "validFrom": "2026-01-01",
+          "sortOrder": 0
+        }
+      ]
+    },
+    {
+      "id": "663dad99-85af-517e-9e3d-933b58a6c973",
+      "name": "Technology Service",
+      "abbreviation": "TS",
+      "isConnection": false,
+      "sortOrder": 50,
+      "propertyMappings": [
+        {
+          "id": "31ba5143-c1d4-558c-be18-fd567fa749d0",
+          "propertyDefinition": {
+            "id": "fc59811d-d59e-539e-877a-c9164435eba7",
+            "name": "Status",
+            "dataType": "enum"
+          },
+          "necessity": "optional",
+          "validFrom": "2026-01-01",
+          "sortOrder": 0
+        }
+      ]
+    },
+    {
+      "id": "9c9f11b2-9d1d-51ee-80b5-93972619537d",
+      "name": "System Software",
+      "abbreviation": "SS",
+      "isConnection": false,
+      "sortOrder": 60,
+      "propertyMappings": [
+        {
+          "id": "6d1ed428-4f5f-54f6-ba87-ac6e4c5c4147",
+          "propertyDefinition": {
+            "id": "fc59811d-d59e-539e-877a-c9164435eba7",
+            "name": "Status",
+            "dataType": "enum"
+          },
+          "necessity": "optional",
+          "validFrom": "2026-01-01",
+          "sortOrder": 0
+        }
+      ]
+    },
+    {
+      "id": "79b00502-7688-59ce-a70f-7608f6426a59",
+      "name": "Network Node",
+      "abbreviation": "NN",
+      "isConnection": false,
+      "sortOrder": 70,
+      "propertyMappings": [
+        {
+          "id": "acd7cdb7-e715-598f-a7c0-c1c950590f95",
+          "propertyDefinition": {
+            "id": "fc59811d-d59e-539e-877a-c9164435eba7",
+            "name": "Status",
+            "dataType": "enum"
+          },
+          "necessity": "optional",
+          "validFrom": "2026-01-01",
+          "sortOrder": 0
+        }
+      ]
+    }
+  ]
+}

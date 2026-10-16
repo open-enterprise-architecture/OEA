@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import tools.jackson.databind.json.JsonMapper;
 
 /** Mapping between the contract's package format (ADR-026) and the import (design D2, D3). */
 final class MetamodelPackages {
@@ -38,6 +39,11 @@ final class MetamodelPackages {
 				list(request.getPropertyCategories()).stream().map(MetamodelPackages::category).toList(),
 				list(request.getPropertyDefinitions()).stream().map(MetamodelPackages::property).toList(),
 				list(request.getMetatypes()).stream().map(MetamodelPackages::metatype).toList());
+	}
+
+	/** A package in the contract format, e.g. a shipped starter package. */
+	static ImportMetamodelPackageRequest read(byte[] content) {
+		return JsonMapper.shared().readValue(content, ImportMetamodelPackageRequest.class);
 	}
 
 	static ImportResult result(PackageImporter.Outcome outcome) {
