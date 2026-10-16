@@ -20,7 +20,7 @@
 - [x] 4.1 Create `packages/oea-starter-togaf-classic.json` (D7), copy `packages/` into the backend artifact and implement `StarterPackages` with startup validation (D6); verify with a test that every shipped package is valid and that the summary lists seven metatypes
 - [x] 4.2 Implement `listStarterPackages` and `importStarterPackage`; verify with tests for the specs "Package list of a new instance", "Starter configuration imported" and "Unknown starter package"
 - [x] 4.3 Implement `listMetatypes` and `getMetatype` (D8); verify with tests for the specs "Metatypes after the starter import" and "Reading without permission"
-- [ ] 4.4 Write the Cucumber feature `metamodel/starter-packages.feature` for the `metamodel/starter-packages` and `metamodel/metatype-catalog` specs, with a person holding `metamodel-admin` through an IdP group mapping; verify it passes through `CucumberIT`
+- [x] 4.4 Write the Cucumber feature `metamodel/starter-packages.feature` for the `metamodel/starter-packages` and `metamodel/metatype-catalog` specs, with a person holding `metamodel-admin` through an IdP group mapping; verify it passes through `CucumberIT`
 
 ## 5. Frontend
 

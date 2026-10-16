@@ -10,7 +10,7 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * An OIDC test instance with a metamodel administrator: `dev-metamodel-admin` holds
  * `metamodel-admin` through the mapping of its realm group and logs in with TOTP (SoD-8);
- * `dev-no-role` is bound without role. Each logs in once, because the IdP accepts a TOTP code
+ * `dev-viewer` holds `viewer`; `dev-no-role` is bound without role. Each logs in once, because the IdP accepts a TOTP code
  * only once.
  */
 public final class MetamodelInstance implements AutoCloseable {
@@ -21,23 +21,28 @@ public final class MetamodelInstance implements AutoCloseable {
 
 	private final Session noRole;
 
+	private final Session viewer;
+
 	/** Session cookie and CSRF token. */
 	public record Session(String token, String csrfToken) {
 	}
 
-	private MetamodelInstance(OidcTestInstance instance, Session metamodelAdmin, Session noRole) {
+	private MetamodelInstance(OidcTestInstance instance, Session metamodelAdmin, Session noRole, Session viewer) {
 		this.instance = instance;
 		this.metamodelAdmin = metamodelAdmin;
 		this.noRole = noRole;
+		this.viewer = viewer;
 	}
 
 	public static MetamodelInstance start(String... arguments) throws Exception {
 		OidcTestInstance instance = OidcTestInstance.start(arguments);
 		instance.person("dev-metamodel-admin", "active");
 		instance.person("dev-no-role", "active");
+		instance.person("dev-viewer", "active");
 		instance.mapping("oea-metamodel-admins", "metamodel-admin");
+		instance.mapping("oea-viewers", "viewer");
 		return new MetamodelInstance(instance, session(instance, instance.login("dev-metamodel-admin")),
-				session(instance, instance.login("dev-no-role")));
+				session(instance, instance.login("dev-no-role")), session(instance, instance.login("dev-viewer")));
 	}
 
 	public OidcTestInstance oidc() {
@@ -50,6 +55,10 @@ public final class MetamodelInstance implements AutoCloseable {
 
 	public Session noRole() {
 		return this.noRole;
+	}
+
+	public Session viewer() {
+		return this.viewer;
 	}
 
 	public HttpResponse<String> post(String path, String body, Session session) throws Exception {
