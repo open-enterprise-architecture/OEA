@@ -207,7 +207,7 @@ Persons log in through the identity providers stored with the admin API (see abo
 |---|---|---|---|
 | Microsoft Entra ID | `openid profile email offline_access` (`offline_access` yields the refresh token) | Token configuration: groups claim with group object IDs; too many groups produce an overage indicator, which OEA treats as no groups | `amr` contains `mfa` when a Conditional Access policy required MFA |
 | Authentik | `openid profile email` | Property mapping that emits the group UUIDs as `groups` | Property mapping for `amr` (`pwd`, `otp`, `mfa`) |
-| Keycloak | `openid profile email` | Mapper that emits group identifiers, not names | Authentication flow with method references (`pwd`, `otp`), as in the development realm |
+| Keycloak | `openid profile email` | Mapper that emits group identifiers, not names | Authentication flow with method references (`pwd`, `otp`) and a *max age* of at least the OEA session lifetime (e.g. 43200 s), as in the development realm; with max age 0 Keycloak drops `amr` from tokens issued later, including the refreshed ID tokens of the 15-minute re-evaluation |
 
 **Persons and roles**: a person gets a session only if the pair of issuer and `sub` is bound to a person in status `invited` or `active` (bindings are never derived from e-mail addresses); the first login changes `invited` to `active`. Roles come from the IdP group mappings of the provider; privileged roles (with admin-class permissions) are effective only if `amr` shows a second factor. A person whose own groups claim contains a group cannot map that group (SoD-1).
 
