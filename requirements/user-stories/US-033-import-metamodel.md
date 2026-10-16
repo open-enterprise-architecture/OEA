@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: in-progress
 **Sprint**: S2
-**Implementation**: OpenSpec change `us-033-import-metamodel` – package import and the shipped starter package `oea-starter-togaf-classic` (AC1 for packages); AC2–AC4 (file upload with preview, conflict display, partial import, YAML) follow later; commit hash follows when the change is archived
+**Implementation**: OpenSpec change `us-033-import-metamodel`, commit 37828e6 (#40) – package import and the shipped starter package `oea-starter-togaf-classic` (AC1 for packages); AC2–AC4 (file upload with preview, conflict display, partial import, YAML) follow later
 
 ## Story
 
