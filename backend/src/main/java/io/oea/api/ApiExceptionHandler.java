@@ -6,25 +6,44 @@ import io.oea.app.access.SelfAdministrationException;
 import io.oea.app.login.InvalidCredentialsException;
 import io.oea.app.login.InvalidTotpCodeException;
 import io.oea.app.login.SecondFactorRequiredException;
+import io.oea.app.metamodel.InvalidPackageException;
+import io.oea.app.metamodel.PackageImporter;
+import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.ReauthenticationRequiredException;
 import io.oea.app.security.SetupPhase;
+import io.oea.config.security.OeaAuthentication;
+import io.oea.config.web.PackageImportConfiguration;
+import io.oea.config.web.PackageSizeLimitFilter;
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.core.NestedExceptionUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import tools.jackson.core.JacksonException;
 
 /** RFC 9457 problems for rejections shared by several controllers (problem types of the contract). */
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+	// optional: web slice tests load this advice without the application services
+	private final ObjectProvider<PackageImporter> packageImporter;
+
+	public ApiExceptionHandler(ObjectProvider<PackageImporter> packageImporter) {
+		this.packageImporter = packageImporter;
+	}
 
 	@ExceptionHandler(InvalidCredentialsException.class)
 	ResponseEntity<ProblemDetail> invalidCredentials(InvalidCredentialsException ex) {
@@ -87,7 +106,17 @@ public class ApiExceptionHandler {
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
-	ResponseEntity<ProblemDetail> contractViolation(MethodArgumentNotValidException ex) {
+	ResponseEntity<ProblemDetail> contractViolation(MethodArgumentNotValidException ex, HttpServletRequest request) {
+		if (isPackageImport(request)) {
+			FieldError first = ex.getBindingResult().getFieldErrors().stream().findFirst().orElse(null);
+			ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "invalid-package", "Invalid package",
+					"The package does not match the package format.");
+			if (first != null) {
+				problem.setProperty("pointer", "/" + first.getField().replaceAll("\\[(\\d+)]", "/$1").replace('.', '/'));
+			}
+			this.packageImporter.ifAvailable((importer) -> importer.recordRejected(currentPrincipal(), "invalid-package"));
+			return ResponseEntity.unprocessableContent().body(problem);
+		}
 		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid request",
 				"Some fields do not meet the contract.");
 		problem.setProperty("invalidFields",
@@ -96,15 +125,53 @@ public class ApiExceptionHandler {
 	}
 
 	@ExceptionHandler({ HttpMessageNotReadableException.class, HandlerMethodValidationException.class })
-	ResponseEntity<ProblemDetail> malformedRequest(Exception ex) {
+	ResponseEntity<ProblemDetail> malformedRequest(Exception ex, HttpServletRequest request) {
+		if (isPackageImport(request)) {
+			if (NestedExceptionUtils.getMostSpecificCause(ex) instanceof PackageSizeLimitFilter.PackageTooLargeException) {
+				return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
+					.body(problem(HttpStatus.CONTENT_TOO_LARGE, "package-too-large", "Package too large",
+							"The package is larger than the configured maximum size."));
+			}
+			// REQ-033: a faulty package is answered with the location of the problem
+			ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "invalid-package", "Invalid package",
+					"The package is not valid JSON or does not match the package format.");
+			Throwable cause = ex;
+			while (cause != null && !(cause instanceof JacksonException)) {
+				cause = cause.getCause();
+			}
+			if (cause instanceof JacksonException jackson && jackson.getLocation() != null) {
+				problem.setProperty("location",
+						Map.of("line", jackson.getLocation().getLineNr(), "column", jackson.getLocation().getColumnNr()));
+				problem.setDetail(jackson.getOriginalMessage());
+			}
+			this.packageImporter.ifAvailable((importer) -> importer.recordRejected(currentPrincipal(), "invalid-package"));
+			return ResponseEntity.unprocessableContent().body(problem);
+		}
 		return ResponseEntity.badRequest()
 			.body(problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid request", "The request is invalid."));
+	}
+
+	@ExceptionHandler(InvalidPackageException.class)
+	ResponseEntity<ProblemDetail> invalidPackage(InvalidPackageException ex) {
+		ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, ex.getType(), "Invalid package",
+				ex.getMessage());
+		problem.setProperty("pointer", ex.getPointer());
+		return ResponseEntity.unprocessableContent().body(problem);
 	}
 
 	@ExceptionHandler(NoSuchElementException.class)
 	ResponseEntity<ProblemDetail> notFound(NoSuchElementException ex) {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND)
 			.body(problem(HttpStatus.NOT_FOUND, "not-found", "Not found", "The resource does not exist."));
+	}
+
+	private static boolean isPackageImport(HttpServletRequest request) {
+		return PackageImportConfiguration.IMPORT_PATH.equals(request.getRequestURI());
+	}
+
+	private static OeaPrincipal currentPrincipal() {
+		return (SecurityContextHolder.getContext().getAuthentication() instanceof OeaAuthentication authentication)
+				? authentication.getPrincipal() : null;
 	}
 
 	public static ProblemDetail problem(HttpStatus status, String type, String title, String detail) {

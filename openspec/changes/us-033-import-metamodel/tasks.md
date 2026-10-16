@@ -11,8 +11,8 @@
 
 ## 3. Package import
 
-- [ ] 3.1 Implement the size-limit filter and the limited JSON reader with located parse errors and the schema validation of D3; verify with tests for the specs "Syntactically faulty package", "Package violating the schema", "Package above the size limit" and "Unsupported package sections"
-- [ ] 3.2 Implement the atomic import with scope, origin, update of the same package and conflict detection (D1, D2), and the import record and audit events (D5); verify with tests for the specs "Package with five metatypes", "Re-import of the same package", "Import without permission", "Name already used by another package" and "Batch ID of an import"
+- [x] 3.1 Implement the size-limit filter and the limited JSON reader with located parse errors and the schema validation of D3; verify with tests for the specs "Syntactically faulty package", "Package violating the schema", "Package above the size limit" and "Unsupported package sections"
+- [x] 3.2 Implement the atomic import with scope, origin, update of the same package and conflict detection (D1, D2), and the import record and audit events (D5); verify with tests for the specs "Package with five metatypes", "Re-import of the same package", "Import without permission", "Name already used by another package" and "Batch ID of an import"
 - [ ] 3.3 Write the Cucumber feature `metamodel/package-import.feature` for the `metamodel/package-import` spec against the running application; verify it passes through `CucumberIT`
 
 ## 4. Starter packages and metatype catalog

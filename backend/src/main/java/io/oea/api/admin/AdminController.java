@@ -3,7 +3,11 @@ package io.oea.api.admin;
 import io.oea.api.generated.AdminApi;
 import io.oea.api.generated.model.AuthProvider;
 import io.oea.api.generated.model.AuthProviderWrite;
+import io.oea.api.generated.model.ImportMetamodelPackageRequest;
+import io.oea.api.generated.model.ImportResult;
 import io.oea.app.access.AuthProviders;
+import io.oea.app.metamodel.PackageConflictException;
+import io.oea.app.metamodel.PackageImporter;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.config.security.OeaAuthentication;
 import java.util.List;
@@ -14,21 +18,36 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * OIDC providers (design D10). Deleting and testing a provider are not implemented in this
- * change; a provider is deactivated with {@code enabled: false}.
+ * Administration: OIDC providers (design D10 of us-013-system-admin-login; deleting and testing
+ * a provider are not implemented, a provider is deactivated with {@code enabled: false}) and
+ * metamodel package imports (us-033-import-metamodel).
  */
 @RestController
-public class AuthProviderController implements AdminApi {
+public class AdminController implements AdminApi {
 
 	private final AuthProviders providers;
 
-	public AuthProviderController(AuthProviders providers) {
+	private final PackageImporter packageImporter;
+
+	public AdminController(AuthProviders providers, PackageImporter packageImporter) {
 		this.providers = providers;
+		this.packageImporter = packageImporter;
+	}
+
+	@Override
+	public ResponseEntity<ImportResult> importMetamodelPackage(ImportMetamodelPackageRequest request) {
+		try {
+			return ResponseEntity.ok(MetamodelPackages
+				.result(this.packageImporter.importPackage(principal(), MetamodelPackages.definition(request))));
+		}
+		catch (PackageConflictException ex) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(MetamodelPackages.result(ex));
+		}
 	}
 
 	@Override
 	public ResponseEntity<List<AuthProvider>> listAuthProviders() {
-		return ResponseEntity.ok(this.providers.list().stream().map(AuthProviderController::provider).toList());
+		return ResponseEntity.ok(this.providers.list().stream().map(AdminController::provider).toList());
 	}
 
 	@Override

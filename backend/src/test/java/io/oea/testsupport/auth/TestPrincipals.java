@@ -55,6 +55,37 @@ public final class TestPrincipals {
 		return new TestSession(token, Sessions.csrfToken(token), sessionId);
 	}
 
+	/**
+	 * A session of an active person who holds the role through an IdP group mapping and logged
+	 * in with a second factor (stored as the OIDC login stores it).
+	 */
+	public TestSession personWithIdpRole(String roleId) {
+		String suffix = UUID.randomUUID().toString();
+		String issuer = "https://idp-" + suffix.substring(0, 8) + ".example.org/realms/test";
+		UUID providerId = this.jdbc.queryForObject("""
+				INSERT INTO auth_providers (name, issuer, client_id) VALUES (?, ?, 'oea') RETURNING id""", UUID.class,
+				"Test IdP " + suffix.substring(0, 8), issuer);
+		String group = UUID.randomUUID().toString();
+		UUID mappingId = this.jdbc.queryForObject("""
+				INSERT INTO idp_group_mappings (auth_provider_id, issuer, group_identifier, role_id)
+				VALUES (?, ?, ?, ?) RETURNING id""", UUID.class, providerId, issuer, group, roleId);
+		Long personId = this.jdbc.queryForObject("""
+				INSERT INTO persons (name, email, status) VALUES (?, ?, 'active') RETURNING id""", Long.class,
+				"Holder of " + roleId, roleId + "-" + suffix + "@example.org");
+		String token = randomToken();
+		// evaluation time in the future: no IdP re-evaluation during the test
+		UUID sessionId = this.jdbc.queryForObject("""
+				INSERT INTO sessions (token_hash, person_id, client_type, auth_method, auth_provider_id,
+				                      second_factor_verified, authenticated_at, last_activity_at, absolute_expires_at,
+				                      idp_claims_evaluated_at, idp_groups_claim_status, idp_group_identifiers)
+				VALUES (?, ?, 'web-portal', 'oidc', ?, true, now(), now(), now() + interval '12 hours',
+				        now() + interval '12 hours', 'present', ARRAY[?])
+				RETURNING id""", UUID.class, sha256(token), personId, providerId, group);
+		this.jdbc.update("INSERT INTO session_idp_roles (session_id, idp_group_mapping_id, role_id) VALUES (?, ?, ?)",
+				sessionId, mappingId, roleId);
+		return new TestSession(token, Sessions.csrfToken(token), sessionId);
+	}
+
 	private static String randomToken() {
 		byte[] bytes = new byte[32];
 		new SecureRandom().nextBytes(bytes);
