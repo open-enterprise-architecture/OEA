@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: in-progress
 **Sprint**: S2
-**Implementation**: OpenSpec change `us-141-entity-batch-upsert` – AC1 (upsert of entities by `externalId`, all strategies, `atomic`; called by a person with `entity:write`, owner decision 2026-10-16); AC2 (connections), AC3 (dryRun) and AC4 (service accounts) follow later; the commit hash is added when the change is archived
+**Implementation**: OpenSpec change `us-141-entity-batch-upsert`, commit 3a6b712 (#43) – AC1 (upsert of entities by `externalId`, all strategies, `atomic`; called by a person with `entity:write`, owner decision 2026-10-16); AC2 (connections), AC3 (dryRun) and AC4 (service accounts) follow later
 
 ## Story
 
