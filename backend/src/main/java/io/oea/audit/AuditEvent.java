@@ -83,6 +83,33 @@ public record AuditEvent(String eventType, Category category, Severity severity,
 
 	}
 
+	/**
+	 * The entity an event is about (ADR-033 §3): the name is denormalized for completeness and
+	 * {@code null} for modeled persons.
+	 */
+	public record EntityTarget(int entityId, String entityName) {
+	}
+
+	/**
+	 * Informational agent fields of an external integration (ADR-033 §7): the label from
+	 * {@code X-Agent-Id} and the run from {@code X-Agent-Run}, never used for decisions.
+	 */
+	public record Agent(String label, String run) {
+
+		public static final Agent NONE = new Agent(null, null);
+
+	}
+
+	/** A changed system field or property with old and new value as text ({@code audit.event_changes}). */
+	public record Change(UUID propertyDefId, String propertyName, boolean systemField, String oldValue,
+			String newValue) {
+
+		public Change {
+			Objects.requireNonNull(propertyName, "propertyName");
+		}
+
+	}
+
 	/** Pseudonymous actor (ADR-033 §3). */
 	public record Actor(String type, Long personId, UUID adminId) {
 

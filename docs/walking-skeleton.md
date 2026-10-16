@@ -62,7 +62,7 @@ These 6 user stories form the walking skeleton. Everything else comes afterwards
 | 1 | [US-013](../requirements/user-stories/US-013-local-bootstrapping.md): Local bootstrapping | UC-02 | 5 | complete | DB schema, Flyway, instance-slug (ADR-001), first admin user |
 | 2 | [US-001](../requirements/user-stories/US-001-oidc-login.md): OIDC login | UC-01 | 8 | complete | OIDC token flow, auth stack (ADR-006), session |
 | 3 | [US-033](../requirements/user-stories/US-033-import-metamodel.md): Import metamodel / starter package | UC-04 | 5 | complete | Package import (ADR-002), `ApplicationComponent` available, `scope=imported` |
-| 4 | [US-141](../requirements/user-stories/US-141-entity-batch-import.md): Create entities via batch | – | 5 | AC1 (upsert of entities); connections, dryRun, and service account audit (AC2–AC4) follow later | Entity persistence, JSONB, validation against metamodel, audit |
+| 4 | [US-141](../requirements/user-stories/US-141-entity-batch-import.md): Create entities via batch | – | 5 | AC1 (upsert of entities); connections, dryRun, and service account audit (AC2–AC4) follow later | Entity persistence (typed values, ADR-022), validation against metamodel, versioning, audit |
 | 5 | [US-046](../requirements/user-stories/US-046-create-catalog.md): Create catalog | UC-06 | 3 | complete (incl. primary entity type) | Catalog configuration, metamodel API, role check |
 | 6 | [US-049](../requirements/user-stories/US-049-show-catalog-data.md): Display catalog data | UC-06 | 5 | Table, sorting, empty state; default columns `name` and `status` as long as no columns are configured; joins, pagination, and SavedViews follow later | Query API, table in the Vue frontend |
 
@@ -120,9 +120,13 @@ Change 2 (`us-013-local-bootstrapping`) adds the local bootstrapping, the audit 
      entity types with scope=imported, each with the property Status
 
 6. Import script creates entities
+   → a person with the role enterprise-architect (IdP group mapping, e.g. dev-architect);
+     service accounts follow with US-142 (owner decision 2026-10-16)
    → US-141: POST /api/v1/entities/batch (strategy=upsert) with e.g. 3 ApplicationComponents
-   → "CRM System", "ERP", "Intranet" are in the repository; audit events written
-     (hash-chained, pseudonymous actor reference)
+     and their Status, identified by externalId
+   → "CRM System", "ERP", "Intranet" are in the repository in version 1; a second run
+     reports them as unchanged; audit events entity.created written (hash-chained,
+     pseudonymous actor reference)
 
 7. Admin creates catalog
    → US-046: "New catalog" → name "Application Inventory", primary entity type ApplicationComponent

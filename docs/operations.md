@@ -246,3 +246,23 @@ Own packages in the same JSON format (`MetamodelPackage` in `api/openapi.yaml`, 
 - the strategy `replace`, viewpoints, shape assignments and translation bundles are not supported yet (`422`)
 
 Every import writes the audit events `metamodel.package-imported` and `metamodel.metatype-imported` with one batch ID.
+
+## Writing Entities in Batch
+
+Entities are created and updated through `POST /entities/batch` (US-141, ADR-026). In this version the caller is a person with the permission `entity:write` (role `enterprise-architect`) and a session; service accounts with client credentials follow (US-142).
+
+```bash
+curl "${auth[@]}" -X POST "$OEA/entities/batch" -H 'Content-Type: application/json' \
+  -H 'X-Agent-Id: repo-scanner' -H 'X-Agent-Run: 2026-10-16-nightly' \
+  -d '{"strategy": "upsert", "entities": [{"name": "CRM System", "metatypeId": "<id>", "externalId": "git:org/crm",
+       "properties": [{"propertyDefId": "<id of Status>", "value": "active"}]}]}'
+```
+
+- `externalId` identifies an entity from the source system; with `upsert` an unknown ID creates the entity and a known one updates it; `create-only` and `skip-existing` behave as named
+- on update, fields and properties missing in the item stay unchanged; an empty value removes a property value; an unchanged item is reported as `unchanged` and creates no version
+- `atomic=false` (default) writes every item on its own and reports a status per item; `atomic=true` writes all items or none (`422` with the errors per item)
+- at most `oea.entities.batch.max-items` entities per request (default and maximum 500)
+- connections, `dryRun=true`, `parentId`, `lifecycle` and properties with restricted visibility are not supported yet (`422` or item error)
+- `X-Agent-Id` and `X-Agent-Run` are stored only as informational audit fields
+
+Every written entity creates a new version with the previous values of the changed fields and the audit event `entity.created` or `entity.updated`.

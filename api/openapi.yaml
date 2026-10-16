@@ -912,7 +912,9 @@ components:
             "k8s:prod/order-service"). Namespace convention: `{system}:{id}`.
             Must be unique for the OEA instance.
         description:  { type: string }
-        isLogical:    { type: boolean, default: true }
+        isLogical:
+          type: boolean
+          description: Defaults to true when an entity is created; unchanged on update if omitted
         lifecycle:    { type: [string, 'null'] }
         parentId:     { type: [integer, 'null'], description: "Parent entity" }
         properties:
@@ -947,14 +949,18 @@ components:
           type: array
           items: { $ref: '#/components/schemas/ConnectionWrite' }
           maxItems: 500
+          description: |
+            Not supported yet (US-141 AC2): a batch with connections is rejected with 422.
         strategy:
           type: string
           enum: [upsert, create-only, skip-existing]
           default: upsert
           description: |
-            `upsert`: create-or-update by externalId or id.
+            `upsert`: create-or-update by externalId; an item without externalId is always created.
             `create-only`: error if the entity already exists.
             `skip-existing`: skip existing ones, only create new ones.
+            On update, fields and properties missing in the item stay unchanged;
+            an empty property value removes the value.
         atomic:
           type: boolean
           default: false
@@ -968,10 +974,22 @@ components:
       properties:
         index:      { type: integer, description: "0-based index in the request array" }
         itemType:   { type: string, enum: [entity, connection] }
-        status:     { type: string, enum: [created, updated, skipped, error] }
+        status:
+          type: string
+          enum: [created, updated, unchanged, skipped, error]
+          description: |
+            `unchanged`: the entity exists with identical values; no new version is written.
         id:         { type: [integer, 'null'], description: "Internal ID after create/update" }
         externalId: { type: [string, 'null'] }
         error:      { type: [string, 'null'], description: "Error message for status=error" }
+        errors:
+          type: array
+          description: Validation errors of the item (status=error); fields relative to the item
+          items: { $ref: '#/components/schemas/ValidationError' }
+        warnings:
+          type: array
+          description: Warnings of the item (e.g. necessity=warning without value, REQ-149)
+          items: { $ref: '#/components/schemas/ValidationError' }
 
     BatchWriteResponse:
       type: object
@@ -982,10 +1000,11 @@ components:
         summary:
           type: object
           properties:
-            created:  { type: integer }
-            updated:  { type: integer }
-            skipped:  { type: integer }
-            errors:   { type: integer }
+            created:   { type: integer }
+            updated:   { type: integer }
+            unchanged: { type: integer }
+            skipped:   { type: integer }
+            errors:    { type: integer }
         items:
           type: array
           items: { $ref: '#/components/schemas/BatchWriteItemResult' }
@@ -5271,6 +5290,10 @@ paths:
         Writes up to 500 entities and 500 connections in one request.
         The preferred endpoint for external systems with `strategy: upsert`
         (ADR-026). `?dryRun=true` → validation without persisting.
+        Not supported yet: connections (US-141 AC2) and `dryRun=true` (US-141 AC3)
+        are rejected with 422; `parentId` and `lifecycle` are item errors.
+        `X-Agent-Id` is stored only as the informational audit field `agent_label`
+        (ADR-033 §7).
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"], "conditions": [{"when": "a connection of a type used as scopingConnectionType is written", "permissions": ["visibility-scope:assign"]}]}
       parameters:
@@ -5293,10 +5316,21 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '422':
-          description: Entire batch invalid (e.g. empty body, atomic=true with error)
+          description: |
+            Entire batch invalid, nothing written: more entities than the limit,
+            connections or dryRun=true (not supported yet), or atomic=true with
+            at least one faulty item (`errors[].field` carries the item index,
+            e.g. `entities[3].properties`).
           content:
             application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - type: object
+                    properties:
+                      errors:
+                        type: array
+                        items: { $ref: '#/components/schemas/ValidationError' }
 
   /connections:
     post:

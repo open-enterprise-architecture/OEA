@@ -2,7 +2,7 @@
 identifier: architecture-entity
 name_de: Architektur-Entität
 name_en: Architecture Entity
-version: 0.4.0
+version: 0.5.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -89,7 +89,7 @@ The `General` category contains the immutable system fields of every Architectur
 
 ### Custom Categories (metamodel-configured)
 
-All further properties are defined in `PropertyGroup` categories, which are configured per EntityType in the metamodel (e.g. "Finance", "Governance", "Technical"). These properties end up in `properties JSONB`. No custom category may use the reserved name `General`.
+All further properties are defined in `PropertyGroup` categories, which are configured per EntityType in the metamodel (e.g. "Finance", "Governance", "Technical"). These properties are stored as typed values, one per entity and property definition (`entity_property_values`, ADR-022). No custom category may use the reserved name `General`.
 
 ---
 
@@ -101,12 +101,12 @@ All further properties are defined in `PropertyGroup` categories, which are conf
 |---|---|---|---|---|---|
 | id | integer | required | | positive integer value ≥ 1; unique instance-wide; sequential; immutable after creation | **[General]** Primary key; assigned by the system on onCreate as the next free sequence number |
 | entityTypeId | string | required | | FK → `EntityTypeDefinition.id`; must exist in the instance's MetamodelConfiguration; immutable after creation | **[General]** Meta-type reference; determines type, properties, and notation |
-| name | string | required | | max. 255 characters | **[General]** Display name (e.g. "SAP S/4HANA", "Invoice Approval") |
+| name | string | required | | not blank; max. 255 characters | **[General]** Display name (e.g. "SAP S/4HANA", "Invoice Approval") |
 | description | string | required | `""` | max. 2000 characters; never null | **[General]** Business description; always present, initially empty |
 | isLogical | boolean | required | `true` | | **[General]** `true` = logical/conceptual entity (e.g. capability, process, data concept); `false` = physical entity (concrete implementation, e.g. server, database table, application instance). Relevant for plateau presentation (see below) |
-| version | integer | required | `1` | ≥ 1; incremented by the system on every update | Optimistic lock counter (ADR-016); the client must send the current version on update |
+| version | integer | required | `1` | ≥ 1; incremented by the system on every update | Optimistic lock counter (ADR-016); the client must send the current version on an interactive update (BR-12); every change that creates a new version increments it |
 | stereotypeIds | string[] | optional | `[]` | FK → `StereotypeDefinition.id`; all IDs must exist in the metamodel and be applicable to the `entityTypeId` | Assigned stereotypes (e.g. `saas-application`) |
-| properties | PropertyValue[] | optional | `[]` | Keys must correspond to `PropertyDefinition.name` of the `entityTypeId` type; mandatory properties must be filled | Values of the custom properties (non-General) defined by the meta-type |
+| properties | PropertyValue[] | optional | `[]` | Keys must correspond to property definitions with an active mapping for the `entityTypeId` type; mandatory properties must be filled | Values of the custom properties (non-General) defined by the meta-type; stored typed per data type (ADR-022) |
 | sourceEntityId | integer | conditional | null | REQUIRED if `EntityType.isConnection=true`; FK → ArchitectureEntity.id with `isConnection=false`; immutable after creation | Source entity (connections only) |
 | targetEntityId | integer | conditional | null | REQUIRED if `EntityType.isConnection=true`; FK → ArchitectureEntity.id with `isConnection=false`; immutable after creation | Target entity (connections only) |
 | parentEntityId | integer | optional | null | FK → ArchitectureEntity.id; elements only (`isConnection=false`); no cycles allowed | Parent element in the explorer tree; creates an implicit composition connection if both sides have `isStructuralGrouper=false` (→ ADR-021, REQ-141, REQ-142) |
@@ -127,27 +127,16 @@ All further properties are defined in `PropertyGroup` categories, which are conf
 
 `isLogical` can be set on creation and is editable afterwards. The `EntityTypeDefinition` in the metamodel can specify a `defaultIsLogical` value for new instances (e.g. `capability` → `true`; `server` → `false`).
 
-### EntityVersion (value object / snapshot)
+### EntityVersion (version header and deltas)
 
-A version snapshot is created automatically for every update on an ArchitectureEntity (ADR-016). The snapshot is written **before** the update.
-
-| Attribute | Type | Description |
-|---|---|---|
-| entityId | integer | FK → ArchitectureEntity.id |
-| version | integer | Version at the time of this snapshot |
-| name | string | Name before the update |
-| description | string | Description before the update |
-| isLogical | boolean | Logical flag before the update |
-| properties | object | Custom properties before the update (JSONB) |
-| changedBy | integer | Who triggered this update |
-| changedAt | datetime | Time of the update |
+Every create and every change that modifies at least one field creates a new version (ADR-022, delta versioning). The version header records who changed the entity and when; for each changed system field and each changed property only the value before the change is recorded. Unchanged fields produce no entry. Details: [entity-version](./entity-version.md).
 
 ### PropertyValue (value object)
 
 | Attribute | Type | Optional | Constraints | Description |
 |---|---|---|---|---|
-| propertyName | string | required | must correspond to a `PropertyDefinition.name` of the `entityTypeId` type | Key; references the PropertyDefinition |
-| value | string \| null | required | Serialization format: `int` as `"42"`, `enum` as enum value string, `varchar` directly | Value; null = not filled |
+| propertyDefId | UUID | required | must reference a property definition with an active mapping for the `entityTypeId` type | Key; references the PropertyDefinition (its name is shown) |
+| value | string \| null | required | Serialization format: `integer` as `"42"`, `boolean` as `"true"`/`"false"`, `date` as ISO date, `enum` as enum value string, `reference` as entity ID, text types directly; converted and checked according to the data type of the definition | Value; null or empty = not filled |
 
 ## Relationships
 
@@ -169,14 +158,14 @@ A version snapshot is created automatically for every update on an ArchitectureE
 | BR-03 | `entityTypeId` is immutable after creation; a type change is not possible (create a new entity, delete the old one) | onUpdate | – |
 | BR-04 | If `EntityTypeDefinition.isConnection=true`: `sourceEntityId` AND `targetEntityId` MUST be set. `sourceEntityId` may point to a connection instance **only if** its meta-type carries `allowsConnectionAsSource=true` (ADR-010 n-connection); otherwise `sourceEntityId` must point to a non-connection instance. `targetEntityId` must always point to a non-connection instance. | onCreate, onUpdate | ADR-010 |
 | BR-05 | If `EntityTypeDefinition.isConnection=false`: `sourceEntityId` and `targetEntityId` MUST be null | onCreate, onUpdate | – |
-| BR-06 | All `PropertyValue.propertyName` values MUST correspond to PropertyDefinitions of the `entityTypeId` meta-type; unknown property names are rejected (422) | onCreate, onUpdate | – |
-| BR-07 | PropertyDefinitions with `validationMode=mandatory` MUST have a non-empty value; if the value is missing → 422; `validationMode=warning` → save with warning response possible; `validationMode=optional` → always valid | onCreate, onUpdate | – |
+| BR-06 | Property values are only stored for property definitions with an active mapping (latest `validFrom` not after today) for the `entityTypeId` meta-type; a value for a definition without active mapping is ignored with a warning (REQ-149) | onCreate, onUpdate | REQ-149 |
+| BR-07 | Properties whose mapping has `necessity=mandatory` MUST have a non-empty value; if the value is missing → 422 (`MANDATORY_MISSING`); `necessity=warning` → saved with a warning; `necessity=optional` → always valid (ADR-022, REQ-149) | onCreate, onUpdate | REQ-149 |
 | BR-08 | `stereotypeIds` may only reference stereotypes that are defined for the `entityTypeId` meta-type | onCreate, onUpdate | – |
 | BR-09 | `sourceEntityId` and `targetEntityId` are immutable after a connection is created; edge direction cannot be changed | onUpdate | – |
 | BR-10 | `description` is always present (never null); initially the empty string `""`; max. 2000 characters | onCreate, onUpdate | – |
 | BR-11 | `isLogical` is a boolean; default is `true`; can be changed afterwards | onCreate, onUpdate | – |
-| BR-12 | On every update to an ArchitectureEntity, the client MUST send the current `version`; if it does not match the stored value → HTTP 409 Conflict; after a successful update, `version` is incremented by 1 (optimistic locking, ADR-016) | onUpdate | ADR-016 |
-| BR-13 | Before every update, an EntityVersion snapshot of the previous state MUST be written to `entity_versions`; this snapshot is immutable | onUpdate | ADR-016 |
+| BR-12 | On every update to an ArchitectureEntity, the client MUST send the current `version`; if it does not match the stored value → HTTP 409 Conflict; after a successful update, `version` is incremented by 1 (optimistic locking, ADR-016). Exception: a batch write by `externalId` carries no version; the source system is the authority for the fields it sends and is written last-writer-wins under a row lock (change us-141-entity-batch-upsert, design D3) | onUpdate | ADR-016 |
+| BR-13 | Every change MUST write a version header and, for each changed system field and property, the value before the change (delta); history records are append-only. A write that changes nothing creates no version | onUpdate | ADR-022 |
 | BR-14 | No `PropertyGroup` in the metamodel may carry the reserved name `general` (case-insensitive); General fields are system-defined and not extensible | metamodel configuration | – |
 
 ## Lifecycle
@@ -257,3 +246,4 @@ entity:
 | 0.2.0 | 2026-06-26 | Business Engineer | BR-04 extended: `sourceEntityId` may point to a connection instance if `allowsConnectionAsSource=true` (ADR-010) |
 | 0.3.0 | 2026-06-27 | Business Engineer | Added `isLogical: boolean` (General, default true) (BR-12); `description` as mandatory field with default `""` (BR-11); General category formalized (BR-15); `version` attribute for optimistic locking (BR-13); EntityVersion snapshot mechanism (BR-14; ADR-016) |
 | 0.4.0 | 2026-10-13 | Lukas Mathis | Added optional `externalId` (ADR-026, REQ-153, UC-22) to match `docs/data-model.puml` |
+| 0.5.0 | 2026-10-16 | Lukas Mathis | Aligned with ADR-022 and `docs/data-model.puml` (change us-141-entity-batch-upsert): typed property values instead of JSONB, keyed by `propertyDefId`; version header plus deltas instead of snapshots (BR-13); BR-06 and BR-07 follow REQ-149 (unmapped values ignored with warning, `necessity`); batch writes by `externalId` without version (BR-12); name not blank |

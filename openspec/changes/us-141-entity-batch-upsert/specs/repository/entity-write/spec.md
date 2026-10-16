@@ -8,7 +8,7 @@ Defines how entities of the EA repository are written against the metamodel: whi
 
 ### Requirement: Entities typed by an element metatype
 
-An entity SHALL have a non-blank name and exactly one metatype of the instance that is not a connection type. The metatype of an existing entity SHALL NOT be changed by a write.
+An entity SHALL have a non-blank name of at most 255 characters, a description of at most 2000 characters and exactly one metatype of the instance that is not a connection type. The metatype of an existing entity SHALL NOT be changed by a write.
 
 Trace: REQ-153 (error cases), ADR-022, US-141 AC1
 

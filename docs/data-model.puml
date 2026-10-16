@@ -993,8 +993,9 @@ package "Repository" #FCE4EC {
     --
     + metatype_id      : UUID             {NN} {FK→metatypes.id}
     + name             : TEXT             {NN}
-    .. corporate language; no translation ..
+    .. corporate language; no translation; CHECK btrim(name) <> '' AND length(name) <= 255 ..
     + description      : TEXT             {NN} DEFAULT ''
+    .. CHECK length(description) <= 2000 ..
     + is_logical       : BOOLEAN          {NN} DEFAULT true
     + version          : INTEGER          {NN} DEFAULT 1
     .. optimistic lock counter (ADR-016) ..
@@ -1009,7 +1010,7 @@ package "Repository" #FCE4EC {
     == External integration (ADR-026, optional) ==
     + external_id      : TEXT
     .. Stable identifier from the source system (e.g. 'git:org/repo/svc') ..
-    .. UNIQUE WHERE external_id IS NOT NULL ..
+    .. UNIQUE WHERE external_id IS NOT NULL (deleted entities keep theirs) ..
     .. NULL if created manually; never auto-generated ..
     == Soft-Delete (ADR-019) ==
     + deleted_at       : TIMESTAMPTZ
@@ -1674,6 +1675,11 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   (config_id, name) on metatypes; actor pair for
 '   metamodel_configurations.last_modified_by; new metamodel_package_imports.
 '   Reason: US-033, REQ-114, ADR-002, ADR-005.
+' 2026-10-16 (us-141-entity-batch-upsert):
+'   repository tables created as modeled (entity_connections follows with
+'   connections); name not blank, at most 255 characters, description at
+'   most 2000 (business object entity); the external_id index also covers
+'   soft-deleted entities. Reason: US-141, REQ-153, REQ-154, ADR-022.
 ' ─────────────────────────────────────────────────────
 
 @enduml
