@@ -222,6 +222,39 @@ An IdP group mapping was created, changed or (softly) deleted ([REQ-167](../requ
 | Target | `idp-group-mapping`, ID of the mapping |
 | Details | `authProviderId`, `groupIdentifier`, `roleId`, `active` (state after the change) |
 
+### `metamodel.package-imported`
+
+A metamodel package was imported ([US-033](../requirements/user-stories/US-033-import-metamodel.md), [REQ-033](../requirements/req/REQ-033-metamodel-import.md), ADR-002).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the importing principal |
+| Target | `metamodel-package`, package identifier |
+| Details | `packageId`, `version`, `batchId`, `metatypesCreated`, `metatypesUpdated` |
+
+### `metamodel.metatype-imported`
+
+A metatype was created or changed by a package import; one event per metatype with the batch ID of the import (US-033 AC1).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the importing principal |
+| Target | `metatype`, ID of the metatype |
+| Details | `batchId`, `packageId`, `action` (`created` or `updated`) |
+
+### `metamodel.package-rejected`
+
+A package import by an authorized principal was rejected; nothing was stored. Written independently of the rolled-back import.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `warning` / `failure` |
+| Actor | the importing principal |
+| Target | `metamodel-package` |
+| Details | `reason` (`invalid-package`, `unsupported-package-content`, `conflict`), `packageId` if valid |
+
 ## Planned Event Types
 
 Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `visibility.changed`, `visibility.override-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.*`, `metamodel.*`.

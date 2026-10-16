@@ -189,6 +189,14 @@
 					<include>openapi.yaml</include>
 				</includes>
 			</resource>
+			<!-- Starter metamodel packages shipped with OEA (ADR-005) -->
+			<resource>
+				<directory>${project.basedir}/../packages</directory>
+				<targetPath>packages</targetPath>
+				<includes>
+					<include>*.json</include>
+				</includes>
+			</resource>
 		</resources>
 		<plugins>
 			<plugin>

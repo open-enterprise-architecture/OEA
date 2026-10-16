@@ -726,7 +726,9 @@ package "Metamodel" #E8F5E9 {
     .. enum: gui-and-import | import-only ..
     + rules_edit_mode  : TEXT             {NN} DEFAULT 'gui-and-import'
     + last_modified_at : TIMESTAMPTZ      {NN} DEFAULT NOW()
-    + last_modified_by : BIGINT           {NN} {FK→persons.id}
+    + last_modified_by_person_id : BIGINT {FK→persons.id}
+    + last_modified_by_admin_id  : UUID   {FK→system_admin_accounts.id}
+    .. actor pair; both NULL = system (e.g. the migration creating the instance configuration) ..
     == Configuration as JSONB (ADR-030) ==
     + config           : JSONB            {NN} DEFAULT '{}'
     .. mapped via @JdbcTypeCode(SqlTypes.JSON) ..
@@ -747,9 +749,15 @@ package "Metamodel" #E8F5E9 {
     + architecture_layer_id : TEXT
     .. soft ref in config.architectureLayers ..
     + sort_order            : INTEGER     {NN} DEFAULT 0
-    + is_builtin            : BOOLEAN     {NN} DEFAULT false
+    + scope                 : TEXT        {NN} DEFAULT 'organization'
+    .. enum: built-in | imported | organization (ADR-002) ..
+    + source_package_id     : TEXT
+    + source_package_version : TEXT
+    .. origin package; NOT NULL iff scope = 'imported' ..
+    .. UNIQUE(config_id, name) ..
     + created_at            : TIMESTAMPTZ {NN} DEFAULT NOW()
     + created_by            : BIGINT      {FK→persons.id}
+    .. NULL for content of packages and of the software ..
   }
 
   class metatype_connection_constraints <<Table>> #C8E6C9 {
@@ -760,6 +768,21 @@ package "Metamodel" #E8F5E9 {
     .. enum: source | target ..
     + allowed_metatype_id : UUID          {NN} {FK→metatypes.id}
     .. UNIQUE(metatype_id, direction, allowed_metatype_id) ..
+  }
+
+  class metamodel_package_imports <<Table>> #C8E6C9 {
+    + id                    : UUID        {PK}
+    --
+    + package_id            : TEXT        {NN}
+    + package_version       : TEXT        {NN}
+    + publisher             : TEXT        {NN}
+    + batch_id              : UUID        {NN} {UQ}
+    .. shared by the audit events of the import (US-033 AC1) ..
+    + imported_at           : TIMESTAMPTZ {NN} DEFAULT NOW()
+    + imported_by_person_id : BIGINT      {FK→persons.id}
+    + imported_by_admin_id  : UUID        {FK→system_admin_accounts.id}
+    + metatypes_created     : INTEGER     {NN}
+    + metatypes_updated     : INTEGER     {NN}
   }
 
   metamodel_configurations "0..1" --o{ "0..*" metamodel_configurations       : parent_id
@@ -782,6 +805,10 @@ package "Metamodel – Properties" #E0F2F1 {
     + sort_order  : INTEGER               {NN} DEFAULT 0
     + description : TEXT
     .. corporate language; translation via i18n_entries(field='description') ..
+    + scope       : TEXT                  {NN} DEFAULT 'organization'
+    + source_package_id      : TEXT
+    + source_package_version : TEXT
+    .. as metatypes (ADR-002) ..
   }
 
   class property_definitions <<Table>> #B2DFDB {
@@ -812,6 +839,10 @@ package "Metamodel – Properties" #E0F2F1 {
     + scoping_connection_type_id : UUID   {FK→metatypes.id}
     .. NOT NULL iff visibility_mode = 'connection-scoped'; ..
     .. metatype must have is_connection = true (REQ-127) ..
+    + scope           : TEXT              {NN} DEFAULT 'organization'
+    + source_package_id      : TEXT
+    + source_package_version : TEXT
+    .. as metatypes (ADR-002) ..
     + created_at      : TIMESTAMPTZ       {NN} DEFAULT NOW()
     + created_by      : BIGINT            {FK→persons.id}
   }
@@ -1637,6 +1668,12 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   (session lifetime bounded by the IdP refresh token, owner decision 2026-10-15);
 '   new oidc_login_states (state, nonce, PKCE verifier of running logins).
 '   Reason: US-001, US-147 AC5, REQ-001, REQ-165, REQ-166.
+' 2026-10-16 (us-033-import-metamodel):
+'   scope and source package on metatypes, property_definitions and
+'   property_categories (ADR-002) instead of metatypes.is_builtin; UNIQUE
+'   (config_id, name) on metatypes; actor pair for
+'   metamodel_configurations.last_modified_by; new metamodel_package_imports.
+'   Reason: US-033, REQ-114, ADR-002, ADR-005.
 ' ─────────────────────────────────────────────────────
 
 @enduml

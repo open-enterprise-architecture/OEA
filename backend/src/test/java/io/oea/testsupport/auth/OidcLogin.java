@@ -214,9 +214,30 @@ public final class OidcLogin {
 				DevRealm.password(username), "credentialId", ""));
 		String totpSecret = DevRealm.totpSecret(username);
 		if (page.statusCode() == 200 && totpSecret != null) {
-			page = submit(http, page, Map.of("otp", Totp.code(totpSecret, Instant.now())));
+			page = submit(http, page, Map.of("otp", Totp.code(totpSecret, unusedTimeStep(username))));
 		}
 		return page;
+	}
+
+	/** Last TOTP time step used per user; the IdP accepts a code only once (replay protection). */
+	private static final Map<String, Long> LAST_TIME_STEP = new ConcurrentHashMap<>();
+
+	/** A time within a 30-second step not used before for this user; waits for the next step if needed. */
+	private static synchronized Instant unusedTimeStep(String username) {
+		long step = Instant.now().getEpochSecond() / 30;
+		Long last = LAST_TIME_STEP.get(username);
+		if (last != null && step <= last) {
+			try {
+				Thread.sleep((((last + 1) * 30) - Instant.now().getEpochSecond()) * 1000 + 200);
+			}
+			catch (InterruptedException ex) {
+				Thread.currentThread().interrupt();
+				throw new IllegalStateException(ex);
+			}
+			step = Instant.now().getEpochSecond() / 30;
+		}
+		LAST_TIME_STEP.put(username, step);
+		return Instant.ofEpochSecond(step * 30);
 	}
 
 	private static HttpResponse<String> submit(HttpClient http, HttpResponse<String> page, Map<String, String> fields) {

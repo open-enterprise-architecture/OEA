@@ -2,8 +2,9 @@
 
 **ID**: US-033
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: in-progress
+**Sprint**: S2
+**Implementation**: OpenSpec change `us-033-import-metamodel` – package import and the shipped starter package `oea-starter-togaf-classic` (AC1 for packages); AC2–AC4 (file upload with preview, conflict display, partial import, YAML) follow later; commit hash follows when the change is archived
 
 ## Story
 
@@ -25,7 +26,7 @@ As a Lead Enterprise Architect, I want to be able to import a prepared metamodel
 
 **AC2**:
 
-- Given: the file contains a type with the name `ApplicationComponent` (built-in)
+- Given: the file contains a type whose name belongs to a built-in type (e.g. a type of a built-in package such as BPMN, ADR-002) or to another package
 - Then: the preview shows this entry in red as "not importable (built-in)"; import not possible without resolution
 
 **AC3**:
@@ -59,5 +60,7 @@ As a Lead Enterprise Architect, I want to be able to import a prepared metamodel
 - Blocks: none
 
 ## Notes
+
+AC2 clarified on 2026-10-16 (change `us-033-import-metamodel`): `ApplicationComponent` is not built-in but part of the starter package `oea-starter-togaf-classic` (ADR-005); the conflict rule applies to built-in types and to types of other packages.
 
 5 SP because of the preview component (diff rendering), the two-phase API (parse → confirm) and the partial import logic (checkbox per entry). YAML and JSON are auto-detected. ArchiMate XMI is explicitly out of scope.

@@ -333,6 +333,22 @@ components:
         instance: { type: string, format: uri }
 
     # ── Metatype ───────────────────────────────────────────────────────────────
+    MetamodelScope:
+      type: string
+      enum: [built-in, imported, organization]
+      description: |
+        Scope of metamodel content (ADR-002): `built-in` is part of the software and read-only,
+        `imported` comes from a package and changes only by re-importing that package,
+        `organization` is maintained by the organization.
+
+    SourcePackage:
+      type: object
+      required: [packageId, version]
+      description: Package that imported content comes from
+      properties:
+        packageId: { type: string }
+        version:   { type: string }
+
     MetatypeSummary:
       type: object
       required: [id, name, abbreviation]
@@ -349,7 +365,11 @@ components:
             isConnection:       { type: boolean }
             architectureLayer:  { type: [string, 'null'] }
             sortOrder:          { type: integer }
-            isBuiltin:          { type: boolean }
+            scope:              { $ref: '#/components/schemas/MetamodelScope' }
+            sourcePackage:
+              oneOf:
+                - $ref: '#/components/schemas/SourcePackage'
+                - type: 'null'
             propertyMappings:
               type: array
               items: { $ref: '#/components/schemas/MetatypePropertyMapping' }
@@ -419,6 +439,11 @@ components:
         enumValues:
           type: array
           items: { $ref: '#/components/schemas/PropertyEnumValue' }
+        scope:          { $ref: '#/components/schemas/MetamodelScope' }
+        sourcePackage:
+          oneOf:
+            - $ref: '#/components/schemas/SourcePackage'
+            - type: 'null'
         visibility:
           allOf:
             - $ref: '#/components/schemas/PropertyVisibility'
@@ -1007,10 +1032,19 @@ components:
 
     MetamodelPackage:
       type: object
-      required: [formatVersion, exportedAt, metatypes, propertyCategories, propertyDefinitions]
-      description: Portable metamodel package for import/export (ADR-026)
+      required: [formatVersion, exportedAt, packageId, packageVersion, publisher, metatypes, propertyCategories, propertyDefinitions]
+      description: |
+        Portable metamodel package for import/export (ADR-026). Elements carry stable UUIDs;
+        a re-import of the same `packageId` updates its own content (ADR-002, REQ-114).
+        In `propertyMappings` only `propertyDefinition.id` is used; the definitions come from
+        `propertyDefinitions`.
       properties:
         formatVersion:       { type: string, example: "1.0" }
+        packageId:           { type: string, pattern: '^[a-z0-9][a-z0-9-]{1,62}$', example: oea-starter-togaf-classic }
+        packageVersion:      { type: string, maxLength: 32, example: "1.0.0" }
+        publisher:           { type: string, maxLength: 100, example: OEA }
+        name:                { type: string, maxLength: 200, description: "Display name of the package" }
+        description:         { type: string, maxLength: 2000 }
         exportedAt:          { type: string, format: date-time }
         sourceInstanceId:    { type: [string, 'null'] }
         metatypes:
@@ -2245,11 +2279,41 @@ components:
         "property-def.abc123.label": "Version"
         "enum-value.def456.label": "Planned"
 
+    StarterPackage:
+      type: object
+      required: [packageId, name, version, publisher, description, metatypeCount, propertyDefinitionCount, metatypeNames, imported]
+      description: A metamodel package shipped with OEA (ADR-005)
+      properties:
+        packageId:               { type: string, example: oea-starter-togaf-classic }
+        name:                    { type: string }
+        version:                 { type: string }
+        publisher:               { type: string }
+        description:             { type: string }
+        metatypeCount:           { type: integer }
+        propertyDefinitionCount: { type: integer }
+        metatypeNames:
+          type: array
+          items: { type: string }
+        imported:                { type: boolean, description: "Imported into this instance (any version)" }
+
     # ── Import ────────────────────────────────────────────────────────────────
     ImportResult:
       type: object
       required: [status, created, updated, conflicts]
       properties:
+        batchId:
+          type: [string, 'null']
+          format: uuid
+          description: Shared by the audit events of a metamodel package import (US-033 AC1)
+        conflictList:
+          type: array
+          description: Conflicting elements of a rejected metamodel package import (REQ-114)
+          items:
+            type: object
+            required: [element, reason]
+            properties:
+              element: { type: string, description: "Type and name of the element, e.g. `metatype Application Component`" }
+              reason:  { type: string, enum: [other-package, organization, built-in] }
         status:
           type: string
           enum: [completed, completed-with-conflicts, failed]
@@ -5341,10 +5405,14 @@ paths:
       operationId: importMetamodelPackage
       summary: Import metamodel package (ADR-026)
       description: |
-        Imports a metamodel package (e.g. ArchiMate 3.2 base metamodel).
-        `merge`: adds missing metatypes/properties, updates existing ones.
-        `replace`: replaces the metamodel completely (only if no entities
-        of the old metamodel exist).
+        Imports a metamodel package (e.g. ArchiMate 3.2 base metamodel) into the instance
+        configuration in one transaction (REQ-114). `merge`: adds new metatypes and properties
+        with `scope=imported`, updates content the same package imported before; content of
+        another package or with scope `organization`/`built-in` is never overwritten (409).
+        `replace` is not supported yet (422). The body is limited to the configured maximum
+        size (413) and validated against the package schema; a faulty package is rejected with
+        422 and the location of the first problem (REQ-184). Every import is audited with one
+        batch ID.
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       requestBody:
@@ -5369,15 +5437,69 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409':
-          description: "`replace` not possible (existing entities of the old metamodel)"
+          description: Conflicts with content of another package or of the organization (`conflictList`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportResult' }
+        '413':
+          description: Package larger than the configured maximum size
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '422':
-          description: Invalid package format
+          description: Invalid package format (problem types `invalid-package` with location, `unsupported-package-content`)
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+
+  /admin/metamodel/starter-packages:
+    get:
+      operationId: listStarterPackages
+      summary: Starter packages shipped with OEA (ADR-005, REQ-112)
+      description: Lists the shipped metamodel packages with a summary and whether they have been imported.
+      tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      responses:
+        '200':
+          description: Starter packages
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/StarterPackage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/metamodel/starter-packages/{packageId}/import:
+    post:
+      operationId: importStarterPackage
+      summary: Import a shipped starter package (ADR-005, REQ-112)
+      description: Imports the shipped package like `importMetamodelPackage` with strategy `merge`, without upload.
+      tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      parameters:
+        - name: packageId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[a-z0-9][a-z0-9-]{1,62}$' }
+      responses:
+        '200':
+          description: Import result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: No shipped package with this identifier
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: Conflicts with content of another package or of the organization (`conflictList`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportResult' }
 
   # ── Shape palette per viewpoint ─────────────────────────────────────────────
   /admin/viewpoints/{id}/shape-palette:
