@@ -11,9 +11,9 @@ import io.oea.testsupport.auth.TestPrincipals.TestSession;
 import io.oea.testsupport.containers.OeaDatabases;
 import io.oea.testsupport.containers.OeaPostgres;
 import io.oea.testsupport.containers.OeaTestKeys;
+import io.oea.testsupport.metamodel.TestPackages;
 import jakarta.servlet.http.Cookie;
 import java.nio.file.Files;
-import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +30,6 @@ import org.springframework.test.web.servlet.assertj.MvcTestResult;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /** Spec metamodel/package-import on an own database (REQ-033, REQ-114, REQ-184). */
@@ -92,19 +91,19 @@ class PackageImportTests {
 
 	@Test
 	void packageViolatingTheSchema() {
-		ObjectNode withoutName = pkg("schema-test", 1);
+		ObjectNode withoutName = TestPackages.pkg("schema-test", 1);
 		((ObjectNode) withoutName.withArray("metatypes").get(0)).remove("name");
 		MvcTestResult missingName = post(withoutName.toString(), this.metamodelAdmin);
 		assertThat(missingName).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
 		assertThat(body(missingName).path("pointer").asString()).isEqualTo("/metatypes/0/name");
 
-		ObjectNode unknownType = pkg("schema-test", 1);
+		ObjectNode unknownType = TestPackages.pkg("schema-test", 1);
 		((ObjectNode) unknownType.withArray("propertyDefinitions").get(0)).put("dataType", "colour");
 		MvcTestResult wrongType = post(unknownType.toString(), this.metamodelAdmin);
 		assertThat(wrongType).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
 		assertThat(body(wrongType).path("type").asString()).isEqualTo("urn:oea:problem:invalid-package");
 
-		ObjectNode unknownProperty = pkg("schema-test", 1);
+		ObjectNode unknownProperty = TestPackages.pkg("schema-test", 1);
 		((ObjectNode) unknownProperty.withArray("metatypes").get(0).withArray("propertyMappings").get(0))
 			.withObject("propertyDefinition")
 			.put("id", UUID.randomUUID().toString());
@@ -117,7 +116,7 @@ class PackageImportTests {
 
 	@Test
 	void packageAboveTheSizeLimit() {
-		ObjectNode large = pkg("large", 1);
+		ObjectNode large = TestPackages.pkg("large", 1);
 		large.put("sourceInstanceId", "x".repeat(70 * 1024));
 		assertThat(post(large.toString(), this.metamodelAdmin)).hasStatus(HttpStatus.CONTENT_TOO_LARGE);
 		assertThat(count("SELECT count(*) FROM metatypes WHERE source_package_id = 'large'")).isZero();
@@ -125,12 +124,12 @@ class PackageImportTests {
 
 	@Test
 	void unsupportedPackageSections() {
-		ObjectNode replace = pkg("unsupported", 1).put("strategy", "replace");
+		ObjectNode replace = TestPackages.pkg("unsupported", 1).put("strategy", "replace");
 		MvcTestResult strategy = post(replace.toString(), this.metamodelAdmin);
 		assertThat(strategy).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
 		assertThat(body(strategy).path("type").asString()).isEqualTo("urn:oea:problem:unsupported-package-content");
 
-		ObjectNode translations = pkg("unsupported", 1);
+		ObjectNode translations = TestPackages.pkg("unsupported", 1);
 		translations.withObject("i18nBundles").withObject("de").put("metatype.x.name", "Typ");
 		MvcTestResult bundles = post(translations.toString(), this.metamodelAdmin);
 		assertThat(bundles).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
@@ -140,7 +139,7 @@ class PackageImportTests {
 
 	@Test
 	void packageWithFiveMetatypesAndItsBatch() {
-		MvcTestResult result = post(pkg("five-types", 5).toString(), this.metamodelAdmin);
+		MvcTestResult result = post(TestPackages.pkg("five-types", 5).toString(), this.metamodelAdmin);
 		assertThat(result).hasStatus(HttpStatus.OK);
 		JsonNode outcome = body(result);
 		assertThat(outcome.path("status").asString()).isEqualTo("completed");
@@ -159,7 +158,7 @@ class PackageImportTests {
 
 	@Test
 	void reimportOfTheSamePackage() {
-		ObjectNode first = pkg("reimport", 3);
+		ObjectNode first = TestPackages.pkg("reimport", 3);
 		assertThat(post(first.toString(), this.metamodelAdmin)).hasStatus(HttpStatus.OK);
 		((ObjectNode) first.withArray("metatypes").get(1)).put("name", "Renamed Type");
 		MvcTestResult again = post(first.toString(), this.metamodelAdmin);
@@ -173,14 +172,14 @@ class PackageImportTests {
 	@Test
 	void importWithoutPermission() {
 		TestSession noRole = new TestPrincipals(this.sessions, this.accounts, this.jdbc).personWithoutRole();
-		assertThat(post(pkg("no-permission", 1).toString(), noRole)).hasStatus(HttpStatus.FORBIDDEN);
+		assertThat(post(TestPackages.pkg("no-permission", 1).toString(), noRole)).hasStatus(HttpStatus.FORBIDDEN);
 		assertThat(count("SELECT count(*) FROM metatypes WHERE source_package_id = 'no-permission'")).isZero();
 	}
 
 	@Test
 	void nameAlreadyUsedByAnotherPackage() {
-		assertThat(post(pkg("owner-package", 2).toString(), this.metamodelAdmin)).hasStatus(HttpStatus.OK);
-		ObjectNode other = pkg("other-package", 2);
+		assertThat(post(TestPackages.pkg("owner-package", 2).toString(), this.metamodelAdmin)).hasStatus(HttpStatus.OK);
+		ObjectNode other = TestPackages.pkg("other-package", 2);
 		// the second metatype takes a name of the first package
 		((ObjectNode) other.withArray("metatypes").get(1)).put("name", "owner-package Type 2");
 		MvcTestResult result = post(other.toString(), this.metamodelAdmin);
@@ -193,37 +192,6 @@ class PackageImportTests {
 			.isZero();
 	}
 
-	/** A package with the given number of metatypes, one enum property and one category. */
-	static ObjectNode pkg(String packageId, int metatypes) {
-		ObjectNode root = JsonMapper.shared().createObjectNode();
-		root.put("formatVersion", "1.0").put("exportedAt", "2026-10-16T00:00:00Z").put("packageId", packageId)
-			.put("packageVersion", "1.0.0").put("publisher", "Test");
-		String categoryId = uuid(packageId, "category");
-		root.putArray("propertyCategories").addObject().put("id", categoryId).put("name", packageId + " General")
-			.put("sortOrder", 0);
-		String propertyId = uuid(packageId, "property");
-		ObjectNode property = root.putArray("propertyDefinitions").addObject();
-		property.put("id", propertyId).put("name", packageId + " Status").put("dataType", "enum");
-		property.putObject("category").put("id", categoryId).put("name", packageId + " General").put("sortOrder", 0);
-		ArrayNode values = property.putArray("enumValues");
-		List<String> names = List.of("planned", "active");
-		for (int i = 0; i < names.size(); i++) {
-			values.addObject().put("id", uuid(packageId, "value" + i)).put("value", names.get(i)).put("sortOrder", i);
-		}
-		ArrayNode types = root.putArray("metatypes");
-		for (int i = 1; i <= metatypes; i++) {
-			ObjectNode type = types.addObject();
-			type.put("id", uuid(packageId, "type" + i)).put("name", packageId + " Type " + i).put("abbreviation", "T" + i)
-				.put("sortOrder", i);
-			ObjectNode mapping = type.putArray("propertyMappings").addObject();
-			mapping.put("id", uuid(packageId, "mapping" + i)).put("necessity", "optional").put("validFrom", "2026-01-01")
-				.put("sortOrder", 0);
-			mapping.putObject("propertyDefinition").put("id", propertyId).put("name", packageId + " Status")
-				.put("dataType", "enum");
-		}
-		return root;
-	}
-
 	private static String tempDirectory() {
 		try {
 			return Files.createTempDirectory("oea-import").toString();
@@ -233,9 +201,6 @@ class PackageImportTests {
 		}
 	}
 
-	private static String uuid(String packageId, String element) {
-		return UUID.nameUUIDFromBytes((packageId + "/" + element).getBytes()).toString();
-	}
 
 	private MvcTestResult post(String body, TestSession session) {
 		return this.mvc.post()
