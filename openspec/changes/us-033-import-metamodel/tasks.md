@@ -24,7 +24,7 @@
 
 ## 5. Frontend
 
-- [ ] 5.1 Add the start-page card "Import starter configuration" (D9) with the API client for starter packages and metatypes; verify with Vitest tests for the specs "Card on a new instance" and "No card without permission or after the import"; the card gets no screen story (screen stories with change 6, as for the pages of change 3)
+- [x] 5.1 Add the start-page card "Import starter configuration" (D9) with the API client for starter packages and metatypes; verify with Vitest tests for the specs "Card on a new instance" and "No card without permission or after the import"; the card gets no screen story (screen stories with change 6, as for the pages of change 3)
 
 ## 6. Walking-skeleton check
 

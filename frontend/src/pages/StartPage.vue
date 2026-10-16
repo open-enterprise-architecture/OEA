@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { fetchHealth, type HealthStatus } from '../api/health'
 import { fetchSetupRequired } from '../api/setup'
+import StarterConfigurationCard from '../components/StarterConfigurationCard.vue'
 
 const props = defineProps<{ fetchFn?: typeof fetch }>()
 const health = ref<HealthStatus | 'CHECKING'>('CHECKING')
@@ -27,6 +28,7 @@ onMounted(async () => {
       description="This instance has no system admin account yet."
       :actions="[{ label: 'Set up the instance', to: '/setup' }]"
     />
+    <StarterConfigurationCard :fetch-fn="props.fetchFn" />
     <div class="flex items-center gap-2">
       <span>Backend</span>
       <UBadge
