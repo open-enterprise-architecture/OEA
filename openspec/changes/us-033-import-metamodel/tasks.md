@@ -7,7 +7,7 @@
 
 ## 2. Contract
 
-- [ ] 2.1 Extend `api/openapi.yaml` (design, API): package identity, `scope` and `sourcePackage`, `StarterPackage`, `listStarterPackages`, `importStarterPackage`, 409/413 and `ImportResult.batchId`/`conflictList`; verify Redocly lint, `scripts/check_openapi_authorization.py` and that the generated interfaces compile
+- [x] 2.1 Extend `api/openapi.yaml` (design, API): package identity, `scope` and `sourcePackage`, `StarterPackage`, `listStarterPackages`, `importStarterPackage`, 409/413 and `ImportResult.batchId`/`conflictList`; verify Redocly lint, `scripts/check_openapi_authorization.py` and that the generated interfaces compile
 
 ## 3. Package import
 
