@@ -20,6 +20,8 @@ All audit records are rows of `audit.events` (with optional details in `audit.ev
 | `actor_type` | `person`, `service-account`, `system-admin-account`, `system` or `unauthenticated` |
 | `actor_person_id` / `actor_admin_id` | Pseudonymous key of the actor; never names or e-mail addresses |
 | `target_type` / `target_id` | Affected object |
+| `entity_id` / `entity_name` | Affected entity for `entity.*` events; the name is denormalized and empty for modeled persons |
+| `agent_label` / `agent_run` | Informational values of the headers `X-Agent-Id` and `X-Agent-Run` (control characters removed, at most 100 characters); never used for decisions (ADR-033 §7) |
 | `details` | Event-type-specific supplement (JSON); never secrets, tokens, passwords or hashes of them |
 
 ## Event Types
@@ -255,6 +257,18 @@ A package import by an authorized principal was rejected; nothing was stored. Wr
 | Target | `metamodel-package` |
 | Details | `reason` (`invalid-package`, `unsupported-package-content`, `conflict`), `packageId` if valid |
 
+### `entity.created` / `entity.updated`
+
+An entity was created or changed ([US-141](../requirements/user-stories/US-141-entity-batch-import.md), ADR-022, ADR-033 §3). A write that changes nothing is not audited; rejected items are not audited.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the writing person |
+| Target | `entity`, ID of the entity; `entity_id` and `entity_name` |
+| Details | `batchId` (one per request), `metatypeId`, `externalId` if set, `version` (after the write) |
+| Changes | one `audit.event_changes` row per changed system field (`name`, `description`, `is_logical`) and property with old and new value as text; on create the old values are empty |
+
 ## Planned Event Types
 
-Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `visibility.changed`, `visibility.override-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.*`, `metamodel.*`.
+Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `visibility.changed`, `visibility.override-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.deleted` and further `entity.*`, `metamodel.*`.

@@ -11,7 +11,8 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 
 /**
  * Fails startup if a handler of a generated operation has no rule in the contract, or if an
- * implemented operation declares {@code conditions}, which are not enforced yet (design D3).
+ * implemented operation declares {@code conditions}, which are not enforced yet (design D3),
+ * unless the handler rejects every request that would reach them ({@link ConditionsNotReachable}).
  */
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @Component
@@ -38,13 +39,18 @@ class OperationCoverageCheck implements SmartInitializingSingleton {
 			if (rule == null) {
 				problems.add(operationId + " has no x-oea-authorization rule");
 			}
-			else if (rule.hasConditions() && isImplemented(handler)) {
+			else if (rule.hasConditions() && isImplemented(handler) && !conditionsNotReachable(handler)) {
 				problems.add(operationId + " declares conditions, which are not enforced yet");
 			}
 		}
 		if (!problems.isEmpty()) {
 			throw new IllegalStateException("Authorization coverage incomplete: " + String.join("; ", problems));
 		}
+	}
+
+	static boolean conditionsNotReachable(HandlerMethod handler) {
+		ConditionsNotReachable mark = handler.getMethodAnnotation(ConditionsNotReachable.class);
+		return mark != null && !mark.value().isBlank();
 	}
 
 	/** Implemented = overridden in the controller, not the generated default method (501). */

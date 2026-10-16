@@ -46,7 +46,7 @@ V6 creates `entities`, `entity_property_values`, `entity_version_headers`, `enti
 
 One validator in `io.oea.app` serves all future write paths. It loads the metatype with its active mappings (latest `valid_from` ≤ today per property definition), enum values and constraints once per batch and checks each item:
 
-- name not blank after trimming; metatype exists and `is_connection=false`; metatype unchanged on update
+- name not blank after trimming and at most 255 characters, description at most 2000 characters (business object `entity`); metatype exists and `is_connection=false`; metatype unchanged on update
 - each value: definition mapped (otherwise ignored with warning `PROPERTY_NOT_MAPPED`, REQ-149 error cases), visibility `public` (otherwise `RESTRICTED_PROPERTY_NOT_SUPPORTED`), conversion by data type (`string`, `text`, `url`: text with `max_length`/`pattern`; `integer`: `min_value`/`max_value`; `boolean`: `true`/`false`; `date`: ISO date; `enum`: one of the enum values; `reference`: ID of an existing, not deleted entity of `ref_metatype_id`), otherwise `INVALID_VALUE`
 - after merging with the stored values (update) or the mapping defaults (create): `mandatory` without value → `MANDATORY_MISSING` with field `properties`; `warning` without value → warning with field `properties[<name>]` (REQ-149 AC1, AC2)
 - `parentId` or `lifecycle` set → `NOT_SUPPORTED`
@@ -69,6 +69,10 @@ Each item is resolved by `externalId` with `SELECT … FOR UPDATE` on the active
 - `atomic=true`: all items run in one transaction; validation errors of all items are collected first, and if any exists nothing is written and the response is 422 with `errors[]` whose fields carry the item index (`entities[3].properties`). Otherwise all items are written and audited in that transaction.
 
 Audit records are appended at the end of each transaction, immediately before commit (ADR-033 §5), to keep the chain lock short.
+
+A request that violates the contract as a whole (e.g. more than 500 entities, an item without `name`) is answered with 422 and `errors[]` instead of the generic 400, because REQ-154 AC4 requires 422 for the limit.
+
+The contract declares a condition for `batchWriteEntities` (`visibility-scope:assign` when a scoping connection is written). The startup check of us-013 refuses implemented operations with conditions that are not enforced. Since this change rejects every batch with connections, the handler is marked `@ConditionsNotReachable` with that reason; the mark is removed when connections are written (US-141 AC2) and the condition is enforced.
 
 ### D5 – Versioning
 
@@ -98,6 +102,7 @@ Delta to `api/openapi.yaml`:
 - `BatchWriteResponse.summary`: new `unchanged`
 - `batchWriteEntities` 422: problem with `errors[]` (`ValidationError`, field with item index); description lists the 422 causes (limit, connections, `dryRun`, atomic failure)
 - `BatchWriteRequest.entities`: `maxItems: 500` stays; `connections` described as not supported yet
+- `EntityWrite.isLogical`: no contract default any more (the generated model would otherwise send `true` for an omitted field and an update could not keep the stored value, D3); the default `true` on create is described in the field
 
 ## Risks / Trade-offs
 

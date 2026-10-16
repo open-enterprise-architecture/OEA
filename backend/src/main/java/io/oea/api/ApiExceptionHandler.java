@@ -1,8 +1,12 @@
 package io.oea.api;
 
+import io.oea.api.entity.EntityBatchController;
+import io.oea.api.generated.model.ValidationError;
 import io.oea.app.access.AccessConflictException;
 import io.oea.app.access.InvalidAccessRequestException;
 import io.oea.app.access.SelfAdministrationException;
+import io.oea.app.entity.AtomicBatchFailedException;
+import io.oea.app.entity.BatchRejectedException;
 import io.oea.app.login.InvalidCredentialsException;
 import io.oea.app.login.InvalidTotpCodeException;
 import io.oea.app.login.SecondFactorRequiredException;
@@ -105,8 +109,35 @@ public class ApiExceptionHandler {
 		return ResponseEntity.unprocessableContent().body(problem);
 	}
 
+	@ExceptionHandler(BatchRejectedException.class)
+	ResponseEntity<ProblemDetail> batchRejected(BatchRejectedException ex) {
+		return ResponseEntity.unprocessableContent()
+			.body(problem(HttpStatus.UNPROCESSABLE_CONTENT, ex.getType(), "Batch rejected", ex.getMessage()));
+	}
+
+	@ExceptionHandler(AtomicBatchFailedException.class)
+	ResponseEntity<ProblemDetail> atomicBatchFailed(AtomicBatchFailedException ex) {
+		ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "validation-failed", "Batch not written",
+				ex.getMessage());
+		problem.setProperty("errors", ex.getErrors().stream().map(EntityBatchController::validationError).toList());
+		return ResponseEntity.unprocessableContent().body(problem);
+	}
+
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	ResponseEntity<ProblemDetail> contractViolation(MethodArgumentNotValidException ex, HttpServletRequest request) {
+		if (EntityBatchController.BATCH_PATH.equals(request.getRequestURI())) {
+			// REQ-154: a batch that violates the contract (e.g. above 500 entities) is rejected as a whole
+			ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "validation-failed", "Batch rejected",
+					"The batch does not meet the contract; no item was processed.");
+			problem.setProperty("errors", ex.getBindingResult()
+				.getFieldErrors()
+				.stream()
+				.map((error) -> new ValidationError(error.getField(),
+						(error.getDefaultMessage() != null) ? error.getDefaultMessage() : "invalid")
+					.code("CONTRACT_VIOLATION"))
+				.toList());
+			return ResponseEntity.unprocessableContent().body(problem);
+		}
 		if (isPackageImport(request)) {
 			FieldError first = ex.getBindingResult().getFieldErrors().stream().findFirst().orElse(null);
 			ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "invalid-package", "Invalid package",
