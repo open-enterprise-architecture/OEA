@@ -28,10 +28,10 @@
 
 ## 6. Walking-skeleton check
 
-- [ ] 6.1 Verify walking-skeleton steps 3–5 manually in the development environment: bootstrapping, `scripts/dev_seed.py`, OIDC login as `dev-metamodel-admin` (TOTP), import of `oea-starter-togaf-classic` through the start-page card or the API, seven metatypes listed, re-import without duplicates, `oea audit verify` OK; record the result in the PR
+- [x] 6.1 Verify walking-skeleton steps 3–5 manually in the development environment: bootstrapping, `scripts/dev_seed.py`, OIDC login as `dev-metamodel-admin` (TOTP), import of `oea-starter-togaf-classic` through the start-page card or the API, seven metatypes listed, re-import without duplicates, `oea audit verify` OK; record the result in the PR
 
 ## 7. Wrap-up
 
-- [ ] 7.1 Document the starter configuration (who may import, `metamodel-admin` mapping, package format, limits) in `docs/operations.md`, the new event types in `docs/audit-event-catalog.md` and step 5 in `docs/walking-skeleton.md`; clarify in US-033 that `Application Component` comes from the starter package (ADR-005), not as built-in type; verify markdown lint and link validation pass
-- [ ] 7.2 Update the user story US-033 (status `in-progress`, AC1 for packages implemented; AC2–AC4 follow); regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py`; the implementation hash is added when the change is archived after the merge
-- [ ] 7.3 Synchronize `docs/data-model.puml`, `business-objects/` and `docs/screens/SCREENS.md` (unchanged) with the implementation; regenerate `THIRD-PARTY-LICENSES.md` if dependencies changed; run `python3 scripts/validate_links.py`, the markdown lint, `scripts/check_screens.py`, `scripts/sync_agent_config.py --check` and the OpenAPI checks and verify all pass
+- [x] 7.1 Document the starter configuration (who may import, `metamodel-admin` mapping, package format, limits) in `docs/operations.md`, the new event types in `docs/audit-event-catalog.md` and step 5 in `docs/walking-skeleton.md`; clarify in US-033 that `Application Component` comes from the starter package (ADR-005), not as built-in type; verify markdown lint and link validation pass
+- [x] 7.2 Update the user story US-033 (status `in-progress`, AC1 for packages implemented; AC2–AC4 follow); regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py`; the implementation hash is added when the change is archived after the merge
+- [x] 7.3 Synchronize `docs/data-model.puml`, `business-objects/` and `docs/screens/SCREENS.md` (unchanged) with the implementation; regenerate `THIRD-PARTY-LICENSES.md` if dependencies changed; run `python3 scripts/validate_links.py`, the markdown lint, `scripts/check_screens.py`, `scripts/sync_agent_config.py --check` and the OpenAPI checks and verify all pass

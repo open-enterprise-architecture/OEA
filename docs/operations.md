@@ -225,3 +225,24 @@ oea:
 ```
 
 **Failures**: a refused login (unknown identity, inactive person, invalid token, cancelled login) returns the browser to `<public URL>/login?error=login-failed` without revealing the reason; the reason is in the audit event `auth.login-failed`. An unreachable provider leads to `?error=provider-unavailable`; a retry is possible.
+
+## Starter Configuration and Metamodel Packages
+
+A new instance has no entity types. OEA ships the starter package `oea-starter-togaf-classic` (ADR-005: Application Component, Application Service, Data Object, Technology Component, Technology Service, System Software, Network Node, each with the property `Status`). Importing packages needs the permission `metamodel:write`, which only the role `metamodel-admin` holds – not the local system admin account (separation of duties, ADR-032). Map an IdP group to `metamodel-admin` (see above); as a privileged role it needs a second factor at the IdP.
+
+The start page offers the starter packages to a person with `metamodel:write` while the instance has no entity type. Through the API:
+
+```bash
+curl "${auth[@]}" "$OEA/admin/metamodel/starter-packages"                          # list with summary
+curl "${auth[@]}" -X POST "$OEA/admin/metamodel/starter-packages/oea-starter-togaf-classic/import"
+curl "${auth[@]}" "$OEA/metamodel/metatypes"                                       # imported entity types
+```
+
+Own packages in the same JSON format (`MetamodelPackage` in `api/openapi.yaml`, with `packageId`, `packageVersion`, `publisher` and stable UUIDs per element) are imported with `POST /admin/metamodel/import`:
+
+- the package is imported completely or not at all; imported content gets the scope `imported` and the package as origin
+- importing the same package again updates its own content; content of another package or of the organization is never overwritten (`409` with the list of conflicts)
+- packages larger than `oea.metamodel.import.max-size` (default 10 MB) are rejected with `413`; faulty JSON or content that does not match the format with `422` and the location of the problem
+- the strategy `replace`, viewpoints, shape assignments and translation bundles are not supported yet (`422`)
+
+Every import writes the audit events `metamodel.package-imported` and `metamodel.metatype-imported` with one batch ID.

@@ -111,9 +111,13 @@ Change 2 (`us-013-local-bootstrapping`) adds the local bootstrapping, the audit 
      (no token in localStorage/sessionStorage, REQ-165)
    → Admin lands on an empty start page
 
-5. Admin imports starter package
-   → US-033: "Import starter configuration" → oea-starter-togaf-classic (ADR-005)
-   → ApplicationComponent, DataObject, TechnologyComponent etc. are available as EntityTypes
+5. Metamodel administrator imports the starter package
+   → a person with the role metamodel-admin (IdP group mapping; the local system admin
+     account has no metamodel:write, ADR-032), e.g. dev-metamodel-admin with TOTP
+   → US-033: start-page card "Import starter configuration" → oea-starter-togaf-classic
+     (ADR-005; POST /admin/metamodel/starter-packages/oea-starter-togaf-classic/import)
+   → Application Component, Data Object, Technology Component etc. are available as
+     entity types with scope=imported, each with the property Status
 
 6. Import script creates entities
    → US-141: POST /api/v1/entities/batch (strategy=upsert) with e.g. 3 ApplicationComponents
