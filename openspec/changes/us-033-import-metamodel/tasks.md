@@ -2,8 +2,8 @@
 
 ## 1. Data model and migration
 
-- [ ] 1.1 Update `docs/data-model.puml` and `business-objects/metamodel-configuration.md` for D1, D4 and D5 (scope and origin on metatypes, property definitions and categories; `is_builtin` removed; actor pair on `metamodel_configurations`; new `metamodel_package_imports`); verify the PlantUML file renders and link validation passes
-- [ ] 1.2 Flyway migration `db/migration/V5__metamodel.sql` with the metamodel tables of the design, the instance configuration and the grants for `oea_app`; verify with schema tests for owners, grants, scope constraints and the instance configuration
+- [x] 1.1 Update `docs/data-model.puml` and `business-objects/metamodel-configuration.md` for D1, D4 and D5 (scope and origin on metatypes, property definitions and categories; `is_builtin` removed; actor pair on `metamodel_configurations`; new `metamodel_package_imports`); verify the PlantUML file renders and link validation passes
+- [x] 1.2 Flyway migration `db/migration/V5__metamodel.sql` with the metamodel tables of the design, the instance configuration and the grants for `oea_app`; verify with schema tests for owners, grants, scope constraints and the instance configuration
 
 ## 2. Contract
 

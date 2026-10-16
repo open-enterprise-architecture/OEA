@@ -2,7 +2,7 @@
 identifier: metamodel-configuration
 name_de: Metamodell-Konfiguration
 name_en: Metamodel Configuration
-version: 1.3.0
+version: 1.4.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -74,7 +74,7 @@ Changes to the configuration are versioned and recorded in the audit log.
 | parentId | reference | optional | null | target: MetamodelConfiguration (scope=instance); only set if scope=solution | Parent configuration whose types are inherited |
 | schemaVersion | string | required | "1.0" | Semver | Current schema version of the configuration |
 | lastModifiedAt | datetime | required | | ISO 8601, UTC | Time of the last change |
-| lastModifiedBy | reference | required | | target: person | Person who made the last change |
+| lastModifiedBy | principal | optional | | person or system admin account; empty for changes by the system (e.g. the migration creating the instance configuration) | Principal who made the last change |
 | editMode | enum | required | `gui-and-import` | `[gui-and-import, import-only]` | Controls whether GUI editing of the metamodel (EntityTypes, stereotypes, layers) is allowed; `import-only` = lock mode (REQ-035); applies independently per scope level |
 | rulesEditMode | enum | required | `gui-and-import` | `[gui-and-import, import-only]` | Controls GUI editing of `constraintRules` and `mandatoryConnectionConstraints` independently of `editMode`; `import-only` = only JSON import allowed (ADR-018) |
 | entityTypeDefinitions | EntityTypeDefinition[] | required | [] | | List of user-defined entity types |
@@ -95,7 +95,8 @@ Changes to the configuration are versioned and recorded in the audit log.
 | description | string | optional | | max. 1000 characters | Business description of the type |
 | properties | PropertyDefinition[] | required | [] | | Type-specific attributes |
 | relations | RelationDefinition[] | required | [] | | Allowed relations to other types |
-| isBuiltIn | boolean | required | false | read-only; true only for §6 types | Marks built-in types |
+| scope | enum | required | `organization` | `[built-in, imported, organization]` (ADR-002) | `built-in`: part of the software, read-only; `imported`: from a package, changed only by re-importing the same package (fork creates an `organization` copy); `organization`: maintained by the organization |
+| sourcePackage | PackageReference | conditional | null | required iff `scope=imported`: `packageId` and `version` | Package the type was imported from |
 | isConnection | boolean | required | false | | Marks the type as a connection type; enforces `source` and `target` on every instance (REQ-036) |
 | allowedSourceTypes | string[] | optional | null | null = any EntityType or connection type permitted | Restriction: which types are allowed as start entity |
 | allowedTargetTypes | string[] | optional | null | null = any EntityType or connection type permitted | Restriction: which types are allowed as target entity |
@@ -109,6 +110,8 @@ Changes to the configuration are versioned and recorded in the audit log.
 |---|---|---|---|---|---|
 | name | string | required | | camelCase; unique per EntityType | Technical attribute name (e.g. `investmentCostForecast`) |
 | displayLabel | string | optional | | max. 100 characters | Display name in the GUI; overrides `name` if set |
+| scope | enum | required | `organization` | as EntityTypeDefinition | Scope of the property definition (ADR-002); property categories carry the same `scope` and `sourcePackage` |
+| sourcePackage | PackageReference | conditional | null | required iff `scope=imported` | Package the definition was imported from |
 | sqlColumnName | string | required | derived from `name` (snake_case) | regex `^[a-z][a-z0-9_]{0,62}$`; unique across all property definitions; not one of the reserved entity column names (`id`, `urn`, `metatype_id`, `name`, `description`, `is_logical`, `created_at`, `updated_at`); immutable after creation | Stable column name of the property in the generated reporting views `reporting.<metatype>` (ADR-034 DM-6); keeps analysts' SQL working when `name` or `displayLabel` change |
 | dataType | PropertyDataType | required | | | Data type definition (details: PropertyDataType) |
 | validationMode | enum | required | `optional` | `[mandatory, warning, optional]` | `mandatory` = error on save if empty; `warning` = notice, but saving allowed; `optional` = no check |
@@ -417,6 +420,8 @@ mandatoryConnectionConstraints:
 
 Version 1.3.0 implements ADR-034 DM-6: raw SQL analytics expose one wide view per metatype with one column per property. Deriving column names from `name` at query time would break analysts' queries on every rename, hence a separate, immutable `sqlColumnName` (column `property_definitions.sql_column_name` in `docs/data-model.puml`). Uniqueness is global because property definitions are a shared table that can be mapped to several metatypes. Naming rules for the per-metatype view names are still open (ADR-034 follow-up).
 
+Version 1.4.0 (change `us-033-import-metamodel`) replaces `isBuiltIn` by the three-valued `scope` of ADR-002 and records the origin package of imported content, because package imports must tell their own content apart from organization content and from other packages (REQ-114). Package imports are recorded per import (`metamodel_package_imports` in `docs/data-model.puml`) with the batch ID shared by their audit events.
+
 ## Change History
 
 | Version | Date | Author | Change |
@@ -434,3 +439,4 @@ Version 1.3.0 implements ADR-034 DM-6: raw SQL analytics expose one wide view pe
 | 1.1.0 | 2026-06-28 | Business Engineer | Extended `PropertyDefinition` with `visibilityMode`, `allowedRoles`, `scopingConnectionType` (UC-21, REQ-124); three visibility modes: `public` (default), `role-restricted`, `connection-scoped` (ABAC via graph traversal) |
 | 1.2.0 | 2026-10-13 | Business Engineer | REQ-124 v0.2.0 / ADR-032 DM-9: `allowedRoles` split into `readRoles`/`writeRoles` referencing authorization role IDs (persisted in `property_visibility_roles`); visibility fields require `visibility:configure`; BR-05 reworded to permissions; BR-23 added. Reason: security review SEC-03 (one list for read and write, self-escalation via metamodel editing) |
 | 1.3.0 | 2026-10-13 | Business Engineer | ADR-034 DM-6: `PropertyDefinition.sqlColumnName` (stable, immutable SQL column name for generated reporting views); BR-24, BR-25 added |
+| 1.4.0 | 2026-10-16 | Business Engineer | `scope` (`built-in`/`imported`/`organization`, ADR-002) and `sourcePackage` on EntityTypeDefinition, PropertyDefinition and property categories instead of `isBuiltIn`; `lastModifiedBy` may be a system admin account or the system (change `us-033-import-metamodel`) |
