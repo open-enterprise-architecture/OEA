@@ -2,7 +2,7 @@
 identifier: catalog
 name_de: Katalog
 name_en: Catalog
-version: 0.1.0
+version: 0.2.0
 status: draft
 maturity: initial
 owner_role: Lead Enterprise Architect
@@ -96,10 +96,10 @@ A **SavedView** bundles: visible columns, column order, active filters (referenc
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
 | id | string | required | | UUID v4, globally unique | Internal primary key |
-| name | string | required | | max. 255 characters, unique within the instance | Readable name (e.g. "Application Overview") |
-| description | string | optional | | max. 1000 characters | Purpose and target audience of the catalog |
-| primaryEntityType | string | required | | valid EntityType name | Entity type that supplies the rows |
-| columns | ColumnConfig[] | required | [] | at least 1 entry | Configuration of the columns from attributes of the primary entity |
+| name | string | required | | 1–255 characters, stored trimmed; unique within the instance, compared case-insensitively after trimming; personal and instance catalogs share the namespace | Readable name (e.g. "Application Overview"); a mutable label – references to a catalog always use `id` |
+| description | string | optional | `''` | max. 1000 characters | Purpose and target audience of the catalog |
+| primaryEntityType | reference | required | | target: EntityTypeDefinition (metatype) by ID | Entity type that supplies the rows; referenced by its ID so that a rename of the type does not break the catalog, the name is shown |
+| columns | ColumnConfig[] | required | [] | may be empty | Configuration of the columns from attributes of the primary entity; while empty, the display shows `name` and `status` |
 | joinDefinitions | JoinDefinition[] | required | [] | | Joins via connections to further entity types |
 | defaultJoinMode | enum | required | `aggregate` | `[rows, aggregate]` | Global default for all joins of the catalog; can be overridden per JoinDefinition and by visitors |
 | savedFilters | SavedFilter[] | required | [] | | Named, reusable filter conditions |
@@ -176,7 +176,7 @@ A **SavedView** bundles: visible columns, column order, active filters (referenc
 | Relationship | Target Object | Cardinality | Optional | Description |
 |---|---|---|---|---|
 | createdBy | [person](./person.md) | n:1 | no | Creating person |
-| referencesEntityType | EntityTypeDefinition (via name) | n:1 | no | Primary entity |
+| referencesEntityType | EntityTypeDefinition (via ID) | n:1 | no | Primary entity |
 | referencesConnectionTypes | EntityTypeDefinition (isConnection=true) | n:n | yes | Connections via which joins are made |
 | containedIn | [tree-node](./tree-node.md) | n:0..1 | yes | Position in the navigation tree |
 
@@ -184,12 +184,19 @@ A **SavedView** bundles: visible columns, column order, active filters (referenc
 
 | Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
-| BR-01 | `primaryEntityType` MUST be a valid EntityType name in the MetamodelConfiguration | onCreate, onUpdate | – |
+| BR-01 | `primaryEntityType` MUST reference an existing EntityType of the MetamodelConfiguration | onCreate, onUpdate | – |
 | BR-02 | `JoinDefinition.connectionType` MUST be an EntityType with `isConnection=true` | onCreate, onUpdate | – |
 | BR-03 | `JoinDefinition.targetEntityType` MUST correspond to one of the `allowedSourceTypes` or `allowedTargetTypes` of the ConnectionType (or be arbitrary if null) | onCreate, onUpdate | – |
 | BR-04 | A `SavedFilter.expression.attributePath` MUST point to a valid attribute of the primary entity or of a joined target entity | onCreate, onUpdate | – |
 | BR-05 | `SavedView.columnOrder` may only contain attribute names that are defined in the catalog's `columns` configuration | onCreate, onUpdate | – |
 | BR-06 | At most one `SavedView` per catalog may have `isDefault=true` | onCreate, onUpdate | – |
+
+## Notes
+
+- **Identity and label** (change us-046-create-catalog, 2026-10-19): a catalog is identified by `id`, its `name` is a unique but mutable label; a rename (UC-06 A3) goes through the ID. The same applies to the primary entity type: a metatype keeps its ID across renames (a package re-import matches by ID), so the catalog stores the ID.
+- **Shared namespace**: because personal and instance catalogs share the name namespace (REQ-043), a name collision reveals that some catalog with that name exists, even a personal catalog of another person; no further information is disclosed.
+- **Permissions** ([ADR-032](../adrs/ADR-032-authorization-model.md)): creating a catalog with `scope=instance` requires `catalog:manage`; with `scope=personal`, `entity:read` suffices.
+- **Empty columns**: REQ-043 creates catalogs without columns; the column configuration follows in a separate step (REQ-044).
 
 ## Lifecycle
 
@@ -262,3 +269,4 @@ savedViews:
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Business Engineer | Initial draft; join modes (rows/aggregate), SavedFilter, SavedView, ColumnConfig, JoinDefinition |
+| 0.2.0 | 2026-10-19 | Change us-046-create-catalog | Primary entity type by ID; name uniqueness case-insensitive and trimmed; empty columns allowed; notes on identity, namespace and permissions |

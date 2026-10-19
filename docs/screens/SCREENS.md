@@ -18,7 +18,7 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 **Conventions** (ADR-031):
 
 - Story: `frontend/src/screens/SCR-NNN-<short-name>.stories.ts`, title `Screens/SCR-NNN <Name>`
-- Generated images: `docs/screens/SCR-NNN-light.png`, `docs/screens/SCR-NNN-dark.png` – never edited by hand
+- Generated images: `docs/screens/SCR-NNN-light.png`, `docs/screens/SCR-NNN-dark.png` – never edited by hand; rendered from the **first story** of the screen's story file (further stories are variants) by `frontend/scripts/render-screens.mjs` (`npm run render:screens` after `npm run build-storybook`); the workflow `.github/workflows/screens.yml` regenerates them on every push to `main` that changes `frontend/`
 - Legacy images: `docs/screens/<name>-light.svg` / `-dark.svg`; deleted when the screen reaches `prototype`
 
 > **Maintenance obligation**: When a screen is added, changed or removed, update this file. `python3 scripts/check_screens.py` checks the inventory against stories and images in CI.
@@ -49,7 +49,7 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 
 | ID | Screen | Platform | UC Reference | Priority | Status | Image |
 |---|---|---|---|---|---|---|
-| SCR-020 | Catalog Browser (Walking Skeleton) | CA | UC-06 | must | `legacy-mockup` | [catalog-browser](./catalog-browser-light.svg) / [dark](./catalog-browser-dark.svg) |
+| SCR-020 | Catalog Browser (Walking Skeleton) | CA | UC-06 | must | `prototype` | [light](./SCR-020-light.png) / [dark](./SCR-020-dark.png) |
 | SCR-021 | Diagram editor / canvas (ArchiMate) | CA | UC-05, UC-08 | must | `legacy-mockup` | [diagram-editor](./diagram-editor-light.svg) / [dark](./diagram-editor-dark.svg) |
 | SCR-022 | BPMN editor | CA | UC-10 | must | `legacy-mockup` | [bpmn-editor](./bpmn-editor-light.svg) / [dark](./bpmn-editor-dark.svg) |
 | SCR-023 | Data lineage editor | CA | UC-08 | should | `legacy-mockup` | [data-lineage](./data-lineage-light.svg) / [dark](./data-lineage-dark.svg) |
@@ -57,6 +57,7 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 | SCR-025 | Plateau roadmap | CA | UC-11 | must | `legacy-mockup` | [plateau-roadmap](./plateau-roadmap-light.svg) / [dark](./plateau-roadmap-dark.svg) |
 | SCR-026 | Change history / audit log | CA | UC-14 | must | `legacy-mockup` | [audit-log](./audit-log-light.svg) / [dark](./audit-log-dark.svg) |
 | SCR-027 | Restore entity — modal (diff + restore) | CA | UC-15, UC-16 | should | `legacy-mockup` | [restore-entity](./restore-entity-light.svg) / [dark](./restore-entity-dark.svg) |
+| SCR-028 | Create catalog dialog | CA | UC-06 | must | `prototype` | [light](./SCR-028-light.png) / [dark](./SCR-028-dark.png) |
 
 ---
 
@@ -91,7 +92,7 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 ## Overview by Priority
 
 **Must-have** (Walking Skeleton + v1.0 core):
-SCR-001, SCR-002, SCR-003, SCR-010, SCR-011, SCR-012, SCR-020, SCR-021, SCR-022, SCR-025, SCR-026, SCR-030, SCR-031, SCR-032, SCR-033, SCR-034, SCR-037, SCR-038, SCR-050, SCR-051, SCR-052
+SCR-001, SCR-002, SCR-003, SCR-010, SCR-011, SCR-012, SCR-020, SCR-021, SCR-022, SCR-025, SCR-026, SCR-028, SCR-030, SCR-031, SCR-032, SCR-033, SCR-034, SCR-037, SCR-038, SCR-050, SCR-051, SCR-052
 
 **Should-have** (v1.0 extensions):
 SCR-023, SCR-024, SCR-027, SCR-035, SCR-036, SCR-053, SCR-054

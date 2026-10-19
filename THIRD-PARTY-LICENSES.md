@@ -10,7 +10,7 @@ License texts and notices: the backend jar contains the license and notice files
 
 | License | Components |
 |---|---|
-| MIT | 23 |
+| MIT | 29 |
 | Apache-2.0 | 93 |
 | BSD-3-Clause | 10 |
 | BSD-2-Clause | 2 |
@@ -135,10 +135,14 @@ License texts and notices: the backend jar contains the license and notice files
 | jackson-databind (`tools.jackson.core:jackson-databind`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson> |
 | Jackson-dataformat-YAML (`tools.jackson.dataformat:jackson-dataformat-yaml`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-dataformats-text> |
 
-## Frontend Bundle (19)
+## Frontend Bundle (25)
 
 | Component | Version | License | Alternatives | Project |
 |---|---|---|---|---|
+| @floating-ui/core (`@floating-ui/core`) | 1.8.0 | MIT | – | <https://github.com/floating-ui/floating-ui> |
+| @floating-ui/dom (`@floating-ui/dom`) | 1.8.0 | MIT | – | <https://github.com/floating-ui/floating-ui> |
+| @floating-ui/utils (`@floating-ui/utils`) | 0.2.12 | MIT | – | <https://github.com/floating-ui/floating-ui> |
+| @floating-ui/vue (`@floating-ui/vue`) | 1.1.11 | MIT | – | <https://github.com/floating-ui/floating-ui> |
 | @iconify/vue (`@iconify/vue`) | 5.0.3 | MIT | – | <https://github.com/iconify/iconify> |
 | @nuxt/ui (`@nuxt/ui`) | 4.11.3 | MIT | – | <https://github.com/nuxt/ui> |
 | @unhead/vue (`@unhead/vue`) | 3.4.3 | MIT | – | <https://github.com/unjs/unhead> |
@@ -148,6 +152,7 @@ License texts and notices: the backend jar contains the license and notice files
 | @vue/shared (`@vue/shared`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
 | @vueuse/core (`@vueuse/core`) | 14.4.0 | MIT | – | <https://github.com/vueuse/vueuse> |
 | @vueuse/shared (`@vueuse/shared`) | 14.4.0 | MIT | – | <https://github.com/vueuse/vueuse> |
+| aria-hidden (`aria-hidden`) | 1.2.6 | MIT | – | <https://github.com/theKashey/aria-hidden> |
 | defu (`defu`) | 6.1.7 | MIT | – | unjs/defu |
 | hookable (`hookable`) | 6.1.2 | MIT | – | unjs/hookable |
 | ohash (`ohash`) | 2.0.12 | MIT | – | unjs/ohash |
@@ -157,6 +162,7 @@ License texts and notices: the backend jar contains the license and notice files
 | ufo (`ufo`) | 1.6.4 | MIT | – | unjs/ufo |
 | unhead (`unhead`) | 3.4.3 | MIT | – | <https://github.com/unjs/unhead> |
 | uqr (`uqr`) | 0.1.3 | MIT | – | <https://github.com/unjs/uqr> |
+| vue (`vue`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
 | vue-router (`vue-router`) | 5.4.0 | MIT | – | <https://github.com/vuejs/router> |
 
 ## Runtime Environment (Container Base Images)

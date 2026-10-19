@@ -269,6 +269,17 @@ An entity was created or changed ([US-141](../requirements/user-stories/US-141-e
 | Details | `batchId` (one per request), `metatypeId`, `externalId` if set, `version` (after the write) |
 | Changes | one `audit.event_changes` row per changed system field (`name`, `description`, `is_logical`) and property with old and new value as text; on create the old values are empty |
 
+### `catalog.created`
+
+A catalog was created ([US-046](../requirements/user-stories/US-046-create-catalog.md), [REQ-043](../requirements/req/REQ-043-create-catalog.md)). Rejected creations (name collision, invalid input, missing permission) are not audited.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the creating person |
+| Target | `catalog`, ID of the catalog |
+| Details | `name`, `primaryMetatypeId`, `scope` (`instance` or `personal`) |
+
 ## Planned Event Types
 
 Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `visibility.changed`, `visibility.override-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.deleted` and further `entity.*`, `metamodel.*`.

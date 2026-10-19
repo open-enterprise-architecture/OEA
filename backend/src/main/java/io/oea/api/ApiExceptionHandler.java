@@ -1,10 +1,12 @@
 package io.oea.api;
 
+import io.oea.api.catalog.CatalogController;
 import io.oea.api.entity.EntityBatchController;
 import io.oea.api.generated.model.ValidationError;
 import io.oea.app.access.AccessConflictException;
 import io.oea.app.access.InvalidAccessRequestException;
 import io.oea.app.access.SelfAdministrationException;
+import io.oea.app.catalog.InvalidCatalogException;
 import io.oea.app.entity.AtomicBatchFailedException;
 import io.oea.app.entity.BatchRejectedException;
 import io.oea.app.login.InvalidCredentialsException;
@@ -13,6 +15,7 @@ import io.oea.app.login.SecondFactorRequiredException;
 import io.oea.app.metamodel.InvalidPackageException;
 import io.oea.app.metamodel.PackageImporter;
 import io.oea.app.security.OeaPrincipal;
+import io.oea.app.security.PermissionDeniedException;
 import io.oea.app.security.ReauthenticationRequiredException;
 import io.oea.app.security.SetupPhase;
 import io.oea.config.security.OeaAuthentication;
@@ -37,6 +40,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DatabindException;
 
 /** RFC 9457 problems for rejections shared by several controllers (problem types of the contract). */
 @RestControllerAdvice
@@ -138,6 +142,11 @@ public class ApiExceptionHandler {
 				.toList());
 			return ResponseEntity.unprocessableContent().body(problem);
 		}
+		if (isCatalogs(request)) {
+			// REQ-043: invalid catalog input is answered with 422 and the rejected fields
+			return catalogProblem("validation-failed", "Invalid catalog", "Some fields are invalid.",
+					ex.getBindingResult().getFieldErrors().stream().map(FieldError::getField).distinct().sorted().toList());
+		}
 		if (isPackageImport(request)) {
 			FieldError first = ex.getBindingResult().getFieldErrors().stream().findFirst().orElse(null);
 			ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "invalid-package", "Invalid package",
@@ -178,8 +187,38 @@ public class ApiExceptionHandler {
 			this.packageImporter.ifAvailable((importer) -> importer.recordRejected(currentPrincipal(), "invalid-package"));
 			return ResponseEntity.unprocessableContent().body(problem);
 		}
+		if (isCatalogs(request)) {
+			// e.g. an unknown scope or join mode: the field is taken from the JSON path
+			Throwable cause = ex;
+			while (cause != null && !(cause instanceof DatabindException)) {
+				cause = cause.getCause();
+			}
+			List<String> fields = (cause instanceof DatabindException databind) ? databind.getPath()
+				.stream()
+				.map(DatabindException.Reference::getPropertyName)
+				.filter((name) -> name != null)
+				.limit(1)
+				.toList() : List.of();
+			return catalogProblem("validation-failed", "Invalid catalog", "The request is invalid.", fields);
+		}
 		return ResponseEntity.badRequest()
 			.body(problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid request", "The request is invalid."));
+	}
+
+	@ExceptionHandler(InvalidCatalogException.class)
+	ResponseEntity<ProblemDetail> invalidCatalog(InvalidCatalogException ex) {
+		return ex.isNameTaken()
+				? catalogProblem("catalog-name-taken", "Catalog name taken", ex.getMessage(), ex.getInvalidFields())
+				: catalogProblem("validation-failed", "Invalid catalog", ex.getMessage(), ex.getInvalidFields());
+	}
+
+	/** A permission required by a contract condition is missing: the filter's generic 403 (REQ-158). */
+	@ExceptionHandler(PermissionDeniedException.class)
+	ResponseEntity<ProblemDetail> permissionDenied(PermissionDeniedException ex) {
+		ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.FORBIDDEN);
+		problem.setType(URI.create("urn:oea:problem:forbidden"));
+		problem.setTitle("Forbidden");
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
 	}
 
 	@ExceptionHandler(InvalidPackageException.class)
@@ -194,6 +233,17 @@ public class ApiExceptionHandler {
 	ResponseEntity<ProblemDetail> notFound(NoSuchElementException ex) {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND)
 			.body(problem(HttpStatus.NOT_FOUND, "not-found", "Not found", "The resource does not exist."));
+	}
+
+	private static ResponseEntity<ProblemDetail> catalogProblem(String type, String title, String detail,
+			List<String> invalidFields) {
+		ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, type, title, detail);
+		problem.setProperty("invalidFields", invalidFields);
+		return ResponseEntity.unprocessableContent().body(problem);
+	}
+
+	private static boolean isCatalogs(HttpServletRequest request) {
+		return CatalogController.CATALOGS_PATH.equals(request.getRequestURI());
 	}
 
 	private static boolean isPackageImport(HttpServletRequest request) {

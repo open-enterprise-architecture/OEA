@@ -4,9 +4,9 @@ title: Create a catalog
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-10-19
 author: requirements-engineer
 references:
   use_cases:
@@ -20,7 +20,8 @@ references:
     - SH-07
   concept:
     - concept/20-entities/06-core-entity-types.md
-  adrs: []
+  adrs:
+    - ADR-032
 supersedes: []
 superseded_by: []
 ---
@@ -64,7 +65,7 @@ A catalog is a configuration object – it stores the query definition, not the 
 
 - HTTP 201 Created with the created catalog object (including generated `id`)
 - HTTP 422 Unprocessable Entity on validation errors (missing mandatory fields, invalid EntityType, name collision)
-- HTTP 403 Forbidden if the actor has no write permission for catalogs
+- HTTP 403 Forbidden if the actor lacks `catalog:manage` for `scope=instance` or `entity:read` for `scope=personal` ([ADR-032](../../adrs/ADR-032-authorization-model.md))
 
 ## Acceptance Criteria
 
@@ -92,11 +93,11 @@ A catalog is a configuration object – it stores the query definition, not the 
 - When: Franz (another user) retrieves the catalog overview
 - Then: Sabine's personal catalog does NOT appear in Franz's view; 404 on direct access
 
-**AC5** (Missing permission):
+**AC5** (Missing permission, ADR-032):
 
-- Given: Franz has only the role "Viewer"
-- When: Franz tries to create a catalog
-- Then: HTTP 403 Forbidden
+- Given: Franz has only the role "Viewer" (`entity:read`, no `catalog:manage`)
+- When: Franz tries to create a catalog with `scope=instance`
+- Then: HTTP 403 Forbidden; with `scope=personal` the catalog is created (HTTP 201)
 
 ## Dependencies
 
@@ -107,10 +108,11 @@ A catalog is a configuration object – it stores the query definition, not the 
 
 - Endpoint: `POST /api/v1/catalogs`
 - Name uniqueness: `SELECT id FROM catalogs WHERE lower(trim(name)) = lower(trim(:name)) AND instance_id = :instanceId`
-- Permission check: role "Enterprise Architect" or equivalent write permission on resource `catalog`
+- Permission check: `catalog:manage` for `scope=instance` (role "Enterprise Architect"), `entity:read` for `scope=personal` (ADR-032 §3: personal objects with ownership)
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft |
+| 0.2.0 | 2026-10-19 | Change us-046-create-catalog | AC5 and 403 output aligned with ADR-032 (personal catalogs with `entity:read`, owner decision 2026-10-19) |

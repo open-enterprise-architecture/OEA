@@ -32,6 +32,7 @@ Walking-skeleton change 6. Owner decisions of 2026-10-19:
 - **Audit**: `catalog.created` with the catalog as target.
 - **Frontend**: catalog overview page with "New catalog" (visible to principals with `entity:read`; the scope `instance` only selectable with `catalog:manage`), the creation form as a modal with an inline name-collision message, the metatype dropdown loaded from `GET /metamodel/metatypes`, and a catalog page showing name, primary entity type and scope with an empty-state placeholder for the table of US-049; a "Catalogs" entry in the app header.
 - **Screens**: story for SCR-020 (catalog browser: catalog list and empty catalog) and a new screen SCR-028 (create-catalog dialog).
+- **Screenshot workflow** (ADR-031 §3/§4, REQ-192 AC2; owner decision 2026-10-19 during implementation): `.github/workflows/screens.yml` renders the screen images on every push to `main` with a read-only render job and a separate commit job; Storybook is published to GitHub Pages once the repository variable `STORYBOOK_PAGES` is set. The first images of SCR-020 and SCR-028 are rendered with the same script and committed in this change.
 - **Requirements**: US-046 AC4 and REQ-043 AC5 rewritten to the ADR-032 rule; UC-06 A4 references the rule.
 
 ## Out of Scope
@@ -57,5 +58,6 @@ Walking-skeleton change 6. Owner decisions of 2026-10-19:
 - `backend/`: catalog persistence in `io.oea.core`, creation and visibility rules in `io.oea.app.catalog`, `CatalogController` in `io.oea.api.catalog`; `AuditWriter` used with the new event type
 - Flyway: `db/migration/V7__catalogs.sql`
 - `api/openapi.yaml`: new paths `/catalogs`, `/catalogs/{id}`, schemas `Catalog`, `CatalogCreate`, `CatalogSummary`, tag `Catalogs`
-- `frontend/`: pages, router entries, API module, header link; screen stories `SCR-020`, `SCR-028`
+- `frontend/`: pages, router entries, API module, header link; screen stories `SCR-020`, `SCR-028`; render script `scripts/render-screens.mjs` and the dev dependency `playwright`
+- CI: new workflow `.github/workflows/screens.yml`; ADR-031 gains an implementation note
 - Docs: `docs/data-model.puml` (`catalogs`), `business-objects/catalog.md`, `docs/audit-event-catalog.md` (`catalog.created`), `docs/screens/SCREENS.md`, `docs/walking-skeleton.md` (step 7), US-046, REQ-043, UC-06

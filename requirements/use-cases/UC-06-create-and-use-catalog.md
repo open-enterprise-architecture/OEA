@@ -5,9 +5,9 @@ status: draft
 priority: must
 target_release: v1.0
 complexity: large
-version: 0.1.0
+version: 0.1.1
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-10-19
 primary_actor: SH-03
 secondary_actors:
   - SH-01
@@ -189,6 +189,8 @@ As a user of the architecture repository, I want to open an existing catalog, fi
 
 **A4 – Create personal catalog (all actors)**:
 
+Every actor with read permission on the repository (`entity:read`) can create personal catalogs; shared catalogs require `catalog:manage` ([ADR-032](../../adrs/ADR-032-authorization-model.md)).
+
 1. Actor creates a new catalog (as basic flow steps 3–11); selects `scope=personal`
 2. **System**: creates the catalog; it is visible only to the actor themselves
 3. Actor can later promote the personal catalog to `scope=instance` (if they have the permission)
@@ -334,3 +336,4 @@ The join logic (rows vs. aggregate) is the central differentiating feature compa
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; basic flow Catalog Manager, A1–A5 visitor flows, all 7 stakeholders as actors |
+| 0.1.1 | 2026-10-19 | Change us-046-create-catalog | A4: permission rule of ADR-032 for personal and shared catalogs |
