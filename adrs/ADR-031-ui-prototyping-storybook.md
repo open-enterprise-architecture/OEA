@@ -123,3 +123,13 @@ Concretely:
 ## Notes
 
 Decided together with the switch to OpenSpec-driven implementation: UI prototypes are created in the same OpenSpec change as the screen they belong to.
+
+### Implementation (change us-046-create-catalog, 2026-10-19)
+
+The screenshot workflow `.github/workflows/screens.yml` is implemented with the first screen stories (SCR-020, SCR-028), within the framework of this ADR and with the job split required by [REQ-192](../requirements/req/REQ-192-ci-least-privilege.md) AC2:
+
+- A render job with a read-only token installs the dependencies, builds Storybook and renders the images with `frontend/scripts/render-screens.mjs`; a separate commit job with `contents: write` consumes only the rendered PNGs and changes nothing but `docs/screens/SCR-*.png`
+- The image of a screen is rendered from the **first story** of its story file; further stories are variants
+- Stories use synthetic data only (`frontend/src/test/catalogs.ts`), injected as a fetch function instead of a mock API server
+- Publishing Storybook to GitHub Pages runs only when the repository variable `STORYBOOK_PAGES` is `true`, because Pages is not enabled yet
+- A change that adds a screen story commits the first images itself, rendered with the same script, because `scripts/check_screens.py` checks them before the merge; the workflow then keeps them current

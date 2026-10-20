@@ -21,7 +21,8 @@
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
     "prebuild-storybook": "npm run generate:api",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "render:screens": "node scripts/render-screens.mjs storybook-static ../docs/screens"
   },
   "dependencies": {
     "@nuxt/ui": "^4.11.3",
@@ -40,6 +41,7 @@
     "@vue/tsconfig": "^0.9.1",
     "jsdom": "^30.1.2",
     "openapi-typescript": "^7.13.0",
+    "playwright": "^1.64.0",
     "storybook": "^10.6.2",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",

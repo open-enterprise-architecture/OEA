@@ -128,8 +128,13 @@ Change 2 (`us-013-local-bootstrapping`) adds the local bootstrapping, the audit 
      reports them as unchanged; audit events entity.created written (hash-chained,
      pseudonymous actor reference)
 
-7. Admin creates catalog
-   → US-046: "New catalog" → name "Application Inventory", primary entity type ApplicationComponent
+7. Enterprise architect creates catalog
+   → a person with catalog:manage (role enterprise-architect, e.g. dev-architect); a viewer
+     can only create personal catalogs (ADR-032, owner decision 2026-10-19)
+   → US-046: "Catalogs" → "New catalog" → name "Application Inventory", primary entity type
+     Application Component, visibility Shared (POST /api/v1/catalogs)
+   → the client opens the new catalog's page; the catalog is listed in the overview for
+     every reader; audit event catalog.created
 
 8. User opens the catalog
    → US-049: Table shows 3 rows with name | status, sortable by name

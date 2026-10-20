@@ -1,3 +1,4 @@
+import UApp from '@nuxt/ui/components/App.vue'
 import ui from '@nuxt/ui/vue-plugin'
 import { setup, type Preview } from '@storybook/vue3-vite'
 import { createMemoryHistory, createRouter } from 'vue-router'
@@ -13,7 +14,8 @@ const preview: Preview = {
     // Accessibility violations fail the story test run (ADR-031)
     a11y: { test: 'error' },
   },
-  decorators: [() => ({ template: '<UApp><story /></UApp>' })],
+  // UApp provides toasts, tooltips and overlays; runtime templates do not see auto-imported components
+  decorators: [() => ({ components: { UApp }, template: '<UApp><story /></UApp>' })],
 }
 
 export default preview

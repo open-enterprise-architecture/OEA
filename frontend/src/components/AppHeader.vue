@@ -23,6 +23,7 @@ async function logOut() {
     <RouterLink to="/" class="font-semibold">OEA</RouterLink>
     <nav class="flex items-center gap-3">
       <template v-if="session.me">
+        <RouterLink to="/catalogs" data-testid="header-catalogs">Catalogs</RouterLink>
         <RouterLink to="/me" data-testid="header-profile">{{ session.me.principal.displayName }}</RouterLink>
         <UButton data-testid="header-logout" size="sm" color="neutral" variant="ghost" label="Log out" @click="logOut" />
       </template>

@@ -332,6 +332,87 @@ components:
         detail:   { type: string }
         instance: { type: string, format: uri }
 
+    # ── Catalog (UC-06, US-046) ───────────────────────────────────────────────
+    CatalogScope:
+      type: string
+      enum: [instance, personal]
+      description: "`instance` is visible to all users with `entity:read`, `personal` only to the creator"
+
+    JoinMode:
+      type: string
+      enum: [aggregate, rows]
+      description: "`aggregate` shows linked target entities in one cell, `rows` one row per target entity"
+
+    CatalogCreate:
+      type: object
+      required: [name, primaryMetatypeId, scope]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Unique within the instance (case-insensitive, trimmed); stored trimmed
+        description:
+          type: string
+          maxLength: 1000
+        primaryMetatypeId:
+          type: string
+          format: uuid
+          description: Metatype of the instance metamodel that supplies the rows; referenced by ID, so a rename keeps the catalog intact
+        scope: { $ref: '#/components/schemas/CatalogScope' }
+        defaultJoinMode:
+          allOf:
+            - $ref: '#/components/schemas/JoinMode'
+          default: aggregate
+
+    CatalogSummary:
+      type: object
+      required: [id, name, primaryMetatypeId, primaryMetatypeName, scope, createdBy, createdAt]
+      properties:
+        id:                  { type: string, format: uuid }
+        name:                { type: string }
+        primaryMetatypeId:   { type: string, format: uuid }
+        primaryMetatypeName: { type: string, description: Current name of the primary metatype }
+        scope:               { $ref: '#/components/schemas/CatalogScope' }
+        createdBy:           { $ref: '#/components/schemas/PrincipalRef' }
+        createdAt:           { type: string, format: date-time }
+
+    Catalog:
+      allOf:
+        - $ref: '#/components/schemas/CatalogSummary'
+        - type: object
+          required: [description, defaultJoinMode, lastModifiedAt, columns, joinDefinitions, savedFilters, savedViews]
+          properties:
+            description:     { type: string }
+            defaultJoinMode: { $ref: '#/components/schemas/JoinMode' }
+            lastModifiedAt:  { type: string, format: date-time }
+            columns:
+              type: array
+              description: Column configuration; follows with US-047 and is always empty until then
+              items: { type: object }
+            joinDefinitions:
+              type: array
+              description: Joins via connections; follow with US-048 and are always empty until then
+              items: { type: object }
+            savedFilters:
+              type: array
+              description: Saved filters; follow later and are always empty until then
+              items: { type: object }
+            savedViews:
+              type: array
+              description: Saved views; follow later and are always empty until then
+              items: { type: object }
+
+    CatalogValidationProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required: [invalidFields]
+          properties:
+            invalidFields:
+              type: array
+              items: { type: string, enum: [name, description, primaryMetatypeId, scope, defaultJoinMode] }
+
     # ── Metatype ───────────────────────────────────────────────────────────────
     MetamodelScope:
       type: string
@@ -2800,6 +2881,90 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+
+  # ╔═════════════════════════════════════════════════════════════════════════╗
+  # ║  CATALOGS (UC-06, US-046, REQ-043, SCR-020/028)                         ║
+  # ╚═════════════════════════════════════════════════════════════════════════╝
+  /catalogs:
+    get:
+      operationId: listCatalogs
+      summary: Catalog overview (US-046, SCR-020)
+      description: |
+        All catalogs with scope `instance` and the caller's own catalogs with scope
+        `personal`, ordered by name (case-insensitive).
+      tags: [Catalogs]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      responses:
+        '200':
+          description: Visible catalogs
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CatalogSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      operationId: createCatalog
+      summary: Create a catalog (US-046, REQ-043)
+      description: |
+        Creates a catalog without columns, joins, saved filters and saved views. A catalog
+        with scope `instance` additionally requires `catalog:manage` (ADR-032 §3); a
+        catalog with scope `personal` is visible only to its creator. The name is unique
+        within the instance across both scopes, compared case-insensitively after trimming,
+        and stored trimmed. Writes the audit event `catalog.created`.
+      tags: [Catalogs]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "body field scope is 'instance'", "permissions": ["catalog:manage"]}]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogCreate' }
+      responses:
+        '201':
+          description: Catalog created
+          headers:
+            Location:
+              schema: { type: string }
+              description: URL of the catalog
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Catalog' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422':
+          description: |
+            Invalid input (problem type `urn:oea:problem:validation-failed`, e.g. an unknown
+            primary metatype) or a name that is already taken (problem type
+            `urn:oea:problem:catalog-name-taken`, detail "A catalog with this name already
+            exists"); `invalidFields` names the rejected fields. Nothing is stored.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/CatalogValidationProblem' }
+
+  /catalogs/{id}:
+    get:
+      operationId: getCatalog
+      summary: Read a catalog (US-046)
+      description: |
+        A personal catalog of another person is answered with 404, like a catalog that does
+        not exist (ADR-032 §8 L3).
+      tags: [Catalogs]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The catalog
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Catalog' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  VIEW – CATALOG (Walking Skeleton, UC-06, SCR-020/012)                 ║
@@ -5804,6 +5969,8 @@ paths:
 # TAGS
 # ═════════════════════════════════════════════════════════════════════════════
 tags:
+  - name: Catalogs
+    description: Catalog definitions – create, list and read (UC-06, US-046)
   - name: Views – Catalog
     description: Catalog browser and entity detail (SCR-020/012)
   - name: Views – Navigation

@@ -1,0 +1,124 @@
+name: Screens – Storybook and screen images
+
+# ADR-031 §3/§4: renders the first story of every screen story file (frontend/src/screens/) in
+# light and dark mode to docs/screens/SCR-NNN-{light,dark}.png and commits changed images to main.
+# REQ-192 AC2: the job that installs and runs third-party packages holds a read-only token; the
+# commit job only consumes the rendered images and touches nothing but docs/screens/SCR-*.png.
+# Publishing Storybook to GitHub Pages runs only if the repository variable STORYBOOK_PAGES is
+# 'true' (GitHub Pages enabled with source "GitHub Actions").
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'api/openapi.yaml'
+  workflow_dispatch:
+
+# Least privilege (REQ-192): read-only token unless a job widens it
+permissions:
+  contents: read
+
+concurrency:
+  group: screens
+  cancel-in-progress: false
+
+jobs:
+  render:
+    name: Build Storybook and render screen images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install (lockfile only, no install scripts)
+        run: npm ci --ignore-scripts
+      - name: Storybook build
+        run: npm run build-storybook
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Render screen images
+        run: npm run render:screens
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screen-images
+          path: docs/screens/SCR-*.png
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload Storybook for GitHub Pages
+        if: vars.STORYBOOK_PAGES == 'true'
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: frontend/storybook-static
+
+  commit:
+    name: Commit changed screen images
+    needs: render
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: screen-images
+          path: rendered
+      - name: Copy only screen images
+        run: |
+          shopt -s nullglob
+          for file in rendered/*; do
+            name=$(basename "$file")
+            if [[ ! "$name" =~ ^SCR-[0-9]{3}-(light|dark)\.png$ ]]; then
+              echo "::error::unexpected file in the artifact: $name"
+              exit 1
+            fi
+            cp "$file" "docs/screens/$name"
+          done
+          rm -rf rendered
+      - name: Commit and push
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          git add docs/screens/SCR-*.png
+          if git diff --cached --quiet; then
+            echo "Screen images unchanged"
+            exit 0
+          fi
+          if git status --porcelain | grep -v -E '^[AM]  docs/screens/SCR-[0-9]{3}-(light|dark)\.png$'; then
+            echo "::error::only docs/screens/SCR-*.png may change"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(screens): regenerate screenshots"
+          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPOSITORY}.git" HEAD:main
+
+  pages:
+    name: Publish Storybook to GitHub Pages
+    needs: render
+    if: vars.STORYBOOK_PAGES == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

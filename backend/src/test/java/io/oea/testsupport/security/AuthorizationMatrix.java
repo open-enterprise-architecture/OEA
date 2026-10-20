@@ -1,5 +1,6 @@
 package io.oea.testsupport.security;
 
+import io.oea.config.security.ConditionsEnforcedByHandler;
 import io.oea.config.security.ContractAuthorizationRules;
 import io.oea.config.security.OperationHandlers;
 import java.util.ArrayList;
@@ -16,10 +17,11 @@ public final class AuthorizationMatrix {
 
 	/**
 	 * One served operation: HTTP method, a concrete path, its contract rule (or none) and the
-	 * media type of its request body ({@code application/json} unless the handler consumes another).
+	 * media type of its request body ({@code application/json} unless the handler consumes another);
+	 * {@code conditions} is set if the handler enforces the contract conditions itself.
 	 */
 	public record Operation(String method, String path, String handler, ContractAuthorizationRules.Rule rule,
-			String contentType) {
+			String contentType, ConditionsEnforcedByHandler conditions) {
 	}
 
 	public static List<Operation> operations(RequestMappingHandlerMapping mapping, ContractAuthorizationRules rules) {
@@ -41,7 +43,7 @@ public final class AuthorizationMatrix {
 				for (var method : info.getMethodsCondition().getMethods()) {
 					operations.add(new Operation(method.name(), path,
 							handler.getBeanType().getSimpleName() + "#" + handler.getMethod().getName(), rule,
-							contentType));
+							contentType, handler.getMethodAnnotation(ConditionsEnforcedByHandler.class)));
 				}
 			}
 		});

@@ -2,8 +2,9 @@
 
 **ID**: US-046
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: in-progress
+**Sprint**: S2
+**Implementation**: OpenSpec change `us-046-create-catalog` – AC1–AC4; AC4 follows ADR-032 (owner decision 2026-10-19): shared catalogs need `catalog:manage`, personal catalogs `entity:read`; after saving, the client opens the catalog page until the column configurator exists (US-047)
 
 ## Story
 
@@ -34,17 +35,18 @@ As a Lead Enterprise Architect, I want to be able to create a new catalog with n
 - When: Sabine creates a catalog with scope=personal
 - Then: Catalog appears only in Sabine's catalog overview; Franz does not see it
 
-**AC4** (missing permission):
+**AC4** (missing permission, [ADR-032](../../adrs/ADR-032-authorization-model.md)):
 
-- Given: Franz has only the visitor role
-- When: Franz opens the catalog overview
-- Then: Button "Create new catalog" is not visible or disabled
+- Given: Franz has only the role `viewer` (`entity:read`, no `catalog:manage`)
+- When: Franz opens "New catalog" from the catalog overview
+- Then: only the scope `personal` can be selected; creating a catalog with scope `instance` is rejected with 403
+- And: a principal without `entity:read` does not see "New catalog"
 
 ## Technical Notes
 
 - Affected components: catalog overview (list + "New" button), creation form, backend `POST /api/v1/catalogs`
 - Primary entity type: dropdown from MetamodelConfiguration EntityTypes; loaded live
-- After saving: redirect to the column configurator (US-047)
+- After saving: redirect to the column configurator (US-047); until US-047 exists, the client opens the new catalog's page
 
 ## Definition of Done
 
