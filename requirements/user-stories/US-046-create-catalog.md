@@ -2,9 +2,9 @@
 
 **ID**: US-046
 **Story Points**: 3
-**Status**: in-progress
+**Status**: realized
 **Sprint**: S2
-**Implementation**: OpenSpec change `us-046-create-catalog` – AC1–AC4; AC4 follows ADR-032 (owner decision 2026-10-19): shared catalogs need `catalog:manage`, personal catalogs `entity:read`; after saving, the client opens the catalog page until the column configurator exists (US-047)
+**Implementation**: OpenSpec change `us-046-create-catalog`, commit 6476fc1 (#46) – AC1–AC4; AC4 follows ADR-032 (owner decision 2026-10-19): shared catalogs need `catalog:manage`, personal catalogs `entity:read`; after saving, the client opens the catalog page until the column configurator exists (US-047)
 
 ## Story
 
@@ -50,8 +50,8 @@ As a Lead Enterprise Architect, I want to be able to create a new catalog with n
 
 ## Definition of Done
 
-- [ ] Acceptance criteria AC1–AC4 met
+- [x] Acceptance criteria AC1–AC4 met
 - [ ] Code review by a second person
-- [ ] Tests: happy path, name collision, scope=personal visibility, permission check
-- [ ] Linter and type checks green
-- [ ] Entered in trace matrix
+- [x] Tests: happy path, name collision, scope=personal visibility, permission check
+- [x] Linter and type checks green
+- [x] Entered in trace matrix
