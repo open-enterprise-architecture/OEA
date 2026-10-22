@@ -47,6 +47,10 @@ const scopeItems = computed(() => [
       : 'Visible to all users of the instance; needs the permission to manage catalogs',
     value: 'instance',
     disabled: !props.canManage,
+    // the description explains why the option is disabled and stays readable (REQ-130 AC3);
+    // only the radio itself is dimmed instead of the whole item
+    class: 'opacity-100',
+    ui: { base: 'disabled:opacity-50 data-disabled:opacity-50' },
   },
   { label: 'Personal', description: 'Visible only to you', value: 'personal' },
 ])
