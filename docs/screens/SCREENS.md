@@ -49,7 +49,7 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 
 | ID | Screen | Platform | UC Reference | Priority | Status | Image |
 |---|---|---|---|---|---|---|
-| SCR-020 | Catalog Browser (Walking Skeleton) | CA | UC-06 | must | `prototype` | [light](./SCR-020-light.png) / [dark](./SCR-020-dark.png) |
+| SCR-020 | Catalog Browser (Walking Skeleton) | CA | UC-06 | must | `implemented` | [light](./SCR-020-light.png) / [dark](./SCR-020-dark.png) |
 | SCR-021 | Diagram editor / canvas (ArchiMate) | CA | UC-05, UC-08 | must | `legacy-mockup` | [diagram-editor](./diagram-editor-light.svg) / [dark](./diagram-editor-dark.svg) |
 | SCR-022 | BPMN editor | CA | UC-10 | must | `legacy-mockup` | [bpmn-editor](./bpmn-editor-light.svg) / [dark](./bpmn-editor-dark.svg) |
 | SCR-023 | Data lineage editor | CA | UC-08 | should | `legacy-mockup` | [data-lineage](./data-lineage-light.svg) / [dark](./data-lineage-dark.svg) |
@@ -57,7 +57,7 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 | SCR-025 | Plateau roadmap | CA | UC-11 | must | `legacy-mockup` | [plateau-roadmap](./plateau-roadmap-light.svg) / [dark](./plateau-roadmap-dark.svg) |
 | SCR-026 | Change history / audit log | CA | UC-14 | must | `legacy-mockup` | [audit-log](./audit-log-light.svg) / [dark](./audit-log-dark.svg) |
 | SCR-027 | Restore entity — modal (diff + restore) | CA | UC-15, UC-16 | should | `legacy-mockup` | [restore-entity](./restore-entity-light.svg) / [dark](./restore-entity-dark.svg) |
-| SCR-028 | Create catalog dialog | CA | UC-06 | must | `prototype` | [light](./SCR-028-light.png) / [dark](./SCR-028-dark.png) |
+| SCR-028 | Create catalog dialog | CA | UC-06 | must | `implemented` | [light](./SCR-028-light.png) / [dark](./SCR-028-dark.png) |
 
 ---
 

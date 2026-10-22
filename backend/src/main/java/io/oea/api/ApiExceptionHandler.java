@@ -7,6 +7,7 @@ import io.oea.app.access.AccessConflictException;
 import io.oea.app.access.InvalidAccessRequestException;
 import io.oea.app.access.SelfAdministrationException;
 import io.oea.app.catalog.InvalidCatalogException;
+import io.oea.app.catalog.InvalidCatalogQueryException;
 import io.oea.app.entity.AtomicBatchFailedException;
 import io.oea.app.entity.BatchRejectedException;
 import io.oea.app.login.InvalidCredentialsException;
@@ -22,6 +23,8 @@ import io.oea.config.security.OeaAuthentication;
 import io.oea.config.web.PackageImportConfiguration;
 import io.oea.config.web.PackageSizeLimitFilter;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Path;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -37,8 +40,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DatabindException;
 
@@ -166,6 +171,18 @@ public class ApiExceptionHandler {
 
 	@ExceptionHandler({ HttpMessageNotReadableException.class, HandlerMethodValidationException.class })
 	ResponseEntity<ProblemDetail> malformedRequest(Exception ex, HttpServletRequest request) {
+		if (ex instanceof HandlerMethodValidationException validation && isCatalogQuery(request)) {
+			// e.g. pageSize above 200: the rejected query parameters by their contract names
+			return catalogQueryProblem(validation.getParameterValidationResults()
+				.stream()
+				.map((result) -> {
+					RequestParam param = result.getMethodParameter().getParameterAnnotation(RequestParam.class);
+					return (param != null) ? param.value() : result.getMethodParameter().getParameterName();
+				})
+				.distinct()
+				.sorted()
+				.toList());
+		}
 		if (isPackageImport(request)) {
 			if (NestedExceptionUtils.getMostSpecificCause(ex) instanceof PackageSizeLimitFilter.PackageTooLargeException) {
 				return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
@@ -205,6 +222,37 @@ public class ApiExceptionHandler {
 			.body(problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid request", "The request is invalid."));
 	}
 
+	/** A query parameter outside its contract range, e.g. {@code pageSize=201} (method validation). */
+	@ExceptionHandler(ConstraintViolationException.class)
+	ResponseEntity<ProblemDetail> constraintViolation(ConstraintViolationException ex, HttpServletRequest request) {
+		if (isCatalogQuery(request)) {
+			return catalogQueryProblem(ex.getConstraintViolations().stream().map((violation) -> {
+				String name = null;
+				for (Path.Node node : violation.getPropertyPath()) {
+					name = node.getName();
+				}
+				return name;
+			}).distinct().sorted().toList());
+		}
+		return ResponseEntity.badRequest()
+			.body(problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid request", "The request is invalid."));
+	}
+
+	/** A query parameter that is not a number, e.g. {@code page=abc}. */
+	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
+	ResponseEntity<ProblemDetail> typeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+		if (isCatalogQuery(request)) {
+			return catalogQueryProblem(List.of(ex.getName()));
+		}
+		return ResponseEntity.badRequest()
+			.body(problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid request", "The request is invalid."));
+	}
+
+	@ExceptionHandler(InvalidCatalogQueryException.class)
+	ResponseEntity<ProblemDetail> invalidCatalogQuery(InvalidCatalogQueryException ex) {
+		return catalogQueryProblem(ex.getInvalidFields());
+	}
+
 	@ExceptionHandler(InvalidCatalogException.class)
 	ResponseEntity<ProblemDetail> invalidCatalog(InvalidCatalogException ex) {
 		return ex.isNameTaken()
@@ -240,6 +288,18 @@ public class ApiExceptionHandler {
 		ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, type, title, detail);
 		problem.setProperty("invalidFields", invalidFields);
 		return ResponseEntity.unprocessableContent().body(problem);
+	}
+
+	private static ResponseEntity<ProblemDetail> catalogQueryProblem(List<String> invalidFields) {
+		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid query",
+				"The paging or sort parameters are invalid.");
+		problem.setProperty("invalidFields", invalidFields);
+		return ResponseEntity.badRequest().body(problem);
+	}
+
+	private static boolean isCatalogQuery(HttpServletRequest request) {
+		String uri = request.getRequestURI();
+		return uri.startsWith(CatalogController.CATALOGS_PATH + "/") && uri.endsWith("/query");
 	}
 
 	private static boolean isCatalogs(HttpServletRequest request) {

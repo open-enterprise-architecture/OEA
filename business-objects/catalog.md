@@ -197,6 +197,8 @@ A **SavedView** bundles: visible columns, column order, active filters (referenc
 - **Shared namespace**: because personal and instance catalogs share the name namespace (REQ-043), a name collision reveals that some catalog with that name exists, even a personal catalog of another person; no further information is disclosed.
 - **Permissions** ([ADR-032](../adrs/ADR-032-authorization-model.md)): creating a catalog with `scope=instance` requires `catalog:manage`; with `scope=personal`, `entity:read` suffices.
 - **Empty columns**: REQ-043 creates catalogs without columns; the column configuration follows in a separate step (REQ-044).
+- **Default columns** (change us-049-show-catalog-data, design D2): while `columns` is empty, the catalog query (REQ-046) shows the entity `name` and, if the primary entity type maps a property named `Status` (case-insensitive) with a mapping valid today and visibility `public`, that property under its `sqlColumnName` (`status`). The rule is a name convention of the starter packages and is replaced by configured columns (US-047).
+- **View state** ([ADR-044](../adrs/ADR-044-view-state-in-url.md)): sort and page of an open catalog are kept in the URL, not in the catalog; storing a view permanently is the job of `savedViews`.
 
 ## Lifecycle
 

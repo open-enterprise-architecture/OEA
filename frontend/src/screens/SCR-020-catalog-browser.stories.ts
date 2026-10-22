@@ -1,18 +1,35 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
+import { expect, userEvent, within } from 'storybook/test'
+import { onBeforeMount } from 'vue'
+import { useRouter } from 'vue-router'
 import CatalogPage from '../pages/CatalogPage.vue'
 import CatalogsPage from '../pages/CatalogsPage.vue'
-import { CATALOG, CATALOGS, METATYPES, ME_ARCHITECT, ME_VIEWER } from '../test/catalogs'
+import { APPLICATIONS, CATALOG, CATALOGS, catalogApi, manyApplications, METATYPES, ME_ARCHITECT, ME_VIEWER, type Application } from '../test/catalogs'
 import { routedFetch } from '../test/fetch'
 
-// SCR-020 Catalog Browser (UC-06, US-046): the catalog overview and a catalog without its
-// entity table; the table is added to this story by US-049 (docs/screens/SCREENS.md).
-function api(me: unknown, catalogs: unknown[]): typeof fetch {
+// SCR-020 Catalog Browser (UC-06, US-046, US-049): a catalog with its entity table and the
+// catalog overview (docs/screens/SCREENS.md). The first story is the screen image.
+function overviewApi(me: unknown, catalogs: unknown[]): typeof fetch {
   return routedFetch({
     '/api/v1/me': { body: me },
     '/api/v1/catalogs': { body: catalogs },
     '/api/v1/metamodel/metatypes': { body: METATYPES },
-    [`/api/v1/catalogs/${CATALOG.id}`]: { body: CATALOG },
   })
+}
+
+/** The catalog page with the applications; `query` is the view state in the URL (ADR-044). */
+function catalog(applications: Application[], query: Record<string, string> = {}): Story {
+  return {
+    render: () => ({
+      components: { CatalogPage },
+      setup: () => {
+        const router = useRouter()
+        onBeforeMount(() => router.replace({ query }))
+        return { fetchFn: catalogApi(applications), id: CATALOG.id }
+      },
+      template: '<CatalogPage :id="id" :fetch-fn="fetchFn" />',
+    }),
+  }
 }
 
 const meta: Meta<typeof CatalogsPage> = {
@@ -23,14 +40,28 @@ const meta: Meta<typeof CatalogsPage> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const CatalogList: Story = { args: { fetchFn: api(ME_ARCHITECT, CATALOGS) } }
+export const CatalogTable: Story = catalog(APPLICATIONS)
 
-export const EmptyOverview: Story = { args: { fetchFn: api(ME_VIEWER, []) } }
+export const SortedDescending: Story = catalog(APPLICATIONS, { sort: 'name:desc' })
 
-export const EmptyCatalog: Story = {
-  render: () => ({
-    components: { CatalogPage },
-    setup: () => ({ fetchFn: api(ME_ARCHITECT, CATALOGS), id: CATALOG.id }),
-    template: '<CatalogPage :id="id" :fetch-fn="fetchFn" />',
-  }),
+export const SeveralPages: Story = catalog(manyApplications(120), { page: '1' })
+
+export const SortByClicking: Story = {
+  ...catalog(APPLICATIONS),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const name = await canvas.findByTestId('sort-name')
+    await userEvent.click(name)
+    await expect(await canvas.findByText('↑')).toBeInTheDocument()
+    await userEvent.click(name)
+    await expect(await canvas.findByText('↓')).toBeInTheDocument()
+    const rows = canvasElement.querySelectorAll('[data-testid="catalog-table"] tbody tr')
+    await expect(rows[0]?.textContent).toContain('Intranet')
+  },
 }
+
+export const EmptyCatalog: Story = catalog([])
+
+export const CatalogList: Story = { args: { fetchFn: overviewApi(ME_ARCHITECT, CATALOGS) } }
+
+export const EmptyOverview: Story = { args: { fetchFn: overviewApi(ME_VIEWER, []) } }
