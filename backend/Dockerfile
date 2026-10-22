@@ -3,7 +3,7 @@
 # Commands: "serve" (default) starts the application, "migrate" runs the one-shot
 # migration step and exits.
 
-FROM docker.io/library/eclipse-temurin:25-jdk-noble@sha256:589ff4cc3f71aab462e7048a47a0d10edf57fbccde3fceea2281e610bf5880b4 AS build
+FROM docker.io/library/eclipse-temurin:25-jdk-noble@sha256:ba0f0e1a33864105e1d454e88105c617ab40f71062db1f306bf58be32a3f8e5e AS build
 WORKDIR /workspace
 COPY api/openapi.yaml api/openapi.yaml
 COPY packages/*.json packages/
@@ -15,7 +15,7 @@ RUN --mount=type=cache,target=/root/.m2 \
     ./mvnw -B -q -Dmaven.test.skip=true package \
  && cp target/oea-backend-*.jar /workspace/oea-backend.jar
 
-FROM docker.io/library/eclipse-temurin:25-jre-noble@sha256:d9a39a23634650173f1e2bbc176227af9728587ecf0f4b62d53e9355cd7a19ab
+FROM docker.io/library/eclipse-temurin:25-jre-noble@sha256:3f2223fe04b750aa5a8179e29b5c9a1ddf7665fc9bb08bfe11ad01d143bc13a5
 RUN groupadd --system --gid 10001 oea \
  && useradd --system --uid 10001 --gid oea --no-create-home --shell /usr/sbin/nologin oea \
  && install -d -o 10001 -g 10001 -m 0700 /run/oea
