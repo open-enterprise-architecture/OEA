@@ -128,4 +128,6 @@ The remaining baseline findings (SEC-05, SEC-12, SEC-15 to SEC-19, SEC-22, SEC-2
 1. WS-01 and WS-02 are resolved before the first public release (v0.x tag); the request-size limit of WS-02 is a small change and is recommended for package S2b.
 2. WS-03 is resolved before the web portal is delivered to operators.
 3. WS-04 is resolved in S3 as planned (#61).
+
+Tracking (owner decision 2026-10-22): WS-01 [#75](https://github.com/open-enterprise-architecture/OEA/issues/75) (S3), WS-02 request-size limit [#73](https://github.com/open-enterprise-architecture/OEA/issues/73) (S2b) and rate limits [#74](https://github.com/open-enterprise-architecture/OEA/issues/74) (S3), WS-03 [#76](https://github.com/open-enterprise-architecture/OEA/issues/76) (S9), WS-04 [#61](https://github.com/open-enterprise-architecture/OEA/issues/61) (S3).
 4. Conditions 2 and 3 of the baseline review apply unchanged to the features that follow.
