@@ -73,6 +73,27 @@ Trace: US-049 AC5, REQ-046 AC5
 - **WHEN** the query of a catalog with 60 applications is called with page 1, page size 20 and ascending sort by name
 - **THEN** the total is 60 and the rows are entries 21–40 in alphabetical order
 
+### Requirement: View state survives navigation
+
+The catalog page SHALL keep the sort and the page in its URL without adding a history entry per change, so that returning to the catalog through back navigation or a reload restores the previous view; invalid values SHALL fall back to the default view.
+
+Trace: US-049 AC3, US-049 AC5 (owner decision 2026-10-22)
+
+#### Scenario: Back to the catalog
+
+- **WHEN** a reader sorts the catalog descending by name, moves to page 2, opens the catalog overview and navigates back
+- **THEN** the catalog shows page 2 sorted descending by name with ↓ in the header
+
+#### Scenario: Reload
+
+- **WHEN** the reader reloads the catalog page sorted by status
+- **THEN** the catalog is still sorted by status
+
+#### Scenario: Invalid view state in the URL
+
+- **WHEN** the catalog page is opened with an unknown sort column or an invalid page
+- **THEN** it shows the first page in the default order and the URL no longer contains the invalid values
+
 ### Requirement: Visibility of the query result
 
 Querying a catalog SHALL require `entity:read`; another person's personal catalog SHALL be answered with 404, like a catalog that does not exist. Soft-deleted entities SHALL NOT be returned, and only properties with visibility `public` SHALL appear as columns.

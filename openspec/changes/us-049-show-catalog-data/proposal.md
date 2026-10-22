@@ -19,6 +19,10 @@ Walking-skeleton change 7. Owner decisions of 2026-10-21:
 - Pagination (US-049 AC5) is part of this change: server-side paging and a pagination control in the table, so that a catalog never answers with an unbounded list.
 - The never-implemented operations `GET /views/catalog` and `GET /views/catalog/{id}` (generic entity list of the former SCR-020 mockup) are removed from the contract and replaced by `GET /catalogs/{id}/query`; the portal operation `/portal/catalog` stays for the web portal and is aligned later.
 
+Owner decision of 2026-10-22:
+
+- Going back to a catalog restores the previous view: sort and page are kept in the URL of the catalog page.
+
 ## What Changes
 
 - **Catalog query** (`GET /catalogs/{id}/query`): returns the active entities of the catalog's primary metatype as rows with the values of the catalog's columns, sorted and paginated; the response names its columns so that the client renders them without knowing the metamodel.
@@ -26,7 +30,7 @@ Walking-skeleton change 7. Owner decisions of 2026-10-21:
 - **Sorting**: by any returned column, ascending or descending; without a sort parameter the rows are ordered by name ascending; entities without a value sort last.
 - **Pagination**: `page` (0-based) and `pageSize` (default 50, maximum 200) with page metadata, following the existing paging conventions of the contract.
 - **Visibility**: reading the query requires `entity:read`; another person's personal catalog answers 404 as for reading the catalog itself; soft-deleted entities and properties that are not `public` are not returned.
-- **Frontend**: the catalog page shows the table instead of the placeholder: sortable column headers that cycle ascending → descending → default with an arrow indicator, the empty state of US-049 AC4 and a pagination control ("Page 1 of 3").
+- **Frontend**: the catalog page shows the table instead of the placeholder: sortable column headers that cycle ascending → descending → default with an arrow indicator, the empty state of US-049 AC4 and a pagination control ("Page 1 of 3"); sort and page are part of the page URL, so back navigation and reload restore the view.
 - **Contract cleanup**: `GET /views/catalog` and `GET /views/catalog/{id}` removed; **BREAKING** for the contract only (no client or server implements them).
 - **Screens**: the SCR-020 story shows the table; SCR-020 and SCR-028 move to `implemented`.
 

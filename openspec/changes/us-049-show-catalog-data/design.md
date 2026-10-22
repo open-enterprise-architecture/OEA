@@ -16,7 +16,6 @@ The contract defines the paging conventions `PageParam` (`page`, from 0), `PageS
 **Non-Goals:**
 
 - Joins, filters, saved views, configured columns (later stories)
-- Query state in the URL (sort and page survive only while the page is open)
 - Performance tuning beyond the existing indexes (REQ-071 follows)
 
 ## Architecture Constraints
@@ -62,11 +61,21 @@ The query service first reads the catalog through the same visibility rule as `C
 
 - `src/api/catalogs.ts`: `queryCatalog(id, {page, pageSize, sort})`
 - `CatalogTable.vue` (component): renders the returned columns with `UTable`; the headers are buttons that cycle ascending → descending → default and show ↑/↓ (`aria-sort` for screen readers); below the table the text "Page N of M" and `UPagination`; while loading, the previous rows stay visible with a loading state; the empty state shows the hint of US-049 AC4
-- `CatalogPage.vue` replaces the placeholder with `CatalogTable`; sort and page live in component state (a sort change resets to page 0)
+- `CatalogPage.vue` replaces the placeholder with `CatalogTable`; sort and page come from the URL (D8), a sort change resets to page 0
 
 ### D7 – Screens
 
 The SCR-020 story file gets the catalog page with the table as its **first** story ("Catalog table", 3 rows), so that the generated screen image shows the catalog browser with data; further stories: sorted descending, several pages, empty catalog, catalog overview. SCR-020 and SCR-028 move to `implemented`.
+
+### D8 – View state in the URL
+
+The catalog page keeps `sort` and `page` as URL query (`/catalogs/7?sort=name:desc&page=2`) with the same meaning as the API parameters (`page` from 0), so that one parser serves both. Default values are omitted from the URL; `pageSize` is not part of it.
+
+- Sort and page changes write the URL with `router.replace`, not `router.push`: a click on a column header creates no history entry, and back navigation leaves the catalog instead of stepping through sort states.
+- On opening, the page reads its state from the URL; back navigation, reload and a shared link therefore show the same view.
+- Invalid values fall back to the default and are removed from the URL with `replace`: a `page` that is not a non-negative integer, a malformed `sort`, and a `sort` the API answers with 400. A `page` beyond the last page of a non-empty catalog falls back to page 0.
+
+*Alternative:* `<KeepAlive>` or sessionStorage – rejected, the view is lost on reload or in a new window and cannot be linked.
 
 ## Data Model
 
