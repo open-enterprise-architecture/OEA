@@ -119,5 +119,5 @@ Owner decisions of 2026-10-22:
 
 - **A1**: contract operations without implementation are marked as planned (`x-oea-status: planned`); parameter and payload details of requirements are non-binding until the implementing change aligns them
 - **A5**: a workflow regenerates `THIRD-PARTY-LICENSES.md` on Dependabot pull requests automatically, with write access limited to that file on `dependabot/*` branches (REQ-192)
-- **A7**: deferred items are tracked as GitHub issues with the sprint that resolves them
+- **A7**: deferred items are tracked as GitHub issues with the sprint that resolves them – created as #61 to #70 (label `deferred`, milestones S3, S8–S11); the savepoint batching of US-141 is not tracked because its 5-second test passes
 - **Order**: the actions come first – re-baselined sprint plan (A6), issues for the deferred items (A7), security re-review (A8) and the technical actions A2–A5 – and S3 with UC-02 (system admin bootstrapping remainder) follows as planned
