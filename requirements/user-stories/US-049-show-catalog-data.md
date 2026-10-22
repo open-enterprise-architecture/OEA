@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: in-progress
 **Sprint**: S2
-**Implementation**: OpenSpec change `us-049-show-catalog-data` – AC1 without the join column, AC2–AC5 and AC7; default columns `name` and `status` until US-047; the join column of AC1 (US-048) and AC6 (SavedViews) follow; the implementation hash is added when the change is archived
+**Implementation**: OpenSpec change `us-049-show-catalog-data`, commit e181cca (#56) – AC1 without the join column, AC2–AC5 and AC7; default columns `name` and `status` until US-047; the join column of AC1 (US-048) and AC6 (SavedViews) follow
 
 ## Story
 
