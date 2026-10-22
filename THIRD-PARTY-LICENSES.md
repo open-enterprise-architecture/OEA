@@ -142,9 +142,9 @@ License texts and notices: the backend jar contains the license and notice files
 | @floating-ui/core (`@floating-ui/core`) | 1.8.0 | MIT | – | <https://github.com/floating-ui/floating-ui> |
 | @floating-ui/dom (`@floating-ui/dom`) | 1.8.0 | MIT | – | <https://github.com/floating-ui/floating-ui> |
 | @floating-ui/utils (`@floating-ui/utils`) | 0.2.12 | MIT | – | <https://github.com/floating-ui/floating-ui> |
-| @floating-ui/vue (`@floating-ui/vue`) | 1.1.11 | MIT | – | <https://github.com/floating-ui/floating-ui> |
+| @floating-ui/vue (`@floating-ui/vue`) | 2.0.1 | MIT | – | <https://github.com/floating-ui/floating-ui> |
 | @iconify/vue (`@iconify/vue`) | 5.0.3 | MIT | – | <https://github.com/iconify/iconify> |
-| @nuxt/ui (`@nuxt/ui`) | 4.11.3 | MIT | – | <https://github.com/nuxt/ui> |
+| @nuxt/ui (`@nuxt/ui`) | 4.12.0 | MIT | – | <https://github.com/nuxt/ui> |
 | @unhead/vue (`@unhead/vue`) | 3.4.3 | MIT | – | <https://github.com/unjs/unhead> |
 | @vue/reactivity (`@vue/reactivity`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
 | @vue/runtime-core (`@vue/runtime-core`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
@@ -156,7 +156,7 @@ License texts and notices: the backend jar contains the license and notice files
 | defu (`defu`) | 6.1.7 | MIT | – | unjs/defu |
 | hookable (`hookable`) | 6.1.2 | MIT | – | unjs/hookable |
 | ohash (`ohash`) | 2.0.12 | MIT | – | unjs/ohash |
-| reka-ui (`reka-ui`) | 2.10.5 | MIT | – | <https://github.com/unovue/reka-ui> |
+| reka-ui (`reka-ui`) | 2.11.0 | MIT | – | <https://github.com/unovue/reka-ui> |
 | tailwind-variants (`tailwind-variants`) | 3.3.1 | MIT | – | <https://github.com/heroui-inc/tailwind-variants> |
 | tailwindcss (`tailwindcss`) | 4.3.3 | MIT | – | <https://github.com/tailwindlabs/tailwindcss> |
 | ufo (`ufo`) | 1.6.4 | MIT | – | unjs/ufo |
