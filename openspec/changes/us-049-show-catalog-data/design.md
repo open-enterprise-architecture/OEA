@@ -25,6 +25,7 @@ The contract defines the paging conventions `PageParam` (`page`, from 0), `PageS
 - ADR-019: soft-deleted entities are excluded (`deleted_at IS NULL`)
 - ADR-032: `entity:read`; the personal-catalog rule of `Catalogs.get` is reused; only `public` properties appear (REQ-160 restricted properties follow)
 - ADR-013: contract first; frontend types generated from `api/openapi.yaml`
+- ADR-044: view state of list and table views in the URL query, written with `router.replace` (D8)
 
 ## Decisions
 
@@ -68,6 +69,8 @@ The query service first reads the catalog through the same visibility rule as `C
 The SCR-020 story file gets the catalog page with the table as its **first** story ("Catalog table", 3 rows), so that the generated screen image shows the catalog browser with data; further stories: sorted descending, several pages, empty catalog, catalog overview. SCR-020 and SCR-028 move to `implemented`.
 
 ### D8 – View state in the URL
+
+Applies [ADR-044](../../../adrs/ADR-044-view-state-in-url.md) to the catalog page.
 
 The catalog page keeps `sort` and `page` as URL query (`/catalogs/7?sort=name:desc&page=2`) with the same meaning as the API parameters (`page` from 0), so that one parser serves both. Default values are omitted from the URL; `pageSize` is not part of it.
 

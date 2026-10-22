@@ -34,10 +34,10 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | Use Cases | 23 |
 | Requirements | 195 |
 | User Stories | 150 |
-| ADRs | 43 |
+| ADRs | 44 |
 | Business Objects | 30 |
 
-_Concept: v0.19 · Last update: 2026-10-20._
+_Concept: v0.19 · Last update: 2026-10-22._
 <!-- /AUTO-GENERATED: stats -->
 
 **Next step**: Walking Skeleton based on UC-06 (Catalog Browser).
@@ -130,6 +130,7 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 | [ADR-041](adrs/ADR-041-root-aggregator-pom.md) | Root Aggregator POM for the Dependency Graph | accepted |
 | [ADR-042](adrs/ADR-042-setup-phase-without-second-factor.md) | Setup Phase – System Admin Login Without Second Factor Until Other Identities Get Access | accepted |
 | [ADR-043](adrs/ADR-043-third-party-license-policy.md) | License Policy for Third-Party Components | accepted |
+| [ADR-044](adrs/ADR-044-view-state-in-url.md) | View State of List and Table Views in the URL | draft |
 <!-- /AUTO-GENERATED: adrs -->
 
 ## Development

@@ -11,7 +11,7 @@ After change 6 a catalog can be created, but its page shows only a placeholder: 
 | Use Case | [UC-06: Create, Configure and Use an Architecture Catalog](../../../requirements/use-cases/UC-06-create-and-use-catalog.md) (A1 steps 1–3) |
 | User Stories | [US-049: Display and Sort Catalog Data](../../../requirements/user-stories/US-049-show-catalog-data.md) (AC2–AC5; AC1 without joins, AC6 later) |
 | Requirements | [REQ-046: Execute Catalog Query](../../../requirements/req/REQ-046-catalog-query.md) (AC5, AC6; AC1–AC4 with joins and filters later) |
-| ADRs | [ADR-013](../../../adrs/ADR-013-api-style.md) (spec-first contract), [ADR-022](../../../adrs/ADR-022-structured-property-model.md) (typed property values), [ADR-019](../../../adrs/ADR-019-soft-delete-strategy.md) (deleted entities excluded), [ADR-032](../../../adrs/ADR-032-authorization-model.md) (`entity:read`, visibility of personal catalogs), [ADR-031](../../../adrs/ADR-031-ui-prototyping-storybook.md) (screen story) |
+| ADRs | [ADR-013](../../../adrs/ADR-013-api-style.md) (spec-first contract), [ADR-022](../../../adrs/ADR-022-structured-property-model.md) (typed property values), [ADR-019](../../../adrs/ADR-019-soft-delete-strategy.md) (deleted entities excluded), [ADR-032](../../../adrs/ADR-032-authorization-model.md) (`entity:read`, visibility of personal catalogs), [ADR-031](../../../adrs/ADR-031-ui-prototyping-storybook.md) (screen story), [ADR-044](../../../adrs/ADR-044-view-state-in-url.md) (view state in the URL) |
 | Sprint / Milestone | S2 / Milestone 1, walking skeleton 2/2 ([Sprint plan](../../../docs/sprint-plan.md)) |
 
 Walking-skeleton change 7. Owner decisions of 2026-10-21:
@@ -21,7 +21,7 @@ Walking-skeleton change 7. Owner decisions of 2026-10-21:
 
 Owner decision of 2026-10-22:
 
-- Going back to a catalog restores the previous view: sort and page are kept in the URL of the catalog page.
+- Going back to a catalog restores the previous view: sort and page are kept in the URL of the catalog page; recorded as [ADR-044](../../../adrs/ADR-044-view-state-in-url.md) for all list and table views.
 
 ## What Changes
 

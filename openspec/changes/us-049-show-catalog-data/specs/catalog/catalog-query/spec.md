@@ -77,7 +77,7 @@ Trace: US-049 AC5, REQ-046 AC5
 
 The catalog page SHALL keep the sort and the page in its URL without adding a history entry per change, so that returning to the catalog through back navigation or a reload restores the previous view; invalid values SHALL fall back to the default view.
 
-Trace: US-049 AC3, US-049 AC5 (owner decision 2026-10-22)
+Trace: US-049 AC3, US-049 AC5, ADR-044
 
 #### Scenario: Back to the catalog
 
