@@ -5,7 +5,7 @@
 Traceability from use cases through requirements to user stories, derived from the
 frontmatter and reference sections of the artifacts.
 
-**Total UCs**: 23 | **Total REQs**: 195 | **Total USs**: 150
+**Total UCs**: 23 | **Total REQs**: 196 | **Total USs**: 150
 
 ---
 
@@ -463,8 +463,8 @@ frontmatter and reference sections of the artifacts.
 | Type | Count |
 |---|---|
 | functional | 137 |
+| non-functional | 17 |
 | constraint | 16 |
-| non-functional | 16 |
 | business-rule | 12 |
 | compliance | 9 |
 | interface | 4 |
@@ -503,11 +503,11 @@ frontmatter and reference sections of the artifacts.
 
 ### REQs without US
 
-[REQ-071](req/REQ-071-catalog-query-latency.md), [REQ-072](req/REQ-072-canvas-rendering-latency.md), [REQ-073](req/REQ-073-system-availability.md), [REQ-074](req/REQ-074-concurrent-user-scalability.md), [REQ-075](req/REQ-075-platform-independent-deployment.md), [REQ-082](req/REQ-082-data-backup-retention.md), [REQ-083](req/REQ-083-audit-log-retention.md), [REQ-129](req/REQ-129-data-encryption.md), [REQ-130](req/REQ-130-wcag-accessibility.md), [REQ-131](req/REQ-131-graph-traversal-latency.md), [REQ-135](req/REQ-135-dark-mode-system-default.md), [REQ-136](req/REQ-136-local-auth-configurable.md), [REQ-137](req/REQ-137-auto-sso-redirect.md), [REQ-143](req/REQ-143-inline-column-filter.md), [REQ-144](req/REQ-144-shape-palette-panel.md), [REQ-145](req/REQ-145-shape-drag-entity-lookup.md), [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md), [REQ-147](req/REQ-147-api-completeness-automation.md), [REQ-151](req/REQ-151-audit-schema-separation.md), [REQ-156](req/REQ-156-postgresql-only-database.md), [REQ-159](req/REQ-159-object-level-authorization.md), [REQ-160](req/REQ-160-visibility-on-all-read-channels.md), [REQ-162](req/REQ-162-property-write-protection-all-paths.md), [REQ-163](req/REQ-163-no-anonymous-access.md), [REQ-166](req/REQ-166-oidc-hardening-identity-binding.md), [REQ-168](req/REQ-168-local-auth-throttling.md), [REQ-169](req/REQ-169-password-storage-quality.md), [REQ-170](req/REQ-170-totp-replay-protection.md), [REQ-171](req/REQ-171-mfa-privileged-accounts.md), [REQ-172](req/REQ-172-reauthentication-sensitive-actions.md), [REQ-173](req/REQ-173-account-recovery-temporary-passwords.md), [REQ-174](req/REQ-174-audit-tamper-resistance.md), [REQ-177](req/REQ-177-external-id-ownership.md), [REQ-178](req/REQ-178-outbound-request-controls.md), [REQ-179](req/REQ-179-secured-raw-query-analytics.md), [REQ-180](req/REQ-180-safe-rendering-user-content.md), [REQ-181](req/REQ-181-electron-hardening-local-data.md), [REQ-182](req/REQ-182-signed-client-updates.md), [REQ-183](req/REQ-183-production-safe-defaults.md), [REQ-184](req/REQ-184-safe-import-parsing.md), [REQ-185](req/REQ-185-bounded-expression-evaluation.md), [REQ-186](req/REQ-186-rate-limits-resource-quotas.md), [REQ-187](req/REQ-187-http-security-baseline.md), [REQ-188](req/REQ-188-secrets-key-management.md), [REQ-189](req/REQ-189-data-subject-rights-persons.md), [REQ-190](req/REQ-190-soft-deleted-data-retention.md), [REQ-191](req/REQ-191-supply-chain-integrity.md), [REQ-192](req/REQ-192-ci-least-privilege.md), [REQ-193](req/REQ-193-generic-error-responses.md), [REQ-195](req/REQ-195-client-update-control.md)
+[REQ-071](req/REQ-071-catalog-query-latency.md), [REQ-072](req/REQ-072-canvas-rendering-latency.md), [REQ-073](req/REQ-073-system-availability.md), [REQ-074](req/REQ-074-concurrent-user-scalability.md), [REQ-075](req/REQ-075-platform-independent-deployment.md), [REQ-082](req/REQ-082-data-backup-retention.md), [REQ-083](req/REQ-083-audit-log-retention.md), [REQ-129](req/REQ-129-data-encryption.md), [REQ-130](req/REQ-130-wcag-accessibility.md), [REQ-131](req/REQ-131-graph-traversal-latency.md), [REQ-135](req/REQ-135-dark-mode-system-default.md), [REQ-136](req/REQ-136-local-auth-configurable.md), [REQ-137](req/REQ-137-auto-sso-redirect.md), [REQ-143](req/REQ-143-inline-column-filter.md), [REQ-144](req/REQ-144-shape-palette-panel.md), [REQ-145](req/REQ-145-shape-drag-entity-lookup.md), [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md), [REQ-147](req/REQ-147-api-completeness-automation.md), [REQ-151](req/REQ-151-audit-schema-separation.md), [REQ-156](req/REQ-156-postgresql-only-database.md), [REQ-159](req/REQ-159-object-level-authorization.md), [REQ-160](req/REQ-160-visibility-on-all-read-channels.md), [REQ-162](req/REQ-162-property-write-protection-all-paths.md), [REQ-163](req/REQ-163-no-anonymous-access.md), [REQ-166](req/REQ-166-oidc-hardening-identity-binding.md), [REQ-168](req/REQ-168-local-auth-throttling.md), [REQ-169](req/REQ-169-password-storage-quality.md), [REQ-170](req/REQ-170-totp-replay-protection.md), [REQ-171](req/REQ-171-mfa-privileged-accounts.md), [REQ-172](req/REQ-172-reauthentication-sensitive-actions.md), [REQ-173](req/REQ-173-account-recovery-temporary-passwords.md), [REQ-174](req/REQ-174-audit-tamper-resistance.md), [REQ-177](req/REQ-177-external-id-ownership.md), [REQ-178](req/REQ-178-outbound-request-controls.md), [REQ-179](req/REQ-179-secured-raw-query-analytics.md), [REQ-180](req/REQ-180-safe-rendering-user-content.md), [REQ-181](req/REQ-181-electron-hardening-local-data.md), [REQ-182](req/REQ-182-signed-client-updates.md), [REQ-183](req/REQ-183-production-safe-defaults.md), [REQ-184](req/REQ-184-safe-import-parsing.md), [REQ-185](req/REQ-185-bounded-expression-evaluation.md), [REQ-186](req/REQ-186-rate-limits-resource-quotas.md), [REQ-187](req/REQ-187-http-security-baseline.md), [REQ-188](req/REQ-188-secrets-key-management.md), [REQ-189](req/REQ-189-data-subject-rights-persons.md), [REQ-190](req/REQ-190-soft-deleted-data-retention.md), [REQ-191](req/REQ-191-supply-chain-integrity.md), [REQ-192](req/REQ-192-ci-least-privilege.md), [REQ-193](req/REQ-193-generic-error-responses.md), [REQ-195](req/REQ-195-client-update-control.md), [REQ-196](req/REQ-196-user-manual.md)
 
 ### REQs without UC reference
 
-None.
+[REQ-196](req/REQ-196-user-manual.md)
 
 ### REQs referencing an unknown UC
 

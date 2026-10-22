@@ -32,9 +32,9 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 |---|---|
 | Stakeholder profiles | 8 |
 | Use Cases | 23 |
-| Requirements | 195 |
+| Requirements | 196 |
 | User Stories | 150 |
-| ADRs | 44 |
+| ADRs | 45 |
 | Business Objects | 30 |
 
 _Concept: v0.19 · Last update: 2026-10-23._
@@ -131,6 +131,7 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 | [ADR-042](adrs/ADR-042-setup-phase-without-second-factor.md) | Setup Phase – System Admin Login Without Second Factor Until Other Identities Get Access | accepted |
 | [ADR-043](adrs/ADR-043-third-party-license-policy.md) | License Policy for Third-Party Components | accepted |
 | [ADR-044](adrs/ADR-044-view-state-in-url.md) | View State of List and Table Views in the URL | accepted |
+| [ADR-045](adrs/ADR-045-user-manual.md) | Multilingual User Manual with VitePress on GitHub Pages | accepted |
 <!-- /AUTO-GENERATED: adrs -->
 
 ## Development
