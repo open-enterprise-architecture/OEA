@@ -23,8 +23,8 @@ import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Steps for features/catalog/catalog-definition.feature. The scenarios share one instance with
- * the starter package; `dev-architect` holds `enterprise-architect`, `dev-viewer` holds `viewer`.
- * Each scenario uses its own catalog names.
+ * the starter package, also used by {@link CatalogQuerySteps}; `dev-architect` holds
+ * `enterprise-architect`, `dev-viewer` holds `viewer`. Each scenario uses its own catalog names.
  */
 public class CatalogSteps {
 
@@ -41,6 +41,11 @@ public class CatalogSteps {
 				shared = RepositoryInstance.start();
 			}
 		}
+	}
+
+	/** The instance shared with the catalog query steps. */
+	static RepositoryInstance shared() {
+		return shared;
 	}
 
 	@AfterAll

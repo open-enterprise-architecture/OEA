@@ -1,7 +1,7 @@
 # Walking Skeleton – Definition
 
-**As of**: 2026-10-13
-**Status**: in progress – project setup done in OpenSpec change `ws-01-project-setup` (2026-10-15); the six user stories follow (revised before: story list updated, entities via batch API instead of form, placement in S1–S2; development environment and IdP per ADR-036, audit and migration setup per ADR-033)
+**As of**: 2026-10-22
+**Status**: complete – project setup done in OpenSpec change `ws-01-project-setup` (2026-10-15); the six user stories are implemented in changes 2–7, the last one `us-049-show-catalog-data` (2026-10-22); the omitted acceptance criteria of US-141 and US-049 follow in the expansion sprints (revised before: story list updated, entities via batch API instead of form, placement in S1–S2; development environment and IdP per ADR-036, audit and migration setup per ADR-033)
 
 ---
 
@@ -64,7 +64,7 @@ These 6 user stories form the walking skeleton. Everything else comes afterwards
 | 3 | [US-033](../requirements/user-stories/US-033-import-metamodel.md): Import metamodel / starter package | UC-04 | 5 | complete | Package import (ADR-002), `ApplicationComponent` available, `scope=imported` |
 | 4 | [US-141](../requirements/user-stories/US-141-entity-batch-import.md): Create entities via batch | – | 5 | AC1 (upsert of entities); connections, dryRun, and service account audit (AC2–AC4) follow later | Entity persistence (typed values, ADR-022), validation against metamodel, versioning, audit |
 | 5 | [US-046](../requirements/user-stories/US-046-create-catalog.md): Create catalog | UC-06 | 3 | complete (incl. primary entity type) | Catalog configuration, metamodel API, role check |
-| 6 | [US-049](../requirements/user-stories/US-049-show-catalog-data.md): Display catalog data | UC-06 | 5 | Table, sorting, empty state; default columns `name` and `status` as long as no columns are configured; joins, pagination, and SavedViews follow later | Query API, table in the Vue frontend |
+| 6 | [US-049](../requirements/user-stories/US-049-show-catalog-data.md): Display catalog data | UC-06 | 5 | Table, sorting, pagination, empty state, view state in the URL ([ADR-044](../adrs/ADR-044-view-state-in-url.md)); default columns `name` and `status` as long as no columns are configured; joins and SavedViews follow later | Query API, table in the Vue frontend |
 
 **Total: 31 story points** plus one-time project setup (Maven module `backend/`, Vue project `frontend/`, `api/openapi.yaml`, operator file `compose.yaml`, development file `compose.dev.yaml` with PostgreSQL, migration step and Keycloak realm `dev/keycloak/realm-oea-dev.json`, CI incl. the ADR-036 build checks). Planned for **sprint S1–S2**.
 
@@ -137,7 +137,11 @@ Change 2 (`us-013-local-bootstrapping`) adds the local bootstrapping, the audit 
      every reader; audit event catalog.created
 
 8. User opens the catalog
-   → US-049: Table shows 3 rows with name | status, sortable by name
+   → US-049: Table shows 3 rows with name | status (GET /api/v1/catalogs/{id}/query), sortable
+     by every column (header click: ascending ↑ → descending ↓ → default order), paginated
+     with 50 rows per page ("Page 1 of 3" for 120+ entities); sort and page are kept in the
+     URL, so back navigation and reload restore the view (ADR-044); every reader with
+     entity:read (e.g. dev-viewer) sees the shared catalog
 
 9. Result: The imported applications are in the EA repository.
    Every logged-in user sees them in the catalog.

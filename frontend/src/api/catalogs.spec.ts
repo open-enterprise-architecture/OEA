@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { routedFetch, type RecordedRequest } from '../test/fetch'
-import { createCatalog, fetchCatalog, type Catalog } from './catalogs'
+import { createCatalog, fetchCatalog, queryCatalog, type Catalog, type CatalogQueryResult } from './catalogs'
 
 const CATALOG: Catalog = {
   id: '6f1c2d3e-0000-4000-8000-000000000001',
@@ -75,5 +75,64 @@ describe('catalogs API', () => {
     })
     expect(await fetchCatalog(CATALOG.id, fetchFn)).toEqual(CATALOG)
     expect(await fetchCatalog('unknown', fetchFn)).toBeUndefined()
+  })
+
+  describe('queryCatalog', () => {
+    const RESULT: CatalogQueryResult = {
+      columns: [{ key: 'name', label: 'Name', sortable: true }],
+      rows: [{ entityId: 1, values: { name: 'CRM System' } }],
+      page: { page: 0, pageSize: 50, totalElements: 1, totalPages: 1 },
+      sort: null,
+    }
+    const PATH = `/api/v1/catalogs/${CATALOG.id}/query`
+
+    it('sends no parameters for the default view', async () => {
+      const recorded: RecordedRequest[] = []
+      const outcome = await queryCatalog(CATALOG.id, {}, routedFetch({ [PATH]: { body: RESULT } }, recorded))
+      expect(outcome).toEqual({ ok: true, value: RESULT })
+      expect(recorded[0]?.path).toBe(PATH)
+    })
+
+    it('sends page, page size and sort as query string', async () => {
+      const recorded: RecordedRequest[] = []
+      const path = `${PATH}?page=2&pageSize=20&sort=name%3Adesc`
+      await queryCatalog(
+        CATALOG.id,
+        { page: 2, pageSize: 20, sort: { column: 'name', direction: 'desc' } },
+        routedFetch({ [path]: { body: RESULT } }, recorded),
+      )
+      expect(recorded[0]?.path).toBe(path)
+    })
+
+    it('reports 404 for a catalog that is not visible', async () => {
+      const outcome = await queryCatalog(
+        'foreign',
+        {},
+        routedFetch({
+          '/api/v1/catalogs/foreign/query': {
+            status: 404,
+            contentType: 'application/problem+json',
+            body: { type: 'urn:oea:problem:not-found', title: 'Not found', status: 404 },
+          },
+        }),
+      )
+      expect(outcome).toMatchObject({ ok: false, rejection: { status: 404, problemType: 'not-found' } })
+    })
+
+    it('reports an invalid sort with the rejected parameter', async () => {
+      const path = `${PATH}?sort=owner%3Aasc`
+      const outcome = await queryCatalog(
+        CATALOG.id,
+        { sort: { column: 'owner', direction: 'asc' } },
+        routedFetch({
+          [path]: {
+            status: 400,
+            contentType: 'application/problem+json',
+            body: { type: 'urn:oea:problem:validation-failed', title: 'Invalid query', status: 400, invalidFields: ['sort'] },
+          },
+        }),
+      )
+      expect(outcome).toMatchObject({ ok: false, rejection: { status: 400, invalidFields: ['sort'] } })
+    })
   })
 })
