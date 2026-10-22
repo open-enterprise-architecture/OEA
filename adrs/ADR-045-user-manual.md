@@ -55,7 +55,7 @@ We choose **Option 1: VitePress on GitHub Pages**.
 Rules:
 
 1. **Location and structure**: the manual lives in `manual/` (VitePress project) with English as root locale and German under `/de/`. Every locale has the same chapters: Introduction, Setup and first steps, Administration, Usage, API reference. Contributor documentation stays in `docs/`.
-2. **Source language**: English is the source; German is a maintained translation in the same pull request. A page exists in both languages or in neither.
+2. **Source language and tone**: English is the source; German is a maintained translation in the same pull request. A page exists in both languages or in neither. The manual addresses the reader directly – "you" in English, the informal "du" in German – unlike the rest of the repository documentation.
 3. **Every function described**: each manual page declares in its frontmatter which screens (`SCR-NNN`) and user stories (`US-NNN`) it covers. A CI check fails if an implemented screen of `docs/screens/SCREENS.md` or a user story with status `in-progress` or `realized` is not covered in both languages, or if the German page covers something different from the English page.
 4. **API reference**: generated from `api/openapi.yaml` at build time; it shows only implemented operations (operations marked as planned, retrospective action A1, are left out) and the permissions of `x-oea-authorization`.
 5. **Screenshots**: produced by Playwright walkthrough tests against the real stack (Compose environment with Keycloak and seed data), not by hand and not from Storybook. Each screenshot has a stable name referenced from the Markdown. The tests render every screenshot in each language the user interface offers; while the user interface is available only in English (ADR-025 not yet implemented in the frontend), the German manual shows the English screenshots and switches automatically once German is offered.
@@ -98,6 +98,6 @@ Rules:
 
 ## Notes
 
-Owner decisions of 2026-10-23: VitePress on GitHub Pages; English and German; chapters introduction, setup and first steps, administration, usage and interface; every function described; generated per release as far as possible; screenshots from tests against the real stack; versions per release with the latest at the root; Storybook kept under `/storybook/`; screenshots in each language the user interface offers, English otherwise.
+Owner decisions of 2026-10-23: VitePress on GitHub Pages; English and German; chapters introduction, setup and first steps, administration, usage and interface; every function described; generated per release as far as possible; screenshots from tests against the real stack; versions per release with the latest at the root; Storybook kept under `/storybook/`; screenshots in each language the user interface offers, English otherwise. Owner decision of 2026-10-23: the manual addresses the reader directly, in German with the informal "du".
 
 Common practice of larger OSS products was considered: they rarely publish Storybook as part of the user documentation and usually translate only the text of their manuals while keeping English screenshots, because localized screenshots are expensive to maintain by hand. OEA generates screenshots automatically, so localized screenshots cost only an additional test run per language.

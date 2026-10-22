@@ -72,7 +72,7 @@ Implementation happens in OpenSpec changes (`openspec/README.md`), cut from the 
 - **English** for all new and changed documentation (Markdown, ADRs, OpenSpec artifacts, templates, commit messages, PR descriptions)
 - The repository was fully translated to English in October 2026; new German content is not accepted – exception: the German locale of the user manual in `manual/de/` ([ADR-045](adrs/ADR-045-user-manual.md)), translated from the English source in the same pull request
 - Established German domain terms may be kept where no precise English equivalent exists (e.g. "Bebauungsplan"); add a short English explanation on first use
-- **Neutral, factual tone**; no second-person address in documentation
+- **Neutral, factual tone**; no second-person address in documentation – exception: the user manual in `manual/` addresses the reader directly (English "you", German informal "du"), see ADR-045
 - **Markdown** as format, with frontmatter where useful
 - **Diagrams**: notation still open (see §21.2.1 in the concept). Until then: describe descriptively, use inline Mermaid if needed
 
