@@ -80,4 +80,4 @@ In `.opencode/commands/`:
 | [ADR-041](./ADR-041-root-aggregator-pom.md) | Root Aggregator POM for the Dependency Graph | accepted | 2026-10-15 | – (partially ADR-027) |
 | [ADR-042](./ADR-042-setup-phase-without-second-factor.md) | Setup Phase – System Admin Login Without Second Factor Until Other Identities Get Access | accepted | 2026-10-15 | – (partially ADR-032 SoD-8) |
 | [ADR-043](./ADR-043-third-party-license-policy.md) | License Policy for Third-Party Components | accepted | 2026-10-15 | – |
-| [ADR-044](./ADR-044-view-state-in-url.md) | View State of List and Table Views in the URL | draft | 2026-10-22 | – |
+| [ADR-044](./ADR-044-view-state-in-url.md) | View State of List and Table Views in the URL | accepted | 2026-10-22 | – |

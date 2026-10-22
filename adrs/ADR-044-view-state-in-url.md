@@ -1,6 +1,6 @@
 # ADR-044: View State of List and Table Views in the URL
 
-**Status**: draft
+**Status**: accepted
 **Date**: 2026-10-22
 **Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Consulted**: Solution Architect, Frontend Engineer
