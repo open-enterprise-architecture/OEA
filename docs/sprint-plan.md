@@ -31,7 +31,7 @@ admin bootstrap → OIDC login → starter package → entities via batch API �
 
 **Deliverable S8:** Auth (UC-01, UC-02, UC-03) and metamodel (UC-04) complete.
 
-> After S2: retrospective on the architecture; insights from the slice feed into S3 onward.
+> After S2: retrospective on the architecture; insights from the slice feed into S3 onward. Held on 2026-10-22: [retrospectives/2026-10-walking-skeleton.md](retrospectives/2026-10-walking-skeleton.md).
 
 ---
 
