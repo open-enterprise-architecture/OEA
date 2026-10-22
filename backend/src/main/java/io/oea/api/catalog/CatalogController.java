@@ -2,11 +2,17 @@ package io.oea.api.catalog;
 
 import io.oea.api.generated.CatalogsApi;
 import io.oea.api.generated.model.Catalog;
+import io.oea.api.generated.model.CatalogColumn;
 import io.oea.api.generated.model.CatalogCreate;
+import io.oea.api.generated.model.CatalogQueryResult;
+import io.oea.api.generated.model.CatalogRow;
 import io.oea.api.generated.model.CatalogScope;
+import io.oea.api.generated.model.CatalogSort;
 import io.oea.api.generated.model.CatalogSummary;
 import io.oea.api.generated.model.JoinMode;
+import io.oea.api.generated.model.PageMeta;
 import io.oea.api.generated.model.PrincipalRef;
+import io.oea.app.catalog.CatalogQueries;
 import io.oea.app.catalog.Catalogs;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.config.security.ConditionsEnforcedByHandler;
@@ -15,13 +21,17 @@ import java.net.URI;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Creating, listing and reading catalogs (US-046, design D3–D5 of us-046-create-catalog). */
+/**
+ * Creating, listing and reading catalogs (US-046, design D3–D5 of us-046-create-catalog) and the
+ * catalog query (US-049, design D1–D4 of us-049-show-catalog-data).
+ */
 @RestController
 public class CatalogController implements CatalogsApi {
 
@@ -30,8 +40,11 @@ public class CatalogController implements CatalogsApi {
 
 	private final Catalogs catalogs;
 
-	public CatalogController(Catalogs catalogs) {
+	private final CatalogQueries queries;
+
+	public CatalogController(Catalogs catalogs, CatalogQueries queries) {
 		this.catalogs = catalogs;
+		this.queries = queries;
 	}
 
 	@Override
@@ -56,6 +69,25 @@ public class CatalogController implements CatalogsApi {
 	@Override
 	public ResponseEntity<Catalog> getCatalog(UUID id) {
 		return ResponseEntity.ok(catalog(this.catalogs.get(principal(), id)));
+	}
+
+	@Override
+	public ResponseEntity<CatalogQueryResult> queryCatalog(UUID id, Integer page, Integer pageSize, String sort) {
+		CatalogQueries.Result result = this.queries.query(principal(), id, page, pageSize, sort);
+		return ResponseEntity.ok(new CatalogQueryResult(
+				result.columns()
+					.stream()
+					.map((column) -> new CatalogColumn(column.key(), column.label(), column.sortable()))
+					.toList(),
+				result.rows()
+					.stream()
+					.map((row) -> new CatalogRow(row.entityId(), new LinkedHashMap<>(row.values())))
+					.toList(),
+				new PageMeta(result.page(), result.pageSize(), Math.toIntExact(result.totalElements()),
+						result.totalPages()))
+			.sort((result.sort() != null) ? new CatalogSort(result.sort().column(),
+					result.sort().descending() ? CatalogSort.DirectionEnum.DESC : CatalogSort.DirectionEnum.ASC)
+					: null));
 	}
 
 	private static CatalogSummary summary(Catalogs.Catalog catalog) {

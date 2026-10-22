@@ -10,7 +10,7 @@ License texts and notices: the backend jar contains the license and notice files
 
 | License | Components |
 |---|---|
-| MIT | 29 |
+| MIT | 34 |
 | Apache-2.0 | 93 |
 | BSD-3-Clause | 10 |
 | BSD-2-Clause | 2 |
@@ -135,7 +135,7 @@ License texts and notices: the backend jar contains the license and notice files
 | jackson-databind (`tools.jackson.core:jackson-databind`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson> |
 | Jackson-dataformat-YAML (`tools.jackson.dataformat:jackson-dataformat-yaml`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-dataformats-text> |
 
-## Frontend Bundle (25)
+## Frontend Bundle (30)
 
 | Component | Version | License | Alternatives | Project |
 |---|---|---|---|---|
@@ -145,6 +145,10 @@ License texts and notices: the backend jar contains the license and notice files
 | @floating-ui/vue (`@floating-ui/vue`) | 1.1.11 | MIT | – | <https://github.com/floating-ui/floating-ui> |
 | @iconify/vue (`@iconify/vue`) | 5.0.3 | MIT | – | <https://github.com/iconify/iconify> |
 | @nuxt/ui (`@nuxt/ui`) | 4.11.3 | MIT | – | <https://github.com/nuxt/ui> |
+| @tanstack/table-core (`@tanstack/table-core`) | 8.21.3 | MIT | – | <https://github.com/TanStack/table> |
+| @tanstack/virtual-core (`@tanstack/virtual-core`) | 3.19.4 | MIT | – | <https://github.com/TanStack/virtual> |
+| @tanstack/vue-table (`@tanstack/vue-table`) | 8.21.3 | MIT | – | <https://github.com/TanStack/table> |
+| @tanstack/vue-virtual (`@tanstack/vue-virtual`) | 3.13.45 | MIT | – | <https://github.com/TanStack/virtual> |
 | @unhead/vue (`@unhead/vue`) | 3.4.3 | MIT | – | <https://github.com/unjs/unhead> |
 | @vue/reactivity (`@vue/reactivity`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
 | @vue/runtime-core (`@vue/runtime-core`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
@@ -157,6 +161,7 @@ License texts and notices: the backend jar contains the license and notice files
 | hookable (`hookable`) | 6.1.2 | MIT | – | unjs/hookable |
 | ohash (`ohash`) | 2.0.12 | MIT | – | unjs/ohash |
 | reka-ui (`reka-ui`) | 2.10.5 | MIT | – | <https://github.com/unovue/reka-ui> |
+| scule (`scule`) | 1.3.0 | MIT | – | unjs/scule |
 | tailwind-variants (`tailwind-variants`) | 3.3.1 | MIT | – | <https://github.com/heroui-inc/tailwind-variants> |
 | tailwindcss (`tailwindcss`) | 4.3.3 | MIT | – | <https://github.com/tailwindlabs/tailwindcss> |
 | ufo (`ufo`) | 1.6.4 | MIT | – | unjs/ufo |

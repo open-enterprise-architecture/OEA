@@ -7,6 +7,17 @@ export type CatalogSummary = components['schemas']['CatalogSummary']
 export type CatalogCreate = components['schemas']['CatalogCreate']
 export type CatalogScope = components['schemas']['CatalogScope']
 export type JoinMode = components['schemas']['JoinMode']
+export type CatalogColumn = components['schemas']['CatalogColumn']
+export type CatalogRow = components['schemas']['CatalogRow']
+export type CatalogSort = components['schemas']['CatalogSort']
+export type CatalogQueryResult = components['schemas']['CatalogQueryResult']
+
+/** Paging and sort of a catalog query; omitted values are the defaults of the contract. */
+export interface CatalogQuery {
+  page?: number
+  pageSize?: number
+  sort?: CatalogSort
+}
 
 const JSON_HEADERS = { Accept: 'application/json, application/problem+json' }
 
@@ -55,4 +66,35 @@ export async function createCatalog(request: CatalogCreate, fetchFn: typeof fetc
   }
   const rejection: Rejection = await readRejection(response)
   return { ok: false, rejection }
+}
+
+/**
+ * GET /catalogs/{id}/query: one page of rows (US-049). A missing or foreign personal catalog is
+ * the rejection with status 404, invalid paging or sort parameters `validation-failed` (400) with
+ * `invalidFields`.
+ */
+export async function queryCatalog(
+  id: string,
+  query: CatalogQuery = {},
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<CatalogQueryResult>> {
+  const params = new URLSearchParams()
+  if (query.page !== undefined) {
+    params.set('page', String(query.page))
+  }
+  if (query.pageSize !== undefined) {
+    params.set('pageSize', String(query.pageSize))
+  }
+  if (query.sort) {
+    params.set('sort', `${query.sort.column}:${query.sort.direction}`)
+  }
+  const search = params.toString()
+  const response = await fetchFn(`/api/v1/catalogs/${encodeURIComponent(id)}/query${search ? `?${search}` : ''}`, {
+    credentials: 'same-origin',
+    headers: JSON_HEADERS,
+  })
+  if (response.ok) {
+    return { ok: true, value: (await response.json()) as CatalogQueryResult }
+  }
+  return { ok: false, rejection: await readRejection(response) }
 }

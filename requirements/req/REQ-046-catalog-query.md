@@ -4,9 +4,9 @@ title: Execute a catalog query (live data)
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-10-22
 author: requirements-engineer
 references:
   use_cases:
@@ -25,7 +25,11 @@ references:
     - SH-07
   concept:
     - concept/20-entities/06-core-entity-types.md
-  adrs: []
+  adrs:
+    - ADR-013
+    - ADR-019
+    - ADR-032
+    - ADR-044
 supersedes: []
 superseded_by: []
 ---
@@ -53,9 +57,8 @@ The query logic is a **read-only** operation on the entity repository. The catal
 | Parameter | Type | Optional | Description |
 |---|---|---|---|
 | page | integer | optional | Page (0-based), default: 0 |
-| pageSize | integer | optional | Entries per page, default: 50, max: 500 |
-| sortBy | string | optional | attributeName of the primary entity; default: `name` asc |
-| sortDir | enum | optional | `asc` or `desc`; default: `asc` |
+| pageSize | integer | optional | Entries per page, default: 50, max: 200 |
+| sort | string | optional | Exactly one `{column}:{asc\|desc}` pair; the column is a key of the returned `columns`; default: `name` ascending. Rows without a value in the sort column come last |
 | joinMode | object | optional | `{ joinDefinitionId: "rows" \| "aggregate", ... }` – overrides catalog/JoinDefinition defaults for this call |
 | filter | object | optional | Ad hoc FilterExpressions as JSON; in addition to active SavedFilters |
 | savedFilterIds | string[] | optional | IDs of SavedFilters to be applied additionally |
@@ -64,24 +67,27 @@ The query logic is a **read-only** operation on the entity repository. The catal
 
 1. Load all entities of the `primaryEntityType` from the repository
 2. Apply active filters (savedFilterIds + ad hoc `filter`) as an AND combination (AND between filter sets; within a SavedFilter according to its `logicalOperator`)
-3. For each filtered entity: resolve the configured `columns` attributes; return unknown or missing attribute values as `null`
+3. For each filtered entity: resolve the configured `columns` attributes; return unknown or missing attribute values as `null`. As long as a catalog has no configured columns (REQ-044), the columns are `name` and, if the primary entity type maps a property named `Status` with visibility `public`, that property
 4. For each JoinDefinition: traverse the connection graph; structure results according to the active joinMode:
    - `rows`: each combination (primary entity × join result) is delivered as its own row; the primary entity with attributes repeats
    - `aggregate`: primary entity once; join results as an array in the field `joinResults[joinName]`
-5. Apply sorting to `primary entity.sortBy` (after filtering, before pagination)
-6. Apply pagination; the response contains `totalCount`, `page`, `pageSize`, `data[]`
+5. Apply the sort (after filtering, before pagination); ties are ordered by name
+6. Apply pagination; the response contains the `columns` (key, label, sortable), the `rows`, the page metadata `page` (`page`, `pageSize`, `totalElements`, `totalPages`) and the applied `sort` (`null` for the default order)
 
 **Outputs**:
 
 ```json
 {
-  "totalCount": 42,
-  "page": 0,
-  "pageSize": 50,
-  "data": [
+  "columns": [
+    { "key": "name", "label": "Name", "sortable": true },
+    { "key": "status", "label": "Status", "sortable": true }
+  ],
+  "page": { "page": 0, "pageSize": 50, "totalElements": 42, "totalPages": 1 },
+  "sort": null,
+  "rows": [
     {
-      "id": "uuid",
-      "columns": { "name": "CRM-System", "status": "active" },
+      "entityId": 17,
+      "values": { "name": "CRM-System", "status": "active" },
       "joinResults": {
         "Interfaces": [
           { "name": "REST-API", "protocol": "REST" },
@@ -97,9 +103,9 @@ In `rows` mode for the same catalog:
 
 ```json
 {
-  "data": [
-    { "columns": { "name": "CRM-System", "status": "active" }, "joinResults": { "Interfaces": { "name": "REST-API", "protocol": "REST" } } },
-    { "columns": { "name": "CRM-System", "status": "active" }, "joinResults": { "Interfaces": { "name": "SFTP-Export", "protocol": "SFTP" } } }
+  "rows": [
+    { "entityId": 17, "values": { "name": "CRM-System", "status": "active" }, "joinResults": { "Interfaces": { "name": "REST-API", "protocol": "REST" } } },
+    { "entityId": 17, "values": { "name": "CRM-System", "status": "active" }, "joinResults": { "Interfaces": { "name": "SFTP-Export", "protocol": "SFTP" } } }
   ]
 }
 ```
@@ -116,13 +122,13 @@ In `rows` mode for the same catalog:
 
 - Given: as AC1
 - When: `GET /api/v1/catalogs/{id}/query?joinMode[join-id]=rows`
-- Then: the response contains 2 rows (one per interface); `columns.name` = "CRM-System" in both rows
+- Then: the response contains 2 rows (one per interface); `values.name` = "CRM-System" in both rows
 
 **AC3** (Filter):
 
 - Given: the repository contains 5 ApplicationComponents, 2 of them with status=active
 - When: `GET /api/v1/catalogs/{id}/query?filter[status][eq]=active`
-- Then: `totalCount=2`; only the 2 active entities in the data array
+- Then: `page.totalElements=2`; only the 2 active entities in `rows`
 
 **AC4** (Entity without join results):
 
@@ -133,14 +139,14 @@ In `rows` mode for the same catalog:
 **AC5** (Sorting and pagination):
 
 - Given: 60 ApplicationComponents
-- When: `GET /api/v1/catalogs/{id}/query?page=1&pageSize=20&sortBy=name&sortDir=asc`
-- Then: `totalCount=60`; `data` contains entries 21–40 alphabetically by name
+- When: `GET /api/v1/catalogs/{id}/query?page=1&pageSize=20&sort=name:asc`
+- Then: `page.totalElements=60`; `rows` contains entries 21–40 alphabetically by name
 
 **AC6** (Empty repository):
 
 - Given: primaryEntityType has no entities in the repository
 - When: query
-- Then: HTTP 200 with `totalCount=0`, `data=[]`; no error
+- Then: HTTP 200 with `page.totalElements=0`, `rows=[]`; no error
 
 ## Dependencies
 
@@ -149,7 +155,9 @@ In `rows` mode for the same catalog:
 
 ## Implementation Notes
 
-- Endpoint: `GET /api/v1/catalogs/{id}/query`
+- Endpoint: `GET /api/v1/catalogs/{id}/query` (`queryCatalog` in `api/openapi.yaml`); paging and sort follow the contract conventions `PageParam`, `PageSizeParam`, `SortParam` and `PageMeta` (change us-049-show-catalog-data, design D1)
+- Implemented in change us-049-show-catalog-data without joins and filters (AC5, AC6); AC1–AC4 follow with the join and filter stories; `joinResults` is added to the rows then
+- Invalid paging or sort parameters are answered with 400 (`validation-failed`, `invalidFields`); another person's personal catalog with 404 (ADR-032); soft-deleted entities are not returned (ADR-019); only properties with visibility `public` appear until REQ-160
 - LEFT JOIN semantics: entities without join hits are returned anyway (not filtered)
 - Filter expression serialization as a query parameter: `filter[attributeName][operator]=value`; for the `in` operator as CSV or array
 - Performance: for large repositories an indexed lookup on EntityType + FilterAttributes is necessary; NFR not yet defined (to follow)
@@ -159,3 +167,4 @@ In `rows` mode for the same catalog:
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; rows/aggregate modes, LEFT JOIN semantics, pagination |
+| 0.2.0 | 2026-10-22 | Change us-049-show-catalog-data | Paging and sort aligned with the contract conventions (`page`, `pageSize` ≤ 200, `sort`, `PageMeta`; design D1); response with `columns`, `rows`, `sort`; default columns |

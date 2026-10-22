@@ -2,8 +2,9 @@
 
 **ID**: US-049
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: in-progress
+**Sprint**: S2
+**Implementation**: OpenSpec change `us-049-show-catalog-data` – AC1 without the join column, AC2–AC5 and AC7; default columns `name` and `status` until US-047; the join column of AC1 (US-048) and AC6 (SavedViews) follow; the implementation hash is added when the change is archived
 
 ## Story
 
@@ -51,16 +52,22 @@ As a catalog visitor, I want to see the entities of a catalog as a sortable tabl
 - When: Franz opens the catalog
 - Then: Table shows only columns name and status; only active entities visible; active filter is visibly marked in the filter bar
 
+**AC7** (view state survives back navigation and reload, [ADR-044](../../adrs/ADR-044-view-state-in-url.md)):
+
+- Given: Franz has sorted the catalog descending by name and moved to page 2
+- When: Franz opens the catalog overview and navigates back, or reloads the page
+- Then: The catalog shows page 2 sorted descending by name; sort and page changes add no browser history entry; invalid sort or page values in the URL fall back to the default view
+
 ## Technical Notes
 
 - Affected components: catalog detail view (table component), backend `GET /api/v1/catalogs/{id}/query`
-- Sorting: sortBy + sortDir as query parameters; clicking a header sets/changes these parameters
+- Sorting and paging: `sort={column}:{asc|desc}`, `page` (0-based) and `pageSize` as query parameters of the API (REQ-046); the catalog page keeps `sort` and `page` in its URL (ADR-044), clicking a header sets/changes them
 - Join columns in aggregate mode: comma-separated list of the first N values; tooltip or popover for the full list if > N values
 - Dependency: US-046 must be completed; US-047 should be completed (otherwise no columns configured)
 
 ## Definition of Done
 
-- [ ] Acceptance criteria AC1–AC6 met
+- [ ] Acceptance criteria AC1–AC7 met
 - [ ] Code review by a second person
 - [ ] Tests: table populated, sorting asc/desc, empty table, pagination, default SavedView applied
 - [ ] Linter and type checks green

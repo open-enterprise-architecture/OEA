@@ -413,6 +413,61 @@ components:
               type: array
               items: { type: string, enum: [name, description, primaryMetatypeId, scope, defaultJoinMode] }
 
+    CatalogColumn:
+      type: object
+      required: [key, label, sortable]
+      properties:
+        key:
+          type: string
+          description: Key of the column in `CatalogRow.values` and in the `sort` parameter (`name` or the `sqlColumnName` of a property)
+        label:    { type: string, description: Column header }
+        sortable: { type: boolean }
+
+    CatalogRow:
+      type: object
+      required: [entityId, values]
+      properties:
+        entityId: { type: integer }
+        values:
+          type: object
+          description: Text form of the value per column key; `null` if the entity has no value
+          additionalProperties: { type: [string, 'null'] }
+
+    CatalogSort:
+      type: object
+      required: [column, direction]
+      properties:
+        column:    { type: string, description: Key of the sort column }
+        direction: { type: string, enum: [asc, desc] }
+
+    CatalogQueryResult:
+      type: object
+      required: [columns, rows, page]
+      properties:
+        columns:
+          type: array
+          description: The columns of the catalog in display order
+          items: { $ref: '#/components/schemas/CatalogColumn' }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/CatalogRow' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+        sort:
+          oneOf:
+            - $ref: '#/components/schemas/CatalogSort'
+            - type: 'null'
+          description: The applied sort; `null` for the default order (name ascending)
+
+    CatalogQueryProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required: [invalidFields]
+          properties:
+            invalidFields:
+              type: array
+              items: { type: string, enum: [page, pageSize, sort] }
+
     # ── Metatype ───────────────────────────────────────────────────────────────
     MetamodelScope:
       type: string
@@ -2966,90 +3021,46 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
 
-  # ╔═════════════════════════════════════════════════════════════════════════╗
-  # ║  VIEW – CATALOG (Walking Skeleton, UC-06, SCR-020/012)                 ║
-  # ╚═════════════════════════════════════════════════════════════════════════╝
-  /views/catalog:
+  /catalogs/{id}/query:
     get:
-      operationId: getCatalogView
-      summary: Catalog overview (SCR-020)
+      operationId: queryCatalog
+      summary: Query a catalog (US-049, REQ-046, SCR-020)
       description: |
-        Paginated, filterable entity list. All `filter[*]` parameters
-        are implicitly AND-combined (case-insensitive).
-      tags: [Views – Catalog]
-      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "query parameter deleted is 'true' or 'only'", "permissions": ["entity:restore"]}]}
+        One page of rows: the active entities of the catalog's primary metatype with the
+        values of the catalog's columns. Until columns can be configured (US-047), the
+        columns are `name` and, if the primary metatype maps a property named `Status` with
+        visibility `public`, that property. Only properties with visibility `public` appear
+        (REQ-160 follows). Soft-deleted entities are not returned (ADR-019).
+
+        `sort` accepts exactly one `{column}:{asc|desc}` pair whose column is a key of
+        `columns`. Without `sort` the rows are ordered by name ascending; rows without a
+        value in the sort column come last. Sorting applies before paging; a page beyond
+        the last one answers with no rows. A personal catalog of another person is answered
+        with 404, like a catalog that does not exist (ADR-032 §8 L3).
+      tags: [Catalogs]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/PageSizeParam'
         - $ref: '#/components/parameters/SortParam'
-        - name: filter[name]
-          in: query
-          schema: { type: string }
-        - name: filter[metatypeId]
-          in: query
-          schema: { type: array, items: { type: string, format: uuid } }
-          style: form
-          explode: false
-        - name: filter[lifecycle]
-          in: query
-          schema: { type: array, items: { type: string } }
-          style: form
-          explode: false
-        - name: filter[isLogical]
-          in: query
-          schema: { type: boolean }
-        - name: deleted
-          in: query
-          schema: { type: string, enum: ["false", "true", "only"], default: "false" }
-          description: "`true`/`only` include soft-deleted entities and require `entity:restore` (ADR-019)"
       responses:
         '200':
-          description: Entity list
+          description: One page of catalog rows
           content:
             application/json:
-              schema:
-                type: object
-                required: [items, page, filterOptions]
-                properties:
-                  items:
-                    type: array
-                    items: { $ref: '#/components/schemas/EntityListItem' }
-                  page:          { $ref: '#/components/schemas/PageMeta' }
-                  filterOptions: { $ref: '#/components/schemas/CatalogFilterOptions' }
+              schema: { $ref: '#/components/schemas/CatalogQueryResult' }
         '400':
-          description: Invalid parameters
+          description: |
+            Invalid paging or sort parameters (problem type `urn:oea:problem:validation-failed`),
+            e.g. an unknown sort column, several sort pairs or a page size above 200;
+            `invalidFields` names the rejected parameters.
           content:
             application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
+              schema: { $ref: '#/components/schemas/CatalogQueryProblem' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-
-  /views/catalog/{id}:
-    get:
-      operationId: getCatalogEntityDetail
-      summary: Entity detail (SCR-012)
-      tags: [Views – Catalog]
-      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
-      parameters:
-        - $ref: '#/components/parameters/EntityIdParam'
-      responses:
-        '200':
-          description: Entity with properties and relations
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/EntityDetail' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404':
-          description: Not found
-          content:
-            application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
-        '410':
-          description: Soft-deleted
-          content:
-            application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  VIEW – EXPLORER (SCR-010/011)                                         ║
@@ -5770,8 +5781,9 @@ paths:
       operationId: getPortalCatalogView
       summary: Portal catalog (SCR-050)
       description: |
-        Read-only version of `/views/catalog` for portal users (`portal:read`, held
-        by the built-in role `portal-reader` among others). Properties the caller may
+        Read-only, filterable entity list for portal users (`portal:read`, held by the
+        built-in role `portal-reader` among others); aligned with the catalog query
+        (`/catalogs/{id}/query`) when the web portal is implemented. Properties the caller may
         not read are redacted according to the property visibility configuration
         (REQ-124, REQ-160).
       tags: [Portal]
@@ -5970,9 +5982,7 @@ paths:
 # ═════════════════════════════════════════════════════════════════════════════
 tags:
   - name: Catalogs
-    description: Catalog definitions – create, list and read (UC-06, US-046)
-  - name: Views – Catalog
-    description: Catalog browser and entity detail (SCR-020/012)
+    description: Catalog definitions – create, list and read (UC-06, US-046) – and the catalog query (US-049)
   - name: Views – Navigation
     description: Explorer / navigation tree (SCR-010/011)
   - name: Views – Editors

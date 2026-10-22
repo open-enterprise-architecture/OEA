@@ -1,25 +1,127 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
-import { fetchCatalog, type Catalog } from '../api/catalogs'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter, type LocationQuery } from 'vue-router'
+import { fetchCatalog, queryCatalog, type Catalog, type CatalogQueryResult, type CatalogSort } from '../api/catalogs'
+import CatalogTable from '../components/CatalogTable.vue'
 
-// A single catalog (UC-06, SCR-020). The entity table of the catalog follows with US-049.
+// A single catalog with its rows (UC-06, US-049, SCR-020). Sort and page are part of the URL
+// (ADR-044, design D8 of us-049-show-catalog-data), so back navigation and reload restore the view.
 const props = defineProps<{ id: string; fetchFn?: typeof fetch }>()
+const route = useRoute()
+const router = useRouter()
 
 const catalog = ref<Catalog>()
 const state = ref<'loading' | 'loaded' | 'not-found' | 'failed'>('loading')
+const result = ref<CatalogQueryResult>()
+const querying = ref(false)
+// the path the page is shown at; query changes while navigating elsewhere are ignored
+const path = route.path
+let latestQuery = 0
 
-async function load() {
+const SORT = /^([a-z][a-z0-9_]*):(asc|desc)$/
+const PAGE = /^\d+$/
+
+/** The view state of the URL; `invalid` lists the parameters that do not parse. */
+function viewOf(query: LocationQuery): { sort?: CatalogSort; page: number; invalid: string[] } {
+  const invalid: string[] = []
+  let sort: CatalogSort | undefined
+  let page = 0
+  if (query.sort !== undefined) {
+    const match = typeof query.sort === 'string' ? SORT.exec(query.sort) : null
+    if (match) {
+      sort = { column: match[1]!, direction: match[2] as CatalogSort['direction'] }
+    } else {
+      invalid.push('sort')
+    }
+  }
+  if (query.page !== undefined) {
+    if (typeof query.page === 'string' && PAGE.test(query.page) && Number.isSafeInteger(Number(query.page))) {
+      page = Number(query.page)
+    } else {
+      invalid.push('page')
+    }
+  }
+  return { sort, page, invalid }
+}
+
+/** Writes the view to the URL without a history entry; defaults are omitted (ADR-044). */
+async function showView(sort: CatalogSort | undefined, page: number) {
+  const query: LocationQuery = { ...route.query }
+  delete query.sort
+  delete query.page
+  if (sort) {
+    query.sort = `${sort.column}:${sort.direction}`
+  }
+  if (page > 0) {
+    query.page = String(page)
+  }
+  await router.replace({ query })
+}
+
+const view = computed(() => viewOf(route.query))
+
+async function loadCatalog() {
   state.value = 'loading'
+  result.value = undefined
   try {
     catalog.value = await fetchCatalog(props.id, props.fetchFn)
     state.value = catalog.value ? 'loaded' : 'not-found'
   } catch {
     state.value = 'failed'
   }
+  if (state.value === 'loaded') {
+    await loadRows()
+  }
 }
 
-onMounted(load)
-watch(() => props.id, load)
+async function loadRows() {
+  const { sort, page, invalid } = view.value
+  if (invalid.length > 0) {
+    await showView(undefined, 0)
+    return
+  }
+  const current = ++latestQuery
+  querying.value = true
+  try {
+    const outcome = await queryCatalog(props.id, { page: page > 0 ? page : undefined, sort }, props.fetchFn)
+    if (current !== latestQuery) {
+      return
+    }
+    if (outcome.ok) {
+      const pageMeta = outcome.value.page
+      if (pageMeta.page > 0 && outcome.value.rows.length === 0 && pageMeta.totalElements > 0) {
+        // a page beyond the last one, e.g. from an old link
+        await showView(sort, 0)
+        return
+      }
+      result.value = outcome.value
+    } else if (outcome.rejection.status === 400 && (sort || page > 0)) {
+      // e.g. a sort column the catalog no longer returns
+      await showView(undefined, 0)
+    } else if (outcome.rejection.status === 404) {
+      state.value = 'not-found'
+    } else {
+      state.value = 'failed'
+    }
+  } catch {
+    state.value = 'failed'
+  } finally {
+    if (current === latestQuery) {
+      querying.value = false
+    }
+  }
+}
+
+onMounted(loadCatalog)
+watch(() => props.id, loadCatalog)
+watch(
+  () => [route.query.sort, route.query.page],
+  () => {
+    if (state.value === 'loaded' && route.path === path) {
+      void loadRows()
+    }
+  },
+)
 </script>
 
 <template>
@@ -51,11 +153,12 @@ watch(() => props.id, load)
         <p v-if="catalog.description" class="text-default">{{ catalog.description }}</p>
       </header>
 
-      <UEmpty
-        data-testid="catalog-table-placeholder"
-        icon="i-lucide-table-2"
-        title="No entities shown yet"
-        :description="`The ${catalog.primaryMetatypeName} entities of this catalog will be listed here.`"
+      <CatalogTable
+        v-if="result"
+        :result="result"
+        :loading="querying"
+        @sort="(sort) => showView(sort, 0)"
+        @page="(page) => showView(view.sort, page)"
       />
     </template>
   </main>
