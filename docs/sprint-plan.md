@@ -1,12 +1,14 @@
 # Sprint Plan: OEA Implementation Order
 
-**As of:** 2026-10-13 (walking skeleton moved to the beginning, see `docs/walking-skeleton.md`; S1 setup aligned with ADR-033 and ADR-036)  
+**As of:** 2026-10-22 (re-baselined after the walking-skeleton retrospective, action A6 of [retrospectives/2026-10-walking-skeleton.md](retrospectives/2026-10-walking-skeleton.md); before: 2026-10-13, walking skeleton moved to the beginning)  
 **Basic assumptions:**
 
-- 2-week sprints, ~30 SP/sprint
-- LLM assistant: Devstral (Mistral API, 128k context)
-- Total: ~577 SP + project setup → 21 sprints ≈ 10.5 months
+- Sprints are **content packages** of ~30 SP in a fixed order, not time boxes; the plan carries no calendar dates (owner decision 2026-10-22)
+- Measured throughput: S1–S2 (31 SP + project setup) took 10 calendar days (2026-10-13 to 2026-10-22); the forecast is updated after each milestone, not per sprint
+- Way of working: Claude Code and OpenCode with the shared configuration of `AGENTS.md` (agent roles in `.opencode/agents/`); the plan does not fix a model
+- Total: ~577 SP + project setup → 21 content packages plus the retrospective package S2b
 - Order: walking skeleton first (thin E2E slice), then dependencies > MoSCoW priority > thematic coherence
+- Deferred items of earlier changes are GitHub issues (label `deferred`) with the milestone of the package that resolves them
 - UC-01 (66 SP, 19 USs) and UC-05 (55 SP) are deliberately stretched
 
 ---
@@ -17,17 +19,20 @@
 
 | Sprint | UC | Content | SP |
 |--------|----|--------|----|
-| **S1** | Setup + UC-02 + UC-01 | **⭐ Walking Skeleton (1/2):** project setup (Maven `backend/`, Vue `frontend/`, `api/openapi.yaml`, operator `compose.yaml` and development `compose.dev.yaml` with Keycloak dev realm (ADR-036), migration step with owner/runtime role separation (ADR-033), CI), US-013 local bootstrapping, US-001 OIDC login | 13 + setup |
-| **S2** | UC-04 + UC-06 + UC-19 | **⭐ Walking Skeleton (2/2):** US-033 import starter package, US-141 batch creation (AC1), US-046 create catalog, US-049 display catalog data (basis) | 18 + E2E hardening |
-| **S3** | UC-02 (remainder) | System admin bootstrapping: setup token, remote bootstrapping, break-glass, audit log | ~30 |
+| **S1** ✓ | Setup + UC-02 + UC-01 | **⭐ Walking Skeleton (1/2), done 2026-10-15:** project setup (Maven `backend/`, Vue `frontend/`, `api/openapi.yaml`, operator `compose.yaml` and development `compose.dev.yaml` with Keycloak dev realm (ADR-036), migration step with owner/runtime role separation (ADR-033), CI), US-013 local bootstrapping, US-001 OIDC login | 13 + setup |
+| **S2** ✓ | UC-04 + UC-06 + UC-19 | **⭐ Walking Skeleton (2/2), done 2026-10-22:** US-033 import starter package, US-141 batch creation (AC1), US-046 create catalog, US-049 display catalog data (basis, incl. pagination) | 18 + E2E hardening |
+| **S2b** | – | **Retrospective actions** (A1–A5, A8, A9 of the retrospective): planned contract operations marked, `ApiExceptionHandler` without path branches, faster backend tests, Storybook a11y and `openspec validate` in CI, license regeneration on Dependabot PRs, security re-review of the skeleton, local development guide | – |
+| **S3** | UC-02 (remainder) | System admin bootstrapping: setup token, remote bootstrapping, break-glass, audit log; deferred [#61](https://github.com/open-enterprise-architecture/OEA/issues/61), [#62](https://github.com/open-enterprise-architecture/OEA/issues/62), [#63](https://github.com/open-enterprise-architecture/OEA/issues/63) | ~30 |
 | **S4** | UC-01 (1/2) | Login: session hardening, minimal password, generic error messages | ~25 |
 | **S5** | UC-01 (2/2) | Login: passkey, TOTP, configurable token lifetime, lifecycle invited→active, audit log | ~33 |
 | **S6** | UC-03 | Set up authentication method: 2FA enrollment (TOTP + passkey), password policies, password reset | 39 |
 | **S7** | UC-04 (1/2) | Metamodel: create/edit EntityTypes, basic PropertyDefinitions, GUI configuration | ~27 |
-| **S8** | UC-04 (2/2) + UC-06 | Metamodel: connection EntityTypes, architecture extension, lock mode, audit log + US-047 configure columns | ~22 + 5 |
+| **S8** | UC-04 (2/2) + UC-06 | Metamodel: connection EntityTypes, architecture extension, lock mode, audit log + US-047 configure columns; deferred [#64](https://github.com/open-enterprise-architecture/OEA/issues/64), [#65](https://github.com/open-enterprise-architecture/OEA/issues/65) | ~22 + 5 |
 
-**Deliverable S2:** Walking skeleton runnable (DoD in `docs/walking-skeleton.md`):
+**Deliverable S2 (met 2026-10-22):** Walking skeleton runnable (DoD in `docs/walking-skeleton.md`):
 admin bootstrap → OIDC login → starter package → entities via batch API → catalog table.
+
+**Re-scoping S4–S6:** the walking skeleton already implemented parts of UC-01 and UC-03 (sessions with timeouts and revocation, TOTP enrollment and login of the system admin, throttling of local logins, IdP group mappings; specs `openspec/specs/identity/`). Before S4 starts, its content is reconciled with these specs and the story points are re-estimated.
 
 **Deliverable S8:** Auth (UC-01, UC-02, UC-03) and metamodel (UC-04) complete.
 
@@ -41,9 +46,9 @@ admin bootstrap → OIDC login → starter package → entities via batch API �
 
 | Sprint | UC | Content | SP |
 |--------|----|--------|----|
-| **S9** | UC-06 (2/2) | Catalog: join definition, join mode runtime, filters, pagination, saved views (incl. remainder of US-049) | ~30 |
-| **S10** | UC-21 + UC-05 (1/3) | Configure property visibility + create solution, define baseline | 22 + ~8 |
-| **S11** | UC-05 (2/3) | Solution: capture entity deltas, diff view, parallel-solution conflict warning | ~25 |
+| **S9** | UC-06 (2/2) | Catalog: join definition, join mode runtime, filters, saved views (incl. remainder of US-049; pagination done in S2); deferred [#66](https://github.com/open-enterprise-architecture/OEA/issues/66), [#67](https://github.com/open-enterprise-architecture/OEA/issues/67) | ~30 |
+| **S10** | UC-21 + UC-05 (1/3) | Configure property visibility + create solution, define baseline; deferred [#68](https://github.com/open-enterprise-architecture/OEA/issues/68) | 22 + ~8 |
+| **S11** | UC-05 (2/3) | Solution: capture entity deltas, diff view, parallel-solution conflict warning; deferred [#69](https://github.com/open-enterprise-architecture/OEA/issues/69), [#70](https://github.com/open-enterprise-architecture/OEA/issues/70) | ~25 |
 | **S12** | UC-05 (3/3) + UC-14 | Solution: approval workflow (proposed→approved) + view change history | ~22 + 13 |
 | **S13** | UC-15 + UC-16 | Restore entity state (full) + partial restore of individual properties | 11 + 16 |
 | **S14** | UC-11 | Define plateau, perform go-live, timeline, implementation status | 31 |
@@ -86,7 +91,7 @@ create → capture delta → detect conflict → plateau → history → restore
 
 | Milestone | Sprints | Topic | MUST UCs | SHOULD UCs |
 |-----------|---------|-------|----------|------------|
-| Walking skeleton + foundation | S1–S8 | E2E slice (S1–S2), then auth + metamodel complete | UC-01, UC-02, UC-03, UC-04, UC-06 (partial) | UC-19 (US-141 partial) |
+| Walking skeleton + foundation | S1–S8 (+ S2b) | E2E slice (S1–S2), then auth + metamodel complete | UC-01, UC-02, UC-03, UC-04, UC-06 (partial) | UC-19 (US-141 partial) |
 | Core platform | S9–S14 | Catalog complete + solution lifecycle | UC-06, UC-11, UC-14, UC-21 | — |
 | EA views | S15–S18 | Navigation + dashboard + processes | UC-10, UC-12, UC-13 | UC-07, UC-08 |
 | SHOULD features | S19–S21 | Arc42 + continuum + TRM | — | UC-09, UC-17, UC-18, UC-19, UC-20 |
@@ -120,15 +125,15 @@ other than UC-01/UC-04 and can be pulled forward from milestone 2 on if needed.
 sprints — OIDC basis in the walking skeleton (S1), remainder deliberately stretched over S4+S5 and completed before
 the metamodel expansion.
 
-**Open auth points must be decided in S1–S2** (no DoD blocker, but critical before S3):
-setup token handover channel (REQ-017), recovery/break-glass (UC-02 E4),
-claim mapping Entra ID→OEA roles. See [UC-02](../requirements/use-cases/UC-02-system-admin-bootstrapping.md),
+**Open auth points of S1–S2** (status 2026-10-22): the setup token handover channel (REQ-017)
+is implemented as a token file inside the backend container (change 2, `docs/operations.md`);
+the claim mapping of IdP groups to OEA roles is implemented as IdP group mappings (US-147,
+changes 3a/3b); recovery/break-glass (UC-02 E4) is still open and decided in S3. See [UC-02](../requirements/use-cases/UC-02-system-admin-bootstrapping.md),
 [ADR-006](../adrs/ADR-006-auth-stack-choice.md) and [US-018](../requirements/user-stories/US-018-warning-empty-admin-claim.md).
 
-**Devstral (Mistral API, 128k context) recommended** for multi-file Spring Boot features
-(ADR-028: api/app/core layer separation). The context window allows processing complete feature branches
-in a single request. For highly complex architecture decisions, cross-check
-with a frontier model (Claude Sonnet) if needed.
+**Way of working:** every package is implemented in OpenSpec changes (propose → implement → archive,
+`openspec/README.md`) with Claude Code or OpenCode and the agent roles of `AGENTS.md`; the walking skeleton
+took one change per user story, with the proposal reviewed and merged before the implementation.
 
 **SHOULD UCs can be pulled forward on stakeholder request** — the dependencies
 are documented; UC-07 (dashboard) and UC-08 (data lineage) have no predecessors
