@@ -40,9 +40,9 @@ Trace: REQ-004, REQ-166, ADR-032 DM-4
 
 ### Requirement: IdP group mappings
 
-A principal with `role:assign` SHALL be able to map an immutable group identifier of a configured provider to an authorization role and to deactivate or delete the mapping; identifiers that do not match the provider's identifier format, such as display names, SHALL be rejected. A person SHALL not create or change a mapping for a group that is contained in the groups claim of the person's own current session. Every change SHALL be audited.
+A principal with `role:assign` SHALL be able to map an immutable group identifier of a configured provider to an authorization role and to deactivate or delete the mapping; identifiers that do not match the provider's identifier format, such as display names, SHALL be rejected. Every change SHALL be audited.
 
-Trace: US-147 AC1, US-147 AC4, US-147 AC5, US-147 AC7, REQ-167, ADR-032 SoD-1
+Trace: US-147 AC1, US-147 AC4, US-147 AC7, REQ-167
 
 #### Scenario: Mapping created
 
@@ -58,6 +58,12 @@ Trace: US-147 AC1, US-147 AC4, US-147 AC5, US-147 AC7, REQ-167, ADR-032 SoD-1
 
 - **WHEN** an administrator deletes a mapping
 - **THEN** it no longer applies and an audit event `idp-mapping.deleted` exists
+
+### Requirement: No mapping of own groups
+
+A person SHALL not create or change a mapping for a group that is contained in the groups claim of the person's own current session.
+
+Trace: US-147 AC5, ADR-032 SoD-1
 
 #### Scenario: Own group rejected
 
