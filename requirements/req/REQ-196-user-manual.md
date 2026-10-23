@@ -9,7 +9,13 @@ created: 2026-10-23
 last_updated: 2026-10-23
 author: requirements-engineer
 references:
-  use_cases: []
+  use_cases:
+    - UC-01
+    - UC-02
+    - UC-03
+    - UC-04
+    - UC-06
+    - UC-23
   business_objects: []
   business_rules: []
   stakeholders:
@@ -39,7 +45,7 @@ Operators (SH-06) have to install and run OEA without reading the source code or
 
 ## Context
 
-The decision on tooling, structure and publication is [ADR-045](../../adrs/ADR-045-user-manual.md): VitePress on GitHub Pages, English source with German translation, screenshots from walkthrough tests against the real stack, versions per release. Contributor documentation (`docs/`, ADRs, specs) is not part of the manual.
+The decision on tooling, structure and publication is [ADR-045](../../adrs/ADR-045-user-manual.md): VitePress on GitHub Pages, English source with German translation, screenshots from walkthrough tests against the real stack, versions per release. Contributor documentation (`docs/`, ADRs, specs) is not part of the manual. The referenced use cases are those of the first release: setup and first steps (UC-01, UC-02, UC-03), administration (UC-04, UC-23) and usage (UC-06); every later use case adds its chapter to the manual.
 
 ## Type-Specific Fields
 

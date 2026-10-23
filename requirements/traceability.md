@@ -52,6 +52,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-181](req/REQ-181-electron-hardening-local-data.md) | Electron runtime hardening and local data protection | constraint | must | – |
 | [REQ-187](req/REQ-187-http-security-baseline.md) | HTTP security headers, CORS, CSRF and cookie attributes | interface | must | – |
 | [REQ-193](req/REQ-193-generic-error-responses.md) | Generic error responses without internal details | interface | must | – |
+| [REQ-196](req/REQ-196-user-manual.md) | Multilingual user manual per release | non-functional | must | – |
 
 ### [UC-02](use-cases/UC-02-system-admin-bootstrapping.md): System Admin Bootstrapping
 
@@ -87,6 +88,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-191](req/REQ-191-supply-chain-integrity.md) | Supply chain integrity | constraint | must | – |
 | [REQ-192](req/REQ-192-ci-least-privilege.md) | Least privilege for CI/CD workflows | constraint | should | – |
 | [REQ-195](req/REQ-195-client-update-control.md) | Steerable client updates and version compatibility | functional | must | – |
+| [REQ-196](req/REQ-196-user-manual.md) | Multilingual user manual per release | non-functional | must | – |
 
 ### [UC-03](use-cases/UC-03-set-up-authentication-method.md): Set Up Authentication Method (Required Action at First Login)
 
@@ -112,6 +114,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-172](req/REQ-172-reauthentication-sensitive-actions.md) | Re-authentication and notification for sensitive account actions | functional | should | – |
 | [REQ-173](req/REQ-173-account-recovery-temporary-passwords.md) | Account recovery and temporary password lifecycle | functional | must | – |
 | [REQ-188](req/REQ-188-secrets-key-management.md) | Secrets and encryption key management | constraint | must | – |
+| [REQ-196](req/REQ-196-user-manual.md) | Multilingual user manual per release | non-functional | must | – |
 
 ### [UC-04](use-cases/UC-04-configure-metamodel.md): Configure Metamodel Collaboratively
 
@@ -139,6 +142,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md) |
 | [REQ-184](req/REQ-184-safe-import-parsing.md) | Safe parsing of imported files | constraint | must | – |
 | [REQ-185](req/REQ-185-bounded-expression-evaluation.md) | Bounded evaluation of user-defined expressions | non-functional | must | – |
+| [REQ-196](req/REQ-196-user-manual.md) | Multilingual user manual per release | non-functional | must | – |
 
 ### [UC-05](use-cases/UC-05-describe-architecture-vision.md): Describe the Architecture Vision of a Change Initiative
 
@@ -190,6 +194,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-152](req/REQ-152-dynamic-labels-etag.md) | Dynamic Labels with ETag Caching | interface | must | [US-140](user-stories/US-140-load-dynamic-labels.md) |
 | [REQ-179](req/REQ-179-secured-raw-query-analytics.md) | Secured raw SQL analytics | functional | must | – |
 | [REQ-186](req/REQ-186-rate-limits-resource-quotas.md) | Rate limiting and resource quotas | non-functional | must | – |
+| [REQ-196](req/REQ-196-user-manual.md) | Multilingual user manual per release | non-functional | must | – |
 
 ### [UC-07](use-cases/UC-07-create-and-use-dashboard.md): Create, Configure and Use a Dashboard in the Web Portal
 
@@ -429,6 +434,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md) |
 | [REQ-165](req/REQ-165-session-timeouts-token-storage.md) | Session timeouts and client token storage | non-functional | must | [US-147](user-stories/US-147-map-idp-group-to-role.md) |
 | [REQ-194](req/REQ-194-privileged-assignment-four-eyes-approval.md) | Optional four-eyes approval for privileged role assignments | business-rule | should | [US-150](user-stories/US-150-four-eyes-approval-privileged-assignment.md) |
+| [REQ-196](req/REQ-196-user-manual.md) | Multilingual user manual per release | non-functional | must | – |
 
 ## 2. UC × Concept × ADR
 
@@ -507,7 +513,7 @@ frontmatter and reference sections of the artifacts.
 
 ### REQs without UC reference
 
-[REQ-196](req/REQ-196-user-manual.md)
+None.
 
 ### REQs referencing an unknown UC
 
