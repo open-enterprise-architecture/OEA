@@ -44,7 +44,7 @@ The change name follows the package (`s2b-`) instead of a user story, like `s2b-
 ## Impact
 
 - `api/openapi.yaml`: `x-oea-status: planned` and the response `NotImplemented` on every unimplemented operation (88 at the time of the proposal); a check in `scripts/check_openapi_authorization.py` for the allowed values of `x-oea-status`
-- `backend/`: `io.oea.config.security.OperationCoverageCheck` (status consistency), a problem response for unimplemented operations in `io.oea.api`
+- `backend/`: `io.oea.config.security.OperationCoverageCheck` (status consistency, handler for every operation), `NotImplementedInterceptor` (501 problem response), `io.oea.api.planned.PlannedOperationsController` (handlers of the generated interfaces without controller)
 - `frontend/`: `@storybook/addon-vitest`, `@vitest/browser-playwright` (dev dependencies only, not distributed), a Vitest project for the stories, script `test:stories`
 - `.github/workflows/ci.yml` (new steps in existing jobs; no new required check), new workflow `.github/workflows/dependabot-licenses.yml`
 - `openspec/config.yaml` (proposal rule of A1), `docs/development.md`, `README.md`, the retrospective (status of A1, A4, A5, A9)

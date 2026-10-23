@@ -11,7 +11,10 @@ Fails (exit code 1) if
 - an operation that is not public lacks a ``401`` or ``403`` response, or disables
   authentication with ``security: []``,
 - the catalog or the built-in roles (``x-oea-builtin-roles``) are inconsistent
-  (unknown permissions, SoD-2, SoD-4).
+  (unknown permissions, SoD-2, SoD-4),
+- ``x-oea-status`` has another value than ``planned``, or the ``501`` response
+  (``NotImplemented``) is missing on a planned operation or declared on an implemented one
+  (retrospective action A1, change s2b-ci-and-contract).
 
 The catalog is read from the spec itself, so it is kept in one place. Both
 extensions and every ``x-oea-authorization`` value are written as JSON (valid YAML
@@ -57,6 +60,8 @@ EXTENSION_RE = re.compile(r"^      x-oea-authorization:(.*)$")
 RESPONSES_RE = re.compile(r"^      responses:\s*$")
 RESPONSE_CODE_RE = re.compile(r"^        ['\"]?(\d{3}|default)['\"]?:")
 EMPTY_SECURITY_RE = re.compile(r"^      security:\s*\[\s*\]\s*$")
+STATUS_RE = re.compile(r"^      x-oea-status:\s*['\"]?([^'\"\s#]*)")
+STATUS_VALUES = {"planned"}
 
 
 def find_spec(argv: list[str]) -> Path:
@@ -194,6 +199,18 @@ def check_declaration(op: dict, catalog: dict[str, bool], errors: list[str]) -> 
             errors.append(f"{label}: 'security: []' is only allowed for public operations")
 
 
+def check_status(op: dict, errors: list[str]) -> None:
+    label = f"{op['method'].upper()} {op['path']} ({op['operationId'] or 'no operationId'})"
+    status = op["status"]
+    if status is not None and status not in STATUS_VALUES:
+        errors.append(f"{label}: x-oea-status must be one of {sorted(STATUS_VALUES)}, got {status!r}")
+    planned = status == "planned"
+    if planned and "501" not in op["responses"]:
+        errors.append(f"{label}: planned operation misses the '501' response")
+    if not planned and "501" in op["responses"]:
+        errors.append(f"{label}: '501' response is only allowed for planned operations")
+
+
 def scan_operations(text: str, errors: list[str]) -> list[dict]:
     lines = text.split("\n")
     offsets = line_offsets(text)
@@ -220,7 +237,8 @@ def scan_operations(text: str, errors: list[str]) -> list[dict]:
             op = None
             if path and match and match.group(1) in HTTP_METHODS:
                 op = {"path": path, "method": match.group(1), "operationId": None,
-                      "declaration": None, "responses": set(), "emptySecurity": False}
+                      "declaration": None, "responses": set(), "emptySecurity": False,
+                      "status": None}
                 operations.append(op)
             in_responses = False
             continue
@@ -235,6 +253,8 @@ def scan_operations(text: str, errors: list[str]) -> list[dict]:
                 op["declaration"] = decode_json_at(text, offsets[idx] + m.start(1), where, errors) or {}
             elif EMPTY_SECURITY_RE.match(line):
                 op["emptySecurity"] = True
+            elif m := STATUS_RE.match(line):
+                op["status"] = m.group(1)
         elif indent == 8 and in_responses:
             if m := RESPONSE_CODE_RE.match(line):
                 op["responses"].add(m.group(1))
@@ -260,6 +280,7 @@ def main(argv: list[str]) -> int:
             errors.append(f"duplicate operationId '{op['operationId']}'")
         seen_ids.add(op["operationId"])
         check_declaration(op, catalog, errors)
+        check_status(op, errors)
 
     if errors:
         print(f"{spec}: {len(errors)} authorization declaration problem(s):")
@@ -274,7 +295,8 @@ def main(argv: list[str]) -> int:
         for cond in decl.get("conditions") or []:
             used.update(cond.get("permissions") or [])
     unused = sorted(set(catalog) - used)
-    print(f"{spec}: {len(operations)} operations declare authorization; "
+    planned = sum(1 for op in operations if op["status"] == "planned")
+    print(f"{spec}: {len(operations)} operations declare authorization ({planned} planned); "
           f"{len(catalog)} permissions in catalog.")
     if unused:
         print(f"  note: catalog permissions not yet used by any operation: {', '.join(unused)}")

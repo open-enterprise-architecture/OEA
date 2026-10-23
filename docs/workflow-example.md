@@ -6,7 +6,7 @@ Concrete end-to-end example for a first feature in the walking skeleton. The doc
 
 **Duration**: Realistically 1-2 weeks, depending on the depth of the reviews.
 
-> **Note**: This example predates the implementation phase. Implementation now runs through OpenSpec changes (see `openspec/README.md`) instead of `tasks/` files, and the tech stack is decided in ADR-011 (Vue 3) and ADR-012 (Java 21 + Spring Boot 3). The phases before implementation still apply.
+> **Note**: This example predates the implementation phase. Implementation now runs through OpenSpec changes (see `openspec/README.md`) instead of `tasks/` files, and the tech stack is decided in ADR-011 (Vue 3) and ADR-012 (Java 21 + Spring Boot 3). The phases before implementation still apply. The local prerequisites and commands are described in [development.md](development.md).
 
 ---
 

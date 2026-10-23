@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # dispatched by dependabot-licenses.yml after it committed to a Dependabot branch (REQ-192)
+  workflow_dispatch:
 
 # Least privilege (REQ-192): read-only token for all jobs
 permissions:
@@ -53,6 +55,17 @@ jobs:
 
       - name: Traceability matrix up to date
         run: python3 scripts/generate_traceability.py --check
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+
+      - name: OpenSpec specs valid (strict)
+        # same CLI version as the generated command and skill files (scripts/sync_agent_config.py)
+        run: |
+          version=$(grep -ohE 'generatedBy: *"[0-9]+\.[0-9]+\.[0-9]+"' .opencode/skills/openspec-*/SKILL.md | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          test -n "$version" || { echo "::error::OpenSpec version not found in .opencode/skills"; exit 1; }
+          npx -y "@fission-ai/openspec@${version}" validate --specs --strict --no-interactive
 
       - name: Screen inventory consistent
         run: python3 scripts/check_screens.py
@@ -268,6 +281,10 @@ jobs:
         run: npm run type-check
       - name: Unit tests
         run: npm test
+      - name: Install Chromium for the story tests
+        run: npx playwright install --with-deps chromium
+      - name: Story tests (rendering, play functions, accessibility; ADR-031)
+        run: npm run test:stories
       - name: Build
         run: npm run build
       - name: Storybook build

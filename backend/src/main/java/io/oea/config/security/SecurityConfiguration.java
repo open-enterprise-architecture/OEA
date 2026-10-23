@@ -75,6 +75,8 @@ public class SecurityConfiguration implements WebMvcConfigurer {
 	public void addInterceptors(InterceptorRegistry registry) {
 		registry.addInterceptor(new AuthorizationInterceptor(this.rules, this.permissions))
 			.addPathPatterns(ContractAuthorizationRules.API_PREFIX + "/**");
+		registry.addInterceptor(new NotImplementedInterceptor())
+			.addPathPatterns(ContractAuthorizationRules.API_PREFIX + "/**");
 	}
 
 	private static UrlBasedCorsConfigurationSource cors(List<String> allowedOrigins) {

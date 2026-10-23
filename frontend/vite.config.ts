@@ -1,6 +1,9 @@
 /// <reference types="vitest/config" />
+import { fileURLToPath } from 'node:url'
 import ui from '@nuxt/ui/vite'
+import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
 import vue from '@vitejs/plugin-vue'
+import { playwright } from '@vitest/browser-playwright'
 import { defineConfig } from 'vite'
 import { thirdPartyLicenses } from './third-party-licenses.ts'
 
@@ -25,7 +28,26 @@ export default defineConfig({
     },
   },
   test: {
-    environment: 'jsdom',
-    include: ['src/**/*.spec.ts'],
+    projects: [
+      // Unit tests (npm test); the inline setting of the Nuxt UI plugin reaches only the root config
+      {
+        extends: true,
+        test: {
+          name: 'unit',
+          environment: 'jsdom',
+          include: ['src/**/*.spec.ts'],
+          server: { deps: { inline: ['@nuxt/ui'] } },
+        },
+      },
+      // Every story as a test: rendering, play function and accessibility check (ADR-031, npm run test:stories)
+      {
+        extends: true,
+        plugins: [storybookTest({ configDir: fileURLToPath(new URL('./.storybook', import.meta.url)) })],
+        test: {
+          name: 'storybook',
+          browser: { enabled: true, headless: true, provider: playwright(), instances: [{ browser: 'chromium' }] },
+        },
+      },
+    ],
   },
 })

@@ -136,7 +136,7 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 
 ## Development
 
-Requirements: Docker with the Compose plugin; for work outside containers JDK 25 and Node.js 24.
+Requirements: Docker with the Compose plugin; for work outside containers JDK 25 and Node.js 24. Prerequisites, all build and test commands, generated files and known workarounds (rootless Podman, SELinux): [`docs/development.md`](docs/development.md).
 
 ```bash
 scripts/dev.sh            # development environment: PostgreSQL, migration step, Keycloak, backend, Vite

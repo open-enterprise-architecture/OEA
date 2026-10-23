@@ -14,7 +14,8 @@ import tools.jackson.dataformat.yaml.YAMLMapper;
 
 /**
  * Authorization rules of every operation, read from the packaged contract
- * ({@code x-oea-authorization}, ADR-032 §8, design D3), and the permission catalog.
+ * ({@code x-oea-authorization}, ADR-032 §8, design D3), the implementation status
+ * ({@code x-oea-status}, s2b-ci-and-contract D1) and the permission catalog.
  */
 public final class ContractAuthorizationRules {
 
@@ -30,9 +31,9 @@ public final class ContractAuthorizationRules {
 
 	private final Map<String, String> permissionDescriptions;
 
-	/** Access rule of one operation. */
+	/** Access rule of one operation; {@code planned} if the contract marks it as not implemented yet. */
 	public record Rule(String operationId, Access access, List<String> permissions, List<String> anyOfPermissions,
-			boolean hasConditions) {
+			boolean hasConditions, boolean planned) {
 
 		public enum Access {
 
@@ -88,7 +89,8 @@ public final class ContractAuthorizationRules {
 				}
 				Rule.Access access = Rule.Access.valueOf(declaration.path("access").asString().toUpperCase());
 				Rule rule = new Rule(operationId, access, strings(declaration.path("permissions")),
-						strings(declaration.path("anyOfPermissions")), declaration.has("conditions"));
+						strings(declaration.path("anyOfPermissions")), declaration.has("conditions"),
+						"planned".equals(op.path("x-oea-status").asString()));
 				rules.put(operationId, rule);
 				if (access == Rule.Access.PUBLIC) {
 					publicEndpoints.add(new PublicEndpoint(operation.getKey().toUpperCase(),
