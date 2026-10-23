@@ -3,6 +3,7 @@ package io.oea.core;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -13,7 +14,6 @@ import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Migration db/migration/V5__metamodel.sql: owners, grants, scope constraints and the instance configuration. */
 class MetamodelSchemaTests {
@@ -22,7 +22,7 @@ class MetamodelSchemaTests {
 			"metatype_connection_constraints", "property_categories", "property_definitions", "property_enum_values",
 			"metatype_property_mappings", "metamodel_package_imports");
 
-	private static PostgreSQLContainer postgres;
+	private static OeaDatabase postgres;
 
 	@BeforeAll
 	static void start() {

@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 
 import io.oea.config.startup.StoredProviderGuard.StoredProvider;
 import io.oea.testsupport.containers.OeaApplications;
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,14 +18,13 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.core.NestedExceptionUtils;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Spec platform/startup-safety: issuer guards on the stored providers (ADR-036 §6 G2, G3). */
 class StoredProviderGuardTests {
 
 	private static final String PUBLIC_URL = "https://oea.example.org";
 
-	private static PostgreSQLContainer postgres;
+	private static OeaDatabase postgres;
 
 	@BeforeAll
 	static void start() {

@@ -3,6 +3,7 @@ package io.oea.core;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -13,7 +14,6 @@ import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Migration db/migration/V6__entities.sql: owners, grants (append-only history), the unique
@@ -27,7 +27,7 @@ class EntitySchemaTests {
 	private static final List<String> HISTORY = List.of("entity_version_headers", "entity_system_field_history",
 			"entity_property_value_history");
 
-	private static PostgreSQLContainer postgres;
+	private static OeaDatabase postgres;
 
 	private static long personId;
 

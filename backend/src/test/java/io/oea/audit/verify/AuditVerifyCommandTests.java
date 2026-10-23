@@ -2,6 +2,7 @@ package io.oea.audit.verify;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import io.oea.testsupport.containers.OeaPostgres;
 import java.io.ByteArrayOutputStream;
@@ -16,12 +17,11 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Spec audit/hash-chain: Verification command (REQ-174 AC3). */
 class AuditVerifyCommandTests {
 
-	private PostgreSQLContainer postgres;
+	private OeaDatabase postgres;
 
 	private final ByteArrayOutputStream output = new ByteArrayOutputStream();
 

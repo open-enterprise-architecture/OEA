@@ -7,8 +7,9 @@ import io.oea.audit.verify.ChainVerifier;
 import io.oea.config.security.CsrfOriginFilter;
 import io.oea.config.security.SessionCookie;
 import io.oea.core.repository.SystemAdminAccountRepository;
-import io.oea.testsupport.auth.TestPrincipals;
 import io.oea.testsupport.auth.TestPrincipals.TestSession;
+import io.oea.testsupport.auth.TestPrincipals;
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import io.oea.testsupport.containers.OeaPostgres;
 import io.oea.testsupport.containers.OeaTestKeys;
@@ -30,7 +31,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ArrayNode;
@@ -44,7 +44,7 @@ import tools.jackson.databind.node.ObjectNode;
 @AutoConfigureMockMvc
 class EntityBatchTests {
 
-	private static final PostgreSQLContainer postgres = OeaDatabases.freshMigrated();
+	private static final OeaDatabase postgres = OeaDatabases.freshMigrated();
 
 	private static final String TOKEN_FILE = tempDirectory() + "/setup-token";
 

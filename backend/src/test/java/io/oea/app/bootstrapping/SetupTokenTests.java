@@ -3,6 +3,7 @@ package io.oea.app.bootstrapping;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.oea.testsupport.containers.OeaApplications;
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -20,13 +21,12 @@ import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Spec identity/bootstrapping: Token readable only inside the container (REQ-017, REQ-175 AC3). */
 @ExtendWith(OutputCaptureExtension.class)
 class SetupTokenTests {
 
-	private PostgreSQLContainer postgres;
+	private OeaDatabase postgres;
 
 	@TempDir
 	Path run;

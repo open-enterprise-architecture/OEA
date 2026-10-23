@@ -7,6 +7,7 @@ import io.oea.app.bootstrapping.Bootstrapping;
 import io.oea.config.security.CsrfOriginFilter;
 import io.oea.config.security.SessionCookie;
 import io.oea.core.service.TotpAlgorithm;
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import io.oea.testsupport.containers.OeaPostgres;
 import io.oea.testsupport.containers.OeaTestKeys;
@@ -30,13 +31,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -47,7 +47,7 @@ import tools.jackson.databind.json.JsonMapper;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class LocalLoginTests {
 
-	private static final PostgreSQLContainer postgres = OeaDatabases.freshMigrated();
+	private static final OeaDatabase postgres = OeaDatabases.freshMigrated();
 
 	private static final Path tokenFile = tempFile();
 

@@ -9,26 +9,47 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Map;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Maximum size of uploaded packages (REQ-184 AC2, design D3 of us-033-import-metamodel): a
+ * Size limit of request bodies (REQ-186, REQ-184 AC2; design D1 of s2b-backend-hardening): a
  * declared length above the limit is rejected with 413 before the body is read; a body without
- * declared length fails with {@link PackageTooLargeException} once it exceeds the limit.
+ * declared length fails with {@link RequestTooLargeException} once it exceeds the limit, which
+ * the exception handler answers with 413. The limit depends on the path; other paths get the
+ * default.
  */
-public class PackageSizeLimitFilter extends OncePerRequestFilter {
+public class RequestSizeLimitFilter extends OncePerRequestFilter {
 
-	private final long maximumBytes;
+	/** A limit with the problem type and title of its rejection. */
+	public record Limit(long maximumBytes, String problemType, String title) {
+	}
 
-	public PackageSizeLimitFilter(long maximumBytes) {
-		this.maximumBytes = maximumBytes;
+	private final Limit defaultLimit;
+
+	private final Map<String, Limit> limitsByPath;
+
+	public RequestSizeLimitFilter(Limit defaultLimit, Map<String, Limit> limitsByPath) {
+		this.defaultLimit = defaultLimit;
+		this.limitsByPath = Map.copyOf(limitsByPath);
 	}
 
 	/** Thrown while reading a body beyond the limit; answered with 413. */
-	public static class PackageTooLargeException extends IOException {
+	public static class RequestTooLargeException extends IOException {
 
-		public PackageTooLargeException(long maximumBytes) {
-			super("package larger than " + maximumBytes + " bytes");
+		private final transient Limit limit;
+
+		RequestTooLargeException(Limit limit) {
+			super("request body larger than " + limit.maximumBytes() + " bytes");
+			this.limit = limit;
+		}
+
+		public String getProblemType() {
+			return this.limit.problemType();
+		}
+
+		public String getTitle() {
+			return this.limit.title();
 		}
 
 	}
@@ -36,21 +57,22 @@ public class PackageSizeLimitFilter extends OncePerRequestFilter {
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 			throws ServletException, IOException {
-		if (request.getContentLengthLong() > this.maximumBytes) {
-			Problems.write(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE, "package-too-large",
-					"Package too large");
+		Limit limit = this.limitsByPath.getOrDefault(request.getRequestURI(), this.defaultLimit);
+		if (request.getContentLengthLong() > limit.maximumBytes()) {
+			Problems.write(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE, limit.problemType(),
+					limit.title());
 			return;
 		}
-		chain.doFilter(new LimitedRequest(request, this.maximumBytes), response);
+		chain.doFilter(new LimitedRequest(request, limit), response);
 	}
 
 	private static final class LimitedRequest extends HttpServletRequestWrapper {
 
-		private final long maximumBytes;
+		private final Limit limit;
 
-		LimitedRequest(HttpServletRequest request, long maximumBytes) {
+		LimitedRequest(HttpServletRequest request, Limit limit) {
 			super(request);
-			this.maximumBytes = maximumBytes;
+			this.limit = limit;
 		}
 
 		@Override
@@ -80,8 +102,8 @@ public class PackageSizeLimitFilter extends OncePerRequestFilter {
 
 				private void count(int bytes) throws IOException {
 					this.read += bytes;
-					if (this.read > LimitedRequest.this.maximumBytes) {
-						throw new PackageTooLargeException(LimitedRequest.this.maximumBytes);
+					if (this.read > LimitedRequest.this.limit.maximumBytes()) {
+						throw new RequestTooLargeException(LimitedRequest.this.limit);
 					}
 				}
 

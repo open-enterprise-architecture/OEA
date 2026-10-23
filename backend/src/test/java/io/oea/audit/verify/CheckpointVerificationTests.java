@@ -3,6 +3,7 @@ package io.oea.audit.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.oea.testsupport.audit.ChainTampering;
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import io.oea.testsupport.containers.OeaPostgres;
 import java.io.ByteArrayOutputStream;
@@ -17,12 +18,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Spec audit/hash-chain: Chain recomputed or backup restored after a checkpoint (REQ-174 AC5). */
 class CheckpointVerificationTests {
 
-	private PostgreSQLContainer postgres;
+	private OeaDatabase postgres;
 
 	private final ByteArrayOutputStream output = new ByteArrayOutputStream();
 

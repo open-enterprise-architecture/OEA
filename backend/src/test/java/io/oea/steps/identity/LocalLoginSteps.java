@@ -8,6 +8,7 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.oea.core.service.TotpAlgorithm;
 import io.oea.testsupport.containers.OeaApplications;
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import io.oea.testsupport.logging.LogCapture;
 import java.net.URI;
@@ -29,7 +30,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -52,7 +52,7 @@ public class LocalLoginSteps {
 	/** TOTP codes submitted in the scenario; checked separately because they are short digit strings. */
 	private final Set<String> codes = new HashSet<>();
 
-	private PostgreSQLContainer postgres;
+	private OeaDatabase postgres;
 
 	private ConfigurableApplicationContext application;
 

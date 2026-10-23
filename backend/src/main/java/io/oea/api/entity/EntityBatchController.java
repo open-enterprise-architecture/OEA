@@ -1,5 +1,6 @@
 package io.oea.api.entity;
 
+import io.oea.api.ContractViolationResponse;
 import io.oea.api.generated.EntitiesWriteApi;
 import io.oea.api.generated.model.BatchWriteItemResult;
 import io.oea.api.generated.model.BatchWriteRequest;
@@ -37,6 +38,8 @@ public class EntityBatchController implements EntitiesWriteApi {
 	}
 
 	@Override
+	@ContractViolationResponse(shape = ContractViolationResponse.Shape.BATCH_ERRORS, status = 422,
+			title = "Batch rejected", detail = "The batch does not meet the contract; no item was processed.")
 	@ConditionsNotReachable("batches with connections are rejected with 422 until US-141 AC2")
 	public ResponseEntity<BatchWriteResponse> batchWriteEntities(BatchWriteRequest request, Boolean dryRun,
 			String xAgentId, String xAgentRun) {

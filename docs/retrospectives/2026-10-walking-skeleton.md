@@ -98,6 +98,8 @@ Consequence: running the full checks locally depends on knowledge outside the re
 | A1 | Mark contract operations without implementation (e.g. `x-oea-status: planned`) and treat parameter and payload details in REQs as non-binding until the implementing change aligns them; the proposal of each change lists the REQ/US sections it realigns | F1 | before S3 | decided: mark as planned |
 | A2 | Replace the path branches of `ApiExceptionHandler` by exception types that carry status, problem type and fields | F2 | first change of S3 | no |
 | A3 | Share one PostgreSQL and one Keycloak container per test JVM with per-test-class databases created from a migrated template; split the backend job into unit/integration and Cucumber | F3 | S3 | no |
+
+A2, A3 and the request-size limit of WS-02 (#73) are implemented in the change `s2b-backend-hardening` (package S2b): 13 instead of 119 PostgreSQL container starts per backend run; Cucumber in 166 s instead of 516 s locally.
 | A4 | Add a CI job that runs the Storybook stories with their play functions and axe (`@storybook/addon-vitest` or the test runner), and `openspec validate --specs --strict` to the CI | F4 | S3 | no |
 | A5 | Regenerate `THIRD-PARTY-LICENSES.md` automatically on Dependabot pull requests (workflow commit with a restricted token, REQ-192) or group frontend updates weekly | F5 | S3 | decided: automatic |
 | A6 | Re-baseline `docs/sprint-plan.md`: actual assistant, measured throughput, order of S3–S8 | F6 | before S3 | decided: before S3 |

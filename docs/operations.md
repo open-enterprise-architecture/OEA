@@ -108,6 +108,18 @@ java -jar oea-backend.jar
 
 `oea.web.public-url` (`OEA_WEB_PUBLIC_URL`) is the address of the web portal as users reach it; it is required as soon as an identity provider is enabled and must use `https` (not a loopback address) outside the profile `dev`.
 
+### Request Size Limits
+
+Request bodies are limited before they are parsed (REQ-186); a larger body is answered with `413` and the problem type `urn:oea:problem:request-too-large` (`package-too-large` for metamodel packages):
+
+| Setting | Default | Applies to |
+|---|---|---|
+| `oea.web.request-size.default` (`OEA_WEB_REQUESTSIZE_DEFAULT`) | `1MB` | every operation with a request body |
+| `oea.web.request-size.entity-batch` (`OEA_WEB_REQUESTSIZE_ENTITYBATCH`) | `10MB` | `POST /entities/batch` |
+| `oea.metamodel.import.max-size` (`OEA_METAMODEL_IMPORT_MAXSIZE`) | `10MB` | `POST /admin/metamodel/import` |
+
+A reverse proxy in front of OEA should allow at least the largest of these values.
+
 If the migration step has not run for the current version, the application refuses to start with a message naming the migration step. The health probe is `GET /api/v1/health`; it returns only the overall status (`UP` or `DOWN`).
 
 ## Key-Encryption Key

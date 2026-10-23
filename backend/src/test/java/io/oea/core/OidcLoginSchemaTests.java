@@ -3,6 +3,7 @@ package io.oea.core;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -13,12 +14,11 @@ import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Migration db/migration/V4__oidc_login.sql: columns, constraints, owners and grants. */
 class OidcLoginSchemaTests {
 
-	private static PostgreSQLContainer postgres;
+	private static OeaDatabase postgres;
 
 	@BeforeAll
 	static void start() {

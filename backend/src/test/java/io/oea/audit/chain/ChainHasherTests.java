@@ -2,6 +2,7 @@ package io.oea.audit.chain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -13,12 +14,11 @@ import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** The Java serialization reproduces the trigger hashes (docs/audit-hash-chain.md). */
 class ChainHasherTests {
 
-	private static PostgreSQLContainer postgres;
+	private static OeaDatabase postgres;
 
 	@BeforeAll
 	static void start() throws SQLException {

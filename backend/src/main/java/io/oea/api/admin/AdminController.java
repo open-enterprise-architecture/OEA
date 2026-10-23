@@ -1,5 +1,6 @@
 package io.oea.api.admin;
 
+import io.oea.api.ContractViolationResponse;
 import io.oea.api.generated.AdminApi;
 import io.oea.api.generated.model.AuthProvider;
 import io.oea.api.generated.model.AuthProviderWrite;
@@ -66,6 +67,8 @@ public class AdminController implements AdminApi {
 	}
 
 	@Override
+	@ContractViolationResponse(shape = ContractViolationResponse.Shape.PACKAGE, status = 422, title = "Invalid package",
+			detail = "The package is not valid JSON or does not match the package format.")
 	public ResponseEntity<ImportResult> importMetamodelPackage(ImportMetamodelPackageRequest request) {
 		try {
 			return ResponseEntity.ok(MetamodelPackages

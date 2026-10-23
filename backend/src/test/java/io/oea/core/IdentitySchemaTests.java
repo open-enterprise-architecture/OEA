@@ -3,6 +3,7 @@ package io.oea.core;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import io.oea.testsupport.contract.Contract;
 import java.sql.Connection;
@@ -18,7 +19,6 @@ import java.util.TreeSet;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 
 /** Migration db/migration/V3__identity_and_sessions.sql: owners, grants and the seeded catalog. */
@@ -28,7 +28,7 @@ class IdentitySchemaTests {
 			"authorization_roles", "role_permissions", "idp_group_mappings", "sessions", "totp_credentials",
 			"login_transactions", "auth_throttle");
 
-	private static PostgreSQLContainer postgres;
+	private static OeaDatabase postgres;
 
 	@BeforeAll
 	static void start() {

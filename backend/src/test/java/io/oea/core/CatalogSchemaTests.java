@@ -3,6 +3,7 @@ package io.oea.core;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -11,7 +12,6 @@ import java.sql.Statement;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Migration db/migration/V7__catalogs.sql: owner, grants, the case-insensitive unique name and
@@ -19,7 +19,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  */
 class CatalogSchemaTests {
 
-	private static PostgreSQLContainer postgres;
+	private static OeaDatabase postgres;
 
 	private static long personId;
 
