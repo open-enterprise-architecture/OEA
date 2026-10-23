@@ -35,6 +35,7 @@ Further commands: `/opsx:update` / `/opsx-update` (revise a change), `/opsx:sync
 - Scenarios in the specs are derived from the acceptance criteria of the user stories.
 - Tests are created within the change that implements the behavior, not ahead of it.
 - Deviations from accepted ADRs require a new ADR first.
+- Contract operations without implementation carry `x-oea-status: planned` and the 501 response `NotImplemented` in `api/openapi.yaml`; the change that implements an operation removes both in the same pull request (the backend does not start otherwise). Parameter and payload details of requirements and user stories are non-binding until that change aligns them, and its proposal lists the sections it realigns.
 - On archive: set the US status to `realized` incl. implementation hash, extend `requirements/traceability.md`.
 - All OpenSpec artifacts are written in English.
 

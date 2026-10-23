@@ -5,7 +5,8 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import '../src/style.css'
 
 setup((app) => {
-  app.use(createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { render: () => null } }] }))
+  // every path matches, so that links of the screens resolve without a route table
+  app.use(createRouter({ history: createMemoryHistory(), routes: [{ path: '/:path(.*)*', component: { render: () => null } }] }))
   app.use(ui)
 })
 

@@ -98,14 +98,16 @@ Consequence: running the full checks locally depends on knowledge outside the re
 | A1 | Mark contract operations without implementation (e.g. `x-oea-status: planned`) and treat parameter and payload details in REQs as non-binding until the implementing change aligns them; the proposal of each change lists the REQ/US sections it realigns | F1 | before S3 | decided: mark as planned |
 | A2 | Replace the path branches of `ApiExceptionHandler` by exception types that carry status, problem type and fields | F2 | first change of S3 | no |
 | A3 | Share one PostgreSQL and one Keycloak container per test JVM with per-test-class databases created from a migrated template; split the backend job into unit/integration and Cucumber | F3 | S3 | no |
-
-A2, A3 and the request-size limit of WS-02 (#73) are implemented in the change `s2b-backend-hardening` (package S2b): 13 instead of 119 PostgreSQL container starts per backend run; Cucumber in 166 s instead of 516 s locally.
 | A4 | Add a CI job that runs the Storybook stories with their play functions and axe (`@storybook/addon-vitest` or the test runner), and `openspec validate --specs --strict` to the CI | F4 | S3 | no |
 | A5 | Regenerate `THIRD-PARTY-LICENSES.md` automatically on Dependabot pull requests (workflow commit with a restricted token, REQ-192) or group frontend updates weekly | F5 | S3 | decided: automatic |
 | A6 | Re-baseline `docs/sprint-plan.md`: actual assistant, measured throughput, order of S3–S8 | F6 | before S3 | decided: before S3 |
 | A7 | Collect the deferred items of F7 in a backlog section of the sprint plan (or as GitHub issues) with the sprint that resolves them | F7 | before S3 | decided: GitHub issues |
 | A8 | Security re-review of the implemented skeleton against the baseline findings (security-engineer role), result in `security-reviews/` | F8 | before S3 | no |
 | A9 | Document the local prerequisites and workarounds (JDK 25, symlinks, SELinux labels) in `docs/workflow-example.md` or a development guide; optionally a dev container | F9 | when convenient | no |
+
+A2, A3 and the request-size limit of WS-02 (#73) are implemented in the change `s2b-backend-hardening` (package S2b): 13 instead of 119 PostgreSQL container starts per backend run; Cucumber in 166 s instead of 516 s locally.
+
+A1, A4, A5 and A9 are implemented in the change `s2b-ci-and-contract` (package S2b): 88 of 126 operations carry `x-oea-status: planned` and answer 501 after authorization, and the backend does not start if the marker and the implementation disagree; the stories run as tests with their accessibility check and `openspec validate --specs --strict` runs in CI; `dependabot-licenses.yml` regenerates `THIRD-PARTY-LICENSES.md` on Dependabot pull requests; [`docs/development.md`](../development.md) describes the local environment (no dev container).
 
 ## 5. Questions for the Owner
 

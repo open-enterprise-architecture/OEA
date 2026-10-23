@@ -250,6 +250,14 @@ components:
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
+    NotImplemented:
+      description: |
+        The operation is part of the published contract but not implemented in this release
+        (`x-oea-status: planned`, problem type `urn:oea:problem:not-implemented`). The request
+        is authenticated and authorized like any other and changes nothing.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
     ValidationFailed:
       description: Request body violates the metamodel or business rules
       content:
@@ -2868,6 +2876,7 @@ paths:
       tags: [Identity]
       security: []
       x-oea-authorization: {"access": "public"}
+      x-oea-status: planned
       responses:
         '200':
           description: Compatibility information
@@ -2879,6 +2888,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /oauth2/token:
     post:
@@ -2892,6 +2902,7 @@ paths:
       security:
         - clientSecretBasic: []
       x-oea-authorization: {"access": "public"}
+      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -2917,6 +2928,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/OAuthError' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  I18N                                                                  ║
@@ -2930,6 +2942,7 @@ paths:
         `Cache-Control: max-age=300, stale-while-revalidate=3600`
       tags: [I18N]
       x-oea-authorization: {"access": "authenticated"}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/LocaleParam'
       responses:
@@ -2950,6 +2963,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  CATALOGS (UC-06, US-046, REQ-043, SCR-020/028)                         ║
@@ -3087,6 +3101,7 @@ paths:
       description: Complete tree node graph for the left explorer panel.
       tags: [Views – Navigation]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      x-oea-status: planned
       responses:
         '200':
           description: Tree structure
@@ -3095,6 +3110,7 @@ paths:
               schema: { $ref: '#/components/schemas/TreeNode' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  VIEW – DIAGRAMS (SCR-021/022)                                         ║
@@ -3105,6 +3121,7 @@ paths:
       summary: Diagram editor data (SCR-021/022)
       tags: [Views – Editors]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -3120,6 +3137,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  VIEW – DATA LINEAGE (SCR-023)                                         ║
@@ -3130,6 +3148,7 @@ paths:
       summary: Data lineage graph (SCR-023)
       tags: [Views – Editors]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -3145,6 +3164,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  VIEW – DASHBOARD (SCR-024)                                            ║
@@ -3155,6 +3175,7 @@ paths:
       summary: Dashboard configuration (SCR-024)
       tags: [Views – Editors]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -3170,6 +3191,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /views/dashboards/{id}/data:
     get:
@@ -3178,6 +3200,7 @@ paths:
       description: Current data points for all widgets of a dashboard.
       tags: [Views – Editors]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -3193,6 +3216,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  VIEW – ROADMAP (SCR-025)                                              ║
@@ -3203,6 +3227,7 @@ paths:
       summary: Plateau-Roadmap (SCR-025)
       tags: [Views – Editors]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -3218,6 +3243,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  ENTITY HISTORY & RESTORE (UC-14/15/16, SCR-026/027)                  ║
@@ -3232,6 +3258,7 @@ paths:
         + `entity_property_value_history` (ADR-022).
       tags: [Entities]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/EntityIdParam'
         - $ref: '#/components/parameters/PageParam'
@@ -3249,6 +3276,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /entities/{id}/restore:
     post:
@@ -3261,6 +3289,7 @@ paths:
         (REQ-162).
       tags: [Entities]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write", "entity:restore"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/EntityIdParam'
       requestBody:
@@ -3287,6 +3316,7 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  METAMODEL (SCR-030)                                                   ║
@@ -3317,6 +3347,7 @@ paths:
       summary: Create new metatype
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -3336,6 +3367,7 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /metamodel/metatypes/{id}:
     get:
@@ -3363,6 +3395,7 @@ paths:
       summary: Update metatype
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -3384,12 +3417,14 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     delete:
       operationId: deleteMetatype
       summary: Delete metatype
       description: Only possible if no entities of this type exist.
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -3402,6 +3437,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /metamodel/metatypes/{id}/property-mappings:
     get:
@@ -3409,6 +3445,7 @@ paths:
       summary: Property mappings of a metatype
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -3422,11 +3459,13 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     post:
       operationId: createPropertyMapping
       summary: Create property mapping (or effective-date change)
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -3445,6 +3484,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /metamodel/property-categories:
     get:
@@ -3452,6 +3492,7 @@ paths:
       summary: List property categories
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
+      x-oea-status: planned
       responses:
         '200':
           description: Categories
@@ -3462,11 +3503,13 @@ paths:
                 items: { $ref: '#/components/schemas/PropertyCategory' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     post:
       operationId: createPropertyCategory
       summary: Create property category
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -3482,6 +3525,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /metamodel/property-categories/{id}:
     put:
@@ -3489,6 +3533,7 @@ paths:
       summary: Update property category
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -3510,11 +3555,13 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     delete:
       operationId: deletePropertyCategory
       summary: Delete property category
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -3527,6 +3574,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /metamodel/property-definitions:
     get:
@@ -3534,6 +3582,7 @@ paths:
       summary: List property definitions
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
+      x-oea-status: planned
       parameters:
         - name: categoryId
           in: query
@@ -3552,11 +3601,13 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     post:
       operationId: createPropertyDefinition
       summary: Create property definition
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -3572,6 +3623,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /metamodel/property-definitions/{id}:
     put:
@@ -3579,6 +3631,7 @@ paths:
       summary: Update property definition
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -3600,11 +3653,13 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     delete:
       operationId: deletePropertyDefinition
       summary: Delete property definition
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -3617,6 +3672,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /metamodel/property-definitions/{id}/enum-values:
     get:
@@ -3624,6 +3680,7 @@ paths:
       summary: Enum values of a property definition
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -3637,11 +3694,13 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     post:
       operationId: createEnumValue
       summary: Create enum value
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -3665,6 +3724,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  ADMIN (SCR-031–038)                                                   ║
@@ -3675,6 +3735,7 @@ paths:
       summary: List viewpoints (SCR-031)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "viewpoint:manage"]}
+      x-oea-status: planned
       responses:
         '200':
           description: Viewpoints
@@ -3685,6 +3746,7 @@ paths:
                 items: { $ref: '#/components/schemas/ViewpointConfig' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/viewpoints/{id}:
     get:
@@ -3692,6 +3754,7 @@ paths:
       summary: Viewpoint detail (SCR-031)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "viewpoint:manage"]}
+      x-oea-status: planned
       parameters:
         - name: id
           in: path
@@ -3710,11 +3773,13 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     put:
       operationId: updateViewpoint
       summary: Update viewpoint (SCR-031)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
+      x-oea-status: planned
       parameters:
         - name: id
           in: path
@@ -3736,6 +3801,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/property-visibility:
     get:
@@ -3743,6 +3809,7 @@ paths:
       summary: Property visibility matrix (SCR-032)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
+      x-oea-status: planned
       responses:
         '200':
           description: Visibility matrix
@@ -3753,11 +3820,13 @@ paths:
                 items: { $ref: '#/components/schemas/PropertyVisibilityEntry' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     put:
       operationId: updatePropertyVisibility
       summary: Update property visibility (SCR-032)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
+      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -3777,6 +3846,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/trm:
     get:
@@ -3784,6 +3854,7 @@ paths:
       summary: Technology Reference Model (SCR-033)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      x-oea-status: planned
       parameters:
         - name: status
           in: query
@@ -3808,11 +3879,13 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     post:
       operationId: createTRMEntry
       summary: Create TRM entry (SCR-033)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
+      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -3828,6 +3901,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/trm/{id}:
     put:
@@ -3835,6 +3909,7 @@ paths:
       summary: Update TRM entry (SCR-033)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -3856,11 +3931,13 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     delete:
       operationId: deleteTRMEntry
       summary: Delete TRM entry (SCR-033)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -3869,6 +3946,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/continuum:
     get:
@@ -3876,6 +3954,7 @@ paths:
       summary: Continuum configuration (SCR-034)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
+      x-oea-status: planned
       responses:
         '200':
           description: Continuum level configuration
@@ -3895,11 +3974,13 @@ paths:
                         sortOrder:   { type: integer }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     put:
       operationId: updateContinuumConfig
       summary: Update continuum configuration (SCR-034)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -3923,6 +4004,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/continuum/import:
     post:
@@ -3930,6 +4012,7 @@ paths:
       summary: Import continuum package (SCR-035)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -3959,6 +4042,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/conformance:
     get:
@@ -3967,6 +4051,7 @@ paths:
       description: Checks all active entities against current metamodel rules.
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      x-oea-status: planned
       parameters:
         - name: severity
           in: query
@@ -3985,6 +4070,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/auth/providers:
     get:
@@ -4072,6 +4158,7 @@ paths:
       summary: Delete auth provider (SCR-037)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["auth-config:manage"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -4084,6 +4171,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/auth/providers/{id}/test:
     post:
@@ -4091,6 +4179,7 @@ paths:
       summary: Test auth provider connection (SCR-037)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["auth-config:manage"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -4102,6 +4191,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ── Service accounts (ADR-026, REQ-155) ───────────────────────────────────
   /admin/service-accounts:
@@ -4111,6 +4201,7 @@ paths:
       description: All service accounts of the instance (person_type=service-account).
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"]}
+      x-oea-status: planned
       parameters:
         - name: active
           in: query
@@ -4126,6 +4217,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     post:
       operationId: createServiceAccount
       summary: Create service account (REQ-155)
@@ -4135,6 +4227,7 @@ paths:
         Afterwards only retrievable via rotation.
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"], "conditions": [{"when": "request body sets or changes roles", "permissions": ["role:assign"]}]}
+      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -4154,6 +4247,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/service-accounts/{id}:
     get:
@@ -4161,6 +4255,7 @@ paths:
       summary: Service account detail
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -4176,11 +4271,13 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     put:
       operationId: updateServiceAccount
       summary: Update service account (name, description, roles)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"], "conditions": [{"when": "request body sets or changes roles", "permissions": ["role:assign"]}]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -4202,12 +4299,14 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     delete:
       operationId: deleteServiceAccount
       summary: Deactivate service account
       description: Soft deactivation (active=false). Credentials invalid.
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -4216,6 +4315,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/service-accounts/{id}/credentials/rotate:
     post:
@@ -4226,6 +4326,7 @@ paths:
         The new secret is returned once in plaintext.
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -4241,6 +4342,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/settings:
     get:
@@ -4248,6 +4350,7 @@ paths:
       summary: System settings (SCR-038)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["settings:manage"]}
+      x-oea-status: planned
       responses:
         '200':
           description: Settings
@@ -4256,11 +4359,13 @@ paths:
               schema: { $ref: '#/components/schemas/SystemSettings' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     put:
       operationId: updateSystemSettings
       summary: Update system settings (SCR-038)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["settings:manage"]}
+      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -4276,6 +4381,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/audit/retention:
     get:
@@ -4286,6 +4392,7 @@ paths:
         visible to auditors before it takes effect.
       tags: [Audit]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["settings:manage", "audit:read"]}
+      x-oea-status: planned
       responses:
         '200':
           description: Retention
@@ -4294,6 +4401,7 @@ paths:
               schema: { $ref: '#/components/schemas/AuditRetention' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     put:
       operationId: setAuditRetention
       summary: Set the audit retention (ADR-033 §4)
@@ -4305,6 +4413,7 @@ paths:
         the database as well.
       tags: [Audit]
       x-oea-authorization: {"access": "permission", "permissions": ["settings:manage"]}
+      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -4325,6 +4434,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  ACCESS CONTROL (ADR-032, UC-23)                                       ║
@@ -4378,6 +4488,7 @@ paths:
       description: Audited as `role.created`.
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -4408,6 +4519,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/roles/{roleId}:
     get:
@@ -4415,6 +4527,7 @@ paths:
       summary: Authorization role detail
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["role:assign", "visibility:configure", "service-account:manage"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/RoleIdParam'
       responses:
@@ -4426,6 +4539,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     put:
       operationId: updateAuthorizationRole
       summary: Update custom role
@@ -4435,6 +4549,7 @@ paths:
         Audited as `role.changed`.
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/RoleIdParam'
       requestBody:
@@ -4464,6 +4579,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     delete:
       operationId: deleteAuthorizationRole
       summary: Delete custom role
@@ -4473,6 +4589,7 @@ paths:
         Audited as `role.deleted`.
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/RoleIdParam'
       responses:
@@ -4482,6 +4599,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/persons:
     get:
@@ -4613,6 +4731,7 @@ paths:
       summary: Local role assignments of a person or service account
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/PersonIdParam'
         - name: status
@@ -4635,6 +4754,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     post:
       operationId: createRoleAssignment
       summary: Assign a role (UC-23 basic flow)
@@ -4649,6 +4769,7 @@ paths:
           pending request; the assignment is created only after approval (Q15)
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/PersonIdParam'
       requestBody:
@@ -4682,6 +4803,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/persons/{personId}/role-assignments/{assignmentId}/revoke:
     post:
@@ -4694,6 +4816,7 @@ paths:
         expired → `409`.
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/PersonIdParam'
         - name: assignmentId
@@ -4717,6 +4840,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/approval-requests:
     get:
@@ -4724,6 +4848,7 @@ paths:
       summary: Four-eyes requests for privileged changes (Q15, Q18)
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      x-oea-status: planned
       parameters:
         - name: status
           in: query
@@ -4749,6 +4874,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/approval-requests/{requestId}/approve:
     post:
@@ -4762,6 +4888,7 @@ paths:
         no longer valid (role or mapping deleted, target offboarded) → `409`.
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      x-oea-status: planned
       parameters:
         - name: requestId
           in: path
@@ -4784,6 +4911,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/approval-requests/{requestId}/reject:
     post:
@@ -4794,6 +4922,7 @@ paths:
         longer pending → `409`.
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
+      x-oea-status: planned
       parameters:
         - name: requestId
           in: path
@@ -4816,6 +4945,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/idp-group-mappings:
     get:
@@ -4951,6 +5081,7 @@ paths:
         to another account → `409`.
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/PersonIdParam'
       requestBody:
@@ -4975,6 +5106,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/access-review:
     get:
@@ -4987,6 +5119,7 @@ paths:
         used as audit evidence.
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["role:assign", "audit:read"]}
+      x-oea-status: planned
       parameters:
         - name: principalType
           in: query
@@ -5016,6 +5149,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/property-visibility/override-roles:
     get:
@@ -5023,6 +5157,7 @@ paths:
       summary: Property visibility override role list (REQ-128)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
+      x-oea-status: planned
       responses:
         '200':
           description: Override role list (empty by default)
@@ -5031,11 +5166,13 @@ paths:
               schema: { $ref: '#/components/schemas/PropertyVisibilityOverride' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     put:
       operationId: updatePropertyVisibilityOverride
       summary: Change the override role list (REQ-128, SoD-6)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
+      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -5056,6 +5193,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  AUDIT (Schema: audit.*, ADR-024, SCR-026/054)                        ║
@@ -5072,6 +5210,7 @@ paths:
         Read-only: there is no operation that modifies or deletes audit records.
       tags: [Audit]
       x-oea-authorization: {"access": "permission", "permissions": ["audit:read"]}
+      x-oea-status: planned
       parameters:
         - name: entityId
           in: query
@@ -5124,6 +5263,7 @@ paths:
                   page: { $ref: '#/components/schemas/PageMeta' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /audit/events/{id}/changes:
     get:
@@ -5131,6 +5271,7 @@ paths:
       summary: Change detail of an audit event (SCR-027)
       tags: [Audit]
       x-oea-authorization: {"access": "permission", "permissions": ["audit:read"]}
+      x-oea-status: planned
       parameters:
         - name: id
           in: path
@@ -5149,6 +5290,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /audit/events/export:
     get:
@@ -5167,6 +5309,7 @@ paths:
         export request is itself audited (`audit.exported`, REQ-175 AC4).
       tags: [Audit]
       x-oea-authorization: {"access": "permission", "permissions": ["audit:read"]}
+      x-oea-status: planned
       parameters:
         - name: afterSeq
           in: query
@@ -5199,6 +5342,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /audit/integrity:
     get:
@@ -5210,6 +5354,7 @@ paths:
         full verification runs with the command `oea audit verify`.
       tags: [Audit]
       x-oea-authorization: {"access": "permission", "permissions": ["audit:read"]}
+      x-oea-status: planned
       responses:
         '200':
           description: Integrity status
@@ -5218,6 +5363,7 @@ paths:
               schema: { $ref: '#/components/schemas/AuditIntegrityStatus' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  ANALYTICS (ADR-034, REQ-179)                                          ║
@@ -5239,6 +5385,7 @@ paths:
         30 queries per minute per principal.
       tags: [Analytics]
       x-oea-authorization: {"access": "permission", "permissions": ["analytics:query"]}
+      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -5276,6 +5423,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /analytics/schema:
     get:
@@ -5283,6 +5431,7 @@ paths:
       summary: Reporting views and columns for the caller (ADR-034 §3.1)
       tags: [Analytics]
       x-oea-authorization: {"access": "permission", "permissions": ["analytics:query"]}
+      x-oea-status: planned
       responses:
         '200':
           description: Reporting schema
@@ -5296,6 +5445,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  EXTERNAL INTEGRATION – WRITING (ADR-026, optional)                    ║
@@ -5310,6 +5460,7 @@ paths:
         (with a known `externalId`) please use `PUT /entities/by-external-id/{externalId}`.
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
+      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -5341,6 +5492,7 @@ paths:
                       errors:
                         type: array
                         items: { $ref: '#/components/schemas/ValidationError' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /entities/{id}:
     put:
@@ -5348,6 +5500,7 @@ paths:
       summary: Replace entity (full update)
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/EntityIdParam'
         - name: version
@@ -5383,6 +5536,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     patch:
       operationId: patchEntity
       summary: Partially update entity
@@ -5392,6 +5546,7 @@ paths:
         `properties` array: only supplied properties are updated.
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/EntityIdParam'
         - name: version
@@ -5421,11 +5576,13 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     delete:
       operationId: deleteEntity
       summary: Soft-delete entity
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:delete"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/EntityIdParam'
         - name: reason
@@ -5441,6 +5598,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /entities/by-external-id/{externalId}:
     put:
@@ -5452,6 +5610,7 @@ paths:
         Repeated calls with identical data are safe.
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
+      x-oea-status: planned
       parameters:
         - name: externalId
           in: path
@@ -5484,6 +5643,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /entities/validate:
     post:
@@ -5495,6 +5655,7 @@ paths:
         Useful for external systems before the actual write.
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
+      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -5510,6 +5671,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /entities/batch:
     post:
@@ -5572,6 +5734,7 @@ paths:
         Source/target can be referenced via internal ID or `externalId`.
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"], "conditions": [{"when": "a connection of a type used as scopingConnectionType is written", "permissions": ["visibility-scope:assign"]}]}
+      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -5603,6 +5766,7 @@ paths:
                       errors:
                         type: array
                         items: { $ref: '#/components/schemas/ValidationError' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ── Metamodel discovery (ADR-026) ─────────────────────────────────────────
   /metamodel/allowed-connections:
@@ -5615,6 +5779,7 @@ paths:
         in advance. Source: `metatype_connection_constraints`.
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
+      x-oea-status: planned
       parameters:
         - name: sourceMetatypeId
           in: query
@@ -5633,6 +5798,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ── Metamodel package import/export (ADR-026) ───────────────────────────────
   /admin/metamodel/export:
@@ -5646,6 +5812,7 @@ paths:
         of external systems (externalId namespace, metatype IDs).
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-status: planned
       parameters:
         - name: configId
           in: query
@@ -5664,6 +5831,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/metamodel/import:
     post:
@@ -5777,6 +5945,7 @@ paths:
         display entities correctly without hard-coding shape knowledge.
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "viewpoint:manage"]}
+      x-oea-status: planned
       parameters:
         - name: id
           in: path
@@ -5798,11 +5967,13 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     put:
       operationId: updateShapePalette
       summary: Update shape palette
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
+      x-oea-status: planned
       parameters:
         - name: id
           in: path
@@ -5828,6 +5999,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  PORTAL (Read-only, SCR-050–054)                                       ║
@@ -5844,6 +6016,7 @@ paths:
         (REQ-124, REQ-160).
       tags: [Portal]
       x-oea-authorization: {"access": "permission", "permissions": ["portal:read"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/PageSizeParam'
@@ -5871,6 +6044,7 @@ paths:
                   filterOptions: { $ref: '#/components/schemas/CatalogFilterOptions' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /portal/catalog/{id}:
     get:
@@ -5879,6 +6053,7 @@ paths:
       description: Read-only. No edit button; properties according to the visibility configuration.
       tags: [Portal]
       x-oea-authorization: {"access": "permission", "permissions": ["portal:read"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/EntityIdParam'
       responses:
@@ -5894,6 +6069,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /portal/diagrams/{id}:
     get:
@@ -5902,6 +6078,7 @@ paths:
       description: Read-only. No editing; shapes cannot be selected or moved.
       tags: [Portal]
       x-oea-authorization: {"access": "permission", "permissions": ["portal:read"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -5917,6 +6094,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /portal/dashboards/{id}/data:
     get:
@@ -5925,6 +6103,7 @@ paths:
       description: Read-only. No widget configuration; data points only.
       tags: [Portal]
       x-oea-authorization: {"access": "permission", "permissions": ["portal:read"]}
+      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -5940,6 +6119,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /portal/audit/events:
     get:
@@ -5951,6 +6131,7 @@ paths:
         read are redacted (REQ-160).
       tags: [Portal]
       x-oea-authorization: {"access": "permission", "permissions": ["audit:read"]}
+      x-oea-status: planned
       parameters:
         - name: entityId
           in: query
@@ -5978,6 +6159,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  SSE – invalidation channel (ADR-025)                                  ║
@@ -6009,6 +6191,7 @@ paths:
         Can be disabled via `oea.sse.enabled=false`.
       tags: [Events]
       x-oea-authorization: {"access": "authenticated"}
+      x-oea-status: planned
       responses:
         '200':
           description: SSE stream
@@ -6032,6 +6215,7 @@ paths:
                   data: {"type":"session_ended","reason":"revoked","purgeLocalData":true}
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TAGS

@@ -21,7 +21,7 @@ The change name follows the package (`s2b-`) instead of a user story, like `s2b-
 
 - **Planned contract operations** (A1): every operation of `api/openapi.yaml` without implementation carries `x-oea-status: planned` and declares the shared response `NotImplemented` (501). A planned operation keeps its authorization rule (ADR-032) and answers 501 with the problem type `urn:oea:problem:not-implemented` instead of an empty body. The startup coverage check fails if an implemented operation is marked planned or an unimplemented one is not, so the marker cannot drift. Parameter and payload details of requirements count as non-binding until the implementing change aligns them; the proposal rule in `openspec/config.yaml` asks every change to list the REQ/US sections it realigns.
 - **Storybook tests in CI** (A4): the stories run with their play functions and the accessibility check (`a11y: { test: 'error' }`, already configured) through `@storybook/addon-vitest` in a headless Chromium, as a step of the existing job "Frontend build". The job "Requirements completeness" additionally runs `openspec validate --specs --strict` with the OpenSpec version of the generated files.
-- **License regeneration on Dependabot pull requests** (A5): a workflow regenerates `THIRD-PARTY-LICENSES.md` on Dependabot pull requests in a read-only job and commits the file to the Dependabot branch in a separate job that may change nothing else (REQ-192); it then starts the CI for the new commit, so the required checks report on it.
+- **License regeneration on Dependabot pull requests** (A5): a workflow regenerates `THIRD-PARTY-LICENSES.md` on Dependabot pull requests in a read-only job and commits the file to the Dependabot branch in a separate job that may change nothing else (REQ-192); it pushes with the token of a GitHub App, so the required checks run on the new commit.
 - **Local development guide** (A9): `docs/development.md` describes the prerequisites (Docker or rootless Podman, JDK 25, Node.js 24, Python 3.12), the commands for builds, tests and the development environment, and the known workarounds (Testcontainers with rootless Podman, SELinux volume labels, Distrobox git). The README section "Development" links to it.
 
 ## Out of Scope
@@ -44,8 +44,8 @@ The change name follows the package (`s2b-`) instead of a user story, like `s2b-
 ## Impact
 
 - `api/openapi.yaml`: `x-oea-status: planned` and the response `NotImplemented` on every unimplemented operation (88 at the time of the proposal); a check in `scripts/check_openapi_authorization.py` for the allowed values of `x-oea-status`
-- `backend/`: `io.oea.config.security.OperationCoverageCheck` (status consistency), a problem response for unimplemented operations in `io.oea.api`
+- `backend/`: `io.oea.config.security.OperationCoverageCheck` (status consistency, handler for every operation), `NotImplementedInterceptor` (501 problem response), `io.oea.api.planned.PlannedOperationsController` (handlers of the generated interfaces without controller)
 - `frontend/`: `@storybook/addon-vitest`, `@vitest/browser-playwright` (dev dependencies only, not distributed), a Vitest project for the stories, script `test:stories`
-- `.github/workflows/ci.yml` (new steps in existing jobs; no new required check), new workflow `.github/workflows/dependabot-licenses.yml`
+- `.github/workflows/ci.yml` (new steps in existing jobs; no new required check), new workflow `.github/workflows/dependabot-licenses.yml`; the repository owner creates the GitHub App "OEA license bot" and its Dependabot secrets
 - `openspec/config.yaml` (proposal rule of A1), `docs/development.md`, `README.md`, the retrospective (status of A1, A4, A5, A9)
 - No Flyway migration, no data model change, no screen change

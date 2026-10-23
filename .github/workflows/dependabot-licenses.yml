@@ -1,0 +1,120 @@
+name: Dependabot – third-party licenses
+
+# Retrospective action A5 (change s2b-ci-and-contract D5): regenerates THIRD-PARTY-LICENSES.md
+# (ADR-043) on Dependabot pull requests that update distributed components (Maven, npm, Docker,
+# Compose), so that the check "Third-party licenses" passes without manual work.
+# REQ-192: the job that builds with third-party packages holds a read-only token; the commit job
+# runs no third-party code and may change nothing but THIRD-PARTY-LICENSES.md. It pushes with a
+# token of the GitHub App "OEA license bot" (contents: write on this repository only), because a
+# push with the workflow token starts no pull_request run and the required checks would never
+# report on the new commit. Client ID and private key are Dependabot secrets
+# (LICENSE_BOT_CLIENT_ID, LICENSE_BOT_PRIVATE_KEY, see docs/development.md).
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+# Least privilege (REQ-192): read-only token unless a job widens it
+permissions:
+  contents: read
+
+concurrency:
+  group: dependabot-licenses-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    name: Regenerate third-party licenses
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]'
+      && startsWith(github.head_ref, 'dependabot/')
+      && !startsWith(github.head_ref, 'dependabot/github_actions/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: License report of the backend runtime libraries
+        working-directory: backend
+        run: ./mvnw -B -ntp license:add-third-party
+      - name: Frontend build (manifest of the bundled packages)
+        working-directory: frontend
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+      - name: Write THIRD-PARTY-LICENSES.md (fails on a license that ADR-043 does not allow)
+        run: python3 scripts/generate_third_party_licenses.py
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: third-party-licenses
+          path: THIRD-PARTY-LICENSES.md
+          if-no-files-found: error
+          retention-days: 1
+
+  commit:
+    name: Commit regenerated third-party licenses
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Token of the license bot (contents write, this repository only)
+        id: token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ secrets.LICENSE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.LICENSE_BOT_PRIVATE_KEY }}
+          permission-contents: write
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: third-party-licenses
+          path: generated
+      - name: Copy only THIRD-PARTY-LICENSES.md
+        run: |
+          shopt -s nullglob dotglob
+          for file in generated/*; do
+            if [[ "$(basename "$file")" != "THIRD-PARTY-LICENSES.md" ]]; then
+              echo "::error::unexpected file in the artifact: $(basename "$file")"
+              exit 1
+            fi
+          done
+          cp generated/THIRD-PARTY-LICENSES.md THIRD-PARTY-LICENSES.md
+          rm -rf generated
+      - name: Commit and push (starts the pull_request checks for the new commit)
+        env:
+          APP_TOKEN: ${{ steps.token.outputs.token }}
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          APP_SLUG: ${{ steps.token.outputs.app-slug }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          git add THIRD-PARTY-LICENSES.md
+          if git diff --cached --quiet; then
+            echo "THIRD-PARTY-LICENSES.md unchanged"
+            exit 0
+          fi
+          if git status --porcelain | grep -v -E '^M  THIRD-PARTY-LICENSES\.md$'; then
+            echo "::error::only THIRD-PARTY-LICENSES.md may change"
+            exit 1
+          fi
+          user_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${user_id}+${APP_SLUG}[bot]@users.noreply.github.com"
+          git commit -m "chore(licenses): regenerate third-party licenses"
+          git push "https://x-access-token:${APP_TOKEN}@github.com/${REPOSITORY}.git" "HEAD:refs/heads/${BRANCH}"

@@ -4,9 +4,9 @@ title: Least privilege for CI/CD workflows
 type: constraint
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-10-13
-last_updated: 2026-10-13
+last_updated: 2026-10-23
 author: requirements-engineer
 references:
   use_cases:
@@ -61,10 +61,16 @@ Source: security review SEC-29, SEC-30 (proposal PR-36). ADR-031 needs amendment
 - When: it runs
 - Then: the job running `npm ci` has a read-only token and the commit is created by a separate job that touches only `docs/screens/*.png`
 
+**AC3**:
+
+- Given: the license workflow for Dependabot pull requests ([`dependabot-licenses.yml`](../../.github/workflows/dependabot-licenses.yml), retrospective action A5)
+- When: it runs
+- Then: the job building with third-party packages has a read-only token and the commit is created by a separate job that touches only `THIRD-PARTY-LICENSES.md`
+
 ## Verification Method
 
 - [ ] Method: inspection + CI lint
-- [ ] Pass criterion: AC1, AC2 green
+- [ ] Pass criterion: AC1, AC2, AC3 green
 - [ ] Integrated in CI: yes
 
 ## Dependencies
@@ -82,3 +88,4 @@ Source: security review SEC-29, SEC-30 (proposal PR-36). ADR-031 needs amendment
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-29/SEC-30 (PR-36) |
+| 0.2.0 | 2026-10-23 | solution-architect | AC3 for the license workflow of Dependabot pull requests (change s2b-ci-and-contract) |

@@ -47,6 +47,7 @@ rules:
     - State sprint and milestone from docs/sprint-plan.md, if assigned
     - Change name in the format <us-id>-<short-name>, e.g. us-001-oidc-login
     - If the change deviates from an accepted ADR, a new ADR is required first – do not decide it in the proposal
+    - Parameter and payload details of REQs and USs are non-binding until the implementing change aligns them; list the REQ/US sections the change realigns, and the planned contract operations (x-oea-status planned) it implements
   specs:
     - Capability paths by business domain, e.g. identity/login, metamodel/entity-types, catalog/query
     - Derive scenarios from the acceptance criteria of the referenced user stories, do not invent new ones

@@ -121,7 +121,7 @@ Before every merge to `main`:
 4. **Markdown lint** (once set up)
 5. **ADR consistency**: every ADR referenced in `adrs/` exists
 6. **Use case completeness**: every use case has a persona, acceptance criteria and a concept reference
-7. **Third-party licenses**: `THIRD-PARTY-LICENSES.md` is generated – after adding or updating a dependency run `./mvnw license:add-third-party` (in `backend/`), `npm run build` (in `frontend/`) and `python3 scripts/generate_third_party_licenses.py`; CI checks with `--check` that every distributed component has a license allowed by ADR-043 and that the file is current
+7. **Third-party licenses**: `THIRD-PARTY-LICENSES.md` is generated – after adding or updating a dependency run `./mvnw license:add-third-party` (in `backend/`), `npm run build` (in `frontend/`) and `python3 scripts/generate_third_party_licenses.py`; CI checks with `--check` that every distributed component has a license allowed by ADR-043 and that the file is current; on Dependabot pull requests the workflow `dependabot-licenses.yml` regenerates and commits the file
 
 ## Versioning
 
