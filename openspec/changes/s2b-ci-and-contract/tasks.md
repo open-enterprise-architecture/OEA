@@ -16,8 +16,8 @@
 
 ## 3. License regeneration on Dependabot PRs (A5)
 
-- [x] 3.1 Add `.github/workflows/dependabot-licenses.yml` with the jobs `generate` and `commit` of D5 and the trigger `workflow_dispatch` in `ci.yml`; verify with actionlint and zizmor (no findings), that the `generate` job holds only `contents: read`, and that the commit step rejects any path other than `THIRD-PARTY-LICENSES.md`
-- [ ] 3.2 Verify the workflow end to end on a test branch `dependabot/npm_and_yarn/test-licenses` with an outdated `THIRD-PARTY-LICENSES.md` (workflow run with the condition on the author temporarily widened to the owner): the file is committed, `ci.yml` is dispatched for the branch and the required checks report on the new head commit; delete the branch and restore the condition afterwards
+- [x] 3.1 Add `.github/workflows/dependabot-licenses.yml` with the jobs `generate` and `commit` of D5 (push with the token of the GitHub App); verify with actionlint and zizmor (no findings), that the `generate` job holds only `contents: read`, and that the commit step rejects any path other than `THIRD-PARTY-LICENSES.md`
+- [ ] 3.2 Verify the workflow end to end on the test branch `dependabot/npm_and_yarn/test-licenses` (PR #83) with an outdated `THIRD-PARTY-LICENSES.md` and the author condition temporarily widened: the file is committed by the license bot and the required `pull_request` checks report on the new head commit, so the pull request is mergeable; close the pull request and delete the branch afterwards (first attempt with `workflow_dispatch`: checks not counted for the pull request, see D5)
 - [x] 3.3 Add the workflow as evidence of REQ-192 AC2 and mention the automatic regeneration in AGENTS.md quality gate 7; verify link validation and `scripts/sync_agent_config.py --check` pass
 
 ## 4. Local development guide (A9)

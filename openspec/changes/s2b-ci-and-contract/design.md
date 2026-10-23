@@ -6,7 +6,7 @@
 - **Storybook**: Storybook 10.6 with `@storybook/addon-a11y` and `a11y: { test: 'error' }` in `.storybook/preview.ts`; three story files (`SCR-020`, `SCR-028`, `StartPage`), two of them with play functions. CI only builds Storybook (job "Frontend build"); the screens workflow renders images after the merge. Vitest 5 runs the unit tests in jsdom (`src/**/*.spec.ts`).
 - **OpenSpec**: the generated command and skill files are from OpenSpec 1.14.1 (`scripts/sync_agent_config.py --check` enforces one version); `openspec validate --specs --strict` passes locally (21 specs) but is not run in CI.
 - **Licenses**: the job "Third-party licenses" runs `./mvnw license:add-third-party`, `npm ci --ignore-scripts && npm run build` and `scripts/generate_third_party_licenses.py --check`. Dependabot opens grouped weekly PRs for Maven, npm, Docker and Actions; Maven and npm updates fail the check until the file is regenerated (PR #51). The screens workflow already follows REQ-192: a read-only build job uploads an artifact, a separate commit job with `contents: write` accepts only the expected files.
-- **Required checks**: the ruleset of `main` requires the job names of `ci.yml`; a commit pushed with `GITHUB_TOKEN` does not trigger `pull_request` or `push` workflows, except `workflow_dispatch` and `repository_dispatch`.
+- **Required checks**: the ruleset of `main` requires the job names of `ci.yml`; a commit pushed with `GITHUB_TOKEN` does not trigger `pull_request` or `push` workflows.
 
 ## Goals / Non-Goals
 
@@ -14,7 +14,7 @@
 
 - The implementation status of each operation is visible in the contract and cannot drift from the code
 - Story play functions and accessibility checks block a merge like unit tests
-- Dependabot PRs for Maven and npm become mergeable without manual work, without a write token in any job that runs third-party code
+- Dependabot PRs for Maven, npm, Docker and Compose become mergeable without manual work, without a write token in any job that runs third-party code
 - No new required status check, so the ruleset of `main` stays as it is
 
 **Non-Goals:**
@@ -61,11 +61,11 @@ The job installs Node.js 24 and runs `npx -y @fission-ai/openspec@<version> vali
 A new workflow `.github/workflows/dependabot-licenses.yml` runs on `pull_request` (`opened`, `synchronize`, `reopened`) only if the PR author is `dependabot[bot]` and the head branch is a Dependabot branch other than `dependabot/github_actions/` (Maven and npm change the libraries, Docker and Compose the base images listed in the file):
 
 1. Job `generate` (`contents: read`, `persist-credentials: false`): checkout of the head commit, `./mvnw license:add-third-party`, `npm ci --ignore-scripts && npm run build`, `python3 scripts/generate_third_party_licenses.py` (writes the file); uploads `THIRD-PARTY-LICENSES.md` as an artifact. A license that ADR-043 does not allow still fails here, and nothing is committed.
-2. Job `commit` (`contents: write`, `actions: write`, no third-party code): checkout of the head branch, download of the artifact, copy of exactly that file; commits as `github-actions[bot]` with `chore(licenses): regenerate third-party licenses` only if the file changed and `git status` shows no other path; pushes to the head branch and then starts `ci.yml` for that branch with `gh workflow run ci.yml --ref <branch>` (`ci.yml` gets the trigger `workflow_dispatch`). The check runs of the dispatched run belong to the new head commit, so the required checks report on it.
+2. Job `commit` (no third-party code besides the pinned token action): mints a token of the GitHub App "OEA license bot" with `actions/create-github-app-token` (`contents: write`, this repository only; client ID and private key as Dependabot secrets `LICENSE_BOT_CLIENT_ID`, `LICENSE_BOT_PRIVATE_KEY`), checks out the head commit, downloads the artifact and copies exactly that file; commits as the app's bot user with `chore(licenses): regenerate third-party licenses` only if the file changed and `git status` shows no other path, and pushes to the head branch. A push with an app token starts the `pull_request` workflows like any other push, so the required checks run on the new head commit; the workflow itself runs again, finds the file unchanged and stops.
 
-Workflows triggered by Dependabot get a read-only token and no repository secrets by default; the `permissions` block of the `commit` job widens only that job. No personal access token or GitHub App is needed.
+Workflows triggered by Dependabot get a read-only token and only the Dependabot secrets, so the app credentials are available to this workflow on Dependabot pull requests and to no job that builds third-party code.
 
-*Alternatives*: a GitHub App or a personal access token as Dependabot secret, so that the push triggers `pull_request` directly – needs a secret with write access that the owner has to create and rotate; grouping all frontend updates monthly – reduces the manual work but keeps it. Rejected.
+*Alternatives*: pushing with the workflow token and dispatching `ci.yml` (`workflow_dispatch`) for the branch – tried in the end-to-end test of task 3.2: the dispatched check runs passed on the new commit, but GitHub did not count them for the pull request (status check rollup without them, merge state blocked), and the push created `pull_request` runs waiting for approval. Rejected. A personal access token as Dependabot secret – works like the app token, but is bound to a person and has broader scope. Grouping all frontend updates monthly – reduces the manual work but keeps it. Rejected.
 
 ### D6 – `docs/development.md`
 
@@ -84,7 +84,8 @@ No change.
 ## Risks / Trade-offs
 
 - [The commit to a Dependabot branch makes Dependabot stop rebasing that PR] → a later conflict is resolved with `@dependabot recreate`, which reruns the workflow; documented in `docs/development.md`
-- [`workflow_dispatch` runs do not show as `pull_request` runs in the PR] → the check runs are attached to the head commit, which the ruleset evaluates; verified with the first Dependabot PR after the merge
+- [The app's private key is a long-lived secret] → the app has only `contents: write` on this repository and is used by one job without third-party code; the key is rotated in the app settings if it leaks
+- [Without the secrets the commit job fails] → the job fails visibly at the token step; `docs/development.md` describes the setup
 - [Browser tests make "Frontend build" slower] → Chromium is installed once per run (≈ 1 min); three story files run in seconds
 - [88 operations change in one contract diff] → generated mechanically from the list of implemented operations; the startup check of D1 proves the result
 

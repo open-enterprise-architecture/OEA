@@ -4,9 +4,11 @@ name: Dependabot – third-party licenses
 # (ADR-043) on Dependabot pull requests that update distributed components (Maven, npm, Docker,
 # Compose), so that the check "Third-party licenses" passes without manual work.
 # REQ-192: the job that builds with third-party packages holds a read-only token; the commit job
-# runs no third-party code and may change nothing but THIRD-PARTY-LICENSES.md. A push with the
-# workflow token starts no pull_request run, so the commit job dispatches ci.yml for the branch;
-# its check runs belong to the new head commit, which the ruleset of main evaluates.
+# runs no third-party code and may change nothing but THIRD-PARTY-LICENSES.md. It pushes with a
+# token of the GitHub App "OEA license bot" (contents: write on this repository only), because a
+# push with the workflow token starts no pull_request run and the required checks would never
+# report on the new commit. Client ID and private key are Dependabot secrets
+# (LICENSE_BOT_CLIENT_ID, LICENSE_BOT_PRIVATE_KEY, see docs/development.md).
 
 on:
   pull_request:
@@ -67,10 +69,14 @@ jobs:
     needs: generate
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      contents: write # push the regenerated file to the Dependabot branch
-      actions: write # dispatch ci.yml for the new head commit
     steps:
+      - name: Token of the license bot (contents write, this repository only)
+        id: token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ secrets.LICENSE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.LICENSE_BOT_PRIVATE_KEY }}
+          permission-contents: write
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -90,10 +96,11 @@ jobs:
           done
           cp generated/THIRD-PARTY-LICENSES.md THIRD-PARTY-LICENSES.md
           rm -rf generated
-      - name: Commit, push and start the CI for the new commit
+      - name: Commit and push (starts the pull_request checks for the new commit)
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-          GH_TOKEN: ${{ github.token }}
+          APP_TOKEN: ${{ steps.token.outputs.token }}
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          APP_SLUG: ${{ steps.token.outputs.app-slug }}
           REPOSITORY: ${{ github.repository }}
           BRANCH: ${{ github.head_ref }}
         run: |
@@ -106,8 +113,8 @@ jobs:
             echo "::error::only THIRD-PARTY-LICENSES.md may change"
             exit 1
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          user_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${user_id}+${APP_SLUG}[bot]@users.noreply.github.com"
           git commit -m "chore(licenses): regenerate third-party licenses"
-          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPOSITORY}.git" "HEAD:refs/heads/${BRANCH}"
-          gh workflow run ci.yml --repo "$REPOSITORY" --ref "$BRANCH"
+          git push "https://x-access-token:${APP_TOKEN}@github.com/${REPOSITORY}.git" "HEAD:refs/heads/${BRANCH}"
