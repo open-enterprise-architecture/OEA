@@ -10,6 +10,7 @@ License texts and notices: the backend jar contains the license and notice files
 
 | License | Components |
 |---|---|
+| MIT | 34 |
 | Apache-2.0 | 93 |
 | BSD-3-Clause | 10 |
 | BSD-2-Clause | 2 |
