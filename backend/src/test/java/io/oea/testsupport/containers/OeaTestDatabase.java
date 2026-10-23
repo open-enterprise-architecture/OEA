@@ -42,7 +42,12 @@ public final class OeaTestDatabase {
 
 	/** Command-line arguments of {@code oea migrate} for the given provisioned container. */
 	public static String[] migrationArguments(PostgreSQLContainer container) {
-		return new String[] { "--oea.migration.url=" + container.getJdbcUrl(),
+		return migrationArguments(container.getJdbcUrl());
+	}
+
+	/** Command-line arguments of {@code oea migrate} for the given provisioned database. */
+	public static String[] migrationArguments(String jdbcUrl) {
+		return new String[] { "--oea.migration.url=" + jdbcUrl,
 				"--oea.migration.owner.password=" + OeaPostgres.ROLE_PASSWORDS.get("oea_owner"),
 				"--oea.migration.reporting-owner.password=" + OeaPostgres.ROLE_PASSWORDS.get("oea_reporting_owner") };
 	}

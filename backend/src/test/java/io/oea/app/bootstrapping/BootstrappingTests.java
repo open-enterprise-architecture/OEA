@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import io.oea.app.bootstrapping.BootstrapRejectedException.Reason;
 import io.oea.testsupport.containers.OeaApplications;
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,14 +26,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Spec identity/bootstrapping (US-013 AC1, US-015, US-016, US-017 AC2) against a fresh instance. */
 class BootstrappingTests {
 
 	private static final String PASSWORD = "correct horse battery staple";
 
-	private PostgreSQLContainer postgres;
+	private OeaDatabase postgres;
 
 	private ConfigurableApplicationContext context;
 

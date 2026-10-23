@@ -1,5 +1,6 @@
 package io.oea.api.catalog;
 
+import io.oea.api.ContractViolationResponse;
 import io.oea.api.generated.CatalogsApi;
 import io.oea.api.generated.model.Catalog;
 import io.oea.api.generated.model.CatalogColumn;
@@ -48,6 +49,7 @@ public class CatalogController implements CatalogsApi {
 	}
 
 	@Override
+	@ContractViolationResponse(status = 422, title = "Invalid catalog", detail = "Some fields are invalid.")
 	@ConditionsEnforcedByHandler(value = "Catalogs.create requires catalog:manage for scope=instance",
 			probeRole = "viewer", probeBody = """
 					{"name": "Probe", "primaryMetatypeId": "00000000-0000-0000-0000-000000000000", "scope": "instance"}""")
@@ -72,6 +74,7 @@ public class CatalogController implements CatalogsApi {
 	}
 
 	@Override
+	@ContractViolationResponse(title = "Invalid query", detail = "The paging or sort parameters are invalid.")
 	public ResponseEntity<CatalogQueryResult> queryCatalog(UUID id, Integer page, Integer pageSize, String sort) {
 		CatalogQueries.Result result = this.queries.query(principal(), id, page, pageSize, sort);
 		return ResponseEntity.ok(new CatalogQueryResult(

@@ -33,7 +33,12 @@ public final class RepositoryInstance implements AutoCloseable {
 	}
 
 	public static RepositoryInstance start() throws Exception {
-		OidcTestInstance instance = OidcTestInstance.start();
+		return start(new String[0]);
+	}
+
+	/** As {@link #start()} with extra arguments for the application. */
+	public static RepositoryInstance start(String... arguments) throws Exception {
+		OidcTestInstance instance = OidcTestInstance.start(arguments);
 		instance.person("dev-metamodel-admin", "active");
 		instance.person("dev-architect", "active");
 		instance.person("dev-viewer", "active");

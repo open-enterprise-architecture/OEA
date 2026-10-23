@@ -1,6 +1,5 @@
 package io.oea.api;
 
-import io.oea.api.catalog.CatalogController;
 import io.oea.api.entity.EntityBatchController;
 import io.oea.api.generated.model.ValidationError;
 import io.oea.app.access.AccessConflictException;
@@ -20,8 +19,7 @@ import io.oea.app.security.PermissionDeniedException;
 import io.oea.app.security.ReauthenticationRequiredException;
 import io.oea.app.security.SetupPhase;
 import io.oea.config.security.OeaAuthentication;
-import io.oea.config.web.PackageImportConfiguration;
-import io.oea.config.web.PackageSizeLimitFilter;
+import io.oea.config.web.RequestSizeLimitFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Path;
@@ -29,6 +27,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Stream;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.http.HttpHeaders;
@@ -42,8 +41,10 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.HandlerMapping;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DatabindException;
 
@@ -134,118 +135,112 @@ public class ApiExceptionHandler {
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	ResponseEntity<ProblemDetail> contractViolation(MethodArgumentNotValidException ex, HttpServletRequest request) {
-		if (EntityBatchController.BATCH_PATH.equals(request.getRequestURI())) {
-			// REQ-154: a batch that violates the contract (e.g. above 500 entities) is rejected as a whole
-			ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "validation-failed", "Batch rejected",
-					"The batch does not meet the contract; no item was processed.");
-			problem.setProperty("errors", ex.getBindingResult()
-				.getFieldErrors()
-				.stream()
-				.map((error) -> new ValidationError(error.getField(),
-						(error.getDefaultMessage() != null) ? error.getDefaultMessage() : "invalid")
-					.code("CONTRACT_VIOLATION"))
-				.toList());
-			return ResponseEntity.unprocessableContent().body(problem);
+		List<FieldError> errors = ex.getBindingResult().getFieldErrors();
+		ContractViolationResponse response = declared(request);
+		if (response == null) {
+			ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid request",
+					"Some fields do not meet the contract.");
+			problem.setProperty("invalidFields", fields(errors.stream().map(FieldError::getField)));
+			return ResponseEntity.badRequest().body(problem);
 		}
-		if (isCatalogs(request)) {
-			// REQ-043: invalid catalog input is answered with 422 and the rejected fields
-			return catalogProblem("validation-failed", "Invalid catalog", "Some fields are invalid.",
-					ex.getBindingResult().getFieldErrors().stream().map(FieldError::getField).distinct().sorted().toList());
-		}
-		if (isPackageImport(request)) {
-			FieldError first = ex.getBindingResult().getFieldErrors().stream().findFirst().orElse(null);
-			ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "invalid-package", "Invalid package",
-					"The package does not match the package format.");
-			if (first != null) {
-				problem.setProperty("pointer", "/" + first.getField().replaceAll("\\[(\\d+)]", "/$1").replace('.', '/'));
+		return switch (response.shape()) {
+			case INVALID_FIELDS -> invalidFields(response, fields(errors.stream().map(FieldError::getField)));
+			case BATCH_ERRORS -> {
+				// REQ-154: a batch that violates the contract (e.g. above 500 entities) is rejected as a whole
+				ProblemDetail problem = declaredProblem(response, "validation-failed");
+				problem.setProperty("errors", errors.stream()
+					.map((error) -> new ValidationError(error.getField(),
+							(error.getDefaultMessage() != null) ? error.getDefaultMessage() : "invalid")
+						.code("CONTRACT_VIOLATION"))
+					.toList());
+				yield ResponseEntity.status(response.status()).body(problem);
 			}
-			this.packageImporter.ifAvailable((importer) -> importer.recordRejected(currentPrincipal(), "invalid-package"));
-			return ResponseEntity.unprocessableContent().body(problem);
-		}
-		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid request",
-				"Some fields do not meet the contract.");
-		problem.setProperty("invalidFields",
-				ex.getBindingResult().getFieldErrors().stream().map(FieldError::getField).distinct().sorted().toList());
-		return ResponseEntity.badRequest().body(problem);
+			case PACKAGE -> {
+				ProblemDetail problem = declaredProblem(response, "invalid-package");
+				if (!errors.isEmpty()) {
+					problem.setProperty("pointer",
+							"/" + errors.get(0).getField().replaceAll("\\[(\\d+)]", "/$1").replace('.', '/'));
+				}
+				yield packageRejected(response, problem);
+			}
+		};
 	}
 
-	@ExceptionHandler({ HttpMessageNotReadableException.class, HandlerMethodValidationException.class })
-	ResponseEntity<ProblemDetail> malformedRequest(Exception ex, HttpServletRequest request) {
-		if (ex instanceof HandlerMethodValidationException validation && isCatalogQuery(request)) {
-			// e.g. pageSize above 200: the rejected query parameters by their contract names
-			return catalogQueryProblem(validation.getParameterValidationResults()
-				.stream()
-				.map((result) -> {
-					RequestParam param = result.getMethodParameter().getParameterAnnotation(RequestParam.class);
-					return (param != null) ? param.value() : result.getMethodParameter().getParameterName();
-				})
-				.distinct()
-				.sorted()
-				.toList());
+	@ExceptionHandler(HttpMessageNotReadableException.class)
+	ResponseEntity<ProblemDetail> malformedRequest(HttpMessageNotReadableException ex, HttpServletRequest request) {
+		if (NestedExceptionUtils
+			.getMostSpecificCause(ex) instanceof RequestSizeLimitFilter.RequestTooLargeException tooLarge) {
+			// a body without declared length that exceeded the limit while it was read (REQ-186)
+			return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
+				.body(problem(HttpStatus.CONTENT_TOO_LARGE, tooLarge.getProblemType(), tooLarge.getTitle(),
+						"The request body is larger than the configured limit."));
 		}
-		if (isPackageImport(request)) {
-			if (NestedExceptionUtils.getMostSpecificCause(ex) instanceof PackageSizeLimitFilter.PackageTooLargeException) {
-				return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
-					.body(problem(HttpStatus.CONTENT_TOO_LARGE, "package-too-large", "Package too large",
-							"The package is larger than the configured maximum size."));
-			}
-			// REQ-033: a faulty package is answered with the location of the problem
-			ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "invalid-package", "Invalid package",
-					"The package is not valid JSON or does not match the package format.");
-			Throwable cause = ex;
-			while (cause != null && !(cause instanceof JacksonException)) {
-				cause = cause.getCause();
-			}
-			if (cause instanceof JacksonException jackson && jackson.getLocation() != null) {
-				problem.setProperty("location",
-						Map.of("line", jackson.getLocation().getLineNr(), "column", jackson.getLocation().getColumnNr()));
-				problem.setDetail(jackson.getOriginalMessage());
-			}
-			this.packageImporter.ifAvailable((importer) -> importer.recordRejected(currentPrincipal(), "invalid-package"));
-			return ResponseEntity.unprocessableContent().body(problem);
-		}
-		if (isCatalogs(request)) {
-			// e.g. an unknown scope or join mode: the field is taken from the JSON path
-			Throwable cause = ex;
-			while (cause != null && !(cause instanceof DatabindException)) {
-				cause = cause.getCause();
-			}
-			List<String> fields = (cause instanceof DatabindException databind) ? databind.getPath()
+		ContractViolationResponse response = declared(request);
+		if (response != null && response.shape() == ContractViolationResponse.Shape.INVALID_FIELDS) {
+			// e.g. an unknown enum value: the field is taken from the JSON path
+			DatabindException databind = cause(ex, DatabindException.class);
+			return invalidFields(response, (databind != null) ? databind.getPath()
 				.stream()
 				.map(DatabindException.Reference::getPropertyName)
 				.filter((name) -> name != null)
 				.limit(1)
-				.toList() : List.of();
-			return catalogProblem("validation-failed", "Invalid catalog", "The request is invalid.", fields);
+				.toList() : List.of());
 		}
-		return ResponseEntity.badRequest()
-			.body(problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid request", "The request is invalid."));
+		if (response != null && response.shape() == ContractViolationResponse.Shape.PACKAGE) {
+			// REQ-033: a faulty package is answered with the location of the problem
+			ProblemDetail problem = declaredProblem(response, "invalid-package");
+			JacksonException jackson = cause(ex, JacksonException.class);
+			if (jackson != null && jackson.getLocation() != null) {
+				problem.setProperty("location",
+						Map.of("line", jackson.getLocation().getLineNr(), "column", jackson.getLocation().getColumnNr()));
+				problem.setDetail(jackson.getOriginalMessage());
+			}
+			return packageRejected(response, problem);
+		}
+		return invalidRequest();
 	}
 
-	/** A query parameter outside its contract range, e.g. {@code pageSize=201} (method validation). */
+	/** A parameter outside its contract range, validated before the handler runs. */
+	@ExceptionHandler(HandlerMethodValidationException.class)
+	ResponseEntity<ProblemDetail> invalidParameters(HandlerMethodValidationException ex, HttpServletRequest request) {
+		ContractViolationResponse response = declared(request);
+		if (response == null || response.shape() == ContractViolationResponse.Shape.BATCH_ERRORS) {
+			return invalidRequest();
+		}
+		if (response.shape() == ContractViolationResponse.Shape.PACKAGE) {
+			return packageRejected(response, declaredProblem(response, "invalid-package"));
+		}
+		// the rejected parameters by their contract names
+		return invalidFields(response, fields(ex.getParameterValidationResults().stream().map((result) -> {
+			RequestParam param = result.getMethodParameter().getParameterAnnotation(RequestParam.class);
+			return (param != null) ? param.value() : result.getMethodParameter().getParameterName();
+		})));
+	}
+
+	/** A parameter outside its contract range, e.g. {@code pageSize=201} (method validation). */
 	@ExceptionHandler(ConstraintViolationException.class)
 	ResponseEntity<ProblemDetail> constraintViolation(ConstraintViolationException ex, HttpServletRequest request) {
-		if (isCatalogQuery(request)) {
-			return catalogQueryProblem(ex.getConstraintViolations().stream().map((violation) -> {
-				String name = null;
-				for (Path.Node node : violation.getPropertyPath()) {
-					name = node.getName();
-				}
-				return name;
-			}).distinct().sorted().toList());
+		ContractViolationResponse response = declared(request);
+		if (response == null || response.shape() != ContractViolationResponse.Shape.INVALID_FIELDS) {
+			return invalidRequest();
 		}
-		return ResponseEntity.badRequest()
-			.body(problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid request", "The request is invalid."));
+		return invalidFields(response, fields(ex.getConstraintViolations().stream().map((violation) -> {
+			String name = null;
+			for (Path.Node node : violation.getPropertyPath()) {
+				name = node.getName();
+			}
+			return name;
+		})));
 	}
 
-	/** A query parameter that is not a number, e.g. {@code page=abc}. */
+	/** A parameter that is not a number, e.g. {@code page=abc}. */
 	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
 	ResponseEntity<ProblemDetail> typeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
-		if (isCatalogQuery(request)) {
-			return catalogQueryProblem(List.of(ex.getName()));
+		ContractViolationResponse response = declared(request);
+		if (response == null || response.shape() != ContractViolationResponse.Shape.INVALID_FIELDS) {
+			return invalidRequest();
 		}
-		return ResponseEntity.badRequest()
-			.body(problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid request", "The request is invalid."));
+		return invalidFields(response, List.of(ex.getName()));
 	}
 
 	@ExceptionHandler(InvalidCatalogQueryException.class)
@@ -297,17 +292,42 @@ public class ApiExceptionHandler {
 		return ResponseEntity.badRequest().body(problem);
 	}
 
-	private static boolean isCatalogQuery(HttpServletRequest request) {
-		String uri = request.getRequestURI();
-		return uri.startsWith(CatalogController.CATALOGS_PATH + "/") && uri.endsWith("/query");
+	/** The response declared by the handler method that the request was mapped to, or {@code null}. */
+	private static ContractViolationResponse declared(HttpServletRequest request) {
+		return (request.getAttribute(HandlerMapping.BEST_MATCHING_HANDLER_ATTRIBUTE) instanceof HandlerMethod handler)
+				? handler.getMethodAnnotation(ContractViolationResponse.class) : null;
 	}
 
-	private static boolean isCatalogs(HttpServletRequest request) {
-		return CatalogController.CATALOGS_PATH.equals(request.getRequestURI());
+	private static ProblemDetail declaredProblem(ContractViolationResponse response, String type) {
+		return problem(HttpStatus.valueOf(response.status()), type, response.title(), response.detail());
 	}
 
-	private static boolean isPackageImport(HttpServletRequest request) {
-		return PackageImportConfiguration.IMPORT_PATH.equals(request.getRequestURI());
+	private static ResponseEntity<ProblemDetail> invalidFields(ContractViolationResponse response, List<String> fields) {
+		ProblemDetail problem = declaredProblem(response, "validation-failed");
+		problem.setProperty("invalidFields", fields);
+		return ResponseEntity.status(response.status()).body(problem);
+	}
+
+	private ResponseEntity<ProblemDetail> packageRejected(ContractViolationResponse response, ProblemDetail problem) {
+		this.packageImporter.ifAvailable((importer) -> importer.recordRejected(currentPrincipal(), "invalid-package"));
+		return ResponseEntity.status(response.status()).body(problem);
+	}
+
+	private static ResponseEntity<ProblemDetail> invalidRequest() {
+		return ResponseEntity.badRequest()
+			.body(problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid request", "The request is invalid."));
+	}
+
+	private static List<String> fields(Stream<String> names) {
+		return names.filter((name) -> name != null).distinct().sorted().toList();
+	}
+
+	private static <T extends Throwable> T cause(Throwable ex, Class<T> type) {
+		Throwable cause = ex;
+		while (cause != null && !type.isInstance(cause)) {
+			cause = cause.getCause();
+		}
+		return type.cast(cause);
 	}
 
 	private static OeaPrincipal currentPrincipal() {

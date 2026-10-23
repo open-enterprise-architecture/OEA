@@ -44,7 +44,23 @@ public final class OeaApplications {
 	/** As {@link #start(PostgreSQLContainer, Path, WebApplicationType, String...)} with the clock as primary bean. */
 	public static ConfigurableApplicationContext start(PostgreSQLContainer postgres, Path setupTokenFile,
 			WebApplicationType webType, Clock clock, String... extra) {
-		List<String> args = new ArrayList<>(List.of("--spring.datasource.url=" + postgres.getJdbcUrl(),
+		return start(postgres.getJdbcUrl(), setupTokenFile, webType, clock, extra);
+	}
+
+	public static ConfigurableApplicationContext start(OeaDatabase database, Path setupTokenFile,
+			WebApplicationType webType, String... extra) {
+		return start(database.getJdbcUrl(), setupTokenFile, webType, null, extra);
+	}
+
+	/** As {@link #start(OeaDatabase, Path, WebApplicationType, String...)} with the clock as primary bean. */
+	public static ConfigurableApplicationContext start(OeaDatabase database, Path setupTokenFile,
+			WebApplicationType webType, Clock clock, String... extra) {
+		return start(database.getJdbcUrl(), setupTokenFile, webType, clock, extra);
+	}
+
+	private static ConfigurableApplicationContext start(String jdbcUrl, Path setupTokenFile,
+			WebApplicationType webType, Clock clock, String... extra) {
+		List<String> args = new ArrayList<>(List.of("--spring.datasource.url=" + jdbcUrl,
 				"--spring.datasource.username=oea_app",
 				"--spring.datasource.password=" + OeaPostgres.ROLE_PASSWORDS.get("oea_app"),
 				"--oea.bootstrap.setup-token-file=" + setupTokenFile,

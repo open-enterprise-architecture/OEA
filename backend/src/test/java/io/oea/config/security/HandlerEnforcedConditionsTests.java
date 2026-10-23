@@ -4,13 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.oea.app.security.Sessions;
 import io.oea.core.repository.SystemAdminAccountRepository;
-import io.oea.testsupport.auth.TestPrincipals;
 import io.oea.testsupport.auth.TestPrincipals.TestSession;
+import io.oea.testsupport.auth.TestPrincipals;
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import io.oea.testsupport.containers.OeaPostgres;
 import io.oea.testsupport.containers.OeaTestKeys;
-import io.oea.testsupport.security.AuthorizationMatrix;
 import io.oea.testsupport.security.AuthorizationMatrix.Operation;
+import io.oea.testsupport.security.AuthorizationMatrix;
 import jakarta.servlet.http.Cookie;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -27,7 +28,6 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Contract conditions enforced by the handler deny a principal holding only the base permissions
@@ -38,7 +38,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @AutoConfigureMockMvc
 class HandlerEnforcedConditionsTests {
 
-	private static final PostgreSQLContainer postgres = OeaDatabases.freshMigrated();
+	private static final OeaDatabase postgres = OeaDatabases.freshMigrated();
 
 	private static final String TOKEN_FILE = tempDirectory() + "/setup-token";
 

@@ -164,10 +164,11 @@ jobs:
           config: .markdownlint.json
 
   # ── 5. Backend build and tests (ws-01-project-setup) ───────────────────────
+  # Two parallel jobs (design D4 of s2b-backend-hardening): surefire and Cucumber each start one
+  # shared PostgreSQL server per JVM; a hung test must not run for 6 hours
   backend:
-    name: Backend build and tests
+    name: Backend unit and integration tests
     runs-on: ubuntu-latest
-    # Typical run about 12 minutes (Testcontainers, Cucumber); a hung test must not run for 6 hours
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -178,15 +179,39 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
-      - name: Build and test (unit, Testcontainers, ArchUnit, Enforcer, Cucumber)
+      - name: Build and test (unit, Testcontainers, ArchUnit, Enforcer)
         working-directory: backend
-        run: ./mvnw -B -ntp verify 2>&1 | tee ../backend-build.log; exit "${PIPESTATUS[0]}"
+        run: ./mvnw -B -ntp verify -DskipITs 2>&1 | tee ../backend-build.log; exit "${PIPESTATUS[0]}"
       - name: Testcontainers start times (ADR-036 follow-up)
         if: always()
         run: |
           {
             echo "### Testcontainers start times"
             grep -oE "Container [^ ]+ started in PT[0-9.]+S" backend-build.log | sed 's/@sha256:[0-9a-f]*//' | sort | uniq -c || true
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  backend-cucumber:
+    name: Backend Cucumber
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Cucumber scenarios (ADR-029)
+        working-directory: backend
+        run: ./mvnw -B -ntp verify -Dtest=none -Dsurefire.failIfNoSpecifiedTests=false 2>&1 | tee ../backend-cucumber.log; exit "${PIPESTATUS[0]}"
+      - name: Testcontainers start times (ADR-036 follow-up)
+        if: always()
+        run: |
+          {
+            echo "### Testcontainers start times"
+            grep -oE "Container [^ ]+ started in PT[0-9.]+S" backend-cucumber.log | sed 's/@sha256:[0-9a-f]*//' | sort | uniq -c || true
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ── 6. Security checks (ADR-036 §7) ──────────────────────────────────────────

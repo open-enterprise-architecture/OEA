@@ -242,6 +242,14 @@ components:
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
+    PayloadTooLarge:
+      description: |
+        Request body larger than the configured limit (problem type
+        `urn:oea:problem:request-too-large`, REQ-186); nothing is processed. The limits are
+        configurable by the operator – 1 MB by default, 10 MB for the entity batch.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
     ValidationFailed:
       description: Request body violates the metamodel or business rules
       content:
@@ -2582,6 +2590,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
@@ -2652,6 +2661,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /auth/local/login/totp:
@@ -2687,6 +2697,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /auth/oidc/providers:
@@ -2811,6 +2822,7 @@ paths:
               schema: { $ref: '#/components/schemas/TotpEnrollment' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
 
   /me/second-factors/totp/{credentialId}/confirm:
     post:
@@ -2845,6 +2857,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
   /client-compatibility:
     get:
       operationId: getClientCompatibility
@@ -2903,6 +2916,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/OAuthError' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  I18N                                                                  ║
@@ -2987,6 +3001,7 @@ paths:
               schema: { $ref: '#/components/schemas/Catalog' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: |
             Invalid input (problem type `urn:oea:problem:validation-failed`, e.g. an unknown
@@ -3271,6 +3286,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  METAMODEL (SCR-030)                                                   ║
@@ -3319,6 +3335,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
 
   /metamodel/metatypes/{id}:
     get:
@@ -3366,6 +3383,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
     delete:
       operationId: deleteMetatype
       summary: Delete metatype
@@ -3425,6 +3443,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /metamodel/property-categories:
@@ -3461,6 +3480,7 @@ paths:
               schema: { $ref: '#/components/schemas/PropertyCategory' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /metamodel/property-categories/{id}:
@@ -3489,6 +3509,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
     delete:
       operationId: deletePropertyCategory
       summary: Delete property category
@@ -3549,6 +3570,7 @@ paths:
               schema: { $ref: '#/components/schemas/PropertyDefinitionDetail' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /metamodel/property-definitions/{id}:
@@ -3577,6 +3599,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
     delete:
       operationId: deletePropertyDefinition
       summary: Delete property definition
@@ -3640,6 +3663,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
@@ -3710,6 +3734,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /admin/property-visibility:
@@ -3750,6 +3775,7 @@ paths:
                 items: { $ref: '#/components/schemas/PropertyVisibilityEntry' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /admin/trm:
@@ -3800,6 +3826,7 @@ paths:
               schema: { $ref: '#/components/schemas/TRMEntry' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /admin/trm/{id}:
@@ -3828,6 +3855,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
     delete:
       operationId: deleteTRMEntry
       summary: Delete TRM entry (SCR-033)
@@ -3893,6 +3921,7 @@ paths:
           description: Updated
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /admin/continuum/import:
@@ -3924,6 +3953,7 @@ paths:
               schema: { $ref: '#/components/schemas/ImportResult' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: Invalid file
           content:
@@ -3990,6 +4020,7 @@ paths:
               schema: { $ref: '#/components/schemas/AuthProvider' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /admin/auth/providers/{id}:
@@ -4034,6 +4065,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
     delete:
       operationId: deleteAuthProvider
@@ -4116,6 +4148,7 @@ paths:
               schema: { $ref: '#/components/schemas/ServiceAccountCreated' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: Invalid role or name already taken
           content:
@@ -4168,6 +4201,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
     delete:
       operationId: deleteServiceAccount
       summary: Deactivate service account
@@ -4240,6 +4274,7 @@ paths:
               schema: { $ref: '#/components/schemas/SystemSettings' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /admin/audit/retention:
@@ -4284,6 +4319,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: "`retentionDays` below the floor of 365 days"
           content:
@@ -4366,6 +4402,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: Unknown permission, SoD-2 violation or admin-class role flagged as assignable to service accounts
           content:
@@ -4421,6 +4458,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: Unknown permission, SoD-2 violation, admin-class permission added to a role assignable to (or assigned to) service accounts
           content:
@@ -4482,6 +4520,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
 
   /admin/persons/{personId}:
     get:
@@ -4548,6 +4587,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
 
   /admin/persons/{personId}/identities/{identityId}:
     delete:
@@ -4636,6 +4676,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: Unknown role, role not assignable to service accounts, or `validTo` before `validFrom`
           content:
@@ -4675,6 +4716,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
 
   /admin/approval-requests:
     get:
@@ -4741,6 +4783,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
 
   /admin/approval-requests/{requestId}/reject:
     post:
@@ -4772,6 +4815,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
 
   /admin/idp-group-mappings:
     get:
@@ -4827,6 +4871,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: Unknown provider or role, or group identifier not in the provider's immutable identifier format
           content:
@@ -4868,6 +4913,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: Unknown provider or role, or invalid group identifier format
           content:
@@ -4923,6 +4969,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: Entity is not of the person metatype, or the target is a service account
           content:
@@ -5003,6 +5050,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: Unknown role
           content:
@@ -5280,6 +5328,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: Validation error
           content:
@@ -5328,6 +5377,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: Validation error
           content:
@@ -5370,6 +5420,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
     delete:
       operationId: deleteEntity
       summary: Soft-delete entity
@@ -5427,6 +5478,7 @@ paths:
               schema: { $ref: '#/components/schemas/EntityDetail' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: Validation error
           content:
@@ -5457,6 +5509,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
 
   /entities/batch:
     post:
@@ -5491,6 +5544,7 @@ paths:
               schema: { $ref: '#/components/schemas/BatchWriteResponse' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: |
             Entire batch invalid, nothing written: more entities than the limit,
@@ -5536,6 +5590,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: Connection constraint violated
           content:
@@ -5771,6 +5826,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗

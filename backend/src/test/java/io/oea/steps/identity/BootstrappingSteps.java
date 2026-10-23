@@ -7,6 +7,7 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.oea.testsupport.containers.OeaApplications;
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import io.oea.testsupport.logging.LogCapture;
 import java.io.IOException;
@@ -28,7 +29,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -46,7 +46,7 @@ public class BootstrappingSteps {
 
 	private final List<String> passwords = new ArrayList<>();
 
-	private PostgreSQLContainer postgres;
+	private OeaDatabase postgres;
 
 	private ConfigurableApplicationContext application;
 

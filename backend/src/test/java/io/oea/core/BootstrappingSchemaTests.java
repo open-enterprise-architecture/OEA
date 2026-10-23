@@ -3,6 +3,7 @@ package io.oea.core;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -13,7 +14,6 @@ import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Migration db/migration/V2__bootstrapping.sql: owners, runtime grants, constraints. */
 class BootstrappingSchemaTests {
@@ -21,7 +21,7 @@ class BootstrappingSchemaTests {
 	private static final List<String> TABLES = List.of("system_admin_accounts", "system_settings", "local_credentials",
 			"password_credentials", "bootstrap_setup_tokens");
 
-	private static PostgreSQLContainer postgres;
+	private static OeaDatabase postgres;
 
 	@BeforeAll
 	static void start() {

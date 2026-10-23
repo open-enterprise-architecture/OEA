@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.oea.core.service.TotpAlgorithm;
 import io.oea.testsupport.containers.OeaApplications;
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import io.oea.testsupport.containers.OeaPostgres;
 import io.oea.testsupport.containers.OeaTestKeys;
@@ -29,14 +30,13 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Specs platform/secret-storage "Rotation" and "Database dump" on an own database. */
 class SecretRotationTests {
 
-	private static final PostgreSQLContainer postgres = OeaDatabases.freshMigrated();
+	private static final OeaDatabase postgres = OeaDatabases.freshMigrated();
 
 	private static final String PASSWORD = "correct horse battery staple";
 

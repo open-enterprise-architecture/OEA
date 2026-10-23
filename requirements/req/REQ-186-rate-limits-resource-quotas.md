@@ -4,9 +4,9 @@ title: Rate limiting and resource quotas
 type: non-functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-10-13
-last_updated: 2026-10-13
+last_updated: 2026-10-23
 author: requirements-engineer
 references:
   use_cases:
@@ -54,6 +54,7 @@ Source: security review SEC-23 (proposal PR-30); owner decision Q2 (portal may b
 | Search/autocomplete requests per principal | 60 / min | – | – | search endpoints |
 | Batch write requests per service account | 10 / min | – | – | batch endpoints |
 | Items per batch | max 500 entities and 500 connections | – | – | all batch endpoints |
+| Request body size | 1 MB; 10 MB for the entity batch and the package import; larger bodies are answered with 413 before they are parsed | – | – | all operations with a request body |
 | Page size | max 200 | – | – | all list endpoints |
 | Graph traversal depth | max 5 | – | – | impact, lineage, traversal endpoints |
 | Concurrent event streams per principal | max 5 | – | – | event stream endpoint |
@@ -116,3 +117,4 @@ Source: security review SEC-23 (proposal PR-30); owner decision Q2 (portal may b
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-23 (PR-30), owner decision Q2 |
 | 0.2.0 | 2026-10-13 | requirements-engineer | ADR-034 §5: analytics rows (30 queries/min, 2 concurrent per principal, pool 4) in the target value table; AC5 added |
+| 0.3.0 | 2026-10-23 | Change s2b-backend-hardening | Request body size row (security re-review WS-02, #73); implemented with spec `platform/request-limits` |

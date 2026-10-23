@@ -5,6 +5,7 @@ import io.oea.config.secrets.KeyRing;
 import io.oea.config.secrets.SecretCipher;
 import io.oea.core.domain.auth.AuthProvider;
 import io.oea.testsupport.containers.OeaApplications;
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import io.oea.testsupport.containers.OeaKeycloak;
 import io.oea.testsupport.containers.OeaTestKeys;
@@ -25,7 +26,6 @@ import java.util.UUID;
 import java.util.function.UnaryOperator;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * The running application on a fresh database with the development realm stored as provider
@@ -40,7 +40,7 @@ public final class OidcTestInstance implements AutoCloseable {
 
 	public static final String CLIENT = "oea-portal";
 
-	private final PostgreSQLContainer postgres;
+	private final OeaDatabase postgres;
 
 	private final ConfigurableApplicationContext application;
 
@@ -50,7 +50,7 @@ public final class OidcTestInstance implements AutoCloseable {
 
 	private final OffsetClock clock;
 
-	private OidcTestInstance(PostgreSQLContainer postgres, ConfigurableApplicationContext application,
+	private OidcTestInstance(OeaDatabase postgres, ConfigurableApplicationContext application,
 			UUID providerId, OffsetClock clock) {
 		this.postgres = postgres;
 		this.application = application;
@@ -60,7 +60,7 @@ public final class OidcTestInstance implements AutoCloseable {
 
 	/** Starts the instance with the development realm as enabled provider; extra arguments for the application. */
 	public static OidcTestInstance start(String... arguments) throws Exception {
-		PostgreSQLContainer postgres = OeaDatabases.freshMigrated();
+		OeaDatabase postgres = OeaDatabases.freshMigrated();
 		UUID providerId = insertProvider(postgres, "Keycloak (dev realm)", OeaKeycloak.issuer(), true);
 		Path tokenFile = Files.createTempDirectory("oea-oidc").resolve("setup-token");
 		String[] args = new String[arguments.length + 2];
@@ -82,7 +82,7 @@ public final class OidcTestInstance implements AutoCloseable {
 		return this.providerId;
 	}
 
-	public PostgreSQLContainer postgres() {
+	public OeaDatabase postgres() {
 		return this.postgres;
 	}
 
@@ -184,7 +184,7 @@ public final class OidcTestInstance implements AutoCloseable {
 		this.postgres.stop();
 	}
 
-	private static UUID insertProvider(PostgreSQLContainer postgres, String name, String issuer, boolean active)
+	private static UUID insertProvider(OeaDatabase postgres, String name, String issuer, boolean active)
 			throws Exception {
 		UUID id = UUID.randomUUID();
 		SecretCipher cipher = new SecretCipher(

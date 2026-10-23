@@ -8,6 +8,7 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.oea.audit.verify.AuditVerifyCommand;
 import io.oea.testsupport.audit.ChainTampering;
+import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import io.oea.testsupport.containers.OeaPostgres;
 import java.io.ByteArrayOutputStream;
@@ -19,7 +20,6 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Steps for features/audit/hash-chain.feature. Tampering needs a database of its own, so
@@ -27,7 +27,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  */
 public class HashChainSteps {
 
-	private PostgreSQLContainer postgres;
+	private OeaDatabase postgres;
 
 	private long checkpointSeq;
 
