@@ -81,3 +81,4 @@ In `.opencode/commands/`:
 | [ADR-042](./ADR-042-setup-phase-without-second-factor.md) | Setup Phase – System Admin Login Without Second Factor Until Other Identities Get Access | accepted | 2026-10-15 | – (partially ADR-032 SoD-8) |
 | [ADR-043](./ADR-043-third-party-license-policy.md) | License Policy for Third-Party Components | accepted | 2026-10-15 | – |
 | [ADR-044](./ADR-044-view-state-in-url.md) | View State of List and Table Views in the URL | accepted | 2026-10-22 | – |
+| [ADR-045](./ADR-045-user-manual.md) | Multilingual User Manual with VitePress on GitHub Pages | accepted | 2026-10-23 | – (partially ADR-031 Pages) |

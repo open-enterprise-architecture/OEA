@@ -22,6 +22,7 @@
 | **S1** ✓ | Setup + UC-02 + UC-01 | **⭐ Walking Skeleton (1/2), done 2026-10-15:** project setup (Maven `backend/`, Vue `frontend/`, `api/openapi.yaml`, operator `compose.yaml` and development `compose.dev.yaml` with Keycloak dev realm (ADR-036), migration step with owner/runtime role separation (ADR-033), CI), US-013 local bootstrapping, US-001 OIDC login | 13 + setup |
 | **S2** ✓ | UC-04 + UC-06 + UC-19 | **⭐ Walking Skeleton (2/2), done 2026-10-22:** US-033 import starter package, US-141 batch creation (AC1), US-046 create catalog, US-049 display catalog data (basis, incl. pagination) | 18 + E2E hardening |
 | **S2b** | – | **Retrospective actions** (A1–A5, A8, A9 of the retrospective): planned contract operations marked, `ApiExceptionHandler` without path branches, faster backend tests, Storybook a11y and `openspec validate` in CI, license regeneration on Dependabot PRs, security re-review of the skeleton, local development guide; request-size limit [#73](https://github.com/open-enterprise-architecture/OEA/issues/73) | – |
+| **S2c** | – | **User manual foundation** ([ADR-045](../adrs/ADR-045-user-manual.md), [REQ-196](../requirements/req/REQ-196-user-manual.md)): VitePress project `manual/` in English and German, GitHub Pages with Storybook under `/storybook/`, API reference generated from the contract, coverage check in CI, Playwright walkthrough tests with screenshots against the Compose stack, manual content for the walking-skeleton functions, release workflow with versions per release | – |
 | **S3** | UC-02 (remainder) | System admin bootstrapping: setup token, remote bootstrapping, break-glass, audit log; deferred [#61](https://github.com/open-enterprise-architecture/OEA/issues/61), [#62](https://github.com/open-enterprise-architecture/OEA/issues/62), [#63](https://github.com/open-enterprise-architecture/OEA/issues/63), [#74](https://github.com/open-enterprise-architecture/OEA/issues/74), [#75](https://github.com/open-enterprise-architecture/OEA/issues/75) | ~30 |
 | **S4** | UC-01 (1/2) | Login: session hardening, minimal password, generic error messages | ~25 |
 | **S5** | UC-01 (2/2) | Login: passkey, TOTP, configurable token lifetime, lifecycle invited→active, audit log | ~33 |
@@ -31,6 +32,8 @@
 
 **Deliverable S2 (met 2026-10-22):** Walking skeleton runnable (DoD in `docs/walking-skeleton.md`):
 admin bootstrap → OIDC login → starter package → entities via batch API → catalog table.
+
+**User manual from S3 onward:** every change with user-visible behavior updates the manual in English and German and its walkthrough screenshots in the same change (ADR-045 rule 8); the release workflow of S2c publishes the manual per version tag (REQ-196).
 
 **Re-scoping S4–S6:** the walking skeleton already implemented parts of UC-01 and UC-03 (sessions with timeouts and revocation, TOTP enrollment and login of the system admin, throttling of local logins, IdP group mappings; specs `openspec/specs/identity/`). Before S4 starts, its content is reconciled with these specs and the story points are re-estimated.
 

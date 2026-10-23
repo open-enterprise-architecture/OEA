@@ -5,7 +5,7 @@
 **Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Consulted**: –
 **Informed**: all contributors
-**Partially superseded**: 2026-10-15 by [ADR-040](./ADR-040-ui-component-library-after-primevue-license-change.md) — component library Nuxt UI 4 instead of PrimeVue
+**Partially superseded**: 2026-10-15 by [ADR-040](./ADR-040-ui-component-library-after-primevue-license-change.md) — component library Nuxt UI 4 instead of PrimeVue; 2026-10-23 by [ADR-045](./ADR-045-user-manual.md) — GitHub Pages shows the user manual, Storybook moves to `/storybook/`
 
 ## Context and Problem
 

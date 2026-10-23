@@ -5,7 +5,7 @@
 Traceability from use cases through requirements to user stories, derived from the
 frontmatter and reference sections of the artifacts.
 
-**Total UCs**: 23 | **Total REQs**: 195 | **Total USs**: 150
+**Total UCs**: 23 | **Total REQs**: 196 | **Total USs**: 150
 
 ---
 
@@ -52,6 +52,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-181](req/REQ-181-electron-hardening-local-data.md) | Electron runtime hardening and local data protection | constraint | must | – |
 | [REQ-187](req/REQ-187-http-security-baseline.md) | HTTP security headers, CORS, CSRF and cookie attributes | interface | must | – |
 | [REQ-193](req/REQ-193-generic-error-responses.md) | Generic error responses without internal details | interface | must | – |
+| [REQ-196](req/REQ-196-user-manual.md) | Multilingual user manual per release | non-functional | must | – |
 
 ### [UC-02](use-cases/UC-02-system-admin-bootstrapping.md): System Admin Bootstrapping
 
@@ -87,6 +88,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-191](req/REQ-191-supply-chain-integrity.md) | Supply chain integrity | constraint | must | – |
 | [REQ-192](req/REQ-192-ci-least-privilege.md) | Least privilege for CI/CD workflows | constraint | should | – |
 | [REQ-195](req/REQ-195-client-update-control.md) | Steerable client updates and version compatibility | functional | must | – |
+| [REQ-196](req/REQ-196-user-manual.md) | Multilingual user manual per release | non-functional | must | – |
 
 ### [UC-03](use-cases/UC-03-set-up-authentication-method.md): Set Up Authentication Method (Required Action at First Login)
 
@@ -112,6 +114,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-172](req/REQ-172-reauthentication-sensitive-actions.md) | Re-authentication and notification for sensitive account actions | functional | should | – |
 | [REQ-173](req/REQ-173-account-recovery-temporary-passwords.md) | Account recovery and temporary password lifecycle | functional | must | – |
 | [REQ-188](req/REQ-188-secrets-key-management.md) | Secrets and encryption key management | constraint | must | – |
+| [REQ-196](req/REQ-196-user-manual.md) | Multilingual user manual per release | non-functional | must | – |
 
 ### [UC-04](use-cases/UC-04-configure-metamodel.md): Configure Metamodel Collaboratively
 
@@ -139,6 +142,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md) |
 | [REQ-184](req/REQ-184-safe-import-parsing.md) | Safe parsing of imported files | constraint | must | – |
 | [REQ-185](req/REQ-185-bounded-expression-evaluation.md) | Bounded evaluation of user-defined expressions | non-functional | must | – |
+| [REQ-196](req/REQ-196-user-manual.md) | Multilingual user manual per release | non-functional | must | – |
 
 ### [UC-05](use-cases/UC-05-describe-architecture-vision.md): Describe the Architecture Vision of a Change Initiative
 
@@ -190,6 +194,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-152](req/REQ-152-dynamic-labels-etag.md) | Dynamic Labels with ETag Caching | interface | must | [US-140](user-stories/US-140-load-dynamic-labels.md) |
 | [REQ-179](req/REQ-179-secured-raw-query-analytics.md) | Secured raw SQL analytics | functional | must | – |
 | [REQ-186](req/REQ-186-rate-limits-resource-quotas.md) | Rate limiting and resource quotas | non-functional | must | – |
+| [REQ-196](req/REQ-196-user-manual.md) | Multilingual user manual per release | non-functional | must | – |
 
 ### [UC-07](use-cases/UC-07-create-and-use-dashboard.md): Create, Configure and Use a Dashboard in the Web Portal
 
@@ -429,6 +434,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md) |
 | [REQ-165](req/REQ-165-session-timeouts-token-storage.md) | Session timeouts and client token storage | non-functional | must | [US-147](user-stories/US-147-map-idp-group-to-role.md) |
 | [REQ-194](req/REQ-194-privileged-assignment-four-eyes-approval.md) | Optional four-eyes approval for privileged role assignments | business-rule | should | [US-150](user-stories/US-150-four-eyes-approval-privileged-assignment.md) |
+| [REQ-196](req/REQ-196-user-manual.md) | Multilingual user manual per release | non-functional | must | – |
 
 ## 2. UC × Concept × ADR
 
@@ -463,8 +469,8 @@ frontmatter and reference sections of the artifacts.
 | Type | Count |
 |---|---|
 | functional | 137 |
+| non-functional | 17 |
 | constraint | 16 |
-| non-functional | 16 |
 | business-rule | 12 |
 | compliance | 9 |
 | interface | 4 |
@@ -503,7 +509,7 @@ frontmatter and reference sections of the artifacts.
 
 ### REQs without US
 
-[REQ-071](req/REQ-071-catalog-query-latency.md), [REQ-072](req/REQ-072-canvas-rendering-latency.md), [REQ-073](req/REQ-073-system-availability.md), [REQ-074](req/REQ-074-concurrent-user-scalability.md), [REQ-075](req/REQ-075-platform-independent-deployment.md), [REQ-082](req/REQ-082-data-backup-retention.md), [REQ-083](req/REQ-083-audit-log-retention.md), [REQ-129](req/REQ-129-data-encryption.md), [REQ-130](req/REQ-130-wcag-accessibility.md), [REQ-131](req/REQ-131-graph-traversal-latency.md), [REQ-135](req/REQ-135-dark-mode-system-default.md), [REQ-136](req/REQ-136-local-auth-configurable.md), [REQ-137](req/REQ-137-auto-sso-redirect.md), [REQ-143](req/REQ-143-inline-column-filter.md), [REQ-144](req/REQ-144-shape-palette-panel.md), [REQ-145](req/REQ-145-shape-drag-entity-lookup.md), [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md), [REQ-147](req/REQ-147-api-completeness-automation.md), [REQ-151](req/REQ-151-audit-schema-separation.md), [REQ-156](req/REQ-156-postgresql-only-database.md), [REQ-159](req/REQ-159-object-level-authorization.md), [REQ-160](req/REQ-160-visibility-on-all-read-channels.md), [REQ-162](req/REQ-162-property-write-protection-all-paths.md), [REQ-163](req/REQ-163-no-anonymous-access.md), [REQ-166](req/REQ-166-oidc-hardening-identity-binding.md), [REQ-168](req/REQ-168-local-auth-throttling.md), [REQ-169](req/REQ-169-password-storage-quality.md), [REQ-170](req/REQ-170-totp-replay-protection.md), [REQ-171](req/REQ-171-mfa-privileged-accounts.md), [REQ-172](req/REQ-172-reauthentication-sensitive-actions.md), [REQ-173](req/REQ-173-account-recovery-temporary-passwords.md), [REQ-174](req/REQ-174-audit-tamper-resistance.md), [REQ-177](req/REQ-177-external-id-ownership.md), [REQ-178](req/REQ-178-outbound-request-controls.md), [REQ-179](req/REQ-179-secured-raw-query-analytics.md), [REQ-180](req/REQ-180-safe-rendering-user-content.md), [REQ-181](req/REQ-181-electron-hardening-local-data.md), [REQ-182](req/REQ-182-signed-client-updates.md), [REQ-183](req/REQ-183-production-safe-defaults.md), [REQ-184](req/REQ-184-safe-import-parsing.md), [REQ-185](req/REQ-185-bounded-expression-evaluation.md), [REQ-186](req/REQ-186-rate-limits-resource-quotas.md), [REQ-187](req/REQ-187-http-security-baseline.md), [REQ-188](req/REQ-188-secrets-key-management.md), [REQ-189](req/REQ-189-data-subject-rights-persons.md), [REQ-190](req/REQ-190-soft-deleted-data-retention.md), [REQ-191](req/REQ-191-supply-chain-integrity.md), [REQ-192](req/REQ-192-ci-least-privilege.md), [REQ-193](req/REQ-193-generic-error-responses.md), [REQ-195](req/REQ-195-client-update-control.md)
+[REQ-071](req/REQ-071-catalog-query-latency.md), [REQ-072](req/REQ-072-canvas-rendering-latency.md), [REQ-073](req/REQ-073-system-availability.md), [REQ-074](req/REQ-074-concurrent-user-scalability.md), [REQ-075](req/REQ-075-platform-independent-deployment.md), [REQ-082](req/REQ-082-data-backup-retention.md), [REQ-083](req/REQ-083-audit-log-retention.md), [REQ-129](req/REQ-129-data-encryption.md), [REQ-130](req/REQ-130-wcag-accessibility.md), [REQ-131](req/REQ-131-graph-traversal-latency.md), [REQ-135](req/REQ-135-dark-mode-system-default.md), [REQ-136](req/REQ-136-local-auth-configurable.md), [REQ-137](req/REQ-137-auto-sso-redirect.md), [REQ-143](req/REQ-143-inline-column-filter.md), [REQ-144](req/REQ-144-shape-palette-panel.md), [REQ-145](req/REQ-145-shape-drag-entity-lookup.md), [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md), [REQ-147](req/REQ-147-api-completeness-automation.md), [REQ-151](req/REQ-151-audit-schema-separation.md), [REQ-156](req/REQ-156-postgresql-only-database.md), [REQ-159](req/REQ-159-object-level-authorization.md), [REQ-160](req/REQ-160-visibility-on-all-read-channels.md), [REQ-162](req/REQ-162-property-write-protection-all-paths.md), [REQ-163](req/REQ-163-no-anonymous-access.md), [REQ-166](req/REQ-166-oidc-hardening-identity-binding.md), [REQ-168](req/REQ-168-local-auth-throttling.md), [REQ-169](req/REQ-169-password-storage-quality.md), [REQ-170](req/REQ-170-totp-replay-protection.md), [REQ-171](req/REQ-171-mfa-privileged-accounts.md), [REQ-172](req/REQ-172-reauthentication-sensitive-actions.md), [REQ-173](req/REQ-173-account-recovery-temporary-passwords.md), [REQ-174](req/REQ-174-audit-tamper-resistance.md), [REQ-177](req/REQ-177-external-id-ownership.md), [REQ-178](req/REQ-178-outbound-request-controls.md), [REQ-179](req/REQ-179-secured-raw-query-analytics.md), [REQ-180](req/REQ-180-safe-rendering-user-content.md), [REQ-181](req/REQ-181-electron-hardening-local-data.md), [REQ-182](req/REQ-182-signed-client-updates.md), [REQ-183](req/REQ-183-production-safe-defaults.md), [REQ-184](req/REQ-184-safe-import-parsing.md), [REQ-185](req/REQ-185-bounded-expression-evaluation.md), [REQ-186](req/REQ-186-rate-limits-resource-quotas.md), [REQ-187](req/REQ-187-http-security-baseline.md), [REQ-188](req/REQ-188-secrets-key-management.md), [REQ-189](req/REQ-189-data-subject-rights-persons.md), [REQ-190](req/REQ-190-soft-deleted-data-retention.md), [REQ-191](req/REQ-191-supply-chain-integrity.md), [REQ-192](req/REQ-192-ci-least-privilege.md), [REQ-193](req/REQ-193-generic-error-responses.md), [REQ-195](req/REQ-195-client-update-control.md), [REQ-196](req/REQ-196-user-manual.md)
 
 ### REQs without UC reference
 
