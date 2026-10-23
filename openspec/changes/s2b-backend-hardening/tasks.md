@@ -4,7 +4,7 @@
 
 - [x] 1.1 Add the shared provisioned PostgreSQL server with the migrated template `oea_template` and the database handle of D3 (`OeaPostgres.shared()`, `OeaDatabases.freshMigrated()` returning `OeaTestDatabase` with `getJdbcUrl()`, `asSuperuser()`, `asRole()`, `close()`; provisioning script run per cloned database); verify with `TestInfrastructureTests` that a cloned database has the database-level privileges of the provisioning (no `CONNECT` for `PUBLIC`, `CONNECT` for the OEA roles), the schemas and the migrated version, that two cloned databases are independent, and that the application starts against a clone (startup checks of `DatabaseStartupChecks` pass)
 - [x] 1.2 Switch the 26 users of `freshMigrated()` (test classes, Cucumber step definitions, `OidcTestInstance`) to the handle; keep own containers for `MigrationStepTests`, `DatabaseProvisioningTests` and `DatabaseStartupChecksTests`; verify `./mvnw verify` passes unchanged in test count and that the run starts one PostgreSQL server per test JVM plus the containers of the three exempted classes (measured: 13 instead of 119 starts, 2 shared and 11 exempted)
-- [ ] 1.3 Split the CI job `backend` into "Backend unit and integration tests" (`-DskipITs`) and "Backend Cucumber" (`-Dtest=none -Dsurefire.failIfNoSpecifiedTests=false`) as in D4, both with Maven cache and the Testcontainers summary; verify both jobs pass in the PR, the slower one finishes in under 8 minutes, and actionlint/zizmor report no findings for `ci.yml`
+- [x] 1.3 Split the CI job `backend` into "Backend unit and integration tests" (`-DskipITs`) and "Backend Cucumber" (`-Dtest=none -Dsurefire.failIfNoSpecifiedTests=false`) as in D4, both with Maven cache and the Testcontainers summary; verify both jobs pass in the PR, the slower one finishes in under 8 minutes, and actionlint/zizmor report no findings for `ci.yml`
 
 ## 2. Problem responses declared at the operation (A2)
 
@@ -20,4 +20,4 @@
 
 - [x] 4.1 Add the request-body limits to REQ-186 (row "Request body size": 1 MB default, 10 MB entity batch and package import) and the settings to `docs/operations.md`; note in issue #73 and the retrospective (A2, A3) that the change resolves them; verify markdown lint and link validation pass
 - [x] 4.2 No user story is referenced, so no story status changes; `docs/data-model.puml`, `business-objects/` and `docs/screens/SCREENS.md` are unchanged; regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
-- [ ] 4.3 Run `python3 scripts/validate_links.py`, the OpenAPI checks, `scripts/sync_agent_config.py --check` and `./mvnw verify` and verify all pass; record the measured CI times of both backend jobs in the PR
+- [x] 4.3 Run `python3 scripts/validate_links.py`, the OpenAPI checks, `scripts/sync_agent_config.py --check` and `./mvnw verify` and verify all pass; record the measured CI times of both backend jobs in the PR
