@@ -11,13 +11,13 @@
 ## 2. Storybook tests and spec validation in CI (A4)
 
 - [x] 2.1 Add `@storybook/addon-vitest` and `@vitest/browser-playwright` as dev dependencies, the Vitest project `storybook` and the script `test:stories` (D3); verify locally that all stories pass, that a story with an accessibility violation (temporary, not committed) fails the run, and that `npm test` still runs only the jsdom tests
-- [ ] 2.2 Install Chromium and run `npm run test:stories` in the job "Frontend build"; run `openspec validate --specs --strict` with the version of D4 in the job "Requirements completeness"; verify both jobs pass in the PR and actionlint/zizmor report no new findings for `ci.yml`
+- [x] 2.2 Install Chromium and run `npm run test:stories` in the job "Frontend build"; run `openspec validate --specs --strict` with the version of D4 in the job "Requirements completeness"; verify both jobs pass in the PR and actionlint/zizmor report no new findings for `ci.yml`
 - [x] 2.3 Regenerate `THIRD-PARTY-LICENSES.md` if the dev dependencies change the report (they are not distributed); verify `scripts/generate_third_party_licenses.py --check` passes
 
 ## 3. License regeneration on Dependabot PRs (A5)
 
 - [x] 3.1 Add `.github/workflows/dependabot-licenses.yml` with the jobs `generate` and `commit` of D5 (push with the token of the GitHub App); verify with actionlint and zizmor (no findings), that the `generate` job holds only `contents: read`, and that the commit step rejects any path other than `THIRD-PARTY-LICENSES.md`
-- [ ] 3.2 Verify the workflow end to end on the test branch `dependabot/npm_and_yarn/test-licenses` (PR #83) with an outdated `THIRD-PARTY-LICENSES.md` and the author condition temporarily widened: the file is committed by the license bot and the required `pull_request` checks report on the new head commit, so the pull request is mergeable; close the pull request and delete the branch afterwards (first attempt with `workflow_dispatch`: checks not counted for the pull request, see D5)
+- [x] 3.2 Verify the workflow end to end on the test branch `dependabot/npm_and_yarn/test-licenses-2` (PR #84) with an outdated `THIRD-PARTY-LICENSES.md` and the author condition temporarily widened: the file is committed by the license bot and the required `pull_request` checks report on the new head commit, so the pull request is mergeable; close the pull request and delete the branch afterwards (first attempt with `workflow_dispatch`: checks not counted for the pull request, see D5); a previous attempt in PR #83 had a merge conflict with `main`, and GitHub starts no `pull_request` workflows for a conflicting pull request, so the second attempt was branched from the current `main`
 - [x] 3.3 Add the workflow as evidence of REQ-192 AC2 and mention the automatic regeneration in AGENTS.md quality gate 7; verify link validation and `scripts/sync_agent_config.py --check` pass
 
 ## 4. Local development guide (A9)
@@ -27,4 +27,4 @@
 ## 5. Wrap-up
 
 - [x] 5.1 Mark A1, A4, A5 and A9 as implemented in `docs/retrospectives/2026-10-walking-skeleton.md` and S2b as done in `docs/sprint-plan.md`; no user story is referenced, so no story status changes; `docs/data-model.puml`, `business-objects/` and `docs/screens/SCREENS.md` are unchanged; regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
-- [ ] 5.2 Run `python3 scripts/validate_links.py`, the OpenAPI checks, `scripts/sync_agent_config.py --check`, `./mvnw verify` and the frontend checks and verify all pass
+- [x] 5.2 Run `python3 scripts/validate_links.py`, the OpenAPI checks, `scripts/sync_agent_config.py --check`, `./mvnw verify` and the frontend checks and verify all pass
