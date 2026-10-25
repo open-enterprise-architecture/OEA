@@ -92,7 +92,7 @@ Security review SEC-27 (2026-10-13): operators following plain `pg_dump` instruc
 ## Dependencies
 
 - **Prerequisites**: ADR-016 (PostgreSQL 15; pg_dump-compatible); REQ-073 (availability); REQ-129 (encryption scope); REQ-188 (key management)
-- **Downstream effects**: Backup procedure must be documented in `docs/operations.md` (before walking skeleton release)
+- **Downstream effects**: Backup procedure must be documented in the user manual, `manual/administration/operations.md` (before the first release)
 
 ## Risks of Non-Fulfillment
 
@@ -107,7 +107,7 @@ Security review SEC-27 (2026-10-13): operators following plain `pg_dump` instruc
 ## Implementation Notes
 
 - `docker-compose.yml` should contain an example volume mount and a cron comment for pg_dump
-- `docs/operations.md` (to be created): backup/restore procedure, retention recommendation, restore test checklist
+- `manual/administration/operations.md`: backup/restore procedure (to be added), retention recommendation, restore test checklist
 
 ## Implementation
 

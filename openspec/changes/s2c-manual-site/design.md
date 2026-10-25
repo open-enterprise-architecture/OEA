@@ -6,7 +6,7 @@
 - **Functions of the walking skeleton**: the frontend routes `/`, `/setup`, `/login`, `/me`, `/me/second-factor`, `/catalogs`, `/catalogs/:id`. `docs/screens/SCREENS.md` marks SCR-020 (catalog browser) and SCR-028 (create catalog dialog) as `implemented`. User stories by status: `review` US-001, US-013; `in-progress` US-033, US-049, US-141, US-143, US-147; `realized` US-046. Story files carry the status as `**Status**: <value>`.
 - **Contract**: `api/openapi.yaml` (OpenAPI 3.1, version `0.1.0-SNAPSHOT`) has 126 operations, 88 of them with `x-oea-status: planned` (change `s2b-ci-and-contract`). Every operation declares `x-oea-authorization` (`access` `public`, `authenticated` or `permission`, with `permissions` or `anyOfPermissions`). Problem types appear as `urn:oea:problem:<name>` in response descriptions, not as structured fields.
 - **GitHub Pages**: enabled with build type "GitHub Actions" (`https://open-enterprise-architecture.github.io/OEA/`). `.github/workflows/screens.yml` uploads Storybook as Pages artifact and deploys it, gated by the repository variable `STORYBOOK_PAGES`. A repository has one Pages site and one deployment at a time.
-- **Tooling**: the frontend uses Vite 8, Vue 3.5 and Node.js 24. VitePress 1.6 is the stable release (Vite 5); VitePress 2.0 (Vite 8) is in alpha. Markdown lint covers `**/*.md` except agent directories and `node_modules`. No Python test framework is used for the scripts; S2b verified scripts with temporarily broken inputs.
+- **Tooling**: the frontend uses Vite 8, Vue 3.5 and Node.js 24. VitePress 1.6.4 (August 2025) is the last stable release and depends on Vite 5; `npm audit` reports three advisories without fix in its development server (esbuild, Vite). VitePress 2.0.0-alpha.20 (September 2026) depends on Vite 8 and has no audit findings. Markdown lint covers `**/*.md` except agent directories and `node_modules`. No Python test framework is used for the scripts; S2b verified scripts with temporarily broken inputs.
 - **Required checks**: the ruleset of `main` requires the job names of `ci.yml`.
 
 ## Goals / Non-Goals
@@ -34,11 +34,11 @@
 
 ## Decisions
 
-### D1 – VitePress 1.6 as separate package `manual/`
+### D1 – VitePress 2.0 as separate package `manual/`
 
-`manual/` is its own npm package (`package.json`, `package-lock.json`, `private: true`) with VitePress 1.6, Vue 3.5 and `yaml` (generator), Node.js 24, and the scripts `dev`, `build`, `preview` and `test`. `npm run build` runs the API reference generator (D4) and then `vitepress build`. The site base comes from the environment variable `MANUAL_BASE` (default `/`), so the same build serves local preview, the Pages site and the version directories of `s2c-manual-release`. VitePress fails the build on dead internal links, which also checks the links between manual pages.
+`manual/` is its own npm package (`package.json`, `package-lock.json`, `private: true`) with VitePress `2.0.0-alpha.20` (exact version, no range), Vue 3.5 and `yaml` (generator), Node.js 24, and the scripts `dev`, `build`, `preview` and `test`. `npm run build` runs the API reference generator (D4) and then `vitepress build`. The site base comes from the environment variable `MANUAL_BASE` (default `/`), so the same build serves local preview, the Pages site and the version directories of `s2c-manual-release`. VitePress fails the build on dead internal links, which also checks the links between manual pages.
 
-*Alternatives*: VitePress 2.0 alpha (Vite 8 like the frontend) – rejected while in alpha; the upgrade is a Dependabot pull request once 2.0 is stable. An npm workspace with `frontend/` – rejected, the two packages need different Vite majors and the frontend lockfile would change with every manual dependency.
+*Alternatives*: VitePress 1.6.4 (stable) – rejected during implementation (owner decision of 2026-10-24): its Vite 5 development server has advisories without fix, which would keep Dependabot alerts open permanently, and 1.x receives no releases since August 2025. The alpha is pinned exactly, so every update arrives as a Dependabot pull request that the job "User manual" builds before the merge. An npm workspace with `frontend/` – rejected, the two packages need different Vite majors and the frontend lockfile would change with every manual dependency.
 
 ### D2 – Locales, chapters and page layout
 
@@ -48,7 +48,7 @@
 |---|---|---|
 | Introduction | `index.md` (home), `introduction/index.md` (what OEA is, editions, concepts: metamodel, catalogs, entities) | – |
 | Setup and first steps | `setup/index.md`, `setup/installation.md` (operator Compose file, secrets, provisioning, migration, start), `setup/first-administrator.md` (setup phase, setup token, second factor) | US-013 |
-| Administration | `administration/index.md`, `administration/identity-providers.md` (OIDC provider, persons, bindings), `administration/roles-and-permissions.md` (permission catalog, built-in roles, group mappings), `administration/metamodel-packages.md` (starter configuration, package import), `administration/operations.md` (database roles, key rotation, audit trail verification, request limits, PostgreSQL upgrade) | US-147, US-143, US-033 |
+| Administration | `administration/index.md`, `administration/identity-providers.md` (OIDC provider, persons, bindings), `administration/roles-and-permissions.md` (permission catalog, built-in roles, group mappings), `administration/metamodel-packages.md` (starter configuration, package import), `administration/operations.md` (database roles, key rotation, audit trail verification, request limits, PostgreSQL upgrade) | US-143 and US-147 (roles and permissions), US-033 (metamodel packages) |
 | Usage | `usage/index.md`, `usage/login.md` (login through the identity provider and locally, second factor, profile), `usage/catalogs.md` (create a catalog, catalog table, paging and sorting), `usage/entities-batch.md` (writing entities in batch through the API) | US-001, US-046, SCR-028, US-049, SCR-020, US-141 |
 | API reference | `api/index.md` (base URL, authentication, CSRF, problem responses, permissions), `api/reference/<tag>.md` generated (D4) | – |
 
@@ -122,7 +122,7 @@ No change to `api/openapi.yaml`; the contract is only read.
 
 ## Risks / Trade-offs
 
-- [VitePress 1.6 brings Vite 5 next to the Vite 8 of the frontend] → separate package and lockfile; the manual is not distributed; upgrade to 2.0 when stable
+- [VitePress 2.0 is an alpha; an update can change the configuration or theme API] → exact pin; Dependabot pull requests are built by the job "User manual"; the manual uses only the default theme with one layout slot
 - [German API reference pages contain the English texts of the contract] → labels and headings are German; translating the contract is out of scope; the pages exist in both languages as rule 1 requires
 - [The coverage check reads the story status from Markdown] → same pattern as the US completeness check of the job; a story with an unparsable status is reported, not skipped
 - [Moving `docs/operations.md` touches many links] → pointer file keeps old links working; link validation and the VitePress dead-link check cover the rest

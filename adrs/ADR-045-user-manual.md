@@ -100,4 +100,6 @@ Rules:
 
 Owner decisions of 2026-10-23: VitePress on GitHub Pages; English and German; chapters introduction, setup and first steps, administration, usage and interface; every function described; generated per release as far as possible; screenshots from tests against the real stack; versions per release with the latest at the root; Storybook kept under `/storybook/`; screenshots in each language the user interface offers, English otherwise. Owner decision of 2026-10-23: the manual addresses the reader directly, in German with the informal "du".
 
+Owner decisions of 2026-10-24 (change `s2c-manual-site`), clarifications within this decision: the coverage check of rule 3 includes user stories with status `review`; until the first release, the site root shows the manual of `main` with a notice that it describes the unreleased state; VitePress 2.0 (alpha, pinned exactly) instead of 1.6, whose Vite 5 development server has advisories without fix.
+
 Common practice of larger OSS products was considered: they rarely publish Storybook as part of the user documentation and usually translate only the text of their manuals while keeping English screenshots, because localized screenshots are expensive to maintain by hand. OEA generates screenshots automatically, so localized screenshots cost only an additional test run per language.

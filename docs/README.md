@@ -17,7 +17,7 @@ Reading the anti-patterns before the first experience is abstract – after the 
 | [quick-reference.md](quick-reference.md) | Tabular overview: which agent for what, ID conventions, slash commands, quality gates. Cheat sheet for lookup. |
 | [workflow-example.md](workflow-example.md) | End-to-end example "Franz captures an Application Component" in 10 phases, with example prompts and realistic agent responses. |
 | [anti-patterns.md](anti-patterns.md) | 29 typical failure patterns in 8 categories (PO role, agent usage, pipeline, spec discipline, security, documentation, scaling, human-machine). Prophylaxis. |
-| [operations.md](operations.md) | Database provisioning, migration step and application start for operators. |
+| [operations.md](operations.md) | Pointer to the operator documentation, which is part of the [user manual](../manual/README.md) (ADR-045). |
 
 ## Relationship to the Concept
 

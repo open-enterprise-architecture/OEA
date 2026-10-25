@@ -1,0 +1,25 @@
+{
+  "name": "oea-manual",
+  "private": true,
+  "version": "0.0.1",
+  "description": "OEA user manual (VitePress, English and German; ADR-045)",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "generate:api": "node scripts/generate-api-reference.mjs",
+    "predev": "npm run generate:api",
+    "dev": "vitepress dev",
+    "prebuild": "npm run generate:api",
+    "build": "vitepress build",
+    "preview": "vitepress preview",
+    "test": "node --test 'scripts/*.test.mjs'"
+  },
+  "devDependencies": {
+    "vitepress": "2.0.0-alpha.20",
+    "vue": "^3.5.42",
+    "yaml": "^2.9.1"
+  }
+}

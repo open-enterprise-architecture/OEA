@@ -1,0 +1,89 @@
+---
+title: Operations
+covers:
+  screens: []
+  stories: []
+---
+
+# Operations
+
+## Database roles
+
+| Role | Used by | Owns |
+|---|---|---|
+| `oea_owner` | migration step: `db/migration`, `db/migration-audit` | schemas `public`, `audit` and their objects |
+| `oea_reporting_owner` | migration step: `db/migration-reporting` | schemas `reporting`, `reporting_ctx` and their objects |
+| `oea_app` | backend at runtime | nothing |
+| `oea_audit_cleanup` | audit retention job | nothing |
+| `oea_auditor` | audit verification, external auditors | nothing |
+| `oea_analytics` | raw analytics connections | nothing |
+
+No role is `SUPERUSER`, `CREATEROLE`, `CREATEDB` or `BYPASSRLS`, and no OEA role is a member of another OEA role. The runtime role `oea_app` holds only `INSERT` and `SELECT` on the audit tables; the backend refuses to start otherwise. You rotate role passwords by running the provisioning script again (see [Installation](../setup/installation#provisioning-once)).
+
+## Request size limits
+
+Request bodies are limited before they are parsed. A larger body is answered with `413` and the problem type `urn:oea:problem:request-too-large` (`package-too-large` for metamodel packages):
+
+| Setting | Default | Applies to |
+|---|---|---|
+| `oea.web.request-size.default` (`OEA_WEB_REQUESTSIZE_DEFAULT`) | `1MB` | every operation with a request body |
+| `oea.web.request-size.entity-batch` (`OEA_WEB_REQUESTSIZE_ENTITYBATCH`) | `10MB` | `POST /entities/batch` |
+| `oea.metamodel.import.max-size` (`OEA_METAMODEL_IMPORT_MAXSIZE`) | `10MB` | `POST /admin/metamodel/import` |
+
+A reverse proxy in front of OEA should allow at least the largest of these values.
+
+## Key-encryption key
+
+Stored secrets – TOTP secrets and client secrets of identity providers – are encrypted with AES-256-GCM under the key-encryption key, a file outside the database. Every encrypted value records the ID of its key (the first 16 hex digits of the key's SHA-256).
+
+- `oea.security.kek.current` (`OEA_SECURITY_KEK_CURRENT`) names the key file; the Compose setup mounts the file named by `OEA_KEK_FILE` as the secret `/run/secrets/oea_kek`.
+- Keep the key out of database backups and store it separately. A database dump without the key does not reveal the secrets – and without the key, the secrets are lost.
+
+### Rotate the key
+
+1. Create a new key file and configure it as `oea.security.kek.current`; configure the old one as `oea.security.kek.previous` (a list of files, `OEA_SECURITY_KEK_PREVIOUS`).
+2. Re-encrypt all stored secrets with the runtime credentials:
+
+   ```bash
+   java -jar oea-backend.jar secrets reencrypt \
+     --spring.datasource.url=jdbc:postgresql://db.example.org:5432/oea \
+     --spring.datasource.username=oea_app \
+     --spring.datasource.password="$OEA_APP_PASSWORD" \
+     --oea.security.kek.current=/run/secrets/oea_kek \
+     --oea.security.kek.previous=/run/secrets/oea_kek_previous
+   ```
+
+3. Remove the old key from the configuration and destroy it.
+
+The command re-encrypts in one transaction and prints `OK <n> secret(s) re-encrypted with key <key ID>`. Exit codes: `0` done, `1` a value could not be decrypted with the configured keys (nothing was changed), `2` usage or connection error.
+
+## Verify the audit trail
+
+Every audit record is a link of a hash chain computed by the database. The verification command recomputes the chain with the read-only role `oea_auditor`:
+
+```bash
+java -jar oea-backend.jar audit verify \
+  --oea.audit-verify.url=jdbc:postgresql://db.example.org:5432/oea \
+  --oea.audit-verify.password="$OEA_AUDITOR_PASSWORD" \
+  --checkpoints=/var/log/oea/backend.log
+```
+
+With Compose: `docker compose run --rm migrate audit verify --oea.audit-verify.url=jdbc:postgresql://postgres:5432/oea --oea.audit-verify.password=…`. The environment variables `OEA_AUDITVERIFY_URL` and `OEA_AUDITVERIFY_PASSWORD` work as well.
+
+| Exit code | Meaning |
+|---|---|
+| `0` | chain intact (`OK <links> links, head <chain_seq> <hash>`) |
+| `1` | first broken link, missing link, or a database head behind or diverging from a checkpoint (`BROKEN …`) |
+| `2` | usage or connection error |
+
+**Checkpoints**: the backend appends a checkpoint every 60 minutes (`oea.audit.checkpoint-interval`, 5–1440 minutes) and at orderly shutdown, and writes a log line `event=audit.checkpoint chainSeq=… recordHash=… at=…`. Keep the backend log outside the database host (log shipper, journald, SIEM): checkpoints are only as trustworthy as the place they are stored. Pass the log file with `--checkpoints=` to detect deleted newest records or a restored older backup.
+
+## Upgrade PostgreSQL to a new major version
+
+The Compose setup uses PostgreSQL 18. Data directories are not compatible across major versions, so a major upgrade needs a dump and restore or `pg_upgrade`:
+
+1. Stop the backend, keep PostgreSQL running, and dump the database as superuser: `pg_dumpall` (roles and data) or `pg_dump -Fc oea` plus the provisioning script for the roles.
+2. Start the new PostgreSQL version on an empty volume; the provisioning script creates the roles again.
+3. Restore the dump, then run the migration step and start the backend.
+
+Since PostgreSQL 18, the official image keeps its data in `/var/lib/postgresql/18/docker`; the Compose volume is therefore mounted at `/var/lib/postgresql`. The minimum supported version stays PostgreSQL 15; the backend checks it at startup.

@@ -78,7 +78,7 @@ Concretely:
 1. **Storybook** (Vue 3 + Vite) lives in `frontend/`. Every screen in `docs/screens/SCREENS.md` has a screen story: `frontend/src/screens/SCR-NNN-<short-name>.stories.ts`, story title `Screens/SCR-NNN <Name>`.
 2. **Clickable flows** run in the frontend app in prototype mode against a **mock API** (Mock Service Worker) whose handlers are generated from `api/openapi.yaml`.
 3. **Screen images are generated, never drawn**: a GitHub Actions workflow renders every screen story in light and dark mode with Playwright to `docs/screens/SCR-NNN-light.png` and `SCR-NNN-dark.png`. Screenshots are PNG; SVG export of rendered HTML is not reliable.
-4. **Publication**: on every push to `main` that changes `frontend/`, the workflow builds Storybook, publishes it to GitHub Pages, regenerates the screenshots and commits changed images with `chore(screens): regenerate screenshots`.
+4. **Publication**: on every push to `main` that changes `frontend/`, the workflow regenerates the screenshots and commits changed images with `chore(screens): regenerate screenshots`; Storybook is published to GitHub Pages under `/storybook/` (since ADR-045 the site root shows the user manual).
 5. **Consistency check**: `scripts/check_screens.py` runs in CI and fails if a screen in `SCREENS.md` lacks its story or image, or if a story or image has no inventory entry.
 6. **Penpot is retired**: the Penpot scripts are removed. The existing SVG mockups stay as `legacy-mockup` until the screen story exists; the first generated screenshot replaces the SVG.
 7. **Early sketches** (optional): before a story exists, text wireframes (PlantUML Salt) may be embedded in use cases or OpenSpec designs.
@@ -131,5 +131,5 @@ The screenshot workflow `.github/workflows/screens.yml` is implemented with the 
 - A render job with a read-only token installs the dependencies, builds Storybook and renders the images with `frontend/scripts/render-screens.mjs`; a separate commit job with `contents: write` consumes only the rendered PNGs and changes nothing but `docs/screens/SCR-*.png`
 - The image of a screen is rendered from the **first story** of its story file; further stories are variants
 - Stories use synthetic data only (`frontend/src/test/catalogs.ts`), injected as a fetch function instead of a mock API server
-- Publishing Storybook to GitHub Pages runs only when the repository variable `STORYBOOK_PAGES` is `true`, because Pages is not enabled yet
+- Storybook is published by `.github/workflows/pages.yml` together with the user manual, under `/storybook/` of the Pages site (<https://open-enterprise-architecture.github.io/OEA/storybook/>, change `s2c-manual-site`); the repository variable `STORYBOOK_PAGES` of the first implementation is no longer read
 - A change that adds a screen story commits the first images itself, rendered with the same script, because `scripts/check_screens.py` checks them before the merge; the workflow then keeps them current

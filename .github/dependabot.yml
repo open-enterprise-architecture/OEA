@@ -47,3 +47,14 @@ updates:
         patterns: ["@nuxt/ui", "tailwindcss", "@iconify-json/*"]
       storybook:
         patterns: ["storybook", "@storybook/*"]
+
+  # User manual (ADR-045, change s2c-manual-site D7); VitePress is pinned exactly while 2.0 is in alpha
+  - package-ecosystem: npm
+    directory: /manual
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+    groups:
+      vitepress:
+        patterns: ["vitepress", "vue"]
