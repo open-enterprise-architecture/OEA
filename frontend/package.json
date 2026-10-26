@@ -34,7 +34,7 @@
     "vue-router": "^5.4.0"
   },
   "devDependencies": {
-    "@iconify-json/lucide": "^1.2.146",
+    "@iconify-json/lucide": "^1.2.147",
     "@storybook/addon-a11y": "^10.6.2",
     "@storybook/addon-vitest": "^10.6.2",
     "@storybook/vue3-vite": "^10.6.2",
