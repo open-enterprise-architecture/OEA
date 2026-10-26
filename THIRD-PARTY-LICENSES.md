@@ -32,10 +32,10 @@ License texts and notices: the backend jar contains the license and notice files
 | istack common utility code runtime (`com.sun.istack:istack-commons-runtime`) | 4.1.2 | BSD-3-Clause | – | <https://projects.eclipse.org/projects/ee4j/istack-commons/istack-commons-runtime> |
 | HikariCP (`com.zaxxer:HikariCP`) | 7.0.2 | Apache-2.0 | – | <https://github.com/brettwooldridge/HikariCP> |
 | Apache Commons Logging (`commons-logging:commons-logging`) | 1.3.6 | Apache-2.0 | – | <https://commons.apache.org/proper/commons-logging/> |
-| micrometer-commons (`io.micrometer:micrometer-commons`) | 1.17.1 | Apache-2.0 | – | <https://github.com/micrometer-metrics/micrometer-commercial> |
-| micrometer-core (`io.micrometer:micrometer-core`) | 1.17.1 | Apache-2.0 | – | <https://github.com/micrometer-metrics/micrometer-commercial> |
-| micrometer-jakarta9 (`io.micrometer:micrometer-jakarta9`) | 1.17.1 | Apache-2.0 | – | <https://github.com/micrometer-metrics/micrometer-commercial> |
-| micrometer-observation (`io.micrometer:micrometer-observation`) | 1.17.1 | Apache-2.0 | – | <https://github.com/micrometer-metrics/micrometer-commercial> |
+| micrometer-commons (`io.micrometer:micrometer-commons`) | 1.17.2 | Apache-2.0 | – | <https://github.com/micrometer-metrics/micrometer> |
+| micrometer-core (`io.micrometer:micrometer-core`) | 1.17.2 | Apache-2.0 | – | <https://github.com/micrometer-metrics/micrometer> |
+| micrometer-jakarta9 (`io.micrometer:micrometer-jakarta9`) | 1.17.2 | Apache-2.0 | – | <https://github.com/micrometer-metrics/micrometer> |
+| micrometer-observation (`io.micrometer:micrometer-observation`) | 1.17.2 | Apache-2.0 | – | <https://github.com/micrometer-metrics/micrometer> |
 | Jakarta Activation API (`jakarta.activation:jakarta.activation-api`) | 2.1.4 | BSD-3-Clause | – | <https://github.com/jakartaee/jaf-api> |
 | Jakarta Annotations API (`jakarta.annotation:jakarta.annotation-api`) | 3.0.0 | EPL-2.0 | GPL-2.0-with-classpath-exception | <https://projects.eclipse.org/projects/ee4j.ca> |
 | Jakarta Dependency Injection (`jakarta.inject:jakarta.inject-api`) | 2.0.1 | Apache-2.0 | – | <https://github.com/eclipse-ee4j/injection-api> |
@@ -43,7 +43,7 @@ License texts and notices: the backend jar contains the license and notice files
 | jakarta.transaction API (`jakarta.transaction:jakarta.transaction-api`) | 2.0.1 | EPL-2.0 | GPL-2.0-with-classpath-exception | <https://projects.eclipse.org/projects/ee4j.jta> |
 | Jakarta Validation API (`jakarta.validation:jakarta.validation-api`) | 3.1.1 | Apache-2.0 | – | <https://beanvalidation.org> |
 | Jakarta XML Binding API (`jakarta.xml.bind:jakarta.xml.bind-api`) | 4.0.5 | BSD-3-Clause | – | <https://github.com/jakartaee/jaxb-api/jakarta.xml.bind-api> |
-| Byte Buddy (without dependencies) (`net.bytebuddy:byte-buddy`) | 1.18.11 | Apache-2.0 | – | <https://bytebuddy.net/byte-buddy> |
+| Byte Buddy (without dependencies) (`net.bytebuddy:byte-buddy`) | 1.18.15 | Apache-2.0 | – | <https://bytebuddy.net/byte-buddy> |
 | ASM based accessors helper used by json-smart (`net.minidev:accessors-smart`) | 2.6.0 | Apache-2.0 | – | <https://urielch.github.io/> |
 | JSON Small and Fast Parser (`net.minidev:json-smart`) | 2.6.0 | Apache-2.0 | – | <https://urielch.github.io/> |
 | ANTLR 4 Runtime (`org.antlr:antlr4-runtime`) | 4.13.2 | BSD-3-Clause | – | <https://www.antlr.org/antlr4-runtime/> |
@@ -62,74 +62,74 @@ License texts and notices: the backend jar contains the license and notice files
 | JAXB Runtime (`org.glassfish.jaxb:jaxb-runtime`) | 4.0.9 | BSD-3-Clause | – | <https://eclipse-ee4j.github.io/jaxb-ri/> |
 | TXW2 Runtime (`org.glassfish.jaxb:txw2`) | 4.0.9 | BSD-3-Clause | – | <https://eclipse-ee4j.github.io/jaxb-ri/> |
 | HdrHistogram (`org.hdrhistogram:HdrHistogram`) | 2.2.2 | BSD-2-Clause | CC0-1.0 | <http://hdrhistogram.github.io/HdrHistogram/> |
-| Hibernate Models (`org.hibernate.models:hibernate-models`) | 1.1.1 | Apache-2.0 | – | <https://github.com/hibernate/hibernate-models> |
-| Hibernate ORM - hibernate-core (`org.hibernate.orm:hibernate-core`) | 7.4.5.Final | Apache-2.0 | – | <https://hibernate.org/orm> |
-| Hibernate Validator Engine (`org.hibernate.validator:hibernate-validator`) | 9.1.3.Final | Apache-2.0 | – | <https://hibernate.org/validator> |
+| Hibernate Models (`org.hibernate.models:hibernate-models`) | 1.1.2 | Apache-2.0 | – | <https://github.com/hibernate/hibernate-models> |
+| Hibernate ORM - hibernate-core (`org.hibernate.orm:hibernate-core`) | 7.4.13.Final | Apache-2.0 | – | <https://hibernate.org/orm> |
+| Hibernate Validator Engine (`org.hibernate.validator:hibernate-validator`) | 9.1.5.Final | Apache-2.0 | – | <https://hibernate.org/validator> |
 | JBoss Logging 3 (`org.jboss.logging:jboss-logging`) | 3.6.3.Final | Apache-2.0 | – | <https://www.jboss.org> |
 | JSpecify annotations (`org.jspecify:jspecify`) | 1.0.1 | Apache-2.0 | – | <https://jspecify.dev/> |
 | asm (`org.ow2.asm:asm`) | 9.7.1 | BSD-3-Clause | – | <http://asm.ow2.io/> |
-| PostgreSQL JDBC Driver (`org.postgresql:postgresql`) | 42.7.13 | BSD-2-Clause | – | <https://jdbc.postgresql.org> |
-| JUL to SLF4J bridge (`org.slf4j:jul-to-slf4j`) | 2.0.18 | MIT | – | <http://www.slf4j.org> |
-| SLF4J API Module (`org.slf4j:slf4j-api`) | 2.0.18 | MIT | – | <http://www.slf4j.org> |
+| PostgreSQL JDBC Driver (`org.postgresql:postgresql`) | 42.7.14 | BSD-2-Clause | – | <https://jdbc.postgresql.org> |
+| JUL to SLF4J bridge (`org.slf4j:jul-to-slf4j`) | 2.0.20 | MIT | – | <http://www.slf4j.org> |
+| SLF4J API Module (`org.slf4j:slf4j-api`) | 2.0.20 | MIT | – | <http://www.slf4j.org> |
 | SnakeYAML Engine (`org.snakeyaml:snakeyaml-engine`) | 3.0.1 | Apache-2.0 | – | <https://bitbucket.org/snakeyaml/snakeyaml-engine> |
-| spring-boot (`org.springframework.boot:spring-boot`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-actuator (`org.springframework.boot:spring-boot-actuator`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-actuator-autoconfigure (`org.springframework.boot:spring-boot-actuator-autoconfigure`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-autoconfigure (`org.springframework.boot:spring-boot-autoconfigure`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-data-commons (`org.springframework.boot:spring-boot-data-commons`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-data-jpa (`org.springframework.boot:spring-boot-data-jpa`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-flyway (`org.springframework.boot:spring-boot-flyway`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-health (`org.springframework.boot:spring-boot-health`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-hibernate (`org.springframework.boot:spring-boot-hibernate`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-http-converter (`org.springframework.boot:spring-boot-http-converter`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-jackson (`org.springframework.boot:spring-boot-jackson`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| Spring Boot Jarmode Tools (`org.springframework.boot:spring-boot-jarmode-tools`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-jdbc (`org.springframework.boot:spring-boot-jdbc`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-jpa (`org.springframework.boot:spring-boot-jpa`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-micrometer-metrics (`org.springframework.boot:spring-boot-micrometer-metrics`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-micrometer-observation (`org.springframework.boot:spring-boot-micrometer-observation`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-persistence (`org.springframework.boot:spring-boot-persistence`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-security (`org.springframework.boot:spring-boot-security`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-servlet (`org.springframework.boot:spring-boot-servlet`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-sql (`org.springframework.boot:spring-boot-sql`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-starter (`org.springframework.boot:spring-boot-starter`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-starter-actuator (`org.springframework.boot:spring-boot-starter-actuator`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-starter-data-jpa (`org.springframework.boot:spring-boot-starter-data-jpa`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-starter-flyway (`org.springframework.boot:spring-boot-starter-flyway`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-starter-jackson (`org.springframework.boot:spring-boot-starter-jackson`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-starter-jdbc (`org.springframework.boot:spring-boot-starter-jdbc`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-starter-logging (`org.springframework.boot:spring-boot-starter-logging`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-starter-micrometer-metrics (`org.springframework.boot:spring-boot-starter-micrometer-metrics`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-starter-security (`org.springframework.boot:spring-boot-starter-security`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-starter-tomcat (`org.springframework.boot:spring-boot-starter-tomcat`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-starter-tomcat-runtime (`org.springframework.boot:spring-boot-starter-tomcat-runtime`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-starter-validation (`org.springframework.boot:spring-boot-starter-validation`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-starter-webmvc (`org.springframework.boot:spring-boot-starter-webmvc`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-tomcat (`org.springframework.boot:spring-boot-tomcat`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-transaction (`org.springframework.boot:spring-boot-transaction`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-validation (`org.springframework.boot:spring-boot-validation`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-web-server (`org.springframework.boot:spring-boot-web-server`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| spring-boot-webmvc (`org.springframework.boot:spring-boot-webmvc`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
-| Spring Data Core (`org.springframework.data:spring-data-commons`) | 4.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-data> |
-| Spring Data JPA (`org.springframework.data:spring-data-jpa`) | 4.1.1 | Apache-2.0 | – | <https://projects.spring.io/spring-data-jpa> |
-| spring-security-config (`org.springframework.security:spring-security-config`) | 7.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-security> |
-| spring-security-core (`org.springframework.security:spring-security-core`) | 7.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-security> |
-| spring-security-crypto (`org.springframework.security:spring-security-crypto`) | 7.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-security> |
-| spring-security-oauth2-client (`org.springframework.security:spring-security-oauth2-client`) | 7.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-security> |
-| spring-security-oauth2-core (`org.springframework.security:spring-security-oauth2-core`) | 7.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-security> |
-| spring-security-oauth2-jose (`org.springframework.security:spring-security-oauth2-jose`) | 7.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-security> |
-| spring-security-web (`org.springframework.security:spring-security-web`) | 7.1.1 | Apache-2.0 | – | <https://spring.io/projects/spring-security> |
-| Spring AOP (`org.springframework:spring-aop`) | 7.0.9 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
-| Spring Aspects (`org.springframework:spring-aspects`) | 7.0.9 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
-| Spring Beans (`org.springframework:spring-beans`) | 7.0.9 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
-| Spring Context (`org.springframework:spring-context`) | 7.0.9 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
-| Spring Core (`org.springframework:spring-core`) | 7.0.9 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
-| Spring Expression Language (SpEL) (`org.springframework:spring-expression`) | 7.0.9 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
-| Spring JDBC (`org.springframework:spring-jdbc`) | 7.0.9 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
-| Spring Object/Relational Mapping (`org.springframework:spring-orm`) | 7.0.9 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
-| Spring Transaction (`org.springframework:spring-tx`) | 7.0.9 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
-| Spring Web (`org.springframework:spring-web`) | 7.0.9 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
-| Spring Web MVC (`org.springframework:spring-webmvc`) | 7.0.9 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
+| spring-boot (`org.springframework.boot:spring-boot`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-actuator (`org.springframework.boot:spring-boot-actuator`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-actuator-autoconfigure (`org.springframework.boot:spring-boot-actuator-autoconfigure`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-autoconfigure (`org.springframework.boot:spring-boot-autoconfigure`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-data-commons (`org.springframework.boot:spring-boot-data-commons`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-data-jpa (`org.springframework.boot:spring-boot-data-jpa`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-flyway (`org.springframework.boot:spring-boot-flyway`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-health (`org.springframework.boot:spring-boot-health`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-hibernate (`org.springframework.boot:spring-boot-hibernate`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-http-converter (`org.springframework.boot:spring-boot-http-converter`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-jackson (`org.springframework.boot:spring-boot-jackson`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| Spring Boot Jarmode Tools (`org.springframework.boot:spring-boot-jarmode-tools`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-jdbc (`org.springframework.boot:spring-boot-jdbc`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-jpa (`org.springframework.boot:spring-boot-jpa`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-micrometer-metrics (`org.springframework.boot:spring-boot-micrometer-metrics`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-micrometer-observation (`org.springframework.boot:spring-boot-micrometer-observation`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-persistence (`org.springframework.boot:spring-boot-persistence`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-security (`org.springframework.boot:spring-boot-security`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-servlet (`org.springframework.boot:spring-boot-servlet`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-sql (`org.springframework.boot:spring-boot-sql`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-starter (`org.springframework.boot:spring-boot-starter`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-starter-actuator (`org.springframework.boot:spring-boot-starter-actuator`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-starter-data-jpa (`org.springframework.boot:spring-boot-starter-data-jpa`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-starter-flyway (`org.springframework.boot:spring-boot-starter-flyway`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-starter-jackson (`org.springframework.boot:spring-boot-starter-jackson`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-starter-jdbc (`org.springframework.boot:spring-boot-starter-jdbc`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-starter-logging (`org.springframework.boot:spring-boot-starter-logging`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-starter-micrometer-metrics (`org.springframework.boot:spring-boot-starter-micrometer-metrics`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-starter-security (`org.springframework.boot:spring-boot-starter-security`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-starter-tomcat (`org.springframework.boot:spring-boot-starter-tomcat`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-starter-tomcat-runtime (`org.springframework.boot:spring-boot-starter-tomcat-runtime`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-starter-validation (`org.springframework.boot:spring-boot-starter-validation`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-starter-webmvc (`org.springframework.boot:spring-boot-starter-webmvc`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-tomcat (`org.springframework.boot:spring-boot-tomcat`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-transaction (`org.springframework.boot:spring-boot-transaction`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-validation (`org.springframework.boot:spring-boot-validation`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-web-server (`org.springframework.boot:spring-boot-web-server`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| spring-boot-webmvc (`org.springframework.boot:spring-boot-webmvc`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-boot> |
+| Spring Data Core (`org.springframework.data:spring-data-commons`) | 4.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-data> |
+| Spring Data JPA (`org.springframework.data:spring-data-jpa`) | 4.1.2 | Apache-2.0 | – | <https://projects.spring.io/spring-data-jpa> |
+| spring-security-config (`org.springframework.security:spring-security-config`) | 7.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-security> |
+| spring-security-core (`org.springframework.security:spring-security-core`) | 7.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-security> |
+| spring-security-crypto (`org.springframework.security:spring-security-crypto`) | 7.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-security> |
+| spring-security-oauth2-client (`org.springframework.security:spring-security-oauth2-client`) | 7.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-security> |
+| spring-security-oauth2-core (`org.springframework.security:spring-security-oauth2-core`) | 7.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-security> |
+| spring-security-oauth2-jose (`org.springframework.security:spring-security-oauth2-jose`) | 7.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-security> |
+| spring-security-web (`org.springframework.security:spring-security-web`) | 7.1.2 | Apache-2.0 | – | <https://spring.io/projects/spring-security> |
+| Spring AOP (`org.springframework:spring-aop`) | 7.0.10 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
+| Spring Aspects (`org.springframework:spring-aspects`) | 7.0.10 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
+| Spring Beans (`org.springframework:spring-beans`) | 7.0.10 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
+| Spring Context (`org.springframework:spring-context`) | 7.0.10 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
+| Spring Core (`org.springframework:spring-core`) | 7.0.10 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
+| Spring Expression Language (SpEL) (`org.springframework:spring-expression`) | 7.0.10 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
+| Spring JDBC (`org.springframework:spring-jdbc`) | 7.0.10 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
+| Spring Object/Relational Mapping (`org.springframework:spring-orm`) | 7.0.10 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
+| Spring Transaction (`org.springframework:spring-tx`) | 7.0.10 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
+| Spring Web (`org.springframework:spring-web`) | 7.0.10 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
+| Spring Web MVC (`org.springframework:spring-webmvc`) | 7.0.10 | Apache-2.0 | – | <https://github.com/spring-projects/spring-framework> |
 | SnakeYAML (`org.yaml:snakeyaml`) | 2.6 | Apache-2.0 | – | <https://bitbucket.org/snakeyaml/snakeyaml> |
 | Jackson-core (`tools.jackson.core:jackson-core`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-core> |
 | jackson-databind (`tools.jackson.core:jackson-databind`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson> |
