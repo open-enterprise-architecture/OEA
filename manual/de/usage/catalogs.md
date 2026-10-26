@@ -22,6 +22,8 @@ Ein Katalog ist eine wiederverwendbare Tabellenansicht des Repositorys. Er zeigt
    | Visibility | *Shared*: für alle Benutzer der Instanz sichtbar (braucht die Berechtigung, Kataloge zu verwalten); *Personal*: nur für dich sichtbar |
    | Default join mode | *Aggregate*: eine Zeile pro Entität, verknüpfte Entitäten in einer Zelle; *Rows*: eine Zeile pro verknüpfter Entität. Gilt für später hinzugefügte Joins |
 
+<Screenshot name="catalog-create" alt="Dialog New catalog mit Name, Beschreibung, Entitätstyp und Sichtbarkeit" />
+
 3. Wähle *Create catalog*. Der neue Katalog öffnet sich.
 
 Ist der Name schon vergeben, sagt dir das der Dialog; wähle einen anderen Namen. Ohne die Berechtigung, Kataloge zu verwalten, ist *Shared* nicht wählbar.
@@ -29,6 +31,10 @@ Ist der Name schon vergeben, sagt dir das der Dialog; wähle einen anderen Namen
 ## Katalog durchsehen
 
 Die Liste *Catalogs* zeigt jeden Katalog, den du sehen darfst, markiert mit *Shared* oder *Personal*. Öffne einen, um seine Tabelle zu sehen:
+
+<Screenshot name="catalogs" alt="Liste der Kataloge" />
+
+<Screenshot name="catalog-table" alt="Tabelle eines Katalogs mit Application Components" />
 
 - Solange keine Spalten konfiguriert sind, zeigt die Tabelle die Spalten *Name* und – wenn der Entitätstyp die Eigenschaft *Status* hat – *Status*.
 - Klicke auf einen Spaltenkopf, um zu sortieren: aufsteigend, absteigend und zurück zur Standardreihenfolge.

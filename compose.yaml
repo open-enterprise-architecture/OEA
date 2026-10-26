@@ -1,7 +1,7 @@
 # OEA operator setup (ADR-036 §3). Safe by default: no identity provider, no literal
 # secret and no default for any secret. Copy .env.example to .env and fill in every
 # value, then run `docker compose up`. Development: compose.dev.yaml.
-# Database setup and migration step: docs/operations.md.
+# Database setup and migration step: user manual, https://open-enterprise-architecture.github.io/OEA/setup/installation
 name: oea
 
 services:
@@ -69,4 +69,4 @@ volumes:
 secrets:
   oea_kek:
     # File outside the repository and outside database backups (REQ-188 AC4); readable by UID 10001
-    file: ${OEA_KEK_FILE:?set OEA_KEK_FILE (path of the key-encryption key file, see docs/operations.md)}
+    file: ${OEA_KEK_FILE:?set OEA_KEK_FILE (path of the key-encryption key file, see https://open-enterprise-architecture.github.io/OEA/setup/installation)}

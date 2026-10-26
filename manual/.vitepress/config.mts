@@ -72,6 +72,17 @@ const referencePages: ReferencePage[] = existsSync(referenceFile)
   ? JSON.parse(readFileSync(referenceFile, 'utf8'))
   : []
 
+// Written by scripts/screenshots.mjs (change s2c-manual-release, design D3): languages and names of
+// the screenshots produced by the walkthrough tests; empty without a walkthrough run
+interface Screenshots {
+  languages: string[]
+  names: Record<string, string[]>
+}
+const screenshotsFile = fileURLToPath(new URL('./screenshots.json', import.meta.url))
+const screenshots: Screenshots = existsSync(screenshotsFile)
+  ? JSON.parse(readFileSync(screenshotsFile, 'utf8'))
+  : { languages: [], names: {} }
+
 function prefix(lang: Lang): string {
   return lang === 'en' ? '/' : '/de/'
 }
@@ -99,14 +110,25 @@ function nav(lang: Lang): DefaultTheme.NavItem[] {
   }))
 }
 
+// Design D4, D5 (change s2c-manual-release): MANUAL_BASE is the base of this build (site root, or a
+// version directory like /OEA/v0.1/ or /OEA/next/); MANUAL_SITE_ROOT is the root of the Pages site,
+// where versions.json lives
+const base = process.env.MANUAL_BASE || '/'
+const siteRoot = process.env.MANUAL_SITE_ROOT || base
+if (!base.startsWith(siteRoot)) throw new Error(`MANUAL_BASE ${base} is not below MANUAL_SITE_ROOT ${siteRoot}`)
+
 export default defineConfig({
   title: 'OEA',
-  base: process.env.MANUAL_BASE || '/',
-  srcExclude: ['README.md', 'scripts/**'],
+  base,
+  srcExclude: ['README.md', 'scripts/**', 'walkthrough/**', 'screenshots/**', 'test-results/**', 'playwright-report/**'],
   cleanUrls: true,
   themeConfig: {
     // Design D5: set on release builds (change s2c-manual-release); empty for the build of main
     manualVersion: process.env.MANUAL_VERSION || '',
+    manualSiteRoot: siteRoot,
+    // Directory of this build below the site root: '' (root), 'v0.1/' or 'next/'
+    manualDirectory: base.slice(siteRoot.length),
+    screenshots,
     socialLinks: [{ icon: 'github', link: 'https://github.com/open-enterprise-architecture/OEA' }],
     search: {
       provider: 'local',

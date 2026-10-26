@@ -13,3 +13,55 @@
   max-width: 1152px;
   margin: 24px auto 0;
 }
+
+/* Design D3 (s2c-manual-release): screenshots of the walkthrough tests */
+.screenshot {
+  margin: 16px 0 24px;
+}
+
+.screenshot img,
+.screenshot-placeholder {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+}
+
+.screenshot-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1280 / 800;
+  padding: 16px;
+  background-color: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+  text-align: center;
+}
+
+.screenshot figcaption {
+  margin-top: 8px;
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+}
+
+/* Design D4 (s2c-manual-release): version selector in the navigation bar */
+.version-selector {
+  display: flex;
+  align-items: center;
+  margin-left: 16px;
+}
+
+.version-selector select {
+  padding: 2px 8px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  background-color: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  font-size: 13px;
+}
+
+.unreleased-notice a {
+  margin-left: 4px;
+  font-weight: 500;
+}

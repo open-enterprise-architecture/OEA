@@ -10,14 +10,19 @@
   },
   "scripts": {
     "generate:api": "node scripts/generate-api-reference.mjs",
-    "predev": "npm run generate:api",
+    "predev": "npm run generate:api && npm run generate:screenshots",
     "dev": "vitepress dev",
-    "prebuild": "npm run generate:api",
+    "prebuild": "npm run generate:api && npm run generate:screenshots",
     "build": "vitepress build",
     "preview": "vitepress preview",
-    "test": "node --test 'scripts/*.test.mjs'"
+    "test": "node --test 'scripts/*.test.mjs' && tsc -p walkthrough",
+    "generate:screenshots": "node scripts/screenshots.mjs",
+    "walkthrough": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "^25.9.9",
+    "typescript": "~6.0.2",
     "vitepress": "2.0.0-alpha.20",
     "vue": "^3.5.42",
     "yaml": "^2.9.1"

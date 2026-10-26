@@ -43,4 +43,6 @@ Dieses Handbuch beschreibt den Entwicklungsstand von OEA. Es enthält die Funkti
 
 ::: info Weboberfläche
 In diesem Entwicklungsstand läuft die Weboberfläche in der Entwicklungsumgebung des Repositorys (`scripts/dev.sh`, siehe den [Development Guide](https://github.com/open-enterprise-architecture/OEA/blob/main/docs/development.md)). Das Betreiber-Setup aus [Installation](../setup/installation) stellt die API bereit; alle Funktionen dieses Handbuchs stehen auch über die [API](../api/) zur Verfügung.
+
+Die Screenshots dieses Handbuchs entstehen automatisch in dieser Umgebung mit ihren Beispieldaten (Instanz `acme`, Benutzer des Entwicklungs-Realms).
 :::

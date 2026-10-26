@@ -23,6 +23,8 @@ Your roles come from your groups at the provider. Roles with administrative perm
 
 Enter the login name and password of the system admin account and choose *Log in*. After the setup phase, the page asks for the code of your authenticator app: enter it and choose *Confirm*. *Start again* returns to the password step.
 
+<Screenshot name="login" alt="Login page with the providers and the login of the local system admin account" />
+
 - After five wrong codes, you have to start again with the password.
 - After repeated wrong passwords, further attempts are delayed (at most 15 minutes).
 
@@ -37,6 +39,8 @@ The local system admin account needs a second factor to end the setup phase (see
 1. In *Profile*, choose *Set up a second factor*, then *Set up authenticator app*.
 2. Scan the QR code with an authenticator app (any app for time-based one-time passwords, TOTP).
 3. Enter the code from the app under *Code from the app* and choose *Confirm*.
+
+<Screenshot name="second-factor-enroll" alt="Setting up the authenticator app with QR code and code field" />
 
 The page confirms that the authenticator app is set up and the session is confirmed. Setting up a second factor needs a login within the last 5 minutes; otherwise, the page asks you to log in again.
 
