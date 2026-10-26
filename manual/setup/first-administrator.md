@@ -2,7 +2,7 @@
 title: First administrator
 covers:
   screens: []
-  stories: [US-013]
+  stories: [US-013, US-015, US-016, US-017]
 ---
 
 # First administrator
@@ -16,6 +16,8 @@ As long as no system admin account exists, the backend writes a setup token to t
 ```bash
 docker compose exec backend cat /run/oea/setup-token
 ```
+
+Only the OEA user inside the container can read the file, so you need access to the server or the container – nobody can fetch the token over the network. The token is valid for 24 hours. Every start of the backend issues a new token and invalidates the previous one; if your token has expired, restart the backend and read the file again. After a successful bootstrapping, the backend deletes the file.
 
 ## Create the system admin account
 
@@ -32,9 +34,9 @@ Choose *Create system admin account*. The page confirms the account and the inst
 
 Through the API you send the same data to `POST /api/v1/setup`; `GET /api/v1/setup/status` tells you whether setup is still required.
 
-- Bootstrapping works exactly once. Every further attempt is rejected, and the token is no longer valid.
+- Bootstrapping works exactly once. If two attempts arrive at the same time, exactly one succeeds. Every further attempt is rejected, and the token is no longer valid; the existing account stays unchanged.
 - A missing, wrong or expired token is rejected without creating an account.
-- Every completed and every rejected attempt is recorded in the audit trail (`system.bootstrapped`, `system.bootstrap-rejected`).
+- Every completed and every rejected attempt is recorded in the audit trail with time, mode `local` and result: `system.bootstrapped` (result `success`, attributed to the new system admin account) and `system.bootstrap-rejected` (result `denied`, with the reason, for example `invalid-setup-token`). Neither the token nor the password is recorded. With these entries you can show when and how the first privileged access to the instance came into existence (see [Verify the audit trail](../administration/operations#verify-the-audit-trail)).
 
 ## The setup phase
 

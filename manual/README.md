@@ -39,7 +39,7 @@ covers:
 - a page exists in only one language, or a chapter index page is missing,
 - the German page covers other screens or stories than the English page,
 - a page names an unknown screen or user story,
-- a screen with status `implemented` or a user story with status `in-progress`, `review` or `realized` is not covered in both languages.
+- a screen with status `implemented` or a user story with status `in-progress`, `review`, `done` or `realized` is not covered in both languages.
 
 Every change with user-visible behavior updates the manual in both languages in the same pull request (ADR-045 rule 8).
 

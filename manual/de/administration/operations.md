@@ -57,7 +57,7 @@ Gespeicherte Geheimnisse – TOTP-Secrets und Client-Secrets von Identity-Provid
 
 Der Befehl verschlüsselt in einer Transaktion neu und gibt `OK <n> secret(s) re-encrypted with key <key ID>` aus. Exit-Codes: `0` erledigt, `1` ein Wert konnte mit den konfigurierten Schlüsseln nicht entschlüsselt werden (nichts wurde geändert), `2` Aufruf- oder Verbindungsfehler.
 
-## Audit-Trail prüfen
+## Audit-Trail prüfen {#verify-the-audit-trail}
 
 Jeder Audit-Eintrag ist ein Glied einer Hash-Kette, die die Datenbank berechnet. Der Prüfbefehl berechnet die Kette mit der nur lesenden Rolle `oea_auditor` neu:
 
