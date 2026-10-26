@@ -5,7 +5,7 @@
 - [x] 1.1 Create `manual/` as npm package with VitePress `2.0.0-alpha.20` (exact pin, owner decision of 2026-10-24) and the scripts `dev`, `build`, `preview` and `test` (D1); add the build output, the cache and the generated reference pages to `.gitignore`; verify `npm ci --ignore-scripts && npm run build` passes and `MANUAL_BASE=/OEA/ npm run build` produces asset links under `/OEA/`
 - [x] 1.2 Configure the locales `root` (English) and `de`, the local search with German labels and one sidebar per locale from a shared chapter list (D2); create the chapter `index.md` pages of Introduction, Setup and first steps, Administration, Usage and API reference in both languages; verify in `npm run preview` that both locales show the five chapters and that the language switch leads to the same page
 - [x] 1.3 Add the theme extension with the unreleased notice in English and German, shown when `MANUAL_VERSION` is not set (D5); verify in the preview that every page of both locales shows the notice and that a build with `MANUAL_VERSION=0.0.0` shows none
-- [ ] 1.4 Add the npm entry for `/manual` to `.github/dependabot.yml` (group `vitepress`, D7); verify the file parses as YAML and Dependabot lists the new entry after the merge (Insights → Dependency graph → Dependabot)
+- [x] 1.4 Add the npm entry for `/manual` to `.github/dependabot.yml` (group `vitepress`, D7); verify the file parses as YAML and Dependabot lists the new entry after the merge (Insights → Dependency graph → Dependabot)
 
 ## 2. Coverage check (D3)
 
@@ -28,11 +28,11 @@
 
 ## 5. Publication and CI (D6, D7)
 
-- [ ] 5.1 Add the job "User manual" to `.github/workflows/ci.yml` (D7); verify it passes in the pull request and actionlint and zizmor report no findings
-- [ ] 5.2 Add `.github/workflows/pages.yml` (D6) and remove the Pages upload step and the job `pages` from `.github/workflows/screens.yml`; verify with actionlint and zizmor (no findings) that only the deploy job holds `pages: write` and `id-token: write`, and after the merge that the site root shows the manual with the unreleased notice and `/storybook/` shows Storybook (spec scenarios "Manual and Storybook on one site" and "Unreleased manual marked")
+- [x] 5.1 Add the job "User manual" to `.github/workflows/ci.yml` (D7); verify it passes in the pull request and actionlint and zizmor report no findings
+- [x] 5.2 Add `.github/workflows/pages.yml` (D6) and remove the Pages upload step and the job `pages` from `.github/workflows/screens.yml`; verify with actionlint and zizmor (no findings) that only the deploy job holds `pages: write` and `id-token: write`, and after the merge that the site root shows the manual with the unreleased notice and `/storybook/` shows Storybook (spec scenarios "Manual and Storybook on one site" and "Unreleased manual marked")
 - [x] 5.3 Update ADR-031 (publication rule 4 and the note on `STORYBOOK_PAGES`: Storybook under `/storybook/` through `pages.yml`), `docs/development.md` (manual commands, Storybook URL), the README section "Development" and `docs/workflow-example.md`; verify link validation passes
 
 ## 6. Wrap-up
 
 - [x] 6.1 Realign REQ-196 (target value and AC2 with status `review`) and add the owner-decision note to ADR-045 (D9); update `AGENTS.md` (repository structure: `manual/` exists) and mark S2c as partly done in `docs/sprint-plan.md` (`s2c-manual-site` done, `s2c-manual-release` open); no user story is implemented, so no story status changes; `docs/data-model.puml`, `business-objects/` and `docs/screens/SCREENS.md` are unchanged; regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
-- [ ] 6.2 Run `python3 scripts/validate_links.py`, `python3 scripts/check_manual.py`, `python3 scripts/check_screens.py`, `scripts/sync_agent_config.py --check`, `openspec validate --specs --strict`, markdown lint and `npm test && npm run build` in `manual/` and verify all pass; after the merge, ask the repository owner to add "User manual" to the required checks of `main`
+- [x] 6.2 Run `python3 scripts/validate_links.py`, `python3 scripts/check_manual.py`, `python3 scripts/check_screens.py`, `scripts/sync_agent_config.py --check`, `openspec validate --specs --strict`, markdown lint and `npm test && npm run build` in `manual/` and verify all pass; after the merge, ask the repository owner to add "User manual" to the required checks of `main`
