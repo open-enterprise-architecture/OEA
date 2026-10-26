@@ -23,3 +23,9 @@ manual/.vitepress/cache/
 manual/.vitepress/api-reference.json
 manual/api/reference/
 manual/de/api/reference/
+# Screenshots of the walkthrough tests (generated in CI, never committed; ADR-045 rule 5)
+manual/screenshots/
+manual/public/screenshots/
+manual/.vitepress/screenshots.json
+manual/test-results/
+manual/playwright-report/

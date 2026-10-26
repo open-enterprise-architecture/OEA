@@ -43,4 +43,6 @@ This manual describes the development state of OEA. It contains the functions th
 
 ::: info Web interface
 In this development state, the web interface runs in the development environment of the repository (`scripts/dev.sh`, see the [development guide](https://github.com/open-enterprise-architecture/OEA/blob/main/docs/development.md)). The operator setup of [Installation](../setup/installation) provides the API; all functions of this manual are also available through the [API](../api/).
+
+The screenshots of this manual are taken automatically from that environment with its sample data (instance `acme`, users of the development realm).
 :::

@@ -17,6 +17,8 @@ OEA liefert das Starterpaket `oea-starter-togaf-classic` mit den Entitätstypen 
 
 Solange die Instanz keinen Entitätstyp hat, zeigt die Startseite einer Person mit `metamodel:write` den Bereich *Import starter configuration*. Wähle *Import* neben dem Paket; die Seite bestätigt, wie viele Entitätstypen jetzt verfügbar sind.
 
+<Screenshot name="starter-import" alt="Startseite mit der Starterkonfiguration zum Import" />
+
 Über die API:
 
 ```bash

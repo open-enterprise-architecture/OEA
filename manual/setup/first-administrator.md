@@ -23,6 +23,8 @@ Only the OEA user inside the container can read the file, so you need access to 
 
 Open the setup page `/setup` of the web interface (the start page shows *Setup required* while no account exists) and fill in:
 
+<Screenshot name="setup-required" alt="Start page of a new instance with the notice Setup required" />
+
 | Field | Meaning |
 |---|---|
 | Setup token | the token from the file |
@@ -30,7 +32,11 @@ Open the setup page `/setup` of the web interface (the start page shows *Setup r
 | Password, Repeat password | 12 to 128 characters |
 | Instance slug | short, stable name of the instance; it is used in external references (`urn:oea:<slug>:<id>`) and cannot be changed later |
 
+<Screenshot name="setup-form" alt="Setup form with token, login name, password and instance slug" />
+
 Choose *Create system admin account*. The page confirms the account and the instance slug.
+
+<Screenshot name="setup-done" alt="Confirmation of the created system admin account" />
 
 Through the API you send the same data to `POST /api/v1/setup`; `GET /api/v1/setup/status` tells you whether setup is still required.
 

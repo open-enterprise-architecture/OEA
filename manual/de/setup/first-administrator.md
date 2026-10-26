@@ -23,6 +23,8 @@ Die Datei kann nur der OEA-Benutzer im Container lesen; du brauchst also Zugriff
 
 Öffne die Setup-Seite `/setup` der Weboberfläche (die Startseite zeigt *Setup required*, solange kein Konto existiert) und fülle aus:
 
+<Screenshot name="setup-required" alt="Startseite einer neuen Instanz mit dem Hinweis Setup required" />
+
 | Feld | Bedeutung |
 |---|---|
 | Setup token | das Token aus der Datei |
@@ -30,7 +32,11 @@ Die Datei kann nur der OEA-Benutzer im Container lesen; du brauchst also Zugriff
 | Password, Repeat password | 12 bis 128 Zeichen |
 | Instance slug | kurzer, stabiler Name der Instanz; er wird in externen Referenzen verwendet (`urn:oea:<slug>:<id>`) und kann später nicht geändert werden |
 
+<Screenshot name="setup-form" alt="Setup-Formular mit Token, Anmeldename, Passwort und Instance Slug" />
+
 Wähle *Create system admin account*. Die Seite bestätigt das Konto und den Instance Slug.
+
+<Screenshot name="setup-done" alt="Bestätigung des angelegten Systemadmin-Kontos" />
 
 Über die API sendest du dieselben Daten an `POST /api/v1/setup`; `GET /api/v1/setup/status` sagt dir, ob das Setup noch aussteht.
 

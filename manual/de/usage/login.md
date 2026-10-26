@@ -25,6 +25,8 @@ Deine Rollen kommen aus deinen Gruppen beim Provider. Rollen mit administrativen
 
 Gib Anmeldename und Passwort des Systemadmin-Kontos ein und wähle *Log in*. Nach der Setup-Phase fragt die Seite nach dem Code deiner Authenticator-App: Gib ihn ein und wähle *Confirm*. *Start again* führt zurück zum Passwortschritt.
 
+<Screenshot name="login" alt="Anmeldeseite mit den Providern und der Anmeldung des lokalen Systemadmin-Kontos" />
+
 - Nach fünf falschen Codes musst du wieder mit dem Passwort beginnen.
 - Nach wiederholt falschen Passwörtern werden weitere Versuche verzögert (höchstens 15 Minuten).
 
@@ -39,6 +41,8 @@ Das lokale Systemadmin-Konto braucht einen zweiten Faktor, um die Setup-Phase zu
 1. Wähle in *Profile* den Button *Set up a second factor*, dann *Set up authenticator app*.
 2. Scanne den QR-Code mit einer Authenticator-App (jede App für zeitbasierte Einmalpasswörter, TOTP).
 3. Gib den Code aus der App unter *Code from the app* ein und wähle *Confirm*.
+
+<Screenshot name="second-factor-enroll" alt="Einrichten der Authenticator-App mit QR-Code und Codefeld" />
 
 Die Seite bestätigt, dass die Authenticator-App eingerichtet und die Sitzung bestätigt ist. Das Einrichten eines zweiten Faktors braucht eine Anmeldung innerhalb der letzten 5 Minuten; sonst bittet dich die Seite, dich erneut anzumelden.
 

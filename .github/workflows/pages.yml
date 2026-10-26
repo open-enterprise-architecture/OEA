@@ -1,17 +1,28 @@
 name: Pages – user manual and Storybook
 
-# ADR-045 rule 7 (change s2c-manual-site D6): one GitHub Pages site with the user manual of main at
-# the root and Storybook under /storybook/. Until the first release, the manual carries the
-# "unreleased" notice (MANUAL_VERSION is not set). REQ-192: the build job, which installs and runs
-# third-party packages, holds a read-only token; only the deploy job may write to Pages.
+# ADR-045 rules 5 to 7 (changes s2c-manual-site D6, s2c-manual-release D4, D5): one GitHub Pages
+# site, kept in the branch gh-pages.
+# - push to main: walkthrough tests with screenshots, manual of main under /next/ (and at the root
+#   while no release exists, with the "unreleased" notice), Storybook under /storybook/
+# - version tag vX.Y.Z: walkthrough tests, manual of the tag under /vX.Y/ and, for the newest minor
+#   version, at the root
+# - workflow_dispatch: on main or a tag as above; on any other ref only the build (no publication)
+# REQ-192: build runs third-party code with a read-only token; only publish may write the branch
+# gh-pages, only deploy may write to Pages.
 
 on:
   push:
     branches: [main]
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
     paths:
       - 'manual/**'
       - 'frontend/**'
+      - 'backend/src/main/**'
       - 'api/openapi.yaml'
+      - 'compose.dev.yaml'
+      - 'dev/**'
+      - 'scripts/dev_seed.py'
+      - 'scripts/walkthrough.sh'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -19,6 +30,7 @@ on:
 permissions:
   contents: read
 
+# Publications write one branch; they run one after the other and are never cancelled
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -27,7 +39,7 @@ jobs:
   build:
     name: Build user manual and Storybook
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -35,33 +47,120 @@ jobs:
       - id: pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        # No dependency cache: a release build must not reuse a cache another run could have written
+        # (zizmor cache-poisoning)
         with:
           node-version: '24'
-          cache: npm
-          cache-dependency-path: |
-            manual/package-lock.json
-            frontend/package-lock.json
-      - name: Build the user manual
+          package-manager-cache: false
+      - name: Install the manual and the walkthrough browser
         working-directory: manual
-        env:
-          MANUAL_BASE: ${{ steps.pages.outputs.base_path }}/
         run: |
           npm ci --ignore-scripts
-          npm run build
+          npx playwright install --with-deps chromium
+      - name: Walkthrough tests against the development stack (screenshots)
+        run: scripts/walkthrough.sh
+      - name: Keep the walkthrough report
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: walkthrough-report
+          path: |
+            manual/playwright-report/
+            manual/test-results/
+          retention-days: 14
+      - name: Build the manual
+        working-directory: manual
+        env:
+          SITE_ROOT: ${{ steps.pages.outputs.base_path }}/
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+          MANUAL_SCREENSHOTS: required
+        run: |
+          build() {  # build <base> <target directory>
+            MANUAL_SITE_ROOT="$SITE_ROOT" MANUAL_BASE="$1" npm run build
+            mkdir -p "$(dirname "$2")"
+            cp -R .vitepress/dist "$2"
+          }
+          if [[ "$REF" =~ ^refs/tags/v([0-9]+)\.([0-9]+)\.[0-9]+$ ]]; then
+            export MANUAL_VERSION="$REF_NAME"
+            build "${SITE_ROOT}v${BASH_REMATCH[1]}.${BASH_REMATCH[2]}/" ../site-parts/versioned
+            build "$SITE_ROOT" ../site-parts/root
+          else
+            build "${SITE_ROOT}next/" ../site-parts/versioned
+            # The root shows main until the first release (versions.json of the published site)
+            if curl -fsS "${SITE_URL}/versions.json" | grep -q '"tag"'; then
+              echo "A release is published; main goes to /next/ only"
+            else
+              build "$SITE_ROOT" ../site-parts/root
+            fi
+          fi
       - name: Build Storybook
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         working-directory: frontend
         run: |
           npm ci --ignore-scripts
           npm run build-storybook
-      - name: Place Storybook under /storybook/
-        run: cp -R frontend/storybook-static manual/.vitepress/dist/storybook
+          cp -R storybook-static ../site-parts/storybook
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site-parts
+          path: site-parts/
+          retention-days: 7
+
+  publish:
+    name: Update the branch gh-pages
+    needs: build
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: manual/scripts
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site-parts
+          path: site-parts
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Place the parts and push gh-pages
+        env:
+          TOKEN: ${{ github.token }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+        run: |
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"
+          git init -q site
+          cd site
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          if git -c http.extraheader="$auth" fetch -q --depth 1 origin gh-pages; then
+            git checkout -q -b gh-pages FETCH_HEAD
+          else
+            echo "Branch gh-pages does not exist yet; creating it"
+            git checkout -q --orphan gh-pages
+          fi
+          node ../manual/scripts/publish-site.mjs --site . --parts ../site-parts --ref "$REF"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing changed"
+          else
+            git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -q -m "Publish ${REF#refs/*/} (${SHA:0:7})"
+            git -c http.extraheader="$auth" push -q origin gh-pages
+          fi
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          path: manual/.vitepress/dist
+          path: site
 
   deploy:
     name: Publish to GitHub Pages
-    needs: build
+    needs: publish
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

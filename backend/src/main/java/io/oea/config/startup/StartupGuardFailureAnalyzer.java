@@ -10,7 +10,7 @@ class StartupGuardFailureAnalyzer extends AbstractFailureAnalyzer<StartupGuardEx
 	protected FailureAnalysis analyze(Throwable rootFailure, StartupGuardException cause) {
 		return new FailureAnalysis(cause.getMessage(),
 				"Correct the named settings. Development relaxations apply only with the Spring profile 'dev' "
-						+ "(ADR-036 §6); see docs/operations.md.",
+						+ "(ADR-036 §6); see the user manual, https://open-enterprise-architecture.github.io/OEA/setup/installation",
 				cause);
 	}
 

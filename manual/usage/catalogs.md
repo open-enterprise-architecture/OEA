@@ -22,6 +22,8 @@ A catalog is a reusable table view of the repository. It shows the entities of o
    | Visibility | *Shared*: visible to all users of the instance (needs the permission to manage catalogs); *Personal*: visible only to you |
    | Default join mode | *Aggregate*: one row per entity, linked entities in one cell; *Rows*: one row per linked entity. Applies to joins added later |
 
+<Screenshot name="catalog-create" alt="Dialog New catalog with name, description, entity type and visibility" />
+
 3. Choose *Create catalog*. The new catalog opens.
 
 If the name is already taken, the dialog says so; choose another name. Without the permission to manage catalogs, *Shared* is not selectable.
@@ -29,6 +31,10 @@ If the name is already taken, the dialog says so; choose another name. Without t
 ## Browse a catalog
 
 The list *Catalogs* shows every catalog you may see, marked *Shared* or *Personal*. Open one to see its table:
+
+<Screenshot name="catalogs" alt="List of catalogs" />
+
+<Screenshot name="catalog-table" alt="Table of a catalog with application components" />
 
 - As long as no columns are configured, the table shows the columns *Name* and – if the entity type has the property *Status* – *Status*.
 - Click a column header to sort: ascending, descending, and back to the default order.

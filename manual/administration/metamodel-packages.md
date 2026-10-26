@@ -17,6 +17,8 @@ OEA ships the starter package `oea-starter-togaf-classic` with the entity types 
 
 While the instance has no entity type, the start page shows *Import starter configuration* to a person with `metamodel:write`. Choose *Import* next to the package; the page confirms how many entity types are now available.
 
+<Screenshot name="starter-import" alt="Start page with the starter configuration ready for import" />
+
 Through the API:
 
 ```bash

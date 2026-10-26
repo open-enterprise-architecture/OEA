@@ -4,7 +4,8 @@
 # Runs once with database superuser rights:
 # - automatically by the official PostgreSQL image on an empty data volume
 #   (mounted into /docker-entrypoint-initdb.d), or
-# - manually for operator-managed PostgreSQL, see docs/operations.md.
+# - manually for operator-managed PostgreSQL, see the user manual,
+#   https://open-enterprise-architecture.github.io/OEA/setup/installation#provisioning-once
 #
 # Role passwords are read from the environment only and are never passed on
 # the command line. The script is idempotent: existing roles get their
