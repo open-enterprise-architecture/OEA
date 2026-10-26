@@ -4,8 +4,7 @@ name: Screens – Storybook and screen images
 # light and dark mode to docs/screens/SCR-NNN-{light,dark}.png and commits changed images to main.
 # REQ-192 AC2: the job that installs and runs third-party packages holds a read-only token; the
 # commit job only consumes the rendered images and touches nothing but docs/screens/SCR-*.png.
-# Publishing Storybook to GitHub Pages runs only if the repository variable STORYBOOK_PAGES is
-# 'true' (GitHub Pages enabled with source "GitHub Actions").
+# Storybook is published to GitHub Pages under /storybook/ by pages.yml (ADR-045 rule 7).
 
 on:
   push:
@@ -54,11 +53,6 @@ jobs:
           path: docs/screens/SCR-*.png
           if-no-files-found: error
           retention-days: 7
-      - name: Upload Storybook for GitHub Pages
-        if: vars.STORYBOOK_PAGES == 'true'
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with:
-          path: frontend/storybook-static
 
   commit:
     name: Commit changed screen images
@@ -106,19 +100,3 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore(screens): regenerate screenshots"
           git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPOSITORY}.git" HEAD:main
-
-  pages:
-    name: Publish Storybook to GitHub Pages
-    needs: render
-    if: vars.STORYBOOK_PAGES == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

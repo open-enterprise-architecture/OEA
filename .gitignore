@@ -15,3 +15,11 @@ frontend/src/api/generated/
 
 # Python bytecode of the check scripts
 __pycache__/
+
+# User manual (VitePress): build output, cache and the API reference generated from the contract
+manual/node_modules/
+manual/.vitepress/dist/
+manual/.vitepress/cache/
+manual/.vitepress/api-reference.json
+manual/api/reference/
+manual/de/api/reference/

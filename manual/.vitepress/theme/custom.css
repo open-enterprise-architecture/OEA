@@ -1,0 +1,15 @@
+.unreleased-notice {
+  margin: 0 0 24px;
+  padding: 8px 16px;
+  border: 1px solid var(--vp-c-warning-2);
+  border-radius: 8px;
+  background-color: var(--vp-c-warning-soft);
+  color: var(--vp-c-text-1);
+  font-size: 14px;
+  line-height: 24px;
+}
+
+.VPHome .unreleased-notice {
+  max-width: 1152px;
+  margin: 24px auto 0;
+}

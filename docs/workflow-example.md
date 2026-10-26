@@ -261,7 +261,7 @@ frontend/src/screens/
 └── SCR-NNN-capture-application.stories.ts   ← stories: step 1–3, validation error, success state
 ```
 
-CI publishes the stories to GitHub Pages (clickable) and generates `docs/screens/SCR-NNN-light.png` / `-dark.png`; the UI Designer updates `docs/screens/SCREENS.md`.
+CI publishes the stories to GitHub Pages under `/storybook/` (clickable) and generates `docs/screens/SCR-NNN-light.png` / `-dark.png`; the UI Designer updates `docs/screens/SCREENS.md`.
 
 ---
 

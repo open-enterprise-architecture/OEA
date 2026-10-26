@@ -26,7 +26,7 @@ oea/
 ├── openspec/             ← implementation specs and changes (OpenSpec, see openspec/README.md)
 ├── templates/            ← templates for stakeholder, BO, UC, REQ, US, NFR
 ├── docs/                 ← workflow, quick reference, anti-patterns
-├── manual/               ← user manual (VitePress, English and German, ADR-045) – created with package S2c
+├── manual/               ← user manual (VitePress, English and German, ADR-045), published on GitHub Pages
 ├── scripts/              ← helper scripts (validation, generation)
 ├── .opencode/            ← OpenCode: commands, skills, agents (source of truth)
 ├── .claude/              ← Claude Code: derived only (symlinks, generated files)

@@ -1,0 +1,75 @@
+name: Pages – user manual and Storybook
+
+# ADR-045 rule 7 (change s2c-manual-site D6): one GitHub Pages site with the user manual of main at
+# the root and Storybook under /storybook/. Until the first release, the manual carries the
+# "unreleased" notice (MANUAL_VERSION is not set). REQ-192: the build job, which installs and runs
+# third-party packages, holds a read-only token; only the deploy job may write to Pages.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'manual/**'
+      - 'frontend/**'
+      - 'api/openapi.yaml'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+# Least privilege (REQ-192): read-only token unless a job widens it
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build user manual and Storybook
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            manual/package-lock.json
+            frontend/package-lock.json
+      - name: Build the user manual
+        working-directory: manual
+        env:
+          MANUAL_BASE: ${{ steps.pages.outputs.base_path }}/
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+      - name: Build Storybook
+        working-directory: frontend
+        run: |
+          npm ci --ignore-scripts
+          npm run build-storybook
+      - name: Place Storybook under /storybook/
+        run: cp -R frontend/storybook-static manual/.vitepress/dist/storybook
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: manual/.vitepress/dist
+
+  deploy:
+    name: Publish to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -74,7 +74,7 @@ The omitted acceptance criteria of US-141 and US-049 are caught up in the expans
 
 ```bash
 scripts/dev.sh                                        # development: docker compose -f compose.dev.yaml --profile dev up --build
-cp .env.example .env && docker compose up             # operator: every secret required (docs/operations.md)
+cp .env.example .env && docker compose up             # operator: every secret required (manual/setup/installation.md)
 ```
 
 Change 2 (`us-013-local-bootstrapping`) adds the local bootstrapping, the audit hash chain with the retention seed, `oea audit verify` and checkpoints. Change 3 is split (owner decision 2026-10-15): **3a** builds the session infrastructure, the login of the local system admin account with the setup phase of [ADR-042](../adrs/ADR-042-setup-phase-without-second-factor.md) (password only until the first access of another identity, then a second factor) and the administration of persons, identity bindings and IdP group mappings (US-013 AC2); **3b** adds the OIDC login of persons (US-001) with the issuer guards G1–G3 on the stored providers, the roles derived from IdP group mappings with re-evaluation within 15 minutes, and the development seed `scripts/dev_seed.py`.

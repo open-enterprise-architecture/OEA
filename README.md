@@ -37,7 +37,7 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | ADRs | 45 |
 | Business Objects | 30 |
 
-_Concept: v0.19 · Last update: 2026-10-23._
+_Concept: v0.19 · Last update: 2026-10-25._
 <!-- /AUTO-GENERATED: stats -->
 
 **Next step**: Walking Skeleton based on UC-06 (Catalog Browser).
@@ -155,7 +155,7 @@ The seed asks for the password of the system admin account and prints a TOTP sec
 
 After a PostgreSQL major upgrade of the development image, run `scripts/dev.sh reset` once (development data is disposable). Busy host ports can be moved with `OEA_DEV_BACKEND_PORT`, `OEA_DEV_VITE_PORT` and `OEA_DEV_POSTGRES_PORT`. All development credentials are public `*-dev-only` values that the application rejects outside the Spring profile `dev`.
 
-Builds and tests: `cd backend && ./mvnw verify` (needs Docker for Testcontainers) and `cd frontend && npm ci && npm run type-check && npm test && npm run build`. Operators use `compose.yaml` with `.env` (see [`docs/operations.md`](docs/operations.md)).
+Builds and tests: `cd backend && ./mvnw verify` (needs Docker for Testcontainers) and `cd frontend && npm ci && npm run type-check && npm test && npm run build`. Operators use `compose.yaml` with `.env` (see the [user manual](manual/setup/installation.md)). The user manual is published at <https://open-enterprise-architecture.github.io/OEA/>, the screen prototypes (Storybook) at <https://open-enterprise-architecture.github.io/OEA/storybook/>; manual sources and contributor notes in [`manual/`](manual/README.md).
 
 ## Contributing
 

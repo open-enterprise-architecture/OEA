@@ -118,7 +118,7 @@ The backend test suite checks that the Java implementation of the verification c
 
 ## Verification
 
-`oea audit verify` (see [operations](operations.md)) reads the three tables ordered by `chain_seq`, recomputes every `record_hash`, and checks that `chain_seq` is gapless and that every `prev_hash` equals the `record_hash` of the previous link. It reports the **first broken link** with its `chain_seq`, table, and expected and stored hash.
+`oea audit verify` (see [Operations in the user manual](../manual/administration/operations.md#verify-the-audit-trail)) reads the three tables ordered by `chain_seq`, recomputes every `record_hash`, and checks that `chain_seq` is gapless and that every `prev_hash` equals the `record_hash` of the previous link. It reports the **first broken link** with its `chain_seq`, table, and expected and stored hash.
 
 With exported checkpoints as input it also reports a database chain head that is behind a checkpoint, or a checkpoint whose hash differs from the stored link with the same `chain_seq`.
 

@@ -1,0 +1,89 @@
+---
+title: Betrieb
+covers:
+  screens: []
+  stories: []
+---
+
+# Betrieb
+
+## Datenbankrollen
+
+| Rolle | Verwendet von | Besitzt |
+|---|---|---|
+| `oea_owner` | Migrationsschritt: `db/migration`, `db/migration-audit` | Schemas `public`, `audit` und ihre Objekte |
+| `oea_reporting_owner` | Migrationsschritt: `db/migration-reporting` | Schemas `reporting`, `reporting_ctx` und ihre Objekte |
+| `oea_app` | Backend zur Laufzeit | nichts |
+| `oea_audit_cleanup` | Job für die Audit-Aufbewahrung | nichts |
+| `oea_auditor` | Audit-Prüfung, externe Prüfer | nichts |
+| `oea_analytics` | direkte Analytics-Verbindungen | nichts |
+
+Keine Rolle ist `SUPERUSER`, `CREATEROLE`, `CREATEDB` oder `BYPASSRLS`, und keine OEA-Rolle ist Mitglied einer anderen OEA-Rolle. Die Laufzeitrolle `oea_app` hat auf den Audit-Tabellen nur `INSERT` und `SELECT`; andernfalls startet das Backend nicht. Rollenpasswörter rotierst du, indem du das Provisioning-Skript erneut ausführst (siehe [Installation](../setup/installation#provisioning-einmalig)).
+
+## Größenlimits für Requests {#request-size-limits}
+
+Request-Bodys werden begrenzt, bevor sie verarbeitet werden. Ein größerer Body wird mit `413` und dem Problem-Typ `urn:oea:problem:request-too-large` beantwortet (`package-too-large` bei Metamodell-Paketen):
+
+| Einstellung | Standard | Gilt für |
+|---|---|---|
+| `oea.web.request-size.default` (`OEA_WEB_REQUESTSIZE_DEFAULT`) | `1MB` | jede Operation mit Request-Body |
+| `oea.web.request-size.entity-batch` (`OEA_WEB_REQUESTSIZE_ENTITYBATCH`) | `10MB` | `POST /entities/batch` |
+| `oea.metamodel.import.max-size` (`OEA_METAMODEL_IMPORT_MAXSIZE`) | `10MB` | `POST /admin/metamodel/import` |
+
+Ein Reverse Proxy vor OEA sollte mindestens den größten dieser Werte zulassen.
+
+## Key-Encryption-Key
+
+Gespeicherte Geheimnisse – TOTP-Secrets und Client-Secrets von Identity-Providern – werden mit AES-256-GCM unter dem Key-Encryption-Key verschlüsselt, einer Datei außerhalb der Datenbank. Jeder verschlüsselte Wert speichert die ID seines Schlüssels (die ersten 16 Hex-Ziffern des SHA-256 des Schlüssels).
+
+- `oea.security.kek.current` (`OEA_SECURITY_KEK_CURRENT`) nennt die Schlüsseldatei; das Compose-Setup bindet die mit `OEA_KEK_FILE` genannte Datei als Secret `/run/secrets/oea_kek` ein.
+- Halte den Schlüssel aus Datenbank-Backups heraus und bewahre ihn getrennt auf. Ein Datenbank-Dump ohne den Schlüssel gibt die Geheimnisse nicht preis – und ohne den Schlüssel sind die Geheimnisse verloren.
+
+### Schlüssel rotieren
+
+1. Erzeuge eine neue Schlüsseldatei und konfiguriere sie als `oea.security.kek.current`; konfiguriere die alte als `oea.security.kek.previous` (eine Liste von Dateien, `OEA_SECURITY_KEK_PREVIOUS`).
+2. Verschlüssle alle gespeicherten Geheimnisse mit den Laufzeit-Zugangsdaten neu:
+
+   ```bash
+   java -jar oea-backend.jar secrets reencrypt \
+     --spring.datasource.url=jdbc:postgresql://db.example.org:5432/oea \
+     --spring.datasource.username=oea_app \
+     --spring.datasource.password="$OEA_APP_PASSWORD" \
+     --oea.security.kek.current=/run/secrets/oea_kek \
+     --oea.security.kek.previous=/run/secrets/oea_kek_previous
+   ```
+
+3. Entferne den alten Schlüssel aus der Konfiguration und vernichte ihn.
+
+Der Befehl verschlüsselt in einer Transaktion neu und gibt `OK <n> secret(s) re-encrypted with key <key ID>` aus. Exit-Codes: `0` erledigt, `1` ein Wert konnte mit den konfigurierten Schlüsseln nicht entschlüsselt werden (nichts wurde geändert), `2` Aufruf- oder Verbindungsfehler.
+
+## Audit-Trail prüfen
+
+Jeder Audit-Eintrag ist ein Glied einer Hash-Kette, die die Datenbank berechnet. Der Prüfbefehl berechnet die Kette mit der nur lesenden Rolle `oea_auditor` neu:
+
+```bash
+java -jar oea-backend.jar audit verify \
+  --oea.audit-verify.url=jdbc:postgresql://db.example.org:5432/oea \
+  --oea.audit-verify.password="$OEA_AUDITOR_PASSWORD" \
+  --checkpoints=/var/log/oea/backend.log
+```
+
+Mit Compose: `docker compose run --rm migrate audit verify --oea.audit-verify.url=jdbc:postgresql://postgres:5432/oea --oea.audit-verify.password=…`. Die Umgebungsvariablen `OEA_AUDITVERIFY_URL` und `OEA_AUDITVERIFY_PASSWORD` funktionieren ebenfalls.
+
+| Exit-Code | Bedeutung |
+|---|---|
+| `0` | Kette intakt (`OK <links> links, head <chain_seq> <hash>`) |
+| `1` | erstes gebrochenes Glied, fehlendes Glied oder ein Datenbank-Head, der hinter einem Checkpoint liegt oder von ihm abweicht (`BROKEN …`) |
+| `2` | Aufruf- oder Verbindungsfehler |
+
+**Checkpoints**: Das Backend hängt alle 60 Minuten (`oea.audit.checkpoint-interval`, 5–1440 Minuten) und beim geordneten Herunterfahren einen Checkpoint an und schreibt eine Logzeile `event=audit.checkpoint chainSeq=… recordHash=… at=…`. Bewahre das Backend-Log außerhalb des Datenbank-Hosts auf (Log-Shipper, journald, SIEM): Checkpoints sind nur so vertrauenswürdig wie der Ort, an dem sie liegen. Übergib die Logdatei mit `--checkpoints=`, um gelöschte neueste Einträge oder ein eingespieltes älteres Backup zu erkennen.
+
+## PostgreSQL auf eine neue Hauptversion aktualisieren
+
+Das Compose-Setup verwendet PostgreSQL 18. Datenverzeichnisse sind zwischen Hauptversionen nicht kompatibel, ein Upgrade der Hauptversion braucht daher Dump und Restore oder `pg_upgrade`:
+
+1. Stoppe das Backend, lass PostgreSQL laufen und erstelle als Superuser einen Dump der Datenbank: `pg_dumpall` (Rollen und Daten) oder `pg_dump -Fc oea` plus das Provisioning-Skript für die Rollen.
+2. Starte die neue PostgreSQL-Version auf einem leeren Volume; das Provisioning-Skript legt die Rollen erneut an.
+3. Spiel den Dump ein, führe dann den Migrationsschritt aus und starte das Backend.
+
+Seit PostgreSQL 18 legt das offizielle Image seine Daten in `/var/lib/postgresql/18/docker` ab; das Compose-Volume ist deshalb unter `/var/lib/postgresql` eingebunden. Die minimal unterstützte Version bleibt PostgreSQL 15; das Backend prüft sie beim Start.

@@ -67,6 +67,8 @@ jobs:
 
       - name: Screen inventory consistent
         run: python3 scripts/check_screens.py
+      - name: User manual coverage (ADR-045, REQ-196)
+        run: python3 scripts/check_manual.py
 
       - name: Artifact count
         run: |
@@ -287,6 +289,33 @@ jobs:
         run: npm run build
       - name: Storybook build
         run: npm run build-storybook
+
+  # ── User manual (ADR-045, REQ-196; change s2c-manual-site D7) ─────────────────
+  # Generates the API reference from api/openapi.yaml (fails on a mismatch with the implemented
+  # operations) and builds the site (fails on dead links); the coverage check runs in
+  # "Requirements completeness"
+  manual:
+    name: User manual
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: manual
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: manual/package-lock.json
+      - name: Install (lockfile only, no install scripts)
+        run: npm ci --ignore-scripts
+      - name: Tests of the API reference generator
+        run: npm test
+      - name: Build (API reference and site)
+        run: npm run build
 
   # ── Third-party licenses (ADR-043) ──────────────────────────────────────────
   third-party-licenses:
