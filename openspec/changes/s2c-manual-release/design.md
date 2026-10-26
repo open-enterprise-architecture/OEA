@@ -42,7 +42,7 @@ Flows, in this order, each building on the previous one:
 
 1. **Setup**: start page with *Setup required*, setup form filled (token read by the job from the container and passed as environment variable), confirmation – screenshots `setup-required`, `setup-form`, `setup-done`
 2. **System admin login and second factor**: login form, profile, enrollment of the authenticator app (the QR code and the secret are masked), confirmation – screenshots `login`, `second-factor-enroll`
-3. **Seed**: `scripts/dev_seed.py` with the TOTP secret from flow 2 creates the provider, persons and group mappings (no screenshot)
+3. **Seed**: `scripts/dev_seed.py` creates the provider, persons and group mappings (no screenshot); during the setup phase its password login has no second factor, so it enrolls its own TOTP credential for the first binding (ADR-042) – a second credential of the system admin account, harmless on the throw-away stack
 4. **Login through Keycloak**: as `dev-metamodel-admin`, start page with *Import starter configuration*, import – screenshot `starter-import`
 5. **Catalogs**: as `dev-architect`, a small fixed set of entities written through `POST /api/v1/entities/batch` with the session of the browser context (as the manual describes), catalog list, dialog *New catalog*, catalog table – screenshots `catalogs`, `catalog-create`, `catalog-table`
 
