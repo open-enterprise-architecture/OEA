@@ -29,14 +29,25 @@ export async function shoot(page: Page, name: string, mask: Locator[] = []): Pro
   await page.screenshot({ path, mask, animations: 'disabled', caret: 'hide' })
 }
 
-/** RFC 6238 code (SHA-1, 6 digits, 30 s) for a Base32 secret, as scripts/dev_seed.py computes it. */
+/** RFC 6238 code (SHA-1, 6 digits, 30 s) for a Base32 secret of OEA, as scripts/dev_seed.py computes it. */
 export function totp(secret: string, offset = 0): string {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
   let bits = ''
   for (const char of secret.replace(/=+$/, '').toUpperCase()) {
     bits += alphabet.indexOf(char).toString(2).padStart(5, '0')
   }
-  const key = Buffer.from(bits.match(/.{8}/g)!.map((byte) => parseInt(byte, 2)))
+  return code(Buffer.from(bits.match(/.{8}/g)!.map((byte) => parseInt(byte, 2))), offset)
+}
+
+/**
+ * RFC 6238 code for a TOTP secret of the development realm: Keycloak uses the stored value as raw
+ * key bytes and encodes it as Base32 only for QR codes (like the backend test helper Totp).
+ */
+export function keycloakTotp(secret: string, offset = 0): string {
+  return code(Buffer.from(secret, 'utf8'), offset)
+}
+
+function code(key: Buffer, offset: number): string {
   const counter = Buffer.alloc(8)
   counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30_000) + offset))
   const digest = createHmac('sha1', key).update(counter).digest()

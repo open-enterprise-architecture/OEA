@@ -5,7 +5,7 @@
 import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
-import { backendUrl, realmUser, repositoryDir, shoot, totp } from './support'
+import { backendUrl, keycloakTotp, realmUser, repositoryDir, shoot, totp } from './support'
 
 const setupToken = process.env.OEA_WALKTHROUGH_SETUP_TOKEN
 const admin = { loginName: 'admin', password: 'walkthrough-admin-password' }
@@ -24,7 +24,7 @@ async function logInAtKeycloak(page: Page, username: string): Promise<void> {
   await page.locator('#password').fill(password)
   await page.locator('#kc-login').click()
   if (otpSecret) {
-    await page.locator('#otp').fill(totp(otpSecret))
+    await page.locator('#otp').fill(keycloakTotp(otpSecret))
     await page.locator('#kc-login').click()
   }
   await expect(page.getByTestId('header-logout')).toBeVisible()
@@ -96,8 +96,10 @@ test('catalogs', async ({ page }) => {
   const metatypes = await (await page.request.get('/api/v1/metamodel/metatypes')).json()
   const application = metatypes.find((metatype: { name: string }) => metatype.name === 'Application Component')
   expect(application, 'entity type Application Component of the starter package').toBeTruthy()
+  // Same origin as the browser: state-changing requests are checked against the portal origin (REQ-187)
+  const origin = new URL(page.url()).origin
   const batch = await page.request.post('/api/v1/entities/batch', {
-    headers: { 'X-XSRF-TOKEN': me.csrfToken, 'X-Agent-Id': 'walkthrough' },
+    headers: { Origin: origin, 'X-XSRF-TOKEN': me.csrfToken, 'X-Agent-Id': 'walkthrough' },
     data: {
       strategy: 'upsert',
       entities: applications.map((name) => ({
