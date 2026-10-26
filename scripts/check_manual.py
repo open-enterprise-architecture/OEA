@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the coverage of the user manual in manual/ (ADR-045 rules 1 to 3, REQ-196 AC1, AC2).
+"""Check the coverage of the user manual in manual/ (ADR-045 rules 1 to 3, ADR-046, REQ-196 AC1, AC2).
 
 Every manual page declares in its frontmatter which screens and user stories it covers:
 
@@ -13,7 +13,7 @@ Fails if
 - a chapter index page is missing in a locale,
 - a page names an unknown screen or user story,
 - a screen with status `implemented` in docs/screens/SCREENS.md or a user story with status
-  `in-progress`, `review` or `realized` is not covered in English or in German.
+  `in-progress`, `review`, `done` or `realized` is not covered in English or in German.
 
 The generated API reference (api/reference/) is not checked; it is generated from the contract.
 
@@ -32,7 +32,8 @@ STORIES_DIR = ROOT / "requirements" / "user-stories"
 
 LOCALES = {"en": MANUAL, "de": MANUAL / "de"}
 CHAPTERS = ["introduction", "setup", "administration", "usage", "api"]
-STORY_STATUSES = {"in-progress", "review", "realized"}
+# Every status from in-progress onward, in both status vocabularies (ADR-046)
+STORY_STATUSES = {"in-progress", "review", "done", "realized"}
 SKIPPED_PARTS = {"node_modules", ".vitepress", "scripts"}
 
 SCREEN_ROW_RE = re.compile(r"^\|\s*(SCR-\d{3})\s*\|.*?\|\s*`([\w-]+)`\s*\|")

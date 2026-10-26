@@ -34,10 +34,10 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | Use Cases | 23 |
 | Requirements | 196 |
 | User Stories | 150 |
-| ADRs | 45 |
+| ADRs | 46 |
 | Business Objects | 30 |
 
-_Concept: v0.19 · Last update: 2026-10-25._
+_Concept: v0.19 · Last update: 2026-10-26._
 <!-- /AUTO-GENERATED: stats -->
 
 **Next step**: Walking Skeleton based on UC-06 (Catalog Browser).
@@ -132,6 +132,7 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 | [ADR-043](adrs/ADR-043-third-party-license-policy.md) | License Policy for Third-Party Components | accepted |
 | [ADR-044](adrs/ADR-044-view-state-in-url.md) | View State of List and Table Views in the URL | accepted |
 | [ADR-045](adrs/ADR-045-user-manual.md) | Multilingual User Manual with VitePress on GitHub Pages | accepted |
+| [ADR-046](adrs/ADR-046-manual-coverage-story-statuses.md) | User Story Statuses Covered by the User Manual Check | accepted |
 <!-- /AUTO-GENERATED: adrs -->
 
 ## Development

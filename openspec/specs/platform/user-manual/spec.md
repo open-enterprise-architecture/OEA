@@ -24,7 +24,7 @@ Trace: REQ-196 AC1, ADR-045 rules 1 and 2
 
 ### Requirement: Every implemented function covered
 
-Every implemented screen of the screen inventory and every user story with status `in-progress`, `review` or `realized` SHALL be covered by a manual page in both languages, and the German page SHALL cover the same screens and stories as its English page; otherwise CI SHALL fail and name what is missing.
+Every implemented screen of the screen inventory and every user story with status `in-progress`, `review`, `done` or `realized` SHALL be covered by a manual page in both languages, and the German page SHALL cover the same screens and stories as its English page; otherwise CI SHALL fail and name what is missing.
 
 Trace: REQ-196 AC2, ADR-045 rule 3, US-001, US-013, US-033, US-046, US-049, US-141, US-143, US-147
 
@@ -35,7 +35,7 @@ Trace: REQ-196 AC2, ADR-045 rule 3, US-001, US-013, US-033, US-046, US-049, US-1
 
 #### Scenario: Story in progress not covered
 
-- **WHEN** CI runs with a user story of status `in-progress`, `review` or `realized` that no manual page covers
+- **WHEN** CI runs with a user story of status `in-progress`, `review`, `done` or `realized` that no manual page covers
 - **THEN** the build fails and names the story and the languages
 
 #### Scenario: Translation covers something different

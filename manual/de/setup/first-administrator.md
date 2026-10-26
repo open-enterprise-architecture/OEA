@@ -2,7 +2,7 @@
 title: Erster Administrator
 covers:
   screens: []
-  stories: [US-013]
+  stories: [US-013, US-015, US-016, US-017]
 ---
 
 # Erster Administrator
@@ -16,6 +16,8 @@ Solange kein Systemadmin-Konto existiert, schreibt das Backend ein Setup-Token i
 ```bash
 docker compose exec backend cat /run/oea/setup-token
 ```
+
+Die Datei kann nur der OEA-Benutzer im Container lesen; du brauchst also Zugriff auf den Server oder den Container – über das Netzwerk kann niemand das Token abrufen. Das Token ist 24 Stunden gültig. Jeder Start des Backends erzeugt ein neues Token und macht das vorherige ungültig; ist dein Token abgelaufen, starte das Backend neu und lies die Datei noch einmal. Nach einem erfolgreichen Bootstrapping löscht das Backend die Datei.
 
 ## Systemadmin-Konto anlegen
 
@@ -32,9 +34,9 @@ Wähle *Create system admin account*. Die Seite bestätigt das Konto und den Ins
 
 Über die API sendest du dieselben Daten an `POST /api/v1/setup`; `GET /api/v1/setup/status` sagt dir, ob das Setup noch aussteht.
 
-- Das Bootstrapping funktioniert genau einmal. Jeder weitere Versuch wird abgelehnt, und das Token ist nicht mehr gültig.
+- Das Bootstrapping funktioniert genau einmal. Kommen zwei Versuche gleichzeitig, gelingt genau einer. Jeder weitere Versuch wird abgelehnt, und das Token ist nicht mehr gültig; das bestehende Konto bleibt unverändert.
 - Ein fehlendes, falsches oder abgelaufenes Token wird abgelehnt, ohne dass ein Konto entsteht.
-- Jeder abgeschlossene und jeder abgelehnte Versuch wird im Audit-Trail festgehalten (`system.bootstrapped`, `system.bootstrap-rejected`).
+- Jeder abgeschlossene und jeder abgelehnte Versuch wird im Audit-Trail mit Zeitpunkt, Modus `local` und Ergebnis festgehalten: `system.bootstrapped` (Ergebnis `success`, dem neuen Systemadmin-Konto zugeordnet) und `system.bootstrap-rejected` (Ergebnis `denied`, mit dem Grund, zum Beispiel `invalid-setup-token`). Weder das Token noch das Passwort werden festgehalten. Mit diesen Einträgen kannst du belegen, wann und wie der erste privilegierte Zugriff auf die Instanz entstanden ist (siehe [Audit-Trail prüfen](../administration/operations#verify-the-audit-trail)).
 
 ## Die Setup-Phase {#setup-phase}
 
