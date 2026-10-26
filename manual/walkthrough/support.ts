@@ -17,8 +17,13 @@ export const backendUrl = process.env.OEA_WALKTHROUGH_BACKEND_URL || 'http://loc
  */
 export async function shoot(page: Page, name: string, mask: Locator[] = []): Promise<void> {
   if (!/^[a-z0-9-]+$/.test(name)) throw new Error(`invalid screenshot name ${name}`)
-  await page.waitForLoadState('networkidle')
-  await page.evaluate(() => document.fonts.ready)
+  // The callers wait for the element they show; 'networkidle' never occurs with the Vite development
+  // server, so the screenshot waits for the loaded page, the fonts and two rendered frames
+  await page.waitForLoadState('load')
+  await page.evaluate(async () => {
+    await document.fonts.ready
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+  })
   const path = join(manualDir, 'screenshots', language, `${name}.png`)
   mkdirSync(dirname(path), { recursive: true })
   await page.screenshot({ path, mask, animations: 'disabled', caret: 'hide' })
