@@ -1,0 +1,254 @@
+[
+  {
+    "name": "@floating-ui/core",
+    "version": "1.8.0",
+    "license": "MIT",
+    "repository": "https://github.com/floating-ui/floating-ui",
+    "licenseFile": true
+  },
+  {
+    "name": "@floating-ui/dom",
+    "version": "1.8.0",
+    "license": "MIT",
+    "repository": "https://github.com/floating-ui/floating-ui",
+    "licenseFile": true
+  },
+  {
+    "name": "@floating-ui/utils",
+    "version": "0.2.12",
+    "license": "MIT",
+    "repository": "https://github.com/floating-ui/floating-ui",
+    "licenseFile": true
+  },
+  {
+    "name": "@floating-ui/vue",
+    "version": "2.0.1",
+    "license": "MIT",
+    "repository": "https://github.com/floating-ui/floating-ui",
+    "licenseFile": true
+  },
+  {
+    "name": "@iconify/vue",
+    "version": "5.0.3",
+    "license": "MIT",
+    "repository": "https://github.com/iconify/iconify",
+    "licenseFile": true
+  },
+  {
+    "name": "@nuxt/ui",
+    "version": "4.12.0",
+    "license": "MIT",
+    "repository": "https://github.com/nuxt/ui",
+    "licenseFile": true
+  },
+  {
+    "name": "@storybook/addon-a11y",
+    "version": "10.6.3",
+    "license": "MIT",
+    "repository": "https://github.com/storybookjs/storybook",
+    "licenseFile": false
+  },
+  {
+    "name": "@storybook/vue3",
+    "version": "10.6.3",
+    "license": "MIT",
+    "repository": "https://github.com/storybookjs/storybook",
+    "licenseFile": false
+  },
+  {
+    "name": "@storybook/vue3-vite",
+    "version": "10.6.3",
+    "license": "MIT",
+    "repository": "https://github.com/storybookjs/storybook",
+    "licenseFile": false
+  },
+  {
+    "name": "@tanstack/table-core",
+    "version": "8.21.3",
+    "license": "MIT",
+    "repository": "https://github.com/TanStack/table",
+    "licenseFile": true
+  },
+  {
+    "name": "@tanstack/virtual-core",
+    "version": "3.19.4",
+    "license": "MIT",
+    "repository": "https://github.com/TanStack/virtual",
+    "licenseFile": true
+  },
+  {
+    "name": "@tanstack/vue-table",
+    "version": "8.21.3",
+    "license": "MIT",
+    "repository": "https://github.com/TanStack/table",
+    "licenseFile": true
+  },
+  {
+    "name": "@tanstack/vue-virtual",
+    "version": "3.13.45",
+    "license": "MIT",
+    "repository": "https://github.com/TanStack/virtual",
+    "licenseFile": true
+  },
+  {
+    "name": "@unhead/vue",
+    "version": "3.4.3",
+    "license": "MIT",
+    "repository": "https://github.com/unjs/unhead",
+    "licenseFile": true
+  },
+  {
+    "name": "@vue/compiler-core",
+    "version": "3.5.44",
+    "license": "MIT",
+    "repository": "https://github.com/vuejs/core",
+    "licenseFile": true
+  },
+  {
+    "name": "@vue/compiler-dom",
+    "version": "3.5.44",
+    "license": "MIT",
+    "repository": "https://github.com/vuejs/core",
+    "licenseFile": true
+  },
+  {
+    "name": "@vue/reactivity",
+    "version": "3.5.44",
+    "license": "MIT",
+    "repository": "https://github.com/vuejs/core",
+    "licenseFile": true
+  },
+  {
+    "name": "@vue/runtime-core",
+    "version": "3.5.44",
+    "license": "MIT",
+    "repository": "https://github.com/vuejs/core",
+    "licenseFile": true
+  },
+  {
+    "name": "@vue/runtime-dom",
+    "version": "3.5.44",
+    "license": "MIT",
+    "repository": "https://github.com/vuejs/core",
+    "licenseFile": true
+  },
+  {
+    "name": "@vue/shared",
+    "version": "3.5.44",
+    "license": "MIT",
+    "repository": "https://github.com/vuejs/core",
+    "licenseFile": true
+  },
+  {
+    "name": "@vueuse/core",
+    "version": "14.4.0",
+    "license": "MIT",
+    "repository": "https://github.com/vueuse/vueuse",
+    "licenseFile": true
+  },
+  {
+    "name": "@vueuse/shared",
+    "version": "14.4.0",
+    "license": "MIT",
+    "repository": "https://github.com/vueuse/vueuse",
+    "licenseFile": true
+  },
+  {
+    "name": "aria-hidden",
+    "version": "1.2.6",
+    "license": "MIT",
+    "repository": "https://github.com/theKashey/aria-hidden",
+    "licenseFile": true
+  },
+  {
+    "name": "axe-core",
+    "version": "4.14.0",
+    "license": "MPL-2.0",
+    "repository": "https://github.com/dequelabs/axe-core",
+    "licenseFile": true
+  },
+  {
+    "name": "defu",
+    "version": "6.1.7",
+    "license": "MIT",
+    "repository": "unjs/defu",
+    "licenseFile": true
+  },
+  {
+    "name": "hookable",
+    "version": "6.1.2",
+    "license": "MIT",
+    "repository": "unjs/hookable",
+    "licenseFile": true
+  },
+  {
+    "name": "ohash",
+    "version": "2.0.12",
+    "license": "MIT",
+    "repository": "unjs/ohash",
+    "licenseFile": true
+  },
+  {
+    "name": "reka-ui",
+    "version": "2.11.0",
+    "license": "MIT",
+    "repository": "https://github.com/unovue/reka-ui",
+    "licenseFile": true
+  },
+  {
+    "name": "scule",
+    "version": "1.3.0",
+    "license": "MIT",
+    "repository": "unjs/scule",
+    "licenseFile": true
+  },
+  {
+    "name": "storybook",
+    "version": "10.6.3",
+    "license": "MIT",
+    "repository": "https://github.com/storybookjs/storybook",
+    "licenseFile": false
+  },
+  {
+    "name": "tailwind-variants",
+    "version": "3.3.1",
+    "license": "MIT",
+    "repository": "https://github.com/heroui-inc/tailwind-variants",
+    "licenseFile": true
+  },
+  {
+    "name": "tailwindcss",
+    "version": "4.3.3",
+    "license": "MIT",
+    "repository": "https://github.com/tailwindlabs/tailwindcss",
+    "licenseFile": true
+  },
+  {
+    "name": "ufo",
+    "version": "1.6.4",
+    "license": "MIT",
+    "repository": "unjs/ufo",
+    "licenseFile": true
+  },
+  {
+    "name": "unhead",
+    "version": "3.4.3",
+    "license": "MIT",
+    "repository": "https://github.com/unjs/unhead",
+    "licenseFile": true
+  },
+  {
+    "name": "vue",
+    "version": "3.5.44",
+    "license": "MIT",
+    "repository": "https://github.com/vuejs/core",
+    "licenseFile": true
+  },
+  {
+    "name": "vue-router",
+    "version": "5.4.0",
+    "license": "MIT",
+    "repository": "https://github.com/vuejs/router",
+    "licenseFile": true
+  }
+]

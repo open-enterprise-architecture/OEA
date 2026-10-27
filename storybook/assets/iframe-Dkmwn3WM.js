@@ -1,0 +1,1 @@
+import{t as e}from"./iframe-CMBICK6s.js";e();
