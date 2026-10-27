@@ -129,14 +129,14 @@ The decision on tooling, structure and publication is [ADR-045](../../adrs/ADR-0
 ## Implementation Notes
 
 - The manual grows with each change; the definition of done of user-visible changes includes the manual (ADR-045 rule 8)
-- The coverage check can run on every pull request; the walkthrough tests and publication are expensive and run per version tag
+- The coverage check can run on every pull request; the walkthrough tests and publication are expensive and run on every version tag and every push to `main` (owner decision of 2026-10-26), not on pull requests
 
 ## Implementation
 
 - ADR(s): ADR-045, ADR-046
-- Implemented by: OpenSpec change `s2c-manual-site` (AC1, AC2, AC3); AC4, AC5 and AC6 follow with `s2c-manual-release`
-- Tests: `scripts/check_manual.py` (CI job "Requirements completeness"), `manual/scripts/generate-api-reference.test.mjs` and the manual build (CI job "User manual")
-- Verification status: not-verified
+- Implemented by: OpenSpec changes `s2c-manual-site` (AC1, AC2, AC3) and `s2c-manual-release` (AC4, AC5, AC6)
+- Tests: `scripts/check_manual.py` (CI job "Requirements completeness"), the tests in `manual/scripts/` and the manual build (CI job "User manual"), the walkthrough tests `manual/walkthrough/` with the publication build (`.github/workflows/pages.yml`)
+- Verification status: partially verified (AC1–AC5 and the publication of `main`; AC6 with the first version tag)
 
 ## Notes
 
