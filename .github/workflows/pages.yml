@@ -57,6 +57,16 @@ jobs:
         run: |
           npm ci --ignore-scripts
           npx playwright install --with-deps chromium
+      # Before the walkthrough: the development stack mounts a volume on frontend/node_modules, which
+      # leaves that directory owned by root for later npm runs in frontend/
+      - name: Build Storybook
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        working-directory: frontend
+        run: |
+          npm ci --ignore-scripts
+          npm run build-storybook
+          mkdir -p ../site-parts
+          cp -R storybook-static ../site-parts/storybook
       - name: Walkthrough tests against the development stack (screenshots)
         run: scripts/walkthrough.sh
       - name: Keep the walkthrough report
@@ -95,13 +105,6 @@ jobs:
               build "$SITE_ROOT" ../site-parts/root
             fi
           fi
-      - name: Build Storybook
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        working-directory: frontend
-        run: |
-          npm ci --ignore-scripts
-          npm run build-storybook
-          cp -R storybook-static ../site-parts/storybook
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: site-parts
