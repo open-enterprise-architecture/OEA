@@ -136,7 +136,7 @@ The decision on tooling, structure and publication is [ADR-045](../../adrs/ADR-0
 - ADR(s): ADR-045, ADR-046
 - Implemented by: OpenSpec changes `s2c-manual-site` (AC1, AC2, AC3) and `s2c-manual-release` (AC4, AC5, AC6)
 - Tests: `scripts/check_manual.py` (CI job "Requirements completeness"), the tests in `manual/scripts/` and the manual build (CI job "User manual"), the walkthrough tests `manual/walkthrough/` with the publication build (`.github/workflows/pages.yml`)
-- Verification status: partially verified (AC1–AC5 and the publication of `main`; AC6 with the first version tag)
+- Verification status: verified 2026-10-27 (AC1–AC5 on the published manual; AC6 with the release `v0.1.0` under `/v0.1/` and at the root, the multi-release scenarios by the tests of `manual/scripts/publish-site.test.mjs` and `versions.test.mjs`)
 
 ## Notes
 
