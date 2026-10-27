@@ -6,10 +6,13 @@
 [![Enterprise License](https://img.shields.io/badge/enterprise-license%20available-green.svg)](LICENSES/LICENSE-ENTERPRISE.md)
 [![Status](https://img.shields.io/badge/status-pre--alpha-orange.svg)](#status)
 [![Conventional Commits](https://img.shields.io/badge/conventional%20commits-1.0.0-yellow.svg)](https://www.conventionalcommits.org/)
+[![User manual](https://img.shields.io/badge/user%20manual-English%20%7C%20Deutsch-blueviolet.svg)](https://open-enterprise-architecture.github.io/OEA/)
 
 ---
 
 OEA turns an organization's architecture into a shared, versioned source of truth – a maintenance tool for architects, an inventory for business units, an asset source for compliance, a verifiable artifact for automated pipelines.
+
+**Documentation**: [User manual](https://open-enterprise-architecture.github.io/OEA/) in English and [German](https://open-enterprise-architecture.github.io/OEA/de/) (installation, administration, usage, API reference) · [Screen prototypes (Storybook)](https://open-enterprise-architecture.github.io/OEA/storybook/)
 
 ## Vision
 

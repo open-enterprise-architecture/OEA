@@ -65,3 +65,19 @@
   margin-left: 4px;
   font-weight: 500;
 }
+
+/* Labelled language switch in the navigation bar */
+.language-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 16px;
+  color: var(--vp-c-text-1);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.language-switch:hover {
+  color: var(--vp-c-brand-1);
+}
