@@ -8,9 +8,9 @@
 ## 2. Walkthrough tests (D1, D2)
 
 - [x] 2.1 Add `@playwright/test` (exact version, same minor as Playwright in `frontend/`) to `manual/`, `manual/playwright.config.ts` (one worker, 1280 × 800, light scheme, reduced motion, `OEA_WALKTHROUGH_URL`) and the script `npm run walkthrough`; write the helper `shoot(page, name)` with masking and manifest; verify `npm ci --ignore-scripts` and `npx playwright test --list` pass
-- [ ] 2.2 Write the flows setup and system admin login with second factor (D1 flows 1 and 2) and reference `setup-required`, `setup-form`, `setup-done`, `login` and `second-factor-enroll` from `setup/first-administrator.md` and `usage/login.md` in both languages; verify against a fresh `scripts/dev.sh` stack that the screenshots appear in `manual/screenshots/en/` and the QR code and secret are masked
+- [x] 2.2 Write the flows setup and system admin login with second factor (D1 flows 1 and 2) and reference `setup-required`, `setup-form`, `setup-done`, `login` and `second-factor-enroll` from `setup/first-administrator.md` and `usage/login.md` in both languages; verify against a fresh `scripts/dev.sh` stack that the screenshots appear in `manual/screenshots/en/` and the QR code and secret are masked
 - [ ] 2.3 Run `scripts/dev_seed.py` from the walkthrough (it enrolls its own TOTP credential, design D1 flow 3), write the flows starter import as `dev-metamodel-admin` and catalogs as `dev-architect` with a fixed entity set written through `POST /api/v1/entities/batch` (D1 flows 3 to 5), and reference `starter-import`, `catalogs`, `catalog-create` and `catalog-table` from `administration/metamodel-packages.md` and `usage/catalogs.md` in both languages; verify two consecutive runs against fresh stacks produce visually identical screenshots
-- [ ] 2.4 Write `scripts/walkthrough.sh` (start `compose.dev.yaml` with fresh volumes, wait for health and Vite, read the setup token, run `npm run walkthrough`, stop the stack); verify locally that it produces all screenshots and that `MANUAL_SCREENSHOTS=required npm run build` then passes and fails after deleting one screenshot
+- [x] 2.4 Write `scripts/walkthrough.sh` (start `compose.dev.yaml` with fresh volumes, wait for health and Vite, read the setup token, run `npm run walkthrough`, stop the stack); verify locally that it produces all screenshots and that `MANUAL_SCREENSHOTS=required npm run build` then passes and fails after deleting one screenshot
 
 ## 3. Versions and selector (D4, D6)
 
@@ -21,7 +21,7 @@
 
 - [x] 4.1 Rewrite `.github/workflows/pages.yml` with the triggers of D5 and the jobs build (walkthrough via `scripts/walkthrough.sh`, Playwright report on failure, builds per trigger, artifact `site-parts`), publish (`contents: write`, runs `publish-site.mjs`, pushes `gh-pages`) and deploy (`pages: write`, `id-token: write`, publishes the `gh-pages` commit); verify with actionlint and zizmor (no findings) that only publish holds `contents: write` and only deploy holds `pages: write` and `id-token: write`
 - [ ] 4.2 Ask the repository owner to apply D8 (environment `github-pages` allows tags `v*`, tag ruleset for `v*`, ruleset for `gh-pages` against deletion and force push); verify through the API that the policies exist
-- [ ] 4.3 After the merge: verify that the push run creates `gh-pages`, that the site root and `/next/` show the manual of `main` with screenshots and the notice, and that `/storybook/` shows Storybook (scenario "Manual and Storybook on one site")
+- [x] 4.3 After the merge: verify that the push run creates `gh-pages`, that the site root and `/next/` show the manual of `main` with screenshots and the notice, and that `/storybook/` shows Storybook (scenario "Manual and Storybook on one site")
 - [ ] 4.4 After the first version tag set by the repository owner (e.g. `v0.1.0`): verify that the site root and `/v0.1/` show the release manual without notice, `/next/` keeps the manual of `main`, `versions.json` lists the release and the selector of `/next/` offers it (scenarios "Latest release at the root", "All versions offered", "Development state after the first release"); the other release scenarios are covered by the tests of 3.2
 
 ## 5. Links and documentation (D7)
@@ -31,5 +31,5 @@
 
 ## 6. Wrap-up
 
-- [ ] 6.1 No user story changes status (none is implemented); update REQ-196 (implementation section: AC4–AC6 by this change, verification status) and `docs/sprint-plan.md` (S2c done); regenerate `requirements/traceability.md` (`python3 scripts/generate_traceability.py`)
-- [ ] 6.2 Run `python3 scripts/validate_links.py`, `python3 scripts/check_manual.py`, `python3 scripts/check_screens.py`, `python3 scripts/sync_agent_config.py --check`, `openspec validate --specs --strict`, markdown lint and `npm test && npm run build` in `manual/` and verify all pass
+- [x] 6.1 No user story changes status (none is implemented); update REQ-196 (implementation section: AC4–AC6 by this change, verification status) and `docs/sprint-plan.md` (S2c done); regenerate `requirements/traceability.md` (`python3 scripts/generate_traceability.py`)
+- [x] 6.2 Run `python3 scripts/validate_links.py`, `python3 scripts/check_manual.py`, `python3 scripts/check_screens.py`, `python3 scripts/sync_agent_config.py --check`, `openspec validate --specs --strict`, markdown lint and `npm test && npm run build` in `manual/` and verify all pass
