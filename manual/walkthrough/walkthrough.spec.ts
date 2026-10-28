@@ -12,7 +12,13 @@ const admin = { loginName: 'admin', password: 'walkthrough-admin-password' }
 const starterPackage = 'oea-starter-togaf-classic'
 
 // Fixed sample data of the catalog table (design D1, flow 5)
-const applications = ['CRM System', 'Customer Portal', 'Data Warehouse', 'ERP Finance', 'HR Self-Service']
+const applications = [
+  { name: 'CRM System', status: 'active' },
+  { name: 'Customer Portal', status: 'active' },
+  { name: 'Data Warehouse', status: 'phasing-out' },
+  { name: 'ERP Finance', status: 'active' },
+  { name: 'HR Self-Service', status: 'planned' },
+]
 
 test.describe.configure({ mode: 'serial' })
 
@@ -96,16 +102,21 @@ test('catalogs', async ({ page }) => {
   const metatypes = await (await page.request.get('/api/v1/metamodel/metatypes')).json()
   const application = metatypes.find((metatype: { name: string }) => metatype.name === 'Application Component')
   expect(application, 'entity type Application Component of the starter package').toBeTruthy()
+  const status = application.propertyMappings.find(
+    (mapping: { propertyDefinition: { name: string } }) => mapping.propertyDefinition.name === 'Status',
+  )
+  expect(status, 'property Status of Application Component').toBeTruthy()
   // Same origin as the browser: state-changing requests are checked against the portal origin (REQ-187)
   const origin = new URL(page.url()).origin
-  const batch = await page.request.post('/api/v1/entities/batch', {
+  const batch = await page.request.post('/api/v1/entities/batch?atomic=true', {
     headers: { Origin: origin, 'X-XSRF-TOKEN': me.csrfToken, 'X-Agent-Id': 'walkthrough' },
     data: {
       strategy: 'upsert',
-      entities: applications.map((name) => ({
+      entities: applications.map(({ name, status: value }) => ({
         name,
         metatypeId: application.id,
         externalId: `walkthrough:${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+        properties: [{ propertyDefId: status.propertyDefinition.id, value }],
       })),
     },
   })
@@ -124,6 +135,7 @@ test('catalogs', async ({ page }) => {
   await page.getByTestId('create-catalog-submit').click()
   await expect(page.getByTestId('catalog-table')).toBeVisible()
   await expect(page.getByTestId('catalog-table')).toContainText('CRM System')
+  await expect(page.getByTestId('catalog-table')).toContainText('phasing-out')
   await shoot(page, 'catalog-table')
 
   await page.getByTestId('back-to-catalogs').click()

@@ -26,7 +26,8 @@ export async function shoot(page: Page, name: string, mask: Locator[] = []): Pro
   })
   const path = join(manualDir, 'screenshots', language, `${name}.png`)
   mkdirSync(dirname(path), { recursive: true })
-  await page.screenshot({ path, mask, animations: 'disabled', caret: 'hide' })
+  // Neutral grey instead of Playwright's default magenta for masked regions
+  await page.screenshot({ path, mask, maskColor: '#d1d5db', animations: 'disabled', caret: 'hide' })
 }
 
 /** RFC 6238 code (SHA-1, 6 digits, 30 s) for a Base32 secret of OEA, as scripts/dev_seed.py computes it. */
