@@ -1674,9 +1674,75 @@ package "Navigation & Presentation" #EDE7F6 {
     + deleted           : BOOLEAN       {NN} DEFAULT false
   }
 
+  ' Versions, operation log and checkpoints of co-edited diagrams (ADR-047,
+  ' owner decision 2026-10-28; REQ-199, REQ-204). Planned, not migrated.
+  class diagram_versions <<Table>> #D1C4E9 {
+    + id                : BIGSERIAL     {PK}
+    --
+    + diagram_id        : UUID          {NN} {FK→diagrams.id}
+    + version           : INTEGER       {NN}
+    .. UNIQUE(diagram_id, version); assigned when the version opens ..
+    + author_id         : BIGINT        {NN} {FK→persons.id}
+    .. exactly one author per version (BR-DG-05) ..
+    + opened_at         : TIMESTAMPTZ   {NN} DEFAULT NOW()
+    + closed_at         : TIMESTAMPTZ
+    .. NULL while open; closed after 2 min idle, 15 min at most, ..
+    .. or when the author leaves/disconnects (defaults, configurable) ..
+    + restored_from_checkpoint_id : UUID {FK→diagram_checkpoints.id}
+    .. set when the version is a restore (REQ-204) ..
+  }
+
+  class diagram_operations <<Table>> #D1C4E9 {
+    + id                : BIGSERIAL     {PK}
+    --
+    + diagram_id        : UUID          {NN} {FK→diagrams.id}
+    + seq               : BIGINT        {NN}
+    .. server order; UNIQUE(diagram_id, seq) ..
+    + version_id        : BIGINT        {NN} {FK→diagram_versions.id}
+    + author_id         : BIGINT        {NN} {FK→persons.id}
+    + kind              : TEXT          {NN}
+    .. e.g. shape.add | shape.update | shape.delete | edge.add | ..
+    .. edge.update | edge.delete | note.add | note.update | note.delete ..
+    + target_id         : UUID          {NN}
+    .. shapeId, edgeId or noteId ..
+    + attribute         : TEXT
+    .. changed attribute for *.update (x, y, width, name, …) ..
+    + old_value         : JSONB
+    + new_value         : JSONB
+    + applied_at        : TIMESTAMPTZ   {NN} DEFAULT NOW()
+  }
+
+  note right of diagram_operations
+    Append-only for oea_app (INSERT + SELECT).
+    One row per accepted operation; a gesture is
+    one operation (drag = final position).
+    Pointer, selection and presence are not stored.
+    Lifecycle follows the diagram; the matching
+    audit.events follow the audit retention.
+    Entity and connection changes made through the
+    diagram go to the entity history tables, grouped
+    into versions with the same window rule.
+  end note
+
+  class diagram_checkpoints <<Table>> #D1C4E9 {
+    + id                : UUID          {PK}
+    --
+    + diagram_id        : UUID          {NN} {FK→diagrams.id}
+    + name              : TEXT          {NN}
+    .. 1–200 characters; UNIQUE INDEX on (diagram_id, lower(btrim(name))) ..
+    + operation_seq     : BIGINT        {NN}
+    .. diagram_operations.seq of the state; immutable ..
+    + created_by        : BIGINT        {NN} {FK→persons.id}
+    + created_at        : TIMESTAMPTZ   {NN} DEFAULT NOW()
+  }
+
   diagrams        "1"    --o{ "0..*" diagram_notes   : contains
   diagrams        "1"    --o{ "0..*" comment_threads : discussed in
   comment_threads "1"    --o{ "1..*" comments        : contains
+  diagrams        "1"    --o{ "0..*" diagram_versions    : version log
+  diagrams        "1"    --o{ "0..*" diagram_operations  : operation log
+  diagram_versions "1"   --o{ "1..*" diagram_operations  : groups
+  diagrams        "1"    --o{ "0..*" diagram_checkpoints : named states
   plateaus        "0..1" --o{ "0..*" diagrams        : plateau_id
 
   metatypes       "1"    --o{ "0..*" catalogs        : primary_metatype_id
@@ -1777,6 +1843,11 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   new diagrams (layout as JSONB), diagram_notes, comment_threads and
 '   comments; planned, not migrated. Reason: UC-24, REQ-200, REQ-201,
 '   BO diagram, diagram-note, comment-thread.
+' 2026-10-28 (ADR-047 accepted, owner decisions):
+'   new diagram_versions (one author per version, time window),
+'   diagram_operations (append-only operation log in server order) and
+'   diagram_checkpoints (named states); planned, not migrated.
+'   Reason: REQ-199, REQ-204, BR-DG-05, BR-DG-06.
 ' ─────────────────────────────────────────────────────
 
 @enduml

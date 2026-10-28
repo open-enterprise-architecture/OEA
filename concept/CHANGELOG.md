@@ -2,6 +2,12 @@
 
 This document records how the concept paper itself has evolved. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows Semantic Versioning (at concept level: major = fundamentally new concepts, minor = new chapters/sections, patch = corrections).
 
+## [v0.20.1] – Collaboration decisions
+
+### Changed
+
+- §21.10: ADR-047 accepted (server-ordered operations, text CRDT only for documents); version granularity of co-editing set (every operation audited, versions per author closed after 2 minutes idle or 15 minutes at most, named checkpoints); commenting with read access (owner decisions of 2026-10-28)
+
 ## [v0.20.0] – Real-time collaboration
 
 ### Added

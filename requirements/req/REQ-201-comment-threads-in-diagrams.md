@@ -4,7 +4,7 @@ title: Comment threads in diagrams
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-10-28
 last_updated: 2026-10-28
 author: requirements-engineer
@@ -106,7 +106,7 @@ A thread is a [CommentThread](../../business-objects/comment-thread.md); it is s
 
 ## Trade-offs
 
-- A separate permission to comment would allow read-only reviewers without comment rights; BR-CT-01 grants commenting with read access unless restricted (open question in UC-24)
+- Commenting needs no separate permission: everyone who may read the diagram may comment (owner decision of 2026-10-28, BR-CT-01). Read-only reviewers who must not comment cannot be configured; accepted for simplicity
 
 ## Implementation
 
@@ -124,3 +124,4 @@ Owner request and decisions of 2026-10-28 (UC-24): priority *should* after the M
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-28 | requirements-engineer | Initial draft (UC-24) |
+| 0.2.0 | 2026-10-28 | requirements-engineer | Commenting with read access, no separate permission (owner decision) |

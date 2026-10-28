@@ -2,7 +2,7 @@
 identifier: diagram
 name_de: Diagramm
 name_en: Diagram
-version: 0.1.0
+version: 0.2.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -40,7 +40,7 @@ Until this object was modeled, the [TreeNode](./tree-node.md) referred to diagra
 | viewpointId | reference | required | – | target: viewpoint | Viewpoint the diagram is an instance of |
 | plateauId | reference | optional | – | target: plateau | Plateau (time slice) the diagram shows; empty = current state |
 | layout | composite | required | empty | see DiagramLayout | Positions and sizes of the shapes |
-| version | integer | required | 1 | increases with every saved change | Version of the diagram layout |
+| version | integer | required | 1 | increases with every new version (see Versions and Checkpoints) | Current version number of the diagram |
 | createdBy | reference | required | – | target: person | Creator |
 | createdAt | datetime | required | now | immutable | Creation time |
 | updatedAt | datetime | required | now | – | Time of the last saved change |
@@ -71,6 +71,24 @@ Until this object was modeled, the [TreeNode](./tree-node.md) referred to diagra
 | connectionId | reference | required | target: entity (connection) | Represented connection |
 | points | list of (x, y) | optional | – | Bend points |
 
+### DiagramCheckpoint (composite)
+
+| Attribute | Type | Optional | Constraints | Description |
+|---|---|---|---|---|
+| checkpointId | string (UUID) | required | immutable | Identity |
+| name | string | required | 1–200 characters; unique within the diagram, case-insensitive | Name of the state, e.g. "Workshop result 2026-10-28" |
+| operationSeq | integer | required | position in the diagram's operation log; immutable | State the checkpoint refers to |
+| createdBy | reference | required | target: person | Person who named the state |
+| createdAt | datetime | required | immutable | Time of naming |
+
+## Versions and Checkpoints
+
+Continuous co-editing is recorded on two levels ([ADR-047](../adrs/ADR-047-real-time-collaboration.md), owner decision of 2026-10-28):
+
+- **Operation log**: every operation the server accepts, in server order, with author, time, element, attribute and old and new value. A gesture is one operation (a drag records the final position). It serves resynchronisation after reconnects and point-in-time reconstruction; each operation is also recorded in the audit trail.
+- **Versions**: a version groups the operations of one author on the diagram. It closes after 2 minutes without a further operation of that author, after 15 minutes at the latest, or when the author leaves the diagram or loses the connection (defaults, configurable by the administrator). Entities and connections changed through the diagram get their own versions with the same rule.
+- **Checkpoints**: named states of the whole diagram; restoring a version or checkpoint sets the whole diagram to that state.
+
 ## Relationships
 
 | Relationship | Target Object | Cardinality | Optional | Description |
@@ -81,6 +99,7 @@ Until this object was modeled, the [TreeNode](./tree-node.md) referred to diagra
 | discussedIn | [comment-thread](./comment-thread.md) | 1:n | yes | Comment threads anchored to the diagram |
 | showsPlateau | [plateau](./plateau.md) | n:1 | yes | Time slice shown |
 | referencedBy | [tree-node](./tree-node.md) | n:m | yes | Navigation folders that list the diagram |
+| hasCheckpoints | DiagramCheckpoint | 1:n | yes | Named states of the diagram |
 
 ## Lifecycle
 
@@ -99,6 +118,8 @@ active → deleted (soft delete, restorable)
 | BR-DG-02 | Removing a shape MUST NOT delete the entity; deleting an entity removes its shapes from all diagrams | onUpdate, onEntityDelete | – |
 | BR-DG-03 | Concurrent edits of the same diagram MUST be merged without losing any participant's change (REQ-199) | onUpdate | – |
 | BR-DG-04 | A participant MUST NOT receive properties of shown entities that are hidden from them (property-level authorization, §21.8) | onRead, onCollaborate | REQ-126 |
+| BR-DG-05 | A version MUST contain the operations of exactly one author; it closes after the configured idle time (default 2 minutes), the configured maximum duration (default 15 minutes) or when the author leaves or disconnects | onUpdate | REQ-199 |
+| BR-DG-06 | Naming a checkpoint requires the permission to edit the diagram; a checkpoint is immutable except for its name and is recorded in the audit trail | onCreate, onUpdate | REQ-204 |
 
 ## Examples
 
@@ -134,10 +155,11 @@ layout:
 
 ## Notes
 
-Modeled on 2026-10-28 because sticky notes and comment threads (UC-24) need an owner. The layout is kept as a composite of the diagram; whether it is stored as rows or as a document (JSONB, CRDT state) is decided with ADR-047 and the implementing change.
+Modeled on 2026-10-28 because sticky notes and comment threads (UC-24) need an owner. The layout is kept as a composite of the diagram and stored as JSONB; with ADR-047 (server-ordered operations) no CRDT state is stored for diagrams. Versions, the operation log and checkpoints were added on 2026-10-28 after the owner decided the version granularity.
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-28 | Business Engineer | Initial draft (UC-24) |
+| 0.2.0 | 2026-10-28 | Business Engineer | Versions per author and time window, operation log, checkpoints (ADR-047 accepted) |

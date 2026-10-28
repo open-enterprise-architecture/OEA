@@ -1,6 +1,6 @@
 # ADR-047: Architecture of Real-Time Collaboration
 
-**Status**: proposed
+**Status**: accepted
 **Date**: 2026-10-28
 **Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Consulted**: Solution Architect, Security Engineer
@@ -8,7 +8,7 @@
 
 ## Context and Problem
 
-The repository owner asked on 2026-10-28 for collaborative work: participants see each other's mouse pointers, follow changes live everywhere, edit the same diagram at the same time with automatic merge, and leave sticky notes and comment threads in diagrams ([UC-24](../requirements/use-cases/UC-24-collaborate-in-real-time.md), REQ-197 to REQ-203, [§21.10](../concept/70-platform/21-api-architecture.md); priority *should*, after the MVP).
+The repository owner asked on 2026-10-28 for collaborative work: participants see each other's mouse pointers, follow changes live everywhere, edit the same diagram at the same time with automatic merge, and leave sticky notes and comment threads in diagrams ([UC-24](../requirements/use-cases/UC-24-collaborate-in-real-time.md), REQ-197 to REQ-204, [§21.10](../concept/70-platform/21-api-architecture.md); priority *should*, after the MVP).
 
 The current architecture does not support this:
 
@@ -74,11 +74,25 @@ WebSocket for the collaboration session (bidirectional, low latency, one connect
 
 ## Decision
 
-Proposed: **Option 3 – server-ordered operations on the OEA model, text CRDT only for documents**, with WebSocket for the collaboration session and SSE for the event stream.
+Chosen: **Option 3 – server-ordered operations on the OEA model, text CRDT only for documents**, with WebSocket for the collaboration session and SSE for the event stream (accepted by the repository owner on 2026-10-28).
 
 **Rationale**: it is the only option in which the server understands every change, which REQ-203 (authorization per property, audit per author) and the persistence as regular repository versions require; it keeps one backend runtime (ADR-027). Diagrams consist of atomic attributes, for which server ordering per attribute delivers the automatic merge of REQ-199 without a general-purpose CRDT. Text in documents is the one place where character-level merging is needed; there a CRDT library is used for the text fields only.
 
-The decision is open until the repository owner accepts it. Before acceptance, a spike should confirm the client rebase in Vue Flow and the latency of REQ-202 with 20 simulated participants.
+**Validation**: the first task of the implementing change is a spike that confirms the client rebase in Vue Flow and the latency of REQ-202 with 20 simulated participants. If the spike fails, this ADR is revisited before further collaboration work.
+
+### Version Granularity
+
+Continuous editing is recorded on two levels, plus named checkpoints (owner decision of 2026-10-28):
+
+1. **Operation log (traceability)**: every operation the server accepts is recorded with author, time, element, attribute and old and new value – in the audit trail (§21.8) and in the diagram's operation log, which keeps the server order for resynchronisation and point-in-time restore. A gesture is one operation: a drag records the final position, a renamed field is taken over when the participant leaves it. Pointer movements, selections and presence are not recorded.
+2. **Versions (usability)**: a version groups the operations of **one author on one object** – the diagram, or an entity or connection changed through it. A version closes after **2 minutes** without a further operation of that author on that object, after **15 minutes** at the latest, or when the author leaves the diagram or loses the connection. Both durations are defaults the administrator can change. Every version therefore has exactly one author. Entity forms keep explicit saving (one version per save).
+3. **Named checkpoints**: a participant who may edit the diagram can name the current state (for example "Workshop result 2026-10-28"). A checkpoint refers to a position in the operation log, appears highlighted in the history and can be compared and restored (UC-14, UC-15).
+
+Restoring sets the whole diagram to the state at a version boundary or checkpoint; it is not limited to one author's changes, because selectively reverting one author would conflict with later changes of others. Undo works on single operations and only on one's own (UC-24 A3), independent of versions. The operation log follows the lifecycle of the diagram; its entries in the audit trail follow the audit retention (ADR-033).
+
+### Permission to Comment
+
+Commenting needs no separate permission: everyone who may read a diagram may open, answer and resolve comment threads (owner decision of 2026-10-28, BR-CT-01). Sticky notes are diagram content and need edit permission (BR-DN-02).
 
 ## Consequences
 
@@ -94,10 +108,11 @@ The decision is open until the repository owner accepts it. Before acceptance, a
 - Long offline phases produce more conflicts that are applied with a notice than a full CRDT would
 - WebSocket connections must pass the operator's reverse proxy (timeouts, upgrade headers); the installation guide has to cover it
 - Explicit saving in the canvas is replaced by continuous saving (UC-10)
+- The operation log and the per-operation audit events grow with every accepted operation; coalescing gestures keeps the volume bounded
+- Point-in-time states between version boundaries are reconstructible from the operation log but not offered for restore in the user interface
 
 ### Follow-up Decisions
 
-- Version granularity of continuous editing (time window per author)
 - Choice of the text CRDT library for documents (Yjs or Automerge) when documents are implemented
 - Horizontal scaling: routing all participants of one object to the same backend node, or a shared broker (only if one node does not reach REQ-202)
 - Revision of concept issue #26 (done in concept v0.20.0: WebSocket in v1.x)
@@ -118,8 +133,8 @@ The decision is open until the repository owner accepts it. Before acceptance, a
 **Use Cases / Requirements**:
 
 - [UC-24: Collaborate on the architecture in real time](../requirements/use-cases/UC-24-collaborate-in-real-time.md)
-- REQ-197 to REQ-203
+- REQ-197 to REQ-204
 
 ## Notes
 
-Owner decisions of 2026-10-28: priority *should* after the MVP; presence and live changes in every view; real co-editing with automatic merge; sticky notes and comment threads in diagrams. The choice among the options above is not yet made.
+Owner decisions of 2026-10-28: priority *should* after the MVP; presence and live changes in every view; real co-editing with automatic merge; sticky notes and comment threads in diagrams. Later the same day the owner accepted option 3, commenting with read access and the version granularity above (2 minutes without change, 15 minutes at most, named checkpoints).
