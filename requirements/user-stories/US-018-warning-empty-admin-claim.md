@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S3
-**Implementation**: OpenSpec change `us-019-admin-safeguards` – warning `group-not-seen` and `lastMatchedAt` on IdP group mappings
+**Implementation**: OpenSpec change `us-019-admin-safeguards`, commit 065c58b (#117) – warning `group-not-seen` and `lastMatchedAt` on IdP group mappings
 
 ## Story
 

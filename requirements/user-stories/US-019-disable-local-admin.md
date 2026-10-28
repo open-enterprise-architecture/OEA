@@ -4,7 +4,7 @@
 **Story Points**: 2
 **Status**: done
 **Sprint**: S3
-**Implementation**: OpenSpec change `us-019-admin-safeguards` – `GET /admin/system-admin-account`, `POST /admin/system-admin-account/deactivate`; reactivation through the break-glass command `admin recover` (UC-02 E4)
+**Implementation**: OpenSpec change `us-019-admin-safeguards`, commit 065c58b (#117) – `GET /admin/system-admin-account`, `POST /admin/system-admin-account/deactivate`; reactivation through the break-glass command `admin recover` (UC-02 E4)
 
 ## Story
 
