@@ -65,7 +65,7 @@ public record AuditEvent(String eventType, Category category, Severity severity,
 
 	public enum Source {
 
-		UI, API, JOB("Job"), IMPORT("Import");
+		UI, API, JOB("Job"), IMPORT("Import"), CLI;
 
 		private final String dbValue;
 
