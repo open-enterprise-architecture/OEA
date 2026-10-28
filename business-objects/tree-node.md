@@ -117,7 +117,7 @@ All three views show the same data set; they are complementary, not competing.
 | parent | TreeNode | n:0..1 | yes | Parent node (null = root) |
 | children | TreeNode | 1:n | yes | Subfolders of this node |
 | refersToEntities | entity | n:n | yes | Entities to which this node refers |
-| refersTodiagrams | diagram (future BO) | n:n | yes | Diagrams to which this node refers |
+| refersTodiagrams | [diagram](./diagram.md) | n:n | yes | Diagrams to which this node refers |
 | refersToCatalogs | [catalog](./catalog.md) | n:n | yes | Catalogs to which this node refers |
 
 ## Business Rules

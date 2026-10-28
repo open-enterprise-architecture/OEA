@@ -97,7 +97,7 @@ openCypher (instead of Gremlin or ISO GQL): Apache AGE implements openCypher; to
 
 **Decision**: Server-Sent Events (SSE) as default in v1.0.
 
-`GET /api/v1/events` as an SSE stream; events are JSON with `type`, `entityId`, `plateauId`, `timestamp`. WebSocket optional from v2.0 for bidirectional use cases (e.g., collaborative real-time editing). Kafka/webhooks as integration adapters (not part of the core event bus).
+`GET /api/v1/events` as an SSE stream; events are JSON with `type`, `entityId`, `plateauId`, `timestamp`. WebSocket for the collaboration session in v1.x (presence and co-editing, [§21.10](../70-platform/21-api-architecture.md), [ADR-047](../../adrs/ADR-047-real-time-collaboration.md); revised 2026-10-28, previously "optional from v2.0"). Kafka/webhooks as integration adapters (not part of the core event bus).
 
 ---
 

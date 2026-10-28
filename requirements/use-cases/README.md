@@ -36,3 +36,4 @@ Goal-oriented scenarios from the stakeholder's perspective. One file per use cas
 | [UC-21](./UC-21-configure-property-visibility.md) | Configure Property Visibility | SH-03 | must | draft |
 | [UC-22](./UC-22-import-current-state-from-source-system.md) | Import Current State from Source System | SH-06 | should | draft |
 | [UC-23](./UC-23-manage-roles-and-role-assignments.md) | Manage Roles and Role Assignments | SH-06 | must | draft |
+| [UC-24](./UC-24-collaborate-in-real-time.md) | Collaborate on the Architecture in Real Time | SH-03 | should | draft |
