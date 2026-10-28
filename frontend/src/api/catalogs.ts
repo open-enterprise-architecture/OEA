@@ -1,5 +1,5 @@
 import type { components } from './generated/schema'
-import { readRejection, type Rejection } from './problem'
+import { readRejection, RequestRejected, type Rejection } from './problem'
 import { currentCsrfToken, type Outcome } from './session'
 
 export type Catalog = components['schemas']['Catalog']
@@ -25,7 +25,7 @@ const JSON_HEADERS = { Accept: 'application/json, application/problem+json' }
 export async function fetchCatalogs(fetchFn: typeof fetch = fetch): Promise<CatalogSummary[]> {
   const response = await fetchFn('/api/v1/catalogs', { credentials: 'same-origin', headers: JSON_HEADERS })
   if (!response.ok) {
-    throw new Error(`catalogs not readable (HTTP ${response.status})`)
+    throw new RequestRejected(await readRejection(response))
   }
   return (await response.json()) as CatalogSummary[]
 }
@@ -40,7 +40,7 @@ export async function fetchCatalog(id: string, fetchFn: typeof fetch = fetch): P
     return undefined
   }
   if (!response.ok) {
-    throw new Error(`catalog not readable (HTTP ${response.status})`)
+    throw new RequestRejected(await readRejection(response))
   }
   return (await response.json()) as Catalog
 }

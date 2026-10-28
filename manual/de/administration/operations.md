@@ -32,6 +32,21 @@ Request-Bodys werden begrenzt, bevor sie verarbeitet werden. Ein größerer Body
 
 Ein Reverse Proxy vor OEA sollte mindestens den größten dieser Werte zulassen.
 
+## Rate Limits {#rate-limits}
+
+Jede angemeldete Person und jedes Systemadministrator-Konto darf pro Minute eine begrenzte Zahl von Requests senden. Die Minute beginnt mit dem ersten Request; ein Request über dem Limit wird mit `429`, dem Problem-Typ `urn:oea:problem:too-many-requests` und dem Header `Retry-After` beantwortet, der die Sekunden bis zum nächsten angenommenen Request nennt. Von einem abgewiesenen Request wird nichts verarbeitet, und andere Benutzer sind nicht betroffen.
+
+| Einstellung | Standard | Gilt für |
+|---|---|---|
+| `oea.web.rate-limit.requests-per-minute` (`OEA_WEB_RATELIMIT_REQUESTSPERMINUTE`) | `600` | jeden Request eines angemeldeten Principals |
+| `oea.web.rate-limit.entity-batch-per-minute` (`OEA_WEB_RATELIMIT_ENTITYBATCHPERMINUTE`) | `10` | `POST /entities/batch`, zusätzlich zum Request-Limit |
+
+Beide Werte müssen mindestens `1` sein, sonst startet das Backend nicht. Die erste Abweisung eines Principals innerhalb einer Minute wird im Audit-Trail als `auth.throttled` mit dem Scope `principal` festgehalten.
+
+Die Zähler liegen im Speicher des Backends. Betreibst du mehrere Backend-Instanzen hinter einem Load Balancer, zählt jede Instanz für sich, sodass ein Principal bis zum Limit mal der Zahl der Instanzen senden kann. Nach einem Neustart beginnt die Zählung von vorn.
+
+Logins und die Setup-Seite werden getrennt davon pro Login-Name und Absenderadresse gedrosselt (100 Fehlversuche innerhalb von 10 Minuten). Ein Reverse Proxy mit eigenem Rate Limiting ist eine sinnvolle zusätzliche Schicht, wenn die Instanz aus dem Internet erreichbar ist; er ersetzt diese Limits nicht.
+
 ## Key-Encryption-Key
 
 Gespeicherte Geheimnisse – TOTP-Secrets und Client-Secrets von Identity-Providern – werden mit AES-256-GCM unter dem Key-Encryption-Key verschlüsselt, einer Datei außerhalb der Datenbank. Jeder verschlüsselte Wert speichert die ID seines Schlüssels (die ersten 16 Hex-Ziffern des SHA-256 des Schlüssels).

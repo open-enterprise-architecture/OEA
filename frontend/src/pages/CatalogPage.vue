@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter, type LocationQuery } from 'vue-router'
 import { fetchCatalog, queryCatalog, type Catalog, type CatalogQueryResult, type CatalogSort } from '../api/catalogs'
+import { rateLimitMessage, RequestRejected } from '../api/problem'
 import CatalogTable from '../components/CatalogTable.vue'
 
 // A single catalog with its rows (UC-06, US-049, SCR-020). Sort and page are part of the URL
@@ -13,6 +14,8 @@ const router = useRouter()
 const catalog = ref<Catalog>()
 const state = ref<'loading' | 'loaded' | 'not-found' | 'failed'>('loading')
 const result = ref<CatalogQueryResult>()
+// the waiting time of a request above the rate limit (REQ-186), shown instead of the generic failure
+const failure = ref<string>()
 const querying = ref(false)
 // the path the page is shown at; query changes while navigating elsewhere are ignored
 const path = route.path
@@ -63,10 +66,12 @@ const view = computed(() => viewOf(route.query))
 async function loadCatalog() {
   state.value = 'loading'
   result.value = undefined
+  failure.value = undefined
   try {
     catalog.value = await fetchCatalog(props.id, props.fetchFn)
     state.value = catalog.value ? 'loaded' : 'not-found'
-  } catch {
+  } catch (error) {
+    failure.value = rateLimitMessage(error instanceof RequestRejected ? error.rejection : undefined)
     state.value = 'failed'
   }
   if (state.value === 'loaded') {
@@ -101,6 +106,7 @@ async function loadRows() {
     } else if (outcome.rejection.status === 404) {
       state.value = 'not-found'
     } else {
+      failure.value = rateLimitMessage(outcome.rejection)
       state.value = 'failed'
     }
   } catch {
@@ -136,7 +142,13 @@ watch(
       title="Catalog not found"
       description="The catalog does not exist or is not visible to you."
     />
-    <UAlert v-if="state === 'failed'" data-testid="catalog-failure" color="error" variant="subtle" description="The catalog could not be loaded." />
+    <UAlert
+      v-if="state === 'failed'"
+      data-testid="catalog-failure"
+      color="error"
+      variant="subtle"
+      :description="failure ?? 'The catalog could not be loaded.'"
+    />
 
     <template v-if="state === 'loaded' && catalog">
       <header class="flex flex-col gap-2">

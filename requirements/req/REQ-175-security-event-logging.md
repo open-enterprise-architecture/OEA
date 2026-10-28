@@ -4,9 +4,9 @@ title: Security event logging
 type: compliance
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-10-13
-last_updated: 2026-10-13
+last_updated: 2026-10-28
 author: requirements-engineer
 references:
   use_cases:
@@ -46,6 +46,8 @@ Source: security review SEC-14 (proposal PR-19). Existing audit REQs: REQ-005 (l
 ADR-033 §8: security events are records of the same audit trail and hash chain as change events (no separate security log), with the common fields `event_category`, `severity`, `outcome`, pseudonymous actor fields (REQ-189), `agent_id`, `source`, `source_ip`, `request_id`, `target_type`, `target_id` and event-specific `details`. The event catalog with stable type names (e.g. `auth.login`, `auth.logout`, `session.revoked`, `authz.denied`, `auth.throttled`, `role.assigned`, `role.revoked`, `idp-mapping.changed`, `auth-provider.changed`, `settings.changed`, `settings.audit-retention-changed`, `visibility.changed`, `visibility.override-changed`, `service-account.created|secret-rotated|deactivated`, `audit.exported`, `audit.checkpoint`, `audit.retention-purged`, `audit.integrity-verified|violation`) is maintained in `docs/audit-event-catalog.md` (follow-up of ADR-033). Because audit records cannot be deleted before the retention period, the suppression rule bounds audit flooding (owner decision Q2); rate limits (REQ-186) apply in addition.
 
 ADR-034 §6: raw analytics produce exactly one event per authenticated request, `analytics.query.executed` or `analytics.query.rejected`, with principal, query hash, literal-free query fingerprint, referenced reporting views, outcome and metrics (duration, row count, result bytes); missing permission produces `authz.denied` instead.
+
+**Implementation (change s3-throttling-and-denials, 2026-10-28):** `authz.denied` is written at every authorization decision (contract permissions, contract conditions, second factor of the setup phase, separation of duties) with principal, operation ID, target ID, source address and request ID (AC1). The summary event of the suppression rule (AC5) is an `authz.denied` record with `summary`, `suppressedCount` and the window, not a separate event type; the counters are kept per backend instance (spec `platform/authorization`, `docs/audit-event-catalog.md`).
 
 ## Type-Specific Fields
 
@@ -119,3 +121,4 @@ ADR-034 §6: raw analytics produce exactly one event per authenticated request, 
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-14 (PR-19) |
 | 0.2.0 | 2026-10-13 | requirements-engineer | ADR-033: reference to the audit event catalog and common fields; suppression rule for repeated events (statement, AC5). ADR-034: analytics event types `analytics.query.executed`/`analytics.query.rejected` (AC6) |
+| 0.3.0 | 2026-10-28 | Change s3-throttling-and-denials | AC1 and AC5 implemented for permission denials (security re-review WS-01, #75); summary event as `authz.denied` record |

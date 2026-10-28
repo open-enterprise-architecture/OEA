@@ -101,5 +101,5 @@ Delta to `api/openapi.yaml`:
 - [Several backend instances multiply the limits] → documented in the operations page (D1); one instance is the supported deployment
 - [Counters are lost on restart] → a restart resets the windows, which at most gives a principal one fresh window; suppressed counts are flushed on a regular shutdown (D5)
 - [A shared NAT address throttles several users of the setup page] → setup is a one-time action of one operator; the waiting time is at most 10 minutes
-- [The matrix test calls every operation many times and could hit the rate limit] → the test profile raises the per-principal limit; a dedicated test checks the default limit
+- [Test instances drive one principal through many requests and batches per minute and would hit the limits] → the shared Cucumber instances raise both limits unless a feature sets its own; `RateLimitTests`, `BatchRateLimitTests` and the request-limits feature check the limits
 - [Audit volume from denials] → bounded by the suppression (at most 20 events plus one summary per minute and key)

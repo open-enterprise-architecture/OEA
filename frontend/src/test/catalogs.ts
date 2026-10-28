@@ -96,7 +96,7 @@ export interface CatalogRequest {
  */
 export function catalogApi(
   applications: Application[],
-  options: { me?: unknown; catalog?: unknown; recorded?: CatalogRequest[] } = {},
+  options: { me?: unknown; catalog?: unknown; recorded?: CatalogRequest[]; throttledFor?: number } = {},
 ): typeof fetch {
   const catalog = (options.catalog ?? CATALOG) as { id: string }
   const columns = [
@@ -120,6 +120,12 @@ export function catalogApi(
     }
     if (url.pathname === `/api/v1/catalogs/${catalog.id}`) {
       return json(catalog)
+    }
+    if (options.throttledFor !== undefined && url.pathname === `/api/v1/catalogs/${catalog.id}/query`) {
+      return new Response(JSON.stringify({ type: 'urn:oea:problem:too-many-requests', title: 'Too many requests', status: 429 }), {
+        status: 429,
+        headers: { 'Content-Type': 'application/problem+json', 'Retry-After': String(options.throttledFor) },
+      })
     }
     if (url.pathname !== `/api/v1/catalogs/${catalog.id}/query`) {
       return json({ type: 'urn:oea:problem:not-found', title: 'Not found', status: 404 }, 404)

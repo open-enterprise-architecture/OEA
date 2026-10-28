@@ -49,7 +49,10 @@ async function submit() {
       form.setupToken = ''
       return
     }
-    failure.value = PROBLEM_MESSAGES[outcome.problemType] ?? 'The setup failed. Check the backend log.'
+    failure.value =
+      outcome.status === 429
+        ? `Too many failed attempts. Try again in ${outcome.retryAfterSeconds ?? 600} seconds.`
+        : (PROBLEM_MESSAGES[outcome.problemType] ?? 'The setup failed. Check the backend log.')
     for (const field of outcome.invalidFields) {
       if (field in FIELD_MESSAGES) {
         errors.value[field as SetupField] = FIELD_MESSAGES[field as SetupField]

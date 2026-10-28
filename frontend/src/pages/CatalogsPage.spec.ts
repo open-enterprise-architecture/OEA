@@ -39,6 +39,24 @@ describe('CatalogsPage', () => {
     expect(wrapper.find('[data-testid="new-catalog"]').exists()).toBe(true)
   })
 
+  // spec platform/request-limits "Principal above the limit"
+  it('shows the waiting time when the request limit is reached', async () => {
+    const router = testRouter()
+    await router.push('/catalogs')
+    const fetchFn = routedFetch({
+      '/api/v1/me': { body: ME_VIEWER },
+      '/api/v1/catalogs': {
+        status: 429,
+        body: { type: 'urn:oea:problem:too-many-requests', title: 'Too many requests', status: 429 },
+        contentType: 'application/problem+json',
+        headers: { 'Retry-After': '42' },
+      },
+    })
+    const wrapper = mount(CatalogsPage, { props: { fetchFn }, global: { plugins: [ui, router] } })
+    await flushPromises()
+    expect(wrapper.get('[data-testid="catalogs-failure"]').text()).toContain('Too many requests. Try again in 42 seconds.')
+  })
+
   it('shows an empty state without catalogs', async () => {
     const { wrapper } = await mountPage(ME_VIEWER, [])
     expect(wrapper.find('[data-testid="catalogs-empty"]').exists()).toBe(true)

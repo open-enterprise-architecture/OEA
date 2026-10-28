@@ -57,12 +57,12 @@ class SetupControllerTests {
 
 	@Test
 	void successfulSetupReturns201() {
-		given(this.bootstrapping.bootstrap(any())).willReturn(new BootstrapResult(UUID.randomUUID(), "admin", "acme-corp"));
+		given(this.bootstrapping.bootstrap(any(), any())).willReturn(new BootstrapResult(UUID.randomUUID(), "admin", "acme-corp"));
 		assertThat(post(BODY)).hasStatus(HttpStatus.CREATED)
 			.bodyJson()
 			.isStrictlyEqualTo("{\"loginName\": \"admin\", \"instanceSlug\": \"acme-corp\"}");
 		ArgumentCaptor<BootstrapCommand> command = ArgumentCaptor.forClass(BootstrapCommand.class);
-		then(this.bootstrapping).should().bootstrap(command.capture());
+		then(this.bootstrapping).should().bootstrap(command.capture(), any());
 		assertThat(command.getValue().setupToken()).isEqualTo("tok-123");
 		assertThat(command.getValue().password()).isEqualTo("secret-password-42");
 	}
@@ -71,7 +71,7 @@ class SetupControllerTests {
 	void rejectionsAreRfc9457Problems() {
 		willThrow(new BootstrapRejectedException(Reason.INVALID_SETUP_TOKEN, List.of()))
 			.given(this.bootstrapping)
-			.bootstrap(any());
+			.bootstrap(any(), any());
 		assertThat(post(BODY)).hasStatus(HttpStatus.UNAUTHORIZED)
 			.hasContentType(MediaType.APPLICATION_PROBLEM_JSON)
 			.bodyJson()
@@ -80,7 +80,7 @@ class SetupControllerTests {
 
 		willThrow(new BootstrapRejectedException(Reason.ALREADY_BOOTSTRAPPED, List.of()))
 			.given(this.bootstrapping)
-			.bootstrap(any());
+			.bootstrap(any(), any());
 		assertThat(post(BODY)).hasStatus(HttpStatus.CONFLICT)
 			.bodyJson()
 			.extractingPath("$.type")
@@ -88,27 +88,37 @@ class SetupControllerTests {
 
 		willThrow(new BootstrapRejectedException(Reason.VALIDATION_FAILED, List.of("password")))
 			.given(this.bootstrapping)
-			.bootstrap(any());
+			.bootstrap(any(), any());
 		assertThat(post(BODY)).hasStatus(HttpStatus.BAD_REQUEST)
 			.bodyJson()
 			.isLenientlyEqualTo("{\"type\": \"urn:oea:problem:validation-failed\", \"invalidFields\": [\"password\"]}");
 	}
 
 	@Test
+	void throttledAddressGets429WithRetryAfter() {
+		willThrow(BootstrapRejectedException.throttled(42)).given(this.bootstrapping).bootstrap(any(), any());
+		assertThat(post(BODY)).hasStatus(HttpStatus.TOO_MANY_REQUESTS)
+			.hasHeader("Retry-After", "42")
+			.bodyJson()
+			.extractingPath("$.type")
+			.isEqualTo("urn:oea:problem:too-many-requests");
+	}
+
+	@Test
 	void contractViolationsAreDecidedByTheService(CapturedOutput output) {
 		willThrow(new BootstrapRejectedException(Reason.INVALID_SETUP_TOKEN, List.of()))
 			.given(this.bootstrapping)
-			.bootstrap(any());
+			.bootstrap(any(), any());
 		String shortPassword = """
 				{"setupToken": "", "loginName": "Admin!", "password": "short-pw", "instanceSlug": "x"}""";
 		assertThat(post(shortPassword)).hasStatus(HttpStatus.UNAUTHORIZED);
-		then(this.bootstrapping).should().bootstrap(any());
+		then(this.bootstrapping).should().bootstrap(any(), any());
 		assertThat(output).doesNotContain("short-pw").doesNotContain("secret-password-42");
 	}
 
 	@Test
 	void requestBodiesAreNotLogged(CapturedOutput output) {
-		given(this.bootstrapping.bootstrap(any())).willReturn(new BootstrapResult(UUID.randomUUID(), "admin", "acme-corp"));
+		given(this.bootstrapping.bootstrap(any(), any())).willReturn(new BootstrapResult(UUID.randomUUID(), "admin", "acme-corp"));
 		post(BODY);
 		assertThat(output).doesNotContain("secret-password-42").doesNotContain("tok-123");
 	}

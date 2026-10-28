@@ -95,6 +95,25 @@ public class BootstrappingSteps {
 		submit(presented, loginName, password(passwordLength), slug);
 	}
 
+	@When("{int} setup attempts with a wrong setup token are submitted from one address")
+	public void wrongAttempts(int count) throws Exception {
+		for (int i = 0; i < count; i++) {
+			submit("wrong-" + i, "admin", password(24), "acme-corp");
+			assertThat(this.response.statusCode()).isEqualTo(401);
+		}
+	}
+
+	@Then("the response names a waiting time")
+	public void waitingTime() {
+		assertThat(this.response.headers().firstValueAsLong("Retry-After").orElse(0)).isBetween(1L, 601L);
+	}
+
+	@Then("the audit trail contains {string} with reason {string}")
+	public void auditedWithReason(String eventType, String reason) throws Exception {
+		assertThat(single("SELECT count(*)::text FROM audit.events WHERE event_type = '" + eventType
+				+ "' AND details ->> 'reason' = '" + reason + "'")).isEqualTo("1");
+	}
+
 	@When("two bootstrapping requests with the valid setup token are submitted at the same time")
 	public void twoAttempts() {
 		List<CompletableFuture<HttpResponse<String>>> attempts = List.of(asyncSubmit(), asyncSubmit());

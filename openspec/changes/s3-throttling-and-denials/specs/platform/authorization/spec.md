@@ -15,8 +15,13 @@ Trace: REQ-175 AC1, security re-review WS-01, issue #75
 
 #### Scenario: Denial inside a contract condition
 
-- **WHEN** a principal without the permission required by a catalog condition is answered with 403
-- **THEN** the audit trail contains an event `authz.denied` with the operation ID and the catalog ID as target
+- **WHEN** a viewer (without `catalog:manage`) tries to create an instance catalog and is answered with 403
+- **THEN** the audit trail contains an event `authz.denied` with the operation ID `createCatalog` and the reason `condition`
+
+#### Scenario: Denial with a target
+
+- **WHEN** a principal is refused with 403 by an operation whose path contains an ID
+- **THEN** the event `authz.denied` carries that ID as target ID
 
 #### Scenario: Every implemented operation audits its denial
 

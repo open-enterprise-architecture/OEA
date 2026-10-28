@@ -1,5 +1,6 @@
 package io.oea.config.security;
 
+import io.oea.app.security.PermissionDenials;
 import io.oea.app.security.PermissionResolver;
 import io.oea.app.security.Sessions;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,9 +32,13 @@ public class SecurityConfiguration implements WebMvcConfigurer {
 
 	private final PermissionResolver permissions;
 
-	public SecurityConfiguration(ContractAuthorizationRules rules, PermissionResolver permissions) {
+	private final PermissionDenials denials;
+
+	public SecurityConfiguration(ContractAuthorizationRules rules, PermissionResolver permissions,
+			PermissionDenials denials) {
 		this.rules = rules;
 		this.permissions = permissions;
+		this.denials = denials;
 	}
 
 	@Bean
@@ -73,7 +78,7 @@ public class SecurityConfiguration implements WebMvcConfigurer {
 
 	@Override
 	public void addInterceptors(InterceptorRegistry registry) {
-		registry.addInterceptor(new AuthorizationInterceptor(this.rules, this.permissions))
+		registry.addInterceptor(new AuthorizationInterceptor(this.rules, this.permissions, this.denials))
 			.addPathPatterns(ContractAuthorizationRules.API_PREFIX + "/**");
 		registry.addInterceptor(new NotImplementedInterceptor())
 			.addPathPatterns(ContractAuthorizationRules.API_PREFIX + "/**");

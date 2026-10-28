@@ -131,3 +131,14 @@ The remaining baseline findings (SEC-05, SEC-12, SEC-15 to SEC-19, SEC-22, SEC-2
 
 Tracking (owner decision 2026-10-22): WS-01 [#75](https://github.com/open-enterprise-architecture/OEA/issues/75) (S3), WS-02 request-size limit [#73](https://github.com/open-enterprise-architecture/OEA/issues/73) (S2b) and rate limits [#74](https://github.com/open-enterprise-architecture/OEA/issues/74) (S3), WS-03 [#76](https://github.com/open-enterprise-architecture/OEA/issues/76) (S9), WS-04 [#61](https://github.com/open-enterprise-architecture/OEA/issues/61) (S3).
 4. Conditions 2 and 3 of the baseline review apply unchanged to the features that follow.
+
+## Status Update 2026-10-28
+
+| Finding | Status | Resolution |
+|---|---|---|
+| WS-01 | **Resolved** | Change `s3-throttling-and-denials` (#75): `authz.denied` at every authorization decision with principal, operation ID, target ID, source address and request ID; flood suppression per REQ-175 AC5; `AuthorizationMatrixTests` asserts the event for every implemented operation (spec `platform/authorization`) |
+| WS-02 | **Resolved** | Request-size limit in `s2b-backend-hardening` (#73); per-principal request and batch rate limits with 429 and `Retry-After` in `s3-throttling-and-denials` (#74, spec `platform/request-limits`); counters per backend instance (design D1) |
+| WS-03 | Open | Planned for S9 (#76) |
+| WS-04 | **Resolved** | Change `s3-throttling-and-denials` (#61): failed setup-token attempts count towards the per-address throttling of local logins; a throttled address gets 429 without the token being evaluated (spec `identity/bootstrapping`) |
+
+Condition 1 of the sign-off ("before the first public release (v0.x tag)"): the tag `v0.1.0` was created on 2026-10-27 before WS-01 and the rate limits of WS-02 were resolved. That tag publishes only the user manual; no GitHub release and no container image was published. With this update, WS-01 and WS-02 are resolved before the first release that distributes runnable software.

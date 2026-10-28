@@ -221,7 +221,10 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
     TooManyRequests:
-      description: Rate or concurrency limit exceeded (REQ-186)
+      description: |
+        Rate limit or throttling exceeded (REQ-186, REQ-168), problem type
+        `urn:oea:problem:too-many-requests`; `Retry-After` gives the seconds until the next
+        request is accepted. Nothing was processed.
       headers:
         Retry-After: { $ref: '#/components/headers/RetryAfter' }
       content:
@@ -2631,6 +2634,7 @@ paths:
                     description: IdP RP-initiated logout URL (OIDC sessions only)
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /auth/local/login:
     post:
@@ -2803,6 +2807,7 @@ paths:
               schema: { $ref: '#/components/schemas/Me' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
 
   /me/second-factors/totp:
@@ -2831,6 +2836,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /me/second-factors/totp/{credentialId}/confirm:
     post:
@@ -2866,6 +2872,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
   /client-compatibility:
     get:
       operationId: getClientCompatibility
@@ -2987,6 +2994,7 @@ paths:
                 items: { $ref: '#/components/schemas/CatalogSummary' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       operationId: createCatalog
       summary: Create a catalog (US-046, REQ-043)
@@ -3025,6 +3033,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/CatalogValidationProblem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /catalogs/{id}:
     get:
@@ -3049,6 +3058,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /catalogs/{id}/query:
     get:
@@ -3094,6 +3104,7 @@ paths:
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  VIEW – EXPLORER (SCR-010/011)                                         ║
   # ╚═════════════════════════════════════════════════════════════════════════╝
+        '429': { $ref: '#/components/responses/TooManyRequests' }
   /views/explorer:
     get:
       operationId: getExplorerView
@@ -3342,6 +3353,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       operationId: createMetatype
       summary: Create new metatype
@@ -3390,6 +3402,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     put:
       operationId: updateMetatype
       summary: Update metatype
@@ -4088,6 +4101,7 @@ paths:
                 items: { $ref: '#/components/schemas/AuthProvider' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       operationId: createAuthProvider
       summary: Create auth provider (SCR-037)
@@ -4108,6 +4122,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/auth/providers/{id}:
     get:
@@ -4130,6 +4145,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     put:
       operationId: updateAuthProvider
       summary: Update auth provider (SCR-037)
@@ -4153,6 +4169,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     delete:
       operationId: deleteAuthProvider
       summary: Delete auth provider (SCR-037)
@@ -4456,6 +4473,7 @@ paths:
                 items: { $ref: '#/components/schemas/Permission' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/roles:
     get:
@@ -4482,6 +4500,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       operationId: createAuthorizationRole
       summary: Create custom role (UC-23 A5)
@@ -4617,6 +4636,7 @@ paths:
                 items: { $ref: '#/components/schemas/Person' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       operationId: createPerson
       summary: Create a person in status invited (pre-provisioning)
@@ -4639,6 +4659,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/persons/{personId}:
     get:
@@ -4657,6 +4678,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/persons/{personId}/identities:
     get:
@@ -4677,6 +4699,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       operationId: createPersonIdentity
       summary: Bind a person to the immutable subject of a provider (admin-entered)
@@ -4706,6 +4729,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/persons/{personId}/identities/{identityId}:
     delete:
@@ -4724,6 +4748,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/persons/{personId}/role-assignments:
     get:
@@ -4971,6 +4996,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       operationId: createIdpGroupMapping
       summary: Map an IdP group to a role
@@ -5007,6 +5033,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/idp-group-mappings/{mappingId}:
     put:
@@ -5049,6 +5076,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     delete:
       operationId: deleteIdpGroupMapping
       summary: Delete an IdP group mapping
@@ -5069,6 +5097,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/persons/{personId}/entity-link:
     put:
@@ -5723,6 +5752,7 @@ paths:
                       errors:
                         type: array
                         items: { $ref: '#/components/schemas/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /connections:
     post:
@@ -5884,6 +5914,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/metamodel/starter-packages:
     get:
@@ -5902,6 +5933,7 @@ paths:
                 items: { $ref: '#/components/schemas/StarterPackage' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/metamodel/starter-packages/{packageId}/import:
     post:
@@ -5935,6 +5967,7 @@ paths:
               schema: { $ref: '#/components/schemas/ImportResult' }
 
   # ── Shape palette per viewpoint ─────────────────────────────────────────────
+        '429': { $ref: '#/components/responses/TooManyRequests' }
   /admin/viewpoints/{id}/shape-palette:
     get:
       operationId: getShapePalette

@@ -14,7 +14,9 @@ Fails (exit code 1) if
   (unknown permissions, SoD-2, SoD-4),
 - ``x-oea-status`` has another value than ``planned``, or the ``501`` response
   (``NotImplemented``) is missing on a planned operation or declared on an implemented one
-  (retrospective action A1, change s2b-ci-and-contract).
+  (retrospective action A1, change s2b-ci-and-contract),
+- an implemented operation that requires authentication, or the setup operation, lacks
+  the ``429`` response of the rate limits (REQ-186, REQ-168; change s3-throttling-and-denials).
 
 The catalog is read from the spec itself, so it is kept in one place. Both
 extensions and every ``x-oea-authorization`` value are written as JSON (valid YAML
@@ -33,6 +35,9 @@ from pathlib import Path
 
 # Operations allowed to be called without an authenticated principal (ADR-032 §8, L1).
 # Extending this list is a security decision and needs a review.
+# Public operations that are throttled and therefore declare the 429 response (REQ-168).
+THROTTLED_PUBLIC = {"completeSetup", "localLogin", "localLoginTotp"}
+
 PUBLIC_ALLOWLIST = {
     "issueClientCredentialsToken",
     "getClientCompatibility",  # REQ-195: version check before login, no instance data
@@ -211,6 +216,17 @@ def check_status(op: dict, errors: list[str]) -> None:
         errors.append(f"{label}: '501' response is only allowed for planned operations")
 
 
+def check_rate_limit(op: dict, errors: list[str]) -> None:
+    decl = op["declaration"] if isinstance(op["declaration"], dict) else {}
+    if op["status"] == "planned":
+        return
+    if decl.get("access") == "public" and op["operationId"] not in THROTTLED_PUBLIC:
+        return
+    if "429" not in op["responses"]:
+        label = f"{op['method'].upper()} {op['path']} ({op['operationId'] or 'no operationId'})"
+        errors.append(f"{label}: missing '429' response (rate limit, REQ-186)")
+
+
 def scan_operations(text: str, errors: list[str]) -> list[dict]:
     lines = text.split("\n")
     offsets = line_offsets(text)
@@ -281,6 +297,7 @@ def main(argv: list[str]) -> int:
         seen_ids.add(op["operationId"])
         check_declaration(op, catalog, errors)
         check_status(op, errors)
+        check_rate_limit(op, errors)
 
     if errors:
         print(f"{spec}: {len(errors)} authorization declaration problem(s):")
