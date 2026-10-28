@@ -1379,7 +1379,7 @@ components:
         agentRun:    { type: [string, 'null'], description: "Value of `X-Agent-Run`; informational only" }
         source:
           type: string
-          enum: [UI, API, Job, Import]
+          enum: [UI, API, Job, Import, CLI]
         sourceIp:    { type: [string, 'null'], description: IPv4 or IPv6 address of the client }
         requestId:   { type: [string, 'null'] }
         targetType:
@@ -1930,6 +1930,40 @@ components:
         createdBy:       { $ref: '#/components/schemas/PrincipalRef' }
         createdAt:       { type: string, format: date-time }
         updatedAt:       { type: [string, 'null'], format: date-time }
+        lastMatchedAt:
+          type: [string, 'null']
+          format: date-time
+          readOnly: true
+          description: |
+            Last time the mapping granted its role effectively in a login or re-evaluation
+            (recorded at most once per hour); `null` if it never did (US-018, SoD-7)
+        warnings:
+          type: array
+          readOnly: true
+          description: |
+            Empty except in the responses of create and update; never blocks the change (US-018).
+            `group-not-seen`: the mapping targets `system-admin`, has never matched, and no
+            current session of its provider carries the group – it grants access to nobody known.
+          items: { $ref: '#/components/schemas/MappingWarning' }
+
+    MappingWarning:
+      type: object
+      required: [code, message]
+      properties:
+        code:    { type: string, enum: [group-not-seen] }
+        message: { type: string }
+
+    SystemAdminAccountState:
+      type: object
+      required: [loginName, status, createdAt]
+      description: Local system admin account (business object system-admin-account)
+      properties:
+        loginName:     { type: string }
+        status:        { type: string, enum: [bootstrapped, active, deactivated] }
+        createdAt:     { type: string, format: date-time }
+        firstLoginAt:  { type: [string, 'null'], format: date-time }
+        lastUsedAt:    { type: [string, 'null'], format: date-time }
+        deactivatedAt: { type: [string, 'null'], format: date-time }
 
     IdpGroupMappingWrite:
       type: object
@@ -4211,6 +4245,54 @@ paths:
         '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ── Service accounts (ADR-026, REQ-155) ───────────────────────────────────
+  /admin/system-admin-account:
+    get:
+      operationId: getSystemAdminAccount
+      summary: State of the local system admin account
+      description: |
+        The local account created by the bootstrapping (UC-02). It is reactivated only by the
+        break-glass command `admin recover` inside the backend container.
+      tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["auth-config:manage"]}
+      responses:
+        '200':
+          description: Account state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SystemAdminAccountState' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /admin/system-admin-account/deactivate:
+    post:
+      operationId: deactivateSystemAdminAccount
+      summary: Deactivate the local system admin account (US-019)
+      description: |
+        Revokes the account's sessions and ends its password login; IdP logins are not
+        affected. Rejected with `409` and problem type `urn:oea:problem:last-admin-path` if no
+        other usable path to `system-admin` remains (ADR-032 SoD-7): an active, approved, not
+        deleted IdP group mapping to `system-admin` of an enabled provider that has matched at
+        least once (`lastMatchedAt`). An already deactivated account is answered with `200`
+        unchanged. Audited as `system-admin-account.deactivated` (outcome `success` or
+        `denied`).
+      tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["auth-config:manage"]}
+      responses:
+        '200':
+          description: Account deactivated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SystemAdminAccountState' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: The account is the last usable path to `system-admin` (problem type `urn:oea:problem:last-admin-path`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /admin/service-accounts:
     get:
       operationId: listServiceAccounts
@@ -5269,7 +5351,7 @@ paths:
           schema: { type: string, enum: [success, failure, denied] }
         - name: source
           in: query
-          schema: { type: string, enum: [UI, API, Job, Import] }
+          schema: { type: string, enum: [UI, API, Job, Import, CLI] }
         - name: from
           in: query
           schema: { type: string, format: date }

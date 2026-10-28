@@ -83,6 +83,7 @@ public class IdpRoles {
 						claim.identifiers().toArray(String[]::new))
 				: List.of();
 		replace(session.getId(), derived, now);
+		recordMatches(derived, secondFactorVerified, now);
 		session.recordIdpEvaluation(claim.status(), "present".equals(claim.status()) ? claim.identifiers() : null,
 				secondFactorVerified, now);
 		if (!"present".equals(claim.status())) {
@@ -136,6 +137,23 @@ public class IdpRoles {
 			this.jdbc.update("""
 					INSERT INTO session_idp_roles (session_id, idp_group_mapping_id, role_id, derived_at)
 					VALUES (?, ?, ?, ?)""", sessionId, role.mappingId(), role.roleId(), Timestamp.from(now));
+		}
+	}
+
+	/**
+	 * Records the last match of every mapping whose role is effective (a privileged role only
+	 * with a second factor, as in PermissionResolver), at most once per hour (design D2 of
+	 * us-019-admin-safeguards).
+	 */
+	private void recordMatches(List<DerivedRole> derived, boolean secondFactorVerified, Instant now) {
+		for (DerivedRole role : derived) {
+			this.jdbc.update("""
+					UPDATE idp_group_mappings m SET last_matched_at = ?
+					WHERE m.id = ? AND (m.last_matched_at IS NULL OR m.last_matched_at < ?)
+					  AND (? OR NOT EXISTS (SELECT 1 FROM role_permissions rp JOIN permissions p ON p.id = rp.permission_id
+					                        WHERE rp.role_id = m.role_id AND p.admin_class))""",
+					Timestamp.from(now), role.mappingId(), Timestamp.from(now.minus(java.time.Duration.ofHours(1))),
+					secondFactorVerified);
 		}
 	}
 

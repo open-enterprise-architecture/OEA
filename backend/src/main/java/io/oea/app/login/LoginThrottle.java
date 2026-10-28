@@ -45,7 +45,8 @@ public class LoginThrottle {
 		this.clock = clock;
 	}
 
-	static String accountKey(String loginName) {
+	/** Throttle key of a login name; also cleared by the break-glass recovery. */
+	public static String accountKey(String loginName) {
 		return "account:" + ((loginName != null) ? loginName.strip().toLowerCase(Locale.ROOT) : "");
 	}
 

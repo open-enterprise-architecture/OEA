@@ -4,9 +4,9 @@ title: Remote bootstrapping via IdP claim mapping
 type: functional
 priority: should
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-24
-last_updated: 2026-10-13
+last_updated: 2026-10-28
 author: requirements-engineer
 references:
   use_cases:
@@ -116,13 +116,14 @@ Security review SEC-08: group display names are mutable and not unique (e.g. use
 
 ## Implementation Notes
 
+- Realigned by OpenSpec change `us-019-admin-safeguards` (owner decision 2026-10-28): the "configuration endpoint for claim mapping" is the IdP group mapping operation (`/admin/idp-group-mappings`) with role `system-admin` (US-147, ADR-032 DM-6); there is no separate remote admin setting.
 - Claim mapping conventions per provider (Entra ID `groups` claim vs. Authentik groups/properties) are technical specification, not part of this requirement (see ADR-006, Follow-up Decisions)
 
 ## Implementation
 
 - ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
-- Implemented by: –
-- Tests: –
+- Implemented by: OpenSpec change `us-019-admin-safeguards` (US-014 counted as realized through US-147)
+- Tests: `IdpRolesTests`, Cucumber `identity/idp-roles.feature` (US-014 AC1, AC2)
 - Verification status: not-verified
 
 ## Notes
@@ -135,3 +136,4 @@ Derived from UC-02, Alternative A1.
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-02 |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-08: immutable claim identifiers, issuer binding, fail-closed overage handling (AC3, AC4); LDAP wording removed (owner decision Q6) |
+| 0.3.0 | 2026-10-28 | requirements-engineer | Realigned to the IdP group mappings with role `system-admin` (change `us-019-admin-safeguards`) |

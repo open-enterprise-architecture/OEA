@@ -4,6 +4,7 @@ import io.oea.api.entity.EntityBatchController;
 import io.oea.api.generated.model.ValidationError;
 import io.oea.app.access.AccessConflictException;
 import io.oea.app.access.InvalidAccessRequestException;
+import io.oea.app.access.LastAdminPathException;
 import io.oea.app.access.SelfAdministrationException;
 import io.oea.app.catalog.InvalidCatalogException;
 import io.oea.app.catalog.InvalidCatalogQueryException;
@@ -109,6 +110,12 @@ public class ApiExceptionHandler {
 	ResponseEntity<ProblemDetail> conflict(AccessConflictException ex) {
 		return ResponseEntity.status(HttpStatus.CONFLICT)
 			.body(problem(HttpStatus.CONFLICT, "conflict", "Conflict", ex.getMessage()));
+	}
+
+	@ExceptionHandler(LastAdminPathException.class)
+	ResponseEntity<ProblemDetail> lastAdminPath(LastAdminPathException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+			.body(problem(HttpStatus.CONFLICT, "last-admin-path", "Last administration path", ex.getMessage()));
 	}
 
 	@ExceptionHandler(SelfAdministrationException.class)

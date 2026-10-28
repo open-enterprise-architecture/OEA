@@ -2,7 +2,7 @@
 identifier: system-admin-account
 name_de: System-Admin-Account
 name_en: System Admin Account
-version: 0.4.0
+version: 0.5.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -46,7 +46,7 @@ The account may be linked to the person of the administrator (`linkedPerson`). F
 | createdAt | datetime | required | | | Time of bootstrapping |
 | firstLoginAt | datetime | optional | | | First successful login |
 | lastUsedAt | datetime | optional | | | Last successful use |
-| deactivatedAt / deactivatedBy | datetime / principal | optional | | | Deactivation |
+| deactivatedAt / deactivatedBy | datetime / principal | optional | | `deactivatedBy` is a person (remote system admin) or the account itself | Deactivation |
 
 Removed in 0.2.0: `mode`, `remoteIdpReference` (now an IdP group mapping, DM-6), `localCredentialHash` (now a password [local credential](./local-credential.md) owned by this account, argon2id only per REQ-169), `active` (now `status`).
 
@@ -63,6 +63,7 @@ Removed in 0.2.0: `mode`, `remoteIdpReference` (now an IdP group mapping, DM-6),
 
 ```text
 bootstrapped → active → deactivated
+deactivated → active (break-glass command admin recover)
 ```
 
 **States**:
@@ -74,7 +75,8 @@ bootstrapped → active → deactivated
 **Transitions**:
 
 - `bootstrapped → active`: first successful login (during the setup phase with password only, ADR-042)
-- `active → deactivated`: by a principal with `system-admin` permissions; rejected if no other path to `system-admin` remains (SoD-7)
+- `active → deactivated`: by a principal with `auth-config:manage`; rejected if no other path to `system-admin` remains (SoD-7: an active, approved mapping to `system-admin` of an active provider that has matched at least once); the account's sessions are revoked
+- `deactivated → active`: only through the break-glass command `admin recover` inside the backend container (UC-02 E4, REQ-173 AC4); it also sets a new password, after the setup phase a new TOTP factor, and revokes the sessions
 
 ## Business Rules
 
@@ -143,3 +145,4 @@ Open: multi-admin scenarios (several local system admin accounts) are not constr
 | 0.2.0 | 2026-10-13 | Business Engineer | ADR-032 DM-6: remote mode = IdP group mapping to `system-admin` (immutable IDs, REQ-167); BR-03 aligned with REQ-171 (MFA after first login); credentials moved to `local-credential`; `status` lifecycle; `linkedPerson` for SoD-1; BR-04 to BR-06 |
 | 0.3.0 | 2026-10-15 | Business Engineer | `loginName` pattern; setup token handover and `bootstrap_setup_tokens` (REQ-017) |
 | 0.4.0 | 2026-10-15 | Business Engineer | ADR-042: setup phase without second factor until the first access of another identity (BR-03, lifecycle, `firstLoginAt`) |
+| 0.5.0 | 2026-10-28 | Business Engineer | Deactivation by a person or the account itself; reactivation only through `admin recover` (change `us-019-admin-safeguards`) |

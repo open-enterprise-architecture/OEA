@@ -2,8 +2,9 @@
 
 **ID**: US-019
 **Story Points**: 2
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S3
+**Implementation**: OpenSpec change `us-019-admin-safeguards` – `GET /admin/system-admin-account`, `POST /admin/system-admin-account/deactivate`; reactivation through the break-glass command `admin recover` (UC-02 E4)
 
 ## Story
 
@@ -52,5 +53,7 @@ As a system admin with a working remote mapping, I want to be able to disable th
 - Blocks: none
 
 ## Notes
+
+AC2 realigned by OpenSpec change `us-019-admin-safeguards` (owner decision 2026-10-28): without another usable path to `system-admin` the deactivation is rejected with `409` (`last-admin-path`, ADR-032 SoD-7), not only warned about. A mapping counts as a usable path after it has granted the role in at least one login.
 
 Warning instead of hard block, so as not to cause a lockout ourselves (UC-02, E4).

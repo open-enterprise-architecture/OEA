@@ -4,6 +4,7 @@ import io.oea.api.generated.AccessControlApi;
 import io.oea.api.generated.model.AuthorizationRole;
 import io.oea.api.generated.model.IdpGroupMapping;
 import io.oea.api.generated.model.IdpGroupMappingWrite;
+import io.oea.api.generated.model.MappingWarning;
 import io.oea.api.generated.model.Permission;
 import io.oea.api.generated.model.Person;
 import io.oea.api.generated.model.PersonIdentity;
@@ -147,7 +148,16 @@ public class AccessControlController implements AccessControlApi {
 			.id((creator.personId() != null) ? Math.toIntExact(creator.personId()) : null);
 		return new IdpGroupMapping(mapping.id(), mapping.authProviderId(), mapping.issuer(), mapping.groupIdentifier(),
 				mapping.roleId(), mapping.active(), createdBy, time(mapping.createdAt()))
-			.updatedAt(time(mapping.updatedAt()));
+			.updatedAt(time(mapping.updatedAt()))
+			.lastMatchedAt(time(mapping.lastMatchedAt()))
+			.warnings(mapping.warnings().stream().map(AccessControlController::warning).toList());
+	}
+
+	private static MappingWarning warning(String code) {
+		// IdpGroupMappings.GROUP_NOT_SEEN is the only code (US-018)
+		return new MappingWarning(MappingWarning.CodeEnum.fromValue(code),
+				"No login at this instance has presented this group yet: the mapping grants system admin access "
+						+ "to nobody known until a member of the group logs in.");
 	}
 
 	private static OffsetDateTime time(Instant instant) {

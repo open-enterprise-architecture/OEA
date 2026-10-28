@@ -191,6 +191,14 @@ public class IdpRolesSteps {
 		assertThat(JsonMapper.shared().readTree(this.response.body()).path("reason").asString()).isEqualTo(reason);
 	}
 
+	@Then("listing the IdP group mappings is answered with {int}")
+	public void listMappings(int status) throws Exception {
+		// the fixture mappings have no creator; the listing shows one
+		instance().update("UPDATE idp_group_mappings SET created_by_person_id = (SELECT min(id) FROM persons)");
+		assertThat(instance().get("/api/v1/admin/idp-group-mappings", this.oidc.lastLogin().sessionToken())
+			.statusCode()).isEqualTo(status);
+	}
+
 	@After(value = "@oidc", order = 15000)
 	public void restoreRealm() {
 		for (String[] membership : this.removedMemberships) {

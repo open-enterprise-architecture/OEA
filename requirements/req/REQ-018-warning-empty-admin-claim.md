@@ -4,9 +4,9 @@ title: Warning on empty or non-existent remote admin claim
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-24
-last_updated: 2026-06-24
+last_updated: 2026-10-28
 author: requirements-engineer
 references:
   use_cases:
@@ -97,13 +97,14 @@ Takes effect during configuration of the remote mapping (UC-02, A1, step 2), not
 
 ## Implementation Notes
 
+- Realigned by OpenSpec change `us-019-admin-safeguards` (owner decision 2026-10-28): without provider API access OEA cannot see whether a group is empty or exists. The warning `group-not-seen` is returned when a mapping to `system-admin` has never matched in a login and no current session of the provider carries the group; the mapping is saved anyway. Every mapping shows its last match (`lastMatchedAt`).
 - The check is best-effort, not a mandatory hard block, since not every provider offers a corresponding query API
 
 ## Implementation
 
 - ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
-- Implemented by: –
-- Tests: –
+- Implemented by: OpenSpec change `us-019-admin-safeguards`
+- Tests: `MappingMatchTests`, Cucumber `identity/access-administration.feature` (US-018)
 - Verification status: not-verified
 
 ## Notes
@@ -115,3 +116,4 @@ Derived from UC-02, Exception Flow E2.
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-02 |
+| 0.2.0 | 2026-10-28 | requirements-engineer | Realigned: warning based on logins seen at the instance instead of a provider API check (change `us-019-admin-safeguards`) |

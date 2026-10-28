@@ -2,7 +2,7 @@
 title: Operations
 covers:
   screens: []
-  stories: []
+  stories: [US-019]
 ---
 
 # Operations
@@ -92,6 +92,36 @@ With Compose: `docker compose run --rm migrate audit verify --oea.audit-verify.u
 | `2` | usage or connection error |
 
 **Checkpoints**: the backend appends a checkpoint every 60 minutes (`oea.audit.checkpoint-interval`, 5–1440 minutes) and at orderly shutdown, and writes a log line `event=audit.checkpoint chainSeq=… recordHash=… at=…`. Keep the backend log outside the database host (log shipper, journald, SIEM): checkpoints are only as trustworthy as the place they are stored. Pass the log file with `--checkpoints=` to detect deleted newest records or a restored older backup.
+
+## Deactivate the local system admin account {#deactivate-the-local-system-admin-account}
+
+After the hand-over of system administration to an IdP group (see [Roles and permissions](./roles-and-permissions#hand-over-system-administration-to-an-idp-group)), deactivate the local account of the bootstrapping so that no additional password access stays open. You need the permission `auth-config:manage`:
+
+```bash
+curl "${auth[@]}" "$OEA/admin/system-admin-account"                     # state of the account
+curl "${auth[@]}" -X POST "$OEA/admin/system-admin-account/deactivate"
+```
+
+- The account's sessions end at once and its password no longer works; logins through the identity provider are not affected.
+- OEA refuses the deactivation with `409` and problem type `urn:oea:problem:last-admin-path` as long as no other working path to system administration exists: an active mapping of an active provider to `system-admin` that has granted the role in at least one login (`lastMatchedAt`). Have a member of the group log in shortly before you deactivate the account.
+- Both the deactivation and a refused attempt are recorded in the audit trail (`system-admin-account.deactivated`).
+- Deleting the last mapping to `system-admin` is not refused yet. If you lock yourself out, use the recovery below.
+
+## Recover administrator access {#recover-administrator-access}
+
+If nobody can administer the instance any more – the password of the local account is lost or the account is deactivated, and no IdP group mapping to `system-admin` works – restore the local account with a command inside the backend container. It uses the configuration of the container (database and key-encryption key):
+
+```bash
+docker compose exec -it backend java -jar /app/oea-backend.jar admin recover
+```
+
+1. Enter the new password twice (12 to 128 characters). It is read from the terminal and never appears on the command line.
+2. If the setup phase has ended, the command also replaces the second factor: it revokes the old authenticator, shows a new secret and an `otpauth` URI once, and asks for a code from your authenticator app (three attempts).
+3. The account is active again, all its sessions are revoked, and its login throttling is cleared. Log in with the new password and, after the setup phase, a code of the new authenticator.
+
+Without a terminal (`docker compose exec -T`) the command reads one answer per line from standard input. Exit codes: `0` recovered, `1` refused (instance not bootstrapped, wrong codes or input ended – nothing was changed), `2` usage or connection error.
+
+The recovery is recorded in the audit trail as `system.admin-recovered` with source `CLI`. Neither the password nor the secret is recorded or logged. The secret stays in your terminal's scrollback, so clear the terminal afterwards. Anyone who can run commands in the backend container can take over the instance this way – the database password and the key in the same container allow that anyway. Treat access to the container as administrator access.
 
 ## Upgrade PostgreSQL to a new major version
 

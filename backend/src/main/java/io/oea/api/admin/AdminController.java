@@ -7,12 +7,17 @@ import io.oea.api.generated.model.AuthProviderWrite;
 import io.oea.api.generated.model.ImportMetamodelPackageRequest;
 import io.oea.api.generated.model.ImportResult;
 import io.oea.api.generated.model.StarterPackage;
+import io.oea.api.generated.model.SystemAdminAccountState;
 import io.oea.app.access.AuthProviders;
+import io.oea.app.access.LocalAdminAccount;
 import io.oea.app.metamodel.PackageConflictException;
 import io.oea.app.metamodel.PackageImporter;
 import io.oea.app.metamodel.StarterPackages;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.config.security.OeaAuthentication;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -34,11 +39,37 @@ public class AdminController implements AdminApi {
 
 	private final StarterPackages starterPackages;
 
+	private final LocalAdminAccount localAdmin;
+
 	public AdminController(AuthProviders providers, PackageImporter packageImporter,
-			StarterPackages starterPackages) {
+			StarterPackages starterPackages, LocalAdminAccount localAdmin) {
 		this.providers = providers;
 		this.packageImporter = packageImporter;
 		this.starterPackages = starterPackages;
+		this.localAdmin = localAdmin;
+	}
+
+	@Override
+	public ResponseEntity<SystemAdminAccountState> getSystemAdminAccount() {
+		return ResponseEntity.ok(account(this.localAdmin.state()));
+	}
+
+	@Override
+	public ResponseEntity<SystemAdminAccountState> deactivateSystemAdminAccount() {
+		return ResponseEntity.ok(account(this.localAdmin.deactivate(principal())));
+	}
+
+	private static SystemAdminAccountState account(LocalAdminAccount.State state) {
+		return new SystemAdminAccountState(state.loginName(),
+				SystemAdminAccountState.StatusEnum.fromValue(state.status()),
+				time(state.createdAt()))
+			.firstLoginAt(time(state.firstLoginAt()))
+			.lastUsedAt(time(state.lastUsedAt()))
+			.deactivatedAt(time(state.deactivatedAt()));
+	}
+
+	private static OffsetDateTime time(Instant instant) {
+		return (instant != null) ? instant.atOffset(ZoneOffset.UTC) : null;
 	}
 
 	@Override

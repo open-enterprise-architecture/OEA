@@ -2,7 +2,7 @@
 title: Roles and permissions
 covers:
   screens: []
-  stories: [US-143, US-147]
+  stories: [US-014, US-018, US-143, US-147]
 ---
 
 # Roles and permissions
@@ -38,6 +38,16 @@ curl "${auth[@]}" -d "{\"authProviderId\": \"$PROVIDER\", \"groupIdentifier\": \
 - A person cannot map a group that is contained in their own groups claim (separation of duties).
 - `GET /admin/idp-group-mappings` lists the mappings; `PUT` and `DELETE /admin/idp-group-mappings/{mappingId}` change and remove one.
 - Like the first identity binding, the first group mapping ends the setup phase.
+- Every mapping shows in `lastMatchedAt` when it last granted its role in a login; `null` means it never has. A privileged role counts only if the person logged in with a second factor.
+- If you map a group to `system-admin` and no login at this instance has shown that group yet, OEA saves the mapping anyway and returns the warning `group-not-seen` in `warnings`: the mapping grants system administration to nobody known until a member of the group logs in. Check the group identifier at the provider. OEA cannot see the group members, so it can only report what logins have shown.
+
+## Hand over system administration to an IdP group {#hand-over-system-administration-to-an-idp-group}
+
+You don't need the local system admin account once your administrators sign in through the identity provider:
+
+1. Map the administrators' group to the role `system-admin` (see above). Its members need a second factor at the provider, otherwise the role is not effective.
+2. Have a member of the group log in. The mapping's `lastMatchedAt` is then set, and only from then on does it count as a working path to system administration.
+3. Deactivate the local system admin account (see [Deactivate the local system admin account](./operations#deactivate-the-local-system-admin-account)). OEA refuses this as long as no mapping to `system-admin` has worked in a login.
 
 ## When group membership changes
 

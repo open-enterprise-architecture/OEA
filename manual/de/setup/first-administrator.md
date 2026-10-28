@@ -55,6 +55,8 @@ Nach dem Bootstrapping ist die Instanz in ihrer **Setup-Phase**: Das Systemadmin
 
 Ab dann braucht jede Anmeldung des Systemadmin-Kontos einen Code der Authenticator-App.
 
+Sind Passwort oder Authenticator verloren und kann niemand sonst die Instanz administrieren, stellst du das Konto mit dem Befehl unter [Administratorzugang wiederherstellen](../administration/operations#recover-administrator-access) wieder her.
+
 ::: warning Achtung
 Während der Setup-Phase schützen nur das Passwort und die Drosselung der Anmeldeversuche die Instanz. Beende die Setup-Phase, bevor du die Instanz öffentlich erreichbar machst.
 :::

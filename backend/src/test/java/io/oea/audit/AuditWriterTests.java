@@ -17,6 +17,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import org.springframework.web.context.request.RequestContextHolder;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -78,6 +79,26 @@ class AuditWriterTests {
 		Map<String, Object> row = this.jdbc.queryForMap(
 				"SELECT host(source_ip) AS source_ip, request_id FROM audit.events WHERE id = ?", link.id());
 		assertThat(row).containsEntry("source_ip", "192.0.2.10").containsEntry("request_id", null);
+		String recomputed = this.jdbc.query("SELECT * FROM audit.events WHERE id = ?", (rs) -> {
+			rs.next();
+			return HexFormat.of()
+				.formatHex(ChainHasher.recordHash(rs.getInt("hash_version"), rs.getLong("chain_seq"),
+						rs.getBytes("prev_hash"), ChainTable.EVENTS, ChainHasher.fieldValues(ChainTable.EVENTS, rs)));
+		}, link.id());
+		assertThat(recomputed).isEqualTo(HexFormat.of().formatHex(link.recordHash()));
+	}
+
+	/** Audit source of host-side commands (design D6 of us-019-admin-safeguards). */
+	@Test
+	void eventFromTheCommandLineIsChainedWithSourceCli() {
+		// a command runs without a request
+		RequestContextHolder.resetRequestAttributes();
+		AppendedLink link = this.writer.append(new AuditEvent("test.audit-writer-cli", AuditEvent.Category.SECURITY,
+				AuditEvent.Severity.HIGH, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.CLI, AuditEvent.Actor.system(),
+				"system-admin-account", UUID.randomUUID().toString(), Map.of("reactivated", true)));
+		Map<String, Object> row = this.jdbc.queryForMap(
+				"SELECT source, source_ip, request_id FROM audit.events WHERE id = ?", link.id());
+		assertThat(row).containsEntry("source", "CLI").containsEntry("source_ip", null).containsEntry("request_id", null);
 		String recomputed = this.jdbc.query("SELECT * FROM audit.events WHERE id = ?", (rs) -> {
 			rs.next();
 			return HexFormat.of()

@@ -2,7 +2,7 @@
 title: Rollen und Berechtigungen
 covers:
   screens: []
-  stories: [US-143, US-147]
+  stories: [US-014, US-018, US-143, US-147]
 ---
 
 # Rollen und Berechtigungen
@@ -38,6 +38,16 @@ curl "${auth[@]}" -d "{\"authProviderId\": \"$PROVIDER\", \"groupIdentifier\": \
 - Eine Person kann keine Gruppe zuordnen, die in ihrem eigenen Groups-Claim enthalten ist (Funktionstrennung).
 - `GET /admin/idp-group-mappings` listet die Zuordnungen; `PUT` und `DELETE /admin/idp-group-mappings/{mappingId}` ändern und entfernen eine.
 - Wie die erste Identitätsbindung beendet auch die erste Gruppenzuordnung die Setup-Phase.
+- Jede Zuordnung zeigt in `lastMatchedAt`, wann sie ihre Rolle zuletzt bei einer Anmeldung vergeben hat; `null` heißt: noch nie. Eine privilegierte Rolle zählt nur, wenn sich die Person mit zweitem Faktor angemeldet hat.
+- Ordnest du eine Gruppe `system-admin` zu und hat noch keine Anmeldung an dieser Instanz diese Gruppe gezeigt, speichert OEA die Zuordnung trotzdem und gibt in `warnings` die Warnung `group-not-seen` zurück: Die Zuordnung gibt niemandem Bekanntem die Systemadministration, bis sich ein Mitglied der Gruppe anmeldet. Prüfe die Gruppenkennung beim Provider. OEA sieht die Gruppenmitglieder nicht und kann nur melden, was Anmeldungen gezeigt haben.
+
+## Systemadministration an eine IdP-Gruppe übergeben {#hand-over-system-administration-to-an-idp-group}
+
+Das lokale Systemadmin-Konto brauchst du nicht mehr, sobald sich deine Administratorinnen und Administratoren über den Identity-Provider anmelden:
+
+1. Ordne die Gruppe der Administratoren der Rolle `system-admin` zu (siehe oben). Ihre Mitglieder brauchen beim Provider einen zweiten Faktor, sonst wirkt die Rolle nicht.
+2. Lass ein Mitglied der Gruppe sich anmelden. Dann ist `lastMatchedAt` der Zuordnung gesetzt, und erst ab dann zählt sie als funktionierender Weg zur Systemadministration.
+3. Deaktiviere das lokale Systemadmin-Konto (siehe [Lokales Systemadmin-Konto deaktivieren](./operations#deactivate-the-local-system-admin-account)). OEA lehnt das ab, solange keine Zuordnung zu `system-admin` bei einer Anmeldung gegriffen hat.
 
 ## Wenn sich die Gruppenmitgliedschaft ändert
 

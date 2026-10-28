@@ -55,6 +55,8 @@ After the bootstrapping, the instance is in its **setup phase**: the system admi
 
 From then on, every login of the system admin account needs a code of the authenticator app.
 
+If the password or the authenticator is lost and nobody else can administer the instance, restore the account with the command described in [Recover administrator access](../administration/operations#recover-administrator-access).
+
 ::: warning
 During the setup phase, only the password and the login throttling protect the instance. End the setup phase before you make the instance publicly reachable.
 :::
