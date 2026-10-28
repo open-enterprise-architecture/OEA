@@ -35,7 +35,7 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 |---|---|
 | Stakeholder profiles | 8 |
 | Use Cases | 24 |
-| Requirements | 203 |
+| Requirements | 204 |
 | User Stories | 150 |
 | ADRs | 47 |
 | Business Objects | 33 |
@@ -136,7 +136,7 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 | [ADR-044](adrs/ADR-044-view-state-in-url.md) | View State of List and Table Views in the URL | accepted |
 | [ADR-045](adrs/ADR-045-user-manual.md) | Multilingual User Manual with VitePress on GitHub Pages | accepted |
 | [ADR-046](adrs/ADR-046-manual-coverage-story-statuses.md) | User Story Statuses Covered by the User Manual Check | accepted |
-| [ADR-047](adrs/ADR-047-real-time-collaboration.md) | Architecture of Real-Time Collaboration | proposed |
+| [ADR-047](adrs/ADR-047-real-time-collaboration.md) | Architecture of Real-Time Collaboration | accepted |
 <!-- /AUTO-GENERATED: adrs -->
 
 ## Development

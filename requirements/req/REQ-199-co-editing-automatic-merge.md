@@ -4,7 +4,7 @@ title: Concurrent editing of diagrams and documents with automatic merge
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-10-28
 last_updated: 2026-10-28
 author: requirements-engineer
@@ -55,7 +55,7 @@ Applies to the layout and diagram-only elements of diagrams, to the entities and
 
 **Output / Behavior**: a merged state that is identical for all participants; changes of different attributes of the same element are all kept; concurrent changes of the same attribute end with one deterministic value that every participant sees
 
-**Business rules**: deleting an element that another participant is changing deletes it and informs the other participant; undo affects only the participant's own changes; changes made while offline are merged on reconnect, and changes that cannot be applied are reported and kept as a copy; versions are formed per author and time window (ADR-047)
+**Business rules**: deleting an element that another participant is changing deletes it and informs the other participant; undo affects only the participant's own changes; changes made while offline are merged on reconnect, and changes that cannot be applied are reported and kept as a copy; a version groups the operations of one author on one object and closes after 2 minutes without a further operation of that author, after 15 minutes at the latest, or when the author leaves or disconnects (defaults, configurable by the administrator; ADR-047); every accepted operation is recorded with author, attribute and old and new value
 
 ## Acceptance Criteria
 
@@ -93,7 +93,13 @@ Applies to the layout and diagram-only elements of diagrams, to the entities and
 
 - Given: three participants edited a diagram for 30 minutes
 - When: the change history of the diagram is opened (UC-14)
-- Then: it shows versions attributed to each author, not one version per operation
+- Then: it shows versions attributed to exactly one author each, not one version per operation
+
+**AC7** (Version window):
+
+- Given: Kurt moves three shapes within one minute, pauses for 3 minutes and then renames a shape
+- When: the change history of the diagram is opened
+- Then: it shows two versions by Kurt – the first with the three moves, the second with the rename – and the audit trail shows all four operations
 
 ## Verification Method
 
@@ -132,3 +138,4 @@ Owner request and decisions of 2026-10-28 (UC-24): priority *should* after the M
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-28 | requirements-engineer | Initial draft (UC-24) |
+| 0.2.0 | 2026-10-28 | requirements-engineer | Version granularity set: one author per version, 2 minutes idle, 15 minutes at most (owner decision, ADR-047) |

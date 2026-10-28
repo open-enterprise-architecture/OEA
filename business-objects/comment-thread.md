@@ -2,7 +2,7 @@
 identifier: comment-thread
 name_de: Kommentar-Thread
 name_en: Comment Thread
-version: 0.1.0
+version: 0.2.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -77,14 +77,14 @@ If the anchored shape is removed from the diagram, the thread keeps its last pos
 open ⇄ resolved
 ```
 
-- `open → resolved`: by any person who may comment on the diagram
+- `open → resolved`: by any person who may read the diagram
 - `resolved → open`: reopened by a new reply or explicitly
 
 ## Business Rules
 
 | Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
-| BR-CT-01 | Reading a thread requires read permission on the diagram; writing requires the permission to comment (granted with diagram read access unless restricted) | onRead, onCreate | – |
+| BR-CT-01 | Reading, opening, answering, resolving and reopening a thread requires read permission on the diagram; there is no separate permission to comment | onRead, onCreate, onUpdate | – |
 | BR-CT-02 | Only the author may edit or delete their comment; deleting keeps a placeholder so replies stay understandable | onUpdate, onDelete | – |
 | BR-CT-03 | Only persons who may read the diagram can be mentioned | onCreate | – |
 | BR-CT-04 | Creating, resolving and deleting is recorded in the audit trail | onCreate, onUpdate, onDelete | §21.8 |
@@ -116,10 +116,11 @@ comments:
 
 ## Notes
 
-Owner decision of 2026-10-28: comment threads in diagrams. Comments on other objects (entities, documents) are not part of this decision and can extend the anchor later.
+Owner decisions of 2026-10-28: comment threads in diagrams; commenting needs no separate permission, read access to the diagram is enough (ADR-047). Comments on other objects (entities, documents) are not part of this decision and can extend the anchor later.
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-28 | Business Engineer | Initial draft (UC-24) |
+| 0.2.0 | 2026-10-28 | Business Engineer | BR-CT-01: commenting with read access, no separate permission (owner decision) |

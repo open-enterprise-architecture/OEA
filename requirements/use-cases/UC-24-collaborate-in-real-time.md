@@ -5,7 +5,7 @@ status: draft
 priority: should
 target_release: v1.x
 complexity: xl
-version: 0.1.0
+version: 0.2.0
 created: 2026-10-28
 last_updated: 2026-10-28
 primary_actor: SH-03
@@ -60,7 +60,7 @@ Architecture is shaped in workshops, reviews and parallel work of several archit
 ### On Success
 
 - The diagram, its entities and connections contain the changes of all participants, none is lost
-- Every change is a version attributed to its author and recorded in the audit trail
+- Every accepted operation is recorded in the audit trail with its author; the operations are grouped into versions of exactly one author each
 - Sticky notes are part of the diagram; comment threads are stored with the diagram and can be resolved later
 
 ### On Failure
@@ -80,13 +80,15 @@ Architecture is shaped in workshops, reviews and parallel work of several archit
 8. **Michael**: opens a comment thread on the interface: "@Kurt who owns this interface?"
 9. **System**: shows the note and the thread to everyone and notifies Kurt of the mention
 10. **Kurt**: answers in the thread and resolves it; leaves the diagram
-11. **System**: removes Kurt's pointer for the others; the diagram keeps all changes as versions per author
+11. **System**: removes Kurt's pointer for the others and closes his open version; the diagram keeps all changes as versions per author
+12. **Michael**: names the current state "Workshop result 2026-10-28" as a checkpoint
+13. **System**: shows the checkpoint highlighted in the change history of the diagram
 
 ## Alternative Flows
 
 **A1 – Following without editing**: At step 2, a participant has only read permission (e.g. Anna as business analyst):
 
-1. Anna sees pointers, changes, notes and threads live and may comment if she has the permission to comment
+1. Anna sees pointers, changes, notes and threads live and may comment, because read access to the diagram is enough for comment threads
 2. She cannot move, add or change shapes
 
 - Rejoins at step 3
@@ -126,7 +128,8 @@ Architecture is shaped in workshops, reviews and parallel work of several archit
 |---|---|---|---|
 | 2 | presence: participant, colour, pointer, selection | Participant ↔ System ↔ Participants | not persisted |
 | 3–6 | edit operations on the diagram | Participant → System → Participants | merged, filtered per participant |
-| 4, 6 | new versions of diagram, entities, connections | System → DB | per author and time window |
+| 4, 6 | operations and versions of diagram, entities, connections | System → DB | every operation in the audit trail and the operation log; versions per author, closed after 2 minutes idle or 15 minutes at most |
+| 12 | checkpoint | Participant → System → DB | named state of the whole diagram |
 | 7–10 | notes, comments, mentions | Participant → System → Participants | persisted and audited |
 
 ## Involved Business Objects
@@ -148,7 +151,9 @@ Architecture is shaped in workshops, reviews and parallel work of several archit
 - [ ] Comment threads can be anchored to a shape, an edge or a position, answered, resolved and reopened; mentioned persons are notified (REQ-201)
 - [ ] A participant without read permission on a property never receives its value (E3, REQ-203)
 - [ ] After a lost connection, local changes are merged on reconnect (E1)
-- [ ] The audit trail contains every saved change, note and comment with its author; pointer movements are not recorded
+- [ ] The audit trail contains every accepted operation, note and comment with its author; pointer movements are not recorded
+- [ ] Every version of a co-edited diagram has exactly one author and closes after 2 minutes without a change of that author, after 15 minutes at the latest, or when the author leaves (REQ-199)
+- [ ] A participant with edit permission can name a checkpoint, and restoring it sets the whole diagram to that state for everyone (REQ-204)
 
 ## Out of Scope
 
@@ -166,22 +171,22 @@ Architecture is shaped in workshops, reviews and parallel work of several archit
 
 ## Implementation Notes
 
-- Co-editing needs a mergeable working state (CRDT or OT) on the server – [ADR-047](../../adrs/ADR-047-real-time-collaboration.md)
+- Co-editing uses server-ordered operations on the OEA model, a text CRDT only for documents – [ADR-047](../../adrs/ADR-047-real-time-collaboration.md) (accepted); the first task of the implementing change is a spike for client rebase and latency
 - The canvas (Vue Flow, ADR-007) and the client app (Electron, ADR-009) move from explicit saving to continuous saving (UC-10 step 9)
 - Expected load: up to 20 simultaneous participants per diagram, up to 200 concurrent sessions per instance (REQ-202)
 
 ## Realizing Components
 
-- Requirements: REQ-197, REQ-198, REQ-199, REQ-200, REQ-201, REQ-202, REQ-203
+- Requirements: REQ-197, REQ-198, REQ-199, REQ-200, REQ-201, REQ-202, REQ-203, REQ-204
 - User Stories: – (priority *should*; stories follow when the use case is planned)
-- ADRs: ADR-047 (proposed)
+- ADRs: ADR-047 (accepted)
 - Test Cases: –
 - Implementation: –
 
 ## Open Questions
 
-- [ ] Granularity of versions from continuous editing (time window per author) – to be set with ADR-047
-- [ ] Separate permission to comment, or comment rights with diagram read access (BR-CT-01 assumes the latter)
+- [x] Granularity of versions from continuous editing – one author per version, closed after 2 minutes idle or 15 minutes at most, plus named checkpoints (owner decision of 2026-10-28, ADR-047)
+- [x] Separate permission to comment – no; read access to the diagram is enough (owner decision of 2026-10-28, BR-CT-01)
 
 ## Notes
 
@@ -192,3 +197,4 @@ Owner decisions of 2026-10-28: priority *should* after the MVP; presence and liv
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-28 | requirements-engineer | Initial draft (owner request of 2026-10-28) |
+| 0.2.0 | 2026-10-28 | requirements-engineer | Owner decisions: ADR-047 accepted, commenting with read access, version granularity and checkpoints (REQ-204) |
