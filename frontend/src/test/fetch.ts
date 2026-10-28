@@ -5,7 +5,7 @@ export interface RecordedRequest {
 }
 
 export function routedFetch(
-  routes: Record<string, { status?: number; body: unknown; contentType?: string }>,
+  routes: Record<string, { status?: number; body: unknown; contentType?: string; headers?: Record<string, string> }>,
   recorded: RecordedRequest[] = [],
 ): typeof fetch {
   return async (input, init) => {
@@ -17,7 +17,7 @@ export function routedFetch(
     }
     return new Response(JSON.stringify(route.body), {
       status: route.status ?? 200,
-      headers: { 'Content-Type': route.contentType ?? 'application/json' },
+      headers: { 'Content-Type': route.contentType ?? 'application/json', ...route.headers },
     })
   }
 }

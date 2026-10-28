@@ -157,6 +157,8 @@ jobs:
         run: redocly lint api/openapi.yaml --format=github-actions
       - name: Check authorization declared on every operation (ADR-032)
         run: python3 scripts/check_openapi_authorization.py
+      - name: Test the authorization check
+        run: python3 scripts/test_check_openapi_authorization.py
 
   # ── 4. Markdown lint (informational until baseline is cleaned up) ─────────────────────
   markdown-lint:

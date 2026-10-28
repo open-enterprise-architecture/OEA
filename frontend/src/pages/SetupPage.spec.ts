@@ -61,6 +61,14 @@ describe('SetupPage', () => {
     expect(wrapper.get('[data-testid="setup-failure"]').text()).toContain(message)
   })
 
+  // spec identity/bootstrapping "Setup page shows the waiting time"
+  it('shows the waiting time of a throttled address', async () => {
+    const wrapper = await fillAndSubmit(
+      routedFetch({ '/api/v1/setup': { ...problem(429, 'too-many-requests'), headers: { 'Retry-After': '30' } } }),
+    )
+    expect(wrapper.get('[data-testid="setup-failure"]').text()).toBe('Too many failed attempts. Try again in 30 seconds.')
+  })
+
   it('marks the fields named in a validation problem', async () => {
     const wrapper = await fillAndSubmit(
       routedFetch({ '/api/v1/setup': problem(400, 'validation-failed', ['instanceSlug']) }),

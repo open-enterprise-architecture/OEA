@@ -24,6 +24,10 @@ All audit records are rows of `audit.events` (with optional details in `audit.ev
 | `agent_label` / `agent_run` | Informational values of the headers `X-Agent-Id` and `X-Agent-Run` (control characters removed, at most 100 characters); never used for decisions (ADR-033 §7) |
 | `details` | Event-type-specific supplement (JSON); never secrets, tokens, passwords or hashes of them |
 
+## Flood Suppression
+
+Repeated security events of the same type, actor, source address and operation are recorded individually up to 20 per minute; further events of that minute are counted and recorded as one **summary event** of the same type after the minute has ended ([REQ-175](../requirements/req/REQ-175-security-event-logging.md) AC5). It applies to `authz.denied` and to `system.bootstrap-rejected` with reason `throttled`. A summary event has the actor of the suppressed events, the source address but no request ID, no target ID, and the details `summary` (`true`), `suppressedCount`, `windowStart`, `windowEnd` and `operation`. The counters are kept in memory of the backend; on a regular shutdown, open windows are written as summaries.
+
 ## Event Types
 
 ### `system.bootstrapped`
@@ -46,7 +50,7 @@ A bootstrapping attempt was rejected (REQ-015, REQ-016, REQ-017).
 | Category / severity / outcome | `security` / `warning` / `denied` |
 | Actor | `unauthenticated` |
 | Target | – |
-| Details | `mode` (`local`), `reason` (`invalid-setup-token`, `already-bootstrapped` or `validation-failed`), `fields` (names of invalid fields for `validation-failed`) |
+| Details | `mode` (`local`), `reason` (`invalid-setup-token`, `already-bootstrapped`, `validation-failed` or `throttled`: the source address is throttled after too many wrong setup tokens, REQ-168), `fields` (names of invalid fields for `validation-failed`); `throttled` rejections are subject to the [flood suppression](#flood-suppression) with the operation `completeSetup` |
 
 ### `audit.checkpoint`
 
@@ -83,14 +87,14 @@ Rejected local login step ([REQ-168](../requirements/req/REQ-168-local-auth-thro
 
 ### `auth.throttled`
 
-A login name or a source address reached its throttling threshold (REQ-168); written once per lock, not for every throttled attempt.
+A login name or a source address reached its throttling threshold (REQ-168), or an authenticated principal reached a rate limit (REQ-186); written once per lock or limit window, not for every throttled attempt.
 
 | Field | Value |
 |---|---|
 | Category / severity / outcome | `security` / `warning` / `denied` |
-| Actor | `unauthenticated` |
+| Actor | `unauthenticated` for the scopes `account` and `address`; the throttled principal for the scope `principal` |
 | Target | – |
-| Details | `scope` (`account`: 5 failures of one login name within 15 minutes; `address`: 100 failures from one source address within 10 minutes) |
+| Details | `scope` (`account`: 5 failures of one login name within 15 minutes; `address`: 100 failures of local logins and setup-token attempts from one source address within 10 minutes; `principal`: the principal reached a rate limit), for `principal` also `limit` (`requests` or `entity-batch`) and `limitPerMinute` |
 
 ### `auth.logout`
 
@@ -138,14 +142,14 @@ A session was ended by the system ([REQ-164](../requirements/req/REQ-164-session
 
 ### `authz.denied`
 
-A request was refused by a separation-of-duties rule (ADR-032).
+A request was refused with 403 by an authorization decision ([REQ-175](../requirements/req/REQ-175-security-event-logging.md) AC1, ADR-032 §8): a permission declared by the contract is missing, a permission of a contract condition is missing, the setup phase requires a second factor, or a separation-of-duties rule applies. Subject to the [flood suppression](#flood-suppression). Not written for requests to operations without a contract declaration and for rejections of the CSRF/`Origin` check.
 
 | Field | Value |
 |---|---|
 | Category / severity / outcome | `security` / `warning` / `denied` |
 | Actor | the requesting principal |
-| Target | the affected object type, e.g. `idp-group-mapping` |
-| Details | `reason` (`self-administration`: SoD-1, US-147 AC5), `operation` |
+| Target | `target_id`: the path variable `id` of the request, or its only path variable, if any; `target_type`: the affected object type where the decision knows it, e.g. `idp-group-mapping` |
+| Details | `reason` (`missing-permission`, `condition`, `second-factor-required` or `self-administration`: SoD-1, US-147 AC5), `operation` (operation ID of the contract); summary events additionally `summary`, `suppressedCount`, `windowStart`, `windowEnd` |
 
 ### `auth.factor-added`
 

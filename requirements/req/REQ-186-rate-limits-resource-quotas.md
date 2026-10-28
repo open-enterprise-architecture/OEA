@@ -4,9 +4,9 @@ title: Rate limiting and resource quotas
 type: non-functional
 priority: must
 status: proposed
-version: 0.3.0
+version: 0.4.0
 created: 2026-10-13
-last_updated: 2026-10-23
+last_updated: 2026-10-28
 author: requirements-engineer
 references:
   use_cases:
@@ -39,6 +39,8 @@ A single low-privileged user or leaked service account can otherwise saturate th
 ## Context
 
 Source: security review SEC-23 (proposal PR-30); owner decision Q2 (portal may be internet-exposed → priority must). The maximum batch size was inconsistent (REQ-147: 1,000; REQ-154 and ADR-026: 500) and is harmonized to 500 here. Login throttling is specified separately in REQ-168. Raw analytics limits (ADR-034 §5) are listed below; statement timeout, row and result size limits are specified in REQ-179. Per-principal analytics limits use the same shared rate-limit store as all other limits; the global analytics concurrency is additionally capped by the connection limit of the analytics database role.
+
+**Implementation (change s3-throttling-and-denials, 2026-10-28):** the per-principal request limit (600 / min) and the batch limit (10 / min) are implemented for every authenticated principal; because service accounts do not exist yet (US-142), the batch limit applies to every principal. Both limits are configurable (`oea.web.rate-limit.*`), counted per backend instance in a fixed one-minute window from the first request, and answered with 429, the problem type `urn:oea:problem:too-many-requests` and `Retry-After`. Search, traversal, event-stream and analytics limits follow with their endpoints (spec `platform/request-limits`).
 
 ## Type-Specific Fields
 
@@ -118,3 +120,4 @@ Source: security review SEC-23 (proposal PR-30); owner decision Q2 (portal may b
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-23 (PR-30), owner decision Q2 |
 | 0.2.0 | 2026-10-13 | requirements-engineer | ADR-034 §5: analytics rows (30 queries/min, 2 concurrent per principal, pool 4) in the target value table; AC5 added |
 | 0.3.0 | 2026-10-23 | Change s2b-backend-hardening | Request body size row (security re-review WS-02, #73); implemented with spec `platform/request-limits` |
+| 0.4.0 | 2026-10-28 | Change s3-throttling-and-denials | Per-principal request and batch limits implemented (security re-review WS-02, #74); batch limit per principal until service accounts exist |

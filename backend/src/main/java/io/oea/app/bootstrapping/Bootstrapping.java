@@ -1,7 +1,9 @@
 package io.oea.app.bootstrapping;
 
 import io.oea.app.bootstrapping.BootstrapRejectedException.Reason;
+import io.oea.app.login.LoginThrottle;
 import io.oea.audit.AuditEvent;
+import io.oea.audit.AuditFloodGuard;
 import io.oea.audit.AuditWriter;
 import io.oea.core.domain.auth.BootstrapSetupToken;
 import io.oea.core.domain.auth.LocalCredential;
@@ -30,7 +32,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Local bootstrapping (UC-02 basic flow, design D2/D3): exactly one successful run per
- * instance; every attempt is audited, rejections in their own transaction.
+ * instance; every attempt is audited, rejections in their own transaction. Wrong setup tokens
+ * count towards the per-address throttling of local logins (REQ-168; design D6 of
+ * s3-throttling-and-denials).
  */
 @Service
 public class Bootstrapping {
@@ -55,10 +59,15 @@ public class Bootstrapping {
 
 	private final Clock clock;
 
+	private final LoginThrottle throttle;
+
+	private final AuditFloodGuard floodGuard;
+
 	public Bootstrapping(SetupTokens setupTokens, BootstrapSetupTokenRepository tokens,
 			SystemSettingsRepository settings, SystemAdminAccountRepository accounts,
 			LocalCredentialRepository credentials, PasswordCredentialRepository passwords, PasswordHasher hasher,
-			AuditWriter audit, PlatformTransactionManager transactionManager, Clock clock) {
+			AuditWriter audit, PlatformTransactionManager transactionManager, Clock clock, LoginThrottle throttle,
+			AuditFloodGuard floodGuard) {
 		this.setupTokens = setupTokens;
 		this.tokens = tokens;
 		this.settings = settings;
@@ -69,6 +78,8 @@ public class Bootstrapping {
 		this.audit = audit;
 		this.transaction = new TransactionTemplate(transactionManager);
 		this.clock = clock;
+		this.throttle = throttle;
+		this.floodGuard = floodGuard;
 	}
 
 	public boolean setupRequired() {
@@ -81,6 +92,39 @@ public class Bootstrapping {
 	 * invalid or expired, or the input is invalid
 	 */
 	public BootstrapResult bootstrap(BootstrapCommand command) {
+		return bootstrap(command, null);
+	}
+
+	/**
+	 * As {@link #bootstrap(BootstrapCommand)} for a request from the source address: a throttled
+	 * address is rejected before the token is evaluated, and a wrong token counts as a failure
+	 * of the address.
+	 * @param sourceAddress remote address of the request; {@code null} disables the throttling
+	 * @throws BootstrapRejectedException also with {@link Reason#THROTTLED}
+	 */
+	public BootstrapResult bootstrap(BootstrapCommand command, String sourceAddress) {
+		if (sourceAddress != null) {
+			long wait = this.throttle.retryAfterSecondsForAddress(sourceAddress);
+			if (wait > 0) {
+				this.floodGuard.append(new AuditEvent("system.bootstrap-rejected", AuditEvent.Category.SECURITY,
+						AuditEvent.Severity.WARNING, AuditEvent.Outcome.DENIED, AuditEvent.Source.API,
+						AuditEvent.Actor.unauthenticated(), null, null,
+						Map.of("mode", "local", "reason", Reason.THROTTLED.code())), "completeSetup");
+				throw BootstrapRejectedException.throttled(wait);
+			}
+		}
+		try {
+			return bootstrapOnce(command);
+		}
+		catch (BootstrapRejectedException ex) {
+			if (sourceAddress != null && ex.getReason() == Reason.INVALID_SETUP_TOKEN) {
+				this.throttle.recordAddressFailure(sourceAddress);
+			}
+			throw ex;
+		}
+	}
+
+	private BootstrapResult bootstrapOnce(BootstrapCommand command) {
 		try {
 			return this.transaction.execute((status) -> bootstrapInTransaction(command));
 		}

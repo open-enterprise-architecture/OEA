@@ -77,3 +77,12 @@ Feature: Local bootstrapping of a fresh instance
     When the operator submits a wrong setup token, login name "admin", a 24-character password and instance slug "acme-corp"
     Then the audit trail contains "system.bootstrap-rejected" with mode "local" and outcome "denied" by an unauthenticated actor
     And no audit record contains the setup token or the password
+
+  @REQ-168
+  Scenario: Setup attempts above the threshold
+    When 100 setup attempts with a wrong setup token are submitted from one address
+    And the operator submits the setup token, login name "admin", a 24-character password and instance slug "acme-corp"
+    Then the setup is rejected with status 429 and problem type "too-many-requests"
+    And the response names a waiting time
+    And no system admin account exists
+    And the audit trail contains "system.bootstrap-rejected" with reason "throttled"

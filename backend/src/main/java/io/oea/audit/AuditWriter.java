@@ -50,12 +50,7 @@ public class AuditWriter {
 	/** Appends the event in the current transaction, or in a new one if none is active. */
 	@Transactional(propagation = Propagation.REQUIRED)
 	public AppendedLink append(AuditEvent event) {
-		return this.jdbc.queryForObject(INSERT, (ResultSet rs, int rowNum) -> new AppendedLink(rs.getLong(1),
-				rs.getLong(2), rs.getBytes(3)), event.eventType(), event.category().dbValue(),
-				event.severity().dbValue(), event.outcome().dbValue(), event.source().dbValue(), sourceIp(),
-				MDC.get(REQUEST_ID), event.actor().type(), event.actor().personId(), event.actor().adminId(),
-				event.targetType(), event.targetId(),
-				event.details().isEmpty() ? null : this.json.writeValueAsString(event.details()));
+		return insert(event, sourceIp(), MDC.get(REQUEST_ID));
 	}
 
 	/**
@@ -88,7 +83,26 @@ public class AuditWriter {
 		return append(event);
 	}
 
-	private static String sourceIp() {
+	/**
+	 * Appends an event written outside the request it describes (e.g. a summary of suppressed
+	 * events) in its own transaction, with the given source address and without request ID.
+	 */
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public AppendedLink appendIndependently(AuditEvent event, String sourceAddress) {
+		return insert(event, sourceAddress, null);
+	}
+
+	private AppendedLink insert(AuditEvent event, String sourceAddress, String requestId) {
+		return this.jdbc.queryForObject(INSERT, (ResultSet rs, int rowNum) -> new AppendedLink(rs.getLong(1),
+				rs.getLong(2), rs.getBytes(3)), event.eventType(), event.category().dbValue(),
+				event.severity().dbValue(), event.outcome().dbValue(), event.source().dbValue(), sourceAddress,
+				requestId, event.actor().type(), event.actor().personId(), event.actor().adminId(),
+				event.targetType(), event.targetId(),
+				event.details().isEmpty() ? null : this.json.writeValueAsString(event.details()));
+	}
+
+	/** Source address of the current request, {@code null} outside a request. */
+	static String sourceIp() {
 		if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes) {
 			HttpServletRequest request = attributes.getRequest();
 			return request.getRemoteAddr();

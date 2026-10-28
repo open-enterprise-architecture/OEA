@@ -7,7 +7,7 @@ export type SetupResult = components['schemas']['SetupResult']
 /** Outcome of POST /setup: the result, or the problem type of the rejection (RFC 9457). */
 export type SetupOutcome =
   | { ok: true; result: SetupResult }
-  | { ok: false; status: number; problemType: string; invalidFields: string[] }
+  | { ok: false; status: number; problemType: string; invalidFields: string[]; retryAfterSeconds?: number }
 
 /** Reads GET /api/v1/setup/status; an unreachable backend counts as "no setup required". */
 export async function fetchSetupRequired(fetchFn: typeof fetch = fetch): Promise<boolean> {
@@ -33,6 +33,6 @@ export async function completeSetup(request: SetupRequest, fetchFn: typeof fetch
   if (response.status === 201) {
     return { ok: true, result: (await response.json()) as SetupResult }
   }
-  const { status, problemType, invalidFields } = await readRejection(response)
-  return { ok: false, status, problemType, invalidFields }
+  const { status, problemType, invalidFields, retryAfterSeconds } = await readRejection(response)
+  return { ok: false, status, problemType, invalidFields, retryAfterSeconds }
 }

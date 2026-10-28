@@ -17,7 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
  * Throttling of local logins (REQ-168, design D6), stored in the database so that several
  * backend instances share it: per login name (also unknown ones) exponential backoff from the
  * sixth failure within 15 minutes, capped at a 15-minute temporary lock; per source address
- * a limit of 100 failures within 10 minutes.
+ * a limit of 100 failures within 10 minutes. Failed setup-token attempts count towards the
+ * same per-address limit (REQ-168; design D6 of s3-throttling-and-denials).
  */
 @Service
 public class LoginThrottle {
@@ -56,15 +57,35 @@ public class LoginThrottle {
 	@Transactional(readOnly = true)
 	public long retryAfterSeconds(String loginName, String address) {
 		Instant now = this.clock.instant();
-		long wait = 0;
-		for (String key : new String[] { accountKey(loginName), addressKey(address) }) {
-			Timestamp lockedUntil = this.jdbc.query("SELECT locked_until FROM auth_throttle WHERE throttle_key = ?",
-					(rs) -> rs.next() ? rs.getTimestamp(1) : null, key);
-			if (lockedUntil != null && lockedUntil.toInstant().isAfter(now)) {
-				wait = Math.max(wait, Duration.between(now, lockedUntil.toInstant()).toSeconds() + 1);
-			}
+		return Math.max(lockedFor(accountKey(loginName), now), lockedFor(addressKey(address), now));
+	}
+
+	/** Seconds until the source address accepts attempts again; 0 if not throttled. */
+	@Transactional(readOnly = true)
+	public long retryAfterSecondsForAddress(String address) {
+		return lockedFor(addressKey(address), this.clock.instant());
+	}
+
+	/**
+	 * Records a failed attempt that has no login name (a wrong setup token) for the source
+	 * address only, in its own transaction.
+	 */
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public void recordAddressFailure(String address) {
+		Instant now = this.clock.instant();
+		int addressFailures = increment(addressKey(address), now, ADDRESS_WINDOW);
+		if (addressFailures >= ADDRESS_FAILURES) {
+			lock(addressKey(address), now.plus(ADDRESS_WINDOW), addressFailures == ADDRESS_FAILURES, "address");
 		}
-		return wait;
+	}
+
+	private long lockedFor(String key, Instant now) {
+		Timestamp lockedUntil = this.jdbc.query("SELECT locked_until FROM auth_throttle WHERE throttle_key = ?",
+				(rs) -> rs.next() ? rs.getTimestamp(1) : null, key);
+		if (lockedUntil != null && lockedUntil.toInstant().isAfter(now)) {
+			return Duration.between(now, lockedUntil.toInstant()).toSeconds() + 1;
+		}
+		return 0;
 	}
 
 	/** Records a failed attempt in its own transaction (it survives the rollback of the login). */

@@ -9,12 +9,15 @@ import io.oea.app.bootstrapping.BootstrapRejectedException;
 import io.oea.app.bootstrapping.BootstrapResult;
 import io.oea.app.bootstrapping.Bootstrapping;
 import java.net.URI;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
  * Local bootstrapping endpoints (UC-02, US-013). The bootstrapping service is authoritative
@@ -39,7 +42,7 @@ public class SetupController implements SetupApi {
 
 	@Override
 	public ResponseEntity<SetupResult> completeSetup(SetupRequest request) {
-		BootstrapResult result = this.bootstrapping.bootstrap(toCommand(request));
+		BootstrapResult result = this.bootstrapping.bootstrap(toCommand(request), sourceAddress());
 		return ResponseEntity.status(HttpStatus.CREATED).body(new SetupResult(result.loginName(), result.instanceSlug()));
 	}
 
@@ -72,6 +75,10 @@ public class SetupController implements SetupApi {
 			case ALREADY_BOOTSTRAPPED -> ResponseEntity.status(HttpStatus.CONFLICT)
 				.body(problem(HttpStatus.CONFLICT, "already-bootstrapped", "Instance already bootstrapped",
 						"A system admin account exists; repeated bootstrapping is not possible."));
+			case THROTTLED -> ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+				.header(HttpHeaders.RETRY_AFTER, Long.toString(ex.getRetryAfterSeconds()))
+				.body(problem(HttpStatus.TOO_MANY_REQUESTS, "too-many-requests", "Too many requests",
+						"Too many wrong setup tokens from this address. Try again later."));
 			case VALIDATION_FAILED -> {
 				ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid setup data",
 						"Some fields do not meet the requirements.");
@@ -79,6 +86,11 @@ public class SetupController implements SetupApi {
 				yield ResponseEntity.badRequest().body(problem);
 			}
 		};
+	}
+
+	private static String sourceAddress() {
+		return (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes)
+				? attributes.getRequest().getRemoteAddr() : null;
 	}
 
 	private static BootstrapCommand toCommand(SetupRequest request) {

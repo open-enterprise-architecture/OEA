@@ -15,9 +15,9 @@ interface Mounted {
 }
 
 /** The page behind a router, so that URL, back navigation and reload act as in the app. */
-async function open(location: string, applications: Application[] = APPLICATIONS): Promise<Mounted> {
+async function open(location: string, applications: Application[] = APPLICATIONS, throttledFor?: number): Promise<Mounted> {
   const recorded: CatalogRequest[] = []
-  const fetchFn = catalogApi(applications, { recorded })
+  const fetchFn = catalogApi(applications, { recorded, throttledFor })
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -55,6 +55,12 @@ describe('CatalogPage', () => {
   it('shows "Catalog not found" for 404', async () => {
     const { wrapper } = await open('/catalogs/foreign')
     expect(wrapper.get('[data-testid="catalog-not-found"]').text()).toContain('Catalog not found')
+  })
+
+  // spec platform/request-limits "Principal above the limit"
+  it('shows the waiting time when the request limit is reached', async () => {
+    const { wrapper } = await open(CATALOG_PATH, APPLICATIONS, 17)
+    expect(wrapper.get('[data-testid="catalog-failure"]').text()).toContain('Too many requests. Try again in 17 seconds.')
   })
 
   // Requirement: Rows of the primary metatype

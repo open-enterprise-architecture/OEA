@@ -32,6 +32,21 @@ Request bodies are limited before they are parsed. A larger body is answered wit
 
 A reverse proxy in front of OEA should allow at least the largest of these values.
 
+## Rate limits
+
+Every logged-in person and system admin account may send a limited number of requests per minute. The minute starts with the first request; a request above the limit is answered with `429`, the problem type `urn:oea:problem:too-many-requests` and the header `Retry-After` with the seconds until the next request is accepted. Nothing of a rejected request is processed, and other users are not affected.
+
+| Setting | Default | Applies to |
+|---|---|---|
+| `oea.web.rate-limit.requests-per-minute` (`OEA_WEB_RATELIMIT_REQUESTSPERMINUTE`) | `600` | every request of a logged-in principal |
+| `oea.web.rate-limit.entity-batch-per-minute` (`OEA_WEB_RATELIMIT_ENTITYBATCHPERMINUTE`) | `10` | `POST /entities/batch`, in addition to the request limit |
+
+Both values must be at least `1`; otherwise the backend does not start. The first rejection of a principal within a minute is recorded in the audit trail as `auth.throttled` with the scope `principal`.
+
+The counters are kept in the memory of the backend. If you run several backend instances behind a load balancer, each instance counts on its own, so a principal can send up to the limit times the number of instances. After a restart, the counting starts again.
+
+Logins and the setup page are throttled separately per login name and source address (100 failed attempts within 10 minutes). A rate-limiting reverse proxy in front of OEA is a useful additional layer when the instance is reachable from the internet; it does not replace these limits.
+
 ## Key-encryption key
 
 Stored secrets – TOTP secrets and client secrets of identity providers – are encrypted with AES-256-GCM under the key-encryption key, a file outside the database. Every encrypted value records the ID of its key (the first 16 hex digits of the key's SHA-256).

@@ -5,6 +5,9 @@ import io.oea.testsupport.auth.OidcTestInstance;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -38,7 +41,7 @@ public final class RepositoryInstance implements AutoCloseable {
 
 	/** As {@link #start()} with extra arguments for the application. */
 	public static RepositoryInstance start(String... arguments) throws Exception {
-		OidcTestInstance instance = OidcTestInstance.start(arguments);
+		OidcTestInstance instance = OidcTestInstance.start(withTestRateLimits(arguments));
 		instance.person("dev-metamodel-admin", "active");
 		instance.person("dev-architect", "active");
 		instance.person("dev-viewer", "active");
@@ -73,6 +76,21 @@ public final class RepositoryInstance implements AutoCloseable {
 		return repository;
 	}
 
+	/**
+	 * The features drive one shared principal through many requests and batches within a
+	 * minute; unless a feature sets its own rate limits, they are raised far above the defaults
+	 * of REQ-186 (the default limits are tested by the request-limits feature and RateLimitTests).
+	 */
+	private static String[] withTestRateLimits(String... arguments) {
+		if (Arrays.stream(arguments).anyMatch((argument) -> argument.startsWith("--oea.web.rate-limit."))) {
+			return arguments;
+		}
+		List<String> raised = new ArrayList<>(List.of(arguments));
+		raised.add("--oea.web.rate-limit.requests-per-minute=100000");
+		raised.add("--oea.web.rate-limit.entity-batch-per-minute=100000");
+		return raised.toArray(String[]::new);
+	}
+
 	public OidcTestInstance oidc() {
 		return this.instance;
 	}
@@ -83,6 +101,12 @@ public final class RepositoryInstance implements AutoCloseable {
 
 	public Session viewer() {
 		return this.viewer;
+	}
+
+	/** Logs in a user of the development realm as an active person; returns the session. */
+	public Session login(String username) throws Exception {
+		this.instance.person(username, "active");
+		return session(this.instance, this.instance.login(username));
 	}
 
 	public HttpResponse<String> post(String path, String body, Session session, Map<String, String> headers)

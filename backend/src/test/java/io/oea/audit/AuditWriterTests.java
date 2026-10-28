@@ -63,6 +63,31 @@ class AuditWriterTests {
 	}
 
 	@Test
+	void eventWithExplicitSourceAddressIsChainedWithoutRequestId() {
+		MDC.put(AuditWriter.REQUEST_ID, "req-ignored");
+		AppendedLink link;
+		try {
+			link = this.writer.appendIndependently(new AuditEvent("test.audit-writer-summary",
+					AuditEvent.Category.SECURITY, AuditEvent.Severity.WARNING, AuditEvent.Outcome.DENIED,
+					AuditEvent.Source.API, AuditEvent.Actor.unauthenticated(), null, null,
+					Map.of("summary", true, "suppressedCount", 30)), "192.0.2.10");
+		}
+		finally {
+			MDC.remove(AuditWriter.REQUEST_ID);
+		}
+		Map<String, Object> row = this.jdbc.queryForMap(
+				"SELECT host(source_ip) AS source_ip, request_id FROM audit.events WHERE id = ?", link.id());
+		assertThat(row).containsEntry("source_ip", "192.0.2.10").containsEntry("request_id", null);
+		String recomputed = this.jdbc.query("SELECT * FROM audit.events WHERE id = ?", (rs) -> {
+			rs.next();
+			return HexFormat.of()
+				.formatHex(ChainHasher.recordHash(rs.getInt("hash_version"), rs.getLong("chain_seq"),
+						rs.getBytes("prev_hash"), ChainTable.EVENTS, ChainHasher.fieldValues(ChainTable.EVENTS, rs)));
+		}, link.id());
+		assertThat(recomputed).isEqualTo(HexFormat.of().formatHex(link.recordHash()));
+	}
+
+	@Test
 	void requestIdIsEchoedOrGenerated() {
 		assertThat(this.mvc.get().uri("/api/v1/health").header(RequestIdFilter.HEADER, "abc-123"))
 			.headers()

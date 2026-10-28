@@ -1,6 +1,7 @@
 package io.oea.app.access;
 
 import io.oea.app.security.OeaPrincipal;
+import io.oea.app.security.PermissionDenials;
 import io.oea.app.security.Sessions;
 import io.oea.app.security.SetupPhase;
 import io.oea.audit.AuditEvent;
@@ -44,6 +45,8 @@ public class IdpGroupMappings {
 
 	private final Clock clock;
 
+	private final PermissionDenials denials;
+
 	/** Who created a mapping, for {@code createdBy}. */
 	public record Creator(boolean systemAdminAccount, Long personId, String displayName) {
 	}
@@ -54,13 +57,14 @@ public class IdpGroupMappings {
 	}
 
 	public IdpGroupMappings(IdpGroupMappingRepository mappings, AuthProviderRepository providers,
-			SetupPhase setupPhase, AuditWriter audit, JdbcTemplate jdbc, Clock clock) {
+			SetupPhase setupPhase, AuditWriter audit, JdbcTemplate jdbc, Clock clock, PermissionDenials denials) {
 		this.mappings = mappings;
 		this.providers = providers;
 		this.setupPhase = setupPhase;
 		this.audit = audit;
 		this.jdbc = jdbc;
 		this.clock = clock;
+		this.denials = denials;
 	}
 
 	@Transactional(readOnly = true)
@@ -139,10 +143,7 @@ public class IdpGroupMappings {
 				WHERE s.id = ? AND p.issuer = ?""", (rs) -> rs.next() && rs.getBoolean(1), groupIdentifier,
 				principal.sessionId(), provider.getIssuer());
 		if (Boolean.TRUE.equals(own)) {
-			this.audit.appendIndependently(new AuditEvent("authz.denied", AuditEvent.Category.SECURITY,
-					AuditEvent.Severity.WARNING, AuditEvent.Outcome.DENIED, AuditEvent.Source.API,
-					Sessions.actor(principal), "idp-group-mapping", null,
-					Map.of("reason", "self-administration", "operation", operation)));
+			this.denials.record(principal, operation, "idp-group-mapping", null, PermissionDenials.SELF_ADMINISTRATION);
 			throw new SelfAdministrationException();
 		}
 	}

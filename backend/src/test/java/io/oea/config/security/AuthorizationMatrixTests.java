@@ -23,7 +23,10 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
-/** Spec platform/authorization: Every implemented operation is covered (REQ-158 AC3). */
+/**
+ * Spec platform/authorization: Every implemented operation is covered (REQ-158 AC3) and audits
+ * its denial (REQ-175 AC1).
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
@@ -69,9 +72,19 @@ class AuthorizationMatrixTests {
 				if (denied != 403) {
 					violations.add(operation + " without permission: " + denied);
 				}
+				else if (deniedEvents(noRole, operation.rule().operationId()) != 1) {
+					violations.add(operation + " without permission: no authz.denied event (REQ-175 AC1)");
+				}
 			}
 		}
 		assertThat(violations).isEmpty();
+	}
+
+	private int deniedEvents(TestSession session, String operationId) {
+		return this.jdbc.queryForObject("""
+				SELECT count(*) FROM audit.events e JOIN sessions s ON s.person_id = e.actor_person_id
+				WHERE e.event_type = 'authz.denied' AND s.id = ? AND e.details ->> 'operation' = ?""", Integer.class,
+				session.sessionId(), operationId);
 	}
 
 	private MvcTestResult call(Operation operation, TestSession session) {

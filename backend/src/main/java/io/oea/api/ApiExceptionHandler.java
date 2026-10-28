@@ -15,6 +15,7 @@ import io.oea.app.login.SecondFactorRequiredException;
 import io.oea.app.metamodel.InvalidPackageException;
 import io.oea.app.metamodel.PackageImporter;
 import io.oea.app.security.OeaPrincipal;
+import io.oea.app.security.PermissionDenials;
 import io.oea.app.security.PermissionDeniedException;
 import io.oea.app.security.ReauthenticationRequiredException;
 import io.oea.app.security.SetupPhase;
@@ -55,8 +56,13 @@ public class ApiExceptionHandler {
 	// optional: web slice tests load this advice without the application services
 	private final ObjectProvider<PackageImporter> packageImporter;
 
-	public ApiExceptionHandler(ObjectProvider<PackageImporter> packageImporter) {
+	// optional like the package importer: audits denials (REQ-175 AC1)
+	private final ObjectProvider<PermissionDenials> denials;
+
+	public ApiExceptionHandler(ObjectProvider<PackageImporter> packageImporter,
+			ObjectProvider<PermissionDenials> denials) {
 		this.packageImporter = packageImporter;
+		this.denials = denials;
 	}
 
 	@ExceptionHandler(InvalidCredentialsException.class)
@@ -78,7 +84,9 @@ public class ApiExceptionHandler {
 	}
 
 	@ExceptionHandler(SetupPhase.SecondFactorRequiredForAccessException.class)
-	ResponseEntity<ProblemDetail> secondFactorForAccess(SetupPhase.SecondFactorRequiredForAccessException ex) {
+	ResponseEntity<ProblemDetail> secondFactorForAccess(SetupPhase.SecondFactorRequiredForAccessException ex,
+			HandlerMethod handler) {
+		recordDenial(handler, null, PermissionDenials.SECOND_FACTOR_REQUIRED);
 		return ResponseEntity.status(HttpStatus.FORBIDDEN)
 			.body(problem(HttpStatus.FORBIDDEN, "second-factor-required", "Second factor required",
 					"Enroll and confirm a second factor before other identities get access (ADR-042)."));
@@ -257,7 +265,9 @@ public class ApiExceptionHandler {
 
 	/** A permission required by a contract condition is missing: the filter's generic 403 (REQ-158). */
 	@ExceptionHandler(PermissionDeniedException.class)
-	ResponseEntity<ProblemDetail> permissionDenied(PermissionDeniedException ex) {
+	ResponseEntity<ProblemDetail> permissionDenied(PermissionDeniedException ex, HandlerMethod handler,
+			HttpServletRequest request) {
+		recordDenial(handler, targetId(request), PermissionDenials.CONDITION);
 		ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.FORBIDDEN);
 		problem.setType(URI.create("urn:oea:problem:forbidden"));
 		problem.setTitle("Forbidden");
@@ -328,6 +338,24 @@ public class ApiExceptionHandler {
 			cause = cause.getCause();
 		}
 		return type.cast(cause);
+	}
+
+	private void recordDenial(HandlerMethod handler, String targetId, String reason) {
+		OeaPrincipal principal = currentPrincipal();
+		PermissionDenials recorder = this.denials.getIfAvailable();
+		if (principal != null && recorder != null) {
+			recorder.record(principal, handler.getMethod().getName(), null, targetId, reason);
+		}
+	}
+
+	/** The target of the request: the path variable {@code id}, or the only path variable. */
+	private static String targetId(HttpServletRequest request) {
+		if (!(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE) instanceof Map<?, ?> variables)) {
+			return null;
+		}
+		Object id = variables.containsKey("id") ? variables.get("id")
+				: (variables.size() == 1) ? variables.values().iterator().next() : null;
+		return (id instanceof String value) ? value : null;
 	}
 
 	private static OeaPrincipal currentPrincipal() {

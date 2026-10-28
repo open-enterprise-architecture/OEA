@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchCatalogs, type Catalog, type CatalogSummary } from '../api/catalogs'
+import { rateLimitMessage, RequestRejected } from '../api/problem'
 import CreateCatalogForm from '../components/CreateCatalogForm.vue'
 import { refreshSession, session } from '../session/store'
 
@@ -26,8 +27,9 @@ onMounted(async () => {
   }
   try {
     catalogs.value = await fetchCatalogs(props.fetchFn)
-  } catch {
-    failure.value = 'The catalogs could not be loaded.'
+  } catch (error) {
+    failure.value =
+      rateLimitMessage(error instanceof RequestRejected ? error.rejection : undefined) ?? 'The catalogs could not be loaded.'
   } finally {
     loaded.value = true
   }
