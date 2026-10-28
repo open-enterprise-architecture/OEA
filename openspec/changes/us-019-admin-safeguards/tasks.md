@@ -3,7 +3,7 @@
 ## 1. Contract and migrations
 
 - [x] 1.1 Extend `api/openapi.yaml` as in the API section of the design: `GET /admin/system-admin-account`, `POST /admin/system-admin-account/deactivate` (permission `auth-config:manage`, `409` with problem type `urn:oea:problem:last-admin-path`, `429`), schema `SystemAdminAccountState`, `lastMatchedAt` and `warnings` on `IdpGroupMapping`, `CLI` in the audit source enums; verify Redocly lint, `scripts/check_openapi_authorization.py`, the backend compiles and `npm run generate:api` succeeds in `frontend/` and `manual/`
-- [ ] 1.2 Flyway migration `V8__admin_safeguards.sql`: `idp_group_mappings.last_matched_at`, `system_admin_accounts.deactivated_by_person_id` with the check that at most one `deactivated_by_*` is set; verify the existing migration and schema tests pass and the columns exist after a fresh start
+- [x] 1.2 Flyway migration `V8__admin_safeguards.sql`: `idp_group_mappings.last_matched_at`, `system_admin_accounts.deactivated_by_person_id` with the check that at most one `deactivated_by_*` is set; verify the existing migration and schema tests pass and the columns exist after a fresh start
 - [x] 1.3 Audit migration `V3__cli_source.sql` extending the source check by `CLI` and `AuditEvent.Source.CLI`; verify an `AuditWriter` integration test writes a record with source `CLI` and `oea audit verify` passes on it
 
 ## 2. Last match and warning (US-018, D2, D4)
@@ -33,6 +33,6 @@
 
 ## 6. Wrap-up
 
-- [ ] 6.1 Set US-014, US-018 and US-019 to `realized` with the implementation hash; add realignment notes to US-018 AC1, US-019 AC2, REQ-018, REQ-019, REQ-014 and REQ-173 AC4 as listed in the proposal; answer the open question on E4 in UC-02 and update the S3 entry in `docs/sprint-plan.md`; verify markdown lint passes
-- [ ] 6.2 Update `docs/data-model.puml` (`last_matched_at`, `deactivated_by_person_id`, audit source `CLI`), `business-objects/idp-group-mapping.md` and `business-objects/system-admin-account.md` as in the Data Model section; `docs/screens/SCREENS.md` is unchanged (no screen); regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
-- [ ] 6.3 Run `python3 scripts/validate_links.py`, the OpenAPI checks, `scripts/sync_agent_config.py --check`, `openspec validate us-019-admin-safeguards`, `./mvnw verify` and the frontend tests and verify all pass
+- [x] 6.1 Set US-014, US-018 and US-019 to `done` (the implementation hash of the merge commit is recorded when the change is archived); add realignment notes to US-018 AC1, US-019 AC2, REQ-018, REQ-019, REQ-014 and REQ-173 AC4 as listed in the proposal; answer the open question on E4 in UC-02 and update the S3 entry in `docs/sprint-plan.md`; verify markdown lint passes
+- [x] 6.2 Update `docs/data-model.puml` (`last_matched_at`, `deactivated_by_person_id`, audit source `CLI`), `business-objects/idp-group-mapping.md` and `business-objects/system-admin-account.md` as in the Data Model section; `docs/screens/SCREENS.md` is unchanged (no screen); regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
+- [x] 6.3 Run `python3 scripts/validate_links.py`, the OpenAPI checks, `scripts/sync_agent_config.py --check`, `openspec validate us-019-admin-safeguards`, `./mvnw verify` and the frontend tests and verify all pass
