@@ -84,6 +84,9 @@ The Business Engineer (see `.opencode/agents/business-engineer.md`) models here.
 | [catalog](./catalog.md) | Katalog / Tabellenansicht | Catalog | draft | 0.1.0 |
 | [tree-node](./tree-node.md) | Navigationsbaum-Knoten | Tree Node | draft | 0.1.0 |
 | [dashboard](./dashboard.md) | Dashboard / C-Level-Auswertung | Dashboard | draft | 0.1.0 |
+| [diagram](./diagram.md) | Diagramm | Diagram | draft | 0.1.0 |
+| [diagram-note](./diagram-note.md) | Diagrammnotiz (Haftnotiz) | Diagram Note | draft | 0.1.0 |
+| [comment-thread](./comment-thread.md) | Kommentar-Thread | Comment Thread | draft | 0.1.0 |
 
 ## Capability Map
 

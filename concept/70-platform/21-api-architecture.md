@@ -335,6 +335,32 @@ Details on the business use of these mechanisms in [§20 (GRC/GDPR/ISMS Integrat
 
 **Changelog**: Every API version has a machine-readable changelog (e.g., OpenAPI diff) that documents breaking changes, deprecations, and additions.
 
+### 21.10 Real-Time Collaboration
+
+Architecture work is team work: several architects shape the same landscape, discuss a diagram in a workshop or review a solution together. OEA therefore lets people work on the same content at the same time and see each other's work as it happens ([UC-24](../../requirements/use-cases/UC-24-collaborate-in-real-time.md), owner decision of 2026-10-28; priority *should*, after the MVP).
+
+**Three capabilities**:
+
+1. **Presence everywhere**: every view – diagram canvas, entity forms, catalogs, documents (arc42), dashboards – shows who else has the same object open. In the canvas and in documents, the mouse pointer and the selection of every other participant are visible with name and colour; in forms and tables, the field or row someone is editing is marked.
+2. **Live changes everywhere**: a change becomes visible to everyone who has the affected object open, without reloading. In diagrams and documents several people edit at the same time; their changes are **merged automatically** (co-editing, no locks, no "someone else changed this" dialog). In forms and catalogs, a saved change of another person updates the open view; a field another person is editing stays marked until they leave it.
+3. **Notes and comments in diagrams**: *sticky notes* are free text elements placed on the canvas – part of the diagram, versioned with it, but not entities of the architecture model. *Comment threads* are anchored to a diagram element or a position, collect replies, mention persons and can be resolved – they are a discussion about the diagram, not part of it.
+
+**Two channels**:
+
+| Channel | Transport | Carries | Scope |
+|---|---|---|---|
+| Collaboration session | WebSocket, bidirectional | presence (pointer, selection, focus), co-editing operations of diagrams and documents | one open diagram or document; joined while it is open |
+| Event stream (§21.5) | Server-Sent Events | committed changes of entities, connections, catalogs, dashboards, notes and comments | everything a principal may read |
+
+The collaboration session holds the **working state** of a diagram or document as a mergeable structure (conflict-free replicated data type, CRDT, or operational transformation – decided in [ADR-047](../../adrs/ADR-047-real-time-collaboration.md)). The server is part of every session: it checks permissions, filters what a participant may not see and turns the working state into regular repository changes – new versions of entities, connections and diagram layout, attributed to their authors and recorded in the audit trail (§21.8). Pointer movements and selections are never persisted.
+
+**Consequences for other concepts**:
+
+- **Versioning** (§11): continuous co-editing produces many small changes; they are grouped into versions per author and time window instead of one version per keystroke.
+- **Property-level authorization** (§21.8): a participant receives only what they may read; a hidden property of a shared diagram element is never sent to their session, which rules out a purely peer-to-peer replication.
+- **Explicit saving** in the canvas (UC-10) gives way to continuous saving; undo applies to one's own changes.
+- **Event transport** (§23, issue #26): WebSocket is needed in v1.x for collaboration, not only from v2.0; SSE stays the integration backbone.
+
 ---
 
 ← [GRC, GDPR, and ISMS Integration](../60-integrations/20-grc-gdpr-isms-integration.md) · [🏠 Overview](../README.md) · [Analyzability & Query Architecture](22-analyzability.md) →

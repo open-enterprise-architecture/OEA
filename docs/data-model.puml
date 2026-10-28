@@ -1600,6 +1600,85 @@ package "Navigation & Presentation" #EDE7F6 {
     without having to hard-code shape knowledge.
   end note
 
+  ' Diagrams, notes and comment threads (BO diagram, diagram-note, comment-thread;
+  ' UC-24, concept §21.10). Planned: storage of the layout and of the co-editing
+  ' state follows ADR-047 and the implementing change.
+  class diagrams <<Table>> #D1C4E9 {
+    + id                : UUID          {PK}
+    --
+    + name              : TEXT          {NN}
+    .. 1–200 characters; UNIQUE INDEX on lower(btrim(name)) ..
+    + description       : TEXT          {NN} DEFAULT ''
+    .. max. 2000 characters ..
+    + viewpoint_id      : TEXT          {NN}
+    .. stable viewpoint ID of the metamodel configuration ..
+    + plateau_id        : UUID          {FK→plateaus.id}
+    .. NULL = current state ..
+    + layout            : JSONB         {NN}
+    .. {shapes:[{shapeId, kind(entity|note|group), entityId?, noteId?, x, y, width, height, zIndex}],
+       edges:[{edgeId, connectionId, points[]}]} ..
+    + version           : INTEGER       {NN} DEFAULT 1
+    + deleted_at        : TIMESTAMPTZ
+    + created_by        : BIGINT        {NN} {FK→persons.id}
+    + created_at        : TIMESTAMPTZ   {NN} DEFAULT NOW()
+    + updated_at        : TIMESTAMPTZ   {NN} DEFAULT NOW()
+  }
+
+  class diagram_notes <<Table>> #D1C4E9 {
+    + id                : UUID          {PK}
+    --
+    + diagram_id        : UUID          {NN} {FK→diagrams.id}
+    + text              : TEXT          {NN}
+    .. 1–4000 characters, Markdown subset ..
+    + color             : TEXT          {NN} DEFAULT 'yellow'
+    .. CHECK IN (yellow, blue, green, pink, grey) ..
+    + linked_shape_ids  : JSONB         {NN} DEFAULT '[]'
+    + hidden_in_export  : BOOLEAN       {NN} DEFAULT false
+    + created_by        : BIGINT        {NN} {FK→persons.id}
+    + created_at        : TIMESTAMPTZ   {NN} DEFAULT NOW()
+    + updated_by        : BIGINT        {NN} {FK→persons.id}
+    + updated_at        : TIMESTAMPTZ   {NN} DEFAULT NOW()
+    + deleted_at        : TIMESTAMPTZ
+  }
+
+  class comment_threads <<Table>> #D1C4E9 {
+    + id                : UUID          {PK}
+    --
+    + diagram_id        : UUID          {NN} {FK→diagrams.id}
+    + anchor_kind       : TEXT          {NN}
+    .. CHECK IN (shape, edge, position) ..
+    + anchor_target_id  : UUID
+    .. shapeId or edgeId; NOT NULL iff anchor_kind IN (shape, edge) ..
+    + anchor_x          : NUMERIC       {NN}
+    + anchor_y          : NUMERIC       {NN}
+    + detached          : BOOLEAN       {NN} DEFAULT false
+    + status            : TEXT          {NN} DEFAULT 'open'
+    .. CHECK IN (open, resolved) ..
+    + resolved_by       : BIGINT        {FK→persons.id}
+    + resolved_at       : TIMESTAMPTZ
+    .. both set iff status = resolved ..
+    + created_at        : TIMESTAMPTZ   {NN} DEFAULT NOW()
+  }
+
+  class comments <<Table>> #D1C4E9 {
+    + id                : UUID          {PK}
+    --
+    + thread_id         : UUID          {NN} {FK→comment_threads.id}
+    + author_id         : BIGINT        {NN} {FK→persons.id}
+    + text              : TEXT          {NN}
+    .. 1–4000 characters, Markdown subset; emptied when deleted ..
+    + mentions          : JSONB         {NN} DEFAULT '[]'
+    .. person IDs; only persons who may read the diagram ..
+    + created_at        : TIMESTAMPTZ   {NN} DEFAULT NOW()
+    + edited_at         : TIMESTAMPTZ
+    + deleted           : BOOLEAN       {NN} DEFAULT false
+  }
+
+  diagrams        "1"    --o{ "0..*" diagram_notes   : contains
+  diagrams        "1"    --o{ "0..*" comment_threads : discussed in
+  comment_threads "1"    --o{ "1..*" comments        : contains
+  plateaus        "0..1" --o{ "0..*" diagrams        : plateau_id
+
   metatypes       "1"    --o{ "0..*" catalogs        : primary_metatype_id
   tree_nodes      "0..1" --o{ "0..*" tree_nodes      : parent_id
   tree_nodes      "1"    --o{ "0..*" tree_node_items : contains
@@ -1621,6 +1700,9 @@ persons "1" --o{ "0..*" plateaus                          : created_by
 persons "1" --o{ "0..*" metamodel_configurations          : last_modified_by
 persons "1" --o{ "0..*" catalogs                          : created_by / last_modified_by
 persons "1" --o{ "0..*" tree_nodes                        : created_by
+persons "1" --o{ "0..*" diagrams                          : created_by
+persons "1" --o{ "0..*" diagram_notes                     : created_by / updated_by
+persons "1" --o{ "0..*" comments                          : author_id
 persons "1" --o{ "0..*" entity_version_headers              : changed_by
 persons "1" --o{ "0..*" entity_system_field_history         : changed_by
 persons "0..1" --o| "0..1" entities                         : entity_id (account link, DM-7)
@@ -1691,6 +1773,10 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   scope and default_join_mode, config default with the four empty lists;
 '   catalogs are referenced by id, the name is a mutable label.
 '   Reason: US-046, REQ-043, ADR-032.
+' 2026-10-28 (real-time collaboration, owner request):
+'   new diagrams (layout as JSONB), diagram_notes, comment_threads and
+'   comments; planned, not migrated. Reason: UC-24, REQ-200, REQ-201,
+'   BO diagram, diagram-note, comment-thread.
 ' ─────────────────────────────────────────────────────
 
 @enduml

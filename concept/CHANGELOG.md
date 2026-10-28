@@ -2,6 +2,16 @@
 
 This document records how the concept paper itself has evolved. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows Semantic Versioning (at concept level: major = fundamentally new concepts, minor = new chapters/sections, patch = corrections).
 
+## [v0.20.0] – Real-time collaboration
+
+### Added
+
+- §21.10 Real-time collaboration: presence and live changes in every view, automatic merge of concurrent edits in diagrams and documents, sticky notes and comment threads in diagrams; collaboration session (WebSocket) next to the event stream (SSE); working state turned into regular versioned and audited repository changes (owner request of 2026-10-28, UC-24, ADR-047 proposed)
+
+### Changed
+
+- §23 issue #26: WebSocket is needed in v1.x for the collaboration session, not only from v2.0; SSE stays the integration backbone
+
 ## [v0.19.3] – Nuxt UI instead of PrimeVue
 
 ### Fixed
