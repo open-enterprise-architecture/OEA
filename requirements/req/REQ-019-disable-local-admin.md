@@ -4,9 +4,9 @@ title: Ability to deactivate the local system admin account when a remote mappin
 type: business-rule
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-24
-last_updated: 2026-06-24
+last_updated: 2026-10-28
 author: requirements-engineer
 references:
   use_cases:
@@ -94,13 +94,14 @@ if SystemAdminAccount.mode == "remote" and mapping.isFunctional:
 
 ## Implementation Notes
 
+- Realigned by OpenSpec change `us-019-admin-safeguards` (owner decision 2026-10-28): without another usable path to `system-admin` the deactivation is rejected with `409` (`last-admin-path`, ADR-032 SoD-7) instead of only warning. A mapping to `system-admin` counts as a usable path only after it has granted the role in at least one login. A deactivated account is reactivated only by the break-glass command `admin recover`.
 - "Functional" for the remote mapping should rely on REQ-018 (warning on empty claim) where possible, but cannot ultimately be verified 100% at runtime
 
 ## Implementation
 
 - ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
-- Implemented by: –
-- Tests: –
+- Implemented by: OpenSpec change `us-019-admin-safeguards`
+- Tests: `LocalAdminAccountTests`, Cucumber `identity/access-administration.feature`, `identity/local-admin-deactivation.feature` (US-019)
 - Verification status: not-verified
 
 ## Notes
@@ -112,3 +113,4 @@ Derived from UC-02, open question on BR-02 implementation, and ADR-006, Follow-u
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-02 |
+| 0.2.0 | 2026-10-28 | requirements-engineer | Realigned: 409 instead of a warning for the last path to `system-admin` (SoD-7, change `us-019-admin-safeguards`) |

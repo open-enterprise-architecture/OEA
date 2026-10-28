@@ -2,7 +2,7 @@
 identifier: idp-group-mapping
 name_de: IdP-Gruppen-Zuordnung
 name_en: IdP Group Mapping
-version: 0.2.0
+version: 0.3.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -42,6 +42,7 @@ The remote system admin mapping of UC-02/REQ-014 is an IdP group mapping with ro
 | displayLabel | string | optional | | max. 200 characters | Human-readable label; informational only, never evaluated |
 | role | reference | required | | target: authorization-role (not deleted) | Role derived from group membership |
 | active | boolean | required | true | | Inactive mappings derive nothing |
+| lastMatchedAt | datetime | optional | | set at most hourly; reset when group, issuer or role change | Last login or re-evaluation in which the mapping derived its role effectively (a privileged role only with a second factor); empty if never (US-018, SoD-7) |
 | createdAt / createdBy | datetime / principal | required | | | Creation |
 | updatedAt / updatedBy | datetime / principal | optional | | | Last change |
 | deletedAt / deletedBy | datetime / principal | optional | | | Soft delete (session records keep referencing the mapping) |
@@ -76,8 +77,9 @@ active ⇄ inactive → deleted (soft)
 | BR-03 | A principal MUST NOT create or change a mapping for a group contained in its own current token (SoD-1) | onCreate, onUpdate | ADR-032 SoD-1 |
 | BR-04 | Service accounts are never targets of IdP group mappings (they have no IdP sessions) | onLogin | ADR-032 SoD-4 |
 | BR-05 | Group claims are re-evaluated at every token refresh, at the latest every 15 minutes | onRefresh | Q16 |
-| BR-06 | Deleting or deactivating the last path to `system-admin` is rejected (409) | onUpdate, onDelete | ADR-032 SoD-7 |
+| BR-06 | Deleting or deactivating the last path to `system-admin` is rejected (409); a mapping counts as a path only once `lastMatchedAt` is set | onUpdate, onDelete | ADR-032 SoD-7 |
 | BR-07 | While `privilegedAssignmentApproval` is enabled, creating a mapping to a privileged role or changing a mapping's target to a privileged role stays `pending` until a second administrator (not the requester) approves; only approved, active mappings are evaluated | onCreate, onUpdate | owner decision Q18, REQ-194 |
+| BR-08 | Creating or changing a mapping to `system-admin` that has never matched, while no current session of its provider carries the group, returns the warning `group-not-seen`; it never blocks | onCreate, onUpdate | US-018, REQ-018 |
 
 ## Examples
 
@@ -126,3 +128,4 @@ Created for ADR-032 DM-5 and DM-6, REQ-167 and owner decision Q16. References an
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | Business Engineer | Initial draft from ADR-032 DM-5/DM-6, REQ-167, Q16 |
 | 0.2.0 | 2026-10-13 | Lukas Mathis | BR-07: four-eyes approval for mappings to privileged roles (owner decision Q18) |
+| 0.3.0 | 2026-10-28 | Business Engineer | `lastMatchedAt`; BR-06 counts only matched mappings; BR-08 warning for an unseen admin group (change `us-019-admin-safeguards`) |

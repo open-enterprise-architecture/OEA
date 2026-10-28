@@ -5,9 +5,9 @@ status: draft
 priority: must
 target_release: walking-skeleton
 complexity: small
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-24
-last_updated: 2026-06-24
+last_updated: 2026-10-28
 primary_actor: SH-06
 secondary_actors:
   - SH-03
@@ -172,7 +172,7 @@ An instance-wide enforcement of a second factor for regular persons (see [REQ-02
 
 - Regular login of existing persons with a role (see UC-01)
 - Creating the first business Person/Role records in the repository (separate, subsequent use case)
-- Complete recovery/break-glass procedure for complete lockout (E4) – only noted as an open question
+- Complete recovery/break-glass procedure for complete lockout (E4) – a separate procedure, the command `admin recover` (see Open Questions)
 - Management of multiple simultaneous system admin accounts beyond the minimum (A2 covers the simple case, no full admin management)
 
 ## Concept References
@@ -197,7 +197,7 @@ An instance-wide enforcement of a second factor for regular persons (see [REQ-02
 ## Open Questions
 
 - [ ] How is the initial setup token handed over securely (CLI stdout, temporary file, one-time setup URL)?
-- [ ] What does the recovery/break-glass procedure for complete lockout (E4) look like concretely – e.g., a CLI command with direct database access?
+- [x] What does the recovery/break-glass procedure for complete lockout (E4) look like concretely – e.g., a CLI command with direct database access? → the command `admin recover` inside the backend container restores the local system admin account (new password, after the setup phase a new TOTP factor), audited as `system.admin-recovered` (owner decision 2026-10-28, OpenSpec change `us-019-admin-safeguards`, [REQ-173](../req/REQ-173-account-recovery-temporary-passwords.md) AC4)
 - [x] Should the instance actively warn/block at startup if the local system admin account was not deactivated despite active remote mapping? → [REQ-019](../req/REQ-019-disable-local-admin.md): deactivatable, but not mandatory (operator decision)
 - [x] How is it verified whether a configured IdP group (A1) is actually populated at configuration time? → [REQ-018](../req/REQ-018-warning-empty-admin-claim.md): best-effort warning, no hard block
 
@@ -210,3 +210,4 @@ UC-02 closes the gap named as a follow-up decision in [ADR-006](../../adrs/ADR-0
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | Requirements Engineer | Initial draft, resolves follow-up decision from ADR-006 |
+| 0.2.0 | 2026-10-28 | Requirements Engineer | E4 break-glass procedure decided: command `admin recover` (change `us-019-admin-safeguards`) |

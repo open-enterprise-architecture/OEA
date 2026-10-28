@@ -86,7 +86,7 @@ The check and the status change run in one transaction that locks the account ro
 
 ### D4: Warning in the write response
 
-`createIdpGroupMapping` and `updateIdpGroupMapping` return the stored mapping with an optional `warnings` array of `{code, message}`. Code `group-not-seen` is set when all of these hold:
+`createIdpGroupMapping` and `updateIdpGroupMapping` return the stored mapping with a `warnings` array of `{code, message}`; it is empty in every other response, because the generated model always serializes the array. Code `group-not-seen` is set when all of these hold:
 
 - the target role is `system-admin`;
 - the mapping has no `last_matched_at`;
@@ -155,7 +155,7 @@ A new source value `CLI` (`AuditEvent.Source.CLI`) is added to the audit schema 
 - `business-objects/idp-group-mapping.md`:
   - attribute `lastMatchedAt`;
   - BR-06 note that a path counts only after a match;
-  - BR-11 for the warning.
+  - BR-08 for the warning.
 - `business-objects/system-admin-account.md`: `deactivatedBy` may be a person; the lifecycle transition `deactivated → active` happens only through the break-glass command.
 
 ## API
@@ -174,7 +174,7 @@ Delta to `api/openapi.yaml`:
 - **New schema `SystemAdminAccountState`.**
 - **`IdpGroupMapping`:**
   - `lastMatchedAt` (date-time, nullable, read-only);
-  - `warnings` (array of `{code: enum [group-not-seen], message}`), only in the responses of create and update.
+  - `warnings` (array of `{code: enum [group-not-seen], message}`), empty except in the responses of create and update.
 - **Audit source enums** (`AuditEvent.source`, query parameter `source`): `CLI`.
 
 ## Risks / Trade-offs

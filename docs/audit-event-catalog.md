@@ -14,8 +14,8 @@ All audit records are rows of `audit.events` (with optional details in `audit.ev
 | `severity` | `info`, `warning`, `high` or `critical` |
 | `outcome` | `success`, `failure` or `denied` |
 | `occurred_at` | Time of the event (database time, UTC) |
-| `source` | `UI`, `API`, `Job` or `Import`; HTTP requests are recorded as `API` until clients are distinguished |
-| `source_ip` | Remote address of the HTTP request; empty for jobs |
+| `source` | `UI`, `API`, `Job`, `Import` or `CLI`; HTTP requests are recorded as `API` until clients are distinguished; `CLI` is a host-side command such as `admin recover` |
+| `source_ip` | Remote address of the HTTP request; empty for jobs and commands |
 | `request_id` | Correlation ID (`X-Request-Id`), also present in the application log |
 | `actor_type` | `person`, `service-account`, `system-admin-account`, `system` or `unauthenticated` |
 | `actor_person_id` / `actor_admin_id` | Pseudonymous key of the actor; never names or e-mail addresses |
@@ -172,6 +172,29 @@ The first action that gives another identity access ended the setup phase ([ADR-
 | Actor | `system-admin-account` |
 | Target | `system-settings`, `1` |
 | Details | `triggeringAction` (`identity-binding` or `idp-group-mapping`) |
+
+### `system-admin-account.deactivated`
+
+The local system admin account was deactivated, or the deactivation was refused because it is the last usable path to `system-admin` ([US-019](../requirements/user-stories/US-019-disable-local-admin.md), ADR-032 SoD-7).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` / `success`, or `security` / `warning` / `denied` |
+| Actor | the administrator |
+| Target | `system-admin-account`, ID of the account |
+| Details | `sessionsRevoked` (count) on success; `reason` (`last-admin-path`) on denial |
+
+### `system.admin-recovered`
+
+The break-glass command `admin recover` restored the local system admin account after a complete lockout ([REQ-173](../requirements/req/REQ-173-account-recovery-temporary-passwords.md) AC4, UC-02 E4).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` / `success` |
+| Source | `CLI`, without source address and request ID |
+| Actor | `system` (the operator is not an OEA principal) |
+| Target | `system-admin-account`, ID of the account |
+| Details | `reactivated`, `secondFactorReplaced`, `sessionsRevoked` (count); never the password or the TOTP secret |
 
 ### `auth-provider.changed`
 

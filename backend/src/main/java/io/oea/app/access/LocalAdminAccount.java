@@ -9,6 +9,7 @@ import io.oea.core.repository.SystemAdminAccountRepository;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -34,8 +35,8 @@ public class LocalAdminAccount {
 
 	private final Clock clock;
 
-	/** State as shown to administrators. */
-	public record State(String loginName, SystemAdminAccount.Status status, Instant createdAt, Instant firstLoginAt,
+	/** State as shown to administrators; {@code status} in its lower-case API form. */
+	public record State(String loginName, String status, Instant createdAt, Instant firstLoginAt,
 			Instant lastUsedAt, Instant deactivatedAt) {
 	}
 
@@ -102,7 +103,8 @@ public class LocalAdminAccount {
 	}
 
 	private static State view(SystemAdminAccount account) {
-		return new State(account.getLoginName(), account.getStatus(), account.getCreatedAt(), account.getFirstLoginAt(),
+		return new State(account.getLoginName(), account.getStatus().name().toLowerCase(Locale.ROOT),
+				account.getCreatedAt(), account.getFirstLoginAt(),
 				account.getLastUsedAt(), account.getDeactivatedAt());
 	}
 

@@ -2,8 +2,9 @@
 
 **ID**: US-018
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S3
+**Implementation**: OpenSpec change `us-019-admin-safeguards` – warning `group-not-seen` and `lastMatchedAt` on IdP group mappings
 
 ## Story
 
@@ -52,5 +53,7 @@ As an operator, I want to be warned when configuring a remote bootstrapping mapp
 - Blocks: none
 
 ## Notes
+
+AC1 realigned by OpenSpec change `us-019-admin-safeguards` (owner decision 2026-10-28): "empty or non-existent" means "no login at this instance has presented the group yet" – OEA uses no provider API. AC2 holds: the mapping is saved and the response carries the warning.
 
 The check is best-effort (dependent on provider API access, e.g. Microsoft Graph), not a mandatory hard block.

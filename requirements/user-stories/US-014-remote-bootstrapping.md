@@ -2,8 +2,9 @@
 
 **ID**: US-014
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S3
+**Implementation**: OpenSpec change `us-019-admin-safeguards` – realized through the IdP group mappings of US-147 with role `system-admin`; AC1 and AC2 verified by Cucumber scenarios in `identity/idp-roles.feature`
 
 ## Story
 

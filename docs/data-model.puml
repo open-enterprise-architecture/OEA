@@ -179,7 +179,9 @@ package "Auth" #FFF8E1 {
     + deactivated_at     : TIMESTAMPTZ
     + deactivated_by_person_id : BIGINT   {FK→persons.id}
     + deactivated_by_admin_id  : UUID     {FK→system_admin_accounts.id}
+    .. CHECK: at most one deactivated_by_* set ..
     .. deactivation rejected if it removes the last path to system-admin (SoD-7) ..
+    .. deactivated → active only through the break-glass command admin recover (UC-02 E4) ..
   }
 
   class bootstrap_setup_tokens <<Table>> #FFECB3 {
@@ -479,6 +481,10 @@ package "Authorization" #FFFDE7 {
     + role_id           : TEXT            {NN} {FK→authorization_roles.id}
     .. role_id = 'system-admin' = remote system admin (DM-6, REQ-014) ..
     + active            : BOOLEAN         {NN} DEFAULT true
+    + last_matched_at   : TIMESTAMPTZ
+    .. last login or re-evaluation that derived the role effectively; at most hourly; ..
+    .. reset when group, issuer or role change; NULL = never matched (US-018) ..
+    .. SoD-7 counts a mapping to system-admin only with last_matched_at set ..
     == Four-eyes approval (Q18, setting privilegedAssignmentApproval) ==
     + approval_status   : TEXT            {NN} DEFAULT 'approved'
     .. enum: pending | approved | rejected | expired ..
@@ -1162,7 +1168,7 @@ package "Audit  [Schema: audit]" #EFEBE9 {
     .. enum: success | failure | denied ..
     + occurred_at    : TIMESTAMPTZ        {NN} DEFAULT NOW()
     + source         : TEXT               {NN}
-    .. enum: UI | API | Job | Import ..
+    .. enum: UI | API | Job | Import | CLI (host-side command, e.g. admin recover) ..
     + source_ip      : INET
     + request_id     : TEXT
     .. HTTP correlation ID or job run ID ..

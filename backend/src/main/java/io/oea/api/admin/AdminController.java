@@ -19,7 +19,6 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -62,7 +61,7 @@ public class AdminController implements AdminApi {
 
 	private static SystemAdminAccountState account(LocalAdminAccount.State state) {
 		return new SystemAdminAccountState(state.loginName(),
-				SystemAdminAccountState.StatusEnum.fromValue(state.status().name().toLowerCase(Locale.ROOT)),
+				SystemAdminAccountState.StatusEnum.fromValue(state.status()),
 				time(state.createdAt()))
 			.firstLoginAt(time(state.firstLoginAt()))
 			.lastUsedAt(time(state.lastUsedAt()))
