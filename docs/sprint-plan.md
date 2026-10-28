@@ -1,6 +1,6 @@
 # Sprint Plan: OEA Implementation Order
 
-**As of:** 2026-10-22 (re-baselined after the walking-skeleton retrospective, action A6 of [retrospectives/2026-10-walking-skeleton.md](retrospectives/2026-10-walking-skeleton.md); before: 2026-10-13, walking skeleton moved to the beginning)  
+**As of:** 2026-10-28 (S3 sliced into changes, UC-24 added as S22; re-baselined on 2026-10-22 after the walking-skeleton retrospective, action A6 of [retrospectives/2026-10-walking-skeleton.md](retrospectives/2026-10-walking-skeleton.md); before: 2026-10-13, walking skeleton moved to the beginning)  
 **Basic assumptions:**
 
 - Sprints are **content packages** of ~30 SP in a fixed order, not time boxes; the plan carries no calendar dates (owner decision 2026-10-22)
@@ -22,8 +22,8 @@
 | **S1** ✓ | Setup + UC-02 + UC-01 | **⭐ Walking Skeleton (1/2), done 2026-10-15:** project setup (Maven `backend/`, Vue `frontend/`, `api/openapi.yaml`, operator `compose.yaml` and development `compose.dev.yaml` with Keycloak dev realm (ADR-036), migration step with owner/runtime role separation (ADR-033), CI), US-013 local bootstrapping, US-001 OIDC login | 13 + setup |
 | **S2** ✓ | UC-04 + UC-06 + UC-19 | **⭐ Walking Skeleton (2/2), done 2026-10-22:** US-033 import starter package, US-141 batch creation (AC1), US-046 create catalog, US-049 display catalog data (basis, incl. pagination) | 18 + E2E hardening |
 | **S2b** ✓ | – | **Retrospective actions, done 2026-10-23** (A1–A5, A8, A9 of the retrospective; changes `s2b-backend-hardening` and `s2b-ci-and-contract`): planned contract operations marked, `ApiExceptionHandler` without path branches, faster backend tests, Storybook a11y and `openspec validate` in CI, license regeneration on Dependabot PRs, security re-review of the skeleton, local development guide; request-size limit [#73](https://github.com/open-enterprise-architecture/OEA/issues/73) | – |
-| **S2c** | – | **User manual foundation, done 2026-10-27** ([ADR-045](../adrs/ADR-045-user-manual.md), [REQ-196](../requirements/req/REQ-196-user-manual.md)); two changes: `s2c-manual-site` done 2026-10-25 (VitePress project, content, coverage check, API reference, Pages with Storybook under `/storybook/`), `s2c-manual-release` done 2026-10-27 (walkthrough tests with screenshots, versions per release under `/vX.Y/`, `main` under `/next/`, publication through `gh-pages`; first release manual `v0.1.0`). Scope: VitePress project `manual/` in English and German, GitHub Pages with Storybook under `/storybook/`, API reference generated from the contract, coverage check in CI, Playwright walkthrough tests with screenshots against the Compose stack, manual content for the walking-skeleton functions, release workflow with versions per release | – |
-| **S3** | UC-02 (remainder) | System admin bootstrapping: setup token, remote bootstrapping, break-glass, audit log; deferred [#61](https://github.com/open-enterprise-architecture/OEA/issues/61), [#62](https://github.com/open-enterprise-architecture/OEA/issues/62), [#63](https://github.com/open-enterprise-architecture/OEA/issues/63), [#74](https://github.com/open-enterprise-architecture/OEA/issues/74), [#75](https://github.com/open-enterprise-architecture/OEA/issues/75) | ~30 |
+| **S2c** ✓ | – | **User manual foundation, done 2026-10-27** ([ADR-045](../adrs/ADR-045-user-manual.md), [REQ-196](../requirements/req/REQ-196-user-manual.md)); two changes: `s2c-manual-site` done 2026-10-25 (VitePress project, content, coverage check, API reference, Pages with Storybook under `/storybook/`), `s2c-manual-release` done 2026-10-27 (walkthrough tests with screenshots, versions per release under `/vX.Y/`, `main` under `/next/`, publication through `gh-pages`; first release manual `v0.1.0`). Scope: VitePress project `manual/` in English and German, GitHub Pages with Storybook under `/storybook/`, API reference generated from the contract, coverage check in CI, Playwright walkthrough tests with screenshots against the Compose stack, manual content for the walking-skeleton functions, release workflow with versions per release | – |
+| **S3** | UC-02 (remainder) | System admin bootstrapping and the release conditions of the security re-review, in three changes: (1) `s3-throttling-and-denials` – per-principal rate limits [#74](https://github.com/open-enterprise-architecture/OEA/issues/74), setup-token throttling [#61](https://github.com/open-enterprise-architecture/OEA/issues/61), audit of permission denials [#75](https://github.com/open-enterprise-architecture/OEA/issues/75) (WS-01, WS-02, WS-04); (2) remote bootstrapping and admin safeguards – US-014, US-018, US-019, break-glass (UC-02 E4, owner decision needed); (3) operations – structured JSON logging [#63](https://github.com/open-enterprise-architecture/OEA/issues/63), build-time icon check [#62](https://github.com/open-enterprise-architecture/OEA/issues/62). Already done: US-015, US-016, US-017 (setup token, no parallel bootstrapping, audit) | ~30 |
 | **S4** | UC-01 (1/2) | Login: session hardening, minimal password, generic error messages | ~25 |
 | **S5** | UC-01 (2/2) | Login: passkey, TOTP, configurable token lifetime, lifecycle invited→active, audit log | ~33 |
 | **S6** | UC-03 | Set up authentication method: 2FA enrollment (TOTP + passkey), password policies, password reset | 39 |
@@ -90,6 +90,18 @@ create → capture delta → detect conflict → plateau → history → restore
 
 ---
 
+## Milestone 5 — v1.x (after v1.0)
+
+**Goal:** Real-time collaboration on the diagrams of milestone 3 ([UC-24](../requirements/use-cases/UC-24-collaborate-in-real-time.md), priority *should*, owner request of 2026-10-28)
+
+| Sprint | UC | Content | SP |
+|--------|----|--------|----|
+| **S22** | UC-24 | Spike for client rebase and latency (ADR-047), collaboration session (WebSocket), presence and pointers, live changes, co-editing with operation log and versions per author, sticky notes, comment threads, checkpoints (REQ-197 to REQ-204); stories are cut when the package is planned | ~40 (estimate, complexity xl) |
+
+UC-24 needs diagrams (UC-10, UC-12, S15–S17) and the version history (UC-14, S12); it can start after milestone 3 if the owner wants it before the SHOULD features of milestone 4.
+
+---
+
 ## Overall Overview
 
 | Milestone | Sprints | Topic | MUST UCs | SHOULD UCs |
@@ -98,6 +110,7 @@ create → capture delta → detect conflict → plateau → history → restore
 | Core platform | S9–S14 | Catalog complete + solution lifecycle | UC-06, UC-11, UC-14, UC-21 | — |
 | EA views | S15–S18 | Navigation + dashboard + processes | UC-10, UC-12, UC-13 | UC-07, UC-08 |
 | SHOULD features | S19–S21 | Arc42 + continuum + TRM | — | UC-09, UC-17, UC-18, UC-19, UC-20 |
+| v1.x | S22 | Real-time collaboration | — | UC-24 |
 
 ---
 
