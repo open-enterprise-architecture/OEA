@@ -2,7 +2,7 @@
 
 **ID**: US-013
 **Story Points**: 5
-**Status**: review
+**Status**: done
 **Sprint**: S1
 **Implementation**: OpenSpec change `us-013-local-bootstrapping`, commit c962535 (#24) – AC1 implemented; OpenSpec change `us-013-system-admin-login`, commit 1fafd95 (#31) – AC2 implemented (login during the setup phase of ADR-042, TOTP enrollment, session)
 
