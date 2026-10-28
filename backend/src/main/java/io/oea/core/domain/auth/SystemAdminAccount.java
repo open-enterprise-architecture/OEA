@@ -43,6 +43,15 @@ public class SystemAdminAccount extends NewAwareEntity<UUID> {
 	@Column(name = "last_used_at")
 	private Instant lastUsedAt;
 
+	@Column(name = "deactivated_at")
+	private Instant deactivatedAt;
+
+	@Column(name = "deactivated_by_admin_id")
+	private UUID deactivatedByAdminId;
+
+	@Column(name = "deactivated_by_person_id")
+	private Long deactivatedByPersonId;
+
 	protected SystemAdminAccount() {
 	}
 
@@ -71,6 +80,14 @@ public class SystemAdminAccount extends NewAwareEntity<UUID> {
 		this.lastUsedAt = now;
 	}
 
+	/** {@code → deactivated} (US-019); reactivated only by the break-glass command. */
+	public void deactivate(UUID byAdminId, Long byPersonId, Instant now) {
+		this.status = Status.DEACTIVATED.name().toLowerCase(Locale.ROOT);
+		this.deactivatedAt = now;
+		this.deactivatedByAdminId = byAdminId;
+		this.deactivatedByPersonId = byPersonId;
+	}
+
 	public boolean canLogIn() {
 		return getStatus() != Status.DEACTIVATED;
 	}
@@ -90,6 +107,18 @@ public class SystemAdminAccount extends NewAwareEntity<UUID> {
 
 	public Instant getCreatedAt() {
 		return this.createdAt;
+	}
+
+	public Instant getFirstLoginAt() {
+		return this.firstLoginAt;
+	}
+
+	public Instant getLastUsedAt() {
+		return this.lastUsedAt;
+	}
+
+	public Instant getDeactivatedAt() {
+		return this.deactivatedAt;
 	}
 
 }

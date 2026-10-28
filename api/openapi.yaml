@@ -1941,7 +1941,7 @@ components:
           type: array
           readOnly: true
           description: |
-            Only in the responses of create and update; never blocks the change (US-018).
+            Empty except in the responses of create and update; never blocks the change (US-018).
             `group-not-seen`: the mapping targets `system-admin`, has never matched, and no
             current session of its provider carries the group – it grants access to nobody known.
           items: { $ref: '#/components/schemas/MappingWarning' }

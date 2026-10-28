@@ -126,7 +126,10 @@ public class Sessions {
 				.map((person) -> new OeaPrincipal(OeaPrincipal.Type.PERSON, null, person.getId(), person.getName(),
 						session.getId(), session.isSecondFactorVerified(), session.getAuthenticatedAt()));
 		}
-		return this.accounts.findById(session.getSystemAdminAccountId()).map((account) -> principal(session, account));
+		// a deactivated account has no valid session (US-019), even if a revocation was missed
+		return this.accounts.findById(session.getSystemAdminAccountId())
+			.filter(SystemAdminAccount::canLogIn)
+			.map((account) -> principal(session, account));
 	}
 
 	private void end(LoginSession session, String reason, Instant now) {

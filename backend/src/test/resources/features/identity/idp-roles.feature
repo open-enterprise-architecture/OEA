@@ -1,5 +1,6 @@
 # Spec: openspec identity/idp-roles; identity/sessions and identity/access-administration (changed scenarios)
-# Source material: requirements/user-stories/US-147-map-idp-group-to-role.md (AC2, AC3, AC5, AC6, AC7), REQ-165 AC5
+# Source material: requirements/user-stories/US-147-map-idp-group-to-role.md (AC2, AC3, AC5, AC6, AC7), REQ-165 AC5;
+# US-014 (AC1, AC2)
 
 @US-147 @UC-23 @oidc
 Feature: Roles derived from IdP group mappings
@@ -84,6 +85,21 @@ Feature: Roles derived from IdP group mappings
     And the person bound to "dev-system-admin" has the status "active"
     When "dev-system-admin" logs in through the provider
     Then the role "system-admin" is effective and the session is second-factor-verified
+
+  @US-014 @AC1 @REQ-014
+  Scenario: Member of the admin group
+    Given the realm group "oea-system-admins" is mapped to the role "system-admin"
+    And the person bound to "dev-system-admin" has the status "active"
+    When "dev-system-admin" logs in through the provider
+    Then listing the IdP group mappings is answered with 200
+
+  @US-014 @AC2 @REQ-014
+  Scenario: Person outside the admin group
+    Given the realm group "oea-system-admins" is mapped to the role "system-admin"
+    And the realm group "oea-viewers" is mapped to the role "viewer"
+    And the person bound to "dev-viewer" has the status "active"
+    When "dev-viewer" logs in through the provider
+    Then listing the IdP group mappings is answered with 403
 
   @REQ-165 @REQ-001
   Scenario: IdP refresh token rejected

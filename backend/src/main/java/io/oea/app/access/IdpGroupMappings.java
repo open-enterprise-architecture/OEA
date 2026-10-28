@@ -10,8 +10,10 @@ import io.oea.core.domain.auth.AuthProvider;
 import io.oea.core.domain.auth.IdpGroupMapping;
 import io.oea.core.repository.AuthProviderRepository;
 import io.oea.core.repository.IdpGroupMappingRepository;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -33,6 +35,8 @@ public class IdpGroupMappings {
 	private static final Pattern UUID_FORMAT = Pattern
 		.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
+	private static final String SYSTEM_ADMIN = "system-admin";
+
 	private final IdpGroupMappingRepository mappings;
 
 	private final AuthProviderRepository providers;
@@ -51,10 +55,14 @@ public class IdpGroupMappings {
 	public record Creator(boolean systemAdminAccount, Long personId, String displayName) {
 	}
 
-	/** A mapping as shown to administrators. */
+	/** A mapping as shown to administrators; {@code warnings} only after create and update (US-018). */
 	public record Mapping(UUID id, UUID authProviderId, String issuer, String groupIdentifier, String roleId,
-			boolean active, Creator createdBy, Instant createdAt, Instant updatedAt) {
+			boolean active, Creator createdBy, Instant createdAt, Instant updatedAt, Instant lastMatchedAt,
+			List<String> warnings) {
 	}
+
+	/** Warning code of a mapping to {@code system-admin} without evidence of members (design D4). */
+	public static final String GROUP_NOT_SEEN = "group-not-seen";
 
 	public IdpGroupMappings(IdpGroupMappingRepository mappings, AuthProviderRepository providers,
 			SetupPhase setupPhase, AuditWriter audit, JdbcTemplate jdbc, Clock clock, PermissionDenials denials) {
@@ -73,9 +81,32 @@ public class IdpGroupMappings {
 	}
 
 	private Mapping view(IdpGroupMapping mapping) {
+		return view(mapping, mapping.getLastMatchedAt(), List.of());
+	}
+
+	private Mapping view(IdpGroupMapping mapping, Instant lastMatchedAt, List<String> warnings) {
 		return new Mapping(mapping.getId(), mapping.getAuthProviderId(), mapping.getIssuer(),
 				mapping.getGroupIdentifier(), mapping.getRoleId(), mapping.isActive(), creator(mapping),
-				mapping.getCreatedAt(), mapping.getUpdatedAt());
+				mapping.getCreatedAt(), mapping.getUpdatedAt(), lastMatchedAt, warnings);
+	}
+
+	/**
+	 * US-018, design D4: a mapping to {@code system-admin} that has never matched and whose group
+	 * is in no current session of its provider grants access to nobody known. Never blocks.
+	 */
+	private Mapping viewWithWarnings(IdpGroupMapping mapping, Instant lastMatchedAt) {
+		List<String> warnings = new ArrayList<>();
+		if (SYSTEM_ADMIN.equals(mapping.getRoleId()) && lastMatchedAt == null) {
+			Boolean seen = this.jdbc.queryForObject("""
+					SELECT EXISTS (SELECT 1 FROM sessions
+					               WHERE auth_provider_id = ? AND revoked_at IS NULL AND absolute_expires_at > ?
+					                 AND ? = ANY (idp_group_identifiers))""", Boolean.class,
+					mapping.getAuthProviderId(), Timestamp.from(this.clock.instant()), mapping.getGroupIdentifier());
+			if (!Boolean.TRUE.equals(seen)) {
+				warnings.add(GROUP_NOT_SEEN);
+			}
+		}
+		return view(mapping, lastMatchedAt, List.copyOf(warnings));
 	}
 
 	private Creator creator(IdpGroupMapping mapping) {
@@ -101,7 +132,7 @@ public class IdpGroupMappings {
 		IdpGroupMapping mapping = this.mappings.save(IdpGroupMapping.create(provider, identifier, roleId, active,
 				principal.systemAdminAccountId(), principal.personId(), this.clock.instant()));
 		append(principal, "idp-mapping.created", mapping);
-		return view(mapping);
+		return viewWithWarnings(mapping, null);
 	}
 
 	@Transactional
@@ -115,10 +146,17 @@ public class IdpGroupMappings {
 		if (this.mappings.existsLive(provider.getIssuer(), identifier, roleId, mappingId)) {
 			throw new AccessConflictException("This group is already mapped to the role.");
 		}
+		boolean sameGroup = provider.getIssuer().equals(mapping.getIssuer())
+				&& identifier.equals(mapping.getGroupIdentifier()) && roleId.equals(mapping.getRoleId());
+		Instant lastMatchedAt = sameGroup ? mapping.getLastMatchedAt() : null;
+		if (!sameGroup) {
+			// a match of another group or role is no evidence for the changed mapping (SoD-7 path)
+			this.jdbc.update("UPDATE idp_group_mappings SET last_matched_at = NULL WHERE id = ?", mappingId);
+		}
 		mapping.change(provider, identifier, roleId, active, principal.systemAdminAccountId(), principal.personId(),
 				this.clock.instant());
 		append(principal, "idp-mapping.changed", mapping);
-		return view(mapping);
+		return viewWithWarnings(mapping, lastMatchedAt);
 	}
 
 	@Transactional

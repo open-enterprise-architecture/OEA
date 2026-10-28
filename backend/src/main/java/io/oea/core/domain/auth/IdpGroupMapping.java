@@ -61,6 +61,10 @@ public class IdpGroupMapping extends NewAwareEntity<UUID> {
 	@Column(name = "deleted_by_person_id")
 	private Long deletedByPersonId;
 
+	/** Written only by IdpRoles (design D2 of us-019-admin-safeguards). */
+	@Column(name = "last_matched_at", insertable = false, updatable = false)
+	private Instant lastMatchedAt;
+
 	protected IdpGroupMapping() {
 	}
 
@@ -140,6 +144,10 @@ public class IdpGroupMapping extends NewAwareEntity<UUID> {
 
 	public Instant getUpdatedAt() {
 		return this.updatedAt;
+	}
+
+	public Instant getLastMatchedAt() {
+		return this.lastMatchedAt;
 	}
 
 }

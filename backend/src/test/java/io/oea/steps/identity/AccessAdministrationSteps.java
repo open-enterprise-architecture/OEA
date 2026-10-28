@@ -137,6 +137,25 @@ public class AccessAdministrationSteps {
 			.isEqualTo("true");
 	}
 
+	@Then("the response carries the warning {string}")
+	public void warning(String code) {
+		JsonNode warnings = LocalLoginSteps.json(this.instance.response).path("warnings");
+		assertThat(warnings).hasSize(1);
+		assertThat(warnings.get(0).path("code").asString()).isEqualTo(code);
+	}
+
+	@When("the system admin deactivates the local system admin account")
+	public void deactivateLocalAccount() throws Exception {
+		this.instance.response = this.instance.post("/api/v1/admin/system-admin-account/deactivate", "", true);
+	}
+
+	@Then("the local system admin account is still usable")
+	public void localAccountUsable() throws Exception {
+		assertThat(this.instance.single("SELECT status FROM system_admin_accounts")).isNotEqualTo("deactivated");
+		assertThat(this.instance.send(HttpRequest.newBuilder(this.instance.uri("/api/v1/me")).header("Cookie", cookie()))
+			.statusCode()).isEqualTo(200);
+	}
+
 	@Then("the mapping is stored")
 	public void mappingStored() throws SQLException {
 		assertThat(this.instance.response.statusCode()).isEqualTo(201);

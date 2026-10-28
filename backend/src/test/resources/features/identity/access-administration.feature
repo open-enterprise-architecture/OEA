@@ -1,5 +1,6 @@
 # Spec: openspec identity/access-administration
-# Source material: requirements/user-stories/US-147-map-idp-group-to-role.md (AC1, AC4, AC7), ADR-042
+# Source material: requirements/user-stories/US-147-map-idp-group-to-role.md (AC1, AC4, AC7), ADR-042;
+# US-018 (AC1, AC2), US-019 (AC2, adjusted to SoD-7)
 
 @US-147 @UC-23
 Feature: Access administration through the API
@@ -94,3 +95,21 @@ Feature: Access administration through the API
     When the system admin deletes the mapping
     Then the mapping is no longer listed
     And the audit trail contains the event "idp-mapping.deleted"
+
+  @US-018 @AC1 @AC2 @REQ-018
+  Scenario: Mapping to a group never seen
+    Given the provider "https://idp.example.org/realms/oea" is configured
+    And the session is confirmed with a second factor
+    When the system admin maps a group to the role "system-admin"
+    Then the mapping is stored
+    And the response carries the warning "group-not-seen"
+
+  @US-019 @AC2 @REQ-019 @SoD-7
+  Scenario: Deactivation without another path
+    Given the provider "https://idp.example.org/realms/oea" is configured
+    And the session is confirmed with a second factor
+    And the system admin maps a group to the role "system-admin"
+    When the system admin deactivates the local system admin account
+    Then the request is rejected with status 409 and problem type "last-admin-path"
+    And the local system admin account is still usable
+    And the audit trail contains the event "system-admin-account.deactivated"
