@@ -24,18 +24,23 @@ public class AdministrationPaths {
 	}
 
 	/** The path a change removes; {@code null} fields remove nothing of that kind. */
-	public record Removal(boolean removesLocalAccount, UUID mappingId, UUID assignmentId) {
+	public record Removal(boolean removesLocalAccount, UUID mappingId, UUID assignmentId, Long personId) {
 
 		public static Removal localAccount() {
-			return new Removal(true, null, null);
+			return new Removal(true, null, null, null);
 		}
 
 		public static Removal mapping(UUID mappingId) {
-			return new Removal(false, mappingId, null);
+			return new Removal(false, mappingId, null, null);
 		}
 
 		public static Removal assignment(UUID assignmentId) {
-			return new Removal(false, null, assignmentId);
+			return new Removal(false, null, assignmentId, null);
+		}
+
+		/** All assignments of a person who leaves {@code active} (us-148-person-lifecycle). */
+		public static Removal person(long personId) {
+			return new Removal(false, null, null, personId);
 		}
 
 	}
@@ -58,6 +63,15 @@ public class AdministrationPaths {
 				Boolean.class, mappingId));
 	}
 
+	/** Whether the person holds a usable path: an open-ended, valid {@code system-admin} assignment while active. */
+	public boolean isPersonPath(long personId) {
+		return Boolean.TRUE.equals(this.jdbc.queryForObject("""
+				SELECT EXISTS (SELECT 1 FROM role_assignments a JOIN persons p ON p.id = a.person_id
+				               WHERE a.person_id = ? AND a.role_id = 'system-admin' AND a.status = 'granted'
+				                 AND a.valid_from <= now() AND a.valid_to IS NULL AND p.status = 'active')""",
+				Boolean.class, personId));
+	}
+
 	private static final String USABLE_MAPPINGS = """
 			SELECT 1 FROM idp_group_mappings m JOIN auth_providers p ON p.id = m.auth_provider_id
 			WHERE m.role_id = 'system-admin' AND m.active AND m.approval_status = 'approved'
@@ -72,8 +86,8 @@ public class AdministrationPaths {
 		Integer persons = this.jdbc.queryForObject("""
 				SELECT count(*) FROM role_assignments a JOIN persons p ON p.id = a.person_id
 				WHERE a.role_id = 'system-admin' AND a.status = 'granted' AND a.valid_from <= now()
-				  AND a.valid_to IS NULL AND p.status = 'active' AND a.id IS DISTINCT FROM ?""", Integer.class,
-				removal.assignmentId());
+				  AND a.valid_to IS NULL AND p.status = 'active' AND a.id IS DISTINCT FROM ?
+				  AND a.person_id IS DISTINCT FROM ?""", Integer.class, removal.assignmentId(), removal.personId());
 		return nullToZero(local) + nullToZero(mappings) + nullToZero(persons);
 	}
 

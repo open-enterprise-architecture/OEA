@@ -2,7 +2,7 @@
 title: Identity providers and persons
 covers:
   screens: []
-  stories: [US-004, US-007]
+  stories: [US-004, US-007, US-148]
 ---
 
 # Identity providers and persons
@@ -57,3 +57,25 @@ curl "${auth[@]}" -d "{\"authProviderId\": \"$PROVIDER\", \"subject\": \"<subjec
 Use the immutable subject of the provider (Entra ID: the object ID `oid`). The first binding ends the setup phase and needs a session confirmed with a second factor (see [First administrator](../setup/first-administrator#the-setup-phase)); without it, the answer is `403` with `urn:oea:problem:second-factor-required`.
 
 Further operations: `GET /admin/persons`, `GET /admin/persons/{personId}`, `GET` and `DELETE /admin/persons/{personId}/identities[/{identityId}]`.
+
+## Take access away: inactive and offboarded {#take-access-away}
+
+A person is `invited` until the first login, then `active`. With `person:manage` you change the status:
+
+```bash
+curl "${auth[@]}" -d '{"status": "inactive", "reason": "parental leave"}' "$OEA/admin/persons/$PERSON/status"
+curl "${auth[@]}" -d '{"status": "offboarded", "reason": "left the company"}' "$OEA/admin/persons/$PERSON/status"
+```
+
+| Change | Effect |
+|---|---|
+| `active` → `inactive` | all sessions end at once; login is refused; local role assignments are kept |
+| `inactive` → `active` | login works again; the kept assignments apply again |
+| `invited`, `active` or `inactive` → `offboarded` | all sessions end at once; login is refused; every local role assignment is revoked (`revokedBy` = you, reason "offboarding") |
+
+- Roles from IdP groups need no action: an offboarded or inactive person gets no session, even while still a member of the group.
+- The person and its history stay: earlier changes and audit entries remain attributed to it.
+- Other changes are refused with `409` (`invalid-status-transition`): an unchanged status, `invited` → `active` (only the first login does that), and every change of an offboarded person. Reactivating offboarded persons is not possible yet.
+- You cannot change your own status (`403`). Service accounts are refused with `422`.
+- If the person is the last way to administer the instance (an open-ended `system-admin` assignment), the change is refused with `409` (`last-admin-path`, see [Assign roles to a single person](./roles-and-permissions#assign-roles-to-a-single-person)).
+- Every change is recorded in the audit trail (`person.status-changed`, `session.revoked` per ended session, `role.revoked` per revoked assignment).

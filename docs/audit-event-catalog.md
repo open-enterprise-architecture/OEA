@@ -263,6 +263,17 @@ The first successful login of an invited person changed its status to `active` (
 | Target | `person`, ID of the person |
 | Details | `trigger` (`first-login`) |
 
+### `person.status-changed`
+
+An administrator changed the status of a person ([US-148](../requirements/user-stories/US-148-revoke-access-on-offboarding.md), REQ-164 AC2). The ended sessions are recorded as `session.revoked` (reason `person-status-change`), the revoked assignments of an offboarding as `role.revoked` (reason `offboarding`).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` (`info` for the return to `active`) / `success` |
+| Actor | the administrator |
+| Target | `person`, ID of the person |
+| Details | `from`, `to`, `reason` if given, `sessionsRevoked`, `assignmentsRevoked` (counts) |
+
 ### `person.identity-bound` / `person.identity-unbound`
 
 A person was bound to, or unbound from, the pair of issuer and subject of a provider ([REQ-166](../requirements/req/REQ-166-oidc-hardening-identity-binding.md)).
