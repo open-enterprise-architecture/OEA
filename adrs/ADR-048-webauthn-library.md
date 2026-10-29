@@ -1,6 +1,6 @@
 # ADR-048: WebAuthn Library for Passkey Enrollment and Login
 
-**Status**: proposed
+**Status**: accepted
 **Date**: 2026-10-29
 **Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Consulted**: Solution Architect, Security Engineer

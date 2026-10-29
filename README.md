@@ -137,7 +137,7 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 | [ADR-045](adrs/ADR-045-user-manual.md) | Multilingual User Manual with VitePress on GitHub Pages | accepted |
 | [ADR-046](adrs/ADR-046-manual-coverage-story-statuses.md) | User Story Statuses Covered by the User Manual Check | accepted |
 | [ADR-047](adrs/ADR-047-real-time-collaboration.md) | Architecture of Real-Time Collaboration | accepted |
-| [ADR-048](adrs/ADR-048-webauthn-library.md) | WebAuthn Library for Passkey Enrollment and Login | proposed |
+| [ADR-048](adrs/ADR-048-webauthn-library.md) | WebAuthn Library for Passkey Enrollment and Login | accepted |
 <!-- /AUTO-GENERATED: adrs -->
 
 ## Development
