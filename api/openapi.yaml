@@ -2148,6 +2148,13 @@ components:
         name:  { type: string, minLength: 1, maxLength: 200 }
         email: { type: string, format: email, maxLength: 254 }
 
+    PersonStatusChange:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [active, inactive, offboarded] }
+        reason: { type: [string, 'null'], maxLength: 500, example: "Left the company" }
+
     PersonIdentity:
       type: object
       required: [id, authProviderId, issuer, subject, linkMethod, linkedAt]
@@ -4759,6 +4766,54 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /admin/persons/{personId}/status:
+    post:
+      operationId: changePersonStatus
+      summary: Change the status of a person (UC-23 A2, US-148)
+      description: |
+        Transitions `active ⇄ inactive` and `invited`/`active`/`inactive` → `offboarded`.
+        Leaving `active` or `invited` revokes all sessions of the person at once (REQ-164);
+        `offboarded` also revokes every local role assignment (audited as `role.revoked`),
+        while `inactive` keeps them. Audited as `person.status-changed`.
+        - Own status → `403` with `reason: self-administration` (SoD-1)
+        - Another transition, an unchanged status, or `offboarded → invited` while the
+          reactivation of offboarded persons is off → `409` with problem type
+          `urn:oea:problem:invalid-status-transition`
+        - Last usable path to `system-admin` → `409` with problem type
+          `urn:oea:problem:last-admin-path` (SoD-7)
+        - Service account → `422` (status changes of service accounts follow with US-142)
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
+      parameters:
+        - $ref: '#/components/parameters/PersonIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PersonStatusChange' }
+      responses:
+        '200':
+          description: Status changed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Person' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Transition not allowed (`invalid-status-transition`) or last usable path to `system-admin` (`last-admin-path`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: The person is a service account
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/persons/{personId}/identities:

@@ -2,8 +2,9 @@
 
 **ID**: US-148
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S4
+**Implementation**: OpenSpec change `us-148-person-lifecycle` – `POST /admin/persons/{personId}/status` (`changePersonStatus`)
 
 ## Story
 
@@ -69,5 +70,7 @@ As Max – Operator, I want to offboard a leaving person in one step, so that al
 - Blocks: –
 
 ## Notes
+
+Realigned by OpenSpec change `us-148-person-lifecycle`: AC1 – the revoked sessions are audited as the existing `session.revoked` (reason `person-status-change`), one per session; OEA issues no refresh tokens and has no event streams yet, so the sessions are the only credentials. AC5 – the operation needs `person:manage` alone. Reactivation of offboarded persons (setting `allowReactivationOfOffboarded`) and status changes of service accounts (US-142) are not part of this change.
 
 Offboarding the last path to `system-admin` is rejected (US-146 AC5).

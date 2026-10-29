@@ -18,8 +18,8 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Steps for features/identity/role-assignments.feature and the SoD-7 scenario of
- * access-administration.feature; the instance and the system admin session come from
+ * Steps for features/identity/role-assignments.feature, person-lifecycle.feature and the SoD-7
+ * scenarios of access-administration.feature; the instance and the system admin session come from
  * {@link LocalLoginSteps} of the same scenario. Persons get sessions as the OIDC login stores
  * them.
  */
@@ -108,6 +108,37 @@ public class RoleAssignmentSteps {
 		this.instance.superuser("UPDATE system_admin_accounts SET status = 'deactivated', deactivated_at = now()");
 	}
 
+	@Given("a custom role {string} with only the permission {string}")
+	public void customRole(String role, String permission) throws Exception {
+		this.instance.superuser("INSERT INTO authorization_roles (id, name, is_builtin) VALUES ('" + role + "', '" + role
+				+ "', false); INSERT INTO role_permissions (role_id, permission_id) VALUES ('" + role + "', '"
+				+ permission + "')");
+	}
+
+	@When("the system admin sets {string} to {string}")
+	public void systemAdminSetsStatus(String name, String status) throws Exception {
+		this.instance.response = status(null, name, status);
+		assertThat(this.instance.response.statusCode()).as(this.instance.response.body()).isEqualTo(200);
+	}
+
+	@When("{string} sets {string} to {string}")
+	public void personSetsStatus(String actor, String name, String status) throws Exception {
+		this.instance.response = status(actor, name, status);
+	}
+
+	@Then("{string} is still {string}")
+	public void stillStatus(String name, String status) throws Exception {
+		assertThat(this.instance.single("SELECT status FROM persons WHERE id = " + this.persons.get(name)))
+			.isEqualTo(status);
+	}
+
+	@Then("the assignment of {string} to {string} was revoked by the system admin with the reason {string}")
+	public void revokedBySystemAdmin(String role, String name, String reason) throws Exception {
+		assertThat(this.instance.single("SELECT status || '|' || (revoked_by_admin_id IS NOT NULL) || '|' || "
+				+ "revocation_reason FROM role_assignments WHERE id = '" + this.assignments.get(name + "/" + role) + "'"))
+			.isEqualTo("revoked|true|" + reason);
+	}
+
 	@Then("the assignment is stored with source {string}, the granting system admin, the validity and the reason")
 	public void stored(String source) {
 		JsonNode body = LocalLoginSteps.json(this.instance.response);
@@ -173,6 +204,11 @@ public class RoleAssignmentSteps {
 				VALUES (sha256(convert_to('%s', 'UTF8')), %d, 'web-portal', 'password', %s, now(), now(),
 				        now() + interval '12 hours')""".formatted(token, this.persons.get(name), secondFactor));
 		return token;
+	}
+
+	private HttpResponse<String> status(String actor, String name, String status) throws Exception {
+		return request(actor, "/api/v1/admin/persons/" + this.persons.get(name) + "/status",
+				"{\"status\":\"" + status + "\"}");
 	}
 
 	private HttpResponse<String> assign(String actor, String name, String body) throws Exception {

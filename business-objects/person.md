@@ -179,6 +179,8 @@ detailLevel: reference-only
 
 ## Notes
 
+The transitions `active ⇄ inactive` and `invited`/`active`/`inactive` → `offboarded` are realized by `changePersonStatus` (change `us-148-person-lifecycle`). `offboarded → invited` is rejected while `allowReactivationOfOffboarded` cannot be enabled, and status changes of service accounts follow with US-142.
+
 First modeled in the context of UC-01 Login. Version 0.3.0 implements ADR-032 DM-4/DM-7 and the security review follow-ups SEC-06/SEC-07: the boolean `active` could not express `inactive` vs. `offboarded` and REQ-004 checks the lifecycle status; e-mail-based matching allowed account takeover, hence the separate identity binding with a unique (`issuer`, `subject`) constraint. The binding is a separate table instead of reusing `external_ref_system/external_ref_id`, because those reference the HR master system and a person may log in through more than one provider. `personType` was already in the data model and is now documented here.
 
 Version 0.5.0 implements ADR-033 DM-A10: audit records no longer contain actor names or e-mail addresses, so anonymization can be done in this object alone without touching append-only audit records. `email` therefore became nullable for anonymized persons (DB CHECK in `docs/data-model.puml`).

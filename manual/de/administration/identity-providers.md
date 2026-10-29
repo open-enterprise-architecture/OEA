@@ -2,7 +2,7 @@
 title: Identity-Provider und Personen
 covers:
   screens: []
-  stories: [US-004, US-007]
+  stories: [US-004, US-007, US-148]
 ---
 
 # Identity-Provider und Personen
@@ -57,3 +57,25 @@ curl "${auth[@]}" -d "{\"authProviderId\": \"$PROVIDER\", \"subject\": \"<subjec
 Verwende das unveränderliche Subject des Providers (Entra ID: die Objekt-ID `oid`). Die erste Bindung beendet die Setup-Phase und braucht eine mit einem zweiten Faktor bestätigte Sitzung (siehe [Erster Administrator](../setup/first-administrator#setup-phase)); ohne sie lautet die Antwort `403` mit `urn:oea:problem:second-factor-required`.
 
 Weitere Operationen: `GET /admin/persons`, `GET /admin/persons/{personId}`, `GET` und `DELETE /admin/persons/{personId}/identities[/{identityId}]`.
+
+## Zugriff entziehen: inaktiv und offboarded {#take-access-away}
+
+Eine Person ist bis zur ersten Anmeldung `invited`, danach `active`. Mit `person:manage` änderst du den Status:
+
+```bash
+curl "${auth[@]}" -d '{"status": "inactive", "reason": "Elternzeit"}' "$OEA/admin/persons/$PERSON/status"
+curl "${auth[@]}" -d '{"status": "offboarded", "reason": "hat das Unternehmen verlassen"}' "$OEA/admin/persons/$PERSON/status"
+```
+
+| Änderung | Wirkung |
+|---|---|
+| `active` → `inactive` | alle Sitzungen enden sofort; Anmeldung wird abgelehnt; lokale Rollenzuweisungen bleiben erhalten |
+| `inactive` → `active` | Anmeldung funktioniert wieder; die erhaltenen Zuweisungen gelten wieder |
+| `invited`, `active` oder `inactive` → `offboarded` | alle Sitzungen enden sofort; Anmeldung wird abgelehnt; jede lokale Rollenzuweisung wird entzogen (`revokedBy` = du, Grund „offboarding“) |
+
+- Rollen aus IdP-Gruppen brauchen keine Aktion: Eine offboarded oder inaktive Person bekommt keine Sitzung, auch wenn sie noch Mitglied der Gruppe ist.
+- Die Person und ihre Historie bleiben: frühere Änderungen und Audit-Einträge sind ihr weiter zugeordnet.
+- Andere Änderungen lehnt OEA mit `409` (`invalid-status-transition`) ab: ein unveränderter Status, `invited` → `active` (das macht nur die erste Anmeldung) und jede Änderung einer offboarded Person. Offboarded Personen zu reaktivieren ist noch nicht möglich.
+- Deinen eigenen Status kannst du nicht ändern (`403`). Service-Accounts lehnt OEA mit `422` ab.
+- Ist die Person der letzte Weg, die Instanz zu administrieren (eine unbefristete `system-admin`-Zuweisung), lehnt OEA die Änderung mit `409` ab (`last-admin-path`, siehe [Rollen einer einzelnen Person zuweisen](./roles-and-permissions#assign-roles-to-a-single-person)).
+- Jede Änderung steht im Audit-Trail (`person.status-changed`, `session.revoked` je beendeter Sitzung, `role.revoked` je entzogener Zuweisung).

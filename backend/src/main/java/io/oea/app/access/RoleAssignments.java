@@ -205,6 +205,40 @@ public class RoleAssignments {
 		return get(personId, assignmentId);
 	}
 
+	/**
+	 * Offboarding (US-148 AC2; design D3 of us-148-person-lifecycle): revokes every granted
+	 * assignment of the person with the reason "offboarding". The caller has checked SoD-7 for
+	 * the person and revokes the sessions.
+	 * @return the number of revoked assignments
+	 */
+	@Transactional
+	public int revokeAllForOffboarding(OeaPrincipal principal, long personId) {
+		Instant now = this.clock.instant();
+		List<Assignment> granted = this.jdbc
+			.query(SELECT + " WHERE a.person_id = ? AND a.status = 'granted' ORDER BY a.granted_at, a.id",
+					(rs, n) -> assignment(rs, now), personId)
+			.stream()
+			// expired assignments keep their history unchanged
+			.filter((assignment) -> !"expired".equals(assignment.status()))
+			.toList();
+		for (Assignment assignment : granted) {
+			this.jdbc.update("""
+					UPDATE role_assignments SET status = 'revoked', revoked_at = ?, revoked_by_person_id = ?,
+					       revoked_by_admin_id = ?, revocation_reason = 'offboarding'
+					WHERE id = ?""", Timestamp.from(now), principal.personId(), principal.systemAdminAccountId(),
+					assignment.id());
+			Map<String, Object> details = new LinkedHashMap<>();
+			details.put("personId", personId);
+			details.put("roleId", assignment.roleId());
+			details.put("reason", "offboarding");
+			append(principal, "role.revoked",
+					assignment.privileged() ? AuditEvent.Severity.HIGH : AuditEvent.Severity.INFO, assignment.id(),
+					details);
+		}
+		this.permissions.evictAll();
+		return granted.size();
+	}
+
 	private Assignment get(long personId, UUID assignmentId) {
 		Instant now = this.clock.instant();
 		List<Assignment> found = this.jdbc.query(SELECT + " WHERE a.person_id = ? AND a.id = ?",

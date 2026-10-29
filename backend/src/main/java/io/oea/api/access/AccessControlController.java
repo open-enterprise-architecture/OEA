@@ -9,6 +9,7 @@ import io.oea.api.generated.model.Permission;
 import io.oea.api.generated.model.Person;
 import io.oea.api.generated.model.PersonIdentity;
 import io.oea.api.generated.model.PersonIdentityWrite;
+import io.oea.api.generated.model.PersonStatusChange;
 import io.oea.api.generated.model.PersonWrite;
 import io.oea.api.generated.model.PrincipalRef;
 import io.oea.api.generated.model.RoleAssignment;
@@ -17,6 +18,7 @@ import io.oea.api.generated.model.RoleAssignmentWrite;
 import io.oea.api.generated.model.RoleRef;
 import io.oea.app.access.AccessCatalog;
 import io.oea.app.access.IdpGroupMappings;
+import io.oea.app.access.PersonLifecycle;
 import io.oea.app.access.Persons;
 import io.oea.app.access.RoleAssignments;
 import io.oea.app.security.OeaPrincipal;
@@ -36,8 +38,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Permission catalog and authorization roles (US-143), persons with identity bindings, IdP
- * group mappings (design D10) and local role assignments (US-144); further operations follow
- * (UC-23).
+ * group mappings (design D10), local role assignments (US-144) and the status of persons
+ * (US-148); further operations follow (UC-23).
  */
 @RestController
 public class AccessControlController implements AccessControlApi {
@@ -52,13 +54,22 @@ public class AccessControlController implements AccessControlApi {
 
 	private final RoleAssignments assignments;
 
+	private final PersonLifecycle lifecycle;
+
 	public AccessControlController(AccessCatalog catalog, ContractAuthorizationRules rules, Persons persons,
-			IdpGroupMappings mappings, RoleAssignments assignments) {
+			IdpGroupMappings mappings, RoleAssignments assignments, PersonLifecycle lifecycle) {
 		this.catalog = catalog;
 		this.rules = rules;
 		this.persons = persons;
 		this.mappings = mappings;
 		this.assignments = assignments;
+		this.lifecycle = lifecycle;
+	}
+
+	@Override
+	public ResponseEntity<Person> changePersonStatus(Integer personId, PersonStatusChange request) {
+		this.lifecycle.change(principal(), personId, request.getStatus().getValue(), request.getReason());
+		return ResponseEntity.ok(person(this.persons.get(personId)));
 	}
 
 	@Override

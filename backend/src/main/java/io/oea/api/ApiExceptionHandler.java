@@ -4,6 +4,7 @@ import io.oea.api.entity.EntityBatchController;
 import io.oea.api.generated.model.ValidationError;
 import io.oea.app.access.AccessConflictException;
 import io.oea.app.access.InvalidAccessRequestException;
+import io.oea.app.access.InvalidStatusTransitionException;
 import io.oea.app.access.LastAdminPathException;
 import io.oea.app.access.SelfAdministrationException;
 import io.oea.app.access.SodConflictException;
@@ -111,6 +112,12 @@ public class ApiExceptionHandler {
 	ResponseEntity<ProblemDetail> conflict(AccessConflictException ex) {
 		return ResponseEntity.status(HttpStatus.CONFLICT)
 			.body(problem(HttpStatus.CONFLICT, "conflict", "Conflict", ex.getMessage()));
+	}
+
+	@ExceptionHandler(InvalidStatusTransitionException.class)
+	ResponseEntity<ProblemDetail> invalidStatusTransition(InvalidStatusTransitionException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+			.body(problem(HttpStatus.CONFLICT, "invalid-status-transition", "Status change not allowed", ex.getMessage()));
 	}
 
 	@ExceptionHandler(SodConflictException.class)
