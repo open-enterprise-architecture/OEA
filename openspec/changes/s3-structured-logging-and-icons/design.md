@@ -62,7 +62,7 @@ In plain text only the message appears, which is identical to today. In JSON bot
 
 `Checkpoint.read` handles every line as follows:
 
-1. It looks for a JSON object in the line. Log collectors may add a prefix such as `backend-1  | `, so the object starts at the first `{`.
+1. It looks for a JSON object in the line. Log collectors may put a prefix in front of it, such as the service name that `docker compose logs` adds, so the object starts at the first `{`.
 2. If the object parses and has `event` (or `_event`) `audit.checkpoint`, the line's checkpoint is taken from `chainSeq`/`_chainSeq` and `recordHash`/`_recordHash`.
 3. Otherwise the existing regular expression is applied to the whole line. It also matches the message inside a JSON line.
 
