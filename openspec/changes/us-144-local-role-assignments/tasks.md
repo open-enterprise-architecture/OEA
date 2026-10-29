@@ -26,4 +26,4 @@
 
 - [x] 5.1 Set US-144 and US-146 to `done` with realignment notes as listed in the proposal (the implementation hash is recorded when the change is archived); add notes to REQ-164 (AC3 implemented for local assignments); verify markdown lint passes
 - [x] 5.2 Update `docs/data-model.puml` and `business-objects/role-assignment.md` as in the data model section; `docs/screens/SCREENS.md` is unchanged; regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
-- [ ] 5.3 Run `python3 scripts/validate_links.py`, the OpenAPI checks, `scripts/sync_agent_config.py --check`, `openspec validate us-144-local-role-assignments`, `./mvnw verify` and the frontend type check and tests, and verify all pass
+- [x] 5.3 Run `python3 scripts/validate_links.py`, the OpenAPI checks, `scripts/sync_agent_config.py --check`, `openspec validate us-144-local-role-assignments`, `./mvnw verify` and the frontend type check and tests, and verify all pass
