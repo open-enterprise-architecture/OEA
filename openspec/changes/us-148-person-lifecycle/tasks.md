@@ -14,4 +14,4 @@
 
 - [x] 3.1 Set US-148 to `done` with the realignment notes of the proposal (the implementation hash is recorded when the change is archived); add the US-146 AC5 note; add notes to REQ-164 (AC2) and `business-objects/person.md`; record the S4 status in `docs/sprint-plan.md`; verify markdown lint passes
 - [x] 3.2 `docs/data-model.puml` and `docs/screens/SCREENS.md` are unchanged; regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
-- [ ] 3.3 Run `python3 scripts/validate_links.py`, the OpenAPI checks, `scripts/sync_agent_config.py --check`, `openspec validate us-148-person-lifecycle`, `./mvnw verify` and the frontend type check and tests, and verify all pass
+- [x] 3.3 Run `python3 scripts/validate_links.py`, the OpenAPI checks, `scripts/sync_agent_config.py --check`, `openspec validate us-148-person-lifecycle`, `./mvnw verify` and the frontend type check and tests, and verify all pass
