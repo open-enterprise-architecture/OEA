@@ -4,7 +4,7 @@
 **Story Points**: 2
 **Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec changes `us-013-system-admin-login` (local login of the system admin account) and `us-011-local-password` (persons) – identical answers, one password hash verification per failed login
+**Implementation**: OpenSpec changes `us-013-system-admin-login` (local login of the system admin account) and `us-011-local-password`, commit 88e71f8 (#133) (persons) – identical answers, one password hash verification per failed login
 
 ## Story
 
