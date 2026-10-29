@@ -72,6 +72,21 @@ Stored secrets – TOTP secrets and client secrets of identity providers – are
 
 The command re-encrypts in one transaction and prints `OK <n> secret(s) re-encrypted with key <key ID>`. Exit codes: `0` done, `1` a value could not be decrypted with the configured keys (nothing was changed), `2` usage or connection error.
 
+## Log format {#log-format}
+
+The backend and its commands log to the console as plain text. For a log platform or SIEM, switch to JSON lines in one of the formats `ecs` (Elastic Common Schema), `logstash` or `gelf` (Graylog):
+
+```bash
+# .env of the Compose installation
+OEA_LOG_FORMAT=ecs
+```
+
+Without Compose, set the environment variable `LOGGING_STRUCTURED_FORMAT_CONSOLE` (or the option `--logging.structured.format.console=ecs`). An empty value keeps plain text.
+
+- Every JSON line carries timestamp, level, logger and message. An entry written during an HTTP request also has the field `requestId`, the same value as the `X-Request-Id` header and the request ID of the audit record.
+- No entry contains passwords, setup tokens, second-factor secrets or session tokens, in any format.
+- Checkpoint entries keep their message and get the fields `event`, `chainSeq`, `recordHash` and `at`. GELF prefixes them with `_`. `audit verify --checkpoints` reads checkpoints from plain text and JSON lines, also mixed in one file (see below).
+
 ## Verify the audit trail
 
 Every audit record is a link of a hash chain computed by the database. The verification command recomputes the chain with the read-only role `oea_auditor`:
@@ -91,7 +106,7 @@ With Compose: `docker compose run --rm migrate audit verify --oea.audit-verify.u
 | `1` | first broken link, missing link, or a database head behind or diverging from a checkpoint (`BROKEN …`) |
 | `2` | usage or connection error |
 
-**Checkpoints**: the backend appends a checkpoint every 60 minutes (`oea.audit.checkpoint-interval`, 5–1440 minutes) and at orderly shutdown, and writes a log line `event=audit.checkpoint chainSeq=… recordHash=… at=…`. Keep the backend log outside the database host (log shipper, journald, SIEM): checkpoints are only as trustworthy as the place they are stored. Pass the log file with `--checkpoints=` to detect deleted newest records or a restored older backup.
+**Checkpoints**: the backend appends a checkpoint every 60 minutes (`oea.audit.checkpoint-interval`, 5–1440 minutes) and at orderly shutdown, and writes a log line `event=audit.checkpoint chainSeq=… recordHash=… at=…` (in JSON logs a JSON object with these fields, see [Log format](#log-format)). Keep the backend log outside the database host (log shipper, journald, SIEM): checkpoints are only as trustworthy as the place they are stored. Pass the log file with `--checkpoints=` to detect deleted newest records or a restored older backup.
 
 ## Deactivate the local system admin account {#deactivate-the-local-system-admin-account}
 

@@ -72,6 +72,21 @@ Gespeicherte Geheimnisse – TOTP-Secrets und Client-Secrets von Identity-Provid
 
 Der Befehl verschlüsselt in einer Transaktion neu und gibt `OK <n> secret(s) re-encrypted with key <key ID>` aus. Exit-Codes: `0` erledigt, `1` ein Wert konnte mit den konfigurierten Schlüsseln nicht entschlüsselt werden (nichts wurde geändert), `2` Aufruf- oder Verbindungsfehler.
 
+## Log-Format {#log-format}
+
+Das Backend und seine Befehle loggen als Klartext auf die Konsole. Für eine Log-Plattform oder ein SIEM stellst du auf JSON-Zeilen in einem der Formate `ecs` (Elastic Common Schema), `logstash` oder `gelf` (Graylog) um:
+
+```bash
+# .env der Compose-Installation
+OEA_LOG_FORMAT=ecs
+```
+
+Ohne Compose setzt du die Umgebungsvariable `LOGGING_STRUCTURED_FORMAT_CONSOLE` (oder die Option `--logging.structured.format.console=ecs`). Ein leerer Wert lässt den Klartext.
+
+- Jede JSON-Zeile enthält Zeitstempel, Level, Logger und Nachricht. Ein Eintrag, der während eines HTTP-Requests geschrieben wird, hat zusätzlich das Feld `requestId` – denselben Wert wie der Header `X-Request-Id` und die Request-ID des Audit-Eintrags.
+- Kein Eintrag enthält Passwörter, Setup-Tokens, Geheimnisse zweiter Faktoren oder Sitzungs-Tokens, in keinem Format.
+- Checkpoint-Einträge behalten ihre Nachricht und bekommen die Felder `event`, `chainSeq`, `recordHash` und `at`. GELF stellt ihnen `_` voran. `audit verify --checkpoints` liest Checkpoints aus Klartext- und JSON-Zeilen, auch gemischt in einer Datei (siehe unten).
+
 ## Audit-Trail prüfen {#verify-the-audit-trail}
 
 Jeder Audit-Eintrag ist ein Glied einer Hash-Kette, die die Datenbank berechnet. Der Prüfbefehl berechnet die Kette mit der nur lesenden Rolle `oea_auditor` neu:
@@ -91,7 +106,7 @@ Mit Compose: `docker compose run --rm migrate audit verify --oea.audit-verify.ur
 | `1` | erstes gebrochenes Glied, fehlendes Glied oder ein Datenbank-Head, der hinter einem Checkpoint liegt oder von ihm abweicht (`BROKEN …`) |
 | `2` | Aufruf- oder Verbindungsfehler |
 
-**Checkpoints**: Das Backend hängt alle 60 Minuten (`oea.audit.checkpoint-interval`, 5–1440 Minuten) und beim geordneten Herunterfahren einen Checkpoint an und schreibt eine Logzeile `event=audit.checkpoint chainSeq=… recordHash=… at=…`. Bewahre das Backend-Log außerhalb des Datenbank-Hosts auf (Log-Shipper, journald, SIEM): Checkpoints sind nur so vertrauenswürdig wie der Ort, an dem sie liegen. Übergib die Logdatei mit `--checkpoints=`, um gelöschte neueste Einträge oder ein eingespieltes älteres Backup zu erkennen.
+**Checkpoints**: Das Backend hängt alle 60 Minuten (`oea.audit.checkpoint-interval`, 5–1440 Minuten) und beim geordneten Herunterfahren einen Checkpoint an und schreibt eine Logzeile `event=audit.checkpoint chainSeq=… recordHash=… at=…` (in JSON-Logs ein JSON-Objekt mit diesen Feldern, siehe [Log-Format](#log-format)). Bewahre das Backend-Log außerhalb des Datenbank-Hosts auf (Log-Shipper, journald, SIEM): Checkpoints sind nur so vertrauenswürdig wie der Ort, an dem sie liegen. Übergib die Logdatei mit `--checkpoints=`, um gelöschte neueste Einträge oder ein eingespieltes älteres Backup zu erkennen.
 
 ## Lokales Systemadmin-Konto deaktivieren {#deactivate-the-local-system-admin-account}
 

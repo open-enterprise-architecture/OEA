@@ -131,3 +131,5 @@ event=audit.checkpoint chainSeq=<chain_seq> recordHash=<64 hex digits> at=<UTC t
 ```
 
 The values are those of the checkpoint record itself. Log lines are kept outside the database; the verification command accepts a file containing such lines (other lines are ignored).
+
+With a JSON log format (`logging.structured.format.console` = `ecs`, `logstash` or `gelf`), the line is a JSON object with the same message and the fields `event`, `chainSeq`, `recordHash` and `at`. GELF prefixes them with `_`. The verification command takes a checkpoint from these fields if a line contains such a JSON object, also behind a prefix added by a log collector, and otherwise from the message of a plain text line. Both forms may be mixed in one file.

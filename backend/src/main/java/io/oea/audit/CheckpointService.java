@@ -64,8 +64,15 @@ public class CheckpointService implements SmartLifecycle {
 		AppendedLink link = this.writer.append(new AuditEvent("audit.checkpoint", AuditEvent.Category.SYSTEM,
 				AuditEvent.Severity.INFO, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.JOB, AuditEvent.Actor.system(),
 				null, null, Map.of()));
-		logger.info("event=audit.checkpoint chainSeq={} recordHash={} at={}", link.chainSeq(),
-				HexFormat.of().formatHex(link.recordHash()), AT.format(Instant.now()));
+		String hash = HexFormat.of().formatHex(link.recordHash());
+		String at = AT.format(Instant.now());
+		// fields for JSON logs, unchanged message for plain text (design D3 of s3-structured-logging-and-icons)
+		logger.atInfo()
+			.addKeyValue("event", "audit.checkpoint")
+			.addKeyValue("chainSeq", link.chainSeq())
+			.addKeyValue("recordHash", hash)
+			.addKeyValue("at", at)
+			.log("event=audit.checkpoint chainSeq={} recordHash={} at={}", link.chainSeq(), hash, at);
 		return link;
 	}
 

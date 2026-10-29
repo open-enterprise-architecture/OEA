@@ -19,5 +19,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "third-party-licenses.ts"]
+  "include": ["vite.config.ts", "third-party-licenses.ts", "bundled-icons.ts", "bundled-icons.spec.ts"]
 }

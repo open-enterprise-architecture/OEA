@@ -27,6 +27,7 @@ OEA besteht aus einer PostgreSQL-Datenbank, einem einmaligen Migrationsschritt u
    | `OEA_AUDIT_CLEANUP_PASSWORD`, `OEA_AUDITOR_PASSWORD`, `OEA_ANALYTICS_PASSWORD` | Rollen für Audit-Aufbewahrung, Audit-Prüfung und Analytics |
    | `OEA_KEK_FILE` | Pfad der Datei mit dem Key-Encryption-Key |
    | `OEA_HTTP_BIND`, `OEA_HTTP_PORT` | optional: veröffentlichte Adresse, Standard `127.0.0.1:8080` |
+   | `OEA_LOG_FORMAT` | optional: `ecs`, `logstash` oder `gelf` für JSON-Logs, Standard ist Klartext (siehe [Log-Format](../administration/operations#log-format)) |
 
 2. Erzeuge den Key-Encryption-Key. Er verschlüsselt gespeicherte Geheimnisse (zweite Faktoren, Client-Secrets von Identity-Providern). Bewahre ihn außerhalb der Datenbank-Backups auf:
 
