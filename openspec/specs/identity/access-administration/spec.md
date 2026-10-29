@@ -136,15 +136,9 @@ Trace: US-019 AC1, REQ-019
 
 ### Requirement: The last path to system administration is kept
 
-A change SHALL be rejected with 409 and problem type `last-admin-path` if no usable path to `system-admin` would remain afterwards. This applies to revoking a role assignment, deactivating the local system admin account, and deleting, deactivating or retargeting an IdP group mapping. Usable paths are:
+A change SHALL be rejected with 409 and problem type `last-admin-path` if no usable path to `system-admin` would remain afterwards. This applies to revoking a role assignment, deactivating the local system admin account, and deleting, deactivating or retargeting an IdP group mapping. Concurrent changes SHALL NOT both pass the check.
 
-- the local system admin account if it is not deactivated;
-- an active, approved, not deleted IdP group mapping to `system-admin` of an enabled provider that has matched at least once;
-- a granted, currently valid assignment of `system-admin` without `validTo` to an active person.
-
-Concurrent changes SHALL NOT both pass the check.
-
-Trace: US-019 AC2, US-146 AC1, US-146 AC3, US-146 AC4, REQ-019, ADR-032 SoD-7
+Trace: US-019 AC2, US-146 AC1, US-146 AC4, REQ-019, ADR-032 SoD-7
 
 #### Scenario: Deactivation without another path
 
@@ -166,12 +160,18 @@ Trace: US-019 AC2, US-146 AC1, US-146 AC3, US-146 AC4, REQ-019, ADR-032 SoD-7
 - **WHEN** a matched mapping to `system-admin` is the only path because the local account is deactivated and no person holds `system-admin`, and an administrator deletes or deactivates the mapping or changes its role
 - **THEN** the request is rejected with 409 and problem type `last-admin-path`, and the mapping is unchanged
 
-#### Scenario: Local account with a person as the other path
-
-- **WHEN** an active person holds an open-ended `system-admin` assignment, no mapping exists, and an administrator deactivates the local system admin account
-- **THEN** the deactivation succeeds
-
 #### Scenario: Parallel revocations
 
 - **WHEN** two persons are the only paths to `system-admin` and their assignments are revoked by two concurrent requests
 - **THEN** exactly one revocation succeeds and the other is rejected with 409
+
+### Requirement: Usable paths to system administration
+
+A usable path to `system-admin` SHALL be one of: the local system admin account if it is not deactivated; an active, approved, not deleted IdP group mapping to `system-admin` of an enabled provider that has matched at least once; a granted, currently valid assignment of `system-admin` without `validTo` to an active person.
+
+Trace: US-019 AC2, US-146 AC3, ADR-032 SoD-7
+
+#### Scenario: Local account with a person as the other path
+
+- **WHEN** an active person holds an open-ended `system-admin` assignment, no mapping exists, and an administrator deactivates the local system admin account
+- **THEN** the deactivation succeeds
