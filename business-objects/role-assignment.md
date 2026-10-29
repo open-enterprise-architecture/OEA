@@ -2,7 +2,7 @@
 identifier: role-assignment
 name_de: Rollenzuweisung (Berechtigung)
 name_en: Role Assignment
-version: 0.1.0
+version: 0.2.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -47,6 +47,7 @@ The EA connection "RoleAssignment" between a Person entity and a business [role]
 | reason | string | optional | | max. 500 characters | Justification, e.g. ticket number |
 | grantedAt | datetime | required | now | | Creation time (request time if approval is required) |
 | grantedBy | principal | required | | person or system admin account; never the assignee (SoD-1) | Creator (requester if approval is required) |
+| sodConflict | boolean | required | false | set at creation | The assignment combined `metamodel:write` with visibility permissions for the person and was acknowledged (SoD-3, BR-03) |
 | approvalRequired | boolean | required | false | snapshot at creation: role privileged AND `privilegedAssignmentApproval` on | Whether four-eyes approval applies |
 | decidedAt | datetime | conditional | | required if `approvalRequired` and status `granted`/`rejected` | Time of the approval decision |
 | decidedBy | principal | conditional | | ≠ grantedBy, ≠ assignee, holds `role:assign` | Approver/rejecter |
@@ -54,6 +55,7 @@ The EA connection "RoleAssignment" between a Person entity and a business [role]
 | revokedAt | datetime | conditional | | required iff status `revoked` | Time of revocation |
 | revokedBy | principal | conditional | | never the assignee (SoD-1) | Revoker |
 | revocationReason | string | optional | | max. 500 characters | e.g. "offboarding", "mover" |
+| expiryRecordedAt | datetime | optional | | set once by the expiry job | When the expiry after `validTo` was audited (`role.assignment-expired`); effectiveness depends on `validTo` only |
 
 `principal` = reference to a person or to the system admin account (two FK columns, exactly one set).
 
@@ -148,6 +150,8 @@ approvalRequired: true
 
 ## Notes
 
+The API shows a derived `status`: `revoked` if revoked, `expired` once `validTo` has passed, `scheduled` before `validFrom`, otherwise `active` (change `us-144-local-role-assignments`, design D1). `pending` and `rejected` occur only with four-eyes approval (US-150).
+
 Created for ADR-032 DM-4 and owner decision Q15. Replaces the table `person_roles` (composite key with `valid_from DATE`, `assignment_type`, `percentage`); `assignment_type` and `percentage` belong to the EA RoleAssignment connection. Approval is modeled on the assignment itself (status + decision fields) rather than a separate approval record because an assignment has at most one approval decision.
 
 Open: whether IdP group mappings to privileged roles also require four-eyes approval when `privilegedAssignmentApproval` is on.
@@ -157,3 +161,4 @@ Open: whether IdP group mappings to privileged roles also require four-eyes appr
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | Business Engineer | Initial draft from ADR-032 DM-4 and owner decision Q15 |
+| 0.2.0 | 2026-10-29 | Business Engineer | `sodConflict`, `expiryRecordedAt`; API status `scheduled`/`active`/`expired`/`revoked` derived from status and validity (change `us-144-local-role-assignments`) |

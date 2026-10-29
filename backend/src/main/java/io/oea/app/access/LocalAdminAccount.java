@@ -69,9 +69,12 @@ public class LocalAdminAccount {
 		if (account.getStatus() == SystemAdminAccount.Status.DEACTIVATED) {
 			return view(account);
 		}
-		if (this.paths.remotePaths() == 0) {
+		try {
+			this.paths.requireRemainingPath(AdministrationPaths.Removal.localAccount());
+		}
+		catch (LastAdminPathException ex) {
 			this.audit.append(event(principal, account, AuditEvent.Outcome.DENIED, Map.of("reason", "last-admin-path")));
-			throw new LastAdminPathException();
+			throw ex;
 		}
 		Instant now = this.clock.instant();
 		account.deactivate(principal.systemAdminAccountId(), principal.personId(), now);

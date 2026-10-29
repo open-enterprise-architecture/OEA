@@ -4628,7 +4628,6 @@ paths:
       summary: Authorization role detail
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["role:assign", "visibility:configure", "service-account:manage"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/RoleIdParam'
       responses:
@@ -4640,7 +4639,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     put:
       operationId: updateAuthorizationRole
       summary: Update custom role
@@ -4838,7 +4837,6 @@ paths:
       summary: Local role assignments of a person or service account
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/PersonIdParam'
         - name: status
@@ -4861,7 +4859,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       operationId: createRoleAssignment
       summary: Assign a role (UC-23 basic flow)
@@ -4876,7 +4874,6 @@ paths:
           pending request; the assignment is created only after approval (Q15)
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/PersonIdParam'
       requestBody:
@@ -4903,14 +4900,21 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
+        '409':
+          description: |
+            SoD-3 combination without `acknowledgeSodConflict` (problem type
+            `urn:oea:problem:sod-conflict`), or the role is already assigned and not expired
+            (problem type `urn:oea:problem:conflict`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: Unknown role, role not assignable to service accounts, or `validTo` before `validFrom`
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/persons/{personId}/role-assignments/{assignmentId}/revoke:
     post:
@@ -4923,7 +4927,6 @@ paths:
         expired → `409`.
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/PersonIdParam'
         - name: assignmentId
@@ -4945,9 +4948,16 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
+        '409':
+          description: |
+            Last usable path to `system-admin` (problem type `urn:oea:problem:last-admin-path`,
+            SoD-7), or the assignment is already revoked or expired (problem type
+            `urn:oea:problem:conflict`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/approval-requests:
     get:
@@ -5122,8 +5132,9 @@ paths:
       operationId: updateIdpGroupMapping
       summary: Change or deactivate an IdP group mapping
       description: |
-        Audited as `idp-mapping.changed`. Deactivating or changing the last administration
-        path to `system-admin` → `409` (SoD-7).
+        Audited as `idp-mapping.changed`. Deactivating or changing the last usable
+        administration path to `system-admin` → `409` with problem type
+        `urn:oea:problem:last-admin-path` (SoD-7).
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
       parameters:
@@ -5164,7 +5175,8 @@ paths:
       summary: Delete an IdP group mapping
       description: |
         Audited as `idp-mapping.deleted`; effective for all affected sessions within 60 s.
-        Last administration path to `system-admin` → `409` (SoD-7).
+        Last usable administration path to `system-admin` → `409` with problem type
+        `urn:oea:problem:last-admin-path` (SoD-7).
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
       parameters:

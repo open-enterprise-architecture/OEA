@@ -117,7 +117,6 @@ class LocalAdminAccountTests {
 	@Test
 	void onlyMatchedLiveMappingsAreUsablePaths() throws Exception {
 		AdministrationPaths paths = instance.application().getBean(AdministrationPaths.class);
-		int baseline = paths.remotePaths();
 		UUID inactiveProvider = instance.provider("Inactive realm", "http://localhost:8180/realms/inactive", false);
 		String[] disqualified = {
 				"active = false", "approval_status = 'pending'", "deleted_at = now()", "last_matched_at = NULL",
@@ -126,15 +125,15 @@ class LocalAdminAccountTests {
 			UUID mapping = instance.mapping(instance.providerId(), OeaKeycloak.issuer(),
 					UUID.randomUUID().toString(), "system-admin");
 			instance.update("UPDATE idp_group_mappings SET last_matched_at = now() WHERE id = '" + mapping + "'");
-			assertThat(paths.remotePaths()).as("usable before: " + disqualifier).isEqualTo(baseline + 1);
+			assertThat(paths.isUsableMapping(mapping)).as("usable before: " + disqualifier).isTrue();
 			instance.update("UPDATE idp_group_mappings SET " + disqualifier + " WHERE id = '" + mapping + "'");
-			assertThat(paths.remotePaths()).as(disqualifier).isEqualTo(baseline);
+			assertThat(paths.isUsableMapping(mapping)).as(disqualifier).isFalse();
 			instance.update("UPDATE idp_group_mappings SET active = false WHERE id = '" + mapping + "'");
 		}
 		UUID viewer = instance.mapping(instance.providerId(), OeaKeycloak.issuer(),
 				UUID.randomUUID().toString(), "viewer");
 		instance.update("UPDATE idp_group_mappings SET last_matched_at = now() WHERE id = '" + viewer + "'");
-		assertThat(paths.remotePaths()).as("other role").isEqualTo(baseline);
+		assertThat(paths.isUsableMapping(viewer)).as("other role").isFalse();
 	}
 
 	private static Sessions.NewSession localSession() {

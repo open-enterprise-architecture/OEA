@@ -424,6 +424,11 @@ public class LocalLoginSteps {
 		assertThat(listed).containsExactlyInAnyOrder(expected.split(","));
 	}
 
+	/** The application of the scenario, for other identity steps. */
+	ConfigurableApplicationContext application() {
+		return this.application;
+	}
+
 	String sessionToken() {
 		return this.sessionToken;
 	}

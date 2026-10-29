@@ -6,6 +6,7 @@ import io.oea.app.access.AccessConflictException;
 import io.oea.app.access.InvalidAccessRequestException;
 import io.oea.app.access.LastAdminPathException;
 import io.oea.app.access.SelfAdministrationException;
+import io.oea.app.access.SodConflictException;
 import io.oea.app.catalog.InvalidCatalogException;
 import io.oea.app.catalog.InvalidCatalogQueryException;
 import io.oea.app.entity.AtomicBatchFailedException;
@@ -112,6 +113,12 @@ public class ApiExceptionHandler {
 			.body(problem(HttpStatus.CONFLICT, "conflict", "Conflict", ex.getMessage()));
 	}
 
+	@ExceptionHandler(SodConflictException.class)
+	ResponseEntity<ProblemDetail> sodConflict(SodConflictException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+			.body(problem(HttpStatus.CONFLICT, "sod-conflict", "Separation of duties conflict", ex.getMessage()));
+	}
+
 	@ExceptionHandler(LastAdminPathException.class)
 	ResponseEntity<ProblemDetail> lastAdminPath(LastAdminPathException ex) {
 		return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -121,7 +128,7 @@ public class ApiExceptionHandler {
 	@ExceptionHandler(SelfAdministrationException.class)
 	ResponseEntity<ProblemDetail> selfAdministration(SelfAdministrationException ex) {
 		ProblemDetail problem = problem(HttpStatus.FORBIDDEN, "forbidden", "Forbidden",
-				"A group of your own current sign-in cannot be mapped by you (separation of duties).");
+				"You cannot administer your own access, neither your own groups nor your own roles (separation of duties).");
 		problem.setProperty("reason", "self-administration");
 		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
 	}

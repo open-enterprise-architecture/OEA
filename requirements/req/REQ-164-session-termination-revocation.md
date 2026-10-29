@@ -4,9 +4,9 @@ title: Session termination and server-side revocation
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-10-13
-last_updated: 2026-10-13
+last_updated: 2026-10-29
 author: requirements-engineer
 references:
   use_cases:
@@ -106,6 +106,7 @@ Source: security review SEC-06, SEC-12, SEC-25 (proposal PR-08). REQ-083 already
 
 ## Implementation Notes
 
+- AC3 implemented for local role assignments by OpenSpec change `us-144-local-role-assignments`: a revocation revokes all sessions of the person immediately (reason `role-change`), and permission sets are cached for at most 60 seconds; roles from IdP group mappings follow the re-evaluation rules of REQ-165 AC5. AC1 is implemented (`identity/sessions`); AC2 follows with the person lifecycle (US-148); AC4 with the password reset (REQ-031).
 - The event stream must authenticate without long-lived tokens in the URL (follow-up for API contract/ADR-013)
 
 ## Change History
@@ -113,3 +114,4 @@ Source: security review SEC-06, SEC-12, SEC-25 (proposal PR-08). REQ-083 already
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-06/12/25 (PR-08) |
+| 0.2.0 | 2026-10-29 | requirements-engineer | Implementation note: AC3 for local role assignments (change `us-144-local-role-assignments`) |

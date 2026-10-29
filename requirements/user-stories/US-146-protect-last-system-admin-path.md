@@ -2,8 +2,9 @@
 
 **ID**: US-146
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S4
+**Implementation**: OpenSpec change `us-144-local-role-assignments` – one SoD-7 check under an advisory lock for revoking assignments, deactivating the local system admin account and deleting, deactivating or retargeting IdP group mappings
 
 ## Story
 
@@ -69,5 +70,7 @@ As Max – Operator, I want the system to reject any change that would leave the
 - Blocks: –
 
 ## Notes
+
+Realigned by OpenSpec change `us-144-local-role-assignments`: AC2 – the contract has no operation that changes an existing assignment; `validTo` is set only at creation, and an assignment with `validTo` never counts as a usable path, so its expiry cannot remove the last path. AC3 – a `system-admin` assignment without `validTo` of an active person counts as another path. AC5 (person status change) follows with US-148, which uses the same check. A mapping counts as a path only after it has granted the role in a login (us-019-admin-safeguards).
 
 Walking skeleton (S1–S2) covers AC1, AC2 and AC4; AC3 and AC5 follow with the system admin account deactivation and person lifecycle stories. Deletion of an IdP group mapping to `system-admin` is covered in US-147.

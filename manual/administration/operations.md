@@ -118,9 +118,9 @@ curl "${auth[@]}" -X POST "$OEA/admin/system-admin-account/deactivate"
 ```
 
 - The account's sessions end at once and its password no longer works; logins through the identity provider are not affected.
-- OEA refuses the deactivation with `409` and problem type `urn:oea:problem:last-admin-path` as long as no other working path to system administration exists: an active mapping of an active provider to `system-admin` that has granted the role in at least one login (`lastMatchedAt`). Have a member of the group log in shortly before you deactivate the account.
+- OEA refuses the deactivation with `409` and problem type `urn:oea:problem:last-admin-path` as long as no other working path to system administration exists: an active mapping of an active provider to `system-admin` that has granted the role in at least one login (`lastMatchedAt`), or a `system-admin` assignment without `validTo` of an active person (see [Assign roles to a single person](./roles-and-permissions#assign-roles-to-a-single-person)). If you rely on a group, have a member of the group log in shortly before you deactivate the account.
 - Both the deactivation and a refused attempt are recorded in the audit trail (`system-admin-account.deactivated`).
-- Deleting the last mapping to `system-admin` is not refused yet. If you lock yourself out, use the recovery below.
+- The same check refuses revoking the last `system-admin` assignment and deleting, deactivating or retargeting the last working mapping to `system-admin`. If you still lock yourself out, for example because the members of the group left it at the provider, use the recovery below.
 
 ## Recover administrator access {#recover-administrator-access}
 

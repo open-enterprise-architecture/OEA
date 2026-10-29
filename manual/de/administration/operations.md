@@ -118,9 +118,9 @@ curl "${auth[@]}" -X POST "$OEA/admin/system-admin-account/deactivate"
 ```
 
 - Die Sitzungen des Kontos enden sofort, und sein Passwort funktioniert nicht mehr; Anmeldungen über den Identity-Provider sind nicht betroffen.
-- OEA lehnt die Deaktivierung mit `409` und dem Problemtyp `urn:oea:problem:last-admin-path` ab, solange es keinen anderen funktionierenden Weg zur Systemadministration gibt: eine aktive Zuordnung eines aktiven Providers zu `system-admin`, die die Rolle bei mindestens einer Anmeldung vergeben hat (`lastMatchedAt`). Lass kurz vor der Deaktivierung ein Mitglied der Gruppe sich anmelden.
+- OEA lehnt die Deaktivierung mit `409` und dem Problemtyp `urn:oea:problem:last-admin-path` ab, solange es keinen anderen funktionierenden Weg zur Systemadministration gibt: eine aktive Zuordnung eines aktiven Providers zu `system-admin`, die die Rolle bei mindestens einer Anmeldung vergeben hat (`lastMatchedAt`), oder eine `system-admin`-Zuweisung ohne `validTo` an eine aktive Person (siehe [Rollen einer einzelnen Person zuweisen](./roles-and-permissions#assign-roles-to-a-single-person)). Verlässt du dich auf eine Gruppe, lass kurz vor der Deaktivierung ein Mitglied der Gruppe sich anmelden.
 - Die Deaktivierung und ein abgelehnter Versuch stehen im Audit-Trail (`system-admin-account.deactivated`).
-- Das Löschen der letzten Zuordnung zu `system-admin` wird noch nicht abgelehnt. Sperrst du dich aus, hilft die Wiederherstellung unten.
+- Dieselbe Prüfung lehnt den Entzug der letzten `system-admin`-Zuweisung und das Löschen, Deaktivieren oder Umhängen der letzten funktionierenden Zuordnung zu `system-admin` ab. Sperrst du dich trotzdem aus, etwa weil die Mitglieder der Gruppe sie beim Provider verlassen haben, hilft die Wiederherstellung unten.
 
 ## Administratorzugang wiederherstellen {#recover-administrator-access}
 

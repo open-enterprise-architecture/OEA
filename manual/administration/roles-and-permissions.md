@@ -2,7 +2,7 @@
 title: Roles and permissions
 covers:
   screens: []
-  stories: [US-014, US-018, US-143, US-147]
+  stories: [US-014, US-018, US-143, US-144, US-146, US-147]
 ---
 
 # Roles and permissions
@@ -48,6 +48,27 @@ You don't need the local system admin account once your administrators sign in t
 1. Map the administrators' group to the role `system-admin` (see above). Its members need a second factor at the provider, otherwise the role is not effective.
 2. Have a member of the group log in. The mapping's `lastMatchedAt` is then set, and only from then on does it count as a working path to system administration.
 3. Deactivate the local system admin account (see [Deactivate the local system admin account](./operations#deactivate-the-local-system-admin-account)). OEA refuses this as long as no mapping to `system-admin` has worked in a login.
+
+## Assign roles to a single person {#assign-roles-to-a-single-person}
+
+Besides IdP groups, you can assign a role to one person directly (you need `role:assign`). Read the role first to see what it grants: `GET /admin/roles/{roleId}` lists its permissions and whether it is privileged.
+
+```bash
+curl "${auth[@]}" "$OEA/admin/roles/enterprise-architect"
+curl "${auth[@]}" -d '{"roleId": "enterprise-architect", "validTo": "2027-06-30T23:59:59Z", "reason": "TICKET-123"}' \
+  "$OEA/admin/persons/<person-id>/role-assignments"
+curl "${auth[@]}" -X POST -d '{"reason": "left the project"}' \
+  "$OEA/admin/persons/<person-id>/role-assignments/<assignment-id>/revoke"
+```
+
+- The role applies to the person's sessions within a minute. A privileged role applies only in a session confirmed with a second factor.
+- `validFrom` (default: now) and `validTo` (optional) limit the assignment in time. After `validTo` the role no longer applies. The expiry is recorded in the audit trail.
+- An assignment to an invited person takes effect at the person's first login.
+- A revocation keeps the assignment with `revokedAt` and `revokedBy` in the history and ends all sessions of the person; the next login has only the remaining roles. `GET …/role-assignments?status=revoked,expired` shows the history.
+- You cannot assign or revoke your own roles (`403`, separation of duties). Service accounts only get roles meant for them (`422`).
+- Giving one person both metamodel administration (`metamodel:write`) and visibility administration is allowed in small teams, but only with `"acknowledgeSodConflict": true`; without it the request is answered with `409` (`sod-conflict`), and the assignment is flagged with `sodConflict`.
+- At least one way to administer the instance always remains: revoking a `system-admin` assignment, deactivating the local system admin account, or deleting, deactivating or retargeting an IdP group mapping to `system-admin` is refused with `409` (`last-admin-path`) if it would leave none. Ways that count are the active local account, a mapping that has granted the role in a login, and a `system-admin` assignment without `validTo` of an active person.
+- Assignments and revocations are recorded in the audit trail (`role.assigned`, `role.revoked`, `role.assignment-expired`).
 
 ## When group membership changes
 
