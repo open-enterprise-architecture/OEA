@@ -213,6 +213,9 @@ components:
         a separation-of-duties rule forbids the action (e.g. self-administration, SoD-1),
         or a privileged role is not effective because the session lacks a second factor
         (SoD-8). The problem body is generic and does not reveal the missing permission.
+        A session created with a temporary password answers every operation except
+        `GET /me`, the logout and `POST /me/password` with problem type
+        `urn:oea:problem:password-change-required` (REQ-173 AC2).
         If the principal holds no effective role at all, the header
         `OEA-Purge-Local-Data: access-revoked` is set.
       headers:
@@ -2090,6 +2093,33 @@ components:
         principal:    { $ref: '#/components/schemas/PrincipalRef' }
         mfaSatisfied: { type: boolean }
         csrfToken:    { type: string, description: "Value for the `X-XSRF-TOKEN` header" }
+        requiredAction: { $ref: '#/components/schemas/RequiredAction' }
+
+    RequiredAction:
+      type: [string, 'null']
+      enum: [change-password, null]
+      description: |
+        `change-password`: the session was created with a temporary password; only `GET /me`,
+        the logout and `POST /me/password` are allowed until the password is changed (REQ-173 AC2)
+
+    InitialPassword:
+      type: object
+      required: [password]
+      properties:
+        password: { type: string, writeOnly: true, description: "12 to 128 characters; otherwise `422`" }
+
+    InitialPasswordResult:
+      type: object
+      required: [expiresAt]
+      properties:
+        expiresAt: { type: string, format: date-time, description: The initial password must be used and changed before this time }
+
+    PasswordChange:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword: { type: string, maxLength: 128, writeOnly: true }
+        newPassword:     { type: string, writeOnly: true, description: "12 to 128 characters and different from the current password; otherwise `422`" }
 
     LoginProblem:
       allOf:
@@ -2186,6 +2216,7 @@ components:
         mfaSatisfied:
           type: boolean
           description: The session was established with a second factor (SoD-8)
+        requiredAction: { $ref: '#/components/schemas/RequiredAction' }
         roles:
           type: array
           items:
@@ -2680,14 +2711,23 @@ paths:
   /auth/local/login:
     post:
       operationId: localLogin
-      summary: Local login of the system admin account (US-013 AC2, ADR-042)
+      summary: Local login of the system admin account and of persons (US-013 AC2, US-011, ADR-042)
       description: |
-        Login name and password. During the setup phase (ADR-042) a correct password
+        Login name and password. A `loginName` containing `@` is the e-mail address of a
+        person; it is accepted only while the operator has switched on password login of
+        persons (`oea.auth.person-password.enabled`), for persons in status `invited` or
+        `active` with an unexpired password. The first login of an invited person makes it
+        `active`. A person's session is never second-factor-verified (SoD-8); a temporary
+        password yields `requiredAction: change-password` (REQ-173 AC2).
+
+        For the system admin account: during the setup phase (ADR-042) a correct password
         creates the session. Afterwards the response is `401` with problem type
         `urn:oea:problem:second-factor-required` and a `loginTransaction`, which
         `POST /auth/local/login/totp` completes with a TOTP code. Wrong login name and
         wrong password produce the same `401 urn:oea:problem:invalid-credentials`;
-        repeated failures are throttled (REQ-168). Protected by an origin check (REQ-187).
+        repeated failures are throttled (REQ-168). Every failed login runs one password hash
+        verification, so response times reveal no account (REQ-006). Protected by an origin
+        check (REQ-187).
       tags: [Identity]
       security: []
       x-oea-authorization: {"access": "public"}
@@ -2851,6 +2891,38 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
 
+
+  /me/password:
+    post:
+      operationId: changeOwnPassword
+      summary: Change the own local password (REQ-173 AC2, UC-03)
+      description: |
+        For persons with a local password and the system admin account. Requires the current
+        password; the new one (12–128 characters) must differ from it. Stores it as self-set
+        without expiry, lifts `requiredAction: change-password` of the session and revokes
+        every other session of the principal. A wrong current password → `403` with problem
+        type `urn:oea:problem:invalid-credentials`, counted by the login throttling (REQ-168).
+        Audited as `auth.password-changed`.
+      tags: [Identity]
+      x-oea-authorization: {"access": "authenticated"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PasswordChange' }
+      responses:
+        '204':
+          description: Password changed
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: Wrong current password (`invalid-credentials`), or the principal has no local password
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
   /me/second-factors/totp:
     post:
       operationId: startTotpEnrollment
@@ -4766,6 +4838,50 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /admin/persons/{personId}/password:
+    post:
+      operationId: setInitialPassword
+      summary: Set the initial password of a person (US-023, REQ-024)
+      description: |
+        Only while the operator has switched on password login of persons. Stores the
+        password as argon2id with origin `initial`; it expires after
+        `oea.auth.temporary-password-validity` (default 72 h) and must be changed at the
+        first login (REQ-173 AC1/AC2). The password is never returned or logged. Audited as
+        `person.password-set`.
+        - Person already has a password → `409` with problem type
+          `urn:oea:problem:password-already-set`; password login of persons off → `409`
+          (`conflict`)
+        - Own person → `403` with `reason: self-administration` (SoD-1)
+        - Service account, person not `invited`/`active`, or a password outside 12–128
+          characters → `422`
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
+      parameters:
+        - $ref: '#/components/parameters/PersonIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InitialPassword' }
+      responses:
+        '200':
+          description: Initial password set
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InitialPasswordResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Password already set (`password-already-set`) or password login of persons off (`conflict`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/persons/{personId}/status:

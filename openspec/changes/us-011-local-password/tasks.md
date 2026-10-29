@@ -3,14 +3,14 @@
 ## 1. Contract and migration
 
 - [ ] 1.1 Update `api/openapi.yaml` as in the API section of the design (`setInitialPassword`, `changeOwnPassword`, `localLogin` description, `requiredAction` on `LoginResult` and `Me`, problem type `password-change-required`); verify Redocly lint, `scripts/check_openapi_authorization.py`, the backend compiles and `npm run generate:api` succeeds in `frontend/` and `manual/`
-- [ ] 1.2 Flyway migration `V10__person_passwords.sql` (D3); verify with a schema test: the owner check rejects no owner and two owners, a second active password of a person is rejected, and the existing credential tests pass
+- [x] 1.2 Flyway migration `V10__person_passwords.sql` (D3); verify with a schema test: the owner check rejects no owner and two owners, a second active password of a person is rejected, and the existing credential tests pass
 
 ## 2. Backend (US-011, US-023, US-006 AC2)
 
-- [ ] 2.1 Add the properties of D1 with startup validation and `PersonPasswords.setInitial` with the operation of D7; verify with integration tests for "Initial password set" (no password in response, audit or captured logs), "Password already set", "Own person and service account", the switch off (409) and a password outside the length limits (422)
-- [ ] 2.2 Extend `LocalLogin` with the person branch of D2 and the required action of D4 (`OeaPrincipal`, interceptor, `LoginResult`, `Me`); verify with integration tests for "Fresh instance", "Login with a self-chosen password", "Throttled like the system admin account", "Expired initial password", "First login with the initial password" and that the existing local-login tests of the system admin account pass unchanged
-- [ ] 2.3 Add `changeOwnPassword` (D5); verify with integration tests for "Password changed" (other sessions revoked, old password refused), a wrong current password (403, counted by the throttle), an unchanged new password (422), and the system admin account changing its password
-- [ ] 2.4 Verify D6 with a unit test of `LocalLogin` that counts the hash verifications for unknown name, switch off, person not active, expired credential and wrong password ("Unknown and existing accounts")
+- [x] 2.1 Add the properties of D1 with startup validation and `PersonPasswords.setInitial` with the operation of D7; verify with integration tests for "Initial password set" (no password in response, audit or captured logs), "Password already set", "Own person and service account", the switch off (409) and a password outside the length limits (422)
+- [x] 2.2 Extend `LocalLogin` with the person branch of D2 and the required action of D4 (`OeaPrincipal`, interceptor, `LoginResult`, `Me`); verify with integration tests for "Fresh instance", "Login with a self-chosen password", "Throttled like the system admin account", "Expired initial password", "First login with the initial password" and that the existing local-login tests of the system admin account pass unchanged
+- [x] 2.3 Add `changeOwnPassword` (D5); verify with integration tests for "Password changed" (other sessions revoked, old password refused), a wrong current password (403, counted by the throttle), an unchanged new password (422), and the system admin account changing its password
+- [x] 2.4 Verify D6 with a unit test of `LocalLogin` that counts the hash verifications for unknown name, switch off, person not active, expired credential and wrong password ("Unknown and existing accounts")
 - [ ] 2.5 Cucumber scenarios in `identity/person-password.feature` (new) for US-011 AC1/AC2/AC3, US-023 AC1/AC3 and US-006 AC1; verify they pass through `CucumberIT`
 
 ## 3. Frontend and screens (D8)

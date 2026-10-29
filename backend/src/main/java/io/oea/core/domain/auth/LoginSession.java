@@ -58,6 +58,9 @@ public class LoginSession extends NewAwareEntity<UUID> {
 	@Column(name = "user_agent", updatable = false)
 	private String userAgent;
 
+	@Column(name = "required_action")
+	private String requiredAction;
+
 	@Column(name = "revoked_at")
 	private Instant revokedAt;
 
@@ -132,6 +135,26 @@ public class LoginSession extends NewAwareEntity<UUID> {
 		session.clientIp = clientIp;
 		session.userAgent = (userAgent != null && userAgent.length() > 500) ? userAgent.substring(0, 500) : userAgent;
 		return session;
+	}
+
+	/**
+	 * New session of a person after a local password login (US-011): never second-factor-verified;
+	 * {@code requiredAction} is {@code change-password} after a temporary password (REQ-173).
+	 */
+	public static LoginSession forPersonPassword(long personId, byte[] tokenHash, String requiredAction, Instant now,
+			Duration absoluteLifetime, String clientIp, String userAgent) {
+		LoginSession session = forPerson(personId, null, tokenHash, false, now, absoluteLifetime, clientIp, userAgent);
+		session.authMethod = "password";
+		session.requiredAction = requiredAction;
+		return session;
+	}
+
+	public void clearRequiredAction() {
+		this.requiredAction = null;
+	}
+
+	public String getRequiredAction() {
+		return this.requiredAction;
 	}
 
 	/** Additional authenticated data that binds the encrypted IdP refresh token to this row. */

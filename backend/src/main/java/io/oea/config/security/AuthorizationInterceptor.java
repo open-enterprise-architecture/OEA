@@ -43,6 +43,10 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
 		return (id instanceof String value) ? value : null;
 	}
 
+	/** Operations a session with a required password change may call (design D4 of us-011-local-password). */
+	private static final Set<String> PASSWORD_CHANGE_OPERATIONS = Set.of("getCurrentPrincipal", "logout",
+			"changeOwnPassword");
+
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
 			throws Exception {
@@ -63,6 +67,13 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
 			return false;
 		}
 		OeaPrincipal principal = session.getPrincipal();
+		if (OeaPrincipal.CHANGE_PASSWORD.equals(principal.requiredAction())
+				&& !PASSWORD_CHANGE_OPERATIONS.contains(rule.operationId())) {
+			// REQ-173 AC2: a temporary password only leads to the password change
+			Problems.write(response, HttpServletResponse.SC_FORBIDDEN, "password-change-required",
+					"Password change required");
+			return false;
+		}
 		Set<String> granted = this.permissions.permissions(principal);
 		if (!rule.allows(granted)) {
 			this.denials.record(principal, rule.operationId(), null, targetId(request),

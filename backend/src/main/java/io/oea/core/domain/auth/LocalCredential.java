@@ -17,7 +17,7 @@ public class LocalCredential extends NewAwareEntity<UUID> {
 	@Id
 	private UUID id;
 
-	@Column(name = "system_admin_account_id", nullable = false, updatable = false)
+	@Column(name = "system_admin_account_id", updatable = false)
 	private UUID systemAdminAccountId;
 
 	@Column(nullable = false, updatable = false)

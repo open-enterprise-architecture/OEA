@@ -4,6 +4,8 @@ import io.oea.api.generated.AccessControlApi;
 import io.oea.api.generated.model.AuthorizationRole;
 import io.oea.api.generated.model.IdpGroupMapping;
 import io.oea.api.generated.model.IdpGroupMappingWrite;
+import io.oea.api.generated.model.InitialPassword;
+import io.oea.api.generated.model.InitialPasswordResult;
 import io.oea.api.generated.model.MappingWarning;
 import io.oea.api.generated.model.Permission;
 import io.oea.api.generated.model.Person;
@@ -19,6 +21,7 @@ import io.oea.api.generated.model.RoleRef;
 import io.oea.app.access.AccessCatalog;
 import io.oea.app.access.IdpGroupMappings;
 import io.oea.app.access.PersonLifecycle;
+import io.oea.app.access.PersonPasswords;
 import io.oea.app.access.Persons;
 import io.oea.app.access.RoleAssignments;
 import io.oea.app.security.OeaPrincipal;
@@ -56,14 +59,24 @@ public class AccessControlController implements AccessControlApi {
 
 	private final PersonLifecycle lifecycle;
 
+	private final PersonPasswords passwords;
+
 	public AccessControlController(AccessCatalog catalog, ContractAuthorizationRules rules, Persons persons,
-			IdpGroupMappings mappings, RoleAssignments assignments, PersonLifecycle lifecycle) {
+			IdpGroupMappings mappings, RoleAssignments assignments, PersonLifecycle lifecycle,
+			PersonPasswords passwords) {
 		this.catalog = catalog;
 		this.rules = rules;
 		this.persons = persons;
 		this.mappings = mappings;
 		this.assignments = assignments;
 		this.lifecycle = lifecycle;
+		this.passwords = passwords;
+	}
+
+	@Override
+	public ResponseEntity<InitialPasswordResult> setInitialPassword(Integer personId, InitialPassword request) {
+		return ResponseEntity
+			.ok(new InitialPasswordResult(time(this.passwords.setInitial(principal(), personId, request.getPassword()))));
 	}
 
 	@Override
