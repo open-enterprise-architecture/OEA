@@ -449,6 +449,11 @@ package "Authorization" #FFFDE7 {
     + revoked_by_person_id : BIGINT       {FK→persons.id}
     + revoked_by_admin_id  : UUID         {FK→system_admin_accounts.id}
     + revocation_reason : TEXT
+    == Flags ==
+    + sod_conflict     : BOOLEAN          {NN} DEFAULT false
+    .. SoD-3 combination acknowledged at creation ..
+    + expiry_recorded_at : TIMESTAMPTZ
+    .. set once when role.assignment-expired was audited (job) ..
   }
 
   note right of role_assignments

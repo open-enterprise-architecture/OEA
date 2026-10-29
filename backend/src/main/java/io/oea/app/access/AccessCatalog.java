@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -55,6 +56,18 @@ public class AccessCatalog {
 			}
 		});
 		return roles;
+	}
+
+	/**
+	 * One role with its permissions (role preview, design D7 of us-144-local-role-assignments).
+	 * @throws NoSuchElementException for an unknown or deleted role
+	 */
+	@Transactional(readOnly = true)
+	public RoleEntry role(String roleId) {
+		return roles(null).stream()
+			.filter((role) -> role.id().equals(roleId))
+			.findFirst()
+			.orElseThrow(() -> new NoSuchElementException("no role " + roleId));
 	}
 
 }

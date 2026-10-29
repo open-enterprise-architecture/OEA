@@ -51,6 +51,8 @@ public class IdpGroupMappings {
 
 	private final PermissionDenials denials;
 
+	private final AdministrationPaths paths;
+
 	/** Who created a mapping, for {@code createdBy}. */
 	public record Creator(boolean systemAdminAccount, Long personId, String displayName) {
 	}
@@ -65,7 +67,8 @@ public class IdpGroupMappings {
 	public static final String GROUP_NOT_SEEN = "group-not-seen";
 
 	public IdpGroupMappings(IdpGroupMappingRepository mappings, AuthProviderRepository providers,
-			SetupPhase setupPhase, AuditWriter audit, JdbcTemplate jdbc, Clock clock, PermissionDenials denials) {
+			SetupPhase setupPhase, AuditWriter audit, JdbcTemplate jdbc, Clock clock, PermissionDenials denials,
+			AdministrationPaths paths) {
 		this.mappings = mappings;
 		this.providers = providers;
 		this.setupPhase = setupPhase;
@@ -73,6 +76,7 @@ public class IdpGroupMappings {
 		this.jdbc = jdbc;
 		this.clock = clock;
 		this.denials = denials;
+		this.paths = paths;
 	}
 
 	@Transactional(readOnly = true)
@@ -149,6 +153,10 @@ public class IdpGroupMappings {
 		boolean sameGroup = provider.getIssuer().equals(mapping.getIssuer())
 				&& identifier.equals(mapping.getGroupIdentifier()) && roleId.equals(mapping.getRoleId());
 		Instant lastMatchedAt = sameGroup ? mapping.getLastMatchedAt() : null;
+		// SoD-7: a usable mapping stays usable only if it keeps its group, its role and stays active
+		if (this.paths.isUsableMapping(mappingId) && !(sameGroup && active && SYSTEM_ADMIN.equals(roleId))) {
+			this.paths.requireRemainingPath(AdministrationPaths.Removal.mapping(mappingId));
+		}
 		if (!sameGroup) {
 			// a match of another group or role is no evidence for the changed mapping (SoD-7 path)
 			this.jdbc.update("UPDATE idp_group_mappings SET last_matched_at = NULL WHERE id = ?", mappingId);
@@ -162,6 +170,9 @@ public class IdpGroupMappings {
 	@Transactional
 	public void delete(OeaPrincipal principal, UUID mappingId) {
 		IdpGroupMapping mapping = live(mappingId);
+		if (this.paths.isUsableMapping(mappingId)) {
+			this.paths.requireRemainingPath(AdministrationPaths.Removal.mapping(mappingId));
+		}
 		mapping.delete(principal.systemAdminAccountId(), principal.personId(), this.clock.instant());
 		append(principal, "idp-mapping.deleted", mapping);
 	}

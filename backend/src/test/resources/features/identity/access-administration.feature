@@ -1,6 +1,6 @@
 # Spec: openspec identity/access-administration
 # Source material: requirements/user-stories/US-147-map-idp-group-to-role.md (AC1, AC4, AC7), ADR-042;
-# US-018 (AC1, AC2), US-019 (AC2, adjusted to SoD-7)
+# US-018 (AC1, AC2), US-019 (AC2, adjusted to SoD-7), US-146 (AC1, AC4)
 
 @US-147 @UC-23
 Feature: Access administration through the API
@@ -113,3 +113,17 @@ Feature: Access administration through the API
     Then the request is rejected with status 409 and problem type "last-admin-path"
     And the local system admin account is still usable
     And the audit trail contains the event "system-admin-account.deactivated"
+
+  @US-146 @AC1 @AC4 @SoD-7
+  Scenario: Revoking the last holder and another path
+    Given the session is confirmed with a second factor
+    And an active person "Erika" without any role has a session
+    And an active person "Paul" without any role has a session
+    And the system admin has assigned "system-admin" to "Erika"
+    And an active person "Max" holding "security-admin" has a session confirmed with a second factor
+    And the local system admin account is deactivated
+    When "Max" revokes the assignment of "system-admin" to "Erika"
+    Then the request is rejected with status 409 and problem type "last-admin-path"
+    When "Max" assigns "system-admin" to "Paul"
+    And "Max" revokes the assignment of "system-admin" to "Erika"
+    Then the revocation succeeds

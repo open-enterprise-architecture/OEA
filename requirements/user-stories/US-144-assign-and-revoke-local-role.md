@@ -2,8 +2,9 @@
 
 **ID**: US-144
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S4
+**Implementation**: OpenSpec change `us-144-local-role-assignments` – `listRoleAssignments`, `createRoleAssignment`, `revokeRoleAssignment`, `getAuthorizationRole`; table `role_assignments`
 
 ## Story
 
@@ -75,5 +76,7 @@ As Max – Operator acting as security administrator, I want to assign a built-i
 - Blocks: US-145, US-146, US-148, US-150
 
 ## Notes
+
+AC2 realigned by OpenSpec change `us-144-local-role-assignments`: there is no admin UI; the preview is `GET /admin/roles/{roleId}` (`getAuthorizationRole`) with the permissions of the role and its `privileged` flag. Four-eyes approval of privileged assignments (US-150) is not part of this change.
 
 Walking skeleton (S1–S2): the bootstrap system admin account assigns built-in roles. The access review (UC-23 A8), custom roles (A5) and the SoD-3 flag (A6) are covered by later stories.

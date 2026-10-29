@@ -196,6 +196,40 @@ The break-glass command `admin recover` restored the local system admin account 
 | Target | `system-admin-account`, ID of the account |
 | Details | `reactivated`, `secondFactorReplaced`, `sessionsRevoked` (count); never the password or the TOTP secret |
 
+### `role.assigned`
+
+A role was assigned locally to a person ([US-144](../requirements/user-stories/US-144-assign-and-revoke-local-role.md), ADR-032 §7).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` for a privileged role, otherwise `info` / `success` |
+| Actor | the administrator |
+| Target | `role-assignment`, ID of the assignment |
+| Details | `personId`, `roleId`, `validFrom`, `validTo` if set, `reason` if set, `sodConflict` |
+
+### `role.revoked`
+
+A local assignment was revoked; all sessions of the person were revoked with it (REQ-164).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` for a privileged role, otherwise `info` / `success` |
+| Actor | the administrator |
+| Target | `role-assignment`, ID of the assignment |
+| Details | `personId`, `roleId`, `reason` if given, `sessionsRevoked` (count) |
+
+### `role.assignment-expired`
+
+A local assignment reached its `validTo`; written once by a job that runs every minute. The role stops applying at `validTo` regardless of when the event is written.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `info` / `success` |
+| Source | `Job` |
+| Actor | `system` |
+| Target | `role-assignment`, ID of the assignment |
+| Details | `personId`, `roleId`, `validTo` |
+
 ### `auth-provider.changed`
 
 An OIDC provider was created or changed through the admin API (REQ-175, [REQ-188](../requirements/req/REQ-188-secrets-key-management.md)).
