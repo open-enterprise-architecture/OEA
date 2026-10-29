@@ -63,13 +63,23 @@ describe('LoginPage', () => {
     expect(currentCsrfToken()).toBe('csrf-1')
   })
 
+  it('opens the password change after a login with a temporary password (US-011, REQ-173 AC2)', async () => {
+    const fetchFn = routedFetch({
+      '/api/v1/auth/local/login': { status: 201, body: { ...LOGIN_RESULT, requiredAction: 'change-password' } },
+      '/api/v1/me': { body: { ...ME, requiredAction: 'change-password' } },
+    })
+    const { wrapper, router } = await mountPage(fetchFn)
+    await submitPassword(wrapper)
+    expect(router.currentRoute.value.path).toBe('/me/password')
+  })
+
   it('shows one generic message for wrong credentials', async () => {
     const { wrapper } = await mountPage(
       routedFetch({ '/api/v1/auth/local/login': problem(401, 'invalid-credentials') }),
     )
     await submitPassword(wrapper)
     expect(wrapper.get('[data-testid="login-failure"]').text()).toContain(
-      'Login failed. Check the login name and the password.',
+      'Login failed. Check the user name or e-mail address and the password.',
     )
     expect(
       (wrapper.get('[data-testid="password"] input, input[data-testid="password"]').element as HTMLInputElement).value,

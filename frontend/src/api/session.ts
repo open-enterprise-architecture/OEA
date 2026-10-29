@@ -123,3 +123,16 @@ export async function confirmTotpEnrollment(
   }
   return { ok: false, rejection: await readRejection(response) }
 }
+
+/** POST /me/password: changes the own local password (REQ-173 AC2); ends every other session. */
+export async function changeOwnPassword(
+  currentPassword: string,
+  newPassword: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<void>> {
+  const response = await post('/api/v1/me/password', { currentPassword, newPassword }, fetchFn)
+  if (response.status === 204) {
+    return { ok: true, value: undefined }
+  }
+  return { ok: false, rejection: await readRejection(response) }
+}

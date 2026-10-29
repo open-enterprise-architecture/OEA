@@ -84,10 +84,19 @@ public class LocalLoginSteps {
 
 	@Given("a bootstrapped OEA instance in its setup phase with the system admin {string}")
 	public void bootstrappedInstance(String loginName) throws Exception {
+		bootstrappedInstance(loginName, new String[0]);
+	}
+
+	@Given("a bootstrapped OEA instance in its setup phase with the system admin {string} and password login of persons switched on")
+	public void bootstrappedInstanceWithPersonPasswords(String loginName) throws Exception {
+		bootstrappedInstance(loginName, new String[] { "--oea.auth.person-password.enabled=true" });
+	}
+
+	private void bootstrappedInstance(String loginName, String[] arguments) throws Exception {
 		this.postgres = OeaDatabases.freshMigrated();
 		Path tokenFile = Files.createTempDirectory("oea-run").resolve("setup-token");
 		this.logs = LogCapture.attach();
-		this.application = OeaApplications.start(this.postgres, tokenFile, WebApplicationType.SERVLET);
+		this.application = OeaApplications.start(this.postgres, tokenFile, WebApplicationType.SERVLET, arguments);
 		String token = Files.readString(tokenFile).strip();
 		this.loginName = loginName;
 		this.password = secret(24);
@@ -422,6 +431,11 @@ public class LocalLoginSteps {
 				"SELECT string_agg(permission_id, ',' ORDER BY permission_id) FROM role_permissions WHERE role_id = '"
 						+ role + "'");
 		assertThat(listed).containsExactlyInAnyOrder(expected.split(","));
+	}
+
+	/** Captured application log of the scenario, for other identity steps. */
+	String logText() {
+		return this.logs.text();
 	}
 
 	/** The application of the scenario, for other identity steps. */
