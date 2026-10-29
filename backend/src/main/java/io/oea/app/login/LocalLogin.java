@@ -1,7 +1,8 @@
 package io.oea.app.login;
 
-import io.oea.app.security.SetupPhase;
+import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
+import io.oea.app.security.SetupPhase;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
 import io.oea.config.secrets.SecretCipher;
@@ -9,8 +10,10 @@ import io.oea.core.domain.auth.LocalCredential;
 import io.oea.core.domain.auth.PasswordCredential;
 import io.oea.core.domain.auth.SystemAdminAccount;
 import io.oea.core.domain.auth.TotpCredential;
+import io.oea.core.domain.person.Person;
 import io.oea.core.repository.LocalCredentialRepository;
 import io.oea.core.repository.PasswordCredentialRepository;
+import io.oea.core.repository.PersonRepository;
 import io.oea.core.repository.SystemAdminAccountRepository;
 import io.oea.core.repository.TotpCredentialRepository;
 import io.oea.core.service.PasswordHasher;
@@ -24,6 +27,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -34,7 +38,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Local login of the system admin account (design D5): password, and after the setup phase
- * (ADR-042) a TOTP step through a login transaction.
+ * (ADR-042) a TOTP step through a login transaction. Persons log in with their e-mail address
+ * and password while the operator allows it (us-011-local-password).
  */
 @Service
 public class LocalLogin {
@@ -71,10 +76,14 @@ public class LocalLogin {
 
 	private final String dummyHash;
 
+	private final PersonPasswordProperties personPasswords;
+
+	private final PersonRepository persons;
+
 	public LocalLogin(SystemAdminAccountRepository accounts, PasswordCredentialRepository passwords,
 			LocalCredentialRepository credentials, TotpCredentialRepository totps, PasswordHasher hasher,
 			SecretCipher cipher, LoginThrottle throttle, SetupPhase setupPhase, Sessions sessions, AuditWriter audit,
-			JdbcTemplate jdbc, Clock clock) {
+			JdbcTemplate jdbc, Clock clock, PersonPasswordProperties personPasswords, PersonRepository persons) {
 		this.accounts = accounts;
 		this.passwords = passwords;
 		this.credentials = credentials;
@@ -88,6 +97,8 @@ public class LocalLogin {
 		this.jdbc = jdbc;
 		this.clock = clock;
 		this.dummyHash = hasher.hash("timing-equalizer-" + UUID.randomUUID());
+		this.personPasswords = personPasswords;
+		this.persons = persons;
 	}
 
 	/** Client data of the request, for the session and the throttling. */
@@ -106,13 +117,16 @@ public class LocalLogin {
 		if (wait > 0) {
 			throw new InvalidCredentialsException(wait);
 		}
+		if (loginName != null && loginName.contains("@")) {
+			// system admin login names cannot contain "@": the name is a person's e-mail address (D2)
+			return loginPerson(loginName, password, client);
+		}
 		Optional<SystemAdminAccount> account = (loginName != null) ? this.accounts.findByLoginName(loginName)
 				: Optional.empty();
 		Optional<PasswordCredential> credential = account.filter(SystemAdminAccount::canLogIn)
 			.flatMap((a) -> this.passwords.findActiveForSystemAdmin(a.getId()));
 		String hash = credential.map(PasswordCredential::getPasswordHash).orElse(this.dummyHash);
-		boolean valid = password != null && password.length() <= PasswordHasher.MAXIMUM_LENGTH
-				&& this.hasher.matches(password, hash) && credential.isPresent();
+		boolean valid = verify(password, hash) && credential.isPresent();
 		if (!valid) {
 			fail(loginName, client);
 		}
@@ -125,6 +139,69 @@ public class LocalLogin {
 			throw new SecondFactorRequiredException(newTransaction(admin));
 		}
 		return startSession(admin, false, client);
+	}
+
+	/**
+	 * Password login of a person (US-011; design D2, D4, D6 of us-011-local-password): only while
+	 * the operator allows it, for persons in status {@code invited} or {@code active} with an
+	 * unexpired password. Every failing variant verifies exactly one hash.
+	 */
+	private Sessions.NewSession loginPerson(String loginName, String password, Client client) {
+		Instant now = this.clock.instant();
+		record Candidate(long personId, String status, String personType, UUID credentialId, String hash, String origin,
+				Instant expiresAt) {
+		}
+		List<Candidate> found = this.jdbc.query("""
+				SELECT p.id, p.status, p.person_type, c.id, pc.password_hash, pc.origin, pc.expires_at
+				FROM persons p
+				LEFT JOIN local_credentials c ON c.person_id = p.id AND c.type = 'password' AND c.status = 'active'
+				LEFT JOIN password_credentials pc ON pc.credential_id = c.id
+				WHERE lower(p.email) = lower(?)""", (rs, n) -> {
+			Timestamp expires = rs.getTimestamp(7);
+			return new Candidate(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getObject(4, UUID.class),
+					rs.getString(5), rs.getString(6), (expires != null) ? expires.toInstant() : null);
+		}, loginName.strip());
+		Optional<Candidate> candidate = found.stream()
+			.filter((c) -> this.personPasswords.enabled())
+			.filter((c) -> "human".equals(c.personType()))
+			.filter((c) -> "invited".equals(c.status()) || "active".equals(c.status()))
+			.filter((c) -> c.hash() != null)
+			.filter((c) -> c.expiresAt() == null || c.expiresAt().isAfter(now))
+			.findFirst();
+		String hash = candidate.map(Candidate::hash).orElse(this.dummyHash);
+		if (!verify(password, hash) || candidate.isEmpty()) {
+			fail(loginName, client);
+		}
+		this.throttle.recordSuccess(loginName);
+		Candidate person = candidate.get();
+		if (this.hasher.needsRehash(hash)) {
+			this.jdbc.update("UPDATE password_credentials SET password_hash = ? WHERE credential_id = ?",
+					this.hasher.hash(password), person.credentialId());
+		}
+		this.jdbc.update("UPDATE local_credentials SET last_used_at = ? WHERE id = ?", Timestamp.from(now),
+				person.credentialId());
+		Person entity = this.persons.findById(person.personId()).orElseThrow();
+		if (entity.activateOnFirstLogin(now)) {
+			this.audit.append(new AuditEvent("person.activated", AuditEvent.Category.SECURITY, AuditEvent.Severity.INFO,
+					AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API,
+					new AuditEvent.Actor("person", person.personId(), null), "person", Long.toString(person.personId()),
+					Map.of("trigger", "first-login")));
+		}
+		// REQ-173 AC2: a temporary password only leads to the password change
+		String requiredAction = "self-set".equals(person.origin()) ? null : OeaPrincipal.CHANGE_PASSWORD;
+		Sessions.NewSession session = this.sessions.createForPersonPassword(entity, requiredAction, client.address(),
+				client.userAgent());
+		this.audit.append(new AuditEvent("auth.login", AuditEvent.Category.SECURITY, AuditEvent.Severity.INFO,
+				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, new AuditEvent.Actor("person", person.personId(), null),
+				"session", session.principal().sessionId().toString(),
+				Map.of("method", "password", "secondFactor", false, "temporaryPassword", requiredAction != null)));
+		return session;
+	}
+
+	/** One hash verification for every attempt, also for overlong or missing passwords (D6). */
+	private boolean verify(String password, String hash) {
+		boolean usable = password != null && password.length() <= PasswordHasher.MAXIMUM_LENGTH;
+		return this.hasher.matches(usable ? password : "", hash) && usable;
 	}
 
 	/** TOTP step after the setup phase (REQ-171, REQ-168 AC2, REQ-170). */

@@ -1,8 +1,8 @@
 ---
 title: Logging in
 covers:
-  screens: []
-  stories: [US-001, US-005]
+  screens: [SCR-001, SCR-004]
+  stories: [US-001, US-005, US-006, US-011, US-023]
 ---
 
 # Logging in
@@ -28,6 +28,17 @@ Enter the login name and password of the system admin account and choose *Log in
 - After five wrong codes, you have to start again with the password.
 - After repeated wrong passwords, further attempts are delayed (at most 15 minutes).
 - Every login and every failed attempt – through a provider or with the local account – is recorded in the audit log with time, mechanism and result (`auth.login`, `auth.login-failed`); a failed attempt names the internal reason only there.
+
+## Log in with your e-mail address and password
+
+If your organization runs OEA without an identity provider, your administrator gives you an initial password. Enter your e-mail address and this password in the local form of the login page.
+
+1. After the first login, the page *Change password* opens. Enter the initial password as current password and choose your own password (12 to 128 characters) twice. Until then, nothing else is available.
+2. From then on, log in with your e-mail address and your own password. You can change it again under `/me/password`; this ends your other sessions.
+
+- The initial password expires after the time your administrator chose (default 72 hours). An expired initial password fails like a wrong one; ask your administrator for a new one.
+- A failed login never tells whether the account exists, and every failed attempt takes the same time.
+- Roles with administrative permissions need a second factor and do not apply after a password login.
 
 ## Your profile
 

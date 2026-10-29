@@ -5,6 +5,6 @@ export function testRouter(): Router {
   const placeholder = { template: '<div />' }
   return createRouter({
     history: createMemoryHistory(),
-    routes: ['/', '/login', '/me', '/me/second-factor', '/catalogs', '/catalogs/:id'].map((path) => ({ path, component: placeholder })),
+    routes: ['/', '/login', '/me', '/me/second-factor', '/me/password', '/catalogs', '/catalogs/:id'].map((path) => ({ path, component: placeholder })),
   })
 }

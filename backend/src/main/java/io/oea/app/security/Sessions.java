@@ -88,6 +88,23 @@ public class Sessions {
 				person.getName(), session.getId(), secondFactorVerified, now));
 	}
 
+	/** New session of a person after a local password login (US-011, design D2/D4 of us-011-local-password). */
+	@Transactional
+	public NewSession createForPersonPassword(Person person, String requiredAction, String clientIp, String userAgent) {
+		String token = randomToken();
+		Instant now = this.clock.instant();
+		LoginSession session = this.sessions.saveAndFlush(LoginSession.forPersonPassword(person.getId(), hash(token),
+				requiredAction, now, this.properties.absoluteLifetime(), clientIp, userAgent));
+		return new NewSession(token, csrfToken(token), new OeaPrincipal(OeaPrincipal.Type.PERSON, null, person.getId(),
+				person.getName(), session.getId(), false, now, requiredAction));
+	}
+
+	/** Lifts the required action of a session after the password change (REQ-173 AC2). */
+	@Transactional
+	public void clearRequiredAction(UUID sessionId) {
+		this.sessions.findById(sessionId).ifPresent(LoginSession::clearRequiredAction);
+	}
+
 	/** The principal of an active session, or empty for unknown, revoked or expired sessions. */
 	@Transactional
 	public Optional<OeaPrincipal> authenticate(String token) {
@@ -124,7 +141,8 @@ public class Sessions {
 				.filter((person) -> person.getStatus() == Person.Status.ACTIVE
 						|| person.getStatus() == Person.Status.INVITED)
 				.map((person) -> new OeaPrincipal(OeaPrincipal.Type.PERSON, null, person.getId(), person.getName(),
-						session.getId(), session.isSecondFactorVerified(), session.getAuthenticatedAt()));
+						session.getId(), session.isSecondFactorVerified(), session.getAuthenticatedAt(),
+						session.getRequiredAction()));
 		}
 		// a deactivated account has no valid session (US-019), even if a revocation was missed
 		return this.accounts.findById(session.getSystemAdminAccountId())
@@ -197,7 +215,8 @@ public class Sessions {
 
 	private static OeaPrincipal principal(LoginSession session, SystemAdminAccount account) {
 		return new OeaPrincipal(OeaPrincipal.Type.SYSTEM_ADMIN_ACCOUNT, account.getId(), null, account.getLoginName(),
-				session.getId(), session.isSecondFactorVerified(), session.getAuthenticatedAt());
+				session.getId(), session.isSecondFactorVerified(), session.getAuthenticatedAt(),
+				session.getRequiredAction());
 	}
 
 }

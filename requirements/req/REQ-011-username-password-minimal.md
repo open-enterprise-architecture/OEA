@@ -4,9 +4,9 @@ title: Username/password login without second factor (minimal variant)
 type: functional
 priority: could
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-24
-last_updated: 2026-06-24
+last_updated: 2026-10-29
 author: requirements-engineer
 references:
   use_cases:
@@ -106,13 +106,14 @@ Concerns exclusively instances that explicitly forgo a second factor and passkey
 
 ## Implementation Notes
 
+- Realized by OpenSpec change `us-011-local-password`: switched on by the operator setting `oea.auth.person-password.enabled` (default off); persons log in with their e-mail address; the audit event `auth.login` records `secondFactor: false`.
 - Enabling should be a deliberate configuration decision accompanied by a warning (e.g., explicitly asked in the setup wizard, not hidden in a config file)
 - Password hashing as in REQ-010 (e.g., Argon2id), rate limiting against brute force
 
 ## Implementation
 
 - ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
-- Implemented by: –
+- Implemented by: OpenSpec change `us-011-local-password`
 - Tests: –
 - Verification status: not-verified
 
@@ -125,3 +126,4 @@ Derived from UC-01 Login, Alternative A5. Priority deliberately `could` instead 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |
+| 0.2.0 | 2026-10-29 | requirements-engineer | Implementation note (change `us-011-local-password`) |

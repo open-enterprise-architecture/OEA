@@ -212,6 +212,8 @@ revokedReason: superseded
 
 ## Notes
 
+Change `us-011-local-password` realizes the owner type person for passwords: `local_credentials.person_id` with the check "exactly one owner", origins `initial` (temporary, expiring) and `self-set`. A person changes a temporary password with `POST /me/password`; the old credential is revoked as `superseded`.
+
 First modeling in the context of UC-03 (enrollment). Deliberately modeled as one BO with a type discriminator instead of three separate BOs (`PasskeyCredential`, `TotpCredential`, `PasswordCredential`): the shared fields (personId, status, lifecycle, audit attributes) outweigh the type-specific differences; separate BOs would needlessly bloat the traceability matrix.
 
 Version 0.3.0 applies the security review follow-ups (SEC-09, SEC-10, SEC-12): argon2id only (bcrypt truncates at 72 bytes), TOTP replay protection, temporary-password expiry, recovery codes as a further `type` (answers the former open question), and the system admin account as a second owner type so that its password and mandatory second factor follow the same rules (REQ-171). REQ-173 allows recovery codes or an admin factor reset; both are supported by the model.

@@ -29,9 +29,10 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 
 | ID | Screen | Platform | UC Reference | Priority | Status | Image |
 |---|---|---|---|---|---|---|
-| SCR-001 | Login + Auto-SSO | CA+WP | UC-01 | must | `legacy-mockup` | [login](./login-light.svg) / [dark](./login-dark.svg) · [login-autosso](./login-autosso-light.svg) / [dark](./login-autosso-dark.svg) |
+| SCR-001 | Login + Auto-SSO | CA+WP | UC-01 | must | `implemented` | [light](./SCR-001-light.png) / [dark](./SCR-001-dark.png) |
 | SCR-002 | Setup Wizard (initial setup) | CA | UC-02 | must | `legacy-mockup` | [setup-bootstrap](./setup-bootstrap-light.svg) / [dark](./setup-bootstrap-dark.svg) |
 | SCR-003 | Set up auth method (2FA / Passkey) | CA | UC-03 | must | `legacy-mockup` | [auth-2fa](./auth-2fa-light.svg) / [dark](./auth-2fa-dark.svg) · [auth-passkey](./auth-passkey-light.svg) / [dark](./auth-passkey-dark.svg) |
+| SCR-004 | Change password (required after a temporary password) | CA+WP | UC-03 | must | `implemented` | [light](./SCR-004-light.png) / [dark](./SCR-004-dark.png) |
 
 ---
 
@@ -92,7 +93,7 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 ## Overview by Priority
 
 **Must-have** (Walking Skeleton + v1.0 core):
-SCR-001, SCR-002, SCR-003, SCR-010, SCR-011, SCR-012, SCR-020, SCR-021, SCR-022, SCR-025, SCR-026, SCR-028, SCR-030, SCR-031, SCR-032, SCR-033, SCR-034, SCR-037, SCR-038, SCR-050, SCR-051, SCR-052
+SCR-001, SCR-002, SCR-003, SCR-004, SCR-010, SCR-011, SCR-012, SCR-020, SCR-021, SCR-022, SCR-025, SCR-026, SCR-028, SCR-030, SCR-031, SCR-032, SCR-033, SCR-034, SCR-037, SCR-038, SCR-050, SCR-051, SCR-052
 
 **Should-have** (v1.0 extensions):
 SCR-023, SCR-024, SCR-027, SCR-035, SCR-036, SCR-053, SCR-054

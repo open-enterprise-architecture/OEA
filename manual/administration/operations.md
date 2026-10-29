@@ -2,7 +2,7 @@
 title: Operations
 covers:
   screens: []
-  stories: [US-019]
+  stories: [US-011, US-019]
 ---
 
 # Operations
@@ -86,6 +86,21 @@ Without Compose, set the environment variable `LOGGING_STRUCTURED_FORMAT_CONSOLE
 - Every JSON line carries timestamp, level, logger and message. An entry written during an HTTP request also has the field `requestId`, the same value as the `X-Request-Id` header and the request ID of the audit record.
 - No entry contains passwords, setup tokens, second-factor secrets or session tokens, in any format.
 - Checkpoint entries keep their message and get the fields `event`, `chainSeq`, `recordHash` and `at`. GELF prefixes them with `_`. `audit verify --checkpoints` reads checkpoints from plain text and JSON lines, also mixed in one file (see below).
+
+## Password login of persons {#password-login-of-persons}
+
+Persons log in through your identity provider. On an instance without an identity provider you can let persons log in with their e-mail address and a password instead. This is off on a new instance; switch it on explicitly:
+
+```bash
+# environment of the backend (or --oea.auth.person-password.enabled=true)
+OEA_AUTH_PERSONPASSWORD_ENABLED=true
+# optional: how long an initial password stays valid (1 hour to 30 days, default 72 hours)
+OEA_AUTH_PERSONPASSWORD_TEMPORARYPASSWORDVALIDITY=PT72H
+```
+
+- An administrator then sets an initial password per person (see [Identity providers and persons](./identity-providers#set-an-initial-password)); the person changes it at the first login.
+- A person logged in with a password has no second factor yet, so roles with administrative permissions do not apply to them. Keep the local system admin account for administration until second factors for persons are available.
+- While the setting is off, a password login of a person fails like a wrong password, and setting an initial password is refused with `409`.
 
 ## Verify the audit trail
 

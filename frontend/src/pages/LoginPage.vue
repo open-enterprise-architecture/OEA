@@ -11,8 +11,9 @@ import {
 } from '../api/session'
 import { refreshSession } from '../session/store'
 
-// Login through an identity provider (US-001) and of the local system admin account (US-013 AC2).
-// SCR-001 stays `legacy-mockup` until change 6 (screen story).
+// SCR-001 Login: through an identity provider (US-001), and locally for the system admin account
+// (US-013 AC2) and for persons with their e-mail address (US-011). A temporary password leads to
+// the password change first (REQ-173 AC2).
 const props = defineProps<{ fetchFn?: typeof fetch; navigate?: (url: string) => void }>()
 const router = useRouter()
 const route = useRoute()
@@ -47,7 +48,7 @@ const loginTransaction = ref<string>()
 const failure = ref<string>()
 const submitting = ref(false)
 
-const GENERIC_FAILURE = 'Login failed. Check the login name and the password.'
+const GENERIC_FAILURE = 'Login failed. Check the user name or e-mail address and the password.'
 
 function failureMessage(outcome: Extract<LoginOutcome, { kind: 'rejected' }>, step: 'password' | 'code'): string {
   const { rejection } = outcome
@@ -63,7 +64,7 @@ function failureMessage(outcome: Extract<LoginOutcome, { kind: 'rejected' }>, st
 async function handle(outcome: LoginOutcome, step: 'password' | 'code') {
   if (outcome.kind === 'success') {
     await refreshSession(props.fetchFn)
-    await router.push('/me')
+    await router.push(outcome.result.requiredAction === 'change-password' ? '/me/password' : '/me')
   } else if (outcome.kind === 'second-factor') {
     loginTransaction.value = outcome.loginTransaction
   } else {
@@ -125,11 +126,11 @@ function startAgain() {
         block
         @click="loginWith(provider)"
       />
-      <USeparator label="or with the local system admin account" />
+      <USeparator label="or with your user name or e-mail address" />
     </div>
 
     <form v-if="!loginTransaction" class="flex flex-col gap-4" novalidate @submit.prevent="submitPassword">
-      <UFormField label="Login name" name="loginName" required>
+      <UFormField label="User name or e-mail address" name="loginName" required>
         <UInput v-model="form.loginName" data-testid="loginName" autocomplete="username" class="w-full" />
       </UFormField>
       <UFormField label="Password" name="password" required>

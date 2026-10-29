@@ -16,7 +16,15 @@ import java.util.UUID;
  * @param authenticatedAt last (re-)authentication of the session (REQ-172)
  */
 public record OeaPrincipal(Type type, UUID systemAdminAccountId, Long personId, String displayName, UUID sessionId,
-		boolean secondFactorVerified, Instant authenticatedAt) {
+		boolean secondFactorVerified, Instant authenticatedAt, String requiredAction) {
+
+	/** Action the session must complete first; {@code change-password} after a temporary password (REQ-173). */
+	public static final String CHANGE_PASSWORD = "change-password";
+
+	public OeaPrincipal(Type type, UUID systemAdminAccountId, Long personId, String displayName, UUID sessionId,
+			boolean secondFactorVerified, Instant authenticatedAt) {
+		this(type, systemAdminAccountId, personId, displayName, sessionId, secondFactorVerified, authenticatedAt, null);
+	}
 
 	public enum Type {
 

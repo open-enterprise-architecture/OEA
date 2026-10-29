@@ -6,6 +6,7 @@ import io.oea.app.access.AccessConflictException;
 import io.oea.app.access.InvalidAccessRequestException;
 import io.oea.app.access.InvalidStatusTransitionException;
 import io.oea.app.access.LastAdminPathException;
+import io.oea.app.access.PasswordAlreadySetException;
 import io.oea.app.access.SelfAdministrationException;
 import io.oea.app.access.SodConflictException;
 import io.oea.app.catalog.InvalidCatalogException;
@@ -19,6 +20,7 @@ import io.oea.app.metamodel.InvalidPackageException;
 import io.oea.app.metamodel.PackageImporter;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.PermissionDenials;
+import io.oea.app.login.PasswordChange;
 import io.oea.app.security.PermissionDeniedException;
 import io.oea.app.security.ReauthenticationRequiredException;
 import io.oea.app.security.SetupPhase;
@@ -118,6 +120,18 @@ public class ApiExceptionHandler {
 	ResponseEntity<ProblemDetail> invalidStatusTransition(InvalidStatusTransitionException ex) {
 		return ResponseEntity.status(HttpStatus.CONFLICT)
 			.body(problem(HttpStatus.CONFLICT, "invalid-status-transition", "Status change not allowed", ex.getMessage()));
+	}
+
+	@ExceptionHandler(PasswordAlreadySetException.class)
+	ResponseEntity<ProblemDetail> passwordAlreadySet(PasswordAlreadySetException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+			.body(problem(HttpStatus.CONFLICT, "password-already-set", "Password already set", ex.getMessage()));
+	}
+
+	@ExceptionHandler(PasswordChange.WrongCurrentPasswordException.class)
+	ResponseEntity<ProblemDetail> wrongCurrentPassword(PasswordChange.WrongCurrentPasswordException ex) {
+		return ResponseEntity.status(HttpStatus.FORBIDDEN)
+			.body(problem(HttpStatus.FORBIDDEN, "invalid-credentials", "Password not changed", ex.getMessage()));
 	}
 
 	@ExceptionHandler(SodConflictException.class)

@@ -65,14 +65,14 @@ Checkpoint of the chain head; its `chain_seq` and `record_hash` are also written
 
 ### `auth.login`
 
-Successful login of the local system admin account (US-013 AC2) or of a person through an identity provider (US-001, [REQ-005](../requirements/req/REQ-005-audit-log-login.md), REQ-175).
+Successful login of the local system admin account (US-013 AC2), of a person with a password (US-011) or of a person through an identity provider (US-001, [REQ-005](../requirements/req/REQ-005-audit-log-login.md), REQ-175).
 
 | Field | Value |
 |---|---|
 | Category / severity / outcome | `security` / `info` / `success` |
 | Actor | `system-admin-account` or `person` |
 | Target | `session`, ID of the new session |
-| Details | Local login: `method` (`password` or `password-totp`), `setupPhase` (`true` if the login needed no second factor, [ADR-042](../adrs/ADR-042-setup-phase-without-second-factor.md)). OIDC login: `method` (`oidc`), `providerId`, `secondFactor` (from `amr`) |
+| Details | Local login of the system admin account: `method` (`password` or `password-totp`), `setupPhase` (`true` if the login needed no second factor, [ADR-042](../adrs/ADR-042-setup-phase-without-second-factor.md)). Password login of a person ([US-011](../requirements/user-stories/US-011-password-minimal.md)): `method` (`password`), `secondFactor` (`false`), `temporaryPassword` (`true` if the session must change the password first). OIDC login: `method` (`oidc`), `providerId`, `secondFactor` (from `amr`) |
 
 ### `auth.login-failed`
 
@@ -273,6 +273,28 @@ An administrator changed the status of a person ([US-148](../requirements/user-s
 | Actor | the administrator |
 | Target | `person`, ID of the person |
 | Details | `from`, `to`, `reason` if given, `sessionsRevoked`, `assignmentsRevoked` (counts) |
+
+### `person.password-set`
+
+An administrator set the initial password of a person ([US-023](../requirements/user-stories/US-023-initial-password-admin.md), REQ-024).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` / `success` |
+| Actor | the administrator |
+| Target | `person`, ID of the person |
+| Details | `origin` (`initial`), `expiresAt`; never the password |
+
+### `auth.password-changed`
+
+A person or the system admin account changed the own local password (REQ-173 AC2); the other sessions of the principal were revoked.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` / `success` |
+| Actor | the principal itself |
+| Target | `credential`, ID of the new password credential |
+| Details | `otherSessionsRevoked` (count); never a password |
 
 ### `person.identity-bound` / `person.identity-unbound`
 

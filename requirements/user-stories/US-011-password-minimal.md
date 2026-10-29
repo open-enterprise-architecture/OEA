@@ -2,8 +2,9 @@
 
 **ID**: US-011
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S5
+**Implementation**: OpenSpec change `us-011-local-password` – setting `oea.auth.person-password.enabled` (default off), password login of persons with their e-mail address through `localLogin`
 
 ## Story
 
@@ -58,5 +59,7 @@ As an operator of a simple self-hosting instance, I want to be able to deliberat
 - Blocks: none
 
 ## Notes
+
+Realigned by OpenSpec change `us-011-local-password`: "enabled at instance level" is the operator setting `oea.auth.person-password.enabled`, not the planned settings API; persons log in with the e-mail address of the person record (system admin login names contain no `@`). A password session is never second-factor-verified, so privileged roles stay ineffective until TOTP or passkeys for persons exist.
 
 Enabling must be a deliberate configuration decision accompanied by a warning, not hidden in a config file (see REQ-011, Implementation Notes).

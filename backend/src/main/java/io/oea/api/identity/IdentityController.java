@@ -7,6 +7,8 @@ import io.oea.api.generated.model.LocalLoginRequest;
 import io.oea.api.generated.model.LocalLoginTotpRequest;
 import io.oea.api.generated.model.LoginProvider;
 import io.oea.api.generated.model.LoginResult;
+import io.oea.api.generated.model.PasswordChange;
+import io.oea.api.generated.model.RequiredAction;
 import io.oea.api.generated.model.Logout200Response;
 import io.oea.api.generated.model.Me;
 import io.oea.api.generated.model.MeRolesInner;
@@ -57,13 +59,17 @@ public class IdentityController implements IdentityApi {
 
 	private final OidcLoginFlow oidcLogin;
 
+	private final io.oea.app.login.PasswordChange passwordChange;
+
 	public IdentityController(Sessions sessions, PermissionResolver permissions, LocalLogin localLogin,
-			io.oea.app.login.TotpEnrollment enrollment, OidcLoginFlow oidcLogin) {
+			io.oea.app.login.TotpEnrollment enrollment, OidcLoginFlow oidcLogin,
+			io.oea.app.login.PasswordChange passwordChange) {
 		this.sessions = sessions;
 		this.permissions = permissions;
 		this.localLogin = localLogin;
 		this.enrollment = enrollment;
 		this.oidcLogin = oidcLogin;
+		this.passwordChange = passwordChange;
 	}
 
 	@Override
@@ -146,7 +152,19 @@ public class IdentityController implements IdentityApi {
 		SessionCookie.write(response(), session.token(), this.sessions.absoluteLifetime());
 		return ResponseEntity.status(HttpStatus.CREATED)
 			.body(new LoginResult(principalRef(session.principal()), session.principal().secondFactorVerified(),
-					session.csrfToken()));
+					session.csrfToken())
+				.requiredAction(requiredAction(session.principal())));
+	}
+
+	@Override
+	public ResponseEntity<Void> changeOwnPassword(PasswordChange request) {
+		this.passwordChange.change(current().getPrincipal(), request.getCurrentPassword(), request.getNewPassword(),
+				client().address());
+		return ResponseEntity.noContent().build();
+	}
+
+	private static RequiredAction requiredAction(OeaPrincipal principal) {
+		return (principal.requiredAction() != null) ? RequiredAction.fromValue(principal.requiredAction()) : null;
 	}
 
 	private static LocalLogin.Client client() {
@@ -182,7 +200,8 @@ public class IdentityController implements IdentityApi {
 				.toList()))
 			.toList();
 		Me me = new Me(principalRef(principal), principal.secondFactorVerified(), roleGrants, effective)
-			.csrfToken(Sessions.csrfToken(authentication.sessionToken()));
+			.csrfToken(Sessions.csrfToken(authentication.sessionToken()))
+			.requiredAction(requiredAction(principal));
 		return ResponseEntity.ok(me);
 	}
 
