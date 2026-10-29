@@ -2,8 +2,9 @@
 
 **ID**: US-007
 **Story Points**: 1
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S1
+**Implementation**: OpenSpec change `us-001-oidc-login`, commit a5bbdb8 (#35) – the first login of an `invited` person sets it to `active` (spec `identity/oidc-login`, "First login of an invited person")
 
 ## Story
 
@@ -52,5 +53,7 @@ As a person with status "invited", I want to be automatically marked as "active"
 - Blocks: none
 
 ## Notes
+
+Set to done on 2026-10-29 in the re-scoping of S4: AC1 and AC2 are covered by the spec `identity/oidc-login`.
 
 The transition must be idempotent (no error on repeated login).

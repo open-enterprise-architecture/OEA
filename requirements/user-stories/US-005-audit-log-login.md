@@ -2,8 +2,9 @@
 
 **ID**: US-005
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S1
+**Implementation**: OpenSpec changes `us-013-system-admin-login`, commit 1fafd95 (#31) (local login) and `us-001-oidc-login`, commit a5bbdb8 (#35) (OIDC) – `auth.login` and `auth.login-failed` with mechanism and reason (docs/audit-event-catalog.md)
 
 ## Story
 
@@ -52,5 +53,7 @@ As an operator, I want every login attempt to be logged, so that in an audit I c
 - Blocks: none
 
 ## Notes
+
+Set to done on 2026-10-29 in the re-scoping of S4: AC1 and AC2 hold for the existing mechanisms (local password/TOTP, OIDC). API keys were rejected (US-002); passkey and further mechanisms audit the same events in their own changes.
 
 Should be extended in parallel with every new login mechanism (passkey, TOTP, local) – possibly iteratively rather than in one step for all mechanisms.

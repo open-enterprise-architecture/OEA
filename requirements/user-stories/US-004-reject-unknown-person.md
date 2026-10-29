@@ -2,8 +2,9 @@
 
 **ID**: US-004
 **Story Points**: 2
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S1
+**Implementation**: OpenSpec change `us-001-oidc-login`, commit a5bbdb8 (#35) – unknown pairs (`iss`, `sub`) and persons in a status other than `invited` or `active` get no session (spec `identity/oidc-login`, "Person found by immutable identity binding")
 
 ## Story
 
@@ -52,5 +53,7 @@ As an operator, I want persons who are no longer (or not) known as active in the
 - Blocks: US-005 (audit log should also cover this case)
 
 ## Notes
+
+Set to done on 2026-10-29 in the re-scoping of S4: AC1 and AC2 are covered by the scenarios "Person not active" and "Unknown and inactive identities" of the spec `identity/oidc-login`.
 
 Covers exception flow E2 from UC-01.
