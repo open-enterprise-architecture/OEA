@@ -4,7 +4,7 @@
 **Story Points**: 2
 **Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-011-local-password` – `POST /admin/persons/{personId}/password` (`setInitialPassword`), required password change `POST /me/password` (`changeOwnPassword`), page SCR-004
+**Implementation**: OpenSpec change `us-011-local-password`, commit 88e71f8 (#133) – `POST /admin/persons/{personId}/password` (`setInitialPassword`), required password change `POST /me/password` (`changeOwnPassword`), page SCR-004
 
 ## Story
 

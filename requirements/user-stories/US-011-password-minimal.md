@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-011-local-password` – setting `oea.auth.person-password.enabled` (default off), password login of persons with their e-mail address through `localLogin`
+**Implementation**: OpenSpec change `us-011-local-password`, commit 88e71f8 (#133) – setting `oea.auth.person-password.enabled` (default off), password login of persons with their e-mail address through `localLogin`
 
 ## Story
 
