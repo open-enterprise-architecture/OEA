@@ -2,7 +2,7 @@
 title: Logging in
 covers:
   screens: []
-  stories: [US-001]
+  stories: [US-001, US-005]
 ---
 
 # Logging in
@@ -27,6 +27,7 @@ Enter the login name and password of the system admin account and choose *Log in
 
 - After five wrong codes, you have to start again with the password.
 - After repeated wrong passwords, further attempts are delayed (at most 15 minutes).
+- Every login and every failed attempt – through a provider or with the local account – is recorded in the audit log with time, mechanism and result (`auth.login`, `auth.login-failed`); a failed attempt names the internal reason only there.
 
 ## Your profile
 

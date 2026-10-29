@@ -2,9 +2,9 @@
 
 **ID**: US-001
 **Story Points**: 8
-**Status**: review
+**Status**: done
 **Sprint**: S1
-**Implementation**: OpenSpec change `us-001-oidc-login`, commit a5bbdb8 (#35) – AC1–AC3 implemented (OIDC login with PKCE through the stored providers, roles from IdP group mappings); AC4 (optional online validation) follows later
+**Implementation**: OpenSpec change `us-001-oidc-login`, commit a5bbdb8 (#35) – AC1–AC3 implemented (OIDC login with PKCE through the stored providers, roles from IdP group mappings); AC4 (optional online validation) tracked as issue [#122](https://github.com/open-enterprise-architecture/OEA/issues/122)
 
 ## Story
 
@@ -65,6 +65,8 @@ As a person with a role stored in the repository, I want to sign in via the conf
 - Blocks: US-002, US-003, US-004, US-007
 
 ## Notes
+
+Set to done on 2026-10-29 in the re-scoping of S4 (owner decision): AC1–AC3 are covered by the specs `identity/oidc-login` and `identity/sessions`; the optional AC4 is tracked as issue [#122](https://github.com/open-enterprise-architecture/OEA/issues/122).
 
 AC3 clarified on 2026-10-15 (owner decision, change `us-001-oidc-login`): "adopted unchanged" meant that OEA does not prolong IdP tokens; the OEA session limits of REQ-165 still apply.
 

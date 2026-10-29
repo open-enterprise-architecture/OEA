@@ -2,7 +2,7 @@
 title: Identity providers and persons
 covers:
   screens: []
-  stories: []
+  stories: [US-004, US-007]
 ---
 
 # Identity providers and persons

@@ -2,7 +2,7 @@
 title: Anmelden
 covers:
   screens: []
-  stories: [US-001]
+  stories: [US-001, US-005]
 ---
 
 # Anmelden
@@ -29,6 +29,7 @@ Gib Anmeldename und Passwort des Systemadmin-Kontos ein und wähle *Log in*. Nac
 
 - Nach fünf falschen Codes musst du wieder mit dem Passwort beginnen.
 - Nach wiederholt falschen Passwörtern werden weitere Versuche verzögert (höchstens 15 Minuten).
+- Jede Anmeldung und jeder fehlgeschlagene Versuch – über einen Provider oder mit dem lokalen Konto – steht mit Zeit, Mechanismus und Ergebnis im Audit-Log (`auth.login`, `auth.login-failed`); den internen Grund eines Fehlschlags nennt nur das Audit-Log.
 
 ## Dein Profil
 
