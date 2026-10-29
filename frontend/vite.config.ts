@@ -5,6 +5,7 @@ import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
 import vue from '@vitejs/plugin-vue'
 import { playwright } from '@vitest/browser-playwright'
 import { defineConfig } from 'vite'
+import { checkBundledIcons } from './bundled-icons.ts'
 import { thirdPartyLicenses } from './third-party-licenses.ts'
 
 // OEA frontend (ADR-011, ADR-040). Nuxt UI runs as a Vite plugin without Nuxt.
@@ -20,6 +21,8 @@ export default defineConfig({
     }),
     // ADR-043: list and license texts of the bundled third-party packages
     thirdPartyLicenses(),
+    // Every icon used in src/ must be in the bundle; the CSP blocks the Iconify API fallback (#62)
+    checkBundledIcons(),
   ],
   server: {
     proxy: {
@@ -35,7 +38,7 @@ export default defineConfig({
         test: {
           name: 'unit',
           environment: 'jsdom',
-          include: ['src/**/*.spec.ts'],
+          include: ['src/**/*.spec.ts', 'bundled-icons.spec.ts'],
           server: { deps: { inline: ['@nuxt/ui'] } },
         },
       },

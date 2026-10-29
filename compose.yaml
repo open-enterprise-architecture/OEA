@@ -39,6 +39,8 @@ services:
       OEA_MIGRATION_URL: jdbc:postgresql://postgres:5432/oea
       OEA_MIGRATION_OWNER_PASSWORD: ${OEA_OWNER_PASSWORD:?set OEA_OWNER_PASSWORD (role oea_owner)}
       OEA_MIGRATION_REPORTINGOWNER_PASSWORD: ${OEA_REPORTING_OWNER_PASSWORD:?set OEA_REPORTING_OWNER_PASSWORD (role oea_reporting_owner)}
+      # Log format: empty = plain text, or ecs | logstash | gelf (JSON lines)
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ${OEA_LOG_FORMAT:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -53,6 +55,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${OEA_APP_PASSWORD:?set OEA_APP_PASSWORD (role oea_app)}
       # Key-encryption key for stored secrets (REQ-188), mounted as Compose secret
       OEA_SECURITY_KEK_CURRENT: /run/secrets/oea_kek
+      # Log format: empty = plain text, or ecs | logstash | gelf (JSON lines)
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ${OEA_LOG_FORMAT:-}
     secrets:
       - oea_kek
     ports:

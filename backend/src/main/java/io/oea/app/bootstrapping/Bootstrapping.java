@@ -23,6 +23,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -38,6 +40,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @Service
 public class Bootstrapping {
+
+	private static final Logger logger = LoggerFactory.getLogger(Bootstrapping.class);
 
 	private final SetupTokens setupTokens;
 
@@ -170,6 +174,8 @@ public class Bootstrapping {
 			@Override
 			public void afterCommit() {
 				Bootstrapping.this.setupTokens.deleteFile();
+				// carries the request ID of the system.bootstrapped record (spec platform/logging)
+				logger.info("Bootstrapping completed; the setup token is no longer valid and its file was deleted");
 			}
 		});
 		return new BootstrapResult(account.getId(), account.getLoginName(), command.instanceSlug());
