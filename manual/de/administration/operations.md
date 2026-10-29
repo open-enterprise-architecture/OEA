@@ -2,7 +2,7 @@
 title: Betrieb
 covers:
   screens: []
-  stories: [US-011, US-019]
+  stories: [US-011, US-019, US-027]
 ---
 
 # Betrieb
@@ -89,7 +89,7 @@ Ohne Compose setzt du die Umgebungsvariable `LOGGING_STRUCTURED_FORMAT_CONSOLE` 
 
 ## Passwort-Login von Personen {#password-login-of-persons}
 
-Personen melden sich über deinen Identity-Provider an. Auf einer Instanz ohne Identity-Provider kannst du Personen stattdessen mit ihrer E-Mail-Adresse und einem Passwort anmelden lassen. Das ist auf einer neuen Instanz aus; du schaltest es ausdrücklich ein:
+Personen melden sich über deinen Identity-Provider an. Auf einer Instanz ohne Identity-Provider kannst du Personen stattdessen mit ihrer E-Mail-Adresse und einem Passwort anmelden lassen. Das ist auf einer neuen Instanz aus; du erlaubst es ausdrücklich:
 
 ```bash
 # Umgebung des Backends (oder --oea.auth.person-password.enabled=true)
@@ -99,8 +99,31 @@ OEA_AUTH_PERSONPASSWORD_TEMPORARYPASSWORDVALIDITY=PT72H
 ```
 
 - Eine Administratorin oder ein Administrator setzt dann pro Person ein Initialpasswort (siehe [Identity-Provider und Personen](./identity-providers#set-an-initial-password)); die Person ändert es bei der ersten Anmeldung.
+- Administratorinnen und Administratoren können den Passwort-Login von Personen mit `personPasswordLogin` der [Passwort-Richtlinie](./identity-providers#password-policy) aus- und wieder einschalten. Er funktioniert nur, solange deine Einstellung ihn erlaubt und ihr Schalter an ist; ohne deine Erlaubnis können sie ihn nicht einschalten.
 - Wer sich mit einem Passwort anmeldet, hat noch keinen zweiten Faktor; Rollen mit administrativen Berechtigungen gelten dann nicht. Behalte für die Administration das lokale Systemadmin-Konto, bis zweite Faktoren für Personen verfügbar sind.
-- Solange die Einstellung aus ist, scheitert der Passwort-Login einer Person wie ein falsches Passwort, und das Setzen eines Initialpassworts wird mit `409` abgelehnt.
+- Solange der Passwort-Login von Personen nicht möglich ist, scheitert er wie ein falsches Passwort, und das Setzen oder Zurücksetzen eines Passworts wird mit `409` abgelehnt.
+
+### Mindestwerte der Passwort-Richtlinie {#password-policy-floors}
+
+Die [Passwort-Richtlinie](./identity-providers#password-policy) pflegen Administratorinnen und Administratoren über die API. Du legst die Mindestwerte fest, unter die sie nicht gehen kann; jede geltende Regel ist die strengere aus deinem Mindestwert und dem Wert der Administration. Die Standardwerte schalten jede Regel aus:
+
+```bash
+# Mindestlänge, 12 bis 128 (Standard 12)
+OEA_AUTH_PASSWORDPOLICY_MINLENGTH=12
+# Zeichentypen, die in jedem Fall verlangt sind (Standard false)
+OEA_AUTH_PASSWORDPOLICY_REQUIREUPPERCASE=false
+OEA_AUTH_PASSWORDPOLICY_REQUIRELOWERCASE=false
+OEA_AUTH_PASSWORDPOLICY_REQUIREDIGITS=false
+OEA_AUTH_PASSWORDPOLICY_REQUIRESPECIALCHARS=false
+# längster Ablauf in Tagen, 0 = keine Obergrenze (Standard 0)
+OEA_AUTH_PASSWORDPOLICY_MAXEXPIRYDAYS=0
+# kleinste Historie, 0 bis 24 (Standard 0)
+OEA_AUTH_PASSWORDPOLICY_MINHISTORYCOUNT=0
+```
+
+- Ein Wert außerhalb seines Bereichs verhindert den Start des Backends.
+- Ein erhöhter Mindestwert gilt sofort, auch für eine Richtlinie, die die Administration vorher gespeichert hat.
+- Die Mindestwerte gelten für die Passwörter von Personen und des lokalen Systemadmin-Kontos.
 
 ## Audit-Trail prüfen {#verify-the-audit-trail}
 

@@ -6,10 +6,13 @@ import io.oea.api.generated.model.AuthProvider;
 import io.oea.api.generated.model.AuthProviderWrite;
 import io.oea.api.generated.model.ImportMetamodelPackageRequest;
 import io.oea.api.generated.model.ImportResult;
+import io.oea.api.generated.model.PasswordPolicy;
+import io.oea.api.generated.model.PasswordPolicyFloors;
 import io.oea.api.generated.model.StarterPackage;
 import io.oea.api.generated.model.SystemAdminAccountState;
 import io.oea.app.access.AuthProviders;
 import io.oea.app.access.LocalAdminAccount;
+import io.oea.app.access.PasswordPolicies;
 import io.oea.app.metamodel.PackageConflictException;
 import io.oea.app.metamodel.PackageImporter;
 import io.oea.app.metamodel.StarterPackages;
@@ -28,7 +31,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Administration: OIDC providers (design D10 of us-013-system-admin-login; deleting and testing
  * a provider are not implemented, a provider is deactivated with {@code enabled: false}) and
- * metamodel package imports (us-033-import-metamodel).
+ * metamodel package imports (us-033-import-metamodel) and the password policy
+ * (us-027-password-administration).
  */
 @RestController
 public class AdminController implements AdminApi {
@@ -41,12 +45,41 @@ public class AdminController implements AdminApi {
 
 	private final LocalAdminAccount localAdmin;
 
+	private final PasswordPolicies policies;
+
 	public AdminController(AuthProviders providers, PackageImporter packageImporter,
-			StarterPackages starterPackages, LocalAdminAccount localAdmin) {
+			StarterPackages starterPackages, LocalAdminAccount localAdmin, PasswordPolicies policies) {
 		this.providers = providers;
 		this.packageImporter = packageImporter;
 		this.starterPackages = starterPackages;
 		this.localAdmin = localAdmin;
+		this.policies = policies;
+	}
+
+	@Override
+	public ResponseEntity<PasswordPolicy> getPasswordPolicy() {
+		return ResponseEntity.ok(policy(this.policies.view()));
+	}
+
+	@Override
+	@ContractViolationResponse(status = 422, title = "Invalid password policy", detail = "Some fields are invalid.")
+	public ResponseEntity<PasswordPolicy> updatePasswordPolicy(PasswordPolicy request) {
+		return ResponseEntity.ok(policy(this.policies.update(principal(),
+				new PasswordPolicies.Settings(request.getMinLength(), request.getRequireUppercase(),
+						request.getRequireLowercase(), request.getRequireDigits(), request.getRequireSpecialChars(),
+						request.getExpiryDays(), request.getHistoryCount(), request.getPersonPasswordLogin()))));
+	}
+
+	private static PasswordPolicy policy(PasswordPolicies.View view) {
+		PasswordPolicies.Settings settings = view.settings();
+		return new PasswordPolicy(settings.minLength(), settings.requireUppercase(), settings.requireLowercase(),
+				settings.requireDigits(), settings.requireSpecialChars(), settings.expiryDays(),
+				settings.historyCount(), settings.personPasswordLogin())
+			.personPasswordLoginPermitted(view.personPasswordLoginPermitted())
+			.floors(new PasswordPolicyFloors(view.floors().minLength(), view.floors().requireUppercase(),
+					view.floors().requireLowercase(), view.floors().requireDigits(),
+					view.floors().requireSpecialChars(), view.floors().maxExpiryDays(),
+					view.floors().minHistoryCount()));
 	}
 
 	@Override

@@ -53,13 +53,14 @@ See proposal.md – Why. Relevant current state (after `us-011-local-password`):
 | `max-expiry-days` | ceiling of the expiry in days; `0` means no ceiling | 0 | – |
 | `min-history-count` | floor of the history | 0 | 0 to 24 |
 
-**`V11__password_policy.sql`** adds these columns to `system_settings`:
+**`V11__password_policy.sql`** adds `local_credentials.revoked_by_person_id`, a partial index on revoked password credentials per person, and these columns to `system_settings`:
 
 - `password_min_length SMALLINT NOT NULL DEFAULT 12`;
 - `password_require_uppercase`, `_lowercase`, `_digits`, `_special_chars` (`BOOLEAN`, default `false`);
 - `password_expiry_days SMALLINT NOT NULL DEFAULT 0`;
 - `password_history_count SMALLINT NOT NULL DEFAULT 0`;
 - `person_password_login BOOLEAN NOT NULL DEFAULT true`;
+- `updated_by_person_id`, so that a person administrator can be recorded as the last editor;
 - CHECKs on the ranges: length 12–128, expiry 0–3650, history 0–24.
 
 **The effective policy** is computed at every check, so that an operator who raises a floor later takes effect at once:
@@ -95,9 +96,9 @@ Password login of persons is possible while `enabled` (operator) and `person_pas
 `PasswordPolicies.check(password, owner)` collects every unmet rule name: `minLength`, `maxLength`, `requireUppercase`, `requireLowercase`, `requireDigits`, `requireSpecialChars`, `historyCount`. It throws `PasswordPolicyViolationException` (422 `password-policy-violation`, `invalidFields` with the rule names).
 
 - **Special characters** are the printable ASCII characters 0x21–0x2F, 0x3A–0x40, 0x5B–0x60 and 0x7B–0x7E.
-- **The history** compares with `PasswordHasher.matches` against the current active password and the last `historyCount − 1` revoked passwords of the owner (by `revoked_at`). This is at most 24 verifications, only when a password is set.
+- **The history** compares with `PasswordHasher.matches` against the current active password and the last `historyCount − 1` revoked passwords of the owner (by `revoked_at`). This is at most 24 verifications, only when a password is set, and only once the other rules are met.
 
-It is called by `PersonPasswords.setInitial` (entered password), `PasswordChange.change` and the reset. Generated passwords pass the same check, as a safety net.
+It is called by `PersonPasswords.setInitial` (entered password) and `PasswordChange.change`. `PasswordPolicies.generate` checks generated passwords against the rules as a safety net; a fresh random password cannot match the history.
 
 ### D4: Expiry at login
 
@@ -117,7 +118,7 @@ The system admin account is not subject to expiry; its password is protected by 
 3. **Rest:** filled from the full printable ASCII set without space (0x21–0x7E).
 4. **Shuffle:** a CSPRNG Fisher–Yates shuffle.
 
-It throws `PasswordPolicyUnsatisfiableException` (409 `password-policy-unsatisfiable`) if the minimum length is below the number of required classes. Thanks to D2 this cannot happen with a stored policy; it covers REQ-027 AC5.
+It throws `PolicyUnsatisfiableException`, which `PasswordPolicies.generate` turns into `PasswordPolicyUnsatisfiableException` of the application layer (409 `password-policy-unsatisfiable`; ADR-028 keeps core types out of `io.oea.api`), if the minimum length is below the number of required classes. Thanks to D2 this cannot happen with a stored policy; it covers REQ-027 AC5.
 
 `POST /me/password/suggestion` (`suggestPassword`, `authenticated`) returns `{password}` for principals with a local password, and is allowed in a session that must change its password. The suggestion is not stored. The person types or pastes it into the form.
 
@@ -125,12 +126,13 @@ It throws `PasswordPolicyUnsatisfiableException` (409 `password-policy-unsatisfi
 
 `POST /admin/persons/{personId}/password/reset` (`resetPersonPassword`, `person:manage`, body optional `{reason}`) answers `200 {password, expiresAt}`. In one transaction:
 
-1. **Checks** of the person: exists (404), human (422), switch possible (409 `conflict`), and has an active password (409 `conflict`).
+1. **Checks** of the person: exists (404), human (422).
 2. **SoD-1:** the caller is not the person (403 `self-administration`).
-3. **Administrators:** if one of the person's granted local assignments contains an admin-class permission and the caller is not the system admin account, the request is answered with 403. It is recorded through `PermissionDenials` with reason `admin-reset-restricted`.
-4. **Credentials:** the active password is revoked (`admin_action`). A generated password (D5) is stored with origin `admin-reset` and expiry `now + temporary-password-validity`.
-5. **Sessions:** all sessions of the person are revoked with reason `password-reset`.
-6. **Audit:** `person.password-reset` with `reason` and `expiresAt`, never the password.
+3. **State:** password login of persons possible (409 `conflict`), and the person has an active password (409 `conflict`).
+4. **Administrators:** if one of the person's granted local assignments contains an admin-class permission and the caller is not the system admin account, the request is answered with 403. It is recorded through `PermissionDenials` with reason `admin-reset-restricted`.
+5. **Credentials:** the active password is revoked (`admin_action`, `revoked_by_person_id` or `revoked_by_admin_id`). A generated password (D5) is stored with origin `admin-reset` and expiry `now + temporary-password-validity`.
+6. **Sessions:** all sessions of the person are revoked with reason `password-reset`.
+7. **Audit:** `person.password-reset` with `reason` and `expiresAt`, never the password.
 
 The answer is the only place the password appears.
 

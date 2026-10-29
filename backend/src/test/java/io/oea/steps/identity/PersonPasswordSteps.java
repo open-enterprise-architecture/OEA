@@ -19,9 +19,9 @@ import tools.jackson.databind.json.JsonMapper;
  */
 public class PersonPasswordSteps {
 
-	private static final String INITIAL = "initial-password-123";
+	static final String INITIAL = "initial-password-123";
 
-	private static final String CHOSEN = "chosen-password-456";
+	static final String CHOSEN = "chosen-password-456";
 
 	private final LocalLoginSteps instance;
 
@@ -122,17 +122,31 @@ public class PersonPasswordSteps {
 		assertThat(withoutInstance(this.first)).isEqualTo(withoutInstance(this.second));
 	}
 
-	private HttpResponse<String> login(String email, String password) throws Exception {
-		return this.instance.post("/api/v1/auth/local/login",
-				"{\"loginName\":\"" + email + "\",\"password\":\"" + password + "\"}", false);
+	String id(String name) {
+		return this.ids.get(name);
 	}
 
-	private static String token(HttpResponse<String> login) {
+	String email(String name) {
+		return this.emails.get(name);
+	}
+
+	/** Session token of the person's last login in the scenario. */
+	String personToken() {
+		return this.personToken;
+	}
+
+	HttpResponse<String> login(String email, String password) throws Exception {
+		// generated passwords may contain quotes and backslashes
+		return this.instance.post("/api/v1/auth/local/login",
+				JsonMapper.shared().createObjectNode().put("loginName", email).put("password", password).toString(), false);
+	}
+
+	static String token(HttpResponse<String> login) {
 		String cookie = login.headers().firstValue("Set-Cookie").orElseThrow();
 		return cookie.substring(cookie.indexOf('=') + 1, cookie.indexOf(';'));
 	}
 
-	private static String cookie(String token) {
+	static String cookie(String token) {
 		return "__Host-OEA_SESSION=" + token;
 	}
 

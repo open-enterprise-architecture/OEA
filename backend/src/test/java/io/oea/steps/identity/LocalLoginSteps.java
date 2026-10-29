@@ -452,7 +452,7 @@ public class LocalLoginSteps {
 	}
 
 	/** REQ-175 AC3: the scenario's log output contains no password, session token, TOTP secret or code. */
-	@After(value = "@UC-01 or @UC-23", order = 20000)
+	@After(value = "@UC-01 or @UC-03 or @UC-23", order = 20000)
 	public void logsWithoutSecrets() {
 		if (this.logs == null) {
 			return;
@@ -470,7 +470,7 @@ public class LocalLoginSteps {
 		}
 	}
 
-	@After(value = "@UC-01 or @UC-23", order = 10000)
+	@After(value = "@UC-01 or @UC-03 or @UC-23", order = 10000)
 	public void stop() {
 		if (this.application != null) {
 			this.application.close();
@@ -542,6 +542,14 @@ public class LocalLoginSteps {
 			request.header("Cookie", COOKIE + "=" + this.sessionToken).header("X-XSRF-TOKEN", this.csrfToken);
 		}
 		return send(request);
+	}
+
+	HttpResponse<String> put(String path, String body) throws Exception {
+		return send(HttpRequest.newBuilder(uri(path))
+			.header("Content-Type", "application/json")
+			.header("Cookie", COOKIE + "=" + this.sessionToken)
+			.header("X-XSRF-TOKEN", this.csrfToken)
+			.PUT(HttpRequest.BodyPublishers.ofString(body)));
 	}
 
 	HttpResponse<String> send(HttpRequest.Builder request) throws Exception {

@@ -1,6 +1,7 @@
 package io.oea.app.login;
 
 import io.oea.app.access.InvalidAccessRequestException;
+import io.oea.app.access.PasswordPolicies;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
@@ -19,7 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Change of the own local password (REQ-173 AC2; design D5 of us-011-local-password) for persons
  * and the system admin account: the new password is self-set without expiry, lifts the required
- * action of the session and ends every other session of the principal.
+ * action of the session and ends every other session of the principal. The new password follows
+ * the password policy including its history, and a suggestion is generated on request (design D3,
+ * D5 of us-027-password-administration).
  */
 @Service
 public class PasswordChange {
@@ -30,17 +33,21 @@ public class PasswordChange {
 
 	private final LoginThrottle throttle;
 
+	private final PasswordPolicies policies;
+
+
 	private final Sessions sessions;
 
 	private final AuditWriter audit;
 
 	private final Clock clock;
 
-	public PasswordChange(JdbcTemplate jdbc, PasswordHasher hasher, LoginThrottle throttle, Sessions sessions,
-			AuditWriter audit, Clock clock) {
+	public PasswordChange(JdbcTemplate jdbc, PasswordHasher hasher, LoginThrottle throttle, PasswordPolicies policies,
+			Sessions sessions, AuditWriter audit, Clock clock) {
 		this.jdbc = jdbc;
 		this.hasher = hasher;
 		this.throttle = throttle;
+		this.policies = policies;
 		this.sessions = sessions;
 		this.audit = audit;
 		this.clock = clock;
@@ -53,6 +60,34 @@ public class PasswordChange {
 			super("The current password is not correct.");
 		}
 
+	}
+
+	/** Thrown for a suggestion to a principal without local password (403). */
+	public static class NoLocalPasswordException extends RuntimeException {
+
+		public NoLocalPasswordException() {
+			super("You have no local password.");
+		}
+
+	}
+
+	/**
+	 * A password that satisfies the effective policy; not stored (REQ-027).
+	 * @throws NoLocalPasswordException for a principal without local password
+	 */
+	@Transactional(readOnly = true)
+	public String suggest(OeaPrincipal principal) {
+		boolean person = principal.type() == OeaPrincipal.Type.PERSON;
+		Boolean exists = this.jdbc.queryForObject(person ? """
+				SELECT EXISTS (SELECT 1 FROM local_credentials WHERE person_id = ? AND type = 'password'
+				               AND status = 'active')""" : """
+				SELECT EXISTS (SELECT 1 FROM local_credentials WHERE system_admin_account_id = ? AND type = 'password'
+				               AND status = 'active')""", Boolean.class,
+				person ? principal.personId() : principal.systemAdminAccountId());
+		if (!Boolean.TRUE.equals(exists)) {
+			throw new NoLocalPasswordException();
+		}
+		return this.policies.generate();
 	}
 
 	@Transactional(noRollbackFor = WrongCurrentPasswordException.class)
@@ -80,13 +115,10 @@ public class PasswordChange {
 			this.throttle.recordFailure(current.loginName(), clientAddress);
 			throw new WrongCurrentPasswordException();
 		}
-		if (newPassword == null || newPassword.length() < PasswordHasher.MINIMUM_LENGTH
-				|| newPassword.length() > PasswordHasher.MAXIMUM_LENGTH) {
-			throw new InvalidAccessRequestException("newPassword", "The new password must have 12 to 128 characters.");
-		}
-		if (newPassword.equals(currentPassword)) {
+		if (newPassword != null && newPassword.equals(currentPassword)) {
 			throw new InvalidAccessRequestException("newPassword", "The new password must differ from the current one.");
 		}
+		this.policies.check(newPassword, principal.personId(), principal.systemAdminAccountId());
 		Instant now = this.clock.instant();
 		this.jdbc.update("""
 				UPDATE local_credentials SET status = 'revoked', revoked_at = ?, revoked_reason = 'superseded'

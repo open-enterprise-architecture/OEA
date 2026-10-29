@@ -2,8 +2,9 @@
 
 **ID**: US-030
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S5
+**Implementation**: OpenSpec change `us-027-password-administration` – `POST /admin/persons/{personId}/password/reset` (`resetPersonPassword`)
 
 ## Story
 
@@ -63,5 +64,7 @@ As an administrator, I want to reset a person's local password and hand over a n
 - Blocks: future US for "change password on required action" (login flow after reset)
 
 ## Notes
+
+Realigned by OpenSpec change `us-027-password-administration`: the operation is `POST /admin/persons/{personId}/password/reset`. AC1 – OEA always generates the temporary password (US-026); an entered one is not accepted. The reset is an API operation, documented in the manual; an admin UI follows later. A person who holds an admin-class permission through a local role assignment is reset only by the system admin account (REQ-173 AC3).
 
 The forced password change after the reset is not configurable – it is always active. Max only sets a one-time password, not a permanent one. The pattern corresponds to Active Directory "User must change password at next logon" and the Keycloak "update password" required action. The required action `password_change` uses the same mechanism as the 2FA required action in UC-03.

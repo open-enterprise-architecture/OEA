@@ -32,7 +32,7 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 | SCR-001 | Login + Auto-SSO | CA+WP | UC-01 | must | `implemented` | [light](./SCR-001-light.png) / [dark](./SCR-001-dark.png) |
 | SCR-002 | Setup Wizard (initial setup) | CA | UC-02 | must | `legacy-mockup` | [setup-bootstrap](./setup-bootstrap-light.svg) / [dark](./setup-bootstrap-dark.svg) |
 | SCR-003 | Set up auth method (2FA / Passkey) | CA | UC-03 | must | `legacy-mockup` | [auth-2fa](./auth-2fa-light.svg) / [dark](./auth-2fa-dark.svg) · [auth-passkey](./auth-passkey-light.svg) / [dark](./auth-passkey-dark.svg) |
-| SCR-004 | Change password (required after a temporary password) | CA+WP | UC-03 | must | `implemented` | [light](./SCR-004-light.png) / [dark](./SCR-004-dark.png) |
+| SCR-004 | Change password (required after a temporary or expired password; password suggestion) | CA+WP | UC-03 | must | `implemented` | [light](./SCR-004-light.png) / [dark](./SCR-004-dark.png) |
 
 ---
 

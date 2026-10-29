@@ -37,7 +37,7 @@ async function fill(wrapper: Awaited<ReturnType<typeof mountPage>>['wrapper'], c
   await flushPromises()
 }
 
-// SCR-004 (REQ-173 AC2; design D8 of us-011-local-password)
+// SCR-004 (REQ-173 AC2; design D8 of us-011-local-password, D7 of us-027-password-administration)
 describe('ChangePasswordPage', () => {
   beforeEach(() => {
     session.me = { ...ME, requiredAction: 'change-password' }
@@ -75,5 +75,51 @@ describe('ChangePasswordPage', () => {
     })
     expect(router.currentRoute.value.path).toBe('/me')
     expect(session.me?.requiredAction).toBeNull()
+  })
+
+  it('lists every unmet rule of the password policy', async () => {
+    const fetchFn = routedFetch({
+      '/api/v1/me/password': {
+        status: 422,
+        contentType: 'application/problem+json',
+        body: {
+          type: 'urn:oea:problem:password-policy-violation',
+          title: 'Password policy not met',
+          status: 422,
+          invalidFields: ['requireDigits', 'historyCount'],
+        },
+      },
+    })
+    const { wrapper } = await mountPage(fetchFn)
+    await fill(wrapper, 'initial-password-123', 'chosen-password-abc')
+    const rules = wrapper.findAll('[data-testid="unmet-rules"] li').map((rule) => rule.text())
+    expect(rules).toEqual([
+      'It needs a digit.',
+      'You used it recently; choose a password you have not used before.',
+    ])
+  })
+
+  it('suggests a password and uses it as the new password', async () => {
+    const recorded: RecordedRequest[] = []
+    const fetchFn = routedFetch(
+      {
+        '/api/v1/me/password/suggestion': { body: { password: 'k#8Qz!r2Lw$9pXa4' } },
+        '/api/v1/me/password': { status: 204, body: null },
+        '/api/v1/me': { body: { ...ME, requiredAction: null } },
+      },
+      recorded,
+    )
+    const { wrapper } = await mountPage(fetchFn)
+    await wrapper.get('[data-testid="suggest-password"]').trigger('click')
+    await flushPromises()
+    const shown = wrapper.get('input[data-testid="suggestion"], [data-testid="suggestion"] input')
+    expect((shown.element as HTMLInputElement).value).toBe('k#8Qz!r2Lw$9pXa4')
+    expect(shown.attributes('readonly')).toBeDefined()
+    await wrapper.get('[data-testid="use-suggestion"]').trigger('click')
+    await wrapper.get('input[data-testid="currentPassword"], [data-testid="currentPassword"] input').setValue('initial-password-123')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    const sent = recorded.find((request) => request.path === '/api/v1/me/password')!
+    expect(JSON.parse(sent.init!.body as string).newPassword).toBe('k#8Qz!r2Lw$9pXa4')
   })
 })

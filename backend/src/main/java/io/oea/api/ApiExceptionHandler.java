@@ -7,6 +7,9 @@ import io.oea.app.access.InvalidAccessRequestException;
 import io.oea.app.access.InvalidStatusTransitionException;
 import io.oea.app.access.LastAdminPathException;
 import io.oea.app.access.PasswordAlreadySetException;
+import io.oea.app.access.PasswordPolicyUnsatisfiableException;
+import io.oea.app.access.PasswordPolicyViolationException;
+import io.oea.app.access.PasswordResets;
 import io.oea.app.access.SelfAdministrationException;
 import io.oea.app.access.SodConflictException;
 import io.oea.app.catalog.InvalidCatalogException;
@@ -128,6 +131,33 @@ public class ApiExceptionHandler {
 			.body(problem(HttpStatus.CONFLICT, "password-already-set", "Password already set", ex.getMessage()));
 	}
 
+	@ExceptionHandler(PasswordPolicyViolationException.class)
+	ResponseEntity<ProblemDetail> passwordPolicyViolation(PasswordPolicyViolationException ex) {
+		ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "password-policy-violation",
+				"Password policy not met", ex.getMessage());
+		problem.setProperty("invalidFields", ex.getRules());
+		return ResponseEntity.unprocessableContent().body(problem);
+	}
+
+	@ExceptionHandler(PasswordPolicyUnsatisfiableException.class)
+	ResponseEntity<ProblemDetail> passwordPolicyUnsatisfiable(PasswordPolicyUnsatisfiableException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+			.body(problem(HttpStatus.CONFLICT, "password-policy-unsatisfiable", "Password policy cannot be satisfied",
+					ex.getMessage()));
+	}
+
+	@ExceptionHandler(PasswordResets.AdminResetRestrictedException.class)
+	ResponseEntity<ProblemDetail> adminResetRestricted(PasswordResets.AdminResetRestrictedException ex) {
+		return ResponseEntity.status(HttpStatus.FORBIDDEN)
+			.body(problem(HttpStatus.FORBIDDEN, "forbidden", "Forbidden", ex.getMessage()));
+	}
+
+	@ExceptionHandler(PasswordChange.NoLocalPasswordException.class)
+	ResponseEntity<ProblemDetail> noLocalPassword(PasswordChange.NoLocalPasswordException ex) {
+		return ResponseEntity.status(HttpStatus.FORBIDDEN)
+			.body(problem(HttpStatus.FORBIDDEN, "forbidden", "Forbidden", ex.getMessage()));
+	}
+
 	@ExceptionHandler(PasswordChange.WrongCurrentPasswordException.class)
 	ResponseEntity<ProblemDetail> wrongCurrentPassword(PasswordChange.WrongCurrentPasswordException ex) {
 		return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -158,7 +188,7 @@ public class ApiExceptionHandler {
 	ResponseEntity<ProblemDetail> invalidAccessRequest(InvalidAccessRequestException ex) {
 		ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "validation-failed", "Invalid request",
 				ex.getMessage());
-		problem.setProperty("invalidFields", List.of(ex.getField()));
+		problem.setProperty("invalidFields", ex.getFields());
 		return ResponseEntity.unprocessableContent().body(problem);
 	}
 

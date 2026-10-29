@@ -1,17 +1,23 @@
 package io.oea.app.access;
 
-/** The request violates a rule of access administration (422); names the offending field. */
+import java.util.List;
+
+/** The request violates a rule of access administration (422); names the offending fields. */
 public class InvalidAccessRequestException extends RuntimeException {
 
-	private final String field;
+	private final List<String> fields;
 
 	public InvalidAccessRequestException(String field, String message) {
-		super(message);
-		this.field = field;
+		this(List.of(field), message);
 	}
 
-	public String getField() {
-		return this.field;
+	public InvalidAccessRequestException(List<String> fields, String message) {
+		super(message);
+		this.fields = List.copyOf(fields);
+	}
+
+	public List<String> getFields() {
+		return this.fields;
 	}
 
 }

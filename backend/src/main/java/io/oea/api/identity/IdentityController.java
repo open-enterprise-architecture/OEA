@@ -8,6 +8,7 @@ import io.oea.api.generated.model.LocalLoginTotpRequest;
 import io.oea.api.generated.model.LoginProvider;
 import io.oea.api.generated.model.LoginResult;
 import io.oea.api.generated.model.PasswordChange;
+import io.oea.api.generated.model.PasswordSuggestion;
 import io.oea.api.generated.model.RequiredAction;
 import io.oea.api.generated.model.Logout200Response;
 import io.oea.api.generated.model.Me;
@@ -161,6 +162,11 @@ public class IdentityController implements IdentityApi {
 		this.passwordChange.change(current().getPrincipal(), request.getCurrentPassword(), request.getNewPassword(),
 				client().address());
 		return ResponseEntity.noContent().build();
+	}
+
+	@Override
+	public ResponseEntity<PasswordSuggestion> suggestPassword() {
+		return ResponseEntity.ok(new PasswordSuggestion(this.passwordChange.suggest(current().getPrincipal())));
 	}
 
 	private static RequiredAction requiredAction(OeaPrincipal principal) {

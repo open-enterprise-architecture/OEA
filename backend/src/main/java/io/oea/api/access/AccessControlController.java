@@ -4,9 +4,11 @@ import io.oea.api.generated.AccessControlApi;
 import io.oea.api.generated.model.AuthorizationRole;
 import io.oea.api.generated.model.IdpGroupMapping;
 import io.oea.api.generated.model.IdpGroupMappingWrite;
+import io.oea.api.generated.model.GeneratedPassword;
 import io.oea.api.generated.model.InitialPassword;
 import io.oea.api.generated.model.InitialPasswordResult;
 import io.oea.api.generated.model.MappingWarning;
+import io.oea.api.generated.model.PasswordReset;
 import io.oea.api.generated.model.Permission;
 import io.oea.api.generated.model.Person;
 import io.oea.api.generated.model.PersonIdentity;
@@ -20,6 +22,7 @@ import io.oea.api.generated.model.RoleAssignmentWrite;
 import io.oea.api.generated.model.RoleRef;
 import io.oea.app.access.AccessCatalog;
 import io.oea.app.access.IdpGroupMappings;
+import io.oea.app.access.PasswordResets;
 import io.oea.app.access.PersonLifecycle;
 import io.oea.app.access.PersonPasswords;
 import io.oea.app.access.Persons;
@@ -42,7 +45,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Permission catalog and authorization roles (US-143), persons with identity bindings, IdP
  * group mappings (design D10), local role assignments (US-144) and the status of persons
- * (US-148); further operations follow (UC-23).
+ * (US-148), initial passwords (US-023) and password resets (US-030); further operations follow
+ * (UC-23).
  */
 @RestController
 public class AccessControlController implements AccessControlApi {
@@ -61,9 +65,11 @@ public class AccessControlController implements AccessControlApi {
 
 	private final PersonPasswords passwords;
 
+	private final PasswordResets resets;
+
 	public AccessControlController(AccessCatalog catalog, ContractAuthorizationRules rules, Persons persons,
 			IdpGroupMappings mappings, RoleAssignments assignments, PersonLifecycle lifecycle,
-			PersonPasswords passwords) {
+			PersonPasswords passwords, PasswordResets resets) {
 		this.catalog = catalog;
 		this.rules = rules;
 		this.persons = persons;
@@ -71,12 +77,21 @@ public class AccessControlController implements AccessControlApi {
 		this.assignments = assignments;
 		this.lifecycle = lifecycle;
 		this.passwords = passwords;
+		this.resets = resets;
 	}
 
 	@Override
 	public ResponseEntity<InitialPasswordResult> setInitialPassword(Integer personId, InitialPassword request) {
-		return ResponseEntity
-			.ok(new InitialPasswordResult(time(this.passwords.setInitial(principal(), personId, request.getPassword()))));
+		PersonPasswords.Result result = this.passwords.setInitial(principal(), personId, request.getPassword(),
+				Boolean.TRUE.equals(request.getGenerate()));
+		return ResponseEntity.ok(new InitialPasswordResult(time(result.expiresAt())).password(result.generatedPassword()));
+	}
+
+	@Override
+	public ResponseEntity<GeneratedPassword> resetPersonPassword(Integer personId, PasswordReset request) {
+		PasswordResets.Result result = this.resets.reset(principal(), personId,
+				(request != null) ? request.getReason() : null);
+		return ResponseEntity.ok(new GeneratedPassword(result.password(), time(result.expiresAt())));
 	}
 
 	@Override

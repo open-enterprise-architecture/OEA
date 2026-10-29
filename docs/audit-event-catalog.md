@@ -72,7 +72,7 @@ Successful login of the local system admin account (US-013 AC2), of a person wit
 | Category / severity / outcome | `security` / `info` / `success` |
 | Actor | `system-admin-account` or `person` |
 | Target | `session`, ID of the new session |
-| Details | Local login of the system admin account: `method` (`password` or `password-totp`), `setupPhase` (`true` if the login needed no second factor, [ADR-042](../adrs/ADR-042-setup-phase-without-second-factor.md)). Password login of a person ([US-011](../requirements/user-stories/US-011-password-minimal.md)): `method` (`password`), `secondFactor` (`false`), `temporaryPassword` (`true` if the session must change the password first). OIDC login: `method` (`oidc`), `providerId`, `secondFactor` (from `amr`) |
+| Details | Local login of the system admin account: `method` (`password` or `password-totp`), `setupPhase` (`true` if the login needed no second factor, [ADR-042](../adrs/ADR-042-setup-phase-without-second-factor.md)). Password login of a person ([US-011](../requirements/user-stories/US-011-password-minimal.md)): `method` (`password`), `secondFactor` (`false`), `temporaryPassword` (`true` for an initial or reset password), `passwordExpired` (`true` if the self-chosen password exceeded the expiry of the password policy, [US-027](../requirements/user-stories/US-027-configure-password-policies.md)); the session must change the password first if either is `true`. OIDC login: `method` (`oidc`), `providerId`, `secondFactor` (from `amr`) |
 
 ### `auth.login-failed`
 
@@ -138,7 +138,7 @@ A session was ended by the system ([REQ-164](../requirements/req/REQ-164-session
 | Category / severity / outcome | `security` / `info` / `success` |
 | Actor | `system` |
 | Target | `session`, ID of the session |
-| Details | `reason` (`idp-refresh-failed`: the IdP refresh token expired or was rejected) |
+| Details | `reason` (`idp-refresh-failed`: the IdP refresh token expired or was rejected; `person-status-change` and `password-reset`: ended by an administrator, who is then the actor) |
 
 ### `authz.denied`
 
@@ -149,7 +149,7 @@ A request was refused with 403 by an authorization decision ([REQ-175](../requir
 | Category / severity / outcome | `security` / `warning` / `denied` |
 | Actor | the requesting principal |
 | Target | `target_id`: the path variable `id` of the request, or its only path variable, if any; `target_type`: the affected object type where the decision knows it, e.g. `idp-group-mapping` |
-| Details | `reason` (`missing-permission`, `condition`, `second-factor-required` or `self-administration`: SoD-1, US-147 AC5), `operation` (operation ID of the contract); summary events additionally `summary`, `suppressedCount`, `windowStart`, `windowEnd` |
+| Details | `reason` (`missing-permission`, `condition`, `second-factor-required`, `self-administration`: SoD-1, US-147 AC5, or `admin-reset-restricted`: a password reset of an administrator by someone else than the system admin account, REQ-173 AC3), `operation` (operation ID of the contract); summary events additionally `summary`, `suppressedCount`, `windowStart`, `windowEnd` |
 
 ### `auth.factor-added`
 
@@ -283,7 +283,29 @@ An administrator set the initial password of a person ([US-023](../requirements/
 | Category / severity / outcome | `security` / `high` / `success` |
 | Actor | the administrator |
 | Target | `person`, ID of the person |
-| Details | `origin` (`initial`), `expiresAt`; never the password |
+| Details | `origin` (`initial`), `expiresAt`, `generated` (`true` if OEA generated the password, [US-026](../requirements/user-stories/US-026-password-generator.md)); never the password |
+
+### `person.password-reset`
+
+An administrator reset the local password of a person ([US-030](../requirements/user-stories/US-030-password-reset-by-admin.md), REQ-031): the old password was revoked and replaced by a generated temporary one. The ended sessions are recorded as `session.revoked` (reason `password-reset`). A refused reset of an administrator is recorded as `authz.denied` (reason `admin-reset-restricted`).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` / `success` |
+| Actor | the administrator |
+| Target | `person`, ID of the person |
+| Details | `expiresAt`, `sessionsRevoked` (count), `reason` if given; never the password |
+
+### `settings.password-policy-changed`
+
+An administrator changed the password policy or the switch of password login of persons ([US-027](../requirements/user-stories/US-027-configure-password-policies.md), REQ-028).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` / `success` |
+| Actor | the administrator |
+| Target | `settings`, `password-policy` |
+| Details | `old`, `new`: each with `minLength`, `requireUppercase`, `requireLowercase`, `requireDigits`, `requireSpecialChars`, `expiryDays`, `historyCount`, `personPasswordLogin` |
 
 ### `auth.password-changed`
 

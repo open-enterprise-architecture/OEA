@@ -2,7 +2,7 @@
 title: Identity providers and persons
 covers:
   screens: []
-  stories: [US-004, US-007, US-023, US-148]
+  stories: [US-004, US-007, US-023, US-026, US-027, US-030, US-148]
 ---
 
 # Identity providers and persons
@@ -60,16 +60,56 @@ Further operations: `GET /admin/persons`, `GET /admin/persons/{personId}`, `GET`
 
 ## Set an initial password {#set-an-initial-password}
 
-If password login of persons is switched on (see [Operations](./operations#password-login-of-persons)), you can give a person an initial password instead of an identity binding (you need `person:manage`):
+If password login of persons is possible (see [Operations](./operations#password-login-of-persons)), you can give a person an initial password instead of an identity binding (you need `person:manage`). Enter one that meets the [password policy](#password-policy), or let OEA generate one:
 
 ```bash
-curl "${auth[@]}" -d '{"password": "<12 to 128 characters>"}' "$OEA/admin/persons/$PERSON/password"
+curl "${auth[@]}" -d '{"password": "<meets the password policy>"}' "$OEA/admin/persons/$PERSON/password"
+# or: generated, returned this once in "password"
+curl "${auth[@]}" -d '{"generate": true}' "$OEA/admin/persons/$PERSON/password"
 ```
 
-- OEA stores only a hash. The answer contains the time the initial password expires (default 72 hours), but never the password; pass it on to the person through a separate channel.
+- OEA stores only a hash. The answer contains the time the initial password expires (default 72 hours). It contains the password only if OEA generated it, and only this once; pass it on to the person through a separate channel.
+- An entered password that does not meet the policy is refused with `422` and problem type `password-policy-violation`; `invalidFields` names every unmet rule.
 - The person logs in with the e-mail address of the person record and must choose an own password before doing anything else.
 - A person who already has a password, your own person, a service account or a person that is neither invited nor active is refused.
 - Setting the password is recorded in the audit trail (`person.password-set`).
+
+## Reset a password {#reset-a-password}
+
+A person who forgot the password gets a new temporary one from you (you need `person:manage`):
+
+```bash
+curl "${auth[@]}" -d '{"reason": "forgotten"}' "$OEA/admin/persons/$PERSON/password/reset"
+```
+
+- OEA revokes the old password at once and answers with a generated temporary password and its expiry. The answer is the only place the password appears; pass it on through a separate channel.
+- Every session of the person ends. At the next login, the person must choose an own password before doing anything else.
+- Your own person, a person without a password and a service account are refused.
+- If the person holds a role with an administrative permission through a local role assignment, only the local system admin account may reset the password; anyone else is refused with `403`, recorded as `authz.denied`. Roles from IdP groups are not taken into account, because such persons log in through the identity provider.
+- The reset is recorded in the audit trail (`person.password-reset`) with the reason, never with the password.
+
+## Password policy {#password-policy}
+
+The password policy applies to every new local password: initial passwords, resets and own changes (you need `settings:manage`):
+
+```bash
+curl "${auth[@]}" "$OEA/admin/settings/password-policy"
+curl "${auth[@]}" -X PUT -d '{"minLength": 16, "requireUppercase": true, "requireLowercase": true,
+  "requireDigits": true, "requireSpecialChars": true, "expiryDays": 90, "historyCount": 5,
+  "personPasswordLogin": true}' "$OEA/admin/settings/password-policy"
+```
+
+| Field | Meaning |
+|---|---|
+| `minLength` | Minimum length, 12 to 128 |
+| `requireUppercase`, `requireLowercase`, `requireDigits`, `requireSpecialChars` | Character types a password must contain; special characters are all printable ASCII characters that are neither letters nor digits |
+| `expiryDays` | Days after which a self-chosen password must be changed at the next login; `0` = never |
+| `historyCount` | Number of previous passwords, including the current one, that must not be reused; `0` to `24` |
+| `personPasswordLogin` | Password login of persons; works only while the operator permits it (`personPasswordLoginPermitted`) |
+
+- The answer also contains the operator's `floors`. A value below a floor, or a minimum length shorter than the number of required character types, is refused with `422`; `invalidFields` names each field.
+- Every change is recorded in the audit trail (`settings.password-policy-changed`) with the old and the new values.
+- Passwords already set stay valid; the rules apply when a password is set and, for the expiry, at the next login.
 
 ## Take access away: inactive and offboarded {#take-access-away}
 

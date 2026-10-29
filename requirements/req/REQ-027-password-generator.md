@@ -4,9 +4,9 @@ title: Password generator for secure local passwords
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-25
-last_updated: 2026-06-25
+last_updated: 2026-10-30
 author: requirements-engineer
 references:
   use_cases:
@@ -124,6 +124,7 @@ The generator produces passwords in plain text that are hashed immediately after
 
 ## Implementation Notes
 
+- Realized by OpenSpec change `us-027-password-administration`: a CSPRNG generates passwords from the printable ASCII characters without space that meet the effective policy, at least 16 characters long; an unsatisfiable policy is answered with `409` and problem type `password-policy-unsatisfiable`. Administrators use it through `setInitialPassword` with `generate: true` and the reset, persons through `POST /me/password/suggestion`.
 - CSPRNG: operating system entropy (`/dev/urandom`, `CryptGenRandom`, `java.security.SecureRandom`) – never `rand()`, `Math.random()`, or similar
 - Fisher-Yates shuffle after character selection to randomize the positions of enforced characters
 - Generator as a pure function (input: policy object → output: string); no state, no side effects; easy to test
@@ -132,7 +133,7 @@ The generator produces passwords in plain text that are hashed immediately after
 ## Implementation
 
 - ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
-- Implemented by: –
+- Implemented by: OpenSpec change `us-027-password-administration`
 - Tests: –
 - Verification status: not-verified
 
@@ -145,3 +146,4 @@ Derived from operator requirement (SH-06): password generator with the full spec
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-10-30 | requirements-engineer | Implementation note (change `us-027-password-administration`) |

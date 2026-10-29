@@ -2,8 +2,9 @@
 
 **ID**: US-026
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S5
+**Implementation**: OpenSpec change `us-027-password-administration` – generator for `setInitialPassword` with `generate: true`, `resetPersonPassword` and `POST /me/password/suggestion` (`suggestPassword`), button *Suggest a password* on SCR-004
 
 ## Story
 
@@ -64,5 +65,7 @@ As an administrator or person, I want to have a secure password generated at the
 - Blocks: none
 
 ## Notes
+
+Realigned by OpenSpec change `us-027-password-administration`: the generator has no standalone endpoint `GET /auth/utils/generate-password`; administrators get a generated password from `setInitialPassword` with `generate: true` and from the reset, persons from `POST /me/password/suggestion`. A generated password has the minimum length of the policy, at least 16 characters; the length is not a parameter. AC1 is an API operation, documented in the manual; an admin UI follows later.
 
 The generator endpoint returns the password in plaintext (briefly, only in the HTTP response); the client displays it once. No client-side generation (would presuppose browser entropy), instead server-side with CSPRNG. The length can optionally be passed as a parameter; the default is the configured recommended value or 20 characters.

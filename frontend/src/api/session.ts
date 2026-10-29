@@ -5,6 +5,7 @@ export type Me = components['schemas']['Me']
 export type LoginResult = components['schemas']['LoginResult']
 export type TotpEnrollment = components['schemas']['TotpEnrollment']
 export type LoginProvider = components['schemas']['LoginProvider']
+export type PasswordSuggestion = components['schemas']['PasswordSuggestion']
 
 /** Outcome of a login step (US-013 AC2, ADR-042). */
 export type LoginOutcome =
@@ -133,6 +134,15 @@ export async function changeOwnPassword(
   const response = await post('/api/v1/me/password', { currentPassword, newPassword }, fetchFn)
   if (response.status === 204) {
     return { ok: true, value: undefined }
+  }
+  return { ok: false, rejection: await readRejection(response) }
+}
+
+/** POST /me/password/suggestion: a generated password that satisfies the password policy (REQ-027); not stored. */
+export async function suggestPassword(fetchFn: typeof fetch = fetch): Promise<Outcome<string>> {
+  const response = await post('/api/v1/me/password/suggestion', undefined, fetchFn)
+  if (response.status === 200) {
+    return { ok: true, value: ((await response.json()) as PasswordSuggestion).password }
   }
   return { ok: false, rejection: await readRejection(response) }
 }

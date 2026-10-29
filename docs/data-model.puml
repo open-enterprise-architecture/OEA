@@ -1497,6 +1497,20 @@ package "Settings" #F1F8E9 {
     + allow_reactivation_of_offboarded : BOOLEAN {NN} DEFAULT false
     + session_retention_days : INTEGER    {NN} DEFAULT 30
     .. CHECK > 0 ..
+    == Password policy (REQ-028, US-027) and password login of persons (US-011) ==
+    .. effective rule = stricter of this value and the operator floor oea.auth.password-policy.* ..
+    + password_min_length    : SMALLINT   {NN} DEFAULT 12
+    .. CHECK BETWEEN 12 AND 128 ..
+    + password_require_uppercase : BOOLEAN {NN} DEFAULT false
+    + password_require_lowercase : BOOLEAN {NN} DEFAULT false
+    + password_require_digits : BOOLEAN   {NN} DEFAULT false
+    + password_require_special_chars : BOOLEAN {NN} DEFAULT false
+    + password_expiry_days   : SMALLINT   {NN} DEFAULT 0
+    .. 0 = no expiry; CHECK BETWEEN 0 AND 3650 ..
+    + password_history_count : SMALLINT   {NN} DEFAULT 0
+    .. previous passwords incl. the current one; CHECK BETWEEN 0 AND 24 ..
+    + person_password_login  : BOOLEAN    {NN} DEFAULT true
+    .. administrators' switch; effective only while oea.auth.person-password.enabled ..
     == Raw analytics (ADR-034 §5, §7; DM-5) ==
     + analytics_enabled      : BOOLEAN    {NN} DEFAULT false
     + analytics_statement_timeout_seconds : INTEGER {NN} DEFAULT 30
@@ -1527,6 +1541,9 @@ package "Settings" #F1F8E9 {
     analytics.maxResultBytes,
     analytics.maxConcurrentPerPrincipal,
     analytics.queriesPerMinute, analytics.poolSize.
+    The password policy is read and written through
+    /admin/settings/password-policy and audited as
+    'settings.password-policy-changed'.
   end note
 
 }
@@ -1859,6 +1876,12 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   diagram_operations (append-only operation log in server order) and
 '   diagram_checkpoints (named states); planned, not migrated.
 '   Reason: REQ-199, REQ-204, BR-DG-05, BR-DG-06.
+' 2026-10-30 (us-027-password-administration):
+'   system_settings: password policy columns and person_password_login;
+'   local_credentials.revoked_by_person_id migrated (password reset by a
+'   person administrator); partial index on revoked password credentials
+'   per person for the history check (no separate password_history table).
+'   Reason: US-027, US-030, REQ-028, REQ-031.
 ' ─────────────────────────────────────────────────────
 
 @enduml
