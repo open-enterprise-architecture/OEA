@@ -2,8 +2,9 @@
 
 **ID**: US-006
 **Story Points**: 2
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S5
+**Implementation**: OpenSpec changes `us-013-system-admin-login` (local login of the system admin account) and `us-011-local-password` (persons) – identical answers, one password hash verification per failed login
 
 ## Story
 
@@ -52,5 +53,7 @@ As a security officer, I want failed login attempts to allow no conclusions abou
 - Blocks: none
 
 ## Notes
+
+AC2 realized by OpenSpec change `us-011-local-password`: every failed variant (unknown name, wrong password, expired temporary password, person not active, password login of persons off) runs exactly one argon2id verification; a test counts the verifications instead of measuring times, which would be unreliable in CI.
 
 Should be verified again for every new local mechanism (US-010, US-011), since password correctness is an additional leak vector there (see REQ-010).

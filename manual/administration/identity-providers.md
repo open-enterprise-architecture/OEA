@@ -2,7 +2,7 @@
 title: Identity providers and persons
 covers:
   screens: []
-  stories: [US-004, US-007, US-148]
+  stories: [US-004, US-007, US-023, US-148]
 ---
 
 # Identity providers and persons
@@ -57,6 +57,19 @@ curl "${auth[@]}" -d "{\"authProviderId\": \"$PROVIDER\", \"subject\": \"<subjec
 Use the immutable subject of the provider (Entra ID: the object ID `oid`). The first binding ends the setup phase and needs a session confirmed with a second factor (see [First administrator](../setup/first-administrator#the-setup-phase)); without it, the answer is `403` with `urn:oea:problem:second-factor-required`.
 
 Further operations: `GET /admin/persons`, `GET /admin/persons/{personId}`, `GET` and `DELETE /admin/persons/{personId}/identities[/{identityId}]`.
+
+## Set an initial password {#set-an-initial-password}
+
+If password login of persons is switched on (see [Operations](./operations#password-login-of-persons)), you can give a person an initial password instead of an identity binding (you need `person:manage`):
+
+```bash
+curl "${auth[@]}" -d '{"password": "<12 to 128 characters>"}' "$OEA/admin/persons/$PERSON/password"
+```
+
+- OEA stores only a hash. The answer contains the time the initial password expires (default 72 hours), but never the password; pass it on to the person through a separate channel.
+- The person logs in with the e-mail address of the person record and must choose an own password before doing anything else.
+- A person who already has a password, your own person, a service account or a person that is neither invited nor active is refused.
+- Setting the password is recorded in the audit trail (`person.password-set`).
 
 ## Take access away: inactive and offboarded {#take-access-away}
 

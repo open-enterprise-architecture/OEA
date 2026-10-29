@@ -2,8 +2,9 @@
 
 **ID**: US-023
 **Story Points**: 2
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S5
+**Implementation**: OpenSpec change `us-011-local-password` – `POST /admin/persons/{personId}/password` (`setInitialPassword`), required password change `POST /me/password` (`changeOwnPassword`), page SCR-004
 
 ## Story
 
@@ -64,5 +65,7 @@ As an administrator, I want to set (or have generated) an initial password when 
 - Blocks: US-021, US-022 (required action trigger presupposes an existing password)
 
 ## Notes
+
+Realigned by OpenSpec change `us-011-local-password`: AC1 – the administrator enters the initial password; generating one follows with US-026. The password is set by a separate operation on an existing person, not when the person is created. AC3 – the enforced second factor as a required action follows with US-031 (2FA enforcement).
 
 v0.2.0: Completely new. v0.1.0 was "person sets own password via enrollment token" (rejected with REQ-021). Now the admin sets the password; no invitation link, no email infrastructure needed. 2 SP because it is conceptually simple – the hash mechanism is reused from REQ-011 (password login).

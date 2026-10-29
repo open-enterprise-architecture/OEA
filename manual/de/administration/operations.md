@@ -2,7 +2,7 @@
 title: Betrieb
 covers:
   screens: []
-  stories: [US-019]
+  stories: [US-011, US-019]
 ---
 
 # Betrieb
@@ -86,6 +86,21 @@ Ohne Compose setzt du die Umgebungsvariable `LOGGING_STRUCTURED_FORMAT_CONSOLE` 
 - Jede JSON-Zeile enthält Zeitstempel, Level, Logger und Nachricht. Ein Eintrag, der während eines HTTP-Requests geschrieben wird, hat zusätzlich das Feld `requestId` – denselben Wert wie der Header `X-Request-Id` und die Request-ID des Audit-Eintrags.
 - Kein Eintrag enthält Passwörter, Setup-Tokens, Geheimnisse zweiter Faktoren oder Sitzungs-Tokens, in keinem Format.
 - Checkpoint-Einträge behalten ihre Nachricht und bekommen die Felder `event`, `chainSeq`, `recordHash` und `at`. GELF stellt ihnen `_` voran. `audit verify --checkpoints` liest Checkpoints aus Klartext- und JSON-Zeilen, auch gemischt in einer Datei (siehe unten).
+
+## Passwort-Login von Personen {#password-login-of-persons}
+
+Personen melden sich über deinen Identity-Provider an. Auf einer Instanz ohne Identity-Provider kannst du Personen stattdessen mit ihrer E-Mail-Adresse und einem Passwort anmelden lassen. Das ist auf einer neuen Instanz aus; du schaltest es ausdrücklich ein:
+
+```bash
+# Umgebung des Backends (oder --oea.auth.person-password.enabled=true)
+OEA_AUTH_PERSONPASSWORD_ENABLED=true
+# optional: wie lange ein Initialpasswort gilt (1 Stunde bis 30 Tage, Standard 72 Stunden)
+OEA_AUTH_PERSONPASSWORD_TEMPORARYPASSWORDVALIDITY=PT72H
+```
+
+- Eine Administratorin oder ein Administrator setzt dann pro Person ein Initialpasswort (siehe [Identity-Provider und Personen](./identity-providers#set-an-initial-password)); die Person ändert es bei der ersten Anmeldung.
+- Wer sich mit einem Passwort anmeldet, hat noch keinen zweiten Faktor; Rollen mit administrativen Berechtigungen gelten dann nicht. Behalte für die Administration das lokale Systemadmin-Konto, bis zweite Faktoren für Personen verfügbar sind.
+- Solange die Einstellung aus ist, scheitert der Passwort-Login einer Person wie ein falsches Passwort, und das Setzen eines Initialpassworts wird mit `409` abgelehnt.
 
 ## Audit-Trail prüfen {#verify-the-audit-trail}
 

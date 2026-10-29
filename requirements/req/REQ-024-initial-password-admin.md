@@ -4,9 +4,9 @@ title: Set initial password by administrator
 type: functional
 priority: must
 status: proposed
-version: 0.3.0
+version: 0.4.0
 created: 2026-06-25
-last_updated: 2026-10-13
+last_updated: 2026-10-29
 author: requirements-engineer
 references:
   use_cases:
@@ -141,6 +141,7 @@ Security review SEC-12 (2026-10-13): an initial password without expiry and with
 
 ## Implementation Notes
 
+- Realized by OpenSpec change `us-011-local-password`: the initial password is set by `POST /admin/persons/{personId}/password` on an existing person (not inside `createPerson`), stored with origin `initial` and an expiry (`oea.auth.person-password.temporary-password-validity`, default 72 hours); the answer carries only the expiry.
 - Prefer automatically generated passwords (admin does not have to invent one); cryptographically secure (CSPRNG)
 - Hash immediately when setting: plain text only in working memory, discard after hashing; never in request logs
 - Admin UI: display the password in a one-time popup or a secured page (not in the regular page content, which could be cached)
@@ -149,7 +150,7 @@ Security review SEC-12 (2026-10-13): an initial password without expiry and with
 ## Implementation
 
 - ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
-- Implemented by: –
+- Implemented by: OpenSpec change `us-011-local-password`
 - Tests: –
 - Verification status: not-verified
 
@@ -164,3 +165,4 @@ v0.2.0: Completely rewritten. v0.1.0 (password enrollment by the user themselves
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft: password enrollment by user via enrollment token |
 | 0.2.0 | 2026-06-25 | requirements-engineer | Complete revision: admin sets initial password; token approach rejected |
 | 0.3.0 | 2026-10-13 | requirements-engineer | Security review SEC-12/SEC-09: expiry (default 72 h), mandatory password change (AC6, AC7); argon2id only per REQ-169 |
+| 0.4.0 | 2026-10-29 | requirements-engineer | Implementation note (change `us-011-local-password`) |

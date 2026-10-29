@@ -1,8 +1,8 @@
 ---
 title: Anmelden
 covers:
-  screens: []
-  stories: [US-001, US-005]
+  screens: [SCR-001, SCR-004]
+  stories: [US-001, US-005, US-006, US-011, US-023]
 ---
 
 # Anmelden
@@ -30,6 +30,17 @@ Gib Anmeldename und Passwort des Systemadmin-Kontos ein und wähle *Log in*. Nac
 - Nach fünf falschen Codes musst du wieder mit dem Passwort beginnen.
 - Nach wiederholt falschen Passwörtern werden weitere Versuche verzögert (höchstens 15 Minuten).
 - Jede Anmeldung und jeder fehlgeschlagene Versuch – über einen Provider oder mit dem lokalen Konto – steht mit Zeit, Mechanismus und Ergebnis im Audit-Log (`auth.login`, `auth.login-failed`); den internen Grund eines Fehlschlags nennt nur das Audit-Log.
+
+## Mit E-Mail-Adresse und Passwort anmelden
+
+Betreibt deine Organisation OEA ohne Identity-Provider, gibt dir deine Administration ein Initialpasswort. Gib deine E-Mail-Adresse und dieses Passwort im lokalen Formular der Anmeldeseite ein.
+
+1. Nach der ersten Anmeldung öffnet sich die Seite *Change password*. Gib das Initialpasswort als aktuelles Passwort ein und wähle zweimal dein eigenes Passwort (12 bis 128 Zeichen). Bis dahin ist nichts anderes verfügbar.
+2. Ab dann meldest du dich mit deiner E-Mail-Adresse und deinem eigenen Passwort an. Unter `/me/password` kannst du es wieder ändern; das beendet deine anderen Sitzungen.
+
+- Das Initialpasswort läuft nach der Zeit ab, die deine Administration gewählt hat (Standard 72 Stunden). Ein abgelaufenes Initialpasswort scheitert wie ein falsches; bitte deine Administration um ein neues.
+- Eine fehlgeschlagene Anmeldung verrät nie, ob das Konto existiert, und jeder Fehlversuch dauert gleich lang.
+- Rollen mit administrativen Berechtigungen brauchen einen zweiten Faktor und gelten nach einer Passwort-Anmeldung nicht.
 
 ## Dein Profil
 

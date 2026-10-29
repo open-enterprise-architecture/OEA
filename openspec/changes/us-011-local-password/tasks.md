@@ -20,10 +20,10 @@
 
 ## 4. Documentation
 
-- [ ] 4.1 Describe the switch (`manual/administration/operations.md`), setting the initial password (`manual/administration/identity-providers.md`), the first login and the password change (`manual/usage/login.md`) in English and German with US-011, US-023 and US-006 in `covers`; add `person.password-set` and `auth.password-changed` and the person details of `auth.login`/`auth.login-failed` to `docs/audit-event-catalog.md`; verify the manual coverage check and markdown lint pass
+- [x] 4.1 Describe the switch (`manual/administration/operations.md`), setting the initial password (`manual/administration/identity-providers.md`), the first login and the password change (`manual/usage/login.md`) in English and German with US-011, US-023 and US-006 in `covers`; add `person.password-set` and `auth.password-changed` and the person details of `auth.login`/`auth.login-failed` to `docs/audit-event-catalog.md`; verify the manual coverage check and markdown lint pass
 
 ## 5. Wrap-up
 
-- [ ] 5.1 Set US-011, US-023 and US-006 to `done` with the realignment notes of the proposal (US-006 AC2 verified structurally, design D6); add notes to REQ-011, REQ-024 and REQ-173 (AC1, AC2); record the S5 status in `docs/sprint-plan.md`; verify markdown lint passes
-- [ ] 5.2 Update `docs/data-model.puml` and `business-objects/local-credential.md` (data model section); regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
+- [x] 5.1 Set US-011, US-023 and US-006 to `done` with the realignment notes of the proposal (US-006 AC2 verified structurally, design D6); add notes to REQ-011, REQ-024 and REQ-173 (AC1, AC2); record the S5 status in `docs/sprint-plan.md`; verify markdown lint passes
+- [x] 5.2 Update `docs/data-model.puml` and `business-objects/local-credential.md` (data model section); regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
 - [ ] 5.3 Run `python3 scripts/validate_links.py`, `python3 scripts/check_screens.py`, the OpenAPI checks, `scripts/sync_agent_config.py --check`, `openspec validate --specs --strict` and `openspec validate us-011-local-password --strict`, markdownlint as in CI, `./mvnw verify` and the frontend type check, tests and build, and verify all pass

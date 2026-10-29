@@ -2,7 +2,7 @@
 title: Identity-Provider und Personen
 covers:
   screens: []
-  stories: [US-004, US-007, US-148]
+  stories: [US-004, US-007, US-023, US-148]
 ---
 
 # Identity-Provider und Personen
@@ -57,6 +57,19 @@ curl "${auth[@]}" -d "{\"authProviderId\": \"$PROVIDER\", \"subject\": \"<subjec
 Verwende das unveränderliche Subject des Providers (Entra ID: die Objekt-ID `oid`). Die erste Bindung beendet die Setup-Phase und braucht eine mit einem zweiten Faktor bestätigte Sitzung (siehe [Erster Administrator](../setup/first-administrator#setup-phase)); ohne sie lautet die Antwort `403` mit `urn:oea:problem:second-factor-required`.
 
 Weitere Operationen: `GET /admin/persons`, `GET /admin/persons/{personId}`, `GET` und `DELETE /admin/persons/{personId}/identities[/{identityId}]`.
+
+## Initialpasswort setzen {#set-an-initial-password}
+
+Ist der Passwort-Login von Personen eingeschaltet (siehe [Betrieb](./operations#password-login-of-persons)), kannst du einer Person statt einer Identitätsbindung ein Initialpasswort geben (du brauchst `person:manage`):
+
+```bash
+curl "${auth[@]}" -d '{"password": "<12 bis 128 Zeichen>"}' "$OEA/admin/persons/$PERSON/password"
+```
+
+- OEA speichert nur einen Hash. Die Antwort enthält, wann das Initialpasswort abläuft (Standard 72 Stunden), aber nie das Passwort; gib es der Person über einen getrennten Kanal weiter.
+- Die Person meldet sich mit der E-Mail-Adresse ihres Personeneintrags an und muss zuerst ein eigenes Passwort wählen.
+- Abgelehnt werden eine Person, die schon ein Passwort hat, deine eigene Person, Service-Accounts und Personen, die weder eingeladen noch aktiv sind.
+- Das Setzen steht im Audit-Trail (`person.password-set`).
 
 ## Zugriff entziehen: inaktiv und offboarded {#take-access-away}
 

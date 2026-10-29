@@ -4,7 +4,7 @@ title: Account recovery and temporary password lifecycle
 type: functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-10-13
 last_updated: 2026-10-28
 author: requirements-engineer
@@ -117,6 +117,7 @@ Source: security review SEC-12 (proposal PR-17). REQ-024 and REQ-031 were aligne
 
 ## Implementation Notes
 
+- AC1 and AC2 realized by OpenSpec change `us-011-local-password` for initial passwords of persons: they expire (default 72 hours) and fail like wrong passwords afterwards; a session created with them allows only `GET /me`, the logout and `POST /me/password`. AC3 and AC5 follow with the password reset and the factor reset of persons.
 - AC4 realigned by OpenSpec change `us-019-admin-safeguards` (owner decision 2026-10-28): the break-glass command `admin recover` runs inside the backend container. The operator types the new password and, after the setup phase, confirms a new TOTP factor directly in the command instead of receiving a time-limited recovery credential. Nothing crosses a network, and the password-change flow a temporary credential would need does not exist yet. The recovery is audited as `system.admin-recovered` with source `CLI`. AC1–AC3 and AC5 follow with UC-03.
 - Recovery codes vs. admin factor reset is a design choice; at least one must exist
 - Temporary-password expiry and recovery codes need data model support (follow-up for business engineer)
@@ -127,3 +128,4 @@ Source: security review SEC-12 (proposal PR-17). REQ-024 and REQ-031 were aligne
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-12 (PR-17) |
 | 0.2.0 | 2026-10-28 | requirements-engineer | AC4 realigned to the break-glass command `admin recover` (change `us-019-admin-safeguards`) |
+| 0.3.0 | 2026-10-29 | requirements-engineer | AC1/AC2 realized for initial passwords (change `us-011-local-password`) |
