@@ -136,9 +136,9 @@ Trace: US-019 AC1, REQ-019
 
 ### Requirement: The last path to system administration is kept
 
-A change SHALL be rejected with 409 and problem type `last-admin-path` if no usable path to `system-admin` would remain afterwards. This applies to revoking a role assignment, deactivating the local system admin account, and deleting, deactivating or retargeting an IdP group mapping. Concurrent changes SHALL NOT both pass the check.
+A change SHALL be rejected with 409 and problem type `last-admin-path` if no usable path to `system-admin` would remain afterwards. This applies to revoking a role assignment, changing the status of a person, deactivating the local system admin account, and deleting, deactivating or retargeting an IdP group mapping. Concurrent changes SHALL NOT both pass the check.
 
-Trace: US-019 AC2, US-146 AC1, US-146 AC4, REQ-019, ADR-032 SoD-7
+Trace: US-019 AC2, US-146 AC1, US-146 AC4, US-146 AC5, REQ-019, ADR-032 SoD-7
 
 #### Scenario: Deactivation without another path
 
@@ -164,6 +164,11 @@ Trace: US-019 AC2, US-146 AC1, US-146 AC4, REQ-019, ADR-032 SoD-7
 
 - **WHEN** two persons are the only paths to `system-admin` and their assignments are revoked by two concurrent requests
 - **THEN** exactly one revocation succeeds and the other is rejected with 409
+
+#### Scenario: Status change of the last holder
+
+- **WHEN** a person is the only path to `system-admin` and an administrator sets her to `inactive` or `offboarded`
+- **THEN** the request is rejected with 409 and problem type `last-admin-path`, and the person's status is unchanged
 
 ### Requirement: Usable paths to system administration
 

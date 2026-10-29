@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S4
-**Implementation**: OpenSpec change `us-148-person-lifecycle` – `POST /admin/persons/{personId}/status` (`changePersonStatus`)
+**Implementation**: OpenSpec change `us-148-person-lifecycle`, commit 39245bb (#128) – `POST /admin/persons/{personId}/status` (`changePersonStatus`)
 
 ## Story
 
