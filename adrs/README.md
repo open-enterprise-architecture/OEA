@@ -84,3 +84,4 @@ In `.opencode/commands/`:
 | [ADR-045](./ADR-045-user-manual.md) | Multilingual User Manual with VitePress on GitHub Pages | accepted | 2026-10-23 | – (partially ADR-031 Pages) |
 | [ADR-046](./ADR-046-manual-coverage-story-statuses.md) | User Story Statuses Covered by the User Manual Check | accepted | 2026-10-26 | – |
 | [ADR-047](./ADR-047-real-time-collaboration.md) | Architecture of Real-Time Collaboration | accepted | 2026-10-28 | – (revises concept issue #26) |
+| [ADR-048](./ADR-048-webauthn-library.md) | WebAuthn Library for Passkey Enrollment and Login | accepted | 2026-10-29 | – |
