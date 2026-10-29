@@ -18,4 +18,4 @@
 
 - [x] 3.1 No user story is referenced, so no story status changes; record the S3 status in `docs/sprint-plan.md`; the concluded retrospective `docs/retrospectives/2026-10-walking-skeleton.md` tracks its deferred items as GitHub issues (decision A7), so issues #62 and #63 are closed through the PR instead of editing the retrospective; verify markdown lint passes
 - [x] 3.2 `docs/data-model.puml`, `business-objects/` and `docs/screens/SCREENS.md` are unchanged; regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify `--check` passes
-- [ ] 3.3 Run `python3 scripts/validate_links.py`, `scripts/sync_agent_config.py --check`, `openspec validate s3-structured-logging-and-icons`, `./mvnw verify` and the frontend type check, tests and build, and verify all pass
+- [x] 3.3 Run `python3 scripts/validate_links.py`, `scripts/sync_agent_config.py --check`, `openspec validate s3-structured-logging-and-icons`, `./mvnw verify` and the frontend type check, tests and build, and verify all pass
