@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: done
 **Sprint**: S4
-**Implementation**: OpenSpec change `us-144-local-role-assignments` – `listRoleAssignments`, `createRoleAssignment`, `revokeRoleAssignment`, `getAuthorizationRole`; table `role_assignments`
+**Implementation**: OpenSpec change `us-144-local-role-assignments`, commit b15925e (#125) – `listRoleAssignments`, `createRoleAssignment`, `revokeRoleAssignment`, `getAuthorizationRole`; table `role_assignments`
 
 ## Story
 

@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S4
-**Implementation**: OpenSpec change `us-144-local-role-assignments` – one SoD-7 check under an advisory lock for revoking assignments, deactivating the local system admin account and deleting, deactivating or retargeting IdP group mappings
+**Implementation**: OpenSpec change `us-144-local-role-assignments`, commit b15925e (#125) – one SoD-7 check under an advisory lock for revoking assignments, deactivating the local system admin account and deleting, deactivating or retargeting IdP group mappings
 
 ## Story
 
