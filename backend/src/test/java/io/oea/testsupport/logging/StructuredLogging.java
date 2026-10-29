@@ -1,9 +1,12 @@
 package io.oea.testsupport.logging;
 
+import org.springframework.boot.logging.LoggingSystem;
+
 /**
  * Spring Boot keeps the selected structured log format as a system property after the
- * application closes; tests that select a format remove it again, so that later applications
- * in the same JVM log plain text.
+ * application closes, and skips the logging setup of an application while another one of the
+ * same JVM (e.g. a cached test context) has initialized it. Tests that select a format call
+ * {@link #prepare()} before they start their application and {@link #reset()} afterwards.
  */
 public final class StructuredLogging {
 
@@ -13,8 +16,15 @@ public final class StructuredLogging {
 	private StructuredLogging() {
 	}
 
+	/** Lets the next application initialize the logging system with its own format. */
+	public static void prepare() {
+		LoggingSystem.get(StructuredLogging.class.getClassLoader()).cleanUp();
+	}
+
+	/** Back to plain text for later applications of the JVM. */
 	public static void reset() {
 		System.clearProperty(CONSOLE_FORMAT_PROPERTY);
+		prepare();
 	}
 
 }

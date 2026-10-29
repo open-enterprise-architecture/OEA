@@ -81,6 +81,7 @@ class StructuredCheckpointLogTests {
 		if (format != null) {
 			builder.properties("logging.structured.format.console=" + format);
 		}
+		StructuredLogging.prepare();
 		try (ConfigurableApplicationContext context = builder.run()) {
 			AuditWriter writer = mock(AuditWriter.class);
 			when(writer.append(any(AuditEvent.class))).thenReturn(new AppendedLink(7, chainSeq, HASH));

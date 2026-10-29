@@ -49,6 +49,7 @@ class StructuredLoggingTests {
 		OeaDatabase postgres = OeaDatabases.freshMigrated();
 		Path tokenFile = Files.createTempDirectory("oea-logging").resolve("setup-token");
 		int start = output.getOut().length();
+		StructuredLogging.prepare();
 		ConfigurableApplicationContext application = OeaApplications.start(postgres, tokenFile,
 				WebApplicationType.SERVLET, "--logging.structured.format.console=ecs",
 				"--oea.security.kek.current=" + OeaTestKeys.newKeyFile(), "--oea.web.public-url=https://oea.example.org");
@@ -100,6 +101,7 @@ class StructuredLoggingTests {
 		OeaDatabase postgres = OeaDatabases.freshMigrated();
 		int start = output.getOut().length();
 		// what Compose passes for an unset OEA_LOG_FORMAT (design D2)
+		StructuredLogging.prepare();
 		ConfigurableApplicationContext application = OeaApplications.start(postgres,
 				Files.createTempDirectory("oea-logging").resolve("setup-token"), WebApplicationType.SERVLET,
 				"--logging.structured.format.console=", "--oea.security.kek.current=" + OeaTestKeys.newKeyFile(),
