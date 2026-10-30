@@ -2,7 +2,7 @@
 title: Identity providers and persons
 covers:
   screens: []
-  stories: [US-004, US-007, US-023, US-026, US-027, US-030, US-148]
+  stories: [US-004, US-007, US-023, US-026, US-027, US-028, US-030, US-031, US-148]
 ---
 
 # Identity providers and persons
@@ -101,6 +101,23 @@ curl "${auth[@]}" -d '{"reason": "phone lost"}' "$OEA/admin/persons/$PERSON/seco
 - The person then logs in with the password alone, and OEA offers to set up a new authenticator app.
 - Your own person, a person without a second factor and a service account are refused. As for the password reset, only the local system admin account resets a person who holds a role with an administrative permission through a local role assignment.
 - The reset is recorded in the audit trail (`person.second-factors-reset`) with the reason.
+
+## Second-factor policy {#second-factor-policy}
+
+Your organization can require a second factor for every password login of a person (you need `settings:manage`):
+
+```bash
+curl "${auth[@]}" "$OEA/admin/settings/second-factor-policy"
+curl "${auth[@]}" -X PUT -d '{"enforced": true, "exemptRoles": ["viewer"]}' \
+  "$OEA/admin/settings/second-factor-policy"
+```
+
+- While `enforced` is `true`, a person without a passkey or authenticator app must set one up after the password login before doing anything else; other requests are refused with problem type `second-factor-enrollment-required`.
+- `exemptRoles` lists roles that need no second factor. A person is exempt only if they hold at least one role through a local role assignment and every such role is in the list; a person without roles is not exempt. A role with an administrative permission, or an unknown role, is refused with `422`.
+- While the enforcement is on, a person who is not exempt cannot remove the last second factor; your [factor reset](#reset-second-factors) still works, and the person sets up a new one at the next login.
+- The enforcement covers the password login of persons. Logins through an identity provider follow its rules, and the local system admin account keeps its own (see [First administrator](../setup/first-administrator)).
+- The operator can force the enforcement (see [Operations](./operations#second-factor-enforcement)); `enforcedByOperator` then is `true`, and `enforced: false` is refused with `422`.
+- Every change is recorded in the audit trail (`settings.second-factor-policy-changed`). Announce the enforcement before you switch it on: it applies at the next password login of each person.
 
 ## Password policy {#password-policy}
 

@@ -185,4 +185,17 @@ describe('LoginPage', () => {
     await submitPassword(wrapper)
     expect(router.currentRoute.value.path).toBe('/me')
   })
+
+  it('opens the enrollment when the organization requires a second factor (US-031)', async () => {
+    const fetchFn = routedFetch({
+      '/api/v1/auth/local/login': {
+        status: 201,
+        body: { ...PERSON_LOGIN, requiredAction: 'enroll-second-factor' },
+      },
+      '/api/v1/me': { body: { ...PERSON_ME, requiredAction: 'enroll-second-factor' } },
+    })
+    const { wrapper, router } = await mountPage(fetchFn)
+    await submitPassword(wrapper)
+    expect(router.currentRoute.value.path).toBe('/me/second-factor')
+  })
 })

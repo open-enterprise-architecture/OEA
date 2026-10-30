@@ -2,7 +2,7 @@
 title: Betrieb
 covers:
   screens: []
-  stories: [US-011, US-019, US-022, US-027]
+  stories: [US-011, US-019, US-022, US-027, US-031]
 ---
 
 # Betrieb
@@ -102,6 +102,17 @@ OEA_AUTH_PERSONPASSWORD_TEMPORARYPASSWORDVALIDITY=PT72H
 - Administratorinnen und Administratoren können den Passwort-Login von Personen mit `personPasswordLogin` der [Passwort-Richtlinie](./identity-providers#password-policy) aus- und wieder einschalten. Er funktioniert nur, solange deine Einstellung ihn erlaubt und ihr Schalter an ist; ohne deine Erlaubnis können sie ihn nicht einschalten.
 - Rollen mit administrativen Berechtigungen gelten für eine Person erst nach einer Anmeldung mit Passwort und dem Code einer Authenticator-App (siehe [Zweiten Faktor einrichten](../usage/login#set-up-a-second-factor)); nach einer reinen Passwort-Anmeldung gelten sie nicht.
 - Solange der Passwort-Login von Personen nicht möglich ist, scheitert er wie ein falsches Passwort, und das Setzen oder Zurücksetzen eines Passworts wird mit `409` abgelehnt.
+
+### Pflicht zum zweiten Faktor {#second-factor-enforcement}
+
+Administratorinnen und Administratoren schalten die [Richtlinie für zweite Faktoren](./identity-providers#second-factor-policy) ein und aus. Um sie unabhängig davon verbindlich zu machen, erzwingst du sie:
+
+```bash
+# bei jeder Passwort-Anmeldung einer Person ist ein zweiter Faktor Pflicht (Standard false)
+OEA_AUTH_SECONDFACTOR_ENFORCED=true
+```
+
+Die ausgenommenen Rollen bleiben bei der Administration.
 
 ### Passkeys {#passkeys}
 

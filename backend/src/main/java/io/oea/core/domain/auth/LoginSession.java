@@ -159,6 +159,11 @@ public class LoginSession extends NewAwareEntity<UUID> {
 		this.requiredAction = null;
 	}
 
+	/** The session must enroll a second factor (design D3 of us-031-second-factor-enforcement). */
+	public void requireSecondFactorEnrollment() {
+		this.requiredAction = "enroll-second-factor";
+	}
+
 	public String getRequiredAction() {
 		return this.requiredAction;
 	}
@@ -216,6 +221,10 @@ public class LoginSession extends NewAwareEntity<UUID> {
 
 	/** Second factor confirmed in this session (enrollment, ADR-042); counts as fresh authentication. */
 	public void confirmSecondFactor(Instant now) {
+		if ("enroll-second-factor".equals(this.requiredAction)) {
+			// a confirmed second factor lifts the required enrollment (US-031 AC2)
+			this.requiredAction = null;
+		}
 		this.secondFactorVerified = true;
 		this.authMethod = "password-totp";
 		this.authenticatedAt = now;

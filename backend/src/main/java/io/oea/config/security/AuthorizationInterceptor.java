@@ -50,6 +50,11 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
 	private static final Set<String> PASSWORD_CHANGE_OPERATIONS = Set.of("getCurrentPrincipal", "logout",
 			"changeOwnPassword", "suggestPassword");
 
+	/** Operations a session with a required enrollment may call (design D4 of us-031-second-factor-enforcement). */
+	private static final Set<String> ENROLLMENT_OPERATIONS = Set.of("getCurrentPrincipal", "logout",
+			"listOwnSecondFactors", "startTotpEnrollment", "confirmTotpEnrollment", "startPasskeyRegistration",
+			"confirmPasskeyRegistration");
+
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
 			throws Exception {
@@ -75,6 +80,13 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
 			// REQ-173 AC2: a temporary password only leads to the password change
 			Problems.write(response, HttpServletResponse.SC_FORBIDDEN, "password-change-required",
 					"Password change required");
+			return false;
+		}
+		if (OeaPrincipal.ENROLL_SECOND_FACTOR.equals(principal.requiredAction())
+				&& !ENROLLMENT_OPERATIONS.contains(rule.operationId())) {
+			// US-031 AC2: an enforced second factor must be enrolled first
+			Problems.write(response, HttpServletResponse.SC_FORBIDDEN, "second-factor-enrollment-required",
+					"Second factor enrollment required");
 			return false;
 		}
 		Set<String> granted = this.permissions.permissions(principal);

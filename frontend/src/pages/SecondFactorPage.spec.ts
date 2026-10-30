@@ -2,6 +2,7 @@ import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import { login } from '../api/session'
+import { session } from '../session/store'
 import { routedFetch, type RecordedRequest } from '../test/fetch'
 import { testRouter } from '../test/router'
 import SecondFactorPage from './SecondFactorPage.vue'
@@ -104,5 +105,22 @@ describe('SecondFactorPage', () => {
     await wrapper.get('[data-testid="skip"]').trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.path).toBe('/')
+  })
+
+  it('offers no skip while the organization requires a second factor (US-031)', async () => {
+    session.me = {
+      principal: { principalType: 'person', displayName: 'Anna' },
+      mfaSatisfied: false,
+      roles: [],
+      permissions: [],
+      requiredAction: 'enroll-second-factor',
+    }
+    const router = testRouter()
+    await router.push('/me/second-factor?offer=1')
+    const wrapper = mount(SecondFactorPage, { props: { fetchFn: routedFetch({}) }, global: { plugins: [ui, router] } })
+    await flushPromises()
+    expect(wrapper.get('[data-testid="enrollment-required"]').text()).toContain('requires a second factor')
+    expect(wrapper.find('[data-testid="skip"]').exists()).toBe(false)
+    session.me = undefined
   })
 })

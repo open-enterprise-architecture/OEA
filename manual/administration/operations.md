@@ -2,7 +2,7 @@
 title: Operations
 covers:
   screens: []
-  stories: [US-011, US-019, US-022, US-027]
+  stories: [US-011, US-019, US-022, US-027, US-031]
 ---
 
 # Operations
@@ -102,6 +102,17 @@ OEA_AUTH_PERSONPASSWORD_TEMPORARYPASSWORDVALIDITY=PT72H
 - Administrators can switch password login of persons off and on again with `personPasswordLogin` of the [password policy](./identity-providers#password-policy). It works only while your setting permits it and their switch is on; without your permission they cannot switch it on.
 - Roles with administrative permissions apply to a person only after a login with password and the code of an authenticator app (see [Set up a second factor](../usage/login#set-up-a-second-factor)); after a password login alone they do not apply.
 - While password login of persons is not possible, a password login of a person fails like a wrong password, and setting or resetting a password is refused with `409`.
+
+### Enforcement of a second factor {#second-factor-enforcement}
+
+Administrators switch the [second-factor policy](./identity-providers#second-factor-policy) on and off. To make it mandatory regardless of them, force it:
+
+```bash
+# a second factor is enforced at every password login of a person (default false)
+OEA_AUTH_SECONDFACTOR_ENFORCED=true
+```
+
+The exempt roles stay with the administrators.
 
 ### Passkeys {#passkeys}
 

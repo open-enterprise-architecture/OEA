@@ -1535,6 +1535,11 @@ package "Settings" #F1F8E9 {
     .. previous passwords incl. the current one; CHECK BETWEEN 0 AND 24 ..
     + person_password_login  : BOOLEAN    {NN} DEFAULT true
     .. administrators' switch; effective only while oea.auth.person-password.enabled ..
+    == Second-factor enforcement (REQ-020, REQ-029, US-031, US-028) ==
+    + second_factor_enforced : BOOLEAN    {NN} DEFAULT false
+    .. effective also while oea.auth.second-factor.enforced (operator floor) ..
+    + second_factor_exempt_roles : TEXT[] {NN} DEFAULT '{}'
+    .. role IDs; never a role with an admin-class permission ..
     == Raw analytics (ADR-034 §5, §7; DM-5) ==
     + analytics_enabled      : BOOLEAN    {NN} DEFAULT false
     + analytics_statement_timeout_seconds : INTEGER {NN} DEFAULT 30
@@ -1915,6 +1920,10 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   data instead of credential_b64, public_key and aaguid); new webauthn_challenges;
 '   persons.webauthn_user_handle; sessions.auth_method value password-passkey.
 '   Reason: US-022, US-009, REQ-009, REQ-023, ADR-048.
+' 2026-10-30 (us-031-second-factor-enforcement):
+'   system_settings.second_factor_enforced and second_factor_exempt_roles
+'   (sessions.required_action already allows enroll-second-factor).
+'   Reason: US-031, US-028, REQ-020, REQ-029.
 ' ─────────────────────────────────────────────────────
 
 @enduml

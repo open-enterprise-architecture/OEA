@@ -2,7 +2,7 @@
 title: Identity-Provider und Personen
 covers:
   screens: []
-  stories: [US-004, US-007, US-023, US-026, US-027, US-030, US-148]
+  stories: [US-004, US-007, US-023, US-026, US-027, US-028, US-030, US-031, US-148]
 ---
 
 # Identity-Provider und Personen
@@ -101,6 +101,23 @@ curl "${auth[@]}" -d '{"reason": "Telefon verloren"}' "$OEA/admin/persons/$PERSO
 - Die Person meldet sich dann nur mit dem Passwort an, und OEA bietet an, eine neue Authenticator-App einzurichten.
 - Abgelehnt werden deine eigene Person, eine Person ohne zweiten Faktor und Service-Accounts. Wie beim Passwort-Zurücksetzen setzt nur das lokale Systemadmin-Konto eine Person zurück, die über eine lokale Rollenzuweisung eine Rolle mit administrativer Berechtigung hat.
 - Das Zurücksetzen steht im Audit-Trail (`person.second-factors-reset`) mit dem Grund.
+
+## Richtlinie für zweite Faktoren {#second-factor-policy}
+
+Deine Organisation kann für jede Passwort-Anmeldung einer Person einen zweiten Faktor verlangen (du brauchst `settings:manage`):
+
+```bash
+curl "${auth[@]}" "$OEA/admin/settings/second-factor-policy"
+curl "${auth[@]}" -X PUT -d '{"enforced": true, "exemptRoles": ["viewer"]}' \
+  "$OEA/admin/settings/second-factor-policy"
+```
+
+- Solange `enforced` den Wert `true` hat, muss eine Person ohne Passkey oder Authenticator-App nach der Passwort-Anmeldung zuerst einen einrichten; andere Anfragen werden mit dem Problemtyp `second-factor-enrollment-required` abgelehnt.
+- `exemptRoles` nennt Rollen, die keinen zweiten Faktor brauchen. Ausgenommen ist eine Person nur, wenn sie über eine lokale Rollenzuweisung mindestens eine Rolle hat und jede dieser Rollen in der Liste steht; eine Person ohne Rollen ist nicht ausgenommen. Eine Rolle mit administrativer Berechtigung oder eine unbekannte Rolle wird mit `422` abgelehnt.
+- Solange die Pflicht gilt, kann eine nicht ausgenommene Person ihren letzten zweiten Faktor nicht entfernen; dein [Zurücksetzen der zweiten Faktoren](#reset-second-factors) funktioniert weiterhin, und die Person richtet bei der nächsten Anmeldung einen neuen ein.
+- Die Pflicht gilt für die Passwort-Anmeldung von Personen. Anmeldungen über einen Identity-Provider folgen dessen Regeln, und das lokale Systemadmin-Konto behält seine eigenen (siehe [Erster Administrator](../setup/first-administrator)).
+- Der Betrieb kann die Pflicht erzwingen (siehe [Betrieb](./operations#second-factor-enforcement)); `enforcedByOperator` ist dann `true`, und `enforced: false` wird mit `422` abgelehnt.
+- Jede Änderung steht im Audit-Trail (`settings.second-factor-policy-changed`). Kündige die Pflicht an, bevor du sie einschaltest: Sie gilt bei der nächsten Passwort-Anmeldung jeder Person.
 
 ## Passwort-Richtlinie {#password-policy}
 

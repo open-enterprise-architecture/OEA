@@ -4,9 +4,9 @@ title: Instance-wide enforcement of a second factor for regular logins
 type: business-rule
 priority: should
 status: proposed
-version: 0.3.0
+version: 0.4.0
 created: 2026-06-24
-last_updated: 2026-10-15
+last_updated: 2026-10-30
 author: requirements-engineer
 references:
   use_cases:
@@ -110,13 +110,14 @@ if instanceConfig.enforceSecondFactor == true:
 
 ## Implementation Notes
 
+- Realized by OpenSpec change `us-031-second-factor-enforcement` (owner decisions 2026-10-30): administrators switch the enforcement with `GET/PUT /admin/settings/second-factor-policy`, the operator can force it with `oea.auth.second-factor.enforced`. AC1 realigned: password login of persons stays possible, but a person without second factor gets only the enrollment (required action `enroll-second-factor`). The last second factor cannot be removed while enforced; the scope is the password login of persons (AC2 for the system admin account unchanged).
 - Enforcement for OIDC logins (REQ-001) is only possible to the extent that the IdP provides MFA information (e.g., `amr`/`acr` claims per OIDC Core); if not, OEA cannot technically guarantee enforcement for OIDC logins but must rely on the IdP's governance – this limitation should be communicated to the operator upon activation
 - Configuration should be part of the same instance authentication configuration as REQ-011/REQ-012
 
 ## Implementation
 
 - ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
-- Implemented by: –
+- Implemented by: OpenSpec change `us-031-second-factor-enforcement`
 - Tests: –
 - Verification status: not-verified
 
@@ -131,3 +132,4 @@ The exclusion of the system admin account is an explicit business decision (not 
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-10: system admin exemption limited to the first bootstrap login; AC2 rewritten; reference to REQ-171 |
 | 0.3.0 | 2026-10-15 | requirements-engineer | ADR-042: system admin exemption covers the setup phase instead of the first bootstrap login |
+| 0.4.0 | 2026-10-30 | requirements-engineer | Implementation note (change `us-031-second-factor-enforcement`) |

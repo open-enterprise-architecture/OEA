@@ -37,6 +37,8 @@ public class SecondFactors {
 
 	private final SetupPhase setupPhase;
 
+	private final SecondFactorPolicies policies;
+
 	private final PermissionDenials denials;
 
 	private final AuditWriter audit;
@@ -44,10 +46,11 @@ public class SecondFactors {
 	private final Clock clock;
 
 	public SecondFactors(JdbcTemplate jdbc, RecentAuthentication recentAuthentication, SetupPhase setupPhase,
-			PermissionDenials denials, AuditWriter audit, Clock clock) {
+			SecondFactorPolicies policies, PermissionDenials denials, AuditWriter audit, Clock clock) {
 		this.jdbc = jdbc;
 		this.recentAuthentication = recentAuthentication;
 		this.setupPhase = setupPhase;
+		this.policies = policies;
 		this.denials = denials;
 		this.audit = audit;
 		this.clock = clock;
@@ -88,6 +91,10 @@ public class SecondFactors {
 		if (principal.type() == OeaPrincipal.Type.SYSTEM_ADMIN_ACCOUNT && "totp".equals(factor.type())
 				&& !this.setupPhase.isActive()
 				&& list(principal).stream().filter((f) -> "totp".equals(f.type())).count() == 1) {
+			throw new LastSecondFactorException();
+		}
+		// design D5 of us-031-second-factor-enforcement: the enforced second factor stays
+		if (principal.personId() != null && this.policies.enrollmentRequired(principal.personId(), credentialId)) {
 			throw new LastSecondFactorException();
 		}
 		Instant now = this.clock.instant();

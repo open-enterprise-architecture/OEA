@@ -2,8 +2,9 @@
 
 **ID**: US-028
 **Story Points**: 2
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S5
+**Implementation**: OpenSpec change `us-031-second-factor-enforcement` – field `exemptRoles` of `GET/PUT /admin/settings/second-factor-policy`
 
 ## Story
 
@@ -56,5 +57,7 @@ As an operator, I want to be able to define which OEA roles are exempt from the 
 - Blocks: none
 
 ## Notes
+
+Realigned by OpenSpec change `us-031-second-factor-enforcement`: `twoFactorExemptRoles` is the field `exemptRoles` of the second-factor policy. A person is exempt only if they hold at least one role through a local role assignment and every such role is exempt; a person without roles is not exempt. Unknown roles and roles with an admin-class permission are rejected with 422 (AC3).
 
 Default: `twoFactorExemptRoles=[]` – no difference from the previous REQ-020 behavior. Max enables the exemption only if he deliberately wants it. 2026-10-13 (security review SEC-10, REQ-029 v0.2.0): admin roles cannot be exempted, a person is exempt only if all roles are exempt, and the system admin account needs a second factor after its first bootstrap login (REQ-171).

@@ -2,6 +2,7 @@ package io.oea.app.login;
 
 import io.oea.app.access.InvalidAccessRequestException;
 import io.oea.app.access.PasswordPolicies;
+import io.oea.app.access.SecondFactorPolicies;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
@@ -35,6 +36,8 @@ public class PasswordChange {
 
 	private final PasswordPolicies policies;
 
+	private final SecondFactorPolicies secondFactorPolicies;
+
 
 	private final Sessions sessions;
 
@@ -43,11 +46,12 @@ public class PasswordChange {
 	private final Clock clock;
 
 	public PasswordChange(JdbcTemplate jdbc, PasswordHasher hasher, LoginThrottle throttle, PasswordPolicies policies,
-			Sessions sessions, AuditWriter audit, Clock clock) {
+			SecondFactorPolicies secondFactorPolicies, Sessions sessions, AuditWriter audit, Clock clock) {
 		this.jdbc = jdbc;
 		this.hasher = hasher;
 		this.throttle = throttle;
 		this.policies = policies;
+		this.secondFactorPolicies = secondFactorPolicies;
 		this.sessions = sessions;
 		this.audit = audit;
 		this.clock = clock;
@@ -130,7 +134,14 @@ public class PasswordChange {
 				principal.systemAdminAccountId(), Timestamp.from(now));
 		this.jdbc.update("INSERT INTO password_credentials (credential_id, password_hash) VALUES (?, ?)", credentialId,
 				this.hasher.hash(newPassword));
-		this.sessions.clearRequiredAction(principal.sessionId());
+		if (person && !principal.secondFactorVerified()
+				&& this.secondFactorPolicies.enrollmentRequired(principal.personId())) {
+			// design D3 of us-031-second-factor-enforcement: the enrollment follows the password change
+			this.sessions.requireSecondFactorEnrollment(principal.sessionId());
+		}
+		else {
+			this.sessions.clearRequiredAction(principal.sessionId());
+		}
 		int revoked = this.jdbc.update("""
 				UPDATE sessions SET revoked_at = ?, revoked_reason = 'credential-revoked', revoked_by_person_id = ?,
 				       revoked_by_admin_id = ?

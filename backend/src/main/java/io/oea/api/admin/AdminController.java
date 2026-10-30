@@ -8,11 +8,13 @@ import io.oea.api.generated.model.ImportMetamodelPackageRequest;
 import io.oea.api.generated.model.ImportResult;
 import io.oea.api.generated.model.PasswordPolicy;
 import io.oea.api.generated.model.PasswordPolicyFloors;
+import io.oea.api.generated.model.SecondFactorPolicy;
 import io.oea.api.generated.model.StarterPackage;
 import io.oea.api.generated.model.SystemAdminAccountState;
 import io.oea.app.access.AuthProviders;
 import io.oea.app.access.LocalAdminAccount;
 import io.oea.app.access.PasswordPolicies;
+import io.oea.app.access.SecondFactorPolicies;
 import io.oea.app.metamodel.PackageConflictException;
 import io.oea.app.metamodel.PackageImporter;
 import io.oea.app.metamodel.StarterPackages;
@@ -31,8 +33,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Administration: OIDC providers (design D10 of us-013-system-admin-login; deleting and testing
  * a provider are not implemented, a provider is deactivated with {@code enabled: false}) and
- * metamodel package imports (us-033-import-metamodel) and the password policy
- * (us-027-password-administration).
+ * metamodel package imports (us-033-import-metamodel), the password policy
+ * (us-027-password-administration) and the second-factor policy (us-031-second-factor-enforcement).
  */
 @RestController
 public class AdminController implements AdminApi {
@@ -47,13 +49,34 @@ public class AdminController implements AdminApi {
 
 	private final PasswordPolicies policies;
 
+	private final SecondFactorPolicies secondFactorPolicies;
+
 	public AdminController(AuthProviders providers, PackageImporter packageImporter,
-			StarterPackages starterPackages, LocalAdminAccount localAdmin, PasswordPolicies policies) {
+			StarterPackages starterPackages, LocalAdminAccount localAdmin, PasswordPolicies policies,
+			SecondFactorPolicies secondFactorPolicies) {
 		this.providers = providers;
 		this.packageImporter = packageImporter;
 		this.starterPackages = starterPackages;
 		this.localAdmin = localAdmin;
 		this.policies = policies;
+		this.secondFactorPolicies = secondFactorPolicies;
+	}
+
+	@Override
+	public ResponseEntity<SecondFactorPolicy> getSecondFactorPolicy() {
+		return ResponseEntity.ok(secondFactorPolicy(this.secondFactorPolicies.view()));
+	}
+
+	@Override
+	@ContractViolationResponse(status = 422, title = "Invalid second-factor policy", detail = "Some fields are invalid.")
+	public ResponseEntity<SecondFactorPolicy> updateSecondFactorPolicy(SecondFactorPolicy request) {
+		return ResponseEntity.ok(secondFactorPolicy(
+				this.secondFactorPolicies.update(principal(), request.getEnforced(), request.getExemptRoles())));
+	}
+
+	private static SecondFactorPolicy secondFactorPolicy(SecondFactorPolicies.View view) {
+		return new SecondFactorPolicy(view.enforced(), view.exemptRoles())
+			.enforcedByOperator(view.enforcedByOperator());
 	}
 
 	@Override

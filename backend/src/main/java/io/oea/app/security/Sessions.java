@@ -110,6 +110,12 @@ public class Sessions {
 		this.sessions.findById(sessionId).ifPresent(LoginSession::clearRequiredAction);
 	}
 
+	/** The session must enroll a second factor before anything else (US-031 AC2). */
+	@Transactional
+	public void requireSecondFactorEnrollment(UUID sessionId) {
+		this.sessions.findById(sessionId).ifPresent(LoginSession::requireSecondFactorEnrollment);
+	}
+
 	/** The principal of an active session, or empty for unknown, revoked or expired sessions. */
 	@Transactional
 	public Optional<OeaPrincipal> authenticate(String token) {

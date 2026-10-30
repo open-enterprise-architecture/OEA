@@ -32,7 +32,11 @@ const PERSON = {
   permissions: [],
 }
 
-function page(path: string, principal: 'person' | 'system-admin-account' = 'person'): Story {
+function page(
+  path: string,
+  principal: 'person' | 'system-admin-account' = 'person',
+  requiredAction: 'enroll-second-factor' | null = null,
+): Story {
   return {
     render: () => ({
       components: { SecondFactorPage },
@@ -41,7 +45,7 @@ function page(path: string, principal: 'person' | 'system-admin-account' = 'pers
         onBeforeMount(() => {
           session.me =
             principal === 'person'
-              ? PERSON
+              ? { ...PERSON, requiredAction }
               : { ...PERSON, principal: { principalType: 'system-admin-account' as const, displayName: 'admin' } }
           session.loaded = true
           return router.push(path)
@@ -84,5 +88,15 @@ export const WrongCode: Story = {
     await userEvent.type(await canvas.findByLabelText(/Code from the app/), '000000')
     await userEvent.click(canvas.getByTestId('confirm'))
     await expect(await canvas.findByTestId('enrollment-failure')).toHaveTextContent('The code is not valid')
+  },
+}
+
+// US-031 AC2: the organization enforces a second factor; the offer cannot be skipped
+export const RequiredByTheOrganization: Story = {
+  ...page('/me/second-factor', 'person', 'enroll-second-factor'),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByTestId('enrollment-required')).toHaveTextContent('requires a second factor')
+    await expect(canvas.queryByTestId('skip')).toBeNull()
   },
 }

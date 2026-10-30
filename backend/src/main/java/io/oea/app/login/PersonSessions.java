@@ -1,6 +1,7 @@
 package io.oea.app.login;
 
 import io.oea.app.access.PasswordPolicies;
+import io.oea.app.access.SecondFactorPolicies;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
@@ -18,8 +19,9 @@ import org.springframework.stereotype.Service;
 
 /**
  * Session of a person after a local login (US-011, US-010, US-009): activation at the first login,
- * the required password change of a temporary or expired password (REQ-173 AC2, REQ-028 AC2) and
- * the audit event (design D4 of us-021-person-totp, design D4 of us-022-passkeys).
+ * the required password change of a temporary or expired password (REQ-173 AC2, REQ-028 AC2), the
+ * required enrollment of an enforced second factor (US-031 AC2) and the audit event (design D4 of
+ * us-021-person-totp, design D4 of us-022-passkeys, design D3 of us-031-second-factor-enforcement).
  */
 @Service
 class PersonSessions {
@@ -30,17 +32,20 @@ class PersonSessions {
 
 	private final PasswordPolicies policies;
 
+	private final SecondFactorPolicies secondFactorPolicies;
+
 	private final Sessions sessions;
 
 	private final AuditWriter audit;
 
 	private final Clock clock;
 
-	PersonSessions(JdbcTemplate jdbc, PersonRepository persons, PasswordPolicies policies, Sessions sessions,
-			AuditWriter audit, Clock clock) {
+	PersonSessions(JdbcTemplate jdbc, PersonRepository persons, PasswordPolicies policies,
+			SecondFactorPolicies secondFactorPolicies, Sessions sessions, AuditWriter audit, Clock clock) {
 		this.jdbc = jdbc;
 		this.persons = persons;
 		this.policies = policies;
+		this.secondFactorPolicies = secondFactorPolicies;
 		this.sessions = sessions;
 		this.audit = audit;
 		this.clock = clock;
@@ -72,6 +77,11 @@ class PersonSessions {
 		boolean expired = !active.isEmpty() && policy.expiryDays() > 0
 				&& !active.getFirst().setAt().plus(Duration.ofDays(policy.expiryDays())).isAfter(now);
 		String requiredAction = (temporary || expired) ? OeaPrincipal.CHANGE_PASSWORD : null;
+		// US-031 AC2: without a second factor, an enforced one is enrolled first (after a required password change)
+		if (requiredAction == null && "password".equals(authMethod)
+				&& this.secondFactorPolicies.enrollmentRequired(personId)) {
+			requiredAction = OeaPrincipal.ENROLL_SECOND_FACTOR;
+		}
 		Sessions.NewSession session = this.sessions.createForPersonPassword(entity, requiredAction, authMethod,
 				client.address(), client.userAgent());
 		this.audit.append(new AuditEvent("auth.login", AuditEvent.Category.SECURITY, AuditEvent.Severity.INFO,
