@@ -2,8 +2,9 @@
 
 **ID**: US-027
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S5
+**Implementation**: OpenSpec change `us-027-password-administration` – operator floors `oea.auth.password-policy.*`, `GET/PUT /admin/settings/password-policy` (`getPasswordPolicy`, `updatePasswordPolicy`), checks on every new password, expiry at login, history
 
 ## Story
 
@@ -64,5 +65,7 @@ As an operator, I want to define instance-wide which character types passwords m
 - Blocks: US-026 (generator reads policies)
 
 ## Notes
+
+Realigned by OpenSpec change `us-027-password-administration` (owner decision 2026-10-29): the operator sets floors through `oea.auth.password-policy.*`; administrators with `settings:manage` maintain the policy above them through `GET/PUT /admin/settings/password-policy` instead of `/admin/config/password-policy`. The minimum length is never below 12 (REQ-169), so AC4 is answered by the contract with `422`. The history uses the revoked password credentials instead of a separate table `password_history`. The field `personPasswordLogin` of the same resource is the administrators' switch of password login of persons (US-011).
 
 All rules have sensible defaults (off / 0) so that OEA can be operated without explicit configuration. Max only enables what his organization actually mandates. The validation logic is a shared function between admin configuration, setting a password (REQ-024), generator (REQ-027) and the future password change UC – no duplicate code.

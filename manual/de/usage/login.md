@@ -2,7 +2,7 @@
 title: Anmelden
 covers:
   screens: [SCR-001, SCR-004]
-  stories: [US-001, US-005, US-006, US-011, US-023]
+  stories: [US-001, US-005, US-006, US-011, US-023, US-026, US-027, US-030]
 ---
 
 # Anmelden
@@ -35,10 +35,14 @@ Gib Anmeldename und Passwort des Systemadmin-Kontos ein und wähle *Log in*. Nac
 
 Betreibt deine Organisation OEA ohne Identity-Provider, gibt dir deine Administration ein Initialpasswort. Gib deine E-Mail-Adresse und dieses Passwort im lokalen Formular der Anmeldeseite ein.
 
-1. Nach der ersten Anmeldung öffnet sich die Seite *Change password*. Gib das Initialpasswort als aktuelles Passwort ein und wähle zweimal dein eigenes Passwort (12 bis 128 Zeichen). Bis dahin ist nichts anderes verfügbar.
+1. Nach der ersten Anmeldung öffnet sich die Seite *Change password*. Gib das Initialpasswort als aktuelles Passwort ein und wähle zweimal dein eigenes Passwort. Bis dahin ist nichts anderes verfügbar.
 2. Ab dann meldest du dich mit deiner E-Mail-Adresse und deinem eigenen Passwort an. Unter `/me/password` kannst du es wieder ändern; das beendet deine anderen Sitzungen.
 
+- Dein Passwort muss die Passwort-Richtlinie deiner Organisation erfüllen: mindestens 12 Zeichen und eventuell eine größere Mindestlänge, bestimmte Zeichentypen oder ein Passwort, das du nicht kürzlich verwendet hast. Erfüllt es sie nicht, listet die Seite jede verfehlte Regel auf.
+- *Suggest a password* zeigt ein erzeugtes Passwort, das die Richtlinie erfüllt. Speichere es in deinem Passwortmanager und übernimm es dann mit *Use as new password*. OEA behält den Vorschlag nicht.
+- Lässt deine Organisation Passwörter ablaufen, öffnet sich die Seite *Change password* bei der ersten Anmeldung nach dem Ablauf, wie nach einem Initialpasswort.
 - Das Initialpasswort läuft nach der Zeit ab, die deine Administration gewählt hat (Standard 72 Stunden). Ein abgelaufenes Initialpasswort scheitert wie ein falsches; bitte deine Administration um ein neues.
+- Hast du dein Passwort vergessen, setzt deine Administration es zurück und gibt dir ein temporäres Passwort. Dein altes Passwort und alle deine Sitzungen enden sofort; bei der nächsten Anmeldung wählst du ein neues Passwort.
 - Eine fehlgeschlagene Anmeldung verrät nie, ob das Konto existiert, und jeder Fehlversuch dauert gleich lang.
 - Rollen mit administrativen Berechtigungen brauchen einen zweiten Faktor und gelten nach einer Passwort-Anmeldung nicht.
 

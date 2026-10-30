@@ -4,9 +4,9 @@ title: Password reset by administrator
 type: functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-25
-last_updated: 2026-10-13
+last_updated: 2026-10-30
 author: requirements-engineer
 references:
   use_cases:
@@ -164,6 +164,7 @@ Security review SEC-06, SEC-12 (2026-10-13): a reset that leaves existing sessio
 
 ## Implementation Notes
 
+- Realized by OpenSpec change `us-027-password-administration` as `POST /admin/persons/{personId}/password/reset` (`person:manage`): the temporary password is always generated and returned once (origin `admin-reset`). AC6 – the operation addresses persons only; the system admin account has `admin recover`. AC8 follows with the second factors of persons (S5 change 3). AC9 – a target holds an admin-class permission if one of its granted local role assignments contains one; roles from IdP groups are not known outside a session.
 - Same security requirements as REQ-024: plain text only in working memory; discard from memory immediately after returning; never in logs
 - Admin UI: one-time modal/popup with the new password; "Copy password" button; then closed and not retrievable again
 - CLI: `oea user reset-password --user <id>` → outputs the new password to stdout; with `--generate` for an automatically generated password
@@ -173,7 +174,7 @@ Security review SEC-06, SEC-12 (2026-10-13): a reset that leaves existing sessio
 ## Implementation
 
 - ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
-- Implemented by: –
+- Implemented by: OpenSpec change `us-027-password-administration`
 - Tests: –
 - Verification status: not-verified
 
@@ -187,3 +188,4 @@ Derived from operator requirement (SH-06): manual password reset for users. The 
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-06/SEC-12: revoke sessions on reset, keep second factor, expiry of reset password, admin-on-admin reset only by system admin (AC7–AC9); argon2id only |
+| 0.3.0 | 2026-10-30 | requirements-engineer | Implementation note (change `us-027-password-administration`) |

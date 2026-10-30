@@ -2,7 +2,7 @@
 title: Logging in
 covers:
   screens: [SCR-001, SCR-004]
-  stories: [US-001, US-005, US-006, US-011, US-023]
+  stories: [US-001, US-005, US-006, US-011, US-023, US-026, US-027, US-030]
 ---
 
 # Logging in
@@ -33,10 +33,14 @@ Enter the login name and password of the system admin account and choose *Log in
 
 If your organization runs OEA without an identity provider, your administrator gives you an initial password. Enter your e-mail address and this password in the local form of the login page.
 
-1. After the first login, the page *Change password* opens. Enter the initial password as current password and choose your own password (12 to 128 characters) twice. Until then, nothing else is available.
+1. After the first login, the page *Change password* opens. Enter the initial password as current password and choose your own password twice. Until then, nothing else is available.
 2. From then on, log in with your e-mail address and your own password. You can change it again under `/me/password`; this ends your other sessions.
 
+- Your password must meet the password policy of your organization: at least 12 characters, and possibly a longer minimum, certain character types, or a password you have not used recently. If it does not, the page lists every rule it misses.
+- *Suggest a password* shows a generated password that meets the policy. Store it in your password manager, then use it with *Use as new password*. OEA does not keep the suggestion.
+- If your organization lets passwords expire, the page *Change password* opens at the first login after the expiry, as after an initial password.
 - The initial password expires after the time your administrator chose (default 72 hours). An expired initial password fails like a wrong one; ask your administrator for a new one.
+- If you forgot your password, your administrator resets it and gives you a temporary password. Your old password and all your sessions end at once; at the next login, you choose a new password.
 - A failed login never tells whether the account exists, and every failed attempt takes the same time.
 - Roles with administrative permissions need a second factor and do not apply after a password login.
 

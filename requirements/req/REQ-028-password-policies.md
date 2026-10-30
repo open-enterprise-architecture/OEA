@@ -4,9 +4,9 @@ title: Configure password policies by the operator
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-25
-last_updated: 2026-06-25
+last_updated: 2026-10-30
 author: requirements-engineer
 references:
   use_cases:
@@ -134,6 +134,7 @@ The policies apply instance-wide to all persons with a local password credential
 
 ## Implementation Notes
 
+- Realigned by OpenSpec change `us-027-password-administration` (owner decision 2026-10-29): "the operator configures" is split into floors set by the operator (`oea.auth.password-policy.*`) and the policy that administrators with `settings:manage` maintain above them through `GET/PUT /admin/settings/password-policy`. The minimum length is never below 12 (REQ-169); the defaults of AC5 apply on top of that. Rejections name every unmet rule (problem type `password-policy-violation`); the history uses revoked password credentials.
 - Store policies as instance-wide configuration (YAML/ENV/DB table `instance_config`), not per person
 - Validation logic as a standalone, purely functional check function (input: plain-text password + policy object → output: list of unmet rules); reusable for REQ-024, REQ-027, password change UC
 - Password history: dedicated table `password_history` (`person_id`, `password_hash`, `created_at`); hash comparison via verification (not plain text); automatically trim to `historyCount` entries
@@ -142,7 +143,7 @@ The policies apply instance-wide to all persons with a local password credential
 ## Implementation
 
 - ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
-- Implemented by: –
+- Implemented by: OpenSpec change `us-027-password-administration`
 - Tests: –
 - Verification status: not-verified
 
@@ -155,3 +156,4 @@ Derived from operator requirement (SH-06). The policies are deliberately all opt
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-10-30 | requirements-engineer | Realigned and implemented (change `us-027-password-administration`) |

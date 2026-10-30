@@ -2,7 +2,7 @@
 identifier: system-settings
 name_de: Instanz-Einstellungen
 name_en: System Settings
-version: 0.3.0
+version: 0.4.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -47,6 +47,11 @@ Settings that need protection against the administrators who manage them are del
 | analytics.maxConcurrentPerPrincipal | integer | required | 2 | > 0 | Concurrent analytics queries per principal |
 | analytics.queriesPerMinute | integer | required | 30 | > 0 | Analytics queries per principal and minute |
 | analytics.poolSize | integer | required | 4 | > 0; must match the `CONNECTION LIMIT` of `oea_analytics` | Size of the separate analytics connection pool (global concurrency) |
+| passwordPolicy.minLength | integer | required | 12 | 12–128; not below the operator floor | Minimum length of a new local password (REQ-028, REQ-169) |
+| passwordPolicy.requireUppercase, requireLowercase, requireDigits, requireSpecialChars | boolean | required | false | `true` if the operator floor requires it | Character types a new local password must contain; special characters are the printable ASCII characters that are neither letters nor digits |
+| passwordPolicy.expiryDays | integer | required | 0 | 0–3650; `0` = no expiry; not above a non-zero operator ceiling | Days after which a self-set password must be changed at the next login (REQ-028 AC2) |
+| passwordPolicy.historyCount | integer | required | 0 | 0–24; not below the operator floor | Previous passwords, including the current one, that must not be reused (REQ-028 AC3) |
+| personPasswordLogin | boolean | required | true | can be switched on only while the operator permits password login of persons | Administrators' switch of the password login of persons (US-011) |
 | updatedAt | datetime | required | | | Time of the last change |
 | updatedBy | principal | optional | | person or system admin account | Actor of the last change |
 
@@ -70,6 +75,7 @@ No lifecycle; the single record is created by the first migration with the defau
 | BR-02 | Exactly one settings record exists per instance | onCreate | – |
 | BR-03 | Analytics limits are enforced by the server; a request can only lower them; `analytics.statementTimeoutSeconds` cannot exceed the role default of `oea_analytics` | onAnalyticsQuery | ADR-034 §5, REQ-186 |
 | BR-04 | The audit retention period is not a system setting; it is changed only through the dedicated retention operation (floor 365 days, reductions effective after 30 days) | onUpdate | ADR-033 §4, Q10 |
+| BR-05 | The effective value of every password policy rule is the stricter of the stored value and the operator floor (`oea.auth.password-policy.*`); a stored value below a floor is rejected; changes are audited as `settings.password-policy-changed` | onUpdate, onPasswordSet | REQ-028, owner decision 2026-10-29 |
 
 ## Examples
 
@@ -101,6 +107,8 @@ privilegedAssignmentApproval: true
 
 ## Notes
 
+Change `us-027-password-administration` adds the password policy and the switch `personPasswordLogin` as typed columns (`password_*`, `person_password_login`); they are read and written through `/admin/settings/password-policy`, not the general settings operation, which stays planned.
+
 Created for ADR-034 DM-5. The settings were so far referenced by other business objects (`privilegedAssignmentApproval`, `allowReactivationOfOffboarded`, `sessionRetentionDays`) and the API schema `SystemSettings`, but not modeled. The storage form (single typed row with database CHECKs instead of a key-value table) is a modeling proposal, chosen so that value ranges are enforced in the database. Further settings defined only in the API (`SystemSettings` in `api/openapi.yaml`) still have to be added here.
 
 Resolved (change `us-013-local-bootstrapping`): the audit checkpoint interval (ADR-033 §6, 5–1440 minutes, default 60) is deployment configuration (`oea.audit.checkpoint-interval`), not an instance setting. The single row is created by the bootstrapping together with `instanceSlug`; until then the instance counts as not bootstrapped.
@@ -112,3 +120,4 @@ Resolved (change `us-013-local-bootstrapping`): the audit checkpoint interval (A
 | 0.1.0 | 2026-10-13 | Business Engineer | Initial draft for ADR-034 DM-5 (analytics settings); existing settings of ADR-032 / Q19 / Q20 consolidated; audit retention excluded (ADR-033 §4) |
 | 0.2.0 | 2026-10-15 | Business Engineer | `instanceSlug` (ADR-001, set by the bootstrapping, UC-02); checkpoint interval resolved as deployment configuration |
 | 0.3.0 | 2026-10-15 | Business Engineer | Setup phase attributes (ADR-042) |
+| 0.4.0 | 2026-10-30 | Business Engineer | Password policy and `personPasswordLogin` (change `us-027-password-administration`, REQ-028, US-027) |

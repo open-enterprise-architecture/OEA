@@ -2,7 +2,7 @@
 title: Operations
 covers:
   screens: []
-  stories: [US-011, US-019]
+  stories: [US-011, US-019, US-027]
 ---
 
 # Operations
@@ -89,7 +89,7 @@ Without Compose, set the environment variable `LOGGING_STRUCTURED_FORMAT_CONSOLE
 
 ## Password login of persons {#password-login-of-persons}
 
-Persons log in through your identity provider. On an instance without an identity provider you can let persons log in with their e-mail address and a password instead. This is off on a new instance; switch it on explicitly:
+Persons log in through your identity provider. On an instance without an identity provider you can let persons log in with their e-mail address and a password instead. This is off on a new instance; permit it explicitly:
 
 ```bash
 # environment of the backend (or --oea.auth.person-password.enabled=true)
@@ -99,8 +99,31 @@ OEA_AUTH_PERSONPASSWORD_TEMPORARYPASSWORDVALIDITY=PT72H
 ```
 
 - An administrator then sets an initial password per person (see [Identity providers and persons](./identity-providers#set-an-initial-password)); the person changes it at the first login.
+- Administrators can switch password login of persons off and on again with `personPasswordLogin` of the [password policy](./identity-providers#password-policy). It works only while your setting permits it and their switch is on; without your permission they cannot switch it on.
 - A person logged in with a password has no second factor yet, so roles with administrative permissions do not apply to them. Keep the local system admin account for administration until second factors for persons are available.
-- While the setting is off, a password login of a person fails like a wrong password, and setting an initial password is refused with `409`.
+- While password login of persons is not possible, a password login of a person fails like a wrong password, and setting or resetting a password is refused with `409`.
+
+### Floors of the password policy {#password-policy-floors}
+
+Administrators maintain the [password policy](./identity-providers#password-policy) through the API. You set the floors it cannot go below; each rule in force is the stricter of your floor and the administrators' value. The defaults switch every rule off:
+
+```bash
+# minimum length, 12 to 128 (default 12)
+OEA_AUTH_PASSWORDPOLICY_MINLENGTH=12
+# character types required in any case (default false)
+OEA_AUTH_PASSWORDPOLICY_REQUIREUPPERCASE=false
+OEA_AUTH_PASSWORDPOLICY_REQUIRELOWERCASE=false
+OEA_AUTH_PASSWORDPOLICY_REQUIREDIGITS=false
+OEA_AUTH_PASSWORDPOLICY_REQUIRESPECIALCHARS=false
+# longest expiry in days, 0 = no ceiling (default 0)
+OEA_AUTH_PASSWORDPOLICY_MAXEXPIRYDAYS=0
+# smallest history, 0 to 24 (default 0)
+OEA_AUTH_PASSWORDPOLICY_MINHISTORYCOUNT=0
+```
+
+- A value outside its range stops the backend at startup.
+- A raised floor applies at once, also to a policy the administrators stored before.
+- The floors apply to the passwords of persons and of the local system admin account.
 
 ## Verify the audit trail
 

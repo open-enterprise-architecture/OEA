@@ -214,8 +214,8 @@ components:
         or a privileged role is not effective because the session lacks a second factor
         (SoD-8). The problem body is generic and does not reveal the missing permission.
         A session created with a temporary password answers every operation except
-        `GET /me`, the logout and `POST /me/password` with problem type
-        `urn:oea:problem:password-change-required` (REQ-173 AC2).
+        `GET /me`, the logout, `POST /me/password` and `POST /me/password/suggestion` with
+        problem type `urn:oea:problem:password-change-required` (REQ-173 AC2).
         If the principal holds no effective role at all, the header
         `OEA-Purge-Local-Data: access-revoked` is set.
       headers:
@@ -2099,27 +2099,88 @@ components:
       type: [string, 'null']
       enum: [change-password, null]
       description: |
-        `change-password`: the session was created with a temporary password; only `GET /me`,
-        the logout and `POST /me/password` are allowed until the password is changed (REQ-173 AC2)
+        `change-password`: the session was created with a temporary or expired password; only
+        `GET /me`, the logout, `POST /me/password` and `POST /me/password/suggestion` are
+        allowed until the password is changed (REQ-173 AC2, REQ-028 AC2)
 
     InitialPassword:
       type: object
-      required: [password]
+      description: "Exactly one of `password` and `generate: true`; otherwise `422`"
       properties:
-        password: { type: string, writeOnly: true, description: "12 to 128 characters; otherwise `422`" }
+        password: { type: string, writeOnly: true, description: "Must satisfy the password policy; otherwise `422` with problem type `urn:oea:problem:password-policy-violation`" }
+        generate: { type: boolean, default: false, description: "`true`: the system generates a password that satisfies the policy and returns it once (REQ-027)" }
 
     InitialPasswordResult:
       type: object
       required: [expiresAt]
       properties:
         expiresAt: { type: string, format: date-time, description: The initial password must be used and changed before this time }
+        password:  { type: string, description: "Only for `generate: true`; returned this once and never again" }
 
     PasswordChange:
       type: object
       required: [currentPassword, newPassword]
       properties:
         currentPassword: { type: string, maxLength: 128, writeOnly: true }
-        newPassword:     { type: string, writeOnly: true, description: "12 to 128 characters and different from the current password; otherwise `422`" }
+        newPassword:     { type: string, writeOnly: true, description: "Must satisfy the password policy including its history and differ from the current password; otherwise `422`" }
+
+    PasswordSuggestion:
+      type: object
+      required: [password]
+      properties:
+        password: { type: string, description: A generated password that satisfies the password policy; not stored }
+
+    PasswordReset:
+      type: object
+      properties:
+        reason: { type: string, maxLength: 500, description: Recorded in the audit event }
+
+    GeneratedPassword:
+      type: object
+      required: [password, expiresAt]
+      properties:
+        password:  { type: string, description: The generated temporary password; returned this once and never again }
+        expiresAt: { type: string, format: date-time, description: The temporary password must be used and changed before this time }
+
+    PasswordPolicy:
+      type: object
+      description: |
+        Password policy for local passwords (REQ-028, US-027). The effective value of every rule
+        is the stricter of the stored value and the operator floor in `floors`
+        (`oea.auth.password-policy.*`). Special characters are all printable ASCII characters
+        that are neither letters nor digits.
+      required: [minLength, requireUppercase, requireLowercase, requireDigits, requireSpecialChars,
+        expiryDays, historyCount, personPasswordLogin]
+      properties:
+        minLength:           { type: integer, minimum: 12, maximum: 128, description: Must not be below the floor and not below the number of required character types }
+        requireUppercase:    { type: boolean }
+        requireLowercase:    { type: boolean }
+        requireDigits:       { type: boolean }
+        requireSpecialChars: { type: boolean }
+        expiryDays:          { type: integer, minimum: 0, maximum: 3650, description: "Days after which a self-set password must be changed at the next login; `0` = no expiry" }
+        historyCount:        { type: integer, minimum: 0, maximum: 24, description: "Number of previous passwords, including the current one, that must not be reused" }
+        personPasswordLogin:
+          type: boolean
+          description: |
+            Password login of persons (US-011). Effective only while the operator permits it
+            (`personPasswordLoginPermitted`); it cannot be switched on without that permission.
+        personPasswordLoginPermitted: { type: boolean, readOnly: true, description: "Operator setting `oea.auth.person-password.enabled`" }
+        floors: { $ref: '#/components/schemas/PasswordPolicyFloors' }
+
+    PasswordPolicyFloors:
+      type: object
+      readOnly: true
+      description: Floors set by the operator (`oea.auth.password-policy.*`); the stored policy cannot go below them
+      required: [minLength, requireUppercase, requireLowercase, requireDigits, requireSpecialChars,
+        maxExpiryDays, minHistoryCount]
+      properties:
+        minLength:           { type: integer }
+        requireUppercase:    { type: boolean }
+        requireLowercase:    { type: boolean }
+        requireDigits:       { type: boolean }
+        requireSpecialChars: { type: boolean }
+        maxExpiryDays:       { type: integer, description: "Ceiling of the expiry in days; `0` = no ceiling" }
+        minHistoryCount:     { type: integer }
 
     LoginProblem:
       allOf:
@@ -2898,7 +2959,11 @@ paths:
       summary: Change the own local password (REQ-173 AC2, UC-03)
       description: |
         For persons with a local password and the system admin account. Requires the current
-        password; the new one (12–128 characters) must differ from it. Stores it as self-set
+        password; the new one must differ from it and satisfy the password policy including
+        its history (REQ-028), otherwise `422` with problem type
+        `urn:oea:problem:password-policy-violation` whose `invalidFields` name every unmet rule
+        (`minLength`, `maxLength`, `requireUppercase`, `requireLowercase`, `requireDigits`,
+        `requireSpecialChars`, `historyCount`). Stores it as self-set
         without expiry, lifts `requiredAction: change-password` of the session and revokes
         every other session of the principal. A wrong current password → `403` with problem
         type `urn:oea:problem:invalid-credentials`, counted by the login throttling (REQ-168).
@@ -2922,6 +2987,36 @@ paths:
               schema: { $ref: '#/components/schemas/Problem' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /me/password/suggestion:
+    post:
+      operationId: suggestPassword
+      summary: Suggest a password for the own change (US-026, REQ-027)
+      description: |
+        For principals with a local password. Generates a password with a cryptographically
+        secure random source from the printable ASCII characters that satisfies the password
+        policy; it is not stored. Allowed while the session must change its password. A
+        policy that cannot be satisfied → `409` with problem type
+        `urn:oea:problem:password-policy-unsatisfiable`.
+      tags: [Identity]
+      x-oea-authorization: {"access": "authenticated"}
+      responses:
+        '200':
+          description: Suggested password
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasswordSuggestion' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: The principal has no local password
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: The policy cannot be satisfied (`password-policy-unsatisfiable`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
   /me/second-factors/totp:
     post:
@@ -4561,6 +4656,51 @@ paths:
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '501': { $ref: '#/components/responses/NotImplemented' }
 
+  /admin/settings/password-policy:
+    get:
+      operationId: getPasswordPolicy
+      summary: Password policy, operator floors and the switch of password login of persons (US-027)
+      tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["settings:manage"]}
+      responses:
+        '200':
+          description: Password policy
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasswordPolicy' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    put:
+      operationId: updatePasswordPolicy
+      summary: Change the password policy and the switch of password login of persons (US-027, REQ-028)
+      description: |
+        Replaces the stored policy; read-only fields are ignored. Applies to every password set
+        afterwards and to the expiry check at the next login. Rejected with `422` and
+        `invalidFields` naming each offending field if a value is below an operator floor, the
+        minimum length is shorter than the number of required character types (REQ-028 AC4),
+        or `personPasswordLogin` is `true` while the operator does not permit it. Audited as
+        `settings.password-policy-changed` with the old and the new values.
+      tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["settings:manage"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PasswordPolicy' }
+      responses:
+        '200':
+          description: Policy changed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasswordPolicy' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /admin/audit/retention:
     get:
       operationId: getAuditRetention
@@ -4845,17 +4985,21 @@ paths:
       operationId: setInitialPassword
       summary: Set the initial password of a person (US-023, REQ-024)
       description: |
-        Only while the operator has switched on password login of persons. Stores the
-        password as argon2id with origin `initial`; it expires after
-        `oea.auth.temporary-password-validity` (default 72 h) and must be changed at the
-        first login (REQ-173 AC1/AC2). The password is never returned or logged. Audited as
+        Only while password login of persons is possible (permitted by the operator and
+        `personPasswordLogin` of the password policy on). The password is entered, or generated
+        with `generate: true` (REQ-027); a generated password is returned this once. Stores it
+        as argon2id with origin `initial`; it expires after
+        `oea.auth.person-password.temporary-password-validity` (default 72 h) and must be
+        changed at the first login (REQ-173 AC1/AC2). The password is never logged. Audited as
         `person.password-set`.
         - Person already has a password → `409` with problem type
           `urn:oea:problem:password-already-set`; password login of persons off → `409`
           (`conflict`)
         - Own person → `403` with `reason: self-administration` (SoD-1)
-        - Service account, person not `invited`/`active`, or a password outside 12–128
-          characters → `422`
+        - Service account, person not `invited`/`active`, neither or both of `password` and
+          `generate: true` → `422`
+        - Entered password violates the password policy → `422` with problem type
+          `urn:oea:problem:password-policy-violation`
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
       parameters:
@@ -4877,6 +5021,50 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409':
           description: Password already set (`password-already-set`) or password login of persons off (`conflict`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /admin/persons/{personId}/password/reset:
+    post:
+      operationId: resetPersonPassword
+      summary: Reset the local password of a person (US-030, REQ-031)
+      description: |
+        Revokes the person's active password, sets a generated temporary password with origin
+        `admin-reset` and the expiry of `oea.auth.person-password.temporary-password-validity`,
+        returns it this once, revokes all sessions of the person (reason `password-reset`) and
+        requires the password change at the next login (REQ-173 AC2), in one transaction.
+        Audited as `person.password-reset` without the password.
+        - Own person → `403` with `reason: self-administration` (SoD-1)
+        - Target holds an admin-class permission through a local role assignment and the
+          caller is not the system admin account → `403`, audited as `authz.denied`
+          (REQ-031 AC9, REQ-173 AC3)
+        - Person without a local password, or password login of persons not possible → `409`
+        - Service account → `422`
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
+      parameters:
+        - $ref: '#/components/parameters/PersonIdParam'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PasswordReset' }
+      responses:
+        '200':
+          description: Password reset
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GeneratedPassword' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: No local password, or password login of persons not possible (`conflict`)
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }

@@ -1,5 +1,6 @@
 package io.oea.app.login;
 
+import io.oea.app.access.PasswordPolicies;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
 import io.oea.app.security.SetupPhase;
@@ -17,6 +18,7 @@ import io.oea.core.repository.PersonRepository;
 import io.oea.core.repository.SystemAdminAccountRepository;
 import io.oea.core.repository.TotpCredentialRepository;
 import io.oea.core.service.PasswordHasher;
+import io.oea.core.service.PasswordPolicy;
 import io.oea.core.service.TotpAlgorithm;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -39,7 +41,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Local login of the system admin account (design D5): password, and after the setup phase
  * (ADR-042) a TOTP step through a login transaction. Persons log in with their e-mail address
- * and password while the operator allows it (us-011-local-password).
+ * and password while password login of persons is possible (us-011-local-password); an expired
+ * password leads to the password change (design D4 of us-027-password-administration).
  */
 @Service
 public class LocalLogin {
@@ -76,14 +79,14 @@ public class LocalLogin {
 
 	private final String dummyHash;
 
-	private final PersonPasswordProperties personPasswords;
+	private final PasswordPolicies policies;
 
 	private final PersonRepository persons;
 
 	public LocalLogin(SystemAdminAccountRepository accounts, PasswordCredentialRepository passwords,
 			LocalCredentialRepository credentials, TotpCredentialRepository totps, PasswordHasher hasher,
 			SecretCipher cipher, LoginThrottle throttle, SetupPhase setupPhase, Sessions sessions, AuditWriter audit,
-			JdbcTemplate jdbc, Clock clock, PersonPasswordProperties personPasswords, PersonRepository persons) {
+			JdbcTemplate jdbc, Clock clock, PasswordPolicies policies, PersonRepository persons) {
 		this.accounts = accounts;
 		this.passwords = passwords;
 		this.credentials = credentials;
@@ -97,7 +100,7 @@ public class LocalLogin {
 		this.jdbc = jdbc;
 		this.clock = clock;
 		this.dummyHash = hasher.hash("timing-equalizer-" + UUID.randomUUID());
-		this.personPasswords = personPasswords;
+		this.policies = policies;
 		this.persons = persons;
 	}
 
@@ -143,26 +146,29 @@ public class LocalLogin {
 
 	/**
 	 * Password login of a person (US-011; design D2, D4, D6 of us-011-local-password): only while
-	 * the operator allows it, for persons in status {@code invited} or {@code active} with an
-	 * unexpired password. Every failing variant verifies exactly one hash.
+	 * password login of persons is possible, for persons in status {@code invited} or {@code active}
+	 * with an unexpired temporary password. Every failing variant verifies exactly one hash.
 	 */
 	private Sessions.NewSession loginPerson(String loginName, String password, Client client) {
 		Instant now = this.clock.instant();
 		record Candidate(long personId, String status, String personType, UUID credentialId, String hash, String origin,
-				Instant expiresAt) {
+				Instant expiresAt, Instant setAt) {
 		}
+		boolean possible = this.policies.personPasswordLoginPossible();
 		List<Candidate> found = this.jdbc.query("""
-				SELECT p.id, p.status, p.person_type, c.id, pc.password_hash, pc.origin, pc.expires_at
+				SELECT p.id, p.status, p.person_type, c.id, pc.password_hash, pc.origin, pc.expires_at, c.created_at
 				FROM persons p
 				LEFT JOIN local_credentials c ON c.person_id = p.id AND c.type = 'password' AND c.status = 'active'
 				LEFT JOIN password_credentials pc ON pc.credential_id = c.id
 				WHERE lower(p.email) = lower(?)""", (rs, n) -> {
 			Timestamp expires = rs.getTimestamp(7);
+			Timestamp set = rs.getTimestamp(8);
 			return new Candidate(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getObject(4, UUID.class),
-					rs.getString(5), rs.getString(6), (expires != null) ? expires.toInstant() : null);
+					rs.getString(5), rs.getString(6), (expires != null) ? expires.toInstant() : null,
+					(set != null) ? set.toInstant() : null);
 		}, loginName.strip());
 		Optional<Candidate> candidate = found.stream()
-			.filter((c) -> this.personPasswords.enabled())
+			.filter((c) -> possible)
 			.filter((c) -> "human".equals(c.personType()))
 			.filter((c) -> "invited".equals(c.status()) || "active".equals(c.status()))
 			.filter((c) -> c.hash() != null)
@@ -187,14 +193,18 @@ public class LocalLogin {
 					new AuditEvent.Actor("person", person.personId(), null), "person", Long.toString(person.personId()),
 					Map.of("trigger", "first-login")));
 		}
-		// REQ-173 AC2: a temporary password only leads to the password change
-		String requiredAction = "self-set".equals(person.origin()) ? null : OeaPrincipal.CHANGE_PASSWORD;
+		// REQ-173 AC2, REQ-028 AC2: a temporary or expired password only leads to the password change
+		PasswordPolicy policy = this.policies.effective();
+		boolean expired = policy.expiryDays() > 0
+				&& !person.setAt().plus(Duration.ofDays(policy.expiryDays())).isAfter(now);
+		String requiredAction = ("self-set".equals(person.origin()) && !expired) ? null : OeaPrincipal.CHANGE_PASSWORD;
 		Sessions.NewSession session = this.sessions.createForPersonPassword(entity, requiredAction, client.address(),
 				client.userAgent());
 		this.audit.append(new AuditEvent("auth.login", AuditEvent.Category.SECURITY, AuditEvent.Severity.INFO,
 				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, new AuditEvent.Actor("person", person.personId(), null),
 				"session", session.principal().sessionId().toString(),
-				Map.of("method", "password", "secondFactor", false, "temporaryPassword", requiredAction != null)));
+				Map.of("method", "password", "secondFactor", false, "temporaryPassword", !"self-set".equals(person.origin()),
+						"passwordExpired", expired)));
 		return session;
 	}
 

@@ -60,6 +60,6 @@ As an operator of a simple self-hosting instance, I want to be able to deliberat
 
 ## Notes
 
-Realigned by OpenSpec change `us-011-local-password`: "enabled at instance level" is the operator setting `oea.auth.person-password.enabled`, not the planned settings API; persons log in with the e-mail address of the person record (system admin login names contain no `@`). A password session is never second-factor-verified, so privileged roles stay ineffective until TOTP or passkeys for persons exist.
+Realigned by OpenSpec change `us-011-local-password`: "enabled at instance level" is the operator setting `oea.auth.person-password.enabled`, not the planned settings API; persons log in with the e-mail address of the person record (system admin login names contain no `@`). A password session is never second-factor-verified, so privileged roles stay ineffective until TOTP or passkeys for persons exist. Realigned again by OpenSpec change `us-027-password-administration` (owner decision 2026-10-29): the operator setting permits password login of persons; administrators switch it off and on again with `personPasswordLogin` of `GET/PUT /admin/settings/password-policy` (default on), but cannot switch it on without the permission of the operator.
 
 Enabling must be a deliberate configuration decision accompanied by a warning, not hidden in a config file (see REQ-011, Implementation Notes).

@@ -2,7 +2,7 @@
 title: Identity-Provider und Personen
 covers:
   screens: []
-  stories: [US-004, US-007, US-023, US-148]
+  stories: [US-004, US-007, US-023, US-026, US-027, US-030, US-148]
 ---
 
 # Identity-Provider und Personen
@@ -60,16 +60,56 @@ Weitere Operationen: `GET /admin/persons`, `GET /admin/persons/{personId}`, `GET
 
 ## Initialpasswort setzen {#set-an-initial-password}
 
-Ist der Passwort-Login von Personen eingeschaltet (siehe [Betrieb](./operations#password-login-of-persons)), kannst du einer Person statt einer Identitätsbindung ein Initialpasswort geben (du brauchst `person:manage`):
+Ist der Passwort-Login von Personen möglich (siehe [Betrieb](./operations#password-login-of-persons)), kannst du einer Person statt einer Identitätsbindung ein Initialpasswort geben (du brauchst `person:manage`). Gib eines ein, das die [Passwort-Richtlinie](#password-policy) erfüllt, oder lass OEA eines erzeugen:
 
 ```bash
-curl "${auth[@]}" -d '{"password": "<12 bis 128 Zeichen>"}' "$OEA/admin/persons/$PERSON/password"
+curl "${auth[@]}" -d '{"password": "<erfüllt die Passwort-Richtlinie>"}' "$OEA/admin/persons/$PERSON/password"
+# oder: erzeugt, einmalig in "password" zurückgegeben
+curl "${auth[@]}" -d '{"generate": true}' "$OEA/admin/persons/$PERSON/password"
 ```
 
-- OEA speichert nur einen Hash. Die Antwort enthält, wann das Initialpasswort abläuft (Standard 72 Stunden), aber nie das Passwort; gib es der Person über einen getrennten Kanal weiter.
+- OEA speichert nur einen Hash. Die Antwort enthält, wann das Initialpasswort abläuft (Standard 72 Stunden). Das Passwort enthält sie nur, wenn OEA es erzeugt hat, und nur dieses eine Mal; gib es der Person über einen getrennten Kanal weiter.
+- Ein eingegebenes Passwort, das die Richtlinie nicht erfüllt, wird mit `422` und dem Problemtyp `password-policy-violation` abgelehnt; `invalidFields` nennt jede nicht erfüllte Regel.
 - Die Person meldet sich mit der E-Mail-Adresse ihres Personeneintrags an und muss zuerst ein eigenes Passwort wählen.
 - Abgelehnt werden eine Person, die schon ein Passwort hat, deine eigene Person, Service-Accounts und Personen, die weder eingeladen noch aktiv sind.
 - Das Setzen steht im Audit-Trail (`person.password-set`).
+
+## Passwort zurücksetzen {#reset-a-password}
+
+Wer das Passwort vergessen hat, bekommt von dir ein neues temporäres (du brauchst `person:manage`):
+
+```bash
+curl "${auth[@]}" -d '{"reason": "vergessen"}' "$OEA/admin/persons/$PERSON/password/reset"
+```
+
+- OEA widerruft das alte Passwort sofort und antwortet mit einem erzeugten temporären Passwort und seinem Ablauf. Nur in dieser Antwort steht das Passwort; gib es über einen getrennten Kanal weiter.
+- Alle Sitzungen der Person enden. Bei der nächsten Anmeldung muss sie zuerst ein eigenes Passwort wählen.
+- Abgelehnt werden deine eigene Person, eine Person ohne Passwort und Service-Accounts.
+- Hat die Person über eine lokale Rollenzuweisung eine Rolle mit administrativer Berechtigung, darf nur das lokale Systemadmin-Konto ihr Passwort zurücksetzen; alle anderen werden mit `403` abgelehnt, festgehalten als `authz.denied`. Rollen aus IdP-Gruppen werden nicht berücksichtigt, weil solche Personen sich über den Identity-Provider anmelden.
+- Das Zurücksetzen steht im Audit-Trail (`person.password-reset`) mit dem Grund, nie mit dem Passwort.
+
+## Passwort-Richtlinie {#password-policy}
+
+Die Passwort-Richtlinie gilt für jedes neue lokale Passwort: Initialpasswörter, Zurücksetzen und eigene Änderungen (du brauchst `settings:manage`):
+
+```bash
+curl "${auth[@]}" "$OEA/admin/settings/password-policy"
+curl "${auth[@]}" -X PUT -d '{"minLength": 16, "requireUppercase": true, "requireLowercase": true,
+  "requireDigits": true, "requireSpecialChars": true, "expiryDays": 90, "historyCount": 5,
+  "personPasswordLogin": true}' "$OEA/admin/settings/password-policy"
+```
+
+| Feld | Bedeutung |
+|---|---|
+| `minLength` | Mindestlänge, 12 bis 128 |
+| `requireUppercase`, `requireLowercase`, `requireDigits`, `requireSpecialChars` | Zeichentypen, die ein Passwort enthalten muss; Sonderzeichen sind alle druckbaren ASCII-Zeichen, die weder Buchstaben noch Ziffern sind |
+| `expiryDays` | Tage, nach denen ein selbst gewähltes Passwort bei der nächsten Anmeldung geändert werden muss; `0` = nie |
+| `historyCount` | Anzahl früherer Passwörter einschließlich des aktuellen, die nicht wiederverwendet werden dürfen; `0` bis `24` |
+| `personPasswordLogin` | Passwort-Login von Personen; funktioniert nur, solange der Betrieb ihn erlaubt (`personPasswordLoginPermitted`) |
+
+- Die Antwort enthält auch die `floors` des Betriebs. Ein Wert unter einem Mindestwert oder eine Mindestlänge, die kürzer ist als die Zahl der verlangten Zeichentypen, wird mit `422` abgelehnt; `invalidFields` nennt jedes Feld.
+- Jede Änderung steht im Audit-Trail (`settings.password-policy-changed`) mit den alten und den neuen Werten.
+- Bereits gesetzte Passwörter bleiben gültig; die Regeln gelten, wenn ein Passwort gesetzt wird, und für den Ablauf bei der nächsten Anmeldung.
 
 ## Zugriff entziehen: inaktiv und offboarded {#take-access-away}
 

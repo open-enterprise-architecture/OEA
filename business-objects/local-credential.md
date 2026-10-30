@@ -2,7 +2,7 @@
 identifier: local-credential
 name_de: Lokales Credential
 name_en: Local Credential
-version: 0.4.0
+version: 0.5.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -212,6 +212,8 @@ revokedReason: superseded
 
 ## Notes
 
+Change `us-027-password-administration` realizes the origin `admin-reset`: an administrator's reset revokes the active password (`admin_action`, `revokedBy`) and stores a generated temporary password. Revoked password credentials double as the password history of the policy (REQ-028 AC3); there is no separate history table.
+
 Change `us-011-local-password` realizes the owner type person for passwords: `local_credentials.person_id` with the check "exactly one owner", origins `initial` (temporary, expiring) and `self-set`. A person changes a temporary password with `POST /me/password`; the old credential is revoked as `superseded`.
 
 First modeling in the context of UC-03 (enrollment). Deliberately modeled as one BO with a type discriminator instead of three separate BOs (`PasskeyCredential`, `TotpCredential`, `PasswordCredential`): the shared fields (personId, status, lifecycle, audit attributes) outweigh the type-specific differences; separate BOs would needlessly bloat the traceability matrix.
@@ -231,3 +233,4 @@ Open questions:
 | 0.2.0 | 2026-06-28 | Business Engineer | Multiple active TOTP credentials per person (REQ-030); BR-02 repealed |
 | 0.3.0 | 2026-10-13 | Business Engineer | Security review / ADR-032: owner may be the system admin account; argon2id only (REQ-169); `lastUsedTimeStep` (REQ-170); temporary passwords with `origin`/`expiresAt` and type `recovery-codes` (REQ-173); `keyId` (REQ-188); `factor_reset`, `revokedBy`; BR-06 to BR-11 |
 | 0.4.0 | 2026-10-15 | Business Engineer | Status `pending` for unconfirmed TOTP enrollment (change `us-013-system-admin-login`) |
+| 0.5.0 | 2026-10-30 | Business Engineer | Origin `admin-reset` realized; revoked passwords as password history (change `us-027-password-administration`) |

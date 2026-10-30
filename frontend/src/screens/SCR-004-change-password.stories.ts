@@ -5,8 +5,8 @@ import ChangePasswordPage from '../pages/ChangePasswordPage.vue'
 import { session } from '../session/store'
 import { routedFetch } from '../test/fetch'
 
-// SCR-004 Change password (UC-03, US-023, REQ-173 AC2): required after a login with a temporary
-// password (docs/screens/SCREENS.md). The first story is the screen image.
+// SCR-004 Change password (UC-03, US-023, US-026, US-027, REQ-173 AC2): required after a login with
+// a temporary or expired password (docs/screens/SCREENS.md). The first story is the screen image.
 const ME = {
   principal: { principalType: 'person' as const, displayName: 'Anna Example' },
   mfaSatisfied: false,
@@ -71,5 +71,40 @@ export const WrongCurrentPassword: Story = {
     await userEvent.type(canvas.getByLabelText(/Repeat the new password/), 'chosen-password-456')
     await userEvent.click(canvas.getByTestId('change-password'))
     await expect(await canvas.findByTestId('password-failure')).toHaveTextContent('current password is not correct')
+  },
+}
+
+const POLICY_VIOLATION = routedFetch({
+  '/api/v1/me/password/suggestion': { body: { password: 'k#8Qz!r2Lw$9pXa4' } },
+  '/api/v1/me/password': {
+    status: 422,
+    contentType: 'application/problem+json',
+    body: {
+      type: 'urn:oea:problem:password-policy-violation',
+      title: 'Password policy not met',
+      status: 422,
+      invalidFields: ['minLength', 'requireUppercase', 'requireDigits', 'requireSpecialChars'],
+    },
+  },
+})
+
+export const Suggestion: Story = {
+  ...page('change-password', POLICY_VIOLATION),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByTestId('suggest-password'))
+    await expect(await canvas.findByDisplayValue('k#8Qz!r2Lw$9pXa4')).toBeInTheDocument()
+  },
+}
+
+export const PolicyViolation: Story = {
+  ...page('change-password', POLICY_VIOLATION),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.type(await canvas.findByLabelText(/Current password/), 'initial-password-123')
+    await userEvent.type(canvas.getByLabelText(/^New password/), 'chosen-password-abc')
+    await userEvent.type(canvas.getByLabelText(/Repeat the new password/), 'chosen-password-abc')
+    await userEvent.click(canvas.getByTestId('change-password'))
+    await expect(await canvas.findByTestId('unmet-rules')).toHaveTextContent('It needs a digit.')
   },
 }

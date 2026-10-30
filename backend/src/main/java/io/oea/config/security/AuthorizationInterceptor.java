@@ -43,9 +43,12 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
 		return (id instanceof String value) ? value : null;
 	}
 
-	/** Operations a session with a required password change may call (design D4 of us-011-local-password). */
+	/**
+	 * Operations a session with a required password change may call (design D4 of
+	 * us-011-local-password; the suggestion: design D5 of us-027-password-administration).
+	 */
 	private static final Set<String> PASSWORD_CHANGE_OPERATIONS = Set.of("getCurrentPrincipal", "logout",
-			"changeOwnPassword");
+			"changeOwnPassword", "suggestPassword");
 
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
