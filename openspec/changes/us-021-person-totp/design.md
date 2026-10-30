@@ -119,10 +119,10 @@ Delta to `api/openapi.yaml`:
 - **`startTotpEnrollment`, `confirmTotpEnrollment`:** for persons with a local password as well; 403 for principals without one; the label default.
 - **`localLogin`:** the `second-factor-required` answer applies to persons with an active TOTP credential.
 - **`localLoginTotp`:** completes the login of persons; the result may carry `requiredAction: change-password`.
-- **New `GET /me/second-factors`** (`listOwnSecondFactors`, tag Identity, `authenticated`): `200` with `SecondFactorSummary[]`, `401`, `429`.
+- **New `GET /me/second-factors`** (`listOwnSecondFactors`, tag Identity, `authenticated`): `200` with `SecondFactor[]`, `401`, `403`, `429`.
 - **New `DELETE /me/second-factors/{credentialId}`** (`removeOwnSecondFactor`, tag Identity, `authenticated`): `204`, `401` (incl. `reauthentication-required`), `403`, `404`, `409` (`last-second-factor`), `429`.
 - **New `POST /admin/persons/{personId}/second-factors/reset`** (`resetPersonSecondFactors`, tag Access Control, `person:manage`): `200` `{credentialsRevoked}`, `400`, `401`, `403`, `404`, `409`, `413`, `422`, `429`.
-- **New schema `SecondFactorSummary`:** `credentialId`, `type` (`totp`), `label`, `createdAt`, `lastUsedAt`.
+- **Schema `SecondFactor`** (existing, returned by the confirmation): gets `lastUsedAt`; it serves the list as well. New `SecondFactorReset` (`reason`) and `SecondFactorResetResult` (`credentialsRevoked`).
 
 ## Risks / Trade-offs
 

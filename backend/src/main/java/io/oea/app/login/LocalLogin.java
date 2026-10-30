@@ -42,7 +42,8 @@ import org.springframework.transaction.annotation.Transactional;
  * Local login of the system admin account (design D5): password, and after the setup phase
  * (ADR-042) a TOTP step through a login transaction. Persons log in with their e-mail address
  * and password while password login of persons is possible (us-011-local-password); an expired
- * password leads to the password change (design D4 of us-027-password-administration).
+ * password leads to the password change (design D4 of us-027-password-administration). A person
+ * with an active TOTP credential completes the login with a code (design D4 of us-021-person-totp).
  */
 @Service
 public class LocalLogin {
@@ -139,7 +140,7 @@ public class LocalLogin {
 		}
 		SystemAdminAccount admin = account.get();
 		if (!this.setupPhase.isActive()) {
-			throw new SecondFactorRequiredException(newTransaction(admin));
+			throw new SecondFactorRequiredException(newTransaction(admin.getId(), null));
 		}
 		return startSession(admin, false, client);
 	}
@@ -186,25 +187,38 @@ public class LocalLogin {
 		}
 		this.jdbc.update("UPDATE local_credentials SET last_used_at = ? WHERE id = ?", Timestamp.from(now),
 				person.credentialId());
-		Person entity = this.persons.findById(person.personId()).orElseThrow();
+		if (!this.credentials.findByPersonIdAndTypeAndStatus(person.personId(), "totp", "active").isEmpty()) {
+			// REQ-010: the TOTP step follows; the person is activated only after it
+			throw new SecondFactorRequiredException(newTransaction(null, person.personId()));
+		}
+		return startPersonSession(person.personId(), person.origin(), person.setAt(), false, client);
+	}
+
+	/**
+	 * Session of a person after the password step, or after the TOTP step with {@code secondFactor}:
+	 * activation at the first login and the required password change.
+	 */
+	private Sessions.NewSession startPersonSession(long personId, String origin, Instant setAt, boolean secondFactor,
+			Client client) {
+		Instant now = this.clock.instant();
+		Person entity = this.persons.findById(personId).orElseThrow();
 		if (entity.activateOnFirstLogin(now)) {
 			this.audit.append(new AuditEvent("person.activated", AuditEvent.Category.SECURITY, AuditEvent.Severity.INFO,
 					AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API,
-					new AuditEvent.Actor("person", person.personId(), null), "person", Long.toString(person.personId()),
+					new AuditEvent.Actor("person", personId, null), "person", Long.toString(personId),
 					Map.of("trigger", "first-login")));
 		}
 		// REQ-173 AC2, REQ-028 AC2: a temporary or expired password only leads to the password change
 		PasswordPolicy policy = this.policies.effective();
-		boolean expired = policy.expiryDays() > 0
-				&& !person.setAt().plus(Duration.ofDays(policy.expiryDays())).isAfter(now);
-		String requiredAction = ("self-set".equals(person.origin()) && !expired) ? null : OeaPrincipal.CHANGE_PASSWORD;
-		Sessions.NewSession session = this.sessions.createForPersonPassword(entity, requiredAction, client.address(),
-				client.userAgent());
+		boolean expired = policy.expiryDays() > 0 && !setAt.plus(Duration.ofDays(policy.expiryDays())).isAfter(now);
+		String requiredAction = ("self-set".equals(origin) && !expired) ? null : OeaPrincipal.CHANGE_PASSWORD;
+		Sessions.NewSession session = this.sessions.createForPersonPassword(entity, requiredAction, secondFactor,
+				client.address(), client.userAgent());
 		this.audit.append(new AuditEvent("auth.login", AuditEvent.Category.SECURITY, AuditEvent.Severity.INFO,
-				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, new AuditEvent.Actor("person", person.personId(), null),
+				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, new AuditEvent.Actor("person", personId, null),
 				"session", session.principal().sessionId().toString(),
-				Map.of("method", "password", "secondFactor", false, "temporaryPassword", !"self-set".equals(person.origin()),
-						"passwordExpired", expired)));
+				Map.of("method", secondFactor ? "password-totp" : "password", "secondFactor", secondFactor,
+						"temporaryPassword", !"self-set".equals(origin), "passwordExpired", expired)));
 		return session;
 	}
 
@@ -214,21 +228,28 @@ public class LocalLogin {
 		return this.hasher.matches(usable ? password : "", hash) && usable;
 	}
 
-	/** TOTP step after the setup phase (REQ-171, REQ-168 AC2, REQ-170). */
+	/** Owner of a login transaction: the system admin account or a person. */
+	private record Owner(UUID systemAdminAccountId, Long personId) {
+	}
+
+	/**
+	 * TOTP step after the setup phase (REQ-171, REQ-168 AC2, REQ-170), and of persons with an
+	 * active TOTP credential (REQ-010; design D4 of us-021-person-totp).
+	 */
 	@Transactional(noRollbackFor = InvalidCredentialsException.class)
 	public Sessions.NewSession loginWithTotp(String loginTransaction, String code, Client client) {
 		Instant now = this.clock.instant();
 		byte[] hash = sha256(loginTransaction);
-		Optional<UUID> accountId = this.jdbc.query("""
-				SELECT system_admin_account_id FROM login_transactions
+		Optional<Owner> owner = this.jdbc.query("""
+				SELECT system_admin_account_id, person_id FROM login_transactions
 				WHERE token_hash = ? AND expires_at > ? AND failed_codes < ? FOR UPDATE""",
-				(rs) -> rs.next() ? Optional.of(rs.getObject(1, UUID.class)) : Optional.<UUID>empty(), hash,
-				Timestamp.from(now), MAXIMUM_WRONG_CODES);
-		if (accountId.isEmpty()) {
+				(rs) -> rs.next() ? Optional.of(new Owner(rs.getObject(1, UUID.class), rs.getObject(2, Long.class)))
+						: Optional.<Owner>empty(),
+				hash, Timestamp.from(now), MAXIMUM_WRONG_CODES);
+		if (owner.isEmpty()) {
 			throw new InvalidCredentialsException(0);
 		}
-		SystemAdminAccount admin = this.accounts.findById(accountId.get()).orElseThrow();
-		if (!acceptCode(admin.getId(), code, now)) {
+		if (!acceptCode(owner.get(), code, now)) {
 			int failed = this.jdbc.queryForObject("""
 					UPDATE login_transactions SET failed_codes = failed_codes + 1 WHERE token_hash = ?
 					RETURNING failed_codes""", Integer.class, hash);
@@ -239,13 +260,26 @@ public class LocalLogin {
 			throw new InvalidCredentialsException(0);
 		}
 		this.jdbc.update("DELETE FROM login_transactions WHERE token_hash = ?", (Object) hash);
-		return startSession(admin, true, client);
+		if (owner.get().personId() != null) {
+			record Password(String origin, Instant setAt) {
+			}
+			Password password = this.jdbc.queryForObject("""
+					SELECT pc.origin, c.created_at FROM local_credentials c
+					JOIN password_credentials pc ON pc.credential_id = c.id
+					WHERE c.person_id = ? AND c.type = 'password' AND c.status = 'active'""",
+					(rs, n) -> new Password(rs.getString(1), rs.getTimestamp(2).toInstant()), owner.get().personId());
+			return startPersonSession(owner.get().personId(), password.origin(), password.setAt(), true, client);
+		}
+		return startSession(this.accounts.findById(owner.get().systemAdminAccountId()).orElseThrow(), true, client);
 	}
 
-	/** Verifies a code against the active TOTP credentials of the account and records its time step. */
-	boolean acceptCode(UUID accountId, String code, Instant now) {
-		for (LocalCredential credential : this.credentials.findBySystemAdminAccountIdAndTypeAndStatus(accountId, "totp",
-				"active")) {
+	/** Verifies a code against the active TOTP credentials of the owner and records its time step (REQ-030). */
+	private boolean acceptCode(Owner owner, String code, Instant now) {
+		List<LocalCredential> active = (owner.personId() != null)
+				? this.credentials.findByPersonIdAndTypeAndStatus(owner.personId(), "totp", "active")
+				: this.credentials.findBySystemAdminAccountIdAndTypeAndStatus(owner.systemAdminAccountId(), "totp",
+						"active");
+		for (LocalCredential credential : active) {
 			Optional<TotpCredential> totp = this.totps.findById(credential.getId());
 			if (totp.isEmpty()) {
 				continue;
@@ -286,14 +320,14 @@ public class LocalLogin {
 				Map.of("reason", reason));
 	}
 
-	private String newTransaction(SystemAdminAccount admin) {
+	private String newTransaction(UUID systemAdminAccountId, Long personId) {
 		byte[] bytes = new byte[32];
 		RANDOM.nextBytes(bytes);
 		String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
 		Instant now = this.clock.instant();
 		this.jdbc.update("""
-				INSERT INTO login_transactions (token_hash, system_admin_account_id, created_at, expires_at)
-				VALUES (?, ?, ?, ?)""", sha256(token), admin.getId(), Timestamp.from(now),
+				INSERT INTO login_transactions (token_hash, system_admin_account_id, person_id, created_at, expires_at)
+				VALUES (?, ?, ?, ?, ?)""", sha256(token), systemAdminAccountId, personId, Timestamp.from(now),
 				Timestamp.from(now.plus(TRANSACTION_VALIDITY)));
 		return token;
 	}

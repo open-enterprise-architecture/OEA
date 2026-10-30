@@ -88,15 +88,20 @@ public class Sessions {
 				person.getName(), session.getId(), secondFactorVerified, now));
 	}
 
-	/** New session of a person after a local password login (US-011, design D2/D4 of us-011-local-password). */
+	/**
+	 * New session of a person after a local password login (US-011, design D2/D4 of
+	 * us-011-local-password), second-factor-verified after the TOTP step (design D4 of
+	 * us-021-person-totp).
+	 */
 	@Transactional
-	public NewSession createForPersonPassword(Person person, String requiredAction, String clientIp, String userAgent) {
+	public NewSession createForPersonPassword(Person person, String requiredAction, boolean secondFactorVerified,
+			String clientIp, String userAgent) {
 		String token = randomToken();
 		Instant now = this.clock.instant();
 		LoginSession session = this.sessions.saveAndFlush(LoginSession.forPersonPassword(person.getId(), hash(token),
-				requiredAction, now, this.properties.absoluteLifetime(), clientIp, userAgent));
+				requiredAction, secondFactorVerified, now, this.properties.absoluteLifetime(), clientIp, userAgent));
 		return new NewSession(token, csrfToken(token), new OeaPrincipal(OeaPrincipal.Type.PERSON, null, person.getId(),
-				person.getName(), session.getId(), false, now, requiredAction));
+				person.getName(), session.getId(), secondFactorVerified, now, requiredAction));
 	}
 
 	/** Lifts the required action of a session after the password change (REQ-173 AC2). */

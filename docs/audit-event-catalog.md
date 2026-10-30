@@ -72,7 +72,7 @@ Successful login of the local system admin account (US-013 AC2), of a person wit
 | Category / severity / outcome | `security` / `info` / `success` |
 | Actor | `system-admin-account` or `person` |
 | Target | `session`, ID of the new session |
-| Details | Local login of the system admin account: `method` (`password` or `password-totp`), `setupPhase` (`true` if the login needed no second factor, [ADR-042](../adrs/ADR-042-setup-phase-without-second-factor.md)). Password login of a person ([US-011](../requirements/user-stories/US-011-password-minimal.md)): `method` (`password`), `secondFactor` (`false`), `temporaryPassword` (`true` for an initial or reset password), `passwordExpired` (`true` if the self-chosen password exceeded the expiry of the password policy, [US-027](../requirements/user-stories/US-027-configure-password-policies.md)); the session must change the password first if either is `true`. OIDC login: `method` (`oidc`), `providerId`, `secondFactor` (from `amr`) |
+| Details | Local login of the system admin account: `method` (`password` or `password-totp`), `setupPhase` (`true` if the login needed no second factor, [ADR-042](../adrs/ADR-042-setup-phase-without-second-factor.md)). Password login of a person ([US-011](../requirements/user-stories/US-011-password-minimal.md)): `method` (`password`, or `password-totp` after the TOTP step, [US-010](../requirements/user-stories/US-010-totp-login.md)), `secondFactor`, `temporaryPassword` (`true` for an initial or reset password), `passwordExpired` (`true` if the self-chosen password exceeded the expiry of the password policy, [US-027](../requirements/user-stories/US-027-configure-password-policies.md)); the session must change the password first if either is `true`. OIDC login: `method` (`oidc`), `providerId`, `secondFactor` (from `amr`) |
 
 ### `auth.login-failed`
 
@@ -138,7 +138,7 @@ A session was ended by the system ([REQ-164](../requirements/req/REQ-164-session
 | Category / severity / outcome | `security` / `info` / `success` |
 | Actor | `system` |
 | Target | `session`, ID of the session |
-| Details | `reason` (`idp-refresh-failed`: the IdP refresh token expired or was rejected; `person-status-change` and `password-reset`: ended by an administrator, who is then the actor) |
+| Details | `reason` (`idp-refresh-failed`: the IdP refresh token expired or was rejected; `person-status-change`, `password-reset` and `factor-reset`: ended by an administrator, who is then the actor) |
 
 ### `authz.denied`
 
@@ -149,18 +149,40 @@ A request was refused with 403 by an authorization decision ([REQ-175](../requir
 | Category / severity / outcome | `security` / `warning` / `denied` |
 | Actor | the requesting principal |
 | Target | `target_id`: the path variable `id` of the request, or its only path variable, if any; `target_type`: the affected object type where the decision knows it, e.g. `idp-group-mapping` |
-| Details | `reason` (`missing-permission`, `condition`, `second-factor-required`, `self-administration`: SoD-1, US-147 AC5, or `admin-reset-restricted`: a password reset of an administrator by someone else than the system admin account, REQ-173 AC3), `operation` (operation ID of the contract); summary events additionally `summary`, `suppressedCount`, `windowStart`, `windowEnd` |
+| Details | `reason` (`missing-permission`, `condition`, `second-factor-required`, `self-administration`: SoD-1, US-147 AC5, or `admin-reset-restricted`: a password or factor reset of an administrator by someone else than the system admin account, REQ-173 AC3), `operation` (operation ID of the contract); summary events additionally `summary`, `suppressedCount`, `windowStart`, `windowEnd` |
 
 ### `auth.factor-added`
 
-A second factor was enrolled and confirmed ([REQ-171](../requirements/req/REQ-171-mfa-privileged-accounts.md)).
+A second factor was enrolled and confirmed by the system admin account ([REQ-171](../requirements/req/REQ-171-mfa-privileged-accounts.md)) or a person ([US-021](../requirements/user-stories/US-021-totp-enrollment.md), REQ-025 AC1).
 
 | Field | Value |
 |---|---|
 | Category / severity / outcome | `security` / `high` / `success` |
-| Actor | the account that enrolled the factor |
+| Actor | the account or person that enrolled the factor |
 | Target | `credential`, ID of the local credential |
-| Details | `type` (`totp`), `label` if given; never the secret or a code |
+| Details | `type` (`totp`), `label`; never the secret or a code |
+
+### `auth.factor-enrollment-failed`
+
+The confirmation of a TOTP enrollment failed ([US-024](../requirements/user-stories/US-024-audit-log-enrollment.md), REQ-025 AC2). Written in its own transaction.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `warning` / `failure` |
+| Actor | the account or person that confirmed |
+| Target | `credential`, ID of the pending credential as sent |
+| Details | `type` (`totp`), `reason` (`invalid-code`: wrong code, the enrollment stays pending; `enrollment-expired`: unknown, foreign or expired enrollment); never the secret or a code |
+
+### `auth.factor-removed`
+
+A principal removed one of its own second factors (change `us-021-person-totp`); the other sessions of the principal were revoked.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` / `success` |
+| Actor | the principal itself |
+| Target | `credential`, ID of the removed credential |
+| Details | `type`, `label`, `otherSessionsRevoked` (count) |
 
 ### `system.setup-phase-ended`
 
@@ -295,6 +317,17 @@ An administrator reset the local password of a person ([US-030](../requirements/
 | Actor | the administrator |
 | Target | `person`, ID of the person |
 | Details | `expiresAt`, `sessionsRevoked` (count), `reason` if given; never the password |
+
+### `person.second-factors-reset`
+
+An administrator reset the second factors of a person who lost every device ([REQ-173](../requirements/req/REQ-173-account-recovery-temporary-passwords.md) AC5). The ended sessions are recorded as `session.revoked` (reason `factor-reset`). A refused reset of an administrator is recorded as `authz.denied` (reason `admin-reset-restricted`).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` / `success` |
+| Actor | the administrator |
+| Target | `person`, ID of the person |
+| Details | `credentialsRevoked`, `sessionsRevoked` (counts), `reason` if given |
 
 ### `settings.password-policy-changed`
 

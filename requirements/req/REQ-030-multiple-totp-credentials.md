@@ -4,9 +4,9 @@ title: Multiple active TOTP credentials per person
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-25
-last_updated: 2026-06-25
+last_updated: 2026-10-30
 author: requirements-engineer
 references:
   use_cases:
@@ -124,6 +124,7 @@ Applies to `LocalCredential.type=totp`. Password credentials (`type=password`) r
 
 ## Implementation Notes
 
+- Realized by OpenSpec change `us-021-person-totp`: several active TOTP credentials per person, a code of any of them is accepted and sets its `lastUsedAt`; `GET /me/second-factors` lists label, `createdAt` and `lastUsedAt`; the default label is "Authenticator app (YYYY-MM-DD)".
 - DB query at login: `SELECT * FROM local_credentials WHERE person_id = ? AND type = 'totp' AND status = 'active' ORDER BY last_used_at DESC NULLS LAST`
 - Verification loop stops at the first match
 - Label input: free-text field in the enrollment UI ("What would you like to call this device?"); optionally with suggestions (iOS, Android, hardware token)
@@ -132,7 +133,7 @@ Applies to `LocalCredential.type=totp`. Password credentials (`type=password`) r
 ## Implementation
 
 - ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
-- Implemented by: –
+- Implemented by: OpenSpec change `us-021-person-totp`
 - Tests: –
 - Verification status: not-verified
 
@@ -145,3 +146,4 @@ Derived from operator requirement (SH-06): "store multiple 2nd factors of the sa
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft; lifts BR-02 in local-credential.md |
+| 0.2.0 | 2026-10-30 | requirements-engineer | Implementation note (change `us-021-person-totp`) |

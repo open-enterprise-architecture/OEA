@@ -9,7 +9,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
-/** Local credential of a system admin account (business object local-credential). */
+/** Local credential of the system admin account or of a person (business object local-credential). */
 @Entity
 @Table(name = "local_credentials")
 public class LocalCredential extends NewAwareEntity<UUID> {
@@ -19,6 +19,9 @@ public class LocalCredential extends NewAwareEntity<UUID> {
 
 	@Column(name = "system_admin_account_id", updatable = false)
 	private UUID systemAdminAccountId;
+
+	@Column(name = "person_id", updatable = false)
+	private Long personId;
 
 	@Column(nullable = false, updatable = false)
 	private String type;
@@ -35,21 +38,26 @@ public class LocalCredential extends NewAwareEntity<UUID> {
 	protected LocalCredential() {
 	}
 
-	private LocalCredential(UUID systemAdminAccountId, String type, Instant createdAt) {
+	private LocalCredential(UUID systemAdminAccountId, Long personId, String type, Instant createdAt) {
 		this.id = UUID.randomUUID();
 		this.systemAdminAccountId = systemAdminAccountId;
+		this.personId = personId;
 		this.type = type;
 		this.status = "active";
 		this.createdAt = createdAt;
 	}
 
 	public static LocalCredential password(SystemAdminAccount owner, Instant now) {
-		return new LocalCredential(owner.getId(), "password", now);
+		return new LocalCredential(owner.getId(), null, "password", now);
 	}
 
-	/** TOTP credential whose enrollment still has to be confirmed (status {@code pending}). */
-	public static LocalCredential pendingTotp(UUID ownerAccountId, Instant now) {
-		LocalCredential credential = new LocalCredential(ownerAccountId, "totp", now);
+	/**
+	 * TOTP credential whose enrollment still has to be confirmed (status {@code pending}).
+	 * @param ownerAccountId the owning system admin account, or {@code null}
+	 * @param ownerPersonId the owning person, or {@code null}
+	 */
+	public static LocalCredential pendingTotp(UUID ownerAccountId, Long ownerPersonId, Instant now) {
+		LocalCredential credential = new LocalCredential(ownerAccountId, ownerPersonId, "totp", now);
 		credential.status = "pending";
 		return credential;
 	}
@@ -73,6 +81,10 @@ public class LocalCredential extends NewAwareEntity<UUID> {
 
 	public UUID getSystemAdminAccountId() {
 		return this.systemAdminAccountId;
+	}
+
+	public Long getPersonId() {
+		return this.personId;
 	}
 
 	public String getType() {

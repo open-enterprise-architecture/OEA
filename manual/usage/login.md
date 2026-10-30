@@ -1,8 +1,8 @@
 ---
 title: Logging in
 covers:
-  screens: [SCR-001, SCR-004]
-  stories: [US-001, US-005, US-006, US-011, US-023, US-026, US-027, US-030]
+  screens: [SCR-001, SCR-003, SCR-004, SCR-005]
+  stories: [US-001, US-005, US-006, US-010, US-011, US-021, US-023, US-024, US-025, US-026, US-027, US-029, US-030]
 ---
 
 # Logging in
@@ -42,23 +42,28 @@ If your organization runs OEA without an identity provider, your administrator g
 - The initial password expires after the time your administrator chose (default 72 hours). An expired initial password fails like a wrong one; ask your administrator for a new one.
 - If you forgot your password, your administrator resets it and gives you a temporary password. Your old password and all your sessions end at once; at the next login, you choose a new password.
 - A failed login never tells whether the account exists, and every failed attempt takes the same time.
-- Roles with administrative permissions need a second factor and do not apply after a password login.
+- Roles with administrative permissions need a second factor. They apply only after a login with password and code from your authenticator app (see [Set up a second factor](#set-up-a-second-factor)).
+- If you have set up an authenticator app, the login asks for its code after the password. A wrong code fails like a wrong password; after five wrong codes, start again with the password.
 
 ## Your profile
 
-*Profile* (`/me`) shows your name, the account type, whether your session is confirmed with a second factor, and your roles. If no role is assigned to you yet, the profile tells you so; ask an administrator for access.
+*Profile* (`/me`) shows your name, the account type, whether your session is confirmed with a second factor, your roles and your authenticator apps. If no role is assigned to you yet, the profile tells you so; ask an administrator for access.
 
-## Set up a second factor
+## Set up a second factor {#set-up-a-second-factor}
 
-The local system admin account needs a second factor to end the setup phase (see [First administrator](../setup/first-administrator)):
+A second factor is an authenticator app (any app for time-based one-time passwords, TOTP) on your phone. The local system admin account needs one to end the setup phase (see [First administrator](../setup/first-administrator)). If you log in with your e-mail address and password, OEA offers it after the login as long as you have none; choose *Skip for now* to set it up later.
 
-1. In *Profile*, choose *Set up a second factor*, then *Set up authenticator app*.
-2. Scan the QR code with an authenticator app (any app for time-based one-time passwords, TOTP).
+1. In *Profile*, choose *Set up a second factor* (or *Add an authenticator app*). Optionally, give it a name, for example the device; without a name it is called "Authenticator app" with the date.
+2. Choose *Set up authenticator app* and scan the QR code with the app.
 3. Enter the code from the app under *Code from the app* and choose *Confirm*.
 
 <Screenshot name="second-factor-enroll" alt="Setting up the authenticator app with QR code and code field" />
 
 The page confirms that the authenticator app is set up and the session is confirmed. Setting up a second factor needs a login within the last 5 minutes; otherwise, the page asks you to log in again.
+
+- You can set up several authenticator apps, for example one on a backup phone. At the login, a code of any of them works.
+- *Profile* lists your authenticator apps with the date they were added and last used. *Remove* takes one away, for example of a lost phone; this also needs a login within the last 5 minutes and ends your other sessions. The local system admin account keeps at least one after the setup phase.
+- If you lost every device, your administrator resets your second factors. You then log in with your password alone and set up a new authenticator app.
 
 ## Sessions and logging out
 

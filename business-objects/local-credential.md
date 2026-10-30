@@ -2,7 +2,7 @@
 identifier: local-credential
 name_de: Lokales Credential
 name_en: Local Credential
-version: 0.5.0
+version: 0.6.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -73,7 +73,7 @@ The BO has four variants, distinguished via `type`:
 | digits | integer | required | 6 | `[6, 8]` | Length of the generated code |
 | period | integer | required | 30 | seconds | Validity window per code |
 | lastUsedTimeStep | integer | optional | | RFC 6238 time step (Unix time / period); only increases | Last accepted time step; a code is accepted only if its time step is greater (replay protection, REQ-170) |
-| label | string | optional | auto-generated | max. 255 characters; user-assigned | Readable name for the device/app, e.g. "iPhone – Google Authenticator"; default: "TOTP Authenticator YYYY-MM-DD" |
+| label | string | optional | auto-generated | max. 64 characters (API); user-assigned | Readable name for the device/app, e.g. "iPhone – Google Authenticator"; default: "Authenticator app (YYYY-MM-DD)" |
 
 ### Type-Specific Attributes: `type=password`
 
@@ -212,6 +212,8 @@ revokedReason: superseded
 
 ## Notes
 
+Change `us-021-person-totp` realizes TOTP credentials of persons: several active per person with a label, enrolled in the running session; the owner removes one (`revokedReason` `person_request`), and an administrator's factor reset revokes all (`factor_reset`, REQ-173 AC5). The last TOTP credential of the system admin account cannot be removed after the setup phase (ADR-042).
+
 Change `us-027-password-administration` realizes the origin `admin-reset`: an administrator's reset revokes the active password (`admin_action`, `revokedBy`) and stores a generated temporary password. Revoked password credentials double as the password history of the policy (REQ-028 AC3); there is no separate history table.
 
 Change `us-011-local-password` realizes the owner type person for passwords: `local_credentials.person_id` with the check "exactly one owner", origins `initial` (temporary, expiring) and `self-set`. A person changes a temporary password with `POST /me/password`; the old credential is revoked as `superseded`.
@@ -234,3 +236,4 @@ Open questions:
 | 0.3.0 | 2026-10-13 | Business Engineer | Security review / ADR-032: owner may be the system admin account; argon2id only (REQ-169); `lastUsedTimeStep` (REQ-170); temporary passwords with `origin`/`expiresAt` and type `recovery-codes` (REQ-173); `keyId` (REQ-188); `factor_reset`, `revokedBy`; BR-06 to BR-11 |
 | 0.4.0 | 2026-10-15 | Business Engineer | Status `pending` for unconfirmed TOTP enrollment (change `us-013-system-admin-login`) |
 | 0.5.0 | 2026-10-30 | Business Engineer | Origin `admin-reset` realized; revoked passwords as password history (change `us-027-password-administration`) |
+| 0.6.0 | 2026-10-30 | Business Engineer | TOTP credentials of persons, label default, removal by the owner and factor reset (change `us-021-person-totp`) |

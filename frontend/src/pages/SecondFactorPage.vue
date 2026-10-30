@@ -1,12 +1,19 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { confirmTotpEnrollment, startTotpEnrollment, type TotpEnrollment } from '../api/session'
 import QrCode from '../components/QrCode.vue'
 import { refreshSession } from '../session/store'
 
-// TOTP enrollment in the running session (REQ-171, REQ-172, ADR-042). SCR-003 stays `legacy-mockup` until change 6.
+// SCR-003 TOTP enrollment in the running session (REQ-171, REQ-172, ADR-042) for the system admin
+// account and for persons (US-021, US-025, US-029). With `?offer=1` it is the skippable offer after
+// a password login (design D7 of us-021-person-totp).
 const props = defineProps<{ fetchFn?: typeof fetch }>()
+const route = useRoute()
+const router = useRouter()
+const offer = computed(() => route?.query.offer === '1')
 
+const label = ref('')
 const enrollment = ref<TotpEnrollment>()
 const code = ref('')
 const failure = ref<string>()
@@ -19,7 +26,7 @@ async function start() {
   reauthenticate.value = false
   busy.value = true
   try {
-    const outcome = await startTotpEnrollment('Authenticator app', props.fetchFn)
+    const outcome = await startTotpEnrollment(label.value.trim() || undefined, props.fetchFn)
     if (outcome.ok) {
       enrollment.value = outcome.value
     } else if (outcome.rejection.problemType === 'reauthentication-required') {
@@ -56,6 +63,10 @@ async function confirm() {
     busy.value = false
   }
 }
+
+async function skip() {
+  await router.push('/')
+}
 </script>
 
 <template>
@@ -69,7 +80,7 @@ async function confirm() {
       variant="subtle"
       title="Second factor active"
       description="Your authenticator app is set up, and this session is confirmed with it."
-      :actions="[{ label: 'Back to the profile', to: '/me' }]"
+      :actions="[{ label: offer ? 'Continue' : 'Back to the profile', to: offer ? '/' : '/me' }]"
     />
     <UAlert
       v-if="reauthenticate"
@@ -106,10 +117,27 @@ async function confirm() {
     </template>
 
     <template v-else-if="!confirmed">
-      <p class="text-muted">
-        Set up an authenticator app (TOTP). It is required before other identities get access to this instance.
+      <p v-if="offer" data-testid="offer" class="text-muted">
+        Protect your account with a second factor: an authenticator app (TOTP) on your phone. Logins then need a code
+        from the app in addition to your password, and roles with administrative permissions become effective.
       </p>
-      <UButton data-testid="start" :loading="busy" label="Set up authenticator app" @click="start" />
+      <p v-else class="text-muted">
+        Set up an authenticator app (TOTP). You can set up several, for example one on a backup phone.
+      </p>
+      <UFormField label="Name of the authenticator" name="label" help="For example the device; optional">
+        <UInput v-model="label" data-testid="label" maxlength="64" class="w-full" placeholder="Authenticator app" />
+      </UFormField>
+      <div class="flex gap-2">
+        <UButton data-testid="start" :loading="busy" label="Set up authenticator app" @click="start" />
+        <UButton
+          v-if="offer"
+          data-testid="skip"
+          color="neutral"
+          variant="ghost"
+          label="Skip for now"
+          @click="skip"
+        />
+      </div>
     </template>
   </main>
 </template>

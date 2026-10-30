@@ -2,8 +2,9 @@
 
 **ID**: US-029
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S5
+**Implementation**: OpenSpec change `us-021-person-totp` – several active TOTP credentials per person with labels, `GET /me/second-factors` (`listOwnSecondFactors`)
 
 ## Story
 
@@ -62,5 +63,7 @@ As a person, I want to be able to register multiple TOTP authenticators on diffe
 - Blocks: none
 
 ## Notes
+
+Realigned by OpenSpec change `us-021-person-totp`: the label is stored in `totp_credentials.label`, which existed already; no UNIQUE constraint had to be removed. Without a label the credential is called "Authenticator app (YYYY-MM-DD)". The overview is `GET /me/second-factors` on the profile page (SCR-005).
 
 Mirrors the existing passkey model (multiple passkeys per person allowed from the start). No UI select "which authenticator" is needed at login: the code implicitly identifies the credential. Free-text label field during enrollment ("What would you like to call this device?"). Also affects `local-credential.md` BR-02 (superseded by REQ-030).

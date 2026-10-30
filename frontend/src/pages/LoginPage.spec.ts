@@ -156,4 +156,33 @@ describe('LoginPage', () => {
     const { wrapper } = await mountPage(routedFetch({}), `/login?error=${error}`)
     expect(wrapper.get('[data-testid="login-failure"]').text()).toContain(message)
   })
+
+  // design D7 of us-021-person-totp: the TOTP enrollment is offered after a password login
+  const PERSON = { principalType: 'person' as const, displayName: 'Anna' }
+  const PERSON_ME = { ...ME, principal: PERSON }
+  const PERSON_LOGIN = { principal: PERSON, mfaSatisfied: false, csrfToken: 'csrf-1' }
+
+  it('offers the TOTP enrollment to a person without a second factor', async () => {
+    const fetchFn = routedFetch({
+      '/api/v1/auth/local/login': { status: 201, body: PERSON_LOGIN },
+      '/api/v1/me': { body: PERSON_ME },
+      '/api/v1/me/second-factors': { body: [] },
+    })
+    const { wrapper, router } = await mountPage(fetchFn)
+    await submitPassword(wrapper)
+    expect(router.currentRoute.value.fullPath).toBe('/me/second-factor?offer=1')
+  })
+
+  it('offers nothing to a person who has a second factor', async () => {
+    const fetchFn = routedFetch({
+      '/api/v1/auth/local/login': { status: 201, body: PERSON_LOGIN },
+      '/api/v1/me': { body: PERSON_ME },
+      '/api/v1/me/second-factors': {
+        body: [{ credentialId: 'c1', type: 'totp', label: 'Phone', createdAt: '2026-10-30T08:00:00Z' }],
+      },
+    })
+    const { wrapper, router } = await mountPage(fetchFn)
+    await submitPassword(wrapper)
+    expect(router.currentRoute.value.path).toBe('/me')
+  })
 })

@@ -141,10 +141,11 @@ public class LoginSession extends NewAwareEntity<UUID> {
 	 * New session of a person after a local password login (US-011): never second-factor-verified;
 	 * {@code requiredAction} is {@code change-password} after a temporary password (REQ-173).
 	 */
-	public static LoginSession forPersonPassword(long personId, byte[] tokenHash, String requiredAction, Instant now,
-			Duration absoluteLifetime, String clientIp, String userAgent) {
-		LoginSession session = forPerson(personId, null, tokenHash, false, now, absoluteLifetime, clientIp, userAgent);
-		session.authMethod = "password";
+	public static LoginSession forPersonPassword(long personId, byte[] tokenHash, String requiredAction,
+			boolean secondFactorVerified, Instant now, Duration absoluteLifetime, String clientIp, String userAgent) {
+		LoginSession session = forPerson(personId, null, tokenHash, secondFactorVerified, now, absoluteLifetime, clientIp,
+				userAgent);
+		session.authMethod = secondFactorVerified ? "password-totp" : "password";
 		session.requiredAction = requiredAction;
 		return session;
 	}

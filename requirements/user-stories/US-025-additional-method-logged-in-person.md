@@ -2,8 +2,9 @@
 
 **ID**: US-025
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: in-progress
+**Sprint**: S5
+**Implementation**: OpenSpec change `us-021-person-totp` – TOTP in the profile through the same enrollment operations (AC1), notice instead of an error (AC3), session required (AC4), list of own second factors on SCR-005
 
 ## Story
 
@@ -64,5 +65,7 @@ As an already logged-in person, I want to set up another local authentication me
 - Blocks: none
 
 ## Notes
+
+Realigned by OpenSpec change `us-021-person-totp`: the enrollment at the first login and in the profile use one code path in the session; there is no enrollment token. AC2 (second passkey) follows with S5 change 4, so the story stays in progress. AC3 is the list of authenticator apps on the profile page with "Add an authenticator app".
 
 3 SP because the actual enrollment code from US-021/022/023 is reused; the additional effort lies in the session auth gate, the security settings page in the frontend and the CSRF tests. Diagram: the enrollment code path should have a single auth adapter (token or session), no duplicated enrollment code.

@@ -4,7 +4,7 @@ title: Account recovery and temporary password lifecycle
 type: functional
 priority: must
 status: proposed
-version: 0.4.0
+version: 0.5.0
 created: 2026-10-13
 last_updated: 2026-10-30
 author: requirements-engineer
@@ -117,6 +117,7 @@ Source: security review SEC-12 (proposal PR-17). REQ-024 and REQ-031 were aligne
 
 ## Implementation Notes
 
+- AC5 realized by OpenSpec change `us-021-person-totp` as `POST /admin/persons/{personId}/second-factors/reset` (`person:manage`): every second factor is revoked (`factor_reset`), all sessions end, and the reset is audited as `person.second-factors-reset`. "Must enroll a new factor at the next login" is the skippable enrollment offer until S5 change 5 enforces 2FA.
 - AC3 realized by OpenSpec change `us-027-password-administration`: a password reset of a person holding an admin-class permission through a local role assignment is refused with `403` unless the caller is the system admin account, and audited as `authz.denied` (reason `admin-reset-restricted`). AC2 also covers reset passwords (origin `admin-reset`) and self-chosen passwords past the expiry of the password policy.
 - AC1 and AC2 realized by OpenSpec change `us-011-local-password` for initial passwords of persons: they expire (default 72 hours) and fail like wrong passwords afterwards; a session created with them allows only `GET /me`, the logout and `POST /me/password`. AC3 and AC5 follow with the password reset and the factor reset of persons.
 - AC4 realigned by OpenSpec change `us-019-admin-safeguards` (owner decision 2026-10-28): the break-glass command `admin recover` runs inside the backend container. The operator types the new password and, after the setup phase, confirms a new TOTP factor directly in the command instead of receiving a time-limited recovery credential. Nothing crosses a network, and the password-change flow a temporary credential would need does not exist yet. The recovery is audited as `system.admin-recovered` with source `CLI`. AC1–AC3 and AC5 follow with UC-03.
@@ -131,3 +132,4 @@ Source: security review SEC-12 (proposal PR-17). REQ-024 and REQ-031 were aligne
 | 0.2.0 | 2026-10-28 | requirements-engineer | AC4 realigned to the break-glass command `admin recover` (change `us-019-admin-safeguards`) |
 | 0.3.0 | 2026-10-29 | requirements-engineer | AC1/AC2 realized for initial passwords (change `us-011-local-password`) |
 | 0.4.0 | 2026-10-30 | requirements-engineer | AC3 realized for password resets (change `us-027-password-administration`) |
+| 0.5.0 | 2026-10-30 | requirements-engineer | AC5 realized (change `us-021-person-totp`) |

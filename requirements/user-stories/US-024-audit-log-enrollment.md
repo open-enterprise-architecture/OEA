@@ -2,8 +2,9 @@
 
 **ID**: US-024
 **Story Points**: 2
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S5
+**Implementation**: OpenSpec change `us-021-person-totp` – audit events `auth.factor-added` and `auth.factor-enrollment-failed` for TOTP; passwords through `person.password-set` and `auth.password-changed`
 
 ## Story
 
@@ -64,5 +65,7 @@ As an operator, I want every enrollment process to be recorded in the audit log,
 - Blocks: none
 
 ## Notes
+
+Realigned by OpenSpec change `us-021-person-totp`: a confirmed TOTP enrollment is `auth.factor-added`, a failed confirmation `auth.factor-enrollment-failed` with reason `invalid-code` or `enrollment-expired`; password "enrollments" were already audited. AC3 (invalid enrollment token) does not apply, because there are no enrollment tokens. Passkey enrollments follow with S5 change 4 and use the same events.
 
 Should be extensible in parallel with the completion of each enrollment story – similar to the recommendation in US-005 to proceed iteratively. Schema consistency with the login audit log (US-005) is important for later audit report use cases (concept §22).

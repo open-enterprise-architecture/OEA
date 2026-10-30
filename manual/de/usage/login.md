@@ -1,8 +1,8 @@
 ---
 title: Anmelden
 covers:
-  screens: [SCR-001, SCR-004]
-  stories: [US-001, US-005, US-006, US-011, US-023, US-026, US-027, US-030]
+  screens: [SCR-001, SCR-003, SCR-004, SCR-005]
+  stories: [US-001, US-005, US-006, US-010, US-011, US-021, US-023, US-024, US-025, US-026, US-027, US-029, US-030]
 ---
 
 # Anmelden
@@ -44,23 +44,28 @@ Betreibt deine Organisation OEA ohne Identity-Provider, gibt dir deine Administr
 - Das Initialpasswort läuft nach der Zeit ab, die deine Administration gewählt hat (Standard 72 Stunden). Ein abgelaufenes Initialpasswort scheitert wie ein falsches; bitte deine Administration um ein neues.
 - Hast du dein Passwort vergessen, setzt deine Administration es zurück und gibt dir ein temporäres Passwort. Dein altes Passwort und alle deine Sitzungen enden sofort; bei der nächsten Anmeldung wählst du ein neues Passwort.
 - Eine fehlgeschlagene Anmeldung verrät nie, ob das Konto existiert, und jeder Fehlversuch dauert gleich lang.
-- Rollen mit administrativen Berechtigungen brauchen einen zweiten Faktor und gelten nach einer Passwort-Anmeldung nicht.
+- Rollen mit administrativen Berechtigungen brauchen einen zweiten Faktor. Sie gelten erst nach einer Anmeldung mit Passwort und Code aus deiner Authenticator-App (siehe [Zweiten Faktor einrichten](#set-up-a-second-factor)).
+- Hast du eine Authenticator-App eingerichtet, fragt die Anmeldung nach dem Passwort nach ihrem Code. Ein falscher Code scheitert wie ein falsches Passwort; nach fünf falschen Codes beginnst du wieder mit dem Passwort.
 
 ## Dein Profil
 
 *Profile* (`/me`) zeigt deinen Namen, die Kontoart, ob deine Sitzung mit einem zweiten Faktor bestätigt ist, und deine Rollen. Ist dir noch keine Rolle zugewiesen, sagt dir das Profil das; bitte deine Administration um Zugriff.
 
-## Zweiten Faktor einrichten
+## Zweiten Faktor einrichten {#set-up-a-second-factor}
 
-Das lokale Systemadmin-Konto braucht einen zweiten Faktor, um die Setup-Phase zu beenden (siehe [Erster Administrator](../setup/first-administrator)):
+Ein zweiter Faktor ist eine Authenticator-App (jede App für zeitbasierte Einmalpasswörter, TOTP) auf deinem Telefon. Das lokale Systemadmin-Konto braucht einen, um die Setup-Phase zu beenden (siehe [Erster Administrator](../setup/first-administrator)). Meldest du dich mit E-Mail-Adresse und Passwort an, bietet OEA ihn nach der Anmeldung an, solange du keinen hast; mit *Skip for now* richtest du ihn später ein.
 
-1. Wähle in *Profile* den Button *Set up a second factor*, dann *Set up authenticator app*.
-2. Scanne den QR-Code mit einer Authenticator-App (jede App für zeitbasierte Einmalpasswörter, TOTP).
+1. Wähle in *Profile* den Button *Set up a second factor* (oder *Add an authenticator app*). Gib ihr bei Bedarf einen Namen, zum Beispiel das Gerät; ohne Namen heißt sie „Authenticator app“ mit dem Datum.
+2. Wähle *Set up authenticator app* und scanne den QR-Code mit der App.
 3. Gib den Code aus der App unter *Code from the app* ein und wähle *Confirm*.
 
 <Screenshot name="second-factor-enroll" alt="Einrichten der Authenticator-App mit QR-Code und Codefeld" />
 
 Die Seite bestätigt, dass die Authenticator-App eingerichtet und die Sitzung bestätigt ist. Das Einrichten eines zweiten Faktors braucht eine Anmeldung innerhalb der letzten 5 Minuten; sonst bittet dich die Seite, dich erneut anzumelden.
+
+- Du kannst mehrere Authenticator-Apps einrichten, zum Beispiel eine auf einem Ersatztelefon. Bei der Anmeldung funktioniert ein Code jeder von ihnen.
+- *Profile* listet deine Authenticator-Apps mit dem Datum, an dem sie hinzugefügt und zuletzt verwendet wurden. *Remove* entfernt eine, zum Beispiel die eines verlorenen Telefons; das braucht ebenfalls eine Anmeldung innerhalb der letzten 5 Minuten und beendet deine anderen Sitzungen. Das lokale Systemadmin-Konto behält nach der Setup-Phase mindestens eine.
+- Hast du alle Geräte verloren, setzt deine Administration deine zweiten Faktoren zurück. Du meldest dich dann nur mit deinem Passwort an und richtest eine neue Authenticator-App ein.
 
 ## Sitzungen und Abmelden
 

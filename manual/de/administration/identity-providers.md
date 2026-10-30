@@ -87,6 +87,20 @@ curl "${auth[@]}" -d '{"reason": "vergessen"}' "$OEA/admin/persons/$PERSON/passw
 - Abgelehnt werden deine eigene Person, eine Person ohne Passwort und Service-Accounts.
 - Hat die Person über eine lokale Rollenzuweisung eine Rolle mit administrativer Berechtigung, darf nur das lokale Systemadmin-Konto ihr Passwort zurücksetzen; alle anderen werden mit `403` abgelehnt, festgehalten als `authz.denied`. Rollen aus IdP-Gruppen werden nicht berücksichtigt, weil solche Personen sich über den Identity-Provider anmelden.
 - Das Zurücksetzen steht im Audit-Trail (`person.password-reset`) mit dem Grund, nie mit dem Passwort.
+- Hat die Person eine Authenticator-App, braucht die nächste Anmeldung weiterhin deren Code vor der Passwortänderung.
+
+## Zweite Faktoren zurücksetzen {#reset-second-factors}
+
+Wer alle Geräte mit einer Authenticator-App verloren hat, bekommt die zweiten Faktoren von dir zurückgesetzt (du brauchst `person:manage`):
+
+```bash
+curl "${auth[@]}" -d '{"reason": "Telefon verloren"}' "$OEA/admin/persons/$PERSON/second-factors/reset"
+```
+
+- OEA widerruft alle zweiten Faktoren der Person und beendet alle ihre Sitzungen; die Antwort nennt, wie viele zweite Faktoren widerrufen wurden.
+- Die Person meldet sich dann nur mit dem Passwort an, und OEA bietet an, eine neue Authenticator-App einzurichten.
+- Abgelehnt werden deine eigene Person, eine Person ohne zweiten Faktor und Service-Accounts. Wie beim Passwort-Zurücksetzen setzt nur das lokale Systemadmin-Konto eine Person zurück, die über eine lokale Rollenzuweisung eine Rolle mit administrativer Berechtigung hat.
+- Das Zurücksetzen steht im Audit-Trail (`person.second-factors-reset`) mit dem Grund.
 
 ## Passwort-Richtlinie {#password-policy}
 

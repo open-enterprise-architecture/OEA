@@ -15,6 +15,10 @@ const ME = {
   csrfToken: 'csrf-9',
 }
 
+function byMethod(recorded: RecordedRequest[], method: string): string | undefined {
+  return recorded.find((request) => request.init?.method === method)?.path
+}
+
 async function mountPage(fetchFn: typeof fetch) {
   const router = testRouter()
   await router.push('/me')
@@ -96,5 +100,55 @@ describe('ProfilePage', () => {
       routedFetch({ '/api/v1/me': { body: { ...ME, roles: [], permissions: [] } } }),
     )
     expect(wrapper.get('[data-testid="no-role"]').text()).toContain('No role assigned')
+  })
+
+  // US-029 AC3; design D7 of us-021-person-totp
+  const FACTORS = [
+    { credentialId: 'c1', type: 'totp', label: 'Phone', createdAt: '2026-10-30T08:00:00Z', lastUsedAt: null },
+    { credentialId: 'c2', type: 'totp', label: 'Backup phone', createdAt: '2026-10-30T09:00:00Z', lastUsedAt: null },
+  ]
+
+  it('lists the own authenticator apps and removes one', async () => {
+    const recorded: RecordedRequest[] = []
+    let listed = FACTORS
+    const routes = routedFetch(
+      {
+        '/api/v1/me': { body: ME },
+        '/api/v1/me/second-factors/c1': { status: 204, body: null },
+      },
+      recorded,
+    )
+    const fetchFn: typeof fetch = async (input, init) => {
+      if (input === '/api/v1/me/second-factors') {
+        return new Response(JSON.stringify(listed), { headers: { 'Content-Type': 'application/json' } })
+      }
+      const response = await routes(input, init)
+      if (input === '/api/v1/me/second-factors/c1') {
+        listed = [FACTORS[1]!]
+      }
+      return response
+    }
+    const { wrapper } = await mountPage(fetchFn)
+    expect(wrapper.findAll('[data-testid="factor-label"]').map((label) => label.text())).toEqual(['Phone', 'Backup phone'])
+    await wrapper.findAll('[data-testid="remove-factor"]')[0]!.trigger('click')
+    await flushPromises()
+    expect(byMethod(recorded, 'DELETE')).toBe('/api/v1/me/second-factors/c1')
+    expect(wrapper.findAll('[data-testid="factor-label"]').map((label) => label.text())).toEqual(['Backup phone'])
+  })
+
+  it('asks for a new login before a removal in an old session', async () => {
+    const fetchFn = routedFetch({
+      '/api/v1/me': { body: ME },
+      '/api/v1/me/second-factors': { body: FACTORS },
+      '/api/v1/me/second-factors/c1': {
+        status: 401,
+        contentType: 'application/problem+json',
+        body: { type: 'urn:oea:problem:reauthentication-required', status: 401 },
+      },
+    })
+    const { wrapper } = await mountPage(fetchFn)
+    await wrapper.findAll('[data-testid="remove-factor"]')[0]!.trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="reauthentication-required"]').text()).toContain('Log in again')
   })
 })

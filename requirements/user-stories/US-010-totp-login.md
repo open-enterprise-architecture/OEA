@@ -2,8 +2,9 @@
 
 **ID**: US-010
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S5
+**Implementation**: OpenSpec change `us-021-person-totp` – TOTP step of the password login of persons through `localLogin` and `localLoginTotp`
 
 ## Story
 
@@ -52,5 +53,7 @@ As a person on an instance without a passkey-capable client, I want to sign in w
 - Blocks: none
 
 ## Notes
+
+Realigned by OpenSpec change `us-021-person-totp`: the password step answers `second-factor-required` with a login transaction, as for the system admin account; five wrong codes invalidate the transaction and codes cannot be replayed (REQ-170). The password hash and the TOTP secrets live in `password_credentials` and `totp_credentials`.
 
 Rate limiting for TOTP attempts is a mandatory part of this story (brute-force protection with only a 6-digit code).
