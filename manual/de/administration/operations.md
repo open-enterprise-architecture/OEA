@@ -2,7 +2,7 @@
 title: Betrieb
 covers:
   screens: []
-  stories: [US-011, US-019, US-022, US-027, US-031]
+  stories: [US-008, US-011, US-019, US-022, US-027, US-031]
 ---
 
 # Betrieb
@@ -71,6 +71,13 @@ Gespeicherte Geheimnisse – TOTP-Secrets und Client-Secrets von Identity-Provid
 3. Entferne den alten Schlüssel aus der Konfiguration und vernichte ihn.
 
 Der Befehl verschlüsselt in einer Transaktion neu und gibt `OK <n> secret(s) re-encrypted with key <key ID>` aus. Exit-Codes: `0` erledigt, `1` ein Wert konnte mit den konfigurierten Schlüsseln nicht entschlüsselt werden (nichts wurde geändert), `2` Aufruf- oder Verbindungsfehler.
+
+## Verarbeitungszeit der Anmeldung {#login-processing-time}
+
+OEA erfasst, wie lange die Verarbeitung jeder Anmeldung dauert, als Metrik `oea.login.processing` mit den Tags `method` (`oidc`, `password`, `password-totp`, `password-passkey`, `passkey`) und `outcome` (`success`, `second-factor-required`, `failure`). Die Zeit der Anfragen an den Identity-Provider zählt nicht mit; die Metrik zeigt also nur OEA. Veröffentlicht werden der Median und das 95. Perzentil.
+
+- Das Ziel ist ein 95. Perzentil unter 300 ms bei 10.000 Personen und 1.000 Rollen; eine automatische Messung prüft es bei jedem Build.
+- Eine Passwort-Anmeldung enthält die Prüfung des Passwort-Hashes (argon2id), die bewusst einige zehn Millisekunden dauert.
 
 ## Log-Format {#log-format}
 

@@ -81,10 +81,12 @@ public class OidcLoginFlow {
 
 	private final String publicUrl;
 
+	private final LoginMetrics metrics;
+
 	public OidcLoginFlow(AuthProviderRepository providers, PersonIdentityRepository identities,
 			PersonRepository persons, LoginSessionRepository loginSessions, Sessions sessions, IdpRoles idpRoles,
 			OidcClient client, SecretCipher cipher, AuditWriter audit, JdbcTemplate jdbc, Clock clock,
-			@Value("${oea.web.public-url:}") String publicUrl) {
+			@Value("${oea.web.public-url:}") String publicUrl, LoginMetrics metrics) {
 		this.providers = providers;
 		this.identities = identities;
 		this.persons = persons;
@@ -97,6 +99,7 @@ public class OidcLoginFlow {
 		this.jdbc = jdbc;
 		this.clock = clock;
 		this.publicUrl = publicUrl.endsWith("/") ? publicUrl.substring(0, publicUrl.length() - 1) : publicUrl;
+		this.metrics = metrics;
 	}
 
 	/** An enabled provider as offered on the login page. */
@@ -165,6 +168,21 @@ public class OidcLoginFlow {
 	 */
 	@Transactional(noRollbackFor = OidcLoginFailedException.class)
 	public Completed complete(String state, String code, String error, String browserBinding, Client caller) {
+		LoginMetrics.Measurement measurement = this.metrics.start();
+		try {
+			Completed completed = complete(measurement, state, code, error, browserBinding, caller);
+			measurement.record("oidc", "success");
+			return completed;
+		}
+		catch (RuntimeException ex) {
+			measurement.record("oidc", "failure");
+			throw ex;
+		}
+	}
+
+	/** D1 of us-008-login-latency: the token request to the identity provider is not counted. */
+	private Completed complete(LoginMetrics.Measurement measurement, String state, String code, String error,
+			String browserBinding, Client caller) {
 		LoginState login = consume(state, browserBinding).orElseThrow(() -> failed(null, "state-invalid"));
 		if (error != null || code == null) {
 			throw failed(login.providerId(), "access_denied".equals(error) ? "cancelled" : "provider-error");
@@ -176,7 +194,13 @@ public class OidcLoginFlow {
 		OidcClient.Tokens tokens;
 		Jwt idToken;
 		try {
-			tokens = this.client.redeem(settings, redirectUri(), code, state, login.codeVerifier());
+			measurement.pause();
+			try {
+				tokens = this.client.redeem(settings, redirectUri(), code, state, login.codeVerifier());
+			}
+			finally {
+				measurement.resume();
+			}
 			if (tokens.idToken() == null) {
 				throw failed(provider.getId(), "token-invalid");
 			}

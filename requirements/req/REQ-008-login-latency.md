@@ -4,9 +4,9 @@ title: Login latency
 type: non-functional
 priority: should
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-24
-last_updated: 2026-10-13
+last_updated: 2026-10-30
 author: requirements-engineer
 references:
   use_cases:
@@ -91,13 +91,14 @@ Applies to the server-side portion of the login process (token redemption, perso
 
 ## Implementation Notes
 
+- AC1 measured by OpenSpec change `us-008-login-latency`: the metric `oea.login.processing` excludes the requests to the identity provider; `LoginLatencyIT` checks the 95th percentile below 300 ms with 10,000 persons, 1,000 roles and 1,000 IdP group mappings in CI (first result: 14 ms OIDC, 43 ms password). AC2 follows with the token endpoint.
 - Role assignments should be cached rather than resolved anew from the repository on every login (see UC-01 Implementation Notes)
 - The specific target values are provisional (walking skeleton assumption) and must be validated through real load measurement
 
 ## Implementation
 
 - ADR(s): none
-- Implemented by: –
+- Implemented by: OpenSpec change `us-008-login-latency`
 - Tests: –
 - Verification status: not-verified
 
@@ -111,3 +112,4 @@ Target values are a first estimate for the walking skeleton scope, not validated
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-15 / owner decision Q5: API key validation target replaced by client credentials token issuance |
+| 0.3.0 | 2026-10-30 | requirements-engineer | AC1 measured (change `us-008-login-latency`) |

@@ -2,8 +2,9 @@
 
 **ID**: US-003
 **Story Points**: 2
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S5
+**Implementation**: specs `identity/idp-roles` (scenario "Person without any role") and `identity/role-assignments` (scenario "Assignment effective within 60 seconds"); closed by OpenSpec change `us-008-login-latency`
 
 ## Story
 
@@ -52,5 +53,7 @@ As a person without an active role assignment, I want to still be able to sign i
 - Blocks: none
 
 ## Notes
+
+Closed by OpenSpec change `us-008-login-latency` (owner decision 2026-10-30) without new code: AC1 is realized by the 403 answers of the permission check and the notice on the profile page (scenario "Person without any role" of `identity/idp-roles`); AC2 holds for every change made in OEA – local role assignments and IdP group mappings apply within 60 seconds (`identity/role-assignments`, `identity/idp-roles`). Group changes at the identity provider follow the re-evaluation of at most 15 minutes (ADR-032 Q16/Q17, REQ-165 AC5).
 
 Covers exception flow E3 from UC-01. Implements the concept constraint `person-minimum-role` as a warning, not a hard block. 2026-10-13: "publicly readable content" removed (REQ-003 v0.2.0, security review SEC-05, owner decision Q1 – no anonymous or public access in v1). 2026-10-13: "active role assignment" means an active authorization role per ADR-032 (REQ-003 v0.3.0), not a business RoleAssignment in the EA model.

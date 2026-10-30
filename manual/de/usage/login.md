@@ -2,7 +2,7 @@
 title: Anmelden
 covers:
   screens: [SCR-001, SCR-003, SCR-004, SCR-005]
-  stories: [US-001, US-005, US-006, US-009, US-010, US-011, US-021, US-022, US-023, US-024, US-025, US-026, US-027, US-029, US-030, US-031]
+  stories: [US-001, US-003, US-005, US-006, US-009, US-010, US-011, US-021, US-022, US-023, US-024, US-025, US-026, US-027, US-029, US-030, US-031]
 ---
 
 # Anmelden

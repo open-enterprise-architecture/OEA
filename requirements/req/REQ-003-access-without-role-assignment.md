@@ -4,9 +4,9 @@ title: Restricted access without an active role assignment
 type: business-rule
 priority: must
 status: proposed
-version: 0.3.0
+version: 0.4.0
 created: 2026-06-24
-last_updated: 2026-10-13
+last_updated: 2026-10-30
 author: requirements-engineer
 references:
   use_cases:
@@ -110,12 +110,13 @@ if activeRoles(principal, now).isEmpty():
 
 ## Implementation Notes
 
+- Confirmed by OpenSpec change `us-008-login-latency`: covered by the scenarios "Person without any role" (`identity/idp-roles`) and "Assignment effective within 60 seconds" (`identity/role-assignments`); group changes at the identity provider follow the IdP re-evaluation (owner decision 2026-10-30).
 - Newly assigned roles must take effect without a full re-login; per ADR-032 §7, permissions are not embedded in tokens but resolved server-side per request (cache ≤ 60 s)
 
 ## Implementation
 
 - ADR(s): ADR-032 (authorization model)
-- Implemented by: –
+- Implemented by: OpenSpec change `us-008-login-latency`
 - Tests: –
 - Verification status: not-verified
 
@@ -130,3 +131,4 @@ Derived from UC-01 Login, Exception Flow E3, and the concept constraint `person-
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-05/SEC-06 / owner decision Q1: undefined "publicly readable content" removed – no repository content without a role; role changes effective within 60 s |
 | 0.3.0 | 2026-10-13 | requirements-engineer | ADR-032: statement and formal statement refer to authorization roles (local assignments and IdP group mappings) instead of `Person.fillsRoles`; business roles explicitly excluded; reference to UC-23 |
+| 0.4.0 | 2026-10-30 | requirements-engineer | Coverage confirmed (change `us-008-login-latency`) |

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.oea.app.security.Sessions;
 import io.oea.config.security.CsrfOriginFilter;
 import io.oea.config.security.SessionCookie;
@@ -95,6 +96,9 @@ class PersonTotpTests {
 
 	@MockitoSpyBean
 	private PasswordHasher hasher;
+
+	@Autowired
+	private MeterRegistry meters;
 
 	private TestSession personAdmin;
 
@@ -245,6 +249,27 @@ class PersonTotpTests {
 		assertThat(failed).hasStatus(HttpStatus.UNAUTHORIZED);
 		assertThat(body(failed).path("type").asString()).isEqualTo("urn:oea:problem:invalid-credentials");
 		verify(this.hasher, times(1)).matches(anyString(), anyString());
+	}
+
+	@Test
+	void everyLoginStepIsMeasured() {
+		active("hanna");
+		double failures = count("password", "failure");
+		double steps = count("password", "second-factor-required");
+		double totp = count("password-totp", "success");
+		assertThat(login("hanna@example.org", "wrong password 1")).hasStatus(HttpStatus.UNAUTHORIZED);
+		String secret = enroll(session(login("hanna@example.org", PASSWORD)), "Phone");
+		String transaction = body(login("hanna@example.org", PASSWORD)).path("loginTransaction").asString();
+		assertThat(loginTotp(transaction, code(secret))).hasStatus(HttpStatus.CREATED);
+		// design D1 of us-008-login-latency
+		assertThat(count("password", "failure")).isEqualTo(failures + 1);
+		assertThat(count("password", "second-factor-required")).isEqualTo(steps + 1);
+		assertThat(count("password-totp", "success")).isEqualTo(totp + 1);
+	}
+
+	private double count(String method, String outcome) {
+		var timer = this.meters.find("oea.login.processing").tag("method", method).tag("outcome", outcome).timer();
+		return (timer != null) ? timer.count() : 0;
 	}
 
 	/** Enrolls a TOTP credential in the session and moves past the time step of the confirmation. */

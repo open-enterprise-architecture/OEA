@@ -2,7 +2,7 @@
 title: Operations
 covers:
   screens: []
-  stories: [US-011, US-019, US-022, US-027, US-031]
+  stories: [US-008, US-011, US-019, US-022, US-027, US-031]
 ---
 
 # Operations
@@ -71,6 +71,13 @@ Stored secrets – TOTP secrets and client secrets of identity providers – are
 3. Remove the old key from the configuration and destroy it.
 
 The command re-encrypts in one transaction and prints `OK <n> secret(s) re-encrypted with key <key ID>`. Exit codes: `0` done, `1` a value could not be decrypted with the configured keys (nothing was changed), `2` usage or connection error.
+
+## Login processing time {#login-processing-time}
+
+OEA records how long it takes to process every login as the metric `oea.login.processing`, with the tags `method` (`oidc`, `password`, `password-totp`, `password-passkey`, `passkey`) and `outcome` (`success`, `second-factor-required`, `failure`). The time of the requests to the identity provider does not count, so the metric shows OEA alone; the median and the 95th percentile are published.
+
+- The target is a 95th percentile below 300 ms with 10,000 persons and 1,000 roles; an automated measurement checks it with every build.
+- A password login includes the verification of the password hash (argon2id), which deliberately takes some tens of milliseconds.
 
 ## Log format {#log-format}
 
