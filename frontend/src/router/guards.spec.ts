@@ -24,4 +24,12 @@ describe('passwordChangeTarget', () => {
     expect(passwordChangeTarget('/catalogs', { ...ME, requiredAction: null })).toBe(true)
     expect(passwordChangeTarget('/catalogs', undefined)).toBe(true)
   })
+
+  it('keeps a session that must enroll a second factor on the enrollment (US-031)', () => {
+    const me = { ...ME, requiredAction: 'enroll-second-factor' as const }
+    expect(passwordChangeTarget('/catalogs', me)).toBe('/me/second-factor')
+    expect(passwordChangeTarget('/me', me)).toBe('/me/second-factor')
+    expect(passwordChangeTarget('/me/second-factor', me)).toBe(true)
+    expect(passwordChangeTarget('/login', me)).toBe(true)
+  })
 })

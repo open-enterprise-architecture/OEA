@@ -2,8 +2,9 @@
 
 **ID**: US-031
 **Story Points**: 2
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S5
+**Implementation**: OpenSpec change `us-031-second-factor-enforcement` – `GET/PUT /admin/settings/second-factor-policy` (`enforced`), operator setting `oea.auth.second-factor.enforced`, required action `enroll-second-factor`
 
 ## Story
 
@@ -62,5 +63,7 @@ As an operator, I want to be able to define instance-wide that all regular perso
 - Blocks: US-028 (role-based exemption – presupposes active enforcement)
 
 ## Notes
+
+Realigned by OpenSpec change `us-031-second-factor-enforcement` (owner decisions 2026-10-30): `enforce2FA` is the field `enforced` of `GET/PUT /admin/settings/second-factor-policy` (`settings:manage`) instead of `/admin/config/auth`; the operator can force it with `oea.auth.second-factor.enforced`. AC1: the password login stays possible but never gives access by itself – a person without second factor gets a session that only allows the enrollment (AC2). The enforcement covers the password login of persons; IdP logins follow the identity provider, and the system admin account follows ADR-042 (AC3).
 
 Default `enforce2FA=false` so that OEA can be operated without configuration. Max enables the enforcement deliberately. The system admin account (UC-02) is exempt only for its first bootstrap login – it exists before the Person/Role system and must not block bootstrapping (changed 2026-10-13 per security review SEC-10, REQ-020 v0.2.0, REQ-171).

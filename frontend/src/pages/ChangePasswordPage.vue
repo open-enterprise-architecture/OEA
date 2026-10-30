@@ -85,7 +85,13 @@ async function submit() {
     if (outcome.ok) {
       const offer = required.value && session.me?.principal.principalType === 'person' && !session.me.mfaSatisfied
       await refreshSession(props.fetchFn)
-      const target = offer ? await afterPasswordLogin('/me?passwordChanged=1', props.fetchFn) : '/me?passwordChanged=1'
+      // US-031 AC2: an enforced second factor follows the password change
+      const enroll = session.me?.requiredAction === 'enroll-second-factor'
+      const target = enroll
+        ? '/me/second-factor'
+        : offer
+          ? await afterPasswordLogin('/me?passwordChanged=1', props.fetchFn)
+          : '/me?passwordChanged=1'
       await router.push(target)
     } else if (outcome.rejection.status === 403) {
       failure.value = 'The current password is not correct.'

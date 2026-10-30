@@ -329,6 +329,17 @@ An administrator reset the second factors of a person who lost every device ([RE
 | Target | `person`, ID of the person |
 | Details | `credentialsRevoked`, `sessionsRevoked` (counts), `reason` if given |
 
+### `settings.second-factor-policy-changed`
+
+An administrator changed the enforcement of a second factor or the exempt roles ([US-031](../requirements/user-stories/US-031-configure-2fa-enforcement.md), [US-028](../requirements/user-stories/US-028-role-based-2fa-exemption.md), REQ-020, REQ-029).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` / `success` |
+| Actor | the administrator |
+| Target | `settings`, `second-factor-policy` |
+| Details | `old`, `new`: each with `enforced` and `exemptRoles` |
+
 ### `settings.password-policy-changed`
 
 An administrator changed the password policy or the switch of password login of persons ([US-027](../requirements/user-stories/US-027-configure-password-policies.md), REQ-028).

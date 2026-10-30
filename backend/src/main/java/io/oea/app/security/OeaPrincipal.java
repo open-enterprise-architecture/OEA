@@ -21,6 +21,9 @@ public record OeaPrincipal(Type type, UUID systemAdminAccountId, Long personId, 
 	/** Action the session must complete first; {@code change-password} after a temporary password (REQ-173). */
 	public static final String CHANGE_PASSWORD = "change-password";
 
+	/** Action the session must complete first while the enforcement of a second factor is on (US-031 AC2). */
+	public static final String ENROLL_SECOND_FACTOR = "enroll-second-factor";
+
 	public OeaPrincipal(Type type, UUID systemAdminAccountId, Long personId, String displayName, UUID sessionId,
 			boolean secondFactorVerified, Instant authenticatedAt) {
 		this(type, systemAdminAccountId, personId, displayName, sessionId, secondFactorVerified, authenticatedAt, null);

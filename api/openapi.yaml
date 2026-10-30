@@ -215,7 +215,10 @@ components:
         (SoD-8). The problem body is generic and does not reveal the missing permission.
         A session created with a temporary password answers every operation except
         `GET /me`, the logout, `POST /me/password` and `POST /me/password/suggestion` with
-        problem type `urn:oea:problem:password-change-required` (REQ-173 AC2).
+        problem type `urn:oea:problem:password-change-required` (REQ-173 AC2). A session that
+        must enroll a second factor answers every operation except `GET /me`, the logout,
+        `GET /me/second-factors` and the TOTP and passkey enrollment with problem type
+        `urn:oea:problem:second-factor-enrollment-required` (US-031 AC2).
         If the principal holds no effective role at all, the header
         `OEA-Purge-Local-Data: access-revoked` is set.
       headers:
@@ -2097,11 +2100,14 @@ components:
 
     RequiredAction:
       type: [string, 'null']
-      enum: [change-password, null]
+      enum: [change-password, enroll-second-factor, null]
       description: |
         `change-password`: the session was created with a temporary or expired password; only
         `GET /me`, the logout, `POST /me/password` and `POST /me/password/suggestion` are
         allowed until the password is changed (REQ-173 AC2, REQ-028 AC2)
+        `enroll-second-factor`: the enforcement of a second factor is on and the person has none
+        (US-031 AC2); only `GET /me`, the logout, `GET /me/second-factors` and the TOTP and
+        passkey enrollment are allowed until a second factor is confirmed
 
     InitialPassword:
       type: object
@@ -2166,6 +2172,28 @@ components:
             (`personPasswordLoginPermitted`); it cannot be switched on without that permission.
         personPasswordLoginPermitted: { type: boolean, readOnly: true, description: "Operator setting `oea.auth.person-password.enabled`" }
         floors: { $ref: '#/components/schemas/PasswordPolicyFloors' }
+
+    SecondFactorPolicy:
+      type: object
+      description: |
+        Enforcement of a second factor at the password login of persons (US-031, US-028, REQ-020,
+        REQ-029). IdP logins and the system admin account are not covered.
+      required: [enforced, exemptRoles]
+      properties:
+        enforced:
+          type: boolean
+          description: |
+            A person without second factor who is not exempt must enroll one after the password
+            login (required action `enroll-second-factor`). Cannot be `false` while
+            `enforcedByOperator` is `true`.
+        exemptRoles:
+          type: array
+          items: { $ref: '#/components/schemas/RoleId' }
+          description: |
+            Roles that need no second factor. A person is exempt only if they hold at least one
+            role through a local role assignment and every such role is exempt. A role with an
+            admin-class permission cannot be exempt.
+        enforcedByOperator: { type: boolean, readOnly: true, description: "Operator setting `oea.auth.second-factor.enforced`" }
 
     PasswordPolicyFloors:
       type: object
@@ -2843,8 +2871,9 @@ paths:
         person; it is accepted only while the operator has switched on password login of
         persons (`oea.auth.person-password.enabled`), for persons in status `invited` or
         `active` with an unexpired password. The first login of an invited person makes it
-        `active`. A person without an active TOTP credential gets a session that is not
-        second-factor-verified (SoD-8); a person with one gets `401` with problem type
+        `active`. A person without an active second factor gets a session that is not
+        second-factor-verified (SoD-8), with `requiredAction: enroll-second-factor` while the
+        enforcement of a second factor is on and the person is not exempt (US-031); a person with one gets `401` with problem type
         `urn:oea:problem:second-factor-required`, a `loginTransaction` and `secondFactors`
         (`totp`, `passkey`), as below, and is activated only after the second step (REQ-010,
         us-022-passkeys). A temporary or expired password yields
@@ -3272,7 +3301,8 @@ paths:
         credential, ends every other session of the principal and is audited as
         `auth.factor-removed`. The last TOTP credential of the system admin account cannot
         be removed after the setup phase (`409`, problem type
-        `urn:oea:problem:last-second-factor`, ADR-042).
+        `urn:oea:problem:last-second-factor`, ADR-042); neither can the last second factor of a
+        person who is not exempt while the enforcement of a second factor is on (REQ-020).
       tags: [Identity]
       x-oea-authorization: {"access": "authenticated"}
       parameters:
@@ -5011,6 +5041,49 @@ paths:
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '501': { $ref: '#/components/responses/NotImplemented' }
+
+  /admin/settings/second-factor-policy:
+    get:
+      operationId: getSecondFactorPolicy
+      summary: Enforcement of a second factor and exempt roles (US-031, US-028)
+      tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["settings:manage"]}
+      responses:
+        '200':
+          description: Second-factor policy
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SecondFactorPolicy' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    put:
+      operationId: updateSecondFactorPolicy
+      summary: Change the enforcement of a second factor and the exempt roles (US-031, US-028)
+      description: |
+        Applies at the next password login of a person. Rejected with `422` naming the field if
+        `enforced` is `false` while the operator forces it, or if `exemptRoles` contains an
+        unknown role or a role with an admin-class permission (REQ-029 AC4, AC6). Audited as
+        `settings.second-factor-policy-changed` with the old and the new values.
+      tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["settings:manage"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SecondFactorPolicy' }
+      responses:
+        '200':
+          description: Policy changed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SecondFactorPolicy' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/settings/password-policy:
     get:

@@ -93,6 +93,8 @@ async function handle(outcome: PasskeyLoginOutcome, step: 'password' | 'code' | 
     const { result } = outcome
     if (result.requiredAction === 'change-password') {
       await router.push('/me/password')
+    } else if (result.requiredAction === 'enroll-second-factor') {
+      await router.push('/me/second-factor')
     } else if (result.principal.principalType === 'person' && !result.mfaSatisfied) {
       await router.push(await afterPasswordLogin('/me', props.fetchFn))
     } else {

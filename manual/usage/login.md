@@ -2,7 +2,7 @@
 title: Logging in
 covers:
   screens: [SCR-001, SCR-003, SCR-004, SCR-005]
-  stories: [US-001, US-005, US-006, US-009, US-010, US-011, US-021, US-022, US-023, US-024, US-025, US-026, US-027, US-029, US-030]
+  stories: [US-001, US-005, US-006, US-009, US-010, US-011, US-021, US-022, US-023, US-024, US-025, US-026, US-027, US-029, US-030, US-031]
 ---
 
 # Logging in
@@ -60,7 +60,7 @@ Once you have set up a passkey (see [Set up a second factor](#set-up-a-second-fa
 
 ## Set up a second factor {#set-up-a-second-factor}
 
-A second factor is a passkey on your device (fingerprint, face or PIN) or an authenticator app (any app for time-based one-time passwords, TOTP) on your phone. The local system admin account uses an authenticator app and needs one to end the setup phase (see [First administrator](../setup/first-administrator)). If you log in with your e-mail address and password, OEA offers a second factor after the login as long as you have none; choose *Skip for now* to set it up later.
+A second factor is a passkey on your device (fingerprint, face or PIN) or an authenticator app (any app for time-based one-time passwords, TOTP) on your phone. The local system admin account uses an authenticator app and needs one to end the setup phase (see [First administrator](../setup/first-administrator)). If you log in with your e-mail address and password, OEA offers a second factor after the login as long as you have none; choose *Skip for now* to set it up later. If your organization requires a second factor, the page cannot be skipped: until you have set one up, nothing else is available.
 
 1. In *Profile*, choose *Set up a second factor* (or *Add a second factor*). Choose *Passkey (recommended)* or *Authenticator app*; the choice appears only in browsers that support passkeys. Optionally, give it a name, for example the device; without a name it is called "Passkey" or "Authenticator app" with the date.
 2. For a passkey, choose *Set up passkey* and confirm in the dialog of your browser or device. For an authenticator app, choose *Set up authenticator app* and scan the QR code with the app.

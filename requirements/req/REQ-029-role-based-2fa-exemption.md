@@ -4,9 +4,9 @@ title: Configure role-based 2FA exemption by the operator
 type: functional
 priority: should
 status: proposed
-version: 0.3.0
+version: 0.4.0
 created: 2026-06-25
-last_updated: 2026-10-15
+last_updated: 2026-10-30
 author: requirements-engineer
 references:
   use_cases:
@@ -133,6 +133,7 @@ Applies only if REQ-020 is active (`enforce2FA=true`). If enforcement is inactiv
 
 ## Implementation Notes
 
+- Realized by OpenSpec change `us-031-second-factor-enforcement` as `exemptRoles` of the second-factor policy: exempt only with at least one locally assigned role and every such role exempt (AC1–AC3); unknown and admin-class roles are rejected with 422 (AC4, AC6); the system admin account is not covered (AC5).
 - `twoFactorExemptRoles` as part of the instance auth configuration (alongside `enforce2FA` from REQ-020)
 - Check: at login after the password check; before the UC-03 required action dispatch; O(1) lookup via set intersection
 - Admin UI: role dropdown instead of free-text IDs; only existing roles selectable → AC4 satisfied automatically
@@ -140,7 +141,7 @@ Applies only if REQ-020 is active (`enforce2FA=true`). If enforcement is inactiv
 ## Implementation
 
 - ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
-- Implemented by: –
+- Implemented by: OpenSpec change `us-031-second-factor-enforcement`
 - Tests: –
 - Verification status: not-verified
 
@@ -155,3 +156,4 @@ Derived from operator requirement (SH-06). Version 0.1.0 allowed exempting admin
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-10: "all roles exempt" semantics; roles with `admin`-class permissions not exemptable (AC6); system admin subject to REQ-171 |
 | 0.3.0 | 2026-10-15 | requirements-engineer | AC5 aligned with ADR-042 (setup phase instead of first bootstrap login) |
+| 0.4.0 | 2026-10-30 | requirements-engineer | Implementation note (change `us-031-second-factor-enforcement`) |

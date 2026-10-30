@@ -133,4 +133,14 @@ describe('ChangePasswordPage', () => {
     await fill(wrapper, 'initial-password-123', 'chosen-password-456')
     expect(router.currentRoute.value.fullPath).toBe('/me/second-factor?offer=1')
   })
+
+  it('opens the enrollment after the change when the organization requires a second factor (US-031)', async () => {
+    const fetchFn = routedFetch({
+      '/api/v1/me/password': { status: 204, body: null },
+      '/api/v1/me': { body: { ...ME, requiredAction: 'enroll-second-factor' } },
+    })
+    const { wrapper, router } = await mountPage(fetchFn)
+    await fill(wrapper, 'initial-password-123', 'chosen-password-456')
+    expect(router.currentRoute.value.fullPath).toBe('/me/second-factor')
+  })
 })

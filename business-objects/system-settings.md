@@ -2,7 +2,7 @@
 identifier: system-settings
 name_de: Instanz-Einstellungen
 name_en: System Settings
-version: 0.4.0
+version: 0.5.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -52,6 +52,8 @@ Settings that need protection against the administrators who manage them are del
 | passwordPolicy.expiryDays | integer | required | 0 | 0–3650; `0` = no expiry; not above a non-zero operator ceiling | Days after which a self-set password must be changed at the next login (REQ-028 AC2) |
 | passwordPolicy.historyCount | integer | required | 0 | 0–24; not below the operator floor | Previous passwords, including the current one, that must not be reused (REQ-028 AC3) |
 | personPasswordLogin | boolean | required | true | can be switched on only while the operator permits password login of persons | Administrators' switch of the password login of persons (US-011) |
+| secondFactorPolicy.enforced | boolean | required | false | always `true` while the operator forces it (`oea.auth.second-factor.enforced`) | A person without second factor must enroll one after the password login (REQ-020, US-031) |
+| secondFactorPolicy.exemptRoles | list of role IDs | required | empty | existing roles without admin-class permission | Roles that need no second factor; a person is exempt only if every locally assigned role is in the list (REQ-029, US-028) |
 | updatedAt | datetime | required | | | Time of the last change |
 | updatedBy | principal | optional | | person or system admin account | Actor of the last change |
 
@@ -107,6 +109,8 @@ privilegedAssignmentApproval: true
 
 ## Notes
 
+Change `us-031-second-factor-enforcement` adds the second-factor policy as typed columns (`second_factor_enforced`, `second_factor_exempt_roles`), read and written through `/admin/settings/second-factor-policy`.
+
 Change `us-027-password-administration` adds the password policy and the switch `personPasswordLogin` as typed columns (`password_*`, `person_password_login`); they are read and written through `/admin/settings/password-policy`, not the general settings operation, which stays planned.
 
 Created for ADR-034 DM-5. The settings were so far referenced by other business objects (`privilegedAssignmentApproval`, `allowReactivationOfOffboarded`, `sessionRetentionDays`) and the API schema `SystemSettings`, but not modeled. The storage form (single typed row with database CHECKs instead of a key-value table) is a modeling proposal, chosen so that value ranges are enforced in the database. Further settings defined only in the API (`SystemSettings` in `api/openapi.yaml`) still have to be added here.
@@ -121,3 +125,4 @@ Resolved (change `us-013-local-bootstrapping`): the audit checkpoint interval (A
 | 0.2.0 | 2026-10-15 | Business Engineer | `instanceSlug` (ADR-001, set by the bootstrapping, UC-02); checkpoint interval resolved as deployment configuration |
 | 0.3.0 | 2026-10-15 | Business Engineer | Setup phase attributes (ADR-042) |
 | 0.4.0 | 2026-10-30 | Business Engineer | Password policy and `personPasswordLogin` (change `us-027-password-administration`, REQ-028, US-027) |
+| 0.5.0 | 2026-10-30 | Business Engineer | Second-factor policy (change `us-031-second-factor-enforcement`, REQ-020, REQ-029) |

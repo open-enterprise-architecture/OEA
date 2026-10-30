@@ -82,6 +82,11 @@ public class PasskeySteps {
 		this.passwordStep = this.persons.login(this.persons.email(name), PersonPasswordSteps.CHOSEN);
 	}
 
+	/** The answer of the last password step of the scenario. */
+	HttpResponse<String> lastPasswordStep() {
+		return this.passwordStep;
+	}
+
 	@Then("the login asks for the second factor {string}")
 	public void asksFor(String method) {
 		assertThat(this.passwordStep.statusCode()).isEqualTo(401);

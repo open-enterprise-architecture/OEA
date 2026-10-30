@@ -14,6 +14,8 @@ const props = defineProps<{ fetchFn?: typeof fetch }>()
 const route = useRoute()
 const router = useRouter()
 const offer = computed(() => route?.query.offer === '1')
+// US-031 AC2: an enforced second factor cannot be skipped
+const enforced = computed(() => session.me?.requiredAction === 'enroll-second-factor')
 
 const label = ref('')
 // passkeys for persons only; the system admin account keeps TOTP (owner decision 2026-10-30)
@@ -117,7 +119,7 @@ async function skip() {
           ? 'Your passkey is set up, and this session is confirmed with it.'
           : 'Your authenticator app is set up, and this session is confirmed with it.'
       "
-      :actions="[{ label: offer ? 'Continue' : 'Back to the profile', to: offer ? '/' : '/me' }]"
+      :actions="[{ label: offer || enforced ? 'Continue' : 'Back to the profile', to: offer || enforced ? '/' : '/me' }]"
     />
     <UAlert
       v-if="reauthenticate"
@@ -154,7 +156,15 @@ async function skip() {
     </template>
 
     <template v-else-if="!confirmed">
-      <p v-if="offer" data-testid="offer" class="text-muted">
+      <UAlert
+        v-if="enforced"
+        data-testid="enrollment-required"
+        color="warning"
+        variant="subtle"
+        title="Second factor required"
+        description="Your organization requires a second factor. Set one up to continue."
+      />
+      <p v-if="offer || enforced" data-testid="offer" class="text-muted">
         Protect your account with a second factor: a passkey on this device or an authenticator app on your phone.
         Logins are then confirmed with it, and roles with administrative permissions become effective.
       </p>
@@ -188,7 +198,7 @@ async function skip() {
         />
         <UButton v-else data-testid="start" :loading="busy" label="Set up authenticator app" @click="start" />
         <UButton
-          v-if="offer"
+          v-if="offer && !enforced"
           data-testid="skip"
           color="neutral"
           variant="ghost"
