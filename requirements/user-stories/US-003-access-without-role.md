@@ -4,7 +4,7 @@
 **Story Points**: 2
 **Status**: done
 **Sprint**: S5
-**Implementation**: specs `identity/idp-roles` (scenario "Person without any role") and `identity/role-assignments` (scenario "Assignment effective within 60 seconds"); closed by OpenSpec change `us-008-login-latency`
+**Implementation**: specs `identity/idp-roles` (scenario "Person without any role") and `identity/role-assignments` (scenario "Assignment effective within 60 seconds"); closed by OpenSpec change `us-008-login-latency`, commit c747413 (#148)
 
 ## Story
 
