@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the organization's own property definitions with their data types, enum values and categories, and the rules that keep existing entity values valid.
+Defines the organization's own property definitions with their data types, enum values and categories, and what happens to entity values when they change.
 
 ## ADDED Requirements
 
@@ -22,16 +22,16 @@ Trace: UC-04 step 6, REQ-032, ADR-022
 - **WHEN** a metamodel administrator creates a property named `status` while the imported property `Status` exists
 - **THEN** the request is rejected with 409 and problem type `name-taken`
 
-### Requirement: Existing values stay valid
+### Requirement: Changing definitions with existing values
 
-The data type of a property definition SHALL NOT change while entity values exist, including those in the entity history. A property definition SHALL NOT be deleted while it has mappings or values, an enum value SHALL NOT be deleted while entities use it, and a category SHALL NOT be deleted while property definitions belong to it; each with 409 and problem type `in-use`.
+The data type of a property definition SHALL NOT change while entity values exist, including in the history. A definition SHALL NOT be deleted while it is mapped, and a category while definitions belong to it (409 `in-use`); a deleted definition that appears in the history SHALL be retired. Deleting an enum value SHALL remove it from the entities that use it.
 
-Trace: REQ-032 AC4, ADR-022
+Trace: REQ-032 AC4, ADR-022, owner decision 2026-10-31
 
 #### Scenario: Enum value in use
 
 - **WHEN** a metamodel administrator deletes the enum value `high` that two entities use
-- **THEN** the request is rejected with 409 and problem type `in-use`, and the value stays
+- **THEN** the value is deleted, both entities get a new version without a value for the property, and an audit event `metamodel.enum-value-deleted` names two entities
 
 ### Requirement: Read-only property definitions
 
