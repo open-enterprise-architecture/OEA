@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec changes `us-021-person-totp`, commit 672fdae (#139), and `us-022-passkeys` (AC2, several passkeys) – TOTP in the profile through the same enrollment operations (AC1), notice instead of an error (AC3), session required (AC4), list of own second factors on SCR-005
+**Implementation**: OpenSpec changes `us-021-person-totp`, commit 672fdae (#139), and `us-022-passkeys`, commit 2441622 (#142) (AC2, several passkeys) – TOTP in the profile through the same enrollment operations (AC1), notice instead of an error (AC3), session required (AC4), list of own second factors on SCR-005
 
 ## Story
 

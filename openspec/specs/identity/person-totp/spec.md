@@ -35,7 +35,7 @@ Trace: US-029 AC1 to AC4, REQ-030 AC1, REQ-030 AC2, REQ-030 AC4
 
 ### Requirement: TOTP login of persons
 
-After the password step of a person with an active TOTP credential, no session SHALL be created; the answer SHALL ask for the second factor with a login transaction. A valid code SHALL create a second-factor-verified session; a wrong code SHALL not reveal that the password was correct, five wrong codes SHALL invalidate the transaction, and an accepted code SHALL never be accepted again.
+After the password step of a person with an active second factor, no session SHALL be created; the answer SHALL give a login transaction and name the person's methods. A valid code SHALL create a second-factor-verified session; a wrong code SHALL not reveal that the password was correct, five failures SHALL invalidate the transaction, and no code SHALL be accepted twice.
 
 Trace: US-010 AC1, US-010 AC2, REQ-010, REQ-030 AC5, REQ-170, REQ-168 AC2, ADR-032 SoD-8
 
@@ -48,6 +48,11 @@ Trace: US-010 AC1, US-010 AC2, REQ-010, REQ-030 AC5, REQ-170, REQ-168 AC2, ADR-0
 
 - **WHEN** the person enters a wrong code after a correct password
 - **THEN** no session is created, and the answer is the same as for a wrong code after any password step
+
+#### Scenario: Methods named
+
+- **WHEN** a person with a TOTP credential and a passkey passes the password step
+- **THEN** the answer names the methods `totp` and `passkey`
 
 ### Requirement: Enrollment offer after the password login
 

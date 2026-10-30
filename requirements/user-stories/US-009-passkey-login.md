@@ -4,7 +4,7 @@
 **Story Points**: 8
 **Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-022-passkeys` – `startPasskeyLogin` and `passkeyLogin` under `/auth/passkey`, the passkey step `localLoginPasskey`, page SCR-001
+**Implementation**: OpenSpec change `us-022-passkeys`, commit 2441622 (#142) – `startPasskeyLogin` and `passkeyLogin` under `/auth/passkey`, the passkey step `localLoginPasskey`, page SCR-001
 
 ## Story
 
