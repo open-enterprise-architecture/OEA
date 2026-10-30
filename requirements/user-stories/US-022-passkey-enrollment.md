@@ -4,7 +4,7 @@
 **Story Points**: 8
 **Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-022-passkeys` – `startPasskeyRegistration` and `confirmPasskeyRegistration` under `/me/second-factors/passkey`, page SCR-003
+**Implementation**: OpenSpec change `us-022-passkeys`, commit 2441622 (#142) – `startPasskeyRegistration` and `confirmPasskeyRegistration` under `/me/second-factors/passkey`, page SCR-003
 
 ## Story
 
