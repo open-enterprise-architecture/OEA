@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: in-progress
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-008-login-latency` – metric `oea.login.processing` and the measurement `LoginLatencyIT` (AC1)
+**Implementation**: OpenSpec change `us-008-login-latency`, commit c747413 (#148) – metric `oea.login.processing` and the measurement `LoginLatencyIT` (AC1)
 
 ## Story
 
