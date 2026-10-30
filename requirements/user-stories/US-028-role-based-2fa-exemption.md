@@ -4,7 +4,7 @@
 **Story Points**: 2
 **Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-031-second-factor-enforcement` – field `exemptRoles` of `GET/PUT /admin/settings/second-factor-policy`
+**Implementation**: OpenSpec change `us-031-second-factor-enforcement`, commit 3023eb0 (#145) – field `exemptRoles` of `GET/PUT /admin/settings/second-factor-policy`
 
 ## Story
 
