@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-027-password-administration` – generator for `setInitialPassword` with `generate: true`, `resetPersonPassword` and `POST /me/password/suggestion` (`suggestPassword`), button *Suggest a password* on SCR-004
+**Implementation**: OpenSpec change `us-027-password-administration`, commit 30f2e67 (#136) – generator for `setInitialPassword` with `generate: true`, `resetPersonPassword` and `POST /me/password/suggestion` (`suggestPassword`), button *Suggest a password* on SCR-004
 
 ## Story
 
