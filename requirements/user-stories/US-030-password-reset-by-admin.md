@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-027-password-administration` – `POST /admin/persons/{personId}/password/reset` (`resetPersonPassword`)
+**Implementation**: OpenSpec change `us-027-password-administration`, commit 30f2e67 (#136) – `POST /admin/persons/{personId}/password/reset` (`resetPersonPassword`)
 
 ## Story
 

@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-027-password-administration` – operator floors `oea.auth.password-policy.*`, `GET/PUT /admin/settings/password-policy` (`getPasswordPolicy`, `updatePasswordPolicy`), checks on every new password, expiry at login, history
+**Implementation**: OpenSpec change `us-027-password-administration`, commit 30f2e67 (#136) – operator floors `oea.auth.password-policy.*`, `GET/PUT /admin/settings/password-policy` (`getPasswordPolicy`, `updatePasswordPolicy`), checks on every new password, expiry at login, history
 
 ## Story
 
