@@ -4,7 +4,7 @@
 **Story Points**: 2
 **Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-031-second-factor-enforcement` – `GET/PUT /admin/settings/second-factor-policy` (`enforced`), operator setting `oea.auth.second-factor.enforced`, required action `enroll-second-factor`
+**Implementation**: OpenSpec change `us-031-second-factor-enforcement`, commit 3023eb0 (#145) – `GET/PUT /admin/settings/second-factor-policy` (`enforced`), operator setting `oea.auth.second-factor.enforced`, required action `enroll-second-factor`
 
 ## Story
 

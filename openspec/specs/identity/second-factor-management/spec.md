@@ -24,9 +24,9 @@ Trace: US-029 AC3, REQ-030 AC3, US-025 AC3, REQ-026 AC3, US-022
 
 ### Requirement: Removing an own second factor
 
-A principal SHALL remove one of its active second factors after an authentication within the last 5 minutes. The credential SHALL be revoked, the other sessions of the principal SHALL end, and the removal SHALL be audited as `auth.factor-removed`. The last TOTP credential of the system admin account SHALL NOT be removed after the setup phase (409).
+A principal SHALL remove one of its active second factors after an authentication within the last 5 minutes; the other sessions SHALL end, and the removal SHALL be audited as `auth.factor-removed`. The last second factor SHALL NOT be removed (409) by the system admin account after the setup phase, nor by a person who is not exempt while the enforcement is on.
 
-Trace: owner decision 2026-10-30, REQ-172, ADR-042, BR-10 of local-credential
+Trace: owner decision 2026-10-30, REQ-172, ADR-042, REQ-020, BR-10 of local-credential
 
 #### Scenario: Lost phone
 
@@ -37,6 +37,11 @@ Trace: owner decision 2026-10-30, REQ-172, ADR-042, BR-10 of local-credential
 
 - **WHEN** the system admin account removes its only TOTP credential after the setup phase
 - **THEN** the request is rejected with 409 and the credential stays active
+
+#### Scenario: Last factor under enforcement
+
+- **WHEN** the enforcement is on and a person who is not exempt removes the only second factor
+- **THEN** the request is rejected with 409 and the second factor stays active
 
 ### Requirement: Factor reset by an administrator
 
