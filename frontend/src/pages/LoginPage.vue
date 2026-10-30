@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   fetchLoginProviders,
@@ -8,14 +8,17 @@ import {
   oidcLoginUrl,
   type LoginOutcome,
   type LoginProvider,
+  type SecondFactorMethod,
 } from '../api/session'
+import { loginWithPasskey, passkeysSupported, type PasskeyLoginOutcome } from '../api/passkey'
 import { afterPasswordLogin } from '../session/secondFactorOffer'
 import { refreshSession } from '../session/store'
 
 // SCR-001 Login: through an identity provider (US-001), and locally for the system admin account
 // (US-013 AC2) and for persons with their e-mail address (US-011). A temporary password leads to
 // the password change first (REQ-173 AC2). A person without a second factor is offered the TOTP
-// enrollment afterwards (US-021; design D7 of us-021-person-totp).
+// enrollment afterwards (US-021; design D7 of us-021-person-totp). Persons log in with a passkey
+// without password, or confirm the password with it (US-009; design D6 of us-022-passkeys).
 const props = defineProps<{ fetchFn?: typeof fetch; navigate?: (url: string) => void }>()
 const router = useRouter()
 const route = useRoute()
@@ -47,12 +50,27 @@ function loginWith(provider: LoginProvider) {
 
 const form = reactive({ loginName: '', password: '', code: '' })
 const loginTransaction = ref<string>()
+const methods = ref<SecondFactorMethod[]>([])
+const passkeys = passkeysSupported()
+
+// Which second factors the person can use (design D5 of us-022-passkeys)
+const secondStepHint = computed(() => {
+  const totp = methods.value.includes('totp')
+  const passkey = methods.value.includes('passkey') && passkeys
+  if (totp && passkey) {
+    return 'Confirm the login with your passkey or the code of your authenticator app.'
+  }
+  return passkey ? 'Confirm the login with your passkey.' : 'Enter the code of your authenticator app.'
+})
 const failure = ref<string>()
 const submitting = ref(false)
 
 const GENERIC_FAILURE = 'Login failed. Check the user name or e-mail address and the password.'
 
-function failureMessage(outcome: Extract<LoginOutcome, { kind: 'rejected' }>, step: 'password' | 'code'): string {
+function failureMessage(
+  outcome: Extract<LoginOutcome, { kind: 'rejected' }>,
+  step: 'password' | 'code' | 'passkey',
+): string {
   const { rejection } = outcome
   if (rejection.retryAfterSeconds !== undefined) {
     return `Too many failed attempts. Try again in ${rejection.retryAfterSeconds} seconds.`
@@ -60,10 +78,16 @@ function failureMessage(outcome: Extract<LoginOutcome, { kind: 'rejected' }>, st
   if (step === 'code') {
     return 'The code is not valid, or the login has expired. Enter a new code or start again.'
   }
+  if (step === 'passkey') {
+    return 'The passkey was not accepted. Try again, or log in with your password.'
+  }
   return GENERIC_FAILURE
 }
 
-async function handle(outcome: LoginOutcome, step: 'password' | 'code') {
+async function handle(outcome: PasskeyLoginOutcome, step: 'password' | 'code' | 'passkey') {
+  if (outcome.kind === 'cancelled') {
+    return
+  }
   if (outcome.kind === 'success') {
     await refreshSession(props.fetchFn)
     const { result } = outcome
@@ -76,6 +100,7 @@ async function handle(outcome: LoginOutcome, step: 'password' | 'code') {
     }
   } else if (outcome.kind === 'second-factor') {
     loginTransaction.value = outcome.loginTransaction
+    methods.value = outcome.methods
   } else {
     failure.value = failureMessage(outcome, step)
   }
@@ -108,6 +133,18 @@ async function submitCode() {
     await handle(outcome, 'code')
   } catch {
     failure.value = 'The backend is not reachable.'
+  } finally {
+    submitting.value = false
+  }
+}
+
+async function submitPasskey() {
+  failure.value = undefined
+  submitting.value = true
+  try {
+    await handle(await loginWithPasskey(loginTransaction.value, props.fetchFn), 'passkey')
+  } catch {
+    failure.value = 'The passkey could not be used.'
   } finally {
     submitting.value = false
   }
@@ -152,11 +189,30 @@ function startAgain() {
         />
       </UFormField>
       <UButton type="submit" data-testid="submit" :loading="submitting" label="Log in" block />
+      <UButton
+        v-if="passkeys"
+        data-testid="passkey-login"
+        color="neutral"
+        variant="outline"
+        icon="i-lucide-key-round"
+        label="Log in with a passkey"
+        block
+        @click="submitPasskey"
+      />
     </form>
 
     <form v-else class="flex flex-col gap-4" novalidate @submit.prevent="submitCode">
-      <p class="text-muted">Enter the code of your authenticator app.</p>
-      <UFormField label="Code" name="code" required>
+      <p data-testid="second-step-hint" class="text-muted">{{ secondStepHint }}</p>
+      <UButton
+        v-if="methods.includes('passkey') && passkeys"
+        data-testid="use-passkey"
+        icon="i-lucide-key-round"
+        :loading="submitting"
+        label="Use a passkey"
+        block
+        @click="submitPasskey"
+      />
+      <UFormField v-if="methods.includes('totp')" label="Code" name="code" required>
         <UInput
           v-model="form.code"
           data-testid="code"
@@ -166,7 +222,14 @@ function startAgain() {
           class="w-full"
         />
       </UFormField>
-      <UButton type="submit" data-testid="submit-code" :loading="submitting" label="Confirm" block />
+      <UButton
+        v-if="methods.includes('totp')"
+        type="submit"
+        data-testid="submit-code"
+        :loading="submitting"
+        label="Confirm"
+        block
+      />
       <UButton data-testid="start-again" variant="link" label="Start again" @click="startAgain" />
     </form>
   </main>

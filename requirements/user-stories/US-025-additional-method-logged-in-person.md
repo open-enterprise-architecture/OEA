@@ -2,9 +2,9 @@
 
 **ID**: US-025
 **Story Points**: 3
-**Status**: in-progress
+**Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-021-person-totp`, commit 672fdae (#139) – TOTP in the profile through the same enrollment operations (AC1), notice instead of an error (AC3), session required (AC4), list of own second factors on SCR-005
+**Implementation**: OpenSpec changes `us-021-person-totp`, commit 672fdae (#139), and `us-022-passkeys` (AC2, several passkeys) – TOTP in the profile through the same enrollment operations (AC1), notice instead of an error (AC3), session required (AC4), list of own second factors on SCR-005
 
 ## Story
 
@@ -65,6 +65,8 @@ As an already logged-in person, I want to set up another local authentication me
 - Blocks: none
 
 ## Notes
+
+AC2 realized by OpenSpec change `us-022-passkeys`: a person registers several passkeys in the profile with the same flow as at the first login; each can be used on its own.
 
 Realigned by OpenSpec change `us-021-person-totp`: the enrollment at the first login and in the profile use one code path in the session; there is no enrollment token. AC2 (second passkey) follows with S5 change 4, so the story stays in progress. AC3 is the list of authenticator apps on the profile page with "Add an authenticator app".
 

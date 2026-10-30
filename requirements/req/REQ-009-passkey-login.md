@@ -4,9 +4,9 @@ title: Passkey login (local authentication without an external IdP)
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-24
-last_updated: 2026-06-24
+last_updated: 2026-10-30
 author: requirements-engineer
 references:
   use_cases:
@@ -107,13 +107,14 @@ Assumes that the person has previously registered a passkey (enrollment is a sep
 
 ## Implementation Notes
 
+- Realized by OpenSpec change `us-022-passkeys` with WebAuthn4J (ADR-048): `POST /auth/passkey/options` and `/auth/passkey/login` for discoverable passkeys (AC3); every failure answers like a wrong password and counts for the throttling per source address (AC2); the session is second-factor-verified with user verification (owner decision 2026-10-30).
 - Public keys per passkey should be stored separately from the business Person object (sensitive credential data, see UC-01 Implementation Notes)
 - Multiple passkeys per person should be supported (e.g., multiple devices)
 
 ## Implementation
 
 - ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
-- Implemented by: –
+- Implemented by: OpenSpec change `us-022-passkeys`
 - Tests: –
 - Verification status: not-verified
 
@@ -126,3 +127,4 @@ Derived from UC-01 Login, Alternative A3.
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |
+| 0.2.0 | 2026-10-30 | requirements-engineer | Implementation note (change `us-022-passkeys`) |

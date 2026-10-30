@@ -2,7 +2,7 @@
 title: Betrieb
 covers:
   screens: []
-  stories: [US-011, US-019, US-027]
+  stories: [US-011, US-019, US-022, US-027]
 ---
 
 # Betrieb
@@ -102,6 +102,22 @@ OEA_AUTH_PERSONPASSWORD_TEMPORARYPASSWORDVALIDITY=PT72H
 - Administratorinnen und Administratoren können den Passwort-Login von Personen mit `personPasswordLogin` der [Passwort-Richtlinie](./identity-providers#password-policy) aus- und wieder einschalten. Er funktioniert nur, solange deine Einstellung ihn erlaubt und ihr Schalter an ist; ohne deine Erlaubnis können sie ihn nicht einschalten.
 - Rollen mit administrativen Berechtigungen gelten für eine Person erst nach einer Anmeldung mit Passwort und dem Code einer Authenticator-App (siehe [Zweiten Faktor einrichten](../usage/login#set-up-a-second-factor)); nach einer reinen Passwort-Anmeldung gelten sie nicht.
 - Solange der Passwort-Login von Personen nicht möglich ist, scheitert er wie ein falsches Passwort, und das Setzen oder Zurücksetzen eines Passworts wird mit `409` abgelehnt.
+
+### Passkeys {#passkeys}
+
+Personen mit Passwort können auch Passkeys einrichten. Ein Passkey ist an die Domain der Instanz gebunden (die Relying Party). OEA übernimmt sie aus der öffentlichen URL (`OEA_WEB_PUBLIC_URL`, siehe [Installation](../setup/installation)); ohne öffentliche URL sind Passkeys nicht verfügbar, und ihre Operationen antworten mit `409`. Setze sie nur ausdrücklich, wenn das Webportal unter mehreren Origins läuft:
+
+```bash
+# Relying-Party-ID: der Host der öffentlichen URL oder eine übergeordnete Domain jedes Origins
+OEA_AUTH_PASSKEY_RPID=example.org
+# erlaubte Origins, durch Komma getrennt (Standard: die öffentliche URL ohne Pfad)
+OEA_AUTH_PASSKEY_ORIGINS=https://oea.example.org,https://ea.example.org
+# Name, den der Authenticator anzeigt (Standard OEA)
+OEA_AUTH_PASSKEY_RPNAME=OEA
+```
+
+- Eine Relying-Party-ID, die nicht jeden Origin abdeckt, verhindert den Start des Backends.
+- Ein späterer Wechsel der Domain macht alle eingerichteten Passkeys unbrauchbar; die Personen melden sich dann mit Passwort und Authenticator-App an, oder eine Administratorin bzw. ein Administrator setzt ihre zweiten Faktoren zurück.
 
 ### Mindestwerte der Passwort-Richtlinie {#password-policy-floors}
 

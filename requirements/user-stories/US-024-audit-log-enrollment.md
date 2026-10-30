@@ -4,7 +4,7 @@
 **Story Points**: 2
 **Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-021-person-totp`, commit 672fdae (#139) – audit events `auth.factor-added` and `auth.factor-enrollment-failed` for TOTP; passwords through `person.password-set` and `auth.password-changed`
+**Implementation**: OpenSpec changes `us-021-person-totp`, commit 672fdae (#139), and `us-022-passkeys` (passkeys) – audit events `auth.factor-added` and `auth.factor-enrollment-failed` for TOTP; passwords through `person.password-set` and `auth.password-changed`
 
 ## Story
 
@@ -65,6 +65,8 @@ As an operator, I want every enrollment process to be recorded in the audit log,
 - Blocks: none
 
 ## Notes
+
+Passkeys added by OpenSpec change `us-022-passkeys`: `auth.factor-added` with `type: passkey`, and `auth.factor-enrollment-failed` with reason `verification-failed` or `enrollment-expired`; a cancellation in the browser never reaches the server and is not audited.
 
 Realigned by OpenSpec change `us-021-person-totp`: a confirmed TOTP enrollment is `auth.factor-added`, a failed confirmation `auth.factor-enrollment-failed` with reason `invalid-code` or `enrollment-expired`; password "enrollments" were already audited. AC3 (invalid enrollment token) does not apply, because there are no enrollment tokens. Passkey enrollments follow with S5 change 4 and use the same events.
 

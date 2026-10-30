@@ -4,7 +4,7 @@ title: Set up an additional authentication method for a logged-in person
 type: functional
 priority: should
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-25
 last_updated: 2026-10-30
 author: requirements-engineer
@@ -123,6 +123,7 @@ Requires a valid session (UC-01 Basic Flow or A1–A5 successful). No enrollment
 
 ## Implementation Notes
 
+- AC2 realized by OpenSpec change `us-022-passkeys`: a logged-in person registers further passkeys in the profile.
 - Realized for TOTP by OpenSpec change `us-021-person-totp` (AC1, AC3, AC4; AC5 through the existing CSRF filter): the same enrollment operations as at the first login, the list of own second factors on the profile page. AC2 (second passkey) follows with S5 change 4.
 - Profile/security settings page: authenticated area, same structure as the enrollment page, but without a token URL
 - CSRF: SameSite=Strict on the session cookie is sufficient for browser protection; an additional CSRF token on forms is defense in depth
@@ -145,3 +146,4 @@ Derived from UC-03 Alternative A3. Prioritized as `should` instead of `must` bec
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft from UC-03 |
 | 0.2.0 | 2026-10-30 | requirements-engineer | Implementation note (change `us-021-person-totp`) |
+| 0.3.0 | 2026-10-30 | requirements-engineer | Implementation note (change `us-022-passkeys`) |

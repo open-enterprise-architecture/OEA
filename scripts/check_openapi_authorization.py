@@ -36,7 +36,8 @@ from pathlib import Path
 # Operations allowed to be called without an authenticated principal (ADR-032 §8, L1).
 # Extending this list is a security decision and needs a review.
 # Public operations that are throttled and therefore declare the 429 response (REQ-168).
-THROTTLED_PUBLIC = {"completeSetup", "localLogin", "localLoginTotp"}
+THROTTLED_PUBLIC = {"completeSetup", "localLogin", "localLoginTotp", "startLocalLoginPasskey", "localLoginPasskey",
+                    "startPasskeyLogin", "passkeyLogin"}
 
 PUBLIC_ALLOWLIST = {
     "issueClientCredentialsToken",
@@ -46,6 +47,10 @@ PUBLIC_ALLOWLIST = {
     "completeSetup",  # US-013: effective only with the setup token from the container (REQ-017)
     "localLogin",  # US-013 AC2: login endpoint (REQ-163), throttled (REQ-168), origin-checked (REQ-187)
     "localLoginTotp",  # REQ-171: second login step with a login transaction
+    "startLocalLoginPasskey",  # us-022-passkeys: passkey challenge for the second step of a login transaction
+    "localLoginPasskey",  # us-022-passkeys: second login step with a passkey
+    "startPasskeyLogin",  # REQ-009: challenge for the passwordless login (L1 login endpoint)
+    "passkeyLogin",  # REQ-009: passwordless login with a passkey, throttled per source address (REQ-168)
     "listLoginProviders",  # US-001: provider names for the login page, no client settings
     "startOidcLogin",  # US-001: redirect to the IdP (L1 login endpoint), state bound to the browser
     "completeOidcLogin",  # US-001: OIDC callback (L1), single-use state, PKCE and ID token validation

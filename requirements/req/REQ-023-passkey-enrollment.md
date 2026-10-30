@@ -4,9 +4,9 @@ title: Passkey enrollment (WebAuthn credential registration)
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-25
-last_updated: 2026-06-25
+last_updated: 2026-10-30
 author: requirements-engineer
 references:
   use_cases:
@@ -121,6 +121,7 @@ Triggered as a required action during the first login (UC-03 Alternative A1): af
 
 ## Implementation Notes
 
+- Realized by OpenSpec change `us-022-passkeys` without enrollment tokens: registration in the running session with re-authentication, discoverable credential, user verification and attestation `none`; challenge, origin, relying party ID and signature are verified before the passkey is stored (AC4); several passkeys per person (AC3); a cancellation stores nothing (AC2).
 - Attestation: `none` as default (no attestation CA operation needed, better data protection); `direct` or `indirect` configurable if needed
 - Algorithms: support at least ES256 (P-256) and RS256 (RSA-2048); order in `PublicKeyCredentialParameters` prefers ES256
 - Signature counter: store and check on every login attempt (replay protection, UC-01 A3)
@@ -130,7 +131,7 @@ Triggered as a required action during the first login (UC-03 Alternative A1): af
 ## Implementation
 
 - ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
-- Implemented by: –
+- Implemented by: OpenSpec change `us-022-passkeys`
 - Tests: –
 - Verification status: not-verified
 
@@ -143,3 +144,4 @@ Derived from UC-03 Alternative A1 and Exception Flow E3. That multiple passkeys 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft from UC-03 |
+| 0.2.0 | 2026-10-30 | requirements-engineer | Implementation note (change `us-022-passkeys`) |

@@ -2190,6 +2190,59 @@ components:
             loginTransaction:
               type: string
               description: "Only with `second-factor-required`: opaque, valid 5 minutes"
+            secondFactors:
+              type: array
+              items: { type: string, enum: [totp, passkey] }
+              description: "Only with `second-factor-required`: the methods that complete the login transaction"
+
+    WebAuthnJson:
+      type: object
+      additionalProperties: true
+      description: |
+        An object of the WebAuthn Level 3 JSON encoding (binary values as Base64URL), passed
+        to or taken from the browser unchanged, for example
+        `PublicKeyCredentialCreationOptionsJSON` or `RegistrationResponseJSON` (ADR-048).
+
+    PasskeyRegistrationStart:
+      type: object
+      properties:
+        label: { type: string, maxLength: 64 }
+
+    PasskeyRegistration:
+      type: object
+      required: [registrationId, options, expiresAt]
+      properties:
+        registrationId: { type: string, format: uuid }
+        options:        { $ref: '#/components/schemas/WebAuthnJson' }
+        expiresAt:      { type: string, format: date-time }
+
+    PasskeyChallenge:
+      type: object
+      required: [challengeId, options]
+      properties:
+        challengeId: { type: string, format: uuid }
+        options:     { $ref: '#/components/schemas/WebAuthnJson' }
+
+    PasskeyLoginRequest:
+      type: object
+      required: [challengeId, credential]
+      properties:
+        challengeId: { type: string, format: uuid }
+        credential:  { $ref: '#/components/schemas/WebAuthnJson' }
+
+    LocalLoginPasskeyOptionsRequest:
+      type: object
+      required: [loginTransaction]
+      properties:
+        loginTransaction: { type: string, maxLength: 128 }
+
+    LocalLoginPasskeyRequest:
+      type: object
+      required: [loginTransaction, challengeId, credential]
+      properties:
+        loginTransaction: { type: string, maxLength: 128 }
+        challengeId:      { type: string, format: uuid }
+        credential:       { $ref: '#/components/schemas/WebAuthnJson' }
 
     TotpEnrollmentRequest:
       type: object
@@ -2792,8 +2845,9 @@ paths:
         `active` with an unexpired password. The first login of an invited person makes it
         `active`. A person without an active TOTP credential gets a session that is not
         second-factor-verified (SoD-8); a person with one gets `401` with problem type
-        `urn:oea:problem:second-factor-required` and a `loginTransaction`, as below, and is
-        activated only after the TOTP step (REQ-010). A temporary or expired password yields
+        `urn:oea:problem:second-factor-required`, a `loginTransaction` and `secondFactors`
+        (`totp`, `passkey`), as below, and is activated only after the second step (REQ-010,
+        us-022-passkeys). A temporary or expired password yields
         `requiredAction: change-password` (REQ-173 AC2), after the TOTP step if there is one
         (REQ-031 AC8).
 
@@ -2867,6 +2921,156 @@ paths:
               schema: { $ref: '#/components/schemas/LoginProblem' }
         '403':
           description: Origin not allowed (`csrf-rejected`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/local/login/passkey/options:
+    post:
+      operationId: startLocalLoginPasskey
+      summary: Passkey challenge for the second step of a local login (us-022-passkeys)
+      description: |
+        For a login transaction of a person whose `secondFactors` contain `passkey`: request
+        options limited to the passkeys of that person, valid 5 minutes. An unknown, expired or
+        invalidated transaction is answered with `401` (`invalid-credentials`).
+      tags: [Identity]
+      security: []
+      x-oea-authorization: {"access": "public"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LocalLoginPasskeyOptionsRequest' }
+      responses:
+        '200':
+          description: Request options
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasskeyChallenge' }
+        '401':
+          description: Unknown or invalid login transaction (`invalid-credentials`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/LoginProblem' }
+        '403':
+          description: Origin not allowed (`csrf-rejected`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/local/login/passkey:
+    post:
+      operationId: localLoginPasskey
+      summary: Second step of a local login with a passkey (us-022-passkeys)
+      description: |
+        Completes the login transaction of a person with one of the person's passkeys, with user
+        verification. The session is second-factor-verified; audited as `auth.login` with method
+        `password-passkey`. A failure counts like a wrong code: five invalidate the transaction.
+      tags: [Identity]
+      security: []
+      x-oea-authorization: {"access": "public"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LocalLoginPasskeyRequest' }
+      responses:
+        '201':
+          description: Session created with a second factor; the cookie is set
+          headers:
+            Set-Cookie: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResult' }
+        '401':
+          description: Verification failed, or the transaction is unknown, expired or invalidated (`invalid-credentials`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/LoginProblem' }
+        '403':
+          description: Origin not allowed (`csrf-rejected`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/passkey/options:
+    post:
+      operationId: startPasskeyLogin
+      summary: Challenge for a passwordless login with a passkey (US-009, REQ-009)
+      description: |
+        Request options without `allowCredentials`, so that the browser offers the discoverable
+        passkeys of the device; valid 5 minutes. `409` (problem type
+        `urn:oea:problem:passkeys-unavailable`) if the instance has no relying party (no
+        `oea.web.public-url` and no `oea.auth.passkey.*`).
+      tags: [Identity]
+      security: []
+      x-oea-authorization: {"access": "public"}
+      responses:
+        '200':
+          description: Request options
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasskeyChallenge' }
+        '403':
+          description: Origin not allowed (`csrf-rejected`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: Passkeys unavailable (`passkeys-unavailable`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/passkey/login:
+    post:
+      operationId: passkeyLogin
+      summary: Passwordless login with a passkey (US-009, REQ-009)
+      description: |
+        Verifies the assertion against the challenge, the relying party and the stored passkey,
+        with user verification required. Only while password login of persons is possible, for
+        persons in status `invited` or `active`; an invited person becomes `active`. The session
+        is second-factor-verified (SoD-8, owner decision 2026-10-30); a temporary or expired
+        password still yields `requiredAction: change-password`. Every failure – unknown
+        passkey, wrong signature, missing user verification, signature counter going backwards,
+        person not allowed – gives the same `401 urn:oea:problem:invalid-credentials`, is
+        audited as `auth.login-failed` and counts for the throttling per source address
+        (REQ-168 AC3). Audited as `auth.login` with method `passkey`.
+      tags: [Identity]
+      security: []
+      x-oea-authorization: {"access": "public"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PasskeyLoginRequest' }
+      responses:
+        '201':
+          description: Session created; the cookie `__Host-OEA_SESSION` is set
+          headers:
+            Set-Cookie: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResult' }
+        '401':
+          description: Login failed (`invalid-credentials`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/LoginProblem' }
+        '403':
+          description: Origin not allowed (`csrf-rejected`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: Passkeys unavailable (`passkeys-unavailable`)
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
@@ -3088,6 +3292,80 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /me/second-factors/passkey:
+    post:
+      operationId: startPasskeyRegistration
+      summary: Start the registration of a passkey (US-022, REQ-023)
+      description: |
+        For persons with a local password; other principals get `403`. Requires an
+        authentication within the last 5 minutes (REQ-172), otherwise `401` with problem type
+        `urn:oea:problem:reauthentication-required`. Returns creation options for a
+        discoverable credential with user verification and attestation `none`; the
+        registration expires after 10 minutes. `409` (`passkeys-unavailable`) without a relying
+        party.
+      tags: [Identity]
+      x-oea-authorization: {"access": "authenticated"}
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PasskeyRegistrationStart' }
+      responses:
+        '201':
+          description: Registration started
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasskeyRegistration' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Passkeys unavailable (`passkeys-unavailable`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /me/second-factors/passkey/{registrationId}/confirm:
+    post:
+      operationId: confirmPasskeyRegistration
+      summary: Confirm a passkey registration with the response of the authenticator (US-022)
+      description: |
+        Verifies challenge, origin, relying party ID, user verification and signature; stores the
+        passkey, marks the session as confirmed with a second factor and writes
+        `auth.factor-added`. A failed verification (`400`, problem type
+        `urn:oea:problem:invalid-passkey`) uses up the registration; an unknown, foreign or
+        expired registration is answered with `404`. Both failures are audited as
+        `auth.factor-enrollment-failed`.
+      tags: [Identity]
+      x-oea-authorization: {"access": "authenticated"}
+      parameters:
+        - name: registrationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WebAuthnJson' }
+      responses:
+        '200':
+          description: Passkey active; the session is confirmed with it
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SecondFactor' }
+        '400':
+          description: Verification failed (`invalid-passkey`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /me/second-factors/totp:

@@ -4,8 +4,8 @@ import { useRouter } from 'vue-router'
 import { listOwnSecondFactors, removeOwnSecondFactor, type SecondFactor } from '../api/session'
 import { endSession, refreshSession, session } from '../session/store'
 
-// SCR-005 Profile and security settings: GET /me (REQ-003, ADR-032 §7) and the own second factors
-// with removal (US-029 AC3; design D7 of us-021-person-totp)
+// SCR-005 Profile and security settings: GET /me (REQ-003, ADR-032 §7) and the own second factors –
+// authenticator apps and passkeys – with removal (US-029 AC3; design D7 of us-021-person-totp)
 const props = defineProps<{ fetchFn?: typeof fetch }>()
 const router = useRouter()
 
@@ -23,6 +23,10 @@ function roleLabel(grant: RoleGrant): string {
 const factors = ref<SecondFactor[]>([])
 const factorFailure = ref<string>()
 const reauthenticate = ref(false)
+
+function typeName(factor: SecondFactor): string {
+  return factor.type === 'passkey' ? 'Passkey' : 'Authenticator app'
+}
 
 function date(value: string | null | undefined): string {
   return value ? new Date(value).toLocaleDateString() : 'never'
@@ -48,7 +52,7 @@ async function remove(factor: SecondFactor) {
     } else if (outcome.rejection.problemType === 'last-second-factor') {
       factorFailure.value = 'This is your last authenticator app. Set up another one before you remove it.'
     } else {
-      factorFailure.value = 'The authenticator app could not be removed.'
+      factorFailure.value = 'The second factor could not be removed.'
     }
   } catch {
     factorFailure.value = 'The backend is not reachable.'
@@ -110,23 +114,23 @@ async function logOut() {
       />
 
       <section class="flex flex-col gap-3">
-        <h2 class="text-lg font-semibold text-highlighted">Authenticator apps</h2>
+        <h2 class="text-lg font-semibold text-highlighted">Second factors</h2>
         <UAlert
           v-if="reauthenticate"
           data-testid="reauthentication-required"
           color="warning"
           variant="subtle"
           title="Log in again"
-          description="Removing an authenticator app needs a login within the last 5 minutes."
+          description="Removing a second factor needs a login within the last 5 minutes."
           :actions="[{ label: 'Log in', to: '/login' }]"
         />
         <UAlert v-if="factorFailure" data-testid="factor-failure" color="error" variant="subtle" :description="factorFailure" />
         <ul v-if="factors.length" data-testid="second-factors" class="flex flex-col divide-y divide-default">
           <li v-for="factor in factors" :key="factor.credentialId" class="flex items-center justify-between gap-4 py-2">
             <div>
-              <p data-testid="factor-label" class="font-medium">{{ factor.label ?? 'Authenticator app' }}</p>
+              <p data-testid="factor-label" class="font-medium">{{ factor.label ?? typeName(factor) }}</p>
               <p class="text-sm text-muted">
-                Added {{ date(factor.createdAt) }} · last used {{ date(factor.lastUsedAt) }}
+                {{ typeName(factor) }} · added {{ date(factor.createdAt) }} · last used {{ date(factor.lastUsedAt) }}
               </p>
             </div>
             <UButton
@@ -139,12 +143,12 @@ async function logOut() {
             />
           </li>
         </ul>
-        <p v-else data-testid="no-second-factor" class="text-muted">No authenticator app is set up.</p>
+        <p v-else data-testid="no-second-factor" class="text-muted">No second factor is set up.</p>
         <UButton
           data-testid="set-up-second-factor"
           to="/me/second-factor"
           variant="subtle"
-          :label="factors.length ? 'Add an authenticator app' : 'Set up a second factor'"
+          :label="factors.length ? 'Add a second factor' : 'Set up a second factor'"
           class="self-start"
         />
       </section>

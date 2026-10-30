@@ -1,6 +1,10 @@
 import type { components } from './generated/schema'
 
-type Problem = components['schemas']['Problem'] & { invalidFields?: string[]; loginTransaction?: string }
+type Problem = components['schemas']['Problem'] & {
+  invalidFields?: string[]
+  loginTransaction?: string
+  secondFactors?: string[]
+}
 
 /** A rejected request, reduced to what the pages need (RFC 9457 problem types of the contract). */
 export interface Rejection {
@@ -9,6 +13,7 @@ export interface Rejection {
   invalidFields: string[]
   retryAfterSeconds?: number
   loginTransaction?: string
+  secondFactors?: string[]
 }
 
 const PROBLEM_PREFIX = 'urn:oea:problem:'
@@ -48,5 +53,6 @@ export async function readRejection(response: Response): Promise<Rejection> {
     invalidFields: problem?.invalidFields ?? [],
     retryAfterSeconds: Number.isFinite(retryAfter) ? retryAfter : undefined,
     loginTransaction: problem?.loginTransaction,
+    secondFactors: problem?.secondFactors,
   }
 }

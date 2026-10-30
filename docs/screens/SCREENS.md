@@ -31,9 +31,9 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 |---|---|---|---|---|---|---|
 | SCR-001 | Login + Auto-SSO | CA+WP | UC-01 | must | `implemented` | [light](./SCR-001-light.png) / [dark](./SCR-001-dark.png) |
 | SCR-002 | Setup Wizard (initial setup) | CA | UC-02 | must | `legacy-mockup` | [setup-bootstrap](./setup-bootstrap-light.svg) / [dark](./setup-bootstrap-dark.svg) |
-| SCR-003 | Set up auth method (TOTP implemented; passkey follows with S5 change 4) | CA+WP | UC-03 | must | `implemented` | [light](./SCR-003-light.png) / [dark](./SCR-003-dark.png) · passkey mockup: [auth-passkey](./auth-passkey-light.svg) / [dark](./auth-passkey-dark.svg) |
+| SCR-003 | Set up auth method (passkey or authenticator app) | CA+WP | UC-03 | must | `implemented` | [light](./SCR-003-light.png) / [dark](./SCR-003-dark.png) |
 | SCR-004 | Change password (required after a temporary or expired password; password suggestion) | CA+WP | UC-03 | must | `implemented` | [light](./SCR-004-light.png) / [dark](./SCR-004-dark.png) |
-| SCR-005 | Profile and security settings (roles, authenticator apps) | CA+WP | UC-03 | must | `implemented` | [light](./SCR-005-light.png) / [dark](./SCR-005-dark.png) |
+| SCR-005 | Profile and security settings (roles, second factors) | CA+WP | UC-03 | must | `implemented` | [light](./SCR-005-light.png) / [dark](./SCR-005-dark.png) |
 
 ---
 
