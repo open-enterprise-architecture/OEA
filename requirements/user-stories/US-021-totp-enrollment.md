@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-021-person-totp` – TOTP enrollment of persons through `startTotpEnrollment` and `confirmTotpEnrollment`, enrollment offer after the password login, page SCR-003
+**Implementation**: OpenSpec change `us-021-person-totp`, commit 672fdae (#139) – TOTP enrollment of persons through `startTotpEnrollment` and `confirmTotpEnrollment`, enrollment offer after the password login, page SCR-003
 
 ## Story
 

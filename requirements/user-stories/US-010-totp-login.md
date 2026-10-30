@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-021-person-totp` – TOTP step of the password login of persons through `localLogin` and `localLoginTotp`
+**Implementation**: OpenSpec change `us-021-person-totp`, commit 672fdae (#139) – TOTP step of the password login of persons through `localLogin` and `localLoginTotp`
 
 ## Story
 

@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: in-progress
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-021-person-totp` – TOTP in the profile through the same enrollment operations (AC1), notice instead of an error (AC3), session required (AC4), list of own second factors on SCR-005
+**Implementation**: OpenSpec change `us-021-person-totp`, commit 672fdae (#139) – TOTP in the profile through the same enrollment operations (AC1), notice instead of an error (AC3), session required (AC4), list of own second factors on SCR-005
 
 ## Story
 
