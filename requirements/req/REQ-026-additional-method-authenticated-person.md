@@ -4,9 +4,9 @@ title: Set up an additional authentication method for a logged-in person
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-25
-last_updated: 2026-06-25
+last_updated: 2026-10-30
 author: requirements-engineer
 references:
   use_cases:
@@ -123,6 +123,7 @@ Requires a valid session (UC-01 Basic Flow or A1–A5 successful). No enrollment
 
 ## Implementation Notes
 
+- Realized for TOTP by OpenSpec change `us-021-person-totp` (AC1, AC3, AC4; AC5 through the existing CSRF filter): the same enrollment operations as at the first login, the list of own second factors on the profile page. AC2 (second passkey) follows with S5 change 4.
 - Profile/security settings page: authenticated area, same structure as the enrollment page, but without a token URL
 - CSRF: SameSite=Strict on the session cookie is sufficient for browser protection; an additional CSRF token on forms is defense in depth
 - The endpoint should be the same enrollment code path as token-based enrollment (only the authentication gate step differs) to avoid duplication
@@ -130,7 +131,7 @@ Requires a valid session (UC-01 Basic Flow or A1–A5 successful). No enrollment
 ## Implementation
 
 - ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
-- Implemented by: –
+- Implemented by: OpenSpec change `us-021-person-totp`
 - Tests: –
 - Verification status: not-verified
 
@@ -143,3 +144,4 @@ Derived from UC-03 Alternative A3. Prioritized as `should` instead of `must` bec
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft from UC-03 |
+| 0.2.0 | 2026-10-30 | requirements-engineer | Implementation note (change `us-021-person-totp`) |

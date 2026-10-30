@@ -86,7 +86,7 @@ The owner decided on 2026-10-30:
 - **Flyway `V12__person_totp.sql`:** `login_transactions.person_id` with exactly one owner.
 - **`api/openapi.yaml`:**
   - `startTotpEnrollment` and `confirmTotpEnrollment` for persons, `localLogin` and `localLoginTotp` for persons;
-  - new `listOwnSecondFactors`, `removeOwnSecondFactor`, `resetPersonSecondFactors`; schema `SecondFactorSummary`.
+  - new `listOwnSecondFactors`, `removeOwnSecondFactor`, `resetPersonSecondFactors`; schema `SecondFactor` with `lastUsedAt`.
 - **Data model:** `docs/data-model.puml` (`login_transactions`), `business-objects/local-credential.md` (several TOTP credentials, label default, factor reset).
 - **`frontend/`:** `SecondFactorPage.vue`, `LoginPage.vue`, `ProfilePage.vue`, `ChangePasswordPage.vue` (next step), `api/session.ts`; screen stories SCR-003 and SCR-005 and their images; `docs/screens/SCREENS.md`.
 - **Docs:** audit event catalog, manual (English and German).

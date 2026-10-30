@@ -100,7 +100,7 @@ OEA_AUTH_PERSONPASSWORD_TEMPORARYPASSWORDVALIDITY=PT72H
 
 - An administrator then sets an initial password per person (see [Identity providers and persons](./identity-providers#set-an-initial-password)); the person changes it at the first login.
 - Administrators can switch password login of persons off and on again with `personPasswordLogin` of the [password policy](./identity-providers#password-policy). It works only while your setting permits it and their switch is on; without your permission they cannot switch it on.
-- A person logged in with a password has no second factor yet, so roles with administrative permissions do not apply to them. Keep the local system admin account for administration until second factors for persons are available.
+- Roles with administrative permissions apply to a person only after a login with password and the code of an authenticator app (see [Set up a second factor](../usage/login#set-up-a-second-factor)); after a password login alone they do not apply.
 - While password login of persons is not possible, a password login of a person fails like a wrong password, and setting or resetting a password is refused with `409`.
 
 ### Floors of the password policy {#password-policy-floors}

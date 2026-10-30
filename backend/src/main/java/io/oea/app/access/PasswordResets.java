@@ -96,7 +96,8 @@ public class PasswordResets {
 			throw new AccessConflictException("The person has no password to reset.");
 		}
 		Instant now = this.clock.instant().truncatedTo(ChronoUnit.MICROS);
-		if (principal.type() != OeaPrincipal.Type.SYSTEM_ADMIN_ACCOUNT && holdsAdminClassPermission(personId, now)) {
+		if (principal.type() != OeaPrincipal.Type.SYSTEM_ADMIN_ACCOUNT
+				&& holdsAdminClassPermission(this.jdbc, personId, now)) {
 			this.denials.record(principal, "resetPersonPassword", "person", Long.toString(personId),
 					ADMIN_RESET_RESTRICTED);
 			throw new AdminResetRestrictedException();
@@ -128,9 +129,12 @@ public class PasswordResets {
 		return new Result(password, expiresAt);
 	}
 
-	/** A granted local role assignment that is not over contains an admin-class permission (REQ-031 AC9). */
-	private boolean holdsAdminClassPermission(long personId, Instant now) {
-		return Boolean.TRUE.equals(this.jdbc.queryForObject("""
+	/**
+	 * A granted local role assignment that is not over contains an admin-class permission
+	 * (REQ-031 AC9); shared with the factor reset (design D6 of us-021-person-totp).
+	 */
+	static boolean holdsAdminClassPermission(JdbcTemplate jdbc, long personId, Instant now) {
+		return Boolean.TRUE.equals(jdbc.queryForObject("""
 				SELECT EXISTS (SELECT 1 FROM role_assignments a
 				               JOIN role_permissions rp ON rp.role_id = a.role_id
 				               JOIN permissions p ON p.id = rp.permission_id
@@ -154,11 +158,14 @@ public class PasswordResets {
 		return revoked.size();
 	}
 
-	/** An administrator is reset by someone else than the system admin account (403, REQ-173 AC3). */
+	/**
+	 * The password or the second factors of an administrator are reset by someone else than the
+	 * system admin account (403, REQ-173 AC3).
+	 */
 	public static class AdminResetRestrictedException extends RuntimeException {
 
 		public AdminResetRestrictedException() {
-			super("Only the system admin account resets the password of an administrator.");
+			super("Only the system admin account resets the credentials of an administrator.");
 		}
 
 	}

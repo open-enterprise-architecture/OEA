@@ -9,11 +9,13 @@ import {
   type LoginOutcome,
   type LoginProvider,
 } from '../api/session'
+import { afterPasswordLogin } from '../session/secondFactorOffer'
 import { refreshSession } from '../session/store'
 
 // SCR-001 Login: through an identity provider (US-001), and locally for the system admin account
 // (US-013 AC2) and for persons with their e-mail address (US-011). A temporary password leads to
-// the password change first (REQ-173 AC2).
+// the password change first (REQ-173 AC2). A person without a second factor is offered the TOTP
+// enrollment afterwards (US-021; design D7 of us-021-person-totp).
 const props = defineProps<{ fetchFn?: typeof fetch; navigate?: (url: string) => void }>()
 const router = useRouter()
 const route = useRoute()
@@ -64,7 +66,14 @@ function failureMessage(outcome: Extract<LoginOutcome, { kind: 'rejected' }>, st
 async function handle(outcome: LoginOutcome, step: 'password' | 'code') {
   if (outcome.kind === 'success') {
     await refreshSession(props.fetchFn)
-    await router.push(outcome.result.requiredAction === 'change-password' ? '/me/password' : '/me')
+    const { result } = outcome
+    if (result.requiredAction === 'change-password') {
+      await router.push('/me/password')
+    } else if (result.principal.principalType === 'person' && !result.mfaSatisfied) {
+      await router.push(await afterPasswordLogin('/me', props.fetchFn))
+    } else {
+      await router.push('/me')
+    }
   } else if (outcome.kind === 'second-factor') {
     loginTransaction.value = outcome.loginTransaction
   } else {

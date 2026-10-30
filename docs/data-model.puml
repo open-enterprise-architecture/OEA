@@ -593,7 +593,9 @@ package "Sessions" #FFF3E0 {
     --
     + token_hash          : BYTEA         {NN} {UQ}
     .. SHA-256 of the opaque loginTransaction value returned after a correct password ..
-    + system_admin_account_id : UUID      {NN} {FK→system_admin_accounts.id}
+    + system_admin_account_id : UUID      {FK→system_admin_accounts.id}
+    + person_id           : BIGINT        {FK→persons.id}
+    .. CHECK: exactly one owner set (person with an active TOTP credential, REQ-010) ..
     + created_at          : TIMESTAMPTZ   {NN} DEFAULT NOW()
     + expires_at          : TIMESTAMPTZ   {NN}
     .. created_at + 5 min ..
@@ -1882,6 +1884,10 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   person administrator); partial index on revoked password credentials
 '   per person for the history check (no separate password_history table).
 '   Reason: US-027, US-030, REQ-028, REQ-031.
+' 2026-10-30 (us-021-person-totp):
+'   login_transactions.person_id with the check "exactly one owner", so that
+'   persons with an active TOTP credential complete the login with a code.
+'   Reason: US-010, REQ-010, REQ-030.
 ' ─────────────────────────────────────────────────────
 
 @enduml

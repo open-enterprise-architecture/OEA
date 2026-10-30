@@ -2220,6 +2220,18 @@ components:
         type:         { type: string, enum: [totp, passkey] }
         label:        { type: [string, 'null'] }
         createdAt:    { type: string, format: date-time }
+        lastUsedAt:   { type: [string, 'null'], format: date-time }
+
+    SecondFactorReset:
+      type: object
+      properties:
+        reason: { type: string, maxLength: 500, description: Recorded in the audit event }
+
+    SecondFactorResetResult:
+      type: object
+      required: [credentialsRevoked]
+      properties:
+        credentialsRevoked: { type: integer, description: Number of revoked second factors }
 
     Person:
       type: object
@@ -2778,8 +2790,12 @@ paths:
         person; it is accepted only while the operator has switched on password login of
         persons (`oea.auth.person-password.enabled`), for persons in status `invited` or
         `active` with an unexpired password. The first login of an invited person makes it
-        `active`. A person's session is never second-factor-verified (SoD-8); a temporary
-        password yields `requiredAction: change-password` (REQ-173 AC2).
+        `active`. A person without an active TOTP credential gets a session that is not
+        second-factor-verified (SoD-8); a person with one gets `401` with problem type
+        `urn:oea:problem:second-factor-required` and a `loginTransaction`, as below, and is
+        activated only after the TOTP step (REQ-010). A temporary or expired password yields
+        `requiredAction: change-password` (REQ-173 AC2), after the TOTP step if there is one
+        (REQ-031 AC8).
 
         For the system admin account: during the setup phase (ADR-042) a correct password
         creates the session. Afterwards the response is `401` with problem type
@@ -2821,10 +2837,13 @@ paths:
   /auth/local/login/totp:
     post:
       operationId: localLoginTotp
-      summary: Second step of the local login with a TOTP code (REQ-171)
+      summary: Second step of the local login with a TOTP code (REQ-171, REQ-010)
       description: |
-        Completes a login transaction with a TOTP code. Five wrong codes invalidate the
-        transaction (REQ-168 AC2); a code is never accepted twice (REQ-170).
+        Completes a login transaction of the system admin account or of a person with a TOTP
+        code of any active TOTP credential of the owner (REQ-030). The session is
+        second-factor-verified. Five wrong codes invalidate the transaction (REQ-168 AC2); a
+        code is never accepted twice (REQ-170). Audited as `auth.login` with method
+        `password-totp`.
       tags: [Identity]
       security: []
       x-oea-authorization: {"access": "public"}
@@ -3018,14 +3037,70 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
+  /me/second-factors:
+    get:
+      operationId: listOwnSecondFactors
+      summary: Active second factors of the current principal (US-029 AC3, REQ-030 AC3)
+      description: |
+        Type, label and times of every active second factor of the principal, ordered by
+        creation; never a secret. Empty for principals without local credentials.
+      tags: [Identity]
+      x-oea-authorization: {"access": "authenticated"}
+      responses:
+        '200':
+          description: Second factors
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SecondFactor' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /me/second-factors/{credentialId}:
+    delete:
+      operationId: removeOwnSecondFactor
+      summary: Remove an own second factor (owner decision 2026-10-30)
+      description: |
+        Requires an authentication within the last 5 minutes (REQ-172), otherwise `401`
+        with problem type `urn:oea:problem:reauthentication-required`. Revokes the
+        credential, ends every other session of the principal and is audited as
+        `auth.factor-removed`. The last TOTP credential of the system admin account cannot
+        be removed after the setup phase (`409`, problem type
+        `urn:oea:problem:last-second-factor`, ADR-042).
+      tags: [Identity]
+      x-oea-authorization: {"access": "authenticated"}
+      parameters:
+        - name: credentialId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Second factor removed
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Last TOTP credential of the system admin account (`last-second-factor`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /me/second-factors/totp:
     post:
       operationId: startTotpEnrollment
-      summary: Start the enrollment of a TOTP second factor (REQ-171, ADR-042)
+      summary: Start the enrollment of a TOTP second factor (REQ-171, REQ-022, ADR-042)
       description: |
-        Requires an authentication within the last 5 minutes (REQ-172), otherwise `401`
-        with problem type `urn:oea:problem:reauthentication-required`. Returns the secret
-        once; the credential stays `pending` until confirmed (10 minutes).
+        For the system admin account and for persons with a local password; other
+        principals get `403`. Requires an authentication within the last 5 minutes
+        (REQ-172), otherwise `401` with problem type
+        `urn:oea:problem:reauthentication-required`. Returns the secret once; the credential
+        stays `pending` until confirmed (10 minutes). Several active TOTP credentials per
+        owner are allowed (REQ-030); a blank label becomes `Authenticator app (YYYY-MM-DD)`.
       tags: [Identity]
       x-oea-authorization: {"access": "authenticated"}
       requestBody:
@@ -3052,7 +3127,10 @@ paths:
       summary: Confirm a TOTP enrollment with a valid code
       description: |
         Activates the credential and marks the current session as confirmed with a
-        second factor; an audit event `auth.factor-added` is written (REQ-172 AC3).
+        second factor; an audit event `auth.factor-added` is written (REQ-172 AC3). A wrong
+        code (`400`) keeps the enrollment pending; an unknown, foreign or expired enrollment
+        is answered with `404`. Both failures are audited as
+        `auth.factor-enrollment-failed` (REQ-025).
       tags: [Identity]
       x-oea-authorization: {"access": "authenticated"}
       parameters:
@@ -5065,6 +5143,49 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409':
           description: No local password, or password login of persons not possible (`conflict`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /admin/persons/{personId}/second-factors/reset:
+    post:
+      operationId: resetPersonSecondFactors
+      summary: Reset the second factors of a person (REQ-173 AC5)
+      description: |
+        Revokes every second factor of the person (reason `factor_reset`) and all sessions of
+        the person (reason `factor-reset`), in one transaction. The next password login
+        works with the password alone and offers a new enrollment. Audited as
+        `person.second-factors-reset`.
+        - Own person → `403` with `reason: self-administration` (SoD-1)
+        - Target holds an admin-class permission through a local role assignment and the
+          caller is not the system admin account → `403`, audited as `authz.denied`
+          (REQ-173 AC3)
+        - Person without an active second factor → `409`
+        - Service account → `422`
+      tags: [Access Control]
+      x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
+      parameters:
+        - $ref: '#/components/parameters/PersonIdParam'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SecondFactorReset' }
+      responses:
+        '200':
+          description: Second factors reset
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SecondFactorResetResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The person has no active second factor (`conflict`)
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }

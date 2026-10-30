@@ -6,6 +6,7 @@ import io.oea.app.access.AccessConflictException;
 import io.oea.app.access.InvalidAccessRequestException;
 import io.oea.app.access.InvalidStatusTransitionException;
 import io.oea.app.access.LastAdminPathException;
+import io.oea.app.access.LastSecondFactorException;
 import io.oea.app.access.PasswordAlreadySetException;
 import io.oea.app.access.PasswordPolicyUnsatisfiableException;
 import io.oea.app.access.PasswordPolicyViolationException;
@@ -174,6 +175,12 @@ public class ApiExceptionHandler {
 	ResponseEntity<ProblemDetail> lastAdminPath(LastAdminPathException ex) {
 		return ResponseEntity.status(HttpStatus.CONFLICT)
 			.body(problem(HttpStatus.CONFLICT, "last-admin-path", "Last administration path", ex.getMessage()));
+	}
+
+	@ExceptionHandler(LastSecondFactorException.class)
+	ResponseEntity<ProblemDetail> lastSecondFactor(LastSecondFactorException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+			.body(problem(HttpStatus.CONFLICT, "last-second-factor", "Last second factor", ex.getMessage()));
 	}
 
 	@ExceptionHandler(SelfAdministrationException.class)

@@ -2,11 +2,13 @@
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { changeOwnPassword, suggestPassword } from '../api/session'
+import { afterPasswordLogin } from '../session/secondFactorOffer'
 import { refreshSession, session } from '../session/store'
 
 // SCR-004 Change password (REQ-173 AC2, US-023): required after a login with a temporary or
 // expired password, available to every principal with a local password. The password policy
-// (US-027) is checked by the backend; a suggestion comes from the generator (US-026).
+// (US-027) is checked by the backend; a suggestion comes from the generator (US-026). After a
+// required change, a person without a second factor is offered the TOTP enrollment (US-021).
 const props = defineProps<{ fetchFn?: typeof fetch }>()
 const router = useRouter()
 
@@ -81,8 +83,10 @@ async function submit() {
   try {
     const outcome = await changeOwnPassword(form.currentPassword, form.newPassword, props.fetchFn)
     if (outcome.ok) {
+      const offer = required.value && session.me?.principal.principalType === 'person' && !session.me.mfaSatisfied
       await refreshSession(props.fetchFn)
-      await router.push({ path: '/me', query: { passwordChanged: '1' } })
+      const target = offer ? await afterPasswordLogin('/me?passwordChanged=1', props.fetchFn) : '/me?passwordChanged=1'
+      await router.push(target)
     } else if (outcome.rejection.status === 403) {
       failure.value = 'The current password is not correct.'
     } else if (outcome.rejection.problemType === 'password-policy-violation') {

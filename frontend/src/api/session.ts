@@ -6,6 +6,7 @@ export type LoginResult = components['schemas']['LoginResult']
 export type TotpEnrollment = components['schemas']['TotpEnrollment']
 export type LoginProvider = components['schemas']['LoginProvider']
 export type PasswordSuggestion = components['schemas']['PasswordSuggestion']
+export type SecondFactor = components['schemas']['SecondFactor']
 
 /** Outcome of a login step (US-013 AC2, ADR-042). */
 export type LoginOutcome =
@@ -143,6 +144,28 @@ export async function suggestPassword(fetchFn: typeof fetch = fetch): Promise<Ou
   const response = await post('/api/v1/me/password/suggestion', undefined, fetchFn)
   if (response.status === 200) {
     return { ok: true, value: ((await response.json()) as PasswordSuggestion).password }
+  }
+  return { ok: false, rejection: await readRejection(response) }
+}
+
+/** GET /me/second-factors: the active second factors of the principal (US-029 AC3); none on failure. */
+export async function listOwnSecondFactors(fetchFn: typeof fetch = fetch): Promise<SecondFactor[]> {
+  const response = await fetchFn('/api/v1/me/second-factors', {
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+  })
+  return response.ok ? ((await response.json()) as SecondFactor[]) : []
+}
+
+/** DELETE /me/second-factors/{credentialId}: needs a login within the last 5 minutes; ends the other sessions. */
+export async function removeOwnSecondFactor(credentialId: string, fetchFn: typeof fetch = fetch): Promise<Outcome<void>> {
+  const response = await fetchFn(`/api/v1/me/second-factors/${encodeURIComponent(credentialId)}`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+    headers: { Accept: 'application/problem+json', ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}) },
+  })
+  if (response.status === 204) {
+    return { ok: true, value: undefined }
   }
   return { ok: false, rejection: await readRejection(response) }
 }

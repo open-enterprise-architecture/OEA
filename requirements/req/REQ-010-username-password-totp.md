@@ -4,9 +4,9 @@ title: Username/password login with TOTP as second factor
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-24
-last_updated: 2026-06-24
+last_updated: 2026-10-30
 author: requirements-engineer
 references:
   use_cases:
@@ -101,13 +101,14 @@ Assumes that the person has previously set a password and registered a TOTP secr
 
 ## Implementation Notes
 
+- Realized by OpenSpec change `us-021-person-totp`: after the password step of a person with an active TOTP credential, `localLogin` answers `second-factor-required` with a login transaction, which `localLoginTotp` completes; the session is second-factor-verified, so privileged roles from local assignments become effective (SoD-8). A wrong code gives the same answer as an unknown transaction.
 - Store password hash (e.g., Argon2id) and TOTP secret separately from the business Person object (sensitive credential data)
 - Provide rate limiting for TOTP attempts (brute-force protection given only a 6-digit code)
 
 ## Implementation
 
 - ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
-- Implemented by: –
+- Implemented by: OpenSpec change `us-021-person-totp`
 - Tests: –
 - Verification status: not-verified
 
@@ -120,3 +121,4 @@ Derived from UC-01 Login, Alternative A4.
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-24 | requirements-engineer | Initial draft from UC-01 |
+| 0.2.0 | 2026-10-30 | requirements-engineer | Implementation note (change `us-021-person-totp`) |

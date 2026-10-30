@@ -87,6 +87,20 @@ curl "${auth[@]}" -d '{"reason": "forgotten"}' "$OEA/admin/persons/$PERSON/passw
 - Your own person, a person without a password and a service account are refused.
 - If the person holds a role with an administrative permission through a local role assignment, only the local system admin account may reset the password; anyone else is refused with `403`, recorded as `authz.denied`. Roles from IdP groups are not taken into account, because such persons log in through the identity provider.
 - The reset is recorded in the audit trail (`person.password-reset`) with the reason, never with the password.
+- If the person has an authenticator app, the next login still needs its code before the password change.
+
+## Reset second factors {#reset-second-factors}
+
+A person who lost every device with an authenticator app gets the second factors reset by you (you need `person:manage`):
+
+```bash
+curl "${auth[@]}" -d '{"reason": "phone lost"}' "$OEA/admin/persons/$PERSON/second-factors/reset"
+```
+
+- OEA revokes every second factor of the person and ends all sessions of the person; the answer names how many second factors were revoked.
+- The person then logs in with the password alone, and OEA offers to set up a new authenticator app.
+- Your own person, a person without a second factor and a service account are refused. As for the password reset, only the local system admin account resets a person who holds a role with an administrative permission through a local role assignment.
+- The reset is recorded in the audit trail (`person.second-factors-reset`) with the reason.
 
 ## Password policy {#password-policy}
 

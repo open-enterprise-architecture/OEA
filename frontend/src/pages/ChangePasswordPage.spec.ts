@@ -122,4 +122,15 @@ describe('ChangePasswordPage', () => {
     const sent = recorded.find((request) => request.path === '/api/v1/me/password')!
     expect(JSON.parse(sent.init!.body as string).newPassword).toBe('k#8Qz!r2Lw$9pXa4')
   })
+
+  it('offers the TOTP enrollment after the required change of a person without a second factor', async () => {
+    const fetchFn = routedFetch({
+      '/api/v1/me/password': { status: 204, body: null },
+      '/api/v1/me': { body: { ...ME, requiredAction: null } },
+      '/api/v1/me/second-factors': { body: [] },
+    })
+    const { wrapper, router } = await mountPage(fetchFn)
+    await fill(wrapper, 'initial-password-123', 'chosen-password-456')
+    expect(router.currentRoute.value.fullPath).toBe('/me/second-factor?offer=1')
+  })
 })

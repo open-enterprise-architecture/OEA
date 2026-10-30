@@ -4,9 +4,9 @@ title: TOTP secret enrollment (setting up an authenticator app)
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-25
-last_updated: 2026-06-25
+last_updated: 2026-10-30
 author: requirements-engineer
 references:
   use_cases:
@@ -124,6 +124,7 @@ Triggered as a required action during the first login (UC-03 Basic Flow): after 
 
 ## Implementation Notes
 
+- Realized by OpenSpec change `us-021-person-totp` without enrollment tokens: persons with a local password enroll in the running session with `startTotpEnrollment` and `confirmTotpEnrollment` (re-authentication within 5 minutes, REQ-172); a wrong code keeps the enrollment pending (AC3). The web portal offers the enrollment after the password login (owner decision 2026-10-30).
 - Key URI format: `otpauth://totp/{issuer}:{account}?secret={BASE32}&issuer={issuer}&algorithm=SHA1&digits=6&period=30` (standard for authenticator app compatibility)
 - Time tolerance: ±1 window (30 s) is the RFC 6238 recommendation; larger tolerance weakens security
 - Secret encryption: the symmetric key (AES-256) must be managed separately from the database (e.g., environment variable or KMS); no hard-coding
@@ -132,7 +133,7 @@ Triggered as a required action during the first login (UC-03 Basic Flow): after 
 ## Implementation
 
 - ADR(s): [ADR-006](../../adrs/ADR-006-auth-stack-choice.md)
-- Implemented by: –
+- Implemented by: OpenSpec change `us-021-person-totp`
 - Tests: –
 - Verification status: not-verified
 
@@ -145,3 +146,4 @@ Derived from UC-03 Basic Flow (steps 3–8) and Exception Flow E2.
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft from UC-03 |
+| 0.2.0 | 2026-10-30 | requirements-engineer | Implementation note (change `us-021-person-totp`) |

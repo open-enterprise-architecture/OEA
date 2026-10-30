@@ -85,4 +85,24 @@ describe('SecondFactorPage', () => {
     expect(wrapper.get('[data-testid="enrollment-failure"]').text()).toContain('The code is not valid')
     expect(wrapper.find('[data-testid="secret"]').exists()).toBe(true)
   })
+
+  it('sends the label of the authenticator', async () => {
+    const recorded: RecordedRequest[] = []
+    const wrapper = await mountPage(routedFetch({ '/api/v1/me/second-factors/totp': { status: 201, body: ENROLLMENT } }, recorded))
+    await wrapper.get('[data-testid="label"] input, input[data-testid="label"]').setValue('Backup phone')
+    await wrapper.get('[data-testid="start"]').trigger('click')
+    await flushPromises()
+    expect(JSON.parse(recorded[0]!.init!.body as string)).toEqual({ label: 'Backup phone' })
+  })
+
+  it('lets a person skip the offer after the login', async () => {
+    const router = testRouter()
+    await router.push('/me/second-factor?offer=1')
+    const wrapper = mount(SecondFactorPage, { props: { fetchFn: routedFetch({}) }, global: { plugins: [ui, router] } })
+    await flushPromises()
+    expect(wrapper.get('[data-testid="offer"]').text()).toContain('second factor')
+    await wrapper.get('[data-testid="skip"]').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe('/')
+  })
 })

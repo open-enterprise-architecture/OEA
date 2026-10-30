@@ -19,6 +19,7 @@ import io.oea.api.generated.model.SecondFactor;
 import io.oea.api.generated.model.TotpConfirmation;
 import io.oea.api.generated.model.TotpEnrollment;
 import io.oea.api.generated.model.TotpEnrollmentRequest;
+import io.oea.app.access.SecondFactors;
 import io.oea.app.login.LocalLogin;
 import io.oea.app.login.OidcLoginFailedException;
 import io.oea.app.login.OidcLoginFlow;
@@ -62,15 +63,18 @@ public class IdentityController implements IdentityApi {
 
 	private final io.oea.app.login.PasswordChange passwordChange;
 
+	private final SecondFactors secondFactors;
+
 	public IdentityController(Sessions sessions, PermissionResolver permissions, LocalLogin localLogin,
 			io.oea.app.login.TotpEnrollment enrollment, OidcLoginFlow oidcLogin,
-			io.oea.app.login.PasswordChange passwordChange) {
+			io.oea.app.login.PasswordChange passwordChange, SecondFactors secondFactors) {
 		this.sessions = sessions;
 		this.permissions = permissions;
 		this.localLogin = localLogin;
 		this.enrollment = enrollment;
 		this.oidcLogin = oidcLogin;
 		this.passwordChange = passwordChange;
+		this.secondFactors = secondFactors;
 	}
 
 	@Override
@@ -147,6 +151,23 @@ public class IdentityController implements IdentityApi {
 		var confirmed = this.enrollment.confirm(current().getPrincipal(), credentialId, confirmation.getCode());
 		return ResponseEntity.ok(new SecondFactor(confirmed.credentialId(), SecondFactor.TypeEnum.TOTP,
 				confirmed.createdAt().atOffset(ZoneOffset.UTC)).label(confirmed.label()));
+	}
+
+	@Override
+	public ResponseEntity<List<SecondFactor>> listOwnSecondFactors() {
+		return ResponseEntity.ok(this.secondFactors.list(current().getPrincipal())
+			.stream()
+			.map((factor) -> new SecondFactor(factor.credentialId(), SecondFactor.TypeEnum.fromValue(factor.type()),
+					factor.createdAt().atOffset(ZoneOffset.UTC))
+				.label(factor.label())
+				.lastUsedAt((factor.lastUsedAt() != null) ? factor.lastUsedAt().atOffset(ZoneOffset.UTC) : null))
+			.toList());
+	}
+
+	@Override
+	public ResponseEntity<Void> removeOwnSecondFactor(UUID credentialId) {
+		this.secondFactors.remove(current().getPrincipal(), credentialId);
+		return ResponseEntity.noContent().build();
 	}
 
 	private ResponseEntity<LoginResult> loggedIn(Sessions.NewSession session) {

@@ -2,8 +2,9 @@
 
 **ID**: US-021
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S5
+**Implementation**: OpenSpec change `us-021-person-totp` – TOTP enrollment of persons through `startTotpEnrollment` and `confirmTotpEnrollment`, enrollment offer after the password login, page SCR-003
 
 ## Story
 
@@ -64,5 +65,7 @@ As a person signing in for the first time with my initial password, I want to se
 - Blocks: US-024 (audit log can only write TOTP enrollment events once this path exists)
 
 ## Notes
+
+Realigned by OpenSpec change `us-021-person-totp` (owner decision 2026-10-30): there are no enrollment tokens (REQ-021 rejected); the person enrolls in the running session after the password login, where the web portal offers the enrollment and the person can skip it until change 5 makes it mandatory. The endpoints are `POST /me/second-factors/totp` and `/me/second-factors/totp/{credentialId}/confirm`, not `/auth/enrollment/totp/*`. The key URI uses the issuer `OEA` and the e-mail address as account name.
 
 Key URI format: `otpauth://totp/{instance name}:{email}?secret={BASE32}&issuer={instance name}&algorithm=SHA1&digits=6&period=30`. After verification, the secret is no longer held in plaintext on the server; the QR code is displayed only once (no re-display endpoint).

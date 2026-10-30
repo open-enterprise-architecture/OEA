@@ -18,6 +18,8 @@ import io.oea.api.generated.model.PersonWrite;
 import io.oea.api.generated.model.PrincipalRef;
 import io.oea.api.generated.model.RoleAssignment;
 import io.oea.api.generated.model.RoleAssignmentRevoke;
+import io.oea.api.generated.model.SecondFactorReset;
+import io.oea.api.generated.model.SecondFactorResetResult;
 import io.oea.api.generated.model.RoleAssignmentWrite;
 import io.oea.api.generated.model.RoleRef;
 import io.oea.app.access.AccessCatalog;
@@ -27,6 +29,7 @@ import io.oea.app.access.PersonLifecycle;
 import io.oea.app.access.PersonPasswords;
 import io.oea.app.access.Persons;
 import io.oea.app.access.RoleAssignments;
+import io.oea.app.access.SecondFactors;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.config.security.ContractAuthorizationRules;
 import io.oea.config.security.OeaAuthentication;
@@ -67,9 +70,11 @@ public class AccessControlController implements AccessControlApi {
 
 	private final PasswordResets resets;
 
+	private final SecondFactors secondFactors;
+
 	public AccessControlController(AccessCatalog catalog, ContractAuthorizationRules rules, Persons persons,
 			IdpGroupMappings mappings, RoleAssignments assignments, PersonLifecycle lifecycle,
-			PersonPasswords passwords, PasswordResets resets) {
+			PersonPasswords passwords, PasswordResets resets, SecondFactors secondFactors) {
 		this.catalog = catalog;
 		this.rules = rules;
 		this.persons = persons;
@@ -78,6 +83,14 @@ public class AccessControlController implements AccessControlApi {
 		this.lifecycle = lifecycle;
 		this.passwords = passwords;
 		this.resets = resets;
+		this.secondFactors = secondFactors;
+	}
+
+	@Override
+	public ResponseEntity<SecondFactorResetResult> resetPersonSecondFactors(Integer personId,
+			SecondFactorReset request) {
+		return ResponseEntity.ok(new SecondFactorResetResult(
+				this.secondFactors.reset(principal(), personId, (request != null) ? request.getReason() : null)));
 	}
 
 	@Override

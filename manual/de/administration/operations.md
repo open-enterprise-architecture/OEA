@@ -100,7 +100,7 @@ OEA_AUTH_PERSONPASSWORD_TEMPORARYPASSWORDVALIDITY=PT72H
 
 - Eine Administratorin oder ein Administrator setzt dann pro Person ein Initialpasswort (siehe [Identity-Provider und Personen](./identity-providers#set-an-initial-password)); die Person ändert es bei der ersten Anmeldung.
 - Administratorinnen und Administratoren können den Passwort-Login von Personen mit `personPasswordLogin` der [Passwort-Richtlinie](./identity-providers#password-policy) aus- und wieder einschalten. Er funktioniert nur, solange deine Einstellung ihn erlaubt und ihr Schalter an ist; ohne deine Erlaubnis können sie ihn nicht einschalten.
-- Wer sich mit einem Passwort anmeldet, hat noch keinen zweiten Faktor; Rollen mit administrativen Berechtigungen gelten dann nicht. Behalte für die Administration das lokale Systemadmin-Konto, bis zweite Faktoren für Personen verfügbar sind.
+- Rollen mit administrativen Berechtigungen gelten für eine Person erst nach einer Anmeldung mit Passwort und dem Code einer Authenticator-App (siehe [Zweiten Faktor einrichten](../usage/login#set-up-a-second-factor)); nach einer reinen Passwort-Anmeldung gelten sie nicht.
 - Solange der Passwort-Login von Personen nicht möglich ist, scheitert er wie ein falsches Passwort, und das Setzen oder Zurücksetzen eines Passworts wird mit `409` abgelehnt.
 
 ### Mindestwerte der Passwort-Richtlinie {#password-policy-floors}

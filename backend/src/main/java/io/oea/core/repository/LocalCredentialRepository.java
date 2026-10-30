@@ -10,4 +10,6 @@ public interface LocalCredentialRepository extends JpaRepository<LocalCredential
 	List<LocalCredential> findBySystemAdminAccountIdAndTypeAndStatus(UUID systemAdminAccountId, String type,
 			String status);
 
+	List<LocalCredential> findByPersonIdAndTypeAndStatus(Long personId, String type, String status);
+
 }
