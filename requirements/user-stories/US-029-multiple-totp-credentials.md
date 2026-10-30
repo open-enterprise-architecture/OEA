@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-021-person-totp` – several active TOTP credentials per person with labels, `GET /me/second-factors` (`listOwnSecondFactors`)
+**Implementation**: OpenSpec change `us-021-person-totp`, commit 672fdae (#139) – several active TOTP credentials per person with labels, `GET /me/second-factors` (`listOwnSecondFactors`)
 
 ## Story
 

@@ -4,7 +4,7 @@
 **Story Points**: 2
 **Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-021-person-totp` – audit events `auth.factor-added` and `auth.factor-enrollment-failed` for TOTP; passwords through `person.password-set` and `auth.password-changed`
+**Implementation**: OpenSpec change `us-021-person-totp`, commit 672fdae (#139) – audit events `auth.factor-added` and `auth.factor-enrollment-failed` for TOTP; passwords through `person.password-set` and `auth.password-changed`
 
 ## Story
 
