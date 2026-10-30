@@ -18,6 +18,8 @@ import io.oea.app.catalog.InvalidCatalogQueryException;
 import io.oea.app.entity.AtomicBatchFailedException;
 import io.oea.app.entity.BatchRejectedException;
 import io.oea.app.login.InvalidCredentialsException;
+import io.oea.app.login.InvalidPasskeyException;
+import io.oea.app.login.PasskeysUnavailableException;
 import io.oea.app.login.InvalidTotpCodeException;
 import io.oea.app.login.SecondFactorRequiredException;
 import io.oea.app.metamodel.InvalidPackageException;
@@ -87,8 +89,9 @@ public class ApiExceptionHandler {
 	@ExceptionHandler(SecondFactorRequiredException.class)
 	ResponseEntity<ProblemDetail> secondFactorForLogin(SecondFactorRequiredException ex) {
 		ProblemDetail problem = problem(HttpStatus.UNAUTHORIZED, "second-factor-required", "Second factor required",
-				"Enter the code of your authenticator app.");
+				"Confirm the login with your authenticator app or your passkey.");
 		problem.setProperty("loginTransaction", ex.getLoginTransaction());
+		problem.setProperty("secondFactors", ex.getMethods());
 		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
 	}
 
@@ -175,6 +178,18 @@ public class ApiExceptionHandler {
 	ResponseEntity<ProblemDetail> lastAdminPath(LastAdminPathException ex) {
 		return ResponseEntity.status(HttpStatus.CONFLICT)
 			.body(problem(HttpStatus.CONFLICT, "last-admin-path", "Last administration path", ex.getMessage()));
+	}
+
+	@ExceptionHandler(PasskeysUnavailableException.class)
+	ResponseEntity<ProblemDetail> passkeysUnavailable(PasskeysUnavailableException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+			.body(problem(HttpStatus.CONFLICT, "passkeys-unavailable", "Passkeys unavailable", ex.getMessage()));
+	}
+
+	@ExceptionHandler(InvalidPasskeyException.class)
+	ResponseEntity<ProblemDetail> invalidPasskey(InvalidPasskeyException ex) {
+		return ResponseEntity.badRequest()
+			.body(problem(HttpStatus.BAD_REQUEST, "invalid-passkey", "Invalid passkey", ex.getMessage()));
 	}
 
 	@ExceptionHandler(LastSecondFactorException.class)

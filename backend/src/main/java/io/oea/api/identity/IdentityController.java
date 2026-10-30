@@ -3,10 +3,16 @@ package io.oea.api.identity;
 import io.oea.api.generated.IdentityApi;
 import io.oea.api.generated.model.EffectivePermission;
 import io.oea.api.generated.model.EffectivePermissionGrantedByInner;
+import io.oea.api.generated.model.LocalLoginPasskeyOptionsRequest;
+import io.oea.api.generated.model.LocalLoginPasskeyRequest;
 import io.oea.api.generated.model.LocalLoginRequest;
 import io.oea.api.generated.model.LocalLoginTotpRequest;
 import io.oea.api.generated.model.LoginProvider;
 import io.oea.api.generated.model.LoginResult;
+import io.oea.api.generated.model.PasskeyChallenge;
+import io.oea.api.generated.model.PasskeyLoginRequest;
+import io.oea.api.generated.model.PasskeyRegistration;
+import io.oea.api.generated.model.PasskeyRegistrationStart;
 import io.oea.api.generated.model.PasswordChange;
 import io.oea.api.generated.model.PasswordSuggestion;
 import io.oea.api.generated.model.RequiredAction;
@@ -21,6 +27,7 @@ import io.oea.api.generated.model.TotpEnrollment;
 import io.oea.api.generated.model.TotpEnrollmentRequest;
 import io.oea.app.access.SecondFactors;
 import io.oea.app.login.LocalLogin;
+import io.oea.app.login.PasskeyLogin;
 import io.oea.app.login.OidcLoginFailedException;
 import io.oea.app.login.OidcLoginFlow;
 import io.oea.app.security.OeaPrincipal;
@@ -35,6 +42,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.net.URI;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -43,6 +51,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Local and OIDC login, second factor, current principal and logout (US-013 AC2, US-001,
@@ -65,9 +74,14 @@ public class IdentityController implements IdentityApi {
 
 	private final SecondFactors secondFactors;
 
+	private final io.oea.app.login.PasskeyRegistration passkeyRegistration;
+
+	private final PasskeyLogin passkeyLogin;
+
 	public IdentityController(Sessions sessions, PermissionResolver permissions, LocalLogin localLogin,
 			io.oea.app.login.TotpEnrollment enrollment, OidcLoginFlow oidcLogin,
-			io.oea.app.login.PasswordChange passwordChange, SecondFactors secondFactors) {
+			io.oea.app.login.PasswordChange passwordChange, SecondFactors secondFactors,
+			io.oea.app.login.PasskeyRegistration passkeyRegistration, PasskeyLogin passkeyLogin) {
 		this.sessions = sessions;
 		this.permissions = permissions;
 		this.localLogin = localLogin;
@@ -75,6 +89,8 @@ public class IdentityController implements IdentityApi {
 		this.oidcLogin = oidcLogin;
 		this.passwordChange = passwordChange;
 		this.secondFactors = secondFactors;
+		this.passkeyRegistration = passkeyRegistration;
+		this.passkeyLogin = passkeyLogin;
 	}
 
 	@Override
@@ -135,6 +151,50 @@ public class IdentityController implements IdentityApi {
 	@Override
 	public ResponseEntity<LoginResult> localLoginTotp(LocalLoginTotpRequest request) {
 		return loggedIn(this.localLogin.loginWithTotp(request.getLoginTransaction(), request.getCode(), client()));
+	}
+
+	@Override
+	public ResponseEntity<PasskeyChallenge> startLocalLoginPasskey(LocalLoginPasskeyOptionsRequest request) {
+		PasskeyLogin.Options options = this.localLogin.passkeyOptions(request.getLoginTransaction());
+		return ResponseEntity.ok(new PasskeyChallenge(options.challengeId(), options.options()));
+	}
+
+	@Override
+	public ResponseEntity<LoginResult> localLoginPasskey(LocalLoginPasskeyRequest request) {
+		return loggedIn(this.localLogin.loginWithPasskey(request.getLoginTransaction(), request.getChallengeId(),
+				json(request.getCredential()), client()));
+	}
+
+	@Override
+	public ResponseEntity<PasskeyChallenge> startPasskeyLogin() {
+		PasskeyLogin.Options options = this.passkeyLogin.start();
+		return ResponseEntity.ok(new PasskeyChallenge(options.challengeId(), options.options()));
+	}
+
+	@Override
+	public ResponseEntity<LoginResult> passkeyLogin(PasskeyLoginRequest request) {
+		return loggedIn(this.passkeyLogin.login(request.getChallengeId(), json(request.getCredential()), client()));
+	}
+
+	@Override
+	public ResponseEntity<PasskeyRegistration> startPasskeyRegistration(PasskeyRegistrationStart request) {
+		var started = this.passkeyRegistration.start(current().getPrincipal(),
+				(request != null) ? request.getLabel() : null);
+		return ResponseEntity.status(HttpStatus.CREATED)
+			.body(new PasskeyRegistration(started.registrationId(), started.options(),
+					started.expiresAt().atOffset(ZoneOffset.UTC)));
+	}
+
+	@Override
+	public ResponseEntity<SecondFactor> confirmPasskeyRegistration(UUID registrationId, Map<String, Object> response) {
+		var registered = this.passkeyRegistration.confirm(current().getPrincipal(), registrationId, json(response));
+		return ResponseEntity.ok(new SecondFactor(registered.credentialId(), SecondFactor.TypeEnum.PASSKEY,
+				registered.createdAt().atOffset(ZoneOffset.UTC)).label(registered.label()));
+	}
+
+	/** A WebAuthn JSON object as the text WebAuthn4J parses (ADR-048). */
+	private static String json(Map<String, Object> value) {
+		return JsonMapper.shared().writeValueAsString(value);
 	}
 
 	@Override

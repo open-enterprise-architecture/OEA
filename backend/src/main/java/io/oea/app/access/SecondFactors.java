@@ -61,8 +61,9 @@ public class SecondFactors {
 	@Transactional(readOnly = true)
 	public List<Factor> list(OeaPrincipal principal) {
 		return this.jdbc.query("""
-				SELECT c.id, c.type, t.label, c.created_at, c.last_used_at FROM local_credentials c
+				SELECT c.id, c.type, COALESCE(t.label, p.label), c.created_at, c.last_used_at FROM local_credentials c
 				LEFT JOIN totp_credentials t ON t.credential_id = c.id
+				LEFT JOIN passkey_credentials p ON p.credential_id = c.id
 				WHERE (c.person_id = ? OR c.system_admin_account_id = ?) AND c.status = 'active'
 				  AND c.type IN """ + SECOND_FACTOR_TYPES + " ORDER BY c.created_at, c.id", (rs, n) -> {
 			Timestamp used = rs.getTimestamp(5);

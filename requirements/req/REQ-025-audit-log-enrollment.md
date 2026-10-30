@@ -4,7 +4,7 @@ title: Audit log entry for every enrollment process
 type: compliance
 priority: must
 status: proposed
-version: 0.3.0
+version: 0.4.0
 created: 2026-06-25
 last_updated: 2026-10-30
 author: requirements-engineer
@@ -101,6 +101,7 @@ Concerns all enrollment paths from UC-03: TOTP (REQ-022), passkey (REQ-023), pas
 
 ## Implementation Notes
 
+- Passkeys added by OpenSpec change `us-022-passkeys`: `auth.factor-added` with `type: passkey` (AC1) and `auth.factor-enrollment-failed` with reason `verification-failed` (AC2); no public key in any event (AC3).
 - Realized for TOTP by OpenSpec change `us-021-person-totp`: `auth.factor-added` (AC1) and `auth.factor-enrollment-failed` with reason `invalid-code` or `enrollment-expired` (AC2); no secret or code in any event (AC3). AC4 does not apply without required-action enrollment states; passkeys follow with S5 change 4.
 - The audit log schema should be consistent with REQ-005 (login audit): same fields, same formats
 - Method type as an enum value, not free text (avoids typos in log analysis)
@@ -124,3 +125,4 @@ Derived from UC-03 postconditions (audit log entry) and analogous to REQ-005 (au
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft from UC-03 |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-14: AC4 no longer references the rejected enrollment token (REQ-021); replaced by invalid required-action state |
 | 0.3.0 | 2026-10-30 | requirements-engineer | Implementation note (change `us-021-person-totp`) |
+| 0.4.0 | 2026-10-30 | requirements-engineer | Implementation note (change `us-022-passkeys`) |

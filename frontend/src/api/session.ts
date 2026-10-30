@@ -7,11 +7,16 @@ export type TotpEnrollment = components['schemas']['TotpEnrollment']
 export type LoginProvider = components['schemas']['LoginProvider']
 export type PasswordSuggestion = components['schemas']['PasswordSuggestion']
 export type SecondFactor = components['schemas']['SecondFactor']
+export type PasskeyChallenge = components['schemas']['PasskeyChallenge']
+export type PasskeyRegistration = components['schemas']['PasskeyRegistration']
+
+/** Second-factor methods of a login transaction (design D5 of us-022-passkeys). */
+export type SecondFactorMethod = 'totp' | 'passkey'
 
 /** Outcome of a login step (US-013 AC2, ADR-042). */
 export type LoginOutcome =
   | { kind: 'success'; result: LoginResult }
-  | { kind: 'second-factor'; loginTransaction: string }
+  | { kind: 'second-factor'; loginTransaction: string; methods: SecondFactorMethod[] }
   | { kind: 'rejected'; rejection: Rejection }
 
 export type Outcome<T> = { ok: true; value: T } | { ok: false; rejection: Rejection }
@@ -46,7 +51,8 @@ async function loginOutcome(response: Response): Promise<LoginOutcome> {
   }
   const rejection = await readRejection(response)
   if (rejection.problemType === 'second-factor-required' && rejection.loginTransaction) {
-    return { kind: 'second-factor', loginTransaction: rejection.loginTransaction }
+    const methods = (rejection.secondFactors ?? ['totp']) as SecondFactorMethod[]
+    return { kind: 'second-factor', loginTransaction: rejection.loginTransaction, methods }
   }
   return { kind: 'rejected', rejection }
 }
@@ -168,4 +174,57 @@ export async function removeOwnSecondFactor(credentialId: string, fetchFn: typeo
     return { ok: true, value: undefined }
   }
   return { ok: false, rejection: await readRejection(response) }
+}
+
+/** POST /me/second-factors/passkey: creation options for the browser (US-022). */
+export async function startPasskeyRegistration(
+  label: string | undefined,
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<PasskeyRegistration>> {
+  const response = await post('/api/v1/me/second-factors/passkey', label ? { label } : {}, fetchFn)
+  if (response.status === 201) {
+    return { ok: true, value: (await response.json()) as PasskeyRegistration }
+  }
+  return { ok: false, rejection: await readRejection(response) }
+}
+
+/** POST /me/second-factors/passkey/{registrationId}/confirm: the response of the authenticator. */
+export async function confirmPasskeyRegistration(
+  registrationId: string,
+  response: unknown,
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<SecondFactor>> {
+  const answer = await post(`/api/v1/me/second-factors/passkey/${encodeURIComponent(registrationId)}/confirm`, response, fetchFn)
+  if (answer.ok) {
+    return { ok: true, value: (await answer.json()) as SecondFactor }
+  }
+  return { ok: false, rejection: await readRejection(answer) }
+}
+
+/** POST /auth/passkey/options or /auth/local/login/passkey/options: request options (US-009, design D5). */
+export async function passkeyChallenge(
+  loginTransaction: string | undefined,
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<PasskeyChallenge>> {
+  const response = loginTransaction
+    ? await post('/api/v1/auth/local/login/passkey/options', { loginTransaction }, fetchFn)
+    : await post('/api/v1/auth/passkey/options', undefined, fetchFn)
+  if (response.ok) {
+    return { ok: true, value: (await response.json()) as PasskeyChallenge }
+  }
+  return { ok: false, rejection: await readRejection(response) }
+}
+
+/** POST /auth/passkey/login or /auth/local/login/passkey: the assertion of the authenticator. */
+export async function loginWithPasskeyAssertion(
+  challengeId: string,
+  credential: unknown,
+  loginTransaction: string | undefined,
+  fetchFn: typeof fetch = fetch,
+): Promise<LoginOutcome> {
+  return loginOutcome(
+    loginTransaction
+      ? await post('/api/v1/auth/local/login/passkey', { loginTransaction, challengeId, credential }, fetchFn)
+      : await post('/api/v1/auth/passkey/login', { challengeId, credential }, fetchFn),
+  )
 }

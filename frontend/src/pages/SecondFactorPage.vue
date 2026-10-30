@@ -1,25 +1,58 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { passkeysSupported, registerPasskey } from '../api/passkey'
 import { confirmTotpEnrollment, startTotpEnrollment, type TotpEnrollment } from '../api/session'
 import QrCode from '../components/QrCode.vue'
-import { refreshSession } from '../session/store'
+import { refreshSession, session } from '../session/store'
 
 // SCR-003 TOTP enrollment in the running session (REQ-171, REQ-172, ADR-042) for the system admin
 // account and for persons (US-021, US-025, US-029). With `?offer=1` it is the skippable offer after
-// a password login (design D7 of us-021-person-totp).
+// a password login (design D7 of us-021-person-totp). Persons choose between a passkey and an
+// authenticator app (US-022; design D6 of us-022-passkeys).
 const props = defineProps<{ fetchFn?: typeof fetch }>()
 const route = useRoute()
 const router = useRouter()
 const offer = computed(() => route?.query.offer === '1')
 
 const label = ref('')
+// passkeys for persons only; the system admin account keeps TOTP (owner decision 2026-10-30)
+const passkeyChoice = computed(() => passkeysSupported() && session.me?.principal.principalType === 'person')
+const method = ref<'passkey' | 'totp'>('passkey')
+const chosen = computed(() => (passkeyChoice.value ? method.value : 'totp'))
+const METHODS = [
+  { label: 'Passkey (recommended)', value: 'passkey', description: 'Fingerprint, face or PIN of this device' },
+  { label: 'Authenticator app', value: 'totp', description: 'A six-digit code from an app on your phone' },
+]
 const enrollment = ref<TotpEnrollment>()
 const code = ref('')
 const failure = ref<string>()
 const reauthenticate = ref(false)
 const confirmed = ref(false)
 const busy = ref(false)
+
+async function startPasskey() {
+  failure.value = undefined
+  reauthenticate.value = false
+  busy.value = true
+  try {
+    const outcome = await registerPasskey(label.value.trim() || undefined, props.fetchFn)
+    if (outcome.kind === 'registered') {
+      confirmed.value = true
+      await refreshSession(props.fetchFn)
+    } else if (outcome.kind === 'cancelled') {
+      failure.value = 'Setting up the passkey was cancelled. Try again when you are ready.'
+    } else if (outcome.rejection.problemType === 'reauthentication-required') {
+      reauthenticate.value = true
+    } else {
+      failure.value = 'The passkey could not be set up.'
+    }
+  } catch {
+    failure.value = 'The passkey could not be set up in this browser.'
+  } finally {
+    busy.value = false
+  }
+}
 
 async function start() {
   failure.value = undefined
@@ -79,7 +112,11 @@ async function skip() {
       color="success"
       variant="subtle"
       title="Second factor active"
-      description="Your authenticator app is set up, and this session is confirmed with it."
+      :description="
+        chosen === 'passkey'
+          ? 'Your passkey is set up, and this session is confirmed with it.'
+          : 'Your authenticator app is set up, and this session is confirmed with it.'
+      "
       :actions="[{ label: offer ? 'Continue' : 'Back to the profile', to: offer ? '/' : '/me' }]"
     />
     <UAlert
@@ -118,17 +155,38 @@ async function skip() {
 
     <template v-else-if="!confirmed">
       <p v-if="offer" data-testid="offer" class="text-muted">
-        Protect your account with a second factor: an authenticator app (TOTP) on your phone. Logins then need a code
-        from the app in addition to your password, and roles with administrative permissions become effective.
+        Protect your account with a second factor: a passkey on this device or an authenticator app on your phone.
+        Logins are then confirmed with it, and roles with administrative permissions become effective.
       </p>
       <p v-else class="text-muted">
-        Set up an authenticator app (TOTP). You can set up several, for example one on a backup phone.
+        Set up a second factor. You can set up several, for example one on a backup device.
       </p>
+      <URadioGroup
+        v-if="passkeyChoice"
+        v-model="method"
+        data-testid="method"
+        legend="Second factor"
+        :items="METHODS"
+      />
       <UFormField label="Name of the authenticator" name="label" help="For example the device; optional">
-        <UInput v-model="label" data-testid="label" maxlength="64" class="w-full" placeholder="Authenticator app" />
+        <UInput
+          v-model="label"
+          data-testid="label"
+          maxlength="64"
+          class="w-full"
+          :placeholder="chosen === 'passkey' ? 'Passkey' : 'Authenticator app'"
+        />
       </UFormField>
       <div class="flex gap-2">
-        <UButton data-testid="start" :loading="busy" label="Set up authenticator app" @click="start" />
+        <UButton
+          v-if="chosen === 'passkey'"
+          data-testid="start-passkey"
+          icon="i-lucide-key-round"
+          :loading="busy"
+          label="Set up passkey"
+          @click="startPasskey"
+        />
+        <UButton v-else data-testid="start" :loading="busy" label="Set up authenticator app" @click="start" />
         <UButton
           v-if="offer"
           data-testid="skip"

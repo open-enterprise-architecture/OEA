@@ -1,24 +1,21 @@
 package io.oea.app.login;
 
 import io.oea.app.access.PasswordPolicies;
-import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
 import io.oea.app.security.SetupPhase;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
 import io.oea.config.secrets.SecretCipher;
+import io.oea.config.webauthn.PasskeyRejectedException;
 import io.oea.core.domain.auth.LocalCredential;
 import io.oea.core.domain.auth.PasswordCredential;
 import io.oea.core.domain.auth.SystemAdminAccount;
 import io.oea.core.domain.auth.TotpCredential;
-import io.oea.core.domain.person.Person;
 import io.oea.core.repository.LocalCredentialRepository;
 import io.oea.core.repository.PasswordCredentialRepository;
-import io.oea.core.repository.PersonRepository;
 import io.oea.core.repository.SystemAdminAccountRepository;
 import io.oea.core.repository.TotpCredentialRepository;
 import io.oea.core.service.PasswordHasher;
-import io.oea.core.service.PasswordPolicy;
 import io.oea.core.service.TotpAlgorithm;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -28,6 +25,7 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -82,12 +80,15 @@ public class LocalLogin {
 
 	private final PasswordPolicies policies;
 
-	private final PersonRepository persons;
+	private final PersonSessions personSessions;
+
+	private final Passkeys passkeys;
 
 	public LocalLogin(SystemAdminAccountRepository accounts, PasswordCredentialRepository passwords,
 			LocalCredentialRepository credentials, TotpCredentialRepository totps, PasswordHasher hasher,
 			SecretCipher cipher, LoginThrottle throttle, SetupPhase setupPhase, Sessions sessions, AuditWriter audit,
-			JdbcTemplate jdbc, Clock clock, PasswordPolicies policies, PersonRepository persons) {
+			JdbcTemplate jdbc, Clock clock, PasswordPolicies policies, PersonSessions personSessions,
+			Passkeys passkeys) {
 		this.accounts = accounts;
 		this.passwords = passwords;
 		this.credentials = credentials;
@@ -102,7 +103,8 @@ public class LocalLogin {
 		this.clock = clock;
 		this.dummyHash = hasher.hash("timing-equalizer-" + UUID.randomUUID());
 		this.policies = policies;
-		this.persons = persons;
+		this.personSessions = personSessions;
+		this.passkeys = passkeys;
 	}
 
 	/** Client data of the request, for the session and the throttling. */
@@ -140,7 +142,7 @@ public class LocalLogin {
 		}
 		SystemAdminAccount admin = account.get();
 		if (!this.setupPhase.isActive()) {
-			throw new SecondFactorRequiredException(newTransaction(admin.getId(), null));
+			throw new SecondFactorRequiredException(newTransaction(admin.getId(), null), List.of("totp"));
 		}
 		return startSession(admin, false, client);
 	}
@@ -187,39 +189,18 @@ public class LocalLogin {
 		}
 		this.jdbc.update("UPDATE local_credentials SET last_used_at = ? WHERE id = ?", Timestamp.from(now),
 				person.credentialId());
+		List<String> methods = new ArrayList<>();
 		if (!this.credentials.findByPersonIdAndTypeAndStatus(person.personId(), "totp", "active").isEmpty()) {
-			// REQ-010: the TOTP step follows; the person is activated only after it
-			throw new SecondFactorRequiredException(newTransaction(null, person.personId()));
+			methods.add("totp");
 		}
-		return startPersonSession(person.personId(), person.origin(), person.setAt(), false, client);
-	}
-
-	/**
-	 * Session of a person after the password step, or after the TOTP step with {@code secondFactor}:
-	 * activation at the first login and the required password change.
-	 */
-	private Sessions.NewSession startPersonSession(long personId, String origin, Instant setAt, boolean secondFactor,
-			Client client) {
-		Instant now = this.clock.instant();
-		Person entity = this.persons.findById(personId).orElseThrow();
-		if (entity.activateOnFirstLogin(now)) {
-			this.audit.append(new AuditEvent("person.activated", AuditEvent.Category.SECURITY, AuditEvent.Severity.INFO,
-					AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API,
-					new AuditEvent.Actor("person", personId, null), "person", Long.toString(personId),
-					Map.of("trigger", "first-login")));
+		if (this.passkeys.available() && this.passkeys.hasActivePasskey(person.personId())) {
+			methods.add("passkey");
 		}
-		// REQ-173 AC2, REQ-028 AC2: a temporary or expired password only leads to the password change
-		PasswordPolicy policy = this.policies.effective();
-		boolean expired = policy.expiryDays() > 0 && !setAt.plus(Duration.ofDays(policy.expiryDays())).isAfter(now);
-		String requiredAction = ("self-set".equals(origin) && !expired) ? null : OeaPrincipal.CHANGE_PASSWORD;
-		Sessions.NewSession session = this.sessions.createForPersonPassword(entity, requiredAction, secondFactor,
-				client.address(), client.userAgent());
-		this.audit.append(new AuditEvent("auth.login", AuditEvent.Category.SECURITY, AuditEvent.Severity.INFO,
-				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, new AuditEvent.Actor("person", personId, null),
-				"session", session.principal().sessionId().toString(),
-				Map.of("method", secondFactor ? "password-totp" : "password", "secondFactor", secondFactor,
-						"temporaryPassword", !"self-set".equals(origin), "passwordExpired", expired)));
-		return session;
+		if (!methods.isEmpty()) {
+			// REQ-010, design D5 of us-022-passkeys: the second step follows; the person is activated only after it
+			throw new SecondFactorRequiredException(newTransaction(null, person.personId()), methods);
+		}
+		return this.personSessions.start(person.personId(), "password", client);
 	}
 
 	/** One hash verification for every attempt, also for overlong or missing passwords (D6). */
@@ -250,27 +231,86 @@ public class LocalLogin {
 			throw new InvalidCredentialsException(0);
 		}
 		if (!acceptCode(owner.get(), code, now)) {
-			int failed = this.jdbc.queryForObject("""
-					UPDATE login_transactions SET failed_codes = failed_codes + 1 WHERE token_hash = ?
-					RETURNING failed_codes""", Integer.class, hash);
-			if (failed >= MAXIMUM_WRONG_CODES) {
-				this.jdbc.update("DELETE FROM login_transactions WHERE token_hash = ?", (Object) hash);
-			}
-			this.audit.appendIndependently(failedEvent("wrong-second-factor"));
-			throw new InvalidCredentialsException(0);
+			wrongSecondFactor(hash);
 		}
 		this.jdbc.update("DELETE FROM login_transactions WHERE token_hash = ?", (Object) hash);
 		if (owner.get().personId() != null) {
-			record Password(String origin, Instant setAt) {
-			}
-			Password password = this.jdbc.queryForObject("""
-					SELECT pc.origin, c.created_at FROM local_credentials c
-					JOIN password_credentials pc ON pc.credential_id = c.id
-					WHERE c.person_id = ? AND c.type = 'password' AND c.status = 'active'""",
-					(rs, n) -> new Password(rs.getString(1), rs.getTimestamp(2).toInstant()), owner.get().personId());
-			return startPersonSession(owner.get().personId(), password.origin(), password.setAt(), true, client);
+			return this.personSessions.start(owner.get().personId(), "password-totp", client);
 		}
 		return startSession(this.accounts.findById(owner.get().systemAdminAccountId()).orElseThrow(), true, client);
+	}
+
+	/**
+	 * Request options for the passkey step of a person's login transaction (design D5 of
+	 * us-022-passkeys).
+	 * @throws InvalidCredentialsException for an unknown, expired or invalidated transaction, or a
+	 * person without passkey
+	 */
+	@Transactional
+	public PasskeyLogin.Options passkeyOptions(String loginTransaction) {
+		Instant now = this.clock.instant();
+		List<UUID> transactions = this.jdbc.queryForList("""
+				SELECT id FROM login_transactions
+				WHERE token_hash = ? AND person_id IS NOT NULL AND expires_at > ? AND failed_codes < ?""", UUID.class,
+				sha256(loginTransaction), Timestamp.from(now), MAXIMUM_WRONG_CODES);
+		Long personId = transactions.isEmpty() ? null
+				: this.jdbc.queryForObject("SELECT person_id FROM login_transactions WHERE id = ?", Long.class,
+						transactions.getFirst());
+		if (personId == null || !this.passkeys.available() || !this.passkeys.hasActivePasskey(personId)) {
+			throw new InvalidCredentialsException(0);
+		}
+		Passkeys.Challenge challenge = this.passkeys.newChallenge("second-factor", personId, transactions.getFirst(),
+				null, Passkeys.LOGIN_VALIDITY);
+		return new PasskeyLogin.Options(challenge.id(),
+				this.passkeys.requestOptions(challenge, this.passkeys.credentialIds(personId)));
+	}
+
+	/**
+	 * Passkey step of a person's login transaction (design D5 of us-022-passkeys): a failure counts
+	 * like a wrong code.
+	 * @throws InvalidCredentialsException for every failure
+	 */
+	@Transactional(noRollbackFor = InvalidCredentialsException.class)
+	public Sessions.NewSession loginWithPasskey(String loginTransaction, UUID challengeId, String assertionJson,
+			Client client) {
+		Instant now = this.clock.instant();
+		byte[] hash = sha256(loginTransaction);
+		record Transaction(UUID id, long personId) {
+		}
+		Optional<Transaction> transaction = this.jdbc.query("""
+				SELECT id, person_id FROM login_transactions
+				WHERE token_hash = ? AND person_id IS NOT NULL AND expires_at > ? AND failed_codes < ? FOR UPDATE""",
+				(rs) -> rs.next() ? Optional.of(new Transaction(rs.getObject(1, UUID.class), rs.getLong(2)))
+						: Optional.<Transaction>empty(),
+				hash, Timestamp.from(now), MAXIMUM_WRONG_CODES);
+		if (transaction.isEmpty()) {
+			throw new InvalidCredentialsException(0);
+		}
+		Optional<Passkeys.Challenge> challenge = this.passkeys.consume(challengeId, "second-factor")
+			.filter((c) -> transaction.get().id().equals(c.loginTransactionId()));
+		try {
+			if (challenge.isEmpty()) {
+				throw new PasskeyRejectedException("unknown or expired challenge");
+			}
+			this.passkeys.verify(assertionJson, challenge.get(), transaction.get().personId());
+		}
+		catch (PasskeyRejectedException ex) {
+			wrongSecondFactor(hash);
+		}
+		this.jdbc.update("DELETE FROM login_transactions WHERE token_hash = ?", (Object) hash);
+		return this.personSessions.start(transaction.get().personId(), "password-passkey", client);
+	}
+
+	/** A wrong code or passkey: counted on the transaction, five invalidate it (REQ-168 AC2). */
+	private void wrongSecondFactor(byte[] hash) {
+		int failed = this.jdbc.queryForObject("""
+				UPDATE login_transactions SET failed_codes = failed_codes + 1 WHERE token_hash = ?
+				RETURNING failed_codes""", Integer.class, hash);
+		if (failed >= MAXIMUM_WRONG_CODES) {
+			this.jdbc.update("DELETE FROM login_transactions WHERE token_hash = ?", (Object) hash);
+		}
+		this.audit.appendIndependently(failedEvent("wrong-second-factor"));
+		throw new InvalidCredentialsException(0);
 	}
 
 	/** Verifies a code against the active TOTP credentials of the owner and records its time step (REQ-030). */

@@ -2,8 +2,9 @@
 
 **ID**: US-009
 **Story Points**: 8
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S5
+**Implementation**: OpenSpec change `us-022-passkeys` – `startPasskeyLogin` and `passkeyLogin` under `/auth/passkey`, the passkey step `localLoginPasskey`, page SCR-001
 
 ## Story
 
@@ -58,5 +59,7 @@ As a person on an instance without an external identity provider, I want to sign
 - Blocks: none
 
 ## Notes
+
+Realigned by OpenSpec change `us-022-passkeys` (owner decisions 2026-10-30): a passkey login with user verification is second-factor-verified, so privileged roles apply; passkeys are discoverable, so no login name is entered (AC3). After the password step, a person with a passkey confirms with it (`POST /auth/local/login/passkey`). Every failure gives the answer of a wrong password and counts for the throttling per source address (AC2).
 
 Enrollment (registration of a passkey) is explicitly not part of this story – UC-01 assumes a completed registration. Enrollment is a separate use case, not derived here.

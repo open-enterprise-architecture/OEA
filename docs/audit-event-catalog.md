@@ -72,7 +72,7 @@ Successful login of the local system admin account (US-013 AC2), of a person wit
 | Category / severity / outcome | `security` / `info` / `success` |
 | Actor | `system-admin-account` or `person` |
 | Target | `session`, ID of the new session |
-| Details | Local login of the system admin account: `method` (`password` or `password-totp`), `setupPhase` (`true` if the login needed no second factor, [ADR-042](../adrs/ADR-042-setup-phase-without-second-factor.md)). Password login of a person ([US-011](../requirements/user-stories/US-011-password-minimal.md)): `method` (`password`, or `password-totp` after the TOTP step, [US-010](../requirements/user-stories/US-010-totp-login.md)), `secondFactor`, `temporaryPassword` (`true` for an initial or reset password), `passwordExpired` (`true` if the self-chosen password exceeded the expiry of the password policy, [US-027](../requirements/user-stories/US-027-configure-password-policies.md)); the session must change the password first if either is `true`. OIDC login: `method` (`oidc`), `providerId`, `secondFactor` (from `amr`) |
+| Details | Local login of the system admin account: `method` (`password` or `password-totp`), `setupPhase` (`true` if the login needed no second factor, [ADR-042](../adrs/ADR-042-setup-phase-without-second-factor.md)). Password login of a person ([US-011](../requirements/user-stories/US-011-password-minimal.md)): `method` (`password`, `password-totp` after the TOTP step, [US-010](../requirements/user-stories/US-010-totp-login.md), `password-passkey` after the passkey step, or `passkey` for the passwordless login, [US-009](../requirements/user-stories/US-009-passkey-login.md)), `secondFactor`, `temporaryPassword` (`true` for an initial or reset password), `passwordExpired` (`true` if the self-chosen password exceeded the expiry of the password policy, [US-027](../requirements/user-stories/US-027-configure-password-policies.md)); the session must change the password first if either is `true`. OIDC login: `method` (`oidc`), `providerId`, `secondFactor` (from `amr`) |
 
 ### `auth.login-failed`
 
@@ -83,7 +83,7 @@ Rejected local login step ([REQ-168](../requirements/req/REQ-168-local-auth-thro
 | Category / severity / outcome | `security` / `warning` / `failure` |
 | Actor | `unauthenticated` |
 | Target | – |
-| Details | Local login: `reason` (`invalid-credentials` for the password step, including throttled attempts; `wrong-second-factor` for the TOTP step). OIDC login: `mechanism` (`oidc`), `providerId` if known, `reason` (`state-invalid`, `cancelled`, `provider-error`, `provider-unavailable`, `token-invalid`, `identity-unknown`, `person-not-active`) |
+| Details | Local login: `reason` (`invalid-credentials` for the password step, including throttled attempts; `wrong-second-factor` for the TOTP or passkey step). Passwordless passkey login ([US-009](../requirements/user-stories/US-009-passkey-login.md)): `method` (`passkey`), `reason` (`invalid-credentials` for every failure, including an unknown passkey and a throttled address). OIDC login: `mechanism` (`oidc`), `providerId` if known, `reason` (`state-invalid`, `cancelled`, `provider-error`, `provider-unavailable`, `token-invalid`, `identity-unknown`, `person-not-active`) |
 
 ### `auth.throttled`
 
@@ -160,7 +160,7 @@ A second factor was enrolled and confirmed by the system admin account ([REQ-171
 | Category / severity / outcome | `security` / `high` / `success` |
 | Actor | the account or person that enrolled the factor |
 | Target | `credential`, ID of the local credential |
-| Details | `type` (`totp`), `label`; never the secret or a code |
+| Details | `type` (`totp` or `passkey`, [US-022](../requirements/user-stories/US-022-passkey-enrollment.md)), `label`; never the secret, a code or a public key |
 
 ### `auth.factor-enrollment-failed`
 
@@ -171,7 +171,7 @@ The confirmation of a TOTP enrollment failed ([US-024](../requirements/user-stor
 | Category / severity / outcome | `security` / `warning` / `failure` |
 | Actor | the account or person that confirmed |
 | Target | `credential`, ID of the pending credential as sent |
-| Details | `type` (`totp`), `reason` (`invalid-code`: wrong code, the enrollment stays pending; `enrollment-expired`: unknown, foreign or expired enrollment); never the secret or a code |
+| Details | `type` (`totp` or `passkey`), `reason` (`invalid-code`: wrong code, the enrollment stays pending; `verification-failed`: the passkey response failed the WebAuthn verification, the registration is used up; `enrollment-expired`: unknown, foreign or expired enrollment); never the secret, a code or a public key |
 
 ### `auth.factor-removed`
 

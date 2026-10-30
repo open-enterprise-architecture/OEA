@@ -59,6 +59,8 @@ package "Auth" #FFF8E1 {
     .. service-account: no ui_language/ui_theme required ..
     + name                : TEXT          {NN}
     .. anonymized (REQ-189): replaced by the pseudonym 'anonymized-<id>' ..
+    + webauthn_user_handle : BYTEA        {UQ}
+    .. 64 random bytes, created at the first passkey registration; never the e-mail address ..
     + email               : TEXT          {UQ}
     .. contact attribute; NEVER used to match a login (REQ-166) ..
     .. CHECK: email IS NOT NULL OR detail_level = 'anonymized' ..
@@ -227,13 +229,33 @@ package "Auth" #FFF8E1 {
   class passkey_credentials <<Table>> #FFECB3 {
     + credential_id  : UUID               {PK} {FK→local_credentials.id}
     --
-    + credential_b64 : TEXT               {NN} {UQ}
-    .. Base64url WebAuthn credential ID ..
-    + public_key     : TEXT               {NN}
-    .. CBOR COSE-Key, Base64url ..
-    + sign_count     : INTEGER            {NN} DEFAULT 0
-    + aaguid         : TEXT
-    + device_label   : TEXT
+    + webauthn_credential_id : BYTEA      {NN} {UQ}
+    .. credential ID chosen by the authenticator ..
+    + attested_credential_data : BYTEA    {NN}
+    .. AAGUID, credential ID, COSE public key (WebAuthn4J, ADR-048) ..
+    + sign_count     : BIGINT             {NN} DEFAULT 0
+    .. CHECK >= 0; must increase unless both values are 0 ..
+    + transports     : TEXT[]
+    + backup_eligible : BOOLEAN           {NN}
+    + backed_up      : BOOLEAN            {NN}
+    + label          : TEXT
+    .. CHECK char_length <= 64 ..
+  }
+
+  class webauthn_challenges <<Table>> #FFE0B2 {
+    + id                   : UUID          {PK}
+    --
+    + purpose              : TEXT          {NN}
+    .. enum: registration | login | second-factor ..
+    + challenge            : BYTEA         {NN}
+    .. 32 random bytes, single use ..
+    + person_id            : BIGINT        {FK→persons.id}
+    + login_transaction_id : UUID          {FK→login_transactions.id} ON DELETE CASCADE
+    + label                : TEXT
+    + created_at           : TIMESTAMPTZ   {NN} DEFAULT NOW()
+    + expires_at           : TIMESTAMPTZ   {NN}
+    .. registration 10 min, login and second factor 5 min ..
+    .. CHECK: login without owner; registration with person; second-factor with person and transaction ..
   }
 
   class totp_credentials <<Table>> #FFECB3 {
@@ -541,7 +563,7 @@ package "Sessions" #FFF3E0 {
     + client_type         : TEXT          {NN}
     .. enum: web-portal | electron ..
     + auth_method         : TEXT          {NN}
-    .. enum: oidc | passkey | password-totp | password ..
+    .. enum: oidc | passkey | password-totp | password-passkey | password ..
     + auth_provider_id    : UUID          {FK→auth_providers.id}
     .. NOT NULL iff auth_method = 'oidc' ..
     + second_factor_verified : BOOLEAN    {NN} DEFAULT false
@@ -1888,6 +1910,11 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   login_transactions.person_id with the check "exactly one owner", so that
 '   persons with an active TOTP credential complete the login with a code.
 '   Reason: US-010, REQ-010, REQ-030.
+' 2026-10-30 (us-022-passkeys):
+'   passkey_credentials migrated in the format of WebAuthn4J (attested credential
+'   data instead of credential_b64, public_key and aaguid); new webauthn_challenges;
+'   persons.webauthn_user_handle; sessions.auth_method value password-passkey.
+'   Reason: US-022, US-009, REQ-009, REQ-023, ADR-048.
 ' ─────────────────────────────────────────────────────
 
 @enduml

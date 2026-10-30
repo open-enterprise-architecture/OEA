@@ -2,8 +2,9 @@
 
 **ID**: US-022
 **Story Points**: 8
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S5
+**Implementation**: OpenSpec change `us-022-passkeys` – `startPasskeyRegistration` and `confirmPasskeyRegistration` under `/me/second-factors/passkey`, page SCR-003
 
 ## Story
 
@@ -64,5 +65,7 @@ As a person signing in for the first time with my initial password, I want to re
 - Blocks: US-024 (audit log requires this path)
 
 ## Notes
+
+Realigned by OpenSpec change `us-022-passkeys`: there are no enrollment tokens; a person with a local password registers passkeys in the running session after a login within the last 5 minutes, with `POST /me/second-factors/passkey` and `…/{registrationId}/confirm` instead of `/auth/enrollment/passkey/*`. AC2: a cancelled registration expires after 10 minutes and stores nothing. The passkey data is stored in the format of WebAuthn4J (ADR-048): attested credential data, signature counter and backup flags.
 
 8 SP because of WebAuthn complexity: challenge generation, attestation verification (incl. origin check, RP ID check, signature verification), signature counter storage. Attestation format: `none` as default; no attestation CA operation needed. The user handle is the person's opaque UUID, not the email (FIDO2 spec).

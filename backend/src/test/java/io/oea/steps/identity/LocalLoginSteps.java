@@ -92,6 +92,12 @@ public class LocalLoginSteps {
 		bootstrappedInstance(loginName, new String[] { "--oea.auth.person-password.enabled=true" });
 	}
 
+	@Given("a bootstrapped OEA instance in its setup phase with the system admin {string}, password login of persons switched on and the public URL {string}")
+	public void bootstrappedInstanceWithPublicUrl(String loginName, String publicUrl) throws Exception {
+		bootstrappedInstance(loginName,
+				new String[] { "--oea.auth.person-password.enabled=true", "--oea.web.public-url=" + publicUrl });
+	}
+
 	private void bootstrappedInstance(String loginName, String[] arguments) throws Exception {
 		this.postgres = OeaDatabases.freshMigrated();
 		Path tokenFile = Files.createTempDirectory("oea-run").resolve("setup-token");

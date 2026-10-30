@@ -3,12 +3,12 @@ import { expect, userEvent, within } from 'storybook/test'
 import { onBeforeMount } from 'vue'
 import { useRouter } from 'vue-router'
 import SecondFactorPage from '../pages/SecondFactorPage.vue'
+import { session } from '../session/store'
 import { routedFetch } from '../test/fetch'
 
-// SCR-003 Set up auth method, TOTP part (UC-03, US-021, US-025, US-029): the enrollment of an
-// authenticator app, offered after the password login of a person without a second factor
-// (docs/screens/SCREENS.md). The passkey part follows with change 4. The first story is the screen
-// image.
+// SCR-003 Set up auth method (UC-03, US-021, US-022, US-025, US-029): the choice between a passkey
+// and an authenticator app, offered after the password login of a person without a second factor
+// (docs/screens/SCREENS.md). The first story is the screen image.
 const ENROLLMENT = {
   credentialId: '7f0c1a2b-3c4d-4e5f-8a9b-0c1d2e3f4a5b',
   secret: 'JBSWY3DPEHPK3PXP',
@@ -25,13 +25,27 @@ const FETCH = routedFetch({
   },
 })
 
-function page(path: string): Story {
+const PERSON = {
+  principal: { principalType: 'person' as const, displayName: 'Anna Example' },
+  mfaSatisfied: false,
+  roles: [],
+  permissions: [],
+}
+
+function page(path: string, principal: 'person' | 'system-admin-account' = 'person'): Story {
   return {
     render: () => ({
       components: { SecondFactorPage },
       setup: () => {
         const router = useRouter()
-        onBeforeMount(() => router.push(path))
+        onBeforeMount(() => {
+          session.me =
+            principal === 'person'
+              ? PERSON
+              : { ...PERSON, principal: { principalType: 'system-admin-account' as const, displayName: 'admin' } }
+          session.loaded = true
+          return router.push(path)
+        })
         return { fetchFn: FETCH }
       },
       template: '<SecondFactorPage :fetch-fn="fetchFn" />',
@@ -55,6 +69,7 @@ export const QrCodeShown: Story = {
   ...page('/me/second-factor'),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByText('Authenticator app'))
     await userEvent.type(await canvas.findByLabelText(/Name of the authenticator/), 'Phone')
     await userEvent.click(canvas.getByTestId('start'))
     await expect(await canvas.findByTestId('secret')).toHaveTextContent(ENROLLMENT.secret)
@@ -62,7 +77,7 @@ export const QrCodeShown: Story = {
 }
 
 export const WrongCode: Story = {
-  ...page('/me/second-factor'),
+  ...page('/me/second-factor', 'system-admin-account'),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await userEvent.click(await canvas.findByTestId('start'))

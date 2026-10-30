@@ -10,13 +10,13 @@ License texts and notices: the backend jar contains the license and notice files
 
 | License | Components |
 |---|---|
-| MIT | 34 |
-| Apache-2.0 | 93 |
+| MIT | 35 |
+| Apache-2.0 | 95 |
 | BSD-3-Clause | 10 |
 | BSD-2-Clause | 2 |
 | EPL-2.0 | 5 |
 
-## Backend Runtime Libraries (114)
+## Backend Runtime Libraries (116)
 
 | Component | Version | License | Alternatives | Project |
 |---|---|---|---|---|
@@ -30,6 +30,7 @@ License texts and notices: the backend jar contains the license and notice files
 | Nimbus JOSE+JWT (`com.nimbusds:nimbus-jose-jwt`) | 10.9.1 | Apache-2.0 | – | <https://bitbucket.org/connect2id/nimbus-jose-jwt> |
 | OAuth 2.0 SDK with OpenID Connect and Federation extensions (`com.nimbusds:oauth2-oidc-sdk`) | 11.38.2 | Apache-2.0 | – | <https://bitbucket.org/connect2id/oauth-2.0-sdk-with-openid-connect-extensions> |
 | istack common utility code runtime (`com.sun.istack:istack-commons-runtime`) | 4.1.2 | BSD-3-Clause | – | <https://projects.eclipse.org/projects/ee4j/istack-commons/istack-commons-runtime> |
+| webauthn4j-core (`com.webauthn4j:webauthn4j-core`) | 0.31.11.RELEASE | Apache-2.0 | – | <https://github.com/webauthn4j/webauthn4j> |
 | HikariCP (`com.zaxxer:HikariCP`) | 7.0.2 | Apache-2.0 | – | <https://github.com/brettwooldridge/HikariCP> |
 | Apache Commons Logging (`commons-logging:commons-logging`) | 1.3.6 | Apache-2.0 | – | <https://commons.apache.org/proper/commons-logging/> |
 | micrometer-commons (`io.micrometer:micrometer-commons`) | 1.17.2 | Apache-2.0 | – | <https://github.com/micrometer-metrics/micrometer> |
@@ -133,9 +134,10 @@ License texts and notices: the backend jar contains the license and notice files
 | SnakeYAML (`org.yaml:snakeyaml`) | 2.6 | Apache-2.0 | – | <https://bitbucket.org/snakeyaml/snakeyaml> |
 | Jackson-core (`tools.jackson.core:jackson-core`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-core> |
 | jackson-databind (`tools.jackson.core:jackson-databind`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson> |
+| Jackson dataformat: CBOR (`tools.jackson.dataformat:jackson-dataformat-cbor`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-dataformats-binary> |
 | Jackson-dataformat-YAML (`tools.jackson.dataformat:jackson-dataformat-yaml`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-dataformats-text> |
 
-## Frontend Bundle (30)
+## Frontend Bundle (31)
 
 | Component | Version | License | Alternatives | Project |
 |---|---|---|---|---|
@@ -145,6 +147,7 @@ License texts and notices: the backend jar contains the license and notice files
 | @floating-ui/vue (`@floating-ui/vue`) | 2.0.1 | MIT | – | <https://github.com/floating-ui/floating-ui> |
 | @iconify/vue (`@iconify/vue`) | 5.0.3 | MIT | – | <https://github.com/iconify/iconify> |
 | @nuxt/ui (`@nuxt/ui`) | 4.12.0 | MIT | – | <https://github.com/nuxt/ui> |
+| @simplewebauthn/browser (`@simplewebauthn/browser`) | 14.0.0 | MIT | – | <https://github.com/MasterKale/SimpleWebAuthn> |
 | @tanstack/table-core (`@tanstack/table-core`) | 8.21.3 | MIT | – | <https://github.com/TanStack/table> |
 | @tanstack/virtual-core (`@tanstack/virtual-core`) | 3.19.4 | MIT | – | <https://github.com/TanStack/virtual> |
 | @tanstack/vue-table (`@tanstack/vue-table`) | 8.21.3 | MIT | – | <https://github.com/TanStack/table> |

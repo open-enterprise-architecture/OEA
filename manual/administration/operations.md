@@ -2,7 +2,7 @@
 title: Operations
 covers:
   screens: []
-  stories: [US-011, US-019, US-027]
+  stories: [US-011, US-019, US-022, US-027]
 ---
 
 # Operations
@@ -102,6 +102,22 @@ OEA_AUTH_PERSONPASSWORD_TEMPORARYPASSWORDVALIDITY=PT72H
 - Administrators can switch password login of persons off and on again with `personPasswordLogin` of the [password policy](./identity-providers#password-policy). It works only while your setting permits it and their switch is on; without your permission they cannot switch it on.
 - Roles with administrative permissions apply to a person only after a login with password and the code of an authenticator app (see [Set up a second factor](../usage/login#set-up-a-second-factor)); after a password login alone they do not apply.
 - While password login of persons is not possible, a password login of a person fails like a wrong password, and setting or resetting a password is refused with `409`.
+
+### Passkeys {#passkeys}
+
+Persons with a password can also set up passkeys. A passkey is bound to the domain of the instance (the relying party). OEA takes it from the public URL (`OEA_WEB_PUBLIC_URL`, see [Installation](../setup/installation)); without a public URL, passkeys are unavailable and their operations answer `409`. Set it explicitly only if the web portal runs on several origins:
+
+```bash
+# relying party ID: the host of the public URL or a parent domain of every origin
+OEA_AUTH_PASSKEY_RPID=example.org
+# allowed origins, comma-separated (default: the public URL without path)
+OEA_AUTH_PASSKEY_ORIGINS=https://oea.example.org,https://ea.example.org
+# name shown by the authenticator (default OEA)
+OEA_AUTH_PASSKEY_RPNAME=OEA
+```
+
+- A relying party ID that does not cover every origin stops the backend at startup.
+- Changing the domain later makes every registered passkey unusable; persons then log in with their password and their authenticator app, or an administrator resets their second factors.
 
 ### Floors of the password policy {#password-policy-floors}
 

@@ -237,6 +237,16 @@ class SecondFactorManagementTests {
 			.hasStatus(HttpStatus.NOT_FOUND);
 	}
 
+	@Test
+	void passkeysAreUnavailableWithoutPublicUrl() {
+		active("fritz");
+		TestSession session = session(login("fritz@example.org", PASSWORD));
+		MvcTestResult registration = post("/api/v1/me/second-factors/passkey", session, "{}");
+		assertThat(registration).hasStatus(HttpStatus.CONFLICT);
+		assertThat(body(registration).path("type").asString()).isEqualTo("urn:oea:problem:passkeys-unavailable");
+		assertThat(this.mvc.post().uri("/api/v1/auth/passkey/options").exchange()).hasStatus(HttpStatus.CONFLICT);
+	}
+
 	/** Enrolls a TOTP credential and moves past the time step of the confirmation. */
 	private String enroll(TestSession session, String label) {
 		JsonNode started = body(post("/api/v1/me/second-factors/totp", session, "{\"label\":\"" + label + "\"}"));
