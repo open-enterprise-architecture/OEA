@@ -2,6 +2,7 @@ package io.oea.app.login;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.oea.testsupport.auth.OidcLogin.ApplicationLogin;
 import io.oea.testsupport.auth.OidcTestInstance;
 import java.net.URI;
@@ -41,6 +42,14 @@ class OidcLoginTests {
 		assertThat(login.location()).isEqualTo(OidcTestInstance.PUBLIC_URL + "/me");
 		assertThat(login.sessionToken()).isNotBlank();
 		assertThat(instance.audit("auth.login", "\"oidc\"")).isEqualTo(logins + 1);
+		// design D1 of us-008-login-latency: the login is measured without the token request
+		assertThat(instance.application()
+			.getBean(MeterRegistry.class)
+			.get("oea.login.processing")
+			.tag("method", "oidc")
+			.tag("outcome", "success")
+			.timer()
+			.count()).isPositive();
 
 		// US-001 AC2: the session is used without another redirect to the IdP
 		HttpResponse<String> me = instance.get("/api/v1/me", login.sessionToken());

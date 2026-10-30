@@ -33,14 +33,17 @@ public class PasskeyLogin {
 
 	private final AuditWriter audit;
 
+	private final LoginMetrics metrics;
+
 	public PasskeyLogin(JdbcTemplate jdbc, Passkeys passkeys, PasswordPolicies policies, PersonSessions personSessions,
-			LoginThrottle throttle, AuditWriter audit) {
+			LoginThrottle throttle, AuditWriter audit, LoginMetrics metrics) {
 		this.jdbc = jdbc;
 		this.passkeys = passkeys;
 		this.policies = policies;
 		this.personSessions = personSessions;
 		this.throttle = throttle;
 		this.audit = audit;
+		this.metrics = metrics;
 	}
 
 	/** A challenge with its request options. */
@@ -65,6 +68,10 @@ public class PasskeyLogin {
 	 */
 	@Transactional(noRollbackFor = InvalidCredentialsException.class)
 	public Sessions.NewSession login(UUID challengeId, String assertionJson, LocalLogin.Client client) {
+		return this.metrics.time("passkey", () -> passkeyLogin(challengeId, assertionJson, client));
+	}
+
+	private Sessions.NewSession passkeyLogin(UUID challengeId, String assertionJson, LocalLogin.Client client) {
 		this.passkeys.relyingParty();
 		long wait = this.throttle.retryAfterSecondsForAddress(client.address());
 		if (wait > 0) {

@@ -84,11 +84,13 @@ public class LocalLogin {
 
 	private final Passkeys passkeys;
 
+	private final LoginMetrics metrics;
+
 	public LocalLogin(SystemAdminAccountRepository accounts, PasswordCredentialRepository passwords,
 			LocalCredentialRepository credentials, TotpCredentialRepository totps, PasswordHasher hasher,
 			SecretCipher cipher, LoginThrottle throttle, SetupPhase setupPhase, Sessions sessions, AuditWriter audit,
 			JdbcTemplate jdbc, Clock clock, PasswordPolicies policies, PersonSessions personSessions,
-			Passkeys passkeys) {
+			Passkeys passkeys, LoginMetrics metrics) {
 		this.accounts = accounts;
 		this.passwords = passwords;
 		this.credentials = credentials;
@@ -105,6 +107,7 @@ public class LocalLogin {
 		this.policies = policies;
 		this.personSessions = personSessions;
 		this.passkeys = passkeys;
+		this.metrics = metrics;
 	}
 
 	/** Client data of the request, for the session and the throttling. */
@@ -119,6 +122,10 @@ public class LocalLogin {
 	 */
 	@Transactional(noRollbackFor = SecondFactorRequiredException.class)
 	public Sessions.NewSession login(String loginName, String password, Client client) {
+		return this.metrics.time("password", () -> passwordStep(loginName, password, client));
+	}
+
+	private Sessions.NewSession passwordStep(String loginName, String password, Client client) {
 		long wait = this.throttle.retryAfterSeconds(loginName, client.address());
 		if (wait > 0) {
 			throw new InvalidCredentialsException(wait);
@@ -219,6 +226,10 @@ public class LocalLogin {
 	 */
 	@Transactional(noRollbackFor = InvalidCredentialsException.class)
 	public Sessions.NewSession loginWithTotp(String loginTransaction, String code, Client client) {
+		return this.metrics.time("password-totp", () -> totpStep(loginTransaction, code, client));
+	}
+
+	private Sessions.NewSession totpStep(String loginTransaction, String code, Client client) {
 		Instant now = this.clock.instant();
 		byte[] hash = sha256(loginTransaction);
 		Optional<Owner> owner = this.jdbc.query("""
@@ -272,6 +283,12 @@ public class LocalLogin {
 	 */
 	@Transactional(noRollbackFor = InvalidCredentialsException.class)
 	public Sessions.NewSession loginWithPasskey(String loginTransaction, UUID challengeId, String assertionJson,
+			Client client) {
+		return this.metrics.time("password-passkey",
+				() -> passkeyStep(loginTransaction, challengeId, assertionJson, client));
+	}
+
+	private Sessions.NewSession passkeyStep(String loginTransaction, UUID challengeId, String assertionJson,
 			Client client) {
 		Instant now = this.clock.instant();
 		byte[] hash = sha256(loginTransaction);

@@ -74,9 +74,19 @@ The queries of the login path are:
 
 If the measurement exceeds the target, `EXPLAIN` of these queries decides which index is missing. A migration `V15__login_indexes.sql` adds it only in that case, so no speculative indexes are created.
 
+**Result (implementation, 2026-10-30):** every query of the login path has an index already:
+
+- `person_identities_login_key` (issuer, subject);
+- `persons_email_lower`;
+- `idp_group_mappings_live` (issuer, group identifier, role);
+- `role_assignments_granted` (person);
+- the primary key of `role_permissions`.
+
+The measurement gives a p95 of 43 ms for password logins, most of it the argon2id verification, and 14 ms for OIDC logins. No migration was added.
+
 ## Data Model
 
-Only if D3 adds indexes: a note in `docs/data-model.puml`.
+No change: D3 found no missing index.
 
 ## API
 
