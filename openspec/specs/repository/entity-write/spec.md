@@ -24,7 +24,7 @@ Trace: REQ-153 (error cases), ADR-022, US-141 AC1
 
 ### Requirement: Property values checked against the mapped definitions
 
-The system SHALL accept a property value only for a property definition with an active mapping for the metatype of the entity (the mapping with the latest `validFrom` not after today) and SHALL convert and check it according to the data type, length, range, pattern and enum values of the definition. A value for a property without active mapping SHALL be ignored with a warning.
+The system SHALL accept a property value only for a property definition with an active mapping for the metatype of the entity or one of its base types (the mapping with the latest `validFrom` not after today) and SHALL convert and check it according to the data type, length, range, pattern and enum values of the definition. A value for a property without active mapping SHALL be ignored with a warning.
 
 Trace: REQ-149 (error cases), ADR-022
 
@@ -40,9 +40,9 @@ Trace: REQ-149 (error cases), ADR-022
 
 ### Requirement: Necessity of properties
 
-A mandatory property without value SHALL be an error; a property with necessity `warning` without value SHALL produce a warning; an optional property without value SHALL produce no notice. When an entity is created, the default value of a mapping SHALL apply to a property without value.
+A mandatory property without value SHALL be an error, also for an entity marked as missing it; a property the writer cannot change SHALL NOT be checked. A property with necessity `warning` without value SHALL produce a warning. On create, the default value of a mapping SHALL apply to a property without value. Setting the value SHALL clear the mark.
 
-Trace: REQ-149 AC1, AC2, ADR-022
+Trace: REQ-149 AC1, AC2, ADR-022, owner decision 2026-10-31
 
 #### Scenario: Mandatory property missing
 
@@ -53,6 +53,16 @@ Trace: REQ-149 AC1, AC2, ADR-022
 
 - **WHEN** an entity of a metatype with a property of necessity `warning` is written without a value for it
 - **THEN** the entity is written and the result contains a warning with the field `properties[<property name>]`
+
+#### Scenario: Marked entity written again
+
+- **WHEN** an entity marked as missing the mandatory property `Trust Level` is written with a changed description and without `Trust Level`
+- **THEN** the entity is rejected with 422 and code `MANDATORY_MISSING`
+
+#### Scenario: Mandatory property the writer cannot change
+
+- **WHEN** an entity is written without a value for a mandatory property whose visibility mode is not `public`
+- **THEN** the missing value is not reported and the entity is written
 
 ### Requirement: Versioned changes with delta history
 
