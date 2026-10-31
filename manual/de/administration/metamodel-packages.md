@@ -33,6 +33,7 @@ Eigene Pakete verwenden dasselbe JSON-Format (`MetamodelPackage`, mit `packageId
 
 - Ein Paket wird vollständig oder gar nicht importiert. Importierte Inhalte bekommen den Scope `imported` und das Paket als Herkunft.
 - Ein erneuter Import desselben Pakets aktualisiert dessen eigene Inhalte. Inhalte eines anderen Pakets oder deiner Organisation werden nie überschrieben; die Antwort ist `409` mit der Liste der Konflikte.
+- Ein Paket kann für einen Entitätstyp einen Basistyp nennen (`baseMetatypeId`): einen Entitätstyp desselben Pakets oder einen eingebauten. Deine eigenen Eigenschaften an seinen Entitätstypen bleiben oder werden entfernt, je nach Einstellung für den erneuten Import (siehe [Metamodell bearbeiten](./metamodel-editing)).
 - Pakete, die größer als `oea.metamodel.import.max-size` sind (Standard 10 MB), werden mit `413` abgelehnt; fehlerhaftes JSON oder Inhalte, die nicht zum Format passen, mit `422` und der Stelle des Problems.
 - Die Strategie `replace`, Viewpoints, Shape-Zuordnungen und Übersetzungspakete werden noch nicht unterstützt (`422`).
 

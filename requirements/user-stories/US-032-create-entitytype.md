@@ -55,4 +55,6 @@ As a Lead Enterprise Architect, I want to be able to define new entity types in 
 
 ## Notes
 
+Realigned by OpenSpec change `us-032-metatype-editing` (owner decisions 2026-10-30 and 2026-10-31): the change provides the API (`/metamodel/metatypes`, `/metamodel/property-definitions`, `/metamodel/property-categories`, property mappings) instead of `POST /admin/metamodel/entity-types`; the form follows with SCR-030 in S7 change 4, so the status stays until then. AC1 without the relation, which follows with the connection metatypes in S8 (US-036); base types (`baseMetatypeId`) are part of this change with inheritance of property mappings. AC2: a name already used by any metatype – built-in, imported or organization – is rejected with 409, compared case-insensitively. AC3: every change is audited with the acting person. Organization properties may be mapped to imported and built-in metatypes; removing a property deletes its values, a new mandatory property marks existing entities without a value.
+
 5 SP because of the form complexity (dynamically addable properties and relations, dropdown for base types and target types from the existing metamodel). Built-in types are shown in the UI by badge or greyed out.

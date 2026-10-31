@@ -86,8 +86,13 @@ The active necessity is determined via a "latest valid_from ≤ today" query (AD
 - **Prerequisites**: REQ-148 (effective date mechanism)
 - **Consequences**: US-138
 
+## Notes on the Implementation
+
+- OpenSpec change `us-032-metatype-editing` (owner decision 2026-10-31): the mandatory check covers only properties the writer can change (today properties with visibility `public`); a mandatory property mapped after entities were written marks the entities without a value instead of failing, and such an entity is rejected only when it is written again without the value.
+
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft from ADR-022 |
+| 0.2.0 | 2026-10-31 | requirements-engineer | Note on the mandatory check and marks (change `us-032-metatype-editing`) |

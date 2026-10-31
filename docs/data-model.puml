@@ -760,6 +760,9 @@ package "Metamodel" #E8F5E9 {
     + edit_mode        : TEXT             {NN} DEFAULT 'gui-and-import'
     .. enum: gui-and-import | import-only ..
     + rules_edit_mode  : TEXT             {NN} DEFAULT 'gui-and-import'
+    + reimport_organization_mappings : TEXT {NN} DEFAULT 'keep'
+    .. enum: keep | remove; whether a package re-import removes organization ..
+    .. mappings of imported metatypes (V15, us-032-metatype-editing D8) ..
     + last_modified_at : TIMESTAMPTZ      {NN} DEFAULT NOW()
     + last_modified_by_person_id : BIGINT {FK→persons.id}
     + last_modified_by_admin_id  : UUID   {FK→system_admin_accounts.id}
@@ -789,7 +792,13 @@ package "Metamodel" #E8F5E9 {
     + source_package_id     : TEXT
     + source_package_version : TEXT
     .. origin package; NOT NULL iff scope = 'imported' ..
-    .. UNIQUE(config_id, name) ..
+    .. UNIQUE(config_id, name); names compared case-insensitively by the service ..
+    + base_metatype_id      : UUID        {FK→metatypes.id}
+    .. base type: the metatype inherits the property mappings of all its base types; ..
+    .. CHECK base_metatype_id <> id; cycles rejected by the service (V15) ..
+    + reimport_organization_mappings : TEXT {NN} DEFAULT 'inherit'
+    .. enum: inherit | keep | remove; 'inherit' follows the base type, then the ..
+    .. global setting of metamodel_configurations; writable for every scope (V15) ..
     + created_at            : TIMESTAMPTZ {NN} DEFAULT NOW()
     + created_by            : BIGINT      {FK→persons.id}
     .. NULL for content of packages and of the software ..
@@ -878,6 +887,9 @@ package "Metamodel – Properties" #E0F2F1 {
     + source_package_id      : TEXT
     + source_package_version : TEXT
     .. as metatypes (ADR-002) ..
+    + retired_at      : TIMESTAMPTZ
+    .. set when a definition referenced by the entity history is deleted: hidden, ..
+    .. not mappable, name stays taken (V15, us-032-metatype-editing D5) ..
     + created_at      : TIMESTAMPTZ       {NN} DEFAULT NOW()
     + created_by      : BIGINT            {FK→persons.id}
   }
@@ -928,10 +940,15 @@ package "Metamodel – Properties" #E0F2F1 {
     + sort_order      : INTEGER           {NN} DEFAULT 0
     + created_at      : TIMESTAMPTZ       {NN} DEFAULT NOW()
     + created_by      : BIGINT            {FK→persons.id}
+    .. scope of a mapping = scope of its property definition: an organization ..
+    .. definition may be mapped to any metatype; a re-import replaces only the ..
+    .. mappings of package definitions (us-032-metatype-editing D5, D8); ..
+    .. a property is mapped at most once in a base type chain ..
   }
 
   property_categories  "0..1" --o{ "0..*" property_definitions       : groups
   property_definitions "1"    --o{ "0..*" property_enum_values       : defines values
+  metatypes            "0..1" --o{ "0..*" metatypes                  : base_metatype_id
   metatypes            "1"    --o{ "0..*" metatype_property_mappings : mapped in
   property_definitions "1"    --o{ "0..*" metatype_property_mappings : used by
   property_definitions "1"    --o{ "0..*" property_visibility_roles  : visible to
@@ -1077,6 +1094,15 @@ package "Repository" #FCE4EC {
     .. CHECK: at most one value_* column NOT NULL ..
   }
 
+  class entity_mandatory_marks <<Table>> #F8BBD9 {
+    + entity_id       : INTEGER           {PK} {FK→entities.id}
+    + property_def_id : UUID              {PK} {FK→property_definitions.id}
+    --
+    + marked_at       : TIMESTAMPTZ       {NN} DEFAULT NOW()
+    .. entity misses a mandatory property mapped after it was written; cleared when ..
+    .. the entity gets a value or the property is removed (V15, us-032-metatype-editing D7) ..
+  }
+
   class entity_property_value_history <<Table>> #F8BBD9 {
     + id              : BIGSERIAL         {PK}
     --
@@ -1163,6 +1189,7 @@ package "Repository" #FCE4EC {
   entities             "1"    --o{ "0..*" entity_connections             : is connection
   entities             "1"    --o{ "0..*" entity_property_values         : has values
   entities             "1"    --o{ "0..*" entity_property_value_history  : property log
+  entities             "1"    --o{ "0..*" entity_mandatory_marks         : marked as missing
   entities             "1"    --o{ "0..*" entity_version_headers         : version log
   entities             "1"    --o{ "0..*" entity_system_field_history    : system field log
   entities             "0..1" --o{ "0..*" entities                       : parent_entity_id

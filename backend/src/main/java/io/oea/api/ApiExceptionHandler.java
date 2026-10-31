@@ -23,6 +23,7 @@ import io.oea.app.login.PasskeysUnavailableException;
 import io.oea.app.login.InvalidTotpCodeException;
 import io.oea.app.login.SecondFactorRequiredException;
 import io.oea.app.metamodel.InvalidPackageException;
+import io.oea.app.metamodel.MetamodelChangeException;
 import io.oea.app.metamodel.PackageImporter;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.PermissionDenials;
@@ -367,6 +368,26 @@ public class ApiExceptionHandler {
 				ex.getMessage());
 		problem.setProperty("pointer", ex.getPointer());
 		return ResponseEntity.unprocessableContent().body(problem);
+	}
+
+	@ExceptionHandler(MetamodelChangeException.class)
+	ResponseEntity<ProblemDetail> metamodelChange(MetamodelChangeException ex) {
+		ProblemDetail problem = switch (ex.getReason()) {
+			case READ_ONLY -> problem(HttpStatus.CONFLICT, "read-only-metatype", "Read-only metamodel content",
+					ex.getMessage());
+			case NAME_TAKEN -> problem(HttpStatus.CONFLICT, "name-taken", "Name taken", ex.getMessage());
+			case IN_USE -> problem(HttpStatus.CONFLICT, "in-use", "Still in use", ex.getMessage());
+			case CONFLICT -> problem(HttpStatus.CONFLICT, "conflict", "Conflict", ex.getMessage());
+			case INVALID -> problem(HttpStatus.UNPROCESSABLE_CONTENT, "validation-failed", "Invalid metamodel change",
+					ex.getMessage());
+		};
+		if (!ex.getInvalidFields().isEmpty()) {
+			problem.setProperty("invalidFields", ex.getInvalidFields());
+		}
+		if (ex.getCount() != null) {
+			problem.setProperty("count", ex.getCount());
+		}
+		return ResponseEntity.status(problem.getStatus()).body(problem);
 	}
 
 	@ExceptionHandler(NoSuchElementException.class)

@@ -46,18 +46,22 @@ See proposal.md – Why. Relevant current state (after `us-008-login-latency`):
 
 Services in `io.oea.app.metamodel`, each `@Transactional` per operation: `MetatypeEditing` (metatypes, base types), `PropertyDefinitions` (definitions, enum values, categories), `PropertyMappings` (mappings, marks), `ReimportPolicies` (global and per-metatype setting, resolution).
 
-| Exception | Status | Problem type |
+One exception `MetamodelChangeException` with a reason, mapped by `ApiExceptionHandler`:
+
+| Reason | Status | Problem type |
 |---|---|---|
-| `ReadOnlyMetamodelException` | 409 | `urn:oea:problem:read-only-metatype` |
-| `MetamodelNameTakenException` | 409 | `urn:oea:problem:name-taken` |
-| `MetamodelInUseException` (with `count`) | 409 | `urn:oea:problem:in-use` |
-| property mapped twice in a base type chain | 409 | `urn:oea:problem:conflict` |
-| validation (data type, `isConnection: true`, base type cycle, unknown configuration) | 422 | `urn:oea:problem:validation-failed` with `invalidFields` |
+| `READ_ONLY` | 409 | `urn:oea:problem:read-only-metatype` |
+| `NAME_TAKEN` | 409 | `urn:oea:problem:name-taken` |
+| `IN_USE` (with `count`) | 409 | `urn:oea:problem:in-use` |
+| `CONFLICT` – property mapped twice in a base type chain | 409 | `urn:oea:problem:conflict` |
+| `INVALID` – data type, `isConnection: true`, base type cycle, unknown configuration | 422 | `urn:oea:problem:validation-failed` with `invalidFields` |
+
+`MetamodelEffects` holds the shared parts: the lock on the instance configuration, base type chains and the effects of a change (D6, D7).
 
 ### D2: Names and storage name
 
 - **Uniqueness:** names are compared with `lower(name)` across all scopes – metatypes within the instance configuration, property definitions and categories globally. The unique constraints stay as the last line; a violation maps to `name-taken`.
-- **Storage name:** derived from the name: lower case, every run of characters outside `[a-z0-9]` becomes `_`, leading and trailing `_` removed, a leading digit gets the prefix `p_`, cut to 63 characters; a reserved name or a collision gets the suffix `_2`, `_3`, … It is not part of `PropertyDefinitionWrite` and never changes. `SQL_COLUMN` and `RESERVED_COLUMNS` move into a helper `StorageNames`.
+- **Storage name:** derived from the name as for packages (camel case split, lower case, every run of characters outside `[a-z0-9]` becomes `_`, leading and trailing `_` removed); a name not starting with a letter gets the prefix `p_`, cut to 63 characters; a reserved name or a collision gets the suffix `_2`, `_3`, … It is not part of `PropertyDefinitionWrite` and never changes. The derivation, `SQL_COLUMN` and `RESERVED_COLUMNS` move into a helper `StorageNames` used by the package validator as well.
 
 ### D3: Migration `V15__metatype_editing.sql`
 
@@ -85,7 +89,9 @@ Services in `io.oea.app.metamodel`, each `@Transactional` per operation: `Metaty
 
 ### D6: Removing values
 
-`EntityStore.removeValues(propertyDefId, metatypeIds, enumValue, actor)` deletes the matching rows of `entity_property_values` for the entities of the given metatypes (the metatype and its subtypes) and writes for each affected entity a new version with the delta of the removed value, authored by the actor with the change note `metamodel change`. Marks of the property on these entities are deleted. The count goes into the audit event of the metamodel change. One statement per step (`DELETE … RETURNING`, `INSERT … SELECT`) keeps the cost linear without loading entities.
+`PropertyValueStore.removeValues(propertyDefId, metatypeIds, enumValue, personId)` (`io.oea.core.entity`) deletes the matching rows of `entity_property_values` for the entities of the given metatypes (the metatype and its subtypes) and writes for each affected entity a new version with the delta of the removed value, authored by the actor with the change note `metamodel change`. Marks of the property on these entities are deleted. The count goes into the audit event of the metamodel change. One statement per step (`DELETE … RETURNING`, `INSERT … SELECT`) keeps the cost linear without loading entities. The author is always a person: `metamodel:write` is held only by `metamodel-admin` (V3), not by the system admin account.
+
+All changes take a snapshot of the effective mappings (metatype → property → necessity, inherited ones included) before and apply the difference afterwards: properties a metatype lost have their values removed, properties that became mandatory mark the entities without a value. Mapping changes, base type changes and package imports use the same mechanism; the catalog query (`CatalogQueryStore`) resolves inherited mappings as well.
 
 ### D7: Mappings and marks
 

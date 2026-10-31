@@ -259,6 +259,16 @@ components:
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
+    MetamodelConflict:
+      description: |
+        The metamodel change conflicts with the current state (US-032, ADR-002). Problem
+        types: `urn:oea:problem:read-only-metatype` (built-in or imported content),
+        `urn:oea:problem:name-taken` (name used already, compared case-insensitively),
+        `urn:oea:problem:in-use` (still used; `count` gives the number of entities where
+        it applies) and `urn:oea:problem:conflict` (property mapped twice in a base type chain).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
     NotImplemented:
       description: |
         The operation is part of the published contract but not implemented in this release
@@ -527,6 +537,22 @@ components:
             architectureLayer:  { type: [string, 'null'] }
             sortOrder:          { type: integer }
             scope:              { $ref: '#/components/schemas/MetamodelScope' }
+            baseMetatypeId:
+              type: [string, 'null']
+              format: uuid
+              description: |
+                Base type; the metatype inherits its property mappings. In a package: a metatype
+                of the same package or a built-in one.
+            reimportPolicy:
+              type: string
+              enum: [inherit, keep, remove]
+              readOnly: true
+              description: Own re-import setting for organization mappings (`updateMetatypeReimportPolicy`); ignored in packages
+            effectiveReimportPolicy:
+              type: string
+              enum: [keep, remove]
+              readOnly: true
+              description: Setting that applies, resolved along the base types up to the global setting
             sourcePackage:
               oneOf:
                 - $ref: '#/components/schemas/SourcePackage'
@@ -548,10 +574,31 @@ components:
       properties:
         name:                 { type: string }
         abbreviation:         { type: string }
-        isConnection:         { type: boolean, default: false }
+        isConnection:         { type: boolean, default: false, description: "Must be `false` until connection metatypes are supported (422); cannot change" }
         architectureLayerId:  { type: [string, 'null'] }
         sortOrder:            { type: integer, default: 0 }
-        configId:             { type: string, format: uuid }
+        configId:             { type: string, format: uuid, description: The instance configuration }
+        baseMetatypeId:       { type: [string, 'null'], format: uuid, description: "Base type; no cycles (422)" }
+
+    MetatypeReimportPolicy:
+      type: object
+      required: [organizationMappings]
+      properties:
+        organizationMappings:
+          type: string
+          enum: [inherit, keep, remove]
+          description: Whether a package re-import keeps or removes the organization mappings of the metatype; `inherit` follows the base type
+
+    ReimportPolicy:
+      type: object
+      required: [organizationMappings]
+      description: Global re-import setting of the instance metamodel configuration
+      properties:
+        organizationMappings:
+          type: string
+          enum: [keep, remove]
+          default: keep
+          description: Whether a package re-import keeps or removes organization mappings of imported metatypes; removing deletes their values
 
     # ── Property categories ───────────────────────────────────────────────────
     PropertyCategory:
@@ -593,6 +640,7 @@ components:
           enum: [string, integer, boolean, enum, reference, date, url, text]
         category:       { oneOf: [ { $ref: '#/components/schemas/PropertyCategory' }, { type: 'null' } ] }
         refMetatype:    { oneOf: [ { $ref: '#/components/schemas/MetatypeSummary' }, { type: 'null' } ] }
+        sqlColumnName:  { type: string, readOnly: true, description: Storage name derived from the name; never changes }
         maxLength:      { type: [integer, 'null'] }
         minValue:       { type: [number, 'null'] }
         maxValue:       { type: [number, 'null'] }
@@ -622,6 +670,7 @@ components:
         dataType:
           type: string
           enum: [string, integer, boolean, enum, reference, date, url, text]
+          description: "`reference` is rejected with 422 until connection metatypes are supported"
         categoryId:     { type: [string, 'null'], format: uuid }
         refMetatypeId:  { type: [string, 'null'], format: uuid }
         maxLength:      { type: [integer, 'null'] }
@@ -641,6 +690,21 @@ components:
           enum: [mandatory, warning, optional]
         validFrom:          { type: string, format: date }
         sortOrder:          { type: integer }
+        scope:
+          allOf:
+            - $ref: '#/components/schemas/MetamodelScope'
+          readOnly: true
+          description: "`organization` for a mapping of an organization property definition, otherwise the scope of the package or built-in content"
+        inheritedFrom:
+          oneOf:
+            - $ref: '#/components/schemas/MetatypeSummary'
+            - type: 'null'
+          readOnly: true
+          description: Base type that owns the mapping; null for an own mapping
+        markedEntityCount:
+          type: integer
+          readOnly: true
+          description: Only in the response of `createPropertyMapping`; entities marked as missing the new mandatory property
         defaultValue:
           type: [object, 'null']
           description: Optional default value (typed)
@@ -653,13 +717,13 @@ components:
 
     MetatypePropertyMappingWrite:
       type: object
-      required: [propertyDefId, necessity, validFrom]
+      required: [propertyDefId, necessity]
       properties:
         propertyDefId: { type: string, format: uuid }
         necessity:
           type: string
           enum: [mandatory, warning, optional]
-        validFrom:     { type: string, format: date }
+        validFrom:     { type: string, format: date, description: Defaults to today }
         sortOrder:     { type: integer, default: 0 }
         defaultValue:
           type: [object, 'null']
@@ -3951,9 +4015,13 @@ paths:
     post:
       operationId: createMetatype
       summary: Create new metatype
+      description: |
+        Creates a metatype with `scope=organization` in the instance configuration (US-032).
+        `isConnection: true` is rejected with 422 until connection metatypes are supported.
+        A name already used by any metatype, compared case-insensitively, gives 409 with
+        problem type `urn:oea:problem:name-taken`.
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
-      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -3967,13 +4035,10 @@ paths:
               schema: { $ref: '#/components/schemas/MetatypeDetail' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '409':
-          description: Name/abbreviation already taken
-          content:
-            application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /metamodel/metatypes/{id}:
     get:
@@ -4000,9 +4065,13 @@ paths:
     put:
       operationId: updateMetatype
       summary: Update metatype
+      description: |
+        Changes a metatype with `scope=organization`, including its base type; built-in and
+        imported metatypes give 409 `read-only-metatype`. A changed base type removes the
+        values of properties no longer inherited and marks entities that miss a newly
+        inherited mandatory property.
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -4023,15 +4092,19 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     delete:
       operationId: deleteMetatype
       summary: Delete metatype
-      description: Only possible if no entities of this type exist.
+      description: |
+        Only for `scope=organization`, and only while no entities of the metatype exist (also
+        deleted ones), no catalog uses it as primary metatype and no metatype has it as base
+        type (409 `in-use` with `count`, the number of entities).
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -4039,12 +4112,9 @@ paths:
           description: Deleted
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '409':
-          description: Metatype still has entities
-          content:
-            application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /metamodel/metatypes/{id}/property-mappings:
     get:
@@ -4052,12 +4122,13 @@ paths:
       summary: Property mappings of a metatype
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
         '200':
-          description: Mappings (current state, latest valid_from per property)
+          description: |
+            Mappings (current state, latest valid_from per property), including the mappings
+            inherited from the base types (`inheritedFrom`)
           content:
             application/json:
               schema:
@@ -4066,13 +4137,20 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       operationId: createPropertyMapping
-      summary: Create property mapping (or effective-date change)
+      summary: Create property mapping
+      description: |
+        Maps an organization property definition to any metatype, also an imported or built-in
+        one. A property already mapped in the base type chain of the metatype or its subtypes
+        gives 409 `urn:oea:problem:conflict`; a package definition gives 409
+        `read-only-metatype`. A mandatory mapping marks every existing entity of the metatype
+        and its subtypes without a value (`markedEntityCount`); such an entity is rejected
+        when written again without the value. Changing the necessity by effective date
+        follows (US-137).
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -4089,9 +4167,104 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /metamodel/metatypes/{id}/property-mappings/{mappingId}:
+    delete:
+      operationId: deletePropertyMapping
+      summary: Remove property mapping
+      description: |
+        Removes an organization mapping at any time; mappings of a package give 409
+        `read-only-metatype`. The values of the property are deleted from the entities of the
+        metatype and its subtypes; each affected entity gets a new version in its history.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - name: mappingId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Removed
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /metamodel/metatypes/{id}/reimport-policy:
+    put:
+      operationId: updateMetatypeReimportPolicy
+      summary: Set the re-import setting of a metatype
+      description: |
+        Whether a package re-import removes the organization mappings of this metatype:
+        `inherit` takes the setting of the base type, at the top of the chain the global
+        setting. Possible for every scope; a re-import never changes it.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MetatypeReimportPolicy' }
+      responses:
+        '200':
+          description: Metatype with the new setting
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MetatypeDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /metamodel/settings/reimport-policy:
+    get:
+      operationId: getReimportPolicy
+      summary: Global re-import setting
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      responses:
+        '200':
+          description: Global setting of the instance metamodel configuration
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReimportPolicy' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    put:
+      operationId: updateReimportPolicy
+      summary: Change the global re-import setting
+      description: |
+        Applies to every metatype whose own setting and those of its base types are `inherit`.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReimportPolicy' }
+      responses:
+        '200':
+          description: Changed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReimportPolicy' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /metamodel/property-categories:
     get:
@@ -4099,7 +4272,6 @@ paths:
       summary: List property categories
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
-      x-oea-status: planned
       responses:
         '200':
           description: Categories
@@ -4110,13 +4282,12 @@ paths:
                 items: { $ref: '#/components/schemas/PropertyCategory' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       operationId: createPropertyCategory
       summary: Create property category
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
-      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -4130,9 +4301,10 @@ paths:
               schema: { $ref: '#/components/schemas/PropertyCategory' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /metamodel/property-categories/{id}:
     put:
@@ -4140,7 +4312,6 @@ paths:
       summary: Update property category
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -4161,14 +4332,15 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     delete:
       operationId: deletePropertyCategory
       summary: Delete property category
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -4176,12 +4348,9 @@ paths:
           description: Deleted
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '409':
-          description: Category still has property definitions
-          content:
-            application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /metamodel/property-definitions:
     get:
@@ -4189,7 +4358,6 @@ paths:
       summary: List property definitions
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
-      x-oea-status: planned
       parameters:
         - name: categoryId
           in: query
@@ -4208,13 +4376,16 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       operationId: createPropertyDefinition
       summary: Create property definition
+      description: |
+        Creates a property definition with `scope=organization`. The data type `reference`
+        is rejected with 422 until connection metatypes are supported. The storage name
+        (`sqlColumnName`) is derived from the name and never changes.
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
-      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -4228,17 +4399,20 @@ paths:
               schema: { $ref: '#/components/schemas/PropertyDefinitionDetail' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /metamodel/property-definitions/{id}:
     put:
       operationId: updatePropertyDefinition
       summary: Update property definition
+      description: |
+        Changes an organization property definition; the data type changes only while no entity
+        value exists, also in the history (409 `in-use`).
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -4259,14 +4433,18 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     delete:
       operationId: deletePropertyDefinition
       summary: Delete property definition
+      description: |
+        Only while the definition is not mapped (409 `in-use`). A definition that appears in the
+        entity history is retired instead: it is no longer listed, and its name stays taken.
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -4274,12 +4452,9 @@ paths:
           description: Deleted
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '409':
-          description: Definition still has mappings or values
-          content:
-            application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /metamodel/property-definitions/{id}/enum-values:
     get:
@@ -4287,7 +4462,6 @@ paths:
       summary: Enum values of a property definition
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -4301,13 +4475,12 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       operationId: createEnumValue
       summary: Create enum value
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -4329,9 +4502,34 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /metamodel/property-definitions/{id}/enum-values/{valueId}:
+    delete:
+      operationId: deleteEnumValue
+      summary: Delete enum value
+      description: |
+        Deletes a value of an organization enum property; the value is removed from the
+        entities that hold it, each getting a new version in its history.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - name: valueId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Deleted
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  ADMIN (SCR-031–038)                                                   ║

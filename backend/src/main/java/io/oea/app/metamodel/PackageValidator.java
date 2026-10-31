@@ -1,7 +1,9 @@
 package io.oea.app.metamodel;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
@@ -17,12 +19,6 @@ public final class PackageValidator {
 	static final int MAXIMUM_ELEMENTS = 10_000;
 
 	private static final Pattern PACKAGE_ID = Pattern.compile("^[a-z0-9][a-z0-9-]{1,62}$");
-
-	private static final Pattern SQL_COLUMN = Pattern.compile("^[a-z][a-z0-9_]{0,62}$");
-
-	/** Columns of every reporting view (ADR-034 DM-6). */
-	private static final Set<String> RESERVED_COLUMNS = Set.of("id", "urn", "metatype_id", "name", "description",
-			"is_logical", "created_at", "updated_at");
 
 	private static final Set<String> DATA_TYPES = Set.of("string", "integer", "boolean", "enum", "reference", "date",
 			"url", "text");
@@ -71,8 +67,8 @@ public final class PackageValidator {
 			require(notBlank(property.name()) && propertyNames.add(key(property.name())), pointer + "/name",
 					"Missing or duplicate property name.");
 			require(DATA_TYPES.contains(property.dataType()), pointer + "/dataType", "Unknown data type.");
-			String column = sqlColumnName(property.name());
-			require(SQL_COLUMN.matcher(column).matches() && !RESERVED_COLUMNS.contains(column) && columns.add(column),
+			String column = StorageNames.derive(property.name());
+			require(StorageNames.usable(column) && columns.add(column),
 					pointer + "/name", "The name '" + property.name() + "' gives the SQL column name '" + column
 							+ "', which is invalid, reserved or used twice.");
 			require(property.categoryId() == null || categoryIds.contains(property.categoryId()),
@@ -102,6 +98,8 @@ public final class PackageValidator {
 					pointer + "/name", "Missing, too long or duplicate metatype name.");
 			require(metatype.abbreviation() == null || metatype.abbreviation().length() <= 10, pointer + "/abbreviation",
 					"The abbreviation has more than 10 characters.");
+			require(!metatype.id().equals(metatype.baseMetatypeId()), pointer + "/baseMetatypeId",
+					"A metatype cannot be its own base type.");
 			limit(metatype.mappings(), pointer + "/propertyMappings");
 			for (int j = 0; j < metatype.mappings().size(); j++) {
 				PackageDefinition.Mapping mapping = metatype.mappings().get(j);
@@ -114,16 +112,20 @@ public final class PackageValidator {
 						"Necessity or validity date missing.");
 			}
 		}
+		noCycles(definition);
 	}
 
-	/** Stable SQL column name derived from a property name (ADR-034 DM-6). */
-	public static String sqlColumnName(String name) {
-		String column = name.strip()
-			.replaceAll("([a-z0-9])([A-Z])", "$1_$2")
-			.toLowerCase(Locale.ROOT)
-			.replaceAll("[^a-z0-9]+", "_")
-			.replaceAll("^_+|_+$", "");
-		return column.isEmpty() ? "_" : column;
+	/** Base types within the package form no cycle (us-032-metatype-editing D4). */
+	private static void noCycles(PackageDefinition definition) {
+		Map<UUID, UUID> bases = new HashMap<>();
+		definition.metatypes().stream().filter((metatype) -> metatype.baseMetatypeId() != null)
+			.forEach((metatype) -> bases.put(metatype.id(), metatype.baseMetatypeId()));
+		for (int i = 0; i < definition.metatypes().size(); i++) {
+			Set<UUID> seen = new HashSet<>();
+			for (UUID type = definition.metatypes().get(i).id(); type != null; type = bases.get(type)) {
+				require(seen.add(type), "/metatypes/" + i + "/baseMetatypeId", "The base types form a cycle.");
+			}
+		}
 	}
 
 	private static String key(String name) {

@@ -8,6 +8,7 @@ import io.oea.core.entity.EntityStore;
 import io.oea.core.entity.EntityStore.FieldChange;
 import io.oea.core.entity.EntityStore.Fields;
 import io.oea.core.entity.EntityStore.StoredEntity;
+import io.oea.core.entity.PropertyValueStore;
 import io.oea.core.entity.TypedValue;
 import java.time.Clock;
 import java.time.Instant;
@@ -32,12 +33,15 @@ public class EntityWriter {
 
 	private final EntityStore store;
 
+	private final PropertyValueStore values;
+
 	private final AuditWriter audit;
 
 	private final Clock clock;
 
-	public EntityWriter(EntityStore store, AuditWriter audit, Clock clock) {
+	public EntityWriter(EntityStore store, PropertyValueStore values, AuditWriter audit, Clock clock) {
 		this.store = store;
+		this.values = values;
 		this.audit = audit;
 		this.clock = clock;
 	}
@@ -99,6 +103,8 @@ public class EntityWriter {
 			return new Written(Status.UNCHANGED, existing.id());
 		}
 		int version = this.store.update(existing, fields, fieldChanges, stored, newValues, principal.personId(), now);
+		// a value clears the mark of a missing mandatory property (us-032-metatype-editing D7)
+		this.values.clearMarks(existing.id(), checked.values().keySet());
 		fieldChanges.forEach((change) -> changes
 			.add(new AuditEvent.Change(null, change.field(), true, change.oldValue(), change.newValue())));
 		newValues.forEach((definition, value) -> {

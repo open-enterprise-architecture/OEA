@@ -83,6 +83,7 @@ final class MetamodelPackages {
 	private static PackageDefinition.Metatype metatype(MetatypeDetail metatype) {
 		return new PackageDefinition.Metatype(metatype.getId(), metatype.getName(), metatype.getAbbreviation(),
 				Boolean.TRUE.equals(metatype.getIsConnection()), Objects.requireNonNullElse(metatype.getSortOrder(), 0),
+				metatype.getBaseMetatypeId(),
 				list(metatype.getPropertyMappings()).stream().map(MetamodelPackages::mapping).toList());
 	}
 
