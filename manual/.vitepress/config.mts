@@ -42,6 +42,7 @@ const chapters: Chapter[] = [
       { path: 'identity-providers', title: { en: 'Identity providers and persons', de: 'Identity-Provider und Personen' } },
       { path: 'roles-and-permissions', title: { en: 'Roles and permissions', de: 'Rollen und Berechtigungen' } },
       { path: 'metamodel-packages', title: { en: 'Metamodel packages', de: 'Metamodell-Pakete' } },
+      { path: 'metamodel-editing', title: { en: 'Editing the metamodel', de: 'Metamodell bearbeiten' } },
       { path: 'operations', title: { en: 'Operations', de: 'Betrieb' } },
     ],
   },

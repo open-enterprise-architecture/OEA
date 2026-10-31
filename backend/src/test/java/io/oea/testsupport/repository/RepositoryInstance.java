@@ -13,7 +13,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * An OIDC test instance with the starter package imported: `dev-architect` holds
- * `enterprise-architect` (entity:write), `dev-viewer` holds `viewer`. Besides the starter
+ * `enterprise-architect` (entity:write), `dev-viewer` holds `viewer`, `dev-metamodel-admin`
+ * holds `metamodel-admin`. Besides the starter
  * types, the metatype "Checked Type" maps the mandatory property "Version", the property
  * "Owner" with necessity warning and the role-restricted property "Secret".
  */
@@ -25,14 +26,17 @@ public final class RepositoryInstance implements AutoCloseable {
 
 	private final Session viewer;
 
+	private final Session metamodelAdmin;
+
 	/** Session cookie and CSRF token. */
 	public record Session(String token, String csrfToken) {
 	}
 
-	private RepositoryInstance(OidcTestInstance instance, Session architect, Session viewer) {
+	private RepositoryInstance(OidcTestInstance instance, Session architect, Session viewer, Session metamodelAdmin) {
 		this.instance = instance;
 		this.architect = architect;
 		this.viewer = viewer;
+		this.metamodelAdmin = metamodelAdmin;
 	}
 
 	public static RepositoryInstance start() throws Exception {
@@ -50,7 +54,8 @@ public final class RepositoryInstance implements AutoCloseable {
 		instance.mapping("oea-viewers", "viewer");
 		Session metamodelAdmin = session(instance, instance.login("dev-metamodel-admin"));
 		RepositoryInstance repository = new RepositoryInstance(instance,
-				session(instance, instance.login("dev-architect")), session(instance, instance.login("dev-viewer")));
+				session(instance, instance.login("dev-architect")), session(instance, instance.login("dev-viewer")),
+				metamodelAdmin);
 		HttpResponse<String> imported = repository.post(
 				"/api/v1/admin/metamodel/starter-packages/oea-starter-togaf-classic/import", "", metamodelAdmin, Map.of());
 		if (imported.statusCode() != 200) {
@@ -103,6 +108,11 @@ public final class RepositoryInstance implements AutoCloseable {
 		return this.viewer;
 	}
 
+	/** `dev-metamodel-admin`, holding `metamodel-admin` (metamodel:write). */
+	public Session metamodelAdmin() {
+		return this.metamodelAdmin;
+	}
+
 	/** Logs in a user of the development realm as an active person; returns the session. */
 	public Session login(String username) throws Exception {
 		this.instance.person(username, "active");
@@ -117,6 +127,17 @@ public final class RepositoryInstance implements AutoCloseable {
 			.header("Content-Type", "application/json")
 			.POST(HttpRequest.BodyPublishers.ofString(body));
 		headers.forEach(request::header);
+		return this.instance.send(request);
+	}
+
+	/** A request with any method; {@code body} may be {@code null}. */
+	public HttpResponse<String> send(String method, String path, String body, Session session) throws Exception {
+		HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(this.instance.url() + path))
+			.header("Cookie", "__Host-OEA_SESSION=" + session.token())
+			.header("X-XSRF-TOKEN", session.csrfToken())
+			.header("Content-Type", "application/json")
+			.method(method, (body != null) ? HttpRequest.BodyPublishers.ofString(body)
+					: HttpRequest.BodyPublishers.noBody());
 		return this.instance.send(request);
 	}
 

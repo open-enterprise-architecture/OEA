@@ -149,8 +149,9 @@ GUI configuration is the primary path for organization-specific metamodel extens
 
 ## Implementation
 
-- ADR(s): –
-- Implemented by: –
+- Realized through the API by OpenSpec change `us-032-metatype-editing`; the graphical form (SCR-030) follows in S7 change 4. AC1 without relations (S8). AC3: deleting a metatype with entities, also deleted ones, is rejected with 409 `in-use` naming their number. AC4: a new mandatory property never blocks the change – existing entities without a value are marked and rejected only when written again; removing a property deletes its values with a new entity version (owner decision 2026-10-31). AC5: built-in and imported metatypes are read-only, organization properties may be mapped to them.
+- ADR(s): ADR-002, ADR-022
+- Implemented by: OpenSpec change `us-032-metatype-editing` (API)
 - Tests: –
 - Verification status: not-verified
 
@@ -159,3 +160,4 @@ GUI configuration is the primary path for organization-specific metamodel extens
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-10-31 | requirements-engineer | Implementation note (change `us-032-metatype-editing`) |

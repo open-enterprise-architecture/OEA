@@ -10,8 +10,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -20,7 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Atomic import of a metamodel package into the instance configuration (design D1, D2, D5;
  * REQ-114, ADR-002): new content gets {@code scope=imported} and the package as origin,
- * content of the same package is updated, content of others is never overwritten.
+ * content of the same package is updated, content of others is never overwritten. Organization
+ * mappings of re-imported metatypes are kept or removed by the re-import setting
+ * (us-032-metatype-editing D8).
  */
 @Service
 public class PackageImporter {
@@ -34,10 +38,20 @@ public class PackageImporter {
 
 	private final Clock clock;
 
-	public PackageImporter(JdbcTemplate jdbc, AuditWriter audit, Clock clock) {
+	private final MetamodelEffects effects;
+
+	private final PropertyMappings mappings;
+
+	private final ReimportPolicies policies;
+
+	public PackageImporter(JdbcTemplate jdbc, AuditWriter audit, Clock clock, MetamodelEffects effects,
+			PropertyMappings mappings, ReimportPolicies policies) {
 		this.jdbc = jdbc;
 		this.audit = audit;
 		this.clock = clock;
+		this.effects = effects;
+		this.mappings = mappings;
+		this.policies = policies;
 	}
 
 	/** Result of an import; counts refer to metatypes. */
@@ -71,8 +85,16 @@ public class PackageImporter {
 			rejected(principal, definition, "conflict");
 			throw new PackageConflictException(conflicts);
 		}
+		try {
+			checkBaseTypes(definition);
+		}
+		catch (InvalidPackageException ex) {
+			rejected(principal, definition, ex.getType());
+			throw ex;
+		}
 		Instant now = this.clock.instant();
 		UUID batchId = UUID.randomUUID();
+		MetamodelEffects.Snapshot before = this.effects.snapshot();
 		for (PackageDefinition.Category category : definition.categories()) {
 			upsertCategory(definition, category);
 		}
@@ -84,9 +106,21 @@ public class PackageImporter {
 			upsertProperty(definition, property);
 		}
 		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
+			actions.put(metatype.id(), setBaseType(metatype, actions.get(metatype.id())));
+		}
+		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
 			String action = replaceMappings(metatype, actions.get(metatype.id()));
 			actions.put(metatype.id(), action);
 		}
+		uniqueInChains(principal, definition);
+		// organization mappings are kept or removed by the re-import setting (us-032-metatype-editing D8)
+		Map<UUID, String> policies = this.policies.effective();
+		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
+			if ("remove".equals(policies.get(metatype.id()))) {
+				this.mappings.removeForReimport(principal, metatype.id(), batchId);
+			}
+		}
+		MetamodelEffects.Effects effects = this.effects.apply(before, principal);
 		int created = (int) actions.values().stream().filter("created"::equals).count();
 		int updated = (int) actions.values().stream().filter("updated"::equals).count();
 		this.jdbc.update("""
@@ -103,7 +137,8 @@ public class PackageImporter {
 				AuditEvent.Severity.INFO, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal),
 				"metamodel-package", definition.packageId(), Map.of("packageId", definition.packageId(), "version",
 						definition.version(), "batchId", batchId.toString(), "metatypesCreated", created,
-						"metatypesUpdated", updated)));
+						"metatypesUpdated", updated, "entitiesWithRemovedValues", sum(effects.removed()),
+						"entitiesMarked", sum(effects.marked()))));
 		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
 			String action = actions.get(metatype.id());
 			if (!"unchanged".equals(action)) {
@@ -128,7 +163,7 @@ public class PackageImporter {
 			check(conflicts, definition, "property definition " + property.name(), owners("""
 					SELECT scope, source_package_id FROM property_definitions
 					WHERE id = ? OR ((lower(name) = lower(?) OR sql_column_name = ?) AND id <> ?)""", property.id(),
-					property.name(), PackageValidator.sqlColumnName(property.name()), property.id()));
+					property.name(), StorageNames.derive(property.name()), property.id()));
 			for (PackageDefinition.EnumValue value : property.enumValues()) {
 				check(conflicts, definition, "enum value " + value.value(), owners("""
 						SELECT d.scope, d.source_package_id FROM property_enum_values v
@@ -218,7 +253,7 @@ public class PackageImporter {
 				    category_id = excluded.category_id, ref_metatype_id = excluded.ref_metatype_id,
 				    max_length = excluded.max_length, min_value = excluded.min_value, max_value = excluded.max_value,
 				    pattern = excluded.pattern, source_package_version = excluded.source_package_version""",
-				property.id(), property.name().strip(), PackageValidator.sqlColumnName(property.name()),
+				property.id(), property.name().strip(), StorageNames.derive(property.name()),
 				property.dataType(), property.categoryId(), property.refMetatypeId(), property.maxLength(),
 				property.minValue(), property.maxValue(), property.pattern(), definition.packageId(),
 				definition.version());
@@ -229,10 +264,62 @@ public class PackageImporter {
 		}
 	}
 
-	/** Replaces the mappings; a metatype whose mappings changed counts as updated. */
+	/** A base type outside the package must be a built-in metatype. */
+	private void checkBaseTypes(PackageDefinition definition) {
+		Set<UUID> own = new HashSet<>();
+		definition.metatypes().forEach((metatype) -> own.add(metatype.id()));
+		for (int i = 0; i < definition.metatypes().size(); i++) {
+			UUID base = definition.metatypes().get(i).baseMetatypeId();
+			if (base != null && !own.contains(base) && !Boolean.TRUE.equals(this.jdbc.queryForObject(
+					"SELECT EXISTS (SELECT 1 FROM metatypes WHERE id = ? AND scope = 'built-in')", Boolean.class, base))) {
+				throw new InvalidPackageException("invalid-package", "/metatypes/" + i + "/baseMetatypeId",
+						"The base type is neither part of the package nor built-in.");
+			}
+		}
+	}
+
+	/** Sets the base type; a metatype whose base type changed counts as updated. */
+	private String setBaseType(PackageDefinition.Metatype metatype, String action) {
+		int changed = this.jdbc.update(
+				"UPDATE metatypes SET base_metatype_id = ? WHERE id = ? AND base_metatype_id IS DISTINCT FROM ?::uuid",
+				metatype.baseMetatypeId(), metatype.id(), metatype.baseMetatypeId());
+		return (changed > 0 && "unchanged".equals(action)) ? "updated" : action;
+	}
+
+	/** A property may be mapped once in the base type chain of every metatype (design D4). */
+	private void uniqueInChains(OeaPrincipal principal, PackageDefinition definition) {
+		Map<UUID, UUID> bases = this.effects.bases();
+		for (int i = 0; i < definition.metatypes().size(); i++) {
+			UUID id = definition.metatypes().get(i).id();
+			Set<UUID> related = new HashSet<>(MetamodelEffects.chain(id, bases));
+			related.addAll(MetamodelEffects.subtree(id, bases));
+			Boolean duplicate = this.jdbc.queryForObject("""
+					SELECT EXISTS (SELECT 1 FROM metatype_property_mappings a JOIN metatype_property_mappings b
+					    ON a.property_def_id = b.property_def_id AND a.metatype_id <> b.metatype_id
+					WHERE a.metatype_id = ? AND b.metatype_id = ANY (?::uuid[]))""", Boolean.class, id,
+					MetamodelEffects.ids(related));
+			if (Boolean.TRUE.equals(duplicate)) {
+				InvalidPackageException ex = new InvalidPackageException("invalid-package",
+						"/metatypes/" + i + "/propertyMappings", "A property is mapped twice in the base type chain.");
+				rejected(principal, definition, ex.getType());
+				throw ex;
+			}
+		}
+	}
+
+	private static int sum(Map<UUID, Integer> counts) {
+		return counts.values().stream().mapToInt(Integer::intValue).sum();
+	}
+
+	/**
+	 * Replaces the mappings of the package and keeps organization mappings (us-032-metatype-editing
+	 * D8); a metatype whose package mappings changed counts as updated.
+	 */
 	private String replaceMappings(PackageDefinition.Metatype metatype, String action) {
 		List<String> before = mappingSignature(metatype.id());
-		this.jdbc.update("DELETE FROM metatype_property_mappings WHERE metatype_id = ?", metatype.id());
+		this.jdbc.update("""
+				DELETE FROM metatype_property_mappings m USING property_definitions p
+				WHERE m.property_def_id = p.id AND m.metatype_id = ? AND p.scope <> 'organization'""", metatype.id());
 		for (PackageDefinition.Mapping mapping : metatype.mappings()) {
 			this.jdbc.update("""
 					INSERT INTO metatype_property_mappings (id, metatype_id, property_def_id, necessity, valid_from,
@@ -248,8 +335,9 @@ public class PackageImporter {
 
 	private List<String> mappingSignature(UUID metatypeId) {
 		return this.jdbc.query("""
-				SELECT id || '|' || property_def_id || '|' || necessity || '|' || valid_from || '|' || sort_order
-				FROM metatype_property_mappings WHERE metatype_id = ? ORDER BY id""", (rs, n) -> rs.getString(1),
+				SELECT m.id || '|' || m.property_def_id || '|' || m.necessity || '|' || m.valid_from || '|' || m.sort_order
+				FROM metatype_property_mappings m JOIN property_definitions p ON p.id = m.property_def_id
+				WHERE m.metatype_id = ? AND p.scope <> 'organization' ORDER BY m.id""", (rs, n) -> rs.getString(1),
 				metatypeId);
 	}
 

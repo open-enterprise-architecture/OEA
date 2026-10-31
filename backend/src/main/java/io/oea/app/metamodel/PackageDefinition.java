@@ -24,8 +24,9 @@ public record PackageDefinition(String packageId, String version, String publish
 	public record EnumValue(UUID id, String value, int sortOrder) {
 	}
 
+	/** @param baseMetatypeId base type: a metatype of the package or a built-in one, or {@code null} */
 	public record Metatype(UUID id, String name, String abbreviation, boolean connection, int sortOrder,
-			List<Mapping> mappings) {
+			UUID baseMetatypeId, List<Mapping> mappings) {
 	}
 
 	public record Mapping(UUID id, UUID propertyDefinitionId, String necessity, LocalDate validFrom, int sortOrder) {

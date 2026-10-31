@@ -393,7 +393,7 @@ A metamodel package was imported ([US-033](../requirements/user-stories/US-033-i
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the importing principal |
 | Target | `metamodel-package`, package identifier |
-| Details | `packageId`, `version`, `batchId`, `metatypesCreated`, `metatypesUpdated` |
+| Details | `packageId`, `version`, `batchId`, `metatypesCreated`, `metatypesUpdated`, `entitiesWithRemovedValues`, `entitiesMarked` |
 
 ### `metamodel.metatype-imported`
 
@@ -416,6 +416,72 @@ A package import by an authorized principal was rejected; nothing was stored. Wr
 | Actor | the importing principal |
 | Target | `metamodel-package` |
 | Details | `reason` (`invalid-package`, `unsupported-package-content`, `conflict`), `packageId` if valid |
+
+### `metamodel.metatype-created` / `metamodel.metatype-updated` / `metamodel.metatype-deleted`
+
+An organization metatype was created, changed or deleted ([US-032](../requirements/user-stories/US-032-create-entitytype.md) AC3, ADR-002). A changed base type removes and adds inherited properties with their effects on entities.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the metamodel administrator |
+| Target | `metatype`, ID of the metatype |
+| Details | `name` and `baseMetatypeId` (created), `changedFields`, `entitiesWithRemovedValues` and `entitiesMarked` if the base type changed (updated), `name` (deleted) |
+
+### `metamodel.property-created` / `metamodel.property-updated` / `metamodel.property-deleted`
+
+An organization property definition was created, changed, deleted or retired ([US-032](../requirements/user-stories/US-032-create-entitytype.md), ADR-022).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the metamodel administrator |
+| Target | `property-definition`, ID of the definition |
+| Details | `name`, `dataType`, `sqlColumnName` (created), `changedFields` (updated), `name` and `retired` (deleted) |
+
+### `metamodel.enum-value-created` / `metamodel.enum-value-deleted`
+
+A value of an organization enum property was added or deleted; deleting removes the value from the entities that hold it, each getting a new version.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the metamodel administrator |
+| Target | `property-definition`, ID of the definition |
+| Details | `valueId`, `value`; on delete also `entitiesWithRemovedValues` and `entitiesMarked` (entities now missing a mandatory value) |
+
+### `metamodel.category-created` / `metamodel.category-updated` / `metamodel.category-deleted`
+
+An organization property category was created, changed or deleted.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the metamodel administrator |
+| Target | `property-category`, ID of the category |
+| Details | `name` (created, updated) |
+
+### `metamodel.mapping-created` / `metamodel.mapping-deleted`
+
+An organization property was mapped to a metatype or removed from it ([US-032](../requirements/user-stories/US-032-create-entitytype.md), REQ-149). A new mandatory mapping marks the entities without a value; removing a mapping deletes the values of the property from the entities of the metatype and its subtypes. At a package re-import with the setting `remove`, one `metamodel.mapping-deleted` per removed mapping is written with the batch ID of the import.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the metamodel administrator |
+| Target | `metatype`, ID of the metatype |
+| Details | `mappingId`, `propertyDefId`; `necessity` and `entitiesMarked` (created); `entitiesWithRemovedValues` (deleted by an administrator); `batchId` and `reason` = `reimport` (deleted by a re-import) |
+
+### `metamodel.reimport-policy-changed`
+
+The global or a per-metatype setting for organization mappings at a package re-import was changed.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the metamodel administrator |
+| Target | `metamodel-configuration` (global) or `metatype`, ID |
+| Details | `before`, `after` (`keep`, `remove`; per metatype also `inherit`) |
 
 ### `entity.created` / `entity.updated`
 
@@ -442,4 +508,4 @@ A catalog was created ([US-046](../requirements/user-stories/US-046-create-catal
 
 ## Planned Event Types
 
-Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `visibility.changed`, `visibility.override-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.deleted` and further `entity.*`, `metamodel.*`.
+Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `visibility.changed`, `visibility.override-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.deleted` and further `entity.*`, further `metamodel.*` (connection metatypes, fork).

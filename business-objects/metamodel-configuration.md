@@ -2,7 +2,7 @@
 identifier: metamodel-configuration
 name_de: Metamodell-Konfiguration
 name_en: Metamodel Configuration
-version: 1.4.0
+version: 1.5.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -77,6 +77,7 @@ Changes to the configuration are versioned and recorded in the audit log.
 | lastModifiedBy | principal | optional | | person or system admin account; empty for changes by the system (e.g. the migration creating the instance configuration) | Principal who made the last change |
 | editMode | enum | required | `gui-and-import` | `[gui-and-import, import-only]` | Controls whether GUI editing of the metamodel (EntityTypes, stereotypes, layers) is allowed; `import-only` = lock mode (REQ-035); applies independently per scope level |
 | rulesEditMode | enum | required | `gui-and-import` | `[gui-and-import, import-only]` | Controls GUI editing of `constraintRules` and `mandatoryConnectionConstraints` independently of `editMode`; `import-only` = only JSON import allowed (ADR-018) |
+| reimportOrganizationMappings | enum | required | `keep` | `[keep, remove]` | Global setting whether a package re-import removes the organization mappings of imported EntityTypes; applies where the EntityType and its base types say `inherit` (BR-28) |
 | entityTypeDefinitions | EntityTypeDefinition[] | required | [] | | List of user-defined entity types |
 | stereotypes | Stereotype[] | required | [] | | List of defined stereotypes |
 | constraintRules | ConstraintRule[] | required | [] | | List of expression constraint rules |
@@ -91,7 +92,8 @@ Changes to the configuration are versioned and recorded in the audit log.
 |---|---|---|---|---|---|
 | id | string | required | | kebab-case, globally unique | Stable identifier (e.g. `security-zone`) |
 | name | string | required | | PascalCase, unique across all types | Display name (e.g. `SecurityZone`) |
-| extends | string | optional | null | must be a valid EntityType name | Base type; null = no parent type |
+| extends | string | optional | null | must be a valid EntityType; no cycles; in a package an EntityType of the same package or a built-in one | Base type (`metatypes.base_metatype_id`); the EntityType inherits the property mappings of all its base types (BR-26); null = no parent type |
+| reimportOrganizationMappings | enum | required | `inherit` | `[inherit, keep, remove]`; writable for every scope, never changed by a re-import | Per-type setting whether a package re-import removes organization mappings; `inherit` follows the base type, then the global setting (BR-28) |
 | description | string | optional | | max. 1000 characters | Business description of the type |
 | properties | PropertyDefinition[] | required | [] | | Type-specific attributes |
 | relations | RelationDefinition[] | required | [] | | Allowed relations to other types |
@@ -112,6 +114,7 @@ Changes to the configuration are versioned and recorded in the audit log.
 | displayLabel | string | optional | | max. 100 characters | Display name in the GUI; overrides `name` if set |
 | scope | enum | required | `organization` | as EntityTypeDefinition | Scope of the property definition (ADR-002); property categories carry the same `scope` and `sourcePackage` |
 | sourcePackage | PackageReference | conditional | null | required iff `scope=imported` | Package the definition was imported from |
+| retiredAt | datetime | optional | null | set instead of deleting when the entity history references the definition | A retired definition is hidden and cannot be mapped; its name and `sqlColumnName` stay taken |
 | sqlColumnName | string | required | derived from `name` (snake_case) | regex `^[a-z][a-z0-9_]{0,62}$`; unique across all property definitions; not one of the reserved entity column names (`id`, `urn`, `metatype_id`, `name`, `description`, `is_logical`, `created_at`, `updated_at`); immutable after creation | Stable column name of the property in the generated reporting views `reporting.<metatype>` (ADR-034 DM-6); keeps analysts' SQL working when `name` or `displayLabel` change |
 | dataType | PropertyDataType | required | | | Data type definition (details: PropertyDataType) |
 | validationMode | enum | required | `optional` | `[mandatory, warning, optional]` | `mandatory` = error on save if empty; `warning` = notice, but saving allowed; `optional` = no check |
@@ -267,6 +270,9 @@ Describes a single page (step) in the creation wizard that is run through when c
 | BR-22 | When the creation wizard is started (`creationSteps` not empty): the entity is persisted only after clicking "Finish"; a cancellation (ESC or X) creates no entity and leaves no state in the repository | onEntityCreate | – |
 | BR-23 | `readRoles` and `writeRoles` reference authorization role IDs, never business roles; an authorization role referenced there cannot be deleted; every entry of `writeRoles` must be contained in `readRoles` | onCreate, onUpdate; onDelete of the role | REQ-124, ADR-032 DM-9 |
 | BR-24 | `PropertyDefinition.sqlColumnName` is derived from `name` on creation (lowercase snake_case; on collision a numeric suffix is appended), is unique across all property definitions and never changes afterwards, also not when the property is renamed | onCreate, onUpdate | ADR-034 DM-6 |
+| BR-26 | A property is mapped at most once in the base type chain of an EntityType, its base types and its subtypes; the scope of a mapping is the scope of its PropertyDefinition, and organization PropertyDefinitions may be mapped to built-in and imported EntityTypes, whose own content stays read-only | onCreate, onUpdate, onImport | ADR-002 |
+| BR-27 | Removing a property from an EntityType (mapping removed, base type changed, enum value deleted, re-import with `remove`) is always possible and deletes the values from the entities of the type and its subtypes, each getting a new version; a new mandatory property marks the existing entities without a value, which are rejected only when written again without it; only properties the writer can change are checked | onUpdate, onDelete, onImport | REQ-032 AC4, REQ-149 |
+| BR-28 | A package re-import replaces the mappings of the package and keeps or removes the organization mappings of each re-imported EntityType by its effective `reimportOrganizationMappings` (own value, else that of the base types, else the global value) | onImport | ADR-002 |
 | BR-25 | Every change of EntityTypes or PropertyDefinitions regenerates the affected reporting views `reporting.<metatype>`; every generated column applies the same masking expression as `reporting.property_values` | onCreate, onUpdate, onDelete | ADR-034 §3.1, REQ-160 |
 
 ## Examples
@@ -422,6 +428,8 @@ Version 1.3.0 implements ADR-034 DM-6: raw SQL analytics expose one wide view pe
 
 Version 1.4.0 (change `us-033-import-metamodel`) replaces `isBuiltIn` by the three-valued `scope` of ADR-002 and records the origin package of imported content, because package imports must tell their own content apart from organization content and from other packages (REQ-114). Package imports are recorded per import (`metamodel_package_imports` in `docs/data-model.puml`) with the batch ID shared by their audit events.
 
+Version 1.5.0 (change `us-032-metatype-editing`, owner decisions 2026-10-30 and 2026-10-31) brings `extends` into the database as `metatypes.base_metatype_id` with inheritance of mappings, the per-type and global re-import setting, retired property definitions and the marks of entities that miss a new mandatory property (`entity_mandatory_marks` in `docs/data-model.puml`). The re-import setting exists because whether organization properties on imported types should survive a package update depends on the way of working of the organization.
+
 ## Change History
 
 | Version | Date | Author | Change |
@@ -440,3 +448,4 @@ Version 1.4.0 (change `us-033-import-metamodel`) replaces `isBuiltIn` by the thr
 | 1.2.0 | 2026-10-13 | Business Engineer | REQ-124 v0.2.0 / ADR-032 DM-9: `allowedRoles` split into `readRoles`/`writeRoles` referencing authorization role IDs (persisted in `property_visibility_roles`); visibility fields require `visibility:configure`; BR-05 reworded to permissions; BR-23 added. Reason: security review SEC-03 (one list for read and write, self-escalation via metamodel editing) |
 | 1.3.0 | 2026-10-13 | Business Engineer | ADR-034 DM-6: `PropertyDefinition.sqlColumnName` (stable, immutable SQL column name for generated reporting views); BR-24, BR-25 added |
 | 1.4.0 | 2026-10-16 | Business Engineer | `scope` (`built-in`/`imported`/`organization`, ADR-002) and `sourcePackage` on EntityTypeDefinition, PropertyDefinition and property categories instead of `isBuiltIn`; `lastModifiedBy` may be a system admin account or the system (change `us-033-import-metamodel`) |
+| 1.5.0 | 2026-10-31 | Business Engineer | `extends` as stored base type with inherited mappings; `reimportOrganizationMappings` (global and per type); `retiredAt`; BR-26–BR-28 (change `us-032-metatype-editing`) |

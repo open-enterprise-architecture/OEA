@@ -48,14 +48,19 @@ public class CatalogQueryStore {
 	}
 
 	/**
-	 * The property with this name (case-insensitive) if the metatype maps it on the given date
-	 * (latest {@code valid_from} not after the date, ADR-022) and its visibility is {@code public}.
+	 * The property with this name (case-insensitive) if the metatype or one of its base types maps
+	 * it on the given date (latest {@code valid_from} not after the date, ADR-022) and its
+	 * visibility is {@code public}.
 	 */
 	public Optional<PropertyColumn> mappedPublicProperty(UUID metatypeId, String name, LocalDate date) {
 		return this.jdbc.query("""
+				WITH RECURSIVE chain (id) AS (
+				    SELECT ?::uuid
+				    UNION SELECT m.base_metatype_id FROM metatypes m JOIN chain c ON m.id = c.id
+				    WHERE m.base_metatype_id IS NOT NULL)
 				SELECT p.id, p.sql_column_name, p.name
 				FROM (SELECT DISTINCT ON (property_def_id) property_def_id
-				      FROM metatype_property_mappings WHERE metatype_id = ? AND valid_from <= ?
+				      FROM metatype_property_mappings WHERE metatype_id IN (SELECT id FROM chain) AND valid_from <= ?
 				      ORDER BY property_def_id, valid_from DESC) active
 				JOIN property_definitions p ON p.id = active.property_def_id
 				WHERE lower(p.name) = lower(?) AND p.visibility_mode = 'public'""",
