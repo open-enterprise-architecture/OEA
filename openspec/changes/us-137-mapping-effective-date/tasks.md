@@ -20,6 +20,6 @@
 
 ## 4. Wrap-up
 
-- [ ] 4.1 Set US-137 to `done` with the realignment notes of the proposal; add notes to REQ-148 and ADR-002; record the progress in `docs/sprint-plan.md`; verify markdown lint passes
+- [ ] 4.1 Set US-137 to `done` with the realignment notes of the proposal; add a note to REQ-148; record the progress in `docs/sprint-plan.md`; verify markdown lint passes
 - [ ] 4.2 Update `docs/data-model.puml` and `business-objects/metamodel-configuration.md` (scope per entry, `effective_applied_at`, rule for effective dates); regenerate `requirements/traceability.md` and verify `--check` passes
 - [ ] 4.3 Run `python3 scripts/validate_links.py`, `python3 scripts/check_screens.py`, the OpenAPI checks, `scripts/sync_agent_config.py --check`, `openspec validate --specs --strict`, `openspec validate us-137-mapping-effective-date --strict`, markdownlint as in CI, `./mvnw verify` and the frontend type check, tests and build, and verify all pass

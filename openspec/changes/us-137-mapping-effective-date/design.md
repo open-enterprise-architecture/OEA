@@ -24,7 +24,7 @@ See proposal.md – Why. Relevant current state (after `us-032-metatype-editing`
 ## Architecture Constraints
 
 - **ADR-022:** the entry in effect is the latest `valid_from` not after the reference date; entries are never overwritten.
-- **ADR-002 (clarification extended by the owner decision of 2026-10-31):** rows of the package stay read-only; organization entries are stored as separate rows.
+- **ADR-049 (refines ADR-002):** rows of the package stay read-only; organization entries are stored as separate rows with their scope; on a shared date the organization entry wins.
 - **ADR-013:** the query parameter, the field `state` and the event go into `api/openapi.yaml` first.
 - **ADR-028:** the scheduled job lives in `io.oea.app.metamodel`.
 - **ADR-033:** every change and every entry taking effect is audited.

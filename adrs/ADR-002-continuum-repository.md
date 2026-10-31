@@ -89,7 +89,7 @@ Continuum packages are JSON/YAML files with EntityTypeDefinitions and connection
 
 - metamodel-configuration.md is extended with the `scope` property on EntityTypeDefinition
 - REQ-004 (configure metamodel, UC-04) receives a new REQ for package import
-- Clarification (owner decisions 2026-10-30 and 2026-10-31, OpenSpec change `us-032-metatype-editing`): mapping an organization property to an imported or built-in metatype extends it without changing it – name, abbreviation, base type and the mappings of the package stay read-only. Whether a re-import keeps or removes these organization mappings is configurable globally and per metatype along the base type (default: keep)
+- Refined by [ADR-049](./ADR-049-organization-extensions-of-packages.md): organizations extend package metatypes with their own property mappings and necessity overrides by effective date; a re-import keeps or removes these entries by a configurable setting
 
 ## References
 

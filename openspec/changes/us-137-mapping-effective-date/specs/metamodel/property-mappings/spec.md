@@ -17,7 +17,7 @@ Trace: UC-04 step 6, REQ-032 AC1, REQ-149, US-137
 
 An entry making a property mandatory SHALL succeed regardless of existing entities and, once in effect, SHALL mark every entity of the metatype and its subtypes without a value, stating their number in the response or audit event. A mark SHALL be cleared when the entity gets a value or the property is removed or no longer mandatory.
 
-Trace: REQ-149 AC1, owner decision 2026-10-31, owner decision 2026-10-31 (US-137)
+Trace: REQ-149 AC1, owner decision 2026-10-31, ADR-049
 
 #### Scenario: Existing entities marked
 
@@ -28,7 +28,7 @@ Trace: REQ-149 AC1, owner decision 2026-10-31, owner decision 2026-10-31 (US-137
 
 Organization property definitions SHALL be mapped to imported and built-in metatypes as well; the metatype stays unchanged. Package mappings SHALL NOT be changed or removed by administrators, but organization entries with a valid-from date MAY override their necessity.
 
-Trace: owner decision 2026-10-30, ADR-002, owner decision 2026-10-31 (US-137)
+Trace: owner decision 2026-10-30, ADR-002, ADR-049
 
 #### Scenario: Own property on an imported metatype
 

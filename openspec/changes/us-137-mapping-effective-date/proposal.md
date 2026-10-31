@@ -7,7 +7,7 @@ The necessity of a property mapping can only be set once, when the mapping is cr
 The owner decided on 2026-10-31:
 
 - entities that miss a property becoming mandatory at a future date are marked on that date, not before;
-- the necessity of package mappings may be overridden by organization entries with an effective date – an extension of the clarification of ADR-002 from change 1 of S7;
+- the necessity of package mappings may be overridden by organization entries with an effective date; this and the extensions of change 1 are decided in [ADR-049](../../../adrs/ADR-049-organization-extensions-of-packages.md), which refines ADR-002;
 - an effective date in the past is allowed and takes effect at once.
 
 ## Traceability
@@ -17,14 +17,14 @@ The owner decided on 2026-10-31:
 | Use Case | [UC-04: Configure metamodel](../../../requirements/use-cases/UC-04-configure-metamodel.md) |
 | User Stories | [US-137: Change property mapping by effective date](../../../requirements/user-stories/US-137-change-property-mapping-effective-date.md) |
 | Requirements | [REQ-148](../../../requirements/req/REQ-148-property-mapping-effective-date.md); [REQ-149](../../../requirements/req/REQ-149-property-validation-necessity.md) |
-| ADRs | [ADR-022](../../../adrs/ADR-022-structured-property-model.md) (effective date), [ADR-002](../../../adrs/ADR-002-continuum-repository.md) (scopes), [ADR-013](../../../adrs/ADR-013-api-style.md) |
+| ADRs | [ADR-022](../../../adrs/ADR-022-structured-property-model.md) (effective date), [ADR-049](../../../adrs/ADR-049-organization-extensions-of-packages.md) (organization extensions of packages, new), [ADR-002](../../../adrs/ADR-002-continuum-repository.md) (scopes), [ADR-013](../../../adrs/ADR-013-api-style.md) |
 | Sprint / Milestone | S7 change 2 ([Sprint plan](../../../docs/sprint-plan.md)) |
 
 **Realigned sections** (non-binding details made concrete by this change):
 
 - **US-137 AC1, REQ-148 AC1:** the new entry is created with `createPropertyMapping` for a property already mapped to the metatype; `GET /metamodel/metatypes/{id}` and `listPropertyMappings` return the entry in effect today, `listPropertyMappings?includeHistory=true` all entries. "Entities missing P receive an error on validation" means the marks of change 1: they are set when the entry takes effect.
 - **US-137 AC2, REQ-148 AC2:** a second entry with the same date for the same metatype and property is rejected with 409 `urn:oea:problem:conflict`.
-- **ADR-002 (clarification of 2026-10-30/31, extended):** organization entries may override the necessity of a package mapping by effective date; the rows of the package stay unchanged, a re-import keeps the organization entries (subject to the re-import setting), and on the same date the organization entry wins.
+- **ADR-002:** refined by ADR-049 instead of the clarification added by change 1; the clarification in ADR-002 is replaced by a reference.
 
 ## What Changes
 
@@ -60,4 +60,4 @@ None.
 - **`api/openapi.yaml`:** `listPropertyMappings` gets `includeHistory`; `MetatypePropertyMapping.state`; description of `createPropertyMapping` and the 409 cases.
 - **Flyway:** `V16__mapping_effective_dates.sql` – `metatype_property_mappings.scope` (filled from the property definitions) and `effective_applied_at`.
 - **Data model:** `docs/data-model.puml`, `business-objects/metamodel-configuration.md` (BR-26, BR-28 and a new rule for effective dates).
-- **Docs:** audit event catalog (`metamodel.mapping-effective`), manual (English and German), ADR-002 clarification.
+- **Docs:** audit event catalog (`metamodel.mapping-effective`), manual (English and German); ADR-049 (new), ADR-002 points to it, ADR index.

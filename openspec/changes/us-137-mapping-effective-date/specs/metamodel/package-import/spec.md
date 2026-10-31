@@ -6,7 +6,7 @@
 
 A re-import SHALL replace the package rows of its mappings and keep or remove the organization entries of each re-imported metatype – also those on package mappings – by its effective re-import setting: own value, else that of its base types, else the global setting (default `keep`). On a shared date the organization entry wins.
 
-Trace: owner decisions 2026-10-30 and 2026-10-31, ADR-002, owner decision 2026-10-31 (US-137)
+Trace: owner decisions 2026-10-30 and 2026-10-31, ADR-002, ADR-049
 
 #### Scenario: Default keeps organization mappings
 
