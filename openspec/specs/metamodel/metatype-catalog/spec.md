@@ -8,9 +8,9 @@ Defines how principals read the metatypes of the instance – the entity types a
 
 ### Requirement: Reading the metatypes
 
-A principal with `entity:read` or `metamodel:write` SHALL list the metatypes of the instance and read one metatype, each with name, abbreviation, scope, origin package and version, and its property mappings with property definition, data type, enum values and necessity.
+A principal with `entity:read` or `metamodel:write` SHALL list the metatypes of the instance and read one metatype, each with name, abbreviation, scope, origin package and version, its base type, its own and effective re-import setting, and its own and inherited property mappings with scope, property definition, data type, enum values and necessity.
 
-Trace: UC-04 (step 2), ADR-002, ADR-022, ADR-032
+Trace: UC-04 (step 2), ADR-002, ADR-022, ADR-032, owner decision 2026-10-31
 
 #### Scenario: Metatypes after the starter import
 
