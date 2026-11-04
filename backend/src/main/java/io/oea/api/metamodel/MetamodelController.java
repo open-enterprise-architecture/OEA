@@ -1,8 +1,11 @@
 package io.oea.api.metamodel;
 
+import io.oea.api.ContractViolationResponse;
 import io.oea.api.generated.MetamodelApi;
 import io.oea.api.generated.model.CreateEnumValueRequest;
 import io.oea.api.generated.model.MetamodelScope;
+import io.oea.api.generated.model.MetamodelLabel;
+import io.oea.api.generated.model.MetamodelLabelsUpdate;
 import io.oea.api.generated.model.MetatypeDetail;
 import io.oea.api.generated.model.MetatypePropertyMapping;
 import io.oea.api.generated.model.MetatypePropertyMappingWrite;
@@ -17,6 +20,7 @@ import io.oea.api.generated.model.PropertyDefinitionWrite;
 import io.oea.api.generated.model.PropertyEnumValue;
 import io.oea.api.generated.model.ReimportPolicy;
 import io.oea.api.generated.model.SourcePackage;
+import io.oea.app.metamodel.MetamodelLabels;
 import io.oea.app.metamodel.MetatypeCatalog;
 import io.oea.app.metamodel.MetatypeEditing;
 import io.oea.app.metamodel.PackageImporter;
@@ -27,6 +31,7 @@ import io.oea.app.security.OeaPrincipal;
 import io.oea.config.security.OeaAuthentication;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.UUID;
@@ -52,8 +57,11 @@ public class MetamodelController implements MetamodelApi {
 
 	private final ReimportPolicies policies;
 
+	private final MetamodelLabels labels;
+
 	public MetamodelController(MetatypeCatalog catalog, MetatypeEditing metatypes, PropertyDefinitions properties,
-			PropertyMappings mappings, ReimportPolicies policies) {
+			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels) {
+		this.labels = labels;
 		this.catalog = catalog;
 		this.metatypes = metatypes;
 		this.properties = properties;
@@ -109,6 +117,27 @@ public class MetamodelController implements MetamodelApi {
 	public ResponseEntity<ReimportPolicy> updateReimportPolicy(ReimportPolicy reimportPolicy) {
 		this.policies.updateGlobal(principal(), reimportPolicy.getOrganizationMappings().getValue());
 		return ResponseEntity.ok(reimportPolicy(this.policies.global()));
+	}
+
+	@Override
+	public ResponseEntity<List<MetamodelLabel>> getMetamodelLabels(String locale) {
+		return ResponseEntity.ok(this.labels.list(locale).stream().map(MetamodelController::label).toList());
+	}
+
+	@Override
+	@ContractViolationResponse(status = 422, title = "Invalid labels", detail = "Some labels are invalid.")
+	public ResponseEntity<List<MetamodelLabel>> updateMetamodelLabels(String locale,
+			MetamodelLabelsUpdate metamodelLabelsUpdate) {
+		Map<String, String> labels = (metamodelLabelsUpdate.getLabels() != null) ? metamodelLabelsUpdate.getLabels()
+				: Map.of();
+		return ResponseEntity
+			.ok(this.labels.update(principal(), locale, labels).stream().map(MetamodelController::label).toList());
+	}
+
+	private static MetamodelLabel label(MetamodelLabels.Label label) {
+		return new MetamodelLabel(label.key().toString(),
+				MetamodelLabel.ElementTypeEnum.fromValue(label.key().element().prefix()), label.name(),
+				label.packageText(), label.organizationText());
 	}
 
 	@Override

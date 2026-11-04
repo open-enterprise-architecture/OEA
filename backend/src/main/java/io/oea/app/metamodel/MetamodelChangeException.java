@@ -57,6 +57,10 @@ public class MetamodelChangeException extends RuntimeException {
 		return new MetamodelChangeException(Reason.INVALID, message, List.of(field), null);
 	}
 
+	static MetamodelChangeException invalid(List<String> fields, String message) {
+		return new MetamodelChangeException(Reason.INVALID, message, fields, null);
+	}
+
 	public Reason getReason() {
 		return this.reason;
 	}

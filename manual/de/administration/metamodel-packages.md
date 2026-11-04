@@ -13,9 +13,9 @@ Der Import von Paketen verlangt die Berechtigung `metamodel:write`, die nur die 
 
 ## Starterkonfiguration importieren
 
-OEA liefert das Starterpaket `oea-starter-togaf-classic` mit den Entitätstypen Application Component, Application Service, Data Object, Technology Component, Technology Service, System Software und Network Node, jeweils mit der Eigenschaft *Status*.
+OEA liefert das Starterpaket `oea-starter-togaf-classic` mit den Entitätstypen Application Component, Application Service, Data Object, Technology Component, Technology Service, System Software und Network Node, jeweils mit der Eigenschaft *Status*. Version 1.1.0 bringt deutsche Labels für seine Entitätstypen, *Status* und dessen Werte sowie englische Labels für die Werte mit (siehe [Labels übersetzen](./metamodel-editing#translating-labels)). Eine Instanz, die 1.0.0 importiert hat, erhält die Labels durch einen erneuten Import des Pakets.
 
-Solange die Instanz keinen Entitätstyp hat, zeigt die Startseite einer Person mit `metamodel:write` den Bereich *Import starter configuration*. Wähle *Import* neben dem Paket; die Seite bestätigt, wie viele Entitätstypen jetzt verfügbar sind.
+Solange die Instanz keinen Entitätstyp hat, zeigt die Startseite einer Person mit `metamodel:write` den Bereich *Startkonfiguration importieren*. Wähle *Importieren* neben dem Paket; die Seite bestätigt, wie viele Entitätstypen jetzt verfügbar sind.
 
 <Screenshot name="starter-import" alt="Startseite mit der Starterkonfiguration zum Import" />
 
@@ -35,6 +35,7 @@ Eigene Pakete verwenden dasselbe JSON-Format (`MetamodelPackage`, mit `packageId
 - Ein erneuter Import desselben Pakets aktualisiert dessen eigene Inhalte. Inhalte eines anderen Pakets oder deiner Organisation werden nie überschrieben; die Antwort ist `409` mit der Liste der Konflikte.
 - Ein Paket kann für einen Entitätstyp einen Basistyp nennen (`baseMetatypeId`): einen Entitätstyp desselben Pakets oder einen eingebauten. Deine eigenen Eigenschaften an seinen Entitätstypen bleiben oder werden entfernt, je nach Einstellung für den erneuten Import (siehe [Metamodell bearbeiten](./metamodel-editing)).
 - Pakete, die größer als `oea.metamodel.import.max-size` sind (Standard 10 MB), werden mit `413` abgelehnt; fehlerhaftes JSON oder Inhalte, die nicht zum Format passen, mit `422` und der Stelle des Problems.
-- Die Strategie `replace`, Viewpoints, Shape-Zuordnungen und Übersetzungspakete werden noch nicht unterstützt (`422`).
+- Ein Paket kann in `i18nBundles` Labels pro Sprache mitbringen, mit Schlüsseln wie unter [Labels übersetzen](./metamodel-editing#translating-labels), aber nur für seine eigenen Elemente. Ein erneuter Import ersetzt sie; deine eigenen Labels bleiben.
+- Die Strategie `replace`, Viewpoints und Shape-Zuordnungen werden noch nicht unterstützt (`422`).
 
 Jeder Import schreibt die Audit-Events `metamodel.package-imported` und `metamodel.metatype-imported` mit einer gemeinsamen Batch-ID.

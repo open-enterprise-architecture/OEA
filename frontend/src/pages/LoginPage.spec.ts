@@ -2,6 +2,7 @@ import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { currentCsrfToken } from '../api/session'
+import { setLanguage } from '../i18n'
 import { session } from '../session/store'
 import { routedFetch, type RecordedRequest } from '../test/fetch'
 import { testRouter } from '../test/router'
@@ -197,5 +198,13 @@ describe('LoginPage', () => {
     const { wrapper, router } = await mountPage(fetchFn)
     await submitPassword(wrapper)
     expect(router.currentRoute.value.path).toBe('/me/second-factor')
+  })
+
+  // design D7 of us-140-dynamic-labels: before login the language of the browser applies
+  it('shows the login page in German', async () => {
+    setLanguage('de')
+    const { wrapper } = await mountPage(routedFetch({ '/api/v1/auth/oidc/providers': { body: [] } }))
+    expect(wrapper.get('h1').text()).toBe('Bei OEA anmelden')
+    expect(wrapper.get('[data-testid="submit"]').text()).toBe('Anmelden')
   })
 })

@@ -14,12 +14,13 @@ export const INSTANCE_SLUG = /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/
 export const PASSWORD_MIN = 12
 export const PASSWORD_MAX = 128
 
+/** Message keys of the field errors (src/i18n); the password message takes `min` and `max`. */
 export const FIELD_MESSAGES: Record<SetupField, string> = {
-  setupToken: 'Enter the setup token from the file inside the backend container.',
-  loginName: '3–64 characters: lower-case letters, digits, ".", "_" or "-", starting with a letter.',
-  password: `${PASSWORD_MIN}–${PASSWORD_MAX} characters.`,
-  passwordConfirmation: 'The passwords do not match.',
-  instanceSlug: '3–63 characters: lower-case letters, digits and "-", not at the start or end.',
+  setupToken: 'setup.fieldSetupToken',
+  loginName: 'setup.fieldLoginName',
+  password: 'setup.fieldPassword',
+  passwordConfirmation: 'setup.fieldPasswordConfirmation',
+  instanceSlug: 'setup.fieldInstanceSlug',
 }
 
 export function validateSetupForm(form: SetupForm): Partial<Record<SetupField, string>> {

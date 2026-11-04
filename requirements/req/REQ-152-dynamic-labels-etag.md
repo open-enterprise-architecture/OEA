@@ -4,9 +4,9 @@ title: Dynamic Labels with ETag Caching
 type: interface
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-29
-last_updated: 2026-06-29
+last_updated: 2026-11-04
 author: requirements-engineer
 references:
   use_cases:
@@ -77,8 +77,16 @@ Two label categories: static UI labels (vue-i18n bundle, no API call) and dynami
 - **Prerequisites**: REQ-156 (PostgreSQL; `i18n_entries` table)
 - **Consequences**: US-140
 
+## Notes on the Implementation
+
+- Realized by OpenSpec change `us-140-dynamic-labels`: `GET /i18n/{locale}` returns every label key of the metamodel, with the organization label first, then the package label, then the name in the corporate language.
+- The ETag is a weak validator over the content of the bundle (refinement of ADR-025, design D3). Unlike `MAX(updated_at)`, it also changes when a label is removed or an element without a translation is renamed.
+- AC1 and AC2 are fulfilled; an unsupported locale is answered with 400.
+- AC3 (SSE) stays open until the event stream is implemented.
+
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft from ADR-025 |
+| 0.2.0 | 2026-11-04 | requirements-engineer | Implementation note (change `us-140-dynamic-labels`) |

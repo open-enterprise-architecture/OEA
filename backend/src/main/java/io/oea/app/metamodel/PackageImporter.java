@@ -44,8 +44,11 @@ public class PackageImporter {
 
 	private final ReimportPolicies policies;
 
+	private final MetamodelLabels labels;
+
 	public PackageImporter(JdbcTemplate jdbc, AuditWriter audit, Clock clock, MetamodelEffects effects,
-			PropertyMappings mappings, ReimportPolicies policies) {
+			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels) {
+		this.labels = labels;
 		this.jdbc = jdbc;
 		this.audit = audit;
 		this.clock = clock;
@@ -54,8 +57,8 @@ public class PackageImporter {
 		this.policies = policies;
 	}
 
-	/** Result of an import; counts refer to metatypes. */
-	public record Outcome(UUID batchId, int created, int updated) {
+	/** Result of an import; counts refer to metatypes, {@code labels} to the stored package labels. */
+	public record Outcome(UUID batchId, int created, int updated, int labels) {
 	}
 
 	/** Existing content with an identifier or a name of the package. */
@@ -121,6 +124,9 @@ public class PackageImporter {
 				this.mappings.removeForReimport(principal, metatype.id(), batchId);
 			}
 		}
+		// package labels replace those of the previous import; organization labels stay (us-140-dynamic-labels D5)
+		int labelCount = this.labels.replacePackageLabels(definition.packageId(), definition.labels());
+		this.effects.removeOrphanLabels();
 		MetamodelEffects.Effects effects = this.effects.apply(before, principal);
 		int created = (int) actions.values().stream().filter("created"::equals).count();
 		int updated = (int) actions.values().stream().filter("updated"::equals).count();
@@ -138,7 +144,7 @@ public class PackageImporter {
 				AuditEvent.Severity.INFO, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal),
 				"metamodel-package", definition.packageId(), Map.of("packageId", definition.packageId(), "version",
 						definition.version(), "batchId", batchId.toString(), "metatypesCreated", created,
-						"metatypesUpdated", updated, "entitiesWithRemovedValues", sum(effects.removed()),
+						"metatypesUpdated", updated, "labels", labelCount, "entitiesWithRemovedValues", sum(effects.removed()),
 						"entitiesMarked", sum(effects.marked()), "skippedPackageEntries",
 						skipped.stream().map(UUID::toString).toList())));
 		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
@@ -150,7 +156,7 @@ public class PackageImporter {
 						Map.of("batchId", batchId.toString(), "packageId", definition.packageId(), "action", action)));
 			}
 		}
-		return new Outcome(batchId, created, updated);
+		return new Outcome(batchId, created, updated, labelCount);
 	}
 
 	private List<PackageConflictException.Conflict> conflicts(PackageDefinition definition) {

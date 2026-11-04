@@ -64,6 +64,27 @@ export const NAME_TAKEN = {
   },
 }
 
+/** The enum property behind the column `status` (US-140). */
+export const STATUS_DEFINITION = {
+  id: 'fc59811d-d59e-539e-877a-c9164435eba7',
+  name: 'Status',
+  dataType: 'enum',
+  scope: 'imported',
+  sqlColumnName: 'status',
+  enumValues: [
+    { id: 'a3474cb3-3251-5979-82c0-1684659d9d39', value: 'planned', sortOrder: 0 },
+    { id: '9fc16c24-3814-5c3a-aa99-7aba8ef9ede9', value: 'active', sortOrder: 1 },
+  ],
+}
+
+/** German labels of the starter package for the catalog screens (US-140). */
+export const GERMAN_LABELS: Record<string, string> = {
+  'metatype.5a000000-0000-4000-8000-000000000001.name': 'Anwendungskomponente',
+  'property-def.fc59811d-d59e-539e-877a-c9164435eba7.label': 'Status',
+  'enum-value.a3474cb3-3251-5979-82c0-1684659d9d39.label': 'Geplant',
+  'enum-value.9fc16c24-3814-5c3a-aa99-7aba8ef9ede9.label': 'Aktiv',
+}
+
 /** An application row of the catalog query (US-049). */
 export interface Application {
   name: string
@@ -117,6 +138,14 @@ export function catalogApi(
     }
     if (url.pathname === '/api/v1/catalogs') {
       return json(CATALOGS)
+    }
+    if (url.pathname === '/api/v1/metamodel/property-definitions') {
+      return json([STATUS_DEFINITION])
+    }
+    if (url.pathname === '/api/v1/i18n/de') {
+      return new Response(JSON.stringify(GERMAN_LABELS), {
+        headers: { 'Content-Type': 'application/json', ETag: 'W/"labels-de"' },
+      })
     }
     if (url.pathname === `/api/v1/catalogs/${catalog.id}`) {
       return json(catalog)

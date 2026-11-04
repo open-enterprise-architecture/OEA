@@ -2,7 +2,7 @@
 identifier: person
 name_de: Person (Konto)
 name_en: Person (Account)
-version: 0.5.0
+version: 0.6.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -59,7 +59,7 @@ In the EA repository, a person is typically **referenced, not mastered**: master
 | entityId | reference | optional | | target: Person entity (metatype `person`); unique; human only | Account link to EA content (ADR-032 DM-7) |
 | entityLinkedAt / entityLinkedBy | datetime / principal | conditional | | set with `entityId`; principal ≠ this account | Who set the account link and when |
 | detailLevel | enum | required | reference-only | `[full, reference-only, anonymized]`; service accounts always `reference-only` | Controls how much personal data is held |
-| uiLanguage | string | required | de | BCP 47 `[de, en, fr, it]`; ignored for service accounts | UI language |
+| uiLanguage | string | optional | – | BCP 47 `[de, en, fr, it]`; no value means the language of the browser; set by the person (`PUT /me/preferences`); ignored for service accounts | UI language (US-140) |
 | uiTheme | enum | required | system | `[light, dark, system]` | Preferred UI color scheme (REQ-135) |
 | createdAt | datetime | required | | | Creation (invitation) time |
 
@@ -198,3 +198,4 @@ Open questions:
 | 0.3.0 | 2026-10-13 | Business Engineer | ADR-032 / security review: `active` → lifecycle `status`; identity binding (`issuer`, `subject`, unique); account link `entityId` to the Person entity (DM-7); `personType` documented; `fillsRoles` limited to business roles, authorization via `role-assignment` (DM-4); BR-01 reworded, BR-03 to BR-06 added |
 | 0.4.0 | 2026-10-13 | Lukas Mathis | Reactivation of offboarded persons configurable (`allowReactivationOfOffboarded`, default off; owner decision Q19) |
 | 0.5.0 | 2026-10-13 | Business Engineer | ADR-033 DM-A10 / REQ-189: protected identity mapping documented; anonymization (pseudonymous name, `email`/`employeeId`/`externalReference` removed, audit keeps the key); `email` conditional; BR-08, BR-09 added |
+| 0.6.0 | 2026-11-04 | Business Engineer | `uiLanguage` optional without default; no value means the browser language (change `us-140-dynamic-labels`, design D6) |

@@ -36,6 +36,7 @@ The list *Catalogs* shows every catalog you may see, marked *Shared* or *Persona
 
 <Screenshot name="catalog-table" alt="Table of a catalog with application components" />
 
+- Names of entity types, column headers and values of enum properties appear in your language where your organization has translated them (see [Your profile](./login#your-profile)).
 - As long as no columns are configured, the table shows the columns *Name* and – if the entity type has the property *Status* – *Status*.
 - Click a column header to sort: ascending, descending, and back to the default order.
 - The table shows 50 entries per page; use the pagination below the table to move between pages.

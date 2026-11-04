@@ -2,7 +2,7 @@
 identifier: metamodel-configuration
 name_de: Metamodell-Konfiguration
 name_en: Metamodel Configuration
-version: 1.6.0
+version: 1.7.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -274,6 +274,7 @@ Describes a single page (step) in the creation wizard that is run through when c
 | BR-27 | Removing a property from an EntityType (mapping removed, base type changed, enum value deleted, re-import with `remove`) is always possible and deletes the values from the entities of the type and its subtypes, each getting a new version; a new mandatory property marks the existing entities without a value, which are rejected only when written again without it; only properties the writer can change are checked | onUpdate, onDelete, onImport | REQ-032 AC4, REQ-149 |
 | BR-28 | A package re-import replaces the mappings of the package and keeps or removes the organization mappings of each re-imported EntityType by its effective `reimportOrganizationMappings` (own value, else that of the base types, else the global value) | onImport | ADR-002, ADR-049 |
 | BR-29 | The necessity of a mapping changes only by a further entry with a valid-from date on the EntityType that holds the mapping, also for a package mapping (scope `organization`); the entry with the latest date not after today applies, one entry per date; an entry dated in the future takes effect on its date, when marks are set or cleared | onCreate, onSchedule | REQ-148, ADR-022, ADR-049 |
+| BR-30 | The label of an EntityType, category, PropertyDefinition or enum value in a locale (`de`, `en`, `fr`, `it`) is the organization label, else the label of the origin package, else the name in the corporate language; a re-import replaces only the package labels, and deleting an element deletes its labels | onRead, onImport, onDelete | REQ-152, ADR-025, ADR-049 |
 | BR-25 | Every change of EntityTypes or PropertyDefinitions regenerates the affected reporting views `reporting.<metatype>`; every generated column applies the same masking expression as `reporting.property_values` | onCreate, onUpdate, onDelete | ADR-034 §3.1, REQ-160 |
 
 ## Examples
@@ -453,3 +454,4 @@ Version 1.6.0 (change `us-137-mapping-effective-date`, ADR-049) stores the scope
 | 1.4.0 | 2026-10-16 | Business Engineer | `scope` (`built-in`/`imported`/`organization`, ADR-002) and `sourcePackage` on EntityTypeDefinition, PropertyDefinition and property categories instead of `isBuiltIn`; `lastModifiedBy` may be a system admin account or the system (change `us-033-import-metamodel`) |
 | 1.5.0 | 2026-10-31 | Business Engineer | `extends` as stored base type with inherited mappings; `reimportOrganizationMappings` (global and per type); `retiredAt`; BR-26–BR-28 (change `us-032-metatype-editing`) |
 | 1.6.0 | 2026-11-04 | Business Engineer | Scope per mapping entry and `effective_applied_at`; BR-29 effective dates (change `us-137-mapping-effective-date`) |
+| 1.7.0 | 2026-11-04 | Business Engineer | Labels per locale of EntityTypes, categories, PropertyDefinitions and enum values (`i18n_entries` with scope); BR-30 (change `us-140-dynamic-labels`) |

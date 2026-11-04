@@ -117,6 +117,7 @@ public class MetatypeEditing {
 		}
 		this.jdbc.update("DELETE FROM metatype_property_mappings WHERE metatype_id = ?", id);
 		this.jdbc.update("DELETE FROM metatypes WHERE id = ?", id);
+		this.effects.removeOrphanLabels();
 		this.audit.changed("metamodel.metatype-deleted", principal, "metatype", id, Map.of("name", stored.name()));
 	}
 

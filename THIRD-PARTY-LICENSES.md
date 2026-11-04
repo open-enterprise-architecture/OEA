@@ -10,7 +10,7 @@ License texts and notices: the backend jar contains the license and notice files
 
 | License | Components |
 |---|---|
-| MIT | 35 |
+| MIT | 39 |
 | Apache-2.0 | 95 |
 | BSD-3-Clause | 10 |
 | BSD-2-Clause | 2 |
@@ -137,7 +137,7 @@ License texts and notices: the backend jar contains the license and notice files
 | Jackson dataformat: CBOR (`tools.jackson.dataformat:jackson-dataformat-cbor`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-dataformats-binary> |
 | Jackson-dataformat-YAML (`tools.jackson.dataformat:jackson-dataformat-yaml`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-dataformats-text> |
 
-## Frontend Bundle (31)
+## Frontend Bundle (35)
 
 | Component | Version | License | Alternatives | Project |
 |---|---|---|---|---|
@@ -146,6 +146,9 @@ License texts and notices: the backend jar contains the license and notice files
 | @floating-ui/utils (`@floating-ui/utils`) | 0.2.12 | MIT | – | <https://github.com/floating-ui/floating-ui> |
 | @floating-ui/vue (`@floating-ui/vue`) | 2.0.1 | MIT | – | <https://github.com/floating-ui/floating-ui> |
 | @iconify/vue (`@iconify/vue`) | 5.0.3 | MIT | – | <https://github.com/iconify/iconify> |
+| @intlify/core-base (`@intlify/core-base`) | 11.4.16 | MIT | – | <https://github.com/intlify/vue-i18n> |
+| @intlify/message-compiler (`@intlify/message-compiler`) | 11.4.16 | MIT | – | <https://github.com/intlify/vue-i18n> |
+| @intlify/shared (`@intlify/shared`) | 11.4.16 | MIT | – | <https://github.com/intlify/vue-i18n> |
 | @nuxt/ui (`@nuxt/ui`) | 4.12.0 | MIT | – | <https://github.com/nuxt/ui> |
 | @simplewebauthn/browser (`@simplewebauthn/browser`) | 14.0.0 | MIT | – | <https://github.com/MasterKale/SimpleWebAuthn> |
 | @tanstack/table-core (`@tanstack/table-core`) | 8.21.3 | MIT | – | <https://github.com/TanStack/table> |
@@ -171,6 +174,7 @@ License texts and notices: the backend jar contains the license and notice files
 | unhead (`unhead`) | 3.4.3 | MIT | – | <https://github.com/unjs/unhead> |
 | uqr (`uqr`) | 0.1.3 | MIT | – | <https://github.com/unjs/uqr> |
 | vue (`vue`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
+| vue-i18n (`vue-i18n`) | 11.4.16 | MIT | – | <https://github.com/intlify/vue-i18n> |
 | vue-router (`vue-router`) | 5.4.0 | MIT | – | <https://github.com/vuejs/router> |
 
 ## Runtime Environment (Container Base Images)

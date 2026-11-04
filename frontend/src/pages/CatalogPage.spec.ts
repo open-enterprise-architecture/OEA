@@ -1,6 +1,8 @@
 import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
+import { setLanguage } from '../i18n'
+import { loadLabels } from '../i18n/labels'
 import { defineComponent, h } from 'vue'
 import { createMemoryHistory, createRouter, RouterView, type Router } from 'vue-router'
 import { APPLICATIONS, CATALOG, catalogApi, manyApplications, type Application, type CatalogRequest } from '../test/catalogs'
@@ -176,5 +178,18 @@ describe('CatalogPage', () => {
     expect(router.currentRoute.value.query).toEqual({})
     expect(names(wrapper)).toEqual(['CRM System', 'ERP', 'Intranet'])
     expect(wrapper.get('[data-testid="catalog-page-info"]').text()).toContain('Page 1 of 1')
+  })
+
+  // US-140 AC1: metatype names, column headers and enum values in the language of the user
+  it('shows the metamodel labels in German', async () => {
+    setLanguage('de')
+    await loadLabels('de', catalogApi(APPLICATIONS))
+    const { wrapper } = await open(CATALOG_PATH)
+    expect(wrapper.get('[data-testid="catalog-type"]').text()).toBe('Anwendungskomponente')
+    expect(wrapper.get('[data-testid="catalog-scope"]').text()).toBe('Geteilt')
+    expect(header(wrapper, 'status').text()).toContain('Status')
+    const statuses = wrapper.findAll('[data-testid="catalog-table"] tbody tr').map((row) => row.findAll('td')[1]!.text())
+    expect(statuses).toEqual(['Aktiv', 'Aktiv', 'Geplant'])
+    expect(wrapper.get('[data-testid="catalog-page-info"]').text()).toContain('Seite 1 von 1')
   })
 })

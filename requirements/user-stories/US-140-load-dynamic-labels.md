@@ -2,8 +2,8 @@
 
 **ID**: US-140
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S7
 
 ## Story
 
@@ -54,3 +54,14 @@ As a user, I want to see MetaType names, property labels, and enum values in my 
 
 - Waits for: US-001 (login; ui_language from JWT claim or profile)
 - Waits for: US-033 (metamodel imported; labels exist in i18n_entries)
+
+## Notes
+
+Realigned by OpenSpec change `us-140-dynamic-labels` (owner decisions 2026-11-04):
+
+- Labels are kept per locale in `i18n_entries`. Administrators set them with `PUT /metamodel/labels/{locale}`, and packages bring them in `i18nBundles`. An organization label wins over a package label, as in ADR-049. Without a label, the bundle carries the name in the corporate language.
+- The language comes from `GET /me` (`uiLanguage`, set with `PUT /me/preferences` on the profile page). Without a value, the language of the browser applies. The static texts of the web portal are vue-i18n bundles in English and German; French and Italian fall back to English.
+- The label store is a `reactive` module like the session store, not Pinia.
+- AC1 is fulfilled.
+- AC2 is fulfilled: the bundle carries a weak ETag (a hash of its content), and the portal checks it every five minutes with `If-None-Match`.
+- AC3 (SSE) stays open until `GET /events/stream` is implemented in its own change. Until then, a change reaches an open portal within five minutes.

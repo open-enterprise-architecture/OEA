@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { fetchMetatypes, fetchStarterPackages, importStarterPackage, type StarterPackage } from '../api/metamodel'
 import { fetchMe } from '../api/session'
 
 // Starter configuration of a new instance (ADR-005, US-033): offered to persons with
 // metamodel:write while the instance has no metatype. No screen story yet (change 6).
 const props = defineProps<{ fetchFn?: typeof fetch }>()
+const { t } = useI18n()
 
 const packages = ref<StarterPackage[]>([])
 const visible = ref(false)
@@ -37,12 +39,12 @@ async function importPackage(starter: StarterPackage) {
     if (outcome.ok) {
       imported.value = { name: starter.name, created: outcome.result.created }
     } else if (outcome.result?.conflictList?.length) {
-      failure.value = `The package conflicts with existing types: ${outcome.result.conflictList.map((c) => c.element).join(', ')}.`
+      failure.value = t('starter.conflicts', { elements: outcome.result.conflictList.map((c) => c.element).join(', ') })
     } else {
-      failure.value = 'The starter configuration could not be imported.'
+      failure.value = t('starter.failed')
     }
   } catch {
-    failure.value = 'The backend is not reachable.'
+    failure.value = t('common.backendUnreachable')
   } finally {
     importing.value = undefined
   }
@@ -51,21 +53,19 @@ async function importPackage(starter: StarterPackage) {
 
 <template>
   <section v-if="visible" data-testid="starter-configuration" class="flex flex-col gap-4 rounded-lg border border-default p-6">
-    <h2 class="text-xl font-semibold text-highlighted">Import starter configuration</h2>
+    <h2 class="text-xl font-semibold text-highlighted">{{ t('starter.title') }}</h2>
 
     <UAlert
       v-if="imported"
       data-testid="starter-imported"
       color="success"
       variant="subtle"
-      :title="`${imported.name} imported`"
-      :description="`${imported.created} entity types are now available.`"
+      :title="t('starter.imported', { name: imported.name })"
+      :description="t('starter.available', { count: imported.created })"
     />
 
     <template v-else>
-      <p class="text-muted">
-        This instance has no entity types yet. Start with a starter configuration; you can add your own types later.
-      </p>
+      <p class="text-muted">{{ t('starter.intro') }}</p>
       <UAlert v-if="failure" data-testid="starter-failure" color="error" variant="subtle" :description="failure" />
       <article
         v-for="starter in packages"
@@ -80,7 +80,7 @@ async function importPackage(starter: StarterPackage) {
           :data-testid="`import-${starter.packageId}`"
           :loading="importing === starter.packageId"
           :disabled="starter.imported"
-          :label="starter.imported ? 'Imported' : 'Import'"
+          :label="starter.imported ? t('starter.importedButton') : t('starter.import')"
           class="self-start"
           @click="importPackage(starter)"
         />

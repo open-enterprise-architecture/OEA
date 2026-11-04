@@ -5,6 +5,7 @@ import { currentCsrfToken } from './session'
 export type StarterPackage = components['schemas']['StarterPackage']
 export type ImportResult = components['schemas']['ImportResult']
 export type MetatypeDetail = components['schemas']['MetatypeDetail']
+export type PropertyDefinitionDetail = components['schemas']['PropertyDefinitionDetail']
 
 const JSON_HEADERS = { Accept: 'application/json, application/problem+json' }
 
@@ -15,6 +16,18 @@ export async function fetchMetatypes(fetchFn: typeof fetch = fetch): Promise<Met
     throw new Error(`metatypes not readable (HTTP ${response.status})`)
   }
   return (await response.json()) as MetatypeDetail[]
+}
+
+/** GET /metamodel/property-definitions: the property definitions with their enum values (US-032). */
+export async function fetchPropertyDefinitions(fetchFn: typeof fetch = fetch): Promise<PropertyDefinitionDetail[]> {
+  const response = await fetchFn('/api/v1/metamodel/property-definitions', {
+    credentials: 'same-origin',
+    headers: JSON_HEADERS,
+  })
+  if (!response.ok) {
+    throw new Error(`property definitions not readable (HTTP ${response.status})`)
+  }
+  return (await response.json()) as PropertyDefinitionDetail[]
 }
 
 /** GET /admin/metamodel/starter-packages: the shipped packages with summary (ADR-005, REQ-112). */

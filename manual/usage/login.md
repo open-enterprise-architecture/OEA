@@ -2,7 +2,7 @@
 title: Logging in
 covers:
   screens: [SCR-001, SCR-003, SCR-004, SCR-005]
-  stories: [US-001, US-003, US-005, US-006, US-009, US-010, US-011, US-021, US-022, US-023, US-024, US-025, US-026, US-027, US-029, US-030, US-031]
+  stories: [US-001, US-003, US-005, US-006, US-009, US-010, US-011, US-021, US-022, US-023, US-024, US-025, US-026, US-027, US-029, US-030, US-031, US-140]
 ---
 
 # Logging in
@@ -54,9 +54,11 @@ Once you have set up a passkey (see [Set up a second factor](#set-up-a-second-fa
 - A passkey that is not set up at OEA, or a cancelled confirmation, fails like a wrong password.
 - If your administrator reset your password, you still choose a new password after the passkey login.
 
-## Your profile
+## Your profile {#your-profile}
 
 *Profile* (`/me`) shows your name, the account type, whether your session is confirmed with a second factor, your roles and your authenticator apps. If no role is assigned to you yet, the profile tells you so; ask an administrator for access.
+
+Under *Language* you choose the language of the user interface: *Deutsch*, *English*, *Français* or *Italiano*, or *Language of the browser* (the default). The change applies at once and to all your sessions. Menus, buttons and messages exist in English and German; with French or Italian they appear in English, while the names of entity types and values appear in your language wherever your organization has translated them. Before you log in, the language of your browser applies.
 
 ## Set up a second factor {#set-up-a-second-factor}
 
