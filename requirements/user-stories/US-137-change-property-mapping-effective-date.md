@@ -4,6 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S7
+**Implementation**: OpenSpec change `us-137-mapping-effective-date`, commit 98994ea (#161) – dated necessity entries on organization and package mappings, applied on their date by a scheduled check (ADR-049)
 
 ## Story
 

@@ -79,4 +79,4 @@ We choose **Option 2: Organization extensions as separate entries**.
 
 **Related ADRs**: [ADR-002](./ADR-002-continuum-repository.md) (scopes, refined by this ADR), [ADR-005](./ADR-005-app-vs-tech-default.md) (starter configuration), [ADR-022](./ADR-022-structured-property-model.md) (effective dates)
 **Concept**: [§4 Enterprise Continuum & TRM](../concept/10-foundations/04-enterprise-continuum-trm.md)
-**Changes**: OpenSpec `us-032-metatype-editing` (archived), `us-137-mapping-effective-date`
+**Changes**: OpenSpec `us-032-metatype-editing` (archived), `us-137-mapping-effective-date` (archived)
