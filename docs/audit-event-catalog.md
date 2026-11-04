@@ -393,7 +393,7 @@ A metamodel package was imported ([US-033](../requirements/user-stories/US-033-i
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the importing principal |
 | Target | `metamodel-package`, package identifier |
-| Details | `packageId`, `version`, `batchId`, `metatypesCreated`, `metatypesUpdated`, `entitiesWithRemovedValues`, `entitiesMarked`, `skippedPackageEntries` (IDs of package entries not stored because an organization entry has the same date, ADR-049) |
+| Details | `packageId`, `version`, `batchId`, `metatypesCreated`, `metatypesUpdated`, `labels` (package labels stored from `i18nBundles`, US-140), `entitiesWithRemovedValues`, `entitiesMarked`, `skippedPackageEntries` (IDs of package entries not stored because an organization entry has the same date, ADR-049) |
 
 ### `metamodel.metatype-imported`
 
@@ -493,6 +493,17 @@ The global or a per-metatype setting for organization mappings at a package re-i
 | Actor | the metamodel administrator |
 | Target | `metamodel-configuration` (global) or `metatype`, ID |
 | Details | `before`, `after` (`keep`, `remove`; per metatype also `inherit`) |
+
+### `metamodel.labels-changed`
+
+Organization labels of a locale were set or removed ([US-140](../requirements/user-stories/US-140-load-dynamic-labels.md), [REQ-152](../requirements/req/REQ-152-dynamic-labels-etag.md), ADR-025, ADR-049). One event per change of a locale.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the metamodel administrator |
+| Target | `metamodel-configuration`, ID of the instance configuration |
+| Details | `locale`, `labelsSet`, `labelsRemoved` |
 
 ### `entity.created` / `entity.updated`
 

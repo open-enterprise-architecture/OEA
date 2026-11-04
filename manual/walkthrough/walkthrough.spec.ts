@@ -5,11 +5,18 @@
 import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
-import { backendUrl, keycloakTotp, realmUser, repositoryDir, shoot, totp } from './support'
+import { backendUrl, keycloakTotp, language, realmUser, repositoryDir, shoot, totp } from './support'
 
 const setupToken = process.env.OEA_WALKTHROUGH_SETUP_TOKEN
 const admin = { loginName: 'admin', password: 'walkthrough-admin-password' }
 const starterPackage = 'oea-starter-togaf-classic'
+
+// Texts the walkthrough selects by, in the language of the run (us-140-dynamic-labels, design D8):
+// static texts in English or German, labels of the starter package
+const shown =
+  language === 'de'
+    ? { applicationComponent: 'Anwendungskomponente', shared: 'Geteilt', phasingOut: 'Auslaufend' }
+    : { applicationComponent: 'Application Component', shared: 'Shared', phasingOut: 'Phasing out' }
 
 // Fixed sample data of the catalog table (design D1, flow 5)
 const applications = [
@@ -25,7 +32,7 @@ test.describe.configure({ mode: 'serial' })
 async function logInAtKeycloak(page: Page, username: string): Promise<void> {
   const { password, otpSecret } = realmUser(username)
   await page.goto('/login')
-  await page.getByRole('button', { name: /^Log in with / }).click()
+  await page.locator('[data-testid^="provider-"]').first().click()
   await page.locator('#username').fill(username)
   await page.locator('#password').fill(password)
   await page.locator('#kc-login').click()
@@ -44,7 +51,7 @@ test('setup and first administrator', async ({ page }) => {
   await expect(page.getByTestId('health')).toHaveText('UP')
   await shoot(page, 'setup-required')
 
-  await page.getByRole('link', { name: 'Set up the instance' }).click()
+  await page.getByTestId('setup-hint').getByRole('link').click()
   await page.getByTestId('setupToken').fill(setupToken!)
   await page.getByTestId('loginName').fill(admin.loginName)
   await page.getByTestId('password').fill(admin.password)
@@ -128,14 +135,14 @@ test('catalogs', async ({ page }) => {
   await page.getByTestId('catalog-name').fill('Application landscape')
   await page.getByTestId('catalog-description').fill('All application components of the company')
   await page.getByTestId('catalog-type').click()
-  await page.getByRole('option', { name: 'Application Component' }).click()
-  await page.getByTestId('catalog-scope').getByText('Shared', { exact: true }).click()
+  await page.getByRole('option', { name: shown.applicationComponent }).click()
+  await page.getByTestId('catalog-scope').getByText(shown.shared, { exact: true }).click()
   await shoot(page, 'catalog-create')
 
   await page.getByTestId('create-catalog-submit').click()
   await expect(page.getByTestId('catalog-table')).toBeVisible()
   await expect(page.getByTestId('catalog-table')).toContainText('CRM System')
-  await expect(page.getByTestId('catalog-table')).toContainText('phasing-out')
+  await expect(page.getByTestId('catalog-table')).toContainText(shown.phasingOut)
   await shoot(page, 'catalog-table')
 
   await page.getByTestId('back-to-catalogs').click()

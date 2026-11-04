@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { passkeysSupported, registerPasskey } from '../api/passkey'
 import { confirmTotpEnrollment, startTotpEnrollment, type TotpEnrollment } from '../api/session'
@@ -13,6 +14,7 @@ import { refreshSession, session } from '../session/store'
 const props = defineProps<{ fetchFn?: typeof fetch }>()
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const offer = computed(() => route?.query.offer === '1')
 // US-031 AC2: an enforced second factor cannot be skipped
 const enforced = computed(() => session.me?.requiredAction === 'enroll-second-factor')
@@ -22,10 +24,10 @@ const label = ref('')
 const passkeyChoice = computed(() => passkeysSupported() && session.me?.principal.principalType === 'person')
 const method = ref<'passkey' | 'totp'>('passkey')
 const chosen = computed(() => (passkeyChoice.value ? method.value : 'totp'))
-const METHODS = [
-  { label: 'Passkey (recommended)', value: 'passkey', description: 'Fingerprint, face or PIN of this device' },
-  { label: 'Authenticator app', value: 'totp', description: 'A six-digit code from an app on your phone' },
-]
+const METHODS = computed(() => [
+  { label: t('secondFactor.passkeyRecommended'), value: 'passkey', description: t('secondFactor.passkeyDescription') },
+  { label: t('profile.authenticatorApp'), value: 'totp', description: t('secondFactor.totpDescription') },
+])
 const enrollment = ref<TotpEnrollment>()
 const code = ref('')
 const failure = ref<string>()
@@ -43,14 +45,14 @@ async function startPasskey() {
       confirmed.value = true
       await refreshSession(props.fetchFn)
     } else if (outcome.kind === 'cancelled') {
-      failure.value = 'Setting up the passkey was cancelled. Try again when you are ready.'
+      failure.value = t('secondFactor.passkeyCancelled')
     } else if (outcome.rejection.problemType === 'reauthentication-required') {
       reauthenticate.value = true
     } else {
-      failure.value = 'The passkey could not be set up.'
+      failure.value = t('secondFactor.passkeyFailed')
     }
   } catch {
-    failure.value = 'The passkey could not be set up in this browser.'
+    failure.value = t('secondFactor.passkeyUnsupported')
   } finally {
     busy.value = false
   }
@@ -67,10 +69,10 @@ async function start() {
     } else if (outcome.rejection.problemType === 'reauthentication-required') {
       reauthenticate.value = true
     } else {
-      failure.value = 'The enrollment could not be started.'
+      failure.value = t('secondFactor.startFailed')
     }
   } catch {
-    failure.value = 'The backend is not reachable.'
+    failure.value = t('common.backendUnreachable')
   } finally {
     busy.value = false
   }
@@ -88,12 +90,12 @@ async function confirm() {
       await refreshSession(props.fetchFn)
     } else if (outcome.rejection.status === 404) {
       enrollment.value = undefined
-      failure.value = 'The enrollment has expired. Start it again.'
+      failure.value = t('secondFactor.expired')
     } else {
-      failure.value = 'The code is not valid. Enter the current code of your authenticator app.'
+      failure.value = t('secondFactor.invalidCode')
     }
   } catch {
-    failure.value = 'The backend is not reachable.'
+    failure.value = t('common.backendUnreachable')
   } finally {
     busy.value = false
   }
@@ -106,42 +108,41 @@ async function skip() {
 
 <template>
   <main class="mx-auto flex max-w-xl flex-col gap-6 p-8">
-    <h1 class="text-2xl font-semibold text-highlighted">Second factor</h1>
+    <h1 class="text-2xl font-semibold text-highlighted">{{ t('profile.secondFactor') }}</h1>
 
     <UAlert
       v-if="confirmed"
       data-testid="enrollment-confirmed"
       color="success"
       variant="subtle"
-      title="Second factor active"
-      :description="
-        chosen === 'passkey'
-          ? 'Your passkey is set up, and this session is confirmed with it.'
-          : 'Your authenticator app is set up, and this session is confirmed with it.'
-      "
-      :actions="[{ label: offer || enforced ? 'Continue' : 'Back to the profile', to: offer || enforced ? '/' : '/me' }]"
+      :title="t('secondFactor.active')"
+      :description="chosen === 'passkey' ? t('secondFactor.passkeyActive') : t('secondFactor.totpActive')"
+      :actions="[
+        {
+          label: offer || enforced ? t('secondFactor.continue') : t('secondFactor.backToProfile'),
+          to: offer || enforced ? '/' : '/me',
+        },
+      ]"
     />
     <UAlert
       v-if="reauthenticate"
       data-testid="reauthentication-required"
       color="warning"
       variant="subtle"
-      title="Log in again"
-      description="Adding a second factor needs a login within the last 5 minutes."
-      :actions="[{ label: 'Log in', to: '/login' }]"
+      :title="t('profile.logInAgain')"
+      :description="t('secondFactor.reauthenticate')"
+      :actions="[{ label: t('login.submit'), to: '/login' }]"
     />
     <UAlert v-if="failure" data-testid="enrollment-failure" color="error" variant="subtle" :description="failure" />
 
     <template v-if="enrollment">
-      <p class="text-muted">
-        Scan the QR code with your authenticator app, or enter the key manually. The key is shown only now.
-      </p>
-      <QrCode data-testid="qr-code" :value="enrollment.otpauthUri" label="QR code for the authenticator app" />
+      <p class="text-muted">{{ t('secondFactor.scan') }}</p>
+      <QrCode data-testid="qr-code" :value="enrollment.otpauthUri" :label="t('secondFactor.qrCode')" />
       <p>
-        Key: <code data-testid="secret" class="break-all">{{ enrollment.secret }}</code>
+        {{ t('secondFactor.key') }} <code data-testid="secret" class="break-all">{{ enrollment.secret }}</code>
       </p>
       <form class="flex flex-col gap-4" novalidate @submit.prevent="confirm">
-        <UFormField label="Code from the app" name="code" required>
+        <UFormField :label="t('secondFactor.code')" name="code" required>
           <UInput
             v-model="code"
             data-testid="code"
@@ -151,7 +152,7 @@ async function skip() {
             class="w-full"
           />
         </UFormField>
-        <UButton type="submit" data-testid="confirm" :loading="busy" label="Confirm" block />
+        <UButton type="submit" data-testid="confirm" :loading="busy" :label="t('login.confirm')" block />
       </form>
     </template>
 
@@ -161,30 +162,25 @@ async function skip() {
         data-testid="enrollment-required"
         color="warning"
         variant="subtle"
-        title="Second factor required"
-        description="Your organization requires a second factor. Set one up to continue."
+        :title="t('secondFactor.required')"
+        :description="t('secondFactor.requiredHint')"
       />
-      <p v-if="offer || enforced" data-testid="offer" class="text-muted">
-        Protect your account with a second factor: a passkey on this device or an authenticator app on your phone.
-        Logins are then confirmed with it, and roles with administrative permissions become effective.
-      </p>
-      <p v-else class="text-muted">
-        Set up a second factor. You can set up several, for example one on a backup device.
-      </p>
+      <p v-if="offer || enforced" data-testid="offer" class="text-muted">{{ t('secondFactor.offer') }}</p>
+      <p v-else class="text-muted">{{ t('secondFactor.setUpHint') }}</p>
       <URadioGroup
         v-if="passkeyChoice"
         v-model="method"
         data-testid="method"
-        legend="Second factor"
+        :legend="t('profile.secondFactor')"
         :items="METHODS"
       />
-      <UFormField label="Name of the authenticator" name="label" help="For example the device; optional">
+      <UFormField :label="t('secondFactor.name')" name="label" :help="t('secondFactor.nameHelp')">
         <UInput
           v-model="label"
           data-testid="label"
           maxlength="64"
           class="w-full"
-          :placeholder="chosen === 'passkey' ? 'Passkey' : 'Authenticator app'"
+          :placeholder="chosen === 'passkey' ? t('profile.passkey') : t('profile.authenticatorApp')"
         />
       </UFormField>
       <div class="flex gap-2">
@@ -193,16 +189,16 @@ async function skip() {
           data-testid="start-passkey"
           icon="i-lucide-key-round"
           :loading="busy"
-          label="Set up passkey"
+          :label="t('secondFactor.setUpPasskey')"
           @click="startPasskey"
         />
-        <UButton v-else data-testid="start" :loading="busy" label="Set up authenticator app" @click="start" />
+        <UButton v-else data-testid="start" :loading="busy" :label="t('secondFactor.setUpTotp')" @click="start" />
         <UButton
           v-if="offer && !enforced"
           data-testid="skip"
           color="neutral"
           variant="ghost"
-          label="Skip for now"
+          :label="t('secondFactor.skip')"
           @click="skip"
         />
       </div>

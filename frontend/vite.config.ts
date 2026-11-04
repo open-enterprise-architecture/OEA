@@ -39,6 +39,7 @@ export default defineConfig({
           name: 'unit',
           environment: 'jsdom',
           include: ['src/**/*.spec.ts', 'bundled-icons.spec.ts'],
+          setupFiles: ['src/test/setup.ts'],
           server: { deps: { inline: ['@nuxt/ui'] } },
         },
       },

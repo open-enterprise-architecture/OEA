@@ -1,3 +1,4 @@
+import { i18n } from '../i18n'
 import type { components } from './generated/schema'
 
 type Problem = components['schemas']['Problem'] & {
@@ -36,7 +37,7 @@ export function rateLimitMessage(rejection: Rejection | undefined): string | und
   if (rejection?.status !== 429) {
     return undefined
   }
-  return `Too many requests. Try again in ${rejection.retryAfterSeconds ?? 60} seconds.`
+  return i18n.global.t('common.tooManyRequests', { seconds: rejection.retryAfterSeconds ?? 60 })
 }
 
 export async function readRejection(response: Response): Promise<Rejection> {

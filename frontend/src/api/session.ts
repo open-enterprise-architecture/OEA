@@ -154,6 +154,23 @@ export async function suggestPassword(fetchFn: typeof fetch = fetch): Promise<Ou
   return { ok: false, rejection: await readRejection(response) }
 }
 
+/** PUT /me/preferences: the own language of the user interface; `null` means the browser language (US-140). */
+export async function updateOwnLanguage(
+  uiLanguage: 'de' | 'en' | 'fr' | 'it' | null,
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<void>> {
+  const response = await fetchFn('/api/v1/me/preferences', {
+    method: 'PUT',
+    credentials: 'same-origin',
+    headers: { ...JSON_HEADERS, ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}) },
+    body: JSON.stringify({ uiLanguage }),
+  })
+  if (response.status === 204) {
+    return { ok: true, value: undefined }
+  }
+  return { ok: false, rejection: await readRejection(response) }
+}
+
 /** GET /me/second-factors: the active second factors of the principal (US-029 AC3); none on failure. */
 export async function listOwnSecondFactors(fetchFn: typeof fetch = fetch): Promise<SecondFactor[]> {
   const response = await fetchFn('/api/v1/me/second-factors', {

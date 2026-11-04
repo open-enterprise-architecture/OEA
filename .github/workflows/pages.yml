@@ -68,6 +68,9 @@ jobs:
           mkdir -p ../site-parts
           cp -R storybook-static ../site-parts/storybook
       - name: Walkthrough tests against the development stack (screenshots)
+        # the user interface offers English and German (us-140-dynamic-labels, design D8)
+        env:
+          OEA_WALKTHROUGH_LANGUAGES: "en de"
         run: scripts/walkthrough.sh
       - name: Keep the walkthrough report
         if: failure()

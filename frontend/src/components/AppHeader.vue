@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { endSession, refreshSession, session } from '../session/store'
 
 const props = defineProps<{ fetchFn?: typeof fetch }>()
 const router = useRouter()
+const { t } = useI18n()
 
 onMounted(() => {
   if (!session.loaded) {
@@ -23,11 +25,25 @@ async function logOut() {
     <RouterLink to="/" class="font-semibold">OEA</RouterLink>
     <nav class="flex items-center gap-3">
       <template v-if="session.me">
-        <RouterLink to="/catalogs" data-testid="header-catalogs">Catalogs</RouterLink>
+        <RouterLink to="/catalogs" data-testid="header-catalogs">{{ t('catalogs.title') }}</RouterLink>
         <RouterLink to="/me" data-testid="header-profile">{{ session.me.principal.displayName }}</RouterLink>
-        <UButton data-testid="header-logout" size="sm" color="neutral" variant="ghost" label="Log out" @click="logOut" />
+        <UButton
+          data-testid="header-logout"
+          size="sm"
+          color="neutral"
+          variant="ghost"
+          :label="t('common.logOut')"
+          @click="logOut"
+        />
       </template>
-      <UButton v-else-if="session.loaded" data-testid="header-login" size="sm" variant="ghost" to="/login" label="Log in" />
+      <UButton
+        v-else-if="session.loaded"
+        data-testid="header-login"
+        size="sm"
+        variant="ghost"
+        to="/login"
+        :label="t('login.submit')"
+      />
     </nav>
   </header>
 </template>

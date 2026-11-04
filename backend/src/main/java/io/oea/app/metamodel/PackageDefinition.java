@@ -3,16 +3,18 @@ package io.oea.app.metamodel;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
  * A metamodel package as the import needs it (ADR-026 format, design D2 of us-033-import-metamodel).
  *
  * @param unsupportedSections non-empty package sections this version cannot import yet
+ * @param labels locale → label key → text of the package's own elements (us-140-dynamic-labels D5)
  */
 public record PackageDefinition(String packageId, String version, String publisher, String strategy,
 		List<String> unsupportedSections, List<Category> categories, List<Property> properties,
-		List<Metatype> metatypes) {
+		List<Metatype> metatypes, Map<String, Map<String, String>> labels) {
 
 	public record Category(UUID id, String name, String description, int sortOrder) {
 	}

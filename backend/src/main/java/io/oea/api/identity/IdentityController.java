@@ -2,6 +2,7 @@ package io.oea.api.identity;
 
 import io.oea.api.generated.IdentityApi;
 import io.oea.api.generated.model.EffectivePermission;
+import io.oea.api.generated.model.PersonPreferences;
 import io.oea.api.generated.model.EffectivePermissionGrantedByInner;
 import io.oea.api.generated.model.LocalLoginPasskeyOptionsRequest;
 import io.oea.api.generated.model.LocalLoginPasskeyRequest;
@@ -25,6 +26,7 @@ import io.oea.api.generated.model.SecondFactor;
 import io.oea.api.generated.model.TotpConfirmation;
 import io.oea.api.generated.model.TotpEnrollment;
 import io.oea.api.generated.model.TotpEnrollmentRequest;
+import io.oea.app.access.LanguagePreferences;
 import io.oea.app.access.SecondFactors;
 import io.oea.app.login.LocalLogin;
 import io.oea.app.login.PasskeyLogin;
@@ -78,10 +80,14 @@ public class IdentityController implements IdentityApi {
 
 	private final PasskeyLogin passkeyLogin;
 
+	private final LanguagePreferences languages;
+
 	public IdentityController(Sessions sessions, PermissionResolver permissions, LocalLogin localLogin,
 			io.oea.app.login.TotpEnrollment enrollment, OidcLoginFlow oidcLogin,
 			io.oea.app.login.PasswordChange passwordChange, SecondFactors secondFactors,
-			io.oea.app.login.PasskeyRegistration passkeyRegistration, PasskeyLogin passkeyLogin) {
+			io.oea.app.login.PasskeyRegistration passkeyRegistration, PasskeyLogin passkeyLogin,
+			LanguagePreferences languages) {
+		this.languages = languages;
 		this.sessions = sessions;
 		this.permissions = permissions;
 		this.localLogin = localLogin;
@@ -289,7 +295,15 @@ public class IdentityController implements IdentityApi {
 		Me me = new Me(principalRef(principal), principal.secondFactorVerified(), roleGrants, effective)
 			.csrfToken(Sessions.csrfToken(authentication.sessionToken()))
 			.requiredAction(requiredAction(principal));
+		String language = this.languages.language(principal);
+		me.setUiLanguage((language != null) ? Me.UiLanguageEnum.fromValue(language) : null);
 		return ResponseEntity.ok(me);
+	}
+
+	@Override
+	public ResponseEntity<Void> updateMyPreferences(PersonPreferences personPreferences) {
+		this.languages.update(current().getPrincipal(), personPreferences.getUiLanguage());
+		return ResponseEntity.noContent().build();
 	}
 
 	@Override

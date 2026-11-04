@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { fetchCatalogs, type Catalog, type CatalogSummary } from '../api/catalogs'
 import { rateLimitMessage, RequestRejected } from '../api/problem'
 import CreateCatalogForm from '../components/CreateCatalogForm.vue'
+import { label, labelKeys } from '../i18n/labels'
 import { refreshSession, session } from '../session/store'
 
 // Catalog overview (UC-06, US-046, SCR-020): shared catalogs and the own personal ones.
 const props = defineProps<{ fetchFn?: typeof fetch }>()
 const router = useRouter()
+const { t } = useI18n()
 
 const catalogs = ref<CatalogSummary[]>([])
 const loaded = ref(false)
@@ -29,7 +32,7 @@ onMounted(async () => {
     catalogs.value = await fetchCatalogs(props.fetchFn)
   } catch (error) {
     failure.value =
-      rateLimitMessage(error instanceof RequestRejected ? error.rejection : undefined) ?? 'The catalogs could not be loaded.'
+      rateLimitMessage(error instanceof RequestRejected ? error.rejection : undefined) ?? t('catalogs.loadFailed')
   } finally {
     loaded.value = true
   }
@@ -44,8 +47,14 @@ async function onCreated(catalog: Catalog) {
 <template>
   <main class="mx-auto flex max-w-3xl flex-col gap-6 p-8">
     <div class="flex items-center justify-between gap-4">
-      <h1 class="text-2xl font-semibold text-highlighted">Catalogs</h1>
-      <UButton v-if="canRead" data-testid="new-catalog" icon="i-lucide-plus" label="New catalog" @click="creating = true" />
+      <h1 class="text-2xl font-semibold text-highlighted">{{ t('catalogs.title') }}</h1>
+      <UButton
+        v-if="canRead"
+        data-testid="new-catalog"
+        icon="i-lucide-plus"
+        :label="t('catalogs.new')"
+        @click="creating = true"
+      />
     </div>
 
     <UAlert
@@ -53,15 +62,15 @@ async function onCreated(catalog: Catalog) {
       data-testid="not-logged-in"
       color="neutral"
       variant="subtle"
-      description="You are not logged in."
-      :actions="[{ label: 'Log in', to: '/login' }]"
+      :description="t('profile.notLoggedIn')"
+      :actions="[{ label: t('login.submit'), to: '/login' }]"
     />
     <UAlert
       v-else-if="session.me && !canRead"
       data-testid="no-catalog-access"
       color="neutral"
       variant="subtle"
-      description="You have no access to catalogs. Ask an administrator for a role."
+      :description="t('catalogs.noAccess')"
     />
     <UAlert v-if="failure" data-testid="catalogs-failure" color="error" variant="subtle" :description="failure" />
 
@@ -75,12 +84,14 @@ async function onCreated(catalog: Catalog) {
           >
             <span class="flex flex-col">
               <span class="font-medium text-highlighted">{{ catalog.name }}</span>
-              <span class="text-sm text-muted">{{ catalog.primaryMetatypeName }}</span>
+              <span class="text-sm text-muted">{{
+                label(labelKeys.metatype(catalog.primaryMetatypeId), catalog.primaryMetatypeName)
+              }}</span>
             </span>
             <UBadge
               :color="catalog.scope === 'personal' ? 'neutral' : 'primary'"
               variant="subtle"
-              :label="catalog.scope === 'personal' ? 'Personal' : 'Shared'"
+              :label="catalog.scope === 'personal' ? t('catalogs.personal') : t('catalogs.shared')"
             />
           </RouterLink>
         </li>
@@ -89,12 +100,12 @@ async function onCreated(catalog: Catalog) {
         v-else
         data-testid="catalogs-empty"
         icon="i-lucide-table-2"
-        title="No catalogs yet"
-        description="A catalog is a reusable table view of the architecture repository."
+        :title="t('catalogs.empty')"
+        :description="t('catalogs.emptyHint')"
       />
     </template>
 
-    <UModal v-model:open="creating" title="New catalog" description="Create a table view of the repository.">
+    <UModal v-model:open="creating" :title="t('catalogs.new')" :description="t('catalogs.newHint')">
       <template #body>
         <CreateCatalogForm :fetch-fn="props.fetchFn" :can-manage="canManage" @created="onCreated" @cancel="creating = false" />
       </template>

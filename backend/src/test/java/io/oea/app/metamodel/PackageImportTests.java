@@ -129,11 +129,18 @@ class PackageImportTests {
 		assertThat(strategy).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
 		assertThat(body(strategy).path("type").asString()).isEqualTo("urn:oea:problem:unsupported-package-content");
 
+		ObjectNode viewpoints = TestPackages.pkg("unsupported", 1);
+		viewpoints.putArray("viewpoints").addObject().put("id", "landscape").put("name", "Landscape");
+		MvcTestResult sections = post(viewpoints.toString(), this.metamodelAdmin);
+		assertThat(sections).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+		assertThat(body(sections).path("pointer").asString()).isEqualTo("/viewpoints");
+
+		// translation bundles are supported since us-140-dynamic-labels; a malformed key is still rejected
 		ObjectNode translations = TestPackages.pkg("unsupported", 1);
 		translations.withObject("i18nBundles").withObject("de").put("metatype.x.name", "Typ");
 		MvcTestResult bundles = post(translations.toString(), this.metamodelAdmin);
 		assertThat(bundles).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
-		assertThat(body(bundles).path("pointer").asString()).isEqualTo("/i18nBundles");
+		assertThat(body(bundles).path("pointer").asString()).isEqualTo("/i18nBundles/de/metatype.x.name");
 		assertThat(count("SELECT count(*) FROM metatypes WHERE source_package_id = 'unsupported'")).isZero();
 	}
 

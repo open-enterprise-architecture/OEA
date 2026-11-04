@@ -4,6 +4,8 @@ import { onBeforeMount } from 'vue'
 import { useRouter } from 'vue-router'
 import CatalogPage from '../pages/CatalogPage.vue'
 import CatalogsPage from '../pages/CatalogsPage.vue'
+import { setLanguage } from '../i18n'
+import { loadLabels } from '../i18n/labels'
 import { APPLICATIONS, CATALOG, CATALOGS, catalogApi, manyApplications, METATYPES, ME_ARCHITECT, ME_VIEWER, type Application } from '../test/catalogs'
 import { routedFetch } from '../test/fetch'
 
@@ -65,3 +67,22 @@ export const EmptyCatalog: Story = catalog([])
 export const CatalogList: Story = { args: { fetchFn: overviewApi(ME_ARCHITECT, CATALOGS) } }
 
 export const EmptyOverview: Story = { args: { fetchFn: overviewApi(ME_VIEWER, []) } }
+
+// US-140 AC1: the catalog in German with the labels of the starter package
+export const GermanLabels: Story = {
+  render: () => ({
+    components: { CatalogPage },
+    setup: () => {
+      const fetchFn = catalogApi(APPLICATIONS)
+      setLanguage('de')
+      void loadLabels('de', fetchFn)
+      return { fetchFn, id: CATALOG.id }
+    },
+    template: '<CatalogPage :id="id" :fetch-fn="fetchFn" />',
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Anwendungskomponente')).toBeInTheDocument()
+    await expect(await canvas.findAllByText('Aktiv')).toHaveLength(2)
+  },
+}

@@ -21,20 +21,20 @@ Die Datei kann nur der OEA-Benutzer im Container lesen; du brauchst also Zugriff
 
 ## Systemadmin-Konto anlegen
 
-Öffne die Setup-Seite `/setup` der Weboberfläche (die Startseite zeigt *Setup required*, solange kein Konto existiert) und fülle aus:
+Öffne die Setup-Seite `/setup` der Weboberfläche (die Startseite zeigt *Einrichtung erforderlich*, solange kein Konto existiert) und fülle aus:
 
-<Screenshot name="setup-required" alt="Startseite einer neuen Instanz mit dem Hinweis Setup required" />
+<Screenshot name="setup-required" alt="Startseite einer neuen Instanz mit dem Hinweis Einrichtung erforderlich" />
 
 | Feld | Bedeutung |
 |---|---|
-| Setup token | das Token aus der Datei |
-| Login name | der Anmeldename des Systemadmin-Kontos |
-| Password, Repeat password | 12 bis 128 Zeichen |
-| Instance slug | kurzer, stabiler Name der Instanz; er wird in externen Referenzen verwendet (`urn:oea:<slug>:<id>`) und kann später nicht geändert werden |
+| Setup-Token | das Token aus der Datei |
+| Anmeldename | der Anmeldename des Systemadmin-Kontos |
+| Passwort, Passwort wiederholen | 12 bis 128 Zeichen |
+| Instanz-Kürzel | kurzer, stabiler Name der Instanz; er wird in externen Referenzen verwendet (`urn:oea:<slug>:<id>`) und kann später nicht geändert werden |
 
-<Screenshot name="setup-form" alt="Setup-Formular mit Token, Anmeldename, Passwort und Instance Slug" />
+<Screenshot name="setup-form" alt="Setup-Formular mit Token, Anmeldename, Passwort und Instanz-Kürzel" />
 
-Wähle *Create system admin account*. Die Seite bestätigt das Konto und den Instance Slug.
+Wähle *Systemadministrator-Konto anlegen*. Die Seite bestätigt das Konto und das Instanz-Kürzel.
 
 <Screenshot name="setup-done" alt="Bestätigung des angelegten Systemadmin-Kontos" />
 
@@ -50,7 +50,7 @@ Wähle *Create system admin account*. Die Seite bestätigt das Konto und den Ins
 Nach dem Bootstrapping ist die Instanz in ihrer **Setup-Phase**: Das Systemadmin-Konto meldet sich nur mit Anmeldename und Passwort an. Die Setup-Phase endet mit der ersten Aktion, die einer anderen Identität Zugriff gibt – der ersten Identitätsbindung oder IdP-Gruppenzuordnung (siehe [Identity-Provider und Personen](../administration/identity-providers)). Diese Aktion braucht einen zweiten Faktor:
 
 1. Melde dich mit dem Systemadmin-Konto an (siehe [Anmelden](../usage/login)).
-2. Öffne *Profile* und wähle *Set up a second factor*, dann *Set up authenticator app*. Scanne den QR-Code mit deiner Authenticator-App und gib den Code aus der App ein. Die Sitzung ist jetzt mit dem zweiten Faktor bestätigt.
+2. Öffne *Profil* und wähle *Zweiten Faktor einrichten*, dann *Authenticator-App einrichten*. Scanne den QR-Code mit deiner Authenticator-App und gib den Code aus der App ein. Die Sitzung ist jetzt mit dem zweiten Faktor bestätigt.
 3. Lege die erste Identitätsbindung oder Gruppenzuordnung an. Damit endet die Setup-Phase endgültig (Audit-Event `system.setup-phase-ended`).
 
 Ab dann braucht jede Anmeldung des Systemadmin-Kontos einen Code der Authenticator-App.

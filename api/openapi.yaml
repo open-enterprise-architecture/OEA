@@ -1313,7 +1313,11 @@ components:
           items: { $ref: '#/components/schemas/ShapeAssignment' }
         i18nBundles:
           type: object
-          description: "Locale → I18nBundle"
+          description: |
+            Locale (`de`, `en`, `fr`, `it`) → labels of the package's own metatypes,
+            categories, property definitions and enum values, keyed as in `I18nBundle`.
+            Stored as package labels; a re-import replaces them and keeps organization labels.
+          propertyNames: { enum: [de, en, fr, it] }
           additionalProperties: { $ref: '#/components/schemas/I18nBundle' }
 
     ShapeAssignment:
@@ -2436,6 +2440,10 @@ components:
       properties:
         principal: { $ref: '#/components/schemas/PrincipalRef' }
         email:     { type: [string, 'null'] }
+        uiLanguage:
+          type: [string, 'null']
+          enum: [de, en, fr, it, null]
+          description: Chosen language of the user interface; `null` means the browser language (US-140)
         mfaSatisfied:
           type: boolean
           description: The session was established with a second factor (SoD-8)
@@ -2741,12 +2749,43 @@ components:
     # ── I18N ─────────────────────────────────────────────────────────────────
     I18nBundle:
       type: object
-      description: "Flat key-value map: `{entity_type}.{slug_or_uuid}.{field}` → translated text"
+      description: "Flat key-value map: `{element_type}.{uuid}.{field}` → text (`metatype.{id}.name`, `property-category.{id}.name`, `property-def.{id}.label`, `enum-value.{id}.label`)"
       additionalProperties: { type: string }
       example:
-        "metatype.ac.name": "Application Component"
-        "property-def.abc123.label": "Version"
-        "enum-value.def456.label": "Planned"
+        "metatype.bcf1b833-1942-51c6-9e0b-95fd6a30677a.name": "Anwendungskomponente"
+        "property-def.fc59811d-d59e-539e-877a-c9164435eba7.label": "Status"
+        "enum-value.a3474cb3-3251-5979-82c0-1684659d9d39.label": "Geplant"
+
+    MetamodelLabel:
+      type: object
+      required: [key, elementType, name, packageText, organizationText]
+      properties:
+        key:              { type: string, example: "metatype.bcf1b833-1942-51c6-9e0b-95fd6a30677a.name" }
+        elementType:      { type: string, enum: [metatype, property-category, property-def, enum-value] }
+        name:             { type: string, description: "Name in the corporate language (enum values: the value)" }
+        packageText:      { type: [string, 'null'], description: "Label brought by the origin package" }
+        organizationText: { type: [string, 'null'], description: "Label set by the organization; wins over the package label" }
+
+    MetamodelLabelsUpdate:
+      type: object
+      required: [labels]
+      properties:
+        labels:
+          type: object
+          description: "Label key → text; an empty string or `null` removes the organization label"
+          maxProperties: 5000
+          additionalProperties:
+            type: [string, 'null']
+            maxLength: 200
+
+    PersonPreferences:
+      type: object
+      required: [uiLanguage]
+      properties:
+        uiLanguage:
+          type: [string, 'null']
+          pattern: '^(de|en|fr|it)$'
+          description: "`de`, `en`, `fr` or `it`; `null` means the language of the browser"
 
     StarterPackage:
       type: object
@@ -2789,6 +2828,9 @@ components:
         created:   { type: integer }
         updated:   { type: integer }
         conflicts: { type: integer }
+        labelCount:
+          type: [integer, 'null']
+          description: Labels stored from the `i18nBundles` of a metamodel package import
         errors:
           type: array
           items:
@@ -3272,7 +3314,27 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
-
+  /me/preferences:
+    put:
+      operationId: updateMyPreferences
+      summary: Set the own language of the user interface (US-140)
+      description: |
+        `uiLanguage` `null` means the language of the browser. Applies to all sessions
+        of the person at their next page load. Not available to service accounts.
+      tags: [Identity]
+      x-oea-authorization: {"access": "authenticated"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PersonPreferences' }
+      responses:
+        '204':
+          description: Stored
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /me/password:
     post:
@@ -3606,15 +3668,23 @@ paths:
   /i18n/{locale}:
     get:
       operationId: getI18nBundle
-      summary: Dynamic labels for a locale (ADR-025)
+      summary: Dynamic labels for a locale (ADR-025, US-140, REQ-152)
       description: |
-        ETag-cached (`MAX(updated_at)` over `i18n_entries`).
+        All labels of metatypes, property categories, property definitions and enum
+        values for the locale. A key without a label in the locale carries the name in
+        the corporate language. An organization label wins over a package label.
+        The weak `ETag` is a hash of the bundle content; a matching `If-None-Match`
+        is answered with 304 and no body.
         `Cache-Control: max-age=300, stale-while-revalidate=3600`
       tags: [I18N]
       x-oea-authorization: {"access": "authenticated"}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/LocaleParam'
+        - name: If-None-Match
+          in: header
+          required: false
+          schema: { type: string }
+          description: ETag of the bundle the client already holds
       responses:
         '200':
           description: Labels
@@ -3626,14 +3696,13 @@ paths:
               schema: { $ref: '#/components/schemas/I18nBundle' }
         '304':
           description: Not modified
+          headers:
+            ETag:          { schema: { type: string } }
+            Cache-Control: { schema: { type: string } }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '404':
-          description: Locale not supported
-          content:
-            application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  CATALOGS (UC-06, US-046, REQ-043, SCR-020/028)                         ║
@@ -4275,6 +4344,63 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ReimportPolicy' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /metamodel/labels/{locale}:
+    get:
+      operationId: getMetamodelLabels
+      summary: Labels of a locale for administrators (US-140, REQ-152)
+      description: |
+        Every metatype, property category, property definition and enum value with its
+        name in the corporate language, its package label and its organization label in
+        the locale, ordered by element type and name.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      parameters:
+        - $ref: '#/components/parameters/LocaleParam'
+      responses:
+        '200':
+          description: Labels of the locale
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/MetamodelLabel' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    put:
+      operationId: updateMetamodelLabels
+      summary: Set or remove organization labels of a locale (US-140, REQ-152)
+      description: |
+        A non-blank text sets the organization label of the key, an empty string or
+        `null` removes it; keys not named stay unchanged. Labels may translate content of
+        any scope; on the same key the organization label wins over the package label
+        (ADR-049). Unknown or malformed keys reject the whole request with
+        `validation-failed`. Audited as `metamodel.labels-changed`.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      parameters:
+        - $ref: '#/components/parameters/LocaleParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MetamodelLabelsUpdate' }
+      responses:
+        '200':
+          description: Labels of the locale after the change
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/MetamodelLabel' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }

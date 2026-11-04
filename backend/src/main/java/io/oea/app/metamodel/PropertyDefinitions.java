@@ -87,6 +87,7 @@ public class PropertyDefinitions {
 		}
 		if (!"enum".equals(input.dataType())) {
 			this.jdbc.update("DELETE FROM property_enum_values WHERE property_def_id = ?", id);
+			this.effects.removeOrphanLabels();
 		}
 		this.jdbc.update("""
 				UPDATE property_definitions SET name = ?, data_type = ?, category_id = ?, max_length = ?, min_value = ?,
@@ -121,6 +122,7 @@ public class PropertyDefinitions {
 		else {
 			this.jdbc.update("DELETE FROM property_enum_values WHERE property_def_id = ?", id);
 			this.jdbc.update("DELETE FROM property_definitions WHERE id = ?", id);
+			this.effects.removeOrphanLabels();
 		}
 		this.audit.changed("metamodel.property-deleted", principal, "property-definition", id,
 				Map.of("name", stored.name(), "retired", retired));
@@ -171,6 +173,7 @@ public class PropertyDefinitions {
 		int removed = this.values.removeValues(propertyDefId, metatypes, value, MetamodelEffects.author(principal),
 				this.effects.now());
 		this.jdbc.update("DELETE FROM property_enum_values WHERE id = ?", valueId);
+		this.effects.removeOrphanLabels();
 		int marked = (removed > 0) ? this.effects.markWhereMandatory(propertyDefId) : 0;
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("valueId", valueId.toString());
@@ -210,6 +213,7 @@ public class PropertyDefinitions {
 			throw MetamodelChangeException.inUse("Property definitions belong to the category.", null);
 		}
 		this.jdbc.update("DELETE FROM property_categories WHERE id = ?", id);
+		this.effects.removeOrphanLabels();
 		this.audit.changed("metamodel.category-deleted", principal, "property-category", id, Map.of());
 	}
 

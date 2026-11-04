@@ -142,7 +142,7 @@ Delta to `api/openapi.yaml`:
   - in the description, `MAX(updated_at)` becomes the content hash;
   - the `I18nBundle` example uses UUID keys.
 - New `getMetamodelLabels` and `updateMetamodelLabels` under `/metamodel/labels/{locale}` (tag Metamodel, `metamodel:write`, 401/403/422/429). New schemas `MetamodelLabel` (`key`, `elementType`, `name`, `packageText`, `organizationText`) and `MetamodelLabelsUpdate`.
-- New `updateMyPreferences` under `/me/preferences` (`authenticated`, 204/400/401/403/429). New schema `PersonPreferences`.
+- New `updateMyPreferences` under `/me/preferences` (`authenticated`, 204/400/401/403/429). New schema `PersonPreferences`; its `uiLanguage` is a nullable string with the pattern `^(de|en|fr|it)$` instead of an enum, because the generated Java enum of a nullable enum reads an unknown value as `null` and would clear the setting instead of rejecting it with 400.
 - `Me` gets `uiLanguage` (`[string, 'null']`, enum including null).
 - `MetamodelPackage.i18nBundles`: the description names the key rule. `ImportResult` gets `labelCount`.
 

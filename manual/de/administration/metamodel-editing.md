@@ -2,7 +2,7 @@
 title: Metamodell bearbeiten
 covers:
   screens: []
-  stories: [US-032, US-137]
+  stories: [US-032, US-137, US-140]
 ---
 
 # Metamodell bearbeiten
@@ -86,6 +86,21 @@ curl "${auth[@]}" -X DELETE "$OEA/metamodel/metatypes/$TYPE/property-mappings/$M
 ::: warning Werte werden gelöscht
 Hat der Entitätstyp die Eigenschaft danach nicht mehr und haben Entitäten des Typs oder seiner Subtypen Werte dafür, werden diese Werte gelöscht. Jede betroffene Entität erhält eine neue Version; der entfernte Wert bleibt in ihrer Historie sichtbar. Das Audit-Event `metamodel.mapping-deleted` nennt die Anzahl der betroffenen Entitäten. Das Löschen eines Werts einer Enum-Eigenschaft wirkt genauso auf die Entitäten mit diesem Wert.
 :::
+
+## Labels übersetzen {#translating-labels}
+
+Benutzer sehen die Namen von Entitätstypen, Kategorien und Eigenschaften sowie die Werte von Enum-Eigenschaften in der Sprache ihrer Oberfläche (siehe [Dein Profil](../usage/login#your-profile)). Die Übersetzungen pflegst du pro Sprache – `de`, `en`, `fr` oder `it` – über die API, bis das Formular im Webportal folgt:
+
+```bash
+curl "${auth[@]}" "$OEA/metamodel/labels/de"     # jedes Element mit Name, Paket-Label und deinem Label
+curl "${auth[@]}" -X PUT "$OEA/metamodel/labels/de" -H 'Content-Type: application/json' \
+  -d '{"labels": {"metatype.'"$TYPE"'.name": "Anwendungskomponente", "enum-value.'"$VALUE"'.label": ""}}'
+```
+
+- Ein Label-Schlüssel nennt das Element mit seiner Kennung: `metatype.{id}.name`, `property-category.{id}.name`, `property-def.{id}.label` oder `enum-value.{id}.label`. Schlüssel, die du nicht nennst, bleiben unverändert; ein leerer Text entfernt dein Label. Texte haben höchstens 200 Zeichen.
+- Du kannst jedes Element übersetzen, auch die eines Pakets. Dein Label gewinnt gegenüber dem Label des Pakets; ohne beide sehen Benutzer den Namen in deiner Unternehmenssprache.
+- Ein unbekannter Schlüssel lehnt die ganze Änderung mit `422` (`validation-failed`) ab und nennt die Schlüssel. Jede Änderung schreibt das Audit-Event `metamodel.labels-changed`.
+- Offene Webportale übernehmen eine Änderung innerhalb von fünf Minuten, ohne Neuladen.
 
 ## Eigene Eigenschaften beim erneuten Paketimport
 

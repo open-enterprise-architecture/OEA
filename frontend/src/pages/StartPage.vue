@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { fetchHealth, type HealthStatus } from '../api/health'
 import { fetchSetupRequired } from '../api/setup'
 import StarterConfigurationCard from '../components/StarterConfigurationCard.vue'
 
 const props = defineProps<{ fetchFn?: typeof fetch }>()
+const { t } = useI18n()
 const health = ref<HealthStatus | 'CHECKING'>('CHECKING')
 const setupRequired = ref(false)
 
@@ -18,19 +20,19 @@ onMounted(async () => {
 <template>
   <main class="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-6 p-8">
     <h1 class="text-3xl font-semibold text-highlighted">OEA – Open Enterprise Architecture</h1>
-    <p class="text-muted">Walking skeleton: the catalog browser follows with the next changes.</p>
+    <p class="text-muted">{{ t('start.intro') }}</p>
     <UAlert
       v-if="setupRequired"
       data-testid="setup-hint"
       color="warning"
       variant="subtle"
-      title="Setup required"
-      description="This instance has no system admin account yet."
-      :actions="[{ label: 'Set up the instance', to: '/setup' }]"
+      :title="t('start.setupRequired')"
+      :description="t('start.noAdmin')"
+      :actions="[{ label: t('start.setUp'), to: '/setup' }]"
     />
     <StarterConfigurationCard :fetch-fn="props.fetchFn" />
     <div class="flex items-center gap-2">
-      <span>Backend</span>
+      <span>{{ t('start.backend') }}</span>
       <UBadge
         data-testid="health"
         :color="health === 'UP' ? 'success' : health === 'DOWN' ? 'error' : 'neutral'"

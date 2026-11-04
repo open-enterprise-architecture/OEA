@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import {
   fetchLoginProviders,
@@ -22,19 +23,20 @@ import { refreshSession } from '../session/store'
 const props = defineProps<{ fetchFn?: typeof fetch; navigate?: (url: string) => void }>()
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 
 const providers = ref<LoginProvider[]>([])
 
 // Errors of the OIDC callback arrive as query parameter; one generic message (REQ-006)
 const CALLBACK_ERRORS: Record<string, string> = {
-  'login-failed': 'Login failed. Your account may not be set up for this instance yet; contact an administrator.',
-  'provider-unavailable': 'The identity provider is not reachable at the moment. Try again later.',
+  'login-failed': 'login.callbackFailed',
+  'provider-unavailable': 'login.providerUnavailable',
 }
 
 onMounted(async () => {
   const error = route?.query.error
   if (typeof error === 'string') {
-    failure.value = CALLBACK_ERRORS[error] ?? CALLBACK_ERRORS['login-failed']
+    failure.value = t(CALLBACK_ERRORS[error] ?? CALLBACK_ERRORS['login-failed'])
   }
   providers.value = await fetchLoginProviders(props.fetchFn)
 })
@@ -58,14 +60,13 @@ const secondStepHint = computed(() => {
   const totp = methods.value.includes('totp')
   const passkey = methods.value.includes('passkey') && passkeys
   if (totp && passkey) {
-    return 'Confirm the login with your passkey or the code of your authenticator app.'
+    return t('login.confirmPasskeyOrCode')
   }
-  return passkey ? 'Confirm the login with your passkey.' : 'Enter the code of your authenticator app.'
+  return passkey ? t('login.confirmPasskey') : t('login.enterCode')
 })
 const failure = ref<string>()
 const submitting = ref(false)
 
-const GENERIC_FAILURE = 'Login failed. Check the user name or e-mail address and the password.'
 
 function failureMessage(
   outcome: Extract<LoginOutcome, { kind: 'rejected' }>,
@@ -73,15 +74,15 @@ function failureMessage(
 ): string {
   const { rejection } = outcome
   if (rejection.retryAfterSeconds !== undefined) {
-    return `Too many failed attempts. Try again in ${rejection.retryAfterSeconds} seconds.`
+    return t('login.tooManyAttempts', { seconds: rejection.retryAfterSeconds })
   }
   if (step === 'code') {
-    return 'The code is not valid, or the login has expired. Enter a new code or start again.'
+    return t('login.invalidCode')
   }
   if (step === 'passkey') {
-    return 'The passkey was not accepted. Try again, or log in with your password.'
+    return t('login.passkeyRejected')
   }
-  return GENERIC_FAILURE
+  return t('login.failed')
 }
 
 async function handle(outcome: PasskeyLoginOutcome, step: 'password' | 'code' | 'passkey') {
@@ -111,7 +112,7 @@ async function handle(outcome: PasskeyLoginOutcome, step: 'password' | 'code' | 
 async function submitPassword() {
   failure.value = undefined
   if (!form.loginName || !form.password) {
-    failure.value = GENERIC_FAILURE
+    failure.value = t('login.failed')
     return
   }
   submitting.value = true
@@ -120,7 +121,7 @@ async function submitPassword() {
     form.password = ''
     await handle(outcome, 'password')
   } catch {
-    failure.value = 'The backend is not reachable.'
+    failure.value = t('common.backendUnreachable')
   } finally {
     submitting.value = false
   }
@@ -134,7 +135,7 @@ async function submitCode() {
     form.code = ''
     await handle(outcome, 'code')
   } catch {
-    failure.value = 'The backend is not reachable.'
+    failure.value = t('common.backendUnreachable')
   } finally {
     submitting.value = false
   }
@@ -146,7 +147,7 @@ async function submitPasskey() {
   try {
     await handle(await loginWithPasskey(loginTransaction.value, props.fetchFn), 'passkey')
   } catch {
-    failure.value = 'The passkey could not be used.'
+    failure.value = t('login.passkeyUnusable')
   } finally {
     submitting.value = false
   }
@@ -161,7 +162,7 @@ function startAgain() {
 
 <template>
   <main class="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
-    <h1 class="text-2xl font-semibold text-highlighted">Log in to OEA</h1>
+    <h1 class="text-2xl font-semibold text-highlighted">{{ t('login.title') }}</h1>
 
     <UAlert v-if="failure" data-testid="login-failure" color="error" variant="subtle" :description="failure" />
 
@@ -170,18 +171,18 @@ function startAgain() {
         v-for="provider in providers"
         :key="provider.id"
         :data-testid="`provider-${provider.id}`"
-        :label="`Log in with ${provider.name}`"
+        :label="t('login.withProvider', { provider: provider.name })"
         block
         @click="loginWith(provider)"
       />
-      <USeparator label="or with your user name or e-mail address" />
+      <USeparator :label="t('login.orLocal')" />
     </div>
 
     <form v-if="!loginTransaction" class="flex flex-col gap-4" novalidate @submit.prevent="submitPassword">
-      <UFormField label="User name or e-mail address" name="loginName" required>
+      <UFormField :label="t('login.loginName')" name="loginName" required>
         <UInput v-model="form.loginName" data-testid="loginName" autocomplete="username" class="w-full" />
       </UFormField>
-      <UFormField label="Password" name="password" required>
+      <UFormField :label="t('login.password')" name="password" required>
         <UInput
           v-model="form.password"
           data-testid="password"
@@ -190,14 +191,14 @@ function startAgain() {
           class="w-full"
         />
       </UFormField>
-      <UButton type="submit" data-testid="submit" :loading="submitting" label="Log in" block />
+      <UButton type="submit" data-testid="submit" :loading="submitting" :label="t('login.submit')" block />
       <UButton
         v-if="passkeys"
         data-testid="passkey-login"
         color="neutral"
         variant="outline"
         icon="i-lucide-key-round"
-        label="Log in with a passkey"
+        :label="t('login.withPasskey')"
         block
         @click="submitPasskey"
       />
@@ -210,11 +211,11 @@ function startAgain() {
         data-testid="use-passkey"
         icon="i-lucide-key-round"
         :loading="submitting"
-        label="Use a passkey"
+        :label="t('login.usePasskey')"
         block
         @click="submitPasskey"
       />
-      <UFormField v-if="methods.includes('totp')" label="Code" name="code" required>
+      <UFormField v-if="methods.includes('totp')" :label="t('login.code')" name="code" required>
         <UInput
           v-model="form.code"
           data-testid="code"
@@ -229,10 +230,10 @@ function startAgain() {
         type="submit"
         data-testid="submit-code"
         :loading="submitting"
-        label="Confirm"
+        :label="t('login.confirm')"
         block
       />
-      <UButton data-testid="start-again" variant="link" label="Start again" @click="startAgain" />
+      <UButton data-testid="start-again" variant="link" :label="t('login.startAgain')" @click="startAgain" />
     </form>
   </main>
 </template>

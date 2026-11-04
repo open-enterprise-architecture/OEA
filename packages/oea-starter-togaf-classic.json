@@ -1,8 +1,8 @@
 {
   "formatVersion": "1.0",
-  "exportedAt": "2026-10-16T00:00:00Z",
+  "exportedAt": "2026-11-04T00:00:00Z",
   "packageId": "oea-starter-togaf-classic",
-  "packageVersion": "1.0.0",
+  "packageVersion": "1.1.0",
   "publisher": "OEA",
   "name": "TOGAF classic starter configuration",
   "description": "Starter metamodel after the classic TOGAF/ArchiMate reading (platform as technology, ADR-005): application components, services and data objects, technology components, services, system software and network nodes, each with a lifecycle status.",
@@ -189,5 +189,28 @@
         }
       ]
     }
-  ]
+  ],
+  "i18nBundles": {
+    "de": {
+      "metatype.bcf1b833-1942-51c6-9e0b-95fd6a30677a.name": "Anwendungskomponente",
+      "metatype.97fa836b-4017-55c9-a218-741b21320780.name": "Anwendungsdienst",
+      "metatype.92b26412-8c2c-563f-b359-d2160b49b0ab.name": "Datenobjekt",
+      "metatype.91bfa93c-abe3-541d-80c7-7492688df9d8.name": "Technologiekomponente",
+      "metatype.663dad99-85af-517e-9e3d-933b58a6c973.name": "Technologiedienst",
+      "metatype.9c9f11b2-9d1d-51ee-80b5-93972619537d.name": "Systemsoftware",
+      "metatype.79b00502-7688-59ce-a70f-7608f6426a59.name": "Netzwerkknoten",
+      "property-category.54b2a532-1f0e-5c3b-9c19-148cb39e3d0a.name": "Allgemein",
+      "property-def.fc59811d-d59e-539e-877a-c9164435eba7.label": "Status",
+      "enum-value.a3474cb3-3251-5979-82c0-1684659d9d39.label": "Geplant",
+      "enum-value.9fc16c24-3814-5c3a-aa99-7aba8ef9ede9.label": "Aktiv",
+      "enum-value.8b87d217-b2a6-5a02-a053-2d9622e2cf0d.label": "Auslaufend",
+      "enum-value.a47b3f75-ddd1-5539-9484-3595136220b1.label": "Abgelöst"
+    },
+    "en": {
+      "enum-value.a3474cb3-3251-5979-82c0-1684659d9d39.label": "Planned",
+      "enum-value.9fc16c24-3814-5c3a-aa99-7aba8ef9ede9.label": "Active",
+      "enum-value.8b87d217-b2a6-5a02-a053-2d9622e2cf0d.label": "Phasing out",
+      "enum-value.a47b3f75-ddd1-5539-9484-3595136220b1.label": "Retired"
+    }
+  }
 }

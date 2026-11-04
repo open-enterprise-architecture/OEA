@@ -14,6 +14,7 @@ const ME = {
     { role: { id: 'metamodel-admin', name: 'Metamodel Admin', privileged: true }, source: 'local' as const, effective: true },
   ],
   permissions: [{ permission: 'entity:read', grantedBy: [] }],
+  uiLanguage: null,
 }
 
 const FACTORS = [
@@ -45,6 +46,8 @@ export const TwoAuthenticators: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(await canvas.findAllByTestId('factor-label')).toHaveLength(2)
+    // US-140: the language of the user interface, by default that of the browser
+    await expect(await canvas.findByTestId('language')).toHaveTextContent('Language of the browser')
   },
 }
 

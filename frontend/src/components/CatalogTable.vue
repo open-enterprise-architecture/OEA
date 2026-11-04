@@ -2,12 +2,14 @@
 import UButton from '@nuxt/ui/components/Button.vue'
 import type { TableColumn } from '@nuxt/ui'
 import { computed, h } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { CatalogQueryResult, CatalogRow, CatalogSort } from '../api/catalogs'
 
 // The rows of a catalog (US-049, SCR-020; design D6 of us-049-show-catalog-data). Renders the
 // columns the query returns; a header click cycles ascending → descending → default order.
 const props = defineProps<{ result: CatalogQueryResult; loading?: boolean }>()
 const emit = defineEmits<{ sort: [sort: CatalogSort | undefined]; page: [page: number] }>()
+const { t } = useI18n()
 
 const sort = computed(() => props.result.sort ?? undefined)
 
@@ -58,8 +60,8 @@ const page = computed(() => props.result.page)
     v-if="page.totalElements === 0"
     data-testid="catalog-empty"
     icon="i-lucide-table-2"
-    title="No entries found"
-    description="No entries found. Entities can be captured as a delta in a solution."
+    :title="t('catalog.noEntries')"
+    :description="t('catalog.noEntriesHint')"
   />
   <div v-else class="flex flex-col gap-4">
     <UTable
@@ -74,7 +76,7 @@ const page = computed(() => props.result.page)
     />
     <div class="flex items-center justify-between gap-4">
       <p data-testid="catalog-page-info" class="text-sm text-muted">
-        Page {{ page.page + 1 }} of {{ page.totalPages }} · {{ page.totalElements }} entries
+        {{ t('catalog.pageInfo', { page: page.page + 1, pages: page.totalPages, entries: page.totalElements }) }}
       </p>
       <UPagination
         v-if="page.totalPages > 1"

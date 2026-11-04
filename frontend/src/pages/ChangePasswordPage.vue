@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { changeOwnPassword, suggestPassword } from '../api/session'
 import { afterPasswordLogin } from '../session/secondFactorOffer'
@@ -11,6 +12,7 @@ import { refreshSession, session } from '../session/store'
 // required change, a person without a second factor is offered the TOTP enrollment (US-021).
 const props = defineProps<{ fetchFn?: typeof fetch }>()
 const router = useRouter()
+const { t } = useI18n()
 
 const form = reactive({ currentPassword: '', newPassword: '', repeated: '' })
 const failure = ref<string>()
@@ -21,25 +23,17 @@ const busy = ref(false)
 const required = computed(() => session.me?.requiredAction === 'change-password')
 
 // Rule names of the problem type password-policy-violation (api/openapi.yaml)
-const RULES: Record<string, string> = {
-  minLength: 'It is shorter than the password policy allows.',
-  maxLength: 'It is longer than 128 characters.',
-  requireUppercase: 'It needs an uppercase letter.',
-  requireLowercase: 'It needs a lowercase letter.',
-  requireDigits: 'It needs a digit.',
-  requireSpecialChars: 'It needs a special character, such as ! or #.',
-  historyCount: 'You used it recently; choose a password you have not used before.',
-}
+const RULES = ['minLength', 'maxLength', 'requireUppercase', 'requireLowercase', 'requireDigits', 'requireSpecialChars', 'historyCount']
 
 function clientCheck(): string | undefined {
   if (form.newPassword.length < 12 || form.newPassword.length > 128) {
-    return 'The new password must have 12 to 128 characters.'
+    return t('password.length')
   }
   if (form.newPassword !== form.repeated) {
-    return 'The new passwords differ.'
+    return t('password.differ')
   }
   if (form.newPassword === form.currentPassword) {
-    return 'The new password must differ from the current one.'
+    return t('password.sameAsCurrent')
   }
   return undefined
 }
@@ -52,10 +46,10 @@ async function suggest() {
     if (outcome.ok) {
       suggestion.value = outcome.value
     } else {
-      failure.value = 'No password could be suggested.'
+      failure.value = t('password.noSuggestion')
     }
   } catch {
-    failure.value = 'The backend is not reachable.'
+    failure.value = t('common.backendUnreachable')
   }
 }
 
@@ -94,15 +88,17 @@ async function submit() {
           : '/me?passwordChanged=1'
       await router.push(target)
     } else if (outcome.rejection.status === 403) {
-      failure.value = 'The current password is not correct.'
+      failure.value = t('password.wrongCurrent')
     } else if (outcome.rejection.problemType === 'password-policy-violation') {
-      failure.value = 'The new password does not meet the password policy:'
-      unmetRules.value = outcome.rejection.invalidFields.map((rule) => RULES[rule] ?? rule)
+      failure.value = t('password.policy')
+      unmetRules.value = outcome.rejection.invalidFields.map((rule) =>
+        RULES.includes(rule) ? t(`password.rule.${rule}`) : rule,
+      )
     } else {
-      failure.value = 'The new password was not accepted: it must differ from the current password.'
+      failure.value = t('password.notAccepted')
     }
   } catch {
-    failure.value = 'The backend is not reachable.'
+    failure.value = t('common.backendUnreachable')
   } finally {
     form.currentPassword = ''
     form.newPassword = ''
@@ -115,13 +111,13 @@ async function submit() {
 
 <template>
   <main class="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
-    <h1 class="text-2xl font-semibold text-highlighted">Change password</h1>
+    <h1 class="text-2xl font-semibold text-highlighted">{{ t('password.title') }}</h1>
     <UAlert
       v-if="required"
       data-testid="password-change-required"
       color="warning"
       variant="subtle"
-      description="You logged in with a temporary or expired password. Choose a new password to continue."
+      :description="t('password.required')"
     />
     <UAlert v-if="failure" data-testid="password-failure" color="error" variant="subtle" :description="failure">
       <template v-if="unmetRules.length" #description>
@@ -133,7 +129,7 @@ async function submit() {
     </UAlert>
 
     <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
-      <UFormField label="Current password" name="currentPassword" required>
+      <UFormField :label="t('password.current')" name="currentPassword" required>
         <UInput
           v-model="form.currentPassword"
           data-testid="currentPassword"
@@ -142,7 +138,7 @@ async function submit() {
           class="w-full"
         />
       </UFormField>
-      <UFormField label="New password" name="newPassword" required help="At least 12 characters; the password policy may require more">
+      <UFormField :label="t('password.new')" name="newPassword" required :help="t('password.newHelp')">
         <UInput
           v-model="form.newPassword"
           data-testid="newPassword"
@@ -151,7 +147,7 @@ async function submit() {
           class="w-full"
         />
       </UFormField>
-      <UFormField label="Repeat the new password" name="repeated" required>
+      <UFormField :label="t('password.repeat')" name="repeated" required>
         <UInput v-model="form.repeated" data-testid="repeated" type="password" autocomplete="new-password" class="w-full" />
       </UFormField>
 
@@ -161,12 +157,12 @@ async function submit() {
           color="neutral"
           variant="outline"
           icon="i-lucide-wand-sparkles"
-          label="Suggest a password"
+          :label="t('password.suggest')"
           block
           @click="suggest"
         />
         <template v-if="suggestion">
-          <UFormField label="Suggested password" name="suggestion" help="Store it in your password manager before you use it">
+          <UFormField :label="t('password.suggested')" name="suggestion" :help="t('password.suggestedHelp')">
             <UInput
               :model-value="suggestion"
               data-testid="suggestion"
@@ -181,7 +177,7 @@ async function submit() {
               color="neutral"
               variant="subtle"
               icon="i-lucide-copy"
-              :label="copied ? 'Copied' : 'Copy'"
+              :label="copied ? t('password.copied') : t('password.copy')"
               @click="copySuggestion"
             />
             <UButton
@@ -189,14 +185,14 @@ async function submit() {
               color="neutral"
               variant="subtle"
               icon="i-lucide-arrow-down-to-line"
-              label="Use as new password"
+              :label="t('password.use')"
               @click="useSuggestion"
             />
           </div>
         </template>
       </div>
 
-      <UButton type="submit" data-testid="change-password" :loading="busy" label="Change password" block />
+      <UButton type="submit" data-testid="change-password" :loading="busy" :label="t('password.title')" block />
     </form>
   </main>
 </template>

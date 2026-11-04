@@ -12,6 +12,7 @@ import io.oea.app.metamodel.PackageConflictException;
 import io.oea.app.metamodel.PackageDefinition;
 import io.oea.app.metamodel.PackageImporter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -31,14 +32,20 @@ final class MetamodelPackages {
 		if (!empty(request.getShapeAssignments())) {
 			unsupported.add("shapeAssignments");
 		}
-		if (request.getI18nBundles() != null && !request.getI18nBundles().isEmpty()) {
-			unsupported.add("i18nBundles");
-		}
 		return new PackageDefinition(request.getPackageId(), request.getPackageVersion(), request.getPublisher(),
 				(request.getStrategy() != null) ? request.getStrategy().getValue() : null, unsupported,
 				list(request.getPropertyCategories()).stream().map(MetamodelPackages::category).toList(),
 				list(request.getPropertyDefinitions()).stream().map(MetamodelPackages::property).toList(),
-				list(request.getMetatypes()).stream().map(MetamodelPackages::metatype).toList());
+				list(request.getMetatypes()).stream().map(MetamodelPackages::metatype).toList(),
+				labels(request.getI18nBundles()));
+	}
+
+	private static Map<String, Map<String, String>> labels(Map<String, Map<String, String>> bundles) {
+		Map<String, Map<String, String>> labels = new LinkedHashMap<>();
+		if (bundles != null) {
+			bundles.forEach((locale, bundle) -> labels.put(locale, (bundle != null) ? bundle : Map.of()));
+		}
+		return labels;
 	}
 
 	/** A package in the contract format, e.g. a shipped starter package. */
@@ -49,6 +56,7 @@ final class MetamodelPackages {
 	static ImportResult result(PackageImporter.Outcome outcome) {
 		return new ImportResult(ImportResult.StatusEnum.COMPLETED, outcome.created(), outcome.updated(), 0)
 			.batchId(outcome.batchId())
+			.labelCount(outcome.labels())
 			.conflictList(List.of());
 	}
 

@@ -32,9 +32,15 @@ Feature: Import of metamodel packages
     And no metatype of the package "too-large" exists
 
   Scenario: Unsupported package sections
-    When the metamodel administrator imports the package "with-viewpoints" with translation bundles
+    When the metamodel administrator imports the package "with-viewpoints" with viewpoints
     Then the import is rejected with 422 as unsupported content
     And no metatype of the package "with-viewpoints" exists
+
+  @US-140
+  Scenario: Label of a foreign element
+    When the metamodel administrator imports the package "foreign-label" with a label for a metatype of another package
+    Then the import is rejected with 422 as an invalid package
+    And no metatype of the package "foreign-label" exists
 
   @US-033 @AC1
   Scenario: Package with five metatypes

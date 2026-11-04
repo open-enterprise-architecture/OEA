@@ -1,6 +1,8 @@
 import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { currentLanguage } from '../i18n'
+import { label } from '../i18n/labels'
 import { currentCsrfToken } from '../api/session'
 import { session } from '../session/store'
 import { routedFetch, type RecordedRequest } from '../test/fetch'
@@ -150,5 +152,37 @@ describe('ProfilePage', () => {
     await wrapper.findAll('[data-testid="remove-factor"]')[0]!.trigger('click')
     await flushPromises()
     expect(wrapper.get('[data-testid="reauthentication-required"]').text()).toContain('Log in again')
+  })
+
+  // US-140 AC1; design D6 of us-140-dynamic-labels
+  it('switches the language of the user interface', async () => {
+    const recorded: RecordedRequest[] = []
+    const person = {
+      ...ME,
+      principal: { principalType: 'person', id: 7, displayName: 'Anna' },
+      uiLanguage: null,
+    }
+    const { wrapper } = await mountPage(
+      routedFetch(
+        {
+          '/api/v1/me': { body: person },
+          '/api/v1/me/second-factors': { body: [] },
+          '/api/v1/me/preferences': { status: 204, body: null },
+          '/api/v1/i18n/de': { body: { 'metatype.m1.name': 'Anwendungskomponente' }, headers: { ETag: 'W/"de"' } },
+        },
+        recorded,
+      ),
+    )
+    expect(wrapper.text()).toContain('Profile')
+    const select = wrapper.findAllComponents({ name: 'Select' }).find((component) => Array.isArray(component.props('items')))!
+    expect(select.props('modelValue')).toBe('browser')
+    select.vm.$emit('update:modelValue', 'de')
+    await flushPromises()
+    const preferences = recorded.find((request) => request.path === '/api/v1/me/preferences')!
+    expect(preferences.init?.method).toBe('PUT')
+    expect(JSON.parse(String(preferences.init?.body))).toEqual({ uiLanguage: 'de' })
+    expect(currentLanguage()).toBe('de')
+    expect(wrapper.get('h1').text()).toBe('Profil')
+    expect(label('metatype.m1.name', 'Application Component')).toBe('Anwendungskomponente')
   })
 })

@@ -93,8 +93,9 @@ package "Auth" #FFF8E1 {
     + entity_linked_by_person_id : BIGINT {FK→persons.id}
     + entity_linked_by_admin_id  : UUID   {FK→system_admin_accounts.id}
     == UI preferences ==
-    + ui_language         : TEXT          {NN} DEFAULT 'de'
-    .. BCP 47: 'de' | 'en' | 'fr' | 'it' ..
+    + ui_language         : TEXT
+    .. BCP 47: 'de' | 'en' | 'fr' | 'it' (CHECK); NULL = language of the browser ..
+    .. set by the person (PUT /me/preferences, us-140-dynamic-labels D6) ..
     .. ignored for person_type=service-account ..
     + ui_theme            : TEXT          {NN} DEFAULT 'system'
     .. enum: light | dark | system ..
@@ -717,18 +718,24 @@ package "I18N" #FFF3E0 {
     + id           : UUID                 {PK}
     --
     + entity_type  : TEXT                 {NN}
-    .. enum: metatype | property_def | enum_value | ..
-    .. property_category | authorization_role ..
+    .. enum: metatype | property_def | enum_value | property_category (V17) ..
+    .. authorization_role and description fields follow later ..
     .. business roles are EA entities (monolingual), not translated here ..
-    + entity_id    : TEXT                 {NN}
-    .. UUID or TEXT ID of the referenced entry ..
-    .. no DB FK (polymorphic) ..
+    + entity_id    : UUID                 {NN}
+    .. no DB FK (polymorphic); every delete path removes the rows ..
     + locale       : TEXT                 {NN}
     .. BCP 47: 'de' | 'en' | 'fr' | 'it' ..
     + field        : TEXT                 {NN}
-    .. enum: name | description | label ..
+    .. enum: name | label (description later) ..
     + value        : TEXT                 {NN}
-    .. UNIQUE(entity_type, entity_id, locale, field) ..
+    .. 1–200 characters ..
+    + scope        : TEXT                 {NN}
+    .. enum: imported | organization; organization wins (ADR-049) ..
+    + package_id   : TEXT
+    .. origin package of an imported label; NULL for organization ..
+    + updated_at   : TIMESTAMPTZ          {NN}
+    .. UNIQUE(entity_type, entity_id, locale, field, scope) ..
+    .. us-140-dynamic-labels D2; bundle ETag = hash of the content (D3) ..
   }
 
   note right of i18n_entries

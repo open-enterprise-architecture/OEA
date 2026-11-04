@@ -1,5 +1,6 @@
 package io.oea.app.metamodel;
 
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -113,6 +114,39 @@ public final class PackageValidator {
 			}
 		}
 		noCycles(definition);
+		labels(definition);
+	}
+
+	/** Labels name only elements of the package, in a supported locale (us-140-dynamic-labels D5). */
+	private static void labels(PackageDefinition definition) {
+		Map<LabelKey.Element, Set<UUID>> own = new EnumMap<>(LabelKey.Element.class);
+		own.put(LabelKey.Element.PROPERTY_CATEGORY, new HashSet<>());
+		own.put(LabelKey.Element.PROPERTY_DEF, new HashSet<>());
+		own.put(LabelKey.Element.ENUM_VALUE, new HashSet<>());
+		own.put(LabelKey.Element.METATYPE, new HashSet<>());
+		definition.categories().forEach((category) -> own.get(LabelKey.Element.PROPERTY_CATEGORY).add(category.id()));
+		definition.metatypes().forEach((metatype) -> own.get(LabelKey.Element.METATYPE).add(metatype.id()));
+		for (PackageDefinition.Property property : definition.properties()) {
+			own.get(LabelKey.Element.PROPERTY_DEF).add(property.id());
+			property.enumValues().forEach((value) -> own.get(LabelKey.Element.ENUM_VALUE).add(value.id()));
+		}
+		int count = 0;
+		for (Map.Entry<String, Map<String, String>> bundle : definition.labels().entrySet()) {
+			String pointer = "/i18nBundles/" + bundle.getKey();
+			require(LabelKey.LOCALES.contains(bundle.getKey()), pointer, "Unsupported locale.");
+			for (Map.Entry<String, String> label : bundle.getValue().entrySet()) {
+				String labelPointer = pointer + "/" + label.getKey();
+				LabelKey key = LabelKey.parse(label.getKey())
+					.orElseThrow(() -> new InvalidPackageException("invalid-package", labelPointer,
+							"Malformed label key."));
+				require(own.get(key.element()).contains(key.id()), labelPointer,
+						"The label names an element that is not part of the package.");
+				require(notBlank(label.getValue()) && label.getValue().strip().length() <= LabelKey.MAXIMUM_LENGTH,
+						labelPointer, "The label is empty or longer than " + LabelKey.MAXIMUM_LENGTH + " characters.");
+				count++;
+			}
+		}
+		require(count <= MAXIMUM_ELEMENTS * 4, "/i18nBundles", "Too many labels.");
 	}
 
 	/** Base types within the package form no cycle (us-032-metatype-editing D4). */

@@ -132,12 +132,19 @@ public final class RepositoryInstance implements AutoCloseable {
 
 	/** A request with any method; {@code body} may be {@code null}. */
 	public HttpResponse<String> send(String method, String path, String body, Session session) throws Exception {
+		return send(method, path, body, session, Map.of());
+	}
+
+	/** A request with any method and further headers; {@code body} may be {@code null}. */
+	public HttpResponse<String> send(String method, String path, String body, Session session,
+			Map<String, String> headers) throws Exception {
 		HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(this.instance.url() + path))
 			.header("Cookie", "__Host-OEA_SESSION=" + session.token())
 			.header("X-XSRF-TOKEN", session.csrfToken())
 			.header("Content-Type", "application/json")
 			.method(method, (body != null) ? HttpRequest.BodyPublishers.ofString(body)
 					: HttpRequest.BodyPublishers.noBody());
+		headers.forEach(request::header);
 		return this.instance.send(request);
 	}
 

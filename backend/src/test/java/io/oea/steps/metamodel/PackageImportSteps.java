@@ -60,10 +60,18 @@ public class PackageImportSteps {
 		this.response = shared.post(IMPORT, pkg.toString(), shared.metamodelAdmin());
 	}
 
-	@When("the metamodel administrator imports the package {string} with translation bundles")
-	public void withTranslations(String packageId) throws Exception {
+	@When("the metamodel administrator imports the package {string} with viewpoints")
+	public void withViewpoints(String packageId) throws Exception {
 		ObjectNode pkg = TestPackages.pkg(packageId, 1);
-		pkg.withObject("i18nBundles").withObject("de").put("metatype.x.name", "Typ");
+		pkg.putArray("viewpoints").addObject().put("id", "landscape").put("name", "Landscape");
+		this.response = shared.post(IMPORT, pkg.toString(), shared.metamodelAdmin());
+	}
+
+	@When("the metamodel administrator imports the package {string} with a label for a metatype of another package")
+	public void withForeignLabel(String packageId) throws Exception {
+		ObjectNode pkg = TestPackages.pkg(packageId, 1);
+		// Application Component of the starter package
+		pkg.withObject("i18nBundles").withObject("de").put("metatype.bcf1b833-1942-51c6-9e0b-95fd6a30677a.name", "Fremd");
 		this.response = shared.post(IMPORT, pkg.toString(), shared.metamodelAdmin());
 	}
 
@@ -112,6 +120,12 @@ public class PackageImportSteps {
 	public void rejectedAsUnsupported() {
 		assertThat(this.response.statusCode()).isEqualTo(422);
 		assertThat(body().path("type").asString()).isEqualTo("urn:oea:problem:unsupported-package-content");
+	}
+
+	@Then("the import is rejected with 422 as an invalid package")
+	public void rejectedAsInvalid() {
+		assertThat(this.response.statusCode()).isEqualTo(422);
+		assertThat(body().path("type").asString()).isEqualTo("urn:oea:problem:invalid-package");
 	}
 
 	@Then("the import is rejected with {int}")

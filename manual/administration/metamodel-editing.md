@@ -2,7 +2,7 @@
 title: Editing the metamodel
 covers:
   screens: []
-  stories: [US-032, US-137]
+  stories: [US-032, US-137, US-140]
 ---
 
 # Editing the metamodel
@@ -86,6 +86,21 @@ curl "${auth[@]}" -X DELETE "$OEA/metamodel/metatypes/$TYPE/property-mappings/$M
 ::: warning Values are deleted
 If the entity type then no longer has the property and entities of the type or its subtypes have values for it, these values are deleted. Every affected entity gets a new version; the removed value remains visible in its history. The audit event `metamodel.mapping-deleted` states the number of affected entities. Deleting a value of an enum property works the same way for the entities that hold this value.
 :::
+
+## Translating labels {#translating-labels}
+
+Users see the names of entity types, categories and properties and the values of enum properties in the language of their user interface (see [Your profile](../usage/login#your-profile)). You maintain the translations per language – `de`, `en`, `fr` or `it` – through the API until the form in the web portal follows:
+
+```bash
+curl "${auth[@]}" "$OEA/metamodel/labels/de"     # every element with its name, package label and your label
+curl "${auth[@]}" -X PUT "$OEA/metamodel/labels/de" -H 'Content-Type: application/json' \
+  -d '{"labels": {"metatype.'"$TYPE"'.name": "Anwendungskomponente", "enum-value.'"$VALUE"'.label": ""}}'
+```
+
+- A label key names the element by its identifier: `metatype.{id}.name`, `property-category.{id}.name`, `property-def.{id}.label` or `enum-value.{id}.label`. Keys you do not name stay unchanged; an empty text removes your label. Texts have at most 200 characters.
+- You can translate every element, also those of a package. Your label wins over the label of the package; without either, users see the name in your corporate language.
+- An unknown key rejects the whole change with `422` (`validation-failed`) naming the keys. Every change writes the audit event `metamodel.labels-changed`.
+- Open web portals pick up a change within five minutes, without a reload.
 
 ## Organization properties at a package re-import
 
