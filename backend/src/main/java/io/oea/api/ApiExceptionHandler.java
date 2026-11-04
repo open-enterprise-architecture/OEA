@@ -386,7 +386,12 @@ public class ApiExceptionHandler {
 			case CONFLICT -> problem(HttpStatus.CONFLICT, "conflict", "Conflict", ex.getMessage());
 			case INVALID -> problem(HttpStatus.UNPROCESSABLE_CONTENT, "validation-failed", "Invalid metamodel change",
 					ex.getMessage());
+			case STALE_VERSION -> problem(HttpStatus.PRECONDITION_FAILED, "stale-version", "Changed meanwhile",
+					ex.getMessage());
 		};
+		if (ex.getCurrentVersion() != null) {
+			problem.setProperty("currentVersion", ex.getCurrentVersion());
+		}
 		if (!ex.getInvalidFields().isEmpty()) {
 			problem.setProperty("invalidFields", ex.getInvalidFields());
 		}

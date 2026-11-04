@@ -31,10 +31,14 @@ public class PropertyMappings {
 
 	private final MetamodelAudit audit;
 
-	public PropertyMappings(JdbcTemplate jdbc, MetamodelEffects effects, MetamodelAudit audit) {
+	private final MetamodelVersions versions;
+
+	public PropertyMappings(JdbcTemplate jdbc, MetamodelEffects effects, MetamodelAudit audit,
+			MetamodelVersions versions) {
 		this.jdbc = jdbc;
 		this.effects = effects;
 		this.audit = audit;
+		this.versions = versions;
 	}
 
 	/** A typed default value; at most one field is set. */
@@ -50,11 +54,10 @@ public class PropertyMappings {
 	}
 
 	@Transactional
-	public Created create(OeaPrincipal principal, UUID metatypeId, Input input) {
+	public Created create(OeaPrincipal principal, UUID metatypeId, Input input, Long expectedVersion) {
 		this.effects.lock();
-		if (!exists("SELECT EXISTS (SELECT 1 FROM metatypes WHERE id = ?)", metatypeId)) {
-			throw new NoSuchElementException("no metatype " + metatypeId);
-		}
+		// a mapping is part of the metatype's version (scr-030-metamodel-configuration D1)
+		this.versions.check(MetamodelVersions.Element.METATYPE, metatypeId, expectedVersion);
 		List<String[]> definition = this.jdbc.query(
 				"SELECT scope, data_type FROM property_definitions WHERE id = ? AND retired_at IS NULL",
 				(rs, n) -> new String[] { rs.getString(1), rs.getString(2) }, input.propertyDefId());
@@ -108,6 +111,7 @@ public class PropertyMappings {
 				(value != null && value.date() != null) ? Date.valueOf(value.date()) : null,
 				(value != null) ? value.enumValue() : null, principal.personId(),
 				inEffect ? Timestamp.from(this.effects.now()) : null);
+		this.versions.increment(MetamodelVersions.Element.METATYPE, metatypeId);
 		// a future entry takes effect on its date (MappingEffectiveDates)
 		int marked = inEffect ? this.effects.apply(before, principal).marked(input.propertyDefId()) : 0;
 		Map<String, Object> details = new LinkedHashMap<>();
@@ -125,8 +129,9 @@ public class PropertyMappings {
 	 * are deleted (design D6, D7; us-137-mapping-effective-date D4).
 	 */
 	@Transactional
-	public void delete(OeaPrincipal principal, UUID metatypeId, UUID mappingId) {
+	public void delete(OeaPrincipal principal, UUID metatypeId, UUID mappingId, Long expectedVersion) {
 		this.effects.lock();
+		this.versions.check(MetamodelVersions.Element.METATYPE, metatypeId, expectedVersion);
 		List<Object[]> mapping = this.jdbc.query("""
 				SELECT property_def_id, scope FROM metatype_property_mappings WHERE id = ? AND metatype_id = ?""",
 				(rs, n) -> new Object[] { rs.getObject(1, UUID.class), rs.getString(2) }, mappingId, metatypeId);
@@ -137,6 +142,7 @@ public class PropertyMappings {
 		UUID property = (UUID) mapping.get(0)[0];
 		MetamodelEffects.Snapshot before = this.effects.snapshot();
 		this.jdbc.update("DELETE FROM metatype_property_mappings WHERE id = ?", mappingId);
+		this.versions.increment(MetamodelVersions.Element.METATYPE, metatypeId);
 		int removed = this.effects.apply(before, principal).removed(property);
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("mappingId", mappingId.toString());
@@ -149,7 +155,8 @@ public class PropertyMappings {
 	 * Removes the organization mappings of a re-imported metatype (design D8); the caller applies
 	 * the effects. Audited with the batch of the import.
 	 */
-	void removeForReimport(OeaPrincipal principal, UUID metatypeId, UUID batchId) {
+	int removeForReimport(OeaPrincipal principal, UUID metatypeId, UUID batchId) {
+		int[] removed = { 0 };
 		this.jdbc.query("""
 				DELETE FROM metatype_property_mappings WHERE metatype_id = ? AND scope = 'organization'
 				RETURNING id, property_def_id""", (rs) -> {
@@ -159,7 +166,9 @@ public class PropertyMappings {
 			details.put("batchId", batchId.toString());
 			details.put("reason", "reimport");
 			this.audit.changed("metamodel.mapping-deleted", principal, "metatype", metatypeId, details);
+			removed[0]++;
 		}, metatypeId);
+		return removed[0];
 	}
 
 	private static void checkDefault(Input input, String dataType) {

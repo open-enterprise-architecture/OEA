@@ -31,10 +31,14 @@ public class MetatypeEditing {
 
 	private final MetamodelAudit audit;
 
-	public MetatypeEditing(JdbcTemplate jdbc, MetamodelEffects effects, MetamodelAudit audit) {
+	private final MetamodelVersions versions;
+
+	public MetatypeEditing(JdbcTemplate jdbc, MetamodelEffects effects, MetamodelAudit audit,
+			MetamodelVersions versions) {
 		this.jdbc = jdbc;
 		this.effects = effects;
 		this.audit = audit;
+		this.versions = versions;
 	}
 
 	/** The writable fields of a metatype. */
@@ -68,9 +72,11 @@ public class MetatypeEditing {
 		return id;
 	}
 
+	/** @param expectedVersion the version of {@code If-Match}, or {@code null} */
 	@Transactional
-	public void update(OeaPrincipal principal, UUID id, Input input) {
+	public void update(OeaPrincipal principal, UUID id, Input input, Long expectedVersion) {
 		this.effects.lock();
+		this.versions.check(MetamodelVersions.Element.METATYPE, id, expectedVersion);
 		Stored stored = stored(id);
 		if (!"organization".equals(stored.scope())) {
 			throw MetamodelChangeException.readOnly("metatype");
@@ -84,6 +90,7 @@ public class MetatypeEditing {
 				UPDATE metatypes SET name = ?, abbreviation = ?, architecture_layer_id = ?, sort_order = ?,
 				       base_metatype_id = ? WHERE id = ?""", name, abbreviation(input), input.architectureLayerId(),
 				input.sortOrder(), input.baseMetatypeId(), id);
+		this.versions.increment(MetamodelVersions.Element.METATYPE, id);
 		List<String> changed = new ArrayList<>();
 		compare(changed, "name", stored.name(), name);
 		compare(changed, "abbreviation", stored.abbreviation(), abbreviation(input));
@@ -102,8 +109,9 @@ public class MetatypeEditing {
 	}
 
 	@Transactional
-	public void delete(OeaPrincipal principal, UUID id) {
+	public void delete(OeaPrincipal principal, UUID id, Long expectedVersion) {
 		this.effects.lock();
+		this.versions.check(MetamodelVersions.Element.METATYPE, id, expectedVersion);
 		Stored stored = stored(id);
 		if (!"organization".equals(stored.scope())) {
 			throw MetamodelChangeException.readOnly("metatype");

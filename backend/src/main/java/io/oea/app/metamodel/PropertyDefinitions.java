@@ -38,12 +38,15 @@ public class PropertyDefinitions {
 
 	private final MetamodelAudit audit;
 
+	private final MetamodelVersions versions;
+
 	public PropertyDefinitions(JdbcTemplate jdbc, PropertyValueStore values, MetamodelEffects effects,
-			MetamodelAudit audit) {
+			MetamodelAudit audit, MetamodelVersions versions) {
 		this.jdbc = jdbc;
 		this.values = values;
 		this.effects = effects;
 		this.audit = audit;
+		this.versions = versions;
 	}
 
 	/** The writable fields of a property definition. */
@@ -76,9 +79,11 @@ public class PropertyDefinitions {
 		return id;
 	}
 
+	/** @param expectedVersion the version of {@code If-Match}, or {@code null} */
 	@Transactional
-	public void update(OeaPrincipal principal, UUID id, Input input) {
+	public void update(OeaPrincipal principal, UUID id, Input input, Long expectedVersion) {
 		this.effects.lock();
+		this.versions.check(MetamodelVersions.Element.PROPERTY_DEFINITION, id, expectedVersion);
 		Stored stored = stored(id);
 		readOnlyUnlessOrganization(stored.scope(), "property definition");
 		String name = validate(input, id);
@@ -93,6 +98,7 @@ public class PropertyDefinitions {
 				UPDATE property_definitions SET name = ?, data_type = ?, category_id = ?, max_length = ?, min_value = ?,
 				       max_value = ?, pattern = ? WHERE id = ?""", name, input.dataType(), input.categoryId(),
 				input.maxLength(), input.minValue(), input.maxValue(), input.pattern(), id);
+		this.versions.increment(MetamodelVersions.Element.PROPERTY_DEFINITION, id);
 		List<String> changed = new ArrayList<>();
 		compare(changed, "name", stored.name(), name);
 		compare(changed, "dataType", stored.dataType(), input.dataType());
@@ -107,8 +113,9 @@ public class PropertyDefinitions {
 
 	/** Deletes an unmapped definition, or retires it when the entity history references it. */
 	@Transactional
-	public void delete(OeaPrincipal principal, UUID id) {
+	public void delete(OeaPrincipal principal, UUID id, Long expectedVersion) {
 		this.effects.lock();
+		this.versions.check(MetamodelVersions.Element.PROPERTY_DEFINITION, id, expectedVersion);
 		Stored stored = stored(id);
 		readOnlyUnlessOrganization(stored.scope(), "property definition");
 		if (exists("SELECT EXISTS (SELECT 1 FROM metatype_property_mappings WHERE property_def_id = ?)", id)) {
@@ -129,8 +136,10 @@ public class PropertyDefinitions {
 	}
 
 	@Transactional
-	public UUID createEnumValue(OeaPrincipal principal, UUID propertyDefId, String value, Integer sortOrder) {
+	public UUID createEnumValue(OeaPrincipal principal, UUID propertyDefId, String value, Integer sortOrder,
+			Long expectedVersion) {
 		this.effects.lock();
+		this.versions.check(MetamodelVersions.Element.PROPERTY_DEFINITION, propertyDefId, expectedVersion);
 		Stored stored = stored(propertyDefId);
 		readOnlyUnlessOrganization(stored.scope(), "property definition");
 		if (!"enum".equals(stored.dataType())) {
@@ -152,6 +161,7 @@ public class PropertyDefinitions {
 		UUID id = UUID.randomUUID();
 		this.jdbc.update("INSERT INTO property_enum_values (id, property_def_id, value, sort_order) VALUES (?, ?, ?, ?)",
 				id, propertyDefId, stripped, order);
+		this.versions.increment(MetamodelVersions.Element.PROPERTY_DEFINITION, propertyDefId);
 		this.audit.changed("metamodel.enum-value-created", principal, "property-definition", propertyDefId,
 				Map.of("valueId", id.toString(), "value", stripped));
 		return id;
@@ -159,8 +169,9 @@ public class PropertyDefinitions {
 
 	/** Deletes the value; entities holding it lose it with a new version (design D5, D6). */
 	@Transactional
-	public void deleteEnumValue(OeaPrincipal principal, UUID propertyDefId, UUID valueId) {
+	public void deleteEnumValue(OeaPrincipal principal, UUID propertyDefId, UUID valueId, Long expectedVersion) {
 		this.effects.lock();
+		this.versions.check(MetamodelVersions.Element.PROPERTY_DEFINITION, propertyDefId, expectedVersion);
 		Stored stored = stored(propertyDefId);
 		readOnlyUnlessOrganization(stored.scope(), "property definition");
 		String value = this.jdbc
@@ -173,6 +184,7 @@ public class PropertyDefinitions {
 		int removed = this.values.removeValues(propertyDefId, metatypes, value, MetamodelEffects.author(principal),
 				this.effects.now());
 		this.jdbc.update("DELETE FROM property_enum_values WHERE id = ?", valueId);
+		this.versions.increment(MetamodelVersions.Element.PROPERTY_DEFINITION, propertyDefId);
 		this.effects.removeOrphanLabels();
 		int marked = (removed > 0) ? this.effects.markWhereMandatory(propertyDefId) : 0;
 		Map<String, Object> details = new LinkedHashMap<>();
@@ -196,18 +208,21 @@ public class PropertyDefinitions {
 	}
 
 	@Transactional
-	public void updateCategory(OeaPrincipal principal, UUID id, CategoryInput input) {
+	public void updateCategory(OeaPrincipal principal, UUID id, CategoryInput input, Long expectedVersion) {
 		this.effects.lock();
+		this.versions.check(MetamodelVersions.Element.CATEGORY, id, expectedVersion);
 		readOnlyUnlessOrganization(categoryScope(id), "property category");
 		String name = categoryName(input, id);
 		this.jdbc.update("UPDATE property_categories SET name = ?, sort_order = ?, description = ? WHERE id = ?", name,
 				input.sortOrder(), input.description(), id);
+		this.versions.increment(MetamodelVersions.Element.CATEGORY, id);
 		this.audit.changed("metamodel.category-updated", principal, "property-category", id, Map.of("name", name));
 	}
 
 	@Transactional
-	public void deleteCategory(OeaPrincipal principal, UUID id) {
+	public void deleteCategory(OeaPrincipal principal, UUID id, Long expectedVersion) {
 		this.effects.lock();
+		this.versions.check(MetamodelVersions.Element.CATEGORY, id, expectedVersion);
 		readOnlyUnlessOrganization(categoryScope(id), "property category");
 		if (exists("SELECT EXISTS (SELECT 1 FROM property_definitions WHERE category_id = ?)", id)) {
 			throw MetamodelChangeException.inUse("Property definitions belong to the category.", null);

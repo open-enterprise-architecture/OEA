@@ -806,6 +806,9 @@ package "Metamodel" #E8F5E9 {
     + reimport_organization_mappings : TEXT {NN} DEFAULT 'inherit'
     .. enum: inherit | keep | remove; 'inherit' follows the base type, then the ..
     .. global setting of metamodel_configurations; writable for every scope (V15) ..
+    + version               : INTEGER     {NN} DEFAULT 1
+    .. CHECK version >= 1; grows with every change of the metatype, its mappings or its ..
+    .. re-import setting, also by a re-import; If-Match of the writes (V18, scr-030-metamodel-configuration D1) ..
     + created_at            : TIMESTAMPTZ {NN} DEFAULT NOW()
     + created_by            : BIGINT      {FK→persons.id}
     .. NULL for content of packages and of the software ..
@@ -860,6 +863,8 @@ package "Metamodel – Properties" #E0F2F1 {
     + source_package_id      : TEXT
     + source_package_version : TEXT
     .. as metatypes (ADR-002) ..
+    + version     : INTEGER               {NN} DEFAULT 1
+    .. CHECK version >= 1; grows with every change; If-Match of the writes (V18) ..
   }
 
   class property_definitions <<Table>> #B2DFDB {
@@ -899,6 +904,9 @@ package "Metamodel – Properties" #E0F2F1 {
     .. not mappable, name stays taken (V15, us-032-metatype-editing D5) ..
     + created_at      : TIMESTAMPTZ       {NN} DEFAULT NOW()
     + created_by      : BIGINT            {FK→persons.id}
+    + version         : INTEGER           {NN} DEFAULT 1
+    .. CHECK version >= 1; grows with every change of the definition or its enum values; ..
+    .. If-Match of the writes (V18, scr-030-metamodel-configuration D1) ..
   }
 
   class property_visibility_roles <<Table>> #B2DFDB {

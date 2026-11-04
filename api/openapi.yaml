@@ -165,6 +165,9 @@ components:
 
   # ── Headers ─────────────────────────────────────────────────────────────────
   headers:
+    VersionETag:
+      description: Strong ETag with the version of the element (`"<version>"`), for `If-Match`
+      schema: { type: string, example: '"3"' }
     PurgeLocalData:
       description: |
         Server signal to delete client-side data (ADR-035 §8, REQ-164, REQ-181 AC4).
@@ -269,6 +272,14 @@ components:
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
+    PreconditionFailed:
+      description: |
+        `If-Match` does not name the current version of the element: someone else changed it
+        meanwhile (problem type `urn:oea:problem:stale-version`, extension `currentVersion`).
+        Nothing is changed.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
     NotImplemented:
       description: |
         The operation is part of the published contract but not implemented in this release
@@ -309,6 +320,15 @@ components:
       required: true
       schema: { type: integer }
       description: Entity ID
+    IfMatchHeader:
+      name: If-Match
+      in: header
+      required: false
+      description: |
+        `ETag` of the version the client has read (`"<version>"`, or `*`). A different
+        version gives 412 `stale-version` and changes nothing; without the header the write
+        proceeds (optimistic locking, UC-04 A5).
+      schema: { type: string, example: '"3"' }
     UuidIdParam:
       name: id
       in: path
@@ -533,6 +553,7 @@ components:
         - $ref: '#/components/schemas/MetatypeSummary'
         - type: object
           properties:
+            version:            { type: integer, minimum: 1, readOnly: true, description: "Grows with every change of the metatype, its mappings or its re-import setting (`ETag`, `If-Match`)" }
             isConnection:       { type: boolean }
             architectureLayer:  { type: [string, 'null'] }
             sortOrder:          { type: integer }
@@ -609,6 +630,12 @@ components:
         name:        { type: string }
         description: { type: [string, 'null'] }
         sortOrder:   { type: integer }
+        version:     { type: integer, minimum: 1, readOnly: true, description: "Grows with every change (`If-Match`)" }
+        scope:
+          allOf:
+            - $ref: '#/components/schemas/MetamodelScope'
+          readOnly: true
+          description: Only `organization` categories can be changed (SCR-030)
 
     PropertyCategoryWrite:
       type: object
@@ -641,6 +668,7 @@ components:
         category:       { oneOf: [ { $ref: '#/components/schemas/PropertyCategory' }, { type: 'null' } ] }
         refMetatype:    { oneOf: [ { $ref: '#/components/schemas/MetatypeSummary' }, { type: 'null' } ] }
         sqlColumnName:  { type: string, readOnly: true, description: Storage name derived from the name; never changes }
+        version:        { type: integer, minimum: 1, readOnly: true, description: "Grows with every change of the definition or its enum values (`If-Match`)" }
         maxLength:      { type: [integer, 'null'] }
         minValue:       { type: [number, 'null'] }
         maxValue:       { type: [number, 'null'] }
@@ -4125,6 +4153,8 @@ paths:
       responses:
         '200':
           description: Metatype
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MetatypeDetail' }
@@ -4148,6 +4178,7 @@ paths:
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchHeader'
       requestBody:
         required: true
         content:
@@ -4156,6 +4187,8 @@ paths:
       responses:
         '200':
           description: Updated
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MetatypeDetail' }
@@ -4167,6 +4200,7 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
@@ -4181,6 +4215,7 @@ paths:
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchHeader'
       responses:
         '204':
           description: Deleted
@@ -4188,6 +4223,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /metamodel/metatypes/{id}/property-mappings:
@@ -4237,6 +4273,7 @@ paths:
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchHeader'
       requestBody:
         required: true
         content:
@@ -4252,6 +4289,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
@@ -4268,6 +4306,7 @@ paths:
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchHeader'
         - name: mappingId
           in: path
           required: true
@@ -4279,6 +4318,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /metamodel/metatypes/{id}/reimport-policy:
@@ -4293,6 +4333,7 @@ paths:
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchHeader'
       requestBody:
         required: true
         content:
@@ -4301,12 +4342,15 @@ paths:
       responses:
         '200':
           description: Metatype with the new setting
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MetatypeDetail' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
@@ -4455,6 +4499,7 @@ paths:
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchHeader'
       requestBody:
         required: true
         content:
@@ -4463,6 +4508,8 @@ paths:
       responses:
         '200':
           description: Updated
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PropertyCategory' }
@@ -4474,6 +4521,7 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
@@ -4484,6 +4532,7 @@ paths:
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchHeader'
       responses:
         '204':
           description: Deleted
@@ -4491,6 +4540,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /metamodel/property-definitions:
@@ -4556,6 +4606,7 @@ paths:
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchHeader'
       requestBody:
         required: true
         content:
@@ -4564,6 +4615,8 @@ paths:
       responses:
         '200':
           description: Updated
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PropertyDefinitionDetail' }
@@ -4575,6 +4628,7 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
@@ -4588,6 +4642,7 @@ paths:
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchHeader'
       responses:
         '204':
           description: Deleted
@@ -4595,6 +4650,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /metamodel/property-definitions/{id}/enum-values:
@@ -4624,6 +4680,7 @@ paths:
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchHeader'
       requestBody:
         required: true
         content:
@@ -4644,6 +4701,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
@@ -4659,6 +4717,7 @@ paths:
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchHeader'
         - name: valueId
           in: path
           required: true
@@ -4670,6 +4729,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗

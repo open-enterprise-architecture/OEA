@@ -2,8 +2,9 @@
 
 **ID**: US-032
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S7
+**Implementation**: OpenSpec changes `us-032-metatype-editing` (API, commit f9a2416, #151) and `scr-030-metamodel-configuration` (metamodel configuration SCR-030 in the web portal with optimistic locking); relations of AC1 follow in S8 (US-036)
 
 ## Story
 
@@ -55,6 +56,8 @@ As a Lead Enterprise Architect, I want to be able to define new entity types in 
 
 ## Notes
 
-Realigned by OpenSpec change `us-032-metatype-editing` (owner decisions 2026-10-30 and 2026-10-31; implemented in f9a2416, #151): the change provides the API (`/metamodel/metatypes`, `/metamodel/property-definitions`, `/metamodel/property-categories`, property mappings) instead of `POST /admin/metamodel/entity-types`; the form follows with SCR-030 in S7 change 4, so the status stays until then. AC1 without the relation, which follows with the connection metatypes in S8 (US-036); base types (`baseMetatypeId`) are part of this change with inheritance of property mappings. AC2: a name already used by any metatype – built-in, imported or organization – is rejected with 409, compared case-insensitively. AC3: every change is audited with the acting person. Organization properties may be mapped to imported and built-in metatypes; removing a property deletes its values, a new mandatory property marks existing entities without a value.
+Realigned by OpenSpec change `us-032-metatype-editing` (owner decisions 2026-10-30 and 2026-10-31; implemented in f9a2416, #151): the change provides the API (`/metamodel/metatypes`, `/metamodel/property-definitions`, `/metamodel/property-categories`, property mappings) instead of `POST /admin/metamodel/entity-types`; the form followed with SCR-030 in S7 change 4. AC1 without the relation, which follows with the connection metatypes in S8 (US-036); base types (`baseMetatypeId`) are part of this change with inheritance of property mappings. AC2: a name already used by any metatype – built-in, imported or organization – is rejected with 409, compared case-insensitively. AC3: every change is audited with the acting person. Organization properties may be mapped to imported and built-in metatypes; removing a property deletes its values, a new mandatory property marks existing entities without a value.
+
+Completed by OpenSpec change `scr-030-metamodel-configuration` (owner decisions 2026-11-04): the metamodel configuration SCR-030 in the web portal covers metatypes with base types, property definitions with enum values, categories, property mappings with effective dates, translated labels and the re-import settings. It is read-only for `entity:read` and changeable with `metamodel:write`. AC1: `SecurityZone` with the mandatory enum property `trustLevel` is created in the form and can be chosen as primary metatype of a catalog; the relation follows in S8. AC2: the dialog shows that the name is taken. AC3: both persons are named in the audit trail. Concurrent changes are detected with a version per element (`If-Match`, 412) and the form warns with the current state (UC-04 A5).
 
 5 SP because of the form complexity (dynamically addable properties and relations, dropdown for base types and target types from the existing metamodel). Built-in types are shown in the UI by badge or greyed out.

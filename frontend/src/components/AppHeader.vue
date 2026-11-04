@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { endSession, refreshSession, session } from '../session/store'
@@ -7,6 +7,11 @@ import { endSession, refreshSession, session } from '../session/store'
 const props = defineProps<{ fetchFn?: typeof fetch }>()
 const router = useRouter()
 const { t } = useI18n()
+
+// SCR-030 is readable with entity:read and changeable with metamodel:write
+const canSeeMetamodel = computed(() =>
+  (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read' || entry.permission === 'metamodel:write'),
+)
 
 onMounted(() => {
   if (!session.loaded) {
@@ -26,6 +31,7 @@ async function logOut() {
     <nav class="flex items-center gap-3">
       <template v-if="session.me">
         <RouterLink to="/catalogs" data-testid="header-catalogs">{{ t('catalogs.title') }}</RouterLink>
+        <RouterLink v-if="canSeeMetamodel" to="/metamodel" data-testid="header-metamodel">{{ t('metamodel.title') }}</RouterLink>
         <RouterLink to="/me" data-testid="header-profile">{{ session.me.principal.displayName }}</RouterLink>
         <UButton
           data-testid="header-logout"

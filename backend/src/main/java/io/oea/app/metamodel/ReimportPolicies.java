@@ -29,12 +29,15 @@ public class ReimportPolicies {
 
 	private final MetamodelAudit audit;
 
+	private final MetamodelVersions versions;
+
 	public ReimportPolicies(JdbcTemplate jdbc, MetatypeCatalog catalog, MetamodelEffects effects,
-			MetamodelAudit audit) {
+			MetamodelAudit audit, MetamodelVersions versions) {
 		this.jdbc = jdbc;
 		this.catalog = catalog;
 		this.effects = effects;
 		this.audit = audit;
+		this.versions = versions;
 	}
 
 	@Transactional(readOnly = true)
@@ -56,17 +59,19 @@ public class ReimportPolicies {
 	}
 
 	@Transactional
-	public void updateMetatype(OeaPrincipal principal, UUID metatypeId, String policy) {
+	public void updateMetatype(OeaPrincipal principal, UUID metatypeId, String policy, Long expectedVersion) {
+		this.effects.lock();
+		this.versions.check(MetamodelVersions.Element.METATYPE, metatypeId, expectedVersion);
 		if (!PER_METATYPE.contains(policy)) {
 			throw MetamodelChangeException.invalid("organizationMappings", "Unknown setting.");
 		}
-		this.effects.lock();
 		String before = this.jdbc
 			.queryForList("SELECT reimport_organization_mappings FROM metatypes WHERE id = ?", String.class, metatypeId)
 			.stream()
 			.findFirst()
 			.orElseThrow(() -> new NoSuchElementException("no metatype " + metatypeId));
 		this.jdbc.update("UPDATE metatypes SET reimport_organization_mappings = ? WHERE id = ?", policy, metatypeId);
+		this.versions.increment(MetamodelVersions.Element.METATYPE, metatypeId);
 		this.audit.changed("metamodel.reimport-policy-changed", principal, "metatype", metatypeId,
 				details(before, policy));
 	}
