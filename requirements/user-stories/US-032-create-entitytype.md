@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: done
 **Sprint**: S7
-**Implementation**: OpenSpec changes `us-032-metatype-editing` (API, commit f9a2416, #151) and `scr-030-metamodel-configuration` (metamodel configuration SCR-030 in the web portal with optimistic locking); relations of AC1 follow in S8 (US-036)
+**Implementation**: OpenSpec changes `us-032-metatype-editing` (API, commit f9a2416, #151) and `scr-030-metamodel-configuration` (metamodel configuration SCR-030 in the web portal with optimistic locking, commit 9573c89, #167); relations of AC1 follow in S8 (US-036)
 
 ## Story
 
