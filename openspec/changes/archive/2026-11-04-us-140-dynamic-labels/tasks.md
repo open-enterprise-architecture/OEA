@@ -71,7 +71,7 @@
   - the starter package page names version 1.1.0 with German labels.
 
   Verify with `python3 scripts/check_manual.py` and the manual build.
-- [ ] 7.2 Set `OEA_WALKTHROUGH_LANGUAGES: "en de"` in `.github/workflows/pages.yml`, and switch any walkthrough step that matches on visible text to test IDs. Verify with `scripts/walkthrough.sh` locally with `OEA_WALKTHROUGH_LANGUAGES="en de"`, or in the `pages` run of the PR branch.
+- [x] 7.2 Set `OEA_WALKTHROUGH_LANGUAGES: "en de"` in `.github/workflows/pages.yml`, and switch any walkthrough step that matches on visible text to test IDs. Verify with `scripts/walkthrough.sh` locally with `OEA_WALKTHROUGH_LANGUAGES="en de"`, or in the `pages` run of the PR branch.
 
 ## 8. Wrap-up
 

@@ -4,7 +4,7 @@
 **Date**: 2026-06-29
 **Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Partially superseded**: 2026-10-13 by [ADR-030](./ADR-030-postgresql-only.md) — multi-database parts no longer apply (PostgreSQL only)
-**Refined**: 2026-11-04 by OpenSpec change `us-140-dynamic-labels` (design D1, D3) — label keys use the UUID of the element (`metatype.{uuid}.name`), and the ETag is a hash of the bundle content of the locale instead of `MAX(updated_at)`, so that a removed label or a renamed element without a translation also changes it
+**Refined**: 2026-11-04 by OpenSpec change `us-140-dynamic-labels` (archived; design D1, D3) — label keys use the UUID of the element (`metatype.{uuid}.name`), and the ETag is a hash of the bundle content of the locale instead of `MAX(updated_at)`, so that a removed label or a renamed element without a translation also changes it
 
 ---
 

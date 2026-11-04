@@ -4,6 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S7
+**Implementation**: OpenSpec change `us-140-dynamic-labels`, commit 0f7bbec (#164) – labels per locale with ETag, language setting of a person, web portal in English and German; AC3 (SSE) open until the event stream
 
 ## Story
 
