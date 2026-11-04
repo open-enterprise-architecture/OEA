@@ -2,7 +2,7 @@
 identifier: metamodel-configuration
 name_de: Metamodell-Konfiguration
 name_en: Metamodel Configuration
-version: 1.8.0
+version: 1.9.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -278,6 +278,7 @@ Describes a single page (step) in the creation wizard that is run through when c
 | BR-29 | The necessity of a mapping changes only by a further entry with a valid-from date on the EntityType that holds the mapping, also for a package mapping (scope `organization`); the entry with the latest date not after today applies, one entry per date; an entry dated in the future takes effect on its date, when marks are set or cleared | onCreate, onSchedule | REQ-148, ADR-022, ADR-049 |
 | BR-30 | The label of an EntityType, category, PropertyDefinition or enum value in a locale (`de`, `en`, `fr`, `it`) is the organization label, else the label of the origin package, else the name in the corporate language; a re-import replaces only the package labels, and deleting an element deletes its labels | onRead, onImport, onDelete | REQ-152, ADR-025, ADR-049 |
 | BR-31 | A write on an EntityType, PropertyDefinition or property category, or on its mappings, enum values or re-import setting, that names an older `version` in `If-Match` is rejected and changes nothing; a write without `If-Match` applies | onUpdate, onDelete | UC-04 A5, REQ-032 |
+| BR-32 | `isConnection` is set when an EntityType is created and never changes; a connection type lists its allowed source and target types (each with its subtypes; an empty list allows every type, a connection type may be listed), its base type is a connection type and the base type of an element type an element type; a type listed by a connection type cannot be deleted | onCreate, onUpdate, onDelete, onImport | REQ-036, ADR-010 |
 | BR-25 | Every change of EntityTypes or PropertyDefinitions regenerates the affected reporting views `reporting.<metatype>`; every generated column applies the same masking expression as `reporting.property_values` | onCreate, onUpdate, onDelete | ADR-034 §3.1, REQ-160 |
 
 ## Examples
@@ -439,6 +440,8 @@ Version 1.6.0 (change `us-137-mapping-effective-date`, ADR-049) stores the scope
 
 Version 1.8.0 (change `scr-030-metamodel-configuration`) adds a `version` to EntityTypes, PropertyDefinitions and property categories, because two administrators editing the same element in the metamodel configuration SCR-030 would otherwise overwrite each other unnoticed (UC-04 A5). A version per element rather than per configuration lets administrators edit different elements at the same time.
 
+Version 1.9.0 (change `us-036-connection-metatypes`) stores the allowed endpoints of connection types in `metatype_connection_constraints` instead of `allowedSourceTypes`, `allowedTargetTypes` and `allowsConnectionAsSource`: listing a connection type as allowed source replaces the separate flag, and subtypes are included because a subtype is a kind of its base type.
+
 ## Change History
 
 | Version | Date | Author | Change |
@@ -461,3 +464,4 @@ Version 1.8.0 (change `scr-030-metamodel-configuration`) adds a `version` to Ent
 | 1.6.0 | 2026-11-04 | Business Engineer | Scope per mapping entry and `effective_applied_at`; BR-29 effective dates (change `us-137-mapping-effective-date`) |
 | 1.7.0 | 2026-11-04 | Business Engineer | Labels per locale of EntityTypes, categories, PropertyDefinitions and enum values (`i18n_entries` with scope); BR-30 (change `us-140-dynamic-labels`) |
 | 1.8.0 | 2026-11-04 | Business Engineer | `version` of EntityTypes, PropertyDefinitions and property categories for optimistic locking; BR-31 (change `scr-030-metamodel-configuration`) |
+| 1.9.0 | 2026-11-04 | Business Engineer | Connection types with allowed endpoints including subtypes and connection types; BR-32 (change `us-036-connection-metatypes`) |

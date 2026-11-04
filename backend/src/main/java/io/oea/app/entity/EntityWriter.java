@@ -59,6 +59,10 @@ public class EntityWriter {
 	public record Written(Status status, int entityId) {
 	}
 
+	/** The fixed source and target of a connection (us-036-connection-metatypes D1, D4). */
+	public record Endpoints(int sourceId, int targetId) {
+	}
+
 	/**
 	 * Writes a valid entity.
 	 *
@@ -67,6 +71,15 @@ public class EntityWriter {
 	 */
 	public Written write(OeaPrincipal principal, EntityValidator.Checked checked, StoredEntity existing,
 			Map<UUID, TypedValue> stored, WriteContext context) {
+		return write(principal, checked, existing, stored, context, null);
+	}
+
+	/**
+	 * Writes a valid entity or, with endpoints, a valid connection; a new connection stores its
+	 * endpoints, an existing one keeps them (the caller has checked that they are unchanged).
+	 */
+	public Written write(OeaPrincipal principal, EntityValidator.Checked checked, StoredEntity existing,
+			Map<UUID, TypedValue> stored, WriteContext context, Endpoints endpoints) {
 		if (!checked.valid()) {
 			throw new IllegalArgumentException("entity is not valid");
 		}
@@ -77,13 +90,16 @@ public class EntityWriter {
 		List<AuditEvent.Change> changes = new ArrayList<>();
 		if (existing == null) {
 			int id = this.store.create(fields, checked.values(), principal.personId(), now);
+			if (endpoints != null) {
+				this.store.insertConnection(id, endpoints.sourceId(), endpoints.targetId());
+			}
 			changes.add(new AuditEvent.Change(null, "name", true, null, fields.name()));
 			changes.add(new AuditEvent.Change(null, "description", true, null, fields.description()));
 			changes.add(new AuditEvent.Change(null, "is_logical", true, null, Boolean.toString(fields.logical())));
 			checked.values()
 				.forEach((definition, value) -> changes
 					.add(new AuditEvent.Change(definition, names.get(definition), false, null, value.asText())));
-			audit("entity.created", principal, checked, id, 1, context, changes);
+			audit("entity.created", principal, checked, id, 1, context, changes, endpoints);
 			return new Written(Status.CREATED, id);
 		}
 		List<FieldChange> fieldChanges = new ArrayList<>();
@@ -113,15 +129,19 @@ public class EntityWriter {
 					names.getOrDefault(definition, definition.toString()), false,
 					(before != null) ? before.asText() : null, (value != null) ? value.asText() : null));
 		});
-		audit("entity.updated", principal, checked, existing.id(), version, context, changes);
+		audit("entity.updated", principal, checked, existing.id(), version, context, changes, endpoints);
 		return new Written(Status.UPDATED, existing.id());
 	}
 
 	private void audit(String eventType, OeaPrincipal principal, EntityValidator.Checked checked, int entityId,
-			int version, WriteContext context, List<AuditEvent.Change> changes) {
+			int version, WriteContext context, List<AuditEvent.Change> changes, Endpoints endpoints) {
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("batchId", context.batchId().toString());
 		details.put("metatypeId", checked.metatype().id().toString());
+		if (endpoints != null) {
+			details.put("sourceEntityId", endpoints.sourceId());
+			details.put("targetEntityId", endpoints.targetId());
+		}
 		if (checked.fields().externalId() != null) {
 			details.put("externalId", checked.fields().externalId());
 		}

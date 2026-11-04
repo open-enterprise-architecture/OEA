@@ -2,7 +2,7 @@
 title: Editing the metamodel
 covers:
   screens: [SCR-030]
-  stories: [US-032, US-137, US-140]
+  stories: [US-032, US-036, US-137, US-140]
 ---
 
 # Editing the metamodel
@@ -36,7 +36,21 @@ The origin tells you what you may change: *Own* content belongs to your organiza
 - Names are unique across all entity types, regardless of upper and lower case: *application component* is rejected while *Application Component* exists.
 - You change (*Edit*) and delete (*Delete*) only your own entity types.
 - An entity type with entities – also deleted ones –, one used by a catalog or one that is the base type of another type cannot be deleted. The message names the number of entities.
-- Connection types follow in a later release.
+
+### Connection types {#connection-types}
+
+A connection type describes directed relationships that are objects of their own: a data flow between two applications with its protocol, a network connection, or "a security zone contains technology components". Its entities – connections – always have one source and one target.
+
+1. In *Entity types*, choose *New* and switch on *Connection type*. This cannot change later.
+2. Under *Allowed sources* and *Allowed targets*, choose the entity types a connection may start and end at. Leave a list empty to allow every entity type.
+3. Choose *Save*. The list marks the type with *Connection*, and its detail names the allowed sources and targets.
+
+- An allowed entity type also allows its subtypes.
+- A connection type may itself be an allowed source or target, so that one connection can start or end at another (for example, a data flow branching off another one). To allow the type itself, edit it after creating it.
+- A relation between entity types, such as *contains*, is a connection type. There are no cardinalities.
+- The base type of a connection type is a connection type, the base type of another entity type is not.
+- An entity type that is an allowed source or target of a connection type cannot be deleted; remove it from the connection type first.
+- Connections are written through the API, see [Writing entities in batch](../usage/entities-batch#connections).
 
 ### Base types
 
@@ -146,5 +160,6 @@ curl "${auth[@]}" -X PUT "$OEA/metamodel/labels/de" -H 'Content-Type: applicatio
 - Entity types, properties and categories carry a `version`, also returned as `ETag`. Send it back with `If-Match: "<version>"` when you change or delete an element, an assignment, a value or a re-import setting: if someone changed the element meanwhile, the request is rejected with `412` (`stale-version`, with `currentVersion`) and nothing changes. Without `If-Match` the change is made anyway, so scripts should send it.
 - Rejections use the problem types `name-taken`, `read-only-metatype`, `in-use` (with the number of entities in `count`), `conflict` and `validation-failed` (with `invalidFields`).
 - A label key names the element by its identifier: `metatype.{id}.name`, `property-category.{id}.name`, `property-def.{id}.label` or `enum-value.{id}.label`; an empty text removes your label, and an unknown key rejects the whole change.
+- Connection types are created with `"isConnection": true` and the lists `allowedSourceMetatypeIds` and `allowedTargetMetatypeIds`; `GET /metamodel/allowed-connections?sourceMetatypeId=…&targetMetatypeId=…` answers which connection types may connect two entity types, in which direction.
 - `GET /metamodel/metatypes/{id}/property-mappings?includeHistory=true` lists all entries of the assignments with their `state`. The re-import settings are `PUT /metamodel/settings/reimport-policy` and `PUT /metamodel/metatypes/{id}/reimport-policy`.
 - Every change writes an audit event, for example `metamodel.metatype-updated`, `metamodel.mapping-deleted` with the number of affected entities, `metamodel.mapping-effective` when an entry takes effect, or `metamodel.labels-changed`.

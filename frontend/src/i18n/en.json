@@ -401,6 +401,15 @@
       "forbidden": "You may not change the metamodel.",
       "notFound": "The element no longer exists.",
       "failed": "The change failed."
+    },
+    "connection": {
+      "badge": "Connection",
+      "toggle": "Connection type",
+      "toggleHelp": "Its entities connect a source and a target. Cannot change later.",
+      "sources": "Allowed sources",
+      "targets": "Allowed targets",
+      "endpointsHelp": "Subtypes are included. Leave empty to allow every entity type.",
+      "any": "Any entity type"
     }
   }
 }

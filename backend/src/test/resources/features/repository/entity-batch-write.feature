@@ -69,7 +69,12 @@ Feature: Batch write of entities
     Then the batch is rejected with 422 listing 5 errors with their item index
     And no entity with the prefix "atomic" exists
 
+  @US-036
   Scenario: Batch with connections
-    When the enterprise architect sends a batch with one entity "connections:1" and one connection
+    When the enterprise architect sends a batch with the entities "connections:1" and "connections:2" and a connection between them
+    Then the batch is answered with 200 and the connection between "connections:1" and "connections:2" is created
+
+  Scenario: Dry run
+    When the enterprise architect sends a batch with one entity "dry-run:1" and dryRun
     Then the batch is rejected with 422
-    And no entity with the prefix "connections" exists
+    And no entity with the prefix "dry-run" exists

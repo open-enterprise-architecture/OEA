@@ -86,6 +86,14 @@ async function changeReimportSetting(setting: ReimportSetting) {
   await changed()
 }
 
+/** The allowed endpoints of a connection metatype, or "any" (us-036-connection-metatypes D6). */
+function endpoints(direction: 'source' | 'target'): string {
+  const names = (props.metatype.connectionConstraints ?? [])
+    .filter((constraint) => constraint.direction === direction && constraint.allowedMetatype)
+    .map((constraint) => label(labelKeys.metatype(constraint.allowedMetatype!.id), constraint.allowedMetatype!.name))
+  return names.length > 0 ? names.join(', ') : t('metamodel.connection.any')
+}
+
 function propertyName(entry: PropertyMapping): string {
   return label(labelKeys.property(entry.propertyDefinition.id), entry.propertyDefinition.name)
 }
@@ -131,6 +139,12 @@ function stateColor(state: PropertyMapping['state']): 'success' | 'info' | 'neut
       </div>
     </header>
 
+    <dl v-if="metatype.isConnection" data-testid="metatype-endpoints" class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+      <dt class="text-toned">{{ t('metamodel.connection.sources') }}</dt>
+      <dd data-testid="metatype-endpoints-source">{{ endpoints('source') }}</dd>
+      <dt class="text-toned">{{ t('metamodel.connection.targets') }}</dt>
+      <dd data-testid="metatype-endpoints-target">{{ endpoints('target') }}</dd>
+    </dl>
     <UAlert v-if="!own" data-testid="metatype-read-only" color="neutral" variant="subtle" icon="i-lucide-lock" :description="t('metamodel.metatype.readOnly')" />
     <UAlert v-if="notice" data-testid="metatype-notice" color="success" variant="subtle" :description="notice" />
     <UAlert v-if="failure" data-testid="metatype-detail-failure" color="error" variant="subtle" :description="failure" />

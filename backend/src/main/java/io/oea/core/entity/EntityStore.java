@@ -43,6 +43,60 @@ public class EntityStore {
 	public record FieldChange(String field, String oldValue, String newValue) {
 	}
 
+	/** An entity as endpoint of a connection (us-036-connection-metatypes D3). */
+	public record Endpoint(int id, UUID metatypeId, String name, boolean deleted) {
+	}
+
+	/** The stored detail of a connection. */
+	public record ConnectionRow(int id, String name, UUID metatypeId, String externalId, int version, Endpoint source,
+			Endpoint target) {
+	}
+
+	/** The entity with this ID as endpoint. */
+	public Optional<Endpoint> endpoint(int id) {
+		return this.jdbc.query("SELECT id, metatype_id, name, deleted_at IS NOT NULL FROM entities WHERE id = ?",
+				EntityStore::endpoint, id).stream().findFirst();
+	}
+
+	/** The entity with this external ID as endpoint. */
+	public Optional<Endpoint> endpointByExternalId(String externalId) {
+		return this.jdbc.query(
+				"SELECT id, metatype_id, name, deleted_at IS NOT NULL FROM entities WHERE external_id = ?",
+				EntityStore::endpoint, externalId).stream().findFirst();
+	}
+
+	/** Source and target of a connection, or empty if the entity is no connection. */
+	public Optional<int[]> connectionEndpoints(int entityId) {
+		return this.jdbc.query("SELECT source_entity_id, target_entity_id FROM entity_connections WHERE entity_id = ?",
+				(rs, n) -> new int[] { rs.getInt(1), rs.getInt(2) }, entityId).stream().findFirst();
+	}
+
+	/** Stores the fixed endpoints of a new connection. */
+	public void insertConnection(int entityId, int sourceId, int targetId) {
+		this.jdbc.update("INSERT INTO entity_connections (entity_id, source_entity_id, target_entity_id) VALUES (?, ?, ?)",
+				entityId, sourceId, targetId);
+	}
+
+	/** The connection with its endpoints. */
+	public Optional<ConnectionRow> connection(int id) {
+		return this.jdbc.query("""
+				SELECT e.id, e.name, e.metatype_id, e.external_id, e.version,
+				       s.id, s.metatype_id, s.name, s.deleted_at IS NOT NULL,
+				       t.id, t.metatype_id, t.name, t.deleted_at IS NOT NULL
+				FROM entity_connections c JOIN entities e ON e.id = c.entity_id
+				JOIN entities s ON s.id = c.source_entity_id JOIN entities t ON t.id = c.target_entity_id
+				WHERE c.entity_id = ?""", (rs, n) -> new ConnectionRow(rs.getInt(1), rs.getString(2),
+				rs.getObject(3, UUID.class), rs.getString(4), rs.getInt(5),
+				new Endpoint(rs.getInt(6), rs.getObject(7, UUID.class), rs.getString(8), rs.getBoolean(9)),
+				new Endpoint(rs.getInt(10), rs.getObject(11, UUID.class), rs.getString(12), rs.getBoolean(13))), id)
+			.stream()
+			.findFirst();
+	}
+
+	private static Endpoint endpoint(java.sql.ResultSet rs, int row) throws java.sql.SQLException {
+		return new Endpoint(rs.getInt(1), rs.getObject(2, UUID.class), rs.getString(3), rs.getBoolean(4));
+	}
+
 	/** The entity with this external ID, locked for the rest of the transaction. */
 	public Optional<StoredEntity> lockByExternalId(String externalId) {
 		return this.jdbc.query(SELECT + " WHERE external_id = ? FOR UPDATE", EntityStore::entity, externalId)

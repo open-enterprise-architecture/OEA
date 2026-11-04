@@ -17,6 +17,7 @@ import io.oea.app.catalog.InvalidCatalogException;
 import io.oea.app.catalog.InvalidCatalogQueryException;
 import io.oea.app.entity.AtomicBatchFailedException;
 import io.oea.app.entity.BatchRejectedException;
+import io.oea.app.entity.ConnectionRejectedException;
 import io.oea.app.login.InvalidCredentialsException;
 import io.oea.app.login.InvalidPasskeyException;
 import io.oea.app.login.PasskeysUnavailableException;
@@ -228,6 +229,15 @@ public class ApiExceptionHandler {
 				ex.getMessage());
 		problem.setProperty("errors", ex.getErrors().stream().map(EntityBatchController::validationError).toList());
 		return ResponseEntity.unprocessableContent().body(problem);
+	}
+
+	@ExceptionHandler(ConnectionRejectedException.class)
+	ResponseEntity<ProblemDetail> connectionRejected(ConnectionRejectedException ex) {
+		HttpStatus status = ex.endpointMissing() ? HttpStatus.NOT_FOUND : HttpStatus.UNPROCESSABLE_CONTENT;
+		ProblemDetail problem = problem(status, ex.endpointMissing() ? "not-found" : "validation-failed",
+				"Connection not written", ex.getMessage());
+		problem.setProperty("errors", ex.getErrors().stream().map(EntityBatchController::validationError).toList());
+		return ResponseEntity.status(status).body(problem);
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)

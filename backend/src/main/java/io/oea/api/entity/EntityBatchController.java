@@ -6,8 +6,14 @@ import io.oea.api.generated.model.BatchWriteItemResult;
 import io.oea.api.generated.model.BatchWriteRequest;
 import io.oea.api.generated.model.BatchWriteResponse;
 import io.oea.api.generated.model.BatchWriteResponseSummary;
+import io.oea.api.generated.model.ConnectionDetail;
+import io.oea.api.generated.model.ConnectionEndpoint;
+import io.oea.api.generated.model.ConnectionWrite;
 import io.oea.api.generated.model.EntityWrite;
+import io.oea.api.generated.model.MetatypeSummary;
 import io.oea.api.generated.model.ValidationError;
+import io.oea.app.entity.ConnectionInput;
+import io.oea.app.entity.ConnectionRejectedException;
 import io.oea.app.entity.EntityBatch;
 import io.oea.app.entity.EntityInput;
 import io.oea.app.entity.Issue;
@@ -18,6 +24,7 @@ import io.oea.config.security.OeaAuthentication;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RestController;
@@ -40,7 +47,8 @@ public class EntityBatchController implements EntitiesWriteApi {
 	@Override
 	@ContractViolationResponse(shape = ContractViolationResponse.Shape.BATCH_ERRORS, status = 422,
 			title = "Batch rejected", detail = "The batch does not meet the contract; no item was processed.")
-	@ConditionsNotReachable("batches with connections are rejected with 422 until US-141 AC2")
+	@ConditionsNotReachable("no connection metatype can be a scopingConnectionType until property visibility "
+			+ "(REQ-124) is configurable; updatePropertyVisibility is planned")
 	public ResponseEntity<BatchWriteResponse> batchWriteEntities(BatchWriteRequest request, Boolean dryRun,
 			String xAgentId, String xAgentRun) {
 		EntityBatch.Strategy strategy = switch (request.getStrategy()) {
@@ -51,7 +59,8 @@ public class EntityBatchController implements EntitiesWriteApi {
 		boolean atomic = Boolean.TRUE.equals(request.getAtomic());
 		List<EntityInput> entities = (request.getEntities() != null)
 				? request.getEntities().stream().map(EntityBatchController::input).toList() : List.of();
-		int connections = (request.getConnections() != null) ? request.getConnections().size() : 0;
+		List<ConnectionInput> connections = (request.getConnections() != null)
+				? request.getConnections().stream().map(EntityBatchController::connection).toList() : List.of();
 		EntityBatch.Result result = this.batch.write(principal(), new EntityBatch.Request(entities, connections,
 				Boolean.TRUE.equals(dryRun), strategy, atomic,
 				new AuditEvent.Agent(informational(xAgentId), informational(xAgentRun))));
@@ -63,6 +72,44 @@ public class EntityBatchController implements EntitiesWriteApi {
 			.errors((int) result.count(EntityBatch.ItemStatus.ERROR));
 		return ResponseEntity.ok(new BatchWriteResponse(request.getStrategy().getValue(), atomic, summary,
 				result.items().stream().map(EntityBatchController::item).toList()));
+	}
+
+	@Override
+	@ContractViolationResponse(shape = ContractViolationResponse.Shape.BATCH_ERRORS, status = 422,
+			title = "Connection rejected", detail = "The connection does not meet the contract; nothing was written.")
+	@ConditionsNotReachable("no connection metatype can be a scopingConnectionType until property visibility "
+			+ "(REQ-124) is configurable; updatePropertyVisibility is planned")
+	public ResponseEntity<ConnectionDetail> createConnection(ConnectionWrite request) {
+		EntityBatch.ItemResult result = this.batch.createConnection(principal(), connection(request),
+				new AuditEvent.Agent(null, null));
+		if (result.status() == EntityBatch.ItemStatus.ERROR) {
+			throw new ConnectionRejectedException(result.errors());
+		}
+		EntityBatch.Connection connection = this.batch.connection(result.entityId()).orElseThrow();
+		return ResponseEntity.status(HttpStatus.CREATED)
+			.body(new ConnectionDetail(connection.id(), connection.name(), summary(connection.metatype()),
+					connection.version(), endpoint(connection.source()), endpoint(connection.target()))
+				.externalId(connection.externalId()));
+	}
+
+	private static ConnectionEndpoint endpoint(EntityBatch.ConnectionEnd end) {
+		return new ConnectionEndpoint(end.id(), end.name(), summary(end.metatype()));
+	}
+
+	private static MetatypeSummary summary(EntityBatch.MetatypeName metatype) {
+		return new MetatypeSummary(metatype.id(), metatype.name(),
+				(metatype.abbreviation() != null) ? metatype.abbreviation() : "");
+	}
+
+	private static ConnectionInput connection(ConnectionWrite connection) {
+		List<EntityInput.PropertyInput> properties = (connection.getProperties() != null) ? connection.getProperties()
+			.stream()
+			.map((property) -> new EntityInput.PropertyInput(property.getPropertyDefId(), property.getValue()))
+			.toList() : List.of();
+		return new ConnectionInput(new EntityInput(connection.getName(), connection.getConnectionMetatypeId(),
+				connection.getExternalId(), connection.getDescription(), null, null, null, properties),
+				connection.getSourceId(), connection.getSourceExternalId(), connection.getTargetId(),
+				connection.getTargetExternalId());
 	}
 
 	private static EntityInput input(EntityWrite entity) {
@@ -78,7 +125,8 @@ public class EntityBatchController implements EntitiesWriteApi {
 	private static BatchWriteItemResult item(EntityBatch.ItemResult item) {
 		BatchWriteItemResult result = new BatchWriteItemResult(item.index(),
 				BatchWriteItemResult.StatusEnum.fromValue(item.status().name().toLowerCase(Locale.ROOT)))
-			.itemType(BatchWriteItemResult.ItemTypeEnum.ENTITY)
+			.itemType(item.connection() ? BatchWriteItemResult.ItemTypeEnum.CONNECTION
+					: BatchWriteItemResult.ItemTypeEnum.ENTITY)
 			.id(item.entityId())
 			.externalId(item.externalId())
 			.errors(item.errors().stream().map(EntityBatchController::validationError).toList())

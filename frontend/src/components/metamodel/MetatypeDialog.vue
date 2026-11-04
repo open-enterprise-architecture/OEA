@@ -8,12 +8,13 @@ import CollisionWarning from './CollisionWarning.vue'
 import { rejectionMessage } from './messages'
 
 // Creating and changing an organization metatype in SCR-030 (US-032 AC1, AC2, REQ-032, UC-04 A4;
-// design D3, D4 of scr-030-metamodel-configuration).
+// design D3, D4 of scr-030-metamodel-configuration), also as connection metatype with its allowed
+// sources and targets (US-036; design D6 of us-036-connection-metatypes).
 const props = defineProps<{ metatype?: MetatypeDetail; fetchFn?: typeof fetch }>()
 const emit = defineEmits<{ saved: [id: string]; cancel: [] }>()
 const { t } = useI18n()
 
-type Field = 'name' | 'abbreviation' | 'sortOrder' | 'baseMetatypeId'
+type Field = 'name' | 'abbreviation' | 'sortOrder' | 'baseMetatypeId' | 'allowedSourceMetatypeIds' | 'allowedTargetMetatypeIds'
 
 const NONE = '-'
 
@@ -22,7 +23,16 @@ const form = reactive({
   abbreviation: props.metatype?.abbreviation ?? '',
   sortOrder: props.metatype?.sortOrder ?? 0,
   baseMetatypeId: props.metatype?.baseMetatypeId ?? NONE,
+  connection: props.metatype?.isConnection ?? false,
+  allowedSources: allowed('source'),
+  allowedTargets: allowed('target'),
 })
+
+function allowed(direction: 'source' | 'target'): string[] {
+  return (props.metatype?.connectionConstraints ?? [])
+    .filter((constraint) => constraint.direction === direction && constraint.allowedMetatype)
+    .map((constraint) => constraint.allowedMetatype!.id)
+}
 const errors = ref<Partial<Record<Field, string>>>({})
 const failure = ref<string>()
 const submitting = ref(false)
@@ -33,9 +43,18 @@ const current = computed(() => metatypeById(props.metatype?.id))
 const baseItems = computed(() => [
   { label: t('metamodel.metatype.noBase'), value: NONE },
   ...metamodel.metatypes
-    .filter((candidate) => candidate.id !== props.metatype?.id && !candidate.isConnection)
+    // base types have the same kind (us-036-connection-metatypes D2)
+    .filter((candidate) => candidate.id !== props.metatype?.id && Boolean(candidate.isConnection) === form.connection)
     .map((candidate) => ({ label: label(labelKeys.metatype(candidate.id), candidate.name), value: candidate.id })),
 ])
+
+// every metatype may be an endpoint, also connection metatypes and, once it exists, this one
+const endpointItems = computed(() =>
+  metamodel.metatypes.map((candidate) => ({
+    label: label(labelKeys.metatype(candidate.id), candidate.name),
+    value: candidate.id,
+  })),
+)
 
 function baseName(id: string | null | undefined): string {
   const base = metatypeById(id ?? undefined)
@@ -65,7 +84,9 @@ async function submit(version = props.metatype?.version) {
     name: form.name.trim(),
     abbreviation: form.abbreviation.trim(),
     sortOrder: Number(form.sortOrder) || 0,
-    isConnection: false,
+    isConnection: form.connection,
+    allowedSourceMetatypeIds: form.connection ? form.allowedSources : [],
+    allowedTargetMetatypeIds: form.connection ? form.allowedTargets : [],
     configId: INSTANCE_CONFIGURATION,
     baseMetatypeId: form.baseMetatypeId === NONE ? null : form.baseMetatypeId,
   }
@@ -130,6 +151,47 @@ async function submit(version = props.metatype?.version) {
         <UInput v-model.number="form.sortOrder" data-testid="metatype-sort-order" type="number" class="w-full" />
       </UFormField>
     </div>
+    <UFormField v-if="!metatype" name="connection" :help="t('metamodel.connection.toggleHelp')">
+      <USwitch
+        v-model="form.connection"
+        data-testid="metatype-connection"
+        :label="t('metamodel.connection.toggle')"
+        @update:model-value="form.baseMetatypeId = NONE"
+      />
+    </UFormField>
+    <template v-if="form.connection">
+      <UFormField
+        :label="t('metamodel.connection.sources')"
+        name="allowedSourceMetatypeIds"
+        :error="errors.allowedSourceMetatypeIds"
+        :help="t('metamodel.connection.endpointsHelp')"
+      >
+        <USelectMenu
+          v-model="form.allowedSources"
+          data-testid="metatype-sources"
+          :items="endpointItems"
+          value-key="value"
+          multiple
+          :placeholder="t('metamodel.connection.any')"
+          class="w-full"
+        />
+      </UFormField>
+      <UFormField
+        :label="t('metamodel.connection.targets')"
+        name="allowedTargetMetatypeIds"
+        :error="errors.allowedTargetMetatypeIds"
+      >
+        <USelectMenu
+          v-model="form.allowedTargets"
+          data-testid="metatype-targets"
+          :items="endpointItems"
+          value-key="value"
+          multiple
+          :placeholder="t('metamodel.connection.any')"
+          class="w-full"
+        />
+      </UFormField>
+    </template>
     <UFormField
       :label="t('metamodel.metatype.base')"
       name="baseMetatypeId"

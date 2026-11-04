@@ -4,9 +4,9 @@ title: Connection EntityType in the metamodel
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-25
-last_updated: 2026-06-25
+last_updated: 2026-11-04
 author: requirements-engineer
 references:
   use_cases:
@@ -143,9 +143,10 @@ Connection types are full EntityTypes with all features: properties, own ID, lif
 
 ## Implementation
 
-- ADR(s): –
-- Implemented by: –
-- Tests: –
+- Realized through the API by OpenSpec change `us-036-connection-metatypes`: connection metatypes with allowed source and target metatypes (subtypes included, connection metatypes allowed for T-relationships), connections in `entity_connections` with fixed endpoints, written by `createConnection` and the batch. The endpoints are not nullable columns of the entity table but a 1:1 table, as in `docs/data-model.puml`. The GUI for instances and the graph follow.
+- ADR(s): ADR-010, ADR-002
+- Implemented by: OpenSpec change `us-036-connection-metatypes`
+- Tests: `ConnectionWriteTests`, `MetamodelEditingTests`, `PackageImportTests`, `features/metamodel/connection-metatypes.feature`, `features/repository/connection-write.feature`
 - Verification status: not-verified
 
 ## Notes
@@ -157,3 +158,4 @@ Derived from requirement: "Connections between 2 components can be captured as o
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-04 | requirements-engineer | Implementation note (change `us-036-connection-metatypes`) |

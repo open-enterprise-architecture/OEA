@@ -170,11 +170,39 @@ public class EntitySteps {
 		send(checked(count, metatype, prefix, faulty, property).put("atomic", true));
 	}
 
-	@When("the enterprise architect sends a batch with one entity {string} and one connection")
-	public void withConnection(String externalId) throws Exception {
-		ObjectNode request = batch(entity("Application Component", "Source", externalId));
-		request.putArray("connections").addObject().put("connectionMetatypeId", UUID.randomUUID().toString());
+	@When("the enterprise architect sends a batch with the entities {string} and {string} and a connection between them")
+	public void withConnection(String source, String target) throws Exception {
+		ObjectNode metatype = JsonMapper.shared().createObjectNode()
+			.put("name", "Batch Link " + UUID.randomUUID())
+			.put("isConnection", true)
+			.put("configId", "00000000-0000-0000-0000-000000000001");
+		HttpResponse<String> created = shared.send("POST", "/api/v1/metamodel/metatypes", metatype.toString(),
+				shared.metamodelAdmin());
+		assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+		String unique = "-" + UUID.randomUUID();
+		ObjectNode request = batch(entity("Application Component", "Source", source + unique),
+				entity("Application Component", "Target", target + unique));
+		request.putArray("connections").addObject()
+			.put("connectionMetatypeId", JsonMapper.shared().readTree(created.body()).path("id").asString())
+			.put("sourceExternalId", source + unique)
+			.put("targetExternalId", target + unique);
 		send(request);
+	}
+
+	@When("the enterprise architect sends a batch with one entity {string} and dryRun")
+	public void dryRun(String externalId) throws Exception {
+		this.response = shared.post(BATCH + "?dryRun=true",
+				batch(entity("Application Component", "Source", externalId)).toString(), shared.architect(), Map.of());
+	}
+
+	@Then("the batch is answered with 200 and the connection between {string} and {string} is created")
+	public void connectionCreated(String source, String target) {
+		assertThat(this.response.statusCode()).as(this.response.body()).isEqualTo(200);
+		JsonNode connection = item(2);
+		assertThat(connection.path("itemType").asString()).isEqualTo("connection");
+		assertThat(connection.path("status").asString()).isEqualTo("created");
+		assertThat(item(0).path("status").asString()).isEqualTo("created");
+		assertThat(item(1).path("status").asString()).isEqualTo("created");
 	}
 
 	// Outcomes

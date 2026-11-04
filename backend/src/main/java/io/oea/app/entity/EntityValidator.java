@@ -61,6 +61,15 @@ public final class EntityValidator {
 	 */
 	public static Checked check(EntityInput input, MetatypeRules rules, StoredEntity existing,
 			Map<UUID, TypedValue> stored, References references) {
+		return check(input, rules, existing, stored, references, false);
+	}
+
+	/**
+	 * Checks an input against the rules, as an entity of an element metatype or as a connection
+	 * (us-036-connection-metatypes D3); the endpoints of a connection are checked by the caller.
+	 */
+	public static Checked check(EntityInput input, MetatypeRules rules, StoredEntity existing,
+			Map<UUID, TypedValue> stored, References references, boolean asConnection) {
 		List<Issue> errors = new ArrayList<>();
 		List<Issue> warnings = new ArrayList<>();
 		String name = input.name();
@@ -86,9 +95,14 @@ public final class EntityValidator {
 			errors.add(new Issue("metatypeId", "METATYPE_NOT_FOUND", "The metatype does not exist."));
 			return new Checked(errors, warnings, null, null, Map.of());
 		}
-		if (metatype.connection()) {
+		if (metatype.connection() && !asConnection) {
 			errors.add(new Issue("metatypeId", "METATYPE_IS_CONNECTION",
 					"The metatype is a connection type; connections are written as connections."));
+			return new Checked(errors, warnings, metatype, null, Map.of());
+		}
+		if (!metatype.connection() && asConnection) {
+			errors.add(new Issue("connectionMetatypeId", "METATYPE_NOT_CONNECTION",
+					"The metatype is not a connection type."));
 			return new Checked(errors, warnings, metatype, null, Map.of());
 		}
 		if (existing != null && !existing.metatypeId().equals(metatype.id())) {

@@ -93,6 +93,7 @@ public class PackageImporter {
 		}
 		try {
 			checkBaseTypes(definition);
+			checkConnections(definition);
 		}
 		catch (InvalidPackageException ex) {
 			rejected(principal, definition, ex.getType());
@@ -113,6 +114,9 @@ public class PackageImporter {
 		}
 		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
 			actions.put(metatype.id(), setBaseType(metatype, actions.get(metatype.id())));
+		}
+		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
+			actions.put(metatype.id(), replaceConstraints(metatype, actions.get(metatype.id())));
 		}
 		List<UUID> skipped = new ArrayList<>();
 		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
@@ -292,6 +296,51 @@ public class PackageImporter {
 						"The base type is neither part of the package nor built-in.");
 			}
 		}
+	}
+
+	/**
+	 * Allowed endpoints are metatypes of the package or built-in ones, a built-in base type has the
+	 * same kind, and an imported metatype keeps its kind at a re-import (us-036-connection-metatypes D2).
+	 */
+	private void checkConnections(PackageDefinition definition) {
+		Set<UUID> own = new HashSet<>();
+		definition.metatypes().forEach((metatype) -> own.add(metatype.id()));
+		for (int i = 0; i < definition.metatypes().size(); i++) {
+			PackageDefinition.Metatype metatype = definition.metatypes().get(i);
+			String pointer = "/metatypes/" + i;
+			List<UUID> allowed = new ArrayList<>(metatype.allowedSources());
+			allowed.addAll(metatype.allowedTargets());
+			for (UUID endpoint : allowed) {
+				if (!own.contains(endpoint) && !Boolean.TRUE.equals(this.jdbc.queryForObject(
+						"SELECT EXISTS (SELECT 1 FROM metatypes WHERE id = ? AND scope = 'built-in')", Boolean.class,
+						endpoint))) {
+					throw new InvalidPackageException("invalid-package", pointer + "/connectionConstraints",
+							"The allowed metatype " + endpoint + " is neither part of the package nor built-in.");
+				}
+			}
+			UUID base = metatype.baseMetatypeId();
+			if (base != null && !own.contains(base) && !Boolean.TRUE.equals(this.jdbc.queryForObject(
+					"SELECT EXISTS (SELECT 1 FROM metatypes WHERE id = ? AND is_connection = ?)", Boolean.class, base,
+					metatype.connection()))) {
+				throw new InvalidPackageException("invalid-package", pointer + "/baseMetatypeId",
+						"The base type is not of the same kind (connection or element).");
+			}
+			List<Boolean> stored = this.jdbc.queryForList("SELECT is_connection FROM metatypes WHERE id = ?",
+					Boolean.class, metatype.id());
+			if (!stored.isEmpty() && stored.get(0) != metatype.connection()) {
+				throw new InvalidPackageException("invalid-package", pointer + "/isConnection",
+						"Whether a metatype is a connection cannot change at a re-import.");
+			}
+		}
+	}
+
+	/** Replaces the allowed endpoints; a metatype whose endpoints changed counts as updated. */
+	private String replaceConstraints(PackageDefinition.Metatype metatype, String action) {
+		Map<String, List<UUID>> before = ConnectionConstraints.of(this.jdbc, metatype.id());
+		ConnectionConstraints.replace(this.jdbc, metatype.id(), metatype.allowedSources(), metatype.allowedTargets());
+		boolean changed = !Set.copyOf(before.get(ConnectionConstraints.SOURCE)).equals(Set.copyOf(metatype.allowedSources()))
+				|| !Set.copyOf(before.get(ConnectionConstraints.TARGET)).equals(Set.copyOf(metatype.allowedTargets()));
+		return (changed && "unchanged".equals(action)) ? "updated" : action;
 	}
 
 	/** Sets the base type; a metatype whose base type changed counts as updated. */

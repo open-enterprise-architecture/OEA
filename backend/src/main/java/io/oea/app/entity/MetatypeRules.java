@@ -31,14 +31,26 @@ public final class MetatypeRules {
 	public record Mapping(Definition definition, String necessity, TypedValue defaultValue) {
 	}
 
-	/** A metatype with its active mappings in display order. */
-	public record Metatype(UUID id, String name, boolean connection, Map<UUID, Mapping> mappings) {
+	/**
+	 * A metatype with its active mappings in display order; a connection metatype with its allowed
+	 * sources and targets, empty for every metatype (us-036-connection-metatypes D2).
+	 */
+	public record Metatype(UUID id, String name, boolean connection, Map<UUID, Mapping> mappings,
+			Set<UUID> allowedSources, Set<UUID> allowedTargets) {
+
+		public Metatype(UUID id, String name, boolean connection, Map<UUID, Mapping> mappings) {
+			this(id, name, connection, mappings, Set.of(), Set.of());
+		}
+
 	}
 
 	private final Map<UUID, Metatype> metatypes;
 
-	private MetatypeRules(Map<UUID, Metatype> metatypes) {
+	private final Map<UUID, UUID> bases;
+
+	private MetatypeRules(Map<UUID, Metatype> metatypes, Map<UUID, UUID> bases) {
 		this.metatypes = metatypes;
+		this.bases = bases;
 	}
 
 	/** Loads the rules that apply on the given date. */
@@ -84,6 +96,13 @@ public final class MetatypeRules {
 				.put(definition.id(), new Mapping(definition, rs.getString(3),
 						(defaultValue.asText() != null) ? defaultValue : null));
 		}, Date.valueOf(date));
+		Map<UUID, Set<UUID>> sources = new HashMap<>();
+		Map<UUID, Set<UUID>> targets = new HashMap<>();
+		jdbc.query("SELECT metatype_id, direction, allowed_metatype_id FROM metatype_connection_constraints", (rs) -> {
+			("source".equals(rs.getString(2)) ? sources : targets)
+				.computeIfAbsent(rs.getObject(1, UUID.class), (k) -> new HashSet<>())
+				.add(rs.getObject(3, UUID.class));
+		});
 		// a metatype inherits the mappings of all its base types (us-032-metatype-editing D4)
 		Map<UUID, Metatype> metatypes = new HashMap<>();
 		own.forEach((id, metatype) -> {
@@ -91,9 +110,10 @@ public final class MetatypeRules {
 			for (UUID type : chain(id, bases).reversed()) {
 				mappings.putAll(own.get(type).mappings());
 			}
-			metatypes.put(id, new Metatype(id, metatype.name(), metatype.connection(), mappings));
+			metatypes.put(id, new Metatype(id, metatype.name(), metatype.connection(), mappings,
+					Set.copyOf(sources.getOrDefault(id, Set.of())), Set.copyOf(targets.getOrDefault(id, Set.of()))));
 		});
-		return new MetatypeRules(metatypes);
+		return new MetatypeRules(metatypes, bases);
 	}
 
 	/** The metatype and its base types, nearest first; stops at a cycle. */
@@ -111,7 +131,25 @@ public final class MetatypeRules {
 		for (Metatype metatype : metatypes) {
 			byId.put(metatype.id(), metatype);
 		}
-		return new MetatypeRules(byId);
+		return new MetatypeRules(byId, Map.of());
+	}
+
+	/** Rules from the given metatypes and base types (tests). */
+	static MetatypeRules of(Map<UUID, UUID> bases, Metatype... metatypes) {
+		Map<UUID, Metatype> byId = new HashMap<>();
+		for (Metatype metatype : metatypes) {
+			byId.put(metatype.id(), metatype);
+		}
+		return new MetatypeRules(byId, Map.copyOf(bases));
+	}
+
+	/**
+	 * Whether the connection metatype allows an endpoint of this metatype as source or target: the
+	 * metatype or one of its base types is listed, or nothing is listed (us-036-connection-metatypes D2).
+	 */
+	public boolean allows(Metatype connection, boolean source, UUID endpointMetatype) {
+		Set<UUID> allowed = source ? connection.allowedSources() : connection.allowedTargets();
+		return allowed.isEmpty() || chain(endpointMetatype, this.bases).stream().anyMatch(allowed::contains);
 	}
 
 	/** The metatype with this ID, or {@code null}. */
