@@ -77,9 +77,9 @@ Trace: US-033 AC1, REQ-033, REQ-175
 
 ### Requirement: Organization mappings at a re-import
 
-A re-import SHALL replace the mappings of the package and SHALL keep or remove the organization mappings of each re-imported metatype by its effective re-import setting: its own value `keep` or `remove`, else that of its base types, else the global setting (default `keep`). A removal SHALL delete values as removing a mapping does. Settings are changed with `metamodel:write`, audited.
+A re-import SHALL replace the package rows of its mappings and keep or remove the organization entries of each re-imported metatype – also those on package mappings – by its effective re-import setting: own value, else that of its base types, else the global setting (default `keep`). On a shared date the organization entry wins.
 
-Trace: owner decisions 2026-10-30 and 2026-10-31, ADR-002
+Trace: owner decisions 2026-10-30 and 2026-10-31, ADR-002, ADR-049
 
 #### Scenario: Default keeps organization mappings
 
@@ -90,3 +90,8 @@ Trace: owner decisions 2026-10-30 and 2026-10-31, ADR-002
 
 - **WHEN** the global setting is `keep`, an imported base type has the setting `remove`, and the package is imported again
 - **THEN** the organization mappings of the base type and of its imported subtypes with the setting `inherit` are removed, and those of subtypes with `keep` stay
+
+#### Scenario: Override of a package necessity kept
+
+- **WHEN** an administrator made the package property `Status` mandatory for an imported metatype from 2026-07-01 and the package is imported again with the setting `keep`
+- **THEN** the package rows of `Status` are replaced and the organization entry of 2026-07-01 stays in effect

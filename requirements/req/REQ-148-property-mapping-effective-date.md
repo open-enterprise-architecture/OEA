@@ -81,6 +81,7 @@ Metamodels evolve. A property that is optional today can become mandatory from a
 ## Notes on the Implementation
 
 - Realized by OpenSpec change `us-137-mapping-effective-date`: entries by effective date for organization and package mappings (ADR-049), a date in the past takes effect at once; existing entries and values stay. AC1: the marks of entities without a value are set when the entry takes effect, by a scheduled check at the latest about ten minutes after midnight UTC; the error follows when such an entity is written again (REQ-149). AC2: 409 with problem type `conflict`.
+- Implemented by: OpenSpec change `us-137-mapping-effective-date`, commit 98994ea (#161)
 
 ## Change History
 
