@@ -145,7 +145,7 @@ Connection types are full EntityTypes with all features: properties, own ID, lif
 
 - Realized through the API by OpenSpec change `us-036-connection-metatypes`: connection metatypes with allowed source and target metatypes (subtypes included, connection metatypes allowed for T-relationships), connections in `entity_connections` with fixed endpoints, written by `createConnection` and the batch. The endpoints are not nullable columns of the entity table but a 1:1 table, as in `docs/data-model.puml`. The GUI for instances and the graph follow.
 - ADR(s): ADR-010, ADR-002
-- Implemented by: OpenSpec change `us-036-connection-metatypes`
+- Implemented by: OpenSpec change `us-036-connection-metatypes` (b5232e4, #171)
 - Tests: `ConnectionWriteTests`, `MetamodelEditingTests`, `PackageImportTests`, `features/metamodel/connection-metatypes.feature`, `features/repository/connection-write.feature`
 - Verification status: not-verified
 
