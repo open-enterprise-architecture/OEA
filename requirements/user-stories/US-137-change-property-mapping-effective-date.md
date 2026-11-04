@@ -2,8 +2,8 @@
 
 **ID**: US-137
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S7
 
 ## Story
 
@@ -47,3 +47,7 @@ As a metamodel administrator, I want to change the necessity of a property assig
 
 - Waits for: US-033 (metamodel import, starter package)
 - Blocks: US-138 (validation is based on the active assignment)
+
+## Notes
+
+Realigned by OpenSpec change `us-137-mapping-effective-date` (owner decisions 2026-10-31, ADR-049): a further `createPropertyMapping` for a property already mapped to the metatype adds an entry by effective date, also for package mappings and also with a date in the past. AC1: `GET /metamodel/metatypes/{id}` and `listPropertyMappings` return the entry in effect today; `includeHistory=true` lists all entries with `past`, `active` or `future`. Entities without a value are marked when an entry making the property mandatory takes effect (at the latest about ten minutes after midnight UTC). AC2: the same date twice is rejected with 409 `urn:oea:problem:conflict`.

@@ -1,6 +1,7 @@
 package io.oea.app.metamodel;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,8 +23,11 @@ public class MetatypeCatalog {
 
 	private final JdbcTemplate jdbc;
 
-	public MetatypeCatalog(JdbcTemplate jdbc) {
+	private final Clock clock;
+
+	public MetatypeCatalog(JdbcTemplate jdbc, Clock clock) {
 		this.jdbc = jdbc;
+		this.clock = clock;
 	}
 
 	public record EnumValue(UUID id, String value, int sortOrder) {
@@ -39,15 +43,18 @@ public class MetatypeCatalog {
 	}
 
 	/**
-	 * A mapping; its scope is the scope of its property definition.
+	 * A mapping entry (us-137-mapping-effective-date D1, D5).
 	 *
+	 * @param scope {@code organization} for an entry of an administrator, else the package scope
+	 * @param state {@code past}, {@code active} or {@code future} relative to today
 	 * @param inheritedFrom the base type that owns the mapping, {@code null} for an own mapping
 	 */
 	public record Mapping(UUID id, Property property, String necessity, LocalDate validFrom, int sortOrder,
-			MetatypeRef inheritedFrom) {
+			String scope, String state, MetatypeRef inheritedFrom) {
 
-		public String scope() {
-			return this.property.scope();
+		Mapping inheritedFrom(MetatypeRef owner) {
+			return new Mapping(this.id, this.property, this.necessity, this.validFrom, this.sortOrder, this.scope,
+					this.state, owner);
 		}
 
 	}
@@ -67,12 +74,21 @@ public class MetatypeCatalog {
 
 	@Transactional(readOnly = true)
 	public List<Metatype> list() {
-		return query(null);
+		return query(null, false);
 	}
 
+	/** The metatype with the mappings in effect today. */
 	@Transactional(readOnly = true)
 	public Metatype get(UUID id) {
-		return query(id).stream().findFirst().orElseThrow(() -> new NoSuchElementException("no metatype " + id));
+		return get(id, false);
+	}
+
+	/** The metatype; with history, every mapping entry ordered by property and date. */
+	@Transactional(readOnly = true)
+	public Metatype get(UUID id, boolean includeHistory) {
+		return query(id, includeHistory).stream()
+			.findFirst()
+			.orElseThrow(() -> new NoSuchElementException("no metatype " + id));
 	}
 
 	/** The property definitions that are not retired, by name. */
@@ -127,16 +143,8 @@ public class MetatypeCatalog {
 		return effective;
 	}
 
-	private List<Metatype> query(UUID id) {
-		Map<UUID, Property> properties = propertyMap();
-		Map<UUID, List<Mapping>> own = new LinkedHashMap<>();
-		this.jdbc.query("""
-				SELECT id, metatype_id, property_def_id, necessity, valid_from, sort_order FROM metatype_property_mappings
-				ORDER BY sort_order, id""", (rs) -> {
-			own.computeIfAbsent(rs.getObject(2, UUID.class), (k) -> new ArrayList<>())
-				.add(new Mapping(rs.getObject(1, UUID.class), properties.get(rs.getObject(3, UUID.class)),
-						rs.getString(4), rs.getObject(5, LocalDate.class), rs.getInt(6), null));
-		});
+	private List<Metatype> query(UUID id, boolean includeHistory) {
+		Map<UUID, Map<UUID, List<Mapping>>> own = entries(includeHistory);
 		Map<UUID, Row> rows = new LinkedHashMap<>();
 		this.jdbc.query("""
 				SELECT id, name, abbreviation, is_connection, sort_order, scope, source_package_id, source_package_version,
@@ -161,15 +169,53 @@ public class MetatypeCatalog {
 				Row owner = rows.get(type);
 				MetatypeRef inheritedFrom = type.equals(row.id()) ? null
 						: new MetatypeRef(owner.id(), owner.name(), owner.abbreviation());
-				own.getOrDefault(type, List.of())
-					.forEach((mapping) -> mappings.add(new Mapping(mapping.id(), mapping.property(), mapping.necessity(),
-							mapping.validFrom(), mapping.sortOrder(), inheritedFrom)));
+				own.getOrDefault(type, Map.of())
+					.values()
+					.forEach((entries) -> entries.forEach((mapping) -> mappings.add(mapping.inheritedFrom(inheritedFrom))));
 			}
 			metatypes.add(new Metatype(row.id(), row.name(), row.abbreviation(), row.connection(), row.sortOrder(),
 					row.scope(), row.sourcePackageId(), row.sourcePackageVersion(), row.baseMetatypeId(),
 					row.reimportPolicy(), policies.get(row.id()), row.architectureLayerId(), List.copyOf(mappings)));
 		}
 		return metatypes;
+	}
+
+	/**
+	 * The mapping entries per metatype and property, in display order; without history only the
+	 * entry in effect today (latest {@code valid_from} not after today, ADR-022).
+	 */
+	private Map<UUID, Map<UUID, List<Mapping>>> entries(boolean includeHistory) {
+		Map<UUID, Property> properties = propertyMap();
+		LocalDate today = LocalDate.now(this.clock);
+		record Entry(UUID id, UUID metatypeId, UUID propertyDefId, String necessity, LocalDate validFrom,
+				int sortOrder, String scope) {
+		}
+		List<Entry> rows = this.jdbc.query("""
+				SELECT id, metatype_id, property_def_id, necessity, valid_from, sort_order, scope
+				FROM metatype_property_mappings ORDER BY sort_order, property_def_id, valid_from""",
+				(rs, n) -> new Entry(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class),
+						rs.getObject(3, UUID.class), rs.getString(4), rs.getObject(5, LocalDate.class), rs.getInt(6),
+						rs.getString(7)));
+		Map<List<UUID>, LocalDate> active = new HashMap<>();
+		for (Entry row : rows) {
+			if (!row.validFrom().isAfter(today)) {
+				active.merge(List.of(row.metatypeId(), row.propertyDefId()), row.validFrom(),
+						(a, b) -> a.isAfter(b) ? a : b);
+			}
+		}
+		Map<UUID, Map<UUID, List<Mapping>>> entries = new LinkedHashMap<>();
+		for (Entry row : rows) {
+			LocalDate activeFrom = active.get(List.of(row.metatypeId(), row.propertyDefId()));
+			String state = row.validFrom().isAfter(today) ? "future"
+					: row.validFrom().equals(activeFrom) ? "active" : "past";
+			if (includeHistory || "active".equals(state)) {
+				entries.computeIfAbsent(row.metatypeId(), (k) -> new LinkedHashMap<>())
+					.computeIfAbsent(row.propertyDefId(), (k) -> new ArrayList<>())
+					.add(new Mapping(row.id(), properties.get(row.propertyDefId()), row.necessity(), row.validFrom(),
+							row.sortOrder(), row.scope(), state, null));
+			}
+		}
+		return entries;
 	}
 
 	private Map<UUID, Category> categoryMap() {

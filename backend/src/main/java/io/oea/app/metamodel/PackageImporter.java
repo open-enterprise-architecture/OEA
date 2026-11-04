@@ -108,8 +108,9 @@ public class PackageImporter {
 		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
 			actions.put(metatype.id(), setBaseType(metatype, actions.get(metatype.id())));
 		}
+		List<UUID> skipped = new ArrayList<>();
 		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
-			String action = replaceMappings(metatype, actions.get(metatype.id()));
+			String action = replaceMappings(metatype, actions.get(metatype.id()), skipped);
 			actions.put(metatype.id(), action);
 		}
 		uniqueInChains(principal, definition);
@@ -138,7 +139,8 @@ public class PackageImporter {
 				"metamodel-package", definition.packageId(), Map.of("packageId", definition.packageId(), "version",
 						definition.version(), "batchId", batchId.toString(), "metatypesCreated", created,
 						"metatypesUpdated", updated, "entitiesWithRemovedValues", sum(effects.removed()),
-						"entitiesMarked", sum(effects.marked()))));
+						"entitiesMarked", sum(effects.marked()), "skippedPackageEntries",
+						skipped.stream().map(UUID::toString).toList())));
 		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
 			String action = actions.get(metatype.id());
 			if (!"unchanged".equals(action)) {
@@ -315,17 +317,31 @@ public class PackageImporter {
 	 * Replaces the mappings of the package and keeps organization mappings (us-032-metatype-editing
 	 * D8); a metatype whose package mappings changed counts as updated.
 	 */
-	private String replaceMappings(PackageDefinition.Metatype metatype, String action) {
+	private String replaceMappings(PackageDefinition.Metatype metatype, String action, List<UUID> skipped) {
 		List<String> before = mappingSignature(metatype.id());
-		this.jdbc.update("""
-				DELETE FROM metatype_property_mappings m USING property_definitions p
-				WHERE m.property_def_id = p.id AND m.metatype_id = ? AND p.scope <> 'organization'""", metatype.id());
+		// rows already applied keep that state, so a re-import does not apply an entry twice
+		Map<UUID, Timestamp> applied = new HashMap<>();
+		this.jdbc.query("""
+				DELETE FROM metatype_property_mappings WHERE metatype_id = ? AND scope <> 'organization'
+				RETURNING id, effective_applied_at""", (rs) -> {
+			applied.put(rs.getObject(1, UUID.class), rs.getTimestamp(2));
+		}, metatype.id());
+		Timestamp now = Timestamp.from(this.clock.instant());
 		for (PackageDefinition.Mapping mapping : metatype.mappings()) {
-			this.jdbc.update("""
+			boolean inEffect = !mapping.validFrom().isAfter(this.effects.today());
+			// a new row in effect takes effect within the import; a kept row keeps its state
+			Timestamp appliedAt = applied.containsKey(mapping.id()) ? applied.get(mapping.id())
+					: inEffect ? now : null;
+			// on a date that an organization entry has, the organization entry wins (ADR-049)
+			int inserted = this.jdbc.update("""
 					INSERT INTO metatype_property_mappings (id, metatype_id, property_def_id, necessity, valid_from,
-					    sort_order) VALUES (?, ?, ?, ?, ?, ?)""", mapping.id(), metatype.id(),
+					    sort_order, scope, effective_applied_at) VALUES (?, ?, ?, ?, ?, ?, 'imported', ?)
+					ON CONFLICT (metatype_id, property_def_id, valid_from) DO NOTHING""", mapping.id(), metatype.id(),
 					mapping.propertyDefinitionId(), mapping.necessity(), Date.valueOf(mapping.validFrom()),
-					mapping.sortOrder());
+					mapping.sortOrder(), appliedAt);
+			if (inserted == 0) {
+				skipped.add(mapping.id());
+			}
 		}
 		if ("unchanged".equals(action) && !before.equals(mappingSignature(metatype.id()))) {
 			return "updated";
@@ -336,8 +352,7 @@ public class PackageImporter {
 	private List<String> mappingSignature(UUID metatypeId) {
 		return this.jdbc.query("""
 				SELECT m.id || '|' || m.property_def_id || '|' || m.necessity || '|' || m.valid_from || '|' || m.sort_order
-				FROM metatype_property_mappings m JOIN property_definitions p ON p.id = m.property_def_id
-				WHERE m.metatype_id = ? AND p.scope <> 'organization' ORDER BY m.id""", (rs, n) -> rs.getString(1),
+				FROM metatype_property_mappings m WHERE m.metatype_id = ? AND m.scope <> 'organization' ORDER BY m.id""", (rs, n) -> rs.getString(1),
 				metatypeId);
 	}
 

@@ -393,7 +393,7 @@ A metamodel package was imported ([US-033](../requirements/user-stories/US-033-i
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the importing principal |
 | Target | `metamodel-package`, package identifier |
-| Details | `packageId`, `version`, `batchId`, `metatypesCreated`, `metatypesUpdated`, `entitiesWithRemovedValues`, `entitiesMarked` |
+| Details | `packageId`, `version`, `batchId`, `metatypesCreated`, `metatypesUpdated`, `entitiesWithRemovedValues`, `entitiesMarked`, `skippedPackageEntries` (IDs of package entries not stored because an organization entry has the same date, ADR-049) |
 
 ### `metamodel.metatype-imported`
 
@@ -470,7 +470,18 @@ An organization property was mapped to a metatype or removed from it ([US-032](.
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the metamodel administrator |
 | Target | `metatype`, ID of the metatype |
-| Details | `mappingId`, `propertyDefId`; `necessity` and `entitiesMarked` (created); `entitiesWithRemovedValues` (deleted by an administrator); `batchId` and `reason` = `reimport` (deleted by a re-import) |
+| Details | `mappingId`, `propertyDefId`; `necessity`, `validFrom` and `entitiesMarked` (created; 0 for a future entry); `entitiesWithRemovedValues` (deleted by an administrator); `batchId` and `reason` = `reimport` (deleted by a re-import) |
+
+### `metamodel.mapping-effective`
+
+A mapping entry with a future valid-from date took effect ([US-137](../requirements/user-stories/US-137-change-property-mapping-effective-date.md), [REQ-148](../requirements/req/REQ-148-property-mapping-effective-date.md)); written once per entry by the scheduled check. The marks of the property on the metatype and its subtypes follow the necessity in effect.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | `system` (source `Job`) |
+| Target | `metatype`, ID of the metatype that holds the entry |
+| Details | `mappingId`, `propertyDefId`, `necessity`, `validFrom`, `entitiesMarked`, `marksCleared` |
 
 ### `metamodel.reimport-policy-changed`
 

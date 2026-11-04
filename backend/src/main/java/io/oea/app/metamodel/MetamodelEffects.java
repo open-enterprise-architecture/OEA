@@ -110,8 +110,8 @@ public class MetamodelEffects {
 		return this.clock.instant();
 	}
 
-	/** The active own mappings (latest {@code valid_from} not after today) per metatype. */
-	private Map<UUID, Map<UUID, String>> ownMappings() {
+	/** The active own mappings (latest {@code valid_from} not after the date) per metatype. */
+	private Map<UUID, Map<UUID, String>> ownMappings(LocalDate date) {
 		Map<UUID, Map<UUID, String>> own = new HashMap<>();
 		this.jdbc.query("""
 				SELECT DISTINCT ON (metatype_id, property_def_id) metatype_id, property_def_id, necessity
@@ -119,12 +119,17 @@ public class MetamodelEffects {
 				ORDER BY metatype_id, property_def_id, valid_from DESC""", (rs) -> {
 			own.computeIfAbsent(rs.getObject(1, UUID.class), (k) -> new LinkedHashMap<>())
 				.put(rs.getObject(2, UUID.class), rs.getString(3));
-		}, Date.valueOf(today()));
+		}, Date.valueOf(date));
 		return own;
 	}
 
 	public Snapshot snapshot() {
-		Map<UUID, Map<UUID, String>> own = ownMappings();
+		return snapshot(today());
+	}
+
+	/** The effective mappings on the date. */
+	Snapshot snapshot(LocalDate date) {
+		Map<UUID, Map<UUID, String>> own = ownMappings(date);
 		Map<UUID, UUID> bases = bases();
 		Map<UUID, Map<UUID, String>> effective = new HashMap<>();
 		for (UUID metatype : this.jdbc.queryForList("SELECT id FROM metatypes", UUID.class)) {
@@ -159,9 +164,38 @@ public class MetamodelEffects {
 				if ("mandatory".equals(necessity) && !"mandatory".equals(old.get(property))) {
 					marked.merge(property, this.values.mark(property, List.of(metatype), now), Integer::sum);
 				}
+				else if (!"mandatory".equals(necessity) && "mandatory".equals(old.get(property))) {
+					// marks follow the necessity in effect (us-137-mapping-effective-date D4)
+					this.values.clearPropertyMarks(property, List.of(metatype));
+				}
 			});
 		}
 		return new Effects(removed, marked);
+	}
+
+	/** Marked and cleared entities when the marks of a property were brought in line with the necessity in effect. */
+	record Synced(int marked, int cleared) {
+	}
+
+	/**
+	 * Brings the marks of the property on the metatype and its subtypes in line with the necessity
+	 * in effect today: entities without a value are marked where it is mandatory, marks are
+	 * cleared elsewhere (an entry taking effect, us-137-mapping-effective-date D3). Idempotent.
+	 */
+	Synced syncMarks(UUID propertyDefId, UUID metatypeId) {
+		Map<UUID, Map<UUID, String>> effective = snapshot().mappings();
+		Instant now = now();
+		int marked = 0;
+		int cleared = 0;
+		for (UUID metatype : subtree(metatypeId, bases())) {
+			if ("mandatory".equals(effective.getOrDefault(metatype, Map.of()).get(propertyDefId))) {
+				marked += this.values.mark(propertyDefId, List.of(metatype), now);
+			}
+			else {
+				cleared += this.values.clearPropertyMarks(propertyDefId, List.of(metatype));
+			}
+		}
+		return new Synced(marked, cleared);
 	}
 
 	/** Marks the entities of every metatype where the property is effectively mandatory. */

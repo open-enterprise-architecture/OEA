@@ -108,8 +108,9 @@ class EntityBatchTests {
 					INSERT INTO property_definitions (name, sql_column_name, data_type) VALUES ('Owner', 'owner', 'string')
 					RETURNING id""", UUID.class);
 			this.jdbc.update("""
-					INSERT INTO metatype_property_mappings (metatype_id, property_def_id, necessity, valid_from, sort_order)
-					VALUES (?, ?, 'mandatory', DATE '2026-01-01', 0), (?, ?, 'warning', DATE '2026-01-01', 1)""", type,
+					INSERT INTO metatype_property_mappings (metatype_id, property_def_id, necessity, valid_from, sort_order, scope)
+					VALUES (?, ?, 'mandatory', DATE '2026-01-01', 0, 'organization'),
+					       (?, ?, 'warning', DATE '2026-01-01', 1, 'organization')""", type,
 					versionProperty, type, owner);
 		}
 		this.component = this.jdbc.queryForObject("SELECT id FROM metatypes WHERE name = 'Application Component'",

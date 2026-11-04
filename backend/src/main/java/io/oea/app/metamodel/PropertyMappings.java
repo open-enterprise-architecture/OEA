@@ -2,6 +2,7 @@ package io.oea.app.metamodel;
 
 import io.oea.app.security.OeaPrincipal;
 import java.sql.Date;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,8 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Mapping organization property definitions to metatypes and removing them again (design D7 of
- * us-032-metatype-editing; REQ-149). A new mandatory mapping marks the entities without a value;
- * removing a mapping deletes the values of the property from the entities.
+ * us-032-metatype-editing; REQ-149), and entries by effective date (us-137-mapping-effective-date
+ * D2; REQ-148, ADR-049). A mandatory entry in effect marks the entities without a value; removing
+ * the last entry of a property deletes its values from the entities.
  */
 @Service
 public class PropertyMappings {
@@ -59,49 +61,74 @@ public class PropertyMappings {
 		if (definition.isEmpty()) {
 			throw MetamodelChangeException.invalid("propertyDefId", "The property definition does not exist.");
 		}
-		PropertyDefinitions.readOnlyUnlessOrganization(definition.get(0)[0], "property definition");
 		if (!NECESSITIES.contains(input.necessity())) {
 			throw MetamodelChangeException.invalid("necessity", "Unknown necessity.");
 		}
 		checkDefault(input, definition.get(0)[1]);
-		Map<UUID, UUID> bases = this.effects.bases();
-		Integer duplicates = this.jdbc.queryForObject("""
-				SELECT count(*) FROM metatype_property_mappings
-				WHERE property_def_id = ? AND (metatype_id = ANY (?::uuid[]) OR metatype_id = ANY (?::uuid[]))""",
-				Integer.class, input.propertyDefId(), MetamodelEffects.ids(MetamodelEffects.chain(metatypeId, bases)),
-				MetamodelEffects.ids(MetamodelEffects.subtree(metatypeId, bases)));
-		if (duplicates != null && duplicates > 0) {
-			throw MetamodelChangeException.conflict("The property is mapped in the base type chain already.");
+		LocalDate validFrom = (input.validFrom() != null) ? input.validFrom() : this.effects.today();
+		List<Integer> existingOrder = this.jdbc.queryForList("""
+				SELECT sort_order FROM metatype_property_mappings WHERE metatype_id = ? AND property_def_id = ?
+				ORDER BY valid_from DESC""", Integer.class, metatypeId, input.propertyDefId());
+		int sortOrder = input.sortOrder();
+		if (existingOrder.isEmpty()) {
+			// a new mapping: organization definitions only, once per base type chain
+			PropertyDefinitions.readOnlyUnlessOrganization(definition.get(0)[0], "property definition");
+			Map<UUID, UUID> bases = this.effects.bases();
+			Integer duplicates = this.jdbc.queryForObject("""
+					SELECT count(*) FROM metatype_property_mappings
+					WHERE property_def_id = ? AND (metatype_id = ANY (?::uuid[]) OR metatype_id = ANY (?::uuid[]))""",
+					Integer.class, input.propertyDefId(),
+					MetamodelEffects.ids(MetamodelEffects.chain(metatypeId, bases)),
+					MetamodelEffects.ids(MetamodelEffects.subtree(metatypeId, bases)));
+			if (duplicates != null && duplicates > 0) {
+				throw MetamodelChangeException.conflict("The property is mapped in the base type chain already.");
+			}
 		}
+		else {
+			// a further entry by effective date, also on a package mapping (US-137, ADR-049)
+			if (exists("""
+					SELECT EXISTS (SELECT 1 FROM metatype_property_mappings
+					               WHERE metatype_id = ? AND property_def_id = ? AND valid_from = ?)""", metatypeId,
+					input.propertyDefId(), Date.valueOf(validFrom))) {
+				throw MetamodelChangeException.conflict("An entry with this valid-from date exists already.");
+			}
+			sortOrder = existingOrder.get(0);
+		}
+		boolean inEffect = !validFrom.isAfter(this.effects.today());
 		MetamodelEffects.Snapshot before = this.effects.snapshot();
 		UUID id = UUID.randomUUID();
-		LocalDate validFrom = (input.validFrom() != null) ? input.validFrom() : this.effects.today();
 		DefaultValue value = input.defaultValue();
 		this.jdbc.update("""
 				INSERT INTO metatype_property_mappings (id, metatype_id, property_def_id, necessity, valid_from, sort_order,
 				    default_value_text, default_value_int, default_value_bool, default_value_date, default_value_enum,
-				    created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", id, metatypeId, input.propertyDefId(),
-				input.necessity(), Date.valueOf(validFrom), input.sortOrder(), (value != null) ? value.text() : null,
+				    created_by, scope, effective_applied_at)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'organization', ?)""", id, metatypeId, input.propertyDefId(),
+				input.necessity(), Date.valueOf(validFrom), sortOrder, (value != null) ? value.text() : null,
 				(value != null) ? value.integer() : null, (value != null) ? value.bool() : null,
 				(value != null && value.date() != null) ? Date.valueOf(value.date()) : null,
-				(value != null) ? value.enumValue() : null, principal.personId());
-		int marked = this.effects.apply(before, principal).marked(input.propertyDefId());
+				(value != null) ? value.enumValue() : null, principal.personId(),
+				inEffect ? Timestamp.from(this.effects.now()) : null);
+		// a future entry takes effect on its date (MappingEffectiveDates)
+		int marked = inEffect ? this.effects.apply(before, principal).marked(input.propertyDefId()) : 0;
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("mappingId", id.toString());
 		details.put("propertyDefId", input.propertyDefId().toString());
 		details.put("necessity", input.necessity());
+		details.put("validFrom", validFrom.toString());
 		details.put("entitiesMarked", marked);
 		this.audit.changed("metamodel.mapping-created", principal, "metatype", metatypeId, details);
 		return new Created(id, marked);
 	}
 
-	/** Removes an organization mapping; the values of the property are deleted (design D6, D7). */
+	/**
+	 * Removes an organization entry; when the metatype then no longer has the property, its values
+	 * are deleted (design D6, D7; us-137-mapping-effective-date D4).
+	 */
 	@Transactional
 	public void delete(OeaPrincipal principal, UUID metatypeId, UUID mappingId) {
 		this.effects.lock();
 		List<Object[]> mapping = this.jdbc.query("""
-				SELECT m.property_def_id, p.scope FROM metatype_property_mappings m
-				JOIN property_definitions p ON p.id = m.property_def_id WHERE m.id = ? AND m.metatype_id = ?""",
+				SELECT property_def_id, scope FROM metatype_property_mappings WHERE id = ? AND metatype_id = ?""",
 				(rs, n) -> new Object[] { rs.getObject(1, UUID.class), rs.getString(2) }, mappingId, metatypeId);
 		if (mapping.isEmpty()) {
 			throw new NoSuchElementException("no mapping " + mappingId);
@@ -124,9 +151,8 @@ public class PropertyMappings {
 	 */
 	void removeForReimport(OeaPrincipal principal, UUID metatypeId, UUID batchId) {
 		this.jdbc.query("""
-				DELETE FROM metatype_property_mappings m USING property_definitions p
-				WHERE m.property_def_id = p.id AND m.metatype_id = ? AND p.scope = 'organization'
-				RETURNING m.id, m.property_def_id""", (rs) -> {
+				DELETE FROM metatype_property_mappings WHERE metatype_id = ? AND scope = 'organization'
+				RETURNING id, property_def_id""", (rs) -> {
 			Map<String, Object> details = new LinkedHashMap<>();
 			details.put("mappingId", rs.getObject(1, UUID.class).toString());
 			details.put("propertyDefId", rs.getObject(2, UUID.class).toString());
