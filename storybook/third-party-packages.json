@@ -35,6 +35,27 @@
     "licenseFile": true
   },
   {
+    "name": "@intlify/core-base",
+    "version": "11.4.16",
+    "license": "MIT",
+    "repository": "https://github.com/intlify/vue-i18n",
+    "licenseFile": true
+  },
+  {
+    "name": "@intlify/message-compiler",
+    "version": "11.4.16",
+    "license": "MIT",
+    "repository": "https://github.com/intlify/vue-i18n",
+    "licenseFile": true
+  },
+  {
+    "name": "@intlify/shared",
+    "version": "11.4.16",
+    "license": "MIT",
+    "repository": "https://github.com/intlify/vue-i18n",
+    "licenseFile": true
+  },
+  {
     "name": "@nuxt/ui",
     "version": "4.12.0",
     "license": "MIT",
@@ -42,22 +63,29 @@
     "licenseFile": true
   },
   {
+    "name": "@simplewebauthn/browser",
+    "version": "14.0.0",
+    "license": "MIT",
+    "repository": "https://github.com/MasterKale/SimpleWebAuthn",
+    "licenseFile": true
+  },
+  {
     "name": "@storybook/addon-a11y",
-    "version": "10.6.3",
+    "version": "10.6.5",
     "license": "MIT",
     "repository": "https://github.com/storybookjs/storybook",
     "licenseFile": false
   },
   {
     "name": "@storybook/vue3",
-    "version": "10.6.3",
+    "version": "10.6.5",
     "license": "MIT",
     "repository": "https://github.com/storybookjs/storybook",
     "licenseFile": false
   },
   {
     "name": "@storybook/vue3-vite",
-    "version": "10.6.3",
+    "version": "10.6.5",
     "license": "MIT",
     "repository": "https://github.com/storybookjs/storybook",
     "licenseFile": false
@@ -204,7 +232,7 @@
   },
   {
     "name": "storybook",
-    "version": "10.6.3",
+    "version": "10.6.5",
     "license": "MIT",
     "repository": "https://github.com/storybookjs/storybook",
     "licenseFile": false
@@ -249,6 +277,13 @@
     "version": "3.5.44",
     "license": "MIT",
     "repository": "https://github.com/vuejs/core",
+    "licenseFile": true
+  },
+  {
+    "name": "vue-i18n",
+    "version": "11.4.16",
+    "license": "MIT",
+    "repository": "https://github.com/intlify/vue-i18n",
     "licenseFile": true
   },
   {
