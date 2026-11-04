@@ -29,6 +29,9 @@ const applications = [
 
 test.describe.configure({ mode: 'serial' })
 
+/** The last TOTP code used per realm user. */
+const usedCodes = new Map<string, string>()
+
 async function logInAtKeycloak(page: Page, username: string): Promise<void> {
   const { password, otpSecret } = realmUser(username)
   await page.goto('/login')
@@ -37,7 +40,15 @@ async function logInAtKeycloak(page: Page, username: string): Promise<void> {
   await page.locator('#password').fill(password)
   await page.locator('#kc-login').click()
   if (otpSecret) {
-    await page.locator('#otp').fill(keycloakTotp(otpSecret))
+    // Keycloak accepts a code only once: a second login of the same user within the same 30-second
+    // step waits for the next code
+    let code = keycloakTotp(otpSecret)
+    if (usedCodes.get(username) === code) {
+      await page.waitForTimeout(30_000 - (Date.now() % 30_000) + 1_000)
+      code = keycloakTotp(otpSecret)
+    }
+    usedCodes.set(username, code)
+    await page.locator('#otp').fill(code)
     await page.locator('#kc-login').click()
   }
   await expect(page.getByTestId('header-logout')).toBeVisible()
