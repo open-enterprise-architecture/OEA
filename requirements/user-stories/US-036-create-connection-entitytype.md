@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: done
 **Sprint**: S8
-**Implementation**: OpenSpec change `us-036-connection-metatypes` – connection metatypes with allowed sources and targets in the API, SCR-030 and packages; connections through `createConnection` and the batch; the GUI for connection instances and the graph view follow
+**Implementation**: OpenSpec change `us-036-connection-metatypes`, commit b5232e4 (#171) – connection metatypes with allowed sources and targets in the API, SCR-030 and packages; connections through `createConnection` and the batch; the GUI for connection instances and the graph view follow
 
 ## Story
 

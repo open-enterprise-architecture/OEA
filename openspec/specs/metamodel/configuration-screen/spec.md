@@ -40,14 +40,19 @@ Trace: US-032, REQ-032 AC5, UC-04 basic flow steps 1–2, US-137
 
 ### Requirement: Editing metatypes
 
-An administrator SHALL create, change and delete organization metatypes in dialogs, with name, abbreviation, sort order and base type. A new metatype SHALL appear in the list at once; a rejection SHALL be shown in the dialog with the reason, and nothing SHALL change.
+An administrator SHALL create, change and delete organization metatypes in dialogs, with name, abbreviation, sort order, base type and, for a new metatype, whether it is a connection with its allowed sources and targets. A new metatype SHALL appear in the list at once; a rejection SHALL be shown in the dialog with the reason, and nothing SHALL change.
 
-Trace: US-032 AC1–AC2, REQ-032 AC1–AC4, UC-04 A4
+Trace: US-032 AC1–AC2, REQ-032 AC1–AC4, UC-04 A4, US-036 AC4
 
 #### Scenario: Creating SecurityZone
 
 - **WHEN** an administrator creates `SecurityZone` and maps the new enum property `trustLevel` as mandatory
 - **THEN** `SecurityZone` appears in the list with the property and can be chosen as primary metatype of a new catalog
+
+#### Scenario: Creating a connection metatype
+
+- **WHEN** an administrator creates `Contains` as connection from `SecurityZone` to `Technology Component`
+- **THEN** the list marks `Contains` as connection, and its detail names the allowed source and target
 
 #### Scenario: Name already taken
 
