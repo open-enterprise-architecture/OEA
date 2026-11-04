@@ -4,9 +4,9 @@ title: Property Mapping Effective Date Changeable
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-29
-last_updated: 2026-06-29
+last_updated: 2026-11-04
 author: requirements-engineer
 references:
   use_cases:
@@ -78,8 +78,13 @@ Metamodels evolve. A property that is optional today can become mandatory from a
 - **Prerequisites**: REQ-149 (validation by necessity)
 - **Consequences**: US-137
 
+## Notes on the Implementation
+
+- Realized by OpenSpec change `us-137-mapping-effective-date`: entries by effective date for organization and package mappings (ADR-049), a date in the past takes effect at once; existing entries and values stay. AC1: the marks of entities without a value are set when the entry takes effect, by a scheduled check at the latest about ten minutes after midnight UTC; the error follows when such an entity is written again (REQ-149). AC2: 409 with problem type `conflict`.
+
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft from ADR-022 |
+| 0.2.0 | 2026-11-04 | requirements-engineer | Implementation note (change `us-137-mapping-effective-date`) |

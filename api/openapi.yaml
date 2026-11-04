@@ -694,7 +694,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/MetamodelScope'
           readOnly: true
-          description: "`organization` for a mapping of an organization property definition, otherwise the scope of the package or built-in content"
+          description: "`organization` for an entry of an administrator (also an override of a package mapping, ADR-049), otherwise the scope of the package or built-in content"
+        state:
+          type: string
+          enum: [past, active, future]
+          readOnly: true
+          description: Whether the entry applied before, applies today or applies from a future date (ADR-022)
         inheritedFrom:
           oneOf:
             - $ref: '#/components/schemas/MetatypeSummary'
@@ -4124,6 +4129,12 @@ paths:
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
+        - name: includeHistory
+          in: query
+          description: |
+            `true` lists every entry of every property ordered by property and date, each with
+            its `state` (US-137); otherwise only the entries in effect today
+          schema: { type: boolean, default: false }
       responses:
         '200':
           description: |
@@ -4145,7 +4156,11 @@ paths:
         Maps an organization property definition to any metatype, also an imported or built-in
         one. A property already mapped in the base type chain of the metatype or its subtypes
         gives 409 `urn:oea:problem:conflict`; a package definition gives 409
-        `read-only-metatype`. A mandatory mapping marks every existing entity of the metatype
+        `read-only-metatype`. For a property already mapped to this metatype – also a package
+        mapping – the request adds an entry by effective date (US-137, ADR-049): the entry with
+        the latest `validFrom` not after today applies, earlier entries stay; the same date
+        twice gives 409 `urn:oea:problem:conflict`. A date in the past takes effect at once, a
+        future one when the date is reached (`markedEntityCount` is then 0). A mandatory mapping marks every existing entity of the metatype
         and its subtypes without a value (`markedEntityCount`); such an entity is rejected
         when written again without the value. Changing the necessity by effective date
         follows (US-137).

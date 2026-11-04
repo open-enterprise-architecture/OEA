@@ -112,9 +112,12 @@ public class MetamodelController implements MetamodelApi {
 	}
 
 	@Override
-	public ResponseEntity<List<MetatypePropertyMapping>> listPropertyMappings(UUID id) {
-		return ResponseEntity
-			.ok(this.catalog.get(id).mappings().stream().map(MetamodelController::mapping).toList());
+	public ResponseEntity<List<MetatypePropertyMapping>> listPropertyMappings(UUID id, Boolean includeHistory) {
+		return ResponseEntity.ok(this.catalog.get(id, Boolean.TRUE.equals(includeHistory))
+			.mappings()
+			.stream()
+			.map(MetamodelController::mapping)
+			.toList());
 	}
 
 	@Override
@@ -129,7 +132,7 @@ public class MetamodelController implements MetamodelApi {
 		PropertyMappings.Created created = this.mappings.create(principal(), id,
 				new PropertyMappings.Input(write.getPropertyDefId(), write.getNecessity().getValue(),
 						write.getValidFrom(), Objects.requireNonNullElse(write.getSortOrder(), 0), defaultValue));
-		MetatypeCatalog.Mapping mapping = this.catalog.get(id)
+		MetatypeCatalog.Mapping mapping = this.catalog.get(id, true)
 			.mappings()
 			.stream()
 			.filter((candidate) -> candidate.id().equals(created.id()))
@@ -280,6 +283,7 @@ public class MetamodelController implements MetamodelApi {
 				MetatypePropertyMapping.NecessityEnum.fromValue(mapping.necessity()), mapping.validFrom(),
 				mapping.sortOrder())
 			.scope(MetamodelScope.fromValue(mapping.scope()))
+			.state(MetatypePropertyMapping.StateEnum.fromValue(mapping.state()))
 			.inheritedFrom((owner != null) ? new MetatypeSummary(owner.id(), owner.name(),
 					(owner.abbreviation() != null) ? owner.abbreviation() : "") : null);
 	}

@@ -92,6 +92,22 @@ public class PropertyValueStore {
 		}
 	}
 
+	/**
+	 * Clears the marks of the property on the entities of the metatypes, when it is no longer
+	 * mandatory for them (us-137-mapping-effective-date D4).
+	 *
+	 * @return the number of cleared marks
+	 */
+	public int clearPropertyMarks(UUID propertyDefId, Collection<UUID> metatypeIds) {
+		if (metatypeIds.isEmpty()) {
+			return 0;
+		}
+		return this.jdbc.update("""
+				DELETE FROM entity_mandatory_marks m USING entities e
+				WHERE m.entity_id = e.id AND m.property_def_id = ? AND e.metatype_id = ANY (?::uuid[])""",
+				propertyDefId, uuidArray(metatypeIds));
+	}
+
 	/** The properties the entity is marked as missing. */
 	public Set<UUID> marks(int entityId) {
 		return Set.copyOf(this.jdbc.queryForList(

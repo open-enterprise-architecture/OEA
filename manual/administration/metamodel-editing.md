@@ -2,7 +2,7 @@
 title: Editing the metamodel
 covers:
   screens: []
-  stories: [US-032]
+  stories: [US-032, US-137]
 ---
 
 # Editing the metamodel
@@ -59,21 +59,37 @@ Assigning a mandatory property always succeeds, even if entities exist. OEA mark
 
 Mandatory properties are checked only where the writer can change them. Properties with restricted visibility cannot be written yet, so they are never reported as missing.
 
+### Changing the necessity by effective date
+
+A metamodel evolves: a property that is optional today can become mandatory from a certain date. Assign the property again with the new necessity and the date from which it applies:
+
+```bash
+curl "${auth[@]}" -X POST "$OEA/metamodel/metatypes/$TYPE/property-mappings" -H 'Content-Type: application/json' \
+  -d '{"propertyDefId": "'"$PROPERTY"'", "necessity": "mandatory", "validFrom": "2027-01-01"}'
+```
+
+- The earlier entries stay; the entry with the latest date not after today applies. A second entry with the same date is rejected with `409` (`conflict`).
+- A date in the past applies at once. On a future date, OEA marks the entities without a value when the date is reached – at the latest about ten minutes after midnight (UTC) – and writes the audit event `metamodel.mapping-effective`. If a property is no longer mandatory, its marks disappear.
+- This also works for the properties of a package, for example to make *Status* mandatory. Your entry has the scope `organization`; the package stays unchanged. If the package itself brings an entry on the same date, yours wins.
+- Entries are made on the entity type that holds the property, not on its subtypes.
+- `GET /metamodel/metatypes/{id}/property-mappings` shows the entries in effect today; with `?includeHistory=true` you get all entries with their `state` (`past`, `active`, `future`).
+- To correct an entry, remove it and add a new one. Removing one of several entries of a property deletes no values.
+
 ### Removing a property
 
-Removing an assignment of your own property is always possible:
+Removing an assignment of your own property – or one of your entries – is always possible:
 
 ```bash
 curl "${auth[@]}" -X DELETE "$OEA/metamodel/metatypes/$TYPE/property-mappings/$MAPPING"
 ```
 
 ::: warning Values are deleted
-If entities of the type or its subtypes have values for the property, these values are deleted. Every affected entity gets a new version; the removed value remains visible in its history. The audit event `metamodel.mapping-deleted` states the number of affected entities. Deleting a value of an enum property works the same way for the entities that hold this value.
+If the entity type then no longer has the property and entities of the type or its subtypes have values for it, these values are deleted. Every affected entity gets a new version; the removed value remains visible in its history. The audit event `metamodel.mapping-deleted` states the number of affected entities. Deleting a value of an enum property works the same way for the entities that hold this value.
 :::
 
 ## Organization properties at a package re-import
 
-When a package is imported again, it replaces its own properties of its entity types. Whether your own properties on these types stay depends on the way you work, so you configure it:
+When a package is imported again, it replaces its own properties of its entity types. Whether your own properties and entries on these types stay depends on the way you work, so you configure it:
 
 - **Globally** with `PUT /metamodel/settings/reimport-policy` and `{"organizationMappings": "keep"}` (default) or `"remove"`.
 - **Per entity type** with `PUT /metamodel/metatypes/{id}/reimport-policy` and `inherit` (default), `keep` or `remove`. `inherit` takes the setting of the base type; at the top of the chain the global setting applies. `GET /metamodel/metatypes/{id}` shows the own value in `reimportPolicy` and the applying one in `effectiveReimportPolicy`.

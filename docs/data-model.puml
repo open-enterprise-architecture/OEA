@@ -940,10 +940,16 @@ package "Metamodel – Properties" #E0F2F1 {
     + sort_order      : INTEGER           {NN} DEFAULT 0
     + created_at      : TIMESTAMPTZ       {NN} DEFAULT NOW()
     + created_by      : BIGINT            {FK→persons.id}
-    .. scope of a mapping = scope of its property definition: an organization ..
-    .. definition may be mapped to any metatype; a re-import replaces only the ..
-    .. mappings of package definitions (us-032-metatype-editing D5, D8); ..
-    .. a property is mapped at most once in a base type chain ..
+    + scope           : TEXT              {NN}
+    .. enum: built-in | imported | organization; 'organization' for entries of ..
+    .. administrators, also overrides of a package mapping (V16, ADR-049); ..
+    .. a re-import replaces only rows with scope <> 'organization'; on a shared ..
+    .. valid_from the organization entry wins ..
+    + effective_applied_at : TIMESTAMPTZ
+    .. set when the marks of the entry were applied; NULL for a future entry until ..
+    .. the scheduled check reaches its date (us-137-mapping-effective-date D3) ..
+    .. a property is mapped at most once in a base type chain; further entries by ..
+    .. valid_from only on the metatype that holds the mapping ..
   }
 
   property_categories  "0..1" --o{ "0..*" property_definitions       : groups

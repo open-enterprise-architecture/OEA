@@ -2,7 +2,7 @@
 title: Metamodell bearbeiten
 covers:
   screens: []
-  stories: [US-032]
+  stories: [US-032, US-137]
 ---
 
 # Metamodell bearbeiten
@@ -59,21 +59,37 @@ Das Zuordnen einer Pflicht-Eigenschaft gelingt immer, auch wenn Entitäten exist
 
 Pflicht-Eigenschaften werden nur geprüft, wo die schreibende Person sie ändern kann. Eigenschaften mit eingeschränkter Sichtbarkeit lassen sich noch nicht schreiben und werden deshalb nie als fehlend gemeldet.
 
+### Die Notwendigkeit per Stichtag ändern
+
+Ein Metamodell entwickelt sich weiter: Eine Eigenschaft, die heute optional ist, kann ab einem bestimmten Datum Pflicht werden. Ordne die Eigenschaft erneut zu, mit der neuen Notwendigkeit und dem Datum, ab dem sie gilt:
+
+```bash
+curl "${auth[@]}" -X POST "$OEA/metamodel/metatypes/$TYPE/property-mappings" -H 'Content-Type: application/json' \
+  -d '{"propertyDefId": "'"$PROPERTY"'", "necessity": "mandatory", "validFrom": "2027-01-01"}'
+```
+
+- Die früheren Einträge bleiben; es gilt der Eintrag mit dem spätesten Datum, das nicht nach heute liegt. Ein zweiter Eintrag mit demselben Datum wird mit `409` (`conflict`) abgelehnt.
+- Ein Datum in der Vergangenheit gilt sofort. Bei einem Datum in der Zukunft markiert OEA die Entitäten ohne Wert, sobald das Datum erreicht ist – spätestens etwa zehn Minuten nach Mitternacht (UTC) –, und schreibt das Audit-Event `metamodel.mapping-effective`. Ist eine Eigenschaft nicht mehr Pflicht, verschwinden ihre Markierungen.
+- Das geht auch für die Eigenschaften eines Pakets, zum Beispiel um *Status* zur Pflicht zu machen. Dein Eintrag hat den Scope `organization`; das Paket bleibt unverändert. Bringt das Paket selbst einen Eintrag mit demselben Datum, gewinnt deiner.
+- Einträge machst du am Entitätstyp, dem die Eigenschaft zugeordnet ist, nicht an seinen Subtypen.
+- `GET /metamodel/metatypes/{id}/property-mappings` zeigt die heute gültigen Einträge; mit `?includeHistory=true` erhältst du alle Einträge mit ihrem `state` (`past`, `active`, `future`).
+- Um einen Eintrag zu korrigieren, entfernst du ihn und legst einen neuen an. Das Entfernen eines von mehreren Einträgen einer Eigenschaft löscht keine Werte.
+
 ### Eine Eigenschaft entfernen
 
-Das Entfernen der Zuordnung einer eigenen Eigenschaft ist immer möglich:
+Das Entfernen der Zuordnung einer eigenen Eigenschaft – oder eines deiner Einträge – ist immer möglich:
 
 ```bash
 curl "${auth[@]}" -X DELETE "$OEA/metamodel/metatypes/$TYPE/property-mappings/$MAPPING"
 ```
 
 ::: warning Werte werden gelöscht
-Haben Entitäten des Typs oder seiner Subtypen Werte für die Eigenschaft, werden diese Werte gelöscht. Jede betroffene Entität erhält eine neue Version; der entfernte Wert bleibt in ihrer Historie sichtbar. Das Audit-Event `metamodel.mapping-deleted` nennt die Anzahl der betroffenen Entitäten. Das Löschen eines Werts einer Enum-Eigenschaft wirkt genauso auf die Entitäten mit diesem Wert.
+Hat der Entitätstyp die Eigenschaft danach nicht mehr und haben Entitäten des Typs oder seiner Subtypen Werte dafür, werden diese Werte gelöscht. Jede betroffene Entität erhält eine neue Version; der entfernte Wert bleibt in ihrer Historie sichtbar. Das Audit-Event `metamodel.mapping-deleted` nennt die Anzahl der betroffenen Entitäten. Das Löschen eines Werts einer Enum-Eigenschaft wirkt genauso auf die Entitäten mit diesem Wert.
 :::
 
 ## Eigene Eigenschaften beim erneuten Paketimport
 
-Wird ein Paket erneut importiert, ersetzt es seine eigenen Eigenschaften an seinen Entitätstypen. Ob deine eigenen Eigenschaften an diesen Typen bleiben, hängt von deiner Arbeitsweise ab, deshalb konfigurierst du es:
+Wird ein Paket erneut importiert, ersetzt es seine eigenen Eigenschaften an seinen Entitätstypen. Ob deine eigenen Eigenschaften und Einträge an diesen Typen bleiben, hängt von deiner Arbeitsweise ab, deshalb konfigurierst du es:
 
 - **Global** mit `PUT /metamodel/settings/reimport-policy` und `{"organizationMappings": "keep"}` (Standard) oder `"remove"`.
 - **Pro Entitätstyp** mit `PUT /metamodel/metatypes/{id}/reimport-policy` und `inherit` (Standard), `keep` oder `remove`. `inherit` übernimmt die Einstellung des Basistyps; ganz oben in der Kette gilt die globale Einstellung. `GET /metamodel/metatypes/{id}` zeigt den eigenen Wert in `reimportPolicy` und den geltenden in `effectiveReimportPolicy`.

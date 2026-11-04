@@ -74,10 +74,10 @@ public final class RepositoryInstance implements AutoCloseable {
 				secret AS (
 				    INSERT INTO property_definitions (name, sql_column_name, data_type, visibility_mode)
 				    VALUES ('Secret', 'secret', 'string', 'role-restricted') RETURNING id)
-				INSERT INTO metatype_property_mappings (metatype_id, property_def_id, necessity, valid_from, sort_order)
-				SELECT type.id, version.id, 'mandatory', DATE '2026-01-01', 0 FROM type, version
-				UNION ALL SELECT type.id, owner.id, 'warning', DATE '2026-01-01', 1 FROM type, owner
-				UNION ALL SELECT type.id, secret.id, 'optional', DATE '2026-01-01', 2 FROM type, secret""");
+				INSERT INTO metatype_property_mappings (metatype_id, property_def_id, necessity, valid_from, sort_order, scope)
+				SELECT type.id, version.id, 'mandatory', DATE '2026-01-01', 0, 'organization' FROM type, version
+				UNION ALL SELECT type.id, owner.id, 'warning', DATE '2026-01-01', 1, 'organization' FROM type, owner
+				UNION ALL SELECT type.id, secret.id, 'optional', DATE '2026-01-01', 2, 'organization' FROM type, secret""");
 		return repository;
 	}
 

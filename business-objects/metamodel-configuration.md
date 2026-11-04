@@ -2,7 +2,7 @@
 identifier: metamodel-configuration
 name_de: Metamodell-Konfiguration
 name_en: Metamodel Configuration
-version: 1.5.0
+version: 1.6.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -273,6 +273,7 @@ Describes a single page (step) in the creation wizard that is run through when c
 | BR-26 | A property is mapped at most once in the base type chain of an EntityType, its base types and its subtypes; the scope of a mapping is the scope of its PropertyDefinition, and organization PropertyDefinitions may be mapped to built-in and imported EntityTypes, whose own content stays read-only | onCreate, onUpdate, onImport | ADR-002, ADR-049 |
 | BR-27 | Removing a property from an EntityType (mapping removed, base type changed, enum value deleted, re-import with `remove`) is always possible and deletes the values from the entities of the type and its subtypes, each getting a new version; a new mandatory property marks the existing entities without a value, which are rejected only when written again without it; only properties the writer can change are checked | onUpdate, onDelete, onImport | REQ-032 AC4, REQ-149 |
 | BR-28 | A package re-import replaces the mappings of the package and keeps or removes the organization mappings of each re-imported EntityType by its effective `reimportOrganizationMappings` (own value, else that of the base types, else the global value) | onImport | ADR-002, ADR-049 |
+| BR-29 | The necessity of a mapping changes only by a further entry with a valid-from date on the EntityType that holds the mapping, also for a package mapping (scope `organization`); the entry with the latest date not after today applies, one entry per date; an entry dated in the future takes effect on its date, when marks are set or cleared | onCreate, onSchedule | REQ-148, ADR-022, ADR-049 |
 | BR-25 | Every change of EntityTypes or PropertyDefinitions regenerates the affected reporting views `reporting.<metatype>`; every generated column applies the same masking expression as `reporting.property_values` | onCreate, onUpdate, onDelete | ADR-034 §3.1, REQ-160 |
 
 ## Examples
@@ -430,6 +431,8 @@ Version 1.4.0 (change `us-033-import-metamodel`) replaces `isBuiltIn` by the thr
 
 Version 1.5.0 (change `us-032-metatype-editing`, owner decisions 2026-10-30 and 2026-10-31) brings `extends` into the database as `metatypes.base_metatype_id` with inheritance of mappings, the per-type and global re-import setting, retired property definitions and the marks of entities that miss a new mandatory property (`entity_mandatory_marks` in `docs/data-model.puml`). The re-import setting exists because whether organization properties on imported types should survive a package update depends on the way of working of the organization.
 
+Version 1.6.0 (change `us-137-mapping-effective-date`, ADR-049) stores the scope per mapping entry, because an organization entry can override the necessity of a package mapping and a re-import must replace only the package rows; `effective_applied_at` records when the marks of a future entry were applied.
+
 ## Change History
 
 | Version | Date | Author | Change |
@@ -449,3 +452,4 @@ Version 1.5.0 (change `us-032-metatype-editing`, owner decisions 2026-10-30 and 
 | 1.3.0 | 2026-10-13 | Business Engineer | ADR-034 DM-6: `PropertyDefinition.sqlColumnName` (stable, immutable SQL column name for generated reporting views); BR-24, BR-25 added |
 | 1.4.0 | 2026-10-16 | Business Engineer | `scope` (`built-in`/`imported`/`organization`, ADR-002) and `sourcePackage` on EntityTypeDefinition, PropertyDefinition and property categories instead of `isBuiltIn`; `lastModifiedBy` may be a system admin account or the system (change `us-033-import-metamodel`) |
 | 1.5.0 | 2026-10-31 | Business Engineer | `extends` as stored base type with inherited mappings; `reimportOrganizationMappings` (global and per type); `retiredAt`; BR-26–BR-28 (change `us-032-metatype-editing`) |
+| 1.6.0 | 2026-11-04 | Business Engineer | Scope per mapping entry and `effective_applied_at`; BR-29 effective dates (change `us-137-mapping-effective-date`) |

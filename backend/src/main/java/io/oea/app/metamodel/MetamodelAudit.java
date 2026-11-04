@@ -24,4 +24,11 @@ class MetamodelAudit {
 				targetId.toString(), details));
 	}
 
+	/** A change made by the system, e.g. an entry taking effect on its date. */
+	void bySystem(String eventType, String targetType, Object targetId, Map<String, Object> details) {
+		this.audit.append(new AuditEvent(eventType, AuditEvent.Category.CHANGE, AuditEvent.Severity.INFO,
+				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.JOB, AuditEvent.Actor.system(), targetType,
+				targetId.toString(), details));
+	}
+
 }

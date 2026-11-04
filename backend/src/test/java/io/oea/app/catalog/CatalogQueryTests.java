@@ -298,8 +298,8 @@ class CatalogQueryTests {
 				VALUES (?, ?, 'string', 'role-restricted') RETURNING id""", UUID.class, "Secret " + type,
 				"secret_" + type.toString().substring(0, 8));
 		this.jdbc.update("""
-				INSERT INTO metatype_property_mappings (metatype_id, property_def_id, necessity, valid_from)
-				VALUES (?, ?, 'optional', DATE '2026-01-01')""", type, secret);
+				INSERT INTO metatype_property_mappings (metatype_id, property_def_id, necessity, valid_from, scope)
+				VALUES (?, ?, 'optional', DATE '2026-01-01', 'organization')""", type, secret);
 		assertThat(keys(ok(query(catalog(type, "instance", this.architect), "", this.architect))))
 			.containsExactly("name", "status");
 	}
@@ -310,8 +310,8 @@ class CatalogQueryTests {
 				INSERT INTO metatypes (config_id, name) VALUES ('00000000-0000-0000-0000-000000000001', ?)
 				RETURNING id""", UUID.class, "Query Type " + UUID.randomUUID().toString().substring(0, 8));
 		this.jdbc.update("""
-				INSERT INTO metatype_property_mappings (metatype_id, property_def_id, necessity, valid_from)
-				VALUES (?, ?, 'optional', ?::date)""", type, this.status, statusValidFrom);
+				INSERT INTO metatype_property_mappings (metatype_id, property_def_id, necessity, valid_from, scope)
+				VALUES (?, ?, 'optional', ?::date, 'imported')""", type, this.status, statusValidFrom);
 		return type;
 	}
 

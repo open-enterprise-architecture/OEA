@@ -1,5 +1,5 @@
 # Spec: openspec metamodel/metatype-editing, metamodel/property-mappings, repository/entity-write
-# Source material: requirements/user-stories/US-032-create-entitytype.md, REQ-032, REQ-149
+# Source material: requirements/user-stories/US-032-create-entitytype.md, US-137, REQ-032, REQ-148, REQ-149
 
 @US-032 @UC-04 @metamodel
 Feature: Editing the metamodel
@@ -41,3 +41,16 @@ Feature: Editing the metamodel
     When the metamodel administrator maps the mandatory property "Classification" to "Data Zone"
     Then the response states 2 marked entities
     And writing one of them again without "Classification" is rejected with "MANDATORY_MISSING"
+
+  @US-137 @AC1 @REQ-148
+  Scenario: Mandatory from an effective date
+    Given the metatype "Release Zone" with the property "Version" mapped as optional since 2026-01-01
+    When the metamodel administrator maps "Version" to "Release Zone" as mandatory from 2026-07-01
+    Then "Release Zone" has 2 entries for "Version"
+    And "Version" is mandatory for "Release Zone" today
+
+  @US-137 @AC2
+  Scenario: Same effective date twice
+    Given the metatype "Audit Zone" with the property "Version" mapped as optional since 2026-01-01
+    When the metamodel administrator maps "Version" to "Audit Zone" as mandatory from 2026-01-01
+    Then the metamodel change is rejected with 409 and problem type "conflict"

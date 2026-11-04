@@ -181,6 +181,42 @@ public class MetatypeEditingSteps {
 		assertThat(result.path("items").get(0).path("errors").get(0).path("code").asString()).isEqualTo(code);
 	}
 
+	@Given("the metatype {string} with the property {string} mapped as optional since {word}")
+	public void mappedSince(String metatype, String property, String date) throws Exception {
+		String type = createMetatype(metatype);
+		String version = createProperty(property, "string");
+		ok(send("POST", "/api/v1/metamodel/metatypes/" + type + "/property-mappings",
+				object().put("propertyDefId", version).put("necessity", "optional").put("validFrom", date),
+				shared.metamodelAdmin()), 201);
+	}
+
+	@When("the metamodel administrator maps {string} to {string} as mandatory from {word}")
+	public void mapFrom(String property, String metatype, String date) throws Exception {
+		this.response = send("POST", "/api/v1/metamodel/metatypes/" + this.ids.get(metatype) + "/property-mappings",
+				object().put("propertyDefId", this.ids.get(property)).put("necessity", "mandatory").put("validFrom", date),
+				shared.metamodelAdmin());
+	}
+
+	@Then("{string} has {int} entries for {string}")
+	public void entries(String metatype, int entries, String property) throws Exception {
+		assertThat(this.response.statusCode()).as(this.response.body()).isEqualTo(201);
+		JsonNode history = body(send("GET",
+				"/api/v1/metamodel/metatypes/" + this.ids.get(metatype) + "/property-mappings?includeHistory=true", null,
+				shared.architect()));
+		assertThat(history).hasSize(entries)
+			.allMatch((entry) -> entry.path("propertyDefinition").path("id").asString().equals(this.ids.get(property)));
+	}
+
+	@Then("{string} is mandatory for {string} today")
+	public void mandatoryToday(String property, String metatype) throws Exception {
+		JsonNode current = body(send("GET", "/api/v1/metamodel/metatypes/" + this.ids.get(metatype), null,
+				shared.architect()));
+		assertThat(current.path("propertyMappings")).singleElement().satisfies((mapping) -> {
+			assertThat(mapping.path("propertyDefinition").path("id").asString()).isEqualTo(this.ids.get(property));
+			assertThat(mapping.path("necessity").asString()).isEqualTo("mandatory");
+		});
+	}
+
 	private String createMetatype(String metatype) throws Exception {
 		JsonNode created = ok(send("POST", "/api/v1/metamodel/metatypes", metatype(metatype), shared.metamodelAdmin()),
 				201);
