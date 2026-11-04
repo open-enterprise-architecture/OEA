@@ -29,7 +29,7 @@ Trace: REQ-033, REQ-184 AC1, REQ-184 AC2
 
 #### Scenario: Unsupported package sections
 
-- **WHEN** a package contains viewpoints, shape assignments or translation bundles, or requests the strategy `replace`
+- **WHEN** a package contains viewpoints or shape assignments, or requests the strategy `replace`
 - **THEN** the request is rejected with 422 naming the unsupported part, and nothing is stored
 
 ### Requirement: Atomic import with scope and origin
@@ -95,3 +95,24 @@ Trace: owner decisions 2026-10-30 and 2026-10-31, ADR-002, ADR-049
 
 - **WHEN** an administrator made the package property `Status` mandatory for an imported metatype from 2026-07-01 and the package is imported again with the setting `keep`
 - **THEN** the package rows of `Status` are replaced and the organization entry of 2026-07-01 stays in effect
+
+### Requirement: Labels of a package
+
+A package MAY bring labels per locale for its own metatypes, categories, property definitions and enum values; the import SHALL store them as package entries, and a re-import SHALL replace only them, keeping organization labels. A key outside the package or an unsupported locale SHALL reject the import with 422.
+
+Trace: REQ-152, US-140 AC1, ADR-025, ADR-049, owner decision 2026-11-04
+
+#### Scenario: Starter package with German labels
+
+- **WHEN** a person with `metamodel:write` imports `oea-starter-togaf-classic` 1.1.0
+- **THEN** the German labels of its metatypes, of `Status` and of its values are stored as package entries
+
+#### Scenario: Re-import keeps organization labels
+
+- **WHEN** an administrator set a German label for a package metatype and the package is imported again
+- **THEN** the package labels are replaced and the organization label stays in effect
+
+#### Scenario: Label of a foreign element
+
+- **WHEN** a package brings a label for a metatype that is not part of the package
+- **THEN** the import is rejected with 422 naming the key, and nothing is stored

@@ -83,6 +83,7 @@ Two label categories: static UI labels (vue-i18n bundle, no API call) and dynami
 - The ETag is a weak validator over the content of the bundle (refinement of ADR-025, design D3). Unlike `MAX(updated_at)`, it also changes when a label is removed or an element without a translation is renamed.
 - AC1 and AC2 are fulfilled; an unsupported locale is answered with 400.
 - AC3 (SSE) stays open until the event stream is implemented.
+- Implemented by: OpenSpec change `us-140-dynamic-labels`, commit 0f7bbec (#164)
 
 ## Change History
 
