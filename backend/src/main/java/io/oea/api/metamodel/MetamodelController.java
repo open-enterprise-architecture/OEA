@@ -2,11 +2,14 @@ package io.oea.api.metamodel;
 
 import io.oea.api.ContractViolationResponse;
 import io.oea.api.generated.MetamodelApi;
+import io.oea.api.generated.model.AllowedConnectionResult;
+import io.oea.api.generated.model.AllowedConnectionResultOptionsInner;
 import io.oea.api.generated.model.CreateEnumValueRequest;
 import io.oea.api.generated.model.MetamodelScope;
 import io.oea.api.generated.model.MetamodelLabel;
 import io.oea.api.generated.model.MetamodelLabelsUpdate;
 import io.oea.api.generated.model.MetatypeDetail;
+import io.oea.api.generated.model.MetatypeDetailAllOfConnectionConstraints;
 import io.oea.api.generated.model.MetatypePropertyMapping;
 import io.oea.api.generated.model.MetatypePropertyMappingWrite;
 import io.oea.api.generated.model.MetatypePropertyMappingWriteDefaultValue;
@@ -20,6 +23,7 @@ import io.oea.api.generated.model.PropertyDefinitionWrite;
 import io.oea.api.generated.model.PropertyEnumValue;
 import io.oea.api.generated.model.ReimportPolicy;
 import io.oea.api.generated.model.SourcePackage;
+import io.oea.app.metamodel.AllowedConnections;
 import io.oea.app.metamodel.MetamodelLabels;
 import io.oea.app.metamodel.MetatypeCatalog;
 import io.oea.app.metamodel.MetatypeEditing;
@@ -63,9 +67,13 @@ public class MetamodelController implements MetamodelApi {
 
 	private final MetamodelLabels labels;
 
+	private final AllowedConnections allowedConnections;
+
 	public MetamodelController(MetatypeCatalog catalog, MetatypeEditing metatypes, PropertyDefinitions properties,
-			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels) {
+			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels,
+			AllowedConnections allowedConnections) {
 		this.labels = labels;
+		this.allowedConnections = allowedConnections;
 		this.catalog = catalog;
 		this.metatypes = metatypes;
 		this.properties = properties;
@@ -111,6 +119,21 @@ public class MetamodelController implements MetamodelApi {
 		this.policies.updateMetatype(principal(), id, metatypeReimportPolicy.getOrganizationMappings().getValue(),
 				expectedVersion(ifMatch));
 		return versioned(metatype(this.catalog.get(id)));
+	}
+
+	@Override
+	public ResponseEntity<AllowedConnectionResult> getAllowedConnections(UUID sourceMetatypeId,
+			UUID targetMetatypeId) {
+		List<AllowedConnectionResultOptionsInner> options = this.allowedConnections
+			.between(sourceMetatypeId, targetMetatypeId)
+			.stream()
+			.map((option) -> new AllowedConnectionResultOptionsInner(
+					new MetatypeSummary(option.connection().id(), option.connection().name(),
+							(option.connection().abbreviation() != null) ? option.connection().abbreviation() : ""),
+					AllowedConnectionResultOptionsInner.DirectionEnum
+						.fromValue(option.direction().name().toLowerCase(java.util.Locale.ROOT).replace('_', '-'))))
+			.toList();
+		return ResponseEntity.ok(new AllowedConnectionResult(!options.isEmpty(), options));
 	}
 
 	@Override
@@ -307,7 +330,8 @@ public class MetamodelController implements MetamodelApi {
 	private static MetatypeEditing.Input metatypeInput(MetatypeWrite write) {
 		return new MetatypeEditing.Input(write.getName(), write.getAbbreviation(),
 				Boolean.TRUE.equals(write.getIsConnection()), write.getArchitectureLayerId(),
-				Objects.requireNonNullElse(write.getSortOrder(), 0), write.getConfigId(), write.getBaseMetatypeId());
+				Objects.requireNonNullElse(write.getSortOrder(), 0), write.getConfigId(), write.getBaseMetatypeId(),
+				write.getAllowedSourceMetatypeIds(), write.getAllowedTargetMetatypeIds());
 	}
 
 	private static PropertyDefinitions.Input propertyInput(PropertyDefinitionWrite write) {
@@ -344,7 +368,13 @@ public class MetamodelController implements MetamodelApi {
 					MetatypeDetail.EffectiveReimportPolicyEnum.fromValue(metatype.effectiveReimportPolicy()))
 			.sourcePackage(source(metatype.sourcePackageId(), metatype.sourcePackageVersion()))
 			.propertyMappings(metatype.mappings().stream().map(MetamodelController::mapping).toList())
-			.connectionConstraints(List.of())
+			.connectionConstraints(metatype.constraints()
+				.stream()
+				.map((constraint) -> new MetatypeDetailAllOfConnectionConstraints()
+					.direction(MetatypeDetailAllOfConnectionConstraints.DirectionEnum.fromValue(constraint.direction()))
+					.allowedMetatype(new MetatypeSummary(constraint.allowed().id(), constraint.allowed().name(),
+							(constraint.allowed().abbreviation() != null) ? constraint.allowed().abbreviation() : "")))
+				.toList())
 			.version(metatype.version());
 	}
 

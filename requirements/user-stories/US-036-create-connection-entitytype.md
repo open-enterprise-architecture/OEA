@@ -2,8 +2,9 @@
 
 **ID**: US-036
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S8
+**Implementation**: OpenSpec change `us-036-connection-metatypes` – connection metatypes with allowed sources and targets in the API, SCR-030 and packages; connections through `createConnection` and the batch; the GUI for connection instances and the graph view follow
 
 ## Story
 
@@ -60,5 +61,7 @@ As an Enterprise Architect, I want to be able to define connection types in the 
 - Blocks: future US for entity creation (must render source/target fields when a connection type is chosen)
 
 ## Notes
+
+Realigned by OpenSpec change `us-036-connection-metatypes` (owner decisions 2026-11-04): connection metatypes and connections through the API, without a user interface for instances and without the graph view. AC1: a connection without a source is rejected with `SOURCE_REQUIRED`. AC2: a connection may start at another connection when the connection metatype allows it. AC3: `SOURCE_NOT_ALLOWED`. AC4: packages bring connection metatypes with `connectionConstraints`, and SCR-030 marks them. `allowedSourceTypes` and `allowedTargetTypes` are `allowedSourceMetatypeIds` and `allowedTargetMetatypeIds`, subtypes included; source and target cannot change after creation.
 
 5 SP because of: DB schema adjustment, form extension, source/target validation logic, T-relationship support in the graph. The circularity check (connection → connection → ... → start) is not implemented in the MVP; the view layer must be able to handle cycles.

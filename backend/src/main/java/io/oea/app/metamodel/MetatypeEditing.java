@@ -3,6 +3,7 @@ package io.oea.app.metamodel;
 import io.oea.app.security.OeaPrincipal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -41,9 +42,21 @@ public class MetatypeEditing {
 		this.versions = versions;
 	}
 
-	/** The writable fields of a metatype. */
+	/**
+	 * The writable fields of a metatype.
+	 *
+	 * @param allowedSources metatypes allowed as source of a connection metatype; empty allows every
+	 *     metatype (us-036-connection-metatypes D2)
+	 * @param allowedTargets the same for the target
+	 */
 	public record Input(String name, String abbreviation, boolean connection, String architectureLayerId,
-			int sortOrder, UUID configId, UUID baseMetatypeId) {
+			int sortOrder, UUID configId, UUID baseMetatypeId, List<UUID> allowedSources, List<UUID> allowedTargets) {
+
+		public Input {
+			allowedSources = (allowedSources != null) ? List.copyOf(new LinkedHashSet<>(allowedSources)) : List.of();
+			allowedTargets = (allowedTargets != null) ? List.copyOf(new LinkedHashSet<>(allowedTargets)) : List.of();
+		}
+
 	}
 
 	private record Stored(String name, String abbreviation, boolean connection, String architectureLayerId,
@@ -54,19 +67,22 @@ public class MetatypeEditing {
 	public UUID create(OeaPrincipal principal, Input input) {
 		this.effects.lock();
 		String name = validate(input, null);
-		if (input.connection()) {
-			throw MetamodelChangeException.invalid("isConnection", "Connection metatypes are not supported yet.");
-		}
 		UUID id = UUID.randomUUID();
 		this.jdbc.update("""
 				INSERT INTO metatypes (id, config_id, name, abbreviation, is_connection, architecture_layer_id, sort_order,
-				    scope, created_by, base_metatype_id) VALUES (?, ?, ?, ?, false, ?, ?, 'organization', ?, ?)""", id,
-				PackageImporter.INSTANCE_CONFIGURATION, name, abbreviation(input), input.architectureLayerId(),
-				input.sortOrder(), principal.personId(), input.baseMetatypeId());
+				    scope, created_by, base_metatype_id) VALUES (?, ?, ?, ?, ?, ?, ?, 'organization', ?, ?)""", id,
+				PackageImporter.INSTANCE_CONFIGURATION, name, abbreviation(input), input.connection(),
+				input.architectureLayerId(), input.sortOrder(), principal.personId(), input.baseMetatypeId());
+		ConnectionConstraints.replace(this.jdbc, id, input.allowedSources(), input.allowedTargets());
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("name", name);
 		if (input.baseMetatypeId() != null) {
 			details.put("baseMetatypeId", input.baseMetatypeId().toString());
+		}
+		if (input.connection()) {
+			details.put("isConnection", true);
+			details.put("allowedSourceMetatypeIds", List.of(MetamodelEffects.ids(input.allowedSources())));
+			details.put("allowedTargetMetatypeIds", List.of(MetamodelEffects.ids(input.allowedTargets())));
 		}
 		this.audit.changed("metamodel.metatype-created", principal, "metatype", id, details);
 		return id;
@@ -86,12 +102,18 @@ public class MetatypeEditing {
 			throw MetamodelChangeException.invalid("isConnection", "Whether a metatype is a connection cannot change.");
 		}
 		MetamodelEffects.Snapshot before = this.effects.snapshot();
+		Map<String, List<UUID>> constraintsBefore = ConnectionConstraints.of(this.jdbc, id);
 		this.jdbc.update("""
 				UPDATE metatypes SET name = ?, abbreviation = ?, architecture_layer_id = ?, sort_order = ?,
 				       base_metatype_id = ? WHERE id = ?""", name, abbreviation(input), input.architectureLayerId(),
 				input.sortOrder(), input.baseMetatypeId(), id);
+		ConnectionConstraints.replace(this.jdbc, id, input.allowedSources(), input.allowedTargets());
 		this.versions.increment(MetamodelVersions.Element.METATYPE, id);
 		List<String> changed = new ArrayList<>();
+		compare(changed, "allowedSourceMetatypeIds", Set.copyOf(constraintsBefore.get(ConnectionConstraints.SOURCE)),
+				Set.copyOf(input.allowedSources()));
+		compare(changed, "allowedTargetMetatypeIds", Set.copyOf(constraintsBefore.get(ConnectionConstraints.TARGET)),
+				Set.copyOf(input.allowedTargets()));
 		compare(changed, "name", stored.name(), name);
 		compare(changed, "abbreviation", stored.abbreviation(), abbreviation(input));
 		compare(changed, "architectureLayerId", stored.architectureLayerId(), input.architectureLayerId());
@@ -119,10 +141,16 @@ public class MetatypeEditing {
 		long entities = count("SELECT count(*) FROM entities WHERE metatype_id = ?", id);
 		long catalogs = count("SELECT count(*) FROM catalogs WHERE primary_metatype_id = ?", id);
 		long subtypes = count("SELECT count(*) FROM metatypes WHERE base_metatype_id = ?", id);
-		if (entities > 0 || catalogs > 0 || subtypes > 0) {
+		// a deletion must not widen the constraints of a connection metatype to "any" (us-036 D2)
+		long endpoints = count("""
+				SELECT count(*) FROM metatype_connection_constraints WHERE allowed_metatype_id = ? AND metatype_id <> ?""",
+				id, id);
+		if (entities > 0 || catalogs > 0 || subtypes > 0 || endpoints > 0) {
 			throw MetamodelChangeException.inUse("The metatype has " + entities + " entities, " + catalogs
-					+ " catalogs and " + subtypes + " subtypes.", entities);
+					+ " catalogs, " + subtypes + " subtypes and " + endpoints
+					+ " uses as endpoint of connection metatypes.", entities);
 		}
+		this.jdbc.update("DELETE FROM metatype_connection_constraints WHERE metatype_id = ?", id);
 		this.jdbc.update("DELETE FROM metatype_property_mappings WHERE metatype_id = ?", id);
 		this.jdbc.update("DELETE FROM metatypes WHERE id = ?", id);
 		this.effects.removeOrphanLabels();
@@ -147,9 +175,17 @@ public class MetatypeEditing {
 			throw MetamodelChangeException.nameTaken("name");
 		}
 		UUID base = input.baseMetatypeId();
+		if (!input.connection() && (!input.allowedSources().isEmpty() || !input.allowedTargets().isEmpty())) {
+			throw MetamodelChangeException.invalid(List.of("allowedSourceMetatypeIds", "allowedTargetMetatypeIds"),
+					"Only connection metatypes have allowed sources and targets.");
+		}
+		checkExisting("allowedSourceMetatypeIds", input.allowedSources(), id);
+		checkExisting("allowedTargetMetatypeIds", input.allowedTargets(), id);
 		if (base != null) {
-			if (count("SELECT count(*) FROM metatypes WHERE id = ? AND NOT is_connection", base) == 0) {
-				throw MetamodelChangeException.invalid("baseMetatypeId", "The base type does not exist.");
+			// base types have the same kind (us-036-connection-metatypes D2)
+			if (count("SELECT count(*) FROM metatypes WHERE id = ? AND is_connection = ?", base, input.connection()) == 0) {
+				throw MetamodelChangeException.invalid("baseMetatypeId",
+						"The base type does not exist or is not of the same kind (connection or element).");
 			}
 			Map<UUID, UUID> bases = this.effects.bases();
 			if (id != null && MetamodelEffects.chain(base, bases).contains(id)) {
@@ -160,6 +196,15 @@ public class MetatypeEditing {
 			}
 		}
 		return name;
+	}
+
+	/** Each listed metatype exists; the metatype itself may be listed once it exists. */
+	private void checkExisting(String field, List<UUID> metatypes, UUID id) {
+		for (UUID metatype : metatypes) {
+			if (!metatype.equals(id) && count("SELECT count(*) FROM metatypes WHERE id = ?", metatype) == 0) {
+				throw MetamodelChangeException.invalid(field, "The metatype " + metatype + " does not exist.");
+			}
+		}
 	}
 
 	/** A property may be mapped once in the chain of the new base types and the subtree of the metatype. */

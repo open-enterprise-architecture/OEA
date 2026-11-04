@@ -37,6 +37,7 @@ export const IDS = {
   service: 'a0000000-0000-4000-8000-000000000002',
   zone: 'a0000000-0000-4000-8000-000000000003',
   cloudZone: 'a0000000-0000-4000-8000-000000000004',
+  dataFlow: 'a0000000-0000-4000-8000-000000000005',
 }
 
 const STARTER = { packageId: 'oea-starter-togaf-classic', version: '1.1.0' }
@@ -112,6 +113,21 @@ function seed(): Stored {
       { id: IDS.service, name: 'Application Service', abbreviation: 'AS', sortOrder: 2, scope: 'imported', sourcePackage: STARTER, isConnection: false, reimportPolicy: 'inherit', version: 1, entities: 0, connectionConstraints: [] },
       { id: IDS.zone, name: 'Network Zone', abbreviation: 'NZ', sortOrder: 10, scope: 'organization', isConnection: false, reimportPolicy: 'inherit', version: 3, entities: 5, connectionConstraints: [] },
       { id: IDS.cloudZone, name: 'Cloud Zone', abbreviation: 'CZ', sortOrder: 11, scope: 'organization', isConnection: false, baseMetatypeId: IDS.zone, reimportPolicy: 'inherit', version: 1, entities: 0, connectionConstraints: [] },
+      {
+        id: IDS.dataFlow,
+        name: 'Data Flow',
+        abbreviation: 'DF',
+        sortOrder: 20,
+        scope: 'organization',
+        isConnection: true,
+        reimportPolicy: 'inherit',
+        version: 1,
+        entities: 0,
+        connectionConstraints: [
+          { direction: 'source', allowedMetatype: { id: IDS.component, name: 'Application Component', abbreviation: 'AC' } },
+          { direction: 'target', allowedMetatype: { id: IDS.component, name: 'Application Component', abbreviation: 'AC' } },
+        ],
+      },
     ],
     entries: [
       { id: 'b0000000-0000-4000-8000-000000000001', metatypeId: IDS.component, propertyDefId: IDS.status, necessity: 'optional', validFrom: '2026-01-01', scope: 'imported' },
@@ -198,6 +214,13 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
     }
     return state.globalReimport
   }
+  const constraints = (body: Record<string, unknown> | undefined) =>
+    (['source', 'target'] as const).flatMap((direction) =>
+      ((body?.[direction === 'source' ? 'allowedSourceMetatypeIds' : 'allowedTargetMetatypeIds'] ?? []) as string[]).map((id) => {
+        const allowed = state.metatypes.find((metatype) => metatype.id === id)
+        return { direction, allowedMetatype: { id, name: allowed?.name ?? id, abbreviation: allowed?.abbreviation ?? '' } }
+      }),
+    )
   const detail = (id: string): Metatype => {
     const { entities: _entities, ...metatype } = state.metatypes.find((candidate) => candidate.id === id)!
     return { ...metatype, propertyMappings: mappings(id, false), effectiveReimportPolicy: effective(id) }
@@ -269,12 +292,12 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
           abbreviation: String(body?.abbreviation ?? ''),
           sortOrder: Number(body?.sortOrder ?? 0),
           scope: 'organization' as Scope,
-          isConnection: false,
+          isConnection: Boolean(body?.isConnection),
           baseMetatypeId: (body?.baseMetatypeId as string | null) ?? null,
           reimportPolicy: 'inherit' as const,
           version: 1,
           entities: 0,
-          connectionConstraints: [],
+          connectionConstraints: constraints(body),
         }
         state.metatypes.push(created)
         return json(detail(created.id), 201, 1)
@@ -305,6 +328,7 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
           abbreviation: String(body?.abbreviation ?? ''),
           sortOrder: Number(body?.sortOrder ?? 0),
           baseMetatypeId: (body?.baseMetatypeId as string | null) ?? null,
+          connectionConstraints: constraints(body),
           version: (stored.version ?? 1) + 1,
         })
         return json(detail(stored.id), 200, stored.version)

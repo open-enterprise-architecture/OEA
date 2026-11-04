@@ -37,6 +37,9 @@ export const Reader: Story = page('metatypes', IDS.component, ME_READER)
 /** An imported entity type with a dated organization entry on a package mapping (ADR-049). */
 export const ImportedEntityType: Story = page('metatypes', IDS.component)
 
+/** A connection metatype with its allowed sources and targets (US-036). */
+export const ConnectionType: Story = page('metatypes', IDS.dataFlow)
+
 export const Properties: Story = page('properties')
 
 export const Translations: Story = page('translations')

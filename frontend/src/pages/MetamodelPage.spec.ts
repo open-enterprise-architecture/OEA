@@ -35,11 +35,19 @@ describe('MetamodelPage', () => {
   it('lists all metatypes with abbreviation and scope', async () => {
     const { wrapper } = await open('/metamodel')
     const items = wrapper.findAll('[data-testid="metatype-item"]').map((item) => item.text())
-    expect(items).toHaveLength(4)
+    expect(items).toHaveLength(5)
     expect(items[0]).toContain('AC')
     expect(items[0]).toContain('Package oea-starter-togaf-classic 1.1.0')
     expect(items[2]).toContain('Own')
     expect(wrapper.find('[data-testid="metatype-new"]').exists()).toBe(true)
+  })
+
+  it('marks connection metatypes and names their allowed endpoints', async () => {
+    const { wrapper } = await open(`/metamodel/metatypes/${IDS.dataFlow}`)
+    expect(wrapper.findAll('[data-testid="metatype-connection-badge"]')).toHaveLength(1)
+    expect(wrapper.get('[data-testid="metatype-endpoints-source"]').text()).toBe('Application Component')
+    const { wrapper: zone } = await open(`/metamodel/metatypes/${IDS.zone}`)
+    expect(zone.find('[data-testid="metatype-endpoints"]').exists()).toBe(false)
   })
 
   // "Reader sees the metamodel"

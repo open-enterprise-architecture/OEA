@@ -64,7 +64,12 @@ public class MetatypeCatalog {
 
 	public record Metatype(UUID id, String name, String abbreviation, boolean connection, int sortOrder, String scope,
 			String sourcePackageId, String sourcePackageVersion, UUID baseMetatypeId, String reimportPolicy,
-			String effectiveReimportPolicy, String architectureLayerId, List<Mapping> mappings, int version) {
+			String effectiveReimportPolicy, String architectureLayerId, List<Mapping> mappings, int version,
+			List<Constraint> constraints) {
+	}
+
+	/** An allowed source or target of a connection metatype (us-036-connection-metatypes D2). */
+	public record Constraint(String direction, MetatypeRef allowed) {
 	}
 
 	private record Row(UUID id, String name, String abbreviation, boolean connection, int sortOrder, String scope,
@@ -159,6 +164,17 @@ public class MetatypeCatalog {
 		rows.values().stream().filter((row) -> row.baseMetatypeId() != null)
 			.forEach((row) -> bases.put(row.id(), row.baseMetatypeId()));
 		Map<UUID, String> policies = effectiveReimportPolicies();
+		Map<UUID, List<Constraint>> constraints = new HashMap<>();
+		this.jdbc.query("""
+				SELECT metatype_id, direction, allowed_metatype_id FROM metatype_connection_constraints
+				ORDER BY metatype_id, direction, allowed_metatype_id""", (rs) -> {
+			Row allowed = rows.get(rs.getObject(3, UUID.class));
+			if (allowed != null) {
+				constraints.computeIfAbsent(rs.getObject(1, UUID.class), (k) -> new ArrayList<>())
+					.add(new Constraint(rs.getString(2),
+							new MetatypeRef(allowed.id(), allowed.name(), allowed.abbreviation())));
+			}
+		});
 		List<Metatype> metatypes = new ArrayList<>();
 		for (Row row : rows.values()) {
 			if (id != null && !id.equals(row.id())) {
@@ -176,7 +192,7 @@ public class MetatypeCatalog {
 			metatypes.add(new Metatype(row.id(), row.name(), row.abbreviation(), row.connection(), row.sortOrder(),
 					row.scope(), row.sourcePackageId(), row.sourcePackageVersion(), row.baseMetatypeId(),
 					row.reimportPolicy(), policies.get(row.id()), row.architectureLayerId(), List.copyOf(mappings),
-					row.version()));
+					row.version(), List.copyOf(constraints.getOrDefault(row.id(), List.of()))));
 		}
 		return metatypes;
 	}

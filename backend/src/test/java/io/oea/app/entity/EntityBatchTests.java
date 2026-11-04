@@ -313,11 +313,8 @@ class EntityBatchTests {
 	}
 
 	@Test
-	void batchWithConnectionsOrDryRun() {
-		String externalId = unique("connections");
-		ObjectNode withConnection = batch(component(externalId, "Source", null));
-		withConnection.putArray("connections").addObject().put("connectionMetatypeId", UUID.randomUUID().toString());
-		assertThat(post(withConnection)).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+	void dryRunNotSupported() {
+		String externalId = unique("dry-run");
 		MvcTestResult dryRun = this.mvc.post()
 			.uri(BATCH + "?dryRun=true")
 			.cookie(new Cookie(SessionCookie.NAME, this.architect.token()))

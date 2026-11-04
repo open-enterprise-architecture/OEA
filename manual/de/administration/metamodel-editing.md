@@ -2,7 +2,7 @@
 title: Metamodell bearbeiten
 covers:
   screens: [SCR-030]
-  stories: [US-032, US-137, US-140]
+  stories: [US-032, US-036, US-137, US-140]
 ---
 
 # Metamodell bearbeiten
@@ -36,7 +36,21 @@ Die Herkunft sagt dir, was du ändern darfst: *Eigene* Inhalte gehören deiner O
 - Namen sind über alle Entitätstypen eindeutig, unabhängig von Groß- und Kleinschreibung: *application component* wird abgelehnt, solange *Application Component* existiert.
 - Du änderst (*Bearbeiten*) und löschst (*Löschen*) nur eigene Entitätstypen.
 - Ein Entitätstyp mit Entitäten – auch gelöschten –, einer, den ein Katalog verwendet, oder einer, der Basistyp eines anderen Typs ist, lässt sich nicht löschen. Die Meldung nennt die Anzahl der Entitäten.
-- Verbindungstypen folgen in einer späteren Version.
+
+### Verbindungstypen {#connection-types}
+
+Ein Verbindungstyp beschreibt gerichtete Beziehungen, die eigene Objekte sind: einen Datenfluss zwischen zwei Anwendungen mit seinem Protokoll, eine Netzwerkverbindung oder „eine Sicherheitszone enthält Technologiekomponenten“. Seine Entitäten – Verbindungen – haben immer genau eine Quelle und ein Ziel.
+
+1. Wähle in *Entitätstypen* die Schaltfläche *Neu* und schalte *Verbindungstyp* ein. Das lässt sich später nicht ändern.
+2. Wähle unter *Erlaubte Quellen* und *Erlaubte Ziele* die Entitätstypen, an denen eine Verbindung beginnen und enden darf. Lass eine Liste leer, um jeden Entitätstyp zu erlauben.
+3. Wähle *Speichern*. Die Liste kennzeichnet den Typ mit *Verbindung*, und seine Detailansicht nennt die erlaubten Quellen und Ziele.
+
+- Ein erlaubter Entitätstyp erlaubt auch seine Untertypen.
+- Ein Verbindungstyp kann selbst erlaubte Quelle oder erlaubtes Ziel sein, sodass eine Verbindung an einer anderen beginnen oder enden kann (zum Beispiel ein Datenfluss, der von einem anderen abzweigt). Um den Typ selbst zu erlauben, bearbeite ihn nach dem Anlegen.
+- Eine Beziehung zwischen Entitätstypen wie *enthält* ist ein Verbindungstyp. Kardinalitäten gibt es nicht.
+- Der Basistyp eines Verbindungstyps ist ein Verbindungstyp, der Basistyp eines anderen Entitätstyps nicht.
+- Ein Entitätstyp, der erlaubte Quelle oder erlaubtes Ziel eines Verbindungstyps ist, lässt sich nicht löschen; entferne ihn zuerst aus dem Verbindungstyp.
+- Verbindungen werden über die API geschrieben, siehe [Entitäten im Batch schreiben](../usage/entities-batch#connections).
 
 ### Basistypen
 
@@ -146,5 +160,6 @@ curl "${auth[@]}" -X PUT "$OEA/metamodel/labels/de" -H 'Content-Type: applicatio
 - Entitätstypen, Eigenschaften und Kategorien tragen eine `version`, die auch als `ETag` zurückkommt. Schicke sie mit `If-Match: "<version>"` zurück, wenn du ein Element, eine Zuordnung, einen Wert oder eine Einstellung für den erneuten Import änderst oder löschst: Hat jemand das Element inzwischen geändert, wird die Anfrage mit `412` abgelehnt (`stale-version`, mit `currentVersion`), und nichts ändert sich. Ohne `If-Match` wird die Änderung trotzdem gemacht, deshalb sollten Skripte es mitschicken.
 - Ablehnungen nutzen die Problemtypen `name-taken`, `read-only-metatype`, `in-use` (mit der Anzahl der Entitäten in `count`), `conflict` und `validation-failed` (mit `invalidFields`).
 - Ein Label-Schlüssel nennt das Element über seine Kennung: `metatype.{id}.name`, `property-category.{id}.name`, `property-def.{id}.label` oder `enum-value.{id}.label`; ein leerer Text entfernt dein Label, und ein unbekannter Schlüssel lehnt die ganze Änderung ab.
+- Verbindungstypen werden mit `"isConnection": true` und den Listen `allowedSourceMetatypeIds` und `allowedTargetMetatypeIds` angelegt; `GET /metamodel/allowed-connections?sourceMetatypeId=…&targetMetatypeId=…` beantwortet, welche Verbindungstypen zwei Entitätstypen in welcher Richtung verbinden dürfen.
 - `GET /metamodel/metatypes/{id}/property-mappings?includeHistory=true` listet alle Einträge der Zuordnungen mit ihrem `state`. Die Einstellungen für den erneuten Import sind `PUT /metamodel/settings/reimport-policy` und `PUT /metamodel/metatypes/{id}/reimport-policy`.
 - Jede Änderung schreibt ein Audit-Ereignis, zum Beispiel `metamodel.metatype-updated`, `metamodel.mapping-deleted` mit der Anzahl der betroffenen Entitäten, `metamodel.mapping-effective`, wenn ein Eintrag wirksam wird, oder `metamodel.labels-changed`.

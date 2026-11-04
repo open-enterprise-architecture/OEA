@@ -122,6 +122,49 @@ class PackageImportTests {
 		assertThat(count("SELECT count(*) FROM metatypes WHERE source_package_id = 'large'")).isZero();
 	}
 
+	// metamodel/connection-metatypes "Imported connection metatype" (US-036 AC4)
+	@Test
+	void connectionMetatypeWithConstraints() {
+		ObjectNode pkg = TestPackages.pkg("connections", 2);
+		ObjectNode link = (ObjectNode) pkg.withArray("metatypes").get(1);
+		String source = pkg.withArray("metatypes").get(0).path("id").asString();
+		link.put("isConnection", true).remove("propertyMappings");
+		link.putArray("connectionConstraints").addObject().put("direction", "source").putObject("allowedMetatype")
+			.put("id", source).put("name", "connections Type 1").put("abbreviation", "T1");
+		MvcTestResult imported = post(pkg.toString(), this.metamodelAdmin);
+		assertThat(imported).as(() -> content(imported)).hasStatus(HttpStatus.OK);
+		String linkId = link.path("id").asString();
+		assertThat(this.jdbc.queryForObject("SELECT is_connection FROM metatypes WHERE id = ?::uuid", Boolean.class,
+				linkId)).isTrue();
+		assertThat(this.jdbc.queryForObject("""
+				SELECT allowed_metatype_id::text FROM metatype_connection_constraints
+				WHERE metatype_id = ?::uuid AND direction = 'source'""", String.class, linkId)).isEqualTo(source);
+
+		// an element metatype cannot become a connection metatype at a re-import
+		ObjectNode changed = TestPackages.pkg("connections", 2);
+		((ObjectNode) changed.withArray("metatypes").get(0)).put("isConnection", true);
+		MvcTestResult kind = post(changed.toString(), this.metamodelAdmin);
+		assertThat(kind).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+		assertThat(body(kind).path("pointer").asString()).isEqualTo("/metatypes/0/isConnection");
+
+		// an endpoint of another package is rejected
+		ObjectNode foreign = TestPackages.pkg("connections-foreign", 1);
+		ObjectNode flow = (ObjectNode) foreign.withArray("metatypes").get(0);
+		flow.put("isConnection", true).remove("propertyMappings");
+		flow.putArray("connectionConstraints").addObject().put("direction", "target").putObject("allowedMetatype")
+			.put("id", source).put("name", "connections Type 1").put("abbreviation", "T1");
+		MvcTestResult other = post(foreign.toString(), this.metamodelAdmin);
+		assertThat(other).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+		assertThat(body(other).path("pointer").asString()).isEqualTo("/metatypes/0/connectionConstraints");
+
+		// element metatypes have no constraints
+		ObjectNode element = TestPackages.pkg("connections-element", 1);
+		((ObjectNode) element.withArray("metatypes").get(0)).putArray("connectionConstraints").addObject()
+			.put("direction", "source").putObject("allowedMetatype").put("id", source).put("name", "x")
+			.put("abbreviation", "x");
+		assertThat(post(element.toString(), this.metamodelAdmin)).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+	}
+
 	@Test
 	void unsupportedPackageSections() {
 		ObjectNode replace = TestPackages.pkg("unsupported", 1).put("strategy", "replace");
@@ -221,6 +264,15 @@ class PackageImportTests {
 
 	private int count(String sql) {
 		return this.jdbc.queryForObject(sql, Integer.class);
+	}
+
+	private static String content(MvcTestResult result) {
+		try {
+			return result.getResponse().getContentAsString();
+		}
+		catch (java.io.UnsupportedEncodingException ex) {
+			throw new IllegalStateException(ex);
+		}
 	}
 
 	private static JsonNode body(MvcTestResult result) {

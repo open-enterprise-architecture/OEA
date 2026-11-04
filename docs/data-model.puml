@@ -822,6 +822,10 @@ package "Metamodel" #E8F5E9 {
     .. enum: source | target ..
     + allowed_metatype_id : UUID          {NN} {FK→metatypes.id}
     .. UNIQUE(metatype_id, direction, allowed_metatype_id) ..
+    .. only for is_connection = true; no row for a direction allows every metatype; ..
+    .. an allowed metatype also allows its subtypes; a connection metatype may be an ..
+    .. endpoint (T-relationships, ADR-010); a metatype named here cannot be deleted ..
+    .. (us-036-connection-metatypes D2) ..
   }
 
   class metamodel_package_imports <<Table>> #C8E6C9 {
@@ -1094,10 +1098,12 @@ package "Repository" #FCE4EC {
 
   class entity_connections <<Table>> #F8BBD9 {
     + entity_id        : INTEGER          {PK} {FK→entities.id}
-    .. 1:1; only if metatype.is_connection=true ..
+    .. 1:1; only if metatype.is_connection=true (V19, us-036-connection-metatypes D1) ..
     --
     + source_entity_id : INTEGER          {NN} {FK→entities.id}
     + target_entity_id : INTEGER          {NN} {FK→entities.id}
+    .. endpoints of any metatype the connection metatype allows, also connections; ..
+    .. fixed after creation: oea_app has SELECT and INSERT only ..
   }
 
   class entity_property_values <<Table>> #F8BBD9 {

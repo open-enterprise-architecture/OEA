@@ -25,6 +25,38 @@ describe('MetatypeDialog', () => {
     expect(wrapper.emitted('saved')).toHaveLength(1)
   })
 
+  // spec metamodel/configuration-screen "Creating a connection metatype" (us-036-connection-metatypes)
+  it('creates a connection metatype with allowed sources and targets', async () => {
+    const { wrapper, api } = await mountWithMetamodel(MetatypeDialog)
+    await field(wrapper, 'metatype-name').setValue('Contains')
+    wrapper.findAllComponents({ name: 'Switch' })[0]!.vm.$emit('update:modelValue', true)
+    await flushPromises()
+    const menus = wrapper.findAllComponents({ name: 'SelectMenu' })
+    expect(menus).toHaveLength(2)
+    menus[0]!.vm.$emit('update:modelValue', [IDS.zone])
+    menus[1]!.vm.$emit('update:modelValue', [IDS.component])
+    await flushPromises()
+    // only connection metatypes can be the base type of a connection metatype
+    const base = wrapper.findAllComponents({ name: 'Select' }).find((candidate) => candidate.vm.$attrs['data-testid'] === 'metatype-base')!
+    expect((base.props('items') as { value: string }[]).map((item) => item.value)).toEqual(['-', IDS.dataFlow])
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(api.requests.find((request) => request.method === 'POST')?.body).toEqual(
+      expect.objectContaining({
+        name: 'Contains',
+        isConnection: true,
+        allowedSourceMetatypeIds: [IDS.zone],
+        allowedTargetMetatypeIds: [IDS.component],
+      }),
+    )
+  })
+
+  it('offers no connection switch when editing', async () => {
+    const { wrapper } = await mountWithMetamodel(MetatypeDialog, () => ({ metatype: metatypeById(IDS.dataFlow) }))
+    expect(wrapper.find('[data-testid="metatype-connection"]').exists()).toBe(false)
+    expect(wrapper.findAllComponents({ name: 'SelectMenu' })[0]!.props('modelValue')).toEqual([IDS.component])
+  })
+
   // "Name already taken"
   it('shows a taken name at the field and creates nothing', async () => {
     const { wrapper, api } = await mountWithMetamodel(MetatypeDialog)
@@ -33,7 +65,7 @@ describe('MetatypeDialog', () => {
     await flushPromises()
     expect(wrapper.text()).toContain('This name is already used, regardless of upper and lower case.')
     expect(wrapper.emitted('saved')).toBeUndefined()
-    expect(api.state.metatypes).toHaveLength(4)
+    expect(api.state.metatypes).toHaveLength(5)
   })
 
   // "Overwriting after a warning"

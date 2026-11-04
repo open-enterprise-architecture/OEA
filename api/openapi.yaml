@@ -583,6 +583,10 @@ components:
               items: { $ref: '#/components/schemas/MetatypePropertyMapping' }
             connectionConstraints:
               type: array
+              description: |
+                Connection metatypes: allowed sources and targets, each with its subtypes; no
+                entry for a direction allows every metatype (US-036). In a package, each
+                `allowedMetatype` is a metatype of the same package or a built-in one.
               items:
                 type: object
                 properties:
@@ -595,11 +599,21 @@ components:
       properties:
         name:                 { type: string }
         abbreviation:         { type: string }
-        isConnection:         { type: boolean, default: false, description: "Must be `false` until connection metatypes are supported (422); cannot change" }
+        isConnection:         { type: boolean, default: false, description: "Connection metatype (US-036); set on creation, cannot change (422)" }
         architectureLayerId:  { type: [string, 'null'] }
         sortOrder:            { type: integer, default: 0 }
         configId:             { type: string, format: uuid, description: The instance configuration }
-        baseMetatypeId:       { type: [string, 'null'], format: uuid, description: "Base type; no cycles (422)" }
+        baseMetatypeId:       { type: [string, 'null'], format: uuid, description: "Base type of the same kind (connection or element); no cycles (422)" }
+        allowedSourceMetatypeIds:
+          type: array
+          items: { type: string, format: uuid }
+          description: |
+            Connection metatypes only (422 otherwise): metatypes allowed as source, each with its
+            subtypes; empty or missing allows every metatype. Replaces the stored list.
+        allowedTargetMetatypeIds:
+          type: array
+          items: { type: string, format: uuid }
+          description: Like `allowedSourceMetatypeIds` for the target
 
     MetatypeReimportPolicy:
       type: object
@@ -1192,9 +1206,32 @@ components:
         sourceExternalId: { type: string, description: "external_id of the source entity" }
         targetExternalId: { type: string, description: "external_id of the target entity" }
         externalId:       { type: string, description: "external_id of the connection itself" }
+        name:             { type: string, maxLength: 255, description: "Defaults to `<source name> → <target name>` on creation" }
+        description:      { type: string, maxLength: 2000 }
         properties:
           type: array
           items: { $ref: '#/components/schemas/PropertyWriteValue' }
+
+    ConnectionEndpoint:
+      type: object
+      required: [id, name, metatype]
+      properties:
+        id:       { type: integer }
+        name:     { type: string }
+        metatype: { $ref: '#/components/schemas/MetatypeSummary' }
+
+    ConnectionDetail:
+      type: object
+      required: [id, name, metatype, version, source, target]
+      description: A connection with its fixed endpoints (US-036)
+      properties:
+        id:         { type: integer }
+        name:       { type: string }
+        metatype:   { $ref: '#/components/schemas/MetatypeSummary' }
+        externalId: { type: [string, 'null'] }
+        version:    { type: integer }
+        source:     { $ref: '#/components/schemas/ConnectionEndpoint' }
+        target:     { $ref: '#/components/schemas/ConnectionEndpoint' }
 
     BatchWriteRequest:
       type: object
@@ -1208,7 +1245,8 @@ components:
           items: { $ref: '#/components/schemas/ConnectionWrite' }
           maxItems: 500
           description: |
-            Not supported yet (US-141 AC2): a batch with connections is rejected with 422.
+            Written after `entities`, so that endpoints may name entities of the same batch by
+            `externalId` (US-141 AC2, US-036). Strategies and atomicity apply as for entities.
         strategy:
           type: string
           enum: [upsert, create-only, skip-existing]
@@ -7034,8 +7072,11 @@ paths:
         Writes up to 500 entities and 500 connections in one request.
         The preferred endpoint for external systems with `strategy: upsert`
         (ADR-026). `?dryRun=true` → validation without persisting.
-        Not supported yet: connections (US-141 AC2) and `dryRun=true` (US-141 AC3)
-        are rejected with 422; `parentId` and `lifecycle` are item errors.
+        Connections are written after the entities; their endpoints are checked against the
+        connection metatype (codes `SOURCE_REQUIRED`, `SOURCE_AMBIGUOUS`, `SOURCE_NOT_FOUND`,
+        `SOURCE_NOT_ALLOWED`, the same for `TARGET_`, `METATYPE_NOT_CONNECTION` and
+        `ENDPOINT_CHANGE_NOT_SUPPORTED`). Not supported yet: `dryRun=true` (US-141 AC3) is
+        rejected with 422; `parentId` and `lifecycle` are item errors.
         `X-Agent-Id` is stored only as the informational audit field `agent_label`
         (ADR-033 §7).
       tags: [Entities – Write]
@@ -7062,10 +7103,10 @@ paths:
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: |
-            Entire batch invalid, nothing written: more entities than the limit,
-            connections or dryRun=true (not supported yet), or atomic=true with
-            at least one faulty item (`errors[].field` carries the item index,
-            e.g. `entities[3].properties`).
+            Entire batch invalid, nothing written: more entities or connections than the
+            limit, dryRun=true (not supported yet), or atomic=true with at least one faulty
+            item (`errors[].field` carries the item index, e.g. `entities[3].properties` or
+            `connections[0].sourceExternalId`).
           content:
             application/problem+json:
               schema:
@@ -7083,12 +7124,13 @@ paths:
       operationId: createConnection
       summary: Create connection between two entities
       description: |
-        Creates a connection entity (metatype.is_connection=true).
-        Validates against `metatype_connection_constraints`.
-        Source/target can be referenced via internal ID or `externalId`.
+        Creates a connection, an entity of a connection metatype with a source and a target
+        (US-036, ADR-010). Source and target are referenced by internal ID or `externalId`;
+        their metatypes must be allowed by the connection metatype (subtypes included) and
+        cannot change afterwards. Without `name` the connection is named
+        `<source name> → <target name>`. Properties are checked as for entities.
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"], "conditions": [{"when": "a connection of a type used as scopingConnectionType is written", "permissions": ["visibility-scope:assign"]}]}
-      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -7099,17 +7141,11 @@ paths:
           description: Connection created
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/EntityDetail' }
+              schema: { $ref: '#/components/schemas/ConnectionDetail' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
-          description: Source or target entity not found
-          content:
-            application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
-        '413': { $ref: '#/components/responses/PayloadTooLarge' }
-        '422':
-          description: Connection constraint violated
+          description: Source or target entity not found (`errors` with `SOURCE_NOT_FOUND` or `TARGET_NOT_FOUND`)
           content:
             application/problem+json:
               schema:
@@ -7120,7 +7156,20 @@ paths:
                       errors:
                         type: array
                         items: { $ref: '#/components/schemas/ValidationError' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: Connection or its properties invalid (error codes as in `batchWriteEntities`)
+          content:
+            application/problem+json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - type: object
+                    properties:
+                      errors:
+                        type: array
+                        items: { $ref: '#/components/schemas/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # ── Metamodel discovery (ADR-026) ─────────────────────────────────────────
   /metamodel/allowed-connections:
@@ -7130,10 +7179,11 @@ paths:
       description: |
         Answers: "Which connection metatypes are allowed between metatype A and B?"
         Writing systems use this endpoint to validate connection writes
-        in advance. Source: `metatype_connection_constraints`.
+        in advance. A connection metatype is an option if the source metatype may be its
+        source and the target metatype its target (`source-to-target`), the other way round
+        (`target-to-source`) or both (`bidirectional`); subtypes count as their base types.
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
-      x-oea-status: planned
       parameters:
         - name: sourceMetatypeId
           in: query
@@ -7152,7 +7202,8 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # ── Metamodel package import/export (ADR-026) ───────────────────────────────
   /admin/metamodel/export:

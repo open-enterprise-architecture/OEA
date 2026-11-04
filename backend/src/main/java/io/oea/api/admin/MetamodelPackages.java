@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Mapping between the contract's package format (ADR-026) and the import (design D2, D3). */
@@ -92,7 +93,18 @@ final class MetamodelPackages {
 		return new PackageDefinition.Metatype(metatype.getId(), metatype.getName(), metatype.getAbbreviation(),
 				Boolean.TRUE.equals(metatype.getIsConnection()), Objects.requireNonNullElse(metatype.getSortOrder(), 0),
 				metatype.getBaseMetatypeId(),
-				list(metatype.getPropertyMappings()).stream().map(MetamodelPackages::mapping).toList());
+				list(metatype.getPropertyMappings()).stream().map(MetamodelPackages::mapping).toList(),
+				allowed(metatype, "source"), allowed(metatype, "target"));
+	}
+
+	/** The allowed metatypes of a connection metatype in one direction (us-036-connection-metatypes D2). */
+	private static List<UUID> allowed(MetatypeDetail metatype, String direction) {
+		return list(metatype.getConnectionConstraints()).stream()
+			.filter((constraint) -> constraint.getDirection() != null
+					&& direction.equals(constraint.getDirection().getValue()))
+			.map((constraint) -> (constraint.getAllowedMetatype() != null) ? constraint.getAllowedMetatype().getId()
+					: null)
+			.toList();
 	}
 
 	private static PackageDefinition.Mapping mapping(MetatypePropertyMapping mapping) {

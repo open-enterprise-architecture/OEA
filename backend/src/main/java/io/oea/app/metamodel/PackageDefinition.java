@@ -26,9 +26,13 @@ public record PackageDefinition(String packageId, String version, String publish
 	public record EnumValue(UUID id, String value, int sortOrder) {
 	}
 
-	/** @param baseMetatypeId base type: a metatype of the package or a built-in one, or {@code null} */
+	/**
+	 * @param baseMetatypeId base type: a metatype of the package or a built-in one, or {@code null}
+	 * @param allowedSources allowed sources of a connection metatype (us-036-connection-metatypes D2)
+	 * @param allowedTargets allowed targets of a connection metatype
+	 */
 	public record Metatype(UUID id, String name, String abbreviation, boolean connection, int sortOrder,
-			UUID baseMetatypeId, List<Mapping> mappings) {
+			UUID baseMetatypeId, List<Mapping> mappings, List<UUID> allowedSources, List<UUID> allowedTargets) {
 	}
 
 	public record Mapping(UUID id, UUID propertyDefinitionId, String necessity, LocalDate validFrom, int sortOrder) {

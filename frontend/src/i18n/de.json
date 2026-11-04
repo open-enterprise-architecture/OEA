@@ -401,6 +401,15 @@
       "forbidden": "Du darfst das Metamodell nicht ändern.",
       "notFound": "Das Element gibt es nicht mehr.",
       "failed": "Die Änderung ist fehlgeschlagen."
+    },
+    "connection": {
+      "badge": "Verbindung",
+      "toggle": "Verbindungstyp",
+      "toggleHelp": "Seine Entitäten verbinden eine Quelle und ein Ziel. Lässt sich später nicht ändern.",
+      "sources": "Erlaubte Quellen",
+      "targets": "Erlaubte Ziele",
+      "endpointsHelp": "Untertypen sind eingeschlossen. Leer lassen, um jeden Entitätstyp zu erlauben.",
+      "any": "Jeder Entitätstyp"
     }
   }
 }

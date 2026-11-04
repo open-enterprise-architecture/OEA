@@ -68,7 +68,17 @@ async function deleted() {
             <span class="w-12 shrink-0 font-mono text-xs text-muted">{{ metatype.abbreviation }}</span>
             <span class="flex min-w-0 flex-1 flex-col">
               <span class="truncate font-medium text-highlighted">{{ label(labelKeys.metatype(metatype.id), metatype.name) }}</span>
-              <span class="truncate text-xs text-muted">{{ scopeLabel(metatype.scope, metatype.sourcePackage) }}</span>
+              <span class="flex items-center gap-1 truncate text-xs text-muted">
+                <UBadge
+                  v-if="metatype.isConnection"
+                  data-testid="metatype-connection-badge"
+                  size="sm"
+                  color="info"
+                  variant="subtle"
+                  :label="t('metamodel.connection.badge')"
+                />
+                {{ scopeLabel(metatype.scope, metatype.sourcePackage) }}
+              </span>
             </span>
             <span class="text-xs text-muted">{{ t('metamodel.metatype.propertyCount', { count: metatype.propertyMappings?.length ?? 0 }) }}</span>
           </RouterLink>

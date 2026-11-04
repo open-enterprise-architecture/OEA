@@ -130,11 +130,96 @@ class MetamodelEditingTests {
 	}
 
 	@Test
-	void connectionMetatypesAreNotSupportedYet() {
-		ObjectNode body = metatype(unique("Link"), null).put("isConnection", true);
-		MvcTestResult result = call(HttpMethod.POST, "/metamodel/metatypes", body, this.admin);
-		assertThat(result).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
-		assertThat(body(result).path("invalidFields").get(0).asString()).isEqualTo("isConnection");
+	void connectionMetatypeWithAllowedEndpoints() {
+		// metamodel/connection-metatypes "DataFlow between applications"
+		ObjectNode body = metatype(unique("DataFlow"), null).put("isConnection", true);
+		body.putArray("allowedSourceMetatypeIds").add(this.component.toString());
+		body.putArray("allowedTargetMetatypeIds").add(this.component.toString());
+		JsonNode created = created(call(HttpMethod.POST, "/metamodel/metatypes", body, this.admin));
+		UUID flow = id(created);
+		assertThat(created.path("isConnection").asBoolean()).isTrue();
+		// the connection metatype itself is added once it exists
+		body.withArray("allowedSourceMetatypeIds").add(flow.toString());
+		body.withArray("allowedTargetMetatypeIds").add(flow.toString());
+		JsonNode updated = body(call(HttpMethod.PUT, "/metamodel/metatypes/" + flow, body, this.admin));
+		assertThat(updated.path("connectionConstraints")).hasSize(4);
+		assertThat(updated.path("connectionConstraints").findValuesAsString("direction"))
+			.containsExactlyInAnyOrder("source", "source", "target", "target");
+		assertThat(this.jdbc.queryForObject("""
+				SELECT details ->> 'changedFields' FROM audit.events WHERE event_type = 'metamodel.metatype-updated'
+				    AND target_id = ? ORDER BY id DESC LIMIT 1""", String.class, flow.toString()))
+			.contains("allowedSourceMetatypeIds").contains("allowedTargetMetatypeIds");
+	}
+
+	@Test
+	void connectionFlagAndKindOfBaseTypeAreChecked() {
+		UUID zone = id(created(createMetatype(unique("SecurityZone"), null)));
+		// "Connection flag fixed"
+		MvcTestResult changed = call(HttpMethod.PUT, "/metamodel/metatypes/" + zone,
+				metatype(name(zone), null).put("isConnection", true), this.admin);
+		assertThat(changed).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+		// "Mixed base type"
+		MvcTestResult mixed = call(HttpMethod.POST, "/metamodel/metatypes",
+				metatype(unique("DataFlow"), zone).put("isConnection", true), this.admin);
+		assertThat(mixed).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+		assertThat(body(mixed).path("invalidFields").get(0).asString()).isEqualTo("baseMetatypeId");
+		// element metatypes have no allowed endpoints
+		ObjectNode element = metatype(unique("Zone"), null);
+		element.putArray("allowedSourceMetatypeIds").add(zone.toString());
+		assertThat(call(HttpMethod.POST, "/metamodel/metatypes", element, this.admin))
+			.hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+		ObjectNode unknown = metatype(unique("Link"), null).put("isConnection", true);
+		unknown.putArray("allowedTargetMetatypeIds").add(UUID.randomUUID().toString());
+		assertThat(call(HttpMethod.POST, "/metamodel/metatypes", unknown, this.admin))
+			.hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+	}
+
+	@Test
+	void endpointMetatypeCannotBeDeleted() {
+		UUID zone = id(created(createMetatype(unique("SecurityZone"), null)));
+		ObjectNode contains = metatype(unique("Contains"), null).put("isConnection", true);
+		contains.putArray("allowedSourceMetatypeIds").add(zone.toString());
+		UUID link = id(created(call(HttpMethod.POST, "/metamodel/metatypes", contains, this.admin)));
+		MvcTestResult deletion = call(HttpMethod.DELETE, "/metamodel/metatypes/" + zone, null, this.admin);
+		assertThat(deletion).hasStatus(HttpStatus.CONFLICT);
+		assertThat(type(deletion)).isEqualTo("urn:oea:problem:in-use");
+		// the connection metatype itself can be deleted with its constraints
+		assertThat(call(HttpMethod.DELETE, "/metamodel/metatypes/" + link, null, this.admin))
+			.hasStatus(HttpStatus.NO_CONTENT);
+		assertThat(call(HttpMethod.DELETE, "/metamodel/metatypes/" + zone, null, this.admin))
+			.hasStatus(HttpStatus.NO_CONTENT);
+	}
+
+	@Test
+	void allowedConnectionsWithDirectionAndSubtypes() {
+		UUID zone = id(created(createMetatype(unique("SecurityZone"), null)));
+		UUID cloud = id(created(createMetatype(unique("CloudZone"), zone)));
+		ObjectNode contains = metatype(unique("Contains"), null).put("isConnection", true);
+		contains.putArray("allowedSourceMetatypeIds").add(zone.toString());
+		contains.putArray("allowedTargetMetatypeIds").add(this.component.toString());
+		UUID link = id(created(call(HttpMethod.POST, "/metamodel/metatypes", contains, this.admin)));
+		JsonNode forward = body(call(HttpMethod.GET, "/metamodel/allowed-connections?sourceMetatypeId=" + cloud
+				+ "&targetMetatypeId=" + this.component, null, this.architect));
+		assertThat(forward.path("allowed").asBoolean()).isTrue();
+		JsonNode option = option(forward, link);
+		assertThat(option.path("direction").asString()).isEqualTo("source-to-target");
+		JsonNode backward = body(call(HttpMethod.GET, "/metamodel/allowed-connections?sourceMetatypeId="
+				+ this.component + "&targetMetatypeId=" + zone, null, this.architect));
+		assertThat(option(backward, link).path("direction").asString()).isEqualTo("target-to-source");
+		JsonNode none = body(call(HttpMethod.GET, "/metamodel/allowed-connections?sourceMetatypeId=" + this.component
+				+ "&targetMetatypeId=" + this.component, null, this.architect));
+		assertThat(none.path("options").findValuesAsString("id")).doesNotContain(link.toString());
+		assertThat(call(HttpMethod.GET, "/metamodel/allowed-connections?sourceMetatypeId=" + UUID.randomUUID()
+				+ "&targetMetatypeId=" + zone, null, this.architect)).hasStatus(HttpStatus.NOT_FOUND);
+	}
+
+	private static JsonNode option(JsonNode result, UUID connection) {
+		for (JsonNode option : result.path("options")) {
+			if (connection.toString().equals(option.path("connectionMetatype").path("id").asString())) {
+				return option;
+			}
+		}
+		throw new AssertionError("no option " + connection);
 	}
 
 	@Test

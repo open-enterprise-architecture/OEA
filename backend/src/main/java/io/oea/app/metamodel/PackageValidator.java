@@ -101,6 +101,10 @@ public final class PackageValidator {
 					"The abbreviation has more than 10 characters.");
 			require(!metatype.id().equals(metatype.baseMetatypeId()), pointer + "/baseMetatypeId",
 					"A metatype cannot be its own base type.");
+			require(metatype.connection() || (metatype.allowedSources().isEmpty() && metatype.allowedTargets().isEmpty()),
+					pointer + "/connectionConstraints", "Only connection metatypes have allowed sources and targets.");
+			require(!metatype.allowedSources().contains(null) && !metatype.allowedTargets().contains(null),
+					pointer + "/connectionConstraints", "A constraint needs a direction and an allowed metatype.");
 			limit(metatype.mappings(), pointer + "/propertyMappings");
 			for (int j = 0; j < metatype.mappings().size(); j++) {
 				PackageDefinition.Mapping mapping = metatype.mappings().get(j);
@@ -114,6 +118,7 @@ public final class PackageValidator {
 			}
 		}
 		noCycles(definition);
+		sameKindOfBase(definition);
 		labels(definition);
 	}
 
@@ -147,6 +152,18 @@ public final class PackageValidator {
 			}
 		}
 		require(count <= MAXIMUM_ELEMENTS * 4, "/i18nBundles", "Too many labels.");
+	}
+
+	/** A base type within the package has the same kind (us-036-connection-metatypes D2). */
+	private static void sameKindOfBase(PackageDefinition definition) {
+		Map<UUID, Boolean> connection = new HashMap<>();
+		definition.metatypes().forEach((metatype) -> connection.put(metatype.id(), metatype.connection()));
+		for (int i = 0; i < definition.metatypes().size(); i++) {
+			PackageDefinition.Metatype metatype = definition.metatypes().get(i);
+			Boolean base = connection.get(metatype.baseMetatypeId());
+			require(base == null || base == metatype.connection(), "/metatypes/" + i + "/baseMetatypeId",
+					"The base type is not of the same kind (connection or element).");
+		}
 	}
 
 	/** Base types within the package form no cycle (us-032-metatype-editing D4). */
