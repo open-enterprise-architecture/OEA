@@ -34,10 +34,19 @@ public class MetatypeEditingSteps {
 
 	@Given("a running repository instance with a metamodel administrator")
 	public void instance() throws Exception {
+		sharedInstance();
+	}
+
+	/**
+	 * The instance of the metamodel editing features, also used by OptimisticLockingSteps: every
+	 * further running instance holds its own database connections until the end of the run.
+	 */
+	static RepositoryInstance sharedInstance() throws Exception {
 		synchronized (MetatypeEditingSteps.class) {
 			if (shared == null) {
 				shared = RepositoryInstance.start();
 			}
+			return shared;
 		}
 	}
 

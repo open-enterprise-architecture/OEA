@@ -15,8 +15,8 @@ const starterPackage = 'oea-starter-togaf-classic'
 // static texts in English or German, labels of the starter package
 const shown =
   language === 'de'
-    ? { applicationComponent: 'Anwendungskomponente', shared: 'Geteilt', phasingOut: 'Auslaufend' }
-    : { applicationComponent: 'Application Component', shared: 'Shared', phasingOut: 'Phasing out' }
+    ? { applicationComponent: 'Anwendungskomponente', shared: 'Geteilt', phasingOut: 'Auslaufend', selectionList: 'Auswahlliste' }
+    : { applicationComponent: 'Application Component', shared: 'Shared', phasingOut: 'Phasing out', selectionList: 'Selection list' }
 
 // Fixed sample data of the catalog table (design D1, flow 5)
 const applications = [
@@ -99,6 +99,54 @@ test('starter configuration', async ({ page }) => {
 
   await page.getByTestId(`import-${starterPackage}`).click()
   await expect(page.getByTestId('starter-imported')).toBeVisible()
+})
+
+test('metamodel configuration', async ({ page }) => {
+  await logInAtKeycloak(page, 'dev-metamodel-admin')
+  await page.getByTestId('header-metamodel').click()
+  await expect(page.getByTestId('metatype-list')).toBeVisible()
+
+  // An entity type of the organization (manual: administration/metamodel-editing)
+  await page.getByTestId('metatype-new').click()
+  await page.getByTestId('metatype-name').fill('Security Zone')
+  await page.getByTestId('metatype-abbreviation').fill('SZ')
+  await page.getByTestId('metatype-sort-order').fill('20')
+  await shoot(page, 'metamodel-entity-type-new')
+  await page.getByTestId('metatype-submit').click()
+  await expect(page.getByTestId('metatype-title')).toContainText('Security Zone')
+
+  // A selection list with three values
+  await page.getByTestId('metamodel-sections').getByRole('tab').nth(1).click()
+  await page.getByTestId('property-new').click()
+  await page.getByTestId('property-name').fill('Trust Level')
+  await page.getByTestId('property-data-type').click()
+  await page.getByRole('option', { name: shown.selectionList }).click()
+  for (const value of ['low', 'medium', 'high']) {
+    await page.getByTestId('property-value-input').fill(value)
+    await page.getByTestId('property-value-add').click()
+  }
+  await shoot(page, 'metamodel-property-new')
+  await page.getByTestId('property-submit').click()
+  await expect(page.getByTestId('property-table')).toContainText('Trust Level')
+
+  // The property becomes mandatory for Security Zone
+  await page.getByTestId('metamodel-sections').getByRole('tab').nth(0).click()
+  await page.getByTestId('metatype-item').filter({ hasText: 'Security Zone' }).click()
+  await page.getByTestId('mapping-new').click()
+  await page.getByTestId('mapping-property').click()
+  await page.getByRole('option', { name: 'Trust Level' }).click()
+  await page.getByTestId('mapping-necessity').locator('[value="mandatory"]').click()
+  await shoot(page, 'metamodel-mapping-new', [page.getByTestId('mapping-valid-from')])
+  await page.getByTestId('mapping-submit').click()
+  await expect(page.getByTestId('mapping-table')).toContainText('Trust Level')
+  await shoot(page, 'metamodel-entity-type', [page.getByTestId('mapping-state').locator('..')])
+
+  // The German name of the entity type
+  await page.getByTestId('metamodel-sections').getByRole('tab').nth(3).click()
+  await page.getByTestId('translation-input-Security Zone').fill('Sicherheitszone')
+  await shoot(page, 'metamodel-translations')
+  await page.getByTestId('translation-save').click()
+  await expect(page.getByTestId('translation-notice')).toBeVisible()
 })
 
 test('catalogs', async ({ page }) => {

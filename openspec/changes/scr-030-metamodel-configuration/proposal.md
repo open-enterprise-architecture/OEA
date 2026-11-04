@@ -57,6 +57,7 @@ None. The new versions do not change the existing behavior of the metamodel writ
 
 - `api/openapi.yaml`:
   - `version` (read-only) in `MetatypeDetail`, `PropertyDefinitionDetail` and `PropertyCategory`;
+  - a read-only `scope` in `PropertyCategory`, so the portal knows which categories it may change;
   - `ETag` on `getMetatype` and on the responses of the changed writes;
   - an optional `If-Match` and the response 412 on `updateMetatype`, `deleteMetatype`, `createPropertyMapping`, `deletePropertyMapping`, `updateMetatypeReimportPolicy`, `updatePropertyCategory`, `deletePropertyCategory`, `updatePropertyDefinition`, `deletePropertyDefinition`, `createEnumValue` and `deleteEnumValue`;
   - the problem type `stale-version`.

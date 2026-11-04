@@ -5,7 +5,7 @@ status: draft
 priority: must
 target_release: v1.0
 complexity: large
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-25
 last_updated: 2026-06-25
 primary_actor: SH-03
@@ -155,7 +155,7 @@ Lukas (SH-02) also has the Metamodel Editor role:
 
 - Identical flow to the basic flow or A1–A4
 - All changes are attributed to Lukas in the audit log
-- Simultaneous editing of the same EntityType: last-write-wins with a warning on collision (optimistic locking)
+- Simultaneous editing of the same EntityType: last-write-wins with a warning on collision (optimistic locking). Each EntityType, property and category carries a version; a save based on an older version is not applied, the form warns with the current state, and the architect overwrites it with the own input or discards the input
 
 ## Exception Flows
 
@@ -259,3 +259,4 @@ UC-04 is deliberately set to `target_release: v1.0` (not walking skeleton), sinc
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | Requirements Engineer | Initial draft |
+| 0.2.0 | 2026-11-04 | Requirements Engineer | A5 refined: version per element, warning with the current state, overwrite or discard (change `scr-030-metamodel-configuration`) |

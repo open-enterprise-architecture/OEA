@@ -3,6 +3,7 @@ import CatalogPage from '../pages/CatalogPage.vue'
 import CatalogsPage from '../pages/CatalogsPage.vue'
 import ChangePasswordPage from '../pages/ChangePasswordPage.vue'
 import LoginPage from '../pages/LoginPage.vue'
+import MetamodelPage from '../pages/MetamodelPage.vue'
 import ProfilePage from '../pages/ProfilePage.vue'
 import SecondFactorPage from '../pages/SecondFactorPage.vue'
 import SetupPage from '../pages/SetupPage.vue'
@@ -21,6 +22,8 @@ export const router = createRouter({
     { path: '/me/password', name: 'change-password', component: ChangePasswordPage },
     { path: '/catalogs', name: 'catalogs', component: CatalogsPage },
     { path: '/catalogs/:id', name: 'catalog', component: CatalogPage, props: true },
+    // one record, so that switching sections and metatypes keeps the page (design D3 of scr-030)
+    { path: '/metamodel/:section?/:id?', name: 'metamodel', component: MetamodelPage, props: true },
   ],
 })
 

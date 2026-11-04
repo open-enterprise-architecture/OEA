@@ -46,9 +46,12 @@ public class PackageImporter {
 
 	private final MetamodelLabels labels;
 
+	private final MetamodelVersions versions;
+
 	public PackageImporter(JdbcTemplate jdbc, AuditWriter audit, Clock clock, MetamodelEffects effects,
-			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels) {
+			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels, MetamodelVersions versions) {
 		this.labels = labels;
+		this.versions = versions;
 		this.jdbc = jdbc;
 		this.audit = audit;
 		this.clock = clock;
@@ -120,8 +123,11 @@ public class PackageImporter {
 		// organization mappings are kept or removed by the re-import setting (us-032-metatype-editing D8)
 		Map<UUID, String> policies = this.policies.effective();
 		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
-			if ("remove".equals(policies.get(metatype.id()))) {
-				this.mappings.removeForReimport(principal, metatype.id(), batchId);
+			boolean removed = "remove".equals(policies.get(metatype.id()))
+					&& this.mappings.removeForReimport(principal, metatype.id(), batchId) > 0;
+			// a re-import counts as a change of the metatype (scr-030-metamodel-configuration D1)
+			if (removed || "updated".equals(actions.get(metatype.id()))) {
+				this.versions.increment(MetamodelVersions.Element.METATYPE, metatype.id());
 			}
 		}
 		// package labels replace those of the previous import; organization labels stay (us-140-dynamic-labels D5)
@@ -219,7 +225,8 @@ public class PackageImporter {
 				INSERT INTO property_categories (id, name, sort_order, description, scope, source_package_id,
 				    source_package_version) VALUES (?, ?, ?, ?, 'imported', ?, ?)
 				ON CONFLICT (id) DO UPDATE SET name = excluded.name, sort_order = excluded.sort_order,
-				    description = excluded.description, source_package_version = excluded.source_package_version""",
+				    description = excluded.description, source_package_version = excluded.source_package_version,
+				    version = property_categories.version + 1""",
 				category.id(), category.name().strip(), category.sortOrder(), category.description(),
 				definition.packageId(), definition.version());
 	}
@@ -260,7 +267,8 @@ public class PackageImporter {
 				ON CONFLICT (id) DO UPDATE SET name = excluded.name, data_type = excluded.data_type,
 				    category_id = excluded.category_id, ref_metatype_id = excluded.ref_metatype_id,
 				    max_length = excluded.max_length, min_value = excluded.min_value, max_value = excluded.max_value,
-				    pattern = excluded.pattern, source_package_version = excluded.source_package_version""",
+				    pattern = excluded.pattern, source_package_version = excluded.source_package_version,
+				    version = property_definitions.version + 1""",
 				property.id(), property.name().strip(), StorageNames.derive(property.name()),
 				property.dataType(), property.categoryId(), property.refMetatypeId(), property.maxLength(),
 				property.minValue(), property.maxValue(), property.pattern(), definition.packageId(),

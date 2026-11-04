@@ -49,14 +49,14 @@ Alternatives considered:
 - **Version in the response.** `MetatypeDetail`, `PropertyDefinitionDetail` and `PropertyCategory` get a read-only `version`, so the lists carry the version of each element without one request per element. `getMetatype` and every write that returns or changes a single element send `ETag: "<version>"` (a strong ETag, since the version is exact).
 - **Optional `If-Match`.** All writes listed in the proposal accept an optional `If-Match` with that ETag. Without the header the write proceeds (compatible with scripts, agents and the package path).
 - **Stale version.** If the header is present and does not name the current version, the write is rejected with 412, `type: urn:oea:problem:stale-version` and the extension `currentVersion`, and nothing changes. A header that is not one quoted integer counts as not matching. `*` matches any existing element.
-- **No race.** The check and the write run in the existing transaction. The check reads the row `FOR UPDATE`, so two concurrent writes with the same version cannot both succeed.
+- **No race.** The check and the write run in the existing transaction after the metamodel lock (the row of the instance configuration, read `FOR UPDATE` by every metamodel write), so two concurrent writes with the same version cannot both succeed.
 - **Order of checks.** The order is 404, then 412, then the rules of the element (409 read-only, 409 in-use, 422). A stale client therefore learns about the newer state first, before it gets a rule message that may no longer apply.
 
 `428 Precondition Required` was considered and rejected: it would break every existing client, and the owner asked only for the warning.
 
 ### D3 – Page structure and routes
 
-- **Routes.** `/metamodel` opens the section `metatypes`. The sections are reachable as `/metamodel/{section}` (`metatypes`, `properties`, `categories`, `translations`, `settings`), and a metatype as `/metamodel/metatypes/{id}`. The routes keep the selection on reload and allow links from the manual.
+- **Routes.** `/metamodel` opens the section `metatypes`. The sections are reachable as `/metamodel/{section}` (`metatypes`, `properties`, `categories`, `translations`, `settings`), and a metatype as `/metamodel/metatypes/{id}`, all by one route record `/metamodel/:section?/:id?`, so that switching keeps the loaded page. The routes keep the selection on reload and allow links from the manual.
 - **Metatypes section.** A list on the left with a search field over name and abbreviation, the scope badge and the source package. On the right is the detail:
   - header with name, abbreviation, scope and base type;
   - actions (edit, delete) only for organization metatypes;
@@ -91,7 +91,7 @@ Alternatives considered:
 
 ### D6 – Story, screen images and manual
 
-- **Story.** `SCR-030-metamodel-configuration.stories.ts` renders `MetamodelPage` with `routedFetch` data from the starter package plus one organization metatype. The first story shows the administrator view with the detail of an organization metatype. Further stories show the read-only reader view, a 412 warning and the narrow layout.
+- **Story.** `SCR-030-metamodel-configuration.stories.ts` renders `MetamodelPage` with a stateful fake of the metamodel API (`src/test/metamodel.ts`) seeded with part of the starter package and organization metatypes. The first story shows the administrator view with the detail of an organization metatype. Further stories show the read-only reader view, an imported metatype, the properties and translations sections and a 412 warning; the narrow layout is covered by a Vitest spec, since the screen images use one viewport.
 - **Screen inventory.** SCR-030 becomes `CA+WP` and `implemented`, and the legacy SVGs are deleted.
 - **Manual.** The page "Editing the metamodel" gets a section per part of the screen in English and German. The walkthrough logs in as metamodel administrator, creates `SecurityZone` with `trustLevel`, and takes screenshots in both languages. The curl examples move to a short section "Scripting the metamodel".
 

@@ -2,7 +2,7 @@
 identifier: metamodel-configuration
 name_de: Metamodell-Konfiguration
 name_en: Metamodel Configuration
-version: 1.7.0
+version: 1.8.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -105,6 +105,7 @@ Changes to the configuration are versioned and recorded in the audit log.
 | allowsConnectionAsSource | boolean | optional | false | only meaningful if `isConnection=true` | Allows instances of this type to act as the `sourceEntityId` of a further connection (n-connection, ADR-010); default false |
 | architectureLayerId | string | optional | null | must reference a valid ArchitectureLayerDefinition.id | Assignment to the architecture layer; null = no layer assigned |
 | creationSteps | CreationStep[] | optional | [] | | Defines the wizard on creation; empty = simple creation form without wizard |
+| version | integer | required | 1 | ≥ 1; set by the system | Grows with every change of the type, its mappings or its re-import setting, also by a re-import; writes name it in `If-Match` (BR-31) |
 
 ### PropertyDefinition
 
@@ -114,6 +115,7 @@ Changes to the configuration are versioned and recorded in the audit log.
 | displayLabel | string | optional | | max. 100 characters | Display name in the GUI; overrides `name` if set |
 | scope | enum | required | `organization` | as EntityTypeDefinition | Scope of the property definition (ADR-002); property categories carry the same `scope` and `sourcePackage` |
 | sourcePackage | PackageReference | conditional | null | required iff `scope=imported` | Package the definition was imported from |
+| version | integer | required | 1 | ≥ 1; set by the system | Grows with every change of the definition or its enum values; property categories carry their own `version` (BR-31) |
 | retiredAt | datetime | optional | null | set instead of deleting when the entity history references the definition | A retired definition is hidden and cannot be mapped; its name and `sqlColumnName` stay taken |
 | sqlColumnName | string | required | derived from `name` (snake_case) | regex `^[a-z][a-z0-9_]{0,62}$`; unique across all property definitions; not one of the reserved entity column names (`id`, `urn`, `metatype_id`, `name`, `description`, `is_logical`, `created_at`, `updated_at`); immutable after creation | Stable column name of the property in the generated reporting views `reporting.<metatype>` (ADR-034 DM-6); keeps analysts' SQL working when `name` or `displayLabel` change |
 | dataType | PropertyDataType | required | | | Data type definition (details: PropertyDataType) |
@@ -275,6 +277,7 @@ Describes a single page (step) in the creation wizard that is run through when c
 | BR-28 | A package re-import replaces the mappings of the package and keeps or removes the organization mappings of each re-imported EntityType by its effective `reimportOrganizationMappings` (own value, else that of the base types, else the global value) | onImport | ADR-002, ADR-049 |
 | BR-29 | The necessity of a mapping changes only by a further entry with a valid-from date on the EntityType that holds the mapping, also for a package mapping (scope `organization`); the entry with the latest date not after today applies, one entry per date; an entry dated in the future takes effect on its date, when marks are set or cleared | onCreate, onSchedule | REQ-148, ADR-022, ADR-049 |
 | BR-30 | The label of an EntityType, category, PropertyDefinition or enum value in a locale (`de`, `en`, `fr`, `it`) is the organization label, else the label of the origin package, else the name in the corporate language; a re-import replaces only the package labels, and deleting an element deletes its labels | onRead, onImport, onDelete | REQ-152, ADR-025, ADR-049 |
+| BR-31 | A write on an EntityType, PropertyDefinition or property category, or on its mappings, enum values or re-import setting, that names an older `version` in `If-Match` is rejected and changes nothing; a write without `If-Match` applies | onUpdate, onDelete | UC-04 A5, REQ-032 |
 | BR-25 | Every change of EntityTypes or PropertyDefinitions regenerates the affected reporting views `reporting.<metatype>`; every generated column applies the same masking expression as `reporting.property_values` | onCreate, onUpdate, onDelete | ADR-034 §3.1, REQ-160 |
 
 ## Examples
@@ -434,6 +437,8 @@ Version 1.5.0 (change `us-032-metatype-editing`, owner decisions 2026-10-30 and 
 
 Version 1.6.0 (change `us-137-mapping-effective-date`, ADR-049) stores the scope per mapping entry, because an organization entry can override the necessity of a package mapping and a re-import must replace only the package rows; `effective_applied_at` records when the marks of a future entry were applied.
 
+Version 1.8.0 (change `scr-030-metamodel-configuration`) adds a `version` to EntityTypes, PropertyDefinitions and property categories, because two administrators editing the same element in the metamodel configuration SCR-030 would otherwise overwrite each other unnoticed (UC-04 A5). A version per element rather than per configuration lets administrators edit different elements at the same time.
+
 ## Change History
 
 | Version | Date | Author | Change |
@@ -455,3 +460,4 @@ Version 1.6.0 (change `us-137-mapping-effective-date`, ADR-049) stores the scope
 | 1.5.0 | 2026-10-31 | Business Engineer | `extends` as stored base type with inherited mappings; `reimportOrganizationMappings` (global and per type); `retiredAt`; BR-26–BR-28 (change `us-032-metatype-editing`) |
 | 1.6.0 | 2026-11-04 | Business Engineer | Scope per mapping entry and `effective_applied_at`; BR-29 effective dates (change `us-137-mapping-effective-date`) |
 | 1.7.0 | 2026-11-04 | Business Engineer | Labels per locale of EntityTypes, categories, PropertyDefinitions and enum values (`i18n_entries` with scope); BR-30 (change `us-140-dynamic-labels`) |
+| 1.8.0 | 2026-11-04 | Business Engineer | `version` of EntityTypes, PropertyDefinitions and property categories for optimistic locking; BR-31 (change `scr-030-metamodel-configuration`) |

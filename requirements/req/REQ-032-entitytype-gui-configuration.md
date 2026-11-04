@@ -6,7 +6,7 @@ priority: must
 status: proposed
 version: 0.1.0
 created: 2026-06-25
-last_updated: 2026-06-25
+last_updated: 2026-11-04
 author: requirements-engineer
 references:
   use_cases:
@@ -149,10 +149,10 @@ GUI configuration is the primary path for organization-specific metamodel extens
 
 ## Implementation
 
-- Realized through the API by OpenSpec change `us-032-metatype-editing`; the graphical form (SCR-030) follows in S7 change 4. AC1 without relations (S8). AC3: deleting a metatype with entities, also deleted ones, is rejected with 409 `in-use` naming their number. AC4: a new mandatory property never blocks the change – existing entities without a value are marked and rejected only when written again; removing a property deletes its values with a new entity version (owner decision 2026-10-31). AC5: built-in and imported metatypes are read-only, organization properties may be mapped to them.
+- Realized through the API by OpenSpec change `us-032-metatype-editing` and in the web portal by `scr-030-metamodel-configuration` (metamodel configuration SCR-030, read-only for `entity:read`). The trade-off on optimistic locking is resolved with a version per metatype, property definition and category: a write naming an older version in `If-Match` is rejected with 412, and the form warns with the current state and lets the administrator overwrite or discard (UC-04 A5). AC1 without relations (S8). AC3: deleting a metatype with entities, also deleted ones, is rejected with 409 `in-use` naming their number. AC4: a new mandatory property never blocks the change – existing entities without a value are marked and rejected only when written again; removing a property deletes its values with a new entity version (owner decision 2026-10-31). AC5: built-in and imported metatypes are read-only, organization properties may be mapped to them.
 - ADR(s): ADR-002, ADR-022
-- Implemented by: OpenSpec change `us-032-metatype-editing` (API, f9a2416)
-- Tests: –
+- Implemented by: OpenSpec changes `us-032-metatype-editing` (API, f9a2416) and `scr-030-metamodel-configuration` (SCR-030)
+- Tests: `MetamodelEditingTests`, `MetamodelVersionsTests`, `features/metamodel/optimistic-locking.feature`, Vitest specs of `MetamodelPage` and the metamodel dialogs, story SCR-030
 - Verification status: not-verified
 
 ## Change History
@@ -161,3 +161,4 @@ GUI configuration is the primary path for organization-specific metamodel extens
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |
 | 0.2.0 | 2026-10-31 | requirements-engineer | Implementation note (change `us-032-metatype-editing`) |
+| 0.3.0 | 2026-11-04 | requirements-engineer | Implementation note (change `scr-030-metamodel-configuration`): form SCR-030 and optimistic locking |

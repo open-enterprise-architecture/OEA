@@ -33,13 +33,13 @@ public class MetatypeCatalog {
 	public record EnumValue(UUID id, String value, int sortOrder) {
 	}
 
-	public record Category(UUID id, String name, String description, int sortOrder, String scope) {
+	public record Category(UUID id, String name, String description, int sortOrder, String scope, int version) {
 	}
 
 	public record Property(UUID id, String name, String dataType, Category category, Integer maxLength,
 			BigDecimal minValue, BigDecimal maxValue, String pattern, String scope,
 			String sourcePackageId, String sourcePackageVersion, List<EnumValue> enumValues, String sqlColumnName,
-			boolean retired) {
+			boolean retired, int version) {
 	}
 
 	/**
@@ -64,12 +64,12 @@ public class MetatypeCatalog {
 
 	public record Metatype(UUID id, String name, String abbreviation, boolean connection, int sortOrder, String scope,
 			String sourcePackageId, String sourcePackageVersion, UUID baseMetatypeId, String reimportPolicy,
-			String effectiveReimportPolicy, String architectureLayerId, List<Mapping> mappings) {
+			String effectiveReimportPolicy, String architectureLayerId, List<Mapping> mappings, int version) {
 	}
 
 	private record Row(UUID id, String name, String abbreviation, boolean connection, int sortOrder, String scope,
 			String sourcePackageId, String sourcePackageVersion, UUID baseMetatypeId, String reimportPolicy,
-			String architectureLayerId) {
+			String architectureLayerId, int version) {
 	}
 
 	@Transactional(readOnly = true)
@@ -148,12 +148,12 @@ public class MetatypeCatalog {
 		Map<UUID, Row> rows = new LinkedHashMap<>();
 		this.jdbc.query("""
 				SELECT id, name, abbreviation, is_connection, sort_order, scope, source_package_id, source_package_version,
-				       base_metatype_id, reimport_organization_mappings, architecture_layer_id
+				       base_metatype_id, reimport_organization_mappings, architecture_layer_id, version
 				FROM metatypes WHERE config_id = ? ORDER BY sort_order, name""", (rs) -> {
 			UUID metatype = rs.getObject(1, UUID.class);
 			rows.put(metatype, new Row(metatype, rs.getString(2), rs.getString(3), rs.getBoolean(4), rs.getInt(5),
 					rs.getString(6), rs.getString(7), rs.getString(8), rs.getObject(9, UUID.class), rs.getString(10),
-					rs.getString(11)));
+					rs.getString(11), rs.getInt(12)));
 		}, PackageImporter.INSTANCE_CONFIGURATION);
 		Map<UUID, UUID> bases = new HashMap<>();
 		rows.values().stream().filter((row) -> row.baseMetatypeId() != null)
@@ -175,7 +175,8 @@ public class MetatypeCatalog {
 			}
 			metatypes.add(new Metatype(row.id(), row.name(), row.abbreviation(), row.connection(), row.sortOrder(),
 					row.scope(), row.sourcePackageId(), row.sourcePackageVersion(), row.baseMetatypeId(),
-					row.reimportPolicy(), policies.get(row.id()), row.architectureLayerId(), List.copyOf(mappings)));
+					row.reimportPolicy(), policies.get(row.id()), row.architectureLayerId(), List.copyOf(mappings),
+					row.version()));
 		}
 		return metatypes;
 	}
@@ -220,10 +221,10 @@ public class MetatypeCatalog {
 
 	private Map<UUID, Category> categoryMap() {
 		Map<UUID, Category> categories = new LinkedHashMap<>();
-		this.jdbc.query("SELECT id, name, description, sort_order, scope FROM property_categories ORDER BY sort_order, name",
+		this.jdbc.query("SELECT id, name, description, sort_order, scope, version FROM property_categories ORDER BY sort_order, name",
 				(rs) -> {
 					categories.put(rs.getObject(1, UUID.class), new Category(rs.getObject(1, UUID.class),
-							rs.getString(2), rs.getString(3), rs.getInt(4), rs.getString(5)));
+							rs.getString(2), rs.getString(3), rs.getInt(4), rs.getString(5), rs.getInt(6)));
 				});
 		return categories;
 	}
@@ -239,13 +240,13 @@ public class MetatypeCatalog {
 		Map<UUID, Property> properties = new LinkedHashMap<>();
 		this.jdbc.query("""
 				SELECT id, name, data_type, category_id, max_length, min_value, max_value, pattern, scope,
-				       source_package_id, source_package_version, sql_column_name, retired_at IS NOT NULL
+				       source_package_id, source_package_version, sql_column_name, retired_at IS NOT NULL, version
 				FROM property_definitions""", (rs) -> {
 			UUID id = rs.getObject(1, UUID.class);
 			properties.put(id, new Property(id, rs.getString(2), rs.getString(3),
 					categories.get(rs.getObject(4, UUID.class)), (Integer) rs.getObject(5), rs.getBigDecimal(6),
 					rs.getBigDecimal(7), rs.getString(8), rs.getString(9), rs.getString(10), rs.getString(11),
-					List.copyOf(values.getOrDefault(id, List.of())), rs.getString(12), rs.getBoolean(13)));
+					List.copyOf(values.getOrDefault(id, List.of())), rs.getString(12), rs.getBoolean(13), rs.getInt(14)));
 		});
 		return properties;
 	}

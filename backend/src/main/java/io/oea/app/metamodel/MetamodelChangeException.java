@@ -19,7 +19,9 @@ public class MetamodelChangeException extends RuntimeException {
 		/** A property mapped twice in a base type chain (409 {@code conflict}). */
 		CONFLICT,
 		/** An invalid field (422 {@code validation-failed}). */
-		INVALID
+		INVALID,
+		/** {@code If-Match} names an older version; {@link #getCurrentVersion()} gives the current one (412). */
+		STALE_VERSION
 
 	}
 
@@ -29,11 +31,25 @@ public class MetamodelChangeException extends RuntimeException {
 
 	private final Long count;
 
+	private final Integer currentVersion;
+
 	private MetamodelChangeException(Reason reason, String message, List<String> invalidFields, Long count) {
+		this(reason, message, invalidFields, count, null);
+	}
+
+	private MetamodelChangeException(Reason reason, String message, List<String> invalidFields, Long count,
+			Integer currentVersion) {
 		super(message);
 		this.reason = reason;
 		this.invalidFields = List.copyOf(invalidFields);
 		this.count = count;
+		this.currentVersion = currentVersion;
+	}
+
+	static MetamodelChangeException staleVersion(String element, int currentVersion) {
+		return new MetamodelChangeException(Reason.STALE_VERSION,
+				"The " + element + " was changed meanwhile; its current version is " + currentVersion + ".", List.of(),
+				null, currentVersion);
 	}
 
 	static MetamodelChangeException readOnly(String element) {
@@ -67,6 +83,11 @@ public class MetamodelChangeException extends RuntimeException {
 
 	public List<String> getInvalidFields() {
 		return this.invalidFields;
+	}
+
+	/** The current version for {@link Reason#STALE_VERSION}, or {@code null}. */
+	public Integer getCurrentVersion() {
+		return this.currentVersion;
 	}
 
 	/** The number of entities for {@link Reason#IN_USE}, or {@code null}. */

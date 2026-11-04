@@ -35,6 +35,8 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -46,6 +48,8 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 public class MetamodelController implements MetamodelApi {
+
+	private static final Pattern STRONG_VERSION = Pattern.compile("\"([1-9][0-9]{0,9})\"");
 
 	private final MetatypeCatalog catalog;
 
@@ -80,7 +84,7 @@ public class MetamodelController implements MetamodelApi {
 
 	@Override
 	public ResponseEntity<MetatypeDetail> getMetatype(UUID id) {
-		return ResponseEntity.ok(metatype(this.catalog.get(id)));
+		return versioned(metatype(this.catalog.get(id)));
 	}
 
 	@Override
@@ -90,22 +94,23 @@ public class MetamodelController implements MetamodelApi {
 	}
 
 	@Override
-	public ResponseEntity<MetatypeDetail> updateMetatype(UUID id, MetatypeWrite metatypeWrite) {
-		this.metatypes.update(principal(), id, metatypeInput(metatypeWrite));
-		return ResponseEntity.ok(metatype(this.catalog.get(id)));
+	public ResponseEntity<MetatypeDetail> updateMetatype(UUID id, MetatypeWrite metatypeWrite, String ifMatch) {
+		this.metatypes.update(principal(), id, metatypeInput(metatypeWrite), expectedVersion(ifMatch));
+		return versioned(metatype(this.catalog.get(id)));
 	}
 
 	@Override
-	public ResponseEntity<Void> deleteMetatype(UUID id) {
-		this.metatypes.delete(principal(), id);
+	public ResponseEntity<Void> deleteMetatype(UUID id, String ifMatch) {
+		this.metatypes.delete(principal(), id, expectedVersion(ifMatch));
 		return ResponseEntity.noContent().build();
 	}
 
 	@Override
 	public ResponseEntity<MetatypeDetail> updateMetatypeReimportPolicy(UUID id,
-			MetatypeReimportPolicy metatypeReimportPolicy) {
-		this.policies.updateMetatype(principal(), id, metatypeReimportPolicy.getOrganizationMappings().getValue());
-		return ResponseEntity.ok(metatype(this.catalog.get(id)));
+			MetatypeReimportPolicy metatypeReimportPolicy, String ifMatch) {
+		this.policies.updateMetatype(principal(), id, metatypeReimportPolicy.getOrganizationMappings().getValue(),
+				expectedVersion(ifMatch));
+		return versioned(metatype(this.catalog.get(id)));
 	}
 
 	@Override
@@ -151,7 +156,7 @@ public class MetamodelController implements MetamodelApi {
 
 	@Override
 	public ResponseEntity<MetatypePropertyMapping> createPropertyMapping(UUID id,
-			MetatypePropertyMappingWrite write) {
+			MetatypePropertyMappingWrite write, String ifMatch) {
 		MetatypePropertyMappingWriteDefaultValue value = write.getDefaultValue();
 		PropertyMappings.DefaultValue defaultValue = (value != null)
 				? new PropertyMappings.DefaultValue(value.getValueText(),
@@ -160,7 +165,8 @@ public class MetamodelController implements MetamodelApi {
 				: null;
 		PropertyMappings.Created created = this.mappings.create(principal(), id,
 				new PropertyMappings.Input(write.getPropertyDefId(), write.getNecessity().getValue(),
-						write.getValidFrom(), Objects.requireNonNullElse(write.getSortOrder(), 0), defaultValue));
+						write.getValidFrom(), Objects.requireNonNullElse(write.getSortOrder(), 0), defaultValue),
+				expectedVersion(ifMatch));
 		MetatypeCatalog.Mapping mapping = this.catalog.get(id, true)
 			.mappings()
 			.stream()
@@ -172,8 +178,8 @@ public class MetamodelController implements MetamodelApi {
 	}
 
 	@Override
-	public ResponseEntity<Void> deletePropertyMapping(UUID id, UUID mappingId) {
-		this.mappings.delete(principal(), id, mappingId);
+	public ResponseEntity<Void> deletePropertyMapping(UUID id, UUID mappingId, String ifMatch) {
+		this.mappings.delete(principal(), id, mappingId, expectedVersion(ifMatch));
 		return ResponseEntity.noContent().build();
 	}
 
@@ -195,14 +201,16 @@ public class MetamodelController implements MetamodelApi {
 	}
 
 	@Override
-	public ResponseEntity<PropertyDefinitionDetail> updatePropertyDefinition(UUID id, PropertyDefinitionWrite write) {
-		this.properties.update(principal(), id, propertyInput(write));
-		return ResponseEntity.ok(property(this.catalog.property(id)));
+	public ResponseEntity<PropertyDefinitionDetail> updatePropertyDefinition(UUID id, PropertyDefinitionWrite write,
+			String ifMatch) {
+		this.properties.update(principal(), id, propertyInput(write), expectedVersion(ifMatch));
+		PropertyDefinitionDetail property = property(this.catalog.property(id));
+		return ResponseEntity.ok().eTag(etag(property.getVersion())).body(property);
 	}
 
 	@Override
-	public ResponseEntity<Void> deletePropertyDefinition(UUID id) {
-		this.properties.delete(principal(), id);
+	public ResponseEntity<Void> deletePropertyDefinition(UUID id, String ifMatch) {
+		this.properties.delete(principal(), id, expectedVersion(ifMatch));
 		return ResponseEntity.noContent().build();
 	}
 
@@ -213,8 +221,10 @@ public class MetamodelController implements MetamodelApi {
 	}
 
 	@Override
-	public ResponseEntity<PropertyEnumValue> createEnumValue(UUID id, CreateEnumValueRequest request) {
-		UUID valueId = this.properties.createEnumValue(principal(), id, request.getValue(), request.getSortOrder());
+	public ResponseEntity<PropertyEnumValue> createEnumValue(UUID id, CreateEnumValueRequest request,
+			String ifMatch) {
+		UUID valueId = this.properties.createEnumValue(principal(), id, request.getValue(), request.getSortOrder(),
+				expectedVersion(ifMatch));
 		return ResponseEntity.status(HttpStatus.CREATED)
 			.body(this.catalog.property(id)
 				.enumValues()
@@ -226,8 +236,8 @@ public class MetamodelController implements MetamodelApi {
 	}
 
 	@Override
-	public ResponseEntity<Void> deleteEnumValue(UUID id, UUID valueId) {
-		this.properties.deleteEnumValue(principal(), id, valueId);
+	public ResponseEntity<Void> deleteEnumValue(UUID id, UUID valueId, String ifMatch) {
+		this.properties.deleteEnumValue(principal(), id, valueId, expectedVersion(ifMatch));
 		return ResponseEntity.noContent().build();
 	}
 
@@ -243,14 +253,16 @@ public class MetamodelController implements MetamodelApi {
 	}
 
 	@Override
-	public ResponseEntity<PropertyCategory> updatePropertyCategory(UUID id, PropertyCategoryWrite write) {
-		this.properties.updateCategory(principal(), id, categoryInput(write));
-		return ResponseEntity.ok(category(id));
+	public ResponseEntity<PropertyCategory> updatePropertyCategory(UUID id, PropertyCategoryWrite write,
+			String ifMatch) {
+		this.properties.updateCategory(principal(), id, categoryInput(write), expectedVersion(ifMatch));
+		PropertyCategory category = category(id);
+		return ResponseEntity.ok().eTag(etag(category.getVersion())).body(category);
 	}
 
 	@Override
-	public ResponseEntity<Void> deletePropertyCategory(UUID id) {
-		this.properties.deleteCategory(principal(), id);
+	public ResponseEntity<Void> deletePropertyCategory(UUID id, String ifMatch) {
+		this.properties.deleteCategory(principal(), id, expectedVersion(ifMatch));
 		return ResponseEntity.noContent().build();
 	}
 
@@ -261,6 +273,35 @@ public class MetamodelController implements MetamodelApi {
 			.map(MetamodelController::category)
 			.findFirst()
 			.orElseThrow(() -> new NoSuchElementException("no property category " + id));
+	}
+
+	/**
+	 * The version named by {@code If-Match} (design D2 of scr-030-metamodel-configuration):
+	 * {@code null} without the header or for {@code *}; {@code -1}, which never matches, for a
+	 * value that is not one quoted version (also a weak ETag, which If-Match never matches).
+	 */
+	static Long expectedVersion(String ifMatch) {
+		if (ifMatch == null || ifMatch.isBlank() || "*".equals(ifMatch.strip())) {
+			return null;
+		}
+		Matcher matcher = STRONG_VERSION.matcher(ifMatch.strip());
+		if (!matcher.matches()) {
+			return -1L;
+		}
+		try {
+			return Long.parseLong(matcher.group(1));
+		}
+		catch (NumberFormatException ex) {
+			return -1L;
+		}
+	}
+
+	private static String etag(Integer version) {
+		return "\"" + version + "\"";
+	}
+
+	private static ResponseEntity<MetatypeDetail> versioned(MetatypeDetail metatype) {
+		return ResponseEntity.ok().eTag(etag(metatype.getVersion())).body(metatype);
 	}
 
 	private static MetatypeEditing.Input metatypeInput(MetatypeWrite write) {
@@ -303,7 +344,8 @@ public class MetamodelController implements MetamodelApi {
 					MetatypeDetail.EffectiveReimportPolicyEnum.fromValue(metatype.effectiveReimportPolicy()))
 			.sourcePackage(source(metatype.sourcePackageId(), metatype.sourcePackageVersion()))
 			.propertyMappings(metatype.mappings().stream().map(MetamodelController::mapping).toList())
-			.connectionConstraints(List.of());
+			.connectionConstraints(List.of())
+			.version(metatype.version());
 	}
 
 	private static MetatypePropertyMapping mapping(MetatypeCatalog.Mapping mapping) {
@@ -333,12 +375,15 @@ public class MetamodelController implements MetamodelApi {
 			.pattern(property.pattern())
 			.scope(MetamodelScope.fromValue(property.scope()))
 			.sourcePackage(source(property.sourcePackageId(), property.sourcePackageVersion()))
-			.enumValues(property.enumValues().stream().map(MetamodelController::enumValue).toList());
+			.enumValues(property.enumValues().stream().map(MetamodelController::enumValue).toList())
+			.version(property.version());
 	}
 
 	private static PropertyCategory category(MetatypeCatalog.Category category) {
 		return new PropertyCategory(category.id(), category.name(), category.sortOrder())
-			.description(category.description());
+			.description(category.description())
+			.scope(MetamodelScope.fromValue(category.scope()))
+			.version(category.version());
 	}
 
 	private static PropertyEnumValue enumValue(MetatypeCatalog.EnumValue value) {

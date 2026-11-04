@@ -5,6 +5,8 @@ type Problem = components['schemas']['Problem'] & {
   invalidFields?: string[]
   loginTransaction?: string
   secondFactors?: string[]
+  count?: number
+  currentVersion?: number
 }
 
 /** A rejected request, reduced to what the pages need (RFC 9457 problem types of the contract). */
@@ -15,6 +17,10 @@ export interface Rejection {
   retryAfterSeconds?: number
   loginTransaction?: string
   secondFactors?: string[]
+  /** `in-use`: the number of entities where the element is used */
+  count?: number
+  /** `stale-version` (412): the version the element has now */
+  currentVersion?: number
 }
 
 const PROBLEM_PREFIX = 'urn:oea:problem:'
@@ -55,5 +61,7 @@ export async function readRejection(response: Response): Promise<Rejection> {
     retryAfterSeconds: Number.isFinite(retryAfter) ? retryAfter : undefined,
     loginTransaction: problem?.loginTransaction,
     secondFactors: problem?.secondFactors,
+    count: problem?.count,
+    currentVersion: problem?.currentVersion,
   }
 }
