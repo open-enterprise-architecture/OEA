@@ -4,9 +4,9 @@ title: Execute a catalog query (live data)
 type: functional
 priority: must
 status: proposed
-version: 0.3.0
+version: 0.4.0
 created: 2026-06-26
-last_updated: 2026-10-22
+last_updated: 2026-11-05
 author: requirements-engineer
 references:
   use_cases:
@@ -70,7 +70,7 @@ The query logic is a **read-only** operation on the entity repository. The catal
 3. For each filtered entity: resolve the configured `columns` attributes; return unknown or missing attribute values as `null`. As long as a catalog has no configured columns (REQ-044), the columns are `name` and, if the primary entity type maps a property named `Status` with visibility `public`, that property
 4. For each JoinDefinition: traverse the connection graph; structure results according to the active joinMode:
    - `rows`: each combination (primary entity × join result) is delivered as its own row; the primary entity with attributes repeats
-   - `aggregate`: primary entity once; join results as an array in the field `joinResults[joinName]`
+   - `aggregate`: primary entity once; join results as an array in the field `joinResults[joinId]`; in `rows` mode the array holds at most one result
 5. Apply the sort (after filtering, before pagination); ties are ordered by name
 6. Apply pagination; the response contains the `columns` (key, label, sortable), the `rows`, the page metadata `page` (`page`, `pageSize`, `totalElements`, `totalPages`) and the applied `sort` (`null` for the default order)
 
@@ -89,9 +89,9 @@ The query logic is a **read-only** operation on the entity repository. The catal
       "entityId": 17,
       "values": { "name": "CRM-System", "status": "active" },
       "joinResults": {
-        "Interfaces": [
-          { "name": "REST-API", "protocol": "REST" },
-          { "name": "SFTP-Export", "protocol": "SFTP" }
+        "<joinId>": [
+          { "entityId": 31, "values": { "name": "REST-API", "protocol": "REST" } },
+          { "entityId": 32, "values": { "name": "SFTP-Export", "protocol": "SFTP" } }
         ]
       }
     }
@@ -104,8 +104,8 @@ In `rows` mode for the same catalog:
 ```json
 {
   "rows": [
-    { "entityId": 17, "values": { "name": "CRM-System", "status": "active" }, "joinResults": { "Interfaces": { "name": "REST-API", "protocol": "REST" } } },
-    { "entityId": 17, "values": { "name": "CRM-System", "status": "active" }, "joinResults": { "Interfaces": { "name": "SFTP-Export", "protocol": "SFTP" } } }
+    { "entityId": 17, "values": { "name": "CRM-System", "status": "active" }, "joinResults": { "<joinId>": [{ "entityId": 31, "values": { "name": "REST-API", "protocol": "REST" } }] } },
+    { "entityId": 17, "values": { "name": "CRM-System", "status": "active" }, "joinResults": { "<joinId>": [{ "entityId": 32, "values": { "name": "SFTP-Export", "protocol": "SFTP" } }] } }
   ]
 }
 ```
@@ -116,7 +116,7 @@ In `rows` mode for the same catalog:
 
 - Given: catalog "Application Inventory", primaryEntityType=ApplicationComponent, 2 columns (name, status), 1 join (DataFlow→Interface, aggregate); the repository contains CRM-System (status=active) with 2 interfaces
 - When: `GET /api/v1/catalogs/{id}/query`
-- Then: the response contains 1 row for CRM-System; `joinResults.Interfaces` is an array with 2 entries
+- Then: the response contains 1 row for CRM-System; `joinResults[<joinId>]` is an array with 2 entries
 
 **AC2** (rows mode):
 
@@ -134,7 +134,7 @@ In `rows` mode for the same catalog:
 
 - Given: ERP-Core (ApplicationComponent) has no DataFlow connections
 - When: query in aggregate mode
-- Then: ERP-Core appears in the response with `joinResults.Interfaces = []`; is NOT excluded from the result set (LEFT JOIN semantics)
+- Then: ERP-Core appears in the response with `joinResults[<joinId>] = []`; is NOT excluded from the result set (LEFT JOIN semantics)
 
 **AC5** (Sorting and pagination):
 
@@ -156,9 +156,10 @@ In `rows` mode for the same catalog:
 ## Implementation Notes
 
 - Endpoint: `GET /api/v1/catalogs/{id}/query` (`queryCatalog` in `api/openapi.yaml`); paging and sort follow the contract conventions `PageParam`, `PageSizeParam`, `SortParam` and `PageMeta` (change us-049-show-catalog-data, design D1)
-- Implemented in change us-049-show-catalog-data without joins and filters (AC5, AC6); AC1–AC4 follow with the join and filter stories; `joinResults` is added to the rows then
+- Implemented in change us-049-show-catalog-data without joins and filters (AC5, AC6); AC1, AC2 and AC4 with change us-048-catalog-joins; AC3 follows with the filter stories
 - Invalid paging or sort parameters are answered with 400 (`validation-failed`, `invalidFields`); another person's personal catalog with 404 (ADR-032); soft-deleted entities are not returned (ADR-019); only properties with visibility `public` appear until REQ-160
 - Configured columns (change us-047-configure-columns, commit bd6ef07, #180): the query returns the visible configured columns with their labels and the configured default sort; a column that is not sortable cannot be sorted by (400); enum properties sort by the order of the enum (issue #65)
+- Joins (change us-048-catalog-joins): `joinResults` keyed by join ID, the result lists the available `joins` with name, mode and columns; in `rows` mode paging counts rows, a join column `{joinId}.{key}` is sortable, and several rows joins give their cross product; an unknown join in `joinMode` answers 400 `joinMode`
 - LEFT JOIN semantics: entities without join hits are returned anyway (not filtered)
 - Filter expression serialization as a query parameter: `filter[attributeName][operator]=value`; for the `in` operator as CSV or array
 - Performance: for large repositories an indexed lookup on EntityType + FilterAttributes is necessary; NFR not yet defined (to follow)
@@ -170,3 +171,4 @@ In `rows` mode for the same catalog:
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; rows/aggregate modes, LEFT JOIN semantics, pagination |
 | 0.2.0 | 2026-10-22 | Change us-049-show-catalog-data | Paging and sort aligned with the contract conventions (`page`, `pageSize` ≤ 200, `sort`, `PageMeta`; design D1); response with `columns`, `rows`, `sort`; default columns |
 | 0.3.0 | 2026-11-05 | Change us-047-configure-columns | Configured columns, default sort, sortability and enum order |
+| 0.4.0 | 2026-11-05 | Change us-048-catalog-joins | `joinResults` by join ID as lists of results with entity ID; rows mode paging and sorting; implementation note |

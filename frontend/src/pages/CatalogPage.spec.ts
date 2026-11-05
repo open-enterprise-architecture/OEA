@@ -5,7 +5,24 @@ import { setLanguage } from '../i18n'
 import { loadLabels } from '../i18n/labels'
 import { defineComponent, h } from 'vue'
 import { createMemoryHistory, createRouter, RouterView, type Router } from 'vue-router'
-import { APPLICATIONS, CATALOG, CATALOGS, catalogApi, manyApplications, ME_ARCHITECT, ME_VIEWER, STATUS_DEFINITION, VENDOR_DEFINITION, type Application, type CatalogRequest } from '../test/catalogs'
+import {
+  APPLICATIONS,
+  CATALOG,
+  CATALOGS,
+  catalogApi,
+  DATA_FLOW,
+  INTERFACE,
+  INTERFACES_JOIN,
+  manyApplications,
+  ME_ARCHITECT,
+  ME_VIEWER,
+  PROTOCOL_DEFINITION,
+  STATUS_DEFINITION,
+  VENDOR_DEFINITION,
+  type Application,
+  type CatalogRequest,
+} from '../test/catalogs'
+import CatalogJoinsDialog from '../components/CatalogJoinsDialog.vue'
 import CatalogPage from './CatalogPage.vue'
 
 const CATALOG_PATH = `/catalogs/${CATALOG.id}`
@@ -308,3 +325,131 @@ describe('CatalogPage columns', () => {
   })
 })
 
+
+describe('CatalogPage joins', () => {
+  const WITH_JOIN = { ...CATALOG, joinDefinitions: [INTERFACES_JOIN] }
+
+  function select(wrapper: VueWrapper, testId: string) {
+    const found = wrapper
+      .findComponent(CatalogJoinsDialog)
+      .findAllComponents({ name: 'Select' })
+      .find((component) => component.vm.$attrs['data-testid'] === testId)
+    if (!found) {
+      throw new Error(`no select ${testId}`)
+    }
+    return found
+  }
+
+  function itemLabels(wrapper: VueWrapper, testId: string): string[] {
+    return (select(wrapper, testId).props('items') as { label: string }[]).map((item) => item.label)
+  }
+
+  async function choose(wrapper: VueWrapper, testId: string, value: string) {
+    select(wrapper, testId).vm.$emit('update:modelValue', value)
+    await flushPromises()
+  }
+
+  async function press(testId: string) {
+    document.body.querySelector<HTMLElement>(`[data-testid="${testId}"]`)!.click()
+    await flushPromises()
+  }
+
+  function joinCells(wrapper: VueWrapper): string[][] {
+    return wrapper.findAll('[data-testid="join-cell"]').map((cell) => cell.findAll('li').map((item) => item.text()))
+  }
+
+  // catalog/catalog-joins "Interfaces of an application" and "Only connections and reachable targets offered"
+  it('adds a join in steps with only connections and reachable targets', async () => {
+    const { wrapper, recorded } = await open(CATALOG_PATH)
+    await click(wrapper, '[data-testid="configure-joins"]')
+    expect(document.body.querySelector('[data-testid="joins-empty"]')?.textContent).toContain('no joins')
+    await press('join-add')
+    expect(itemLabels(wrapper, 'join-connection')).toEqual(['Data Flow'])
+    await choose(wrapper, 'join-connection', DATA_FLOW.id)
+    expect(itemLabels(wrapper, 'join-direction')).toEqual(['Outgoing', 'Both directions'])
+    await choose(wrapper, 'join-direction', 'outbound')
+    expect(itemLabels(wrapper, 'join-target')).toEqual(['Interface'])
+    await choose(wrapper, 'join-target', INTERFACE.id)
+    const columns = [...document.body.querySelectorAll('[data-testid="join-column-name"]')].map((name) => name.textContent)
+    expect(columns).toContain('Protocol')
+    const protocol = [...document.body.querySelectorAll<HTMLElement>('[data-testid="join-column"]')].find(
+      (row) => row.querySelector('[data-testid="join-column-name"]')?.textContent === 'Protocol',
+    )!
+    protocol.querySelector<HTMLElement>('[data-testid="join-column-visible"] button, button[data-testid="join-column-visible"]')!.click()
+    await flushPromises()
+    await press('join-save')
+    const post = recorded.find((request) => request.method === 'POST')!
+    expect(post.body).toMatchObject({
+      name: 'Interface',
+      connectionMetatypeId: DATA_FLOW.id,
+      joinDirection: 'outbound',
+      targetMetatypeId: INTERFACE.id,
+      defaultJoinMode: null,
+    })
+    const sent = (post.body as { targetColumns: { field?: string; propertyDefId?: string; visible: boolean }[] }).targetColumns
+    expect(sent.filter((column) => column.visible)).toEqual([
+      expect.objectContaining({ field: 'name' }),
+      expect.objectContaining({ propertyDefId: PROTOCOL_DEFINITION.id }),
+    ])
+    expect(document.body.querySelector('[data-testid="join-name"]')?.textContent).toBe('Interface')
+    expect(joinCells(wrapper)[0]).toEqual(['REST API', 'SFTP Export'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-query "Aggregated interfaces", "Application without interfaces", "Switch to rows" and "Back to compact"
+  it('switches a join to rows and back without changing the catalog', async () => {
+    const { wrapper, router, recorded } = await open(CATALOG_PATH, APPLICATIONS, undefined, { catalog: WITH_JOIN })
+    expect(names(wrapper)).toEqual(['CRM System', 'ERP', 'Intranet'])
+    expect(joinCells(wrapper).filter((_, index) => index % 2 === 0)).toEqual([['REST API', 'SFTP Export'], [], ['LDAP']])
+    await click(wrapper, '[data-testid="join-mode-rows"]')
+    expect(router.currentRoute.value.query.mode).toEqual([`${INTERFACES_JOIN.id}:rows`])
+    expect(names(wrapper)).toEqual(['CRM System', 'CRM System', 'ERP', 'Intranet'])
+    expect(recorded.at(-1)?.query[`joinMode[${INTERFACES_JOIN.id}]`]).toBe('rows')
+    await click(wrapper, '[data-testid="join-mode-aggregate"]')
+    expect(router.currentRoute.value.query.mode).toBeUndefined()
+    expect(names(wrapper)).toEqual(['CRM System', 'ERP', 'Intranet'])
+    expect(recorded.some((request) => request.method !== 'GET' && request.method !== undefined)).toBe(false)
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-query "Sort by a join column"
+  it('sorts by a join column in rows mode only', async () => {
+    const { wrapper, router } = await open(CATALOG_PATH, APPLICATIONS, undefined, { catalog: WITH_JOIN })
+    const key = `${INTERFACES_JOIN.id}.protocol`
+    expect(wrapper.find(`[data-testid="sort-${key}"]`).exists()).toBe(false)
+    await click(wrapper, '[data-testid="join-mode-rows"]')
+    await click(wrapper, `[data-testid="sort-${key}"]`)
+    expect(router.currentRoute.value.query.sort).toBe(`${key}:asc`)
+    expect(names(wrapper)).toEqual(['Intranet', 'CRM System', 'CRM System', 'ERP'])
+    // compact again: the sort by the join ends
+    await click(wrapper, '[data-testid="join-mode-aggregate"]')
+    expect(router.currentRoute.value.query.sort).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-joins "Remove a join"
+  it('removes a join', async () => {
+    const { wrapper, recorded } = await open(CATALOG_PATH, APPLICATIONS, undefined, { catalog: WITH_JOIN })
+    await click(wrapper, '[data-testid="configure-joins"]')
+    await press('join-remove')
+    expect(recorded.some((request) => request.method === 'DELETE' && request.path.endsWith(`/joins/${INTERFACES_JOIN.id}`))).toBe(true)
+    expect(wrapper.find(`[data-testid="join-header-${INTERFACES_JOIN.id}"]`).exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-query "Unknown join": an old link with a removed join
+  it('drops an unknown join from the URL', async () => {
+    const { wrapper, router } = await open(`${CATALOG_PATH}?mode=f0000000-0000-4000-8000-00000000dead:rows`)
+    expect(router.currentRoute.value.query.mode).toBeUndefined()
+    expect(names(wrapper)).toEqual(['CRM System', 'ERP', 'Intranet'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-joins "Who configures the joins"
+  it('offers no joins configuration to a reader of an instance catalog', async () => {
+    const { wrapper } = await open(CATALOG_PATH, APPLICATIONS, undefined, { me: ME_VIEWER, catalog: WITH_JOIN })
+    expect(wrapper.find('[data-testid="configure-joins"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="join-mode-rows"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+})

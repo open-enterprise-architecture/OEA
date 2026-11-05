@@ -84,3 +84,76 @@ Feature: Catalog query
     When the enterprise architect queries the catalog "Unsortable Inventory" sorted by "name:asc"
     Then the query is answered with 400
 
+
+  @US-048 @AC1 @REQ-046 @AC1
+  Scenario: Aggregated interfaces
+    Given the metamodel has the connection metatype "Data Flow" from "Application Component" to "Interface"
+    And the applications "CRM System", "ERP" and "Intranet" exist with the status "active"
+    And the application "CRM System" reaches the interfaces "REST API" and "SFTP Export" via "Data Flow"
+    And the enterprise architect has created the catalog "Aggregated Inventory" with scope "instance"
+    And the enterprise architect adds the join "Interfaces" via "Data Flow" outbound to "Interface" to "Aggregated Inventory"
+    Then the viewer sees "CRM System" in one row of "Aggregated Inventory" with the interfaces "REST API" and "SFTP Export"
+
+  @US-049 @AC1 @REQ-046 @AC4
+  Scenario: Application without interfaces
+    Given the metamodel has the connection metatype "Data Flow" from "Application Component" to "Interface"
+    And the applications "CRM System", "ERP" and "Intranet" exist with the status "active"
+    And the enterprise architect has created the catalog "Empty Join Inventory" with scope "instance"
+    And the enterprise architect adds the join "Interfaces" via "Data Flow" outbound to "Interface" to "Empty Join Inventory"
+    Then the viewer sees "ERP" in one row of "Empty Join Inventory" without interfaces
+
+  @US-050 @AC1 @AC2 @AC3 @REQ-049 @AC1 @AC2 @AC3
+  Scenario: Switch to rows and back to compact
+    Given the metamodel has the connection metatype "Data Flow" from "Application Component" to "Interface"
+    And the applications "CRM System", "ERP" and "Intranet" exist with the status "active"
+    And the application "CRM System" reaches the interfaces "REST API" and "SFTP Export" via "Data Flow"
+    And the enterprise architect has created the catalog "Switched Inventory" with scope "instance"
+    And the enterprise architect adds the join "Interfaces" via "Data Flow" outbound to "Interface" to "Switched Inventory"
+    When the viewer queries the catalog "Switched Inventory" with the join "Interfaces" in mode "rows"
+    Then the catalog shows 2 rows for "CRM System"
+    And the catalog "Switched Inventory" keeps the join "Interfaces" without default mode
+    When the viewer queries the catalog "Switched Inventory" with the join "Interfaces" in mode "aggregate"
+    Then the catalog shows 1 rows for "CRM System"
+
+  @US-050 @AC4 @REQ-049 @AC5
+  Scenario: Joins switched independently
+    Given the metamodel has the connection metatype "Data Flow" from "Application Component" to "Interface"
+    And the metamodel has the connection metatype "Runs On" from "Application Component" to "Technology Component"
+    And the applications "CRM System", "ERP" and "Intranet" exist with the status "active"
+    And the application "CRM System" reaches the interfaces "REST API" and "SFTP Export" via "Data Flow"
+    And the application "CRM System" runs on the technologies "Linux" and "PostgreSQL" via "Runs On"
+    And the enterprise architect has created the catalog "Independent Inventory" with scope "instance"
+    And the enterprise architect adds the join "Interfaces" via "Data Flow" outbound to "Interface" to "Independent Inventory"
+    And the enterprise architect adds the join "Technologies" via "Runs On" outbound to "Technology Component" to "Independent Inventory"
+    When the viewer queries the catalog "Independent Inventory" with the join "Interfaces" in mode "rows"
+    Then the catalog shows 2 rows for "CRM System"
+    And every row of "CRM System" lists 2 results of the join "Technologies"
+
+  @US-050 @REQ-049 @AC4
+  Scenario: Unknown join
+    Given the enterprise architect has created the catalog "Unknown Join Inventory" with scope "instance"
+    When the viewer queries the catalog "Unknown Join Inventory" with an unknown join in mode "rows"
+    Then the query is rejected with 400 naming "joinMode"
+
+  @US-048 @REQ-046 @AC5
+  Scenario: Sort by a join column
+    Given the metamodel has the connection metatype "Data Flow" from "Application Component" to "Interface"
+    And the applications "CRM System", "ERP" and "Intranet" exist with the status "active"
+    And the application "CRM System" reaches the interfaces "SFTP Export" and "REST API" via "Data Flow"
+    And the enterprise architect has created the catalog "Protocol Inventory" with scope "instance"
+    And the enterprise architect adds the join "Interfaces" via "Data Flow" outbound to "Interface" to "Protocol Inventory"
+    When the viewer queries the catalog "Protocol Inventory" with the join "Interfaces" in mode "rows" sorted by the protocol
+    Then the interface protocols are "REST", "SFTP" and none in this order
+    When the viewer queries the catalog "Protocol Inventory" sorted by the protocol of the join "Interfaces"
+    Then the query is rejected with 400 naming "sort"
+
+  @US-048 @REQ-046 @AC5
+  Scenario: Rows mode counts rows
+    Given the metamodel has the connection metatype "Data Flow" from "Application Component" to "Interface"
+    And the applications "CRM System", "ERP" and "Intranet" exist with the status "active"
+    And the application "CRM System" reaches the interfaces "REST API" and "SFTP Export" via "Data Flow"
+    And the application "Intranet" reaches the interface "LDAP" via "Data Flow"
+    And the enterprise architect has created the catalog "Counted Inventory" with scope "instance"
+    And the enterprise architect adds the join "Interfaces" via "Data Flow" outbound to "Interface" to "Counted Inventory"
+    When the viewer queries the catalog "Counted Inventory" with the join "Interfaces" in mode "rows"
+    Then the catalog shows a total of 4 rows

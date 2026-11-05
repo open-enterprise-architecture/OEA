@@ -23,7 +23,8 @@ public class CatalogStore {
 
 	private static final String SELECT = """
 			SELECT c.id, c.name, c.description, c.primary_metatype_id, m.name, c.default_join_mode, c.scope,
-			       c.created_by, p.name, c.created_at, c.last_modified_at, c.config -> 'columns'
+			       c.created_by, p.name, c.created_at, c.last_modified_at, c.config -> 'columns',
+			       c.config -> 'joinDefinitions', c.config -> 'savedViews'
 			FROM catalogs c
 			JOIN metatypes m ON m.id = c.primary_metatype_id
 			JOIN persons p ON p.id = c.created_by""";
@@ -39,7 +40,7 @@ public class CatalogStore {
 	/** A stored catalog with the current name of its primary metatype and its creator. */
 	public record StoredCatalog(UUID id, String name, String description, UUID primaryMetatypeId,
 			String primaryMetatypeName, String defaultJoinMode, String scope, long createdById, String createdByName,
-			Instant createdAt, Instant lastModifiedAt, String columnsJson) {
+			Instant createdAt, Instant lastModifiedAt, String columnsJson, String joinsJson, String savedViewsJson) {
 	}
 
 	/** Fields of a new catalog. */
@@ -82,6 +83,29 @@ public class CatalogStore {
 				    last_modified_by = ? WHERE id = ?""", columnsJson, Timestamp.from(now), personId, id);
 	}
 
+	/**
+	 * Replaces the join definitions and the saved views (JSON arrays) and records the change
+	 * (US-048); the saved views change when a removed join leaves overrides behind.
+	 */
+	public void updateJoins(UUID id, String joinsJson, String savedViewsJson, long personId, Instant now) {
+		this.jdbc.update("""
+				UPDATE catalogs SET config = jsonb_set(jsonb_set(config, '{joinDefinitions}', ?::jsonb),
+				    '{savedViews}', ?::jsonb), last_modified_at = ?, last_modified_by = ? WHERE id = ?""", joinsJson,
+				savedViewsJson, Timestamp.from(now), personId, id);
+	}
+
+	/**
+	 * Whether the metatype is a connection, if it exists in the metamodel configuration;
+	 * empty if it does not.
+	 */
+	public Optional<Boolean> isConnection(UUID metatypeId, UUID configId) {
+		return this.jdbc
+			.queryForList("SELECT is_connection FROM metatypes WHERE id = ? AND config_id = ?", Boolean.class,
+					metatypeId, configId)
+			.stream()
+			.findFirst();
+	}
+
 	/** Whether a metatype with this ID exists in the metamodel configuration. */
 	public boolean metatypeExists(UUID metatypeId, UUID configId) {
 		return Boolean.TRUE.equals(this.jdbc.queryForObject(
@@ -92,7 +116,8 @@ public class CatalogStore {
 	private static StoredCatalog catalog(ResultSet rs, int rowNum) throws SQLException {
 		return new StoredCatalog(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3),
 				rs.getObject(4, UUID.class), rs.getString(5), rs.getString(6), rs.getString(7), rs.getLong(8),
-				rs.getString(9), rs.getTimestamp(10).toInstant(), rs.getTimestamp(11).toInstant(), rs.getString(12));
+				rs.getString(9), rs.getTimestamp(10).toInstant(), rs.getTimestamp(11).toInstant(), rs.getString(12),
+				rs.getString(13), rs.getString(14));
 	}
 
 }

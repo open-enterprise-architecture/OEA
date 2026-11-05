@@ -1,5 +1,6 @@
 package io.oea.app.catalog;
 
+import io.oea.app.metamodel.AllowedConnections;
 import io.oea.app.metamodel.PackageImporter;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.PermissionDeniedException;
@@ -49,6 +50,12 @@ public class Catalogs {
 
 	static final int MAX_COLUMNS = 100;
 
+	static final int MAX_JOINS = 10;
+
+	static final int MAX_TARGET_COLUMNS = 20;
+
+	static final int JOIN_NAME_MAX_LENGTH = 100;
+
 	private final CatalogStore store;
 
 	private final CatalogQueryStore queries;
@@ -57,14 +64,17 @@ public class Catalogs {
 
 	private final AuditWriter audit;
 
+	private final AllowedConnections connections;
+
 	private final Clock clock;
 
 	public Catalogs(CatalogStore store, CatalogQueryStore queries, PermissionResolver permissions, AuditWriter audit,
-			Clock clock) {
+			AllowedConnections connections, Clock clock) {
 		this.store = store;
 		this.queries = queries;
 		this.permissions = permissions;
 		this.audit = audit;
+		this.connections = connections;
 		this.clock = clock;
 	}
 
@@ -90,10 +100,24 @@ public class Catalogs {
 
 	}
 
-	/** A catalog with the current name of its primary metatype, its creator and its columns. */
+	/** A catalog with the current name of its primary metatype, its creator, its columns and joins. */
 	public record Catalog(UUID id, String name, String description, UUID primaryMetatypeId, String primaryMetatypeName,
 			String defaultJoinMode, String scope, long createdById, String createdByName, Instant createdAt,
-			Instant lastModifiedAt, List<Column> columns) {
+			Instant lastModifiedAt, List<Column> columns, List<Join> joins) {
+	}
+
+	/**
+	 * A join (US-048, design D1 of us-048-catalog-joins): {@code direction} is {@code outbound},
+	 * {@code inbound} or {@code both}; {@code defaultJoinMode} is {@code rows}, {@code aggregate} or
+	 * {@code null} for the catalog's; {@code available} is false if the catalog can no longer show it.
+	 */
+	public record Join(UUID id, String name, UUID connectionMetatypeId, String direction, UUID targetMetatypeId,
+			List<Column> targetColumns, String defaultJoinMode, boolean available) {
+	}
+
+	/** Input of a join, as {@link Join} without ID and availability. */
+	public record JoinInput(String name, UUID connectionMetatypeId, String direction, UUID targetMetatypeId,
+			List<Column> targetColumns, String defaultJoinMode) {
 	}
 
 	/**
@@ -211,6 +235,93 @@ public class Catalogs {
 	@Transactional
 	public Catalog updateColumns(OeaPrincipal principal, UUID id, List<Column> columns) {
 		long personId = person(principal);
+		StoredCatalog stored = writable(principal, id);
+		List<Column> checked = validate(stored.primaryMetatypeId(), (columns != null) ? columns : List.of(), "columns",
+				MAX_COLUMNS, true);
+		this.store.updateColumns(id, columnsJson(checked).toString(), personId, this.clock.instant());
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put("columns", checked.size());
+		details.put("visibleColumns", checked.stream().filter(Column::visible).count());
+		this.audit.append(new AuditEvent("catalog.columns-changed", AuditEvent.Category.CHANGE,
+				AuditEvent.Severity.INFO, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal),
+				"catalog", id.toString(), details));
+		return catalog(this.store.find(id).orElseThrow());
+	}
+
+	/**
+	 * Adds a join (design D2 of us-048-catalog-joins); permissions as for {@link #updateColumns}.
+	 */
+	@Transactional
+	public Catalog addJoin(OeaPrincipal principal, UUID id, JoinInput input) {
+		long personId = person(principal);
+		StoredCatalog stored = writable(principal, id);
+		ArrayNode joins = array(stored.joinsJson());
+		Join checked = validate(stored, input, UUID.randomUUID());
+		if (joins.size() >= MAX_JOINS) {
+			throw InvalidCatalogException.invalid("joinDefinitions", "A catalog has at most 10 joins.");
+		}
+		joins.add(joinJson(checked));
+		this.store.updateJoins(id, joins.toString(), array(stored.savedViewsJson()).toString(), personId,
+				this.clock.instant());
+		auditJoin(principal, "catalog.join-added", id, checked);
+		return catalog(this.store.find(id).orElseThrow());
+	}
+
+	/** Replaces the definition of a join and keeps its ID; 404 for an unknown join. */
+	@Transactional
+	public Catalog updateJoin(OeaPrincipal principal, UUID id, UUID joinId, JoinInput input) {
+		long personId = person(principal);
+		StoredCatalog stored = writable(principal, id);
+		ArrayNode joins = array(stored.joinsJson());
+		int index = indexOfJoin(joins, joinId);
+		Join checked = validate(stored, input, joinId);
+		joins.set(index, joinJson(checked));
+		this.store.updateJoins(id, joins.toString(), array(stored.savedViewsJson()).toString(), personId,
+				this.clock.instant());
+		auditJoin(principal, "catalog.join-changed", id, checked);
+		return catalog(this.store.find(id).orElseThrow());
+	}
+
+	/**
+	 * Removes a join and the join mode overrides of saved views that refer to it (US-048 AC6);
+	 * 404 for an unknown join.
+	 */
+	@Transactional
+	public Catalog removeJoin(OeaPrincipal principal, UUID id, UUID joinId) {
+		long personId = person(principal);
+		StoredCatalog stored = writable(principal, id);
+		ArrayNode joins = array(stored.joinsJson());
+		int index = indexOfJoin(joins, joinId);
+		String name = joins.get(index).path("name").asString("");
+		joins.remove(index);
+		ArrayNode views = array(stored.savedViewsJson());
+		for (JsonNode view : views) {
+			if (view.get("joinModeOverrides") instanceof ArrayNode overrides) {
+				for (int i = overrides.size() - 1; i >= 0; i--) {
+					if (joinId.toString().equals(overrides.get(i).path("joinDefinitionId").asString(null))) {
+						overrides.remove(i);
+					}
+				}
+			}
+		}
+		this.store.updateJoins(id, joins.toString(), views.toString(), personId, this.clock.instant());
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put("joinId", joinId.toString());
+		details.put("name", name);
+		this.audit.append(new AuditEvent("catalog.join-removed", AuditEvent.Category.CHANGE, AuditEvent.Severity.INFO,
+				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal), "catalog", id.toString(),
+				details));
+		return catalog(this.store.find(id).orElseThrow());
+	}
+
+	/**
+	 * The catalog if the principal may change it (design D3 of us-047-configure-columns). Without
+	 * {@code catalog:manage}, only one's own personal catalog can be changed and every other ID is
+	 * answered with 403, so that other personal catalogs stay hidden; with it, an unknown ID and
+	 * another person's personal catalog are answered with 404.
+	 */
+	private StoredCatalog writable(OeaPrincipal principal, UUID id) {
+		long personId = person(principal);
 		boolean manager = this.permissions.permissions(principal).contains(MANAGE_PERMISSION);
 		StoredCatalog stored = this.store.find(id).orElse(null);
 		boolean own = stored != null && "personal".equals(stored.scope()) && stored.createdById() == personId;
@@ -221,9 +332,106 @@ public class Catalogs {
 		if (!visible) {
 			throw new NoSuchElementException("catalog " + id);
 		}
-		List<Column> checked = validate(stored.primaryMetatypeId(), (columns != null) ? columns : List.of());
+		return stored;
+	}
+
+	/** Checks a join in the order of design D2 of us-048-catalog-joins. */
+	private Join validate(StoredCatalog stored, JoinInput input, UUID id) {
+		String name = (input.name() != null) ? input.name().strip() : "";
+		if (name.isEmpty() || name.length() > JOIN_NAME_MAX_LENGTH) {
+			throw InvalidCatalogException.invalid("name", "The name must have 1 to 100 characters.");
+		}
+		if (input.connectionMetatypeId() == null || !this.store
+			.isConnection(input.connectionMetatypeId(), PackageImporter.INSTANCE_CONFIGURATION)
+			.orElse(false)) {
+			throw InvalidCatalogException.invalid("connectionMetatypeId", "The entity type is not a connection type.");
+		}
+		String direction = input.direction();
+		if (!"outbound".equals(direction) && !"inbound".equals(direction) && !"both".equals(direction)) {
+			throw InvalidCatalogException.invalid("joinDirection", "The direction is outbound, inbound or both.");
+		}
+		if (input.targetMetatypeId() == null
+				|| !this.store.metatypeExists(input.targetMetatypeId(), PackageImporter.INSTANCE_CONFIGURATION)
+				|| !reachable(stored.primaryMetatypeId(), input.connectionMetatypeId(), direction,
+						input.targetMetatypeId())) {
+			throw InvalidCatalogException.invalid("targetMetatypeId",
+					"The entity type is not reachable through the connection type in this direction.");
+		}
+		List<Column> columns = (input.targetColumns() != null) ? input.targetColumns() : List.of();
+		if (columns.isEmpty()) {
+			throw InvalidCatalogException.invalid("targetColumns", "A join shows at least one column.");
+		}
+		List<Column> checked = validate(input.targetMetatypeId(), columns, "targetColumns", MAX_TARGET_COLUMNS, false);
+		String mode = input.defaultJoinMode();
+		if (mode != null && !"rows".equals(mode) && !"aggregate".equals(mode)) {
+			throw InvalidCatalogException.invalid("defaultJoinMode", "The join mode is rows or aggregate.");
+		}
+		return new Join(id, name, input.connectionMetatypeId(), direction, input.targetMetatypeId(), checked, mode,
+				true);
+	}
+
+	/**
+	 * Whether the target metatype is reachable from the primary one through the connection
+	 * metatype in the direction, by its allowed endpoints (BR-03).
+	 */
+	boolean reachable(UUID primary, UUID connection, String direction, UUID target) {
+		List<AllowedConnections.Option> options;
+		try {
+			options = this.connections.between(primary, target);
+		}
+		catch (NoSuchElementException ex) {
+			return false;
+		}
+		return options.stream()
+			.filter((option) -> option.connection().id().equals(connection))
+			.anyMatch((option) -> switch (direction) {
+				case "outbound" -> option.direction() != AllowedConnections.Direction.TARGET_TO_SOURCE;
+				case "inbound" -> option.direction() != AllowedConnections.Direction.SOURCE_TO_TARGET;
+				default -> true;
+			});
+	}
+
+	private void auditJoin(OeaPrincipal principal, String action, UUID catalogId, Join join) {
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put("joinId", join.id().toString());
+		details.put("name", join.name());
+		details.put("connectionMetatypeId", join.connectionMetatypeId().toString());
+		details.put("joinDirection", join.direction());
+		details.put("targetMetatypeId", join.targetMetatypeId().toString());
+		this.audit.append(new AuditEvent(action, AuditEvent.Category.CHANGE, AuditEvent.Severity.INFO,
+				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal), "catalog",
+				catalogId.toString(), details));
+	}
+
+	private static int indexOfJoin(ArrayNode joins, UUID joinId) {
+		for (int i = 0; i < joins.size(); i++) {
+			if (joinId.toString().equals(joins.get(i).path("id").asString(null))) {
+				return i;
+			}
+		}
+		throw new NoSuchElementException("join " + joinId);
+	}
+
+	private static ArrayNode array(String json) {
+		JsonNode node = (json != null) ? JsonMapper.shared().readTree(json) : null;
+		return (node instanceof ArrayNode array) ? array : JsonMapper.shared().createArrayNode();
+	}
+
+	private static ObjectNode joinJson(Join join) {
+		ObjectNode node = JsonMapper.shared().createObjectNode();
+		node.put("id", join.id().toString());
+		node.put("name", join.name());
+		node.put("connectionMetatypeId", join.connectionMetatypeId().toString());
+		node.put("joinDirection", join.direction());
+		node.put("targetMetatypeId", join.targetMetatypeId().toString());
+		node.set("targetColumns", columnsJson(join.targetColumns()));
+		node.put("defaultJoinMode", join.defaultJoinMode());
+		return node;
+	}
+
+	private static ArrayNode columnsJson(List<Column> columns) {
 		ArrayNode json = JsonMapper.shared().createArrayNode();
-		for (Column column : checked) {
+		for (Column column : columns) {
 			ObjectNode node = json.addObject();
 			if (column.field() != null) {
 				node.put("field", column.field().key());
@@ -236,20 +444,16 @@ public class Catalogs {
 			node.put("sortable", column.sortable());
 			node.put("defaultSortDirection", column.defaultSortDirection());
 		}
-		this.store.updateColumns(id, json.toString(), personId, this.clock.instant());
-		Map<String, Object> details = new LinkedHashMap<>();
-		details.put("columns", checked.size());
-		details.put("visibleColumns", checked.stream().filter(Column::visible).count());
-		this.audit.append(new AuditEvent("catalog.columns-changed", AuditEvent.Category.CHANGE,
-				AuditEvent.Severity.INFO, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal),
-				"catalog", id.toString(), details));
-		return catalog(this.store.find(id).orElseThrow());
+		return json;
 	}
 
-	/** Checks the column list in the order of design D2; returns it with trimmed labels. */
-	private List<Column> validate(UUID metatypeId, List<Column> columns) {
-		if (columns.size() > MAX_COLUMNS) {
-			throw InvalidCatalogException.invalid("columns", "A catalog has at most 100 columns.");
+	/**
+	 * Checks a column list in the order of design D2 of us-047-configure-columns, for the
+	 * metatype; {@code at} prefixes the invalid fields. Returns it with trimmed labels.
+	 */
+	private List<Column> validate(UUID metatypeId, List<Column> columns, String at0, int max, boolean defaultSort) {
+		if (columns.size() > max) {
+			throw InvalidCatalogException.invalid(at0, "At most " + max + " columns are allowed.");
 		}
 		Set<UUID> available = this.queries.availableProperties(metatypeId, LocalDate.now(this.clock)).keySet();
 		Set<String> seen = new HashSet<>();
@@ -257,13 +461,13 @@ public class Catalogs {
 		int defaults = 0;
 		for (int i = 0; i < columns.size(); i++) {
 			Column column = columns.get(i);
-			String at = "columns[" + i + "]";
+			String at = at0 + "[" + i + "]";
 			if ((column.field() == null) == (column.propertyDefId() == null)) {
 				throw InvalidCatalogException.invalid(at, "A column names either a field or a property.");
 			}
 			if (column.propertyDefId() != null && !available.contains(column.propertyDefId())) {
 				throw InvalidCatalogException.invalid(at + ".propertyDefId",
-						"The property is not a public property of the primary entity type.");
+						"The property is not a public property of the entity type.");
 			}
 			String attribute = (column.field() != null) ? column.field().key() : column.propertyDefId().toString();
 			if (!seen.add(attribute)) {
@@ -278,6 +482,10 @@ public class Catalogs {
 			if (direction != null && !"asc".equals(direction) && !"desc".equals(direction)) {
 				throw InvalidCatalogException.invalid(at + ".defaultSortDirection", "The direction is asc or desc.");
 			}
+			if (direction != null && !defaultSort) {
+				throw InvalidCatalogException.invalid(at + ".defaultSortDirection",
+						"The default sort belongs to the columns of the catalog.");
+			}
 			if (direction != null) {
 				defaults++;
 			}
@@ -285,36 +493,56 @@ public class Catalogs {
 					direction, true));
 		}
 		if (!checked.isEmpty() && checked.stream().noneMatch(Column::visible)) {
-			throw InvalidCatalogException.invalid("columns", "At least one column must be visible.");
+			throw InvalidCatalogException.invalid(at0, "At least one column must be visible.");
 		}
 		if (defaults > 1) {
-			throw InvalidCatalogException.invalid("columns", "At most one column has a default sort.");
+			throw InvalidCatalogException.invalid(at0, "At most one column has a default sort.");
 		}
 		return checked;
 	}
 
 	private Catalog catalog(StoredCatalog stored) {
-		List<Column> columns = new ArrayList<>();
-		JsonNode json = (stored.columnsJson() != null) ? JsonMapper.shared().readTree(stored.columnsJson()) : null;
-		Set<UUID> available = null;
-		if (json != null && json.isArray()) {
-			for (JsonNode node : json) {
-				UUID property = node.hasNonNull("propertyDefId") ? UUID.fromString(node.get("propertyDefId").asString())
-						: null;
-				if (property != null && available == null) {
-					available = this.queries.availableProperties(stored.primaryMetatypeId(), LocalDate.now(this.clock))
-						.keySet();
-				}
-				columns.add(new Column(SystemField.ofKey(node.path("field").asString(null)), property,
-						node.hasNonNull("displayLabel") ? node.get("displayLabel").asString() : null,
-						node.path("visible").asBoolean(true), node.path("sortable").asBoolean(true),
-						node.hasNonNull("defaultSortDirection") ? node.get("defaultSortDirection").asString() : null,
-						property == null || available.contains(property)));
-			}
+		LocalDate today = LocalDate.now(this.clock);
+		List<Column> columns = columns(array(stored.columnsJson()), stored.primaryMetatypeId(), today);
+		List<Join> joins = new ArrayList<>();
+		for (JsonNode node : array(stored.joinsJson())) {
+			UUID connection = UUID.fromString(node.path("connectionMetatypeId").asString());
+			UUID target = UUID.fromString(node.path("targetMetatypeId").asString());
+			String direction = node.path("joinDirection").asString();
+			boolean metatypes = this.store.isConnection(connection, PackageImporter.INSTANCE_CONFIGURATION).orElse(false)
+					&& this.store.metatypeExists(target, PackageImporter.INSTANCE_CONFIGURATION)
+					&& reachable(stored.primaryMetatypeId(), connection, direction, target);
+			List<Column> targetColumns = columns((node.get("targetColumns") instanceof ArrayNode array) ? array
+					: JsonMapper.shared().createArrayNode(), target, today);
+			boolean shown = targetColumns.stream().anyMatch((column) -> column.visible() && column.available());
+			joins.add(new Join(UUID.fromString(node.path("id").asString()), node.path("name").asString(), connection,
+					direction, target, targetColumns,
+					node.hasNonNull("defaultJoinMode") ? node.get("defaultJoinMode").asString() : null,
+					metatypes && shown));
 		}
 		return new Catalog(stored.id(), stored.name(), stored.description(), stored.primaryMetatypeId(),
 				stored.primaryMetatypeName(), stored.defaultJoinMode(), stored.scope(), stored.createdById(),
-				stored.createdByName(), stored.createdAt(), stored.lastModifiedAt(), List.copyOf(columns));
+				stored.createdByName(), stored.createdAt(), stored.lastModifiedAt(), List.copyOf(columns),
+				List.copyOf(joins));
+	}
+
+	/** Stored columns with their availability for the metatype. */
+	private List<Column> columns(ArrayNode json, UUID metatypeId, LocalDate today) {
+		List<Column> columns = new ArrayList<>();
+		Set<UUID> available = null;
+		for (JsonNode node : json) {
+			UUID property = node.hasNonNull("propertyDefId") ? UUID.fromString(node.get("propertyDefId").asString())
+					: null;
+			if (property != null && available == null) {
+				available = this.queries.availableProperties(metatypeId, today).keySet();
+			}
+			columns.add(new Column(SystemField.ofKey(node.path("field").asString(null)), property,
+					node.hasNonNull("displayLabel") ? node.get("displayLabel").asString() : null,
+					node.path("visible").asBoolean(true), node.path("sortable").asBoolean(true),
+					node.hasNonNull("defaultSortDirection") ? node.get("defaultSortDirection").asString() : null,
+					property == null || available.contains(property)));
+		}
+		return columns;
 	}
 
 	/** Catalogs belong to persons; other principals hold no permission for them (ADR-032). */

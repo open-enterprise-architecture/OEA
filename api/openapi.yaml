@@ -320,6 +320,11 @@ components:
       in: query
       schema: { type: string, example: "name:asc" }
       description: "`{field}:{asc|desc}`, multiple comma-separated"
+    JoinIdParam:
+      name: joinId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     LocaleParam:
       name: locale
       in: path
@@ -461,7 +466,7 @@ components:
             joinDefinitions:
               type: array
               readOnly: true
-              description: Joins via connections; follow with US-048 and are always empty until then
+              description: Joins via connection metatypes in creation order (US-048); changed through the join operations
               items: { $ref: '#/components/schemas/CatalogJoinDefinition' }
             savedFilters:
               type: array
@@ -512,21 +517,44 @@ components:
           description: The complete list in display order; empty restores the default columns
           items: { $ref: '#/components/schemas/CatalogColumnConfig' }
 
-    CatalogJoinDefinition:
+    CatalogJoinInput:
       type: object
-      description: A join via a connection metatype (US-048 follows; business object `catalog`)
-      required: [id, name, connectionMetatypeId, joinDirection, targetMetatypeId, targetColumns]
+      description: |
+        A join via a connection metatype (US-048, REQ-045; business object `catalog`). The
+        connection metatype must be a connection (BR-02); the target metatype must be reachable
+        through it in the direction by its allowed endpoints (BR-03). The target columns follow
+        the column rules for the target metatype, without a default sort.
+      required: [name, connectionMetatypeId, joinDirection, targetMetatypeId, targetColumns]
       properties:
-        id:                   { type: string, format: uuid }
-        name:                 { type: string }
+        name:                 { type: string, minLength: 1, maxLength: 100, description: "Header of the join's columns" }
         connectionMetatypeId: { type: string, format: uuid }
-        joinDirection:        { type: string, enum: [outbound, inbound, both] }
+        joinDirection:
+          type: string
+          enum: [outbound, inbound, both]
+          description: "`outbound`: the primary entity is the source; `inbound`: the target; `both`: either, targets deduplicated"
         targetMetatypeId:     { type: string, format: uuid }
         targetColumns:
           type: array
+          minItems: 1
+          maxItems: 20
           items: { $ref: '#/components/schemas/CatalogColumnConfig' }
-        defaultJoinMode:      { $ref: '#/components/schemas/JoinMode' }
-        aggregateLabel:       { type: [string, 'null'] }
+        defaultJoinMode:
+          oneOf:
+            - $ref: '#/components/schemas/JoinMode'
+            - type: 'null'
+          description: "`null` uses the catalog's default join mode"
+
+    CatalogJoinDefinition:
+      allOf:
+        - $ref: '#/components/schemas/CatalogJoinInput'
+        - type: object
+          required: [id, available]
+          properties:
+            id:        { type: string, format: uuid, readOnly: true }
+            available:
+              type: boolean
+              readOnly: true
+              description: "`false` if a metatype of the join is gone or no longer reachable; the query leaves it out"
 
     CatalogFilterExpression:
       type: object
@@ -606,6 +634,36 @@ components:
           type: object
           description: Text form of the value per column key; `null` if the entity has no value
           additionalProperties: { type: [string, 'null'] }
+        joinResults:
+          type: object
+          description: |
+            Results per join ID (US-048): all results in mode `aggregate`, at most one in mode
+            `rows`; an empty array for an entity without results
+          additionalProperties:
+            type: array
+            items: { $ref: '#/components/schemas/CatalogJoinResult' }
+
+    CatalogJoinResult:
+      type: object
+      required: [entityId, values]
+      properties:
+        entityId: { type: integer, description: The target entity }
+        values:
+          type: object
+          description: Text form per key of the join's columns; `null` without value
+          additionalProperties: { type: [string, 'null'] }
+
+    CatalogQueryJoin:
+      type: object
+      required: [id, name, mode, columns]
+      properties:
+        id:      { type: string, format: uuid }
+        name:    { type: string }
+        mode:    { $ref: '#/components/schemas/JoinMode' }
+        columns:
+          type: array
+          description: The visible target columns; keys as in `CatalogJoinResult.values`, sort key `{joinId}.{key}`
+          items: { $ref: '#/components/schemas/CatalogColumn' }
 
     CatalogSort:
       type: object
@@ -625,6 +683,10 @@ components:
         rows:
           type: array
           items: { $ref: '#/components/schemas/CatalogRow' }
+        joins:
+          type: array
+          description: The available joins with their applied mode, in creation order (US-048, US-050)
+          items: { $ref: '#/components/schemas/CatalogQueryJoin' }
         page: { $ref: '#/components/schemas/PageMeta' }
         sort:
           oneOf:
@@ -640,7 +702,7 @@ components:
           properties:
             invalidFields:
               type: array
-              items: { type: string, enum: [page, pageSize, sort] }
+              items: { type: string, enum: [page, pageSize, sort, joinMode] }
 
     # ── Metatype ───────────────────────────────────────────────────────────────
     MetamodelScope:
@@ -4111,6 +4173,98 @@ paths:
               schema: { $ref: '#/components/schemas/Problem' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /catalogs/{id}/joins:
+    post:
+      operationId: addCatalogJoin
+      summary: Add a join to a catalog (US-048, REQ-045)
+      description: |
+        Appends a join with a new ID. A catalog has at most 10 joins. Validation errors answer
+        422 with `invalidFields`, e.g. `connectionMetatypeId`, `targetMetatypeId` or
+        `targetColumns[1].propertyDefId`. Permissions as for `updateCatalogColumns`. Writes the
+        audit event `catalog.join-added`.
+      tags: [Catalogs]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "the catalog has scope 'instance' (another person's personal catalog is never changeable)", "permissions": ["catalog:manage"]}]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogJoinInput' }
+      responses:
+        '201':
+          description: The catalog with the new join
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Catalog' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: Invalid join (problem type `urn:oea:problem:validation-failed`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /catalogs/{id}/joins/{joinId}:
+    put:
+      operationId: updateCatalogJoin
+      summary: Change a join of a catalog (US-048, REQ-045)
+      description: |
+        Replaces the definition of the join and keeps its ID. Validation and permissions as
+        for `addCatalogJoin`; an unknown join answers 404. Writes the audit event
+        `catalog.join-changed`.
+      tags: [Catalogs]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "the catalog has scope 'instance' (another person's personal catalog is never changeable)", "permissions": ["catalog:manage"]}]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/JoinIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogJoinInput' }
+      responses:
+        '200':
+          description: The catalog with the changed join
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Catalog' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: Invalid join (problem type `urn:oea:problem:validation-failed`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      operationId: removeCatalogJoin
+      summary: Remove a join from a catalog (US-048, REQ-045)
+      description: |
+        Removes the join and the join mode overrides of saved views that refer to it.
+        Permissions as for `addCatalogJoin`; an unknown join answers 404. Writes the audit
+        event `catalog.join-removed`.
+      tags: [Catalogs]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "the catalog has scope 'instance' (another person's personal catalog is never changeable)", "permissions": ["catalog:manage"]}]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/JoinIdParam'
+      responses:
+        '200':
+          description: The catalog without the join
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Catalog' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /catalogs/{id}/query:
     get:
       operationId: queryCatalog
@@ -4131,6 +4285,13 @@ paths:
         of the enum (#65). Sorting applies before paging; a page beyond
         the last one answers with no rows. A personal catalog of another person is answered
         with 404, like a catalog that does not exist (ADR-032 §8 L3).
+
+        Joins (US-048, US-050): every row carries `joinResults` per available join. A join's
+        mode is `joinMode[{joinId}]`, else its `defaultJoinMode`, else the catalog's; the
+        override changes nothing stored. In mode `rows` every join result is a row of its own
+        (an entity without results keeps one row), paging and `totalElements` count rows, and
+        a join column (`{joinId}.{key}`) is sortable; several `rows` joins give their cross
+        product. An override for an unknown join answers 400 `joinMode`.
       tags: [Catalogs]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
@@ -4138,6 +4299,14 @@ paths:
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/PageSizeParam'
         - $ref: '#/components/parameters/SortParam'
+        - name: joinMode
+          in: query
+          style: deepObject
+          explode: true
+          description: "Join mode per join ID for this query, e.g. `joinMode[{joinId}]=rows`"
+          schema:
+            type: object
+            additionalProperties: { $ref: '#/components/schemas/JoinMode' }
       responses:
         '200':
           description: One page of catalog rows
@@ -4146,8 +4315,8 @@ paths:
               schema: { $ref: '#/components/schemas/CatalogQueryResult' }
         '400':
           description: |
-            Invalid paging or sort parameters (problem type `urn:oea:problem:validation-failed`),
-            e.g. an unknown sort column, several sort pairs or a page size above 200;
+            Invalid paging, sort or join mode parameters (problem type `urn:oea:problem:validation-failed`),
+            e.g. an unknown sort column, several sort pairs, a page size above 200 or an unknown join;
             `invalidFields` names the rejected parameters.
           content:
             application/problem+json:

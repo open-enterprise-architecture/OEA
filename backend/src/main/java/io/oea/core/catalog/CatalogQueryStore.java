@@ -21,8 +21,8 @@ import org.springframework.stereotype.Repository;
 public class CatalogQueryStore {
 
 	// one value per entity and property definition (entity_property_values_unique)
-	private static final String TEXT_FORM = "coalesce(v%1$d.value_enum, v%1$d.value_text, v%1$d.value_int::text, "
-			+ "v%1$d.value_bool::text, v%1$d.value_date::text, v%1$d.value_ref::text)";
+	private static final String TEXT_FORM = "coalesce(%1$s.value_enum, %1$s.value_text, %1$s.value_int::text, "
+			+ "%1$s.value_bool::text, %1$s.value_date::text, %1$s.value_ref::text)";
 
 	private final JdbcTemplate jdbc;
 
@@ -34,15 +34,15 @@ public class CatalogQueryStore {
 	public record PropertyColumn(UUID propertyDefId, String sqlColumnName, String name) {
 	}
 
-	/** A field every entity has (US-047), with its text form and its sort expression. */
+	/** A field every entity has (US-047), with its text form and its sort expression per alias. */
 	public enum SystemField {
 
-		NAME("e.name", "lower(e.name)"),
-		DESCRIPTION("nullif(e.description, '')", "lower(nullif(e.description, ''))"),
-		EXTERNAL_ID("e.external_id", "lower(e.external_id)"),
-		CREATED_AT("to_char(e.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')", "e.created_at"),
-		UPDATED_AT("to_char(e.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')", "e.updated_at"),
-		ENTITY_VERSION("e.version::text", "e.version");
+		NAME("%1$s.name", "lower(%1$s.name)"),
+		DESCRIPTION("nullif(%1$s.description, '')", "lower(nullif(%1$s.description, ''))"),
+		EXTERNAL_ID("%1$s.external_id", "lower(%1$s.external_id)"),
+		CREATED_AT("to_char(%1$s.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')", "%1$s.created_at"),
+		UPDATED_AT("to_char(%1$s.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')", "%1$s.updated_at"),
+		ENTITY_VERSION("%1$s.version::text", "%1$s.version");
 
 		private final String text;
 
@@ -68,19 +68,45 @@ public class CatalogQueryStore {
 
 	}
 
-	/**
-	 * The sort of a page: {@code column} is the index into the columns, or {@code null} for the
-	 * entity name.
-	 */
-	public record Sort(Integer column, boolean descending) {
+	/** Direction of a join (US-048): the primary entity as source, as target, or either. */
+	public enum Direction {
 
-		/** Name ascending, the default order. */
-		public static final Sort DEFAULT = new Sort(null, false);
+		OUTBOUND, INBOUND, BOTH
 
 	}
 
-	/** An entity row with the text form of each column ({@code null} without value). */
-	public record Row(int entityId, String name, List<String> values) {
+	/**
+	 * A join (design D3 of us-048-catalog-joins): the active target entities of exactly the target
+	 * metatype, reached through active connections of the connection metatype, with their columns.
+	 */
+	public record Join(UUID connectionMetatypeId, Direction direction, UUID targetMetatypeId,
+			List<QueryColumn> columns) {
+	}
+
+	/**
+	 * The sort of a page: {@code column} is the index into the primary columns, or into the
+	 * columns of the rows join {@code join}; {@code column == null} sorts by the entity name.
+	 */
+	public record Sort(Integer join, Integer column, boolean descending) {
+
+		/** Name ascending, the default order. */
+		public static final Sort DEFAULT = new Sort(null, null, false);
+
+		public Sort(Integer column, boolean descending) {
+			this(null, column, descending);
+		}
+
+	}
+
+	/** A join result: the target entity ({@code null} for none in a rows join) and its values. */
+	public record JoinRow(Integer entityId, List<String> values) {
+	}
+
+	/**
+	 * An entity row with the text form of each column ({@code null} without value) and the result
+	 * of each rows join.
+	 */
+	public record Row(int entityId, String name, List<String> values, List<JoinRow> joins) {
 	}
 
 	/**
@@ -120,66 +146,215 @@ public class CatalogQueryStore {
 	}
 
 	/**
-	 * One page of active entities of the metatype. Rows without a value in the sort column come
-	 * last in both directions; enum values follow the order of the enum, values outside it come
-	 * after them (#65); ties are ordered by name and ID.
+	 * One page of rows: active entities of the metatype, expanded by the rows joins (their cross
+	 * product, an entity without results keeps one row). Rows without a value in the sort column
+	 * come last in both directions; enum values follow the order of the enum, values outside it
+	 * come after them (#65); ties are ordered by name and ID, then by the join results.
 	 */
-	public List<Row> page(UUID metatypeId, List<QueryColumn> columns, Sort sort, long offset, int limit) {
-		StringBuilder sql = new StringBuilder("SELECT e.id, e.name");
+	public List<Row> page(UUID metatypeId, List<QueryColumn> columns, List<Join> rowsJoins, Sort sort, long offset,
+			int limit) {
+		Statement sql = new Statement("SELECT e.id, e.name");
 		for (int i = 0; i < columns.size(); i++) {
-			QueryColumn column = columns.get(i);
-			sql.append(", ").append((column.field() != null) ? column.field().text : TEXT_FORM.formatted(i));
+			sql.text(", ").text(text(columns.get(i), "e", "v" + i));
 		}
-		sql.append(" FROM entities e");
-		List<Object> args = new ArrayList<>();
-		for (int i = 0; i < columns.size(); i++) {
-			if (columns.get(i).property() != null) {
-				sql.append(" LEFT JOIN entity_property_values v%1$d ON v%1$d.entity_id = e.id AND v%1$d.property_def_id = ?"
-					.formatted(i));
-				args.add(columns.get(i).property().propertyDefId());
+		for (int j = 0; j < rowsJoins.size(); j++) {
+			sql.text(", j%d.id".formatted(j));
+			List<QueryColumn> joinColumns = rowsJoins.get(j).columns();
+			for (int i = 0; i < joinColumns.size(); i++) {
+				sql.text(", ").text(text(joinColumns.get(i), "j" + j, "j" + j + "v" + i));
 			}
 		}
-		Integer sorted = sort.column();
-		if (sorted != null && columns.get(sorted).property() != null) {
-			sql.append(" LEFT JOIN property_enum_values eo ON eo.property_def_id = v%1$d.property_def_id"
-				.formatted(sorted) + " AND eo.value = v%1$d.value_enum".formatted(sorted));
+		sql.text(" FROM entities e");
+		values(sql, columns, "e", "v");
+		for (int j = 0; j < rowsJoins.size(); j++) {
+			lateral(sql, rowsJoins.get(j), j);
+			values(sql, rowsJoins.get(j).columns(), "j" + j, "j" + j + "v");
 		}
-		sql.append(" WHERE e.metatype_id = ? AND e.deleted_at IS NULL ORDER BY ");
-		args.add(metatypeId);
+		QueryColumn sorted = null;
+		String sortAlias = "e";
+		String valueAlias = null;
+		if (sort.column() != null) {
+			if (sort.join() == null) {
+				sorted = columns.get(sort.column());
+				valueAlias = "v" + sort.column();
+			}
+			else {
+				sorted = rowsJoins.get(sort.join()).columns().get(sort.column());
+				sortAlias = "j" + sort.join();
+				valueAlias = sortAlias + "v" + sort.column();
+			}
+		}
+		if (sorted != null && sorted.property() != null) {
+			sql.text(" LEFT JOIN property_enum_values eo ON eo.property_def_id = %1$s.property_def_id"
+				.formatted(valueAlias) + " AND eo.value = %1$s.value_enum".formatted(valueAlias));
+		}
+		sql.text(" WHERE e.metatype_id = ? AND e.deleted_at IS NULL ORDER BY ").arg(metatypeId);
 		String direction = sort.descending() ? "DESC" : "ASC";
-		if (sorted == null || columns.get(sorted).field() == SystemField.NAME) {
-			sql.append("lower(e.name) %s, e.id".formatted(direction));
+		if (sorted == null || (sort.join() == null && sorted.field() == SystemField.NAME)) {
+			sql.text("lower(e.name) %s, e.id".formatted(direction));
 		}
-		else if (columns.get(sorted).field() != null) {
-			sql.append("%s %s NULLS LAST, lower(e.name), e.id".formatted(columns.get(sorted).field().order, direction));
+		else if (sorted.field() != null) {
+			sql.text("%s %s NULLS LAST, lower(e.name), e.id".formatted(sorted.field().order.formatted(sortAlias),
+					direction));
 		}
 		else {
 			// typed columns first, so that numbers and dates sort by value; only one of them is set
-			int i = sorted;
-			sql.append("eo.sort_order %s NULLS LAST, ".formatted(direction));
+			sql.text("eo.sort_order %s NULLS LAST, ".formatted(direction));
 			for (String column : List.of("value_int", "value_date", "value_bool", "value_ref")) {
-				sql.append("v%d.%s %s NULLS LAST, ".formatted(i, column, direction));
+				sql.text("%s.%s %s NULLS LAST, ".formatted(valueAlias, column, direction));
 			}
-			sql.append("lower(coalesce(v%1$d.value_enum, v%1$d.value_text)) %2$s NULLS LAST, lower(e.name), e.id"
-				.formatted(i, direction));
+			sql.text("lower(coalesce(%1$s.value_enum, %1$s.value_text)) %2$s NULLS LAST, lower(e.name), e.id"
+				.formatted(valueAlias, direction));
 		}
-		sql.append(" LIMIT ? OFFSET ?");
-		args.add(limit);
-		args.add(offset);
+		for (int j = 0; j < rowsJoins.size(); j++) {
+			sql.text(", lower(j%1$d.name), j%1$d.id".formatted(j));
+		}
+		sql.text(" LIMIT ? OFFSET ?").arg(limit).arg(offset);
 		return this.jdbc.query(sql.toString(), (rs, rowNum) -> {
 			List<String> values = new ArrayList<>(columns.size());
 			for (int i = 0; i < columns.size(); i++) {
 				values.add(rs.getString(3 + i));
 			}
-			return new Row(rs.getInt(1), rs.getString(2), values);
-		}, args.toArray());
+			List<JoinRow> joins = new ArrayList<>(rowsJoins.size());
+			int index = 3 + columns.size();
+			for (Join join : rowsJoins) {
+				Integer target = (Integer) rs.getObject(index++);
+				List<String> joinValues = new ArrayList<>(join.columns().size());
+				for (int i = 0; i < join.columns().size(); i++) {
+					joinValues.add(rs.getString(index++));
+				}
+				joins.add(new JoinRow(target, joinValues));
+			}
+			return new Row(rs.getInt(1), rs.getString(2), values, joins);
+		}, sql.args());
+	}
+
+	/** The number of rows of {@link #page}: active entities, expanded by the rows joins. */
+	public long count(UUID metatypeId, List<Join> rowsJoins) {
+		Statement sql = new Statement("SELECT count(*) FROM entities e");
+		for (int j = 0; j < rowsJoins.size(); j++) {
+			lateral(sql, rowsJoins.get(j), j);
+		}
+		sql.text(" WHERE e.metatype_id = ? AND e.deleted_at IS NULL").arg(metatypeId);
+		Long count = this.jdbc.queryForObject(sql.toString(), Long.class, sql.args());
+		return (count != null) ? count : 0;
 	}
 
 	/** The number of active entities of the metatype. */
 	public long count(UUID metatypeId) {
-		Long count = this.jdbc.queryForObject(
-				"SELECT count(*) FROM entities WHERE metatype_id = ? AND deleted_at IS NULL", Long.class, metatypeId);
-		return (count != null) ? count : 0;
+		return count(metatypeId, List.of());
+	}
+
+	/**
+	 * The results of an aggregate join for the given primary entities, ordered by target name and
+	 * ID; an entity without results has no entry.
+	 */
+	public Map<Integer, List<JoinRow>> aggregate(Join join, List<Integer> entityIds) {
+		Map<Integer, List<JoinRow>> results = new LinkedHashMap<>();
+		if (entityIds.isEmpty()) {
+			return results;
+		}
+		Statement sql = new Statement("SELECT p.pid, t.id");
+		for (int i = 0; i < join.columns().size(); i++) {
+			sql.text(", ").text(text(join.columns().get(i), "t", "tv" + i));
+		}
+		sql.text(" FROM (");
+		pairs(sql, join, "= ANY(?)", entityIds.toArray(Integer[]::new));
+		sql.text(") p JOIN entities t ON t.id = p.tid AND t.metatype_id = ? AND t.deleted_at IS NULL")
+			.arg(join.targetMetatypeId());
+		values(sql, join.columns(), "t", "tv");
+		sql.text(" ORDER BY p.pid, lower(t.name), t.id");
+		this.jdbc.query(sql.toString(), (rs) -> {
+			List<String> values = new ArrayList<>(join.columns().size());
+			for (int i = 0; i < join.columns().size(); i++) {
+				values.add(rs.getString(3 + i));
+			}
+			results.computeIfAbsent(rs.getInt(1), (k) -> new ArrayList<>()).add(new JoinRow(rs.getInt(2), values));
+		}, sql.args());
+		return results;
+	}
+
+	/** The text form of a column of the entity {@code alias}; property values under {@code valueAlias}. */
+	private static String text(QueryColumn column, String alias, String valueAlias) {
+		return (column.field() != null) ? column.field().text.formatted(alias) : TEXT_FORM.formatted(valueAlias);
+	}
+
+	/** The property value joins of the columns of the entity {@code alias}. */
+	private static void values(Statement sql, List<QueryColumn> columns, String alias, String prefix) {
+		for (int i = 0; i < columns.size(); i++) {
+			if (columns.get(i).property() != null) {
+				sql.text(" LEFT JOIN entity_property_values %1$s%2$d ON %1$s%2$d.entity_id = %3$s.id"
+					.formatted(prefix, i, alias) + " AND %1$s%2$d.property_def_id = ?".formatted(prefix, i))
+					.arg(columns.get(i).property().propertyDefId());
+			}
+		}
+	}
+
+	/** A rows join as {@code LEFT JOIN LATERAL} with the alias {@code j<n>}: one row per target. */
+	private static void lateral(Statement sql, Join join, int n) {
+		sql.text(" LEFT JOIN LATERAL (SELECT t.id, t.name, t.description, t.external_id, t.created_at, t.updated_at,"
+				+ " t.version FROM (");
+		pairs(sql, join, "= e.id", null);
+		sql.text(") p JOIN entities t ON t.id = p.tid AND t.metatype_id = ? AND t.deleted_at IS NULL) j%d ON true"
+			.formatted(n)).arg(join.targetMetatypeId());
+	}
+
+	/**
+	 * The distinct pairs (primary {@code pid}, target {@code tid}) of active connections of the
+	 * join's metatype; {@code filter} restricts the primary side, with {@code filterArg} if not
+	 * {@code null}.
+	 */
+	private static void pairs(Statement sql, Join join, String filter, Object filterArg) {
+		List<String> sides = switch (join.direction()) {
+			case OUTBOUND -> List.of("source");
+			case INBOUND -> List.of("target");
+			case BOTH -> List.of("source", "target");
+		};
+		for (int i = 0; i < sides.size(); i++) {
+			String primary = sides.get(i);
+			String target = "source".equals(primary) ? "target" : "source";
+			sql.text((i == 0) ? "" : " UNION ")
+				.text("SELECT DISTINCT ec.%1$s_entity_id AS pid, ec.%2$s_entity_id AS tid FROM entity_connections ec"
+					.formatted(primary, target))
+				.text(" JOIN entities c ON c.id = ec.entity_id AND c.metatype_id = ? AND c.deleted_at IS NULL")
+				.arg(join.connectionMetatypeId())
+				.text(" WHERE ec.%s_entity_id %s".formatted(primary, filter));
+			if (filterArg != null) {
+				sql.arg(filterArg);
+			}
+		}
+	}
+
+	/** SQL text with its positional arguments, appended in text order. */
+	private static final class Statement {
+
+		private final StringBuilder text;
+
+		private final List<Object> args = new ArrayList<>();
+
+		Statement(String start) {
+			this.text = new StringBuilder(start);
+		}
+
+		Statement text(String part) {
+			this.text.append(part);
+			return this;
+		}
+
+		Statement arg(Object arg) {
+			this.args.add(arg);
+			return this;
+		}
+
+		Object[] args() {
+			return this.args.toArray();
+		}
+
+		@Override
+		public String toString() {
+			return this.text.toString();
+		}
+
 	}
 
 }

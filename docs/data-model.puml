@@ -1669,7 +1669,10 @@ package "Navigation & Presentation" #EDE7F6 {
     .. DEFAULT {columns:[], joinDefinitions:[], savedFilters:[], savedViews:[]} ..
     .. columns may stay empty (display defaults to name, status) ..
     .. columns[]: {field | propertyDefId, displayLabel, visible, sortable, defaultSortDirection} ..
-    .. in display order (US-047, us-047-configure-columns); joins, filters, views typed, still empty ..
+    .. in display order (US-047, us-047-configure-columns) ..
+    .. joinDefinitions[] (max. 10, creation order): {id, name, connectionMetatypeId, joinDirection, ..
+    .. targetMetatypeId, targetColumns[] (max. 20), defaultJoinMode} (US-048, us-048-catalog-joins) ..
+    .. savedFilters, savedViews typed, still empty ..
   }
 
   class tree_nodes <<Table>> #D1C4E9 {
