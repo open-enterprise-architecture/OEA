@@ -2,8 +2,9 @@
 
 **ID**: US-047
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S8
+**Implementation**: OpenSpec change `us-047-configure-columns` – columns through `PUT /catalogs/{id}/columns` and the dialog "Configure columns" in SCR-020; the query uses them, with the default sort and the enum order
 
 ## Story
 
@@ -45,8 +46,8 @@ As a Lead Enterprise Architect, I want to configure for a catalog which attribut
 
 ## Technical Notes
 
-- Affected components: column configurator in the catalog configuration area, backend `PUT /api/v1/catalogs/{id}/columns`
-- UX: two-column layout: left "Available attributes", right "Selected columns" (drag and drop between the two); alternative: checkbox list with order handles
+- Affected components: the dialog "Configure columns" in SCR-020 (realigned 2026-11-05, owner decision), backend `PUT /api/v1/catalogs/{id}/columns`
+- UX: one list of all attributes with visibility, header and sortability; the order by drag and drop or the up/down buttons; a choice of the default sort
 - Dependency: US-046 must be completed
 
 ## Definition of Done

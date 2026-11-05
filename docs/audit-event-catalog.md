@@ -554,6 +554,17 @@ A catalog was created ([US-046](../requirements/user-stories/US-046-create-catal
 | Target | `catalog`, ID of the catalog |
 | Details | `name`, `primaryMetatypeId`, `scope` (`instance` or `personal`) |
 
+### `catalog.columns-changed`
+
+The columns of a catalog were configured ([US-047](../requirements/user-stories/US-047-configure-columns.md), [REQ-044](../requirements/req/REQ-044-configure-columns.md)). Rejected changes are not audited.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the person with `catalog:manage`, or the creator of a personal catalog |
+| Target | `catalog`, ID of the catalog |
+| Details | `columns` (number of configured columns), `visibleColumns` |
+
 ## Planned Event Types
 
 Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `visibility.changed`, `visibility.override-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.deleted` and further `entity.*`, further `metamodel.*` (connection metatypes, fork).

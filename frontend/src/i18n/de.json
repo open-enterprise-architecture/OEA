@@ -6,7 +6,37 @@
     "noEntriesHint": "Keine Einträge gefunden. Entitäten können als Delta in einer Lösung erfasst werden.",
     "notFound": "Katalog nicht gefunden",
     "notFoundHint": "Der Katalog existiert nicht oder ist für dich nicht sichtbar.",
-    "pageInfo": "Seite {page} von {pages} · {entries} Einträge"
+    "pageInfo": "Seite {page} von {pages} · {entries} Einträge",
+    "columns": {
+      "configure": "Spalten konfigurieren",
+      "title": "Spalten konfigurieren",
+      "hint": "Wähle die Spalten des Katalogs, ihre Reihenfolge und ihre Überschriften. Ausgeblendete Spalten bleiben in der Liste und lassen sich wieder einblenden.",
+      "visible": "Sichtbar",
+      "sortable": "Sortierbar",
+      "label": "Überschrift",
+      "moveUp": "{name} nach oben",
+      "moveDown": "{name} nach unten",
+      "drag": "{name} ziehen",
+      "unavailable": "Nicht verfügbar",
+      "defaultSort": "Standardsortierung",
+      "noDefaultSort": "Name aufsteigend (keine Vorgabe)",
+      "ascending": "{name} aufsteigend",
+      "descending": "{name} absteigend",
+      "noneVisible": "Mindestens eine Spalte muss sichtbar sein.",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "saved": "Die Spalten sind gespeichert.",
+      "failed": "Die Spalten konnten nicht gespeichert werden.",
+      "loadFailed": "Die Attribute konnten nicht geladen werden.",
+      "field": {
+        "name": "Name",
+        "description": "Beschreibung",
+        "externalId": "Externe ID",
+        "createdAt": "Angelegt",
+        "updatedAt": "Geändert",
+        "entityVersion": "Version"
+      }
+    }
   },
   "catalogs": {
     "empty": "Noch keine Kataloge",

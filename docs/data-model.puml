@@ -1668,6 +1668,8 @@ package "Navigation & Presentation" #EDE7F6 {
     + config              : JSONB         {NN}
     .. DEFAULT {columns:[], joinDefinitions:[], savedFilters:[], savedViews:[]} ..
     .. columns may stay empty (display defaults to name, status) ..
+    .. columns[]: {field | propertyDefId, displayLabel, visible, sortable, defaultSortDirection} ..
+    .. in display order (US-047, us-047-configure-columns); joins, filters, views typed, still empty ..
   }
 
   class tree_nodes <<Table>> #D1C4E9 {

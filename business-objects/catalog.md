@@ -2,7 +2,7 @@
 identifier: catalog
 name_de: Katalog
 name_en: Catalog
-version: 0.2.0
+version: 0.3.0
 status: draft
 maturity: initial
 owner_role: Lead Enterprise Architect
@@ -114,12 +114,14 @@ A **SavedView** bundles: visible columns, column order, active filters (referenc
 
 | Attribute | Type | Optional | Default | Description |
 |---|---|---|---|---|
-| attributeName | string | required | | Name of the attribute from the EntityType (e.g. `status`, `name`, `owner`) |
-| displayLabel | string | optional | = `attributeName` | Overrides the column header in the display |
+| field | enum | conditional | | `[name, description, externalId, createdAt, updatedAt, entityVersion]`; a system field of every entity; exactly one of `field` and `propertyDefId` |
+| propertyDefId | reference | conditional | | target: PropertyDefinition mapped to the primary EntityType (also inherited), not retired, visibility `public`; by ID, so a renamed property keeps its column |
+| displayLabel | string | optional | = attribute name | 1–100 characters; overrides the column header in the display |
 | visible | boolean | required | true | Whether the column is visible (false = present but hidden) |
-| sortOrder | integer | required | | Order in the table (0 = first column) |
 | sortable | boolean | required | true | Whether the table can be sorted by this column |
-| defaultSortDirection | enum | optional | null | `[asc, desc]`; null = no default sorting |
+| defaultSortDirection | enum | optional | null | `[asc, desc]`; null = no default sorting; at most one column (BR-08) |
+
+The position in the list is the display order (it replaces `sortOrder`, change us-047-configure-columns).
 
 ### JoinDefinition
 
@@ -190,6 +192,9 @@ A **SavedView** bundles: visible columns, column order, active filters (referenc
 | BR-04 | A `SavedFilter.expression.attributePath` MUST point to a valid attribute of the primary entity or of a joined target entity | onCreate, onUpdate | – |
 | BR-05 | `SavedView.columnOrder` may only contain attribute names that are defined in the catalog's `columns` configuration | onCreate, onUpdate | – |
 | BR-06 | At most one `SavedView` per catalog may have `isDefault=true` | onCreate, onUpdate | – |
+| BR-07 | A non-empty `columns` list MUST contain at least one column with `visible=true`; an attribute appears at most once | onUpdate | REQ-044 AC3 |
+| BR-08 | At most one column MAY carry a `defaultSortDirection`; the query uses it when no sort is requested | onUpdate | REQ-044 |
+| BR-09 | The columns of a catalog with `scope=instance` are changed only with `catalog:manage`, those of a personal catalog only by its creator | onUpdate | ADR-032 §8 |
 
 ## Notes
 
@@ -198,6 +203,7 @@ A **SavedView** bundles: visible columns, column order, active filters (referenc
 - **Permissions** ([ADR-032](../adrs/ADR-032-authorization-model.md)): creating a catalog with `scope=instance` requires `catalog:manage`; with `scope=personal`, `entity:read` suffices.
 - **Empty columns**: REQ-043 creates catalogs without columns; the column configuration follows in a separate step (REQ-044).
 - **Default columns** (change us-049-show-catalog-data, design D2): while `columns` is empty, the catalog query (REQ-046) shows the entity `name` and, if the primary entity type maps a property named `Status` (case-insensitive) with a mapping valid today and visibility `public`, that property under its `sqlColumnName` (`status`). The rule is a name convention of the starter packages and is replaced by configured columns (US-047).
+- **Configured columns** (change us-047-configure-columns): the query shows the visible configured columns in their order. A configured property that is no longer mapped, retired or `public` is left out of the query and marked `available=false`; the configuration keeps it until the next change. If no configured column can be shown, the default columns apply.
 - **View state** ([ADR-044](../adrs/ADR-044-view-state-in-url.md)): sort and page of an open catalog are kept in the URL, not in the catalog; storing a view permanently is the job of `savedViews`.
 
 ## Lifecycle
@@ -272,3 +278,4 @@ savedViews:
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Business Engineer | Initial draft; join modes (rows/aggregate), SavedFilter, SavedView, ColumnConfig, JoinDefinition |
 | 0.2.0 | 2026-10-19 | Change us-046-create-catalog | Primary entity type by ID; name uniqueness case-insensitive and trimmed; empty columns allowed; notes on identity, namespace and permissions |
+| 0.3.0 | 2026-11-05 | Change us-047-configure-columns | ColumnConfig as implemented: `field` or `propertyDefId` instead of `attributeName`, list order instead of `sortOrder`; BR-07 to BR-09; stale columns |

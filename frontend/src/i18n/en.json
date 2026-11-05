@@ -6,7 +6,37 @@
     "noEntriesHint": "No entries found. Entities can be captured as a delta in a solution.",
     "notFound": "Catalog not found",
     "notFoundHint": "The catalog does not exist or is not visible to you.",
-    "pageInfo": "Page {page} of {pages} · {entries} entries"
+    "pageInfo": "Page {page} of {pages} · {entries} entries",
+    "columns": {
+      "configure": "Configure columns",
+      "title": "Configure columns",
+      "hint": "Choose the columns of the catalog, their order and their headers. Hidden columns stay in the list and can be shown again.",
+      "visible": "Visible",
+      "sortable": "Sortable",
+      "label": "Header",
+      "moveUp": "Move {name} up",
+      "moveDown": "Move {name} down",
+      "drag": "Drag {name}",
+      "unavailable": "Not available",
+      "defaultSort": "Default sort",
+      "noDefaultSort": "Name ascending (no default)",
+      "ascending": "{name} ascending",
+      "descending": "{name} descending",
+      "noneVisible": "At least one column must be visible.",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "The columns are saved.",
+      "failed": "The columns could not be saved.",
+      "loadFailed": "The attributes could not be loaded.",
+      "field": {
+        "name": "Name",
+        "description": "Description",
+        "externalId": "External ID",
+        "createdAt": "Created",
+        "updatedAt": "Updated",
+        "entityVersion": "Version"
+      }
+    }
   },
   "catalogs": {
     "empty": "No catalogs yet",

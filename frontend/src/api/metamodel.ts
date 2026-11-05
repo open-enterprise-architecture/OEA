@@ -41,6 +41,11 @@ export async function fetchMetatypes(fetchFn: typeof fetch = fetch): Promise<Met
   return (await response.json()) as MetatypeDetail[]
 }
 
+/** GET /metamodel/metatypes/{id}: one metatype with its mappings, inherited ones included. */
+export function fetchMetatype(id: string, fetchFn: typeof fetch = fetch): Promise<MetatypeDetail> {
+  return read(`${METAMODEL}/metatypes/${at(id)}`, fetchFn)
+}
+
 /** GET /metamodel/property-definitions: the property definitions with their enum values (US-032). */
 export async function fetchPropertyDefinitions(fetchFn: typeof fetch = fetch): Promise<PropertyDefinitionDetail[]> {
   const response = await fetchFn('/api/v1/metamodel/property-definitions', {

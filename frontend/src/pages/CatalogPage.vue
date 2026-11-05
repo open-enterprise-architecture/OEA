@@ -5,8 +5,10 @@ import { useRoute, useRouter, type LocationQuery } from 'vue-router'
 import { fetchCatalog, queryCatalog, type Catalog, type CatalogQueryResult, type CatalogSort } from '../api/catalogs'
 import { rateLimitMessage, RequestRejected } from '../api/problem'
 import { fetchPropertyDefinitions, type PropertyDefinitionDetail } from '../api/metamodel'
+import CatalogColumnsDialog from '../components/CatalogColumnsDialog.vue'
 import CatalogTable from '../components/CatalogTable.vue'
 import { label, labelKeys } from '../i18n/labels'
+import { refreshSession, session } from '../session/store'
 
 // A single catalog with its rows (UC-06, US-049, SCR-020). Sort and page are part of the URL
 // (ADR-044, design D8 of us-049-show-catalog-data), so back navigation and reload restore the view.
@@ -14,7 +16,7 @@ import { label, labelKeys } from '../i18n/labels'
 const props = defineProps<{ id: string; fetchFn?: typeof fetch }>()
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
+const { t, te } = useI18n()
 
 const catalog = ref<Catalog>()
 const state = ref<'loading' | 'loaded' | 'not-found' | 'failed'>('loading')
@@ -23,11 +25,19 @@ const result = ref<CatalogQueryResult>()
 const failure = ref<string>()
 const querying = ref(false)
 const definitions = ref<PropertyDefinitionDetail[]>([])
+const configuring = ref(false)
+// an instance catalog needs catalog:manage; a visible personal catalog is one's own (US-047)
+const canConfigure = computed(
+  () =>
+    catalog.value?.scope === 'personal' ||
+    (session.me?.permissions.some((entry) => entry.permission === 'catalog:manage') ?? false),
+)
 // the path the page is shown at; query changes while navigating elsewhere are ignored
 const path = route.path
 let latestQuery = 0
 
-const SORT = /^([a-z][a-z0-9_]*):(asc|desc)$/
+// column keys are system fields (camel case) or storage names of properties (US-047)
+const SORT = /^([a-zA-Z][a-zA-Z0-9_]*):(asc|desc)$/
 const PAGE = /^\d+$/
 
 /** The view state of the URL; `invalid` lists the parameters that do not parse. */
@@ -75,12 +85,24 @@ const shown = computed<CatalogQueryResult | undefined>(() => {
     return undefined
   }
   const byColumn = new Map(definitions.value.map((definition) => [definition.sqlColumnName, definition]))
+  // a configured header is shown as written; otherwise the label of the user's language
+  const ownLabels = new Set(
+    (catalog.value?.columns ?? [])
+      .filter((column) => column.displayLabel)
+      .map((column) => column.field ?? definitions.value.find((definition) => definition.id === column.propertyDefId)?.sqlColumnName),
+  )
   return {
     ...result.value,
     columns: result.value.columns.map((column) => {
       const definition = byColumn.get(column.key)
+      if (ownLabels.has(column.key)) {
+        return column
+      }
       if (column.key === 'name') {
         return { ...column, label: t('catalog.nameColumn') }
+      }
+      if (!definition && te(`catalog.columns.field.${column.key}`)) {
+        return { ...column, label: t(`catalog.columns.field.${column.key}`) }
       }
       return definition ? { ...column, label: label(labelKeys.property(definition.id), column.label) } : column
     }),
@@ -110,6 +132,7 @@ async function loadDefinitions() {
 }
 
 async function loadCatalog() {
+  await refreshSession(props.fetchFn)
   state.value = 'loading'
   result.value = undefined
   failure.value = undefined
@@ -165,6 +188,17 @@ async function loadRows() {
   }
 }
 
+/** After saving the columns, the table shows them in the default order (design D6). */
+async function columnsSaved(saved: Catalog) {
+  catalog.value = saved
+  configuring.value = false
+  if (view.value.sort || view.value.page > 0) {
+    await showView(undefined, 0)
+  } else {
+    await loadRows()
+  }
+}
+
 onMounted(loadCatalog)
 watch(() => props.id, loadCatalog)
 watch(
@@ -207,13 +241,23 @@ watch(
 
     <template v-if="state === 'loaded' && catalog">
       <header class="flex flex-col gap-2">
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
           <h1 data-testid="catalog-title" class="text-2xl font-semibold text-highlighted">{{ catalog.name }}</h1>
           <UBadge
             data-testid="catalog-scope"
             :color="catalog.scope === 'personal' ? 'neutral' : 'primary'"
             variant="subtle"
             :label="catalog.scope === 'personal' ? t('catalogs.personal') : t('catalogs.shared')"
+          />
+          <UButton
+            v-if="canConfigure"
+            data-testid="configure-columns"
+            class="ms-auto"
+            icon="i-lucide-columns-3"
+            color="neutral"
+            variant="outline"
+            :label="t('catalog.columns.configure')"
+            @click="configuring = true"
           />
         </div>
         <p data-testid="catalog-type" class="text-muted">{{ metatypeName }}</p>
@@ -227,6 +271,18 @@ watch(
         @sort="(sort) => showView(sort, 0)"
         @page="(page) => showView(view.sort, page)"
       />
+
+      <UModal v-model:open="configuring" :title="t('catalog.columns.title')" :ui="{ content: 'sm:max-w-3xl' }">
+        <template #body>
+          <CatalogColumnsDialog
+            :catalog="catalog"
+            :definitions="definitions"
+            :fetch-fn="fetchFn"
+            @saved="columnsSaved"
+            @cancel="configuring = false"
+          />
+        </template>
+      </UModal>
     </template>
   </main>
 </template>

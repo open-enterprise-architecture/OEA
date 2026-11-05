@@ -25,6 +25,8 @@ public class CatalogQuerySteps {
 
 	private static final String BATCH = "/api/v1/entities/batch";
 
+	private static HttpResponse<String> last;
+
 	private HttpResponse<String> response;
 
 	@Given("the repository contains no applications")
@@ -141,6 +143,13 @@ public class CatalogQuerySteps {
 		String id = instance().oidc()
 			.single("SELECT id::text FROM catalogs WHERE name = '" + catalog.replace("'", "''") + "'");
 		this.response = instance().oidc().get("/api/v1/catalogs/" + id + "/query" + parameters, session.token());
+		last = this.response;
+	}
+
+	/** The result of the last query of a scenario, for the column steps (us-047-configure-columns). */
+	static JsonNode lastResult() throws Exception {
+		assertThat(last.statusCode()).as(last.body()).isEqualTo(200);
+		return JsonMapper.shared().readTree(last.body());
 	}
 
 	private JsonNode result() throws Exception {

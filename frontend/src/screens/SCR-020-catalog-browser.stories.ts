@@ -6,7 +6,19 @@ import CatalogPage from '../pages/CatalogPage.vue'
 import CatalogsPage from '../pages/CatalogsPage.vue'
 import { setLanguage } from '../i18n'
 import { loadLabels } from '../i18n/labels'
-import { APPLICATIONS, CATALOG, CATALOGS, catalogApi, manyApplications, METATYPES, ME_ARCHITECT, ME_VIEWER, type Application } from '../test/catalogs'
+import {
+  APPLICATIONS,
+  CATALOG,
+  CATALOGS,
+  catalogApi,
+  manyApplications,
+  METATYPES,
+  ME_ARCHITECT,
+  ME_VIEWER,
+  STATUS_DEFINITION,
+  VENDOR_DEFINITION,
+  type Application,
+} from '../test/catalogs'
 import { routedFetch } from '../test/fetch'
 
 // SCR-020 Catalog Browser (UC-06, US-046, US-049): a catalog with its entity table and the
@@ -73,7 +85,7 @@ export const GermanLabels: Story = {
   render: () => ({
     components: { CatalogPage },
     setup: () => {
-      const fetchFn = catalogApi(APPLICATIONS)
+      const fetchFn = catalogApi(APPLICATIONS, { me: { ...ME_ARCHITECT, uiLanguage: 'de' } })
       setLanguage('de')
       void loadLabels('de', fetchFn)
       return { fetchFn, id: CATALOG.id }
@@ -86,3 +98,44 @@ export const GermanLabels: Story = {
     await expect(await canvas.findAllByText('Aktiv')).toHaveLength(2)
   },
 }
+
+// US-047: the dialog "Configure columns" with the status first under its own header
+export const ColumnConfiguration: Story = {
+  ...catalog(APPLICATIONS),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Configure columns' }))
+    const dialog = within(canvasElement.ownerDocument.body)
+    await expect(await dialog.findByText('External ID')).toBeInTheDocument()
+    await userEvent.click(dialog.getByRole('button', { name: 'Move Status up' }))
+    await expect(dialog.getAllByTestId('column-name')[5]).toHaveTextContent('Status')
+  },
+}
+
+// US-047: a configured catalog with its own headers
+export const ConfiguredColumns: Story = {
+  render: () => ({
+    components: { CatalogPage },
+    setup: () => ({
+      fetchFn: catalogApi(APPLICATIONS, {
+        catalog: {
+          ...CATALOG,
+          columns: [
+            { propertyDefId: STATUS_DEFINITION.id, displayLabel: 'Operational Status' },
+            { field: 'name' },
+            { propertyDefId: VENDOR_DEFINITION.id },
+            { field: 'description' },
+          ],
+        },
+      }),
+      id: CATALOG.id,
+    }),
+    template: '<CatalogPage :id="id" :fetch-fn="fetchFn" />',
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Operational Status')).toBeInTheDocument()
+    await expect(await canvas.findByText('Salesforce')).toBeInTheDocument()
+  },
+}
+
