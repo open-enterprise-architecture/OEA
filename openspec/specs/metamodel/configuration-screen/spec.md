@@ -129,3 +129,20 @@ Trace: UC-04 A5, REQ-032 (trade-offs), owner decision 2026-11-04
 - **GIVEN** two administrators have opened the same organization metatype
 - **WHEN** the first saves a new abbreviation and the second then saves another one
 - **THEN** the second sees a warning with the first abbreviation, and choosing to overwrite saves the second abbreviation
+
+### Requirement: Lock mode in the configuration
+
+Under settings, an administrator SHALL see and switch whether the instance metamodel is locked (`import-only`). While it is locked, the configuration SHALL show a notice that points to the package import and SHALL offer no action that changes metamodel content.
+
+Trace: US-035 AC1, AC3, REQ-035, owner decision 2026-11-04
+
+#### Scenario: Locked metamodel
+
+- **GIVEN** the instance metamodel is locked
+- **WHEN** an administrator opens the metamodel configuration
+- **THEN** all metatypes are shown with a notice about the lock mode and the package import, and no action to create, change or delete is offered
+
+#### Scenario: Unlocking
+
+- **WHEN** an administrator switches the lock mode off under settings
+- **THEN** the actions to create, change and delete are offered again
