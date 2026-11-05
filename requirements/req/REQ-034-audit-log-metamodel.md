@@ -118,7 +118,7 @@ The audit log for the metamodel is conceptually analogous to the existing audit 
 
 - Realized by OpenSpec change `us-034-metamodel-changes`: the `metamodel.*` events written with every change are read through `GET /metamodel/changes` with `metamodel:write`, with the names of the persons, filters by kind, person, period and import batch, and in the section "Changes" of SCR-030. AC4 was realigned to the atomic write of ADR-033.
 - ADR(s): ADR-033, ADR-032 (amendment 2026-11-05)
-- Implemented by: OpenSpec change `us-034-metamodel-changes`
+- Implemented by: OpenSpec change `us-034-metamodel-changes` (24e0968, #177)
 - Tests: `MetamodelChangesTests`, `MetamodelPage.spec.ts`, `ChangesSection.spec.ts`, `features/metamodel/change-history.feature`
 - Verification status: not-verified
 
