@@ -2,7 +2,7 @@
 title: Metamodell bearbeiten
 covers:
   screens: [SCR-030]
-  stories: [US-032, US-035, US-036, US-037, US-137, US-140]
+  stories: [US-032, US-034, US-035, US-036, US-037, US-137, US-140]
 ---
 
 # Metamodell bearbeiten
@@ -11,7 +11,7 @@ Neben dem Import von Paketen (siehe [Metamodell-Pakete](./metamodel-packages)) p
 
 ## Die Seite Metamodell {#the-metamodel-page}
 
-Wähle in der Kopfzeile *Metamodell*. Die Seite hat fünf Bereiche:
+Wähle in der Kopfzeile *Metamodell*. Die Seite hat sechs Bereiche:
 
 | Bereich | Inhalt |
 |---|---|
@@ -19,6 +19,7 @@ Wähle in der Kopfzeile *Metamodell*. Die Seite hat fünf Bereiche:
 | Eigenschaften | alle Eigenschaften mit Datentyp, Kategorie, Werten und Grenzen |
 | Kategorien | die Kategorien, die Eigenschaften gruppieren |
 | Übersetzungen | die Namen aller Elemente pro Sprache |
+| Änderungen | wer das Metamodell wann geändert hat (nur für die Administration) |
 | Einstellungen | der Sperrmodus und was beim erneuten Import eines Pakets mit deinen eigenen Eigenschaften geschieht (nur für die Administration) |
 
 Die Herkunft sagt dir, was du ändern darfst: *Eigene* Inhalte gehören deiner Organisation. *Eingebaute* Inhalte sind Teil von OEA, und Inhalte eines Pakets (*Paket oea-starter-togaf-classic 1.1.0*) stammen aus einem Import. Eingebaute und importierte Inhalte sind schreibgeschützt; eigene Eigenschaften kannst du solchen Entitätstypen trotzdem hinzufügen. Auf einem schmalen Bildschirm zeigt die Seite die Liste und den gewählten Entitätstyp nacheinander.
@@ -141,6 +142,17 @@ Wird ein Paket erneut importiert, ersetzt es seine eigenen Eigenschaften an sein
 
 Entfernen beim erneuten Import löscht die Werte wie oben beschrieben.
 
+## Änderungen nachvollziehen {#tracing-changes}
+
+Jede Änderung des Metamodells wird zusammen mit der Änderung selbst im Audit-Trail festgehalten: Lässt sich der Eintrag nicht schreiben, wird auch die Änderung nicht gemacht. Die Metamodell-Administration liest diese Einträge im Bereich *Änderungen*:
+
+- Jede Zeile zeigt die Zeit, die Person, die Art der Änderung (zum Beispiel *Entitätstyp gelöscht*), das Element und Details wie die geänderten Felder oder das importierte Paket. *System* kennzeichnet Änderungen, die OEA selbst gemacht hat, zum Beispiel eine Zuordnung, die an ihrem Datum wirksam wird.
+- Filtere nach Art, nach Person und mit *Von* und *Bis* nach Zeitraum.
+- Die Änderungen eines Paketimports gehören zu einem Import-Batch. Wähle in einer Zeile *Import-Batch*, um den ganzen Import aufzulisten; entferne den Filter, um wieder alle Änderungen zu sehen.
+- *Mehr laden* zeigt ältere Änderungen.
+
+Der Bereich listet nur Änderungen des Metamodells. Das ganze Audit-Log verlangt die Berechtigung `audit:read`.
+
 ## Wenn jemand anderes etwas geändert hat {#concurrent-changes}
 
 Zwei Administratorinnen oder Administratoren können dasselbe Element öffnen. Hat jemand anderes es gespeichert, nachdem du es geöffnet hast, überschreibt OEA diese Änderung nicht stillschweigend: Der Dialog warnt *Inzwischen von jemand anderem geändert* und zeigt den aktuellen Stand. Du entscheidest:
@@ -194,3 +206,5 @@ curl "${auth[@]}" "$OEA/metamodel/metatypes?configId=$EXTENSION"
 - Eine Erweiterung hat ihren eigenen Sperrmodus und bleibt deshalb bearbeitbar, während die Instanz gesperrt ist. Eine Erweiterung kannst du löschen, solange sie keine Entitätstypen hat.
 - Die Entitätstypen einer Erweiterung werden noch nicht für Entitäten verwendet. Der Batch lehnt eine solche Entität mit `METATYPE_NOT_FOUND` ab.
 - Audit-Ereignisse: `metamodel.configuration-created`, `metamodel.configuration-updated` und `metamodel.configuration-deleted`.
+
+`GET /metamodel/changes` listet die Änderungen des Bereichs *Änderungen*, die neuesten zuerst, mit den Filtern `kind` (zum Beispiel `metatype`, `mapping` oder `package`), `actorRef`, `from`, `to` und `batchId` und den Parametern `page` und `pageSize` zum Blättern. `actors` nennt alle Personen, die das Metamodell geändert haben. Es verlangt `metamodel:write`.

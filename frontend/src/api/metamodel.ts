@@ -17,6 +17,18 @@ export type ReimportSetting = components['schemas']['MetatypeReimportPolicy']['o
 export type GlobalReimportSetting = components['schemas']['ReimportPolicy']['organizationMappings']
 export type MetamodelConfiguration = components['schemas']['MetamodelConfiguration']
 export type MetamodelEditMode = components['schemas']['MetamodelEditMode']
+export type MetamodelChange = components['schemas']['MetamodelChange']
+export type MetamodelChangePage = components['schemas']['MetamodelChangePage']
+export type MetamodelChangeKind = components['schemas']['MetamodelChangeKind']
+
+/** The filters of the metamodel changes; an empty filter is left out. */
+export interface ChangeFilter {
+  kind?: MetamodelChangeKind
+  actorRef?: string
+  from?: string
+  to?: string
+  batchId?: string
+}
 
 const JSON_HEADERS = { Accept: 'application/json, application/problem+json' }
 
@@ -142,6 +154,24 @@ export async function fetchGlobalReimportSetting(fetchFn: typeof fetch = fetch):
 /** GET /metamodel/configurations: the instance configuration and the extensions (US-035, US-037). */
 export function fetchConfigurations(fetchFn: typeof fetch = fetch): Promise<MetamodelConfiguration[]> {
   return read(`${METAMODEL}/configurations`, fetchFn)
+}
+
+/** GET /metamodel/changes: the metamodel changes from the audit trail, newest first (US-034). */
+export function fetchChanges(
+  filter: ChangeFilter,
+  page: number,
+  pageSize: number,
+  fetchFn: typeof fetch = fetch,
+): Promise<MetamodelChangePage> {
+  const query = new URLSearchParams()
+  for (const [key, value] of Object.entries(filter)) {
+    if (value) {
+      query.set(key, value)
+    }
+  }
+  query.set('page', String(page))
+  query.set('pageSize', String(pageSize))
+  return read(`${METAMODEL}/changes?${query.toString()}`, fetchFn)
 }
 
 /** PUT /metamodel/configurations/{id}: renames a configuration or switches its edit mode (US-035). */

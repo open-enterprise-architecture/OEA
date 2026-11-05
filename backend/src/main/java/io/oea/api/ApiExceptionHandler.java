@@ -25,6 +25,7 @@ import io.oea.app.login.InvalidTotpCodeException;
 import io.oea.app.login.SecondFactorRequiredException;
 import io.oea.app.metamodel.InvalidPackageException;
 import io.oea.app.metamodel.MetamodelChangeException;
+import io.oea.app.metamodel.MetamodelChanges;
 import io.oea.app.metamodel.MetamodelLabels;
 import io.oea.app.metamodel.PackageImporter;
 import io.oea.app.security.OeaPrincipal;
@@ -379,6 +380,11 @@ public class ApiExceptionHandler {
 				ex.getMessage());
 		problem.setProperty("pointer", ex.getPointer());
 		return ResponseEntity.unprocessableContent().body(problem);
+	}
+
+	@ExceptionHandler(MetamodelChanges.InvalidQueryException.class)
+	ResponseEntity<ProblemDetail> invalidChangeQuery(MetamodelChanges.InvalidQueryException ex) {
+		return invalidRequest();
 	}
 
 	@ExceptionHandler(MetamodelLabels.UnsupportedLocaleException.class)

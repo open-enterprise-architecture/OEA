@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createMemoryHistory, createRouter, RouterView } from 'vue-router'
 import { defineComponent, h } from 'vue'
 import { session } from '../session/store'
-import { IDS, ME_METAMODEL_ADMIN, ME_NO_ACCESS, ME_READER, metamodelApi, type MetamodelApiOptions } from '../test/metamodel'
+import { choose } from '../test/metamodelMount'
+import { IDS, IMPORT_BATCH, ME_METAMODEL_ADMIN, ME_NO_ACCESS, ME_READER, metamodelApi, type MetamodelApiOptions } from '../test/metamodel'
 import MetamodelPage from './MetamodelPage.vue'
 
 async function open(path: string, options: MetamodelApiOptions = {}) {
@@ -175,6 +176,59 @@ describe('MetamodelPage', () => {
       expect(api.state.configuration.version).toBe(2)
       expect(wrapper.find('[data-testid="metamodel-locked"]').exists()).toBe(true)
     })
+  })
+})
+
+// spec metamodel/configuration-screen of us-034-metamodel-changes
+describe('MetamodelPage changes', () => {
+  beforeEach(() => {
+    session.me = undefined
+    session.loaded = false
+  })
+
+  // "Who changed what"
+  it('lists the changes with person, time and element', async () => {
+    const { wrapper } = await open('/metamodel/changes')
+    const rows = wrapper.findAll('[data-testid="change-row"]')
+    expect(rows).toHaveLength(7)
+    expect(rows[1]!.get('[data-testid="change-person"]').text()).toBe('Lukas Mathis')
+    expect(rows[1]!.get('[data-testid="change-action"]').text()).toBe('Entity type deleted')
+    expect(rows[1]!.get('[data-testid="change-element"]').text()).toBe('Legacy Zone')
+    expect(rows[2]!.text()).toContain('Changed: abbreviation')
+    expect(rows[3]!.get('[data-testid="change-person"]').text()).toBe('Kurt Meier')
+    expect(rows[0]!.get('[data-testid="change-person"]').text()).toBe('System')
+    expect(rows[4]!.text()).toContain('Package oea-starter-togaf-classic 1.1.0')
+  })
+
+  // "Readers see no changes"
+  it('offers no changes to a reader', async () => {
+    const { wrapper } = await open('/metamodel/changes', { me: ME_READER })
+    expect(wrapper.get('[data-testid="metamodel-sections"]').text()).not.toContain('Changes')
+    expect(wrapper.find('[data-testid="change-row"]').exists()).toBe(false)
+    expect(wrapper.findAll('[data-testid="metatype-item"]')).toHaveLength(5)
+  })
+
+  it('lists the whole batch of an import and removes the filter again', async () => {
+    const { wrapper, api } = await open('/metamodel/changes')
+    await wrapper.findAll('[data-testid="change-batch"]')[0]!.trigger('click')
+    await flushPromises()
+    expect(api.requests.at(-1)?.path).toContain(`batchId=${IMPORT_BATCH}`)
+    expect(wrapper.findAll('[data-testid="change-row"]')).toHaveLength(3)
+    expect(wrapper.find('[data-testid="changes-batch-filter"]').exists()).toBe(true)
+    await wrapper.get('[data-testid="changes-batch-clear"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.findAll('[data-testid="change-row"]')).toHaveLength(7)
+  })
+
+  it('filters by person and kind', async () => {
+    const { wrapper, api } = await open('/metamodel/changes')
+    await choose(wrapper, 'changes-person', '8')
+    expect(api.requests.at(-1)?.path).toContain('actorRef=8')
+    expect(wrapper.findAll('[data-testid="change-person"]').map((cell) => cell.text())).toEqual(['Lukas Mathis'])
+    await choose(wrapper, 'changes-person', '-')
+    await choose(wrapper, 'changes-kind', 'package')
+    expect(api.requests.at(-1)?.path).toContain('kind=package')
+    expect(wrapper.findAll('[data-testid="change-row"]')).toHaveLength(3)
   })
 })
 
