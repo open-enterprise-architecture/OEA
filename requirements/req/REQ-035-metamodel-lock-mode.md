@@ -124,7 +124,7 @@ The `editMode` is an operator setting (not changeable by architects) in the `Met
 
 - Realized by OpenSpec change `us-037-solution-extensions-and-lock-mode`: `editMode` of the instance configuration, enforced by one check in every content write of the metamodel (metatypes, mappings, property definitions, enum values, categories, labels) with 403 `metamodel-locked`; package imports, the re-import settings and the edit mode stay changeable. The switch is `PUT /metamodel/configurations/{id}` with `metamodel:write` and the setting in SCR-030, audited as `metamodel.edit-mode-changed`. Unlike the implementation notes, the switch needs `metamodel:write` and no operator role (owner decision 2026-11-04).
 - ADR(s): ADR-032, ADR-002
-- Implemented by: OpenSpec change `us-037-solution-extensions-and-lock-mode`
+- Implemented by: OpenSpec change `us-037-solution-extensions-and-lock-mode` (9ecdf80, #174)
 - Tests: `MetamodelConfigurationsTests`, `MetamodelPage.spec.ts`, `features/metamodel/lock-mode.feature`
 - Verification status: not-verified
 
