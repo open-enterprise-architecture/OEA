@@ -55,6 +55,7 @@
   | enum | `eq`, `neq`, `in`, `notIn`, `isNull`, `isNotNull` |
   | boolean | `eq`, `neq`, `isNull`, `isNotNull` |
   | number, date | `eq`, `neq`, `gt`, `lt`, `gte`, `lte`, `isNull`, `isNotNull` |
+
 - **Values:**
   - a number or date must parse (`yyyy-MM-dd`; for `createdAt`/`updatedAt`, the date compares with the UTC day);
   - an enum value must be one of the property's enum values;
