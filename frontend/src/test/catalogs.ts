@@ -77,6 +77,25 @@ export const STATUS_DEFINITION = {
   ],
 }
 
+/** An organization property mapped to applications, for the column configuration (US-047). */
+export const VENDOR_DEFINITION = {
+  id: 'fd000000-0000-4000-8000-0000000000aa',
+  name: 'Vendor',
+  dataType: 'string',
+  scope: 'organization',
+  sqlColumnName: 'vendor',
+  enumValues: [],
+}
+
+/** Application Component with its mappings, as `getMetatype` answers. */
+export const APPLICATION_COMPONENT = {
+  ...METATYPES[1]!,
+  propertyMappings: [
+    { id: 'b0000000-0000-4000-8000-000000000001', propertyDefinition: STATUS_DEFINITION, necessity: 'optional', validFrom: '2026-01-01', sortOrder: 0 },
+    { id: 'b0000000-0000-4000-8000-000000000002', propertyDefinition: VENDOR_DEFINITION, necessity: 'optional', validFrom: '2026-01-01', sortOrder: 1 },
+  ],
+}
+
 /** German labels of the starter package for the catalog screens (US-140). */
 export const GERMAN_LABELS: Record<string, string> = {
   'metatype.5a000000-0000-4000-8000-000000000001.name': 'Anwendungskomponente',
@@ -89,11 +108,13 @@ export const GERMAN_LABELS: Record<string, string> = {
 export interface Application {
   name: string
   status?: string
+  vendor?: string
+  description?: string
 }
 
 export const APPLICATIONS: Application[] = [
-  { name: 'CRM System', status: 'active' },
-  { name: 'ERP', status: 'active' },
+  { name: 'CRM System', status: 'active', vendor: 'Salesforce', description: 'Customer relations' },
+  { name: 'ERP', status: 'active', vendor: 'SAP' },
   { name: 'Intranet', status: 'planned' },
 ]
 
@@ -109,6 +130,8 @@ export function manyApplications(count: number): Application[] {
 export interface CatalogRequest {
   path: string
   query: Record<string, string>
+  method?: string
+  body?: unknown
 }
 
 /**
@@ -119,15 +142,33 @@ export function catalogApi(
   applications: Application[],
   options: { me?: unknown; catalog?: unknown; recorded?: CatalogRequest[]; throttledFor?: number } = {},
 ): typeof fetch {
-  const catalog = (options.catalog ?? CATALOG) as { id: string }
-  const columns = [
-    { key: 'name', label: 'Name', sortable: true },
-    { key: 'status', label: 'Status', sortable: true },
-  ]
-  return async (input) => {
+  // the catalog is state: saving columns changes what the next query returns (US-047)
+  const catalog = structuredClone(options.catalog ?? CATALOG) as {
+    id: string
+    columns: { field?: string; propertyDefId?: string; displayLabel?: string | null; visible?: boolean; sortable?: boolean; defaultSortDirection?: string | null }[]
+  }
+  const definitions = [STATUS_DEFINITION, VENDOR_DEFINITION]
+  const resolved = () => {
+    const configured = catalog.columns
+      .filter((column) => column.visible !== false)
+      .map((column) => {
+        const definition = definitions.find((candidate) => candidate.id === column.propertyDefId)
+        const key = column.field ?? definition!.sqlColumnName
+        return { key, label: column.displayLabel ?? (definition?.name ?? key[0]!.toUpperCase() + key.slice(1)), sortable: column.sortable !== false }
+      })
+    return configured.length > 0
+      ? configured
+      : [
+          { key: 'name', label: 'Name', sortable: true },
+          { key: 'status', label: 'Status', sortable: true },
+        ]
+  }
+  return async (input, init) => {
     const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, 'http://oea.test')
     const query = Object.fromEntries(url.searchParams.entries())
-    options.recorded?.push({ path: url.pathname, query })
+    const method = init?.method ?? 'GET'
+    const body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined
+    options.recorded?.push({ path: url.pathname, query, method, body })
     const json = (body: unknown, status = 200) =>
       new Response(JSON.stringify(body), {
         status,
@@ -140,7 +181,18 @@ export function catalogApi(
       return json(CATALOGS)
     }
     if (url.pathname === '/api/v1/metamodel/property-definitions') {
-      return json([STATUS_DEFINITION])
+      return json(definitions)
+    }
+    if (url.pathname === `/api/v1/metamodel/metatypes/${APPLICATION_COMPONENT.id}`) {
+      return json(APPLICATION_COMPONENT)
+    }
+    if (url.pathname === `/api/v1/catalogs/${catalog.id}/columns` && method === 'PUT') {
+      const columns = (body?.columns ?? []) as typeof catalog.columns
+      if (columns.length > 0 && !columns.some((column) => column.visible !== false)) {
+        return json({ type: 'urn:oea:problem:validation-failed', title: 'Invalid catalog', status: 422, invalidFields: ['columns'] }, 422)
+      }
+      catalog.columns = columns.map((column) => ({ ...column, available: true }))
+      return json(catalog)
     }
     if (url.pathname === '/api/v1/i18n/de') {
       return new Response(JSON.stringify(GERMAN_LABELS), {
@@ -161,8 +213,9 @@ export function catalogApi(
     }
     const page = Number(query.page ?? '0')
     const pageSize = Number(query.pageSize ?? '50')
-    const match = query.sort === undefined ? null : /^(name|status):(asc|desc)$/.exec(query.sort)
-    if (query.sort !== undefined && !match) {
+    const columns = resolved()
+    const match = query.sort === undefined ? null : /^([a-zA-Z_]+):(asc|desc)$/.exec(query.sort)
+    if (query.sort !== undefined && (!match || !columns.some((column) => column.key === match[1] && column.sortable))) {
       return json({ type: 'urn:oea:problem:validation-failed', title: 'Invalid query', status: 400, invalidFields: ['sort'] }, 400)
     }
     const key = (match?.[1] ?? 'name') as keyof Application
@@ -185,7 +238,9 @@ export function catalogApi(
       columns,
       rows: sorted.slice(page * pageSize, (page + 1) * pageSize).map((application) => ({
         entityId: applications.indexOf(application) + 1,
-        values: { name: application.name, status: application.status ?? null },
+        values: Object.fromEntries(
+          columns.map((column) => [column.key, (application[column.key as keyof Application] as string | undefined) ?? null]),
+        ),
       })),
       page: { page, pageSize, totalElements: applications.length, totalPages: Math.ceil(applications.length / pageSize) },
       sort: match ? { column: match[1], direction: match[2] } : null,

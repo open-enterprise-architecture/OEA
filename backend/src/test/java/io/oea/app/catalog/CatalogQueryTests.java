@@ -166,16 +166,18 @@ class CatalogQueryTests {
 	}
 
 	@Test
-	void sortByStatusWithMissingValuesLast() {
+	void sortByStatusInEnumOrderWithMissingValuesLast() {
+		// the starter orders the status planned, active, …; a value outside the enum comes after them (#65)
 		UUID type = metatype("2026-01-01");
 		entity(type, "A without", null);
-		entity(type, "B planned", "planned");
-		entity(type, "C active", "active");
+		entity(type, "B active", "active");
+		entity(type, "C planned", "planned");
+		entity(type, "D legacy", "legacy");
 		String catalog = catalog(type, "instance", this.architect);
 		assertThat(names(ok(query(catalog, "sort=status:asc", this.architect))))
-			.containsExactly("C active", "B planned", "A without");
+			.containsExactly("C planned", "B active", "D legacy", "A without");
 		assertThat(names(ok(query(catalog, "sort=status:desc", this.architect))))
-			.containsExactly("B planned", "C active", "A without");
+			.containsExactly("B active", "C planned", "D legacy", "A without");
 	}
 
 	@Test

@@ -23,7 +23,7 @@ public class CatalogStore {
 
 	private static final String SELECT = """
 			SELECT c.id, c.name, c.description, c.primary_metatype_id, m.name, c.default_join_mode, c.scope,
-			       c.created_by, p.name, c.created_at, c.last_modified_at
+			       c.created_by, p.name, c.created_at, c.last_modified_at, c.config -> 'columns'
 			FROM catalogs c
 			JOIN metatypes m ON m.id = c.primary_metatype_id
 			JOIN persons p ON p.id = c.created_by""";
@@ -39,7 +39,7 @@ public class CatalogStore {
 	/** A stored catalog with the current name of its primary metatype and its creator. */
 	public record StoredCatalog(UUID id, String name, String description, UUID primaryMetatypeId,
 			String primaryMetatypeName, String defaultJoinMode, String scope, long createdById, String createdByName,
-			Instant createdAt, Instant lastModifiedAt) {
+			Instant createdAt, Instant lastModifiedAt, String columnsJson) {
 	}
 
 	/** Fields of a new catalog. */
@@ -70,6 +70,18 @@ public class CatalogStore {
 			.findFirst();
 	}
 
+	/** The catalog whatever its visibility; the caller decides what the person may see. */
+	public Optional<StoredCatalog> find(UUID id) {
+		return this.jdbc.query(SELECT + " WHERE c.id = ?", CatalogStore::catalog, id).stream().findFirst();
+	}
+
+	/** Replaces the configured columns (a JSON array) and records the change (US-047). */
+	public void updateColumns(UUID id, String columnsJson, long personId, Instant now) {
+		this.jdbc.update("""
+				UPDATE catalogs SET config = jsonb_set(config, '{columns}', ?::jsonb), last_modified_at = ?,
+				    last_modified_by = ? WHERE id = ?""", columnsJson, Timestamp.from(now), personId, id);
+	}
+
 	/** Whether a metatype with this ID exists in the metamodel configuration. */
 	public boolean metatypeExists(UUID metatypeId, UUID configId) {
 		return Boolean.TRUE.equals(this.jdbc.queryForObject(
@@ -80,7 +92,7 @@ public class CatalogStore {
 	private static StoredCatalog catalog(ResultSet rs, int rowNum) throws SQLException {
 		return new StoredCatalog(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3),
 				rs.getObject(4, UUID.class), rs.getString(5), rs.getString(6), rs.getString(7), rs.getLong(8),
-				rs.getString(9), rs.getTimestamp(10).toInstant(), rs.getTimestamp(11).toInstant());
+				rs.getString(9), rs.getTimestamp(10).toInstant(), rs.getTimestamp(11).toInstant(), rs.getString(12));
 	}
 
 }

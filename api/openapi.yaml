@@ -454,20 +454,128 @@ components:
             lastModifiedAt:  { type: string, format: date-time }
             columns:
               type: array
-              description: Column configuration; follows with US-047 and is always empty until then
-              items: { type: object }
+              description: |
+                Configured columns in display order (US-047, `updateCatalogColumns`); empty for the
+                default columns of US-049
+              items: { $ref: '#/components/schemas/CatalogColumnConfig' }
             joinDefinitions:
               type: array
+              readOnly: true
               description: Joins via connections; follow with US-048 and are always empty until then
-              items: { type: object }
+              items: { $ref: '#/components/schemas/CatalogJoinDefinition' }
             savedFilters:
               type: array
+              readOnly: true
               description: Saved filters; follow later and are always empty until then
-              items: { type: object }
+              items: { $ref: '#/components/schemas/CatalogSavedFilter' }
             savedViews:
               type: array
+              readOnly: true
               description: Saved views; follow later and are always empty until then
-              items: { type: object }
+              items: { $ref: '#/components/schemas/CatalogSavedView' }
+
+    CatalogSystemField:
+      type: string
+      enum: [name, description, externalId, createdAt, updatedAt, entityVersion]
+      description: |
+        A field every entity has (US-047): `entityVersion` is the version of the entity, named
+        so because a property may have the storage name `version`.
+
+    CatalogColumnConfig:
+      type: object
+      description: |
+        One column (business object `catalog`, ColumnConfig): exactly one of `field` and
+        `propertyDefId`. A property must be mapped to the primary metatype (also inherited),
+        not retired and `public`.
+      properties:
+        field:                { $ref: '#/components/schemas/CatalogSystemField' }
+        propertyDefId:        { type: string, format: uuid }
+        displayLabel:         { type: [string, 'null'], maxLength: 100, description: "Column header instead of the attribute name" }
+        visible:              { type: boolean, default: true, description: "A hidden column stays in the configuration" }
+        sortable:             { type: boolean, default: true }
+        defaultSortDirection:
+          type: [string, 'null']
+          enum: [asc, desc, null]
+          description: Sort when the query names none; at most one column
+        available:
+          type: boolean
+          readOnly: true
+          description: "`false` for a property no longer mapped, retired or not `public`; the query leaves it out"
+
+    CatalogColumnsUpdate:
+      type: object
+      required: [columns]
+      properties:
+        columns:
+          type: array
+          maxItems: 100
+          description: The complete list in display order; empty restores the default columns
+          items: { $ref: '#/components/schemas/CatalogColumnConfig' }
+
+    CatalogJoinDefinition:
+      type: object
+      description: A join via a connection metatype (US-048 follows; business object `catalog`)
+      required: [id, name, connectionMetatypeId, joinDirection, targetMetatypeId, targetColumns]
+      properties:
+        id:                   { type: string, format: uuid }
+        name:                 { type: string }
+        connectionMetatypeId: { type: string, format: uuid }
+        joinDirection:        { type: string, enum: [outbound, inbound, both] }
+        targetMetatypeId:     { type: string, format: uuid }
+        targetColumns:
+          type: array
+          items: { $ref: '#/components/schemas/CatalogColumnConfig' }
+        defaultJoinMode:      { $ref: '#/components/schemas/JoinMode' }
+        aggregateLabel:       { type: [string, 'null'] }
+
+    CatalogFilterExpression:
+      type: object
+      required: [attributePath, operator]
+      properties:
+        attributePath: { type: string, description: "Attribute of the primary or a joined entity, e.g. `status` or `dataFlow.protocol`" }
+        operator:      { type: string, enum: [eq, neq, contains, startsWith, in, notIn, isNull, isNotNull, gt, lt, gte, lte] }
+        value:         { description: "Comparison value; empty for `isNull`/`isNotNull`, an array for `in`/`notIn`" }
+
+    CatalogSavedFilter:
+      type: object
+      description: A saved filter (follows later; business object `catalog`)
+      required: [id, name, logicalOperator, expressions]
+      properties:
+        id:              { type: string, format: uuid }
+        name:            { type: string }
+        description:     { type: [string, 'null'] }
+        logicalOperator: { type: string, enum: [and, or] }
+        expressions:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/CatalogFilterExpression' }
+
+    CatalogJoinModeOverride:
+      type: object
+      required: [joinDefinitionId, joinMode]
+      properties:
+        joinDefinitionId: { type: string, format: uuid }
+        joinMode:         { $ref: '#/components/schemas/JoinMode' }
+
+    CatalogSavedView:
+      type: object
+      description: A saved view (follows later; business object `catalog`, BR-05, BR-06)
+      required: [id, name, isDefault]
+      properties:
+        id:                { type: string, format: uuid }
+        name:              { type: string }
+        description:       { type: [string, 'null'] }
+        columnOrder:
+          type: array
+          description: Keys of configured columns (BR-05)
+          items: { type: string }
+        activeFilterIds:
+          type: array
+          items: { type: string, format: uuid }
+        joinModeOverrides:
+          type: array
+          items: { $ref: '#/components/schemas/CatalogJoinModeOverride' }
+        isDefault:         { type: boolean, description: "At most one view per catalog (BR-06)" }
 
     CatalogValidationProblem:
       allOf:
@@ -3965,20 +4073,62 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /catalogs/{id}/columns:
+    put:
+      operationId: updateCatalogColumns
+      summary: Configure the columns of a catalog (US-047, REQ-044)
+      description: |
+        Replaces the column list. Every column names a system field or a property mapped to
+        the primary metatype; at least one column is visible and at most one carries a
+        default sort (422 with `invalidFields`, e.g. `columns[2].propertyDefId`). An instance
+        catalog needs `catalog:manage`; a personal catalog can be changed by its creator only.
+        Without `catalog:manage`, every catalog except one's own personal catalog is answered
+        with 403, also an unknown one, so that the existence of another person's personal
+        catalog is not revealed. Writes the audit event `catalog.columns-changed`.
+      tags: [Catalogs]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "the catalog has scope 'instance' (another person's personal catalog is never changeable)", "permissions": ["catalog:manage"]}]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogColumnsUpdate' }
+      responses:
+        '200':
+          description: The catalog with its new columns
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Catalog' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: Invalid column list (problem type `urn:oea:problem:validation-failed`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /catalogs/{id}/query:
     get:
       operationId: queryCatalog
       summary: Query a catalog (US-049, REQ-046, SCR-020)
       description: |
         One page of rows: the active entities of the catalog's primary metatype with the
-        values of the catalog's columns. Until columns can be configured (US-047), the
-        columns are `name` and, if the primary metatype maps a property named `Status` with
-        visibility `public`, that property. Only properties with visibility `public` appear
-        (REQ-160 follows). Soft-deleted entities are not returned (ADR-019).
+        values of the catalog's columns. With configured columns (US-047), these are the
+        visible ones in their order and with their labels; a configured property that is no
+        longer available is left out. Without configured columns, the columns are `name` and,
+        if the primary metatype maps a property named `Status` with visibility `public`, that
+        property. Only properties with visibility `public` appear (REQ-160 follows).
+        Soft-deleted entities are not returned (ADR-019). Column keys are the system field
+        (`CatalogSystemField`) or the `sqlColumnName` of a property.
 
-        `sort` accepts exactly one `{column}:{asc|desc}` pair whose column is a key of
-        `columns`. Without `sort` the rows are ordered by name ascending; rows without a
-        value in the sort column come last. Sorting applies before paging; a page beyond
+        `sort` accepts exactly one `{column}:{asc|desc}` pair whose column is a sortable key of
+        `columns`. Without `sort` the configured default sort applies, else name ascending;
+        rows without a value in the sort column come last, and enum values follow the order
+        of the enum (#65). Sorting applies before paging; a page beyond
         the last one answers with no rows. A personal catalog of another person is answered
         with 404, like a catalog that does not exist (ADR-032 §8 L3).
       tags: [Catalogs]

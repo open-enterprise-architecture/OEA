@@ -4,7 +4,7 @@ title: Execute a catalog query (live data)
 type: functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-26
 last_updated: 2026-10-22
 author: requirements-engineer
@@ -158,6 +158,7 @@ In `rows` mode for the same catalog:
 - Endpoint: `GET /api/v1/catalogs/{id}/query` (`queryCatalog` in `api/openapi.yaml`); paging and sort follow the contract conventions `PageParam`, `PageSizeParam`, `SortParam` and `PageMeta` (change us-049-show-catalog-data, design D1)
 - Implemented in change us-049-show-catalog-data without joins and filters (AC5, AC6); AC1–AC4 follow with the join and filter stories; `joinResults` is added to the rows then
 - Invalid paging or sort parameters are answered with 400 (`validation-failed`, `invalidFields`); another person's personal catalog with 404 (ADR-032); soft-deleted entities are not returned (ADR-019); only properties with visibility `public` appear until REQ-160
+- Configured columns (change us-047-configure-columns): the query returns the visible configured columns with their labels and the configured default sort; a column that is not sortable cannot be sorted by (400); enum properties sort by the order of the enum (issue #65)
 - LEFT JOIN semantics: entities without join hits are returned anyway (not filtered)
 - Filter expression serialization as a query parameter: `filter[attributeName][operator]=value`; for the `in` operator as CSV or array
 - Performance: for large repositories an indexed lookup on EntityType + FilterAttributes is necessary; NFR not yet defined (to follow)
@@ -168,3 +169,4 @@ In `rows` mode for the same catalog:
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; rows/aggregate modes, LEFT JOIN semantics, pagination |
 | 0.2.0 | 2026-10-22 | Change us-049-show-catalog-data | Paging and sort aligned with the contract conventions (`page`, `pageSize` ≤ 200, `sort`, `PageMeta`; design D1); response with `columns`, `rows`, `sort`; default columns |
+| 0.3.0 | 2026-11-05 | Change us-047-configure-columns | Configured columns, default sort, sortability and enum order |

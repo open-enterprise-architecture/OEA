@@ -4,6 +4,9 @@ import io.oea.api.ContractViolationResponse;
 import io.oea.api.generated.CatalogsApi;
 import io.oea.api.generated.model.Catalog;
 import io.oea.api.generated.model.CatalogColumn;
+import io.oea.api.generated.model.CatalogColumnConfig;
+import io.oea.api.generated.model.CatalogColumnsUpdate;
+import io.oea.api.generated.model.CatalogSystemField;
 import io.oea.api.generated.model.CatalogCreate;
 import io.oea.api.generated.model.CatalogQueryResult;
 import io.oea.api.generated.model.CatalogRow;
@@ -63,6 +66,17 @@ public class CatalogController implements CatalogsApi {
 	}
 
 	@Override
+	@ContractViolationResponse(status = 422, title = "Invalid catalog", detail = "Some fields are invalid.")
+	@ConditionsEnforcedByHandler(value = "Catalogs.updateColumns requires catalog:manage for scope=instance; "
+			+ "without it only one's own personal catalog", probeRole = "viewer", probeBody = """
+					{"columns": [{"field": "name"}]}""",
+			probePath = "/api/v1/catalogs/00000000-0000-0000-0000-000000000000/columns")
+	public ResponseEntity<Catalog> updateCatalogColumns(UUID id, CatalogColumnsUpdate update) {
+		return ResponseEntity.ok(catalog(this.catalogs.updateColumns(principal(), id,
+				update.getColumns().stream().map(CatalogController::column).toList())));
+	}
+
+	@Override
 	public ResponseEntity<List<CatalogSummary>> listCatalogs() {
 		return ResponseEntity
 			.ok(this.catalogs.list(principal()).stream().map(CatalogController::summary).toList());
@@ -104,7 +118,27 @@ public class CatalogController implements CatalogsApi {
 		return new Catalog(catalog.id(), catalog.name(), catalog.primaryMetatypeId(), catalog.primaryMetatypeName(),
 				CatalogScope.fromValue(catalog.scope()), creator(catalog), time(catalog.createdAt()),
 				catalog.description(), JoinMode.fromValue(catalog.defaultJoinMode()), time(catalog.lastModifiedAt()),
-				List.of(), List.of(), List.of(), List.of());
+				catalog.columns().stream().map(CatalogController::column).toList(), List.of(), List.of(), List.of());
+	}
+
+	private static CatalogColumnConfig column(Catalogs.Column column) {
+		return new CatalogColumnConfig()
+			.field((column.field() != null) ? CatalogSystemField.fromValue(column.field().key()) : null)
+			.propertyDefId(column.propertyDefId())
+			.displayLabel(column.displayLabel())
+			.visible(column.visible())
+			.sortable(column.sortable())
+			.defaultSortDirection((column.defaultSortDirection() != null)
+					? CatalogColumnConfig.DefaultSortDirectionEnum.fromValue(column.defaultSortDirection()) : null)
+			.available(column.available());
+	}
+
+	private static Catalogs.Column column(CatalogColumnConfig config) {
+		return new Catalogs.Column(
+				(config.getField() != null) ? Catalogs.SystemField.ofKey(config.getField().getValue()) : null,
+				config.getPropertyDefId(), config.getDisplayLabel(), !Boolean.FALSE.equals(config.getVisible()),
+				!Boolean.FALSE.equals(config.getSortable()),
+				(config.getDefaultSortDirection() != null) ? config.getDefaultSortDirection().getValue() : null, true);
 	}
 
 	private static PrincipalRef creator(Catalogs.Catalog catalog) {

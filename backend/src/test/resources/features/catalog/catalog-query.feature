@@ -61,3 +61,26 @@ Feature: Catalog query
     And the enterprise architect has created the catalog "Cleaned Inventory" with scope "instance"
     When the enterprise architect queries the catalog "Cleaned Inventory"
     Then the catalog shows the rows "Also Kept" and "Kept" and a total of 2 entries
+
+  @US-047 @AC2 @AC3 @AC4
+  Scenario: Configured columns
+    Given the enterprise architect has created the catalog "Configured Inventory" with scope "instance"
+    And the enterprise architect configures the columns "Status" labelled "Operational Status", "Name" and a hidden "Description" of "Configured Inventory"
+    When the viewer queries the catalog "Configured Inventory"
+    Then the catalog shows the columns "Operational Status" and "Name"
+
+  @US-047
+  Scenario: Status in enum order
+    Given the applications "Old" with the status "retired", "New" with the status "planned" and "Running" with the status "active" exist
+    And the application "Unknown" exists without a status
+    And the enterprise architect has created the catalog "Enum Inventory" with scope "instance"
+    When the enterprise architect queries the catalog "Enum Inventory" sorted by "status:asc"
+    Then the catalog shows the rows "New", "Running", "Old" and "Unknown" in this order
+
+  @US-047
+  Scenario: Column not sortable
+    Given the enterprise architect has created the catalog "Unsortable Inventory" with scope "instance"
+    And the enterprise architect configures the columns "Name" not sortable and "Status" of "Unsortable Inventory"
+    When the enterprise architect queries the catalog "Unsortable Inventory" sorted by "name:asc"
+    Then the query is answered with 400
+

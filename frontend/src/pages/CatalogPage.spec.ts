@@ -5,7 +5,7 @@ import { setLanguage } from '../i18n'
 import { loadLabels } from '../i18n/labels'
 import { defineComponent, h } from 'vue'
 import { createMemoryHistory, createRouter, RouterView, type Router } from 'vue-router'
-import { APPLICATIONS, CATALOG, catalogApi, manyApplications, type Application, type CatalogRequest } from '../test/catalogs'
+import { APPLICATIONS, CATALOG, CATALOGS, catalogApi, manyApplications, ME_ARCHITECT, ME_VIEWER, STATUS_DEFINITION, VENDOR_DEFINITION, type Application, type CatalogRequest } from '../test/catalogs'
 import CatalogPage from './CatalogPage.vue'
 
 const CATALOG_PATH = `/catalogs/${CATALOG.id}`
@@ -17,9 +17,14 @@ interface Mounted {
 }
 
 /** The page behind a router, so that URL, back navigation and reload act as in the app. */
-async function open(location: string, applications: Application[] = APPLICATIONS, throttledFor?: number): Promise<Mounted> {
+async function open(
+  location: string,
+  applications: Application[] = APPLICATIONS,
+  throttledFor?: number,
+  options: { me?: unknown; catalog?: unknown } = {},
+): Promise<Mounted> {
   const recorded: CatalogRequest[] = []
-  const fetchFn = catalogApi(applications, { recorded, throttledFor })
+  const fetchFn = catalogApi(applications, { recorded, throttledFor, ...options })
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -184,7 +189,8 @@ describe('CatalogPage', () => {
   it('shows the metamodel labels in German', async () => {
     setLanguage('de')
     await loadLabels('de', catalogApi(APPLICATIONS))
-    const { wrapper } = await open(CATALOG_PATH)
+    // the page loads the session, whose language applies
+    const { wrapper } = await open(CATALOG_PATH, APPLICATIONS, undefined, { me: { ...ME_ARCHITECT, uiLanguage: 'de' } })
     expect(wrapper.get('[data-testid="catalog-type"]').text()).toBe('Anwendungskomponente')
     expect(wrapper.get('[data-testid="catalog-scope"]').text()).toBe('Geteilt')
     expect(header(wrapper, 'status').text()).toContain('Status')
@@ -193,3 +199,112 @@ describe('CatalogPage', () => {
     expect(wrapper.get('[data-testid="catalog-page-info"]').text()).toContain('Seite 1 von 1')
   })
 })
+
+// spec catalog/catalog-columns of us-047-configure-columns
+describe('CatalogPage columns', () => {
+  function headers(wrapper: VueWrapper): string[] {
+    return wrapper.findAll('[data-testid="catalog-table"] thead th').map((th) => th.text())
+  }
+
+  async function configure(wrapper: VueWrapper) {
+    await click(wrapper, '[data-testid="configure-columns"]')
+    return document.body
+  }
+
+  function rows(): HTMLElement[] {
+    return [...document.body.querySelectorAll<HTMLElement>('[data-testid="column-row"]')]
+  }
+
+  function row(name: string): HTMLElement {
+    const found = rows().find((candidate) => candidate.querySelector('[data-testid="column-name"]')?.textContent === name)
+    if (!found) {
+      throw new Error(`no column ${name}`)
+    }
+    return found
+  }
+
+  async function press(element: Element | null) {
+    ;(element as HTMLElement).click()
+    await flushPromises()
+  }
+
+  async function toggle(name: string, testId: string) {
+    await press(row(name).querySelector(`[data-testid="${testId}"]`))
+  }
+
+  async function type(name: string, value: string) {
+    const input = row(name).querySelector<HTMLInputElement>('[data-testid="column-label"] input, input[data-testid="column-label"]')!
+    input.value = value
+    input.dispatchEvent(new Event('input'))
+    await flushPromises()
+  }
+
+  // "Built-in and custom attributes"
+  it('offers every system field and every mapped property', async () => {
+    const { wrapper } = await open(CATALOG_PATH)
+    await configure(wrapper)
+    expect(rows().map((candidate) => candidate.querySelector('[data-testid="column-name"]')!.textContent)).toEqual([
+      'Name',
+      'Description',
+      'External ID',
+      'Created',
+      'Updated',
+      'Version',
+      'Status',
+      'Vendor',
+    ])
+    wrapper.unmount()
+  })
+
+  // "Status before name" and "Own label"
+  it('saves the order and the header and shows them in the table', async () => {
+    const { wrapper, recorded } = await open(CATALOG_PATH)
+    await configure(wrapper)
+    await press(row('Status').querySelector('[data-testid="column-up"]'))
+    for (let i = 0; i < 5; i++) {
+      await press(row('Status').querySelector('[data-testid="column-up"]'))
+    }
+    await type('Status', 'Operational Status')
+    await press(document.body.querySelector('[data-testid="columns-save"]'))
+    const put = recorded.find((request) => request.method === 'PUT')
+    const columns = (put?.body as { columns: { field?: string; propertyDefId?: string; displayLabel?: string | null; visible: boolean }[] }).columns
+    expect(columns[0]).toMatchObject({ propertyDefId: STATUS_DEFINITION.id, displayLabel: 'Operational Status', visible: true })
+    expect(columns[1]).toMatchObject({ field: 'name', visible: true })
+    expect(columns.find((column) => column.propertyDefId === VENDOR_DEFINITION.id)?.visible).toBe(false)
+    expect(headers(wrapper)).toEqual(['Operational Status', 'Name'])
+    wrapper.unmount()
+  })
+
+  // "Hidden column"
+  it('hides a column but keeps it in the configuration', async () => {
+    const catalog = { ...CATALOG, columns: [{ field: 'name' }, { field: 'description', visible: false }, { propertyDefId: VENDOR_DEFINITION.id }] }
+    const { wrapper } = await open(CATALOG_PATH, APPLICATIONS, undefined, { catalog })
+    expect(headers(wrapper)).toEqual(['Name', 'Vendor'])
+    await configure(wrapper)
+    const description = row('Description').querySelector<HTMLButtonElement>('[data-testid="column-visible"] button, button[data-testid="column-visible"]')
+    expect(description?.getAttribute('aria-checked') ?? description?.getAttribute('data-state')).toMatch(/false|unchecked/)
+    wrapper.unmount()
+  })
+
+  // "No visible column"
+  it('blocks saving while no column is visible', async () => {
+    const catalog = { ...CATALOG, columns: [{ field: 'name' }] }
+    const { wrapper, recorded } = await open(CATALOG_PATH, APPLICATIONS, undefined, { catalog })
+    await configure(wrapper)
+    await toggle('Name', 'column-visible')
+    expect(document.body.querySelector('[data-testid="columns-none-visible"]')?.textContent).toContain('At least one column must be visible')
+    expect(document.body.querySelector<HTMLButtonElement>('[data-testid="columns-save"]')?.disabled).toBe(true)
+    expect(recorded.some((request) => request.method === 'PUT')).toBe(false)
+    wrapper.unmount()
+  })
+
+  // "Reader without catalog management" and "Own personal catalog"
+  it('offers the configuration for an instance catalog only with catalog management', async () => {
+    const { wrapper } = await open(CATALOG_PATH, APPLICATIONS, undefined, { me: ME_VIEWER })
+    expect(wrapper.find('[data-testid="configure-columns"]').exists()).toBe(false)
+    const personal = { ...CATALOG, ...CATALOGS[2], id: CATALOG.id }
+    const { wrapper: own } = await open(CATALOG_PATH, APPLICATIONS, undefined, { me: ME_VIEWER, catalog: personal })
+    expect(own.find('[data-testid="configure-columns"]').exists()).toBe(true)
+  })
+})
+

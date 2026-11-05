@@ -4,9 +4,9 @@ title: Configure the columns of a catalog
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-05
 author: requirements-engineer
 references:
   use_cases:
@@ -50,10 +50,10 @@ The column configuration can be replaced completely (PUT) or supplemented/change
 | Field | Type | Optional | Description |
 |---|---|---|---|
 | columns | ColumnConfig[] | mandatory | Complete new column list |
-| columns[].attributeName | string | mandatory | Attribute name from the primaryEntityType (built-in or custom) |
+| columns[].field | enum | conditional | System field (`name`, `description`, `externalId`, `createdAt`, `updatedAt`, `entityVersion`); exactly one of `field` and `propertyDefId` (realigned 2026-11-05) |
+| columns[].propertyDefId | UUID | conditional | A property mapped to the primaryEntityType, by ID (realigned 2026-11-05) |
 | columns[].displayLabel | string | optional | Overrides the column header; default = attributeName |
 | columns[].visible | boolean | optional | Default: true |
-| columns[].sortOrder | integer | mandatory | Order (0 = first column) |
 | columns[].sortable | boolean | optional | Default: true |
 | columns[].defaultSortDirection | enum | optional | `asc` or `desc`; null = no default sorting |
 
@@ -61,8 +61,8 @@ The column configuration can be replaced completely (PUT) or supplemented/change
 
 1. Validate each `attributeName` against the EntityType in the MetamodelConfiguration; 422 on unknown attribute
 2. Check: at least one entry with `visible=true`; otherwise 422
-3. Check `sortOrder` for uniqueness (no duplicate positions); optional: renumber automatically
-4. Inspect existing SavedViews: remove `columnOrder` entries that refer to now-missing attribute names; inform the manager in the response with a warning list
+3. The order of the list is the display order (realigned 2026-11-05; replaces `sortOrder`)
+4. Inspect existing SavedViews (follows with the saved views): remove `columnOrder` entries that refer to now-missing attribute names; inform the manager in the response with a warning list
 
 **Outputs**:
 
@@ -75,14 +75,14 @@ The column configuration can be replaced completely (PUT) or supplemented/change
 **AC1** (Set columns, happy path):
 
 - Given: catalog "Application Inventory" with primaryEntityType=ApplicationComponent
-- When: PUT `/api/v1/catalogs/{id}/columns` with `[{attributeName: "name", sortOrder: 0}, {attributeName: "status", sortOrder: 1, displayLabel: "Operating status"}]`
+- When: PUT `/api/v1/catalogs/{id}/columns` with `[{field: "name"}, {propertyDefId: <Status>, displayLabel: "Operating status"}]`
 - Then: HTTP 200; the catalog has 2 columns; the second column has displayLabel "Operating status"
 
 **AC2** (Invalid attribute):
 
 - Given: ApplicationComponent has no attribute `nonExistingField`
-- When: PUT with `attributeName: "nonExistingField"`
-- Then: HTTP 422 "The attribute ‹nonExistingField› is not defined for the type ‹ApplicationComponent›"
+- When: PUT with a `propertyDefId` that ApplicationComponent does not map
+- Then: HTTP 422 with `invalidFields: ["columns[0].propertyDefId"]`
 
 **AC3** (No visible column):
 
@@ -97,8 +97,8 @@ The column configuration can be replaced completely (PUT) or supplemented/change
 
 **AC5** (Order):
 
-- When: columns with sortOrder [2, 0, 1] are sent
-- Then: the system orders columns by sortOrder; the first displayed column is the one with sortOrder=0
+- When: columns are sent in the order status, name, description
+- Then: the catalog shows them in this order; the first displayed column is the first of the list
 
 ## Dependencies
 
@@ -107,12 +107,14 @@ The column configuration can be replaced completely (PUT) or supplemented/change
 
 ## Implementation Notes
 
-- Endpoint: `PUT /api/v1/catalogs/{id}/columns`
-- Attribute validation: load the EntityType attribute list from the MetamodelConfiguration; built-in attributes (`id`, `name`, `createdAt`, `status`, `description`) always available
-- SavedView cleanup: execute synchronously when removing columns; no separate background process needed
+- Endpoint: `PUT /api/v1/catalogs/{id}/columns` (`updateCatalogColumns`)
+- Attribute validation: the properties mapped to the EntityType (also inherited), not retired, visibility `public`; the system fields are always available
+- SavedView cleanup (AC4) and PATCH follow with the saved views
+- Realized by OpenSpec change `us-047-configure-columns`: columns by system field or property ID, labels, visibility, sortability, one default sort; the dialog "Configure columns" in SCR-020; audit event `catalog.columns-changed`. Tests: `CatalogColumnsTests`, `CatalogPage.spec.ts`, `features/catalog/catalog-columns.feature`
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft |
+| 0.2.0 | 2026-11-05 | Change us-047-configure-columns | Columns by `field` or `propertyDefId` instead of `attributeName`, list order instead of `sortOrder`; AC4 and PATCH follow with saved views; implementation note |

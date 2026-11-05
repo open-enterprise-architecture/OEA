@@ -11,6 +11,11 @@ export type CatalogColumn = components['schemas']['CatalogColumn']
 export type CatalogRow = components['schemas']['CatalogRow']
 export type CatalogSort = components['schemas']['CatalogSort']
 export type CatalogQueryResult = components['schemas']['CatalogQueryResult']
+export type CatalogColumnConfig = components['schemas']['CatalogColumnConfig']
+export type CatalogSystemField = components['schemas']['CatalogSystemField']
+
+/** The system fields of every entity, in the order the configuration offers them (US-047). */
+export const SYSTEM_FIELDS: CatalogSystemField[] = ['name', 'description', 'externalId', 'createdAt', 'updatedAt', 'entityVersion']
 
 /** Paging and sort of a catalog query; omitted values are the defaults of the contract. */
 export interface CatalogQuery {
@@ -66,6 +71,32 @@ export async function createCatalog(request: CatalogCreate, fetchFn: typeof fetc
   }
   const rejection: Rejection = await readRejection(response)
   return { ok: false, rejection }
+}
+
+/**
+ * PUT /catalogs/{id}/columns with the CSRF token (US-047): the complete column list in display
+ * order. Invalid columns are the rejection `validation-failed` (422) with `invalidFields`.
+ */
+export async function updateCatalogColumns(
+  id: string,
+  columns: CatalogColumnConfig[],
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<Catalog>> {
+  const csrfToken = currentCsrfToken()
+  const response = await fetchFn(`/api/v1/catalogs/${encodeURIComponent(id)}/columns`, {
+    method: 'PUT',
+    credentials: 'same-origin',
+    headers: {
+      ...JSON_HEADERS,
+      'Content-Type': 'application/json',
+      ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
+    },
+    body: JSON.stringify({ columns }),
+  })
+  if (response.ok) {
+    return { ok: true, value: (await response.json()) as Catalog }
+  }
+  return { ok: false, rejection: await readRejection(response) }
 }
 
 /**
