@@ -24,6 +24,10 @@ All audit records are rows of `audit.events` (with optional details in `audit.ev
 | `agent_label` / `agent_run` | Informational values of the headers `X-Agent-Id` and `X-Agent-Run` (control characters removed, at most 100 characters); never used for decisions (ADR-033 §7) |
 | `details` | Event-type-specific supplement (JSON); never secrets, tokens, passwords or hashes of them |
 
+## Readers
+
+The whole audit log is read with `audit:read`. The events of metamodel changes (`metamodel.*`, category `change`) are also read by metamodel administrators (`metamodel:write`) through `GET /metamodel/changes`, with the names of their actors ([US-034](../requirements/user-stories/US-034-audit-log-metamodel.md), ADR-032 amendment 2026-11-05).
+
 ## Flood Suppression
 
 Repeated security events of the same type, actor, source address and operation are recorded individually up to 20 per minute; further events of that minute are counted and recorded as one **summary event** of the same type after the minute has ended ([REQ-175](../requirements/req/REQ-175-security-event-logging.md) AC5). It applies to `authz.denied` and to `system.bootstrap-rejected` with reason `throttled`. A summary event has the actor of the suppressed events, the source address but no request ID, no target ID, and the details `summary` (`true`), `suppressedCount`, `windowStart`, `windowEnd` and `operation`. The counters are kept in memory of the backend; on a regular shutdown, open windows are written as summaries.

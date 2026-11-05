@@ -2,8 +2,9 @@
 
 **ID**: US-034
 **Story Points**: 2
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S8
+**Implementation**: OpenSpec change `us-034-metamodel-changes` – the metamodel changes from the audit trail through `GET /metamodel/changes` and the section "Changes" of SCR-030, for metamodel administrators with the names of the persons
 
 ## Story
 
@@ -32,12 +33,12 @@ As a Lead Enterprise Architect, I want to be able to see who made which changes 
 
 - Given: a write error in the audit log system
 - When: Kurt makes a change
-- Then: the change is saved; the audit log entry is caught up asynchronously
+- Then: the change is rejected and nothing is saved; change and entry are atomic (ADR-033; realigned 2026-11-05, owner decision)
 
 ## Technical Notes
 
 - Affected components: audit log infrastructure (same as REQ-005/REQ-025); new `eventType` namespace `metamodel.*`
-- API endpoints: `GET /admin/audit-log?eventType=metamodel.*` (filtering by metamodel events)
+- API endpoints: `GET /metamodel/changes` with `metamodel:write` (realigned 2026-11-05; the general audit log `listAuditEvents` needs `audit:read`)
 - Database changes: no new tables; new `eventType` in existing audit table
 
 ## Definition of Done

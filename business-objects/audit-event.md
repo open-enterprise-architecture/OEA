@@ -2,7 +2,7 @@
 identifier: audit-event
 name_de: Audit-Ereignis
 name_en: Audit Event
-version: 0.1.0
+version: 0.2.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -33,7 +33,7 @@ Key properties ([ADR-033](../adrs/ADR-033-audit-trail-hardening.md)):
 
 - **Append-only**: no API or UI operation changes or deletes audit events, for any permission. The runtime database role can only insert and read. Events are removed only by the retention purge after the retention period.
 - **Tamper-evident**: every event (and every change detail and retention setting row) is a link of one SHA-256 hash chain, computed in the database. Checkpoints of the chain head are exported to the application log and the SIEM export, so that recomputation, tail truncation and backup rollback are detectable.
-- **Pseudonymous actors**: the actor is stored as actor type plus the key of the principal ([person](./person.md) or [system admin account](./system-admin-account.md)); names and e-mail addresses are resolved at read time and only for principals holding `audit:read`. Anonymizing a person therefore never touches an audit event (REQ-189).
+- **Pseudonymous actors**: the actor is stored as actor type plus the key of the principal ([person](./person.md) or [system admin account](./system-admin-account.md)); names and e-mail addresses are resolved at read time and only for principals holding `audit:read`, and for the events of metamodel changes (`metamodel.*`) also for principals holding `metamodel:write` (US-034, ADR-032 amendment 2026-11-05). Anonymizing a person therefore never touches an audit event (REQ-189).
 - **Protected restricted values**: changes of properties whose visibility mode is not `public` at the time of the event are stored encrypted; they are shown only to principals with `audit:read` and read permission on the property (REQ-160 AC4).
 - **One trail for all event kinds**: change events, security events (REQ-175), analytics queries (ADR-034) and integrity events share one store, one chain and one export.
 
@@ -125,7 +125,7 @@ recorded ──► purged (only after the effective retention period, by audit.p
 
 | Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
-| BR-01 | Audit events cannot be changed or deleted through any API or UI operation and by no permission; the only operations are read, export and verify, all requiring `audit:read` | always | ADR-033 §8, REQ-083, Q3 |
+| BR-01 | Audit events cannot be changed or deleted through any API or UI operation and by no permission; the only operations are read, export and verify, all requiring `audit:read`; reading the metamodel events alone requires `metamodel:write` instead (US-034) | always | ADR-033 §8, REQ-083, Q3 |
 | BR-02 | Audit events contain no names or e-mail addresses of OEA users; actors are stored as actor type plus key | onCreate | ADR-033 §3, REQ-189, GDPR Art. 5(1)(c) |
 | BR-03 | `entityName` is empty for entities of metatype `person` (modeled persons) | onCreate | ADR-033 §3, owner confirmation 2026-10-13 |
 | BR-04 | `agentId` is taken only from the authenticated service account's `client_id`; the `X-Agent-Id` header is stored only as `agentLabel` and is never used for decisions | onCreate | ADR-033 §7, Q5 |
@@ -209,3 +209,4 @@ Open questions:
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | Business Engineer | Initial draft from ADR-033 (DM-A1 to DM-A10) and ADR-034 (DM-4) |
+| 0.2.0 | 2026-11-05 | Business Engineer | Metamodel administrators read the metamodel events with resolved names; BR-01 names this read (change `us-034-metamodel-changes`) |

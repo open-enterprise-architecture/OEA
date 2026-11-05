@@ -102,7 +102,7 @@ x-oea-permissions: [
   {"id": "webhook:manage", "adminClass": false, "description": "Register and manage webhooks"},
   {"id": "analytics:query", "adminClass": false, "description": "Submit raw SQL analytics queries against the masked reporting schema (REQ-179, ADR-034; Cypher deferred)"},
   {"id": "audit:read", "adminClass": false, "description": "Read, export (SIEM, JSON Lines) and verify the audit log, see resolved actor names and the audit retention, and read the access review"},
-  {"id": "metamodel:write", "adminClass": true, "description": "Change the metamodel except visibility fields; metamodel and continuum package import/export"},
+  {"id": "metamodel:write", "adminClass": true, "description": "Change the metamodel except visibility fields; metamodel and continuum package import/export; read the audit events of metamodel changes with the names of their actors (US-034)"},
   {"id": "solution-metamodel:write", "adminClass": false, "description": "Create, change and delete metamodel extensions of solutions and maintain their metatypes and property mappings (US-037, REQ-037)"},
   {"id": "visibility:configure", "adminClass": true, "description": "Change visibilityMode, readRoles, writeRoles, scopingConnectionType and the override role list"},
   {"id": "visibility-scope:assign", "adminClass": true, "description": "Create, change and delete connections of types used as scopingConnectionType"},
@@ -642,6 +642,63 @@ components:
       properties:
         name:     { type: string, minLength: 1, maxLength: 100 }
         editMode: { $ref: '#/components/schemas/MetamodelEditMode' }
+
+    # ── Metamodel changes (US-034) ─────────────────────────────────────────────
+    MetamodelChangeKind:
+      type: string
+      enum: [metatype, property, category, enum-value, mapping, labels, reimport, package, configuration]
+      description: |
+        Group of metamodel event types: `metatype` (`metamodel.metatype-*` except imports),
+        `property`, `category`, `enum-value`, `mapping`, `labels`, `reimport`
+        (`metamodel.reimport-policy-changed`), `package` (`metamodel.package-*` and
+        `metamodel.metatype-imported`) and `configuration` (`metamodel.configuration-*` and
+        `metamodel.edit-mode-changed`).
+
+    MetamodelChangeActor:
+      type: object
+      required: [actorType]
+      properties:
+        actorType: { $ref: '#/components/schemas/AuditActorType' }
+        actorRef:
+          type: [string, 'null']
+          description: "`persons.id` (decimal) or the ID of a system admin account; `null` for `system`"
+        actorName:
+          type: [string, 'null']
+          description: Name resolved at read time; the pseudonym for an anonymized person (REQ-189); `null` for `system`
+
+    MetamodelChange:
+      type: object
+      required: [id, occurredAt, eventType, kind, actor]
+      description: |
+        An audit event of a metamodel change (ADR-033, `docs/audit-event-catalog.md`). The
+        details are those stored with the event, e.g. `changedFields`, `before` and `after`,
+        `packageId` and `packageVersion`.
+      properties:
+        id:          { type: integer, format: int64 }
+        occurredAt:  { type: string, format: date-time }
+        eventType:   { type: string, example: "metamodel.metatype-created" }
+        kind:        { $ref: '#/components/schemas/MetamodelChangeKind' }
+        actor:       { $ref: '#/components/schemas/MetamodelChangeActor' }
+        targetType:  { type: [string, 'null'], example: "metatype" }
+        targetId:    { type: [string, 'null'] }
+        elementName:
+          type: [string, 'null']
+          description: The name written with the event, else the current name of the target; `null` if neither exists
+        batchId:     { type: [string, 'null'], format: uuid, description: "Import batch of a package import (REQ-034 AC2)" }
+        details:     { type: [object, 'null'], additionalProperties: true }
+
+    MetamodelChangePage:
+      type: object
+      required: [items, page, actors]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/MetamodelChange' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+        actors:
+          type: array
+          description: Every actor of a metamodel change, by name, for the person filter
+          items: { $ref: '#/components/schemas/MetamodelChangeActor' }
 
     MetatypeWrite:
       type: object
@@ -4180,6 +4237,50 @@ paths:
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  METAMODEL (SCR-030)                                                   ║
   # ╚═════════════════════════════════════════════════════════════════════════╝
+  /metamodel/changes:
+    get:
+      operationId: listMetamodelChanges
+      summary: Metamodel changes from the audit trail (US-034, REQ-034)
+      description: |
+        The audit events of metamodel changes (`metamodel.*`), newest first, with the names of
+        their actors. Other audit events are never listed; the whole audit log needs
+        `audit:read` (`listAuditEvents`). A change and its event are written in one
+        transaction (ADR-033).
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      parameters:
+        - name: kind
+          in: query
+          description: A value of `MetamodelChangeKind`; another value gives 400
+          schema: { type: string, maxLength: 32 }
+        - name: actorRef
+          in: query
+          description: "`actorRef` of an actor in `actors`"
+          schema: { type: string, maxLength: 64 }
+        - name: from
+          in: query
+          description: First day, UTC, inclusive
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          description: Last day, UTC, inclusive
+          schema: { type: string, format: date }
+        - name: batchId
+          in: query
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+      responses:
+        '200':
+          description: Metamodel changes
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MetamodelChangePage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /metamodel/configurations:
     get:
       operationId: listMetamodelConfigurations

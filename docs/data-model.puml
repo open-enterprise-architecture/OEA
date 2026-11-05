@@ -1302,6 +1302,8 @@ package "Audit  [Schema: audit]" #EFEBE9 {
     .. 32 bytes; genesis = 32 zero bytes ..
     + record_hash    : BYTEA              {NN}
     .. 32 bytes; SHA-256 over canonical serialization (docs/audit-hash-chain.md) ..
+    .. index events_metamodel_occurred (occurred_at DESC, id DESC) WHERE event_type LIKE 'metamodel.%' ..
+    .. (audit V4): metamodel changes newest first for metamodel:write (us-034-metamodel-changes) ..
   }
 
   class "audit.event_changes" <<Table>> #D7CCC8 {

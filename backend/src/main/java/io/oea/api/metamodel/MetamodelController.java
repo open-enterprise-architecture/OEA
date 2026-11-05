@@ -5,7 +5,13 @@ import io.oea.api.generated.MetamodelApi;
 import io.oea.api.generated.model.AllowedConnectionResult;
 import io.oea.api.generated.model.AllowedConnectionResultOptionsInner;
 import io.oea.api.generated.model.CreateEnumValueRequest;
+import io.oea.api.generated.model.AuditActorType;
+import io.oea.api.generated.model.MetamodelChange;
+import io.oea.api.generated.model.MetamodelChangeActor;
+import io.oea.api.generated.model.MetamodelChangeKind;
+import io.oea.api.generated.model.MetamodelChangePage;
 import io.oea.api.generated.model.MetamodelConfiguration;
+import io.oea.api.generated.model.PageMeta;
 import io.oea.api.generated.model.MetamodelConfigurationCreate;
 import io.oea.api.generated.model.MetamodelConfigurationUpdate;
 import io.oea.api.generated.model.MetamodelEditMode;
@@ -28,6 +34,7 @@ import io.oea.api.generated.model.PropertyEnumValue;
 import io.oea.api.generated.model.ReimportPolicy;
 import io.oea.api.generated.model.SourcePackage;
 import io.oea.app.metamodel.AllowedConnections;
+import io.oea.app.metamodel.MetamodelChanges;
 import io.oea.app.metamodel.MetamodelConfigurations;
 import io.oea.app.metamodel.MetamodelLabels;
 import io.oea.app.metamodel.MetatypeCatalog;
@@ -40,6 +47,7 @@ import io.oea.config.security.ConditionsEnforcedByHandler;
 import io.oea.config.security.OeaAuthentication;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
@@ -78,10 +86,13 @@ public class MetamodelController implements MetamodelApi {
 
 	private final MetamodelConfigurations configurations;
 
+	private final MetamodelChanges changes;
+
 	public MetamodelController(MetatypeCatalog catalog, MetatypeEditing metatypes, PropertyDefinitions properties,
 			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels,
-			AllowedConnections allowedConnections, MetamodelConfigurations configurations) {
+			AllowedConnections allowedConnections, MetamodelConfigurations configurations, MetamodelChanges changes) {
 		this.configurations = configurations;
+		this.changes = changes;
 		this.labels = labels;
 		this.allowedConnections = allowedConnections;
 		this.catalog = catalog;
@@ -89,6 +100,20 @@ public class MetamodelController implements MetamodelApi {
 		this.properties = properties;
 		this.mappings = mappings;
 		this.policies = policies;
+	}
+
+	@Override
+	public ResponseEntity<MetamodelChangePage> listMetamodelChanges(String kind, String actorRef,
+			LocalDate from, LocalDate to, UUID batchId, Integer page, Integer pageSize) {
+		int number = (page != null) ? page : 0;
+		int size = (pageSize != null) ? pageSize : 50;
+		MetamodelChanges.Page result = this.changes.list(new MetamodelChanges.Query(
+				kind, actorRef, from, to, batchId), number, size);
+		return ResponseEntity.ok(new MetamodelChangePage()
+			.items(result.items().stream().map(MetamodelController::change).toList())
+			.page(new PageMeta().page(number).pageSize(size).totalElements((int) result.total())
+				.totalPages((int) ((result.total() + size - 1) / size)))
+			.actors(result.actors().stream().map(MetamodelController::actor).toList()));
 	}
 
 	@Override
@@ -440,6 +465,25 @@ public class MetamodelController implements MetamodelApi {
 				.toList())
 			.version(metatype.version())
 			.configId(metatype.configId());
+	}
+
+	private static MetamodelChange change(MetamodelChanges.Change change) {
+		return new MetamodelChange().id(change.id())
+			.occurredAt(change.occurredAt().atOffset(ZoneOffset.UTC))
+			.eventType(change.eventType())
+			.kind(MetamodelChangeKind.fromValue(change.kind()))
+			.actor(actor(change.actor()))
+			.targetType(change.targetType())
+			.targetId(change.targetId())
+			.elementName(change.elementName())
+			.batchId(change.batchId())
+			.details(change.details());
+	}
+
+	private static MetamodelChangeActor actor(MetamodelChanges.Actor actor) {
+		return new MetamodelChangeActor().actorType(AuditActorType.fromValue(actor.type()))
+			.actorRef(actor.ref())
+			.actorName(actor.name());
 	}
 
 	private static MetamodelConfiguration configuration(MetamodelConfigurations.Configuration configuration) {

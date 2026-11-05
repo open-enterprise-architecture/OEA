@@ -13,6 +13,7 @@ type Category = Mutable<components['schemas']['PropertyCategory']>
 type Mapping = components['schemas']['MetatypePropertyMapping']
 type Scope = components['schemas']['MetamodelScope']
 type Configuration = Mutable<components['schemas']['MetamodelConfiguration']>
+type Change = components['schemas']['MetamodelChange']
 
 function me(displayName: string, permissions: string[]) {
   return {
@@ -60,6 +61,8 @@ interface Stored {
   globalReimport: 'keep' | 'remove'
   /** The instance configuration with its edit mode (US-035). */
   configuration: Configuration
+  /** The metamodel changes of the audit trail, newest first (US-034). */
+  changes: Change[]
   labels: Record<string, Record<string, { packageText?: string; organizationText?: string }>>
 }
 
@@ -153,8 +156,44 @@ function seed(): Stored {
       lastModifiedAt: '2026-11-01T08:00:00Z',
       metatypeCount: 5,
     },
+    changes: seedChanges(),
     labels: { de: { [`metatype.${IDS.component}.name`]: { packageText: 'Anwendungskomponente' } } },
   }
+}
+
+const KURT = { actorType: 'person' as const, actorRef: '7', actorName: 'Kurt Meier' }
+const LUKAS = { actorType: 'person' as const, actorRef: '8', actorName: 'Lukas Mathis' }
+export const IMPORT_BATCH = 'c0000000-0000-4000-8000-000000000001'
+
+/** Changes of two administrators, an import batch and a dated mapping that took effect. */
+function seedChanges(): Change[] {
+  const change = (id: number, minutes: number, eventType: string, kind: Change['kind'], actor: Change['actor'], elementName: string | null, extra: Partial<Change> = {}): Change => ({
+    id,
+    occurredAt: new Date(Date.UTC(2026, 10, 5, 9, minutes)).toISOString(),
+    eventType,
+    kind,
+    actor,
+    targetType: 'metatype',
+    targetId: `a0000000-0000-4000-8000-${String(id).padStart(12, '0')}`,
+    elementName,
+    batchId: null,
+    details: {},
+    ...extra,
+  })
+  const batch = { batchId: IMPORT_BATCH }
+  return [
+    change(7, 50, 'metamodel.mapping-effective', 'mapping', { actorType: 'system', actorRef: null, actorName: null }, 'Application Component'),
+    change(6, 40, 'metamodel.metatype-deleted', 'metatype', LUKAS, 'Legacy Zone'),
+    change(5, 30, 'metamodel.metatype-updated', 'metatype', KURT, 'Network Zone', { details: { changedFields: ['abbreviation'] } }),
+    change(4, 20, 'metamodel.metatype-created', 'metatype', KURT, 'Network Zone'),
+    change(3, 10, 'metamodel.package-imported', 'package', KURT, 'oea-starter-togaf-classic', {
+      ...batch,
+      targetType: 'metamodel-package',
+      details: { packageId: 'oea-starter-togaf-classic', version: '1.1.0', batchId: IMPORT_BATCH },
+    }),
+    change(2, 9, 'metamodel.metatype-imported', 'package', KURT, 'Application Service', batch),
+    change(1, 8, 'metamodel.metatype-imported', 'package', KURT, 'Application Component', batch),
+  ]
 }
 
 function problem(status: number, type: string, extra: Record<string, unknown> = {}): Response {
@@ -297,6 +336,21 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
     }
     const [, kind, id, sub, subId] = parts
 
+    if (kind === 'changes') {
+      const filtered = state.changes.filter(
+        (change) =>
+          (!url.searchParams.get('kind') || change.kind === url.searchParams.get('kind')) &&
+          (!url.searchParams.get('actorRef') || change.actor.actorRef === url.searchParams.get('actorRef')) &&
+          (!url.searchParams.get('batchId') || change.batchId === url.searchParams.get('batchId')),
+      )
+      const page = Number(url.searchParams.get('page') ?? 0)
+      const size = Number(url.searchParams.get('pageSize') ?? 50)
+      return json({
+        items: filtered.slice(page * size, (page + 1) * size),
+        page: { page, pageSize: size, totalElements: filtered.length, totalPages: Math.ceil(filtered.length / size) },
+        actors: [KURT, LUKAS, { actorType: 'system', actorRef: null, actorName: null }],
+      })
+    }
     if (kind === 'configurations') {
       if (method === 'GET') {
         return json([state.configuration])

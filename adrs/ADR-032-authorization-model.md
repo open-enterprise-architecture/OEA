@@ -7,7 +7,7 @@
 **Informed**: Business Engineer (data model follow-up), Backend Engineer, Frontend Engineer
 **Partially supersedes**: [ADR-006](./ADR-006-auth-stack-choice.md) (follow-up "claim mapping conventions to OEA roles"), [ADR-008](./ADR-008-gui-architecture-dual-track.md) (portal access "without login effort"), [ADR-026](./ADR-026-external-system-integration.md) (Security section: service account roles, "Entities – Write" role requirement) – see [Relation to Existing ADRs](#relation-to-existing-adrs)
 **Partially superseded**: 2026-10-15 by [ADR-042](./ADR-042-setup-phase-without-second-factor.md) — SoD-8 does not apply to the local system admin account during the setup phase
-**Amended**: 2026-11-04 – new permission `solution-metamodel:write`, see [Amendment 2026-11-04](#amendment-2026-11-04-solution-metamodelwrite)
+**Amended**: 2026-11-04 – new permission `solution-metamodel:write`, see [Amendment 2026-11-04](#amendment-2026-11-04-solution-metamodelwrite); 2026-11-05 – `metamodel:write` reads the metamodel changes, see [Amendment 2026-11-05](#amendment-2026-11-05-metamodelwrite-reads-the-metamodel-changes)
 
 ## Context and Problem
 
@@ -175,7 +175,7 @@ Permissions are stable identifiers of the form `<resource>:<action>`. The catalo
 | `webhook:manage` | Register and manage webhooks; payloads are filtered by the registrant's permissions (REQ-160) | no |
 | `analytics:query` | Submit raw SQL/Cypher analytics queries under the restrictions of REQ-179 | no |
 | `audit:read` | Read and export the audit log (incl. SIEM export) | no |
-| `metamodel:write` | Change the metamodel: metatypes, property definitions (except visibility fields), connection types, business rules (ADR-018), metamodel labels, metamodel and continuum package import/export | **yes** |
+| `metamodel:write` | Change the metamodel: metatypes, property definitions (except visibility fields), connection types, business rules (ADR-018), metamodel labels, metamodel and continuum package import/export; read the audit events of metamodel changes with the names of their actors (amendment 2026-11-05) | **yes** |
 | `solution-metamodel:write` | Create, change and delete metamodel extensions of solutions and maintain their metatypes and property mappings (US-037, REQ-037; amendment 2026-11-04) | no |
 | `visibility:configure` | Change `visibilityMode`, `readRoles`, `writeRoles`, `scopingConnectionType` and the override role list (REQ-124, REQ-128, REQ-161) | **yes** |
 | `visibility-scope:assign` | Create, change and delete connections of types used as `scopingConnectionType` (REQ-161) | **yes** |
@@ -430,6 +430,16 @@ The business engineer updates `docs/data-model.puml` and the business objects; t
 - The built-in roles `enterprise-architect` and `metamodel-admin` get it (§4). `enterprise-architect` stays unprivileged.
 - SoD-2 is unchanged: it lists `metamodel:write`, and an extension cannot change visibility fields.
 - The metatype and mapping operations declare `anyOfPermissions` with a condition for the configuration of the metatype, enforced by the handler (§8).
+
+## Amendment 2026-11-05: `metamodel:write` reads the metamodel changes
+
+**Reason.** US-034 and REQ-034 let a lead architect see who changed the metamodel and when, with the names of the persons. The audit log and resolved names need `audit:read`, which metamodel administrators do not hold, and the general audit log is not implemented yet. The owner decided on 2026-11-05 that metamodel administrators read the metamodel events themselves (change us-034-metamodel-changes, design D5).
+
+**Change.**
+
+- `metamodel:write` includes reading the audit events of the `metamodel.*` family, with the names of their actors, through `GET /metamodel/changes`. It gives no access to other audit events.
+- `audit:read` is unchanged and still covers the whole audit log, its export and its verification.
+- No role changes; the permission stays admin-class.
 
 ## Notes
 

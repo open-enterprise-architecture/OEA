@@ -54,6 +54,16 @@ export const Locked: Story = {
   },
 }
 
+/** Who changed the metamodel: two administrators, an import batch and the system (US-034). */
+export const Changes: Story = {
+  ...page('changes'),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Legacy Zone')).toBeInTheDocument()
+    await expect(canvas.getAllByText('Import batch').length).toBeGreaterThan(0)
+  },
+}
+
 /** The settings with the lock switch and the global re-import setting. */
 export const Settings: Story = page('settings')
 

@@ -30,22 +30,22 @@
 
 **Parameters** (all optional):
 
-- `kind`: one of `metatype`, `property`, `category`, `enum-value`, `mapping`, `labels`, `reimport`, `package`, `configuration`. Each maps to a set of event types (D2).
+- `kind`: one of `metatype`, `property`, `category`, `enum-value`, `mapping`, `labels`, `reimport`, `package`, `configuration`. Each maps to a set of event types (D2). The parameter is a string, checked by the reader (400 otherwise), because Spring does not convert the lower-case values to the generated enum.
 - `actorRef`: `persons.id` as a decimal string, or the UUID of a system admin account.
 - `from` and `to`: dates in UTC, both inclusive.
 - `batchId`: the UUID of an import batch.
-- `page` and `pageSize`: the shared parameters, at most 100 per page.
+- `page` and `pageSize`: the shared parameters (at most 200 per page).
 
 **Answer `MetamodelChangePage`:**
 
 - `items`, ordered by `occurredAt` and `id`, newest first;
 - `page` (`PageMeta`);
-- `actors`: the distinct actors of all metamodel events with their names, for the person filter.
+- `actors`: the distinct actors of all metamodel events (`MetamodelChangeActor`: `actorType`, `actorRef`, `actorName`), for the person filter.
 
 **Schema `MetamodelChange`:**
 
 - `id`, `occurredAt`, `eventType` and `kind`;
-- `actorType`, `actorRef` and `actorName`;
+- `actor` (`MetamodelChangeActor`);
 - `targetType`, `targetId` and `elementName`;
 - `batchId`;
 - `details`: the stored details of the event, which contain no secrets for metamodel events.

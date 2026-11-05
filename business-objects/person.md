@@ -2,7 +2,7 @@
 identifier: person
 name_de: Person (Konto)
 name_en: Person (Account)
-version: 0.6.0
+version: 0.7.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -39,7 +39,7 @@ In the EA repository, a person is typically **referenced, not mastered**: master
 
 **Service accounts** (`personType = service-account`) represent external systems (ADR-026). They authenticate only with [machine credentials](./machine-credential.md), hold only roles flagged `assignableToServiceAccounts`, have no sessions, no identity binding and no account link.
 
-**Protected identity mapping and anonymization** ([ADR-033](../adrs/ADR-033-audit-trail-hardening.md) §3, REQ-189): [audit events](./audit-event.md) reference a person only by actor type and surrogate key (`persons.id`); names and e-mail addresses exist only in this business object (and in the system admin account) and are resolved at read time for principals holding `audit:read`. Anonymizing a person sets `detailLevel = anonymized`, replaces `name` by a pseudonym and removes `email`, `employeeId` and `externalReference`. Audit records are never modified; they keep the key, which then points to a pseudonymous account. Anonymization also removes the person's identity bindings (`person_identities`) and the link to the EA person entity (`entityId`) (ADR-037 §6).
+**Protected identity mapping and anonymization** ([ADR-033](../adrs/ADR-033-audit-trail-hardening.md) §3, REQ-189): [audit events](./audit-event.md) reference a person only by actor type and surrogate key (`persons.id`); names and e-mail addresses exist only in this business object (and in the system admin account) and are resolved at read time for principals holding `audit:read`, and for the events of metamodel changes for principals holding `metamodel:write` (US-034). Anonymizing a person sets `detailLevel = anonymized`, replaces `name` by a pseudonym and removes `email`, `employeeId` and `externalReference`. Audit records are never modified; they keep the key, which then points to a pseudonymous account. Anonymization also removes the person's identity bindings (`person_identities`) and the link to the EA person entity (`entityId`) (ADR-037 §6).
 
 ## Attributes
 
@@ -199,3 +199,4 @@ Open questions:
 | 0.4.0 | 2026-10-13 | Lukas Mathis | Reactivation of offboarded persons configurable (`allowReactivationOfOffboarded`, default off; owner decision Q19) |
 | 0.5.0 | 2026-10-13 | Business Engineer | ADR-033 DM-A10 / REQ-189: protected identity mapping documented; anonymization (pseudonymous name, `email`/`employeeId`/`externalReference` removed, audit keeps the key); `email` conditional; BR-08, BR-09 added |
 | 0.6.0 | 2026-11-04 | Business Engineer | `uiLanguage` optional without default; no value means the browser language (change `us-140-dynamic-labels`, design D6) |
+| 0.7.0 | 2026-11-05 | Business Engineer | Names resolved also for metamodel administrators reading the metamodel changes (change `us-034-metamodel-changes`) |
