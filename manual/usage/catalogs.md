@@ -2,7 +2,7 @@
 title: Catalogs
 covers:
   screens: [SCR-020, SCR-028]
-  stories: [US-046, US-047, US-048, US-049, US-050]
+  stories: [US-046, US-047, US-048, US-049, US-050, US-080]
 ---
 
 # Catalogs
@@ -89,3 +89,14 @@ Every join has the switch *Compact / Rows* in its header:
 The switch changes only your view, not the catalog. It is part of the address of the page, like sort and page. With several joins in *Rows*, each combination of their linked entities gets a row of its own. The *Default mode* of a join, or else the default join mode of the catalog, applies when you open the catalog.
 
 Through the API, `POST /catalogs/{id}/joins` adds a join with `name`, `connectionMetatypeId`, `joinDirection` (`outbound`, `inbound`, `both`), `targetMetatypeId`, `targetColumns` (like the columns, without default sort) and `defaultJoinMode` (`rows`, `aggregate` or `null`). `PUT` and `DELETE /catalogs/{id}/joins/{joinId}` change and remove it. The query returns the results of every join in `joinResults` under the ID of the join; `joinMode[{joinId}]=rows` switches a join for one query, and `sort={joinId}.{key}:asc` sorts by a join column in rows mode.
+
+## Connection catalogs {#connection-catalogs}
+
+A catalog can also list connections, for example all data flows between applications. Choose a connection type as *Primary entity type* when you create the catalog; the dialog lists the entity types under *Elements* and the connection types under *Connections*.
+
+- Each connection becomes a row. As long as no columns are configured, the table shows *Source*, *Name* and *Target*: the entity the connection starts at, the connection itself and the entity it ends at.
+- *Configure columns* also lists the attributes of the source and the target, for example *Source: Vendor*. Offered are the fields and the properties of the entity types the connection type allows at that end, with their subtypes; a connection type without such a restriction offers every property. An entity at that end without the property shows an empty cell.
+- These columns sort like any other column. If the source or target has been deleted, its cells stay empty.
+- A join starts at the connection itself, for example from a data flow to the data objects it carries. If no connection type starts or ends at the connection type of the catalog, the dialog *Joins* says so.
+
+Through the API, a column of the source or target carries `"endpoint": "source"` or `"target"`, and its key in the query is `source.{key}` or `target.{key}`, for example `sort=source.name:asc`.

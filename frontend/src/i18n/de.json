@@ -35,7 +35,12 @@
         "createdAt": "Angelegt",
         "updatedAt": "Geändert",
         "entityVersion": "Version"
-      }
+      },
+      "endpoint": {
+        "source": "Quelle",
+        "target": "Ziel"
+      },
+      "endpointAttribute": "{side}: {name}"
     },
     "joins": {
       "title": "Joins",
@@ -63,7 +68,8 @@
       "rows": "Zeilen",
       "modeOf": "Darstellung von {name}",
       "failed": "Der Join konnte nicht gespeichert werden.",
-      "loadFailed": "Die Entitätstypen konnten nicht geladen werden."
+      "loadFailed": "Die Entitätstypen konnten nicht geladen werden.",
+      "connectionCatalogHint": "Dieser Katalog listet Verbindungen. Kein Verbindungstyp beginnt oder endet an ihnen, deshalb zeigt der Katalog jede Verbindung mit ihrer Quelle und ihrem Ziel."
     }
   },
   "catalogs": {
@@ -86,8 +92,10 @@
   "createCatalog": {
     "aggregate": "Zusammengefasst",
     "aggregateHint": "Eine Zeile pro Entität; verknüpfte Entitäten in einer Zelle",
+    "connectionTypes": "Verbindungen",
     "description": "Beschreibung",
     "descriptionHelp": "Optional, bis zu 1000 Zeichen",
+    "elementTypes": "Elemente",
     "failed": "Der Katalog konnte nicht angelegt werden.",
     "field": {
       "defaultJoinMode": "Wähle einen Verknüpfungsmodus.",

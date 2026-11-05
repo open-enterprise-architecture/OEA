@@ -1,14 +1,18 @@
 import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import { CATALOG, METATYPES, NAME_TAKEN } from '../test/catalogs'
+import { CATALOG, INFORMATION_FLOW, METATYPES, NAME_TAKEN } from '../test/catalogs'
 import { routedFetch, type RecordedRequest } from '../test/fetch'
 import CreateCatalogForm from './CreateCatalogForm.vue'
 
-async function mountForm(canManage: boolean, created: { status?: number; body: unknown; contentType?: string }) {
+async function mountForm(
+  canManage: boolean,
+  created: { status?: number; body: unknown; contentType?: string },
+  metatypes: unknown[] = METATYPES,
+) {
   const recorded: RecordedRequest[] = []
   const fetchFn = routedFetch(
-    { '/api/v1/metamodel/metatypes': { body: METATYPES }, '/api/v1/catalogs': created },
+    { '/api/v1/metamodel/metatypes': { body: metatypes }, '/api/v1/catalogs': created },
     recorded,
   )
   const wrapper = mount(CreateCatalogForm, { props: { fetchFn, canManage }, global: { plugins: [ui] } })
@@ -39,6 +43,20 @@ describe('CreateCatalogForm', () => {
       defaultJoinMode: 'aggregate',
     })
     expect(wrapper.emitted('created')?.[0]).toEqual([CATALOG])
+  })
+
+  // US-080: a connection metatype is a primary metatype like any other, offered in its own group
+  it('groups the entity types into elements and connections', async () => {
+    const { wrapper, recorded } = await mountForm(true, { status: 201, body: CATALOG }, [INFORMATION_FLOW, ...METATYPES])
+    const select = wrapper.findAllComponents({ name: 'Select' }).find((component) => component.vm.$attrs['data-testid'] === 'catalog-type')!
+    const groups = select.props('items') as { type?: string; label: string; value?: string }[][]
+    expect(groups.map((group) => group[0]!.label)).toEqual(['Elements', 'Connections'])
+    expect(groups[1]!.slice(1).map((item) => item.label)).toEqual(['Information Flow'])
+    select.vm.$emit('update:modelValue', INFORMATION_FLOW.id)
+    await flushPromises()
+    await submit(wrapper, 'Data Flow Overview')
+    const post = recorded.find((request) => request.init?.method === 'POST')
+    expect(JSON.parse(String(post?.init?.body)).primaryMetatypeId).toBe(INFORMATION_FLOW.id)
   })
 
   // spec "Collision in the creation form"

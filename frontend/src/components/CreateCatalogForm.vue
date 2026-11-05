@@ -37,9 +37,19 @@ const errors = ref<Partial<Record<Field, string>>>({})
 const failure = ref<string>()
 const submitting = ref(false)
 
-const typeItems = computed(() =>
-  metatypes.value.map((metatype) => ({ label: label(labelKeys.metatype(metatype.id), metatype.name), value: metatype.id })),
-)
+// elements and connections in two groups (US-080): a connection catalog lists connections
+const typeItems = computed(() => {
+  const item = (metatype: MetatypeDetail) => ({ label: label(labelKeys.metatype(metatype.id), metatype.name), value: metatype.id })
+  const elements = metatypes.value.filter((metatype) => !metatype.isConnection).map(item)
+  const connections = metatypes.value.filter((metatype) => metatype.isConnection).map(item)
+  if (connections.length === 0) {
+    return elements
+  }
+  return [
+    [{ type: 'label' as const, label: t('createCatalog.elementTypes') }, ...elements],
+    [{ type: 'label' as const, label: t('createCatalog.connectionTypes') }, ...connections],
+  ]
+})
 const scopeItems = computed(() => [
   {
     label: t('catalogs.shared'),
@@ -61,7 +71,7 @@ const joinModeItems = computed(() => [
 onMounted(async () => {
   try {
     metatypes.value = [...(await fetchMetatypes(props.fetchFn))].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-    form.primaryMetatypeId = metatypes.value[0]?.id
+    form.primaryMetatypeId = (metatypes.value.find((metatype) => !metatype.isConnection) ?? metatypes.value[0])?.id
   } catch {
     failure.value = t('createCatalog.typesFailed')
   }
