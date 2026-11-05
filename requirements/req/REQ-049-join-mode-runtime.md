@@ -4,9 +4,9 @@ title: Switch the join mode of a catalog at runtime
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-05
 author: requirements-engineer
 references:
   use_cases:
@@ -105,9 +105,11 @@ Example: `GET /api/v1/catalogs/{id}/query?joinMode[abc-123]=rows&joinMode[def-45
 - No separate endpoint needed; the parameter is passed directly to the REQ-046 endpoint
 - Frontend: toggle control per JoinDefinition (label: "Rows" / "Compact" or "rows" / "aggregate"); changes the query parameter and triggers a new fetch
 - No server-side session state needed; the override lives in the frontend state
+- Realized by OpenSpec change `us-048-catalog-joins`: the switch "Compact / Rows" in the header of every join in SCR-020; the mode of a join that differs from its default is kept in the URL as `mode={joinId}:rows` (ADR-044); an unknown join answers 400 `joinMode`. Tests: `CatalogJoinsTests`, `CatalogPage.spec.ts`, `features/catalog/catalog-query.feature`
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft |
+| 0.2.0 | 2026-11-05 | Change us-048-catalog-joins | Implementation note |

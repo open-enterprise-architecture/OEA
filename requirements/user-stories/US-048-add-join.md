@@ -2,8 +2,9 @@
 
 **ID**: US-048
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S9
+**Implementation**: OpenSpec change `us-048-catalog-joins` – joins through `POST`/`PUT`/`DELETE /catalogs/{id}/joins` and the dialog "Joins" in SCR-020; the query returns `joinResults` per join ID
 
 ## Story
 
@@ -50,8 +51,8 @@ As a Lead Enterprise Architect, I want to be able to add a join to another entit
 
 ## Technical Notes
 
-- Affected components: join configurator in the catalog configuration area, backend `POST /api/v1/catalogs/{id}/joins`, `DELETE /api/v1/catalogs/{id}/joins/{joinId}`
-- UX: step-by-step configurator (wizard): 1. select connection type → 2. select direction → 3. select target type → 4. configure columns and mode
+- Affected components: the dialog "Joins" in SCR-020 next to "Configure columns" (realigned 2026-11-05, owner decision), backend `POST /api/v1/catalogs/{id}/joins`, `PUT` and `DELETE /api/v1/catalogs/{id}/joins/{joinId}`
+- UX: a form in four steps: 1. select connection type → 2. select direction → 3. select target type → 4. configure columns, name and mode
 - Dependency: US-046; UC-04/REQ-036 (connection types must be defined in the metamodel)
 
 ## Definition of Done

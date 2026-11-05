@@ -2,7 +2,7 @@
 title: Kataloge
 covers:
   screens: [SCR-020, SCR-028]
-  stories: [US-046, US-047, US-049]
+  stories: [US-046, US-047, US-048, US-049, US-050]
 ---
 
 # Kataloge
@@ -64,3 +64,28 @@ Du bestimmst, welche Attribute ein Katalog zeigt, in welcher Reihenfolge und unt
 Eine Eigenschaft, die dem Entitätstyp nicht mehr zugeordnet ist, erscheint als *Nicht verfügbar* und wird beim Speichern entfernt. Jede Änderung wird im Audit-Trail festgehalten.
 
 Über die API ersetzt `PUT /catalogs/{id}/columns` die Liste. Jede Spalte nennt ein Feld (`"field": "name"`, `description`, `externalId`, `createdAt`, `updatedAt`, `entityVersion`) oder eine Eigenschaft (`"propertyDefId": "…"`), mit `displayLabel`, `visible`, `sortable` und höchstens einer `defaultSortDirection` (`asc` oder `desc`). Eine leere Liste stellt die Standardspalten wieder her.
+
+## Joins {#joins}
+
+Ein Join zeigt verbundene Entitäten neben jedem Eintrag des Katalogs, zum Beispiel alle Schnittstellen einer Anwendung. Er folgt einem Verbindungstyp des Metamodells, etwa *Data Flow*. Joins konfigurierst du wie Spalten: Ein geteilter Katalog verlangt die Berechtigung, Kataloge zu verwalten; deinen eigenen persönlichen Katalog konfigurierst du selbst.
+
+1. Öffne den Katalog und wähle *Joins*. Der Dialog listet die Joins des Katalogs.
+2. Wähle *Join hinzufügen* und gehe durch die vier Schritte:
+   1. *Verbindungstyp*: Angeboten werden nur Verbindungstypen, die den Entitätstyp des Katalogs verbinden.
+   2. *Richtung*: *Ausgehend* folgt Verbindungen, die beim Eintrag beginnen, *Eingehend* solchen, die bei ihm enden, *Beide Richtungen* beiden; eine Entität, die in beiden Richtungen erreicht wird, erscheint einmal.
+   3. *Zieltyp*: nur Entitätstypen, die der Verbindungstyp an seinem anderen Ende erlaubt.
+   4. *Name*, *Standardmodus* und die Spalten des Zieltyps, gewählt wie unter [Spalten konfigurieren](#configure-columns). Der Name wird zur Überschrift über den Spalten des Joins.
+3. Wähle *Speichern*. Die Tabelle zeigt den Join als Gruppe von Spalten.
+
+*Bearbeiten* ändert einen Join, *Entfernen* entfernt ihn. Ein Join, dessen Verbindungstyp oder Zieltyp nicht mehr existiert oder die Entitätstypen nicht mehr verbindet, erscheint als *Nicht verfügbar* und fehlt in der Tabelle. Ein Katalog hat höchstens 10 Joins. Jede Änderung wird im Audit-Trail festgehalten.
+
+### Kompakt oder Zeilen
+
+Jeder Join hat in seiner Überschrift den Umschalter *Kompakt / Zeilen*:
+
+- *Kompakt* zeigt eine Zeile pro Eintrag; eine Zelle listet alle verbundenen Entitäten, eine pro Zeile. Ein Eintrag ohne verbundene Entitäten behält seine Zeile mit einer leeren Zelle.
+- *Zeilen* zeigt eine Zeile pro verbundener Entität; der Eintrag wiederholt sich. In diesem Modus kannst du auch nach einer Spalte des Joins sortieren, und die Seite zählt Zeilen.
+
+Der Umschalter ändert nur deine Ansicht, nicht den Katalog. Er ist Teil der Adresse der Seite, wie Sortierung und Seite. Stehen mehrere Joins auf *Zeilen*, bekommt jede Kombination ihrer verbundenen Entitäten eine eigene Zeile. Beim Öffnen des Katalogs gilt der *Standardmodus* des Joins, sonst der Standard-Join-Modus des Katalogs.
+
+Über die API fügt `POST /catalogs/{id}/joins` einen Join hinzu, mit `name`, `connectionMetatypeId`, `joinDirection` (`outbound`, `inbound`, `both`), `targetMetatypeId`, `targetColumns` (wie die Spalten, ohne Standardsortierung) und `defaultJoinMode` (`rows`, `aggregate` oder `null`). `PUT` und `DELETE /catalogs/{id}/joins/{joinId}` ändern und entfernen ihn. Die Abfrage liefert die Ergebnisse jedes Joins in `joinResults` unter der ID des Joins; `joinMode[{joinId}]=rows` schaltet einen Join für eine Abfrage um, und `sort={joinId}.{key}:asc` sortiert im Zeilenmodus nach einer Spalte des Joins.

@@ -2,7 +2,7 @@
 title: Catalogs
 covers:
   screens: [SCR-020, SCR-028]
-  stories: [US-046, US-047, US-049]
+  stories: [US-046, US-047, US-048, US-049, US-050]
 ---
 
 # Catalogs
@@ -64,3 +64,28 @@ You decide which attributes a catalog shows, in which order and under which head
 A property that is no longer assigned to the entity type shows as *Not available* and is removed when you save. Every change is recorded in the audit trail.
 
 Through the API, `PUT /catalogs/{id}/columns` replaces the list. Each column names a field (`"field": "name"`, `description`, `externalId`, `createdAt`, `updatedAt`, `entityVersion`) or a property (`"propertyDefId": "…"`), with `displayLabel`, `visible`, `sortable` and at most one `defaultSortDirection` (`asc` or `desc`). An empty list restores the default columns.
+
+## Joins {#joins}
+
+A join shows related entities next to each entry of the catalog, for example all interfaces of an application. It follows a connection type of the metamodel, such as *Data Flow*. Joins are configured like columns: a shared catalog needs the permission to manage catalogs, your own personal catalog you configure yourself.
+
+1. Open the catalog and choose *Joins*. The dialog lists the joins of the catalog.
+2. Choose *Add join* and go through the four steps:
+   1. *Connection type*: only connection types that connect the entity type of the catalog are offered.
+   2. *Direction*: *Outgoing* follows connections that start at the entry, *Incoming* those that end at it, *Both directions* both; an entity reached in both directions is listed once.
+   3. *Target type*: only entity types the connection type allows at its other end.
+   4. *Name*, *Default mode* and the columns of the target type, chosen like in [Configure columns](#configure-columns). The name becomes the header above the columns of the join.
+3. Choose *Save*. The table shows the join as a group of columns.
+
+*Edit* changes a join, *Remove* removes it. A join whose connection type or target type no longer exists or no longer connects the entity types shows as *Not available* and is left out of the table. A catalog has at most 10 joins. Every change is recorded in the audit trail.
+
+### Compact or rows
+
+Every join has the switch *Compact / Rows* in its header:
+
+- *Compact* shows one row per entry; a cell lists all linked entities, one per line. An entry without linked entities keeps its row with an empty cell.
+- *Rows* shows one row per linked entity; the entry repeats. In this mode you can also sort by a column of the join, and the page counts rows.
+
+The switch changes only your view, not the catalog. It is part of the address of the page, like sort and page. With several joins in *Rows*, each combination of their linked entities gets a row of its own. The *Default mode* of a join, or else the default join mode of the catalog, applies when you open the catalog.
+
+Through the API, `POST /catalogs/{id}/joins` adds a join with `name`, `connectionMetatypeId`, `joinDirection` (`outbound`, `inbound`, `both`), `targetMetatypeId`, `targetColumns` (like the columns, without default sort) and `defaultJoinMode` (`rows`, `aggregate` or `null`). `PUT` and `DELETE /catalogs/{id}/joins/{joinId}` change and remove it. The query returns the results of every join in `joinResults` under the ID of the join; `joinMode[{joinId}]=rows` switches a join for one query, and `sort={joinId}.{key}:asc` sorts by a join column in rows mode.

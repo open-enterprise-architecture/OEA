@@ -2,8 +2,9 @@
 
 **ID**: US-050
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S9
+**Implementation**: OpenSpec change `us-048-catalog-joins` – the switch "Compact / Rows" per join in SCR-020 and `joinMode[{joinId}]` of the catalog query; the mode is part of the URL (ADR-044)
 
 ## Story
 

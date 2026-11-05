@@ -36,6 +36,34 @@
         "updatedAt": "Geändert",
         "entityVersion": "Version"
       }
+    },
+    "joins": {
+      "title": "Joins",
+      "hint": "Joins zeigen verbundene Entitäten neben jedem Eintrag des Katalogs, erreicht über einen Verbindungstyp.",
+      "none": "Der Katalog hat noch keine Joins.",
+      "add": "Join hinzufügen",
+      "edit": "Bearbeiten",
+      "editNamed": "Join {name} bearbeiten",
+      "remove": "Entfernen",
+      "removeNamed": "Join {name} entfernen",
+      "close": "Schliessen",
+      "connection": "Verbindungstyp",
+      "direction": "Richtung",
+      "target": "Zieltyp",
+      "name": "Name",
+      "defaultMode": "Standardmodus",
+      "columns": "Spalten des Zieltyps",
+      "step": "Schritt {step} von 4",
+      "noConnections": "Kein Verbindungstyp verbindet diesen Entitätstyp.",
+      "outbound": "Ausgehend",
+      "inbound": "Eingehend",
+      "both": "Beide Richtungen",
+      "catalogDefault": "Standard des Katalogs",
+      "compact": "Kompakt",
+      "rows": "Zeilen",
+      "modeOf": "Darstellung von {name}",
+      "failed": "Der Join konnte nicht gespeichert werden.",
+      "loadFailed": "Die Entitätstypen konnten nicht geladen werden."
     }
   },
   "catalogs": {

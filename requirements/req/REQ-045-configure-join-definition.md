@@ -4,9 +4,9 @@ title: Add a join definition to a catalog
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-05
 author: requirements-engineer
 references:
   use_cases:
@@ -32,7 +32,7 @@ superseded_by: []
 
 ## Statement
 
-The system MUST allow the catalog manager to add, edit, and remove `JoinDefinition` entries on a [Catalog](../../business-objects/catalog.md). A `JoinDefinition` consists of: `name` (mandatory), `connectionType` (mandatory; EntityType with `isConnection=true` – BR-02), `joinDirection` (mandatory: `outbound` | `inbound` | `both`), `targetEntityType` (mandatory; must be reachable according to `allowedSourceTypes`/`allowedTargetTypes` of the ConnectionType – BR-03), `targetColumns` (ColumnConfig[]; attributes of the target entity), `defaultJoinMode` (optional; `rows` | `aggregate`; default = Catalog.defaultJoinMode), and `aggregateLabel` (optional; label of the aggregate cell).
+The system MUST allow the catalog manager to add, edit, and remove `JoinDefinition` entries on a [Catalog](../../business-objects/catalog.md). A `JoinDefinition` consists of: `name` (mandatory), `connectionMetatypeId` (mandatory; metatype with `isConnection=true` – BR-02), `joinDirection` (mandatory: `outbound` | `inbound` | `both`), `targetMetatypeId` (mandatory; must be reachable through the connection metatype in the direction by its allowed endpoints – BR-03), `targetColumns` (ColumnConfig[]; attributes of the target metatype), and `defaultJoinMode` (optional; `rows` | `aggregate`; default = Catalog.defaultJoinMode).
 
 ## Rationale
 
@@ -55,18 +55,17 @@ The join logic in OEA is not based on SQL JOINs across database tables but on th
 | Field | Type | Optional | Description |
 |---|---|---|---|
 | name | string | mandatory | Readable label of the join (e.g., "Interfaces") |
-| connectionType | string | mandatory | EntityType name; must have `isConnection=true` (BR-02) |
+| connectionMetatypeId | UUID | mandatory | Metatype; must have `isConnection=true` (BR-02) |
 | joinDirection | enum | mandatory | `outbound`, `inbound`, `both` |
-| targetEntityType | string | mandatory | EntityType of the target entity; must be reachable via connectionType (BR-03) |
-| targetColumns | ColumnConfig[] | mandatory | At least 1 entry; `attributeName` must be an attribute of targetEntityType |
+| targetMetatypeId | UUID | mandatory | Metatype of the target entities; must be reachable via the connection metatype (BR-03) |
+| targetColumns | ColumnConfig[] | mandatory | 1–20 entries, at least one visible; `field` or `propertyDefId` of the target metatype as in REQ-044, without default sort |
 | defaultJoinMode | enum | optional | `rows` or `aggregate`; default = Catalog.defaultJoinMode |
-| aggregateLabel | string | optional | Max. 255 characters; label of the aggregated cell; default = name |
 
 **Processing**:
 
-1. Validate `connectionType` against the MetamodelConfiguration: must exist and have `isConnection=true` (BR-02); otherwise 422
-2. Validate `targetEntityType` against `allowedSourceTypes` and `allowedTargetTypes` of the ConnectionType (taking `joinDirection` into account); 422 if not reachable (BR-03)
-3. Validate `targetColumns[].attributeName` against the attributes of the `targetEntityType`; 422 on unknown attribute names
+1. Validate `connectionMetatypeId` against the MetamodelConfiguration: must exist and have `isConnection=true` (BR-02); otherwise 422
+2. Validate `targetMetatypeId` against the allowed endpoints of the connection metatype (taking `joinDirection` into account); 422 if not reachable (BR-03)
+3. Validate `targetColumns` against the attributes of the target metatype; 422 naming the column, e.g. `targetColumns[1].propertyDefId`
 4. Persist the JoinDefinition with a generated `id` in the catalog
 
 **Outputs**:
@@ -80,20 +79,20 @@ The join logic in OEA is not based on SQL JOINs across database tables but on th
 **AC1** (Add join, happy path):
 
 - Given: catalog "Application Inventory" with primaryEntityType=ApplicationComponent; the MetamodelConfiguration has ConnectionType `DataFlow` (isConnection=true, allowedSourceTypes=[ApplicationComponent], allowedTargetTypes=[Interface])
-- When: `POST /api/v1/catalogs/{id}/joins` with `{ name: "Interfaces", connectionType: "DataFlow", joinDirection: "outbound", targetEntityType: "Interface", targetColumns: [{attributeName: "name", sortOrder: 0}], defaultJoinMode: "aggregate" }`
+- When: `POST /api/v1/catalogs/{id}/joins` with `{ name: "Interfaces", connectionMetatypeId: <DataFlow>, joinDirection: "outbound", targetMetatypeId: <Interface>, targetColumns: [{field: "name"}], defaultJoinMode: "aggregate" }`
 - Then: HTTP 201; the catalog contains the new JoinDefinition with a generated id
 
 **AC2** (BR-02 – connectionType is not a connection type):
 
 - Given: `ApplicationComponent` has `isConnection=false`
-- When: `connectionType: "ApplicationComponent"` in the request
-- Then: HTTP 422 "The type ‹ApplicationComponent› is not a connection type (isConnection=false)"
+- When: `connectionMetatypeId: <ApplicationComponent>` in the request
+- Then: HTTP 422 naming `connectionMetatypeId`
 
 **AC3** (BR-03 – targetEntityType not reachable):
 
 - Given: DataFlow has `allowedTargetTypes=[Interface]`
-- When: `targetEntityType: "TechnologyComponent"` with `joinDirection=outbound`
-- Then: HTTP 422 "The EntityType ‹TechnologyComponent› is not reachable via ‹DataFlow› in direction outbound"
+- When: `targetMetatypeId: <TechnologyComponent>` with `joinDirection=outbound`
+- Then: HTTP 422 naming `targetMetatypeId`
 
 **AC4** (Remove join):
 
@@ -102,9 +101,9 @@ The join logic in OEA is not based on SQL JOINs across database tables but on th
 
 **AC5** (targetColumns validation):
 
-- Given: Interface has no attribute `nonExistingProp`
-- When: targetColumns contains `attributeName: "nonExistingProp"`
-- Then: HTTP 422 "The attribute ‹nonExistingProp› is not defined for the type ‹Interface›"
+- Given: Interface does not map the property `nonExistingProp`
+- When: targetColumns contains `propertyDefId: <nonExistingProp>`
+- Then: HTTP 422 naming the column, e.g. `targetColumns[0].propertyDefId`
 
 ## Dependencies
 
@@ -116,9 +115,11 @@ The join logic in OEA is not based on SQL JOINs across database tables but on th
 - Endpoints: `POST /api/v1/catalogs/{id}/joins`, `PUT /api/v1/catalogs/{id}/joins/{joinId}`, `DELETE /api/v1/catalogs/{id}/joins/{joinId}`
 - `joinDirection=both`: traverse outbound + inbound; deduplicate results by entityId
 - Order of joins: by creation order; optionally reorderable by the manager
+- Realized by OpenSpec change `us-048-catalog-joins`: operations `addCatalogJoin` (201 with the catalog), `updateCatalogJoin` and `removeCatalogJoin` (200 with the catalog); at most 10 joins; permissions as for the columns (REQ-044); audit events `catalog.join-added`, `catalog.join-changed`, `catalog.join-removed`; the dialog "Joins" in SCR-020. Tests: `CatalogJoinsTests`, `CatalogPage.spec.ts`, `features/catalog/catalog-joins.feature`
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft |
+| 0.2.0 | 2026-11-05 | Change us-048-catalog-joins | Metatype IDs instead of names, target columns as in REQ-044, `aggregateLabel` dropped, 422 naming the field, DELETE answers the catalog; implementation note |

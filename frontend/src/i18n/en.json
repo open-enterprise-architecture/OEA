@@ -36,6 +36,34 @@
         "updatedAt": "Updated",
         "entityVersion": "Version"
       }
+    },
+    "joins": {
+      "title": "Joins",
+      "hint": "Joins show related entities of the catalog, reached through a connection type, next to each entry.",
+      "none": "The catalog has no joins yet.",
+      "add": "Add join",
+      "edit": "Edit",
+      "editNamed": "Edit join {name}",
+      "remove": "Remove",
+      "removeNamed": "Remove join {name}",
+      "close": "Close",
+      "connection": "Connection type",
+      "direction": "Direction",
+      "target": "Target type",
+      "name": "Name",
+      "defaultMode": "Default mode",
+      "columns": "Columns of the target type",
+      "step": "Step {step} of 4",
+      "noConnections": "No connection type connects this entity type.",
+      "outbound": "Outgoing",
+      "inbound": "Incoming",
+      "both": "Both directions",
+      "catalogDefault": "Catalog default",
+      "compact": "Compact",
+      "rows": "Rows",
+      "modeOf": "Display of {name}",
+      "failed": "The join could not be saved.",
+      "loadFailed": "The entity types could not be loaded."
     }
   },
   "catalogs": {

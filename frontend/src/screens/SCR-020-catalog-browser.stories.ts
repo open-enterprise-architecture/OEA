@@ -11,6 +11,7 @@ import {
   CATALOG,
   CATALOGS,
   catalogApi,
+  INTERFACES_JOIN,
   manyApplications,
   METATYPES,
   ME_ARCHITECT,
@@ -32,14 +33,14 @@ function overviewApi(me: unknown, catalogs: unknown[]): typeof fetch {
 }
 
 /** The catalog page with the applications; `query` is the view state in the URL (ADR-044). */
-function catalog(applications: Application[], query: Record<string, string> = {}): Story {
+function catalog(applications: Application[], query: Record<string, string> = {}, options: { catalog?: unknown } = {}): Story {
   return {
     render: () => ({
       components: { CatalogPage },
       setup: () => {
         const router = useRouter()
         onBeforeMount(() => router.replace({ query }))
-        return { fetchFn: catalogApi(applications), id: CATALOG.id }
+        return { fetchFn: catalogApi(applications, options), id: CATALOG.id }
       },
       template: '<CatalogPage :id="id" :fetch-fn="fetchFn" />',
     }),
@@ -139,3 +140,28 @@ export const ConfiguredColumns: Story = {
   },
 }
 
+
+// US-048: the dialog "Joins" with the join "Interfaces" and the steps of a new join
+export const Joins: Story = {
+  ...catalog(APPLICATIONS, {}, { catalog: { ...CATALOG, joinDefinitions: [INTERFACES_JOIN] } }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('REST API')).toBeInTheDocument()
+    await userEvent.click(await canvas.findByRole('button', { name: 'Joins' }))
+    const dialog = within(canvasElement.ownerDocument.body)
+    await expect(await dialog.findByTestId('join-name')).toHaveTextContent('Interfaces')
+    await userEvent.click(dialog.getByTestId('join-add'))
+    await expect(await dialog.findByText('Step 1 of 4')).toBeInTheDocument()
+  },
+}
+
+// US-050: the join "Interfaces" in rows mode, one row per interface
+export const JoinRows: Story = {
+  ...catalog(APPLICATIONS, { mode: `${INTERFACES_JOIN.id}:rows` }, { catalog: { ...CATALOG, joinDefinitions: [INTERFACES_JOIN] } }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('SFTP Export')).toBeInTheDocument()
+    const rows = canvasElement.querySelectorAll('[data-testid="catalog-table"] tbody tr')
+    await expect(rows).toHaveLength(4)
+  },
+}

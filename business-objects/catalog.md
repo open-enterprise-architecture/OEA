@@ -2,7 +2,7 @@
 identifier: catalog
 name_de: Katalog
 name_en: Catalog
-version: 0.3.0
+version: 0.4.0
 status: draft
 maturity: initial
 owner_role: Lead Enterprise Architect
@@ -128,13 +128,14 @@ The position in the list is the display order (it replaces `sortOrder`, change u
 | Attribute | Type | Optional | Default | Description |
 |---|---|---|---|---|
 | id | string | required | | UUID v4 |
-| name | string | required | | Readable name for this join (e.g. "Interfaces") |
-| connectionType | string | required | | EntityType name with `isConnection=true` |
-| joinDirection | enum | required | `outbound` | `[outbound, inbound, both]`; outbound = primary entity as source, inbound = as target |
-| targetEntityType | string | required | | EntityType of the target entity after the join |
-| targetColumns | ColumnConfig[] | required | [] | Attributes of the target entity that appear as columns |
-| defaultJoinMode | enum | optional | = Catalog.defaultJoinMode | `[rows, aggregate]`; overrides the catalog default for this join |
-| aggregateLabel | string | optional | = `name` | Label of the aggregate cell in `aggregate` mode |
+| name | string | required | | 1–100 characters; the header above the columns of the join |
+| connectionMetatypeId | UUID | required | | Metatype with `isConnection=true` of the instance metamodel (BR-02) |
+| joinDirection | enum | required | | `[outbound, inbound, both]`; outbound = primary entity as source, inbound = as target, both = either, targets deduplicated |
+| targetMetatypeId | UUID | required | | Metatype of the target entities, reachable through the connection metatype (BR-03); targets have exactly this metatype |
+| targetColumns | ColumnConfig[] | required | | 1–20 attributes of the target metatype, at least one visible, without `defaultSortDirection` (BR-10) |
+| defaultJoinMode | enum | optional | null | `[rows, aggregate]`; null = Catalog.defaultJoinMode |
+
+A catalog has at most 10 joins, in creation order (change us-048-catalog-joins). `aggregateLabel` was dropped: the join name is the header. Only active connections and active target entities count. A join whose metatypes are gone or no longer reachable is kept but left out of the query (`available = false`).
 
 ### SavedFilter
 
@@ -187,14 +188,15 @@ The position in the list is the display order (it replaces `sortOrder`, change u
 | Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
 | BR-01 | `primaryEntityType` MUST reference an existing EntityType of the MetamodelConfiguration | onCreate, onUpdate | – |
-| BR-02 | `JoinDefinition.connectionType` MUST be an EntityType with `isConnection=true` | onCreate, onUpdate | – |
-| BR-03 | `JoinDefinition.targetEntityType` MUST correspond to one of the `allowedSourceTypes` or `allowedTargetTypes` of the ConnectionType (or be arbitrary if null) | onCreate, onUpdate | – |
+| BR-02 | `JoinDefinition.connectionMetatypeId` MUST be a metatype with `isConnection=true` | onCreate, onUpdate | REQ-045 AC2 |
+| BR-03 | `JoinDefinition.targetMetatypeId` MUST be reachable from the primary metatype through the connection metatype in `joinDirection`, by its allowed endpoints (with subtypes; no constraint on a side allows every metatype) | onCreate, onUpdate | REQ-045 AC3 |
 | BR-04 | A `SavedFilter.expression.attributePath` MUST point to a valid attribute of the primary entity or of a joined target entity | onCreate, onUpdate | – |
 | BR-05 | `SavedView.columnOrder` may only contain attribute names that are defined in the catalog's `columns` configuration | onCreate, onUpdate | – |
 | BR-06 | At most one `SavedView` per catalog may have `isDefault=true` | onCreate, onUpdate | – |
 | BR-07 | A non-empty `columns` list MUST contain at least one column with `visible=true`; an attribute appears at most once | onUpdate | REQ-044 AC3 |
 | BR-08 | At most one column MAY carry a `defaultSortDirection`; the query uses it when no sort is requested | onUpdate | REQ-044 |
-| BR-09 | The columns of a catalog with `scope=instance` are changed only with `catalog:manage`, those of a personal catalog only by its creator | onUpdate | ADR-032 §8 |
+| BR-09 | The columns and joins of a catalog with `scope=instance` are changed only with `catalog:manage`, those of a personal catalog only by its creator | onUpdate | ADR-032 §8 |
+| BR-10 | The target columns of a join follow BR-07 for the target metatype and carry no `defaultSortDirection`; removing a join removes the `joinModeOverrides` that refer to it | onCreate, onUpdate, onDelete | REQ-045 AC4, AC5 |
 
 ## Notes
 
@@ -278,4 +280,5 @@ savedViews:
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Business Engineer | Initial draft; join modes (rows/aggregate), SavedFilter, SavedView, ColumnConfig, JoinDefinition |
 | 0.2.0 | 2026-10-19 | Change us-046-create-catalog | Primary entity type by ID; name uniqueness case-insensitive and trimmed; empty columns allowed; notes on identity, namespace and permissions |
+| 0.4.0 | 2026-11-05 | Change us-048-catalog-joins | JoinDefinition as implemented: metatype IDs, `aggregateLabel` dropped, limits; BR-02, BR-03 sharpened, BR-10 |
 | 0.3.0 | 2026-11-05 | Change us-047-configure-columns | ColumnConfig as implemented: `field` or `propertyDefId` instead of `attributeName`, list order instead of `sortOrder`; BR-07 to BR-09; stale columns |

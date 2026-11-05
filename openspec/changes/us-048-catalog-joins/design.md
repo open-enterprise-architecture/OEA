@@ -134,7 +134,7 @@ The steps compute their options from `listMetatypes` and the connection constrai
 - in rows mode it shows the single value;
 - sorting by a join column is offered only in rows mode.
 
-**URL state.** The mode is kept as `mode=<joinId>:rows` for every join whose mode differs from its default (ADR-044). Switching does not change `page`, except that a page beyond the new total returns to the last page. An invalid or unknown entry is ignored and removed from the URL, like an invalid sort.
+**URL state.** The mode is kept as `mode=<joinId>:<mode>` for every join whose mode differs from its default (ADR-044). Switching keeps `page`; a page beyond the new total returns to the first page, as for an old link. Switching a join to compact ends a sort by one of its columns. An invalid or unknown entry is removed from the URL together with sort and page, like an invalid sort.
 
 **Stories** "Joins" (dialog) and "Join rows" (table in rows mode), plus specs for the scenarios. The messages come in English and German.
 
