@@ -128,7 +128,7 @@ If `primaryEntityType.isConnection=true` is set, at least one JoinDefinition mus
 ## Implementation
 
 - ADR(s): ADR-010, ADR-004
-- Implemented by: OpenSpec change `us-080-connection-catalogs` (AC1–AC5):
+- Implemented by: OpenSpec change `us-080-connection-catalogs`, commit 1db957d (#187) (AC1–AC5):
   - `allowsConnectionAsSource` is not a flag: the allowed endpoints of the connection metatypes decide whether a connection can be the source of another one (US-036);
   - the virtual fields `sourceEntityName` and `targetEntityName` became endpoint columns: `CatalogColumnConfig.endpoint` (`source` or `target`) with a system field or a property, keys `source.{key}` and `target.{key}`, sortable; without configured columns the query shows `source.name`, `name` and `target.name`;
   - BR-04 became a hint in the dialog "Joins" for a connection catalog that no connection type can join;

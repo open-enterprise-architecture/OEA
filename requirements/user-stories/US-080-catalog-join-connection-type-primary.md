@@ -17,7 +17,7 @@ last_updated: 2026-11-05
 **I want** to create a catalog in which `data-flow` (a connection) is the primary EntityType,  
 **so that** I can list all DataFlow connections in tabular form and join linked DataObjects via `carries-data`.
 
-**Implementation**: OpenSpec change `us-080-connection-catalogs` – a connection metatype as primary metatype with endpoint columns `source.{key}` and `target.{key}` and the default columns source name, name and target name in SCR-020; AC5 and AC6 follow with the filter change (S9 change 3, owner decision 2026-11-05)
+**Implementation**: OpenSpec change `us-080-connection-catalogs`, commit 1db957d (#187) – a connection metatype as primary metatype with endpoint columns `source.{key}` and `target.{key}` and the default columns source name, name and target name in SCR-020; AC5 and AC6 follow with the filter change (S9 change 3, owner decision 2026-11-05)
 
 ## Acceptance Criteria
 

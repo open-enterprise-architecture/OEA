@@ -8,9 +8,9 @@ Defines the column configuration of a catalog: which attributes of the primary m
 
 ### Requirement: All attributes as columns
 
-The configuration SHALL offer every system field (name, description, external ID, created, updated, version) and every `public` property mapped to the primary metatype, including inherited mappings. A column SHALL name a property by its ID; an unknown, unmapped or duplicate attribute SHALL be rejected with 422.
+The configuration SHALL offer every system field and every `public` property mapped to the primary metatype, including inherited mappings. A connection catalog SHALL also offer them for its source and target: the properties of the side's allowed endpoint metatypes and their subtypes, or all `public` properties without a constraint. An unknown, unoffered or duplicate attribute SHALL be rejected with 422.
 
-Trace: US-047 AC1, REQ-044 AC2, owner decision 2026-11-05
+Trace: US-047 AC1, REQ-044 AC2, US-080 AC2, REQ-065 AC5, owner decisions 2026-11-05
 
 #### Scenario: Built-in and custom attributes
 
@@ -21,6 +21,18 @@ Trace: US-047 AC1, REQ-044 AC2, owner decision 2026-11-05
 #### Scenario: Attribute of another metatype
 
 - **WHEN** the columns of the catalog name a property that `Application Component` does not map
+- **THEN** the change is rejected with 422 naming the column
+
+#### Scenario: Attributes of source and target
+
+- **GIVEN** a catalog for `Data Flow`, whose allowed source and target is `Application Component` with the property `Vendor`
+- **WHEN** Lukas opens the column configuration
+- **THEN** besides the attributes of `Data Flow`, the groups "Source" and "Target" offer the system fields and `Vendor`
+- **AND** a column "Source: Vendor" shows the vendor of each data flow's source application
+
+#### Scenario: Endpoint column outside a connection catalog
+
+- **WHEN** the columns of a catalog for `Application Component`, or the target columns of a join, name an attribute of a source or target
 - **THEN** the change is rejected with 422 naming the column
 
 ### Requirement: Order, label and visibility

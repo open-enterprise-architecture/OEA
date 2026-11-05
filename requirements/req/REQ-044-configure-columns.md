@@ -109,7 +109,7 @@ The column configuration can be replaced completely (PUT) or supplemented/change
 
 - Endpoint: `PUT /api/v1/catalogs/{id}/columns` (`updateCatalogColumns`)
 - Attribute validation: the properties mapped to the EntityType (also inherited), not retired, visibility `public`; the system fields are always available
-- Endpoint columns (change us-080-connection-catalogs, REQ-065): a catalog of a connection metatype may name `endpoint` `source` or `target` with a system field or a property of an allowed endpoint metatype of that side (catalog BR-11)
+- Endpoint columns (change us-080-connection-catalogs, commit 1db957d, #187, REQ-065): a catalog of a connection metatype may name `endpoint` `source` or `target` with a system field or a property of an allowed endpoint metatype of that side (catalog BR-11)
 - SavedView cleanup (AC4) and PATCH follow with the saved views
 - Realized by OpenSpec change `us-047-configure-columns` (commit bd6ef07, #180): columns by system field or property ID, labels, visibility, sortability, one default sort; the dialog "Configure columns" in SCR-020; audit event `catalog.columns-changed`. Tests: `CatalogColumnsTests`, `CatalogPage.spec.ts`, `features/catalog/catalog-columns.feature`
 
