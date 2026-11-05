@@ -105,7 +105,7 @@ Example: `GET /api/v1/catalogs/{id}/query?joinMode[abc-123]=rows&joinMode[def-45
 - No separate endpoint needed; the parameter is passed directly to the REQ-046 endpoint
 - Frontend: toggle control per JoinDefinition (label: "Rows" / "Compact" or "rows" / "aggregate"); changes the query parameter and triggers a new fetch
 - No server-side session state needed; the override lives in the frontend state
-- Realized by OpenSpec change `us-048-catalog-joins`: the switch "Compact / Rows" in the header of every join in SCR-020; the mode of a join that differs from its default is kept in the URL as `mode={joinId}:rows` (ADR-044); an unknown join answers 400 `joinMode`. Tests: `CatalogJoinsTests`, `CatalogPage.spec.ts`, `features/catalog/catalog-query.feature`
+- Realized by OpenSpec change `us-048-catalog-joins`, commit 6c54edb (#183): the switch "Compact / Rows" in the header of every join in SCR-020; the mode of a join that differs from its default is kept in the URL as `mode={joinId}:rows` (ADR-044); an unknown join answers 400 `joinMode`. Tests: `CatalogJoinsTests`, `CatalogPage.spec.ts`, `features/catalog/catalog-query.feature`
 
 ## Change History
 

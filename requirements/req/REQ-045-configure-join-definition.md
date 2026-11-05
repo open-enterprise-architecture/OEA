@@ -115,7 +115,7 @@ The join logic in OEA is not based on SQL JOINs across database tables but on th
 - Endpoints: `POST /api/v1/catalogs/{id}/joins`, `PUT /api/v1/catalogs/{id}/joins/{joinId}`, `DELETE /api/v1/catalogs/{id}/joins/{joinId}`
 - `joinDirection=both`: traverse outbound + inbound; deduplicate results by entityId
 - Order of joins: by creation order; optionally reorderable by the manager
-- Realized by OpenSpec change `us-048-catalog-joins`: operations `addCatalogJoin` (201 with the catalog), `updateCatalogJoin` and `removeCatalogJoin` (200 with the catalog); at most 10 joins; permissions as for the columns (REQ-044); audit events `catalog.join-added`, `catalog.join-changed`, `catalog.join-removed`; the dialog "Joins" in SCR-020. Tests: `CatalogJoinsTests`, `CatalogPage.spec.ts`, `features/catalog/catalog-joins.feature`
+- Realized by OpenSpec change `us-048-catalog-joins`, commit 6c54edb (#183): operations `addCatalogJoin` (201 with the catalog), `updateCatalogJoin` and `removeCatalogJoin` (200 with the catalog); at most 10 joins; permissions as for the columns (REQ-044); audit events `catalog.join-added`, `catalog.join-changed`, `catalog.join-removed`; the dialog "Joins" in SCR-020. Tests: `CatalogJoinsTests`, `CatalogPage.spec.ts`, `features/catalog/catalog-joins.feature`
 
 ## Change History
 
