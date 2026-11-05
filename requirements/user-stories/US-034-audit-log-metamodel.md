@@ -4,7 +4,7 @@
 **Story Points**: 2
 **Status**: done
 **Sprint**: S8
-**Implementation**: OpenSpec change `us-034-metamodel-changes` – the metamodel changes from the audit trail through `GET /metamodel/changes` and the section "Changes" of SCR-030, for metamodel administrators with the names of the persons
+**Implementation**: OpenSpec change `us-034-metamodel-changes`, commit 24e0968 (#177) – the metamodel changes from the audit trail through `GET /metamodel/changes` and the section "Changes" of SCR-030, for metamodel administrators with the names of the persons
 
 ## Story
 
