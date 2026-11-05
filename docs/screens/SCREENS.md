@@ -18,7 +18,7 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 **Conventions** (ADR-031):
 
 - Story: `frontend/src/screens/SCR-NNN-<short-name>.stories.ts`, title `Screens/SCR-NNN <Name>`
-- Generated images: `docs/screens/SCR-NNN-light.png`, `docs/screens/SCR-NNN-dark.png` – never edited by hand; rendered from the **first story** of the screen's story file (further stories are variants) by `frontend/scripts/render-screens.mjs` (`npm run render:screens` after `npm run build-storybook`); the workflow `.github/workflows/screens.yml` regenerates them on every push to `main` that changes `frontend/`
+- Generated images: `docs/screens/SCR-NNN-light.png`, `docs/screens/SCR-NNN-dark.png` – never edited by hand; rendered from the **first story** of the screen's story file (further stories are variants) by `frontend/scripts/render-screens.mjs` (`npm run render:screens` after `npm run build-storybook`); the workflow `.github/workflows/screens.yml` regenerates them on every pull request that changes `frontend/` and commits changed images to its branch
 - Legacy images: `docs/screens/<name>-light.svg` / `-dark.svg`; deleted when the screen reaches `prototype`
 
 > **Maintenance obligation**: When a screen is added, changed or removed, update this file. `python3 scripts/check_screens.py` checks the inventory against stories and images in CI.

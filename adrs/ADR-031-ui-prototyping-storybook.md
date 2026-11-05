@@ -78,7 +78,7 @@ Concretely:
 1. **Storybook** (Vue 3 + Vite) lives in `frontend/`. Every screen in `docs/screens/SCREENS.md` has a screen story: `frontend/src/screens/SCR-NNN-<short-name>.stories.ts`, story title `Screens/SCR-NNN <Name>`.
 2. **Clickable flows** run in the frontend app in prototype mode against a **mock API** (Mock Service Worker) whose handlers are generated from `api/openapi.yaml`.
 3. **Screen images are generated, never drawn**: a GitHub Actions workflow renders every screen story in light and dark mode with Playwright to `docs/screens/SCR-NNN-light.png` and `SCR-NNN-dark.png`. Screenshots are PNG; SVG export of rendered HTML is not reliable.
-4. **Publication**: on every push to `main` that changes `frontend/`, the workflow regenerates the screenshots and commits changed images with `chore(screens): regenerate screenshots`; Storybook is published to GitHub Pages under `/storybook/` (since ADR-045 the site root shows the user manual).
+4. **Publication**: on every pull request that changes `frontend/`, the workflow regenerates the screenshots and commits changed images to the branch of the pull request with `chore(screens): regenerate screenshots` (amended 2026-11-05, see Notes); Storybook is published to GitHub Pages under `/storybook/` (since ADR-045 the site root shows the user manual).
 5. **Consistency check**: `scripts/check_screens.py` runs in CI and fails if a screen in `SCREENS.md` lacks its story or image, or if a story or image has no inventory entry.
 6. **Penpot is retired**: the Penpot scripts are removed. The existing SVG mockups stay as `legacy-mockup` until the screen story exists; the first generated screenshot replaces the SVG.
 7. **Early sketches** (optional): before a story exists, text wireframes (PlantUML Salt) may be embedded in use cases or OpenSpec designs.
@@ -96,7 +96,7 @@ Concretely:
 
 - UI design work requires Vue/Storybook skills; the UI Designer role writes stories instead of drawing
 - Until the frontend exists, only the legacy SVGs are available as screen images
-- The screenshot workflow needs write access to `main` (`GITHUB_TOKEN` with `contents: write`) and GitHub Pages enabled
+- The screenshot workflow needs write access to the branches of pull requests (a GitHub App token with `contents: write`, see Notes) and GitHub Pages enabled
 
 ### Follow-up Decisions
 
@@ -133,3 +133,13 @@ The screenshot workflow `.github/workflows/screens.yml` is implemented with the 
 - Stories use synthetic data only (`frontend/src/test/catalogs.ts`), injected as a fetch function instead of a mock API server
 - Storybook is published by `.github/workflows/pages.yml` together with the user manual, under `/storybook/` of the Pages site (<https://open-enterprise-architecture.github.io/OEA/storybook/>, change `s2c-manual-site`); the repository variable `STORYBOOK_PAGES` of the first implementation is no longer read
 - A change that adds a screen story commits the first images itself, rendered with the same script, because `scripts/check_screens.py` checks them before the merge; the workflow then keeps them current
+
+### Amendment: images committed in the pull request (2026-11-05)
+
+Decided by the repository owner. Since the repository rules allow changes to `main` only through a pull request with the required checks, the commit job could no longer push the images to `main`; the workflow failed on every push from #161 on, and the images fell behind the stories.
+
+- The workflow runs on pull requests against `main` that change `frontend/`, `api/openapi.yaml` or the workflow itself, and commits changed images to the branch of the pull request; they are reviewed and merged with the change
+- The commit job pushes with a token of the GitHub App "OEA license bot", as `dependabot-licenses.yml` does, so that the required checks run on the new commit; the split into a read-only render job and a commit job limited to `docs/screens/SCR-*.png` (REQ-192 AC2) is kept
+- Pull requests from forks get no images committed; their branches cannot be pushed to
+- If the branch moved on in the meantime, nothing is committed; the run for the newer commit renders the images
+- A change that adds a screen story may still commit the first images itself; otherwise `scripts/check_screens.py` fails until the workflow has committed them
