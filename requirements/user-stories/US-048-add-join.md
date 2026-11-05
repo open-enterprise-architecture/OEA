@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: done
 **Sprint**: S9
-**Implementation**: OpenSpec change `us-048-catalog-joins` – joins through `POST`/`PUT`/`DELETE /catalogs/{id}/joins` and the dialog "Joins" in SCR-020; the query returns `joinResults` per join ID
+**Implementation**: OpenSpec change `us-048-catalog-joins`, commit 6c54edb (#183) – joins through `POST`/`PUT`/`DELETE /catalogs/{id}/joins` and the dialog "Joins" in SCR-020; the query returns `joinResults` per join ID
 
 ## Story
 
