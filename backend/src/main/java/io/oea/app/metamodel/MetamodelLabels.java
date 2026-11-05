@@ -50,10 +50,14 @@ public class MetamodelLabels {
 
 	private final MetamodelAudit audit;
 
-	public MetamodelLabels(JdbcTemplate jdbc, MetamodelEffects effects, MetamodelAudit audit) {
+	private final MetamodelConfigurations configurations;
+
+	public MetamodelLabels(JdbcTemplate jdbc, MetamodelEffects effects, MetamodelAudit audit,
+			MetamodelConfigurations configurations) {
 		this.jdbc = jdbc;
 		this.effects = effects;
 		this.audit = audit;
+		this.configurations = configurations;
 	}
 
 	/** A label of an element in a locale. */
@@ -114,6 +118,7 @@ public class MetamodelLabels {
 			throw MetamodelChangeException.invalid("labels", "More than " + MAXIMUM_KEYS + " labels.");
 		}
 		this.effects.lock();
+		this.configurations.requireWritable(principal, PackageImporter.INSTANCE_CONFIGURATION);
 		Set<String> known = new HashSet<>();
 		list(locale).forEach((label) -> known.add(label.key().toString()));
 		List<String> invalid = new ArrayList<>();

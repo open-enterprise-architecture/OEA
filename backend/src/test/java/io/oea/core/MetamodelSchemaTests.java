@@ -43,14 +43,16 @@ class MetamodelSchemaTests {
 	}
 
 	@Test
-	void runtimeRoleCannotDeleteConfigurationsAndImports() throws SQLException {
-		// metatypes, categories and definitions are deletable since V15 (us-032-metatype-editing)
+	void runtimeRoleCannotDeleteTheInstanceConfigurationAndImports() throws SQLException {
+		// metatypes, categories and definitions are deletable since V15 (us-032-metatype-editing),
+		// extensions since V20 (us-037-solution-extensions-and-lock-mode)
 		try (Connection app = OeaDatabases.asRole(postgres, "oea_app"); Statement statement = app.createStatement()) {
-			for (String table : List.of("metamodel_configurations", "metamodel_package_imports")) {
-				assertThatExceptionOfType(SQLException.class).as(table)
-					.isThrownBy(() -> statement.executeUpdate("DELETE FROM " + table))
-					.withMessageContaining("permission denied");
-			}
+			assertThatExceptionOfType(SQLException.class)
+				.isThrownBy(() -> statement.executeUpdate("DELETE FROM metamodel_package_imports"))
+				.withMessageContaining("permission denied");
+			assertThatExceptionOfType(SQLException.class)
+				.isThrownBy(() -> statement.executeUpdate("DELETE FROM metamodel_configurations"))
+				.withMessageContaining("the instance configuration cannot be deleted");
 			for (String table : List.of("metatype_connection_constraints", "property_enum_values",
 					"metatype_property_mappings", "metatypes", "property_categories", "property_definitions")) {
 				assertThat(statement.executeUpdate("DELETE FROM " + table + " WHERE false")).as(table).isZero();

@@ -1,10 +1,12 @@
 import { reactive } from 'vue'
 import {
   fetchCategories,
+  fetchConfigurations,
   fetchGlobalReimportSetting,
   fetchMetatypes,
   fetchPropertyDefinitions,
   type GlobalReimportSetting,
+  type MetamodelConfiguration,
   type MetatypeDetail,
   type PropertyCategory,
   type PropertyDefinitionDetail,
@@ -22,11 +24,13 @@ export const metamodel = reactive<{
   properties: PropertyDefinitionDetail[]
   categories: PropertyCategory[]
   globalReimportSetting?: GlobalReimportSetting
+  /** The instance configuration with its edit mode (US-035). */
+  instanceConfiguration?: MetamodelConfiguration
   loaded: boolean
   failed: boolean
 }>({ metatypes: [], properties: [], categories: [], loaded: false, failed: false })
 
-/** Loads metatypes, property definitions, categories and the global re-import setting. */
+/** Loads metatypes, property definitions, categories, the global re-import setting and the instance configuration. */
 export async function loadMetamodel(fetchFn: typeof fetch = fetch): Promise<void> {
   try {
     const [metatypes, properties, categories] = await Promise.all([
@@ -48,12 +52,24 @@ export async function loadMetamodel(fetchFn: typeof fetch = fetch): Promise<void
   } catch {
     metamodel.globalReimportSetting = undefined
   }
+  try {
+    metamodel.instanceConfiguration = (await fetchConfigurations(fetchFn)).find(
+      (configuration) => configuration.scope === 'instance',
+    )
+  } catch {
+    metamodel.instanceConfiguration = undefined
+  }
   metamodel.loaded = true
 }
 
 /** Reloads after a write, together with the labels, whose fallback is the changed name. */
 export async function reloadMetamodel(fetchFn: typeof fetch = fetch): Promise<void> {
   await Promise.all([loadMetamodel(fetchFn), loadLabels(currentLanguage(), fetchFn)])
+}
+
+/** Whether the instance metamodel is locked: it changes only through package imports (US-035). */
+export function metamodelLocked(): boolean {
+  return metamodel.instanceConfiguration?.editMode === 'import-only'
 }
 
 export function metatypeById(id: string | undefined): MetatypeDetail | undefined {

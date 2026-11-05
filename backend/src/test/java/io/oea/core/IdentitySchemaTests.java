@@ -75,7 +75,7 @@ class IdentitySchemaTests {
 		Map<String, Boolean> dbPermissions = new TreeMap<>();
 		query("SELECT id || '=' || admin_class FROM permissions")
 			.forEach((row) -> dbPermissions.put(row.split("=")[0], Boolean.parseBoolean(row.split("=")[1])));
-		assertThat(dbPermissions).hasSize(20).isEqualTo(contractPermissions);
+		assertThat(dbPermissions).hasSize(21).isEqualTo(contractPermissions);
 
 		Set<String> contractRoles = new TreeSet<>();
 		contract.path("x-oea-builtin-roles").forEach((role) -> {

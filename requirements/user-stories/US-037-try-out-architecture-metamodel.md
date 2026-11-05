@@ -2,8 +2,9 @@
 
 **ID**: US-037
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: in-progress
+**Sprint**: S8
+**Implementation**: OpenSpec change `us-037-solution-extensions-and-lock-mode` – prepared without solutions: extensions through `/metamodel/configurations` with their own edit mode, metatypes and mappings in them with `solution-metamodel:write`, the effective metamodel through `GET /metamodel/metatypes?configId=` (AC1, AC3, AC4 through the API; AC2 as the effective metamodel). The connection to solutions, the type selection and the import into an extension follow with solutions (S10)
 
 ## Story
 

@@ -15,6 +15,8 @@ export type PropertyMappingWrite = components['schemas']['MetatypePropertyMappin
 export type MetamodelLabel = components['schemas']['MetamodelLabel']
 export type ReimportSetting = components['schemas']['MetatypeReimportPolicy']['organizationMappings']
 export type GlobalReimportSetting = components['schemas']['ReimportPolicy']['organizationMappings']
+export type MetamodelConfiguration = components['schemas']['MetamodelConfiguration']
+export type MetamodelEditMode = components['schemas']['MetamodelEditMode']
 
 const JSON_HEADERS = { Accept: 'application/json, application/problem+json' }
 
@@ -75,7 +77,7 @@ export async function importStarterPackage(
 /** The outcome of a metamodel write: the answer, or the rejection with its problem type. */
 export type WriteOutcome<T> = { ok: true; value: T } | { ok: false; rejection: Rejection }
 
-/** The instance configuration, the only one so far (`configId` of a metatype). */
+/** The instance configuration (`configId` of its metatypes); extensions of solutions have their own (US-037). */
 export const INSTANCE_CONFIGURATION = '00000000-0000-0000-0000-000000000001'
 
 async function read<T>(path: string, fetchFn: typeof fetch): Promise<T> {
@@ -135,6 +137,21 @@ export function fetchMappingHistory(metatypeId: string, fetchFn: typeof fetch = 
 export async function fetchGlobalReimportSetting(fetchFn: typeof fetch = fetch): Promise<GlobalReimportSetting> {
   return (await read<components['schemas']['ReimportPolicy']>(`${METAMODEL}/settings/reimport-policy`, fetchFn))
     .organizationMappings
+}
+
+/** GET /metamodel/configurations: the instance configuration and the extensions (US-035, US-037). */
+export function fetchConfigurations(fetchFn: typeof fetch = fetch): Promise<MetamodelConfiguration[]> {
+  return read(`${METAMODEL}/configurations`, fetchFn)
+}
+
+/** PUT /metamodel/configurations/{id}: renames a configuration or switches its edit mode (US-035). */
+export function updateConfiguration(
+  id: string,
+  body: components['schemas']['MetamodelConfigurationUpdate'],
+  version: number | undefined,
+  fetchFn: typeof fetch = fetch,
+) {
+  return write<MetamodelConfiguration>('PUT', `${METAMODEL}/configurations/${at(id)}`, body, version, fetchFn)
 }
 
 /** GET /metamodel/labels/{locale}: every label key with its texts (US-140). */

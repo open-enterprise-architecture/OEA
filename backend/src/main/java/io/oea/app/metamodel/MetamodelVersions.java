@@ -19,7 +19,8 @@ public class MetamodelVersions {
 
 		METATYPE("metatypes", "metatype", ""),
 		PROPERTY_DEFINITION("property_definitions", "property definition", " AND retired_at IS NULL"),
-		CATEGORY("property_categories", "property category", "");
+		CATEGORY("property_categories", "property category", ""),
+		CONFIGURATION("metamodel_configurations", "metamodel configuration", "");
 
 		private final String table;
 

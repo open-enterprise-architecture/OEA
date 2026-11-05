@@ -87,7 +87,7 @@ class HandlerEnforcedConditionsTests {
 		for (Operation operation : enforced) {
 			TestSession probe = principals.personWithIdpRole(operation.conditions().probeRole());
 			MvcTestResult result = this.mvc.method(HttpMethod.valueOf(operation.method()))
-				.uri(operation.path())
+				.uri(operation.conditions().probePath().isEmpty() ? operation.path() : operation.conditions().probePath())
 				.cookie(new Cookie(SessionCookie.NAME, probe.token()))
 				.header(CsrfOriginFilter.HEADER, probe.csrfToken())
 				.contentType(operation.contentType())

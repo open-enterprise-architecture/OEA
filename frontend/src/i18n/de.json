@@ -369,6 +369,18 @@
         "property-category": "Kategorie"
       }
     },
+    "lock": {
+      "title": "Sperrmodus",
+      "label": "Metamodell sperren (Änderungen nur per Paketimport)",
+      "explanation": "Solange das Metamodell gesperrt ist, ändern sich Entitätstypen, Eigenschaften, Kategorien und Übersetzungen nur durch einen Paketimport. Nutze das, wenn deine Organisation ihr Metamodell in einem versionierten Repository pflegt. Die Einstellungen zum erneuten Import und dieser Schalter bleiben verfügbar.",
+      "hint": "Das Metamodell ist gesperrt und ändert sich nur durch Paketimporte. Entsperren kannst du es unter Einstellungen.",
+      "noticeTitle": "Metamodell gesperrt",
+      "notice": "Das Metamodell ändert sich nur durch Paketimporte, deshalb kannst du hier nichts anlegen, ändern oder löschen.",
+      "manual": "Pakete importieren",
+      "locked": "Das Metamodell ist gesperrt.",
+      "unlocked": "Das Metamodell ist entsperrt.",
+      "rejected": "Das Metamodell ist gesperrt: Es ändert sich nur durch Paketimporte."
+    },
     "reimport": {
       "title": "Erneuter Import von Paketen",
       "inherit": "Wie der Basistyp",

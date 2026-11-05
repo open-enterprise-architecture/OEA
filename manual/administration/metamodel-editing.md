@@ -2,7 +2,7 @@
 title: Editing the metamodel
 covers:
   screens: [SCR-030]
-  stories: [US-032, US-036, US-137, US-140]
+  stories: [US-032, US-035, US-036, US-037, US-137, US-140]
 ---
 
 # Editing the metamodel
@@ -19,7 +19,7 @@ Choose *Metamodel* in the header. The page has five sections:
 | Properties | all properties with data type, category, values and limits |
 | Categories | the categories that group properties |
 | Translations | the names of all elements per language |
-| Settings | what happens to your own properties when a package is imported again (administrators only) |
+| Settings | the lock mode, and what happens to your own properties when a package is imported again (administrators only) |
 
 The origin tells you what you may change: *Own* content belongs to your organization. *Built-in* content is part of OEA, and content of a package (*Package oea-starter-togaf-classic 1.1.0*) comes from an import. Built-in and imported content is read-only; you can still add your own properties to such entity types. On a narrow screen, the page shows the list and the selected entity type one after the other.
 
@@ -122,6 +122,16 @@ Users see the names of entity types, categories and properties and the values of
 - Texts have at most 200 characters.
 - Your portal shows the new names at once; other open portals pick them up within five minutes, without a reload.
 
+## Locking the metamodel {#lock-mode}
+
+If your organization maintains its metamodel in a versioned repository and imports it as a package, lock the metamodel, so that nobody changes it by hand:
+
+1. In *Settings*, switch on *Lock metamodel (changes only through package import)*.
+2. While the metamodel is locked, every section shows the notice *Metamodel locked*, and nothing can be created, changed or deleted: entity types, assignments, properties, values, categories and translations. Through the API, such a change is rejected with `403` (`metamodel-locked`), whatever your permissions.
+3. Package imports keep working (see [Metamodel packages](./metamodel-packages)), and so do the re-import settings.
+
+To unlock, switch the setting off again. Only metamodel administrators (`metamodel:write`) switch the lock mode, and every switch is recorded in the audit trail (`metamodel.edit-mode-changed`).
+
 ## Organization properties at a package re-import
 
 When a package is imported again, it replaces its own properties of its entity types. Whether your own properties and entries on these types stay depends on the way you work, so you configure it:
@@ -163,3 +173,24 @@ curl "${auth[@]}" -X PUT "$OEA/metamodel/labels/de" -H 'Content-Type: applicatio
 - Connection types are created with `"isConnection": true` and the lists `allowedSourceMetatypeIds` and `allowedTargetMetatypeIds`; `GET /metamodel/allowed-connections?sourceMetatypeId=…&targetMetatypeId=…` answers which connection types may connect two entity types, in which direction.
 - `GET /metamodel/metatypes/{id}/property-mappings?includeHistory=true` lists all entries of the assignments with their `state`. The re-import settings are `PUT /metamodel/settings/reimport-policy` and `PUT /metamodel/metatypes/{id}/reimport-policy`.
 - Every change writes an audit event, for example `metamodel.metatype-updated`, `metamodel.mapping-deleted` with the number of affected entities, `metamodel.mapping-effective` when an entry takes effect, or `metamodel.labels-changed`.
+- `GET /metamodel/configurations` lists the instance configuration and the extensions with their `editMode`. `PUT /metamodel/configurations/{id}` with `{"name": "Instance metamodel", "editMode": "import-only"}` and `If-Match` locks a configuration; `gui-and-import` unlocks it.
+
+### Extensions of solutions {#extensions}
+
+An extension lets architects try out new entity types for one solution without changing the instance metamodel. Extensions are prepared for the solutions of a later release and have no page in the portal yet. They need `solution-metamodel:write`, held by the roles `enterprise-architect` and `metamodel-admin`:
+
+```bash
+curl "${auth[@]}" -X POST "$OEA/metamodel/configurations" -H 'Content-Type: application/json' \
+  -d '{"solutionId": "'"$SOLUTION"'", "name": "Cloud Migration 2027"}'
+curl "${auth[@]}" -X POST "$OEA/metamodel/metatypes" -H 'Content-Type: application/json' \
+  -d '{"name": "CloudService", "configId": "'"$EXTENSION"'", "baseMetatypeId": "'"$COMPONENT"'"}'
+curl "${auth[@]}" "$OEA/metamodel/metatypes?configId=$EXTENSION"
+```
+
+- `GET /metamodel/metatypes?configId=<extension>` returns the effective metamodel: the entity types of the instance and those of the extension, each with its `configId`. Without `configId`, the list contains only the entity types of the instance.
+- An extension cannot use a name of the instance, nor one name twice (`409`, `name-taken`). An entity type of the instance cannot take a name used in an extension. Different extensions may use the same name.
+- Base types and allowed sources and targets come from the instance or the same extension. An entity type keeps its configuration.
+- Properties, categories and translations belong to the instance. You assign existing properties to the entity types of an extension.
+- An extension has its own lock mode, so it stays editable while the instance is locked. You can delete an extension while it has no entity types.
+- The entity types of an extension are not used for entities yet. The batch rejects such an entity with `METATYPE_NOT_FOUND`.
+- Audit events: `metamodel.configuration-created`, `metamodel.configuration-updated` and `metamodel.configuration-deleted`.

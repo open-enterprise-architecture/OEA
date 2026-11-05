@@ -27,4 +27,10 @@ public @interface ConditionsEnforcedByHandler {
 	/** A valid request body that triggers the condition. */
 	String probeBody();
 
+	/**
+	 * A concrete path for the probe when a path parameter must be a valid ID; empty uses the path
+	 * with every parameter set to {@code 1}.
+	 */
+	String probePath() default "";
+
 }

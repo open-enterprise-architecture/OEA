@@ -11,11 +11,11 @@ import { IDS, ME_READER, metamodelApi } from '../test/metamodel'
 // SCR-030 Metamodel configuration (UC-04, US-032, REQ-032; design D6 of
 // scr-030-metamodel-configuration): the first story is the screen image, an administrator on the
 // detail of an organization entity type.
-function page(section: string, id?: string, me?: unknown): Story {
+function page(section: string, id?: string, me?: unknown, locked = false): Story {
   return {
     render: () => ({
       components: { MetamodelPage },
-      setup: () => ({ fetchFn: metamodelApi({ me }).fetch, section, id }),
+      setup: () => ({ fetchFn: metamodelApi({ me, locked }).fetch, section, id }),
       template: '<MetamodelPage :section="section" :id="id" :fetch-fn="fetchFn" />',
     }),
   }
@@ -43,6 +43,19 @@ export const ConnectionType: Story = page('metatypes', IDS.dataFlow)
 export const Properties: Story = page('properties')
 
 export const Translations: Story = page('translations')
+
+/** The metamodel is locked (import-only, US-035): a notice and no changing actions. */
+export const Locked: Story = {
+  ...page('metatypes', IDS.zone, undefined, true),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Metamodel locked')).toBeInTheDocument()
+    await expect(canvas.queryByTestId('metatype-new')).toBeNull()
+  },
+}
+
+/** The settings with the lock switch and the global re-import setting. */
+export const Settings: Story = page('settings')
 
 /** Someone else changed the entity type meanwhile: warning with the current state (UC-04 A5). */
 export const Collision: Story = {

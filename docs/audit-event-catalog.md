@@ -424,9 +424,9 @@ An organization metatype was created, changed or deleted ([US-032](../requiremen
 | Field | Value |
 |---|---|
 | Category / severity / outcome | `change` / `info` / `success` |
-| Actor | the metamodel administrator |
+| Actor | the metamodel administrator, or for a metatype of an extension the architect (`solution-metamodel:write`) |
 | Target | `metatype`, ID of the metatype |
-| Details | `name` and `baseMetatypeId` (created), `changedFields`, `entitiesWithRemovedValues` and `entitiesMarked` if the base type changed (updated), `name` (deleted) |
+| Details | `name`, `baseMetatypeId` and, in an extension, `configId` (created), `changedFields`, `entitiesWithRemovedValues` and `entitiesMarked` if the base type changed (updated), `name` (deleted) |
 
 ### `metamodel.property-created` / `metamodel.property-updated` / `metamodel.property-deleted`
 
@@ -504,6 +504,28 @@ Organization labels of a locale were set or removed ([US-140](../requirements/us
 | Actor | the metamodel administrator |
 | Target | `metamodel-configuration`, ID of the instance configuration |
 | Details | `locale`, `labelsSet`, `labelsRemoved` |
+
+### `metamodel.configuration-created` / `metamodel.configuration-updated` / `metamodel.configuration-deleted`
+
+A metamodel extension of a solution was created or deleted, or a configuration was renamed or its edit mode switched ([US-037](../requirements/user-stories/US-037-try-out-architecture-metamodel.md) AC1, [US-035](../requirements/user-stories/US-035-metamodel-lock-mode.md)).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the person with `solution-metamodel:write` (extension) or `metamodel:write` (instance) |
+| Target | `metamodel-configuration`, ID of the configuration |
+| Details | `name`, `solutionId`, `editMode` (created), `changedFields` (updated), `name` (deleted) |
+
+### `metamodel.edit-mode-changed`
+
+The edit mode of a configuration was switched, for example the instance metamodel locked (`import-only`) or unlocked ([US-035](../requirements/user-stories/US-035-metamodel-lock-mode.md), [REQ-035](../requirements/req/REQ-035-metamodel-lock-mode.md), BR-06). Written in addition to `metamodel.configuration-updated`.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the metamodel administrator (instance) or the person with `solution-metamodel:write` (extension) |
+| Target | `metamodel-configuration`, ID of the configuration |
+| Details | `configId`, `before`, `after` (`gui-and-import`, `import-only`) |
 
 ### `entity.created` / `entity.updated`
 

@@ -762,10 +762,17 @@ package "Metamodel" #E8F5E9 {
     + scope            : TEXT             {NN} DEFAULT 'instance'
     .. enum: instance | solution ..
     + parent_id        : UUID             {FK→metamodel_configurations.id}
-    + solution_id      : UUID             {FK→solutions.id}
+    + solution_id      : UUID
+    .. set exactly for scope=solution (CHECK, V20); FK→solutions.id follows with solutions (S10) ..
+    + name             : TEXT             {NN} {UNIQUE lower(name)}
+    .. 1–100 characters; instance: 'Instance metamodel' (V20, us-037-solution-extensions-and-lock-mode) ..
+    + version          : INTEGER          {NN} DEFAULT 1
+    .. optimistic locking of name and edit_mode (ETag, If-Match) ..
+    .. trigger: the instance row cannot be deleted; extensions without metatypes can (V20) ..
     + schema_version   : TEXT             {NN} DEFAULT '1.0'
     + edit_mode        : TEXT             {NN} DEFAULT 'gui-and-import'
-    .. enum: gui-and-import | import-only ..
+    .. enum: gui-and-import | import-only; import-only rejects every content write ..
+    .. of the configuration with 403 metamodel-locked, imports stay (US-035, BR-06) ..
     + rules_edit_mode  : TEXT             {NN} DEFAULT 'gui-and-import'
     + reimport_organization_mappings : TEXT {NN} DEFAULT 'keep'
     .. enum: keep | remove; whether a package re-import removes organization ..

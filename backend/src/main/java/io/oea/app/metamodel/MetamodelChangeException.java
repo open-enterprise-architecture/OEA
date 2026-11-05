@@ -21,7 +21,9 @@ public class MetamodelChangeException extends RuntimeException {
 		/** An invalid field (422 {@code validation-failed}). */
 		INVALID,
 		/** {@code If-Match} names an older version; {@link #getCurrentVersion()} gives the current one (412). */
-		STALE_VERSION
+		STALE_VERSION,
+		/** The configuration is {@code import-only}: only package imports change it (403 {@code metamodel-locked}, US-035). */
+		LOCKED
 
 	}
 
@@ -55,6 +57,15 @@ public class MetamodelChangeException extends RuntimeException {
 	static MetamodelChangeException readOnly(String element) {
 		return new MetamodelChangeException(Reason.READ_ONLY,
 				"The " + element + " is built-in or imported and cannot be changed.", List.of(), null);
+	}
+
+	static MetamodelChangeException readOnly(String element, String message) {
+		return new MetamodelChangeException(Reason.READ_ONLY, "The " + element + " " + message, List.of(), null);
+	}
+
+	static MetamodelChangeException locked() {
+		return new MetamodelChangeException(Reason.LOCKED,
+				"The metamodel is locked: it changes only through package imports.", List.of(), null);
 	}
 
 	static MetamodelChangeException nameTaken(String field) {

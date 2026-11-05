@@ -21,7 +21,11 @@ import { rejectionMessage, scopeLabel } from './messages'
 // Detail of a metatype in SCR-030: base type, own and inherited mappings with their dated entries,
 // re-import setting (US-032, US-137, REQ-032 AC5, ADR-049; design D3 of
 // scr-030-metamodel-configuration). Built-in and imported metatypes offer no changes of their own.
-const props = defineProps<{ metatype: MetatypeDetail; canWrite: boolean; fetchFn?: typeof fetch }>()
+// canConfigure: the re-import setting, which stays changeable in a locked metamodel (US-035)
+const props = withDefaults(defineProps<{ metatype: MetatypeDetail; canWrite: boolean; canConfigure?: boolean; fetchFn?: typeof fetch }>(), {
+  // absent means like canWrite, not false
+  canConfigure: undefined,
+})
 const emit = defineEmits<{ deleted: [] }>()
 const { t } = useI18n()
 
@@ -224,7 +228,7 @@ function stateColor(state: PropertyMapping['state']): 'success' | 'info' | 'neut
       <p class="text-sm text-muted">{{ t('metamodel.reimport.metatypeHint') }}</p>
       <div class="flex flex-wrap items-center gap-3">
         <USelect
-          v-if="canWrite"
+          v-if="canConfigure ?? canWrite"
           v-model="reimportSetting"
           data-testid="metatype-reimport"
           :aria-label="t('metamodel.reimport.title')"

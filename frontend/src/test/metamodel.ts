@@ -12,6 +12,7 @@ type Property = Mutable<components['schemas']['PropertyDefinitionDetail']>
 type Category = Mutable<components['schemas']['PropertyCategory']>
 type Mapping = components['schemas']['MetatypePropertyMapping']
 type Scope = components['schemas']['MetamodelScope']
+type Configuration = Mutable<components['schemas']['MetamodelConfiguration']>
 
 function me(displayName: string, permissions: string[]) {
   return {
@@ -57,6 +58,8 @@ interface Stored {
   categories: Category[]
   entries: Entry[]
   globalReimport: 'keep' | 'remove'
+  /** The instance configuration with its edit mode (US-035). */
+  configuration: Configuration
   labels: Record<string, Record<string, { packageText?: string; organizationText?: string }>>
 }
 
@@ -66,6 +69,8 @@ export interface MetamodelApiOptions {
   unmarkedEntities?: number
   /** Answers every request after the given path with an error, for failure states. */
   failListing?: boolean
+  /** The instance metamodel is locked (`import-only`, US-035). */
+  locked?: boolean
 }
 
 /** A request the fake received, with the headers that matter for the metamodel writes. */
@@ -83,6 +88,8 @@ export interface MetamodelApi {
   state: Stored
   /** Another administrator changes a metatype: new abbreviation, version + 1. */
   changeElsewhere(metatypeId: string, abbreviation: string): void
+  /** Another administrator switches the edit mode of the instance: version + 1. */
+  switchElsewhere(editMode: Configuration['editMode']): void
 }
 
 function seed(): Stored {
@@ -135,6 +142,17 @@ function seed(): Stored {
       { id: 'b0000000-0000-4000-8000-000000000003', metatypeId: IDS.zone, propertyDefId: IDS.owner, necessity: 'warning', validFrom: '2026-02-01', scope: 'organization' },
     ],
     globalReimport: 'keep',
+    configuration: {
+      id: '00000000-0000-0000-0000-000000000001',
+      scope: 'instance',
+      parentId: null,
+      solutionId: null,
+      name: 'Instance metamodel',
+      editMode: 'gui-and-import',
+      version: 1,
+      lastModifiedAt: '2026-11-01T08:00:00Z',
+      metatypeCount: 5,
+    },
     labels: { de: { [`metatype.${IDS.component}.name`]: { packageText: 'Anwendungskomponente' } } },
   }
 }
@@ -162,6 +180,9 @@ function newId(): string {
 /** The fake metamodel API; `state` can be inspected and changed by a test. */
 export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
   const state = seed()
+  if (options.locked) {
+    state.configuration.editMode = 'import-only'
+  }
   const requests: MetamodelRequest[] = []
   const today = new Date().toISOString().slice(0, 10)
 
@@ -275,6 +296,30 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
       return problem(500, 'internal')
     }
     const [, kind, id, sub, subId] = parts
+
+    if (kind === 'configurations') {
+      if (method === 'GET') {
+        return json([state.configuration])
+      }
+      if (id !== state.configuration.id) {
+        return problem(404, 'not-found')
+      }
+      const rejected = stale(state.configuration, ifMatch)
+      if (rejected) {
+        return rejected
+      }
+      Object.assign(state.configuration, {
+        name: String(body?.name),
+        editMode: body?.editMode as Configuration['editMode'],
+        version: state.configuration.version + 1,
+      })
+      return json(state.configuration, 200, state.configuration.version)
+    }
+    // in import-only every content write is rejected; the re-import settings stay (US-035)
+    const settings = sub === 'reimport-policy' || kind === 'settings'
+    if (state.configuration.editMode === 'import-only' && method !== 'GET' && !settings) {
+      return problem(403, 'metamodel-locked')
+    }
 
     if (kind === 'metatypes') {
       const stored = state.metatypes.find((metatype) => metatype.id === id)
@@ -480,6 +525,10 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
       const stored = state.metatypes.find((metatype) => metatype.id === metatypeId)!
       stored.abbreviation = abbreviation
       stored.version = (stored.version ?? 1) + 1
+    },
+    switchElsewhere(editMode) {
+      state.configuration.editMode = editMode
+      state.configuration.version += 1
     },
   }
 }

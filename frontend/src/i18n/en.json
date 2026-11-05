@@ -369,6 +369,18 @@
         "property-category": "Category"
       }
     },
+    "lock": {
+      "title": "Lock mode",
+      "label": "Lock metamodel (changes only through package import)",
+      "explanation": "While the metamodel is locked, entity types, properties, categories and translations change only when a package is imported. Use this when your organization maintains its metamodel in a versioned repository. The re-import settings and this switch stay available.",
+      "hint": "The metamodel is locked and changes only through package imports. You can unlock it under Settings.",
+      "noticeTitle": "Metamodel locked",
+      "notice": "The metamodel changes only through package imports, so nothing can be created, changed or deleted here.",
+      "manual": "Importing packages",
+      "locked": "The metamodel is locked.",
+      "unlocked": "The metamodel is unlocked.",
+      "rejected": "The metamodel is locked: it changes only through package imports."
+    },
     "reimport": {
       "title": "Re-import of packages",
       "inherit": "Like the base type",
