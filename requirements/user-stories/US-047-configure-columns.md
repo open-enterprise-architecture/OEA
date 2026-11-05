@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: done
 **Sprint**: S8
-**Implementation**: OpenSpec change `us-047-configure-columns` – columns through `PUT /catalogs/{id}/columns` and the dialog "Configure columns" in SCR-020; the query uses them, with the default sort and the enum order
+**Implementation**: OpenSpec change `us-047-configure-columns`, commit bd6ef07 (#180) – columns through `PUT /catalogs/{id}/columns` and the dialog "Configure columns" in SCR-020; the query uses them, with the default sort and the enum order
 
 ## Story
 
