@@ -126,6 +126,29 @@ export const DATA_FLOW = {
 /** The metatypes with interfaces and data flows, as `listMetatypes` answers on the catalog page. */
 export const METATYPES_WITH_CONNECTIONS = [...METATYPES, INTERFACE, DATA_FLOW]
 
+/** Information flows between applications, the primary metatype of a connection catalog (US-080). */
+export const INFORMATION_FLOW = {
+  ...metatype('5a000000-0000-4000-8000-000000000030', 'Information Flow', 30),
+  isConnection: true,
+  connectionConstraints: [
+    { direction: 'source', allowedMetatype: { id: METATYPES[1]!.id, name: 'Application Component', abbreviation: '' } },
+    { direction: 'target', allowedMetatype: { id: METATYPES[1]!.id, name: 'Application Component', abbreviation: '' } },
+  ],
+}
+
+/** The metatypes of a connection catalog: applications with their mappings and information flows. */
+export const METATYPES_WITH_FLOWS = [METATYPES[0]!, APPLICATION_COMPONENT, METATYPES[2]!, INTERFACE, DATA_FLOW, INFORMATION_FLOW]
+
+/** The catalog "Data Flow Overview" of information flows (US-080). */
+export const FLOW_CATALOG = {
+  ...CATALOG,
+  id: 'c0000000-0000-4000-8000-000000000010',
+  name: 'Data Flow Overview',
+  description: 'The information flows between the applications',
+  primaryMetatypeId: INFORMATION_FLOW.id,
+  primaryMetatypeName: 'Information Flow',
+}
+
 /** The join "Interfaces" of the catalog (US-048). */
 export const INTERFACES_JOIN = {
   id: 'f0000000-0000-4000-8000-000000000001',
@@ -154,6 +177,9 @@ export interface Application {
   description?: string
   /** The interfaces reached through data flows (US-048). */
   interfaces?: { name: string; protocol?: string }[]
+  /** Source and target of a connection row of a connection catalog (US-080). */
+  source?: { name: string; vendor?: string }
+  target?: { name: string; vendor?: string }
 }
 
 export const APPLICATIONS: Application[] = [
@@ -169,6 +195,13 @@ export const APPLICATIONS: Application[] = [
   },
   { name: 'ERP', status: 'active', vendor: 'SAP' },
   { name: 'Intranet', status: 'planned', interfaces: [{ name: 'LDAP', protocol: 'LDAP' }] },
+]
+
+/** Information flows, rows of the catalog "Data Flow Overview" (US-080). */
+export const FLOWS: Application[] = [
+  { name: 'Orders', status: 'active', source: { name: 'CRM System', vendor: 'Salesforce' }, target: { name: 'ERP', vendor: 'SAP' } },
+  { name: 'Invoices', status: 'active', source: { name: 'ERP', vendor: 'SAP' }, target: { name: 'Accounting' } },
+  { name: 'Leads', status: 'planned', source: { name: 'Intranet' }, target: { name: 'CRM System', vendor: 'Salesforce' } },
 ]
 
 /** `count` applications "Application 001" … with alternating status. */
@@ -193,13 +226,22 @@ export interface CatalogRequest {
  */
 export function catalogApi(
   applications: Application[],
-  options: { me?: unknown; catalog?: unknown; recorded?: CatalogRequest[]; throttledFor?: number } = {},
+  options: { me?: unknown; catalog?: unknown; recorded?: CatalogRequest[]; throttledFor?: number; metatypes?: unknown[] } = {},
 ): typeof fetch {
   // the catalog is state: saving columns changes what the next query returns (US-047)
-  type ColumnConfig = { field?: string; propertyDefId?: string; displayLabel?: string | null; visible?: boolean; sortable?: boolean; defaultSortDirection?: string | null }
+  type ColumnConfig = {
+    endpoint?: string | null
+    field?: string
+    propertyDefId?: string
+    displayLabel?: string | null
+    visible?: boolean
+    sortable?: boolean
+    defaultSortDirection?: string | null
+  }
   type Join = { id: string; name: string; targetColumns: ColumnConfig[]; defaultJoinMode?: string | null }
   const catalog = structuredClone(options.catalog ?? CATALOG) as {
     id: string
+    primaryMetatypeId: string
     defaultJoinMode: string
     columns: ColumnConfig[]
     joinDefinitions: Join[]
@@ -207,20 +249,36 @@ export function catalogApi(
   catalog.joinDefinitions ??= []
   const definitions = [STATUS_DEFINITION, VENDOR_DEFINITION, PROTOCOL_DEFINITION]
   let joinCount = 0
+  const connection = catalog.primaryMetatypeId === INFORMATION_FLOW.id
+  const side = (endpoint: string) => (endpoint === 'source' ? 'Source' : 'Target')
   const resolved = () => {
     const configured = catalog.columns
       .filter((column) => column.visible !== false)
       .map((column) => {
         const definition = definitions.find((candidate) => candidate.id === column.propertyDefId)
         const key = column.field ?? definition!.sqlColumnName
-        return { key, label: column.displayLabel ?? (definition?.name ?? key[0]!.toUpperCase() + key.slice(1)), sortable: column.sortable !== false }
+        const name = definition?.name ?? key[0]!.toUpperCase() + key.slice(1)
+        const label = column.endpoint ? (key === 'name' ? side(column.endpoint) : `${side(column.endpoint)}: ${name}`) : name
+        return { key: column.endpoint ? `${column.endpoint}.${key}` : key, label: column.displayLabel ?? label, sortable: column.sortable !== false }
       })
-    return configured.length > 0
-      ? configured
-      : [
-          { key: 'name', label: 'Name', sortable: true },
-          { key: 'status', label: 'Status', sortable: true },
-        ]
+    if (configured.length > 0) {
+      return configured
+    }
+    const defaults = [
+      { key: 'name', label: 'Name', sortable: true },
+      { key: 'status', label: 'Status', sortable: true },
+    ]
+    // a connection catalog: source, name and target; information flows map no status (US-080)
+    return connection
+      ? [{ key: 'source.name', label: 'Source', sortable: true }, defaults[0]!, { key: 'target.name', label: 'Target', sortable: true }]
+      : defaults
+  }
+  const valueOf = (row: Application, key: string): string | undefined => {
+    const endpoint = /^(source|target)\.(.+)$/.exec(key)
+    if (endpoint) {
+      return row[endpoint[1] as 'source' | 'target']?.[endpoint[2] as 'name' | 'vendor']
+    }
+    return row[key as keyof Application] as string | undefined
   }
   return async (input, init) => {
     const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, 'http://oea.test')
@@ -243,7 +301,10 @@ export function catalogApi(
       return json(definitions)
     }
     if (url.pathname === '/api/v1/metamodel/metatypes') {
-      return json(METATYPES_WITH_CONNECTIONS)
+      return json(options.metatypes ?? METATYPES_WITH_CONNECTIONS)
+    }
+    if (url.pathname === `/api/v1/metamodel/metatypes/${INFORMATION_FLOW.id}`) {
+      return json(INFORMATION_FLOW)
     }
     if (url.pathname === `/api/v1/metamodel/metatypes/${INTERFACE.id}`) {
       return json(INTERFACE)
@@ -317,7 +378,7 @@ export function catalogApi(
       return { id: join.id, name: join.name, mode, columns: joinColumns }
     })
     const rowsJoin = joins.find((join) => join.mode === 'rows')
-    const match = query.sort === undefined ? null : /^((?:[0-9a-f-]{36}\.)?[a-zA-Z_]+):(asc|desc)$/.exec(query.sort)
+    const match = query.sort === undefined ? null : /^((?:[0-9a-f-]{36}\.|source\.|target\.)?[a-zA-Z_]+):(asc|desc)$/.exec(query.sort)
     const sortable = (key: string) =>
       columns.some((column) => column.key === key && column.sortable) ||
       joins.some((join) => join.columns.some((column) => `${join.id}.${column.key}` === key && column.sortable))
@@ -330,12 +391,12 @@ export function catalogApi(
         ? application.interfaces!.map((joined) => ({ ...application, joined }))
         : [{ ...application }],
     )
-    const joinKey = match?.[1]?.includes('.') ? (match[1].split('.')[1] as 'name' | 'protocol') : undefined
-    const key = (match?.[1] ?? 'name') as keyof Application
+    const joinKey = /^[0-9a-f-]{36}\./.test(match?.[1] ?? '') ? (match![1]!.split('.')[1] as 'name' | 'protocol') : undefined
+    const key = match?.[1] ?? 'name'
     const direction = match?.[2] === 'desc' ? -1 : 1
     const sorted = [...expanded].sort((a, b) => {
-      const left = joinKey ? a.joined?.[joinKey]?.toLowerCase() : (a[key] as string | undefined)?.toLowerCase()
-      const right = joinKey ? b.joined?.[joinKey]?.toLowerCase() : (b[key] as string | undefined)?.toLowerCase()
+      const left = joinKey ? a.joined?.[joinKey]?.toLowerCase() : valueOf(a, key)?.toLowerCase()
+      const right = joinKey ? b.joined?.[joinKey]?.toLowerCase() : valueOf(b, key)?.toLowerCase()
       if (left === right) {
         return a.name.toLowerCase().localeCompare(b.name.toLowerCase())
       }
@@ -357,7 +418,7 @@ export function catalogApi(
       rows: sorted.slice(page * pageSize, (page + 1) * pageSize).map((application) => ({
         entityId: applications.findIndex((candidate) => candidate.name === application.name) + 1,
         values: Object.fromEntries(
-          columns.map((column) => [column.key, (application[column.key as keyof Application] as string | undefined) ?? null]),
+          columns.map((column) => [column.key, valueOf(application, column.key) ?? null]),
         ),
         joinResults: Object.fromEntries(
           joins.map((join) => [

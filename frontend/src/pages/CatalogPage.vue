@@ -51,7 +51,7 @@ let latestQuery = 0
 // column keys are system fields (camel case) or storage names of properties (US-047), join
 // columns `{joinId}.{key}` (US-048)
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
-const SORT = new RegExp(`^((?:${UUID}\\.)?[a-zA-Z][a-zA-Z0-9_]*):(asc|desc)$`)
+const SORT = new RegExp(`^((?:${UUID}\\.|source\\.|target\\.)?[a-zA-Z][a-zA-Z0-9_]*):(asc|desc)$`)
 const MODE = new RegExp(`^(${UUID}):(rows|aggregate)$`)
 const PAGE = /^\d+$/
 
@@ -143,13 +143,31 @@ function translatedColumns(columns: CatalogColumn[], configured: CatalogColumnCo
   const ownLabels = new Set(
     configured
       .filter((column) => column.displayLabel)
-      .map((column) => column.field ?? definitions.value.find((definition) => definition.id === column.propertyDefId)?.sqlColumnName),
+      .map((column) => {
+        const key = column.field ?? definitions.value.find((definition) => definition.id === column.propertyDefId)?.sqlColumnName
+        return column.endpoint ? `${column.endpoint}.${key}` : key
+      }),
   )
   return columns.map((column) => {
-    const definition = byColumn.value.get(column.key)
     if (ownLabels.has(column.key)) {
       return column
     }
+    const endpoint = /^(source|target)\.(.+)$/.exec(column.key)
+    if (endpoint) {
+      // the source or target of a connection catalog (US-080): "Source", else "Source: <attribute>"
+      const side = t(`catalog.columns.endpoint.${endpoint[1]}`)
+      if (endpoint[2] === 'name') {
+        return { ...column, label: side }
+      }
+      const definition = byColumn.value.get(endpoint[2]!)
+      const attribute = definition
+        ? label(labelKeys.property(definition.id), definition.name)
+        : te(`catalog.columns.field.${endpoint[2]}`)
+          ? t(`catalog.columns.field.${endpoint[2]}`)
+          : column.label
+      return { ...column, label: t('catalog.columns.endpointAttribute', { side, name: attribute }) }
+    }
+    const definition = byColumn.value.get(column.key)
     if (column.key === 'name') {
       return { ...column, label: t('catalog.nameColumn') }
     }
@@ -164,7 +182,7 @@ function translatedColumns(columns: CatalogColumn[], configured: CatalogColumnCo
 function translatedValues(values: Record<string, string | null>): Record<string, string | null> {
   return Object.fromEntries(
     Object.entries(values).map(([key, value]) => {
-      const enumValue = byColumn.value.get(key)?.enumValues?.find((candidate) => candidate.value === value)
+      const enumValue = byColumn.value.get(key.replace(/^(source|target)\./, ''))?.enumValues?.find((candidate) => candidate.value === value)
       return [key, enumValue && value ? label(labelKeys.enumValue(enumValue.id), value) : value]
     }),
   )

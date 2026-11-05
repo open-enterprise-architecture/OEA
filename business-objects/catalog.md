@@ -2,7 +2,7 @@
 identifier: catalog
 name_de: Katalog
 name_en: Catalog
-version: 0.4.0
+version: 0.5.0
 status: draft
 maturity: initial
 owner_role: Lead Enterprise Architect
@@ -33,6 +33,8 @@ The catalog is the enterprise architect's primary tool for producing structured 
 ### Primary Entity and Columns
 
 Every catalog has a **primary entity** (`primaryEntityType`): it supplies the rows of the table. **Columns** are configured from its attributes: which attributes are visible, in which order they appear, and under which label.
+
+The primary entity type may be a connection type (US-080, REQ-065): the rows are then its connections, and columns may also show attributes of each connection's source and target (`endpoint`, BR-11). Without configured columns, such a catalog shows the source name, the name and the target name.
 
 ---
 
@@ -114,8 +116,9 @@ A **SavedView** bundles: visible columns, column order, active filters (referenc
 
 | Attribute | Type | Optional | Default | Description |
 |---|---|---|---|---|
+| endpoint | enum | optional | null | `[source, target]`; null = attribute of the primary entity; otherwise of the connection's source or target (BR-11) |
 | field | enum | conditional | | `[name, description, externalId, createdAt, updatedAt, entityVersion]`; a system field of every entity; exactly one of `field` and `propertyDefId` |
-| propertyDefId | reference | conditional | | target: PropertyDefinition mapped to the primary EntityType (also inherited), not retired, visibility `public`; by ID, so a renamed property keeps its column |
+| propertyDefId | reference | conditional | | target: PropertyDefinition mapped to the primary EntityType (also inherited), not retired, visibility `public`; with `endpoint`, mapped to an allowed endpoint metatype of that side (BR-11); by ID, so a renamed property keeps its column |
 | displayLabel | string | optional | = attribute name | 1–100 characters; overrides the column header in the display |
 | visible | boolean | required | true | Whether the column is visible (false = present but hidden) |
 | sortable | boolean | required | true | Whether the table can be sorted by this column |
@@ -197,6 +200,7 @@ A catalog has at most 10 joins, in creation order (change us-048-catalog-joins).
 | BR-08 | At most one column MAY carry a `defaultSortDirection`; the query uses it when no sort is requested | onUpdate | REQ-044 |
 | BR-09 | The columns and joins of a catalog with `scope=instance` are changed only with `catalog:manage`, those of a personal catalog only by its creator | onUpdate | ADR-032 §8 |
 | BR-10 | The target columns of a join follow BR-07 for the target metatype and carry no `defaultSortDirection`; removing a join removes the `joinModeOverrides` that refer to it | onCreate, onUpdate, onDelete | REQ-045 AC4, AC5 |
+| BR-11 | A column with `endpoint` is allowed only in `columns` of a catalog whose primary metatype is a connection metatype, never in join target columns; its property MUST be mapped to an allowed endpoint metatype of that side, one of its subtypes or their base types, or to any metatype if the side has no constraint; an attribute appears at most once per endpoint | onUpdate | REQ-065, US-080 AC2 |
 
 ## Notes
 
@@ -280,5 +284,6 @@ savedViews:
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Business Engineer | Initial draft; join modes (rows/aggregate), SavedFilter, SavedView, ColumnConfig, JoinDefinition |
 | 0.2.0 | 2026-10-19 | Change us-046-create-catalog | Primary entity type by ID; name uniqueness case-insensitive and trimmed; empty columns allowed; notes on identity, namespace and permissions |
+| 0.5.0 | 2026-11-05 | Change us-080-connection-catalogs | Connection metatype as primary entity type; ColumnConfig `endpoint`; BR-11 |
 | 0.4.0 | 2026-11-05 | Change us-048-catalog-joins | JoinDefinition as implemented: metatype IDs, `aggregateLabel` dropped, limits; BR-02, BR-03 sharpened, BR-10 |
 | 0.3.0 | 2026-11-05 | Change us-047-configure-columns | ColumnConfig as implemented: `field` or `propertyDefId` instead of `attributeName`, list order instead of `sortOrder`; BR-07 to BR-09; stale columns |

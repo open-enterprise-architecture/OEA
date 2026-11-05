@@ -8,6 +8,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,8 @@ public class CatalogQueries {
 	static final int MAX_PAGE_SIZE = 200;
 
 	private static final Pattern SORT = Pattern
-		.compile("((?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.)?[a-zA-Z][a-zA-Z0-9_]*):(asc|desc)");
+		.compile("((?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.|source\\.|target\\.)?"
+				+ "[a-zA-Z][a-zA-Z0-9_]*):(asc|desc)");
 
 	private final Catalogs catalogs;
 
@@ -226,7 +228,7 @@ public class CatalogQueries {
 	private static CatalogQueryStore.Sort sortOf(List<Resolved> columns, List<ResolvedJoin> rowsJoins, String key,
 			boolean descending) {
 		int dot = key.indexOf('.');
-		if (dot < 0) {
+		if (dot < 0 || key.startsWith("source.") || key.startsWith("target.")) {
 			Integer index = indexOf(columns, key);
 			return (index != null && columns.get(index).result().sortable())
 					? new CatalogQueryStore.Sort(index, descending) : null;
@@ -252,26 +254,40 @@ public class CatalogQueries {
 			return List.of();
 		}
 		Map<UUID, PropertyColumn> available = this.store.availableProperties(metatypeId, LocalDate.now(this.clock));
+		Map<Catalogs.Endpoint, Map<UUID, PropertyColumn>> offered = new EnumMap<>(Catalogs.Endpoint.class);
 		List<Resolved> columns = new ArrayList<>();
 		for (Catalogs.Column column : configured) {
 			if (!column.visible()) {
 				continue;
 			}
+			Catalogs.Endpoint side = column.endpoint();
+			Map<UUID, PropertyColumn> properties = (side == null) ? available : offered.computeIfAbsent(side,
+					(key) -> this.store.endpointProperties(metatypeId, key.key(), LocalDate.now(this.clock)));
+			QueryColumn query;
+			String key;
+			String name;
 			if (column.field() != null) {
-				columns.add(new Resolved(QueryColumn.of(storeField(column.field())),
-						new Column(column.field().key(),
-								(column.displayLabel() != null) ? column.displayLabel() : column.field().label(),
-								column.sortable()),
-						column.defaultSortDirection()));
+				query = QueryColumn.of(storeField(column.field()));
+				key = column.field().key();
+				name = column.field().label();
 			}
-			else if (available.containsKey(column.propertyDefId())) {
-				PropertyColumn property = available.get(column.propertyDefId());
-				columns.add(new Resolved(QueryColumn.of(property),
-						new Column(property.sqlColumnName(),
-								(column.displayLabel() != null) ? column.displayLabel() : property.name(),
-								column.sortable()),
-						column.defaultSortDirection()));
+			else if (properties.containsKey(column.propertyDefId())) {
+				PropertyColumn property = properties.get(column.propertyDefId());
+				query = QueryColumn.of(property);
+				key = property.sqlColumnName();
+				name = property.name();
 			}
+			else {
+				continue;
+			}
+			if (side != null) {
+				query = query.at(CatalogQueryStore.Endpoint.valueOf(side.name()));
+				name = endpointLabel(side, key, name);
+				key = side.key() + "." + key;
+			}
+			columns.add(new Resolved(query,
+					new Column(key, (column.displayLabel() != null) ? column.displayLabel() : name, column.sortable()),
+					column.defaultSortDirection()));
 		}
 		return columns;
 	}
@@ -282,12 +298,31 @@ public class CatalogQueries {
 	 */
 	private List<Resolved> defaults(UUID metatypeId) {
 		List<Resolved> columns = new ArrayList<>();
+		boolean connection = this.store.isConnection(metatypeId);
+		if (connection) {
+			columns.add(endpointName(Catalogs.Endpoint.SOURCE));
+		}
 		columns.add(new Resolved(QueryColumn.of(CatalogQueryStore.SystemField.NAME),
 				new Column(NAME_COLUMN, "Name", true), null));
+		if (connection) {
+			columns.add(endpointName(Catalogs.Endpoint.TARGET));
+		}
 		this.store.mappedPublicProperty(metatypeId, STATUS_PROPERTY, LocalDate.now(this.clock))
 			.ifPresent((property) -> columns.add(new Resolved(QueryColumn.of(property),
 					new Column(property.sqlColumnName(), property.name(), true), null)));
 		return columns;
+	}
+
+	/** The name of the source or target as a default column of a connection catalog (US-080). */
+	private static Resolved endpointName(Catalogs.Endpoint side) {
+		return new Resolved(
+				QueryColumn.of(CatalogQueryStore.SystemField.NAME).at(CatalogQueryStore.Endpoint.valueOf(side.name())),
+				new Column(side.key() + "." + NAME_COLUMN, side.label(), true), null);
+	}
+
+	/** "Source" or "Target" for the name, else "Source: {attribute}" or "Target: {attribute}". */
+	private static String endpointLabel(Catalogs.Endpoint side, String key, String name) {
+		return NAME_COLUMN.equals(key) ? side.label() : side.label() + ": " + name;
 	}
 
 	private static CatalogQueryStore.SystemField storeField(Catalogs.SystemField field) {

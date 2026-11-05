@@ -15,6 +15,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -124,10 +126,50 @@ public class Catalogs {
 	 * A configured column (US-047, design D1 of us-047-configure-columns): exactly one of
 	 * {@code field} and {@code propertyDefId}; {@code defaultSortDirection} is {@code asc},
 	 * {@code desc} or {@code null}; {@code available} is false for a property the catalog can no
-	 * longer show.
+	 * longer show; {@code endpoint} is {@code null} for the primary entity, else the side of the
+	 * connection whose attribute the column shows (US-080, design D2 of us-080-connection-catalogs).
 	 */
 	public record Column(SystemField field, UUID propertyDefId, String displayLabel, boolean visible, boolean sortable,
-			String defaultSortDirection, boolean available) {
+			String defaultSortDirection, boolean available, Endpoint endpoint) {
+
+		public Column(SystemField field, UUID propertyDefId, String displayLabel, boolean visible, boolean sortable,
+				String defaultSortDirection, boolean available) {
+			this(field, propertyDefId, displayLabel, visible, sortable, defaultSortDirection, available, null);
+		}
+
+	}
+
+	/** The side of a connection whose attribute a column shows, with its key and label (US-080). */
+	public enum Endpoint {
+
+		SOURCE("source", "Source"), TARGET("target", "Target");
+
+		private final String key;
+
+		private final String label;
+
+		Endpoint(String key, String label) {
+			this.key = key;
+			this.label = label;
+		}
+
+		public String key() {
+			return this.key;
+		}
+
+		public String label() {
+			return this.label;
+		}
+
+		public static Endpoint ofKey(String key) {
+			for (Endpoint endpoint : values()) {
+				if (endpoint.key.equals(key)) {
+					return endpoint;
+				}
+			}
+			return null;
+		}
+
 	}
 
 	/** The system fields of a column with their keys in the contract and the query. */
@@ -237,7 +279,8 @@ public class Catalogs {
 		long personId = person(principal);
 		StoredCatalog stored = writable(principal, id);
 		List<Column> checked = validate(stored.primaryMetatypeId(), (columns != null) ? columns : List.of(), "columns",
-				MAX_COLUMNS, true);
+				MAX_COLUMNS, true, this.store.isConnection(stored.primaryMetatypeId(),
+						PackageImporter.INSTANCE_CONFIGURATION).orElse(false));
 		this.store.updateColumns(id, columnsJson(checked).toString(), personId, this.clock.instant());
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("columns", checked.size());
@@ -361,7 +404,8 @@ public class Catalogs {
 		if (columns.isEmpty()) {
 			throw InvalidCatalogException.invalid("targetColumns", "A join shows at least one column.");
 		}
-		List<Column> checked = validate(input.targetMetatypeId(), columns, "targetColumns", MAX_TARGET_COLUMNS, false);
+		List<Column> checked = validate(input.targetMetatypeId(), columns, "targetColumns", MAX_TARGET_COLUMNS, false,
+				false);
 		String mode = input.defaultJoinMode();
 		if (mode != null && !"rows".equals(mode) && !"aggregate".equals(mode)) {
 			throw InvalidCatalogException.invalid("defaultJoinMode", "The join mode is rows or aggregate.");
@@ -433,6 +477,9 @@ public class Catalogs {
 		ArrayNode json = JsonMapper.shared().createArrayNode();
 		for (Column column : columns) {
 			ObjectNode node = json.addObject();
+			if (column.endpoint() != null) {
+				node.put("endpoint", column.endpoint().key());
+			}
 			if (column.field() != null) {
 				node.put("field", column.field().key());
 			}
@@ -449,13 +496,17 @@ public class Catalogs {
 
 	/**
 	 * Checks a column list in the order of design D2 of us-047-configure-columns, for the
-	 * metatype; {@code at} prefixes the invalid fields. Returns it with trimmed labels.
+	 * metatype; {@code at} prefixes the invalid fields. Returns it with trimmed labels. Columns of
+	 * the source or target are allowed only if {@code endpoints} (a connection catalog, BR-11).
 	 */
-	private List<Column> validate(UUID metatypeId, List<Column> columns, String at0, int max, boolean defaultSort) {
+	private List<Column> validate(UUID metatypeId, List<Column> columns, String at0, int max, boolean defaultSort,
+			boolean endpoints) {
 		if (columns.size() > max) {
 			throw InvalidCatalogException.invalid(at0, "At most " + max + " columns are allowed.");
 		}
-		Set<UUID> available = this.queries.availableProperties(metatypeId, LocalDate.now(this.clock)).keySet();
+		LocalDate today = LocalDate.now(this.clock);
+		Set<UUID> available = this.queries.availableProperties(metatypeId, today).keySet();
+		Map<Endpoint, Set<UUID>> offered = new EnumMap<>(Endpoint.class);
 		Set<String> seen = new HashSet<>();
 		List<Column> checked = new ArrayList<>();
 		int defaults = 0;
@@ -465,11 +516,21 @@ public class Catalogs {
 			if ((column.field() == null) == (column.propertyDefId() == null)) {
 				throw InvalidCatalogException.invalid(at, "A column names either a field or a property.");
 			}
-			if (column.propertyDefId() != null && !available.contains(column.propertyDefId())) {
-				throw InvalidCatalogException.invalid(at + ".propertyDefId",
-						"The property is not a public property of the entity type.");
+			if (column.endpoint() != null && !endpoints) {
+				throw InvalidCatalogException.invalid(at + ".endpoint",
+						"Only a catalog of a connection type shows attributes of source and target.");
 			}
-			String attribute = (column.field() != null) ? column.field().key() : column.propertyDefId().toString();
+			Set<UUID> properties = (column.endpoint() == null) ? available
+					: offered.computeIfAbsent(column.endpoint(),
+							(side) -> this.queries.endpointProperties(metatypeId, side.key(), today).keySet());
+			if (column.propertyDefId() != null && !properties.contains(column.propertyDefId())) {
+				throw InvalidCatalogException.invalid(at + ".propertyDefId",
+						(column.endpoint() == null) ? "The property is not a public property of the entity type."
+								: "The property is not a public property of an allowed " + column.endpoint().key()
+										+ " of the connection type.");
+			}
+			String attribute = ((column.endpoint() != null) ? column.endpoint().key() + "." : "")
+					+ ((column.field() != null) ? column.field().key() : column.propertyDefId().toString());
 			if (!seen.add(attribute)) {
 				throw InvalidCatalogException.invalid(at, "The attribute is listed twice.");
 			}
@@ -490,7 +551,7 @@ public class Catalogs {
 				defaults++;
 			}
 			checked.add(new Column(column.field(), column.propertyDefId(), label, column.visible(), column.sortable(),
-					direction, true));
+					direction, true, column.endpoint()));
 		}
 		if (!checked.isEmpty() && checked.stream().noneMatch(Column::visible)) {
 			throw InvalidCatalogException.invalid(at0, "At least one column must be visible.");
@@ -529,18 +590,21 @@ public class Catalogs {
 	/** Stored columns with their availability for the metatype. */
 	private List<Column> columns(ArrayNode json, UUID metatypeId, LocalDate today) {
 		List<Column> columns = new ArrayList<>();
-		Set<UUID> available = null;
+		Map<String, Set<UUID>> available = new HashMap<>();
 		for (JsonNode node : json) {
 			UUID property = node.hasNonNull("propertyDefId") ? UUID.fromString(node.get("propertyDefId").asString())
 					: null;
-			if (property != null && available == null) {
-				available = this.queries.availableProperties(metatypeId, today).keySet();
-			}
+			Endpoint endpoint = Endpoint.ofKey(node.path("endpoint").asString(null));
+			boolean shown = property == null || available
+				.computeIfAbsent((endpoint != null) ? endpoint.key() : "",
+						(side) -> side.isEmpty() ? this.queries.availableProperties(metatypeId, today).keySet()
+								: this.queries.endpointProperties(metatypeId, side, today).keySet())
+				.contains(property);
 			columns.add(new Column(SystemField.ofKey(node.path("field").asString(null)), property,
 					node.hasNonNull("displayLabel") ? node.get("displayLabel").asString() : null,
 					node.path("visible").asBoolean(true), node.path("sortable").asBoolean(true),
 					node.hasNonNull("defaultSortDirection") ? node.get("defaultSortDirection").asString() : null,
-					property == null || available.contains(property)));
+					shown, endpoint));
 		}
 		return columns;
 	}

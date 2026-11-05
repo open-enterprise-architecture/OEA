@@ -78,7 +78,7 @@ No new operation. `CatalogColumnsUpdate` and `CatalogJoinInput.targetColumns` re
   Sorting and the URL state stay unchanged (ADR-044); the sort key is the column key.
 - **Create form:** the metatype selection groups elements and connections (`USelect` items with group labels).
 - **Dialog "Joins":** for a connection catalog without connection items, it shows the hint `catalog.joins.connectionCatalogHint` instead of `catalog.joins.noConnections`.
-- **Story:** a new story "Connection catalog" in `SCR-020`, with synthetic data flows and a `carries-data` join (`frontend/src/test/catalogs.ts`).
+- **Story:** a new story "Connection catalog" in `SCR-020`, with synthetic information flows and their source and target (`frontend/src/test/catalogs.ts`). The `carries-data` join is covered by the backend tests, since the join dialog and table are unchanged.
 
 ### D6 Data model
 

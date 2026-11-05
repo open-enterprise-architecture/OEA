@@ -491,8 +491,16 @@ components:
       description: |
         One column (business object `catalog`, ColumnConfig): exactly one of `field` and
         `propertyDefId`. A property must be mapped to the primary metatype (also inherited),
-        not retired and `public`.
+        not retired and `public`. With `endpoint`, the attribute belongs to the source or the
+        target of the connection (US-080, BR-11): only in the columns of a catalog whose primary
+        metatype is a connection metatype, never in join target columns (422); its properties
+        are those mapped to an allowed endpoint metatype of the side or one of its subtypes, or
+        every `public` property if the side has no constraint.
       properties:
+        endpoint:
+          type: [string, 'null']
+          enum: [source, target, null]
+          description: "`source` or `target` of the connection; missing or `null` for the primary entity"
         field:                { $ref: '#/components/schemas/CatalogSystemField' }
         propertyDefId:        { type: string, format: uuid }
         displayLabel:         { type: [string, 'null'], maxLength: 100, description: "Column header instead of the attribute name" }
@@ -621,7 +629,7 @@ components:
       properties:
         key:
           type: string
-          description: Key of the column in `CatalogRow.values` and in the `sort` parameter (`name` or the `sqlColumnName` of a property)
+          description: Key of the column in `CatalogRow.values` and in the `sort` parameter (`name` or the `sqlColumnName` of a property; `source.{key}` or `target.{key}` for an attribute of the connection's source or target, US-080)
         label:    { type: string, description: Column header }
         sortable: { type: boolean }
 
@@ -4292,6 +4300,12 @@ paths:
         (an entity without results keeps one row), paging and `totalElements` count rows, and
         a join column (`{joinId}.{key}`) is sortable; several `rows` joins give their cross
         product. An override for an unknown join answers 400 `joinMode`.
+
+        Connection catalogs (US-080): with a connection metatype as primary metatype, the rows
+        are its connections. Columns `source.{key}` and `target.{key}` show attributes of the
+        connection's source and target and are sortable like other columns; a deleted endpoint
+        gives empty values. Without configured columns, the columns are `source.name`, `name`,
+        `target.name` and the `Status` property as above.
       tags: [Catalogs]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:

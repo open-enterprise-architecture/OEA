@@ -224,6 +224,8 @@ public class CatalogController implements CatalogsApi {
 
 	private static CatalogColumnConfig column(Catalogs.Column column) {
 		return new CatalogColumnConfig()
+			.endpoint((column.endpoint() != null) ? CatalogColumnConfig.EndpointEnum.fromValue(column.endpoint().key())
+					: null)
 			.field((column.field() != null) ? CatalogSystemField.fromValue(column.field().key()) : null)
 			.propertyDefId(column.propertyDefId())
 			.displayLabel(column.displayLabel())
@@ -239,7 +241,8 @@ public class CatalogController implements CatalogsApi {
 				(config.getField() != null) ? Catalogs.SystemField.ofKey(config.getField().getValue()) : null,
 				config.getPropertyDefId(), config.getDisplayLabel(), !Boolean.FALSE.equals(config.getVisible()),
 				!Boolean.FALSE.equals(config.getSortable()),
-				(config.getDefaultSortDirection() != null) ? config.getDefaultSortDirection().getValue() : null, true);
+				(config.getDefaultSortDirection() != null) ? config.getDefaultSortDirection().getValue() : null, true,
+				(config.getEndpoint() != null) ? Catalogs.Endpoint.ofKey(config.getEndpoint().getValue()) : null);
 	}
 
 	private static PrincipalRef creator(Catalogs.Catalog catalog) {

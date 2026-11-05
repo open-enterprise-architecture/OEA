@@ -8,19 +8,24 @@ import {
   type CatalogColumnConfig,
   type CatalogSystemField,
 } from '../api/catalogs'
-import { fetchMetatype, type PropertyDefinitionDetail } from '../api/metamodel'
+import { fetchMetatype, fetchMetatypes, type MetatypeDetail, type PropertyDefinitionDetail } from '../api/metamodel'
 import { rateLimitMessage } from '../api/problem'
 import { label, labelKeys } from '../i18n/labels'
 
 // The dialog "Configure columns" of SCR-020 (US-047, REQ-044; design D6 of
 // us-047-configure-columns): every attribute of the primary metatype with visibility, header and
-// sortability; the order by drag and drop or the up/down buttons; at most one default sort.
+// sortability; the order by drag and drop or the up/down buttons; at most one default sort. A
+// connection catalog also offers the attributes of the source and the target (US-080; design D5
+// of us-080-connection-catalogs).
 const props = defineProps<{ catalog: Catalog; definitions: PropertyDefinitionDetail[]; fetchFn?: typeof fetch }>()
 const emit = defineEmits<{ saved: [catalog: Catalog]; cancel: [] }>()
 const { t } = useI18n()
 
+type Endpoint = 'source' | 'target'
+
 interface Row {
   key: string
+  endpoint?: Endpoint
   field?: CatalogSystemField
   propertyDefId?: string
   name: string
@@ -50,14 +55,71 @@ const sortItems = computed(() => [
     ]),
 ])
 
-function fieldRow(field: CatalogSystemField): Row {
-  return { key: field, field, name: t(`catalog.columns.field.${field}`), visible: false, sortable: true, displayLabel: '', available: true }
+function rowKey(endpoint: Endpoint | null | undefined, attribute: string): string {
+  return endpoint ? `${endpoint}:${attribute}` : attribute
 }
 
-function propertyRow(id: string, available: boolean): Row {
+function named(endpoint: Endpoint | null | undefined, name: string): string {
+  return endpoint ? t('catalog.columns.endpointAttribute', { side: t(`catalog.columns.endpoint.${endpoint}`), name }) : name
+}
+
+function fieldRow(field: CatalogSystemField, endpoint?: Endpoint | null): Row {
+  return {
+    key: rowKey(endpoint, field),
+    ...(endpoint ? { endpoint } : {}),
+    field,
+    name: named(endpoint, t(`catalog.columns.field.${field}`)),
+    visible: false,
+    sortable: true,
+    displayLabel: '',
+    available: true,
+  }
+}
+
+function propertyRow(id: string, available: boolean, endpoint?: Endpoint | null): Row {
   const definition = props.definitions.find((candidate) => candidate.id === id)
   const name = definition ? label(labelKeys.property(id), definition.name) : id
-  return { key: id, propertyDefId: id, name, visible: false, sortable: true, displayLabel: '', available }
+  return {
+    key: rowKey(endpoint, id),
+    ...(endpoint ? { endpoint } : {}),
+    propertyDefId: id,
+    name: named(endpoint, name),
+    visible: false,
+    sortable: true,
+    displayLabel: '',
+    available,
+  }
+}
+
+/**
+ * The properties a side offers: those mapped to an allowed endpoint metatype of the side, one of
+ * its subtypes or one of their base types; without a constraint, those of every metatype.
+ */
+function offered(connection: MetatypeDetail, side: Endpoint, metatypes: MetatypeDetail[]): string[] {
+  const allowed = (connection.connectionConstraints ?? [])
+    .filter((constraint) => constraint.direction === side && constraint.allowedMetatype)
+    .map((constraint) => constraint.allowedMetatype!.id)
+  const ids = new Set(allowed.length > 0 ? allowed : metatypes.map((metatype) => metatype.id))
+  let grown = true
+  while (grown) {
+    grown = false
+    for (const metatype of metatypes) {
+      const base = metatype.baseMetatypeId
+      if (!ids.has(metatype.id) && base && ids.has(base)) {
+        ids.add(metatype.id)
+        grown = true
+      }
+    }
+  }
+  const byId = new Map(metatypes.map((metatype) => [metatype.id, metatype]))
+  const chain = new Set<string>()
+  for (const id of ids) {
+    for (let current = byId.get(id); current && !chain.has(current.id); current = current.baseMetatypeId ? byId.get(current.baseMetatypeId) : undefined) {
+      chain.add(current.id)
+    }
+  }
+  const properties = [...chain].flatMap((id) => (byId.get(id)?.propertyMappings ?? []).map((mapping) => mapping.propertyDefinition.id))
+  return [...new Set(properties)]
 }
 
 function shownName(row: Row): string {
@@ -67,14 +129,23 @@ function shownName(row: Row): string {
 /** Configured columns first in their order, then every other attribute hidden. */
 onMounted(async () => {
   let mapped: string[] = []
+  const endpoints: { side: Endpoint; properties: string[] }[] = []
   try {
     const metatype = await fetchMetatype(props.catalog.primaryMetatypeId, props.fetchFn)
     mapped = [...new Set((metatype.propertyMappings ?? []).map((mapping) => mapping.propertyDefinition.id))]
+    if (metatype.isConnection) {
+      const metatypes = await fetchMetatypes(props.fetchFn)
+      for (const side of ['source', 'target'] as const) {
+        endpoints.push({ side, properties: offered(metatype, side, metatypes) })
+      }
+    }
   } catch {
     loadFailed.value = true
   }
   const configured: Row[] = props.catalog.columns.map((column) => {
-    const row = column.field ? fieldRow(column.field) : propertyRow(column.propertyDefId!, column.available !== false)
+    const row = column.field
+      ? fieldRow(column.field, column.endpoint)
+      : propertyRow(column.propertyDefId!, column.available !== false, column.endpoint)
     return {
       ...row,
       visible: column.visible !== false,
@@ -83,20 +154,27 @@ onMounted(async () => {
     }
   })
   const keys = new Set(configured.map((row) => row.key))
-  const others = [
-    ...SYSTEM_FIELDS.filter((field) => !keys.has(field)).map(fieldRow),
-    ...mapped.filter((id) => !keys.has(id)).map((id) => propertyRow(id, true)),
-  ]
+  let others = [
+    ...SYSTEM_FIELDS.map((field) => fieldRow(field)),
+    ...mapped.map((id) => propertyRow(id, true)),
+    ...endpoints.flatMap(({ side, properties }) => [
+      ...SYSTEM_FIELDS.map((field) => fieldRow(field, side)),
+      ...properties.map((id) => propertyRow(id, true, side)),
+    ]),
+  ].filter((row) => !keys.has(row.key))
   if (configured.length === 0) {
-    // the default columns of a catalog without configuration (US-049)
+    // the default columns of a catalog without configuration (US-049, US-080)
+    const defaults = endpoints.length > 0 ? ['source:name', 'name', 'target:name'] : ['name']
     for (const row of others) {
-      row.visible = row.field === 'name' || row.name.toLowerCase() === 'status'
+      row.visible = defaults.includes(row.key) || (!row.endpoint && row.name.toLowerCase() === 'status')
     }
+    const position = (row: Row) => (defaults.includes(row.key) ? defaults.indexOf(row.key) : defaults.length)
+    others = [...others].sort((a, b) => position(a) - position(b))
   }
   rows.value = [...configured, ...others]
   const sorted = props.catalog.columns.find((column) => column.defaultSortDirection)
   if (sorted) {
-    defaultSort.value = `${sorted.field ?? sorted.propertyDefId}:${sorted.defaultSortDirection}`
+    defaultSort.value = `${rowKey(sorted.endpoint, (sorted.field ?? sorted.propertyDefId)!)}:${sorted.defaultSortDirection}`
   }
   loading.value = false
 })
@@ -124,10 +202,13 @@ async function save() {
   }
   saving.value = true
   failure.value = undefined
-  const [sortKey, direction] = defaultSort.value === NONE ? [undefined, undefined] : defaultSort.value.split(':')
+  const separator = defaultSort.value.lastIndexOf(':')
+  const [sortKey, direction] =
+    defaultSort.value === NONE ? [undefined, undefined] : [defaultSort.value.slice(0, separator), defaultSort.value.slice(separator + 1)]
   const columns: CatalogColumnConfig[] = rows.value
     .filter((row) => row.available)
     .map((row) => ({
+      ...(row.endpoint ? { endpoint: row.endpoint } : {}),
       ...(row.field ? { field: row.field } : { propertyDefId: row.propertyDefId }),
       displayLabel: row.displayLabel.trim() || null,
       visible: row.visible,

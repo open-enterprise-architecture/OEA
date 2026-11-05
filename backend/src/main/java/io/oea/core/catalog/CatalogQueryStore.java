@@ -55,15 +55,41 @@ public class CatalogQueryStore {
 
 	}
 
-	/** A column of a page: a system field or a property, exactly one of them. */
-	public record QueryColumn(SystemField field, PropertyColumn property) {
+	/**
+	 * A column of a page: a system field or a property, exactly one of them, of the entity or, with
+	 * {@code endpoint}, of the source or target of the connection (US-080).
+	 */
+	public record QueryColumn(SystemField field, PropertyColumn property, Endpoint endpoint) {
 
 		public static QueryColumn of(SystemField field) {
-			return new QueryColumn(field, null);
+			return new QueryColumn(field, null, null);
 		}
 
 		public static QueryColumn of(PropertyColumn property) {
-			return new QueryColumn(null, property);
+			return new QueryColumn(null, property, null);
+		}
+
+		public QueryColumn at(Endpoint side) {
+			return new QueryColumn(this.field, this.property, side);
+		}
+
+	}
+
+	/**
+	 * A side of a connection (design D3 of us-080-connection-catalogs), with the alias of its
+	 * entity in {@link #page} and its column in {@code entity_connections}.
+	 */
+	public enum Endpoint {
+
+		SOURCE("es", "source_entity_id"), TARGET("et", "target_entity_id");
+
+		private final String alias;
+
+		private final String column;
+
+		Endpoint(String alias, String column) {
+			this.alias = alias;
+			this.column = column;
 		}
 
 	}
@@ -146,6 +172,54 @@ public class CatalogQueryStore {
 	}
 
 	/**
+	 * The properties a column of the source or target ({@code side} {@code source} or
+	 * {@code target}) of a connection metatype can show (design D2 of us-080-connection-catalogs):
+	 * {@code public}, not retired and mapped on the date to an allowed endpoint metatype of the
+	 * side, one of its subtypes or one of their base types; without a constraint for the side, to
+	 * any metatype of the connection metatype's configuration. By ID, ordered by name.
+	 */
+	public Map<UUID, PropertyColumn> endpointProperties(UUID connectionMetatypeId, String side, LocalDate date) {
+		Map<UUID, PropertyColumn> properties = new LinkedHashMap<>();
+		this.jdbc.query("""
+				WITH RECURSIVE seed (id) AS (
+				    SELECT allowed_metatype_id FROM metatype_connection_constraints
+				    WHERE metatype_id = ? AND direction = ?
+				    UNION ALL
+				    SELECT m.id FROM metatypes m
+				    WHERE m.config_id = (SELECT config_id FROM metatypes WHERE id = ?)
+				      AND NOT EXISTS (SELECT 1 FROM metatype_connection_constraints
+				                      WHERE metatype_id = ? AND direction = ?)),
+				allowed (id) AS (
+				    SELECT id FROM seed
+				    UNION SELECT m.id FROM metatypes m JOIN allowed a ON m.base_metatype_id = a.id),
+				chain (id) AS (
+				    SELECT id FROM allowed
+				    UNION SELECT m.base_metatype_id FROM metatypes m JOIN chain c ON m.id = c.id
+				    WHERE m.base_metatype_id IS NOT NULL)
+				SELECT p.id, p.sql_column_name, p.name
+				FROM (SELECT DISTINCT ON (metatype_id, property_def_id) property_def_id
+				      FROM metatype_property_mappings WHERE metatype_id IN (SELECT id FROM chain) AND valid_from <= ?
+				      ORDER BY metatype_id, property_def_id, valid_from DESC) active
+				JOIN property_definitions p ON p.id = active.property_def_id
+				WHERE p.visibility_mode = 'public' AND p.retired_at IS NULL
+				GROUP BY p.id, p.sql_column_name, p.name
+				ORDER BY lower(p.name), p.id""", (rs) -> {
+			UUID id = rs.getObject(1, UUID.class);
+			properties.put(id, new PropertyColumn(id, rs.getString(2), rs.getString(3)));
+		}, connectionMetatypeId, side, connectionMetatypeId, connectionMetatypeId, side, Date.valueOf(date));
+		return properties;
+	}
+
+	/** Whether the metatype is a connection metatype; {@code false} for an unknown one. */
+	public boolean isConnection(UUID metatypeId) {
+		return this.jdbc
+			.queryForList("SELECT is_connection FROM metatypes WHERE id = ?", Boolean.class, metatypeId)
+			.stream()
+			.findFirst()
+			.orElse(false);
+	}
+
+	/**
 	 * One page of rows: active entities of the metatype, expanded by the rows joins (their cross
 	 * product, an entity without results keeps one row). Rows without a value in the sort column
 	 * come last in both directions; enum values follow the order of the enum, values outside it
@@ -155,7 +229,7 @@ public class CatalogQueryStore {
 			int limit) {
 		Statement sql = new Statement("SELECT e.id, e.name");
 		for (int i = 0; i < columns.size(); i++) {
-			sql.text(", ").text(text(columns.get(i), "e", "v" + i));
+			sql.text(", ").text(text(columns.get(i), alias(columns.get(i)), "v" + i));
 		}
 		for (int j = 0; j < rowsJoins.size(); j++) {
 			sql.text(", j%d.id".formatted(j));
@@ -165,6 +239,13 @@ public class CatalogQueryStore {
 			}
 		}
 		sql.text(" FROM entities e");
+		if (columns.stream().anyMatch((column) -> column.endpoint() != null)) {
+			sql.text(" LEFT JOIN entity_connections ec ON ec.entity_id = e.id");
+			for (Endpoint side : Endpoint.values()) {
+				sql.text(" LEFT JOIN entities %1$s ON %1$s.id = ec.%2$s AND %1$s.deleted_at IS NULL"
+					.formatted(side.alias, side.column));
+			}
+		}
 		values(sql, columns, "e", "v");
 		for (int j = 0; j < rowsJoins.size(); j++) {
 			lateral(sql, rowsJoins.get(j), j);
@@ -176,6 +257,7 @@ public class CatalogQueryStore {
 		if (sort.column() != null) {
 			if (sort.join() == null) {
 				sorted = columns.get(sort.column());
+				sortAlias = alias(sorted);
 				valueAlias = "v" + sort.column();
 			}
 			else {
@@ -190,7 +272,7 @@ public class CatalogQueryStore {
 		}
 		sql.text(" WHERE e.metatype_id = ? AND e.deleted_at IS NULL ORDER BY ").arg(metatypeId);
 		String direction = sort.descending() ? "DESC" : "ASC";
-		if (sorted == null || (sort.join() == null && sorted.field() == SystemField.NAME)) {
+		if (sorted == null || (sort.join() == null && sorted.endpoint() == null && sorted.field() == SystemField.NAME)) {
 			sql.text("lower(e.name) %s, e.id".formatted(direction));
 		}
 		else if (sorted.field() != null) {
@@ -279,12 +361,21 @@ public class CatalogQueryStore {
 		return (column.field() != null) ? column.field().text.formatted(alias) : TEXT_FORM.formatted(valueAlias);
 	}
 
-	/** The property value joins of the columns of the entity {@code alias}. */
+	/** The alias of the entity whose attribute the primary column shows: {@code e} or an endpoint's. */
+	private static String alias(QueryColumn column) {
+		return (column.endpoint() != null) ? column.endpoint().alias : "e";
+	}
+
+	/**
+	 * The property value joins of the columns of the entity {@code alias}, or of its endpoint for
+	 * an endpoint column.
+	 */
 	private static void values(Statement sql, List<QueryColumn> columns, String alias, String prefix) {
 		for (int i = 0; i < columns.size(); i++) {
 			if (columns.get(i).property() != null) {
+				String entity = (columns.get(i).endpoint() != null) ? columns.get(i).endpoint().alias : alias;
 				sql.text(" LEFT JOIN entity_property_values %1$s%2$d ON %1$s%2$d.entity_id = %3$s.id"
-					.formatted(prefix, i, alias) + " AND %1$s%2$d.property_def_id = ?".formatted(prefix, i))
+					.formatted(prefix, i, entity) + " AND %1$s%2$d.property_def_id = ?".formatted(prefix, i))
 					.arg(columns.get(i).property().propertyDefId());
 			}
 		}

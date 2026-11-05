@@ -90,6 +90,9 @@ const connectionItems = computed(() =>
     .filter((connection) => admits(connection, 'source', primary.value) || admits(connection, 'target', primary.value))
     .map((connection) => ({ label: metatypeName(connection.id), value: connection.id })),
 )
+const connectionCatalogWithoutJoins = computed(
+  () => !loadFailed.value && byId.value.get(primary.value)?.isConnection === true && connectionItems.value.length === 0,
+)
 const connection = computed(() => (connectionId.value ? byId.value.get(connectionId.value) : undefined))
 const directionItems = computed(() => {
   if (!connection.value) {
@@ -281,6 +284,15 @@ function modeLabel(value: JoinMode | null | undefined): string {
     <template v-if="editing === undefined">
       <p class="text-sm text-muted">{{ t('catalog.joins.hint') }}</p>
       <p v-if="catalog.joinDefinitions.length === 0" data-testid="joins-empty" class="text-sm text-toned">{{ t('catalog.joins.none') }}</p>
+      <!-- a connection catalog that no connection type can join (US-080, REQ-065 BR-04) -->
+      <UAlert
+        v-if="connectionCatalogWithoutJoins"
+        data-testid="joins-connection-catalog"
+        color="neutral"
+        variant="subtle"
+        icon="i-lucide-info"
+        :description="t('catalog.joins.connectionCatalogHint')"
+      />
       <ul v-else data-testid="join-list" class="flex flex-col gap-2">
         <li
           v-for="join in catalog.joinDefinitions"

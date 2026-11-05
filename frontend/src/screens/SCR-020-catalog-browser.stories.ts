@@ -11,9 +11,12 @@ import {
   CATALOG,
   CATALOGS,
   catalogApi,
+  FLOW_CATALOG,
+  FLOWS,
   INTERFACES_JOIN,
   manyApplications,
   METATYPES,
+  METATYPES_WITH_FLOWS,
   ME_ARCHITECT,
   ME_VIEWER,
   STATUS_DEFINITION,
@@ -33,14 +36,18 @@ function overviewApi(me: unknown, catalogs: unknown[]): typeof fetch {
 }
 
 /** The catalog page with the applications; `query` is the view state in the URL (ADR-044). */
-function catalog(applications: Application[], query: Record<string, string> = {}, options: { catalog?: unknown } = {}): Story {
+function catalog(
+  applications: Application[],
+  query: Record<string, string> = {},
+  options: { catalog?: { id: string; [key: string]: unknown }; metatypes?: unknown[] } = {},
+): Story {
   return {
     render: () => ({
       components: { CatalogPage },
       setup: () => {
         const router = useRouter()
         onBeforeMount(() => router.replace({ query }))
-        return { fetchFn: catalogApi(applications, options), id: CATALOG.id }
+        return { fetchFn: catalogApi(applications, options), id: options.catalog?.id ?? CATALOG.id }
       },
       template: '<CatalogPage :id="id" :fetch-fn="fetchFn" />',
     }),
@@ -163,5 +170,16 @@ export const JoinRows: Story = {
     await expect(await canvas.findByText('SFTP Export')).toBeInTheDocument()
     const rows = canvasElement.querySelectorAll('[data-testid="catalog-table"] tbody tr')
     await expect(rows).toHaveLength(4)
+  },
+}
+
+// US-080: a catalog of information flows with the source and the target of each flow
+export const ConnectionCatalog: Story = {
+  ...catalog(FLOWS, {}, { catalog: FLOW_CATALOG, metatypes: METATYPES_WITH_FLOWS }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Invoices')).toBeInTheDocument()
+    await expect(canvas.getByTestId('sort-source.name')).toHaveTextContent('Source')
+    await expect(canvas.getByTestId('sort-target.name')).toHaveTextContent('Target')
   },
 }

@@ -2,7 +2,7 @@
 title: Kataloge
 covers:
   screens: [SCR-020, SCR-028]
-  stories: [US-046, US-047, US-048, US-049, US-050]
+  stories: [US-046, US-047, US-048, US-049, US-050, US-080]
 ---
 
 # Kataloge
@@ -89,3 +89,14 @@ Jeder Join hat in seiner Überschrift den Umschalter *Kompakt / Zeilen*:
 Der Umschalter ändert nur deine Ansicht, nicht den Katalog. Er ist Teil der Adresse der Seite, wie Sortierung und Seite. Stehen mehrere Joins auf *Zeilen*, bekommt jede Kombination ihrer verbundenen Entitäten eine eigene Zeile. Beim Öffnen des Katalogs gilt der *Standardmodus* des Joins, sonst der Standard-Join-Modus des Katalogs.
 
 Über die API fügt `POST /catalogs/{id}/joins` einen Join hinzu, mit `name`, `connectionMetatypeId`, `joinDirection` (`outbound`, `inbound`, `both`), `targetMetatypeId`, `targetColumns` (wie die Spalten, ohne Standardsortierung) und `defaultJoinMode` (`rows`, `aggregate` oder `null`). `PUT` und `DELETE /catalogs/{id}/joins/{joinId}` ändern und entfernen ihn. Die Abfrage liefert die Ergebnisse jedes Joins in `joinResults` unter der ID des Joins; `joinMode[{joinId}]=rows` schaltet einen Join für eine Abfrage um, und `sort={joinId}.{key}:asc` sortiert im Zeilenmodus nach einer Spalte des Joins.
+
+## Verbindungskataloge {#connection-catalogs}
+
+Ein Katalog kann auch Verbindungen auflisten, zum Beispiel alle Datenflüsse zwischen Anwendungen. Wähle beim Erstellen des Katalogs einen Verbindungstyp als *Primärer Entitätstyp*; der Dialog listet die Entitätstypen unter *Elemente* und die Verbindungstypen unter *Verbindungen*.
+
+- Jede Verbindung wird zu einer Zeile. Solange keine Spalten konfiguriert sind, zeigt die Tabelle *Quelle*, *Name* und *Ziel*: die Entität, bei der die Verbindung beginnt, die Verbindung selbst und die Entität, bei der sie endet.
+- *Spalten konfigurieren* listet auch die Attribute der Quelle und des Ziels, zum Beispiel *Quelle: Vendor*. Angeboten werden die Felder und die Eigenschaften der Entitätstypen, die der Verbindungstyp an diesem Ende erlaubt, samt ihren Untertypen; ein Verbindungstyp ohne solche Einschränkung bietet jede Eigenschaft an. Hat die Entität an diesem Ende die Eigenschaft nicht, bleibt die Zelle leer.
+- Diese Spalten sortierst du wie jede andere Spalte. Ist die Quelle oder das Ziel gelöscht, bleiben ihre Zellen leer.
+- Ein Join beginnt bei der Verbindung selbst, zum Beispiel von einem Datenfluss zu den Datenobjekten, die er transportiert. Beginnt oder endet kein Verbindungstyp beim Verbindungstyp des Katalogs, sagt der Dialog *Joins* das.
+
+Über die API trägt eine Spalte der Quelle oder des Ziels `"endpoint": "source"` oder `"target"`, und ihr Schlüssel in der Abfrage ist `source.{key}` oder `target.{key}`, zum Beispiel `sort=source.name:asc`.

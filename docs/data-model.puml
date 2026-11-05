@@ -1667,8 +1667,11 @@ package "Navigation & Presentation" #EDE7F6 {
     == Configuration as JSONB (ADR-030) ==
     + config              : JSONB         {NN}
     .. DEFAULT {columns:[], joinDefinitions:[], savedFilters:[], savedViews:[]} ..
-    .. columns may stay empty (display defaults to name, status) ..
-    .. columns[]: {field | propertyDefId, displayLabel, visible, sortable, defaultSortDirection} ..
+    .. columns may stay empty (display defaults to name, status; for a connection metatype ..
+    .. source.name, name, target.name, status) ..
+    .. columns[]: {endpoint?, field | propertyDefId, displayLabel, visible, sortable, defaultSortDirection} ..
+    .. endpoint source | target: attribute of the connection's source or target, only for a ..
+    .. connection metatype as primary (US-080, us-080-connection-catalogs, catalog BR-11) ..
     .. in display order (US-047, us-047-configure-columns) ..
     .. joinDefinitions[] (max. 10, creation order): {id, name, connectionMetatypeId, joinDirection, ..
     .. targetMetatypeId, targetColumns[] (max. 20), defaultJoinMode} (US-048, us-048-catalog-joins) ..

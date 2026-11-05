@@ -11,11 +11,14 @@ import {
   CATALOGS,
   catalogApi,
   DATA_FLOW,
+  FLOW_CATALOG,
+  FLOWS,
   INTERFACE,
   INTERFACES_JOIN,
   manyApplications,
   ME_ARCHITECT,
   ME_VIEWER,
+  METATYPES_WITH_FLOWS,
   PROTOCOL_DEFINITION,
   STATUS_DEFINITION,
   VENDOR_DEFINITION,
@@ -38,7 +41,7 @@ async function open(
   location: string,
   applications: Application[] = APPLICATIONS,
   throttledFor?: number,
-  options: { me?: unknown; catalog?: unknown } = {},
+  options: { me?: unknown; catalog?: unknown; metatypes?: unknown[] } = {},
 ): Promise<Mounted> {
   const recorded: CatalogRequest[] = []
   const fetchFn = catalogApi(applications, { recorded, throttledFor, ...options })
@@ -451,5 +454,86 @@ describe('CatalogPage joins', () => {
     expect(wrapper.find('[data-testid="configure-joins"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="join-mode-rows"]').exists()).toBe(true)
     wrapper.unmount()
+  })
+})
+
+describe('CatalogPage connection catalogs', () => {
+  const FLOW_PATH = `/catalogs/${FLOW_CATALOG.id}`
+
+  function headers(wrapper: VueWrapper): string[] {
+    return wrapper.findAll('[data-testid="catalog-table"] thead th').map((th) => th.text())
+  }
+
+  function cells(wrapper: VueWrapper, column: number): string[] {
+    return wrapper.findAll('[data-testid="catalog-table"] tbody tr').map((row) => row.findAll('td')[column]!.text())
+  }
+
+  function columnNames(): string[] {
+    return [...document.body.querySelectorAll('[data-testid="column-row"] [data-testid="column-name"]')].map((name) => name.textContent ?? '')
+  }
+
+  async function openFlows(catalog: unknown = FLOW_CATALOG) {
+    return open(FLOW_PATH, FLOWS, undefined, { catalog, metatypes: METATYPES_WITH_FLOWS })
+  }
+
+  // catalog/catalog-query "Data flow catalog" and "Default columns of a connection catalog"
+  it('lists the flows with their source and target', async () => {
+    const { wrapper } = await openFlows()
+    expect(headers(wrapper)).toEqual(['Source', 'Name', 'Target'])
+    expect(cells(wrapper, 1)).toEqual(['Invoices', 'Leads', 'Orders'])
+    expect(cells(wrapper, 0)).toEqual(['ERP', 'Intranet', 'CRM System'])
+    expect(cells(wrapper, 2)).toEqual(['Accounting', 'CRM System', 'ERP'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-query "Sort by source"
+  it('sorts by the source and keeps the sort in the URL', async () => {
+    const { wrapper, router, recorded } = await openFlows()
+    await click(wrapper, '[data-testid="sort-source.name"]')
+    expect(router.currentRoute.value.query.sort).toBe('source.name:asc')
+    expect(recorded.at(-1)?.query.sort).toBe('source.name:asc')
+    expect(cells(wrapper, 0)).toEqual(['CRM System', 'ERP', 'Intranet'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-columns "Attributes of source and target"
+  it('offers and saves the attributes of the source and the target', async () => {
+    const { wrapper, recorded } = await openFlows()
+    await click(wrapper, '[data-testid="configure-columns"]')
+    const names = columnNames()
+    expect(names.slice(0, 3)).toEqual(['Source: Name', 'Name', 'Target: Name'])
+    expect(names).toContain('Source: Vendor')
+    expect(names).toContain('Target: Vendor')
+    expect(names).toContain('Target: Description')
+    const vendor = [...document.body.querySelectorAll<HTMLElement>('[data-testid="column-row"]')].find(
+      (row) => row.querySelector('[data-testid="column-name"]')?.textContent === 'Target: Vendor',
+    )!
+    vendor.querySelector<HTMLElement>('[data-testid="column-visible"] button, button[data-testid="column-visible"]')!.click()
+    await flushPromises()
+    document.body.querySelector<HTMLElement>('[data-testid="columns-save"]')!.click()
+    await flushPromises()
+    const put = recorded.find((request) => request.method === 'PUT')
+    const columns = (put?.body as { columns: { endpoint?: string; field?: string; propertyDefId?: string; visible: boolean }[] }).columns
+    expect(columns[0]).toMatchObject({ endpoint: 'source', field: 'name', visible: true })
+    expect(columns[1]).toMatchObject({ field: 'name', visible: true })
+    expect(columns[1]!.endpoint).toBeUndefined()
+    expect(columns.find((column) => column.endpoint === 'target' && column.propertyDefId === VENDOR_DEFINITION.id)?.visible).toBe(true)
+    expect(headers(wrapper)).toEqual(['Source', 'Name', 'Target', 'Target: Vendor'])
+    expect(cells(wrapper, 3)).toEqual(['', 'Salesforce', 'SAP'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-joins "Connection catalog without joins"
+  it('explains that no join starts at the connections', async () => {
+    const { wrapper } = await openFlows()
+    await click(wrapper, '[data-testid="configure-joins"]')
+    expect(document.body.querySelector('[data-testid="joins-connection-catalog"]')?.textContent).toContain(
+      'This catalog lists connections. No connection type starts or ends at them',
+    )
+    wrapper.unmount()
+    const { wrapper: elements } = await open(CATALOG_PATH)
+    await click(elements, '[data-testid="configure-joins"]')
+    expect(document.body.querySelector('[data-testid="joins-connection-catalog"]')).toBeNull()
+    elements.unmount()
   })
 })

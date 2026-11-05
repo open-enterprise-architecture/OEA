@@ -35,7 +35,12 @@
         "createdAt": "Created",
         "updatedAt": "Updated",
         "entityVersion": "Version"
-      }
+      },
+      "endpoint": {
+        "source": "Source",
+        "target": "Target"
+      },
+      "endpointAttribute": "{side}: {name}"
     },
     "joins": {
       "title": "Joins",
@@ -63,7 +68,8 @@
       "rows": "Rows",
       "modeOf": "Display of {name}",
       "failed": "The join could not be saved.",
-      "loadFailed": "The entity types could not be loaded."
+      "loadFailed": "The entity types could not be loaded.",
+      "connectionCatalogHint": "This catalog lists connections. No connection type starts or ends at them, so the catalog shows each connection with its source and target."
     }
   },
   "catalogs": {
@@ -86,8 +92,10 @@
   "createCatalog": {
     "aggregate": "Aggregate",
     "aggregateHint": "One row per entity; linked entities in one cell",
+    "connectionTypes": "Connections",
     "description": "Description",
     "descriptionHelp": "Optional, up to 1000 characters",
+    "elementTypes": "Elements",
     "failed": "The catalog could not be created.",
     "field": {
       "defaultJoinMode": "Select a join mode.",
