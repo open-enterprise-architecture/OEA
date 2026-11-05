@@ -38,15 +38,18 @@ public class PropertyDefinitions {
 
 	private final MetamodelAudit audit;
 
+	private final MetamodelConfigurations configurations;
+
 	private final MetamodelVersions versions;
 
 	public PropertyDefinitions(JdbcTemplate jdbc, PropertyValueStore values, MetamodelEffects effects,
-			MetamodelAudit audit, MetamodelVersions versions) {
+			MetamodelAudit audit, MetamodelVersions versions, MetamodelConfigurations configurations) {
 		this.jdbc = jdbc;
 		this.values = values;
 		this.effects = effects;
 		this.audit = audit;
 		this.versions = versions;
+		this.configurations = configurations;
 	}
 
 	/** The writable fields of a property definition. */
@@ -65,6 +68,7 @@ public class PropertyDefinitions {
 	@Transactional
 	public UUID create(OeaPrincipal principal, Input input) {
 		this.effects.lock();
+		this.configurations.requireWritable(principal, PackageImporter.INSTANCE_CONFIGURATION);
 		String name = validate(input, null);
 		UUID id = UUID.randomUUID();
 		String column = StorageNames.forNewProperty(name, (candidate) -> exists(
@@ -83,6 +87,7 @@ public class PropertyDefinitions {
 	@Transactional
 	public void update(OeaPrincipal principal, UUID id, Input input, Long expectedVersion) {
 		this.effects.lock();
+		this.configurations.requireWritable(principal, PackageImporter.INSTANCE_CONFIGURATION);
 		this.versions.check(MetamodelVersions.Element.PROPERTY_DEFINITION, id, expectedVersion);
 		Stored stored = stored(id);
 		readOnlyUnlessOrganization(stored.scope(), "property definition");
@@ -115,6 +120,7 @@ public class PropertyDefinitions {
 	@Transactional
 	public void delete(OeaPrincipal principal, UUID id, Long expectedVersion) {
 		this.effects.lock();
+		this.configurations.requireWritable(principal, PackageImporter.INSTANCE_CONFIGURATION);
 		this.versions.check(MetamodelVersions.Element.PROPERTY_DEFINITION, id, expectedVersion);
 		Stored stored = stored(id);
 		readOnlyUnlessOrganization(stored.scope(), "property definition");
@@ -139,6 +145,7 @@ public class PropertyDefinitions {
 	public UUID createEnumValue(OeaPrincipal principal, UUID propertyDefId, String value, Integer sortOrder,
 			Long expectedVersion) {
 		this.effects.lock();
+		this.configurations.requireWritable(principal, PackageImporter.INSTANCE_CONFIGURATION);
 		this.versions.check(MetamodelVersions.Element.PROPERTY_DEFINITION, propertyDefId, expectedVersion);
 		Stored stored = stored(propertyDefId);
 		readOnlyUnlessOrganization(stored.scope(), "property definition");
@@ -171,6 +178,7 @@ public class PropertyDefinitions {
 	@Transactional
 	public void deleteEnumValue(OeaPrincipal principal, UUID propertyDefId, UUID valueId, Long expectedVersion) {
 		this.effects.lock();
+		this.configurations.requireWritable(principal, PackageImporter.INSTANCE_CONFIGURATION);
 		this.versions.check(MetamodelVersions.Element.PROPERTY_DEFINITION, propertyDefId, expectedVersion);
 		Stored stored = stored(propertyDefId);
 		readOnlyUnlessOrganization(stored.scope(), "property definition");
@@ -198,6 +206,7 @@ public class PropertyDefinitions {
 	@Transactional
 	public UUID createCategory(OeaPrincipal principal, CategoryInput input) {
 		this.effects.lock();
+		this.configurations.requireWritable(principal, PackageImporter.INSTANCE_CONFIGURATION);
 		String name = categoryName(input, null);
 		UUID id = UUID.randomUUID();
 		this.jdbc.update("""
@@ -210,6 +219,7 @@ public class PropertyDefinitions {
 	@Transactional
 	public void updateCategory(OeaPrincipal principal, UUID id, CategoryInput input, Long expectedVersion) {
 		this.effects.lock();
+		this.configurations.requireWritable(principal, PackageImporter.INSTANCE_CONFIGURATION);
 		this.versions.check(MetamodelVersions.Element.CATEGORY, id, expectedVersion);
 		readOnlyUnlessOrganization(categoryScope(id), "property category");
 		String name = categoryName(input, id);
@@ -222,6 +232,7 @@ public class PropertyDefinitions {
 	@Transactional
 	public void deleteCategory(OeaPrincipal principal, UUID id, Long expectedVersion) {
 		this.effects.lock();
+		this.configurations.requireWritable(principal, PackageImporter.INSTANCE_CONFIGURATION);
 		this.versions.check(MetamodelVersions.Element.CATEGORY, id, expectedVersion);
 		readOnlyUnlessOrganization(categoryScope(id), "property category");
 		if (exists("SELECT EXISTS (SELECT 1 FROM property_definitions WHERE category_id = ?)", id)) {

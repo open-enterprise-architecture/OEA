@@ -2,7 +2,7 @@
 identifier: metamodel-configuration
 name_de: Metamodell-Konfiguration
 name_en: Metamodel Configuration
-version: 1.9.0
+version: 1.10.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -70,8 +70,10 @@ Changes to the configuration are versioned and recorded in the audit log.
 | id | string | required | | UUID v4, globally unique | Internal primary key |
 | scope | enum | required | `instance` | `[instance, solution]` | Distinguishes instance default (singleton) from solution extension |
 | instanceId | reference | required | | target: instance; unique if scope=instance | Link to the OEA instance |
-| solutionId | reference | optional | null | target: solution; only set if scope=solution | Link to the solution (scope=solution) |
+| solutionId | reference | optional | null | target: solution; set exactly if scope=solution; without a foreign key until solutions exist (S10) | Link to the solution (scope=solution) |
 | parentId | reference | optional | null | target: MetamodelConfiguration (scope=instance); only set if scope=solution | Parent configuration whose types are inherited |
+| name | string | required | `Instance metamodel` for the instance | 1–100 characters; unique across all configurations, case-insensitive | Name shown for the configuration, e.g. the solution "Cloud Migration 2027" |
+| version | integer | required | 1 | ≥ 1; grows with every change of `name` or `editMode` | Optimistic locking (`ETag`, `If-Match`), as for EntityTypes (BR-31) |
 | schemaVersion | string | required | "1.0" | Semver | Current schema version of the configuration |
 | lastModifiedAt | datetime | required | | ISO 8601, UTC | Time of the last change |
 | lastModifiedBy | principal | optional | | person or system admin account; empty for changes by the system (e.g. the migration creating the instance configuration) | Principal who made the last change |
@@ -252,10 +254,10 @@ Describes a single page (step) in the creation wizard that is run through when c
 | BR-02 | A built-in EntityType (`isBuiltIn=true`) must not be deleted or changed in its basic structure | onDelete, onUpdate | – |
 | BR-03 | A custom EntityType can only be deleted if no instance of this type exists in the repository | onDelete | – |
 | BR-04 | A `ConstraintRule` with `severity=error` blocks saving of entities that violate the rule | onValidate | – |
-| BR-05 | Changes to the `MetamodelConfiguration` require the permission `metamodel:write`, except the visibility fields of `PropertyDefinition` (`visibilityMode`, `readRoles`, `writeRoles`, `scopingConnectionType`), which require `visibility:configure` (ADR-032 §3, SoD-2) | onCreate, onUpdate, onDelete | REQ-157, REQ-161 |
-| BR-06 | If `editMode=import-only` for a configuration, create, update, and delete operations on EntityTypeDefinitions, stereotypes, and ConstraintRules of this configuration MUST NOT be executed via the GUI API; only the import path (REQ-033) remains active; applies independently per scope level: a solution extension can have `gui-and-import` while the instance configuration is `import-only` | onUpdate | – |
-| BR-09 | A `MetamodelConfiguration` with `scope=solution` MUST NOT contain types that are already defined in the parent object (`parentId`) (no overriding, only supplementing) | onCreate, onUpdate | – |
-| BR-10 | A `MetamodelConfiguration` with `scope=solution` MUST have a valid `parentId` pointing to a `MetamodelConfiguration` with `scope=instance` of the same OEA instance | onCreate | – |
+| BR-05 | Changes to the `MetamodelConfiguration` require the permission `metamodel:write`, except the visibility fields of `PropertyDefinition` (`visibilityMode`, `readRoles`, `writeRoles`, `scopingConnectionType`), which require `visibility:configure` (ADR-032 §3, SoD-2); a configuration with `scope=solution`, its EntityTypes and their mappings require `solution-metamodel:write` instead (ADR-032 amendment 2026-11-04) | onCreate, onUpdate, onDelete | REQ-157, REQ-161, REQ-037 |
+| BR-06 | If `editMode=import-only` for a configuration, every write on its content through the API MUST be rejected (403 `metamodel-locked`), whatever the permissions: for the instance its EntityTypes, mappings, PropertyDefinitions, enum values, categories and labels, for an extension its EntityTypes and mappings; stereotypes and ConstraintRules follow when they exist. Package imports (REQ-033), the re-import settings and `editMode` itself stay changeable. Applies independently per scope level: a solution extension can have `gui-and-import` while the instance configuration is `import-only` | onCreate, onUpdate, onDelete | REQ-035 |
+| BR-09 | A `MetamodelConfiguration` with `scope=solution` MUST NOT contain types that are already defined in the parent object (`parentId`) (no overriding, only supplementing): the name of an EntityType of an extension must not exist in the instance or the same extension, and an EntityType of the instance must not take a name used in any extension (case-insensitive). Base types and allowed connection endpoints come from the instance or the same extension; an EntityType keeps its configuration | onCreate, onUpdate | REQ-037 |
+| BR-10 | A `MetamodelConfiguration` with `scope=solution` MUST have a valid `parentId` pointing to a `MetamodelConfiguration` with `scope=instance` of the same OEA instance; it is always the instance configuration. An extension can be deleted only while it has no EntityTypes; the instance configuration cannot be deleted | onCreate, onDelete | REQ-037 |
 | BR-07 | An instance of a connection type (`isConnection=true`) MUST have exactly one `source` and one `target` reference; both references may point to entities of any EntityType class (including other connection instances), provided the respective `allowedSourceTypes`/`allowedTargetTypes` lists are respected | onCreate, onUpdate | – |
 | BR-08 | `allowedSourceTypes`, `allowedTargetTypes`, and `allowsConnectionAsSource` may only be set if `isConnection=true`; for `isConnection=false` they are meaningless and are ignored | onCreate, onUpdate | – |
 | BR-11 | `PropertyDefinition.dataType.kind=varchar` requires `maxLength` ≥ 1 | onCreate, onUpdate | – |
@@ -465,3 +467,4 @@ Version 1.9.0 (change `us-036-connection-metatypes`) stores the allowed endpoint
 | 1.7.0 | 2026-11-04 | Business Engineer | Labels per locale of EntityTypes, categories, PropertyDefinitions and enum values (`i18n_entries` with scope); BR-30 (change `us-140-dynamic-labels`) |
 | 1.8.0 | 2026-11-04 | Business Engineer | `version` of EntityTypes, PropertyDefinitions and property categories for optimistic locking; BR-31 (change `scr-030-metamodel-configuration`) |
 | 1.9.0 | 2026-11-04 | Business Engineer | Connection types with allowed endpoints including subtypes and connection types; BR-32 (change `us-036-connection-metatypes`) |
+| 1.10.0 | 2026-11-05 | Business Engineer | `name` and `version` of a configuration; `solutionId` without a foreign key until solutions exist; BR-05, BR-06, BR-09 and BR-10 as implemented: lock mode, names and base types of extensions, deleting extensions (change `us-037-solution-extensions-and-lock-mode`) |

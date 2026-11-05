@@ -2,8 +2,9 @@
 
 **ID**: US-035
 **Story Points**: 2
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S8
+**Implementation**: OpenSpec change `us-037-solution-extensions-and-lock-mode` – the edit mode `import-only` of the instance configuration, switched in the SCR-030 settings and through `PUT /metamodel/configurations/{id}`; every content write is rejected with 403 `metamodel-locked`, imports keep working
 
 ## Story
 

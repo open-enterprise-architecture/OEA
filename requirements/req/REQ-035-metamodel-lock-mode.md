@@ -4,7 +4,7 @@ title: Metamodel lock mode (import-only)
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-25
 last_updated: 2026-06-25
 author: requirements-engineer
@@ -122,9 +122,10 @@ The `editMode` is an operator setting (not changeable by architects) in the `Met
 
 ## Implementation
 
-- ADR(s): –
-- Implemented by: –
-- Tests: –
+- Realized by OpenSpec change `us-037-solution-extensions-and-lock-mode`: `editMode` of the instance configuration, enforced by one check in every content write of the metamodel (metatypes, mappings, property definitions, enum values, categories, labels) with 403 `metamodel-locked`; package imports, the re-import settings and the edit mode stay changeable. The switch is `PUT /metamodel/configurations/{id}` with `metamodel:write` and the setting in SCR-030, audited as `metamodel.edit-mode-changed`. Unlike the implementation notes, the switch needs `metamodel:write` and no operator role (owner decision 2026-11-04).
+- ADR(s): ADR-032, ADR-002
+- Implemented by: OpenSpec change `us-037-solution-extensions-and-lock-mode`
+- Tests: `MetamodelConfigurationsTests`, `MetamodelPage.spec.ts`, `features/metamodel/lock-mode.feature`
 - Verification status: not-verified
 
 ## Change History
@@ -132,3 +133,4 @@ The `editMode` is an operator setting (not changeable by architects) in the `Met
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-05 | requirements-engineer | Implementation note (change `us-037-solution-extensions-and-lock-mode`) |

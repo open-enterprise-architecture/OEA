@@ -4,7 +4,7 @@ title: Solution-specific metamodel extension
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-25
 last_updated: 2026-06-25
 author: requirements-engineer
@@ -154,9 +154,10 @@ A [Solution](../../business-objects/solution.md) describes the delta between a b
 
 ## Implementation
 
-- ADR(s): –
-- Implemented by: –
-- Tests: –
+- Prepared by OpenSpec change `us-037-solution-extensions-and-lock-mode` without solutions: extension configurations (`scope=solution`, a solution ID without a foreign key) through `/metamodel/configurations`, metatypes and mappings in them with the new permission `solution-metamodel:write`, the name rule of BR-09 in both directions and the effective metamodel through `GET /metamodel/metatypes?configId=` instead of `GET /solutions/{id}/effective-metamodel`. Entities and catalogs of extension metatypes, the grouped type selection and the import into an extension follow with solutions (S10).
+- ADR(s): ADR-032 (amendment 2026-11-04), ADR-002
+- Implemented by: OpenSpec change `us-037-solution-extensions-and-lock-mode` (partially)
+- Tests: `MetamodelConfigurationsTests`, `features/metamodel/solution-extensions.feature`
 - Verification status: not-verified
 
 ## Change History
@@ -164,3 +165,4 @@ A [Solution](../../business-objects/solution.md) describes the delta between a b
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-05 | requirements-engineer | Implementation note (change `us-037-solution-extensions-and-lock-mode`) |

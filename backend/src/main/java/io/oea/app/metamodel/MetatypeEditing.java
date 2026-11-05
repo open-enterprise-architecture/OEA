@@ -34,12 +34,15 @@ public class MetatypeEditing {
 
 	private final MetamodelVersions versions;
 
+	private final MetamodelConfigurations configurations;
+
 	public MetatypeEditing(JdbcTemplate jdbc, MetamodelEffects effects, MetamodelAudit audit,
-			MetamodelVersions versions) {
+			MetamodelVersions versions, MetamodelConfigurations configurations) {
 		this.jdbc = jdbc;
 		this.effects = effects;
 		this.audit = audit;
 		this.versions = versions;
+		this.configurations = configurations;
 	}
 
 	/**
@@ -60,22 +63,32 @@ public class MetatypeEditing {
 	}
 
 	private record Stored(String name, String abbreviation, boolean connection, String architectureLayerId,
-			int sortOrder, String scope, UUID baseMetatypeId) {
+			int sortOrder, String scope, UUID baseMetatypeId, UUID configId) {
 	}
 
 	@Transactional
 	public UUID create(OeaPrincipal principal, Input input) {
 		this.effects.lock();
-		String name = validate(input, null);
+		UUID config = input.configId();
+		if (config == null || (!PackageImporter.INSTANCE_CONFIGURATION.equals(config)
+				&& !this.configurations.isExtension(config))) {
+			throw MetamodelChangeException.invalid("configId",
+					"The configuration is neither the instance nor an extension.");
+		}
+		this.configurations.requireWritable(principal, config);
+		String name = validate(input, null, config);
 		UUID id = UUID.randomUUID();
 		this.jdbc.update("""
 				INSERT INTO metatypes (id, config_id, name, abbreviation, is_connection, architecture_layer_id, sort_order,
 				    scope, created_by, base_metatype_id) VALUES (?, ?, ?, ?, ?, ?, ?, 'organization', ?, ?)""", id,
-				PackageImporter.INSTANCE_CONFIGURATION, name, abbreviation(input), input.connection(),
+				config, name, abbreviation(input), input.connection(),
 				input.architectureLayerId(), input.sortOrder(), principal.personId(), input.baseMetatypeId());
 		ConnectionConstraints.replace(this.jdbc, id, input.allowedSources(), input.allowedTargets());
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("name", name);
+		if (!PackageImporter.INSTANCE_CONFIGURATION.equals(config)) {
+			details.put("configId", config.toString());
+		}
 		if (input.baseMetatypeId() != null) {
 			details.put("baseMetatypeId", input.baseMetatypeId().toString());
 		}
@@ -92,12 +105,16 @@ public class MetatypeEditing {
 	@Transactional
 	public void update(OeaPrincipal principal, UUID id, Input input, Long expectedVersion) {
 		this.effects.lock();
+		this.configurations.requireWritableMetatype(principal, id);
 		this.versions.check(MetamodelVersions.Element.METATYPE, id, expectedVersion);
 		Stored stored = stored(id);
 		if (!"organization".equals(stored.scope())) {
 			throw MetamodelChangeException.readOnly("metatype");
 		}
-		String name = validate(input, id);
+		if (!stored.configId().equals(input.configId())) {
+			throw MetamodelChangeException.invalid("configId", "A metatype keeps its configuration.");
+		}
+		String name = validate(input, id, stored.configId());
 		if (input.connection() != stored.connection()) {
 			throw MetamodelChangeException.invalid("isConnection", "Whether a metatype is a connection cannot change.");
 		}
@@ -133,6 +150,7 @@ public class MetatypeEditing {
 	@Transactional
 	public void delete(OeaPrincipal principal, UUID id, Long expectedVersion) {
 		this.effects.lock();
+		this.configurations.requireWritableMetatype(principal, id);
 		this.versions.check(MetamodelVersions.Element.METATYPE, id, expectedVersion);
 		Stored stored = stored(id);
 		if (!"organization".equals(stored.scope())) {
@@ -157,11 +175,14 @@ public class MetatypeEditing {
 		this.audit.changed("metamodel.metatype-deleted", principal, "metatype", id, Map.of("name", stored.name()));
 	}
 
-	/** Checks name, abbreviation and base type; returns the stripped name. */
-	private String validate(Input input, UUID id) {
-		if (!PackageImporter.INSTANCE_CONFIGURATION.equals(input.configId())) {
-			throw MetamodelChangeException.invalid("configId", "Only the instance configuration exists.");
-		}
+	/**
+	 * Checks name, abbreviation, base type and allowed endpoints in the configuration
+	 * {@code config}; returns the stripped name. A name in an extension must not exist in the
+	 * instance or the same extension, one in the instance in no configuration; base type and
+	 * endpoints come from the instance or the same extension (design D3 of
+	 * us-037-solution-extensions-and-lock-mode).
+	 */
+	private String validate(Input input, UUID id, UUID config) {
 		String name = (input.name() != null) ? input.name().strip() : "";
 		if (name.isEmpty() || name.length() > NAME_MAX_LENGTH) {
 			throw MetamodelChangeException.invalid("name", "The name must have 1 to 100 characters.");
@@ -170,8 +191,11 @@ public class MetatypeEditing {
 		if (abbreviation != null && abbreviation.length() > ABBREVIATION_MAX_LENGTH) {
 			throw MetamodelChangeException.invalid("abbreviation", "The abbreviation has more than 10 characters.");
 		}
-		if (count("SELECT count(*) FROM metatypes WHERE config_id = ? AND lower(name) = lower(?) AND id IS DISTINCT FROM ?::uuid",
-				PackageImporter.INSTANCE_CONFIGURATION, name, id) > 0) {
+		boolean instance = PackageImporter.INSTANCE_CONFIGURATION.equals(config);
+		if (count("""
+				SELECT count(*) FROM metatypes WHERE (? OR config_id IN (?, ?)) AND lower(name) = lower(?)
+				    AND id IS DISTINCT FROM ?::uuid""", instance, PackageImporter.INSTANCE_CONFIGURATION, config, name,
+				id) > 0) {
 			throw MetamodelChangeException.nameTaken("name");
 		}
 		UUID base = input.baseMetatypeId();
@@ -179,13 +203,14 @@ public class MetatypeEditing {
 			throw MetamodelChangeException.invalid(List.of("allowedSourceMetatypeIds", "allowedTargetMetatypeIds"),
 					"Only connection metatypes have allowed sources and targets.");
 		}
-		checkExisting("allowedSourceMetatypeIds", input.allowedSources(), id);
-		checkExisting("allowedTargetMetatypeIds", input.allowedTargets(), id);
+		checkExisting("allowedSourceMetatypeIds", input.allowedSources(), id, config);
+		checkExisting("allowedTargetMetatypeIds", input.allowedTargets(), id, config);
 		if (base != null) {
 			// base types have the same kind (us-036-connection-metatypes D2)
-			if (count("SELECT count(*) FROM metatypes WHERE id = ? AND is_connection = ?", base, input.connection()) == 0) {
-				throw MetamodelChangeException.invalid("baseMetatypeId",
-						"The base type does not exist or is not of the same kind (connection or element).");
+			if (count("SELECT count(*) FROM metatypes WHERE id = ? AND is_connection = ? AND config_id IN (?, ?)", base,
+					input.connection(), PackageImporter.INSTANCE_CONFIGURATION, config) == 0) {
+				throw MetamodelChangeException.invalid("baseMetatypeId", "The base type does not exist, is not of the "
+						+ "same kind (connection or element) or belongs to another configuration.");
 			}
 			Map<UUID, UUID> bases = this.effects.bases();
 			if (id != null && MetamodelEffects.chain(base, bases).contains(id)) {
@@ -198,11 +223,16 @@ public class MetatypeEditing {
 		return name;
 	}
 
-	/** Each listed metatype exists; the metatype itself may be listed once it exists. */
-	private void checkExisting(String field, List<UUID> metatypes, UUID id) {
+	/**
+	 * Each listed metatype exists in the instance or the configuration; the metatype itself may be
+	 * listed once it exists.
+	 */
+	private void checkExisting(String field, List<UUID> metatypes, UUID id, UUID config) {
 		for (UUID metatype : metatypes) {
-			if (!metatype.equals(id) && count("SELECT count(*) FROM metatypes WHERE id = ?", metatype) == 0) {
-				throw MetamodelChangeException.invalid(field, "The metatype " + metatype + " does not exist.");
+			if (!metatype.equals(id) && count("SELECT count(*) FROM metatypes WHERE id = ? AND config_id IN (?, ?)",
+					metatype, PackageImporter.INSTANCE_CONFIGURATION, config) == 0) {
+				throw MetamodelChangeException.invalid(field,
+						"The metatype " + metatype + " does not exist in this configuration or the instance.");
 			}
 		}
 	}
@@ -223,9 +253,11 @@ public class MetatypeEditing {
 
 	private Stored stored(UUID id) {
 		return this.jdbc.query("""
-				SELECT name, abbreviation, is_connection, architecture_layer_id, sort_order, scope, base_metatype_id
+				SELECT name, abbreviation, is_connection, architecture_layer_id, sort_order, scope, base_metatype_id,
+				       config_id
 				FROM metatypes WHERE id = ?""", (rs, n) -> new Stored(rs.getString(1), rs.getString(2), rs.getBoolean(3),
-				rs.getString(4), rs.getInt(5), rs.getString(6), rs.getObject(7, UUID.class)), id)
+				rs.getString(4), rs.getInt(5), rs.getString(6), rs.getObject(7, UUID.class), rs.getObject(8, UUID.class)),
+				id)
 			.stream()
 			.findFirst()
 			.orElseThrow(() -> new NoSuchElementException("no metatype " + id));

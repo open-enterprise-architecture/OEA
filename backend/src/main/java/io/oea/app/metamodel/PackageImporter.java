@@ -190,10 +190,11 @@ public class PackageImporter {
 			}
 		}
 		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
+			// also the names of extensions: an instance metatype never takes one (BR-09, us-037 D3)
 			check(conflicts, definition, "metatype " + metatype.name(), owners("""
 					SELECT scope, source_package_id FROM metatypes
-					WHERE id = ? OR (config_id = ? AND lower(name) = lower(?) AND id <> ?)""", metatype.id(),
-					INSTANCE_CONFIGURATION, metatype.name(), metatype.id()));
+					WHERE id = ? OR (lower(name) = lower(?) AND id <> ?)""", metatype.id(), metatype.name(),
+					metatype.id()));
 			for (PackageDefinition.Mapping mapping : metatype.mappings()) {
 				check(conflicts, definition, "property mapping of " + metatype.name(), owners("""
 						SELECT t.scope, t.source_package_id FROM metatype_property_mappings m

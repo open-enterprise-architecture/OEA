@@ -5,6 +5,10 @@ import io.oea.api.generated.MetamodelApi;
 import io.oea.api.generated.model.AllowedConnectionResult;
 import io.oea.api.generated.model.AllowedConnectionResultOptionsInner;
 import io.oea.api.generated.model.CreateEnumValueRequest;
+import io.oea.api.generated.model.MetamodelConfiguration;
+import io.oea.api.generated.model.MetamodelConfigurationCreate;
+import io.oea.api.generated.model.MetamodelConfigurationUpdate;
+import io.oea.api.generated.model.MetamodelEditMode;
 import io.oea.api.generated.model.MetamodelScope;
 import io.oea.api.generated.model.MetamodelLabel;
 import io.oea.api.generated.model.MetamodelLabelsUpdate;
@@ -24,16 +28,19 @@ import io.oea.api.generated.model.PropertyEnumValue;
 import io.oea.api.generated.model.ReimportPolicy;
 import io.oea.api.generated.model.SourcePackage;
 import io.oea.app.metamodel.AllowedConnections;
+import io.oea.app.metamodel.MetamodelConfigurations;
 import io.oea.app.metamodel.MetamodelLabels;
 import io.oea.app.metamodel.MetatypeCatalog;
 import io.oea.app.metamodel.MetatypeEditing;
-import io.oea.app.metamodel.PackageImporter;
 import io.oea.app.metamodel.PropertyDefinitions;
 import io.oea.app.metamodel.PropertyMappings;
 import io.oea.app.metamodel.ReimportPolicies;
 import io.oea.app.security.OeaPrincipal;
+import io.oea.config.security.ConditionsEnforcedByHandler;
 import io.oea.config.security.OeaAuthentication;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -69,9 +76,12 @@ public class MetamodelController implements MetamodelApi {
 
 	private final AllowedConnections allowedConnections;
 
+	private final MetamodelConfigurations configurations;
+
 	public MetamodelController(MetatypeCatalog catalog, MetatypeEditing metatypes, PropertyDefinitions properties,
 			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels,
-			AllowedConnections allowedConnections) {
+			AllowedConnections allowedConnections, MetamodelConfigurations configurations) {
+		this.configurations = configurations;
 		this.labels = labels;
 		this.allowedConnections = allowedConnections;
 		this.catalog = catalog;
@@ -82,12 +92,46 @@ public class MetamodelController implements MetamodelApi {
 	}
 
 	@Override
+	public ResponseEntity<List<MetamodelConfiguration>> listMetamodelConfigurations() {
+		return ResponseEntity
+			.ok(this.configurations.list().stream().map(MetamodelController::configuration).toList());
+	}
+
+	@Override
+	public ResponseEntity<MetamodelConfiguration> createMetamodelConfiguration(MetamodelConfigurationCreate create) {
+		UUID id = this.configurations.create(principal(), new MetamodelConfigurations.NewExtension(
+				create.getSolutionId(), create.getName(),
+				(create.getEditMode() != null) ? create.getEditMode().getValue() : null));
+		MetamodelConfiguration created = configuration(this.configurations.get(id));
+		return ResponseEntity.created(URI.create("/api/v1/metamodel/configurations/" + id))
+			.eTag(etag(created.getVersion()))
+			.body(created);
+	}
+
+	@Override
+	@ConditionsEnforcedByHandler(value = "MetamodelConfigurations.requireWritable: the instance needs metamodel:write, an extension solution-metamodel:write",
+			probeRole = "enterprise-architect", probeBody = """
+					{"name": "Probe", "editMode": "import-only"}""",
+			probePath = "/api/v1/metamodel/configurations/00000000-0000-0000-0000-000000000001")
+	public ResponseEntity<MetamodelConfiguration> updateMetamodelConfiguration(UUID id,
+			MetamodelConfigurationUpdate update, String ifMatch) {
+		this.configurations.update(principal(), id, new MetamodelConfigurations.Change(update.getName(),
+				(update.getEditMode() != null) ? update.getEditMode().getValue() : null), expectedVersion(ifMatch));
+		MetamodelConfiguration changed = configuration(this.configurations.get(id));
+		return ResponseEntity.ok().eTag(etag(changed.getVersion())).body(changed);
+	}
+
+	@Override
+	public ResponseEntity<Void> deleteMetamodelConfiguration(UUID id, String ifMatch) {
+		this.configurations.delete(principal(), id, expectedVersion(ifMatch));
+		return ResponseEntity.noContent().build();
+	}
+
+	@Override
 	public ResponseEntity<List<MetatypeDetail>> listMetatypes(UUID configId) {
-		if (configId != null && !PackageImporter.INSTANCE_CONFIGURATION.equals(configId)) {
-			// solution configurations follow later; only the instance configuration exists
-			return ResponseEntity.ok(List.of());
-		}
-		return ResponseEntity.ok(this.catalog.list().stream().map(MetamodelController::metatype).toList());
+		List<MetatypeCatalog.Metatype> metatypes = (configId != null) ? this.catalog.list(configId)
+				: this.catalog.list();
+		return ResponseEntity.ok(metatypes.stream().map(MetamodelController::metatype).toList());
 	}
 
 	@Override
@@ -96,18 +140,29 @@ public class MetamodelController implements MetamodelApi {
 	}
 
 	@Override
+	@ConditionsEnforcedByHandler(value = "MetamodelConfigurations.requireWritable: the instance needs metamodel:write, an extension solution-metamodel:write",
+			probeRole = "enterprise-architect", probeBody = """
+					{"name": "Probe", "configId": "00000000-0000-0000-0000-000000000001"}""")
 	public ResponseEntity<MetatypeDetail> createMetatype(MetatypeWrite metatypeWrite) {
 		UUID id = this.metatypes.create(principal(), metatypeInput(metatypeWrite));
 		return ResponseEntity.status(HttpStatus.CREATED).body(metatype(this.catalog.get(id)));
 	}
 
 	@Override
+	@ConditionsEnforcedByHandler(value = "MetamodelConfigurations.requireWritable: the instance needs metamodel:write, an extension solution-metamodel:write",
+			probeRole = "enterprise-architect", probeBody = """
+					{"name": "Probe", "configId": "00000000-0000-0000-0000-000000000001"}""",
+			probePath = "/api/v1/metamodel/metatypes/00000000-0000-0000-0000-000000000000")
 	public ResponseEntity<MetatypeDetail> updateMetatype(UUID id, MetatypeWrite metatypeWrite, String ifMatch) {
 		this.metatypes.update(principal(), id, metatypeInput(metatypeWrite), expectedVersion(ifMatch));
 		return versioned(metatype(this.catalog.get(id)));
 	}
 
 	@Override
+	@ConditionsEnforcedByHandler(value = "MetamodelConfigurations.requireWritable: the instance needs metamodel:write, an extension solution-metamodel:write",
+			probeRole = "enterprise-architect", probeBody = """
+					{}""",
+			probePath = "/api/v1/metamodel/metatypes/00000000-0000-0000-0000-000000000000")
 	public ResponseEntity<Void> deleteMetatype(UUID id, String ifMatch) {
 		this.metatypes.delete(principal(), id, expectedVersion(ifMatch));
 		return ResponseEntity.noContent().build();
@@ -178,6 +233,10 @@ public class MetamodelController implements MetamodelApi {
 	}
 
 	@Override
+	@ConditionsEnforcedByHandler(value = "MetamodelConfigurations.requireWritable: the instance needs metamodel:write, an extension solution-metamodel:write",
+			probeRole = "enterprise-architect", probeBody = """
+					{"propertyDefId": "00000000-0000-0000-0000-000000000000", "necessity": "optional"}""",
+			probePath = "/api/v1/metamodel/metatypes/00000000-0000-0000-0000-000000000000/property-mappings")
 	public ResponseEntity<MetatypePropertyMapping> createPropertyMapping(UUID id,
 			MetatypePropertyMappingWrite write, String ifMatch) {
 		MetatypePropertyMappingWriteDefaultValue value = write.getDefaultValue();
@@ -201,6 +260,10 @@ public class MetamodelController implements MetamodelApi {
 	}
 
 	@Override
+	@ConditionsEnforcedByHandler(value = "MetamodelConfigurations.requireWritable: the instance needs metamodel:write, an extension solution-metamodel:write",
+			probeRole = "enterprise-architect", probeBody = """
+					{}""",
+			probePath = "/api/v1/metamodel/metatypes/00000000-0000-0000-0000-000000000000/property-mappings/00000000-0000-0000-0000-000000000000")
 	public ResponseEntity<Void> deletePropertyMapping(UUID id, UUID mappingId, String ifMatch) {
 		this.mappings.delete(principal(), id, mappingId, expectedVersion(ifMatch));
 		return ResponseEntity.noContent().build();
@@ -375,7 +438,20 @@ public class MetamodelController implements MetamodelApi {
 					.allowedMetatype(new MetatypeSummary(constraint.allowed().id(), constraint.allowed().name(),
 							(constraint.allowed().abbreviation() != null) ? constraint.allowed().abbreviation() : "")))
 				.toList())
-			.version(metatype.version());
+			.version(metatype.version())
+			.configId(metatype.configId());
+	}
+
+	private static MetamodelConfiguration configuration(MetamodelConfigurations.Configuration configuration) {
+		return new MetamodelConfiguration().id(configuration.id())
+			.scope(MetamodelConfiguration.ScopeEnum.fromValue(configuration.scope()))
+			.parentId(configuration.parentId())
+			.solutionId(configuration.solutionId())
+			.name(configuration.name())
+			.editMode(MetamodelEditMode.fromValue(configuration.editMode()))
+			.version(configuration.version())
+			.lastModifiedAt(configuration.lastModifiedAt().atOffset(ZoneOffset.UTC))
+			.metatypeCount(configuration.metatypeCount());
 	}
 
 	private static MetatypePropertyMapping mapping(MetatypeCatalog.Mapping mapping) {

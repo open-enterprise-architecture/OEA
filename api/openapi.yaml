@@ -103,6 +103,7 @@ x-oea-permissions: [
   {"id": "analytics:query", "adminClass": false, "description": "Submit raw SQL analytics queries against the masked reporting schema (REQ-179, ADR-034; Cypher deferred)"},
   {"id": "audit:read", "adminClass": false, "description": "Read, export (SIEM, JSON Lines) and verify the audit log, see resolved actor names and the audit retention, and read the access review"},
   {"id": "metamodel:write", "adminClass": true, "description": "Change the metamodel except visibility fields; metamodel and continuum package import/export"},
+  {"id": "solution-metamodel:write", "adminClass": false, "description": "Create, change and delete metamodel extensions of solutions and maintain their metatypes and property mappings (US-037, REQ-037)"},
   {"id": "visibility:configure", "adminClass": true, "description": "Change visibilityMode, readRoles, writeRoles, scopingConnectionType and the override role list"},
   {"id": "visibility-scope:assign", "adminClass": true, "description": "Create, change and delete connections of types used as scopingConnectionType"},
   {"id": "role:assign", "adminClass": true, "description": "Define custom roles, assign and revoke roles, approve pending assignments, manage IdP group mappings"},
@@ -116,10 +117,10 @@ x-oea-builtin-roles: [
   {"id": "portal-reader", "assignableToServiceAccounts": false, "permissions": ["portal:read"]},
   {"id": "viewer", "assignableToServiceAccounts": true, "permissions": ["portal:read", "entity:read"]},
   {"id": "analyst", "assignableToServiceAccounts": false, "permissions": ["portal:read", "entity:read", "analytics:query"]},
-  {"id": "enterprise-architect", "assignableToServiceAccounts": false, "permissions": ["portal:read", "entity:read", "entity:write", "entity:delete", "entity:restore", "catalog:manage", "dashboard:manage", "viewpoint:manage", "plateau:go-live", "webhook:manage"]},
+  {"id": "enterprise-architect", "assignableToServiceAccounts": false, "permissions": ["portal:read", "entity:read", "entity:write", "entity:delete", "entity:restore", "catalog:manage", "dashboard:manage", "viewpoint:manage", "plateau:go-live", "webhook:manage", "solution-metamodel:write"]},
   {"id": "integration-writer", "assignableToServiceAccounts": true, "permissions": ["entity:read", "entity:write"]},
   {"id": "auditor", "assignableToServiceAccounts": true, "permissions": ["audit:read"]},
-  {"id": "metamodel-admin", "assignableToServiceAccounts": false, "permissions": ["metamodel:write"]},
+  {"id": "metamodel-admin", "assignableToServiceAccounts": false, "permissions": ["metamodel:write", "solution-metamodel:write"]},
   {"id": "security-admin", "assignableToServiceAccounts": false, "permissions": ["visibility:configure", "visibility-scope:assign", "role:assign", "person:manage"]},
   {"id": "system-admin", "assignableToServiceAccounts": false, "permissions": ["role:assign", "person:manage", "service-account:manage", "auth-config:manage", "settings:manage"]}
   ]
@@ -269,6 +270,16 @@ components:
         `urn:oea:problem:name-taken` (name used already, compared case-insensitively),
         `urn:oea:problem:in-use` (still used; `count` gives the number of entities where
         it applies) and `urn:oea:problem:conflict` (property mapped twice in a base type chain).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    MetamodelForbidden:
+      description: |
+        As `Forbidden`; in addition, problem type `urn:oea:problem:metamodel-locked` when the
+        configuration of the content is `import-only` (US-035, REQ-035): the metamodel changes
+        only through package imports, whatever the caller's permissions. Nothing is changed.
+      headers:
+        OEA-Purge-Local-Data: { $ref: '#/components/headers/PurgeLocalData' }
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
@@ -554,6 +565,7 @@ components:
         - type: object
           properties:
             version:            { type: integer, minimum: 1, readOnly: true, description: "Grows with every change of the metatype, its mappings or its re-import setting (`ETag`, `If-Match`)" }
+            configId:           { type: string, format: uuid, readOnly: true, description: "Configuration of the metatype: the instance or a solution extension (US-037)" }
             isConnection:       { type: boolean }
             architectureLayer:  { type: [string, 'null'] }
             sortOrder:          { type: integer }
@@ -593,6 +605,44 @@ components:
                   direction:       { type: string, enum: [source, target] }
                   allowedMetatype: { $ref: '#/components/schemas/MetatypeSummary' }
 
+    # ── Metamodel configurations (US-035, US-037) ───────────────────────────────
+    MetamodelEditMode:
+      type: string
+      enum: [gui-and-import, import-only]
+      description: |
+        `gui-and-import`: the content changes through the portal, the API and package imports;
+        `import-only`: only package imports change it, every other content write gives 403
+        `metamodel-locked` (US-035, REQ-035, BR-06).
+
+    MetamodelConfiguration:
+      type: object
+      required: [id, scope, name, editMode, version, lastModifiedAt, metatypeCount]
+      properties:
+        id:             { type: string, format: uuid }
+        scope:          { type: string, enum: [instance, solution] }
+        parentId:       { type: [string, 'null'], format: uuid, description: "The instance configuration for an extension; `null` for the instance" }
+        solutionId:     { type: [string, 'null'], format: uuid, description: "Solution of an extension; a reference without check until solutions exist" }
+        name:           { type: string, description: "Unique, compared case-insensitively" }
+        editMode:       { $ref: '#/components/schemas/MetamodelEditMode' }
+        version:        { type: integer, minimum: 1, description: "Grows with every change (`ETag`, `If-Match`)" }
+        lastModifiedAt: { type: string, format: date-time }
+        metatypeCount:  { type: integer, minimum: 0, description: "Metatypes of this configuration itself" }
+
+    MetamodelConfigurationCreate:
+      type: object
+      required: [solutionId, name]
+      properties:
+        solutionId: { type: string, format: uuid }
+        name:       { type: string, minLength: 1, maxLength: 100 }
+        editMode:   { $ref: '#/components/schemas/MetamodelEditMode' }
+
+    MetamodelConfigurationUpdate:
+      type: object
+      required: [name, editMode]
+      properties:
+        name:     { type: string, minLength: 1, maxLength: 100 }
+        editMode: { $ref: '#/components/schemas/MetamodelEditMode' }
+
     MetatypeWrite:
       type: object
       required: [name, configId]
@@ -602,7 +652,7 @@ components:
         isConnection:         { type: boolean, default: false, description: "Connection metatype (US-036); set on creation, cannot change (422)" }
         architectureLayerId:  { type: [string, 'null'] }
         sortOrder:            { type: integer, default: 0 }
-        configId:             { type: string, format: uuid, description: The instance configuration }
+        configId:             { type: string, format: uuid, description: "The instance configuration or a solution extension (US-037); cannot change (422)" }
         baseMetatypeId:       { type: [string, 'null'], format: uuid, description: "Base type of the same kind (connection or element); no cycles (422)" }
         allowedSourceMetatypeIds:
           type: array
@@ -4130,6 +4180,112 @@ paths:
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  METAMODEL (SCR-030)                                                   ║
   # ╚═════════════════════════════════════════════════════════════════════════╝
+  /metamodel/configurations:
+    get:
+      operationId: listMetamodelConfigurations
+      summary: Metamodel configurations (US-035, US-037)
+      description: |
+        The instance configuration and every solution extension, the instance first, then the
+        extensions by name.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write", "solution-metamodel:write"]}
+      responses:
+        '200':
+          description: Configurations
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/MetamodelConfiguration' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    post:
+      operationId: createMetamodelConfiguration
+      summary: Create a solution extension (US-037, REQ-037)
+      description: |
+        Creates a configuration with `scope=solution` that inherits from the instance
+        configuration; `editMode` defaults to `gui-and-import`. A name already used by a
+        configuration, compared case-insensitively, gives 409 `name-taken`. Writes the audit
+        event `metamodel.configuration-created`.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["solution-metamodel:write"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MetamodelConfigurationCreate' }
+      responses:
+        '201':
+          description: Extension created
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MetamodelConfiguration' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /metamodel/configurations/{id}:
+    put:
+      operationId: updateMetamodelConfiguration
+      summary: Rename a configuration or switch its edit mode (US-035, US-037)
+      description: |
+        Changes `name` and `editMode`. The instance configuration needs `metamodel:write`, an
+        extension `solution-metamodel:write`; the edit mode itself can always be switched, also
+        in `import-only`. Writes `metamodel.configuration-updated`, and for a changed edit mode
+        also `metamodel.edit-mode-changed` with `before` and `after`.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["metamodel:write", "solution-metamodel:write"], "conditions": [{"when": "the configuration is the instance configuration", "permissions": ["metamodel:write"]}, {"when": "the configuration is a solution extension", "permissions": ["solution-metamodel:write"]}]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MetamodelConfigurationUpdate' }
+      responses:
+        '200':
+          description: Changed
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MetamodelConfiguration' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      operationId: deleteMetamodelConfiguration
+      summary: Delete a solution extension (US-037)
+      description: |
+        Only while the extension has no metatypes (409 `in-use`); the instance configuration
+        cannot be deleted (409 `read-only-metatype`). Writes `metamodel.configuration-deleted`.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["solution-metamodel:write"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchHeader'
+      responses:
+        '204':
+          description: Deleted
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /metamodel/metatypes:
     get:
       operationId: listMetatypes
@@ -4139,6 +4295,10 @@ paths:
       parameters:
         - name: configId
           in: query
+          description: |
+            A solution extension gives its effective metamodel: the instance metatypes and those
+            of the extension, each with its `configId` (US-037 AC2). Without it, or with the
+            instance configuration, only the instance metatypes; an unknown configuration gives 404.
           schema: { type: string, format: uuid }
       responses:
         '200':
@@ -4151,17 +4311,23 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       operationId: createMetatype
       summary: Create new metatype
       description: |
-        Creates a metatype with `scope=organization` in the instance configuration (US-032).
-        `isConnection: true` is rejected with 422 until connection metatypes are supported.
-        A name already used by any metatype, compared case-insensitively, gives 409 with
-        problem type `urn:oea:problem:name-taken`.
+        Creates a metatype with `scope=organization` in the instance configuration (US-032) or
+        in a solution extension (`configId`, US-037). A name already used in the instance or in
+        the same extension, compared case-insensitively, gives 409 with problem type
+        `urn:oea:problem:name-taken`; so does a new instance metatype whose name an extension
+        uses. The base type and the allowed sources and targets of a metatype in an extension
+        are metatypes of the instance or of the same extension; those of an instance metatype
+        are instance metatypes (422). The instance metatypes need `metamodel:write`, those of an
+        extension `solution-metamodel:write`. A configuration in `import-only` gives 403
+        `metamodel-locked` (US-035).
       tags: [Metamodel]
-      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["metamodel:write", "solution-metamodel:write"], "conditions": [{"when": "the metatype belongs to the instance configuration (MetatypeWrite.configId on creation)", "permissions": ["metamodel:write"]}, {"when": "the metatype belongs to a solution extension (MetatypeWrite.configId on creation)", "permissions": ["solution-metamodel:write"]}]}
       requestBody:
         required: true
         content:
@@ -4174,7 +4340,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/MetatypeDetail' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
@@ -4213,7 +4379,7 @@ paths:
         values of properties no longer inherited and marks entities that miss a newly
         inherited mandatory property.
       tags: [Metamodel]
-      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["metamodel:write", "solution-metamodel:write"], "conditions": [{"when": "the metatype belongs to the instance configuration (MetatypeWrite.configId on creation)", "permissions": ["metamodel:write"]}, {"when": "the metatype belongs to a solution extension (MetatypeWrite.configId on creation)", "permissions": ["solution-metamodel:write"]}]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
         - $ref: '#/components/parameters/IfMatchHeader'
@@ -4231,7 +4397,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/MetatypeDetail' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404':
           description: Not found
           content:
@@ -4250,7 +4416,7 @@ paths:
         deleted ones), no catalog uses it as primary metatype and no metatype has it as base
         type (409 `in-use` with `count`, the number of entities).
       tags: [Metamodel]
-      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["metamodel:write", "solution-metamodel:write"], "conditions": [{"when": "the metatype belongs to the instance configuration (MetatypeWrite.configId on creation)", "permissions": ["metamodel:write"]}, {"when": "the metatype belongs to a solution extension (MetatypeWrite.configId on creation)", "permissions": ["solution-metamodel:write"]}]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
         - $ref: '#/components/parameters/IfMatchHeader'
@@ -4258,7 +4424,7 @@ paths:
         '204':
           description: Deleted
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
         '412': { $ref: '#/components/responses/PreconditionFailed' }
@@ -4308,7 +4474,7 @@ paths:
         when written again without the value. Changing the necessity by effective date
         follows (US-137).
       tags: [Metamodel]
-      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["metamodel:write", "solution-metamodel:write"], "conditions": [{"when": "the metatype belongs to the instance configuration (MetatypeWrite.configId on creation)", "permissions": ["metamodel:write"]}, {"when": "the metatype belongs to a solution extension (MetatypeWrite.configId on creation)", "permissions": ["solution-metamodel:write"]}]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
         - $ref: '#/components/parameters/IfMatchHeader'
@@ -4324,7 +4490,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/MetatypePropertyMapping' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
         '412': { $ref: '#/components/responses/PreconditionFailed' }
@@ -4341,7 +4507,7 @@ paths:
         `read-only-metatype`. The values of the property are deleted from the entities of the
         metatype and its subtypes; each affected entity gets a new version in its history.
       tags: [Metamodel]
-      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["metamodel:write", "solution-metamodel:write"], "conditions": [{"when": "the metatype belongs to the instance configuration (MetatypeWrite.configId on creation)", "permissions": ["metamodel:write"]}, {"when": "the metatype belongs to a solution extension (MetatypeWrite.configId on creation)", "permissions": ["solution-metamodel:write"]}]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
         - $ref: '#/components/parameters/IfMatchHeader'
@@ -4353,7 +4519,7 @@ paths:
         '204':
           description: Removed
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
         '412': { $ref: '#/components/responses/PreconditionFailed' }
@@ -4484,7 +4650,7 @@ paths:
                 items: { $ref: '#/components/schemas/MetamodelLabel' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
@@ -4523,7 +4689,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/PropertyCategory' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
@@ -4552,7 +4718,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/PropertyCategory' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404':
           description: Not found
           content:
@@ -4575,7 +4741,7 @@ paths:
         '204':
           description: Deleted
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
         '412': { $ref: '#/components/responses/PreconditionFailed' }
@@ -4627,7 +4793,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/PropertyDefinitionDetail' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
@@ -4659,7 +4825,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/PropertyDefinitionDetail' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404':
           description: Not found
           content:
@@ -4685,7 +4851,7 @@ paths:
         '204':
           description: Deleted
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
         '412': { $ref: '#/components/responses/PreconditionFailed' }
@@ -4736,7 +4902,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/PropertyEnumValue' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
         '412': { $ref: '#/components/responses/PreconditionFailed' }
@@ -4764,7 +4930,7 @@ paths:
         '204':
           description: Deleted
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
         '412': { $ref: '#/components/responses/PreconditionFailed' }

@@ -115,4 +115,73 @@ describe('MetamodelPage', () => {
       expect.arrayContaining([expect.stringContaining('Netzwerkzone')]),
     )
   })
+
+  // spec metamodel/configuration-screen of us-037-solution-extensions-and-lock-mode
+  describe('lock mode', () => {
+    // "Locked metamodel"
+    it('shows a notice and no changes while the metamodel is locked', async () => {
+      const { wrapper, router } = await open(`/metamodel/metatypes/${IDS.zone}`, { locked: true })
+      expect(wrapper.find('[data-testid="metamodel-locked"]').text()).toContain('Metamodel locked')
+      expect(wrapper.find('[data-testid="metamodel-locked"] a').attributes('href')).toBe(
+        'https://open-enterprise-architecture.github.io/OEA/administration/metamodel-packages',
+      )
+      expect(wrapper.findAll('[data-testid="metatype-item"]')).toHaveLength(5)
+      expect(wrapper.find('[data-testid="metatype-new"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="metatype-edit"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="mapping-new"]').exists()).toBe(false)
+      // the re-import setting stays
+      expect(
+        wrapper.findAllComponents({ name: 'Select' }).some((select) => select.vm.$attrs['data-testid'] === 'metatype-reimport'),
+      ).toBe(true)
+      await router.push('/metamodel/properties')
+      await flushPromises()
+      expect(wrapper.find('[data-testid="metamodel-locked"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="property-new"]').exists()).toBe(false)
+      await router.push('/metamodel/settings')
+      await flushPromises()
+      expect(wrapper.find('[data-testid="metamodel-lock"]').exists()).toBe(true)
+    })
+
+    // "Unlocking"
+    it('offers the changes again after unlocking', async () => {
+      const { wrapper, router, api } = await open('/metamodel/settings', { locked: true })
+      lockSwitch(wrapper).vm.$emit('update:modelValue', false)
+      await flushPromises()
+      const put = api.requests.find((request) => request.method === 'PUT')
+      expect(put?.path).toBe('/api/v1/metamodel/configurations/00000000-0000-0000-0000-000000000001')
+      expect(put?.ifMatch).toBe('"1"')
+      expect(put?.body).toEqual({ name: 'Instance metamodel', editMode: 'gui-and-import' })
+      expect(wrapper.get('[data-testid="lock-notice"]').text()).toContain('unlocked')
+      expect(wrapper.find('[data-testid="metamodel-locked"]').exists()).toBe(false)
+      await router.push('/metamodel/metatypes')
+      await flushPromises()
+      expect(wrapper.find('[data-testid="metatype-new"]').exists()).toBe(true)
+    })
+
+    it('locks the metamodel under settings', async () => {
+      const { wrapper, api } = await open('/metamodel/settings')
+      lockSwitch(wrapper).vm.$emit('update:modelValue', true)
+      await flushPromises()
+      expect(api.state.configuration.editMode).toBe('import-only')
+      expect(wrapper.find('[data-testid="metamodel-locked"]').exists()).toBe(true)
+    })
+
+    it('shows the current state when someone else switched meanwhile', async () => {
+      const { wrapper, api } = await open('/metamodel/settings')
+      api.switchElsewhere('import-only')
+      lockSwitch(wrapper).vm.$emit('update:modelValue', true)
+      await flushPromises()
+      expect(wrapper.get('[data-testid="lock-failure"]').text()).toContain('Someone else changed this element meanwhile')
+      expect(api.state.configuration.version).toBe(2)
+      expect(wrapper.find('[data-testid="metamodel-locked"]').exists()).toBe(true)
+    })
+  })
 })
+
+function lockSwitch(wrapper: ReturnType<typeof mount>) {
+  const found = wrapper.findAllComponents({ name: 'Switch' }).find((candidate) => candidate.vm.$attrs['data-testid'] === 'metamodel-lock')
+  if (!found) {
+    throw new Error('no lock switch')
+  }
+  return found
+}

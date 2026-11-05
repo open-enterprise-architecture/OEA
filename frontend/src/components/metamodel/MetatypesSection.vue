@@ -10,7 +10,11 @@ import { scopeLabel } from './messages'
 
 // Metatype list and detail of SCR-030 (UC-04 basic flow steps 1–2, US-032, REQ-032 AC5; design D3
 // of scr-030-metamodel-configuration). Below `lg` the list and the detail are shown one at a time.
-const props = defineProps<{ selectedId?: string; canWrite: boolean; fetchFn?: typeof fetch }>()
+// canConfigure: the re-import setting, which stays changeable in a locked metamodel (US-035)
+const props = withDefaults(defineProps<{ selectedId?: string; canWrite: boolean; canConfigure?: boolean; fetchFn?: typeof fetch }>(), {
+  // absent means like canWrite, not false
+  canConfigure: undefined,
+})
 const router = useRouter()
 const { t } = useI18n()
 
@@ -98,7 +102,15 @@ async function deleted() {
         to="/metamodel/metatypes"
         :label="t('metamodel.metatype.back')"
       />
-      <MetatypeDetail v-if="selected" :key="selected.id" :metatype="selected" :can-write="canWrite" :fetch-fn="fetchFn" @deleted="deleted" />
+      <MetatypeDetail
+        v-if="selected"
+        :key="selected.id"
+        :metatype="selected"
+        :can-write="canWrite"
+        :can-configure="canConfigure ?? canWrite"
+        :fetch-fn="fetchFn"
+        @deleted="deleted"
+      />
       <UAlert v-else-if="selectedId" data-testid="metatype-missing" color="neutral" variant="subtle" :description="t('metamodel.metatype.missing')" />
       <UEmpty v-else icon="i-lucide-shapes" :title="t('metamodel.metatype.choose')" :description="t('metamodel.metatype.chooseHint')" />
     </div>

@@ -22,6 +22,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
  */
 public final class MetatypeRules {
 
+	/** The instance configuration (V5); its metatypes are the ones entities can have. */
+	private static final UUID INSTANCE_CONFIGURATION = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
 	/** A property definition with the constraints of its data type. */
 	public record Definition(UUID id, String name, String dataType, Integer maxLength, BigDecimal minValue,
 			BigDecimal maxValue, String pattern, String visibilityMode, UUID refMetatypeId, Set<String> enumValues) {
@@ -70,14 +73,16 @@ public final class MetatypeRules {
 		});
 		Map<UUID, Metatype> own = new HashMap<>();
 		Map<UUID, UUID> bases = new HashMap<>();
-		jdbc.query("SELECT id, name, is_connection, base_metatype_id FROM metatypes", (rs) -> {
+		// only the instance metamodel: metatypes of solution extensions get no entities until solutions
+		// exist (design D4 of us-037-solution-extensions-and-lock-mode)
+		jdbc.query("SELECT id, name, is_connection, base_metatype_id FROM metatypes WHERE config_id = ?", (rs) -> {
 			UUID id = rs.getObject(1, UUID.class);
 			own.put(id, new Metatype(id, rs.getString(2), rs.getBoolean(3), new LinkedHashMap<>()));
 			UUID base = rs.getObject(4, UUID.class);
 			if (base != null) {
 				bases.put(id, base);
 			}
-		});
+		}, INSTANCE_CONFIGURATION);
 		// the mapping with the latest valid_from per metatype and property (ADR-022)
 		jdbc.query("""
 				SELECT metatype_id, property_def_id, necessity, default_value_text, default_value_int, default_value_bool,
@@ -87,6 +92,9 @@ public final class MetatypeRules {
 				      ORDER BY metatype_id, property_def_id, valid_from DESC) active
 				ORDER BY sort_order, property_def_id""", (rs) -> {
 			Metatype metatype = own.get(rs.getObject(1, UUID.class));
+			if (metatype == null) {
+				return;
+			}
 			Definition definition = definitions.get(rs.getObject(2, UUID.class));
 			Date defaultDate = rs.getDate(7);
 			TypedValue defaultValue = new TypedValue(rs.getString(4), rs.getObject(5, Long.class),

@@ -1,6 +1,11 @@
 import type { Rejection } from '../../api/problem'
 import { rateLimitMessage } from '../../api/problem'
-import { i18n } from '../../i18n'
+import { currentLanguage, i18n } from '../../i18n'
+
+/** A chapter of the published user manual in the current language (ADR-045). */
+export function manualUrl(chapter: string): string {
+  return `https://open-enterprise-architecture.github.io/OEA/${currentLanguage() === 'de' ? 'de/' : ''}${chapter}`
+}
 
 /** Scope of metamodel content with the source package, for the scope badge (REQ-032 AC5). */
 export function scopeLabel(scope: string | undefined, sourcePackage?: { packageId: string; version: string } | null): string {
@@ -37,6 +42,8 @@ export function rejectionMessage(rejection: Rejection): string {
       return t('metamodel.error.invalid')
     case 'stale-version':
       return t('metamodel.collision.title')
+    case 'metamodel-locked':
+      return t('metamodel.lock.rejected')
     default:
       if (rejection.status === 403) {
         return t('metamodel.error.forbidden')

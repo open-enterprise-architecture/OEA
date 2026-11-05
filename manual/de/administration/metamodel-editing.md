@@ -2,7 +2,7 @@
 title: Metamodell bearbeiten
 covers:
   screens: [SCR-030]
-  stories: [US-032, US-036, US-137, US-140]
+  stories: [US-032, US-035, US-036, US-037, US-137, US-140]
 ---
 
 # Metamodell bearbeiten
@@ -19,7 +19,7 @@ Wähle in der Kopfzeile *Metamodell*. Die Seite hat fünf Bereiche:
 | Eigenschaften | alle Eigenschaften mit Datentyp, Kategorie, Werten und Grenzen |
 | Kategorien | die Kategorien, die Eigenschaften gruppieren |
 | Übersetzungen | die Namen aller Elemente pro Sprache |
-| Einstellungen | was beim erneuten Import eines Pakets mit deinen eigenen Eigenschaften geschieht (nur für die Administration) |
+| Einstellungen | der Sperrmodus und was beim erneuten Import eines Pakets mit deinen eigenen Eigenschaften geschieht (nur für die Administration) |
 
 Die Herkunft sagt dir, was du ändern darfst: *Eigene* Inhalte gehören deiner Organisation. *Eingebaute* Inhalte sind Teil von OEA, und Inhalte eines Pakets (*Paket oea-starter-togaf-classic 1.1.0*) stammen aus einem Import. Eingebaute und importierte Inhalte sind schreibgeschützt; eigene Eigenschaften kannst du solchen Entitätstypen trotzdem hinzufügen. Auf einem schmalen Bildschirm zeigt die Seite die Liste und den gewählten Entitätstyp nacheinander.
 
@@ -122,6 +122,16 @@ Benutzerinnen und Benutzer sehen die Namen von Entitätstypen, Kategorien und Ei
 - Texte haben höchstens 200 Zeichen.
 - Dein Portal zeigt die neuen Namen sofort; andere offene Portale übernehmen sie innerhalb von fünf Minuten, ohne neu zu laden.
 
+## Das Metamodell sperren {#lock-mode}
+
+Pflegt deine Organisation ihr Metamodell in einem versionierten Repository und importiert es als Paket, sperrst du das Metamodell, damit niemand es von Hand ändert:
+
+1. Schalte in *Einstellungen* *Metamodell sperren (Änderungen nur per Paketimport)* ein.
+2. Solange das Metamodell gesperrt ist, zeigt jeder Bereich den Hinweis *Metamodell gesperrt*, und nichts kann angelegt, geändert oder gelöscht werden: Entitätstypen, Zuordnungen, Eigenschaften, Werte, Kategorien und Übersetzungen. Über die API wird eine solche Änderung mit `403` abgelehnt (`metamodel-locked`), unabhängig von deinen Berechtigungen.
+3. Paketimporte funktionieren weiter (siehe [Metamodell-Pakete](./metamodel-packages)), ebenso die Einstellungen für den erneuten Import.
+
+Zum Entsperren schaltest du die Einstellung wieder aus. Nur die Metamodell-Administration (`metamodel:write`) schaltet den Sperrmodus, und jedes Umschalten wird im Audit-Trail festgehalten (`metamodel.edit-mode-changed`).
+
 ## Eigene Eigenschaften beim erneuten Import eines Pakets
 
 Wird ein Paket erneut importiert, ersetzt es seine eigenen Eigenschaften an seinen Entitätstypen. Ob deine eigenen Eigenschaften und Einträge an diesen Typen bleiben, hängt von deiner Arbeitsweise ab, deshalb stellst du es ein:
@@ -163,3 +173,24 @@ curl "${auth[@]}" -X PUT "$OEA/metamodel/labels/de" -H 'Content-Type: applicatio
 - Verbindungstypen werden mit `"isConnection": true` und den Listen `allowedSourceMetatypeIds` und `allowedTargetMetatypeIds` angelegt; `GET /metamodel/allowed-connections?sourceMetatypeId=…&targetMetatypeId=…` beantwortet, welche Verbindungstypen zwei Entitätstypen in welcher Richtung verbinden dürfen.
 - `GET /metamodel/metatypes/{id}/property-mappings?includeHistory=true` listet alle Einträge der Zuordnungen mit ihrem `state`. Die Einstellungen für den erneuten Import sind `PUT /metamodel/settings/reimport-policy` und `PUT /metamodel/metatypes/{id}/reimport-policy`.
 - Jede Änderung schreibt ein Audit-Ereignis, zum Beispiel `metamodel.metatype-updated`, `metamodel.mapping-deleted` mit der Anzahl der betroffenen Entitäten, `metamodel.mapping-effective`, wenn ein Eintrag wirksam wird, oder `metamodel.labels-changed`.
+- `GET /metamodel/configurations` listet die Konfiguration der Instanz und die Erweiterungen mit ihrem `editMode`. `PUT /metamodel/configurations/{id}` mit `{"name": "Instance metamodel", "editMode": "import-only"}` und `If-Match` sperrt eine Konfiguration; `gui-and-import` entsperrt sie.
+
+### Erweiterungen von Lösungen {#extensions}
+
+Mit einer Erweiterung probieren Architektinnen und Architekten neue Entitätstypen für eine Lösung aus, ohne das Metamodell der Instanz zu ändern. Erweiterungen sind für die Lösungen eines späteren Releases vorbereitet und haben noch keine Seite im Portal. Sie verlangen `solution-metamodel:write`, das die Rollen `enterprise-architect` und `metamodel-admin` haben:
+
+```bash
+curl "${auth[@]}" -X POST "$OEA/metamodel/configurations" -H 'Content-Type: application/json' \
+  -d '{"solutionId": "'"$SOLUTION"'", "name": "Cloud Migration 2027"}'
+curl "${auth[@]}" -X POST "$OEA/metamodel/metatypes" -H 'Content-Type: application/json' \
+  -d '{"name": "CloudService", "configId": "'"$EXTENSION"'", "baseMetatypeId": "'"$COMPONENT"'"}'
+curl "${auth[@]}" "$OEA/metamodel/metatypes?configId=$EXTENSION"
+```
+
+- `GET /metamodel/metatypes?configId=<extension>` liefert das wirksame Metamodell: die Entitätstypen der Instanz und die der Erweiterung, jeder mit seiner `configId`. Ohne `configId` enthält die Liste nur die Entitätstypen der Instanz.
+- Eine Erweiterung kann keinen Namen der Instanz verwenden und keinen Namen zweimal (`409`, `name-taken`). Ein Entitätstyp der Instanz kann keinen Namen annehmen, den eine Erweiterung verwendet. Verschiedene Erweiterungen dürfen denselben Namen verwenden.
+- Basistypen und erlaubte Quellen und Ziele stammen aus der Instanz oder derselben Erweiterung. Ein Entitätstyp behält seine Konfiguration.
+- Eigenschaften, Kategorien und Übersetzungen gehören zur Instanz. Den Entitätstypen einer Erweiterung ordnest du vorhandene Eigenschaften zu.
+- Eine Erweiterung hat ihren eigenen Sperrmodus und bleibt deshalb bearbeitbar, während die Instanz gesperrt ist. Eine Erweiterung kannst du löschen, solange sie keine Entitätstypen hat.
+- Die Entitätstypen einer Erweiterung werden noch nicht für Entitäten verwendet. Der Batch lehnt eine solche Entität mit `METATYPE_NOT_FOUND` ab.
+- Audit-Ereignisse: `metamodel.configuration-created`, `metamodel.configuration-updated` und `metamodel.configuration-deleted`.

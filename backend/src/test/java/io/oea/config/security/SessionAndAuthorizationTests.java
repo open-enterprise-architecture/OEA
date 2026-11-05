@@ -157,7 +157,7 @@ class SessionAndAuthorizationTests {
 		assertThat(get("/api/v1/admin/permissions", admin)).hasStatus(HttpStatus.OK)
 			.bodyJson()
 			.extractingPath("$.length()")
-			.isEqualTo(20);
+			.isEqualTo(21);
 		assertThat(get("/api/v1/admin/permissions", admin)).bodyJson()
 			.extractingPath("$[?(@.adminClass == true)].id")
 			.asArray()

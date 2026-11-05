@@ -65,7 +65,7 @@ public class MetatypeCatalog {
 	public record Metatype(UUID id, String name, String abbreviation, boolean connection, int sortOrder, String scope,
 			String sourcePackageId, String sourcePackageVersion, UUID baseMetatypeId, String reimportPolicy,
 			String effectiveReimportPolicy, String architectureLayerId, List<Mapping> mappings, int version,
-			List<Constraint> constraints) {
+			List<Constraint> constraints, UUID configId) {
 	}
 
 	/** An allowed source or target of a connection metatype (us-036-connection-metatypes D2). */
@@ -74,12 +74,29 @@ public class MetatypeCatalog {
 
 	private record Row(UUID id, String name, String abbreviation, boolean connection, int sortOrder, String scope,
 			String sourcePackageId, String sourcePackageVersion, UUID baseMetatypeId, String reimportPolicy,
-			String architectureLayerId, int version) {
+			String architectureLayerId, int version, UUID configId) {
 	}
 
+	/** The metatypes of the instance configuration. */
 	@Transactional(readOnly = true)
 	public List<Metatype> list() {
-		return query(null, false);
+		return query(null, false, PackageImporter.INSTANCE_CONFIGURATION);
+	}
+
+	/**
+	 * The effective metamodel of a configuration: for an extension the instance metatypes and its
+	 * own (design D4 of us-037-solution-extensions-and-lock-mode).
+	 *
+	 * @throws NoSuchElementException if the configuration does not exist (404)
+	 */
+	@Transactional(readOnly = true)
+	public List<Metatype> list(UUID configId) {
+		Long exists = this.jdbc.queryForObject("SELECT count(*) FROM metamodel_configurations WHERE id = ?", Long.class,
+				configId);
+		if (exists == null || exists == 0) {
+			throw new NoSuchElementException("no metamodel configuration " + configId);
+		}
+		return query(null, false, configId);
 	}
 
 	/** The metatype with the mappings in effect today. */
@@ -91,7 +108,11 @@ public class MetatypeCatalog {
 	/** The metatype; with history, every mapping entry ordered by property and date. */
 	@Transactional(readOnly = true)
 	public Metatype get(UUID id, boolean includeHistory) {
-		return query(id, includeHistory).stream()
+		UUID config = this.jdbc.queryForList("SELECT config_id FROM metatypes WHERE id = ?", UUID.class, id)
+			.stream()
+			.findFirst()
+			.orElseThrow(() -> new NoSuchElementException("no metatype " + id));
+		return query(id, includeHistory, config).stream()
 			.findFirst()
 			.orElseThrow(() -> new NoSuchElementException("no metatype " + id));
 	}
@@ -148,18 +169,19 @@ public class MetatypeCatalog {
 		return effective;
 	}
 
-	private List<Metatype> query(UUID id, boolean includeHistory) {
+	/** Metatypes of the instance and of {@code config}; base types cross the boundary (design D4). */
+	private List<Metatype> query(UUID id, boolean includeHistory, UUID config) {
 		Map<UUID, Map<UUID, List<Mapping>>> own = entries(includeHistory);
 		Map<UUID, Row> rows = new LinkedHashMap<>();
 		this.jdbc.query("""
 				SELECT id, name, abbreviation, is_connection, sort_order, scope, source_package_id, source_package_version,
-				       base_metatype_id, reimport_organization_mappings, architecture_layer_id, version
-				FROM metatypes WHERE config_id = ? ORDER BY sort_order, name""", (rs) -> {
+				       base_metatype_id, reimport_organization_mappings, architecture_layer_id, version, config_id
+				FROM metatypes WHERE config_id IN (?, ?) ORDER BY sort_order, name""", (rs) -> {
 			UUID metatype = rs.getObject(1, UUID.class);
 			rows.put(metatype, new Row(metatype, rs.getString(2), rs.getString(3), rs.getBoolean(4), rs.getInt(5),
 					rs.getString(6), rs.getString(7), rs.getString(8), rs.getObject(9, UUID.class), rs.getString(10),
-					rs.getString(11), rs.getInt(12)));
-		}, PackageImporter.INSTANCE_CONFIGURATION);
+					rs.getString(11), rs.getInt(12), rs.getObject(13, UUID.class)));
+		}, PackageImporter.INSTANCE_CONFIGURATION, config);
 		Map<UUID, UUID> bases = new HashMap<>();
 		rows.values().stream().filter((row) -> row.baseMetatypeId() != null)
 			.forEach((row) -> bases.put(row.id(), row.baseMetatypeId()));
@@ -192,7 +214,7 @@ public class MetatypeCatalog {
 			metatypes.add(new Metatype(row.id(), row.name(), row.abbreviation(), row.connection(), row.sortOrder(),
 					row.scope(), row.sourcePackageId(), row.sourcePackageVersion(), row.baseMetatypeId(),
 					row.reimportPolicy(), policies.get(row.id()), row.architectureLayerId(), List.copyOf(mappings),
-					row.version(), List.copyOf(constraints.getOrDefault(row.id(), List.of()))));
+					row.version(), List.copyOf(constraints.getOrDefault(row.id(), List.of())), row.configId()));
 		}
 		return metatypes;
 	}

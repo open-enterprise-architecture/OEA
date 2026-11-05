@@ -31,14 +31,17 @@ public class PropertyMappings {
 
 	private final MetamodelAudit audit;
 
+	private final MetamodelConfigurations configurations;
+
 	private final MetamodelVersions versions;
 
 	public PropertyMappings(JdbcTemplate jdbc, MetamodelEffects effects, MetamodelAudit audit,
-			MetamodelVersions versions) {
+			MetamodelVersions versions, MetamodelConfigurations configurations) {
 		this.jdbc = jdbc;
 		this.effects = effects;
 		this.audit = audit;
 		this.versions = versions;
+		this.configurations = configurations;
 	}
 
 	/** A typed default value; at most one field is set. */
@@ -56,6 +59,7 @@ public class PropertyMappings {
 	@Transactional
 	public Created create(OeaPrincipal principal, UUID metatypeId, Input input, Long expectedVersion) {
 		this.effects.lock();
+		this.configurations.requireWritableMetatype(principal, metatypeId);
 		// a mapping is part of the metatype's version (scr-030-metamodel-configuration D1)
 		this.versions.check(MetamodelVersions.Element.METATYPE, metatypeId, expectedVersion);
 		List<String[]> definition = this.jdbc.query(
@@ -131,6 +135,7 @@ public class PropertyMappings {
 	@Transactional
 	public void delete(OeaPrincipal principal, UUID metatypeId, UUID mappingId, Long expectedVersion) {
 		this.effects.lock();
+		this.configurations.requireWritableMetatype(principal, metatypeId);
 		this.versions.check(MetamodelVersions.Element.METATYPE, metatypeId, expectedVersion);
 		List<Object[]> mapping = this.jdbc.query("""
 				SELECT property_def_id, scope FROM metatype_property_mappings WHERE id = ? AND metatype_id = ?""",

@@ -7,6 +7,7 @@
 **Informed**: Business Engineer (data model follow-up), Backend Engineer, Frontend Engineer
 **Partially supersedes**: [ADR-006](./ADR-006-auth-stack-choice.md) (follow-up "claim mapping conventions to OEA roles"), [ADR-008](./ADR-008-gui-architecture-dual-track.md) (portal access "without login effort"), [ADR-026](./ADR-026-external-system-integration.md) (Security section: service account roles, "Entities – Write" role requirement) – see [Relation to Existing ADRs](#relation-to-existing-adrs)
 **Partially superseded**: 2026-10-15 by [ADR-042](./ADR-042-setup-phase-without-second-factor.md) — SoD-8 does not apply to the local system admin account during the setup phase
+**Amended**: 2026-11-04 – new permission `solution-metamodel:write`, see [Amendment 2026-11-04](#amendment-2026-11-04-solution-metamodelwrite)
 
 ## Context and Problem
 
@@ -175,6 +176,7 @@ Permissions are stable identifiers of the form `<resource>:<action>`. The catalo
 | `analytics:query` | Submit raw SQL/Cypher analytics queries under the restrictions of REQ-179 | no |
 | `audit:read` | Read and export the audit log (incl. SIEM export) | no |
 | `metamodel:write` | Change the metamodel: metatypes, property definitions (except visibility fields), connection types, business rules (ADR-018), metamodel labels, metamodel and continuum package import/export | **yes** |
+| `solution-metamodel:write` | Create, change and delete metamodel extensions of solutions and maintain their metatypes and property mappings (US-037, REQ-037; amendment 2026-11-04) | no |
 | `visibility:configure` | Change `visibilityMode`, `readRoles`, `writeRoles`, `scopingConnectionType` and the override role list (REQ-124, REQ-128, REQ-161) | **yes** |
 | `visibility-scope:assign` | Create, change and delete connections of types used as `scopingConnectionType` (REQ-161) | **yes** |
 | `role:assign` | Define custom roles, assign and revoke roles, manage IdP group mappings | **yes** |
@@ -208,6 +210,7 @@ Built-in roles are shipped with the system, cannot be deleted and their permissi
 | `analytics:query` | | | x | | | | | | |
 | `audit:read` | | | | | | x | | | |
 | `metamodel:write` | | | | | | | x | | |
+| `solution-metamodel:write` | | | | x | | | x | | |
 | `visibility:configure` | | | | | | | | x | |
 | `visibility-scope:assign` | | | | | | | | x | |
 | `role:assign` | | | | | | | | x | x |
@@ -416,6 +419,17 @@ The business engineer updates `docs/data-model.puml` and the business objects; t
 **Security Review**:
 
 - [Security review requirements baseline 2026-10](../security-reviews/requirements-baseline-2026-10.md) – SEC-01, SEC-03, SEC-05, SEC-15; owner decisions Q1, Q4, Q5, Q8, Q11
+
+## Amendment 2026-11-04: `solution-metamodel:write`
+
+**Reason.** US-037 and REQ-037 let solution architects try out entity types in a metamodel extension of one solution while the instance metamodel stays unchanged, possibly locked (US-035). `metamodel:write` is admin-class and belongs to metamodel administrators; giving it to every architect who tries out a type would make them privileged and let them change the instance metamodel. The owner decided on 2026-11-04 to add a separate permission (change us-037-solution-extensions-and-lock-mode, design D5).
+
+**Change.**
+
+- New permission `solution-metamodel:write`, not admin-class: create, change and delete extensions and maintain their metatypes and property mappings. The instance metamodel, its property definitions, categories and labels still need `metamodel:write`.
+- The built-in roles `enterprise-architect` and `metamodel-admin` get it (§4). `enterprise-architect` stays unprivileged.
+- SoD-2 is unchanged: it lists `metamodel:write`, and an extension cannot change visibility fields.
+- The metatype and mapping operations declare `anyOfPermissions` with a condition for the configuration of the metatype, enforced by the handler (§8).
 
 ## Notes
 

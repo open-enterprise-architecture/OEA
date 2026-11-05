@@ -54,7 +54,7 @@
 A new component `MetamodelConfigurations` offers `requireWritable(principal, configId)`. Every content write calls it after `MetamodelEffects.lock()`:
 
 1. It loads the configuration (404 if it does not exist).
-2. If the configuration is `import-only`, it throws `MetamodelLockedException` (403 `metamodel-locked`). This comes before the permission check, because the lock applies "regardless of the permission".
+2. If the configuration is `import-only`, it throws `MetamodelChangeException` with the reason `LOCKED` (403 `metamodel-locked`). This comes before the permission check, because the lock applies "regardless of the permission".
 3. It checks the permission: `metamodel:write` for the instance and `solution-metamodel:write` for an extension. Otherwise it throws `PermissionDeniedException` (403, audited like other denials).
 
 The configuration of a write follows from its target:
@@ -64,7 +64,7 @@ The configuration of a write follows from its target:
 
 The re-import settings, which are configuration settings and not content, and `updateMetamodelConfiguration` do not check the edit mode. The package import never calls the check, so imports keep working in `import-only` (US-035 AC2).
 
-**Contract.** The metatype and mapping operations change their `x-oea-authorization` to `anyOfPermissions: [metamodel:write, solution-metamodel:write]` with a condition ("the instance metamodel requires `metamodel:write`, an extension `solution-metamodel:write`"). The handler enforces it, marked with `@ConditionsEnforcedByHandler` and a probe with the role `viewer`. The other content operations keep `metamodel:write`.
+**Contract.** The metatype and mapping operations change their `x-oea-authorization` to `anyOfPermissions: [metamodel:write, solution-metamodel:write]` with a condition ("the instance metamodel requires `metamodel:write`, an extension `solution-metamodel:write`"). The handler enforces it, marked with `@ConditionsEnforcedByHandler`. The probe uses the role `enterprise-architect`, which holds only `solution-metamodel:write`, on the instance. For operations with a path ID, a new attribute `probePath` names a concrete path; an unknown metatype counts as one of the instance, so the probe gets 403 and metamodel administrators get 404. The other content operations keep `metamodel:write`.
 
 ### D3 – Names and base types in extensions
 
@@ -73,7 +73,7 @@ The re-import settings, which are configuration settings and not content, and `u
 **Names.** All comparisons ignore upper and lower case:
 
 - A name in an extension must not exist in the instance or in the same extension.
-- A name in the instance must not exist in the instance or in any extension.
+- A name in the instance must not exist in the instance or in any extension. This also holds for the package import, which reports such a metatype as a conflict with organization content (409).
 
 Different extensions may use the same name; each tries out its own types.
 
