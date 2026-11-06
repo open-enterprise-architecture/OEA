@@ -119,7 +119,7 @@ Realigned 2026-11-06 (change us-053-saved-views, owner decisions): a SavedView i
 - Endpoints: `POST /api/v1/catalogs/{id}/views`, `PUT /api/v1/catalogs/{id}/views/{viewId}`, `DELETE /api/v1/catalogs/{id}/views/{viewId}`
 - Default view propagation: when setting isDefault=true on a view, set all other views to false transactionally (no partial update problem)
 - When opening the catalog: the client first queries the catalog configuration and finds the default view; it then uses its parameters for the first query call (REQ-046)
-- Realized by OpenSpec change `us-053-saved-views` (AC1–AC6): `addCatalogView` (201), `updateCatalogView` and `removeCatalogView` (200) with the catalog; the query parameter `view`; at most 20 views; `available` for views whose column, join or sort column is gone; removing a join removes its overrides, filters and sort from the views; audit events `catalog.view-added`, `catalog.view-changed`, `catalog.view-removed`; the view selection, "Save view" and the dialog "Views" in SCR-020. Tests: `CatalogViewTests`, `CatalogPage.spec.ts`, `features/catalog/catalog-views.feature`
+- Realized by OpenSpec change `us-053-saved-views`, commit e8decc0 (#193) (AC1–AC6): `addCatalogView` (201), `updateCatalogView` and `removeCatalogView` (200) with the catalog; the query parameter `view`; at most 20 views; `available` for views whose column, join or sort column is gone; removing a join removes its overrides, filters and sort from the views; audit events `catalog.view-added`, `catalog.view-changed`, `catalog.view-removed`; the view selection, "Save view" and the dialog "Views" in SCR-020. Tests: `CatalogViewTests`, `CatalogPage.spec.ts`, `features/catalog/catalog-views.feature`
 
 ## Change History
 

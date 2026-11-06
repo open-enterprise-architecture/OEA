@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S9
-**Implementation**: OpenSpec change `us-053-saved-views` – `POST /catalogs/{id}/views`, `PUT` and `DELETE /catalogs/{id}/views/{viewId}`, `view={viewId}` in the query, and the view selection, "Save view" and the dialog "Views" in SCR-020
+**Implementation**: OpenSpec change `us-053-saved-views`, commit e8decc0 (#193) – `POST /catalogs/{id}/views`, `PUT` and `DELETE /catalogs/{id}/views/{viewId}`, `view={viewId}` in the query, and the view selection, "Save view" and the dialog "Views" in SCR-020
 
 ## Story
 
