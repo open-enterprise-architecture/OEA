@@ -31,7 +31,7 @@
 
 ## 3. Web portal
 
-- [ ] 3.1 SCR-020 views (D5):
+- [x] 3.1 SCR-020 views (D5):
   - API functions and types;
   - the view selection with "All columns", the default mark, unavailable views and "(changed)";
   - `view` in the URL and the fallback on 400;
@@ -39,20 +39,20 @@
   - messages in English and German.
 
   Verify with specs in `CatalogPage.spec.ts` for "Switch to the full view", "Default view applied", "Shared link keeps its state", "No default view" and a reload with a view.
-- [ ] 3.2 SCR-020 "Save view" and the dialog "Views" (D5): the modal with name, description, column selection and order, and default; "Make default" and "Remove"; the permission rule. Verify with specs for "Compact view", "Default switch" and the reader without the right. Add the stories "Views" and "Save view" to `SCR-020`, run `npm run test:stories`, and update `docs/screens/SCREENS.md`.
+- [x] 3.2 SCR-020 "Save view" and the dialog "Views" (D5): the modal with name, description, column selection and order, and default; "Make default" and "Remove"; the permission rule. Verify with specs for "Compact view", "Default switch" and the reader without the right. Add the stories "Views" and "Save view" to `SCR-020`, run `npm run test:stories`, and update `docs/screens/SCREENS.md`.
 
 ## 4. Manual and documentation
 
-- [ ] 4.1 Manual in English and German: `usage/catalogs.md` with a section "Views" (choosing a view, the default view and links, saving, making default, removing, unavailable views, the API) and the `covers` entry for US-053. Verify with `python3 scripts/check_manual.py` and the manual build.
-- [ ] 4.2 `business-objects/catalog.md` (SavedView, BR-05, BR-06, BR-10), `docs/data-model.puml` (`config.savedViews`) and `docs/audit-event-catalog.md` (`catalog.view-added`, `catalog.view-changed`, `catalog.view-removed`) (D6).
+- [x] 4.1 Manual in English and German: `usage/catalogs.md` with a section "Views" (choosing a view, the default view and links, saving, making default, removing, unavailable views, the API) and the `covers` entry for US-053. Verify with `python3 scripts/check_manual.py` and the manual build.
+- [x] 4.2 `business-objects/catalog.md` (SavedView, BR-05, BR-06, BR-10), `docs/data-model.puml` (`config.savedViews`) and `docs/audit-event-catalog.md` (`catalog.view-added`, `catalog.view-changed`, `catalog.view-removed`) (D6).
 
 ## 5. Wrap-up
 
-- [ ] 5.1 Realign:
+- [x] 5.1 Realign:
   - US-053 (status, AC1, technical notes);
   - US-049 (AC6, implementation line);
   - REQ-048 (inputs, processing, AC1, AC4, implementation notes);
   - REQ-047 (AC7 dropped).
 
   Update the sprint plan and SCREENS.md. Regenerate the traceability matrix with `python3 scripts/generate_traceability.py`, and verify with `validate_links.py` and `generate_traceability.py --check`.
-- [ ] 5.2 Run `./mvnw verify`, the frontend type-check, tests, build and Storybook tests, markdownlint, `openspec validate --specs --strict` and all repository checks.
+- [x] 5.2 Run `./mvnw verify`, the frontend type-check, tests, build and Storybook tests, markdownlint, `openspec validate --specs --strict` and all repository checks.

@@ -2,7 +2,7 @@
 title: Kataloge
 covers:
   screens: [SCR-020, SCR-028]
-  stories: [US-046, US-047, US-048, US-049, US-050, US-051, US-052, US-080]
+  stories: [US-046, US-047, US-048, US-049, US-050, US-051, US-052, US-053, US-080]
 ---
 
 # Kataloge
@@ -84,6 +84,32 @@ Ein Katalog behält benannte Filter für die Schnellauswahl, zum Beispiel *Nur a
 Für das Speichern gelten die Regeln für das Konfigurieren eines Katalogs. Ein geteilter Katalog braucht die Berechtigung, Kataloge zu verwalten (`catalog:manage`); in deinem eigenen persönlichen Katalog speicherst du sie selbst. Ohne dieses Recht wird *Filter speichern* nicht angeboten; lege einen persönlichen Katalog an, um eigene Filter zu behalten. Gespeicherte Filter werden im Audit-Trail festgehalten.
 
 Über die API nimmt `GET /catalogs/{id}/query` pro Filter ein `filter={key}:{operator}[:{value}]` entgegen, zum Beispiel `filter=status:eq:active`, `filter=source.name:contains:CRM` oder `filter={joinId}.protocol:in:REST,SOAP`, sowie `filterMode=or`. Der Schlüssel ist der Spaltenschlüssel des Ergebnisses, der Operator einer von `eq`, `neq`, `contains`, `startsWith`, `in`, `notIn`, `isNull`, `isNotNull`, `gt`, `lt`, `gte` und `lte`; ein ungültiger Filter wird mit 400 beantwortet. `POST /catalogs/{id}/filters` speichert einen Filter mit `name`, `description`, `logicalOperator` und `expressions` (`attributePath`, `operator`, `value`), und `DELETE /catalogs/{id}/filters/{filterId}` entfernt ihn.
+
+## Ansichten {#views}
+
+Eine Ansicht zeigt einen Katalog so, wie er für eine Aufgabe gebraucht wird, zum Beispiel *Kompaktansicht* mit nur Name und Status der aktiven Anwendungen. Sie behält die Spalten und ihre Reihenfolge, die Filter mit *Alle Filter (UND)* oder *Ein Filter (ODER)*, den Modus jedes Joins und die Sortierung.
+
+- **Ansicht wählen:** *Ansichten* neben den Filtern listet die Ansichten des Katalogs für alle, die ihn lesen. Wählst du eine, zeigt die Tabelle ihre Spalten und übernimmt ihre Filter, Join-Modi und Sortierung. *Alle Spalten* verlässt die Ansicht und behält die Filter.
+- **Ansicht anpassen:** Du kannst weiterhin filtern, sortieren und Joins umschalten. Die Tabelle behält die Spalten der Ansicht, und *(geändert)* neben der Auswahl zeigt, dass die Tabelle von der gespeicherten Ansicht abweicht.
+- **Die Standardansicht:** Ein Katalog kann eine Ansicht als Standard markieren. Öffnest du den Katalog, zeigt er die Standardansicht, ausser die Adresse enthält schon eine Ansicht, Sortierung, Seite, einen Join-Modus oder Filter. Ein geteilter Link zeigt deshalb immer das, womit er geteilt wurde.
+- **Die Adresse:** Die Ansicht gehört wie die Filter und die Sortierung zur Adresse der Seite.
+
+### Ansichten speichern und verwalten
+
+Für Ansichten gelten die Regeln für das Konfigurieren eines Katalogs: Ein geteilter Katalog braucht die Berechtigung, Kataloge zu verwalten (`catalog:manage`); in deinem eigenen persönlichen Katalog speicherst du sie selbst. Ohne dieses Recht werden *Ansicht speichern* und der Dialog *Ansichten* nicht angeboten.
+
+1. Richte die Tabelle ein: Filter, Sortierung und Join-Modi.
+2. Wähle *Ansicht speichern*. Gib einen Namen und optional eine Beschreibung ein.
+3. Wähle unter *Spalten der Ansicht* die Spalten und mit den Pfeiltasten ihre Reihenfolge. Um Spalten aufzunehmen, die die aktuelle Ansicht ausblendet, wähle zuerst *Alle Spalten*.
+4. Wähle *Diese Ansicht beim Öffnen des Katalogs zeigen*, um sie zum Standard zu machen, und dann *Speichern*.
+
+Der Name muss im Katalog eindeutig sein, unabhängig von Gross- und Kleinschreibung. Ein Katalog hat höchstens 20 Ansichten. Filter und eine Sortierung auf Spalten, die du weglässt, werden nicht gespeichert.
+
+Im Dialog *Ansichten* macht *Als Standard* eine andere Ansicht zum Standard; die bisherige verliert die Markierung. Die Papierkorb-Taste entfernt eine Ansicht; war sie der Standard, hat der Katalog danach keinen.
+
+Eine Ansicht, die eine Spalte, einen Join oder eine Sortierspalte nennt, die der Katalog nicht mehr hat, ist als *nicht verfügbar* markiert und lässt sich nicht wählen. Entfernst du einen Join, entfallen auch seine Join-Modi, Filter und Sortierung in den Ansichten. Jede Änderung einer Ansicht wird im Audit-Trail festgehalten.
+
+Über die API speichert `POST /catalogs/{id}/views` eine Ansicht mit `name`, `description`, `columnOrder` (Spaltenschlüssel), `filters` und `filterMode` (wie bei gespeicherten Filtern), `joinModeOverrides`, `sort` und `isDefault`. `PUT` und `DELETE /catalogs/{id}/views/{viewId}` ersetzen und entfernen sie. `GET /catalogs/{id}/query?view={viewId}` zeigt die Spalten der Ansicht; ihre Filter, Modi und Sortierung werden als die üblichen Parameter übergeben.
 
 ## Spalten konfigurieren {#configure-columns}
 

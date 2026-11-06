@@ -12,8 +12,10 @@ import {
   CATALOG,
   CATALOGS,
   catalogApi,
+  COMPACT_VIEW,
   FLOW_CATALOG,
   FLOWS,
+  FULL_VIEW,
   INTERFACES_JOIN,
   manyApplications,
   METATYPES,
@@ -213,6 +215,31 @@ export const SavedFilters: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Save filter' }))
     const dialog = within(canvasElement.ownerDocument.body)
     await expect(await dialog.findByTestId('filter-save-form')).toBeInTheDocument()
+  },
+}
+
+// US-053: the default view "Compact view" applied on opening, with the view selection
+export const Views: Story = {
+  ...catalog(APPLICATIONS, {}, { catalog: { ...CATALOG, savedViews: [{ ...COMPACT_VIEW, isDefault: true }, FULL_VIEW] } }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Status equals active')).toBeInTheDocument()
+    const rows = canvasElement.querySelectorAll('[data-testid="catalog-table"] tbody tr')
+    await expect(rows).toHaveLength(2)
+    await userEvent.click(canvas.getByRole('button', { name: 'Views' }))
+    await expect(await within(canvasElement.ownerDocument.body).findByText('Make default')).toBeInTheDocument()
+  },
+}
+
+// US-053: "Save view" with the columns of the table, filters, join modes and sort
+export const SaveView: Story = {
+  ...catalog(APPLICATIONS, { filter: 'status:eq:active', sort: 'name:desc' }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Save view' }))
+    const dialog = within(canvasElement.ownerDocument.body)
+    await expect(await dialog.findByTestId('view-save-form')).toBeInTheDocument()
+    await expect(dialog.getAllByTestId('view-column')).toHaveLength(2)
   },
 }
 

@@ -2,7 +2,7 @@
 identifier: catalog
 name_de: Katalog
 name_en: Catalog
-version: 0.6.0
+version: 0.7.0
 status: draft
 maturity: initial
 owner_role: Lead Enterprise Architect
@@ -71,6 +71,8 @@ An ad-hoc filter names a column of the query result by its key, an operator of t
 ### Saved Views
 
 A **SavedView** bundles: visible columns, column order, active filters (references to SavedFilters), and join mode. It allows saving several preconfigured views of the same catalog (e.g. "Compact view", "Audit export view").
+
+As implemented (change us-053-saved-views, owner decisions 2026-11-06), a SavedView is a snapshot of the view state: the column keys in display order, the filter expressions with their combination, the join mode overrides and the sort. It does not reference SavedFilters. The query applies the columns of a view (`view` parameter); the client applies its filters, modes and sort as parameters, and applies the default view only when the URL holds no view state. SavedViews are changed under the rule of the columns (BR-09).
 
 ---
 
@@ -168,12 +170,17 @@ A catalog has at most 50 SavedFilters, in creation order (change us-051-catalog-
 | Attribute | Type | Optional | Default | Description |
 |---|---|---|---|---|
 | id | string | required | | UUID v4 |
-| name | string | required | | Readable name (e.g. "Audit export view") |
-| description | string | optional | | |
-| columnOrder | string[] | optional | | Ordered list of `attributeName` values of the visible columns; overrides the catalog ColumnConfig order |
-| activeFilterIds | string[] | optional | [] | IDs of SavedFilters that are active in this view |
-| joinModeOverrides | JoinModeOverride[] | optional | [] | Explicit mode per join (`rows`/`aggregate`); overrides JoinDefinition defaults |
-| isDefault | boolean | required | false | Whether this view is preselected when the catalog is opened |
+| name | string | required | | 1–100 characters, unique in the catalog after trimming, regardless of case (e.g. "Audit export view") |
+| description | string | optional | null | At most 1000 characters |
+| columnOrder | string[] | required | | 1–100 column keys of the catalog's primary columns in display order (BR-05); columns not listed are hidden in the view |
+| filters | FilterExpression[] | optional | [] | 0–20 expressions on columns of the view or of joins (BR-04, BR-12); replaces `activeFilterIds` |
+| filterMode | enum | optional | `and` | `[and, or]` |
+| joinModeOverrides | JoinModeOverride[] | optional | [] | Explicit mode per join (`rows`/`aggregate`); overrides JoinDefinition defaults; at most one per join |
+| sort | {column, direction} | optional | null | A sortable column of the view, or of a join in `rows` mode in the view |
+| isDefault | boolean | required | false | Whether this view is applied when the catalog is opened without view state in the URL (BR-06) |
+| available | boolean | derived | | `false` if the view names a column, a join or a sort column the catalog no longer has; not stored |
+
+A catalog has at most 20 SavedViews, in creation order (change us-053-saved-views).
 
 ### JoinModeOverride (value object in SavedView)
 
@@ -199,12 +206,12 @@ A catalog has at most 50 SavedFilters, in creation order (change us-051-catalog-
 | BR-02 | `JoinDefinition.connectionMetatypeId` MUST be a metatype with `isConnection=true` | onCreate, onUpdate | REQ-045 AC2 |
 | BR-03 | `JoinDefinition.targetMetatypeId` MUST be reachable from the primary metatype through the connection metatype in `joinDirection`, by its allowed endpoints (with subtypes; no constraint on a side allows every metatype) | onCreate, onUpdate | REQ-045 AC3 |
 | BR-04 | A `SavedFilter.expression.attributePath` MUST name a column the catalog query returns: a visible primary or endpoint column or a visible column of an available join. Removing a join removes the expressions on its columns and a SavedFilter left without expressions | onCreate, onUpdate, onJoinRemoved | REQ-047 AC3, US-052 |
-| BR-05 | `SavedView.columnOrder` may only contain attribute names that are defined in the catalog's `columns` configuration | onCreate, onUpdate | – |
-| BR-06 | At most one `SavedView` per catalog may have `isDefault=true` | onCreate, onUpdate | – |
+| BR-05 | `SavedView.columnOrder` may only contain keys of the catalog's primary columns (the visible configured columns, else the default columns), each at most once; filters and sort of a view name its columns or join columns | onCreate, onUpdate | REQ-048 AC3 |
+| BR-06 | At most one `SavedView` per catalog may have `isDefault=true`; marking a view as default clears the default of every other view | onCreate, onUpdate | REQ-048 AC2 |
 | BR-07 | A non-empty `columns` list MUST contain at least one column with `visible=true`; an attribute appears at most once | onUpdate | REQ-044 AC3 |
 | BR-08 | At most one column MAY carry a `defaultSortDirection`; the query uses it when no sort is requested | onUpdate | REQ-044 |
 | BR-09 | The columns and joins of a catalog with `scope=instance` are changed only with `catalog:manage`, those of a personal catalog only by its creator | onUpdate | ADR-032 §8 |
-| BR-10 | The target columns of a join follow BR-07 for the target metatype and carry no `defaultSortDirection`; removing a join removes the `joinModeOverrides` that refer to it | onCreate, onUpdate, onDelete | REQ-045 AC4, AC5 |
+| BR-10 | The target columns of a join follow BR-07 for the target metatype and carry no `defaultSortDirection`; removing a join removes the `joinModeOverrides`, filters and sort of SavedViews that refer to it | onCreate, onUpdate, onDelete | REQ-045 AC4, AC5, US-053 |
 | BR-11 | A column with `endpoint` is allowed only in `columns` of a catalog whose primary metatype is a connection metatype, never in join target columns; its property MUST be mapped to an allowed endpoint metatype of that side, one of its subtypes or their base types, or to any metatype if the side has no constraint; an attribute appears at most once per endpoint | onUpdate | REQ-065, US-080 AC2 |
 | BR-12 | The operator of a filter MUST fit the type of its column: text (`name`, `description`, `externalId`, properties `string`, `text`, `url`) takes `eq`, `neq`, `contains`, `startsWith`, `in`, `notIn`, `isNull`, `isNotNull`; enum takes `eq`, `neq`, `in`, `notIn`, `isNull`, `isNotNull`; boolean takes `eq`, `neq`, `isNull`, `isNotNull`; number (`entityVersion`, `integer`, `reference` by entity ID) and date (`createdAt`, `updatedAt` by UTC day, `date`) take `eq`, `neq`, `gt`, `lt`, `gte`, `lte`, `isNull`, `isNotNull`. Text compares ignoring case; `neq` and `notIn` also hold without a value | onQuery, onCreate | REQ-047, US-051 AC5 |
 
@@ -290,6 +297,7 @@ savedViews:
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Business Engineer | Initial draft; join modes (rows/aggregate), SavedFilter, SavedView, ColumnConfig, JoinDefinition |
 | 0.2.0 | 2026-10-19 | Change us-046-create-catalog | Primary entity type by ID; name uniqueness case-insensitive and trimmed; empty columns allowed; notes on identity, namespace and permissions |
+| 0.7.0 | 2026-11-06 | Change us-053-saved-views | SavedView as implemented: snapshot with column keys, filters, filter mode, join modes and sort instead of `activeFilterIds`; limits and `available`; BR-05, BR-06 and BR-10 sharpened |
 | 0.6.0 | 2026-11-05 | Change us-051-catalog-filters | SavedFilter and FilterExpression as implemented: column keys, limits, `available`, `scope` dropped; BR-04 sharpened, BR-12 |
 | 0.5.0 | 2026-11-05 | Change us-080-connection-catalogs | Connection metatype as primary entity type; ColumnConfig `endpoint`; BR-11 |
 | 0.4.0 | 2026-11-05 | Change us-048-catalog-joins | JoinDefinition as implemented: metatype IDs, `aggregateLabel` dropped, limits; BR-02, BR-03 sharpened, BR-10 |

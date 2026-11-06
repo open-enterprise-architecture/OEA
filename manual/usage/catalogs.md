@@ -2,7 +2,7 @@
 title: Catalogs
 covers:
   screens: [SCR-020, SCR-028]
-  stories: [US-046, US-047, US-048, US-049, US-050, US-051, US-052, US-080]
+  stories: [US-046, US-047, US-048, US-049, US-050, US-051, US-052, US-053, US-080]
 ---
 
 # Catalogs
@@ -84,6 +84,32 @@ A catalog keeps named filters for quick selection, for example *Active systems o
 Saving filters follows the rules for configuring a catalog. A shared catalog needs the permission to manage catalogs (`catalog:manage`); in your own personal catalog you save them yourself. Without that right, *Save filter* is not offered; create a personal catalog to keep your own filters. Saved filters are recorded in the audit trail.
 
 Through the API, `GET /catalogs/{id}/query` takes one `filter={key}:{operator}[:{value}]` per filter, for example `filter=status:eq:active`, `filter=source.name:contains:CRM` or `filter={joinId}.protocol:in:REST,SOAP`, and `filterMode=or`. The key is the column key of the result, the operator one of `eq`, `neq`, `contains`, `startsWith`, `in`, `notIn`, `isNull`, `isNotNull`, `gt`, `lt`, `gte` and `lte`; an invalid filter answers 400. `POST /catalogs/{id}/filters` saves a filter with `name`, `description`, `logicalOperator` and `expressions` (`attributePath`, `operator`, `value`), and `DELETE /catalogs/{id}/filters/{filterId}` removes it.
+
+## Views {#views}
+
+A view shows a catalog the way it is needed for a task, for example *Compact view* with only the name and the status of the active applications. It keeps the columns and their order, the filters with *All filters (AND)* or *Any filter (OR)*, the mode of each join and the sort.
+
+- **Choose a view:** *Views* next to the filters lists the views of the catalog for every reader. Choosing one shows its columns and sets its filters, join modes and sort. *All columns* leaves the view and keeps the filters.
+- **Change the view:** you can still filter, sort and switch joins. The table keeps the columns of the view, and *(changed)* next to the selection shows that the table differs from the saved view.
+- **The default view:** a catalog can mark one view as default. When you open the catalog, it shows the default view, unless the address already holds a view, sort, page, join mode or filter. A shared link therefore always shows what it was shared with.
+- **The address:** the view is part of the address, like the filters and the sort.
+
+### Save and manage views
+
+Views follow the rules for configuring a catalog: a shared catalog needs the permission to manage catalogs (`catalog:manage`); in your own personal catalog you save them yourself. Without that right, *Save view* and the dialog *Views* are not offered.
+
+1. Set up the table: filters, sort and join modes.
+2. Choose *Save view*. Enter a name and, optionally, a description.
+3. Under *Columns of the view*, choose the columns and their order with the arrow buttons. To include columns that the current view hides, choose *All columns* first.
+4. Choose *Show this view when the catalog opens* to make it the default, and then *Save*.
+
+The name must be unique in the catalog, regardless of upper and lower case. A catalog has at most 20 views. Filters and a sort on columns you leave out are not saved.
+
+In the dialog *Views*, *Make default* makes another view the default; the previous default loses the mark. The trash button removes a view; if it was the default, the catalog then has none.
+
+A view that names a column, a join or a sort column the catalog no longer has shows as *not available* and cannot be chosen. Removing a join also removes its join modes, filters and sort from the views. Every change of a view is recorded in the audit trail.
+
+Through the API, `POST /catalogs/{id}/views` saves a view with `name`, `description`, `columnOrder` (column keys), `filters` and `filterMode` (as for saved filters), `joinModeOverrides`, `sort` and `isDefault`. `PUT` and `DELETE /catalogs/{id}/views/{viewId}` replace and remove it. `GET /catalogs/{id}/query?view={viewId}` shows the columns of the view; its filters, modes and sort are passed as the usual parameters.
 
 ## Configure columns {#configure-columns}
 
