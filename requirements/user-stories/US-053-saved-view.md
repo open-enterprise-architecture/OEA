@@ -2,8 +2,9 @@
 
 **ID**: US-053
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S9
+**Implementation**: OpenSpec change `us-053-saved-views` – `POST /catalogs/{id}/views`, `PUT` and `DELETE /catalogs/{id}/views/{viewId}`, `view={viewId}` in the query, and the view selection, "Save view" and the dialog "Views" in SCR-020
 
 ## Story
 
@@ -20,8 +21,8 @@ As a Lead Enterprise Architect, I want to create a named view for a catalog that
 **AC1** (create SavedView, happy path):
 
 - Given: Catalog "Application Inventory" with columns [name, status, vendor], SavedFilter "Active systems only", join "Interfaces"
-- When: Kurt creates view "Compact view" with columnOrder=[name, status], activeFilterIds=[filter-active-systems], isDefault=true
-- Then: View saved; the next time the catalog is opened, the compact view appears immediately
+- When: Kurt creates view "Compact view" with columnOrder=[name, status], the filter `status = "active"` and isDefault=true (realigned 2026-11-06: a view keeps the filter expressions, not references to saved filters)
+- Then: View saved; the next time the catalog is opened without view state in the URL, the compact view appears immediately
 
 **AC2** (view selection):
 
@@ -48,8 +49,10 @@ As a Lead Enterprise Architect, I want to create a named view for a catalog that
 
 ## Technical Notes
 
-- Affected components: catalog configuration area → "Views" tab, backend `POST /api/v1/catalogs/{id}/views`
-- UX: view dropdown in the catalog view (top right); on creation: modal with name, column selection, filter references, isDefault
+- Affected components: the view selection, "Save view" and the dialog "Views" in SCR-020 (realigned 2026-11-06), backend `POST /api/v1/catalogs/{id}/views`, `PUT` and `DELETE /api/v1/catalogs/{id}/views/{viewId}`
+- UX: view selection next to the filter bar; "Save view" opens a modal with name, description, the columns of the table and their order, and the default; it also keeps the filters, join modes and sort of the table
+- The view is part of the URL (`view={viewId}`, ADR-044); the query shows its columns, the page passes its filters, modes and sort as parameters
+- Saving needs the right to configure the catalog (`catalog:manage` for a shared catalog, the creator for a personal one)
 - Dependency: US-047 (columns), US-052 (SavedFilter); US-050 (JoinMode override)
 
 ## Definition of Done

@@ -11,9 +11,11 @@ import {
   CATALOG,
   CATALOGS,
   catalogApi,
+  COMPACT_VIEW,
   DATA_FLOW,
   FLOW_CATALOG,
   FLOWS,
+  FULL_VIEW,
   INTERFACE,
   INTERFACES_JOIN,
   manyApplications,
@@ -725,3 +727,153 @@ describe('CatalogPage filters', () => {
     wrapper.unmount()
   })
 })
+
+describe('CatalogPage views', () => {
+  function select(wrapper: VueWrapper, testId: string) {
+    const found = wrapper.findAllComponents({ name: 'Select' }).find((component) => component.vm.$attrs['data-testid'] === testId)
+    if (!found) {
+      throw new Error(`no select ${testId}`)
+    }
+    return found
+  }
+
+  function itemLabels(wrapper: VueWrapper, testId: string): string[] {
+    return (select(wrapper, testId).props('items') as { label: string }[]).map((item) => item.label)
+  }
+
+  async function choose(wrapper: VueWrapper, testId: string, value: string) {
+    select(wrapper, testId).vm.$emit('update:modelValue', value)
+    await flushPromises()
+  }
+
+  async function press(testId: string) {
+    document.body.querySelector<HTMLElement>(`[data-testid="${testId}"]`)!.click()
+    await flushPromises()
+  }
+
+  async function type(testId: string, value: string) {
+    const input = document.body.querySelector<HTMLInputElement>(`[data-testid="${testId}"] input, input[data-testid="${testId}"]`)!
+    input.value = value
+    input.dispatchEvent(new Event('input'))
+    await flushPromises()
+  }
+
+  function headers(wrapper: VueWrapper): string[] {
+    return wrapper.findAll('[data-testid="catalog-table"] thead th').map((th) => th.text())
+  }
+
+  const WITH_VIEWS = { ...CATALOG, savedViews: [COMPACT_VIEW, FULL_VIEW] }
+  const WITH_DEFAULT = { ...CATALOG, savedViews: [{ ...COMPACT_VIEW, isDefault: true }, FULL_VIEW] }
+
+  // catalog/catalog-views "Switch to the full view"
+  it('switches between views and keeps the view in the URL', async () => {
+    const { wrapper, router, recorded } = await open(CATALOG_PATH, APPLICATIONS, undefined, { catalog: WITH_VIEWS })
+    expect(itemLabels(wrapper, 'view-select')).toEqual(['All columns', 'Compact view', 'Full view'])
+    await choose(wrapper, 'view-select', FULL_VIEW.id)
+    expect(router.currentRoute.value.query).toMatchObject({ view: FULL_VIEW.id, sort: 'name:desc' })
+    expect(names(wrapper)).toEqual(['Intranet', 'ERP', 'CRM System'])
+    await choose(wrapper, 'view-select', COMPACT_VIEW.id)
+    expect(router.currentRoute.value.query).toMatchObject({ view: COMPACT_VIEW.id, filter: ['status:eq:active'] })
+    expect(router.currentRoute.value.query.sort).toBeUndefined()
+    expect(recorded.at(-1)?.query.view).toBe(COMPACT_VIEW.id)
+    expect(headers(wrapper)[0]).toContain('Status')
+    expect(wrapper.findAll('[data-testid="catalog-table"] tbody tr')).toHaveLength(2)
+    await choose(wrapper, 'view-select', '__all__')
+    expect(router.currentRoute.value.query.view).toBeUndefined()
+    expect(router.currentRoute.value.query.filter).toEqual(['status:eq:active'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-views "Default view applied"
+  it('applies the default view when the catalog opens without view state', async () => {
+    const { wrapper, router } = await open(CATALOG_PATH, APPLICATIONS, undefined, { catalog: WITH_DEFAULT })
+    expect(router.currentRoute.value.query).toMatchObject({ view: COMPACT_VIEW.id, filter: ['status:eq:active'] })
+    expect(headers(wrapper).map((header) => header.replace(/[↑↓]/g, '').trim())).toEqual(['Status', 'Name'])
+    expect(wrapper.findAll('[data-testid="filter-chip-label"]').map((chip) => chip.text())).toEqual(['Status equals active'])
+    expect(itemLabels(wrapper, 'view-select')).toContain('Compact view (default)')
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-views "Shared link keeps its state"
+  it('keeps the state of a link instead of the default view', async () => {
+    const { wrapper, router } = await open(`${CATALOG_PATH}?sort=name:desc`, APPLICATIONS, undefined, { catalog: WITH_DEFAULT })
+    expect(router.currentRoute.value.query.view).toBeUndefined()
+    expect(names(wrapper)).toEqual(['Intranet', 'ERP', 'CRM System'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-views "No default view"
+  it('shows the configured columns without a default view', async () => {
+    const { wrapper, router } = await open(CATALOG_PATH, APPLICATIONS, undefined, { catalog: WITH_VIEWS })
+    expect(router.currentRoute.value.query).toEqual({})
+    expect(names(wrapper)).toEqual(['CRM System', 'ERP', 'Intranet'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-views "Use a view": reload and a changed view
+  it('restores a view after a reload and marks a changed view', async () => {
+    const { wrapper } = await open(`${CATALOG_PATH}?view=${FULL_VIEW.id}&sort=name:desc`, APPLICATIONS, undefined, { catalog: WITH_VIEWS })
+    expect(select(wrapper, 'view-select').props('modelValue')).toBe(FULL_VIEW.id)
+    expect(wrapper.find('[data-testid="view-changed"]').exists()).toBe(false)
+    await click(wrapper, '[data-testid="sort-name"]')
+    expect(wrapper.find('[data-testid="view-changed"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-views "Unknown view"
+  it('drops a view the catalog does not have and keeps the rest', async () => {
+    const { wrapper, router } = await open(`${CATALOG_PATH}?view=f2000000-0000-4000-8000-00000000ffff&sort=name:desc`, APPLICATIONS, undefined, {
+      catalog: WITH_VIEWS,
+    })
+    expect(router.currentRoute.value.query.view).toBeUndefined()
+    expect(router.currentRoute.value.query.sort).toBe('name:desc')
+    expect(names(wrapper)).toEqual(['Intranet', 'ERP', 'CRM System'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-views "Compact view"
+  it('saves the current table as a view', async () => {
+    const { wrapper, recorded } = await open(`${CATALOG_PATH}?filter=status:eq:active&sort=name:desc`)
+    await click(wrapper, '[data-testid="view-save"]')
+    await type('view-save-name', 'Compact view')
+    await press('view-save-submit')
+    const post = recorded.find((request) => request.method === 'POST')!
+    expect(post.path).toBe(`/api/v1/catalogs/${CATALOG.id}/views`)
+    expect(post.body).toEqual({
+      name: 'Compact view',
+      description: null,
+      columnOrder: ['name', 'status'],
+      filters: [{ attributePath: 'status', operator: 'eq', value: 'active' }],
+      filterMode: 'and',
+      joinModeOverrides: [],
+      sort: { column: 'name', direction: 'desc' },
+      isDefault: false,
+    })
+    expect(itemLabels(wrapper, 'view-select')).toEqual(['All columns', 'Compact view'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-views "Default switch"
+  it('makes another view the default', async () => {
+    const { wrapper, recorded } = await open(`${CATALOG_PATH}?sort=name:asc`, APPLICATIONS, undefined, { catalog: WITH_DEFAULT })
+    await click(wrapper, '[data-testid="view-manage"]')
+    await press('view-make-default')
+    const put = recorded.find((request) => request.method === 'PUT')!
+    expect(put.path).toBe(`/api/v1/catalogs/${CATALOG.id}/views/${FULL_VIEW.id}`)
+    expect(put.body).toMatchObject({ name: 'Full view', isDefault: true })
+    expect(itemLabels(wrapper, 'view-select')).toEqual(['All columns', 'Compact view', 'Full view (default)'])
+    await press('view-remove')
+    expect(recorded.find((request) => request.method === 'DELETE')?.path).toBe(`/api/v1/catalogs/${CATALOG.id}/views/${COMPACT_VIEW.id}`)
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-views "Who changes views"
+  it('offers no saving or managing to a reader without the right to configure', async () => {
+    const { wrapper } = await open(CATALOG_PATH, APPLICATIONS, undefined, { me: ME_VIEWER, catalog: WITH_VIEWS })
+    expect(wrapper.find('[data-testid="view-save"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="view-manage"]').exists()).toBe(false)
+    expect(itemLabels(wrapper, 'view-select')).toEqual(['All columns', 'Compact view', 'Full view'])
+    wrapper.unmount()
+  })
+})
+

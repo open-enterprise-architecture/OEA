@@ -4,9 +4,9 @@ title: Set filters and save them as a SavedFilter
 type: functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-26
-last_updated: 2026-11-05
+last_updated: 2026-11-06
 author: requirements-engineer
 references:
   use_cases:
@@ -33,7 +33,7 @@ superseded_by: []
 
 ## Statement
 
-The system MUST allow all catalog visitors to set filter expressions on attributes of the primary entity and of joined target entities. Supported operators: `eq`, `neq`, `contains`, `startsWith`, `in`, `notIn`, `isNull`, `isNotNull`, `gt`, `lt`, `gte`, `lte`. Multiple expressions within a filter MUST be combinable via `AND` or `OR`. Filter expressions that have been set MUST be persistable in the catalog as named [SavedFilters](../../business-objects/catalog.md); saved filters MUST be offered as quick selection. Deleting a SavedFilter that is referenced in a SavedView MUST remove the reference from the SavedView.
+The system MUST allow all catalog visitors to set filter expressions on attributes of the primary entity and of joined target entities. Supported operators: `eq`, `neq`, `contains`, `startsWith`, `in`, `notIn`, `isNull`, `isNotNull`, `gt`, `lt`, `gte`, `lte`. Multiple expressions within a filter MUST be combinable via `AND` or `OR`. Filter expressions that have been set MUST be persistable in the catalog as named [SavedFilters](../../business-objects/catalog.md); saved filters MUST be offered as quick selection. (A SavedView keeps its own filter expressions and references no SavedFilter, change us-053-saved-views.)
 
 ## Rationale
 
@@ -113,11 +113,7 @@ Filters are passed as query parameters to `GET /api/v1/catalogs/{id}/query` (cf.
 - When: Franz tries to create a SavedFilter in an instance catalog
 - Then: HTTP 403; in his own personal catalog the SavedFilter is saved
 
-**AC7** (Delete SavedFilter and clean up SavedView; follows with saved views, US-053):
-
-- Given: SavedView "Compact view" references SavedFilter id=filter-1
-- When: `DELETE /api/v1/catalogs/{id}/filters/filter-1`
-- Then: HTTP 200; SavedFilter deleted; SavedView cleaned up (filter-1 removed from `activeFilterIds`)
+**AC7** (dropped 2026-11-06, owner decision in us-053-saved-views): a SavedView keeps a snapshot of its filters and references no SavedFilter, so deleting a SavedFilter changes no view.
 
 ## Dependencies
 
@@ -128,11 +124,12 @@ Filters are passed as query parameters to `GET /api/v1/catalogs/{id}/query` (cf.
 
 - Endpoints: `POST /api/v1/catalogs/{id}/filters` (`addCatalogFilter`, 201 with the catalog), `DELETE /api/v1/catalogs/{id}/filters/{filterId}` (`removeCatalogFilter`, 200 with the catalog)
 - `in`/`notIn` values: as a JSON array without commas in the request body; as a comma-separated value for runtime filters
-- Realized by OpenSpec change `us-051-catalog-filters`, commit 2e320f3 (#190) (AC1–AC6; AC7 with change 4, saved views): column keys as `attributePath`, the operators per column type (catalog BR-12), at most 20 filters per query and per saved filter, at most 50 saved filters per catalog, `available` for saved filters whose column is gone; removing a join removes its expressions (BR-04); audit events `catalog.filter-added`, `catalog.filter-removed`. Tests: `CatalogFilterTests`, `CatalogPage.spec.ts`, `features/catalog/catalog-filters.feature`
+- Realized by OpenSpec change `us-051-catalog-filters`, commit 2e320f3 (#190) (AC1–AC6; AC7 dropped with us-053-saved-views): column keys as `attributePath`, the operators per column type (catalog BR-12), at most 20 filters per query and per saved filter, at most 50 saved filters per catalog, `available` for saved filters whose column is gone; removing a join removes its expressions (BR-04); audit events `catalog.filter-added`, `catalog.filter-removed`. Tests: `CatalogFilterTests`, `CatalogPage.spec.ts`, `features/catalog/catalog-filters.feature`
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; 12 operators, dot notation for join attributes, scope=personal/instance |
+| 0.3.0 | 2026-11-06 | Change us-053-saved-views | AC7 dropped: views keep their own filter expressions |
 | 0.2.0 | 2026-11-05 | Change us-051-catalog-filters | Column keys instead of dot notation; join filters restrict entries and results; `scope` and AC6 replaced by the permission rule of the columns; runtime parameters `filter` and `filterMode` instead of `savedFilterIds[]`; AC7 follows with saved views |

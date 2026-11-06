@@ -112,6 +112,33 @@
       "nameTaken": "Der Katalog hat schon einen gespeicherten Filter mit diesem Namen.",
       "saveFailed": "Der Filter konnte nicht gespeichert werden.",
       "modeLabel": "Verknüpfung der Filter"
+    },
+    "views": {
+      "title": "Ansichten",
+      "all": "Alle Spalten",
+      "defaultNamed": "{name} (Standard)",
+      "unavailable": "{name} (nicht verfügbar)",
+      "changed": "(geändert)",
+      "save": "Ansicht speichern",
+      "saveTitle": "Ansicht speichern",
+      "name": "Name",
+      "description": "Beschreibung",
+      "columns": "Spalten der Ansicht",
+      "moveUp": "{name} nach oben",
+      "moveDown": "{name} nach unten",
+      "snapshotHint": "Die Ansicht behält auch die Filter, Join-Modi und die Sortierung der Tabelle.",
+      "useAsDefault": "Diese Ansicht beim Öffnen des Katalogs zeigen",
+      "cancel": "Abbrechen",
+      "saveSubmit": "Speichern",
+      "nameRequired": "Gib einen Namen ein.",
+      "columnRequired": "Wähle mindestens eine Spalte.",
+      "nameTaken": "Der Katalog hat schon eine Ansicht mit diesem Namen.",
+      "saveFailed": "Die Ansicht konnte nicht gespeichert werden.",
+      "default": "Standard",
+      "notAvailable": "Nicht verfügbar",
+      "makeDefault": "Als Standard",
+      "removeNamed": "Ansicht {name} entfernen",
+      "changeFailed": "Die Ansicht konnte nicht geändert werden."
     }
   },
   "catalogs": {

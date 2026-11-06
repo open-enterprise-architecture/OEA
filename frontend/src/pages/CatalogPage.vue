@@ -16,6 +16,7 @@ import {
   type CatalogFilterMode,
   type CatalogQueryResult,
   type CatalogSavedFilter,
+  type CatalogSavedView,
   type CatalogSort,
   type JoinMode,
 } from '../api/catalogs'
@@ -25,13 +26,15 @@ import CatalogColumnsDialog from '../components/CatalogColumnsDialog.vue'
 import CatalogFilterBar, { type FilterColumn } from '../components/CatalogFilterBar.vue'
 import CatalogJoinsDialog from '../components/CatalogJoinsDialog.vue'
 import CatalogTable from '../components/CatalogTable.vue'
+import CatalogViews from '../components/CatalogViews.vue'
 import { label, labelKeys } from '../i18n/labels'
 import { refreshSession, session } from '../session/store'
 
 // A single catalog with its rows (UC-06, US-049, SCR-020). Sort and page are part of the URL
 // (ADR-044, design D8 of us-049-show-catalog-data), so back navigation and reload restore the view;
 // so is the mode of every join that differs from its default (design D5 of us-048-catalog-joins)
-// and so are the filters with their combination (design D5 of us-051-catalog-filters).
+// and so are the filters with their combination (design D5 of us-051-catalog-filters) and the
+// saved view whose columns the table shows (design D5 of us-053-saved-views).
 // Metatype names, column headers and enum values are shown in the language of the user (US-140).
 const props = defineProps<{ id: string; fetchFn?: typeof fetch }>()
 const route = useRoute()
@@ -72,8 +75,13 @@ interface View {
   modes: Record<string, JoinMode>
   filters: CatalogFilter[]
   filterMode: CatalogFilterMode
+  viewId?: string
   invalid: string[]
 }
+
+/** The parameters of the view state; without any of them the default view applies (US-049 AC6). */
+const VIEW_PARAMETERS = ['view', 'sort', 'page', 'mode', 'filter', 'filterMode']
+const VIEW_ID = new RegExp(`^${UUID}$`)
 
 /** The view state of the URL; `invalid` lists the parameters that do not parse. */
 function viewOf(query: LocationQuery): View {
@@ -102,6 +110,14 @@ function viewOf(query: LocationQuery): View {
       invalid.push('filterMode')
     }
   }
+  let viewId: string | undefined
+  if (query.view !== undefined) {
+    if (typeof query.view === 'string' && VIEW_ID.test(query.view)) {
+      viewId = query.view
+    } else {
+      invalid.push('view')
+    }
+  }
   if (query.mode !== undefined) {
     for (const entry of Array.isArray(query.mode) ? query.mode : [query.mode]) {
       const match = typeof entry === 'string' ? MODE.exec(entry) : null
@@ -127,7 +143,7 @@ function viewOf(query: LocationQuery): View {
       invalid.push('page')
     }
   }
-  return { sort, page, modes, filters, filterMode, invalid }
+  return { sort, page, modes, filters, filterMode, viewId, invalid }
 }
 
 /** Writes the view to the URL without a history entry; defaults are omitted (ADR-044). */
@@ -137,8 +153,14 @@ async function showView(
   modes: Record<string, JoinMode> = view.value.modes,
   filters: CatalogFilter[] = view.value.filters,
   filterMode: CatalogFilterMode = view.value.filterMode,
+  // `null` leaves the view; an omitted argument keeps it
+  viewId: string | null = view.value.viewId ?? null,
 ) {
   const query: LocationQuery = { ...route.query }
+  delete query.view
+  if (viewId) {
+    query.view = viewId
+  }
   delete query.sort
   delete query.page
   delete query.mode
@@ -224,6 +246,31 @@ function valueLabel(key: string, value: string): string {
   const enumValue = byColumn.value.get(property)?.enumValues?.find((candidate) => candidate.value === value)
   return enumValue ? label(labelKeys.enumValue(enumValue.id), value) : value
 }
+
+/** A view replaces columns, filters, join modes and sort; overrides equal to the default are left out. */
+async function applyView(saved: CatalogSavedView) {
+  filterHint.value = undefined
+  const modes = Object.fromEntries(
+    (saved.joinModeOverrides ?? [])
+      .filter((override) => override.joinMode !== defaultMode(override.joinDefinitionId))
+      .map((override) => [override.joinDefinitionId, override.joinMode]),
+  )
+  const filters = (saved.filters ?? []).map(filterOf)
+  await showView(saved.sort ?? undefined, 0, modes, filters, filters.length > 1 ? saved.filterMode : 'and', saved.id)
+}
+
+/** "All columns" leaves the view and keeps filters, join modes and sort. */
+async function leaveView() {
+  await showView(view.value.sort, 0, view.value.modes, view.value.filters, view.value.filterMode, null)
+}
+
+/** After a change of the views, the selection shows them. */
+function viewsChanged(changed: Catalog) {
+  catalog.value = changed
+}
+
+/** The primary columns of the table, for the column selection of a new view. */
+const viewColumns = computed(() => (shown.value?.columns ?? []).map((column) => ({ key: column.key, label: column.label })))
 
 /** After saving a filter, the quick selection offers it. */
 function filterSaved(saved: Catalog) {
@@ -326,6 +373,11 @@ async function loadCatalog() {
   failure.value = undefined
   try {
     catalog.value = await fetchCatalog(props.id, props.fetchFn)
+    const preset = catalog.value?.savedViews.find((candidate) => candidate.isDefault && candidate.available)
+    if (preset && !VIEW_PARAMETERS.some((name) => route.query[name] !== undefined)) {
+      // the default view applies only without view state in the URL (design D5 of us-053-saved-views)
+      await applyView(preset)
+    }
     state.value = catalog.value ? 'loaded' : 'not-found'
   } catch (error) {
     failure.value = rateLimitMessage(error instanceof RequestRejected ? error.rejection : undefined)
@@ -338,9 +390,9 @@ async function loadCatalog() {
 }
 
 async function loadRows() {
-  const { sort, page, modes, filters, filterMode, invalid } = view.value
+  const { sort, page, modes, filters, filterMode, viewId, invalid } = view.value
   if (invalid.length > 0) {
-    await showView(undefined, 0, {}, [], 'and')
+    await showView(undefined, 0, {}, [], 'and', null)
     return
   }
   const current = ++latestQuery
@@ -348,7 +400,7 @@ async function loadRows() {
   try {
     const outcome = await queryCatalog(
       props.id,
-      { page: page > 0 ? page : undefined, sort, joinModes: modes, filters: filters.map(filterText), filterMode },
+      { page: page > 0 ? page : undefined, sort, joinModes: modes, filters: filters.map(filterText), filterMode, view: viewId },
       props.fetchFn,
     )
     if (current !== latestQuery) {
@@ -362,9 +414,12 @@ async function loadRows() {
         return
       }
       result.value = outcome.value
-    } else if (outcome.rejection.status === 400 && (sort || page > 0 || Object.keys(modes).length > 0 || filters.length > 0)) {
+    } else if (outcome.rejection.status === 400 && viewId && outcome.rejection.invalidFields?.includes('view')) {
+      // a view that was removed or no longer fits the catalog
+      await showView(sort, 0, modes, filters, filterMode, null)
+    } else if (outcome.rejection.status === 400 && (sort || page > 0 || Object.keys(modes).length > 0 || filters.length > 0 || viewId)) {
       // e.g. a sort or filter column the catalog no longer returns or a removed join
-      await showView(undefined, 0, {}, [], 'and')
+      await showView(undefined, 0, {}, [], 'and', null)
     } else if (outcome.rejection.status === 404) {
       state.value = 'not-found'
     } else {
@@ -395,7 +450,7 @@ async function columnsSaved(saved: Catalog) {
 async function joinsChanged(changed: Catalog) {
   catalog.value = changed
   if (view.value.sort || view.value.page > 0 || Object.keys(view.value.modes).length > 0 || view.value.filters.length > 0) {
-    await showView(undefined, 0, {}, [], 'and')
+    await showView(undefined, 0, {}, [], 'and', null)
   } else {
     await loadRows()
   }
@@ -404,7 +459,7 @@ async function joinsChanged(changed: Catalog) {
 onMounted(loadCatalog)
 watch(() => props.id, loadCatalog)
 watch(
-  () => [route.query.sort, route.query.page, route.query.mode, route.query.filter, route.query.filterMode],
+  () => [route.query.sort, route.query.page, route.query.mode, route.query.filter, route.query.filterMode, route.query.view],
   () => {
     if (state.value === 'loaded' && route.path === path) {
       void loadRows()
@@ -475,6 +530,17 @@ watch(
       </header>
 
       <div v-if="shown" class="flex flex-col gap-2">
+        <CatalogViews
+          :catalog-id="catalog.id"
+          :views="catalog.savedViews"
+          :state="{ viewId: view.viewId, filters: view.filters, filterMode: view.filterMode, modes: view.modes, sort: view.sort }"
+          :columns="viewColumns"
+          :can-configure="canConfigure"
+          :fetch-fn="fetchFn"
+          @apply="applyView"
+          @leave="leaveView"
+          @changed="viewsChanged"
+        />
         <CatalogFilterBar
           :catalog-id="catalog.id"
           :columns="filterColumns"

@@ -587,6 +587,17 @@ A saved filter of a catalog was added or removed ([US-052](../requirements/user-
 | Target | `catalog`, ID of the catalog |
 | Details | `filterId`, `name`; when added also `logicalOperator` and `expressions` (the number of expressions) |
 
+### `catalog.view-added`, `catalog.view-changed`, `catalog.view-removed`
+
+A saved view of a catalog was added, replaced or removed ([US-053](../requirements/user-stories/US-053-saved-view.md), [REQ-048](../requirements/req/REQ-048-saved-view.md)). Choosing a view at runtime is not a change; the values of its filters are not recorded.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the person with `catalog:manage`, or the creator of a personal catalog |
+| Target | `catalog`, ID of the catalog |
+| Details | `viewId`, `name`; when added or changed also `isDefault`, `columns` and `filters` (the numbers of columns and filters) |
+
 ## Planned Event Types
 
 Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `visibility.changed`, `visibility.override-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.deleted` and further `entity.*`, further `metamodel.*` (connection metatypes, fork).

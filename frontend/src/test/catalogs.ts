@@ -232,6 +232,34 @@ export const ACTIVE_SYSTEMS = {
   available: true,
 }
 
+/** A saved view with the columns status and name and a filter on the status (US-053). */
+export const COMPACT_VIEW = {
+  id: 'f2000000-0000-4000-8000-000000000001',
+  name: 'Compact view',
+  description: null,
+  columnOrder: ['status', 'name'],
+  filters: [{ attributePath: 'status', operator: 'eq', value: 'active' }],
+  filterMode: 'and',
+  joinModeOverrides: [],
+  sort: null,
+  isDefault: false,
+  available: true,
+}
+
+/** A saved view of all columns sorted by name descending (US-053). */
+export const FULL_VIEW = {
+  id: 'f2000000-0000-4000-8000-000000000002',
+  name: 'Full view',
+  description: null,
+  columnOrder: ['name', 'status'],
+  filters: [],
+  filterMode: 'and',
+  joinModeOverrides: [],
+  sort: { column: 'name', direction: 'desc' },
+  isDefault: false,
+  available: true,
+}
+
 /** A saved filter on a column the catalog no longer shows (US-052). */
 export const SAP_ONLY = {
   id: 'f1000000-0000-4000-8000-000000000002',
@@ -262,6 +290,7 @@ export function catalogApi(
   }
   type Join = { id: string; name: string; targetColumns: ColumnConfig[]; defaultJoinMode?: string | null }
   type SavedFilter = { id: string; name: string }
+  type SavedView = { id: string; name: string; isDefault: boolean; columnOrder: string[]; available?: boolean }
   const catalog = structuredClone(options.catalog ?? CATALOG) as {
     id: string
     primaryMetatypeId: string
@@ -269,10 +298,13 @@ export function catalogApi(
     columns: ColumnConfig[]
     joinDefinitions: Join[]
     savedFilters: SavedFilter[]
+    savedViews: SavedView[]
   }
   catalog.joinDefinitions ??= []
   catalog.savedFilters ??= []
+  catalog.savedViews ??= []
   let filterCount = 0
+  let viewCount = 0
   const definitions = [STATUS_DEFINITION, VENDOR_DEFINITION, PROTOCOL_DEFINITION]
   let joinCount = 0
   const connection = catalog.primaryMetatypeId === INFORMATION_FLOW.id
@@ -374,6 +406,35 @@ export function catalogApi(
       catalog.savedFilters.push({ ...saved, id: `f1000000-0000-4000-8000-1000000000${String(filterCount).padStart(2, '0')}`, available: true } as SavedFilter)
       return json(catalog, 201)
     }
+    if (url.pathname === `/api/v1/catalogs/${catalog.id}/views` && method === 'POST') {
+      const saved = body as SavedView
+      if (catalog.savedViews.some((view) => view.name.toLowerCase() === saved.name.trim().toLowerCase())) {
+        return json({ type: 'urn:oea:problem:validation-failed', title: 'Invalid catalog', status: 422, invalidFields: ['name'] }, 422)
+      }
+      viewCount += 1
+      if (saved.isDefault) {
+        catalog.savedViews.forEach((view) => (view.isDefault = false))
+      }
+      catalog.savedViews.push({ ...saved, id: `f2000000-0000-4000-8000-1000000000${String(viewCount).padStart(2, '0')}`, available: true })
+      return json(catalog, 201)
+    }
+    const viewPath = new RegExp(`^/api/v1/catalogs/${catalog.id}/views/([0-9a-f-]+)$`).exec(url.pathname)
+    if (viewPath) {
+      const index = catalog.savedViews.findIndex((view) => view.id === viewPath[1])
+      if (index < 0) {
+        return json({ type: 'urn:oea:problem:not-found', title: 'Not found', status: 404 }, 404)
+      }
+      if (method === 'DELETE') {
+        catalog.savedViews.splice(index, 1)
+      } else {
+        const changed = body as SavedView
+        if (changed.isDefault) {
+          catalog.savedViews.forEach((view) => (view.isDefault = false))
+        }
+        catalog.savedViews[index] = { ...changed, id: viewPath[1]!, available: true }
+      }
+      return json(catalog)
+    }
     const filterPath = new RegExp(`^/api/v1/catalogs/${catalog.id}/filters/([0-9a-f-]+)$`).exec(url.pathname)
     if (filterPath && method === 'DELETE') {
       catalog.savedFilters = catalog.savedFilters.filter((filter) => filter.id !== filterPath[1])
@@ -409,7 +470,16 @@ export function catalogApi(
     }
     const page = Number(query.page ?? '0')
     const pageSize = Number(query.pageSize ?? '50')
-    const columns = resolved()
+    let columns = resolved()
+    // a view shows its columns in its order (US-053)
+    if (query.view !== undefined) {
+      const view = catalog.savedViews.find((candidate) => candidate.id === query.view && candidate.available !== false)
+      if (!view) {
+        return json({ type: 'urn:oea:problem:validation-failed', title: 'Invalid query', status: 400, invalidFields: ['view'] }, 400)
+      }
+      const all = columns
+      columns = view.columnOrder.map((key) => all.find((column) => column.key === key)).filter((column) => column !== undefined)
+    }
     // joins: the interfaces of the applications, in their mode (US-048, US-050)
     const modes = Object.fromEntries(
       Object.entries(query)

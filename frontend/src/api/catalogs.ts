@@ -24,6 +24,8 @@ export type CatalogFilterExpression = components['schemas']['CatalogFilterExpres
 export type CatalogFilterOperator = components['schemas']['CatalogFilterOperator']
 export type CatalogFilterMode = components['schemas']['CatalogFilterMode']
 export type CatalogFilterType = CatalogColumn['filterType']
+export type CatalogSavedView = components['schemas']['CatalogSavedView']
+export type CatalogSavedViewInput = components['schemas']['CatalogSavedViewInput']
 
 /** The operators per filter type, in the order the filter bar offers them (US-051, catalog BR-12). */
 export const FILTER_OPERATORS: Record<CatalogFilterType, CatalogFilterOperator[]> = {
@@ -105,6 +107,8 @@ export interface CatalogQuery {
   filters?: string[]
   /** How the filters combine; `and` is the default. */
   filterMode?: CatalogFilterMode
+  /** A saved view whose columns the result shows (US-053). */
+  view?: string
 }
 
 const JSON_HEADERS = { Accept: 'application/json, application/problem+json' }
@@ -189,7 +193,7 @@ export async function updateCatalogColumns(
 async function write(
   method: 'POST' | 'PUT' | 'DELETE',
   path: string,
-  join: CatalogJoinInput | CatalogSavedFilterInput | undefined,
+  join: CatalogJoinInput | CatalogSavedFilterInput | CatalogSavedViewInput | undefined,
   fetchFn: typeof fetch,
 ): Promise<Outcome<Catalog>> {
   const csrfToken = currentCsrfToken()
@@ -236,6 +240,29 @@ export function addCatalogFilter(
   return write('POST', `/api/v1/catalogs/${encodeURIComponent(id)}/filters`, filter, fetchFn)
 }
 
+/**
+ * POST /catalogs/{id}/views: saves a view (US-053). A taken name or an invalid column, filter or
+ * sort is `validation-failed` (422) with `invalidFields`, missing rights 403.
+ */
+export function addCatalogView(id: string, view: CatalogSavedViewInput, fetchFn: typeof fetch = fetch): Promise<Outcome<Catalog>> {
+  return write('POST', `/api/v1/catalogs/${encodeURIComponent(id)}/views`, view, fetchFn)
+}
+
+/** PUT /catalogs/{id}/views/{viewId}: replaces a view and keeps its ID (US-053). */
+export function updateCatalogView(
+  id: string,
+  viewId: string,
+  view: CatalogSavedViewInput,
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<Catalog>> {
+  return write('PUT', `/api/v1/catalogs/${encodeURIComponent(id)}/views/${encodeURIComponent(viewId)}`, view, fetchFn)
+}
+
+/** DELETE /catalogs/{id}/views/{viewId}: removes a view (US-053). */
+export function removeCatalogView(id: string, viewId: string, fetchFn: typeof fetch = fetch): Promise<Outcome<Catalog>> {
+  return write('DELETE', `/api/v1/catalogs/${encodeURIComponent(id)}/views/${encodeURIComponent(viewId)}`, undefined, fetchFn)
+}
+
 /** DELETE /catalogs/{id}/filters/{filterId}: removes a saved filter (US-052). */
 export function removeCatalogFilter(id: string, filterId: string, fetchFn: typeof fetch = fetch): Promise<Outcome<Catalog>> {
   return write('DELETE', `/api/v1/catalogs/${encodeURIComponent(id)}/filters/${encodeURIComponent(filterId)}`, undefined, fetchFn)
@@ -274,6 +301,9 @@ export async function queryCatalog(
   }
   if (query.filterMode === 'or') {
     params.set('filterMode', 'or')
+  }
+  if (query.view) {
+    params.set('view', query.view)
   }
   const search = params.toString()
   const response = await fetchFn(`/api/v1/catalogs/${encodeURIComponent(id)}/query${search ? `?${search}` : ''}`, {

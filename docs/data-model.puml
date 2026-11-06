@@ -1678,7 +1678,9 @@ package "Navigation & Presentation" #EDE7F6 {
     .. savedFilters[] (max. 50, creation order): {id, name, description, logicalOperator, ..
     .. expressions[] (1-20): {attributePath (column key), operator, value?}} ..
     .. (US-052, us-051-catalog-filters, catalog BR-04, BR-12) ..
-    .. savedViews typed, still empty ..
+    .. savedViews[] (max. 20, creation order): {id, name, description, columnOrder[] (column keys), ..
+    .. filters[] (max. 20), filterMode, joinModeOverrides[{joinDefinitionId, joinMode}], sort?, isDefault} ..
+    .. at most one isDefault (US-053, us-053-saved-views, catalog BR-05, BR-06) ..
   }
 
   class tree_nodes <<Table>> #D1C4E9 {

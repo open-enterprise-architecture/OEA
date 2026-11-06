@@ -112,6 +112,33 @@
       "nameTaken": "The catalog already has a saved filter with this name.",
       "saveFailed": "The filter could not be saved.",
       "modeLabel": "How the filters combine"
+    },
+    "views": {
+      "title": "Views",
+      "all": "All columns",
+      "defaultNamed": "{name} (default)",
+      "unavailable": "{name} (not available)",
+      "changed": "(changed)",
+      "save": "Save view",
+      "saveTitle": "Save view",
+      "name": "Name",
+      "description": "Description",
+      "columns": "Columns of the view",
+      "moveUp": "Move {name} up",
+      "moveDown": "Move {name} down",
+      "snapshotHint": "The view also keeps the filters, join modes and sort of the table.",
+      "useAsDefault": "Show this view when the catalog opens",
+      "cancel": "Cancel",
+      "saveSubmit": "Save",
+      "nameRequired": "Enter a name.",
+      "columnRequired": "Choose at least one column.",
+      "nameTaken": "The catalog already has a view with this name.",
+      "saveFailed": "The view could not be saved.",
+      "default": "Default",
+      "notAvailable": "Not available",
+      "makeDefault": "Make default",
+      "removeNamed": "Remove view {name}",
+      "changeFailed": "The view could not be changed."
     }
   },
   "catalogs": {

@@ -2,9 +2,9 @@
 
 **ID**: US-049
 **Story Points**: 5
-**Status**: in-progress
+**Status**: done
 **Sprint**: S2
-**Implementation**: OpenSpec change `us-049-show-catalog-data`, commit e181cca (#56) – AC1 without the join column, AC2–AC5 and AC7; default columns `name` and `status` until US-047; the join column of AC1 followed with the OpenSpec change `us-048-catalog-joins` (commit 6c54edb, #183), AC6 (SavedViews) with US-053
+**Implementation**: OpenSpec change `us-049-show-catalog-data`, commit e181cca (#56) – AC1 without the join column, AC2–AC5 and AC7; default columns `name` and `status` until US-047; the join column of AC1 followed with the OpenSpec change `us-048-catalog-joins` (commit 6c54edb, #183), AC6 with the OpenSpec change `us-053-saved-views` (the default view applies when the catalog opens without view state in the URL)
 
 ## Story
 

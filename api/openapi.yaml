@@ -330,6 +330,11 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    ViewIdParam:
+      name: viewId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     LocaleParam:
       name: locale
       in: path
@@ -481,7 +486,7 @@ components:
             savedViews:
               type: array
               readOnly: true
-              description: Saved views; follow later and are always empty until then
+              description: Saved views in creation order (US-053); changed through the view operations
               items: { $ref: '#/components/schemas/CatalogSavedView' }
 
     CatalogSystemField:
@@ -639,25 +644,52 @@ components:
         joinDefinitionId: { type: string, format: uuid }
         joinMode:         { $ref: '#/components/schemas/JoinMode' }
 
-    CatalogSavedView:
+    CatalogSavedViewInput:
       type: object
-      description: A saved view (follows later; business object `catalog`, BR-05, BR-06)
-      required: [id, name, isDefault]
+      description: |
+        A saved view (US-053, REQ-048; business object `catalog`, BR-05, BR-06): a snapshot of the
+        view state. The columns are keys of the catalog's primary columns as the query returns
+        them without a view; filters and sort name columns of the view or of joins (BR-04, BR-12);
+        a sort by a join column needs the join in mode `rows` in the view.
+      required: [name, columnOrder, isDefault]
       properties:
-        id:                { type: string, format: uuid }
-        name:              { type: string }
-        description:       { type: [string, 'null'] }
+        name:        { type: string, minLength: 1, maxLength: 100, description: "Unique in the catalog regardless of case" }
+        description: { type: [string, 'null'], maxLength: 1000 }
         columnOrder:
           type: array
-          description: Keys of configured columns (BR-05)
-          items: { type: string }
-        activeFilterIds:
+          minItems: 1
+          maxItems: 100
+          description: Column keys in display order; columns not listed are hidden in the view
+          items: { type: string, maxLength: 200 }
+        filters:
           type: array
-          items: { type: string, format: uuid }
+          maxItems: 20
+          description: The filters of the view, as in the query parameter `filter`
+          items: { $ref: '#/components/schemas/CatalogFilterExpression' }
+        filterMode: { $ref: '#/components/schemas/CatalogFilterMode' }
         joinModeOverrides:
           type: array
+          maxItems: 10
+          description: The mode per join; a join without an override keeps its default
           items: { $ref: '#/components/schemas/CatalogJoinModeOverride' }
-        isDefault:         { type: boolean, description: "At most one view per catalog (BR-06)" }
+        sort:
+          oneOf:
+            - $ref: '#/components/schemas/CatalogSort'
+            - type: 'null'
+          description: The sort of the view; `null` for the default order
+        isDefault:   { type: boolean, description: "At most one view per catalog (BR-06); `true` clears the default of every other view" }
+
+    CatalogSavedView:
+      allOf:
+        - $ref: '#/components/schemas/CatalogSavedViewInput'
+        - type: object
+          required: [id, filters, filterMode, joinModeOverrides, available]
+          properties:
+            id:        { type: string, format: uuid, readOnly: true }
+            available:
+              type: boolean
+              readOnly: true
+              description: "`false` if the view names a column, a join or a sort column the catalog no longer has; the query rejects it"
 
     CatalogValidationProblem:
       allOf:
@@ -768,7 +800,7 @@ components:
           properties:
             invalidFields:
               type: array
-              items: { type: string, enum: [page, pageSize, sort, joinMode, filter, filterMode] }
+              items: { type: string, enum: [page, pageSize, sort, joinMode, filter, filterMode, view] }
 
     # ── Metatype ───────────────────────────────────────────────────────────────
     MetamodelScope:
@@ -4312,8 +4344,8 @@ paths:
       operationId: removeCatalogJoin
       summary: Remove a join from a catalog (US-048, REQ-045)
       description: |
-        Removes the join, the join mode overrides of saved views that refer to it and the
-        saved-filter expressions on its columns; a saved filter left without expressions is
+        Removes the join, the join mode overrides, filters and sort of saved views that refer to
+        it and the saved-filter expressions on its columns; a saved filter left without expressions is
         removed (BR-04). Permissions as for `addCatalogJoin`; an unknown join answers 404. Writes the audit
         event `catalog.join-removed`.
       tags: [Catalogs]
@@ -4393,6 +4425,100 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /catalogs/{id}/views:
+    post:
+      operationId: addCatalogView
+      summary: Save a view in a catalog (US-053, REQ-048)
+      description: |
+        Appends a saved view with a new ID. The columns must be primary columns of the catalog,
+        filters and sort columns of the view or of joins, overrides available joins (BR-05,
+        BR-12). With `isDefault: true` every other view loses its default (BR-06). A catalog has
+        at most 20 views. Validation errors answer 422 with `invalidFields`, e.g. `name`,
+        `columnOrder[1]`, `filters[0].attributePath`, `sort` or
+        `joinModeOverrides[0].joinDefinitionId`. Permissions as for `updateCatalogColumns`.
+        Writes the audit event `catalog.view-added`.
+      tags: [Catalogs]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "the catalog has scope 'instance' (another person's personal catalog is never changeable)", "permissions": ["catalog:manage"]}]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogSavedViewInput' }
+      responses:
+        '201':
+          description: The catalog with the new view
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Catalog' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: Invalid view (problem type `urn:oea:problem:validation-failed`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /catalogs/{id}/views/{viewId}:
+    put:
+      operationId: updateCatalogView
+      summary: Replace a view of a catalog (US-053, REQ-048)
+      description: |
+        Replaces the view and keeps its ID. Validation and permissions as for `addCatalogView`;
+        an unknown view answers 404. Writes the audit event `catalog.view-changed`.
+      tags: [Catalogs]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "the catalog has scope 'instance' (another person's personal catalog is never changeable)", "permissions": ["catalog:manage"]}]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/ViewIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogSavedViewInput' }
+      responses:
+        '200':
+          description: The catalog with the changed view
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Catalog' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: Invalid view (problem type `urn:oea:problem:validation-failed`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      operationId: removeCatalogView
+      summary: Remove a view from a catalog (US-053, REQ-048)
+      description: |
+        Removes the view; removing the default view leaves the catalog without a default.
+        Permissions as for `addCatalogView`; an unknown view answers 404. Writes the audit event
+        `catalog.view-removed`.
+      tags: [Catalogs]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "the catalog has scope 'instance' (another person's personal catalog is never changeable)", "permissions": ["catalog:manage"]}]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/ViewIdParam'
+      responses:
+        '200':
+          description: The catalog without the view
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Catalog' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /catalogs/{id}/query:
     get:
       operationId: queryCatalog
@@ -4437,6 +4563,11 @@ paths:
         modes; with `or`, an entry passes if any filter holds. Filters apply before sorting
         and paging, and `totalElements` counts only the entries that pass. An unknown column,
         an operator not allowed for the column or an invalid value answers 400 `filter`.
+
+        Views (US-053): with `view`, the columns are those of the saved view, in its order, and
+        filters and sort may name only these columns and join columns; the view's own filters,
+        join modes and sort are not applied, the client passes them. An unknown view or one
+        with `available: false` answers 400 `view`.
       tags: [Catalogs]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
@@ -4465,6 +4596,10 @@ paths:
           in: query
           description: "How the filters combine: `and` (every filter holds) or `or` (any holds)"
           schema: { type: string, enum: [and, or] }
+        - name: view
+          in: query
+          description: A saved view of the catalog whose columns the result shows
+          schema: { type: string, format: uuid }
       responses:
         '200':
           description: One page of catalog rows
