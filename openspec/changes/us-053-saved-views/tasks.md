@@ -2,7 +2,7 @@
 
 ## 1. Contract
 
-- [ ] 1.1 Update `api/openapi.yaml` (design D1):
+- [x] 1.1 Update `api/openapi.yaml` (design D1):
   - `CatalogSavedViewInput` and `CatalogSavedView` with `available`, without `activeFilterIds`;
   - `addCatalogView`, `updateCatalogView` and `removeCatalogView` with the condition for instance catalogs and the responses;
   - the parameter `view` of `queryCatalog`, `view` in `CatalogQueryProblem` and the description;
@@ -12,7 +12,7 @@
 
 ## 2. Backend
 
-- [ ] 2.1 Views in `Catalogs` (D2, D3):
+- [x] 2.1 Views in `Catalogs` (D2, D3):
   - add, replace and remove with the validation order of D2;
   - storage in `config.savedViews` under the row lock, the default switch;
   - `available`, the cleanup on `removeJoin`, the permission rule and the audit events;
@@ -26,8 +26,8 @@
   - a removed column makes the view unavailable;
   - the join removal cleanup;
   - the audit events.
-- [ ] 2.2 The query with `view` (D4): the columns of the view in its order, filters and sort restricted to them, 400 `view` for an unknown or unavailable view. Verify with tests in `CatalogViewTests`: "Columns of the compact view", a filter on a column outside the view (400 `filter`), "Unknown view".
-- [ ] 2.3 Cucumber: a new `features/catalog/catalog-views.feature` with the scenarios of `catalog/catalog-views` that the API can show, and "Remove a join used by a view" in `catalog-joins.feature` (US-053 AC1–AC4, REQ-048 AC1–AC3, AC6). Verify with the `CucumberIT` run.
+- [x] 2.2 The query with `view` (D4): the columns of the view in its order, filters and sort restricted to them, 400 `view` for an unknown or unavailable view. Verify with tests in `CatalogViewTests`: "Columns of the compact view", a filter on a column outside the view (400 `filter`), "Unknown view".
+- [x] 2.3 Cucumber: a new `features/catalog/catalog-views.feature` with the scenarios of `catalog/catalog-views` that the API can show, and "Remove a join used by a view" in `catalog-joins.feature` (US-053 AC1–AC4, REQ-048 AC1–AC3, AC6). Verify with the `CucumberIT` run.
 
 ## 3. Web portal
 

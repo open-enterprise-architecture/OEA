@@ -96,7 +96,7 @@ public class CatalogQueries {
 	@Transactional(readOnly = true)
 	public Result query(OeaPrincipal principal, UUID catalogId, int page, int pageSize, String sort,
 			Map<String, String> joinModes) {
-		return query(principal, catalogId, page, pageSize, sort, joinModes, List.of(), null);
+		return query(principal, catalogId, page, pageSize, sort, joinModes, List.of(), null, null);
 	}
 
 	/**
@@ -111,6 +111,17 @@ public class CatalogQueries {
 	@Transactional(readOnly = true)
 	public Result query(OeaPrincipal principal, UUID catalogId, int page, int pageSize, String sort,
 			Map<String, String> joinModes, List<String> filters, String filterMode) {
+		return query(principal, catalogId, page, pageSize, sort, joinModes, filters, filterMode, null);
+	}
+
+	/**
+	 * One page of the catalog as above; with {@code view}, the columns are those of the saved view
+	 * in its order, and filters and sort resolve against them (design D4 of us-053-saved-views).
+	 * An unknown or unavailable view adds {@code view} to the invalid parameters.
+	 */
+	@Transactional(readOnly = true)
+	public Result query(OeaPrincipal principal, UUID catalogId, int page, int pageSize, String sort,
+			Map<String, String> joinModes, List<String> filters, String filterMode, UUID view) {
 		Catalogs.Catalog catalog = this.catalogs.get(principal, catalogId);
 		List<String> invalid = new ArrayList<>();
 		if (page < 0) {
@@ -120,6 +131,21 @@ public class CatalogQueries {
 			invalid.add("pageSize");
 		}
 		List<Resolved> columns = this.columns.primary(catalog.primaryMetatypeId(), catalog.columns());
+		if (view != null) {
+			Catalogs.SavedView saved = catalog.savedViews()
+				.stream()
+				.filter((candidate) -> candidate.id().equals(view) && candidate.available())
+				.findFirst()
+				.orElse(null);
+			if (saved == null) {
+				invalid.add("view");
+			}
+			else {
+				Map<String, Resolved> byKey = new LinkedHashMap<>();
+				columns.forEach((column) -> byKey.put(column.result().key(), column));
+				columns = saved.columnOrder().stream().map(byKey::get).toList();
+			}
+		}
 		List<ResolvedJoin> available = joins(catalog, (joinModes != null) ? joinModes : Map.of(), invalid);
 		List<ResolvedJoin> rowsJoins = available.stream().filter(ResolvedJoin::rows).toList();
 		Sort applied = null;

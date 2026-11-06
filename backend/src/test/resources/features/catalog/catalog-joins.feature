@@ -59,6 +59,14 @@ Feature: Catalog joins
     Then the catalog "Removed Join Inventory" has no joins
     And the viewer sees no join results in the catalog "Removed Join Inventory"
 
+  @US-053 @AC4
+  Scenario: Remove a join used by a view
+    Given the enterprise architect has created the catalog "Viewed Join Inventory" with scope "instance"
+    And the enterprise architect adds the join "Interfaces" via "Data Flow" outbound to "Interface" to "Viewed Join Inventory"
+    And the enterprise architect saves the view "Detail view" with the join "Interfaces" in rows mode sorted by its name in "Viewed Join Inventory"
+    When the enterprise architect removes the join "Interfaces" from "Viewed Join Inventory"
+    Then the view "Detail view" of "Viewed Join Inventory" has neither a join mode nor a sort
+
   @REQ-045 @ADR-032
   Scenario: Reader without catalog management
     Given the enterprise architect has created the catalog "Protected Join Inventory" with scope "instance"

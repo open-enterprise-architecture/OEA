@@ -75,6 +75,41 @@ class CatalogColumns {
 		return columns;
 	}
 
+	/**
+	 * The columns a saved view can name (design D2 of us-053-saved-views): the primary columns by
+	 * key, and per available join that shows a column its default mode and its columns by key.
+	 */
+	record ViewColumns(Map<String, Resolved> primary, Map<UUID, JoinColumns> joins) {
+	}
+
+	/** The columns of a join and its mode without an override: the join's default, else the catalog's. */
+	record JoinColumns(String defaultMode, Map<String, Resolved> columns) {
+	}
+
+	/** The columns of the catalog that saved views can name, its filters and sort. */
+	ViewColumns viewColumns(UUID metatypeId, List<Catalogs.Column> configured, List<Catalogs.Join> joins,
+			String catalogJoinMode) {
+		Map<String, Resolved> primary = new LinkedHashMap<>();
+		for (Resolved column : primary(metatypeId, configured)) {
+			primary.put(column.result().key(), column);
+		}
+		Map<UUID, JoinColumns> joinColumns = new LinkedHashMap<>();
+		for (Catalogs.Join join : joins) {
+			if (!join.available()) {
+				continue;
+			}
+			Map<String, Resolved> columns = new LinkedHashMap<>();
+			for (Resolved column : configured(join.targetMetatypeId(), join.targetColumns())) {
+				columns.put(column.result().key(), column);
+			}
+			if (!columns.isEmpty()) {
+				joinColumns.put(join.id(), new JoinColumns(
+						(join.defaultJoinMode() != null) ? join.defaultJoinMode() : catalogJoinMode, columns));
+			}
+		}
+		return new ViewColumns(primary, joinColumns);
+	}
+
 	/** The visible configured columns that can be shown for the metatype, in their order. */
 	List<Resolved> configured(UUID metatypeId, List<Catalogs.Column> configured) {
 		if (configured.isEmpty()) {

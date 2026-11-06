@@ -62,6 +62,10 @@ public class Catalogs {
 
 	static final int FILTER_NAME_MAX_LENGTH = 100;
 
+	static final int MAX_SAVED_VIEWS = 20;
+
+	static final int MAX_VIEW_COLUMNS = 100;
+
 	private final CatalogStore store;
 
 	private final CatalogQueryStore queries;
@@ -115,7 +119,33 @@ public class Catalogs {
 	 */
 	public record Catalog(UUID id, String name, String description, UUID primaryMetatypeId, String primaryMetatypeName,
 			String defaultJoinMode, String scope, long createdById, String createdByName, Instant createdAt,
-			Instant lastModifiedAt, List<Column> columns, List<Join> joins, List<SavedFilter> savedFilters) {
+			Instant lastModifiedAt, List<Column> columns, List<Join> joins, List<SavedFilter> savedFilters,
+			List<SavedView> savedViews) {
+	}
+
+	/**
+	 * A saved view (US-053, design D2 of us-053-saved-views), a snapshot of the view state:
+	 * {@code columnOrder} holds column keys of the primary columns, {@code filterMode} is
+	 * {@code and} or {@code or}, {@code sort} may be {@code null}; {@code available} is false if
+	 * the view names a column, a join or a sort column the catalog no longer has.
+	 */
+	public record SavedView(UUID id, String name, String description, List<String> columnOrder,
+			List<FilterExpression> filters, String filterMode, List<JoinModeOverride> joinModeOverrides, ViewSort sort,
+			boolean isDefault, boolean available) {
+	}
+
+	/** Input of a saved view, as {@link SavedView} without ID and availability. */
+	public record SavedViewInput(String name, String description, List<String> columnOrder,
+			List<FilterExpression> filters, String filterMode, List<JoinModeOverride> joinModeOverrides, ViewSort sort,
+			boolean isDefault) {
+	}
+
+	/** The mode of a join in a view: {@code rows} or {@code aggregate}. */
+	public record JoinModeOverride(UUID joinDefinitionId, String joinMode) {
+	}
+
+	/** The sort of a view: a column key and {@code asc} or {@code desc}. */
+	public record ViewSort(String column, String direction) {
 	}
 
 	/**
@@ -358,9 +388,10 @@ public class Catalogs {
 	}
 
 	/**
-	 * Removes a join, the join mode overrides of saved views that refer to it (US-048 AC6) and the
-	 * saved-filter expressions on its columns, with the saved filters left without expressions
-	 * (BR-04, design D4 of us-051-catalog-filters); 404 for an unknown join.
+	 * Removes a join; from the saved views the join mode overrides (US-048 AC6), filters and sort
+	 * that refer to it (design D3 of us-053-saved-views); the saved-filter expressions on its
+	 * columns, with the saved filters left without expressions (BR-04, design D4 of
+	 * us-051-catalog-filters). 404 for an unknown join.
 	 */
 	@Transactional
 	public Catalog removeJoin(OeaPrincipal principal, UUID id, UUID joinId) {
@@ -371,6 +402,7 @@ public class Catalogs {
 		String name = joins.get(index).path("name").asString("");
 		joins.remove(index);
 		ArrayNode views = array(stored.savedViewsJson());
+		String prefix = joinId + ".";
 		for (JsonNode view : views) {
 			if (view.get("joinModeOverrides") instanceof ArrayNode overrides) {
 				for (int i = overrides.size() - 1; i >= 0; i--) {
@@ -379,9 +411,18 @@ public class Catalogs {
 					}
 				}
 			}
+			if (view.get("filters") instanceof ArrayNode viewFilters) {
+				for (int i = viewFilters.size() - 1; i >= 0; i--) {
+					if (viewFilters.get(i).path("attributePath").asString("").startsWith(prefix)) {
+						viewFilters.remove(i);
+					}
+				}
+			}
+			if (view.path("sort").path("column").asString("").startsWith(prefix)) {
+				((ObjectNode) view).putNull("sort");
+			}
 		}
 		ArrayNode filters = array(stored.savedFiltersJson());
-		String prefix = joinId + ".";
 		for (int f = filters.size() - 1; f >= 0; f--) {
 			if (filters.get(f).get("expressions") instanceof ArrayNode expressions) {
 				for (int i = expressions.size() - 1; i >= 0; i--) {
@@ -457,19 +498,7 @@ public class Catalogs {
 		node.put("name", name);
 		node.put("description", description);
 		node.put("logicalOperator", operator);
-		ArrayNode json = node.putArray("expressions");
-		for (FilterExpression expression : checked) {
-			ObjectNode item = json.addObject();
-			item.put("attributePath", expression.attributePath());
-			item.put("operator", expression.operator());
-			if (expression.value() instanceof List<?> list) {
-				ArrayNode values = item.putArray("value");
-				list.forEach((value) -> values.add((String) value));
-			}
-			else if (expression.value() != null) {
-				item.put("value", (String) expression.value());
-			}
-		}
+		node.set("expressions", expressionsJson(checked));
 		this.store.updateSavedFilters(id, filters.toString(), personId, this.clock.instant());
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("filterId", filterId.toString());
@@ -559,6 +588,211 @@ public class Catalogs {
 		}
 		return new FilterExpression(expression.attributePath(), expression.operator(),
 				list ? List.copyOf(values) : values.isEmpty() ? null : values.get(0));
+	}
+
+	/**
+	 * Saves a view (US-053, design D2 and D3 of us-053-saved-views); permissions as for
+	 * {@link #updateColumns}. With {@code isDefault}, every other view loses its default (BR-06).
+	 */
+	@Transactional
+	public Catalog addView(OeaPrincipal principal, UUID id, SavedViewInput input) {
+		long personId = person(principal);
+		StoredCatalog stored = writable(principal, id);
+		ArrayNode views = array(stored.savedViewsJson());
+		UUID viewId = UUID.randomUUID();
+		SavedViewInput checked = checkView(stored, views, input, null);
+		if (views.size() >= MAX_SAVED_VIEWS) {
+			throw InvalidCatalogException.invalid("savedViews", "A catalog has at most 20 views.");
+		}
+		views.add(viewJson(viewId, checked));
+		writeViews(principal, "catalog.view-added", stored, views, viewId, checked, personId);
+		return catalog(this.store.find(id).orElseThrow());
+	}
+
+	/** Replaces a view and keeps its ID; validation as for {@link #addView}, 404 for an unknown view. */
+	@Transactional
+	public Catalog updateView(OeaPrincipal principal, UUID id, UUID viewId, SavedViewInput input) {
+		long personId = person(principal);
+		StoredCatalog stored = writable(principal, id);
+		ArrayNode views = array(stored.savedViewsJson());
+		int index = indexOfView(views, viewId);
+		SavedViewInput checked = checkView(stored, views, input, viewId);
+		views.set(index, viewJson(viewId, checked));
+		writeViews(principal, "catalog.view-changed", stored, views, viewId, checked, personId);
+		return catalog(this.store.find(id).orElseThrow());
+	}
+
+	/** Removes a view; the catalog then has no default if it was the default. 404 for an unknown view. */
+	@Transactional
+	public Catalog removeView(OeaPrincipal principal, UUID id, UUID viewId) {
+		long personId = person(principal);
+		StoredCatalog stored = writable(principal, id);
+		ArrayNode views = array(stored.savedViewsJson());
+		int index = indexOfView(views, viewId);
+		String name = views.get(index).path("name").asString("");
+		views.remove(index);
+		this.store.updateSavedViews(id, views.toString(), personId, this.clock.instant());
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put("viewId", viewId.toString());
+		details.put("name", name);
+		this.audit.append(new AuditEvent("catalog.view-removed", AuditEvent.Category.CHANGE, AuditEvent.Severity.INFO,
+				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal), "catalog", id.toString(),
+				details));
+		return catalog(this.store.find(id).orElseThrow());
+	}
+
+	/** Stores the views, clearing every other default for a default view, and audits the change. */
+	private void writeViews(OeaPrincipal principal, String action, StoredCatalog stored, ArrayNode views, UUID viewId,
+			SavedViewInput view, long personId) {
+		if (view.isDefault()) {
+			for (JsonNode node : views) {
+				if (!viewId.toString().equals(node.path("id").asString(null))) {
+					((ObjectNode) node).put("isDefault", false);
+				}
+			}
+		}
+		this.store.updateSavedViews(stored.id(), views.toString(), personId, this.clock.instant());
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put("viewId", viewId.toString());
+		details.put("name", view.name());
+		details.put("isDefault", view.isDefault());
+		details.put("columns", view.columnOrder().size());
+		details.put("filters", view.filters().size());
+		this.audit.append(new AuditEvent(action, AuditEvent.Category.CHANGE, AuditEvent.Severity.INFO,
+				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal), "catalog",
+				stored.id().toString(), details));
+	}
+
+	/**
+	 * Checks a view in the order of design D2 of us-053-saved-views: name (unique except for the
+	 * view {@code self}), description, then the view state ({@link #checkState}). Returns it with
+	 * the trimmed name and description and the normalized filters.
+	 */
+	private SavedViewInput checkView(StoredCatalog stored, ArrayNode views, SavedViewInput input, UUID self) {
+		String name = (input.name() != null) ? input.name().strip() : "";
+		if (name.isEmpty() || name.length() > FILTER_NAME_MAX_LENGTH
+				|| name.chars().anyMatch(Character::isISOControl)) {
+			throw InvalidCatalogException.invalid("name",
+					"The name must have 1 to 100 characters and no control characters.");
+		}
+		String description = (input.description() != null && !input.description().isBlank())
+				? input.description().strip() : null;
+		if (description != null && (description.length() > DESCRIPTION_MAX_LENGTH || description.indexOf(0) >= 0)) {
+			throw InvalidCatalogException.invalid("description",
+					"The description must have at most 1000 characters and no NUL character.");
+		}
+		for (JsonNode view : views) {
+			if (!view.path("id").asString("").equals(String.valueOf(self))
+					&& view.path("name").asString("").strip().equalsIgnoreCase(name)) {
+				throw InvalidCatalogException.invalid("name", "A view of the catalog already has this name.");
+			}
+		}
+		Catalog catalog = catalog(stored);
+		SavedViewInput normalized = new SavedViewInput(name, description,
+				(input.columnOrder() != null) ? List.copyOf(input.columnOrder()) : List.of(),
+				(input.filters() != null) ? input.filters() : List.of(),
+				(input.filterMode() != null) ? input.filterMode() : "and",
+				(input.joinModeOverrides() != null) ? List.copyOf(input.joinModeOverrides()) : List.of(), input.sort(),
+				input.isDefault());
+		List<FilterExpression> filters = checkState(this.columns.viewColumns(catalog.primaryMetatypeId(),
+				catalog.columns(), catalog.joins(), catalog.defaultJoinMode()), normalized);
+		return new SavedViewInput(name, description, normalized.columnOrder(), filters, normalized.filterMode(),
+				normalized.joinModeOverrides(), normalized.sort(), normalized.isDefault());
+	}
+
+	/**
+	 * Checks the view state against the columns of the catalog (design D2 of us-053-saved-views):
+	 * columns, join mode overrides, filters on the view's columns and join columns, the sort on a
+	 * sortable column of the view or of a join in rows mode. Returns the normalized filters; 422
+	 * names the field.
+	 */
+	private static List<FilterExpression> checkState(CatalogColumns.ViewColumns available, SavedViewInput view) {
+		List<String> columnOrder = view.columnOrder();
+		if (columnOrder.isEmpty() || columnOrder.size() > MAX_VIEW_COLUMNS) {
+			throw InvalidCatalogException.invalid("columnOrder", "A view shows 1 to 100 columns.");
+		}
+		Map<String, CatalogColumns.Filterable> filterable = new LinkedHashMap<>();
+		for (int i = 0; i < columnOrder.size(); i++) {
+			CatalogColumns.Resolved column = available.primary().get(columnOrder.get(i));
+			if (column == null || filterable.containsKey(columnOrder.get(i))) {
+				throw InvalidCatalogException.invalid("columnOrder[" + i + "]",
+						"The catalog shows no such column, or the view lists it twice.");
+			}
+			filterable.put(columnOrder.get(i), new CatalogColumns.Filterable(column, null));
+		}
+		Map<UUID, String> modes = new LinkedHashMap<>();
+		available.joins().forEach((joinId, join) -> modes.put(joinId, join.defaultMode()));
+		Set<UUID> overridden = new HashSet<>();
+		for (int i = 0; i < view.joinModeOverrides().size(); i++) {
+			JoinModeOverride override = view.joinModeOverrides().get(i);
+			if (override.joinDefinitionId() == null || !available.joins().containsKey(override.joinDefinitionId())
+					|| !overridden.add(override.joinDefinitionId())) {
+				throw InvalidCatalogException.invalid("joinModeOverrides[" + i + "].joinDefinitionId",
+						"The catalog has no such join, or the view lists it twice.");
+			}
+			if (!"rows".equals(override.joinMode()) && !"aggregate".equals(override.joinMode())) {
+				throw InvalidCatalogException.invalid("joinModeOverrides[" + i + "].joinMode",
+						"The join mode is rows or aggregate.");
+			}
+			modes.put(override.joinDefinitionId(), override.joinMode());
+		}
+		available.joins().forEach((joinId, join) -> join.columns()
+			.forEach((key, column) -> filterable.put(joinId + "." + key, new CatalogColumns.Filterable(column, joinId))));
+		if (!"and".equals(view.filterMode()) && !"or".equals(view.filterMode())) {
+			throw InvalidCatalogException.invalid("filterMode", "The filter mode is and or or.");
+		}
+		if (view.filters().size() > FilterRules.MAX_FILTERS) {
+			throw InvalidCatalogException.invalid("filters", "A view has at most 20 filters.");
+		}
+		List<FilterExpression> filters = new ArrayList<>();
+		for (int i = 0; i < view.filters().size(); i++) {
+			filters.add(check(filterable, view.filters().get(i), "filters[" + i + "]"));
+		}
+		ViewSort sort = view.sort();
+		if (sort != null) {
+			CatalogColumns.Filterable column = (sort.column() != null) ? filterable.get(sort.column()) : null;
+			boolean sortable = column != null && column.column().result().sortable()
+					&& (column.joinId() == null || "rows".equals(modes.get(column.joinId())));
+			if (!sortable || (!"asc".equals(sort.direction()) && !"desc".equals(sort.direction()))) {
+				throw InvalidCatalogException.invalid("sort",
+						"The sort names a sortable column of the view or of a join in rows mode, asc or desc.");
+			}
+		}
+		return List.copyOf(filters);
+	}
+
+	private static ObjectNode viewJson(UUID id, SavedViewInput view) {
+		ObjectNode node = JsonMapper.shared().createObjectNode();
+		node.put("id", id.toString());
+		node.put("name", view.name());
+		node.put("description", view.description());
+		ArrayNode columns = node.putArray("columnOrder");
+		view.columnOrder().forEach(columns::add);
+		node.set("filters", expressionsJson(view.filters()));
+		node.put("filterMode", view.filterMode());
+		ArrayNode overrides = node.putArray("joinModeOverrides");
+		for (JoinModeOverride override : view.joinModeOverrides()) {
+			overrides.addObject()
+				.put("joinDefinitionId", override.joinDefinitionId().toString())
+				.put("joinMode", override.joinMode());
+		}
+		if (view.sort() != null) {
+			node.putObject("sort").put("column", view.sort().column()).put("direction", view.sort().direction());
+		}
+		else {
+			node.putNull("sort");
+		}
+		node.put("isDefault", view.isDefault());
+		return node;
+	}
+
+	private static int indexOfView(ArrayNode views, UUID viewId) {
+		for (int i = 0; i < views.size(); i++) {
+			if (viewId.toString().equals(views.get(i).path("id").asString(null))) {
+				return i;
+			}
+		}
+		throw new NoSuchElementException("saved view " + viewId);
 	}
 
 	/**
@@ -791,30 +1025,88 @@ public class Catalogs {
 				: this.columns.filterable(stored.primaryMetatypeId(), columns, joins).keySet();
 		List<SavedFilter> savedFilters = new ArrayList<>();
 		for (JsonNode node : filters) {
-			List<FilterExpression> expressions = new ArrayList<>();
-			for (JsonNode expression : node.path("expressions")) {
-				JsonNode value = expression.get("value");
-				Object parsed = null;
-				if (value instanceof ArrayNode array) {
-					List<String> values = new ArrayList<>();
-					array.forEach((item) -> values.add(item.asString()));
-					parsed = List.copyOf(values);
-				}
-				else if (value != null && !value.isNull()) {
-					parsed = value.asString();
-				}
-				expressions.add(new FilterExpression(expression.path("attributePath").asString(),
-						expression.path("operator").asString(), parsed));
-			}
+			List<FilterExpression> expressions = expressions(node.path("expressions"));
 			savedFilters.add(new SavedFilter(UUID.fromString(node.path("id").asString()), node.path("name").asString(),
 					node.hasNonNull("description") ? node.get("description").asString() : null,
 					node.path("logicalOperator").asString("and"), List.copyOf(expressions),
 					expressions.stream().allMatch((expression) -> keys.contains(expression.attributePath()))));
 		}
+		ArrayNode views = array(stored.savedViewsJson());
+		CatalogColumns.ViewColumns viewColumns = views.isEmpty() ? null
+				: this.columns.viewColumns(stored.primaryMetatypeId(), columns, joins, stored.defaultJoinMode());
+		List<SavedView> savedViews = new ArrayList<>();
+		for (JsonNode node : views) {
+			SavedViewInput view = view(node);
+			boolean available;
+			try {
+				checkState(viewColumns, view);
+				available = true;
+			}
+			catch (InvalidCatalogException ex) {
+				available = false;
+			}
+			savedViews.add(new SavedView(UUID.fromString(node.path("id").asString()), view.name(), view.description(),
+					view.columnOrder(), view.filters(), view.filterMode(), view.joinModeOverrides(), view.sort(),
+					view.isDefault(), available));
+		}
 		return new Catalog(stored.id(), stored.name(), stored.description(), stored.primaryMetatypeId(),
 				stored.primaryMetatypeName(), stored.defaultJoinMode(), stored.scope(), stored.createdById(),
 				stored.createdByName(), stored.createdAt(), stored.lastModifiedAt(), List.copyOf(columns),
-				List.copyOf(joins), List.copyOf(savedFilters));
+				List.copyOf(joins), List.copyOf(savedFilters), List.copyOf(savedViews));
+	}
+
+	/** A stored view without ID and availability. */
+	private static SavedViewInput view(JsonNode node) {
+		List<String> columnOrder = new ArrayList<>();
+		node.path("columnOrder").forEach((key) -> columnOrder.add(key.asString()));
+		List<JoinModeOverride> overrides = new ArrayList<>();
+		node.path("joinModeOverrides")
+			.forEach((override) -> overrides.add(new JoinModeOverride(
+					UUID.fromString(override.path("joinDefinitionId").asString()), override.path("joinMode").asString())));
+		JsonNode sort = node.get("sort");
+		return new SavedViewInput(node.path("name").asString(),
+				node.hasNonNull("description") ? node.get("description").asString() : null, List.copyOf(columnOrder),
+				expressions(node.path("filters")), node.path("filterMode").asString("and"), List.copyOf(overrides),
+				(sort != null && sort.isObject())
+						? new ViewSort(sort.path("column").asString(), sort.path("direction").asString()) : null,
+				node.path("isDefault").asBoolean(false));
+	}
+
+	/** Stored filter expressions, with a list value for {@code in} and {@code notIn}. */
+	private static List<FilterExpression> expressions(JsonNode json) {
+		List<FilterExpression> expressions = new ArrayList<>();
+		for (JsonNode expression : json) {
+			JsonNode value = expression.get("value");
+			Object parsed = null;
+			if (value instanceof ArrayNode array) {
+				List<String> values = new ArrayList<>();
+				array.forEach((item) -> values.add(item.asString()));
+				parsed = List.copyOf(values);
+			}
+			else if (value != null && !value.isNull()) {
+				parsed = value.asString();
+			}
+			expressions.add(new FilterExpression(expression.path("attributePath").asString(),
+					expression.path("operator").asString(), parsed));
+		}
+		return List.copyOf(expressions);
+	}
+
+	private static ArrayNode expressionsJson(List<FilterExpression> expressions) {
+		ArrayNode json = JsonMapper.shared().createArrayNode();
+		for (FilterExpression expression : expressions) {
+			ObjectNode item = json.addObject();
+			item.put("attributePath", expression.attributePath());
+			item.put("operator", expression.operator());
+			if (expression.value() instanceof List<?> list) {
+				ArrayNode values = item.putArray("value");
+				list.forEach((value) -> values.add((String) value));
+			}
+			else if (expression.value() != null) {
+				item.put("value", (String) expression.value());
+			}
+		}
+		return json;
 	}
 
 	/** Stored columns with their availability for the metatype. */

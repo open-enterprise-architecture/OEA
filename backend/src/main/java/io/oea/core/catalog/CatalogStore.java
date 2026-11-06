@@ -107,6 +107,13 @@ public class CatalogStore {
 				WHERE id = ?""", joinsJson, savedViewsJson, savedFiltersJson, Timestamp.from(now), personId, id);
 	}
 
+	/** Replaces the saved views (a JSON array) and records the change (US-053). */
+	public void updateSavedViews(UUID id, String savedViewsJson, long personId, Instant now) {
+		this.jdbc.update("""
+				UPDATE catalogs SET config = jsonb_set(config, '{savedViews}', ?::jsonb), last_modified_at = ?,
+				    last_modified_by = ? WHERE id = ?""", savedViewsJson, Timestamp.from(now), personId, id);
+	}
+
 	/** Replaces the saved filters (a JSON array) and records the change (US-052). */
 	public void updateSavedFilters(UUID id, String savedFiltersJson, long personId, Instant now) {
 		this.jdbc.update("""
