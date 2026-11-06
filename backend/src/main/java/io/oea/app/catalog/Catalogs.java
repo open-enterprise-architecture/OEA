@@ -58,6 +58,10 @@ public class Catalogs {
 
 	static final int JOIN_NAME_MAX_LENGTH = 100;
 
+	static final int MAX_SAVED_FILTERS = 50;
+
+	static final int FILTER_NAME_MAX_LENGTH = 100;
+
 	private final CatalogStore store;
 
 	private final CatalogQueryStore queries;
@@ -68,15 +72,18 @@ public class Catalogs {
 
 	private final AllowedConnections connections;
 
+	private final CatalogColumns columns;
+
 	private final Clock clock;
 
-	public Catalogs(CatalogStore store, CatalogQueryStore queries, PermissionResolver permissions, AuditWriter audit,
-			AllowedConnections connections, Clock clock) {
+	Catalogs(CatalogStore store, CatalogQueryStore queries, PermissionResolver permissions, AuditWriter audit,
+			AllowedConnections connections, CatalogColumns columns, Clock clock) {
 		this.store = store;
 		this.queries = queries;
 		this.permissions = permissions;
 		this.audit = audit;
 		this.connections = connections;
+		this.columns = columns;
 		this.clock = clock;
 	}
 
@@ -102,10 +109,35 @@ public class Catalogs {
 
 	}
 
-	/** A catalog with the current name of its primary metatype, its creator, its columns and joins. */
+	/**
+	 * A catalog with the current name of its primary metatype, its creator, its columns, joins and
+	 * saved filters.
+	 */
 	public record Catalog(UUID id, String name, String description, UUID primaryMetatypeId, String primaryMetatypeName,
 			String defaultJoinMode, String scope, long createdById, String createdByName, Instant createdAt,
-			Instant lastModifiedAt, List<Column> columns, List<Join> joins) {
+			Instant lastModifiedAt, List<Column> columns, List<Join> joins, List<SavedFilter> savedFilters) {
+	}
+
+	/**
+	 * A saved filter (US-052, design D4 of us-051-catalog-filters): {@code logicalOperator} is
+	 * {@code and} or {@code or}; {@code available} is false if an expression names a column the
+	 * query no longer returns.
+	 */
+	public record SavedFilter(UUID id, String name, String description, String logicalOperator,
+			List<FilterExpression> expressions, boolean available) {
+	}
+
+	/**
+	 * An expression of a saved filter: a column key of the query result, an operator key such as
+	 * {@code startsWith} and the value, a {@link String}, a list of strings for {@code in} and
+	 * {@code notIn}, or {@code null} for {@code isNull} and {@code isNotNull}.
+	 */
+	public record FilterExpression(String attributePath, String operator, Object value) {
+	}
+
+	/** Input of a saved filter, as {@link SavedFilter} without ID and availability. */
+	public record SavedFilterInput(String name, String description, String logicalOperator,
+			List<FilterExpression> expressions) {
 	}
 
 	/**
@@ -304,8 +336,8 @@ public class Catalogs {
 			throw InvalidCatalogException.invalid("joinDefinitions", "A catalog has at most 10 joins.");
 		}
 		joins.add(joinJson(checked));
-		this.store.updateJoins(id, joins.toString(), array(stored.savedViewsJson()).toString(), personId,
-				this.clock.instant());
+		this.store.updateJoins(id, joins.toString(), array(stored.savedViewsJson()).toString(),
+				array(stored.savedFiltersJson()).toString(), personId, this.clock.instant());
 		auditJoin(principal, "catalog.join-added", id, checked);
 		return catalog(this.store.find(id).orElseThrow());
 	}
@@ -319,15 +351,16 @@ public class Catalogs {
 		int index = indexOfJoin(joins, joinId);
 		Join checked = validate(stored, input, joinId);
 		joins.set(index, joinJson(checked));
-		this.store.updateJoins(id, joins.toString(), array(stored.savedViewsJson()).toString(), personId,
-				this.clock.instant());
+		this.store.updateJoins(id, joins.toString(), array(stored.savedViewsJson()).toString(),
+				array(stored.savedFiltersJson()).toString(), personId, this.clock.instant());
 		auditJoin(principal, "catalog.join-changed", id, checked);
 		return catalog(this.store.find(id).orElseThrow());
 	}
 
 	/**
-	 * Removes a join and the join mode overrides of saved views that refer to it (US-048 AC6);
-	 * 404 for an unknown join.
+	 * Removes a join, the join mode overrides of saved views that refer to it (US-048 AC6) and the
+	 * saved-filter expressions on its columns, with the saved filters left without expressions
+	 * (BR-04, design D4 of us-051-catalog-filters); 404 for an unknown join.
 	 */
 	@Transactional
 	public Catalog removeJoin(OeaPrincipal principal, UUID id, UUID joinId) {
@@ -347,7 +380,22 @@ public class Catalogs {
 				}
 			}
 		}
-		this.store.updateJoins(id, joins.toString(), views.toString(), personId, this.clock.instant());
+		ArrayNode filters = array(stored.savedFiltersJson());
+		String prefix = joinId + ".";
+		for (int f = filters.size() - 1; f >= 0; f--) {
+			if (filters.get(f).get("expressions") instanceof ArrayNode expressions) {
+				for (int i = expressions.size() - 1; i >= 0; i--) {
+					if (expressions.get(i).path("attributePath").asString("").startsWith(prefix)) {
+						expressions.remove(i);
+					}
+				}
+				if (expressions.isEmpty()) {
+					filters.remove(f);
+				}
+			}
+		}
+		this.store.updateJoins(id, joins.toString(), views.toString(), filters.toString(), personId,
+				this.clock.instant());
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("joinId", joinId.toString());
 		details.put("name", name);
@@ -358,15 +406,172 @@ public class Catalogs {
 	}
 
 	/**
+	 * Saves a filter (US-052, design D4 of us-051-catalog-filters); permissions as for
+	 * {@link #updateColumns}. Order: name, description, operator, expressions (each against the
+	 * columns of the query, design D2), the name's uniqueness, the limit of
+	 * {@value #MAX_SAVED_FILTERS} filters.
+	 */
+	@Transactional
+	public Catalog addFilter(OeaPrincipal principal, UUID id, SavedFilterInput input) {
+		long personId = person(principal);
+		StoredCatalog stored = writable(principal, id);
+		String name = (input.name() != null) ? input.name().strip() : "";
+		if (name.isEmpty() || name.length() > FILTER_NAME_MAX_LENGTH
+				|| name.chars().anyMatch(Character::isISOControl)) {
+			throw InvalidCatalogException.invalid("name",
+					"The name must have 1 to 100 characters and no control characters.");
+		}
+		String description = (input.description() != null && !input.description().isBlank())
+				? input.description().strip() : null;
+		if (description != null && (description.length() > DESCRIPTION_MAX_LENGTH || description.indexOf(0) >= 0)) {
+			throw InvalidCatalogException.invalid("description",
+					"The description must have at most 1000 characters and no NUL character.");
+		}
+		String operator = input.logicalOperator();
+		if (!"and".equals(operator) && !"or".equals(operator)) {
+			throw InvalidCatalogException.invalid("logicalOperator", "The operator is and or or.");
+		}
+		List<FilterExpression> expressions = (input.expressions() != null) ? input.expressions() : List.of();
+		if (expressions.isEmpty() || expressions.size() > FilterRules.MAX_FILTERS) {
+			throw InvalidCatalogException.invalid("expressions", "A saved filter has 1 to 20 expressions.");
+		}
+		Catalog catalog = catalog(stored);
+		Map<String, CatalogColumns.Filterable> filterable = this.columns.filterable(catalog.primaryMetatypeId(),
+				catalog.columns(), catalog.joins());
+		List<FilterExpression> checked = new ArrayList<>();
+		for (int i = 0; i < expressions.size(); i++) {
+			checked.add(check(filterable, expressions.get(i), "expressions[" + i + "]"));
+		}
+		ArrayNode filters = array(stored.savedFiltersJson());
+		for (JsonNode filter : filters) {
+			if (filter.path("name").asString("").strip().equalsIgnoreCase(name)) {
+				throw InvalidCatalogException.invalid("name", "A saved filter of the catalog already has this name.");
+			}
+		}
+		if (filters.size() >= MAX_SAVED_FILTERS) {
+			throw InvalidCatalogException.invalid("savedFilters", "A catalog has at most 50 saved filters.");
+		}
+		UUID filterId = UUID.randomUUID();
+		ObjectNode node = filters.addObject();
+		node.put("id", filterId.toString());
+		node.put("name", name);
+		node.put("description", description);
+		node.put("logicalOperator", operator);
+		ArrayNode json = node.putArray("expressions");
+		for (FilterExpression expression : checked) {
+			ObjectNode item = json.addObject();
+			item.put("attributePath", expression.attributePath());
+			item.put("operator", expression.operator());
+			if (expression.value() instanceof List<?> list) {
+				ArrayNode values = item.putArray("value");
+				list.forEach((value) -> values.add((String) value));
+			}
+			else if (expression.value() != null) {
+				item.put("value", (String) expression.value());
+			}
+		}
+		this.store.updateSavedFilters(id, filters.toString(), personId, this.clock.instant());
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put("filterId", filterId.toString());
+		details.put("name", name);
+		details.put("logicalOperator", operator);
+		details.put("expressions", checked.size());
+		this.audit.append(new AuditEvent("catalog.filter-added", AuditEvent.Category.CHANGE, AuditEvent.Severity.INFO,
+				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal), "catalog", id.toString(),
+				details));
+		return catalog(this.store.find(id).orElseThrow());
+	}
+
+	/** Removes a saved filter; permissions as for {@link #addFilter}, 404 for an unknown filter. */
+	@Transactional
+	public Catalog removeFilter(OeaPrincipal principal, UUID id, UUID filterId) {
+		long personId = person(principal);
+		StoredCatalog stored = writable(principal, id);
+		ArrayNode filters = array(stored.savedFiltersJson());
+		int index = -1;
+		for (int i = 0; i < filters.size(); i++) {
+			if (filterId.toString().equals(filters.get(i).path("id").asString(null))) {
+				index = i;
+			}
+		}
+		if (index < 0) {
+			throw new NoSuchElementException("saved filter " + filterId);
+		}
+		String name = filters.get(index).path("name").asString("");
+		filters.remove(index);
+		this.store.updateSavedFilters(id, filters.toString(), personId, this.clock.instant());
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put("filterId", filterId.toString());
+		details.put("name", name);
+		this.audit.append(new AuditEvent("catalog.filter-removed", AuditEvent.Category.CHANGE,
+				AuditEvent.Severity.INFO, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal),
+				"catalog", id.toString(), details));
+		return catalog(this.store.find(id).orElseThrow());
+	}
+
+	/**
+	 * An expression checked against the columns of the query (design D2 of
+	 * us-051-catalog-filters), with its value normalized: a list for {@code in} and {@code notIn},
+	 * else a string or, for {@code isNull} and {@code isNotNull}, none. 422 names the field under
+	 * {@code at}.
+	 */
+	private static FilterExpression check(Map<String, CatalogColumns.Filterable> filterable,
+			FilterExpression expression, String at) {
+		CatalogColumns.Filterable column = (expression.attributePath() != null)
+				? filterable.get(expression.attributePath()) : null;
+		if (column == null) {
+			throw InvalidCatalogException.invalid(at + ".attributePath", "The catalog shows no such column.");
+		}
+		boolean list = "in".equals(expression.operator()) || "notIn".equals(expression.operator());
+		List<String> values = new ArrayList<>();
+		Object value = expression.value();
+		if (list && value instanceof List<?> items) {
+			for (Object item : items) {
+				if (!(item instanceof String text) || text.indexOf(',') >= 0) {
+					throw InvalidCatalogException.invalid(at + ".value",
+							"The values are strings without commas, as the query separates them by commas.");
+				}
+				values.add(text.strip());
+			}
+		}
+		else if (value instanceof List<?>) {
+			throw InvalidCatalogException.invalid(at + ".value", "Only in and notIn take a list of values.");
+		}
+		else if (list && value != null) {
+			throw InvalidCatalogException.invalid(at + ".value", "The operator takes a list of values.");
+		}
+		else if (value instanceof String || value instanceof Number || value instanceof Boolean) {
+			values.add(String.valueOf(value));
+		}
+		else if (value != null) {
+			throw InvalidCatalogException.invalid(at + ".value", "The value is a string.");
+		}
+		if ((expression.attributePath() + ":" + expression.operator() + ":" + String.join(",", values))
+			.length() > FilterRules.MAX_FILTER_LENGTH) {
+			throw InvalidCatalogException.invalid(at + ".value",
+					"The expression has at most 2000 characters as a query filter.");
+		}
+		try {
+			FilterRules.condition(column.column(), expression.operator(), values);
+		}
+		catch (FilterRules.InvalidFilterException ex) {
+			throw InvalidCatalogException.invalid(at + "." + ex.part().field(), ex.getMessage());
+		}
+		return new FilterExpression(expression.attributePath(), expression.operator(),
+				list ? List.copyOf(values) : values.isEmpty() ? null : values.get(0));
+	}
+
+	/**
 	 * The catalog if the principal may change it (design D3 of us-047-configure-columns). Without
 	 * {@code catalog:manage}, only one's own personal catalog can be changed and every other ID is
 	 * answered with 403, so that other personal catalogs stay hidden; with it, an unknown ID and
-	 * another person's personal catalog are answered with 404.
+	 * another person's personal catalog are answered with 404. The catalog stays locked until the
+	 * transaction ends, so that concurrent changes of the configuration do not overwrite each other.
 	 */
 	private StoredCatalog writable(OeaPrincipal principal, UUID id) {
 		long personId = person(principal);
 		boolean manager = this.permissions.permissions(principal).contains(MANAGE_PERMISSION);
-		StoredCatalog stored = this.store.find(id).orElse(null);
+		StoredCatalog stored = this.store.findForUpdate(id).orElse(null);
 		boolean own = stored != null && "personal".equals(stored.scope()) && stored.createdById() == personId;
 		boolean visible = stored != null && ("instance".equals(stored.scope()) || own);
 		if (!manager && !own) {
@@ -581,10 +786,35 @@ public class Catalogs {
 					node.hasNonNull("defaultJoinMode") ? node.get("defaultJoinMode").asString() : null,
 					metatypes && shown));
 		}
+		ArrayNode filters = array(stored.savedFiltersJson());
+		Set<String> keys = filters.isEmpty() ? Set.of()
+				: this.columns.filterable(stored.primaryMetatypeId(), columns, joins).keySet();
+		List<SavedFilter> savedFilters = new ArrayList<>();
+		for (JsonNode node : filters) {
+			List<FilterExpression> expressions = new ArrayList<>();
+			for (JsonNode expression : node.path("expressions")) {
+				JsonNode value = expression.get("value");
+				Object parsed = null;
+				if (value instanceof ArrayNode array) {
+					List<String> values = new ArrayList<>();
+					array.forEach((item) -> values.add(item.asString()));
+					parsed = List.copyOf(values);
+				}
+				else if (value != null && !value.isNull()) {
+					parsed = value.asString();
+				}
+				expressions.add(new FilterExpression(expression.path("attributePath").asString(),
+						expression.path("operator").asString(), parsed));
+			}
+			savedFilters.add(new SavedFilter(UUID.fromString(node.path("id").asString()), node.path("name").asString(),
+					node.hasNonNull("description") ? node.get("description").asString() : null,
+					node.path("logicalOperator").asString("and"), List.copyOf(expressions),
+					expressions.stream().allMatch((expression) -> keys.contains(expression.attributePath()))));
+		}
 		return new Catalog(stored.id(), stored.name(), stored.description(), stored.primaryMetatypeId(),
 				stored.primaryMetatypeName(), stored.defaultJoinMode(), stored.scope(), stored.createdById(),
 				stored.createdByName(), stored.createdAt(), stored.lastModifiedAt(), List.copyOf(columns),
-				List.copyOf(joins));
+				List.copyOf(joins), List.copyOf(savedFilters));
 	}
 
 	/** Stored columns with their availability for the metatype. */

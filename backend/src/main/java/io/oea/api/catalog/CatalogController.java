@@ -8,12 +8,17 @@ import io.oea.api.generated.model.CatalogColumnConfig;
 import io.oea.api.generated.model.CatalogColumnsUpdate;
 import io.oea.api.generated.model.CatalogSystemField;
 import io.oea.api.generated.model.CatalogCreate;
+import io.oea.api.generated.model.CatalogFilterExpression;
+import io.oea.api.generated.model.CatalogFilterMode;
+import io.oea.api.generated.model.CatalogFilterOperator;
 import io.oea.api.generated.model.CatalogJoinDefinition;
 import io.oea.api.generated.model.CatalogJoinInput;
 import io.oea.api.generated.model.CatalogJoinResult;
 import io.oea.api.generated.model.CatalogQueryJoin;
 import io.oea.api.generated.model.CatalogQueryResult;
 import io.oea.api.generated.model.CatalogRow;
+import io.oea.api.generated.model.CatalogSavedFilter;
+import io.oea.api.generated.model.CatalogSavedFilterInput;
 import io.oea.api.generated.model.CatalogScope;
 import io.oea.api.generated.model.CatalogSort;
 import io.oea.api.generated.model.CatalogSummary;
@@ -36,10 +41,13 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
  * Creating, listing and reading catalogs (US-046, design D3–D5 of us-046-create-catalog) and the
- * catalog query (US-049, design D1–D4 of us-049-show-catalog-data).
+ * catalog query (US-049, design D1–D4 of us-049-show-catalog-data), with its configuration:
+ * columns (US-047), joins (US-048) and saved filters (US-052).
  */
 @RestController
 public class CatalogController implements CatalogsApi {
@@ -117,6 +125,35 @@ public class CatalogController implements CatalogsApi {
 	}
 
 	@Override
+	@ContractViolationResponse(status = 422, title = "Invalid catalog", detail = "Some fields are invalid.")
+	@ConditionsEnforcedByHandler(value = "Catalogs.addFilter requires catalog:manage for scope=instance; "
+			+ "without it only one's own personal catalog", probeRole = "viewer", probeBody = """
+					{"name": "Probe", "logicalOperator": "and",
+					 "expressions": [{"attributePath": "name", "operator": "isNotNull"}]}""",
+			probePath = "/api/v1/catalogs/00000000-0000-0000-0000-000000000000/filters")
+	public ResponseEntity<Catalog> addCatalogFilter(UUID id, CatalogSavedFilterInput input) {
+		Catalogs.Catalog changed = this.catalogs.addFilter(principal(), id,
+				new Catalogs.SavedFilterInput(input.getName(), input.getDescription(),
+						(input.getLogicalOperator() != null) ? input.getLogicalOperator().getValue() : null,
+						(input.getExpressions() != null) ? input.getExpressions()
+							.stream()
+							.map((expression) -> new Catalogs.FilterExpression(expression.getAttributePath(),
+									(expression.getOperator() != null) ? expression.getOperator().getValue() : null,
+									expression.getValue()))
+							.toList() : List.of()));
+		return ResponseEntity.created(URI.create(CATALOGS_PATH + "/" + id)).body(catalog(changed));
+	}
+
+	@Override
+	@ConditionsEnforcedByHandler(value = "Catalogs.removeFilter requires catalog:manage for scope=instance; "
+			+ "without it only one's own personal catalog", probeRole = "viewer", probeBody = "{}",
+			probePath = "/api/v1/catalogs/00000000-0000-0000-0000-000000000000/filters/"
+					+ "00000000-0000-0000-0000-000000000000")
+	public ResponseEntity<Catalog> removeCatalogFilter(UUID id, UUID filterId) {
+		return ResponseEntity.ok(catalog(this.catalogs.removeFilter(principal(), id, filterId)));
+	}
+
+	@Override
 	public ResponseEntity<List<CatalogSummary>> listCatalogs() {
 		return ResponseEntity
 			.ok(this.catalogs.list(principal()).stream().map(CatalogController::summary).toList());
@@ -128,15 +165,14 @@ public class CatalogController implements CatalogsApi {
 	}
 
 	@Override
-	@ContractViolationResponse(title = "Invalid query", detail = "The paging or sort parameters are invalid.")
+	@ContractViolationResponse(title = "Invalid query",
+			detail = "The paging, sort, join mode or filter parameters are invalid.")
 	public ResponseEntity<CatalogQueryResult> queryCatalog(UUID id, Integer page, Integer pageSize, String sort,
-			Map<String, JoinMode> joinMode) {
-		CatalogQueries.Result result = this.queries.query(principal(), id, page, pageSize, sort, joinModes(joinMode));
+			Map<String, JoinMode> joinMode, List<String> filter, String filterMode) {
+		CatalogQueries.Result result = this.queries.query(principal(), id, page, pageSize, sort, joinModes(joinMode),
+				filters(), filterMode);
 		return ResponseEntity.ok(new CatalogQueryResult(
-				result.columns()
-					.stream()
-					.map((column) -> new CatalogColumn(column.key(), column.label(), column.sortable()))
-					.toList(),
+				result.columns().stream().map(CatalogController::column).toList(),
 				result.rows()
 					.stream()
 					.map((row) -> new CatalogRow(row.entityId(), new LinkedHashMap<>(row.values()))
@@ -147,10 +183,7 @@ public class CatalogController implements CatalogsApi {
 			.joins(result.joins()
 				.stream()
 				.map((join) -> new CatalogQueryJoin(join.id(), join.name(), JoinMode.fromValue(join.mode()),
-						join.columns()
-							.stream()
-							.map((column) -> new CatalogColumn(column.key(), column.label(), column.sortable()))
-							.toList()))
+						join.columns().stream().map(CatalogController::column).toList()))
 				.toList())
 			.sort((result.sort() != null) ? new CatalogSort(result.sort().column(),
 					result.sort().descending() ? CatalogSort.DirectionEnum.DESC : CatalogSort.DirectionEnum.ASC)
@@ -174,6 +207,34 @@ public class CatalogController implements CatalogsApi {
 			}
 		}
 		return modes;
+	}
+
+	/**
+	 * The {@code filter} parameters as sent. The bound list splits a single value at its commas,
+	 * which belong to the value of {@code in} and {@code notIn}, so the raw values are taken.
+	 */
+	private static List<String> filters() {
+		String[] values = (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes)
+				? attributes.getRequest().getParameterValues("filter") : null;
+		return (values != null) ? List.of(values) : List.of();
+	}
+
+	private static CatalogColumn column(CatalogQueries.Column column) {
+		return new CatalogColumn(column.key(), column.label(), column.sortable(),
+				CatalogColumn.FilterTypeEnum.fromValue(column.filterType()))
+			.enumValues((column.enumValues() != null) ? List.copyOf(column.enumValues()) : null);
+	}
+
+	private static CatalogSavedFilter savedFilter(Catalogs.SavedFilter filter) {
+		return new CatalogSavedFilter(filter.name(), CatalogFilterMode.fromValue(filter.logicalOperator()),
+				filter.expressions()
+					.stream()
+					.map((expression) -> new CatalogFilterExpression(expression.attributePath(),
+							CatalogFilterOperator.fromValue(expression.operator()))
+						.value(expression.value()))
+					.toList(),
+				filter.id(), filter.available())
+			.description(filter.description());
 	}
 
 	private static Map<String, List<CatalogJoinResult>> joinResults(
@@ -214,12 +275,13 @@ public class CatalogController implements CatalogsApi {
 	}
 
 	private static Catalog catalog(Catalogs.Catalog catalog) {
-		// saved filters and saved views follow with US-052 and US-053
+		// saved views follow with US-053
 		return new Catalog(catalog.id(), catalog.name(), catalog.primaryMetatypeId(), catalog.primaryMetatypeName(),
 				CatalogScope.fromValue(catalog.scope()), creator(catalog), time(catalog.createdAt()),
 				catalog.description(), JoinMode.fromValue(catalog.defaultJoinMode()), time(catalog.lastModifiedAt()),
 				catalog.columns().stream().map(CatalogController::column).toList(),
-				catalog.joins().stream().map(CatalogController::join).toList(), List.of(), List.of());
+				catalog.joins().stream().map(CatalogController::join).toList(),
+				catalog.savedFilters().stream().map(CatalogController::savedFilter).toList(), List.of());
 	}
 
 	private static CatalogColumnConfig column(Catalogs.Column column) {

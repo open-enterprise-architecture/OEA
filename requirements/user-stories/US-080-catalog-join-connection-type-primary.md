@@ -17,7 +17,7 @@ last_updated: 2026-11-05
 **I want** to create a catalog in which `data-flow` (a connection) is the primary EntityType,  
 **so that** I can list all DataFlow connections in tabular form and join linked DataObjects via `carries-data`.
 
-**Implementation**: OpenSpec change `us-080-connection-catalogs`, commit 1db957d (#187) – a connection metatype as primary metatype with endpoint columns `source.{key}` and `target.{key}` and the default columns source name, name and target name in SCR-020; AC5 and AC6 follow with the filter change (S9 change 3, owner decision 2026-11-05)
+**Implementation**: OpenSpec change `us-080-connection-catalogs`, commit 1db957d (#187) – a connection metatype as primary metatype with endpoint columns `source.{key}` and `target.{key}` and the default columns source name, name and target name in SCR-020; AC5 and AC6 with OpenSpec change `us-051-catalog-filters` (S9 change 3, owner decision 2026-11-05)
 
 ## Acceptance Criteria
 
@@ -25,8 +25,8 @@ last_updated: 2026-11-05
 - [x] For connection primaries, the catalog table automatically shows the source and target name (columns `source.name` and `target.name`), and every attribute of source and target can be configured as a column
 - [x] Join via `carries-data` (n-connection): the join column shows the name of the linked DataObject
 - [x] Traversal: `WHERE sourceEntityId = primaryEntity.id AND connectionType = 'carries-data'` (1 level, ADR-004)
-- [ ] Filtering on `source.name` and `target.name` works like on regular columns (with the filter change, US-051)
-- [ ] GDPR catalog example (REQ-064): DataFlow catalog with join on `carries-data.dataClassification` yields a correct filter list (with the filter change, US-051)
+- [x] Filtering on `source.name` and `target.name` works like on regular columns (realized by us-051-catalog-filters)
+- [x] GDPR catalog example (REQ-064): DataFlow catalog with join on `carries-data.dataClassification` yields a correct filter list (realized by us-051-catalog-filters: `filter={joinId}.classification:eq:PII`)
 
 ## Technical Notes
 

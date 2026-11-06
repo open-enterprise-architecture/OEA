@@ -6,6 +6,7 @@ import { loadLabels } from '../i18n/labels'
 import { defineComponent, h } from 'vue'
 import { createMemoryHistory, createRouter, RouterView, type Router } from 'vue-router'
 import {
+  ACTIVE_SYSTEMS,
   APPLICATIONS,
   CATALOG,
   CATALOGS,
@@ -20,6 +21,7 @@ import {
   ME_VIEWER,
   METATYPES_WITH_FLOWS,
   PROTOCOL_DEFINITION,
+  SAP_ONLY,
   STATUS_DEFINITION,
   VENDOR_DEFINITION,
   type Application,
@@ -535,5 +537,191 @@ describe('CatalogPage connection catalogs', () => {
     await click(elements, '[data-testid="configure-joins"]')
     expect(document.body.querySelector('[data-testid="joins-connection-catalog"]')).toBeNull()
     elements.unmount()
+  })
+})
+
+describe('CatalogPage filters', () => {
+  const WITH_JOIN = { ...CATALOG, joinDefinitions: [INTERFACES_JOIN] }
+
+  function select(wrapper: VueWrapper, testId: string) {
+    const found = wrapper.findAllComponents({ name: 'Select' }).find((component) => component.vm.$attrs['data-testid'] === testId)
+    if (!found) {
+      throw new Error(`no select ${testId}`)
+    }
+    return found
+  }
+
+  function itemLabels(wrapper: VueWrapper, testId: string): string[] {
+    return (select(wrapper, testId).props('items') as ({ label: string } | { label: string }[])[])
+      .flat()
+      .map((item) => item.label)
+  }
+
+  async function choose(wrapper: VueWrapper, testId: string, value: string) {
+    select(wrapper, testId).vm.$emit('update:modelValue', value)
+    await flushPromises()
+  }
+
+  async function press(testId: string) {
+    document.body.querySelector<HTMLElement>(`[data-testid="${testId}"]`)!.click()
+    await flushPromises()
+  }
+
+  async function type(testId: string, value: string) {
+    const input = document.body.querySelector<HTMLInputElement>(`[data-testid="${testId}"] input, input[data-testid="${testId}"]`)!
+    input.value = value
+    input.dispatchEvent(new Event('input'))
+    await flushPromises()
+  }
+
+  function chips(wrapper: VueWrapper): string[] {
+    return wrapper.findAll('[data-testid="filter-chip-label"]').map((chip) => chip.text())
+  }
+
+  function joinCells(wrapper: VueWrapper): string[][] {
+    return wrapper.findAll('[data-testid="join-cell"]').map((cell) => cell.findAll('li').map((item) => item.text()))
+  }
+
+  // catalog/catalog-filters "Active applications only"
+  it('adds a filter in three steps and shows only the matching rows', async () => {
+    const { wrapper, router, recorded } = await open(CATALOG_PATH)
+    await click(wrapper, '[data-testid="filter-add"]')
+    await choose(wrapper, 'filter-column', 'status')
+    await choose(wrapper, 'filter-operator', 'eq')
+    expect(itemLabels(wrapper, 'filter-value-choice')).toEqual(['planned', 'active'])
+    await choose(wrapper, 'filter-value-choice', 'active')
+    await press('filter-apply')
+    expect(router.currentRoute.value.query.filter).toEqual(['status:eq:active'])
+    expect(recorded.at(-1)?.filters).toEqual(['status:eq:active'])
+    expect(names(wrapper)).toEqual(['CRM System', 'ERP'])
+    expect(chips(wrapper)).toEqual(['Status equals active'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-filters "Remove a filter"
+  it('removes a filter chip and shows all rows again', async () => {
+    const { wrapper, router } = await open(`${CATALOG_PATH}?filter=status:eq:active`)
+    expect(names(wrapper)).toEqual(['CRM System', 'ERP'])
+    await click(wrapper, '[data-testid="filter-chip-remove"]')
+    expect(router.currentRoute.value.query.filter).toBeUndefined()
+    expect(names(wrapper)).toEqual(['CRM System', 'ERP', 'Intranet'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-filters "Operators for the name"
+  it('offers the operators of the column type', async () => {
+    const { wrapper } = await open(CATALOG_PATH)
+    await click(wrapper, '[data-testid="filter-add"]')
+    await choose(wrapper, 'filter-column', 'name')
+    expect(itemLabels(wrapper, 'filter-operator')).toEqual(
+      expect.arrayContaining(['equals', 'not equals', 'contains', 'starts with', 'is empty', 'is not empty']),
+    )
+    expect(itemLabels(wrapper, 'filter-operator')).not.toContain('greater than')
+    await choose(wrapper, 'filter-column', 'status')
+    expect(itemLabels(wrapper, 'filter-operator')).toEqual(['equals', 'not equals', 'is one of', 'is none of', 'is empty', 'is not empty'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-filters "Applications with a REST interface"
+  it('filters by a join column and narrows its results', async () => {
+    const { wrapper } = await open(`${CATALOG_PATH}?filter=${INTERFACES_JOIN.id}.protocol:eq:rest`, APPLICATIONS, undefined, {
+      catalog: WITH_JOIN,
+    })
+    expect(names(wrapper)).toEqual(['CRM System'])
+    expect(joinCells(wrapper)[0]).toEqual(['REST API'])
+    expect(chips(wrapper)).toEqual(['Interfaces · Protocol equals rest'])
+    await click(wrapper, '[data-testid="filter-add"]')
+    expect(itemLabels(wrapper, 'filter-column')).toEqual(['Name', 'Status', 'Interfaces', 'Name', 'Protocol'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-filters "Reload keeps the filter"
+  it('keeps the filter after a reload', async () => {
+    const first = await open(`${CATALOG_PATH}?filter=status:eq:active`)
+    const location = first.router.currentRoute.value.fullPath
+    first.wrapper.unmount()
+    const { wrapper, recorded } = await open(location)
+    expect(chips(wrapper)).toEqual(['Status equals active'])
+    expect(names(wrapper)).toEqual(['CRM System', 'ERP'])
+    expect(recorded.find((request) => request.path.endsWith('/query'))?.filters).toEqual(['status:eq:active'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-filters "Both conditions" and "Either condition"
+  it('combines filters with AND or OR', async () => {
+    const { wrapper, router } = await open(`${CATALOG_PATH}?filter=status:eq:planned&filter=name:startsWith:crm`)
+    expect(names(wrapper)).toEqual([])
+    await choose(wrapper, 'filter-mode', 'or')
+    expect(router.currentRoute.value.query.filterMode).toBe('or')
+    expect(names(wrapper)).toEqual(['CRM System', 'Intranet'])
+    await choose(wrapper, 'filter-mode', 'and')
+    expect(router.currentRoute.value.query.filterMode).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-filters "Filters in the URL": an unknown column answers 400
+  it('drops filters the server rejects', async () => {
+    const { wrapper, router } = await open(`${CATALOG_PATH}?filter=nonexistent:eq:x&sort=name:desc`)
+    expect(router.currentRoute.value.query.filter).toBeUndefined()
+    expect(names(wrapper)).toEqual(['CRM System', 'ERP', 'Intranet'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-filters "Active systems only"
+  it('saves the filters of the bar as a saved filter', async () => {
+    const { wrapper, recorded } = await open(`${CATALOG_PATH}?filter=status:eq:active`)
+    await click(wrapper, '[data-testid="filter-save"]')
+    await type('filter-save-name', 'Active systems only')
+    await press('filter-save-submit')
+    const post = recorded.find((request) => request.method === 'POST')!
+    expect(post.path).toBe(`/api/v1/catalogs/${CATALOG.id}/filters`)
+    expect(post.body).toEqual({
+      name: 'Active systems only',
+      description: null,
+      logicalOperator: 'and',
+      expressions: [{ attributePath: 'status', operator: 'eq', value: 'active' }],
+    })
+    expect(itemLabels(wrapper, 'saved-filters')).toEqual(['Active systems only'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-filters "Save a filter": a taken name
+  it('reports a taken name', async () => {
+    const { wrapper } = await open(`${CATALOG_PATH}?filter=status:eq:active`, APPLICATIONS, undefined, {
+      catalog: { ...CATALOG, savedFilters: [ACTIVE_SYSTEMS] },
+    })
+    await click(wrapper, '[data-testid="filter-save"]')
+    await type('filter-save-name', 'active systems ONLY')
+    await press('filter-save-submit')
+    expect(document.body.textContent).toContain('already has a saved filter with this name')
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-filters "Activate a saved filter"
+  it('loads a saved filter into the bar', async () => {
+    const { wrapper, router } = await open(CATALOG_PATH, APPLICATIONS, undefined, {
+      catalog: { ...CATALOG, savedFilters: [ACTIVE_SYSTEMS, SAP_ONLY] },
+    })
+    const items = select(wrapper, 'saved-filters').props('items') as { label: string; disabled: boolean }[]
+    expect(items.map((item) => [item.label, item.disabled])).toEqual([
+      ['Active systems only', false],
+      ['SAP only (not available)', true],
+    ])
+    await choose(wrapper, 'saved-filters', ACTIVE_SYSTEMS.id)
+    expect(router.currentRoute.value.query.filter).toEqual(['status:eq:active'])
+    expect(chips(wrapper)).toEqual(['Status equals active'])
+    expect(names(wrapper)).toEqual(['CRM System', 'ERP'])
+    wrapper.unmount()
+  })
+
+  // catalog/catalog-filters "Reader of an instance catalog"
+  it('offers no saving to a reader without the right to configure', async () => {
+    const { wrapper } = await open(`${CATALOG_PATH}?filter=status:eq:active`, APPLICATIONS, undefined, {
+      me: ME_VIEWER,
+      catalog: { ...CATALOG, savedFilters: [ACTIVE_SYSTEMS] },
+    })
+    expect(wrapper.find('[data-testid="filter-save"]').exists()).toBe(false)
+    expect(itemLabels(wrapper, 'saved-filters')).toEqual(['Active systems only'])
+    wrapper.unmount()
   })
 })

@@ -4,9 +4,9 @@ title: Set filters and save them as a SavedFilter
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-05
 author: requirements-engineer
 references:
   use_cases:
@@ -41,9 +41,9 @@ Without a filter function, the catalog visitor has to scroll through all entitie
 
 ## Context
 
-`attributePath` can be either an attribute of the primary entity (simple name, e.g., `status`) or an attribute of a joined target entity (dot notation, e.g., `Interfaces.protocol`, where `Interfaces` is the `name` of the JoinDefinition). Filters on join attributes filter the join results, not the primary entity (LEFT JOIN logic is retained; a primary entity without matching join results after the filter has an empty joinResults array but is not hidden).
+`attributePath` is a column key of the query result (realigned 2026-11-05, us-051-catalog-filters): `status` or another visible primary column, `source.name`/`target.name` in a connection catalog, or `{joinId}.{key}` for a visible column of a join. A filter on a join column restricts both (owner decision 2026-11-05): an entry appears only if it has at least one matching join result, and the join shows only the matching results.
 
-A SavedFilter with `scope=instance` (visible to all visitors) can only be created by a catalog manager. Visitors without write permission can only create `scope=personal` SavedFilters.
+SavedFilters belong to the catalog configuration and are changed under the rule of the columns (REQ-044): `catalog:manage` for an instance catalog, only the creator for a personal catalog; every reader sees them in the quick selection. The `scope` of a SavedFilter was dropped (owner decision 2026-11-05).
 
 ## Type-Specific Fields
 
@@ -53,24 +53,24 @@ A SavedFilter with `scope=instance` (visible to all visitors) can only be create
 
 | Field | Type | Optional | Description |
 |---|---|---|---|
-| name | string | mandatory | Readable name, unique within the catalog |
-| description | string | optional | Short description |
+| name | string | mandatory | 1–100 characters, unique within the catalog regardless of case |
+| description | string | optional | At most 1000 characters |
 | logicalOperator | enum | mandatory | `and` (default) or `or` |
-| expressions | FilterExpression[] | mandatory | At least 1 expression |
-| expressions[].attributePath | string | mandatory | Attribute name or "JoinName.attributeName" (BR-04) |
+| expressions | FilterExpression[] | mandatory | 1–20 expressions |
+| expressions[].attributePath | string | mandatory | Column key of the query result (BR-04) |
 | expressions[].operator | enum | mandatory | One of the 12 supported operators |
 | expressions[].value | any | optional | Empty for `isNull`/`isNotNull`; array for `in`/`notIn` |
 
 **Processing (save)**:
 
-1. Validate `attributePath`: a simple attribute name must exist in the primaryEntityType; dot notation must refer to a valid JoinDefinition and its target entity attribute (BR-04); otherwise 422
-2. Check `name` for uniqueness within the catalog (case-insensitive)
-3. Check `scope`: `instance` only if the actor has catalog manager permission; otherwise only `personal`
-4. Persist the SavedFilter in the catalog
+1. Check the right to configure the catalog (REQ-044); otherwise 403
+2. Validate name, description, operator and expressions: `attributePath` must name a column of the query result, the operator must fit the column type (BR-12), the value must be valid; otherwise 422 naming the field, e.g. `expressions[0].attributePath`
+3. Check `name` for uniqueness within the catalog (case-insensitive) and the limit of 50 saved filters
+4. Persist the SavedFilter in the catalog and write the audit event `catalog.filter-added`
 
 **Processing (apply at runtime, ad hoc)**:
 
-Filters are passed as query parameters to `GET /api/v1/catalogs/{id}/query` (cf. REQ-046) and act on the live query without changing the catalog.
+Filters are passed as query parameters to `GET /api/v1/catalogs/{id}/query` (cf. REQ-046): one `filter={key}:{operator}[:{value}]` per filter (at most 20) and `filterMode=and|or`. They act on the live query without changing the catalog; an invalid filter answers 400 `filter`. Activating a saved filter passes its expressions this way (realigned 2026-11-05: replaces `savedFilterIds[]`).
 
 **Outputs**:
 
@@ -87,33 +87,33 @@ Filters are passed as query parameters to `GET /api/v1/catalogs/{id}/query` (cf.
 **AC2** (Apply SavedFilter):
 
 - Given: SavedFilter "Active systems only" with id=filter-1 exists
-- When: `GET /api/v1/catalogs/{id}/query?savedFilterIds[]=filter-1`
+- When: the reader activates it, i.e. `GET /api/v1/catalogs/{id}/query?filter=status:eq:active`
 - Then: only entities with status=active in the response; `totalCount` reduced accordingly
 
 **AC3** (BR-04 – invalid attributePath):
 
 - Given: primaryEntityType ApplicationComponent has no attribute `nonexistent`
 - When: FilterExpression with `attributePath: "nonexistent"`
-- Then: HTTP 422 "The attribute ‹nonexistent› is not defined for the type ‹ApplicationComponent›"
+- Then: HTTP 422 naming `expressions[0].attributePath`
 
 **AC4** (Dot notation on join):
 
 - Given: JoinDefinition "Interfaces" with targetEntityType Interface, attribute `protocol`
-- When: FilterExpression with `attributePath: "Interfaces.protocol", operator: "eq", value: "REST"`
-- Then: HTTP 201; the filter filters join results to protocol=REST
+- When: FilterExpression with `attributePath: "{joinId}.protocol", operator: "eq", value: "REST"`
+- Then: HTTP 201; applied, it keeps the entries with a REST interface and filters the join results to protocol=REST
 
 **AC5** (OR combination):
 
 - When: SavedFilter with `logicalOperator: "or"` and two expressions: `status=active` OR `status=deprecated`
 - Then: the query returns entities with status=active or status=deprecated
 
-**AC6** (Scope check):
+**AC6** (Permission check, realigned 2026-11-05: `scope` dropped):
 
-- Given: Franz has only the visitor role (no write permission)
-- When: Franz tries to create a SavedFilter with scope=instance
-- Then: HTTP 403; Franz can only create SavedFilters with scope=personal
+- Given: Franz has only the visitor role (no `catalog:manage`)
+- When: Franz tries to create a SavedFilter in an instance catalog
+- Then: HTTP 403; in his own personal catalog the SavedFilter is saved
 
-**AC7** (Delete SavedFilter and clean up SavedView):
+**AC7** (Delete SavedFilter and clean up SavedView; follows with saved views, US-053):
 
 - Given: SavedView "Compact view" references SavedFilter id=filter-1
 - When: `DELETE /api/v1/catalogs/{id}/filters/filter-1`
@@ -126,12 +126,13 @@ Filters are passed as query parameters to `GET /api/v1/catalogs/{id}/query` (cf.
 
 ## Implementation Notes
 
-- Endpoints: `POST /api/v1/catalogs/{id}/filters`, `DELETE /api/v1/catalogs/{id}/filters/{filterId}`
-- Dot notation validation: extract `joinName` from the first segment; look up the JoinDefinition with this `name`; then check the attribute on the `targetEntityType`
-- `in`/`notIn` values: as a JSON array in the request body; as a comma-separated query parameter for runtime filters
+- Endpoints: `POST /api/v1/catalogs/{id}/filters` (`addCatalogFilter`, 201 with the catalog), `DELETE /api/v1/catalogs/{id}/filters/{filterId}` (`removeCatalogFilter`, 200 with the catalog)
+- `in`/`notIn` values: as a JSON array without commas in the request body; as a comma-separated value for runtime filters
+- Realized by OpenSpec change `us-051-catalog-filters` (AC1–AC6; AC7 with change 4, saved views): column keys as `attributePath`, the operators per column type (catalog BR-12), at most 20 filters per query and per saved filter, at most 50 saved filters per catalog, `available` for saved filters whose column is gone; removing a join removes its expressions (BR-04); audit events `catalog.filter-added`, `catalog.filter-removed`. Tests: `CatalogFilterTests`, `CatalogPage.spec.ts`, `features/catalog/catalog-filters.feature`
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; 12 operators, dot notation for join attributes, scope=personal/instance |
+| 0.2.0 | 2026-11-05 | Change us-051-catalog-filters | Column keys instead of dot notation; join filters restrict entries and results; `scope` and AC6 replaced by the permission rule of the columns; runtime parameters `filter` and `filterMode` instead of `savedFilterIds[]`; AC7 follows with saved views |

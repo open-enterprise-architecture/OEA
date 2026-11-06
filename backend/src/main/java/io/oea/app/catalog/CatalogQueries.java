@@ -1,14 +1,11 @@
 package io.oea.app.catalog;
 
+import io.oea.app.catalog.CatalogColumns.Resolved;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.core.catalog.CatalogQueryStore;
-import io.oea.core.catalog.CatalogQueryStore.PropertyColumn;
-import io.oea.core.catalog.CatalogQueryStore.QueryColumn;
-import java.time.Clock;
-import java.time.LocalDate;
+import io.oea.core.catalog.CatalogQueryStore.Condition;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,9 +26,6 @@ public class CatalogQueries {
 	/** Key of the entity name column. */
 	public static final String NAME_COLUMN = "name";
 
-	/** Name of the property shown as default column besides the name (design D2). */
-	static final String STATUS_PROPERTY = "Status";
-
 	static final int MAX_PAGE_SIZE = 200;
 
 	private static final Pattern SORT = Pattern
@@ -42,16 +36,20 @@ public class CatalogQueries {
 
 	private final CatalogQueryStore store;
 
-	private final Clock clock;
+	private final CatalogColumns columns;
 
-	public CatalogQueries(Catalogs catalogs, CatalogQueryStore store, Clock clock) {
+	CatalogQueries(Catalogs catalogs, CatalogQueryStore store, CatalogColumns columns) {
 		this.catalogs = catalogs;
 		this.store = store;
-		this.clock = clock;
+		this.columns = columns;
 	}
 
-	/** A column of the result; the key names the value in each row. */
-	public record Column(String key, String label, boolean sortable) {
+	/**
+	 * A column of the result; the key names the value in each row. {@code filterType} is
+	 * {@code text}, {@code enum}, {@code boolean}, {@code number} or {@code date};
+	 * {@code enumValues} lists the values of an enum column and is {@code null} for other types.
+	 */
+	public record Column(String key, String label, boolean sortable, String filterType, List<String> enumValues) {
 	}
 
 	/**
@@ -78,23 +76,41 @@ public class CatalogQueries {
 			long totalElements, int totalPages, Sort sort) {
 	}
 
-	/** An available join with its store definition, its result and whether it expands rows. */
-	private record ResolvedJoin(Catalogs.Join join, CatalogQueryStore.Join store, QueryJoin result, boolean rows) {
+	/** An available join with its store definition, its result, its columns and whether it expands rows. */
+	private record ResolvedJoin(Catalogs.Join join, CatalogQueryStore.Join store, QueryJoin result, boolean rows,
+			List<Resolved> columns) {
+
+		/** The join with its results narrowed by the conditions, if any. */
+		ResolvedJoin narrowed(List<Condition> conditions, boolean any) {
+			if (conditions == null || conditions.isEmpty()) {
+				return this;
+			}
+			return new ResolvedJoin(this.join, new CatalogQueryStore.Join(this.store.connectionMetatypeId(),
+					this.store.direction(), this.store.targetMetatypeId(), this.store.columns(), conditions, any),
+					this.result, this.rows, this.columns);
+		}
+
 	}
 
-	/** A resolved column with the store column, its key and label, and the configured default sort. */
-	private record Resolved(QueryColumn column, Column result, String defaultSortDirection) {
-	}
-
-	/**
-	 * One page of the catalog. Order: visibility of the catalog (404), paging parameters, sort and
-	 * join modes (400 naming the parameters). Configured columns apply when one of them can be
-	 * shown (design D4 of us-047-configure-columns), else the default columns. {@code joinModes}
-	 * maps join IDs to {@code rows} or {@code aggregate} (design D4 of us-048-catalog-joins).
-	 */
+	/** One page of the catalog without filters. */
 	@Transactional(readOnly = true)
 	public Result query(OeaPrincipal principal, UUID catalogId, int page, int pageSize, String sort,
 			Map<String, String> joinModes) {
+		return query(principal, catalogId, page, pageSize, sort, joinModes, List.of(), null);
+	}
+
+	/**
+	 * One page of the catalog. Order: visibility of the catalog (404), paging parameters, sort,
+	 * join modes and filters (400 naming the parameters). Configured columns apply when one of
+	 * them can be shown (design D4 of us-047-configure-columns), else the default columns.
+	 * {@code joinModes} maps join IDs to {@code rows} or {@code aggregate} (design D4 of
+	 * us-048-catalog-joins). {@code filters} are {@code {key}:{operator}[:{value}]} on the columns
+	 * of the result, combined by {@code filterMode} {@code and} (default) or {@code or} (design D2,
+	 * D3 of us-051-catalog-filters).
+	 */
+	@Transactional(readOnly = true)
+	public Result query(OeaPrincipal principal, UUID catalogId, int page, int pageSize, String sort,
+			Map<String, String> joinModes, List<String> filters, String filterMode) {
 		Catalogs.Catalog catalog = this.catalogs.get(principal, catalogId);
 		List<String> invalid = new ArrayList<>();
 		if (page < 0) {
@@ -103,12 +119,9 @@ public class CatalogQueries {
 		if (pageSize < 1 || pageSize > MAX_PAGE_SIZE) {
 			invalid.add("pageSize");
 		}
-		List<Resolved> columns = configured(catalog.primaryMetatypeId(), catalog.columns());
-		if (columns.isEmpty()) {
-			columns = defaults(catalog.primaryMetatypeId());
-		}
-		List<ResolvedJoin> joins = joins(catalog, (joinModes != null) ? joinModes : Map.of(), invalid);
-		List<ResolvedJoin> rowsJoins = joins.stream().filter(ResolvedJoin::rows).toList();
+		List<Resolved> columns = this.columns.primary(catalog.primaryMetatypeId(), catalog.columns());
+		List<ResolvedJoin> available = joins(catalog, (joinModes != null) ? joinModes : Map.of(), invalid);
+		List<ResolvedJoin> rowsJoins = available.stream().filter(ResolvedJoin::rows).toList();
 		Sort applied = null;
 		CatalogQueryStore.Sort storeSort = CatalogQueryStore.Sort.DEFAULT;
 		if (sort != null && !sort.isEmpty()) {
@@ -133,15 +146,42 @@ public class CatalogQueries {
 				}
 			}
 		}
+		boolean or = false;
+		if (filterMode != null && !filterMode.isEmpty()) {
+			if ("or".equals(filterMode)) {
+				or = true;
+			}
+			else if (!"and".equals(filterMode)) {
+				invalid.add("filterMode");
+			}
+		}
+		List<Condition> conditions = new ArrayList<>();
+		Map<UUID, List<Condition>> joinConditions = new LinkedHashMap<>();
+		if (!conditions(filters, columns, available, conditions, joinConditions)) {
+			invalid.add("filter");
+		}
 		if (!invalid.isEmpty()) {
 			throw new InvalidCatalogQueryException(invalid);
 		}
+		boolean any = or;
+		List<ResolvedJoin> joins = available.stream()
+			.map((join) -> join.narrowed(joinConditions.get(join.join().id()), any))
+			.toList();
 		List<Resolved> resolved = columns;
-		List<CatalogQueryStore.Join> storeRowsJoins = rowsJoins.stream().map(ResolvedJoin::store).toList();
-		long total = this.store.count(catalog.primaryMetatypeId(), storeRowsJoins);
+		List<CatalogQueryStore.Join> storeRowsJoins = joins.stream()
+			.filter(ResolvedJoin::rows)
+			.map(ResolvedJoin::store)
+			.toList();
+		CatalogQueryStore.Filter filter = new CatalogQueryStore.Filter(conditions,
+				joins.stream()
+					.filter((join) -> !join.rows() && !join.store().conditions().isEmpty())
+					.map(ResolvedJoin::store)
+					.toList(),
+				or);
+		long total = this.store.count(catalog.primaryMetatypeId(), storeRowsJoins, filter);
 		List<CatalogQueryStore.Row> page0 = this.store.page(catalog.primaryMetatypeId(),
-				resolved.stream().map(Resolved::column).toList(), storeRowsJoins, storeSort, (long) page * pageSize,
-				pageSize);
+				resolved.stream().map(Resolved::column).toList(), storeRowsJoins, filter, storeSort,
+				(long) page * pageSize, pageSize);
 		List<Integer> ids = page0.stream().map(CatalogQueryStore.Row::entityId).distinct().toList();
 		Map<UUID, Map<Integer, List<CatalogQueryStore.JoinRow>>> aggregated = new LinkedHashMap<>();
 		for (ResolvedJoin join : joins) {
@@ -192,7 +232,7 @@ public class CatalogQueries {
 			if (!join.available()) {
 				continue;
 			}
-			List<Resolved> columns = configured(join.targetMetatypeId(), join.targetColumns());
+			List<Resolved> columns = this.columns.configured(join.targetMetatypeId(), join.targetColumns());
 			if (columns.isEmpty()) {
 				continue;
 			}
@@ -207,18 +247,65 @@ public class CatalogQueries {
 			boolean rows = "rows".equals(mode);
 			List<Column> results = columns.stream()
 				.map((column) -> new Column(column.result().key(), column.result().label(),
-						rows && column.result().sortable()))
+						rows && column.result().sortable(), column.result().filterType(),
+						column.result().enumValues()))
 				.toList();
 			joins.add(new ResolvedJoin(join,
 					new CatalogQueryStore.Join(join.connectionMetatypeId(),
 							CatalogQueryStore.Direction.valueOf(join.direction().toUpperCase(java.util.Locale.ROOT)),
 							join.targetMetatypeId(), columns.stream().map(Resolved::column).toList()),
-					new QueryJoin(join.id(), join.name(), mode, results), rows));
+					new QueryJoin(join.id(), join.name(), mode, results), rows, columns));
 		}
 		if (!remaining.isEmpty() && !invalid.contains("joinMode")) {
 			invalid.add("joinMode");
 		}
 		return joins;
+	}
+
+	/**
+	 * The conditions of the filters on the primary columns and per join (design D2 of
+	 * us-051-catalog-filters); {@code false} if there are more than {@value FilterRules#MAX_FILTERS}
+	 * or one names no column of the result, an operator not allowed for it or an invalid value.
+	 */
+	private static boolean conditions(List<String> filters, List<Resolved> columns, List<ResolvedJoin> joins,
+			List<Condition> conditions, Map<UUID, List<Condition>> joinConditions) {
+		if (filters == null || filters.isEmpty()) {
+			return true;
+		}
+		if (filters.size() > FilterRules.MAX_FILTERS) {
+			return false;
+		}
+		Map<String, CatalogColumns.Filterable> filterable = new LinkedHashMap<>();
+		for (Resolved column : columns) {
+			filterable.put(column.result().key(), new CatalogColumns.Filterable(column, null));
+		}
+		for (ResolvedJoin join : joins) {
+			for (Resolved column : join.columns()) {
+				filterable.put(join.join().id() + "." + column.result().key(),
+						new CatalogColumns.Filterable(column, join.join().id()));
+			}
+		}
+		for (String text : filters) {
+			FilterRules.Expression expression = (text != null) ? FilterRules.parse(text) : null;
+			CatalogColumns.Filterable column = (expression != null) ? filterable.get(expression.key()) : null;
+			if (column == null) {
+				return false;
+			}
+			Condition condition;
+			try {
+				condition = FilterRules.condition(column.column(), expression.operator(), expression.values());
+			}
+			catch (FilterRules.InvalidFilterException ex) {
+				return false;
+			}
+			if (column.joinId() == null) {
+				conditions.add(condition);
+			}
+			else {
+				joinConditions.computeIfAbsent(column.joinId(), (key) -> new ArrayList<>()).add(condition);
+			}
+		}
+		return true;
 	}
 
 	/**
@@ -246,87 +333,6 @@ public class CatalogQueries {
 			}
 		}
 		return null;
-	}
-
-	/** The visible configured columns that can be shown for the metatype, in their order. */
-	private List<Resolved> configured(UUID metatypeId, List<Catalogs.Column> configured) {
-		if (configured.isEmpty()) {
-			return List.of();
-		}
-		Map<UUID, PropertyColumn> available = this.store.availableProperties(metatypeId, LocalDate.now(this.clock));
-		Map<Catalogs.Endpoint, Map<UUID, PropertyColumn>> offered = new EnumMap<>(Catalogs.Endpoint.class);
-		List<Resolved> columns = new ArrayList<>();
-		for (Catalogs.Column column : configured) {
-			if (!column.visible()) {
-				continue;
-			}
-			Catalogs.Endpoint side = column.endpoint();
-			Map<UUID, PropertyColumn> properties = (side == null) ? available : offered.computeIfAbsent(side,
-					(key) -> this.store.endpointProperties(metatypeId, key.key(), LocalDate.now(this.clock)));
-			QueryColumn query;
-			String key;
-			String name;
-			if (column.field() != null) {
-				query = QueryColumn.of(storeField(column.field()));
-				key = column.field().key();
-				name = column.field().label();
-			}
-			else if (properties.containsKey(column.propertyDefId())) {
-				PropertyColumn property = properties.get(column.propertyDefId());
-				query = QueryColumn.of(property);
-				key = property.sqlColumnName();
-				name = property.name();
-			}
-			else {
-				continue;
-			}
-			if (side != null) {
-				query = query.at(CatalogQueryStore.Endpoint.valueOf(side.name()));
-				name = endpointLabel(side, key, name);
-				key = side.key() + "." + key;
-			}
-			columns.add(new Resolved(query,
-					new Column(key, (column.displayLabel() != null) ? column.displayLabel() : name, column.sortable()),
-					column.defaultSortDirection()));
-		}
-		return columns;
-	}
-
-	/**
-	 * The columns of a catalog without configured columns (US-049): the name and the property
-	 * {@value #STATUS_PROPERTY} if the metatype maps it today with visibility {@code public}.
-	 */
-	private List<Resolved> defaults(UUID metatypeId) {
-		List<Resolved> columns = new ArrayList<>();
-		boolean connection = this.store.isConnection(metatypeId);
-		if (connection) {
-			columns.add(endpointName(Catalogs.Endpoint.SOURCE));
-		}
-		columns.add(new Resolved(QueryColumn.of(CatalogQueryStore.SystemField.NAME),
-				new Column(NAME_COLUMN, "Name", true), null));
-		if (connection) {
-			columns.add(endpointName(Catalogs.Endpoint.TARGET));
-		}
-		this.store.mappedPublicProperty(metatypeId, STATUS_PROPERTY, LocalDate.now(this.clock))
-			.ifPresent((property) -> columns.add(new Resolved(QueryColumn.of(property),
-					new Column(property.sqlColumnName(), property.name(), true), null)));
-		return columns;
-	}
-
-	/** The name of the source or target as a default column of a connection catalog (US-080). */
-	private static Resolved endpointName(Catalogs.Endpoint side) {
-		return new Resolved(
-				QueryColumn.of(CatalogQueryStore.SystemField.NAME).at(CatalogQueryStore.Endpoint.valueOf(side.name())),
-				new Column(side.key() + "." + NAME_COLUMN, side.label(), true), null);
-	}
-
-	/** "Source" or "Target" for the name, else "Source: {attribute}" or "Target: {attribute}". */
-	private static String endpointLabel(Catalogs.Endpoint side, String key, String name) {
-		return NAME_COLUMN.equals(key) ? side.label() : side.label() + ": " + name;
-	}
-
-	private static CatalogQueryStore.SystemField storeField(Catalogs.SystemField field) {
-		return CatalogQueryStore.SystemField.valueOf(field.name());
 	}
 
 	private static Integer indexOf(List<Resolved> columns, String key) {

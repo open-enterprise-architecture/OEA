@@ -1675,7 +1675,10 @@ package "Navigation & Presentation" #EDE7F6 {
     .. in display order (US-047, us-047-configure-columns) ..
     .. joinDefinitions[] (max. 10, creation order): {id, name, connectionMetatypeId, joinDirection, ..
     .. targetMetatypeId, targetColumns[] (max. 20), defaultJoinMode} (US-048, us-048-catalog-joins) ..
-    .. savedFilters, savedViews typed, still empty ..
+    .. savedFilters[] (max. 50, creation order): {id, name, description, logicalOperator, ..
+    .. expressions[] (1-20): {attributePath (column key), operator, value?}} ..
+    .. (US-052, us-051-catalog-filters, catalog BR-04, BR-12) ..
+    .. savedViews typed, still empty ..
   }
 
   class tree_nodes <<Table>> #D1C4E9 {

@@ -2,7 +2,7 @@
 title: Catalogs
 covers:
   screens: [SCR-020, SCR-028]
-  stories: [US-046, US-047, US-048, US-049, US-050, US-080]
+  stories: [US-046, US-047, US-048, US-049, US-050, US-051, US-052, US-080]
 ---
 
 # Catalogs
@@ -46,6 +46,44 @@ The list *Catalogs* shows every catalog you may see, marked *Shared* or *Persona
 - Another person's personal catalog cannot be opened; it behaves like a catalog that does not exist (*Catalog not found*).
 
 Through the API, `GET /catalogs/{id}/query` returns the same rows with the parameters `page` (from 0), `pageSize` (1–200, default 50) and `sort` (`{field}:{asc|desc}`).
+
+## Filters {#filters}
+
+Filters narrow the table to the entries you need, for example the active applications only. Every reader of a catalog can set filters; they change only your view, not the catalog.
+
+1. Choose *Add filter* above the table.
+2. Choose the *Column*: every column of the table, including the columns of the joins (shown as *Join · Column*) and, in a [connection catalog](#connection-catalogs), the columns of the source and the target.
+3. Choose the *Operator*. Only the operators that fit the values of the column are offered:
+
+   | Values of the column | Operators |
+   |---|---|
+   | Text (name, description, text properties) | *equals*, *not equals*, *contains*, *starts with*, *is one of*, *is none of*, *is empty*, *is not empty* |
+   | Enum values, such as *Status* | *equals*, *not equals*, *is one of*, *is none of*, *is empty*, *is not empty* |
+   | Yes or no | *equals*, *not equals*, *is empty*, *is not empty* |
+   | Numbers and dates (also *Created*, *Updated* and *Version*) | *equals*, *not equals*, *greater than*, *less than*, *at least*, *at most*, *is empty*, *is not empty* |
+
+4. Enter or choose the *Value* and choose *Apply*. For *is one of* and *is none of*, choose several enum values, or separate several text values with commas.
+
+Each filter appears as a chip above the table, for example *Status equals active*; the *×* of a chip removes it. The total below the table counts only the entries that pass, and the table starts again at the first page.
+
+- Text comparisons ignore upper and lower case. *not equals* and *is none of* also keep entries without a value.
+- Dates compare by day; *Created* and *Updated* use the day in UTC.
+- **Join columns:** a filter on a column of a join keeps only the entries with at least one matching linked entity, and the join shows only the matching ones. A join without a filter stays complete.
+- **AND or OR:** from two filters on, choose *All filters (AND)* or *Any filter (OR)*. With OR, an entry passes if any filter holds.
+- A table has at most 20 filters.
+- **The address:** filters are part of the address of the page, like sort and page. Back navigation, a reload or a shared link show the same filtered view. A filter the catalog cannot apply, for example on a column that was removed, is dropped, and the table shows all entries.
+
+### Saved filters
+
+A catalog keeps named filters for quick selection, for example *Active systems only*:
+
+- **Save:** with the filters set, choose *Save filter*, enter a name and, optionally, a description, and choose *Save*. The name must be unique in the catalog, regardless of upper and lower case. A catalog has at most 50 saved filters.
+- **Use:** *Saved filters* next to the chips lists them for every reader of the catalog. Choosing one replaces the filters of the table with its conditions and its AND or OR.
+- **Not available:** a saved filter on a column the catalog no longer shows is marked *not available* and cannot be chosen. Removing a join also removes the conditions of saved filters on its columns, and a saved filter left without conditions.
+
+Saving filters follows the rules for configuring a catalog. A shared catalog needs the permission to manage catalogs (`catalog:manage`); in your own personal catalog you save them yourself. Without that right, *Save filter* is not offered; create a personal catalog to keep your own filters. Saved filters are recorded in the audit trail.
+
+Through the API, `GET /catalogs/{id}/query` takes one `filter={key}:{operator}[:{value}]` per filter, for example `filter=status:eq:active`, `filter=source.name:contains:CRM` or `filter={joinId}.protocol:in:REST,SOAP`, and `filterMode=or`. The key is the column key of the result, the operator one of `eq`, `neq`, `contains`, `startsWith`, `in`, `notIn`, `isNull`, `isNotNull`, `gt`, `lt`, `gte` and `lte`; an invalid filter answers 400. `POST /catalogs/{id}/filters` saves a filter with `name`, `description`, `logicalOperator` and `expressions` (`attributePath`, `operator`, `value`), and `DELETE /catalogs/{id}/filters/{filterId}` removes it.
 
 ## Configure columns {#configure-columns}
 

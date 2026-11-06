@@ -146,7 +146,7 @@ public class ConnectionCatalogSteps {
 			.put("targetExternalId", ref(target));
 	}
 
-	private String ref(String name) {
+	String ref(String name) {
 		return "s" + this.suffix + ":" + name.replace(' ', '-');
 	}
 

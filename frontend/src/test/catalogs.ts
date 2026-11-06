@@ -216,8 +216,30 @@ export function manyApplications(count: number): Application[] {
 export interface CatalogRequest {
   path: string
   query: Record<string, string>
+  /** The repeated `filter` parameters (US-051). */
+  filters?: string[]
   method?: string
   body?: unknown
+}
+
+/** A saved filter of the catalog (US-052). */
+export const ACTIVE_SYSTEMS = {
+  id: 'f1000000-0000-4000-8000-000000000001',
+  name: 'Active systems only',
+  description: null,
+  logicalOperator: 'and',
+  expressions: [{ attributePath: 'status', operator: 'eq', value: 'active' }],
+  available: true,
+}
+
+/** A saved filter on a column the catalog no longer shows (US-052). */
+export const SAP_ONLY = {
+  id: 'f1000000-0000-4000-8000-000000000002',
+  name: 'SAP only',
+  description: null,
+  logicalOperator: 'and',
+  expressions: [{ attributePath: 'vendor', operator: 'eq', value: 'SAP' }],
+  available: false,
 }
 
 /**
@@ -239,14 +261,18 @@ export function catalogApi(
     defaultSortDirection?: string | null
   }
   type Join = { id: string; name: string; targetColumns: ColumnConfig[]; defaultJoinMode?: string | null }
+  type SavedFilter = { id: string; name: string }
   const catalog = structuredClone(options.catalog ?? CATALOG) as {
     id: string
     primaryMetatypeId: string
     defaultJoinMode: string
     columns: ColumnConfig[]
     joinDefinitions: Join[]
+    savedFilters: SavedFilter[]
   }
   catalog.joinDefinitions ??= []
+  catalog.savedFilters ??= []
+  let filterCount = 0
   const definitions = [STATUS_DEFINITION, VENDOR_DEFINITION, PROTOCOL_DEFINITION]
   let joinCount = 0
   const connection = catalog.primaryMetatypeId === INFORMATION_FLOW.id
@@ -259,19 +285,27 @@ export function catalogApi(
         const key = column.field ?? definition!.sqlColumnName
         const name = definition?.name ?? key[0]!.toUpperCase() + key.slice(1)
         const label = column.endpoint ? (key === 'name' ? side(column.endpoint) : `${side(column.endpoint)}: ${name}`) : name
-        return { key: column.endpoint ? `${column.endpoint}.${key}` : key, label: column.displayLabel ?? label, sortable: column.sortable !== false }
+        return { key: column.endpoint ? `${column.endpoint}.${key}` : key, label: column.displayLabel ?? label, sortable: column.sortable !== false, ...typeOf(key) }
       })
     if (configured.length > 0) {
       return configured
     }
     const defaults = [
-      { key: 'name', label: 'Name', sortable: true },
-      { key: 'status', label: 'Status', sortable: true },
+      { key: 'name', label: 'Name', sortable: true, ...typeOf('name') },
+      { key: 'status', label: 'Status', sortable: true, ...typeOf('status') },
     ]
     // a connection catalog: source, name and target; information flows map no status (US-080)
     return connection
-      ? [{ key: 'source.name', label: 'Source', sortable: true }, defaults[0]!, { key: 'target.name', label: 'Target', sortable: true }]
+      ? [
+          { key: 'source.name', label: 'Source', sortable: true, ...typeOf('name') },
+          defaults[0]!,
+          { key: 'target.name', label: 'Target', sortable: true, ...typeOf('name') },
+        ]
       : defaults
+  }
+  // the status is the only enum; every other column of the fake is text (US-051)
+  function typeOf(key: string): { filterType: string; enumValues?: string[] } {
+    return key === 'status' ? { filterType: 'enum', enumValues: STATUS_DEFINITION.enumValues.map((value) => value.value) } : { filterType: 'text' }
   }
   const valueOf = (row: Application, key: string): string | undefined => {
     const endpoint = /^(source|target)\.(.+)$/.exec(key)
@@ -285,7 +319,8 @@ export function catalogApi(
     const query = Object.fromEntries(url.searchParams.entries())
     const method = init?.method ?? 'GET'
     const body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined
-    options.recorded?.push({ path: url.pathname, query, method, body })
+    const filters = url.searchParams.getAll('filter')
+    options.recorded?.push({ path: url.pathname, query, filters, method, body })
     const json = (body: unknown, status = 200) =>
       new Response(JSON.stringify(body), {
         status,
@@ -325,6 +360,23 @@ export function catalogApi(
       } else {
         catalog.joinDefinitions[index] = { ...(body as Join), id: joinPath[1]!, available: true } as Join
       }
+      return json(catalog)
+    }
+    if (url.pathname === `/api/v1/catalogs/${catalog.id}/filters` && method === 'POST') {
+      const saved = body as SavedFilter & { expressions: unknown[] }
+      if (options.me === ME_VIEWER && (catalog as { scope?: string }).scope !== 'personal') {
+        return json({ type: 'urn:oea:problem:forbidden', title: 'Forbidden', status: 403 }, 403)
+      }
+      if (catalog.savedFilters.some((filter) => filter.name.toLowerCase() === saved.name.trim().toLowerCase())) {
+        return json({ type: 'urn:oea:problem:validation-failed', title: 'Invalid catalog', status: 422, invalidFields: ['name'] }, 422)
+      }
+      filterCount += 1
+      catalog.savedFilters.push({ ...saved, id: `f1000000-0000-4000-8000-1000000000${String(filterCount).padStart(2, '0')}`, available: true } as SavedFilter)
+      return json(catalog, 201)
+    }
+    const filterPath = new RegExp(`^/api/v1/catalogs/${catalog.id}/filters/([0-9a-f-]+)$`).exec(url.pathname)
+    if (filterPath && method === 'DELETE') {
+      catalog.savedFilters = catalog.savedFilters.filter((filter) => filter.id !== filterPath[1])
       return json(catalog)
     }
     if (url.pathname === `/api/v1/metamodel/metatypes/${APPLICATION_COMPONENT.id}`) {
@@ -373,7 +425,7 @@ export function catalogApi(
         .filter((column) => column.visible !== false)
         .map((column) => {
           const key = column.field ?? 'protocol'
-          return { key, label: column.displayLabel ?? (column.field ? 'Name' : 'Protocol'), sortable: mode === 'rows' && column.sortable !== false }
+          return { key, label: column.displayLabel ?? (column.field ? 'Name' : 'Protocol'), sortable: mode === 'rows' && column.sortable !== false, filterType: 'text' }
         })
       return { id: join.id, name: join.name, mode, columns: joinColumns }
     })
@@ -385,8 +437,57 @@ export function catalogApi(
     if (query.sort !== undefined && (!match || !sortable(match[1]!))) {
       return json({ type: 'urn:oea:problem:validation-failed', title: 'Invalid query', status: 400, invalidFields: ['sort'] }, 400)
     }
-    type Expanded = Application & { joined?: { name: string; protocol?: string } }
-    const expanded: Expanded[] = applications.flatMap((application) =>
+    // filters like the server (design D3 of us-051-catalog-filters): text ignores case, a join
+    // filter keeps entries with a matching interface and narrows the interfaces to the matching ones
+    type Interface = { name: string; protocol?: string }
+    const parsed = filters.map((filter) => /^([^:]+):([a-zA-Z]+)(?::(.*))?$/s.exec(filter))
+    const known = (key: string) =>
+      columns.some((column) => column.key === key) || joins.some((join) => join.columns.some((column) => `${join.id}.${column.key}` === key))
+    if (parsed.some((match) => !match || !known(match[1]!)) || filters.length > 20) {
+      return json({ type: 'urn:oea:problem:validation-failed', title: 'Invalid query', status: 400, invalidFields: ['filter'] }, 400)
+    }
+    const holds = (value: string | undefined, operator: string, expected: string | undefined, enumColumn: boolean) => {
+      const fold = (text: string | undefined) => (enumColumn ? text : text?.toLowerCase())
+      const actual = fold(value)
+      const values = (expected ?? '').split(',').map((item) => fold(item.trim()))
+      switch (operator) {
+        case 'eq':
+          return actual === fold(expected)
+        case 'neq':
+          return actual !== fold(expected)
+        case 'contains':
+          return actual?.includes(fold(expected)!) ?? false
+        case 'startsWith':
+          return actual?.startsWith(fold(expected)!) ?? false
+        case 'in':
+          return actual !== undefined && values.includes(actual)
+        case 'notIn':
+          return actual === undefined || !values.includes(actual)
+        case 'isNull':
+          return value === undefined
+        default:
+          return value !== undefined
+      }
+    }
+    const or = query.filterMode === 'or'
+    const primaryFilters = parsed.filter((match) => !/^[0-9a-f-]{36}\./.test(match![1]!))
+    const joinFilters = parsed.filter((match) => /^[0-9a-f-]{36}\./.test(match![1]!))
+    const matchesJoin = (joined: Interface) =>
+      joinFilters.length === 0 ||
+      (or ? joinFilters.some : joinFilters.every).call(joinFilters, (match) =>
+        holds(joined[match![1]!.split('.')[1] as 'name' | 'protocol'], match![2]!, match![3], false),
+      )
+    const filtered = applications
+      .map((application) => ({ ...application, interfaces: (application.interfaces ?? []).filter(matchesJoin) }))
+      .filter((application) => {
+        const tests = [
+          ...primaryFilters.map((match) => holds(valueOf(application, match![1]!), match![2]!, match![3], match![1] === 'status')),
+          ...(joinFilters.length > 0 ? [application.interfaces.length > 0] : []),
+        ]
+        return tests.length === 0 || (or ? tests.some(Boolean) : tests.every(Boolean))
+      })
+    type Expanded = Application & { joined?: Interface }
+    const expanded: Expanded[] = filtered.flatMap((application) =>
       rowsJoin && (application.interfaces ?? []).length > 0
         ? application.interfaces!.map((joined) => ({ ...application, joined }))
         : [{ ...application }],

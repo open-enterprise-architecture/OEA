@@ -4,17 +4,25 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter, type LocationQuery } from 'vue-router'
 import {
   fetchCatalog,
+  filterOf,
+  filterText,
+  MAX_FILTERS,
+  parseFilter,
   queryCatalog,
   type Catalog,
   type CatalogColumn,
   type CatalogColumnConfig,
+  type CatalogFilter,
+  type CatalogFilterMode,
   type CatalogQueryResult,
+  type CatalogSavedFilter,
   type CatalogSort,
   type JoinMode,
 } from '../api/catalogs'
 import { rateLimitMessage, RequestRejected } from '../api/problem'
 import { fetchPropertyDefinitions, type PropertyDefinitionDetail } from '../api/metamodel'
 import CatalogColumnsDialog from '../components/CatalogColumnsDialog.vue'
+import CatalogFilterBar, { type FilterColumn } from '../components/CatalogFilterBar.vue'
 import CatalogJoinsDialog from '../components/CatalogJoinsDialog.vue'
 import CatalogTable from '../components/CatalogTable.vue'
 import { label, labelKeys } from '../i18n/labels'
@@ -22,7 +30,8 @@ import { refreshSession, session } from '../session/store'
 
 // A single catalog with its rows (UC-06, US-049, SCR-020). Sort and page are part of the URL
 // (ADR-044, design D8 of us-049-show-catalog-data), so back navigation and reload restore the view;
-// so is the mode of every join that differs from its default (design D5 of us-048-catalog-joins).
+// so is the mode of every join that differs from its default (design D5 of us-048-catalog-joins)
+// and so are the filters with their combination (design D5 of us-051-catalog-filters).
 // Metatype names, column headers and enum values are shown in the language of the user (US-140).
 const props = defineProps<{ id: string; fetchFn?: typeof fetch }>()
 const route = useRoute()
@@ -38,6 +47,8 @@ const querying = ref(false)
 const definitions = ref<PropertyDefinitionDetail[]>([])
 const configuring = ref(false)
 const joining = ref(false)
+// a saved filter was loaded without expressions on columns the result no longer has (US-052)
+const filterHint = ref<string>()
 // an instance catalog needs catalog:manage; a visible personal catalog is one's own (US-047)
 const canConfigure = computed(
   () =>
@@ -59,6 +70,8 @@ interface View {
   sort?: CatalogSort
   page: number
   modes: Record<string, JoinMode>
+  filters: CatalogFilter[]
+  filterMode: CatalogFilterMode
   invalid: string[]
 }
 
@@ -68,6 +81,27 @@ function viewOf(query: LocationQuery): View {
   let sort: CatalogSort | undefined
   let page = 0
   const modes: Record<string, JoinMode> = {}
+  const filters: CatalogFilter[] = []
+  if (query.filter !== undefined) {
+    const entries = Array.isArray(query.filter) ? query.filter : [query.filter]
+    for (const entry of entries) {
+      // the column check is the server's; an unknown column answers 400
+      const filter = typeof entry === 'string' ? parseFilter(entry) : undefined
+      if (filter && entries.length <= MAX_FILTERS) {
+        filters.push(filter)
+      } else {
+        invalid.push('filter')
+      }
+    }
+  }
+  let filterMode: CatalogFilterMode = 'and'
+  if (query.filterMode !== undefined) {
+    if (query.filterMode === 'or' || query.filterMode === 'and') {
+      filterMode = query.filterMode
+    } else {
+      invalid.push('filterMode')
+    }
+  }
   if (query.mode !== undefined) {
     for (const entry of Array.isArray(query.mode) ? query.mode : [query.mode]) {
       const match = typeof entry === 'string' ? MODE.exec(entry) : null
@@ -93,15 +127,29 @@ function viewOf(query: LocationQuery): View {
       invalid.push('page')
     }
   }
-  return { sort, page, modes, invalid }
+  return { sort, page, modes, filters, filterMode, invalid }
 }
 
 /** Writes the view to the URL without a history entry; defaults are omitted (ADR-044). */
-async function showView(sort: CatalogSort | undefined, page: number, modes: Record<string, JoinMode> = view.value.modes) {
+async function showView(
+  sort: CatalogSort | undefined,
+  page: number,
+  modes: Record<string, JoinMode> = view.value.modes,
+  filters: CatalogFilter[] = view.value.filters,
+  filterMode: CatalogFilterMode = view.value.filterMode,
+) {
   const query: LocationQuery = { ...route.query }
   delete query.sort
   delete query.page
   delete query.mode
+  delete query.filter
+  delete query.filterMode
+  if (filters.length > 0) {
+    query.filter = filters.map(filterText)
+    if (filterMode === 'or') {
+      query.filterMode = 'or'
+    }
+  }
   if (sort) {
     query.sort = `${sort.column}:${sort.direction}`
   }
@@ -135,6 +183,52 @@ async function switchMode(joinId: string, mode: JoinMode) {
 }
 
 const view = computed(() => viewOf(route.query))
+
+/** New filters show the first page; the sort stays (design D5 of us-051-catalog-filters). */
+async function changeFilters(filters: CatalogFilter[], filterMode: CatalogFilterMode) {
+  filterHint.value = undefined
+  await showView(view.value.sort, 0, view.value.modes, filters, filters.length > 1 ? filterMode : 'and')
+}
+
+/** A saved filter replaces the filters of the bar; expressions on columns the result lacks are left out. */
+async function applySaved(saved: CatalogSavedFilter) {
+  const known = new Set(filterColumns.value.map((column) => column.key))
+  const filters = saved.expressions.map(filterOf)
+  const kept = filters.filter((filter) => known.has(filter.key))
+  filterHint.value = kept.length < filters.length ? t('catalog.filters.partlyApplied', { name: saved.name }) : undefined
+  await showView(view.value.sort, 0, view.value.modes, kept, kept.length > 1 ? saved.logicalOperator : 'and')
+}
+
+/** The columns of the result a filter can name, with their translated headers (US-051). */
+const filterColumns = computed<FilterColumn[]>(() => {
+  if (!shown.value) {
+    return []
+  }
+  return [
+    ...shown.value.columns.map((column) => ({ key: column.key, label: column.label, filterType: column.filterType, enumValues: column.enumValues })),
+    ...(shown.value.joins ?? []).flatMap((join) =>
+      join.columns.map((column) => ({
+        key: `${join.id}.${column.key}`,
+        label: column.label,
+        group: join.name,
+        filterType: column.filterType,
+        enumValues: column.enumValues,
+      })),
+    ),
+  ]
+})
+
+/** An enum value in the user's language, by the storage name of its property. */
+function valueLabel(key: string, value: string): string {
+  const property = key.replace(/^(?:source|target|[0-9a-f-]{36})\./, '')
+  const enumValue = byColumn.value.get(property)?.enumValues?.find((candidate) => candidate.value === value)
+  return enumValue ? label(labelKeys.enumValue(enumValue.id), value) : value
+}
+
+/** After saving a filter, the quick selection offers it. */
+function filterSaved(saved: Catalog) {
+  catalog.value = saved
+}
 
 const byColumn = computed(() => new Map(definitions.value.map((definition) => [definition.sqlColumnName, definition])))
 
@@ -244,15 +338,19 @@ async function loadCatalog() {
 }
 
 async function loadRows() {
-  const { sort, page, modes, invalid } = view.value
+  const { sort, page, modes, filters, filterMode, invalid } = view.value
   if (invalid.length > 0) {
-    await showView(undefined, 0, {})
+    await showView(undefined, 0, {}, [], 'and')
     return
   }
   const current = ++latestQuery
   querying.value = true
   try {
-    const outcome = await queryCatalog(props.id, { page: page > 0 ? page : undefined, sort, joinModes: modes }, props.fetchFn)
+    const outcome = await queryCatalog(
+      props.id,
+      { page: page > 0 ? page : undefined, sort, joinModes: modes, filters: filters.map(filterText), filterMode },
+      props.fetchFn,
+    )
     if (current !== latestQuery) {
       return
     }
@@ -264,9 +362,9 @@ async function loadRows() {
         return
       }
       result.value = outcome.value
-    } else if (outcome.rejection.status === 400 && (sort || page > 0 || Object.keys(modes).length > 0)) {
-      // e.g. a sort column the catalog no longer returns or a removed join
-      await showView(undefined, 0, {})
+    } else if (outcome.rejection.status === 400 && (sort || page > 0 || Object.keys(modes).length > 0 || filters.length > 0)) {
+      // e.g. a sort or filter column the catalog no longer returns or a removed join
+      await showView(undefined, 0, {}, [], 'and')
     } else if (outcome.rejection.status === 404) {
       state.value = 'not-found'
     } else {
@@ -296,8 +394,8 @@ async function columnsSaved(saved: Catalog) {
 /** After changing the joins, the table shows them with their default modes (design D5). */
 async function joinsChanged(changed: Catalog) {
   catalog.value = changed
-  if (view.value.sort || view.value.page > 0 || Object.keys(view.value.modes).length > 0) {
-    await showView(undefined, 0, {})
+  if (view.value.sort || view.value.page > 0 || Object.keys(view.value.modes).length > 0 || view.value.filters.length > 0) {
+    await showView(undefined, 0, {}, [], 'and')
   } else {
     await loadRows()
   }
@@ -306,7 +404,7 @@ async function joinsChanged(changed: Catalog) {
 onMounted(loadCatalog)
 watch(() => props.id, loadCatalog)
 watch(
-  () => [route.query.sort, route.query.page, route.query.mode],
+  () => [route.query.sort, route.query.page, route.query.mode, route.query.filter, route.query.filterMode],
   () => {
     if (state.value === 'loaded' && route.path === path) {
       void loadRows()
@@ -375,6 +473,23 @@ watch(
         <p data-testid="catalog-type" class="text-muted">{{ metatypeName }}</p>
         <p v-if="catalog.description" class="text-default">{{ catalog.description }}</p>
       </header>
+
+      <div v-if="shown" class="flex flex-col gap-2">
+        <CatalogFilterBar
+          :catalog-id="catalog.id"
+          :columns="filterColumns"
+          :filters="view.filters"
+          :mode="view.filterMode"
+          :saved-filters="catalog.savedFilters"
+          :can-save="canConfigure"
+          :value-label="valueLabel"
+          :fetch-fn="fetchFn"
+          @change="changeFilters"
+          @apply="applySaved"
+          @saved="filterSaved"
+        />
+        <p v-if="filterHint" data-testid="filter-hint" class="text-sm text-muted">{{ filterHint }}</p>
+      </div>
 
       <CatalogTable
         v-if="shown"
