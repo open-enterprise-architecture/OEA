@@ -124,7 +124,7 @@ Filters are passed as query parameters to `GET /api/v1/catalogs/{id}/query` (cf.
 
 - Endpoints: `POST /api/v1/catalogs/{id}/filters` (`addCatalogFilter`, 201 with the catalog), `DELETE /api/v1/catalogs/{id}/filters/{filterId}` (`removeCatalogFilter`, 200 with the catalog)
 - `in`/`notIn` values: as a JSON array without commas in the request body; as a comma-separated value for runtime filters
-- Realized by OpenSpec change `us-051-catalog-filters`, commit 2e320f3 (#190) (AC1–AC6; AC7 dropped with us-053-saved-views): column keys as `attributePath`, the operators per column type (catalog BR-12), at most 20 filters per query and per saved filter, at most 50 saved filters per catalog, `available` for saved filters whose column is gone; removing a join removes its expressions (BR-04); audit events `catalog.filter-added`, `catalog.filter-removed`. Tests: `CatalogFilterTests`, `CatalogPage.spec.ts`, `features/catalog/catalog-filters.feature`
+- Realized by OpenSpec change `us-051-catalog-filters`, commit 2e320f3 (#190) (AC1–AC6; AC7 dropped with us-053-saved-views, #193): column keys as `attributePath`, the operators per column type (catalog BR-12), at most 20 filters per query and per saved filter, at most 50 saved filters per catalog, `available` for saved filters whose column is gone; removing a join removes its expressions (BR-04); audit events `catalog.filter-added`, `catalog.filter-removed`. Tests: `CatalogFilterTests`, `CatalogPage.spec.ts`, `features/catalog/catalog-filters.feature`
 
 ## Change History
 
