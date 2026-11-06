@@ -41,8 +41,12 @@ async function submit(version = props.category?.version) {
       stale.value = false
       emit('saved')
     } else if (outcome.rejection.problemType === 'stale-version') {
-      stale.value = true
-      await reloadMetamodel(props.fetchFn)
+      // show the warning with the current state of the other change, also if reloading fails
+      try {
+        await reloadMetamodel(props.fetchFn)
+      } finally {
+        stale.value = true
+      }
     } else if (outcome.rejection.problemType === 'name-taken') {
       nameError.value = t('metamodel.error.nameTaken')
     } else {
