@@ -156,13 +156,13 @@ In `rows` mode for the same catalog:
 ## Implementation Notes
 
 - Endpoint: `GET /api/v1/catalogs/{id}/query` (`queryCatalog` in `api/openapi.yaml`); paging and sort follow the contract conventions `PageParam`, `PageSizeParam`, `SortParam` and `PageMeta` (change us-049-show-catalog-data, design D1)
-- Implemented in change us-049-show-catalog-data without joins and filters (AC5, AC6); AC1, AC2 and AC4 with change us-048-catalog-joins; AC3 with change us-051-catalog-filters
+- Implemented in change us-049-show-catalog-data without joins and filters (AC5, AC6); AC1, AC2 and AC4 with change us-048-catalog-joins; AC3 with change us-051-catalog-filters (#190)
 - Invalid paging or sort parameters are answered with 400 (`validation-failed`, `invalidFields`); another person's personal catalog with 404 (ADR-032); soft-deleted entities are not returned (ADR-019); only properties with visibility `public` appear until REQ-160
 - Configured columns (change us-047-configure-columns, commit bd6ef07, #180): the query returns the visible configured columns with their labels and the configured default sort; a column that is not sortable cannot be sorted by (400); enum properties sort by the order of the enum (issue #65)
 - Joins (change us-048-catalog-joins, commit 6c54edb, #183): `joinResults` keyed by join ID, the result lists the available `joins` with name, mode and columns; in `rows` mode paging counts rows, a join column `{joinId}.{key}` is sortable, and several rows joins give their cross product; an unknown join in `joinMode` answers 400 `joinMode`
 - Connection catalogs (change us-080-connection-catalogs, commit 1db957d, #187, REQ-065): with a connection metatype as primary, the rows are its connections; columns `source.{key}` and `target.{key}` show attributes of the source and target and are sortable; the default columns are `source.name`, `name` and `target.name`
 - LEFT JOIN semantics: entities without join hits are returned anyway (not filtered)
-- Filters (change us-051-catalog-filters, REQ-047): `filter={key}:{operator}[:{value}]` per filter on a column key of the result, at most 20, combined by `filterMode=and|or`; for `in`/`notIn` the value is comma-separated. Filters apply before sorting and paging, `totalElements` counts only the passing entries, a filter on a join column restricts the entries and the join results; an invalid filter answers 400 `filter`
+- Filters (change us-051-catalog-filters, commit 2e320f3 (#190), REQ-047): `filter={key}:{operator}[:{value}]` per filter on a column key of the result, at most 20, combined by `filterMode=and|or`; for `in`/`notIn` the value is comma-separated. Filters apply before sorting and paging, `totalElements` counts only the passing entries, a filter on a join column restricts the entries and the join results; an invalid filter answers 400 `filter`
 - Performance: for large repositories an indexed lookup on EntityType + FilterAttributes is necessary; NFR not yet defined (to follow)
 
 ## Change History
