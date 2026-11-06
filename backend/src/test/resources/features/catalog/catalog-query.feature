@@ -41,6 +41,13 @@ Feature: Catalog query
     When the viewer queries the catalog "Large Inventory"
     Then the catalog shows 50 rows on page 1 of 3
 
+  @US-051 @AC1 @REQ-046 @AC3
+  Scenario: Filtered total
+    Given 120 applications with the prefix "Counted" exist, 30 of them with the status "active"
+    And the enterprise architect has created the catalog "Filtered Count" with scope "instance"
+    When the viewer filters the catalog "Filtered Count" by "status:eq:active"
+    Then the filtered catalog shows 30 rows and a total of 30 entries on 1 page
+
   @US-049 @AC2 @AC3 @REQ-046 @AC5
   Scenario: Sort descending by name
     Given the applications "CRM System", "ERP" and "Intranet" exist with the status "active"

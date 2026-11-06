@@ -2,7 +2,7 @@
 
 ## 1. Contract
 
-- [ ] 1.1 Update `api/openapi.yaml` (design D1):
+- [x] 1.1 Update `api/openapi.yaml` (design D1):
   - the parameters `filter` and `filterMode` of `queryCatalog`, `filter` in `CatalogQueryProblem` and the description;
   - `addCatalogFilter` and `removeCatalogFilter` with `CatalogSavedFilterInput`, the condition for instance catalogs and the responses;
   - `CatalogFilterExpression` and `CatalogSavedFilter` as implemented, with `available`.
@@ -11,11 +11,11 @@
 
 ## 2. Backend
 
-- [ ] 2.1 Filter parsing and validation in `CatalogQueries` (D2): keys of visible primary, endpoint and join columns, operators per type, values, at most 20 filters, 400 `filter`. Verify with tests in a new `CatalogFilterTests`:
+- [x] 2.1 Filter parsing and validation in `CatalogQueries` (D2): keys of visible primary, endpoint and join columns, operators per type, values, at most 20 filters, 400 `filter`. Verify with tests in a new `CatalogFilterTests`:
   - each type with its operators;
   - unknown keys, operators and values;
   - an enum value outside the enum.
-- [ ] 2.2 Conditions in `CatalogQueryStore` (D3): primary and endpoint conditions; join conditions as `EXISTS` and in the aggregate and lateral statements; AND and OR; `count`. Verify with tests in `CatalogFilterTests`:
+- [x] 2.2 Conditions in `CatalogQueryStore` (D3): primary and endpoint conditions; join conditions as `EXISTS` and in the aggregate and lateral statements; AND and OR; `count`. Verify with tests in `CatalogFilterTests`:
   - "Active applications only" with the total;
   - `contains` ignoring case;
   - a date before;
@@ -24,14 +24,14 @@
   - source contains CRM;
   - AND and OR;
   - filtered paging.
-- [ ] 2.3 Saved filters in `Catalogs` (D4): add and remove with validation (D2 rules, name, limits), storage in `config.savedFilters`, `available`, the cleanup on `removeJoin`, the permission rule and the audit events. Add the controller methods with `@ConditionsEnforcedByHandler`. Verify with tests in `CatalogFilterTests`:
+- [x] 2.3 Saved filters in `Catalogs` (D4): add and remove with validation (D2 rules, name, limits), storage in `config.savedFilters`, `available`, the cleanup on `removeJoin`, the permission rule and the audit events. Add the controller methods with `@ConditionsEnforcedByHandler`. Verify with tests in `CatalogFilterTests`:
   - save and read back;
   - 422 for an unknown attribute, a taken name and an empty list;
   - 403 for `viewer`, and success in the own personal catalog;
   - removal;
   - the join removal cleanup;
   - the audit events.
-- [ ] 2.4 Cucumber: a new `features/catalog/catalog-filters.feature` with the scenarios of `catalog/catalog-filters` that the API can show, and "Filtered total" in `catalog-query.feature` (US-051 AC1–AC4, US-052 AC1–AC4, US-080 AC5, AC6). Verify with the `CucumberIT` run.
+- [x] 2.4 Cucumber: a new `features/catalog/catalog-filters.feature` with the scenarios of `catalog/catalog-filters` that the API can show, and "Filtered total" in `catalog-query.feature` (US-051 AC1–AC4, US-052 AC1–AC4, US-080 AC5, AC6). Verify with the `CucumberIT` run.
 
 ## 3. Web portal
 

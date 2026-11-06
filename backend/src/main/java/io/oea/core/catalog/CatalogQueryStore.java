@@ -3,8 +3,10 @@ package io.oea.core.catalog;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,8 +32,56 @@ public class CatalogQueryStore {
 		this.jdbc = jdbc;
 	}
 
-	/** A property shown as a column. */
-	public record PropertyColumn(UUID propertyDefId, String sqlColumnName, String name) {
+	/**
+	 * A property shown as a column, with its data type ({@code string}, {@code integer},
+	 * {@code boolean}, {@code enum}, {@code reference}, {@code date}, {@code url} or {@code text}).
+	 */
+	public record PropertyColumn(UUID propertyDefId, String sqlColumnName, String name, String dataType) {
+	}
+
+	/** The type of a filtered value, which decides its SQL comparison (design D2 of us-051-catalog-filters). */
+	public enum ValueType {
+
+		TEXT, ENUM, BOOLEAN, NUMBER, DATE
+
+	}
+
+	/** The operator of a filter condition. */
+	public enum Operator {
+
+		EQ, NEQ, CONTAINS, STARTS_WITH, IN, NOT_IN, IS_NULL, IS_NOT_NULL, GT, LT, GTE, LTE
+
+	}
+
+	/**
+	 * A filter condition on a column (design D3 of us-051-catalog-filters): {@code values} holds
+	 * the typed comparison values ({@link String}, {@link Long}, {@link LocalDate} or
+	 * {@link Boolean}), several for {@code IN} and {@code NOT_IN}, none for {@code IS_NULL} and
+	 * {@code IS_NOT_NULL}; text values are compared ignoring case.
+	 */
+	public record Condition(QueryColumn column, ValueType type, Operator operator, List<Object> values) {
+
+		public Condition {
+			values = List.copyOf(values);
+		}
+
+	}
+
+	/**
+	 * The filter of a query: the conditions on primary columns, the aggregate joins with
+	 * conditions (their conditions in {@link Join#conditions}) and whether any condition suffices
+	 * ({@code or}) instead of all; rows joins carry their conditions themselves.
+	 */
+	public record Filter(List<Condition> conditions, List<Join> aggregateJoins, boolean or) {
+
+		/** No filter. */
+		public static final Filter NONE = new Filter(List.of(), List.of(), false);
+
+		public Filter {
+			conditions = List.copyOf(conditions);
+			aggregateJoins = List.copyOf(aggregateJoins);
+		}
+
 	}
 
 	/** A field every entity has (US-047), with its text form and its sort expression per alias. */
@@ -104,9 +154,21 @@ public class CatalogQueryStore {
 	/**
 	 * A join (design D3 of us-048-catalog-joins): the active target entities of exactly the target
 	 * metatype, reached through active connections of the connection metatype, with their columns.
+	 * The {@code conditions} on target columns narrow the results to the matching targets, all of
+	 * them or, with {@code anyCondition}, one of them (design D3 of us-051-catalog-filters).
 	 */
-	public record Join(UUID connectionMetatypeId, Direction direction, UUID targetMetatypeId,
-			List<QueryColumn> columns) {
+	public record Join(UUID connectionMetatypeId, Direction direction, UUID targetMetatypeId, List<QueryColumn> columns,
+			List<Condition> conditions, boolean anyCondition) {
+
+		public Join {
+			columns = List.copyOf(columns);
+			conditions = List.copyOf(conditions);
+		}
+
+		public Join(UUID connectionMetatypeId, Direction direction, UUID targetMetatypeId, List<QueryColumn> columns) {
+			this(connectionMetatypeId, direction, targetMetatypeId, columns, List.of(), false);
+		}
+
 	}
 
 	/**
@@ -158,7 +220,7 @@ public class CatalogQueryStore {
 				    SELECT ?::uuid
 				    UNION SELECT m.base_metatype_id FROM metatypes m JOIN chain c ON m.id = c.id
 				    WHERE m.base_metatype_id IS NOT NULL)
-				SELECT p.id, p.sql_column_name, p.name
+				SELECT p.id, p.sql_column_name, p.name, p.data_type
 				FROM (SELECT DISTINCT ON (property_def_id) property_def_id
 				      FROM metatype_property_mappings WHERE metatype_id IN (SELECT id FROM chain) AND valid_from <= ?
 				      ORDER BY property_def_id, valid_from DESC) active
@@ -166,7 +228,7 @@ public class CatalogQueryStore {
 				WHERE p.visibility_mode = 'public' AND p.retired_at IS NULL
 				ORDER BY lower(p.name), p.id""", (rs) -> {
 			UUID id = rs.getObject(1, UUID.class);
-			properties.put(id, new PropertyColumn(id, rs.getString(2), rs.getString(3)));
+			properties.put(id, new PropertyColumn(id, rs.getString(2), rs.getString(3), rs.getString(4)));
 		}, metatypeId, Date.valueOf(date));
 		return properties;
 	}
@@ -196,18 +258,32 @@ public class CatalogQueryStore {
 				    SELECT id FROM allowed
 				    UNION SELECT m.base_metatype_id FROM metatypes m JOIN chain c ON m.id = c.id
 				    WHERE m.base_metatype_id IS NOT NULL)
-				SELECT p.id, p.sql_column_name, p.name
+				SELECT p.id, p.sql_column_name, p.name, p.data_type
 				FROM (SELECT DISTINCT ON (metatype_id, property_def_id) property_def_id
 				      FROM metatype_property_mappings WHERE metatype_id IN (SELECT id FROM chain) AND valid_from <= ?
 				      ORDER BY metatype_id, property_def_id, valid_from DESC) active
 				JOIN property_definitions p ON p.id = active.property_def_id
 				WHERE p.visibility_mode = 'public' AND p.retired_at IS NULL
-				GROUP BY p.id, p.sql_column_name, p.name
+				GROUP BY p.id, p.sql_column_name, p.name, p.data_type
 				ORDER BY lower(p.name), p.id""", (rs) -> {
 			UUID id = rs.getObject(1, UUID.class);
-			properties.put(id, new PropertyColumn(id, rs.getString(2), rs.getString(3)));
+			properties.put(id, new PropertyColumn(id, rs.getString(2), rs.getString(3), rs.getString(4)));
 		}, connectionMetatypeId, side, connectionMetatypeId, connectionMetatypeId, side, Date.valueOf(date));
 		return properties;
+	}
+
+	/** The values of each enum property in the order of the enum; a property without values has no entry. */
+	public Map<UUID, List<String>> enumValues(Collection<UUID> propertyDefIds) {
+		Map<UUID, List<String>> values = new LinkedHashMap<>();
+		if (propertyDefIds.isEmpty()) {
+			return values;
+		}
+		this.jdbc.query("""
+				SELECT property_def_id, value FROM property_enum_values WHERE property_def_id = ANY(?)
+				ORDER BY property_def_id, sort_order, value""", (rs) -> {
+			values.computeIfAbsent(rs.getObject(1, UUID.class), (key) -> new ArrayList<>()).add(rs.getString(2));
+		}, (Object) propertyDefIds.toArray(UUID[]::new));
+		return values;
 	}
 
 	/** Whether the metatype is a connection metatype; {@code false} for an unknown one. */
@@ -223,10 +299,11 @@ public class CatalogQueryStore {
 	 * One page of rows: active entities of the metatype, expanded by the rows joins (their cross
 	 * product, an entity without results keeps one row). Rows without a value in the sort column
 	 * come last in both directions; enum values follow the order of the enum, values outside it
-	 * come after them (#65); ties are ordered by name and ID, then by the join results.
+	 * come after them (#65); ties are ordered by name and ID, then by the join results. Only rows
+	 * passing the filter are returned (design D3 of us-051-catalog-filters).
 	 */
-	public List<Row> page(UUID metatypeId, List<QueryColumn> columns, List<Join> rowsJoins, Sort sort, long offset,
-			int limit) {
+	public List<Row> page(UUID metatypeId, List<QueryColumn> columns, List<Join> rowsJoins, Filter filter, Sort sort,
+			long offset, int limit) {
 		Statement sql = new Statement("SELECT e.id, e.name");
 		for (int i = 0; i < columns.size(); i++) {
 			sql.text(", ").text(text(columns.get(i), alias(columns.get(i)), "v" + i));
@@ -239,13 +316,7 @@ public class CatalogQueryStore {
 			}
 		}
 		sql.text(" FROM entities e");
-		if (columns.stream().anyMatch((column) -> column.endpoint() != null)) {
-			sql.text(" LEFT JOIN entity_connections ec ON ec.entity_id = e.id");
-			for (Endpoint side : Endpoint.values()) {
-				sql.text(" LEFT JOIN entities %1$s ON %1$s.id = ec.%2$s AND %1$s.deleted_at IS NULL"
-					.formatted(side.alias, side.column));
-			}
-		}
+		endpoints(sql, columns, filter);
 		values(sql, columns, "e", "v");
 		for (int j = 0; j < rowsJoins.size(); j++) {
 			lateral(sql, rowsJoins.get(j), j);
@@ -270,7 +341,8 @@ public class CatalogQueryStore {
 			sql.text(" LEFT JOIN property_enum_values eo ON eo.property_def_id = %1$s.property_def_id"
 				.formatted(valueAlias) + " AND eo.value = %1$s.value_enum".formatted(valueAlias));
 		}
-		sql.text(" WHERE e.metatype_id = ? AND e.deleted_at IS NULL ORDER BY ").arg(metatypeId);
+		where(sql, metatypeId, rowsJoins, filter);
+		sql.text(" ORDER BY ");
 		String direction = sort.descending() ? "DESC" : "ASC";
 		if (sorted == null || (sort.join() == null && sorted.endpoint() == null && sorted.field() == SystemField.NAME)) {
 			sql.text("lower(e.name) %s, e.id".formatted(direction));
@@ -311,20 +383,24 @@ public class CatalogQueryStore {
 		}, sql.args());
 	}
 
-	/** The number of rows of {@link #page}: active entities, expanded by the rows joins. */
-	public long count(UUID metatypeId, List<Join> rowsJoins) {
+	/**
+	 * The number of rows of {@link #page}: active entities, expanded by the rows joins, that pass
+	 * the filter.
+	 */
+	public long count(UUID metatypeId, List<Join> rowsJoins, Filter filter) {
 		Statement sql = new Statement("SELECT count(*) FROM entities e");
+		endpoints(sql, List.of(), filter);
 		for (int j = 0; j < rowsJoins.size(); j++) {
 			lateral(sql, rowsJoins.get(j), j);
 		}
-		sql.text(" WHERE e.metatype_id = ? AND e.deleted_at IS NULL").arg(metatypeId);
+		where(sql, metatypeId, rowsJoins, filter);
 		Long count = this.jdbc.queryForObject(sql.toString(), Long.class, sql.args());
 		return (count != null) ? count : 0;
 	}
 
 	/** The number of active entities of the metatype. */
 	public long count(UUID metatypeId) {
-		return count(metatypeId, List.of());
+		return count(metatypeId, List.of(), Filter.NONE);
 	}
 
 	/**
@@ -345,6 +421,7 @@ public class CatalogQueryStore {
 		sql.text(") p JOIN entities t ON t.id = p.tid AND t.metatype_id = ? AND t.deleted_at IS NULL")
 			.arg(join.targetMetatypeId());
 		values(sql, join.columns(), "t", "tv");
+		narrow(sql, join, "t");
 		sql.text(" ORDER BY p.pid, lower(t.name), t.id");
 		this.jdbc.query(sql.toString(), (rs) -> {
 			List<String> values = new ArrayList<>(join.columns().size());
@@ -386,8 +463,171 @@ public class CatalogQueryStore {
 		sql.text(" LEFT JOIN LATERAL (SELECT t.id, t.name, t.description, t.external_id, t.created_at, t.updated_at,"
 				+ " t.version FROM (");
 		pairs(sql, join, "= e.id", null);
-		sql.text(") p JOIN entities t ON t.id = p.tid AND t.metatype_id = ? AND t.deleted_at IS NULL) j%d ON true"
-			.formatted(n)).arg(join.targetMetatypeId());
+		sql.text(") p JOIN entities t ON t.id = p.tid AND t.metatype_id = ? AND t.deleted_at IS NULL")
+			.arg(join.targetMetatypeId());
+		narrow(sql, join, "t");
+		sql.text(") j%d ON true".formatted(n));
+	}
+
+	/** The value joins and the {@code WHERE} of the join's conditions on its target {@code alias}, if any. */
+	private static void narrow(Statement sql, Join join, String alias) {
+		if (!join.conditions().isEmpty()) {
+			values(sql, join.conditions().stream().map(Condition::column).toList(), alias, alias + "f");
+			sql.text(" WHERE ");
+			predicates(sql, join.conditions(), alias, alias + "f", join.anyCondition());
+		}
+	}
+
+	/**
+	 * The source and target of the connection as {@code es} and {@code et}, if a column shows or
+	 * a condition tests one of them.
+	 */
+	private static void endpoints(Statement sql, List<QueryColumn> columns, Filter filter) {
+		if (columns.stream().anyMatch((column) -> column.endpoint() != null)
+				|| filter.conditions().stream().anyMatch((condition) -> condition.column().endpoint() != null)) {
+			sql.text(" LEFT JOIN entity_connections ec ON ec.entity_id = e.id");
+			for (Endpoint side : Endpoint.values()) {
+				sql.text(" LEFT JOIN entities %1$s ON %1$s.id = ec.%2$s AND %1$s.deleted_at IS NULL"
+					.formatted(side.alias, side.column));
+			}
+		}
+	}
+
+	/**
+	 * The property value joins of the filter's primary conditions ({@code f<i>}) and the
+	 * {@code WHERE} clause: active entities of the metatype that pass the filter. A rows join with
+	 * conditions holds only matching targets, so its condition is having a result
+	 * ({@code j<n>.id}); an aggregate join's is an {@code EXISTS} over its matching targets.
+	 */
+	private static void where(Statement sql, UUID metatypeId, List<Join> rowsJoins, Filter filter) {
+		values(sql, filter.conditions().stream().map(Condition::column).toList(), "e", "f");
+		sql.text(" WHERE e.metatype_id = ? AND e.deleted_at IS NULL").arg(metatypeId);
+		List<Runnable> parts = new ArrayList<>();
+		for (int i = 0; i < filter.conditions().size(); i++) {
+			Condition condition = filter.conditions().get(i);
+			String valueAlias = "f" + i;
+			parts.add(() -> predicate(sql, condition, alias(condition.column()), valueAlias));
+		}
+		for (int j = 0; j < rowsJoins.size(); j++) {
+			if (!rowsJoins.get(j).conditions().isEmpty()) {
+				String result = "j%d.id IS NOT NULL".formatted(j);
+				parts.add(() -> sql.text(result));
+			}
+		}
+		for (int j = 0; j < filter.aggregateJoins().size(); j++) {
+			Join join = filter.aggregateJoins().get(j);
+			String target = "x" + j;
+			parts.add(() -> {
+				sql.text("EXISTS (SELECT 1 FROM (");
+				pairs(sql, join, "= e.id", null);
+				sql.text(") p JOIN entities %1$s ON %1$s.id = p.tid AND %1$s.metatype_id = ? AND %1$s.deleted_at IS NULL"
+					.formatted(target)).arg(join.targetMetatypeId());
+				narrow(sql, join, target);
+				sql.text(")");
+			});
+		}
+		if (parts.isEmpty()) {
+			return;
+		}
+		sql.text(" AND (");
+		for (int i = 0; i < parts.size(); i++) {
+			sql.text((i == 0) ? "" : filter.or() ? " OR " : " AND ");
+			parts.get(i).run();
+		}
+		sql.text(")");
+	}
+
+	/** The conditions on the target {@code alias} of a join, combined with AND or, with {@code any}, OR. */
+	private static void predicates(Statement sql, List<Condition> conditions, String alias, String prefix,
+			boolean any) {
+		sql.text("(");
+		for (int i = 0; i < conditions.size(); i++) {
+			sql.text((i == 0) ? "" : any ? " OR " : " AND ");
+			predicate(sql, conditions.get(i), alias, prefix + i);
+		}
+		sql.text(")");
+	}
+
+	/**
+	 * The predicate of a condition on the entity {@code alias} with its property value under
+	 * {@code valueAlias} (design D3 of us-051-catalog-filters). The empty tests use the text form;
+	 * {@code NEQ} and {@code NOT_IN} also hold for an entity without a value.
+	 */
+	private static void predicate(Statement sql, Condition condition, String alias, String valueAlias) {
+		QueryColumn column = condition.column();
+		if (condition.operator() == Operator.IS_NULL || condition.operator() == Operator.IS_NOT_NULL) {
+			sql.text("(%s IS %sNULL)".formatted(text(column, alias, valueAlias),
+					(condition.operator() == Operator.IS_NULL) ? "" : "NOT "));
+			return;
+		}
+		boolean text = condition.type() == ValueType.TEXT;
+		String typed = typed(column, condition.type(), alias, valueAlias);
+		String value = text ? "lower(" + typed + ")" : typed;
+		List<Object> args = condition.values().stream().map((arg) -> bind(arg, text)).toList();
+		switch (condition.operator()) {
+			case EQ -> sql.text("(%s = ?)".formatted(value)).arg(args.get(0));
+			case NEQ -> sql.text("(%s IS DISTINCT FROM ?)".formatted(value)).arg(args.get(0));
+			case GT -> sql.text("(%s > ?)".formatted(value)).arg(args.get(0));
+			case LT -> sql.text("(%s < ?)".formatted(value)).arg(args.get(0));
+			case GTE -> sql.text("(%s >= ?)".formatted(value)).arg(args.get(0));
+			case LTE -> sql.text("(%s <= ?)".formatted(value)).arg(args.get(0));
+			case CONTAINS -> sql.text("(%s LIKE '%%' || ? || '%%' ESCAPE '\\')".formatted(value))
+				.arg(like((String) args.get(0)));
+			case STARTS_WITH -> sql.text("(%s LIKE ? || '%%' ESCAPE '\\')".formatted(value))
+				.arg(like((String) args.get(0)));
+			case IN -> sql.text("(%s = ANY(?))".formatted(value)).arg(array(args));
+			case NOT_IN -> sql.text("(%1$s IS NULL OR %1$s <> ALL(?))".formatted(value)).arg(array(args));
+			default -> throw new IllegalArgumentException("operator " + condition.operator());
+		}
+	}
+
+	/** The typed value of a column: a system field's own column, else the property's typed column. */
+	private static String typed(QueryColumn column, ValueType type, String alias, String valueAlias) {
+		if (column.field() != null) {
+			return switch (column.field()) {
+				case NAME -> alias + ".name";
+				case DESCRIPTION -> "nullif(" + alias + ".description, '')";
+				case EXTERNAL_ID -> alias + ".external_id";
+				case CREATED_AT -> "(" + alias + ".created_at AT TIME ZONE 'UTC')::date";
+				case UPDATED_AT -> "(" + alias + ".updated_at AT TIME ZONE 'UTC')::date";
+				case ENTITY_VERSION -> alias + ".version";
+			};
+		}
+		return switch (type) {
+			case TEXT -> valueAlias + ".value_text";
+			case ENUM -> valueAlias + ".value_enum";
+			case BOOLEAN -> valueAlias + ".value_bool";
+			case DATE -> valueAlias + ".value_date";
+			case NUMBER -> "reference".equals(column.property().dataType()) ? valueAlias + ".value_ref"
+					: valueAlias + ".value_int";
+		};
+	}
+
+	/** A comparison value as JDBC argument; text in lower case if {@code lower}. */
+	private static Object bind(Object value, boolean lower) {
+		if (value instanceof String text) {
+			return lower ? text.toLowerCase(Locale.ROOT) : text;
+		}
+		if (value instanceof LocalDate date) {
+			return Date.valueOf(date);
+		}
+		return value;
+	}
+
+	/** The values of {@code IN} and {@code NOT_IN} as SQL array argument. */
+	private static Object array(List<Object> values) {
+		if (values.stream().allMatch(String.class::isInstance)) {
+			return values.toArray(String[]::new);
+		}
+		if (values.stream().allMatch(Long.class::isInstance)) {
+			return values.toArray(Long[]::new);
+		}
+		return values.toArray(Date[]::new);
+	}
+
+	/** The value with the wildcards of {@code LIKE} escaped. */
+	private static String like(String value) {
+		return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
 	}
 
 	/**

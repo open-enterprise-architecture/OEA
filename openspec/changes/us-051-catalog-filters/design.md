@@ -40,6 +40,8 @@
   - `value` is a string, or an array of strings for `in`/`notIn`, or absent;
   - `CatalogSavedFilter` gains `available`, as for joins: `false` if an expression names a column the catalog no longer shows.
 - **`Catalog.savedFilters`:** loses the "follow later" note.
+- **`CatalogColumn`** (added during implementation): `filterType` (`text`, `enum`, `boolean`, `number`, `date`) and, for an enum column, `enumValues`, so that the filter bar offers the operators and values of each column without reading the metamodel.
+- **`filterMode`** is an inline string enum, and the backend reads the `filter` values from the request as sent, because the bound list would split a single value at the commas of `in`/`notIn`.
 
 ### D2 Filter model and validation
 
@@ -117,6 +119,16 @@
 - **`docs/audit-event-catalog.md`:** the two events.
 
 No migration.
+
+### D7 Hardening (security review of the implementation)
+
+- **Values:** no control characters, and a date year from 1 to 9999. Otherwise the database would reject them with a 500 instead of 400 or 422.
+- **Saved filters:**
+  - a name without control characters, and a description without a NUL character;
+  - list values without commas, since the query separates them by commas;
+  - every expression fits the query parameter (2000 characters as `{attributePath}:{operator}:{value}`).
+- **Concurrent changes:** the write operations lock the catalog row (`SELECT … FOR UPDATE`), so that concurrent changes of `config` do not overwrite each other.
+- **Statement timeout:** a timeout for expensive filter combinations belongs to change 7 (#66), as it concerns every query.
 
 ## Risks / Trade-offs
 

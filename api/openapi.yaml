@@ -325,6 +325,11 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    FilterIdParam:
+      name: filterId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     LocaleParam:
       name: locale
       in: path
@@ -471,7 +476,7 @@ components:
             savedFilters:
               type: array
               readOnly: true
-              description: Saved filters; follow later and are always empty until then
+              description: Saved filters in creation order (US-052); changed through the filter operations
               items: { $ref: '#/components/schemas/CatalogSavedFilter' }
             savedViews:
               type: array
@@ -564,27 +569,68 @@ components:
               readOnly: true
               description: "`false` if a metatype of the join is gone or no longer reachable; the query leaves it out"
 
+    CatalogFilterOperator:
+      type: string
+      enum: [eq, neq, contains, startsWith, in, notIn, isNull, isNotNull, gt, lt, gte, lte]
+      description: |
+        Operator of a filter (US-051, REQ-047, catalog BR-12). By the filter type of the column:
+        `text` takes `eq`, `neq`, `contains`, `startsWith`, `in`, `notIn`, `isNull`, `isNotNull`;
+        `enum` takes `eq`, `neq`, `in`, `notIn`, `isNull`, `isNotNull`; `boolean` takes `eq`,
+        `neq`, `isNull`, `isNotNull`; `number` and `date` take `eq`, `neq`, `gt`, `lt`, `gte`,
+        `lte`, `isNull`, `isNotNull`. Text comparisons ignore case; `neq` and `notIn` also hold
+        for an entry without a value.
+
     CatalogFilterExpression:
       type: object
       required: [attributePath, operator]
       properties:
-        attributePath: { type: string, description: "Attribute of the primary or a joined entity, e.g. `status` or `dataFlow.protocol`" }
-        operator:      { type: string, enum: [eq, neq, contains, startsWith, in, notIn, isNull, isNotNull, gt, lt, gte, lte] }
-        value:         { description: "Comparison value; empty for `isNull`/`isNotNull`, an array for `in`/`notIn`" }
+        attributePath:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: |
+            Column key of the query result (`CatalogColumn.key`): `name`, the `sqlColumnName` of a
+            property, `source.{key}` or `target.{key}` (US-080), or `{joinId}.{key}` for a column
+            of a join
+        operator: { $ref: '#/components/schemas/CatalogFilterOperator' }
+        value:
+          description: |
+            Comparison value: a string (a number, a date `yyyy-MM-dd` with a year from 1 to 9999,
+            `true`/`false` or an enum value by the filter type), an array of 1–100 strings
+            without commas for `in`/`notIn`, missing for `isNull`/`isNotNull`. A value has 1–1000
+            characters and no control characters; the expression as query filter
+            (`{attributePath}:{operator}:{value}`) has at most 2000 characters.
 
-    CatalogSavedFilter:
+    CatalogSavedFilterInput:
       type: object
-      description: A saved filter (follows later; business object `catalog`)
-      required: [id, name, logicalOperator, expressions]
+      description: A saved filter (US-052, REQ-047; business object `catalog`, BR-04, BR-12)
+      required: [name, logicalOperator, expressions]
       properties:
-        id:              { type: string, format: uuid }
-        name:            { type: string }
-        description:     { type: [string, 'null'] }
-        logicalOperator: { type: string, enum: [and, or] }
+        name:            { type: string, minLength: 1, maxLength: 100, description: "Unique in the catalog regardless of case" }
+        description:     { type: [string, 'null'], maxLength: 1000 }
+        logicalOperator: { $ref: '#/components/schemas/CatalogFilterMode' }
         expressions:
           type: array
           minItems: 1
+          maxItems: 20
           items: { $ref: '#/components/schemas/CatalogFilterExpression' }
+
+    CatalogSavedFilter:
+      allOf:
+        - $ref: '#/components/schemas/CatalogSavedFilterInput'
+        - type: object
+          required: [id, available]
+          properties:
+            id:        { type: string, format: uuid, readOnly: true }
+            available:
+              type: boolean
+              readOnly: true
+              description: "`false` if an expression names a column the query no longer returns"
+
+    CatalogFilterMode:
+      type: string
+      enum: [and, or]
+      description: "`and`: an entry passes if every filter holds; `or`: if any holds"
 
     CatalogJoinModeOverride:
       type: object
@@ -625,13 +671,25 @@ components:
 
     CatalogColumn:
       type: object
-      required: [key, label, sortable]
+      required: [key, label, sortable, filterType]
       properties:
         key:
           type: string
-          description: Key of the column in `CatalogRow.values` and in the `sort` parameter (`name` or the `sqlColumnName` of a property; `source.{key}` or `target.{key}` for an attribute of the connection's source or target, US-080)
+          description: Key of the column in `CatalogRow.values` and in the `sort` and `filter` parameters (`name` or the `sqlColumnName` of a property; `source.{key}` or `target.{key}` for an attribute of the connection's source or target, US-080)
         label:    { type: string, description: Column header }
         sortable: { type: boolean }
+        filterType:
+          type: string
+          enum: [text, enum, boolean, number, date]
+          description: |
+            Type of the column's values that decides the filter operators (`CatalogFilterOperator`):
+            `name`, `description` and `externalId` are `text`, `createdAt` and `updatedAt` are
+            `date` (the UTC day), `entityVersion` is `number`; a property of type `string`, `text`
+            or `url` is `text`, `integer` and `reference` (by entity ID) are `number`
+        enumValues:
+          type: array
+          description: The values of an `enum` column in the order of the enum; missing for other types
+          items: { type: string }
 
     CatalogRow:
       type: object
@@ -710,7 +768,7 @@ components:
           properties:
             invalidFields:
               type: array
-              items: { type: string, enum: [page, pageSize, sort, joinMode] }
+              items: { type: string, enum: [page, pageSize, sort, joinMode, filter, filterMode] }
 
     # ── Metatype ───────────────────────────────────────────────────────────────
     MetamodelScope:
@@ -4254,8 +4312,9 @@ paths:
       operationId: removeCatalogJoin
       summary: Remove a join from a catalog (US-048, REQ-045)
       description: |
-        Removes the join and the join mode overrides of saved views that refer to it.
-        Permissions as for `addCatalogJoin`; an unknown join answers 404. Writes the audit
+        Removes the join, the join mode overrides of saved views that refer to it and the
+        saved-filter expressions on its columns; a saved filter left without expressions is
+        removed (BR-04). Permissions as for `addCatalogJoin`; an unknown join answers 404. Writes the audit
         event `catalog.join-removed`.
       tags: [Catalogs]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "the catalog has scope 'instance' (another person's personal catalog is never changeable)", "permissions": ["catalog:manage"]}]}
@@ -4265,6 +4324,67 @@ paths:
       responses:
         '200':
           description: The catalog without the join
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Catalog' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /catalogs/{id}/filters:
+    post:
+      operationId: addCatalogFilter
+      summary: Save a filter in a catalog (US-052, REQ-047)
+      description: |
+        Appends a saved filter with a new ID. Every expression names a column key the query of
+        the catalog returns (with every available join), an operator of the column's filter
+        type and a valid value (BR-04, BR-12). A catalog has at most 50 saved filters.
+        Validation errors answer 422 with `invalidFields`, e.g. `name` for a blank or taken
+        name, `expressions` for none or more than 20, or `expressions[0].attributePath`,
+        `expressions[0].operator` or `expressions[0].value`. Permissions as for
+        `updateCatalogColumns`. Writes the audit event `catalog.filter-added`.
+      tags: [Catalogs]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "the catalog has scope 'instance' (another person's personal catalog is never changeable)", "permissions": ["catalog:manage"]}]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogSavedFilterInput' }
+      responses:
+        '201':
+          description: The catalog with the new saved filter
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Catalog' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: Invalid saved filter (problem type `urn:oea:problem:validation-failed`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /catalogs/{id}/filters/{filterId}:
+    delete:
+      operationId: removeCatalogFilter
+      summary: Remove a saved filter from a catalog (US-052, REQ-047)
+      description: |
+        Removes the saved filter. Permissions as for `addCatalogFilter`; an unknown filter
+        answers 404. Writes the audit event `catalog.filter-removed`.
+      tags: [Catalogs]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "the catalog has scope 'instance' (another person's personal catalog is never changeable)", "permissions": ["catalog:manage"]}]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/FilterIdParam'
+      responses:
+        '200':
+          description: The catalog without the saved filter
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Catalog' }
@@ -4306,6 +4426,17 @@ paths:
         connection's source and target and are sortable like other columns; a deleted endpoint
         gives empty values. Without configured columns, the columns are `source.name`, `name`,
         `target.name` and the `Status` property as above.
+
+        Filters (US-051, US-080 AC5, AC6): every `filter` is `{key}:{operator}[:{value}]` with
+        a column key of the result (`columns`, `source.{key}`, `target.{key}` or
+        `{joinId}.{key}` of a join's columns), an operator of the column's `filterType` and a
+        value; everything after the second colon is the value, a comma-separated list for
+        `in`/`notIn`, missing for `isNull`/`isNotNull`. At most 20 filters apply; `filterMode`
+        combines them (default `and`). A filter on a join column keeps only entries with a
+        matching join result and narrows the join's results to the matching ones, in both
+        modes; with `or`, an entry passes if any filter holds. Filters apply before sorting
+        and paging, and `totalElements` counts only the entries that pass. An unknown column,
+        an operator not allowed for the column or an invalid value answers 400 `filter`.
       tags: [Catalogs]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
@@ -4321,6 +4452,19 @@ paths:
           schema:
             type: object
             additionalProperties: { $ref: '#/components/schemas/JoinMode' }
+        - name: filter
+          in: query
+          style: form
+          explode: true
+          description: "A filter `{key}:{operator}[:{value}]`, repeated per filter, e.g. `filter=status:eq:active`"
+          schema:
+            type: array
+            maxItems: 20
+            items: { type: string, maxLength: 2000 }
+        - name: filterMode
+          in: query
+          description: "How the filters combine: `and` (every filter holds) or `or` (any holds)"
+          schema: { type: string, enum: [and, or] }
       responses:
         '200':
           description: One page of catalog rows
@@ -4329,9 +4473,9 @@ paths:
               schema: { $ref: '#/components/schemas/CatalogQueryResult' }
         '400':
           description: |
-            Invalid paging, sort or join mode parameters (problem type `urn:oea:problem:validation-failed`),
-            e.g. an unknown sort column, several sort pairs, a page size above 200 or an unknown join;
-            `invalidFields` names the rejected parameters.
+            Invalid paging, sort, join mode or filter parameters (problem type `urn:oea:problem:validation-failed`),
+            e.g. an unknown sort column, several sort pairs, a page size above 200, an unknown join
+            or a filter on an unknown column; `invalidFields` names the rejected parameters.
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/CatalogQueryProblem' }
