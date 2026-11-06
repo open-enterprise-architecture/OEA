@@ -102,8 +102,12 @@ async function submit(version = props.metatype.version) {
     }
     const rejection = outcome.rejection
     if (rejection.problemType === 'stale-version') {
-      stale.value = true
-      await reloadMetamodel(props.fetchFn)
+      // show the warning with the current state of the other change, also if reloading fails
+      try {
+        await reloadMetamodel(props.fetchFn)
+      } finally {
+        stale.value = true
+      }
     } else if (rejection.problemType === 'conflict') {
       failure.value = props.property ? t('metamodel.mapping.dateTaken') : t('metamodel.error.conflict')
     } else if (rejection.invalidFields.includes('defaultValue')) {
