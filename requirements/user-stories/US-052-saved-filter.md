@@ -4,7 +4,7 @@
 **Story Points**: 2
 **Status**: done
 **Sprint**: S9
-**Implementation**: OpenSpec change `us-051-catalog-filters` – `POST /catalogs/{id}/filters`, `DELETE /catalogs/{id}/filters/{filterId}`, the dialog "Save filter" and the quick selection "Saved filters" in SCR-020
+**Implementation**: OpenSpec change `us-051-catalog-filters`, commit 2e320f3 (#190) – `POST /catalogs/{id}/filters`, `DELETE /catalogs/{id}/filters/{filterId}`, the dialog "Save filter" and the quick selection "Saved filters" in SCR-020
 
 ## Story
 

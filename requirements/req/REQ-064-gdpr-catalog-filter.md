@@ -102,7 +102,7 @@ id,name,entityTypeId,protocol,personalDataCategories,source,target
 
 ## Implementation Notes
 
-- Catalog filter operator `isNotNull` on a visible column (change us-051-catalog-filters): `filter=personal_data_categories:isNotNull`; on a join column of the carried data objects, e.g. `filter={joinId}.classification:eq:PII`, the catalog keeps the data flows that carry such a data object and lists only those data objects (US-080 AC6)
+- Catalog filter operator `isNotNull` on a visible column (change us-051-catalog-filters, commit 2e320f3 (#190)): `filter=personal_data_categories:isNotNull`; on a join column of the carried data objects, e.g. `filter={joinId}.classification:eq:PII`, the catalog keeps the data flows that carry such a data object and lists only those data objects (US-080 AC6)
 - CSV export: backend-side; no client-side generation
 
 ## Implementation

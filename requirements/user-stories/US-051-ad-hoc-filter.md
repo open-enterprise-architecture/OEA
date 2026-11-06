@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S9
-**Implementation**: OpenSpec change `us-051-catalog-filters` – the query parameters `filter={key}:{operator}[:{value}]` and `filterMode`, and the filter bar in SCR-020 with chips, "Add filter" by column type and the AND/OR switch
+**Implementation**: OpenSpec change `us-051-catalog-filters`, commit 2e320f3 (#190) – the query parameters `filter={key}:{operator}[:{value}]` and `filterMode`, and the filter bar in SCR-020 with chips, "Add filter" by column type and the AND/OR switch
 
 ## Story
 
