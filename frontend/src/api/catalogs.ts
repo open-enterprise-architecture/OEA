@@ -18,6 +18,78 @@ export type CatalogJoinInput = components['schemas']['CatalogJoinInput']
 export type CatalogQueryJoin = components['schemas']['CatalogQueryJoin']
 export type CatalogJoinResult = components['schemas']['CatalogJoinResult']
 export type JoinDirection = CatalogJoinInput['joinDirection']
+export type CatalogSavedFilter = components['schemas']['CatalogSavedFilter']
+export type CatalogSavedFilterInput = components['schemas']['CatalogSavedFilterInput']
+export type CatalogFilterExpression = components['schemas']['CatalogFilterExpression']
+export type CatalogFilterOperator = components['schemas']['CatalogFilterOperator']
+export type CatalogFilterMode = components['schemas']['CatalogFilterMode']
+export type CatalogFilterType = CatalogColumn['filterType']
+
+/** The operators per filter type, in the order the filter bar offers them (US-051, catalog BR-12). */
+export const FILTER_OPERATORS: Record<CatalogFilterType, CatalogFilterOperator[]> = {
+  text: ['eq', 'neq', 'contains', 'startsWith', 'in', 'notIn', 'isNull', 'isNotNull'],
+  enum: ['eq', 'neq', 'in', 'notIn', 'isNull', 'isNotNull'],
+  boolean: ['eq', 'neq', 'isNull', 'isNotNull'],
+  number: ['eq', 'neq', 'gt', 'lt', 'gte', 'lte', 'isNull', 'isNotNull'],
+  date: ['eq', 'neq', 'gt', 'lt', 'gte', 'lte', 'isNull', 'isNotNull'],
+}
+
+/** At most this many filters apply to a query (US-051). */
+export const MAX_FILTERS = 20
+
+/** A filter on a column of the result: no values for `isNull`/`isNotNull`, several for `in`/`notIn`. */
+export interface CatalogFilter {
+  key: string
+  operator: CatalogFilterOperator
+  values: string[]
+}
+
+const OPERATORS = new Set<string>(Object.values(FILTER_OPERATORS).flat())
+
+/** Whether the operator takes a list of values. */
+export function takesList(operator: CatalogFilterOperator): boolean {
+  return operator === 'in' || operator === 'notIn'
+}
+
+/** Whether the operator takes no value. */
+export function takesNoValue(operator: CatalogFilterOperator): boolean {
+  return operator === 'isNull' || operator === 'isNotNull'
+}
+
+/** The parameter form `{key}:{operator}[:{value}]` of a filter; list values are comma-separated. */
+export function filterText(filter: CatalogFilter): string {
+  return filter.values.length > 0 ? `${filter.key}:${filter.operator}:${filter.values.join(',')}` : `${filter.key}:${filter.operator}`
+}
+
+/** The filter of a parameter `{key}:{operator}[:{value}]`; `undefined` if it does not parse. */
+export function parseFilter(text: string): CatalogFilter | undefined {
+  const match = /^([^:]+):([a-zA-Z]+)(?::([\s\S]*))?$/.exec(text)
+  if (!match || !OPERATORS.has(match[2]!)) {
+    return undefined
+  }
+  const operator = match[2] as CatalogFilterOperator
+  const value = match[3]
+  const values = value === undefined || value === '' ? [] : takesList(operator) ? value.split(',').map((item) => item.trim()).filter(Boolean) : [value]
+  if (takesNoValue(operator) ? values.length > 0 : values.length === 0) {
+    return undefined
+  }
+  return { key: match[1]!, operator, values }
+}
+
+/** The filter of a saved expression (US-052). */
+export function filterOf(expression: CatalogFilterExpression): CatalogFilter {
+  const value = expression.value
+  const values = Array.isArray(value) ? value.map(String) : value === undefined || value === null ? [] : [String(value)]
+  return { key: expression.attributePath, operator: expression.operator, values }
+}
+
+/** The saved expression of a filter (US-052). */
+export function expressionOf(filter: CatalogFilter): CatalogFilterExpression {
+  if (takesNoValue(filter.operator)) {
+    return { attributePath: filter.key, operator: filter.operator }
+  }
+  return { attributePath: filter.key, operator: filter.operator, value: takesList(filter.operator) ? filter.values : filter.values[0] }
+}
 
 /** The system fields of every entity, in the order the configuration offers them (US-047). */
 export const SYSTEM_FIELDS: CatalogSystemField[] = ['name', 'description', 'externalId', 'createdAt', 'updatedAt', 'entityVersion']
@@ -29,6 +101,10 @@ export interface CatalogQuery {
   sort?: CatalogSort
   /** Join mode per join ID for this query only (US-050). */
   joinModes?: Record<string, JoinMode>
+  /** Filters `{key}:{operator}[:{value}]` on the columns of the result (US-051). */
+  filters?: string[]
+  /** How the filters combine; `and` is the default. */
+  filterMode?: CatalogFilterMode
 }
 
 const JSON_HEADERS = { Accept: 'application/json, application/problem+json' }
@@ -106,11 +182,14 @@ export async function updateCatalogColumns(
   return { ok: false, rejection: await readRejection(response) }
 }
 
-/** A write of the joins with the CSRF token (US-048); invalid input is `validation-failed` (422). */
-async function writeJoin(
+/**
+ * A write of the joins or saved filters with the CSRF token (US-048, US-052); invalid input is
+ * `validation-failed` (422).
+ */
+async function write(
   method: 'POST' | 'PUT' | 'DELETE',
   path: string,
-  join: CatalogJoinInput | undefined,
+  join: CatalogJoinInput | CatalogSavedFilterInput | undefined,
   fetchFn: typeof fetch,
 ): Promise<Outcome<Catalog>> {
   const csrfToken = currentCsrfToken()
@@ -132,7 +211,7 @@ async function writeJoin(
 
 /** POST /catalogs/{id}/joins: appends a join with a new ID (US-048). */
 export function addCatalogJoin(id: string, join: CatalogJoinInput, fetchFn: typeof fetch = fetch): Promise<Outcome<Catalog>> {
-  return writeJoin('POST', `/api/v1/catalogs/${encodeURIComponent(id)}/joins`, join, fetchFn)
+  return write('POST', `/api/v1/catalogs/${encodeURIComponent(id)}/joins`, join, fetchFn)
 }
 
 /** PUT /catalogs/{id}/joins/{joinId}: replaces the join and keeps its ID (US-048). */
@@ -142,12 +221,29 @@ export function updateCatalogJoin(
   join: CatalogJoinInput,
   fetchFn: typeof fetch = fetch,
 ): Promise<Outcome<Catalog>> {
-  return writeJoin('PUT', `/api/v1/catalogs/${encodeURIComponent(id)}/joins/${encodeURIComponent(joinId)}`, join, fetchFn)
+  return write('PUT', `/api/v1/catalogs/${encodeURIComponent(id)}/joins/${encodeURIComponent(joinId)}`, join, fetchFn)
+}
+
+/**
+ * POST /catalogs/{id}/filters: saves a filter (US-052). A taken name or an invalid expression is
+ * `validation-failed` (422) with `invalidFields`, missing rights 403.
+ */
+export function addCatalogFilter(
+  id: string,
+  filter: CatalogSavedFilterInput,
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<Catalog>> {
+  return write('POST', `/api/v1/catalogs/${encodeURIComponent(id)}/filters`, filter, fetchFn)
+}
+
+/** DELETE /catalogs/{id}/filters/{filterId}: removes a saved filter (US-052). */
+export function removeCatalogFilter(id: string, filterId: string, fetchFn: typeof fetch = fetch): Promise<Outcome<Catalog>> {
+  return write('DELETE', `/api/v1/catalogs/${encodeURIComponent(id)}/filters/${encodeURIComponent(filterId)}`, undefined, fetchFn)
 }
 
 /** DELETE /catalogs/{id}/joins/{joinId}: removes the join (US-048). */
 export function removeCatalogJoin(id: string, joinId: string, fetchFn: typeof fetch = fetch): Promise<Outcome<Catalog>> {
-  return writeJoin('DELETE', `/api/v1/catalogs/${encodeURIComponent(id)}/joins/${encodeURIComponent(joinId)}`, undefined, fetchFn)
+  return write('DELETE', `/api/v1/catalogs/${encodeURIComponent(id)}/joins/${encodeURIComponent(joinId)}`, undefined, fetchFn)
 }
 
 /**
@@ -172,6 +268,12 @@ export async function queryCatalog(
   }
   for (const [joinId, mode] of Object.entries(query.joinModes ?? {})) {
     params.set(`joinMode[${joinId}]`, mode)
+  }
+  for (const filter of query.filters ?? []) {
+    params.append('filter', filter)
+  }
+  if (query.filterMode === 'or') {
+    params.set('filterMode', 'or')
   }
   const search = params.toString()
   const response = await fetchFn(`/api/v1/catalogs/${encodeURIComponent(id)}/query${search ? `?${search}` : ''}`, {

@@ -576,6 +576,17 @@ A join of a catalog was added, changed or removed ([US-048](../requirements/user
 | Target | `catalog`, ID of the catalog |
 | Details | `joinId`, `name`; when added or changed also `connectionMetatypeId`, `joinDirection`, `targetMetatypeId` |
 
+### `catalog.filter-added`, `catalog.filter-removed`
+
+A saved filter of a catalog was added or removed ([US-052](../requirements/user-stories/US-052-saved-filter.md), [REQ-047](../requirements/req/REQ-047-set-and-save-filters.md)). Ad-hoc filters change nothing stored and are not audited; the values of the expressions are not recorded, as they may contain personal data.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the person with `catalog:manage`, or the creator of a personal catalog |
+| Target | `catalog`, ID of the catalog |
+| Details | `filterId`, `name`; when added also `logicalOperator` and `expressions` (the number of expressions) |
+
 ## Planned Event Types
 
 Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `visibility.changed`, `visibility.override-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.deleted` and further `entity.*`, further `metamodel.*` (connection metatypes, fork).

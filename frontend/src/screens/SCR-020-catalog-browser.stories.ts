@@ -7,6 +7,7 @@ import CatalogsPage from '../pages/CatalogsPage.vue'
 import { setLanguage } from '../i18n'
 import { loadLabels } from '../i18n/labels'
 import {
+  ACTIVE_SYSTEMS,
   APPLICATIONS,
   CATALOG,
   CATALOGS,
@@ -17,6 +18,7 @@ import {
   manyApplications,
   METATYPES,
   METATYPES_WITH_FLOWS,
+  SAP_ONLY,
   ME_ARCHITECT,
   ME_VIEWER,
   STATUS_DEFINITION,
@@ -38,7 +40,7 @@ function overviewApi(me: unknown, catalogs: unknown[]): typeof fetch {
 /** The catalog page with the applications; `query` is the view state in the URL (ADR-044). */
 function catalog(
   applications: Application[],
-  query: Record<string, string> = {},
+  query: Record<string, string | string[]> = {},
   options: { catalog?: { id: string; [key: string]: unknown }; metatypes?: unknown[] } = {},
 ): Story {
   return {
@@ -183,3 +185,34 @@ export const ConnectionCatalog: Story = {
     await expect(canvas.getByTestId('sort-target.name')).toHaveTextContent('Target')
   },
 }
+
+// US-051: the filter bar with a filter on the status and one on a join column, combined with OR
+export const Filters: Story = {
+  ...catalog(
+    APPLICATIONS,
+    { filter: ['status:eq:planned', `${INTERFACES_JOIN.id}.protocol:eq:REST`], filterMode: 'or' },
+    { catalog: { ...CATALOG, joinDefinitions: [INTERFACES_JOIN] } },
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Status equals planned')).toBeInTheDocument()
+    await expect(canvas.getByText('Interfaces · Protocol equals REST')).toBeInTheDocument()
+    const rows = canvasElement.querySelectorAll('[data-testid="catalog-table"] tbody tr')
+    await expect(rows).toHaveLength(2)
+    await userEvent.click(canvas.getByRole('button', { name: 'Add filter' }))
+    await expect(await within(canvasElement.ownerDocument.body).findByTestId('filter-form')).toBeInTheDocument()
+  },
+}
+
+// US-052: the quick selection of the saved filters, one of them no longer available
+export const SavedFilters: Story = {
+  ...catalog(APPLICATIONS, { filter: 'status:eq:active' }, { catalog: { ...CATALOG, savedFilters: [ACTIVE_SYSTEMS, SAP_ONLY] } }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Status equals active')).toBeInTheDocument()
+    await userEvent.click(canvas.getByRole('button', { name: 'Save filter' }))
+    const dialog = within(canvasElement.ownerDocument.body)
+    await expect(await dialog.findByTestId('filter-save-form')).toBeInTheDocument()
+  },
+}
+

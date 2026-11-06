@@ -4,9 +4,9 @@ title: GDPR catalog filter on data flows (personalDataCategories)
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-05
 author: requirements-engineer
 references:
   use_cases:
@@ -102,7 +102,7 @@ id,name,entityTypeId,protocol,personalDataCategories,source,target
 
 ## Implementation Notes
 
-- Catalog filter operator `isNotEmpty` on PropertyValue; SQL: `WHERE property_name='personalDataCategories' AND value IS NOT NULL AND value != ''`
+- Catalog filter operator `isNotNull` on a visible column (change us-051-catalog-filters): `filter=personal_data_categories:isNotNull`; on a join column of the carried data objects, e.g. `filter={joinId}.classification:eq:PII`, the catalog keeps the data flows that carry such a data object and lists only those data objects (US-080 AC6)
 - CSV export: backend-side; no client-side generation
 
 ## Implementation
@@ -117,3 +117,4 @@ id,name,entityTypeId,protocol,personalDataCategories,source,target
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-05 | Change us-051-catalog-filters | Implementation note: the filter parameters of the catalog query |

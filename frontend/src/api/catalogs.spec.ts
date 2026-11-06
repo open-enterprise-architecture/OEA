@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { routedFetch, type RecordedRequest } from '../test/fetch'
-import { createCatalog, fetchCatalog, queryCatalog, type Catalog, type CatalogQueryResult } from './catalogs'
+import {
+  createCatalog,
+  expressionOf,
+  fetchCatalog,
+  filterOf,
+  filterText,
+  parseFilter,
+  queryCatalog,
+  type Catalog,
+  type CatalogQueryResult,
+} from './catalogs'
 
 const CATALOG: Catalog = {
   id: '6f1c2d3e-0000-4000-8000-000000000001',
@@ -79,7 +89,7 @@ describe('catalogs API', () => {
 
   describe('queryCatalog', () => {
     const RESULT: CatalogQueryResult = {
-      columns: [{ key: 'name', label: 'Name', sortable: true }],
+      columns: [{ key: 'name', label: 'Name', sortable: true, filterType: 'text' }],
       rows: [{ entityId: 1, values: { name: 'CRM System' } }],
       page: { page: 0, pageSize: 50, totalElements: 1, totalPages: 1 },
       sort: null,
@@ -102,6 +112,20 @@ describe('catalogs API', () => {
         routedFetch({ [path]: { body: RESULT } }, recorded),
       )
       expect(recorded[0]?.path).toBe(path)
+    })
+
+    it('repeats the filter parameter and sends only the OR mode', async () => {
+      const recorded: RecordedRequest[] = []
+      const path = `${PATH}?filter=status%3Aeq%3Aactive&filter=vendor%3Ain%3ASAP%2COracle&filterMode=or`
+      await queryCatalog(
+        CATALOG.id,
+        { filters: ['status:eq:active', 'vendor:in:SAP,Oracle'], filterMode: 'or' },
+        routedFetch({ [path]: { body: RESULT } }, recorded),
+      )
+      expect(recorded[0]?.path).toBe(path)
+      const andPath = `${PATH}?filter=name%3AisNotNull`
+      await queryCatalog(CATALOG.id, { filters: ['name:isNotNull'], filterMode: 'and' }, routedFetch({ [andPath]: { body: RESULT } }, recorded))
+      expect(recorded[1]?.path).toBe(andPath)
     })
 
     it('reports 404 for a catalog that is not visible', async () => {
@@ -133,6 +157,26 @@ describe('catalogs API', () => {
         }),
       )
       expect(outcome).toMatchObject({ ok: false, rejection: { status: 400, invalidFields: ['sort'] } })
+    })
+  })
+
+  describe('filters', () => {
+    it('parses and writes the parameter form', () => {
+      expect(parseFilter('status:eq:active')).toEqual({ key: 'status', operator: 'eq', values: ['active'] })
+      expect(parseFilter('vendor:in:SAP, Oracle')).toEqual({ key: 'vendor', operator: 'in', values: ['SAP', 'Oracle'] })
+      expect(parseFilter('name:contains:a:b')).toEqual({ key: 'name', operator: 'contains', values: ['a:b'] })
+      expect(parseFilter('name:isNull')).toEqual({ key: 'name', operator: 'isNull', values: [] })
+      expect(parseFilter('name:isNull:x')).toBeUndefined()
+      expect(parseFilter('name:eq')).toBeUndefined()
+      expect(parseFilter('name:like:x')).toBeUndefined()
+      expect(filterText({ key: 'vendor', operator: 'notIn', values: ['SAP', 'Oracle'] })).toBe('vendor:notIn:SAP,Oracle')
+      expect(filterText({ key: 'name', operator: 'isNotNull', values: [] })).toBe('name:isNotNull')
+    })
+
+    it('converts between filters and saved expressions', () => {
+      expect(expressionOf({ key: 'vendor', operator: 'in', values: ['SAP'] })).toEqual({ attributePath: 'vendor', operator: 'in', value: ['SAP'] })
+      expect(expressionOf({ key: 'name', operator: 'isNull', values: [] })).toEqual({ attributePath: 'name', operator: 'isNull' })
+      expect(filterOf({ attributePath: 'status', operator: 'eq', value: 'active' })).toEqual({ key: 'status', operator: 'eq', values: ['active'] })
     })
   })
 })

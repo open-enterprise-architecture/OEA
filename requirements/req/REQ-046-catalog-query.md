@@ -4,7 +4,7 @@ title: Execute a catalog query (live data)
 type: functional
 priority: must
 status: proposed
-version: 0.5.0
+version: 0.6.0
 created: 2026-06-26
 last_updated: 2026-11-05
 author: requirements-engineer
@@ -127,7 +127,7 @@ In `rows` mode for the same catalog:
 **AC3** (Filter):
 
 - Given: the repository contains 5 ApplicationComponents, 2 of them with status=active
-- When: `GET /api/v1/catalogs/{id}/query?filter[status][eq]=active`
+- When: `GET /api/v1/catalogs/{id}/query?filter=status:eq:active`
 - Then: `page.totalElements=2`; only the 2 active entities in `rows`
 
 **AC4** (Entity without join results):
@@ -156,13 +156,13 @@ In `rows` mode for the same catalog:
 ## Implementation Notes
 
 - Endpoint: `GET /api/v1/catalogs/{id}/query` (`queryCatalog` in `api/openapi.yaml`); paging and sort follow the contract conventions `PageParam`, `PageSizeParam`, `SortParam` and `PageMeta` (change us-049-show-catalog-data, design D1)
-- Implemented in change us-049-show-catalog-data without joins and filters (AC5, AC6); AC1, AC2 and AC4 with change us-048-catalog-joins; AC3 follows with the filter stories
+- Implemented in change us-049-show-catalog-data without joins and filters (AC5, AC6); AC1, AC2 and AC4 with change us-048-catalog-joins; AC3 with change us-051-catalog-filters
 - Invalid paging or sort parameters are answered with 400 (`validation-failed`, `invalidFields`); another person's personal catalog with 404 (ADR-032); soft-deleted entities are not returned (ADR-019); only properties with visibility `public` appear until REQ-160
 - Configured columns (change us-047-configure-columns, commit bd6ef07, #180): the query returns the visible configured columns with their labels and the configured default sort; a column that is not sortable cannot be sorted by (400); enum properties sort by the order of the enum (issue #65)
 - Joins (change us-048-catalog-joins, commit 6c54edb, #183): `joinResults` keyed by join ID, the result lists the available `joins` with name, mode and columns; in `rows` mode paging counts rows, a join column `{joinId}.{key}` is sortable, and several rows joins give their cross product; an unknown join in `joinMode` answers 400 `joinMode`
 - Connection catalogs (change us-080-connection-catalogs, commit 1db957d, #187, REQ-065): with a connection metatype as primary, the rows are its connections; columns `source.{key}` and `target.{key}` show attributes of the source and target and are sortable; the default columns are `source.name`, `name` and `target.name`
 - LEFT JOIN semantics: entities without join hits are returned anyway (not filtered)
-- Filter expression serialization as a query parameter: `filter[attributeName][operator]=value`; for the `in` operator as CSV or array
+- Filters (change us-051-catalog-filters, REQ-047): `filter={key}:{operator}[:{value}]` per filter on a column key of the result, at most 20, combined by `filterMode=and|or`; for `in`/`notIn` the value is comma-separated. Filters apply before sorting and paging, `totalElements` counts only the passing entries, a filter on a join column restricts the entries and the join results; an invalid filter answers 400 `filter`
 - Performance: for large repositories an indexed lookup on EntityType + FilterAttributes is necessary; NFR not yet defined (to follow)
 
 ## Change History
@@ -174,3 +174,4 @@ In `rows` mode for the same catalog:
 | 0.3.0 | 2026-11-05 | Change us-047-configure-columns | Configured columns, default sort, sortability and enum order |
 | 0.4.0 | 2026-11-05 | Change us-048-catalog-joins | `joinResults` by join ID as lists of results with entity ID; rows mode paging and sorting; implementation note |
 | 0.5.0 | 2026-11-05 | Change us-080-connection-catalogs | Implementation note on connection catalogs |
+| 0.6.0 | 2026-11-05 | Change us-051-catalog-filters | AC3 with the parameter `filter`; implementation note on filters |

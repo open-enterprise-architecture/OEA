@@ -2,7 +2,7 @@
 identifier: catalog
 name_de: Katalog
 name_en: Catalog
-version: 0.5.0
+version: 0.6.0
 status: draft
 maturity: initial
 owner_role: Lead Enterprise Architect
@@ -63,6 +63,8 @@ The **catalog-level default** (`defaultJoinMode`) applies to all JoinDefinitions
 ### Saved Filters
 
 Filters can be set interactively and persisted as named **SavedFilters**. A SavedFilter is a reusable, named filter condition (e.g. "Only applications with status active", "Only systems of the business layer") that is offered to visitors as a quick selection.
+
+An ad-hoc filter names a column of the query result by its key, an operator of the column's type (BR-12) and a value; it is part of the view state in the URL and changes nothing stored (change us-051-catalog-filters). A filter on a join column keeps only entries with a matching join result and narrows the join to the matching results. SavedFilters belong to the catalog configuration and are changed under the rule of the columns: `catalog:manage` for an instance catalog, the creator for a personal catalog; the `scope` of a SavedFilter was dropped.
 
 ---
 
@@ -145,18 +147,21 @@ A catalog has at most 10 joins, in creation order (change us-048-catalog-joins).
 | Attribute | Type | Optional | Default | Description |
 |---|---|---|---|---|
 | id | string | required | | UUID v4 |
-| name | string | required | | Readable name (e.g. "Only active systems") |
-| description | string | optional | | |
+| name | string | required | | 1–100 characters, unique in the catalog after trimming, regardless of case |
+| description | string | optional | null | At most 1000 characters |
 | logicalOperator | enum | required | `and` | `[and, or]`; how the filter expressions are combined |
-| expressions | FilterExpression[] | required | | At least one expression |
+| expressions | FilterExpression[] | required | | 1–20 expressions |
+| available | boolean | derived | | `false` if an expression names a column the query no longer returns; not stored |
+
+A catalog has at most 50 SavedFilters, in creation order (change us-051-catalog-filters). A SavedFilter is not edited in place; it is removed and saved anew.
 
 ### FilterExpression
 
 | Attribute | Type | Optional | Description |
 |---|---|---|---|
-| attributePath | string | required | Attribute name of the primary or joined entity (e.g. `status`, `dataFlow.protocol`) |
-| operator | enum | required | `[eq, neq, contains, startsWith, in, notIn, isNull, isNotNull, gt, lt, gte, lte]` |
-| value | any | optional | Comparison value; empty for `isNull`/`isNotNull`; an array for `in`/`notIn` |
+| attributePath | string | required | Column key of the query result: `name` or another system field, the `sqlColumnName` of a property, `source.{key}`/`target.{key}` in a connection catalog, `{joinId}.{key}` for a join column (BR-04) |
+| operator | enum | required | `[eq, neq, contains, startsWith, in, notIn, isNull, isNotNull, gt, lt, gte, lte]`, by the type of the column (BR-12) |
+| value | string or string[] | optional | Comparison value: a number, a date `yyyy-MM-dd`, `true`/`false` or an enum value by the type; 1–100 values without commas for `in`/`notIn`; none for `isNull`/`isNotNull` |
 
 ### SavedView
 
@@ -193,7 +198,7 @@ A catalog has at most 10 joins, in creation order (change us-048-catalog-joins).
 | BR-01 | `primaryEntityType` MUST reference an existing EntityType of the MetamodelConfiguration | onCreate, onUpdate | – |
 | BR-02 | `JoinDefinition.connectionMetatypeId` MUST be a metatype with `isConnection=true` | onCreate, onUpdate | REQ-045 AC2 |
 | BR-03 | `JoinDefinition.targetMetatypeId` MUST be reachable from the primary metatype through the connection metatype in `joinDirection`, by its allowed endpoints (with subtypes; no constraint on a side allows every metatype) | onCreate, onUpdate | REQ-045 AC3 |
-| BR-04 | A `SavedFilter.expression.attributePath` MUST point to a valid attribute of the primary entity or of a joined target entity | onCreate, onUpdate | – |
+| BR-04 | A `SavedFilter.expression.attributePath` MUST name a column the catalog query returns: a visible primary or endpoint column or a visible column of an available join. Removing a join removes the expressions on its columns and a SavedFilter left without expressions | onCreate, onUpdate, onJoinRemoved | REQ-047 AC3, US-052 |
 | BR-05 | `SavedView.columnOrder` may only contain attribute names that are defined in the catalog's `columns` configuration | onCreate, onUpdate | – |
 | BR-06 | At most one `SavedView` per catalog may have `isDefault=true` | onCreate, onUpdate | – |
 | BR-07 | A non-empty `columns` list MUST contain at least one column with `visible=true`; an attribute appears at most once | onUpdate | REQ-044 AC3 |
@@ -201,6 +206,7 @@ A catalog has at most 10 joins, in creation order (change us-048-catalog-joins).
 | BR-09 | The columns and joins of a catalog with `scope=instance` are changed only with `catalog:manage`, those of a personal catalog only by its creator | onUpdate | ADR-032 §8 |
 | BR-10 | The target columns of a join follow BR-07 for the target metatype and carry no `defaultSortDirection`; removing a join removes the `joinModeOverrides` that refer to it | onCreate, onUpdate, onDelete | REQ-045 AC4, AC5 |
 | BR-11 | A column with `endpoint` is allowed only in `columns` of a catalog whose primary metatype is a connection metatype, never in join target columns; its property MUST be mapped to an allowed endpoint metatype of that side, one of its subtypes or their base types, or to any metatype if the side has no constraint; an attribute appears at most once per endpoint | onUpdate | REQ-065, US-080 AC2 |
+| BR-12 | The operator of a filter MUST fit the type of its column: text (`name`, `description`, `externalId`, properties `string`, `text`, `url`) takes `eq`, `neq`, `contains`, `startsWith`, `in`, `notIn`, `isNull`, `isNotNull`; enum takes `eq`, `neq`, `in`, `notIn`, `isNull`, `isNotNull`; boolean takes `eq`, `neq`, `isNull`, `isNotNull`; number (`entityVersion`, `integer`, `reference` by entity ID) and date (`createdAt`, `updatedAt` by UTC day, `date`) take `eq`, `neq`, `gt`, `lt`, `gte`, `lte`, `isNull`, `isNotNull`. Text compares ignoring case; `neq` and `notIn` also hold without a value | onQuery, onCreate | REQ-047, US-051 AC5 |
 
 ## Notes
 
@@ -284,6 +290,7 @@ savedViews:
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Business Engineer | Initial draft; join modes (rows/aggregate), SavedFilter, SavedView, ColumnConfig, JoinDefinition |
 | 0.2.0 | 2026-10-19 | Change us-046-create-catalog | Primary entity type by ID; name uniqueness case-insensitive and trimmed; empty columns allowed; notes on identity, namespace and permissions |
+| 0.6.0 | 2026-11-05 | Change us-051-catalog-filters | SavedFilter and FilterExpression as implemented: column keys, limits, `available`, `scope` dropped; BR-04 sharpened, BR-12 |
 | 0.5.0 | 2026-11-05 | Change us-080-connection-catalogs | Connection metatype as primary entity type; ColumnConfig `endpoint`; BR-11 |
 | 0.4.0 | 2026-11-05 | Change us-048-catalog-joins | JoinDefinition as implemented: metatype IDs, `aggregateLabel` dropped, limits; BR-02, BR-03 sharpened, BR-10 |
 | 0.3.0 | 2026-11-05 | Change us-047-configure-columns | ColumnConfig as implemented: `field` or `propertyDefId` instead of `attributeName`, list order instead of `sortOrder`; BR-07 to BR-09; stale columns |

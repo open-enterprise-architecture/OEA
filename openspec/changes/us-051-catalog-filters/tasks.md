@@ -35,23 +35,23 @@
 
 ## 3. Web portal
 
-- [ ] 3.1 SCR-020 filter bar (D5):
+- [x] 3.1 SCR-020 filter bar (D5):
   - API functions and types;
   - `CatalogFilterBar.vue` with chips, the add popover by type, removal and the AND/OR switch;
   - the URL state and the fallback on 400;
   - messages in English and German.
 
   Verify with specs in `CatalogPage.spec.ts` for "Active applications only", "Remove a filter", "Operators for the name", "Applications with a REST interface", "Reload keeps the filter" and OR.
-- [ ] 3.2 SCR-020 saved filters (D5): the save modal with its permission rule, the quick selection, loading a filter into the bar, and unavailable filters. Verify with specs for "Active systems only", "Activate a saved filter" and the reader without the right. Add the stories "Filters" and "Saved filters" to `SCR-020`, run `npm run test:stories`, and update `docs/screens/SCREENS.md`.
+- [x] 3.2 SCR-020 saved filters (D5): the save modal with its permission rule, the quick selection, loading a filter into the bar, and unavailable filters. Verify with specs for "Active systems only", "Activate a saved filter" and the reader without the right. Add the stories "Filters" and "Saved filters" to `SCR-020`, run `npm run test:stories`, and update `docs/screens/SCREENS.md`.
 
 ## 4. Manual and documentation
 
-- [ ] 4.1 Manual in English and German: `usage/catalogs.md` with a section "Filters" (adding, operators, join columns, AND/OR, saved filters, the address) and the `covers` entries for US-051 and US-052. Verify with `python3 scripts/check_manual.py` and the manual build.
-- [ ] 4.2 `business-objects/catalog.md` (SavedFilter, FilterExpression, BR-04, BR-12), `docs/data-model.puml` (`config.savedFilters`) and `docs/audit-event-catalog.md` (`catalog.filter-added`, `catalog.filter-removed`) (D6).
+- [x] 4.1 Manual in English and German: `usage/catalogs.md` with a section "Filters" (adding, operators, join columns, AND/OR, saved filters, the address) and the `covers` entries for US-051 and US-052. Verify with `python3 scripts/check_manual.py` and the manual build.
+- [x] 4.2 `business-objects/catalog.md` (SavedFilter, FilterExpression, BR-04, BR-12), `docs/data-model.puml` (`config.savedFilters`) and `docs/audit-event-catalog.md` (`catalog.filter-added`, `catalog.filter-removed`) (D6).
 
 ## 5. Wrap-up
 
-- [ ] 5.1 Realign:
+- [x] 5.1 Realign:
   - US-051 (status, technical note on the URL);
   - US-052 (AC1, AC3, technical notes);
   - US-080 (AC5, AC6 done);
@@ -59,4 +59,4 @@
   - REQ-046 AC3 and REQ-064 (implementation note).
 
   Update the sprint plan and SCREENS.md. Regenerate the traceability matrix with `python3 scripts/generate_traceability.py`, and verify with `validate_links.py` and `generate_traceability.py --check`.
-- [ ] 5.2 Run `./mvnw verify`, the frontend type-check, tests, build and Storybook tests, markdownlint, `openspec validate --specs --strict` and all repository checks.
+- [x] 5.2 Run `./mvnw verify`, the frontend type-check, tests, build and Storybook tests, markdownlint, `openspec validate --specs --strict` and all repository checks.

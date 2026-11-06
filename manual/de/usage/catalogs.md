@@ -2,7 +2,7 @@
 title: Kataloge
 covers:
   screens: [SCR-020, SCR-028]
-  stories: [US-046, US-047, US-048, US-049, US-050, US-080]
+  stories: [US-046, US-047, US-048, US-049, US-050, US-051, US-052, US-080]
 ---
 
 # Kataloge
@@ -46,6 +46,44 @@ Die Liste *Kataloge* zeigt jeden Katalog, den du sehen darfst, markiert mit *Get
 - Den persönlichen Katalog einer anderen Person kannst du nicht öffnen; er verhält sich wie ein Katalog, den es nicht gibt (*Katalog nicht gefunden*).
 
 Über die API liefert `GET /catalogs/{id}/query` dieselben Zeilen mit den Parametern `page` (ab 0), `pageSize` (1–200, Standard 50) und `sort` (`{field}:{asc|desc}`).
+
+## Filter {#filters}
+
+Filter grenzen die Tabelle auf die Einträge ein, die du brauchst, zum Beispiel nur die aktiven Anwendungen. Jede Leserin und jeder Leser eines Katalogs kann Filter setzen; sie ändern nur deine Ansicht, nicht den Katalog.
+
+1. Wähle über der Tabelle *Filter hinzufügen*.
+2. Wähle die *Spalte*: jede Spalte der Tabelle, auch die Spalten der Joins (angezeigt als *Join · Spalte*) und in einem [Verbindungskatalog](#connection-catalogs) die Spalten von Quelle und Ziel.
+3. Wähle den *Operator*. Angeboten werden nur die Operatoren, die zu den Werten der Spalte passen:
+
+   | Werte der Spalte | Operatoren |
+   |---|---|
+   | Text (Name, Beschreibung, Text-Eigenschaften) | *ist gleich*, *ist ungleich*, *enthält*, *beginnt mit*, *ist einer von*, *ist keiner von*, *ist leer*, *ist nicht leer* |
+   | Aufzählungswerte wie *Status* | *ist gleich*, *ist ungleich*, *ist einer von*, *ist keiner von*, *ist leer*, *ist nicht leer* |
+   | Ja oder nein | *ist gleich*, *ist ungleich*, *ist leer*, *ist nicht leer* |
+   | Zahlen und Daten (auch *Angelegt*, *Geändert* und *Version*) | *ist gleich*, *ist ungleich*, *grösser als*, *kleiner als*, *mindestens*, *höchstens*, *ist leer*, *ist nicht leer* |
+
+4. Gib den *Wert* ein oder wähle ihn aus und wähle *Anwenden*. Bei *ist einer von* und *ist keiner von* wählst du mehrere Aufzählungswerte oder trennst mehrere Textwerte mit Kommas.
+
+Jeder Filter erscheint als Chip über der Tabelle, zum Beispiel *Status ist gleich aktiv*; das *×* eines Chips entfernt ihn. Die Gesamtzahl unter der Tabelle zählt nur die Einträge, die durchkommen, und die Tabelle beginnt wieder auf der ersten Seite.
+
+- Textvergleiche unterscheiden nicht zwischen Gross- und Kleinschreibung. *ist ungleich* und *ist keiner von* behalten auch Einträge ohne Wert.
+- Daten werden tageweise verglichen; *Angelegt* und *Geändert* verwenden den Tag in UTC.
+- **Join-Spalten:** Ein Filter auf eine Spalte eines Joins behält nur die Einträge mit mindestens einer passenden verknüpften Entität, und der Join zeigt nur die passenden. Ein Join ohne Filter bleibt vollständig.
+- **UND oder ODER:** Ab zwei Filtern wählst du *Alle Filter (UND)* oder *Ein Filter (ODER)*. Mit ODER kommt ein Eintrag durch, wenn irgendein Filter zutrifft.
+- Eine Tabelle hat höchstens 20 Filter.
+- **Die Adresse:** Filter gehören wie Sortierung und Seite zur Adresse der Seite. Zurück-Navigation, Neuladen oder ein geteilter Link zeigen dieselbe gefilterte Ansicht. Einen Filter, den der Katalog nicht anwenden kann, zum Beispiel auf eine entfernte Spalte, lässt die Seite weg und zeigt alle Einträge.
+
+### Gespeicherte Filter
+
+Ein Katalog behält benannte Filter für die Schnellauswahl, zum Beispiel *Nur aktive Systeme*:
+
+- **Speichern:** Wähle mit den gesetzten Filtern *Filter speichern*, gib einen Namen und optional eine Beschreibung ein und wähle *Speichern*. Der Name muss im Katalog eindeutig sein, unabhängig von Gross- und Kleinschreibung. Ein Katalog hat höchstens 50 gespeicherte Filter.
+- **Verwenden:** *Gespeicherte Filter* neben den Chips listet sie für alle, die den Katalog lesen. Wählst du einen, ersetzt er die Filter der Tabelle durch seine Bedingungen und sein UND oder ODER.
+- **Nicht verfügbar:** Ein gespeicherter Filter auf eine Spalte, die der Katalog nicht mehr zeigt, ist als *nicht verfügbar* markiert und lässt sich nicht wählen. Entfernst du einen Join, entfallen auch die Bedingungen gespeicherter Filter auf seine Spalten, und ein gespeicherter Filter ohne Bedingungen wird entfernt.
+
+Für das Speichern gelten die Regeln für das Konfigurieren eines Katalogs. Ein geteilter Katalog braucht die Berechtigung, Kataloge zu verwalten (`catalog:manage`); in deinem eigenen persönlichen Katalog speicherst du sie selbst. Ohne dieses Recht wird *Filter speichern* nicht angeboten; lege einen persönlichen Katalog an, um eigene Filter zu behalten. Gespeicherte Filter werden im Audit-Trail festgehalten.
+
+Über die API nimmt `GET /catalogs/{id}/query` pro Filter ein `filter={key}:{operator}[:{value}]` entgegen, zum Beispiel `filter=status:eq:active`, `filter=source.name:contains:CRM` oder `filter={joinId}.protocol:in:REST,SOAP`, sowie `filterMode=or`. Der Schlüssel ist der Spaltenschlüssel des Ergebnisses, der Operator einer von `eq`, `neq`, `contains`, `startsWith`, `in`, `notIn`, `isNull`, `isNotNull`, `gt`, `lt`, `gte` und `lte`; ein ungültiger Filter wird mit 400 beantwortet. `POST /catalogs/{id}/filters` speichert einen Filter mit `name`, `description`, `logicalOperator` und `expressions` (`attributePath`, `operator`, `value`), und `DELETE /catalogs/{id}/filters/{filterId}` entfernt ihn.
 
 ## Spalten konfigurieren {#configure-columns}
 

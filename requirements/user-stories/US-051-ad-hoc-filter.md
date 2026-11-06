@@ -2,8 +2,9 @@
 
 **ID**: US-051
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S9
+**Implementation**: OpenSpec change `us-051-catalog-filters` – the query parameters `filter={key}:{operator}[:{value}]` and `filterMode`, and the filter bar in SCR-020 with chips, "Add filter" by column type and the AND/OR switch
 
 ## Story
 
@@ -27,7 +28,7 @@ As a catalog visitor, I want to be able to set filter conditions on columns of t
 
 - Given: Join "Interfaces" with target attribute `protocol`
 - When: Lukas sets filter `Interfaces.protocol = "REST"`
-- Then: Only applications whose DataFlow connections have at least one REST interface; interfaces without REST are not displayed in the aggregated list
+- Then: Only applications whose DataFlow connections have at least one REST interface; interfaces without REST are not displayed in the aggregated list, also in rows mode (owner decision 2026-11-05: a join filter restricts both the entries and the join results)
 
 **AC3** (multiple filters, AND combination):
 
@@ -49,7 +50,8 @@ As a catalog visitor, I want to be able to set filter conditions on columns of t
 
 - Affected components: filter bar above the table, backend query parameters (REQ-046)
 - UX: filter chips in a bar; "Add filter" button opens dropdown (select column → select operator → enter value)
-- Ad-hoc filters are not persisted; they live only in browser state until the page is reloaded
+- Ad-hoc filters are part of the view state in the URL (ADR-044, owner decision 2026-11-05): back navigation, reload and a shared link show the same filtered view; they change nothing stored
+- The filter key is the column key of the result (`status`, `source.name`, `{joinId}.protocol`); filters apply to visible columns only (realigned in us-051-catalog-filters)
 - Dependency: US-049
 
 ## Definition of Done
