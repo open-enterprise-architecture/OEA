@@ -66,7 +66,7 @@ The navigation tree is the primary structuring instrument for the EA repository.
 - Unique index on `(coalesce(parent_id, zero UUID), lower(name))`; a trigger protects the root
 - The root "Repository" is created by the migration `V21__navigation_tree.sql`; no API endpoint for creating the root
 - Limits: at most 10 levels below the root, at most 500 folders; names trimmed, 1–255 characters without control characters
-- Implemented by the OpenSpec change `us-054-catalog-navigation-tree`: `POST /tree-nodes`, `PATCH` and `DELETE /tree-nodes/{nodeId}`, and the folder actions of the sidebar SCR-055
+- Implemented by the OpenSpec change `us-054-catalog-navigation-tree`, commit e44b736 (#197): `POST /tree-nodes`, `PATCH` and `DELETE /tree-nodes/{nodeId}`, and the folder actions of the sidebar SCR-055
 
 ## Change History
 

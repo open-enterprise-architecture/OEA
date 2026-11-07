@@ -51,4 +51,4 @@
   - REQ-095 and REQ-097 (implementation notes for catalogs).
 
   Update the sprint plan. Regenerate the traceability matrix with `python3 scripts/generate_traceability.py`, and verify with `validate_links.py` and `generate_traceability.py --check`.
-- [ ] 5.2 Run `./mvnw verify`, the frontend type-check, tests, build and Storybook tests, markdownlint, `openspec validate --specs --strict` and all repository checks.
+- [x] 5.2 Run `./mvnw verify`, the frontend type-check, tests, build and Storybook tests, markdownlint, `openspec validate --specs --strict` and all repository checks.
