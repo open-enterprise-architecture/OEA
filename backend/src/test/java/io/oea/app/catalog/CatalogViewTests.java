@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -206,6 +207,40 @@ class CatalogViewTests {
 			.<ObjectNode>set("filters", array(expression(join + "." + key(this.protocol), "eq", "REST")))
 			.<ObjectNode>set("joinModeOverrides", array(override(join, "rows")))
 			.<ObjectNode>set("sort", sort(join + ".name", "asc"))));
+	}
+
+	@Test
+	void viewAtItsLimits() {
+		String catalog = catalog(this.application);
+		ObjectNode[] columns = new ObjectNode[100];
+		String[] order = new String[100];
+		columns[0] = field("name");
+		order[0] = "name";
+		for (int i = 1; i < columns.length; i++) {
+			UUID property = property("Column " + i + " " + suffix(), "string");
+			map(this.application, property);
+			columns[i] = property(property);
+			order[i] = key(property);
+		}
+		ok(columns(catalog, columns));
+		ObjectNode[] twenty = Stream.generate(() -> expression("name", "isNotNull", null))
+			.limit(20)
+			.toArray(ObjectNode[]::new);
+		JsonNode saved = created(saveView(catalog, this.architect, view("v".repeat(100), false, order)
+			.put("description", "d".repeat(1000))
+			.<ObjectNode>set("filters", array(twenty))));
+		assertThat(saved.path("savedViews").get(0).path("columnOrder")).hasSize(100);
+		String[] tooMany = Arrays.copyOf(order, 101);
+		tooMany[100] = "name";
+		assertInvalid(saveView(catalog, this.architect, view("Too many columns", false, tooMany)), "columnOrder");
+		ObjectNode[] twentyOne = Stream.generate(() -> expression("name", "isNotNull", null))
+			.limit(21)
+			.toArray(ObjectNode[]::new);
+		assertInvalid(saveView(catalog, this.architect,
+				view("Too many filters", false, "name").<ObjectNode>set("filters", array(twentyOne))), "filters");
+		assertInvalid(saveView(catalog, this.architect, view("v".repeat(101), false, "name")), "name");
+		assertInvalid(saveView(catalog, this.architect,
+				view("Long description", false, "name").put("description", "d".repeat(1001))), "description");
 	}
 
 	@Test

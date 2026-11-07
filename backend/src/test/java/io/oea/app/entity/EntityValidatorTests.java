@@ -77,6 +77,8 @@ class EntityValidatorTests {
 		assertThat(codes(check(new EntityInput("CRM", COMPONENT, null, "d".repeat(2001), null, null, null,
 				List.of(value(VERSION, "1")))))).containsExactly("INVALID_VALUE");
 		assertThat(check(input("x".repeat(255), COMPONENT)).valid()).isTrue();
+		assertThat(check(new EntityInput("CRM", COMPONENT, null, "d".repeat(2000), null, null, null,
+				List.of(value(VERSION, "1")))).valid()).isTrue();
 	}
 
 	@Test

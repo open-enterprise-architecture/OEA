@@ -15,6 +15,7 @@ import io.oea.testsupport.containers.OeaTestKeys;
 import jakarta.servlet.http.Cookie;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
@@ -172,6 +173,25 @@ class CatalogColumnsTests {
 		assertInvalid(columns(catalog, this.architect, field("name").put("defaultSortDirection", "asc"),
 				property(this.status).put("defaultSortDirection", "desc")), "columns");
 		assertThat(ok(call(HttpMethod.GET, CATALOGS + "/" + catalog, null, this.architect)).path("columns")).isEmpty();
+	}
+
+	@Test
+	void labelAndColumnCountAtTheirLimits() {
+		String catalog = catalog("instance", this.architect);
+		ObjectNode[] hundred = new ObjectNode[100];
+		hundred[0] = field("name").put("displayLabel", "x".repeat(100));
+		for (int i = 1; i < hundred.length; i++) {
+			UUID property = publicProperty("Column " + i + " " + suffix());
+			map(this.type, property);
+			hundred[i] = property(property);
+		}
+		JsonNode saved = ok(columns(catalog, this.architect, hundred));
+		assertThat(saved.path("columns")).hasSize(100);
+		assertThat(saved.path("columns").get(0).path("displayLabel").asString()).hasSize(100);
+		ObjectNode[] hundredOne = Arrays.copyOf(hundred, 101);
+		hundredOne[100] = field("description");
+		assertInvalid(columns(catalog, this.architect, hundredOne), "columns");
+		assertThat(ok(call(HttpMethod.GET, CATALOGS + "/" + catalog, null, this.architect)).path("columns")).hasSize(100);
 	}
 
 	// Sortable columns and default sort

@@ -663,6 +663,22 @@ describe('CatalogPage filters', () => {
     wrapper.unmount()
   })
 
+  // catalog/catalog-filters: at most 20 filters
+  it('takes 20 filters from the URL and offers no 21st, but drops 21', async () => {
+    const filters = (count: number) => Array.from({ length: count }, () => 'filter=name:isNotNull').join('&')
+    const nineteen = await open(`${CATALOG_PATH}?${filters(19)}`)
+    expect(nineteen.wrapper.get('[data-testid="filter-add"]').attributes('disabled')).toBeUndefined()
+    nineteen.wrapper.unmount()
+    const twenty = await open(`${CATALOG_PATH}?${filters(20)}`)
+    expect(twenty.recorded.find((request) => request.path.endsWith('/query'))?.filters).toHaveLength(20)
+    expect(twenty.wrapper.get('[data-testid="filter-add"]').attributes('disabled')).toBeDefined()
+    twenty.wrapper.unmount()
+    const twentyOne = await open(`${CATALOG_PATH}?${filters(21)}`)
+    expect(twentyOne.router.currentRoute.value.query.filter).toBeUndefined()
+    expect(twentyOne.recorded.filter((request) => request.path.endsWith('/query')).every((request) => !request.filters?.length)).toBe(true)
+    twentyOne.wrapper.unmount()
+  })
+
   // catalog/catalog-filters "Filters in the URL": an unknown column answers 400
   it('drops filters the server rejects', async () => {
     const { wrapper, router } = await open(`${CATALOG_PATH}?filter=nonexistent:eq:x&sort=name:desc`)

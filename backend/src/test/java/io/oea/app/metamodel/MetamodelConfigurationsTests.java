@@ -107,6 +107,21 @@ class MetamodelConfigurationsTests {
 	// metamodel/solution-extensions – Extension configurations
 
 	@Test
+	void nameAtItsLimits() {
+		String prefix = UUID.randomUUID().toString().substring(0, 8);
+		UUID id = id(created(call(HttpMethod.POST, "/metamodel/configurations",
+				extension(UUID.randomUUID(), prefix + "n".repeat(92)), this.architect)));
+		assertThat(find(body(call(HttpMethod.GET, "/metamodel/configurations", null, this.viewer)), id).path("name")
+			.asString()).hasSize(100);
+		MvcTestResult tooLong = call(HttpMethod.POST, "/metamodel/configurations",
+				extension(UUID.randomUUID(), prefix + "m".repeat(93)), this.architect);
+		// the contract limits the name (maxLength 100), so the request is refused before the service
+		assertThat(tooLong).hasStatus(HttpStatus.BAD_REQUEST);
+		assertThat(type(tooLong)).isEqualTo("urn:oea:problem:validation-failed");
+		assertThat(body(tooLong).path("invalidFields").get(0).asString()).isEqualTo("name");
+	}
+
+	@Test
 	void extensionForCloudMigration2027() {
 		UUID solution = UUID.randomUUID();
 		JsonNode created = created(call(HttpMethod.POST, "/metamodel/configurations",

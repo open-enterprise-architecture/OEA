@@ -10,6 +10,8 @@ class AgentHeaderTests {
 	@Test
 	void controlCharactersAreRemovedAndTheValueIsLimited() {
 		assertThat(EntityBatchController.informational("repo\u0007-scanner\n")).isEqualTo("repo-scanner");
+		assertThat(EntityBatchController.informational("x".repeat(101))).hasSize(100);
+		assertThat(EntityBatchController.informational("y".repeat(100))).isEqualTo("y".repeat(100));
 		assertThat(EntityBatchController.informational("x".repeat(150))).hasSize(100);
 		assertThat(EntityBatchController.informational(" \t ")).isNull();
 		assertThat(EntityBatchController.informational(null)).isNull();

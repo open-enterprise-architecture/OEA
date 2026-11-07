@@ -15,6 +15,7 @@ import io.oea.testsupport.containers.OeaTestKeys;
 import jakarta.servlet.http.Cookie;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
@@ -227,6 +228,24 @@ class CatalogJoinsTests {
 		}
 		assertInvalid(addJoin(catalog, this.architect, join("J10", this.dataFlow, "outbound", this.iface, field("name"))),
 				"joinDefinitions");
+	}
+
+	@Test
+	void nameAndTargetColumnsAtTheirLimits() {
+		String catalog = catalog("instance", this.architect);
+		ObjectNode[] twenty = new ObjectNode[20];
+		for (int i = 0; i < twenty.length; i++) {
+			UUID property = publicProperty("Target " + i + " " + suffix());
+			map(this.iface, property);
+			twenty[i] = property(property);
+		}
+		created(addJoin(catalog, this.architect, join("j".repeat(100), this.dataFlow, "outbound", this.iface, twenty)));
+		assertInvalid(addJoin(catalog, this.architect,
+				join("j".repeat(101), this.dataFlow, "outbound", this.iface, field("name"))), "name");
+		ObjectNode[] twentyOne = Arrays.copyOf(twenty, 21);
+		twentyOne[20] = field("name");
+		assertInvalid(addJoin(catalog, this.architect, join("Wide", this.dataFlow, "outbound", this.iface, twentyOne)),
+				"targetColumns");
 	}
 
 	// Edit and remove a join

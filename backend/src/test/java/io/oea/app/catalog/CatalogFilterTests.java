@@ -293,6 +293,13 @@ class CatalogFilterTests {
 	}
 
 	@Test
+	void valueLengthAtItsLimits() {
+		String catalog = applicationCatalog();
+		ok(query(catalog, filter("name:contains:%s", "a".repeat(1000))));
+		assertBadFilter(query(catalog, filter("name:contains:%s", "a".repeat(1001))));
+	}
+
+	@Test
 	void unknownFilterMode() {
 		MvcTestResult result = query(applicationCatalog(), filter("name:isNotNull") + "&filterMode=xor");
 		assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
@@ -475,6 +482,34 @@ class CatalogFilterTests {
 	}
 
 	@Test
+	void savedFilterAtItsLimits() {
+		String catalog = applicationCatalog();
+		ObjectNode[] twenty = Stream.generate(() -> expression("name", "isNotNull", null))
+			.limit(20)
+			.toArray(ObjectNode[]::new);
+		ObjectNode longest = savedFilter("f".repeat(100), "and", twenty).put("description", "d".repeat(1000));
+		JsonNode saved = created(saveFilter(catalog, this.architect, longest));
+		assertThat(saved.path("savedFilters").get(0).path("expressions")).hasSize(20);
+		ObjectNode[] twentyOne = Stream.generate(() -> expression("name", "isNotNull", null))
+			.limit(21)
+			.toArray(ObjectNode[]::new);
+		assertInvalid(saveFilter(catalog, this.architect, savedFilter("Too many", "and", twentyOne)), "expressions");
+		assertInvalid(saveFilter(catalog, this.architect,
+				savedFilter("f".repeat(101), "and", expression("name", "isNotNull", null))), "name");
+		assertInvalid(saveFilter(catalog, this.architect,
+				savedFilter("Long description", "and", expression("name", "isNotNull", null)).put("description",
+						"d".repeat(1001))),
+				"description");
+		// the expression, written as a query filter, has at most 2000 characters
+		String prefix = key(this.vendor) + ":in:";
+		created(saveFilter(catalog, this.architect, savedFilter("Longest list", "and",
+				expression(key(this.vendor), "in", values(listOfLength(2000 - prefix.length()))))));
+		assertInvalid(saveFilter(catalog, this.architect, savedFilter("Longer list", "and",
+				expression(key(this.vendor), "in", values(listOfLength(2001 - prefix.length()))))),
+				"expressions[0].value");
+	}
+
+	@Test
 	void atMostFiftySavedFilters() {
 		String catalog = applicationCatalog();
 		for (int i = 0; i < 50; i++) {
@@ -573,6 +608,20 @@ class CatalogFilterTests {
 	private static String filter(String format, Object... args) {
 		// the request URI is a template, which encodes the value itself
 		return "filter=" + ((args.length > 0) ? format.formatted(args) : format);
+	}
+
+	/** Two comma-separated values of at most 1000 characters each, of the given total length. */
+	private static String listOfLength(int length) {
+		int first = Math.min(1000, length - 2);
+		return "a".repeat(first) + "," + "b".repeat(length - first - 1);
+	}
+
+	private static ArrayNode values(String list) {
+		ArrayNode values = JsonMapper.shared().createArrayNode();
+		for (String value : list.split(",")) {
+			values.add(value);
+		}
+		return values;
 	}
 
 	private static ObjectNode savedFilter(String name, String operator, ObjectNode... expressions) {
