@@ -140,7 +140,7 @@ The count stays the unchanged `count` statement, so the total is the same as wit
   - (3) with the 3 joins and the filters;
   - (4) the page after page 150 through the cursor, sorted by name and by status.
 - **Pass criterion:** the 95th percentile is below the targets (200, 500, 600 and 200 ms). The measured values are logged and recorded in REQ-071.
-- **Result (task 4.3):** all four targets are met without further indexes or rewritten statements; `entities_active_name` and the existing connection indexes suffice. 95th percentiles of the local run of 2026-11-07: (1) 6 ms, (2) 20 ms, (3) 84 ms, (4) 5 ms sorted by name and 18 ms sorted by status. The count stays in the contract.
+- **Result (task 4.3):** all four targets are met without further indexes or rewritten statements; `entities_active_name` and the existing connection indexes suffice. 95th percentiles of the local run of 2026-11-07: (1) 6 ms, (2) 20 ms, (3) 84 ms, (4) 5 ms sorted by name and 18 ms sorted by status; in CI (run of #207): (1) 7 ms, (2) 18 ms, (3) 72 ms, (4) 5 ms and 17 ms. The count stays in the contract.
 
 ## Data Model
 

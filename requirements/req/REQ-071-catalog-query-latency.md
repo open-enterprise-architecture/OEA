@@ -112,10 +112,10 @@ Applies to the server-side portion of the catalog query (`GET /api/v1/catalogs/{
 ## Implementation
 
 - ADR(s): –
-- Implemented by: OpenSpec change `s9-catalog-query-performance` (#66)
+- Implemented by: OpenSpec change `s9-catalog-query-performance`, commit a0db945 (#207, #66)
 - Tests: `CatalogQueryLatencyIT` (AC1–AC4), `CatalogCursorTests`, `CatalogCursorsTests`, `CatalogQueryTimeoutTests`, `StatementTimeoutTests`, `CatalogQueryIndexSchemaTests`
 - Verification status: verified
-- Measured 95th percentiles (2026-11-07, local run with 10,000 applications, 3 joins with 5 connections per application and join): AC1 6 ms, AC2 20 ms, AC3 84 ms, AC4 5 ms sorted by name and 18 ms sorted by status
+- Measured 95th percentiles (2026-11-07, local run with 10,000 applications, 3 joins with 5 connections per application and join): AC1 6 ms, AC2 20 ms, AC3 84 ms, AC4 5 ms sorted by name and 18 ms sorted by status; in CI (run of #207): AC1 7 ms, AC2 18 ms, AC3 72 ms, AC4 5 ms and 17 ms
 
 ## Change History
 
