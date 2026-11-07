@@ -1,13 +1,18 @@
 package io.oea.core.catalog;
 
 import java.sql.Date;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -87,20 +92,70 @@ public class CatalogQueryStore {
 	/** A field every entity has (US-047), with its text form and its sort expression per alias. */
 	public enum SystemField {
 
-		NAME("%1$s.name", "lower(%1$s.name)"),
-		DESCRIPTION("nullif(%1$s.description, '')", "lower(nullif(%1$s.description, ''))"),
-		EXTERNAL_ID("%1$s.external_id", "lower(%1$s.external_id)"),
-		CREATED_AT("to_char(%1$s.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')", "%1$s.created_at"),
-		UPDATED_AT("to_char(%1$s.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')", "%1$s.updated_at"),
-		ENTITY_VERSION("%1$s.version::text", "%1$s.version");
+		NAME("%1$s.name", "lower(%1$s.name)", KeyType.TEXT),
+		DESCRIPTION("nullif(%1$s.description, '')", "lower(nullif(%1$s.description, ''))", KeyType.TEXT),
+		EXTERNAL_ID("%1$s.external_id", "lower(%1$s.external_id)", KeyType.TEXT),
+		CREATED_AT("to_char(%1$s.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')", "%1$s.created_at",
+				KeyType.TIMESTAMP),
+		UPDATED_AT("to_char(%1$s.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')", "%1$s.updated_at",
+				KeyType.TIMESTAMP),
+		ENTITY_VERSION("%1$s.version::text", "%1$s.version", KeyType.INTEGER);
 
 		private final String text;
 
 		private final String order;
 
-		SystemField(String text, String order) {
+		private final KeyType orderType;
+
+		SystemField(String text, String order, KeyType orderType) {
 			this.text = text;
 			this.order = order;
+			this.orderType = orderType;
+		}
+
+	}
+
+	/**
+	 * The SQL type of a sort key (design D1 of s9-catalog-query-performance), with the Java type
+	 * of its values: {@link String}, {@link Integer}, {@link Long}, {@link LocalDate},
+	 * {@link Boolean} or {@link OffsetDateTime}.
+	 */
+	public enum KeyType {
+
+		TEXT("text"), INTEGER("integer"), BIGINT("bigint"), DATE("date"), BOOLEAN("boolean"),
+		TIMESTAMP("timestamptz");
+
+		private final String sql;
+
+		KeyType(String sql) {
+			this.sql = sql;
+		}
+
+		private Object read(ResultSet rs, int index) throws SQLException {
+			return switch (this) {
+				case TEXT -> rs.getString(index);
+				case INTEGER -> rs.getObject(index, Integer.class);
+				case BIGINT -> rs.getObject(index, Long.class);
+				case DATE -> rs.getObject(index, LocalDate.class);
+				case BOOLEAN -> rs.getObject(index, Boolean.class);
+				case TIMESTAMP -> rs.getObject(index, OffsetDateTime.class);
+			};
+		}
+
+		private Object bind(Object value) {
+			return (value instanceof LocalDate date) ? Date.valueOf(date) : value;
+		}
+
+	}
+
+	/**
+	 * A key of the order of a page (design D1 of s9-catalog-query-performance): its expression,
+	 * its type, its direction and whether it can be empty, which sorts it last.
+	 */
+	private record SortKey(String expression, KeyType type, boolean descending, boolean nullable) {
+
+		String order() {
+			return this.expression + (this.descending ? " DESC" : " ASC") + (this.nullable ? " NULLS LAST" : "");
 		}
 
 	}
@@ -191,10 +246,11 @@ public class CatalogQueryStore {
 	}
 
 	/**
-	 * An entity row with the text form of each column ({@code null} without value) and the result
-	 * of each rows join.
+	 * An entity row with the text form of each column ({@code null} without value), the result
+	 * of each rows join and its values of the sort keys ({@link #keyTypes}), which a cursor to the
+	 * next page carries.
 	 */
-	public record Row(int entityId, String name, List<String> values, List<JoinRow> joins) {
+	public record Row(int entityId, String name, List<String> values, List<JoinRow> joins, List<Object> keys) {
 	}
 
 	/**
@@ -286,6 +342,18 @@ public class CatalogQueryStore {
 		return values;
 	}
 
+	/**
+	 * Limits every following statement of the current transaction to the given time (design D4 of
+	 * s9-catalog-query-performance); the limit ends with the transaction. The value is a number,
+	 * never configured text.
+	 */
+	public void limitStatements(long milliseconds) {
+		if (milliseconds < 1) {
+			throw new IllegalArgumentException("limit " + milliseconds);
+		}
+		this.jdbc.execute("SET LOCAL statement_timeout = " + milliseconds);
+	}
+
 	/** Whether the metatype is a connection metatype; {@code false} for an unknown one. */
 	public boolean isConnection(UUID metatypeId) {
 		return this.jdbc
@@ -304,6 +372,21 @@ public class CatalogQueryStore {
 	 */
 	public List<Row> page(UUID metatypeId, List<QueryColumn> columns, List<Join> rowsJoins, Filter filter, Sort sort,
 			long offset, int limit) {
+		return page(metatypeId, columns, rowsJoins, filter, sort, offset, limit, null);
+	}
+
+	/**
+	 * One page of rows as above. With {@code after}, the values of the sort keys of the last row
+	 * of the previous page, the page starts after that row instead of skipping {@code offset}
+	 * rows (keyset paging, design D2 of s9-catalog-query-performance); the values have the types
+	 * of {@link #keyTypes}.
+	 */
+	public List<Row> page(UUID metatypeId, List<QueryColumn> columns, List<Join> rowsJoins, Filter filter, Sort sort,
+			long offset, int limit, List<Object> after) {
+		List<SortKey> keys = sortKeys(columns, rowsJoins, sort);
+		if (after != null && after.size() != keys.size()) {
+			throw new IllegalArgumentException("expected " + keys.size() + " key values, got " + after.size());
+		}
 		Statement sql = new Statement("SELECT e.id, e.name");
 		for (int i = 0; i < columns.size(); i++) {
 			sql.text(", ").text(text(columns.get(i), alias(columns.get(i)), "v" + i));
@@ -315,6 +398,9 @@ public class CatalogQueryStore {
 				sql.text(", ").text(text(joinColumns.get(i), "j" + j, "j" + j + "v" + i));
 			}
 		}
+		for (int k = 0; k < keys.size(); k++) {
+			sql.text(", %s AS k%d".formatted(keys.get(k).expression(), k));
+		}
 		sql.text(" FROM entities e");
 		endpoints(sql, columns, filter);
 		values(sql, columns, "e", "v");
@@ -322,48 +408,17 @@ public class CatalogQueryStore {
 			lateral(sql, rowsJoins.get(j), j);
 			values(sql, rowsJoins.get(j).columns(), "j" + j, "j" + j + "v");
 		}
-		QueryColumn sorted = null;
-		String sortAlias = "e";
-		String valueAlias = null;
-		if (sort.column() != null) {
-			if (sort.join() == null) {
-				sorted = columns.get(sort.column());
-				sortAlias = alias(sorted);
-				valueAlias = "v" + sort.column();
-			}
-			else {
-				sorted = rowsJoins.get(sort.join()).columns().get(sort.column());
-				sortAlias = "j" + sort.join();
-				valueAlias = sortAlias + "v" + sort.column();
-			}
-		}
-		if (sorted != null && sorted.property() != null) {
-			sql.text(" LEFT JOIN property_enum_values eo ON eo.property_def_id = %1$s.property_def_id"
-				.formatted(valueAlias) + " AND eo.value = %1$s.value_enum".formatted(valueAlias));
+		String enumOrder = enumOrderJoin(columns, rowsJoins, sort);
+		if (enumOrder != null) {
+			sql.text(enumOrder);
 		}
 		where(sql, metatypeId, rowsJoins, filter);
-		sql.text(" ORDER BY ");
-		String direction = sort.descending() ? "DESC" : "ASC";
-		if (sorted == null || (sort.join() == null && sorted.endpoint() == null && sorted.field() == SystemField.NAME)) {
-			sql.text("lower(e.name) %s, e.id".formatted(direction));
+		if (after != null) {
+			sql.text(" AND ");
+			after(sql, keys, after);
 		}
-		else if (sorted.field() != null) {
-			sql.text("%s %s NULLS LAST, lower(e.name), e.id".formatted(sorted.field().order.formatted(sortAlias),
-					direction));
-		}
-		else {
-			// typed columns first, so that numbers and dates sort by value; only one of them is set
-			sql.text("eo.sort_order %s NULLS LAST, ".formatted(direction));
-			for (String column : List.of("value_int", "value_date", "value_bool", "value_ref")) {
-				sql.text("%s.%s %s NULLS LAST, ".formatted(valueAlias, column, direction));
-			}
-			sql.text("lower(coalesce(%1$s.value_enum, %1$s.value_text)) %2$s NULLS LAST, lower(e.name), e.id"
-				.formatted(valueAlias, direction));
-		}
-		for (int j = 0; j < rowsJoins.size(); j++) {
-			sql.text(", lower(j%1$d.name), j%1$d.id".formatted(j));
-		}
-		sql.text(" LIMIT ? OFFSET ?").arg(limit).arg(offset);
+		sql.text(" ORDER BY ").text(String.join(", ", keys.stream().map(SortKey::order).toList()));
+		sql.text(" LIMIT ? OFFSET ?").arg(limit).arg((after != null) ? 0 : offset);
 		return this.jdbc.query(sql.toString(), (rs, rowNum) -> {
 			List<String> values = new ArrayList<>(columns.size());
 			for (int i = 0; i < columns.size(); i++) {
@@ -379,8 +434,135 @@ public class CatalogQueryStore {
 				}
 				joins.add(new JoinRow(target, joinValues));
 			}
-			return new Row(rs.getInt(1), rs.getString(2), values, joins);
+			List<Object> keyValues = new ArrayList<>(keys.size());
+			for (SortKey key : keys) {
+				keyValues.add(key.type().read(rs, index++));
+			}
+			return new Row(rs.getInt(1), rs.getString(2), values, joins, Collections.unmodifiableList(keyValues));
 		}, sql.args());
+	}
+
+	/** The types of the sort keys of a page, in order; a cursor carries one value per key. */
+	public List<KeyType> keyTypes(List<QueryColumn> columns, List<Join> rowsJoins, Sort sort) {
+		return sortKeys(columns, rowsJoins, sort).stream().map(SortKey::type).toList();
+	}
+
+	/**
+	 * The keys of the order (design D1 of s9-catalog-query-performance): the sort column, then
+	 * name and ID of the entity, then name and ID of each rows join. Rows without a value in the
+	 * sort column come last in both directions; a property sorts by the order of its enum values,
+	 * then by its typed value, only one of which is set (#65).
+	 */
+	private static List<SortKey> sortKeys(List<QueryColumn> columns, List<Join> rowsJoins, Sort sort) {
+		List<SortKey> keys = new ArrayList<>();
+		boolean descending = sort.descending();
+		QueryColumn sorted = sorted(columns, rowsJoins, sort);
+		String sortAlias = (sort.column() == null) ? "e"
+				: (sort.join() == null) ? alias(sorted) : "j" + sort.join();
+		if (sorted == null || (sort.join() == null && sorted.endpoint() == null && sorted.field() == SystemField.NAME)) {
+			keys.add(new SortKey("lower(e.name)", KeyType.TEXT, descending, false));
+		}
+		else if (sorted.field() != null) {
+			keys.add(new SortKey(sorted.field().order.formatted(sortAlias), sorted.field().orderType, descending, true));
+			keys.add(new SortKey("lower(e.name)", KeyType.TEXT, false, false));
+		}
+		else {
+			String valueAlias = valueAlias(sort);
+			keys.add(new SortKey("eo.sort_order", KeyType.INTEGER, descending, true));
+			keys.add(new SortKey(valueAlias + ".value_int", KeyType.BIGINT, descending, true));
+			keys.add(new SortKey(valueAlias + ".value_date", KeyType.DATE, descending, true));
+			keys.add(new SortKey(valueAlias + ".value_bool", KeyType.BOOLEAN, descending, true));
+			keys.add(new SortKey(valueAlias + ".value_ref", KeyType.INTEGER, descending, true));
+			keys.add(new SortKey("lower(coalesce(%1$s.value_enum, %1$s.value_text))".formatted(valueAlias),
+					KeyType.TEXT, descending, true));
+			keys.add(new SortKey("lower(e.name)", KeyType.TEXT, false, false));
+		}
+		keys.add(new SortKey("e.id", KeyType.INTEGER, false, false));
+		for (int j = 0; j < rowsJoins.size(); j++) {
+			keys.add(new SortKey("lower(j%d.name)".formatted(j), KeyType.TEXT, false, true));
+			keys.add(new SortKey("j%d.id".formatted(j), KeyType.INTEGER, false, true));
+		}
+		return keys;
+	}
+
+	/** The sorted column, {@code null} for the default order by name. */
+	private static QueryColumn sorted(List<QueryColumn> columns, List<Join> rowsJoins, Sort sort) {
+		if (sort.column() == null) {
+			return null;
+		}
+		return (sort.join() == null) ? columns.get(sort.column())
+				: rowsJoins.get(sort.join()).columns().get(sort.column());
+	}
+
+	/** The alias of the property value of the sorted column. */
+	private static String valueAlias(Sort sort) {
+		return (sort.join() == null) ? "v" + sort.column() : "j" + sort.join() + "v" + sort.column();
+	}
+
+	/** The join of the enum order for a sorted property column, {@code null} for other sorts. */
+	private static String enumOrderJoin(List<QueryColumn> columns, List<Join> rowsJoins, Sort sort) {
+		QueryColumn sorted = sorted(columns, rowsJoins, sort);
+		if (sorted == null || sorted.property() == null) {
+			return null;
+		}
+		return " LEFT JOIN property_enum_values eo ON eo.property_def_id = %1$s.property_def_id AND eo.value = %1$s.value_enum"
+			.formatted(valueAlias(sort));
+	}
+
+	/**
+	 * The keyset predicate (design D2 of s9-catalog-query-performance): the rows after the one
+	 * with the given key values. For keys {@code k1..kn} it is the {@code OR} over {@code i} of
+	 * {@code k1 = v1 AND ... AND k(i-1) = v(i-1) AND ki after vi}; after a value come greater
+	 * (ascending) or smaller (descending) values and the empty ones, after an empty value only
+	 * empty ones, which are equal. For the default order the row comparison
+	 * {@code (lower(e.name), e.id) > (?, ?)} lets PostgreSQL read the page from the index
+	 * {@code entities_active_name}.
+	 */
+	private static void after(Statement sql, List<SortKey> keys, List<Object> values) {
+		if (keys.size() == 2 && keys.stream().noneMatch((key) -> key.descending() || key.nullable())
+				&& values.stream().allMatch(Objects::nonNull)) {
+			sql.text("(%s, %s) > (?::%s, ?::%s)".formatted(keys.get(0).expression(), keys.get(1).expression(),
+					keys.get(0).type().sql, keys.get(1).type().sql))
+				.arg(keys.get(0).type().bind(values.get(0)))
+				.arg(keys.get(1).type().bind(values.get(1)));
+			return;
+		}
+		List<String> alternatives = new ArrayList<>();
+		List<Object> args = new ArrayList<>();
+		for (int i = 0; i < keys.size(); i++) {
+			SortKey key = keys.get(i);
+			Object value = values.get(i);
+			if (value == null) {
+				continue; // only empty values follow an empty one, and they are equal to it
+			}
+			List<String> parts = new ArrayList<>();
+			List<Object> partArgs = new ArrayList<>();
+			for (int e = 0; e < i; e++) {
+				equal(keys.get(e), values.get(e), parts, partArgs);
+			}
+			String cast = "?::" + key.type().sql;
+			String greater = "%s %s %s".formatted(key.expression(), key.descending() ? "<" : ">", cast);
+			parts.add(key.nullable() ? "(%s OR %s IS NULL)".formatted(greater, key.expression()) : greater);
+			partArgs.add(key.type().bind(value));
+			alternatives.add("(" + String.join(" AND ", parts) + ")");
+			args.addAll(partArgs);
+		}
+		if (alternatives.isEmpty()) {
+			sql.text("false");
+			return;
+		}
+		sql.text("(" + String.join(" OR ", alternatives) + ")");
+		args.forEach(sql::arg);
+	}
+
+	private static void equal(SortKey key, Object value, List<String> parts, List<Object> args) {
+		if (value == null) {
+			parts.add(key.expression() + " IS NULL");
+		}
+		else {
+			parts.add("%s = ?::%s".formatted(key.expression(), key.type().sql));
+			args.add(key.type().bind(value));
+		}
 	}
 
 	/**

@@ -1,6 +1,7 @@
 {
   "catalog": {
     "loadFailed": "Der Katalog konnte nicht geladen werden.",
+    "queryTimeout": "Die Abfrage hat zu lange gedauert. Schränke die Filter ein oder schalte Joins auf kompakt und versuche es erneut.",
     "nameColumn": "Name",
     "noEntries": "Keine Einträge gefunden",
     "noEntriesHint": "Keine Einträge gefunden. Entitäten können als Delta in einer Lösung erfasst werden.",

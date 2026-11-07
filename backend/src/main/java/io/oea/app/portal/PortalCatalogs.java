@@ -37,13 +37,24 @@ public class PortalCatalogs {
 	}
 
 	/** One page of a shared catalog; a personal or unknown catalog is answered with 404. */
-	@Transactional(readOnly = true)
 	public CatalogQueries.Result query(OeaPrincipal principal, UUID id, int page, int pageSize, String sort) {
+		return query(principal, id, page, pageSize, sort, null);
+	}
+
+	/**
+	 * One page of a shared catalog, after the last row of the previous page with {@code cursor}
+	 * (design D3 of s9-catalog-query-performance). The query runs in its own transaction with the
+	 * time limit and is measured with channel {@code portal}.
+	 */
+	public CatalogQueries.Result query(OeaPrincipal principal, UUID id, int page, int pageSize, String sort,
+			String cursor) {
 		Catalogs.Catalog catalog = this.catalogs.get(principal, id);
 		if (!INSTANCE.equals(catalog.scope())) {
 			throw new NoSuchElementException("catalog " + id);
 		}
-		return this.queries.query(principal, id, page, pageSize, sort, Map.of());
+		return this.queries.query(principal, id,
+				new CatalogQueries.Request(page, pageSize, sort, Map.of(), List.of(), null, null, cursor),
+				CatalogQueries.Channel.PORTAL);
 	}
 
 }

@@ -10,8 +10,13 @@ import PortalCatalogPage from './PortalCatalogPage.vue'
 
 const PATH = `/portal/catalogs/${INVENTORY_ID}`
 
-async function open(location: string, applications?: Application[], recorded: string[] = []): Promise<{ wrapper: VueWrapper; router: Router }> {
-  const fetchFn = portalApi(applications, { recorded })
+async function open(
+  location: string,
+  applications?: Application[],
+  recorded: string[] = [],
+  rejectCursors = false,
+): Promise<{ wrapper: VueWrapper; router: Router }> {
+  const fetchFn = portalApi(applications, { recorded, rejectCursors })
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -76,6 +81,42 @@ describe('PortalCatalogPage', () => {
     await pageTwo!.trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.query).toEqual({ page: '1' })
+    expect(names(wrapper)[0]).toBe('Application 051')
+  })
+
+  // spec portal/portal-catalogs "Next page through the cursor" (s9-catalog-query-performance)
+
+  async function toPage(wrapper: VueWrapper, label: string) {
+    const button = wrapper.get('[data-testid="catalog-pagination"]').findAll('button').find((candidate) => candidate.text() === label)
+    await button!.trigger('click')
+    await flushPromises()
+  }
+
+  function queries(recorded: string[]) {
+    return recorded.filter((path) => path.includes('/query')).map((path) => new URL(path, 'http://localhost').searchParams)
+  }
+
+  it('pages forward with the cursor and jumps with the page only', async () => {
+    const recorded: string[] = []
+    const { wrapper, router } = await open(PATH, manyApplications(160), recorded)
+    await toPage(wrapper, '2')
+    expect(queries(recorded).at(-1)!.get('cursor')).toBe('cursor-1')
+    expect(queries(recorded).at(-1)!.get('page')).toBe('1')
+    expect(router.currentRoute.value.query).toEqual({ page: '1' })
+    expect(names(wrapper)[0]).toBe('Application 051')
+    await toPage(wrapper, '4')
+    expect(queries(recorded).at(-1)!.has('cursor')).toBe(false)
+    expect(names(wrapper)[0]).toBe('Application 151')
+  })
+
+  it('falls back to the page when the cursor is rejected', async () => {
+    const recorded: string[] = []
+    const { wrapper } = await open(PATH, manyApplications(120), recorded, true)
+    await toPage(wrapper, '2')
+    const sent = queries(recorded)
+    expect(sent.at(-2)!.get('cursor')).toBe('cursor-1')
+    expect(sent.at(-1)!.has('cursor')).toBe(false)
+    expect(sent.at(-1)!.get('page')).toBe('1')
     expect(names(wrapper)[0]).toBe('Application 051')
   })
 

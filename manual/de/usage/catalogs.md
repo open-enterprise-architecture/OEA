@@ -30,7 +30,7 @@ Die Seitenleiste ordnet Kataloge in Ordnern; *In Navigation einordnen* auf einem
 
 Ist der Name schon vergeben, sagt dir das der Dialog; wähle einen anderen Namen. Ohne die Berechtigung, Kataloge zu verwalten, ist *Geteilt* nicht wählbar.
 
-## Katalog durchsehen
+## Katalog durchsehen {#browse}
 
 Die Liste *Kataloge* zeigt jeden Katalog, den du sehen darfst, markiert mit *Geteilt* oder *Persönlich*. Öffne einen, um seine Tabelle zu sehen:
 
@@ -45,9 +45,14 @@ Die Liste *Kataloge* zeigt jeden Katalog, den du sehen darfst, markiert mit *Get
 - Die Tabelle zeigt 50 Einträge pro Seite; mit der Seitennavigation unter der Tabelle wechselst du zwischen den Seiten.
 - Sortierung und Seite sind Teil der Adresse der Seite. Zurücknavigation, Neuladen oder ein geteilter Link stellen dieselbe Ansicht wieder her; ungültige Werte in der Adresse werden ignoriert, und die erste Seite wird in der Standardreihenfolge gezeigt.
 - Hat der Entitätstyp noch keine Entitäten, zeigt die Tabelle *Keine Einträge gefunden*.
+- Eine Abfrage, die länger dauert als die Zeitgrenze deiner Installation (standardmässig 10 Sekunden), wird abgebrochen, und die Tabelle zeigt *Die Abfrage hat zu lange gedauert*. Schränke die Filter ein oder schalte Joins auf kompakt und versuche es erneut.
 - Den persönlichen Katalog einer anderen Person kannst du nicht öffnen; er verhält sich wie ein Katalog, den es nicht gibt (*Katalog nicht gefunden*).
 
 Über die API liefert `GET /catalogs/{id}/query` dieselben Zeilen mit den Parametern `page` (ab 0), `pageSize` (1–200, Standard 50) und `sort` (`{field}:{asc|desc}`).
+
+- Eine Seite mit einer Folgeseite trägt `nextCursor`. Sende ihn als `cursor` zusammen mit `page` + 1, um die nächste Seite schneller zu lesen; Zeilen und Gesamtzahl sind dieselben wie mit `page` allein.
+- Ein Cursor gilt nur für dieselbe Abfrage (Spalten oder Ansicht, Sortierung, Join-Modi, Filter, Seitengrösse) und bis sich der Katalog ändert oder das Backend neu startet. Sonst antwortet die Abfrage mit 400 und `cursor` in `invalidFields`; wiederhole sie ohne Cursor.
+- Eine Abfrage über der Zeitgrenze antwortet mit 503 und dem Problemtyp `urn:oea:problem:query-timeout` (*Query took too long*).
 
 ## Filter {#filters}
 

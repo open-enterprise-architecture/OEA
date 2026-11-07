@@ -26,7 +26,15 @@ export const INVENTORY_ID = SHARED_CATALOGS[0]!.id
  */
 export function portalApi(
   applications: Application[] = APPLICATIONS,
-  options: { me?: unknown; catalogs?: unknown[]; recorded?: string[]; failing?: boolean; pageSize?: number } = {},
+  options: {
+    me?: unknown
+    catalogs?: unknown[]
+    recorded?: string[]
+    failing?: boolean
+    pageSize?: number
+    /** Rejects every cursor with 400 `cursor`, as after a restart of the backend. */
+    rejectCursors?: boolean
+  } = {},
 ): typeof fetch {
   const catalogs = (options.catalogs ?? SHARED_CATALOGS) as { id: string }[]
   const json = (body: unknown, status = 200, contentType = 'application/json') =>
@@ -54,6 +62,10 @@ export function portalApi(
       }
       const pageSize = Number(url.searchParams.get('pageSize') ?? options.pageSize ?? 50)
       const page = Number(url.searchParams.get('page') ?? 0)
+      const cursor = url.searchParams.get('cursor')
+      if (cursor !== null && (options.rejectCursors || cursor !== `cursor-${page}`)) {
+        return problem(400, 'Invalid query', ['cursor'])
+      }
       const rows = [...applications]
       if (sortMatch) {
         const key = sortMatch[1] as 'name' | 'status'
@@ -77,6 +89,7 @@ export function portalApi(
         })),
         joins: [],
         page: { page, pageSize, totalElements: rows.length, totalPages: Math.ceil(rows.length / pageSize) },
+        nextCursor: (page + 1) * pageSize < rows.length ? `cursor-${page + 1}` : null,
         sort: sortMatch ? { column: sortMatch[1], direction: sortMatch[2] } : null,
       })
     }

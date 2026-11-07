@@ -33,11 +33,11 @@ public class PortalController implements PortalApi {
 	}
 
 	@Override
-	@ContractViolationResponse(title = "Invalid query", detail = "The paging or sort parameters are invalid.")
-	public ResponseEntity<CatalogQueryResult> queryPortalCatalog(UUID id, Integer page, Integer pageSize,
-			String sort) {
+	@ContractViolationResponse(title = "Invalid query", detail = "The paging, sort or cursor parameters are invalid.")
+	public ResponseEntity<CatalogQueryResult> queryPortalCatalog(UUID id, Integer page, Integer pageSize, String sort,
+			String cursor) {
 		return ResponseEntity
-			.ok(CatalogQueryMapping.result(this.catalogs.query(principal(), id, page, pageSize, sort)));
+			.ok(CatalogQueryMapping.result(this.catalogs.query(principal(), id, page, pageSize, sort, cursor)));
 	}
 
 	private static OeaPrincipal principal() {

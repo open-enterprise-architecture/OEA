@@ -109,6 +109,8 @@ export interface CatalogQuery {
   filterMode?: CatalogFilterMode
   /** A saved view whose columns the result shows (US-053). */
   view?: string
+  /** The `nextCursor` of the previous page, sent with `page` (design D6 of s9-catalog-query-performance). */
+  cursor?: string
 }
 
 const JSON_HEADERS = { Accept: 'application/json, application/problem+json' }
@@ -275,8 +277,8 @@ export function removeCatalogJoin(id: string, joinId: string, fetchFn: typeof fe
 
 /**
  * GET /catalogs/{id}/query: one page of rows (US-049). A missing or foreign personal catalog is
- * the rejection with status 404, invalid paging, sort or join mode parameters `validation-failed`
- * (400) with `invalidFields`.
+ * the rejection with status 404, invalid paging, sort, join mode or cursor parameters
+ * `validation-failed` (400) with `invalidFields`, a query above the time limit `query-timeout` (503).
  */
 export async function queryCatalog(
   id: string,
@@ -304,6 +306,9 @@ export async function queryCatalog(
   }
   if (query.view) {
     params.set('view', query.view)
+  }
+  if (query.cursor) {
+    params.set('cursor', query.cursor)
   }
   const search = params.toString()
   const response = await fetchFn(`/api/v1/catalogs/${encodeURIComponent(id)}/query${search ? `?${search}` : ''}`, {

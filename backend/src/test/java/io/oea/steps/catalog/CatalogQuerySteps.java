@@ -7,7 +7,9 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.oea.testsupport.repository.RepositoryInstance;
 import io.oea.testsupport.repository.RepositoryInstance.Session;
+import java.net.URLEncoder;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,10 @@ public class CatalogQuerySteps {
 	private static HttpResponse<String> last;
 
 	private HttpResponse<String> response;
+
+	private String sort;
+
+	private String parameters;
 
 	@Given("the repository contains no applications")
 	public void noApplications() throws Exception {
@@ -69,7 +75,52 @@ public class CatalogQuerySteps {
 
 	@When("the {role} queries the catalog {string} with page {int}, page size {int} and sort {string}")
 	public void queryPage(Session session, String catalog, int page, int pageSize, String sort) throws Exception {
+		this.sort = sort;
 		query(session, catalog, "?page=" + page + "&pageSize=" + pageSize + "&sort=" + sort);
+	}
+
+	@When("the {role} queries the next page of the catalog {string} through the cursor")
+	public void queryNextPage(Session session, String catalog) throws Exception {
+		JsonNode previous = result();
+		this.parameters = "?page=" + (previous.path("page").path("page").asInt() + 1) + "&pageSize="
+				+ previous.path("page").path("pageSize").asInt() + "&sort=" + this.sort + "&cursor="
+				+ URLEncoder.encode(previous.path("nextCursor").asString(), StandardCharsets.UTF_8);
+		query(session, catalog, this.parameters);
+	}
+
+	@When("the {role} queries page {int} of the catalog {string} sorted by {string} with the cursor of the last query")
+	public void queryWithForeignCursor(Session session, int page, String catalog, String sort) throws Exception {
+		String cursor = result().path("nextCursor").asString();
+		int pageSize = result().path("page").path("pageSize").asInt();
+		query(session, catalog, "?page=" + page + "&pageSize=" + pageSize + "&sort=" + sort + "&cursor="
+				+ URLEncoder.encode(cursor, StandardCharsets.UTF_8));
+	}
+
+	@Then("the rows equal the query of the same page without the cursor")
+	public void equalWithoutCursor() throws Exception {
+		List<String> byCursor = names();
+		String withoutCursor = this.parameters.substring(0, this.parameters.indexOf("&cursor="));
+		String id = this.response.uri().getPath().split("/")[4];
+		HttpResponse<String> byPage = instance().oidc()
+			.get("/api/v1/catalogs/" + id + "/query" + withoutCursor, instance().architect().token());
+		assertThat(byPage.statusCode()).isEqualTo(200);
+		List<String> names = new ArrayList<>();
+		JsonMapper.shared()
+			.readTree(byPage.body())
+			.path("rows")
+			.forEach((row) -> names.add(row.path("values").path("name").asString()));
+		assertThat(byCursor).isEqualTo(names);
+	}
+
+	@Then("the cursor query is rejected with 400 naming {string}")
+	public void cursorRejected(String field) throws Exception {
+		answeredWith(400);
+		List<String> fields = new ArrayList<>();
+		JsonMapper.shared()
+			.readTree(this.response.body())
+			.path("invalidFields")
+			.forEach((node) -> fields.add(node.asString()));
+		assertThat(fields).containsExactly(field);
 	}
 
 	@Then("the catalog shows the columns {string} and {string}")

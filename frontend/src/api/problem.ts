@@ -46,6 +46,11 @@ export function rateLimitMessage(rejection: Rejection | undefined): string | und
   return i18n.global.t('common.tooManyRequests', { seconds: rejection.retryAfterSeconds ?? 60 })
 }
 
+/** The message of a catalog query above its time limit (503 `query-timeout`), else undefined. */
+export function queryTimeoutMessage(rejection: Rejection | undefined): string | undefined {
+  return rejection?.problemType === 'query-timeout' ? i18n.global.t('catalog.queryTimeout') : undefined
+}
+
 export async function readRejection(response: Response): Promise<Rejection> {
   let problem: Problem | undefined
   try {

@@ -116,3 +116,6 @@ java -jar oea-backend.jar
 - `OEA_WEB_PUBLIC_URL` (`oea.web.public-url`) is the address under which users reach OEA. You need it as soon as an identity provider is enabled; it must use `https` and must not be a loopback address.
 - If the migration step has not run for the current version, the backend refuses to start and names the migration step.
 - The backend refuses to start if the key file is missing, unreadable, not exactly 256 bits, or the development key of the repository.
+- `OEA_DATABASE_STATEMENTTIMEOUT` (`oea.database.statement-timeout`, default `60s`) cancels every database statement of the backend that runs longer; allowed are 1 second to 1 hour. The migration step is not limited.
+- `OEA_CATALOG_QUERYTIMEOUT` (`oea.catalog.query-timeout`, default `10s`) cancels a catalog query that runs longer; allowed are 1 second up to the statement limit. A cancelled query is answered with 503 *Query took too long* and written to the audit log as `catalog.query-timeout`.
+- With a value outside these ranges, the backend refuses to start and names the setting.

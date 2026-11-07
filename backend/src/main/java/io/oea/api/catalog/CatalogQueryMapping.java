@@ -43,6 +43,7 @@ public final class CatalogQueryMapping {
 				.map((join) -> new CatalogQueryJoin(join.id(), join.name(), JoinMode.fromValue(join.mode()),
 						join.columns().stream().map(CatalogQueryMapping::column).toList()))
 				.toList())
+			.nextCursor(result.nextCursor())
 			.sort((result.sort() != null) ? new CatalogSort(result.sort().column(),
 					result.sort().descending() ? CatalogSort.DirectionEnum.DESC : CatalogSort.DirectionEnum.ASC)
 					: null);

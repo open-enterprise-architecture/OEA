@@ -12,6 +12,8 @@ export interface PortalQuery {
   page?: number
   pageSize?: number
   sort?: CatalogSort
+  /** The `nextCursor` of the previous page, sent with `page` (design D6 of s9-catalog-query-performance). */
+  cursor?: string
 }
 
 /** GET /portal/catalogs: the shared catalogs, ordered by name. */
@@ -38,6 +40,9 @@ export async function queryPortalCatalog(
   }
   if (query.sort) {
     params.set('sort', `${query.sort.column}:${query.sort.direction}`)
+  }
+  if (query.cursor) {
+    params.set('cursor', query.cursor)
   }
   const search = params.toString()
   const response = await fetchFn(

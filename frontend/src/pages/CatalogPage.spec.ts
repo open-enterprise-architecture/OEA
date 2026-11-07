@@ -47,7 +47,7 @@ async function open(
   location: string,
   applications: Application[] = APPLICATIONS,
   throttledFor?: number,
-  options: { me?: unknown; catalog?: unknown; metatypes?: unknown[] } = {},
+  options: { me?: unknown; catalog?: unknown; metatypes?: unknown[]; rejectCursors?: boolean; queryFails?: 503 | 500 } = {},
 ): Promise<Mounted> {
   const recorded: CatalogRequest[] = []
   const fetchFn = catalogApi(applications, { recorded, throttledFor, ...options })
@@ -148,6 +148,82 @@ describe('CatalogPage', () => {
     await flushPromises()
     expect(wrapper.get('[data-testid="catalog-page-info"]').text()).toContain('Page 2 of 3')
     expect(names(wrapper)[0]).toBe('Application 051')
+  })
+
+  // Requirement: Next page through a cursor (s9-catalog-query-performance)
+
+  function queries(recorded: CatalogRequest[]) {
+    return recorded.filter((request) => request.path.endsWith('/query')).map((request) => request.query)
+  }
+
+  async function toPage(wrapper: VueWrapper, label: string) {
+    const button = wrapper.get('[data-testid="catalog-pagination"]').findAll('button').find((candidate) => candidate.text() === label)
+    await button!.trigger('click')
+    await flushPromises()
+  }
+
+  it('pages forward in the table with the cursor and keeps only the page in the URL', async () => {
+    const { wrapper, router, recorded } = await open(CATALOG_PATH, manyApplications(120))
+    expect(queries(recorded).at(-1)).not.toHaveProperty('cursor')
+    await toPage(wrapper, '2')
+    expect(queries(recorded).at(-1)).toMatchObject({ page: '1', cursor: 'cursor-1' })
+    expect(router.currentRoute.value.query).toEqual({ page: '1' })
+    expect(names(wrapper)[0]).toBe('Application 051')
+    // the next page again: current + 1
+    await toPage(wrapper, '3')
+    expect(queries(recorded).at(-1)).toMatchObject({ page: '2', cursor: 'cursor-2' })
+    expect(names(wrapper)[0]).toBe('Application 101')
+  })
+
+  it('jumps, goes back and reloads with the page only', async () => {
+    const { wrapper, recorded } = await open(CATALOG_PATH, manyApplications(120))
+    // current + 2 is a jump
+    await toPage(wrapper, '3')
+    expect(queries(recorded).at(-1)).toEqual(expect.objectContaining({ page: '2' }))
+    expect(queries(recorded).at(-1)).not.toHaveProperty('cursor')
+    // back to the previous page
+    await toPage(wrapper, '2')
+    expect(queries(recorded).at(-1)).not.toHaveProperty('cursor')
+    // a link to page 2 loads without a cursor
+    const reloaded = await open(`${CATALOG_PATH}?page=1`, manyApplications(120))
+    expect(queries(reloaded.recorded)).toHaveLength(1)
+    expect(queries(reloaded.recorded)[0]).not.toHaveProperty('cursor')
+  })
+
+  it('sends no cursor of another query', async () => {
+    const { wrapper, router, recorded } = await open(CATALOG_PATH, manyApplications(120))
+    await router.replace({ query: { sort: 'name:desc' } })
+    await flushPromises()
+    await toPage(wrapper, '2')
+    expect(queries(recorded).at(-1)).toMatchObject({ page: '1', sort: 'name:desc', cursor: 'cursor-1' })
+    await router.replace({ query: { sort: 'name:asc', page: '2' } })
+    await flushPromises()
+    expect(queries(recorded).at(-1)).not.toHaveProperty('cursor')
+  })
+
+  it('falls back to the page when the cursor is rejected', async () => {
+    const { wrapper, router, recorded } = await open(CATALOG_PATH, manyApplications(120), undefined, { rejectCursors: true })
+    await toPage(wrapper, '2')
+    const sent = queries(recorded)
+    expect(sent.at(-2)).toMatchObject({ page: '1', cursor: 'cursor-1' })
+    expect(sent.at(-1)).toEqual(expect.objectContaining({ page: '1' }))
+    expect(sent.at(-1)).not.toHaveProperty('cursor')
+    expect(names(wrapper)[0]).toBe('Application 051')
+    expect(router.currentRoute.value.query).toEqual({ page: '1' })
+    expect(wrapper.get('[data-testid="catalog-page-info"]').text()).toContain('Page 2 of 3')
+  })
+
+  // Requirement: Query time limit (s9-catalog-query-performance)
+
+  it('names a query above the time limit', async () => {
+    const { wrapper } = await open(CATALOG_PATH, APPLICATIONS, undefined, { queryFails: 503 })
+    expect(wrapper.get('[data-testid="catalog-failure"]').text()).toContain('The query took too long.')
+  })
+
+  it('shows the general failure for another error', async () => {
+    const { wrapper } = await open(CATALOG_PATH, APPLICATIONS, undefined, { queryFails: 500 })
+    expect(wrapper.get('[data-testid="catalog-failure"]').text()).toContain('The catalog could not be loaded.')
+    expect(wrapper.get('[data-testid="catalog-failure"]').text()).not.toContain('too long')
   })
 
   it('resets to the first page when the sort changes', async () => {

@@ -34,6 +34,24 @@ Feature: Catalog query
     Then the catalog shows a total of 60 entries
     And the catalog shows the 20 rows "Application 021" to "Application 040" in alphabetical order
 
+  @REQ-071 @REQ-046 @AC5
+  Scenario: Next page by cursor
+    Given 60 applications with the prefix "Cursor" exist
+    And the enterprise architect has created the catalog "Cursor Inventory" with scope "instance"
+    When the enterprise architect queries the catalog "Cursor Inventory" with page 0, page size 20 and sort "name:asc"
+    And the enterprise architect queries the next page of the catalog "Cursor Inventory" through the cursor
+    Then the catalog shows a total of 60 entries
+    And the catalog shows the 20 rows "Cursor 021" to "Cursor 040" in alphabetical order
+    And the rows equal the query of the same page without the cursor
+
+  @REQ-071
+  Scenario: Cursor of another query
+    Given 30 applications with the prefix "Other Cursor" exist
+    And the enterprise architect has created the catalog "Other Cursor Inventory" with scope "instance"
+    When the enterprise architect queries the catalog "Other Cursor Inventory" with page 0, page size 10 and sort "name:asc"
+    And the enterprise architect queries page 1 of the catalog "Other Cursor Inventory" sorted by "name:desc" with the cursor of the last query
+    Then the cursor query is rejected with 400 naming "cursor"
+
   @US-049 @AC5
   Scenario: Default page size
     Given 120 applications with the prefix "Application" exist

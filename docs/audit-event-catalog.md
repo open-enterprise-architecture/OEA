@@ -598,6 +598,17 @@ A saved view of a catalog was added, replaced or removed ([US-053](../requiremen
 | Target | `catalog`, ID of the catalog |
 | Details | `viewId`, `name`; when added or changed also `isDefault`, `columns` and `filters` (the numbers of columns and filters) |
 
+### `catalog.query-timeout`
+
+A catalog or portal query took longer than its time limit `oea.catalog.query-timeout` and was cancelled ([REQ-186](../requirements/req/REQ-186-rate-limits-resource-quotas.md), [REQ-071](../requirements/req/REQ-071-catalog-query-latency.md); change s9-catalog-query-performance D4). The caller gets 503 `query-timeout`; the query changed nothing. The event is written in its own transaction, because the query's transaction is aborted.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `warning` / `failure` |
+| Actor | the querying person |
+| Target | `catalog`, ID of the catalog |
+| Details | `channel` (`catalog` or `portal`), `limitMillis` (the applied limit) |
+
 ### `tree-node.created`, `tree-node.renamed`, `tree-node.deleted`
 
 A folder of the navigation tree was created, renamed or deleted ([US-054](../requirements/user-stories/US-054-catalog-navigation-tree.md), [REQ-094](../requirements/req/REQ-094-navigation-tree-folder-crud.md)). Deleting a folder removes its subfolders and entries, never a catalog.

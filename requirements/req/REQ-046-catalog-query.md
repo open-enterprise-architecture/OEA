@@ -4,9 +4,9 @@ title: Execute a catalog query (live data)
 type: functional
 priority: must
 status: proposed
-version: 0.6.0
+version: 0.7.0
 created: 2026-06-26
-last_updated: 2026-11-05
+last_updated: 2026-11-07
 author: requirements-engineer
 references:
   use_cases:
@@ -163,7 +163,9 @@ In `rows` mode for the same catalog:
 - Connection catalogs (change us-080-connection-catalogs, commit 1db957d, #187, REQ-065): with a connection metatype as primary, the rows are its connections; columns `source.{key}` and `target.{key}` show attributes of the source and target and are sortable; the default columns are `source.name`, `name` and `target.name`
 - LEFT JOIN semantics: entities without join hits are returned anyway (not filtered)
 - Filters (change us-051-catalog-filters, commit 2e320f3 (#190), REQ-047): `filter={key}:{operator}[:{value}]` per filter on a column key of the result, at most 20, combined by `filterMode=and|or`; for `in`/`notIn` the value is comma-separated. Filters apply before sorting and paging, `totalElements` counts only the passing entries, a filter on a join column restricts the entries and the join results; an invalid filter answers 400 `filter`
-- Performance: for large repositories an indexed lookup on EntityType + FilterAttributes is necessary; NFR not yet defined (to follow)
+- Paging through a cursor (change s9-catalog-query-performance, #66, REQ-071): a page with a following page carries `nextCursor`; `cursor` with `page` returns the next page after the last row instead of skipping rows, with the same rows and total as `page` alone. A cursor of another query, a changed cursor or one without its `page` answers 400 `cursor`; the cursor key is random per backend start
+- Time limit (change s9-catalog-query-performance, REQ-186): a query above `oea.catalog.query-timeout` (10 s by default) is cancelled, answered with 503 `query-timeout` and audited as `catalog.query-timeout`
+- Performance: the latency targets of REQ-071 are measured in CI (`CatalogQueryLatencyIT`)
 
 ## Change History
 
@@ -175,3 +177,4 @@ In `rows` mode for the same catalog:
 | 0.4.0 | 2026-11-05 | Change us-048-catalog-joins | `joinResults` by join ID as lists of results with entity ID; rows mode paging and sorting; implementation note |
 | 0.5.0 | 2026-11-05 | Change us-080-connection-catalogs | Implementation note on connection catalogs |
 | 0.6.0 | 2026-11-05 | Change us-051-catalog-filters | AC3 with the parameter `filter`; implementation note on filters |
+| 0.7.0 | 2026-11-07 | Change s9-catalog-query-performance | Implementation notes on the cursor, the time limit and the latency measurement |

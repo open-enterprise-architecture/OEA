@@ -20,7 +20,8 @@ import {
   type CatalogSort,
   type JoinMode,
 } from '../api/catalogs'
-import { rateLimitMessage, RequestRejected } from '../api/problem'
+import { PageCursors, rejectsCursor } from '../api/cursors'
+import { queryTimeoutMessage, rateLimitMessage, RequestRejected } from '../api/problem'
 import { fetchPropertyDefinitions, type PropertyDefinitionDetail } from '../api/metamodel'
 import CatalogColumnsDialog from '../components/CatalogColumnsDialog.vue'
 import CatalogFilterBar, { type FilterColumn } from '../components/CatalogFilterBar.vue'
@@ -64,6 +65,8 @@ const canPlace = computed(() => session.me?.permissions.some((entry) => entry.pe
 // the path the page is shown at; query changes while navigating elsewhere are ignored
 const path = route.path
 let latestQuery = 0
+
+const cursors = new PageCursors()
 
 // column keys are system fields (camel case) or storage names of properties (US-047), join
 // columns `{joinId}.{key}` (US-048)
@@ -374,6 +377,7 @@ async function loadCatalog() {
   state.value = 'loading'
   result.value = undefined
   failure.value = undefined
+  cursors.forget()
   try {
     catalog.value = await fetchCatalog(props.id, props.fetchFn)
     const preset = catalog.value?.savedViews.find((candidate) => candidate.isDefault && candidate.available)
@@ -401,15 +405,19 @@ async function loadRows() {
   const current = ++latestQuery
   querying.value = true
   try {
-    const outcome = await queryCatalog(
-      props.id,
-      { page: page > 0 ? page : undefined, sort, joinModes: modes, filters: filters.map(filterText), filterMode, view: viewId },
-      props.fetchFn,
-    )
+    const query = { sort, joinModes: modes, filters: filters.map(filterText), filterMode, view: viewId }
+    const key = JSON.stringify(query)
+    const cursor = cursors.cursorFor(key, page)
+    let outcome = await queryCatalog(props.id, { ...query, page: page > 0 ? page : undefined, cursor }, props.fetchFn)
+    if (cursor && !outcome.ok && rejectsCursor(outcome.rejection) && current === latestQuery) {
+      // the cursor is no longer valid, e.g. after a restart of the backend: the page number applies
+      outcome = await queryCatalog(props.id, { ...query, page }, props.fetchFn)
+    }
     if (current !== latestQuery) {
       return
     }
     if (outcome.ok) {
+      cursors.remember(key, outcome.value)
       const pageMeta = outcome.value.page
       if (pageMeta.page > 0 && outcome.value.rows.length === 0 && pageMeta.totalElements > 0) {
         // a page beyond the last one, e.g. from an old link
@@ -426,7 +434,7 @@ async function loadRows() {
     } else if (outcome.rejection.status === 404) {
       state.value = 'not-found'
     } else {
-      failure.value = rateLimitMessage(outcome.rejection)
+      failure.value = rateLimitMessage(outcome.rejection) ?? queryTimeoutMessage(outcome.rejection)
       state.value = 'failed'
     }
   } catch {

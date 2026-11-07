@@ -84,7 +84,9 @@ The count stays the unchanged `count` statement, so the total is the same as wit
   - catalog ID, channel, the resolved column keys in order, view ID, sort, join modes, normalized filters and filter mode, page size;
   - the catalog's `lastModifiedAt`, so a changed configuration invalidates old cursors.
 - **Checks:** a wrong HMAC, a wrong fingerprint, a wrong number of values, or a value that does not parse as its key's type adds `cursor` to the invalid parameters. So does a cursor without `page`. Values are parsed in Java before binding, so no database error reaches the caller.
-- **Size:** `cursor` has at most 2,000 characters.
+- **Size:** `cursor` has at most 2,000 characters. A page whose cursor would be longer, because the sort values of its last row are long (for example a sort by a description of 2,000 characters), carries no `nextCursor`; the next page then loads by `page` alone.
+- **Page:** the cursor also carries the number of the page it leads to. A cursor sent with another `page`, or without `page` (which is then 0), adds `cursor` to the invalid parameters.
+- **Filters in the fingerprint:** the filters count without their order, because the order does not change the result.
 
 ### D4 Statement time limits
 
@@ -95,8 +97,10 @@ The count stays the unchanged `count` statement, so the total is the same as wit
 - **Catalog:**
   - `oea.catalog.query-timeout` is a `Duration` (default `10s`, between 1 s and the global limit).
   - `CatalogQueries.query` first runs `SET LOCAL statement_timeout = <milliseconds>` in its read-only transaction. The limit ends with the transaction.
+- **Check of the catalog limit:** `StatementTimeoutConfiguration` refuses the start when `oea.catalog.query-timeout` exceeds `oea.database.statement-timeout`.
+- **Transaction:** `CatalogQueries.query` runs the query in its own read-only transaction (`TransactionTemplate`), so the timer, the timeout handling and the audit event sit outside it. The portal query checks the scope of the catalog first and then calls the same method.
 - **Timeout handling:**
-  - A `DataAccessException` whose SQL state is `57014` (`query_canceled`) becomes `CatalogQueryTimeoutException`.
+  - A `DataAccessException` with an `SQLException` of SQL state `57014` (`query_canceled`) in its causes becomes `CatalogQueryTimeoutException`.
   - `ApiExceptionHandler` answers it with 503 and the problem type `urn:oea:problem:query-timeout`, with the title "Query took too long" and a hint to narrow filters or joins.
   - The audit event `catalog.query-timeout` has category `SECURITY`, severity `WARNING`, target `catalog` and details `channel` and `limitMillis`.
 
@@ -104,6 +108,7 @@ The count stays the unchanged `count` statement, so the total is the same as wit
 
 - **Timer:** `CatalogQueryMetrics` records `oea.catalog.query` with the tags `channel` (`catalog` or `portal`) and `outcome` (`success`, `rejected` or `timeout`). It is modelled on `LoginMetrics`.
 - **Measured span:** the whole service call, including the count and the aggregate joins, but not the JSON mapping or the HTTP layer, as REQ-071 asks.
+- **Outcome `rejected`:** invalid parameters (400) and a catalog that is not visible (404).
 
 ### D6 Frontend
 
@@ -112,6 +117,8 @@ The count stays the unchanged `count` statement, so the total is the same as wit
   - When the requested page is the current page + 1 and the result has a `nextCursor`, they send `cursor` with `page`. Otherwise they send only `page`.
   - A 400 naming `cursor` repeats the query without the cursor.
   - The URL keeps only `page`.
+  - The cursor is remembered per query (sort, join modes, filters, view), so a cursor of another query is never sent.
+- **Time limit:** a 503 `query-timeout` shows "The query took too long. Narrow the filters or switch joins to compact mode and try again." instead of the general failure.
 
 ### D7 Indexes (migration `V22__catalog_query_indexes.sql`)
 
@@ -133,6 +140,7 @@ The count stays the unchanged `count` statement, so the total is the same as wit
   - (3) with the 3 joins and the filters;
   - (4) the page after page 150 through the cursor, sorted by name and by status.
 - **Pass criterion:** the 95th percentile is below the targets (200, 500, 600 and 200 ms). The measured values are logged and recorded in REQ-071.
+- **Result (task 4.3):** all four targets are met without further indexes or rewritten statements; `entities_active_name` and the existing connection indexes suffice. 95th percentiles of the local run of 2026-11-07: (1) 6 ms, (2) 20 ms, (3) 84 ms, (4) 5 ms sorted by name and 18 ms sorted by status. The count stays in the contract.
 
 ## Data Model
 
