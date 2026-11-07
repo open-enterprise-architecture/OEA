@@ -168,6 +168,12 @@ public class MetatypeEditing {
 					+ " catalogs, " + subtypes + " subtypes and " + endpoints
 					+ " uses as endpoint of connection metatypes.", entities);
 		}
+		// the scoping type of a property definition (design D4 of us-124-property-visibility)
+		long scoping = count("SELECT count(*) FROM property_definitions WHERE scoping_connection_type_id = ?", id);
+		if (scoping > 0) {
+			throw MetamodelChangeException.inUse(
+					"The metatype is the scoping type of " + scoping + " property definitions.", scoping);
+		}
 		this.jdbc.update("DELETE FROM metatype_connection_constraints WHERE metatype_id = ?", id);
 		this.jdbc.update("DELETE FROM metatype_property_mappings WHERE metatype_id = ?", id);
 		this.jdbc.update("DELETE FROM metatypes WHERE id = ?", id);

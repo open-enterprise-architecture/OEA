@@ -667,5 +667,42 @@
     "noAccess": "Du hast keinen Zugriff auf das Portal. Bitte eine Administratorin oder einen Administrator um eine Rolle.",
     "back": "Zurück zum Portal",
     "notFoundHint": "Den Katalog gibt es nicht oder er ist nicht geteilt."
+  },
+  "visibility": {
+    "title": "Sichtbarkeit von Eigenschaften",
+    "intro": "Lege fest, wer die Werte jeder Eigenschaft sehen und schreiben darf. Änderungen werden im Audit-Log festgehalten.",
+    "noAccess": "Zum Ändern der Sichtbarkeit braucht es die Berechtigung der Sicherheitsadministration.",
+    "loadFailed": "Die Sichtbarkeit der Eigenschaften konnte nicht geladen werden.",
+    "saveFailed": "Die Sichtbarkeit konnte nicht gespeichert werden.",
+    "enforcementNote": "Eingeschränkte Eigenschaften bleiben in Katalogen ausgeblendet und lassen sich nicht schreiben, bis ihre Durchsetzung beim Lesen und Schreiben folgt.",
+    "filter": "Nach Name filtern",
+    "property": "Eigenschaft",
+    "metatypes": "Entitätstypen",
+    "restriction": "Einschränkung",
+    "actions": "Aktionen",
+    "restricted": "Eingeschränkt",
+    "edit": "Sichtbarkeit von {name} bearbeiten",
+    "editTitle": "Sichtbarkeit von {name}",
+    "save": "Speichern",
+    "readRoles": "Leserollen",
+    "readRolesRequired": "Wähle mindestens eine Leserolle.",
+    "writeRoles": "Schreibrollen",
+    "writeRolesHint": "Nur Leserollen können schreiben; ohne Auswahl darf niemand den Wert ändern.",
+    "writeRolesSubset": "Jede Schreibrolle muss auch eine Leserolle sein.",
+    "scopingType": "Verbindungstyp",
+    "scopingTypeHint": "Personen, die über diesen Verbindungstyp mit der Entität verbunden sind, sehen den Wert.",
+    "scopingTypeRequired": "Wähle einen Verbindungstyp.",
+    "rolesSummary": "Lesen: {read} · Schreiben: {write}",
+    "nobody": "niemand",
+    "mode": {
+      "title": "Sichtbarkeit",
+      "public": "Öffentlich",
+      "role-restricted": "Rollenbasiert",
+      "connection-scoped": "Verbindungsbasiert",
+      "publicHint": "Alle, die die Entität lesen dürfen",
+      "roleHint": "Nur Inhaber der gewählten Rollen",
+      "connectionHint": "Nur Personen, die mit der Entität verbunden sind"
+    },
+    "metamodelHint": "Wird von der Sicherheitsadministration auf der Seite Sichtbarkeit von Eigenschaften geändert."
   }
 }

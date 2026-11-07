@@ -73,6 +73,7 @@ Ein Entitätstyp erbt alle Eigenschaften seines Basistyps und von dessen Basisty
 - In einer bestehenden Auswahlliste fügst du Werte direkt im Dialog hinzu und löschst sie dort. Entitäten mit einem gelöschten Wert verlieren ihn.
 - Eine Eigenschaft, die noch einem Entitätstyp zugeordnet ist, lässt sich nicht löschen. Eine Eigenschaft, die in der Historie von Entitäten vorkommt, wird stattdessen stillgelegt: Sie verschwindet aus den Listen, und ihr Name bleibt vergeben.
 - *Kategorien* gruppieren Eigenschaften; eine Kategorie mit Eigenschaften lässt sich nicht löschen.
+- Eine Eigenschaft, deren Werte nur manche Personen sehen dürfen, trägt das Badge *Eingeschränkt*; ihr Dialog zeigt die Sichtbarkeit nur lesend. Die Sicherheitsadministration ändert sie auf der Seite [Sichtbarkeit von Eigenschaften](./property-visibility).
 
 ## Eigenschaften Entitätstypen zuordnen
 

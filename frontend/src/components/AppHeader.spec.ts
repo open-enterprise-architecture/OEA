@@ -2,7 +2,7 @@ import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { session } from '../session/store'
-import { ME_NO_ACCESS, ME_READER, metamodelApi } from '../test/metamodel'
+import { ME_NO_ACCESS, ME_READER, ME_SECURITY_ADMIN, metamodelApi } from '../test/metamodel'
 import { ME_PORTAL_READER } from '../test/portal'
 import { testRouter } from '../test/router'
 import AppHeader from './AppHeader.vue'
@@ -20,6 +20,16 @@ describe('AppHeader', () => {
   beforeEach(() => {
     session.me = undefined
     session.loaded = false
+  })
+
+  // spec metamodel/property-visibility "Page \"Property visibility\"" (us-124-property-visibility)
+  it('links the property visibility for visibility:configure only', async () => {
+    const admin = await header(ME_SECURITY_ADMIN)
+    expect(admin.find('[data-testid="header-visibility"]').exists()).toBe(true)
+    expect(admin.find('[data-testid="header-metamodel"]').exists()).toBe(false)
+    session.me = undefined
+    session.loaded = false
+    expect((await header(ME_READER)).find('[data-testid="header-visibility"]').exists()).toBe(false)
   })
 
   it('offers the metamodel to readers', async () => {

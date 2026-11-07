@@ -17,9 +17,10 @@ import io.oea.app.entity.ConnectionRejectedException;
 import io.oea.app.entity.EntityBatch;
 import io.oea.app.entity.EntityInput;
 import io.oea.app.entity.Issue;
+import io.oea.app.metamodel.PropertyVisibility;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.audit.AuditEvent;
-import io.oea.config.security.ConditionsNotReachable;
+import io.oea.config.security.ConditionsEnforcedByHandler;
 import io.oea.config.security.OeaAuthentication;
 import java.util.List;
 import java.util.Locale;
@@ -40,15 +41,21 @@ public class EntityBatchController implements EntitiesWriteApi {
 
 	private final EntityBatch batch;
 
-	public EntityBatchController(EntityBatch batch) {
+	private final PropertyVisibility visibility;
+
+	public EntityBatchController(EntityBatch batch, PropertyVisibility visibility) {
 		this.batch = batch;
+		this.visibility = visibility;
 	}
 
 	@Override
 	@ContractViolationResponse(shape = ContractViolationResponse.Shape.BATCH_ERRORS, status = 422,
 			title = "Batch rejected", detail = "The batch does not meet the contract; no item was processed.")
-	@ConditionsNotReachable("no connection metatype can be a scopingConnectionType until property visibility "
-			+ "(REQ-124) is configurable; updatePropertyVisibility is planned")
+	@ConditionsEnforcedByHandler(value = "PropertyVisibility.requireScopeAssignment: a connection of a scoping type "
+			+ "needs visibility-scope:assign; the whole batch is rejected", probeRole = "integration-writer",
+			probeBody = """
+					{"connections": [{"connectionMetatypeId": "00000000-0000-4000-8000-0000000c0de1",
+					 "sourceId": 1, "targetId": 2}]}""")
 	public ResponseEntity<BatchWriteResponse> batchWriteEntities(BatchWriteRequest request, Boolean dryRun,
 			String xAgentId, String xAgentRun) {
 		EntityBatch.Strategy strategy = switch (request.getStrategy()) {
@@ -57,6 +64,10 @@ public class EntityBatchController implements EntitiesWriteApi {
 			case SKIP_EXISTING -> EntityBatch.Strategy.SKIP_EXISTING;
 		};
 		boolean atomic = Boolean.TRUE.equals(request.getAtomic());
+		if (request.getConnections() != null) {
+			this.visibility.requireScopeAssignment(principal(),
+					request.getConnections().stream().map(ConnectionWrite::getConnectionMetatypeId).toList());
+		}
 		List<EntityInput> entities = (request.getEntities() != null)
 				? request.getEntities().stream().map(EntityBatchController::input).toList() : List.of();
 		List<ConnectionInput> connections = (request.getConnections() != null)
@@ -77,9 +88,11 @@ public class EntityBatchController implements EntitiesWriteApi {
 	@Override
 	@ContractViolationResponse(shape = ContractViolationResponse.Shape.BATCH_ERRORS, status = 422,
 			title = "Connection rejected", detail = "The connection does not meet the contract; nothing was written.")
-	@ConditionsNotReachable("no connection metatype can be a scopingConnectionType until property visibility "
-			+ "(REQ-124) is configurable; updatePropertyVisibility is planned")
+	@ConditionsEnforcedByHandler(value = "PropertyVisibility.requireScopeAssignment: a connection of a scoping type "
+			+ "needs visibility-scope:assign", probeRole = "integration-writer", probeBody = """
+					{"connectionMetatypeId": "00000000-0000-4000-8000-0000000c0de1", "sourceId": 1, "targetId": 2}""")
 	public ResponseEntity<ConnectionDetail> createConnection(ConnectionWrite request) {
+		this.visibility.requireScopeAssignment(principal(), List.of(request.getConnectionMetatypeId()));
 		EntityBatch.ItemResult result = this.batch.createConnection(principal(), connection(request),
 				new AuditEvent.Agent(null, null));
 		if (result.status() == EntityBatch.ItemStatus.ERROR) {

@@ -609,6 +609,17 @@ A catalog or portal query took longer than its time limit `oea.catalog.query-tim
 | Target | `catalog`, ID of the catalog |
 | Details | `channel` (`catalog` or `portal`), `limitMillis` (the applied limit) |
 
+### `visibility.changed`
+
+The visibility of a property definition was changed by security administration ([REQ-124](../requirements/req/REQ-124-propertydefinition-visibilitymode.md), [REQ-161](../requirements/req/REQ-161-visibility-configuration-governance.md); change us-124-property-visibility D3). One event per changed property; an entry without a change writes none.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `warning` / `success` |
+| Actor | the person with `visibility:configure` |
+| Target | `property-definition`, ID of the property definition |
+| Details | `property` (name), `oldMode`, `newMode`, `oldReadRoles`, `newReadRoles`, `oldWriteRoles`, `newWriteRoles`, `oldScopingType`, `newScopingType` (empty without one), `selfBenefiting` (a read or write role the actor holds was added, ADR-032 SoD-6) |
+
 ### `tree-node.created`, `tree-node.renamed`, `tree-node.deleted`
 
 A folder of the navigation tree was created, renamed or deleted ([US-054](../requirements/user-stories/US-054-catalog-navigation-tree.md), [REQ-094](../requirements/req/REQ-094-navigation-tree-folder-crud.md)). Deleting a folder removes its subfolders and entries, never a catalog.
@@ -633,4 +644,4 @@ A catalog was placed in a folder of the navigation tree or its entry removed ([U
 
 ## Planned Event Types
 
-Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `visibility.changed`, `visibility.override-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.deleted` and further `entity.*`, further `metamodel.*` (connection metatypes, fork).
+Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `visibility.override-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.deleted` and further `entity.*`, further `metamodel.*` (connection metatypes, fork).

@@ -4,9 +4,9 @@ title: Configuration Form for Property Visibility in the Metamodel Editor
 type: functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-28
-last_updated: 2026-10-13
+last_updated: 2026-11-07
 author: requirements-engineer
 references:
   use_cases:
@@ -73,9 +73,14 @@ Security review SEC-03 / owner decision Q4 (2026-10-13): metamodel administratio
 - **Prerequisites**: REQ-124 (data model), REQ-032 (metamodel editor available), REQ-157 (permission model), REQ-161 (governance of visibility configuration)
 - **Consequences**: –
 
+## Implementation Notes
+
+- Realigned by OpenSpec change `us-124-property-visibility` (owner decision 2026-11-07): `security-admin` has no access to the metamodel editor SCR-030 (ADR-032 SoD-2), so the form is the own page SCR-032 for `visibility:configure`. SCR-030 shows the badge "Restricted" in the property list and the visibility read-only in the property dialog (statement items 4 and the read-only rule)
+
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-03 / owner decision Q4: separate read/write role selections; visibility section editable only with `visibility:configure` (AC5) |
+| 0.3.0 | 2026-11-07 | Change us-124-property-visibility | Implementation note: the form on SCR-032 |

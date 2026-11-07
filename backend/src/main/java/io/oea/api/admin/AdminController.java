@@ -1,5 +1,9 @@
 package io.oea.api.admin;
 
+import io.oea.api.generated.model.PropertyVisibilityEntry;
+import io.oea.app.metamodel.PropertyVisibility;
+import java.util.LinkedHashSet;
+
 import io.oea.api.ContractViolationResponse;
 import io.oea.api.generated.AdminApi;
 import io.oea.api.generated.model.AuthProvider;
@@ -51,15 +55,48 @@ public class AdminController implements AdminApi {
 
 	private final SecondFactorPolicies secondFactorPolicies;
 
+	private final PropertyVisibility visibility;
+
 	public AdminController(AuthProviders providers, PackageImporter packageImporter,
 			StarterPackages starterPackages, LocalAdminAccount localAdmin, PasswordPolicies policies,
-			SecondFactorPolicies secondFactorPolicies) {
+			SecondFactorPolicies secondFactorPolicies, PropertyVisibility visibility) {
 		this.providers = providers;
 		this.packageImporter = packageImporter;
 		this.starterPackages = starterPackages;
 		this.localAdmin = localAdmin;
 		this.policies = policies;
 		this.secondFactorPolicies = secondFactorPolicies;
+		this.visibility = visibility;
+	}
+
+	@Override
+	public ResponseEntity<List<PropertyVisibilityEntry>> getPropertyVisibility() {
+		return ResponseEntity.ok(this.visibility.list().stream().map(AdminController::visibilityEntry).toList());
+	}
+
+	@Override
+	public ResponseEntity<List<PropertyVisibilityEntry>> updatePropertyVisibility(List<PropertyVisibilityEntry> entries) {
+		List<PropertyVisibility.Change> changes = entries.stream()
+			.map((entry) -> new PropertyVisibility.Change(entry.getPropertyDefId(),
+					(entry.getVisibilityMode() != null) ? entry.getVisibilityMode().getValue() : null,
+					(entry.getReadRoles() != null) ? List.copyOf(entry.getReadRoles()) : List.of(),
+					(entry.getWriteRoles() != null) ? List.copyOf(entry.getWriteRoles()) : List.of(),
+					entry.getScopingConnectionType()))
+			.toList();
+		return ResponseEntity
+			.ok(this.visibility.update(principal(), changes).stream().map(AdminController::visibilityEntry).toList());
+	}
+
+	/** One property's visibility as the contract's {@code PropertyVisibilityEntry} (us-124 D2). */
+	private static PropertyVisibilityEntry visibilityEntry(PropertyVisibility.Entry entry) {
+		PropertyVisibility.Visibility visibility = entry.visibility();
+		return new PropertyVisibilityEntry(PropertyVisibilityEntry.VisibilityModeEnum.fromValue(visibility.mode()),
+				new LinkedHashSet<>(visibility.readRoles()), new LinkedHashSet<>(visibility.writeRoles()),
+				entry.propertyDefId())
+			.scopingConnectionType(visibility.scopingType())
+			.propertyName(entry.name())
+			.label(entry.name())
+			.metatypes(entry.metatypes());
 	}
 
 	@Override

@@ -60,18 +60,31 @@ public final class TestPrincipals {
 	 * in with a second factor (stored as the OIDC login stores it).
 	 */
 	public TestSession personWithIdpRole(String roleId) {
+		return personWithIdpRoles(roleId);
+	}
+
+	/**
+	 * A session of an active person who holds every role through an own IdP group mapping and
+	 * logged in with a second factor; the person is named after the first role.
+	 */
+	public TestSession personWithIdpRoles(String... roleIds) {
 		String suffix = UUID.randomUUID().toString();
 		String issuer = "https://idp-" + suffix.substring(0, 8) + ".example.org/realms/test";
 		UUID providerId = this.jdbc.queryForObject("""
 				INSERT INTO auth_providers (name, issuer, client_id) VALUES (?, ?, 'oea') RETURNING id""", UUID.class,
 				"Test IdP " + suffix.substring(0, 8), issuer);
-		String group = UUID.randomUUID().toString();
-		UUID mappingId = this.jdbc.queryForObject("""
-				INSERT INTO idp_group_mappings (auth_provider_id, issuer, group_identifier, role_id)
-				VALUES (?, ?, ?, ?) RETURNING id""", UUID.class, providerId, issuer, group, roleId);
+		java.util.List<String> groups = new java.util.ArrayList<>();
+		java.util.List<UUID> mappings = new java.util.ArrayList<>();
+		for (String roleId : roleIds) {
+			String group = UUID.randomUUID().toString();
+			groups.add(group);
+			mappings.add(this.jdbc.queryForObject("""
+					INSERT INTO idp_group_mappings (auth_provider_id, issuer, group_identifier, role_id)
+					VALUES (?, ?, ?, ?) RETURNING id""", UUID.class, providerId, issuer, group, roleId));
+		}
 		Long personId = this.jdbc.queryForObject("""
 				INSERT INTO persons (name, email, status) VALUES (?, ?, 'active') RETURNING id""", Long.class,
-				"Holder of " + roleId, roleId + "-" + suffix + "@example.org");
+				"Holder of " + roleIds[0], roleIds[0] + "-" + suffix + "@example.org");
 		String token = randomToken();
 		// evaluation time in the future: no IdP re-evaluation during the test
 		UUID sessionId = this.jdbc.queryForObject("""
@@ -79,10 +92,12 @@ public final class TestPrincipals {
 				                      second_factor_verified, authenticated_at, last_activity_at, absolute_expires_at,
 				                      idp_claims_evaluated_at, idp_groups_claim_status, idp_group_identifiers)
 				VALUES (?, ?, 'web-portal', 'oidc', ?, true, now(), now(), now() + interval '12 hours',
-				        now() + interval '12 hours', 'present', ARRAY[?])
-				RETURNING id""", UUID.class, sha256(token), personId, providerId, group);
-		this.jdbc.update("INSERT INTO session_idp_roles (session_id, idp_group_mapping_id, role_id) VALUES (?, ?, ?)",
-				sessionId, mappingId, roleId);
+				        now() + interval '12 hours', 'present', ?)
+				RETURNING id""", UUID.class, sha256(token), personId, providerId, groups.toArray(String[]::new));
+		for (int i = 0; i < roleIds.length; i++) {
+			this.jdbc.update("INSERT INTO session_idp_roles (session_id, idp_group_mapping_id, role_id) VALUES (?, ?, ?)",
+					sessionId, mappings.get(i), roleIds[i]);
+		}
 		return new TestSession(token, Sessions.csrfToken(token), sessionId);
 	}
 

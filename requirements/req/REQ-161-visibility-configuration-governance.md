@@ -4,9 +4,9 @@ title: Governance of visibility configuration and scoping connections
 type: business-rule
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-10-13
-last_updated: 2026-10-13
+last_updated: 2026-11-07
 author: requirements-engineer
 references:
   use_cases:
@@ -103,9 +103,11 @@ every such change -> audit event; if the change benefits the actor -> flag selfB
 ## Implementation Notes
 
 - Four-eyes approval for self-benefiting changes (concept §20.11) is a possible extension; not required by this REQ
+- AC1, AC2 and AC4 implemented by OpenSpec change `us-124-property-visibility`: `PUT /admin/property-visibility` needs `visibility:configure`; `createConnection` and `batchWriteEntities` need `visibility-scope:assign` for a connection of a metatype that is a `scopingConnectionType` (the whole batch is rejected with 403, the denial audited); `visibility.changed` is flagged `selfBenefiting` when a role the actor holds is added. AC3 (override list) follows with US-128
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-03 (PR-05), owner decision Q4 |
+| 0.2.0 | 2026-11-07 | Change us-124-property-visibility | Implementation notes (AC1, AC2, AC4) |

@@ -134,6 +134,7 @@ public class PropertyDefinitions {
 		}
 		else {
 			this.jdbc.update("DELETE FROM property_enum_values WHERE property_def_id = ?", id);
+			this.jdbc.update("DELETE FROM property_visibility_roles WHERE property_def_id = ?", id);
 			this.jdbc.update("DELETE FROM property_definitions WHERE id = ?", id);
 			this.effects.removeOrphanLabels();
 		}

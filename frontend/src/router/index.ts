@@ -5,6 +5,7 @@ import CatalogsPage from '../pages/CatalogsPage.vue'
 import ChangePasswordPage from '../pages/ChangePasswordPage.vue'
 import LoginPage from '../pages/LoginPage.vue'
 import MetamodelPage from '../pages/MetamodelPage.vue'
+import PropertyVisibilityPage from '../pages/PropertyVisibilityPage.vue'
 import PortalCatalogPage from '../pages/PortalCatalogPage.vue'
 import PortalPage from '../pages/PortalPage.vue'
 import ProfilePage from '../pages/ProfilePage.vue'
@@ -30,6 +31,7 @@ export const router = createRouter({
     { path: '/portal/catalogs/:id', name: 'portal-catalog', component: PortalCatalogPage, props: true },
     // one record, so that switching sections and metatypes keeps the page (design D3 of scr-030)
     { path: '/metamodel/:section?/:id?', name: 'metamodel', component: MetamodelPage, props: true },
+    { path: '/admin/property-visibility', name: 'property-visibility', component: PropertyVisibilityPage },
   ],
 })
 

@@ -7,11 +7,12 @@ covers:
 
 # Administration
 
-Administration has no screens in this version; you administer the instance through the [API](../api/). The examples of this chapter use `curl` and `jq` and keep passwords and secrets out of command lines.
+Apart from the metamodel configuration and the property visibility, administration has no screens in this version; you administer the instance through the [API](../api/). The examples of this chapter use `curl` and `jq` and keep passwords and secrets out of command lines.
 
 - [Identity providers and persons](./identity-providers): connect an OpenID Connect provider and bind persons to their identities
 - [Roles and permissions](./roles-and-permissions): the built-in roles and how you grant them through IdP groups
 - [Metamodel packages](./metamodel-packages): import the starter configuration or your own metamodel
+- [Property visibility](./property-visibility): decide who may see and write the values of each property
 - [Operations](./operations): database roles, request limits, key rotation, audit trail verification and PostgreSQL upgrades
 
 ## Log in for administration through the API

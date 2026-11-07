@@ -2257,6 +2257,11 @@ components:
             propertyDefId: { type: string, format: uuid }
             propertyName:  { type: string, readOnly: true }
             label:         { type: string, readOnly: true, description: "Translated label (session locale)" }
+            metatypes:
+              type: array
+              readOnly: true
+              description: Names of the metatypes that map the property today
+              items: { type: string }
         - $ref: '#/components/schemas/PropertyVisibility'
 
     PropertyVisibilityOverride:
@@ -5243,8 +5248,11 @@ paths:
     get:
       operationId: listMetatypes
       summary: List all metatypes
+      description: |
+        Also readable with `visibility:configure`, so that security administration can choose
+        a connection metatype as scoping type (us-124-property-visibility D2).
       tags: [Metamodel]
-      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write", "visibility:configure"]}
       parameters:
         - name: configId
           in: query
@@ -5369,8 +5377,9 @@ paths:
       summary: Delete metatype
       description: |
         Only for `scope=organization`, and only while no entities of the metatype exist (also
-        deleted ones), no catalog uses it as primary metatype and no metatype has it as base
-        type (409 `in-use` with `count`, the number of entities).
+        deleted ones), no catalog uses it as primary metatype, no metatype has it as base
+        type and no property definition uses it as `scopingConnectionType` (409 `in-use` with
+        `count`, the number of entities or properties).
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["metamodel:write", "solution-metamodel:write"], "conditions": [{"when": "the metatype belongs to the instance configuration (MetatypeWrite.configId on creation)", "permissions": ["metamodel:write"]}, {"when": "the metatype belongs to a solution extension (MetatypeWrite.configId on creation)", "permissions": ["solution-metamodel:write"]}]}
       parameters:
@@ -5990,9 +5999,12 @@ paths:
     get:
       operationId: getPropertyVisibility
       summary: Property visibility matrix (SCR-032)
+      description: |
+        The visibility of every property definition that is not retired, ordered by name,
+        with its translated label and the metatypes that map it today (US-124, REQ-124).
+        Only security administration reads it (`visibility:configure`, REQ-161).
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
-      x-oea-status: planned
       responses:
         '200':
           description: Visibility matrix
@@ -6003,13 +6015,22 @@ paths:
                 items: { $ref: '#/components/schemas/PropertyVisibilityEntry' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     put:
       operationId: updatePropertyVisibility
       summary: Update property visibility (SCR-032)
+      description: |
+        Changes the visibility of the listed property definitions in one transaction (US-124,
+        REQ-124, REQ-161); properties not listed stay unchanged. Rules per entry:
+        `role-restricted` needs at least one read role and every write role must be a read
+        role; `connection-scoped` needs a connection metatype as `scopingConnectionType`; the
+        fields of the other modes must be empty; roles must exist. An invalid entry answers
+        422 with `invalidFields` such as `[1].readRoles` and changes nothing; an unknown,
+        retired or repeated property is `[i].propertyDefId`. A changed property gets a new
+        `version` and the audit event `visibility.changed`, flagged as self-benefiting when it
+        adds a role the acting person holds (SoD-6). The answer lists the changed entries.
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
-      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -6030,7 +6051,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/trm:
     get:
@@ -8247,7 +8268,9 @@ paths:
         `ENDPOINT_CHANGE_NOT_SUPPORTED`). Not supported yet: `dryRun=true` (US-141 AC3) is
         rejected with 422; `parentId` and `lifecycle` are item errors.
         `X-Agent-Id` is stored only as the informational audit field `agent_label`
-        (ADR-033 §7).
+        (ADR-033 §7). A batch with a connection of a metatype that is the
+        `scopingConnectionType` of a property definition needs `visibility-scope:assign`;
+        without it the whole batch is rejected with 403 (REQ-161).
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"], "conditions": [{"when": "a connection of a type used as scopingConnectionType is written", "permissions": ["visibility-scope:assign"]}]}
       parameters:
@@ -8297,7 +8320,9 @@ paths:
         (US-036, ADR-010). Source and target are referenced by internal ID or `externalId`;
         their metatypes must be allowed by the connection metatype (subtypes included) and
         cannot change afterwards. Without `name` the connection is named
-        `<source name> → <target name>`. Properties are checked as for entities.
+        `<source name> → <target name>`. Properties are checked as for entities. A connection
+        of a metatype that is the `scopingConnectionType` of a property definition also needs
+        `visibility-scope:assign`, otherwise 403 (REQ-161).
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"], "conditions": [{"when": "a connection of a type used as scopingConnectionType is written", "permissions": ["visibility-scope:assign"]}]}
       requestBody:
