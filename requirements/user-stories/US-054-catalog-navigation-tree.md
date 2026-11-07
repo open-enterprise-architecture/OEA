@@ -4,7 +4,7 @@
 **Story Points**: 2
 **Status**: done
 **Sprint**: S9
-**Implementation**: OpenSpec change `us-054-catalog-navigation-tree` – `GET /views/explorer`, `POST /tree-nodes`, `PATCH` and `DELETE /tree-nodes/{nodeId}`, `POST /tree-nodes/{nodeId}/items` and `DELETE /tree-nodes/{nodeId}/items/{itemId}`, the sidebar SCR-055 and "Place in navigation" in SCR-020
+**Implementation**: OpenSpec change `us-054-catalog-navigation-tree`, commit e44b736 (#197) – `GET /views/explorer`, `POST /tree-nodes`, `PATCH` and `DELETE /tree-nodes/{nodeId}`, `POST /tree-nodes/{nodeId}/items` and `DELETE /tree-nodes/{nodeId}/items/{itemId}`, the sidebar SCR-055 and "Place in navigation" in SCR-020
 
 ## Story
 

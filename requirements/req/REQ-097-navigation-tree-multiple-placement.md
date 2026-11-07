@@ -54,7 +54,7 @@ An application cluster can belong to the domain "Finance" and to the initiative 
 - Multiple placement across folders is allowed; within one folder an object appears once (unique index on `(tree_node_id, item_type, reference_id)`, tree-node BR-06, realigned 2026-11-06)
 - TreeNodeItem has its own ID (`referenceId`) independent of the referenced object
 - No database model duplicate of the object; only the link entry is created multiple times
-- Implemented for catalogs by the OpenSpec change `us-054-catalog-navigation-tree`
+- Implemented for catalogs by the OpenSpec change `us-054-catalog-navigation-tree`, commit e44b736 (#197)
 
 ## Change History
 

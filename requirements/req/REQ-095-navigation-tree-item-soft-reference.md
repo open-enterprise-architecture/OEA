@@ -54,7 +54,7 @@ The navigation tree is a pure navigation aid (soft-reference principle). Couplin
 - Soft-reference principle per BR-05, BR-06 in `tree-node.md`
 - Check orphaned items via background job or on display (lazy vs. eager)
 - Cleanup: bulk delete for orphaned items as a separate UI action
-- Implemented for catalogs by the OpenSpec change `us-054-catalog-navigation-tree`: `reference_id` has no foreign key, and removing an entry (`DELETE /tree-nodes/{nodeId}/items/{itemId}`) never changes the catalog (AC1). Catalogs cannot be deleted yet, so no catalog entry is orphaned; the tree leaves out an entry whose catalog no longer exists. Marking orphaned entries (AC2) follows with entities in the tree
+- Implemented for catalogs by the OpenSpec change `us-054-catalog-navigation-tree`, commit e44b736 (#197): `reference_id` has no foreign key, and removing an entry (`DELETE /tree-nodes/{nodeId}/items/{itemId}`) never changes the catalog (AC1). Catalogs cannot be deleted yet, so no catalog entry is orphaned; the tree leaves out an entry whose catalog no longer exists. Marking orphaned entries (AC2) follows with entities in the tree
 
 ## Change History
 

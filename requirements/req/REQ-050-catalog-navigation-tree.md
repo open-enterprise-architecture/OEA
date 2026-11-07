@@ -116,7 +116,7 @@ The navigation tree is a shared structure for all repository content: entities, 
 - Endpoint: `POST /api/v1/tree-nodes/{nodeId}/items` (generic for all item types)
 - Removal: `DELETE /api/v1/tree-nodes/{nodeId}/items/{itemId}` (deletes only the TreeNodeItem, not the catalog)
 - Navigation tree response: TreeNode with items[] contains for each catalog item: `itemType` `catalog`, `referenceId`, `displayLabel`, `name` (the current catalog name, for display when no displayLabel is set) and `scope`
-- Implemented by the OpenSpec change `us-054-catalog-navigation-tree`: the sidebar SCR-055 and "Place in navigation" in SCR-020
+- Implemented by the OpenSpec change `us-054-catalog-navigation-tree`, commit e44b736 (#197): the sidebar SCR-055 and "Place in navigation" in SCR-020
 
 ## Change History
 

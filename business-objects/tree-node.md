@@ -186,7 +186,7 @@ Root: "Architecture Repository Sample Company AG"
 ## Usage in Use Cases
 
 - [UC-13: Manage Navigation Tree](../requirements/use-cases/UC-13-manage-navigation-tree.md) (primary actor: SH-03 Kurt); [UC-06](../requirements/use-cases/UC-06-create-and-use-catalog.md) step 14 (place a catalog)
-- Implemented for catalogs with US-054 (change `us-054-catalog-navigation-tree`): the sidebar of the web portal (SCR-055)
+- Implemented for catalogs with US-054 (change `us-054-catalog-navigation-tree`, commit e44b736 (#197)): the sidebar of the web portal (SCR-055)
 - Can serve as the default entry point of the client app and web portal (ADR-008 pending)
 
 ## Open Questions
