@@ -68,6 +68,12 @@ public class CatalogStore {
 				personId);
 	}
 
+	/** The catalogs with scope {@code instance}, ordered by name (portal, s9-portal-catalogs D1). */
+	public List<StoredCatalog> shared() {
+		return this.jdbc.query(SELECT + " WHERE c.scope = 'instance' ORDER BY lower(c.name), c.id",
+				CatalogStore::catalog);
+	}
+
 	/** The catalog if it exists and is visible to the person. */
 	public Optional<StoredCatalog> findVisible(UUID id, long personId) {
 		return this.jdbc.query(SELECT + " WHERE c.id = ? AND " + VISIBLE, CatalogStore::catalog, id, personId)

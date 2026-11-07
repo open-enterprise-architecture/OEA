@@ -83,7 +83,7 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 
 | ID | Screen | Platform | UC Reference | Priority | Status | Image |
 |---|---|---|---|---|---|---|
-| SCR-050 | Portal home page / catalog overview | WP | UC-06 | must | `legacy-mockup` | [portal-home](./portal-home-light.svg) / [dark](./portal-home-dark.svg) |
+| SCR-050 | Portal home page / catalog overview (shared catalogs, a catalog opened read-only) | WP | UC-06 | must | `implemented` | [light](./SCR-050-light.png) / [dark](./SCR-050-dark.png) |
 | SCR-051 | Entity detail view (read-only) | WP | UC-06 | must | `legacy-mockup` | [entity-detail](./entity-detail-light.svg) / [dark](./entity-detail-dark.svg) |
 | SCR-052 | Diagram viewer (read-only) | WP | UC-05, UC-08 | must | `legacy-mockup` | [diagram-viewer](./diagram-viewer-light.svg) / [dark](./diagram-viewer-dark.svg) |
 | SCR-053 | Dashboard view (read-only) | WP | UC-07 | should | `legacy-mockup` | [dashboard-view](./dashboard-view-light.svg) / [dark](./dashboard-view-dark.svg) |

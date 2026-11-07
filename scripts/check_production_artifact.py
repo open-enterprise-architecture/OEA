@@ -8,6 +8,8 @@ Fails if the Spring Boot jar or the container image contains
   - development configuration (application-dev*) or IdP realm/blueprint files
   - private keys (*.pem, *.key, *.jks, *.p12)
   - any known development secret value (literals of compose.dev.yaml and dev/)
+  - an image without the built web portal (/app/portal/index.html) or with source maps in it
+    (change s9-portal-catalogs, design D5)
 
 Usage:
     python3 scripts/check_production_artifact.py --jar backend/target/oea-backend-*.jar
@@ -38,6 +40,7 @@ BANNED_LIBRARIES = [
 FORBIDDEN_FILES = ["application-dev*", "*realm*.json", "*blueprint*.yaml", "*blueprint*.yml",
                    "*.pem", "*.key", "*.jks", "*.p12", "*.pfx"]
 TEXT_SUFFIXES = (".yml", ".yaml", ".properties", ".json", ".xml", ".txt", ".sql", ".conf", ".env")
+PORTAL_TEXT_SUFFIXES = (".html", ".js", ".css", ".json", ".svg", ".txt")
 
 
 def development_secrets(root: Path) -> set[str]:
@@ -70,6 +73,7 @@ def inspect_image(image: str, secrets: set[str]) -> list[str]:
         subprocess.run(["docker", "rm", container], capture_output=True)
     findings = []
     jars = 0
+    portal_index = False
     with tarfile.open(fileobj=io.BytesIO(exported)) as tar:
         for member in tar:
             if not member.isfile():
@@ -79,11 +83,21 @@ def inspect_image(image: str, secrets: set[str]) -> list[str]:
             if path.startswith(("app/", "./app/", "workspace/", "config/")) and any(
                     fnmatch.fnmatch(base, p) for p in FORBIDDEN_FILES):
                 findings.append(f"{image}: forbidden file /{path}")
+            if path.startswith(("app/portal/", "./app/portal/")):
+                portal_index = portal_index or path.endswith("app/portal/index.html")
+                if base.endswith(".map"):
+                    findings.append(f"{image}: source map /{path} in the web portal")
+                elif base.endswith(PORTAL_TEXT_SUFFIXES):
+                    text = tar.extractfile(member).read().decode("utf-8", errors="replace")
+                    if any(secret in text for secret in secrets):
+                        findings.append(f"{image}: /{path} contains a known development secret")
             if path.startswith(("app/", "./app/")) and base.endswith(".jar"):
                 jars += 1
                 findings += inspect_jar(f"{image}:/{path}", tar.extractfile(member).read(), secrets)
     if jars == 0:
         findings.append(f"{image}: no application jar found under /app")
+    if not portal_index:
+        findings.append(f"{image}: no web portal found at /app/portal/index.html")
     return findings
 
 

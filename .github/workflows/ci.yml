@@ -289,6 +289,8 @@ jobs:
         run: npm run test:stories
       - name: Build
         run: npm run build
+      - name: Built portal under its content security policy (platform/portal-delivery)
+        run: npm run test:csp
       - name: Storybook build
         run: npm run build-storybook
 

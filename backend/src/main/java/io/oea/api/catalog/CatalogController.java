@@ -192,7 +192,7 @@ public class CatalogController implements CatalogsApi {
 	@Override
 	public ResponseEntity<List<CatalogSummary>> listCatalogs() {
 		return ResponseEntity
-			.ok(this.catalogs.list(principal()).stream().map(CatalogController::summary).toList());
+			.ok(this.catalogs.list(principal()).stream().map(CatalogQueryMapping::summary).toList());
 	}
 
 	@Override
@@ -205,25 +205,8 @@ public class CatalogController implements CatalogsApi {
 			detail = "The paging, sort, join mode or filter parameters are invalid.")
 	public ResponseEntity<CatalogQueryResult> queryCatalog(UUID id, Integer page, Integer pageSize, String sort,
 			Map<String, JoinMode> joinMode, List<String> filter, String filterMode, UUID view) {
-		CatalogQueries.Result result = this.queries.query(principal(), id, page, pageSize, sort, joinModes(joinMode),
-				filters(), filterMode, view);
-		return ResponseEntity.ok(new CatalogQueryResult(
-				result.columns().stream().map(CatalogController::column).toList(),
-				result.rows()
-					.stream()
-					.map((row) -> new CatalogRow(row.entityId(), new LinkedHashMap<>(row.values()))
-						.joinResults(joinResults(row.joinResults())))
-					.toList(),
-				new PageMeta(result.page(), result.pageSize(), Math.toIntExact(result.totalElements()),
-						result.totalPages()))
-			.joins(result.joins()
-				.stream()
-				.map((join) -> new CatalogQueryJoin(join.id(), join.name(), JoinMode.fromValue(join.mode()),
-						join.columns().stream().map(CatalogController::column).toList()))
-				.toList())
-			.sort((result.sort() != null) ? new CatalogSort(result.sort().column(),
-					result.sort().descending() ? CatalogSort.DirectionEnum.DESC : CatalogSort.DirectionEnum.ASC)
-					: null));
+		return ResponseEntity.ok(CatalogQueryMapping.result(this.queries.query(principal(), id, page, pageSize, sort,
+				joinModes(joinMode), filters(), filterMode, view)));
 	}
 
 	/**
@@ -253,12 +236,6 @@ public class CatalogController implements CatalogsApi {
 		String[] values = (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes)
 				? attributes.getRequest().getParameterValues("filter") : null;
 		return (values != null) ? List.of(values) : List.of();
-	}
-
-	private static CatalogColumn column(CatalogQueries.Column column) {
-		return new CatalogColumn(column.key(), column.label(), column.sortable(),
-				CatalogColumn.FilterTypeEnum.fromValue(column.filterType()))
-			.enumValues((column.enumValues() != null) ? List.copyOf(column.enumValues()) : null);
 	}
 
 	private static Catalogs.SavedViewInput view(CatalogSavedViewInput input) {
@@ -315,16 +292,6 @@ public class CatalogController implements CatalogsApi {
 			.description(filter.description());
 	}
 
-	private static Map<String, List<CatalogJoinResult>> joinResults(
-			Map<UUID, List<CatalogQueries.JoinResult>> results) {
-		Map<String, List<CatalogJoinResult>> json = new LinkedHashMap<>();
-		results.forEach((joinId, list) -> json.put(joinId.toString(),
-				list.stream()
-					.map((result) -> new CatalogJoinResult(result.entityId(), new LinkedHashMap<>(result.values())))
-					.toList()));
-		return json;
-	}
-
 	private static Catalogs.JoinInput join(CatalogJoinInput input) {
 		return new Catalogs.JoinInput(input.getName(), input.getConnectionMetatypeId(),
 				(input.getJoinDirection() != null) ? input.getJoinDirection().getValue() : null,
@@ -346,15 +313,9 @@ public class CatalogController implements CatalogsApi {
 			.available(join.available());
 	}
 
-	private static CatalogSummary summary(Catalogs.Catalog catalog) {
-		return new CatalogSummary(catalog.id(), catalog.name(), catalog.primaryMetatypeId(),
-				catalog.primaryMetatypeName(), CatalogScope.fromValue(catalog.scope()), creator(catalog),
-				time(catalog.createdAt()));
-	}
-
 	private static Catalog catalog(Catalogs.Catalog catalog) {
 		return new Catalog(catalog.id(), catalog.name(), catalog.primaryMetatypeId(), catalog.primaryMetatypeName(),
-				CatalogScope.fromValue(catalog.scope()), creator(catalog), time(catalog.createdAt()),
+				CatalogScope.fromValue(catalog.scope()), CatalogQueryMapping.creator(catalog), time(catalog.createdAt()),
 				catalog.description(), JoinMode.fromValue(catalog.defaultJoinMode()), time(catalog.lastModifiedAt()),
 				catalog.columns().stream().map(CatalogController::column).toList(),
 				catalog.joins().stream().map(CatalogController::join).toList(),
@@ -383,11 +344,6 @@ public class CatalogController implements CatalogsApi {
 				!Boolean.FALSE.equals(config.getSortable()),
 				(config.getDefaultSortDirection() != null) ? config.getDefaultSortDirection().getValue() : null, true,
 				(config.getEndpoint() != null) ? Catalogs.Endpoint.ofKey(config.getEndpoint().getValue()) : null);
-	}
-
-	private static PrincipalRef creator(Catalogs.Catalog catalog) {
-		return new PrincipalRef(PrincipalRef.PrincipalTypeEnum.PERSON, catalog.createdByName())
-			.id(Math.toIntExact(catalog.createdById()));
 	}
 
 	private static OffsetDateTime time(Instant instant) {

@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { session } from '../session/store'
 import { ME_NO_ACCESS, ME_READER, metamodelApi } from '../test/metamodel'
+import { ME_PORTAL_READER } from '../test/portal'
 import { testRouter } from '../test/router'
 import AppHeader from './AppHeader.vue'
 
@@ -27,5 +28,19 @@ describe('AppHeader', () => {
 
   it('shows no metamodel entry without entity:read or metamodel:write', async () => {
     expect((await header(ME_NO_ACCESS)).find('[data-testid="header-metamodel"]').exists()).toBe(false)
+  })
+
+  // spec portal/portal-catalogs "Portal entry for architects", "Landing page of a portal reader"
+  it('offers the portal next to the catalogs to readers with entity:read', async () => {
+    const wrapper = await header(ME_READER)
+    expect(wrapper.find('[data-testid="header-portal"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="header-catalogs"]').exists()).toBe(true)
+  })
+
+  it('shows the portal as the only entry to a portal reader', async () => {
+    const wrapper = await header(ME_PORTAL_READER)
+    expect(wrapper.find('[data-testid="header-portal"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="header-catalogs"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="header-metamodel"]').exists()).toBe(false)
   })
 })

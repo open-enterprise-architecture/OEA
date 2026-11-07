@@ -1,4 +1,5 @@
-# Allowlist: the backend image needs only the contract, the starter packages and the backend sources.
+# Allowlist: the backend image needs only the contract, the starter packages, the backend sources and the
+# frontend sources of the web portal (s9-portal-catalogs D5), without installed or built files.
 *
 !api/openapi.yaml
 !packages/*.json
@@ -6,3 +7,12 @@
 !backend/mvnw
 !backend/pom.xml
 !backend/src/main/
+!frontend/
+frontend/node_modules/
+frontend/dist/
+frontend/storybook-static/
+frontend/.storybook/
+frontend/src/**/*.spec.ts
+frontend/src/**/*.stories.ts
+frontend/src/screens/
+frontend/src/test/

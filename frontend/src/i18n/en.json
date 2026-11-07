@@ -655,5 +655,16 @@
     "placeSubmit": "Place",
     "alreadyPlaced": "The catalog is already in this folder.",
     "placed": "Placed in {path}."
+  },
+  "portal": {
+    "title": "Portal",
+    "intro": "The shared catalogs of the architecture repository, read-only.",
+    "catalogs": "Shared catalogs",
+    "empty": "No shared catalogs yet",
+    "emptyHint": "Shared catalogs appear here as soon as someone creates one.",
+    "loadFailed": "The shared catalogs could not be loaded.",
+    "noAccess": "You have no access to the portal. Ask an administrator for a role.",
+    "back": "Back to the portal",
+    "notFoundHint": "The catalog does not exist or is not shared."
   }
 }

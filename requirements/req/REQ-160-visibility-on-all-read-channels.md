@@ -4,9 +4,9 @@ title: Property visibility enforced on every read channel
 type: functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-10-13
-last_updated: 2026-10-13
+last_updated: 2026-11-07
 author: requirements-engineer
 references:
   use_cases:
@@ -121,6 +121,7 @@ Raw analytics (ADR-034): masking happens in the projection of the reporting view
 - API contract: visibility fields per REQ-124 and a redaction marker on property values and diffs (follow-up for the solution architect)
 - Protected audit values: AES-256-GCM with a `key_id` of the audit value key (ADR-033 §3, resolving the ADR-024 plaintext storage)
 - Electron offline cache must only contain values the user may read (REQ-181)
+- Portal channel: implemented for the shared catalogs by the OpenSpec change `s9-portal-catalogs` – `GET /portal/catalogs/{id}/query` is the catalog query, so only properties with visibility `public` appear as columns and sorting by another property is rejected (400)
 
 ## Change History
 
@@ -128,3 +129,4 @@ Raw analytics (ADR-034): masking happens in the projection of the reporting view
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-02/16/25 (PR-04) |
 | 0.2.0 | 2026-10-13 | requirements-engineer | ADR-034: raw analytics (reporting schema) listed as read channel (statement, AC5). ADR-033 §3: audit change values encrypted only (keyed MAC option removed, AC4) |
+| 0.3.0 | 2026-11-07 | Solution Architect | Implementation note for the portal channel (s9-portal-catalogs) |
