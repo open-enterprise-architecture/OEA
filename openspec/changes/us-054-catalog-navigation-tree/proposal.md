@@ -27,7 +27,7 @@ Owner decisions of 2026-11-06:
 
 Further scope:
 
-- **Data:** migration `V10__navigation_tree.sql` with `tree_nodes` and `tree_node_items` as in `docs/data-model.puml`, and a root folder "Repository" created by the migration.
+- **Data:** migration `V21__navigation_tree.sql` with `tree_nodes` and `tree_node_items` as in `docs/data-model.puml`, and a root folder "Repository" created by the migration.
 - **Reading:** `getExplorerView` (`GET /views/explorer`, planned so far) returns the tree from the root, with folders and catalog entries. An entry carries the catalog's current name, its display label and its scope.
 - **Folders (REQ-094):**
   - `createTreeNode` (`POST /tree-nodes`), `renameTreeNode` (`PATCH /tree-nodes/{nodeId}`) and `deleteTreeNode` (`DELETE /tree-nodes/{nodeId}`);
@@ -86,7 +86,7 @@ None. Opening a catalog from the tree uses the existing default view (`catalog/c
   - `createTreeNode`, `renameTreeNode`, `deleteTreeNode`, `addTreeNodeItem` and `removeTreeNodeItem` with their schemas;
   - `TreeNode` and `TreeNodeItem` as implemented.
 - `backend/`:
-  - migration `V10__navigation_tree.sql`;
+  - migration `V21__navigation_tree.sql`;
   - a new package `io.oea.app.navigation` (service) with `io.oea.core.navigation` (store) and `io.oea.api.navigation` (controller);
   - audit events.
 - `frontend/`:

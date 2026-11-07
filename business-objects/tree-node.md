@@ -2,7 +2,7 @@
 identifier: tree-node
 name_de: Navigationsbaum-Knoten
 name_en: Tree Node
-version: 0.1.0
+version: 0.2.0
 status: draft
 maturity: initial
 owner_role: Lead Enterprise Architect
@@ -70,7 +70,19 @@ Analogy: TreeNodes behave like bookmarks or shortcuts, not like file system fold
 
 ### Root Node
 
-Every OEA instance has exactly **one root node** (`parentId = null`). All other TreeNodes are descendants of this root node. The root node is created automatically when an instance is created and cannot be deleted; its name can be changed (default: name of the OEA instance).
+Every OEA instance has exactly **one root node** (`parentId = null`). All other TreeNodes are descendants of this root node. The root node "Repository" is created by the database migration of the navigation tree (V21) without a creator and cannot be deleted; its name can be changed.
+
+---
+
+### Visibility of Entries
+
+Every reader with `entity:read` sees the whole tree. An entry on a personal [catalog](./catalog.md) is shown only to the creator of that catalog, and an entry whose catalog no longer exists is left out, so the tree never leads to an object the reader cannot open. The decision is made on every read, so the tree follows the catalog's current scope. Changing the tree needs `viewpoint:manage` (ADR-032).
+
+---
+
+### Limits
+
+At most 10 levels below the root, at most 500 folders per instance and at most 200 entries per folder. Folders and entries are sorted by name regardless of case (entries by their shown label) until manual ordering follows (REQ-096); `sortOrder` stays 0.
 
 ---
 
@@ -91,13 +103,13 @@ All three views show the same data set; they are complementary, not competing.
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
 | id | string | required | | UUID v4, globally unique | Internal primary key |
-| name | string | required | | max. 255 characters, unique within the same parent node | Readable name of the folder |
+| name | string | required | | trimmed, 1–255 characters, no control characters; unique within the same parent node regardless of case (BR-01) | Readable name of the folder |
 | description | string | optional | | max. 500 characters | Short description of the folder content |
-| parentId | reference | optional | null | target: TreeNode; null = root node | Parent node; null only for the instance root node |
+| parentId | reference | optional | null | target: TreeNode; null = root node; at most 10 levels below the root | Parent node; null only for the instance root node |
 | sortOrder | integer | required | 0 | >= 0 | Order within the parent node |
 | items | TreeNodeItem[] | required | [] | | Ordered list of references in this node |
 | instanceId | reference | required | | target: OEA instance | Associated OEA instance |
-| createdBy | reference | required | | target: person | Creating person |
+| createdBy | reference | required | | target: person; none for the root | Creating person |
 | createdAt | datetime | required | | ISO 8601, UTC | Time of creation |
 
 ### TreeNodeItem (reference to repository content)
@@ -105,10 +117,12 @@ All three views show the same data set; they are complementary, not competing.
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
 | id | string | required | | UUID v4 | Internal key of the entry |
-| itemType | enum | required | | `[tree-node, entity, diagram, catalog]` | Type of the referenced object |
+| itemType | enum | required | | `[tree-node, entity, diagram, catalog]`; implemented: `catalog` | Type of the referenced object |
 | referenceId | string | required | | UUID of the referenced object | Reference to entity / diagram / catalog / subfolder |
-| displayLabel | string | optional | = name of the object | max. 255 characters | Optional display text in the tree (overrides the name of the original) |
+| displayLabel | string | optional | = name of the object | trimmed, 1–255 characters | Optional display text in the tree (overrides the name of the original) |
 | sortOrder | integer | required | 0 | >= 0 | Order within the parent TreeNode |
+| createdBy | reference | required | | target: person | Person who placed the object |
+| createdAt | datetime | required | | ISO 8601, UTC | Time of placement |
 
 ## Relationships
 
@@ -124,12 +138,12 @@ All three views show the same data set; they are complementary, not competing.
 
 | Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
-| BR-01 | `TreeNode.name` MUST be unique among all direct children of the same `parentId` | onCreate, onUpdate | – |
+| BR-01 | `TreeNode.name` MUST be unique among all direct children of the same `parentId`, regardless of case | onCreate, onUpdate | – |
 | BR-02 | The root node (`parentId = null`) MUST NOT be deleted | onDelete | – |
 | BR-03 | A `TreeNode` MUST NOT be its own ancestor (no cycles) | onCreate, onUpdate | – |
-| BR-04 | A `TreeNodeItem.referenceId` MUST point to an existing object of the specified `itemType` | onCreate; verifiable via consistency check | – |
+| BR-04 | A `TreeNodeItem.referenceId` MUST point to an existing object of the specified `itemType` that the placing person can see | onCreate; verifiable via consistency check | – |
 | BR-05 | Deleting a `TreeNode` MUST recursively remove all its child nodes and their items; referenced objects (entities, diagrams, catalogs) are NOT deleted | onDelete | – |
-| BR-06 | A `TreeNodeItem` can reference the same object (`referenceId`) in several different TreeNodes (soft-reference principle) | – | – |
+| BR-06 | A `TreeNodeItem` can reference the same object (`referenceId`) in several different TreeNodes (soft-reference principle), but at most once per TreeNode | onCreate | – |
 
 ## Lifecycle
 
@@ -171,13 +185,14 @@ Root: "Architecture Repository Sample Company AG"
 
 ## Usage in Use Cases
 
-- Future: UC for managing the navigation tree (primary actor: SH-03 Kurt)
+- [UC-13: Manage Navigation Tree](../requirements/use-cases/UC-13-manage-navigation-tree.md) (primary actor: SH-03 Kurt); [UC-06](../requirements/use-cases/UC-06-create-and-use-catalog.md) step 14 (place a catalog)
+- Implemented for catalogs with US-054 (change `us-054-catalog-navigation-tree`): the sidebar of the web portal (SCR-055)
 - Can serve as the default entry point of the client app and web portal (ADR-008 pending)
 
 ## Open Questions
 
 - Should there be several named trees per instance (e.g. "EA team tree" vs. "stakeholder publication")? → Open; currently one tree per instance.
-- Should the tree be visible in a role-based manner (certain folders only for the EA team)? → Depends on the permission concept (still open).
+- Should the tree be visible in a role-based manner (certain folders only for the EA team)? → Not yet: every reader sees all folders; only entries on other persons' personal catalogs are hidden (owner decision 2026-11-06).
 - Can solutions be represented as TreeNodes (subfolder structure for solution content)? → Yes, a solution could be modeled as a folder + its EntityDeltas as items. Details TBD.
 
 ## Change History
@@ -185,3 +200,4 @@ Root: "Architecture Repository Sample Company AG"
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Business Engineer | Initial draft; soft-reference principle, root node, four item types (entity/diagram/catalog/tree-node) |
+| 0.2.0 | 2026-11-07 | Solution Architect | US-054: names unique regardless of case, root "Repository" created by the migration, visibility of personal catalogs, limits, one entry per target and folder, `catalog` implemented |

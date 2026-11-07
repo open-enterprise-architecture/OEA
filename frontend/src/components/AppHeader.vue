@@ -2,6 +2,7 @@
 import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { sidebar } from '../navigation/store'
 import { endSession, refreshSession, session } from '../session/store'
 
 const props = defineProps<{ fetchFn?: typeof fetch }>()
@@ -9,6 +10,9 @@ const router = useRouter()
 const { t } = useI18n()
 
 // SCR-030 is readable with entity:read and changeable with metamodel:write
+// the sidebar with the navigation tree needs entity:read; on narrow screens this button opens it (SCR-055)
+const canSeeTree = computed(() => (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read'))
+
 const canSeeMetamodel = computed(() =>
   (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read' || entry.permission === 'metamodel:write'),
 )
@@ -27,7 +31,20 @@ async function logOut() {
 
 <template>
   <header class="flex items-center justify-between border-b border-default px-6 py-3">
-    <RouterLink to="/" class="font-semibold">OEA</RouterLink>
+    <div class="flex items-center gap-2">
+      <UButton
+        v-if="canSeeTree"
+        data-testid="header-navigation"
+        class="lg:hidden"
+        size="sm"
+        color="neutral"
+        variant="ghost"
+        icon="i-lucide-menu"
+        :aria-label="t('navigation.open')"
+        @click="sidebar.open = true"
+      />
+      <RouterLink to="/" class="font-semibold">OEA</RouterLink>
+    </div>
     <nav class="flex items-center gap-3">
       <template v-if="session.me">
         <RouterLink to="/catalogs" data-testid="header-catalogs">{{ t('catalogs.title') }}</RouterLink>

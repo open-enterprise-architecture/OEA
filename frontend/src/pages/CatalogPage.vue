@@ -25,6 +25,7 @@ import { fetchPropertyDefinitions, type PropertyDefinitionDetail } from '../api/
 import CatalogColumnsDialog from '../components/CatalogColumnsDialog.vue'
 import CatalogFilterBar, { type FilterColumn } from '../components/CatalogFilterBar.vue'
 import CatalogJoinsDialog from '../components/CatalogJoinsDialog.vue'
+import PlaceInNavigation from '../components/PlaceInNavigation.vue'
 import CatalogTable from '../components/CatalogTable.vue'
 import CatalogViews from '../components/CatalogViews.vue'
 import { label, labelKeys } from '../i18n/labels'
@@ -58,6 +59,8 @@ const canConfigure = computed(
     catalog.value?.scope === 'personal' ||
     (session.me?.permissions.some((entry) => entry.permission === 'catalog:manage') ?? false),
 )
+// placing the catalog in the navigation tree needs viewpoint:manage (US-054)
+const canPlace = computed(() => session.me?.permissions.some((entry) => entry.permission === 'viewpoint:manage') ?? false)
 // the path the page is shown at; query changes while navigating elsewhere are ignored
 const path = route.path
 let latestQuery = 0
@@ -506,8 +509,10 @@ watch(
             variant="subtle"
             :label="catalog.scope === 'personal' ? t('catalogs.personal') : t('catalogs.shared')"
           />
-          <div v-if="canConfigure" class="ms-auto flex gap-2">
+          <div v-if="canConfigure || canPlace" class="ms-auto flex flex-wrap gap-2">
+            <PlaceInNavigation v-if="canPlace" :catalog-id="catalog.id" :catalog-name="catalog.name" :fetch-fn="fetchFn" />
             <UButton
+              v-if="canConfigure"
               data-testid="configure-columns"
               icon="i-lucide-columns-3"
               color="neutral"
@@ -516,6 +521,7 @@ watch(
               @click="configuring = true"
             />
             <UButton
+              v-if="canConfigure"
               data-testid="configure-joins"
               icon="i-lucide-git-merge"
               color="neutral"

@@ -14,7 +14,7 @@ import java.util.Map;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Steps for features/platform/api-contract.feature: {@code createEntity}, {@code getExplorerView}
+ * Steps for features/platform/api-contract.feature: {@code createEntity}, {@code getDiagramView}
  * and {@code runAnalyticsQuery} are planned operations of the contract.
  */
 public class ApiContractSteps {
@@ -50,10 +50,10 @@ public class ApiContractSteps {
 		this.response = shared.post("/api/v1/entities", body, shared.architect(), Map.of());
 	}
 
-	@When("a caller without session requests the planned explorer view")
-	public void explorerWithoutSession() throws Exception {
+	@When("a caller without session requests the planned diagram view")
+	public void diagramWithoutSession() throws Exception {
 		this.response = shared.oidc()
-			.send(HttpRequest.newBuilder(URI.create(shared.oidc().url() + "/api/v1/views/explorer")).GET());
+			.send(HttpRequest.newBuilder(URI.create(shared.oidc().url() + "/api/v1/views/diagrams/00000000-0000-0000-0000-000000000000")).GET());
 	}
 
 	@When("the viewer runs a query through the planned analytics operation")

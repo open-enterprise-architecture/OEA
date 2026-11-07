@@ -4,9 +4,9 @@ title: Navigation tree folder CRUD
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-28
-last_updated: 2026-06-28
+last_updated: 2026-11-07
 author: requirements-engineer
 references:
   use_cases:
@@ -17,7 +17,8 @@ references:
     - entity
   stakeholders:
     - SH-03
-  adrs: []
+  adrs:
+    - ADR-032
 supersedes: []
 superseded_by: []
 ---
@@ -26,7 +27,7 @@ superseded_by: []
 
 ## Statement
 
-The system MUST enable creating, renaming and deleting TreeNode folders in the navigation tree. Folder names MUST be unique among siblings (BR-01). Deleting a folder MUST recursively remove all child nodes and items; referenced objects remain untouched (BR-05). The root node MUST NOT be deletable (BR-02); renaming is allowed.
+The system MUST enable creating, renaming and deleting TreeNode folders in the navigation tree. Folder names MUST be unique among siblings regardless of case (BR-01). Changing folders MUST require `viewpoint:manage`. Deleting a folder MUST recursively remove all child nodes and items; referenced objects remain untouched (BR-05). The root node "Repository" MUST NOT be deletable (BR-02); renaming is allowed.
 
 ## Rationale
 
@@ -41,8 +42,8 @@ The navigation tree is the primary structuring instrument for the EA repository.
 
 **AC2** (Reject duplicate name):
 
-- When: a folder is created with a name that already exists under the same parent
-- Then: the API responds with HTTP 422 "Name already exists"
+- When: a folder is created with a name that already exists under the same parent, also in other upper and lower case
+- Then: the API responds with HTTP 422 naming `name` ("A folder with this name already exists")
 
 **AC3** (Recursive deletion):
 
@@ -51,8 +52,8 @@ The navigation tree is the primary structuring instrument for the EA repository.
 
 **AC4** (Root node protection):
 
-- When: a DELETE request is sent to `/tree-nodes/root`
-- Then: the API responds with HTTP 422 "Root node cannot be deleted"
+- When: a DELETE request is sent to `/tree-nodes/{rootId}`
+- Then: the API responds with HTTP 422 "The root folder cannot be deleted"
 
 ## Dependencies
 
@@ -61,12 +62,15 @@ The navigation tree is the primary structuring instrument for the EA repository.
 
 ## Implementation Notes
 
-- Implement recursive deletion as DB CASCADE or explicit recursive traversal
-- Unique constraint on `(parentId, name)` in the DB
-- Root node created by seeding; no API endpoint for creating the root
+- Recursive deletion by `ON DELETE CASCADE` on `tree_nodes.parent_id` and `tree_node_items.tree_node_id`
+- Unique index on `(coalesce(parent_id, zero UUID), lower(name))`; a trigger protects the root
+- The root "Repository" is created by the migration `V21__navigation_tree.sql`; no API endpoint for creating the root
+- Limits: at most 10 levels below the root, at most 500 folders; names trimmed, 1–255 characters without control characters
+- Implemented by the OpenSpec change `us-054-catalog-navigation-tree`: `POST /tree-nodes`, `PATCH` and `DELETE /tree-nodes/{nodeId}`, and the folder actions of the sidebar SCR-055
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-07 | Solution Architect | Realigned with us-054-catalog-navigation-tree: names unique regardless of case, the root "Repository" created by the migration, permission `viewpoint:manage`, limits |

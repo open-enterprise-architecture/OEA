@@ -1687,10 +1687,17 @@ package "Navigation & Presentation" #EDE7F6 {
     + id          : UUID                  {PK}
     --
     + name        : TEXT                  {NN}
+    .. stored trimmed, 1–255 characters ..
+    .. UNIQUE INDEX (coalesce(parent_id, zero UUID), lower(name)): unique among siblings ..
     + description : TEXT
-    + parent_id   : UUID                  {FK→tree_nodes.id}
+    .. max. 500 characters; not shown in the UI yet ..
+    + parent_id   : UUID                  {FK→tree_nodes.id ON DELETE CASCADE}
+    .. NULL only for the root "Repository" (created by V21, UNIQUE: exactly one root) ..
+    .. the root cannot be deleted (trigger) ..
     + sort_order  : INTEGER               {NN} DEFAULT 0
-    + created_by  : BIGINT                {NN} {FK→persons.id}
+    .. 0 until manual ordering (REQ-096); the tree sorts by lower(name) ..
+    + created_by  : BIGINT                {FK→persons.id}
+    .. NULL only for the root ..
     + created_at  : TIMESTAMPTZ           {NN} DEFAULT NOW()
   }
 
@@ -1699,11 +1706,14 @@ package "Navigation & Presentation" #EDE7F6 {
     --
     + tree_node_id  : UUID                {NN} {FK→tree_nodes.id ON DELETE CASCADE}
     + item_type     : TEXT                {NN}
-    .. enum: tree-node | entity | diagram | catalog ..
-    + reference_id  : TEXT                {NN}
-    .. polymorphic reference; no DB FK possible ..
+    .. CHECK IN (tree-node, entity, diagram, catalog); only catalog is used so far ..
+    + reference_id  : UUID                {NN}
+    .. soft reference without FK (REQ-095); UNIQUE(tree_node_id, item_type, reference_id) ..
     + display_label : TEXT
+    .. stored trimmed, 1–255 characters; NULL shows the name of the target ..
     + sort_order    : INTEGER             {NN} DEFAULT 0
+    + created_by    : BIGINT              {NN} {FK→persons.id}
+    + created_at    : TIMESTAMPTZ         {NN} DEFAULT NOW()
   }
 
   class viewpoint_shape_assignments <<Table>> #D1C4E9 {
@@ -2000,6 +2010,12 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   system_settings.second_factor_enforced and second_factor_exempt_roles
 '   (sessions.required_action already allows enroll-second-factor).
 '   Reason: US-031, US-028, REQ-020, REQ-029.
+' 2026-11-07 (us-054-catalog-navigation-tree):
+'   tree_nodes and tree_node_items created by V21 with the root "Repository";
+'   folder names unique among siblings regardless of case; the root protected;
+'   tree_node_items.reference_id typed UUID with created_by/created_at and one
+'   entry per target and folder; tree_nodes.created_by NULL only for the root.
+'   Reason: US-054, REQ-050, REQ-094, REQ-095, REQ-097.
 ' ─────────────────────────────────────────────────────
 
 @enduml

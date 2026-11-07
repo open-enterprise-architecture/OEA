@@ -30,13 +30,15 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Spec platform/api-contract, requirement "Answer of planned operations" (s2b-ci-and-contract
- * D2): {@code createEntity} and {@code getExplorerView} are planned and have no own controller.
+ * D2): {@code createEntity} and {@code getDiagramView} are planned and have no own controller.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 class PlannedOperationsTests {
 
 	private static final OeaDatabase postgres = OeaDatabases.freshMigrated();
+
+	private static final String DIAGRAM = "00000000-0000-0000-0000-000000000000";
 
 	private static final String TOKEN_FILE = tempDirectory() + "/setup-token";
 
@@ -93,14 +95,14 @@ class PlannedOperationsTests {
 
 	@Test
 	void plannedOperationWithoutSession() {
-		assertThat(this.mvc.get().uri("/api/v1/views/explorer").exchange()).hasStatus(HttpStatus.UNAUTHORIZED);
+		assertThat(this.mvc.get().uri("/api/v1/views/diagrams/" + DIAGRAM).exchange()).hasStatus(HttpStatus.UNAUTHORIZED);
 	}
 
 	@Test
 	void plannedOperationWithoutPermission() {
 		TestSession portalReader = this.principals.personWithIdpRole("portal-reader");
 		assertThat(this.mvc.get()
-			.uri("/api/v1/views/explorer")
+			.uri("/api/v1/views/diagrams/" + DIAGRAM)
 			.cookie(new Cookie(SessionCookie.NAME, portalReader.token()))
 			.exchange()).hasStatus(HttpStatus.FORBIDDEN);
 	}

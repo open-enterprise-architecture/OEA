@@ -2,7 +2,7 @@
 
 ## Context
 
-- **Data model:** `docs/data-model.puml` already has `tree_nodes` (`id`, `name`, `description`, `parent_id`, `sort_order`, `created_by`, `created_at`) and `tree_node_items` (`id`, `tree_node_id` with `ON DELETE CASCADE`, `item_type`, `reference_id`, `display_label`, `sort_order`). The business object `tree-node` defines BR-01 to BR-06. No migration creates these tables yet; the last migration is `V9__role_assignments.sql`.
+- **Data model:** `docs/data-model.puml` already has `tree_nodes` (`id`, `name`, `description`, `parent_id`, `sort_order`, `created_by`, `created_at`) and `tree_node_items` (`id`, `tree_node_id` with `ON DELETE CASCADE`, `item_type`, `reference_id`, `display_label`, `sort_order`). The business object `tree-node` defines BR-01 to BR-06. No migration creates these tables yet; the last migration is `V20__metamodel_configurations.sql`.
 - **Contract:** `getExplorerView` (`GET /views/explorer`) is planned and returns the root `TreeNode` with `items` and recursive `children`. No write operations exist.
 - **Permissions:** `viewpoint:manage` exists in the permission catalog (`V3`) and in the role `enterprise-architect`; no operation uses it yet. Catalogs are read through `Catalogs.get` and `CatalogStore.findVisible` (ADR-032 §8).
 - **Web portal:** `App.vue` renders `AppHeader` and the `RouterView`; there is no sidebar. Pages such as login and setup run without a session.
@@ -23,13 +23,13 @@
 
 ## Decisions
 
-### D1 Data (`V10__navigation_tree.sql`)
+### D1 Data (`V21__navigation_tree.sql`)
 
 - **`tree_nodes`:**
   - `id UUID PK DEFAULT gen_random_uuid()`, `name TEXT NOT NULL CHECK (length(btrim(name)) BETWEEN 1 AND 255)`, `description TEXT CHECK (length(description) <= 500)`;
   - `parent_id UUID REFERENCES tree_nodes (id) ON DELETE CASCADE`, `sort_order INTEGER NOT NULL DEFAULT 0`;
   - `created_by BIGINT REFERENCES persons (id)`, nullable only for the root; `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`.
-  - Indexes: unique `(coalesce(parent_id, '00000000-0000-0000-0000-000000000000'), lower(btrim(name)))` for BR-01; unique on `((parent_id IS NULL)) WHERE parent_id IS NULL` for exactly one root.
+  - Indexes: unique `(coalesce(parent_id, '00000000-0000-0000-0000-000000000000'), lower(name))` for BR-01 (names are stored trimmed); unique on `((parent_id IS NULL)) WHERE parent_id IS NULL` for exactly one root.
 - **`tree_node_items`:**
   - `id UUID PK`, `tree_node_id UUID NOT NULL REFERENCES tree_nodes (id) ON DELETE CASCADE`;
   - `item_type TEXT NOT NULL CHECK (item_type IN ('tree-node', 'entity', 'diagram', 'catalog'))`, `reference_id UUID NOT NULL`;
@@ -38,7 +38,8 @@
   - Unique `(tree_node_id, item_type, reference_id)`: once per folder.
 - **The root:** the migration inserts the folder "Repository" without a creator.
 - **Deletion:** the cascade on `parent_id` and `tree_node_id` deletes a folder's subtree with its entries (BR-05). `reference_id` is a soft reference without a foreign key, so no catalog is touched.
-- **Grants:** as for `catalogs` (`oea_app`: `SELECT`, `INSERT`, `UPDATE`, `DELETE`).
+- **The root is protected** in the database as well: a trigger rejects deleting the folder without parent, and a check requires a creator for every other folder.
+- **Grants:** `oea_app` gets `SELECT`, `INSERT`, `UPDATE` and `DELETE` on both tables.
 
 ### D2 Contract (delta to `api/openapi.yaml`)
 
@@ -100,7 +101,7 @@
   - the visibility of entries on personal catalogs;
   - the limits;
   - the implemented `itemType` `catalog`.
-- **`docs/data-model.puml`:** `tree_nodes` and `tree_node_items` as created by `V10`, with the unique indexes.
+- **`docs/data-model.puml`:** `tree_nodes` and `tree_node_items` as created by `V21`, with the unique indexes.
 - **`docs/audit-event-catalog.md`:** the five events.
 - **Manual:** a new page `usage/navigation.md` and `de/usage/navigation.md` with `covers` US-054 and SCR-055.
 
@@ -112,4 +113,4 @@
 
 ## Migration Plan
 
-`V10__navigation_tree.sql` only adds tables and the root; a rollback drops both tables. No existing data changes.
+`V21__navigation_tree.sql` only adds tables and the root; a rollback drops both tables. No existing data changes.

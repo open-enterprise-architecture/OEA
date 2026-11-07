@@ -28,6 +28,8 @@ import {
   type Application,
 } from '../test/catalogs'
 import { routedFetch } from '../test/fetch'
+import { clearTree } from '../navigation/store'
+import { navigationApi } from '../test/navigation'
 
 // SCR-020 Catalog Browser (UC-06, US-046, US-049): a catalog with its entity table and the
 // catalog overview (docs/screens/SCREENS.md). The first story is the screen image.
@@ -243,3 +245,24 @@ export const SaveView: Story = {
   },
 }
 
+
+/** "Place in navigation" (US-054): the folders as paths and the display label. */
+export const PlaceInNavigation: Story = {
+  render: () => ({
+    components: { CatalogPage },
+    setup: () => {
+      clearTree()
+      return { fetchFn: navigationApi({ fallback: catalogApi(APPLICATIONS) }), id: CATALOG.id }
+    },
+    template: '<CatalogPage :id="id" :fetch-fn="fetchFn" />',
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Place in navigation' }))
+    const dialog = within(canvasElement.ownerDocument.body)
+    await expect(await dialog.findByTestId('place-form')).toBeInTheDocument()
+    await userEvent.type(dialog.getByTestId('place-label'), 'System Inventory')
+    await userEvent.click(dialog.getByTestId('place-submit'))
+    await expect(await canvas.findByText('Placed in Repository.')).toBeVisible()
+  },
+}

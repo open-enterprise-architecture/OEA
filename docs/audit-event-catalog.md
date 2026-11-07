@@ -598,6 +598,28 @@ A saved view of a catalog was added, replaced or removed ([US-053](../requiremen
 | Target | `catalog`, ID of the catalog |
 | Details | `viewId`, `name`; when added or changed also `isDefault`, `columns` and `filters` (the numbers of columns and filters) |
 
+### `tree-node.created`, `tree-node.renamed`, `tree-node.deleted`
+
+A folder of the navigation tree was created, renamed or deleted ([US-054](../requirements/user-stories/US-054-catalog-navigation-tree.md), [REQ-094](../requirements/req/REQ-094-navigation-tree-folder-crud.md)). Deleting a folder removes its subfolders and entries, never a catalog.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the person with `viewpoint:manage` |
+| Target | `tree-node`, ID of the folder |
+| Details | `name`; when created also `parentId`; when renamed also `previousName`; when deleted also `folders` and `items` (the numbers of removed folders, the folder itself included, and entries) |
+
+### `tree-node.item-added`, `tree-node.item-removed`
+
+A catalog was placed in a folder of the navigation tree or its entry removed ([US-054](../requirements/user-stories/US-054-catalog-navigation-tree.md), [REQ-050](../requirements/req/REQ-050-catalog-navigation-tree.md)). The catalog itself does not change.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the person with `viewpoint:manage` |
+| Target | `tree-node`, ID of the folder |
+| Details | `itemId`, `itemType` (`catalog`) and `referenceId` (the ID of the catalog) |
+
 ## Planned Event Types
 
 Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `visibility.changed`, `visibility.override-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.deleted` and further `entity.*`, further `metamodel.*` (connection metatypes, fork).

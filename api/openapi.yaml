@@ -335,6 +335,16 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    TreeNodeIdParam:
+      name: nodeId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    TreeNodeItemIdParam:
+      name: itemId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     LocaleParam:
       name: locale
       in: path
@@ -1258,25 +1268,33 @@ components:
     # ── Explorer / navigation tree ────────────────────────────────────────────
     TreeNodeItem:
       type: object
-      required: [id, itemType, referenceId, displayLabel, sortOrder]
+      description: |
+        An entry of a folder (US-054, REQ-050, REQ-095; business object `tree-node`): a soft
+        reference to a catalog. Only catalogs can be placed so far.
+      required: [id, itemType, referenceId, displayLabel, sortOrder, name, scope]
       properties:
         id:           { type: string, format: uuid }
         itemType:
           type: string
-          enum: [tree-node, entity, diagram, catalog]
-        referenceId:  { type: string }
-        displayLabel: { type: string }
-        sortOrder:    { type: integer }
-        metatype:     { oneOf: [ { $ref: '#/components/schemas/MetatypeSummary' }, { type: 'null' } ] }
-        isDeleted:    { type: boolean, default: false }
+          enum: [catalog]
+        referenceId:  { type: string, format: uuid, description: "ID of the catalog" }
+        displayLabel: { type: [string, 'null'], description: "Shown instead of the catalog's name if set" }
+        sortOrder:    { type: integer, description: "0 until manual ordering follows (REQ-096)" }
+        name:         { type: string, description: "The current name of the catalog" }
+        scope:        { $ref: '#/components/schemas/CatalogScope' }
 
     TreeNode:
       type: object
-      required: [id, name, sortOrder, items, children]
+      description: |
+        A folder of the navigation tree (US-054, REQ-094; business object `tree-node`), with its
+        entries and subfolders sorted by name regardless of case. The root is the folder
+        "Repository" without a parent.
+      required: [id, name, parentId, sortOrder, items, children]
       properties:
         id:        { type: string, format: uuid }
         name:      { type: string }
-        sortOrder: { type: integer }
+        parentId:  { type: [string, 'null'], format: uuid, description: "null for the root" }
+        sortOrder: { type: integer, description: "0 until manual ordering follows (REQ-096)" }
         items:
           type: array
           items: { $ref: '#/components/schemas/TreeNodeItem' }
@@ -1284,6 +1302,29 @@ components:
           type: array
           items: { $ref: '#/components/schemas/TreeNode' }
           description: Recursive child nodes
+
+    TreeNodeCreate:
+      type: object
+      description: A new folder under an existing folder (REQ-094, tree-node BR-01)
+      required: [name, parentId]
+      properties:
+        name:     { type: string, minLength: 1, maxLength: 255, description: "Trimmed; unique among the siblings regardless of case" }
+        parentId: { type: string, format: uuid }
+
+    TreeNodeRename:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255, description: "Trimmed; unique among the siblings regardless of case" }
+
+    TreeNodeItemCreate:
+      type: object
+      description: A catalog placed in a folder (US-054, REQ-050, REQ-097; tree-node BR-04, BR-06)
+      required: [itemType, referenceId]
+      properties:
+        itemType:     { type: string, enum: [catalog] }
+        referenceId:  { type: string, format: uuid, description: "ID of a catalog visible to the caller" }
+        displayLabel: { type: [string, 'null'], maxLength: 255, description: "Trimmed; empty means none" }
 
     # ── Diagram ──────────────────────────────────────────────────────────────
     DiagramShape:
@@ -4625,20 +4666,174 @@ paths:
   /views/explorer:
     get:
       operationId: getExplorerView
-      summary: Navigation tree (SCR-010/011)
-      description: Complete tree node graph for the left explorer panel.
+      summary: Navigation tree (US-054, SCR-055, SCR-010/011)
+      description: |
+        The navigation tree from the root folder "Repository", with all folders and their catalog
+        entries (US-054, REQ-050, REQ-095). Folders and entries are sorted by name regardless of
+        case, an entry by its display label if set. An entry on another person's personal catalog
+        and an entry whose catalog no longer exists are left out.
       tags: [Views – Navigation]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
-      x-oea-status: planned
       responses:
         '200':
-          description: Tree structure
+          description: The tree from the root
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TreeNode' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /tree-nodes:
+    post:
+      operationId: createTreeNode
+      summary: Create a folder in the navigation tree (REQ-094, UC-13)
+      description: |
+        Creates a folder under an existing folder. The name is trimmed, has 1–255 characters
+        without control characters and is unique among its siblings regardless of case (BR-01).
+        A folder is at most 10 levels below the root; the tree has at most 500 folders.
+        Validation errors answer 422 with `invalidFields` `name` or `parentId` (an unknown parent).
+        Writes the audit event `tree-node.created`.
+      tags: [Views – Navigation]
+      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TreeNodeCreate' }
+      responses:
+        '201':
+          description: The tree with the new folder
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TreeNode' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: Invalid folder (problem type `urn:oea:problem:validation-failed`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /tree-nodes/{nodeId}:
+    patch:
+      operationId: renameTreeNode
+      summary: Rename a folder of the navigation tree (REQ-094, UC-13)
+      description: |
+        Renames the folder, the root included, under the rules for the name of a new folder.
+        An unknown folder answers 404. Writes the audit event `tree-node.renamed`.
+      tags: [Views – Navigation]
+      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
+      parameters:
+        - $ref: '#/components/parameters/TreeNodeIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TreeNodeRename' }
+      responses:
+        '200':
+          description: The tree with the renamed folder
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TreeNode' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: Invalid folder (problem type `urn:oea:problem:validation-failed`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      operationId: deleteTreeNode
+      summary: Delete a folder of the navigation tree (REQ-094, UC-13 A3)
+      description: |
+        Deletes the folder with its subfolders and all their entries; no catalog changes (BR-05).
+        The root cannot be deleted (BR-02, 422). An unknown folder answers 404. Writes the audit
+        event `tree-node.deleted`.
+      tags: [Views – Navigation]
+      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
+      parameters:
+        - $ref: '#/components/parameters/TreeNodeIdParam'
+      responses:
+        '200':
+          description: The tree without the folder
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TreeNode' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: The root folder cannot be deleted (problem type `urn:oea:problem:validation-failed`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /tree-nodes/{nodeId}/items:
+    post:
+      operationId: addTreeNodeItem
+      summary: Place a catalog in a folder (US-054, REQ-050, REQ-097)
+      description: |
+        Places a catalog in the folder, with an optional display label of at most 255 characters.
+        A catalog may be placed in several folders, but only once per folder (BR-06). A second
+        entry in the same folder and a catalog the caller cannot see answer 422 with
+        `invalidFields` `referenceId`; a folder has at most 200 entries. An unknown folder answers
+        404. Writes the audit event `tree-node.item-added`.
+      tags: [Views – Navigation]
+      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
+      parameters:
+        - $ref: '#/components/parameters/TreeNodeIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TreeNodeItemCreate' }
+      responses:
+        '201':
+          description: The tree with the new entry
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TreeNode' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: Invalid entry (problem type `urn:oea:problem:validation-failed`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /tree-nodes/{nodeId}/items/{itemId}:
+    delete:
+      operationId: removeTreeNodeItem
+      summary: Remove an entry from a folder (US-054, REQ-050, REQ-095)
+      description: |
+        Removes only this entry; the catalog and its other entries stay. An unknown folder or
+        entry answers 404. Writes the audit event `tree-node.item-removed`.
+      tags: [Views – Navigation]
+      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
+      parameters:
+        - $ref: '#/components/parameters/TreeNodeIdParam'
+        - $ref: '#/components/parameters/TreeNodeItemIdParam'
+      responses:
+        '200':
+          description: The tree without the entry
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TreeNode' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  VIEW – DIAGRAMS (SCR-021/022)                                         ║
@@ -8511,7 +8706,7 @@ tags:
   - name: Catalogs
     description: Catalog definitions – create, list and read (UC-06, US-046) – and the catalog query (US-049)
   - name: Views – Navigation
-    description: Explorer / navigation tree (SCR-010/011)
+    description: Navigation tree – reading it and managing its folders and catalog entries (UC-13, US-054); the sidebar of the web portal (SCR-055) and the explorer (SCR-010/011)
   - name: Views – Editors
     description: Diagram, lineage, dashboard and roadmap editors (SCR-021–025)
   - name: Entities

@@ -17,7 +17,7 @@ Feature: Answer of planned operations
     And no entity is created
 
   Scenario: Planned operation without session
-    When a caller without session requests the planned explorer view
+    When a caller without session requests the planned diagram view
     Then the planned operation is answered with 401
 
   Scenario: Planned operation without permission

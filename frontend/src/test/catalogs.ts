@@ -9,7 +9,7 @@ function me(displayName: string, permissions: string[]) {
   }
 }
 
-export const ME_ARCHITECT = me('Kurt', ['portal:read', 'entity:read', 'entity:write', 'catalog:manage'])
+export const ME_ARCHITECT = me('Kurt', ['portal:read', 'entity:read', 'entity:write', 'catalog:manage', 'viewpoint:manage'])
 export const ME_VIEWER = me('Franz', ['portal:read', 'entity:read'])
 export const ME_WITHOUT_ROLE = me('Max', [])
 

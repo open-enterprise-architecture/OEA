@@ -1,6 +1,6 @@
 import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { setLanguage } from '../i18n'
 import { loadLabels } from '../i18n/labels'
 import { defineComponent, h } from 'vue'
@@ -30,6 +30,8 @@ import {
   type CatalogRequest,
 } from '../test/catalogs'
 import CatalogJoinsDialog from '../components/CatalogJoinsDialog.vue'
+import { clearTree } from '../navigation/store'
+import { LANDSCAPE_ID, navigationApi, ROOT_ID, type TreeRequest } from '../test/navigation'
 import CatalogPage from './CatalogPage.vue'
 
 const CATALOG_PATH = `/catalogs/${CATALOG.id}`
@@ -877,3 +879,90 @@ describe('CatalogPage views', () => {
   })
 })
 
+
+// navigation/navigation-tree "Place a catalog" and "Navigation sidebar" (US-054 AC1, AC5)
+describe('CatalogPage navigation', () => {
+  beforeEach(() => {
+    clearTree()
+  })
+
+  async function placing(me: unknown = ME_ARCHITECT) {
+    const recorded: TreeRequest[] = []
+    const fetchFn = navigationApi({ recorded, fallback: catalogApi(APPLICATIONS, { me }) })
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/catalogs/:id', component: CatalogPage, props: (route) => ({ id: route.params.id, fetchFn }) }],
+    })
+    await router.push(CATALOG_PATH)
+    const wrapper = mount(defineComponent({ render: () => h(RouterView) }), { global: { plugins: [ui, router] }, attachTo: document.body })
+    await flushPromises()
+    return { wrapper, recorded }
+  }
+
+  function folderSelect(wrapper: VueWrapper) {
+    const found = wrapper.findAllComponents({ name: 'Select' }).find((component) => component.vm.$attrs['data-testid'] === 'place-folder')
+    if (!found) {
+      throw new Error('no folder select')
+    }
+    return found
+  }
+
+  async function press(testId: string) {
+    document.body.querySelector<HTMLElement>(`[data-testid="${testId}"]`)!.click()
+    await flushPromises()
+  }
+
+  async function label(value: string) {
+    const input = document.body.querySelector<HTMLInputElement>('[data-testid="place-label"]')!
+    input.value = value
+    input.dispatchEvent(new Event('input'))
+    await flushPromises()
+  }
+
+  // "Place under a folder"
+  it('places the catalog in a folder chosen by its path', async () => {
+    const { wrapper, recorded } = await placing()
+    await click(wrapper, '[data-testid="place-in-navigation"]')
+    expect((folderSelect(wrapper).props('items') as { label: string }[]).map((item) => item.label)).toEqual([
+      'Repository',
+      'Repository / Compliance',
+      'Repository / IT Landscape',
+      'Repository / IT Landscape / Applications',
+    ])
+    expect(folderSelect(wrapper).props('modelValue')).toBe(ROOT_ID)
+    folderSelect(wrapper).vm.$emit('update:modelValue', LANDSCAPE_ID)
+    await flushPromises()
+    // the inventory is in "IT Landscape" already; "Compliance Overview" is not the page's catalog
+    await press('place-submit')
+    expect(recorded.at(-1)).toEqual({
+      path: `/api/v1/tree-nodes/${LANDSCAPE_ID}/items`,
+      method: 'POST',
+      body: { itemType: 'catalog', referenceId: CATALOG.id, displayLabel: null },
+    })
+    expect(document.body.querySelector('[data-testid="place-error"]')?.textContent).toBe('The catalog is already in this folder.')
+    wrapper.unmount()
+  })
+
+  // "Display label"
+  it('places the catalog with a display label', async () => {
+    const { wrapper, recorded } = await placing()
+    await click(wrapper, '[data-testid="place-in-navigation"]')
+    await label('  System Inventory ')
+    await press('place-submit')
+    expect(recorded.at(-1)).toEqual({
+      path: `/api/v1/tree-nodes/${ROOT_ID}/items`,
+      method: 'POST',
+      body: { itemType: 'catalog', referenceId: CATALOG.id, displayLabel: 'System Inventory' },
+    })
+    expect(wrapper.get('[data-testid="place-done"]').text()).toBe('Placed in Repository.')
+    expect(document.body.querySelector('[data-testid="place-form"]')).toBeNull()
+    wrapper.unmount()
+  })
+
+  // "Reader without the right sees no actions"
+  it('offers no placing without viewpoint:manage', async () => {
+    const { wrapper } = await placing(ME_VIEWER)
+    expect(wrapper.find('[data-testid="place-in-navigation"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+})
