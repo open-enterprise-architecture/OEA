@@ -34,7 +34,7 @@ Addresses, ports and the seed are described in the section "Development" of the 
 | Storybook | `npm run storybook` | screen prototypes (ADR-031) at <http://localhost:6006>; published from `main` at <https://open-enterprise-architecture.github.io/OEA/storybook/> |
 | User manual | `cd manual && npm ci --ignore-scripts && npm test && npm run build` | ADR-045; `npm run dev` previews at <http://localhost:5173>; the build generates the API reference and fails on dead links; CI job "User manual"; coverage check `python3 scripts/check_manual.py` (see [`manual/README.md`](../manual/README.md)) |
 | Manual screenshots | `scripts/walkthrough.sh` | Playwright walkthrough against a fresh development stack (own Compose project, stop `scripts/dev.sh` first); screenshots in `manual/screenshots/`, used by the next `npm run build`; install the browser once with `cd manual && npx playwright install --with-deps chromium` |
-| Contract | `npx @redocly/cli@2.63.0 lint api/openapi.yaml` and `python3 scripts/check_openapi_authorization.py` | CI job "OpenAPI validation" |
+| Contract | `npx @redocly/cli@2.63.0 lint api/openapi.yaml` and `python3 scripts/check_openapi_authorization.py` | CI job "OpenAPI validation"; the backend test `ContractViolationStatusTests` checks that every operation documents the status it answers a contract violation with (400, or 422 where the handler declares `@ContractViolationResponse`) |
 
 ## Generated Files
 

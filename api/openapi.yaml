@@ -196,7 +196,11 @@ components:
   # ── Responses ───────────────────────────────────────────────────────────────
   responses:
     BadRequest:
-      description: Invalid request parameters or malformed body
+      description: |
+        The request does not meet the contract: a malformed body, a missing required field or
+        parameter, a wrong type or format, or a value outside the limits of the schema (problem
+        type `urn:oea:problem:validation-failed` unless the operation names another). Operations
+        that answer such requests with 422 instead declare it in their own description.
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
@@ -3477,6 +3481,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/LoginResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401':
           description: Invalid credentials, or a second factor is required (with `loginTransaction`)
           content:
@@ -3516,6 +3521,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/LoginResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401':
           description: Wrong code, or the transaction is unknown, expired or invalidated (`invalid-credentials`)
           content:
@@ -3551,6 +3557,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PasskeyChallenge' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401':
           description: Unknown or invalid login transaction (`invalid-credentials`)
           content:
@@ -3588,6 +3595,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/LoginResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401':
           description: Verification failed, or the transaction is unknown, expired or invalidated (`invalid-credentials`)
           content:
@@ -3661,6 +3669,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/LoginResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401':
           description: Login failed (`invalid-credentials`)
           content:
@@ -3941,6 +3950,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PasskeyRegistration' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409':
@@ -4017,6 +4027,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TotpEnrollment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
@@ -4249,6 +4260,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Catalog' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -4380,6 +4392,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Catalog' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -4441,6 +4454,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Catalog' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -4535,6 +4549,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Catalog' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -4746,6 +4761,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TreeNode' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -4810,6 +4826,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TreeNode' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -4833,6 +4850,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DiagramView' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -4860,6 +4878,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/LineageView' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -4887,6 +4906,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DashboardConfig' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -4912,6 +4932,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DashboardData' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -4939,6 +4960,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/RoadmapView' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -4972,6 +4994,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EntityHistoryResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -5006,6 +5029,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EntityDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -5111,6 +5135,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MetamodelConfiguration' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
@@ -5145,6 +5170,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MetamodelConfiguration' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -5167,6 +5193,7 @@ paths:
       responses:
         '204':
           description: Deleted
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -5227,6 +5254,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MetatypeDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
@@ -5250,6 +5278,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MetatypeDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -5284,6 +5313,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MetatypeDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404':
@@ -5311,6 +5341,7 @@ paths:
       responses:
         '204':
           description: Deleted
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -5342,6 +5373,7 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/MetatypePropertyMapping' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -5377,6 +5409,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MetatypePropertyMapping' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -5406,6 +5439,7 @@ paths:
       responses:
         '204':
           description: Removed
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -5439,6 +5473,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MetatypeDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -5480,6 +5515,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ReimportPolicy' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
@@ -5576,6 +5612,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PropertyCategory' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
@@ -5605,6 +5642,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PropertyCategory' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404':
@@ -5628,6 +5666,7 @@ paths:
       responses:
         '204':
           description: Deleted
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -5680,6 +5719,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PropertyDefinitionDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '409': { $ref: '#/components/responses/MetamodelConflict' }
@@ -5712,6 +5752,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PropertyDefinitionDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404':
@@ -5738,6 +5779,7 @@ paths:
       responses:
         '204':
           description: Deleted
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -5761,6 +5803,7 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/PropertyEnumValue' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -5789,6 +5832,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PropertyEnumValue' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -5817,6 +5861,7 @@ paths:
       responses:
         '204':
           description: Deleted
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -5864,6 +5909,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ViewpointConfig' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -5894,6 +5940,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ViewpointConfig' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -5940,6 +5987,7 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/PropertyVisibilityEntry' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
@@ -5995,6 +6043,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TRMEntry' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
@@ -6021,6 +6070,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TRMEntry' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -6041,6 +6091,7 @@ paths:
       responses:
         '204':
           description: Deleted
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -6098,6 +6149,7 @@ paths:
       responses:
         '200':
           description: Updated
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
@@ -6132,6 +6184,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ImportResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
@@ -6203,6 +6256,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AuthProvider' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
@@ -6223,6 +6277,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AuthProvider' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -6249,6 +6304,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AuthProvider' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -6266,6 +6322,7 @@ paths:
       responses:
         '204':
           description: Deleted
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409':
@@ -6290,6 +6347,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AuthProviderTestResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -6389,6 +6447,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ServiceAccountCreated' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
@@ -6414,6 +6473,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ServiceAccount' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -6441,6 +6501,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ServiceAccount' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -6462,6 +6523,7 @@ paths:
       responses:
         '204':
           description: Deactivated
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -6485,6 +6547,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ServiceAccountCreated' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -6527,6 +6590,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/SystemSettings' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
@@ -6775,6 +6839,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AuthorizationRole' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -6834,6 +6899,7 @@ paths:
       responses:
         '204':
           description: Deleted
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -6895,6 +6961,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Person' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -7099,6 +7166,7 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/PersonIdentity' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -7148,6 +7216,7 @@ paths:
           schema: { type: string, format: uuid }
       responses:
         '204': { description: Binding removed }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -7509,6 +7578,7 @@ paths:
       responses:
         '204':
           description: Deleted
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -7706,6 +7776,7 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/AuditEvent' }
                   page: { $ref: '#/components/schemas/PageMeta' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '501': { $ref: '#/components/responses/NotImplemented' }
@@ -7728,6 +7799,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AuditEvent' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -7917,6 +7989,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EntityDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409':
@@ -7963,6 +8036,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EntityDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -8008,6 +8082,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EntityDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -8036,6 +8111,7 @@ paths:
       responses:
         '204':
           description: Soft-deleted
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -8080,6 +8156,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EntityDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
@@ -8382,6 +8459,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ImportResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -8422,6 +8500,7 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/ShapeAssignment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -8456,6 +8535,7 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/ShapeAssignment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -8541,6 +8621,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EntityDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -8566,6 +8647,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DiagramView' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -8591,6 +8673,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DashboardData' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
