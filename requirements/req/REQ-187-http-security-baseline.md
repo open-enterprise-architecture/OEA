@@ -100,7 +100,7 @@ Source: security review SEC-24 (proposal PR-31); owner decision Q2 (priority mus
 ## Implementation Notes
 
 - The origin of the Electron client (custom scheme) must be handled explicitly in the CORS configuration
-- Web portal responses (AC1): implemented by the OpenSpec change `s9-portal-catalogs` – the backend serves the built portal from the same origin as the API with HSTS, `nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY` and its own content security policy (`default-src 'self'`, scripts `'self'` only, `frame-ancestors 'none'`; styles also `'unsafe-inline'` for the style elements of Nuxt UI); `index.html` is revalidated (`no-cache`), hashed assets are immutable. Tests: `PortalDeliveryTests`, `npm run test:csp`, `scripts/compose_smoke_test.sh`
+- Web portal responses (AC1): implemented by the OpenSpec change `s9-portal-catalogs`, commit 3b6155f (#200) – the backend serves the built portal from the same origin as the API with HSTS, `nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY` and its own content security policy (`default-src 'self'`, scripts `'self'` only, `frame-ancestors 'none'`; styles also `'unsafe-inline'` for the style elements of Nuxt UI); `index.html` is revalidated (`no-cache`), hashed assets are immutable. Tests: `PortalDeliveryTests`, `npm run test:csp`, `scripts/compose_smoke_test.sh`
 
 ## Change History
 

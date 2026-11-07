@@ -121,7 +121,7 @@ Raw analytics (ADR-034): masking happens in the projection of the reporting view
 - API contract: visibility fields per REQ-124 and a redaction marker on property values and diffs (follow-up for the solution architect)
 - Protected audit values: AES-256-GCM with a `key_id` of the audit value key (ADR-033 §3, resolving the ADR-024 plaintext storage)
 - Electron offline cache must only contain values the user may read (REQ-181)
-- Portal channel: implemented for the shared catalogs by the OpenSpec change `s9-portal-catalogs` – `GET /portal/catalogs/{id}/query` is the catalog query, so only properties with visibility `public` appear as columns and sorting by another property is rejected (400)
+- Portal channel: implemented for the shared catalogs by the OpenSpec change `s9-portal-catalogs`, commit 3b6155f (#200) – `GET /portal/catalogs/{id}/query` is the catalog query, so only properties with visibility `public` appear as columns and sorting by another property is rejected (400)
 
 ## Change History
 
