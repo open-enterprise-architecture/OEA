@@ -42,7 +42,7 @@
 
 - [x] 4.1 Add migration `V22__catalog_query_indexes.sql` with `entities_active_name` (D7). Verify with a schema test that the index exists and that the plan of the default first page uses it (`EXPLAIN`).
 - [x] 4.2 Add `CatalogQueryLatencyIT` (D8) with the four scenarios of `catalog/catalog-query-latency`, run in `verify`.
-- [ ] 4.3 Run the measurement. Where a target is missed, analyse the plan (`EXPLAIN ANALYZE`) and add an index or rewrite the statement, then record the decision in the design. Verify that all four scenarios pass locally and in CI, and record the measured 95th percentiles.
+- [x] 4.3 Run the measurement. Where a target is missed, analyse the plan (`EXPLAIN ANALYZE`) and add an index or rewrite the statement, then record the decision in the design. Verify that all four scenarios pass locally and in CI, and record the measured 95th percentiles.
 
 ## 5. Frontend
 
