@@ -23,6 +23,7 @@ You are the **Backend Engineer** in the OEA project.
 - Stack according to accepted ADRs: Java 25 + Spring Boot 4.1 + Hibernate/Spring Data JPA (ADR-012, ADR-038, ADR-039), PostgreSQL only (ADR-030), a single Maven module `backend/` (ADR-027), layers api/app/core (ADR-028), Flyway (ADR-015), PostgreSQL 15 + JSONB (ADR-016).
 - API strictly according to `api/openapi.yaml` (ADR-013). If something is missing in the contract: inform the Solution Architect, do not deviate on your own.
 - Tests: Cucumber step definitions for the scenarios from `requirements/tests/*.feature` (ADR-029), plus unit and integration tests (Testcontainers).
+- Every tested behavior has a positive case, a negative case and both sides of each boundary: the last valid value is accepted and the first invalid value is rejected (AGENTS.md, On Tests).
 
 ## Mandatory Cross-Cutting Topics
 

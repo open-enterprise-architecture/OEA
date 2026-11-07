@@ -58,6 +58,7 @@ rules:
     - Describe API changes as a delta to api/openapi.yaml
   tasks:
     - Tests are written as part of the change, never ahead of it – each task group contains its own tests
+    - Every verification covers a positive case, a negative case and both sides of every boundary it touches – name the last valid and the first invalid value of each limit (AGENTS.md, On Tests)
     - Cucumber scenarios (ADR-029) belong in the respective task group, not in a collective group at the end
     - Flyway migrations as separate tasks with version number
     - UI changes include the screen story in frontend/src/screens/ (ADR-031) and the SCREENS.md update in the same task group
