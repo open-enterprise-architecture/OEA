@@ -189,6 +189,8 @@ class NavigationTreeTests {
 	void invalidNamesAndParents() {
 		assertInvalid(createFolder("   ", this.root), "name");
 		assertInvalid(createFolder("x".repeat(256), this.root), "name");
+		created(createFolder(suffix() + "x".repeat(255 - suffix().length()), this.root));
+		created(createFolder("Y", this.root));
 		assertInvalid(createFolder("Tab\tName", this.root), "name");
 		assertInvalid(createFolder("Orphan", UUID.randomUUID().toString()), "parentId");
 	}
@@ -282,6 +284,7 @@ class NavigationTreeTests {
 		JsonNode catalog = ok(call(HttpMethod.GET, "/api/v1/catalogs/" + inventory, null, this.kurt));
 		assertThat(catalog.path("name").asString()).startsWith("Application Inventory");
 		assertInvalid(place(landscape, catalog("Long", "instance", this.kurt), "x".repeat(256)), "displayLabel");
+		created(place(landscape, catalog("Longest", "instance", this.kurt), "x".repeat(255)));
 	}
 
 	@Test
@@ -360,11 +363,12 @@ class NavigationTreeTests {
 	@Test
 	void entriesPerFolder() {
 		String folder = newFolder("Full", this.root);
-		for (int i = 0; i < NavigationTree.MAX_ITEMS_PER_FOLDER; i++) {
+		for (int i = 0; i < NavigationTree.MAX_ITEMS_PER_FOLDER - 1; i++) {
 			this.jdbc.update("""
 					INSERT INTO tree_node_items (tree_node_id, item_type, reference_id, created_by)
 					VALUES (?::uuid, 'catalog', ?, ?)""", folder, UUID.randomUUID(), this.kurtId);
 		}
+		created(place(folder, catalog("The Last One", "instance", this.kurt), null));
 		assertInvalid(place(folder, catalog("One Too Many", "instance", this.kurt), null), "referenceId");
 	}
 
@@ -373,10 +377,11 @@ class NavigationTreeTests {
 		String bulk = newFolder("Bulk", this.root);
 		int existing = this.jdbc.queryForObject("SELECT count(*) FROM tree_nodes", Integer.class);
 		try {
-			for (int i = existing; i < NavigationTree.MAX_FOLDERS; i++) {
+			for (int i = existing; i < NavigationTree.MAX_FOLDERS - 1; i++) {
 				this.jdbc.update("INSERT INTO tree_nodes (name, parent_id, created_by) VALUES (?, ?::uuid, ?)",
 						"Bulk " + i, bulk, this.kurtId);
 			}
+			created(createFolder("Folder 500", this.root));
 			assertInvalid(createFolder("Folder 501", this.root), "parentId");
 		}
 		finally {

@@ -115,6 +115,31 @@ class PackageImportTests {
 	}
 
 	@Test
+	void metatypeNameAndAbbreviationAtTheirLimits() {
+		ObjectNode longest = TestPackages.pkg("limit-test", 1);
+		((ObjectNode) longest.withArray("metatypes").get(0)).put("name", "n".repeat(100)).put("abbreviation",
+				"a".repeat(10));
+		MvcTestResult accepted = post(longest.toString(), this.metamodelAdmin);
+		assertThat(accepted).as(() -> content(accepted)).hasStatus(HttpStatus.OK);
+		assertThat(count("SELECT count(*) FROM metatypes WHERE length(name) = 100 AND source_package_id = 'limit-test'"))
+			.isOne();
+
+		ObjectNode longName = TestPackages.pkg("limit-name", 1);
+		((ObjectNode) longName.withArray("metatypes").get(0)).put("name", "n".repeat(101));
+		MvcTestResult tooLong = post(longName.toString(), this.metamodelAdmin);
+		assertThat(tooLong).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+		assertThat(body(tooLong).path("pointer").asString()).isEqualTo("/metatypes/0/name");
+
+		ObjectNode longAbbreviation = TestPackages.pkg("limit-abbreviation", 1);
+		((ObjectNode) longAbbreviation.withArray("metatypes").get(0)).put("abbreviation", "a".repeat(11));
+		MvcTestResult tooLongAbbreviation = post(longAbbreviation.toString(), this.metamodelAdmin);
+		assertThat(tooLongAbbreviation).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+		assertThat(body(tooLongAbbreviation).path("pointer").asString()).isEqualTo("/metatypes/0/abbreviation");
+		assertThat(count("SELECT count(*) FROM metatypes WHERE source_package_id IN ('limit-name', 'limit-abbreviation')"))
+			.isZero();
+	}
+
+	@Test
 	void packageAboveTheSizeLimit() {
 		ObjectNode large = TestPackages.pkg("large", 1);
 		large.put("sourceInstanceId", "x".repeat(70 * 1024));

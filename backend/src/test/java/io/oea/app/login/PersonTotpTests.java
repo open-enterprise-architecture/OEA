@@ -215,6 +215,20 @@ class PersonTotpTests {
 	}
 
 	@Test
+	void fourWrongCodesKeepTheTransaction() {
+		active("fynn");
+		TestSession session = session(login("fynn@example.org", PASSWORD));
+		String secret = enroll(session, "Phone");
+		this.clock.advance(Duration.ofSeconds(30));
+		String transaction = body(login("fynn@example.org", PASSWORD)).path("loginTransaction").asString();
+		for (int i = 0; i < 4; i++) {
+			assertThat(loginTotp(transaction, wrongCode(secret))).hasStatus(HttpStatus.UNAUTHORIZED);
+		}
+		assertThat(loginTotp(transaction, code(secret))).as("still valid after four wrong codes")
+			.hasStatus(HttpStatus.CREATED);
+	}
+
+	@Test
 	void anInvitedPersonIsActivatedOnlyAfterTheTotpStep() {
 		long emil = active("emil");
 		TestSession session = session(login("emil@example.org", PASSWORD));

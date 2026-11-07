@@ -236,6 +236,25 @@ class CatalogQueryTests {
 	}
 
 	@Test
+	void pageSizeAtItsLimits() {
+		UUID type = metatype("2026-01-01");
+		for (int i = 1; i <= 201; i++) {
+			entity(type, "Application %03d".formatted(i), null);
+		}
+		String catalog = catalog(type, "instance", this.architect);
+		JsonNode smallest = ok(query(catalog, "pageSize=1", this.architect));
+		assertThat(names(smallest)).containsExactly("Application 001");
+		assertThat(smallest.path("page").path("totalPages").asInt()).isEqualTo(201);
+		JsonNode largest = ok(query(catalog, "pageSize=200", this.architect));
+		assertThat(largest.path("rows").size()).isEqualTo(200);
+		assertThat(largest.path("page").path("totalPages").asInt()).isEqualTo(2);
+		assertInvalid(query(catalog, "pageSize=0", this.architect), "pageSize");
+		assertInvalid(query(catalog, "pageSize=201", this.architect), "pageSize");
+		assertThat(ok(query(catalog, "page=0", this.architect)).path("rows").size()).isEqualTo(50);
+		assertInvalid(query(catalog, "page=-1", this.architect), "page");
+	}
+
+	@Test
 	void invalidPagingParameters() {
 		String catalog = catalog(metatype("2026-01-01"), "instance", this.architect);
 		assertInvalid(query(catalog, "pageSize=201", this.architect), "pageSize");

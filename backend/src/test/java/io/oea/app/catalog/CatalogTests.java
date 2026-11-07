@@ -165,15 +165,18 @@ class CatalogTests {
 	}
 
 	@Test
-	void nameTooLong() {
-		assertInvalid(create(catalog("n".repeat(256), "instance"), this.architect), "name");
+	void nameAndDescriptionAtTheirLimits() {
+		assertThat(create(catalog(ofLength(255), "instance").put("description", "d".repeat(1000)), this.architect))
+			.hasStatus(HttpStatus.CREATED);
+		assertThat(create(catalog(" Q ", "instance"), this.architect)).hasStatus(HttpStatus.CREATED);
+		assertInvalid(create(catalog(ofLength(256), "instance"), this.architect), "name");
+		assertInvalid(create(catalog(unique("Long Description"), "instance").put("description", "d".repeat(1001)),
+				this.architect), "description");
 	}
 
 	@Test
 	void otherInvalidFields() {
 		assertInvalid(create(catalog("   ", "instance"), this.architect), "name");
-		assertInvalid(create(catalog(unique("Long Description"), "instance").put("description", "d".repeat(1001)),
-				this.architect), "description");
 		assertInvalid(create(catalog(unique("Team Scope"), "team"), this.architect), "scope");
 		assertInvalid(create(catalog(unique("Column Mode"), "instance").put("defaultJoinMode", "columns"),
 				this.architect), "defaultJoinMode");
@@ -313,6 +316,11 @@ class CatalogTests {
 	private int count(String sql) {
 		Integer count = this.jdbc.queryForObject(sql, Integer.class);
 		return (count != null) ? count : 0;
+	}
+
+	/** A unique name of exactly the given length (at least 8). */
+	private static String ofLength(int length) {
+		return UUID.randomUUID().toString().substring(0, 8) + "n".repeat(length - 8);
 	}
 
 	private static String unique(String name) {

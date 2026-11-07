@@ -82,6 +82,20 @@ describe('CreateCatalogForm', () => {
     expect(wrapper.text()).toContain('Enter a name with 1 to 255 characters.')
   })
 
+  it('accepts a name of 255 and a description of 1000 characters and refuses one more', async () => {
+    const { wrapper, recorded } = await mountForm(true, { status: 201, body: CATALOG })
+    const posts = () => recorded.filter((request) => request.init?.method === 'POST')
+    const description = wrapper.get('[data-testid="catalog-description"] textarea, textarea[data-testid="catalog-description"]')
+    await description.setValue('d'.repeat(1001))
+    await submit(wrapper, 'n'.repeat(256))
+    expect(posts()).toHaveLength(0)
+    expect(wrapper.text()).toContain('Enter a name with 1 to 255 characters.')
+    await description.setValue('d'.repeat(1000))
+    await submit(wrapper, 'n'.repeat(255))
+    expect(posts()).toHaveLength(1)
+    expect(JSON.parse(posts()[0]!.init!.body as string)).toMatchObject({ name: 'n'.repeat(255), description: 'd'.repeat(1000) })
+  })
+
   it('maps other rejected fields to their messages', async () => {
     const { wrapper } = await mountForm(true, {
       status: 422,

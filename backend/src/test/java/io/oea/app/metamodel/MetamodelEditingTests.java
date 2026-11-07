@@ -116,6 +116,26 @@ class MetamodelEditingTests {
 	}
 
 	@Test
+	void namesAtTheirLimits() {
+		created(call(HttpMethod.POST, "/metamodel/metatypes",
+				metatype(ofLength(100), null).put("abbreviation", "a".repeat(10)), this.admin));
+		assertInvalid(createMetatype(ofLength(101), null), "name");
+		assertInvalid(call(HttpMethod.POST, "/metamodel/metatypes",
+				metatype(unique("Abbreviated"), null).put("abbreviation", "a".repeat(11)), this.admin), "abbreviation");
+		UUID levels = id(created(createProperty(ofLength(100), "enum")));
+		assertInvalid(createProperty(ofLength(101), "string"), "name");
+		String values = "/metamodel/property-definitions/" + levels + "/enum-values";
+		created(call(HttpMethod.POST, values, JsonMapper.shared().createObjectNode().put("value", "v".repeat(100)),
+				this.admin));
+		assertInvalid(call(HttpMethod.POST, values, JsonMapper.shared().createObjectNode().put("value", "w".repeat(101)),
+				this.admin), "value");
+		created(call(HttpMethod.POST, "/metamodel/property-categories",
+				JsonMapper.shared().createObjectNode().put("name", ofLength(100)), this.admin));
+		assertInvalid(call(HttpMethod.POST, "/metamodel/property-categories",
+				JsonMapper.shared().createObjectNode().put("name", ofLength(101)), this.admin), "name");
+	}
+
+	@Test
 	void nameOfAnImportedMetatype() {
 		MvcTestResult result = createMetatype("application component", null);
 		assertThat(result).hasStatus(HttpStatus.CONFLICT);
@@ -792,6 +812,17 @@ class MetamodelEditingTests {
 
 	private static String type(MvcTestResult result) {
 		return body(result).path("type").asString();
+	}
+
+	/** A unique name of exactly the given length (at least 13). */
+	private static String ofLength(int length) {
+		String prefix = "test " + UUID.randomUUID().toString().substring(0, 8);
+		return prefix + "n".repeat(length - prefix.length());
+	}
+
+	private static void assertInvalid(MvcTestResult result, String field) {
+		assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+		assertThat(body(result).path("invalidFields").toString()).contains("\"" + field + "\"");
 	}
 
 	private static String unique(String name) {

@@ -54,6 +54,22 @@ describe('ChangePasswordPage', () => {
     expect(recorded).toHaveLength(0)
   })
 
+  it('sends a new password of 12 and of 128 characters but not of 11 or 129', async () => {
+    const recorded: RecordedRequest[] = []
+    const changes = () => recorded.filter((request) => request.path === '/api/v1/me/password')
+    const fetchFn = routedFetch({ '/api/v1/me/password': problem(403, 'invalid-credentials') }, recorded)
+    const { wrapper } = await mountPage(fetchFn)
+    for (const length of [11, 129]) {
+      await fill(wrapper, 'initial-password-123', 'p'.repeat(length))
+      expect(wrapper.get('[data-testid="password-failure"]').text()).toContain('12 to 128')
+    }
+    expect(changes()).toHaveLength(0)
+    for (const length of [12, 128]) {
+      await fill(wrapper, 'initial-password-123', 'p'.repeat(length))
+    }
+    expect(changes().map((request) => JSON.parse(request.init!.body as string).newPassword.length)).toEqual([12, 128])
+  })
+
   it('shows a wrong current password', async () => {
     const { wrapper } = await mountPage(routedFetch({ '/api/v1/me/password': problem(403, 'invalid-credentials') }))
     await fill(wrapper, 'wrong-password-000', 'chosen-password-456')

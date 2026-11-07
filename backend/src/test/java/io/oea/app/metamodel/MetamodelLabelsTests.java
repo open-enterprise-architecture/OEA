@@ -195,6 +195,7 @@ class MetamodelLabelsTests {
 		assertThat(body(result).path("invalidFields").toString()).contains(unknown).contains("metatype.ac.name");
 		assertThat(count("SELECT count(*) FROM i18n_entries WHERE scope = 'organization'")).isZero();
 		assertThat(setLabels("de", labels(COMPONENT, "x".repeat(201)))).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+		assertThat(setLabels("de", labels(COMPONENT, "x".repeat(200)))).hasStatus(HttpStatus.OK);
 		assertThat(setLabels("xx", labels(COMPONENT, "Applikation"))).hasStatus(HttpStatus.BAD_REQUEST);
 	}
 

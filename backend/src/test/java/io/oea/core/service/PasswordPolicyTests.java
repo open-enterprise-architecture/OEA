@@ -14,6 +14,7 @@ class PasswordPolicyTests {
 		assertThat(PasswordPolicy.DEFAULT.violations("abcdefghijkl")).isEmpty();
 		assertThat(PasswordPolicy.DEFAULT.violations("abcdefghijk")).containsExactly("minLength");
 		assertThat(PasswordPolicy.DEFAULT.violations("a".repeat(129))).containsExactly("maxLength");
+		assertThat(PasswordPolicy.DEFAULT.violations("a".repeat(128))).isEmpty();
 		assertThat(PasswordPolicy.DEFAULT.violations(null)).containsExactly("minLength");
 	}
 
@@ -23,6 +24,12 @@ class PasswordPolicyTests {
 				"requireSpecialChars");
 		assertThat(ALL.violations("Abcdefghijklmn1!")).isEmpty();
 		assertThat(ALL.violations("ABCDEFGHIJKLMN1!")).containsExactly("requireLowercase");
+	}
+
+	@Test
+	void aConfiguredMinimumLengthAboveTheFloor() {
+		assertThat(ALL.violations("Abcdefghijklmn1!")).as("16 characters").isEmpty();
+		assertThat(ALL.violations("Abcdefghijklm1!")).as("15 characters").containsExactly("minLength");
 	}
 
 	@Test
