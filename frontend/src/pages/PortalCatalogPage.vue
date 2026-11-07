@@ -3,8 +3,9 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter, type LocationQuery } from 'vue-router'
 import type { CatalogQueryResult, CatalogSort } from '../api/catalogs'
+import { PageCursors, rejectsCursor } from '../api/cursors'
 import { fetchPortalCatalogs, queryPortalCatalog } from '../api/portal'
-import { rateLimitMessage, RequestRejected } from '../api/problem'
+import { queryTimeoutMessage, rateLimitMessage, RequestRejected } from '../api/problem'
 import CatalogTable from '../components/CatalogTable.vue'
 import { label, labelKeys } from '../i18n/labels'
 import { refreshSession } from '../session/store'
@@ -26,6 +27,8 @@ const querying = ref(false)
 // the path the page is shown at; query changes while navigating elsewhere are ignored
 const path = route.path
 let latestQuery = 0
+
+const cursors = new PageCursors()
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 const SORT = new RegExp(`^((?:${UUID}\\.|source\\.|target\\.)?[a-zA-Z][a-zA-Z0-9_]*):(asc|desc)$`)
@@ -92,11 +95,18 @@ async function loadRows() {
   const current = ++latestQuery
   querying.value = true
   try {
-    const outcome = await queryPortalCatalog(props.id, { page: page > 0 ? page : undefined, sort }, props.fetchFn)
+    const key = JSON.stringify({ sort })
+    const cursor = cursors.cursorFor(key, page)
+    let outcome = await queryPortalCatalog(props.id, { page: page > 0 ? page : undefined, sort, cursor }, props.fetchFn)
+    if (cursor && !outcome.ok && rejectsCursor(outcome.rejection) && current === latestQuery) {
+      // the cursor is no longer valid, e.g. after a restart of the backend: the page number applies
+      outcome = await queryPortalCatalog(props.id, { page, sort }, props.fetchFn)
+    }
     if (current !== latestQuery) {
       return
     }
     if (outcome.ok) {
+      cursors.remember(key, outcome.value)
       const meta = outcome.value.page
       if (meta.page > 0 && outcome.value.rows.length === 0 && meta.totalElements > 0) {
         await reset(sort, 0)
@@ -110,7 +120,7 @@ async function loadRows() {
     } else if (outcome.rejection.status === 404) {
       state.value = 'not-found'
     } else {
-      failure.value = rateLimitMessage(outcome.rejection)
+      failure.value = rateLimitMessage(outcome.rejection) ?? queryTimeoutMessage(outcome.rejection)
       state.value = 'failed'
     }
   } catch {
@@ -127,6 +137,7 @@ async function load() {
   state.value = 'loading'
   result.value = undefined
   failure.value = undefined
+  cursors.forget()
   try {
     // the name and type come from the list of shared catalogs; the query has no catalog header
     const summary = (await fetchPortalCatalogs(props.fetchFn)).find((catalog) => catalog.id === props.id)

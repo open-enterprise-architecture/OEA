@@ -259,6 +259,15 @@ components:
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
+    QueryTimeout:
+      description: |
+        The query took longer than the configured time limit (`oea.catalog.query-timeout`,
+        10 seconds by default) and was cancelled (problem type `urn:oea:problem:query-timeout`,
+        REQ-186, REQ-071). Nothing was changed; narrowing the filters or the joins makes the
+        query cheaper.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
     PayloadTooLarge:
       description: |
         Request body larger than the configured limit (problem type
@@ -324,6 +333,17 @@ components:
       in: query
       schema: { type: string, example: "name:asc" }
       description: "`{field}:{asc|desc}`, multiple comma-separated"
+    CursorParam:
+      name: cursor
+      in: query
+      description: |
+        The `nextCursor` of the previous page, sent together with `page` set to that page's
+        number + 1 (REQ-071). The page then starts after the last row of the previous one
+        instead of skipping rows. The cursor is valid only for the same query (catalog,
+        columns or view, sort, join modes, filters, page size) and only until the backend
+        restarts or the catalog changes; otherwise the query is answered with 400 `cursor`
+        and the client repeats it without the cursor.
+      schema: { type: string, maxLength: 2000 }
     JoinIdParam:
       name: joinId
       in: path
@@ -800,6 +820,12 @@ components:
           description: The available joins with their applied mode, in creation order (US-048, US-050)
           items: { $ref: '#/components/schemas/CatalogQueryJoin' }
         page: { $ref: '#/components/schemas/PageMeta' }
+        nextCursor:
+          type: [string, 'null']
+          description: |
+            Opaque cursor to the following page, to be sent as `cursor` with `page` + 1; `null`
+            on the last page, and when the sort values of the last row are too long for a cursor
+            (then `page` alone leads to the next page) (REQ-071)
         sort:
           oneOf:
             - $ref: '#/components/schemas/CatalogSort'
@@ -4604,6 +4630,15 @@ paths:
         filters and sort may name only these columns and join columns; the view's own filters,
         join modes and sort are not applied, the client passes them. An unknown view or one
         with `available: false` answers 400 `view`.
+
+        Cursor (REQ-071): a page with a following page carries `nextCursor`. A query with
+        `cursor` and `page` returns the rows after the previous page in the same order and with
+        the same total, without skipping rows. A cursor of another query, a changed or
+        unreadable cursor, or a cursor without `page` answers 400 `cursor`.
+
+        Time limit (REQ-186): a query whose statements take longer than the configured limit
+        (10 seconds by default) is cancelled and answered with 503 `query-timeout`; the audit
+        event `catalog.query-timeout` records it.
       tags: [Catalogs]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
@@ -4611,6 +4646,7 @@ paths:
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/PageSizeParam'
         - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/CursorParam'
         - name: joinMode
           in: query
           style: deepObject
@@ -4644,9 +4680,10 @@ paths:
               schema: { $ref: '#/components/schemas/CatalogQueryResult' }
         '400':
           description: |
-            Invalid paging, sort, join mode or filter parameters (problem type `urn:oea:problem:validation-failed`),
-            e.g. an unknown sort column, several sort pairs, a page size above 200, an unknown join
-            or a filter on an unknown column; `invalidFields` names the rejected parameters.
+            Invalid paging, sort, join mode, filter or cursor parameters (problem type
+            `urn:oea:problem:validation-failed`), e.g. an unknown sort column, several sort pairs,
+            a page size above 200, an unknown join, a filter on an unknown column or a cursor of
+            another query; `invalidFields` names the rejected parameters.
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/CatalogQueryProblem' }
@@ -4658,6 +4695,7 @@ paths:
   # ║  VIEW – EXPLORER (SCR-010/011)                                         ║
   # ╚═════════════════════════════════════════════════════════════════════════╝
         '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/QueryTimeout' }
   /views/explorer:
     get:
       operationId: getExplorerView
@@ -8576,9 +8614,9 @@ paths:
         columns, default sort and default join mode. The result equals that of the catalog
         query (`queryCatalog`) without filters, join mode overrides or view, including its
         visibility rules: only properties with visibility `public` appear (REQ-124, REQ-160)
-        and soft-deleted entities are not returned. `page`, `pageSize` and `sort` behave as in
-        the catalog query. A personal catalog is answered with 404, like a catalog that does
-        not exist, also for its creator.
+        and soft-deleted entities are not returned. `page`, `pageSize`, `sort`, `cursor` and
+        the query time limit (503 `query-timeout`) behave as in the catalog query. A personal
+        catalog is answered with 404, like a catalog that does not exist, also for its creator.
       tags: [Portal]
       x-oea-authorization: {"access": "permission", "permissions": ["portal:read"]}
       parameters:
@@ -8586,6 +8624,7 @@ paths:
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/PageSizeParam'
         - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/CursorParam'
       responses:
         '200':
           description: One page of catalog rows
@@ -8594,9 +8633,9 @@ paths:
               schema: { $ref: '#/components/schemas/CatalogQueryResult' }
         '400':
           description: |
-            Invalid paging or sort parameters (problem type `urn:oea:problem:validation-failed`),
-            e.g. an unknown sort column or a page size above 200; `invalidFields` names the
-            rejected parameters.
+            Invalid paging, sort or cursor parameters (problem type
+            `urn:oea:problem:validation-failed`), e.g. an unknown sort column, a page size above
+            200 or a cursor of another query; `invalidFields` names the rejected parameters.
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/CatalogQueryProblem' }
@@ -8604,6 +8643,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/QueryTimeout' }
 
   /portal/entities/{id}:
     get:

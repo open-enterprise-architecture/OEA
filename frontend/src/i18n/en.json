@@ -1,6 +1,7 @@
 {
   "catalog": {
     "loadFailed": "The catalog could not be loaded.",
+    "queryTimeout": "The query took too long. Narrow the filters or switch joins to compact mode and try again.",
     "nameColumn": "Name",
     "noEntries": "No entries found",
     "noEntriesHint": "No entries found. Entities can be captured as a delta in a solution.",

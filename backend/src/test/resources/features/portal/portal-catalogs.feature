@@ -38,6 +38,14 @@ Feature: Shared catalogs in the portal
     When the portal reader queries the portal catalog "Portal Paged Inventory" with page size 10 and sort "name:desc"
     Then the portal result has 10 rows sorted by name descending
 
+  @REQ-071
+  Scenario: Next page through the cursor
+    Given 15 applications with the prefix "Portal Cursor" exist
+    And the enterprise architect has created the catalog "Portal Cursor Inventory" with scope "instance"
+    When the portal reader queries the portal catalog "Portal Cursor Inventory" with page size 10 and sort "name:asc"
+    And the portal reader queries the next page of the portal catalog "Portal Cursor Inventory" through the cursor
+    Then the portal rows are the same as with the page alone
+
   Scenario: Personal catalog
     Given the enterprise architect has created the catalog "Portal Private" with scope "personal"
     When the portal reader queries the portal catalog "Portal Private"

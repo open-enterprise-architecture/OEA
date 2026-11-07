@@ -32,5 +32,6 @@ The portal shows only properties with the visibility *public*, like every catalo
 
 - `GET /portal/catalogs` lists the shared catalogs, ordered by name.
 - `GET /portal/catalogs/{id}/query` returns one page of a shared catalog with `page`, `pageSize` (at most 200) and `sort` (`{column}:{asc|desc}`), the same result as `GET /catalogs/{id}/query` without filters, join mode overrides or views.
+- The next page can be read with `cursor` (the `nextCursor` of the previous page) and `page` + 1, and a query above the time limit answers 503 `query-timeout`, as in the catalog query (see [Catalogs](./catalogs#browse)). A cursor of the catalog query is not valid in the portal.
 
 Both need `portal:read`. A personal catalog answers 404, an invalid parameter 400 with the parameter in `invalidFields`.

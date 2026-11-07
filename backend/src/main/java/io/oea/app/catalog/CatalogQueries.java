@@ -2,23 +2,34 @@ package io.oea.app.catalog;
 
 import io.oea.app.catalog.CatalogColumns.Resolved;
 import io.oea.app.security.OeaPrincipal;
+import io.oea.app.security.Sessions;
+import io.oea.audit.AuditEvent;
+import io.oea.audit.AuditWriter;
 import io.oea.core.catalog.CatalogQueryStore;
 import io.oea.core.catalog.CatalogQueryStore.Condition;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * The live query of a catalog (US-049, REQ-046; design D1, D2 and D4 of us-049-show-catalog-data):
  * resolves the columns, checks the paging and sort parameters and reads one page. The catalog is
  * read through {@link Catalogs#get}, so a foreign personal catalog is answered as not existing.
+ * Every query runs in a read-only transaction with the time limit {@code oea.catalog.query-timeout},
+ * is measured as {@code oea.catalog.query} and leads to the next page through a cursor (design
+ * D2–D5 of s9-catalog-query-performance).
  */
 @Service
 public class CatalogQueries {
@@ -38,10 +49,47 @@ public class CatalogQueries {
 
 	private final CatalogColumns columns;
 
-	CatalogQueries(Catalogs catalogs, CatalogQueryStore store, CatalogColumns columns) {
+	private final CatalogCursors cursors;
+
+	private final CatalogQueryMetrics metrics;
+
+	private final AuditWriter audit;
+
+	private final TransactionTemplate transactions;
+
+	private final long timeoutMillis;
+
+	CatalogQueries(Catalogs catalogs, CatalogQueryStore store, CatalogColumns columns, CatalogCursors cursors,
+			CatalogQueryMetrics metrics, AuditWriter audit, PlatformTransactionManager transactionManager,
+			CatalogQueryProperties properties) {
 		this.catalogs = catalogs;
 		this.store = store;
 		this.columns = columns;
+		this.cursors = cursors;
+		this.metrics = metrics;
+		this.audit = audit;
+		this.transactions = new TransactionTemplate(transactionManager);
+		this.transactions.setReadOnly(true);
+		this.timeoutMillis = properties.queryTimeout().toMillis();
+	}
+
+	/** The channel of a query, a tag of the metric and part of the cursor's fingerprint. */
+	public enum Channel {
+
+		CATALOG, PORTAL;
+
+		String tag() {
+			return name().toLowerCase(Locale.ROOT);
+		}
+
+	}
+
+	/**
+	 * The parameters of a query: paging, sort, join modes, filters, view and the cursor of the
+	 * previous page, each {@code null} or empty when not given.
+	 */
+	public record Request(int page, int pageSize, String sort, Map<String, String> joinModes, List<String> filters,
+			String filterMode, UUID view, String cursor) {
 	}
 
 	/**
@@ -71,9 +119,12 @@ public class CatalogQueries {
 	public record Sort(String column, boolean descending) {
 	}
 
-	/** One page of the catalog; {@code sort} is {@code null} for the default order. */
+	/**
+	 * One page of the catalog; {@code sort} is {@code null} for the default order, and
+	 * {@code nextCursor} leads to the following page, {@code null} on the last one.
+	 */
 	public record Result(List<Column> columns, List<QueryJoin> joins, List<Row> rows, int page, int pageSize,
-			long totalElements, int totalPages, Sort sort) {
+			long totalElements, int totalPages, Sort sort, String nextCursor) {
 	}
 
 	/** An available join with its store definition, its result, its columns and whether it expands rows. */
@@ -93,7 +144,6 @@ public class CatalogQueries {
 	}
 
 	/** One page of the catalog without filters. */
-	@Transactional(readOnly = true)
 	public Result query(OeaPrincipal principal, UUID catalogId, int page, int pageSize, String sort,
 			Map<String, String> joinModes) {
 		return query(principal, catalogId, page, pageSize, sort, joinModes, List.of(), null, null);
@@ -108,7 +158,6 @@ public class CatalogQueries {
 	 * of the result, combined by {@code filterMode} {@code and} (default) or {@code or} (design D2,
 	 * D3 of us-051-catalog-filters).
 	 */
-	@Transactional(readOnly = true)
 	public Result query(OeaPrincipal principal, UUID catalogId, int page, int pageSize, String sort,
 			Map<String, String> joinModes, List<String> filters, String filterMode) {
 		return query(principal, catalogId, page, pageSize, sort, joinModes, filters, filterMode, null);
@@ -119,9 +168,66 @@ public class CatalogQueries {
 	 * in its order, and filters and sort resolve against them (design D4 of us-053-saved-views).
 	 * An unknown or unavailable view adds {@code view} to the invalid parameters.
 	 */
-	@Transactional(readOnly = true)
 	public Result query(OeaPrincipal principal, UUID catalogId, int page, int pageSize, String sort,
 			Map<String, String> joinModes, List<String> filters, String filterMode, UUID view) {
+		return query(principal, catalogId,
+				new Request(page, pageSize, sort, joinModes, filters, filterMode, view, null), Channel.CATALOG);
+	}
+
+	/**
+	 * One page of the catalog as above, through the channel. With {@code cursor}, the page starts
+	 * after the last row of the previous page (design D2, D3 of s9-catalog-query-performance); a
+	 * cursor of another query, of another page or one that does not parse adds {@code cursor} to
+	 * the invalid parameters. A query above the time limit is cancelled, audited and answered with
+	 * {@link CatalogQueryTimeoutException} (design D4). The time is recorded as
+	 * {@code oea.catalog.query} with the outcome {@code success}, {@code rejected} (invalid
+	 * parameters or a catalog that is not visible) or {@code timeout} (design D5).
+	 */
+	public Result query(OeaPrincipal principal, UUID catalogId, Request request, Channel channel) {
+		long started = this.metrics.start();
+		try {
+			Result result = this.transactions.execute((status) -> {
+				this.store.limitStatements(this.timeoutMillis);
+				return read(principal, catalogId, request, channel);
+			});
+			this.metrics.record(started, channel, "success");
+			return result;
+		}
+		catch (InvalidCatalogQueryException | NoSuchElementException ex) {
+			this.metrics.record(started, channel, "rejected");
+			throw ex;
+		}
+		catch (DataAccessException ex) {
+			if (!cancelled(ex)) {
+				throw ex;
+			}
+			this.metrics.record(started, channel, "timeout");
+			this.audit.appendIndependently(new AuditEvent("catalog.query-timeout", AuditEvent.Category.SECURITY,
+					AuditEvent.Severity.WARNING, AuditEvent.Outcome.FAILURE, AuditEvent.Source.API,
+					Sessions.actor(principal), "catalog", catalogId.toString(),
+					Map.of("channel", channel.tag(), "limitMillis", this.timeoutMillis)));
+			throw new CatalogQueryTimeoutException(ex);
+		}
+	}
+
+	/** Whether the database cancelled a statement ({@code 57014 query_canceled}), e.g. by its time limit. */
+	static boolean cancelled(Throwable ex) {
+		for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+			if (cause instanceof SQLException sql && "57014".equals(sql.getSQLState())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private Result read(OeaPrincipal principal, UUID catalogId, Request request, Channel channel) {
+		int page = request.page();
+		int pageSize = request.pageSize();
+		String sort = request.sort();
+		Map<String, String> joinModes = request.joinModes();
+		List<String> filters = request.filters();
+		String filterMode = request.filterMode();
+		UUID view = request.view();
 		Catalogs.Catalog catalog = this.catalogs.get(principal, catalogId);
 		List<String> invalid = new ArrayList<>();
 		if (page < 0) {
@@ -204,10 +310,23 @@ public class CatalogQueries {
 					.map(ResolvedJoin::store)
 					.toList(),
 				or);
+		List<CatalogQueryStore.QueryColumn> queryColumns = resolved.stream().map(Resolved::column).toList();
+		String fingerprint = fingerprint(catalog, channel, resolved, view, applied, joins, filters, or, pageSize);
+		List<Object> after = null;
+		if (request.cursor() != null && !request.cursor().isEmpty()) {
+			after = this.cursors
+				.decode(request.cursor(), fingerprint, page,
+						this.store.keyTypes(queryColumns, storeRowsJoins, storeSort))
+				.orElseThrow(() -> new InvalidCatalogQueryException(List.of("cursor")));
+		}
 		long total = this.store.count(catalog.primaryMetatypeId(), storeRowsJoins, filter);
-		List<CatalogQueryStore.Row> page0 = this.store.page(catalog.primaryMetatypeId(),
-				resolved.stream().map(Resolved::column).toList(), storeRowsJoins, filter, storeSort,
-				(long) page * pageSize, pageSize);
+		List<CatalogQueryStore.Row> page0 = this.store.page(catalog.primaryMetatypeId(), queryColumns, storeRowsJoins,
+				filter, storeSort, (long) page * pageSize, pageSize, after);
+		String nextCursor = (!page0.isEmpty() && (long) (page + 1) * pageSize < total)
+				? this.cursors.encode(fingerprint, page + 1, page0.get(page0.size() - 1).keys()) : null;
+		if (nextCursor != null && nextCursor.length() > CatalogCursors.MAX_LENGTH) {
+			nextCursor = null; // sort values too long for a cursor, e.g. long descriptions: page applies
+		}
 		List<Integer> ids = page0.stream().map(CatalogQueryStore.Row::entityId).distinct().toList();
 		Map<UUID, Map<Integer, List<CatalogQueryStore.JoinRow>>> aggregated = new LinkedHashMap<>();
 		for (ResolvedJoin join : joins) {
@@ -243,7 +362,31 @@ public class CatalogQueries {
 		}).toList();
 		return new Result(resolved.stream().map(Resolved::result).toList(),
 				joins.stream().map(ResolvedJoin::result).toList(), rows, page, pageSize, total,
-				Math.toIntExact((total + pageSize - 1) / pageSize), applied);
+				Math.toIntExact((total + pageSize - 1) / pageSize), applied, nextCursor);
+	}
+
+	/**
+	 * The fingerprint of a query (design D3 of s9-catalog-query-performance): catalog and its last
+	 * change, channel, the resolved columns in order, view, sort, join modes, filters and filter
+	 * mode, and page size. The filters count without their order, which does not change the result.
+	 */
+	private static String fingerprint(Catalogs.Catalog catalog, Channel channel, List<Resolved> columns, UUID view,
+			Sort sort, List<ResolvedJoin> joins, List<String> filters, boolean or, int pageSize) {
+		List<String> parts = new ArrayList<>();
+		parts.add(catalog.id().toString());
+		parts.add(String.valueOf(catalog.lastModifiedAt()));
+		parts.add(channel.tag());
+		parts.add(String.join(",", columns.stream().map((column) -> column.result().key()).toList()));
+		parts.add(String.valueOf(view));
+		parts.add((sort != null) ? sort.column() + ":" + (sort.descending() ? "desc" : "asc") : "default");
+		parts.add(String.join(",", joins.stream().map((join) -> join.join().id() + "=" + join.result().mode()).toList()));
+		List<String> sorted = new ArrayList<>((filters != null) ? filters : List.of());
+		Collections.sort(sorted);
+		parts.add(String.valueOf(sorted.size()));
+		parts.addAll(sorted);
+		parts.add(or ? "or" : "and");
+		parts.add(String.valueOf(pageSize));
+		return CatalogCursors.fingerprint(parts);
 	}
 
 	/**

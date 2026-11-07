@@ -32,5 +32,6 @@ Das Portal zeigt wie jeder Katalog nur Eigenschaften mit der Sichtbarkeit *publi
 
 - `GET /portal/catalogs` listet die geteilten Kataloge nach Name.
 - `GET /portal/catalogs/{id}/query` liefert eine Seite eines geteilten Katalogs mit `page`, `pageSize` (höchstens 200) und `sort` (`{column}:{asc|desc}`), dasselbe Ergebnis wie `GET /catalogs/{id}/query` ohne Filter, abweichende Join-Modi oder Ansichten.
+- Die nächste Seite lässt sich mit `cursor` (dem `nextCursor` der vorherigen Seite) und `page` + 1 lesen, und eine Abfrage über der Zeitgrenze antwortet mit 503 `query-timeout`, wie bei der Katalogabfrage (siehe [Kataloge](./catalogs#browse)). Ein Cursor der Katalogabfrage gilt im Portal nicht.
 
 Beide brauchen `portal:read`. Ein persönlicher Katalog antwortet mit 404, ein ungültiger Parameter mit 400 und dem Parameter in `invalidFields`.

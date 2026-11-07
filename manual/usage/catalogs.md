@@ -30,7 +30,7 @@ The sidebar arranges catalogs in folders; *Place in navigation* on a catalog add
 
 If the name is already taken, the dialog says so; choose another name. Without the permission to manage catalogs, *Shared* is not selectable.
 
-## Browse a catalog
+## Browse a catalog {#browse}
 
 The list *Catalogs* shows every catalog you may see, marked *Shared* or *Personal*. Open one to see its table:
 
@@ -45,9 +45,14 @@ The list *Catalogs* shows every catalog you may see, marked *Shared* or *Persona
 - The table shows 50 entries per page; use the pagination below the table to move between pages.
 - Sort and page are part of the address of the page. Back navigation, a reload or a shared link restore the same view; invalid values in the address are ignored and the first page is shown in the default order.
 - If the entity type has no entities yet, the table shows *No entries found*.
+- A query that takes longer than the time limit of your installation (10 seconds by default) is cancelled, and the table shows *The query took too long*. Narrow the filters or switch joins to compact mode and try again.
 - Another person's personal catalog cannot be opened; it behaves like a catalog that does not exist (*Catalog not found*).
 
 Through the API, `GET /catalogs/{id}/query` returns the same rows with the parameters `page` (from 0), `pageSize` (1–200, default 50) and `sort` (`{field}:{asc|desc}`).
+
+- A page with a following page carries `nextCursor`. Send it as `cursor` together with `page` + 1 to read the next page faster; the rows and the total are the same as with `page` alone.
+- A cursor is valid only for the same query (columns or view, sort, join modes, filters, page size) and until the catalog changes or the backend restarts. Otherwise the query answers 400 with `cursor` in `invalidFields`; repeat it without the cursor.
+- A query above the time limit answers 503 with the problem type `urn:oea:problem:query-timeout` (*Query took too long*).
 
 ## Filters {#filters}
 

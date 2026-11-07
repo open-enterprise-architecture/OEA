@@ -62,6 +62,8 @@ As a catalog visitor, I want to see the entities of a catalog as a sortable tabl
 
 - Affected components: catalog detail view (table component), backend `GET /api/v1/catalogs/{id}/query`
 - Sorting and paging: `sort={column}:{asc|desc}`, `page` (0-based) and `pageSize` as query parameters of the API (REQ-046); the catalog page keeps `sort` and `page` in its URL (ADR-044), clicking a header sets/changes them
+- Paging forward (AC5, change s9-catalog-query-performance, #66): moving to the next page sends the `nextCursor` of the current page with `page`; jumps, reloads and links use `page` only, and a rejected cursor repeats the query without it. The URL holds only `page`. A query above the time limit shows "The query took too long"
+
 - Join columns in aggregate mode: comma-separated list of the first N values; tooltip or popover for the full list if > N values
 - Dependency: US-046 must be completed; US-047 should be completed (otherwise no columns configured)
 

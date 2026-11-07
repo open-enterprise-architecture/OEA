@@ -2,6 +2,9 @@ package io.oea.app.portal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+
 import io.oea.app.security.Sessions;
 import io.oea.config.security.CsrfOriginFilter;
 import io.oea.config.security.SessionCookie;
@@ -13,6 +16,8 @@ import io.oea.testsupport.containers.OeaDatabases;
 import io.oea.testsupport.containers.OeaPostgres;
 import io.oea.testsupport.containers.OeaTestKeys;
 import jakarta.servlet.http.Cookie;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -73,6 +78,9 @@ class PortalCatalogsTests {
 
 	@Autowired
 	private SystemAdminAccountRepository accounts;
+
+	@Autowired
+	private MeterRegistry meters;
 
 	private TestPrincipals principals;
 
@@ -181,6 +189,47 @@ class PortalCatalogsTests {
 			.containsExactly("App 01", "App 00");
 	}
 
+	// Scenario: Next page through the cursor (s9-catalog-query-performance)
+
+	@Test
+	void nextPageThroughTheCursor() {
+		for (int i = 1; i <= 25; i++) {
+			entity("Application %02d".formatted(i), (i % 2 == 0) ? "active" : null);
+		}
+		String inventory = catalog("Application Inventory " + suffix(), "instance");
+		String query = PORTAL + "/" + inventory + "/query?pageSize=10&sort=status:desc";
+		JsonNode first = ok(get(query, this.petra));
+		String cursor = first.path("nextCursor").asString();
+		assertThat(cursor).isNotEmpty();
+		JsonNode byCursor = ok(get(query + "&page=1&cursor=" + encode(cursor), this.petra));
+		assertThat(names(byCursor)).hasSize(10).isEqualTo(names(ok(get(query + "&page=1", this.petra))));
+		JsonNode last = ok(get(query + "&page=2&cursor=" + encode(byCursor.path("nextCursor").asString()), this.petra));
+		assertThat(names(last)).hasSize(5).isEqualTo(names(ok(get(query + "&page=2", this.petra))));
+		assertThat(last.path("nextCursor").isNull()).isTrue();
+		// a cursor of the portal is not valid for the catalog query, and the other way round
+		assertInvalid(get("/api/v1/catalogs/" + inventory + "/query?pageSize=10&sort=status:desc&page=1&cursor="
+				+ encode(cursor), this.kurt), "cursor");
+		String catalogCursor = ok(get("/api/v1/catalogs/" + inventory + "/query?pageSize=10&sort=status:desc", this.kurt))
+			.path("nextCursor").asString();
+		assertInvalid(get(query + "&page=1&cursor=" + encode(catalogCursor), this.petra), "cursor");
+		assertInvalid(get(query + "&page=1&cursor=garbage", this.petra), "cursor");
+	}
+
+	// Requirement "Catalog query processing time is measured" (s9-catalog-query-performance)
+
+	@Test
+	void portalQueryMeasuredWithItsChannel() {
+		String inventory = catalog("Application Inventory " + suffix(), "instance");
+		double portal = count("portal", "success");
+		double catalog = count("catalog", "success");
+		double rejected = count("portal", "rejected");
+		ok(get(PORTAL + "/" + inventory + "/query", this.petra));
+		assertThat(count("portal", "success")).isEqualTo(portal + 1);
+		assertThat(count("catalog", "success")).isEqualTo(catalog);
+		assertInvalid(get(PORTAL + "/" + inventory + "/query?sort=unknown:asc", this.petra), "sort");
+		assertThat(count("portal", "rejected")).isEqualTo(rejected + 1);
+	}
+
 	@Test
 	void personalCatalogIsNotFoundAlsoForItsCreator() {
 		String candidates = catalog("Kurt's Candidates " + suffix(), "personal");
@@ -258,6 +307,15 @@ class PortalCatalogsTests {
 
 	private MvcTestResult get(String path, TestSession session) {
 		return this.mvc.get().uri(path).cookie(new Cookie(SessionCookie.NAME, session.token())).exchange();
+	}
+
+	private double count(String channel, String outcome) {
+		Timer timer = this.meters.find("oea.catalog.query").tags("channel", channel, "outcome", outcome).timer();
+		return (timer != null) ? timer.count() : 0;
+	}
+
+	private static String encode(String value) {
+		return URLEncoder.encode(value, StandardCharsets.UTF_8);
 	}
 
 	private static List<String> names(JsonNode result) {

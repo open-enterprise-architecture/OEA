@@ -13,6 +13,7 @@ import io.oea.app.access.PasswordPolicyViolationException;
 import io.oea.app.access.PasswordResets;
 import io.oea.app.access.SelfAdministrationException;
 import io.oea.app.access.SodConflictException;
+import io.oea.app.catalog.CatalogQueryTimeoutException;
 import io.oea.app.catalog.InvalidCatalogException;
 import io.oea.app.navigation.InvalidTreeException;
 import io.oea.app.catalog.InvalidCatalogQueryException;
@@ -359,6 +360,14 @@ public class ApiExceptionHandler {
 	@ExceptionHandler(InvalidCatalogQueryException.class)
 	ResponseEntity<ProblemDetail> invalidCatalogQuery(InvalidCatalogQueryException ex) {
 		return catalogQueryProblem(ex.getInvalidFields());
+	}
+
+	/** A catalog query above its time limit (design D4 of s9-catalog-query-performance). */
+	@ExceptionHandler(CatalogQueryTimeoutException.class)
+	ResponseEntity<ProblemDetail> catalogQueryTimeout(CatalogQueryTimeoutException ex) {
+		return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+			.body(problem(HttpStatus.SERVICE_UNAVAILABLE, "query-timeout", "Query took too long",
+					"The query took longer than its time limit. Narrow the filters or the joins and try again."));
 	}
 
 	@ExceptionHandler(InvalidCatalogException.class)

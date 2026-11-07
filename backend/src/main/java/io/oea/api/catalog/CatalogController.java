@@ -203,11 +203,13 @@ public class CatalogController implements CatalogsApi {
 
 	@Override
 	@ContractViolationResponse(title = "Invalid query",
-			detail = "The paging, sort, join mode or filter parameters are invalid.")
+			detail = "The paging, sort, join mode, filter or cursor parameters are invalid.")
 	public ResponseEntity<CatalogQueryResult> queryCatalog(UUID id, Integer page, Integer pageSize, String sort,
-			Map<String, JoinMode> joinMode, List<String> filter, String filterMode, UUID view) {
-		return ResponseEntity.ok(CatalogQueryMapping.result(this.queries.query(principal(), id, page, pageSize, sort,
-				joinModes(joinMode), (filter != null) ? filter : List.of(), filterMode, view)));
+			String cursor, Map<String, JoinMode> joinMode, List<String> filter, String filterMode, UUID view) {
+		return ResponseEntity.ok(CatalogQueryMapping.result(this.queries.query(principal(), id,
+				new CatalogQueries.Request(page, pageSize, sort, joinModes(joinMode),
+						(filter != null) ? filter : List.of(), filterMode, view, cursor),
+				CatalogQueries.Channel.CATALOG)));
 	}
 
 	/**

@@ -9,7 +9,9 @@ import io.cucumber.java.en.When;
 import io.oea.steps.catalog.CatalogSteps;
 import io.oea.testsupport.repository.RepositoryInstance;
 import io.oea.testsupport.repository.RepositoryInstance.Session;
+import java.net.URLEncoder;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -33,6 +35,10 @@ public class PortalSteps {
 	private static Session withoutRole;
 
 	private HttpResponse<String> response;
+
+	private HttpResponse<String> byPage;
+
+	private String sort;
 
 	@Given("the portal reader and a person without role are logged in through the IdP")
 	public void logIn() throws Exception {
@@ -68,9 +74,30 @@ public class PortalSteps {
 
 	@When("the portal reader queries the portal catalog {string} with page size {int} and sort {string}")
 	public void querySorted(String name, int pageSize, String sort) throws Exception {
+		this.sort = sort;
 		this.response = instance().oidc()
 			.get(PORTAL + "/" + catalogId(name) + "/query?pageSize=" + pageSize + "&sort=" + sort,
 					portalReader.token());
+	}
+
+	@When("the portal reader queries the next page of the portal catalog {string} through the cursor")
+	public void queryNextPage(String name) throws Exception {
+		JsonNode previous = body(200);
+		String parameters = "?page=" + (previous.path("page").path("page").asInt() + 1) + "&pageSize="
+				+ previous.path("page").path("pageSize").asInt() + "&sort=" + this.sort;
+		this.byPage = instance().oidc().get(PORTAL + "/" + catalogId(name) + "/query" + parameters, portalReader.token());
+		this.response = instance().oidc()
+			.get(PORTAL + "/" + catalogId(name) + "/query" + parameters + "&cursor="
+					+ URLEncoder.encode(previous.path("nextCursor").asString(), StandardCharsets.UTF_8),
+					portalReader.token());
+	}
+
+	@Then("the portal rows are the same as with the page alone")
+	public void sameAsByPage() throws Exception {
+		assertThat(this.byPage.statusCode()).isEqualTo(200);
+		JsonNode byCursor = body(200);
+		assertThat(byCursor.path("rows")).isNotEmpty();
+		assertThat(byCursor.path("rows")).isEqualTo(JsonMapper.shared().readTree(this.byPage.body()).path("rows"));
 	}
 
 	@Then("the portal list contains {string} and not {string}")

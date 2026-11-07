@@ -276,7 +276,17 @@ export const SAP_ONLY = {
  */
 export function catalogApi(
   applications: Application[],
-  options: { me?: unknown; catalog?: unknown; recorded?: CatalogRequest[]; throttledFor?: number; metatypes?: unknown[] } = {},
+  options: {
+    me?: unknown
+    catalog?: unknown
+    recorded?: CatalogRequest[]
+    throttledFor?: number
+    metatypes?: unknown[]
+    /** Rejects every cursor with 400 `cursor`, as after a restart of the backend. */
+    rejectCursors?: boolean
+    /** Answers every query with this status: 503 `query-timeout` or another failure. */
+    queryFails?: 503 | 500
+  } = {},
 ): typeof fetch {
   // the catalog is state: saving columns changes what the next query returns (US-047)
   type ColumnConfig = {
@@ -468,8 +478,17 @@ export function catalogApi(
     if (url.pathname !== `/api/v1/catalogs/${catalog.id}/query`) {
       return json({ type: 'urn:oea:problem:not-found', title: 'Not found', status: 404 }, 404)
     }
+    if (options.queryFails === 503) {
+      return json({ type: 'urn:oea:problem:query-timeout', title: 'Query took too long', status: 503 }, 503)
+    }
+    if (options.queryFails === 500) {
+      return json({ type: 'urn:oea:problem:internal-error', title: 'Internal error', status: 500 }, 500)
+    }
     const page = Number(query.page ?? '0')
     const pageSize = Number(query.pageSize ?? '50')
+    if (query.cursor !== undefined && (options.rejectCursors || query.cursor !== `cursor-${page}`)) {
+      return json({ type: 'urn:oea:problem:validation-failed', title: 'Invalid query', status: 400, invalidFields: ['cursor'] }, 400)
+    }
     let columns = resolved()
     // a view shows its columns in its order (US-053)
     if (query.view !== undefined) {
@@ -603,6 +622,7 @@ export function catalogApi(
         ),
       })),
       page: { page, pageSize, totalElements: sorted.length, totalPages: Math.ceil(sorted.length / pageSize) },
+      nextCursor: (page + 1) * pageSize < sorted.length ? `cursor-${page + 1}` : null,
       sort: match ? { column: match[1], direction: match[2] } : null,
     })
   }

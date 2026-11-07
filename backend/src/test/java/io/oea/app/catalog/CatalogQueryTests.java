@@ -2,6 +2,9 @@ package io.oea.app.catalog;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+
 import io.oea.app.security.Sessions;
 import io.oea.config.security.CsrfOriginFilter;
 import io.oea.config.security.SessionCookie;
@@ -73,6 +76,9 @@ class CatalogQueryTests {
 	@Autowired
 	private SystemAdminAccountRepository accounts;
 
+	@Autowired
+	private MeterRegistry meters;
+
 	private TestPrincipals principals;
 
 	private TestSession architect;
@@ -121,6 +127,35 @@ class CatalogQueryTests {
 		assertThat(result.path("rows").size()).isZero();
 		assertThat(result.path("page").path("totalElements").asInt()).isZero();
 		assertThat(result.path("page").path("totalPages").asInt()).isZero();
+	}
+
+	// Requirement "Catalog query processing time is measured" (s9-catalog-query-performance)
+
+	@Test
+	void catalogQueryMeasured() {
+		String catalog = catalog(metatype("2026-01-01"), "instance", this.architect);
+		double success = measured("success");
+		double rejected = measured("rejected");
+		ok(query(catalog, "", this.architect));
+		assertThat(measured("success")).isEqualTo(success + 1);
+		assertThat(measured("rejected")).isEqualTo(rejected);
+		Timer timer = this.meters.find("oea.catalog.query").tags("channel", "catalog", "outcome", "success").timer();
+		assertThat(timer.totalTime(java.util.concurrent.TimeUnit.NANOSECONDS)).isPositive();
+	}
+
+	@Test
+	void rejectedQueryMeasured() {
+		String catalog = catalog(metatype("2026-01-01"), "instance", this.architect);
+		double success = measured("success");
+		double rejected = measured("rejected");
+		assertInvalid(query(catalog, "sort=unknown:asc", this.architect), "sort");
+		assertThat(measured("rejected")).isEqualTo(rejected + 1);
+		assertThat(measured("success")).isEqualTo(success);
+	}
+
+	private double measured(String outcome) {
+		Timer timer = this.meters.find("oea.catalog.query").tags("channel", "catalog", "outcome", outcome).timer();
+		return (timer != null) ? timer.count() : 0;
 	}
 
 	// Requirement: Default columns
