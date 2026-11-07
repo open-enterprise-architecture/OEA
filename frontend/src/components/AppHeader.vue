@@ -13,6 +13,9 @@ const { t } = useI18n()
 // the sidebar with the navigation tree needs entity:read; on narrow screens this button opens it (SCR-055)
 const canSeeTree = computed(() => (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read'))
 
+// the portal needs portal:read, the catalogs entity:read (design D7 of s9-portal-catalogs)
+const canSeePortal = computed(() => (session.me?.permissions ?? []).some((entry) => entry.permission === 'portal:read'))
+
 const canSeeMetamodel = computed(() =>
   (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read' || entry.permission === 'metamodel:write'),
 )
@@ -47,7 +50,8 @@ async function logOut() {
     </div>
     <nav class="flex items-center gap-3">
       <template v-if="session.me">
-        <RouterLink to="/catalogs" data-testid="header-catalogs">{{ t('catalogs.title') }}</RouterLink>
+        <RouterLink v-if="canSeePortal" to="/portal" data-testid="header-portal">{{ t('portal.title') }}</RouterLink>
+        <RouterLink v-if="canSeeTree" to="/catalogs" data-testid="header-catalogs">{{ t('catalogs.title') }}</RouterLink>
         <RouterLink v-if="canSeeMetamodel" to="/metamodel" data-testid="header-metamodel">{{ t('metamodel.title') }}</RouterLink>
         <RouterLink to="/me" data-testid="header-profile">{{ session.me.principal.displayName }}</RouterLink>
         <UButton

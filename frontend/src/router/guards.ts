@@ -19,3 +19,18 @@ export function passwordChangeTarget(path: string, me: Me | undefined): string |
   }
   return true
 }
+
+/** Paths of the work area that a reader without entity:read leaves for the portal (design D7 of s9-portal-catalogs). */
+const WORK_AREA = [/^\/$/, /^\/catalogs(\/[^/]+)?\/?$/]
+
+/**
+ * The portal for a session with portal:read and without entity:read that opens the start page or
+ * the catalogs, or `true` to continue.
+ */
+export function portalTarget(path: string, me: Me | undefined): string | true {
+  const permissions = new Set(me?.permissions.map((entry) => entry.permission) ?? [])
+  if (permissions.has('portal:read') && !permissions.has('entity:read') && WORK_AREA.some((pattern) => pattern.test(path))) {
+    return '/portal'
+  }
+  return true
+}

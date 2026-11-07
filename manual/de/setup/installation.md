@@ -7,7 +7,7 @@ covers:
 
 # Installation
 
-OEA besteht aus einer PostgreSQL-Datenbank, einem einmaligen Migrationsschritt und dem Backend. Die Betreiberdatei `compose.yaml` im Repository startet alle drei mit Docker Compose (oder Podman Compose). Wenn du ein eigenes PostgreSQL betreibst, folge [Eigenes PostgreSQL](#eigenes-postgresql).
+OEA besteht aus einer PostgreSQL-Datenbank, einem einmaligen Migrationsschritt und dem Backend. Das Backend liefert auch das Web-Portal aus, unter derselben Adresse und demselben Port wie die API. Die Betreiberdatei `compose.yaml` im Repository startet alle drei mit Docker Compose (oder Podman Compose). Wenn du ein eigenes PostgreSQL betreibst, folge [Eigenes PostgreSQL](#eigenes-postgresql).
 
 ## Voraussetzungen
 
@@ -50,12 +50,12 @@ OEA besteht aus einer PostgreSQL-Datenbank, einem einmaligen Migrationsschritt u
    curl http://127.0.0.1:8080/api/v1/health
    ```
 
-   Die Antwort enthält nur den Gesamtstatus `UP` oder `DOWN`.
+   Die Antwort enthält nur den Gesamtstatus `UP` oder `DOWN`. Das Web-Portal erreichst du unter `http://127.0.0.1:8080/`.
 
 Weiter geht es mit dem [ersten Administrator](./first-administrator).
 
 ::: warning Öffentlicher Zugriff
-Mach die Instanz nicht aus dem Internet erreichbar, bevor die Setup-Phase beendet ist (siehe [Erster Administrator](./first-administrator)). Stell einen Reverse Proxy mit TLS vor OEA und setze die öffentliche Adresse mit `OEA_WEB_PUBLIC_URL` (`https`), bevor du einen Identity-Provider anbindest.
+Mach die Instanz nicht aus dem Internet erreichbar, bevor die Setup-Phase beendet ist (siehe [Erster Administrator](./first-administrator)). Stell einen Reverse Proxy mit TLS vor OEA: Das Portal braucht `https`, weil das Session-Cookie `Secure` ist und das Backend `Strict-Transport-Security` sendet. Setze die öffentliche Adresse mit `OEA_WEB_PUBLIC_URL` (`https`), bevor du einen Identity-Provider anbindest.
 :::
 
 ## Eigenes PostgreSQL

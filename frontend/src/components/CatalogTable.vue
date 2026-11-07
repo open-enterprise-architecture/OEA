@@ -9,7 +9,8 @@ import type { CatalogColumn, CatalogQueryResult, CatalogRow, CatalogSort, JoinMo
 // columns the query returns; a header click cycles ascending → descending → default order. Every
 // join adds a column group with a "Compact / Rows" switch (US-048, US-050; design D5 of
 // us-048-catalog-joins): compact cells list one value per result, rows cells the single value.
-const props = defineProps<{ result: CatalogQueryResult; loading?: boolean; primaryLabel?: string }>()
+// readOnly: the join headers show the name without the mode switch (portal, s9-portal-catalogs D7)
+const props = defineProps<{ result: CatalogQueryResult; loading?: boolean; primaryLabel?: string; readOnly?: boolean }>()
 const emit = defineEmits<{ sort: [sort: CatalogSort | undefined]; page: [page: number]; mode: [joinId: string, mode: JoinMode] }>()
 const { t } = useI18n()
 
@@ -50,6 +51,9 @@ function header(column: CatalogColumn, key: string) {
 }
 
 function modeSwitch(joinId: string, name: string, mode: JoinMode) {
+  if (props.readOnly) {
+    return () => h('span', { class: 'font-semibold text-highlighted', 'data-testid': `join-header-${joinId}` }, name)
+  }
   const option = (value: JoinMode, text: string) =>
     h(UButton, {
       'data-testid': `join-mode-${value}`,

@@ -2,7 +2,9 @@
 # Spec platform/deployment, scenario "All secrets supplied": starts compose.yaml with
 # random secrets and expects GET /api/v1/health = 200 within 60 seconds. Then bootstraps the
 # instance and runs the break-glass command inside the backend container (spec
-# identity/admin-recovery): the local system admin logs in with the recovered password.
+# identity/admin-recovery): the local system admin logs in with the recovered password. Checks
+# that the backend serves the web portal with its content security policy (spec
+# platform/portal-delivery, "Portal in the operator setup").
 # Requires the image ${OEA_BACKEND_IMAGE:-oea-backend:local}. Usage: scripts/compose_smoke_test.sh
 # OEA_HOST_PROJECT_DIR: repository path as seen by the Docker daemon, if it differs
 # (e.g. inside a Distrobox).
@@ -44,6 +46,17 @@ if [[ "$status" != 200 ]]; then
   exit 1
 fi
 echo "✓ migration step done and GET /api/v1/health = 200 after ${elapsed}s (limit ${limit}s)"
+
+# The web portal from the backend (change s9-portal-catalogs, design D6)
+headers="$(mktemp)"
+portal=$(curl -s -D "$headers" -o /dev/null -w '%{http_code} %{content_type}' "http://127.0.0.1:$port/")
+policy=$(grep -i '^content-security-policy:' "$headers" | tr -d '\r' || true)
+rm -f "$headers"
+if [[ "$portal" != "200 text/html"* || "$policy" != *"default-src 'self'"* ]]; then
+  echo "✗ GET / returned '$portal' with '$policy' (expected the portal's index.html and its policy)"
+  exit 1
+fi
+echo "✓ GET / serves the web portal with its content security policy"
 
 # Break-glass recovery in the built image (change us-019-admin-safeguards, task 5.2)
 api="http://127.0.0.1:$port/api/v1"

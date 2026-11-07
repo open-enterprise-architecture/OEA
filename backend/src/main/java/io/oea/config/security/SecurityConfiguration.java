@@ -3,18 +3,26 @@ package io.oea.config.security;
 import io.oea.app.security.PermissionDenials;
 import io.oea.app.security.PermissionResolver;
 import io.oea.app.security.Sessions;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import org.springframework.security.web.header.writers.ContentSecurityPolicyHeaderWriter;
+import org.springframework.security.web.header.writers.DelegatingRequestMatcherHeaderWriter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -22,11 +30,32 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * L1 authentication (ADR-032 §8, REQ-163): only the public operations of the contract are
- * reachable without a session. Security headers and CORS per REQ-187.
+ * reachable without a session. Security headers and CORS per REQ-187. Outside {@code /api/},
+ * {@code GET} and {@code HEAD} are open: there the backend serves only the files of the web
+ * portal, whose login runs in the portal, with the portal's content security policy (design D3,
+ * D4 of s9-portal-catalogs).
  */
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @Configuration(proxyBeanMethods = false)
 public class SecurityConfiguration implements WebMvcConfigurer {
+
+	/** Content security policy of the API responses. */
+	public static final String API_CONTENT_SECURITY_POLICY = "default-src 'none'; frame-ancestors 'none'";
+
+	/**
+	 * Content security policy of the web portal, shared with the frontend smoke test (D4). Styles
+	 * allow 'unsafe-inline': Nuxt UI writes its color variables as a style element at runtime
+	 * ("nuxt-ui-colors"), which the smoke test reported; scripts stay 'self' only.
+	 */
+	public static final String PORTAL_CONTENT_SECURITY_POLICY = portalPolicy();
+
+	private static final RequestMatcher API = (request) -> api(request);
+
+	private static final RequestMatcher PORTAL = (request) -> !api(request);
+
+	/** Reads of portal files; actuator paths stay closed even though no endpoint is exposed. */
+	private static final RequestMatcher PORTAL_READ = (request) -> !api(request) && !actuator(request)
+			&& ("GET".equals(request.getMethod()) || "HEAD".equals(request.getMethod()));
 
 	private final ContractAuthorizationRules rules;
 
@@ -58,7 +87,10 @@ public class SecurityConfiguration implements WebMvcConfigurer {
 				.contentTypeOptions((options) -> {
 				})
 				.referrerPolicy((referrer) -> referrer.policy(ReferrerPolicy.NO_REFERRER))
-				.contentSecurityPolicy((csp) -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'"))
+				.addHeaderWriter(new DelegatingRequestMatcherHeaderWriter(API,
+						new ContentSecurityPolicyHeaderWriter(API_CONTENT_SECURITY_POLICY)))
+				.addHeaderWriter(new DelegatingRequestMatcherHeaderWriter(PORTAL,
+						new ContentSecurityPolicyHeaderWriter(PORTAL_CONTENT_SECURITY_POLICY)))
 				.frameOptions((frame) -> frame.deny()))
 			.addFilterBefore(new OeaSessionFilter(sessions), AnonymousAuthenticationFilter.class)
 			.addFilterAfter(new CsrfOriginFilter(allowedOrigins), OeaSessionFilter.class)
@@ -71,7 +103,11 @@ public class SecurityConfiguration implements WebMvcConfigurer {
 				for (ContractAuthorizationRules.PublicEndpoint endpoint : this.rules.publicEndpoints()) {
 					authorize.requestMatchers(HttpMethod.valueOf(endpoint.method()), endpoint.pathPattern()).permitAll();
 				}
-				authorize.requestMatchers("/error").permitAll().anyRequest().authenticated();
+				authorize.requestMatchers("/error").permitAll()
+					.requestMatchers(PORTAL_READ)
+					.permitAll()
+					.anyRequest()
+					.authenticated();
 			});
 		return http.build();
 	}
@@ -82,6 +118,26 @@ public class SecurityConfiguration implements WebMvcConfigurer {
 			.addPathPatterns(ContractAuthorizationRules.API_PREFIX + "/**");
 		registry.addInterceptor(new NotImplementedInterceptor())
 			.addPathPatterns(ContractAuthorizationRules.API_PREFIX + "/**");
+	}
+
+	private static boolean api(HttpServletRequest request) {
+		String path = request.getRequestURI().substring(request.getContextPath().length());
+		return path.equals("/api") || path.startsWith("/api/");
+	}
+
+	private static boolean actuator(HttpServletRequest request) {
+		String path = request.getRequestURI().substring(request.getContextPath().length());
+		return path.equals("/actuator") || path.startsWith("/actuator/");
+	}
+
+	private static String portalPolicy() {
+		try {
+			return new ClassPathResource("portal/content-security-policy.txt").getContentAsString(StandardCharsets.UTF_8)
+				.strip();
+		}
+		catch (IOException ex) {
+			throw new UncheckedIOException(ex);
+		}
 	}
 
 	private static UrlBasedCorsConfigurationSource cors(List<String> allowedOrigins) {

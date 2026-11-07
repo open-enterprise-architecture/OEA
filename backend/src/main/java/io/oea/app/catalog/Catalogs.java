@@ -322,6 +322,12 @@ public class Catalogs {
 		return this.store.visibleTo(person(principal)).stream().map(this::catalog).toList();
 	}
 
+	/** The catalogs with scope {@code instance}, ordered by name (portal, s9-portal-catalogs D1). */
+	@Transactional(readOnly = true)
+	public List<Catalog> listShared() {
+		return this.store.shared().stream().map(this::catalog).toList();
+	}
+
 	/** The catalog; not existing and another person's personal catalog are answered alike. */
 	@Transactional(readOnly = true)
 	public Catalog get(OeaPrincipal principal, UUID id) {

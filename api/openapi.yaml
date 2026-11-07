@@ -1245,26 +1245,6 @@ components:
                 id:   { type: integer }
                 name: { type: string }
 
-    CatalogFilterOptions:
-      type: object
-      properties:
-        metatypes:
-          type: array
-          items:
-            allOf:
-              - $ref: '#/components/schemas/MetatypeSummary'
-              - type: object
-                properties:
-                  count: { type: integer }
-        lifecycleValues:
-          type: array
-          items:
-            type: object
-            properties:
-              value: { type: string }
-              label: { type: string }
-              count: { type: integer }
-
     # ── Explorer / navigation tree ────────────────────────────────────────────
     TreeNodeItem:
       type: object
@@ -8486,49 +8466,66 @@ paths:
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  PORTAL (Read-only, SCR-050–054)                                       ║
   # ╚═════════════════════════════════════════════════════════════════════════╝
-  /portal/catalog:
+  /portal/catalogs:
     get:
-      operationId: getPortalCatalogView
-      summary: Portal catalog (SCR-050)
+      operationId: listPortalCatalogs
+      summary: Shared catalogs of the portal (SCR-050)
       description: |
-        Read-only, filterable entity list for portal users (`portal:read`, held by the
-        built-in role `portal-reader` among others); aligned with the catalog query
-        (`/catalogs/{id}/query`) when the web portal is implemented. Properties the caller may
-        not read are redacted according to the property visibility configuration
-        (REQ-124, REQ-160).
+        The catalogs with scope `instance`, ordered by name (case-insensitive). Personal
+        catalogs never appear in the portal, not even the caller's own.
       tags: [Portal]
       x-oea-authorization: {"access": "permission", "permissions": ["portal:read"]}
-      x-oea-status: planned
-      parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/PageSizeParam'
-        - $ref: '#/components/parameters/SortParam'
-        - name: filter[name]
-          in: query
-          schema: { type: string }
-        - name: filter[metatypeId]
-          in: query
-          schema: { type: array, items: { type: string, format: uuid } }
-          style: form
-          explode: false
       responses:
         '200':
-          description: Entity list (reduced properties)
+          description: Shared catalogs
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  items:
-                    type: array
-                    items: { $ref: '#/components/schemas/EntityListItem' }
-                  page:          { $ref: '#/components/schemas/PageMeta' }
-                  filterOptions: { $ref: '#/components/schemas/CatalogFilterOptions' }
+                type: array
+                items: { $ref: '#/components/schemas/CatalogSummary' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
-  /portal/catalog/{id}:
+  /portal/catalogs/{id}/query:
+    get:
+      operationId: queryPortalCatalog
+      summary: Query a shared catalog read-only (SCR-050)
+      description: |
+        One page of rows of a catalog with scope `instance`, with the catalog's configured
+        columns, default sort and default join mode. The result equals that of the catalog
+        query (`queryCatalog`) without filters, join mode overrides or view, including its
+        visibility rules: only properties with visibility `public` appear (REQ-124, REQ-160)
+        and soft-deleted entities are not returned. `page`, `pageSize` and `sort` behave as in
+        the catalog query. A personal catalog is answered with 404, like a catalog that does
+        not exist, also for its creator.
+      tags: [Portal]
+      x-oea-authorization: {"access": "permission", "permissions": ["portal:read"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: '#/components/parameters/SortParam'
+      responses:
+        '200':
+          description: One page of catalog rows
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogQueryResult' }
+        '400':
+          description: |
+            Invalid paging or sort parameters (problem type `urn:oea:problem:validation-failed`),
+            e.g. an unknown sort column or a page size above 200; `invalidFields` names the
+            rejected parameters.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/CatalogQueryProblem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /portal/entities/{id}:
     get:
       operationId: getPortalEntityDetail
       summary: Portal entity detail (SCR-051)
@@ -8725,7 +8722,7 @@ tags:
   - name: Audit
     description: Compliance audit log, SIEM export, integrity status and retention (ADR-024, ADR-033, SCR-054)
   - name: Portal
-    description: Web portal read-only endpoints (SCR-050–054)
+    description: Web portal read-only endpoints; the shared catalogs (SCR-050) are implemented, the entity detail, diagrams, dashboards and audit events (SCR-051–054) are planned
   - name: I18N
     description: Dynamic labels with ETag caching (ADR-025)
   - name: Events

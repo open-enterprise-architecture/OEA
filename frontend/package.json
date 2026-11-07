@@ -20,6 +20,7 @@
     "test:stories": "vitest run --project storybook",
     "prebuild": "npm run generate:api",
     "build": "vue-tsc --build && vite build",
+    "test:csp": "node scripts/csp-smoke.mjs",
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
     "prebuild-storybook": "npm run generate:api",

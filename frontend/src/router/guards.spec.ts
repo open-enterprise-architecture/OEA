@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Me } from '../api/session'
-import { passwordChangeTarget } from './guards'
+import { passwordChangeTarget, portalTarget } from './guards'
 
 const ME: Me = {
   principal: { principalType: 'person', displayName: 'Anna' },
@@ -31,5 +31,31 @@ describe('passwordChangeTarget', () => {
     expect(passwordChangeTarget('/me', me)).toBe('/me/second-factor')
     expect(passwordChangeTarget('/me/second-factor', me)).toBe(true)
     expect(passwordChangeTarget('/login', me)).toBe(true)
+  })
+})
+
+// spec portal/portal-catalogs "Landing page of a portal reader"
+describe('portalTarget', () => {
+  const reader = (permissions: string[]): Me => ({ ...ME, permissions: permissions.map((permission) => ({ permission, grantedBy: [] })) })
+
+  it('sends a reader without entity:read from the start page and the catalogs to the portal', () => {
+    const petra = reader(['portal:read'])
+    expect(portalTarget('/', petra)).toBe('/portal')
+    expect(portalTarget('/catalogs', petra)).toBe('/portal')
+    expect(portalTarget('/catalogs/c0000000-0000-4000-8000-000000000001', petra)).toBe('/portal')
+  })
+
+  it('leaves the portal, the profile and the login to the portal reader', () => {
+    const petra = reader(['portal:read'])
+    expect(portalTarget('/portal', petra)).toBe(true)
+    expect(portalTarget('/portal/catalogs/c0000000-0000-4000-8000-000000000001', petra)).toBe(true)
+    expect(portalTarget('/me', petra)).toBe(true)
+    expect(portalTarget('/login', petra)).toBe(true)
+  })
+
+  it('lets readers with entity:read and sessions without portal:read through', () => {
+    expect(portalTarget('/catalogs', reader(['portal:read', 'entity:read']))).toBe(true)
+    expect(portalTarget('/catalogs', reader([]))).toBe(true)
+    expect(portalTarget('/', undefined)).toBe(true)
   })
 })

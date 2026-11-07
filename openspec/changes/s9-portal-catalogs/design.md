@@ -76,7 +76,7 @@
   - `/assets/**`: `Cache-Control: public, max-age=31536000, immutable`;
   - other files in the directory, such as `favicon.svg`: `no-cache`.
   - Spring Security's `cacheControl` writer is set to skip responses that already carry `Cache-Control`. Its default writer already skips them, because it writes its headers lazily on commit and checks for an existing header. A test pins this behavior.
-- **Security:** `GET` and `HEAD` on every path outside `/api/**` are `permitAll` while the portal is active. The login page is part of the portal, and the files hold no data. The authorization interceptors stay on `/api/**`.
+- **Security:** `GET` and `HEAD` on every path outside `/api/**` are `permitAll`, with or without the portal, so a backend without the portal answers 404 there. `/actuator/**` stays closed (401 without a session), although no actuator endpoint is exposed. The login page is part of the portal, and the files hold no data. The authorization interceptors stay on `/api/**`.
 - A request outside `/api` with another method answers 405 or 404 from MVC. The CSRF origin filter stays unchanged.
 - Alternative: copy `dist` into `classpath:/static` at build time. Rejected because the jar would depend on the frontend build, the backend tests would need it, and the development profile would serve stale files.
 
@@ -90,6 +90,7 @@
 - **Inline styles:**
   - Vue and Nuxt UI set styles through the CSSOM (`element.style`), which the CSP does not restrict.
   - If the smoke test (D6) reports a `style-src` violation from a `<style>` element or a `style` attribute in the markup, the portal policy gains `'unsafe-inline'` for `style-src` only, and the reason goes into the code comment.
+  - Result of the implementation: the smoke test reported style elements that Nuxt UI writes at runtime (`nuxt-ui-colors`), so the policy has `style-src 'self' 'unsafe-inline'`.
   - Scripts never get `'unsafe-inline'` or `'unsafe-eval'`.
 - The policy text is defined once, in `backend/src/main/resources/portal/content-security-policy.txt`. `SecurityConfiguration` reads it, and the frontend smoke test reads the same file.
 

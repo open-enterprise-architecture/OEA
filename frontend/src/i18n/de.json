@@ -655,5 +655,16 @@
     "placeSubmit": "Einordnen",
     "alreadyPlaced": "Der Katalog ist bereits in diesem Ordner.",
     "placed": "Eingeordnet in {path}."
+  },
+  "portal": {
+    "title": "Portal",
+    "intro": "Die geteilten Kataloge des Architektur-Repositorys, nur zum Lesen.",
+    "catalogs": "Geteilte Kataloge",
+    "empty": "Noch keine geteilten Kataloge",
+    "emptyHint": "Geteilte Kataloge erscheinen hier, sobald jemand einen anlegt.",
+    "loadFailed": "Die geteilten Kataloge konnten nicht geladen werden.",
+    "noAccess": "Du hast keinen Zugriff auf das Portal. Bitte eine Administratorin oder einen Administrator um eine Rolle.",
+    "back": "Zurück zum Portal",
+    "notFoundHint": "Den Katalog gibt es nicht oder er ist nicht geteilt."
   }
 }

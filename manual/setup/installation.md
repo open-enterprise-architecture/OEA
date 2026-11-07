@@ -7,7 +7,7 @@ covers:
 
 # Installation
 
-OEA consists of a PostgreSQL database, a one-shot migration step and the backend. The operator file `compose.yaml` in the repository starts all three with Docker Compose (or Podman Compose). If you run your own PostgreSQL, follow [Your own PostgreSQL](#your-own-postgresql).
+OEA consists of a PostgreSQL database, a one-shot migration step and the backend. The backend also serves the web portal, on the same address and port as the API. The operator file `compose.yaml` in the repository starts all three with Docker Compose (or Podman Compose). If you run your own PostgreSQL, follow [Your own PostgreSQL](#your-own-postgresql).
 
 ## Requirements
 
@@ -50,12 +50,12 @@ OEA consists of a PostgreSQL database, a one-shot migration step and the backend
    curl http://127.0.0.1:8080/api/v1/health
    ```
 
-   The answer contains only the overall status `UP` or `DOWN`.
+   The answer contains only the overall status `UP` or `DOWN`. The web portal is at `http://127.0.0.1:8080/`.
 
 Continue with the [first administrator](./first-administrator).
 
 ::: warning Public access
-Do not make the instance reachable from the internet before the setup phase has ended (see [First administrator](./first-administrator)). Put a reverse proxy with TLS in front of OEA and set the public address with `OEA_WEB_PUBLIC_URL` (`https`) before you connect an identity provider.
+Do not make the instance reachable from the internet before the setup phase has ended (see [First administrator](./first-administrator)). Put a reverse proxy with TLS in front of OEA: the portal needs `https`, because the session cookie is `Secure` and the backend sends `Strict-Transport-Security`. Set the public address with `OEA_WEB_PUBLIC_URL` (`https`) before you connect an identity provider.
 :::
 
 ## Your own PostgreSQL
