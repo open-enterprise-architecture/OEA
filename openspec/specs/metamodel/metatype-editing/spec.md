@@ -69,3 +69,15 @@ Trace: REQ-032 AC5, ADR-002, owner decisions 2026-10-30 and 2026-10-31
 
 - **WHEN** a metamodel administrator renames the imported metatype `Application Component`
 - **THEN** the request is rejected with 409 and problem type `read-only-metatype`, and the metatype is unchanged
+
+### Requirement: Scoping type cannot be deleted
+
+A connection metatype that is the scoping type of a property definition SHALL NOT be deleted. The request SHALL be rejected with 409 `in-use` until no property uses it as scoping type.
+
+Trace: REQ-124, REQ-127
+
+#### Scenario: Delete the scoping type
+
+- **GIVEN** `DomainAssignment` has no connections and is the scoping type of `securityClassification`
+- **WHEN** a metamodel administrator deletes `DomainAssignment`
+- **THEN** the request is rejected with 409 `in-use`, and the metatype stays

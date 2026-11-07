@@ -75,7 +75,7 @@ Security review SEC-03 / owner decision Q4 (2026-10-13): metamodel administratio
 
 ## Implementation Notes
 
-- Realigned by OpenSpec change `us-124-property-visibility` (owner decision 2026-11-07): `security-admin` has no access to the metamodel editor SCR-030 (ADR-032 SoD-2), so the form is the own page SCR-032 for `visibility:configure`. SCR-030 shows the badge "Restricted" in the property list and the visibility read-only in the property dialog (statement items 4 and the read-only rule)
+- Realigned by OpenSpec change `us-124-property-visibility`, commit db91ffb (#210) (owner decision 2026-11-07): `security-admin` has no access to the metamodel editor SCR-030 (ADR-032 SoD-2), so the form is the own page SCR-032 for `visibility:configure`. SCR-030 shows the badge "Restricted" in the property list and the visibility read-only in the property dialog (statement items 4 and the read-only rule)
 
 ## Change History
 
