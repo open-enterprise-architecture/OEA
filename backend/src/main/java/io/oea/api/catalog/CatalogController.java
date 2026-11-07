@@ -41,11 +41,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.beans.propertyeditors.CustomCollectionEditor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
  * Creating, listing and reading catalogs (US-046, design D3–D5 of us-046-create-catalog) and the
@@ -206,7 +207,7 @@ public class CatalogController implements CatalogsApi {
 	public ResponseEntity<CatalogQueryResult> queryCatalog(UUID id, Integer page, Integer pageSize, String sort,
 			Map<String, JoinMode> joinMode, List<String> filter, String filterMode, UUID view) {
 		return ResponseEntity.ok(CatalogQueryMapping.result(this.queries.query(principal(), id, page, pageSize, sort,
-				joinModes(joinMode), filters(), filterMode, view)));
+				joinModes(joinMode), (filter != null) ? filter : List.of(), filterMode, view)));
 	}
 
 	/**
@@ -229,13 +230,13 @@ public class CatalogController implements CatalogsApi {
 	}
 
 	/**
-	 * The {@code filter} parameters as sent. The bound list splits a single value at its commas,
-	 * which belong to the value of {@code in} and {@code notIn}, so the raw values are taken.
+	 * Binds every {@code filter} parameter as one entry, as sent. Without it, a single parameter
+	 * is split at its commas, which belong to the value of {@code in} and {@code notIn}; the
+	 * contract limits (20 filters of at most 2000 characters) would then count the values.
 	 */
-	private static List<String> filters() {
-		String[] values = (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes)
-				? attributes.getRequest().getParameterValues("filter") : null;
-		return (values != null) ? List.of(values) : List.of();
+	@InitBinder("filter")
+	void bindFiltersAsSent(WebDataBinder binder) {
+		binder.registerCustomEditor(List.class, new CustomCollectionEditor(List.class));
 	}
 
 	private static Catalogs.SavedViewInput view(CatalogSavedViewInput input) {

@@ -39,6 +39,7 @@ import io.oea.config.security.OeaAuthentication;
 import io.oea.config.web.RequestSizeLimitFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.ElementKind;
 import jakarta.validation.Path;
 import java.net.URI;
 import java.util.List;
@@ -334,9 +335,12 @@ public class ApiExceptionHandler {
 			return invalidRequest();
 		}
 		return invalidFields(response, fields(ex.getConstraintViolations().stream().map((violation) -> {
+			// the parameter's name; a violation of a list entry ends in a container element node
 			String name = null;
 			for (Path.Node node : violation.getPropertyPath()) {
-				name = node.getName();
+				if (node.getKind() != ElementKind.CONTAINER_ELEMENT) {
+					name = node.getName();
+				}
 			}
 			return name;
 		})));

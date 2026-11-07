@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -415,6 +416,24 @@ class CatalogFilterTests {
 	}
 
 	// Pagination
+
+	@Test
+	void inListOfAHundredValues() {
+		String catalog = applicationCatalog();
+		String hundred = IntStream.range(0, 100).mapToObj((i) -> "V" + i).collect(Collectors.joining(","));
+		ok(query(catalog, filter("%s:in:%s", key(this.vendor), hundred)));
+		assertBadFilter(query(catalog, filter("%s:in:%s", key(this.vendor), hundred + ",V100")));
+	}
+
+	@Test
+	void filterOfAtMost2000Characters() {
+		String catalog = applicationCatalog();
+		String prefix = key(this.vendor) + ":in:" + "a".repeat(1000) + ",";
+		ok(query(catalog, filter(prefix + "b".repeat(2000 - prefix.length()))));
+		MvcTestResult tooLong = query(catalog, filter(prefix + "b".repeat(2001 - prefix.length())));
+		assertThat(tooLong).hasStatus(HttpStatus.BAD_REQUEST);
+		assertThat(fields(tooLong)).containsExactly("filter");
+	}
 
 	@Test
 	void filteredPaging() {
