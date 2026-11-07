@@ -526,7 +526,17 @@ public class MetamodelController implements MetamodelApi {
 			.scope(MetamodelScope.fromValue(property.scope()))
 			.sourcePackage(source(property.sourcePackageId(), property.sourcePackageVersion()))
 			.enumValues(property.enumValues().stream().map(MetamodelController::enumValue).toList())
-			.version(property.version());
+			.version(property.version())
+			.visibility(visibility(property.visibility()));
+	}
+
+	/** The visibility, read-only in the metamodel (design D2 of us-124-property-visibility). */
+	private static io.oea.api.generated.model.PropertyVisibility visibility(
+			io.oea.app.metamodel.PropertyVisibility.Visibility visibility) {
+		return new io.oea.api.generated.model.PropertyVisibility(
+				io.oea.api.generated.model.PropertyVisibility.VisibilityModeEnum.fromValue(visibility.mode()),
+				new java.util.LinkedHashSet<>(visibility.readRoles()), new java.util.LinkedHashSet<>(visibility.writeRoles()))
+			.scopingConnectionType(visibility.scopingType());
 	}
 
 	private static PropertyCategory category(MetatypeCatalog.Category category) {

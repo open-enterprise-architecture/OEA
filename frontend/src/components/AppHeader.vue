@@ -16,6 +16,11 @@ const canSeeTree = computed(() => (session.me?.permissions ?? []).some((entry) =
 // the portal needs portal:read, the catalogs entity:read (design D7 of s9-portal-catalogs)
 const canSeePortal = computed(() => (session.me?.permissions ?? []).some((entry) => entry.permission === 'portal:read'))
 
+// SCR-032 needs visibility:configure (design D5 of us-124-property-visibility)
+const canConfigureVisibility = computed(() =>
+  (session.me?.permissions ?? []).some((entry) => entry.permission === 'visibility:configure'),
+)
+
 const canSeeMetamodel = computed(() =>
   (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read' || entry.permission === 'metamodel:write'),
 )
@@ -53,6 +58,9 @@ async function logOut() {
         <RouterLink v-if="canSeePortal" to="/portal" data-testid="header-portal">{{ t('portal.title') }}</RouterLink>
         <RouterLink v-if="canSeeTree" to="/catalogs" data-testid="header-catalogs">{{ t('catalogs.title') }}</RouterLink>
         <RouterLink v-if="canSeeMetamodel" to="/metamodel" data-testid="header-metamodel">{{ t('metamodel.title') }}</RouterLink>
+        <RouterLink v-if="canConfigureVisibility" to="/admin/property-visibility" data-testid="header-visibility">{{
+          t('visibility.title')
+        }}</RouterLink>
         <RouterLink to="/me" data-testid="header-profile">{{ session.me.principal.displayName }}</RouterLink>
         <UButton
           data-testid="header-logout"

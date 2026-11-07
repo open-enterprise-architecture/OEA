@@ -4,9 +4,9 @@ title: Extend PropertyDefinition with visibilityMode
 type: functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-28
-last_updated: 2026-10-13
+last_updated: 2026-11-07
 author: requirements-engineer
 references:
   use_cases:
@@ -91,9 +91,16 @@ Security review SEC-03 (2026-10-13): one `allowedRoles` list for read and write 
 
 The split of `allowedRoles` into `readRoles`/`writeRoles` changes the data model; `docs/data-model.puml`, the metamodel-configuration business object and the API contract (`PropertyVisibilityEntry`, `PropertyDefinitionDetail/Write`) must be aligned (follow-up for business engineer and solution architect).
 
+## Implementation Notes
+
+- Implemented by OpenSpec change `us-124-property-visibility`: the fields are `visibility_mode` and `scoping_connection_type_id` of `property_definitions` (V5) and the table `property_visibility_roles` (V23) for `readRoles` and `writeRoles`; `GET`/`PUT /admin/property-visibility` read and change them with `visibility:configure`, every change gets a new version and the audit event `visibility.changed`
+- The metamodel endpoints show `visibility` read-only; a connection metatype used as `scopingConnectionType` cannot be deleted (409 `in-use`)
+- Enforcement of the modes on reading and writing: US-126 (`role-restricted`) and US-127 (`connection-scoped`)
+
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-03 / owner decision Q4: `allowedRoles` split into `readRoles`/`writeRoles`; changes require `visibility:configure` (AC5, AC6) |
+| 0.3.0 | 2026-11-07 | Change us-124-property-visibility | Implementation notes |

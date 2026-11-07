@@ -2,8 +2,9 @@
 
 **ID**: US-124
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S10
+**Implementation**: OpenSpec change `us-124-property-visibility` – the visibility of every property definition through `GET`/`PUT /admin/property-visibility` and the page SCR-032. Realigned (owner decision 2026-11-07, ADR-032 SoD-2): the security administrator (`visibility:configure`), not Kurt as metamodel administrator, chooses the mode, and on SCR-032 instead of the property definition form of SCR-030; AC1–AC4 otherwise unchanged. Enforcement on reading and writing follows with US-126 and US-127
 
 ## Story
 

@@ -696,6 +696,62 @@ class MetamodelEditingTests {
 
 	// helpers
 
+	// metamodel/property-visibility, requirement "Visibility only through security administration"
+	// (us-124-property-visibility D2)
+
+	@Test
+	void visibilityInTheMetamodel() {
+		UUID cost = stringProperty(unique("investmentCost"));
+		this.jdbc.update("UPDATE property_definitions SET visibility_mode = 'role-restricted' WHERE id = ?", cost);
+		this.jdbc.update("INSERT INTO property_visibility_roles (property_def_id, role_id, access) VALUES (?, 'auditor', 'read')",
+				cost);
+		JsonNode visibility = visibilityOf(cost);
+		assertThat(visibility.path("visibilityMode").asString()).isEqualTo("role-restricted");
+		assertThat(visibility.path("readRoles").toString()).isEqualTo("[\"auditor\"]");
+		assertThat(visibilityOf(this.status).path("visibilityMode").asString()).isEqualTo("public");
+		// a definition update with a visibility in the body leaves the visibility unchanged
+		ObjectNode update = property(name(cost, "property_definitions"), "string");
+		ObjectNode sent = update.putObject("visibility").put("visibilityMode", "public");
+		sent.putArray("readRoles");
+		sent.putArray("writeRoles");
+		assertThat(call(HttpMethod.PUT, "/metamodel/property-definitions/" + cost, update, this.admin))
+			.hasStatus(HttpStatus.OK);
+		assertThat(visibilityOf(cost).path("visibilityMode").asString()).isEqualTo("role-restricted");
+	}
+
+	// metamodel/metatype-editing, requirement "Scoping type cannot be deleted"
+
+	@Test
+	void deleteTheScopingType() {
+		ObjectNode body = metatype(unique("DomainAssignment"), null).put("isConnection", true);
+		UUID assignment = id(created(call(HttpMethod.POST, "/metamodel/metatypes", body, this.admin)));
+		UUID classification = stringProperty(unique("securityClassification"));
+		this.jdbc.update("""
+				UPDATE property_definitions SET visibility_mode = 'connection-scoped', scoping_connection_type_id = ?
+				WHERE id = ?""", assignment, classification);
+		MvcTestResult rejected = call(HttpMethod.DELETE, "/metamodel/metatypes/" + assignment, null, this.admin);
+		assertThat(rejected).hasStatus(HttpStatus.CONFLICT);
+		assertThat(type(rejected)).isEqualTo("urn:oea:problem:in-use");
+		assertThat(count("SELECT count(*) FROM metatypes WHERE id = '" + assignment + "'")).isEqualTo(1);
+		// deletable once no property uses it as scoping type
+		this.jdbc.update("""
+				UPDATE property_definitions SET visibility_mode = 'public', scoping_connection_type_id = NULL WHERE id = ?""",
+				classification);
+		assertThat(call(HttpMethod.DELETE, "/metamodel/metatypes/" + assignment, null, this.admin))
+			.hasStatus(HttpStatus.NO_CONTENT);
+	}
+
+	private JsonNode visibilityOf(UUID property) {
+		MvcTestResult listed = call(HttpMethod.GET, "/metamodel/property-definitions", null, this.admin);
+		assertThat(listed).hasStatus(HttpStatus.OK);
+		for (JsonNode definition : body(listed)) {
+			if (definition.path("id").asString().equals(property.toString())) {
+				return definition.path("visibility");
+			}
+		}
+		throw new AssertionError("no property " + property);
+	}
+
 	private MvcTestResult createMetatype(String name, UUID base) {
 		return call(HttpMethod.POST, "/metamodel/metatypes", metatype(name, base), this.admin);
 	}

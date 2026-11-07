@@ -25,9 +25,12 @@ public class MetatypeCatalog {
 
 	private final Clock clock;
 
-	public MetatypeCatalog(JdbcTemplate jdbc, Clock clock) {
+	private final PropertyVisibility visibility;
+
+	public MetatypeCatalog(JdbcTemplate jdbc, Clock clock, PropertyVisibility visibility) {
 		this.jdbc = jdbc;
 		this.clock = clock;
+		this.visibility = visibility;
 	}
 
 	public record EnumValue(UUID id, String value, int sortOrder) {
@@ -39,7 +42,7 @@ public class MetatypeCatalog {
 	public record Property(UUID id, String name, String dataType, Category category, Integer maxLength,
 			BigDecimal minValue, BigDecimal maxValue, String pattern, String scope,
 			String sourcePackageId, String sourcePackageVersion, List<EnumValue> enumValues, String sqlColumnName,
-			boolean retired, int version) {
+			boolean retired, int version, PropertyVisibility.Visibility visibility) {
 	}
 
 	/**
@@ -276,6 +279,7 @@ public class MetatypeCatalog {
 						.add(new EnumValue(rs.getObject(1, UUID.class), rs.getString(3), rs.getInt(4)));
 				});
 		Map<UUID, Property> properties = new LinkedHashMap<>();
+		Map<UUID, PropertyVisibility.Visibility> visibilities = this.visibility.all();
 		this.jdbc.query("""
 				SELECT id, name, data_type, category_id, max_length, min_value, max_value, pattern, scope,
 				       source_package_id, source_package_version, sql_column_name, retired_at IS NOT NULL, version
@@ -284,7 +288,8 @@ public class MetatypeCatalog {
 			properties.put(id, new Property(id, rs.getString(2), rs.getString(3),
 					categories.get(rs.getObject(4, UUID.class)), (Integer) rs.getObject(5), rs.getBigDecimal(6),
 					rs.getBigDecimal(7), rs.getString(8), rs.getString(9), rs.getString(10), rs.getString(11),
-					List.copyOf(values.getOrDefault(id, List.of())), rs.getString(12), rs.getBoolean(13), rs.getInt(14)));
+					List.copyOf(values.getOrDefault(id, List.of())), rs.getString(12), rs.getBoolean(13), rs.getInt(14),
+					visibilities.getOrDefault(id, PropertyVisibility.Visibility.DEFAULT)));
 		});
 		return properties;
 	}

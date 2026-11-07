@@ -28,6 +28,7 @@ function me(displayName: string, permissions: string[]) {
 export const ME_METAMODEL_ADMIN = me('Kurt', ['portal:read', 'entity:read', 'metamodel:write'])
 export const ME_READER = me('Franz', ['portal:read', 'entity:read'])
 export const ME_NO_ACCESS = me('Max', ['portal:read'])
+export const ME_SECURITY_ADMIN = me('Max', ['visibility:configure', 'visibility-scope:assign', 'role:assign', 'person:manage'])
 
 export const IDS = {
   general: 'ca000000-0000-4000-8000-000000000001',
@@ -74,6 +75,8 @@ export interface MetamodelApiOptions {
   failListing?: boolean
   /** The instance metamodel is locked (`import-only`, US-035). */
   locked?: boolean
+  /** The property Owner is role-restricted (us-124-property-visibility). */
+  restrictedOwner?: boolean
 }
 
 /** A request the fake received, with the headers that matter for the metamodel writes. */
@@ -219,6 +222,14 @@ function newId(): string {
 /** The fake metamodel API; `state` can be inspected and changed by a test. */
 export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
   const state = seed()
+  if (options.restrictedOwner) {
+    state.properties.find((property) => property.id === IDS.owner)!.visibility = {
+      visibilityMode: 'role-restricted',
+      readRoles: ['auditor', 'enterprise-architect'],
+      writeRoles: ['enterprise-architect'],
+      scopingConnectionType: null,
+    }
+  }
   if (options.locked) {
     state.configuration.editMode = 'import-only'
   }

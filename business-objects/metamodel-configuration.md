@@ -2,7 +2,7 @@
 identifier: metamodel-configuration
 name_de: Metamodell-Konfiguration
 name_en: Metamodel Configuration
-version: 1.10.0
+version: 1.11.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -444,6 +444,8 @@ Version 1.8.0 (change `scr-030-metamodel-configuration`) adds a `version` to Ent
 
 Version 1.9.0 (change `us-036-connection-metatypes`) stores the allowed endpoints of connection types in `metatype_connection_constraints` instead of `allowedSourceTypes`, `allowedTargetTypes` and `allowsConnectionAsSource`: listing a connection type as allowed source replaces the separate flag, and subtypes are included because a subtype is a kind of its base type.
 
+Version 1.11.0 (change `us-124-property-visibility`) stores `readRoles` and `writeRoles` in `property_visibility_roles` (migration V23); `visibilityMode` and `scopingConnectionType` are the existing columns of `property_definitions`. The visibility is changed only through security administration and never by a package import, because who may see a value is a decision of the organization, not of a package.
+
 ## Change History
 
 | Version | Date | Author | Change |
@@ -468,3 +470,4 @@ Version 1.9.0 (change `us-036-connection-metatypes`) stores the allowed endpoint
 | 1.8.0 | 2026-11-04 | Business Engineer | `version` of EntityTypes, PropertyDefinitions and property categories for optimistic locking; BR-31 (change `scr-030-metamodel-configuration`) |
 | 1.9.0 | 2026-11-04 | Business Engineer | Connection types with allowed endpoints including subtypes and connection types; BR-32 (change `us-036-connection-metatypes`) |
 | 1.10.0 | 2026-11-05 | Business Engineer | `name` and `version` of a configuration; `solutionId` without a foreign key until solutions exist; BR-05, BR-06, BR-09 and BR-10 as implemented: lock mode, names and base types of extensions, deleting extensions (change `us-037-solution-extensions-and-lock-mode`) |
+| 1.11.0 | 2026-11-07 | Business Engineer | Read and write roles stored in `property_visibility_roles` (change `us-124-property-visibility`) |

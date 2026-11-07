@@ -57,3 +57,10 @@ Feature: Writing connections
     When the data flow "DF-1" is sent again with the target "AppC"
     Then the connection is rejected with the code "ENDPOINT_CHANGE_NOT_SUPPORTED"
     And "DF-1" still has the target "AppB"
+
+  @REQ-161 @AC1
+  Scenario: Architect creates a scoping connection
+    Given the connection metatype "Scoping DomainAssignment" is the scoping type of the property "Scoping Security Classification"
+    And the elements "Scoping Michael" and "Scoping ERP"
+    When the architect creates a "Scoping DomainAssignment" connection from "Scoping Michael" to "Scoping ERP"
+    Then the connection is rejected with 403 and no "Scoping DomainAssignment" connection exists

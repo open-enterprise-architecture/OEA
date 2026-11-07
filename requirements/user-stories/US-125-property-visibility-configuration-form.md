@@ -2,8 +2,9 @@
 
 **ID**: US-125
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S10
+**Implementation**: OpenSpec change `us-124-property-visibility` – AC1 as the badge "Restricted" in the property list of SCR-030 and SCR-032; AC2 and AC3 in the dialog of SCR-032. Realigned (owner decision 2026-11-07): the restriction is adjusted on SCR-032 by security administration, the metamodel editor shows it read-only
 
 ## Story
 

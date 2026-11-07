@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -73,6 +74,26 @@ class HandlerEnforcedConditionsTests {
 
 	@Autowired
 	private JdbcTemplate jdbc;
+
+	/**
+	 * The scoping type of the probes of {@code createConnection} and {@code batchWriteEntities}:
+	 * a connection metatype that a property definition uses as {@code scopingConnectionType}
+	 * (design D4 of us-124-property-visibility).
+	 */
+	static final String PROBE_SCOPING_TYPE = "00000000-0000-4000-8000-0000000c0de1";
+
+	@BeforeEach
+	void scopingType() {
+		this.jdbc.update("""
+				INSERT INTO metatypes (id, config_id, name, is_connection)
+				VALUES (?::uuid, '00000000-0000-0000-0000-000000000001', 'Probe Domain Assignment', true)
+				ON CONFLICT (id) DO NOTHING""", PROBE_SCOPING_TYPE);
+		this.jdbc.update("""
+				INSERT INTO property_definitions (name, sql_column_name, data_type, visibility_mode, scoping_connection_type_id)
+				SELECT 'Probe Classification', 'probe_classification', 'string', 'connection-scoped', ?::uuid
+				WHERE NOT EXISTS (SELECT 1 FROM property_definitions WHERE name = 'Probe Classification')""",
+				PROBE_SCOPING_TYPE);
+	}
 
 	@Test
 	void conditionsEnforcedByTheHandlerDenyHoldersOfTheBasePermissionsOnly() throws Exception {

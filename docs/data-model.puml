@@ -926,6 +926,8 @@ package "Metamodel – Properties" #E0F2F1 {
     + access          : TEXT              {PK}
     .. enum: read | write (REQ-124 readRoles / writeRoles) ..
     .. CHECK (app): every 'write' row has a matching 'read' row ..
+    .. V23, us-124-property-visibility D1: oea_app SELECT, INSERT, DELETE; ..
+    .. a change replaces the rows of the property ..
   }
 
   note right of property_visibility_roles

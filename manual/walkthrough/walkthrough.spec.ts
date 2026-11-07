@@ -160,6 +160,22 @@ test('metamodel configuration', async ({ page }) => {
   await expect(page.getByTestId('translation-notice')).toBeVisible()
 })
 
+test('property visibility', async ({ page }) => {
+  // Security administration restricts the property of the metamodel walkthrough (manual:
+  // administration/property-visibility; us-124-property-visibility)
+  await logInAtKeycloak(page, 'dev-security-admin')
+  await page.getByTestId('header-visibility').click()
+  await expect(page.getByTestId('visibility-table')).toContainText('Trust Level')
+  await page.getByTestId('visibility-row').filter({ hasText: 'Trust Level' }).getByTestId('visibility-edit').click()
+  await page.getByTestId('visibility-mode').locator('[value="role-restricted"]').click()
+  await page.getByTestId('read-role-enterprise-architect').click()
+  await page.getByTestId('read-role-auditor').click()
+  await page.getByTestId('write-role-enterprise-architect').click()
+  await shoot(page, 'property-visibility')
+  await page.getByTestId('visibility-save').click()
+  await expect(page.getByTestId('visibility-row').filter({ hasText: 'Trust Level' }).getByTestId('visibility-restricted')).toBeVisible()
+})
+
 test('catalogs', async ({ page }) => {
   await logInAtKeycloak(page, 'dev-architect')
 

@@ -11,11 +11,11 @@ import { IDS, ME_READER, metamodelApi } from '../test/metamodel'
 // SCR-030 Metamodel configuration (UC-04, US-032, REQ-032; design D6 of
 // scr-030-metamodel-configuration): the first story is the screen image, an administrator on the
 // detail of an organization entity type.
-function page(section: string, id?: string, me?: unknown, locked = false): Story {
+function page(section: string, id?: string, me?: unknown, locked = false, restrictedOwner = false): Story {
   return {
     render: () => ({
       components: { MetamodelPage },
-      setup: () => ({ fetchFn: metamodelApi({ me, locked }).fetch, section, id }),
+      setup: () => ({ fetchFn: metamodelApi({ me, locked, restrictedOwner }).fetch, section, id }),
       template: '<MetamodelPage :section="section" :id="id" :fetch-fn="fetchFn" />',
     }),
   }
@@ -41,6 +41,14 @@ export const ImportedEntityType: Story = page('metatypes', IDS.component)
 export const ConnectionType: Story = page('metatypes', IDS.dataFlow)
 
 export const Properties: Story = page('properties')
+
+/** A role-restricted property: the badge "Restricted", changed only on SCR-032 (us-124-property-visibility). */
+export const RestrictedProperty: Story = {
+  ...page('properties', undefined, undefined, false, true),
+  play: async ({ canvasElement }) => {
+    await expect(await within(canvasElement).findByText('Restricted')).toBeInTheDocument()
+  },
+}
 
 export const Translations: Story = page('translations')
 

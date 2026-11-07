@@ -54,6 +54,7 @@ async function saved() {
             <th class="px-3 py-2 font-medium">{{ t('metamodel.property.category') }}</th>
             <th class="px-3 py-2 font-medium">{{ t('metamodel.property.details') }}</th>
             <th class="px-3 py-2 font-medium">{{ t('metamodel.scope.title') }}</th>
+            <th class="px-3 py-2 font-medium">{{ t('visibility.mode.title') }}</th>
             <th v-if="canWrite" class="px-3 py-2"><span class="sr-only">{{ t('metamodel.actions') }}</span></th>
           </tr>
         </thead>
@@ -76,6 +77,18 @@ async function saved() {
               <span v-else class="text-muted">{{ constraints(property) }}</span>
             </td>
             <td class="px-3 py-2 text-muted">{{ scopeLabel(property.scope, property.sourcePackage) }}</td>
+            <td class="px-3 py-2">
+              <UBadge
+                v-if="property.visibility && property.visibility.visibilityMode !== 'public'"
+                data-testid="property-restricted"
+                size="sm"
+                color="warning"
+                variant="subtle"
+                icon="i-lucide-lock"
+                :label="t('visibility.restricted')"
+                :title="t(`visibility.mode.${property.visibility.visibilityMode}`)"
+              />
+            </td>
             <td v-if="canWrite" class="px-3 py-2 text-right whitespace-nowrap">
               <template v-if="property.scope === 'organization'">
                 <UButton

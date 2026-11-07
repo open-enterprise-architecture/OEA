@@ -13,6 +13,7 @@ import {
 import { label, labelKeys } from '../../i18n/labels'
 import { metamodel, propertyById, reloadMetamodel } from '../../metamodel/store'
 import CollisionWarning from './CollisionWarning.vue'
+import VisibilitySummary from './VisibilitySummary.vue'
 import { rejectionMessage } from './messages'
 
 // Creating and changing an organization property definition with its enum values in SCR-030
@@ -190,6 +191,7 @@ async function removeValue(valueId: string) {
   <form class="flex flex-col gap-4" novalidate data-testid="property-form" @submit.prevent="submit()">
     <UAlert v-if="failure" data-testid="property-failure" color="error" variant="subtle" :description="failure" />
     <UAlert v-if="notice" data-testid="property-notice" color="warning" variant="subtle" :description="notice" />
+    <VisibilitySummary v-if="props.property" :visibility="props.property.visibility" />
     <CollisionWarning v-if="stale" @overwrite="submit(current?.version)" @discard="emit('cancel')">
       <p v-if="current">
         {{ current.name }} · {{ t(`metamodel.dataType.${current.dataType}`) }}

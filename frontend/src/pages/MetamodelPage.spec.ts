@@ -89,6 +89,27 @@ describe('MetamodelPage', () => {
     expect(states).toEqual(['active', 'future'])
   })
 
+  // spec metamodel/configuration-screen "Visibility shown read-only" (us-124-property-visibility)
+  it('marks a restricted property in the list', async () => {
+    const { wrapper } = await open('/metamodel/properties', { me: ME_METAMODEL_ADMIN, restrictedOwner: true })
+    const rows = wrapper.findAll('[data-testid="property-row"]')
+    const owner = rows.find((row) => row.text().includes('Owner'))!
+    const status = rows.find((row) => row.text().includes('Status'))!
+    expect(owner.find('[data-testid="property-restricted"]').text()).toBe('Restricted')
+    expect(status.find('[data-testid="property-restricted"]').exists()).toBe(false)
+  })
+
+  it('shows the visibility in the detail without a control to change it', async () => {
+    const { wrapper } = await open('/metamodel/properties', { me: ME_METAMODEL_ADMIN, restrictedOwner: true })
+    const owner = wrapper.findAll('[data-testid="property-row"]').find((row) => row.text().includes('Owner'))!
+    await owner.get('[data-testid="property-edit"]').trigger('click')
+    await flushPromises()
+    const visibility = document.body.querySelector('[data-testid="property-visibility"]')!
+    expect(visibility.querySelector('[data-testid="property-visibility-mode"]')!.textContent).toContain('Role-based')
+    expect(visibility.querySelector('[data-testid="property-visibility-roles"]')!.textContent).toContain('auditor, enterprise-architect')
+    expect(visibility.querySelectorAll('input, select, button')).toHaveLength(0)
+  })
+
   it('switches sections by route', async () => {
     const { wrapper, router } = await open('/metamodel/properties')
     expect(wrapper.findAll('[data-testid="property-row"]')).toHaveLength(2)

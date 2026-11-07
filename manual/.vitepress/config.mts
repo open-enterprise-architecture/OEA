@@ -43,6 +43,7 @@ const chapters: Chapter[] = [
       { path: 'roles-and-permissions', title: { en: 'Roles and permissions', de: 'Rollen und Berechtigungen' } },
       { path: 'metamodel-packages', title: { en: 'Metamodel packages', de: 'Metamodell-Pakete' } },
       { path: 'metamodel-editing', title: { en: 'Editing the metamodel', de: 'Metamodell bearbeiten' } },
+      { path: 'property-visibility', title: { en: 'Property visibility', de: 'Sichtbarkeit von Eigenschaften' } },
       { path: 'operations', title: { en: 'Operations', de: 'Betrieb' } },
     ],
   },

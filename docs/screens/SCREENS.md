@@ -69,7 +69,7 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 |---|---|---|---|---|---|---|
 | SCR-030 | Metamodel configuration (entity types, properties, categories, translations, changes, lock mode and re-import settings) | CA+WP | UC-04 | must | `implemented` | [light](./SCR-030-light.png) / [dark](./SCR-030-dark.png) |
 | SCR-031 | Viewpoint management | CA | UC-12 | must | `legacy-mockup` | [viewpoints](./viewpoints-light.svg) / [dark](./viewpoints-dark.svg) |
-| SCR-032 | Configure property visibility | CA | UC-21 | must | `legacy-mockup` | [property-visibility](./property-visibility-light.svg) / [dark](./property-visibility-dark.svg) |
+| SCR-032 | Configure property visibility (security administration; read-only badge in SCR-030) | CA+WP | UC-21 | must | `implemented` | [light](./SCR-032-light.png) / [dark](./SCR-032-dark.png) |
 | SCR-033 | TRM configuration | CA | UC-19 | must | `legacy-mockup` | [trm-config](./trm-config-light.svg) / [dark](./trm-config-dark.svg) |
 | SCR-034 | Manage continuum building blocks | CA | UC-17 | must | `legacy-mockup` | [continuum](./continuum-light.svg) / [dark](./continuum-dark.svg) |
 | SCR-035 | Import continuum package | CA | UC-18 | should | `legacy-mockup` | [package-import](./package-import-light.svg) / [dark](./package-import-dark.svg) |

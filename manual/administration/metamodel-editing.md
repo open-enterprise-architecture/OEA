@@ -73,6 +73,7 @@ If you change the base type of your own entity type, it loses the properties of 
 - In an existing selection list, you add and delete values directly in the dialog. Entities that have a deleted value lose it.
 - A property that is still assigned to an entity type cannot be deleted. A property that appears in the history of entities is retired instead: it disappears from the lists, and its name stays taken.
 - *Categories* group properties; a category with properties cannot be deleted.
+- A property whose values only some persons may see carries the badge *Restricted*; its dialog shows the visibility read-only. Security administration changes it on the page [Property visibility](./property-visibility).
 
 ## Assigning properties to entity types
 

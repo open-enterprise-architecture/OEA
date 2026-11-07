@@ -7,11 +7,12 @@ covers:
 
 # Administration
 
-Die Administration hat in dieser Version keine Bildschirme; du administrierst die Instanz über die [API](../api/). Die Beispiele in diesem Kapitel verwenden `curl` und `jq` und halten Passwörter und Geheimnisse von der Kommandozeile fern.
+Abgesehen von der Metamodell-Konfiguration und der Sichtbarkeit von Eigenschaften hat die Administration in dieser Version keine Bildschirme; du administrierst die Instanz über die [API](../api/). Die Beispiele in diesem Kapitel verwenden `curl` und `jq` und halten Passwörter und Geheimnisse von der Kommandozeile fern.
 
 - [Identity-Provider und Personen](./identity-providers): einen OpenID-Connect-Provider anbinden und Personen an ihre Identitäten binden
 - [Rollen und Berechtigungen](./roles-and-permissions): die eingebauten Rollen und wie du sie über IdP-Gruppen vergibst
 - [Metamodell-Pakete](./metamodel-packages): die Starterkonfiguration oder ein eigenes Metamodell importieren
+- [Sichtbarkeit von Eigenschaften](./property-visibility): festlegen, wer die Werte jeder Eigenschaft sehen und schreiben darf
 - [Betrieb](./operations): Datenbankrollen, Größenlimits für Requests, Schlüsselrotation, Prüfung des Audit-Trails und PostgreSQL-Upgrades
 
 ## Für die Administration über die API anmelden {#api-login}

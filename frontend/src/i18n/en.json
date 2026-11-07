@@ -667,5 +667,42 @@
     "noAccess": "You have no access to the portal. Ask an administrator for a role.",
     "back": "Back to the portal",
     "notFoundHint": "The catalog does not exist or is not shared."
+  },
+  "visibility": {
+    "title": "Property visibility",
+    "intro": "Decide who may see and write the values of each property. Changes are written to the audit log.",
+    "noAccess": "Changing property visibility needs the security administration permission.",
+    "loadFailed": "The property visibility could not be loaded.",
+    "saveFailed": "The visibility could not be saved.",
+    "enforcementNote": "Restricted properties stay hidden in catalogs and cannot be written until their enforcement for reading and writing follows.",
+    "filter": "Filter by name",
+    "property": "Property",
+    "metatypes": "Entity types",
+    "restriction": "Restriction",
+    "actions": "Actions",
+    "restricted": "Restricted",
+    "edit": "Edit the visibility of {name}",
+    "editTitle": "Visibility of {name}",
+    "save": "Save",
+    "readRoles": "Read roles",
+    "readRolesRequired": "Choose at least one read role.",
+    "writeRoles": "Write roles",
+    "writeRolesHint": "Only read roles can write; none means nobody may change the value.",
+    "writeRolesSubset": "Every write role must also be a read role.",
+    "scopingType": "Connection type",
+    "scopingTypeHint": "Persons connected to the entity through this connection type see the value.",
+    "scopingTypeRequired": "Choose a connection type.",
+    "rolesSummary": "Read: {read} · Write: {write}",
+    "nobody": "nobody",
+    "mode": {
+      "title": "Visibility",
+      "public": "Public",
+      "role-restricted": "Role-based",
+      "connection-scoped": "Connection-based",
+      "publicHint": "Everyone who can read the entity",
+      "roleHint": "Only holders of the chosen roles",
+      "connectionHint": "Only persons connected to the entity"
+    },
+    "metamodelHint": "Changed by security administration on the page Property visibility."
   }
 }

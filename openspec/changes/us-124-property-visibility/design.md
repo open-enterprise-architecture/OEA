@@ -115,8 +115,9 @@
   - **Inline validation:** the rules of D2, without a request. A 422 maps its `invalidFields` to the fields.
   - **Hidden fields:** the dialog keeps its height when fields are hidden (US-125 AC2).
 - **SCR-030:**
-  - the property list shows the badge;
-  - the property detail shows a read-only block "Visibility" with mode, roles and scoping type, and the hint "Changed by security administration on the page Property visibility".
+  - the property list shows the badge in a column "Visibility";
+  - the property detail shows a read-only block "Visibility" with mode, roles and scoping type, and the hint "Changed by security administration on the page Property visibility". The detail of a property is its dialog, which opens for organization properties; built-in and imported properties show the badge only.
+- **Probe of the contract condition:** `HandlerEnforcedConditionsTests` seeds a connection metatype with a fixed ID that a property uses as scoping type, so that the probes of `createConnection` and `batchWriteEntities` meet the condition.
 - **Story:**
   - `SCR-032-property-visibility.stories.ts` with list, dialog (each mode) and the inline error;
   - `SCREENS.md` moves SCR-032 from `legacy-mockup` to `implemented`, and the legacy SVGs are removed.
