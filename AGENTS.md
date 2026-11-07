@@ -305,6 +305,16 @@ The data model consists of two sources that must be kept in sync:
 
 **Rule of thumb:** every attribute that appears in a REQ or a user story must also be visible in the data model – at the latest before the corresponding user story is marked `accepted`.
 
+### On Tests
+
+Every tested behavior covers, in the OpenSpec change that implements it:
+
+- **a positive case**: valid input is accepted and has the specified effect;
+- **a negative case**: invalid input, a missing permission or a conflicting state is rejected with the specified error and changes no state;
+- **both sides of every boundary**: for each limit (length, size, count, range, time, page), the last valid value is accepted and the first invalid value is rejected. Examples: a name of exactly 255 characters is accepted and one of 256 is rejected; a limit of exactly 1 s is accepted and 999 ms is rejected.
+
+`tasks.md` names the boundary values of each limit in the verification of its task. Where several values test the same rule, a parameterized test (`@ParameterizedTest`, `it.each`) is preferred over copied tests.
+
 ## Anti-Patterns
 
 Avoid explicitly:
@@ -341,6 +351,7 @@ Avoid explicitly:
 ### Tests
 
 - **Writing test suites ahead of the code** – tests are created within the OpenSpec change that implements the behavior
+- **Testing only the invalid side of a boundary** – a test that 256 characters are rejected does not show that 255 are accepted (see [On Tests](#on-tests))
 
 ## Definition of Done for the Requirements Phase
 

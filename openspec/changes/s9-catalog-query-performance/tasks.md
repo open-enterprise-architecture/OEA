@@ -14,12 +14,14 @@
 - [ ] 2.1 Add `oea.database.statement-timeout` and the Hikari `connectionInitSql` (D4). Verify with `StatementTimeoutTests`:
   - "Default limit on every connection" (`SHOW statement_timeout` = `1min`);
   - "Configured limit";
-  - an invalid value refuses the start.
+  - an invalid value refuses the start;
+  - boundaries: `1s` and `1h` start, `999ms` and `3601s` refuse the start.
 
   Check that `Migrator` is unaffected ("Migration step unaffected").
 - [ ] 2.2 Add `oea.catalog.query-timeout`, `SET LOCAL` in `CatalogQueries`, `CatalogQueryTimeoutException`, the 503 mapping and the audit event `catalog.query-timeout` (D4). Verify with `CatalogQueryTimeoutTests`, where a limit of 1 s meets a slow query (for example a filter calling `pg_sleep` through a test-only view or a locked row):
   - 503 `query-timeout` and the audit event;
-  - a query within the limit unchanged.
+  - a query within the limit unchanged;
+  - configuration boundaries: `1s` and a value equal to `oea.database.statement-timeout` start, `999ms` and a value above the global limit refuse the start.
 - [ ] 2.3 Add the timer `oea.catalog.query` with `channel` and `outcome` (D5). Verify in `CatalogQueryTests` and `PortalCatalogsTests` that a query counts with `success`, a 400 with `rejected` and a portal query with channel `portal`.
 
 ## 3. Backend: keyset paging
@@ -31,7 +33,9 @@
   - "Last page";
   - "Cursor of another query" (sort, filter, catalog, page size, changed columns);
   - "Tampered cursor" (changed value, wrong HMAC, garbage, too many values, a value of the wrong type) and a cursor without `page`, all 400 `cursor`;
-  - the portal query with the cursor.
+  - the portal query with the cursor;
+  - boundaries: with 41 rows and page size 20, page 1 has a `nextCursor` and page 2 (one row) has none; with exactly 40 rows, page 1 has no `nextCursor`;
+  - `cursor` length: a cursor of 2,000 characters reaches the cursor check (400 `cursor` for garbage, unit test in `CatalogCursorsTests` that it is decoded), one of 2,001 characters is rejected before decoding.
 - [ ] 3.3 Cucumber: scenarios "Next page by cursor" and "Cursor of another query" in `features/catalog/catalog-query.feature`, and "Next page through the cursor" in `features/portal/portal-catalogs.feature`. Verify with the `CucumberIT` run.
 
 ## 4. Backend: latency
@@ -45,7 +49,8 @@
 - [ ] 5.1 Add `cursor` to `queryCatalog` and `queryPortalCatalog`, and use the cursor for the next page in `CatalogPage` and `PortalCatalogPage`, with the fallback after 400 `cursor` (D6). Verify with tests in `CatalogPage.spec.ts` and `PortalCatalogPage.spec.ts`:
   - "Paging forward in the table" (the request carries `cursor` and `page`; the URL holds only `page`);
   - a jump uses `page` only;
-  - a rejected cursor falls back to `page`.
+  - a rejected cursor falls back to `page`;
+  - boundary: a move to current + 1 sends the cursor, a move to current + 2 does not.
 
 ## 6. Manual
 
