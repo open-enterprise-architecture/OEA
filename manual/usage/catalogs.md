@@ -9,6 +9,8 @@ covers:
 
 A catalog is a reusable table view of the repository. It shows the entities of one entity type as rows. You need the permission `entity:read` (for example the role `viewer`) to see catalogs and create personal ones; shared catalogs need `catalog:manage` (role `enterprise-architect`).
 
+The sidebar arranges catalogs in folders; *Place in navigation* on a catalog adds it there (see [Navigation tree](./navigation)).
+
 ## Create a catalog
 
 1. Choose *Catalogs* in the header, then *New catalog*.

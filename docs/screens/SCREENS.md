@@ -88,13 +88,14 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 | SCR-052 | Diagram viewer (read-only) | WP | UC-05, UC-08 | must | `legacy-mockup` | [diagram-viewer](./diagram-viewer-light.svg) / [dark](./diagram-viewer-dark.svg) |
 | SCR-053 | Dashboard view (read-only) | WP | UC-07 | should | `legacy-mockup` | [dashboard-view](./dashboard-view-light.svg) / [dark](./dashboard-view-dark.svg) |
 | SCR-054 | Change history (read-only) | WP | UC-14 | should | `legacy-mockup` | [audit-log-view](./audit-log-view-light.svg) / [dark](./audit-log-view-dark.svg) |
+| SCR-055 | Navigation sidebar (navigation tree with folder actions, on every page after login) | WP | UC-06, UC-13 | must | `implemented` | [light](./SCR-055-light.png) / [dark](./SCR-055-dark.png) |
 
 ---
 
 ## Overview by Priority
 
 **Must-have** (Walking Skeleton + v1.0 core):
-SCR-001, SCR-002, SCR-003, SCR-004, SCR-005, SCR-010, SCR-011, SCR-012, SCR-020, SCR-021, SCR-022, SCR-025, SCR-026, SCR-028, SCR-030, SCR-031, SCR-032, SCR-033, SCR-034, SCR-037, SCR-038, SCR-050, SCR-051, SCR-052
+SCR-001, SCR-002, SCR-003, SCR-004, SCR-005, SCR-010, SCR-011, SCR-012, SCR-020, SCR-021, SCR-022, SCR-025, SCR-026, SCR-028, SCR-030, SCR-031, SCR-032, SCR-033, SCR-034, SCR-037, SCR-038, SCR-050, SCR-051, SCR-052, SCR-055
 
 **Should-have** (v1.0 extensions):
 SCR-023, SCR-024, SCR-027, SCR-035, SCR-036, SCR-053, SCR-054

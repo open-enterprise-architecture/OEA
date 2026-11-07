@@ -14,6 +14,7 @@ import io.oea.app.access.PasswordResets;
 import io.oea.app.access.SelfAdministrationException;
 import io.oea.app.access.SodConflictException;
 import io.oea.app.catalog.InvalidCatalogException;
+import io.oea.app.navigation.InvalidTreeException;
 import io.oea.app.catalog.InvalidCatalogQueryException;
 import io.oea.app.entity.AtomicBatchFailedException;
 import io.oea.app.entity.BatchRejectedException;
@@ -361,6 +362,12 @@ public class ApiExceptionHandler {
 		return ex.isNameTaken()
 				? catalogProblem("catalog-name-taken", "Catalog name taken", ex.getMessage(), ex.getInvalidFields())
 				: catalogProblem("validation-failed", "Invalid catalog", ex.getMessage(), ex.getInvalidFields());
+	}
+
+	@ExceptionHandler(InvalidTreeException.class)
+	ResponseEntity<ProblemDetail> invalidTree(InvalidTreeException ex) {
+		return catalogProblem("validation-failed", "Invalid navigation tree change", ex.getMessage(),
+				ex.getInvalidFields());
 	}
 
 	/** A permission required by a contract condition is missing: the filter's generic 403 (REQ-158). */

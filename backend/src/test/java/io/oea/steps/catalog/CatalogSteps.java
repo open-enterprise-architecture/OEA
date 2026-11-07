@@ -43,8 +43,8 @@ public class CatalogSteps {
 		}
 	}
 
-	/** The instance shared with the catalog query steps. */
-	static RepositoryInstance shared() {
+	/** The instance shared with the catalog query and navigation tree steps. */
+	public static RepositoryInstance shared() {
 		return shared;
 	}
 

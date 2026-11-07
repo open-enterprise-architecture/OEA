@@ -4,9 +4,9 @@ title: Navigation tree multiple placement of objects
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-28
-last_updated: 2026-06-28
+last_updated: 2026-11-07
 author: requirements-engineer
 references:
   use_cases:
@@ -51,12 +51,14 @@ An application cluster can belong to the domain "Finance" and to the initiative 
 
 ## Implementation Notes
 
-- No unique constraint on `(folderId, referenceId)` — multiple placement explicitly allowed
+- Multiple placement across folders is allowed; within one folder an object appears once (unique index on `(tree_node_id, item_type, reference_id)`, tree-node BR-06, realigned 2026-11-06)
 - TreeNodeItem has its own ID (`referenceId`) independent of the referenced object
 - No database model duplicate of the object; only the link entry is created multiple times
+- Implemented for catalogs by the OpenSpec change `us-054-catalog-navigation-tree`
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-07 | Solution Architect | Once per folder; implementation note for catalogs (us-054-catalog-navigation-tree) |

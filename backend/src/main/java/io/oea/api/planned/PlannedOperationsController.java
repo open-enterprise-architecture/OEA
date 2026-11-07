@@ -6,7 +6,6 @@ import io.oea.api.generated.EntitiesApi;
 import io.oea.api.generated.EventsApi;
 import io.oea.api.generated.PortalApi;
 import io.oea.api.generated.ViewsEditorsApi;
-import io.oea.api.generated.ViewsNavigationApi;
 import java.util.Optional;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -19,7 +18,7 @@ import org.springframework.web.context.request.NativeWebRequest;
  */
 @RestController
 public class PlannedOperationsController implements AnalyticsApi, AuditApi, EntitiesApi, EventsApi,
-		PortalApi, ViewsEditorsApi, ViewsNavigationApi {
+		PortalApi, ViewsEditorsApi {
 
 	/** Every interface declares this default; no example responses are rendered. */
 	@Override

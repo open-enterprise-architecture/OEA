@@ -291,6 +291,7 @@ frontmatter and reference sections of the artifacts.
 
 | REQ | Title | Type | Priority | USs |
 |---|---|---|---|---|
+| [REQ-050](req/REQ-050-catalog-navigation-tree.md) | Place a catalog in the navigation tree | functional | should | [US-054](user-stories/US-054-catalog-navigation-tree.md) |
 | [REQ-094](req/REQ-094-navigation-tree-folder-crud.md) | Navigation tree folder CRUD | functional | must | [US-094](user-stories/US-094-navigation-tree-folder-crud.md) |
 | [REQ-095](req/REQ-095-navigation-tree-item-soft-reference.md) | Navigation tree items as soft references | functional | must | [US-095](user-stories/US-095-navigation-tree-item-soft-reference.md) |
 | [REQ-096](req/REQ-096-navigation-tree-drag-drop.md) | Navigation tree drag & drop with cycle protection | functional | must | [US-096](user-stories/US-096-navigation-tree-drag-drop.md) |

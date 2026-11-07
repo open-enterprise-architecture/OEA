@@ -9,6 +9,8 @@ covers:
 
 Ein Katalog ist eine wiederverwendbare Tabellenansicht des Repositorys. Er zeigt die Entitäten eines Entitätstyps als Zeilen. Du brauchst die Berechtigung `entity:read` (zum Beispiel die Rolle `viewer`), um Kataloge zu sehen und persönliche anzulegen; geteilte Kataloge brauchen `catalog:manage` (Rolle `enterprise-architect`).
 
+Die Seitenleiste ordnet Kataloge in Ordnern; *In Navigation einordnen* auf einem Katalog fügt ihn dort ein (siehe [Navigationsbaum](./navigation)).
+
 ## Katalog anlegen
 
 1. Wähle *Kataloge* in der Kopfzeile, dann *Neuer Katalog*.

@@ -2,6 +2,7 @@ import { reactive } from 'vue'
 import { fetchMe, logout, type Me } from '../api/session'
 import { browserLanguage, effectiveLanguage, setLanguage } from '../i18n'
 import { clearLabels, startLabels } from '../i18n/labels'
+import { clearTree } from '../navigation/store'
 
 /** The current principal as known to the pages; refreshed from GET /me. */
 export const session = reactive<{ me?: Me; loaded: boolean }>({ loaded: false })
@@ -37,6 +38,7 @@ export async function endSession(fetchFn?: typeof fetch): Promise<void> {
   } finally {
     session.me = undefined
     clearLabels()
+    clearTree()
     setLanguage(browserLanguage())
   }
 }

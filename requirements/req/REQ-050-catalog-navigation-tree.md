@@ -4,13 +4,14 @@ title: Place a catalog in the navigation tree
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-07
 author: requirements-engineer
 references:
   use_cases:
     - UC-06
+    - UC-13
   business_objects:
     - catalog
     - tree-node
@@ -22,7 +23,8 @@ references:
     - SH-03
     - SH-07
   concept: []
-  adrs: []
+  adrs:
+    - ADR-032
 supersedes: []
 superseded_by: []
 ---
@@ -31,7 +33,7 @@ superseded_by: []
 
 ## Statement
 
-The system MUST allow the catalog manager to assign a [Catalog](../../business-objects/catalog.md) to one or more [TreeNode](../../business-objects/tree-node.md) nodes as a `TreeNodeItem` (itemType=`catalog`, referenceId=catalogId). The **soft reference principle** applies: the same catalog MAY appear in several nodes (BR-06); removing a `TreeNodeItem` MUST NOT delete the catalog record (BR-05). The catalog MUST be directly openable by clicking the TreeNode entry in the navigation tree.
+The system MUST allow a person with `viewpoint:manage` to assign a [Catalog](../../business-objects/catalog.md) to one or more [TreeNode](../../business-objects/tree-node.md) nodes as a `TreeNodeItem` (itemType=`catalog`, referenceId=catalogId). The **soft reference principle** applies: the same catalog MAY appear in several nodes (BR-06); removing a `TreeNodeItem` MUST NOT delete the catalog record (BR-05). A catalog SHALL appear at most once per node. The catalog MUST be directly openable by clicking the TreeNode entry in the navigation tree. An entry on a personal catalog MUST be shown only to the creator of the catalog.
 
 ## Rationale
 
@@ -45,21 +47,22 @@ The navigation tree is a shared structure for all repository content: entities, 
 
 ### For type=functional
 
-**Inputs (attach catalog to tree)**:
+**Inputs (attach catalog to tree)**, `POST /tree-nodes/{nodeId}/items` (realigned 2026-11-06):
 
 | Field | Type | Optional | Description |
 |---|---|---|---|
-| catalogId | string | mandatory | UUID of the catalog to attach |
-| parentNodeId | string | mandatory | UUID of the target TreeNode (must exist) |
-| displayLabel | string | optional | Overrides the catalog name in the tree |
-| sortOrder | integer | optional | Order within the node; default: at the end |
+| nodeId | string | mandatory | UUID of the target TreeNode in the path (must exist) |
+| itemType | enum | mandatory | `catalog` |
+| referenceId | string | mandatory | UUID of the catalog to attach |
+| displayLabel | string | optional | Overrides the catalog name in the tree; trimmed, at most 255 characters |
 
 **Processing**:
 
-1. Check that the catalog exists (BR-04); 404 otherwise
+1. Check the permission `viewpoint:manage`; 403 otherwise
 2. Check that the target TreeNode exists; 404 otherwise
-3. TreeNodeItem anlegen: `{ itemType: "catalog", referenceId: catalogId, parentNodeId, displayLabel, sortOrder }`
-4. Soft reference: the same catalog can be attached to several nodes; no duplicate prevention at `referenceId` level
+3. Check that the catalog exists and is visible to the person (BR-04); 422 naming `referenceId` otherwise, so that another person's personal catalog is not revealed
+4. Create the TreeNodeItem `{ itemType: "catalog", referenceId, displayLabel }`; `sortOrder` stays 0 until manual ordering (REQ-096)
+5. Soft reference: the same catalog can be attached to several nodes, but only once per node (422 naming `referenceId`); a node has at most 200 entries
 
 **Processing (remove catalog from tree)**:
 
@@ -68,9 +71,10 @@ The navigation tree is a shared structure for all repository content: entities, 
 
 **Outputs**:
 
-- HTTP 201 Created with the new TreeNodeItem
-- HTTP 404 Not Found if the catalog or TreeNode does not exist
-- HTTP 403 Forbidden on missing write permission
+- HTTP 201 Created with the whole tree as the person sees it
+- HTTP 404 Not Found if the TreeNode does not exist; HTTP 422 for an invalid or unknown catalog
+- HTTP 403 Forbidden without `viewpoint:manage`
+- Reading the tree (`GET /views/explorer`) leaves out entries on other persons' personal catalogs and entries whose catalog no longer exists
 
 ## Acceptance Criteria
 
@@ -104,17 +108,19 @@ The navigation tree is a shared structure for all repository content: entities, 
 
 ## Dependencies
 
-- Blocked by: REQ-043 (the catalog must exist), TreeNode implementation (separate REQ still pending)
+- Blocked by: REQ-043 (the catalog must exist), REQ-094 (folders; implemented in the same change)
 - Related: REQ-046 (opening the catalog from the tree)
 
 ## Implementation Notes
 
 - Endpoint: `POST /api/v1/tree-nodes/{nodeId}/items` (generic for all item types)
 - Removal: `DELETE /api/v1/tree-nodes/{nodeId}/items/{itemId}` (deletes only the TreeNodeItem, not the catalog)
-- Navigation tree response: TreeNode with items[] contains for each catalog item: type=catalog, referenceId, displayLabel, catalogName (for display when no displayLabel is set)
+- Navigation tree response: TreeNode with items[] contains for each catalog item: `itemType` `catalog`, `referenceId`, `displayLabel`, `name` (the current catalog name, for display when no displayLabel is set) and `scope`
+- Implemented by the OpenSpec change `us-054-catalog-navigation-tree`: the sidebar SCR-055 and "Place in navigation" in SCR-020
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft |
+| 0.2.0 | 2026-11-07 | Solution Architect | Realigned with us-054-catalog-navigation-tree: inputs `itemType`/`referenceId` under the folder path, permission `viewpoint:manage`, once per node, personal catalogs visible only to their creator, the response with the whole tree |
