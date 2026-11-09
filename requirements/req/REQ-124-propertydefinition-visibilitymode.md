@@ -93,7 +93,7 @@ The split of `allowedRoles` into `readRoles`/`writeRoles` changes the data model
 
 ## Implementation Notes
 
-- Implemented by OpenSpec change `us-124-property-visibility`: the fields are `visibility_mode` and `scoping_connection_type_id` of `property_definitions` (V5) and the table `property_visibility_roles` (V23) for `readRoles` and `writeRoles`; `GET`/`PUT /admin/property-visibility` read and change them with `visibility:configure`, every change gets a new version and the audit event `visibility.changed`
+- Implemented by OpenSpec change `us-124-property-visibility`, commit db91ffb (#210): the fields are `visibility_mode` and `scoping_connection_type_id` of `property_definitions` (V5) and the table `property_visibility_roles` (V23) for `readRoles` and `writeRoles`; `GET`/`PUT /admin/property-visibility` read and change them with `visibility:configure`, every change gets a new version and the audit event `visibility.changed`
 - The metamodel endpoints show `visibility` read-only; a connection metatype used as `scopingConnectionType` cannot be deleted (409 `in-use`)
 - Enforcement of the modes on reading and writing: US-126 (`role-restricted`) and US-127 (`connection-scoped`)
 
