@@ -2,16 +2,20 @@
 title: Property visibility
 covers:
   screens: [SCR-032]
-  stories: [US-124, US-125]
+  stories: [US-124, US-125, US-126]
 ---
 
 # Property visibility
 
 Some properties should not be visible to everyone who can read an entity, such as investment costs or a security classification. Security administration decides for each property who may see and write its values. You need the role `security-admin` (permission `visibility:configure`); metamodel administrators cannot change the visibility (see [Roles and permissions](./roles-and-permissions)).
 
-::: warning Enforcement follows
-In this version you configure the visibility. A property that is not *Public* stays hidden in catalogs and cannot be written until reading and writing it by role or connection follow in the next versions.
-:::
+## What the visibility does
+
+- **Role-based** properties are enforced in catalogs, in the portal and when writing entities:
+  - Without a read role, a column on the property shows a lock and empty cells and cannot be sorted or filtered.
+  - Without a write role, a batch or connection that sets or removes its value is rejected with `403`.
+  - The old and new values of such a property are stored encrypted in the audit log.
+- **Connection-based** properties stay hidden and cannot be written until their enforcement follows in a later version.
 
 ## The page
 

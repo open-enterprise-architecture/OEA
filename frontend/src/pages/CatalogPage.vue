@@ -233,9 +233,12 @@ const filterColumns = computed<FilterColumn[]>(() => {
     return []
   }
   return [
-    ...shown.value.columns.map((column) => ({ key: column.key, label: column.label, filterType: column.filterType, enumValues: column.enumValues })),
+    // a column whose property the reader may not see cannot be filtered (us-126-role-restricted-enforcement D6)
+    ...shown.value.columns
+      .filter((column) => column.readable !== false)
+      .map((column) => ({ key: column.key, label: column.label, filterType: column.filterType, enumValues: column.enumValues })),
     ...(shown.value.joins ?? []).flatMap((join) =>
-      join.columns.map((column) => ({
+      join.columns.filter((column) => column.readable !== false).map((column) => ({
         key: `${join.id}.${column.key}`,
         label: column.label,
         group: join.name,

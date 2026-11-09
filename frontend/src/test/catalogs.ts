@@ -286,6 +286,8 @@ export function catalogApi(
     rejectCursors?: boolean
     /** Answers every query with this status: 503 `query-timeout` or another failure. */
     queryFails?: 503 | 500
+    /** Column keys whose values the reader may not see (us-126-role-restricted-enforcement). */
+    unreadable?: string[]
   } = {},
 ): typeof fetch {
   // the catalog is state: saving columns changes what the next query returns (US-047)
@@ -327,7 +329,8 @@ export function catalogApi(
         const key = column.field ?? definition!.sqlColumnName
         const name = definition?.name ?? key[0]!.toUpperCase() + key.slice(1)
         const label = column.endpoint ? (key === 'name' ? side(column.endpoint) : `${side(column.endpoint)}: ${name}`) : name
-        return { key: column.endpoint ? `${column.endpoint}.${key}` : key, label: column.displayLabel ?? label, sortable: column.sortable !== false, ...typeOf(key) }
+        const restricted = options.unreadable?.includes(key) ? { readable: false, sortable: false } : {}
+        return { key: column.endpoint ? `${column.endpoint}.${key}` : key, label: column.displayLabel ?? label, sortable: column.sortable !== false, ...typeOf(key), ...restricted }
       })
     if (configured.length > 0) {
       return configured
@@ -608,7 +611,7 @@ export function catalogApi(
       rows: sorted.slice(page * pageSize, (page + 1) * pageSize).map((application) => ({
         entityId: applications.findIndex((candidate) => candidate.name === application.name) + 1,
         values: Object.fromEntries(
-          columns.map((column) => [column.key, valueOf(application, column.key) ?? null]),
+          columns.map((column) => [column.key, (column as { readable?: boolean }).readable === false ? null : (valueOf(application, column.key) ?? null)]),
         ),
         joinResults: Object.fromEntries(
           joins.map((join) => [

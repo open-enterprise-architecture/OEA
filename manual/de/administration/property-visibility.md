@@ -2,16 +2,20 @@
 title: Sichtbarkeit von Eigenschaften
 covers:
   screens: [SCR-032]
-  stories: [US-124, US-125]
+  stories: [US-124, US-125, US-126]
 ---
 
 # Sichtbarkeit von Eigenschaften
 
 Manche Eigenschaften sollen nicht alle sehen, die eine Entität lesen dürfen, etwa Investitionskosten oder eine Sicherheitseinstufung. Die Sicherheitsadministration legt für jede Eigenschaft fest, wer ihre Werte sehen und schreiben darf. Du brauchst die Rolle `security-admin` (Berechtigung `visibility:configure`); Metamodell-Administratoren können die Sichtbarkeit nicht ändern (siehe [Rollen und Berechtigungen](./roles-and-permissions)).
 
-::: warning Durchsetzung folgt
-In dieser Version konfigurierst du die Sichtbarkeit. Eine Eigenschaft, die nicht *Öffentlich* ist, bleibt in Katalogen ausgeblendet und lässt sich nicht schreiben, bis Lesen und Schreiben nach Rolle oder Verbindung in den nächsten Versionen folgen.
-:::
+## Was die Sichtbarkeit bewirkt
+
+- **Rollenbasierte** Eigenschaften werden in Katalogen, im Portal und beim Schreiben von Entitäten durchgesetzt:
+  - Ohne Leserolle zeigt eine Spalte zur Eigenschaft ein Schloss und leere Zellen und lässt sich weder sortieren noch filtern.
+  - Ohne Schreibrolle wird ein Batch oder eine Verbindung, die ihren Wert setzt oder entfernt, mit `403` abgelehnt.
+  - Alte und neue Werte einer solchen Eigenschaft werden verschlüsselt im Audit-Log gespeichert.
+- **Verbindungsbasierte** Eigenschaften bleiben ausgeblendet und lassen sich nicht schreiben, bis ihre Durchsetzung in einer späteren Version folgt.
 
 ## Die Seite
 

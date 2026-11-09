@@ -45,6 +45,7 @@ Die Liste *Kataloge* zeigt jeden Katalog, den du sehen darfst, markiert mit *Get
 - Die Tabelle zeigt 50 Einträge pro Seite; mit der Seitennavigation unter der Tabelle wechselst du zwischen den Seiten.
 - Sortierung und Seite sind Teil der Adresse der Seite. Zurücknavigation, Neuladen oder ein geteilter Link stellen dieselbe Ansicht wieder her; ungültige Werte in der Adresse werden ignoriert, und die erste Seite wird in der Standardreihenfolge gezeigt.
 - Hat der Entitätstyp noch keine Entitäten, zeigt die Tabelle *Keine Einträge gefunden*.
+- Eine Spalte zu einer Eigenschaft, deren Werte du nicht sehen darfst, zeigt ein Schloss im Spaltenkopf und leere Zellen; du kannst nicht nach ihr sortieren oder filtern (siehe [Sichtbarkeit von Eigenschaften](../administration/property-visibility)).
 - Eine Abfrage, die länger dauert als die Zeitgrenze deiner Installation (standardmäßig 10 Sekunden), wird abgebrochen, und die Tabelle zeigt *Die Abfrage hat zu lange gedauert*. Schränke die Filter ein oder schalte Joins auf kompakt und versuche es erneut.
 - Den persönlichen Katalog einer anderen Person kannst du nicht öffnen; er verhält sich wie ein Katalog, den es nicht gibt (*Katalog nicht gefunden*).
 
@@ -52,6 +53,7 @@ Die Liste *Kataloge* zeigt jeden Katalog, den du sehen darfst, markiert mit *Get
 
 - Eine Seite mit einer Folgeseite trägt `nextCursor`. Sende ihn als `cursor` zusammen mit `page` + 1, um die nächste Seite schneller zu lesen; Zeilen und Gesamtzahl sind dieselben wie mit `page` allein.
 - Ein Cursor gilt nur für dieselbe Abfrage (Spalten oder Ansicht, Sortierung, Join-Modi, Filter, Seitengröße) und bis sich der Katalog ändert oder das Backend neu startet. Sonst antwortet die Abfrage mit 400 und `cursor` in `invalidFields`; wiederhole sie ohne Cursor.
+- Eine Spalte, deren Eigenschaft du nicht lesen darfst, hat `readable: false` und `null` als Werte; Sortieren oder Filtern nach ihr antwortet mit 400.
 - Eine Abfrage über der Zeitgrenze antwortet mit 503 und dem Problemtyp `urn:oea:problem:query-timeout` (*Query took too long*).
 
 ## Filter {#filters}

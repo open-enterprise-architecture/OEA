@@ -134,9 +134,10 @@ public final class EntityValidator {
 				errors.add(new Issue(field + ".propertyDefId", "INVALID_VALUE", "The property is listed twice."));
 				continue;
 			}
-			if (!writable(mapping.definition())) {
+			if (!rules.writable(mapping.definition())) {
+				// the batch rejects a role-restricted property without a write role first (403, us-126 D3)
 				errors.add(new Issue(field + ".propertyDefId", "RESTRICTED_PROPERTY_NOT_SUPPORTED",
-						"Properties with restricted visibility cannot be written yet."));
+						"Properties with connection-based visibility cannot be written yet."));
 				continue;
 			}
 			if (property.value() == null || property.value().isEmpty()) {
@@ -154,7 +155,7 @@ public final class EntityValidator {
 			if (values.containsKey(mapping.definition().id())) {
 				continue;
 			}
-			if (!writable(mapping.definition())) {
+			if (!rules.writable(mapping.definition())) {
 				// only properties the writer can change are checked (us-032-metatype-editing D7)
 				continue;
 			}
@@ -173,11 +174,6 @@ public final class EntityValidator {
 		Fields fields = new Fields(metatype.id(), name, description, logical,
 				(existing != null) ? existing.externalId() : input.externalId());
 		return new Checked(errors, warnings, metatype, fields, values);
-	}
-
-	/** Whether the writer can change the property; today only public properties are writable (REQ-160 AC4). */
-	private static boolean writable(MetatypeRules.Definition definition) {
-		return "public".equals(definition.visibilityMode());
 	}
 
 	private static TypedValue convert(MetatypeRules.Definition definition, String value, References references) {

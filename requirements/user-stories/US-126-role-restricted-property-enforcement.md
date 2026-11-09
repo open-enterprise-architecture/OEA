@@ -2,8 +2,9 @@
 
 **ID**: US-126
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: in-progress
+**Sprint**: S10
+**Implementation**: OpenSpec change `us-126-role-restricted-enforcement` – AC3 (a value of a role-restricted property without a write role is rejected with 403, the whole batch) and AC4 (a catalog or portal column without a read role is empty, `readable: false`, and cannot be sorted or filtered; owner decision 2026-11-08: the column stays visible). AC1 and AC2 (entity API and entity form) follow with the entity detail, which does not exist yet
 
 ## Story
 

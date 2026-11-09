@@ -59,7 +59,8 @@ class MigrationStepTests {
 
 		assertThat(query("SELECT tablename || ':' || tableowner FROM pg_tables WHERE schemaname = 'audit' ORDER BY 1"))
 			.containsExactly("chain_head:oea_owner", "event_changes:oea_owner", "events:oea_owner",
-					"flyway_schema_history:oea_owner", "retention_settings:oea_owner");
+					"flyway_schema_history:oea_owner", "retention_settings:oea_owner",
+					"value_keys:oea_owner");
 		assertThat(query("""
 				SELECT nspname || ':' || pg_get_userbyid(nspowner) FROM pg_namespace
 				WHERE nspname IN ('reporting', 'reporting_ctx') ORDER BY 1"""))

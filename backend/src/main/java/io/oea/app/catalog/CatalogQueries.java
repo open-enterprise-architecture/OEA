@@ -1,6 +1,7 @@
 package io.oea.app.catalog;
 
 import io.oea.app.catalog.CatalogColumns.Resolved;
+import io.oea.app.metamodel.PropertyAccess;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
@@ -59,9 +60,12 @@ public class CatalogQueries {
 
 	private final long timeoutMillis;
 
+	private final PropertyAccess access;
+
 	CatalogQueries(Catalogs catalogs, CatalogQueryStore store, CatalogColumns columns, CatalogCursors cursors,
 			CatalogQueryMetrics metrics, AuditWriter audit, PlatformTransactionManager transactionManager,
-			CatalogQueryProperties properties) {
+			CatalogQueryProperties properties, PropertyAccess access) {
+		this.access = access;
 		this.catalogs = catalogs;
 		this.store = store;
 		this.columns = columns;
@@ -97,7 +101,18 @@ public class CatalogQueries {
 	 * {@code text}, {@code enum}, {@code boolean}, {@code number} or {@code date};
 	 * {@code enumValues} lists the values of an enum column and is {@code null} for other types.
 	 */
-	public record Column(String key, String label, boolean sortable, String filterType, List<String> enumValues) {
+	public record Column(String key, String label, boolean sortable, String filterType, List<String> enumValues,
+			boolean readable) {
+
+		public Column(String key, String label, boolean sortable, String filterType, List<String> enumValues) {
+			this(key, label, sortable, filterType, enumValues, true);
+		}
+
+		/** The column for a reader who may not see its values: not readable and not sortable. */
+		Column redacted() {
+			return new Column(this.key, this.label, false, this.filterType, this.enumValues, false);
+		}
+
 	}
 
 	/**
@@ -229,6 +244,7 @@ public class CatalogQueries {
 		String filterMode = request.filterMode();
 		UUID view = request.view();
 		Catalogs.Catalog catalog = this.catalogs.get(principal, catalogId);
+		PropertyAccess.Snapshot access = this.access.of(principal);
 		List<String> invalid = new ArrayList<>();
 		if (page < 0) {
 			invalid.add("page");
@@ -236,7 +252,10 @@ public class CatalogQueries {
 		if (pageSize < 1 || pageSize > MAX_PAGE_SIZE) {
 			invalid.add("pageSize");
 		}
-		List<Resolved> columns = this.columns.primary(catalog.primaryMetatypeId(), catalog.columns());
+		List<Resolved> columns = this.columns.primary(catalog.primaryMetatypeId(), catalog.columns())
+			.stream()
+			.map((column) -> readable(column, access))
+			.toList();
 		if (view != null) {
 			Catalogs.SavedView saved = catalog.savedViews()
 				.stream()
@@ -252,7 +271,7 @@ public class CatalogQueries {
 				columns = saved.columnOrder().stream().map(byKey::get).toList();
 			}
 		}
-		List<ResolvedJoin> available = joins(catalog, (joinModes != null) ? joinModes : Map.of(), invalid);
+		List<ResolvedJoin> available = joins(catalog, (joinModes != null) ? joinModes : Map.of(), invalid, access);
 		List<ResolvedJoin> rowsJoins = available.stream().filter(ResolvedJoin::rows).toList();
 		Sort applied = null;
 		CatalogQueryStore.Sort storeSort = CatalogQueryStore.Sort.DEFAULT;
@@ -394,14 +413,18 @@ public class CatalogQueries {
 	 * catalog's. An override for an unknown or unavailable join, or with another value than
 	 * {@code rows} or {@code aggregate}, adds {@code joinMode} to {@code invalid}.
 	 */
-	private List<ResolvedJoin> joins(Catalogs.Catalog catalog, Map<String, String> modes, List<String> invalid) {
+	private List<ResolvedJoin> joins(Catalogs.Catalog catalog, Map<String, String> modes, List<String> invalid,
+			PropertyAccess.Snapshot access) {
 		Map<String, String> remaining = new LinkedHashMap<>(modes);
 		List<ResolvedJoin> joins = new ArrayList<>();
 		for (Catalogs.Join join : catalog.joins()) {
 			if (!join.available()) {
 				continue;
 			}
-			List<Resolved> columns = this.columns.configured(join.targetMetatypeId(), join.targetColumns());
+			List<Resolved> columns = this.columns.configured(join.targetMetatypeId(), join.targetColumns())
+				.stream()
+				.map((column) -> readable(column, access))
+				.toList();
 			if (columns.isEmpty()) {
 				continue;
 			}
@@ -417,7 +440,7 @@ public class CatalogQueries {
 			List<Column> results = columns.stream()
 				.map((column) -> new Column(column.result().key(), column.result().label(),
 						rows && column.result().sortable(), column.result().filterType(),
-						column.result().enumValues()))
+						column.result().enumValues(), column.result().readable()))
 				.toList();
 			joins.add(new ResolvedJoin(join,
 					new CatalogQueryStore.Join(join.connectionMetatypeId(),
@@ -457,7 +480,8 @@ public class CatalogQueries {
 		for (String text : filters) {
 			FilterRules.Expression expression = (text != null) ? FilterRules.parse(text) : null;
 			CatalogColumns.Filterable column = (expression != null) ? filterable.get(expression.key()) : null;
-			if (column == null) {
+			if (column == null || !column.column().result().readable()) {
+				// no filter on a column the caller may not read (design D2 of us-126-role-restricted-enforcement)
 				return false;
 			}
 			Condition condition;
@@ -475,6 +499,19 @@ public class CatalogQueries {
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * The column as the caller may see it (design D2 of us-126-role-restricted-enforcement): a
+	 * property the caller may not read becomes a redacted column without values that cannot be
+	 * sorted or filtered.
+	 */
+	private static Resolved readable(Resolved column, PropertyAccess.Snapshot access) {
+		CatalogQueryStore.QueryColumn query = column.column();
+		if (query.property() == null || access.readable(query.property().propertyDefId())) {
+			return column;
+		}
+		return new Resolved(CatalogQueryStore.QueryColumn.redacted(), column.result().redacted(), null);
 	}
 
 	/**

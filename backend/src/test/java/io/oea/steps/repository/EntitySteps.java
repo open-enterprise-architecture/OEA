@@ -259,6 +259,29 @@ public class EntitySteps {
 			.containsExactly(property + "=" + value);
 	}
 
+	@Given("the role-restricted property {string} of {string} that the role {string} reads and writes")
+	public void restrictedProperty(String property, String metatype, String role) throws Exception {
+		shared.oidc().update("""
+				WITH property AS (
+				    INSERT INTO property_definitions (name, sql_column_name, data_type, visibility_mode)
+				    VALUES ('%1$s', 'p_' || substr(md5('%1$s'), 1, 12), 'string', 'role-restricted') RETURNING id),
+				roles AS (
+				    INSERT INTO property_visibility_roles (property_def_id, role_id, access)
+				    SELECT id, '%3$s', access FROM property, unnest(ARRAY['read', 'write']) AS access)
+				INSERT INTO metatype_property_mappings (metatype_id, property_def_id, necessity, valid_from, scope)
+				SELECT (SELECT id FROM metatypes WHERE name = '%2$s'), id, 'optional', DATE '2026-01-01', 'organization'
+				FROM property""".formatted(property, metatype, role));
+	}
+
+	@Then("the audit change of {string} for {string} is encrypted")
+	public void encryptedChange(String property, String entity) throws Exception {
+		assertThat(shared.oidc().single("""
+				SELECT c.value_protection || '/' || (c.new_value IS NULL) || '/' || (c.new_value_enc IS NOT NULL)
+				FROM audit.event_changes c JOIN audit.events e ON e.id = c.event_id
+				WHERE e.entity_name = '%s' AND c.property_name = '%s'""".formatted(entity, property)))
+			.isEqualTo("encrypted/true/true");
+	}
+
 	@Then("the item is reported as {string}")
 	public void reportedAs(String status) {
 		assertThat(item(0).path("status").asString()).isEqualTo(status);

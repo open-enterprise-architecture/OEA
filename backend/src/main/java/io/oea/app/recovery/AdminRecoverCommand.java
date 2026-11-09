@@ -1,5 +1,6 @@
 package io.oea.app.recovery;
 
+import io.oea.audit.AuditValueCipher;
 import io.oea.audit.AuditWriter;
 import io.oea.config.secrets.SecretCipher;
 import io.oea.config.secrets.SecretsConfiguration;
@@ -72,7 +73,9 @@ public final class AdminRecoverCommand {
 			AdminRecovery recovery = new AdminRecovery(context.getBean(JdbcTemplate.class),
 					new TransactionTemplate(context.getBean(PlatformTransactionManager.class)),
 					context.getBean(SecretCipher.class), new PasswordHasher(),
-					new AuditWriter(context.getBean(JdbcTemplate.class)), Clock.systemUTC());
+					new AuditWriter(context.getBean(JdbcTemplate.class),
+							new AuditValueCipher(context.getBean(JdbcTemplate.class), context.getBean(SecretCipher.class))),
+					Clock.systemUTC());
 			return recover(recovery, terminal, Clock.systemUTC());
 		}
 		catch (Exception ex) {

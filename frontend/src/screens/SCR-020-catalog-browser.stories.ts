@@ -154,6 +154,26 @@ export const ConfiguredColumns: Story = {
 }
 
 
+// US-126: a column whose property the reader may not see, with a lock and empty cells
+export const RestrictedColumn: Story = {
+  render: () => ({
+    components: { CatalogPage },
+    setup: () => ({
+      fetchFn: catalogApi(APPLICATIONS, {
+        catalog: { ...CATALOG, columns: [{ field: 'name' }, { propertyDefId: VENDOR_DEFINITION.id }] },
+        unreadable: ['vendor'],
+      }),
+      id: CATALOG.id,
+    }),
+    template: '<CatalogPage :id="id" :fetch-fn="fetchFn" />',
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByTestId('restricted-vendor')).toBeInTheDocument()
+    await expect(canvas.queryByText('Salesforce')).toBeNull()
+  },
+}
+
 // US-048: the dialog "Joins" with the join "Interfaces" and the steps of a new join
 export const Joins: Story = {
   ...catalog(APPLICATIONS, {}, { catalog: { ...CATALOG, joinDefinitions: [INTERFACES_JOIN] } }),

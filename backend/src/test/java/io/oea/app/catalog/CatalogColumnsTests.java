@@ -163,7 +163,6 @@ class CatalogColumnsTests {
 		assertInvalid(columns(catalog, this.architect, field("name"), property(UUID.randomUUID())),
 				"columns[1].propertyDefId");
 		assertInvalid(columns(catalog, this.architect, property(unmapped)), "columns[0].propertyDefId");
-		assertInvalid(columns(catalog, this.architect, property(restricted)), "columns[0].propertyDefId");
 		assertInvalid(columns(catalog, this.architect, field("name"), field("name")), "columns[1]");
 		assertInvalid(columns(catalog, this.architect, field("name").put("propertyDefId", this.status.toString())),
 				"columns[0]");
@@ -173,6 +172,35 @@ class CatalogColumnsTests {
 		assertInvalid(columns(catalog, this.architect, field("name").put("defaultSortDirection", "asc"),
 				property(this.status).put("defaultSortDirection", "desc")), "columns");
 		assertThat(ok(call(HttpMethod.GET, CATALOGS + "/" + catalog, null, this.architect)).path("columns")).isEmpty();
+	}
+
+	// us-126-role-restricted-enforcement: "Restricted property offered"
+
+	@Test
+	void restrictedPropertyOfferedAndRetiredRejected() {
+		String catalog = catalog("instance", this.architect);
+		UUID cost = publicProperty("Investment Cost " + suffix());
+		UUID retired = publicProperty("Retired " + suffix());
+		map(this.type, cost);
+		map(this.type, retired);
+		this.jdbc.update("UPDATE property_definitions SET visibility_mode = 'role-restricted' WHERE id = ?", cost);
+		this.jdbc.update("UPDATE property_definitions SET retired_at = now() WHERE id = ?", retired);
+		assertInvalid(columns(catalog, this.architect, field("name"), property(retired)), "columns[1].propertyDefId");
+		JsonNode saved = ok(columns(catalog, this.architect, field("name"), property(cost)));
+		assertThat(saved.path("columns")).hasSize(2);
+	}
+
+	@Test
+	void defaultColumnsKeepAPublicStatusOnly() {
+		String catalog = catalog("instance", this.architect);
+		assertThat(keys(ok(query(catalog, "", this.architect)))).containsExactly("name", "status");
+		this.jdbc.update("UPDATE property_definitions SET visibility_mode = 'role-restricted' WHERE id = ?", this.status);
+		try {
+			assertThat(keys(ok(query(catalog, "", this.architect)))).containsExactly("name");
+		}
+		finally {
+			this.jdbc.update("UPDATE property_definitions SET visibility_mode = 'public' WHERE id = ?", this.status);
+		}
 	}
 
 	@Test
