@@ -744,6 +744,13 @@ components:
           description: Key of the column in `CatalogRow.values` and in the `sort` and `filter` parameters (`name` or the `sqlColumnName` of a property; `source.{key}` or `target.{key}` for an attribute of the connection's source or target, US-080)
         label:    { type: string, description: Column header }
         sortable: { type: boolean }
+        readable:
+          type: boolean
+          default: true
+          description: |
+            `false` if the caller may not read the column's property (property visibility,
+            REQ-126, REQ-160): its values are `null` in every row and join result, and it can be
+            neither sorted nor filtered
         filterType:
           type: string
           enum: [text, enum, boolean, number, date]
@@ -4687,8 +4694,9 @@ paths:
           description: |
             Invalid paging, sort, join mode, filter or cursor parameters (problem type
             `urn:oea:problem:validation-failed`), e.g. an unknown sort column, several sort pairs,
-            a page size above 200, an unknown join, a filter on an unknown column or a cursor of
-            another query; `invalidFields` names the rejected parameters.
+            a page size above 200, an unknown join, a filter on an unknown column, a sort or filter
+            on a column the caller may not read, or a cursor of another query; `invalidFields`
+            names the rejected parameters.
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/CatalogQueryProblem' }
@@ -8270,7 +8278,9 @@ paths:
         `X-Agent-Id` is stored only as the informational audit field `agent_label`
         (ADR-033 §7). A batch with a connection of a metatype that is the
         `scopingConnectionType` of a property definition needs `visibility-scope:assign`;
-        without it the whole batch is rejected with 403 (REQ-161).
+        without it the whole batch is rejected with 403 (REQ-161). A value of a
+        `role-restricted` property, set or removed, needs one of its write roles; without it
+        the whole batch is rejected with 403 (REQ-126). A property not named keeps its value.
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"], "conditions": [{"when": "a connection of a type used as scopingConnectionType is written", "permissions": ["visibility-scope:assign"]}]}
       parameters:
@@ -8322,7 +8332,8 @@ paths:
         cannot change afterwards. Without `name` the connection is named
         `<source name> → <target name>`. Properties are checked as for entities. A connection
         of a metatype that is the `scopingConnectionType` of a property definition also needs
-        `visibility-scope:assign`, otherwise 403 (REQ-161).
+        `visibility-scope:assign`, otherwise 403 (REQ-161). A value of a `role-restricted`
+        property needs one of its write roles, otherwise 403 (REQ-126).
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"], "conditions": [{"when": "a connection of a type used as scopingConnectionType is written", "permissions": ["visibility-scope:assign"]}]}
       requestBody:
@@ -8659,8 +8670,9 @@ paths:
         '400':
           description: |
             Invalid paging, sort or cursor parameters (problem type
-            `urn:oea:problem:validation-failed`), e.g. an unknown sort column, a page size above
-            200 or a cursor of another query; `invalidFields` names the rejected parameters.
+            `urn:oea:problem:validation-failed`), e.g. an unknown sort column, a sort on a column
+            the reader may not read, a page size above 200 or a cursor of another query;
+            `invalidFields` names the rejected parameters.
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/CatalogQueryProblem' }

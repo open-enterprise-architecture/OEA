@@ -35,7 +35,9 @@ public final class ReencryptCommand {
 			new Target("auth_providers", "id", "client_secret_encrypted", "client_secret_key_id"),
 			new Target("sessions", "id", "idp_refresh_token_encrypted", "idp_refresh_token_key_id"),
 			new Target("oidc_login_states", "encode(state_hash, 'hex')", "code_verifier_encrypted",
-					"code_verifier_key_id"));
+					"code_verifier_key_id"),
+			// audit value keys are re-wrapped, the audit records never re-encrypted (ADR-033 §3)
+			new Target("audit.value_keys", "key_id", "wrapped_key", "kek_id"));
 
 	record Target(String table, String idColumn, String valueColumn, String keyColumn) {
 

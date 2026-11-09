@@ -34,6 +34,8 @@ export function portalApi(
     pageSize?: number
     /** Rejects every cursor with 400 `cursor`, as after a restart of the backend. */
     rejectCursors?: boolean
+    /** The reader may not see the status (us-126-role-restricted-enforcement). */
+    statusUnreadable?: boolean
   } = {},
 ): typeof fetch {
   const catalogs = (options.catalogs ?? SHARED_CATALOGS) as { id: string }[]
@@ -80,11 +82,13 @@ export function portalApi(
       return json({
         columns: [
           { key: 'name', label: 'Name', sortable: true, filterType: 'text' },
-          { key: 'status', label: 'Status', sortable: true, filterType: 'enum', enumValues: ['active', 'planned'] },
+          options.statusUnreadable
+            ? { key: 'status', label: 'Status', sortable: false, readable: false, filterType: 'enum', enumValues: ['active', 'planned'] }
+            : { key: 'status', label: 'Status', sortable: true, filterType: 'enum', enumValues: ['active', 'planned'] },
         ],
         rows: slice.map((application, index) => ({
           entityId: page * pageSize + index + 1,
-          values: { name: application.name, status: application.status ?? null },
+          values: { name: application.name, status: options.statusUnreadable ? null : (application.status ?? null) },
           joinResults: {},
         })),
         joins: [],

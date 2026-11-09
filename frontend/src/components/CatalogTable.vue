@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import UButton from '@nuxt/ui/components/Button.vue'
+import UIcon from '@nuxt/ui/components/Icon.vue'
 import type { TableColumn } from '@nuxt/ui'
 import { computed, h } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -34,6 +35,14 @@ function arrow(key: string): string {
 }
 
 function header(column: CatalogColumn, key: string) {
+  if (column.readable === false) {
+    // the reader may not see the values of this column (us-126-role-restricted-enforcement D6)
+    return () =>
+      h('span', { class: 'inline-flex items-center gap-1', 'data-testid': `restricted-${key}`, title: t('catalog.restrictedColumn') }, [
+        column.label,
+        h(UIcon, { name: 'i-lucide-lock', class: 'size-3.5 text-muted', 'aria-label': t('catalog.restrictedColumn') }),
+      ])
+  }
   return () =>
     column.sortable
       ? h(

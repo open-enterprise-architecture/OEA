@@ -4,9 +4,9 @@ title: Property visibility enforced on every read channel
 type: functional
 priority: must
 status: proposed
-version: 0.3.0
+version: 0.4.0
 created: 2026-10-13
-last_updated: 2026-11-07
+last_updated: 2026-11-09
 author: requirements-engineer
 references:
   use_cases:
@@ -122,6 +122,8 @@ Raw analytics (ADR-034): masking happens in the projection of the reporting view
 - Protected audit values: AES-256-GCM with a `key_id` of the audit value key (ADR-033 §3, resolving the ADR-024 plaintext storage)
 - Electron offline cache must only contain values the user may read (REQ-181)
 - Portal channel: implemented for the shared catalogs by the OpenSpec change `s9-portal-catalogs`, commit 3b6155f (#200) – `GET /portal/catalogs/{id}/query` is the catalog query, so only properties with visibility `public` appear as columns and sorting by another property is rejected (400)
+- AC2 for catalog and portal (OpenSpec change `us-126-role-restricted-enforcement`): a column on a property the caller cannot read is returned with `readable: false` and `null` values in rows and join results; a sort or filter on it is rejected with 400, so the result never depends on it
+- AC4 (same change): changes of properties whose visibility is not `public` are stored as AES-256-GCM ciphertext under an audit value key in `audit.value_keys`, wrapped by the key-encryption key of REQ-188 and re-wrapped by `oea secrets-reencrypt`; decryption for `audit:read` holders follows with the reading of audit changes
 
 ## Change History
 
@@ -130,3 +132,4 @@ Raw analytics (ADR-034): masking happens in the projection of the reporting view
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-02/16/25 (PR-04) |
 | 0.2.0 | 2026-10-13 | requirements-engineer | ADR-034: raw analytics (reporting schema) listed as read channel (statement, AC5). ADR-033 §3: audit change values encrypted only (keyed MAC option removed, AC4) |
 | 0.3.0 | 2026-11-07 | Solution Architect | Implementation note for the portal channel (s9-portal-catalogs) |
+| 0.4.0 | 2026-11-09 | Change us-126-role-restricted-enforcement | Implementation notes for AC2 (catalog, portal) and AC4 |

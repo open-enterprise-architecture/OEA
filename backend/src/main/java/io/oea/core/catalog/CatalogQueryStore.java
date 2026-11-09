@@ -161,7 +161,8 @@ public class CatalogQueryStore {
 	}
 
 	/**
-	 * A column of a page: a system field or a property, exactly one of them, of the entity or, with
+	 * A column of a page: a system field or a property, at most one of them (neither for a
+	 * {@linkplain #redacted() redacted} column), of the entity or, with
 	 * {@code endpoint}, of the source or target of the connection (US-080).
 	 */
 	public record QueryColumn(SystemField field, PropertyColumn property, Endpoint endpoint) {
@@ -176,6 +177,18 @@ public class CatalogQueryStore {
 
 		public QueryColumn at(Endpoint side) {
 			return new QueryColumn(this.field, this.property, side);
+		}
+
+		/**
+		 * A column whose values the reader may not see (design D2 of
+		 * us-126-role-restricted-enforcement): it selects {@code NULL} and reads no value.
+		 */
+		public static QueryColumn redacted() {
+			return new QueryColumn(null, null, null);
+		}
+
+		public boolean isRedacted() {
+			return this.field == null && this.property == null;
 		}
 
 	}
@@ -262,12 +275,15 @@ public class CatalogQueryStore {
 		return availableProperties(metatypeId, date).values()
 			.stream()
 			.filter((property) -> property.name().equalsIgnoreCase(name))
+			.filter((property) -> "public".equals(this.jdbc.queryForObject(
+					"SELECT visibility_mode FROM property_definitions WHERE id = ?", String.class, property.propertyDefId())))
 			.findFirst();
 	}
 
 	/**
 	 * The properties a catalog of the metatype can show: mapped to it or one of its base types on
-	 * the given date, not retired and {@code public} (US-047), by ID.
+	 * the given date and not retired (US-047), also restricted ones, whose values the query shows
+	 * only to readers (design D2 of us-126-role-restricted-enforcement), by ID.
 	 */
 	public Map<UUID, PropertyColumn> availableProperties(UUID metatypeId, LocalDate date) {
 		Map<UUID, PropertyColumn> properties = new LinkedHashMap<>();
@@ -281,7 +297,7 @@ public class CatalogQueryStore {
 				      FROM metatype_property_mappings WHERE metatype_id IN (SELECT id FROM chain) AND valid_from <= ?
 				      ORDER BY property_def_id, valid_from DESC) active
 				JOIN property_definitions p ON p.id = active.property_def_id
-				WHERE p.visibility_mode = 'public' AND p.retired_at IS NULL
+				WHERE p.retired_at IS NULL
 				ORDER BY lower(p.name), p.id""", (rs) -> {
 			UUID id = rs.getObject(1, UUID.class);
 			properties.put(id, new PropertyColumn(id, rs.getString(2), rs.getString(3), rs.getString(4)));
@@ -292,7 +308,7 @@ public class CatalogQueryStore {
 	/**
 	 * The properties a column of the source or target ({@code side} {@code source} or
 	 * {@code target}) of a connection metatype can show (design D2 of us-080-connection-catalogs):
-	 * {@code public}, not retired and mapped on the date to an allowed endpoint metatype of the
+	 * not retired and mapped on the date to an allowed endpoint metatype of the
 	 * side, one of its subtypes or one of their base types; without a constraint for the side, to
 	 * any metatype of the connection metatype's configuration. By ID, ordered by name.
 	 */
@@ -319,7 +335,7 @@ public class CatalogQueryStore {
 				      FROM metatype_property_mappings WHERE metatype_id IN (SELECT id FROM chain) AND valid_from <= ?
 				      ORDER BY metatype_id, property_def_id, valid_from DESC) active
 				JOIN property_definitions p ON p.id = active.property_def_id
-				WHERE p.visibility_mode = 'public' AND p.retired_at IS NULL
+				WHERE p.retired_at IS NULL
 				GROUP BY p.id, p.sql_column_name, p.name, p.data_type
 				ORDER BY lower(p.name), p.id""", (rs) -> {
 			UUID id = rs.getObject(1, UUID.class);
@@ -617,6 +633,9 @@ public class CatalogQueryStore {
 
 	/** The text form of a column of the entity {@code alias}; property values under {@code valueAlias}. */
 	private static String text(QueryColumn column, String alias, String valueAlias) {
+		if (column.isRedacted()) {
+			return "NULL::text";
+		}
 		return (column.field() != null) ? column.field().text.formatted(alias) : TEXT_FORM.formatted(valueAlias);
 	}
 

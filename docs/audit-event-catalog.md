@@ -541,7 +541,7 @@ An entity was created or changed ([US-141](../requirements/user-stories/US-141-e
 | Actor | the writing person |
 | Target | `entity`, ID of the entity; `entity_id` and `entity_name` |
 | Details | `batchId` (one per request), `metatypeId`, `externalId` if set, `version` (after the write) |
-| Changes | one `audit.event_changes` row per changed system field (`name`, `description`, `is_logical`) and property with old and new value as text; on create the old values are empty |
+| Changes | one `audit.event_changes` row per changed system field (`name`, `description`, `is_logical`) and property with old and new value as text; on create the old values are empty. Values of properties whose visibility is not `public` are stored encrypted (`value_protection` `encrypted`, `key_id` of `audit.value_keys`; change us-126-role-restricted-enforcement) |
 
 ### `catalog.created`
 

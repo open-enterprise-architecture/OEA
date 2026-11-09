@@ -47,7 +47,7 @@ async function open(
   location: string,
   applications: Application[] = APPLICATIONS,
   throttledFor?: number,
-  options: { me?: unknown; catalog?: unknown; metatypes?: unknown[]; rejectCursors?: boolean; queryFails?: 503 | 500 } = {},
+  options: { me?: unknown; catalog?: unknown; metatypes?: unknown[]; rejectCursors?: boolean; queryFails?: 503 | 500; unreadable?: string[] } = {},
 ): Promise<Mounted> {
   const recorded: CatalogRequest[] = []
   const fetchFn = catalogApi(applications, { recorded, throttledFor, ...options })
@@ -622,6 +622,30 @@ describe('CatalogPage connection catalogs', () => {
 
 describe('CatalogPage filters', () => {
   const WITH_JOIN = { ...CATALOG, joinDefinitions: [INTERFACES_JOIN] }
+
+  // catalog/catalog-query "Catalog column empty without read role" and catalog/catalog-filters
+  // "Filter bar" (us-126-role-restricted-enforcement)
+  it('shows a column the reader may not see with a lock, empty cells, no sort and no filter', async () => {
+    const catalog = { ...CATALOG, columns: [{ field: 'name' }, { propertyDefId: VENDOR_DEFINITION.id }] }
+    const { wrapper } = await open(CATALOG_PATH, APPLICATIONS, undefined, { catalog, unreadable: ['vendor'] })
+    expect(wrapper.find('[data-testid="restricted-vendor"]').attributes('title')).toBe('You may not see the values of this column.')
+    expect(wrapper.find('[data-testid="sort-vendor"]').exists()).toBe(false)
+    const vendorCells = wrapper.findAll('[data-testid="catalog-table"] tbody tr').map((row) => row.findAll('td')[1]!.text())
+    expect(vendorCells.every((cell) => cell === '' || cell === '–')).toBe(true)
+    await click(wrapper, '[data-testid="filter-add"]')
+    expect(itemLabels(wrapper, 'filter-column')).toEqual(['Name'])
+    wrapper.unmount()
+  })
+
+  it('offers a readable column for sort and filter', async () => {
+    const catalog = { ...CATALOG, columns: [{ field: 'name' }, { propertyDefId: VENDOR_DEFINITION.id }] }
+    const { wrapper } = await open(CATALOG_PATH, APPLICATIONS, undefined, { catalog })
+    expect(wrapper.find('[data-testid="restricted-vendor"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="sort-vendor"]').exists()).toBe(true)
+    await click(wrapper, '[data-testid="filter-add"]')
+    expect(itemLabels(wrapper, 'filter-column')).toEqual(['Name', 'Vendor'])
+    wrapper.unmount()
+  })
 
   function select(wrapper: VueWrapper, testId: string) {
     const found = wrapper.findAllComponents({ name: 'Select' }).find((component) => component.vm.$attrs['data-testid'] === testId)

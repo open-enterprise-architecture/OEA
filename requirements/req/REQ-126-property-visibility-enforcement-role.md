@@ -4,9 +4,9 @@ title: Enforcement of role-restricted Property Visibility
 type: functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-28
-last_updated: 2026-10-13
+last_updated: 2026-11-09
 author: requirements-engineer
 references:
   use_cases:
@@ -72,6 +72,7 @@ Security review SEC-02, SEC-04 (2026-10-13): masking on the entity read path alo
 
 - Filtering at the API level in a central read pipeline shared by all read channels (REQ-160); no DB filter needed for display — the value is masked after reading, but query building must exclude restricted properties from filter, sort and aggregation for unauthorized users
 - Role check: `currentUser.roles ∩ property.readRoles ≠ ∅` → visible; `currentUser.roles ∩ property.writeRoles ≠ ∅` → writable
+- Implemented by OpenSpec change `us-126-role-restricted-enforcement` for the existing channels: `PropertyAccess` evaluates the effective roles of the principal (ADR-032 §7, SoD-8). Catalog and portal query return a column without read role with `readable: false` and `null` values and reject sort and filter on it (400); the batch and `createConnection` reject a value set or removed without a write role with 403 for the whole request. The entity read API (AC1) and form (AC2) follow with the entity detail
 
 ## Change History
 
@@ -79,3 +80,4 @@ Security review SEC-02, SEC-04 (2026-10-13): masking on the entity read path alo
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-02/SEC-03/SEC-04: read/write roles; masking extended to filters, aggregations, `groupBy` server-side; all write paths; references REQ-160, REQ-162 |
+| 0.3.0 | 2026-11-09 | Change us-126-role-restricted-enforcement | Implementation note |

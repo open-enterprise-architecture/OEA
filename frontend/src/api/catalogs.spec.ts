@@ -89,7 +89,7 @@ describe('catalogs API', () => {
 
   describe('queryCatalog', () => {
     const RESULT: CatalogQueryResult = {
-      columns: [{ key: 'name', label: 'Name', sortable: true, filterType: 'text' }],
+      columns: [{ key: 'name', label: 'Name', sortable: true, readable: true, filterType: 'text' }],
       rows: [{ entityId: 1, values: { name: 'CRM System' } }],
       page: { page: 0, pageSize: 50, totalElements: 1, totalPages: 1 },
       sort: null,

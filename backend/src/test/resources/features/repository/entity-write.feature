@@ -63,6 +63,14 @@ Feature: Writing entities against the metamodel
     When the enterprise architect writes "Scanner Result" with external ID "scan:agent" sending "X-Agent-Id" "repo-scanner" and "X-Agent-Run" "run-42"
     Then the audit event of "scan:agent" has the agent label "repo-scanner", the agent run "run-42" and no agent ID
 
-  Scenario: Property with restricted visibility
+  @US-126 @AC3 @REQ-126
+  Scenario: Write attempt without write role
     When the enterprise architect writes a "Checked Type" "Secretive" with the properties "Version" "1.0" and "Secret" "x"
-    Then the item is rejected with the code "RESTRICTED_PROPERTY_NOT_SUPPORTED" for the field "properties[1].propertyDefId"
+    Then the batch is rejected with 403
+
+  @US-126 @REQ-160 @AC4
+  Scenario: Write with write role
+    Given the role-restricted property "Budget" of "Checked Type" that the role "enterprise-architect" reads and writes
+    When the enterprise architect writes a "Checked Type" "Budgeted" with the properties "Version" "1.0" and "Budget" "120"
+    Then the item is reported as "created"
+    And the audit change of "Budget" for "Budgeted" is encrypted

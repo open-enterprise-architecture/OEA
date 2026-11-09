@@ -1344,6 +1344,20 @@ package "Audit  [Schema: audit]" #EFEBE9 {
     + record_hash      : BYTEA            {NN}
   }
 
+  class "audit.value_keys" <<Table>> #D7CCC8 {
+    + key_id      : TEXT                  {PK}
+    .. 'avk-<date>-<random>'; referenced by audit.event_changes.key_id ..
+    --
+    + wrapped_key : TEXT                  {NN}
+    .. random 256-bit data key, AES-256-GCM-wrapped by the KEK of REQ-188; ..
+    .. never stored in plaintext ..
+    + kek_id      : TEXT                  {NN}
+    .. KEK that wraps it; oea secrets-reencrypt re-wraps with the current KEK ..
+    + created_at  : TIMESTAMPTZ           {NN} DEFAULT NOW()
+    .. migration-audit V5, us-126-role-restricted-enforcement D4: not chained, ..
+    .. oea_app SELECT, INSERT, UPDATE(wrapped_key, kek_id) ..
+  }
+
   class "audit.retention_settings" <<Table>> #D7CCC8 {
     + id                  : BIGSERIAL     {PK}
     --

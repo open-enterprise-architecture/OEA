@@ -15,8 +15,9 @@ async function open(
   applications?: Application[],
   recorded: string[] = [],
   rejectCursors = false,
+  statusUnreadable = false,
 ): Promise<{ wrapper: VueWrapper; router: Router }> {
-  const fetchFn = portalApi(applications, { recorded, rejectCursors })
+  const fetchFn = portalApi(applications, { recorded, rejectCursors, statusUnreadable })
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -118,6 +119,14 @@ describe('PortalCatalogPage', () => {
     expect(sent.at(-1)!.has('cursor')).toBe(false)
     expect(sent.at(-1)!.get('page')).toBe('1')
     expect(names(wrapper)[0]).toBe('Application 051')
+  })
+
+  // portal/portal-catalogs "Restricted property" (us-126-role-restricted-enforcement)
+  it('shows a column the reader may not see with a lock and without sort', async () => {
+    const { wrapper } = await open(PATH, undefined, [], false, true)
+    expect(wrapper.find('[data-testid="restricted-status"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="sort-status"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="sort-name"]').exists()).toBe(true)
   })
 
   it('drops an invalid sort from the URL', async () => {

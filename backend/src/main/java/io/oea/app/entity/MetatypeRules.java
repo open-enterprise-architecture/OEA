@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
@@ -51,9 +52,34 @@ public final class MetatypeRules {
 
 	private final Map<UUID, UUID> bases;
 
+	/** Which role-restricted properties the writer may write; none unless given (design D3 of us-126). */
+	private final Predicate<UUID> restrictedWritable;
+
 	private MetatypeRules(Map<UUID, Metatype> metatypes, Map<UUID, UUID> bases) {
+		this(metatypes, bases, (id) -> false);
+	}
+
+	private MetatypeRules(Map<UUID, Metatype> metatypes, Map<UUID, UUID> bases, Predicate<UUID> restrictedWritable) {
 		this.metatypes = metatypes;
 		this.bases = bases;
+		this.restrictedWritable = restrictedWritable;
+	}
+
+	/**
+	 * The rules for a writer who may write the role-restricted properties for which
+	 * {@code writable} holds (design D3 of us-126-role-restricted-enforcement).
+	 */
+	public MetatypeRules forWriter(Predicate<UUID> writable) {
+		return new MetatypeRules(this.metatypes, this.bases, writable);
+	}
+
+	/**
+	 * Whether the writer can change the property: a {@code public} one, or a
+	 * {@code role-restricted} one with a write role; {@code connection-scoped} ones not yet.
+	 */
+	boolean writable(Definition definition) {
+		return "public".equals(definition.visibilityMode())
+				|| ("role-restricted".equals(definition.visibilityMode()) && this.restrictedWritable.test(definition.id()));
 	}
 
 	/** Loads the rules that apply on the given date. */

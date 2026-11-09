@@ -52,6 +52,13 @@ Feature: Catalog query
     And the enterprise architect queries page 1 of the catalog "Other Cursor Inventory" sorted by "name:desc" with the cursor of the last query
     Then the cursor query is rejected with 400 naming "cursor"
 
+  @US-126 @AC4 @REQ-160 @AC2
+  Scenario: Catalog column empty without read role
+    Given the catalog "Restricted Inventory" with a column on "Visibility Investment Cost", readable only by "enterprise-architect", and an application "Costly Application" with the value "100"
+    When the viewer queries that catalog
+    Then the column is not readable and has no value for "Costly Application"
+    And the enterprise architect sees "100" for "Costly Application"
+
   @US-049 @AC5
   Scenario: Default page size
     Given 120 applications with the prefix "Application" exist

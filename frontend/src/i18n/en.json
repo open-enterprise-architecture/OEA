@@ -140,7 +140,8 @@
       "makeDefault": "Make default",
       "removeNamed": "Remove view {name}",
       "changeFailed": "The view could not be changed."
-    }
+    },
+    "restrictedColumn": "You may not see the values of this column."
   },
   "catalogs": {
     "empty": "No catalogs yet",
@@ -674,7 +675,7 @@
     "noAccess": "Changing property visibility needs the security administration permission.",
     "loadFailed": "The property visibility could not be loaded.",
     "saveFailed": "The visibility could not be saved.",
-    "enforcementNote": "Restricted properties stay hidden in catalogs and cannot be written until their enforcement for reading and writing follows.",
+    "enforcementNote": "Role-based restrictions apply in catalogs, in the portal and when writing entities. Connection-based properties stay hidden and cannot be written until their enforcement follows.",
     "filter": "Filter by name",
     "property": "Property",
     "metatypes": "Entity types",

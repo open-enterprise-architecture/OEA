@@ -64,6 +64,7 @@ public final class CatalogQueryMapping {
 	private static CatalogColumn column(CatalogQueries.Column column) {
 		return new CatalogColumn(column.key(), column.label(), column.sortable(),
 				CatalogColumn.FilterTypeEnum.fromValue(column.filterType()))
+			.readable(column.readable())
 			.enumValues((column.enumValues() != null) ? List.copyOf(column.enumValues()) : null);
 	}
 

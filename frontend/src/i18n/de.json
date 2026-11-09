@@ -140,7 +140,8 @@
       "makeDefault": "Als Standard",
       "removeNamed": "Ansicht {name} entfernen",
       "changeFailed": "Die Ansicht konnte nicht geändert werden."
-    }
+    },
+    "restrictedColumn": "Du darfst die Werte dieser Spalte nicht sehen."
   },
   "catalogs": {
     "empty": "Noch keine Kataloge",
@@ -674,7 +675,7 @@
     "noAccess": "Zum Ändern der Sichtbarkeit braucht es die Berechtigung der Sicherheitsadministration.",
     "loadFailed": "Die Sichtbarkeit der Eigenschaften konnte nicht geladen werden.",
     "saveFailed": "Die Sichtbarkeit konnte nicht gespeichert werden.",
-    "enforcementNote": "Eingeschränkte Eigenschaften bleiben in Katalogen ausgeblendet und lassen sich nicht schreiben, bis ihre Durchsetzung beim Lesen und Schreiben folgt.",
+    "enforcementNote": "Rollenbasierte Einschränkungen gelten in Katalogen, im Portal und beim Schreiben von Entitäten. Verbindungsbasierte Eigenschaften bleiben ausgeblendet und lassen sich nicht schreiben, bis ihre Durchsetzung folgt.",
     "filter": "Nach Name filtern",
     "property": "Eigenschaft",
     "metatypes": "Entitätstypen",
