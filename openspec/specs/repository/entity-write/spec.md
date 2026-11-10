@@ -40,7 +40,7 @@ Trace: REQ-149 (error cases), ADR-022
 
 ### Requirement: Necessity of properties
 
-A mandatory property without value SHALL be an error, also for an entity marked as missing it; a property the writer cannot change SHALL NOT be checked. A property with necessity `warning` without value SHALL produce a warning. On create, the default value of a mapping SHALL apply to a property without value. Setting the value SHALL clear the mark. A writer can change a public property, and a `role-restricted` property with one of its write roles.
+A mandatory property without value SHALL be an error, also for an entity marked as missing it; a property the writer cannot change (not public and no write role) SHALL NOT be checked. A property with necessity `warning` without value SHALL produce a warning. On create, the default value of a mapping SHALL apply to a property without value. Setting the value SHALL clear the mark.
 
 Trace: REQ-149 AC1, AC2, ADR-022, owner decision 2026-10-31, REQ-126
 

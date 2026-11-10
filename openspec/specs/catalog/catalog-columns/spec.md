@@ -8,7 +8,7 @@ Defines the column configuration of a catalog: which attributes of the primary m
 
 ### Requirement: All attributes as columns
 
-The configuration SHALL offer every system field and every property mapped to the primary metatype that is not retired, including inherited mappings and properties whose visibility is not `public`. A connection catalog SHALL also offer them for its source and target: the properties of the side's allowed endpoint metatypes and their subtypes, or all properties without a constraint. An unknown, unoffered or duplicate attribute SHALL be rejected with 422. Whether a reader sees the values of a column is decided by the query.
+The configuration SHALL offer every system field and every non-retired property mapped to the primary metatype, inherited and restricted ones included. A connection catalog SHALL also offer them for its source and target: the properties of the side's allowed endpoint metatypes and their subtypes, or all properties without a constraint. An unknown, unoffered or duplicate attribute SHALL be rejected with 422.
 
 Trace: US-047 AC1, REQ-044 AC2, US-080 AC2, REQ-065 AC5, owner decisions 2026-11-05, #68, owner decision 2026-11-08
 
