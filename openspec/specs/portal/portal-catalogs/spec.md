@@ -62,15 +62,15 @@ Trace: #67, #66, REQ-046, REQ-071, UC-06, ADR-032 §8, owner decisions 2026-11-0
 
 ### Requirement: Visibility in the portal
 
-The portal query SHALL apply the same property visibility as the catalog query: only properties with visibility `public` SHALL appear as columns, and soft-deleted entities SHALL NOT be returned. A sort on a property that is not a column SHALL be rejected.
+The portal query SHALL apply the same property visibility as the catalog query: a column on a property the reader cannot read SHALL be returned as not readable with empty values, and soft-deleted entities SHALL NOT be returned. A sort on a property that is not a readable column SHALL be rejected.
 
-Trace: REQ-160, REQ-124, ADR-019
+Trace: REQ-160, REQ-124, REQ-126, ADR-019, owner decision 2026-11-08
 
 #### Scenario: Restricted property
 
-- **GIVEN** "Application Inventory" configures a column on a property whose visibility is not `public`
-- **WHEN** Petra queries it through the portal
-- **THEN** the result has no column for that property, and sorting by it answers 400 naming `sort`
+- **GIVEN** "Application Inventory" configures a column on `investmentCost`, which is `role-restricted` with the read role `enterprise-architect`
+- **WHEN** Petra, a portal reader, queries it through the portal
+- **THEN** the column has no values for her, and sorting by it answers 400 naming `sort`
 
 #### Scenario: Deleted entity
 
