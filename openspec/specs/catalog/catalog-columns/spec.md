@@ -8,15 +8,21 @@ Defines the column configuration of a catalog: which attributes of the primary m
 
 ### Requirement: All attributes as columns
 
-The configuration SHALL offer every system field and every `public` property mapped to the primary metatype, including inherited mappings. A connection catalog SHALL also offer them for its source and target: the properties of the side's allowed endpoint metatypes and their subtypes, or all `public` properties without a constraint. An unknown, unoffered or duplicate attribute SHALL be rejected with 422.
+The configuration SHALL offer every system field and every non-retired property mapped to the primary metatype, inherited and restricted ones included. A connection catalog SHALL also offer them for its source and target: the properties of the side's allowed endpoint metatypes and their subtypes, or all properties without a constraint. An unknown, unoffered or duplicate attribute SHALL be rejected with 422.
 
-Trace: US-047 AC1, REQ-044 AC2, US-080 AC2, REQ-065 AC5, owner decisions 2026-11-05
+Trace: US-047 AC1, REQ-044 AC2, US-080 AC2, REQ-065 AC5, #68
 
 #### Scenario: Built-in and custom attributes
 
 - **GIVEN** a catalog for `Application Component`, which maps the properties `Vendor` and `Support End Date`
 - **WHEN** Kurt opens the column configuration
 - **THEN** name, description and the other system fields as well as `Vendor` and `Support End Date` are offered as columns
+
+#### Scenario: Restricted property offered
+
+- **GIVEN** `Application Component` maps `investmentCost`, which is `role-restricted`
+- **WHEN** Kurt configures a column on `investmentCost`
+- **THEN** the column is saved
 
 #### Scenario: Attribute of another metatype
 

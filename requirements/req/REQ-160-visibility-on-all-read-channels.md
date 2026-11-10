@@ -122,7 +122,7 @@ Raw analytics (ADR-034): masking happens in the projection of the reporting view
 - Protected audit values: AES-256-GCM with a `key_id` of the audit value key (ADR-033 §3, resolving the ADR-024 plaintext storage)
 - Electron offline cache must only contain values the user may read (REQ-181)
 - Portal channel: implemented for the shared catalogs by the OpenSpec change `s9-portal-catalogs`, commit 3b6155f (#200) – `GET /portal/catalogs/{id}/query` is the catalog query, so only properties with visibility `public` appear as columns and sorting by another property is rejected (400)
-- AC2 for catalog and portal (OpenSpec change `us-126-role-restricted-enforcement`): a column on a property the caller cannot read is returned with `readable: false` and `null` values in rows and join results; a sort or filter on it is rejected with 400, so the result never depends on it
+- AC2 for catalog and portal (OpenSpec change `us-126-role-restricted-enforcement`, commit cefd98a (#213)): a column on a property the caller cannot read is returned with `readable: false` and `null` values in rows and join results; a sort or filter on it is rejected with 400, so the result never depends on it
 - AC4 (same change): changes of properties whose visibility is not `public` are stored as AES-256-GCM ciphertext under an audit value key in `audit.value_keys`, wrapped by the key-encryption key of REQ-188 and re-wrapped by `oea secrets-reencrypt`; decryption for `audit:read` holders follows with the reading of audit changes
 
 ## Change History
