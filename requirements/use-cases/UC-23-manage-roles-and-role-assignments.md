@@ -268,7 +268,7 @@ Grant a new architect the access she needs.
 ## Realizing Components
 
 - Requirements: REQ-003, REQ-128, REQ-157, REQ-158, REQ-159, REQ-160, REQ-161, REQ-162, REQ-163, REQ-164, REQ-165, REQ-167, REQ-171, REQ-175, REQ-176, REQ-194
-- User Stories: [US-143](../user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](../user-stories/US-144-assign-and-revoke-local-role.md), [US-145](../user-stories/US-145-reject-self-administration.md), [US-146](../user-stories/US-146-protect-last-system-admin-path.md) (walking skeleton); [US-147](../user-stories/US-147-map-idp-group-to-role.md), [US-148](../user-stories/US-148-revoke-access-on-offboarding.md), [US-149](../user-stories/US-149-assign-roles-to-service-account.md), [US-150](../user-stories/US-150-four-eyes-approval-privileged-assignment.md); custom roles (A5), SoD-3 flag (A6) and access review (A8) pending
+- User Stories: [US-143](../user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](../user-stories/US-144-assign-and-revoke-local-role.md), [US-145](../user-stories/US-145-reject-self-administration.md), [US-146](../user-stories/US-146-protect-last-system-admin-path.md) (walking skeleton); [US-147](../user-stories/US-147-map-idp-group-to-role.md), [US-148](../user-stories/US-148-revoke-access-on-offboarding.md), [US-149](../user-stories/US-149-assign-roles-to-service-account.md), [US-150](../user-stories/US-150-four-eyes-approval-privileged-assignment.md), [US-151](../user-stories/US-151-define-custom-authorization-role.md) (custom roles, A5); SoD-3 flag (A6) and access review (A8) pending
 - ADRs: ADR-032, ADR-006, ADR-026
 - Test Cases: pending
 - Implementation: –
