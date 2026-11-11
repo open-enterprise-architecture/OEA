@@ -2,8 +2,8 @@
 
 **ID**: US-128
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: ready
+**Sprint**: S10
 
 ## Story
 

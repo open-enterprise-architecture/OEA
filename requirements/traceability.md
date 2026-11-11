@@ -5,7 +5,7 @@
 Traceability from use cases through requirements to user stories, derived from the
 frontmatter and reference sections of the artifacts.
 
-**Total UCs**: 24 | **Total REQs**: 204 | **Total USs**: 150
+**Total UCs**: 24 | **Total REQs**: 204 | **Total USs**: 151
 
 ---
 
@@ -38,7 +38,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-135](req/REQ-135-dark-mode-system-default.md) | Dark Mode Support with System Default and User Preference | functional | should | – |
 | [REQ-136](req/REQ-136-local-auth-configurable.md) | Local Authentication Configurable by Operator | functional | must | – |
 | [REQ-137](req/REQ-137-auto-sso-redirect.md) | Automatic SSO Redirect to the Configured Identity Provider | functional | should | – |
-| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md) |
+| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md), [US-151](user-stories/US-151-define-custom-authorization-role.md) |
 | [REQ-158](req/REQ-158-deny-by-default-authorization.md) | Deny-by-default authorization on every API operation | constraint | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md) |
 | [REQ-159](req/REQ-159-object-level-authorization.md) | Object-level authorization for addressed resources | functional | must | – |
 | [REQ-163](req/REQ-163-no-anonymous-access.md) | No anonymous access – every access requires authentication | constraint | must | – |
@@ -139,7 +139,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-148](req/REQ-148-property-mapping-effective-date.md) | Property Mapping Effective Date Changeable | functional | should | [US-137](user-stories/US-137-change-property-mapping-effective-date.md) |
 | [REQ-149](req/REQ-149-property-validation-necessity.md) | Property Validation by Necessity | functional | must | [US-138](user-stories/US-138-property-validation-mandatory-warning.md) |
 | [REQ-152](req/REQ-152-dynamic-labels-etag.md) | Dynamic Labels with ETag Caching | interface | must | [US-140](user-stories/US-140-load-dynamic-labels.md) |
-| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md) |
+| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md), [US-151](user-stories/US-151-define-custom-authorization-role.md) |
 | [REQ-184](req/REQ-184-safe-import-parsing.md) | Safe parsing of imported files | constraint | must | – |
 | [REQ-185](req/REQ-185-bounded-expression-evaluation.md) | Bounded evaluation of user-defined expressions | non-functional | must | – |
 | [REQ-196](req/REQ-196-user-manual.md) | Multilingual user manual per release | non-functional | must | – |
@@ -403,12 +403,12 @@ frontmatter and reference sections of the artifacts.
 | [REQ-125](req/REQ-125-property-visibility-configuration-form.md) | Configuration Form for Property Visibility in the Metamodel Editor | functional | must | [US-125](user-stories/US-125-property-visibility-configuration-form.md) |
 | [REQ-126](req/REQ-126-property-visibility-enforcement-role.md) | Enforcement of role-restricted Property Visibility | functional | must | [US-126](user-stories/US-126-role-restricted-property-enforcement.md) |
 | [REQ-127](req/REQ-127-property-visibility-enforcement-connection-scoped.md) | Enforcement of connection-scoped Property Visibility (ABAC) | functional | must | [US-127](user-stories/US-127-connection-scoped-property-domain-architect.md) |
-| [REQ-128](req/REQ-128-property-visibility-admin-override.md) | Admin Override for Property Visibility | functional | should | [US-128](user-stories/US-128-admin-override-property-visibility.md) |
+| [REQ-128](req/REQ-128-property-visibility-admin-override.md) | Admin Override for Property Visibility | functional | should | [US-128](user-stories/US-128-admin-override-property-visibility.md), [US-151](user-stories/US-151-define-custom-authorization-role.md) |
 | [REQ-129](req/REQ-129-data-encryption.md) | Data Encryption (at-rest and in-transit) | non-functional | must | – |
 | [REQ-131](req/REQ-131-graph-traversal-latency.md) | Graph Traversal Latency (ABAC connection-scoped) | non-functional | must | – |
-| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md) |
+| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md), [US-151](user-stories/US-151-define-custom-authorization-role.md) |
 | [REQ-160](req/REQ-160-visibility-on-all-read-channels.md) | Property visibility enforced on every read channel | functional | must | – |
-| [REQ-161](req/REQ-161-visibility-configuration-governance.md) | Governance of visibility configuration and scoping connections | business-rule | must | [US-128](user-stories/US-128-admin-override-property-visibility.md) |
+| [REQ-161](req/REQ-161-visibility-configuration-governance.md) | Governance of visibility configuration and scoping connections | business-rule | must | [US-128](user-stories/US-128-admin-override-property-visibility.md), [US-151](user-stories/US-151-define-custom-authorization-role.md) |
 | [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | – |
 
 ### [UC-22](use-cases/UC-22-import-current-state-from-source-system.md): Import Current State from Source System
@@ -433,8 +433,8 @@ frontmatter and reference sections of the artifacts.
 | REQ | Title | Type | Priority | USs |
 |---|---|---|---|---|
 | [REQ-003](req/REQ-003-access-without-role-assignment.md) | Restricted access without an active role assignment | business-rule | must | [US-003](user-stories/US-003-access-without-role.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md) |
-| [REQ-128](req/REQ-128-property-visibility-admin-override.md) | Admin Override for Property Visibility | functional | should | [US-128](user-stories/US-128-admin-override-property-visibility.md) |
-| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md) |
+| [REQ-128](req/REQ-128-property-visibility-admin-override.md) | Admin Override for Property Visibility | functional | should | [US-128](user-stories/US-128-admin-override-property-visibility.md), [US-151](user-stories/US-151-define-custom-authorization-role.md) |
+| [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md), [US-151](user-stories/US-151-define-custom-authorization-role.md) |
 | [REQ-165](req/REQ-165-session-timeouts-token-storage.md) | Session timeouts and client token storage | non-functional | must | [US-147](user-stories/US-147-map-idp-group-to-role.md) |
 | [REQ-194](req/REQ-194-privileged-assignment-four-eyes-approval.md) | Optional four-eyes approval for privileged role assignments | business-rule | should | [US-150](user-stories/US-150-four-eyes-approval-privileged-assignment.md) |
 | [REQ-196](req/REQ-196-user-manual.md) | Multilingual user manual per release | non-functional | must | – |
@@ -521,9 +521,9 @@ frontmatter and reference sections of the artifacts.
 | UC-20 | 3 | 13 |
 | UC-21 | 5 | 22 |
 | UC-22 | 1 | 5 |
-| UC-23 | 8 | 30 |
+| UC-23 | 9 | 35 |
 | UC-24 | 0 | 0 |
-| **Total** | | **609** |
+| **Total** | | **614** |
 
 ## 5. Coverage Gaps
 
