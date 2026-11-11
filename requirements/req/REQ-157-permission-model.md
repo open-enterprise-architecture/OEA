@@ -4,9 +4,9 @@ title: Permission model with explicit permission matrix
 type: functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-10-13
-last_updated: 2026-10-13
+last_updated: 2026-11-11
 author: requirements-engineer
 references:
   use_cases:
@@ -138,6 +138,7 @@ Owner decision Q13 (2026-10-13): one person may hold `metamodel-admin` and `secu
 
 - The `roles` table (system-managed) and business roles as EA content must be distinguishable in the data model; follow-up for the business engineer (`business-objects/role.md` currently has `permissionLevel: read|write|admin` without a resource list) – specified in ADR-032 DM-1 to DM-5
 - `portal-reader` is referenced in `api/openapi.yaml` but not defined in the data model (ADR-032 DM-3, API-3)
+- Custom roles (AC3) implemented by the OpenSpec change `us-128-override-role-list` (US-151): `createAuthorizationRole` with `role:assign`; the contract requires the permission list, and an empty list grants no permissions; SoD-2 (AC4 at role level) and SoD-4 are checked on creation (422)
 
 ## Change History
 
@@ -145,3 +146,4 @@ Owner decision Q13 (2026-10-13): one person may hold `metamodel-admin` and `secu
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-01 (PR-01), owner decisions Q1 and Q4 |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Aligned with ADR-032: permissions `portal:read` and `viewpoint:manage` and built-in role `analyst` added to the minimum lists; owner decision Q13 (combined `metamodel-admin` + `security-admin` allowed but flagged, SoD-3) noted; reference to UC-23; AC5–AC6 added |
+| 0.3.0 | 2026-11-11 | Change us-128-override-role-list | Implementation note for custom roles (AC3) |

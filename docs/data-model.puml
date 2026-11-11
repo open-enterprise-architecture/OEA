@@ -394,6 +394,7 @@ package "Authorization" #FFFDE7 {
     + overrides_property_visibility  : BOOLEAN {NN} DEFAULT false
     .. REQ-128 override list; false for every built-in role (Q14); ..
     .. changeable only with visibility:configure; audited (SoD-6) ..
+    .. set by updatePropertyVisibilityOverride (us-128 D1) ..
     + created_at       : TIMESTAMPTZ      {NN} DEFAULT NOW()
     + created_by_person_id : BIGINT       {FK→persons.id}
     + created_by_admin_id  : UUID         {FK→system_admin_accounts.id}
@@ -2055,6 +2056,12 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   entity_linked_at/by stay planned. New one-row table visibility_settings
 '   with person_metatype_id, because system_settings has its row only after
 '   the bootstrapping. Reason: US-127, REQ-127, ADR-032 DM-7.
+' 2026-11-11 (us-128-override-role-list):
+'   No schema change. Custom roles (is_builtin = false) are created through
+'   createAuthorizationRole with their role_permissions approved at once
+'   (four-eyes approval follows with US-150); the override role list is the
+'   flag authorization_roles.overrides_property_visibility.
+'   Reason: US-128, US-151, REQ-128, UC-23 A5.
 ' ─────────────────────────────────────────────────────
 
 @enduml

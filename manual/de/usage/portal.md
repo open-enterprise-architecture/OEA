@@ -2,7 +2,7 @@
 title: Portal
 covers:
   screens: [SCR-050]
-  stories: [US-127]
+  stories: [US-127, US-128]
 ---
 
 # Portal
@@ -26,7 +26,7 @@ Wähle einen Katalog in der Liste. Er öffnet sich mit den Spalten, der Standard
 
 Sortierung und Seite stehen in der Adresse, du kannst eine sortierte Seite also als Lesezeichen speichern oder weitergeben. Das Portal bietet keine Aktion, die den Katalog ändert: keine Spalten, Joins, Filter, Ansichten und keinen Navigationsbaum. Ist ein Katalog nicht mehr geteilt oder gibt es ihn nicht, zeigt die Seite *Katalog nicht gefunden*.
 
-Das Portal wendet wie jeder Katalog die [Sichtbarkeit von Eigenschaften](../administration/property-visibility) an: Eine Spalte zu einer Eigenschaft, die du nicht sehen darfst, bleibt leer, und eine Spalte zu einer verbindungsbasierten Eigenschaft zeigt den Wert nur in den Zeilen von Entitäten, die mit deinem Element verbunden sind.
+Das Portal wendet wie jeder Katalog die [Sichtbarkeit von Eigenschaften](../administration/property-visibility) an: Eine Spalte zu einer Eigenschaft, die du nicht sehen darfst, bleibt leer, und eine Spalte zu einer verbindungsbasierten Eigenschaft zeigt den Wert nur in den Zeilen von Entitäten, die mit deinem Element verbunden sind. Mit einer [Override-Rolle](../administration/property-visibility#override-roles) siehst du alle Werte, und die Abfrage wird im Audit-Log festgehalten.
 
 ## Über die API
 

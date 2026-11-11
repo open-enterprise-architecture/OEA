@@ -753,7 +753,8 @@ components:
             neither sorted nor filtered. A `connection-scoped` column is readable for a caller
             with an account link; each row shows its value only if its entity is connected to
             the caller's element by the scoping type, and sort and filter treat the other rows
-            as empty (REQ-127)
+            as empty (REQ-127). A holder of a role on the override role list reads every
+            column with all values (REQ-128, `getPropertyVisibilityOverride`)
         filterType:
           type: string
           enum: [text, enum, boolean, number, date]
@@ -4620,7 +4621,9 @@ paths:
         visible ones in their order and with their labels; a configured property that is no
         longer available is left out. Without configured columns, the columns are `name` and,
         if the primary metatype maps a property named `Status` with visibility `public`, that
-        property. Only properties with visibility `public` appear (REQ-160 follows).
+        property. Property visibility applies as described at `CatalogColumn.readable`; a
+        page that returns a value readable only through the override role list writes one
+        `property-override-access` audit event naming the properties and entities (REQ-128).
         Soft-deleted entities are not returned (ADR-019). Column keys are the system field
         (`CatalogSystemField`) or the `sqlColumnName` of a property.
 
@@ -6919,11 +6922,16 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       operationId: createAuthorizationRole
-      summary: Create custom role (UC-23 A5)
-      description: Audited as `role.created`.
+      summary: Create custom role (UC-23 A5, US-151)
+      description: |
+        Creates a custom role with an explicit permission list, possibly empty (REQ-157 AC3).
+        A taken ID, built-in or custom, answers 409. An unknown permission and
+        `metamodel:write` combined with `visibility:configure` or `visibility-scope:assign`
+        (SoD-2) answer 422 naming `permissions`; an admin-class permission in a role assignable
+        to service accounts (SoD-4) answers 422 naming `assignableToServiceAccounts`. Audited as `role.created`, with severity `high` for a privileged role. Four-eyes
+        approval (`202`) follows with US-150; until then the role is created at once.
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
-      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -6943,6 +6951,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
         '409':
           description: Role ID already taken
           content:
@@ -6954,7 +6963,6 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /admin/roles/{roleId}:
     get:
@@ -7806,7 +7814,6 @@ paths:
       summary: Property visibility override role list (REQ-128)
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
-      x-oea-status: planned
       responses:
         '200':
           description: Override role list (empty by default)
@@ -7815,13 +7822,17 @@ paths:
               schema: { $ref: '#/components/schemas/PropertyVisibilityOverride' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     put:
       operationId: updatePropertyVisibilityOverride
       summary: Change the override role list (REQ-128, SoD-6)
+      description: |
+        Replaces the list. At most 20 existing roles, built-in or custom; a repeated role
+        counts once. Takes effect at once. A change is audited as `visibility.override-changed`
+        with the old and new list, flagged `selfBenefiting` when it adds a role the caller
+        holds (SoD-6); the same list again writes no event.
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
-      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -7836,13 +7847,13 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
-          description: Unknown role
+          description: Unknown role, naming `roles`; the list is unchanged
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  AUDIT (Schema: audit.*, ADR-024, SCR-026/054)                        ║
@@ -8719,8 +8730,9 @@ paths:
         One page of rows of a catalog with scope `instance`, with the catalog's configured
         columns, default sort and default join mode. The result equals that of the catalog
         query (`queryCatalog`) without filters, join mode overrides or view, including its
-        visibility rules: only properties with visibility `public` appear (REQ-124, REQ-160)
-        and soft-deleted entities are not returned. `page`, `pageSize`, `sort`, `cursor` and
+        visibility rules (`CatalogColumn.readable`, REQ-124, REQ-160), the override role list
+        and its `property-override-access` audit event (REQ-128), and soft-deleted entities
+        are not returned. `page`, `pageSize`, `sort`, `cursor` and
         the query time limit (503 `query-timeout`) behave as in the catalog query. A personal
         catalog is answered with 404, like a catalog that does not exist, also for its creator.
       tags: [Portal]

@@ -2,7 +2,7 @@ import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { session } from '../session/store'
-import { ME_NO_ACCESS, ME_READER, ME_SECURITY_ADMIN, metamodelApi } from '../test/metamodel'
+import { ME_METAMODEL_ADMIN, ME_NO_ACCESS, ME_READER, ME_SECURITY_ADMIN, metamodelApi } from '../test/metamodel'
 import { ME_PORTAL_READER } from '../test/portal'
 import { testRouter } from '../test/router'
 import AppHeader from './AppHeader.vue'
@@ -30,6 +30,19 @@ describe('AppHeader', () => {
     session.me = undefined
     session.loaded = false
     expect((await header(ME_READER)).find('[data-testid="header-visibility"]').exists()).toBe(false)
+  })
+
+  // spec identity/authorization-roles "Page \"Authorization roles\"" and metamodel/visibility-override
+  // "Page \"Override roles\"" (us-128-override-role-list D5)
+  it('links the roles for role:assign and the override roles for visibility:configure only', async () => {
+    const admin = await header(ME_SECURITY_ADMIN)
+    expect(admin.find('[data-testid="header-roles"]').exists()).toBe(true)
+    expect(admin.find('[data-testid="header-override"]').exists()).toBe(true)
+    session.me = undefined
+    session.loaded = false
+    const kurt = await header(ME_METAMODEL_ADMIN)
+    expect(kurt.find('[data-testid="header-roles"]').exists()).toBe(false)
+    expect(kurt.find('[data-testid="header-override"]').exists()).toBe(false)
   })
 
   it('offers the metamodel to readers', async () => {

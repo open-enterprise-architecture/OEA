@@ -45,7 +45,7 @@ The list *Catalogs* shows every catalog you may see, marked *Shared* or *Persona
 - The table shows 50 entries per page; use the pagination below the table to move between pages.
 - Sort and page are part of the address of the page. Back navigation, a reload or a shared link restore the same view; invalid values in the address are ignored and the first page is shown in the default order.
 - If the entity type has no entities yet, the table shows *No entries found*.
-- A column on a property whose values you may not see shows a lock in its header and empty cells; you cannot sort or filter by it (see [Property visibility](../administration/property-visibility)).
+- A column on a property whose values you may not see shows a lock in its header and empty cells; you cannot sort or filter by it (see [Property visibility](../administration/property-visibility)). With an [override role](../administration/property-visibility#override-roles) you see all values, and the query is recorded in the audit log.
 - A column on a connection-based property shows the value only in the rows of entities connected to your element and an empty cell in the others. Sorting puts the empty cells last, and a filter on a value finds only rows where you see it.
 - A query that takes longer than the time limit of your installation (10 seconds by default) is cancelled, and the table shows *The query took too long*. Narrow the filters or switch joins to compact mode and try again.
 - Another person's personal catalog cannot be opened; it behaves like a catalog that does not exist (*Catalog not found*).

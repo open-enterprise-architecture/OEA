@@ -1,13 +1,13 @@
 ---
 title: Rollen und Berechtigungen
 covers:
-  screens: []
-  stories: [US-014, US-018, US-143, US-144, US-146, US-147]
+  screens: [SCR-039]
+  stories: [US-014, US-018, US-143, US-144, US-146, US-147, US-151]
 ---
 
 # Rollen und Berechtigungen
 
-Jede Operation von OEA verlangt eine Berechtigung, und Berechtigungen kommen nur aus Rollen. OEA liefert einen festen Berechtigungskatalog und eingebaute Rollen aus; `GET /admin/permissions` und `GET /admin/roles` geben sie zurück.
+Jede Operation von OEA verlangt eine Berechtigung, und Berechtigungen kommen nur aus Rollen. OEA liefert einen festen Berechtigungskatalog und eingebaute Rollen aus, und du kannst eigene Rollen ergänzen; `GET /admin/permissions` und `GET /admin/roles` geben sie zurück.
 
 ## Eingebaute Rollen
 
@@ -26,6 +26,37 @@ Jede Operation von OEA verlangt eine Berechtigung, und Berechtigungen kommen nur
 `solution-metamodel:write` pflegt die Erweiterungen von Lösungen und ihre Entitätstypen (siehe [Erweiterungen von Lösungen](./metamodel-editing#extensions)); das Metamodell der Instanz verlangt weiterhin `metamodel:write`.
 
 Das lokale Systemadmin-Konto hat die Rolle `system-admin`. **Privilegierte Rollen** – Rollen mit einer Berechtigung der Admin-Klasse (`metamodel:write`, `visibility:configure`, `visibility-scope:assign`, `role:assign`, `person:manage`, `service-account:manage`, `auth-config:manage`, `settings:manage`) – wirken nur in einer Sitzung, die mit einem zweiten Faktor bestätigt ist. Bei einer Anmeldung über einen Identity-Provider muss der Provider den zweiten Faktor in `amr` melden.
+
+## Eigene Rollen {#custom-roles}
+
+Deine Organisation braucht vielleicht Rollen, die OEA nicht mitbringt, etwa `iso` für die Verantwortlichen der Informationssicherheit, die eine Sicherheitseinstufung lesen sollen, oder `migration-support` für eine Datenmigration. Öffne *Berechtigungsrollen* in der Kopfzeile (du brauchst `role:assign`, Rollen `security-admin` und `system-admin`). Die Seite listet jede Rolle mit ihren Berechtigungen und kennzeichnet eingebaute Rollen, privilegierte Rollen und [Override-Rollen](./property-visibility#override-roles).
+
+<Screenshot name="authorization-roles" alt="Berechtigungsrollen mit Berechtigungen und Merkmalen" />
+
+Wähle *Neue Rolle* und gib ein:
+
+| Feld | Bedeutung |
+|---|---|
+| ID | 2 bis 63 Kleinbuchstaben, Ziffern und Bindestriche, beginnend mit einem Buchstaben; sie lässt sich später nicht ändern |
+| Name | bis zu 100 Zeichen |
+| Beschreibung | optional, bis zu 1000 Zeichen |
+| Berechtigungen | die Berechtigungen, die die Rolle gibt; gar keine sind in Ordnung für eine Rolle, die nur als Leserolle oder Override-Rolle dient |
+| Dienstkonten zuweisbar | ob Dienstkonten die Rolle erhalten dürfen |
+
+OEA lehnt eine Rolle ab:
+
+- mit einer ID, die schon vergeben ist, an eine eingebaute oder eine andere eigene Rolle (`409`);
+- mit einer unbekannten Berechtigung (`422`);
+- die `metamodel:write` mit `visibility:configure` oder `visibility-scope:assign` verbindet: Metamodell-Administration und Sichtbarkeits-Administration bleiben in getrennten Händen (`422`);
+- mit einer Administrationsberechtigung, die Dienstkonten zuweisbar ist (`422`).
+
+Der Dialog bleibt offen und nennt den Grund. Über die API:
+
+```bash
+curl "${auth[@]}" -d '{"id": "iso", "name": "Information Security Officer", "permissions": []}' "$OEA/admin/roles"
+```
+
+Eine Rolle ist privilegiert, wenn sie eine Administrationsberechtigung enthält. Das Anlegen einer Rolle wird im Audit-Trail als `role.created` festgehalten, bei einer privilegierten Rolle mit hohem Schweregrad. Eine eigene Rolle vergibst du wie eine eingebaute, über eine IdP-Gruppe oder an eine einzelne Person. Eigene Rollen lassen sich noch nicht ändern oder löschen.
 
 ## Rollen über IdP-Gruppen vergeben
 

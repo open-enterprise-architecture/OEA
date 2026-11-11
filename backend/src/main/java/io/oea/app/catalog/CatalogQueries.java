@@ -8,6 +8,7 @@ import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
 import io.oea.core.catalog.CatalogQueryStore;
 import io.oea.core.catalog.CatalogQueryStore.Condition;
+import io.oea.core.catalog.ScopeStore;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,6 +17,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -62,10 +65,13 @@ public class CatalogQueries {
 
 	private final PropertyAccess access;
 
+	private final ScopeStore scopes;
+
 	CatalogQueries(Catalogs catalogs, CatalogQueryStore store, CatalogColumns columns, CatalogCursors cursors,
 			CatalogQueryMetrics metrics, AuditWriter audit, PlatformTransactionManager transactionManager,
-			CatalogQueryProperties properties, PropertyAccess access) {
+			CatalogQueryProperties properties, PropertyAccess access, ScopeStore scopes) {
 		this.access = access;
+		this.scopes = scopes;
 		this.catalogs = catalogs;
 		this.store = store;
 		this.columns = columns;
@@ -379,6 +385,7 @@ public class CatalogQueries {
 			}
 			return new Row(row.entityId(), Collections.unmodifiableMap(values), Collections.unmodifiableMap(results));
 		}).toList();
+		auditOverride(principal, catalogId, channel, page, access, resolved, joins, rows);
 		return new Result(resolved.stream().map(Resolved::result).toList(),
 				joins.stream().map(ResolvedJoin::result).toList(), rows, page, pageSize, total,
 				Math.toIntExact((total + pageSize - 1) / pageSize), applied, nextCursor);
@@ -511,9 +518,10 @@ public class CatalogQueries {
 		if (query.property() == null) {
 			return column;
 		}
-		// a connection-scoped column shows its values per row in the caller's scope (us-127 D5)
+		// a connection-scoped column shows its values per row in the caller's scope (us-127 D5);
+		// a holder of an override role reads all of them (us-128 D3)
 		java.util.Optional<PropertyAccess.Scope> scope = access.scope(query.property().propertyDefId());
-		if (scope.isPresent()) {
+		if (scope.isPresent() && !access.override()) {
 			return new Resolved(query.scoped(new CatalogQueryStore.ColumnScope(scope.get().scopingType(),
 					scope.get().anchor())), column.result(), column.defaultSortDirection());
 		}
@@ -521,6 +529,102 @@ public class CatalogQueries {
 			return column;
 		}
 		return new Resolved(CatalogQueryStore.QueryColumn.redacted(), column.result().redacted(), null);
+	}
+
+	/**
+	 * Audits the values of the page that the caller reads only through the override role list
+	 * (REQ-128 AC2; design D3 of us-128-override-role-list): one {@code property-override-access}
+	 * event per query naming, per property, the entities whose value was returned through the
+	 * override. Values a read role or the scope grants do not count; a page without such values
+	 * writes nothing. The event is written in its own transaction, as the query is read-only.
+	 */
+	private void auditOverride(OeaPrincipal principal, UUID catalogId, Channel channel, int page,
+			PropertyAccess.Snapshot access, List<Resolved> columns, List<ResolvedJoin> joins, List<Row> rows) {
+		if (!access.override() || rows.isEmpty()) {
+			return;
+		}
+		Map<UUID, String> names = new LinkedHashMap<>();
+		Map<UUID, Set<Integer>> entities = new LinkedHashMap<>();
+		Map<Integer, int[]> endpoints = null;
+		for (Resolved column : columns) {
+			CatalogQueryStore.QueryColumn query = column.column();
+			if (query.property() == null || !overridden(query, access)) {
+				continue;
+			}
+			if (query.endpoint() != null && endpoints == null) {
+				endpoints = this.scopes.endpoints(rows.stream().map(Row::entityId).distinct().toList());
+			}
+			Set<Integer> found = new TreeSet<>();
+			for (Row row : rows) {
+				if (row.values().get(column.result().key()) == null) {
+					continue;
+				}
+				if (query.endpoint() == null) {
+					found.add(row.entityId());
+				}
+				else if (endpoints.containsKey(row.entityId())) {
+					found.add(endpoints.get(row.entityId())[(query.endpoint() == CatalogQueryStore.Endpoint.SOURCE) ? 0 : 1]);
+				}
+			}
+			collect(query, access, found, names, entities);
+		}
+		for (ResolvedJoin join : joins) {
+			for (Resolved column : join.columns()) {
+				CatalogQueryStore.QueryColumn query = column.column();
+				if (query.property() == null || !overridden(query, access)) {
+					continue;
+				}
+				Set<Integer> found = new TreeSet<>();
+				for (Row row : rows) {
+					for (JoinResult result : row.joinResults().getOrDefault(join.join().id(), List.of())) {
+						if (result.values().get(column.result().key()) != null) {
+							found.add(result.entityId());
+						}
+					}
+				}
+				collect(query, access, found, names, entities);
+			}
+		}
+		if (entities.isEmpty()) {
+			return;
+		}
+		List<Map<String, Object>> properties = new ArrayList<>();
+		entities.forEach((id, ids) -> {
+			Map<String, Object> property = new LinkedHashMap<>();
+			property.put("propertyDefId", id.toString());
+			property.put("property", names.get(id));
+			property.put("entityIds", List.copyOf(ids));
+			properties.add(property);
+		});
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put("channel", channel.tag());
+		details.put("page", page);
+		details.put("properties", properties);
+		this.audit.appendIndependently(new AuditEvent("property-override-access", AuditEvent.Category.SECURITY,
+				AuditEvent.Severity.WARNING, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal),
+				"catalog", catalogId.toString(), details));
+	}
+
+	/** Whether the column's values are read through the override, for all or (scoped) some entities. */
+	private static boolean overridden(CatalogQueryStore.QueryColumn query, PropertyAccess.Snapshot access) {
+		UUID id = query.property().propertyDefId();
+		return access.throughOverride(id) || (access.connectionScoped(id) && access.scope(id).isPresent());
+	}
+
+	/** Adds the entities with a value of the column, minus those in the caller's scope. */
+	private void collect(CatalogQueryStore.QueryColumn query, PropertyAccess.Snapshot access, Set<Integer> found,
+			Map<UUID, String> names, Map<UUID, Set<Integer>> entities) {
+		UUID id = query.property().propertyDefId();
+		java.util.Optional<PropertyAccess.Scope> scope = access.throughOverride(id) ? java.util.Optional.empty()
+				: access.scope(id);
+		if (scope.isPresent()) {
+			found.removeAll(this.scopes.inScope(scope.get().anchor(), scope.get().scopingType(), found));
+		}
+		if (found.isEmpty()) {
+			return;
+		}
+		names.put(id, query.property().name());
+		entities.computeIfAbsent(id, (key) -> new TreeSet<>()).addAll(found);
 	}
 
 	/**

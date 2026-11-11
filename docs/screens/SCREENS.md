@@ -76,6 +76,8 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 | SCR-036 | Conformance analysis | CA | UC-20 | should | `legacy-mockup` | [conformance](./conformance-light.svg) / [dark](./conformance-dark.svg) |
 | SCR-037 | Auth configuration (admin) | CA | UC-03 | must | `legacy-mockup` | [auth-config](./auth-config-light.svg) / [dark](./auth-config-dark.svg) |
 | SCR-038 | System settings | CA | UC-02 | must | `legacy-mockup` | [system-settings](./system-settings-light.svg) / [dark](./system-settings-dark.svg) |
+| SCR-039 | Authorization roles (built-in and custom roles with their permissions; dialog "New role") | CA+WP | UC-23 | should | `implemented` | [light](./SCR-039-light.png) / [dark](./SCR-039-dark.png) |
+| SCR-040 | Override roles (property-visibility override role list, security administration) | CA+WP | UC-21 | should | `implemented` | [light](./SCR-040-light.png) / [dark](./SCR-040-dark.png) |
 
 ---
 
@@ -98,4 +100,4 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 SCR-001, SCR-002, SCR-003, SCR-004, SCR-005, SCR-010, SCR-011, SCR-012, SCR-020, SCR-021, SCR-022, SCR-025, SCR-026, SCR-028, SCR-030, SCR-031, SCR-032, SCR-033, SCR-034, SCR-037, SCR-038, SCR-050, SCR-051, SCR-052, SCR-055
 
 **Should-have** (v1.0 extensions):
-SCR-023, SCR-024, SCR-027, SCR-035, SCR-036, SCR-053, SCR-054
+SCR-023, SCR-024, SCR-027, SCR-035, SCR-036, SCR-039, SCR-040, SCR-053, SCR-054

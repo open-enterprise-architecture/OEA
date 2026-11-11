@@ -8,7 +8,7 @@ Defines the property-visibility override role list: the roles whose holders read
 
 ### Requirement: Override role list
 
-The override role list SHALL be empty by default and hold at most 20 existing roles, built-in or custom. Only a principal with `visibility:configure` SHALL read or change it; a change SHALL take effect at once. An unknown role SHALL answer 422 and a repeated role or more than 20 roles 400, changing nothing.
+The override role list SHALL be empty by default and hold at most 20 existing roles, built-in or custom. Only a principal with `visibility:configure` SHALL read or change it; a change SHALL take effect at once. An unknown role SHALL answer 422 and more than 20 roles 400, changing nothing; a repeated role SHALL count once.
 
 Trace: US-128 AC3, AC5, REQ-128 AC3, AC5, AC6, REQ-161, ADR-032 §4, Q14
 

@@ -1,13 +1,13 @@
 ---
 title: Roles and permissions
 covers:
-  screens: []
-  stories: [US-014, US-018, US-143, US-144, US-146, US-147]
+  screens: [SCR-039]
+  stories: [US-014, US-018, US-143, US-144, US-146, US-147, US-151]
 ---
 
 # Roles and permissions
 
-Every operation of OEA requires a permission, and permissions come only from roles. OEA ships a fixed permission catalog and built-in roles; `GET /admin/permissions` and `GET /admin/roles` return them.
+Every operation of OEA requires a permission, and permissions come only from roles. OEA ships a fixed permission catalog and built-in roles, and you can add roles of your own; `GET /admin/permissions` and `GET /admin/roles` return them.
 
 ## Built-in roles
 
@@ -26,6 +26,37 @@ Every operation of OEA requires a permission, and permissions come only from rol
 `solution-metamodel:write` maintains the extensions of solutions and their entity types (see [Extensions of solutions](./metamodel-editing#extensions)); the metamodel of the instance still needs `metamodel:write`.
 
 The local system admin account holds the role `system-admin`. **Privileged roles** – roles with an admin-class permission (`metamodel:write`, `visibility:configure`, `visibility-scope:assign`, `role:assign`, `person:manage`, `service-account:manage`, `auth-config:manage`, `settings:manage`) – are effective only in a session confirmed with a second factor. For a login through an identity provider, the provider has to report the second factor in `amr`.
+
+## Roles of your own {#custom-roles}
+
+Your organization may need roles that OEA does not ship, such as `iso` for the information security officer, who should read a security classification, or `migration-support` for a data migration. Open *Authorization roles* in the header (you need `role:assign`, roles `security-admin` and `system-admin`). The page lists every role with its permissions and marks built-in roles, privileged roles and [override roles](./property-visibility#override-roles).
+
+<Screenshot name="authorization-roles" alt="Authorization roles with permissions and markers" />
+
+Choose *New role* and enter:
+
+| Field | Meaning |
+|---|---|
+| ID | 2 to 63 lowercase letters, digits and hyphens, starting with a letter; it cannot be changed later |
+| Name | up to 100 characters |
+| Description | optional, up to 1,000 characters |
+| Permissions | the permissions the role grants; none at all is fine for a role that serves only as a read role or override role |
+| Assignable to service accounts | whether service accounts may get the role |
+
+OEA refuses a role:
+
+- with an ID that is taken, by a built-in or another role of your own (`409`);
+- with an unknown permission (`422`);
+- that combines `metamodel:write` with `visibility:configure` or `visibility-scope:assign`: metamodel administration and visibility administration stay in separate hands (`422`);
+- with an administration permission that is assignable to service accounts (`422`).
+
+The dialog stays open and says why. Through the API:
+
+```bash
+curl "${auth[@]}" -d '{"id": "iso", "name": "Information Security Officer", "permissions": []}' "$OEA/admin/roles"
+```
+
+A role is privileged if it contains an administration permission. Creating a role is recorded in the audit trail as `role.created`, with high severity for a privileged role. You assign a role of your own like a built-in one, through an IdP group or to a single person. Roles of your own cannot be changed or deleted yet.
 
 ## Grant roles through IdP groups
 

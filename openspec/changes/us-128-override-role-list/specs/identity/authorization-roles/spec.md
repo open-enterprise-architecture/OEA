@@ -31,7 +31,7 @@ Trace: US-151 AC1, AC2, UC-23 A5, REQ-157, ADR-032 §4
 
 ### Requirement: Invalid role definitions
 
-A creation SHALL be rejected, storing nothing, with 409 for an ID that is taken by a built-in or custom role, and with 422 for an unknown permission, for `metamodel:write` combined with `visibility:configure` or `visibility-scope:assign` (SoD-2), or for an admin-class permission in a role assignable to service accounts (SoD-4). An invalid ID, an empty or too long name, a repeated permission or more than 50 permissions SHALL answer 400.
+A creation SHALL be rejected, storing nothing: 409 for a taken ID, built-in or custom; 422 for an unknown permission, for `metamodel:write` with `visibility:configure` or `visibility-scope:assign` (SoD-2), or for an admin-class permission in a role assignable to service accounts (SoD-4); 400 for an invalid ID, an empty or too long name or over 50 permissions. A repeated permission SHALL count once.
 
 Trace: US-151 AC3, AC4, UC-23 A5, ADR-032 SoD-2, SoD-4
 

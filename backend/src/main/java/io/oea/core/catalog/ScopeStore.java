@@ -1,5 +1,10 @@
 package io.oea.core.catalog;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -32,6 +37,34 @@ public class ScopeStore {
 		Boolean found = this.jdbc.queryForObject("SELECT " + inScope("e", scopingType, anchor)
 				+ " FROM entities e WHERE e.id = ?", Boolean.class, entityId);
 		return Boolean.TRUE.equals(found);
+	}
+
+	/**
+	 * The entities among {@code entityIds} in the scope of the anchor for the scoping type, in one
+	 * query (design D3 of us-128-override-role-list).
+	 */
+	public Set<Integer> inScope(int anchor, UUID scopingType, Collection<Integer> entityIds) {
+		if (entityIds.isEmpty()) {
+			return Set.of();
+		}
+		return new HashSet<>(this.jdbc.queryForList("SELECT e.id FROM entities e WHERE e.id = ANY(?) AND "
+				+ inScope("e", scopingType, anchor), Integer.class, (Object) entityIds.toArray(Integer[]::new)));
+	}
+
+	/**
+	 * The source and target entity per connection entity, for the connections among
+	 * {@code connectionIds} (design D3 of us-128-override-role-list).
+	 */
+	public Map<Integer, int[]> endpoints(Collection<Integer> connectionIds) {
+		Map<Integer, int[]> endpoints = new HashMap<>();
+		if (connectionIds.isEmpty()) {
+			return endpoints;
+		}
+		this.jdbc.query("SELECT entity_id, source_entity_id, target_entity_id FROM entity_connections WHERE entity_id = ANY(?)",
+				(rs) -> {
+					endpoints.put(rs.getInt(1), new int[] { rs.getInt(2), rs.getInt(3) });
+				}, (Object) connectionIds.toArray(Integer[]::new));
+		return endpoints;
 	}
 
 }

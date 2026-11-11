@@ -110,6 +110,25 @@ class RestrictedWriteTests {
 	}
 
 	@Test
+	void noWriteThroughTheOverride() {
+		String external = "app-" + suffix();
+		ok(batch(this.kurt, entity(external, "Data Hub", null, this.cost, "100")));
+		String migration = "migration-support-" + suffix();
+		this.jdbc.update("INSERT INTO authorization_roles (id, name, overrides_property_visibility) VALUES (?, ?, true)",
+				migration, migration);
+		try {
+			TestSession holder = new TestPrincipals(this.sessions, this.accounts, this.jdbc)
+				.personWithIdpRoles("integration-writer", migration);
+			// the override reads, it never writes (us-128 D2)
+			assertThat(batch(holder, entity(external, "Data Hub", null, this.cost, "999"))).hasStatus(HttpStatus.FORBIDDEN);
+			assertThat(value(external)).isEqualTo(100L);
+		}
+		finally {
+			this.jdbc.update("UPDATE authorization_roles SET overrides_property_visibility = false WHERE id = ?", migration);
+		}
+	}
+
+	@Test
 	void writeAttemptWithoutWriteRole() {
 		String external = "app-" + suffix();
 		ok(batch(this.kurt, entity(external, "CRM System", "Integration of CRM", this.cost, "100")));

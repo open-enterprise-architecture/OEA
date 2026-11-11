@@ -174,6 +174,21 @@ test('property visibility', async ({ page }) => {
   await shoot(page, 'property-visibility')
   await page.getByTestId('visibility-save').click()
   await expect(page.getByTestId('visibility-row').filter({ hasText: 'Trust Level' }).getByTestId('visibility-restricted')).toBeVisible()
+  // A role of your own on the override list (manual: administration/roles-and-permissions,
+  // administration/property-visibility; us-128-override-role-list); nobody holds it
+  await page.getByTestId('header-roles').click()
+  await page.getByTestId('role-new').click()
+  await page.locator('[data-testid="role-id"] input, input[data-testid="role-id"]').fill('migration-support')
+  await page.locator('[data-testid="role-name"] input, input[data-testid="role-name"]').fill('Migration support')
+  await page.getByTestId('role-permission-entity:read').click()
+  await page.getByTestId('role-save').click()
+  await expect(page.getByTestId('roles-table')).toContainText('migration-support')
+  await shoot(page, 'authorization-roles')
+  await page.getByTestId('header-override').click()
+  await page.getByTestId('override-role-migration-support').click()
+  await page.getByTestId('override-save').click()
+  await expect(page.getByTestId('override-saved')).toBeVisible()
+  await shoot(page, 'override-roles')
 })
 
 test('catalogs', async ({ page }) => {
