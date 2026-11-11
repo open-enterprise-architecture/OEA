@@ -4,7 +4,7 @@
 **Story Points**: 8
 **Status**: done
 **Sprint**: S10
-**Implementation**: OpenSpec change `us-127-connection-scoped-visibility` – person accounts are linked to an element of the configured person metatype; AC1 and AC2 through the catalog and portal query (value per row) and the batch and connection writes (403 outside the scope), AC3 in the catalog, AC4 measured in `CatalogQueryLatencyIT` (p95 29 ms with, 34 ms without the column, 2026-11-11). The entity detail, which does not exist yet, will use the same rule (`PropertyAccess`)
+**Implementation**: OpenSpec change `us-127-connection-scoped-visibility`, commit 9ea1ad2 (#231) – person accounts are linked to an element of the configured person metatype; AC1 and AC2 through the catalog and portal query (value per row) and the batch and connection writes (403 outside the scope), AC3 in the catalog, AC4 measured in `CatalogQueryLatencyIT` (p95 29 ms with, 34 ms without the column, 2026-11-11). The entity detail, which does not exist yet, will use the same rule (`PropertyAccess`)
 
 ## Story
 

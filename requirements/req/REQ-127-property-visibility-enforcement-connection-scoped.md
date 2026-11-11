@@ -84,7 +84,7 @@ Security review SEC-02, SEC-03 (2026-10-13): if any user with entity write permi
 
 ## Implementation Notes
 
-- Implemented by the OpenSpec change `us-127-connection-scoped-visibility`:
+- Implemented by the OpenSpec change `us-127-connection-scoped-visibility`, commit 9ea1ad2 (#231):
   - "Their `Person` entity" is the element linked to the person account (`persons.entity_id`, set through `setPersonEntityLink`), counted only while it is active and of the configured person metatype or one of its subtypes.
   - The scope is evaluated in the query itself (an `EXISTS` over `entity_connections`, both directions, depth 1), without a cache, so a new or removed scoping connection applies to the next request. This replaces the cache of the earlier note and the "cached" of AC5.
   - AC1, AC2 and AC4 through the catalog and portal query (value, filter and sort per row), AC3 through the batch and connection writes (403 outside the scope or for a new entity). The entity detail does not exist yet and will use the same rule.
