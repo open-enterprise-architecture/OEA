@@ -46,6 +46,7 @@ The list *Catalogs* shows every catalog you may see, marked *Shared* or *Persona
 - Sort and page are part of the address of the page. Back navigation, a reload or a shared link restore the same view; invalid values in the address are ignored and the first page is shown in the default order.
 - If the entity type has no entities yet, the table shows *No entries found*.
 - A column on a property whose values you may not see shows a lock in its header and empty cells; you cannot sort or filter by it (see [Property visibility](../administration/property-visibility)).
+- A column on a connection-based property shows the value only in the rows of entities connected to your element and an empty cell in the others. Sorting puts the empty cells last, and a filter on a value finds only rows where you see it.
 - A query that takes longer than the time limit of your installation (10 seconds by default) is cancelled, and the table shows *The query took too long*. Narrow the filters or switch joins to compact mode and try again.
 - Another person's personal catalog cannot be opened; it behaves like a catalog that does not exist (*Catalog not found*).
 
@@ -53,7 +54,7 @@ Through the API, `GET /catalogs/{id}/query` returns the same rows with the param
 
 - A page with a following page carries `nextCursor`. Send it as `cursor` together with `page` + 1 to read the next page faster; the rows and the total are the same as with `page` alone.
 - A cursor is valid only for the same query (columns or view, sort, join modes, filters, page size) and until the catalog changes or the backend restarts. Otherwise the query answers 400 with `cursor` in `invalidFields`; repeat it without the cursor.
-- A column whose property you may not read has `readable: false` and `null` values; a sort or filter on it answers 400.
+- A column whose property you may not read has `readable: false` and `null` values; a sort or filter on it answers 400. A connection-based column is `readable: true` when your account is linked to an element, with `null` in the rows outside your scope.
 - A query above the time limit answers 503 with the problem type `urn:oea:problem:query-timeout` (*Query took too long*).
 
 ## Filters {#filters}

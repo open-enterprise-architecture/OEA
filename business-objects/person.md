@@ -2,7 +2,7 @@
 identifier: person
 name_de: Person (Konto)
 name_en: Person (Account)
-version: 0.7.0
+version: 0.8.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -32,8 +32,8 @@ In the EA repository, a person is typically **referenced, not mastered**: master
 **Account and Person entity** ([ADR-032](../adrs/ADR-032-authorization-model.md) §2):
 
 - The **account** (this business object, table `persons`) authenticates and receives [authorization roles](./authorization-role.md) through [role assignments](./role-assignment.md) and [IdP group mappings](./idp-group-mapping.md).
-- The **Person entity** (EA content, metatype `person`, §8.3) fills [business roles](./role.md) through RoleAssignment connections; this grants no access.
-- The **account link** (`entityId`) connects both. It is needed for connection-scoped property visibility (REQ-127: traversal starts at "the user's Person entity"). Because it affects access, it is set only by principals with `person:manage`, never for the own account (SoD-1), and audited (`person.account-linked`).
+- The **Person entity** (EA content, an element of the configured *person metatype*, §8.3) fills [business roles](./role.md) through RoleAssignment connections; this grants no access.
+- The **account link** (`entityId`) connects both. It is needed for connection-scoped property visibility (REQ-127: traversal starts at "the user's Person entity"). Security administration configures which metatype is the person metatype (`visibility_settings.person_metatype_id`, `visibility:configure`); the link counts only while its element is active and of that metatype or one of its subtypes. Because it affects access, it is set only by principals with `person:manage`, never for the own account (SoD-1), and audited (`person.account-linked`).
 
 **Identity binding**: a human account is bound to the immutable pair (`issuer`, `subject`) of an identity provider (REQ-166); logins are matched only on this pair, never on e-mail (REQ-004). A person may have several bindings (one per configured provider). Local authentication uses [local credentials](./local-credential.md) instead.
 
@@ -56,8 +56,8 @@ In the EA repository, a person is typically **referenced, not mastered**: master
 | endDate | date | optional | | | End of affiliation |
 | externalReference | composite | optional | | fields `system`, `id`; removed on anonymization | Reference to the HR master system (§8.7); not used for login |
 | identities | composite (list) | optional | | human only; see Identity Binding | Bindings to identity providers |
-| entityId | reference | optional | | target: Person entity (metatype `person`); unique; human only | Account link to EA content (ADR-032 DM-7) |
-| entityLinkedAt / entityLinkedBy | datetime / principal | conditional | | set with `entityId`; principal ≠ this account | Who set the account link and when |
+| entityId | reference | optional | | target: an element of the configured person metatype or a subtype; unique; human only | Account link to EA content (ADR-032 DM-7) |
+| entityLinkedAt / entityLinkedBy | datetime / principal | conditional | | set with `entityId`; principal ≠ this account | Who set the account link and when; planned, until then recorded only in the audit trail (`person.account-linked`) |
 | detailLevel | enum | required | reference-only | `[full, reference-only, anonymized]`; service accounts always `reference-only` | Controls how much personal data is held |
 | uiLanguage | string | optional | – | BCP 47 `[de, en, fr, it]`; no value means the language of the browser; set by the person (`PUT /me/preferences`); ignored for service accounts | UI language (US-140) |
 | uiTheme | enum | required | system | `[light, dark, system]` | Preferred UI color scheme (REQ-135) |
@@ -200,3 +200,4 @@ Open questions:
 | 0.5.0 | 2026-10-13 | Business Engineer | ADR-033 DM-A10 / REQ-189: protected identity mapping documented; anonymization (pseudonymous name, `email`/`employeeId`/`externalReference` removed, audit keeps the key); `email` conditional; BR-08, BR-09 added |
 | 0.6.0 | 2026-11-04 | Business Engineer | `uiLanguage` optional without default; no value means the browser language (change `us-140-dynamic-labels`, design D6) |
 | 0.7.0 | 2026-11-05 | Business Engineer | Names resolved also for metamodel administrators reading the metamodel changes (change `us-034-metamodel-changes`) |
+| 0.8.0 | 2026-11-11 | Business Engineer | `entityId` references an element of the configured person metatype instead of a fixed metatype `person`; `entityLinkedAt/By` planned (change `us-127-connection-scoped-visibility`) |

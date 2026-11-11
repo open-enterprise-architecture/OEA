@@ -170,6 +170,11 @@ public class MetatypeEditing {
 		}
 		// the scoping type of a property definition (design D4 of us-124-property-visibility)
 		long scoping = count("SELECT count(*) FROM property_definitions WHERE scoping_connection_type_id = ?", id);
+		// the person metatype of connection-scoped visibility (design D2 of us-127-connection-scoped-visibility)
+		if (count("SELECT count(*) FROM visibility_settings WHERE person_metatype_id = ?", id) > 0) {
+			throw MetamodelChangeException.inUse("The metatype is the person metatype of connection-scoped visibility.",
+					null);
+		}
 		if (scoping > 0) {
 			throw MetamodelChangeException.inUse(
 					"The metatype is the scoping type of " + scoping + " property definitions.", scoping);

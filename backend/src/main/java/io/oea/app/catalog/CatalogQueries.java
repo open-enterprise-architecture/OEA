@@ -508,7 +508,16 @@ public class CatalogQueries {
 	 */
 	private static Resolved readable(Resolved column, PropertyAccess.Snapshot access) {
 		CatalogQueryStore.QueryColumn query = column.column();
-		if (query.property() == null || access.readable(query.property().propertyDefId())) {
+		if (query.property() == null) {
+			return column;
+		}
+		// a connection-scoped column shows its values per row in the caller's scope (us-127 D5)
+		java.util.Optional<PropertyAccess.Scope> scope = access.scope(query.property().propertyDefId());
+		if (scope.isPresent()) {
+			return new Resolved(query.scoped(new CatalogQueryStore.ColumnScope(scope.get().scopingType(),
+					scope.get().anchor())), column.result(), column.defaultSortDirection());
+		}
+		if (access.readable(query.property().propertyDefId())) {
 			return column;
 		}
 		return new Resolved(CatalogQueryStore.QueryColumn.redacted(), column.result().redacted(), null);

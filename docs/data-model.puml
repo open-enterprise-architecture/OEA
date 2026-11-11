@@ -87,11 +87,14 @@ package "Auth" #FFF8E1 {
     .. (login identity: person_identities); set to NULL on anonymization ..
     == Account link to the EA Person entity (ADR-032 DM-7, REQ-127) ==
     + entity_id           : INTEGER       {UQ} {FK→entities.id}
-    .. nullable; target entity must be of metatype 'person' ..
-    .. set only with person:manage, never for the own account (SoD-1); audited ..
+    .. nullable (V24, us-127-connection-scoped-visibility D1); unique index WHERE NOT NULL ..
+    .. target: an active element of visibility_settings.person_metatype_id or a subtype; ..
+    .. counts only while that holds, so a changed person metatype keeps the link stored ..
+    .. set only with person:manage, never for the own account (SoD-1); audited person.account-linked ..
     + entity_linked_at    : TIMESTAMPTZ
     + entity_linked_by_person_id : BIGINT {FK→persons.id}
     + entity_linked_by_admin_id  : UUID   {FK→system_admin_accounts.id}
+    .. planned: not created by V24; time and actor of a link are in the audit trail ..
     == UI preferences ==
     + ui_language         : TEXT
     .. BCP 47: 'de' | 'en' | 'fr' | 'it' (CHECK); NULL = language of the browser ..
@@ -1643,6 +1646,16 @@ package "Settings" #F1F8E9 {
     + updated_by_admin_id    : UUID       {FK→system_admin_accounts.id}
   }
 
+  class visibility_settings <<Table>> #DCEDC8 {
+    + id                 : SMALLINT       {PK}
+    .. CHECK (id = 1): single row, seeded by V24 (exists before the setup, unlike system_settings) ..
+    --
+    + person_metatype_id : UUID           {FK→metatypes.id}
+    .. the person metatype of connection-scoped visibility (REQ-127); NULL = none ..
+    .. an element metatype (is_connection = false); set only with visibility:configure; ..
+    .. audited visibility.person-metatype-changed; a metatype referenced here cannot be deleted ..
+  }
+
   note right of system_settings
     Writable only with settings:manage; every change
     audited ('settings.changed'). Audit retention is
@@ -2036,6 +2049,12 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   tree_node_items.reference_id typed UUID with created_by/created_at and one
 '   entry per target and folder; tree_nodes.created_by NULL only for the root.
 '   Reason: US-054, REQ-050, REQ-094, REQ-095, REQ-097.
+' 2026-11-11 (us-127-connection-scoped-visibility):
+'   persons.entity_id created by V24 with a unique index; its target is an
+'   element of the configured person metatype (no fixed metatype 'person');
+'   entity_linked_at/by stay planned. New one-row table visibility_settings
+'   with person_metatype_id, because system_settings has its row only after
+'   the bootstrapping. Reason: US-127, REQ-127, ADR-032 DM-7.
 ' ─────────────────────────────────────────────────────
 
 @enduml

@@ -4,9 +4,9 @@ title: Property visibility enforced on every read channel
 type: functional
 priority: must
 status: proposed
-version: 0.4.0
+version: 0.5.0
 created: 2026-10-13
-last_updated: 2026-11-09
+last_updated: 2026-11-11
 author: requirements-engineer
 references:
   use_cases:
@@ -124,6 +124,7 @@ Raw analytics (ADR-034): masking happens in the projection of the reporting view
 - Portal channel: implemented for the shared catalogs by the OpenSpec change `s9-portal-catalogs`, commit 3b6155f (#200) – `GET /portal/catalogs/{id}/query` is the catalog query, so only properties with visibility `public` appear as columns and sorting by another property is rejected (400)
 - AC2 for catalog and portal (OpenSpec change `us-126-role-restricted-enforcement`, commit cefd98a (#213)): a column on a property the caller cannot read is returned with `readable: false` and `null` values in rows and join results; a sort or filter on it is rejected with 400, so the result never depends on it
 - AC4 (same change): changes of properties whose visibility is not `public` are stored as AES-256-GCM ciphertext under an audit value key in `audit.value_keys`, wrapped by the key-encryption key of REQ-188 and re-wrapped by `oea secrets-reencrypt`; decryption for `audit:read` holders follows with the reading of audit changes
+- AC2 for `connection-scoped` (OpenSpec change `us-127-connection-scoped-visibility`): for a caller with a linked element, the column is readable and each row shows the value only if its entity is in scope; filter values and sort keys use the same per-row expression, so out-of-scope rows behave like rows without a value. Without a linked element the column is redacted as above
 
 ## Change History
 
@@ -133,3 +134,4 @@ Raw analytics (ADR-034): masking happens in the projection of the reporting view
 | 0.2.0 | 2026-10-13 | requirements-engineer | ADR-034: raw analytics (reporting schema) listed as read channel (statement, AC5). ADR-033 §3: audit change values encrypted only (keyed MAC option removed, AC4) |
 | 0.3.0 | 2026-11-07 | Solution Architect | Implementation note for the portal channel (s9-portal-catalogs) |
 | 0.4.0 | 2026-11-09 | Change us-126-role-restricted-enforcement | Implementation notes for AC2 (catalog, portal) and AC4 |
+| 0.5.0 | 2026-11-11 | Change us-127-connection-scoped-visibility | Implementation note for connection-scoped columns |

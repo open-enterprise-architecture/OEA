@@ -311,6 +311,17 @@ An administrator set the initial password of a person ([US-023](../requirements/
 | Target | `person`, ID of the person |
 | Details | `origin` (`initial`), `expiresAt`, `generated` (`true` if OEA generated the password, [US-026](../requirements/user-stories/US-026-password-generator.md)); never the password |
 
+### `person.account-linked`
+
+An administrator linked a person account to the element that represents the person in the model, or removed the link ([REQ-127](../requirements/req/REQ-127-property-visibility-enforcement-connection-scoped.md), ADR-032 DM-7; change us-127-connection-scoped-visibility D3). The link anchors connection-scoped visibility. A refused link of the own account is recorded as `authz.denied` (reason `self-administration`).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `warning` / `success` |
+| Actor | the person with `person:manage` |
+| Target | `person`, ID of the person |
+| Details | `oldEntityId`, `newEntityId` (empty without a link) |
+
 ### `person.password-reset`
 
 An administrator reset the local password of a person ([US-030](../requirements/user-stories/US-030-password-reset-by-admin.md), REQ-031): the old password was revoked and replaced by a generated temporary one. The ended sessions are recorded as `session.revoked` (reason `password-reset`). A refused reset of an administrator is recorded as `authz.denied` (reason `admin-reset-restricted`).
@@ -619,6 +630,17 @@ The visibility of a property definition was changed by security administration (
 | Actor | the person with `visibility:configure` |
 | Target | `property-definition`, ID of the property definition |
 | Details | `property` (name), `oldMode`, `newMode`, `oldReadRoles`, `newReadRoles`, `oldWriteRoles`, `newWriteRoles`, `oldScopingType`, `newScopingType` (empty without one), `selfBenefiting` (a read or write role the actor holds was added, ADR-032 SoD-6) |
+
+### `visibility.person-metatype-changed`
+
+Security administration set, changed or unset the person metatype, the entity type whose elements person accounts are linked to ([REQ-127](../requirements/req/REQ-127-property-visibility-enforcement-connection-scoped.md), [REQ-161](../requirements/req/REQ-161-visibility-configuration-governance.md); change us-127-connection-scoped-visibility D2). Setting the same metatype again writes no event.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `warning` / `success` |
+| Actor | the person with `visibility:configure` |
+| Target | `settings`, `person-metatype` |
+| Details | `oldMetatypeId`, `newMetatypeId` (empty without one), `newMetatypeName` |
 
 ### `tree-node.created`, `tree-node.renamed`, `tree-node.deleted`
 

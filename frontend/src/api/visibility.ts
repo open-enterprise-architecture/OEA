@@ -8,9 +8,11 @@ import { currentCsrfToken } from './session'
 export type PropertyVisibilityEntry = components['schemas']['PropertyVisibilityEntry']
 export type VisibilityMode = PropertyVisibilityEntry['visibilityMode']
 export type AuthorizationRole = components['schemas']['AuthorizationRole']
+export type PersonMetatype = components['schemas']['PersonMetatype']
 
 const JSON_HEADERS = { Accept: 'application/json, application/problem+json' }
 const VISIBILITY = '/api/v1/admin/property-visibility'
+const PERSON_METATYPE = `${VISIBILITY}/person-metatype`
 
 async function read<T>(path: string, fetchFn: typeof fetch): Promise<T> {
   const response = await fetchFn(path, { credentials: 'same-origin', headers: JSON_HEADERS })
@@ -75,4 +77,34 @@ export function invalidFields(change: VisibilityChange): string[] {
     invalid.push('scopingConnectionType')
   }
   return invalid
+}
+
+/**
+ * GET /admin/property-visibility/person-metatype: the entity type whose elements person accounts
+ * are linked to, the anchor of connection-scoped visibility (design D2, D8 of
+ * us-127-connection-scoped-visibility); `metatypeId` is `null` while none is set.
+ */
+export function fetchPersonMetatype(fetchFn: typeof fetch = fetch): Promise<PersonMetatype> {
+  return read(PERSON_METATYPE, fetchFn)
+}
+
+/**
+ * PUT /admin/property-visibility/person-metatype: sets or, with `null`, unsets the person
+ * metatype. A connection metatype or an unknown one is `validation-failed` (422) on `metatypeId`.
+ */
+export async function updatePersonMetatype(
+  metatypeId: string | null,
+  fetchFn: typeof fetch = fetch,
+): Promise<{ ok: true; value: PersonMetatype } | { ok: false; rejection: Rejection }> {
+  const csrfToken = currentCsrfToken()
+  const response = await fetchFn(PERSON_METATYPE, {
+    method: 'PUT',
+    credentials: 'same-origin',
+    headers: { ...JSON_HEADERS, 'Content-Type': 'application/json', ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}) },
+    body: JSON.stringify({ metatypeId }),
+  })
+  if (!response.ok) {
+    return { ok: false, rejection: await readRejection(response) }
+  }
+  return { ok: true, value: (await response.json()) as PersonMetatype }
 }

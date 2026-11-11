@@ -750,7 +750,10 @@ components:
           description: |
             `false` if the caller may not read the column's property (property visibility,
             REQ-126, REQ-160): its values are `null` in every row and join result, and it can be
-            neither sorted nor filtered
+            neither sorted nor filtered. A `connection-scoped` column is readable for a caller
+            with an account link; each row shows its value only if its entity is connected to
+            the caller's element by the scoping type, and sort and filter treat the other rows
+            as empty (REQ-127)
         filterType:
           type: string
           enum: [text, enum, boolean, number, date]
@@ -2570,6 +2573,14 @@ components:
       properties:
         entityId: { type: [integer, 'null'] }
 
+    PersonMetatype:
+      type: object
+      required: [metatypeId]
+      description: The person metatype of connection-scoped visibility (REQ-127); `null` for none
+      properties:
+        metatypeId:   { type: [string, 'null'], format: uuid }
+        metatypeName: { type: [string, 'null'], readOnly: true }
+
     PersonEntityLinkResult:
       type: object
       required: [personId, entityId]
@@ -2901,6 +2912,12 @@ components:
         email:      { type: [string, 'null'], format: email }
         status:     { type: string, enum: [invited, active, inactive, offboarded] }
         createdAt:  { type: string, format: date-time }
+        entityId:
+          type: [integer, 'null']
+          description: |
+            The element of the EA model linked to the account (`setPersonEntityLink`, REQ-127);
+            connection-scoped visibility starts from it while it is active and of the person
+            metatype
 
     PersonWrite:
       type: object
@@ -5386,7 +5403,8 @@ paths:
       description: |
         Only for `scope=organization`, and only while no entities of the metatype exist (also
         deleted ones), no catalog uses it as primary metatype, no metatype has it as base
-        type and no property definition uses it as `scopingConnectionType` (409 `in-use` with
+        type, no property definition uses it as `scopingConnectionType` and it is not the person
+        metatype of connection-scoped visibility (409 `in-use` with
         `count`, the number of entities or properties).
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["metamodel:write", "solution-metamodel:write"], "conditions": [{"when": "the metatype belongs to the instance configuration (MetatypeWrite.configId on creation)", "permissions": ["metamodel:write"]}, {"when": "the metatype belongs to a solution extension (MetatypeWrite.configId on creation)", "permissions": ["solution-metamodel:write"]}]}
@@ -6054,6 +6072,52 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/PropertyVisibilityEntry' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /admin/property-visibility/person-metatype:
+    get:
+      operationId: getPersonMetatype
+      summary: Person metatype of connection-scoped visibility (SCR-032)
+      description: |
+        The entity type whose elements represent persons (us-127-connection-scoped-visibility
+        D2): a person account is linked to such an element (`setPersonEntityLink`), and
+        connection-scoped visibility starts from it. `null` while none is set.
+      tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
+      responses:
+        '200':
+          description: The person metatype
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PersonMetatype' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    put:
+      operationId: setPersonMetatype
+      summary: Set the person metatype (SCR-032)
+      description: |
+        Sets or unsets the person metatype; only an element metatype (a connection metatype or
+        an unknown one → `422` naming `metatypeId`). Links to elements of another entity type
+        stay stored but grant no scope. Audited as `visibility.person-metatype-changed`.
+      tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PersonMetatype' }
+      responses:
+        '200':
+          description: The person metatype
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PersonMetatype' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -7657,13 +7721,14 @@ paths:
       operationId: setPersonEntityLink
       summary: Link a person account to its Person entity (REQ-127)
       description: |
-        Sets or removes the account link used for connection-scoped visibility. Audited as
+        Sets or removes the account link used for connection-scoped visibility (REQ-127). The
+        element must be an active entity of the person metatype
+        (`/admin/property-visibility/person-metatype`) or one of its subtypes. Audited as
         `person.account-linked`. Own account (incl. via a linked local system admin
-        account) → `403` (SoD-1); service account target → `422`; entity already linked
-        to another account → `409`.
+        account) → `403` (SoD-1); service account target, no person metatype or an element
+        of another entity type → `422`; entity already linked to another account → `409`.
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/PersonIdParam'
       requestBody:
@@ -7684,11 +7749,13 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
-          description: Entity is not of the person metatype, or the target is a service account
+          description: |
+            No person metatype is set, the entity is not an active element of the person
+            metatype, or the target is a service account
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/access-review:
     get:
@@ -8279,8 +8346,9 @@ paths:
         (ADR-033 §7). A batch with a connection of a metatype that is the
         `scopingConnectionType` of a property definition needs `visibility-scope:assign`;
         without it the whole batch is rejected with 403 (REQ-161). A value of a
-        `role-restricted` property, set or removed, needs one of its write roles; without it
-        the whole batch is rejected with 403 (REQ-126). A property not named keeps its value.
+        `role-restricted` property, set or removed, needs one of its write roles, and a value of
+        a `connection-scoped` property an existing entity in the writer's scope; otherwise the
+        whole batch is rejected with 403 (REQ-126, REQ-127). A property not named keeps its value.
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"], "conditions": [{"when": "a connection of a type used as scopingConnectionType is written", "permissions": ["visibility-scope:assign"]}]}
       parameters:
@@ -8333,7 +8401,9 @@ paths:
         `<source name> → <target name>`. Properties are checked as for entities. A connection
         of a metatype that is the `scopingConnectionType` of a property definition also needs
         `visibility-scope:assign`, otherwise 403 (REQ-161). A value of a `role-restricted`
-        property needs one of its write roles, otherwise 403 (REQ-126).
+        property needs one of its write roles, otherwise 403 (REQ-126); a value of a
+        `connection-scoped` property cannot be set on creation, because the connection is not
+        yet in the writer's scope (403, REQ-127).
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"], "conditions": [{"when": "a connection of a type used as scopingConnectionType is written", "permissions": ["visibility-scope:assign"]}]}
       requestBody:

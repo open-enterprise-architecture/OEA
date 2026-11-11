@@ -2,7 +2,7 @@
 title: Portal
 covers:
   screens: [SCR-050]
-  stories: []
+  stories: [US-127]
 ---
 
 # Portal
@@ -26,7 +26,7 @@ Choose a catalog in the list. It opens with the columns, the default sort and th
 
 Sort and page are part of the address, so you can bookmark a sorted page or send it to someone. The portal offers no action that changes the catalog: no columns, joins, filters, views or navigation tree. If a catalog is no longer shared or does not exist, the page says *Catalog not found*.
 
-The portal shows only properties with the visibility *public*, like every catalog.
+The portal applies the [property visibility](../administration/property-visibility) like every catalog: a column on a property you may not see stays empty, and a column on a connection-based property shows the value only in the rows of entities connected to your element.
 
 ## Through the API
 

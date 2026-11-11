@@ -675,7 +675,7 @@
     "noAccess": "Zum Ändern der Sichtbarkeit braucht es die Berechtigung der Sicherheitsadministration.",
     "loadFailed": "Die Sichtbarkeit der Eigenschaften konnte nicht geladen werden.",
     "saveFailed": "Die Sichtbarkeit konnte nicht gespeichert werden.",
-    "enforcementNote": "Rollenbasierte Einschränkungen gelten in Katalogen, im Portal und beim Schreiben von Entitäten. Verbindungsbasierte Eigenschaften bleiben ausgeblendet und lassen sich nicht schreiben, bis ihre Durchsetzung folgt.",
+    "enforcementNote": "Rollenbasierte Einschränkungen gelten in Katalogen, im Portal und beim Schreiben von Entitäten. Ein verbindungsbasierter Wert wird nur für Entitäten angezeigt und geschrieben, die über seinen Verbindungstyp mit dem Element verbunden sind, das mit dem Konto der Person verknüpft ist.",
     "filter": "Nach Name filtern",
     "property": "Eigenschaft",
     "metatypes": "Entitätstypen",
@@ -704,6 +704,11 @@
       "roleHint": "Nur Inhaber der gewählten Rollen",
       "connectionHint": "Nur Personen, die mit der Entität verbunden sind"
     },
-    "metamodelHint": "Wird von der Sicherheitsadministration auf der Seite Sichtbarkeit von Eigenschaften geändert."
+    "metamodelHint": "Wird von der Sicherheitsadministration auf der Seite Sichtbarkeit von Eigenschaften geändert.",
+    "personMetatype": "Entitätstyp von Personen",
+    "personMetatypeHint": "Personenkonten werden mit Elementen dieses Typs verknüpft. Verbindungsbasierte Sichtbarkeit geht vom verknüpften Element aus.",
+    "personMetatypeNone": "Keiner",
+    "personMetatypeFailed": "Der Entitätstyp von Personen konnte nicht gespeichert werden.",
+    "personMetatypeMissing": "Es gibt verbindungsbasierte Eigenschaften, aber kein Entitätstyp von Personen ist gesetzt. Ihre Werte sieht niemand."
   }
 }

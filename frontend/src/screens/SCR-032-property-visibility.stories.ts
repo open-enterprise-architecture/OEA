@@ -4,11 +4,12 @@ import type { Me } from '../api/session'
 import AppHeader from '../components/AppHeader.vue'
 import PropertyVisibilityPage from '../pages/PropertyVisibilityPage.vue'
 import { session } from '../session/store'
-import { ME_SECURITY_ADMIN, visibilityApi } from '../test/visibility'
+import { ME_SECURITY_ADMIN, VISIBILITY_IDS, visibilityApi } from '../test/visibility'
 
 // SCR-032 Property visibility (UC-21, US-124, US-125; design D5 of us-124-property-visibility):
 // security administration sees the visibility of every property and changes it in a dialog
-// (docs/screens/SCREENS.md). The first story is the screen image.
+// (docs/screens/SCREENS.md). Above the list it chooses the entity type of persons (design D8 of
+// us-127-connection-scoped-visibility). The first story is the screen image.
 
 function screen(fetchFn: typeof fetch): Story {
   return {
@@ -46,12 +47,22 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const List: Story = {
-  ...screen(visibilityApi().fetch),
+  ...screen(visibilityApi({ personMetatype: VISIBILITY_IDS.actor, connectionScoped: true }).fetch),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(await canvas.findByText('Investment Cost')).toBeInTheDocument()
-    await expect(canvas.getByText('Restricted')).toBeInTheDocument()
+    await expect(canvas.getByText('Entity type of persons')).toBeInTheDocument()
+    await expect(canvas.queryByTestId('person-metatype-missing')).toBeNull()
+    await expect(canvas.getAllByText('Restricted')).toHaveLength(2)
     await expect(canvas.getByRole('link', { name: 'Property visibility' })).toBeInTheDocument()
+  },
+}
+
+export const PersonMetatypeMissing: Story = {
+  ...screen(visibilityApi({ connectionScoped: true }).fetch),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByTestId('person-metatype-missing')).toBeInTheDocument()
   },
 }
 

@@ -59,6 +59,12 @@ Feature: Catalog query
     Then the column is not readable and has no value for "Costly Application"
     And the enterprise architect sees "100" for "Costly Application"
 
+  @US-127 @AC1 @AC2 @REQ-127
+  Scenario: Own domain and other domain
+    Given the connection-scoped property "Scope Security Classification" with the scoping type "Scope Domain Assignment", assigned through it to the enterprise architect's element for "Scope ERP Warehouse" but not for "Scope CRM Sales"
+    When the enterprise architect queries the scoped catalog
+    Then "Scope ERP Warehouse" shows "internal" and "Scope CRM Sales" an empty cell
+
   @US-049 @AC5
   Scenario: Default page size
     Given 120 applications with the prefix "Application" exist

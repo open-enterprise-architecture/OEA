@@ -4,9 +4,9 @@ title: Property write protection on all write paths
 type: business-rule
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-10-13
-last_updated: 2026-10-13
+last_updated: 2026-11-11
 author: requirements-engineer
 references:
   use_cases:
@@ -99,9 +99,11 @@ for each property P in write request:
 ## Implementation Notes
 
 - The API contract must state that on `PUT` masked properties the caller may not write are preserved, not cleared (follow-up for the solution architect)
+- Batch and connection writes (OpenSpec changes `us-126-role-restricted-enforcement` and `us-127-connection-scoped-visibility`): a named property the writer may not write rejects the whole request with 403 before anything is written; omitted properties keep their values. A `connection-scoped` value is writable only for an existing entity in the writer's scope, so a new entity gets it after the scoping connection exists; the mandatory check uses the same rule
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-04 (PR-06) |
+| 0.2.0 | 2026-11-11 | Change us-127-connection-scoped-visibility | Implementation note for batch and connection writes |

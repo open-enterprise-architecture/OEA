@@ -11,6 +11,8 @@ import io.oea.api.generated.model.MappingWarning;
 import io.oea.api.generated.model.PasswordReset;
 import io.oea.api.generated.model.Permission;
 import io.oea.api.generated.model.Person;
+import io.oea.api.generated.model.PersonEntityLink;
+import io.oea.api.generated.model.PersonEntityLinkResult;
 import io.oea.api.generated.model.PersonIdentity;
 import io.oea.api.generated.model.PersonIdentityWrite;
 import io.oea.api.generated.model.PersonStatusChange;
@@ -25,6 +27,7 @@ import io.oea.api.generated.model.RoleRef;
 import io.oea.app.access.AccessCatalog;
 import io.oea.app.access.IdpGroupMappings;
 import io.oea.app.access.PasswordResets;
+import io.oea.app.access.PersonEntityLinks;
 import io.oea.app.access.PersonLifecycle;
 import io.oea.app.access.PersonPasswords;
 import io.oea.app.access.Persons;
@@ -72,9 +75,12 @@ public class AccessControlController implements AccessControlApi {
 
 	private final SecondFactors secondFactors;
 
+	private final PersonEntityLinks links;
+
 	public AccessControlController(AccessCatalog catalog, ContractAuthorizationRules rules, Persons persons,
 			IdpGroupMappings mappings, RoleAssignments assignments, PersonLifecycle lifecycle,
-			PersonPasswords passwords, PasswordResets resets, SecondFactors secondFactors) {
+			PersonPasswords passwords, PasswordResets resets, SecondFactors secondFactors, PersonEntityLinks links) {
+		this.links = links;
 		this.catalog = catalog;
 		this.rules = rules;
 		this.persons = persons;
@@ -172,6 +178,14 @@ public class AccessControlController implements AccessControlApi {
 	}
 
 	@Override
+	public ResponseEntity<PersonEntityLinkResult> setPersonEntityLink(Integer personId, PersonEntityLink link) {
+		PersonEntityLinks.Link result = this.links.set(principal(), personId, link.getEntityId());
+		return ResponseEntity.ok(new PersonEntityLinkResult(Math.toIntExact(result.personId()), result.entityId())
+			.entityName(result.entityName())
+			.linkedAt(time(result.linkedAt())));
+	}
+
+	@Override
 	public ResponseEntity<Person> getPerson(Integer personId) {
 		return ResponseEntity.ok(person(this.persons.get(personId)));
 	}
@@ -221,7 +235,8 @@ public class AccessControlController implements AccessControlApi {
 	private static Person person(Persons.PersonView person) {
 		return new Person(Math.toIntExact(person.id()), Person.PersonTypeEnum.fromValue(person.personType()),
 				person.name(), Person.StatusEnum.fromValue(person.status()), time(person.createdAt()))
-			.email(person.email());
+			.email(person.email())
+			.entityId(person.entityId());
 	}
 
 	private static PersonIdentity identity(Persons.IdentityView identity) {
