@@ -1,1 +1,0 @@
-import{t as e}from"./iframe-DVAs3-gA.js";e();
