@@ -169,7 +169,7 @@ License texts and notices: the backend jar contains the license and notice files
 | reka-ui (`reka-ui`) | 2.11.0 | MIT | – | <https://github.com/unovue/reka-ui> |
 | scule (`scule`) | 1.3.0 | MIT | – | unjs/scule |
 | tailwind-variants (`tailwind-variants`) | 3.3.1 | MIT | – | <https://github.com/heroui-inc/tailwind-variants> |
-| tailwindcss (`tailwindcss`) | 4.3.3 | MIT | – | <https://github.com/tailwindlabs/tailwindcss> |
+| tailwindcss (`tailwindcss`) | 4.3.5 | MIT | – | <https://github.com/tailwindlabs/tailwindcss> |
 | ufo (`ufo`) | 1.6.4 | MIT | – | unjs/ufo |
 | unhead (`unhead`) | 3.4.3 | MIT | – | <https://github.com/unjs/unhead> |
 | uqr (`uqr`) | 0.1.3 | MIT | – | <https://github.com/unjs/uqr> |
