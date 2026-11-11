@@ -26,7 +26,7 @@
 		<archunit.version>1.5.1</archunit.version>
 		<cucumber.version>8.0.4</cucumber.version>
 		<bouncycastle.version>1.86</bouncycastle.version>
-		<webauthn4j.version>0.31.11.RELEASE</webauthn4j.version>
+		<webauthn4j.version>0.32.0.RELEASE</webauthn4j.version>
 		<license-maven-plugin.version>2.7.1</license-maven-plugin.version>
 		<!-- Security overrides of versions managed by Spring Boot 4.1.1; remove when Spring Boot
 		     manages these versions or newer (REQ-191) -->

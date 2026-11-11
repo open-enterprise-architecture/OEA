@@ -30,7 +30,7 @@ License texts and notices: the backend jar contains the license and notice files
 | Nimbus JOSE+JWT (`com.nimbusds:nimbus-jose-jwt`) | 10.9.1 | Apache-2.0 | – | <https://bitbucket.org/connect2id/nimbus-jose-jwt> |
 | OAuth 2.0 SDK with OpenID Connect and Federation extensions (`com.nimbusds:oauth2-oidc-sdk`) | 11.38.2 | Apache-2.0 | – | <https://bitbucket.org/connect2id/oauth-2.0-sdk-with-openid-connect-extensions> |
 | istack common utility code runtime (`com.sun.istack:istack-commons-runtime`) | 4.1.2 | BSD-3-Clause | – | <https://projects.eclipse.org/projects/ee4j/istack-commons/istack-commons-runtime> |
-| webauthn4j-core (`com.webauthn4j:webauthn4j-core`) | 0.31.11.RELEASE | Apache-2.0 | – | <https://github.com/webauthn4j/webauthn4j> |
+| webauthn4j-core (`com.webauthn4j:webauthn4j-core`) | 0.32.0.RELEASE | Apache-2.0 | – | <https://github.com/webauthn4j/webauthn4j> |
 | HikariCP (`com.zaxxer:HikariCP`) | 7.0.2 | Apache-2.0 | – | <https://github.com/brettwooldridge/HikariCP> |
 | Apache Commons Logging (`commons-logging:commons-logging`) | 1.3.6 | Apache-2.0 | – | <https://commons.apache.org/proper/commons-logging/> |
 | micrometer-commons (`io.micrometer:micrometer-commons`) | 1.17.2 | Apache-2.0 | – | <https://github.com/micrometer-metrics/micrometer> |
