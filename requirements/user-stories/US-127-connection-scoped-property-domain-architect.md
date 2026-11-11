@@ -2,8 +2,9 @@
 
 **ID**: US-127
 **Story Points**: 8
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S10
+**Implementation**: OpenSpec change `us-127-connection-scoped-visibility` – person accounts are linked to an element of the configured person metatype; AC1 and AC2 through the catalog and portal query (value per row) and the batch and connection writes (403 outside the scope), AC3 in the catalog, AC4 measured in `CatalogQueryLatencyIT` (p95 29 ms with, 34 ms without the column, 2026-11-11). The entity detail, which does not exist yet, will use the same rule (`PropertyAccess`)
 
 ## Story
 
@@ -36,11 +37,13 @@ As Michael – Solution Architect, I want to see sensitive properties (e.g. `sec
 **AC4** (Performance):
 
 - When: Michael's domain has up to 500 directly assigned entities
-- Then: traversal overhead p95 ≤ 200 ms (cached, TTL 60 s)
+- Then: traversal overhead p95 ≤ 200 ms
+
+Realigned 2026-11-10 (S10 change 3): the cache with a TTL of 60 s is dropped. The scope is evaluated in the query itself, so a new or removed `DomainAssignment` applies to the next request.
 
 ## Definition of Done
 
-- [ ] AC1–AC4 fulfilled
-- [ ] Graph traversal logic covered by unit tests
-- [ ] Cache invalidation on connection change tested
-- [ ] Code review; linter green; entered in trace matrix
+- [x] AC1–AC4 fulfilled
+- [x] Graph traversal logic covered by unit tests
+- [x] A removed connection applies to the next request, tested (replaces the cache invalidation, see AC4)
+- [x] Code review; linter green; entered in trace matrix

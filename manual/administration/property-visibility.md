@@ -2,7 +2,7 @@
 title: Property visibility
 covers:
   screens: [SCR-032]
-  stories: [US-124, US-125, US-126]
+  stories: [US-124, US-125, US-126, US-127]
 ---
 
 # Property visibility
@@ -15,13 +15,26 @@ Some properties should not be visible to everyone who can read an entity, such a
   - Without a read role, a column on the property shows a lock and empty cells and cannot be sorted or filtered.
   - Without a write role, a batch or connection that sets or removes its value is rejected with `403`.
   - The old and new values of such a property are stored encrypted in the audit log.
-- **Connection-based** properties stay hidden and cannot be written until their enforcement follows in a later version.
+- **Connection-based** properties are enforced per entity on the same channels:
+  - A person sees and writes the value only for entities that are connected through the chosen connection type to the element linked to the person's account, in either direction and over one connection (see [The entity type of persons](#person-metatype)).
+  - In a catalog the column shows the value in the rows of such entities and an empty cell in all others. Sort and filter treat the empty cells as entries without a value, so the result never depends on a hidden value.
+  - Without a linked element, or for the local system admin account, the column behaves like a role-based column without a read role.
+  - A batch or connection that sets or removes the value of an entity outside the scope, or of an entity created in the same batch, is rejected with `403`; create the scoping connection first.
+  - A new or removed scoping connection applies to the next request.
 
 ## The page
 
 Open *Property visibility* in the header. The page lists every property with the entity types that use it, its visibility and its restriction; restricted properties carry the badge *Restricted*. Filter the list by name.
 
 <Screenshot name="property-visibility" alt="Dialog for the visibility of a property with read and write roles" />
+
+## The entity type of persons {#person-metatype}
+
+Connection-based visibility starts from the element that represents a person in the model, for example a *Business Actor*. Choose this entity type in *Entity type of persons* above the list; *None* switches connection-based visibility off for everyone. Only entity types that are not connection types can be chosen, and an entity type in use here cannot be deleted. The change is written to the audit log as `visibility.person-metatype-changed`.
+
+As long as connection-based properties exist but no entity type is set, the page shows a warning: the values of these properties are visible to nobody.
+
+The account of a person is linked to their element through the API (see [Identity providers and persons](./identity-providers#link-an-account-to-an-element)). A link counts only while the element exists and is of the chosen entity type or one of its subtypes; changing the entity type keeps the links, but links to elements of another type stop counting.
 
 ## Change the visibility
 
@@ -50,4 +63,6 @@ In the metamodel configuration, restricted properties show the badge *Restricted
 
   An invalid entry answers `422` with the field in `invalidFields`, such as `[0].readRoles`, and nothing changes.
 
-Both need `visibility:configure`.
+- `GET` and `PUT /admin/property-visibility/person-metatype` read and set the entity type of persons, for example `{"metatypeId": "<entity type ID>"}`, or `{"metatypeId": null}` for none. A connection type or an unknown entity type answers `422` with `metatypeId` in `invalidFields`.
+
+All need `visibility:configure`.

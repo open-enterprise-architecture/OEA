@@ -675,7 +675,7 @@
     "noAccess": "Changing property visibility needs the security administration permission.",
     "loadFailed": "The property visibility could not be loaded.",
     "saveFailed": "The visibility could not be saved.",
-    "enforcementNote": "Role-based restrictions apply in catalogs, in the portal and when writing entities. Connection-based properties stay hidden and cannot be written until their enforcement follows.",
+    "enforcementNote": "Role-based restrictions apply in catalogs, in the portal and when writing entities. A connection-based value is shown and can be written only for entities connected through its connection type to the element linked to the person's account.",
     "filter": "Filter by name",
     "property": "Property",
     "metatypes": "Entity types",
@@ -704,6 +704,11 @@
       "roleHint": "Only holders of the chosen roles",
       "connectionHint": "Only persons connected to the entity"
     },
-    "metamodelHint": "Changed by security administration on the page Property visibility."
+    "metamodelHint": "Changed by security administration on the page Property visibility.",
+    "personMetatype": "Entity type of persons",
+    "personMetatypeHint": "Person accounts are linked to elements of this type. Connection-based visibility starts from the linked element.",
+    "personMetatypeNone": "None",
+    "personMetatypeFailed": "The entity type of persons could not be saved.",
+    "personMetatypeMissing": "Connection-based properties exist, but no entity type of persons is set. Their values are shown to nobody."
   }
 }

@@ -53,8 +53,8 @@
 Migration `V24__person_entity_link.sql`:
 
 - `persons.entity_id INTEGER REFERENCES entities (id)`, with a unique index where it is not null;
-- `system_settings.person_metatype_id UUID REFERENCES metatypes (id)`;
-- `oea_app` already updates both tables.
+- a one-row table `visibility_settings (id, person_metatype_id UUID REFERENCES metatypes (id))`, seeded by the migration, with `SELECT` and `UPDATE` for `oea_app`. `system_settings` has its row only after the setup, so the person metatype would not be settable in every state of an instance.
+- **SoD-1:** no link between the local system admin account and a person exists yet in the schema, so the own-account check compares the caller's person with the target.
 
 ### D2 Person metatype
 
@@ -121,6 +121,7 @@ Migration `V24__person_entity_link.sql`:
 
 - The difference of the 95th percentiles to the same catalog without the column must stay below 200 ms (REQ-127 AC5).
 - Index: `entity_connections_source` and `entity_connections_target` serve the `EXISTS`. If the plan needs more, it is recorded in this design.
+- **Measured (2026-11-11, local):** the 95th percentile without the column 34 ms, with the column 29 ms; the difference stays within the noise of the measurement, so no further index is needed.
 
 ### D8 Frontend
 
@@ -128,7 +129,7 @@ SCR-032 gets a selection "Entity type of persons" above the list, offering the e
 
 ## Data Model
 
-- `persons.entity_id` (DM-7) and `system_settings.person_metatype_id`, with their notes, in `docs/data-model.puml`.
+- `persons.entity_id` (DM-7) and the table `visibility_settings`, with their notes, in `docs/data-model.puml`.
 - `business-objects/person.md`: `entityId` now references an element of the configured person metatype instead of "metatype `person`".
 
 ## API

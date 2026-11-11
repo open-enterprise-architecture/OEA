@@ -1,6 +1,8 @@
 package io.oea.api.admin;
 
+import io.oea.api.generated.model.PersonMetatype;
 import io.oea.api.generated.model.PropertyVisibilityEntry;
+import io.oea.app.metamodel.PersonMetatypes;
 import io.oea.app.metamodel.PropertyVisibility;
 import java.util.LinkedHashSet;
 
@@ -57,9 +59,12 @@ public class AdminController implements AdminApi {
 
 	private final PropertyVisibility visibility;
 
+	private final PersonMetatypes personMetatypes;
+
 	public AdminController(AuthProviders providers, PackageImporter packageImporter,
 			StarterPackages starterPackages, LocalAdminAccount localAdmin, PasswordPolicies policies,
-			SecondFactorPolicies secondFactorPolicies, PropertyVisibility visibility) {
+			SecondFactorPolicies secondFactorPolicies, PropertyVisibility visibility, PersonMetatypes personMetatypes) {
+		this.personMetatypes = personMetatypes;
 		this.providers = providers;
 		this.packageImporter = packageImporter;
 		this.starterPackages = starterPackages;
@@ -67,6 +72,20 @@ public class AdminController implements AdminApi {
 		this.policies = policies;
 		this.secondFactorPolicies = secondFactorPolicies;
 		this.visibility = visibility;
+	}
+
+	@Override
+	public ResponseEntity<PersonMetatype> getPersonMetatype() {
+		return ResponseEntity.ok(personMetatype(this.personMetatypes.get()));
+	}
+
+	@Override
+	public ResponseEntity<PersonMetatype> setPersonMetatype(PersonMetatype request) {
+		return ResponseEntity.ok(personMetatype(this.personMetatypes.set(principal(), request.getMetatypeId())));
+	}
+
+	private static PersonMetatype personMetatype(PersonMetatypes.View view) {
+		return new PersonMetatype(view.metatypeId()).metatypeName(view.metatypeName());
 	}
 
 	@Override

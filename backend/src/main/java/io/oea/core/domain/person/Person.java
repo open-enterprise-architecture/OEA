@@ -45,6 +45,10 @@ public class Person {
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
+	/** The linked element of the EA model (ADR-032 DM-7); written only by the account link. */
+	@Column(name = "entity_id", insertable = false, updatable = false)
+	private Integer entityId;
+
 	protected Person() {
 	}
 
@@ -95,6 +99,10 @@ public class Person {
 
 	public Status getStatus() {
 		return Status.valueOf(this.status.toUpperCase(Locale.ROOT));
+	}
+
+	public Integer getEntityId() {
+		return this.entityId;
 	}
 
 	public Instant getCreatedAt() {

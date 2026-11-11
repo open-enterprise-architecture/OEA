@@ -2,7 +2,7 @@
 title: Sichtbarkeit von Eigenschaften
 covers:
   screens: [SCR-032]
-  stories: [US-124, US-125, US-126]
+  stories: [US-124, US-125, US-126, US-127]
 ---
 
 # Sichtbarkeit von Eigenschaften
@@ -15,13 +15,26 @@ Manche Eigenschaften sollen nicht alle sehen, die eine Entität lesen dürfen, e
   - Ohne Leserolle zeigt eine Spalte zur Eigenschaft ein Schloss und leere Zellen und lässt sich weder sortieren noch filtern.
   - Ohne Schreibrolle wird ein Batch oder eine Verbindung, die ihren Wert setzt oder entfernt, mit `403` abgelehnt.
   - Alte und neue Werte einer solchen Eigenschaft werden verschlüsselt im Audit-Log gespeichert.
-- **Verbindungsbasierte** Eigenschaften bleiben ausgeblendet und lassen sich nicht schreiben, bis ihre Durchsetzung in einer späteren Version folgt.
+- **Verbindungsbasierte** Eigenschaften werden auf denselben Kanälen pro Entität durchgesetzt:
+  - Eine Person sieht und schreibt den Wert nur bei Entitäten, die über den gewählten Verbindungstyp mit dem Element verbunden sind, das mit ihrem Konto verknüpft ist, in beide Richtungen und über eine Verbindung (siehe [Der Entitätstyp von Personen](#person-metatype)).
+  - In einem Katalog zeigt die Spalte den Wert in den Zeilen solcher Entitäten und in allen anderen eine leere Zelle. Sortierung und Filter behandeln die leeren Zellen wie Einträge ohne Wert, so hängt das Ergebnis nie von einem verborgenen Wert ab.
+  - Ohne verknüpftes Element oder für das lokale Systemadministrator-Konto verhält sich die Spalte wie eine rollenbasierte Spalte ohne Leserolle.
+  - Ein Batch oder eine Verbindung, die den Wert einer Entität außerhalb des Bereichs oder einer im selben Batch angelegten Entität setzt oder entfernt, wird mit `403` abgelehnt; lege zuerst die Verbindung an, die den Bereich festlegt.
+  - Eine neue oder entfernte Verbindung dieses Typs gilt ab der nächsten Anfrage.
 
 ## Die Seite
 
 Öffne *Sichtbarkeit von Eigenschaften* in der Kopfzeile. Die Seite listet jede Eigenschaft mit den Entitätstypen, die sie verwenden, ihrer Sichtbarkeit und ihrer Einschränkung; eingeschränkte Eigenschaften tragen das Badge *Eingeschränkt*. Filtere die Liste nach Name.
 
 <Screenshot name="property-visibility" alt="Dialog für die Sichtbarkeit einer Eigenschaft mit Lese- und Schreibrollen" />
+
+## Der Entitätstyp von Personen {#person-metatype}
+
+Verbindungsbasierte Sichtbarkeit geht von dem Element aus, das eine Person im Modell darstellt, zum Beispiel einem *Business Actor*. Wähle diesen Entitätstyp in *Entitätstyp von Personen* oberhalb der Liste; *Keiner* schaltet verbindungsbasierte Sichtbarkeit für alle ab. Wählbar sind nur Entitätstypen, die keine Verbindungstypen sind, und ein hier verwendeter Entitätstyp lässt sich nicht löschen. Die Änderung wird als `visibility.person-metatype-changed` ins Audit-Log geschrieben.
+
+Solange es verbindungsbasierte Eigenschaften gibt, aber kein Entitätstyp gesetzt ist, zeigt die Seite eine Warnung: Die Werte dieser Eigenschaften sieht niemand.
+
+Das Konto einer Person wird über die API mit ihrem Element verknüpft (siehe [Identity-Provider und Personen](./identity-providers#link-an-account-to-an-element)). Eine Verknüpfung zählt nur, solange das Element existiert und vom gewählten Entitätstyp oder einem seiner Untertypen ist; ein Wechsel des Entitätstyps behält die Verknüpfungen, aber Verknüpfungen zu Elementen eines anderen Typs zählen nicht mehr.
 
 ## Sichtbarkeit ändern
 
@@ -50,4 +63,6 @@ In der Metamodell-Konfiguration tragen eingeschränkte Eigenschaften das Badge *
 
   Ein ungültiger Eintrag antwortet mit `422` und dem Feld in `invalidFields`, etwa `[0].readRoles`, und nichts wird geändert.
 
-Beide brauchen `visibility:configure`.
+- `GET` und `PUT /admin/property-visibility/person-metatype` lesen und setzen den Entitätstyp von Personen, zum Beispiel `{"metatypeId": "<ID des Entitätstyps>"}`, oder `{"metatypeId": null}` für keinen. Ein Verbindungstyp oder ein unbekannter Entitätstyp antwortet mit `422` und `metatypeId` in `invalidFields`.
+
+Alle brauchen `visibility:configure`.

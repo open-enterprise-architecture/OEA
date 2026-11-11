@@ -2,7 +2,7 @@
 title: Identity-Provider und Personen
 covers:
   screens: []
-  stories: [US-004, US-007, US-023, US-026, US-027, US-028, US-030, US-031, US-148]
+  stories: [US-004, US-007, US-023, US-026, US-027, US-028, US-030, US-031, US-127, US-148]
 ---
 
 # Identity-Provider und Personen
@@ -57,6 +57,22 @@ curl "${auth[@]}" -d "{\"authProviderId\": \"$PROVIDER\", \"subject\": \"<subjec
 Verwende das unveränderliche Subject des Providers (Entra ID: die Objekt-ID `oid`). Die erste Bindung beendet die Setup-Phase und braucht eine mit einem zweiten Faktor bestätigte Sitzung (siehe [Erster Administrator](../setup/first-administrator#setup-phase)); ohne sie lautet die Antwort `403` mit `urn:oea:problem:second-factor-required`.
 
 Weitere Operationen: `GET /admin/persons`, `GET /admin/persons/{personId}`, `GET` und `DELETE /admin/persons/{personId}/identities[/{identityId}]`.
+
+## Konto mit einem Element verknüpfen {#link-an-account-to-an-element}
+
+Für verbindungsbasierte Sichtbarkeit (siehe [Sichtbarkeit von Eigenschaften](./property-visibility#person-metatype)) wird ein Personenkonto mit dem Element verknüpft, das die Person im Modell darstellt (du brauchst `person:manage`):
+
+```bash
+curl "${auth[@]}" -X PUT -d '{"entityId": 4711}' "$OEA/admin/persons/$PERSON/entity-link"
+# Verknüpfung entfernen
+curl "${auth[@]}" -X PUT -d '{"entityId": null}' "$OEA/admin/persons/$PERSON/entity-link"
+```
+
+- Das Element muss existieren und vom Entitätstyp von Personen oder einem seiner Untertypen sein; sonst, und solange kein Entitätstyp von Personen gesetzt ist, lautet die Antwort `422` mit `entityId` in `invalidFields`.
+- Ein Element lässt sich nur mit einem Konto verknüpfen; eine zweite Verknüpfung antwortet mit `409`.
+- Deine eigene Person wird mit `403` abgelehnt und als `authz.denied` protokolliert, ein Dienstkonto mit `422`.
+- `GET /admin/persons/{personId}` zeigt die Verknüpfung in `entityId`.
+- Jede Änderung wird im Audit-Trail festgehalten (`person.account-linked`), mit dem alten und dem neuen Element.
 
 ## Initialpasswort setzen {#set-an-initial-password}
 

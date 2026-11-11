@@ -2,7 +2,8 @@ import type { PropertyVisibilityEntry, VisibilityChange } from '../api/visibilit
 import { ME_METAMODEL_ADMIN, ME_SECURITY_ADMIN } from './metamodel'
 
 // A fake backend for SCR-032 (us-124-property-visibility): the visibility list, the roles and the
-// metatypes, and the PUT with the server-side rules of REQ-124.
+// metatypes, and the PUT with the server-side rules of REQ-124; the person metatype of
+// us-127-connection-scoped-visibility.
 
 export { ME_METAMODEL_ADMIN, ME_SECURITY_ADMIN }
 
@@ -12,6 +13,7 @@ export const VISIBILITY_IDS = {
   status: 'fd100000-0000-4000-8000-000000000003',
   application: 'a1000000-0000-4000-8000-000000000001',
   assignment: 'a1000000-0000-4000-8000-000000000002',
+  actor: 'a1000000-0000-4000-8000-000000000003',
 }
 
 export const ROLES = [
@@ -59,11 +61,23 @@ export interface VisibilityApi {
   fetch: typeof fetch
   puts: VisibilityChange[][]
   state: PropertyVisibilityEntry[]
+  personMetatypePuts: (string | null)[]
 }
 
-export function visibilityApi(options: { me?: unknown; rejectWith?: string[] } = {}): VisibilityApi {
+export function visibilityApi(
+  options: { me?: unknown; rejectWith?: string[]; personMetatype?: string | null; connectionScoped?: boolean } = {},
+): VisibilityApi {
   const state = entries()
+  if (options.connectionScoped) {
+    state[1] = { ...state[1]!, visibilityMode: 'connection-scoped', scopingConnectionType: VISIBILITY_IDS.assignment }
+  }
   const puts: VisibilityChange[][] = []
+  const personMetatypePuts: (string | null)[] = []
+  let personMetatype = options.personMetatype ?? null
+  const personMetatypeBody = () => ({
+    metatypeId: personMetatype,
+    metatypeName: personMetatype === VISIBILITY_IDS.actor ? 'Business Actor' : null,
+  })
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': status < 400 ? 'application/json' : 'application/problem+json' } })
   const fetchFn: typeof fetch = async (input, init) => {
@@ -79,7 +93,20 @@ export function visibilityApi(options: { me?: unknown; rejectWith?: string[] } =
       return json([
         { id: VISIBILITY_IDS.application, name: 'Application Component', isConnection: false },
         { id: VISIBILITY_IDS.assignment, name: 'Domain Assignment', isConnection: true },
+        { id: VISIBILITY_IDS.actor, name: 'Business Actor', isConnection: false },
       ])
+    }
+    if (url.pathname === '/api/v1/admin/property-visibility/person-metatype' && method === 'GET') {
+      return json(personMetatypeBody())
+    }
+    if (url.pathname === '/api/v1/admin/property-visibility/person-metatype' && method === 'PUT') {
+      const { metatypeId } = JSON.parse(String(init?.body)) as { metatypeId: string | null }
+      personMetatypePuts.push(metatypeId)
+      if (metatypeId === VISIBILITY_IDS.assignment) {
+        return json({ type: 'urn:oea:problem:validation-failed', title: 'Invalid', status: 422, invalidFields: ['metatypeId'] }, 422)
+      }
+      personMetatype = metatypeId
+      return json(personMetatypeBody())
     }
     if (url.pathname === '/api/v1/admin/property-visibility' && method === 'GET') {
       return json(state)
@@ -99,5 +126,5 @@ export function visibilityApi(options: { me?: unknown; rejectWith?: string[] } =
     }
     throw new TypeError(`no route for ${method} ${url.pathname}`)
   }
-  return { fetch: fetchFn, puts, state }
+  return { fetch: fetchFn, puts, state, personMetatypePuts }
 }

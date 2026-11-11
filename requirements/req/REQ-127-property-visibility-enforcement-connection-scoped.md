@@ -4,9 +4,9 @@ title: Enforcement of connection-scoped Property Visibility (ABAC)
 type: functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-28
-last_updated: 2026-10-13
+last_updated: 2026-11-11
 author: requirements-engineer
 references:
   use_cases:
@@ -69,7 +69,7 @@ Security review SEC-02, SEC-03 (2026-10-13): if any user with entity write permi
 **AC5** (Performance):
 
 - When: a graph traversal is triggered for an entity with connection-scoped properties
-- Then: response time p95 ≤ 200 ms additional latency compared to an unrestricted query (with ≤ 500 directly connected entities per user; cached)
+- Then: response time p95 ≤ 200 ms additional latency compared to an unrestricted query (with ≤ 500 directly connected entities per user)
 
 **AC6** (No self-granted scope):
 
@@ -84,7 +84,11 @@ Security review SEC-02, SEC-03 (2026-10-13): if any user with entity write permi
 
 ## Implementation Notes
 
-- The traversal result (set of scope entities per user and ConnectionType) should be cached per session or in a short-lived cache (TTL ≤ 60 s), since connections rarely change; removal of a scoping connection should invalidate the cache so that access ends within the revocation window of REQ-164
+- Implemented by the OpenSpec change `us-127-connection-scoped-visibility`:
+  - "Their `Person` entity" is the element linked to the person account (`persons.entity_id`, set through `setPersonEntityLink`), counted only while it is active and of the configured person metatype or one of its subtypes.
+  - The scope is evaluated in the query itself (an `EXISTS` over `entity_connections`, both directions, depth 1), without a cache, so a new or removed scoping connection applies to the next request. This replaces the cache of the earlier note and the "cached" of AC5.
+  - AC1, AC2 and AC4 through the catalog and portal query (value, filter and sort per row), AC3 through the batch and connection writes (403 outside the scope or for a new entity). The entity detail does not exist yet and will use the same rule.
+  - AC5 measured in `CatalogQueryLatencyIT` (10,000 applications, 500 in scope, 2026-11-11): p95 29 ms with the column and 34 ms without; the difference stays within the noise.
 - Depth 1 is sufficient for the v1.0 scope; deeper traversal (e.g. domain → sub-domain → entity) is possible as a later extension
 
 ## Change History
@@ -93,3 +97,4 @@ Security review SEC-02, SEC-03 (2026-10-13): if any user with entity write permi
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-02/SEC-03/SEC-04: all read channels and write paths; no self-granted scope (AC6); references REQ-160, REQ-161, REQ-162 |
+| 0.3.0 | 2026-11-11 | Change us-127-connection-scoped-visibility | Implementation notes; the cache of AC5 dropped (evaluation in the query) |

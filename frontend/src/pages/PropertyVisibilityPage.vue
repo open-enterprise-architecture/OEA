@@ -4,8 +4,10 @@ import { useI18n } from 'vue-i18n'
 import { fetchMetatypes } from '../api/metamodel'
 import { rateLimitMessage, RequestRejected } from '../api/problem'
 import {
+  fetchPersonMetatype,
   fetchPropertyVisibility,
   fetchRoles,
+  updatePersonMetatype,
   type AuthorizationRole,
   type PropertyVisibilityEntry,
 } from '../api/visibility'
@@ -15,13 +17,20 @@ import { refreshSession, session } from '../session/store'
 
 // SCR-032 "Property visibility" (UC-21, US-124, US-125; design D5 of us-124-property-visibility):
 // security administration (visibility:configure) sees and changes who may read and write the
-// values of each property definition.
+// values of each property definition. Above the list it chooses the entity type of persons, the
+// anchor of connection-based visibility (design D8 of us-127-connection-scoped-visibility).
 const props = defineProps<{ fetchFn?: typeof fetch }>()
+// USelect does not accept an empty value, so "no person metatype" has its own value
+const NONE = 'none'
 const { t } = useI18n()
 
 const entries = ref<PropertyVisibilityEntry[]>([])
 const roles = ref<AuthorizationRole[]>([])
 const connectionTypes = ref<{ id: string; name: string }[]>([])
+const elementTypes = ref<{ id: string; name: string }[]>([])
+const personMetatype = ref<string>(NONE)
+const personMetatypeFailure = ref<string>()
+const personMetatypeSaving = ref(false)
 const loaded = ref(false)
 const failure = ref<string>()
 const filter = ref('')
@@ -35,6 +44,16 @@ const shown = computed(() => {
   const text = filter.value.trim().toLowerCase()
   return entries.value.filter((entry) => !text || (entry.propertyName ?? '').toLowerCase().includes(text))
 })
+
+const personMetatypeItems = computed(() => [
+  { value: NONE, label: t('visibility.personMetatypeNone') },
+  ...elementTypes.value.map((type) => ({ value: type.id, label: type.name })),
+])
+
+// connection-based properties without a person metatype show nothing to anyone
+const personMetatypeMissing = computed(
+  () => personMetatype.value === NONE && entries.value.some((entry) => entry.visibilityMode === 'connection-scoped'),
+)
 
 const roleNames = computed(() => new Map(roles.value.map((role) => [role.id, role.name])))
 const typeNames = computed(() => new Map(connectionTypes.value.map((type) => [type.id, type.name])))
@@ -58,16 +77,21 @@ function restriction(entry: PropertyVisibilityEntry): string {
 async function load() {
   failure.value = undefined
   try {
-    const [visibility, allRoles, metatypes] = await Promise.all([
+    const [visibility, allRoles, metatypes, person] = await Promise.all([
       fetchPropertyVisibility(props.fetchFn),
       fetchRoles(props.fetchFn),
       fetchMetatypes(props.fetchFn),
+      fetchPersonMetatype(props.fetchFn),
     ])
     entries.value = visibility
     roles.value = allRoles
-    connectionTypes.value = metatypes
-      .filter((metatype) => metatype.isConnection)
-      .map((metatype) => ({ id: metatype.id, name: label(labelKeys.metatype(metatype.id), metatype.name) }))
+    const named = (metatype: { id: string; name: string }) => ({
+      id: metatype.id,
+      name: label(labelKeys.metatype(metatype.id), metatype.name),
+    })
+    connectionTypes.value = metatypes.filter((metatype) => metatype.isConnection).map(named)
+    elementTypes.value = metatypes.filter((metatype) => !metatype.isConnection).map(named)
+    personMetatype.value = person.metatypeId ?? NONE
   } catch (error) {
     failure.value =
       rateLimitMessage(error instanceof RequestRejected ? error.rejection : undefined) ?? t('visibility.loadFailed')
@@ -84,6 +108,24 @@ onMounted(async () => {
   }
   await load()
 })
+
+async function choosePersonMetatype(value: string) {
+  const previous = personMetatype.value
+  personMetatype.value = value
+  personMetatypeFailure.value = undefined
+  personMetatypeSaving.value = true
+  try {
+    const result = await updatePersonMetatype(value === NONE ? null : value, props.fetchFn)
+    if (result.ok) {
+      personMetatype.value = result.value.metatypeId ?? NONE
+    } else {
+      personMetatype.value = previous
+      personMetatypeFailure.value = rateLimitMessage(result.rejection) ?? t('visibility.personMetatypeFailed')
+    }
+  } finally {
+    personMetatypeSaving.value = false
+  }
+}
 
 function saved(changed: PropertyVisibilityEntry[]) {
   for (const entry of changed) {
@@ -122,6 +164,30 @@ function saved(changed: PropertyVisibilityEntry[]) {
 
     <template v-if="canConfigure && loaded && !failure">
       <UAlert data-testid="visibility-enforcement-note" color="info" variant="subtle" :description="t('visibility.enforcementNote')" />
+      <UFormField
+        data-testid="person-metatype"
+        :label="t('visibility.personMetatype')"
+        :description="t('visibility.personMetatypeHint')"
+        :error="personMetatypeFailure"
+        class="max-w-md"
+      >
+        <USelect
+          :model-value="personMetatype"
+          data-testid="person-metatype-select"
+          :items="personMetatypeItems"
+          :loading="personMetatypeSaving"
+          class="w-72"
+          @update:model-value="(value: string) => choosePersonMetatype(value)"
+        />
+      </UFormField>
+      <UAlert
+        v-if="personMetatypeMissing"
+        data-testid="person-metatype-missing"
+        color="warning"
+        variant="subtle"
+        icon="i-lucide-triangle-alert"
+        :description="t('visibility.personMetatypeMissing')"
+      />
       <UInput v-model="filter" data-testid="visibility-filter" icon="i-lucide-search" :placeholder="t('visibility.filter')" class="w-72" />
       <div class="overflow-x-auto rounded-lg border border-default">
         <table class="w-full text-left text-sm" data-testid="visibility-table">
