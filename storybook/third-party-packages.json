@@ -36,21 +36,21 @@
   },
   {
     "name": "@intlify/core-base",
-    "version": "11.4.16",
+    "version": "11.4.18",
     "license": "MIT",
     "repository": "https://github.com/intlify/vue-i18n",
     "licenseFile": true
   },
   {
     "name": "@intlify/message-compiler",
-    "version": "11.4.16",
+    "version": "11.4.18",
     "license": "MIT",
     "repository": "https://github.com/intlify/vue-i18n",
     "licenseFile": true
   },
   {
     "name": "@intlify/shared",
-    "version": "11.4.16",
+    "version": "11.4.18",
     "license": "MIT",
     "repository": "https://github.com/intlify/vue-i18n",
     "licenseFile": true
@@ -246,7 +246,7 @@
   },
   {
     "name": "tailwindcss",
-    "version": "4.3.3",
+    "version": "4.3.5",
     "license": "MIT",
     "repository": "https://github.com/tailwindlabs/tailwindcss",
     "licenseFile": true
@@ -281,7 +281,7 @@
   },
   {
     "name": "vue-i18n",
-    "version": "11.4.16",
+    "version": "11.4.18",
     "license": "MIT",
     "repository": "https://github.com/intlify/vue-i18n",
     "licenseFile": true
