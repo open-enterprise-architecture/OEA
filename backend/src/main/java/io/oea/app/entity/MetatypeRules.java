@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Predicate;
+import java.util.function.BiPredicate;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
@@ -52,14 +52,18 @@ public final class MetatypeRules {
 
 	private final Map<UUID, UUID> bases;
 
-	/** Which role-restricted properties the writer may write; none unless given (design D3 of us-126). */
-	private final Predicate<UUID> restrictedWritable;
+	/**
+	 * Which restricted properties the writer may write, per property and existing entity
+	 * ({@code null} for a new one); none unless given (design D3 of us-126, D6 of us-127).
+	 */
+	private final BiPredicate<UUID, Integer> restrictedWritable;
 
 	private MetatypeRules(Map<UUID, Metatype> metatypes, Map<UUID, UUID> bases) {
-		this(metatypes, bases, (id) -> false);
+		this(metatypes, bases, (id, entity) -> false);
 	}
 
-	private MetatypeRules(Map<UUID, Metatype> metatypes, Map<UUID, UUID> bases, Predicate<UUID> restrictedWritable) {
+	private MetatypeRules(Map<UUID, Metatype> metatypes, Map<UUID, UUID> bases,
+			BiPredicate<UUID, Integer> restrictedWritable) {
 		this.metatypes = metatypes;
 		this.bases = bases;
 		this.restrictedWritable = restrictedWritable;
@@ -69,17 +73,22 @@ public final class MetatypeRules {
 	 * The rules for a writer who may write the role-restricted properties for which
 	 * {@code writable} holds (design D3 of us-126-role-restricted-enforcement).
 	 */
-	public MetatypeRules forWriter(Predicate<UUID> writable) {
+	public MetatypeRules forWriter(BiPredicate<UUID, Integer> writable) {
 		return new MetatypeRules(this.metatypes, this.bases, writable);
 	}
 
 	/**
-	 * Whether the writer can change the property: a {@code public} one, or a
-	 * {@code role-restricted} one with a write role; {@code connection-scoped} ones not yet.
+	 * Whether the writer can change the property of the entity ({@code null} for a new one): a
+	 * {@code public} one always, a {@code role-restricted} one with a write role, a
+	 * {@code connection-scoped} one for an existing entity in the writer's scope.
 	 */
-	boolean writable(Definition definition) {
-		return "public".equals(definition.visibilityMode())
-				|| ("role-restricted".equals(definition.visibilityMode()) && this.restrictedWritable.test(definition.id()));
+	boolean writable(Definition definition, Integer entityId) {
+		return switch (definition.visibilityMode()) {
+			case "public" -> true;
+			case "role-restricted" -> this.restrictedWritable.test(definition.id(), entityId);
+			case "connection-scoped" -> entityId != null && this.restrictedWritable.test(definition.id(), entityId);
+			default -> false;
+		};
 	}
 
 	/** Loads the rules that apply on the given date. */

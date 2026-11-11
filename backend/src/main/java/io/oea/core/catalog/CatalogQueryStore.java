@@ -165,18 +165,26 @@ public class CatalogQueryStore {
 	 * {@linkplain #redacted() redacted} column), of the entity or, with
 	 * {@code endpoint}, of the source or target of the connection (US-080).
 	 */
-	public record QueryColumn(SystemField field, PropertyColumn property, Endpoint endpoint) {
+	public record QueryColumn(SystemField field, PropertyColumn property, Endpoint endpoint, ColumnScope scope) {
 
 		public static QueryColumn of(SystemField field) {
-			return new QueryColumn(field, null, null);
+			return new QueryColumn(field, null, null, null);
 		}
 
 		public static QueryColumn of(PropertyColumn property) {
-			return new QueryColumn(null, property, null);
+			return new QueryColumn(null, property, null, null);
 		}
 
 		public QueryColumn at(Endpoint side) {
-			return new QueryColumn(this.field, this.property, side);
+			return new QueryColumn(this.field, this.property, side, this.scope);
+		}
+
+		/**
+		 * The column with its values shown only for entities in the scope (design D5 of
+		 * us-127-connection-scoped-visibility).
+		 */
+		public QueryColumn scoped(ColumnScope columnScope) {
+			return new QueryColumn(this.field, this.property, this.endpoint, columnScope);
 		}
 
 		/**
@@ -184,13 +192,29 @@ public class CatalogQueryStore {
 		 * us-126-role-restricted-enforcement): it selects {@code NULL} and reads no value.
 		 */
 		public static QueryColumn redacted() {
-			return new QueryColumn(null, null, null);
+			return new QueryColumn(null, null, null, null);
 		}
 
 		public boolean isRedacted() {
 			return this.field == null && this.property == null;
 		}
 
+	}
+
+	/**
+	 * The scope of a connection-scoped column for one caller: the scoping connection metatype and
+	 * the caller's element (REQ-127; design D5 of us-127-connection-scoped-visibility).
+	 */
+	public record ColumnScope(UUID scopingType, int anchor) {
+	}
+
+	/** The expression of a column, {@code NULL} for an entity {@code alias} outside the column's scope. */
+	private static String scoped(QueryColumn column, String alias, String expression) {
+		if (column == null || column.scope() == null) {
+			return expression;
+		}
+		return "CASE WHEN " + ScopeStore.inScope(alias, column.scope().scopingType(), column.scope().anchor()) + " THEN "
+				+ expression + " END";
 	}
 
 	/**
@@ -479,18 +503,23 @@ public class CatalogQueryStore {
 			keys.add(new SortKey("lower(e.name)", KeyType.TEXT, descending, false));
 		}
 		else if (sorted.field() != null) {
-			keys.add(new SortKey(sorted.field().order.formatted(sortAlias), sorted.field().orderType, descending, true));
+			keys.add(new SortKey(scoped(sorted, sortAlias, sorted.field().order.formatted(sortAlias)),
+					sorted.field().orderType, descending, true));
 			keys.add(new SortKey("lower(e.name)", KeyType.TEXT, false, false));
 		}
 		else {
+			// out-of-scope values sort as empty (design D5 of us-127-connection-scoped-visibility)
 			String valueAlias = valueAlias(sort);
-			keys.add(new SortKey("eo.sort_order", KeyType.INTEGER, descending, true));
-			keys.add(new SortKey(valueAlias + ".value_int", KeyType.BIGINT, descending, true));
-			keys.add(new SortKey(valueAlias + ".value_date", KeyType.DATE, descending, true));
-			keys.add(new SortKey(valueAlias + ".value_bool", KeyType.BOOLEAN, descending, true));
-			keys.add(new SortKey(valueAlias + ".value_ref", KeyType.INTEGER, descending, true));
-			keys.add(new SortKey("lower(coalesce(%1$s.value_enum, %1$s.value_text))".formatted(valueAlias),
-					KeyType.TEXT, descending, true));
+			keys.add(new SortKey(scoped(sorted, sortAlias, "eo.sort_order"), KeyType.INTEGER, descending, true));
+			keys.add(new SortKey(scoped(sorted, sortAlias, valueAlias + ".value_int"), KeyType.BIGINT, descending, true));
+			keys.add(new SortKey(scoped(sorted, sortAlias, valueAlias + ".value_date"), KeyType.DATE, descending, true));
+			keys.add(new SortKey(scoped(sorted, sortAlias, valueAlias + ".value_bool"), KeyType.BOOLEAN, descending,
+					true));
+			keys.add(new SortKey(scoped(sorted, sortAlias, valueAlias + ".value_ref"), KeyType.INTEGER, descending,
+					true));
+			keys.add(new SortKey(scoped(sorted, sortAlias,
+					"lower(coalesce(%1$s.value_enum, %1$s.value_text))".formatted(valueAlias)), KeyType.TEXT, descending,
+					true));
 			keys.add(new SortKey("lower(e.name)", KeyType.TEXT, false, false));
 		}
 		keys.add(new SortKey("e.id", KeyType.INTEGER, false, false));
@@ -636,7 +665,8 @@ public class CatalogQueryStore {
 		if (column.isRedacted()) {
 			return "NULL::text";
 		}
-		return (column.field() != null) ? column.field().text.formatted(alias) : TEXT_FORM.formatted(valueAlias);
+		return scoped(column, alias,
+				(column.field() != null) ? column.field().text.formatted(alias) : TEXT_FORM.formatted(valueAlias));
 	}
 
 	/** The alias of the entity whose attribute the primary column shows: {@code e} or an endpoint's. */
@@ -784,6 +814,10 @@ public class CatalogQueryStore {
 
 	/** The typed value of a column: a system field's own column, else the property's typed column. */
 	private static String typed(QueryColumn column, ValueType type, String alias, String valueAlias) {
+		return scoped(column, alias, unscopedTyped(column, type, alias, valueAlias));
+	}
+
+	private static String unscopedTyped(QueryColumn column, ValueType type, String alias, String valueAlias) {
 		if (column.field() != null) {
 			return switch (column.field()) {
 				case NAME -> alias + ".name";

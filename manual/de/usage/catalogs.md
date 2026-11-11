@@ -46,6 +46,7 @@ Die Liste *Kataloge* zeigt jeden Katalog, den du sehen darfst, markiert mit *Get
 - Sortierung und Seite sind Teil der Adresse der Seite. Zurücknavigation, Neuladen oder ein geteilter Link stellen dieselbe Ansicht wieder her; ungültige Werte in der Adresse werden ignoriert, und die erste Seite wird in der Standardreihenfolge gezeigt.
 - Hat der Entitätstyp noch keine Entitäten, zeigt die Tabelle *Keine Einträge gefunden*.
 - Eine Spalte zu einer Eigenschaft, deren Werte du nicht sehen darfst, zeigt ein Schloss im Spaltenkopf und leere Zellen; du kannst nicht nach ihr sortieren oder filtern (siehe [Sichtbarkeit von Eigenschaften](../administration/property-visibility)).
+- Eine Spalte zu einer verbindungsbasierten Eigenschaft zeigt den Wert nur in den Zeilen von Entitäten, die mit deinem Element verbunden sind, und in den anderen eine leere Zelle. Beim Sortieren stehen die leeren Zellen zuletzt, und ein Filter auf einen Wert findet nur Zeilen, in denen du ihn siehst.
 - Eine Abfrage, die länger dauert als die Zeitgrenze deiner Installation (standardmäßig 10 Sekunden), wird abgebrochen, und die Tabelle zeigt *Die Abfrage hat zu lange gedauert*. Schränke die Filter ein oder schalte Joins auf kompakt und versuche es erneut.
 - Den persönlichen Katalog einer anderen Person kannst du nicht öffnen; er verhält sich wie ein Katalog, den es nicht gibt (*Katalog nicht gefunden*).
 
@@ -53,7 +54,7 @@ Die Liste *Kataloge* zeigt jeden Katalog, den du sehen darfst, markiert mit *Get
 
 - Eine Seite mit einer Folgeseite trägt `nextCursor`. Sende ihn als `cursor` zusammen mit `page` + 1, um die nächste Seite schneller zu lesen; Zeilen und Gesamtzahl sind dieselben wie mit `page` allein.
 - Ein Cursor gilt nur für dieselbe Abfrage (Spalten oder Ansicht, Sortierung, Join-Modi, Filter, Seitengröße) und bis sich der Katalog ändert oder das Backend neu startet. Sonst antwortet die Abfrage mit 400 und `cursor` in `invalidFields`; wiederhole sie ohne Cursor.
-- Eine Spalte, deren Eigenschaft du nicht lesen darfst, hat `readable: false` und `null` als Werte; Sortieren oder Filtern nach ihr antwortet mit 400.
+- Eine Spalte, deren Eigenschaft du nicht lesen darfst, hat `readable: false` und `null` als Werte; Sortieren oder Filtern nach ihr antwortet mit 400. Eine verbindungsbasierte Spalte ist `readable: true`, wenn dein Konto mit einem Element verknüpft ist, mit `null` in den Zeilen außerhalb deines Bereichs.
 - Eine Abfrage über der Zeitgrenze antwortet mit 503 und dem Problemtyp `urn:oea:problem:query-timeout` (*Query took too long*).
 
 ## Filter {#filters}

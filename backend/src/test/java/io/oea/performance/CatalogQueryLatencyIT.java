@@ -76,7 +76,11 @@ class CatalogQueryLatencyIT {
 
 	private static final int MEASURED = 30;
 
+	private static final int SCOPED = 500;
+
 	private static Seed seed;
+
+	private static Scoped scoped;
 
 	@DynamicPropertySource
 	static void database(DynamicPropertyRegistry registry) {
@@ -172,6 +176,93 @@ class CatalogQueryLatencyIT {
 		}));
 	}
 
+	// Scenario: Connection-scoped column (us-127-connection-scoped-visibility D7, REQ-127 AC5)
+
+	@Test
+	void connectionScopedColumn() throws SQLException {
+		Scoped scoped = scoped();
+		long person = this.jdbc.queryForObject("SELECT person_id FROM sessions WHERE id = ?", Long.class,
+				this.architect.sessionId());
+		this.jdbc.update("UPDATE persons SET entity_id = NULL WHERE entity_id = ?", scoped.element());
+		this.jdbc.update("UPDATE persons SET entity_id = ? WHERE id = ?", scoped.element(), person);
+		String withColumn = catalog(false, scoped.property());
+		List<Double> plain = measure(() -> query(seed.plain, ""));
+		List<Double> withScope = measure(() -> {
+			JsonNode result = query(withColumn, "");
+			assertThat(result.path("rows")).hasSize(50);
+			List<String> values = new ArrayList<>();
+			result.path("rows").forEach((row) -> values.add(row.path("values").path("classification").isNull() ? null
+					: row.path("values").path("classification").asString()));
+			assertThat(values).contains("internal").containsNull();
+		});
+		double plainP95 = p95(plain);
+		double scopedP95 = p95(withScope);
+		LOG.info("Catalog query latency connection-scoped column: p95 {} ms without, {} ms with the column, difference {} ms (target < 200 ms)",
+				Math.round(plainP95), Math.round(scopedP95), Math.round(scopedP95 - plainP95));
+		assertThat(scopedP95 - plainP95).as("p95 difference of the connection-scoped column in ms").isLessThan(200);
+	}
+
+	private static double p95(List<Double> times) {
+		List<Double> sorted = new ArrayList<>(times);
+		Collections.sort(sorted);
+		return sorted.get((int) Math.ceil(0.95 * sorted.size()) - 1);
+	}
+
+	/**
+	 * Seeds once on the superuser connection: the person metatype with one element, a
+	 * connection-scoped property mapped to the applications with a value on each, and 500 scoping
+	 * connections from the element to every 20th application.
+	 */
+	private static synchronized Scoped scoped() throws SQLException {
+		if (scoped != null) {
+			return scoped;
+		}
+		try (Connection su = OeaDatabases.asSuperuser(postgres); Statement sql = su.createStatement()) {
+			UUID actor = uuid(sql, metatype("Business Actor", false));
+			UUID assignment = uuid(sql, metatype("Domain Assignment", true));
+			sql.execute("UPDATE visibility_settings SET person_metatype_id = '%s'".formatted(actor));
+			UUID property = uuid(sql, """
+					INSERT INTO property_definitions (name, sql_column_name, data_type, visibility_mode, scoping_connection_type_id)
+					VALUES ('Classification', 'classification', 'string', 'connection-scoped', '%s') RETURNING id"""
+				.formatted(assignment));
+			sql.execute("""
+					INSERT INTO metatype_property_mappings (metatype_id, property_def_id, necessity, valid_from, scope)
+					VALUES ('%s', '%s', 'optional', DATE '2026-01-01', 'organization')""".formatted(seed.application, property));
+			sql.execute("""
+					INSERT INTO entity_property_values (entity_id, property_def_id, value_text)
+					SELECT id, '%s', 'internal' FROM entities WHERE metatype_id = '%s'""".formatted(property, seed.application));
+			int element;
+			try (ResultSet rs = sql.executeQuery("""
+					INSERT INTO entities (metatype_id, name, created_by)
+					VALUES ('%s', 'Latency Domain Architect', (SELECT min(id) FROM persons)) RETURNING id""".formatted(actor))) {
+				rs.next();
+				element = rs.getInt(1);
+			}
+			sql.execute("DROP TABLE IF EXISTS scope_pairs");
+			sql.execute("""
+					CREATE TEMP TABLE scope_pairs AS
+					SELECT nextval(pg_get_serial_sequence('entities', 'id')) AS cid, a.id AS tgt
+					FROM (SELECT id, row_number() OVER (ORDER BY name) AS rn FROM entities WHERE metatype_id = '%s') a
+					WHERE a.rn %% 20 = 1""".formatted(seed.application));
+			sql.execute("""
+					INSERT INTO entities (id, metatype_id, name, created_by)
+					SELECT cid, '%s', 'Assignment ' || cid, (SELECT min(id) FROM persons) FROM scope_pairs""".formatted(assignment));
+			sql.execute("""
+					INSERT INTO entity_connections (entity_id, source_entity_id, target_entity_id)
+					SELECT cid, %d, tgt FROM scope_pairs""".formatted(element));
+			sql.execute("ANALYZE");
+			try (ResultSet rs = sql.executeQuery("SELECT count(*) FROM entity_connections WHERE source_entity_id = " + element)) {
+				rs.next();
+				assertThat(rs.getLong(1)).isEqualTo(SCOPED);
+			}
+			scoped = new Scoped(property, element);
+			return scoped;
+		}
+	}
+
+	private record Scoped(UUID property, int element) {
+	}
+
 	/** Runs the warm-up and the measured queries; returns the processing time of each measured query. */
 	private List<Double> measure(Runnable query) {
 		for (int i = 0; i < WARM_UP; i++) {
@@ -213,9 +304,14 @@ class CatalogQueryLatencyIT {
 
 	/** A catalog of the applications with the columns name, status and vendor; with the three joins. */
 	private String catalog(boolean joins) {
+		return catalog(joins, null);
+	}
+
+	/** As {@link #catalog(boolean)}, with the property {@code extra} as a fourth column if given. */
+	private String catalog(boolean joins, UUID extra) {
 		MvcTestResult created = call(HttpMethod.POST, CATALOGS, JsonMapper.shared()
 			.createObjectNode()
-			.put("name", "Latency " + (joins ? "Joined " : "Plain ") + UUID.randomUUID())
+			.put("name", "Latency " + (joins ? "Joined " : (extra != null) ? "Scoped " : "Plain ") + UUID.randomUUID())
 			.put("primaryMetatypeId", seed.application.toString())
 			.put("scope", "instance"));
 		assertThat(created).hasStatus(HttpStatus.CREATED);
@@ -225,6 +321,9 @@ class CatalogQueryLatencyIT {
 			.add(JsonMapper.shared().createObjectNode().put("field", "name"))
 			.add(JsonMapper.shared().createObjectNode().put("propertyDefId", seed.statusId.toString()))
 			.add(JsonMapper.shared().createObjectNode().put("propertyDefId", seed.vendorId.toString()));
+		if (extra != null) {
+			((tools.jackson.databind.node.ArrayNode) columns.get("columns")).add(JsonMapper.shared().createObjectNode().put("propertyDefId", extra.toString()));
+		}
 		assertThat(call(HttpMethod.PUT, CATALOGS + "/" + catalog + "/columns", columns)).hasStatus(HttpStatus.OK);
 		if (joins) {
 			for (int k = 0; k < 3; k++) {

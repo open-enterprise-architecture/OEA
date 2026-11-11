@@ -2,7 +2,7 @@
 title: Identity providers and persons
 covers:
   screens: []
-  stories: [US-004, US-007, US-023, US-026, US-027, US-028, US-030, US-031, US-148]
+  stories: [US-004, US-007, US-023, US-026, US-027, US-028, US-030, US-031, US-127, US-148]
 ---
 
 # Identity providers and persons
@@ -57,6 +57,22 @@ curl "${auth[@]}" -d "{\"authProviderId\": \"$PROVIDER\", \"subject\": \"<subjec
 Use the immutable subject of the provider (Entra ID: the object ID `oid`). The first binding ends the setup phase and needs a session confirmed with a second factor (see [First administrator](../setup/first-administrator#the-setup-phase)); without it, the answer is `403` with `urn:oea:problem:second-factor-required`.
 
 Further operations: `GET /admin/persons`, `GET /admin/persons/{personId}`, `GET` and `DELETE /admin/persons/{personId}/identities[/{identityId}]`.
+
+## Link an account to an element {#link-an-account-to-an-element}
+
+For connection-based visibility (see [Property visibility](./property-visibility#person-metatype)), a person account is linked to the element that represents the person in the model (you need `person:manage`):
+
+```bash
+curl "${auth[@]}" -X PUT -d '{"entityId": 4711}' "$OEA/admin/persons/$PERSON/entity-link"
+# remove the link
+curl "${auth[@]}" -X PUT -d '{"entityId": null}' "$OEA/admin/persons/$PERSON/entity-link"
+```
+
+- The element must exist and be of the entity type of persons or one of its subtypes; otherwise, and while no entity type of persons is set, the answer is `422` with `entityId` in `invalidFields`.
+- An element can be linked to one account only; a second link answers `409`.
+- Your own person is refused with `403`, recorded as `authz.denied`, and a service account with `422`.
+- `GET /admin/persons/{personId}` shows the link in `entityId`.
+- Every change is recorded in the audit trail (`person.account-linked`) with the old and the new element.
 
 ## Set an initial password {#set-an-initial-password}
 

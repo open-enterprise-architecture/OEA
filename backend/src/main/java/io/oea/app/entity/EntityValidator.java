@@ -134,10 +134,10 @@ public final class EntityValidator {
 				errors.add(new Issue(field + ".propertyDefId", "INVALID_VALUE", "The property is listed twice."));
 				continue;
 			}
-			if (!rules.writable(mapping.definition())) {
-				// the batch rejects a role-restricted property without a write role first (403, us-126 D3)
+			if (!rules.writable(mapping.definition(), (existing != null) ? existing.id() : null)) {
+				// the batch rejects a restricted property the writer may not write first (403, us-126, us-127)
 				errors.add(new Issue(field + ".propertyDefId", "RESTRICTED_PROPERTY_NOT_SUPPORTED",
-						"Properties with connection-based visibility cannot be written yet."));
+						"The property cannot be written by this writer."));
 				continue;
 			}
 			if (property.value() == null || property.value().isEmpty()) {
@@ -155,7 +155,7 @@ public final class EntityValidator {
 			if (values.containsKey(mapping.definition().id())) {
 				continue;
 			}
-			if (!rules.writable(mapping.definition())) {
+			if (!rules.writable(mapping.definition(), (existing != null) ? existing.id() : null)) {
 				// only properties the writer can change are checked (us-032-metatype-editing D7)
 				continue;
 			}

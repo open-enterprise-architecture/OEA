@@ -96,7 +96,7 @@ A `connection-scoped` property such as a security classification can be configur
   - `Person` shows the link (`entityId`);
   - descriptions of the catalog and write operations.
 - **`backend/`:**
-  - migration `V24` (`persons.entity_id` with a unique index, `system_settings.person_metatype_id`);
+  - migration `V24` (`persons.entity_id` with a unique index, the one-row table `visibility_settings` with `person_metatype_id`);
   - `PropertyAccess` with the scope anchor;
   - the scope predicate in `CatalogQueryStore`;
   - `EntityBatch` checks the scope;

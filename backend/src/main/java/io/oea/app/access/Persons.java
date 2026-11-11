@@ -51,11 +51,12 @@ public class Persons {
 	}
 
 	/** A person as shown to administrators. */
-	public record PersonView(long id, String personType, String name, String email, String status, Instant createdAt) {
+	public record PersonView(long id, String personType, String name, String email, String status, Instant createdAt,
+			Integer entityId) {
 
 		static PersonView of(Person person) {
 			return new PersonView(person.getId(), person.getPersonType(), person.getName(), person.getEmail(),
-					person.getStatus().name().toLowerCase(Locale.ROOT), person.getCreatedAt());
+					person.getStatus().name().toLowerCase(Locale.ROOT), person.getCreatedAt(), person.getEntityId());
 		}
 
 	}

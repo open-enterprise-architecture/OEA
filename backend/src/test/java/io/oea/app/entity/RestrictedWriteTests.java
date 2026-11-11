@@ -86,6 +86,8 @@ class RestrictedWriteTests {
 
 	private UUID scoped;
 
+	private UUID assignment;
+
 	@BeforeEach
 	void instance() {
 		TestPrincipals principals = new TestPrincipals(this.sessions, this.accounts, this.jdbc);
@@ -99,10 +101,10 @@ class RestrictedWriteTests {
 				INSERT INTO property_visibility_roles (property_def_id, role_id, access) VALUES
 				    (?, 'enterprise-architect', 'read'), (?, 'integration-writer', 'read'), (?, 'enterprise-architect', 'write')""",
 				this.cost, this.cost, this.cost);
-		UUID assignment = this.jdbc.queryForObject("""
+		this.assignment = this.jdbc.queryForObject("""
 				INSERT INTO metatypes (config_id, name, is_connection) VALUES ('00000000-0000-0000-0000-000000000001', ?, true)
 				RETURNING id""", UUID.class, "Domain Assignment " + suffix());
-		this.scoped = property("Security Classification", "string", "connection-scoped", assignment);
+		this.scoped = property("Security Classification", "string", "connection-scoped", this.assignment);
 		map(this.cost, "optional");
 		map(this.scoped, "optional");
 	}
@@ -153,12 +155,91 @@ class RestrictedWriteTests {
 		assertThat(value(external)).isEqualTo(300L);
 	}
 
+	// us-127-connection-scoped-visibility: "Connection-scoped property" (new entity, out of scope)
+
 	@Test
 	void connectionScopedProperty() {
-		JsonNode result = ok(batch(this.kurt, entity("app-" + suffix(), "Portal", null, this.scoped, "secret")));
-		JsonNode item = result.path("items").get(0);
-		assertThat(item.path("status").asString()).isEqualTo("error");
-		assertThat(item.path("errors").get(0).path("code").asString()).isEqualTo("RESTRICTED_PROPERTY_NOT_SUPPORTED");
+		// a new entity has no scoping connection yet
+		assertThat(batch(this.kurt, entity("app-" + suffix(), "Portal", null, this.scoped, "secret")))
+			.hasStatus(HttpStatus.FORBIDDEN);
+		// an existing entity outside Kurt's scope
+		String crm = "crm-" + suffix();
+		ok(batch(this.kurt, entity(crm, "CRM Sales", null, null, null)));
+		linkKurt();
+		assertThat(batch(this.kurt, entity(crm, "CRM Sales", null, this.scoped, "secret"))).hasStatus(HttpStatus.FORBIDDEN);
+		assertThat(scopedValue(crm)).isNull();
+	}
+
+	@Test
+	void connectionScopedValueInScope() {
+		String erp = "erp-" + suffix();
+		ok(batch(this.kurt, entity(erp, "ERP Warehouse", null, null, null)));
+		int element = linkKurt();
+		connect(element, erp);
+		ok(batch(this.kurt, entity(erp, "ERP Warehouse", null, this.scoped, "internal")));
+		assertThat(scopedValue(erp)).isEqualTo("internal");
+		assertThat(this.jdbc.queryForObject(
+				"SELECT value_protection FROM audit.event_changes WHERE property_def_id = ? ORDER BY id DESC LIMIT 1",
+				String.class, this.scoped)).isEqualTo("encrypted");
+		// removing the value in scope
+		ok(batch(this.kurt, entity(erp, "ERP Warehouse", null, this.scoped, "")));
+		assertThat(scopedValue(erp)).isNull();
+	}
+
+	@Test
+	void mandatoryConnectionScopedPropertyCheckedOnlyInScope() {
+		String erp = "erp-" + suffix();
+		String crm = "crm-" + suffix();
+		ok(batch(this.kurt, entity(erp, "ERP Warehouse", null, null, null), entity(crm, "CRM Sales", null, null, null)));
+		connect(linkKurt(), erp);
+		this.jdbc.update("UPDATE metatype_property_mappings SET necessity = 'mandatory' WHERE metatype_id = ? AND property_def_id = ?",
+				this.application, this.scoped);
+		try {
+			JsonNode inScope = ok(batch(this.kurt, entity(erp, "ERP Warehouse", "changed", null, null))).path("items").get(0);
+			assertThat(inScope.path("status").asString()).isEqualTo("error");
+			assertThat(inScope.path("errors").get(0).path("code").asString()).isEqualTo("MANDATORY_MISSING");
+			JsonNode outside = ok(batch(this.kurt, entity(crm, "CRM Sales", "changed", null, null))).path("items").get(0);
+			assertThat(outside.path("status").asString()).isEqualTo("updated");
+		}
+		finally {
+			this.jdbc.update("UPDATE metatype_property_mappings SET necessity = 'optional' WHERE metatype_id = ? AND property_def_id = ?",
+					this.application, this.scoped);
+		}
+	}
+
+	/** Links Kurt's account to a new element of a new person metatype; returns the element. */
+	private int linkKurt() {
+		UUID actor = this.jdbc.queryForObject(
+				"INSERT INTO metatypes (config_id, name) VALUES ('00000000-0000-0000-0000-000000000001', ?) RETURNING id",
+				UUID.class, "Business Actor " + suffix());
+		this.jdbc.update("UPDATE visibility_settings SET person_metatype_id = ?", actor);
+		long kurt = this.jdbc.queryForObject("SELECT person_id FROM sessions WHERE id = ?", Long.class, this.kurt.sessionId());
+		int element = this.jdbc.queryForObject(
+				"INSERT INTO entities (metatype_id, name, created_by) VALUES (?, 'Kurt', ?) RETURNING id", Integer.class, actor,
+				kurt);
+		this.jdbc.update("UPDATE persons SET entity_id = ? WHERE id = ?", element, kurt);
+		return element;
+	}
+
+	/** An assignment of the scoping type from the element to the entity with the external ID. */
+	private void connect(int element, String externalId) {
+		long kurt = this.jdbc.queryForObject("SELECT person_id FROM sessions WHERE id = ?", Long.class, this.kurt.sessionId());
+		int target = this.jdbc.queryForObject("SELECT id FROM entities WHERE external_id = ?", Integer.class, externalId);
+		int id = this.jdbc.queryForObject(
+				"INSERT INTO entities (metatype_id, name, created_by) VALUES (?, 'Assignment', ?) RETURNING id", Integer.class,
+				this.assignment, kurt);
+		this.jdbc.update("INSERT INTO entity_connections (entity_id, source_entity_id, target_entity_id) VALUES (?, ?, ?)",
+				id, element, target);
+	}
+
+	private String scopedValue(String externalId) {
+		return this.jdbc.queryForList(
+				"SELECT v.value_text FROM entity_property_values v JOIN entities e ON e.id = v.entity_id"
+						+ " WHERE e.external_id = ? AND v.property_def_id = ?",
+				String.class, externalId, this.scoped)
+			.stream()
+			.findFirst()
+			.orElse(null);
 	}
 
 	@Test

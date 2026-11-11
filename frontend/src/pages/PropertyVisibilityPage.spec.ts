@@ -1,11 +1,13 @@
 import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createMemoryHistory, createRouter, RouterView } from 'vue-router'
 import { defineComponent, h } from 'vue'
 import { session } from '../session/store'
 import { ME_METAMODEL_ADMIN, VISIBILITY_IDS, visibilityApi, type VisibilityApi } from '../test/visibility'
 import PropertyVisibilityPage from './PropertyVisibilityPage.vue'
+
+const mounted: VueWrapper[] = []
 
 async function open(options: Parameters<typeof visibilityApi>[0] = {}): Promise<{ wrapper: VueWrapper; api: VisibilityApi }> {
   const api = visibilityApi(options)
@@ -18,6 +20,7 @@ async function open(options: Parameters<typeof visibilityApi>[0] = {}): Promise<
   })
   await router.push('/admin/property-visibility')
   const wrapper = mount(defineComponent({ render: () => h(RouterView) }), { global: { plugins: [ui, router] }, attachTo: document.body })
+  mounted.push(wrapper)
   await flushPromises()
   return { wrapper, api }
 }
@@ -57,6 +60,11 @@ describe('PropertyVisibilityPage', () => {
     session.me = undefined
     session.loaded = false
     document.body.innerHTML = ''
+  })
+
+  // the select of the person metatype re-renders on shared state, so a test unmounts its pages
+  afterEach(() => {
+    mounted.splice(0).forEach((wrapper) => wrapper.unmount())
   })
 
   it('lists the properties with mode, badge and metatypes, filtered by name', async () => {
@@ -155,6 +163,46 @@ describe('PropertyVisibilityPage', () => {
     await save()
     expect(api.puts).toHaveLength(1)
     expect(dialog().querySelector('[data-testid="visibility-read-roles"]')!.textContent).toContain('Choose at least one read role.')
+  })
+
+  // "Choose the person metatype" (us-127-connection-scoped-visibility D8)
+  it('offers the element metatypes as the entity type of persons and saves the choice', async () => {
+    const { wrapper, api } = await open()
+    const page = wrapper.findComponent(PropertyVisibilityPage)
+    const state = (page.vm as unknown as {
+      $: { setupState: { personMetatypeItems: { value: string; label: string }[]; choosePersonMetatype: (value: string) => Promise<void> } }
+    }).$.setupState
+    expect(state.personMetatypeItems.map((item) => item.label)).toEqual(['None', 'Application Component', 'Business Actor'])
+    expect(wrapper.get('[data-testid="person-metatype"]').text()).toContain('Entity type of persons')
+    await state.choosePersonMetatype(VISIBILITY_IDS.actor)
+    await flushPromises()
+    expect(api.personMetatypePuts).toEqual([VISIBILITY_IDS.actor])
+    // unsetting sends null
+    await state.choosePersonMetatype('none')
+    await flushPromises()
+    expect(api.personMetatypePuts).toEqual([VISIBILITY_IDS.actor, null])
+  })
+
+  it('keeps the previous person metatype when the server rejects the choice', async () => {
+    const { wrapper } = await open({ personMetatype: VISIBILITY_IDS.actor })
+    const page = wrapper.findComponent(PropertyVisibilityPage)
+    const state = (page.vm as unknown as {
+      $: { setupState: { personMetatype: string; choosePersonMetatype: (value: string) => Promise<void> } }
+    }).$.setupState
+    expect(state.personMetatype).toBe(VISIBILITY_IDS.actor)
+    await state.choosePersonMetatype(VISIBILITY_IDS.assignment)
+    await flushPromises()
+    expect(state.personMetatype).toBe(VISIBILITY_IDS.actor)
+    expect(wrapper.get('[data-testid="person-metatype"]').text()).toContain('could not be saved')
+  })
+
+  it('warns about connection-based properties without a person metatype', async () => {
+    const missing = await open({ connectionScoped: true })
+    expect(missing.wrapper.find('[data-testid="person-metatype-missing"]').exists()).toBe(true)
+    const set = await open({ connectionScoped: true, personMetatype: VISIBILITY_IDS.actor })
+    expect(set.wrapper.find('[data-testid="person-metatype-missing"]').exists()).toBe(false)
+    const none = await open()
+    expect(none.wrapper.find('[data-testid="person-metatype-missing"]').exists()).toBe(false)
   })
 
   // "Page without the permission"
