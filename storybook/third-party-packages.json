@@ -71,21 +71,21 @@
   },
   {
     "name": "@storybook/addon-a11y",
-    "version": "10.6.5",
+    "version": "10.6.6",
     "license": "MIT",
     "repository": "https://github.com/storybookjs/storybook",
     "licenseFile": false
   },
   {
     "name": "@storybook/vue3",
-    "version": "10.6.5",
+    "version": "10.6.6",
     "license": "MIT",
     "repository": "https://github.com/storybookjs/storybook",
     "licenseFile": false
   },
   {
     "name": "@storybook/vue3-vite",
-    "version": "10.6.5",
+    "version": "10.6.6",
     "license": "MIT",
     "repository": "https://github.com/storybookjs/storybook",
     "licenseFile": false
@@ -232,7 +232,7 @@
   },
   {
     "name": "storybook",
-    "version": "10.6.5",
+    "version": "10.6.6",
     "license": "MIT",
     "repository": "https://github.com/storybookjs/storybook",
     "licenseFile": false

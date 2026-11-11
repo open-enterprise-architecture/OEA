@@ -247,21 +247,21 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ------------------------------------------------------------------------
 
-@storybook/addon-a11y 10.6.5 (MIT)
+@storybook/addon-a11y 10.6.6 (MIT)
 https://github.com/storybookjs/storybook
 
 License: MIT
 
 ------------------------------------------------------------------------
 
-@storybook/vue3 10.6.5 (MIT)
+@storybook/vue3 10.6.6 (MIT)
 https://github.com/storybookjs/storybook
 
 License: MIT
 
 ------------------------------------------------------------------------
 
-@storybook/vue3-vite 10.6.5 (MIT)
+@storybook/vue3-vite 10.6.6 (MIT)
 https://github.com/storybookjs/storybook
 
 License: MIT
@@ -1149,7 +1149,7 @@ SOFTWARE.
 
 ------------------------------------------------------------------------
 
-storybook 10.6.5 (MIT)
+storybook 10.6.6 (MIT)
 https://github.com/storybookjs/storybook
 
 License: MIT
