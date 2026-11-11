@@ -99,7 +99,7 @@ for each property P in write request:
 ## Implementation Notes
 
 - The API contract must state that on `PUT` masked properties the caller may not write are preserved, not cleared (follow-up for the solution architect)
-- Batch and connection writes (OpenSpec changes `us-126-role-restricted-enforcement` and `us-127-connection-scoped-visibility`): a named property the writer may not write rejects the whole request with 403 before anything is written; omitted properties keep their values. A `connection-scoped` value is writable only for an existing entity in the writer's scope, so a new entity gets it after the scoping connection exists; the mandatory check uses the same rule
+- Batch and connection writes (OpenSpec changes `us-126-role-restricted-enforcement`, commit cefd98a (#213), and `us-127-connection-scoped-visibility`, commit 9ea1ad2 (#231)): a named property the writer may not write rejects the whole request with 403 before anything is written; omitted properties keep their values. A `connection-scoped` value is writable only for an existing entity in the writer's scope, so a new entity gets it after the scoping connection exists; the mandatory check uses the same rule
 
 ## Change History
 

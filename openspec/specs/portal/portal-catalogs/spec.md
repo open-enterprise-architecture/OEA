@@ -98,3 +98,15 @@ Trace: #67, UC-06, SCR-050, owner decision 2026-11-07
 
 - **WHEN** Kurt, who holds `entity:read` and `portal:read`, opens the header
 - **THEN** the header has the entry "Portal" next to the catalogs, and the page "Portal" lists the same shared catalogs
+
+### Requirement: Connection-scoped values in the portal
+
+The portal query SHALL show connection-scoped values per row like the catalog query: only for entities in the reader's scope.
+
+Trace: REQ-127, REQ-160
+
+#### Scenario: Portal reader with a linked account
+
+- **GIVEN** Petra's account is linked and her element is assigned to "ERP Warehouse"
+- **WHEN** she queries a shared catalog with a column on `securityClassification`
+- **THEN** only "ERP Warehouse" shows its classification

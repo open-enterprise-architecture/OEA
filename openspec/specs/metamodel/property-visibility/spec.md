@@ -127,3 +127,14 @@ Trace: US-124 AC1–AC3, US-125 AC1–AC3, REQ-125, owner decision 2026-11-07
 
 - **WHEN** an enterprise architect opens the page
 - **THEN** the header shows no link to it, and the page says that access is not permitted
+
+### Requirement: Person metatype on the page
+
+The page "Property visibility" SHALL show the person metatype and let a holder of `visibility:configure` choose it among the element metatypes, with a hint that connection-based properties need it.
+
+Trace: REQ-127, owner decision 2026-11-10
+
+#### Scenario: Choose the person metatype
+
+- **WHEN** the security administrator chooses `Business Actor` as "Entity type of persons"
+- **THEN** the page shows `Business Actor` and offers no connection metatypes in the selection

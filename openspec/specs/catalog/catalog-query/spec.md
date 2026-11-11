@@ -212,7 +212,7 @@ Trace: US-049 AC3, US-049 AC5, ADR-044
 
 Querying a catalog SHALL require `entity:read`; another person's personal catalog SHALL be answered with 404, like a catalog that does not exist. Soft-deleted entities SHALL NOT be returned. A column on a property the caller cannot read SHALL be returned as not readable and not sortable, with empty values in every row and every join result, and the totals SHALL not depend on it.
 
-Trace: US-049, REQ-043 AC4, ADR-019, ADR-032, US-126 AC4, REQ-160 AC2, #68, owner decision 2026-11-08
+Trace: US-049, REQ-043 AC4, ADR-019, ADR-032, US-126 AC4, REQ-160 AC2, #68
 
 #### Scenario: Personal catalog of another person
 
@@ -243,7 +243,7 @@ Trace: US-049, REQ-043 AC4, ADR-019, ADR-032, US-126 AC4, REQ-160 AC2, #68, owne
 #### Scenario: Connection-scoped property
 
 - **GIVEN** `securityClassification` is `connection-scoped`
-- **WHEN** Kurt queries a catalog with a column on it
+- **WHEN** Kurt, whose account has no link, queries a catalog with a column on it
 - **THEN** the column is not readable and has no values
 
 ### Requirement: Next page through a cursor
@@ -300,3 +300,25 @@ Trace: REQ-186, REQ-071, SQL review 2026-11-06 finding L1, owner decision 2026-1
 
 - **WHEN** a catalog query finishes within the limit
 - **THEN** it is answered as before
+
+### Requirement: Connection-scoped values per row
+
+For a caller whose account is linked, a column on a `connection-scoped` property SHALL be readable, and each row SHALL show the value only if its entity is connected to the caller's element by a connection of the scoping type, in either direction. Sort and filter SHALL treat the values of other rows as empty.
+
+Trace: US-127 AC1–AC3, REQ-127 AC1, AC2, AC4, #68, owner decision 2026-11-10
+
+#### Scenario: Own domain and other domain
+
+- **GIVEN** `securityClassification` is `connection-scoped` with `DomainAssignment`, and Michael's element is assigned to "ERP Warehouse" but not to "CRM Sales"
+- **WHEN** Michael queries a catalog with a column on it
+- **THEN** "ERP Warehouse" shows its classification and "CRM Sales" an empty cell
+
+#### Scenario: Sort and filter in scope only
+
+- **WHEN** Michael sorts or filters by `securityClassification`
+- **THEN** "CRM Sales" sorts like an entry without value and never matches a filter on a value
+
+#### Scenario: Assignment removed
+
+- **WHEN** the `DomainAssignment` of "ERP Warehouse" is deleted and Michael queries again
+- **THEN** "ERP Warehouse" shows an empty cell
