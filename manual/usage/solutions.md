@@ -2,7 +2,7 @@
 title: Solutions
 covers:
   screens: [SCR-060, SCR-061]
-  stories: [US-038]
+  stories: [US-038, US-039]
 ---
 
 # Solutions
@@ -35,11 +35,21 @@ The page *Solutions* lists every solution with its status, owner and creation da
 
 <Screenshot name="solutions" alt="List of solutions" />
 
-Open a solution to see its architecture vision:
+Open a solution to see its architecture vision and its baseline:
 
-<Screenshot name="solution" alt="Page of a solution with owner, creation time and architecture vision" />
+<Screenshot name="solution" alt="Page of a solution with owner, creation time, architecture vision and baseline" />
 
 Solutions cannot be changed or archived yet.
+
+## Baseline
+
+The area *Baseline* of a solution shows the current IT landscape the initiative builds on: every entity in the catalog today that is not deleted, with its name and metatype, ordered by name. Connections such as data flows are not listed. The baseline is read when you open the solution, so it always shows the catalog as it is now.
+
+- **Search:** type a part of the name, up to 255 characters; upper and lower case do not matter.
+- **Filter:** choose a metatype to see only its entities.
+- **Pages:** the baseline shows 50 entities per page.
+
+If the catalog holds no entities yet, the area says "No entities in the current landscape – you can only create new entities". If only your search or filter matches nothing, it says so instead.
 
 ## Through the API
 
@@ -47,6 +57,10 @@ Solutions cannot be changed or archived yet.
 curl "${auth[@]}" -d '{"name": "ERP Extension Logistics", "description": "Goal: warehouse logistics in the ERP."}' \
   "$OEA/solutions"
 curl "${auth[@]}" "$OEA/solutions"
+# $SOLUTION is the "id" of a solution from the list
+curl "${auth[@]}" "$OEA/solutions/$SOLUTION/landscape?q=erp&pageSize=50"
 ```
 
 `POST /solutions` answers 201 with the solution, 422 naming `name` for a blank or taken name, and 403 without `solution:write`. Every creation is recorded in the audit log as `solution.created`.
+
+`GET /solutions/{id}/landscape` answers one page of the baseline with the total and, if a further page exists, a `nextCursor`; send it as `cursor` together with `page` + 1 to load the next page. `metatypeId` filters by metatype.

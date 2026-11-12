@@ -2,8 +2,9 @@
 
 **ID**: US-039
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S11
+**Implementation**: OpenSpec change `us-039-solution-baseline` – `getSolutionLandscape` with `entity:read`: the current catalog as the baseline, with search, metatype filter and cursor paging; the area "Baseline" on SCR-061. Realigned 2026-11-12: the baseline in project mode is the current catalog, not the aggregate of implemented solutions
 
 ## Story
 
@@ -19,27 +20,27 @@ As a Solution Architect, I want to see, within a solution, the current state of 
 
 **AC1**:
 
-- Given: Two implemented solutions: A has `CRM-Legacy` (new), B has `ERP-Core` (new)
+- Given: The catalog holds the applications `CRM-Legacy` and `ERP-Core` and the data flow "Orders" between them
 - When: Michael opens a new solution and loads the baseline
-- Then: `CRM-Legacy` and `ERP-Core` are in the list; no other entities
+- Then: `CRM-Legacy` and `ERP-Core` are in the list; no other entities (connections are not listed)
 
 **AC2**:
 
-- Given: Solution A (implemented) has `CRM-Legacy` (retiring)
+- Given: `CRM-Legacy` is deleted in the catalog
 - When: Michael loads the baseline
-- Then: `CRM-Legacy` is **not** in the list (retiring removes the entity from implemented)
+- Then: `CRM-Legacy` is **not** in the list
 
 **AC3**:
 
-- Given: Solution A has `ERP-Core` as modified (v4); solution B (more recent, implemented) has `ERP-Core` as modified (v5)
+- Given: `ERP-Core` was renamed to `ERP-Core 2` in the catalog, raising its version to 2
 - When: Michael loads the baseline
-- Then: the list shows `ERP-Core` with the state from solution B (more recent implementation wins)
+- Then: the list shows `ERP-Core 2` in version 2 (the current state of the entity)
 
 **AC4** (empty landscape):
 
-- Given: no implemented solutions present yet
+- Given: the catalog holds no entity yet
 - When: Michael loads the baseline
-- Then: the notice "No implemented entities present – you can only create new entities" appears; the `modified` and `retiring` actions are disabled
+- Then: the notice "No entities in the current landscape – you can only create new entities" appears; the `modified` and `retiring` actions (US-041, US-042) are disabled
 
 **AC5** (filter):
 
@@ -49,18 +50,18 @@ As a Solution Architect, I want to see, within a solution, the current state of 
 
 ## Technical Notes
 
-- Affected components: solution detail view (area "Architecture Vision & Scope"), backend `GET /api/v1/solutions/{id}/landscape`
-- Aggregation logic (project mode): over all `entity_deltas` from solutions with status=`implemented`; per entityId the most recent implementation wins (ORDER BY `implemented_at DESC`); `retiring` deltas as tombstone (entity is removed from result)
-- Database changes: no new tables; query on existing `solutions` + `entity_deltas`
-- Pagination: cursor-based (entity lists can become large)
+- Affected components: solution detail view (area "Baseline" on SCR-061), backend `GET /api/v1/solutions/{id}/landscape` (`getSolutionLandscape`)
+- Source (project mode, owner decision 2026-11-12): the entities of element metatypes in the catalog that are not deleted; from S14 on, the go-live writes the deltas of a solution into the catalog
+- Database changes: none; query on `entities` and `metatypes`
+- Pagination: `page`, `pageSize` (1–200) and a cursor, as for the catalog query
 - For MVP: plateau mode (baseline from `fromPlateau`) can initially be mocked with fallback to project mode calculation, if plateau mode is not yet implemented
 
 ## Definition of Done
 
 - [ ] Acceptance criteria AC1–AC5 met
 - [ ] Code review by a second person
-- [ ] Tests: aggregation from multiple solutions (incl. overlaps, retiring as tombstone, latest-wins for modified); empty landscape; filter
-- [ ] Performance test: aggregation with 100+ implemented solutions < 500ms
+- [x] Tests: deleted entities, current state, connections not listed; empty landscape; search and filter; paging by cursor
+- [x] Performance test: a page of the baseline with a search term over 10,000 entities < 500 ms (realigned 2026-11-12)
 - [ ] Linter and type checks green
 - [ ] Entered in trace matrix
 
@@ -72,3 +73,5 @@ As a Solution Architect, I want to see, within a solution, the current state of 
 ## Notes
 
 5 SP because of the aggregation logic in the backend (latest-wins, tombstone handling, pagination). The UI is simple (filterable table), but the query logic is not trivial. Separate unit tests for the aggregation function recommended. Plateau mode (baseline from fromPlateau) is specified in REQ-039, but can be implemented in a follow-up story.
+
+- 2026-11-12: implemented by the OpenSpec change `us-039-solution-baseline` (S11 change 1). Realigned (owner decision 2026-11-12): the baseline in project mode is the current catalog, not the aggregate of the deltas of implemented solutions, which do not exist before the go-live (S14); AC1–AC3 and the notice of AC4 follow from it. The actions `modified` and `retiring` follow with US-041 and US-042, which disable them for an empty landscape.

@@ -137,7 +137,7 @@ public class SolutionSteps {
 
 	@When("a portal reader lists the solutions")
 	public void portalReaderLists() throws Exception {
-		this.response = instance().oidc().get(SOLUTIONS, portalReader().token());
+		this.response = instance().oidc().get(SOLUTIONS, portalReaderSession().token());
 	}
 
 	@When("the viewer reads a solution with an unknown ID")
@@ -184,7 +184,8 @@ public class SolutionSteps {
 			.single("SELECT count(*) FROM solutions WHERE lower(name) = lower('" + name.replace("'", "''") + "')");
 	}
 
-	private static Session portalReader() throws Exception {
+	/** The session of `dev-portal-reader`, mapped to `portal-reader` (no `entity:read`). */
+	static Session portalReaderSession() throws Exception {
 		synchronized (SolutionSteps.class) {
 			if (portalReader == null) {
 				instance().oidc().mapping("oea-portal-readers", "portal-reader");

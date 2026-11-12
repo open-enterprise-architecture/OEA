@@ -241,7 +241,8 @@ test('catalogs', async ({ page }) => {
 })
 
 test('solutions', async ({ page }) => {
-  // An architect creates a solution in project mode (manual: usage/solutions; us-038-create-solution)
+  // An architect creates a solution in project mode and sees its baseline (manual: usage/solutions;
+  // us-038-create-solution, us-039-solution-baseline)
   await logInAtKeycloak(page, 'dev-architect')
   await page.getByTestId('header-solutions').click()
   await page.getByTestId('solution-new').click()
@@ -252,6 +253,8 @@ test('solutions', async ({ page }) => {
   await shoot(page, 'solution-create')
   await page.getByTestId('solution-save').click()
   await expect(page.getByTestId('solution-title')).toHaveText('ERP Extension Logistics')
+  // the baseline lists the sample applications of the catalog (us-039-solution-baseline)
+  await expect(page.getByTestId('baseline-table')).toBeVisible()
   await shoot(page, 'solution')
   await page.getByTestId('solution-back').click()
   await expect(page.getByTestId('solution-list')).toContainText('ERP Extension Logistics')

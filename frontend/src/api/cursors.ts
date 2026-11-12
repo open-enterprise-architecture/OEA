@@ -1,7 +1,7 @@
-import type { CatalogQueryResult } from './catalogs'
 import type { Rejection } from './problem'
 
-// The cursor to the next page of a catalog query (design D6 of s9-catalog-query-performance): the
+// The cursor to the next page of a catalog query or a baseline (design D6 of
+// s9-catalog-query-performance, D5 of us-039-solution-baseline): the
 // pages send it only when moving from the loaded page to the next one of the same query. Jumps,
 // reloads and links use the page number, so the URL holds only `page`.
 
@@ -18,7 +18,7 @@ export class PageCursors {
   }
 
   /** Remembers the cursor of a loaded page of the query `key`. */
-  remember(key: string, result: CatalogQueryResult) {
+  remember(key: string, result: { page: { page: number }; nextCursor?: string | null }) {
     this.last = { key, page: result.page.page, cursor: result.nextCursor ?? undefined }
   }
 

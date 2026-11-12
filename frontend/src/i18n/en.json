@@ -783,6 +783,18 @@
       "in-progress": "In progress",
       "implemented": "Implemented",
       "archived": "Archived"
+    },
+    "baseline": {
+      "title": "Baseline",
+      "intro": "The current IT landscape this solution builds on: the entities in the catalog today.",
+      "search": "Search by name",
+      "metatype": "Metatype",
+      "allMetatypes": "All metatypes",
+      "name": "Name",
+      "emptyLandscape": "No entities in the current landscape – you can only create new entities",
+      "noMatch": "No entity matches the search and the filter.",
+      "pageInfo": "Page {page} of {pages} · {entries} entities",
+      "loadFailed": "The baseline could not be loaded."
     }
   }
 }

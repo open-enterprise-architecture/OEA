@@ -1,7 +1,8 @@
-import type { Solution } from '../api/solutions'
+import type { Solution, SolutionLandscapeEntry } from '../api/solutions'
 
-// A fake backend for SCR-060 and SCR-061 (us-038-create-solution): the solutions, creating one
-// with the server-side name rule of REQ-038, and reading one.
+// A fake backend for SCR-060 and SCR-061 (us-038-create-solution, us-039-solution-baseline): the
+// solutions, creating one with the server-side name rule of REQ-038, reading one, and its
+// baseline with search, metatype filter, paging and cursors.
 
 function me(displayName: string, permissions: string[]) {
   return {
@@ -52,14 +53,51 @@ export const SOLUTIONS: Solution[] = [
   solution('5d000000-0000-4000-8000-000000000003', 'Integration Platform', 'proposed', 'Kurt', '2026-11-03T14:00:00Z', null),
 ]
 
+export const APPLICATION = '6a000000-0000-4000-8000-000000000001'
+export const COMPONENT = '6a000000-0000-4000-8000-000000000002'
+export const DATA_FLOW = '6a000000-0000-4000-8000-000000000003'
+
+export const METATYPES = [
+  { id: APPLICATION, name: 'Application', isConnection: false },
+  { id: COMPONENT, name: 'Technology Component', isConnection: false },
+  { id: DATA_FLOW, name: 'Data Flow', isConnection: true },
+]
+
+function entry(id: number, name: string, metatypeId: string, version = 1): SolutionLandscapeEntry {
+  const metatypeName = METATYPES.find((candidate) => candidate.id === metatypeId)!.name
+  return { id, name, metatypeId, metatypeName, version }
+}
+
+export const LANDSCAPE: SolutionLandscapeEntry[] = [
+  entry(101, 'CRM-Legacy', APPLICATION, 3),
+  entry(102, 'ERP-Core', APPLICATION, 4),
+  entry(103, 'Warehouse Management', APPLICATION),
+  entry(104, 'Customer Portal', APPLICATION, 2),
+  entry(105, 'PostgreSQL Cluster', COMPONENT),
+  entry(106, 'Message Broker', COMPONENT, 2),
+  entry(107, 'Data Warehouse', APPLICATION),
+]
+
+/** A landscape of `count` applications, for paging. */
+export function manyApplications(count: number): SolutionLandscapeEntry[] {
+  return Array.from({ length: count }, (_, index) => entry(1000 + index, `Application ${String(index + 1).padStart(3, '0')}`, APPLICATION))
+}
+
 export interface SolutionApi {
   fetch: typeof fetch
   posts: Record<string, unknown>[]
+  landscapeQueries: URLSearchParams[]
 }
 
-export function solutionApi(options: { me?: unknown; solutions?: Solution[] } = {}): SolutionApi {
+export function solutionApi(
+  options: { me?: unknown; solutions?: Solution[]; landscape?: SolutionLandscapeEntry[]; rejectCursors?: boolean } = {},
+): SolutionApi {
   const solutions = [...(options.solutions ?? SOLUTIONS)]
+  const landscape = [...(options.landscape ?? LANDSCAPE)].sort(
+    (a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || a.id - b.id,
+  )
   const posts: Record<string, unknown>[] = []
+  const landscapeQueries: URLSearchParams[] = []
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': status < 400 ? 'application/json' : 'application/problem+json' } })
   const problem = (status: number, invalidFields: string[] = [], detail?: string) => ({
@@ -92,6 +130,34 @@ export function solutionApi(options: { me?: unknown; solutions?: Solution[] } = 
       solutions.push(created)
       return json(created, 201)
     }
+    if (url.pathname === '/api/v1/metamodel/metatypes') {
+      return json(METATYPES)
+    }
+    const baseline = /^\/api\/v1\/solutions\/([^/]+)\/landscape$/.exec(url.pathname)
+    if (baseline && method === 'GET') {
+      landscapeQueries.push(url.searchParams)
+      if (!solutions.some((candidate) => candidate.id === decodeURIComponent(baseline[1]!))) {
+        return json(problem(404), 404)
+      }
+      const q = (url.searchParams.get('q') ?? '').trim().toLowerCase()
+      const metatypeId = url.searchParams.get('metatypeId')
+      const page = Number(url.searchParams.get('page') ?? '0')
+      const pageSize = Number(url.searchParams.get('pageSize') ?? '50')
+      const cursor = url.searchParams.get('cursor')
+      const matches = landscape.filter(
+        (candidate) => (!q || candidate.name.toLowerCase().includes(q)) && (!metatypeId || candidate.metatypeId === metatypeId),
+      )
+      if (cursor && (options.rejectCursors || cursor !== `cursor-${page}`)) {
+        return json({ ...problem(400, ['cursor']), type: 'urn:oea:problem:validation-failed' }, 400)
+      }
+      const items = matches.slice(page * pageSize, (page + 1) * pageSize)
+      const totalPages = Math.ceil(matches.length / pageSize)
+      return json({
+        items,
+        page: { page, pageSize, totalElements: matches.length, totalPages },
+        nextCursor: page + 1 < totalPages ? `cursor-${page + 1}` : null,
+      })
+    }
     const one = /^\/api\/v1\/solutions\/([^/]+)$/.exec(url.pathname)
     if (one && method === 'GET') {
       const found = solutions.find((candidate) => candidate.id === decodeURIComponent(one[1]!))
@@ -100,5 +166,5 @@ export function solutionApi(options: { me?: unknown; solutions?: Solution[] } = 
     // the header and the sidebar ask for further data; an empty answer keeps them quiet
     return json([])
   }
-  return { fetch: fetchFn, posts }
+  return { fetch: fetchFn, posts, landscapeQueries }
 }

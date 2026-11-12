@@ -5,9 +5,9 @@ status: draft
 priority: must
 target_release: v1.0
 complexity: large
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-12
 primary_actor: SH-04
 secondary_actors:
   - SH-03
@@ -81,7 +81,7 @@ OEA solves this problem by having the solution architect create a **Solution** f
 ## Preconditions
 
 - [ ] Michael is logged in (UC-01) and has the role "Solution Architect" or a role with the corresponding permission
-- [ ] In project mode: at least a basic understanding of the existing IT landscape is available (implemented solutions or manual baseline data)
+- [ ] In project mode: at least a basic understanding of the existing IT landscape is available (the entities in the catalog)
 - [ ] In plateau mode (alternative A1): a baseline plateau with status=`baseline` exists
 
 ## Postconditions
@@ -113,7 +113,7 @@ OEA solves this problem by having the solution architect create a **Solution** f
 6. **System**: creates the solution in status `draft`; Michael is `ownerId`
 7. **System**: shows the solution detail view; section "Architecture Vision & Scope"
 8. **System**: shows the **current state** of the IT landscape as the baseline:
-   - Project mode: all entities from `implemented` solutions, aggregated by entity ID
+   - Project mode: the current catalog, that is the entities of element metatypes that are not deleted (owner decision 2026-11-12)
    - Searchable, filterable by entity type and name
 9. **Michael**: identifies the affected entities and captures the **planned changes** as EntityDeltas:
    - a. **Entity is modified**: Michael selects an existing entity → "Capture change" → describes changed properties → `deltaType=modified`
@@ -157,10 +157,10 @@ If many entities are affected:
 - Expected reaction: System shows a warning with a reference to the competing solution and its owner; capturing the delta is nevertheless possible
 - Resumption: Resolution takes place in the review process; Michael can note the conflict hint in the delta
 
-**E2 – Empty landscape (project mode, no implemented solutions yet)**:
+**E2 – Empty landscape (project mode, no entities in the catalog yet)**:
 
-- Condition: In project mode, no `implemented` solutions exist yet → the aggregated landscape is empty
-- Expected reaction: System shows a notice "The landscape does not contain any realized entities yet. You can only create new entities (deltaType=new)."; fields for `modified` and `retiring` are disabled
+- Condition: In project mode, the catalog holds no entity yet → the landscape is empty
+- Expected reaction: System shows the notice "No entities in the current landscape – you can only create new entities"; fields for `modified` and `retiring` are disabled
 - Resumption: Michael creates only new entities
 
 **E3 – Entity not found in the current state**:
@@ -180,7 +180,7 @@ If many entities are affected:
 | Step | Data | Direction | Remark |
 |---|---|---|---|
 | 4–5 | Name, description (architecture vision text) | Michael → System | Free text; no structure enforced |
-| 8 | Entity list of the current state | System → Michael | Aggregated from implemented solutions (project) or fromPlateau (plateau) |
+| 8 | Entity list of the current state | System → Michael | The current catalog (project) or fromPlateau (plateau) |
 | 9a–c | EntityDelta (entityId, deltaType, changes) | Michael → System | Value object; no BO of its own |
 | 10 | Diff view (current state vs. target state) | System → Michael | Live calculation; not persisted |
 | 12 | Solution (status=draft, with deltas) | System internal | Persisted |
@@ -197,7 +197,7 @@ If many entities are affected:
 ## Acceptance Criteria
 
 - [ ] Solution can be created with name and architecture vision text (description)
-- [ ] The current state of the landscape is shown as the baseline: project mode = sum of all `implemented` solutions; plateau mode = entities of the `fromPlateau`
+- [ ] The current state of the landscape is shown as the baseline: project mode = the current catalog; plateau mode = entities of the `fromPlateau`
 - [ ] EntityDeltas of all three types (`new`, `modified`, `retiring`) can be captured
 - [ ] Diff view shows affected entities: current state left/top, target state right/bottom; changes visually distinguishable
 - [ ] E1: In case of an overlapping EntityDelta with another solution, a warning appears (non-blocking)
@@ -227,7 +227,7 @@ If many entities are affected:
 
 - Diff calculation: stateless, calculated server-side from `EntityDelta[]` + landscape snapshot; not persisted
 - EntityDelta conflict detection: on every delta save, check whether another non-archived solution contains a delta for the same `entityId`; warning only, no block
-- Aggregated current state (project mode): `SELECT DISTINCT entity_id FROM entity_deltas WHERE solution.status = 'implemented'`; with multiple `modified` deltas on the same entity, the most recently implemented state applies
+- Current state (project mode): the entities of element metatypes in the catalog that are not deleted; the go-live of a solution (S14) applies its deltas to the catalog (owner decision 2026-11-12, OpenSpec change `us-039-solution-baseline`)
 - Project mode and plateau mode should be served by the same UI flow; plateau fields are shown only if the instance is configured in plateau mode
 
 ## Realizing Components
@@ -256,3 +256,4 @@ Project mode (SME) is the basic flow because it is the simpler entry point and a
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft |
+| 0.2.0 | 2026-11-12 | Change us-039-solution-baseline | The baseline in project mode is the current catalog (main flow step 8, E2, data, acceptance criteria, implementation notes) |

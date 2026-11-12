@@ -3,12 +3,13 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { rateLimitMessage, RequestRejected } from '../api/problem'
 import { fetchSolution, type Solution } from '../api/solutions'
+import SolutionBaseline from '../components/solutions/SolutionBaseline.vue'
 import { currentLanguage } from '../i18n'
 import { refreshSession, session } from '../session/store'
 
-// SCR-061 "Solution" (UC-05, US-038; design D4 of us-038-create-solution): name, status, owner,
-// creation time and the architecture vision of one solution. The baseline and the deltas follow
-// in S11.
+// SCR-061 "Solution" (UC-05, US-038, US-039): name, status, owner, creation time and the
+// architecture vision of one solution (design D4 of us-038-create-solution), and its baseline
+// (design D5 of us-039-solution-baseline). The deltas follow in S11.
 const props = defineProps<{ id: string; fetchFn?: typeof fetch }>()
 const { t } = useI18n()
 
@@ -89,6 +90,7 @@ const createdAt = computed(() =>
         <p v-if="solution.description" data-testid="solution-vision" class="whitespace-pre-line">{{ solution.description }}</p>
         <p v-else data-testid="solution-no-vision" class="text-muted">{{ t('solutions.noVision') }}</p>
       </section>
+      <SolutionBaseline :solution-id="solution.id" :fetch-fn="props.fetchFn" />
     </template>
   </main>
 </template>
