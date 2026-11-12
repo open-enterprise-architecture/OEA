@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: done
 **Sprint**: S10
-**Implementation**: OpenSpec change `us-128-override-role-list` – `createAuthorizationRole` with `role:assign`, SoD-2 and SoD-4 checked, audited as `role.created`; the page SCR-039 with the dialog "New role"
+**Implementation**: OpenSpec change `us-128-override-role-list`, commit ae59e44 (#234) – `createAuthorizationRole` with `role:assign`, SoD-2 and SoD-4 checked, audited as `role.created`; the page SCR-039 with the dialog "New role"
 
 ## Story
 

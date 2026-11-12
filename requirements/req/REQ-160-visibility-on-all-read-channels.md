@@ -125,7 +125,7 @@ Raw analytics (ADR-034): masking happens in the projection of the reporting view
 - AC2 for catalog and portal (OpenSpec change `us-126-role-restricted-enforcement`, commit cefd98a (#213)): a column on a property the caller cannot read is returned with `readable: false` and `null` values in rows and join results; a sort or filter on it is rejected with 400, so the result never depends on it
 - AC4 (same change): changes of properties whose visibility is not `public` are stored as AES-256-GCM ciphertext under an audit value key in `audit.value_keys`, wrapped by the key-encryption key of REQ-188 and re-wrapped by `oea secrets-reencrypt`; decryption for `audit:read` holders follows with the reading of audit changes
 - AC2 for `connection-scoped` (OpenSpec change `us-127-connection-scoped-visibility`, commit 9ea1ad2 (#231)): for a caller with a linked element, the column is readable and each row shows the value only if its entity is in scope; filter values and sort keys use the same per-row expression, so out-of-scope rows behave like rows without a value. Without a linked element the column is redacted as above
-- Override role list (REQ-128, OpenSpec change `us-128-override-role-list`): a holder of an override role reads every column of the catalog and portal query with all values; each such query writes one `property-override-access` event
+- Override role list (REQ-128, OpenSpec change `us-128-override-role-list`, commit ae59e44 (#234)): a holder of an override role reads every column of the catalog and portal query with all values; each such query writes one `property-override-access` event
 
 ## Change History
 

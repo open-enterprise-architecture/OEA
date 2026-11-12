@@ -130,7 +130,7 @@ ADR-034 §3.2: the override does not apply to raw analytics, because the audit r
 
 ## Implementation Notes
 
-- Implemented by the OpenSpec change `us-128-override-role-list` for the existing read channels, the catalog and portal query:
+- Implemented by the OpenSpec change `us-128-override-role-list`, commit ae59e44 (#234) for the existing read channels, the catalog and portal query:
   - the override role list is the flag `authorization_roles.overrides_property_visibility`, read and replaced with `getPropertyVisibilityOverride` and `updatePropertyVisibilityOverride` (`visibility:configure`, at most 20 roles, unknown role 422), audited as `visibility.override-changed` with `selfBenefiting`, and maintained on the page SCR-040;
   - a holder of an override role reads every column with all values, including join and endpoint columns; writing is unchanged;
   - AC2 is realigned (owner decision 2026-11-11): one `property-override-access` event per query names the properties and, per property, the entities whose value was returned through the override; values readable through `readRoles` or the connection scope do not count.
