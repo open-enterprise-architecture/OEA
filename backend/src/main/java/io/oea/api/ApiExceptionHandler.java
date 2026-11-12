@@ -16,6 +16,7 @@ import io.oea.app.access.SodConflictException;
 import io.oea.app.catalog.CatalogQueryTimeoutException;
 import io.oea.app.catalog.InvalidCatalogException;
 import io.oea.app.solution.InvalidSolutionException;
+import io.oea.app.solution.InvalidSolutionQueryException;
 import io.oea.app.navigation.InvalidTreeException;
 import io.oea.app.catalog.InvalidCatalogQueryException;
 import io.oea.app.entity.AtomicBatchFailedException;
@@ -228,6 +229,15 @@ public class ApiExceptionHandler {
 				ex.getMessage());
 		problem.setProperty("invalidFields", ex.getFields());
 		return ResponseEntity.unprocessableContent().body(problem);
+	}
+
+	/** A baseline query with a cursor of another query (design D3 of us-039-solution-baseline). */
+	@ExceptionHandler(InvalidSolutionQueryException.class)
+	ResponseEntity<ProblemDetail> invalidSolutionQuery(InvalidSolutionQueryException ex) {
+		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid query",
+				ex.getMessage());
+		problem.setProperty("invalidFields", ex.getFields());
+		return ResponseEntity.badRequest().body(problem);
 	}
 
 	@ExceptionHandler(BatchRejectedException.class)

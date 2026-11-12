@@ -1028,6 +1028,8 @@ package "Architecture Planning" #E3F2FD {
     + owner_id               : BIGINT     {NN} {FK→persons.id}
     + created_at             : TIMESTAMPTZ {NN} DEFAULT NOW()
     + created_by             : BIGINT     {NN} {FK→persons.id}
+    .. baseline (project mode): the entities of element metatypes ..
+    .. with deleted_at IS NULL, read on demand (no table) ..
   }
 
   class entity_deltas <<Table>> #BBDEFB {
@@ -2070,6 +2072,12 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   dropped: an extension names its solution in metamodel_configurations.solution_id.
 '   Permission solution:write and built-in role solution-architect added.
 '   Reason: US-038, REQ-038, ADR-032 amendment 2026-11-12.
+' 2026-11-12 (us-039-solution-baseline):
+'   No schema change. The baseline of a solution in project mode is the current
+'   catalog (entities of element metatypes with deleted_at IS NULL), read on
+'   demand, not an aggregate of the deltas of implemented solutions (owner
+'   decision 2026-11-12).
+'   Reason: US-039, REQ-039, UC-05.
 ' ─────────────────────────────────────────────────────
 
 @enduml

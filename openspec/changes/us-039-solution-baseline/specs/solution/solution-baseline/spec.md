@@ -26,7 +26,7 @@ Trace: US-039 AC1–AC3, REQ-039, owner decision 2026-11-12
 
 #### Scenario: Current state
 
-- **GIVEN** `ERP-Core` was renamed to `ERP-Core 2` by a batch write, raising its version to 2
+- **GIVEN** `ERP-Core` was renamed to `ERP-Core 2`, raising its version to 2
 - **WHEN** the baseline is loaded
 - **THEN** it lists `ERP-Core 2` with version 2 and not the old name
 

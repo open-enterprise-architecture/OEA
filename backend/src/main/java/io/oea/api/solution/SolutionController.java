@@ -2,12 +2,16 @@ package io.oea.api.solution;
 
 import io.oea.api.ContractViolationResponse;
 import io.oea.api.generated.SolutionsApi;
+import io.oea.api.generated.model.PageMeta;
 import io.oea.api.generated.model.PrincipalRef;
 import io.oea.api.generated.model.Solution;
 import io.oea.api.generated.model.SolutionCreate;
+import io.oea.api.generated.model.SolutionLandscapeEntry;
+import io.oea.api.generated.model.SolutionLandscapePage;
 import io.oea.api.generated.model.SolutionStatus;
 import io.oea.api.generated.model.SolutionSummary;
 import io.oea.app.security.OeaPrincipal;
+import io.oea.app.solution.SolutionLandscape;
 import io.oea.app.solution.Solutions;
 import io.oea.config.security.OeaAuthentication;
 import java.net.URI;
@@ -18,7 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Creating and reading solutions (US-038; design D3 of us-038-create-solution). */
+/** Creating and reading solutions and their baseline (US-038, US-039). */
 @RestController
 public class SolutionController implements SolutionsApi {
 
@@ -27,8 +31,11 @@ public class SolutionController implements SolutionsApi {
 
 	private final Solutions solutions;
 
-	public SolutionController(Solutions solutions) {
+	private final SolutionLandscape landscape;
+
+	public SolutionController(Solutions solutions, SolutionLandscape landscape) {
 		this.solutions = solutions;
+		this.landscape = landscape;
 	}
 
 	@Override
@@ -47,6 +54,27 @@ public class SolutionController implements SolutionsApi {
 	@Override
 	public ResponseEntity<Solution> getSolution(UUID id) {
 		return ResponseEntity.ok(solution(this.solutions.get(id)));
+	}
+
+	@Override
+	public ResponseEntity<SolutionLandscapePage> getSolutionLandscape(UUID id, String q, UUID metatypeId,
+			Integer page, Integer pageSize, String cursor) {
+		SolutionLandscape.Page result = this.landscape.read(id, new SolutionLandscape.Query(q, metatypeId,
+				(page != null) ? page : 0, (pageSize != null) ? pageSize : 50, cursor));
+		return ResponseEntity.ok(new SolutionLandscapePage()
+			.items(result.items()
+				.stream()
+				.map((entry) -> new SolutionLandscapeEntry().id(entry.id())
+					.name(entry.name())
+					.metatypeId(entry.metatypeId())
+					.metatypeName(entry.metatypeName())
+					.version(entry.version()))
+				.toList())
+			.page(new PageMeta().page(result.page())
+				.pageSize(result.pageSize())
+				.totalElements(Math.toIntExact(result.totalElements()))
+				.totalPages(result.totalPages()))
+			.nextCursor(result.nextCursor()));
 	}
 
 	private static SolutionSummary summary(Solutions.Solution solution) {

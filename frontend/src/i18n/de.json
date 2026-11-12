@@ -783,6 +783,18 @@
       "in-progress": "In Umsetzung",
       "implemented": "Umgesetzt",
       "archived": "Archiviert"
+    },
+    "baseline": {
+      "title": "Ausgangslage",
+      "intro": "Die aktuelle IT-Landschaft, auf der diese Lösung aufbaut: die Entitäten, die heute im Katalog stehen.",
+      "search": "Nach Name suchen",
+      "metatype": "Metatyp",
+      "allMetatypes": "Alle Metatypen",
+      "name": "Name",
+      "emptyLandscape": "Keine Entitäten in der aktuellen Landschaft – du kannst nur neue Entitäten anlegen",
+      "noMatch": "Keine Entität passt zur Suche und zum Filter.",
+      "pageInfo": "Seite {page} von {pages} · {entries} Entitäten",
+      "loadFailed": "Die Ausgangslage konnte nicht geladen werden."
     }
   }
 }

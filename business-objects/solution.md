@@ -2,7 +2,7 @@
 identifier: solution
 name_de: Lösung / Solution Architecture
 name_en: Solution
-version: 0.3.0
+version: 0.4.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -49,7 +49,7 @@ Baseline P0 (currently productive)
 
 ### Mode B: Project Mode (SME)
 
-`fromPlateauId` and `toPlateauId` are both `null`. The solution is a free project workspace. There is no formal baseline; the current overall state of the landscape results from the sum of all `implemented` solutions. The solution models entities and their changes directly, without a formal plateau framework.
+`fromPlateauId` and `toPlateauId` are both `null`. The solution is a free project workspace. There is no formal baseline plateau; the baseline is the current catalog, that is the entities that are not deleted. The go-live of a solution (S14) applies its deltas to the catalog, so the catalog always holds the current overall state (owner decision 2026-11-12). The solution models entities and their changes directly, without a formal plateau framework.
 
 Suitable for: SMEs and organizations that do not work with the plateau principle but carry out projects and continuously evolve the landscape.
 
@@ -58,7 +58,7 @@ Solution "Salesforce Introduction" (project mode, no plateau)
   deltas:
     CRM-Legacy:  retiring
     Salesforce:  new
-    [after implemented: overall state = sum of all solutions]
+    [after implemented: the go-live applies the deltas to the catalog]
 ```
 
 ---
@@ -69,7 +69,7 @@ Solution "Salesforce Introduction" (project mode, no plateau)
 |---|---|---|
 | Plateau references | `fromPlateauId` + `toPlateauId` set | both `null` |
 | Baseline inheritance | Entities from `fromPlateau` | none; standalone workspace |
-| Effective overall state | Baseline ∪ solution deltas | Sum of all `implemented` solutions |
+| Effective overall state | Baseline ∪ solution deltas | The current catalog, updated by the go-live of each solution |
 | Suitable for | Enterprise, TOGAF governance | SME, project-based way of working |
 | Plateau required | yes | no |
 
@@ -156,7 +156,7 @@ Solution: "Salesforce Introduction" (project mode)
     - Integration: deltaType=new, type=Interface
 ```
 
-After `implemented`, the realized overall state is the sum of all `implemented` solutions of the instance.
+After `implemented`, the go-live has applied the deltas to the catalog, which is the realized overall state of the instance and the baseline of the next solution.
 
 **Plateau mode (Enterprise)**:
 
@@ -198,3 +198,4 @@ TOGAF reference (plateau mode): "Solution Architecture" in phase E/F. The `Entit
 | 0.1.0 | 2026-06-25 | Business Engineer | Initial draft |
 | 0.2.0 | 2026-06-25 | Business Engineer | Made `fromPlateauId` + `toPlateauId` optional; introduced project mode (SME); adapted BR-01 (either both set or both null); comparison table of the modes |
 | 0.3.0 | 2026-11-12 | Change us-038-create-solution | Project mode implemented (table `solutions`, V25): name unique case-insensitively after trimming, owner and creator the creating person, BR-01 as a database check; `metamodelExtensionId` removed in favor of the extension's `solutionId`; plateau references without foreign keys until S14 |
+| 0.4.0 | 2026-11-12 | Change us-039-solution-baseline | Baseline in project mode realigned: the current catalog instead of the sum of all `implemented` solutions |

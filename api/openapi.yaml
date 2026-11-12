@@ -2365,6 +2365,31 @@ components:
             toPlateauId:   { type: [string, 'null'], format: uuid, description: Target plateau; null in project mode (BR-01) }
             createdBy:     { $ref: '#/components/schemas/PrincipalRef' }
 
+    SolutionLandscapeEntry:
+      type: object
+      required: [id, name, metatypeId, metatypeName, version]
+      description: An entity of the current landscape in the baseline of a solution (US-039)
+      properties:
+        id:           { type: integer, description: "`entities.id`" }
+        name:         { type: string }
+        metatypeId:   { type: string, format: uuid }
+        metatypeName: { type: string }
+        version:      { type: integer, description: Current version of the entity }
+
+    SolutionLandscapePage:
+      type: object
+      required: [items, page, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/SolutionLandscapeEntry' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+        nextCursor:
+          type: [string, 'null']
+          description: |
+            Opaque cursor to the following page, to be sent as `cursor` with `page` + 1; `null`
+            on the last page (REQ-071)
+
     PrincipalRef:
       type: object
       required: [principalType, displayName]
@@ -4357,6 +4382,46 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Solution' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /solutions/{id}/landscape:
+    get:
+      operationId: getSolutionLandscape
+      summary: Baseline of a solution (US-039, SCR-061)
+      description: |
+        The current IT landscape the solution builds on. In project mode these are the entities
+        of element metatypes that are not deleted (owner decision 2026-11-12), ordered by name
+        (case-insensitive), then by ID. `q` searches a part of the name, case-insensitively;
+        `metatypeId` keeps the entities of one metatype, and an unknown metatype gives an empty
+        page. A cursor of another query, a changed cursor or one without `page` answers 400
+        naming `cursor`.
+      tags: [Solutions]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: q
+          in: query
+          description: Part of the entity name, compared case-insensitively; blank means no search
+          schema: { type: string, maxLength: 255 }
+        - name: metatypeId
+          in: query
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: '#/components/parameters/CursorParam'
+      responses:
+        '200':
+          description: One page of the baseline
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SolutionLandscapePage' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
