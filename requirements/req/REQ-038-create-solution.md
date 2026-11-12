@@ -140,7 +140,7 @@ An existing solution in status `draft` can be edited further at any time (steps 
 ## Implementation
 
 - ADR(s): [ADR-032](../../adrs/ADR-032-authorization-model.md) (amendment 2026-11-12)
-- Implemented by: OpenSpec change `us-038-create-solution` (project mode: AC1, AC4, AC5; plateau mode AC2, AC3 in S14)
+- Implemented by: OpenSpec change `us-038-create-solution`, commit cc53421 (#238) (project mode: AC1, AC4, AC5; plateau mode AC2, AC3 in S14)
 - Tests: `SolutionTests`, `features/solution/solution-creation.feature`, `features/solution/solution-overview.feature`, `SolutionsPage.spec.ts`, `SolutionPage.spec.ts`
 - Verification status: partially verified (project mode)
 
