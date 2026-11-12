@@ -17,6 +17,7 @@ import io.oea.app.catalog.CatalogQueryTimeoutException;
 import io.oea.app.catalog.InvalidCatalogException;
 import io.oea.app.solution.InvalidSolutionException;
 import io.oea.app.solution.InvalidSolutionQueryException;
+import io.oea.app.solution.SolutionCompletedException;
 import io.oea.app.navigation.InvalidTreeException;
 import io.oea.app.catalog.InvalidCatalogQueryException;
 import io.oea.app.entity.AtomicBatchFailedException;
@@ -228,7 +229,18 @@ public class ApiExceptionHandler {
 		ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "validation-failed", "Invalid solution",
 				ex.getMessage());
 		problem.setProperty("invalidFields", ex.getFields());
+		problem.setProperty("errors", ex.getErrors()
+			.stream()
+			.map((issue) -> Map.of("field", issue.field(), "code", issue.code(), "message", issue.message()))
+			.toList());
 		return ResponseEntity.unprocessableContent().body(problem);
+	}
+
+	/** A change to a completed solution (design D4 of us-040-entity-deltas). */
+	@ExceptionHandler(SolutionCompletedException.class)
+	ResponseEntity<ProblemDetail> solutionCompleted(SolutionCompletedException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+			.body(problem(HttpStatus.CONFLICT, "solution-completed", "Solution completed", ex.getMessage()));
 	}
 
 	/** A baseline query with a cursor of another query (design D3 of us-039-solution-baseline). */

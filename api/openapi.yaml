@@ -1228,7 +1228,7 @@ components:
           type: string
           enum: [string, integer, boolean, enum, reference, date, url, text]
         valueText:  { type: [string, 'null'] }
-        valueInt:   { type: [integer, 'null'] }
+        valueInt:   { type: [integer, 'null'], format: int64 }
         valueBool:  { type: [boolean, 'null'] }
         valueDate:  { type: [string, 'null'], format: date }
         valueEnum:  { type: [string, 'null'] }
@@ -2389,6 +2389,69 @@ components:
           description: |
             Opaque cursor to the following page, to be sent as `cursor` with `page` + 1; `null`
             on the last page (REQ-071)
+
+    SolutionDeltaType:
+      type: string
+      enum: [new, retiring]
+      description: "`new`: an entity the solution introduces; `retiring`: an entity of the baseline the solution retires (`modified` follows with US-041)"
+
+    SolutionDeltaWrite:
+      type: object
+      required: [deltaType]
+      description: |
+        A delta to capture (US-040, US-042). `new` needs `metatypeId` and `name` and takes
+        `description` and `properties`; `retiring` needs `entityId` and nothing else. Lengths and
+        values are checked like the write of a new entity and answered with 422.
+      properties:
+        deltaType:   { $ref: '#/components/schemas/SolutionDeltaType' }
+        entityId:    { type: integer, minimum: 1, description: "`retiring`: the entity of the baseline" }
+        metatypeId:  { type: string, format: uuid, description: "`new`: an element metatype" }
+        name:        { type: string, description: "`new`: 1–255 characters, not blank" }
+        description: { type: string, description: "`new`: at most 2000 characters" }
+        properties:
+          type: array
+          description: "`new`: the property values, as in an entity write"
+          items: { $ref: '#/components/schemas/PropertyWriteValue' }
+
+    SolutionDelta:
+      type: object
+      required: [id, deltaType, entityId, name, metatypeId, metatypeName, description, properties, createdAt]
+      properties:
+        id:           { type: string, format: uuid }
+        deltaType:    { $ref: '#/components/schemas/SolutionDeltaType' }
+        entityId:     { type: [integer, 'null'], description: "The retired entity; null for `new` until the go-live (S14)" }
+        name:         { type: string, description: "`new`: the proposed name; `retiring`: the current name of the entity" }
+        metatypeId:   { type: string, format: uuid }
+        metatypeName: { type: string }
+        description:  { type: [string, 'null'], description: "`new` only" }
+        properties:
+          type: array
+          description: "`new` only; a value the caller may not read is redacted (REQ-160)"
+          items: { $ref: '#/components/schemas/PropertyValue' }
+        createdAt:    { type: string, format: date-time }
+
+    SolutionDeltaList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          description: "`new` before `retiring`, each by name (case-insensitive); at most 1000"
+          items: { $ref: '#/components/schemas/SolutionDelta' }
+
+    SolutionValidationProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required: [invalidFields, errors]
+          properties:
+            invalidFields:
+              type: array
+              items: { type: string }
+            errors:
+              type: array
+              description: One entry per rejected field, with its message
+              items: { $ref: '#/components/schemas/ValidationError' }
 
     PrincipalRef:
       type: object
@@ -4426,6 +4489,116 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /solutions/{id}/deltas:
+    get:
+      operationId: listSolutionDeltas
+      summary: Entity deltas of a solution (US-040, US-042, SCR-061)
+      description: |
+        All deltas of the solution, `new` before `retiring`, each by name (case-insensitive).
+        A `retiring` delta carries the current name of its entity. Values of properties the
+        caller may not read are redacted.
+      tags: [Solutions]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The deltas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SolutionDeltaList' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    post:
+      operationId: createSolutionDelta
+      summary: Capture an entity delta (US-040, US-042, REQ-040)
+      description: |
+        Captures a delta `new` (a proposed entity with its property values, checked like the
+        write of a new entity; no entity is written before the go-live) or `retiring` (an
+        entity of the baseline). A solution holds one delta per entity, and a `new` delta per
+        metatype and name (case-insensitive), and at most 1000 deltas. A value of a
+        `role-restricted` property needs a write role, and a `connection-scoped` value cannot be
+        set (403). Any holder of `solution:write` captures deltas, in any solution. Writes the
+        audit event `solution.delta-added`.
+      tags: [Solutions]
+      x-oea-authorization: {"access": "permission", "permissions": ["solution:write"]}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SolutionDeltaWrite' }
+      responses:
+        '201':
+          description: Delta captured
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SolutionDelta' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: |
+            The solution is `implemented` or `archived`; problem type
+            `urn:oea:problem:solution-completed`, detail "This solution is completed and can no
+            longer be changed". Nothing is stored.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: |
+            The delta violates the metamodel or a rule of the solution (an entity not in the
+            baseline: "Entity not found in the current landscape"; a duplicate: "A delta already
+            exists for this entity in this solution"; the limit of 1000 deltas naming `deltas`);
+            problem type `urn:oea:problem:validation-failed`. Nothing is stored.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/SolutionValidationProblem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /solutions/{id}/deltas/{deltaId}:
+    delete:
+      operationId: deleteSolutionDelta
+      summary: Remove an entity delta (REQ-040)
+      description: |
+        Removes the delta with its property values. Writes the audit event
+        `solution.delta-removed`.
+      tags: [Solutions]
+      x-oea-authorization: {"access": "permission", "permissions": ["solution:write"]}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: deltaId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: Delta removed }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The solution is `implemented` or `archived` (`urn:oea:problem:solution-completed`); the delta stays.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /catalogs:

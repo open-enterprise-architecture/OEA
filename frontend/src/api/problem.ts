@@ -7,6 +7,7 @@ type Problem = components['schemas']['Problem'] & {
   secondFactors?: string[]
   count?: number
   currentVersion?: number
+  errors?: { field: string; message: string }[]
 }
 
 /** A rejected request, reduced to what the pages need (RFC 9457 problem types of the contract). */
@@ -21,6 +22,9 @@ export interface Rejection {
   count?: number
   /** `stale-version` (412): the version the element has now */
   currentVersion?: number
+  /** `validation-failed` with a message per field, where the contract gives one */
+  errors?: { field: string; message: string }[]
+  detail?: string
 }
 
 const PROBLEM_PREFIX = 'urn:oea:problem:'
@@ -68,5 +72,7 @@ export async function readRejection(response: Response): Promise<Rejection> {
     secondFactors: problem?.secondFactors,
     count: problem?.count,
     currentVersion: problem?.currentVersion,
+    errors: problem?.errors ?? [],
+    detail: problem?.detail,
   }
 }

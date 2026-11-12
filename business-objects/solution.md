@@ -2,7 +2,7 @@
 identifier: solution
 name_de: Lösung / Solution Architecture
 name_en: Solution
-version: 0.4.0
+version: 0.5.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -114,11 +114,19 @@ Solution "Salesforce Introduction" (project mode, no plateau)
 
 ### EntityDelta (value object, no BO of its own)
 
+Stored in `entity_deltas` and `entity_delta_property_values` (V26). A delta is removed physically; the audit events `solution.delta-added` and `solution.delta-removed` keep the record.
+
 | Attribute | Type | Description |
 |---|---|---|
-| entityId | integer | FK → [ArchitectureEntity](./entity.md).id (sequential integer ≥ 1); for `deltaType=new`, the entity is created for the first time by this solution |
-| deltaType | enum `[new, modified, retiring]` | Kind of change |
-| changes | map | For `modified`: changed PropertyValues (before/after); format corresponds to `ArchitectureEntity.properties` |
+| deltaType | enum `[new, modified, retiring]` | Kind of change; `modified` follows with US-041 |
+| entityId | integer, nullable | FK → [ArchitectureEntity](./entity.md).id (sequential integer ≥ 1) for `modified` and `retiring`: an entity of the baseline. Null for `new` until the go-live (S14) creates the entity (owner decision 2026-11-12) |
+| metatypeId | reference, `new` only | The element metatype of the proposed entity |
+| name | string 1–255, `new` only | The name of the proposed entity; unique per solution and metatype, case-insensitively |
+| description | string ≤ 2000, `new` only | The description of the proposed entity |
+| properties | PropertyValue[], `new` only | The values of the proposed entity, checked against the metamodel and the property visibility rules like the write of a new entity |
+| changes | map | For `modified` (US-041): changed PropertyValues (before/after); format corresponds to `ArchitectureEntity.properties` |
+| createdAt | datetime | Time of capture |
+| createdBy | reference → person | The capturing person (`solution:write`) |
 
 ## Business Rules
 
@@ -126,9 +134,10 @@ Solution "Salesforce Introduction" (project mode, no plateau)
 |---|---|---|---|
 | BR-01 | `fromPlateauId` and `toPlateauId` MUST either **both be set** or **both be null** (no mixed state) | onCreate, onUpdate | – |
 | BR-02 | If both plateau IDs are set: `fromPlateauId` ≠ `toPlateauId`; `toPlateauId.status` must be `target` or `transition` | onCreate, onUpdate | – |
-| BR-03 | A solution with `status=implemented` is read-only | onUpdate | – |
+| BR-03 | A solution with `status=implemented` or `status=archived` is read-only, including its deltas (409) | onUpdate | – |
 | BR-04 | A `MetamodelConfiguration` naming a solution (`solutionId`) has `scope=solution` | onCreate, onUpdate | – |
 | BR-05 | Entities of a solution are visible to other solutions (basis for collision detection on parallel changes to the same entity) | onRead | – |
+| BR-06 | A solution holds at most one delta per entity, at most one `new` delta per metatype and name (case-insensitive), and at most 1000 deltas | onCreate | – |
 
 ## Lifecycle
 
@@ -199,3 +208,4 @@ TOGAF reference (plateau mode): "Solution Architecture" in phase E/F. The `Entit
 | 0.2.0 | 2026-06-25 | Business Engineer | Made `fromPlateauId` + `toPlateauId` optional; introduced project mode (SME); adapted BR-01 (either both set or both null); comparison table of the modes |
 | 0.3.0 | 2026-11-12 | Change us-038-create-solution | Project mode implemented (table `solutions`, V25): name unique case-insensitively after trimming, owner and creator the creating person, BR-01 as a database check; `metamodelExtensionId` removed in favor of the extension's `solutionId`; plateau references without foreign keys until S14 |
 | 0.4.0 | 2026-11-12 | Change us-039-solution-baseline | Baseline in project mode realigned: the current catalog instead of the sum of all `implemented` solutions |
+| 0.5.0 | 2026-11-12 | Change us-040-entity-deltas | EntityDelta stored (V26): `entityId` null for `new`, which carries metatype, name, description and property values; `createdAt`, `createdBy`; BR-03 extended to `archived`; BR-06 (one delta per entity, at most 1000) |

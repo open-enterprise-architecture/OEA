@@ -241,8 +241,8 @@ test('catalogs', async ({ page }) => {
 })
 
 test('solutions', async ({ page }) => {
-  // An architect creates a solution in project mode and sees its baseline (manual: usage/solutions;
-  // us-038-create-solution, us-039-solution-baseline)
+  // An architect creates a solution in project mode, sees its baseline and retires an entity of it
+  // (manual: usage/solutions; us-038-create-solution, us-039-solution-baseline, us-040-entity-deltas)
   await logInAtKeycloak(page, 'dev-architect')
   await page.getByTestId('header-solutions').click()
   await page.getByTestId('solution-new').click()
@@ -253,8 +253,12 @@ test('solutions', async ({ page }) => {
   await shoot(page, 'solution-create')
   await page.getByTestId('solution-save').click()
   await expect(page.getByTestId('solution-title')).toHaveText('ERP Extension Logistics')
-  // the baseline lists the sample applications of the catalog (us-039-solution-baseline)
+  // the baseline lists the sample applications of the catalog (us-039-solution-baseline); the
+  // first one is retired as a change of the solution (us-040-entity-deltas)
   await expect(page.getByTestId('baseline-table')).toBeVisible()
+  await page.getByTestId('baseline-retire').first().click()
+  await expect(page.getByTestId('deltas-table')).toBeVisible()
+  await expect(page.getByTestId('baseline-retiring')).toHaveCount(1)
   await shoot(page, 'solution')
   await page.getByTestId('solution-back').click()
   await expect(page.getByTestId('solution-list')).toContainText('ERP Extension Logistics')

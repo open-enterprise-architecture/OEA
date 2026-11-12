@@ -1036,35 +1036,48 @@ package "Architecture Planning" #E3F2FD {
     + id          : UUID                  {PK}
     --
     + solution_id : UUID                  {NN} {FK→solutions.id}
-    + entity_id   : INTEGER               {NN} {FK→entities.id}
     + delta_type  : TEXT                  {NN}
-    .. enum: new | modified | retiring ..
+    .. enum: new | modified | retiring (modified follows with US-041) ..
+    + entity_id   : INTEGER               {FK→entities.id}
+    .. null for new until the go-live (S14) creates the entity ..
+    + metatype_id : UUID                  {FK→metatypes.id}
+    .. new only: the proposed entity ..
+    + name        : TEXT
+    .. new only; CHECK length(name) BETWEEN 1 AND 255 ..
+    + description : TEXT
+    .. new only; CHECK length(description) <= 2000 ..
+    + created_at  : TIMESTAMPTZ           {NN} DEFAULT NOW()
+    + created_by  : BIGINT                {NN} {FK→persons.id}
+    .. CHECK (delta_type = 'new') = (entity_id IS NULL) ..
+    .. CHECK (delta_type = 'new') = (metatype_id, name NOT NULL) ..
+    .. UNIQUE (solution_id, entity_id) WHERE entity_id IS NOT NULL ..
+    .. UNIQUE (solution_id, metatype_id, lower(name)) WHERE delta_type = 'new' ..
+    .. at most 1000 per solution (application rule) ..
   }
 
   class entity_delta_property_values <<Table>> #BBDEFB {
     + id              : UUID              {PK}
     --
-    + delta_id        : UUID              {NN} {FK→entity_deltas.id}
-    + property_def_id : UUID              {FK→property_definitions.id}
-    .. null if system_field is set ..
-    + system_field    : TEXT
-    .. null if property_def_id is set ..
-    .. enum: name | description | is_logical | metatype_id ..
-    .. CHECK: exactly one of the two NOT NULL ..
-    == Value BEFORE the change (AS-IS) ==
+    + delta_id        : UUID              {NN} {FK→entity_deltas.id ON DELETE CASCADE}
+    + property_def_id : UUID              {NN} {FK→property_definitions.id}
+    .. US-041 makes it nullable and adds system_field ..
+    .. (enum: name | description | is_logical | metatype_id; exactly one of both) ..
+    .. UNIQUE (delta_id, property_def_id) ..
+    == Value BEFORE the change (AS-IS; follows with US-041) ==
     + before_value_text  : TEXT
     + before_value_int   : INT8
     + before_value_bool  : BOOLEAN
     + before_value_date  : DATE
     + before_value_ref   : INTEGER        {FK→entities.id}
     + before_value_enum  : TEXT
-    == Value AFTER the change (TO-BE) ==
+    == Value AFTER the change (TO-BE; V26) ==
     + after_value_text   : TEXT
     + after_value_int    : INT8
     + after_value_bool   : BOOLEAN
     + after_value_date   : DATE
     + after_value_ref    : INTEGER        {FK→entities.id}
     + after_value_enum   : TEXT
+    .. CHECK exactly one after value (V26) ..
   }
 
   plateaus      "0..1" --o{ "0..*" plateaus                    : succeeds_id
@@ -2078,6 +2091,16 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   demand, not an aggregate of the deltas of implemented solutions (owner
 '   decision 2026-11-12).
 '   Reason: US-039, REQ-039, UC-05.
+' 2026-11-12 (us-040-entity-deltas):
+'   entity_deltas and entity_delta_property_values created by V26 for the
+'   deltas new and retiring. entity_id is nullable: a new delta carries the
+'   proposed entity itself (metatype_id, name, description, property values)
+'   and has no entity row before the go-live (owner decision 2026-11-12).
+'   One delta per entity and solution, one new delta per metatype and name;
+'   created_at and created_by added. The value table holds the after values;
+'   the before values and system_field follow with US-041. Deltas are removed
+'   physically (value objects of the solution; the audit keeps the record).
+'   Reason: US-040, US-042, REQ-040.
 ' ─────────────────────────────────────────────────────
 
 @enduml

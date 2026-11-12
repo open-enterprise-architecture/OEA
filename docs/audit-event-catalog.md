@@ -708,6 +708,28 @@ A solution was created in project mode ([US-038](../requirements/user-stories/US
 | Target | `solution`, ID of the solution |
 | Details | `name` (trimmed) |
 
+### `solution.delta-added`
+
+An entity delta was captured in a solution: a new entity (`new`) or an entity of the baseline to retire (`retiring`) ([US-040](../requirements/user-stories/US-040-delta-new-entity.md), [US-042](../requirements/user-stories/US-042-delta-retiring.md), [REQ-040](../requirements/req/REQ-040-capture-entity-deltas.md)). The event carries no property values; the go-live (S14) audits them with the entity write. Rejected captures (validation error, completed solution, missing permission) are not audited.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the capturing person (`solution:write`) |
+| Target | `solution`, ID of the solution |
+| Details | `solutionId`, `deltaId`, `deltaType`, and `entityId` (`retiring`) or `metatypeId` and `name` (`new`) |
+
+### `solution.delta-removed`
+
+An entity delta was removed from a solution, with its property values ([REQ-040](../requirements/req/REQ-040-capture-entity-deltas.md)). Rejected removals are not audited.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the removing person (`solution:write`) |
+| Target | `solution`, ID of the solution |
+| Details | the details of `solution.delta-added` for the removed delta |
+
 ## Planned Event Types
 
 Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.deleted` and further `entity.*`, further `metamodel.*` (connection metatypes, fork).

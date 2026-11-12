@@ -4,13 +4,15 @@ import { useI18n } from 'vue-i18n'
 import { PageCursors, rejectsCursor } from '../../api/cursors'
 import { fetchMetatypes } from '../../api/metamodel'
 import { rateLimitMessage } from '../../api/problem'
-import { fetchSolutionLandscape, type SolutionLandscapePage } from '../../api/solutions'
+import { fetchSolutionLandscape, type SolutionLandscapeEntry, type SolutionLandscapePage } from '../../api/solutions'
 import { label, labelKeys } from '../../i18n/labels'
 
 // The area "Baseline" of SCR-061 (US-039; design D5 of us-039-solution-baseline): the current
 // landscape the solution builds on, with a search, a metatype filter and paging. The next page
-// follows by the cursor of the loaded one; a jump or a changed filter uses the page number.
-const props = defineProps<{ solutionId: string; fetchFn?: typeof fetch }>()
+// follows by the cursor of the loaded one; a jump or a changed filter uses the page number. With
+// solution:write, each row offers "Retire" or shows "Retiring" when it has a delta (US-042).
+const props = defineProps<{ solutionId: string; canWrite?: boolean; deltaEntityIds?: number[]; fetchFn?: typeof fetch }>()
+const emit = defineEmits<{ retire: [entry: SolutionLandscapeEntry] }>()
 const { t } = useI18n()
 
 // USelect does not accept an empty value, so "all metatypes" has its own value
@@ -35,7 +37,9 @@ const metatypeItems = computed(() => [{ label: t('solutions.baseline.allMetatype
 const columns = computed(() => [
   { accessorKey: 'name', header: t('solutions.baseline.name') },
   { accessorKey: 'metatypeName', header: t('solutions.baseline.metatype') },
+  ...(props.canWrite || (props.deltaEntityIds ?? []).length > 0 ? [{ id: 'delta', header: t('solutions.deltas.type') }] : []),
 ])
+const withDelta = computed(() => new Set(props.deltaEntityIds ?? []))
 const rows = computed(() =>
   (result.value?.items ?? []).map((entry) => ({ ...entry, metatypeName: label(labelKeys.metatype(entry.metatypeId), entry.metatypeName) })),
 )
@@ -139,7 +143,29 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
         {{ t('solutions.baseline.noMatch') }}
       </p>
       <template v-else>
-        <UTable data-testid="baseline-table" :data="rows" :columns="columns" :loading="loading" class="rounded-lg border border-default" />
+        <UTable data-testid="baseline-table" :data="rows" :columns="columns" :loading="loading" class="rounded-lg border border-default">
+          <template #delta-cell="{ row }">
+            <div class="flex justify-end">
+              <UBadge
+                v-if="withDelta.has(row.original.id)"
+                data-testid="baseline-retiring"
+                color="warning"
+                variant="subtle"
+                :label="t('solutions.deltas.types.retiring')"
+              />
+              <UButton
+                v-else-if="props.canWrite"
+                data-testid="baseline-retire"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                icon="i-lucide-archive-x"
+                :label="t('solutions.baseline.retire')"
+                @click="emit('retire', row.original)"
+              />
+            </div>
+          </template>
+        </UTable>
         <div class="flex items-center justify-between gap-4">
           <p data-testid="baseline-page-info" class="text-sm text-muted">
             {{ t('solutions.baseline.pageInfo', { page: result.page.page + 1, pages: result.page.totalPages, entries: result.page.totalElements }) }}
