@@ -33,10 +33,10 @@ See proposal.md – Why. The current state:
 - **Read:** `GET` returns the IDs with the flag set, sorted.
 - **Write:** `PUT` replaces the list in one transaction:
   1. lock the roles (`SELECT … FOR UPDATE`);
-  2. check that every ID exists (else 422 `UNKNOWN_ROLE` naming the IDs);
+  2. check that every ID exists (else 422 naming `roles`);
   3. set the flag to `id = ANY(?)` for all roles;
   4. write `visibility.override-changed` if the set changed.
-- **Validation:** the contract checks `maxItems: 20` and `uniqueItems` (400).
+- **Validation:** the contract checks `maxItems: 20` (400). `uniqueItems` makes the generated model a set, so a repeated role counts once instead of being rejected; the same holds for the permissions of D4.
 - **Self-benefit:** `selfBenefiting` is true if an added role is among the actor's effective roles (`PermissionResolver.roles`).
 - **New service** `VisibilityOverride` in `app/metamodel`, next to `PropertyVisibility` and `PersonMetatypes`; the controller is `AdminController`.
 - **Alternative considered:** a separate table `visibility_override_roles`. Rejected, because the column exists, is documented in the data model and is already returned as `overridesPropertyVisibility`.
@@ -79,15 +79,15 @@ See proposal.md – Why. The current state:
 ### D4 – Custom roles (`AuthorizationRoles`)
 
 - **New service** `app/access/AuthorizationRoles.create(principal, request)`:
-  1. **ID:** `INSERT … ON CONFLICT DO NOTHING`; no row means 409 `ROLE_EXISTS`.
+  1. **ID:** `INSERT … ON CONFLICT DO NOTHING`; no row means 409.
   2. **Permissions:** validated against `AccessCatalog`:
-     - unknown: 422 `UNKNOWN_PERMISSION`;
-     - `metamodel:write` with `visibility:configure` or `visibility-scope:assign`: 422 `SOD_VIOLATION` (SoD-2);
-     - an admin-class permission with `assignableToServiceAccounts`: 422 `SERVICE_ACCOUNT_ROLE_PRIVILEGED` (SoD-4).
+     - unknown: 422 naming `permissions`;
+     - `metamodel:write` with `visibility:configure` or `visibility-scope:assign`: 422 naming `permissions` (SoD-2);
+     - an admin-class permission with `assignableToServiceAccounts`: 422 naming `assignableToServiceAccounts` (SoD-4).
   3. **Storage:** rows in `role_permissions` with `approval_status = 'approved'`; `created_by_person_id` or `created_by_admin_id` from the principal.
   4. **Audit:** `role.created`, category `security`, severity `high` for a privileged role, otherwise `info`; target `authorization-role` with the ID; details `name`, `permissions`, `assignableToServiceAccounts` and `privileged`.
-- **Response:** 201 with the role as `getAuthorizationRole` returns it, and `Location`.
-- **Validation:** the ID pattern, the name length, `maxItems: 50` and `uniqueItems` are checked by the contract (400).
+- **Response:** 201 with the role as `getAuthorizationRole` returns it.
+- **Validation:** the ID pattern, the name length and `maxItems: 50` are checked by the contract (400); a repeated permission counts once (D1).
 - **Four-eyes:** `privilegedAssignmentApproval` is not evaluated, as for assignments today; US-150 adds the 202 path.
 - **Alternative considered:** reusing `RoleAssignments`. Rejected, because roles and assignments are separate business objects with different audit events.
 
@@ -97,11 +97,11 @@ See proposal.md – Why. The current state:
   - a `UTable` with ID, name, permissions (badges) and the markers built-in, privileged and override;
   - a `UModal` "New role" with:
     - ID, name and description;
-    - a multi-select of `listPermissions`, with admin-class permissions marked;
+    - a checkbox per permission of `listPermissions`, with admin-class permissions marked;
     - "assignable to service accounts".
   - A rejection (400/409/422) is shown in the dialog with the problem's detail. A success reloads the list.
 - **SCR-040 "Override roles"** (`/admin/override-roles`, `OverrideRolesPage.vue`), for `visibility:configure`:
-  - a `USelectMenu` (multiple) of all roles, with a save button;
+  - a checkbox per role, with a save button (checkboxes, like the read roles of SCR-032, instead of a multi-select menu);
   - a warning `UAlert` that every read through the override is audited, and an info alert while the list is empty;
   - a rejected save restores the previous list and shows the error.
 - **Navigation:** links in `AppHeader.vue` by permission, like SCR-032. SCR-032 gets a link to SCR-040 in its enforcement note.
@@ -112,7 +112,7 @@ See proposal.md – Why. The current state:
 ## API (delta to `api/openapi.yaml`)
 
 - **`createAuthorizationRole`:** `x-oea-status: planned` is removed, and the description names the 409/422 cases and that `202` follows with US-150. The 501 response is removed.
-- **`getPropertyVisibilityOverride`, `updatePropertyVisibilityOverride`:** implemented (501 removed); `422` names `UNKNOWN_ROLE`.
+- **`getPropertyVisibilityOverride`, `updatePropertyVisibilityOverride`:** implemented (501 removed); `422` names `roles`.
 - **`queryCatalog`, `queryPortalCatalog`:** a sentence on the override and its audit.
 - **`AuthorizationRole.overridesPropertyVisibility`:** unchanged.
 

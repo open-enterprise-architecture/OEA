@@ -1,8 +1,10 @@
 package io.oea.api.admin;
 
 import io.oea.api.generated.model.PersonMetatype;
+import io.oea.api.generated.model.PropertyVisibilityOverride;
 import io.oea.api.generated.model.PropertyVisibilityEntry;
 import io.oea.app.metamodel.PersonMetatypes;
+import io.oea.app.metamodel.VisibilityOverride;
 import io.oea.app.metamodel.PropertyVisibility;
 import java.util.LinkedHashSet;
 
@@ -61,10 +63,14 @@ public class AdminController implements AdminApi {
 
 	private final PersonMetatypes personMetatypes;
 
+	private final VisibilityOverride override;
+
 	public AdminController(AuthProviders providers, PackageImporter packageImporter,
 			StarterPackages starterPackages, LocalAdminAccount localAdmin, PasswordPolicies policies,
-			SecondFactorPolicies secondFactorPolicies, PropertyVisibility visibility, PersonMetatypes personMetatypes) {
+			SecondFactorPolicies secondFactorPolicies, PropertyVisibility visibility, PersonMetatypes personMetatypes,
+			VisibilityOverride override) {
 		this.personMetatypes = personMetatypes;
+		this.override = override;
 		this.providers = providers;
 		this.packageImporter = packageImporter;
 		this.starterPackages = starterPackages;
@@ -82,6 +88,19 @@ public class AdminController implements AdminApi {
 	@Override
 	public ResponseEntity<PersonMetatype> setPersonMetatype(PersonMetatype request) {
 		return ResponseEntity.ok(personMetatype(this.personMetatypes.set(principal(), request.getMetatypeId())));
+	}
+
+	@Override
+	public ResponseEntity<PropertyVisibilityOverride> getPropertyVisibilityOverride() {
+		return ResponseEntity.ok(new PropertyVisibilityOverride().roles(new LinkedHashSet<>(this.override.roles())));
+	}
+
+	@Override
+	public ResponseEntity<PropertyVisibilityOverride> updatePropertyVisibilityOverride(
+			PropertyVisibilityOverride request) {
+		List<String> roles = this.override.set(principal(),
+				(request.getRoles() != null) ? request.getRoles() : java.util.Set.of());
+		return ResponseEntity.ok(new PropertyVisibilityOverride().roles(new LinkedHashSet<>(roles)));
 	}
 
 	private static PersonMetatype personMetatype(PersonMetatypes.View view) {

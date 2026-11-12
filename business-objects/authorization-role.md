@@ -2,7 +2,7 @@
 identifier: authorization-role
 name_de: Berechtigungsrolle
 name_en: Authorization Role
-version: 0.2.0
+version: 0.3.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -164,9 +164,12 @@ Created for ADR-032 DM-1 to DM-3: the former `roles` table mixed business and au
 
 Soft delete instead of hard delete because revoked role assignments and session records keep referencing the role for audit and access review.
 
+Implemented by the OpenSpec change `us-128-override-role-list` (2026-11-11): custom roles are created with `createAuthorizationRole` (BR-02, BR-04 checked, audited as `role.created`); changing and deleting them (`role.changed`, soft delete) and the four-eyes approval of BR-09 are still planned, so a privileged custom role is effective at once until US-150. The override list is the flag `overridesPropertyVisibility`, set as a whole through `updatePropertyVisibilityOverride` (BR-06).
+
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | Business Engineer | Initial draft from ADR-032 (DM-1, DM-2, DM-3, DM-9) and owner decision Q14 |
 | 0.2.0 | 2026-10-13 | Lukas Mathis | BR-09: four-eyes approval for admin-class permissions on custom roles (owner decision Q18) |
+| 0.3.0 | 2026-11-11 | Change us-128-override-role-list | Notes on the implemented creation of custom roles and the override list |

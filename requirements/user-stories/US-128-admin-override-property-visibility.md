@@ -2,8 +2,9 @@
 
 **ID**: US-128
 **Story Points**: 3
-**Status**: ready
+**Status**: done
 **Sprint**: S10
+**Implementation**: OpenSpec change `us-128-override-role-list` – the override role list on the page SCR-040 (`getPropertyVisibilityOverride`, `updatePropertyVisibilityOverride`, `visibility:configure`); AC1 and AC4 through the catalog and portal query, AC2 as one `property-override-access` event per query (realigned, see Notes), AC3 audited as `visibility.override-changed` and effective at once, AC5 by the empty default list
 
 ## Story
 
@@ -49,10 +50,14 @@ As Max – Operator acting as security administrator, I want to add a dedicated 
 
 ## Definition of Done
 
-- [ ] AC1–AC5 fulfilled
-- [ ] Audit log entry structurally validated
-- [ ] Code review; linter green; entered in trace matrix
+- [x] AC1–AC5 fulfilled
+- [x] Audit log entry structurally validated
+- [x] Code review; linter green; entered in trace matrix
 
 ## Notes
 
+- 2026-11-11 (us-128-override-role-list, owner decisions):
+  - AC1 "retrieves an entity" applies to the existing read channels, the catalog and portal query; the entity detail follows the same rule.
+  - AC2 is one `property-override-access` event per query that names the properties and, per property, the entities whose values were returned through the override, instead of one entry per entity and property.
+  - The list is maintained on a page of its own (SCR-040); `migration-support` is a custom role (US-151).
 - 2026-10-13: aligned with ADR-032 and owner decisions Q4 (override list changed only with `visibility:configure`, not in the metamodel editor) and Q14 (override list empty by default; previously `system-admin` was the implicit override role).

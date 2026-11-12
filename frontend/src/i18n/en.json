@@ -709,6 +709,45 @@
     "personMetatypeHint": "Person accounts are linked to elements of this type. Connection-based visibility starts from the linked element.",
     "personMetatypeNone": "None",
     "personMetatypeFailed": "The entity type of persons could not be saved.",
-    "personMetatypeMissing": "Connection-based properties exist, but no entity type of persons is set. Their values are shown to nobody."
+    "personMetatypeMissing": "Connection-based properties exist, but no entity type of persons is set. Their values are shown to nobody.",
+    "overrideLink": "Override roles: who reads every restricted value"
+  },
+  "roles": {
+    "title": "Authorization roles",
+    "intro": "The built-in roles and the roles of your organization, with their permissions. Creating a role is written to the audit log.",
+    "noAccess": "Managing roles needs the permission to assign roles.",
+    "loadFailed": "The roles could not be loaded.",
+    "role": "Role",
+    "permissions": "Permissions",
+    "permissionsHint": "An empty list grants no permissions; such a role can still serve as a read role or override role.",
+    "markers": "Markers",
+    "noPermissions": "No permissions",
+    "builtin": "Built-in",
+    "privileged": "Privileged",
+    "override": "Override role",
+    "new": "New role",
+    "id": "ID",
+    "idHint": "Lowercase letters, digits and hyphens, 2 to 63 characters, starting with a letter. It cannot be changed later.",
+    "idInvalid": "Use 2 to 63 lowercase letters, digits or hyphens, starting with a letter.",
+    "name": "Name",
+    "description": "Description",
+    "adminPermission": "{id} (administration)",
+    "assignable": "Assignable to service accounts",
+    "create": "Create role",
+    "createFailed": "The role could not be created.",
+    "idTaken": "The ID {id} is already taken.",
+    "permissionsInvalid": "A permission is unknown, or the role combines metamodel administration with visibility administration.",
+    "serviceAccountsPrivileged": "A role with an administration permission cannot be assignable to service accounts."
+  },
+  "override": {
+    "title": "Override roles",
+    "intro": "Holders of these roles read every property of the entities they can read, whatever its visibility. Use them only for exceptional work such as error analysis or a migration.",
+    "auditWarning": "Every read of a restricted value through an override role is written to the audit log.",
+    "empty": "No role is on the list. Restricted values are read only through their read roles or connections.",
+    "roles": "Roles",
+    "save": "Save",
+    "saved": "The override roles are saved.",
+    "loadFailed": "The override roles could not be loaded.",
+    "saveFailed": "The override roles could not be saved."
   }
 }

@@ -4,9 +4,9 @@ title: Admin Override for Property Visibility
 type: functional
 priority: should
 status: proposed
-version: 0.4.0
+version: 0.5.0
 created: 2026-06-28
-last_updated: 2026-10-13
+last_updated: 2026-11-11
 author: requirements-engineer
 references:
   use_cases:
@@ -128,6 +128,16 @@ ADR-034 §3.2: the override does not apply to raw analytics, because the audit r
 
 - US-128 and existing test material that assume `system-admin` as default override role must be aligned with the empty default (AC6).
 
+## Implementation Notes
+
+- Implemented by the OpenSpec change `us-128-override-role-list` for the existing read channels, the catalog and portal query:
+  - the override role list is the flag `authorization_roles.overrides_property_visibility`, read and replaced with `getPropertyVisibilityOverride` and `updatePropertyVisibilityOverride` (`visibility:configure`, at most 20 roles, unknown role 422), audited as `visibility.override-changed` with `selfBenefiting`, and maintained on the page SCR-040;
+  - a holder of an override role reads every column with all values, including join and endpoint columns; writing is unchanged;
+  - AC2 is realigned (owner decision 2026-11-11): one `property-override-access` event per query names the properties and, per property, the entities whose value was returned through the override; values readable through `readRoles` or the connection scope do not count.
+- AC1 "retrieves an entity": the entity detail does not exist yet; it follows the same rule.
+- AC8: raw analytics (REQ-179) do not exist yet.
+- A change of the list applies to the next request (no cache).
+
 ## Change History
 
 | Version | Date | Author | Change |
@@ -136,3 +146,4 @@ ADR-034 §3.2: the override does not apply to raw analytics, because the audit r
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-03 / owner decision Q4: override list configurable only with `visibility:configure`, audited, self-benefit flagged (AC3 rewritten, AC5 added) |
 | 0.3.0 | 2026-10-13 | requirements-engineer | ADR-032 / owner decision Q14: override role list empty by default (no implicit `system-admin` override); restricted properties readable only via `readRoles` unless a role is explicitly added; override grants no object access; AC1 rewritten, AC6–AC7 and verification method added |
 | 0.4.0 | 2026-10-13 | requirements-engineer | ADR-034 §3.2: override does not apply to raw analytics (statement, processing, AC8) |
+| 0.5.0 | 2026-11-11 | Change us-128-override-role-list | Implementation notes; AC2 realigned to one event per query (owner decision) |

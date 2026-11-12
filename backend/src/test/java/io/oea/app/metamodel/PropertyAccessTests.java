@@ -24,7 +24,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
-/** Who may read and write a property (design D1 of us-126-role-restricted-enforcement). */
+/**
+ * Who may read and write a property (design D1 of us-126-role-restricted-enforcement, D2 of
+ * us-128-override-role-list).
+ */
 @SpringBootTest
 class PropertyAccessTests {
 
@@ -124,6 +127,53 @@ class PropertyAccessTests {
 		// a changed visibility applies to the next snapshot
 		this.jdbc.update("UPDATE property_definitions SET visibility_mode = 'public' WHERE id = ?", property);
 		assertThat(this.access.of(Set.of()).readable(property)).isTrue();
+	}
+
+	@Test
+	void overrideReadsEveryPropertyButWritesNothingMore() {
+		PropertyAccess.Snapshot override = new PropertyAccess.Snapshot(VISIBILITIES, Set.of("migration-support"), null,
+				null, true);
+		assertThat(override.readable(COST)).isTrue();
+		assertThat(override.readable(SCOPED)).isTrue();
+		assertThat(override.throughOverride(COST)).isTrue();
+		assertThat(override.throughOverride(SCOPED)).isTrue();
+		// public needs no override, and the override grants no write
+		assertThat(override.throughOverride(PUBLIC)).isFalse();
+		assertThat(override.writable(COST)).isFalse();
+		assertThat(override.writable(SCOPED)).isFalse();
+		// a read role makes the override unnecessary
+		PropertyAccess.Snapshot auditor = new PropertyAccess.Snapshot(VISIBILITIES, Set.of("auditor"), null, null, true);
+		assertThat(auditor.throughOverride(COST)).isFalse();
+		// with an account link the scope decides per entity
+		PropertyAccess.Snapshot linked = new PropertyAccess.Snapshot(VISIBILITIES, Set.of(), 7, null, true);
+		assertThat(linked.throughOverride(SCOPED)).isFalse();
+		assertThat(linked.scope(SCOPED)).isPresent();
+		// without an override role nothing changes
+		PropertyAccess.Snapshot without = new PropertyAccess.Snapshot(VISIBILITIES, Set.of("viewer"), null, null, false);
+		assertThat(without.readable(COST)).isFalse();
+		assertThat(without.throughOverride(COST)).isFalse();
+		assertThat(this.access.of(Set.of("migration-support")).override()).isFalse();
+	}
+
+	@Test
+	void overrideFollowsTheListAndNoImplicitAdministrator() {
+		UUID property = this.jdbc.queryForObject("""
+				INSERT INTO property_definitions (name, sql_column_name, data_type, visibility_mode)
+				VALUES (?, ?, 'string', 'role-restricted') RETURNING id""", UUID.class, "Override " + UUID.randomUUID(),
+				"p_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12));
+		TestSession admin = new TestPrincipals(this.sessions, this.accounts, this.jdbc).personWithIdpRole("security-admin");
+		OeaPrincipal principal = this.sessions.authenticate(admin.token()).orElseThrow();
+		// security-admin is not an implicit override role (Q14)
+		assertThat(this.access.of(principal).readable(property)).isFalse();
+		this.jdbc.update("UPDATE authorization_roles SET overrides_property_visibility = (id = 'security-admin')");
+		try {
+			assertThat(this.access.of(principal).override()).isTrue();
+			assertThat(this.access.of(principal).readable(property)).isTrue();
+		}
+		finally {
+			this.jdbc.update("UPDATE authorization_roles SET overrides_property_visibility = false");
+		}
+		assertThat(this.access.of(principal).readable(property)).isFalse();
 	}
 
 	private static String tempDirectory() {

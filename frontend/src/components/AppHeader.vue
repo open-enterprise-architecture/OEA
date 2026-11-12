@@ -21,6 +21,9 @@ const canConfigureVisibility = computed(() =>
   (session.me?.permissions ?? []).some((entry) => entry.permission === 'visibility:configure'),
 )
 
+// SCR-039 needs role:assign (design D5 of us-128-override-role-list)
+const canAssignRoles = computed(() => (session.me?.permissions ?? []).some((entry) => entry.permission === 'role:assign'))
+
 const canSeeMetamodel = computed(() =>
   (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read' || entry.permission === 'metamodel:write'),
 )
@@ -61,6 +64,10 @@ async function logOut() {
         <RouterLink v-if="canConfigureVisibility" to="/admin/property-visibility" data-testid="header-visibility">{{
           t('visibility.title')
         }}</RouterLink>
+        <RouterLink v-if="canConfigureVisibility" to="/admin/override-roles" data-testid="header-override">{{
+          t('override.title')
+        }}</RouterLink>
+        <RouterLink v-if="canAssignRoles" to="/admin/roles" data-testid="header-roles">{{ t('roles.title') }}</RouterLink>
         <RouterLink to="/me" data-testid="header-profile">{{ session.me.principal.displayName }}</RouterLink>
         <UButton
           data-testid="header-logout"

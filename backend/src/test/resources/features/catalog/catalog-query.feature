@@ -59,6 +59,13 @@ Feature: Catalog query
     Then the column is not readable and has no value for "Costly Application"
     And the enterprise architect sees "100" for "Costly Application"
 
+  @US-128 @AC1 @AC2 @REQ-128
+  Scenario: Override role
+    Given the catalog "Override Inventory" with a column on "Override Investment Cost", readable only by "enterprise-architect", and an application "Override Application" with the value "250"
+    And the override role list contains the role of the viewer
+    When the viewer queries that catalog
+    Then the viewer sees "250" for "Override Application" and the read is audited
+
   @US-127 @AC1 @AC2 @REQ-127
   Scenario: Own domain and other domain
     Given the connection-scoped property "Scope Security Classification" with the scoping type "Scope Domain Assignment", assigned through it to the enterprise architect's element for "Scope ERP Warehouse" but not for "Scope CRM Sales"

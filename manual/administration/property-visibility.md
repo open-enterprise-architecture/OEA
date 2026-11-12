@@ -1,8 +1,8 @@
 ---
 title: Property visibility
 covers:
-  screens: [SCR-032]
-  stories: [US-124, US-125, US-126, US-127]
+  screens: [SCR-032, SCR-040]
+  stories: [US-124, US-125, US-126, US-127, US-128]
 ---
 
 # Property visibility
@@ -21,6 +21,7 @@ Some properties should not be visible to everyone who can read an entity, such a
   - Without a linked element, or for the local system admin account, the column behaves like a role-based column without a read role.
   - A batch or connection that sets or removes the value of an entity outside the scope, or of an entity created in the same batch, is rejected with `403`; create the scoping connection first.
   - A new or removed scoping connection applies to the next request.
+- **Override roles** read every property, whatever its visibility (see [Override roles](#override-roles)). Nobody else does: neither `system-admin` nor `security-admin` reads restricted values without a read role.
 
 ## The page
 
@@ -35,6 +36,18 @@ Connection-based visibility starts from the element that represents a person in 
 As long as connection-based properties exist but no entity type is set, the page shows a warning: the values of these properties are visible to nobody.
 
 The account of a person is linked to their element through the API (see [Identity providers and persons](./identity-providers#link-an-account-to-an-element)). A link counts only while the element exists and is of the chosen entity type or one of its subtypes; changing the entity type keeps the links, but links to elements of another type stop counting.
+
+## Override roles {#override-roles}
+
+Exceptional work, such as an error analysis or a data migration, may need someone to see every restricted value without changing the read roles of each property. For this, security administration puts a role on the override list: open *Override roles* in the header, or follow the link on the page *Property visibility*.
+
+<Screenshot name="override-roles" alt="Override roles with the audit warning and the role selection" />
+
+- Tick the roles and choose *Save*. The list is empty after the installation and holds at most 20 roles. Usually you use a [role of your own](./roles-and-permissions#custom-roles), such as `migration-support`, and assign it only for the duration of the work.
+- Holders of an override role see every value in catalogs and in the portal and can sort and filter by it, but only of the entities they can read anyway: the override role grants no access to entities, and it does not allow writing restricted values.
+- Every query that shows a value only because of an override role writes one entry `property-override-access` to the audit log, with the properties and the entities whose values were shown. A value the person could read through a read role or a connection does not count.
+- Every change of the list is written to the audit log as `visibility.override-changed`, with the old and the new list; adding one of your own roles is marked as self-benefiting.
+- A change applies to the next request.
 
 ## Change the visibility
 
@@ -64,5 +77,7 @@ In the metamodel configuration, restricted properties show the badge *Restricted
   An invalid entry answers `422` with the field in `invalidFields`, such as `[0].readRoles`, and nothing changes.
 
 - `GET` and `PUT /admin/property-visibility/person-metatype` read and set the entity type of persons, for example `{"metatypeId": "<entity type ID>"}`, or `{"metatypeId": null}` for none. A connection type or an unknown entity type answers `422` with `metatypeId` in `invalidFields`.
+
+- `GET` and `PUT /admin/property-visibility/override-roles` read and replace the override roles, for example `{"roles": ["migration-support"]}`. An unknown role answers `422` with `roles` in `invalidFields`; more than 20 roles answer `400`.
 
 All need `visibility:configure`.

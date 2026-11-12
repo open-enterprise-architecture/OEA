@@ -16,6 +16,7 @@ async function open(options: Parameters<typeof visibilityApi>[0] = {}): Promise<
     routes: [
       { path: '/login', component: { template: '<div />' } },
       { path: '/admin/property-visibility', component: PropertyVisibilityPage, props: { fetchFn: api.fetch } },
+      { path: '/admin/override-roles', component: { template: '<div />' } },
     ],
   })
   await router.push('/admin/property-visibility')
@@ -75,6 +76,8 @@ describe('PropertyVisibilityPage', () => {
     expect(row(wrapper, 'Investment Cost').text()).toContain('Read: Auditor · Write: nobody')
     expect(row(wrapper, 'Status').find('[data-testid="visibility-restricted"]').exists()).toBe(false)
     expect(row(wrapper, 'Status').text()).toContain('Application Component')
+    // SCR-032 leads to the override roles (us-128-override-role-list D5)
+    expect(wrapper.get('[data-testid="visibility-override-link"]').attributes('href')).toBe('/admin/override-roles')
     await wrapper.get('[data-testid="visibility-filter"] input, input[data-testid="visibility-filter"]').setValue('secur')
     expect(wrapper.findAll('[data-testid="visibility-row"]').map((candidate) => candidate.text())).toEqual([
       expect.stringContaining('Security Classification'),

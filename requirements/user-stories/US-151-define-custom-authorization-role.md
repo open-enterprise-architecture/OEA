@@ -2,8 +2,9 @@
 
 **ID**: US-151
 **Story Points**: 5
-**Status**: ready
+**Status**: done
 **Sprint**: S10
+**Implementation**: OpenSpec change `us-128-override-role-list` – `createAuthorizationRole` with `role:assign`, SoD-2 and SoD-4 checked, audited as `role.created`; the page SCR-039 with the dialog "New role"
 
 ## Story
 
@@ -61,10 +62,10 @@ As Max – Operator, I want to define a custom authorization role with an explic
 
 ## Definition of Done
 
-- [ ] Acceptance criteria met
-- [ ] Tests written (unit, integration, Cucumber)
-- [ ] Manual updated in English and German
-- [ ] Entered in the traceability matrix
+- [x] Acceptance criteria met
+- [x] Tests written (unit, integration, Cucumber)
+- [x] Manual updated in English and German
+- [x] Entered in the traceability matrix
 
 ## Notes
 

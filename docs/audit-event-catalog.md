@@ -222,6 +222,17 @@ The break-glass command `admin recover` restored the local system admin account 
 | Target | `system-admin-account`, ID of the account |
 | Details | `reactivated`, `secondFactorReplaced`, `sessionsRevoked` (count); never the password or the TOTP secret |
 
+### `role.created`
+
+A custom authorization role was created ([US-151](../requirements/user-stories/US-151-define-custom-authorization-role.md), UC-23 A5; change us-128-override-role-list D4).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` for a privileged role, otherwise `info` / `success` |
+| Actor | the person with `role:assign` |
+| Target | `authorization-role`, ID of the role |
+| Details | `name`, `permissions`, `assignableToServiceAccounts`, `privileged` |
+
 ### `role.assigned`
 
 A role was assigned locally to a person ([US-144](../requirements/user-stories/US-144-assign-and-revoke-local-role.md), ADR-032 §7).
@@ -631,6 +642,28 @@ The visibility of a property definition was changed by security administration (
 | Target | `property-definition`, ID of the property definition |
 | Details | `property` (name), `oldMode`, `newMode`, `oldReadRoles`, `newReadRoles`, `oldWriteRoles`, `newWriteRoles`, `oldScopingType`, `newScopingType` (empty without one), `selfBenefiting` (a read or write role the actor holds was added, ADR-032 SoD-6) |
 
+### `visibility.override-changed`
+
+Security administration changed the override role list ([REQ-128](../requirements/req/REQ-128-property-visibility-admin-override.md), [REQ-161](../requirements/req/REQ-161-visibility-configuration-governance.md); change us-128-override-role-list D1). Setting the same list again writes no event.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `warning` / `success` |
+| Actor | the person with `visibility:configure` |
+| Target | `settings`, `override-roles` |
+| Details | `oldRoles`, `newRoles` (role IDs, sorted), `selfBenefiting` (an added role is held by the actor, ADR-032 SoD-6) |
+
+### `property-override-access`
+
+A catalog or portal query returned values that the caller can read only through a role on the override role list ([REQ-128](../requirements/req/REQ-128-property-visibility-admin-override.md) AC2; change us-128-override-role-list D3). One event per query (page); values readable through a read role or the connection scope do not count, and a page without such values writes none. Written in its own transaction, as the query is read-only.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `warning` / `success` |
+| Actor | the reader |
+| Target | `catalog`, ID of the catalog |
+| Details | `channel` (`catalog` or `portal`), `page`, `properties`: per property `propertyDefId`, `property` (name) and `entityIds` (the entities of rows, join results or connection endpoints whose value was returned through the override) |
+
 ### `visibility.person-metatype-changed`
 
 Security administration set, changed or unset the person metatype, the entity type whose elements person accounts are linked to ([REQ-127](../requirements/req/REQ-127-property-visibility-enforcement-connection-scoped.md), [REQ-161](../requirements/req/REQ-161-visibility-configuration-governance.md); change us-127-connection-scoped-visibility D2). Setting the same metatype again writes no event.
@@ -666,4 +699,4 @@ A catalog was placed in a folder of the navigation tree or its entry removed ([U
 
 ## Planned Event Types
 
-Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `visibility.override-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.deleted` and further `entity.*`, further `metamodel.*` (connection metatypes, fork).
+Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.deleted` and further `entity.*`, further `metamodel.*` (connection metatypes, fork).

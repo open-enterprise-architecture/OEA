@@ -108,3 +108,34 @@ export async function updatePersonMetatype(
   }
   return { ok: true, value: (await response.json()) as PersonMetatype }
 }
+
+const OVERRIDE = `${VISIBILITY}/override-roles`
+
+/**
+ * GET /admin/property-visibility/override-roles: the roles whose holders read every property of
+ * the objects they can read (SCR-040, REQ-128; design D1 of us-128-override-role-list).
+ */
+export async function fetchOverrideRoles(fetchFn: typeof fetch = fetch): Promise<string[]> {
+  return (await read<{ roles: string[] }>(OVERRIDE, fetchFn)).roles
+}
+
+/**
+ * PUT /admin/property-visibility/override-roles: replaces the list. An unknown role is
+ * `validation-failed` (422) on `roles`; more than 20 roles are 400.
+ */
+export async function updateOverrideRoles(
+  roles: string[],
+  fetchFn: typeof fetch = fetch,
+): Promise<{ ok: true; value: string[] } | { ok: false; rejection: Rejection }> {
+  const csrfToken = currentCsrfToken()
+  const response = await fetchFn(OVERRIDE, {
+    method: 'PUT',
+    credentials: 'same-origin',
+    headers: { ...JSON_HEADERS, 'Content-Type': 'application/json', ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}) },
+    body: JSON.stringify({ roles }),
+  })
+  if (!response.ok) {
+    return { ok: false, rejection: await readRejection(response) }
+  }
+  return { ok: true, value: ((await response.json()) as { roles: string[] }).roles }
+}

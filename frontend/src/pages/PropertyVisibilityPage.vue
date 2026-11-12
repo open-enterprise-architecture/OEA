@@ -164,6 +164,7 @@ function saved(changed: PropertyVisibilityEntry[]) {
 
     <template v-if="canConfigure && loaded && !failure">
       <UAlert data-testid="visibility-enforcement-note" color="info" variant="subtle" :description="t('visibility.enforcementNote')" />
+      <ULink to="/admin/override-roles" data-testid="visibility-override-link" class="text-sm">{{ t('visibility.overrideLink') }}</ULink>
       <UFormField
         data-testid="person-metatype"
         :label="t('visibility.personMetatype')"

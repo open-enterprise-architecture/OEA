@@ -2,6 +2,7 @@ package io.oea.steps.catalog;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.cucumber.java.After;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -12,9 +13,9 @@ import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * Steps for the scenario "Catalog column empty without read role" of
- * features/catalog/catalog-query.feature (us-126-role-restricted-enforcement D2), on the instance
- * of the catalog features.
+ * Steps for the scenarios "Catalog column empty without read role" and "Override role" of
+ * features/catalog/catalog-query.feature (us-126-role-restricted-enforcement D2,
+ * us-128-override-role-list D3), on the instance of the catalog features.
  */
 public class CatalogVisibilitySteps {
 
@@ -23,6 +24,8 @@ public class CatalogVisibilitySteps {
 	private String key;
 
 	private HttpResponse<String> response;
+
+	private boolean override;
 
 	@Given("the catalog {string} with a column on {string}, readable only by {string}, and an application {string} with the value {string}")
 	public void restrictedCatalog(String catalog, String property, String role, String application, String value)
@@ -85,6 +88,31 @@ public class CatalogVisibilitySteps {
 			.get("/api/v1/catalogs/" + this.catalog + "/query", CatalogSteps.shared().architect().token()));
 		assertThat(column(result).path("readable").asBoolean(true)).isTrue();
 		assertThat(row(result, application).path("values").path(this.key).asString()).isEqualTo(value);
+	}
+
+	@Given("the override role list contains the role of the viewer")
+	public void overrideViewer() throws Exception {
+		this.override = true;
+		CatalogSteps.shared().oidc().update("UPDATE authorization_roles SET overrides_property_visibility = (id = 'viewer')");
+	}
+
+	@Then("the viewer sees {string} for {string} and the read is audited")
+	public void viewerSeesThroughOverride(String value, String application) throws Exception {
+		JsonNode result = ok(this.response);
+		assertThat(column(result).path("readable").asBoolean()).isTrue();
+		assertThat(row(result, application).path("values").path(this.key).asString()).isEqualTo(value);
+		assertThat(CatalogSteps.shared()
+			.oidc()
+			.single("SELECT count(*) FROM audit.events WHERE event_type = 'property-override-access' AND target_id = '"
+					+ this.catalog + "'")).isEqualTo("1");
+	}
+
+	/** The override list is shared by all catalog scenarios; it is emptied after the one that set it. */
+	@After
+	public void resetOverride() throws Exception {
+		if (this.override) {
+			CatalogSteps.shared().oidc().update("UPDATE authorization_roles SET overrides_property_visibility = false");
+		}
 	}
 
 	private JsonNode column(JsonNode result) {

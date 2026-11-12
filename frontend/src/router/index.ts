@@ -6,6 +6,8 @@ import ChangePasswordPage from '../pages/ChangePasswordPage.vue'
 import LoginPage from '../pages/LoginPage.vue'
 import MetamodelPage from '../pages/MetamodelPage.vue'
 import PropertyVisibilityPage from '../pages/PropertyVisibilityPage.vue'
+import OverrideRolesPage from '../pages/OverrideRolesPage.vue'
+import AuthorizationRolesPage from '../pages/AuthorizationRolesPage.vue'
 import PortalCatalogPage from '../pages/PortalCatalogPage.vue'
 import PortalPage from '../pages/PortalPage.vue'
 import ProfilePage from '../pages/ProfilePage.vue'
@@ -32,6 +34,8 @@ export const router = createRouter({
     // one record, so that switching sections and metatypes keeps the page (design D3 of scr-030)
     { path: '/metamodel/:section?/:id?', name: 'metamodel', component: MetamodelPage, props: true },
     { path: '/admin/property-visibility', name: 'property-visibility', component: PropertyVisibilityPage },
+    { path: '/admin/override-roles', name: 'override-roles', component: OverrideRolesPage },
+    { path: '/admin/roles', name: 'authorization-roles', component: AuthorizationRolesPage },
   ],
 })
 

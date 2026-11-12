@@ -709,6 +709,45 @@
     "personMetatypeHint": "Personenkonten werden mit Elementen dieses Typs verknüpft. Verbindungsbasierte Sichtbarkeit geht vom verknüpften Element aus.",
     "personMetatypeNone": "Keiner",
     "personMetatypeFailed": "Der Entitätstyp von Personen konnte nicht gespeichert werden.",
-    "personMetatypeMissing": "Es gibt verbindungsbasierte Eigenschaften, aber kein Entitätstyp von Personen ist gesetzt. Ihre Werte sieht niemand."
+    "personMetatypeMissing": "Es gibt verbindungsbasierte Eigenschaften, aber kein Entitätstyp von Personen ist gesetzt. Ihre Werte sieht niemand.",
+    "overrideLink": "Override-Rollen: wer alle eingeschränkten Werte liest"
+  },
+  "roles": {
+    "title": "Berechtigungsrollen",
+    "intro": "Die eingebauten Rollen und die Rollen deiner Organisation mit ihren Berechtigungen. Das Anlegen einer Rolle wird im Audit-Log festgehalten.",
+    "noAccess": "Für die Verwaltung von Rollen brauchst du die Berechtigung, Rollen zuzuweisen.",
+    "loadFailed": "Die Rollen konnten nicht geladen werden.",
+    "role": "Rolle",
+    "permissions": "Berechtigungen",
+    "permissionsHint": "Eine leere Liste gibt keine Berechtigungen; eine solche Rolle kann trotzdem als Leserolle oder Override-Rolle dienen.",
+    "markers": "Merkmale",
+    "noPermissions": "Keine Berechtigungen",
+    "builtin": "Eingebaut",
+    "privileged": "Privilegiert",
+    "override": "Override-Rolle",
+    "new": "Neue Rolle",
+    "id": "ID",
+    "idHint": "Kleinbuchstaben, Ziffern und Bindestriche, 2 bis 63 Zeichen, beginnend mit einem Buchstaben. Sie lässt sich später nicht ändern.",
+    "idInvalid": "Verwende 2 bis 63 Kleinbuchstaben, Ziffern oder Bindestriche, beginnend mit einem Buchstaben.",
+    "name": "Name",
+    "description": "Beschreibung",
+    "adminPermission": "{id} (Administration)",
+    "assignable": "Dienstkonten zuweisbar",
+    "create": "Rolle anlegen",
+    "createFailed": "Die Rolle konnte nicht angelegt werden.",
+    "idTaken": "Die ID {id} ist bereits vergeben.",
+    "permissionsInvalid": "Eine Berechtigung ist unbekannt, oder die Rolle verbindet Metamodell-Administration mit Sichtbarkeits-Administration.",
+    "serviceAccountsPrivileged": "Eine Rolle mit einer Administrationsberechtigung kann Dienstkonten nicht zugewiesen werden."
+  },
+  "override": {
+    "title": "Override-Rollen",
+    "intro": "Personen mit einer dieser Rollen lesen alle Eigenschaften der Entitäten, die sie lesen dürfen, unabhängig von ihrer Sichtbarkeit. Verwende sie nur für Ausnahmen wie eine Fehleranalyse oder eine Migration.",
+    "auditWarning": "Jeder Lesezugriff auf einen eingeschränkten Wert über eine Override-Rolle wird im Audit-Log festgehalten.",
+    "empty": "Keine Rolle ist auf der Liste. Eingeschränkte Werte liest man nur über ihre Leserollen oder Verbindungen.",
+    "roles": "Rollen",
+    "save": "Speichern",
+    "saved": "Die Override-Rollen sind gespeichert.",
+    "loadFailed": "Die Override-Rollen konnten nicht geladen werden.",
+    "saveFailed": "Die Override-Rollen konnten nicht gespeichert werden."
   }
 }

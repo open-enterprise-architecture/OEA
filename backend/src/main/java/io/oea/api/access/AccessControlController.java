@@ -2,6 +2,7 @@ package io.oea.api.access;
 
 import io.oea.api.generated.AccessControlApi;
 import io.oea.api.generated.model.AuthorizationRole;
+import io.oea.api.generated.model.AuthorizationRoleCreate;
 import io.oea.api.generated.model.IdpGroupMapping;
 import io.oea.api.generated.model.IdpGroupMappingWrite;
 import io.oea.api.generated.model.GeneratedPassword;
@@ -25,6 +26,7 @@ import io.oea.api.generated.model.SecondFactorResetResult;
 import io.oea.api.generated.model.RoleAssignmentWrite;
 import io.oea.api.generated.model.RoleRef;
 import io.oea.app.access.AccessCatalog;
+import io.oea.app.access.AuthorizationRoles;
 import io.oea.app.access.IdpGroupMappings;
 import io.oea.app.access.PasswordResets;
 import io.oea.app.access.PersonEntityLinks;
@@ -51,7 +53,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Permission catalog and authorization roles (US-143), persons with identity bindings, IdP
  * group mappings (design D10), local role assignments (US-144) and the status of persons
- * (US-148), initial passwords (US-023) and password resets (US-030); further operations follow
+ * (US-148), initial passwords (US-023), password resets (US-030) and custom roles (US-151); further
+ * operations follow
  * (UC-23).
  */
 @RestController
@@ -77,10 +80,14 @@ public class AccessControlController implements AccessControlApi {
 
 	private final PersonEntityLinks links;
 
+	private final AuthorizationRoles roles;
+
 	public AccessControlController(AccessCatalog catalog, ContractAuthorizationRules rules, Persons persons,
 			IdpGroupMappings mappings, RoleAssignments assignments, PersonLifecycle lifecycle,
-			PersonPasswords passwords, PasswordResets resets, SecondFactors secondFactors, PersonEntityLinks links) {
+			PersonPasswords passwords, PasswordResets resets, SecondFactors secondFactors, PersonEntityLinks links,
+			AuthorizationRoles roles) {
 		this.links = links;
+		this.roles = roles;
 		this.catalog = catalog;
 		this.rules = rules;
 		this.persons = persons;
@@ -117,6 +124,15 @@ public class AccessControlController implements AccessControlApi {
 	public ResponseEntity<Person> changePersonStatus(Integer personId, PersonStatusChange request) {
 		this.lifecycle.change(principal(), personId, request.getStatus().getValue(), request.getReason());
 		return ResponseEntity.ok(person(this.persons.get(personId)));
+	}
+
+	@Override
+	public ResponseEntity<AuthorizationRole> createAuthorizationRole(AuthorizationRoleCreate request) {
+		return ResponseEntity.status(HttpStatus.CREATED)
+			.body(role(this.roles.create(principal(),
+					new AuthorizationRoles.NewRole(request.getId(), request.getName(), request.getDescription(),
+							(request.getPermissions() != null) ? request.getPermissions() : Set.of(),
+							Boolean.TRUE.equals(request.getAssignableToServiceAccounts())))));
 	}
 
 	@Override

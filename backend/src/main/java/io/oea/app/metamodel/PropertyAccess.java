@@ -17,7 +17,9 @@ import org.springframework.stereotype.Service;
  * REQ-126, REQ-160; design D1 of us-126-role-restricted-enforcement): {@code public} properties
  * are readable and writable; {@code role-restricted} ones are readable with an effective role
  * among the read roles and writable with one among the write roles; {@code connection-scoped}
- * ones are neither until their enforcement follows.
+ * ones are readable per entity in the scope of the caller's linked element (us-127). A holder
+ * of a role on the override role list reads every property (design D2 of
+ * us-128-override-role-list); writing is unchanged.
  */
 @Service
 public class PropertyAccess {
@@ -30,8 +32,11 @@ public class PropertyAccess {
 
 	private final ScopeStore scopes;
 
+	private final VisibilityOverride override;
+
 	public PropertyAccess(PropertyVisibility visibility, PermissionResolver permissions, PersonEntityLinksView links,
-			ScopeStore scopes) {
+			ScopeStore scopes, VisibilityOverride override) {
+		this.override = override;
 		this.visibility = visibility;
 		this.permissions = permissions;
 		this.links = links;
@@ -60,16 +65,35 @@ public class PropertyAccess {
 
 		private final ScopeStore scopes;
 
+		private final boolean override;
+
 		Snapshot(Map<UUID, PropertyVisibility.Visibility> visibilities, Set<String> roles) {
-			this(visibilities, roles, null, null);
+			this(visibilities, roles, null, null, false);
 		}
 
 		Snapshot(Map<UUID, PropertyVisibility.Visibility> visibilities, Set<String> roles, Integer anchor,
-				ScopeStore scopes) {
+				ScopeStore scopes, boolean override) {
 			this.visibilities = Map.copyOf(visibilities);
 			this.roles = Collections.unmodifiableSet(new HashSet<>(roles));
 			this.anchor = anchor;
 			this.scopes = scopes;
+			this.override = override;
+		}
+
+		/** Whether the principal holds a role on the override role list (REQ-128). */
+		public boolean override() {
+			return this.override;
+		}
+
+		/**
+		 * Whether the property is readable only through the override for every entity: the
+		 * principal holds an override role, the property is restricted, no read role grants it,
+		 * and for a {@code connection-scoped} property the principal has no account link. A
+		 * connection-scoped property with a link is decided per entity by its scope.
+		 */
+		public boolean throughOverride(UUID propertyDefId) {
+			return this.override && restricted(propertyDefId) && !allowed(propertyDefId, false)
+					&& scope(propertyDefId).isEmpty();
 		}
 
 		/**
@@ -95,10 +119,10 @@ public class PropertyAccess {
 		/**
 		 * Whether the principal may read the values of the property; unknown properties are
 		 * public. A connection-scoped property is readable per entity with an account link
-		 * ({@link #scope}).
+		 * ({@link #scope}). A holder of an override role reads every property.
 		 */
 		public boolean readable(UUID propertyDefId) {
-			return allowed(propertyDefId, false) || scope(propertyDefId).isPresent();
+			return this.override || allowed(propertyDefId, false) || scope(propertyDefId).isPresent();
 		}
 
 		/** Whether the principal may write the values of the property. */
@@ -135,7 +159,9 @@ public class PropertyAccess {
 	/** The access of the principal under the current visibility and its effective roles. */
 	public Snapshot of(OeaPrincipal principal) {
 		Integer anchor = (principal.personId() != null) ? this.links.anchor(principal.personId()) : null;
-		return new Snapshot(this.visibility.all(), new HashSet<>(this.permissions.roles(principal)), anchor, this.scopes);
+		Set<String> roles = new HashSet<>(this.permissions.roles(principal));
+		boolean override = this.override.roles().stream().anyMatch(roles::contains);
+		return new Snapshot(this.visibility.all(), roles, anchor, this.scopes, override);
 	}
 
 	/** An access for given roles, e.g. for tests and system writes. */
