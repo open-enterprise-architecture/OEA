@@ -2,7 +2,7 @@
 identifier: solution
 name_de: Lösung / Solution Architecture
 name_en: Solution
-version: 0.5.0
+version: 0.6.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -118,15 +118,17 @@ Stored in `entity_deltas` and `entity_delta_property_values` (V26). A delta is r
 
 | Attribute | Type | Description |
 |---|---|---|
-| deltaType | enum `[new, modified, retiring]` | Kind of change; `modified` follows with US-041 |
+| deltaType | enum `[new, modified, retiring]` | Kind of change |
 | entityId | integer, nullable | FK → [ArchitectureEntity](./entity.md).id (sequential integer ≥ 1) for `modified` and `retiring`: an entity of the baseline. Null for `new` until the go-live (S14) creates the entity (owner decision 2026-11-12) |
 | metatypeId | reference, `new` only | The element metatype of the proposed entity |
 | name | string 1–255, `new` only | The name of the proposed entity; unique per solution and metatype, case-insensitively |
 | description | string ≤ 2000, `new` only | The description of the proposed entity |
 | properties | PropertyValue[], `new` only | The values of the proposed entity, checked against the metamodel and the property visibility rules like the write of a new entity |
-| changes | map | For `modified` (US-041): changed PropertyValues (before/after); format corresponds to `ArchitectureEntity.properties` |
+| changes | Change[], `modified` only | The changed fields – name, description or a property – each with the before value the server records from the catalog at capture and the after value; no value on either side means none (owner decision 2026-11-12) |
 | createdAt | datetime | Time of capture |
 | createdBy | reference → person | The capturing person (`solution:write`) |
+| updatedAt | datetime, nullable | Last edit of a delta `modified` |
+| updatedBy | reference → person, nullable | The person of the last edit |
 
 ## Business Rules
 
@@ -209,3 +211,4 @@ TOGAF reference (plateau mode): "Solution Architecture" in phase E/F. The `Entit
 | 0.3.0 | 2026-11-12 | Change us-038-create-solution | Project mode implemented (table `solutions`, V25): name unique case-insensitively after trimming, owner and creator the creating person, BR-01 as a database check; `metamodelExtensionId` removed in favor of the extension's `solutionId`; plateau references without foreign keys until S14 |
 | 0.4.0 | 2026-11-12 | Change us-039-solution-baseline | Baseline in project mode realigned: the current catalog instead of the sum of all `implemented` solutions |
 | 0.5.0 | 2026-11-12 | Change us-040-entity-deltas | EntityDelta stored (V26): `entityId` null for `new`, which carries metatype, name, description and property values; `createdAt`, `createdBy`; BR-03 extended to `archived`; BR-06 (one delta per entity, at most 1000) |
+| 0.6.0 | 2026-11-13 | Change us-041-modified-delta | `changes` of a delta `modified`: name, description and properties with recorded before values; `updatedAt`, `updatedBy` |

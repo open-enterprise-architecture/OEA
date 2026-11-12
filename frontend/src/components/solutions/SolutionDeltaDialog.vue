@@ -3,8 +3,9 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fetchMetatype, fetchMetatypes, type PropertyMapping } from '../../api/metamodel'
 import { rateLimitMessage, type Rejection } from '../../api/problem'
-import { createSolutionDelta, fetchSolutionLandscape, type SolutionDelta } from '../../api/solutions'
+import { createSolutionDelta, type SolutionDelta } from '../../api/solutions'
 import { label, labelKeys } from '../../i18n/labels'
+import PropertyInput from './PropertyInput.vue'
 
 // The dialog "New entity" of SCR-061 (US-040 AC1, AC4; design D9 of us-040-entity-deltas): an
 // element metatype, name, description and one field per active property mapping of the
@@ -17,11 +18,6 @@ const { t } = useI18n()
 const NAME_MAX = 255
 const DESCRIPTION_MAX = 2000
 
-interface ReferenceItem {
-  label: string
-  value: string
-}
-
 const metatypes = ref<{ label: string; value: string }[]>([])
 const metatype = ref<string>()
 const mappings = ref<PropertyMapping[]>([])
@@ -29,7 +25,6 @@ const name = ref('')
 const description = ref('')
 // a number field gives a number at run time, every other field text; the contract sends text
 const values = ref<Record<string, string>>({})
-const references = ref<Record<string, ReferenceItem[]>>({})
 const fieldErrors = ref<Record<string, string>>({})
 const failure = ref<string>()
 const saving = ref(false)
@@ -39,24 +34,6 @@ const canSave = computed(() => metatype.value !== undefined && nameValid.value &
 
 function definitionLabel(mapping: PropertyMapping): string {
   return mapping.propertyDefinition.label ?? mapping.propertyDefinition.name
-}
-
-function enumItems(mapping: PropertyMapping) {
-  return [...(mapping.propertyDefinition.enumValues ?? [])]
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((entry) => ({ label: entry.value, value: entry.value }))
-}
-
-async function searchReferences(mapping: PropertyMapping, term = '') {
-  const refMetatype = mapping.propertyDefinition.refMetatype?.id
-  if (!refMetatype) return
-  const outcome = await fetchSolutionLandscape(props.solutionId, { q: term, metatypeId: refMetatype, pageSize: 50 }, props.fetchFn)
-  if (outcome.ok) {
-    references.value = {
-      ...references.value,
-      [mapping.propertyDefinition.id]: outcome.value.items.map((entry) => ({ label: entry.name, value: String(entry.id) })),
-    }
-  }
 }
 
 watch(metatype, async (id) => {
@@ -69,9 +46,6 @@ watch(metatype, async (id) => {
     mappings.value = (detail.propertyMappings ?? [])
       .filter((mapping) => mapping.state === undefined || mapping.state === 'active')
       .sort((a, b) => a.sortOrder - b.sortOrder)
-    for (const mapping of mappings.value) {
-      if (mapping.propertyDefinition.dataType === 'reference') void searchReferences(mapping)
-    }
   } catch {
     failure.value = t('solutions.deltas.propertiesFailed')
   }
@@ -188,46 +162,12 @@ async function save() {
       :error="fieldErrors[mapping.propertyDefinition.id]"
       :data-testid="`delta-property-${mapping.propertyDefinition.name}`"
     >
-      <UTextarea
-        v-if="mapping.propertyDefinition.dataType === 'text'"
+      <PropertyInput
         v-model="values[mapping.propertyDefinition.id]"
-        class="w-full"
-        :rows="2"
-        autoresize
+        :mapping="mapping"
+        :solution-id="props.solutionId"
+        :fetch-fn="props.fetchFn"
       />
-      <UInput
-        v-else-if="mapping.propertyDefinition.dataType === 'integer'"
-        v-model="values[mapping.propertyDefinition.id]"
-        type="number"
-        class="w-full"
-      />
-      <USwitch
-        v-else-if="mapping.propertyDefinition.dataType === 'boolean'"
-        :model-value="values[mapping.propertyDefinition.id] === 'true'"
-        @update:model-value="(on: boolean) => (values[mapping.propertyDefinition.id] = on ? 'true' : 'false')"
-      />
-      <UInput
-        v-else-if="mapping.propertyDefinition.dataType === 'date'"
-        v-model="values[mapping.propertyDefinition.id]"
-        type="date"
-        class="w-full"
-      />
-      <USelect
-        v-else-if="mapping.propertyDefinition.dataType === 'enum'"
-        v-model="values[mapping.propertyDefinition.id]"
-        :items="enumItems(mapping)"
-        class="w-full"
-      />
-      <USelectMenu
-        v-else-if="mapping.propertyDefinition.dataType === 'reference'"
-        v-model="values[mapping.propertyDefinition.id]"
-        :items="references[mapping.propertyDefinition.id] ?? []"
-        value-key="value"
-        :ignore-filter="true"
-        class="w-full"
-        @update:search-term="(term: string) => searchReferences(mapping, term)"
-      />
-      <UInput v-else v-model="values[mapping.propertyDefinition.id]" class="w-full" />
     </UFormField>
 
     <UAlert v-if="failure" data-testid="delta-failure" color="error" variant="subtle" :description="failure" />

@@ -113,7 +113,7 @@ Trace: US-041, REQ-124, REQ-127, REQ-160
 
 ### Requirement: Edit a modification
 
-A principal with `solution:write` SHALL replace the changes of a delta `modified` with the checks of a capture. A field that was already part of the delta SHALL keep its recorded before value; a field added by the edit SHALL record its current value. Editing a delta of another type SHALL answer 422 naming `deltaType`; a delta of another solution SHALL answer 404.
+A principal with `solution:write` SHALL replace the changes of a delta `modified` with the checks of a capture. A field that was already part of the delta SHALL keep its recorded before value; a field added by the edit SHALL record its current value. A change of a property the editor may not read SHALL stay as recorded. Editing a delta of another type SHALL answer 422 naming `deltaType`; a delta of another solution SHALL answer 404.
 
 Trace: US-041, REQ-040, owner decision 2026-11-12
 
@@ -122,6 +122,12 @@ Trace: US-041, REQ-040, owner decision 2026-11-12
 - **GIVEN** a delta `modified` records "Release" from `v4` to `v5`, and the catalog now holds `v4.1`
 - **WHEN** the delta is edited to "Release" `v6` and "Users" `300`
 - **THEN** the delta holds "Release" from `v4` to `v6` and "Users" from its current value to `300`
+
+#### Scenario: Change the editor may not read
+
+- **GIVEN** a delta `modified` changes "Release" and the `role-restricted` property "Cost"
+- **WHEN** a solution architect without a read role of "Cost" edits "Release"
+- **THEN** the change of "Cost" stays as recorded
 
 #### Scenario: Edit a retiring delta
 

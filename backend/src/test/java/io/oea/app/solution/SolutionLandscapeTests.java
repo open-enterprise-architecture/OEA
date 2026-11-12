@@ -246,6 +246,68 @@ class SolutionLandscapeTests {
 		assertThat(ok(landscape("&pageSize=2&page=1&cursor=" + cursor)).path("items").size()).isEqualTo(2);
 	}
 
+	// us-041-modified-delta – Requirement: Read one entry of the baseline
+
+	@Test
+	void entryWithItsValues() {
+		int erp = entity(this.application, "ERP-Core");
+		this.jdbc.update("UPDATE entities SET description = 'Core ERP' WHERE id = ?", erp);
+		UUID release = property("Release", "string", "public");
+		UUID users = property("Users", "integer", "public");
+		UUID cost = property("Cost", "integer", "role-restricted");
+		this.jdbc.update("INSERT INTO property_visibility_roles (property_def_id, role_id, access) VALUES (?, 'enterprise-architect', 'read')",
+				cost);
+		this.jdbc.update("INSERT INTO entity_property_values (entity_id, property_def_id, value_text) VALUES (?, ?, 'v4')",
+				erp, release);
+		this.jdbc.update("""
+				INSERT INTO entity_property_values (entity_id, property_def_id, value_int) VALUES (?, ?, 250), (?, ?, 900)""",
+				erp, users, erp, cost);
+		JsonNode entry = ok(call("/api/v1/solutions/" + this.solution + "/landscape/" + erp, this.michael));
+		assertThat(entry.path("id").asInt()).isEqualTo(erp);
+		assertThat(entry.path("name").asString()).isEqualTo("ERP-Core");
+		assertThat(entry.path("description").asString()).isEqualTo("Core ERP");
+		assertThat(entry.path("metatypeId").asString()).isEqualTo(this.application.toString());
+		assertThat(entry.path("version").asInt()).isEqualTo(1);
+		java.util.Map<String, JsonNode> values = new java.util.HashMap<>();
+		entry.path("properties").forEach((value) -> values.put(value.path("propertyDefId").asString(), value));
+		assertThat(values.get(release.toString()).path("valueText").asString()).isEqualTo("v4");
+		assertThat(values.get(users.toString()).path("valueInt").asLong()).isEqualTo(250L);
+		// a restricted value is redacted without a read role (michael: solution-architect)
+		assertThat(values.get(cost.toString()).path("redacted").asBoolean()).isTrue();
+		assertThat(values.get(cost.toString()).path("valueInt").isNull()).isTrue();
+		JsonNode architect = ok(call("/api/v1/solutions/" + this.solution + "/landscape/" + erp,
+				this.principals.personWithIdpRole("enterprise-architect")));
+		architect.path("properties").forEach((value) -> {
+			if (value.path("propertyDefId").asString().equals(cost.toString())) {
+				assertThat(value.path("valueInt").asLong()).isEqualTo(900L);
+			}
+		});
+	}
+
+	@Test
+	void entryNotInTheBaseline() {
+		int deleted = entity(this.application, "Old");
+		this.jdbc.update("UPDATE entities SET deleted_at = now(), deleted_by = ? WHERE id = ?", this.michaelId, deleted);
+		int flow = entity(this.dataFlow, "Orders");
+		for (int id : new int[] { 999_999, deleted, flow }) {
+			assertThat(call("/api/v1/solutions/" + this.solution + "/landscape/" + id, this.michael))
+				.hasStatus(HttpStatus.NOT_FOUND);
+		}
+		int erp = entity(this.application, "ERP-Core");
+		assertThat(call("/api/v1/solutions/" + UUID.randomUUID() + "/landscape/" + erp, this.michael))
+			.hasStatus(HttpStatus.NOT_FOUND);
+		assertThat(call("/api/v1/solutions/" + this.solution + "/landscape/" + erp,
+				this.principals.personWithIdpRole("portal-reader")))
+			.hasStatus(HttpStatus.FORBIDDEN);
+	}
+
+	private UUID property(String name, String dataType, String mode) {
+		return this.jdbc.queryForObject("""
+				INSERT INTO property_definitions (name, sql_column_name, data_type, visibility_mode)
+				VALUES (?, ?, ?, ?) RETURNING id""", UUID.class, name + " " + UUID.randomUUID().toString().substring(0, 8),
+				"p_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12), dataType, mode);
+	}
+
 	private UUID metatype(String name, boolean connection) {
 		return this.jdbc.queryForObject("""
 				INSERT INTO metatypes (config_id, name, is_connection)

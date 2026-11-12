@@ -13,6 +13,10 @@ export type SolutionLandscapePage = components['schemas']['SolutionLandscapePage
 export type SolutionLandscapeEntry = components['schemas']['SolutionLandscapeEntry']
 export type SolutionDelta = components['schemas']['SolutionDelta']
 export type SolutionDeltaWrite = components['schemas']['SolutionDeltaWrite']
+export type SolutionDeltaUpdate = components['schemas']['SolutionDeltaUpdate']
+export type SolutionDeltaChange = components['schemas']['SolutionDeltaChange']
+export type SolutionDeltaValue = components['schemas']['SolutionDeltaValue']
+export type SolutionLandscapeEntity = components['schemas']['SolutionLandscapeEntity']
 
 /** The parameters of a baseline query (design D4 of us-039-solution-baseline). */
 export interface LandscapeQuery {
@@ -112,6 +116,40 @@ export async function createSolutionDelta(
     credentials: 'same-origin',
     headers: writeHeaders(),
     body: JSON.stringify(delta),
+  })
+  if (!response.ok) {
+    return { ok: false, rejection: await readRejection(response) }
+  }
+  return { ok: true, value: (await response.json()) as SolutionDelta }
+}
+
+/**
+ * GET /solutions/{id}/landscape/{entityId}: one entity of the baseline with its values, redacted
+ * where the caller may not read them (US-041 AC2); 404 for an entity outside the baseline.
+ */
+export function fetchSolutionLandscapeEntity(
+  id: string,
+  entityId: number,
+  fetchFn: typeof fetch = fetch,
+): Promise<SolutionLandscapeEntity> {
+  return read(`${SOLUTIONS}/${encodeURIComponent(id)}/landscape/${entityId}`, fetchFn)
+}
+
+/**
+ * PUT /solutions/{id}/deltas/{deltaId}: replaces the changes of a delta `modified` (US-041); the
+ * rejections are those of a capture, and 422 naming `deltaType` for another type.
+ */
+export async function updateSolutionDelta(
+  id: string,
+  deltaId: string,
+  update: SolutionDeltaUpdate,
+  fetchFn: typeof fetch = fetch,
+): Promise<{ ok: true; value: SolutionDelta } | { ok: false; rejection: Rejection }> {
+  const response = await fetchFn(`${SOLUTIONS}/${encodeURIComponent(id)}/deltas/${encodeURIComponent(deltaId)}`, {
+    method: 'PUT',
+    credentials: 'same-origin',
+    headers: writeHeaders(),
+    body: JSON.stringify(update),
   })
   if (!response.ok) {
     return { ok: false, rejection: await readRejection(response) }

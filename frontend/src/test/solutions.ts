@@ -1,4 +1,4 @@
-import type { Solution, SolutionDelta, SolutionLandscapeEntry } from '../api/solutions'
+import type { Solution, SolutionDelta, SolutionDeltaChange, SolutionDeltaValue, SolutionLandscapeEntity, SolutionLandscapeEntry } from '../api/solutions'
 
 // A fake backend for SCR-060 and SCR-061 (us-038-create-solution, us-039-solution-baseline,
 // us-040-entity-deltas): the solutions, creating one with the server-side name rule of REQ-038,
@@ -119,7 +119,19 @@ export const APPLICATION_MAPPINGS = [
 
 function newDelta(id: string, name: string, metatypeId: string, description: string | null = null): SolutionDelta {
   const metatypeName = METATYPES.find((candidate) => candidate.id === metatypeId)!.name
-  return { id, deltaType: 'new', entityId: null, name, metatypeId, metatypeName, description, properties: [], createdAt: '2026-11-12T10:00:00Z' }
+  return {
+    id,
+    deltaType: 'new',
+    entityId: null,
+    name,
+    metatypeId,
+    metatypeName,
+    description,
+    properties: [],
+    changes: [],
+    createdAt: '2026-11-12T10:00:00Z',
+    updatedAt: null,
+  }
 }
 
 function retiringDelta(id: string, entity: SolutionLandscapeEntry): SolutionDelta {
@@ -132,7 +144,71 @@ function retiringDelta(id: string, entity: SolutionLandscapeEntry): SolutionDelt
     metatypeName: entity.metatypeName,
     description: null,
     properties: [],
+    changes: [],
     createdAt: '2026-11-12T10:00:00Z',
+    updatedAt: null,
+  }
+}
+
+const DATA_TYPES: Record<string, string> = Object.fromEntries(
+  APPLICATION_MAPPINGS.map((entry) => [entry.propertyDefinition.id, entry.propertyDefinition.dataType]),
+)
+const PROPERTY_NAMES: Record<string, string> = Object.fromEntries(
+  APPLICATION_MAPPINGS.map((entry) => [entry.propertyDefinition.id, entry.propertyDefinition.name]),
+)
+
+/** A value as the contract carries it, from its text by the data type of the property. */
+function typed(propertyDefId: string, text: string): SolutionDeltaValue {
+  switch (DATA_TYPES[propertyDefId]) {
+    case 'integer':
+      return { valueInt: Number(text) }
+    case 'boolean':
+      return { valueBool: text === 'true' }
+    case 'enum':
+      return { valueEnum: text }
+    default:
+      return { valueText: text }
+  }
+}
+
+function propertyChange(propertyDefId: string, before: string | undefined, after: string | undefined): SolutionDeltaChange {
+  return {
+    field: 'property',
+    propertyDefId,
+    propertyName: PROPERTY_NAMES[propertyDefId] ?? propertyDefId,
+    dataType: (DATA_TYPES[propertyDefId] ?? 'string') as SolutionDeltaChange['dataType'],
+    redacted: false,
+    before: before !== undefined ? typed(propertyDefId, before) : null,
+    after: after !== undefined && after !== '' ? typed(propertyDefId, after) : null,
+  }
+}
+
+/** The current values of the entities of the landscape, as text by property, with a description. */
+export const ENTRY_VALUES: Record<number, { description: string; values: Record<string, string> }> = {
+  102: { description: 'Core ERP for finance and logistics', values: { [OWNER]: 'IT', [USERS]: '250', [TIER]: 'silver', [COST]: '900' } },
+  103: { description: 'Warehouse management, on premises', values: { [OWNER]: 'Logistics', [USERS]: '40' } },
+}
+
+function modifiedDelta(id: string, entity: SolutionLandscapeEntry, changes: SolutionDeltaChange[]): SolutionDelta {
+  return { ...retiringDelta(id, entity), deltaType: 'modified', changes }
+}
+
+/** The entry of the baseline as getSolutionLandscapeEntity returns it; Cost is hidden. */
+export function landscapeEntity(entry: SolutionLandscapeEntry): SolutionLandscapeEntity {
+  const stored = ENTRY_VALUES[entry.id] ?? { description: '', values: { [OWNER]: 'IT' } }
+  return {
+    ...entry,
+    description: stored.description,
+    properties: Object.entries(stored.values).map(
+      ([propertyDefId, text]) =>
+        ({
+          propertyDefId,
+          propertyName: PROPERTY_NAMES[propertyDefId] ?? propertyDefId,
+          dataType: DATA_TYPES[propertyDefId] ?? 'string',
+          redacted: propertyDefId === COST,
+          ...(propertyDefId === COST ? {} : typed(propertyDefId, text)),
+        }) as SolutionLandscapeEntity['properties'][number],
+    ),
   }
 }
 
@@ -143,8 +219,17 @@ export const DELTAS: SolutionDelta[] = [
   retiringDelta('ae000000-0000-4000-8000-000000000003', LANDSCAPE[2]!),
 ]
 
+/** A delta modified of ERP-Core: Users from 250 to 400, Tier from silver to gold. */
+export const MODIFIED_ERP = modifiedDelta('ae000000-0000-4000-8000-000000000004', LANDSCAPE[1]!, [
+  propertyChange(USERS, '250', '400'),
+  propertyChange(TIER, 'silver', 'gold'),
+])
+
+/** The deltas of the screen with a modification. */
+export const DELTAS_WITH_MODIFIED: SolutionDelta[] = [...DELTAS, MODIFIED_ERP]
+
 interface SolutionDeltaWriteBody {
-  deltaType: 'new' | 'retiring'
+  deltaType: 'new' | 'modified' | 'retiring'
   entityId?: number
   metatypeId?: string
   name?: string
@@ -157,6 +242,7 @@ export interface SolutionApi {
   posts: Record<string, unknown>[]
   landscapeQueries: URLSearchParams[]
   deltaPosts: Record<string, unknown>[]
+  deltaPuts: Record<string, unknown>[]
   deltaDeletes: string[]
 }
 
@@ -179,6 +265,7 @@ export function solutionApi(
   const landscapeQueries: URLSearchParams[] = []
   const deltaPosts: Record<string, unknown>[] = []
   const deltaDeletes: string[] = []
+  const deltaPuts: Record<string, unknown>[] = []
   const deltas = [...(options.deltas ?? [])]
   let nextDelta = 100
   const json = (body: unknown, status = 200) =>
@@ -201,16 +288,76 @@ export function solutionApi(
   const sorted = () =>
     [...deltas].sort(
       (a, b) =>
-        Number(a.deltaType === 'retiring') - Number(b.deltaType === 'retiring') ||
+        ['new', 'modified', 'retiring'].indexOf(a.deltaType) - ['new', 'modified', 'retiring'].indexOf(b.deltaType) ||
         a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
     )
   const completedSolution = (id: string) => {
     const found = solutions.find((candidate) => candidate.id === id)
     return options.completeOnWrite || found?.status === 'implemented' || found?.status === 'archived'
   }
+  // the changes of a modification against the entry, keeping recorded before values (D2, D3)
+  const changesOf = (entity: SolutionLandscapeEntry, body: SolutionDeltaWriteBody, recorded: SolutionDeltaChange[] = []) => {
+    const properties = body.properties ?? []
+    if (properties.some((property) => property.propertyDefId === COST)) return { status: 403 as const }
+    if (body.name !== undefined && body.name.trim().length === 0) return { status: 422 as const, field: 'name', detail: 'The name must not be blank.' }
+    const usersIndex = properties.findIndex((property) => property.propertyDefId === USERS && property.value !== '')
+    if (usersIndex >= 0 && !/^-?\d+$/.test(properties[usersIndex]!.value)) {
+      return { status: 422 as const, field: `properties[${usersIndex}].value`, detail: 'The value must be an integer.' }
+    }
+    if (properties.some((property) => property.propertyDefId === OWNER && property.value === '')) {
+      return { status: 422 as const, field: 'properties', detail: 'The mandatory property Owner has no value.' }
+    }
+    const stored = landscapeEntity(entity)
+    const current = ENTRY_VALUES[entity.id]?.values ?? { [OWNER]: 'IT' }
+    const changes: SolutionDeltaChange[] = []
+    const keep = (change: SolutionDeltaChange) => {
+      const earlier = recorded.find((candidate) => candidate.field === change.field && candidate.propertyDefId === change.propertyDefId)
+      const before = earlier ? earlier.before : change.before
+      if (JSON.stringify(before) !== JSON.stringify(change.after)) changes.push({ ...change, before })
+    }
+    if (body.name !== undefined) {
+      keep({ field: 'name', propertyDefId: null, propertyName: null, dataType: null, redacted: false, before: { valueText: entity.name }, after: { valueText: body.name } })
+    }
+    if (body.description !== undefined) {
+      keep({ field: 'description', propertyDefId: null, propertyName: null, dataType: null, redacted: false, before: { valueText: stored.description }, after: { valueText: body.description } })
+    }
+    for (const property of properties) {
+      keep(propertyChange(property.propertyDefId, current[property.propertyDefId], property.value))
+    }
+    if (changes.length === 0) return { status: 422 as const, field: 'properties', detail: 'The delta changes nothing.' }
+    return { status: 200 as const, changes }
+  }
+  const updateDelta = (solutionId: string, deltaId: string, body: SolutionDeltaWriteBody) => {
+    const found = deltas.find((candidate) => candidate.id === deltaId)
+    if (!found) return json(problem(404), 404)
+    if (completedSolution(solutionId)) {
+      return json(problem(409, [], 'This solution is completed and can no longer be changed'), 409)
+    }
+    if (found.deltaType !== 'modified') return json(problem(422, ['deltaType'], 'Only a modified delta can be edited.'), 422)
+    const entity = landscape.find((candidate) => candidate.id === found.entityId)!
+    const outcome = changesOf(entity, body, found.changes)
+    if (outcome.status === 403) return json(problem(403), 403)
+    if (outcome.status === 422) return json(problem(422, [outcome.field], outcome.detail), 422)
+    found.changes = outcome.changes
+    found.updatedAt = '2026-11-12T11:00:00Z'
+    return json(found)
+  }
   const createDelta = (solutionId: string, body: SolutionDeltaWriteBody) => {
     if (completedSolution(solutionId)) {
       return json(problem(409, [], 'This solution is completed and can no longer be changed'), 409)
+    }
+    if (body.deltaType === 'modified') {
+      const entity = landscape.find((candidate) => candidate.id === body.entityId)
+      if (!entity) return json(problem(422, ['entityId'], 'Entity not found in the current landscape'), 422)
+      const outcome = changesOf(entity, body)
+      if (outcome.status === 403) return json(problem(403), 403)
+      if (outcome.status === 422) return json(problem(422, [outcome.field], outcome.detail), 422)
+      if (deltas.some((candidate) => candidate.entityId === entity.id)) {
+        return json(problem(422, ['entityId'], 'A delta already exists for this entity in this solution'), 422)
+      }
+      const created = modifiedDelta(`ae000000-0000-4000-8000-${String(nextDelta++).padStart(12, '0')}`, entity, outcome.changes)
+      deltas.push(created)
+      return json(created, 201)
     }
     if (body.deltaType === 'retiring') {
       const entity = landscape.find((candidate) => candidate.id === body.entityId)
@@ -283,6 +430,16 @@ export function solutionApi(
       return createDelta(decodeURIComponent(deltaList[1]!), body)
     }
     const deltaOne = /^\/api\/v1\/solutions\/([^/]+)\/deltas\/([^/]+)$/.exec(url.pathname)
+    if (deltaOne && method === 'PUT') {
+      const body = JSON.parse(String(init?.body)) as SolutionDeltaWriteBody
+      deltaPuts.push(body as unknown as Record<string, unknown>)
+      return updateDelta(decodeURIComponent(deltaOne[1]!), decodeURIComponent(deltaOne[2]!), body)
+    }
+    const entry = /^\/api\/v1\/solutions\/([^/]+)\/landscape\/(\d+)$/.exec(url.pathname)
+    if (entry && method === 'GET') {
+      const found = landscape.find((candidate) => candidate.id === Number(entry[2]))
+      return found ? json(landscapeEntity(found)) : json(problem(404), 404)
+    }
     if (deltaOne && method === 'DELETE') {
       deltaDeletes.push(decodeURIComponent(deltaOne[2]!))
       if (completedSolution(decodeURIComponent(deltaOne[1]!))) {
@@ -326,5 +483,5 @@ export function solutionApi(
     // the header and the sidebar ask for further data; an empty answer keeps them quiet
     return json([])
   }
-  return { fetch: fetchFn, posts, landscapeQueries, deltaPosts, deltaDeletes }
+  return { fetch: fetchFn, posts, landscapeQueries, deltaPosts, deltaPuts, deltaDeletes }
 }

@@ -795,17 +795,19 @@
       "noMatch": "Keine Entität passt zur Suche und zum Filter.",
       "pageInfo": "Seite {page} von {pages} · {entries} Entitäten",
       "loadFailed": "Die Ausgangslage konnte nicht geladen werden.",
-      "retire": "Ausser Betrieb nehmen"
+      "retire": "Ausser Betrieb nehmen",
+      "modify": "Ändern"
     },
     "deltas": {
       "title": "Änderungen",
-      "intro": "Was diese Initiative an der Landschaft ändert: neue Entitäten und Entitäten, die sie ausser Betrieb nimmt.",
+      "intro": "Was diese Initiative an der Landschaft ändert: neue Entitäten, geänderte Entitäten und Entitäten, die sie ausser Betrieb nimmt.",
       "new": "Neue Entität",
       "newHint": "Eine Entität, die diese Initiative einführt. Sie kommt mit dem Go-live in den Katalog.",
       "empty": "Noch keine Änderungen.",
       "type": "Änderung",
       "types": {
         "new": "Neu",
+        "modified": "Geändert",
         "retiring": "Ausser Betrieb"
       },
       "name": "Name",
@@ -823,7 +825,20 @@
       "completed": "Diese Lösung ist abgeschlossen und kann nicht mehr geändert werden.",
       "metatypesFailed": "Die Metatypen konnten nicht geladen werden.",
       "propertiesFailed": "Die Eigenschaften des Metatyps konnten nicht geladen werden.",
-      "actions": "Aktionen"
+      "actions": "Aktionen",
+      "modify": {
+        "title": "Entität ändern",
+        "editTitle": "Änderung bearbeiten",
+        "description": "Was diese Initiative an einer bestehenden Entität ändert.",
+        "hint": "Gib nur ein, was sich ändert. Die aktuellen Werte des Katalogs werden als Werte vor der Änderung festgehalten.",
+        "current": "Aktuell: {value}",
+        "noValue": "kein Wert",
+        "hidden": "verborgen",
+        "save": "Änderung speichern",
+        "edit": "Bearbeiten",
+        "count": "keine Änderungen | {n} Änderung | {n} Änderungen",
+        "loadFailed": "Die Entität konnte nicht geladen werden."
+      }
     }
   }
 }

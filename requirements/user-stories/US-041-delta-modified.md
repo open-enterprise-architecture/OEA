@@ -2,8 +2,9 @@
 
 **ID**: US-041
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S11
+**Implementation**: OpenSpec change `us-041-modified-delta` – `createSolutionDelta` with `deltaType=modified` (before values recorded by the server from the catalog), `updateSolutionDelta`, `getSolutionLandscapeEntity`; the dialog "Modify entity", "Modify" in the baseline and "Edit" in the delta list on SCR-061. Realigned 2026-11-12
 
 ## Story
 
@@ -19,15 +20,15 @@ As a Solution Architect, I want to be able to mark an existing entity from the I
 
 **AC1**:
 
-- Given: `ERP-Core (ApplicationComponent, version=v4)` is in the baseline
-- When: Michael marks `ERP-Core` as modified and changes `version` from "v4" to "v5"
-- Then: the delta contains `changes = {version: {before: "v4", after: "v5"}}`; `ERP-Core` appears in the delta list with `deltaType=modified`
+- Given: `ERP-Core (ApplicationComponent)` is in the baseline with the property "Release" = `v4`
+- When: Michael marks `ERP-Core` as modified and changes "Release" to `v5`
+- Then: the delta contains the change "Release" with before `v4` and after `v5`; `ERP-Core` appears in the delta list with `deltaType=modified`
 
-**AC2** (before value from baseline):
+**AC2** (before value from the catalog, realigned 2026-11-12):
 
-- Given: `ERP-Core` has `version=v4` in the baseline
-- When: Michael opens the `modified` form for `ERP-Core`
-- Then: the `before` value for `version` is automatically prefilled with "v4" (from baseline)
+- Given: `ERP-Core` has "Release" = `v4` in the catalog
+- When: Michael opens the `modified` form for `ERP-Core` and saves "Release" `v5`
+- Then: the form shows `v4` as the current value, read-only; the server records `v4` as the `before` value, and it stays even if the catalog changes later
 
 **AC3** (entity not in baseline):
 
@@ -37,31 +38,31 @@ As a Solution Architect, I want to be able to mark an existing entity from the I
 
 **AC4** (solution implemented):
 
-- Given: Solution has status=`implemented`
-- When: Michael tries to add a modified delta
+- Given: Solution has status=`implemented` or `archived`
+- When: Michael tries to add or edit a modified delta
 - Then: 409 Conflict "This solution is completed and can no longer be changed"
 
 **AC5** (duplicate check):
 
 - Given: `ERP-Core` already has a `retiring` delta in this solution
 - When: Michael tries to additionally capture `ERP-Core` as `modified`
-- Then: validation error "A delta already exists for ERP-Core in this solution"
+- Then: validation error "A delta already exists for this entity in this solution"
 
 ## Technical Notes
 
-- Affected components: solution detail view (delta capture, subarea "Modify entity"), backend `POST /api/v1/solutions/{id}/deltas`
-- Request body: `{ entityId: UUID, deltaType: "modified", changes: { propertyName: { before: any, after: any }, ... } }`
-- `before` values: can be prefilled from the baseline (REQ-039 endpoint) when loading the form; the user can overwrite them
-- Only properties that change need to appear in the `changes` map (sparse diff)
-- UI: property list of the entity with two input fields each (before / after); unchanged properties can remain empty
+- Affected components: page "Solution" (SCR-061, dialog "Modify entity"), backend `POST /api/v1/solutions/{id}/deltas`, `PUT /api/v1/solutions/{id}/deltas/{deltaId}` (`updateSolutionDelta`), `GET /api/v1/solutions/{id}/landscape/{entityId}` (`getSolutionLandscapeEntity`)
+- Request body: `{ deltaType: "modified", entityId: integer, name?, description?, properties: PropertyWriteValue[] }` with after values only; an empty property value removes the value (realigned 2026-11-12)
+- `before` values: recorded by the server from the catalog at capture; they cannot be entered (owner decision 2026-11-12)
+- Only fields that change become changes (sparse diff); a delta without any change is rejected
+- UI: per field the current value (read-only) and one input for the new value
 
 ## Definition of Done
 
-- [ ] Acceptance criteria AC1–AC5 met
+- [x] Acceptance criteria AC1–AC5 met
 - [ ] Code review by a second person
-- [ ] Tests: modified delta with before/after, prefilling from baseline, invalid entityId, solution=implemented blocks, duplicate check
-- [ ] Linter and type checks green
-- [ ] Entered in trace matrix
+- [x] Tests: modified delta with before/after, prefilling from baseline, invalid entityId, solution=implemented blocks, duplicate check
+- [x] Linter and type checks green
+- [x] Entered in trace matrix
 
 ## Dependencies
 
@@ -71,3 +72,5 @@ As a Solution Architect, I want to be able to mark an existing entity from the I
 ## Notes
 
 5 SP because of the property diff editor: the UI must load the entity's properties (from MetamodelConfiguration), display two columns (before/after) and include only filled-in fields in the `changes` map. The `before` value from the baseline is a UX improvement (not an MVP blocker, but strongly recommended for usability).
+
+- 2026-11-13: implemented by the OpenSpec change `us-041-modified-delta` (S11 change 3). Owner decisions 2026-11-12: the server records the before value from the catalog; a modification changes property values, the name and the description; a delta `modified` is edited in place; the form reads the entity through `getSolutionLandscapeEntity`. AC1 and AC2 realigned (`version` is the lock counter of an entity, not a property), AC4 also covers `archived` and editing.

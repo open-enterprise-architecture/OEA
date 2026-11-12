@@ -4,9 +4,9 @@ title: Capture the EntityDeltas of a solution
 type: functional
 priority: must
 status: proposed
-version: 0.3.0
+version: 0.4.0
 created: 2026-06-26
-last_updated: 2026-11-12
+last_updated: 2026-11-13
 author: requirements-engineer
 references:
   use_cases:
@@ -61,7 +61,7 @@ An `EntityDelta` is a value object (not a business object of its own) and part o
 *deltaType=modified*:
 
 - entityId (reference to an entity from the baseline, REQ-039)
-- `changes` map: affected properties with before and after value
+- Changes of the name, the description and property values: the after value is entered; the before value is the catalog value the server records at capture (owner decision 2026-11-12)
 
 *deltaType=retiring*:
 
@@ -107,8 +107,8 @@ An `EntityDelta` is a value object (not a business object of its own) and part o
 **AC3**:
 
 - Given: entity `ERP-Core` (ApplicationComponent) is in the baseline
-- When: Michael marks `ERP-Core` as `modified` and changes the version from v4 to v5
-- Then: the delta contains `changes = {version: {before: "v4", after: "v5"}}`; the diff view shows the change
+- When: Michael marks `ERP-Core` as `modified` and changes the property "Release" from `v4` to `v5`
+- Then: the delta contains the change "Release" with before `v4` (recorded from the catalog) and after `v5`; the diff view shows the change
 
 **AC4**:
 
@@ -149,12 +149,12 @@ An `EntityDelta` is a value object (not a business object of its own) and part o
 
 - `POST`, `GET` and `DELETE /api/v1/solutions/{id}/deltas` (`createSolutionDelta`, `listSolutionDeltas`, `deleteSolutionDelta`); editing a delta is removal and capture again (realigned 2026-11-12)
 - Stored as separate tables with FK (`entity_deltas`, `entity_delta_property_values`; design D1 of us-040-entity-deltas)
-- `changes` map for `modified`: `{propertyName: {before: any, after: any}}`; the before value can be prefilled automatically from the baseline (UX improvement, not mandatory for MVP)
+- `modified` (realigned 2026-11-12): the request carries the after values only (`name`, `description`, `properties`); the response carries `changes`, a list of changes with field, typed `before` and `after`; the before values are recorded by the server; `PUT /api/v1/solutions/{id}/deltas/{deltaId}` (`updateSolutionDelta`) edits a delta `modified`; `GET /api/v1/solutions/{id}/landscape/{entityId}` reads the current values for the form
 
 ## Implementation
 
 - ADR(s): –
-- Implemented by: OpenSpec change `us-040-entity-deltas`, commit 98664b3 (#244) (`new` through the catalog path, `retiring`, removal; `modified` follows with US-041, the diagram path with US-045)
+- Implemented by: OpenSpec change `us-040-entity-deltas`, commit 98664b3 (#244) (`new` through the catalog path, `retiring`, removal) and OpenSpec change `us-041-modified-delta` (`modified` with recorded before values, editing); the diagram path follows with US-045
 - Tests: –
 - Verification status: not-verified
 
@@ -165,3 +165,4 @@ An `EntityDelta` is a value object (not a business object of its own) and part o
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft from UC-05 |
 | 0.2.0 | 2026-06-26 | requirements-engineer | Added two creation paths (catalog + diagram); specified diagram name completion with landscape suggestions |
 | 0.3.0 | 2026-11-12 | Change us-040-entity-deltas | `new` and `retiring` implemented: any `solution:write` holder, `new` with property values, removal, `archived` locked as well, at most 1000 deltas (owner decisions 2026-11-12) |
+| 0.4.0 | 2026-11-13 | Change us-041-modified-delta | `modified` implemented: before values recorded by the server, name, description and properties, editing in place; AC3 realigned to a property "Release" |

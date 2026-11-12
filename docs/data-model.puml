@@ -1037,7 +1037,7 @@ package "Architecture Planning" #E3F2FD {
     --
     + solution_id : UUID                  {NN} {FK→solutions.id}
     + delta_type  : TEXT                  {NN}
-    .. enum: new | modified | retiring (modified follows with US-041) ..
+    .. enum: new | modified | retiring ..
     + entity_id   : INTEGER               {FK→entities.id}
     .. null for new until the go-live (S14) creates the entity ..
     + metatype_id : UUID                  {FK→metatypes.id}
@@ -1048,6 +1048,9 @@ package "Architecture Planning" #E3F2FD {
     .. new only; CHECK length(description) <= 2000 ..
     + created_at  : TIMESTAMPTZ           {NN} DEFAULT NOW()
     + created_by  : BIGINT                {NN} {FK→persons.id}
+    + updated_at  : TIMESTAMPTZ
+    + updated_by  : BIGINT                {FK→persons.id}
+    .. last edit of a delta modified; oea_app may UPDATE only these two (V27) ..
     .. CHECK (delta_type = 'new') = (entity_id IS NULL) ..
     .. CHECK (delta_type = 'new') = (metatype_id, name NOT NULL) ..
     .. UNIQUE (solution_id, entity_id) WHERE entity_id IS NOT NULL ..
@@ -1059,11 +1062,12 @@ package "Architecture Planning" #E3F2FD {
     + id              : UUID              {PK}
     --
     + delta_id        : UUID              {NN} {FK→entity_deltas.id ON DELETE CASCADE}
-    + property_def_id : UUID              {NN} {FK→property_definitions.id}
-    .. US-041 makes it nullable and adds system_field ..
-    .. (enum: name | description | is_logical | metatype_id; exactly one of both) ..
-    .. UNIQUE (delta_id, property_def_id) ..
-    == Value BEFORE the change (AS-IS; follows with US-041) ==
+    + property_def_id : UUID              {FK→property_definitions.id}
+    + system_field    : TEXT
+    .. enum: name | description (values in the text columns) ..
+    .. CHECK exactly one of property_def_id, system_field (V27) ..
+    .. UNIQUE (delta_id, property_def_id); UNIQUE (delta_id, system_field) ..
+    == Value BEFORE the change (AS-IS; recorded by the server, V27) ==
     + before_value_text  : TEXT
     + before_value_int   : INT8
     + before_value_bool  : BOOLEAN
@@ -1077,7 +1081,8 @@ package "Architecture Planning" #E3F2FD {
     + after_value_date   : DATE
     + after_value_ref    : INTEGER        {FK→entities.id}
     + after_value_enum   : TEXT
-    .. CHECK exactly one after value (V26) ..
+    .. CHECK at most one before and one after value (V27); none = no value ..
+    .. a delta new has exactly one after value per row (application rule) ..
   }
 
   plateaus      "0..1" --o{ "0..*" plateaus                    : succeeds_id
@@ -2101,6 +2106,14 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   the before values and system_field follow with US-041. Deltas are removed
 '   physically (value objects of the solution; the audit keeps the record).
 '   Reason: US-040, US-042, REQ-040.
+' 2026-11-13 (us-041-modified-delta):
+'   V27: entity_delta_property_values gets system_field (name, description)
+'   and the before columns; property_def_id becomes nullable, exactly one of
+'   both; at most one before and one after value, none meaning no value. The
+'   server records the before value from the catalog at capture (owner
+'   decision 2026-11-12). entity_deltas gets updated_at and updated_by, the
+'   only columns oea_app may update.
+'   Reason: US-041, REQ-040.
 ' ─────────────────────────────────────────────────────
 
 @enduml

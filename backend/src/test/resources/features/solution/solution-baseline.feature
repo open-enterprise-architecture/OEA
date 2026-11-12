@@ -92,3 +92,37 @@ Feature: Baseline of a solution
     Then the baseline answers 400 naming "cursor"
     When the architect sends a changed cursor
     Then the baseline answers 400 naming "cursor"
+
+  # us-041-modified-delta – Requirement: Read one entry of the baseline
+
+  @US-041 @REQ-039
+  Scenario: Entry with its values
+    Given the landscape holds the applications "ERP-Core" and "CRM-Legacy"
+    And "ERP-Core" has the value "v4" of the property "Release"
+    When the architect reads the entry "ERP-Core" of the baseline
+    Then the entry holds the name "ERP-Core", its metatype, version 1 and "Release" "v4"
+
+  @US-041 @REQ-160
+  Scenario: Restricted value of an entry redacted
+    Given the landscape holds the applications "ERP-Core" and "CRM-Legacy"
+    And "ERP-Core" has the value "900" of the property "Cost"
+    And the property "Cost" is readable only by the role "enterprise-architect"
+    When the viewer reads the entry "ERP-Core" of the baseline
+    Then "Cost" of the entry is redacted
+
+  @US-041 @REQ-039
+  Scenario: Not an entry of the baseline
+    Given the landscape holds the applications "CRM-Legacy" and "ERP-Core" and the data flow "Orders"
+    And "CRM-Legacy" is deleted
+    When the architect reads an unknown entity ID as an entry of the baseline
+    Then the baseline answers 404
+    When the architect reads the entry "CRM-Legacy" of the baseline
+    Then the baseline answers 404
+    When the architect reads the entry "Orders" of the baseline
+    Then the baseline answers 404
+
+  @US-041 @REQ-039
+  Scenario: Entry without entity:read
+    Given the landscape holds the applications "ERP-Core" and "CRM-Legacy"
+    When a portal reader reads the entry "ERP-Core" of the baseline
+    Then the baseline answers 403

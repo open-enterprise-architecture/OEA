@@ -59,6 +59,29 @@ public class PropertyWriteAccess {
 		return snapshot;
 	}
 
+	/**
+	 * The access of the writer of values of the existing entity {@code entityId}: a
+	 * {@code role-restricted} value needs a write role, a {@code connection-scoped} value the
+	 * entity in the writer's scope (design D2 of us-041-modified-delta).
+	 *
+	 * @throws PermissionDeniedException if a value may not be written
+	 */
+	public PropertyAccess.Snapshot require(OeaPrincipal principal, List<EntityInput.PropertyInput> properties,
+			int entityId) {
+		PropertyAccess.Snapshot snapshot = this.access.of(principal);
+		for (EntityInput.PropertyInput property : properties) {
+			UUID id = property.propertyDefId();
+			if (id == null || !snapshot.restricted(id)) {
+				continue;
+			}
+			boolean writable = snapshot.connectionScoped(id) ? snapshot.writableFor(id, entityId) : snapshot.writable(id);
+			if (!writable) {
+				throw new PermissionDeniedException();
+			}
+		}
+		return snapshot;
+	}
+
 	/** Who may write a restricted property of an entity, for {@link MetatypeRules#forWriter}. */
 	public static BiPredicate<UUID, Integer> writer(PropertyAccess.Snapshot access) {
 		return (property, entity) -> access.connectionScoped(property)

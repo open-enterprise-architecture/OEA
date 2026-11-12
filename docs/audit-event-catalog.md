@@ -710,14 +710,25 @@ A solution was created in project mode ([US-038](../requirements/user-stories/US
 
 ### `solution.delta-added`
 
-An entity delta was captured in a solution: a new entity (`new`) or an entity of the baseline to retire (`retiring`) ([US-040](../requirements/user-stories/US-040-delta-new-entity.md), [US-042](../requirements/user-stories/US-042-delta-retiring.md), [REQ-040](../requirements/req/REQ-040-capture-entity-deltas.md)). The event carries no property values; the go-live (S14) audits them with the entity write. Rejected captures (validation error, completed solution, missing permission) are not audited.
+An entity delta was captured in a solution: a new entity (`new`), changes of an entity of the baseline (`modified`) or an entity of the baseline to retire (`retiring`) ([US-040](../requirements/user-stories/US-040-delta-new-entity.md), [US-041](../requirements/user-stories/US-041-delta-modified.md), [US-042](../requirements/user-stories/US-042-delta-retiring.md), [REQ-040](../requirements/req/REQ-040-capture-entity-deltas.md)). The event carries no property values; the go-live (S14) audits them with the entity write. Rejected captures (validation error, completed solution, missing permission) are not audited.
 
 | Field | Value |
 |---|---|
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the capturing person (`solution:write`) |
 | Target | `solution`, ID of the solution |
-| Details | `solutionId`, `deltaId`, `deltaType`, and `entityId` (`retiring`) or `metatypeId` and `name` (`new`) |
+| Details | `solutionId`, `deltaId`, `deltaType`, and `entityId` (`modified`, `retiring`) or `metatypeId` and `name` (`new`); for `modified` also `fields`, the changed fields (`name`, `description` and property names) without their values |
+
+### `solution.delta-updated`
+
+The changes of a delta `modified` were replaced ([US-041](../requirements/user-stories/US-041-delta-modified.md), [REQ-040](../requirements/req/REQ-040-capture-entity-deltas.md)). The event names the changed fields after the edit, not their values. Rejected edits are not audited.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the editing person (`solution:write`) |
+| Target | `solution`, ID of the solution |
+| Details | `solutionId`, `deltaId`, `deltaType` (`modified`), `entityId` and `fields` |
 
 ### `solution.delta-removed`
 

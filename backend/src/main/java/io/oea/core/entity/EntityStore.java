@@ -104,6 +104,14 @@ public class EntityStore {
 			.findFirst();
 	}
 
+	/**
+	 * The entity with this ID, locked against changes for the rest of the transaction (FOR SHARE);
+	 * readers and other share locks proceed (design D2 of us-041-modified-delta).
+	 */
+	public Optional<StoredEntity> lockForShare(int id) {
+		return this.jdbc.query(SELECT + " WHERE id = ? FOR SHARE", EntityStore::entity, id).stream().findFirst();
+	}
+
 	/** Whether an active entity with this ID and metatype exists (reference values). */
 	public boolean isActive(int id, UUID metatypeId) {
 		return Boolean.TRUE.equals(this.jdbc.queryForObject(
