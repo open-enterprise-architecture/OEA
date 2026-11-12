@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S11
-**Implementation**: OpenSpec change `us-040-entity-deltas` – `createSolutionDelta` (`solution:write`) with `deltaType=new`: metatype, name, description and property values, checked like the write of a new entity and under the property visibility rules; `listSolutionDeltas`, `deleteSolutionDelta`; the area "Changes" with the dialog "New entity" on SCR-061. Realigned 2026-11-12
+**Implementation**: OpenSpec change `us-040-entity-deltas`, commit 98664b3 (#244) – `createSolutionDelta` (`solution:write`) with `deltaType=new`: metatype, name, description and property values, checked like the write of a new entity and under the property visibility rules; `listSolutionDeltas`, `deleteSolutionDelta`; the area "Changes" with the dialog "New entity" on SCR-061. Realigned 2026-11-12
 
 ## Story
 
@@ -65,4 +65,4 @@ As a Solution Architect, I want to be able to create a new entity (deltaType=new
 
 ## Notes
 
-- 2026-11-12: implemented by the OpenSpec change `us-040-entity-deltas` (S11 change 2). Owner decisions 2026-11-12: any holder of `solution:write` captures deltas in any solution; a `new` delta carries its property values, checked against the metamodel and the property visibility rules; deltas can be removed; `implemented` and `archived` solutions reject changes (409). AC1, AC3 and the Technical Notes are realigned accordingly.
+- 2026-11-12: implemented by the OpenSpec change `us-040-entity-deltas`, commit 98664b3 (#244) (S11 change 2). Owner decisions 2026-11-12: any holder of `solution:write` captures deltas in any solution; a `new` delta carries its property values, checked against the metamodel and the property visibility rules; deltas can be removed; `implemented` and `archived` solutions reject changes (409). AC1, AC3 and the Technical Notes are realigned accordingly.
