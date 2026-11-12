@@ -1,10 +1,19 @@
 import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
-import { beforeEach, describe, expect, it } from 'vitest'
-import type { SolutionLandscapeEntry } from '../api/solutions'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import type { Solution, SolutionDelta, SolutionLandscapeEntry } from '../api/solutions'
 import { session } from '../session/store'
 import { testRouter } from '../test/router'
-import { APPLICATION, ME_PORTAL_READER, ME_SOLUTION_VIEWER, manyApplications, solutionApi } from '../test/solutions'
+import {
+  APPLICATION,
+  DELTAS,
+  ME_PORTAL_READER,
+  ME_SOLUTION_ARCHITECT,
+  ME_SOLUTION_VIEWER,
+  SOLUTIONS,
+  manyApplications,
+  solutionApi,
+} from '../test/solutions'
 import SolutionPage from './SolutionPage.vue'
 
 // spec solution/solution-overview "Page \"Solution\"" (US-038 AC1; design D4 of
@@ -157,6 +166,128 @@ describe('SolutionPage', () => {
       await search(wrapper, 'no such system')
       expect(wrapper.find('[data-testid="baseline-no-match"]').exists()).toBe(true)
       expect(wrapper.find('[data-testid="baseline-empty-landscape"]').exists()).toBe(false)
+    })
+  })
+
+  // spec solution/solution-deltas "Area \"Changes\" on the page \"Solution\"", "Write actions on the
+  // page \"Solution\"" and "Action \"Retire\" in the baseline" (US-040, US-042; design D9 of
+  // us-040-entity-deltas)
+
+  describe('deltas', () => {
+    async function mountWith(
+      options: { me?: unknown; deltas?: SolutionDelta[]; solutions?: Solution[]; completeOnWrite?: boolean } = {},
+    ) {
+      const router = testRouter()
+      await router.push(`/solutions/${ERP}`)
+      const api = solutionApi({ me: ME_SOLUTION_ARCHITECT, deltas: DELTAS, ...options })
+      const wrapper = mount(SolutionPage, {
+        props: { id: ERP, fetchFn: api.fetch },
+        global: { plugins: [ui, router] },
+        attachTo: document.body,
+      })
+      await flushPromises()
+      return Object.assign(wrapper, { api })
+    }
+
+    function deltaRows(wrapper: VueWrapper) {
+      return wrapper.findAll('[data-testid="deltas-table"] tbody tr').map((row) =>
+        row
+          .findAll('td')
+          .slice(0, 3)
+          .map((cell) => cell.text()),
+      )
+    }
+
+    function baselineRow(wrapper: VueWrapper, name: string) {
+      return wrapper.findAll('[data-testid="baseline-table"] tbody tr').find((row) => row.findAll('td')[0]!.text() === name)!
+    }
+
+    afterEach(() => {
+      document.body.innerHTML = ''
+    })
+
+    it('lists the deltas with type, name and metatype', async () => {
+      const wrapper = await mountWith()
+      expect(deltaRows(wrapper)).toEqual([
+        ['New', 'Scanner Gateway', 'Technology Component'],
+        ['New', 'Warehouse Cloud', 'Application'],
+        ['Retiring', 'Warehouse Management', 'Application'],
+      ])
+      wrapper.unmount()
+    })
+
+    it('says that there are no changes yet', async () => {
+      const wrapper = await mountWith({ deltas: [] })
+      expect(wrapper.get('[data-testid="deltas-empty"]').text()).toBe('No changes yet.')
+      wrapper.unmount()
+    })
+
+    it('retires an entity of the baseline and then marks its row', async () => {
+      const wrapper = await mountWith({ deltas: [] })
+      await baselineRow(wrapper, 'CRM-Legacy').get('[data-testid="baseline-retire"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.api.deltaPosts).toEqual([{ deltaType: 'retiring', entityId: 101 }])
+      expect(deltaRows(wrapper)).toEqual([['Retiring', 'CRM-Legacy', 'Application']])
+      const row = baselineRow(wrapper, 'CRM-Legacy')
+      expect(row.find('[data-testid="baseline-retire"]').exists()).toBe(false)
+      expect(row.get('[data-testid="baseline-retiring"]').text()).toBe('Retiring')
+      wrapper.unmount()
+    })
+
+    it('creates a new entity through the dialog and lists it', async () => {
+      const wrapper = await mountWith({ deltas: [] })
+      await wrapper.get('[data-testid="delta-new"]').trigger('click')
+      await flushPromises()
+      expect(document.querySelector('[data-testid="delta-dialog"]')).not.toBeNull()
+      wrapper.findComponent({ name: 'SolutionDeltaDialog' }).vm.$emit('created', DELTAS[1])
+      await flushPromises()
+      expect(document.querySelector('[data-testid="delta-dialog"]')).toBeNull()
+      wrapper.unmount()
+    })
+
+    it('removes a delta only after the confirmation', async () => {
+      const wrapper = await mountWith()
+      await wrapper.findAll('[data-testid="delta-remove"]')[2]!.trigger('click')
+      await flushPromises()
+      expect(document.body.textContent).toContain('Remove the change for Warehouse Management from this solution?')
+      document.querySelector<HTMLButtonElement>('[data-testid="delta-remove-cancel"]')!.click()
+      await flushPromises()
+      expect(wrapper.api.deltaDeletes).toEqual([])
+      expect(deltaRows(wrapper)).toHaveLength(3)
+      await wrapper.findAll('[data-testid="delta-remove"]')[2]!.trigger('click')
+      await flushPromises()
+      document.querySelector<HTMLButtonElement>('[data-testid="delta-remove-confirm"]')!.click()
+      await flushPromises()
+      expect(wrapper.api.deltaDeletes).toEqual(['ae000000-0000-4000-8000-000000000003'])
+      expect(deltaRows(wrapper).map((row) => row[1])).toEqual(['Scanner Gateway', 'Warehouse Cloud'])
+      expect(baselineRow(wrapper, 'Warehouse Management').find('[data-testid="baseline-retire"]').exists()).toBe(true)
+      wrapper.unmount()
+    })
+
+    it.each([
+      ['without solution:write', { me: ME_SOLUTION_VIEWER }],
+      [
+        'for an implemented solution',
+        { solutions: SOLUTIONS.map((candidate) => (candidate.id === ERP ? { ...candidate, status: 'implemented' as const } : candidate)) },
+      ],
+    ])('shows the list without write actions %s', async (_, options) => {
+      const wrapper = await mountWith(options)
+      expect(deltaRows(wrapper)).toHaveLength(3)
+      expect(wrapper.find('[data-testid="delta-new"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="delta-remove"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="baseline-retire"]').exists()).toBe(false)
+      expect(baselineRow(wrapper, 'Warehouse Management').find('[data-testid="baseline-retiring"]').exists()).toBe(true)
+      wrapper.unmount()
+    })
+
+    it('hides the write actions after a 409', async () => {
+      const wrapper = await mountWith({ completeOnWrite: true })
+      await baselineRow(wrapper, 'CRM-Legacy').get('[data-testid="baseline-retire"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.get('[data-testid="deltas-failure"]').text()).toBe('This solution is completed and can no longer be changed.')
+      expect(wrapper.find('[data-testid="delta-new"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="baseline-retire"]').exists()).toBe(false)
+      wrapper.unmount()
     })
   })
 })

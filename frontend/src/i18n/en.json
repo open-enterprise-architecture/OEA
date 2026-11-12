@@ -794,7 +794,36 @@
       "emptyLandscape": "No entities in the current landscape – you can only create new entities",
       "noMatch": "No entity matches the search and the filter.",
       "pageInfo": "Page {page} of {pages} · {entries} entities",
-      "loadFailed": "The baseline could not be loaded."
+      "loadFailed": "The baseline could not be loaded.",
+      "retire": "Retire"
+    },
+    "deltas": {
+      "title": "Changes",
+      "intro": "What this initiative changes in the landscape: new entities and entities it retires.",
+      "new": "New entity",
+      "newHint": "An entity this initiative introduces. It enters the catalog with the go-live.",
+      "empty": "No changes yet.",
+      "type": "Change",
+      "types": {
+        "new": "New",
+        "retiring": "Retiring"
+      },
+      "name": "Name",
+      "metatype": "Metatype",
+      "description": "Description",
+      "save": "Add to the solution",
+      "remove": "Remove",
+      "removeTitle": "Remove change",
+      "removeConfirm": "Remove the change for {name} from this solution?",
+      "removeFailed": "The change could not be removed.",
+      "createFailed": "The change could not be added.",
+      "loadFailed": "The changes could not be loaded.",
+      "invalid": "The value is invalid.",
+      "restricted": "You may not set a restricted property. Leave it empty or ask a person with its write role.",
+      "completed": "This solution is completed and can no longer be changed.",
+      "metatypesFailed": "The metatypes could not be loaded.",
+      "propertiesFailed": "The properties of the metatype could not be loaded.",
+      "actions": "Actions"
     }
   }
 }

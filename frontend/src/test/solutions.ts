@@ -1,8 +1,9 @@
-import type { Solution, SolutionLandscapeEntry } from '../api/solutions'
+import type { Solution, SolutionDelta, SolutionLandscapeEntry } from '../api/solutions'
 
-// A fake backend for SCR-060 and SCR-061 (us-038-create-solution, us-039-solution-baseline): the
-// solutions, creating one with the server-side name rule of REQ-038, reading one, and its
-// baseline with search, metatype filter, paging and cursors.
+// A fake backend for SCR-060 and SCR-061 (us-038-create-solution, us-039-solution-baseline,
+// us-040-entity-deltas): the solutions, creating one with the server-side name rule of REQ-038,
+// reading one, its baseline with search, metatype filter, paging and cursors, and its deltas with
+// the rules of a new entity, one delta per entity and the lock of a completed solution.
 
 function me(displayName: string, permissions: string[]) {
   return {
@@ -83,14 +84,92 @@ export function manyApplications(count: number): SolutionLandscapeEntry[] {
   return Array.from({ length: count }, (_, index) => entry(1000 + index, `Application ${String(index + 1).padStart(3, '0')}`, APPLICATION))
 }
 
+export const OWNER = '7b000000-0000-4000-8000-000000000001'
+export const USERS = '7b000000-0000-4000-8000-000000000002'
+export const TIER = '7b000000-0000-4000-8000-000000000003'
+export const HOSTED_ON = '7b000000-0000-4000-8000-000000000004'
+export const LIVE = '7b000000-0000-4000-8000-000000000005'
+export const COST = '7b000000-0000-4000-8000-000000000006'
+
+function mapping(id: string, name: string, dataType: string, necessity: string, sortOrder: number, extra: Record<string, unknown> = {}) {
+  return {
+    id: `8c${id.slice(2)}`,
+    necessity,
+    validFrom: '2026-01-01',
+    sortOrder,
+    state: 'active',
+    propertyDefinition: { id, name, label: name, dataType, enumValues: [], refMetatype: null, ...extra },
+  }
+}
+
+/** The active mappings of the application metatype, one per data type the dialog offers. */
+export const APPLICATION_MAPPINGS = [
+  mapping(OWNER, 'Owner', 'string', 'mandatory', 1),
+  mapping(USERS, 'Users', 'integer', 'optional', 2),
+  mapping(TIER, 'Tier', 'enum', 'optional', 3, {
+    enumValues: [
+      { id: '9d000000-0000-4000-8000-000000000001', value: 'gold', sortOrder: 1 },
+      { id: '9d000000-0000-4000-8000-000000000002', value: 'silver', sortOrder: 2 },
+    ],
+  }),
+  mapping(HOSTED_ON, 'Hosted on', 'reference', 'optional', 4, { refMetatype: { id: COMPONENT, name: 'Technology Component' } }),
+  mapping(LIVE, 'Live', 'boolean', 'optional', 5),
+  mapping(COST, 'Cost', 'integer', 'optional', 6),
+]
+
+function newDelta(id: string, name: string, metatypeId: string, description: string | null = null): SolutionDelta {
+  const metatypeName = METATYPES.find((candidate) => candidate.id === metatypeId)!.name
+  return { id, deltaType: 'new', entityId: null, name, metatypeId, metatypeName, description, properties: [], createdAt: '2026-11-12T10:00:00Z' }
+}
+
+function retiringDelta(id: string, entity: SolutionLandscapeEntry): SolutionDelta {
+  return {
+    id,
+    deltaType: 'retiring',
+    entityId: entity.id,
+    name: entity.name,
+    metatypeId: entity.metatypeId,
+    metatypeName: entity.metatypeName,
+    description: null,
+    properties: [],
+    createdAt: '2026-11-12T10:00:00Z',
+  }
+}
+
+/** The deltas of "ERP Extension Logistics" in the screen: two new entities, one retiring. */
+export const DELTAS: SolutionDelta[] = [
+  newDelta('ae000000-0000-4000-8000-000000000001', 'Warehouse Cloud', APPLICATION, 'Cloud WMS for DACH'),
+  newDelta('ae000000-0000-4000-8000-000000000002', 'Scanner Gateway', COMPONENT),
+  retiringDelta('ae000000-0000-4000-8000-000000000003', LANDSCAPE[2]!),
+]
+
+interface SolutionDeltaWriteBody {
+  deltaType: 'new' | 'retiring'
+  entityId?: number
+  metatypeId?: string
+  name?: string
+  description?: string
+  properties?: { propertyDefId: string; value: string }[]
+}
+
 export interface SolutionApi {
   fetch: typeof fetch
   posts: Record<string, unknown>[]
   landscapeQueries: URLSearchParams[]
+  deltaPosts: Record<string, unknown>[]
+  deltaDeletes: string[]
 }
 
 export function solutionApi(
-  options: { me?: unknown; solutions?: Solution[]; landscape?: SolutionLandscapeEntry[]; rejectCursors?: boolean } = {},
+  options: {
+    me?: unknown
+    solutions?: Solution[]
+    landscape?: SolutionLandscapeEntry[]
+    rejectCursors?: boolean
+    deltas?: SolutionDelta[]
+    /** answer 409 to every delta write, as for a solution completed meanwhile */
+    completeOnWrite?: boolean
+  } = {},
 ): SolutionApi {
   const solutions = [...(options.solutions ?? SOLUTIONS)]
   const landscape = [...(options.landscape ?? LANDSCAPE)].sort(
@@ -98,15 +177,71 @@ export function solutionApi(
   )
   const posts: Record<string, unknown>[] = []
   const landscapeQueries: URLSearchParams[] = []
+  const deltaPosts: Record<string, unknown>[] = []
+  const deltaDeletes: string[] = []
+  const deltas = [...(options.deltas ?? [])]
+  let nextDelta = 100
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': status < 400 ? 'application/json' : 'application/problem+json' } })
   const problem = (status: number, invalidFields: string[] = [], detail?: string) => ({
-    type: status === 422 ? 'urn:oea:problem:validation-failed' : status === 404 ? 'urn:oea:problem:not-found' : 'urn:oea:problem:forbidden',
+    type:
+      status === 422
+        ? 'urn:oea:problem:validation-failed'
+        : status === 404
+          ? 'urn:oea:problem:not-found'
+          : status === 409
+            ? 'urn:oea:problem:solution-completed'
+            : 'urn:oea:problem:forbidden',
     title: 'Rejected',
     status,
     detail,
     invalidFields,
+    errors: invalidFields.map((field) => ({ field, message: detail ?? 'Invalid' })),
   })
+  const sorted = () =>
+    [...deltas].sort(
+      (a, b) =>
+        Number(a.deltaType === 'retiring') - Number(b.deltaType === 'retiring') ||
+        a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
+    )
+  const completedSolution = (id: string) => {
+    const found = solutions.find((candidate) => candidate.id === id)
+    return options.completeOnWrite || found?.status === 'implemented' || found?.status === 'archived'
+  }
+  const createDelta = (solutionId: string, body: SolutionDeltaWriteBody) => {
+    if (completedSolution(solutionId)) {
+      return json(problem(409, [], 'This solution is completed and can no longer be changed'), 409)
+    }
+    if (body.deltaType === 'retiring') {
+      const entity = landscape.find((candidate) => candidate.id === body.entityId)
+      if (!entity) return json(problem(422, ['entityId'], 'Entity not found in the current landscape'), 422)
+      if (deltas.some((candidate) => candidate.entityId === entity.id)) {
+        return json(problem(422, ['entityId'], 'A delta already exists for this entity in this solution'), 422)
+      }
+      const created = retiringDelta(`ae000000-0000-4000-8000-${String(nextDelta++).padStart(12, '0')}`, entity)
+      deltas.push(created)
+      return json(created, 201)
+    }
+    const properties = body.properties ?? []
+    if (properties.some((property) => property.propertyDefId === COST)) {
+      return json(problem(403), 403)
+    }
+    const name = body.name ?? ''
+    if (name.trim().length === 0) return json(problem(422, ['name'], 'The name must not be blank.'), 422)
+    const usersIndex = properties.findIndex((property) => property.propertyDefId === USERS)
+    if (usersIndex >= 0 && !/^-?\d+$/.test(properties[usersIndex]!.value)) {
+      return json(problem(422, [`properties[${usersIndex}].value`], 'The value must be an integer.'), 422)
+    }
+    if (body.metatypeId === APPLICATION && !properties.some((property) => property.propertyDefId === OWNER)) {
+      return json(problem(422, ['properties'], 'The mandatory property Owner has no value.'), 422)
+    }
+    if (deltas.some((candidate) => candidate.deltaType === 'new' && candidate.metatypeId === body.metatypeId && candidate.name.toLowerCase() === name.toLowerCase())) {
+      return json(problem(422, ['name'], 'A delta already exists for this entity in this solution'), 422)
+    }
+    const created = newDelta(`ae000000-0000-4000-8000-${String(nextDelta++).padStart(12, '0')}`, name, body.metatypeId!, body.description ?? null)
+    deltas.push(created)
+    return json(created, 201)
+  }
   const fetchFn: typeof fetch = async (input, init) => {
     const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, 'http://localhost')
     const method = init?.method ?? 'GET'
@@ -132,6 +267,31 @@ export function solutionApi(
     }
     if (url.pathname === '/api/v1/metamodel/metatypes') {
       return json(METATYPES)
+    }
+    const metatypeDetail = /^\/api\/v1\/metamodel\/metatypes\/([^/]+)$/.exec(url.pathname)
+    if (metatypeDetail) {
+      const found = METATYPES.find((candidate) => candidate.id === decodeURIComponent(metatypeDetail[1]!))
+      return found ? json({ ...found, propertyMappings: found.id === APPLICATION ? APPLICATION_MAPPINGS : [] }) : json(problem(404), 404)
+    }
+    const deltaList = /^\/api\/v1\/solutions\/([^/]+)\/deltas$/.exec(url.pathname)
+    if (deltaList && method === 'GET') {
+      return json({ items: sorted() })
+    }
+    if (deltaList && method === 'POST') {
+      const body = JSON.parse(String(init?.body)) as SolutionDeltaWriteBody
+      deltaPosts.push(body as unknown as Record<string, unknown>)
+      return createDelta(decodeURIComponent(deltaList[1]!), body)
+    }
+    const deltaOne = /^\/api\/v1\/solutions\/([^/]+)\/deltas\/([^/]+)$/.exec(url.pathname)
+    if (deltaOne && method === 'DELETE') {
+      deltaDeletes.push(decodeURIComponent(deltaOne[2]!))
+      if (completedSolution(decodeURIComponent(deltaOne[1]!))) {
+        return json(problem(409, [], 'This solution is completed and can no longer be changed'), 409)
+      }
+      const index = deltas.findIndex((candidate) => candidate.id === decodeURIComponent(deltaOne[2]!))
+      if (index < 0) return json(problem(404), 404)
+      deltas.splice(index, 1)
+      return new Response(null, { status: 204 })
     }
     const baseline = /^\/api\/v1\/solutions\/([^/]+)\/landscape$/.exec(url.pathname)
     if (baseline && method === 'GET') {
@@ -166,5 +326,5 @@ export function solutionApi(
     // the header and the sidebar ask for further data; an empty answer keeps them quiet
     return json([])
   }
-  return { fetch: fetchFn, posts, landscapeQueries }
+  return { fetch: fetchFn, posts, landscapeQueries, deltaPosts, deltaDeletes }
 }

@@ -2,8 +2,9 @@
 
 **ID**: US-042
 **Story Points**: 2
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S11
+**Implementation**: OpenSpec change `us-040-entity-deltas` – `createSolutionDelta` (`solution:write`) with `deltaType=retiring` for an entity of the baseline; the action "Retire" in the baseline of SCR-061. Realigned 2026-11-12
 
 ## Story
 
@@ -31,29 +32,29 @@ As a Solution Architect, I want to be able to mark an existing entity from the I
 
 **AC3** (duplicate check):
 
-- Given: `CRM-Legacy` already has a `new` delta in this solution (would be contradictory)
-- When: Michael tries to additionally mark `CRM-Legacy` as `retiring`
-- Then: validation error "A delta already exists for CRM-Legacy in this solution"
+- Given: `CRM-Legacy` already has a `retiring` delta in this solution
+- When: Michael tries to mark `CRM-Legacy` as `retiring` again (a `modified` delta for it follows with US-041)
+- Then: validation error "A delta already exists for this entity in this solution"
 
 **AC4** (solution implemented):
 
-- Given: Solution has status=`implemented`
+- Given: Solution has status=`implemented` or `archived`
 - When: Michael tries to mark an entity as retiring
 - Then: 409 Conflict "This solution is completed and can no longer be changed"
 
 ## Technical Notes
 
 - Affected components: solution detail view (delta capture, action "Retire" directly in the baseline list), backend `POST /api/v1/solutions/{id}/deltas`
-- Request body: `{ entityId: UUID, deltaType: "retiring" }` – minimal payload, no `changes` map needed
+- Request body: `{ deltaType: "retiring", entityId: integer }` – minimal payload, no `changes` map needed (entity IDs are integers; realigned 2026-11-12)
 - UI: direct action in the baseline list (button or context menu per row); no separate form needed
 
 ## Definition of Done
 
-- [ ] Acceptance criteria AC1–AC4 met
+- [x] Acceptance criteria AC1–AC4 met
 - [ ] Code review by a second person
-- [ ] Tests: create retiring, invalid entityId, duplicate check, solution=implemented blocks
-- [ ] Linter and type checks green
-- [ ] Entered in trace matrix
+- [x] Tests: create retiring, invalid entityId, duplicate check, solution=implemented blocks
+- [x] Linter and type checks green
+- [x] Entered in trace matrix
 
 ## Dependencies
 
@@ -63,3 +64,5 @@ As a Solution Architect, I want to be able to mark an existing entity from the I
 ## Notes
 
 2 SP: minimal backend effort (no `changes` map). UI: direct action in the baseline list is the most natural interaction – Michael sees the entity and marks it with one click. Shared backend endpoint with US-040 and US-041 (`POST /solutions/{id}/deltas`).
+
+- 2026-11-12: implemented by the OpenSpec change `us-040-entity-deltas` (S11 change 2). AC3 realigned: a `new` delta describes a future entity of its own and never one of the baseline, so the duplicate is a second `retiring` delta for the same entity; AC4 also covers `archived` (owner decision 2026-11-12).

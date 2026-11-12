@@ -86,7 +86,7 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 | ID | Screen | Platform | UC Reference | Priority | Status | Image |
 |---|---|---|---|---|---|---|
 | SCR-060 | Solutions (overview of change initiatives; dialog "New solution") | CA+WP | UC-05 | must | `implemented` | [light](./SCR-060-light.png) / [dark](./SCR-060-dark.png) |
-| SCR-061 | Solution (name, status, owner and architecture vision of one solution, and its baseline with search, metatype filter and paging) | CA+WP | UC-05 | must | `implemented` | [light](./SCR-061-light.png) / [dark](./SCR-061-dark.png) |
+| SCR-061 | Solution (name, status, owner and architecture vision of one solution; its changes – new and retiring entities, the dialog "New entity" and "Remove"; and its baseline with search, metatype filter, paging and the action "Retire") | CA+WP | UC-05 | must | `implemented` | [light](./SCR-061-light.png) / [dark](./SCR-061-dark.png) |
 
 ---
 

@@ -171,7 +171,7 @@ public class MetamodelChangeSteps {
 	private static RepositoryInstance.Session lukas() throws Exception {
 		synchronized (MetamodelChangeSteps.class) {
 			if (lukas == null) {
-				lukas = instance().login("dev-architect-metamodel");
+				lukas = instance().sharedLogin("dev-architect-metamodel");
 			}
 			return lukas;
 		}

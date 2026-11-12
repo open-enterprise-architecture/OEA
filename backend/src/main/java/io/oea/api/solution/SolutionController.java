@@ -3,14 +3,22 @@ package io.oea.api.solution;
 import io.oea.api.ContractViolationResponse;
 import io.oea.api.generated.SolutionsApi;
 import io.oea.api.generated.model.PageMeta;
+import io.oea.api.generated.model.PropertyValue;
+import io.oea.api.generated.model.PropertyValueValueRef;
 import io.oea.api.generated.model.PrincipalRef;
 import io.oea.api.generated.model.Solution;
 import io.oea.api.generated.model.SolutionCreate;
+import io.oea.api.generated.model.SolutionDelta;
+import io.oea.api.generated.model.SolutionDeltaList;
+import io.oea.api.generated.model.SolutionDeltaType;
+import io.oea.api.generated.model.SolutionDeltaWrite;
 import io.oea.api.generated.model.SolutionLandscapeEntry;
 import io.oea.api.generated.model.SolutionLandscapePage;
 import io.oea.api.generated.model.SolutionStatus;
 import io.oea.api.generated.model.SolutionSummary;
+import io.oea.app.entity.EntityInput;
 import io.oea.app.security.OeaPrincipal;
+import io.oea.app.solution.SolutionDeltas;
 import io.oea.app.solution.SolutionLandscape;
 import io.oea.app.solution.Solutions;
 import io.oea.config.security.OeaAuthentication;
@@ -22,7 +30,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Creating and reading solutions and their baseline (US-038, US-039). */
+/** Creating and reading solutions, their baseline and their entity deltas (US-038 to US-042). */
 @RestController
 public class SolutionController implements SolutionsApi {
 
@@ -33,9 +41,12 @@ public class SolutionController implements SolutionsApi {
 
 	private final SolutionLandscape landscape;
 
-	public SolutionController(Solutions solutions, SolutionLandscape landscape) {
+	private final SolutionDeltas deltas;
+
+	public SolutionController(Solutions solutions, SolutionLandscape landscape, SolutionDeltas deltas) {
 		this.solutions = solutions;
 		this.landscape = landscape;
+		this.deltas = deltas;
 	}
 
 	@Override
@@ -75,6 +86,64 @@ public class SolutionController implements SolutionsApi {
 				.totalElements(Math.toIntExact(result.totalElements()))
 				.totalPages(result.totalPages()))
 			.nextCursor(result.nextCursor()));
+	}
+
+	@Override
+	@ContractViolationResponse(title = "Invalid delta", detail = "The delta is invalid.")
+	public ResponseEntity<SolutionDelta> createSolutionDelta(UUID id, SolutionDeltaWrite request) {
+		SolutionDeltas.Delta created = this.deltas.create(principal(), id,
+				new SolutionDeltas.NewDelta(
+						(request.getDeltaType() == SolutionDeltaType.NEW) ? SolutionDeltas.Type.NEW
+								: SolutionDeltas.Type.RETIRING,
+						request.getEntityId(), request.getMetatypeId(), request.getName(), request.getDescription(),
+						request.getProperties()
+							.stream()
+							.map((property) -> new EntityInput.PropertyInput(property.getPropertyDefId(),
+									property.getValue()))
+							.toList()));
+		return ResponseEntity.status(201).body(delta(created));
+	}
+
+	@Override
+	public ResponseEntity<SolutionDeltaList> listSolutionDeltas(UUID id) {
+		return ResponseEntity.ok(new SolutionDeltaList()
+			.items(this.deltas.list(principal(), id).stream().map(SolutionController::delta).toList()));
+	}
+
+	@Override
+	public ResponseEntity<Void> deleteSolutionDelta(UUID id, UUID deltaId) {
+		this.deltas.delete(principal(), id, deltaId);
+		return ResponseEntity.noContent().build();
+	}
+
+	private static SolutionDelta delta(SolutionDeltas.Delta delta) {
+		return new SolutionDelta().id(delta.id())
+			.deltaType(SolutionDeltaType.fromValue(delta.type().value()))
+			.entityId(delta.entityId())
+			.name(delta.name())
+			.metatypeId(delta.metatypeId())
+			.metatypeName(delta.metatypeName())
+			.description(delta.description())
+			.properties(delta.properties().stream().map(SolutionController::value).toList())
+			.createdAt(delta.createdAt().atOffset(ZoneOffset.UTC));
+	}
+
+	private static PropertyValue value(SolutionDeltas.Value value) {
+		PropertyValue result = new PropertyValue().propertyDefId(value.propertyDefId())
+			.propertyName(value.propertyName())
+			.dataType(PropertyValue.DataTypeEnum.fromValue(value.dataType()))
+			.redacted(value.redacted());
+		result.valueText(value.text())
+			.valueInt(value.integer())
+			.valueBool(value.bool())
+			.valueDate(value.date())
+			.valueEnum(value.enumValue());
+		if (value.reference() != null) {
+			result.valueRef(new PropertyValueValueRef().id(value.reference().id())
+				.name(value.reference().name())
+				.metatypeAbbr(value.reference().metatypeAbbreviation()));
+		}
+		return result;
 	}
 
 	private static SolutionSummary summary(Solutions.Solution solution) {

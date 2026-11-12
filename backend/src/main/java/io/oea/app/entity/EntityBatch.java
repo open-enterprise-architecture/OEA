@@ -2,7 +2,6 @@ package io.oea.app.entity;
 
 import io.oea.app.metamodel.PropertyAccess;
 import io.oea.app.security.OeaPrincipal;
-import io.oea.app.security.PermissionDeniedException;
 import io.oea.audit.AuditEvent;
 import io.oea.core.entity.EntityStore;
 import io.oea.core.entity.EntityStore.StoredEntity;
@@ -44,11 +43,11 @@ public class EntityBatch {
 
 	private final TransactionTemplate transaction;
 
-	private final PropertyAccess access;
+	private final PropertyWriteAccess writeAccess;
 
 	public EntityBatch(JdbcTemplate jdbc, EntityStore store, EntityWriter writer, Clock clock,
-			EntityBatchProperties properties, PlatformTransactionManager transactionManager, PropertyAccess access) {
-		this.access = access;
+			EntityBatchProperties properties, PlatformTransactionManager transactionManager, PropertyWriteAccess writeAccess) {
+		this.writeAccess = writeAccess;
 		this.jdbc = jdbc;
 		this.store = store;
 		this.writer = writer;
@@ -137,11 +136,11 @@ public class EntityBatch {
 		}
 		List<EntityInput> named = new ArrayList<>(request.entities());
 		request.connections().forEach((connection) -> named.add(connection.entity()));
-		PropertyAccess.Snapshot access = requireWritable(principal, named);
+		PropertyAccess.Snapshot access = this.writeAccess.require(principal, named);
 		Map<Integer, ItemResult> duplicates = duplicates(request.entities());
 		Map<Integer, ItemResult> connectionDuplicates = duplicates(
 				request.connections().stream().map(ConnectionInput::entity).toList());
-		MetatypeRules rules = MetatypeRules.load(this.jdbc, LocalDate.now(this.clock)).forWriter(writer(access));
+		MetatypeRules rules = MetatypeRules.load(this.jdbc, LocalDate.now(this.clock)).forWriter(PropertyWriteAccess.writer(access));
 		EntityWriter.WriteContext context = new EntityWriter.WriteContext(UUID.randomUUID(), request.agent());
 		List<ItemResult> results = request.atomic()
 				? writeAtomically(principal, request, rules, duplicates, connectionDuplicates, context)
@@ -196,46 +195,9 @@ public class EntityBatch {
 	 * Creates one connection in its own transaction (createConnection, us-036-connection-metatypes
 	 * D3); an existing external ID is an error as with {@code create-only}.
 	 */
-	/**
-	 * The access of the writer; a value of a {@code role-restricted} property, set or removed,
-	 * without a write role rejects the whole request before anything is written (403, audited;
-	 * design D3 of us-126-role-restricted-enforcement).
-	 */
-	private PropertyAccess.Snapshot requireWritable(OeaPrincipal principal, List<EntityInput> inputs) {
-		PropertyAccess.Snapshot access = this.access.of(principal);
-		for (EntityInput input : inputs) {
-			for (EntityInput.PropertyInput property : input.properties()) {
-				UUID id = property.propertyDefId();
-				if (id == null || !access.restricted(id)) {
-					continue;
-				}
-				if (access.connectionScoped(id)) {
-					// only an existing entity in the writer's scope (design D6 of us-127-connection-scoped-visibility)
-					Integer entity = (input.externalId() != null) ? this.store.endpointByExternalId(input.externalId())
-						.filter((found) -> !found.deleted())
-						.map(EntityStore.Endpoint::id)
-						.orElse(null) : null;
-					if (entity == null || !access.writableFor(id, entity)) {
-						throw new PermissionDeniedException();
-					}
-				}
-				else if (!access.writable(id)) {
-					throw new PermissionDeniedException();
-				}
-			}
-		}
-		return access;
-	}
-
-	/** Who may write a restricted property of an entity, for the validator (us-126 D3, us-127 D6). */
-	private static java.util.function.BiPredicate<UUID, Integer> writer(PropertyAccess.Snapshot access) {
-		return (property, entity) -> access.connectionScoped(property)
-				? entity != null && access.writableFor(property, entity) : access.writable(property);
-	}
-
 	public ItemResult createConnection(OeaPrincipal principal, ConnectionInput input, AuditEvent.Agent agent) {
-		PropertyAccess.Snapshot access = requireWritable(principal, List.of(input.entity()));
-		MetatypeRules rules = MetatypeRules.load(this.jdbc, LocalDate.now(this.clock)).forWriter(writer(access));
+		PropertyAccess.Snapshot access = this.writeAccess.require(principal, List.of(input.entity()));
+		MetatypeRules rules = MetatypeRules.load(this.jdbc, LocalDate.now(this.clock)).forWriter(PropertyWriteAccess.writer(access));
 		EntityWriter.WriteContext context = new EntityWriter.WriteContext(UUID.randomUUID(), agent);
 		try {
 			return this.transaction.execute((status) -> {

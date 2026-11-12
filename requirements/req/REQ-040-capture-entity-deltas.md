@@ -4,9 +4,9 @@ title: Capture the EntityDeltas of a solution
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.3.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-12
 author: requirements-engineer
 references:
   use_cases:
@@ -30,7 +30,7 @@ superseded_by: []
 
 ## Statement
 
-The system MUST allow the solution architect to capture, edit, and remove EntityDeltas of the types `new`, `modified`, and `retiring` within a solution; solutions with status=`implemented` MUST NOT be modifiable (BR-03). New entities (`deltaType=new`) MUST be creatable both via the **catalog** (form) and via the **diagram** (canvas); in the diagram, a suggestion list with existing components from the current IT landscape MUST be displayed when entering the name.
+The system MUST allow anyone with `solution:write` to capture, edit, and remove EntityDeltas in any solution of the types `new`, `modified`, and `retiring` within a solution; solutions with status=`implemented` or `archived` MUST NOT be modifiable (BR-03; owner decision 2026-11-12). New entities (`deltaType=new`) MUST be creatable both via the **catalog** (form) and via the **diagram** (canvas); in the diagram, a suggestion list with existing components from the current IT landscape MUST be displayed when entering the name.
 
 ## Rationale
 
@@ -38,7 +38,7 @@ EntityDeltas are the core of the architecture vision: they describe precisely wh
 
 ## Context
 
-An `EntityDelta` is a value object (not a business object of its own) and part of the solution. It references either an already existing entity from the IT landscape (`modified`, `retiring`) or describes a new entity that is created for the first time by this solution (`new`). Exactly one delta is allowed per entity and solution (no simultaneous `new` + `retiring` for the same entity).
+An `EntityDelta` is a value object (not a business object of its own) and part of the solution, stored in the tables `entity_deltas` and `entity_delta_property_values`. It references either an already existing entity from the IT landscape (`modified`, `retiring`) or describes a new entity that is created for the first time by this solution (`new`): a `new` delta carries the metatype, name, description and property values of the proposed entity itself, and its entity ID stays null until the go-live (S14) creates the entity (owner decision 2026-11-12). Exactly one delta is allowed per entity and solution (no simultaneous `new` + `retiring` for the same entity).
 
 ## Type-Specific Fields
 
@@ -70,11 +70,13 @@ An `EntityDelta` is a value object (not a business object of its own) and part o
 
 **Processing**:
 
-- BR-03: Solution.status == `implemented` → reject all write access to deltas with 409 Conflict
+- BR-03: Solution.status in (`implemented`, `archived`) → reject all write access to deltas with 409 Conflict
 - Uniqueness check: a solution may have at most one delta per entityId; on duplicate → validation error
 - `modified`/`retiring` validate that the referenced entityId is present in the baseline (REQ-039)
 - `new` needs no reference check against the baseline (entity does not exist yet)
-- Persist the delta as part of the solution (no separate DB record; embedded in the solution or closely linked)
+- `new` is checked like the write of a new entity (metamodel, mandatory properties, property visibility); a second `new` delta with the same metatype and name (case-insensitive) is a duplicate
+- At most 1000 deltas per solution
+- Persist the delta closely linked to the solution (`entity_deltas`, `entity_delta_property_values`)
 
 **Outputs**:
 
@@ -83,7 +85,7 @@ An `EntityDelta` is a value object (not a business object of its own) and part o
 
 **Error Cases**:
 
-- Solution status=`implemented` → 409 Conflict: "This solution is completed and can no longer be modified"
+- Solution status=`implemented` or `archived` → 409 Conflict: "This solution is completed and can no longer be changed"
 - Duplicate delta for the same entityId → validation error: "A delta already exists for this entity in this solution"
 - Unknown entityId for `modified`/`retiring` → validation error: "Entity not found in the current landscape"
 - Missing permission → 403 Forbidden
@@ -110,9 +112,9 @@ An `EntityDelta` is a value object (not a business object of its own) and part o
 
 **AC4**:
 
-- Given: the solution has status=`implemented`
+- Given: the solution has status=`implemented` or `archived`
 - When: Michael tries to add a new delta
-- Then: 409 Conflict with message "This solution is completed and can no longer be modified"
+- Then: 409 Conflict with message "This solution is completed and can no longer be changed"
 
 **AC5**:
 
@@ -145,14 +147,14 @@ An `EntityDelta` is a value object (not a business object of its own) and part o
 
 ## Implementation Notes
 
-- `POST/PUT/DELETE /api/v1/solutions/{id}/deltas`
-- Whether the EntityDelta is stored as an embedded JSON array in the solution or as a separate table with FK is a solution design decision; both are permissible
+- `POST`, `GET` and `DELETE /api/v1/solutions/{id}/deltas` (`createSolutionDelta`, `listSolutionDeltas`, `deleteSolutionDelta`); editing a delta is removal and capture again (realigned 2026-11-12)
+- Stored as separate tables with FK (`entity_deltas`, `entity_delta_property_values`; design D1 of us-040-entity-deltas)
 - `changes` map for `modified`: `{propertyName: {before: any, after: any}}`; the before value can be prefilled automatically from the baseline (UX improvement, not mandatory for MVP)
 
 ## Implementation
 
 - ADR(s): –
-- Implemented by: –
+- Implemented by: OpenSpec change `us-040-entity-deltas` (`new` through the catalog path, `retiring`, removal; `modified` follows with US-041, the diagram path with US-045)
 - Tests: –
 - Verification status: not-verified
 
@@ -162,3 +164,4 @@ An `EntityDelta` is a value object (not a business object of its own) and part o
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft from UC-05 |
 | 0.2.0 | 2026-06-26 | requirements-engineer | Added two creation paths (catalog + diagram); specified diagram name completion with landscape suggestions |
+| 0.3.0 | 2026-11-12 | Change us-040-entity-deltas | `new` and `retiring` implemented: any `solution:write` holder, `new` with property values, removal, `archived` locked as well, at most 1000 deltas (owner decisions 2026-11-12) |

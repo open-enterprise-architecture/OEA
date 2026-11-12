@@ -794,7 +794,36 @@
       "emptyLandscape": "Keine Entitäten in der aktuellen Landschaft – du kannst nur neue Entitäten anlegen",
       "noMatch": "Keine Entität passt zur Suche und zum Filter.",
       "pageInfo": "Seite {page} von {pages} · {entries} Entitäten",
-      "loadFailed": "Die Ausgangslage konnte nicht geladen werden."
+      "loadFailed": "Die Ausgangslage konnte nicht geladen werden.",
+      "retire": "Ausser Betrieb nehmen"
+    },
+    "deltas": {
+      "title": "Änderungen",
+      "intro": "Was diese Initiative an der Landschaft ändert: neue Entitäten und Entitäten, die sie ausser Betrieb nimmt.",
+      "new": "Neue Entität",
+      "newHint": "Eine Entität, die diese Initiative einführt. Sie kommt mit dem Go-live in den Katalog.",
+      "empty": "Noch keine Änderungen.",
+      "type": "Änderung",
+      "types": {
+        "new": "Neu",
+        "retiring": "Ausser Betrieb"
+      },
+      "name": "Name",
+      "metatype": "Metatyp",
+      "description": "Beschreibung",
+      "save": "Zur Lösung hinzufügen",
+      "remove": "Entfernen",
+      "removeTitle": "Änderung entfernen",
+      "removeConfirm": "Die Änderung für {name} aus dieser Lösung entfernen?",
+      "removeFailed": "Die Änderung konnte nicht entfernt werden.",
+      "createFailed": "Die Änderung konnte nicht hinzugefügt werden.",
+      "loadFailed": "Die Änderungen konnten nicht geladen werden.",
+      "invalid": "Der Wert ist ungültig.",
+      "restricted": "Du darfst eine eingeschränkte Eigenschaft nicht setzen. Lass sie leer oder frag eine Person mit der Schreibrolle.",
+      "completed": "Diese Lösung ist abgeschlossen und kann nicht mehr geändert werden.",
+      "metatypesFailed": "Die Metatypen konnten nicht geladen werden.",
+      "propertiesFailed": "Die Eigenschaften des Metatyps konnten nicht geladen werden.",
+      "actions": "Aktionen"
     }
   }
 }

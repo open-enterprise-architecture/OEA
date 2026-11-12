@@ -3,13 +3,16 @@ import { readRejection, RequestRejected, type Rejection } from './problem'
 import { currentCsrfToken } from './session'
 
 // Solutions (UC-05, US-038; design D4 of us-038-create-solution): the overview (SCR-060), one
-// solution (SCR-061) with its baseline (US-039), and creating a solution in project mode.
+// solution (SCR-061) with its baseline (US-039) and its entity deltas (US-040, US-042), and creating
+// a solution in project mode.
 
 export type Solution = components['schemas']['Solution']
 export type SolutionSummary = components['schemas']['SolutionSummary']
 export type SolutionCreate = components['schemas']['SolutionCreate']
 export type SolutionLandscapePage = components['schemas']['SolutionLandscapePage']
 export type SolutionLandscapeEntry = components['schemas']['SolutionLandscapeEntry']
+export type SolutionDelta = components['schemas']['SolutionDelta']
+export type SolutionDeltaWrite = components['schemas']['SolutionDeltaWrite']
 
 /** The parameters of a baseline query (design D4 of us-039-solution-baseline). */
 export interface LandscapeQuery {
@@ -83,4 +86,52 @@ export async function createSolution(
     return { ok: false, rejection: await readRejection(response) }
   }
   return { ok: true, value: (await response.json()) as Solution }
+}
+
+function writeHeaders(): Record<string, string> {
+  const csrfToken = currentCsrfToken()
+  return { ...JSON_HEADERS, 'Content-Type': 'application/json', ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}) }
+}
+
+/** GET /solutions/{id}/deltas: the deltas, `new` before `retiring`, each by name. */
+export async function fetchSolutionDeltas(id: string, fetchFn: typeof fetch = fetch): Promise<SolutionDelta[]> {
+  return (await read<{ items: SolutionDelta[] }>(`${SOLUTIONS}/${encodeURIComponent(id)}/deltas`, fetchFn)).items
+}
+
+/**
+ * POST /solutions/{id}/deltas: a rule violation is `validation-failed` (422) with a message per
+ * field, a restricted value without write access 403, and a completed solution 409.
+ */
+export async function createSolutionDelta(
+  id: string,
+  delta: SolutionDeltaWrite,
+  fetchFn: typeof fetch = fetch,
+): Promise<{ ok: true; value: SolutionDelta } | { ok: false; rejection: Rejection }> {
+  const response = await fetchFn(`${SOLUTIONS}/${encodeURIComponent(id)}/deltas`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: writeHeaders(),
+    body: JSON.stringify(delta),
+  })
+  if (!response.ok) {
+    return { ok: false, rejection: await readRejection(response) }
+  }
+  return { ok: true, value: (await response.json()) as SolutionDelta }
+}
+
+/** DELETE /solutions/{id}/deltas/{deltaId}: 409 for a completed solution. */
+export async function deleteSolutionDelta(
+  id: string,
+  deltaId: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<{ ok: true } | { ok: false; rejection: Rejection }> {
+  const response = await fetchFn(`${SOLUTIONS}/${encodeURIComponent(id)}/deltas/${encodeURIComponent(deltaId)}`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+    headers: writeHeaders(),
+  })
+  if (!response.ok) {
+    return { ok: false, rejection: await readRejection(response) }
+  }
+  return { ok: true }
 }

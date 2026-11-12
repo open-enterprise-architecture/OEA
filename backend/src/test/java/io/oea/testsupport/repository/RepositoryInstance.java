@@ -96,6 +96,8 @@ public final class RepositoryInstance implements AutoCloseable {
 		return raised.toArray(String[]::new);
 	}
 
+	private final Map<String, Session> sharedSessions = new java.util.HashMap<>();
+
 	public OidcTestInstance oidc() {
 		return this.instance;
 	}
@@ -111,6 +113,19 @@ public final class RepositoryInstance implements AutoCloseable {
 	/** `dev-metamodel-admin`, holding `metamodel-admin` (metamodel:write). */
 	public Session metamodelAdmin() {
 		return this.metamodelAdmin;
+	}
+
+	/**
+	 * The session of a user of the development realm, logged in once per instance and shared by all
+	 * features, so that the person is created only once.
+	 */
+	public synchronized Session sharedLogin(String username) throws Exception {
+		Session session = this.sharedSessions.get(username);
+		if (session == null) {
+			session = login(username);
+			this.sharedSessions.put(username, session);
+		}
+		return session;
 	}
 
 	/** Logs in a user of the development realm as an active person; returns the session. */
