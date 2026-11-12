@@ -749,5 +749,40 @@
     "saved": "Die Override-Rollen sind gespeichert.",
     "loadFailed": "Die Override-Rollen konnten nicht geladen werden.",
     "saveFailed": "Die Override-Rollen konnten nicht gespeichert werden."
+  },
+  "solutions": {
+    "title": "Lösungen",
+    "intro": "Veränderungsvorhaben mit ihrer Architekturvision: was jedes erreichen will und was es umfasst.",
+    "new": "Neue Lösung",
+    "newHint": "Lege den Container eines Veränderungsvorhabens an.",
+    "name": "Name",
+    "vision": "Architekturvision",
+    "visionHint": "Ziel, Umfang und Begründung des Vorhabens.",
+    "visionTooLong": "Die Architekturvision darf höchstens {max} Zeichen haben.",
+    "create": "Lösung anlegen",
+    "nameTaken": "Der Name '{name}' ist bereits vergeben",
+    "forbidden": "Du darfst keine Lösungen anlegen. Dafür braucht es die Rolle Solution Architect oder Enterprise Architect.",
+    "createFailed": "Die Lösung konnte nicht angelegt werden.",
+    "loadFailed": "Die Lösungen konnten nicht geladen werden.",
+    "loadOneFailed": "Die Lösung konnte nicht geladen werden.",
+    "noAccess": "Du hast keinen Zugriff auf Lösungen. Bitte eine Administratorin oder einen Administrator um eine Rolle.",
+    "empty": "Noch keine Lösungen",
+    "emptyHint": "Eine Lösung beschreibt ein Veränderungsvorhaben: sein Ziel, seinen Umfang und später die Änderungen an der Landschaft.",
+    "ownedBy": "{owner} · angelegt am {date}",
+    "owner": "Verantwortlich",
+    "createdAt": "Angelegt",
+    "mode": "Modus",
+    "projectMode": "Projektmodus (ohne Plateaus)",
+    "noVision": "Noch keine Architekturvision.",
+    "notFound": "Lösung nicht gefunden",
+    "notFoundHint": "Die Lösung existiert nicht. Vielleicht wurde sie über einen veralteten Link geöffnet.",
+    "status": {
+      "draft": "Entwurf",
+      "proposed": "Vorgeschlagen",
+      "approved": "Genehmigt",
+      "in-progress": "In Umsetzung",
+      "implemented": "Umgesetzt",
+      "archived": "Archiviert"
+    }
   }
 }

@@ -4,9 +4,9 @@ title: Create a solution and describe the architecture vision
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-12
 author: requirements-engineer
 references:
   use_cases:
@@ -127,19 +127,26 @@ An existing solution in status `draft` can be edited further at any time (steps 
 
 ## Implementation Notes
 
-- `POST /api/v1/solutions` (RBAC: solution architect role)
+- `POST /api/v1/solutions` (`createSolution`) with the permission `solution:write` (ADR-032 amendment 2026-11-12); held by the built-in roles `solution-architect` and `enterprise-architect`
 - Render the `fromPlateauId`/`toPlateauId` fields only if the instance is configured in plateau mode (instance-level setting, TBD)
 - Name uniqueness check: case-insensitive, trimmed
+- Realigned by the OpenSpec change `us-038-create-solution`:
+  - "solution architect permission" is the permission `solution:write`; only persons create solutions (the local system admin account gets 403);
+  - a taken name (AC4) and a blank name answer 422 naming `name`, with the detail "Name '{name}' is already taken" for a taken name;
+  - while solutions cannot be archived (S12), the name is unique across all solutions, not only the non-archived ones;
+  - the system navigates to the page of the created solution (SCR-061);
+  - AC2, AC3 and BR-02 (plateau mode) follow with the plateaus in S14
 
 ## Implementation
 
-- ADR(s): –
-- Implemented by: –
-- Tests: –
-- Verification status: not-verified
+- ADR(s): [ADR-032](../../adrs/ADR-032-authorization-model.md) (amendment 2026-11-12)
+- Implemented by: OpenSpec change `us-038-create-solution` (project mode: AC1, AC4, AC5; plateau mode AC2, AC3 in S14)
+- Tests: `SolutionTests`, `features/solution/solution-creation.feature`, `features/solution/solution-overview.feature`, `SolutionsPage.spec.ts`, `SolutionPage.spec.ts`
+- Verification status: partially verified (project mode)
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft from UC-05 |
+| 0.2.0 | 2026-11-12 | Change us-038-create-solution | Project mode implemented; realigned permission, error answers and name rule; plateau mode deferred to S14 |

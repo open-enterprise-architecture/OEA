@@ -697,6 +697,17 @@ A catalog was placed in a folder of the navigation tree or its entry removed ([U
 | Target | `tree-node`, ID of the folder |
 | Details | `itemId`, `itemType` (`catalog`) and `referenceId` (the ID of the catalog) |
 
+### `solution.created`
+
+A solution was created in project mode ([US-038](../requirements/user-stories/US-038-create-solution.md), [REQ-038](../requirements/req/REQ-038-create-solution.md)). Rejected creations (taken or blank name, invalid input, missing permission) are not audited.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the creating person (`solution:write`) |
+| Target | `solution`, ID of the solution |
+| Details | `name` (trimmed) |
+
 ## Planned Event Types
 
 Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.deleted` and further `entity.*`, further `metamodel.*` (connection metatypes, fork).

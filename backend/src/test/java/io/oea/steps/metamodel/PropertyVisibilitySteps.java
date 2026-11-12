@@ -172,7 +172,7 @@ public class PropertyVisibilitySteps {
 		throw new AssertionError("no visibility entry for " + property);
 	}
 
-	static Session securityAdmin() throws Exception {
+	public static Session securityAdmin() throws Exception {
 		synchronized (PropertyVisibilitySteps.class) {
 			if (securityAdmin == null) {
 				instance().oidc().mapping("oea-security-admins", "security-admin");

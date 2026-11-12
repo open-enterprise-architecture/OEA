@@ -18,7 +18,7 @@ class ContractAuthorizationRulesTests {
 		assertThat(rules.rule("listPermissions").allows(Set.of("role:assign"))).isTrue();
 		assertThat(rules.rule("listPermissions").allows(Set.of("entity:read"))).isFalse();
 		assertThat(rules.publicEndpoints()).contains(new ContractAuthorizationRules.PublicEndpoint("GET", "/api/v1/health"));
-		assertThat(rules.permissionDescriptions()).hasSize(21);
+		assertThat(rules.permissionDescriptions()).hasSize(22);
 	}
 
 	@Test

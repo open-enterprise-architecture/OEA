@@ -38,10 +38,11 @@ public class MetatypeEditingSteps {
 	}
 
 	/**
-	 * The instance of the metamodel editing features, also used by OptimisticLockingSteps: every
+	 * The instance of the metamodel editing features, also used by OptimisticLockingSteps and the
+	 * solution features: every
 	 * further running instance holds its own database connections until the end of the run.
 	 */
-	static RepositoryInstance sharedInstance() throws Exception {
+	public static RepositoryInstance sharedInstance() throws Exception {
 		synchronized (MetatypeEditingSteps.class) {
 			if (shared == null) {
 				shared = RepositoryInstance.start();

@@ -104,6 +104,7 @@ x-oea-permissions: [
   {"id": "audit:read", "adminClass": false, "description": "Read, export (SIEM, JSON Lines) and verify the audit log, see resolved actor names and the audit retention, and read the access review"},
   {"id": "metamodel:write", "adminClass": true, "description": "Change the metamodel except visibility fields; metamodel and continuum package import/export; read the audit events of metamodel changes with the names of their actors (US-034)"},
   {"id": "solution-metamodel:write", "adminClass": false, "description": "Create, change and delete metamodel extensions of solutions and maintain their metatypes and property mappings (US-037, REQ-037)"},
+  {"id": "solution:write", "adminClass": false, "description": "Create solutions as containers of change initiatives (US-038, REQ-038)"},
   {"id": "visibility:configure", "adminClass": true, "description": "Change visibilityMode, readRoles, writeRoles, scopingConnectionType and the override role list"},
   {"id": "visibility-scope:assign", "adminClass": true, "description": "Create, change and delete connections of types used as scopingConnectionType"},
   {"id": "role:assign", "adminClass": true, "description": "Define custom roles, assign and revoke roles, approve pending assignments, manage IdP group mappings"},
@@ -117,7 +118,8 @@ x-oea-builtin-roles: [
   {"id": "portal-reader", "assignableToServiceAccounts": false, "permissions": ["portal:read"]},
   {"id": "viewer", "assignableToServiceAccounts": true, "permissions": ["portal:read", "entity:read"]},
   {"id": "analyst", "assignableToServiceAccounts": false, "permissions": ["portal:read", "entity:read", "analytics:query"]},
-  {"id": "enterprise-architect", "assignableToServiceAccounts": false, "permissions": ["portal:read", "entity:read", "entity:write", "entity:delete", "entity:restore", "catalog:manage", "dashboard:manage", "viewpoint:manage", "plateau:go-live", "webhook:manage", "solution-metamodel:write"]},
+  {"id": "enterprise-architect", "assignableToServiceAccounts": false, "permissions": ["portal:read", "entity:read", "entity:write", "entity:delete", "entity:restore", "catalog:manage", "dashboard:manage", "viewpoint:manage", "plateau:go-live", "webhook:manage", "solution-metamodel:write", "solution:write"]},
+  {"id": "solution-architect", "assignableToServiceAccounts": false, "permissions": ["portal:read", "entity:read", "solution:write", "solution-metamodel:write"]},
   {"id": "integration-writer", "assignableToServiceAccounts": true, "permissions": ["entity:read", "entity:write"]},
   {"id": "auditor", "assignableToServiceAccounts": true, "permissions": ["audit:read"]},
   {"id": "metamodel-admin", "assignableToServiceAccounts": false, "permissions": ["metamodel:write", "solution-metamodel:write"]},
@@ -2322,6 +2324,47 @@ components:
         name:       { type: string }
         privileged: { type: boolean }
 
+    SolutionStatus:
+      type: string
+      enum: [draft, proposed, approved, in-progress, implemented, archived]
+      description: Lifecycle status of a solution; creation sets `draft` (transitions follow in S12)
+
+    SolutionCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Unique within the instance (case-insensitive, trimmed); stored trimmed
+        description:
+          type: string
+          maxLength: 2000
+          description: Architecture vision – goal, scope and rationale of the initiative
+
+    SolutionSummary:
+      type: object
+      required: [id, name, status, ownerId, ownerName, createdAt]
+      properties:
+        id:        { type: string, format: uuid }
+        name:      { type: string }
+        status:    { $ref: '#/components/schemas/SolutionStatus' }
+        ownerId:   { type: integer, format: int64, description: "`persons.id` of the responsible person" }
+        ownerName: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    Solution:
+      allOf:
+        - $ref: '#/components/schemas/SolutionSummary'
+        - type: object
+          required: [description, fromPlateauId, toPlateauId, createdBy]
+          properties:
+            description:   { type: [string, 'null'], description: Architecture vision }
+            fromPlateauId: { type: [string, 'null'], format: uuid, description: Baseline plateau; null in project mode (BR-01) }
+            toPlateauId:   { type: [string, 'null'], format: uuid, description: Target plateau; null in project mode (BR-01) }
+            createdBy:     { $ref: '#/components/schemas/PrincipalRef' }
+
     PrincipalRef:
       type: object
       required: [principalType, displayName]
@@ -4236,6 +4279,90 @@ paths:
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  CATALOGS (UC-06, US-046, REQ-043, SCR-020/028)                         ║
   # ╚═════════════════════════════════════════════════════════════════════════╝
+  /solutions:
+    get:
+      operationId: listSolutions
+      summary: Solution overview (US-038, SCR-060)
+      description: |
+        All solutions, ordered by name (case-insensitive), with status, owner and creation
+        time.
+      tags: [Solutions]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      responses:
+        '200':
+          description: All solutions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SolutionSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    post:
+      operationId: createSolution
+      summary: Create a solution in project mode (US-038, REQ-038)
+      description: |
+        Creates a solution with status `draft`; the caller becomes owner and creator, and
+        `fromPlateauId` and `toPlateauId` stay null (project mode; plateau mode follows in
+        S14). The name is unique within the instance, compared case-insensitively after
+        trimming, and stored trimmed. Only persons create solutions; the local system admin
+        account gets 403. Writes the audit event `solution.created`.
+      tags: [Solutions]
+      x-oea-authorization: {"access": "permission", "permissions": ["solution:write"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SolutionCreate' }
+      responses:
+        '201':
+          description: Solution created
+          headers:
+            Location:
+              schema: { type: string }
+              description: URL of the solution
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Solution' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: |
+            A blank name, or a name that is already taken (detail "Name '{name}' is already
+            taken"); problem type `urn:oea:problem:validation-failed` with `invalidFields`
+            naming `name`. Nothing is stored.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /solutions/{id}:
+    get:
+      operationId: getSolution
+      summary: Read a solution (US-038, SCR-061)
+      description: The solution with its architecture vision.
+      tags: [Solutions]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The solution
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Solution' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /catalogs:
     get:
       operationId: listCatalogs
@@ -8944,6 +9071,8 @@ paths:
 tags:
   - name: Catalogs
     description: Catalog definitions – create, list and read (UC-06, US-046) – and the catalog query (US-049)
+  - name: Solutions
+    description: Solutions as containers of change initiatives – create, list and read in project mode (UC-05, US-038)
   - name: Views – Navigation
     description: Navigation tree – reading it and managing its folders and catalog entries (UC-13, US-054); the sidebar of the web portal (SCR-055) and the explorer (SCR-010/011)
   - name: Views – Editors

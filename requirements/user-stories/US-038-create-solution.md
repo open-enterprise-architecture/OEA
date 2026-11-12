@@ -2,8 +2,9 @@
 
 **ID**: US-038
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S10
+**Implementation**: OpenSpec change `us-038-create-solution` – `createSolution`, `listSolutions` and `getSolution` with the permission `solution:write` (built-in roles `solution-architect` and `enterprise-architect`), audited as `solution.created`; the pages SCR-060 (with the dialog "New solution") and SCR-061. AC3 and AC4 (plateau mode) follow with the plateaus in S14
 
 ## Story
 
@@ -56,11 +57,11 @@ As a Solution Architect, I want to be able to create a new solution with a name 
 
 ## Definition of Done
 
-- [ ] Acceptance criteria AC1–AC5 met
+- [x] Acceptance criteria AC1, AC2 and AC5 met (AC3, AC4 follow in S14)
 - [ ] Code review by a second person
-- [ ] Tests: creation (project mode), name collision, BR-01 violation, missing permission
-- [ ] Linter and type checks green
-- [ ] Entered in trace matrix
+- [x] Tests: creation (project mode), name collision, BR-01 as a database check, missing permission
+- [x] Linter and type checks green
+- [x] Entered in trace matrix
 
 ## Dependencies
 
@@ -70,3 +71,5 @@ As a Solution Architect, I want to be able to create a new solution with a name 
 ## Notes
 
 3 SP: simple form with two text fields and optional plateau dropdowns. The main complexity lies in the BR-01 validation and the name uniqueness check. Plateau mode (AC3/AC4) can initially be disabled with a feature flag and enabled in a follow-up story.
+
+- 2026-11-12: implemented in project mode by the OpenSpec change `us-038-create-solution` (S10 change 5). Realigned: the solution architect permission is `solution:write`; the validation errors of AC2 answer 422 naming `name`; without `solution:write` the page "Solutions" lists the solutions but hides "New solution" (AC5), and the API answers 403. The foreign key from metamodel extensions to solutions follows in [#237](https://github.com/open-enterprise-architecture/OEA/issues/237).

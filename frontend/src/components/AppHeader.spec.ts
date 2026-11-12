@@ -60,10 +60,16 @@ describe('AppHeader', () => {
     expect(wrapper.find('[data-testid="header-catalogs"]').exists()).toBe(true)
   })
 
+  // spec solution/solution-overview "Page \"Solutions\"" (us-038-create-solution D4)
+  it('links the solutions for entity:read', async () => {
+    expect((await header(ME_READER)).find('[data-testid="header-solutions"]').exists()).toBe(true)
+  })
+
   it('shows the portal as the only entry to a portal reader', async () => {
     const wrapper = await header(ME_PORTAL_READER)
     expect(wrapper.find('[data-testid="header-portal"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="header-catalogs"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="header-solutions"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="header-metamodel"]').exists()).toBe(false)
   })
 })
