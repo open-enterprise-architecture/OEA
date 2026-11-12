@@ -1,0 +1,1 @@
+import{n as e}from"./rolldown-runtime-sJBDdmOt.js";import{Dt as t,Ot as n,bn as r}from"./iconify-QVcvPoCg.js";import{n as i,r as a}from"./ConfigProvider-CcjHYgEC.js";function o(e,t=`reka`){if(e)return e;let i,o=a({useId:void 0});return i=o.useId?o.useId():`useId`in n?r?.():`${++s}`,t?`${t}-${i}`:i}var s;function c(){return(c=e((()=>{i(),t(),s=0})))()}export{o as n,c as t};
