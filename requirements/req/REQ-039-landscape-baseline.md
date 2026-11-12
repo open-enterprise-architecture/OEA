@@ -141,7 +141,7 @@ The baseline is context-bound: it appears only within a concrete solution and se
 ## Implementation
 
 - ADR(s): –
-- Implemented by: OpenSpec change `us-039-solution-baseline` (project mode: AC1–AC3, AC5, AC6; plateau mode AC4 in S14)
+- Implemented by: OpenSpec change `us-039-solution-baseline`, commit 624c836 (#241) (project mode: AC1–AC3, AC5, AC6; plateau mode AC4 in S14)
 - Tests: `SolutionLandscapeTests`, `SolutionLandscapeLatencyIT`, `features/solution/solution-baseline.feature`, `SolutionPage.spec.ts`
 - Verification status: partially verified (project mode)
 

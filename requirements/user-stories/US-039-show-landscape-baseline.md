@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: done
 **Sprint**: S11
-**Implementation**: OpenSpec change `us-039-solution-baseline` – `getSolutionLandscape` with `entity:read`: the current catalog as the baseline, with search, metatype filter and cursor paging; the area "Baseline" on SCR-061. Realigned 2026-11-12: the baseline in project mode is the current catalog, not the aggregate of implemented solutions
+**Implementation**: OpenSpec change `us-039-solution-baseline`, commit 624c836 (#241) – `getSolutionLandscape` with `entity:read`: the current catalog as the baseline, with search, metatype filter and cursor paging; the area "Baseline" on SCR-061. Realigned 2026-11-12: the baseline in project mode is the current catalog, not the aggregate of implemented solutions
 
 ## Story
 
@@ -74,4 +74,4 @@ As a Solution Architect, I want to see, within a solution, the current state of 
 
 5 SP because of the aggregation logic in the backend (latest-wins, tombstone handling, pagination). The UI is simple (filterable table), but the query logic is not trivial. Separate unit tests for the aggregation function recommended. Plateau mode (baseline from fromPlateau) is specified in REQ-039, but can be implemented in a follow-up story.
 
-- 2026-11-12: implemented by the OpenSpec change `us-039-solution-baseline` (S11 change 1). Realigned (owner decision 2026-11-12): the baseline in project mode is the current catalog, not the aggregate of the deltas of implemented solutions, which do not exist before the go-live (S14); AC1–AC3 and the notice of AC4 follow from it. The actions `modified` and `retiring` follow with US-041 and US-042, which disable them for an empty landscape.
+- 2026-11-12: implemented by the OpenSpec change `us-039-solution-baseline`, commit 624c836 (#241) (S11 change 1). Realigned (owner decision 2026-11-12): the baseline in project mode is the current catalog, not the aggregate of the deltas of implemented solutions, which do not exist before the go-live (S14); AC1–AC3 and the notice of AC4 follow from it. The actions `modified` and `retiring` follow with US-041 and US-042, which disable them for an empty landscape.
