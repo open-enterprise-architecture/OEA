@@ -749,5 +749,40 @@
     "saved": "The override roles are saved.",
     "loadFailed": "The override roles could not be loaded.",
     "saveFailed": "The override roles could not be saved."
+  },
+  "solutions": {
+    "title": "Solutions",
+    "intro": "Change initiatives with their architecture vision: what each one wants to achieve and what it covers.",
+    "new": "New solution",
+    "newHint": "Create the container of a change initiative.",
+    "name": "Name",
+    "vision": "Architecture vision",
+    "visionHint": "Goal, scope and rationale of the initiative.",
+    "visionTooLong": "The architecture vision can have at most {max} characters.",
+    "create": "Create solution",
+    "nameTaken": "Name '{name}' is already taken",
+    "forbidden": "You may not create solutions. Creating one needs the role Solution Architect or Enterprise Architect.",
+    "createFailed": "The solution could not be created.",
+    "loadFailed": "The solutions could not be loaded.",
+    "loadOneFailed": "The solution could not be loaded.",
+    "noAccess": "You have no access to solutions. Ask an administrator for a role.",
+    "empty": "No solutions yet",
+    "emptyHint": "A solution describes a change initiative: its goal, its scope and later the changes to the landscape.",
+    "ownedBy": "{owner} · created {date}",
+    "owner": "Owner",
+    "createdAt": "Created",
+    "mode": "Mode",
+    "projectMode": "Project mode (without plateaus)",
+    "noVision": "No architecture vision yet.",
+    "notFound": "Solution not found",
+    "notFoundHint": "The solution does not exist. It may have been opened from an outdated link.",
+    "status": {
+      "draft": "Draft",
+      "proposed": "Proposed",
+      "approved": "Approved",
+      "in-progress": "In progress",
+      "implemented": "Implemented",
+      "archived": "Archived"
+    }
   }
 }

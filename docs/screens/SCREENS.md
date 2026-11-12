@@ -81,6 +81,15 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 
 ---
 
+## Client App – Solutions
+
+| ID | Screen | Platform | UC Reference | Priority | Status | Image |
+|---|---|---|---|---|---|---|
+| SCR-060 | Solutions (overview of change initiatives; dialog "New solution") | CA+WP | UC-05 | must | `implemented` | [light](./SCR-060-light.png) / [dark](./SCR-060-dark.png) |
+| SCR-061 | Solution (name, status, owner and architecture vision of one solution) | CA+WP | UC-05 | must | `implemented` | [light](./SCR-061-light.png) / [dark](./SCR-061-dark.png) |
+
+---
+
 ## Web Portal – read-only publication
 
 | ID | Screen | Platform | UC Reference | Priority | Status | Image |
@@ -97,7 +106,7 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 ## Overview by Priority
 
 **Must-have** (Walking Skeleton + v1.0 core):
-SCR-001, SCR-002, SCR-003, SCR-004, SCR-005, SCR-010, SCR-011, SCR-012, SCR-020, SCR-021, SCR-022, SCR-025, SCR-026, SCR-028, SCR-030, SCR-031, SCR-032, SCR-033, SCR-034, SCR-037, SCR-038, SCR-050, SCR-051, SCR-052, SCR-055
+SCR-001, SCR-002, SCR-003, SCR-004, SCR-005, SCR-010, SCR-011, SCR-012, SCR-020, SCR-021, SCR-022, SCR-025, SCR-026, SCR-028, SCR-030, SCR-031, SCR-032, SCR-033, SCR-034, SCR-037, SCR-038, SCR-050, SCR-051, SCR-052, SCR-055, SCR-060, SCR-061
 
 **Should-have** (v1.0 extensions):
 SCR-023, SCR-024, SCR-027, SCR-035, SCR-036, SCR-039, SCR-040, SCR-053, SCR-054

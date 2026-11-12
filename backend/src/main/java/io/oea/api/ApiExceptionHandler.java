@@ -15,6 +15,7 @@ import io.oea.app.access.SelfAdministrationException;
 import io.oea.app.access.SodConflictException;
 import io.oea.app.catalog.CatalogQueryTimeoutException;
 import io.oea.app.catalog.InvalidCatalogException;
+import io.oea.app.solution.InvalidSolutionException;
 import io.oea.app.navigation.InvalidTreeException;
 import io.oea.app.catalog.InvalidCatalogQueryException;
 import io.oea.app.entity.AtomicBatchFailedException;
@@ -216,6 +217,14 @@ public class ApiExceptionHandler {
 	@ExceptionHandler(InvalidAccessRequestException.class)
 	ResponseEntity<ProblemDetail> invalidAccessRequest(InvalidAccessRequestException ex) {
 		ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "validation-failed", "Invalid request",
+				ex.getMessage());
+		problem.setProperty("invalidFields", ex.getFields());
+		return ResponseEntity.unprocessableContent().body(problem);
+	}
+
+	@ExceptionHandler(InvalidSolutionException.class)
+	ResponseEntity<ProblemDetail> invalidSolution(InvalidSolutionException ex) {
+		ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "validation-failed", "Invalid solution",
 				ex.getMessage());
 		problem.setProperty("invalidFields", ex.getFields());
 		return ResponseEntity.unprocessableContent().body(problem);

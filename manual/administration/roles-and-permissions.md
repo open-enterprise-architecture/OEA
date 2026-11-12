@@ -16,14 +16,15 @@ Every operation of OEA requires a permission, and permissions come only from rol
 | `portal-reader` | `portal:read` | reading shared content in the portal |
 | `viewer` | `portal:read`, `entity:read` | reading the repository |
 | `analyst` | `viewer` + `analytics:query` | analytics queries |
-| `enterprise-architect` | `viewer` + `entity:write`, `entity:delete`, `entity:restore`, `catalog:manage`, `dashboard:manage`, `viewpoint:manage`, `plateau:go-live`, `webhook:manage`, `solution-metamodel:write` | maintaining the architecture |
+| `enterprise-architect` | `viewer` + `entity:write`, `entity:delete`, `entity:restore`, `catalog:manage`, `dashboard:manage`, `viewpoint:manage`, `plateau:go-live`, `webhook:manage`, `solution-metamodel:write`, `solution:write` | maintaining the architecture |
+| `solution-architect` | `viewer` + `solution:write`, `solution-metamodel:write` | running change initiatives as [solutions](../usage/solutions) |
 | `integration-writer` | `entity:read`, `entity:write` | integrations that write entities |
 | `auditor` | `audit:read` | reading and verifying the audit log |
 | `metamodel-admin` | `metamodel:write`, `solution-metamodel:write` | changing and importing the metamodel |
 | `security-admin` | `visibility:configure`, `visibility-scope:assign`, `role:assign`, `person:manage` | visibility rules, persons and roles |
 | `system-admin` | `role:assign`, `person:manage`, `service-account:manage`, `auth-config:manage`, `settings:manage` | administering the instance |
 
-`solution-metamodel:write` maintains the extensions of solutions and their entity types (see [Extensions of solutions](./metamodel-editing#extensions)); the metamodel of the instance still needs `metamodel:write`.
+`solution-metamodel:write` maintains the extensions of solutions and their entity types (see [Extensions of solutions](./metamodel-editing#extensions)); the metamodel of the instance still needs `metamodel:write`. `solution:write` creates [solutions](../usage/solutions).
 
 The local system admin account holds the role `system-admin`. **Privileged roles** – roles with an admin-class permission (`metamodel:write`, `visibility:configure`, `visibility-scope:assign`, `role:assign`, `person:manage`, `service-account:manage`, `auth-config:manage`, `settings:manage`) – are effective only in a session confirmed with a second factor. For a login through an identity provider, the provider has to report the second factor in `amr`.
 

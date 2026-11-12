@@ -2,7 +2,7 @@
 identifier: solution
 name_de: Lösung / Solution Architecture
 name_en: Solution
-version: 0.2.0
+version: 0.3.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -99,7 +99,6 @@ Solution "Salesforce Introduction" (project mode, no plateau)
 | fromPlateauId | reference | **optional** | null | target: Plateau (status=baseline or transition); null = project mode | Starting state (plateau mode); null = no formal baseline plateau |
 | toPlateauId | reference | **optional** | null | target: Plateau (status=target or transition); null = project mode | Target state (plateau mode); null = no formal target plateau |
 | ownerId | reference | required | | target: person | Responsible person (solution architect) |
-| metamodelExtensionId | reference | optional | null | target: MetamodelConfiguration (scope=solution) | Own metamodel extension; null = only instance default types available |
 | createdAt | datetime | required | | ISO 8601, UTC | Time of creation |
 | createdBy | reference | required | | target: person | Creating person |
 
@@ -110,7 +109,7 @@ Solution "Salesforce Introduction" (project mode, no plateau)
 | startsFrom | [plateau](./plateau.md) | n:0..1 | yes | Starting state (plateau mode only) |
 | targetsTo | [plateau](./plateau.md) | n:0..1 | yes | Target state (plateau mode only) |
 | ownedBy | [person](./person.md) | n:1 | no | Responsible person |
-| hasMetamodelExtension | [metamodel-configuration](./metamodel-configuration.md) | 1:0..1 | yes | Optional metamodel extension |
+| hasMetamodelExtension | [metamodel-configuration](./metamodel-configuration.md) | 1:0..1 | yes | Optional metamodel extension; the extension names its solution (`solutionId`), the solution keeps no pointer of its own |
 | containsDeltas | EntityDelta[] | 1:n | yes | Set of entity changes (new / modified / retiring) |
 
 ### EntityDelta (value object, no BO of its own)
@@ -128,7 +127,7 @@ Solution "Salesforce Introduction" (project mode, no plateau)
 | BR-01 | `fromPlateauId` and `toPlateauId` MUST either **both be set** or **both be null** (no mixed state) | onCreate, onUpdate | – |
 | BR-02 | If both plateau IDs are set: `fromPlateauId` ≠ `toPlateauId`; `toPlateauId.status` must be `target` or `transition` | onCreate, onUpdate | – |
 | BR-03 | A solution with `status=implemented` is read-only | onUpdate | – |
-| BR-04 | `metamodelExtensionId` may only point to a `MetamodelConfiguration` with `scope=solution` | onCreate, onUpdate | – |
+| BR-04 | A `MetamodelConfiguration` naming a solution (`solutionId`) has `scope=solution` | onCreate, onUpdate | – |
 | BR-05 | Entities of a solution are visible to other solutions (basis for collision detection on parallel changes to the same entity) | onRead | – |
 
 ## Lifecycle
@@ -185,7 +184,7 @@ Target P1 (after go-live):
 
 ## Usage in Use Cases
 
-- Future: UC for solution management (create, review process, go-live; project mode and plateau mode)
+- [UC-05](../requirements/use-cases/UC-05-describe-architecture-vision.md) (create a solution and describe its architecture vision, US-038)
 - [UC-04](../requirements/use-cases/UC-04-configure-metamodel.md) (metamodel extension for solution, REQ-037)
 
 ## Notes
@@ -198,3 +197,4 @@ TOGAF reference (plateau mode): "Solution Architecture" in phase E/F. The `Entit
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | Business Engineer | Initial draft |
 | 0.2.0 | 2026-06-25 | Business Engineer | Made `fromPlateauId` + `toPlateauId` optional; introduced project mode (SME); adapted BR-01 (either both set or both null); comparison table of the modes |
+| 0.3.0 | 2026-11-12 | Change us-038-create-solution | Project mode implemented (table `solutions`, V25): name unique case-insensitively after trimming, owner and creator the creating person, BR-01 as a database check; `metamodelExtensionId` removed in favor of the extension's `solutionId`; plateau references without foreign keys until S14 |

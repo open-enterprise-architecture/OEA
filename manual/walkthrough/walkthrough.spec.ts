@@ -239,3 +239,21 @@ test('catalogs', async ({ page }) => {
   await expect(page.getByTestId('catalog-list')).toBeVisible()
   await shoot(page, 'catalogs')
 })
+
+test('solutions', async ({ page }) => {
+  // An architect creates a solution in project mode (manual: usage/solutions; us-038-create-solution)
+  await logInAtKeycloak(page, 'dev-architect')
+  await page.getByTestId('header-solutions').click()
+  await page.getByTestId('solution-new').click()
+  await page.locator('[data-testid="solution-name"] input, input[data-testid="solution-name"]').fill('ERP Extension Logistics')
+  await page
+    .locator('[data-testid="solution-vision"] textarea, textarea[data-testid="solution-vision"]')
+    .fill('Goal: warehouse logistics in the ERP.\nScope: inbound and outbound for DACH; transport planning stays external.')
+  await shoot(page, 'solution-create')
+  await page.getByTestId('solution-save').click()
+  await expect(page.getByTestId('solution-title')).toHaveText('ERP Extension Logistics')
+  await shoot(page, 'solution')
+  await page.getByTestId('solution-back').click()
+  await expect(page.getByTestId('solution-list')).toContainText('ERP Extension Logistics')
+  await shoot(page, 'solutions')
+})

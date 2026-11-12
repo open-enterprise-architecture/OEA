@@ -767,7 +767,7 @@ package "Metamodel" #E8F5E9 {
     .. enum: instance | solution ..
     + parent_id        : UUID             {FK→metamodel_configurations.id}
     + solution_id      : UUID
-    .. set exactly for scope=solution (CHECK, V20); FK→solutions.id follows with solutions (S10) ..
+    .. set exactly for scope=solution (CHECK, V20); still no FK→solutions.id (us-038-create-solution, issue #237) ..
     + name             : TEXT             {NN} {UNIQUE lower(name)}
     .. 1–100 characters; instance: 'Instance metamodel' (V20, us-037-solution-extensions-and-lock-mode) ..
     + version          : INTEGER          {NN} DEFAULT 1
@@ -1016,15 +1016,16 @@ package "Architecture Planning" #E3F2FD {
   class solutions <<Table>> #BBDEFB {
     + id                     : UUID       {PK}
     --
-    + name                   : TEXT       {NN} {UQ}
+    + name                   : TEXT       {NN}
+    .. 1–255 characters, stored trimmed; unique index on lower(name) (V25) ..
     + description            : TEXT
     + status                 : TEXT       {NN} DEFAULT 'draft'
     .. enum: draft | proposed | approved | in-progress | implemented | archived ..
-    + from_plateau_id        : UUID       {FK→plateaus.id}
-    + to_plateau_id          : UUID       {FK→plateaus.id}
+    + from_plateau_id        : UUID
+    + to_plateau_id          : UUID
+    .. FK→plateaus.id follows with plateaus (S14); null in project mode ..
     .. CHECK: from IS NULL = to IS NULL ..
     + owner_id               : BIGINT     {NN} {FK→persons.id}
-    + metamodel_extension_id : UUID       {FK→metamodel_configurations.id}
     + created_at             : TIMESTAMPTZ {NN} DEFAULT NOW()
     + created_by             : BIGINT     {NN} {FK→persons.id}
   }
@@ -1069,7 +1070,7 @@ package "Architecture Planning" #E3F2FD {
   plateaus      "0..1" --o{ "0..*" solutions                   : to_plateau_id
   solutions     "1"    --o{ "0..*" entity_deltas               : contains
   entity_deltas "1"    --o{ "0..*" entity_delta_property_values: details
-  metamodel_configurations "0..1" --o{ "0..*" solutions        : metamodel_extension_id
+  solutions     "0..1" --o{ "0..*" metamodel_configurations    : solution_id (no FK yet)
 
 }
 
@@ -2062,6 +2063,13 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   (four-eyes approval follows with US-150); the override role list is the
 '   flag authorization_roles.overrides_property_visibility.
 '   Reason: US-128, US-151, REQ-128, UC-23 A5.
+' 2026-11-12 (us-038-create-solution):
+'   solutions created by V25 (project mode): description at most 2000
+'   characters, name unique by lower(name) (archiving follows in S12), BR-01 as
+'   a check; the plateau FKs follow with plateaus (S14). metamodel_extension_id
+'   dropped: an extension names its solution in metamodel_configurations.solution_id.
+'   Permission solution:write and built-in role solution-architect added.
+'   Reason: US-038, REQ-038, ADR-032 amendment 2026-11-12.
 ' ─────────────────────────────────────────────────────
 
 @enduml

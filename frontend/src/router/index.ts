@@ -8,6 +8,8 @@ import MetamodelPage from '../pages/MetamodelPage.vue'
 import PropertyVisibilityPage from '../pages/PropertyVisibilityPage.vue'
 import OverrideRolesPage from '../pages/OverrideRolesPage.vue'
 import AuthorizationRolesPage from '../pages/AuthorizationRolesPage.vue'
+import SolutionPage from '../pages/SolutionPage.vue'
+import SolutionsPage from '../pages/SolutionsPage.vue'
 import PortalCatalogPage from '../pages/PortalCatalogPage.vue'
 import PortalPage from '../pages/PortalPage.vue'
 import ProfilePage from '../pages/ProfilePage.vue'
@@ -36,6 +38,8 @@ export const router = createRouter({
     { path: '/admin/property-visibility', name: 'property-visibility', component: PropertyVisibilityPage },
     { path: '/admin/override-roles', name: 'override-roles', component: OverrideRolesPage },
     { path: '/admin/roles', name: 'authorization-roles', component: AuthorizationRolesPage },
+    { path: '/solutions', name: 'solutions', component: SolutionsPage },
+    { path: '/solutions/:id', name: 'solution', component: SolutionPage, props: true },
   ],
 })
 

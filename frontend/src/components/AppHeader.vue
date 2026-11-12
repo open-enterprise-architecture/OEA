@@ -13,7 +13,8 @@ const { t } = useI18n()
 // the sidebar with the navigation tree needs entity:read; on narrow screens this button opens it (SCR-055)
 const canSeeTree = computed(() => (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read'))
 
-// the portal needs portal:read, the catalogs entity:read (design D7 of s9-portal-catalogs)
+// the portal needs portal:read, the catalogs entity:read (design D7 of s9-portal-catalogs), and
+// the solutions entity:read as well (design D4 of us-038-create-solution)
 const canSeePortal = computed(() => (session.me?.permissions ?? []).some((entry) => entry.permission === 'portal:read'))
 
 // SCR-032 needs visibility:configure (design D5 of us-124-property-visibility)
@@ -60,6 +61,7 @@ async function logOut() {
       <template v-if="session.me">
         <RouterLink v-if="canSeePortal" to="/portal" data-testid="header-portal">{{ t('portal.title') }}</RouterLink>
         <RouterLink v-if="canSeeTree" to="/catalogs" data-testid="header-catalogs">{{ t('catalogs.title') }}</RouterLink>
+        <RouterLink v-if="canSeeTree" to="/solutions" data-testid="header-solutions">{{ t('solutions.title') }}</RouterLink>
         <RouterLink v-if="canSeeMetamodel" to="/metamodel" data-testid="header-metamodel">{{ t('metamodel.title') }}</RouterLink>
         <RouterLink v-if="canConfigureVisibility" to="/admin/property-visibility" data-testid="header-visibility">{{
           t('visibility.title')

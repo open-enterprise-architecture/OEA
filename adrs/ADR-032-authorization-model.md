@@ -7,7 +7,7 @@
 **Informed**: Business Engineer (data model follow-up), Backend Engineer, Frontend Engineer
 **Partially supersedes**: [ADR-006](./ADR-006-auth-stack-choice.md) (follow-up "claim mapping conventions to OEA roles"), [ADR-008](./ADR-008-gui-architecture-dual-track.md) (portal access "without login effort"), [ADR-026](./ADR-026-external-system-integration.md) (Security section: service account roles, "Entities – Write" role requirement) – see [Relation to Existing ADRs](#relation-to-existing-adrs)
 **Partially superseded**: 2026-10-15 by [ADR-042](./ADR-042-setup-phase-without-second-factor.md) — SoD-8 does not apply to the local system admin account during the setup phase
-**Amended**: 2026-11-04 – new permission `solution-metamodel:write`, see [Amendment 2026-11-04](#amendment-2026-11-04-solution-metamodelwrite); 2026-11-05 – `metamodel:write` reads the metamodel changes, see [Amendment 2026-11-05](#amendment-2026-11-05-metamodelwrite-reads-the-metamodel-changes)
+**Amended**: 2026-11-04 – new permission `solution-metamodel:write`, see [Amendment 2026-11-04](#amendment-2026-11-04-solution-metamodelwrite); 2026-11-05 – `metamodel:write` reads the metamodel changes, see [Amendment 2026-11-05](#amendment-2026-11-05-metamodelwrite-reads-the-metamodel-changes); 2026-11-12 – new permission `solution:write` and built-in role `solution-architect`, see [Amendment 2026-11-12](#amendment-2026-11-12-solutionwrite-and-the-role-solution-architect)
 
 ## Context and Problem
 
@@ -177,6 +177,7 @@ Permissions are stable identifiers of the form `<resource>:<action>`. The catalo
 | `audit:read` | Read and export the audit log (incl. SIEM export) | no |
 | `metamodel:write` | Change the metamodel: metatypes, property definitions (except visibility fields), connection types, business rules (ADR-018), metamodel labels, metamodel and continuum package import/export; read the audit events of metamodel changes with the names of their actors (amendment 2026-11-05) | **yes** |
 | `solution-metamodel:write` | Create, change and delete metamodel extensions of solutions and maintain their metatypes and property mappings (US-037, REQ-037; amendment 2026-11-04) | no |
+| `solution:write` | Create solutions as containers of change initiatives (US-038, REQ-038; amendment 2026-11-12) | no |
 | `visibility:configure` | Change `visibilityMode`, `readRoles`, `writeRoles`, `scopingConnectionType` and the override role list (REQ-124, REQ-128, REQ-161) | **yes** |
 | `visibility-scope:assign` | Create, change and delete connections of types used as `scopingConnectionType` (REQ-161) | **yes** |
 | `role:assign` | Define custom roles, assign and revoke roles, manage IdP group mappings | **yes** |
@@ -195,31 +196,32 @@ Notes:
 
 Built-in roles are shipped with the system, cannot be deleted and their permission sets cannot be changed. There is no role hierarchy; a person who needs several kinds of access receives several roles (e.g. Kurt: `enterprise-architect` + `metamodel-admin`). Administrative roles deliberately contain no content permissions.
 
-| Permission | portal-reader | viewer | analyst | enterprise-architect | integration-writer | auditor | metamodel-admin | security-admin | system-admin |
-|---|---|---|---|---|---|---|---|---|---|
-| `portal:read` | x | x | x | x | | | | | |
-| `entity:read` | | x | x | x | x | | | | |
-| `entity:write` | | | | x | x | | | | |
-| `entity:delete` | | | | x | | | | | |
-| `entity:restore` | | | | x | | | | | |
-| `catalog:manage` | | | | x | | | | | |
-| `dashboard:manage` | | | | x | | | | | |
-| `viewpoint:manage` | | | | x | | | | | |
-| `plateau:go-live` | | | | x | | | | | |
-| `webhook:manage` | | | | x | | | | | |
-| `analytics:query` | | | x | | | | | | |
-| `audit:read` | | | | | | x | | | |
-| `metamodel:write` | | | | | | | x | | |
-| `solution-metamodel:write` | | | | x | | | x | | |
-| `visibility:configure` | | | | | | | | x | |
-| `visibility-scope:assign` | | | | | | | | x | |
-| `role:assign` | | | | | | | | x | x |
-| `person:manage` | | | | | | | | x | x |
-| `service-account:manage` | | | | | | | | | x |
-| `auth-config:manage` | | | | | | | | | x |
-| `settings:manage` | | | | | | | | | x |
-| **Privileged (MFA, REQ-171)** | no | no | no | no | no | no | **yes** | **yes** | **yes** |
-| **Assignable to service accounts** | no | yes | no | no | yes | yes | no | no | no |
+| Permission | portal-reader | viewer | analyst | enterprise-architect | solution-architect | integration-writer | auditor | metamodel-admin | security-admin | system-admin |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `portal:read` | x | x | x | x | x | | | | | |
+| `entity:read` | | x | x | x | x | x | | | | |
+| `entity:write` | | | | x | | x | | | | |
+| `entity:delete` | | | | x | | | | | | |
+| `entity:restore` | | | | x | | | | | | |
+| `catalog:manage` | | | | x | | | | | | |
+| `dashboard:manage` | | | | x | | | | | | |
+| `viewpoint:manage` | | | | x | | | | | | |
+| `plateau:go-live` | | | | x | | | | | | |
+| `webhook:manage` | | | | x | | | | | | |
+| `analytics:query` | | | x | | | | | | | |
+| `audit:read` | | | | | | | x | | | |
+| `metamodel:write` | | | | | | | | x | | |
+| `solution-metamodel:write` | | | | x | x | | | x | | |
+| `solution:write` | | | | x | x | | | | | |
+| `visibility:configure` | | | | | | | | | x | |
+| `visibility-scope:assign` | | | | | | | | | x | |
+| `role:assign` | | | | | | | | | x | x |
+| `person:manage` | | | | | | | | | x | x |
+| `service-account:manage` | | | | | | | | | | x |
+| `auth-config:manage` | | | | | | | | | | x |
+| `settings:manage` | | | | | | | | | | x |
+| **Privileged (MFA, REQ-171)** | no | no | no | no | no | no | no | **yes** | **yes** | **yes** |
+| **Assignable to service accounts** | no | yes | no | no | no | yes | yes | no | no | no |
 
 Role intent:
 
@@ -227,6 +229,7 @@ Role intent:
 - `viewer` – read access to the whole repository (domain architects in consumption role).
 - `analyst` – viewer plus raw analytics (REQ-179).
 - `enterprise-architect` – modeling in the client app (SH-03, SH-04, SH-08).
+- `solution-architect` – running change initiatives: creating solutions and trying out types in their metamodel extensions, reading the repository, without changing the shared landscape directly (SH-04; amendment 2026-11-12).
 - `integration-writer` – service accounts that write via the external write API (ADR-026).
 - `auditor` – audit log and SIEM export; combined with `viewer` when content context is needed.
 - `metamodel-admin` – metamodel configuration (UC-04; e.g. SH-07 Sabine, SH-03 Kurt).
@@ -440,6 +443,18 @@ The business engineer updates `docs/data-model.puml` and the business objects; t
 - `metamodel:write` includes reading the audit events of the `metamodel.*` family, with the names of their actors, through `GET /metamodel/changes`. It gives no access to other audit events.
 - `audit:read` is unchanged and still covers the whole audit log, its export and its verification.
 - No role changes; the permission stays admin-class.
+
+## Amendment 2026-11-12: `solution:write` and the role `solution-architect`
+
+**Reason.** US-038 and REQ-038 let a solution architect create a solution, the container of a change initiative, and require a "solution architect permission" that the catalog did not have. `entity:write` changes the shared landscape directly; a person who runs initiatives does not need it, and a writer of the landscape is not automatically the owner of initiatives. The owner decided on 2026-11-12 to add a separate permission and a built-in role (change us-038-create-solution, design D1).
+
+**Change.**
+
+- New permission `solution:write`, not admin-class: create solutions. Later operations on solutions (editing, status transitions, deltas; S11, S12) are expected to use it as well and are decided with them.
+- The built-in role `enterprise-architect` gets it; it stays unprivileged.
+- New built-in role `solution-architect` with `portal:read`, `entity:read`, `solution:write` and `solution-metamodel:write`; not privileged, not assignable to service accounts (§4).
+- Reading solutions needs `entity:read`, like other EA content.
+- No SoD rule changes; the permission is not admin-class.
 
 ## Notes
 

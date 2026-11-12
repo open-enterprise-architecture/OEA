@@ -75,7 +75,7 @@ class IdentitySchemaTests {
 		Map<String, Boolean> dbPermissions = new TreeMap<>();
 		query("SELECT id || '=' || admin_class FROM permissions")
 			.forEach((row) -> dbPermissions.put(row.split("=")[0], Boolean.parseBoolean(row.split("=")[1])));
-		assertThat(dbPermissions).hasSize(21).isEqualTo(contractPermissions);
+		assertThat(dbPermissions).hasSize(22).isEqualTo(contractPermissions);
 
 		Set<String> contractRoles = new TreeSet<>();
 		contract.path("x-oea-builtin-roles").forEach((role) -> {
@@ -86,7 +86,7 @@ class IdentitySchemaTests {
 				"SELECT id || '|service=' || assignable_to_service_accounts FROM authorization_roles WHERE is_builtin"));
 		dbRoles.addAll(query("SELECT role_id || '>' || permission_id FROM role_permissions"));
 		assertThat(dbRoles).isEqualTo(contractRoles);
-		assertThat(query("SELECT count(*)::text FROM authorization_roles")).containsExactly("9");
+		assertThat(query("SELECT count(*)::text FROM authorization_roles")).containsExactly("10");
 	}
 
 	@Test

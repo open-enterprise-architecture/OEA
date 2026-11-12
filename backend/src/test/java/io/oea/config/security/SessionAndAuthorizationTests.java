@@ -157,7 +157,7 @@ class SessionAndAuthorizationTests {
 		assertThat(get("/api/v1/admin/permissions", admin)).hasStatus(HttpStatus.OK)
 			.bodyJson()
 			.extractingPath("$.length()")
-			.isEqualTo(21);
+			.isEqualTo(22);
 		assertThat(get("/api/v1/admin/permissions", admin)).bodyJson()
 			.extractingPath("$[?(@.adminClass == true)].id")
 			.asArray()
@@ -168,7 +168,7 @@ class SessionAndAuthorizationTests {
 			.extractingPath("$[*].id")
 			.asArray()
 			.containsExactlyInAnyOrder("portal-reader", "viewer", "analyst", "enterprise-architect",
-					"integration-writer", "auditor", "metamodel-admin", "security-admin", "system-admin");
+					"solution-architect", "integration-writer", "auditor", "metamodel-admin", "security-admin", "system-admin");
 	}
 
 	private MvcTestResult get(String uri, TestSession session) {
