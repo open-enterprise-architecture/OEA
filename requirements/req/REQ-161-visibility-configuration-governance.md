@@ -104,7 +104,7 @@ every such change -> audit event; if the change benefits the actor -> flag selfB
 
 - Four-eyes approval for self-benefiting changes (concept §20.11) is a possible extension; not required by this REQ
 - AC1, AC2 and AC4 implemented by OpenSpec change `us-124-property-visibility`, commit db91ffb (#210): `PUT /admin/property-visibility` needs `visibility:configure`; `createConnection` and `batchWriteEntities` need `visibility-scope:assign` for a connection of a metatype that is a `scopingConnectionType` (the whole batch is rejected with 403, the denial audited); `visibility.changed` is flagged `selfBenefiting` when a role the actor holds is added. AC3 (override list) follows with US-128
-- AC3 implemented by the OpenSpec change `us-128-override-role-list`: the override role list needs `visibility:configure`; `visibility.override-changed` names the old and new list and is flagged `selfBenefiting` when a role the actor holds is added
+- AC3 implemented by the OpenSpec change `us-128-override-role-list`, commit ae59e44 (#234): the override role list needs `visibility:configure`; `visibility.override-changed` names the old and new list and is flagged `selfBenefiting` when a role the actor holds is added
 
 ## Change History
 

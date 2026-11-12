@@ -210,9 +210,9 @@ Trace: US-049 AC3, US-049 AC5, ADR-044
 
 ### Requirement: Visibility of the query result
 
-Querying a catalog SHALL require `entity:read`; another person's personal catalog SHALL be answered with 404, like a catalog that does not exist. Soft-deleted entities SHALL NOT be returned. A column on a property the caller cannot read SHALL be returned as not readable and not sortable, with empty values in every row and every join result, and the totals SHALL not depend on it.
+Querying a catalog SHALL require `entity:read`; another person's personal catalog SHALL be answered with 404, like a catalog that does not exist. Soft-deleted entities SHALL NOT be returned. A column on a property the caller cannot read SHALL be unreadable and unsortable, empty in every row and join result, and SHALL not change the totals. An override role holder SHALL read every column.
 
-Trace: US-049, REQ-043 AC4, ADR-019, ADR-032, US-126 AC4, REQ-160 AC2, #68
+Trace: US-049, REQ-043 AC4, ADR-019, ADR-032, US-126 AC4, REQ-160 AC2, #68, US-128 AC1, REQ-128 AC1
 
 #### Scenario: Personal catalog of another person
 
@@ -245,6 +245,12 @@ Trace: US-049, REQ-043 AC4, ADR-019, ADR-032, US-126 AC4, REQ-160 AC2, #68
 - **GIVEN** `securityClassification` is `connection-scoped`
 - **WHEN** Kurt, whose account has no link, queries a catalog with a column on it
 - **THEN** the column is not readable and has no values
+
+#### Scenario: Override role
+
+- **GIVEN** the override role list contains `migration-support`
+- **WHEN** Anna, holding `viewer` and `migration-support`, queries the catalog with `sort=investmentCost:desc`
+- **THEN** the column is readable and sortable, every row shows its value, and the read is audited as `property-override-access`
 
 ### Requirement: Next page through a cursor
 

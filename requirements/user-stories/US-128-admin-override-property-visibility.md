@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S10
-**Implementation**: OpenSpec change `us-128-override-role-list` – the override role list on the page SCR-040 (`getPropertyVisibilityOverride`, `updatePropertyVisibilityOverride`, `visibility:configure`); AC1 and AC4 through the catalog and portal query, AC2 as one `property-override-access` event per query (realigned, see Notes), AC3 audited as `visibility.override-changed` and effective at once, AC5 by the empty default list
+**Implementation**: OpenSpec change `us-128-override-role-list`, commit ae59e44 (#234) – the override role list on the page SCR-040 (`getPropertyVisibilityOverride`, `updatePropertyVisibilityOverride`, `visibility:configure`); AC1 and AC4 through the catalog and portal query, AC2 as one `property-override-access` event per query (realigned, see Notes), AC3 audited as `visibility.override-changed` and effective at once, AC5 by the empty default list
 
 ## Story
 

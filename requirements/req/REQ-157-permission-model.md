@@ -138,7 +138,7 @@ Owner decision Q13 (2026-10-13): one person may hold `metamodel-admin` and `secu
 
 - The `roles` table (system-managed) and business roles as EA content must be distinguishable in the data model; follow-up for the business engineer (`business-objects/role.md` currently has `permissionLevel: read|write|admin` without a resource list) – specified in ADR-032 DM-1 to DM-5
 - `portal-reader` is referenced in `api/openapi.yaml` but not defined in the data model (ADR-032 DM-3, API-3)
-- Custom roles (AC3) implemented by the OpenSpec change `us-128-override-role-list` (US-151): `createAuthorizationRole` with `role:assign`; the contract requires the permission list, and an empty list grants no permissions; SoD-2 (AC4 at role level) and SoD-4 are checked on creation (422)
+- Custom roles (AC3) implemented by the OpenSpec change `us-128-override-role-list`, commit ae59e44 (#234) (US-151): `createAuthorizationRole` with `role:assign`; the contract requires the permission list, and an empty list grants no permissions; SoD-2 (AC4 at role level) and SoD-4 are checked on creation (422)
 
 ## Change History
 
