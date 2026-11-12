@@ -4,7 +4,7 @@
 **Story Points**: 2
 **Status**: done
 **Sprint**: S11
-**Implementation**: OpenSpec change `us-040-entity-deltas` – `createSolutionDelta` (`solution:write`) with `deltaType=retiring` for an entity of the baseline; the action "Retire" in the baseline of SCR-061. Realigned 2026-11-12
+**Implementation**: OpenSpec change `us-040-entity-deltas`, commit 98664b3 (#244) – `createSolutionDelta` (`solution:write`) with `deltaType=retiring` for an entity of the baseline; the action "Retire" in the baseline of SCR-061. Realigned 2026-11-12
 
 ## Story
 
@@ -65,4 +65,4 @@ As a Solution Architect, I want to be able to mark an existing entity from the I
 
 2 SP: minimal backend effort (no `changes` map). UI: direct action in the baseline list is the most natural interaction – Michael sees the entity and marks it with one click. Shared backend endpoint with US-040 and US-041 (`POST /solutions/{id}/deltas`).
 
-- 2026-11-12: implemented by the OpenSpec change `us-040-entity-deltas` (S11 change 2). AC3 realigned: a `new` delta describes a future entity of its own and never one of the baseline, so the duplicate is a second `retiring` delta for the same entity; AC4 also covers `archived` (owner decision 2026-11-12).
+- 2026-11-12: implemented by the OpenSpec change `us-040-entity-deltas`, commit 98664b3 (#244) (S11 change 2). AC3 realigned: a `new` delta describes a future entity of its own and never one of the baseline, so the duplicate is a second `retiring` delta for the same entity; AC4 also covers `archived` (owner decision 2026-11-12).
