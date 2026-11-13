@@ -135,7 +135,7 @@ The diff view shows **only affected entities** (no complete landscape dump).
 ## Implementation
 
 - ADR(s): –
-- Implemented by: OpenSpec change `us-043-diff-view`
+- Implemented by: OpenSpec change `us-043-diff-view`, commit 8aca0d0 (#250)
 - Tests: –
 - Verification status: not-verified
 
