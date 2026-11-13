@@ -28,6 +28,7 @@ OEA besteht aus einer PostgreSQL-Datenbank, einem einmaligen Migrationsschritt u
    | `OEA_KEK_FILE` | Pfad der Datei mit dem Key-Encryption-Key |
    | `OEA_HTTP_BIND`, `OEA_HTTP_PORT` | optional: veröffentlichte Adresse, Standard `127.0.0.1:8080` |
    | `OEA_LOG_FORMAT` | optional: `ecs`, `logstash` oder `gelf` für JSON-Logs, Standard ist Klartext (siehe [Log-Format](../administration/operations#log-format)) |
+   | `OEA_TRUSTED_PROXIES` | optional: Adressen deiner Reverse Proxys, Standard sind Loopback und die privaten Netze (siehe [Reverse Proxy](#reverse-proxy)) |
 
 2. Erzeuge den Key-Encryption-Key. Er verschlüsselt gespeicherte Geheimnisse (zweite Faktoren, Client-Secrets von Identity-Providern). Bewahre ihn außerhalb der Datenbank-Backups auf:
 
@@ -57,6 +58,46 @@ Weiter geht es mit dem [ersten Administrator](./first-administrator).
 ::: warning Öffentlicher Zugriff
 Mach die Instanz nicht aus dem Internet erreichbar, bevor die Setup-Phase beendet ist (siehe [Erster Administrator](./first-administrator)). Stell einen Reverse Proxy mit TLS vor OEA: Das Portal braucht `https`, weil das Session-Cookie `Secure` ist und das Backend `Strict-Transport-Security` sendet. Setze die öffentliche Adresse mit `OEA_WEB_PUBLIC_URL` (`https`), bevor du einen Identity-Provider anbindest.
 :::
+
+## Reverse Proxy
+
+OEA übernimmt die Adresse des Clients, das Schema und den Host aus Headern, die der Reverse Proxy setzt. Es braucht sie, um fehlgeschlagene Anmeldungen pro Client zu drosseln, die Client-Adresse im Audit-Trail festzuhalten und den `Origin` von Änderungen mit der öffentlichen Adresse zu vergleichen. Dein Proxy muss diese Header bei jeder Anfrage setzen und jeden Wert überschreiben, den der Client geschickt hat:
+
+| Header | Wert |
+|---|---|
+| `X-Forwarded-For` | Adresse des Clients; anhängen, wenn der Header schon existiert |
+| `X-Forwarded-Proto` | `https` |
+| `X-Forwarded-Host` | öffentlicher Hostname, zum Beispiel `oea.example.org` |
+| `X-Forwarded-Port` | öffentlicher Port; bei 443 weglassen |
+
+OEA beachtet diese Header nur, wenn die Anfrage von einem vertrauten Proxy kommt. Standardmäßig vertraut es Loopback (`127.0.0.0/8`, `::1`) und den privaten Netzen (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`, `169.254.0.0/16`, `fc00::/7`, `fe80::/10`). Das deckt einen Proxy auf demselben Host wie das Compose-Setup ab, der über das Gateway des Compose-Netzes verbindet. Von jeder anderen Adresse werden die Header ignoriert.
+
+Wenn Clients den Backend-Port direkt aus einem privaten Netz erreichen, schränke die Liste mit `OEA_TRUSTED_PROXIES` ein, einer kommagetrennten Liste von Adressen oder CIDR-Bereichen deiner Proxys:
+
+```bash
+OEA_TRUSTED_PROXIES=172.18.0.1/32,10.20.0.5
+```
+
+Ein ungültiger Wert verhindert den Start, und das Log nennt `OEA_TRUSTED_PROXIES`.
+
+Eine minimale nginx-Konfiguration:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name oea.example.org;
+    # ssl_certificate und ssl_certificate_key deines Zertifikats
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port 443;
+    }
+}
+```
 
 ## Eigenes PostgreSQL
 

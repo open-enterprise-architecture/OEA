@@ -1,6 +1,6 @@
 package io.oea.audit.verify;
 
-import io.oea.config.startup.ConfigurationGuards;
+import io.oea.infrastructure.guards.ConfigurationGuards;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.sql.Connection;

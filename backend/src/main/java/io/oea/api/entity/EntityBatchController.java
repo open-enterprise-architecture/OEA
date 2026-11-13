@@ -1,5 +1,6 @@
 package io.oea.api.entity;
 
+import io.oea.api.BatchValidationErrors;
 import io.oea.api.ContractViolationResponse;
 import io.oea.api.generated.EntitiesWriteApi;
 import io.oea.api.generated.model.BatchWriteItemResult;
@@ -11,7 +12,6 @@ import io.oea.api.generated.model.ConnectionEndpoint;
 import io.oea.api.generated.model.ConnectionWrite;
 import io.oea.api.generated.model.EntityWrite;
 import io.oea.api.generated.model.MetatypeSummary;
-import io.oea.api.generated.model.ValidationError;
 import io.oea.app.entity.ConnectionInput;
 import io.oea.app.entity.ConnectionRejectedException;
 import io.oea.app.entity.EntityBatch;
@@ -142,16 +142,12 @@ public class EntityBatchController implements EntitiesWriteApi {
 					: BatchWriteItemResult.ItemTypeEnum.ENTITY)
 			.id(item.entityId())
 			.externalId(item.externalId())
-			.errors(item.errors().stream().map(EntityBatchController::validationError).toList())
-			.warnings(item.warnings().stream().map(EntityBatchController::validationError).toList());
+			.errors(item.errors().stream().map(BatchValidationErrors::validationError).toList())
+			.warnings(item.warnings().stream().map(BatchValidationErrors::validationError).toList());
 		if (!item.errors().isEmpty()) {
 			result.error(item.errors().stream().map(Issue::message).collect(Collectors.joining(" ")));
 		}
 		return result;
-	}
-
-	public static ValidationError validationError(Issue issue) {
-		return new ValidationError(issue.field(), issue.message()).code(issue.code());
 	}
 
 	/**

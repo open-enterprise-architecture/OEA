@@ -3,6 +3,7 @@ package io.oea.app.access;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
 import io.oea.app.security.SetupPhase;
+import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
 import io.oea.core.domain.auth.AuthProvider;

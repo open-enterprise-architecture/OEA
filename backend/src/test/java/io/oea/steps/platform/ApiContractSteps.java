@@ -61,6 +61,24 @@ public class ApiContractSteps {
 		this.response = shared.post("/api/v1/analytics/query", "{}", shared.viewer(), Map.of());
 	}
 
+	@When("a caller without session requests the own profile with only a bearer token")
+	public void bearerOnly() throws Exception {
+		this.response = shared.oidc()
+			.send(HttpRequest.newBuilder(URI.create(shared.oidc().url() + "/api/v1/me"))
+				.header("Authorization", "Bearer abc")
+				.GET());
+	}
+
+	@When("the enterprise architect requests the own profile with the session cookie")
+	public void ownProfile() throws Exception {
+		this.response = shared.oidc().get("/api/v1/me", shared.architect().token());
+	}
+
+	@Then("the request is answered with {int}")
+	public void requestAnswered(int status) {
+		assertThat(this.response.statusCode()).as(this.response.body()).isEqualTo(status);
+	}
+
 	@Then("the planned operation is answered with {int} and the problem type {string}")
 	public void answeredWithType(int status, String type) throws Exception {
 		answered(status);

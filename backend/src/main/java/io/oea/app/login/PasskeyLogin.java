@@ -4,7 +4,7 @@ import io.oea.app.access.PasswordPolicies;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
-import io.oea.config.webauthn.PasskeyRejectedException;
+import io.oea.infrastructure.webauthn.PasskeyRejectedException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;

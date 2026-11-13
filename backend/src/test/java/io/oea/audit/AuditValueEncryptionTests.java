@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import io.oea.audit.verify.AuditVerifyCommand;
-import io.oea.config.secrets.KekProperties;
-import io.oea.config.secrets.KeyRing;
 import io.oea.config.secrets.ReencryptCommand;
-import io.oea.config.secrets.SecretCipher;
+import io.oea.infrastructure.secrets.KekProperties;
+import io.oea.infrastructure.secrets.KeyRing;
+import io.oea.infrastructure.secrets.SecretCipher;
 import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import io.oea.testsupport.containers.OeaPostgres;

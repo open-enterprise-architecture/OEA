@@ -1,5 +1,6 @@
 package io.oea.config.startup;
 
+import io.oea.infrastructure.guards.StartupGuardException;
 import org.springframework.boot.diagnostics.AbstractFailureAnalyzer;
 import org.springframework.boot.diagnostics.FailureAnalysis;
 

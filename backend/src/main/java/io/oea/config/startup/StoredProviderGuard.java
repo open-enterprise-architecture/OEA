@@ -1,5 +1,8 @@
 package io.oea.config.startup;
 
+import io.oea.infrastructure.guards.ConfigurationGuards;
+import io.oea.infrastructure.guards.LoopbackAddresses;
+import io.oea.infrastructure.guards.StartupGuardException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +28,7 @@ import org.springframework.stereotype.Component;
 @DependsOn("databaseStartupChecks")
 public class StoredProviderGuard implements InitializingBean {
 
-	static final String PUBLIC_URL = "oea.web.public-url";
+	static final String PUBLIC_URL = ConfigurationGuards.PUBLIC_URL;
 
 	private final DataSource dataSource;
 

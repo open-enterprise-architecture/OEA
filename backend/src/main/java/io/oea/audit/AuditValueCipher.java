@@ -1,6 +1,6 @@
 package io.oea.audit;
 
-import io.oea.config.secrets.SecretCipher;
+import io.oea.infrastructure.secrets.SecretCipher;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;

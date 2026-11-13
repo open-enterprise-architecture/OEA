@@ -1,12 +1,15 @@
 # Spec: openspec platform/api-contract
-# Source material: docs/retrospectives/2026-10-walking-skeleton.md A1; REQ-187, REQ-158
+# Source material: docs/retrospectives/2026-10-walking-skeleton.md A1; REQ-187, REQ-158, REQ-176;
+# API-1 of docs/reviews/architecture-2026-11.md
 
-@REQ-187 @REQ-158 @platform
-Feature: Answer of planned operations
+@REQ-187 @REQ-158 @REQ-176 @platform
+Feature: Answer of planned operations and security schemes
 
   The contract marks the operations that this release does not implement yet as
   planned. They are authenticated and authorized like every other operation and
-  answer 501 without changing anything.
+  answer 501 without changing anything. The security schemes that this release
+  does not accept are marked as planned as well: their credentials authenticate
+  nothing.
 
   Background:
     Given an instance with planned contract operations, an enterprise architect and a viewer logged in through the IdP
@@ -23,3 +26,11 @@ Feature: Answer of planned operations
   Scenario: Planned operation without permission
     When the viewer runs a query through the planned analytics operation
     Then the planned operation is answered with 403
+
+  Scenario: Credentials of a planned scheme
+    When a caller without session requests the own profile with only a bearer token
+    Then the request is answered with 401
+
+  Scenario: Session cookie of the accepted scheme
+    When the enterprise architect requests the own profile with the session cookie
+    Then the request is answered with 200

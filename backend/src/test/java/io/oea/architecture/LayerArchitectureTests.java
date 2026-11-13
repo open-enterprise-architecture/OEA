@@ -7,6 +7,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import org.junit.jupiter.api.Test;
 
+/** Layer rules of ADR-028 with its amendment of 2026-11-13 (ARCH-1 of the architecture review 2026-11). */
 class LayerArchitectureTests {
 
 	private static final String FIXTURES = "io.oea.architecture.fixtures.wronglayer";
@@ -25,7 +26,12 @@ class LayerArchitectureTests {
 			.isThrownBy(() -> LayerRules.layersPointInward(FIXTURES).check(fixtures))
 			.withMessageContaining("CoreServiceCallingApi")
 			.withMessageContaining("AppServiceCallingApi")
-			.withMessageContaining("ControllerUsingCore");
+			.withMessageContaining("ControllerUsingCore")
+			.withMessageContaining("AppUsingConfig")
+			.withMessageContaining("CoreUsingAudit")
+			.withMessageContaining("InfrastructureUsingApp")
+			.withMessageContaining("AuditUsingApp")
+			.withMessageContaining("StrayClass");
 	}
 
 }

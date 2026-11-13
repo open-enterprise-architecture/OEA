@@ -16,7 +16,9 @@ Fails (exit code 1) if
   (``NotImplemented``) is missing on a planned operation or declared on an implemented one
   (retrospective action A1, change s2b-ci-and-contract),
 - an implemented operation that requires authentication, or the setup operation, lacks
-  the ``429`` response of the rate limits (REQ-186, REQ-168; change s3-throttling-and-denials).
+  the ``429`` response of the rate limits (REQ-186, REQ-168; change s3-throttling-and-denials),
+- a security scheme carries ``x-oea-status`` with another value than ``planned``
+  (API-1 of the architecture review 2026-11, change s11-review-hardening).
 
 The catalog is read from the spec itself, so it is kept in one place. Both
 extensions and every ``x-oea-authorization`` value are written as JSON (valid YAML
@@ -72,6 +74,9 @@ RESPONSE_CODE_RE = re.compile(r"^        ['\"]?(\d{3}|default)['\"]?:")
 EMPTY_SECURITY_RE = re.compile(r"^      security:\s*\[\s*\]\s*$")
 STATUS_RE = re.compile(r"^      x-oea-status:\s*['\"]?([^'\"\s#]*)")
 STATUS_VALUES = {"planned"}
+SECURITY_SCHEMES_RE = re.compile(r"^  securitySchemes:\s*(#.*)?$")
+SCHEME_RE = re.compile(r"^    ([A-Za-z0-9_.-]+):\s*(#.*)?$")
+SCHEME_STATUS_RE = re.compile(r"^      x-oea-status:\s*['\"]?([^'\"\s#]*)")
 
 
 def find_spec(argv: list[str]) -> Path:
@@ -232,6 +237,36 @@ def check_rate_limit(op: dict, errors: list[str]) -> None:
         errors.append(f"{label}: missing '429' response (rate limit, REQ-186)")
 
 
+def check_security_schemes(text: str, errors: list[str]) -> dict[str, str | None]:
+    """Check ``x-oea-status`` of the security schemes; return the status per scheme."""
+    schemes: dict[str, str | None] = {}
+    inside = False
+    current = None
+    for line in text.splitlines():
+        if SECURITY_SCHEMES_RE.match(line):
+            inside = True
+            continue
+        if not inside:
+            continue
+        if line.strip() and not line.startswith("   ") and not line.lstrip().startswith("#"):
+            break
+        match = SCHEME_RE.match(line)
+        if match:
+            current = match.group(1)
+            schemes[current] = None
+            continue
+        match = SCHEME_STATUS_RE.match(line)
+        if match and current is not None:
+            schemes[current] = match.group(1)
+    if not schemes:
+        errors.append("no security schemes found in 'components.securitySchemes'")
+    for name, status in schemes.items():
+        if status is not None and status not in STATUS_VALUES:
+            errors.append(f"security scheme '{name}': x-oea-status must be one of {sorted(STATUS_VALUES)}, "
+                          f"got {status!r}")
+    return schemes
+
+
 def scan_operations(text: str, errors: list[str]) -> list[dict]:
     lines = text.split("\n")
     offsets = line_offsets(text)
@@ -291,6 +326,7 @@ def main(argv: list[str]) -> int:
 
     catalog = check_catalog(read_top_level(text, "x-oea-permissions", errors),
                             read_top_level(text, "x-oea-builtin-roles", errors), errors)
+    schemes = check_security_schemes(text, errors)
     operations = scan_operations(text, errors)
     if not operations:
         errors.append("no operations found in 'paths'")
@@ -319,7 +355,9 @@ def main(argv: list[str]) -> int:
     unused = sorted(set(catalog) - used)
     planned = sum(1 for op in operations if op["status"] == "planned")
     print(f"{spec}: {len(operations)} operations declare authorization ({planned} planned); "
-          f"{len(catalog)} permissions in catalog.")
+          f"{len(catalog)} permissions in catalog; security schemes accepted: "
+          f"{', '.join(sorted(n for n, st in schemes.items() if st is None))}, planned: "
+          f"{', '.join(sorted(n for n, st in schemes.items() if st == 'planned'))}.")
     if unused:
         print(f"  note: catalog permissions not yet used by any operation: {', '.join(unused)}")
     return 0

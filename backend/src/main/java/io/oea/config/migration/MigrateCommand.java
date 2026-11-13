@@ -1,6 +1,6 @@
 package io.oea.config.migration;
 
-import io.oea.config.startup.ConfigurationGuards;
+import io.oea.infrastructure.guards.ConfigurationGuards;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.Banner;

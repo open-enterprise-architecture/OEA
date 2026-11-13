@@ -4,9 +4,9 @@ title: Security event logging
 type: compliance
 priority: must
 status: proposed
-version: 0.3.0
+version: 0.4.0
 created: 2026-10-13
-last_updated: 2026-10-28
+last_updated: 2026-11-13
 author: requirements-engineer
 references:
   use_cases:
@@ -48,6 +48,8 @@ ADR-033 §8: security events are records of the same audit trail and hash chain 
 ADR-034 §6: raw analytics produce exactly one event per authenticated request, `analytics.query.executed` or `analytics.query.rejected`, with principal, query hash, literal-free query fingerprint, referenced reporting views, outcome and metrics (duration, row count, result bytes); missing permission produces `authz.denied` instead.
 
 **Implementation (change s3-throttling-and-denials, 2026-10-28):** `authz.denied` is written at every authorization decision (contract permissions, contract conditions, second factor of the setup phase, separation of duties) with principal, operation ID, target ID, source address and request ID (AC1). The summary event of the suppression rule (AC5) is an `authz.denied` record with `summary`, `suppressedCount` and the window, not a separate event type; the counters are kept per backend instance (spec `platform/authorization`, `docs/audit-event-catalog.md`).
+
+**Implementation (change s11-review-hardening, 2026-11-13):** the source address of every event is the client address that a trusted reverse proxy forwards in `X-Forwarded-For`; without a trusted proxy it is the address of the connection (AA-01 of the application security audit 2026-11, spec `platform/deployment`).
 
 ## Type-Specific Fields
 
@@ -122,3 +124,4 @@ ADR-034 §6: raw analytics produce exactly one event per authenticated request, 
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-14 (PR-19) |
 | 0.2.0 | 2026-10-13 | requirements-engineer | ADR-033: reference to the audit event catalog and common fields; suppression rule for repeated events (statement, AC5). ADR-034: analytics event types `analytics.query.executed`/`analytics.query.rejected` (AC6) |
 | 0.3.0 | 2026-10-28 | Change s3-throttling-and-denials | AC1 and AC5 implemented for permission denials (security re-review WS-01, #75); summary event as `authz.denied` record |
+| 0.4.0 | 2026-11-13 | Change s11-review-hardening | Source address behind a trusted reverse proxy is the forwarded client address (AA-01) |

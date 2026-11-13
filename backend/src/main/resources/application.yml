@@ -13,7 +13,16 @@ spring:
   flyway:
     enabled: false
 
+# Client address, scheme, host and port from the X-Forwarded-* headers, but only when the
+# peer is a trusted proxy (Tomcat's RemoteIpValve; AA-01, design D1 of s11-review-hardening).
+server:
+  forward-headers-strategy: native
+
 oea:
+  web:
+    # Trusted reverse proxies as a comma-separated CIDR list; blank keeps Tomcat's default
+    # (loopback and the private networks; design D2 of s11-review-hardening).
+    trusted-proxies: ${OEA_TRUSTED_PROXIES:}
   migration:
     url: ${spring.datasource.url:}
     owner:
