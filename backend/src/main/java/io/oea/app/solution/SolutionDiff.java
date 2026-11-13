@@ -57,9 +57,9 @@ public class SolutionDiff {
 			Typed current, Typed target, boolean changed, boolean catalogChanged) {
 	}
 
-	/** One delta with the current and target state of its entity. */
+	/** One delta with the current and target state of its entity, and its conflicts (US-044). */
 	public record Entry(UUID deltaId, Type type, Integer entityId, UUID metatypeId, String metatypeName, String name,
-			boolean inCatalog, List<Field> fields) {
+			boolean inCatalog, List<Field> fields, List<SolutionConflicts.Conflict> conflicts) {
 	}
 
 	/** One page of the diff, with the paging and counts of the delta list. */
@@ -98,7 +98,7 @@ public class SolutionDiff {
 			case MODIFIED -> modified(delta, current);
 		};
 		return new Entry(delta.id(), delta.type(), delta.entityId(), delta.metatypeId(), delta.metatypeName(),
-				delta.name(), current != null, fields);
+				delta.name(), current != null, fields, delta.conflicts());
 	}
 
 	/** A delta {@code new}: no current state; every field changes. */

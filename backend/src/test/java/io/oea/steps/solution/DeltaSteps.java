@@ -598,6 +598,165 @@ public class DeltaSteps {
 					+ this.solution + "' ORDER BY id DESC LIMIT 1");
 	}
 
+	// features/solution/solution-conflicts.feature (us-044-conflict-warning D0, D1)
+
+	private final Map<String, String> others = new HashMap<>();
+
+	private final Map<String, String> otherDeltas = new HashMap<>();
+
+	private JsonNode firstPage;
+
+	private JsonNode baselineEntry;
+
+	@Given("the other solution {string} retires {string}")
+	public void otherRetires(String label, String name) throws Exception {
+		HttpResponse<String> created = create(other(label), retiring(this.entities.get(name)), otherArchitect());
+		assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+		this.otherDeltas.put(label + "/" + name, JsonMapper.shared().readTree(created.body()).path("id").asString());
+	}
+
+	@Given("the other solution {string} captures the new application {string}")
+	public void otherCapturesNew(String label, String name) throws Exception {
+		HttpResponse<String> created = create(other(label),
+				newEntity(this.applications, named(name), null, Map.of("Owner", "Other")), otherArchitect());
+		assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+	}
+
+	@Given("the other solution {string} is in status {string}")
+	public void otherStatus(String label, String status) throws Exception {
+		instance().oidc().update("UPDATE solutions SET status = '" + status + "' WHERE id = '" + other(label) + "'");
+	}
+
+	@When("the other solution {string} removes its delta of {string}")
+	public void otherRemoves(String label, String name) throws Exception {
+		HttpResponse<String> removed = delete(other(label), this.otherDeltas.get(label + "/" + name), otherArchitect());
+		assertThat(removed.statusCode()).as(removed.body()).isEqualTo(204);
+	}
+
+	@Given("the solution holds {int} deltas, {int} of which conflict, one of them on the second page of size {int}")
+	public void conflictingPages(int total, int conflicting, int size) throws Exception {
+		// new deltas first, then modified ones that conflict, then retiring ones; the last retiring
+		// delta conflicts and lands on the second page
+		int retiring = total - size + 1;
+		int modified = conflicting - 1;
+		filled(total - modified - retiring);
+		String other = other("Solution A");
+		for (int i = 1; i <= modified + retiring; i++) {
+			String name = (i <= modified) ? "M%02d".formatted(i) : "R%02d".formatted(i);
+			landscape(name);
+			int entity = this.entities.get(name);
+			String type = (i <= modified) ? "modified" : "retiring";
+			instance().oidc().update("""
+					INSERT INTO entity_deltas (id, solution_id, delta_type, entity_id, created_by)
+					VALUES (gen_random_uuid(), '%s', '%s', %d, (SELECT min(id) FROM persons))"""
+				.formatted(this.solution, type, entity));
+			if (i <= modified || i == modified + retiring) {
+				instance().oidc().update("""
+						INSERT INTO entity_deltas (id, solution_id, delta_type, entity_id, created_by)
+						VALUES (gen_random_uuid(), '%s', 'modified', %d, (SELECT min(id) FROM persons))"""
+					.formatted(other, entity));
+			}
+		}
+	}
+
+	@When("the architect reads the deltas again")
+	public void readAgain() throws Exception {
+		deltas(instance().architect());
+	}
+
+	@When("the architect reads the first page of the deltas of size {int}")
+	public void firstPage(int size) throws Exception {
+		this.firstPage = page(this.solution, "page=0&pageSize=" + size);
+	}
+
+	@Then("the deltas count {int} conflicted")
+	public void conflicted(int count) {
+		assertThat(this.firstPage.path("conflicted").asInt()).isEqualTo(count);
+	}
+
+	@Then("the captured delta carries the conflicts {string}")
+	public void capturedConflicts(String expected) throws Exception {
+		assertThat(this.capture.statusCode()).as(this.capture.body()).isEqualTo(201);
+		assertThat(conflicts(JsonMapper.shared().readTree(this.capture.body()).path("conflicts"))).isEqualTo(expected);
+	}
+
+	@Then("the edited delta carries the conflicts {string}")
+	public void editedConflicts(String expected) throws Exception {
+		assertThat(conflicts(JsonMapper.shared().readTree(this.edit.body()).path("conflicts"))).isEqualTo(expected);
+	}
+
+	@Then("the delta of {string} carries the conflicts {string}")
+	public void deltaConflicts(String name, String expected) throws Exception {
+		assertThat(conflicts(delta(name, instance().architect()).path("conflicts"))).isEqualTo(expected);
+	}
+
+	@Then("the diff entry {string} carries the conflicts {string}")
+	public void diffConflicts(String name, String expected) {
+		assertThat(conflicts(diffEntry(name).path("conflicts"))).isEqualTo(expected);
+	}
+
+	@Then("the conflict of {string} with {string} names its owner")
+	public void conflictOwner(String name, String label) throws Exception {
+		JsonNode solution = JsonMapper.shared()
+			.readTree(instance().oidc().get("/api/v1/solutions/" + other(label), otherArchitect().token()).body());
+		JsonNode conflict = delta(name, instance().architect()).path("conflicts").get(0);
+		assertThat(conflict.path("ownerId").asLong()).isEqualTo(solution.path("ownerId").asLong());
+		assertThat(conflict.path("ownerName").asString()).isEqualTo(solution.path("ownerName").asString()).isNotBlank();
+	}
+
+	@Given("the applications show parallel changes in the baseline")
+	public void showParallelChanges() throws Exception {
+		instance().oidc()
+			.update("UPDATE metatypes SET show_parallel_changes = true WHERE id = '" + this.applications + "'");
+	}
+
+	@When("the architect reads the baseline entry {string}")
+	public void baselineEntry(String name) throws Exception {
+		HttpResponse<String> response = instance().oidc()
+			.get("/api/v1/solutions/" + this.solution + "/landscape?q="
+					+ URLEncoder.encode(named(name), StandardCharsets.UTF_8), instance().architect().token());
+		assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+		JsonNode items = JsonMapper.shared().readTree(response.body()).path("items");
+		assertThat(items).hasSize(1);
+		this.baselineEntry = items.get(0);
+		// the entry read carries the same list
+		HttpResponse<String> entry = instance().oidc()
+			.get("/api/v1/solutions/" + this.solution + "/landscape/" + this.entities.get(name),
+					instance().architect().token());
+		assertThat(conflicts(JsonMapper.shared().readTree(entry.body()).path("parallelChanges")))
+			.isEqualTo(conflicts(this.baselineEntry.path("parallelChanges")));
+	}
+
+	@Then("the baseline entry names the solutions {string}")
+	public void baselineSolutions(String expected) {
+		assertThat(conflicts(this.baselineEntry.path("parallelChanges"))).isEqualTo(expected);
+	}
+
+	/** "Solution A (draft, retiring), …" with the scenario suffix removed. */
+	private String conflicts(JsonNode conflicts) {
+		List<String> shown = new ArrayList<>();
+		conflicts.forEach((conflict) -> shown.add(conflict.path("solutionName").asString().replace(" " + this.suffix, "")
+				+ " (" + conflict.path("status").asString() + ", " + conflict.path("deltaType").asString() + ")"));
+		return String.join(", ", shown);
+	}
+
+	private String other(String label) throws Exception {
+		String id = this.others.get(label);
+		if (id == null) {
+			HttpResponse<String> created = instance().send("POST", "/api/v1/solutions",
+					JsonMapper.shared().createObjectNode().put("name", label + " " + this.suffix).toString(),
+					otherArchitect());
+			assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+			id = JsonMapper.shared().readTree(created.body()).path("id").asString();
+			this.others.put(label, id);
+		}
+		return id;
+	}
+
+	private static Session otherArchitect() throws Exception {
+		return instance().sharedLogin("dev-architect-metamodel");
+	}
+
 	private String createSolution(String prefix) throws Exception {
 		HttpResponse<String> created = instance().send("POST", "/api/v1/solutions",
 				JsonMapper.shared().createObjectNode().put("name", prefix + " " + this.suffix + " " + UUID.randomUUID())

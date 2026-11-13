@@ -1,11 +1,13 @@
 import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import type { Solution, SolutionDelta, SolutionLandscapeEntry } from '../api/solutions'
+import type { Solution, SolutionDelta, SolutionDeltaConflict, SolutionLandscapeEntry } from '../api/solutions'
 import { session } from '../session/store'
 import { testRouter } from '../test/router'
 import {
   APPLICATION,
+  CONFLICT_KURT,
+  CONFLICT_MARIA,
   DELTAS,
   ME_PORTAL_READER,
   ME_SOLUTION_ARCHITECT,
@@ -177,7 +179,14 @@ describe('SolutionPage', () => {
 
   describe('deltas', () => {
     async function mountWith(
-      options: { me?: unknown; deltas?: SolutionDelta[]; solutions?: Solution[]; completeOnWrite?: boolean } = {},
+      options: {
+        me?: unknown
+        deltas?: SolutionDelta[]
+        solutions?: Solution[]
+        completeOnWrite?: boolean
+        conflicts?: Record<number, SolutionDeltaConflict[]>
+        parallelChangeMetatypes?: string[]
+      } = {},
     ) {
       const router = testRouter()
       await router.push(`/solutions/${ERP}`)
@@ -331,6 +340,94 @@ describe('SolutionPage', () => {
       const empty = await mountWith({ deltas: [] })
       expect(empty.find('[data-testid="delta-compare"]').exists()).toBe(false)
       empty.unmount()
+    })
+
+    // spec solution/solution-conflicts "Warnings on the screen \"Solution\"", "Warning after saving"
+    // and "Marker in the baseline" (US-044 AC1, AC3, AC5; design D4 of us-044-conflict-warning)
+    describe('conflicts', () => {
+      // Warehouse Management (103) is retired by the solution; CRM-Legacy (101) is not changed by it
+      function conflictLines(wrapper: VueWrapper, name: string) {
+        const row = wrapper
+          .findAll('[data-testid="deltas-table"] tbody tr')
+          .find((candidate) => candidate.findAll('td')[1]!.text().startsWith(name))!
+        return row.findAll('[data-testid="delta-conflict"]').map((line) => line.text())
+      }
+
+      it('names one conflict on the entry, links to the solution and counts it in the header', async () => {
+        const wrapper = await mountWith({ conflicts: { 103: [CONFLICT_MARIA] } })
+        expect(conflictLines(wrapper, 'Warehouse Management')).toEqual(["Also changed in 'Solution A' (owner: Maria)"])
+        expect(wrapper.get('[data-testid="delta-conflict-link"]').attributes('href')).toBe(`/solutions/${CONFLICT_MARIA.solutionId}`)
+        expect(conflictLines(wrapper, 'Warehouse Cloud')).toEqual([])
+        expect(wrapper.get('[data-testid="solution-conflicts"]').text()).toBe(
+          '1 change also concerns other active solutions. Please coordinate with their owners.',
+        )
+        wrapper.unmount()
+      })
+
+      it('names two conflicts and counts two changes', async () => {
+        const wrapper = await mountWith({
+          deltas: [...DELTAS, MODIFIED_ERP],
+          conflicts: { 103: [CONFLICT_MARIA, CONFLICT_KURT], 102: [CONFLICT_KURT] },
+        })
+        expect(conflictLines(wrapper, 'Warehouse Management')).toEqual([
+          "Also changed in 'Solution A' (owner: Maria)",
+          "Also changed in 'Integration Platform' (owner: Kurt)",
+        ])
+        expect(wrapper.get('[data-testid="solution-conflicts"]').text()).toBe(
+          '2 changes also concern other active solutions. Please coordinate with their owners.',
+        )
+        wrapper.unmount()
+      })
+
+      it('shows no conflict warning without conflicts', async () => {
+        const wrapper = await mountWith({ conflicts: { 101: [CONFLICT_MARIA] } })
+        expect(wrapper.find('[data-testid="solution-conflicts"]').exists()).toBe(false)
+        expect(wrapper.find('[data-testid="delta-conflict"]').exists()).toBe(false)
+        wrapper.unmount()
+      })
+
+      it('warns after saving a conflicting delta and keeps the warning on the entry', async () => {
+        const wrapper = await mountWith({ deltas: [], conflicts: { 101: [CONFLICT_MARIA] } })
+        await baselineRow(wrapper, 'CRM-Legacy').get('[data-testid="baseline-retire"]').trigger('click')
+        await flushPromises()
+        expect(wrapper.get('[data-testid="delta-saved-conflict"]').text()).toContain(
+          'Saved. CRM-Legacy is also changed in: Solution A. Please coordinate with their owners.',
+        )
+        expect(conflictLines(wrapper, 'CRM-Legacy')).toEqual(["Also changed in 'Solution A' (owner: Maria)"])
+        wrapper.unmount()
+      })
+
+      it('shows no warning after saving a delta without conflicts', async () => {
+        const wrapper = await mountWith({ deltas: [] })
+        await baselineRow(wrapper, 'CRM-Legacy').get('[data-testid="baseline-retire"]').trigger('click')
+        await flushPromises()
+        expect(wrapper.find('[data-testid="delta-saved-conflict"]').exists()).toBe(false)
+        wrapper.unmount()
+      })
+
+      it('marks a baseline entry with one and with two other solutions', async () => {
+        const wrapper = await mountWith({
+          deltas: [],
+          conflicts: { 101: [CONFLICT_MARIA], 102: [CONFLICT_MARIA, CONFLICT_KURT] },
+          parallelChangeMetatypes: [APPLICATION],
+        })
+        const crm = wrapper.findAll('[data-testid="baseline-table"] tbody tr').find((row) => row.text().includes('CRM-Legacy'))!
+        expect(crm.get('[data-testid="baseline-parallel"]').text()).toContain('Changed in 1 other solution')
+        expect(crm.get('[data-testid="baseline-parallel-names"]').text()).toBe('Solution A')
+        const erp = wrapper.findAll('[data-testid="baseline-table"] tbody tr').find((row) => row.text().includes('ERP-Core'))!
+        expect(erp.get('[data-testid="baseline-parallel"] [data-testid="baseline-parallel-names"]').text()).toBe(
+          'Solution A, Integration Platform',
+        )
+        expect(erp.get('[data-testid="baseline-parallel"]').text()).toContain('Changed in 2 other solutions')
+        expect(wrapper.findAll('[data-testid="baseline-parallel"]')).toHaveLength(2)
+        wrapper.unmount()
+      })
+
+      it('marks no baseline entry when the metatype does not show parallel changes', async () => {
+        const wrapper = await mountWith({ deltas: [], conflicts: { 101: [CONFLICT_MARIA] } })
+        expect(wrapper.find('[data-testid="baseline-parallel"]').exists()).toBe(false)
+        wrapper.unmount()
+      })
     })
 
     it('hides the write actions after a 409', async () => {

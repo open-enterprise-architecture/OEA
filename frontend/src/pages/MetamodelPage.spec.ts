@@ -155,6 +155,10 @@ describe('MetamodelPage', () => {
       expect(
         wrapper.findAllComponents({ name: 'Select' }).some((select) => select.vm.$attrs['data-testid'] === 'metatype-reimport'),
       ).toBe(true)
+      // and so does the setting of parallel changes (US-044)
+      expect(
+        wrapper.findAllComponents({ name: 'Switch' }).some((candidate) => candidate.vm.$attrs['data-testid'] === 'metatype-parallel-changes'),
+      ).toBe(true)
       await router.push('/metamodel/properties')
       await flushPromises()
       expect(wrapper.find('[data-testid="metamodel-locked"]').exists()).toBe(true)

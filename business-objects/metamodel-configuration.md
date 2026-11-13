@@ -2,7 +2,7 @@
 identifier: metamodel-configuration
 name_de: Metamodell-Konfiguration
 name_en: Metamodel Configuration
-version: 1.11.0
+version: 1.12.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -96,6 +96,7 @@ Changes to the configuration are versioned and recorded in the audit log.
 | name | string | required | | PascalCase, unique across all types | Display name (e.g. `SecurityZone`) |
 | extends | string | optional | null | must be a valid EntityType; no cycles; in a package an EntityType of the same package or a built-in one | Base type (`metatypes.base_metatype_id`); the EntityType inherits the property mappings of all its base types (BR-26); null = no parent type |
 | reimportOrganizationMappings | enum | required | `inherit` | `[inherit, keep, remove]`; writable for every scope, never changed by a re-import | Per-type setting whether a package re-import removes organization mappings; `inherit` follows the base type, then the global setting (BR-28) |
+| showParallelChanges | boolean | required | false | writable for every scope with `metamodel:write`, also in `import-only`; never changed by a re-import; not inherited | Whether the baseline of a solution marks entities of this type that another active solution changes (`metatypes.show_parallel_changes`, US-044, owner decision 2026-11-13) |
 | description | string | optional | | max. 1000 characters | Business description of the type |
 | properties | PropertyDefinition[] | required | [] | | Type-specific attributes |
 | relations | RelationDefinition[] | required | [] | | Allowed relations to other types |
@@ -471,3 +472,4 @@ Version 1.11.0 (change `us-124-property-visibility`) stores `readRoles` and `wri
 | 1.9.0 | 2026-11-04 | Business Engineer | Connection types with allowed endpoints including subtypes and connection types; BR-32 (change `us-036-connection-metatypes`) |
 | 1.10.0 | 2026-11-05 | Business Engineer | `name` and `version` of a configuration; `solutionId` without a foreign key until solutions exist; BR-05, BR-06, BR-09 and BR-10 as implemented: lock mode, names and base types of extensions, deleting extensions (change `us-037-solution-extensions-and-lock-mode`) |
 | 1.11.0 | 2026-11-07 | Business Engineer | Read and write roles stored in `property_visibility_roles` (change `us-124-property-visibility`) |
+| 1.12.0 | 2026-11-13 | Change us-044-conflict-warning | `showParallelChanges` per EntityType: the marker of parallel changes in the baseline of a solution, off by default (owner decision 2026-11-13) |

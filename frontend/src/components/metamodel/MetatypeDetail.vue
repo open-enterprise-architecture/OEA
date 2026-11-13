@@ -5,6 +5,7 @@ import {
   deleteMapping,
   deleteMetatype,
   fetchMappingHistory,
+  updateMetatypeParallelChanges,
   updateMetatypeReimportSetting,
   type MetatypeDetail,
   type PropertyDefinitionDetail,
@@ -21,7 +22,9 @@ import { rejectionMessage, scopeLabel } from './messages'
 // Detail of a metatype in SCR-030: base type, own and inherited mappings with their dated entries,
 // re-import setting (US-032, US-137, REQ-032 AC5, ADR-049; design D3 of
 // scr-030-metamodel-configuration). Built-in and imported metatypes offer no changes of their own.
-// canConfigure: the re-import setting, which stays changeable in a locked metamodel (US-035)
+// canConfigure: the re-import setting and the setting "Show parallel changes in the baseline"
+// (US-044; design D4 of us-044-conflict-warning), which stay changeable in a locked metamodel
+// (US-035)
 const props = withDefaults(defineProps<{ metatype: MetatypeDetail; canWrite: boolean; canConfigure?: boolean; fetchFn?: typeof fetch }>(), {
   // absent means like canWrite, not false
   canConfigure: undefined,
@@ -38,6 +41,7 @@ const removing = ref<PropertyMapping>()
 const notice = ref<string>()
 const failure = ref<string>()
 const reimportSetting = ref<ReimportSetting>(props.metatype.reimportPolicy ?? 'inherit')
+const parallelChanges = ref(props.metatype.showParallelChanges ?? false)
 
 const own = computed(() => props.metatype.scope === 'organization')
 const base = computed(() => metatypeById(props.metatype.baseMetatypeId ?? undefined))
@@ -59,6 +63,7 @@ watch(
   () => [props.metatype.id, props.metatype.version],
   () => {
     reimportSetting.value = props.metatype.reimportPolicy ?? 'inherit'
+    parallelChanges.value = props.metatype.showParallelChanges ?? false
     void loadEntries()
   },
   { immediate: true },
@@ -84,6 +89,19 @@ async function changeReimportSetting(setting: ReimportSetting) {
   notice.value = undefined
   const outcome = await updateMetatypeReimportSetting(props.metatype.id, setting, props.metatype.version, props.fetchFn)
   if (!outcome.ok) {
+    failure.value =
+      outcome.rejection.problemType === 'stale-version' ? t('metamodel.collision.reloaded') : rejectionMessage(outcome.rejection)
+  }
+  await changed()
+}
+
+async function changeParallelChanges(show: boolean) {
+  failure.value = undefined
+  notice.value = undefined
+  const outcome = await updateMetatypeParallelChanges(props.metatype.id, show, props.metatype.version, props.fetchFn)
+  if (!outcome.ok) {
+    // the switch returns to the stored value, which the reload brings
+    parallelChanges.value = props.metatype.showParallelChanges ?? false
     failure.value =
       outcome.rejection.problemType === 'stale-version' ? t('metamodel.collision.reloaded') : rejectionMessage(outcome.rejection)
   }
@@ -241,6 +259,21 @@ function stateColor(state: PropertyMapping['state']): 'success' | 'info' | 'neut
           {{ t('metamodel.reimport.applies', { setting: t(`metamodel.reimport.${metatype.effectiveReimportPolicy ?? 'keep'}`) }) }}
         </span>
       </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+      <h3 class="font-semibold text-highlighted">{{ t('metamodel.parallelChanges.title') }}</h3>
+      <p class="text-sm text-muted">{{ t('metamodel.parallelChanges.hint') }}</p>
+      <USwitch
+        v-if="canConfigure ?? canWrite"
+        v-model="parallelChanges"
+        data-testid="metatype-parallel-changes"
+        :label="t('metamodel.parallelChanges.label')"
+        @update:model-value="(value: boolean) => changeParallelChanges(value)"
+      />
+      <span v-else data-testid="metatype-parallel-changes-value">
+        {{ t(metatype.showParallelChanges ? 'metamodel.parallelChanges.on' : 'metamodel.parallelChanges.off') }}
+      </span>
     </section>
 
     <UModal v-model:open="editing" :title="t('metamodel.metatype.edit')">

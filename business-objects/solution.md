@@ -2,7 +2,7 @@
 identifier: solution
 name_de: Lösung / Solution Architecture
 name_en: Solution
-version: 0.7.0
+version: 0.8.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -138,7 +138,7 @@ Stored in `entity_deltas` and `entity_delta_property_values` (V26). A delta is r
 | BR-02 | If both plateau IDs are set: `fromPlateauId` ≠ `toPlateauId`; `toPlateauId.status` must be `target` or `transition` | onCreate, onUpdate | – |
 | BR-03 | A solution with `status=implemented` or `status=archived` is read-only, including its deltas (409) | onUpdate | – |
 | BR-04 | A `MetamodelConfiguration` naming a solution (`solutionId`) has `scope=solution` | onCreate, onUpdate | – |
-| BR-05 | Entities of a solution are visible to other solutions (basis for collision detection on parallel changes to the same entity) | onRead | – |
+| BR-05 | Entities of a solution are visible to other solutions (basis for collision detection on parallel changes to the same entity). A delta `modified` or `retiring` conflicts with every delta `modified` or `retiring` on the same entity in another active solution (status not `implemented` or `archived`); a delta `new` never conflicts. The conflicts are computed on each read and never block a write (US-044, REQ-042; owner decision 2026-11-13) | onRead | – |
 | BR-06 | A solution holds at most one delta per entity, at most one `new` delta per metatype and name (case-insensitive), and any number of deltas | onCreate | – |
 
 ## Lifecycle
@@ -213,3 +213,4 @@ TOGAF reference (plateau mode): "Solution Architecture" in phase E/F. The `Entit
 | 0.5.0 | 2026-11-12 | Change us-040-entity-deltas | EntityDelta stored (V26): `entityId` null for `new`, which carries metatype, name, description and property values; `createdAt`, `createdBy`; BR-03 extended to `archived`; BR-06 (one delta per entity, at most 1000) |
 | 0.6.0 | 2026-11-13 | Change us-041-modified-delta | `changes` of a delta `modified`: name, description and properties with recorded before values; `updatedAt`, `updatedBy` |
 | 0.7.0 | 2026-11-13 | Change us-043-diff-view | BR-06 without the limit of 1000 deltas (owner decision 2026-11-13); the diff of a solution is computed and not stored |
+| 0.8.0 | 2026-11-13 | Change us-044-conflict-warning | BR-05: what conflicts between parallel solutions; the conflicts are computed and not stored (owner decision 2026-11-13) |

@@ -2,7 +2,7 @@
 title: Lösungen
 covers:
   screens: [SCR-060, SCR-061, SCR-062]
-  stories: [US-038, US-039, US-040, US-041, US-042, US-043]
+  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044]
 ---
 
 # Lösungen
@@ -63,7 +63,7 @@ Der Bereich *Änderungen* listet, was das Vorhaben an der Landschaft ändert: zu
 
 Die Regeln:
 
-- Eine Lösung enthält eine Änderung pro Entität: Dieselbe Entität kann nicht zweimal ausser Betrieb genommen oder zugleich geändert und ausser Betrieb genommen werden, und zwei neue Entitäten desselben Metatyps können nicht gleich heissen (Gross- und Kleinschreibung spielen keine Rolle). Eine andere Lösung kann dieselbe Entität ändern.
+- Eine Lösung enthält eine Änderung pro Entität: Dieselbe Entität kann nicht zweimal ausser Betrieb genommen oder zugleich geändert und ausser Betrieb genommen werden, und zwei neue Entitäten desselben Metatyps können nicht gleich heissen (Gross- und Kleinschreibung spielen keine Rolle). Eine andere Lösung kann dieselbe Entität ändern; beide zeigen dann eine Warnung (siehe [Parallele Änderungen](#parallel-changes)).
 - Ein Wert muss zu seiner Eigenschaft passen, zum Beispiel eine ganze Zahl bei einer Ganzzahl-Eigenschaft, und der Wert einer Pflicht-Eigenschaft lässt sich nicht entfernen. Wird ein Wert abgelehnt, zeigt der Dialog beim Feld, warum.
 - Eine eingeschränkte Eigenschaft kannst du nur setzen, wenn eine deiner Rollen sie schreiben darf (siehe [Sichtbarkeit von Eigenschaften](../administration/property-visibility)). Eine verbindungsbasierte Eigenschaft lässt sich bei einer neuen Entität nicht setzen, weil ihre Verbindungen noch nicht existieren; bei einer bestehenden Entität muss diese in deinem Bereich liegen. Werte, die du nicht lesen darfst, erscheinen verborgen.
 - Eine Lösung kann beliebig viele Änderungen enthalten.
@@ -82,6 +82,17 @@ Die Regeln:
 - **Nicht mehr im Katalog:** Die Entität wurde gelöscht, nachdem die Änderung erfasst wurde; der Ist-Stand ist leer.
 
 Werte, die du nicht lesen darfst, erscheinen als verborgen. Der Vergleich wird bei jedem Öffnen neu berechnet; *Aktualisieren* lädt ihn erneut, etwa wenn jemand anderes eine Änderung erfasst hat. Er zeigt jeweils 50 Änderungen; *Weitere laden* fügt die nächsten 50 hinzu.
+
+## Parallele Änderungen {#parallel-changes}
+
+Oft laufen mehrere Vorhaben gleichzeitig. Ändert eine andere aktive Lösung eine Entität oder nimmt sie ausser Betrieb, die auch deine Lösung ändert oder ausser Betrieb nimmt, warnt dich OEA, damit du dich vor dem Go-live mit ihrer verantwortlichen Person abstimmen kannst. Eine Lösung ist aktiv, bis sie umgesetzt oder archiviert ist. Neue Entitäten kollidieren nie, weil sie noch nicht im Katalog stehen.
+
+- **An der Änderung:** Ihre Zeile unter *Änderungen* sagt für jede andere Lösung "Wird auch in '…' geändert (verantwortlich: …)"; der Name öffnet diese Lösung. Der Vergleich zeigt denselben Hinweis auf der Karte der Entität.
+- **Oben auf der Lösung:** Ein Hinweis zählt die Änderungen, die auch andere aktive Lösungen betreffen.
+- **Beim Speichern:** Nimmst du eine Entität ausser Betrieb oder änderst sie, und eine andere Lösung ändert sie auch, zeigt ein Hinweis die Namen der anderen Lösungen. Schliesse ihn, wenn du ihn gelesen hast; die Warnung an der Änderung bleibt.
+- **In der Ausgangslage:** Eine Entität, die eine andere aktive Lösung ändert, ist mit "In … anderen Lösungen geändert" und deren Namen markiert, schon bevor du etwas erfasst. Diese Markierung erscheint nur für die Entitätstypen, für die deine Metamodell-Administration sie eingeschaltet hat (siehe [Parallele Änderungen in der Ausgangslage](../administration/metamodel-editing#parallel-changes)).
+
+Die Warnung blockiert nie eine Änderung. Sie wird bei jedem Öffnen der Lösung neu berechnet und verschwindet daher, sobald die andere Lösung umgesetzt oder archiviert ist oder ihre Änderung entfernt.
 
 ## Über die API
 
@@ -112,3 +123,5 @@ curl "${auth[@]}" "$OEA/solutions/$SOLUTION/diff?pageSize=50"
 Eine Änderung einer bestehenden Entität ist `{"deltaType": "modified", "entityId": …, "name": …, "description": …, "properties": […]}` mit nur den neuen Werten; die Antwort enthält `changes` mit dem festgehaltenen Wert `before` und dem neuen Wert `after` jedes Felds. `PUT /solutions/{id}/deltas/{deltaId}` mit `name`, `description` und `properties` ersetzt die Änderungen und wird als `solution.delta-updated` festgehalten. `GET /solutions/{id}/landscape/{entityId}` liefert eine Entität der Ausgangslage mit ihren aktuellen Werten.
 
 `GET /solutions/{id}/deltas` und `GET /solutions/{id}/diff` liefern eine Seite, mit `page` und `pageSize` (1 bis 200, Standard 50), der Zahl der Änderungen pro Typ in `counts` und, falls es eine weitere Seite gibt, einem `nextCursor`, den du als `cursor` zusammen mit `page` + 1 schickst. Jeder Eintrag des Vergleichs enthält die `fields` der Entität mit ihrem Wert `current` und `target`, `changed` für ein Feld, das die Lösung ändert, und `catalogChanged` für ein Feld, dessen festgehaltener Wert vom Katalog abweicht; `inCatalog` ist falsch für eine neue Entität und für eine inzwischen gelöschte.
+
+Jede Änderung und jeder Eintrag des Vergleichs enthält `conflicts`: die anderen aktiven Lösungen, die dieselbe Entität ändern, jeweils mit `solutionId`, `solutionName`, `status`, `ownerId`, `ownerName` und dem `deltaType` ihrer Änderung, nach Name sortiert; für eine neue Entität ist die Liste leer. Auch die Antworten von `POST` und `PUT` enthalten sie. `conflicted` in der Liste der Änderungen zählt die Änderungen mit mindestens einem Konflikt, über alle Seiten. In der Ausgangslage listet `parallelChanges` sie für die Entitätstypen, die parallele Änderungen zeigen, und ist sonst leer.

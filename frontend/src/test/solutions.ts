@@ -2,6 +2,7 @@ import type {
   Solution,
   SolutionDelta,
   SolutionDeltaChange,
+  SolutionDeltaConflict,
   SolutionDeltaValue,
   SolutionDiffEntry,
   SolutionDiffField,
@@ -13,7 +14,9 @@ import type {
 // us-040-entity-deltas): the solutions, creating one with the server-side name rule of REQ-038,
 // reading one, its baseline with search, metatype filter, paging and cursors, and its deltas with
 // the rules of a new entity, one delta per entity and the lock of a completed solution; the delta
-// list and the diff paged by cursor with the counts per type (us-043-diff-view).
+// list and the diff paged by cursor with the counts per type (us-043-diff-view); the conflicts
+// with other active solutions per entity, and the parallel changes in the baseline for the
+// metatypes that show them (us-044-conflict-warning).
 
 function me(displayName: string, permissions: string[]) {
   return {
@@ -64,6 +67,14 @@ export const SOLUTIONS: Solution[] = [
   solution('5d000000-0000-4000-8000-000000000003', 'Integration Platform', 'proposed', 'Kurt', '2026-11-03T14:00:00Z', null),
 ]
 
+/** Another active solution that changes the same entity (US-044). */
+export function conflict(name: string, ownerName: string, deltaType: SolutionDeltaConflict['deltaType'] = 'modified', status: SolutionDeltaConflict['status'] = 'draft', id = '5d000000-0000-4000-8000-000000000003'): SolutionDeltaConflict {
+  return { solutionId: id, solutionName: name, status, ownerId: 31, ownerName, deltaType }
+}
+
+export const CONFLICT_MARIA = conflict('Solution A', 'Maria', 'retiring', 'draft', '5d000000-0000-4000-8000-0000000000a1')
+export const CONFLICT_KURT = conflict('Integration Platform', 'Kurt', 'modified', 'proposed')
+
 export const APPLICATION = '6a000000-0000-4000-8000-000000000001'
 export const COMPONENT = '6a000000-0000-4000-8000-000000000002'
 export const DATA_FLOW = '6a000000-0000-4000-8000-000000000003'
@@ -76,7 +87,7 @@ export const METATYPES = [
 
 function entry(id: number, name: string, metatypeId: string, version = 1): SolutionLandscapeEntry {
   const metatypeName = METATYPES.find((candidate) => candidate.id === metatypeId)!.name
-  return { id, name, metatypeId, metatypeName, version }
+  return { id, name, metatypeId, metatypeName, version, parallelChanges: [] }
 }
 
 export const LANDSCAPE: SolutionLandscapeEntry[] = [
@@ -139,6 +150,7 @@ function newDelta(id: string, name: string, metatypeId: string, description: str
     description,
     properties: [],
     changes: [],
+    conflicts: [],
     createdAt: '2026-11-12T10:00:00Z',
     updatedAt: null,
   }
@@ -155,6 +167,7 @@ function retiringDelta(id: string, entity: SolutionLandscapeEntry): SolutionDelt
     description: null,
     properties: [],
     changes: [],
+    conflicts: [],
     createdAt: '2026-11-12T10:00:00Z',
     updatedAt: null,
   }
@@ -288,7 +301,7 @@ function systemField(field: 'name' | 'description', current: SolutionDeltaValue 
 /** The diff entry of a delta against the landscape, as getSolutionDiff computes it (design D2). */
 export function diffEntry(delta: SolutionDelta, landscape: SolutionLandscapeEntry[]): SolutionDiffEntry {
   const entity = delta.entityId !== null ? landscape.find((candidate) => candidate.id === delta.entityId) : undefined
-  const base = { deltaId: delta.id, deltaType: delta.deltaType, entityId: delta.entityId, metatypeId: delta.metatypeId, metatypeName: delta.metatypeName, name: delta.name, inCatalog: entity !== undefined }
+  const base = { deltaId: delta.id, deltaType: delta.deltaType, entityId: delta.entityId, metatypeId: delta.metatypeId, metatypeName: delta.metatypeName, name: delta.name, inCatalog: entity !== undefined, conflicts: delta.conflicts }
   const text = (content: string | null | undefined) => (content ? { valueText: content } : null)
   if (delta.deltaType === 'new') {
     return {
@@ -381,6 +394,8 @@ export interface SolutionApi {
   deltas: SolutionDelta[]
   diffQueries: URLSearchParams[]
   deltaQueries: URLSearchParams[]
+  /** the conflicts per entity ID; a test changes them "meanwhile" */
+  conflicts: Record<number, SolutionDeltaConflict[]>
   posts: Record<string, unknown>[]
   landscapeQueries: URLSearchParams[]
   deltaPosts: Record<string, unknown>[]
@@ -399,6 +414,10 @@ export function solutionApi(
     diffStatus?: number
     /** answer 409 to every delta write, as for a solution completed meanwhile */
     completeOnWrite?: boolean
+    /** the other active solutions that change an entity, by entity ID (US-044) */
+    conflicts?: Record<number, SolutionDeltaConflict[]>
+    /** the metatypes that show parallel changes in the baseline */
+    parallelChangeMetatypes?: string[]
   } = {},
 ): SolutionApi {
   const solutions = [...(options.solutions ?? SOLUTIONS)]
@@ -413,6 +432,12 @@ export function solutionApi(
   const deltas = [...(options.deltas ?? [])]
   const diffQueries: URLSearchParams[] = []
   const deltaQueries: URLSearchParams[] = []
+  const conflicts: Record<number, SolutionDeltaConflict[]> = { ...(options.conflicts ?? {}) }
+  // a delta as the server returns it, with its conflicts computed on each read
+  const withConflicts = (delta: SolutionDelta): SolutionDelta => ({
+    ...delta,
+    conflicts: delta.entityId !== null ? (conflicts[delta.entityId] ?? []) : [],
+  })
   // one page of a list in the order of the delta list, with the counts, by page number or cursor
   const paged = <T>(all: T[], params: URLSearchParams, key: 'items' | 'entries') => {
     const page = Number(params.get('page') ?? '0')
@@ -428,6 +453,7 @@ export function solutionApi(
       [key]: all.slice(page * pageSize, (page + 1) * pageSize),
       page: { page, pageSize, totalElements: all.length, totalPages },
       counts,
+      ...(key === 'items' ? { conflicted: deltas.filter((delta) => withConflicts(delta).conflicts.length > 0).length } : {}),
       nextCursor: page + 1 < totalPages ? `dcursor-${page + 1}` : null,
     })
   }
@@ -504,7 +530,7 @@ export function solutionApi(
     if (outcome.status === 422) return json(problem(422, [outcome.field], outcome.detail), 422)
     found.changes = outcome.changes
     found.updatedAt = '2026-11-12T11:00:00Z'
-    return json(found)
+    return json(withConflicts(found))
   }
   const createDelta = (solutionId: string, body: SolutionDeltaWriteBody) => {
     if (completedSolution(solutionId)) {
@@ -521,7 +547,7 @@ export function solutionApi(
       }
       const created = modifiedDelta(`ae000000-0000-4000-8000-${String(nextDelta++).padStart(12, '0')}`, entity, outcome.changes)
       deltas.push(created)
-      return json(created, 201)
+      return json(withConflicts(created), 201)
     }
     if (body.deltaType === 'retiring') {
       const entity = landscape.find((candidate) => candidate.id === body.entityId)
@@ -531,7 +557,7 @@ export function solutionApi(
       }
       const created = retiringDelta(`ae000000-0000-4000-8000-${String(nextDelta++).padStart(12, '0')}`, entity)
       deltas.push(created)
-      return json(created, 201)
+      return json(withConflicts(created), 201)
     }
     const properties = body.properties ?? []
     if (properties.some((property) => property.propertyDefId === COST)) {
@@ -553,6 +579,8 @@ export function solutionApi(
     deltas.push(created)
     return json(created, 201)
   }
+  const parallelChanges = (entry: SolutionLandscapeEntry) =>
+    (options.parallelChangeMetatypes ?? []).includes(entry.metatypeId) ? (conflicts[entry.id] ?? []) : []
   const fetchFn: typeof fetch = async (input, init) => {
     const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, 'http://localhost')
     const method = init?.method ?? 'GET'
@@ -587,14 +615,14 @@ export function solutionApi(
     const deltaList = /^\/api\/v1\/solutions\/([^/]+)\/deltas$/.exec(url.pathname)
     if (deltaList && method === 'GET') {
       deltaQueries.push(url.searchParams)
-      return paged(sorted(), url.searchParams, 'items')
+      return paged(sorted().map(withConflicts), url.searchParams, 'items')
     }
     const diff = /^\/api\/v1\/solutions\/([^/]+)\/diff$/.exec(url.pathname)
     if (diff && method === 'GET') {
       diffQueries.push(url.searchParams)
       if (options.diffStatus) return json(problem(options.diffStatus), options.diffStatus)
       if (!solutions.some((candidate) => candidate.id === decodeURIComponent(diff[1]!))) return json(problem(404), 404)
-      return paged(sorted().map((delta) => diffEntry(delta, landscape)), url.searchParams, 'entries')
+      return paged(sorted().map((delta) => diffEntry(withConflicts(delta), landscape)), url.searchParams, 'entries')
     }
     if (deltaList && method === 'POST') {
       const body = JSON.parse(String(init?.body)) as SolutionDeltaWriteBody
@@ -610,7 +638,7 @@ export function solutionApi(
     const entry = /^\/api\/v1\/solutions\/([^/]+)\/landscape\/(\d+)$/.exec(url.pathname)
     if (entry && method === 'GET') {
       const found = landscape.find((candidate) => candidate.id === Number(entry[2]))
-      return found ? json(landscapeEntity(found)) : json(problem(404), 404)
+      return found ? json({ ...landscapeEntity(found), parallelChanges: parallelChanges(found) }) : json(problem(404), 404)
     }
     if (deltaOne && method === 'DELETE') {
       deltaDeletes.push(decodeURIComponent(deltaOne[2]!))
@@ -641,7 +669,7 @@ export function solutionApi(
       }
       const items = matches.slice(page * pageSize, (page + 1) * pageSize).map((candidate) => {
         const delta = deltas.find((found) => found.entityId === candidate.id && found.deltaType !== 'new')
-        return { ...candidate, deltaType: delta ? delta.deltaType : null }
+        return { ...candidate, deltaType: delta ? delta.deltaType : null, parallelChanges: parallelChanges(candidate) }
       })
       const totalPages = Math.ceil(matches.length / pageSize)
       return json({
@@ -658,5 +686,5 @@ export function solutionApi(
     // the header and the sidebar ask for further data; an empty answer keeps them quiet
     return json([])
   }
-  return { fetch: fetchFn, deltas, diffQueries, deltaQueries, posts, landscapeQueries, deltaPosts, deltaPuts, deltaDeletes }
+  return { fetch: fetchFn, deltas, diffQueries, deltaQueries, conflicts, posts, landscapeQueries, deltaPosts, deltaPuts, deltaDeletes }
 }

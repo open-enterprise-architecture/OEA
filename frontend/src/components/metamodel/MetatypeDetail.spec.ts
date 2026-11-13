@@ -25,6 +25,39 @@ describe('MetatypeDetail', () => {
     expect(wrapper.get('[data-testid="metatype-reimport-effective"]').text()).toBe('Applies: Remove own properties')
   })
 
+  // spec metamodel/configuration-screen "Parallel-change setting on the metatype detail" (US-044)
+  describe('parallel changes', () => {
+    function parallelSwitch(wrapper: Awaited<ReturnType<typeof mountWithMetamodel>>['wrapper']) {
+      return wrapper.findAllComponents({ name: 'Switch' }).find((candidate) => candidate.vm.$attrs['data-testid'] === 'metatype-parallel-changes')
+    }
+
+    it('turns the setting on for an imported metatype with its version', async () => {
+      const { wrapper, api } = await mountWithMetamodel(MetatypeDetail, () => ({ metatype: metatypeById(IDS.component), canWrite: false, canConfigure: true }))
+      parallelSwitch(wrapper)!.vm.$emit('update:modelValue', true)
+      await flushPromises()
+      expect(api.requests.find((request) => request.method === 'PUT')).toEqual(
+        expect.objectContaining({ path: `/api/v1/metamodel/metatypes/${IDS.component}/parallel-changes`, body: { showInBaseline: true }, ifMatch: '"1"' }),
+      )
+      expect(metatypeById(IDS.component)?.showParallelChanges).toBe(true)
+    })
+
+    it('shows the value as text without metamodel administration', async () => {
+      const { wrapper } = await mountWithMetamodel(MetatypeDetail, () => ({ metatype: metatypeById(IDS.component), canWrite: false, canConfigure: false }))
+      expect(parallelSwitch(wrapper)).toBeUndefined()
+      expect(wrapper.get('[data-testid="metatype-parallel-changes-value"]').text()).toBe('Not shown in the baseline')
+    })
+
+    it('warns of a collision and returns the switch to the stored value', async () => {
+      const { wrapper, api } = await mountWithMetamodel(MetatypeDetail, () => ({ metatype: metatypeById(IDS.zone), canWrite: true }))
+      // someone else changed the metatype meanwhile
+      api.state.metatypes.find((metatype) => metatype.id === IDS.zone)!.version = 9
+      parallelSwitch(wrapper)!.vm.$emit('update:modelValue', true)
+      await flushPromises()
+      expect(wrapper.text()).toContain('Someone else changed this element meanwhile')
+      expect(parallelSwitch(wrapper)!.props('modelValue')).toBe(false)
+    })
+  })
+
   it('hides past entries until the history is shown', async () => {
     const { wrapper, api } = await mountWithMetamodel(MetatypeDetail, () => ({ metatype: metatypeById(IDS.zone), canWrite: true }))
     api.state.entries.push({ id: 'b0000000-0000-4000-8000-000000000009', metatypeId: IDS.zone, propertyDefId: IDS.owner, necessity: 'optional', validFrom: '2025-01-01', scope: 'organization' })

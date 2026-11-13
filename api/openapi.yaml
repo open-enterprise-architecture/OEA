@@ -907,6 +907,13 @@ components:
               enum: [keep, remove]
               readOnly: true
               description: Setting that applies, resolved along the base types up to the global setting
+            showParallelChanges:
+              type: boolean
+              readOnly: true
+              description: |
+                Whether the baseline of a solution marks entities of this metatype that another
+                active solution changes (`updateMetatypeParallelChanges`, US-044); default false,
+                not inherited
             sourcePackage:
               oneOf:
                 - $ref: '#/components/schemas/SourcePackage'
@@ -1051,6 +1058,14 @@ components:
           type: string
           enum: [inherit, keep, remove]
           description: Whether a package re-import keeps or removes the organization mappings of the metatype; `inherit` follows the base type
+
+    MetatypeParallelChanges:
+      type: object
+      required: [showInBaseline]
+      properties:
+        showInBaseline:
+          type: boolean
+          description: Whether the baseline of a solution marks entities of the metatype that another active solution changes (US-044)
 
     ReimportPolicy:
       type: object
@@ -2365,9 +2380,23 @@ components:
             toPlateauId:   { type: [string, 'null'], format: uuid, description: Target plateau; null in project mode (BR-01) }
             createdBy:     { $ref: '#/components/schemas/PrincipalRef' }
 
+    SolutionDeltaConflict:
+      type: object
+      required: [solutionId, solutionName, status, ownerId, ownerName, deltaType]
+      description: |
+        Another active solution (not `implemented` or `archived`) that holds a delta `modified`
+        or `retiring` for the same entity (US-044); computed on each read, never stored
+      properties:
+        solutionId:   { type: string, format: uuid }
+        solutionName: { type: string }
+        status:       { $ref: '#/components/schemas/SolutionStatus' }
+        ownerId:      { type: integer, format: int64, description: "`persons.id` of the owner of the other solution" }
+        ownerName:    { type: string }
+        deltaType:    { $ref: '#/components/schemas/SolutionDeltaType' }
+
     SolutionLandscapeEntry:
       type: object
-      required: [id, name, metatypeId, metatypeName, version]
+      required: [id, name, metatypeId, metatypeName, version, parallelChanges]
       description: An entity of the current landscape in the baseline of a solution (US-039)
       properties:
         id:           { type: integer, description: "`entities.id`" }
@@ -2380,6 +2409,12 @@ components:
           oneOf:
             - $ref: '#/components/schemas/SolutionDeltaType'
             - type: 'null'
+        parallelChanges:
+          type: array
+          description: |
+            The other active solutions that change the entity, by name (US-044); empty unless the
+            metatype of the entity shows parallel changes in the baseline (`showParallelChanges`)
+          items: { $ref: '#/components/schemas/SolutionDeltaConflict' }
 
     SolutionLandscapeEntity:
       allOf:
@@ -2489,7 +2524,7 @@ components:
 
     SolutionDelta:
       type: object
-      required: [id, deltaType, entityId, name, metatypeId, metatypeName, description, properties, changes, createdAt, updatedAt]
+      required: [id, deltaType, entityId, name, metatypeId, metatypeName, description, properties, changes, conflicts, createdAt, updatedAt]
       properties:
         id:           { type: string, format: uuid }
         deltaType:    { $ref: '#/components/schemas/SolutionDeltaType' }
@@ -2506,6 +2541,10 @@ components:
           type: array
           description: "`modified` only: name, description, then properties by name"
           items: { $ref: '#/components/schemas/SolutionDeltaChange' }
+        conflicts:
+          type: array
+          description: "Other active solutions that change the same entity, by name (US-044); empty for `new`"
+          items: { $ref: '#/components/schemas/SolutionDeltaConflict' }
         createdAt:    { type: string, format: date-time }
         updatedAt:    { type: [string, 'null'], format: date-time, description: "Last edit of a delta `modified`" }
 
@@ -2520,7 +2559,7 @@ components:
 
     SolutionDeltaList:
       type: object
-      required: [items, page, counts, nextCursor]
+      required: [items, page, counts, conflicted, nextCursor]
       properties:
         items:
           type: array
@@ -2528,6 +2567,10 @@ components:
           items: { $ref: '#/components/schemas/SolutionDelta' }
         page:   { $ref: '#/components/schemas/PageMeta' }
         counts: { $ref: '#/components/schemas/SolutionDeltaCounts' }
+        conflicted:
+          type: integer
+          minimum: 0
+          description: The number of deltas with at least one conflict, over all pages (US-044)
         nextCursor:
           type: [string, 'null']
           description: |
@@ -2562,7 +2605,7 @@ components:
 
     SolutionDiffEntry:
       type: object
-      required: [deltaId, deltaType, entityId, metatypeId, metatypeName, name, inCatalog, fields]
+      required: [deltaId, deltaType, entityId, metatypeId, metatypeName, name, inCatalog, fields, conflicts]
       description: |
         One delta with the current and target state of its entity (US-043). `new` has no current
         state, `retiring` no target state; an entity deleted after capture is not `inCatalog` and
@@ -2579,6 +2622,10 @@ components:
           type: array
           description: Name, description, then the properties with a value on at least one side, by name
           items: { $ref: '#/components/schemas/SolutionDiffField' }
+        conflicts:
+          type: array
+          description: The conflicts of the delta (US-044)
+          items: { $ref: '#/components/schemas/SolutionDeltaConflict' }
 
     SolutionDiff:
       type: object
@@ -4754,7 +4801,8 @@ paths:
         metatype and name (case-insensitive), and any number of deltas. A value of a
         `role-restricted` property needs a write role, and a `connection-scoped` value cannot be
         set (403). Any holder of `solution:write` captures deltas, in any solution. Writes the
-        audit event `solution.delta-added`.
+        audit event `solution.delta-added`. The response names the other active solutions that
+        change the same entity (`conflicts`, US-044); a conflict never rejects the delta.
       tags: [Solutions]
       x-oea-authorization: {"access": "permission", "permissions": ["solution:write"]}
       parameters:
@@ -6181,6 +6229,41 @@ paths:
         content:
           application/json:
             schema: { $ref: '#/components/schemas/MetatypeReimportPolicy' }
+      responses:
+        '200':
+          description: Metatype with the new setting
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MetatypeDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /metamodel/metatypes/{id}/parallel-changes:
+    put:
+      operationId: updateMetatypeParallelChanges
+      summary: Set whether the baseline shows parallel changes of a metatype
+      description: |
+        Whether the baseline of a solution marks entities of this metatype that another active
+        solution changes (US-044). Possible for every scope and while the metamodel is locked;
+        a re-import never changes it. Audited as `metamodel.metatype-parallel-changes-changed`.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MetatypeParallelChanges' }
       responses:
         '200':
           description: Metatype with the new setting

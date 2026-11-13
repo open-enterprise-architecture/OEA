@@ -619,6 +619,13 @@
       "targets": "Allowed targets",
       "endpointsHelp": "Subtypes are included. Leave empty to allow every entity type.",
       "any": "Any entity type"
+    },
+    "parallelChanges": {
+      "title": "Parallel changes",
+      "hint": "Mark entities of this type in the baseline of a solution when another active solution changes them. The warnings on the changes themselves always show.",
+      "label": "Show parallel changes in the baseline",
+      "on": "Shown in the baseline",
+      "off": "Not shown in the baseline"
     }
   },
   "navigation": {
@@ -863,6 +870,12 @@
       "more": "Load more",
       "shown": "{shown} of {total} entries",
       "loadFailed": "The comparison could not be loaded."
+    },
+    "conflicts": {
+      "entry": "Also changed in '{solution}' (owner: {owner})",
+      "notice": "No change concerns other active solutions. | {n} change also concerns other active solutions. Please coordinate with their owners. | {n} changes also concern other active solutions. Please coordinate with their owners.",
+      "saved": "Saved. {name} is also changed in: {solutions}. Please coordinate with their owners.",
+      "baseline": "Changed in {n} other solution | Changed in {n} other solutions"
     }
   }
 }

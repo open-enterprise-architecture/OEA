@@ -1,10 +1,11 @@
 import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { beforeEach, describe, expect, it } from 'vitest'
-import type { SolutionDelta, SolutionLandscapeEntry } from '../api/solutions'
+import type { SolutionDelta, SolutionDeltaConflict, SolutionLandscapeEntry } from '../api/solutions'
 import { session } from '../session/store'
 import { testRouter } from '../test/router'
 import {
+  CONFLICT_MARIA,
   DIFF_DELTAS,
   LANDSCAPE,
   ME_PORTAL_READER,
@@ -20,12 +21,25 @@ import SolutionDiffPage from './SolutionDiffPage.vue'
 const ERP_SOLUTION = '5d000000-0000-4000-8000-000000000002'
 
 async function mountPage(
-  options: { deltas?: SolutionDelta[]; landscape?: SolutionLandscapeEntry[]; me?: unknown; diffStatus?: number; id?: string } = {},
+  options: {
+    deltas?: SolutionDelta[]
+    landscape?: SolutionLandscapeEntry[]
+    me?: unknown
+    diffStatus?: number
+    id?: string
+    conflicts?: Record<number, SolutionDeltaConflict[]>
+  } = {},
 ) {
   const router = testRouter()
   const id = options.id ?? ERP_SOLUTION
   await router.push(`/solutions/${id}/diff`)
-  const api = solutionApi({ me: options.me ?? ME_SOLUTION_VIEWER, deltas: options.deltas ?? DIFF_DELTAS, landscape: options.landscape, diffStatus: options.diffStatus })
+  const api = solutionApi({
+    me: options.me ?? ME_SOLUTION_VIEWER,
+    deltas: options.deltas ?? DIFF_DELTAS,
+    landscape: options.landscape,
+    diffStatus: options.diffStatus,
+    conflicts: options.conflicts,
+  })
   const wrapper = mount(SolutionDiffPage, { props: { id, fetchFn: api.fetch }, global: { plugins: [ui, router] } })
   await flushPromises()
   return Object.assign(wrapper, { api })
@@ -114,6 +128,15 @@ describe('SolutionDiffPage', () => {
       'No longer in the catalog',
     )
     expect(field(wrapper, 'ERP-Core', 'target', 'Users').text()).toContain('400')
+  })
+
+  // spec solution/solution-conflicts "Warnings on the screen \"Solution comparison\"" (US-044)
+  it('names the conflicts on the card of a conflicting entry only', async () => {
+    const wrapper = await mountPage({ conflicts: { 102: [CONFLICT_MARIA] } })
+    expect(card(wrapper, 'ERP-Core').findAll('[data-testid="delta-conflict"]').map((line) => line.text())).toEqual([
+      "Also changed in 'Solution A' (owner: Maria)",
+    ])
+    expect(card(wrapper, 'CRM-Legacy').find('[data-testid="delta-conflict"]').exists()).toBe(false)
   })
 
   it('shows the notice without deltas and no error', async () => {

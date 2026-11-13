@@ -138,9 +138,9 @@ SolutionDeltaConflict:
   - the solution name is a `RouterLink` to `/solutions/{id}`.
 - **SCR-061, `SolutionPage.vue`:**
   - a `UAlert` (color `warning`, icon) under the header when `conflicted > 0`, with plural forms;
-  - after a capture or an edit with conflicts, a `useToast` warning naming the solutions;
+  - after a capture or an edit with conflicts, a closable warning notice above the list naming the solutions (changed during the implementation from a `useToast` toast: the frontend uses no toasts so far, and a notice stays until it is read and can be tested like the other warnings);
   - the list then reloads as before.
-- **SCR-061, `SolutionBaseline.vue`:** a badge "Changed in {n} other solutions" with an icon in the name cell, and the names in a tooltip. The names also go into the accessible label, so the tooltip is not the only way to read them.
+- **SCR-061, `SolutionBaseline.vue`:** a badge "Changed in {n} other solutions" with an icon in the name cell, and the names as text next to it (changed during the implementation from a tooltip, so that the names are readable without hovering).
 - **SCR-062, `SolutionDiffPage.vue`:** the same warning lines in the card header area, from one shared component `components/solutions/SolutionConflicts.vue`.
 - **SCR-030, `MetatypeDetail.vue`:**
   - a section "Show parallel changes in the baseline" with a `USwitch` and a hint, shown when `canConfigure ?? canWrite`, otherwise as text;

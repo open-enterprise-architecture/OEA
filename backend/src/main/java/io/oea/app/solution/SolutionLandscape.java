@@ -6,6 +6,7 @@ import io.oea.app.security.OeaPrincipal;
 import io.oea.core.catalog.CatalogQueryStore.KeyType;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -38,8 +39,12 @@ public class SolutionLandscape {
 
 	private final PropertyAccess access;
 
-	SolutionLandscape(JdbcTemplate jdbc, Solutions solutions, CatalogCursors cursors, PropertyAccess access) {
+	private final SolutionConflicts conflicts;
+
+	SolutionLandscape(JdbcTemplate jdbc, Solutions solutions, CatalogCursors cursors, PropertyAccess access,
+			SolutionConflicts conflicts) {
 		this.jdbc = jdbc;
+		this.conflicts = conflicts;
 		this.solutions = solutions;
 		this.cursors = cursors;
 		this.access = access;
@@ -59,14 +64,16 @@ public class SolutionLandscape {
 	public EntityEntry entry(OeaPrincipal principal, UUID solutionId, int entityId) {
 		this.solutions.get(solutionId);
 		List<EntityEntry> found = this.jdbc.query(
-				"SELECT e.id, e.name, m.id, m.name, e.version, e.description, d.delta_type" + FROM.replace(WHERE, DELTA + WHERE)
-						+ " AND e.id = ?",
+				"SELECT e.id, e.name, m.id, m.name, e.version, e.description, d.delta_type, m.show_parallel_changes"
+						+ FROM.replace(WHERE, DELTA + WHERE) + " AND e.id = ?",
 				(rs, row) -> new EntityEntry(new Entry(rs.getInt(1), rs.getString(2), rs.getObject(3, UUID.class),
-						rs.getString(4), rs.getInt(5), type(rs.getString(7))), rs.getString(6), List.of()),
+						rs.getString(4), rs.getInt(5), type(rs.getString(7)), rs.getBoolean(8) ? null : List.of()),
+						rs.getString(6), List.of()),
 				solutionId, entityId);
 		if (found.isEmpty()) {
 			throw new NoSuchElementException("entity " + entityId);
 		}
+		Entry entry = parallelChanges(solutionId, List.of(found.get(0).entry())).get(0);
 		PropertyAccess.Snapshot snapshot = this.access.of(principal);
 		List<SolutionDeltas.Value> values = this.jdbc.query("""
 				SELECT p.id, p.name, p.data_type, v.value_text, v.value_int, v.value_bool, v.value_date, v.value_ref,
@@ -88,7 +95,22 @@ public class SolutionLandscape {
 					rs.getString(9), (reference != null)
 							? new SolutionDeltas.Reference(reference, rs.getString(10), rs.getString(11)) : null);
 		}, entityId);
-		return new EntityEntry(found.get(0).entry(), found.get(0).description(), values);
+		return new EntityEntry(entry, found.get(0).description(), values);
+	}
+
+	/**
+	 * The entries with the other active solutions that change their entities (D1 of
+	 * us-044-conflict-warning). The queries read an entry whose metatype shows parallel changes
+	 * with {@code null} in their place, which this fills; any other entry has an empty list already.
+	 */
+	private List<Entry> parallelChanges(UUID solutionId, List<Entry> entries) {
+		List<Integer> shown = entries.stream().filter((entry) -> entry.parallelChanges() == null).map(Entry::id).toList();
+		Map<Integer, List<SolutionConflicts.Conflict>> found = this.conflicts.of(solutionId, shown);
+		return entries.stream()
+			.map((entry) -> (entry.parallelChanges() != null) ? entry
+					: new Entry(entry.id(), entry.name(), entry.metatypeId(), entry.metatypeName(), entry.version(),
+							entry.deltaType(), found.getOrDefault(entry.id(), List.of())))
+			.toList();
 	}
 
 	private static SolutionDeltas.Type type(String value) {
@@ -99,9 +121,12 @@ public class SolutionLandscape {
 	public record Query(String q, UUID metatypeId, int page, int pageSize, String cursor) {
 	}
 
-	/** An entity of the baseline, with the type of its delta in the solution, if any (us-043 D0). */
+	/**
+	 * An entity of the baseline, with the type of its delta in the solution, if any (us-043 D0), and
+	 * the other active solutions that change it, when its metatype shows them (us-044 D1).
+	 */
 	public record Entry(int id, String name, UUID metatypeId, String metatypeName, int version,
-			SolutionDeltas.Type deltaType) {
+			SolutionDeltas.Type deltaType, List<SolutionConflicts.Conflict> parallelChanges) {
 	}
 
 	/** One page of the baseline; {@code nextCursor} is {@code null} on the last page. */
@@ -134,7 +159,8 @@ public class SolutionLandscape {
 		String fingerprint = CatalogCursors.fingerprint(List.of("solution-landscape", solutionId.toString(),
 				(search != null) ? search : "", (query.metatypeId() != null) ? query.metatypeId().toString() : "",
 				Integer.toString(query.pageSize())));
-		StringBuilder sql = new StringBuilder("SELECT e.id, e.name, m.id, m.name, e.version, lower(e.name), d.delta_type")
+		StringBuilder sql = new StringBuilder(
+				"SELECT e.id, e.name, m.id, m.name, e.version, lower(e.name), d.delta_type, m.show_parallel_changes")
 			.append(where.toString().replace(WHERE, DELTA + WHERE));
 		List<Object> pageArgs = new ArrayList<>();
 		pageArgs.add(solutionId);
@@ -157,8 +183,9 @@ public class SolutionLandscape {
 			lastKeys.clear();
 			lastKeys.add(rs.getString(6));
 			return new Entry(rs.getInt(1), rs.getString(2), rs.getObject(3, UUID.class), rs.getString(4),
-					rs.getInt(5), type(rs.getString(7)));
+					rs.getInt(5), type(rs.getString(7)), rs.getBoolean(8) ? null : List.of());
 		}, pageArgs.toArray());
+		items = parallelChanges(solutionId, items);
 
 		String nextCursor = null;
 		if (!items.isEmpty() && (long) (query.page() + 1) * query.pageSize() < total) {

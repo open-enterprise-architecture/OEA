@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { rateLimitMessage } from '../../api/problem'
 import { deleteSolutionDelta, type SolutionDelta } from '../../api/solutions'
 import { label, labelKeys } from '../../i18n/labels'
+import SolutionConflicts from './SolutionConflicts.vue'
 import SolutionDeltaDialog from './SolutionDeltaDialog.vue'
 
 // The area "Changes" of SCR-061 (US-040, US-042; design D9 of us-040-entity-deltas): the deltas
@@ -12,7 +13,9 @@ import SolutionDeltaDialog from './SolutionDeltaDialog.vue'
 // dialog, "Edit" opens a delta `modified` in the dialog "Modify entity" of the page, and "Remove"
 // removes a delta after a confirmation. The list shows the loaded pages with the total; "Load more"
 // asks for the next page, and "Compare" opens the diff on SCR-062 (design D0, D3 of
-// us-043-diff-view).
+// us-043-diff-view). An entry names the other active solutions that change the same entity
+// (design D4 of us-044-conflict-warning); "changed" carries a captured delta, so that the page can
+// warn of its conflicts.
 const props = defineProps<{
   solutionId: string
   deltas: SolutionDelta[]
@@ -23,7 +26,7 @@ const props = defineProps<{
   failure?: string
   fetchFn?: typeof fetch
 }>()
-const emit = defineEmits<{ changed: []; completed: []; edit: [delta: SolutionDelta]; more: [] }>()
+const emit = defineEmits<{ changed: [delta?: SolutionDelta]; completed: []; edit: [delta: SolutionDelta]; more: [] }>()
 const { t } = useI18n()
 
 const creating = ref(false)
@@ -49,9 +52,9 @@ const rows = computed(() =>
   props.deltas.map((delta) => ({ ...delta, metatypeName: label(labelKeys.metatype(delta.metatypeId), delta.metatypeName) })),
 )
 
-function onCreated() {
+function onCreated(delta: SolutionDelta) {
   creating.value = false
-  emit('changed')
+  emit('changed', delta)
 }
 
 async function confirmRemoval() {
@@ -115,6 +118,12 @@ async function confirmRemoval() {
         <span v-if="row.original.deltaType === 'modified'" data-testid="delta-change-count" class="ms-2 text-sm text-muted">
           {{ t('solutions.deltas.modify.count', row.original.changes.length) }}
         </span>
+      </template>
+      <template #name-cell="{ row }">
+        <div class="flex flex-col gap-1">
+          <span>{{ row.original.name }}</span>
+          <SolutionConflicts :conflicts="row.original.conflicts ?? []" />
+        </div>
       </template>
       <template #actions-cell="{ row }">
         <div class="flex justify-end gap-1">

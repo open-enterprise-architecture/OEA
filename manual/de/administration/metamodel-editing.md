@@ -130,7 +130,7 @@ Pflegt deine Organisation ihr Metamodell in einem versionierten Repository und i
 
 1. Schalte in *Einstellungen* *Metamodell sperren (Änderungen nur per Paketimport)* ein.
 2. Solange das Metamodell gesperrt ist, zeigt jeder Bereich den Hinweis *Metamodell gesperrt*, und nichts kann angelegt, geändert oder gelöscht werden: Entitätstypen, Zuordnungen, Eigenschaften, Werte, Kategorien und Übersetzungen. Über die API wird eine solche Änderung mit `403` abgelehnt (`metamodel-locked`), unabhängig von deinen Berechtigungen.
-3. Paketimporte funktionieren weiter (siehe [Metamodell-Pakete](./metamodel-packages)), ebenso die Einstellungen für den erneuten Import.
+3. Paketimporte funktionieren weiter (siehe [Metamodell-Pakete](./metamodel-packages)), ebenso die Einstellungen für den erneuten Import und die Einstellung der parallelen Änderungen.
 
 Zum Entsperren schaltest du die Einstellung wieder aus. Nur die Metamodell-Administration (`metamodel:write`) schaltet den Sperrmodus, und jedes Umschalten wird im Audit-Trail festgehalten (`metamodel.edit-mode-changed`).
 
@@ -142,6 +142,15 @@ Wird ein Paket erneut importiert, ersetzt es seine eigenen Eigenschaften an sein
 - **Pro Entitätstyp** in der Detailansicht unter *Erneuter Import von Paketen*: *Wie der Basistyp* (Vorgabe), *Eigene Eigenschaften behalten* oder *Eigene Eigenschaften entfernen*. *Wie der Basistyp* übernimmt die Einstellung des Basistyps; am Anfang der Kette gilt die globale Einstellung. *Gilt* zeigt die wirksame Einstellung.
 
 Entfernen beim erneuten Import löscht die Werte wie oben beschrieben.
+
+## Parallele Änderungen in der Ausgangslage {#parallel-changes}
+
+Ändern mehrere Lösungen dieselbe Entität, warnen die Lösungen ihre Architektinnen und Architekten (siehe [Lösungen](../usage/solutions#parallel-changes)). Zusätzlich kann die Ausgangslage einer Lösung Entitäten markieren, die eine andere aktive Lösung ändert, noch bevor etwas erfasst ist. Diese Markierung schaltest du pro Entitätstyp ein: in seiner Detailansicht unter *Parallele Änderungen* mit *Parallele Änderungen in der Ausgangslage zeigen*.
+
+- Sie ist für jeden Entitätstyp aus, bis du sie einschaltest, auch für neue und importierte.
+- Sie funktioniert auch für eingebaute und importierte Entitätstypen und bei gesperrtem Metamodell. Ein erneuter Import des Pakets behält sie.
+- Ein Subtyp hat seine eigene Einstellung; er folgt nicht seinem Basistyp.
+- Sie wirkt nur auf die Markierung in der Ausgangslage; die Warnungen an den Änderungen selbst erscheinen immer.
 
 ## Änderungen nachvollziehen {#tracing-changes}
 
@@ -184,7 +193,7 @@ curl "${auth[@]}" -X PUT "$OEA/metamodel/labels/de" -H 'Content-Type: applicatio
 - Ablehnungen nutzen die Problemtypen `name-taken`, `read-only-metatype`, `in-use` (mit der Anzahl der Entitäten in `count`), `conflict` und `validation-failed` (mit `invalidFields`).
 - Ein Label-Schlüssel nennt das Element über seine Kennung: `metatype.{id}.name`, `property-category.{id}.name`, `property-def.{id}.label` oder `enum-value.{id}.label`; ein leerer Text entfernt dein Label, und ein unbekannter Schlüssel lehnt die ganze Änderung ab.
 - Verbindungstypen werden mit `"isConnection": true` und den Listen `allowedSourceMetatypeIds` und `allowedTargetMetatypeIds` angelegt; `GET /metamodel/allowed-connections?sourceMetatypeId=…&targetMetatypeId=…` beantwortet, welche Verbindungstypen zwei Entitätstypen in welcher Richtung verbinden dürfen.
-- `GET /metamodel/metatypes/{id}/property-mappings?includeHistory=true` listet alle Einträge der Zuordnungen mit ihrem `state`. Die Einstellungen für den erneuten Import sind `PUT /metamodel/settings/reimport-policy` und `PUT /metamodel/metatypes/{id}/reimport-policy`.
+- `GET /metamodel/metatypes/{id}/property-mappings?includeHistory=true` listet alle Einträge der Zuordnungen mit ihrem `state`. Die Einstellungen für den erneuten Import sind `PUT /metamodel/settings/reimport-policy` und `PUT /metamodel/metatypes/{id}/reimport-policy`. `PUT /metamodel/metatypes/{id}/parallel-changes` mit `{"showInBaseline": true}` und `If-Match` setzt die Markierung paralleler Änderungen; der Entitätstyp zeigt sie als `showParallelChanges`, und die Änderung wird als `metamodel.metatype-parallel-changes-changed` festgehalten.
 - Jede Änderung schreibt ein Audit-Ereignis, zum Beispiel `metamodel.metatype-updated`, `metamodel.mapping-deleted` mit der Anzahl der betroffenen Entitäten, `metamodel.mapping-effective`, wenn ein Eintrag wirksam wird, oder `metamodel.labels-changed`.
 - `GET /metamodel/configurations` listet die Konfiguration der Instanz und die Erweiterungen mit ihrem `editMode`. `PUT /metamodel/configurations/{id}` mit `{"name": "Instance metamodel", "editMode": "import-only"}` und `If-Match` sperrt eine Konfiguration; `gui-and-import` entsperrt sie.
 

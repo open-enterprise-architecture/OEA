@@ -54,3 +54,44 @@ Feature: Editing the metamodel
     Given the metatype "Audit Zone" with the property "Version" mapped as optional since 2026-01-01
     When the metamodel administrator maps "Version" to "Audit Zone" as mandatory from 2026-01-01
     Then the metamodel change is rejected with 409 and problem type "conflict"
+
+  # Parallel-change setting of a metatype (US-044, owner decision 2026-11-13)
+
+  @US-044
+  Scenario: Turning the setting on for a shared metatype
+    Given the setting of the shared metatype "Application Component" is off
+    When the metamodel administrator turns on parallel changes in the baseline for "Application Component"
+    Then "Application Component" shows parallel changes in the baseline with a version raised by 1
+    And the metamodel changes list the setting of "Application Component" under the kind "metatype" by the metamodel administrator
+
+  @US-044
+  Scenario: Default off
+    When the metamodel administrator creates the metatype "Parallel Default Zone"
+    Then the metatype "Parallel Default Zone" does not show parallel changes in the baseline
+
+  @US-044
+  Scenario: Setting without metamodel administration
+    Given the organization metatype "Parallel Zone"
+    When the architect turns on parallel changes in the baseline for "Parallel Zone"
+    Then the setting is rejected with 403 and "Parallel Zone" is unchanged
+
+  @US-044
+  Scenario: Setting with an outdated version
+    Given the organization metatype "Parallel Zone"
+    When the metamodel administrator turns on parallel changes in the baseline for "Parallel Zone" with an outdated version
+    Then the setting is rejected with 412 and "Parallel Zone" is unchanged
+
+  @US-044
+  Scenario: Re-import keeps the setting
+    Given the package "parallel-reimport" with one metatype
+    And the metamodel administrator turned on parallel changes in the baseline for "parallel-reimport"
+    When the metamodel administrator imports the package "parallel-reimport" again
+    Then "parallel-reimport" still shows parallel changes in the baseline
+
+  @US-044
+  Scenario: Setting not inherited
+    Given the organization metatype "Parallel Base"
+    And the metamodel administrator turned on parallel changes in the baseline for "Parallel Base"
+    And the subtype "Parallel Sub" of "Parallel Base" with the entity "Sub-CRM" that another solution retires
+    When the architect reads the entry "Sub-CRM" in the baseline of a solution
+    Then the entry names no other solution

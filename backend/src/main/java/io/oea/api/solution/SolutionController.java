@@ -10,6 +10,7 @@ import io.oea.api.generated.model.Solution;
 import io.oea.api.generated.model.SolutionCreate;
 import io.oea.api.generated.model.SolutionDelta;
 import io.oea.api.generated.model.SolutionDeltaChange;
+import io.oea.api.generated.model.SolutionDeltaConflict;
 import io.oea.api.generated.model.SolutionDeltaCounts;
 import io.oea.api.generated.model.SolutionDeltaList;
 import io.oea.api.generated.model.SolutionDeltaType;
@@ -26,6 +27,7 @@ import io.oea.api.generated.model.SolutionStatus;
 import io.oea.api.generated.model.SolutionSummary;
 import io.oea.app.entity.EntityInput;
 import io.oea.app.security.OeaPrincipal;
+import io.oea.app.solution.SolutionConflicts;
 import io.oea.app.solution.SolutionDeltas;
 import io.oea.app.solution.SolutionDiff;
 import io.oea.app.solution.SolutionLandscape;
@@ -93,7 +95,8 @@ public class SolutionController implements SolutionsApi {
 					.metatypeId(entry.metatypeId())
 					.metatypeName(entry.metatypeName())
 					.version(entry.version())
-					.deltaType(deltaType(entry.deltaType())))
+					.deltaType(deltaType(entry.deltaType()))
+					.parallelChanges(conflicts(entry.parallelChanges())))
 				.toList())
 			.page(new PageMeta().page(result.page())
 				.pageSize(result.pageSize())
@@ -129,6 +132,7 @@ public class SolutionController implements SolutionsApi {
 			.metatypeName(found.entry().metatypeName())
 			.version(found.entry().version())
 			.deltaType(deltaType(found.entry().deltaType()))
+			.parallelChanges(conflicts(found.entry().parallelChanges()))
 			.description(found.description())
 			.properties(found.properties().stream().map(SolutionController::value).toList()));
 	}
@@ -160,6 +164,7 @@ public class SolutionController implements SolutionsApi {
 			.items(result.items().stream().map(SolutionController::delta).toList())
 			.page(pageMeta(result))
 			.counts(counts(result.counts()))
+			.conflicted(Math.toIntExact(result.conflicted()))
 			.nextCursor(result.nextCursor()));
 	}
 
@@ -182,7 +187,19 @@ public class SolutionController implements SolutionsApi {
 			.metatypeName(entry.metatypeName())
 			.name(entry.name())
 			.inCatalog(entry.inCatalog())
-			.fields(entry.fields().stream().map(SolutionController::diffField).toList());
+			.fields(entry.fields().stream().map(SolutionController::diffField).toList())
+			.conflicts(conflicts(entry.conflicts()));
+	}
+
+	private static List<SolutionDeltaConflict> conflicts(List<SolutionConflicts.Conflict> conflicts) {
+		return conflicts.stream()
+			.map((conflict) -> new SolutionDeltaConflict().solutionId(conflict.solutionId())
+				.solutionName(conflict.solutionName())
+				.status(SolutionStatus.fromValue(conflict.status()))
+				.ownerId(conflict.ownerId())
+				.ownerName(conflict.ownerName())
+				.deltaType(SolutionDeltaType.fromValue(conflict.deltaType().value())))
+			.toList();
 	}
 
 	private static SolutionDiffField diffField(SolutionDiff.Field field) {
@@ -230,6 +247,7 @@ public class SolutionController implements SolutionsApi {
 			.description(delta.description())
 			.properties(delta.properties().stream().map(SolutionController::value).toList())
 			.changes(delta.changes().stream().map(SolutionController::change).toList())
+			.conflicts(conflicts(delta.conflicts()))
 			.createdAt(delta.createdAt().atOffset(ZoneOffset.UTC))
 			.updatedAt((delta.updatedAt() != null) ? delta.updatedAt().atOffset(ZoneOffset.UTC) : null);
 	}

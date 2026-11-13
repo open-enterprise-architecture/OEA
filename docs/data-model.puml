@@ -817,6 +817,9 @@ package "Metamodel" #E8F5E9 {
     + reimport_organization_mappings : TEXT {NN} DEFAULT 'inherit'
     .. enum: inherit | keep | remove; 'inherit' follows the base type, then the ..
     .. global setting of metamodel_configurations; writable for every scope (V15) ..
+    + show_parallel_changes : BOOLEAN     {NN} DEFAULT false
+    .. the baseline of a solution marks entities of this metatype that another active ..
+    .. solution changes; writable for every scope, kept by a re-import, not inherited (V28) ..
     + version               : INTEGER     {NN} DEFAULT 1
     .. CHECK version >= 1; grows with every change of the metatype, its mappings or its ..
     .. re-import setting, also by a re-import; If-Match of the writes (V18, scr-030-metamodel-configuration D1) ..
@@ -1056,6 +1059,8 @@ package "Architecture Planning" #E3F2FD {
     .. UNIQUE (solution_id, entity_id) WHERE entity_id IS NOT NULL ..
     .. UNIQUE (solution_id, metatype_id, lower(name)) WHERE delta_type = 'new' ..
     .. any number per solution; the list and the diff are paged (us-043-diff-view) ..
+    .. INDEX (entity_id) WHERE entity_id IS NOT NULL: the conflicts with other active ..
+    .. solutions are read by entity and computed, never stored (V28, us-044-conflict-warning) ..
   }
 
   class entity_delta_property_values <<Table>> #BBDEFB {
@@ -2114,6 +2119,14 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   decision 2026-11-12). entity_deltas gets updated_at and updated_by, the
 '   only columns oea_app may update.
 '   Reason: US-041, REQ-040.
+' 2026-11-13 (us-044-conflict-warning):
+'   V28: metatypes.show_parallel_changes (default false) controls the marker of
+'   parallel changes in the baseline per metatype (owner decision 2026-11-13);
+'   the partial index entity_deltas (entity_id) serves the conflict read. A
+'   conflict (a delta modified or retiring on the same entity in another
+'   solution that is not implemented or archived) is computed on each read and
+'   not stored, so it disappears with the go-live of the other solution.
+'   Reason: US-044, REQ-042.
 ' ─────────────────────────────────────────────────────
 
 @enduml

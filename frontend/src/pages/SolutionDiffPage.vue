@@ -12,6 +12,7 @@ import {
   type SolutionDiffEntry,
   type SolutionDiffField,
 } from '../api/solutions'
+import SolutionConflicts from '../components/solutions/SolutionConflicts.vue'
 import { label, labelKeys } from '../i18n/labels'
 import { refreshSession, session } from '../session/store'
 
@@ -19,7 +20,9 @@ import { refreshSession, session } from '../session/store'
 // delta with the current state of the entity in the catalog next to its target state after the
 // solution, two columns, stacked on a narrow screen. New, modified and retiring entries, changed
 // fields and drift since capture carry a label or an icon, never color alone. The diff loads on
-// each visit; "Refresh" loads the first page again, "Load more" appends the next one.
+// each visit; "Refresh" loads the first page again, "Load more" appends the next one. A card names
+// the other active solutions that change the same entity (US-044; design D4 of
+// us-044-conflict-warning).
 const props = defineProps<{ id: string; fetchFn?: typeof fetch }>()
 const { t } = useI18n()
 
@@ -210,6 +213,7 @@ const sides = ['current', 'target'] as const
               <h2 :id="`diff-${entry.deltaId}`" class="font-semibold text-highlighted">{{ entry.name }}</h2>
               <span class="text-sm text-muted">{{ label(labelKeys.metatype(entry.metatypeId), entry.metatypeName) }}</span>
             </header>
+            <SolutionConflicts :conflicts="entry.conflicts ?? []" />
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
               <section v-for="side in sides" :key="side" :data-testid="`diff-${side}`" class="flex flex-col gap-2">
                 <h3 class="text-sm font-medium text-muted">{{ t(`solutions.diff.${side}`) }}</h3>

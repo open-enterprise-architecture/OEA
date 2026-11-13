@@ -22,6 +22,7 @@ export type SolutionDeltaCounts = components['schemas']['SolutionDeltaCounts']
 export type SolutionDiff = components['schemas']['SolutionDiff']
 export type SolutionDiffEntry = components['schemas']['SolutionDiffEntry']
 export type SolutionDiffField = components['schemas']['SolutionDiffField']
+export type SolutionDeltaConflict = components['schemas']['SolutionDeltaConflict']
 
 /** The parameters of a baseline query (design D4 of us-039-solution-baseline). */
 export interface LandscapeQuery {

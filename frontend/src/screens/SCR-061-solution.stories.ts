@@ -1,11 +1,21 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { expect, userEvent, within } from 'storybook/test'
-import type { SolutionDelta, SolutionLandscapeEntry } from '../api/solutions'
+import type { SolutionDelta, SolutionDeltaConflict, SolutionLandscapeEntry } from '../api/solutions'
 import type { Me } from '../api/session'
 import AppHeader from '../components/AppHeader.vue'
 import SolutionPage from '../pages/SolutionPage.vue'
 import { session } from '../session/store'
-import { DELTAS, DELTAS_WITH_MODIFIED, ME_SOLUTION_ARCHITECT, ME_SOLUTION_VIEWER, manyDeltas, solutionApi } from '../test/solutions'
+import {
+  APPLICATION,
+  CONFLICT_KURT,
+  CONFLICT_MARIA,
+  DELTAS,
+  DELTAS_WITH_MODIFIED,
+  ME_SOLUTION_ARCHITECT,
+  ME_SOLUTION_VIEWER,
+  manyDeltas,
+  solutionApi,
+} from '../test/solutions'
 
 // SCR-061 Solution (UC-05, US-038, US-039): name, status, owner, creation time and the
 // architecture vision of one solution (design D4 of us-038-create-solution), and its baseline
@@ -13,11 +23,22 @@ import { DELTAS, DELTAS_WITH_MODIFIED, ME_SOLUTION_ARCHITECT, ME_SOLUTION_VIEWER
 // changes: new and retiring entities, the dialog "New entity" and "Retire" in the baseline (design
 // D9 of us-040-entity-deltas), and modifications with "Modify" and "Edit" (design D6 of
 // us-041-modified-delta); the changes load page by page with "Load more", and "Compare" opens
-// SCR-062 (design D0, D3 of us-043-diff-view) (docs/screens/SCREENS.md). The first story is the
-// screen image.
+// SCR-062 (design D0, D3 of us-043-diff-view); the warnings of conflicts with other active
+// solutions on the entries, in the header and in the baseline (design D4 of
+// us-044-conflict-warning) (docs/screens/SCREENS.md). The first story is the screen image.
 
-function screen(id: string, landscape?: SolutionLandscapeEntry[], deltas: SolutionDelta[] = DELTAS, me: unknown = ME_SOLUTION_ARCHITECT): Story {
-  const fetchFn = solutionApi({ landscape, deltas, me }).fetch
+// Warehouse Management (103) and ERP-Core (102) are also changed elsewhere; CRM-Legacy (101) is
+// changed by another solution, and applications show parallel changes in the baseline.
+const CONFLICTS: Record<number, SolutionDeltaConflict[]> = { 103: [CONFLICT_MARIA], 102: [CONFLICT_KURT], 101: [CONFLICT_MARIA, CONFLICT_KURT] }
+
+function screen(
+  id: string,
+  landscape?: SolutionLandscapeEntry[],
+  deltas: SolutionDelta[] = DELTAS,
+  me: unknown = ME_SOLUTION_ARCHITECT,
+  conflicts: Record<number, SolutionDeltaConflict[]> = {},
+): Story {
+  const fetchFn = solutionApi({ landscape, deltas, me, conflicts, parallelChangeMetatypes: [APPLICATION] }).fetch
   return {
     render: () => ({
       components: { AppHeader, SolutionPage },
@@ -42,7 +63,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Solution: Story = {
-  ...screen('5d000000-0000-4000-8000-000000000002', undefined, DELTAS_WITH_MODIFIED),
+  ...screen('5d000000-0000-4000-8000-000000000002', undefined, DELTAS_WITH_MODIFIED, ME_SOLUTION_ARCHITECT, CONFLICTS),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(await canvas.findByText('ERP Extension Logistics')).toBeInTheDocument()
@@ -55,6 +76,28 @@ export const Solution: Story = {
     await expect(canvas.getAllByText('Modified')).toHaveLength(2)
     await expect(canvas.getByText('2 changes')).toBeInTheDocument()
     await expect(canvas.getByRole('link', { name: 'Compare' })).toHaveAttribute('href', '/solutions/5d000000-0000-4000-8000-000000000002/diff')
+  },
+}
+
+export const Conflicts: Story = {
+  ...screen('5d000000-0000-4000-8000-000000000002', undefined, DELTAS_WITH_MODIFIED, ME_SOLUTION_ARCHITECT, CONFLICTS),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(
+      await canvas.findByText('2 changes also concern other active solutions. Please coordinate with their owners.'),
+    ).toBeInTheDocument()
+    await expect(canvas.getAllByTestId('delta-conflict').map((line) => line.textContent?.trim())).toEqual([
+      "Also changed in 'Integration Platform' (owner: Kurt)",
+      "Also changed in 'Solution A' (owner: Maria)",
+    ])
+    await expect(await canvas.findByText('Changed in 2 other solutions')).toBeInTheDocument()
+    await expect(canvas.getAllByText('Changed in 1 other solution')).toHaveLength(2)
+    // retiring CRM-Legacy saves the delta and names the other solutions
+    const crm = (await canvas.findAllByRole('row')).find((row) => row.textContent?.includes('CRM-Legacy') && row.textContent.includes('Retire'))!
+    await userEvent.click(within(crm).getByRole('button', { name: 'Retire' }))
+    await expect(
+      await canvas.findByText('Saved. CRM-Legacy is also changed in: Solution A, Integration Platform. Please coordinate with their owners.'),
+    ).toBeInTheDocument()
   },
 }
 

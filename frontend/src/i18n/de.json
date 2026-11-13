@@ -619,6 +619,13 @@
       "targets": "Erlaubte Ziele",
       "endpointsHelp": "Untertypen sind eingeschlossen. Leer lassen, um jeden Entitätstyp zu erlauben.",
       "any": "Jeder Entitätstyp"
+    },
+    "parallelChanges": {
+      "title": "Parallele Änderungen",
+      "hint": "Entitäten dieses Typs in der Ausgangslage einer Lösung markieren, wenn eine andere aktive Lösung sie ändert. Die Warnungen an den Änderungen selbst erscheinen immer.",
+      "label": "Parallele Änderungen in der Ausgangslage zeigen",
+      "on": "In der Ausgangslage gezeigt",
+      "off": "In der Ausgangslage nicht gezeigt"
     }
   },
   "navigation": {
@@ -863,6 +870,12 @@
       "more": "Weitere laden",
       "shown": "{shown} von {total} Einträgen",
       "loadFailed": "Der Vergleich konnte nicht geladen werden."
+    },
+    "conflicts": {
+      "entry": "Wird auch in '{solution}' geändert (verantwortlich: {owner})",
+      "notice": "Keine Änderung betrifft andere aktive Lösungen. | {n} Änderung betrifft auch andere aktive Lösungen. Bitte stimme dich mit den Verantwortlichen ab. | {n} Änderungen betreffen auch andere aktive Lösungen. Bitte stimme dich mit den Verantwortlichen ab.",
+      "saved": "Gespeichert. {name} wird auch geändert in: {solutions}. Bitte stimme dich mit den Verantwortlichen ab.",
+      "baseline": "In {n} anderen Lösung geändert | In {n} anderen Lösungen geändert"
     }
   }
 }

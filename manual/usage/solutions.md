@@ -2,7 +2,7 @@
 title: Solutions
 covers:
   screens: [SCR-060, SCR-061, SCR-062]
-  stories: [US-038, US-039, US-040, US-041, US-042, US-043]
+  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044]
 ---
 
 # Solutions
@@ -63,7 +63,7 @@ The area *Changes* lists what the initiative changes in the landscape: new entit
 
 The rules:
 
-- A solution holds one change per entity: the same entity cannot be retired twice or both modified and retired, and two new entities of the same metatype cannot have the same name (upper and lower case do not matter). Another solution can change the same entity.
+- A solution holds one change per entity: the same entity cannot be retired twice or both modified and retired, and two new entities of the same metatype cannot have the same name (upper and lower case do not matter). Another solution can change the same entity; both then show a warning (see [Parallel changes](#parallel-changes)).
 - A value must fit its property, for example a whole number for an integer property, and the value of a required property cannot be removed. If a value is rejected, the dialog shows why at the field.
 - A restricted property can only be set if one of your roles may write it (see [Property visibility](../administration/property-visibility)). A connection-scoped property cannot be set for a new entity, because its connections do not exist yet; for an existing entity, the entity must be in your scope. Values you may not read appear as hidden.
 - A solution can hold any number of changes.
@@ -82,6 +82,17 @@ The rules:
 - **No longer in the catalog:** the entity was deleted after the change was captured; the current state is empty.
 
 Values you may not read appear as hidden. The comparison is computed each time you open it; *Refresh* loads it again, for example after someone else captured a change. It shows 50 changes at a time; *Load more* adds the next 50.
+
+## Parallel changes {#parallel-changes}
+
+Several initiatives often run at the same time. When another active solution modifies or retires an entity that your solution modifies or retires too, OEA warns you, so that you can coordinate with its owner before the go-live. A solution is active until it is implemented or archived. New entities never conflict, because they do not exist in the catalog yet.
+
+- **On the change:** its row in *Changes* says "Also changed in '…' (owner: …)" for each other solution; the name opens that solution. The comparison shows the same note on the card of the entity.
+- **At the top of the solution:** a notice counts the changes that concern other active solutions.
+- **When you save:** retiring or modifying an entity that another solution changes shows a notice with the names of the other solutions. Close it when you have read it; the warning on the change stays.
+- **In the baseline:** an entity that another active solution changes is marked "Changed in … other solutions", with their names, before you capture anything. This marker appears only for the entity types for which your metamodel administrators switched it on (see [Parallel changes in the baseline](../administration/metamodel-editing#parallel-changes)).
+
+The warning never blocks a change. It is computed each time you open the solution, so it disappears as soon as the other solution is implemented or archived, or removes its change.
 
 ## Through the API
 
@@ -112,3 +123,5 @@ curl "${auth[@]}" "$OEA/solutions/$SOLUTION/diff?pageSize=50"
 A modification is `{"deltaType": "modified", "entityId": …, "name": …, "description": …, "properties": […]}` with the new values only; the response carries `changes` with the recorded `before` and the new `after` value of each field. `PUT /solutions/{id}/deltas/{deltaId}` with `name`, `description` and `properties` replaces the changes of a modification and is recorded as `solution.delta-updated`. `GET /solutions/{id}/landscape/{entityId}` returns an entity of the baseline with its current values.
 
 `GET /solutions/{id}/deltas` and `GET /solutions/{id}/diff` answer one page, with `page` and `pageSize` (1 to 200, default 50), the number of changes per type in `counts` and, if a further page exists, a `nextCursor`, which you send as `cursor` together with `page` + 1. Each entry of the diff carries the `fields` of the entity with their `current` and `target` value, `changed` for a field the solution changes and `catalogChanged` for a field whose recorded value differs from the catalog; `inCatalog` is false for a new entity and for one deleted since.
+
+Every change and every entry of the comparison carries `conflicts`: the other active solutions that change the same entity, each with `solutionId`, `solutionName`, `status`, `ownerId`, `ownerName` and the `deltaType` of its change, ordered by name; the list is empty for a new entity. The responses of `POST` and `PUT` carry it as well. `conflicted` in the list of changes counts the changes with at least one conflict, over all pages. In the baseline, `parallelChanges` lists them for the entity types that show parallel changes, and is empty otherwise.

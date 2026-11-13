@@ -79,10 +79,13 @@ public class SolutionDeltas {
 
 	private final CatalogCursors cursors;
 
+	private final SolutionConflicts conflicts;
+
 	SolutionDeltas(JdbcTemplate jdbc, EntityStore store, PropertyWriteAccess writeAccess, PropertyAccess readAccess,
-			AuditWriter audit, Clock clock, CatalogCursors cursors) {
+			AuditWriter audit, Clock clock, CatalogCursors cursors, SolutionConflicts conflicts) {
 		this.jdbc = jdbc;
 		this.cursors = cursors;
+		this.conflicts = conflicts;
 		this.store = store;
 		this.writeAccess = writeAccess;
 		this.readAccess = readAccess;
@@ -161,9 +164,13 @@ public class SolutionDeltas {
 	public record Reference(int id, String name, String metatypeAbbreviation) {
 	}
 
-	/** A captured delta; for {@code modified} and {@code retiring} the current name and metatype. */
+	/**
+	 * A captured delta; for {@code modified} and {@code retiring} the current name and metatype, and
+	 * the conflicts with other active solutions (US-044).
+	 */
 	public record Delta(UUID id, Type type, Integer entityId, String name, UUID metatypeId, String metatypeName,
-			String description, List<Value> properties, List<Change> changes, Instant createdAt, Instant updatedAt) {
+			String description, List<Value> properties, List<Change> changes,
+			List<SolutionConflicts.Conflict> conflicts, Instant createdAt, Instant updatedAt) {
 	}
 
 	/** A computed change before it is stored: a system field or a property, with typed values. */
@@ -298,8 +305,12 @@ public class SolutionDeltas {
 
 	}
 
-	/** One page of the deltas; {@code nextCursor} is {@code null} on the last page. */
-	public record Page(List<Delta> items, int page, int pageSize, Counts counts, int totalPages, String nextCursor) {
+	/**
+	 * One page of the deltas; {@code conflicted} counts the deltas with a conflict over all pages,
+	 * {@code nextCursor} is {@code null} on the last page.
+	 */
+	public record Page(List<Delta> items, int page, int pageSize, Counts counts, long conflicted, int totalPages,
+			String nextCursor) {
 	}
 
 	/**
@@ -348,7 +359,8 @@ public class SolutionDeltas {
 					List.of(last.type().ordinal(), last.name(), last.id().toString()));
 		}
 		int totalPages = Math.toIntExact((total + query.pageSize() - 1) / query.pageSize());
-		return new Page(items, query.page(), query.pageSize(), counts, totalPages, nextCursor);
+		return new Page(items, query.page(), query.pageSize(), counts, this.conflicts.conflicted(solutionId),
+				totalPages, nextCursor);
 	}
 
 	/**
@@ -515,7 +527,7 @@ public class SolutionDeltas {
 
 	/**
 	 * The deltas of the solution matching {@code where}, in the order of the list (design D5, D4 of
-	 * us-041, D0 of us-043), with their values and changes.
+	 * us-041, D0 of us-043), with their values, changes and conflicts (D1 of us-044).
 	 */
 	private List<Delta> read(UUID solutionId, String where, List<Object> whereArguments, String limit,
 			PropertyAccess.Snapshot access) {
@@ -529,16 +541,21 @@ public class SolutionDeltas {
 				JOIN metatypes m ON m.id = coalesce(d.metatype_id, e.metatype_id)
 				WHERE d.solution_id = ?""" + where + " ORDER BY " + RANK + ", " + SORT_NAME + ", d.id::text" + limit,
 				SolutionDeltas::delta, arguments.toArray());
-		if (deltas.stream().allMatch((delta) -> delta.type() == Type.RETIRING)) {
+		if (deltas.isEmpty()) {
 			return deltas;
 		}
+		Map<Integer, List<SolutionConflicts.Conflict>> conflicts = this.conflicts.of(solutionId,
+				deltas.stream().map(Delta::entityId).filter(Objects::nonNull).toList());
+		boolean onlyRetiring = deltas.stream().allMatch((delta) -> delta.type() == Type.RETIRING);
 		UUID[] ids = deltas.stream().map(Delta::id).toArray(UUID[]::new);
-		Map<UUID, List<Value>> values = values(ids, access);
-		Map<UUID, List<Change>> changes = changes(ids, access);
+		Map<UUID, List<Value>> values = onlyRetiring ? Map.of() : values(ids, access);
+		Map<UUID, List<Change>> changes = onlyRetiring ? Map.of() : changes(ids, access);
 		return deltas.stream()
 			.map((delta) -> new Delta(delta.id(), delta.type(), delta.entityId(), delta.name(), delta.metatypeId(),
 					delta.metatypeName(), delta.description(), values.getOrDefault(delta.id(), List.of()),
-					changes.getOrDefault(delta.id(), List.of()), delta.createdAt(), delta.updatedAt()))
+					changes.getOrDefault(delta.id(), List.of()),
+					(delta.entityId() != null) ? conflicts.getOrDefault(delta.entityId(), List.of()) : List.of(),
+					delta.createdAt(), delta.updatedAt()))
 			.toList();
 	}
 
@@ -653,7 +670,7 @@ public class SolutionDeltas {
 		java.sql.Timestamp updated = rs.getTimestamp(9);
 		return new Delta(rs.getObject(1, UUID.class), Type.of(rs.getString(2)), rs.getObject(3, Integer.class),
 				rs.getString(4), rs.getObject(5, UUID.class), rs.getString(6), rs.getString(7), List.of(), List.of(),
-				rs.getTimestamp(8).toInstant(), (updated != null) ? updated.toInstant() : null);
+				List.of(), rs.getTimestamp(8).toInstant(), (updated != null) ? updated.toInstant() : null);
 	}
 
 	/**
