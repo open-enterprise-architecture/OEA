@@ -68,7 +68,7 @@ public class MetatypeCatalog {
 	public record Metatype(UUID id, String name, String abbreviation, boolean connection, int sortOrder, String scope,
 			String sourcePackageId, String sourcePackageVersion, UUID baseMetatypeId, String reimportPolicy,
 			String effectiveReimportPolicy, String architectureLayerId, List<Mapping> mappings, int version,
-			List<Constraint> constraints, UUID configId) {
+			List<Constraint> constraints, UUID configId, boolean showParallelChanges) {
 	}
 
 	/** An allowed source or target of a connection metatype (us-036-connection-metatypes D2). */
@@ -77,7 +77,7 @@ public class MetatypeCatalog {
 
 	private record Row(UUID id, String name, String abbreviation, boolean connection, int sortOrder, String scope,
 			String sourcePackageId, String sourcePackageVersion, UUID baseMetatypeId, String reimportPolicy,
-			String architectureLayerId, int version, UUID configId) {
+			String architectureLayerId, int version, UUID configId, boolean showParallelChanges) {
 	}
 
 	/** The metatypes of the instance configuration. */
@@ -178,12 +178,13 @@ public class MetatypeCatalog {
 		Map<UUID, Row> rows = new LinkedHashMap<>();
 		this.jdbc.query("""
 				SELECT id, name, abbreviation, is_connection, sort_order, scope, source_package_id, source_package_version,
-				       base_metatype_id, reimport_organization_mappings, architecture_layer_id, version, config_id
+				       base_metatype_id, reimport_organization_mappings, architecture_layer_id, version, config_id,
+				       show_parallel_changes
 				FROM metatypes WHERE config_id IN (?, ?) ORDER BY sort_order, name""", (rs) -> {
 			UUID metatype = rs.getObject(1, UUID.class);
 			rows.put(metatype, new Row(metatype, rs.getString(2), rs.getString(3), rs.getBoolean(4), rs.getInt(5),
 					rs.getString(6), rs.getString(7), rs.getString(8), rs.getObject(9, UUID.class), rs.getString(10),
-					rs.getString(11), rs.getInt(12), rs.getObject(13, UUID.class)));
+					rs.getString(11), rs.getInt(12), rs.getObject(13, UUID.class), rs.getBoolean(14)));
 		}, PackageImporter.INSTANCE_CONFIGURATION, config);
 		Map<UUID, UUID> bases = new HashMap<>();
 		rows.values().stream().filter((row) -> row.baseMetatypeId() != null)
@@ -217,7 +218,8 @@ public class MetatypeCatalog {
 			metatypes.add(new Metatype(row.id(), row.name(), row.abbreviation(), row.connection(), row.sortOrder(),
 					row.scope(), row.sourcePackageId(), row.sourcePackageVersion(), row.baseMetatypeId(),
 					row.reimportPolicy(), policies.get(row.id()), row.architectureLayerId(), List.copyOf(mappings),
-					row.version(), List.copyOf(constraints.getOrDefault(row.id(), List.of())), row.configId()));
+					row.version(), List.copyOf(constraints.getOrDefault(row.id(), List.of())), row.configId(),
+					row.showParallelChanges()));
 		}
 		return metatypes;
 	}

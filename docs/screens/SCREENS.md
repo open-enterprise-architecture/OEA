@@ -67,7 +67,7 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 
 | ID | Screen | Platform | UC Reference | Priority | Status | Image |
 |---|---|---|---|---|---|---|
-| SCR-030 | Metamodel configuration (entity types, properties, categories, translations, changes, lock mode and re-import settings) | CA+WP | UC-04 | must | `implemented` | [light](./SCR-030-light.png) / [dark](./SCR-030-dark.png) |
+| SCR-030 | Metamodel configuration (entity types, properties, categories, translations, changes, lock mode, re-import settings and the setting "Show parallel changes in the baseline" per entity type) | CA+WP | UC-04 | must | `implemented` | [light](./SCR-030-light.png) / [dark](./SCR-030-dark.png) |
 | SCR-031 | Viewpoint management | CA | UC-12 | must | `legacy-mockup` | [viewpoints](./viewpoints-light.svg) / [dark](./viewpoints-dark.svg) |
 | SCR-032 | Configure property visibility (security administration; read-only badge in SCR-030) | CA+WP | UC-21 | must | `implemented` | [light](./SCR-032-light.png) / [dark](./SCR-032-dark.png) |
 | SCR-033 | TRM configuration | CA | UC-19 | must | `legacy-mockup` | [trm-config](./trm-config-light.svg) / [dark](./trm-config-dark.svg) |
@@ -86,8 +86,8 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 | ID | Screen | Platform | UC Reference | Priority | Status | Image |
 |---|---|---|---|---|---|---|
 | SCR-060 | Solutions (overview of change initiatives; dialog "New solution") | CA+WP | UC-05 | must | `implemented` | [light](./SCR-060-light.png) / [dark](./SCR-060-dark.png) |
-| SCR-061 | Solution (name, status, owner and architecture vision of one solution; its changes – new, modified and retiring entities, the dialogs "New entity" and "Modify entity", "Edit" and "Remove", the total, "Load more" and the link "Compare"; and its baseline with search, metatype filter, paging and the actions "Modify" and "Retire") | CA+WP | UC-05 | must | `implemented` | [light](./SCR-061-light.png) / [dark](./SCR-061-dark.png) |
-| SCR-062 | Solution comparison (per change of a solution, the current state of the entity in the catalog next to its target state; markings of new, modified and retiring entities, changed fields and drift since capture; "Refresh" and "Load more") | CA+WP | UC-05 | should | `implemented` | [light](./SCR-062-light.png) / [dark](./SCR-062-dark.png) |
+| SCR-061 | Solution (name, status, owner and architecture vision of one solution; its changes – new, modified and retiring entities, the dialogs "New entity" and "Modify entity", "Edit" and "Remove", the total, "Load more" and the link "Compare"; the warnings of conflicts with other active solutions on the changes, in the header and after saving; and its baseline with search, metatype filter, paging, the actions "Modify" and "Retire" and the marker of parallel changes) | CA+WP | UC-05 | must | `implemented` | [light](./SCR-061-light.png) / [dark](./SCR-061-dark.png) |
+| SCR-062 | Solution comparison (per change of a solution, the current state of the entity in the catalog next to its target state; markings of new, modified and retiring entities, changed fields and drift since capture; the conflicts with other active solutions; "Refresh" and "Load more") | CA+WP | UC-05 | should | `implemented` | [light](./SCR-062-light.png) / [dark](./SCR-062-dark.png) |
 
 ---
 

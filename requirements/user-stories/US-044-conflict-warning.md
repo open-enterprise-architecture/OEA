@@ -2,8 +2,9 @@
 
 **ID**: US-044
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S11
+**Implementation**: OpenSpec change `us-044-conflict-warning` – `conflicts` on every delta of `createSolutionDelta`, `updateSolutionDelta`, `listSolutionDeltas` (with `conflicted`) and `getSolutionDiff`, `parallelChanges` on the baseline entries, computed on each read; the warnings on SCR-061 and SCR-062; the setting per metatype `updateMetatypeParallelChanges` on SCR-030. Realigned 2026-11-13
 
 ## Story
 
@@ -33,13 +34,14 @@ As a Solution Architect, I want to see a warning when another active solution al
 
 - Given: the warning for `CRM-Legacy` was displayed when saving the delta
 - When: Michael reloads solution B
-- Then: the warning is still visible on the affected delta (not a one-time toast)
+- Then: the warning is still visible on the affected delta (not a one-time toast), because it is computed on each read of the delta list
 
 **AC4** (warning disappears at go-live):
 
 - Given: Solution A has a conflicting delta for `CRM-Legacy`; solution B shows a warning for it
 - When: Solution A is set to `implemented`
 - Then: the warning in solution B disappears on the next load (on the fly, no stored flag)
+- Note: no operation changes the status of a solution before S12–S14; until then the tests set the status of solution A directly in the database
 
 **AC5** (multiple conflicts):
 
@@ -49,11 +51,11 @@ As a Solution Architect, I want to see a warning when another active solution al
 
 ## Technical Notes
 
-- Affected components: backend `POST /api/v1/solutions/{id}/deltas` (conflict check after every write), solution detail view (warning display on delta entries)
-- Conflict query: `SELECT s.id, s.name, p.display_name FROM entity_deltas ed JOIN solutions s ON ed.solution_id = s.id JOIN persons p ON s.owner_id = p.id WHERE ed.entity_id = :entityId AND s.id != :currentSolutionId AND s.status NOT IN ('implemented', 'archived')`
+- Affected components: every read of a delta – `POST` and `PUT /api/v1/solutions/{id}/deltas`, the delta list and the diff – and the baseline; SCR-061 (entry, header, notice after saving, baseline marker) and SCR-062 (card)
+- Conflict query (realigned 2026-11-13): one query per page for the entities of the page, `entity_deltas` of other solutions joined with `solutions` and the owner in `persons`, `status NOT IN ('implemented', 'archived')`; only deltas `modified` and `retiring` have an entity, so `new` deltas never conflict (owner decision 2026-11-13)
 - Compute the warning on the fly (when loading the delta list), do not store it as a persisted field – this way it is always up to date
 - Warning is non-blocking: the delta is saved in any case, even with a conflict
-- Response on POST: in addition to the saved delta, optionally a `conflicts: [{ solutionId, solutionName, ownerName }]` array
+- Response (realigned 2026-11-13): `conflicts: [{ solutionId, solutionName, status, ownerId, ownerName, deltaType }]` on every delta and diff entry, `conflicted` on the delta list, `parallelChanges` on a baseline entry when its metatype shows parallel changes (setting per metatype, default off, owner decision 2026-11-13)
 
 ## Definition of Done
 
@@ -71,3 +73,5 @@ As a Solution Architect, I want to see a warning when another active solution al
 ## Notes
 
 3 SP: The actual logic is a simple SQL join; the effort lies in the UI (persistent warning display on the delta, not just as a toast) and in the tests (various solution status combinations). Important: compute the warning on the fly, do not store it as a flag, so that it disappears automatically when the conflict resolves (AC4).
+
+- 2026-11-13: implemented by the OpenSpec change `us-044-conflict-warning` (S11 change 5). Owner decisions 2026-11-13: a conflict is a delta `modified` or `retiring` on the same entity in another active solution; two `new` deltas never conflict; the warning shows in the response of saving, on the delta list, in the header of SCR-061 and on the cards of SCR-062; the baseline marks entities changed by other active solutions for metatypes whose setting "Show parallel changes in the baseline" is on (default off, `metamodel:write`). AC3 and AC4 realigned, Technical Notes realigned to the arrays on the delta, the diff entry and the baseline entry.

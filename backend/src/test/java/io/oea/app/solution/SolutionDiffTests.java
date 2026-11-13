@@ -252,6 +252,28 @@ class SolutionDiffTests {
 		});
 	}
 
+	// Spec solution/solution-conflicts "Conflicts in the delta list and the diff" (US-044; us-044 D1)
+	@Test
+	void conflictsOfAnEntry() {
+		int erp = erp();
+		String other = solution("Solution A");
+		this.jdbc.update("""
+				INSERT INTO entity_deltas (id, solution_id, delta_type, entity_id, created_by)
+				VALUES (gen_random_uuid(), ?::uuid, 'retiring', ?, ?)""", other, erp, personOf(this.michael));
+		created(create(this.michael, this.solution, modified(erp, null, null, value(this.release, "v5"))));
+		created(create(this.michael, this.solution, newEntity("Salesforce", null, value(this.owner, "Sales"))));
+
+		JsonNode entries = diff(this.michael, this.solution, "").path("entries");
+		assertThat(entries).hasSize(2);
+		JsonNode created = entries.get(0);
+		assertThat(created.path("deltaType").asString()).isEqualTo("new");
+		assertThat(created.path("conflicts")).isEmpty();
+		JsonNode modified = entries.get(1);
+		assertThat(modified.path("conflicts")).hasSize(1);
+		assertThat(modified.path("conflicts").get(0).path("solutionId").asString()).isEqualTo(other);
+		assertThat(modified.path("conflicts").get(0).path("deltaType").asString()).isEqualTo("retiring");
+	}
+
 	@Test
 	void modifiedEntity() {
 		int erp = erp();

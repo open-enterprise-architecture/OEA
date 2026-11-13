@@ -298,6 +298,108 @@ class SolutionDeltasTests {
 		assertThat(deltas()).isEqualTo(3);
 	}
 
+	// Spec solution/solution-conflicts: "Conflicts of a delta", "Warning never blocks", "Conflicts in
+	// the delta list and the diff" and "Warning disappears" (US-044 AC1–AC5, REQ-042; us-044 D1)
+
+	@Test
+	void conflictOnCaptureEditAndRead() {
+		int erp = erp();
+		String other = solution("Solution A");
+		otherDelta(other, "retiring", erp);
+
+		JsonNode captured = created(create(this.michael, this.solution, modified(erp, null, null, value(this.release, "v5"))));
+		assertConflict(captured.path("conflicts"), other, "retiring");
+		assertThat(deltas()).isEqualTo(1);
+
+		MvcTestResult edited = put(this.michael, this.solution, captured.path("id").asString(),
+				modification(null, null, value(this.release, "v6")));
+		assertThat(edited).as(() -> content(edited)).hasStatus(HttpStatus.OK);
+		assertConflict(json(edited).path("conflicts"), other, "retiring");
+
+		JsonNode list = list(this.michael, this.solution);
+		assertConflict(list.path("items").get(0).path("conflicts"), other, "retiring");
+		assertThat(list.path("conflicted").asInt()).isEqualTo(1);
+	}
+
+	@Test
+	void newDeltaCarriesNoConflicts() {
+		JsonNode captured = created(create(this.michael, this.solution, newEntity("Warehouse Cloud", null,
+				value(this.owner, "Logistics"))));
+		assertThat(captured.path("conflicts").isArray()).isTrue();
+		assertThat(captured.path("conflicts")).isEmpty();
+		assertThat(list(this.michael, this.solution).path("conflicted").asInt()).isZero();
+	}
+
+	@Test
+	void conflictDisappearsWhenTheOtherSolutionIsCompletedOrRemovesItsDelta() throws SQLException {
+		int erp = erp();
+		int crm = entity(this.application, "CRM-Legacy");
+		String implemented = solution("Solution A");
+		otherDelta(implemented, "modified", erp);
+		String removing = solution("Solution C");
+		String removed = otherDelta(removing, "modified", crm);
+		created(create(this.michael, this.solution, retiring(erp)));
+		created(create(this.michael, this.solution, retiring(crm)));
+		assertThat(list(this.michael, this.solution).path("conflicted").asInt()).isEqualTo(2);
+
+		setStatus(implemented, "implemented");
+		this.jdbc.update("DELETE FROM entity_deltas WHERE id = ?::uuid", removed);
+
+		JsonNode list = list(this.michael, this.solution);
+		list.path("items").forEach((item) -> assertThat(item.path("conflicts")).isEmpty());
+		assertThat(list.path("conflicted").asInt()).isZero();
+	}
+
+	@Test
+	void conflictedCountsOverAllPages() {
+		fillers(this.solution, 47);
+		String other = solution("Solution A");
+		for (String name : List.of("M01", "M02")) {
+			int entity = entity(this.application, name);
+			otherDelta(other, "modified", entity);
+			otherDelta(this.solution, "modified", entity);
+		}
+		for (int i = 1; i <= 11; i++) {
+			int entity = entity(this.application, String.format("R%02d", i));
+			otherDelta(this.solution, "retiring", entity);
+			if (i == 11) {
+				otherDelta(other, "modified", entity);
+			}
+		}
+
+		JsonNode first = page(this.michael, this.solution, "page=0&pageSize=50");
+		assertThat(first.path("page").path("totalElements").asInt()).isEqualTo(60);
+		assertThat(first.path("conflicted").asInt()).isEqualTo(3);
+		int shown = 0;
+		for (JsonNode item : first.path("items")) {
+			shown += item.path("conflicts").isEmpty() ? 0 : 1;
+		}
+		assertThat(shown).isEqualTo(2);
+		JsonNode last = page(this.michael, this.solution,
+				"page=1&pageSize=50&cursor=" + first.path("nextCursor").asString());
+		assertThat(last.path("items").get(9).path("name").asString()).isEqualTo("R11");
+		assertConflict(last.path("items").get(9).path("conflicts"), other, "modified");
+	}
+
+	private String otherDelta(String solutionId, String type, int entity) {
+		return this.jdbc.queryForObject("""
+				INSERT INTO entity_deltas (id, solution_id, delta_type, entity_id, created_by)
+				VALUES (gen_random_uuid(), ?::uuid, ?, ?, ?) RETURNING id::text""", String.class, solutionId, type, entity,
+				this.michaelId);
+	}
+
+	private void assertConflict(JsonNode conflicts, String solutionId, String deltaType) {
+		assertThat(conflicts).hasSize(1);
+		JsonNode conflict = conflicts.get(0);
+		assertThat(conflict.path("solutionId").asString()).isEqualTo(solutionId);
+		assertThat(conflict.path("solutionName").asString()).startsWith("Solution A");
+		assertThat(conflict.path("status").asString()).isEqualTo("draft");
+		assertThat(conflict.path("ownerId").asLong()).isEqualTo(this.michaelId);
+		assertThat(conflict.path("ownerName").asString())
+			.isEqualTo(this.jdbc.queryForObject("SELECT name FROM persons WHERE id = ?", String.class, this.michaelId));
+		assertThat(conflict.path("deltaType").asString()).isEqualTo(deltaType);
+	}
+
 	// Requirement: Any number of deltas (owner decision 2026-11-13; us-043-diff-view D0)
 
 	@Test

@@ -313,6 +313,62 @@ class SolutionLandscapeTests {
 			.isNull()).isTrue();
 	}
 
+	// Spec solution/solution-conflicts "Parallel changes in the baseline" and metamodel/metatype-editing
+	// "Parallel-change setting kept and not inherited" (US-044, owner decision 2026-11-13; us-044 D1)
+	@Test
+	void parallelChangesOfAnEntry() throws java.sql.SQLException {
+		this.jdbc.update("UPDATE metatypes SET show_parallel_changes = true WHERE id = ?", this.application);
+		UUID subtype = metatype("Cloud Application", false);
+		this.jdbc.update("UPDATE metatypes SET base_metatype_id = ? WHERE id = ?", this.application, subtype);
+		int crm = entity(this.application, "CRM-Legacy");
+		int erp = entity(this.application, "ERP-Core");
+		int hr = entity(this.application, "HR-Suite");
+		int sap = entity(this.application, "SAP-Old");
+		int cloud = entity(subtype, "Cloud-CRM");
+		String a = otherSolution("Solution A");
+		String c = otherSolution("Solution C");
+		String done = otherSolution("Solution D");
+		delta(a, "modified", crm);
+		delta(c, "retiring", crm);
+		delta(a, "modified", erp);
+		delta(done, "modified", hr);
+		delta(a, "modified", cloud);
+		delta(this.solution, "retiring", sap);
+		try (java.sql.Connection su = OeaDatabases.asSuperuser(postgres);
+				java.sql.Statement statement = su.createStatement()) {
+			statement.execute("UPDATE solutions SET status = 'archived' WHERE id = '" + done + "'");
+		}
+
+		java.util.Map<String, JsonNode> byName = new java.util.HashMap<>();
+		ok(landscape("")).path("items").forEach((item) -> byName.put(item.path("name").asString(), item.path("parallelChanges")));
+		// two and one other solutions, ordered by name
+		assertThat(byName.get("CRM-Legacy")).hasSize(2);
+		assertThat(byName.get("CRM-Legacy").get(0).path("solutionId").asString()).isEqualTo(a);
+		assertThat(byName.get("CRM-Legacy").get(1).path("solutionId").asString()).isEqualTo(c);
+		assertThat(byName.get("CRM-Legacy").get(1).path("deltaType").asString()).isEqualTo("retiring");
+		assertThat(byName.get("ERP-Core")).hasSize(1);
+		// a completed solution, the own delta and a subtype with the setting off name none
+		assertThat(byName.get("HR-Suite")).isEmpty();
+		assertThat(byName.get("SAP-Old")).isEmpty();
+		assertThat(byName.get("Cloud-CRM")).isEmpty();
+		// the entry read carries them as well
+		assertThat(ok(call("/api/v1/solutions/" + this.solution + "/landscape/" + crm, this.michael))
+			.path("parallelChanges")).hasSize(2);
+
+		// with the setting off, the list is empty
+		this.jdbc.update("UPDATE metatypes SET show_parallel_changes = false WHERE id = ?", this.application);
+		ok(landscape("")).path("items")
+			.forEach((item) -> assertThat(item.path("parallelChanges")).as(item.path("name").asString()).isEmpty());
+		assertThat(ok(call("/api/v1/solutions/" + this.solution + "/landscape/" + crm, this.michael))
+			.path("parallelChanges")).isEmpty();
+	}
+
+	private String otherSolution(String name) {
+		return this.jdbc.queryForObject("""
+				INSERT INTO solutions (id, name, owner_id, created_by) VALUES (gen_random_uuid(), ?, ?, ?)
+				RETURNING id::text""", String.class, name + " " + UUID.randomUUID(), this.michaelId, this.michaelId);
+	}
+
 	@Test
 	void entryNotInTheBaseline() {
 		int deleted = entity(this.application, "Old");

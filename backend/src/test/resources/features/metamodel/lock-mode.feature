@@ -33,3 +33,10 @@ Feature: Metamodel lock mode
     Given the instance configuration is "import-only" and an extension is "gui-and-import"
     When the architect creates a metatype in the extension
     Then the metatype is created
+
+  @US-044
+  Scenario: Parallel-change setting in a locked instance
+    Given the organization metatype "Locked Parallel Zone"
+    And the instance configuration is "import-only"
+    When the metamodel administrator turns on parallel changes in the baseline for "Locked Parallel Zone"
+    Then "Locked Parallel Zone" shows parallel changes in the baseline with a version raised by 1

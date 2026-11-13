@@ -4,9 +4,9 @@ title: Conflict warning for parallel EntityDeltas
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-13
 author: requirements-engineer
 references:
   use_cases:
@@ -64,7 +64,7 @@ An "active" conflict exists when another solution – regardless of its concrete
 
 **Error Cases**:
 
-- Conflict check fails (e.g., database error): the delta is saved anyway; the warning is omitted (error log, no user message)
+- Realigned 2026-11-13: the conflicts are part of the read of a delta and have no failure mode of their own; the write is committed with its read, and a conflict never rejects it
 
 ## Acceptance Criteria
 
@@ -96,13 +96,14 @@ An "active" conflict exists when another solution – regardless of its concrete
 
 - Given: a warning was displayed for `CRM-Legacy` in solution B
 - When: Michael reloads solution B or opens the delta list
-- Then: the warning is still visible (no one-time toast, persistent display on the delta)
+- Then: the warning is still visible (no one-time toast, persistent display on the delta), because it is computed on each read
 
 **AC6**:
 
 - Given: solution A is set to `implemented` (go-live)
 - When: Michael opens solution B with the delta for `CRM-Legacy`
 - Then: the warning disappears (conflict resolved by go-live of A)
+- Note: the status transitions arrive in S12–S14; until then the tests set the status of solution A directly
 
 ## Verification Method
 
@@ -125,13 +126,14 @@ An "active" conflict exists when another solution – regardless of its concrete
 
 - Conflict check: after every delta write (server-side); no client-only check
 - `SELECT s.id, s.name, p.name as owner FROM entity_deltas ed JOIN solutions s ON ed.solution_id = s.id JOIN persons p ON s.owner_id = p.id WHERE ed.entity_id = :entityId AND s.id != :currentSolutionId AND s.status NOT IN ('implemented', 'archived')`
-- Store the warning as a field on the delta object or compute it on the fly when loading the solution (both acceptable; on the fly is more consistent)
-- Persistence of the warning: recommendation on the fly (always current), not as a stored flag (would be inconsistent after a status change of the other solution)
+- Realigned 2026-11-13: computed on the fly on every read of a delta, never stored; one query per page with the index `entity_deltas (entity_id)` (V28)
+- Each conflict carries `solutionId`, `solutionName`, `status`, `ownerId`, `ownerName` and the `deltaType` of the other delta; the delta list carries `conflicted`, the number of conflicting deltas over all pages
+- The baseline marks parallel changes for metatypes whose setting `showParallelChanges` is on (default off; owner decision 2026-11-13)
 
 ## Implementation
 
 - ADR(s): –
-- Implemented by: –
+- Implemented by: OpenSpec change `us-044-conflict-warning`
 - Tests: –
 - Verification status: not-verified
 
@@ -140,3 +142,4 @@ An "active" conflict exists when another solution – regardless of its concrete
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft from UC-05 |
+| 0.2.0 | 2026-11-13 | Change us-044-conflict-warning | Implemented: conflicts of deltas `modified` and `retiring` with other active solutions, computed on each read, on the delta, the diff and the baseline (per metatype setting, default off); Error Cases, AC5, AC6 and the Implementation Notes realigned (owner decisions 2026-11-13) |

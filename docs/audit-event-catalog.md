@@ -509,6 +509,17 @@ A mapping entry with a future valid-from date took effect ([US-137](../requireme
 | Target | `metatype`, ID of the metatype that holds the entry |
 | Details | `mappingId`, `propertyDefId`, `necessity`, `validFrom`, `entitiesMarked`, `marksCleared` |
 
+### `metamodel.metatype-parallel-changes-changed`
+
+The setting "Show parallel changes in the baseline" of a metatype was changed ([US-044](../requirements/user-stories/US-044-conflict-warning.md), owner decision 2026-11-13). Listed under the kind `metatype` of the metamodel changes.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the metamodel administrator |
+| Target | `metatype`, ID of the metatype |
+| Details | `before`, `after` (`true`, `false`) |
+
 ### `metamodel.reimport-policy-changed`
 
 The global or a per-metatype setting for organization mappings at a package re-import was changed.

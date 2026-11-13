@@ -240,6 +240,16 @@ export function updateMetatypeReimportSetting(
   )
 }
 
+/** PUT /metamodel/metatypes/{id}/parallel-changes (US-044): whether the baseline shows parallel changes. */
+export function updateMetatypeParallelChanges(
+  metatypeId: string,
+  showInBaseline: boolean,
+  version: number | undefined,
+  fetchFn: typeof fetch = fetch,
+) {
+  return write<MetatypeDetail>('PUT', `${METAMODEL}/metatypes/${at(metatypeId)}/parallel-changes`, { showInBaseline }, version, fetchFn)
+}
+
 export function updateGlobalReimportSetting(setting: GlobalReimportSetting, fetchFn: typeof fetch = fetch) {
   return write<components['schemas']['ReimportPolicy']>(
     'PUT',

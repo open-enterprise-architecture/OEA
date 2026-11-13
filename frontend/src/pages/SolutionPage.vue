@@ -24,7 +24,9 @@ import { refreshSession, session } from '../session/store'
 // the solution is not completed; "Modify" in the baseline and "Edit" in the list open the dialog
 // "Modify entity" (US-041; design D6 of us-041-modified-delta). The deltas load page by page
 // ("Load more"); after a write, the first page and the baseline load again, whose entries carry
-// the type of their delta (design D0 of us-043-diff-view).
+// the type of their delta (design D0 of us-043-diff-view). The header warns when changes concern
+// other active solutions, and saving a delta that conflicts names them in a notice above the list
+// until it is closed (US-044; design D4 of us-044-conflict-warning).
 const props = defineProps<{ id: string; fetchFn?: typeof fetch }>()
 const { t } = useI18n()
 
@@ -37,6 +39,9 @@ const DELTA_PAGE_SIZE = 50
 
 const deltas = ref<SolutionDelta[]>([])
 const deltaTotal = ref(0)
+const conflicted = ref(0)
+// the delta just saved whose entity other active solutions change too
+const savedConflict = ref<SolutionDelta>()
 const deltaPage = ref(0)
 const deltaCursor = ref<string | null>(null)
 const loadingMore = ref(false)
@@ -62,23 +67,37 @@ const modifyOpen = computed({
   },
 })
 
-async function onModified() {
+async function onModified(delta: SolutionDelta) {
   modifying.value = undefined
   deltasFailure.value = undefined
-  await onChanged()
+  await onChanged(delta)
 }
 
-/** After a write: the first page of the deltas and the shown page of the baseline load again. */
-async function onChanged() {
+/**
+ * After a write: the first page of the deltas and the shown page of the baseline load again; a
+ * saved delta with conflicts is named in the notice.
+ */
+async function onChanged(delta?: SolutionDelta) {
+  savedConflict.value = delta && delta.conflicts.length > 0 ? delta : undefined
   baselineKey.value += 1
   await loadDeltas()
 }
+
+const savedConflictText = computed(() =>
+  savedConflict.value
+    ? t('solutions.conflicts.saved', {
+        name: savedConflict.value.name,
+        solutions: savedConflict.value.conflicts.map((conflict) => conflict.solutionName).join(', '),
+      })
+    : '',
+)
 
 async function loadDeltas() {
   try {
     const first = await fetchSolutionDeltas(props.id, { pageSize: DELTA_PAGE_SIZE }, props.fetchFn)
     deltas.value = first.items
     deltaTotal.value = first.page.totalElements
+    conflicted.value = first.conflicted
     deltaPage.value = 0
     deltaCursor.value = first.nextCursor
     deltasFailure.value = undefined
@@ -104,6 +123,7 @@ async function loadMore() {
     const known = new Set(deltas.value.map((delta) => delta.id))
     deltas.value = [...deltas.value, ...next.items.filter((delta) => !known.has(delta.id))]
     deltaTotal.value = next.page.totalElements
+    conflicted.value = next.conflicted
     deltaPage.value = page
     deltaCursor.value = next.nextCursor
     deltasFailure.value = undefined
@@ -119,7 +139,7 @@ async function retire(entry: SolutionLandscapeEntry) {
   const outcome = await createSolutionDelta(props.id, { deltaType: 'retiring', entityId: entry.id }, props.fetchFn)
   if (outcome.ok) {
     deltasFailure.value = undefined
-    await onChanged()
+    await onChanged(outcome.value)
   } else if (outcome.rejection.status === 409) {
     onCompleted()
   } else {
@@ -198,11 +218,29 @@ const createdAt = computed(() =>
         <dt class="text-muted">{{ t('solutions.mode') }}</dt>
         <dd>{{ t('solutions.projectMode') }}</dd>
       </dl>
+      <UAlert
+        v-if="conflicted > 0"
+        data-testid="solution-conflicts"
+        color="warning"
+        variant="subtle"
+        icon="i-lucide-triangle-alert"
+        :description="t('solutions.conflicts.notice', { n: conflicted }, conflicted)"
+      />
       <section class="flex flex-col gap-2">
         <h2 class="text-lg font-semibold text-highlighted">{{ t('solutions.vision') }}</h2>
         <p v-if="solution.description" data-testid="solution-vision" class="whitespace-pre-line">{{ solution.description }}</p>
         <p v-else data-testid="solution-no-vision" class="text-muted">{{ t('solutions.noVision') }}</p>
       </section>
+      <UAlert
+        v-if="savedConflict"
+        data-testid="delta-saved-conflict"
+        color="warning"
+        variant="subtle"
+        icon="i-lucide-triangle-alert"
+        :description="savedConflictText"
+        close
+        @update:open="(open: boolean) => !open && (savedConflict = undefined)"
+      />
       <SolutionDeltas
         :solution-id="solution.id"
         :deltas="deltas"

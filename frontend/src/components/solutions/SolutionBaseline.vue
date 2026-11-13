@@ -4,7 +4,12 @@ import { useI18n } from 'vue-i18n'
 import { PageCursors, rejectsCursor } from '../../api/cursors'
 import { fetchMetatypes } from '../../api/metamodel'
 import { rateLimitMessage } from '../../api/problem'
-import { fetchSolutionLandscape, type SolutionLandscapeEntry, type SolutionLandscapePage } from '../../api/solutions'
+import {
+  fetchSolutionLandscape,
+  type SolutionDeltaConflict,
+  type SolutionLandscapeEntry,
+  type SolutionLandscapePage,
+} from '../../api/solutions'
 import { label, labelKeys } from '../../i18n/labels'
 
 // The area "Baseline" of SCR-061 (US-039; design D5 of us-039-solution-baseline): the current
@@ -13,6 +18,8 @@ import { label, labelKeys } from '../../i18n/labels'
 // solution:write, each row offers "Modify" and "Retire" (US-041, US-042), or shows "Modified" or
 // "Retiring" when it has a delta: each entry carries the type of its delta (design D0 of
 // us-043-diff-view). A changed `reloadKey` loads the shown page again, after a delta was written.
+// An entry whose metatype shows parallel changes names the other active solutions that change it
+// (US-044; design D4 of us-044-conflict-warning).
 const props = defineProps<{
   solutionId: string
   canWrite?: boolean
@@ -155,6 +162,26 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
       </p>
       <template v-else>
         <UTable data-testid="baseline-table" :data="rows" :columns="columns" :loading="loading" class="rounded-lg border border-default">
+          <template #name-cell="{ row }">
+            <div class="flex flex-col gap-1">
+              <span>{{ row.original.name }}</span>
+              <span
+                v-if="(row.original.parallelChanges ?? []).length > 0"
+                data-testid="baseline-parallel"
+                class="flex flex-wrap items-center gap-1 text-sm"
+              >
+                <UBadge
+                  color="warning"
+                  variant="subtle"
+                  icon="i-lucide-triangle-alert"
+                  :label="t('solutions.conflicts.baseline', { n: row.original.parallelChanges.length }, row.original.parallelChanges.length)"
+                />
+                <span data-testid="baseline-parallel-names" class="text-muted">
+                  {{ row.original.parallelChanges.map((change: SolutionDeltaConflict) => change.solutionName).join(', ') }}
+                </span>
+              </span>
+            </div>
+          </template>
           <template #delta-cell="{ row }">
             <div class="flex justify-end">
               <UBadge

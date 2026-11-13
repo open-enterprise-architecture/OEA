@@ -130,7 +130,7 @@ If your organization maintains its metamodel in a versioned repository and impor
 
 1. In *Settings*, switch on *Lock metamodel (changes only through package import)*.
 2. While the metamodel is locked, every section shows the notice *Metamodel locked*, and nothing can be created, changed or deleted: entity types, assignments, properties, values, categories and translations. Through the API, such a change is rejected with `403` (`metamodel-locked`), whatever your permissions.
-3. Package imports keep working (see [Metamodel packages](./metamodel-packages)), and so do the re-import settings.
+3. Package imports keep working (see [Metamodel packages](./metamodel-packages)), and so do the re-import settings and the setting of parallel changes.
 
 To unlock, switch the setting off again. Only metamodel administrators (`metamodel:write`) switch the lock mode, and every switch is recorded in the audit trail (`metamodel.edit-mode-changed`).
 
@@ -142,6 +142,15 @@ When a package is imported again, it replaces its own properties of its entity t
 - **Per entity type** in the detail under *Re-import of packages*: *Like the base type* (default), *Keep own properties* or *Remove own properties*. *Like the base type* takes the setting of the base type; at the top of the chain the global setting applies. *Applies* shows the setting in effect.
 
 Removing at a re-import deletes the values as described above.
+
+## Parallel changes in the baseline {#parallel-changes}
+
+When several solutions change the same entity, the solutions warn their architects (see [Solutions](../usage/solutions#parallel-changes)). In addition, the baseline of a solution can mark entities that another active solution changes, before the architect captures anything. You switch this marker on per entity type: in its detail under *Parallel changes*, switch on *Show parallel changes in the baseline*.
+
+- It is off for every entity type until you switch it on, also for new and imported ones.
+- It works for built-in and imported entity types as well, and while the metamodel is locked. A re-import of the package keeps it.
+- A subtype has its own setting; it does not follow its base type.
+- It affects only the marker in the baseline; the warnings on the changes themselves always show.
 
 ## Tracing changes {#tracing-changes}
 
@@ -184,7 +193,7 @@ curl "${auth[@]}" -X PUT "$OEA/metamodel/labels/de" -H 'Content-Type: applicatio
 - Rejections use the problem types `name-taken`, `read-only-metatype`, `in-use` (with the number of entities in `count`), `conflict` and `validation-failed` (with `invalidFields`).
 - A label key names the element by its identifier: `metatype.{id}.name`, `property-category.{id}.name`, `property-def.{id}.label` or `enum-value.{id}.label`; an empty text removes your label, and an unknown key rejects the whole change.
 - Connection types are created with `"isConnection": true` and the lists `allowedSourceMetatypeIds` and `allowedTargetMetatypeIds`; `GET /metamodel/allowed-connections?sourceMetatypeId=…&targetMetatypeId=…` answers which connection types may connect two entity types, in which direction.
-- `GET /metamodel/metatypes/{id}/property-mappings?includeHistory=true` lists all entries of the assignments with their `state`. The re-import settings are `PUT /metamodel/settings/reimport-policy` and `PUT /metamodel/metatypes/{id}/reimport-policy`.
+- `GET /metamodel/metatypes/{id}/property-mappings?includeHistory=true` lists all entries of the assignments with their `state`. The re-import settings are `PUT /metamodel/settings/reimport-policy` and `PUT /metamodel/metatypes/{id}/reimport-policy`. `PUT /metamodel/metatypes/{id}/parallel-changes` with `{"showInBaseline": true}` and `If-Match` sets the marker of parallel changes; the entity type shows it as `showParallelChanges`, and the change is recorded as `metamodel.metatype-parallel-changes-changed`.
 - Every change writes an audit event, for example `metamodel.metatype-updated`, `metamodel.mapping-deleted` with the number of affected entities, `metamodel.mapping-effective` when an entry takes effect, or `metamodel.labels-changed`.
 - `GET /metamodel/configurations` lists the instance configuration and the extensions with their `editMode`. `PUT /metamodel/configurations/{id}` with `{"name": "Instance metamodel", "editMode": "import-only"}` and `If-Match` locks a configuration; `gui-and-import` unlocks it.
 

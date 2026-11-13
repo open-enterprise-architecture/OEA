@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import UCard from '@nuxt/ui/components/Card.vue'
-import { expect, userEvent, within } from 'storybook/test'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { onBeforeMount, ref } from 'vue'
 import MetatypeDialog from '../components/metamodel/MetatypeDialog.vue'
 import { loadMetamodel, metatypeById } from '../metamodel/store'
@@ -10,7 +10,8 @@ import { IDS, ME_READER, metamodelApi } from '../test/metamodel'
 
 // SCR-030 Metamodel configuration (UC-04, US-032, REQ-032; design D6 of
 // scr-030-metamodel-configuration): the first story is the screen image, an administrator on the
-// detail of an organization entity type.
+// detail of an organization entity type, with its re-import setting and the setting of parallel
+// changes in the baseline (US-044).
 function page(section: string, id?: string, me?: unknown, locked = false, restrictedOwner = false): Story {
   return {
     render: () => ({
@@ -59,6 +60,23 @@ export const Locked: Story = {
     const canvas = within(canvasElement)
     await expect(await canvas.findByText('Metamodel locked')).toBeInTheDocument()
     await expect(canvas.queryByTestId('metatype-new')).toBeNull()
+  },
+}
+
+/**
+ * The setting "Show parallel changes in the baseline" of an imported entity type, switched on
+ * while the metamodel is locked (US-044; design D4 of us-044-conflict-warning).
+ */
+export const ParallelChanges: Story = {
+  ...page('metatypes', IDS.component, undefined, true),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const toggle = await canvas.findByRole('switch', { name: 'Show parallel changes in the baseline' })
+    await expect(toggle).toHaveAttribute('aria-checked', 'false')
+    await userEvent.click(toggle)
+    await waitFor(() =>
+      expect(canvas.getByRole('switch', { name: 'Show parallel changes in the baseline' })).toHaveAttribute('aria-checked', 'true'),
+    )
   },
 }
 

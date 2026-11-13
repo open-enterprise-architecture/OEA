@@ -23,6 +23,7 @@ import io.oea.api.generated.model.MetatypeDetailAllOfConnectionConstraints;
 import io.oea.api.generated.model.MetatypePropertyMapping;
 import io.oea.api.generated.model.MetatypePropertyMappingWrite;
 import io.oea.api.generated.model.MetatypePropertyMappingWriteDefaultValue;
+import io.oea.api.generated.model.MetatypeParallelChanges;
 import io.oea.api.generated.model.MetatypeReimportPolicy;
 import io.oea.api.generated.model.MetatypeSummary;
 import io.oea.api.generated.model.MetatypeWrite;
@@ -41,6 +42,7 @@ import io.oea.app.metamodel.MetatypeCatalog;
 import io.oea.app.metamodel.MetatypeEditing;
 import io.oea.app.metamodel.PropertyDefinitions;
 import io.oea.app.metamodel.PropertyMappings;
+import io.oea.app.metamodel.ParallelChangeSettings;
 import io.oea.app.metamodel.ReimportPolicies;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.config.security.ConditionsEnforcedByHandler;
@@ -88,9 +90,13 @@ public class MetamodelController implements MetamodelApi {
 
 	private final MetamodelChanges changes;
 
+	private final ParallelChangeSettings parallelChanges;
+
 	public MetamodelController(MetatypeCatalog catalog, MetatypeEditing metatypes, PropertyDefinitions properties,
 			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels,
-			AllowedConnections allowedConnections, MetamodelConfigurations configurations, MetamodelChanges changes) {
+			AllowedConnections allowedConnections, MetamodelConfigurations configurations, MetamodelChanges changes,
+			ParallelChangeSettings parallelChanges) {
+		this.parallelChanges = parallelChanges;
 		this.configurations = configurations;
 		this.changes = changes;
 		this.labels = labels;
@@ -197,6 +203,14 @@ public class MetamodelController implements MetamodelApi {
 	public ResponseEntity<MetatypeDetail> updateMetatypeReimportPolicy(UUID id,
 			MetatypeReimportPolicy metatypeReimportPolicy, String ifMatch) {
 		this.policies.updateMetatype(principal(), id, metatypeReimportPolicy.getOrganizationMappings().getValue(),
+				expectedVersion(ifMatch));
+		return versioned(metatype(this.catalog.get(id)));
+	}
+
+	@Override
+	public ResponseEntity<MetatypeDetail> updateMetatypeParallelChanges(UUID id,
+			MetatypeParallelChanges metatypeParallelChanges, String ifMatch) {
+		this.parallelChanges.update(principal(), id, metatypeParallelChanges.getShowInBaseline(),
 				expectedVersion(ifMatch));
 		return versioned(metatype(this.catalog.get(id)));
 	}
@@ -464,7 +478,8 @@ public class MetamodelController implements MetamodelApi {
 							(constraint.allowed().abbreviation() != null) ? constraint.allowed().abbreviation() : "")))
 				.toList())
 			.version(metatype.version())
-			.configId(metatype.configId());
+			.configId(metatype.configId())
+			.showParallelChanges(metatype.showParallelChanges());
 	}
 
 	private static MetamodelChange change(MetamodelChanges.Change change) {

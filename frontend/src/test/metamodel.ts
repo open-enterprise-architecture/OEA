@@ -380,8 +380,9 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
       })
       return json(state.configuration, 200, state.configuration.version)
     }
-    // in import-only every content write is rejected; the re-import settings stay (US-035)
-    const settings = sub === 'reimport-policy' || kind === 'settings'
+    // in import-only every content write is rejected; the re-import settings and the setting of
+    // parallel changes stay (US-035, US-044)
+    const settings = sub === 'reimport-policy' || sub === 'parallel-changes' || kind === 'settings'
     if (state.configuration.editMode === 'import-only' && method !== 'GET' && !settings) {
       return problem(403, 'metamodel-locked')
     }
@@ -449,6 +450,11 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
       const rejected = stale(stored, ifMatch)
       if (rejected) {
         return rejected
+      }
+      if (sub === 'parallel-changes') {
+        stored.showParallelChanges = Boolean(body?.showInBaseline)
+        stored.version = (stored.version ?? 1) + 1
+        return json(detail(stored.id), 200, stored.version)
       }
       if (sub === 'reimport-policy') {
         stored.reimportPolicy = body?.organizationMappings as 'inherit' | 'keep' | 'remove'
