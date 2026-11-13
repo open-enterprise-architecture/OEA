@@ -3,6 +3,7 @@
 **Status**: accepted
 **Date**: 2026-06-29
 **Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
+**Amended**: 2026-11-13 – layers `infrastructure` and `audit`, rules for `config`, cycle-free packages, see [Amendment 2026-11-13](#amendment-2026-11-13-infrastructure-and-audit-layers)
 
 ---
 
@@ -221,6 +222,38 @@ as `v1/`. The translation from new v2 DTOs to commands lives in `api/v2/`.
 - Approx. 2–3 more classes per feature (interface, impl, command)
 - Discipline needed: core must never import `api/` (no compiler enforcement
   without Maven multi-module — hence code review obligation)
+
+---
+
+## Amendment 2026-11-13: infrastructure and audit layers
+
+**Reason.** The [architecture review 2026-11](../docs/reviews/architecture-2026-11.md) found two gaps:
+
+- **ARCH-1:** the layer rules checked only `api`, `app` and `core`. As a result:
+  - `app` used technical adapters in `config` (OIDC client, WebAuthn verifier, secret cipher, configuration guards), while `config` uses `app`;
+  - the packages `config` and `audit` were not regulated at all.
+- **ARCH-2:** four package cycles had formed, among them `app.access ↔ app.login ↔ app.metamodel`.
+
+The owner decided on 2026-11-13 to add the missing layers and to forbid cycles. The decision is implemented by change `s11-review-hardening`, design D5 and D6.
+
+**Change.**
+
+| Layer | Packages | May be accessed by |
+|---|---|---|
+| API | `io.oea.api..` | – |
+| Config | `io.oea.config..` (wiring, web security filters and interceptors, command-line entry points) | API |
+| Application | `io.oea.app..` | API, Config |
+| Audit | `io.oea.audit..` | API, Config, Application |
+| Infrastructure | `io.oea.infrastructure..` (technical adapters without domain knowledge: OIDC client, WebAuthn verifier, secret cipher and key ring, configuration guards) | API, Config, Application, Audit |
+| Core | `io.oea.core..` | Application |
+
+- **`infrastructure` and `audit`:** they access no layer above them. `core` is unchanged.
+- **Root and `integration`:** the root package `io.oea` (the application class) may access every layer, and the reserved package `io.oea.integration` is an optional layer.
+- **Every class belongs to a layer:** a new top-level package must be assigned to a layer before it can be used.
+- **No package cycles:** no two packages of the backend may depend on each other, directly or transitively. Types used by several features of `app` live in `io.oea.app.shared`, which depends on no other feature.
+- **Enforcement:** ArchUnit checks both rules, and fixtures prove that each rule detects a violation.
+
+The package structure and the stance on direct SQL in `app` (ARCH-3, ARCH-4) are decided separately ([#258](https://github.com/open-enterprise-architecture/OEA/issues/258)).
 
 ---
 
