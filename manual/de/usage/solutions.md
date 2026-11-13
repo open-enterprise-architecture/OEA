@@ -2,7 +2,7 @@
 title: Lösungen
 covers:
   screens: [SCR-060, SCR-061, SCR-062]
-  stories: [US-038, US-039, US-040, US-041, US-042, US-043]
+  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044]
 ---
 
 # Lösungen
