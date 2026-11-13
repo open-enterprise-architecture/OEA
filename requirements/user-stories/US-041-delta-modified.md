@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: done
 **Sprint**: S11
-**Implementation**: OpenSpec change `us-041-modified-delta` – `createSolutionDelta` with `deltaType=modified` (before values recorded by the server from the catalog), `updateSolutionDelta`, `getSolutionLandscapeEntity`; the dialog "Modify entity", "Modify" in the baseline and "Edit" in the delta list on SCR-061. Realigned 2026-11-12
+**Implementation**: OpenSpec change `us-041-modified-delta`, commit da1420c (#247) – `createSolutionDelta` with `deltaType=modified` (before values recorded by the server from the catalog), `updateSolutionDelta`, `getSolutionLandscapeEntity`; the dialog "Modify entity", "Modify" in the baseline and "Edit" in the delta list on SCR-061. Realigned 2026-11-12
 
 ## Story
 
@@ -73,4 +73,4 @@ As a Solution Architect, I want to be able to mark an existing entity from the I
 
 5 SP because of the property diff editor: the UI must load the entity's properties (from MetamodelConfiguration), display two columns (before/after) and include only filled-in fields in the `changes` map. The `before` value from the baseline is a UX improvement (not an MVP blocker, but strongly recommended for usability).
 
-- 2026-11-13: implemented by the OpenSpec change `us-041-modified-delta` (S11 change 3). Owner decisions 2026-11-12: the server records the before value from the catalog; a modification changes property values, the name and the description; a delta `modified` is edited in place; the form reads the entity through `getSolutionLandscapeEntity`. AC1 and AC2 realigned (`version` is the lock counter of an entity, not a property), AC4 also covers `archived` and editing.
+- 2026-11-13: implemented by the OpenSpec change `us-041-modified-delta`, commit da1420c (#247) (S11 change 3). Owner decisions 2026-11-12: the server records the before value from the catalog; a modification changes property values, the name and the description; a delta `modified` is edited in place; the form reads the entity through `getSolutionLandscapeEntity`. AC1 and AC2 realigned (`version` is the lock counter of an entity, not a property), AC4 also covers `archived` and editing.
