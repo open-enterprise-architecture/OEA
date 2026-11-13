@@ -26,7 +26,7 @@ Trace: US-043 AC5, REQ-041 AC4
 
 ### Requirement: Only affected entities
 
-The diff SHALL hold exactly one entry per delta of the solution, in the order of the delta list (`new`, `modified`, `retiring`, each by name, case-insensitive), and no entry for an entity without a delta. The list SHALL NOT be paged.
+The diff SHALL hold exactly one entry per delta of the solution, in the order of the delta list (`new`, `modified`, `retiring`, each by name, case-insensitive), and no entry for an entity without a delta.
 
 Trace: US-043 AC4, REQ-041 AC5
 
@@ -37,11 +37,25 @@ Trace: US-043 AC4, REQ-041 AC5
 - **THEN** it holds exactly 3 entries, one per delta
 - **AND** none of the other 97 entities appears
 
-#### Scenario: All deltas up to the limit
+### Requirement: Paging of the diff
 
-- **GIVEN** a solution holds 1000 deltas, the most it can hold
-- **WHEN** the diff is read
-- **THEN** it holds 1000 entries, not paged
+The diff SHALL be paged with `page` and `pageSize` from 1 to 200, default 50, and a `cursor`, with the rules of the delta list. It SHALL carry the number of entries per type over all pages and, while a following page exists, an opaque `nextCursor`.
+
+Trace: owner decision 2026-11-13, REQ-071
+
+#### Scenario: Pages by cursor
+
+- **GIVEN** a solution with 120 deltas: 50 `new`, 40 `modified` and 30 `retiring`
+- **WHEN** every page of size 50 is loaded with the cursor of the previous one
+- **THEN** the pages hold every entry exactly once, in the order of the delta list
+- **AND** each page carries the counts 50, 40 and 30, and the last page has no `nextCursor`
+
+#### Scenario: Limits of the page size
+
+- **WHEN** the diff is loaded with page size 1 or 200
+- **THEN** the response is 200
+- **WHEN** it is loaded with page size 0 or 201
+- **THEN** the response is 400
 
 ### Requirement: Fields of an entry
 
@@ -196,7 +210,7 @@ Trace: REQ-041 Processing, owner decision 2026-11-13
 
 ### Requirement: Loading the screen
 
-Without deltas, the screen SHALL show "No changes captured yet" and no error. The screen SHALL load the diff each time it is opened and offer "Refresh", which loads it again without a full page reload. The area "Changes" of SCR-061 SHALL link to it with "Compare".
+Without deltas, the screen SHALL show "No changes captured yet" and no error. The screen SHALL load the first page of the diff each time it is opened and offer "Refresh", which loads it again without a full page reload. While a following page exists, it SHALL offer "Load more", which appends the next page. The area "Changes" of SCR-061 SHALL link to it with "Compare".
 
 Trace: US-043 AC5, AC6, REQ-041 AC3, AC4, owner decision 2026-11-13
 
@@ -211,6 +225,14 @@ Trace: US-043 AC5, AC6, REQ-041 AC3, AC4, owner decision 2026-11-13
 - **GIVEN** the solution architect saves another delta on SCR-061
 - **WHEN** they open "Compare"
 - **THEN** SCR-062 shows the new delta without a full page reload
+
+#### Scenario: Load more
+
+- **GIVEN** a solution with 60 deltas
+- **WHEN** SCR-062 is opened
+- **THEN** it shows 50 entries, the counts over all 60 and "Load more"
+- **WHEN** the solution architect chooses "Load more"
+- **THEN** it shows all 60 entries and no longer offers "Load more"
 
 #### Scenario: Refresh
 

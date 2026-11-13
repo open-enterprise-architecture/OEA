@@ -21,11 +21,20 @@ Since change 3, a solution holds new, modified and retiring entities. The delta 
 - **Current state:** the left side shows the current catalog, as the baseline does. The right side shows the catalog with the after values of the solution applied.
 - **Drift:** a delta `modified` recorded its before values at capture. Where such a value differs from the catalog today, the view marks the field as "Changed in the catalog since capture".
 - **Screen:** the diff view is a screen of its own, SCR-062 "Solution comparison" at `/solutions/{id}/diff`, linked from the area "Changes" of SCR-061.
+- **No limit of deltas:** a solution holds any number of deltas. The limit of 1000 from change 2 is removed. Instead, the delta list and the diff are paged in the API, and the screens load further entries on demand ("Load more").
+
+**Removing the limit and paging the delta list (`listSolutionDeltas`):**
+
+- the 422 `deltas` of the 1001st delta is removed;
+- `listSolutionDeltas` takes `page`, `pageSize` (1–200, default 50) and `cursor`, as the baseline does, and carries the total per type and `nextCursor`;
+- the area "Changes" on SCR-061 shows the first page and loads the next one with "Load more"; after a capture, an edit or a removal it loads the first page again;
+- the baseline no longer derives its markers "Modified" and "Retiring" from the delta list, which is no longer complete in the browser: each baseline entry carries the type of its delta in this solution (`deltaType`, new in `SolutionLandscapeEntry`).
 
 **Reading the diff (`getSolutionDiff`, new):**
 
 - `GET /solutions/{id}/diff` with `entity:read`, computed on each request and not stored.
-- **Only affected entities:** one entry per delta, in the order of the delta list (`new`, `modified`, `retiring`, each by name). An entity without a delta does not appear. The list is not paged; a solution holds at most 1000 deltas.
+- **Only affected entities:** one entry per delta, in the order of the delta list (`new`, `modified`, `retiring`, each by name). An entity without a delta does not appear.
+- **Paging:** `page`, `pageSize` (1–200, default 50) and `cursor`, as the delta list; the response carries the counts per type over all pages and `nextCursor`.
 - **Entry:** delta ID and type, entity ID (none for `new`), metatype, and a list of fields. Each field has its current value, its target value, whether it changes and whether the catalog changed since capture.
   - `new`: no current state; the target state is the proposed entity with its values.
   - `modified`: current and target state; the changed fields come from the delta, the other fields keep the catalog value on both sides.
@@ -43,6 +52,7 @@ Since change 3, a solution holds new, modified and retiring entities. The delta 
 - `retiring`: marked "Retiring", with a red accent; the right column shows the entity struck through as "Out of service";
 - the notice "No changes captured yet" without deltas;
 - a summary line with the counts per type, the action "Refresh" and a link back to the solution;
+- the first page of entries, and "Load more" for the next one;
 - colors are never the only signal: each marking also carries a label or icon.
 - **SCR-061:** the link "Compare" in the area "Changes".
 
@@ -50,7 +60,8 @@ Since change 3, a solution holds new, modified and retiring entities. The delta 
 
 - **US-043 AC3 and REQ-041 AC2:** `version` is the lock counter of an entity, not a property; the example changes a property "Release" from `v4` to `v5`, as in US-041.
 - **US-043 AC6 and REQ-041 AC3:** the diff view is a page of its own. It loads the diff each time it is opened, so returning from the page "Solution" after saving a delta shows it without a full page reload; "Refresh" loads it again in place.
-- **US-043 Technical Notes and REQ-041 Implementation Notes:** the response is a list of entries with a field list, not `before`/`after` maps; the diff view is SCR-062, not a tab of the solution page.
+- **US-043 Technical Notes and REQ-041 Implementation Notes:** the response is a paged list of entries with a field list, not `before`/`after` maps; the diff view is SCR-062, not a tab of the solution page.
+- **REQ-040 Constraints and `solution:BR-06`:** "At most 1000 deltas per solution" is removed; the delta list is paged.
 
 ## Out of Scope
 
@@ -68,23 +79,30 @@ Since change 3, a solution holds new, modified and retiring entities. The delta 
 
 ### Modified Capabilities
 
-None.
+- `solution/solution-deltas`: the limit of deltas is removed; reading the deltas is paged; the area "Changes" loads further deltas on demand.
+- `solution/solution-baseline`: each entry carries the type of its delta in the solution.
 
 ## Impact
 
-- **`api/openapi.yaml`:** the new operation `getSolutionDiff` and the schemas `SolutionDiff`, `SolutionDiffEntry` and `SolutionDiffField`.
+- **`api/openapi.yaml`:**
+  - the new operation `getSolutionDiff` and the schemas `SolutionDiff`, `SolutionDiffEntry`, `SolutionDiffField` and `SolutionDeltaCounts`;
+  - `listSolutionDeltas` with `page`, `pageSize` and `cursor`; `SolutionDeltaList` with `page`, `counts` and `nextCursor`;
+  - `createSolutionDelta` without the limit;
+  - `SolutionLandscapeEntry` with `deltaType`.
 - **`backend/`:**
-  - a new app service `SolutionDiff`, reusing the delta reading of `SolutionDeltas` and the catalog values of `EntityStore`;
+  - the limit `MAX_DELTAS` removed from `SolutionDeltas`, and its list paged by cursor (`CatalogCursors`);
+  - `SolutionLandscape` reads the delta type of each entry;
+  - a new app service `SolutionDiff`, reusing the paged delta reading of `SolutionDeltas` and the catalog values of `EntityStore`;
   - `SolutionController` implements `getSolutionDiff`;
   - integration and Cucumber tests.
   - No migration and no audit event: the diff is read-only and not stored.
 - **`frontend/`:**
   - the page `SolutionDiffPage.vue` with its route, the API client and i18n;
-  - the link "Compare" on SCR-061;
+  - the link "Compare" and "Load more" in the area "Changes" on SCR-061; the baseline markers from `deltaType`;
   - the story `SCR-062-solution-diff.stories.ts` with its images.
-- **`manual/`:** the page on solutions, in English and German.
+- **`manual/`:** the page on solutions, in English and German, without the limit of 1000 changes.
 - **Documentation:**
-  - US-043 and REQ-041;
-  - `docs/screens/SCREENS.md` (SCR-062);
+  - US-043 and REQ-041; REQ-040 without the limit;
+  - `business-objects/solution.md` (BR-06) and `docs/data-model.puml` without the limit; no other data model change, the diff is not persisted;
+  - `docs/screens/SCREENS.md` (SCR-062, SCR-061);
   - the sprint plan.
-  - No data model change: the diff is not persisted.
