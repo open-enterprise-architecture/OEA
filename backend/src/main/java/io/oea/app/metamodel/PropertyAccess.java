@@ -125,6 +125,18 @@ public class PropertyAccess {
 			return this.override || allowed(propertyDefId, false) || scope(propertyDefId).isPresent();
 		}
 
+		/**
+		 * Whether the principal may read the values of the property of this entity: like
+		 * {@link #readable}, but a {@code connection-scoped} property only for an entity in the
+		 * caller's scope (design D4 of us-041-modified-delta).
+		 */
+		public boolean readableFor(UUID propertyDefId, int entityId) {
+			if (this.override || allowed(propertyDefId, false)) {
+				return true;
+			}
+			return connectionScoped(propertyDefId) && writableFor(propertyDefId, entityId);
+		}
+
 		/** Whether the principal may write the values of the property. */
 		public boolean writable(UUID propertyDefId) {
 			return allowed(propertyDefId, true);

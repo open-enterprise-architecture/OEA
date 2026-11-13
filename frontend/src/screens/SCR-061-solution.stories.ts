@@ -5,13 +5,14 @@ import type { Me } from '../api/session'
 import AppHeader from '../components/AppHeader.vue'
 import SolutionPage from '../pages/SolutionPage.vue'
 import { session } from '../session/store'
-import { DELTAS, ME_SOLUTION_ARCHITECT, ME_SOLUTION_VIEWER, solutionApi } from '../test/solutions'
+import { DELTAS, DELTAS_WITH_MODIFIED, ME_SOLUTION_ARCHITECT, ME_SOLUTION_VIEWER, solutionApi } from '../test/solutions'
 
 // SCR-061 Solution (UC-05, US-038, US-039): name, status, owner, creation time and the
 // architecture vision of one solution (design D4 of us-038-create-solution), and its baseline
 // with search, metatype filter and paging (design D5 of us-039-solution-baseline), and its
 // changes: new and retiring entities, the dialog "New entity" and "Retire" in the baseline (design
-// D9 of us-040-entity-deltas) (docs/screens/SCREENS.md). The first story is the screen image.
+// D9 of us-040-entity-deltas), and modifications with "Modify" and "Edit" (design D6 of
+// us-041-modified-delta) (docs/screens/SCREENS.md). The first story is the screen image.
 
 function screen(id: string, landscape?: SolutionLandscapeEntry[], deltas: SolutionDelta[] = DELTAS, me: unknown = ME_SOLUTION_ARCHITECT): Story {
   const fetchFn = solutionApi({ landscape, deltas, me }).fetch
@@ -39,7 +40,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Solution: Story = {
-  ...screen('5d000000-0000-4000-8000-000000000002'),
+  ...screen('5d000000-0000-4000-8000-000000000002', undefined, DELTAS_WITH_MODIFIED),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(await canvas.findByText('ERP Extension Logistics')).toBeInTheDocument()
@@ -49,6 +50,21 @@ export const Solution: Story = {
     await expect(canvas.getByText('Page 1 of 1 · 7 entities')).toBeInTheDocument()
     await expect(await canvas.findByText('Warehouse Cloud')).toBeInTheDocument()
     await expect(canvas.getAllByText('Retiring')).toHaveLength(2)
+    await expect(canvas.getAllByText('Modified')).toHaveLength(2)
+    await expect(canvas.getByText('2 changes')).toBeInTheDocument()
+  },
+}
+
+export const ModifyEntityDialog: Story = {
+  ...screen('5d000000-0000-4000-8000-000000000002', undefined, DELTAS),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const row = (await canvas.findByText('ERP-Core')).closest('tr')!
+    await userEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Modify' }))
+    const body = within(canvasElement.ownerDocument.body)
+    await expect(await body.findByText('Current: 250')).toBeInTheDocument()
+    await expect(body.getByText('Current: hidden')).toBeInTheDocument()
+    await expect(body.getByRole('button', { name: 'Save modification' })).toBeEnabled()
   },
 }
 

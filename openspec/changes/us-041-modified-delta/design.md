@@ -108,6 +108,7 @@ GRANT UPDATE (updated_at, updated_by) ON entity_deltas TO oea_app;
   - a field already in the delta keeps its recorded before value, and only its after value is replaced;
   - a field that is no longer sent leaves the delta;
   - a field whose new value equals its recorded before value leaves the delta as well;
+  - a recorded change of a property the editor may not read (`readableFor`) cannot be resent, so it stays as recorded unless the request names that property; such a change also lets an edit pass the "changes nothing" check (found during the implementation);
   - no remaining change answers 422 `properties`.
 - **Write:** delete the delta's value rows and insert the new ones, set `updated_at` and `updated_by`, and audit `solution.delta-updated`.
 - **Request:** `SolutionDeltaUpdate` with `name`, `description` and `properties`, the full set of intended changes (replace semantics).

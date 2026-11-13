@@ -53,6 +53,8 @@ public class DeltaSteps {
 
 	private String otherDelta;
 
+	private HttpResponse<String> edit;
+
 	@Given("the architect created a solution for the deltas")
 	public void solution() throws Exception {
 		this.solution = createSolution("Deltas");
@@ -335,6 +337,161 @@ public class DeltaSteps {
 			.isEqualTo("0");
 	}
 
+	// us-041-modified-delta
+
+	@Given("the landscape holds {string} with {string} {string} and {string} {string}")
+	public void landscapeWithValues(String name, String first, String firstValue, String second, String secondValue)
+			throws Exception {
+		landscape(name);
+		int entity = this.entities.get(name);
+		catalogValue(entity, "Owner", "IT");
+		catalogValue(entity, first, firstValue);
+		catalogValue(entity, second, secondValue);
+	}
+
+	@Given("the catalog value of {string} of {string} changes to {string}")
+	public void catalogChanges(String property, String name, String value) throws Exception {
+		instance().oidc().update("UPDATE entity_property_values SET value_text = '" + value + "' WHERE entity_id = "
+				+ this.entities.get(name) + " AND property_def_id = '" + this.properties.get(property) + "'");
+	}
+
+	@When("the architect modifies {string} with {string} {string}")
+	@Given("the architect modified {string} with {string} {string}")
+	public void modify(String name, String property, String value) throws Exception {
+		this.capture = create(this.solution, modified(this.entities.get(name), null, null, Map.of(property, value)),
+				instance().architect());
+	}
+
+	@When("the architect modifies {string} with the name {string} and the description {string}")
+	public void renameAndDescribe(String name, String newName, String description) throws Exception {
+		this.capture = create(this.solution,
+				modified(this.entities.get(name), named(newName), description, Map.of()), instance().architect());
+	}
+
+	@When("the architect modifies {string} with an empty {string}")
+	public void removeValue(String name, String property) throws Exception {
+		modify(name, property, "");
+	}
+
+	@When("the architect modifies an entity ID that does not exist")
+	public void modifyUnknown() throws Exception {
+		this.capture = create(this.solution, modified(Integer.MAX_VALUE, "Other", null, Map.of()),
+				instance().architect());
+	}
+
+	@When("the architect modifies {string} with a name of {int} characters")
+	public void modifyNameLength(String name, int length) throws Exception {
+		this.capture = create(this.solution,
+				modified(this.entities.get(name), (length == 0) ? "   " : "n".repeat(length), null, Map.of()),
+				instance().architect());
+	}
+
+	@When("the architect modifies {string} with a description of {int} characters")
+	public void modifyDescriptionLength(String name, int length) throws Exception {
+		this.capture = create(this.solution, modified(this.entities.get(name), null, "d".repeat(length), Map.of()),
+				instance().architect());
+	}
+
+	@When("the architect edits the delta of {string} to {string} {string} and {string} {string}")
+	public void editTwo(String name, String first, String firstValue, String second, String secondValue)
+			throws Exception {
+		Map<String, String> values = new LinkedHashMap<>();
+		values.put(first, firstValue);
+		values.put(second, secondValue);
+		this.edit = put(deltaId(name), modification(null, null, values), instance().architect());
+	}
+
+	@When("the architect edits the delta of {string} to {string} {string}")
+	public void editOne(String name, String property, String value) throws Exception {
+		this.edit = put(deltaId(name), modification(null, null, Map.of(property, value)), instance().architect());
+	}
+
+	@When("the viewer edits the delta of {string} to {string} {string}")
+	public void viewerEdits(String name, String property, String value) throws Exception {
+		this.edit = put(deltaId(name), modification(null, null, Map.of(property, value)), instance().viewer());
+	}
+
+	@Then("the edit answers {int}")
+	public void editAnswers(int status) {
+		assertThat(this.edit.statusCode()).as(this.edit.body()).isEqualTo(status);
+	}
+
+	@Then("the edit answers 422 naming {string}")
+	public void editNaming(String field) throws Exception {
+		editAnswers(422);
+		List<String> fields = new ArrayList<>();
+		JsonMapper.shared().readTree(this.edit.body()).path("invalidFields").forEach((node) -> fields.add(node.asString()));
+		assertThat(fields).contains(field);
+	}
+
+	@Then("the delta of {string} changes {string} from {string} to {string}")
+	public void changes(String name, String field, String before, String after) throws Exception {
+		JsonNode change = change(delta(name, instance().architect()), field);
+		assertThat(changeText(change.path("before"))).isEqualTo(before);
+		assertThat(changeText(change.path("after"))).isEqualTo(after);
+	}
+
+	@Then("the delta of {string} changes the name to {string} and the description")
+	public void renamed(String name, String newName) throws Exception {
+		JsonNode delta = delta(name, instance().architect());
+		assertThat(change(delta, "name").path("after").path("valueText").asString()).isEqualTo(named(newName));
+		assertThat(change(delta, "name").path("before").path("valueText").asString()).isEqualTo(named(name));
+		assertThat(change(delta, "description").path("after").isNull()).isFalse();
+	}
+
+	@Then("the catalog still holds {string} {string} for {string}")
+	public void catalogHolds(String property, String value, String name) throws Exception {
+		assertThat(instance().oidc()
+			.single("SELECT coalesce(value_text, value_int::text) FROM entity_property_values WHERE entity_id = "
+					+ this.entities.get(name) + " AND property_def_id = '" + this.properties.get(property) + "'"))
+			.isEqualTo(value);
+	}
+
+	@Then("the viewer reads the change of {string} of {string} as redacted")
+	public void changeRedacted(String property, String name) throws Exception {
+		JsonNode change = change(delta(name, instance().viewer()), property);
+		assertThat(change.path("redacted").asBoolean()).isTrue();
+		assertThat(change.path("before").isNull()).isTrue();
+		assertThat(change.path("after").isNull()).isTrue();
+	}
+
+	@Given("the property {string} of the applications is writable by the role {string} but readable only by the role {string}")
+	public void writableNotReadable(String name, String writer, String reader) throws Exception {
+		UUID property = property(name, "integer", "role-restricted", null);
+		instance().oidc().update("""
+				INSERT INTO property_visibility_roles (property_def_id, role_id, access) VALUES
+				    ('%1$s', '%2$s', 'read'), ('%1$s', '%3$s', 'write')""".formatted(property, reader, writer));
+		map(property, "optional");
+	}
+
+	@When("the architect modifies {string} with {string} {string} and {string} {string}")
+	@Given("the architect modified {string} with {string} {string} and {string} {string}")
+	public void modifyTwo(String name, String first, String firstValue, String second, String secondValue)
+			throws Exception {
+		Map<String, String> values = new LinkedHashMap<>();
+		values.put(first, firstValue);
+		values.put(second, secondValue);
+		this.capture = create(this.solution, modified(this.entities.get(name), null, null, values),
+				instance().architect());
+		captureAnswers(201);
+	}
+
+	@Then("the delta of {string} still records {string} with the after value {string}")
+	public void stillRecords(String name, String property, String value) throws Exception {
+		assertThat(instance().oidc()
+			.single("SELECT after_value_int::text FROM entity_delta_property_values v JOIN entity_deltas d ON d.id = v.delta_id"
+					+ " WHERE d.solution_id = '" + this.solution + "' AND d.entity_id = " + this.entities.get(name)
+					+ " AND v.property_def_id = '" + this.properties.get(property) + "'"))
+			.isEqualTo(value);
+	}
+
+	@Then("the audit log holds {string} naming the field {string} without {string}")
+	public void auditedFields(String event, String property, String value) throws Exception {
+		String details = latest(event);
+		assertThat(JsonMapper.shared().readTree(details).path("fields").toString()).contains(property);
+		assertThat(details).doesNotContain(value);
+	}
+
 	private String latest(String event) throws Exception {
 		return instance().oidc()
 			.single("SELECT details::text FROM audit.events WHERE event_type = '" + event + "' AND target_id = '"
@@ -406,6 +563,65 @@ public class DeltaSteps {
 	}
 
 	private static String text(JsonNode value) {
+		return value.path("valueText").isNull() || value.path("valueText").isMissingNode()
+				? value.path("valueInt").asString() : value.path("valueText").asString();
+	}
+
+	private void catalogValue(int entity, String property, String value) throws Exception {
+		UUID id = this.properties.get(property);
+		if (id == null) {
+			id = property(property, "string", "public", null);
+			map(id, "optional");
+		}
+		boolean integer = "Users".equals(property);
+		instance().oidc().update("INSERT INTO entity_property_values (entity_id, property_def_id, "
+				+ (integer ? "value_int" : "value_text") + ") VALUES (" + entity + ", '" + id + "', "
+				+ (integer ? value : "'" + value + "'") + ")");
+	}
+
+	private ObjectNode modified(int entityId, String name, String description, Map<String, String> values) {
+		ObjectNode body = modification(name, description, values);
+		body.put("deltaType", "modified").put("entityId", entityId);
+		return body;
+	}
+
+	private ObjectNode modification(String name, String description, Map<String, String> values) {
+		ObjectNode body = JsonMapper.shared().createObjectNode();
+		if (name != null) {
+			body.put("name", name);
+		}
+		if (description != null) {
+			body.put("description", description);
+		}
+		ArrayNode list = body.putArray("properties");
+		values.forEach((property, value) -> list.add(JsonMapper.shared()
+			.createObjectNode()
+			.put("propertyDefId", this.properties.get(property).toString())
+			.put("value", value)));
+		return body;
+	}
+
+	private HttpResponse<String> put(String deltaId, ObjectNode body, Session session) throws Exception {
+		return instance().send("PUT", "/api/v1/solutions/" + this.solution + "/deltas/" + deltaId, body.toString(),
+				session);
+	}
+
+	private JsonNode change(JsonNode delta, String field) {
+		for (JsonNode change : delta.path("changes")) {
+			boolean matches = ("name".equals(field) || "description".equals(field))
+					? field.equals(change.path("field").asString())
+					: change.path("propertyDefId").asString().equals(String.valueOf(this.properties.get(field)));
+			if (matches) {
+				return change;
+			}
+		}
+		throw new AssertionError("no change of " + field + " in " + delta);
+	}
+
+	private static String changeText(JsonNode value) {
+		if (value.isNull() || value.isMissingNode()) {
+			return "no value";
+		}
 		return value.path("valueText").isNull() || value.path("valueText").isMissingNode()
 				? value.path("valueInt").asString() : value.path("valueText").asString();
 	}

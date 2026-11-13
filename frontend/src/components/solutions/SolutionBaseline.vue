@@ -10,9 +10,15 @@ import { label, labelKeys } from '../../i18n/labels'
 // The area "Baseline" of SCR-061 (US-039; design D5 of us-039-solution-baseline): the current
 // landscape the solution builds on, with a search, a metatype filter and paging. The next page
 // follows by the cursor of the loaded one; a jump or a changed filter uses the page number. With
-// solution:write, each row offers "Retire" or shows "Retiring" when it has a delta (US-042).
-const props = defineProps<{ solutionId: string; canWrite?: boolean; deltaEntityIds?: number[]; fetchFn?: typeof fetch }>()
-const emit = defineEmits<{ retire: [entry: SolutionLandscapeEntry] }>()
+// solution:write, each row offers "Modify" and "Retire" (US-041, US-042), or shows "Modified" or
+// "Retiring" when it has a delta.
+const props = defineProps<{
+  solutionId: string
+  canWrite?: boolean
+  deltaTypes?: Record<number, 'modified' | 'retiring'>
+  fetchFn?: typeof fetch
+}>()
+const emit = defineEmits<{ retire: [entry: SolutionLandscapeEntry]; modify: [entry: SolutionLandscapeEntry] }>()
 const { t } = useI18n()
 
 // USelect does not accept an empty value, so "all metatypes" has its own value
@@ -37,9 +43,8 @@ const metatypeItems = computed(() => [{ label: t('solutions.baseline.allMetatype
 const columns = computed(() => [
   { accessorKey: 'name', header: t('solutions.baseline.name') },
   { accessorKey: 'metatypeName', header: t('solutions.baseline.metatype') },
-  ...(props.canWrite || (props.deltaEntityIds ?? []).length > 0 ? [{ id: 'delta', header: t('solutions.deltas.type') }] : []),
+  ...(props.canWrite || Object.keys(props.deltaTypes ?? {}).length > 0 ? [{ id: 'delta', header: t('solutions.deltas.type') }] : []),
 ])
-const withDelta = computed(() => new Set(props.deltaEntityIds ?? []))
 const rows = computed(() =>
   (result.value?.items ?? []).map((entry) => ({ ...entry, metatypeName: label(labelKeys.metatype(entry.metatypeId), entry.metatypeName) })),
 )
@@ -147,14 +152,24 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
           <template #delta-cell="{ row }">
             <div class="flex justify-end">
               <UBadge
-                v-if="withDelta.has(row.original.id)"
-                data-testid="baseline-retiring"
-                color="warning"
+                v-if="props.deltaTypes?.[row.original.id]"
+                :data-testid="`baseline-${props.deltaTypes[row.original.id]}`"
+                :color="props.deltaTypes[row.original.id] === 'modified' ? 'info' : 'warning'"
                 variant="subtle"
-                :label="t('solutions.deltas.types.retiring')"
+                :label="t(`solutions.deltas.types.${props.deltaTypes[row.original.id]}`)"
               />
               <UButton
-                v-else-if="props.canWrite"
+                v-if="!props.deltaTypes?.[row.original.id] && props.canWrite"
+                data-testid="baseline-modify"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                icon="i-lucide-pencil"
+                :label="t('solutions.baseline.modify')"
+                @click="emit('modify', row.original)"
+              />
+              <UButton
+                v-if="!props.deltaTypes?.[row.original.id] && props.canWrite"
                 data-testid="baseline-retire"
                 color="neutral"
                 variant="ghost"

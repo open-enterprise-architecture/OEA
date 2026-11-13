@@ -2,12 +2,12 @@
 title: Solutions
 covers:
   screens: [SCR-060, SCR-061]
-  stories: [US-038, US-039, US-040, US-042]
+  stories: [US-038, US-039, US-040, US-041, US-042]
 ---
 
 # Solutions
 
-A solution is the container of a change initiative, such as a new module, a replaced interface or a platform migration. It states in its **architecture vision** what the initiative wants to achieve and what it covers, so that everyone involved has the same picture. The solution also holds the planned changes to the landscape: the entities the initiative introduces and the ones it retires.
+A solution is the container of a change initiative, such as a new module, a replaced interface or a platform migration. It states in its **architecture vision** what the initiative wants to achieve and what it covers, so that everyone involved has the same picture. The solution also holds the planned changes to the landscape: the entities the initiative introduces, the ones it modifies and the ones it retires.
 
 You need the permission `entity:read` (for example the role `viewer`) to see solutions. To create one, you need `solution:write`: the roles `solution-architect` and `enterprise-architect` hold it (see [Roles and permissions](../administration/roles-and-permissions)).
 
@@ -53,17 +53,19 @@ If the catalog holds no entities yet, the area says "No entities in the current 
 
 ## Changes
 
-The area *Changes* lists what the initiative changes in the landscape, new entities first, then the entities it retires, each by name. With `solution:write` you add and remove changes in every solution, not only in your own.
+The area *Changes* lists what the initiative changes in the landscape: new entities first, then modified entities with their number of changes, then the entities it retires, each by name. With `solution:write` you add and remove changes in every solution, not only in your own.
 
+- **Modify an entity:** choose *Modify* in its row of the baseline. The dialog *Modify entity* shows each field with its current value and an input for the new one: the name, the description and the properties. Enter only what changes; clearing a property removes its value. The current values are recorded as the values before the change when you save, and they stay as recorded even if the catalog changes later. A field you enter with its current value is not a change, and a modification needs at least one change. The entity appears in *Changes* as *Modified*, and its baseline row shows *Modified*.
+- **Edit a modification:** choose *Edit* in its row of *Changes*. The dialog starts from the new values; what you save replaces them. A field that was already part of the modification keeps its recorded value before the change. A change of a restricted property you may not read stays as it is.
 - **Retire an entity:** choose *Retire* in its row of the baseline. The entity appears in *Changes* as *Retiring*, and its baseline row shows *Retiring* instead of the action.
 - **Create a new entity:** choose *New entity* and fill in the dialog: the metatype, a name of up to 255 characters, an optional description of up to 2000 characters, and the properties of the metatype. Properties marked as required need a value. The new entity is not written to the catalog yet: it enters the catalog with the go-live of the solution, and until then it is not part of the baseline.
 - **Remove a change:** choose *Remove* in its row and confirm. A retired entity can then be retired again, for example after a mistake.
 
 The rules:
 
-- A solution holds one change per entity: the same entity cannot be retired twice, and two new entities of the same metatype cannot have the same name (upper and lower case do not matter). Another solution can change the same entity.
-- A value must fit its property, for example a whole number for an integer property. If a value is rejected, the dialog shows why at the field.
-- A restricted property can only be set if one of your roles may write it (see [Property visibility](../administration/property-visibility)). A connection-scoped property cannot be set for a new entity, because its connections do not exist yet. Values you may not read appear as hidden.
+- A solution holds one change per entity: the same entity cannot be retired twice or both modified and retired, and two new entities of the same metatype cannot have the same name (upper and lower case do not matter). Another solution can change the same entity.
+- A value must fit its property, for example a whole number for an integer property, and the value of a required property cannot be removed. If a value is rejected, the dialog shows why at the field.
+- A restricted property can only be set if one of your roles may write it (see [Property visibility](../administration/property-visibility)). A connection-scoped property cannot be set for a new entity, because its connections do not exist yet; for an existing entity, the entity must be in your scope. Values you may not read appear as hidden.
 - A solution holds at most 1000 changes.
 - An implemented or archived solution is completed: it cannot be changed, and its changes stay as they are.
 
@@ -79,6 +81,10 @@ curl "${auth[@]}" "$OEA/solutions/$SOLUTION/landscape?q=erp&pageSize=50"
 curl "${auth[@]}" -d '{"deltaType": "retiring", "entityId": 42}' "$OEA/solutions/$SOLUTION/deltas"
 curl "${auth[@]}" "$OEA/solutions/$SOLUTION/deltas"
 curl "${auth[@]}" -X DELETE "$OEA/solutions/$SOLUTION/deltas/$DELTA"
+# modify entity 43: its current values, then the new value of a property
+curl "${auth[@]}" "$OEA/solutions/$SOLUTION/landscape/43"
+curl "${auth[@]}" -d '{"deltaType": "modified", "entityId": 43, "properties": [{"propertyDefId": "'"$RELEASE"'", "value": "v5"}]}' \
+  "$OEA/solutions/$SOLUTION/deltas"
 ```
 
 `POST /solutions` answers 201 with the solution, 422 naming `name` for a blank or taken name, and 403 without `solution:write`. Every creation is recorded in the audit log as `solution.created`.
@@ -86,3 +92,5 @@ curl "${auth[@]}" -X DELETE "$OEA/solutions/$SOLUTION/deltas/$DELTA"
 `GET /solutions/{id}/landscape` answers one page of the baseline with the total and, if a further page exists, a `nextCursor`; send it as `cursor` together with `page` + 1 to load the next page. `metatypeId` filters by metatype.
 
 `POST /solutions/{id}/deltas` captures a change: `{"deltaType": "retiring", "entityId": …}`, or `{"deltaType": "new", "metatypeId": …, "name": …, "description": …, "properties": [{"propertyDefId": …, "value": "…"}]}` with the values as text, as for an entity write. It answers 201 with the change, 422 with `invalidFields` and a message per field in `errors`, 403 for a restricted value you may not write, and 409 for a completed solution. Adding and removing a change is recorded in the audit log as `solution.delta-added` and `solution.delta-removed`, without the property values.
+
+A modification is `{"deltaType": "modified", "entityId": …, "name": …, "description": …, "properties": […]}` with the new values only; the response carries `changes` with the recorded `before` and the new `after` value of each field. `PUT /solutions/{id}/deltas/{deltaId}` with `name`, `description` and `properties` replaces the changes of a modification and is recorded as `solution.delta-updated`. `GET /solutions/{id}/landscape/{entityId}` returns an entity of the baseline with its current values.

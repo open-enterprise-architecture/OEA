@@ -17,7 +17,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-/** Migration db/migration/V26__entity_deltas.sql: owner, grants, shape checks and unique indexes. */
+/**
+ * Migrations db/migration/V26__entity_deltas.sql and V27__entity_delta_changes.sql: owner, grants,
+ * shape checks and unique indexes.
+ */
 class EntityDeltaSchemaTests {
 
 	private static OeaDatabase postgres;
@@ -122,13 +125,34 @@ class EntityDeltaSchemaTests {
 	}
 
 	@Test
-	void exactlyOneValueAndCascade() throws SQLException {
+	void valuesFieldsAndCascade() throws SQLException {
 		try (Connection app = OeaDatabases.asRole(postgres, "oea_app"); Statement statement = app.createStatement()) {
 			String delta = single(statement, newDelta("Valued") + " RETURNING id::text");
 			statement.execute(value(delta, "after_value_int", "250"));
-			for (String invalid : List.of(value(delta, "after_value_text", "NULL"),
+			// V27: a change without an after value removes the value, with a before value
+			String target = single(statement, "INSERT INTO entities (metatype_id, name, created_by) VALUES ('"
+					+ metatypeId + "', 'Modified target', " + personId + ") RETURNING id::text");
+			String modified = single(statement,
+					retiring(target).replace("'retiring'", "'modified'") + " RETURNING id::text");
+			statement.execute("INSERT INTO entity_delta_property_values (id, delta_id, property_def_id, before_value_int)"
+					+ " VALUES (gen_random_uuid(), '" + modified + "', '" + propertyId + "', 10)");
+			statement.execute("INSERT INTO entity_delta_property_values (id, delta_id, system_field, before_value_text,"
+					+ " after_value_text) VALUES (gen_random_uuid(), '" + modified + "', 'name', 'CRM-Legacy', 'CRM 2')");
+			for (String invalid : List.of(
+					// two after values, two before values
 					"INSERT INTO entity_delta_property_values (id, delta_id, property_def_id, after_value_int, after_value_text)"
-							+ " VALUES (gen_random_uuid(), '" + delta + "', '" + propertyId + "', 1, 'x')")) {
+							+ " VALUES (gen_random_uuid(), '" + delta + "', '" + propertyId + "', 1, 'x')",
+					"INSERT INTO entity_delta_property_values (id, delta_id, system_field, before_value_int, before_value_text)"
+							+ " VALUES (gen_random_uuid(), '" + modified + "', 'description', 1, 'x')",
+					// both a property and a system field, neither, an unknown system field
+					"INSERT INTO entity_delta_property_values (id, delta_id, property_def_id, system_field)"
+							+ " VALUES (gen_random_uuid(), '" + modified + "', '" + propertyId + "', 'description')",
+					"INSERT INTO entity_delta_property_values (id, delta_id) VALUES (gen_random_uuid(), '" + modified + "')",
+					"INSERT INTO entity_delta_property_values (id, delta_id, system_field)"
+							+ " VALUES (gen_random_uuid(), '" + modified + "', 'metatype_id')",
+					// the same system field twice
+					"INSERT INTO entity_delta_property_values (id, delta_id, system_field, after_value_text)"
+							+ " VALUES (gen_random_uuid(), '" + modified + "', 'name', 'CRM 3')")) {
 				assertThatExceptionOfType(SQLException.class).isThrownBy(() -> statement.execute(invalid))
 					.satisfies((ex) -> assertThat(ex.getSQLState()).isIn("23514", "23505"));
 			}
@@ -136,6 +160,22 @@ class EntityDeltaSchemaTests {
 			assertThat(single(statement,
 					"SELECT count(*)::text FROM entity_delta_property_values WHERE delta_id = '" + delta + "'"))
 				.isEqualTo("0");
+		}
+	}
+
+	@Test
+	void updateOnlyOfTheEditColumns() throws SQLException {
+		try (Connection su = OeaDatabases.asSuperuser(postgres); Statement statement = su.createStatement()) {
+			List<String> columns = new ArrayList<>();
+			try (ResultSet rs = statement.executeQuery("""
+					SELECT column_name FROM information_schema.column_privileges
+					WHERE table_name = 'entity_deltas' AND grantee = 'oea_app' AND privilege_type = 'UPDATE'
+					ORDER BY column_name""")) {
+				while (rs.next()) {
+					columns.add(rs.getString(1));
+				}
+			}
+			assertThat(columns).containsExactly("updated_at", "updated_by");
 		}
 	}
 

@@ -44,6 +44,8 @@ public class BaselineSteps {
 
 	private boolean lastPageWithoutCursor;
 
+	private final java.util.Map<String, String> entryProperties = new java.util.HashMap<>();
+
 	@Given("the architect created a solution for the baseline")
 	public void solution() throws Exception {
 		HttpResponse<String> created = instance().send("POST", "/api/v1/solutions",
@@ -206,6 +208,78 @@ public class BaselineSteps {
 	@Then("the last page has no next cursor")
 	public void lastPage() {
 		assertThat(this.lastPageWithoutCursor).isTrue();
+	}
+
+	// us-041-modified-delta – Requirement: Read one entry of the baseline
+
+	@Given("{string} has the value {string} of the property {string}")
+	public void value(String name, String value, String property) throws Exception {
+		String id = instance().oidc().single("""
+				INSERT INTO property_definitions (name, sql_column_name, data_type)
+				VALUES ('%s %s', 'p_%s', 'string') RETURNING id""".formatted(property, this.suffix,
+				UUID.randomUUID().toString().replace("-", "").substring(0, 12)));
+		this.entryProperties.put(property, id);
+		instance().oidc().update("INSERT INTO entity_property_values (entity_id, property_def_id, value_text) SELECT id, '"
+				+ id + "', '" + value + "' FROM entities WHERE name = '" + named(name) + "'");
+	}
+
+	@Given("the property {string} is readable only by the role {string}")
+	public void restricted(String property, String role) throws Exception {
+		String id = this.entryProperties.get(property);
+		instance().oidc().update("UPDATE property_definitions SET visibility_mode = 'role-restricted' WHERE id = '" + id + "'");
+		instance().oidc().update("INSERT INTO property_visibility_roles (property_def_id, role_id, access) VALUES ('" + id
+				+ "', '" + role + "', 'read')");
+	}
+
+	@When("the architect reads the entry {string} of the baseline")
+	public void readEntry(String name) throws Exception {
+		this.response = instance().oidc().get(entryPath(name), instance().architect().token());
+	}
+
+	@When("the viewer reads the entry {string} of the baseline")
+	public void viewerReadsEntry(String name) throws Exception {
+		this.response = instance().oidc().get(entryPath(name), instance().viewer().token());
+	}
+
+	@When("a portal reader reads the entry {string} of the baseline")
+	public void portalReaderReadsEntry(String name) throws Exception {
+		this.response = instance().oidc().get(entryPath(name), SolutionSteps.portalReaderSession().token());
+	}
+
+	@When("the architect reads an unknown entity ID as an entry of the baseline")
+	public void readUnknownEntry() throws Exception {
+		this.response = instance().oidc()
+			.get("/api/v1/solutions/" + this.solution + "/landscape/" + Integer.MAX_VALUE, instance().architect().token());
+	}
+
+	@Then("the entry holds the name {string}, its metatype, version 1 and {string} {string}")
+	public void entryHolds(String name, String property, String value) throws Exception {
+		JsonNode entry = ok(this.response);
+		assertThat(entry.path("name").asString()).isEqualTo(named(name));
+		assertThat(entry.path("metatypeId").asString()).isEqualTo(this.applications.toString());
+		assertThat(entry.path("version").asInt()).isEqualTo(1);
+		assertThat(entryValue(entry, property).path("valueText").asString()).isEqualTo(value);
+	}
+
+	@Then("{string} of the entry is redacted")
+	public void entryRedacted(String property) throws Exception {
+		JsonNode value = entryValue(ok(this.response), property);
+		assertThat(value.path("redacted").asBoolean()).isTrue();
+		assertThat(value.path("valueText").isNull()).isTrue();
+	}
+
+	private JsonNode entryValue(JsonNode entry, String property) {
+		for (JsonNode value : entry.path("properties")) {
+			if (value.path("propertyDefId").asString().equals(this.entryProperties.get(property))) {
+				return value;
+			}
+		}
+		throw new AssertionError("no value " + property + " in " + entry);
+	}
+
+	private String entryPath(String name) throws Exception {
+		String id = instance().oidc().single("SELECT id::text FROM entities WHERE name = '" + named(name) + "'");
+		return "/api/v1/solutions/" + this.solution + "/landscape/" + id;
 	}
 
 	private String firstCursor() throws Exception {

@@ -9,9 +9,14 @@ import io.oea.api.generated.model.PrincipalRef;
 import io.oea.api.generated.model.Solution;
 import io.oea.api.generated.model.SolutionCreate;
 import io.oea.api.generated.model.SolutionDelta;
+import io.oea.api.generated.model.SolutionDeltaChange;
 import io.oea.api.generated.model.SolutionDeltaList;
 import io.oea.api.generated.model.SolutionDeltaType;
+import io.oea.api.generated.model.SolutionDeltaUpdate;
+import io.oea.api.generated.model.SolutionDeltaValue;
+import io.oea.api.generated.model.SolutionDeltaValueValueRef;
 import io.oea.api.generated.model.SolutionDeltaWrite;
+import io.oea.api.generated.model.SolutionLandscapeEntity;
 import io.oea.api.generated.model.SolutionLandscapeEntry;
 import io.oea.api.generated.model.SolutionLandscapePage;
 import io.oea.api.generated.model.SolutionStatus;
@@ -92,16 +97,46 @@ public class SolutionController implements SolutionsApi {
 	@ContractViolationResponse(title = "Invalid delta", detail = "The delta is invalid.")
 	public ResponseEntity<SolutionDelta> createSolutionDelta(UUID id, SolutionDeltaWrite request) {
 		SolutionDeltas.Delta created = this.deltas.create(principal(), id,
-				new SolutionDeltas.NewDelta(
-						(request.getDeltaType() == SolutionDeltaType.NEW) ? SolutionDeltas.Type.NEW
-								: SolutionDeltas.Type.RETIRING,
-						request.getEntityId(), request.getMetatypeId(), request.getName(), request.getDescription(),
-						request.getProperties()
-							.stream()
-							.map((property) -> new EntityInput.PropertyInput(property.getPropertyDefId(),
-									property.getValue()))
-							.toList()));
+				new SolutionDeltas.NewDelta(type(request.getDeltaType()), request.getEntityId(),
+						request.getMetatypeId(), request.getName(), request.getDescription(),
+						properties(request.getProperties())));
 		return ResponseEntity.status(201).body(delta(created));
+	}
+
+	@Override
+	@ContractViolationResponse(title = "Invalid delta", detail = "The delta is invalid.")
+	public ResponseEntity<SolutionDelta> updateSolutionDelta(UUID id, UUID deltaId, SolutionDeltaUpdate request) {
+		return ResponseEntity.ok(delta(this.deltas.update(principal(), id, deltaId,
+				new SolutionDeltas.Modification(request.getName(), request.getDescription(),
+						properties(request.getProperties())))));
+	}
+
+	@Override
+	public ResponseEntity<SolutionLandscapeEntity> getSolutionLandscapeEntity(UUID id, Integer entityId) {
+		SolutionLandscape.EntityEntry found = this.landscape.entry(principal(), id, entityId);
+		return ResponseEntity.ok(new SolutionLandscapeEntity().id(found.entry().id())
+			.name(found.entry().name())
+			.metatypeId(found.entry().metatypeId())
+			.metatypeName(found.entry().metatypeName())
+			.version(found.entry().version())
+			.description(found.description())
+			.properties(found.properties().stream().map(SolutionController::value).toList()));
+	}
+
+	private static SolutionDeltas.Type type(SolutionDeltaType type) {
+		return switch (type) {
+			case NEW -> SolutionDeltas.Type.NEW;
+			case MODIFIED -> SolutionDeltas.Type.MODIFIED;
+			case RETIRING -> SolutionDeltas.Type.RETIRING;
+		};
+	}
+
+	private static List<EntityInput.PropertyInput> properties(
+			List<io.oea.api.generated.model.PropertyWriteValue> properties) {
+		return (properties == null) ? List.of()
+				: properties.stream()
+					.map((property) -> new EntityInput.PropertyInput(property.getPropertyDefId(), property.getValue()))
+					.toList();
 	}
 
 	@Override
@@ -125,7 +160,33 @@ public class SolutionController implements SolutionsApi {
 			.metatypeName(delta.metatypeName())
 			.description(delta.description())
 			.properties(delta.properties().stream().map(SolutionController::value).toList())
-			.createdAt(delta.createdAt().atOffset(ZoneOffset.UTC));
+			.changes(delta.changes().stream().map(SolutionController::change).toList())
+			.createdAt(delta.createdAt().atOffset(ZoneOffset.UTC))
+			.updatedAt((delta.updatedAt() != null) ? delta.updatedAt().atOffset(ZoneOffset.UTC) : null);
+	}
+
+	private static SolutionDeltaChange change(SolutionDeltas.Change change) {
+		return new SolutionDeltaChange().field(SolutionDeltaChange.FieldEnum.fromValue(change.field()))
+			.propertyDefId(change.propertyDefId())
+			.propertyName(change.propertyName())
+			.dataType((change.dataType() != null) ? SolutionDeltaChange.DataTypeEnum.fromValue(change.dataType()) : null)
+			.redacted(change.redacted())
+			.before(typed(change.before()))
+			.after(typed(change.after()));
+	}
+
+	private static SolutionDeltaValue typed(SolutionDeltas.Typed value) {
+		if (value == null) {
+			return null;
+		}
+		return new SolutionDeltaValue().valueText(value.text())
+			.valueInt(value.integer())
+			.valueBool(value.bool())
+			.valueDate(value.date())
+			.valueEnum(value.enumValue())
+			.valueRef((value.reference() != null) ? new SolutionDeltaValueValueRef().id(value.reference().id())
+				.name(value.reference().name())
+				.metatypeAbbr(value.reference().metatypeAbbreviation()) : null);
 	}
 
 	private static PropertyValue value(SolutionDeltas.Value value) {

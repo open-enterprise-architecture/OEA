@@ -2376,6 +2376,19 @@ components:
         metatypeName: { type: string }
         version:      { type: integer, description: Current version of the entity }
 
+    SolutionLandscapeEntity:
+      allOf:
+        - $ref: '#/components/schemas/SolutionLandscapeEntry'
+        - type: object
+          required: [description, properties]
+          description: One entity of the baseline with its values (US-041 AC2)
+          properties:
+            description: { type: string }
+            properties:
+              type: array
+              description: The values the entity has; a value the caller may not read is redacted (REQ-160)
+              items: { $ref: '#/components/schemas/PropertyValue' }
+
     SolutionLandscapePage:
       type: object
       required: [items, page, nextCursor]
@@ -2392,35 +2405,91 @@ components:
 
     SolutionDeltaType:
       type: string
-      enum: [new, retiring]
-      description: "`new`: an entity the solution introduces; `retiring`: an entity of the baseline the solution retires (`modified` follows with US-041)"
+      enum: [new, modified, retiring]
+      description: "`new`: an entity the solution introduces; `modified`: an entity of the baseline the solution changes (US-041); `retiring`: an entity of the baseline the solution retires"
 
     SolutionDeltaWrite:
       type: object
       required: [deltaType]
       description: |
-        A delta to capture (US-040, US-042). `new` needs `metatypeId` and `name` and takes
-        `description` and `properties`; `retiring` needs `entityId` and nothing else. Lengths and
-        values are checked like the write of a new entity and answered with 422.
+        A delta to capture (US-040, US-041, US-042). `new` needs `metatypeId` and `name` and takes
+        `description` and `properties`; `modified` needs `entityId` and takes the new `name`,
+        `description` and `properties` (after values only; the server records the before values
+        from the catalog, and an empty property value removes the value); `retiring` needs
+        `entityId` and nothing else. Lengths and values are checked like an entity write and
+        answered with 422.
       properties:
         deltaType:   { $ref: '#/components/schemas/SolutionDeltaType' }
-        entityId:    { type: integer, minimum: 1, description: "`retiring`: the entity of the baseline" }
+        entityId:    { type: integer, minimum: 1, description: "`modified`, `retiring`: the entity of the baseline" }
         metatypeId:  { type: string, format: uuid, description: "`new`: an element metatype" }
-        name:        { type: string, description: "`new`: 1–255 characters, not blank" }
-        description: { type: string, description: "`new`: at most 2000 characters" }
+        name:        { type: string, description: "`new`, `modified`: 1–255 characters, not blank" }
+        description: { type: string, description: "`new`, `modified`: at most 2000 characters" }
         properties:
           type: array
-          description: "`new`: the property values, as in an entity write"
+          description: "`new`, `modified`: the property values, as in an entity write"
           items: { $ref: '#/components/schemas/PropertyWriteValue' }
+
+    SolutionDeltaUpdate:
+      type: object
+      description: |
+        The full set of intended changes of a delta `modified` (replace semantics): a field that
+        stays keeps its recorded before value, a new field records its current value, and a field
+        not sent leaves the delta.
+      properties:
+        name:        { type: string, description: "1–255 characters, not blank" }
+        description: { type: string, description: "At most 2000 characters" }
+        properties:
+          type: array
+          items: { $ref: '#/components/schemas/PropertyWriteValue' }
+
+    SolutionDeltaValue:
+      type: object
+      description: One typed value of a change; all fields null for no value
+      properties:
+        valueText: { type: [string, 'null'] }
+        valueInt:  { type: [integer, 'null'], format: int64 }
+        valueBool: { type: [boolean, 'null'] }
+        valueDate: { type: [string, 'null'], format: date }
+        valueEnum: { type: [string, 'null'] }
+        valueRef:
+          type: [object, 'null']
+          properties:
+            id:           { type: integer }
+            name:         { type: string }
+            metatypeAbbr: { type: [string, 'null'] }
+
+    SolutionDeltaChange:
+      type: object
+      required: [field, propertyDefId, propertyName, dataType, redacted, before, after]
+      description: |
+        One change of a delta `modified`. `before` is the catalog value recorded at capture, `after`
+        the new value; `null` for no value. A change of a property the caller may not read is
+        `redacted` without values (REQ-160).
+      properties:
+        field:         { type: string, enum: [name, description, property] }
+        propertyDefId: { type: [string, 'null'], format: uuid }
+        propertyName:  { type: [string, 'null'] }
+        dataType:
+          type: [string, 'null']
+          enum: [string, integer, boolean, enum, reference, date, url, text, null]
+        redacted:      { type: boolean }
+        before:
+          oneOf:
+            - $ref: '#/components/schemas/SolutionDeltaValue'
+            - type: 'null'
+        after:
+          oneOf:
+            - $ref: '#/components/schemas/SolutionDeltaValue'
+            - type: 'null'
 
     SolutionDelta:
       type: object
-      required: [id, deltaType, entityId, name, metatypeId, metatypeName, description, properties, createdAt]
+      required: [id, deltaType, entityId, name, metatypeId, metatypeName, description, properties, changes, createdAt, updatedAt]
       properties:
         id:           { type: string, format: uuid }
         deltaType:    { $ref: '#/components/schemas/SolutionDeltaType' }
-        entityId:     { type: [integer, 'null'], description: "The retired entity; null for `new` until the go-live (S14)" }
-        name:         { type: string, description: "`new`: the proposed name; `retiring`: the current name of the entity" }
+        entityId:     { type: [integer, 'null'], description: "The modified or retired entity; null for `new` until the go-live (S14)" }
+        name:         { type: string, description: "`new`: the proposed name; `modified`, `retiring`: the current name of the entity" }
         metatypeId:   { type: string, format: uuid }
         metatypeName: { type: string }
         description:  { type: [string, 'null'], description: "`new` only" }
@@ -2428,7 +2497,12 @@ components:
           type: array
           description: "`new` only; a value the caller may not read is redacted (REQ-160)"
           items: { $ref: '#/components/schemas/PropertyValue' }
+        changes:
+          type: array
+          description: "`modified` only: name, description, then properties by name"
+          items: { $ref: '#/components/schemas/SolutionDeltaChange' }
         createdAt:    { type: string, format: date-time }
+        updatedAt:    { type: [string, 'null'], format: date-time, description: "Last edit of a delta `modified`" }
 
     SolutionDeltaList:
       type: object
@@ -2436,7 +2510,7 @@ components:
       properties:
         items:
           type: array
-          description: "`new` before `retiring`, each by name (case-insensitive); at most 1000"
+          description: "`new`, then `modified`, then `retiring`, each by name (case-insensitive); at most 1000"
           items: { $ref: '#/components/schemas/SolutionDelta' }
 
     SolutionValidationProblem:
@@ -4491,14 +4565,46 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /solutions/{id}/landscape/{entityId}:
+    get:
+      operationId: getSolutionLandscapeEntity
+      summary: One entity of the baseline with its values (US-041, SCR-061)
+      description: |
+        Name, description, metatype, version and the values of an entity of the baseline, for
+        the dialog "Modify entity". Values the caller may not read are redacted. An entity that is
+        not in the baseline (unknown, deleted or a connection) answers 404.
+      tags: [Solutions]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: entityId
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: The entity
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SolutionLandscapeEntity' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /solutions/{id}/deltas:
     get:
       operationId: listSolutionDeltas
       summary: Entity deltas of a solution (US-040, US-042, SCR-061)
       description: |
-        All deltas of the solution, `new` before `retiring`, each by name (case-insensitive).
-        A `retiring` delta carries the current name of its entity. Values of properties the
-        caller may not read are redacted.
+        All deltas of the solution, `new`, then `modified`, then `retiring`, each by name
+        (case-insensitive). A `modified` or `retiring` delta carries the current name of its
+        entity, a `modified` delta its changes with before and after values. Values of properties
+        the caller may not read are redacted.
       tags: [Solutions]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
@@ -4522,8 +4628,9 @@ paths:
       summary: Capture an entity delta (US-040, US-042, REQ-040)
       description: |
         Captures a delta `new` (a proposed entity with its property values, checked like the
-        write of a new entity; no entity is written before the go-live) or `retiring` (an
-        entity of the baseline). A solution holds one delta per entity, and a `new` delta per
+        write of a new entity; no entity is written before the go-live), `modified` (changes of an
+        entity of the baseline, checked like its update; the server records the before values, and
+        a delta without any change answers 422) or `retiring` (an entity of the baseline). A solution holds one delta per entity, and a `new` delta per
         metatype and name (case-insensitive), and at most 1000 deltas. A value of a
         `role-restricted` property needs a write role, and a `connection-scoped` value cannot be
         set (403). Any holder of `solution:write` captures deltas, in any solution. Writes the
@@ -4571,6 +4678,55 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /solutions/{id}/deltas/{deltaId}:
+    put:
+      operationId: updateSolutionDelta
+      summary: Edit a modification (US-041, REQ-040)
+      description: |
+        Replaces the changes of a delta `modified` with the checks of a capture. A field already
+        in the delta keeps its recorded before value; a field added records its current value; a
+        field not sent leaves the delta. A delta of another type answers 422 naming `deltaType`.
+        Writes the audit event `solution.delta-updated`.
+      tags: [Solutions]
+      x-oea-authorization: {"access": "permission", "permissions": ["solution:write"]}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: deltaId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SolutionDeltaUpdate' }
+      responses:
+        '200':
+          description: Delta edited
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SolutionDelta' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The solution is `implemented` or `archived` (`urn:oea:problem:solution-completed`); the delta stays.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: |
+            The edit violates the metamodel or a rule of the solution, the delta is not `modified`
+            (naming `deltaType`), or nothing changes (naming `properties`); problem type
+            `urn:oea:problem:validation-failed`. Nothing is stored.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/SolutionValidationProblem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     delete:
       operationId: deleteSolutionDelta
       summary: Remove an entity delta (REQ-040)

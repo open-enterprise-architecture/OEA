@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
+import io.oea.core.catalog.ScopeStore;
 import io.oea.core.repository.SystemAdminAccountRepository;
 import io.oea.testsupport.auth.TestPrincipals;
 import io.oea.testsupport.auth.TestPrincipals.TestSession;
@@ -127,6 +128,29 @@ class PropertyAccessTests {
 		// a changed visibility applies to the next snapshot
 		this.jdbc.update("UPDATE property_definitions SET visibility_mode = 'public' WHERE id = ?", property);
 		assertThat(this.access.of(Set.of()).readable(property)).isTrue();
+	}
+
+	// us-041-modified-delta D4: the read check per entity
+	@Test
+	void readableForDecidesConnectionScopedPerEntity() {
+		ScopeStore scopes = new ScopeStore(null) {
+			@Override
+			public boolean inScope(int anchor, UUID scopingType, int entityId) {
+				return entityId == 1;
+			}
+		};
+		PropertyAccess.Snapshot linked = new PropertyAccess.Snapshot(VISIBILITIES, Set.of("viewer"), 7, scopes, false);
+		assertThat(linked.readableFor(SCOPED, 1)).isTrue();
+		assertThat(linked.readableFor(SCOPED, 2)).isFalse();
+		// the other modes behave like readable
+		assertThat(linked.readableFor(PUBLIC, 2)).isTrue();
+		assertThat(linked.readableFor(COST, 1)).isFalse();
+		PropertyAccess.Snapshot auditor = new PropertyAccess.Snapshot(VISIBILITIES, Set.of("auditor"), null, null, false);
+		assertThat(auditor.readableFor(COST, 2)).isTrue();
+		assertThat(auditor.readableFor(SCOPED, 1)).isFalse();
+		// the override reads every entity
+		PropertyAccess.Snapshot override = new PropertyAccess.Snapshot(VISIBILITIES, Set.of(), null, null, true);
+		assertThat(override.readableFor(SCOPED, 2)).isTrue();
 	}
 
 	@Test

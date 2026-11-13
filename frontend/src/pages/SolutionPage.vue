@@ -12,6 +12,7 @@ import {
 } from '../api/solutions'
 import SolutionBaseline from '../components/solutions/SolutionBaseline.vue'
 import SolutionDeltas from '../components/solutions/SolutionDeltas.vue'
+import SolutionModifyDialog from '../components/solutions/SolutionModifyDialog.vue'
 import { currentLanguage } from '../i18n'
 import { refreshSession, session } from '../session/store'
 
@@ -19,7 +20,8 @@ import { refreshSession, session } from '../session/store'
 // architecture vision of one solution (design D4 of us-038-create-solution), and its baseline
 // (design D5 of us-039-solution-baseline), and its entity deltas (US-040, US-042; design D9 of
 // us-040-entity-deltas): the area "Changes" and "Retire" in the baseline, for solution:write while
-// the solution is not completed.
+// the solution is not completed; "Modify" in the baseline and "Edit" in the list open the dialog
+// "Modify entity" (US-041; design D6 of us-041-modified-delta).
 const props = defineProps<{ id: string; fetchFn?: typeof fetch }>()
 const { t } = useI18n()
 
@@ -41,7 +43,27 @@ const canWrite = computed(
     solution.value.status !== 'implemented' &&
     solution.value.status !== 'archived',
 )
-const retiredIds = computed(() => deltas.value.flatMap((delta) => (delta.entityId !== null ? [delta.entityId] : [])))
+const deltaTypes = computed(() =>
+  Object.fromEntries(
+    deltas.value.flatMap((delta) =>
+      delta.entityId !== null && delta.deltaType !== 'new' ? [[delta.entityId, delta.deltaType as 'modified' | 'retiring']] : [],
+    ),
+  ),
+)
+// the entity the dialog "Modify entity" is open for, with the delta it edits
+const modifying = ref<{ entityId: number; delta?: SolutionDelta }>()
+const modifyOpen = computed({
+  get: () => modifying.value !== undefined,
+  set: (open: boolean) => {
+    if (!open) modifying.value = undefined
+  },
+})
+
+async function onModified() {
+  modifying.value = undefined
+  deltasFailure.value = undefined
+  await loadDeltas()
+}
 
 async function loadDeltas() {
   try {
@@ -149,14 +171,39 @@ const createdAt = computed(() =>
         :fetch-fn="props.fetchFn"
         @changed="loadDeltas"
         @completed="onCompleted"
+        @edit="(delta: SolutionDelta) => (modifying = { entityId: delta.entityId!, delta })"
       />
       <SolutionBaseline
         :solution-id="solution.id"
         :can-write="canWrite"
-        :delta-entity-ids="retiredIds"
+        :delta-types="deltaTypes"
         :fetch-fn="props.fetchFn"
         @retire="retire"
+        @modify="(entry: SolutionLandscapeEntry) => (modifying = { entityId: entry.id })"
       />
+      <UModal
+        v-model:open="modifyOpen"
+        :title="t(modifying?.delta ? 'solutions.deltas.modify.editTitle' : 'solutions.deltas.modify.title')"
+        :description="t('solutions.deltas.modify.description')"
+      >
+        <template #body>
+          <SolutionModifyDialog
+            v-if="modifying"
+            :solution-id="solution.id"
+            :entity-id="modifying.entityId"
+            :delta="modifying.delta"
+            :fetch-fn="props.fetchFn"
+            @saved="onModified"
+            @completed="
+              () => {
+                modifying = undefined
+                onCompleted()
+              }
+            "
+            @cancel="modifying = undefined"
+          />
+        </template>
+      </UModal>
     </template>
   </main>
 </template>

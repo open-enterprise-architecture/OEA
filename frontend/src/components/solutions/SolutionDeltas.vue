@@ -7,10 +7,12 @@ import { label, labelKeys } from '../../i18n/labels'
 import SolutionDeltaDialog from './SolutionDeltaDialog.vue'
 
 // The area "Changes" of SCR-061 (US-040, US-042; design D9 of us-040-entity-deltas): the deltas
-// of the solution with type, name and metatype. With solution:write, while the solution is not
-// completed, "New entity" opens the dialog and "Remove" removes a delta after a confirmation.
+// of the solution with type, name and metatype, a delta `modified` with its number of changes
+// (US-041). With solution:write, while the solution is not completed, "New entity" opens the
+// dialog, "Edit" opens a delta `modified` in the dialog "Modify entity" of the page, and "Remove"
+// removes a delta after a confirmation.
 const props = defineProps<{ solutionId: string; deltas: SolutionDelta[]; canWrite: boolean; failure?: string; fetchFn?: typeof fetch }>()
-const emit = defineEmits<{ changed: []; completed: [] }>()
+const emit = defineEmits<{ changed: []; completed: []; edit: [delta: SolutionDelta] }>()
 const { t } = useI18n()
 
 const creating = ref(false)
@@ -84,13 +86,26 @@ async function confirmRemoval() {
     <UTable v-else data-testid="deltas-table" :data="rows" :columns="columns" class="rounded-lg border border-default">
       <template #deltaType-cell="{ row }">
         <UBadge
-          :color="row.original.deltaType === 'new' ? 'success' : 'warning'"
+          :color="row.original.deltaType === 'new' ? 'success' : row.original.deltaType === 'modified' ? 'info' : 'warning'"
           variant="subtle"
           :label="t(`solutions.deltas.types.${row.original.deltaType}`)"
         />
+        <span v-if="row.original.deltaType === 'modified'" data-testid="delta-change-count" class="ms-2 text-sm text-muted">
+          {{ t('solutions.deltas.modify.count', row.original.changes.length) }}
+        </span>
       </template>
       <template #actions-cell="{ row }">
-        <div class="flex justify-end">
+        <div class="flex justify-end gap-1">
+          <UButton
+            v-if="row.original.deltaType === 'modified'"
+            data-testid="delta-edit"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            icon="i-lucide-pencil"
+            :label="t('solutions.deltas.modify.edit')"
+            @click="emit('edit', row.original)"
+          />
           <UButton
             data-testid="delta-remove"
             color="neutral"
