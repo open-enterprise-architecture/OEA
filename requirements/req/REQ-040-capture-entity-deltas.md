@@ -154,7 +154,7 @@ An `EntityDelta` is a value object (not a business object of its own) and part o
 ## Implementation
 
 - ADR(s): –
-- Implemented by: OpenSpec change `us-040-entity-deltas`, commit 98664b3 (#244) (`new` through the catalog path, `retiring`, removal) and OpenSpec change `us-041-modified-delta`, commit da1420c (#247) (`modified` with recorded before values, editing); the diagram path follows with US-045
+- Implemented by: OpenSpec change `us-040-entity-deltas`, commit 98664b3 (#244) (`new` through the catalog path, `retiring`, removal) and OpenSpec change `us-041-modified-delta`, commit da1420c (#247) (`modified` with recorded before values, editing) and OpenSpec change `us-043-diff-view`, commit 8aca0d0 (#250) (no limit of deltas, paged delta list); the diagram path follows with US-045
 - Tests: –
 - Verification status: not-verified
 

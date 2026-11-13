@@ -155,20 +155,6 @@ Trace: US-040 AC3, US-041 AC5, US-042 AC3, REQ-040 AC5
 - **WHEN** a delta `retiring` for `CRM-Legacy` is captured in the solution "Sales Portal"
 - **THEN** the response is 201
 
-### Requirement: Limit of deltas per solution
-
-A solution SHALL hold at most 1000 deltas. A delta beyond that limit SHALL answer 422 naming `deltas` and SHALL store nothing.
-
-Trace: REQ-040, design D7
-
-#### Scenario: Limit of deltas
-
-- **GIVEN** a solution holds 999 deltas
-- **WHEN** a delta is captured
-- **THEN** the response is 201
-- **WHEN** a further delta is captured
-- **THEN** the response is 422 naming `deltas`
-
 ### Requirement: Completed solution
 
 A solution in status `implemented` or `archived` SHALL NOT accept a delta to be captured, edited or removed. The request SHALL answer 409 "This solution is completed and can no longer be changed" and change nothing. Every other status SHALL accept it.
@@ -196,9 +182,9 @@ Trace: US-040 AC2, US-041 AC4, US-042 AC4, REQ-040 AC4, solution:BR-03, owner de
 
 ### Requirement: Read the deltas
 
-A principal with `entity:read` SHALL read the deltas of a solution, `new` before `retiring` and each group by name (case-insensitive). Each delta SHALL carry its ID, type, name, metatype and time of capture; a delta `retiring` additionally the entity ID; a delta `new` additionally its description and property values. An unknown solution SHALL answer 404.
+A principal with `entity:read` SHALL read the deltas of a solution, `new`, then `modified`, then `retiring`, each group by name (case-insensitive), then by delta ID. Each delta SHALL carry its ID, type, name, metatype and time of capture; a delta `modified` or `retiring` additionally the entity ID; a delta `new` additionally its description and property values; a delta `modified` its changes. An unknown solution SHALL answer 404.
 
-Trace: US-040 AC1, US-042 AC1, REQ-040
+Trace: US-040 AC1, US-041 AC1, US-042 AC1, REQ-040
 
 #### Scenario: Delta list
 
@@ -493,3 +479,60 @@ Trace: US-041 AC1, AC2, SCR-061
 
 - **WHEN** a solution architect chooses "Edit" for the delta `modified` of `ERP-Core`, changes "Release" to `v6` and saves
 - **THEN** the delta shows "Release" from `v4` to `v6`
+
+### Requirement: Any number of deltas
+
+A solution SHALL hold any number of deltas. Capturing a delta SHALL NOT be rejected because of the number of deltas the solution already holds.
+
+Trace: REQ-040, owner decision 2026-11-13
+
+#### Scenario: No limit of deltas
+
+- **GIVEN** a solution holds 1000 deltas
+- **WHEN** a further delta is captured
+- **THEN** the response is 201
+
+### Requirement: Paging of the deltas
+
+The deltas SHALL be paged with `page` and `pageSize` from 1 to 200, default 50. The response SHALL carry the number of deltas per type over all pages and, while a following page exists, an opaque `nextCursor`; a query with `cursor` and `page` SHALL return the deltas after the cursor's page. A changed cursor, one of another solution or one without `page` SHALL answer 400 naming `cursor`.
+
+Trace: owner decision 2026-11-13, REQ-071
+
+#### Scenario: Pages by cursor
+
+- **GIVEN** a solution with 60 deltas of all three types
+- **WHEN** every page of size 20 is loaded with the cursor of the previous one
+- **THEN** the pages hold every delta exactly once, in the order of the delta list, and the last page has no `nextCursor`
+- **AND** each page carries the counts per type over all 60
+
+#### Scenario: Limits of the page size
+
+- **WHEN** the deltas are loaded with page size 1 or 200
+- **THEN** the response is 200
+- **WHEN** they are loaded with page size 0 or 201
+- **THEN** the response is 400
+
+#### Scenario: Cursor of another solution
+
+- **WHEN** a cursor of another solution is sent, or a changed cursor
+- **THEN** the response is 400 naming `cursor`
+
+### Requirement: Load more deltas on the page "Solution"
+
+The area "Changes" SHALL show the first page of the deltas and the total. While a following page exists, it SHALL offer "Load more", which appends the next page. After a delta is captured, edited or removed, the area SHALL load its first page again.
+
+Trace: owner decision 2026-11-13, SCR-061
+
+#### Scenario: Load more
+
+- **GIVEN** a solution with 60 deltas
+- **WHEN** a reader opens the page "Solution"
+- **THEN** the area "Changes" shows 50 deltas, the total 60 and "Load more"
+- **WHEN** the reader chooses "Load more"
+- **THEN** it shows all 60 deltas and no longer offers "Load more"
+
+#### Scenario: One page only
+
+- **GIVEN** a solution with 50 deltas
+- **WHEN** a reader opens the page "Solution"
+- **THEN** the area "Changes" shows all 50 deltas without "Load more"

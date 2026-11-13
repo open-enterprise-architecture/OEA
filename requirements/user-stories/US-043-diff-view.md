@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: done
 **Sprint**: S11
-**Implementation**: OpenSpec change `us-043-diff-view` – `getSolutionDiff` (`entity:read`), paged by cursor with counts per type: per delta the current state of the entity in the catalog next to its target state, with drift since capture; the screen SCR-062 "Solution comparison", linked from SCR-061 with "Compare". Realigned 2026-11-13
+**Implementation**: OpenSpec change `us-043-diff-view`, commit 8aca0d0 (#250) – `getSolutionDiff` (`entity:read`), paged by cursor with counts per type: per delta the current state of the entity in the catalog next to its target state, with drift since capture; the screen SCR-062 "Solution comparison", linked from SCR-061 with "Compare". Realigned 2026-11-13
 
 ## Story
 
@@ -83,4 +83,4 @@ As a Solution Architect, I want to see a diff view that shows me which entities 
 
 5 SP because of the split-panel UI and the property-level diff display for `modified` (before/after per property, dimmed unchanged properties). The backend diff is O(n) in the number of deltas and thus unproblematic. The UI is the more laborious part of this story.
 
-- 2026-11-13: implemented by the OpenSpec change `us-043-diff-view` (S11 change 4). Owner decisions 2026-11-13: the left side shows the current catalog and the right side the catalog with the after values applied; a field whose before value recorded at capture differs from the catalog is marked "Changed in the catalog since capture"; the diff view is a screen of its own, SCR-062; a solution holds any number of deltas, and the delta list and the diff are paged and loaded on demand ("Load more"). AC3 realigned (`version` is the lock counter of an entity, not a property), AC6 realigned to the screen of its own.
+- 2026-11-13: implemented by the OpenSpec change `us-043-diff-view`, commit 8aca0d0 (#250) (S11 change 4). Owner decisions 2026-11-13: the left side shows the current catalog and the right side the catalog with the after values applied; a field whose before value recorded at capture differs from the catalog is marked "Changed in the catalog since capture"; the diff view is a screen of its own, SCR-062; a solution holds any number of deltas, and the delta list and the diff are paged and loaded on demand ("Load more"). AC3 realigned (`version` is the lock counter of an entity, not a property), AC6 realigned to the screen of its own.
