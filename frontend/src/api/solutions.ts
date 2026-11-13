@@ -17,6 +17,11 @@ export type SolutionDeltaUpdate = components['schemas']['SolutionDeltaUpdate']
 export type SolutionDeltaChange = components['schemas']['SolutionDeltaChange']
 export type SolutionDeltaValue = components['schemas']['SolutionDeltaValue']
 export type SolutionLandscapeEntity = components['schemas']['SolutionLandscapeEntity']
+export type SolutionDeltaList = components['schemas']['SolutionDeltaList']
+export type SolutionDeltaCounts = components['schemas']['SolutionDeltaCounts']
+export type SolutionDiff = components['schemas']['SolutionDiff']
+export type SolutionDiffEntry = components['schemas']['SolutionDiffEntry']
+export type SolutionDiffField = components['schemas']['SolutionDiffField']
 
 /** The parameters of a baseline query (design D4 of us-039-solution-baseline). */
 export interface LandscapeQuery {
@@ -97,9 +102,33 @@ function writeHeaders(): Record<string, string> {
   return { ...JSON_HEADERS, 'Content-Type': 'application/json', ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}) }
 }
 
-/** GET /solutions/{id}/deltas: the deltas, `new` before `retiring`, each by name. */
-export async function fetchSolutionDeltas(id: string, fetchFn: typeof fetch = fetch): Promise<SolutionDelta[]> {
-  return (await read<{ items: SolutionDelta[] }>(`${SOLUTIONS}/${encodeURIComponent(id)}/deltas`, fetchFn)).items
+/** The paging of the delta list and the diff (design D0 of us-043-diff-view). */
+export interface DeltaPageQuery {
+  page?: number
+  pageSize?: number
+  cursor?: string
+}
+
+function pageSearch(query: DeltaPageQuery): string {
+  const params = new URLSearchParams()
+  if (query.page) params.set('page', String(query.page))
+  if (query.pageSize) params.set('pageSize', String(query.pageSize))
+  if (query.cursor) params.set('cursor', query.cursor)
+  const search = params.toString()
+  return search ? `?${search}` : ''
+}
+
+/**
+ * GET /solutions/{id}/deltas: one page of the deltas, `new`, `modified`, then `retiring`, each by
+ * name, with the counts per type over all pages. A rejected cursor is 400 naming `cursor`.
+ */
+export function fetchSolutionDeltas(id: string, query: DeltaPageQuery = {}, fetchFn: typeof fetch = fetch): Promise<SolutionDeltaList> {
+  return read(`${SOLUTIONS}/${encodeURIComponent(id)}/deltas${pageSearch(query)}`, fetchFn)
+}
+
+/** GET /solutions/{id}/diff: one page of the diff, current and target state per delta (US-043). */
+export function fetchSolutionDiff(id: string, query: DeltaPageQuery = {}, fetchFn: typeof fetch = fetch): Promise<SolutionDiff> {
+  return read(`${SOLUTIONS}/${encodeURIComponent(id)}/diff${pageSearch(query)}`, fetchFn)
 }
 
 /**

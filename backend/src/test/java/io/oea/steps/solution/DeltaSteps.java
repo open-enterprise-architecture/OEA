@@ -55,6 +55,14 @@ public class DeltaSteps {
 
 	private HttpResponse<String> edit;
 
+	private final List<String> expectedOrder = new ArrayList<>();
+
+	private final List<String> pagedOrder = new ArrayList<>();
+
+	private final List<JsonNode> pages = new ArrayList<>();
+
+	private JsonNode diff;
+
 	@Given("the architect created a solution for the deltas")
 	public void solution() throws Exception {
 		this.solution = createSolution("Deltas");
@@ -96,6 +104,98 @@ public class DeltaSteps {
 				INSERT INTO entity_deltas (id, solution_id, delta_type, metatype_id, name, created_by)
 				SELECT gen_random_uuid(), '%s', 'new', '%s', 'Filler ' || n, (SELECT min(id) FROM persons)
 				FROM generate_series(1, %d) n""".formatted(this.solution, this.components, count));
+	}
+
+	@Given("the solution holds {int} new, {int} modified and {int} retiring deltas")
+	public void filledByType(int created, int modified, int retiring) throws Exception {
+		filled(created);
+		for (String type : List.of("modified", "retiring")) {
+			int count = type.equals("modified") ? modified : retiring;
+			instance().oidc().update("""
+					WITH e AS (
+					    INSERT INTO entities (metatype_id, name, created_by)
+					    SELECT '%1$s', '%2$s ' || (n %% 7) || ' %3$s', (SELECT min(id) FROM persons)
+					    FROM generate_series(1, %4$d) n RETURNING id)
+					INSERT INTO entity_deltas (id, solution_id, delta_type, entity_id, created_by)
+					SELECT gen_random_uuid(), '%5$s', '%2$s', id, (SELECT min(id) FROM persons) FROM e"""
+				.formatted(this.applications, type, this.suffix, count, this.solution));
+		}
+	}
+
+	@Given("another solution holds {int} deltas")
+	public void otherFilled(int count) throws Exception {
+		this.otherSolution = createSolution("Other");
+		instance().oidc().update("""
+				INSERT INTO entity_deltas (id, solution_id, delta_type, metatype_id, name, created_by)
+				SELECT gen_random_uuid(), '%s', 'new', '%s', 'Filler ' || n, (SELECT min(id) FROM persons)
+				FROM generate_series(1, %d) n""".formatted(this.otherSolution, this.components, count));
+	}
+
+	@When("the architect loads every page of the deltas of size {int} by cursor")
+	public void pagesByCursor(int size) throws Exception {
+		JsonNode all = page(this.solution, "page=0&pageSize=200");
+		all.path("items").forEach((delta) -> this.expectedOrder.add(delta.path("id").asString()));
+		String cursor = null;
+		for (int page = 0; page < 100; page++) {
+			JsonNode result = page(this.solution,
+					"page=" + page + "&pageSize=" + size + ((cursor != null) ? "&cursor=" + cursor : ""));
+			this.pages.add(result);
+			result.path("items").forEach((delta) -> this.pagedOrder.add(delta.path("id").asString()));
+			if (result.path("nextCursor").isNull()) {
+				break;
+			}
+			cursor = result.path("nextCursor").asString();
+		}
+	}
+
+	@Then("the pages hold every delta exactly once in the order of the list")
+	public void pagedOrder() {
+		assertThat(this.pagedOrder).doesNotHaveDuplicates().containsExactlyElementsOf(this.expectedOrder);
+	}
+
+	@Then("each page of the deltas carries the counts {int} new, {int} modified and {int} retiring")
+	public void pageCounts(int created, int modified, int retiring) {
+		assertThat(this.pages).isNotEmpty().allSatisfy((page) -> {
+			assertThat(page.path("counts").path("new").asInt()).isEqualTo(created);
+			assertThat(page.path("counts").path("modified").asInt()).isEqualTo(modified);
+			assertThat(page.path("counts").path("retiring").asInt()).isEqualTo(retiring);
+		});
+	}
+
+	@Then("the last page of the deltas has no next cursor")
+	public void lastPage() {
+		assertThat(this.pages.get(this.pages.size() - 1).path("nextCursor").isNull()).isTrue();
+		assertThat(this.pages.subList(0, this.pages.size() - 1)).allSatisfy(
+				(page) -> assertThat(page.path("nextCursor").isNull()).isFalse());
+	}
+
+	@When("the architect reads the deltas with page size {int}")
+	public void readPageSize(int size) throws Exception {
+		this.read = instance().oidc()
+			.get("/api/v1/solutions/" + this.solution + "/deltas?pageSize=" + size, instance().architect().token());
+	}
+
+	@When("the architect reads the second page of the deltas with the cursor of the other solution")
+	public void foreignCursor() throws Exception {
+		String cursor = page(this.otherSolution, "page=0&pageSize=2").path("nextCursor").asString();
+		this.read = instance().oidc()
+			.get("/api/v1/solutions/" + this.solution + "/deltas?page=1&pageSize=2&cursor=" + cursor,
+					instance().architect().token());
+	}
+
+	@When("the architect reads the second page of the deltas with a changed cursor")
+	public void changedCursor() throws Exception {
+		String cursor = page(this.otherSolution, "page=0&pageSize=2").path("nextCursor").asString();
+		this.read = instance().oidc()
+			.get("/api/v1/solutions/" + this.otherSolution + "/deltas?page=1&pageSize=2&cursor=" + cursor + "x",
+					instance().architect().token());
+	}
+
+	@Then("the read answers 400 naming {string}")
+	public void readNaming(String field) throws Exception {
+		readAnswers(400);
+		assertThat(JsonMapper.shared().readTree(this.read.body()).path("invalidFields").toString())
+			.isEqualTo("[\"" + field + "\"]");
 	}
 
 	@Given("the solution is in status {string}")
@@ -531,6 +631,217 @@ public class DeltaSteps {
 
 	private HttpResponse<String> delete(String solutionId, String deltaId, Session session) throws Exception {
 		return instance().send("DELETE", "/api/v1/solutions/" + solutionId + "/deltas/" + deltaId, null, session);
+	}
+
+	// features/solution/solution-diff.feature (us-043-diff-view D2)
+
+	@When("the architect reads the diff")
+	public void readDiff() throws Exception {
+		this.diff = diffPage(this.solution, "", instance().architect());
+	}
+
+	@When("the viewer reads the diff")
+	public void viewerReadsDiff() throws Exception {
+		this.diff = diffPage(this.solution, "", instance().viewer());
+	}
+
+	@When("the architect reads the diff of an unknown solution")
+	public void readUnknownDiff() throws Exception {
+		this.read = instance().oidc()
+			.get("/api/v1/solutions/" + UUID.randomUUID() + "/diff", instance().architect().token());
+	}
+
+	@When("a portal reader reads the diff")
+	public void portalReaderDiff() throws Exception {
+		this.read = instance().oidc()
+			.get("/api/v1/solutions/" + this.solution + "/diff", SolutionSteps.portalReaderSession().token());
+	}
+
+	@When("the architect reads the diff with page size {int}")
+	public void diffPageSize(int size) throws Exception {
+		this.read = instance().oidc()
+			.get("/api/v1/solutions/" + this.solution + "/diff?pageSize=" + size, instance().architect().token());
+	}
+
+	@When("the architect loads every page of the diff of size {int} by cursor")
+	public void diffPagesByCursor(int size) throws Exception {
+		page(this.solution, "page=0&pageSize=200").path("items")
+			.forEach((delta) -> this.expectedOrder.add(delta.path("id").asString()));
+		String cursor = null;
+		for (int page = 0; page < 100; page++) {
+			JsonNode result = diffPage(this.solution,
+					"page=" + page + "&pageSize=" + size + ((cursor != null) ? "&cursor=" + cursor : ""),
+					instance().architect());
+			this.pages.add(result);
+			result.path("entries").forEach((entry) -> this.pagedOrder.add(entry.path("deltaId").asString()));
+			if (result.path("nextCursor").isNull()) {
+				break;
+			}
+			cursor = result.path("nextCursor").asString();
+		}
+	}
+
+	@Then("the diff pages hold every entry exactly once in the order of the delta list")
+	public void diffPagedOrder() {
+		pagedOrder();
+	}
+
+	@Then("each page of the diff carries the counts {int} new, {int} modified and {int} retiring")
+	public void diffPageCounts(int created, int modified, int retiring) {
+		pageCounts(created, modified, retiring);
+	}
+
+	@Then("the last page of the diff has no next cursor")
+	public void diffLastPage() {
+		lastPage();
+	}
+
+	@Then("the diff lists exactly {string}")
+	public void diffListsExactly(String expected) {
+		List<String> listed = new ArrayList<>();
+		this.diff.path("entries").forEach((entry) -> listed.add(
+				entry.path("deltaType").asString() + " " + entry.path("name").asString().replace(" " + this.suffix, "")));
+		assertThat(String.join(", ", listed)).isEqualTo(expected);
+	}
+
+	@Then("the diff entry {string} has a current state and no target state")
+	public void currentOnly(String name) {
+		JsonNode entry = diffEntry(name);
+		assertThat(entry.path("inCatalog").asBoolean()).isTrue();
+		assertThat(entry.path("fields")).isNotEmpty().allSatisfy((field) -> {
+			assertThat(field.path("current").isNull()).isFalse();
+			assertThat(field.path("target").isNull()).isTrue();
+		});
+	}
+
+	@Then("the diff entry {string} has no current state")
+	public void noCurrent(String name) {
+		assertThat(diffEntry(name).path("fields")).isNotEmpty()
+			.allSatisfy((field) -> assertThat(field.path("current").isNull()).isTrue());
+	}
+
+	@Then("the diff entry {string} is no longer in the catalog")
+	public void noLongerInCatalog(String name) {
+		JsonNode entry = diffEntry(name);
+		assertThat(entry.path("inCatalog").asBoolean()).isFalse();
+		assertThat(entry.path("fields")).allSatisfy((field) -> assertThat(field.path("current").isNull()).isTrue());
+	}
+
+	@Then("the diff field {string} of {string} is {string} now")
+	public void fieldNow(String property, String name, String value) {
+		assertThat(changeText(diffField(name, property).path("current"))).isEqualTo(value);
+	}
+
+	@Then("the diff field {string} of {string} changes from {string} to {string}")
+	public void fieldChanges(String property, String name, String current, String target) {
+		JsonNode field = diffField(name, property);
+		assertThat(changeText(field.path("current"))).isEqualTo(current);
+		assertThat(changeText(field.path("target"))).isEqualTo(target);
+		assertThat(field.path("changed").asBoolean()).isTrue();
+	}
+
+	@Then("the diff field {string} of {string} changes from no value to {string}")
+	public void fieldAdded(String property, String name, String target) {
+		JsonNode field = diffField(name, property);
+		assertThat(field.path("current").isNull()).isTrue();
+		assertThat(changeText(field.path("target"))).isEqualTo(target);
+		assertThat(field.path("changed").asBoolean()).isTrue();
+	}
+
+	@Then("the diff field {string} of {string} changes from {string} to no value")
+	public void fieldRemoved(String property, String name, String current) {
+		JsonNode field = diffField(name, property);
+		assertThat(changeText(field.path("current"))).isEqualTo(current);
+		assertThat(field.path("target").isNull()).isTrue();
+		assertThat(field.path("changed").asBoolean()).isTrue();
+	}
+
+	@Then("the diff field {string} of {string} stays {string}")
+	public void fieldStays(String property, String name, String value) {
+		JsonNode field = diffField(name, property);
+		assertThat(changeText(field.path("current"))).isEqualTo(value);
+		assertThat(changeText(field.path("target"))).isEqualTo(value);
+		assertThat(field.path("changed").asBoolean()).isFalse();
+	}
+
+	@Then("the diff field {string} of {string} refers to {string} on both sides")
+	public void fieldRefers(String property, String name, String target) {
+		JsonNode field = diffField(name, property);
+		for (String side : List.of("current", "target")) {
+			assertThat(field.path(side).path("valueRef").path("name").asString()).isEqualTo(named(target));
+		}
+	}
+
+	@Then("the diff field {string} of {string} is marked as changed in the catalog since capture")
+	public void drift(String property, String name) {
+		assertThat(diffField(name, property).path("catalogChanged").asBoolean()).isTrue();
+	}
+
+	@Then("the diff field {string} of {string} is not marked as changed in the catalog since capture")
+	public void noDrift(String property, String name) {
+		assertThat(diffField(name, property).path("catalogChanged").asBoolean()).isFalse();
+	}
+
+	@Then("the diff field {string} of {string} is hidden")
+	public void fieldHidden(String property, String name) {
+		JsonNode field = diffField(name, property);
+		assertThat(field.path("redacted").asBoolean()).isTrue();
+		assertThat(field.path("current").isNull()).isTrue();
+		assertThat(field.path("target").isNull()).isTrue();
+	}
+
+	@Given("{string} is hosted on the component {string}")
+	public void hostedOn(String name, String component) throws Exception {
+		UUID property = UUID.fromString(instance().oidc().single("""
+				INSERT INTO property_definitions (name, sql_column_name, data_type, visibility_mode, ref_metatype_id)
+				VALUES ('Hosted on %s', 'p_%s', 'reference', 'public', '%s') RETURNING id""".formatted(this.suffix,
+				UUID.randomUUID().toString().replace("-", "").substring(0, 12), this.components)));
+		this.properties.put("Hosted on", property);
+		map(property, "optional");
+		String target = instance().oidc().single("""
+				INSERT INTO entities (metatype_id, name, created_by)
+				SELECT '%s', '%s', min(id) FROM persons RETURNING id""".formatted(this.components, named(component)));
+		instance().oidc().update("INSERT INTO entity_property_values (entity_id, property_def_id, value_ref) VALUES ("
+				+ this.entities.get(name) + ", '" + property + "', " + target + ")");
+	}
+
+	@Given("{string} is deleted from the catalog")
+	public void deletedFromCatalog(String name) throws Exception {
+		instance().oidc().update("UPDATE entities SET deleted_at = now(), deleted_by = created_by WHERE id = "
+				+ this.entities.get(name));
+	}
+
+	private JsonNode diffPage(String solutionId, String query, Session session) throws Exception {
+		HttpResponse<String> response = instance().oidc()
+			.get("/api/v1/solutions/" + solutionId + "/diff" + (query.isEmpty() ? "" : "?" + query), session.token());
+		assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+		return JsonMapper.shared().readTree(response.body());
+	}
+
+	private JsonNode diffEntry(String name) {
+		for (JsonNode entry : this.diff.path("entries")) {
+			if (entry.path("name").asString().equals(named(name))) {
+				return entry;
+			}
+		}
+		throw new AssertionError("no diff entry " + name + " in " + this.diff);
+	}
+
+	private JsonNode diffField(String name, String property) {
+		UUID id = this.properties.get(property);
+		for (JsonNode field : diffEntry(name).path("fields")) {
+			if (id != null && field.path("propertyDefId").asString().equals(id.toString())) {
+				return field;
+			}
+		}
+		throw new AssertionError("no diff field " + property + " of " + name);
+	}
+
+	private JsonNode page(String solutionId, String query) throws Exception {
+		HttpResponse<String> response = instance().oidc()
+			.get("/api/v1/solutions/" + solutionId + "/deltas?" + query, instance().architect().token());
+		assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+		return JsonMapper.shared().readTree(response.body());
 	}
 
 	private JsonNode deltas(Session session) throws Exception {

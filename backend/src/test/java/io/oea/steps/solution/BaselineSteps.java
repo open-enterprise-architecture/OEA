@@ -94,6 +94,46 @@ public class BaselineSteps {
 		many(this.applications, "App", count, Math.max(1, count / 3));
 	}
 
+	@Given("the solution holds a delta {string} for {string}")
+	public void delta(String type, String name) throws Exception {
+		delta(this.solution, type, name);
+	}
+
+	@Given("another solution holds a delta {string} for {string}")
+	public void otherDelta(String type, String name) throws Exception {
+		HttpResponse<String> created = instance().send("POST", "/api/v1/solutions",
+				JsonMapper.shared().createObjectNode().put("name", "Other " + this.suffix).toString(),
+				instance().architect());
+		assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+		delta(JsonMapper.shared().readTree(created.body()).path("id").asString(), type, name);
+	}
+
+	@Then("{string} carries the delta type {string}")
+	public void carriesDeltaType(String name, String type) throws Exception {
+		assertThat(baselineEntry(name).path("deltaType").asString()).isEqualTo(type);
+	}
+
+	@Then("{string} carries no delta type")
+	public void carriesNoDeltaType(String name) throws Exception {
+		assertThat(baselineEntry(name).path("deltaType").isNull()).isTrue();
+	}
+
+	private void delta(String solutionId, String type, String name) throws Exception {
+		instance().oidc().update("""
+				INSERT INTO entity_deltas (id, solution_id, delta_type, entity_id, created_by)
+				SELECT gen_random_uuid(), '%s', '%s', id, created_by FROM entities WHERE name = '%s'"""
+			.formatted(solutionId, type, named(name)));
+	}
+
+	private JsonNode baselineEntry(String name) throws Exception {
+		for (JsonNode entry : ok(this.response).path("items")) {
+			if (entry.path("name").asString().equals(named(name))) {
+				return entry;
+			}
+		}
+		throw new AssertionError("no entry " + name);
+	}
+
 	@When("the architect loads the baseline")
 	public void load() throws Exception {
 		this.response = get("q=" + this.suffix);

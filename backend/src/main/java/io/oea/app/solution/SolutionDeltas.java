@@ -1,5 +1,6 @@
 package io.oea.app.solution;
 
+import io.oea.app.catalog.CatalogCursors;
 import io.oea.app.entity.EntityInput;
 import io.oea.app.entity.EntityValidator;
 import io.oea.app.entity.Issue;
@@ -11,6 +12,7 @@ import io.oea.app.security.PermissionDeniedException;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.catalog.CatalogQueryStore.KeyType;
 import io.oea.core.entity.EntityStore;
 import io.oea.core.entity.EntityStore.StoredEntity;
 import io.oea.core.entity.TypedValue;
@@ -45,8 +47,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SolutionDeltas {
 
-	/** At most this many deltas per solution (design D7 of us-040-entity-deltas). */
-	public static final int MAX_DELTAS = 1000;
+	private static final List<KeyType> KEY_TYPES = List.of(KeyType.INTEGER, KeyType.TEXT, KeyType.TEXT);
+
+	private static final String RANK = "CASE d.delta_type WHEN 'new' THEN 0 WHEN 'modified' THEN 1 ELSE 2 END";
+
+	private static final String SORT_NAME = "lower(coalesce(d.name, e.name))";
 
 	static final String DUPLICATE = "A delta already exists for this entity in this solution";
 
@@ -72,9 +77,12 @@ public class SolutionDeltas {
 
 	private final Clock clock;
 
+	private final CatalogCursors cursors;
+
 	SolutionDeltas(JdbcTemplate jdbc, EntityStore store, PropertyWriteAccess writeAccess, PropertyAccess readAccess,
-			AuditWriter audit, Clock clock) {
+			AuditWriter audit, Clock clock, CatalogCursors cursors) {
 		this.jdbc = jdbc;
+		this.cursors = cursors;
 		this.store = store;
 		this.writeAccess = writeAccess;
 		this.readAccess = readAccess;
@@ -198,11 +206,6 @@ public class SolutionDeltas {
 						new Modification(input.name(), input.description(), input.properties()), Map.of(), false);
 			}
 		}
-		Integer count = this.jdbc.queryForObject("SELECT count(*) FROM entity_deltas WHERE solution_id = ?",
-				Integer.class, solutionId);
-		if (count != null && count >= MAX_DELTAS) {
-			throw new InvalidSolutionException("deltas", "A solution holds at most " + MAX_DELTAS + " deltas.");
-		}
 		UUID id = UUID.randomUUID();
 		boolean isNew = input.type() == Type.NEW;
 		try {
@@ -282,16 +285,70 @@ public class SolutionDeltas {
 		return delta;
 	}
 
+	/** A page of the deltas; the contract checks the limits. */
+	public record PageQuery(int page, int pageSize, String cursor) {
+	}
+
+	/** The number of deltas per type over all pages. */
+	public record Counts(long newCount, long modified, long retiring) {
+
+		public long total() {
+			return this.newCount + this.modified + this.retiring;
+		}
+
+	}
+
+	/** One page of the deltas; {@code nextCursor} is {@code null} on the last page. */
+	public record Page(List<Delta> items, int page, int pageSize, Counts counts, int totalPages, String nextCursor) {
+	}
+
 	/**
-	 * The deltas of a solution, {@code new}, then {@code modified}, then {@code retiring}, each by
-	 * name.
+	 * One page of the deltas of a solution, {@code new}, then {@code modified}, then
+	 * {@code retiring}, each by name, then by ID (design D0 of us-043-diff-view), with the counts
+	 * per type.
 	 *
 	 * @throws NoSuchElementException for an unknown solution (404)
+	 * @throws InvalidSolutionQueryException naming {@code cursor} for a cursor of another query
 	 */
 	@Transactional(readOnly = true)
-	public List<Delta> list(OeaPrincipal principal, UUID solutionId) {
+	public Page list(OeaPrincipal principal, UUID solutionId, PageQuery query) {
+		return list(this.readAccess.of(principal), solutionId, query);
+	}
+
+	/** {@link #list(OeaPrincipal, UUID, PageQuery)} with the reader's snapshot. */
+	Page list(PropertyAccess.Snapshot access, UUID solutionId, PageQuery query) {
 		status(solutionId);
-		return read(solutionId, null, this.readAccess.of(principal));
+		Map<String, Long> byType = new HashMap<>();
+		this.jdbc.query("SELECT delta_type, count(*) FROM entity_deltas WHERE solution_id = ? GROUP BY delta_type",
+				(ResultSet rs) -> {
+					byType.put(rs.getString(1), rs.getLong(2));
+				}, solutionId);
+		Counts counts = new Counts(byType.getOrDefault("new", 0L), byType.getOrDefault("modified", 0L),
+				byType.getOrDefault("retiring", 0L));
+		long total = counts.total();
+
+		String fingerprint = CatalogCursors.fingerprint(
+				List.of("solution-deltas", solutionId.toString(), Integer.toString(query.pageSize())));
+		StringBuilder where = new StringBuilder();
+		List<Object> arguments = new ArrayList<>();
+		boolean keyset = query.cursor() != null && !query.cursor().isEmpty();
+		if (keyset) {
+			List<Object> after = this.cursors.decode(query.cursor(), fingerprint, query.page(), KEY_TYPES)
+				.orElseThrow(() -> new InvalidSolutionQueryException("cursor"));
+			where.append(" AND (" + RANK + ", " + SORT_NAME + ", d.id::text) > (?, lower(?), ?)");
+			arguments.addAll(after);
+		}
+		String limit = " LIMIT " + query.pageSize() + (keyset ? "" : " OFFSET " + ((long) query.page() * query.pageSize()));
+		List<Delta> items = read(solutionId, where.toString(), arguments, limit, access);
+
+		String nextCursor = null;
+		if (!items.isEmpty() && (long) (query.page() + 1) * query.pageSize() < total) {
+			Delta last = items.get(items.size() - 1);
+			nextCursor = this.cursors.encode(fingerprint, query.page() + 1,
+					List.of(last.type().ordinal(), last.name(), last.id().toString()));
+		}
+		int totalPages = Math.toIntExact((total + query.pageSize() - 1) / query.pageSize());
+		return new Page(items, query.page(), query.pageSize(), counts, totalPages, nextCursor);
 	}
 
 	/**
@@ -451,28 +508,33 @@ public class SolutionDeltas {
 				enumValue(after));
 	}
 
-	/** The deltas of the solution, or the one with {@code deltaId} (design D5, D4 of us-041). */
+	/** The delta with {@code deltaId}, if it belongs to the solution. */
 	private List<Delta> read(UUID solutionId, UUID deltaId, PropertyAccess.Snapshot access) {
+		return read(solutionId, " AND d.id = ?", List.of(deltaId), "", access);
+	}
+
+	/**
+	 * The deltas of the solution matching {@code where}, in the order of the list (design D5, D4 of
+	 * us-041, D0 of us-043), with their values and changes.
+	 */
+	private List<Delta> read(UUID solutionId, String where, List<Object> whereArguments, String limit,
+			PropertyAccess.Snapshot access) {
 		List<Object> arguments = new ArrayList<>(List.of(solutionId));
-		String only = "";
-		if (deltaId != null) {
-			only = " AND d.id = ?";
-			arguments.add(deltaId);
-		}
+		arguments.addAll(whereArguments);
 		List<Delta> deltas = this.jdbc.query("""
 				SELECT d.id, d.delta_type, d.entity_id, coalesce(d.name, e.name), m.id, m.name, d.description, d.created_at,
 				       d.updated_at
 				FROM entity_deltas d
 				LEFT JOIN entities e ON e.id = d.entity_id
 				JOIN metatypes m ON m.id = coalesce(d.metatype_id, e.metatype_id)
-				WHERE d.solution_id = ?""" + only
-				+ " ORDER BY CASE d.delta_type WHEN 'new' THEN 0 WHEN 'modified' THEN 1 ELSE 2 END,"
-				+ " lower(coalesce(d.name, e.name)), d.id", SolutionDeltas::delta, arguments.toArray());
+				WHERE d.solution_id = ?""" + where + " ORDER BY " + RANK + ", " + SORT_NAME + ", d.id::text" + limit,
+				SolutionDeltas::delta, arguments.toArray());
 		if (deltas.stream().allMatch((delta) -> delta.type() == Type.RETIRING)) {
 			return deltas;
 		}
-		Map<UUID, List<Value>> values = values(solutionId, deltaId, access);
-		Map<UUID, List<Change>> changes = changes(solutionId, deltaId, access);
+		UUID[] ids = deltas.stream().map(Delta::id).toArray(UUID[]::new);
+		Map<UUID, List<Value>> values = values(ids, access);
+		Map<UUID, List<Change>> changes = changes(ids, access);
 		return deltas.stream()
 			.map((delta) -> new Delta(delta.id(), delta.type(), delta.entityId(), delta.name(), delta.metatypeId(),
 					delta.metatypeName(), delta.description(), values.getOrDefault(delta.id(), List.of()),
@@ -480,13 +542,7 @@ public class SolutionDeltas {
 			.toList();
 	}
 
-	private Map<UUID, List<Value>> values(UUID solutionId, UUID deltaId, PropertyAccess.Snapshot access) {
-		List<Object> arguments = new ArrayList<>(List.of(solutionId));
-		String only = "";
-		if (deltaId != null) {
-			only = " AND d.id = ?";
-			arguments.add(deltaId);
-		}
+	private Map<UUID, List<Value>> values(UUID[] ids, PropertyAccess.Snapshot access) {
 		Map<UUID, List<Value>> values = new HashMap<>();
 		this.jdbc.query("""
 				SELECT v.delta_id, p.id, p.name, p.data_type, v.after_value_text, v.after_value_int, v.after_value_bool,
@@ -496,7 +552,7 @@ public class SolutionDeltas {
 				JOIN property_definitions p ON p.id = v.property_def_id
 				LEFT JOIN entities r ON r.id = v.after_value_ref
 				LEFT JOIN metatypes rm ON rm.id = r.metatype_id
-				WHERE d.delta_type = 'new' AND d.solution_id = ?""" + only + " ORDER BY lower(p.name), p.id",
+				WHERE d.delta_type = 'new' AND d.id = ANY(?) ORDER BY lower(p.name), p.id""",
 				(ResultSet rs) -> {
 					UUID property = rs.getObject(2, UUID.class);
 					Value value;
@@ -510,18 +566,12 @@ public class SolutionDeltas {
 								typed.integer(), typed.bool(), typed.date(), typed.enumValue(), typed.reference());
 					}
 					values.computeIfAbsent(rs.getObject(1, UUID.class), (k) -> new ArrayList<>()).add(value);
-				}, arguments.toArray());
+				}, (Object) ids);
 		return values;
 	}
 
 	/** The changes of the deltas {@code modified}: name, description, then properties by name. */
-	private Map<UUID, List<Change>> changes(UUID solutionId, UUID deltaId, PropertyAccess.Snapshot access) {
-		List<Object> arguments = new ArrayList<>(List.of(solutionId));
-		String only = "";
-		if (deltaId != null) {
-			only = " AND d.id = ?";
-			arguments.add(deltaId);
-		}
+	private Map<UUID, List<Change>> changes(UUID[] ids, PropertyAccess.Snapshot access) {
 		Map<UUID, List<Change>> changes = new HashMap<>();
 		this.jdbc.query("""
 				SELECT v.delta_id, d.entity_id, v.system_field, p.id, p.name, p.data_type,
@@ -536,7 +586,7 @@ public class SolutionDeltas {
 				LEFT JOIN metatypes brm ON brm.id = br.metatype_id
 				LEFT JOIN entities ar ON ar.id = v.after_value_ref
 				LEFT JOIN metatypes arm ON arm.id = ar.metatype_id
-				WHERE d.delta_type = 'modified' AND d.solution_id = ?""" + only
+				WHERE d.delta_type = 'modified' AND d.id = ANY(?)"""
 				+ " ORDER BY v.system_field IS NULL, v.system_field = 'description', lower(p.name), p.id",
 				(ResultSet rs) -> {
 					String systemField = rs.getString(3);
@@ -551,7 +601,7 @@ public class SolutionDeltas {
 								readable ? typed(rs, 7, 13) : null, readable ? typed(rs, 15, 21) : null);
 					}
 					changes.computeIfAbsent(rs.getObject(1, UUID.class), (k) -> new ArrayList<>()).add(change);
-				}, arguments.toArray());
+				}, (Object) ids);
 		return changes;
 	}
 

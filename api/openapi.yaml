@@ -2375,6 +2375,11 @@ components:
         metatypeId:   { type: string, format: uuid }
         metatypeName: { type: string }
         version:      { type: integer, description: Current version of the entity }
+        deltaType:
+          description: "The type of the entity's delta in this solution, `modified` or `retiring`; null without a delta (US-043)"
+          oneOf:
+            - $ref: '#/components/schemas/SolutionDeltaType'
+            - type: 'null'
 
     SolutionLandscapeEntity:
       allOf:
@@ -2504,14 +2509,92 @@ components:
         createdAt:    { type: string, format: date-time }
         updatedAt:    { type: [string, 'null'], format: date-time, description: "Last edit of a delta `modified`" }
 
+    SolutionDeltaCounts:
+      type: object
+      required: [new, modified, retiring]
+      description: The number of deltas per type over all pages (US-043)
+      properties:
+        new:      { type: integer, minimum: 0 }
+        modified: { type: integer, minimum: 0 }
+        retiring: { type: integer, minimum: 0 }
+
     SolutionDeltaList:
       type: object
-      required: [items]
+      required: [items, page, counts, nextCursor]
       properties:
         items:
           type: array
-          description: "`new`, then `modified`, then `retiring`, each by name (case-insensitive); at most 1000"
+          description: "One page: `new`, then `modified`, then `retiring`, each by name (case-insensitive), then by ID"
           items: { $ref: '#/components/schemas/SolutionDelta' }
+        page:   { $ref: '#/components/schemas/PageMeta' }
+        counts: { $ref: '#/components/schemas/SolutionDeltaCounts' }
+        nextCursor:
+          type: [string, 'null']
+          description: |
+            Opaque cursor to the following page, to be sent as `cursor` with `page` + 1; `null`
+            on the last page (REQ-071)
+
+    SolutionDiffField:
+      type: object
+      required: [field, propertyDefId, propertyName, dataType, redacted, current, target, changed, catalogChanged]
+      description: |
+        One field of a diff entry (US-043). `current` is the value in the catalog now, `target`
+        the value after the solution; `null` for no value or no state on that side. A field of a
+        property the caller may not read is `redacted`, without values and drift mark (REQ-160).
+      properties:
+        field:         { type: string, enum: [name, description, property] }
+        propertyDefId: { type: [string, 'null'], format: uuid }
+        propertyName:  { type: [string, 'null'] }
+        dataType:
+          type: [string, 'null']
+          enum: [string, integer, boolean, enum, reference, date, url, text, null]
+        redacted:      { type: boolean }
+        current:
+          oneOf:
+            - $ref: '#/components/schemas/SolutionDeltaValue'
+            - type: 'null'
+        target:
+          oneOf:
+            - $ref: '#/components/schemas/SolutionDeltaValue'
+            - type: 'null'
+        changed:        { type: boolean, description: The solution changes this field }
+        catalogChanged: { type: boolean, description: "`modified` only: the before value recorded at capture differs from the catalog now" }
+
+    SolutionDiffEntry:
+      type: object
+      required: [deltaId, deltaType, entityId, metatypeId, metatypeName, name, inCatalog, fields]
+      description: |
+        One delta with the current and target state of its entity (US-043). `new` has no current
+        state, `retiring` no target state; an entity deleted after capture is not `inCatalog` and
+        has no current state.
+      properties:
+        deltaId:      { type: string, format: uuid }
+        deltaType:    { $ref: '#/components/schemas/SolutionDeltaType' }
+        entityId:     { type: [integer, 'null'], description: "null for `new`" }
+        metatypeId:   { type: string, format: uuid }
+        metatypeName: { type: string }
+        name:         { type: string, description: The name the delta list shows }
+        inCatalog:    { type: boolean, description: "The entity is in the baseline now; false for `new`" }
+        fields:
+          type: array
+          description: Name, description, then the properties with a value on at least one side, by name
+          items: { $ref: '#/components/schemas/SolutionDiffField' }
+
+    SolutionDiff:
+      type: object
+      required: [entries, page, counts, nextCursor]
+      properties:
+        entries:
+          type: array
+          description: One page, in the order of the delta list
+          items: { $ref: '#/components/schemas/SolutionDiffEntry' }
+        page:   { $ref: '#/components/schemas/PageMeta' }
+        counts: { $ref: '#/components/schemas/SolutionDeltaCounts' }
+        nextCursor:
+          type: [string, 'null']
+          description: |
+            Opaque cursor to the following page, to be sent as `cursor` with `page` + 1; `null`
+            on the last page (REQ-071)
 
     SolutionValidationProblem:
       allOf:
@@ -4596,15 +4679,16 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
-  /solutions/{id}/deltas:
+  /solutions/{id}/diff:
     get:
-      operationId: listSolutionDeltas
-      summary: Entity deltas of a solution (US-040, US-042, SCR-061)
+      operationId: getSolutionDiff
+      summary: Diff of current and target state of a solution (US-043, SCR-062)
       description: |
-        All deltas of the solution, `new`, then `modified`, then `retiring`, each by name
-        (case-insensitive). A `modified` or `retiring` delta carries the current name of its
-        entity, a `modified` delta its changes with before and after values. Values of properties
-        the caller may not read are redacted.
+        One entry per delta, in the order and with the paging of the delta list: the current
+        state of the entity in the catalog next to its target state after the solution. Computed
+        on each request, not stored. Only entities with a delta appear. Values the caller may not
+        read are redacted. A changed cursor, one of another solution or one without `page`
+        answers 400 naming `cursor`.
       tags: [Solutions]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
@@ -4612,9 +4696,45 @@ paths:
           in: path
           required: true
           schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: '#/components/parameters/CursorParam'
       responses:
         '200':
-          description: The deltas
+          description: One page of the diff
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SolutionDiff' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /solutions/{id}/deltas:
+    get:
+      operationId: listSolutionDeltas
+      summary: Entity deltas of a solution (US-040, US-042, SCR-061)
+      description: |
+        The deltas of the solution, `new`, then `modified`, then `retiring`, each by name
+        (case-insensitive), then by ID, paged with the number of deltas per type over all pages. A
+        `modified` or `retiring` delta carries the current name of its entity, a `modified` delta
+        its changes with before and after values. Values of properties the caller may not read are
+        redacted. A changed cursor, one of another solution or one without `page` answers 400
+        naming `cursor`.
+      tags: [Solutions]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: '#/components/parameters/CursorParam'
+      responses:
+        '200':
+          description: One page of the deltas
           content:
             application/json:
               schema: { $ref: '#/components/schemas/SolutionDeltaList' }
@@ -4631,7 +4751,7 @@ paths:
         write of a new entity; no entity is written before the go-live), `modified` (changes of an
         entity of the baseline, checked like its update; the server records the before values, and
         a delta without any change answers 422) or `retiring` (an entity of the baseline). A solution holds one delta per entity, and a `new` delta per
-        metatype and name (case-insensitive), and at most 1000 deltas. A value of a
+        metatype and name (case-insensitive), and any number of deltas. A value of a
         `role-restricted` property needs a write role, and a `connection-scoped` value cannot be
         set (403). Any holder of `solution:write` captures deltas, in any solution. Writes the
         audit event `solution.delta-added`.
@@ -4670,8 +4790,7 @@ paths:
           description: |
             The delta violates the metamodel or a rule of the solution (an entity not in the
             baseline: "Entity not found in the current landscape"; a duplicate: "A delta already
-            exists for this entity in this solution"; the limit of 1000 deltas naming `deltas`);
-            problem type `urn:oea:problem:validation-failed`. Nothing is stored.
+            exists for this entity in this solution"); problem type `urn:oea:problem:validation-failed`. Nothing is stored.
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/SolutionValidationProblem' }

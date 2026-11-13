@@ -1055,7 +1055,7 @@ package "Architecture Planning" #E3F2FD {
     .. CHECK (delta_type = 'new') = (metatype_id, name NOT NULL) ..
     .. UNIQUE (solution_id, entity_id) WHERE entity_id IS NOT NULL ..
     .. UNIQUE (solution_id, metatype_id, lower(name)) WHERE delta_type = 'new' ..
-    .. at most 1000 per solution (application rule) ..
+    .. any number per solution; the list and the diff are paged (us-043-diff-view) ..
   }
 
   class entity_delta_property_values <<Table>> #BBDEFB {

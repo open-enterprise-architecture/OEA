@@ -23,8 +23,12 @@ public class SolutionLandscape {
 
 	private static final List<KeyType> KEY_TYPES = List.of(KeyType.TEXT, KeyType.INTEGER);
 
-	private static final String FROM = " FROM entities e JOIN metatypes m ON m.id = e.metatype_id"
-			+ " WHERE e.deleted_at IS NULL AND NOT m.is_connection";
+	private static final String WHERE = " WHERE e.deleted_at IS NULL AND NOT m.is_connection";
+
+	private static final String FROM = " FROM entities e JOIN metatypes m ON m.id = e.metatype_id" + WHERE;
+
+	/** The delta of each entry in this solution; the first argument is the solution ID. */
+	private static final String DELTA = " LEFT JOIN entity_deltas d ON d.entity_id = e.id AND d.solution_id = ?";
 
 	private final JdbcTemplate jdbc;
 
@@ -55,10 +59,11 @@ public class SolutionLandscape {
 	public EntityEntry entry(OeaPrincipal principal, UUID solutionId, int entityId) {
 		this.solutions.get(solutionId);
 		List<EntityEntry> found = this.jdbc.query(
-				"SELECT e.id, e.name, m.id, m.name, e.version, e.description" + FROM + " AND e.id = ?",
+				"SELECT e.id, e.name, m.id, m.name, e.version, e.description, d.delta_type" + FROM.replace(WHERE, DELTA + WHERE)
+						+ " AND e.id = ?",
 				(rs, row) -> new EntityEntry(new Entry(rs.getInt(1), rs.getString(2), rs.getObject(3, UUID.class),
-						rs.getString(4), rs.getInt(5)), rs.getString(6), List.of()),
-				entityId);
+						rs.getString(4), rs.getInt(5), type(rs.getString(7))), rs.getString(6), List.of()),
+				solutionId, entityId);
 		if (found.isEmpty()) {
 			throw new NoSuchElementException("entity " + entityId);
 		}
@@ -86,12 +91,17 @@ public class SolutionLandscape {
 		return new EntityEntry(found.get(0).entry(), found.get(0).description(), values);
 	}
 
+	private static SolutionDeltas.Type type(String value) {
+		return (value != null) ? SolutionDeltas.Type.of(value) : null;
+	}
+
 	/** A query of the baseline; the contract checks the limits. */
 	public record Query(String q, UUID metatypeId, int page, int pageSize, String cursor) {
 	}
 
-	/** An entity of the baseline. */
-	public record Entry(int id, String name, UUID metatypeId, String metatypeName, int version) {
+	/** An entity of the baseline, with the type of its delta in the solution, if any (us-043 D0). */
+	public record Entry(int id, String name, UUID metatypeId, String metatypeName, int version,
+			SolutionDeltas.Type deltaType) {
 	}
 
 	/** One page of the baseline; {@code nextCursor} is {@code null} on the last page. */
@@ -124,9 +134,11 @@ public class SolutionLandscape {
 		String fingerprint = CatalogCursors.fingerprint(List.of("solution-landscape", solutionId.toString(),
 				(search != null) ? search : "", (query.metatypeId() != null) ? query.metatypeId().toString() : "",
 				Integer.toString(query.pageSize())));
-		StringBuilder sql = new StringBuilder(
-				"SELECT e.id, e.name, m.id, m.name, e.version, lower(e.name)").append(where);
-		List<Object> pageArgs = new ArrayList<>(args);
+		StringBuilder sql = new StringBuilder("SELECT e.id, e.name, m.id, m.name, e.version, lower(e.name), d.delta_type")
+			.append(where.toString().replace(WHERE, DELTA + WHERE));
+		List<Object> pageArgs = new ArrayList<>();
+		pageArgs.add(solutionId);
+		pageArgs.addAll(args);
 		boolean keyset = query.cursor() != null && !query.cursor().isEmpty();
 		if (keyset) {
 			List<Object> after = this.cursors.decode(query.cursor(), fingerprint, query.page(), KEY_TYPES)
@@ -145,7 +157,7 @@ public class SolutionLandscape {
 			lastKeys.clear();
 			lastKeys.add(rs.getString(6));
 			return new Entry(rs.getInt(1), rs.getString(2), rs.getObject(3, UUID.class), rs.getString(4),
-					rs.getInt(5));
+					rs.getInt(5), type(rs.getString(7)));
 		}, pageArgs.toArray());
 
 		String nextCursor = null;

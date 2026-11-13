@@ -145,15 +145,43 @@ Feature: Entity deltas of a solution
     When the architect retires "CRM-Legacy" in another solution
     Then the capture answers 201
 
-  # Requirement: Limit of deltas per solution
+  # Requirement: Any number of deltas
 
   @REQ-040
-  Scenario: Limit of deltas
-    Given the solution holds 999 deltas
-    When the architect captures the new component "Last"
-    Then the capture answers 201
+  Scenario: No limit of deltas
+    Given the solution holds 1000 deltas
     When the architect captures the new component "Beyond"
-    Then the capture answers 422 naming "deltas"
+    Then the capture answers 201
+
+  # Requirement: Paging of the deltas
+
+  @REQ-040
+  Scenario: Pages of the deltas by cursor
+    Given the solution holds 20 new, 20 modified and 20 retiring deltas
+    When the architect loads every page of the deltas of size 20 by cursor
+    Then the pages hold every delta exactly once in the order of the list
+    And each page of the deltas carries the counts 20 new, 20 modified and 20 retiring
+    And the last page of the deltas has no next cursor
+
+  @REQ-040
+  Scenario Outline: Limits of the page size of the deltas
+    When the architect reads the deltas with page size <size>
+    Then the read answers <status>
+
+    Examples:
+      | size | status |
+      | 1    | 200    |
+      | 200  | 200    |
+      | 0    | 400    |
+      | 201  | 400    |
+
+  @REQ-040
+  Scenario: Cursor of another solution
+    Given another solution holds 3 deltas
+    When the architect reads the second page of the deltas with the cursor of the other solution
+    Then the read answers 400 naming "cursor"
+    When the architect reads the second page of the deltas with a changed cursor
+    Then the read answers 400 naming "cursor"
 
   # Requirement: Completed solution
 

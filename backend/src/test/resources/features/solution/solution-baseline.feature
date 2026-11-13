@@ -126,3 +126,20 @@ Feature: Baseline of a solution
     Given the landscape holds the applications "ERP-Core" and "CRM-Legacy"
     When a portal reader reads the entry "ERP-Core" of the baseline
     Then the baseline answers 403
+
+  # us-043-diff-view – Requirement: Delta type of a baseline entry
+
+  @US-041 @US-042 @REQ-039
+  Scenario: Marker of an entity with a delta
+    Given the landscape holds the applications "CRM-Legacy" and "ERP-Core"
+    And the solution holds a delta "retiring" for "CRM-Legacy"
+    When the architect loads the baseline
+    Then "CRM-Legacy" carries the delta type "retiring"
+    And "ERP-Core" carries no delta type
+
+  @US-042 @REQ-039
+  Scenario: Delta of another solution
+    Given the landscape holds the applications "CRM-Legacy" and "ERP-Core"
+    And another solution holds a delta "retiring" for "CRM-Legacy"
+    When the architect loads the baseline
+    Then "CRM-Legacy" carries no delta type

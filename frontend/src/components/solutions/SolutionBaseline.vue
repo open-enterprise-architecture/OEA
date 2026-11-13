@@ -11,11 +11,12 @@ import { label, labelKeys } from '../../i18n/labels'
 // landscape the solution builds on, with a search, a metatype filter and paging. The next page
 // follows by the cursor of the loaded one; a jump or a changed filter uses the page number. With
 // solution:write, each row offers "Modify" and "Retire" (US-041, US-042), or shows "Modified" or
-// "Retiring" when it has a delta.
+// "Retiring" when it has a delta: each entry carries the type of its delta (design D0 of
+// us-043-diff-view). A changed `reloadKey` loads the shown page again, after a delta was written.
 const props = defineProps<{
   solutionId: string
   canWrite?: boolean
-  deltaTypes?: Record<number, 'modified' | 'retiring'>
+  reloadKey?: number
   fetchFn?: typeof fetch
 }>()
 const emit = defineEmits<{ retire: [entry: SolutionLandscapeEntry]; modify: [entry: SolutionLandscapeEntry] }>()
@@ -43,7 +44,7 @@ const metatypeItems = computed(() => [{ label: t('solutions.baseline.allMetatype
 const columns = computed(() => [
   { accessorKey: 'name', header: t('solutions.baseline.name') },
   { accessorKey: 'metatypeName', header: t('solutions.baseline.metatype') },
-  ...(props.canWrite || Object.keys(props.deltaTypes ?? {}).length > 0 ? [{ id: 'delta', header: t('solutions.deltas.type') }] : []),
+  ...(props.canWrite || (result.value?.items ?? []).some((entry) => entry.deltaType) ? [{ id: 'delta', header: t('solutions.deltas.type') }] : []),
 ])
 const rows = computed(() =>
   (result.value?.items ?? []).map((entry) => ({ ...entry, metatypeName: label(labelKeys.metatype(entry.metatypeId), entry.metatypeName) })),
@@ -89,6 +90,11 @@ watch(search, (value) => {
     appliedSearch.value = value
   }, SEARCH_DELAY_MS)
 })
+
+watch(
+  () => props.reloadKey,
+  () => void load(),
+)
 
 watch([appliedSearch, metatype], () => {
   cursors.forget()
@@ -152,14 +158,14 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
           <template #delta-cell="{ row }">
             <div class="flex justify-end">
               <UBadge
-                v-if="props.deltaTypes?.[row.original.id]"
-                :data-testid="`baseline-${props.deltaTypes[row.original.id]}`"
-                :color="props.deltaTypes[row.original.id] === 'modified' ? 'info' : 'warning'"
+                v-if="row.original.deltaType"
+                :data-testid="`baseline-${row.original.deltaType}`"
+                :color="row.original.deltaType === 'modified' ? 'info' : 'warning'"
                 variant="subtle"
-                :label="t(`solutions.deltas.types.${props.deltaTypes[row.original.id]}`)"
+                :label="t(`solutions.deltas.types.${row.original.deltaType}`)"
               />
               <UButton
-                v-if="!props.deltaTypes?.[row.original.id] && props.canWrite"
+                v-if="!row.original.deltaType && props.canWrite"
                 data-testid="baseline-modify"
                 color="neutral"
                 variant="ghost"
@@ -169,7 +175,7 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
                 @click="emit('modify', row.original)"
               />
               <UButton
-                v-if="!props.deltaTypes?.[row.original.id] && props.canWrite"
+                v-if="!row.original.deltaType && props.canWrite"
                 data-testid="baseline-retire"
                 color="neutral"
                 variant="ghost"

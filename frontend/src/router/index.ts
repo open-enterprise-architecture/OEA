@@ -8,6 +8,7 @@ import MetamodelPage from '../pages/MetamodelPage.vue'
 import PropertyVisibilityPage from '../pages/PropertyVisibilityPage.vue'
 import OverrideRolesPage from '../pages/OverrideRolesPage.vue'
 import AuthorizationRolesPage from '../pages/AuthorizationRolesPage.vue'
+import SolutionDiffPage from '../pages/SolutionDiffPage.vue'
 import SolutionPage from '../pages/SolutionPage.vue'
 import SolutionsPage from '../pages/SolutionsPage.vue'
 import PortalCatalogPage from '../pages/PortalCatalogPage.vue'
@@ -40,6 +41,8 @@ export const router = createRouter({
     { path: '/admin/roles', name: 'authorization-roles', component: AuthorizationRolesPage },
     { path: '/solutions', name: 'solutions', component: SolutionsPage },
     { path: '/solutions/:id', name: 'solution', component: SolutionPage, props: true },
+    // the comparison of current and target state of a solution (SCR-062, us-043-diff-view)
+    { path: '/solutions/:id/diff', name: 'solution-diff', component: SolutionDiffPage, props: true },
   ],
 })
 

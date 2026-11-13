@@ -4,9 +4,9 @@ title: Diff view of current state vs. target state of a solution
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-13
 author: requirements-engineer
 references:
   use_cases:
@@ -83,15 +83,15 @@ The diff view shows **only affected entities** (no complete landscape dump).
 
 **AC2**:
 
-- Given: the solution has a `modified` delta for `ERP-Core` (version: v4 → v5)
+- Given: the solution has a `modified` delta for `ERP-Core` (property "Release": v4 → v5)
 - When: Michael opens the diff view
-- Then: `ERP-Core` appears once; the left side shows `version=v4`, the right side `version=v5`; only the changed property is highlighted
+- Then: `ERP-Core` appears once; the left side shows "Release" `v4`, the right side "Release" `v5`; only the changed property is highlighted
 
 **AC3**:
 
 - Given: Michael adds another delta (after opening the diff view)
-- When: he saves the delta
-- Then: the diff view updates without a full reload and shows the new entity
+- When: he saves the delta and opens the diff view again, or chooses "Refresh" in it
+- Then: the diff view shows the new entity without a full page reload
 
 **AC4**:
 
@@ -128,14 +128,14 @@ The diff view shows **only affected entities** (no complete landscape dump).
 
 ## Implementation Notes
 
-- `GET /api/v1/solutions/{id}/diff` (computed on the fly; not persisted)
-- Frontend: split panel or before/after layout; highlight changes at property level in the `modified` case (diff of the `changes` map)
+- `GET /api/v1/solutions/{id}/diff` (`getSolutionDiff`; computed on the fly; not persisted), paged by cursor like the delta list (realigned 2026-11-13): per delta a list of fields with `current`, `target`, `changed` and `catalogChanged`
+- Frontend: the screen SCR-062 with a card per delta and two columns, current and target state; changes highlighted at field level in the `modified` case; drift since capture marked (realigned 2026-11-13)
 - Efficiency: the diff computation is O(n) in the number of deltas – fast even with large landscapes, since only affected entities are computed
 
 ## Implementation
 
 - ADR(s): –
-- Implemented by: –
+- Implemented by: OpenSpec change `us-043-diff-view`
 - Tests: –
 - Verification status: not-verified
 
@@ -144,3 +144,4 @@ The diff view shows **only affected entities** (no complete landscape dump).
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft from UC-05 |
+| 0.2.0 | 2026-11-13 | Change us-043-diff-view | Implemented: current catalog against the catalog with the after values applied, drift since capture marked, a screen of its own (SCR-062), paged with "Load more"; AC2 realigned to a property "Release", AC3 to loading on open and "Refresh" (owner decisions 2026-11-13) |
