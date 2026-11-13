@@ -1,10 +1,10 @@
 package io.oea.app.login;
 
-import io.oea.app.access.InvalidAccessRequestException;
 import io.oea.app.access.PasswordPolicies;
 import io.oea.app.access.SecondFactorPolicies;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
+import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
 import io.oea.core.service.PasswordHasher;

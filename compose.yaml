@@ -57,6 +57,8 @@ services:
       OEA_SECURITY_KEK_CURRENT: /run/secrets/oea_kek
       # Log format: empty = plain text, or ecs | logstash | gelf (JSON lines)
       LOGGING_STRUCTURED_FORMAT_CONSOLE: ${OEA_LOG_FORMAT:-}
+      # Trusted reverse proxies (CIDR list); empty = loopback and the private networks
+      OEA_TRUSTED_PROXIES: ${OEA_TRUSTED_PROXIES:-}
     secrets:
       - oea_kek
     ports:

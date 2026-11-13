@@ -1,9 +1,7 @@
 package io.oea.api;
 
-import io.oea.api.entity.EntityBatchController;
 import io.oea.api.generated.model.ValidationError;
 import io.oea.app.access.AccessConflictException;
-import io.oea.app.access.InvalidAccessRequestException;
 import io.oea.app.access.InvalidStatusTransitionException;
 import io.oea.app.access.LastAdminPathException;
 import io.oea.app.access.LastSecondFactorException;
@@ -15,30 +13,31 @@ import io.oea.app.access.SelfAdministrationException;
 import io.oea.app.access.SodConflictException;
 import io.oea.app.catalog.CatalogQueryTimeoutException;
 import io.oea.app.catalog.InvalidCatalogException;
-import io.oea.app.solution.InvalidSolutionException;
-import io.oea.app.solution.InvalidSolutionQueryException;
-import io.oea.app.solution.SolutionCompletedException;
-import io.oea.app.navigation.InvalidTreeException;
 import io.oea.app.catalog.InvalidCatalogQueryException;
 import io.oea.app.entity.AtomicBatchFailedException;
 import io.oea.app.entity.BatchRejectedException;
 import io.oea.app.entity.ConnectionRejectedException;
 import io.oea.app.login.InvalidCredentialsException;
 import io.oea.app.login.InvalidPasskeyException;
-import io.oea.app.login.PasskeysUnavailableException;
 import io.oea.app.login.InvalidTotpCodeException;
+import io.oea.app.login.PasskeysUnavailableException;
+import io.oea.app.login.PasswordChange;
 import io.oea.app.login.SecondFactorRequiredException;
 import io.oea.app.metamodel.InvalidPackageException;
 import io.oea.app.metamodel.MetamodelChangeException;
 import io.oea.app.metamodel.MetamodelChanges;
 import io.oea.app.metamodel.MetamodelLabels;
 import io.oea.app.metamodel.PackageImporter;
+import io.oea.app.navigation.InvalidTreeException;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.PermissionDenials;
-import io.oea.app.login.PasswordChange;
 import io.oea.app.security.PermissionDeniedException;
 import io.oea.app.security.ReauthenticationRequiredException;
 import io.oea.app.security.SetupPhase;
+import io.oea.app.shared.InvalidAccessRequestException;
+import io.oea.app.solution.InvalidSolutionException;
+import io.oea.app.solution.InvalidSolutionQueryException;
+import io.oea.app.solution.SolutionCompletedException;
 import io.oea.config.security.OeaAuthentication;
 import io.oea.config.web.RequestSizeLimitFilter;
 import jakarta.servlet.http.HttpServletRequest;
@@ -262,7 +261,7 @@ public class ApiExceptionHandler {
 	ResponseEntity<ProblemDetail> atomicBatchFailed(AtomicBatchFailedException ex) {
 		ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "validation-failed", "Batch not written",
 				ex.getMessage());
-		problem.setProperty("errors", ex.getErrors().stream().map(EntityBatchController::validationError).toList());
+		problem.setProperty("errors", ex.getErrors().stream().map(BatchValidationErrors::validationError).toList());
 		return ResponseEntity.unprocessableContent().body(problem);
 	}
 
@@ -271,7 +270,7 @@ public class ApiExceptionHandler {
 		HttpStatus status = ex.endpointMissing() ? HttpStatus.NOT_FOUND : HttpStatus.UNPROCESSABLE_CONTENT;
 		ProblemDetail problem = problem(status, ex.endpointMissing() ? "not-found" : "validation-failed",
 				"Connection not written", ex.getMessage());
-		problem.setProperty("errors", ex.getErrors().stream().map(EntityBatchController::validationError).toList());
+		problem.setProperty("errors", ex.getErrors().stream().map(BatchValidationErrors::validationError).toList());
 		return ResponseEntity.status(status).body(problem);
 	}
 

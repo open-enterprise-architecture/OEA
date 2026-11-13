@@ -1,9 +1,9 @@
 package io.oea.testsupport.auth;
 
-import io.oea.config.secrets.KekProperties;
-import io.oea.config.secrets.KeyRing;
-import io.oea.config.secrets.SecretCipher;
 import io.oea.core.domain.auth.AuthProvider;
+import io.oea.infrastructure.secrets.KekProperties;
+import io.oea.infrastructure.secrets.KeyRing;
+import io.oea.infrastructure.secrets.SecretCipher;
 import io.oea.testsupport.containers.OeaApplications;
 import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;

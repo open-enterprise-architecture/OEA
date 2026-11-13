@@ -69,6 +69,21 @@ class SessionAndAuthorizationTests {
 		assertThat(get("/api/v1/me", old)).hasStatus(HttpStatus.UNAUTHORIZED);
 	}
 
+	// Requirement: Implementation status of the security schemes (s11-review-hardening D4)
+
+	@Test
+	void credentialsOfAPlannedSchemeAreUnauthenticated() {
+		assertThat(this.mvc.get().uri("/api/v1/me").header("Authorization", "Bearer abc"))
+			.hasStatus(HttpStatus.UNAUTHORIZED);
+		assertThat(this.mvc.get().uri("/api/v1/me").header("Authorization", "Basic YWJjOmRlZg=="))
+			.hasStatus(HttpStatus.UNAUTHORIZED);
+	}
+
+	@Test
+	void sessionCookieOfTheAcceptedSchemeAuthenticates() {
+		assertThat(get("/api/v1/me", this.principals.systemAdmin())).hasStatus(HttpStatus.OK);
+	}
+
 	@Test
 	void responsesCarryTheSecurityHeaders() {
 		MvcTestResult result = get("/api/v1/me", this.principals.systemAdmin());

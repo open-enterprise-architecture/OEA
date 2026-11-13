@@ -1,6 +1,7 @@
 package io.oea.config.startup;
 
 import io.oea.config.migration.SchemaHistoryValidator;
+import io.oea.infrastructure.guards.StartupGuardException;
 import java.util.ArrayList;
 import java.util.List;
 import javax.sql.DataSource;

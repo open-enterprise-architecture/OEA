@@ -1,6 +1,9 @@
 package io.oea.config.secrets;
 
-import io.oea.config.startup.ConfigurationGuards;
+import io.oea.infrastructure.guards.ConfigurationGuards;
+import io.oea.infrastructure.secrets.KeyRing;
+import io.oea.infrastructure.secrets.SecretCipher;
+import io.oea.infrastructure.secrets.SecretsConfiguration;
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.DriverManager;

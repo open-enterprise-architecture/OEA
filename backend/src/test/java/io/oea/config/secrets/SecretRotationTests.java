@@ -1,5 +1,8 @@
 package io.oea.config.secrets;
 
+import io.oea.infrastructure.secrets.KekProperties;
+import io.oea.infrastructure.secrets.KeyRing;
+import io.oea.infrastructure.secrets.SecretCipher;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.oea.core.service.TotpAlgorithm;

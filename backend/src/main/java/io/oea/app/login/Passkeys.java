@@ -1,7 +1,7 @@
 package io.oea.app.login;
 
-import io.oea.config.webauthn.PasskeyRejectedException;
-import io.oea.config.webauthn.WebAuthnVerifier;
+import io.oea.infrastructure.webauthn.PasskeyRejectedException;
+import io.oea.infrastructure.webauthn.WebAuthnVerifier;
 import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.time.Clock;

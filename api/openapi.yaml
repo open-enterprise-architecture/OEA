@@ -40,6 +40,11 @@ info:
     - `oauth2ClientCredentials`: access token of a service account obtained at
       `POST /oauth2/token` (REQ-176); token scopes are not used for OEA permissions
 
+    Implementation status: this release accepts only `cookieAuth`. The schemes
+    `bearerAuth`, `oauth2ClientCredentials` and `clientSecretBasic` are marked
+    `x-oea-status: planned` and follow with service accounts and the Electron client;
+    a request that carries only their credentials is unauthenticated (`401`).
+
     **External integration** (ADR-026, optional): write access by external systems
     (scanners, CI/CD pipelines, import tools) via upsert endpoints and batch write,
     enabled by feature flag `oea.integration.enabled=true`. Service accounts and persons
@@ -137,6 +142,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+      x-oea-status: planned
       description: |
         OEA access token of the Electron client. Identifies principal and session only;
         permissions are resolved server-side per request (ADR-032 §7).
@@ -151,6 +157,7 @@ components:
         `GET /me`) and an allowed `Origin`. The session identifies principal and session only.
     oauth2ClientCredentials:
       type: oauth2
+      x-oea-status: planned
       description: |
         Service accounts only (REQ-176). Access tokens carry only the `client_id`
         and live at most 15 minutes. Scopes are not used; permissions come from
@@ -162,6 +169,7 @@ components:
     clientSecretBasic:
       type: http
       scheme: basic
+      x-oea-status: planned
       description: |
         Client authentication at the token endpoint only (`client_id:client_secret`,
         RFC 6749 §2.3.1).

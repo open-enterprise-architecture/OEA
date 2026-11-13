@@ -4,9 +4,9 @@ title: Brute-force protection for local authentication
 type: non-functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-10-13
-last_updated: 2026-10-28
+last_updated: 2026-11-13
 author: requirements-engineer
 references:
   use_cases:
@@ -43,6 +43,8 @@ The portal may be exposed to the internet (owner decision Q2). Without throttlin
 Source: security review SEC-09 (proposal PR-12); owner decisions Q2 (priority must) and the additional owner decision of 2026-10-13: protection in the application; a reverse proxy with rate limiting is documented as a recommended additional layer for internet exposure, not as a replacement. With an external OIDC IdP, the IdP protects its own login; this REQ applies to local accounts and bootstrap.
 
 **Implementation (change s3-throttling-and-denials, 2026-10-28):** failed setup-token attempts count towards the same per-source-address counter as failed local logins (100 within 10 minutes); a throttled address gets 429 with `Retry-After` on `POST /setup` without the token being evaluated (spec `identity/bootstrapping`). The per-account and per-address throttling of local logins was implemented earlier (spec `identity/local-login`).
+
+**Implementation (change s11-review-hardening, 2026-11-13):** behind a reverse proxy, the source address is the client address that a trusted proxy forwards in `X-Forwarded-For`, not the address of the proxy (AA-01 of the application security audit 2026-11). Loopback and the private networks are trusted by default; the operator narrows the list with `OEA_TRUSTED_PROXIES` (spec `platform/deployment`).
 
 ## Type-Specific Fields
 
@@ -114,3 +116,4 @@ Source: security review SEC-09 (proposal PR-12); owner decisions Q2 (priority mu
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-09 (PR-12) with owner decisions Q2 and 2026-10-13 (in-application protection) |
 | 0.2.0 | 2026-10-28 | Change s3-throttling-and-denials | Setup-token endpoint throttled per source address (security re-review WS-04, #61) |
+| 0.3.0 | 2026-11-13 | Change s11-review-hardening | Source address behind a trusted reverse proxy is the forwarded client address (AA-01) |

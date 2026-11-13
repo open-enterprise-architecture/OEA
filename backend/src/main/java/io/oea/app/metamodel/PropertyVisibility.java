@@ -1,10 +1,10 @@
 package io.oea.app.metamodel;
 
-import io.oea.app.access.InvalidAccessRequestException;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.PermissionDeniedException;
 import io.oea.app.security.PermissionResolver;
 import io.oea.app.security.Sessions;
+import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
 import java.sql.Date;

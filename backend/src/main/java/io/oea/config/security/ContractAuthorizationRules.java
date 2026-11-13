@@ -31,6 +31,8 @@ public final class ContractAuthorizationRules {
 
 	private final Map<String, String> permissionDescriptions;
 
+	private final Map<String, Boolean> securitySchemes;
+
 	/** Access rule of one operation; {@code planned} if the contract marks it as not implemented yet. */
 	public record Rule(String operationId, Access access, List<String> permissions, List<String> anyOfPermissions,
 			boolean hasConditions, boolean planned) {
@@ -57,10 +59,11 @@ public final class ContractAuthorizationRules {
 	}
 
 	private ContractAuthorizationRules(Map<String, Rule> rules, List<PublicEndpoint> publicEndpoints,
-			Map<String, String> permissionDescriptions) {
+			Map<String, String> permissionDescriptions, Map<String, Boolean> securitySchemes) {
 		this.rules = Map.copyOf(rules);
 		this.publicEndpoints = List.copyOf(publicEndpoints);
 		this.permissionDescriptions = Map.copyOf(permissionDescriptions);
+		this.securitySchemes = Map.copyOf(securitySchemes);
 	}
 
 	public static ContractAuthorizationRules load() {
@@ -101,7 +104,11 @@ public final class ContractAuthorizationRules {
 		Map<String, String> descriptions = new LinkedHashMap<>();
 		contract.path("x-oea-permissions")
 			.forEach((p) -> descriptions.put(p.path("id").asString(), p.path("description").asString()));
-		return new ContractAuthorizationRules(rules, publicEndpoints, descriptions);
+		Map<String, Boolean> schemes = new LinkedHashMap<>();
+		for (var scheme : contract.path("components").path("securitySchemes").properties()) {
+			schemes.put(scheme.getKey(), "planned".equals(scheme.getValue().path("x-oea-status").asString()));
+		}
+		return new ContractAuthorizationRules(rules, publicEndpoints, descriptions, schemes);
 	}
 
 	public Rule rule(String operationId) {
@@ -118,6 +125,14 @@ public final class ContractAuthorizationRules {
 
 	public Map<String, String> permissionDescriptions() {
 		return this.permissionDescriptions;
+	}
+
+	/**
+	 * Security schemes of the contract, each mapped to whether it is marked as planned
+	 * ({@code x-oea-status: planned}, s11-review-hardening D4).
+	 */
+	public Map<String, Boolean> securitySchemes() {
+		return this.securitySchemes;
 	}
 
 	private static List<String> strings(JsonNode array) {
