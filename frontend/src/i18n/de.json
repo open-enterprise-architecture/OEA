@@ -838,7 +838,31 @@
         "edit": "Bearbeiten",
         "count": "keine Änderungen | {n} Änderung | {n} Änderungen",
         "loadFailed": "Die Entität konnte nicht geladen werden."
-      }
+      },
+      "more": "Weitere laden",
+      "shown": "{shown} von {total} Änderungen"
+    },
+    "diff": {
+      "open": "Vergleichen",
+      "title": "Vergleich",
+      "intro": "Jede Entität, die diese Lösung ändert: ihr Ist-Stand im Katalog neben ihrem Soll-Stand nach der Lösung.",
+      "back": "Zurück zur Lösung",
+      "current": "Ist-Stand",
+      "target": "Soll-Stand",
+      "notYet": "Existiert noch nicht",
+      "outOfService": "Ausser Betrieb",
+      "noLongerInCatalog": "Nicht mehr im Katalog",
+      "drift": "Im Katalog seit dem Erfassen geändert",
+      "changed": "ändert sich",
+      "hidden": "verborgen",
+      "noValue": "kein Wert",
+      "empty": "Noch keine Änderungen erfasst",
+      "emptyHint": "Erfasse neue, geänderte oder auslaufende Entitäten auf der Seite der Lösung.",
+      "counts": "{new} neu · {modified} geändert · {retiring} ausser Betrieb",
+      "refresh": "Aktualisieren",
+      "more": "Weitere laden",
+      "shown": "{shown} von {total} Einträgen",
+      "loadFailed": "Der Vergleich konnte nicht geladen werden."
     }
   }
 }

@@ -4,7 +4,7 @@ title: Capture the EntityDeltas of a solution
 type: functional
 priority: must
 status: proposed
-version: 0.4.0
+version: 0.5.0
 created: 2026-06-26
 last_updated: 2026-11-13
 author: requirements-engineer
@@ -75,7 +75,7 @@ An `EntityDelta` is a value object (not a business object of its own) and part o
 - `modified`/`retiring` validate that the referenced entityId is present in the baseline (REQ-039)
 - `new` needs no reference check against the baseline (entity does not exist yet)
 - `new` is checked like the write of a new entity (metamodel, mandatory properties, property visibility); a second `new` delta with the same metatype and name (case-insensitive) is a duplicate
-- At most 1000 deltas per solution
+- Any number of deltas per solution; the delta list is paged (owner decision 2026-11-13)
 - Persist the delta closely linked to the solution (`entity_deltas`, `entity_delta_property_values`)
 
 **Outputs**:
@@ -147,7 +147,7 @@ An `EntityDelta` is a value object (not a business object of its own) and part o
 
 ## Implementation Notes
 
-- `POST`, `GET` and `DELETE /api/v1/solutions/{id}/deltas` (`createSolutionDelta`, `listSolutionDeltas`, `deleteSolutionDelta`); editing a delta is removal and capture again (realigned 2026-11-12)
+- `POST`, `GET` and `DELETE /api/v1/solutions/{id}/deltas` (`createSolutionDelta`, `listSolutionDeltas`, `deleteSolutionDelta`); editing a delta is removal and capture again (realigned 2026-11-12); `listSolutionDeltas` is paged by cursor with the counts per type (realigned 2026-11-13)
 - Stored as separate tables with FK (`entity_deltas`, `entity_delta_property_values`; design D1 of us-040-entity-deltas)
 - `modified` (realigned 2026-11-12): the request carries the after values only (`name`, `description`, `properties`); the response carries `changes`, a list of changes with field, typed `before` and `after`; the before values are recorded by the server; `PUT /api/v1/solutions/{id}/deltas/{deltaId}` (`updateSolutionDelta`) edits a delta `modified`; `GET /api/v1/solutions/{id}/landscape/{entityId}` reads the current values for the form
 
@@ -166,3 +166,4 @@ An `EntityDelta` is a value object (not a business object of its own) and part o
 | 0.2.0 | 2026-06-26 | requirements-engineer | Added two creation paths (catalog + diagram); specified diagram name completion with landscape suggestions |
 | 0.3.0 | 2026-11-12 | Change us-040-entity-deltas | `new` and `retiring` implemented: any `solution:write` holder, `new` with property values, removal, `archived` locked as well, at most 1000 deltas (owner decisions 2026-11-12) |
 | 0.4.0 | 2026-11-13 | Change us-041-modified-delta | `modified` implemented: before values recorded by the server, name, description and properties, editing in place; AC3 realigned to a property "Release" |
+| 0.5.0 | 2026-11-13 | Change us-043-diff-view | No limit of deltas per solution; the delta list is paged by cursor with the counts per type (owner decision 2026-11-13) |

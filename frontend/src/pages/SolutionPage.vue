@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { rejectsCursor } from '../api/cursors'
 import { rateLimitMessage, RequestRejected } from '../api/problem'
 import {
   createSolutionDelta,
@@ -21,7 +22,9 @@ import { refreshSession, session } from '../session/store'
 // (design D5 of us-039-solution-baseline), and its entity deltas (US-040, US-042; design D9 of
 // us-040-entity-deltas): the area "Changes" and "Retire" in the baseline, for solution:write while
 // the solution is not completed; "Modify" in the baseline and "Edit" in the list open the dialog
-// "Modify entity" (US-041; design D6 of us-041-modified-delta).
+// "Modify entity" (US-041; design D6 of us-041-modified-delta). The deltas load page by page
+// ("Load more"); after a write, the first page and the baseline load again, whose entries carry
+// the type of their delta (design D0 of us-043-diff-view).
 const props = defineProps<{ id: string; fetchFn?: typeof fetch }>()
 const { t } = useI18n()
 
@@ -30,7 +33,14 @@ const loaded = ref(false)
 const notFound = ref(false)
 const failure = ref<string>()
 
+const DELTA_PAGE_SIZE = 50
+
 const deltas = ref<SolutionDelta[]>([])
+const deltaTotal = ref(0)
+const deltaPage = ref(0)
+const deltaCursor = ref<string | null>(null)
+const loadingMore = ref(false)
+const baselineKey = ref(0)
 const deltasFailure = ref<string>()
 const completed = ref(false)
 
@@ -42,13 +52,6 @@ const canWrite = computed(
     solution.value !== undefined &&
     solution.value.status !== 'implemented' &&
     solution.value.status !== 'archived',
-)
-const deltaTypes = computed(() =>
-  Object.fromEntries(
-    deltas.value.flatMap((delta) =>
-      delta.entityId !== null && delta.deltaType !== 'new' ? [[delta.entityId, delta.deltaType as 'modified' | 'retiring']] : [],
-    ),
-  ),
 )
 // the entity the dialog "Modify entity" is open for, with the delta it edits
 const modifying = ref<{ entityId: number; delta?: SolutionDelta }>()
@@ -62,12 +65,22 @@ const modifyOpen = computed({
 async function onModified() {
   modifying.value = undefined
   deltasFailure.value = undefined
+  await onChanged()
+}
+
+/** After a write: the first page of the deltas and the shown page of the baseline load again. */
+async function onChanged() {
+  baselineKey.value += 1
   await loadDeltas()
 }
 
 async function loadDeltas() {
   try {
-    deltas.value = await fetchSolutionDeltas(props.id, props.fetchFn)
+    const first = await fetchSolutionDeltas(props.id, { pageSize: DELTA_PAGE_SIZE }, props.fetchFn)
+    deltas.value = first.items
+    deltaTotal.value = first.page.totalElements
+    deltaPage.value = 0
+    deltaCursor.value = first.nextCursor
     deltasFailure.value = undefined
   } catch (error) {
     const rejection = error instanceof RequestRejected ? error.rejection : undefined
@@ -75,11 +88,38 @@ async function loadDeltas() {
   }
 }
 
+async function loadMore() {
+  if (!deltaCursor.value) return
+  loadingMore.value = true
+  const page = deltaPage.value + 1
+  try {
+    let next
+    try {
+      next = await fetchSolutionDeltas(props.id, { page, pageSize: DELTA_PAGE_SIZE, cursor: deltaCursor.value }, props.fetchFn)
+    } catch (error) {
+      // the cursor is no longer valid, e.g. after a restart of the backend: the page number applies
+      if (!(error instanceof RequestRejected && rejectsCursor(error.rejection))) throw error
+      next = await fetchSolutionDeltas(props.id, { page, pageSize: DELTA_PAGE_SIZE }, props.fetchFn)
+    }
+    const known = new Set(deltas.value.map((delta) => delta.id))
+    deltas.value = [...deltas.value, ...next.items.filter((delta) => !known.has(delta.id))]
+    deltaTotal.value = next.page.totalElements
+    deltaPage.value = page
+    deltaCursor.value = next.nextCursor
+    deltasFailure.value = undefined
+  } catch (error) {
+    const rejection = error instanceof RequestRejected ? error.rejection : undefined
+    deltasFailure.value = rateLimitMessage(rejection) ?? t('solutions.deltas.loadFailed')
+  } finally {
+    loadingMore.value = false
+  }
+}
+
 async function retire(entry: SolutionLandscapeEntry) {
   const outcome = await createSolutionDelta(props.id, { deltaType: 'retiring', entityId: entry.id }, props.fetchFn)
   if (outcome.ok) {
     deltasFailure.value = undefined
-    await loadDeltas()
+    await onChanged()
   } else if (outcome.rejection.status === 409) {
     onCompleted()
   } else {
@@ -166,17 +206,21 @@ const createdAt = computed(() =>
       <SolutionDeltas
         :solution-id="solution.id"
         :deltas="deltas"
+        :total="deltaTotal"
+        :has-more="deltaCursor !== null"
+        :loading-more="loadingMore"
         :can-write="canWrite"
         :failure="deltasFailure"
         :fetch-fn="props.fetchFn"
-        @changed="loadDeltas"
+        @changed="onChanged"
+        @more="loadMore"
         @completed="onCompleted"
         @edit="(delta: SolutionDelta) => (modifying = { entityId: delta.entityId!, delta })"
       />
       <SolutionBaseline
         :solution-id="solution.id"
         :can-write="canWrite"
-        :delta-types="deltaTypes"
+        :reload-key="baselineKey"
         :fetch-fn="props.fetchFn"
         @retire="retire"
         @modify="(entry: SolutionLandscapeEntry) => (modifying = { entityId: entry.id })"

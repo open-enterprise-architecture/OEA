@@ -10,8 +10,10 @@ import {
   ME_PORTAL_READER,
   ME_SOLUTION_ARCHITECT,
   ME_SOLUTION_VIEWER,
+  MODIFIED_ERP,
   SOLUTIONS,
   manyApplications,
+  manyDeltas,
   solutionApi,
 } from '../test/solutions'
 import SolutionPage from './SolutionPage.vue'
@@ -278,6 +280,57 @@ describe('SolutionPage', () => {
       expect(wrapper.find('[data-testid="baseline-retire"]').exists()).toBe(false)
       expect(baselineRow(wrapper, 'Warehouse Management').find('[data-testid="baseline-retiring"]').exists()).toBe(true)
       wrapper.unmount()
+    })
+
+    // spec solution/solution-deltas "Load more deltas on the page \"Solution\"" and
+    // solution/solution-baseline "Delta type of a baseline entry" (design D0 of us-043-diff-view)
+    it('shows 50 of 60 deltas with the total and loads the rest with "Load more"', async () => {
+      const wrapper = await mountWith({ deltas: manyDeltas(60) })
+      expect(deltaRows(wrapper)).toHaveLength(50)
+      expect(wrapper.get('[data-testid="deltas-total"]').text()).toBe('50 of 60 changes')
+      await wrapper.get('[data-testid="deltas-more"]').trigger('click')
+      await flushPromises()
+      expect(deltaRows(wrapper)).toHaveLength(60)
+      expect(new Set(deltaRows(wrapper).map((row) => row[1])).size).toBe(60)
+      expect(wrapper.api.deltaQueries.at(-1)!.get('cursor')).toBe('dcursor-1')
+      expect(wrapper.find('[data-testid="deltas-more"]').exists()).toBe(false)
+      wrapper.unmount()
+    })
+
+    it('offers no "Load more" for exactly one page of 50 deltas', async () => {
+      const wrapper = await mountWith({ deltas: manyDeltas(50) })
+      expect(deltaRows(wrapper)).toHaveLength(50)
+      expect(wrapper.find('[data-testid="deltas-more"]').exists()).toBe(false)
+      wrapper.unmount()
+    })
+
+    it('loads the first page again after a capture', async () => {
+      const wrapper = await mountWith({ deltas: manyDeltas(60) })
+      await wrapper.get('[data-testid="deltas-more"]').trigger('click')
+      await flushPromises()
+      await baselineRow(wrapper, 'CRM-Legacy').get('[data-testid="baseline-retire"]').trigger('click')
+      await flushPromises()
+      expect(deltaRows(wrapper)).toHaveLength(50)
+      expect(wrapper.get('[data-testid="deltas-total"]').text()).toBe('50 of 61 changes')
+      expect(wrapper.api.deltaQueries.at(-1)!.get('cursor')).toBeNull()
+      wrapper.unmount()
+    })
+
+    it('marks a baseline row whose delta is not on the loaded page', async () => {
+      // 60 new deltas sort before the modification of ERP-Core, which is on the second page
+      const wrapper = await mountWith({ deltas: [...manyDeltas(60), MODIFIED_ERP] })
+      expect(deltaRows(wrapper).some((row) => row[1] === 'ERP-Core')).toBe(false)
+      expect(baselineRow(wrapper, 'ERP-Core').get('[data-testid="baseline-modified"]').text()).toBe('Modified')
+      wrapper.unmount()
+    })
+
+    it('links to the comparison when the solution has deltas, and not without', async () => {
+      const wrapper = await mountWith()
+      expect(wrapper.get('[data-testid="delta-compare"]').attributes('href')).toBe(`/solutions/${ERP}/diff`)
+      wrapper.unmount()
+      const empty = await mountWith({ deltas: [] })
+      expect(empty.find('[data-testid="delta-compare"]').exists()).toBe(false)
+      empty.unmount()
     })
 
     it('hides the write actions after a 409', async () => {

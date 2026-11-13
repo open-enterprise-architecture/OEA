@@ -10,9 +10,20 @@ import SolutionDeltaDialog from './SolutionDeltaDialog.vue'
 // of the solution with type, name and metatype, a delta `modified` with its number of changes
 // (US-041). With solution:write, while the solution is not completed, "New entity" opens the
 // dialog, "Edit" opens a delta `modified` in the dialog "Modify entity" of the page, and "Remove"
-// removes a delta after a confirmation.
-const props = defineProps<{ solutionId: string; deltas: SolutionDelta[]; canWrite: boolean; failure?: string; fetchFn?: typeof fetch }>()
-const emit = defineEmits<{ changed: []; completed: []; edit: [delta: SolutionDelta] }>()
+// removes a delta after a confirmation. The list shows the loaded pages with the total; "Load more"
+// asks for the next page, and "Compare" opens the diff on SCR-062 (design D0, D3 of
+// us-043-diff-view).
+const props = defineProps<{
+  solutionId: string
+  deltas: SolutionDelta[]
+  total?: number
+  hasMore?: boolean
+  loadingMore?: boolean
+  canWrite: boolean
+  failure?: string
+  fetchFn?: typeof fetch
+}>()
+const emit = defineEmits<{ changed: []; completed: []; edit: [delta: SolutionDelta]; more: [] }>()
 const { t } = useI18n()
 
 const creating = ref(false)
@@ -73,13 +84,24 @@ async function confirmRemoval() {
         <h2 class="text-lg font-semibold text-highlighted">{{ t('solutions.deltas.title') }}</h2>
         <p class="text-sm text-muted">{{ t('solutions.deltas.intro') }}</p>
       </div>
-      <UButton
-        v-if="props.canWrite"
-        data-testid="delta-new"
-        icon="i-lucide-plus"
-        :label="t('solutions.deltas.new')"
-        @click="creating = true"
-      />
+      <div class="flex flex-wrap gap-2">
+        <UButton
+          v-if="(props.total ?? props.deltas.length) > 0"
+          data-testid="delta-compare"
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-columns-2"
+          :to="`/solutions/${encodeURIComponent(props.solutionId)}/diff`"
+          :label="t('solutions.diff.open')"
+        />
+        <UButton
+          v-if="props.canWrite"
+          data-testid="delta-new"
+          icon="i-lucide-plus"
+          :label="t('solutions.deltas.new')"
+          @click="creating = true"
+        />
+      </div>
     </div>
     <UAlert v-if="props.failure" data-testid="deltas-failure" color="error" variant="subtle" :description="props.failure" />
     <p v-if="props.deltas.length === 0" data-testid="deltas-empty" class="text-sm text-muted">{{ t('solutions.deltas.empty') }}</p>
@@ -118,6 +140,21 @@ async function confirmRemoval() {
         </div>
       </template>
     </UTable>
+    <div v-if="props.deltas.length > 0" class="flex flex-wrap items-center justify-between gap-3">
+      <p data-testid="deltas-total" class="text-sm text-muted">
+        {{ t('solutions.deltas.shown', { shown: props.deltas.length, total: props.total ?? props.deltas.length }) }}
+      </p>
+      <UButton
+        v-if="props.hasMore"
+        data-testid="deltas-more"
+        color="neutral"
+        variant="outline"
+        icon="i-lucide-chevrons-down"
+        :loading="props.loadingMore"
+        :label="t('solutions.deltas.more')"
+        @click="emit('more')"
+      />
+    </div>
 
     <UModal v-model:open="creating" :title="t('solutions.deltas.new')" :description="t('solutions.deltas.newHint')">
       <template #body>

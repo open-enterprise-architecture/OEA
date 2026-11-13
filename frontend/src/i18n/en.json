@@ -838,7 +838,31 @@
         "edit": "Edit",
         "count": "no changes | {n} change | {n} changes",
         "loadFailed": "The entity could not be loaded."
-      }
+      },
+      "more": "Load more",
+      "shown": "{shown} of {total} changes"
+    },
+    "diff": {
+      "open": "Compare",
+      "title": "Comparison",
+      "intro": "Each entity this solution changes: its current state in the catalog next to its target state after the solution.",
+      "back": "Back to the solution",
+      "current": "Current state",
+      "target": "Target state",
+      "notYet": "Does not exist yet",
+      "outOfService": "Out of service",
+      "noLongerInCatalog": "No longer in the catalog",
+      "drift": "Changed in the catalog since capture",
+      "changed": "changes",
+      "hidden": "hidden",
+      "noValue": "no value",
+      "empty": "No changes captured yet",
+      "emptyHint": "Capture new, modified or retiring entities on the page of the solution.",
+      "counts": "{new} new · {modified} modified · {retiring} retiring",
+      "refresh": "Refresh",
+      "more": "Load more",
+      "shown": "{shown} of {total} entries",
+      "loadFailed": "The comparison could not be loaded."
     }
   }
 }

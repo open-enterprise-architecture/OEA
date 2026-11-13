@@ -1,9 +1,19 @@
-import type { Solution, SolutionDelta, SolutionDeltaChange, SolutionDeltaValue, SolutionLandscapeEntity, SolutionLandscapeEntry } from '../api/solutions'
+import type {
+  Solution,
+  SolutionDelta,
+  SolutionDeltaChange,
+  SolutionDeltaValue,
+  SolutionDiffEntry,
+  SolutionDiffField,
+  SolutionLandscapeEntity,
+  SolutionLandscapeEntry,
+} from '../api/solutions'
 
 // A fake backend for SCR-060 and SCR-061 (us-038-create-solution, us-039-solution-baseline,
 // us-040-entity-deltas): the solutions, creating one with the server-side name rule of REQ-038,
 // reading one, its baseline with search, metatype filter, paging and cursors, and its deltas with
-// the rules of a new entity, one delta per entity and the lock of a completed solution.
+// the rules of a new entity, one delta per entity and the lock of a completed solution; the delta
+// list and the diff paged by cursor with the counts per type (us-043-diff-view).
 
 function me(displayName: string, permissions: string[]) {
   return {
@@ -228,6 +238,134 @@ export const MODIFIED_ERP = modifiedDelta('ae000000-0000-4000-8000-000000000004'
 /** The deltas of the screen with a modification. */
 export const DELTAS_WITH_MODIFIED: SolutionDelta[] = [...DELTAS, MODIFIED_ERP]
 
+/**
+ * A delta modified of Warehouse Management whose recorded before value of Users (25) no longer
+ * matches the catalog (40): the diff marks the drift.
+ */
+export const MODIFIED_WAREHOUSE_DRIFT = modifiedDelta('ae000000-0000-4000-8000-000000000005', LANDSCAPE[2]!, [
+  { field: 'name', propertyDefId: null, propertyName: null, dataType: null, redacted: false, before: { valueText: 'Warehouse Management' }, after: { valueText: 'Warehouse Management 2' } },
+  propertyChange(USERS, '25', '120'),
+])
+
+/** The deltas of the comparison screen: two new, two modified (one with drift), one retiring. */
+export const DIFF_DELTAS: SolutionDelta[] = [
+  { ...newDelta('ae000000-0000-4000-8000-000000000001', 'Warehouse Cloud', APPLICATION, 'Cloud WMS for DACH'), properties: [
+    { propertyDefId: OWNER, propertyName: 'Owner', dataType: 'string', redacted: false, valueText: 'Logistics' },
+    { propertyDefId: USERS, propertyName: 'Users', dataType: 'integer', redacted: false, valueInt: 120 },
+  ] as SolutionDelta['properties'] },
+  newDelta('ae000000-0000-4000-8000-000000000002', 'Scanner Gateway', COMPONENT),
+  MODIFIED_ERP,
+  MODIFIED_WAREHOUSE_DRIFT,
+  retiringDelta('ae000000-0000-4000-8000-000000000003', LANDSCAPE[0]!),
+]
+
+/** `count` new deltas, for paging. */
+export function manyDeltas(count: number): SolutionDelta[] {
+  return Array.from({ length: count }, (_, index) =>
+    newDelta(`ae100000-0000-4000-8000-${String(index).padStart(12, '0')}`, `Delta ${String(index + 1).padStart(3, '0')}`, COMPONENT),
+  )
+}
+
+function value(found: { valueText?: string | null; valueInt?: number | null; valueBool?: boolean | null; valueDate?: string | null; valueEnum?: string | null; valueRef?: unknown }): SolutionDeltaValue {
+  return {
+    valueText: found.valueText ?? null,
+    valueInt: found.valueInt ?? null,
+    valueBool: found.valueBool ?? null,
+    valueDate: found.valueDate ?? null,
+    valueEnum: found.valueEnum ?? null,
+    valueRef: (found.valueRef as SolutionDeltaValue['valueRef']) ?? null,
+  }
+}
+
+function same(a: SolutionDeltaValue | null, b: SolutionDeltaValue | null): boolean {
+  return JSON.stringify(a ? value(a) : null) === JSON.stringify(b ? value(b) : null)
+}
+
+function systemField(field: 'name' | 'description', current: SolutionDeltaValue | null, target: SolutionDeltaValue | null, changed: boolean, catalogChanged = false): SolutionDiffField {
+  return { field, propertyDefId: null, propertyName: null, dataType: null, redacted: false, current, target, changed, catalogChanged }
+}
+
+/** The diff entry of a delta against the landscape, as getSolutionDiff computes it (design D2). */
+export function diffEntry(delta: SolutionDelta, landscape: SolutionLandscapeEntry[]): SolutionDiffEntry {
+  const entity = delta.entityId !== null ? landscape.find((candidate) => candidate.id === delta.entityId) : undefined
+  const base = { deltaId: delta.id, deltaType: delta.deltaType, entityId: delta.entityId, metatypeId: delta.metatypeId, metatypeName: delta.metatypeName, name: delta.name, inCatalog: entity !== undefined }
+  const text = (content: string | null | undefined) => (content ? { valueText: content } : null)
+  if (delta.deltaType === 'new') {
+    return {
+      ...base,
+      fields: [
+        systemField('name', null, text(delta.name), true),
+        ...(delta.description ? [systemField('description', null, text(delta.description), true)] : []),
+        ...delta.properties.map((property) => ({
+          field: 'property' as const,
+          propertyDefId: property.propertyDefId,
+          propertyName: property.propertyName,
+          dataType: property.dataType as SolutionDiffField['dataType'],
+          redacted: property.redacted,
+          current: null,
+          target: property.redacted ? null : value(property),
+          changed: true,
+          catalogChanged: false,
+        })),
+      ],
+    }
+  }
+  const stored = entity ? landscapeEntity(entity) : undefined
+  const current = new Map((stored?.properties ?? []).map((property) => [property.propertyDefId, property]))
+  if (delta.deltaType === 'retiring') {
+    if (!stored) return { ...base, fields: [] }
+    return {
+      ...base,
+      fields: [
+        systemField('name', text(stored.name), null, true),
+        ...(stored.description ? [systemField('description', text(stored.description), null, true)] : []),
+        ...stored.properties.map((property) => ({
+          field: 'property' as const,
+          propertyDefId: property.propertyDefId,
+          propertyName: property.propertyName,
+          dataType: property.dataType as SolutionDiffField['dataType'],
+          redacted: property.redacted,
+          current: property.redacted ? null : value(property),
+          target: null,
+          changed: true,
+          catalogChanged: false,
+        })),
+      ],
+    }
+  }
+  const change = (field: string) => delta.changes.find((candidate) => candidate.field === field)
+  const system = (field: 'name' | 'description', now: SolutionDeltaValue | null) => {
+    const found = change(field)
+    return found ? systemField(field, now, found.after, true, stored !== undefined && !same(found.before, now)) : systemField(field, now, now, false)
+  }
+  const fields: SolutionDiffField[] = [system('name', stored ? text(stored.name) : null)]
+  const description = system('description', stored ? text(stored.description) : null)
+  if (description.current || description.target) fields.push(description)
+  const properties = new Map<string, SolutionDiffField>()
+  for (const property of stored?.properties ?? []) {
+    const now = property.redacted ? null : value(property)
+    properties.set(property.propertyDefId, { field: 'property', propertyDefId: property.propertyDefId, propertyName: property.propertyName, dataType: property.dataType as SolutionDiffField['dataType'], redacted: property.redacted, current: now, target: now, changed: false, catalogChanged: false })
+  }
+  for (const found of delta.changes.filter((candidate) => candidate.field === 'property')) {
+    const known = current.get(found.propertyDefId!)
+    const redacted = found.redacted || known?.redacted === true
+    const now = known && !redacted ? value(known) : null
+    properties.set(found.propertyDefId!, {
+      field: 'property',
+      propertyDefId: found.propertyDefId,
+      propertyName: found.propertyName,
+      dataType: found.dataType,
+      redacted,
+      current: redacted ? null : now,
+      target: redacted ? null : found.after,
+      changed: true,
+      catalogChanged: !redacted && stored !== undefined && !same(found.before, now),
+    })
+  }
+  fields.push(...[...properties.values()].sort((a, b) => a.propertyName!.toLowerCase().localeCompare(b.propertyName!.toLowerCase())))
+  return { ...base, fields }
+}
+
 interface SolutionDeltaWriteBody {
   deltaType: 'new' | 'modified' | 'retiring'
   entityId?: number
@@ -239,6 +377,10 @@ interface SolutionDeltaWriteBody {
 
 export interface SolutionApi {
   fetch: typeof fetch
+  /** the deltas the fake holds; a test adds one "meanwhile" */
+  deltas: SolutionDelta[]
+  diffQueries: URLSearchParams[]
+  deltaQueries: URLSearchParams[]
   posts: Record<string, unknown>[]
   landscapeQueries: URLSearchParams[]
   deltaPosts: Record<string, unknown>[]
@@ -253,6 +395,8 @@ export function solutionApi(
     landscape?: SolutionLandscapeEntry[]
     rejectCursors?: boolean
     deltas?: SolutionDelta[]
+    /** answer the diff with this status, e.g. 404 or 500 */
+    diffStatus?: number
     /** answer 409 to every delta write, as for a solution completed meanwhile */
     completeOnWrite?: boolean
   } = {},
@@ -267,6 +411,26 @@ export function solutionApi(
   const deltaDeletes: string[] = []
   const deltaPuts: Record<string, unknown>[] = []
   const deltas = [...(options.deltas ?? [])]
+  const diffQueries: URLSearchParams[] = []
+  const deltaQueries: URLSearchParams[] = []
+  // one page of a list in the order of the delta list, with the counts, by page number or cursor
+  const paged = <T>(all: T[], params: URLSearchParams, key: 'items' | 'entries') => {
+    const page = Number(params.get('page') ?? '0')
+    const pageSize = Number(params.get('pageSize') ?? '50')
+    const cursor = params.get('cursor')
+    if (cursor && cursor !== `dcursor-${page}`) {
+      return json({ ...problem(400, ['cursor']), type: 'urn:oea:problem:validation-failed' }, 400)
+    }
+    const totalPages = Math.ceil(all.length / pageSize)
+    const counts = { new: 0, modified: 0, retiring: 0 }
+    for (const delta of deltas) counts[delta.deltaType] += 1
+    return json({
+      [key]: all.slice(page * pageSize, (page + 1) * pageSize),
+      page: { page, pageSize, totalElements: all.length, totalPages },
+      counts,
+      nextCursor: page + 1 < totalPages ? `dcursor-${page + 1}` : null,
+    })
+  }
   let nextDelta = 100
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': status < 400 ? 'application/json' : 'application/problem+json' } })
@@ -422,7 +586,15 @@ export function solutionApi(
     }
     const deltaList = /^\/api\/v1\/solutions\/([^/]+)\/deltas$/.exec(url.pathname)
     if (deltaList && method === 'GET') {
-      return json({ items: sorted() })
+      deltaQueries.push(url.searchParams)
+      return paged(sorted(), url.searchParams, 'items')
+    }
+    const diff = /^\/api\/v1\/solutions\/([^/]+)\/diff$/.exec(url.pathname)
+    if (diff && method === 'GET') {
+      diffQueries.push(url.searchParams)
+      if (options.diffStatus) return json(problem(options.diffStatus), options.diffStatus)
+      if (!solutions.some((candidate) => candidate.id === decodeURIComponent(diff[1]!))) return json(problem(404), 404)
+      return paged(sorted().map((delta) => diffEntry(delta, landscape)), url.searchParams, 'entries')
     }
     if (deltaList && method === 'POST') {
       const body = JSON.parse(String(init?.body)) as SolutionDeltaWriteBody
@@ -467,7 +639,10 @@ export function solutionApi(
       if (cursor && (options.rejectCursors || cursor !== `cursor-${page}`)) {
         return json({ ...problem(400, ['cursor']), type: 'urn:oea:problem:validation-failed' }, 400)
       }
-      const items = matches.slice(page * pageSize, (page + 1) * pageSize)
+      const items = matches.slice(page * pageSize, (page + 1) * pageSize).map((candidate) => {
+        const delta = deltas.find((found) => found.entityId === candidate.id && found.deltaType !== 'new')
+        return { ...candidate, deltaType: delta ? delta.deltaType : null }
+      })
       const totalPages = Math.ceil(matches.length / pageSize)
       return json({
         items,
@@ -483,5 +658,5 @@ export function solutionApi(
     // the header and the sidebar ask for further data; an empty answer keeps them quiet
     return json([])
   }
-  return { fetch: fetchFn, posts, landscapeQueries, deltaPosts, deltaPuts, deltaDeletes }
+  return { fetch: fetchFn, deltas, diffQueries, deltaQueries, posts, landscapeQueries, deltaPosts, deltaPuts, deltaDeletes }
 }

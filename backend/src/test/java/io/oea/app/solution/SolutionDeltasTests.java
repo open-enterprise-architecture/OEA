@@ -298,22 +298,91 @@ class SolutionDeltasTests {
 		assertThat(deltas()).isEqualTo(3);
 	}
 
-	// Requirement: Limit of deltas per solution
+	// Requirement: Any number of deltas (owner decision 2026-11-13; us-043-diff-view D0)
 
 	@Test
-	void limitOfDeltas() {
-		this.jdbc.update("""
-				INSERT INTO entity_deltas (id, solution_id, delta_type, metatype_id, name, created_by)
-				SELECT gen_random_uuid(), ?::uuid, 'new', ?, 'Filler ' || n, ? FROM generate_series(1, 999) n""",
-				this.solution, this.component, this.michaelId);
+	void noLimitOfDeltas() {
+		fillers(this.solution, 999);
+		// the 1000th, the former limit, and the 1001st are both accepted
 		ObjectNode last = newEntity("Last", null);
 		last.put("metatypeId", this.component.toString());
 		created(create(this.michael, this.solution, last));
 		ObjectNode beyond = newEntity("Beyond", null);
 		beyond.put("metatypeId", this.component.toString());
-		assertInvalid(create(this.michael, this.solution, beyond), "deltas");
-		assertThat(deltas()).isEqualTo(1000);
-		assertThat(list(this.michael, this.solution).path("items")).hasSize(1000);
+		created(create(this.michael, this.solution, beyond));
+		assertThat(deltas()).isEqualTo(1001);
+		JsonNode page = list(this.michael, this.solution);
+		assertThat(page.path("items")).hasSize(50);
+		assertThat(page.path("page").path("totalElements").asInt()).isEqualTo(1001);
+	}
+
+	// Requirement: Paging of the deltas
+
+	@Test
+	void pagesByCursor() {
+		// 60 deltas of all three types, some names equal across types
+		fillers(this.solution, 20);
+		for (int n = 1; n <= 20; n++) {
+			created(create(this.michael, this.solution, retiring(entity(this.application, "Filler " + n))));
+		}
+		for (int n = 1; n <= 20; n++) {
+			int entity = entity(this.application, "Mod " + (n % 7));
+			created(create(this.michael, this.solution, modified(entity, null, null, value(this.owner, "IT"), value(this.release, "v" + n))));
+		}
+		JsonNode byPage = page(this.michael, this.solution, "page=0&pageSize=60");
+		List<String> expected = new ArrayList<>();
+		byPage.path("items").forEach((item) -> expected.add(item.path("id").asString()));
+		assertThat(expected).hasSize(60).doesNotHaveDuplicates();
+
+		List<String> ids = new ArrayList<>();
+		String cursor = null;
+		for (int page = 0; page < 3; page++) {
+			JsonNode result = page(this.michael, this.solution,
+					"page=" + page + "&pageSize=20" + ((cursor != null) ? "&cursor=" + cursor : ""));
+			result.path("items").forEach((item) -> ids.add(item.path("id").asString()));
+			assertThat(result.path("counts").path("new").asInt()).isEqualTo(20);
+			assertThat(result.path("counts").path("modified").asInt()).isEqualTo(20);
+			assertThat(result.path("counts").path("retiring").asInt()).isEqualTo(20);
+			assertThat(result.path("page").path("totalElements").asInt()).isEqualTo(60);
+			cursor = result.path("nextCursor").isNull() ? null : result.path("nextCursor").asString();
+		}
+		assertThat(ids).containsExactlyElementsOf(expected);
+		assertThat(cursor).isNull();
+	}
+
+	@Test
+	void emptyPage() {
+		JsonNode result = list(this.michael, this.solution);
+		assertThat(result.path("items")).isEmpty();
+		assertThat(result.path("counts").path("new").asInt()).isZero();
+		assertThat(result.path("page").path("totalElements").asInt()).isZero();
+		assertThat(result.path("nextCursor").isNull()).isTrue();
+	}
+
+	@Test
+	void cursorOfAnotherQuery() {
+		fillers(this.solution, 3);
+		String other = solution("Sales Portal");
+		fillers(other, 3);
+		String cursor = page(this.michael, other, "page=0&pageSize=2").path("nextCursor").asString();
+		String own = page(this.michael, this.solution, "page=0&pageSize=2").path("nextCursor").asString();
+		for (String query : List.of("page=1&pageSize=2&cursor=" + cursor, "page=1&pageSize=2&cursor=" + own + "x",
+				"pageSize=2&cursor=" + own, "page=1&pageSize=3&cursor=" + own)) {
+			MvcTestResult result = getQuery(this.michael, this.solution, query);
+			assertThat(result).as(query).hasStatus(HttpStatus.BAD_REQUEST);
+			assertThat(content(result)).contains("cursor");
+		}
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "1, 200", "200, 200", "0, 400", "201, 400" })
+	void limitsOfThePageSize(int pageSize, int status) {
+		fillers(this.solution, 2);
+		MvcTestResult result = getQuery(this.michael, this.solution, "pageSize=" + pageSize);
+		assertThat(result).hasStatus(status);
+		if (status == 200) {
+			assertThat(json(result).path("items")).hasSize(Math.min(pageSize, 2));
+		}
 	}
 
 	// Requirement: Completed solution
@@ -753,6 +822,26 @@ class SolutionDeltasTests {
 			.uri("/api/v1/solutions/" + solutionId + "/deltas")
 			.cookie(new Cookie(SessionCookie.NAME, session.token()))
 			.exchange();
+	}
+
+	private void fillers(String solutionId, int count) {
+		this.jdbc.update("""
+				INSERT INTO entity_deltas (id, solution_id, delta_type, metatype_id, name, created_by)
+				SELECT gen_random_uuid(), ?::uuid, 'new', ?, 'Filler ' || n, ? FROM generate_series(1, ?) n""",
+				solutionId, this.component, this.michaelId, count);
+	}
+
+	private MvcTestResult getQuery(TestSession session, String solutionId, String query) {
+		return this.mvc.get()
+			.uri("/api/v1/solutions/" + solutionId + "/deltas?" + query)
+			.cookie(new Cookie(SessionCookie.NAME, session.token()))
+			.exchange();
+	}
+
+	private JsonNode page(TestSession session, String solutionId, String query) {
+		MvcTestResult result = getQuery(session, solutionId, query);
+		assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.OK);
+		return json(result);
 	}
 
 	private JsonNode list(TestSession session, String solutionId) {

@@ -242,7 +242,8 @@ test('catalogs', async ({ page }) => {
 
 test('solutions', async ({ page }) => {
   // An architect creates a solution in project mode, sees its baseline and retires an entity of it
-  // (manual: usage/solutions; us-038-create-solution, us-039-solution-baseline, us-040-entity-deltas)
+  // (manual: usage/solutions; us-038-create-solution, us-039-solution-baseline, us-040-entity-deltas,
+  // us-043-diff-view)
   await logInAtKeycloak(page, 'dev-architect')
   await page.getByTestId('header-solutions').click()
   await page.getByTestId('solution-new').click()
@@ -260,6 +261,12 @@ test('solutions', async ({ page }) => {
   await expect(page.getByTestId('deltas-table')).toBeVisible()
   await expect(page.getByTestId('baseline-retiring')).toHaveCount(1)
   await shoot(page, 'solution')
+  // the comparison shows the retired entity with its current state (us-043-diff-view)
+  await page.getByTestId('delta-compare').click()
+  await expect(page.getByTestId('diff-entry-retiring')).toBeVisible()
+  await shoot(page, 'solution-diff')
+  await page.getByTestId('diff-back').click()
+  await expect(page.getByTestId('solution-title')).toHaveText('ERP Extension Logistics')
   await page.getByTestId('solution-back').click()
   await expect(page.getByTestId('solution-list')).toContainText('ERP Extension Logistics')
   await shoot(page, 'solutions')

@@ -89,7 +89,7 @@ SolutionDiffField:
 
 1. Check the solution (404) and take the `PropertyAccess` snapshot of the reader.
 2. Read one page of deltas with the paged `SolutionDeltas.list` (D0), with the same parameters and cursor; it already applies the order and the redaction, and returns the counts and `nextCursor`.
-3. Read the catalog state of the page's entities in two queries: the entities (`id = ANY(?)`, with `deleted`) and their values. A `values(Collection<Integer>)` overload in `EntityStore` returns them per entity. At most 200 entities per page, so one round trip each.
+3. Read the catalog state of the page's entities in two queries in `SolutionDiff`: the entities of the baseline (`id = ANY(?)`, not deleted, not a connection) and their values with property name, data type and reference target, redacted with `readableFor`. At most 200 entities per page, so one round trip each. (Changed during the implementation: an `EntityStore.values` overload would return bare typed values without names and reference targets.)
 4. Per delta, build the fields:
    - **`new`:** name, description and each value of the delta; `current` null, `changed` true.
    - **`modified`:** name and description, then every property with a value in the catalog or in the delta, ordered by property name. A field of the delta has `target` = its after value and `changed` = true; any other field has `target` = `current` and `changed` = false. `catalogChanged` is true when the recorded before value differs from the current value. Not in the catalog: `current` null, `target` the after values and, for other fields, null.

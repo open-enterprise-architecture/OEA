@@ -1,8 +1,8 @@
 ---
 title: Lösungen
 covers:
-  screens: [SCR-060, SCR-061]
-  stories: [US-038, US-039, US-040, US-041, US-042]
+  screens: [SCR-060, SCR-061, SCR-062]
+  stories: [US-038, US-039, US-040, US-041, US-042, US-043]
 ---
 
 # Lösungen
@@ -53,7 +53,7 @@ Enthält der Katalog noch keine Entitäten, steht im Bereich „Keine Entitäten
 
 ## Änderungen
 
-Der Bereich *Änderungen* listet, was das Vorhaben an der Landschaft ändert: zuerst die neuen Entitäten, dann die geänderten Entitäten mit der Zahl ihrer Änderungen, dann die Entitäten, die es ausser Betrieb nimmt, jeweils nach Name. Mit `solution:write` fügst du Änderungen in jeder Lösung hinzu und entfernst sie, nicht nur in deinen eigenen.
+Der Bereich *Änderungen* listet, was das Vorhaben an der Landschaft ändert: zuerst die neuen Entitäten, dann die geänderten Entitäten mit der Zahl ihrer Änderungen, dann die Entitäten, die es ausser Betrieb nimmt, jeweils nach Name. Er zeigt 50 Änderungen und die Gesamtzahl; *Weitere laden* fügt die nächsten 50 hinzu. Mit `solution:write` fügst du Änderungen in jeder Lösung hinzu und entfernst sie, nicht nur in deinen eigenen.
 
 - **Entität ändern:** Wähle *Ändern* in ihrer Zeile der Ausgangslage. Der Dialog *Entität ändern* zeigt jedes Feld mit seinem aktuellen Wert und einem Eingabefeld für den neuen: den Namen, die Beschreibung und die Eigenschaften. Gib nur ein, was sich ändert; leerst du eine Eigenschaft, wird ihr Wert entfernt. Beim Speichern werden die aktuellen Werte als Werte vor der Änderung festgehalten, und sie bleiben so, auch wenn sich der Katalog später ändert. Ein Feld mit seinem aktuellen Wert ist keine Änderung, und eine Änderung braucht mindestens ein geändertes Feld. Die Entität erscheint unter *Änderungen* als *Geändert*, und ihre Zeile in der Ausgangslage zeigt *Geändert*.
 - **Änderung bearbeiten:** Wähle *Bearbeiten* in ihrer Zeile unter *Änderungen*. Der Dialog beginnt mit den neuen Werten; was du speicherst, ersetzt sie. Ein Feld, das schon Teil der Änderung war, behält seinen festgehaltenen Wert vor der Änderung. Die Änderung einer eingeschränkten Eigenschaft, die du nicht lesen darfst, bleibt, wie sie ist.
@@ -66,8 +66,22 @@ Die Regeln:
 - Eine Lösung enthält eine Änderung pro Entität: Dieselbe Entität kann nicht zweimal ausser Betrieb genommen oder zugleich geändert und ausser Betrieb genommen werden, und zwei neue Entitäten desselben Metatyps können nicht gleich heissen (Gross- und Kleinschreibung spielen keine Rolle). Eine andere Lösung kann dieselbe Entität ändern.
 - Ein Wert muss zu seiner Eigenschaft passen, zum Beispiel eine ganze Zahl bei einer Ganzzahl-Eigenschaft, und der Wert einer Pflicht-Eigenschaft lässt sich nicht entfernen. Wird ein Wert abgelehnt, zeigt der Dialog beim Feld, warum.
 - Eine eingeschränkte Eigenschaft kannst du nur setzen, wenn eine deiner Rollen sie schreiben darf (siehe [Sichtbarkeit von Eigenschaften](../administration/property-visibility)). Eine verbindungsbasierte Eigenschaft lässt sich bei einer neuen Entität nicht setzen, weil ihre Verbindungen noch nicht existieren; bei einer bestehenden Entität muss diese in deinem Bereich liegen. Werte, die du nicht lesen darfst, erscheinen verborgen.
-- Eine Lösung enthält höchstens 1000 Änderungen.
+- Eine Lösung kann beliebig viele Änderungen enthalten.
 - Eine umgesetzte oder archivierte Lösung ist abgeschlossen: Sie lässt sich nicht mehr ändern, und ihre Änderungen bleiben, wie sie sind.
+
+## Vergleichen
+
+*Vergleichen* im Bereich *Änderungen* öffnet den Vergleich der Lösung. Für jede Änderung zeigt er die Entität, wie sie jetzt im Katalog steht, den *Ist-Stand*, neben ihrem Zustand nach der Lösung, dem *Soll-Stand*. Entitäten ohne Änderung erscheinen nicht. Auf einem schmalen Bildschirm stehen die beiden Stände untereinander.
+
+<Screenshot name="solution-diff" alt="Vergleich einer Lösung mit neuen, geänderten und auslaufenden Entitäten" />
+
+- **Neu:** Der Ist-Stand sagt "Existiert noch nicht"; der Soll-Stand zeigt die neue Entität mit ihren Werten.
+- **Geändert:** Beide Stände zeigen jedes Feld mit einem Wert. Die Felder, die die Lösung ändert, sind hervorgehoben und als geändert markiert; die übrigen Felder erscheinen gedämpft und bleiben, wie sie sind.
+- **Ausser Betrieb:** Der Soll-Stand sagt "Ausser Betrieb" und zeigt die Entität durchgestrichen.
+- **Im Katalog seit dem Erfassen geändert:** Eine Änderung hält beim Speichern die Werte vor der Änderung fest. Steht heute ein anderer Wert im Katalog, zeigt der Ist-Stand den heutigen Wert mit diesem Hinweis. Prüfe, ob die Änderung noch passt.
+- **Nicht mehr im Katalog:** Die Entität wurde gelöscht, nachdem die Änderung erfasst wurde; der Ist-Stand ist leer.
+
+Werte, die du nicht lesen darfst, erscheinen als verborgen. Der Vergleich wird bei jedem Öffnen neu berechnet; *Aktualisieren* lädt ihn erneut, etwa wenn jemand anderes eine Änderung erfasst hat. Er zeigt jeweils 50 Änderungen; *Weitere laden* fügt die nächsten 50 hinzu.
 
 ## Über die API
 
@@ -79,12 +93,14 @@ curl "${auth[@]}" "$OEA/solutions"
 curl "${auth[@]}" "$OEA/solutions/$SOLUTION/landscape?q=erp&pageSize=50"
 # Entität 42 der Ausgangslage ausser Betrieb nehmen, dann die Änderungen auflisten und entfernen
 curl "${auth[@]}" -d '{"deltaType": "retiring", "entityId": 42}' "$OEA/solutions/$SOLUTION/deltas"
-curl "${auth[@]}" "$OEA/solutions/$SOLUTION/deltas"
+curl "${auth[@]}" "$OEA/solutions/$SOLUTION/deltas?pageSize=50"
 curl "${auth[@]}" -X DELETE "$OEA/solutions/$SOLUTION/deltas/$DELTA"
 # Entität 43 ändern: ihre aktuellen Werte, dann der neue Wert einer Eigenschaft
 curl "${auth[@]}" "$OEA/solutions/$SOLUTION/landscape/43"
 curl "${auth[@]}" -d '{"deltaType": "modified", "entityId": 43, "properties": [{"propertyDefId": "'"$RELEASE"'", "value": "v5"}]}' \
   "$OEA/solutions/$SOLUTION/deltas"
+# der Vergleich von Ist- und Soll-Stand
+curl "${auth[@]}" "$OEA/solutions/$SOLUTION/diff?pageSize=50"
 ```
 
 `POST /solutions` antwortet mit 201 und der Lösung, mit 422 und `name` bei einem leeren oder vergebenen Namen und mit 403 ohne `solution:write`. Jedes Anlegen wird im Audit-Log als `solution.created` festgehalten.
@@ -94,3 +110,5 @@ curl "${auth[@]}" -d '{"deltaType": "modified", "entityId": 43, "properties": [{
 `POST /solutions/{id}/deltas` erfasst eine Änderung: `{"deltaType": "retiring", "entityId": …}` oder `{"deltaType": "new", "metatypeId": …, "name": …, "description": …, "properties": [{"propertyDefId": …, "value": "…"}]}` mit den Werten als Text, wie beim Schreiben einer Entität. Die Antwort ist 201 mit der Änderung, 422 mit `invalidFields` und einer Meldung pro Feld in `errors`, 403 bei einem eingeschränkten Wert, den du nicht schreiben darfst, und 409 bei einer abgeschlossenen Lösung. Hinzufügen und Entfernen werden im Audit-Log als `solution.delta-added` und `solution.delta-removed` festgehalten, ohne die Eigenschaftswerte.
 
 Eine Änderung einer bestehenden Entität ist `{"deltaType": "modified", "entityId": …, "name": …, "description": …, "properties": […]}` mit nur den neuen Werten; die Antwort enthält `changes` mit dem festgehaltenen Wert `before` und dem neuen Wert `after` jedes Felds. `PUT /solutions/{id}/deltas/{deltaId}` mit `name`, `description` und `properties` ersetzt die Änderungen und wird als `solution.delta-updated` festgehalten. `GET /solutions/{id}/landscape/{entityId}` liefert eine Entität der Ausgangslage mit ihren aktuellen Werten.
+
+`GET /solutions/{id}/deltas` und `GET /solutions/{id}/diff` liefern eine Seite, mit `page` und `pageSize` (1 bis 200, Standard 50), der Zahl der Änderungen pro Typ in `counts` und, falls es eine weitere Seite gibt, einem `nextCursor`, den du als `cursor` zusammen mit `page` + 1 schickst. Jeder Eintrag des Vergleichs enthält die `fields` der Entität mit ihrem Wert `current` und `target`, `changed` für ein Feld, das die Lösung ändert, und `catalogChanged` für ein Feld, dessen festgehaltener Wert vom Katalog abweicht; `inCatalog` ist falsch für eine neue Entität und für eine inzwischen gelöschte.

@@ -284,6 +284,35 @@ class SolutionLandscapeTests {
 		});
 	}
 
+	// Requirement: Delta type of a baseline entry (us-043-diff-view D0)
+
+	@Test
+	void deltaTypeOfAnEntry() {
+		int crm = entity(this.application, "CRM-Legacy");
+		int erp = entity(this.application, "ERP-Core");
+		int hr = entity(this.application, "HR-Suite");
+		int sap = entity(this.application, "SAP-Old");
+		String other = this.jdbc.queryForObject("""
+				INSERT INTO solutions (id, name, owner_id, created_by) VALUES (gen_random_uuid(), ?, ?, ?)
+				RETURNING id::text""", String.class, "Other " + UUID.randomUUID(), this.michaelId, this.michaelId);
+		delta(this.solution, "retiring", crm);
+		delta(this.solution, "modified", erp);
+		// a delta of another solution leaves this baseline without a type
+		delta(other, "retiring", sap);
+		JsonNode page = ok(landscape(""));
+		java.util.Map<String, JsonNode> types = new java.util.HashMap<>();
+		page.path("items").forEach((item) -> types.put(item.path("name").asString(), item.path("deltaType")));
+		assertThat(types.get("CRM-Legacy").asString()).isEqualTo("retiring");
+		assertThat(types.get("ERP-Core").asString()).isEqualTo("modified");
+		assertThat(types.get("HR-Suite").isNull()).isTrue();
+		assertThat(types.get("SAP-Old").isNull()).isTrue();
+		// the entry read carries it as well
+		assertThat(ok(call("/api/v1/solutions/" + this.solution + "/landscape/" + erp, this.michael)).path("deltaType")
+			.asString()).isEqualTo("modified");
+		assertThat(ok(call("/api/v1/solutions/" + this.solution + "/landscape/" + hr, this.michael)).path("deltaType")
+			.isNull()).isTrue();
+	}
+
 	@Test
 	void entryNotInTheBaseline() {
 		int deleted = entity(this.application, "Old");
@@ -301,7 +330,13 @@ class SolutionLandscapeTests {
 			.hasStatus(HttpStatus.FORBIDDEN);
 	}
 
-	private UUID property(String name, String dataType, String mode) {
+	private void delta(String solutionId, String type, int entityId) {
+		this.jdbc.update("""
+				INSERT INTO entity_deltas (id, solution_id, delta_type, entity_id, created_by)
+				VALUES (gen_random_uuid(), ?::uuid, ?, ?, ?)""", solutionId, type, entityId, this.michaelId);
+	}
+
+		private UUID property(String name, String dataType, String mode) {
 		return this.jdbc.queryForObject("""
 				INSERT INTO property_definitions (name, sql_column_name, data_type, visibility_mode)
 				VALUES (?, ?, ?, ?) RETURNING id""", UUID.class, name + " " + UUID.randomUUID().toString().substring(0, 8),

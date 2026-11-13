@@ -10,12 +10,15 @@ import io.oea.api.generated.model.Solution;
 import io.oea.api.generated.model.SolutionCreate;
 import io.oea.api.generated.model.SolutionDelta;
 import io.oea.api.generated.model.SolutionDeltaChange;
+import io.oea.api.generated.model.SolutionDeltaCounts;
 import io.oea.api.generated.model.SolutionDeltaList;
 import io.oea.api.generated.model.SolutionDeltaType;
 import io.oea.api.generated.model.SolutionDeltaUpdate;
 import io.oea.api.generated.model.SolutionDeltaValue;
 import io.oea.api.generated.model.SolutionDeltaValueValueRef;
 import io.oea.api.generated.model.SolutionDeltaWrite;
+import io.oea.api.generated.model.SolutionDiffEntry;
+import io.oea.api.generated.model.SolutionDiffField;
 import io.oea.api.generated.model.SolutionLandscapeEntity;
 import io.oea.api.generated.model.SolutionLandscapeEntry;
 import io.oea.api.generated.model.SolutionLandscapePage;
@@ -24,6 +27,7 @@ import io.oea.api.generated.model.SolutionSummary;
 import io.oea.app.entity.EntityInput;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.solution.SolutionDeltas;
+import io.oea.app.solution.SolutionDiff;
 import io.oea.app.solution.SolutionLandscape;
 import io.oea.app.solution.Solutions;
 import io.oea.config.security.OeaAuthentication;
@@ -48,10 +52,14 @@ public class SolutionController implements SolutionsApi {
 
 	private final SolutionDeltas deltas;
 
-	public SolutionController(Solutions solutions, SolutionLandscape landscape, SolutionDeltas deltas) {
+	private final SolutionDiff diff;
+
+	public SolutionController(Solutions solutions, SolutionLandscape landscape, SolutionDeltas deltas,
+			SolutionDiff diff) {
 		this.solutions = solutions;
 		this.landscape = landscape;
 		this.deltas = deltas;
+		this.diff = diff;
 	}
 
 	@Override
@@ -84,7 +92,8 @@ public class SolutionController implements SolutionsApi {
 					.name(entry.name())
 					.metatypeId(entry.metatypeId())
 					.metatypeName(entry.metatypeName())
-					.version(entry.version()))
+					.version(entry.version())
+					.deltaType(deltaType(entry.deltaType())))
 				.toList())
 			.page(new PageMeta().page(result.page())
 				.pageSize(result.pageSize())
@@ -119,8 +128,13 @@ public class SolutionController implements SolutionsApi {
 			.metatypeId(found.entry().metatypeId())
 			.metatypeName(found.entry().metatypeName())
 			.version(found.entry().version())
+			.deltaType(deltaType(found.entry().deltaType()))
 			.description(found.description())
 			.properties(found.properties().stream().map(SolutionController::value).toList()));
+	}
+
+	private static SolutionDeltaType deltaType(SolutionDeltas.Type type) {
+		return (type != null) ? SolutionDeltaType.fromValue(type.value()) : null;
 	}
 
 	private static SolutionDeltas.Type type(SolutionDeltaType type) {
@@ -140,9 +154,64 @@ public class SolutionController implements SolutionsApi {
 	}
 
 	@Override
-	public ResponseEntity<SolutionDeltaList> listSolutionDeltas(UUID id) {
+	public ResponseEntity<SolutionDeltaList> listSolutionDeltas(UUID id, Integer page, Integer pageSize, String cursor) {
+		SolutionDeltas.Page result = this.deltas.list(principal(), id, pageQuery(page, pageSize, cursor));
 		return ResponseEntity.ok(new SolutionDeltaList()
-			.items(this.deltas.list(principal(), id).stream().map(SolutionController::delta).toList()));
+			.items(result.items().stream().map(SolutionController::delta).toList())
+			.page(pageMeta(result))
+			.counts(counts(result.counts()))
+			.nextCursor(result.nextCursor()));
+	}
+
+	@Override
+	public ResponseEntity<io.oea.api.generated.model.SolutionDiff> getSolutionDiff(UUID id, Integer page,
+			Integer pageSize, String cursor) {
+		SolutionDiff.Page result = this.diff.read(principal(), id, pageQuery(page, pageSize, cursor));
+		return ResponseEntity.ok(new io.oea.api.generated.model.SolutionDiff()
+			.entries(result.entries().stream().map(SolutionController::diffEntry).toList())
+			.page(pageMeta(result.deltas()))
+			.counts(counts(result.deltas().counts()))
+			.nextCursor(result.deltas().nextCursor()));
+	}
+
+	private static SolutionDiffEntry diffEntry(SolutionDiff.Entry entry) {
+		return new SolutionDiffEntry().deltaId(entry.deltaId())
+			.deltaType(SolutionDeltaType.fromValue(entry.type().value()))
+			.entityId(entry.entityId())
+			.metatypeId(entry.metatypeId())
+			.metatypeName(entry.metatypeName())
+			.name(entry.name())
+			.inCatalog(entry.inCatalog())
+			.fields(entry.fields().stream().map(SolutionController::diffField).toList());
+	}
+
+	private static SolutionDiffField diffField(SolutionDiff.Field field) {
+		return new SolutionDiffField().field(SolutionDiffField.FieldEnum.fromValue(field.field()))
+			.propertyDefId(field.propertyDefId())
+			.propertyName(field.propertyName())
+			.dataType((field.dataType() != null) ? SolutionDiffField.DataTypeEnum.fromValue(field.dataType()) : null)
+			.redacted(field.redacted())
+			.current(typed(field.current()))
+			.target(typed(field.target()))
+			.changed(field.changed())
+			.catalogChanged(field.catalogChanged());
+	}
+
+	static SolutionDeltas.PageQuery pageQuery(Integer page, Integer pageSize, String cursor) {
+		return new SolutionDeltas.PageQuery((page != null) ? page : 0, (pageSize != null) ? pageSize : 50, cursor);
+	}
+
+	static PageMeta pageMeta(SolutionDeltas.Page page) {
+		return new PageMeta().page(page.page())
+			.pageSize(page.pageSize())
+			.totalElements(Math.toIntExact(page.counts().total()))
+			.totalPages(page.totalPages());
+	}
+
+	static SolutionDeltaCounts counts(SolutionDeltas.Counts counts) {
+		return new SolutionDeltaCounts()._new(Math.toIntExact(counts.newCount()))
+			.modified(Math.toIntExact(counts.modified()))
+			.retiring(Math.toIntExact(counts.retiring()));
 	}
 
 	@Override
