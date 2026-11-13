@@ -84,5 +84,13 @@ The weak points:
 Agreed with the repository owner on 2026-11-13:
 
 1. A hardening change before S12: ArchUnit extension and the three cycles resolved (ARCH-1, ARCH-2), the security schemes of the contract corrected (API-1, first part), and the forwarded client address (AA-01 of the security review).
-2. GitHub issues for the remaining findings: concurrency rule and `If-Match` (API-2), the module ADR (ARCH-3), the refactorings (ARCH-4 to ARCH-9), the frontend client (API-4) and the contract clean-up (API-3, API-5 to API-8).
-3. Service accounts and token authentication (API-1, second part) as a candidate topic for the sprint planning.
+2. GitHub issues for the remaining findings:
+   - [#257](https://github.com/open-enterprise-architecture/OEA/issues/257): concurrency rule and `If-Match` (API-2)
+   - [#258](https://github.com/open-enterprise-architecture/OEA/issues/258): the module ADR (ARCH-3)
+   - [#259](https://github.com/open-enterprise-architecture/OEA/issues/259): shared entity read API (ARCH-4)
+   - [#260](https://github.com/open-enterprise-architecture/OEA/issues/260): oversized classes and base exceptions (ARCH-5 to ARCH-7)
+   - [#261](https://github.com/open-enterprise-architecture/OEA/issues/261): typed frontend client and feature folders (API-4, ARCH-8, ARCH-9)
+   - [#262](https://github.com/open-enterprise-architecture/OEA/issues/262): contract clean-up (API-3, API-5 to API-8)
+3. [#264](https://github.com/open-enterprise-architecture/OEA/issues/264): service accounts and token authentication (API-1, second part) as a candidate topic for the sprint planning.
+
+The findings of the security review are tracked in [#256](https://github.com/open-enterprise-architecture/OEA/issues/256) (AA-02) and [#263](https://github.com/open-enterprise-architecture/OEA/issues/263) (open checks T-1 to T-4); AA-01 is part of the hardening change.
