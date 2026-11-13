@@ -94,3 +94,11 @@ Agreed with the repository owner on 2026-11-13:
 3. [#264](https://github.com/open-enterprise-architecture/OEA/issues/264): service accounts and token authentication (API-1, second part) as a candidate topic for the sprint planning.
 
 The findings of the security review are tracked in [#256](https://github.com/open-enterprise-architecture/OEA/issues/256) (AA-02) and [#263](https://github.com/open-enterprise-architecture/OEA/issues/263) (open checks T-1 to T-4); AA-01 is part of the hardening change.
+
+## Status Update 2026-11-14
+
+| Finding | Status | Resolution |
+|---|---|---|
+| ARCH-1 | **Resolved** | Change `s11-review-hardening` ([#266](https://github.com/open-enterprise-architecture/OEA/pull/266), merge commit `2826f0cc`): the adapters for OIDC, WebAuthn and secret encryption and the startup guards moved to `io.oea.infrastructure`; `LayerRules` covers every package with the layers API, Config, Application, Audit, Infrastructure, Core and Integration and fails on a class outside them (ADR-028, amendment 2026-11-13) |
+| ARCH-2 | **Resolved** | Same change: `InvalidAccessRequestException` moved to `app.shared`, `PersonPasswordProperties` to `app.access`; `CycleRules` forbids package cycles in the whole backend, with fixture tests |
+| API-1 | First part **resolved** | Same change: `bearerAuth`, `oauth2ClientCredentials` and `clientSecretBasic` carry `x-oea-status: planned`, `info.description` states that only `cookieAuth` is implemented; `scripts/check_openapi_authorization.py` and the startup check `SecuritySchemeCoverageCheck` fail when the markers and the accepted schemes disagree; a request with only a Bearer token gets 401. The second part (service accounts and token authentication) stays open in [#264](https://github.com/open-enterprise-architecture/OEA/issues/264) |
