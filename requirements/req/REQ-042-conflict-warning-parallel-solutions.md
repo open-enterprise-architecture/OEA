@@ -133,7 +133,7 @@ An "active" conflict exists when another solution – regardless of its concrete
 ## Implementation
 
 - ADR(s): –
-- Implemented by: OpenSpec change `us-044-conflict-warning`
+- Implemented by: OpenSpec change `us-044-conflict-warning`, commit 1e8ebe4 (#253)
 - Tests: –
 - Verification status: not-verified
 

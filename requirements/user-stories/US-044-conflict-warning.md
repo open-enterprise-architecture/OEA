@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S11
-**Implementation**: OpenSpec change `us-044-conflict-warning` – `conflicts` on every delta of `createSolutionDelta`, `updateSolutionDelta`, `listSolutionDeltas` (with `conflicted`) and `getSolutionDiff`, `parallelChanges` on the baseline entries, computed on each read; the warnings on SCR-061 and SCR-062; the setting per metatype `updateMetatypeParallelChanges` on SCR-030. Realigned 2026-11-13
+**Implementation**: OpenSpec change `us-044-conflict-warning`, commit 1e8ebe4 (#253) – `conflicts` on every delta of `createSolutionDelta`, `updateSolutionDelta`, `listSolutionDeltas` (with `conflicted`) and `getSolutionDiff`, `parallelChanges` on the baseline entries, computed on each read; the warnings on SCR-061 and SCR-062; the setting per metatype `updateMetatypeParallelChanges` on SCR-030. Realigned 2026-11-13
 
 ## Story
 
@@ -74,4 +74,4 @@ As a Solution Architect, I want to see a warning when another active solution al
 
 3 SP: The actual logic is a simple SQL join; the effort lies in the UI (persistent warning display on the delta, not just as a toast) and in the tests (various solution status combinations). Important: compute the warning on the fly, do not store it as a flag, so that it disappears automatically when the conflict resolves (AC4).
 
-- 2026-11-13: implemented by the OpenSpec change `us-044-conflict-warning` (S11 change 5). Owner decisions 2026-11-13: a conflict is a delta `modified` or `retiring` on the same entity in another active solution; two `new` deltas never conflict; the warning shows in the response of saving, on the delta list, in the header of SCR-061 and on the cards of SCR-062; the baseline marks entities changed by other active solutions for metatypes whose setting "Show parallel changes in the baseline" is on (default off, `metamodel:write`). AC3 and AC4 realigned, Technical Notes realigned to the arrays on the delta, the diff entry and the baseline entry.
+- 2026-11-13: implemented by the OpenSpec change `us-044-conflict-warning`, commit 1e8ebe4 (#253) (S11 change 5). Owner decisions 2026-11-13: a conflict is a delta `modified` or `retiring` on the same entity in another active solution; two `new` deltas never conflict; the warning shows in the response of saving, on the delta list, in the header of SCR-061 and on the cards of SCR-062; the baseline marks entities changed by other active solutions for metatypes whose setting "Show parallel changes in the baseline" is on (default off, `metamodel:write`). AC3 and AC4 realigned, Technical Notes realigned to the arrays on the delta, the diff entry and the baseline entry.
