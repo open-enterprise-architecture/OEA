@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S12
-**Implementation**: OpenSpec change `us-099-version-diff` – `getEntityVersion` (`GET /entities/{id}/versions/{version}`, `entity:read`): the complete state of a version, reconstructed from the history tables, with the properties mapped at the time including empty ones; `PUT` and `DELETE` on a version answer 405; "Show complete state vN" on SCR-026. Realigned 2026-11-14
+**Implementation**: OpenSpec change `us-099-version-diff`, commit 0326c22 (#274) – `getEntityVersion` (`GET /entities/{id}/versions/{version}`, `entity:read`): the complete state of a version, reconstructed from the history tables, with the properties mapped at the time including empty ones; `PUT` and `DELETE` on a version answer 405; "Show complete state vN" on SCR-026. Realigned 2026-11-14
 
 ## Story
 

@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: done
 **Sprint**: S12
-**Implementation**: OpenSpec change `us-099-version-diff` – `compareEntityVersions` (`GET /entities/{id}/diff`, `entity:read`): the net diff of the states of two versions, field by field with old and new value; the diff of a version against its predecessor on SCR-026, and the compare mode. Realigned 2026-11-14
+**Implementation**: OpenSpec change `us-099-version-diff`, commit 0326c22 (#274) – `compareEntityVersions` (`GET /entities/{id}/diff`, `entity:read`): the net diff of the states of two versions, field by field with old and new value; the diff of a version against its predecessor on SCR-026, and the compare mode. Realigned 2026-11-14
 
 ## Story
 
