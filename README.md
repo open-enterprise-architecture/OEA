@@ -37,10 +37,10 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | Use Cases | 24 |
 | Requirements | 204 |
 | User Stories | 151 |
-| ADRs | 49 |
+| ADRs | 50 |
 | Business Objects | 33 |
 
-_Concept: v0.20 · Last update: 2026-11-13._
+_Concept: v0.20 · Last update: 2026-11-14._
 <!-- /AUTO-GENERATED: stats -->
 
 **Next step**: Walking Skeleton based on UC-06 (Catalog Browser).
@@ -139,6 +139,7 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 | [ADR-047](adrs/ADR-047-real-time-collaboration.md) | Architecture of Real-Time Collaboration | accepted |
 | [ADR-048](adrs/ADR-048-webauthn-library.md) | WebAuthn Library for Passkey Enrollment and Login | accepted |
 | [ADR-049](adrs/ADR-049-organization-extensions-of-packages.md) | Organization Extensions of Package Metamodel Content | accepted |
+| [ADR-050](adrs/ADR-050-service-account-access-tokens.md) | Access Tokens of Service Accounts | accepted |
 <!-- /AUTO-GENERATED: adrs -->
 
 ## Development
