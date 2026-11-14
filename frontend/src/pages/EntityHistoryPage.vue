@@ -3,8 +3,20 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { rejectsCursor } from '../api/cursors'
-import { fetchEntityHistory, type EntityHistory, type EntityVersion, type EntityVersionChange, type HistoryQuery } from '../api/history'
+import {
+  compareEntityVersions,
+  fetchEntityHistory,
+  fetchEntityVersion,
+  type EntityHistory,
+  type EntityVersion,
+  type EntityVersionChange,
+  type EntityVersionDiff,
+  type EntityVersionState,
+  type HistoryQuery,
+} from '../api/history'
 import { rateLimitMessage, RequestRejected } from '../api/problem'
+import VersionDiff from '../components/history/VersionDiff.vue'
+import VersionState from '../components/history/VersionState.vue'
 import { currentLanguage } from '../i18n'
 import { label, labelKeys } from '../i18n/labels'
 import { refreshSession, session } from '../session/store'
@@ -14,6 +26,9 @@ import { refreshSession, session } from '../session/store'
 // it changed, without values. A field the reader may not read carries the badge "Restricted"; the
 // creation is "Created". Filters by period and person; "Load more" appends the next page. The
 // back link returns to the catalog the page was opened from (query parameter `from`).
+// Values (US-099, US-100; design D5 of us-099-version-diff): a version expands to its diff
+// against its predecessor and offers its complete state; "Compare" selects two versions and shows
+// their net diff in a panel. Versions are immutable, so diffs and states are loaded once.
 const props = defineProps<{ id: string; fetchFn?: typeof fetch }>()
 const { t } = useI18n()
 const route = useRoute()
@@ -31,6 +46,15 @@ const loadingMore = ref(false)
 const notFound = ref(false)
 const failure = ref<string>()
 const filter = reactive({ actor: ALL, from: '', to: '' })
+const expanded = reactive<Record<number, boolean>>({})
+const diffs = reactive<Record<number, EntityVersionDiff>>({})
+const states = reactive<Record<number, EntityVersionState>>({})
+const shownStates = reactive<Record<number, boolean>>({})
+const detailFailures = reactive<Record<number, string>>({})
+const comparing = ref(false)
+const selected = ref<number[]>([])
+const comparison = ref<EntityVersionDiff>()
+const compareFailure = ref<string>()
 
 const entityId = computed(() => Number(props.id))
 const canRead = computed(() => (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read'))
@@ -123,6 +147,65 @@ onMounted(async () => {
 
 watch(filter, () => load())
 
+function detailMessage(error: unknown): string {
+  return rateLimitMessage(error instanceof RequestRejected ? error.rejection : undefined) ?? t('history.detailFailed')
+}
+
+/** Expands or collapses a version; its diff against the predecessor is loaded once. */
+async function toggle(version: number) {
+  expanded[version] = !expanded[version]
+  if (!expanded[version] || version < 2 || diffs[version]) return
+  delete detailFailures[version]
+  try {
+    diffs[version] = await compareEntityVersions(entityId.value, version - 1, version, props.fetchFn)
+  } catch (error) {
+    detailFailures[version] = detailMessage(error)
+  }
+}
+
+/** Shows or hides the complete state of a version; it is loaded once. */
+async function toggleState(version: number) {
+  shownStates[version] = !shownStates[version]
+  if (!shownStates[version] || states[version]) return
+  delete detailFailures[version]
+  try {
+    states[version] = await fetchEntityVersion(entityId.value, version, props.fetchFn)
+  } catch (error) {
+    detailFailures[version] = detailMessage(error)
+  }
+}
+
+/** Selects a version for the comparison; a third one replaces the version selected first. */
+function select(version: number, checked: boolean) {
+  const next = selected.value.filter((candidate) => candidate !== version)
+  if (checked) next.push(version)
+  if (next.length > 2) next.shift()
+  selected.value = next
+}
+
+const range = computed(() => {
+  if (selected.value.length < 2) return undefined
+  const [from, to] = [...selected.value].sort((a, b) => a - b)
+  return { from: from!, to: to! }
+})
+
+watch(range, async (current) => {
+  comparison.value = undefined
+  compareFailure.value = undefined
+  if (!current) return
+  try {
+    const result = await compareEntityVersions(entityId.value, current.from, current.to, props.fetchFn)
+    // a later selection may have replaced this one meanwhile
+    if (range.value?.from === current.from && range.value?.to === current.to) comparison.value = result
+  } catch (error) {
+    compareFailure.value = detailMessage(error)
+  }
+})
+
+watch(comparing, (active) => {
+  if (!active) selected.value = []
+})
+
 function fieldLabel(change: EntityVersionChange): string {
   if (change.isSystemField) return t(`history.fields.${change.field}`)
   return label(labelKeys.property(change.field), change.label)
@@ -177,7 +260,29 @@ function day(value: string): string {
         <UFormField :label="t('history.to')" :error="periodInvalid ? t('history.periodInvalid') : undefined">
           <UInput v-model="filter.to" data-testid="history-to" type="date" />
         </UFormField>
+        <UButton
+          v-if="!unchanged"
+          data-testid="history-compare"
+          class="ms-auto"
+          color="neutral"
+          :variant="comparing ? 'solid' : 'outline'"
+          icon="i-lucide-git-compare"
+          :aria-pressed="comparing"
+          :label="comparing ? t('history.compareDone') : t('history.compare')"
+          @click="comparing = !comparing"
+        />
       </div>
+
+      <UCard v-if="comparing" data-testid="history-compare-panel">
+        <template #header>
+          <h2 class="font-semibold text-highlighted">
+            {{ range ? t('history.compareTitle', { from: range.from, to: range.to }) : t('history.compare') }}
+          </h2>
+        </template>
+        <p v-if="!range" data-testid="history-compare-hint" class="text-sm text-muted">{{ t('history.compareHint') }}</p>
+        <UAlert v-else-if="compareFailure" data-testid="history-compare-failure" color="error" variant="subtle" :description="compareFailure" />
+        <VersionDiff v-else-if="comparison" :changes="comparison.changes" />
+      </UCard>
 
       <UAlert v-if="failure" data-testid="history-failure" color="error" variant="subtle" :description="failure" />
 
@@ -197,12 +302,31 @@ function day(value: string): string {
       <ol v-else class="flex flex-col gap-3 border-s-2 border-default ps-4" data-testid="history-versions">
         <li v-for="version in versions" :key="version.version">
           <article :data-testid="`history-version-${version.version}`" class="flex flex-col gap-2 rounded-lg border border-default bg-default p-4">
-            <header class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <header class="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <UCheckbox
+                v-if="comparing"
+                :data-testid="`history-select-${version.version}`"
+                :model-value="selected.includes(version.version)"
+                :aria-label="t('history.select', { version: version.version })"
+                @update:model-value="(checked: boolean | 'indeterminate') => select(version.version, checked === true)"
+              />
               <h2 class="font-semibold text-highlighted">
                 {{ version.version === 1 ? t('history.created') : t('history.version', { version: version.version }) }}
               </h2>
               <time data-testid="history-time" :datetime="version.changedAt" class="text-sm text-muted">{{ time(version.changedAt) }}</time>
               <span data-testid="history-actor" class="text-sm">{{ version.changedBy.name }}</span>
+              <UButton
+                :data-testid="`history-toggle-${version.version}`"
+                class="ms-auto"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                :icon="expanded[version.version] ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+                :aria-expanded="expanded[version.version] === true"
+                :aria-controls="`history-details-${version.version}`"
+                :label="expanded[version.version] ? t('history.hideDetails') : t('history.details')"
+                @click="toggle(version.version)"
+              />
             </header>
             <ul v-if="version.changes.length > 0" class="flex flex-wrap gap-2" :aria-label="t('history.changedFields')">
               <li v-for="change in version.changes" :key="change.field" :data-testid="`history-change-${change.field}`">
@@ -218,6 +342,32 @@ function day(value: string): string {
               </li>
             </ul>
             <p v-else-if="version.version > 1" data-testid="history-no-fields" class="text-sm text-muted italic">{{ t('history.noFields') }}</p>
+            <div
+              v-if="expanded[version.version]"
+              :id="`history-details-${version.version}`"
+              :data-testid="`history-details-${version.version}`"
+              class="flex flex-col gap-3 border-t border-default pt-3"
+            >
+              <UAlert
+                v-if="detailFailures[version.version]"
+                data-testid="history-detail-failure"
+                color="error"
+                variant="subtle"
+                :description="detailFailures[version.version]"
+              />
+              <VersionDiff v-if="version.version > 1 && diffs[version.version]" :changes="diffs[version.version]!.changes" />
+              <div>
+                <UButton
+                  :data-testid="`history-show-state-${version.version}`"
+                  color="neutral"
+                  variant="link"
+                  icon="i-lucide-file-text"
+                  :label="shownStates[version.version] ? t('history.hideState') : t('history.showState', { version: version.version })"
+                  @click="toggleState(version.version)"
+                />
+              </div>
+              <VersionState v-if="shownStates[version.version] && states[version.version]" :state="states[version.version]!" />
+            </div>
           </article>
         </li>
       </ol>

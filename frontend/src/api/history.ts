@@ -4,12 +4,18 @@ import { currentCsrfToken } from './session'
 
 // The change history of an entity (SCR-026, US-098; design D4, D5 of us-098-entity-history): the
 // versions newest first with the fields they changed, without values, and the history visibility
-// per role and metatype for security administration (section on SCR-032).
+// per role and metatype for security administration (section on SCR-032). The values of a version
+// (US-099, US-100; design D4 of us-099-version-diff): its complete state and the net diff of two.
 
 export type EntityHistory = components['schemas']['EntityHistoryResponse']
 export type EntityVersion = components['schemas']['EntityVersionSummary']
 export type EntityVersionChange = components['schemas']['EntityVersionChange']
 export type HistoryActor = components['schemas']['EntityHistoryActor']
+export type EntityVersionState = components['schemas']['EntityVersionState']
+export type EntityVersionField = components['schemas']['EntityVersionField']
+export type EntityVersionDiff = components['schemas']['EntityVersionDiff']
+export type FieldDiff = components['schemas']['FieldDiff']
+export type EntityVersionDataType = components['schemas']['EntityVersionDataType']
 export type HistoryVisibilityEntry = components['schemas']['HistoryVisibilityEntry']
 export type HistoryVisibilityMode = HistoryVisibilityEntry['mode']
 
@@ -47,6 +53,27 @@ export async function fetchEntityHistory(id: number, query: HistoryQuery = {}, f
     throw new RequestRejected(await readRejection(response))
   }
   return (await response.json()) as EntityHistory
+}
+
+/** GET /entities/{id}/versions/{version}: the complete state of a version; an unknown entity or version is 404. */
+export async function fetchEntityVersion(id: number, version: number, fetchFn: typeof fetch = fetch): Promise<EntityVersionState> {
+  const response = await fetchFn(`/api/v1/entities/${id}/versions/${version}`, { credentials: 'same-origin', headers: JSON_HEADERS })
+  if (!response.ok) {
+    throw new RequestRejected(await readRejection(response))
+  }
+  return (await response.json()) as EntityVersionState
+}
+
+/**
+ * GET /entities/{id}/diff: the fields whose value differs between the states of `from` and `to`
+ * (net diff). `from` below 1 or not before `to` is 400 naming `from`, an unknown version 404.
+ */
+export async function compareEntityVersions(id: number, from: number, to: number, fetchFn: typeof fetch = fetch): Promise<EntityVersionDiff> {
+  const response = await fetchFn(`/api/v1/entities/${id}/diff?from=${from}&to=${to}`, { credentials: 'same-origin', headers: JSON_HEADERS })
+  if (!response.ok) {
+    throw new RequestRejected(await readRejection(response))
+  }
+  return (await response.json()) as EntityVersionDiff
 }
 
 /** GET /admin/history-visibility: the configured entries; a pair that is not listed is `show-restricted`. */

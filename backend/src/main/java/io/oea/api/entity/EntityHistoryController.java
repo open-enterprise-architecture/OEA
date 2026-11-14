@@ -5,9 +5,15 @@ import io.oea.api.generated.model.EntityHistoryActor;
 import io.oea.api.generated.model.EntityHistoryResponse;
 import io.oea.api.generated.model.EntityHistoryResponseCreated;
 import io.oea.api.generated.model.EntityVersionChange;
+import io.oea.api.generated.model.EntityVersionDataType;
+import io.oea.api.generated.model.EntityVersionDiff;
+import io.oea.api.generated.model.EntityVersionField;
+import io.oea.api.generated.model.EntityVersionState;
 import io.oea.api.generated.model.EntityVersionSummary;
+import io.oea.api.generated.model.FieldDiff;
 import io.oea.api.generated.model.PageMeta;
 import io.oea.app.history.EntityHistory;
+import io.oea.app.history.EntityVersions;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.config.security.OeaAuthentication;
 import java.time.Instant;
@@ -20,16 +26,20 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.NativeWebRequest;
 
 /**
- * The change history of an entity (US-098, design D4 of us-098-entity-history). The other
- * operations of the interface are still planned and answered with 501 by its defaults.
+ * The change history of an entity (US-098, design D4 of us-098-entity-history) and the values
+ * of its versions (US-099, US-100, design D4 of us-099-version-diff). The other operations of
+ * the interface are still planned and answered with 501 by its defaults.
  */
 @RestController
 public class EntityHistoryController implements EntitiesApi {
 
 	private final EntityHistory history;
 
-	public EntityHistoryController(EntityHistory history) {
+	private final EntityVersions versions;
+
+	public EntityHistoryController(EntityHistory history, EntityVersions versions) {
 		this.history = history;
+		this.versions = versions;
 	}
 
 	/** No example responses are rendered for the planned operations. */
@@ -70,6 +80,43 @@ public class EntityHistoryController implements EntitiesApi {
 				.changedBy(actor(result.created().changedBy())));
 		}
 		return ResponseEntity.ok(response);
+	}
+
+	@Override
+	public ResponseEntity<EntityVersionState> getEntityVersion(Integer id, Integer version) {
+		EntityVersions.State state = this.versions.state(principal(), id, version);
+		return ResponseEntity.ok(new EntityVersionState().entityId(state.entityId())
+			.entityName(state.entityName())
+			.version(state.version())
+			.changedAt(time(state.changedAt()))
+			.changedBy(actor(state.changedBy()))
+			.fields(state.fields()
+				.stream()
+				.map((field) -> new EntityVersionField().field(field.field())
+					.label(field.label())
+					.isSystemField(field.systemField())
+					.dataType(EntityVersionDataType.fromValue(field.dataType()))
+					.value(field.value())
+					.restricted(field.restricted()))
+				.toList()));
+	}
+
+	@Override
+	public ResponseEntity<EntityVersionDiff> compareEntityVersions(Integer id, Integer from, Integer to) {
+		EntityVersions.Diff diff = this.versions.compare(principal(), id, from, to);
+		return ResponseEntity.ok(new EntityVersionDiff().entityId(diff.entityId())
+			.from(diff.from())
+			.to(diff.to())
+			.changes(diff.changes()
+				.stream()
+				.map((change) -> new FieldDiff().field(change.field())
+					.label(change.label())
+					.isSystemField(change.systemField())
+					.dataType(EntityVersionDataType.fromValue(change.dataType()))
+					.oldValue(change.oldValue())
+					.newValue(change.newValue())
+					.redacted(change.redacted()))
+				.toList()));
 	}
 
 	private static EntityHistoryActor actor(EntityHistory.Actor actor) {

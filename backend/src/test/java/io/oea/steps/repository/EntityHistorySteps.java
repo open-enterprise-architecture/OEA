@@ -29,11 +29,12 @@ import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Steps for features/repository/entity-history.feature and
- * features/metamodel/history-visibility.feature (us-098-entity-history), on the instance of the
- * metamodel features. The history is written directly into the history tables, version n at
- * 2026-11-02T08:00Z + n hours. `dev-auditor` holds `viewer` and `auditor`; the security
- * administrator is `dev-security-admin`. Every scenario resets the history visibility, the
- * override role list and the account link it changed.
+ * features/metamodel/history-visibility.feature (us-098-entity-history), and the shared
+ * preconditions of features/repository/entity-versions.feature (us-099-version-diff), on the
+ * instance of the metamodel features. The history is written directly into the history tables,
+ * version n at 2026-11-02T08:00Z + n hours. `dev-auditor` holds `viewer` and `auditor`; the
+ * security administrator is `dev-security-admin`. Every scenario resets the history visibility,
+ * the override role list and the account link it changed.
  */
 public class EntityHistorySteps {
 
@@ -82,6 +83,28 @@ public class EntityHistorySteps {
 		for (String role : this.limitRoles) {
 			instance().oidc().update("DELETE FROM authorization_roles WHERE id = '%s'".formatted(role));
 		}
+	}
+
+	// Shared with EntityVersionsSteps
+
+	/** The ID of an entity of the scenario. */
+	int entityId(String name) {
+		return this.entities.get(name);
+	}
+
+	/** The ID of a person of the scenario. */
+	long personId(String name) {
+		return this.persons.get(name);
+	}
+
+	/** The definition ID of a property of the scenario. */
+	String propertyId(String name) {
+		return this.properties.get(name);
+	}
+
+	/** The scenario name of a property definition ID, or the ID. */
+	String propertyName(String id) {
+		return this.propertyNames.getOrDefault(id, id);
 	}
 
 	// Preconditions

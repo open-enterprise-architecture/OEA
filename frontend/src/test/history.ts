@@ -1,8 +1,9 @@
-import type { EntityVersion, EntityVersionChange, HistoryActor, HistoryVisibilityEntry } from '../api/history'
+import type { EntityVersion, EntityVersionChange, EntityVersionDataType, EntityVersionField, FieldDiff, HistoryActor, HistoryVisibilityEntry } from '../api/history'
 
-// A fake backend for SCR-026 (us-098-entity-history): the history of an entity with the period and
-// person filters, paging by cursor, 404 for an unknown entity, and the history visibility of the
-// section on SCR-032 with the 422 of an unknown role.
+// A fake backend for SCR-026 (us-098-entity-history, us-099-version-diff): the history of an
+// entity with the period and person filters, paging by cursor, 404 for an unknown entity, the
+// complete state of a version and the net diff of two versions, and the history visibility of
+// the section on SCR-032 with the 422 of an unknown role.
 
 function me(displayName: string, permissions: string[]) {
   return {
@@ -26,6 +27,8 @@ export const HISTORY_IDS = {
   large: 103,
   cost: 'fd200000-0000-4000-8000-000000000001',
   status: 'fd200000-0000-4000-8000-000000000002',
+  owner: 'fd200000-0000-4000-8000-000000000003',
+  goLive: 'fd200000-0000-4000-8000-000000000004',
 }
 
 const system = (field: string, label: string): EntityVersionChange => ({ field, label, isSystemField: true, restricted: false })
@@ -54,9 +57,33 @@ export function manyVersions(count: number): EntityVersion[] {
   return Array.from({ length: count }, (_, index) => version(count - index, MICHAEL, count - index > 1 ? [system('name', 'Name')] : []))
 }
 
+function field(field: string, label: string, dataType: EntityVersionDataType, value: string | null, restricted = false): EntityVersionField {
+  return { field, label, isSystemField: dataType === 'system', dataType, value: restricted ? null : value, restricted }
+}
+
+/**
+ * The state of CRM System at a version, matching CRM_VERSIONS: the name is "CRM" up to version 3,
+ * the description is set in version 3, the lifecycle status is Planned, Active from version 2 and
+ * Retiring from version 5; Owner is mapped and empty; Investment Cost is restricted.
+ */
+export function crmState(version: number): EntityVersionField[] {
+  return [
+    field('name', 'Name', 'system', version >= 4 ? 'CRM System' : 'CRM'),
+    field('description', 'Description', 'system', version >= 3 ? 'Customer relationship management' : null),
+    field('isLogical', 'Logical', 'system', 'true'),
+    field('metatypeId', 'Metatype', 'system', 'Application Component'),
+    field(HISTORY_IDS.status, 'Lifecycle Status', 'enum', version >= 5 ? 'Retiring' : version >= 2 ? 'Active' : 'Planned'),
+    field(HISTORY_IDS.owner, 'Owner', 'string', null),
+    field(HISTORY_IDS.cost, 'Investment Cost', 'integer', null, true),
+    field(HISTORY_IDS.goLive, 'Go-live', 'date', '2026-12-01'),
+  ]
+}
+
 interface HistoryEntity {
   name: string
   versions: EntityVersion[]
+  /** The fields of a version; without it, only the name. */
+  state?: (version: number) => EntityVersionField[]
 }
 
 export function historyApi(
@@ -67,13 +94,17 @@ export function historyApi(
   } = {},
 ) {
   const entities: Record<number, HistoryEntity> = options.entities ?? {
-    [HISTORY_IDS.crm]: { name: 'CRM System', versions: CRM_VERSIONS },
+    [HISTORY_IDS.crm]: { name: 'CRM System', versions: CRM_VERSIONS, state: crmState },
     [HISTORY_IDS.billing]: { name: 'Billing', versions: [version(1, KURT)] },
     [HISTORY_IDS.large]: { name: 'Large System', versions: manyVersions(51) },
   }
   let visibility = [...(options.visibility ?? [])]
   const queries: URLSearchParams[] = []
   const puts: HistoryVisibilityEntry[][] = []
+  const diffs: string[] = []
+  const states: number[] = []
+  const stateOf = (entity: HistoryEntity, version: number) => entity.state?.(version) ?? [field('name', 'Name', 'system', entity.name)]
+  const latest = (entity: HistoryEntity) => Math.max(...entity.versions.map((candidate) => candidate.version))
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': status < 400 ? 'application/json' : 'application/problem+json' } })
   const problem = (status: number, invalidFields: string[] = []) => ({
@@ -87,6 +118,48 @@ export function historyApi(
     const method = init?.method ?? 'GET'
     if (url.pathname === '/api/v1/me') {
       return json(options.me ?? ME_HISTORY_READER)
+    }
+    const versionMatch = /^\/api\/v1\/entities\/(\d+)\/versions\/(\d+)$/.exec(url.pathname)
+    if (versionMatch && method === 'GET') {
+      const entity = entities[Number(versionMatch[1])]
+      const number = Number(versionMatch[2])
+      states.push(number)
+      if (!entity || number < 1 || number > latest(entity)) return json(problem(404), 404)
+      const header = entity.versions.find((candidate) => candidate.version === number)!
+      return json({
+        entityId: Number(versionMatch[1]),
+        entityName: entity.name,
+        version: number,
+        changedAt: header.changedAt,
+        changedBy: header.changedBy,
+        fields: stateOf(entity, number),
+      })
+    }
+    const diffMatch = /^\/api\/v1\/entities\/(\d+)\/diff$/.exec(url.pathname)
+    if (diffMatch) {
+      const entity = entities[Number(diffMatch[1])]
+      const from = Number(url.searchParams.get('from'))
+      const to = Number(url.searchParams.get('to'))
+      diffs.push(`from=${from}&to=${to}`)
+      if (!entity) return json(problem(404), 404)
+      if (from < 1 || from >= to) return json(problem(400, ['from']), 400)
+      if (to > latest(entity)) return json(problem(404), 404)
+      const before = new Map(stateOf(entity, from).map((candidate) => [candidate.field, candidate]))
+      // a restricted field is listed when a version in between changed it
+      const changedBetween = new Set(
+        entity.versions.filter((candidate) => candidate.version > from && candidate.version <= to).flatMap((candidate) => candidate.changes.map((change) => change.field)),
+      )
+      const changes: FieldDiff[] = stateOf(entity, to).flatMap((after): FieldDiff[] => {
+        const old = before.get(after.field)
+        if (after.restricted) {
+          return changedBetween.has(after.field)
+            ? [{ field: after.field, label: after.label, isSystemField: false, dataType: after.dataType, oldValue: null, newValue: null, redacted: true }]
+            : []
+        }
+        if ((old?.value ?? null) === after.value) return []
+        return [{ field: after.field, label: after.label, isSystemField: after.isSystemField, dataType: after.dataType, oldValue: old?.value ?? null, newValue: after.value, redacted: false }]
+      })
+      return json({ entityId: Number(diffMatch[1]), from, to, changes })
     }
     const match = /^\/api\/v1\/entities\/(\d+)\/history$/.exec(url.pathname)
     if (match) {
@@ -139,5 +212,5 @@ export function historyApi(
     }
     return json(problem(404), 404)
   }
-  return { fetch: fetchFn, queries, puts }
+  return { fetch: fetchFn, queries, puts, diffs, states }
 }

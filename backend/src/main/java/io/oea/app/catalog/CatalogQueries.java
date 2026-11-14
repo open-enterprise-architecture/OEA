@@ -1,6 +1,7 @@
 package io.oea.app.catalog;
 
 import io.oea.app.catalog.CatalogColumns.Resolved;
+import io.oea.app.metamodel.OverrideAccessAudit;
 import io.oea.app.metamodel.PropertyAccess;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
@@ -59,6 +60,8 @@ public class CatalogQueries {
 
 	private final AuditWriter audit;
 
+	private final OverrideAccessAudit overrideAudit;
+
 	private final TransactionTemplate transactions;
 
 	private final long timeoutMillis;
@@ -78,6 +81,7 @@ public class CatalogQueries {
 		this.cursors = cursors;
 		this.metrics = metrics;
 		this.audit = audit;
+		this.overrideAudit = new OverrideAccessAudit(audit);
 		this.transactions = new TransactionTemplate(transactionManager);
 		this.transactions.setReadOnly(true);
 		this.timeoutMillis = properties.queryTimeout().toMillis();
@@ -585,24 +589,7 @@ public class CatalogQueries {
 				collect(query, access, found, names, entities);
 			}
 		}
-		if (entities.isEmpty()) {
-			return;
-		}
-		List<Map<String, Object>> properties = new ArrayList<>();
-		entities.forEach((id, ids) -> {
-			Map<String, Object> property = new LinkedHashMap<>();
-			property.put("propertyDefId", id.toString());
-			property.put("property", names.get(id));
-			property.put("entityIds", List.copyOf(ids));
-			properties.add(property);
-		});
-		Map<String, Object> details = new LinkedHashMap<>();
-		details.put("channel", channel.tag());
-		details.put("page", page);
-		details.put("properties", properties);
-		this.audit.appendIndependently(new AuditEvent("property-override-access", AuditEvent.Category.SECURITY,
-				AuditEvent.Severity.WARNING, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal),
-				"catalog", catalogId.toString(), details));
+		this.overrideAudit.append(principal, channel.tag(), page, "catalog", catalogId.toString(), names, entities);
 	}
 
 	/** Whether the column's values are read through the override, for all or (scoped) some entities. */
