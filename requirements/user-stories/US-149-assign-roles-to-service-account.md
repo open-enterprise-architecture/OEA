@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: in-progress
 **Sprint**: S12
-**Implementation**: OpenSpec change `us-142-service-accounts` – roles of a service account as local role assignments, only roles flagged `assignableToServiceAccounts` (SoD-4, 422 and `authz.denied`), setting or changing them needs `role:assign`; "Edit roles" on SCR-041 offers only assignable roles (AC1, AC3; AC4 was implemented by `us-128-override-role-list`). AC2 and AC5 need a token and follow with change `s12-client-credentials-token`
+**Implementation**: OpenSpec change `us-142-service-accounts`, commit ea1221a (#277) – roles of a service account as local role assignments, only roles flagged `assignableToServiceAccounts` (SoD-4, 422 and `authz.denied`), setting or changing them needs `role:assign`; "Edit roles" on SCR-041 offers only assignable roles (AC1, AC3; AC4 was implemented by `us-128-override-role-list`). AC2 and AC5 need a token and follow with change `s12-client-credentials-token`
 
 ## Story
 
