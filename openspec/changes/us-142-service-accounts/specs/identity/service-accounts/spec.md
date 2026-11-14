@@ -171,6 +171,22 @@ Trace: REQ-172, REQ-155
 - **WHEN** a system administrator who authenticated 4 minutes and 59 seconds ago rotates a secret
 - **THEN** the secret is rotated
 
+### Requirement: Service accounts in the setup phase
+
+Creating a service account SHALL count as an action that gives another identity access (ADR-042). In the setup phase it SHALL need a system admin with an active TOTP credential in a second-factor-verified session, and SHALL end the setup phase with the triggering action `service-account`. Without the second factor, the request SHALL be rejected and SHALL create nothing.
+
+Trace: ADR-042 §2, REQ-171
+
+#### Scenario: First service account ends the setup phase
+
+- **WHEN** the system admin creates the first service account in the setup phase, with an active TOTP credential in a second-factor-verified session
+- **THEN** the account is created, and the setup phase ends with the triggering action `service-account`
+
+#### Scenario: Setup phase without second factor
+
+- **WHEN** the system admin creates a service account in the setup phase in a session not verified with a second factor
+- **THEN** the request is rejected and no service account is created
+
 ### Requirement: List service accounts
 
 A principal with `service-account:manage` SHALL list all service accounts with client ID, name, description, status, roles, creation time, last use, last rotation and the expiry of the active secret, optionally filtered by status. No entry SHALL contain a secret or its hash.

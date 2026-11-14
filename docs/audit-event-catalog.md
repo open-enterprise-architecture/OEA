@@ -153,7 +153,7 @@ A request was refused with 403 by an authorization decision ([REQ-175](../requir
 | Category / severity / outcome | `security` / `warning` / `denied` |
 | Actor | the requesting principal |
 | Target | `target_id`: the path variable `id` of the request, or its only path variable, if any; `target_type`: the affected object type where the decision knows it, e.g. `idp-group-mapping` |
-| Details | `reason` (`missing-permission`, `condition`, `second-factor-required`, `self-administration`: SoD-1, US-147 AC5, or `admin-reset-restricted`: a password or factor reset of an administrator by someone else than the system admin account, REQ-173 AC3), `operation` (operation ID of the contract); summary events additionally `summary`, `suppressedCount`, `windowStart`, `windowEnd` |
+| Details | `reason` (`missing-permission`, `condition`, `second-factor-required`, `self-administration`: SoD-1, US-147 AC5, `admin-reset-restricted`: a password or factor reset of an administrator by someone else than the system admin account, REQ-173 AC3, or `sod-4`: a role not assignable to service accounts in a service account request, with the 422 of that request, ADR-032 SoD-4), `operation` (operation ID of the contract); summary events additionally `summary`, `suppressedCount`, `windowStart`, `windowEnd` |
 
 ### `auth.factor-added`
 
@@ -197,7 +197,7 @@ The first action that gives another identity access ended the setup phase ([ADR-
 | Category / severity / outcome | `security` / `high` / `success` |
 | Actor | `system-admin-account` |
 | Target | `system-settings`, `1` |
-| Details | `triggeringAction` (`identity-binding` or `idp-group-mapping`) |
+| Details | `triggeringAction` (`identity-binding`, `idp-group-mapping`, `role-assignment` or `service-account`) |
 
 ### `system-admin-account.deactivated`
 
@@ -409,6 +409,50 @@ An IdP group mapping was created, changed or (softly) deleted ([REQ-167](../requ
 | Actor | the administrator |
 | Target | `idp-group-mapping`, ID of the mapping |
 | Details | `authProviderId`, `groupIdentifier`, `roleId`, `active` (state after the change) |
+
+### `service-account.created`
+
+A service account was created with its first client secret ([US-142](../requirements/user-stories/US-142-create-service-account.md), REQ-155; change us-142-service-accounts). Its roles are recorded as `role.assigned`. Neither the secret nor its hash is part of the event.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` / `success` |
+| Actor | the administrator with `service-account:manage` |
+| Target | `service-account`, client ID |
+| Details | `personId`, `name`, `roles`, `secretExpiresAt` |
+
+### `service-account.updated`
+
+Name, description or roles of a service account were changed ([US-149](../requirements/user-stories/US-149-assign-roles-to-service-account.md)). Added and removed roles are also recorded as `role.assigned` and `role.revoked`.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `info` / `success` |
+| Actor | the administrator with `service-account:manage` |
+| Target | `service-account`, client ID |
+| Details | `personId`, `name` (`before`, `after`) if changed, `descriptionChanged`, `rolesAdded`, `rolesRemoved` |
+
+### `service-account.secret-rotated`
+
+The client secret of a service account was replaced; the previous secret is invalid from then on ([US-142](../requirements/user-stories/US-142-create-service-account.md) AC3, REQ-155). Neither secret nor hash is part of the event.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` / `success` |
+| Actor | the administrator with `service-account:manage` |
+| Target | `service-account`, client ID |
+| Details | `personId`, `secretExpiresAt` |
+
+### `service-account.deactivated`
+
+A service account was deactivated for good: its secret and its role assignments were revoked (REQ-155). The revoked roles are also recorded as `role.revoked`.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `high` / `success` |
+| Actor | the administrator with `service-account:manage` |
+| Target | `service-account`, client ID |
+| Details | `personId`, `rolesRevoked` |
 
 ### `metamodel.package-imported`
 
@@ -765,4 +809,4 @@ An entity delta was removed from a solution, with its property values ([REQ-040]
 
 ## Planned Event Types
 
-Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `service-account.created`, `service-account.secret-rotated`, `service-account.deactivated`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.deleted` and further `entity.*`, further `metamodel.*` (connection metatypes, fork).
+Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.deleted` and further `entity.*`, further `metamodel.*` (connection metatypes, fork).

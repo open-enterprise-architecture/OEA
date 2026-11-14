@@ -27,10 +27,16 @@ import io.oea.app.access.AuthProviders;
 import io.oea.app.access.LocalAdminAccount;
 import io.oea.app.access.PasswordPolicies;
 import io.oea.app.access.SecondFactorPolicies;
+import io.oea.app.access.ServiceAccounts;
+import io.oea.api.generated.model.ServiceAccount;
+import io.oea.api.generated.model.ServiceAccountCreated;
+import io.oea.api.generated.model.ServiceAccountRotation;
+import io.oea.api.generated.model.ServiceAccountWrite;
 import io.oea.app.metamodel.PackageConflictException;
 import io.oea.app.metamodel.PackageImporter;
 import io.oea.app.metamodel.StarterPackages;
 import io.oea.app.security.OeaPrincipal;
+import io.oea.config.security.ConditionsEnforcedByHandler;
 import io.oea.config.security.OeaAuthentication;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -47,7 +53,8 @@ import org.springframework.web.bind.annotation.RestController;
  * a provider are not implemented, a provider is deactivated with {@code enabled: false}) and
  * metamodel package imports (us-033-import-metamodel), the password policy
  * (us-027-password-administration), the second-factor policy (us-031-second-factor-enforcement)
- * and the history visibility (us-098-entity-history D3).
+ * the history visibility (us-098-entity-history D3) and the service accounts
+ * (us-142-service-accounts).
  */
 @RestController
 public class AdminController implements AdminApi {
@@ -72,11 +79,24 @@ public class AdminController implements AdminApi {
 
 	private final io.oea.app.metamodel.HistoryVisibility historyVisibility;
 
+	private final ServiceAccounts serviceAccounts;
+
+	/**
+	 * Probe of the role conditions of the service account operations: a role with
+	 * {@code service-account:manage} without {@code role:assign}, which no built-in role is, and a
+	 * service account without roles; both are created by the probe test.
+	 */
+	public static final String PROBE_ACCOUNT_MANAGER = "probe-account-manager";
+
+	public static final String PROBE_SERVICE_ACCOUNT = "00000000-0000-4000-8000-00000000a11c";
+
 	public AdminController(AuthProviders providers, PackageImporter packageImporter,
 			StarterPackages starterPackages, LocalAdminAccount localAdmin, PasswordPolicies policies,
 			SecondFactorPolicies secondFactorPolicies, PropertyVisibility visibility, PersonMetatypes personMetatypes,
-			VisibilityOverride override, io.oea.app.metamodel.HistoryVisibility historyVisibility) {
+			VisibilityOverride override, io.oea.app.metamodel.HistoryVisibility historyVisibility,
+			ServiceAccounts serviceAccounts) {
 		this.historyVisibility = historyVisibility;
+		this.serviceAccounts = serviceAccounts;
 		this.personMetatypes = personMetatypes;
 		this.override = override;
 		this.providers = providers;
@@ -306,6 +326,50 @@ public class AdminController implements AdminApi {
 			.clientId(provider.clientId())
 			.scopes(provider.scopes())
 			.clientSecretSet(provider.clientSecretSet());
+	}
+
+	@Override
+	public ResponseEntity<List<ServiceAccount>> listServiceAccounts(Boolean active) {
+		return ResponseEntity
+			.ok(this.serviceAccounts.list(active).stream().map(ServiceAccountViews::account).toList());
+	}
+
+	@Override
+	public ResponseEntity<ServiceAccount> getServiceAccount(UUID id) {
+		return ResponseEntity.ok(ServiceAccountViews.account(this.serviceAccounts.get(id)));
+	}
+
+	@Override
+	@ConditionsEnforcedByHandler(value = "ServiceAccounts.requireRoleAssign: roles in the body need role:assign",
+			probeRole = PROBE_ACCOUNT_MANAGER, probeBody = """
+					{"name": "probe-created", "roles": ["viewer"]}""")
+	public ResponseEntity<ServiceAccountCreated> createServiceAccount(ServiceAccountWrite request) {
+		return ResponseEntity.status(HttpStatus.CREATED)
+			.body(ServiceAccountViews
+				.created(this.serviceAccounts.create(principal(), ServiceAccountViews.request(request))));
+	}
+
+	@Override
+	@ConditionsEnforcedByHandler(value = "ServiceAccounts.requireRoleAssign: changed roles need role:assign",
+			probeRole = PROBE_ACCOUNT_MANAGER, probeBody = """
+					{"name": "probe-account", "roles": ["viewer"]}""",
+			probePath = "/api/v1/admin/service-accounts/" + PROBE_SERVICE_ACCOUNT)
+	public ResponseEntity<ServiceAccount> updateServiceAccount(UUID id, ServiceAccountWrite request) {
+		return ResponseEntity.ok(ServiceAccountViews
+			.account(this.serviceAccounts.update(principal(), id, ServiceAccountViews.request(request))));
+	}
+
+	@Override
+	public ResponseEntity<ServiceAccountCreated> rotateServiceAccountCredentials(UUID id,
+			ServiceAccountRotation request) {
+		Integer validity = (request != null) ? request.getSecretValidityDays() : null;
+		return ResponseEntity.ok(ServiceAccountViews.created(this.serviceAccounts.rotate(principal(), id, validity)));
+	}
+
+	@Override
+	public ResponseEntity<Void> deleteServiceAccount(UUID id) {
+		this.serviceAccounts.deactivate(principal(), id);
+		return ResponseEntity.noContent().build();
 	}
 
 	private static OeaPrincipal principal() {

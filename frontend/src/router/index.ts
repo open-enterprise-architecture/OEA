@@ -9,6 +9,7 @@ import MetamodelPage from '../pages/MetamodelPage.vue'
 import PropertyVisibilityPage from '../pages/PropertyVisibilityPage.vue'
 import OverrideRolesPage from '../pages/OverrideRolesPage.vue'
 import AuthorizationRolesPage from '../pages/AuthorizationRolesPage.vue'
+import ServiceAccountsPage from '../pages/ServiceAccountsPage.vue'
 import SolutionDiffPage from '../pages/SolutionDiffPage.vue'
 import SolutionPage from '../pages/SolutionPage.vue'
 import SolutionsPage from '../pages/SolutionsPage.vue'
@@ -40,6 +41,7 @@ export const router = createRouter({
     { path: '/admin/property-visibility', name: 'property-visibility', component: PropertyVisibilityPage },
     { path: '/admin/override-roles', name: 'override-roles', component: OverrideRolesPage },
     { path: '/admin/roles', name: 'authorization-roles', component: AuthorizationRolesPage },
+    { path: '/admin/service-accounts', name: 'service-accounts', component: ServiceAccountsPage },
     { path: '/solutions', name: 'solutions', component: SolutionsPage },
     { path: '/solutions/:id', name: 'solution', component: SolutionPage, props: true },
     // the comparison of current and target state of a solution (SCR-062, us-043-diff-view)

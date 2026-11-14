@@ -21,7 +21,10 @@ public @interface ConditionsEnforcedByHandler {
 	/** Where and how the handler enforces the declared conditions. */
 	String value();
 
-	/** A built-in role holding the base permissions of the operation but not the conditional ones. */
+	/**
+	 * A role holding the base permissions of the operation but not the conditional ones: a
+	 * built-in role, or one the probe test creates where no built-in role fits.
+	 */
 	String probeRole();
 
 	/** A valid request body that triggers the condition. */

@@ -59,6 +59,9 @@ package "Auth" #FFF8E1 {
     .. service-account: no ui_language/ui_theme required ..
     + name                : TEXT          {NN}
     .. anonymized (REQ-189): replaced by the pseudonym 'anonymized-<id>' ..
+    .. service-account: UNIQUE(lower(name)) WHERE person_type = 'service-account' (V30) ..
+    + description         : TEXT
+    .. CHECK char_length <= 1000; used by service accounts only (V30, us-142-service-accounts D5) ..
     + webauthn_user_handle : BYTEA        {UQ}
     .. 64 random bytes, created at the first passkey registration; never the e-mail address ..
     + email               : TEXT          {UQ}
@@ -70,7 +73,8 @@ package "Auth" #FFF8E1 {
     == Lifecycle (replaces 'active BOOLEAN'; REQ-004, REQ-007, REQ-164) ==
     + status              : TEXT          {NN} DEFAULT 'invited'
     .. enum: invited | active | inactive | offboarded ..
-    .. service-account: CHECK status <> 'invited' (created as 'active') ..
+    .. service-account: CHECK status <> 'invited' (created as 'active'); ..
+    .. 'active' → 'inactive' only by deactivateServiceAccount, final (owner decision 2026-11-14) ..
     .. session creation only for 'invited' | 'active' (REQ-004) ..
     + status_changed_at   : TIMESTAMPTZ   {NN} DEFAULT NOW()
     + status_changed_by_person_id : BIGINT {FK→persons.id}
@@ -228,6 +232,8 @@ package "Auth" #FFF8E1 {
     .. enum: device_lost | superseded | admin_action | person_request | factor_reset ..
     + revoked_by_person_id : BIGINT       {FK→persons.id}
     + revoked_by_admin_id  : UUID         {FK→system_admin_accounts.id}
+    .. CHECK (status = 'active') = (revoked_at IS NULL); no DELETE for oea_app ..
+    .. trigger: person_id is a service account; a client_id belongs to one person (V30) ..
   }
 
   class passkey_credentials <<Table>> #FFECB3 {

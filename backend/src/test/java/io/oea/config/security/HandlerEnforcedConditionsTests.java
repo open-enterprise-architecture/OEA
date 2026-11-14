@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.oea.app.security.Sessions;
 import io.oea.core.repository.SystemAdminAccountRepository;
+import io.oea.api.admin.AdminController;
 import io.oea.testsupport.auth.TestPrincipals.TestSession;
 import io.oea.testsupport.auth.TestPrincipals;
 import io.oea.testsupport.containers.OeaDatabase;
@@ -93,6 +94,23 @@ class HandlerEnforcedConditionsTests {
 				SELECT 'Probe Classification', 'probe_classification', 'string', 'connection-scoped', ?::uuid
 				WHERE NOT EXISTS (SELECT 1 FROM property_definitions WHERE name = 'Probe Classification')""",
 				PROBE_SCOPING_TYPE);
+		// the role conditions of the service account operations (us-142-service-accounts)
+		this.jdbc.update("""
+				INSERT INTO authorization_roles (id, name, is_builtin) VALUES (?, 'Probe account manager', false)
+				ON CONFLICT (id) DO NOTHING""", AdminController.PROBE_ACCOUNT_MANAGER);
+		this.jdbc.update("""
+				INSERT INTO role_permissions (role_id, permission_id) VALUES (?, 'service-account:manage')
+				ON CONFLICT DO NOTHING""", AdminController.PROBE_ACCOUNT_MANAGER);
+		if (this.jdbc.queryForObject("SELECT count(*) FROM machine_credentials WHERE client_id = ?::uuid", Integer.class,
+				AdminController.PROBE_SERVICE_ACCOUNT) == 0) {
+			Long person = this.jdbc.queryForObject("""
+					INSERT INTO persons (person_type, name, status) VALUES ('service-account', 'probe-account', 'active')
+					RETURNING id""", Long.class);
+			this.jdbc.update("""
+					INSERT INTO machine_credentials (client_id, person_id, client_secret_hash, expires_at)
+					VALUES (?::uuid, ?, 'probe', now() + interval '90 days')""", AdminController.PROBE_SERVICE_ACCOUNT,
+					person);
+		}
 	}
 
 	@Test

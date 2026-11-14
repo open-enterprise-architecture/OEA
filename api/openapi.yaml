@@ -1940,27 +1940,45 @@ components:
     # ── Service-Accounts (ADR-026) ────────────────────────────────────────────
     ServiceAccount:
       type: object
-      required: [id, personId, name, status, createdAt]
+      required: [id, personId, name, status, roles, createdAt, secretExpiresSoon]
       properties:
-        id:          { type: string, format: uuid, description: "client_id; stable; = agent_id in the audit log" }
+        id:          { type: string, format: uuid, description: "client_id; stable across rotations; = agent_id in the audit log" }
         personId:    { type: integer, description: "persons.id (person_type=service-account)" }
-        name:        { type: string }
-        description: { type: [string, 'null'] }
+        name:        { type: string, maxLength: 100 }
+        description: { type: [string, 'null'], maxLength: 1000 }
         roles:
           type: array
-          description: Active authorization roles (IDs) of the service account
+          description: Authorization roles (IDs) granted to the service account by local role assignments
           items: { $ref: '#/components/schemas/RoleId' }
-        status:      { type: string, enum: [active, inactive], description: "Lifecycle status of the service account (persons.status)" }
+        status:
+          type: string
+          enum: [active, inactive]
+          description: Lifecycle status of the service account (persons.status). A deactivation is final.
         createdAt:   { type: string, format: date-time }
-        lastUsedAt:  { type: [string, 'null'], format: date-time }
-        rotatedAt:   { type: [string, 'null'], format: date-time }
+        lastUsedAt:  { type: [string, 'null'], format: date-time, description: "Last successful token grant; null until the token endpoint uses the account" }
+        rotatedAt:   { type: [string, 'null'], format: date-time, description: "Last rotation of the secret; null if never rotated" }
+        secretExpiresAt:
+          type: [string, 'null']
+          format: date-time
+          description: Expiry of the active secret (REQ-176); null for an inactive account
+        secretExpiresSoon:
+          type: boolean
+          description: True if the active secret expires within 14 days (REQ-176 AC2)
 
     ServiceAccountWrite:
       type: object
       required: [name]
       properties:
-        name:        { type: string }
-        description: { type: string }
+        name:        { type: string, minLength: 1, maxLength: 100, description: "Unique among service accounts, ignoring case; trimmed" }
+        description: { type: [string, 'null'], maxLength: 1000 }
+        secretValidityDays:
+          type: [integer, 'null']
+          minimum: 1
+          description: |
+            Validity of the new secret in days, used on creation only and ignored on update.
+            Without a value, 90 days (or the configured maximum if it is smaller).
+            At most the configured maximum of the instance
+            (`oea.service-accounts.secret-max-validity-days`, default 365); a larger value → `400`.
         roles:
           type: array
           maxItems: 20
@@ -1973,6 +1991,17 @@ components:
           items: { $ref: '#/components/schemas/RoleId' }
           default: ["integration-writer"]
 
+    ServiceAccountRotation:
+      type: object
+      properties:
+        secretValidityDays:
+          type: [integer, 'null']
+          minimum: 1
+          description: |
+            Validity of the new secret in days; without a value, 90 days (or the configured
+            maximum if it is smaller). At most the configured maximum of the
+            instance (default 365); a larger value → `400`.
+
     ServiceAccountCreated:
       allOf:
         - $ref: '#/components/schemas/ServiceAccount'
@@ -1982,9 +2011,9 @@ components:
             clientSecret:
               type: string
               description: |
-                Plaintext secret, returned **only once**.
-                Not retrievable after this response (only the hash is stored).
-                Store securely — e.g. as a CI/CD secret.
+                Plaintext secret (`oea_cs_` followed by 256 random bits, base64url), returned
+                **only once**. Not retrievable after this response (only the argon2id hash is
+                stored). Store securely — e.g. as a CI/CD secret.
 
     # ── Audit ─────────────────────────────────────────────────────────────────
     AuditActorType:
@@ -7514,7 +7543,6 @@ paths:
       description: All service accounts of the instance (person_type=service-account).
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"]}
-      x-oea-status: planned
       parameters:
         - name: active
           in: query
@@ -7530,17 +7558,21 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       operationId: createServiceAccount
       summary: Create service account (REQ-155)
       description: |
-        Creates a service account (`persons.person_type=service-account`)
-        and returns `clientSecret` once in plaintext.
-        Afterwards only retrievable via rotation.
+        Creates a service account (`persons.person_type=service-account`, status `active`)
+        with a new `client_id`, an active secret and local role assignments of its roles,
+        and returns `clientSecret` once in plaintext. Afterwards a secret is only
+        available via rotation. The secret expires after `secretValidityDays`.
+        Needs an authentication within the last 5 minutes (REQ-172). Every role must be
+        flagged `assignableToServiceAccounts` (SoD-4); otherwise `422` naming the role,
+        nothing is created and the denial is audited as `authz.denied`.
+        Audited as `service-account.created`.
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"], "conditions": [{"when": "request body sets or changes roles", "permissions": ["role:assign"]}]}
-      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -7553,15 +7585,21 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ServiceAccountCreated' }
         '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '413': { $ref: '#/components/responses/PayloadTooLarge' }
-        '422':
-          description: Invalid role or name already taken
+        '401':
+          description: |
+            Not authenticated, or the last authentication is older than 5 minutes
+            (problem type `urn:oea:problem:reauthentication-required`, REQ-172)
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: Unknown or non-assignable role, or the name is already taken by a service account (ignoring case)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/service-accounts/{id}:
     get:
@@ -7569,7 +7607,6 @@ paths:
       summary: Service account detail
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -7586,13 +7623,17 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     put:
       operationId: updateServiceAccount
       summary: Update service account (name, description, roles)
+      description: |
+        Changes name, description and roles of an active service account. Added roles
+        become local role assignments (`role.assigned`), removed roles revoke their
+        assignment (`role.revoked`). `secretValidityDays` is ignored. Audited as
+        `service-account.updated`.
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"], "conditions": [{"when": "request body sets or changes roles", "permissions": ["role:assign"]}]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
@@ -7614,38 +7655,68 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: The service account is inactive; a deactivation is final (problem type `urn:oea:problem:conflict`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '422':
+          description: Unknown or non-assignable role, or the name is already taken by a service account (ignoring case)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
     delete:
       operationId: deleteServiceAccount
       summary: Deactivate service account
-      description: Soft deactivation (active=false). Credentials invalid.
+      description: |
+        Final deactivation: the status becomes `inactive`, the active secret is revoked and
+        every granted role assignment is revoked. There is no reactivation. Needs an
+        authentication within the last 5 minutes (REQ-172). Audited as
+        `service-account.deactivated`.
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
         '204':
           description: Deactivated
         '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
+        '401':
+          description: |
+            Not authenticated, or the last authentication is older than 5 minutes
+            (problem type `urn:oea:problem:reauthentication-required`, REQ-172)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '409':
+          description: The service account is inactive; a deactivation is final (problem type `urn:oea:problem:conflict`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/service-accounts/{id}/credentials/rotate:
     post:
       operationId: rotateServiceAccountCredentials
       summary: Rotate service account credentials (REQ-155)
       description: |
-        Generates a new `clientSecret`. The old secret is invalid immediately.
-        The new secret is returned once in plaintext.
+        Generates a new `clientSecret` with the same `client_id`. The previous secret is
+        marked `rotated` and is invalid immediately. The new secret is returned once in
+        plaintext and expires after `secretValidityDays`. Needs an authentication within
+        the last 5 minutes (REQ-172). Audited as `service-account.secret-rotated`.
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ServiceAccountRotation' }
       responses:
         '200':
           description: New secret; old one immediately invalid
@@ -7653,14 +7724,25 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ServiceAccountCreated' }
         '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
+        '401':
+          description: |
+            Not authenticated, or the last authentication is older than 5 minutes
+            (problem type `urn:oea:problem:reauthentication-required`, REQ-172)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Not found
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '409':
+          description: The service account is inactive; a deactivation is final (problem type `urn:oea:problem:conflict`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/settings:
     get:

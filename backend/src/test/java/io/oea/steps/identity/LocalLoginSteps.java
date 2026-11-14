@@ -558,6 +558,27 @@ public class LocalLoginSteps {
 			.PUT(HttpRequest.BodyPublishers.ofString(body)));
 	}
 
+	HttpResponse<String> get(String path) throws Exception {
+		return send(HttpRequest.newBuilder(uri(path)).header("Cookie", COOKIE + "=" + this.sessionToken));
+	}
+
+	HttpResponse<String> delete(String path) throws Exception {
+		return send(HttpRequest.newBuilder(uri(path))
+			.header("Cookie", COOKIE + "=" + this.sessionToken)
+			.header("X-XSRF-TOKEN", this.csrfToken)
+			.DELETE());
+	}
+
+	/** A secret of the scenario, such as a client secret, that must never appear in the log output. */
+	void sensitive(String secret) {
+		this.secrets.add(secret);
+	}
+
+	/** A bean of the running instance. */
+	<T> T bean(Class<T> type) {
+		return this.application.getBean(type);
+	}
+
 	HttpResponse<String> send(HttpRequest.Builder request) throws Exception {
 		return this.http.send(request.build(), HttpResponse.BodyHandlers.ofString());
 	}

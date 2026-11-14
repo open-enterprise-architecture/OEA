@@ -52,6 +52,22 @@ Feature: Access administration through the API
     And the setup phase has ended with the action "idp-group-mapping"
     And the audit trail contains the event "system.setup-phase-ended"
 
+  # Spec identity/service-accounts, requirement "Service accounts in the setup phase" (us-142-service-accounts)
+
+  @ADR-042 @REQ-171 @US-142
+  Scenario: Setup phase without second factor
+    When the system admin creates the service account "ci-scanner" without roles
+    Then the request is rejected with status 403 and problem type "second-factor-required"
+    And the setup phase has not ended and no service account exists
+
+  @ADR-042 @REQ-171 @US-142
+  Scenario: First service account ends the setup phase
+    Given the session is confirmed with a second factor
+    When the system admin creates the service account "ci-scanner" without roles
+    Then the service account is created with a client ID and a client secret
+    And the setup phase has ended with the action "service-account"
+    And the audit trail contains the event "system.setup-phase-ended"
+
   @REQ-166
   Scenario: Binding created
     Given the provider "https://idp.example.org/realms/oea" is configured

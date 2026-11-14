@@ -4,7 +4,7 @@ title: Machine credential lifecycle and scoping (OAuth2 client credentials only)
 type: functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.2.1
 created: 2026-10-13
 last_updated: 2026-11-14
 author: requirements-engineer
@@ -114,7 +114,8 @@ Source: security review SEC-15 (proposal PR-20); owner decision Q5: machine acce
 ## Implementation Notes
 
 - Access tokens are opaque and stored only as a hash with `client_id`, issue time, expiry and revocation time; rules of the token endpoint in [ADR-050](../../adrs/ADR-050-service-account-access-tokens.md)
-- `machine_credentials` needs an expiry column; `ServiceAccountWrite.roles` must be restricted to assignable roles (follow-ups for business engineer and solution architect)
+- `machine_credentials` stores the expiry per secret; `ServiceAccountWrite.roles` is restricted to assignable roles (implemented by change `us-142-service-accounts`)
+- The secret expiry (default 90 days, at most `oea.service-accounts.secret-max-validity-days`, default 365) and the 14-day marker on SCR-041 are implemented by change `us-142-service-accounts`; the check of the expiry at the token endpoint (AC2) follows with change `s12-client-credentials-token`
 
 ## Change History
 
@@ -122,3 +123,4 @@ Source: security review SEC-15 (proposal PR-20); owner decision Q5: machine acce
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | requirements-engineer | Initial draft from security review SEC-15 (PR-20), owner decision Q5; supersedes REQ-002 |
 | 0.2.0 | 2026-11-14 | solution-architect | AC3 reworded to the token response and the stored token record, since the access token is opaque (ADR-050) |
+| 0.2.1 | 2026-11-14 | solution-architect | Implementation notes: secret expiry, 14-day marker and role restriction implemented by change us-142-service-accounts |

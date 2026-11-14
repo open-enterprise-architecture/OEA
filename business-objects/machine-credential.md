@@ -2,7 +2,7 @@
 identifier: machine-credential
 name_de: Maschinen-Credential
 name_en: Machine Credential
-version: 0.1.0
+version: 0.2.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -37,10 +37,10 @@ Permissions of a service account come only from [role assignments](./role-assign
 | id | string | required | | UUID | Primary key of the secret version |
 | clientId | string | required | | UUID; stable per service account; at most one `active` record per clientId | OAuth2 client ID, audit `agent_id` |
 | serviceAccount | reference | required | | target: person with `personType = service-account` | Owner |
-| clientSecretHash | string | required | | argon2id | Hashed secret |
+| clientSecretHash | string | required | | argon2id of the secret `oea_cs_` + 256 random bits (base64url) | Hashed secret |
 | status | enum | required | active | `[active, rotated, revoked]` | State |
 | createdAt / createdBy | datetime / principal | required | | holds `service-account:manage` | Issue |
-| expiresAt | datetime | required | createdAt + 90 days | ≤ createdAt + configured maximum | Mandatory expiry (REQ-176) |
+| expiresAt | datetime | required | createdAt + 90 days | 1 day to the configured maximum after `createdAt` (`oea.service-accounts.secret-max-validity-days`, default 365, at most 3650) | Mandatory expiry (REQ-176) |
 | lastUsedAt | datetime | optional | | | Last successful token grant |
 | revokedAt / revokedBy | datetime / principal | optional | | set on rotation or revocation | End of validity |
 
@@ -100,6 +100,8 @@ expiresAt: 2027-01-11T10:00:00Z
 
 ## Notes
 
+The table is created by migration V30 (change `us-142-service-accounts`); the secret prefix `oea_cs_` lets secret scanners recognize a leaked secret, like the `oea_at_` prefix of access tokens (ADR-050). Rows are never deleted, so the rotation history stays auditable.
+
 Business object created for the existing table `machine_credentials` (previously only in `docs/data-model.puml`) to implement REQ-176 (security review SEC-15). Changes against the previous table: surrogate key `id` so that `client_id` stays stable across rotations (the previous design created a new `client_id` on rotation, contradicting "stable agent_id"); `expires_at` mandatory; `active` replaced by `status`.
 
 ## Change History
@@ -107,3 +109,4 @@ Business object created for the existing table `machine_credentials` (previously
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | Business Engineer | Initial draft from REQ-155, REQ-176 (SEC-15) |
+| 0.2.0 | 2026-11-14 | Business Engineer | Secret format, configured maximum validity, V30 (change `us-142-service-accounts`) |

@@ -47,7 +47,7 @@ Through the API you send the same data to `POST /api/v1/setup`; `GET /api/v1/set
 
 ## The setup phase
 
-After the bootstrapping, the instance is in its **setup phase**: the system admin account logs in with login name and password only. The setup phase ends with the first action that gives another identity access – the first identity binding or IdP group mapping (see [Identity providers and persons](../administration/identity-providers)). This action needs a second factor:
+After the bootstrapping, the instance is in its **setup phase**: the system admin account logs in with login name and password only. The setup phase ends with the first action that gives another identity access – the first identity binding, IdP group mapping, role assignment or [service account](../administration/service-accounts) (see [Identity providers and persons](../administration/identity-providers)). This action needs a second factor:
 
 1. Log in with the system admin account (see [Logging in](../usage/login)).
 2. Open *Profile* and choose *Set up a second factor*, then *Set up authenticator app*. Scan the QR code with your authenticator app and enter the code from the app. The session is now confirmed with the second factor.
