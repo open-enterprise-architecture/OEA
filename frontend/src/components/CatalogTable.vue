@@ -4,7 +4,7 @@ import UIcon from '@nuxt/ui/components/Icon.vue'
 import type { TableColumn } from '@nuxt/ui'
 import { computed, h } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import type { CatalogColumn, CatalogQueryResult, CatalogRow, CatalogSort, JoinMode } from '../api/catalogs'
 import { session } from '../session/store'
 
@@ -19,19 +19,28 @@ const props = defineProps<{ result: CatalogQueryResult; loading?: boolean; prima
 const emit = defineEmits<{ sort: [sort: CatalogSort | undefined]; page: [page: number]; mode: [joinId: string, mode: JoinMode] }>()
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 
 const canReadHistory = computed(() => (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read'))
 
+// A plain link rather than a button or RouterLink component: one per row, so it must stay cheap to
+// render; a plain click navigates within the application, a modified click opens a new tab.
 function historyAction(row: CatalogRow) {
-  return h(UButton, {
-    'data-testid': `history-${row.entityId}`,
-    to: { path: `/entities/${row.entityId}/history`, query: { from: route?.fullPath ?? '/catalogs' } },
-    color: 'neutral',
-    variant: 'ghost',
-    size: 'sm',
-    icon: 'i-lucide-history',
-    label: t('catalog.history'),
-  })
+  const href = `/entities/${row.entityId}/history?from=${encodeURIComponent(route?.fullPath ?? '/catalogs')}`
+  return h(
+    'a',
+    {
+      href,
+      'data-testid': `history-${row.entityId}`,
+      class: 'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-default hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary',
+      onClick: (event: MouseEvent) => {
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+        event.preventDefault()
+        void router.push(href)
+      },
+    },
+    [h(UIcon, { name: 'i-lucide-history', class: 'size-4 shrink-0', 'aria-hidden': 'true' }), t('catalog.history')],
+  )
 }
 
 const sort = computed(() => props.result.sort ?? undefined)

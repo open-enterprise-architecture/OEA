@@ -1,6 +1,6 @@
 import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setLanguage } from '../i18n'
 import { loadLabels } from '../i18n/labels'
 import { defineComponent, h } from 'vue'
@@ -56,13 +56,29 @@ async function open(
     routes: [
       { path: '/catalogs', component: { render: () => h('div', { 'data-testid': 'overview' }) } },
       { path: '/catalogs/:id', component: CatalogPage, props: (route) => ({ id: route.params.id, fetchFn }) },
+      // the target of the row action "History" (us-098-entity-history)
+      { path: '/entities/:id/history', component: { render: () => h('div') } },
     ],
   })
   await router.push(location)
   const wrapper = mount(defineComponent({ render: () => h(RouterView) }), { global: { plugins: [ui, router] } })
+  opened.push(wrapper)
   await flushPromises()
   return { wrapper, router, recorded }
 }
+
+// Pages left mounted would render again on every later change of the language or the labels
+const opened: VueWrapper[] = []
+
+afterEach(() => {
+  for (const wrapper of opened.splice(0)) {
+    try {
+      wrapper.unmount()
+    } catch {
+      // unmounted by the test already
+    }
+  }
+})
 
 function names(wrapper: VueWrapper): string[] {
   return wrapper.findAll('[data-testid="catalog-table"] tbody tr').map((row) => row.findAll('td')[0]!.text())
@@ -1020,7 +1036,10 @@ describe('CatalogPage navigation', () => {
     const fetchFn = navigationApi({ recorded, fallback: catalogApi(APPLICATIONS, { me }) })
     const router = createRouter({
       history: createMemoryHistory(),
-      routes: [{ path: '/catalogs/:id', component: CatalogPage, props: (route) => ({ id: route.params.id, fetchFn }) }],
+      routes: [
+        { path: '/catalogs/:id', component: CatalogPage, props: (route) => ({ id: route.params.id, fetchFn }) },
+        { path: '/entities/:id/history', component: { render: () => h('div') } },
+      ],
     })
     await router.push(CATALOG_PATH)
     const wrapper = mount(defineComponent({ render: () => h(RouterView) }), { global: { plugins: [ui, router] }, attachTo: document.body })
