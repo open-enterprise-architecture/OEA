@@ -9,6 +9,7 @@ covers:
 
 - [Logging in](./login): log in through your identity provider or with the local system admin account, set up a second factor and look at your profile
 - [Catalogs](./catalogs): create a catalog and browse its entities in a table
+- [Change history](./change-history): see who changed an entity when, and which fields
 - [Navigation tree](./navigation): find catalogs in the folders of the sidebar, arrange folders and place catalogs
 - [Portal](./portal): read the shared catalogs, for example with the role `portal-reader`
 - [Solutions](./solutions): create a solution for a change initiative and describe its architecture vision

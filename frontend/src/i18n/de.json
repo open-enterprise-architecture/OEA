@@ -141,7 +141,9 @@
       "removeNamed": "Ansicht {name} entfernen",
       "changeFailed": "Die Ansicht konnte nicht geändert werden."
     },
-    "restrictedColumn": "Du darfst die Werte dieser Spalte nicht sehen."
+    "restrictedColumn": "Du darfst die Werte dieser Spalte nicht sehen.",
+    "history": "Historie",
+    "actions": "Aktionen"
   },
   "catalogs": {
     "empty": "Noch keine Kataloge",
@@ -717,7 +719,21 @@
     "personMetatypeNone": "Keiner",
     "personMetatypeFailed": "Der Entitätstyp von Personen konnte nicht gespeichert werden.",
     "personMetatypeMissing": "Es gibt verbindungsbasierte Eigenschaften, aber kein Entitätstyp von Personen ist gesetzt. Ihre Werte sieht niemand.",
-    "overrideLink": "Override-Rollen: wer alle eingeschränkten Werte liest"
+    "overrideLink": "Override-Rollen: wer alle eingeschränkten Werte liest",
+    "history": {
+      "title": "Änderungshistorie",
+      "hint": "Wie eine Änderung an einem Feld, das eine Rolle nicht lesen darf, in der Änderungshistorie von Entitäten eines Metatyps erscheint. Werte werden nie angezeigt. Bei mehreren Rollen gilt die offenere Einstellung: Ein Feld fehlt nur, wenn jede Rolle des Lesers es ausblendet.",
+      "metatype": "Metatyp",
+      "role": "Rolle",
+      "mode": "In der Änderungshistorie",
+      "restricted": "Eingeschränkt",
+      "hidden": "Ausgeblendet",
+      "save": "Speichern",
+      "saved": "Die Einstellungen der Änderungshistorie sind gespeichert.",
+      "saveFailed": "Die Einstellungen der Änderungshistorie konnten nicht gespeichert werden.",
+      "loadFailed": "Die Einstellungen der Änderungshistorie konnten nicht geladen werden.",
+      "invalid": "Dieser Eintrag wurde abgelehnt."
+    }
   },
   "roles": {
     "title": "Berechtigungsrollen",
@@ -876,6 +892,37 @@
       "notice": "Keine Änderung betrifft andere aktive Lösungen. | {n} Änderung betrifft auch andere aktive Lösungen. Bitte stimme dich mit den Verantwortlichen ab. | {n} Änderungen betreffen auch andere aktive Lösungen. Bitte stimme dich mit den Verantwortlichen ab.",
       "saved": "Gespeichert. {name} wird auch geändert in: {solutions}. Bitte stimme dich mit den Verantwortlichen ab.",
       "baseline": "In {n} anderen Lösung geändert | In {n} anderen Lösungen geändert"
+    }
+  },
+  "history": {
+    "title": "Änderungshistorie",
+    "intro": "Wer diese Entität wann geändert hat und welche Felder. Die Werte folgen mit dem Vergleich von Versionen.",
+    "back": "Zurück zum Katalog",
+    "noAccess": "Du darfst keine Entitäten lesen.",
+    "notFound": "Entität nicht gefunden",
+    "notFoundHint": "Die Entität existiert nicht oder ist für dich nicht sichtbar.",
+    "loadFailed": "Die Änderungshistorie konnte nicht geladen werden.",
+    "person": "Person",
+    "allPersons": "Alle Personen",
+    "from": "Von",
+    "to": "Bis",
+    "periodInvalid": "Der Beginn darf nicht nach dem Ende liegen.",
+    "version": "Version {version}",
+    "created": "Erstellt",
+    "changedFields": "Geänderte Felder",
+    "restricted": "Eingeschränkt",
+    "noFields": "Keine Felder, die du sehen darfst",
+    "unchanged": "Keine Änderungen seit der Erstellung. Erstellt am {date} von {person}.",
+    "noMatch": "Keine Änderungen passen zu den Filtern",
+    "shown": "{shown} von {total} Versionen",
+    "more": "Mehr laden",
+    "fields": {
+      "name": "Name",
+      "description": "Beschreibung",
+      "isLogical": "Logisch",
+      "metatypeId": "Metatyp",
+      "sourceId": "Quelle",
+      "targetId": "Ziel"
     }
   }
 }

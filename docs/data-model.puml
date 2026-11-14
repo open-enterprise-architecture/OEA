@@ -944,6 +944,22 @@ package "Metamodel – Properties" #E0F2F1 {
     may have an empty permission set (e.g. 'iso').
   end note
 
+  class history_visibility_settings <<Table>> #B2DFDB {
+    + role_id     : TEXT              {PK} {FK→authorization_roles.id ON DELETE CASCADE}
+    + metatype_id : UUID              {PK} {FK→metatypes.id}
+    + mode        : TEXT              {NN}
+    .. CHECK mode = 'hide'; show-restricted (default) is the absence of a row ..
+    .. V29, us-098-entity-history D3: oea_app SELECT, INSERT, DELETE ..
+  }
+
+  note right of history_visibility_settings
+    How a change to a field the role may not read
+    appears in the history of entities of the
+    metatype (US-098). Hidden only when every role
+    of the reader is 'hide'; no inheritance along
+    base types; a package re-import keeps the rows.
+  end note
+
   class property_enum_values <<Table>> #B2DFDB {
     + id              : UUID              {PK}
     --
@@ -1976,6 +1992,8 @@ persons "1" --o{ "0..*" entity_version_headers              : changed_by
 persons "1" --o{ "0..*" entity_system_field_history         : changed_by
 persons "0..1" --o| "0..1" entities                         : entity_id (account link, DM-7)
 authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role (DM-9)
+authorization_roles "1" --o{ "0..*" history_visibility_settings : history visibility (US-098)
+metatypes "1" --o{ "0..*" history_visibility_settings : history visibility (US-098)
 
 ' ─────────────────────────────────────────────────────
 ' Change notes
@@ -2127,6 +2145,13 @@ authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role 
 '   solution that is not implemented or archived) is computed on each read and
 '   not stored, so it disappears with the go-live of the other solution.
 '   Reason: US-044, REQ-042.
+' 2026-11-14 (us-098-entity-history):
+'   V29: history_visibility_settings (role_id, metatype_id, mode = 'hide')
+'   decides per authorization role and metatype whether a change to a field
+'   the reader may not read is shown as restricted (default, no row) or left
+'   out of the change history (owner decision 2026-11-14). The history tables
+'   stay unchanged; the history read lists the changed fields without values.
+'   Reason: US-098, REQ-098.
 ' ─────────────────────────────────────────────────────
 
 @enduml

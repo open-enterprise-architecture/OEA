@@ -100,7 +100,8 @@ describe('CatalogPage', () => {
 
   it('shows a catalog with three applications', async () => {
     const { wrapper } = await open(CATALOG_PATH)
-    expect(wrapper.findAll('[data-testid="catalog-table"] thead th').map((th) => th.text())).toEqual(['Name', 'Status'])
+    expect(wrapper.findAll('[data-testid="catalog-table"] thead th').map((th) => th.text())).toEqual(['Name', 'Status', 'Actions'])
+    expect(wrapper.findAll('[data-testid^="history-"]')).toHaveLength(3)
     expect(names(wrapper)).toEqual(['CRM System', 'ERP', 'Intranet'])
     expect(wrapper.get('[data-testid="catalog-page-info"]').text()).toContain('Page 1 of 1')
   })
@@ -305,7 +306,11 @@ describe('CatalogPage', () => {
 // spec catalog/catalog-columns of us-047-configure-columns
 describe('CatalogPage columns', () => {
   function headers(wrapper: VueWrapper): string[] {
-    return wrapper.findAll('[data-testid="catalog-table"] thead th').map((th) => th.text())
+    // without the column of the row action "History" (us-098-entity-history)
+    return wrapper
+      .findAll('[data-testid="catalog-table"] thead th')
+      .map((th) => th.text())
+      .filter((text) => text !== 'Actions')
   }
 
   async function configure(wrapper: VueWrapper) {
@@ -543,7 +548,11 @@ describe('CatalogPage connection catalogs', () => {
   const FLOW_PATH = `/catalogs/${FLOW_CATALOG.id}`
 
   function headers(wrapper: VueWrapper): string[] {
-    return wrapper.findAll('[data-testid="catalog-table"] thead th').map((th) => th.text())
+    // without the column of the row action "History" (us-098-entity-history)
+    return wrapper
+      .findAll('[data-testid="catalog-table"] thead th')
+      .map((th) => th.text())
+      .filter((text) => text !== 'Actions')
   }
 
   function cells(wrapper: VueWrapper, column: number): string[] {
@@ -877,7 +886,11 @@ describe('CatalogPage views', () => {
   }
 
   function headers(wrapper: VueWrapper): string[] {
-    return wrapper.findAll('[data-testid="catalog-table"] thead th').map((th) => th.text())
+    // without the column of the row action "History" (us-098-entity-history)
+    return wrapper
+      .findAll('[data-testid="catalog-table"] thead th')
+      .map((th) => th.text())
+      .filter((text) => text !== 'Actions')
   }
 
   const WITH_VIEWS = { ...CATALOG, savedViews: [COMPACT_VIEW, FULL_VIEW] }

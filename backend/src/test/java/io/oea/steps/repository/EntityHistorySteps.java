@@ -8,6 +8,7 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.oea.steps.metamodel.MetatypeEditingSteps;
 import io.oea.steps.metamodel.PropertyVisibilitySteps;
+import io.oea.steps.solution.SolutionSteps;
 import io.oea.testsupport.auth.DevRealm;
 import io.oea.testsupport.repository.RepositoryInstance;
 import io.oea.testsupport.repository.RepositoryInstance.Session;
@@ -191,8 +192,8 @@ public class EntityHistorySteps {
 
 	@When("the portal reader reads the history of {string}")
 	public void portalReaderReads(String entity) throws Exception {
-		mapping("oea-portal-readers", "portal-reader");
-		read(instance().sharedLogin("dev-portal-reader"), entity, "");
+		// the session of the solution features, which map oea-portal-readers once
+		read(SolutionSteps.portalReaderSession(), entity, "");
 	}
 
 	@When("the person holding {string} and {string} reads the history of {string}")

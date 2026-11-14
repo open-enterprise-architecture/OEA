@@ -11,6 +11,7 @@ import {
   type AuthorizationRole,
   type PropertyVisibilityEntry,
 } from '../api/visibility'
+import HistoryVisibilitySection from '../components/visibility/HistoryVisibilitySection.vue'
 import PropertyVisibilityDialog from '../components/visibility/PropertyVisibilityDialog.vue'
 import { label, labelKeys } from '../i18n/labels'
 import { refreshSession, session } from '../session/store'
@@ -18,7 +19,9 @@ import { refreshSession, session } from '../session/store'
 // SCR-032 "Property visibility" (UC-21, US-124, US-125; design D5 of us-124-property-visibility):
 // security administration (visibility:configure) sees and changes who may read and write the
 // values of each property definition. Above the list it chooses the entity type of persons, the
-// anchor of connection-based visibility (design D8 of us-127-connection-scoped-visibility).
+// anchor of connection-based visibility (design D8 of us-127-connection-scoped-visibility). Below
+// the list, the section "Change history" sets per role and metatype how changes to fields the role
+// may not read appear in the change history (design D5 of us-098-entity-history).
 const props = defineProps<{ fetchFn?: typeof fetch }>()
 // USelect does not accept an empty value, so "no person metatype" has its own value
 const NONE = 'none'
@@ -54,6 +57,9 @@ const personMetatypeItems = computed(() => [
 const personMetatypeMissing = computed(
   () => personMetatype.value === NONE && entries.value.some((entry) => entry.visibilityMode === 'connection-scoped'),
 )
+
+// entities of every metatype have a change history, connections included
+const allTypes = computed(() => [...elementTypes.value, ...connectionTypes.value].sort((a, b) => a.name.localeCompare(b.name)))
 
 const roleNames = computed(() => new Map(roles.value.map((role) => [role.id, role.name])))
 const typeNames = computed(() => new Map(connectionTypes.value.map((type) => [type.id, type.name])))
@@ -235,6 +241,7 @@ function saved(changed: PropertyVisibilityEntry[]) {
           </tbody>
         </table>
       </div>
+      <HistoryVisibilitySection :roles="roles" :metatypes="allTypes" :fetch-fn="fetchFn" />
     </template>
 
     <UModal

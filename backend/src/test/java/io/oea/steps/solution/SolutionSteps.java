@@ -185,7 +185,7 @@ public class SolutionSteps {
 	}
 
 	/** The session of `dev-portal-reader`, mapped to `portal-reader` (no `entity:read`). */
-	static Session portalReaderSession() throws Exception {
+	public static Session portalReaderSession() throws Exception {
 		synchronized (SolutionSteps.class) {
 			if (portalReader == null) {
 				instance().oidc().mapping("oea-portal-readers", "portal-reader");

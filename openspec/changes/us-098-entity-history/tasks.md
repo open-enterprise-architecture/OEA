@@ -69,8 +69,8 @@
 
 ## 5. Frontend: SCR-026 "Change history"
 
-- [ ] 5.1 Story `frontend/src/screens/SCR-026-change-history.stories.ts` (D5), with the states normal, filtered by person, restricted field, empty history and many versions with "Load more". Update `docs/screens/SCREENS.md`: SCR-026 becomes `prototype`, the legacy SVG links are replaced by `SCR-026-light.png` and `SCR-026-dark.png`, and the legacy SVGs are deleted. Verify that `python3 scripts/check_screens.py` passes.
-- [ ] 5.2 API module `frontend/src/api/history.ts` and the page `EntityHistoryPage.vue` at `/entities/:id/history`, with the back link to the catalog it was opened from. English and German texts.
+- [x] 5.1 Story `frontend/src/screens/SCR-026-change-history.stories.ts` (D5), with the states normal, filtered by person, restricted field, empty history and many versions with "Load more". Update `docs/screens/SCREENS.md`: SCR-026 becomes `prototype`, the legacy SVG links are replaced by `SCR-026-light.png` and `SCR-026-dark.png`, and the legacy SVGs are deleted. Verify that `python3 scripts/check_screens.py` passes.
+- [x] 5.2 API module `frontend/src/api/history.ts` and the page `EntityHistoryPage.vue` at `/entities/:id/history`, with the back link to the catalog it was opened from. English and German texts.
 
   Verify with unit tests:
   - versions newest first, and version 1 as "Created";
@@ -80,12 +80,12 @@
   - "Load more" with 51 versions, and none with 50;
   - the back link returns to the catalog it was opened from;
   - a 404 shows "Entity not found".
-- [ ] 5.3 Row action "History" in `CatalogTable.vue` for the catalog (SCR-020) and the portal catalog. Verify with unit tests that each entity row has the action, that it opens `/entities/{id}/history` with the catalog as back link, and that it carries an icon and text.
-- [ ] 5.4 Set SCR-026 to `implemented` in `docs/screens/SCREENS.md`. Verify that `check_screens.py`, the type check, the frontend tests and the build pass.
+- [x] 5.3 Row action "History" in `CatalogTable.vue` for the catalog (SCR-020) and the portal catalog. Verify with unit tests that each entity row has the action, that it opens `/entities/{id}/history` with the catalog as back link, and that it carries an icon and text.
+- [x] 5.4 Set SCR-026 to `implemented` in `docs/screens/SCREENS.md`. Verify that `check_screens.py`, the type check, the frontend tests and the build pass.
 
 ## 6. Frontend: section on SCR-032
 
-- [ ] 6.1 Section "Change history" on `PropertyVisibilityPage.vue` (D5): the metatype selection, one row per role with "Restricted" or "Hidden", a combined save, `invalidFields` per row, and the explanation of the rules; English and German texts. Update the SCR-032 story with the section.
+- [x] 6.1 Section "Change history" on `PropertyVisibilityPage.vue` (D5): the metatype selection, one row per role with "Restricted" or "Hidden", a combined save, `invalidFields` per row, and the explanation of the rules; English and German texts. Update the SCR-032 story with the section.
 
   Verify with unit tests:
   - a metatype without entries shows every role as "Restricted";
@@ -95,7 +95,7 @@
 
 ## 7. User manual
 
-- [ ] 7.1 Manual pages in English and German:
+- [x] 7.1 Manual pages in English and German:
   - "Change history of an entity": how to open it from the catalog, what the entries, filters and "Restricted" mean, and that values follow;
   - the section "Change history" on the page "Property visibility", with the rule for several roles.
 
@@ -103,11 +103,11 @@
 
 ## 8. Wrap-up
 
-- [ ] 8.1 Realign US-098 (AC3: "the page shows") and REQ-098:
+- [x] 8.1 Realign US-098 (AC3: "the page shows") and REQ-098:
   - the statement drops the change reason, which is noted as a later extension;
   - the implementation notes name the cursor paging and the history visibility per role and metatype;
   - add history rows to both.
 
   Set US-098 to `done` with the implementation hash after the merge.
-- [ ] 8.2 Synchronize `docs/data-model.puml` (`HistoryVisibilitySetting`) and `business-objects/authorization-role.md`. Regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify that `--check` passes.
-- [ ] 8.3 Update the S12 status in `docs/sprint-plan.md`. Run `python3 scripts/validate_links.py`, markdownlint and `openspec validate --strict`, and verify that they pass.
+- [x] 8.2 Synchronize `docs/data-model.puml` (`HistoryVisibilitySetting`) and `business-objects/authorization-role.md`. Regenerate `requirements/traceability.md` with `python3 scripts/generate_traceability.py` and verify that `--check` passes.
+- [x] 8.3 Update the S12 status in `docs/sprint-plan.md`. Run `python3 scripts/validate_links.py`, markdownlint and `openspec validate --strict`, and verify that they pass.

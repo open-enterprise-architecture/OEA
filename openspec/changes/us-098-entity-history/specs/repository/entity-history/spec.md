@@ -185,7 +185,7 @@ Trace: US-098 AC3, REQ-098
 
 ### Requirement: Opening the history from the catalog
 
-Each entity row of the catalog (SCR-020) and of the portal catalog SHALL have the action "History", which opens the page "Change history" of the entity. The page SHALL link back to the catalog it was opened from.
+For readers with `entity:read`, each entity row of the catalog (SCR-020) and of the portal catalog SHALL have the action "History", which opens the page "Change history" of the entity. Readers without it (only `portal:read`) SHALL NOT see the action. The page SHALL link back to the catalog it was opened from.
 
 Trace: US-098, owner decision 2026-11-14
 
@@ -198,3 +198,8 @@ Trace: US-098, owner decision 2026-11-14
 
 - **WHEN** the reader follows the back link of the page
 - **THEN** the catalog it was opened from is shown again
+
+#### Scenario: Portal reader without entity:read
+
+- **WHEN** a portal reader with only `portal:read` opens a catalog of the portal
+- **THEN** the rows have no action "History"

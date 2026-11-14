@@ -141,7 +141,9 @@
       "removeNamed": "Remove view {name}",
       "changeFailed": "The view could not be changed."
     },
-    "restrictedColumn": "You may not see the values of this column."
+    "restrictedColumn": "You may not see the values of this column.",
+    "history": "History",
+    "actions": "Actions"
   },
   "catalogs": {
     "empty": "No catalogs yet",
@@ -717,7 +719,21 @@
     "personMetatypeNone": "None",
     "personMetatypeFailed": "The entity type of persons could not be saved.",
     "personMetatypeMissing": "Connection-based properties exist, but no entity type of persons is set. Their values are shown to nobody.",
-    "overrideLink": "Override roles: who reads every restricted value"
+    "overrideLink": "Override roles: who reads every restricted value",
+    "history": {
+      "title": "Change history",
+      "hint": "How a change to a field a role may not read appears in the change history of entities of a metatype. Values are never shown. With several roles, the more open setting applies: a field is hidden only when every role of the reader hides it.",
+      "metatype": "Metatype",
+      "role": "Role",
+      "mode": "In the change history",
+      "restricted": "Restricted",
+      "hidden": "Hidden",
+      "save": "Save",
+      "saved": "The change history settings are saved.",
+      "saveFailed": "The change history settings could not be saved.",
+      "loadFailed": "The change history settings could not be loaded.",
+      "invalid": "This entry was rejected."
+    }
   },
   "roles": {
     "title": "Authorization roles",
@@ -876,6 +892,37 @@
       "notice": "No change concerns other active solutions. | {n} change also concerns other active solutions. Please coordinate with their owners. | {n} changes also concern other active solutions. Please coordinate with their owners.",
       "saved": "Saved. {name} is also changed in: {solutions}. Please coordinate with their owners.",
       "baseline": "Changed in {n} other solution | Changed in {n} other solutions"
+    }
+  },
+  "history": {
+    "title": "Change history",
+    "intro": "Who changed this entity when, and which fields. Values follow with the comparison of versions.",
+    "back": "Back to the catalog",
+    "noAccess": "You may not read entities.",
+    "notFound": "Entity not found",
+    "notFoundHint": "The entity does not exist or is not visible to you.",
+    "loadFailed": "The change history could not be loaded.",
+    "person": "Person",
+    "allPersons": "All persons",
+    "from": "From",
+    "to": "To",
+    "periodInvalid": "The start must not be after the end.",
+    "version": "Version {version}",
+    "created": "Created",
+    "changedFields": "Changed fields",
+    "restricted": "Restricted",
+    "noFields": "No fields you may see",
+    "unchanged": "No changes since creation. Created on {date} by {person}.",
+    "noMatch": "No changes match the filters",
+    "shown": "{shown} of {total} versions",
+    "more": "Load more",
+    "fields": {
+      "name": "Name",
+      "description": "Description",
+      "isLogical": "Logical",
+      "metatypeId": "Metatype",
+      "sourceId": "Source",
+      "targetId": "Target"
     }
   }
 }

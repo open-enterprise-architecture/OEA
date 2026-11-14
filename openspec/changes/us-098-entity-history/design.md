@@ -109,7 +109,7 @@ Further rules:
   - "Load more" with the cursor;
   - the empty state with the creation.
 - **Story first:** `SCR-026-change-history.stories.ts`, with the states normal, filtered, restricted, empty and many versions.
-- **Row action:** `CatalogTable.vue` gets an action column with "History" (icon and text) for rows of entity catalogs; connection catalogs show it too, since connections are entities.
+- **Row action:** `CatalogTable.vue` gets an action column with "History" (icon and text) for rows of entity catalogs; connection catalogs show it too, since connections are entities. The column appears only with `entity:read`, since `getEntityHistory` needs it; a portal reader with only `portal:read` would open a page without access.
 - **SCR-032:** a section "Change history" with a metatype select and a table of roles with a two-way choice ("Restricted" or "Hidden"). It saves the changed rows with one `PUT` and shows `invalidFields` errors per row.
 
 ### D6 – Tests
