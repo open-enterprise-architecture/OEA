@@ -6,6 +6,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
@@ -95,6 +96,30 @@ public class MetamodelLabels {
 								rs.getObject("entity_id", UUID.class)),
 						rs.getString("name"), rs.getString("package_text"), rs.getString("organization_text")),
 				PackageImporter.INSTANCE_CONFIGURATION, locale, locale);
+	}
+
+	/**
+	 * The labels of property definitions in a locale: organization, then package, then the name
+	 * (retired properties included). Without a supported locale, the names.
+	 */
+	@Transactional(readOnly = true)
+	public Map<UUID, String> propertyLabels(String locale, Collection<UUID> ids) {
+		Map<UUID, String> labels = new LinkedHashMap<>();
+		if (ids.isEmpty()) {
+			return labels;
+		}
+		String language = (locale != null && LabelKey.LOCALES.contains(locale)) ? locale : "";
+		this.jdbc.query("""
+				SELECT d.id, coalesce(o.value, p.value, d.name)
+				FROM property_definitions d
+				LEFT JOIN i18n_entries p ON p.entity_type = 'property_def' AND p.entity_id = d.id
+				     AND p.locale = ? AND p.scope = 'imported'
+				LEFT JOIN i18n_entries o ON o.entity_type = 'property_def' AND o.entity_id = d.id
+				     AND o.locale = ? AND o.scope = 'organization'
+				WHERE d.id = ANY(?)""", (rs) -> {
+			labels.put(rs.getObject(1, UUID.class), rs.getString(2));
+		}, language, language, ids.toArray(UUID[]::new));
+		return labels;
 	}
 
 	@Transactional(readOnly = true)

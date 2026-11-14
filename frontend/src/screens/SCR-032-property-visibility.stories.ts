@@ -9,7 +9,9 @@ import { ME_SECURITY_ADMIN, VISIBILITY_IDS, visibilityApi } from '../test/visibi
 // SCR-032 Property visibility (UC-21, US-124, US-125; design D5 of us-124-property-visibility):
 // security administration sees the visibility of every property and changes it in a dialog
 // (docs/screens/SCREENS.md). Above the list it chooses the entity type of persons (design D8 of
-// us-127-connection-scoped-visibility). The first story is the screen image.
+// us-127-connection-scoped-visibility). Below the list, the section "Change history" sets per role
+// and metatype whether changes to fields the role may not read appear as "Restricted" or hidden
+// (design D5 of us-098-entity-history). The first story is the screen image.
 
 function screen(fetchFn: typeof fetch): Story {
   return {
@@ -53,7 +55,7 @@ export const List: Story = {
     await expect(await canvas.findByText('Investment Cost')).toBeInTheDocument()
     await expect(canvas.getByText('Entity type of persons')).toBeInTheDocument()
     await expect(canvas.queryByTestId('person-metatype-missing')).toBeNull()
-    await expect(canvas.getAllByText('Restricted')).toHaveLength(2)
+    await expect(within(canvas.getByTestId('visibility-table')).getAllByText('Restricted')).toHaveLength(2)
     await expect(canvas.getByRole('link', { name: 'Property visibility' })).toBeInTheDocument()
   },
 }
@@ -90,5 +92,17 @@ export const InlineError: Story = {
     const body = await openDialog(canvasElement, 'Security Classification', /Role-based/)
     await userEvent.click(await body.findByRole('button', { name: 'Save' }))
     await expect(await body.findByText('Choose at least one read role.')).toBeInTheDocument()
+  },
+}
+
+export const ChangeHistory: Story = {
+  ...screen(visibilityApi({ personMetatype: VISIBILITY_IDS.actor }).fetch),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const section = within(await canvas.findByTestId('history-visibility'))
+    await expect(section.getByText(/the more open setting applies/)).toBeInTheDocument()
+    await userEvent.click(within(section.getByTestId('history-visibility-mode-viewer')).getByRole('radio', { name: 'Hidden' }))
+    await userEvent.click(section.getByRole('button', { name: 'Save' }))
+    await expect(await section.findByText('The change history settings are saved.')).toBeInTheDocument()
   },
 }

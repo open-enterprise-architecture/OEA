@@ -31,7 +31,7 @@
   - the SQL of the history read lives in `core/entity` next to the writers;
   - the timeline with the visibility rule lives in a new feature package `app/history`;
   - the settings live in `app/metamodel`, next to the property visibility;
-  - the controllers live in `api`;
+  - the controllers live in `api`: `EntityHistoryController` implements the generated `EntitiesApi`; `getHistoryVisibility` and `updateHistoryVisibility` carry the tag `Admin` and therefore live in `AdminController`, since one generated interface per tag can have only one controller (a split of the tag `Admin` is a change of its own);
   - `app/history` uses `app/metamodel` (for `PropertyAccess` and the settings), not the other way round, so the cycle rule holds.
 - [ADR-032](../../../adrs/ADR-032-authorization-model.md): authorization comes from `x-oea-authorization` (`entity:read`, `visibility:configure`). SoD-2: `metamodel:write` does not include `visibility:configure`.
 - [ADR-033](../../../adrs/ADR-033-audit-trail-hardening.md): `visibility.history-changed` is written in the transaction of the change, with the self-benefiting flag like `visibility.changed`.
@@ -71,7 +71,7 @@ Further rules:
 - **Storage:** table `history_visibility_settings (role_id, metatype_id, mode)`. Only `hide` rows are stored; `show-restricted` is the absence of a row.
   - The primary key is `(role_id, metatype_id)`.
   - `role_id` references `authorization_roles` with `ON DELETE CASCADE`, `metatype_id` references `metatypes`, and `mode` is checked to be `hide`.
-- **Read:** `mode(roles, metatypeId)` gives `hide` when every role has a row for the metatype. It is called once per history read and metatype, not per field.
+- **Read:** `hidden(roles, metatypeId)` is true when the reader has roles and every one has a row for the metatype; rows of a soft-deleted role count as absent. It is called once per history read and metatype, not per field.
 - **Change:** `PUT` takes a list of `{roleId, metatypeId, mode}`.
   - It validates all entries first: role exists, metatype exists, mode is known, and no role-metatype pair appears twice.
   - It then applies them in one transaction and writes one audit event per entry whose mode changes.
@@ -109,7 +109,7 @@ Further rules:
   - "Load more" with the cursor;
   - the empty state with the creation.
 - **Story first:** `SCR-026-change-history.stories.ts`, with the states normal, filtered, restricted, empty and many versions.
-- **Row action:** `CatalogTable.vue` gets an action column with "History" (icon and text) for rows of entity catalogs; connection catalogs show it too, since connections are entities.
+- **Row action:** `CatalogTable.vue` gets an action column with "History" (icon and text) for rows of entity catalogs; connection catalogs show it too, since connections are entities. The column appears only with `entity:read`, since `getEntityHistory` needs it; a portal reader with only `portal:read` would open a page without access.
 - **SCR-032:** a section "Change history" with a metatype select and a table of roles with a two-way choice ("Restricted" or "Hidden"). It saves the changed rows with one `PUT` and shows `invalidFields` errors per row.
 
 ### D6 – Tests

@@ -54,6 +54,7 @@ const chapters: Chapter[] = [
       { path: '', title: { en: 'Overview', de: 'Überblick' } },
       { path: 'login', title: { en: 'Logging in', de: 'Anmelden' } },
       { path: 'catalogs', title: { en: 'Catalogs', de: 'Kataloge' } },
+      { path: 'change-history', title: { en: 'Change history', de: 'Änderungshistorie' } },
       { path: 'navigation', title: { en: 'Navigation tree', de: 'Navigationsbaum' } },
       { path: 'portal', title: { en: 'Portal', de: 'Portal' } },
       { path: 'solutions', title: { en: 'Solutions', de: 'Lösungen' } },

@@ -2,7 +2,7 @@
 identifier: authorization-role
 name_de: Berechtigungsrolle
 name_en: Authorization Role
-version: 0.3.0
+version: 0.4.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -76,6 +76,7 @@ The catalog is seeded per release and read-only at runtime; descriptions are sys
 | mappedFrom | [idp-group-mapping](./idp-group-mapping.md) | 1:n | yes | IdP groups that derive this role |
 | usedInVisibility | [metamodel-configuration](./metamodel-configuration.md) (PropertyDefinition `readRoles`/`writeRoles`) | n:m | yes | Property visibility (REQ-124, ADR-032 DM-9) |
 | derivedInSession | [session](./session.md) | 1:n | yes | IdP-derived roles recorded per session (DM-10) |
+| hidesInHistory | [metamodel-configuration](./metamodel-configuration.md) (Metatype) | n:m | yes | History visibility (US-098, table `history_visibility_settings`): per metatype, whether a change to a field the role may not read appears as restricted (default) or is hidden in the change history |
 
 ## Lifecycle
 
@@ -166,6 +167,8 @@ Soft delete instead of hard delete because revoked role assignments and session 
 
 Implemented by the OpenSpec change `us-128-override-role-list` (2026-11-11): custom roles are created with `createAuthorizationRole` (BR-02, BR-04 checked, audited as `role.created`); changing and deleting them (`role.changed`, soft delete) and the four-eyes approval of BR-09 are still planned, so a privileged custom role is effective at once until US-150. The override list is the flag `overridesPropertyVisibility`, set as a whole through `updatePropertyVisibilityOverride` (BR-06).
 
+The history visibility per role and metatype (OpenSpec change `us-098-entity-history`, 2026-11-14) is stored as rows of `history_visibility_settings` with the mode `hide`; a pair without a row is `show-restricted`. With several roles, a field is hidden only when every role of the reader hides it for the metatype. Only `visibility:configure` changes it (audit `visibility.history-changed`); deleting the role removes its rows.
+
 ## Change History
 
 | Version | Date | Author | Change |
@@ -173,3 +176,4 @@ Implemented by the OpenSpec change `us-128-override-role-list` (2026-11-11): cus
 | 0.1.0 | 2026-10-13 | Business Engineer | Initial draft from ADR-032 (DM-1, DM-2, DM-3, DM-9) and owner decision Q14 |
 | 0.2.0 | 2026-10-13 | Lukas Mathis | BR-09: four-eyes approval for admin-class permissions on custom roles (owner decision Q18) |
 | 0.3.0 | 2026-11-11 | Change us-128-override-role-list | Notes on the implemented creation of custom roles and the override list |
+| 0.4.0 | 2026-11-14 | Change us-098-entity-history | Relationship and note on the history visibility per metatype |

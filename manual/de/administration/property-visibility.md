@@ -2,7 +2,7 @@
 title: Sichtbarkeit von Eigenschaften
 covers:
   screens: [SCR-032, SCR-040]
-  stories: [US-124, US-125, US-126, US-127, US-128]
+  stories: [US-098, US-124, US-125, US-126, US-127, US-128]
 ---
 
 # Sichtbarkeit von Eigenschaften
@@ -63,6 +63,16 @@ Solange ein Verbindungstyp für eine verbindungsbasierte Eigenschaft verwendet w
 
 In der Metamodell-Konfiguration tragen eingeschränkte Eigenschaften das Badge *Eingeschränkt*, und der Dialog einer Eigenschaft zeigt ihre Sichtbarkeit nur lesend (siehe [Metamodell bearbeiten](./metamodel-editing)).
 
+## Änderungshistorie {#change-history}
+
+Die [Änderungshistorie](../usage/change-history) einer Entität nennt die Felder, die jede Version geändert hat, nie ihre Werte. Für ein Feld, das die lesende Person nicht lesen darf, entscheidet der Abschnitt *Änderungshistorie* unter der Liste, wie es erscheint:
+
+1. Wähle den Entitätstyp.
+2. Wähle für jede Rolle *Eingeschränkt* (das Feld erscheint mit dem Badge *Eingeschränkt*) oder *Ausgeblendet* (das Feld fehlt).
+3. Wähle *Speichern*. Nur die geänderten Rollen werden gespeichert; ein abgelehnter Eintrag wird in seiner Zeile markiert, und dann wird nichts gespeichert.
+
+Ohne Einstellung zeigt jede Rolle *Eingeschränkt*. Eine Person mit mehreren Rollen sieht die offenere Einstellung: Das Feld fehlt nur, wenn jede ihrer Rollen es für den Entitätstyp ausblendet. Eine Einstellung gilt für genau einen Entitätstyp, nicht für seine Untertypen, und ein Paketimport behält sie. Jeder geänderte Eintrag wird als `visibility.history-changed` ins Audit-Log geschrieben; eine eigene Rolle wieder auf *Eingeschränkt* zu setzen wird als selbstbegünstigend markiert.
+
 ## Über die API
 
 - `GET /admin/property-visibility` listet die Sichtbarkeit jeder Eigenschaft mit `visibilityMode`, `readRoles`, `writeRoles`, `scopingConnectionType` und den Entitätstypen in `metatypes`.
@@ -79,5 +89,7 @@ In der Metamodell-Konfiguration tragen eingeschränkte Eigenschaften das Badge *
 - `GET` und `PUT /admin/property-visibility/person-metatype` lesen und setzen den Entitätstyp von Personen, zum Beispiel `{"metatypeId": "<ID des Entitätstyps>"}`, oder `{"metatypeId": null}` für keinen. Ein Verbindungstyp oder ein unbekannter Entitätstyp antwortet mit `422` und `metatypeId` in `invalidFields`.
 
 - `GET` und `PUT /admin/property-visibility/override-roles` lesen und ersetzen die Override-Rollen, zum Beispiel `{"roles": ["migration-support"]}`. Eine unbekannte Rolle antwortet mit `422` und `roles` in `invalidFields`; mehr als 20 Rollen antworten mit `400`.
+
+- `GET` und `PUT /admin/history-visibility` lesen und ändern die Einstellungen der Änderungshistorie, zum Beispiel `{"entries": [{"roleId": "viewer", "metatypeId": "<ID des Entitätstyps>", "mode": "hide"}]}`. `show-restricted` entfernt einen Eintrag. Eine Änderung enthält 1 bis 500 Einträge; eine unbekannte Rolle, ein unbekannter Entitätstyp oder Modus antwortet mit `422` und dem Eintrag in `invalidFields`, etwa `entries[0].roleId`, und nichts wird geändert.
 
 Alle brauchen `visibility:configure`.

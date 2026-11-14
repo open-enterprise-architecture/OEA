@@ -4,16 +4,44 @@ import UIcon from '@nuxt/ui/components/Icon.vue'
 import type { TableColumn } from '@nuxt/ui'
 import { computed, h } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import type { CatalogColumn, CatalogQueryResult, CatalogRow, CatalogSort, JoinMode } from '../api/catalogs'
+import { session } from '../session/store'
 
 // The rows of a catalog (US-049, SCR-020; design D6 of us-049-show-catalog-data). Renders the
 // columns the query returns; a header click cycles ascending → descending → default order. Every
 // join adds a column group with a "Compact / Rows" switch (US-048, US-050; design D5 of
 // us-048-catalog-joins): compact cells list one value per result, rows cells the single value.
 // readOnly: the join headers show the name without the mode switch (portal, s9-portal-catalogs D7)
+// Every entity row has the action "History" to its change history (SCR-026; design D5 of
+// us-098-entity-history), with this catalog as the page to return to; it needs entity:read.
 const props = defineProps<{ result: CatalogQueryResult; loading?: boolean; primaryLabel?: string; readOnly?: boolean }>()
 const emit = defineEmits<{ sort: [sort: CatalogSort | undefined]; page: [page: number]; mode: [joinId: string, mode: JoinMode] }>()
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
+
+const canReadHistory = computed(() => (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read'))
+
+// A plain link rather than a button or RouterLink component: one per row, so it must stay cheap to
+// render; a plain click navigates within the application, a modified click opens a new tab.
+function historyAction(row: CatalogRow) {
+  const href = `/entities/${row.entityId}/history?from=${encodeURIComponent(route?.fullPath ?? '/catalogs')}`
+  return h(
+    'a',
+    {
+      href,
+      'data-testid': `history-${row.entityId}`,
+      class: 'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-default hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary',
+      onClick: (event: MouseEvent) => {
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+        event.preventDefault()
+        void router.push(href)
+      },
+    },
+    [h(UIcon, { name: 'i-lucide-history', class: 'size-4 shrink-0', 'aria-hidden': 'true' }), t('catalog.history')],
+  )
+}
 
 const sort = computed(() => props.result.sort ?? undefined)
 
@@ -84,12 +112,20 @@ function modeSwitch(joinId: string, name: string, mode: JoinMode) {
 }
 
 const columns = computed<TableColumn<CatalogRow>[]>(() => {
-  const primary = props.result.columns.map((column) => ({
+  const primary: TableColumn<CatalogRow>[] = props.result.columns.map((column) => ({
     id: column.key,
     accessorFn: (row: CatalogRow) => row.values[column.key] ?? '',
     enableSorting: column.sortable,
     header: header(column, column.key),
   }))
+  if (canReadHistory.value) {
+    primary.push({
+      id: 'actions',
+      enableSorting: false,
+      header: () => h('span', { class: 'sr-only' }, t('catalog.actions')),
+      cell: ({ row }: { row: { original: CatalogRow } }) => historyAction(row.original),
+    })
+  }
   const joins = props.result.joins ?? []
   if (joins.length === 0) {
     return primary

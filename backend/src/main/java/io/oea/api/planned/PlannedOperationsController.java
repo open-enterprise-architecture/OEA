@@ -2,7 +2,6 @@ package io.oea.api.planned;
 
 import io.oea.api.generated.AnalyticsApi;
 import io.oea.api.generated.AuditApi;
-import io.oea.api.generated.EntitiesApi;
 import io.oea.api.generated.EventsApi;
 import io.oea.api.generated.ViewsEditorsApi;
 import java.util.Optional;
@@ -16,7 +15,7 @@ import org.springframework.web.context.request.NativeWebRequest;
  * operation of an interface moves the interface to its own controller.
  */
 @RestController
-public class PlannedOperationsController implements AnalyticsApi, AuditApi, EntitiesApi, EventsApi,
+public class PlannedOperationsController implements AnalyticsApi, AuditApi, EventsApi,
 		ViewsEditorsApi {
 
 	/** Every interface declares this default; no example responses are rendered. */

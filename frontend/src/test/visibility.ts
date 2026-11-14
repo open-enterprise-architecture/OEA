@@ -1,10 +1,12 @@
+import type { HistoryVisibilityEntry } from '../api/history'
 import type { PropertyVisibilityEntry, VisibilityChange } from '../api/visibility'
 import { ME_METAMODEL_ADMIN, ME_SECURITY_ADMIN } from './metamodel'
 
 // A fake backend for SCR-032 (us-124-property-visibility): the visibility list, the roles and the
 // metatypes, and the PUT with the server-side rules of REQ-124; the person metatype of
 // us-127-connection-scoped-visibility; the override role list, the permission catalog and creating
-// custom roles of us-128-override-role-list (SCR-039, SCR-040).
+// custom roles of us-128-override-role-list (SCR-039, SCR-040); the history visibility per role and
+// metatype of us-098-entity-history with the 422 of a rejected entry.
 
 export { ME_METAMODEL_ADMIN, ME_SECURITY_ADMIN }
 
@@ -98,6 +100,7 @@ export interface VisibilityApi {
   personMetatypePuts: (string | null)[]
   overridePuts: string[][]
   rolePosts: Record<string, unknown>[]
+  historyPuts: HistoryVisibilityEntry[][]
 }
 
 function problem(status: number, invalidFields: string[] = []) {
@@ -113,8 +116,13 @@ export function visibilityApi(
     customRoles?: boolean
     overrideRoles?: string[]
     rejectOverride?: boolean
+    historyVisibility?: HistoryVisibilityEntry[]
+    /** answer the next history visibility change with 422 naming these fields */
+    rejectHistory?: string[]
   } = {},
 ): VisibilityApi {
+  let historyVisibility = [...(options.historyVisibility ?? [])]
+  const historyPuts: HistoryVisibilityEntry[][] = []
   const roles: FakeRole[] = [...ROLES, ...(options.customRoles ? [MIGRATION_SUPPORT] : [])]
   let overrideRoles = [...(options.overrideRoles ?? [])]
   const overridePuts: string[][] = []
@@ -193,6 +201,21 @@ export function visibilityApi(
       personMetatype = metatypeId
       return json(personMetatypeBody())
     }
+    if (url.pathname === '/api/v1/admin/history-visibility' && method === 'GET') {
+      return json({ entries: historyVisibility })
+    }
+    if (url.pathname === '/api/v1/admin/history-visibility' && method === 'PUT') {
+      const { entries: changes } = JSON.parse(String(init?.body)) as { entries: HistoryVisibilityEntry[] }
+      historyPuts.push(changes)
+      if (options.rejectHistory) {
+        return json(problem(422, options.rejectHistory), 422)
+      }
+      for (const change of changes) {
+        historyVisibility = historyVisibility.filter((entry) => !(entry.roleId === change.roleId && entry.metatypeId === change.metatypeId))
+        if (change.mode === 'hide') historyVisibility.push(change)
+      }
+      return json({ entries: historyVisibility })
+    }
     if (url.pathname === '/api/v1/admin/property-visibility' && method === 'GET') {
       return json(state)
     }
@@ -211,5 +234,5 @@ export function visibilityApi(
     }
     throw new TypeError(`no route for ${method} ${url.pathname}`)
   }
-  return { fetch: fetchFn, puts, state, personMetatypePuts, overridePuts, rolePosts }
+  return { fetch: fetchFn, puts, state, personMetatypePuts, overridePuts, rolePosts, historyPuts }
 }

@@ -1,9 +1,13 @@
 package io.oea.api.admin;
 
+import io.oea.api.generated.model.HistoryVisibility;
+import io.oea.api.generated.model.HistoryVisibilityEntry;
+import io.oea.api.generated.model.HistoryVisibilityUpdate;
 import io.oea.api.generated.model.PersonMetatype;
 import io.oea.api.generated.model.PropertyVisibilityOverride;
 import io.oea.api.generated.model.PropertyVisibilityEntry;
 import io.oea.app.metamodel.PersonMetatypes;
+import io.oea.app.metamodel.HistoryVisibility.Entry;
 import io.oea.app.metamodel.VisibilityOverride;
 import io.oea.app.metamodel.PropertyVisibility;
 import java.util.LinkedHashSet;
@@ -42,7 +46,8 @@ import org.springframework.web.bind.annotation.RestController;
  * Administration: OIDC providers (design D10 of us-013-system-admin-login; deleting and testing
  * a provider are not implemented, a provider is deactivated with {@code enabled: false}) and
  * metamodel package imports (us-033-import-metamodel), the password policy
- * (us-027-password-administration) and the second-factor policy (us-031-second-factor-enforcement).
+ * (us-027-password-administration), the second-factor policy (us-031-second-factor-enforcement)
+ * and the history visibility (us-098-entity-history D3).
  */
 @RestController
 public class AdminController implements AdminApi {
@@ -65,10 +70,13 @@ public class AdminController implements AdminApi {
 
 	private final VisibilityOverride override;
 
+	private final io.oea.app.metamodel.HistoryVisibility historyVisibility;
+
 	public AdminController(AuthProviders providers, PackageImporter packageImporter,
 			StarterPackages starterPackages, LocalAdminAccount localAdmin, PasswordPolicies policies,
 			SecondFactorPolicies secondFactorPolicies, PropertyVisibility visibility, PersonMetatypes personMetatypes,
-			VisibilityOverride override) {
+			VisibilityOverride override, io.oea.app.metamodel.HistoryVisibility historyVisibility) {
+		this.historyVisibility = historyVisibility;
 		this.personMetatypes = personMetatypes;
 		this.override = override;
 		this.providers = providers;
@@ -101,6 +109,28 @@ public class AdminController implements AdminApi {
 		List<String> roles = this.override.set(principal(),
 				(request.getRoles() != null) ? request.getRoles() : java.util.Set.of());
 		return ResponseEntity.ok(new PropertyVisibilityOverride().roles(new LinkedHashSet<>(roles)));
+	}
+
+	@Override
+	public ResponseEntity<HistoryVisibility> getHistoryVisibility() {
+		return ResponseEntity.ok(historyVisibility(this.historyVisibility.list()));
+	}
+
+	@Override
+	public ResponseEntity<HistoryVisibility> updateHistoryVisibility(HistoryVisibilityUpdate request) {
+		return ResponseEntity.ok(historyVisibility(this.historyVisibility.update(principal(),
+				request.getEntries()
+					.stream()
+					.map((entry) -> new Entry(entry.getRoleId(), entry.getMetatypeId(), entry.getMode()))
+					.toList())));
+	}
+
+	private static HistoryVisibility historyVisibility(List<Entry> entries) {
+		return new HistoryVisibility().entries(entries.stream()
+			.map((entry) -> new HistoryVisibilityEntry().roleId(entry.roleId())
+				.metatypeId(entry.metatypeId())
+				.mode(HistoryVisibilityEntry.ModeEnum.fromValue(entry.mode())))
+			.toList());
 	}
 
 	private static PersonMetatype personMetatype(PersonMetatypes.View view) {

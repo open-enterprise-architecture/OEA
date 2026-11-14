@@ -23,6 +23,8 @@ async function open(
     routes: [
       { path: '/portal', component: { render: () => h('div', { 'data-testid': 'portal' }) } },
       { path: '/portal/catalogs/:id', component: PortalCatalogPage, props: (route) => ({ id: route.params.id, fetchFn }) },
+      // the target of the row action "History" (us-098-entity-history)
+      { path: '/entities/:id/history', component: { render: () => h('div') } },
     ],
   })
   await router.push(location)

@@ -2,6 +2,7 @@ import { watch } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import CatalogPage from '../pages/CatalogPage.vue'
 import CatalogsPage from '../pages/CatalogsPage.vue'
+import EntityHistoryPage from '../pages/EntityHistoryPage.vue'
 import ChangePasswordPage from '../pages/ChangePasswordPage.vue'
 import LoginPage from '../pages/LoginPage.vue'
 import MetamodelPage from '../pages/MetamodelPage.vue'
@@ -43,6 +44,8 @@ export const router = createRouter({
     { path: '/solutions/:id', name: 'solution', component: SolutionPage, props: true },
     // the comparison of current and target state of a solution (SCR-062, us-043-diff-view)
     { path: '/solutions/:id/diff', name: 'solution-diff', component: SolutionDiffPage, props: true },
+    // the change history of an entity, opened from a catalog row (SCR-026, us-098-entity-history)
+    { path: '/entities/:id/history', name: 'entity-history', component: EntityHistoryPage, props: true },
   ],
 })
 

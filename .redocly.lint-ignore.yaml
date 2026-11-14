@@ -10,6 +10,9 @@
 # design D3 of change us-001-oidc-login); there is no 2xx response by design.
 # operation-4xx-response: listLoginProviders is public and has no failure case besides
 # server errors; it returns the enabled providers or an empty list.
+# no-unused-components: FieldDiff (old and new value of a changed field) is kept for the
+# version diff of US-099 (change us-099-version-diff); us-098-entity-history lists the
+# changed fields without values (EntityVersionChange).
 api/openapi.yaml:
   operation-2xx-response:
     - '#/paths/~1auth~1oidc~1{providerId}~1start/get/responses'
@@ -18,3 +21,5 @@ api/openapi.yaml:
     - '#/paths/~1auth~1oidc~1providers/get/responses'
   no-ambiguous-paths:
     - '#/paths/~1entities~1by-external-id~1{externalId}'
+  no-unused-components:
+    - '#/components/schemas/FieldDiff'

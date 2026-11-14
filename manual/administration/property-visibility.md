@@ -2,7 +2,7 @@
 title: Property visibility
 covers:
   screens: [SCR-032, SCR-040]
-  stories: [US-124, US-125, US-126, US-127, US-128]
+  stories: [US-098, US-124, US-125, US-126, US-127, US-128]
 ---
 
 # Property visibility
@@ -63,6 +63,16 @@ As long as a connection type is used for a connection-based property, creating c
 
 In the metamodel configuration, restricted properties show the badge *Restricted*, and the dialog of a property shows its visibility read-only (see [Editing the metamodel](./metamodel-editing)).
 
+## Change history {#change-history}
+
+The [change history](../usage/change-history) of an entity names the fields each version changed, never their values. For a field the reader may not read, the section *Change history* below the list decides how it appears:
+
+1. Choose the entity type.
+2. For every role, choose *Restricted* (the field appears with the badge *Restricted*) or *Hidden* (the field is left out).
+3. Choose *Save*. Only the changed roles are saved; a rejected entry is marked at its row, and then nothing is saved.
+
+Without a setting, every role shows *Restricted*. A person with several roles sees the more open setting: the field is hidden only when every one of their roles hides it for the entity type. A setting applies to exactly one entity type, not to its subtypes, and a package import keeps it. Every changed entry is written to the audit log as `visibility.history-changed`; setting one of your own roles back to *Restricted* is marked as self-benefiting.
+
 ## Through the API
 
 - `GET /admin/property-visibility` lists the visibility of every property with `visibilityMode`, `readRoles`, `writeRoles`, `scopingConnectionType` and the entity types in `metatypes`.
@@ -79,5 +89,7 @@ In the metamodel configuration, restricted properties show the badge *Restricted
 - `GET` and `PUT /admin/property-visibility/person-metatype` read and set the entity type of persons, for example `{"metatypeId": "<entity type ID>"}`, or `{"metatypeId": null}` for none. A connection type or an unknown entity type answers `422` with `metatypeId` in `invalidFields`.
 
 - `GET` and `PUT /admin/property-visibility/override-roles` read and replace the override roles, for example `{"roles": ["migration-support"]}`. An unknown role answers `422` with `roles` in `invalidFields`; more than 20 roles answer `400`.
+
+- `GET` and `PUT /admin/history-visibility` read and change the settings of the change history, for example `{"entries": [{"roleId": "viewer", "metatypeId": "<entity type ID>", "mode": "hide"}]}`. `show-restricted` removes an entry. A change holds 1 to 500 entries; an unknown role, entity type or mode answers `422` with the entry in `invalidFields`, such as `entries[0].roleId`, and nothing changes.
 
 All need `visibility:configure`.

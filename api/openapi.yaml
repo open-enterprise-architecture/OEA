@@ -1576,31 +1576,62 @@ components:
           default: false
           description: "`true` = old and new value masked by property visibility (REQ-160)"
 
+    EntityVersionChange:
+      type: object
+      required: [field, label, isSystemField, restricted]
+      description: |
+        One field changed by a version, without values (US-098). `field` is a system field
+        (`name`, `description`, `isLogical`, `metatypeId`, `sourceId`, `targetId`) or the ID of
+        a property definition. `restricted` marks a property the caller may not read (REQ-160).
+      properties:
+        field:         { type: string }
+        label:         { type: string, description: "Label in the caller's language (properties); English name of a system field" }
+        isSystemField: { type: boolean }
+        restricted:    { type: boolean }
+
+    EntityHistoryActor:
+      type: object
+      required: [id, name]
+      properties:
+        id:   { type: integer, format: int64 }
+        name: { type: string }
+
     EntityVersionSummary:
       type: object
       required: [version, changedAt, changedBy, changes]
       properties:
         version:    { type: integer }
         changedAt:  { type: string, format: date-time }
-        changedBy:
-          type: object
-          properties:
-            id:   { type: integer }
-            name: { type: string }
+        changedBy:  { $ref: '#/components/schemas/EntityHistoryActor' }
         changes:
           type: array
-          items: { $ref: '#/components/schemas/FieldDiff' }
+          description: Empty for version 1 and for a version whose fields are all hidden
+          items: { $ref: '#/components/schemas/EntityVersionChange' }
 
     EntityHistoryResponse:
       type: object
-      required: [entityId, entityName, versions, page]
+      required: [entityId, entityName, created, actors, versions, page, nextCursor]
       properties:
         entityId:   { type: integer }
         entityName: { type: string }
+        created:
+          type: object
+          required: [changedAt, changedBy]
+          description: The creation (version 1), independent of filters and paging
+          properties:
+            changedAt: { type: string, format: date-time }
+            changedBy: { $ref: '#/components/schemas/EntityHistoryActor' }
+        actors:
+          type: array
+          description: Every person who made a version, independent of the filters, ordered by name
+          items: { $ref: '#/components/schemas/EntityHistoryActor' }
         versions:
           type: array
           items: { $ref: '#/components/schemas/EntityVersionSummary' }
         page: { $ref: '#/components/schemas/PageMeta' }
+        nextCursor:
+          type: [string, 'null']
+          description: Cursor to the next page; `null` on the last page
 
     RestoreRequest:
       type: object
@@ -2315,6 +2346,53 @@ components:
           uniqueItems: true
           items: { $ref: '#/components/schemas/RoleId' }
           default: []
+
+    HistoryVisibilityEntry:
+      type: object
+      required: [roleId, metatypeId, mode]
+      description: |
+        How changes to fields the role may not read appear in the history of entities of the
+        metatype (US-098, owner decision 2026-11-14): `show-restricted` names the field as
+        restricted, `hide` leaves it out. No mode shows a value.
+      properties:
+        roleId:     { $ref: '#/components/schemas/RoleId' }
+        metatypeId: { type: string, format: uuid }
+        mode:
+          type: string
+          enum: [show-restricted, hide]
+
+    HistoryVisibility:
+      type: object
+      required: [entries]
+      description: |
+        The configured entries; a combination of role and metatype that is not listed is
+        `show-restricted`. With several roles, a field is hidden only when every role of the
+        reader is `hide` for the metatype. No inheritance along base types.
+      properties:
+        entries:
+          type: array
+          items: { $ref: '#/components/schemas/HistoryVisibilityEntry' }
+
+    HistoryVisibilityUpdate:
+      type: object
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items: { $ref: '#/components/schemas/HistoryVisibilityChange' }
+
+    HistoryVisibilityChange:
+      type: object
+      required: [roleId, metatypeId, mode]
+      description: |
+        A requested entry. `mode` is `show-restricted` or `hide`; the service checks it, so that
+        an unknown mode is answered with 422 naming `entries[i].mode` like an unknown role.
+      properties:
+        roleId:     { $ref: '#/components/schemas/RoleId' }
+        metatypeId: { type: string, format: uuid }
+        mode:       { type: string, maxLength: 50 }
 
     # ── Access control (ADR-032, UC-23) ───────────────────────────────────────
     PermissionId:
@@ -5745,23 +5823,51 @@ paths:
       operationId: getEntityHistory
       summary: Change history of an entity (SCR-026)
       description: |
-        Returns all versions with delta-based changes.
-        Source: `entity_version_headers` + `entity_system_field_history`
-        + `entity_property_value_history` (ADR-022).
+        The versions of the entity, newest first (US-098, REQ-098, UC-14). Source:
+        `entity_version_headers` with the changed fields from `entity_system_field_history`
+        and `entity_property_value_history` (ADR-022). A version names its changed fields
+        without values; values and diffs follow with US-099. Version 1 is the creation and has
+        no changed fields.
+
+        A changed property the caller may not read (`role-restricted` without a read role,
+        `connection-scoped` outside the caller's scope, REQ-160) is listed with
+        `restricted: true`, or left out when every role of the caller is set to `hide` for
+        the entity's metatype (`/admin/history-visibility`). A version whose fields are all
+        left out is still listed. Holders of an override role read every field (REQ-128).
+
+        `from` and `to` are inclusive; `from` after `to` answers 400 naming `from`. `actors`
+        and `created` ignore the filters and the paging. Paging as in the delta list: send
+        `nextCursor` with `page` + 1; a cursor of another query answers 400 `cursor`.
       tags: [Entities]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/EntityIdParam'
+        - name: from
+          in: query
+          description: Earliest time of a listed version, inclusive (ISO 8601)
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          description: Latest time of a listed version, inclusive (ISO 8601)
+          schema: { type: string, format: date-time }
+        - name: actorId
+          in: query
+          description: Only the versions made by this person (`persons.id`)
+          schema: { type: integer, format: int64, minimum: 1 }
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: '#/components/parameters/CursorParam'
       responses:
         '200':
           description: Version history
           content:
             application/json:
               schema: { $ref: '#/components/schemas/EntityHistoryResponse' }
-        '400': { $ref: '#/components/responses/BadRequest' }
+        '400':
+          description: Invalid filter, page size or cursor, named in `invalidFields`
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
@@ -5769,7 +5875,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /entities/{id}/restore:
     post:
@@ -8538,6 +8644,54 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '501': { $ref: '#/components/responses/NotImplemented' }
+
+  /admin/history-visibility:
+    get:
+      operationId: getHistoryVisibility
+      summary: History visibility per role and metatype (SCR-032)
+      description: |
+        The configured entries of the history visibility (US-098, REQ-098), ordered by role and
+        metatype. Only security administration reads it (`visibility:configure`, REQ-161).
+      tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
+      responses:
+        '200':
+          description: The configured entries
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HistoryVisibility' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    put:
+      operationId: updateHistoryVisibility
+      summary: Change the history visibility (SCR-032)
+      description: |
+        Sets the listed entries in one transaction; entries not listed stay unchanged, and
+        `show-restricted` removes an entry. An unknown role or metatype, or a pair listed twice,
+        answers 422 with `invalidFields` such as `entries[1].roleId` and changes nothing. Each
+        entry whose mode changes is audited as `visibility.history-changed`, flagged as
+        self-benefiting when it sets a role the caller holds to `show-restricted` (SoD-6). The
+        answer is the new configuration.
+      tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HistoryVisibilityUpdate' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HistoryVisibility' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/property-visibility/override-roles:
     get:

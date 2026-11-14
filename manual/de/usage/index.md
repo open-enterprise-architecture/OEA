@@ -9,6 +9,7 @@ covers:
 
 - [Anmelden](./login): über deinen Identity-Provider oder mit dem lokalen Systemadmin-Konto anmelden, einen zweiten Faktor einrichten und dein Profil ansehen
 - [Kataloge](./catalogs): einen Katalog anlegen und seine Entitäten in einer Tabelle durchsehen
+- [Änderungshistorie](./change-history): sehen, wer eine Entität wann geändert hat und welche Felder
 - [Navigationsbaum](./navigation): Kataloge in den Ordnern der Seitenleiste finden, Ordner anlegen und Kataloge einordnen
 - [Portal](./portal): die geteilten Kataloge lesen, zum Beispiel mit der Rolle `portal-reader`
 - [Lösungen](./solutions): eine Lösung für ein Veränderungsvorhaben anlegen und ihre Architekturvision beschreiben
