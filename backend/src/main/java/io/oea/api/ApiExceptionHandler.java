@@ -37,6 +37,7 @@ import io.oea.app.security.SetupPhase;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.app.solution.InvalidSolutionException;
 import io.oea.app.solution.InvalidSolutionQueryException;
+import io.oea.app.history.InvalidHistoryQueryException;
 import io.oea.app.solution.SolutionCompletedException;
 import io.oea.config.security.OeaAuthentication;
 import io.oea.config.web.RequestSizeLimitFilter;
@@ -245,6 +246,15 @@ public class ApiExceptionHandler {
 	/** A baseline query with a cursor of another query (design D3 of us-039-solution-baseline). */
 	@ExceptionHandler(InvalidSolutionQueryException.class)
 	ResponseEntity<ProblemDetail> invalidSolutionQuery(InvalidSolutionQueryException ex) {
+		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid query",
+				ex.getMessage());
+		problem.setProperty("invalidFields", ex.getFields());
+		return ResponseEntity.badRequest().body(problem);
+	}
+
+	/** A history read with a reversed period or a cursor of another query (design D2 of us-098-entity-history). */
+	@ExceptionHandler(InvalidHistoryQueryException.class)
+	ResponseEntity<ProblemDetail> invalidHistoryQuery(InvalidHistoryQueryException ex) {
 		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid query",
 				ex.getMessage());
 		problem.setProperty("invalidFields", ex.getFields());

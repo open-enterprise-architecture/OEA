@@ -71,7 +71,7 @@ Further rules:
 - **Storage:** table `history_visibility_settings (role_id, metatype_id, mode)`. Only `hide` rows are stored; `show-restricted` is the absence of a row.
   - The primary key is `(role_id, metatype_id)`.
   - `role_id` references `authorization_roles` with `ON DELETE CASCADE`, `metatype_id` references `metatypes`, and `mode` is checked to be `hide`.
-- **Read:** `mode(roles, metatypeId)` gives `hide` when every role has a row for the metatype. It is called once per history read and metatype, not per field.
+- **Read:** `hidden(roles, metatypeId)` is true when the reader has roles and every one has a row for the metatype. It is called once per history read and metatype, not per field.
 - **Change:** `PUT` takes a list of `{roleId, metatypeId, mode}`.
   - It validates all entries first: role exists, metatype exists, mode is known, and no role-metatype pair appears twice.
   - It then applies them in one transaction and writes one audit event per entry whose mode changes.

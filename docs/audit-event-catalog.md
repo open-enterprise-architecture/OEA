@@ -664,6 +664,17 @@ Security administration changed the override role list ([REQ-128](../requirement
 | Target | `settings`, `override-roles` |
 | Details | `oldRoles`, `newRoles` (role IDs, sorted), `selfBenefiting` (an added role is held by the actor, ADR-032 SoD-6) |
 
+### `visibility.history-changed`
+
+Security administration changed how changes to fields a role may not read appear in the history of entities of a metatype ([REQ-098](../requirements/req/REQ-098-version-history-timeline.md), [REQ-161](../requirements/req/REQ-161-visibility-configuration-governance.md); change us-098-entity-history D3). One event per entry whose mode changes; an entry set to the mode it already has writes none.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `warning` / `success` |
+| Actor | the person with `visibility:configure` |
+| Target | `history-visibility`, `{roleId}:{metatypeId}` |
+| Details | `roleId`, `metatypeId`, `metatype` (name), `oldMode`, `newMode` (`show-restricted` or `hide`), `selfBenefiting` (a role the actor holds was set to `show-restricted`, ADR-032 SoD-6) |
+
 ### `property-override-access`
 
 A catalog or portal query returned values that the caller can read only through a role on the override role list ([REQ-128](../requirements/req/REQ-128-property-visibility-admin-override.md) AC2; change us-128-override-role-list D3). One event per query (page); values readable through a read role or the connection scope do not count, and a page without such values writes none. Written in its own transaction, as the query is read-only.
