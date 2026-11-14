@@ -40,7 +40,7 @@ public class EntityHistory {
 	private static final List<KeyType> KEY_TYPES = List.of(KeyType.INTEGER);
 
 	/** The system fields of the history rows with their contract keys and English labels. */
-	private static final Map<String, SystemField> SYSTEM_FIELDS = Map.of("name", new SystemField("name", "Name", 0),
+	static final Map<String, SystemField> SYSTEM_FIELDS = Map.of("name", new SystemField("name", "Name", 0),
 			"description", new SystemField("description", "Description", 1), "is_logical",
 			new SystemField("isLogical", "Logical", 2), "metatype_id", new SystemField("metatypeId", "Metatype", 3),
 			"source_entity_id", new SystemField("sourceId", "Source", 4), "target_entity_id",
@@ -72,7 +72,8 @@ public class EntityHistory {
 		this.cursors = cursors;
 	}
 
-	private record SystemField(String key, String label, int order) {
+	/** A system field: its contract key, English label and position. */
+	record SystemField(String key, String label, int order) {
 	}
 
 	/** A person who made a version. */
@@ -147,7 +148,8 @@ public class EntityHistory {
 				.filter(Objects::nonNull)
 				.forEach(properties::add));
 		Map<UUID, String> propertyLabels = this.labels.propertyLabels(language, properties);
-		boolean hide = !properties.isEmpty() && this.visibility.hidden(new HashSet<>(roles), entity.metatypeId());
+		HistoryAccess rule = new HistoryAccess(access,
+				!properties.isEmpty() && this.visibility.hidden(new HashSet<>(roles), entity.metatypeId()));
 
 		List<Version> versions = new ArrayList<>(headers.size());
 		for (EntityHistoryStore.Version header : headers) {
@@ -161,12 +163,13 @@ public class EntityHistory {
 					continue;
 				}
 				UUID property = field.propertyDefId();
-				boolean readable = access.readableFor(property, entityId);
-				if (!readable && hide) {
+				HistoryAccess.Visibility visibility = rule.of(property, entityId);
+				if (visibility == HistoryAccess.Visibility.HIDDEN) {
 					continue;
 				}
 				propertyChanges.add(new Change(property.toString(),
-						propertyLabels.getOrDefault(property, property.toString()), false, !readable));
+						propertyLabels.getOrDefault(property, property.toString()), false,
+						visibility == HistoryAccess.Visibility.RESTRICTED));
 			}
 			changes.sort(Comparator.comparingInt((Change change) -> systemOrder(change.field())));
 			propertyChanges.sort(Comparator.comparing(Change::label, String.CASE_INSENSITIVE_ORDER));

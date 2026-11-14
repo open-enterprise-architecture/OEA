@@ -57,7 +57,7 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 | SCR-023 | Data lineage editor | CA | UC-08 | should | `legacy-mockup` | [data-lineage](./data-lineage-light.svg) / [dark](./data-lineage-dark.svg) |
 | SCR-024 | Dashboard editor | CA | UC-07 | should | `legacy-mockup` | [dashboard-editor](./dashboard-editor-light.svg) / [dark](./dashboard-editor-dark.svg) |
 | SCR-025 | Plateau roadmap | CA | UC-11 | must | `legacy-mockup` | [plateau-roadmap](./plateau-roadmap-light.svg) / [dark](./plateau-roadmap-dark.svg) |
-| SCR-026 | Change history (the versions of an entity newest first with time, person and changed fields without values; "Restricted" for fields the reader may not read; filters by person and period; "Load more"; opened from the row action "History" of a catalog) | CA+WP | UC-14 | must | `implemented` | [light](./SCR-026-light.png) / [dark](./SCR-026-dark.png) |
+| SCR-026 | Change history (the versions of an entity newest first with time, person and changed fields; "Restricted" for fields the reader may not read; filters by person and period; "Load more"; a version expands to its field-by-field diff with old and new values and offers its complete state; "Compare" shows the net diff of two selected versions; opened from the row action "History" of a catalog) | CA+WP | UC-14 | must | `implemented` | [light](./SCR-026-light.png) / [dark](./SCR-026-dark.png) |
 | SCR-027 | Restore entity — modal (diff + restore) | CA | UC-15, UC-16 | should | `legacy-mockup` | [restore-entity](./restore-entity-light.svg) / [dark](./restore-entity-dark.svg) |
 | SCR-028 | Create catalog dialog | CA | UC-06 | must | `implemented` | [light](./SCR-028-light.png) / [dark](./SCR-028-dark.png) |
 

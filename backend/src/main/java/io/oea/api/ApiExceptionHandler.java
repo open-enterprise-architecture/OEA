@@ -53,12 +53,14 @@ import java.util.stream.Stream;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -476,6 +478,20 @@ public class ApiExceptionHandler {
 			problem.setProperty("count", ex.getCount());
 		}
 		return ResponseEntity.status(problem.getStatus()).body(problem);
+	}
+
+	/**
+	 * A method the path does not support, such as {@code PUT} or {@code DELETE} on an immutable
+	 * version (US-100 AC2, AC3; design D3 of us-099-version-diff): 405 with {@code Allow}.
+	 */
+	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+	ResponseEntity<ProblemDetail> methodNotAllowed(HttpRequestMethodNotSupportedException ex) {
+		ResponseEntity.BodyBuilder response = ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED);
+		if (ex.getSupportedHttpMethods() != null) {
+			response.allow(ex.getSupportedHttpMethods().toArray(HttpMethod[]::new));
+		}
+		return response.body(problem(HttpStatus.METHOD_NOT_ALLOWED, "method-not-allowed", "Method not allowed",
+				"The resource does not support " + ex.getMethod() + "."));
 	}
 
 	@ExceptionHandler(NoSuchElementException.class)

@@ -7,14 +7,25 @@ import { testRouter } from '../test/router'
 import EntityHistoryPage from './EntityHistoryPage.vue'
 
 // spec repository/entity-history "Page \"Change history\"", "Paging and empty state of the page"
-// and "Opening the history from the catalog" (US-098 AC1–AC3; design D5 of us-098-entity-history)
+// and "Opening the history from the catalog" (US-098 AC1–AC3; design D5 of us-098-entity-history),
+// and spec repository/entity-versions "Diff and state on the page \"Change history\"" and "Compare
+// mode on the page \"Change history\"" (US-099, US-100; design D5 of us-099-version-diff)
 
-async function mountPage(options: { id?: number; from?: string; me?: unknown; entities?: NonNullable<Parameters<typeof historyApi>[0]>['entities'] } = {}) {
+async function mountPage(
+  options: {
+    id?: number
+    from?: string
+    me?: unknown
+    entities?: NonNullable<Parameters<typeof historyApi>[0]>['entities']
+    wrap?: (fetchFn: typeof fetch) => typeof fetch
+  } = {},
+) {
   const router = testRouter()
   const id = options.id ?? HISTORY_IDS.crm
   await router.push({ path: `/entities/${id}/history`, query: options.from ? { from: options.from } : {} })
   const api = historyApi({ me: options.me, entities: options.entities })
-  const wrapper = mount(EntityHistoryPage, { props: { id: String(id), fetchFn: api.fetch }, global: { plugins: [ui, router] } })
+  const fetchFn = options.wrap ? options.wrap(api.fetch) : api.fetch
+  const wrapper = mount(EntityHistoryPage, { props: { id: String(id), fetchFn }, global: { plugins: [ui, router] } })
   await flushPromises()
   return Object.assign(wrapper, { api, router })
 }
@@ -115,5 +126,133 @@ describe('EntityHistoryPage', () => {
     const wrapper = await mountPage({ me: ME_PORTAL_ONLY })
     expect(wrapper.find('[data-testid="history-no-access"]').exists()).toBe(true)
     expect(wrapper.api.queries).toHaveLength(0)
+  })
+
+  describe('values of the versions', () => {
+    async function select(wrapper: Awaited<ReturnType<typeof mountPage>>, version: number) {
+      const root = wrapper.get(`[data-testid="history-select-${version}"]`)
+      const box = root.attributes('role') === 'checkbox' ? root : root.get('[role="checkbox"]')
+      await box.trigger('click')
+      await flushPromises()
+    }
+
+    it('expands a version to its diff, loading it once', async () => {
+      const wrapper = await mountPage()
+      expect(wrapper.find('[data-testid="history-details-5"]').exists()).toBe(false)
+      const toggle = wrapper.get('[data-testid="history-toggle-5"]')
+      expect(toggle.attributes('aria-expanded')).toBe('false')
+      await toggle.trigger('click')
+      await flushPromises()
+      expect(toggle.attributes('aria-expanded')).toBe('true')
+      const row = wrapper.get(`[data-testid="history-details-5"] [data-testid="history-diff-${HISTORY_IDS.status}"]`)
+      expect(row.text()).toContain('Lifecycle Status')
+      expect(row.get('[data-testid="history-diff-old"]').text()).toBe('before: Active')
+      expect(row.get('[data-testid="history-diff-old"]').classes()).toContain('line-through')
+      expect(row.get('[data-testid="history-diff-new"]').text()).toBe('after: Retiring')
+      expect(row.get('[data-testid="history-diff-new"]').classes()).toContain('text-success')
+      expect(wrapper.findAll('[data-testid="history-details-5"] [data-testid^="history-diff-fd"]')).toHaveLength(1)
+      // collapse and expand again: no second request
+      await toggle.trigger('click')
+      await toggle.trigger('click')
+      await flushPromises()
+      expect(wrapper.api.diffs).toEqual(['from=4&to=5'])
+    })
+
+    it('shows a restricted field of the diff without values', async () => {
+      const wrapper = await mountPage()
+      await wrapper.get('[data-testid="history-toggle-4"]').trigger('click')
+      await flushPromises()
+      const row = wrapper.get(`[data-testid="history-details-4"] [data-testid="history-diff-${HISTORY_IDS.cost}"]`)
+      expect(row.find('[data-testid="history-diff-restricted"]').text()).toBe('Restricted')
+      expect(row.find('[data-testid="history-diff-old"]').exists()).toBe(false)
+      expect(wrapper.get('[data-testid="history-details-4"] [data-testid="history-diff-name"]').text()).toContain('CRM System')
+    })
+
+    it('offers the complete state on "Created", without a diff', async () => {
+      const wrapper = await mountPage()
+      await wrapper.get('[data-testid="history-toggle-1"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.api.diffs).toEqual([])
+      expect(wrapper.find('[data-testid="history-details-1"] [data-testid="history-diff"]').exists()).toBe(false)
+      expect(wrapper.get('[data-testid="history-show-state-1"]').text()).toBe('Show complete state v1')
+    })
+
+    it('shows the complete state with "—" for an empty property', async () => {
+      const wrapper = await mountPage()
+      await wrapper.get('[data-testid="history-toggle-4"]').trigger('click')
+      await flushPromises()
+      await wrapper.get('[data-testid="history-show-state-4"]').trigger('click')
+      await flushPromises()
+      const state = wrapper.get('[data-testid="history-state-4"]')
+      expect(state.text()).toContain('Complete state of version 4')
+      expect(state.get(`[data-testid="history-state-${HISTORY_IDS.owner}"]`).text()).toBe('—')
+      expect(state.get(`[data-testid="history-state-${HISTORY_IDS.status}"]`).text()).toBe('Active')
+      expect(state.get('[data-testid="history-state-isLogical"]').text()).toBe('Yes')
+      expect(state.get(`[data-testid="history-state-${HISTORY_IDS.cost}"]`).text()).toBe('Restricted')
+      expect(wrapper.get('[data-testid="history-show-state-4"]').text()).toBe('Hide complete state')
+      expect(wrapper.api.states).toEqual([4])
+    })
+
+    it('compares two selected versions from the earlier to the later one', async () => {
+      const wrapper = await mountPage()
+      expect(wrapper.find('[data-testid="history-select-5"]').exists()).toBe(false)
+      await wrapper.get('[data-testid="history-compare"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.get('[data-testid="history-compare-hint"]').text()).toBe('Select two versions to compare.')
+      await select(wrapper, 5)
+      await select(wrapper, 2)
+      expect(wrapper.api.diffs).toEqual(['from=2&to=5'])
+      const panel = wrapper.get('[data-testid="history-compare-panel"]')
+      expect(panel.text()).toContain('Version 2 → Version 5')
+      expect(panel.find('[data-testid="history-diff-name"]').exists()).toBe(true)
+      expect(panel.find('[data-testid="history-diff-description"]').exists()).toBe(true)
+    })
+
+    it('replaces the version selected first with a third one', async () => {
+      const wrapper = await mountPage()
+      await wrapper.get('[data-testid="history-compare"]').trigger('click')
+      await flushPromises()
+      await select(wrapper, 5)
+      await select(wrapper, 2)
+      await select(wrapper, 3)
+      expect(wrapper.api.diffs.at(-1)).toBe('from=2&to=3')
+      expect(wrapper.get('[data-testid="history-compare-panel"]').text()).toContain('Version 2 → Version 3')
+    })
+
+    it('closes the panel when leaving the compare mode', async () => {
+      const wrapper = await mountPage()
+      await wrapper.get('[data-testid="history-compare"]').trigger('click')
+      await flushPromises()
+      await select(wrapper, 5)
+      await select(wrapper, 4)
+      await wrapper.get('[data-testid="history-compare"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.find('[data-testid="history-compare-panel"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="history-select-5"]').exists()).toBe(false)
+      // entering again starts without a selection
+      await wrapper.get('[data-testid="history-compare"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.find('[data-testid="history-compare-hint"]').exists()).toBe(true)
+    })
+
+    it('shows an error when the diff of a version cannot be loaded', async () => {
+      const wrapper = await mountPage({
+        wrap: (fetchFn) => async (input, init) => {
+          const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+          if (url.includes('/diff')) {
+            return new Response(JSON.stringify({ type: 'urn:oea:problem:not-found', title: 'Not found', status: 404 }), {
+              status: 404,
+              headers: { 'Content-Type': 'application/problem+json' },
+            })
+          }
+          return fetchFn(input, init)
+        },
+      })
+      await wrapper.get('[data-testid="history-toggle-3"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.get('[data-testid="history-details-3"] [data-testid="history-detail-failure"]').text()).toContain(
+        'The values of this version could not be loaded.',
+      )
+    })
   })
 })

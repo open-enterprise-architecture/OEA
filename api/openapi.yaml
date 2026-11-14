@@ -1564,17 +1564,64 @@ components:
     # ── Entity history ───────────────────────────────────────────────────────
     FieldDiff:
       type: object
-      required: [fieldName, isSystemField]
+      required: [field, label, isSystemField, dataType, oldValue, newValue, redacted]
+      description: |
+        One field whose value differs between two versions (US-099). `field` uses the keys of
+        `EntityVersionChange`. Values are text: booleans `true`/`false`, dates `yyyy-mm-dd`,
+        references and the system fields `metatypeId`, `sourceId` and `targetId` by name.
       properties:
-        fieldName:    { type: string, description: "Property name or system field (name, lifecycle, …)" }
-        label:        { type: string, description: "Translated label" }
+        field:         { type: string, description: "System field key or ID of a property definition" }
+        label:         { type: string, description: "Label in the caller's language (properties); English name of a system field" }
         isSystemField: { type: boolean }
-        oldValue:     { type: [string, 'null'], description: "`null` if redacted" }
-        newValue:     { type: [string, 'null'], description: "`null` if redacted" }
+        dataType:      { $ref: '#/components/schemas/EntityVersionDataType' }
+        oldValue:      { type: [string, 'null'], description: "`null` without value or if redacted" }
+        newValue:      { type: [string, 'null'], description: "`null` without value or if redacted" }
         redacted:
           type: boolean
-          default: false
-          description: "`true` = old and new value masked by property visibility (REQ-160)"
+          description: "`true` = the caller may not read the field (REQ-160); both values are `null`"
+
+    EntityVersionDataType:
+      type: string
+      enum: [system, string, text, url, integer, boolean, date, enum, reference]
+      description: Data type of the property; `system` for system fields
+
+    EntityVersionField:
+      type: object
+      required: [field, label, isSystemField, dataType, value, restricted]
+      description: One field of the complete state of a version (US-100)
+      properties:
+        field:         { type: string, description: "System field key or ID of a property definition" }
+        label:         { type: string }
+        isSystemField: { type: boolean }
+        dataType:      { $ref: '#/components/schemas/EntityVersionDataType' }
+        value:         { type: [string, 'null'], description: "`null` without value or if restricted" }
+        restricted:    { type: boolean, description: "`true` = the caller may not read the field (REQ-160)" }
+
+    EntityVersionState:
+      type: object
+      required: [entityId, entityName, version, changedAt, changedBy, fields]
+      properties:
+        entityId:   { type: integer }
+        entityName: { type: string, description: "Current name of the entity" }
+        version:    { type: integer }
+        changedAt:  { type: string, format: date-time }
+        changedBy:  { $ref: '#/components/schemas/EntityHistoryActor' }
+        fields:
+          type: array
+          description: System fields first, then the properties
+          items: { $ref: '#/components/schemas/EntityVersionField' }
+
+    EntityVersionDiff:
+      type: object
+      required: [entityId, from, to, changes]
+      properties:
+        entityId: { type: integer }
+        from:     { type: integer }
+        to:       { type: integer }
+        changes:
+          type: array
+          description: Only the fields whose value differs between the states of `from` and `to`
+          items: { $ref: '#/components/schemas/FieldDiff' }
 
     EntityVersionChange:
       type: object
@@ -5826,7 +5873,7 @@ paths:
         The versions of the entity, newest first (US-098, REQ-098, UC-14). Source:
         `entity_version_headers` with the changed fields from `entity_system_field_history`
         and `entity_property_value_history` (ADR-022). A version names its changed fields
-        without values; values and diffs follow with US-099. Version 1 is the creation and has
+        without values; values come from `getEntityVersion` and `compareEntityVersions`. Version 1 is the creation and has
         no changed fields.
 
         A changed property the caller may not read (`role-restricted` without a read role,
@@ -5872,6 +5919,93 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           description: Entity not found
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /entities/{id}/versions/{version}:
+    get:
+      operationId: getEntityVersion
+      summary: Complete state of a version (SCR-026)
+      description: |
+        The complete state of a version of the entity (US-100, REQ-100, UC-14): the system
+        fields and the properties mapped to the entity's metatype at the time of the version
+        (effective date on or before it), including empty ones, plus every property that had a
+        value then. The state is reconstructed from the history tables (ADR-022); nothing is
+        stored per version.
+
+        Versions are immutable: `PUT` and `DELETE` on this path answer 405 with `Allow: GET`.
+
+        A property the caller may not read is listed with `restricted: true` and no value, or
+        left out by the history visibility, as in `getEntityHistory`. A value read only through
+        an override role is audited as `property-override-access` (channel `history`).
+      tags: [Entities]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      parameters:
+        - $ref: '#/components/parameters/EntityIdParam'
+        - name: version
+          in: path
+          required: true
+          description: Version number
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: State of the version
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntityVersionState' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: Entity or version not found
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /entities/{id}/diff:
+    get:
+      operationId: compareEntityVersions
+      summary: Field-by-field diff of two versions (SCR-026)
+      description: |
+        The fields whose value differs between the state of version `from` and the state of
+        version `to` (US-099, REQ-099, UC-14): a net diff, so a field changed and changed back
+        between them is not listed. The diff of a single version N is `from=N-1&to=N`.
+        `from` must be at least 1 and before `to`, otherwise 400 naming `from`; a version that
+        does not exist answers 404.
+
+        Values the caller may not read are redacted or left out as in `getEntityVersion`.
+      tags: [Entities]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      parameters:
+        - $ref: '#/components/parameters/EntityIdParam'
+        - name: from
+          in: query
+          required: true
+          description: Earlier version
+          schema: { type: integer }
+        - name: to
+          in: query
+          required: true
+          description: Later version
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Diff of the two versions
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntityVersionDiff' }
+        '400':
+          description: Invalid version range, named in `invalidFields`
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: Entity or version not found
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }

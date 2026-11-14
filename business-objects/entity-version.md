@@ -1,10 +1,10 @@
 ---
 id: entity-version
 title: EntityVersion – Entity Version History
-version: 0.2.0
+version: 0.2.1
 status: draft
 created: 2026-06-27
-last_updated: 2026-10-16
+last_updated: 2026-11-14
 author: business-engineer
 references:
   business_objects:
@@ -23,7 +23,7 @@ references:
 
 ## Purpose
 
-`EntityVersion` is the immutable record of one version of an `ArchitectureEntity`. Every create and every change of an entity creates a new version. The history is stored delta-based (ADR-022): a **version header** records who changed the entity and when; for each changed system field and each changed property only the change itself is recorded. Unchanged fields produce no entry, so the history has no redundancy. Together with the current state of the entity, the deltas reconstruct every earlier version, which is the basis for the change history (UC-14) and restore (UC-15, UC-16).
+`EntityVersion` is the immutable record of one version of an `ArchitectureEntity`. Every create and every change of an entity creates a new version. The history is stored delta-based (ADR-022): a **version header** records who changed the entity and when; for each changed system field and each changed property only the change itself is recorded. Unchanged fields produce no entry, so the history has no redundancy. Together with the current state of the entity, the deltas reconstruct every earlier version, which is the basis for the change history (UC-14) and restore (UC-15, UC-16). A history row holds the value *before* the change of its version, so the value of a field at version N is the value of its first history row after N, or the current value; the state of a version is computed on read and never stored (change us-099-version-diff, US-100).
 
 `EntityVersion` records are **never editable or deletable**. They are the history of the repository, not the audit trail (see [audit-event](./audit-event.md)).
 
@@ -109,3 +109,4 @@ Restoring version 1 applies the deltas of versions 3 and 2 backwards to the curr
 | 0.1.0 | 2026-06-27 | Business Engineer | Initial draft; basis for UC-14 (change history) and UC-15 (restore); snapshot content, BRs, and lifecycle defined |
 | 0.1.1 | 2026-10-13 | Business Engineer | BR-02: append-only for the runtime role, deletion only by the REQ-190 purge (ADR-033 §10, DM-A9); the entity history is not the audit trail (see [audit-event](./audit-event.md)) |
 | 0.2.0 | 2026-10-16 | Lukas Mathis | Aligned with ADR-022 and `docs/data-model.puml` (change us-141-entity-batch-upsert): version header plus system field and property value deltas instead of JSON snapshots; unchanged writes create no version (BR-05, replaces the 304 rule); restore markers and change reason moved to open points |
+| 0.2.1 | 2026-11-14 | Change us-099-version-diff | How the state of a version is reconstructed on read (US-100); no data model change |

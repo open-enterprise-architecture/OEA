@@ -54,7 +54,7 @@ The value of a field at version N is the value *before* the first change after N
 **Property set:** the properties of the mappings of the metatype at version N are added, without value:
 
 - the metatype at version N is the reconstructed `metatype_id`;
-- a mapping counts when `valid_from <= changed_at::date` and `created_at <= changed_at`.
+- a mapping counts when `valid_from` is on or before the UTC date of `changed_at`. `created_at` is not used: a package re-import recreates its mappings with a new `created_at`, which would drop them from every older state.
 
 The store returns the typed value (text, integer, boolean, date, reference, enum) and the version header.
 

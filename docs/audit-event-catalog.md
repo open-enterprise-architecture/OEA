@@ -677,14 +677,14 @@ Security administration changed how changes to fields a role may not read appear
 
 ### `property-override-access`
 
-A catalog or portal query returned values that the caller can read only through a role on the override role list ([REQ-128](../requirements/req/REQ-128-property-visibility-admin-override.md) AC2; change us-128-override-role-list D3). One event per query (page); values readable through a read role or the connection scope do not count, and a page without such values writes none. Written in its own transaction, as the query is read-only.
+A catalog or portal query, or a read of a version's state or diff, returned values that the caller can read only through a role on the override role list ([REQ-128](../requirements/req/REQ-128-property-visibility-admin-override.md) AC2; change us-128-override-role-list D3, change us-099-version-diff D2). One event per query (page) or read; values readable through a read role or the connection scope do not count, and a page without such values writes none. Written in its own transaction, as the query is read-only.
 
 | Field | Value |
 |---|---|
 | Category / severity / outcome | `security` / `warning` / `success` |
 | Actor | the reader |
-| Target | `catalog`, ID of the catalog |
-| Details | `channel` (`catalog` or `portal`), `page`, `properties`: per property `propertyDefId`, `property` (name) and `entityIds` (the entities of rows, join results or connection endpoints whose value was returned through the override) |
+| Target | `catalog`, ID of the catalog; `entity`, ID of the entity for the channel `history` |
+| Details | `channel` (`catalog`, `portal` or `history`), `page` (`0` for `history`), `properties`: per property `propertyDefId`, `property` (name) and `entityIds` (the entities of rows, join results or connection endpoints whose value was returned through the override) |
 
 ### `visibility.person-metatype-changed`
 

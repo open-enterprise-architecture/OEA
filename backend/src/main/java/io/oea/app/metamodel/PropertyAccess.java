@@ -97,6 +97,16 @@ public class PropertyAccess {
 		}
 
 		/**
+		 * Whether the value of the property of this entity is readable only through the override:
+		 * the principal holds an override role, the property is restricted, no read role grants
+		 * it, and a {@code connection-scoped} property's entity is outside the caller's scope.
+		 */
+		public boolean throughOverrideFor(UUID propertyDefId, int entityId) {
+			return this.override && restricted(propertyDefId) && !allowed(propertyDefId, false)
+					&& !(connectionScoped(propertyDefId) && writableFor(propertyDefId, entityId));
+		}
+
+		/**
 		 * The scope of a {@code connection-scoped} property for this caller, empty for other
 		 * properties and for a caller without an effective account link.
 		 */
