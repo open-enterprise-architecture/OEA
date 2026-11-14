@@ -3,7 +3,7 @@
 **ID**: US-100
 **Story Points**: 3
 **Status**: backlog
-**Sprint**: unassigned
+**Sprint**: S12
 
 ## Story
 
