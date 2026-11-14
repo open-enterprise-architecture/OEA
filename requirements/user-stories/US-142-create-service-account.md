@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: in-progress
 **Sprint**: S12
-**Implementation**: OpenSpec change `us-142-service-accounts` – `createServiceAccount`, `listServiceAccounts`, `getServiceAccount`, `updateServiceAccount`, `rotateServiceAccountCredentials`, `deleteServiceAccount` (`service-account:manage`): the account with a secret shown once and stored as an argon2id hash, a mandatory expiry, rotation and final deactivation; the screen SCR-041 (AC1, AC3 for the secret; AC4 shown by the permissions of the account). AC2 and the token side of AC3 and AC4 follow with change `s12-client-credentials-token`. Realigned 2026-11-14
+**Implementation**: OpenSpec change `us-142-service-accounts`, commit ea1221a (#277) – `createServiceAccount`, `listServiceAccounts`, `getServiceAccount`, `updateServiceAccount`, `rotateServiceAccountCredentials`, `deleteServiceAccount` (`service-account:manage`): the account with a secret shown once and stored as an argon2id hash, a mandatory expiry, rotation and final deactivation; the screen SCR-041 (AC1, AC3 for the secret; AC4 shown by the permissions of the account). AC2 and the token side of AC3 and AC4 follow with change `s12-client-credentials-token`. Realigned 2026-11-14
 
 ## Story
 
