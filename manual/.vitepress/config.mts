@@ -44,6 +44,7 @@ const chapters: Chapter[] = [
       { path: 'metamodel-packages', title: { en: 'Metamodel packages', de: 'Metamodell-Pakete' } },
       { path: 'metamodel-editing', title: { en: 'Editing the metamodel', de: 'Metamodell bearbeiten' } },
       { path: 'property-visibility', title: { en: 'Property visibility', de: 'Sichtbarkeit von Eigenschaften' } },
+      { path: 'service-accounts', title: { en: 'Service accounts', de: 'Service-Accounts' } },
       { path: 'operations', title: { en: 'Operations', de: 'Betrieb' } },
     ],
   },

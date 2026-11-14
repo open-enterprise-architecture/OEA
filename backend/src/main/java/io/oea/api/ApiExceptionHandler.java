@@ -2,6 +2,7 @@ package io.oea.api;
 
 import io.oea.api.generated.model.ValidationError;
 import io.oea.app.access.AccessConflictException;
+import io.oea.app.access.InvalidServiceAccountException;
 import io.oea.app.access.InvalidStatusTransitionException;
 import io.oea.app.access.LastAdminPathException;
 import io.oea.app.access.LastSecondFactorException;
@@ -251,6 +252,15 @@ public class ApiExceptionHandler {
 		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid query",
 				ex.getMessage());
 		problem.setProperty("invalidFields", ex.getFields());
+		return ResponseEntity.badRequest().body(problem);
+	}
+
+	/** A service account field outside its limits (design D3 of us-142-service-accounts). */
+	@ExceptionHandler(InvalidServiceAccountException.class)
+	ResponseEntity<ProblemDetail> invalidServiceAccount(InvalidServiceAccountException ex) {
+		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid request",
+				ex.getMessage());
+		problem.setProperty("invalidFields", List.of(ex.getField()));
 		return ResponseEntity.badRequest().body(problem);
 	}
 

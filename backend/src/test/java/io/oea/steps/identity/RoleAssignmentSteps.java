@@ -233,6 +233,11 @@ public class RoleAssignmentSteps {
 			.POST(HttpRequest.BodyPublishers.ofString(body)));
 	}
 
+	/** The session token of a person of the scenario. */
+	String sessionToken(String name) {
+		return this.sessions.get(name);
+	}
+
 	private HttpResponse<String> me(String token) throws Exception {
 		return this.instance.send(
 				HttpRequest.newBuilder(this.instance.uri("/api/v1/me")).header("Cookie", "__Host-OEA_SESSION=" + token));

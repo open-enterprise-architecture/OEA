@@ -47,7 +47,7 @@ Wähle *Systemadministrator-Konto anlegen*. Die Seite bestätigt das Konto und d
 
 ## Die Setup-Phase {#setup-phase}
 
-Nach dem Bootstrapping ist die Instanz in ihrer **Setup-Phase**: Das Systemadmin-Konto meldet sich nur mit Anmeldename und Passwort an. Die Setup-Phase endet mit der ersten Aktion, die einer anderen Identität Zugriff gibt – der ersten Identitätsbindung oder IdP-Gruppenzuordnung (siehe [Identity-Provider und Personen](../administration/identity-providers)). Diese Aktion braucht einen zweiten Faktor:
+Nach dem Bootstrapping ist die Instanz in ihrer **Setup-Phase**: Das Systemadmin-Konto meldet sich nur mit Anmeldename und Passwort an. Die Setup-Phase endet mit der ersten Aktion, die einer anderen Identität Zugriff gibt – der ersten Identitätsbindung, IdP-Gruppenzuordnung, Rollenzuweisung oder dem ersten [Service-Account](../administration/service-accounts) (siehe [Identity-Provider und Personen](../administration/identity-providers)). Diese Aktion braucht einen zweiten Faktor:
 
 1. Melde dich mit dem Systemadmin-Konto an (siehe [Anmelden](../usage/login)).
 2. Öffne *Profil* und wähle *Zweiten Faktor einrichten*, dann *Authenticator-App einrichten*. Scanne den QR-Code mit deiner Authenticator-App und gib den Code aus der App ein. Die Sitzung ist jetzt mit dem zweiten Faktor bestätigt.

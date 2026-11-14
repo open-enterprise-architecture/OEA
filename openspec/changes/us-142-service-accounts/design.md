@@ -48,8 +48,8 @@
 - [ADR-028](../../../adrs/ADR-028-backend-layered-architecture.md):
   - SQL in `core` (`ServiceAccountStore`);
   - rules and audit in `app/access` (`ServiceAccounts`);
-  - the controller in `api`, implementing the generated `AdminApi` methods of the six operations.
-- [ADR-032](../../../adrs/ADR-032-authorization-model.md): `x-oea-authorization` with `service-account:manage`. The condition "request body sets or changes roles" needs `role:assign` and is checked in `ServiceAccounts`, as the interceptor checks only the base permission. SoD-4 is enforced through `RoleAssignments`.
+  - the six operations in `AdminController` (`api/admin`), which implements the generated `AdminApi`; a second controller cannot implement the same interface without duplicate mappings. `ServiceAccountViews` maps between contract and app layer.
+- [ADR-032](../../../adrs/ADR-032-authorization-model.md): `x-oea-authorization` with `service-account:manage`. The condition "request body sets or changes roles" needs `role:assign` and is checked in `ServiceAccounts`, as the interceptor checks only the base permission. Both operations carry `@ConditionsEnforcedByHandler`. Its probe needs a role with `service-account:manage` and without `role:assign`, which no built-in role is, so `HandlerEnforcedConditionsTests` creates the role `probe-account-manager` and a probe service account. SoD-4 is enforced through `RoleAssignments`.
 - [ADR-033](../../../adrs/ADR-033-audit-trail-hardening.md): audit events in the same transaction as the change. No secret or hash is ever part of an event.
 - [ADR-050](../../../adrs/ADR-050-service-account-access-tokens.md): the token rules apply in change 4. This change provides the secret hash and its status and expiry, which rule 6 checks.
 

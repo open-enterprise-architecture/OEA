@@ -4,9 +4,9 @@ title: Service Account Management for External Systems
 type: functional
 priority: should
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-29
-last_updated: 2026-10-13
+last_updated: 2026-11-14
 author: requirements-engineer
 references:
   use_cases:
@@ -38,8 +38,9 @@ Service accounts are `persons` with `person_type=service-account`. Credentials i
 
 **Inputs**:
 
-- Name, description of the service account
-- Role to be assigned (integration-writer)
+- Name (1 to 100 characters, unique among service accounts ignoring case) and optional description (at most 1000 characters)
+- Roles to be assigned: a list of at most 20 roles flagged `assignableToServiceAccounts`, default `["integration-writer"]`
+- Optional secret validity in days (default 90, at most the configured maximum)
 
 **Processing**:
 
@@ -55,15 +56,17 @@ Service accounts are `persons` with `person_type=service-account`. Credentials i
 
 **Error Cases**:
 
-- Role `integration-writer` not present → 422
-- Service account without a role → must not call write endpoints
+- A role that is unknown or not assignable to service accounts → 422 naming the role; nothing is created
+- A name taken by another service account → 422
+- No authentication within the last 5 minutes for creation, rotation or deactivation → 401 `reauthentication-required` (REQ-172)
+- Service account without a write role → must not call write endpoints
 
 ## Acceptance Criteria
 
 **AC1**:
 
 - Given: admin is logged in
-- When: POST /admin/service-accounts with `{name: "ci-scanner", role: "integration-writer"}`
+- When: POST /admin/service-accounts with `{name: "ci-scanner", roles: ["integration-writer"]}`
 - Then: 201 Created; response contains `clientSecret` once; DB contains a `machine_credentials` entry
 
 **AC2**:
@@ -103,3 +106,4 @@ Service accounts are `persons` with `person_type=service-account`. Credentials i
 |---|---|---|---|
 | 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft from ADR-026 |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-13/SEC-15 / owner decision Q5: only machine access mechanism; lifecycle per REQ-176; `agent_id` from `client_id` only; no admin roles for service accounts (AC4) |
+| 0.3.0 | 2026-11-14 | solution-architect | Change us-142-service-accounts: inputs as a role list with a default, name and validity limits; error cases for unknown or non-assignable roles, taken names and the re-authentication; AC1 with `roles` |

@@ -2,7 +2,7 @@
 identifier: person
 name_de: Person (Konto)
 name_en: Person (Account)
-version: 0.8.0
+version: 0.9.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -47,6 +47,7 @@ In the EA repository, a person is typically **referenced, not mastered**: master
 |---|---|---|---|---|---|
 | personType | enum | required | human | `[human, service-account]`; immutable | Kind of principal |
 | name | string | required | | anonymized: replaced by the pseudonym `anonymized-<id>` | Display name |
+| description | string | optional | | at most 1000 characters; service accounts only | Purpose of a service account, e.g. the external system it serves |
 | employeeId | string | optional | | null for service accounts; removed on anonymization | Internal employee number, if available |
 | email | string | conditional | | valid email address; unique; required unless `detailLevel = anonymized`, then empty | Contact address; **not** a login identity (REQ-166) |
 | status | enum | required | invited | `[invited, active, inactive, offboarded]`; service accounts never `invited` | Lifecycle status (replaces `active: boolean`) |
@@ -113,7 +114,7 @@ invited → active ⇄ inactive
 - `active → inactive`, `inactive → active`: principal with `person:manage` or HR master system
 - `* → offboarded`: principal with `person:manage` or HR master system; rejected if it removes the last path to `system-admin` (SoD-7)
 - `offboarded → invited`: reactivation, only if the setting `allowReactivationOfOffboarded` is enabled (default off, owner decision Q19); principal with `person:manage`; the person returns without role assignments and without local factors, and existing identity bindings must be confirmed again
-- Service accounts: created as `active`; `active ⇄ inactive` and `→ offboarded` with `service-account:manage`
+- Service accounts: created as `active`; `active → inactive` with `service-account:manage`, final (owner decision 2026-11-14): a deactivated service account is never reactivated, its secret and roles are revoked
 
 ## Business Rules
 
@@ -179,7 +180,7 @@ detailLevel: reference-only
 
 ## Notes
 
-The transitions `active ⇄ inactive` and `invited`/`active`/`inactive` → `offboarded` are realized by `changePersonStatus` (change `us-148-person-lifecycle`). `offboarded → invited` is rejected while `allowReactivationOfOffboarded` cannot be enabled, and status changes of service accounts follow with US-142.
+The transitions `active ⇄ inactive` and `invited`/`active`/`inactive` → `offboarded` are realized by `changePersonStatus` (change `us-148-person-lifecycle`). `offboarded → invited` is rejected while `allowReactivationOfOffboarded` cannot be enabled, and status changes of service accounts are rejected there: a service account is deactivated only by `deactivateServiceAccount` (change `us-142-service-accounts`), and for good. Names of service accounts are unique ignoring case.
 
 First modeled in the context of UC-01 Login. Version 0.3.0 implements ADR-032 DM-4/DM-7 and the security review follow-ups SEC-06/SEC-07: the boolean `active` could not express `inactive` vs. `offboarded` and REQ-004 checks the lifecycle status; e-mail-based matching allowed account takeover, hence the separate identity binding with a unique (`issuer`, `subject`) constraint. The binding is a separate table instead of reusing `external_ref_system/external_ref_id`, because those reference the HR master system and a person may log in through more than one provider. `personType` was already in the data model and is now documented here.
 
@@ -201,3 +202,4 @@ Open questions:
 | 0.6.0 | 2026-11-04 | Business Engineer | `uiLanguage` optional without default; no value means the browser language (change `us-140-dynamic-labels`, design D6) |
 | 0.7.0 | 2026-11-05 | Business Engineer | Names resolved also for metamodel administrators reading the metamodel changes (change `us-034-metamodel-changes`) |
 | 0.8.0 | 2026-11-11 | Business Engineer | `entityId` references an element of the configured person metatype instead of a fixed metatype `person`; `entityLinkedAt/By` planned (change `us-127-connection-scoped-visibility`) |
+| 0.9.0 | 2026-11-14 | Business Engineer | `description` for service accounts; unique names of service accounts; deactivation of a service account is final (change `us-142-service-accounts`) |

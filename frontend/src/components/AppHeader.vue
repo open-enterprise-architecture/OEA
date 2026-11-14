@@ -25,6 +25,11 @@ const canConfigureVisibility = computed(() =>
 // SCR-039 needs role:assign (design D5 of us-128-override-role-list)
 const canAssignRoles = computed(() => (session.me?.permissions ?? []).some((entry) => entry.permission === 'role:assign'))
 
+// SCR-041 needs service-account:manage (design D8 of us-142-service-accounts)
+const canManageServiceAccounts = computed(() =>
+  (session.me?.permissions ?? []).some((entry) => entry.permission === 'service-account:manage'),
+)
+
 const canSeeMetamodel = computed(() =>
   (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read' || entry.permission === 'metamodel:write'),
 )
@@ -70,6 +75,9 @@ async function logOut() {
           t('override.title')
         }}</RouterLink>
         <RouterLink v-if="canAssignRoles" to="/admin/roles" data-testid="header-roles">{{ t('roles.title') }}</RouterLink>
+        <RouterLink v-if="canManageServiceAccounts" to="/admin/service-accounts" data-testid="header-service-accounts">{{
+          t('serviceAccounts.title')
+        }}</RouterLink>
         <RouterLink to="/me" data-testid="header-profile">{{ session.me.principal.displayName }}</RouterLink>
         <UButton
           data-testid="header-logout"
