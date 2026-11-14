@@ -71,7 +71,7 @@
 
 ## 4. Wrap-up
 
-- [ ] 4.1 Record the resolution:
+- [x] 4.1 Record the resolution:
   - in `security-reviews/application-audit-2026-11.md`: AA-01 resolved, with the change and the commit after the merge;
   - in `docs/reviews/architecture-2026-11.md`: ARCH-1, ARCH-2 and API-1 (first part) resolved;
   - a comment on #264 that the contract now marks the schemes as planned.

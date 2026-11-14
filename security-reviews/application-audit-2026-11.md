@@ -135,6 +135,14 @@ A delta `new` can hold such a value in two ways: (a) the property was `public` o
 - Cursors are HMAC-protected with a per-start key and type-checked before they reach the database.
 - The CI design keeps third-party code away from write tokens and limits what the bot commits to an allow-list of paths.
 
+## Status Update 2026-11-14
+
+| Finding | Status | Resolution |
+|---|---|---|
+| AA-01 | **Resolved** | Change `s11-review-hardening` ([#266](https://github.com/open-enterprise-architecture/OEA/pull/266), merge commit `2826f0cc`): `server.forward-headers-strategy=native` installs Tomcat's `RemoteIpValve`; trusted proxies default to loopback and the private networks (owner decision 2026-11-13) and are replaced by `OEA_TRUSTED_PROXIES`, an invalid list stops the start; the login throttling, the audit source address and the Origin check use the forwarded client address, scheme, host and port (spec `platform/deployment`). Recommendation 3 (startup warning without a trusted proxy) does not apply, because the default list always covers the Compose gateway; the manual names `OEA_TRUSTED_PROXIES` for a backend reachable from a private client network. Tests: two forwarded addresses throttled separately (100 and 99 failures), a spoofed `X-Forwarded-For` from an untrusted peer ignored, the Origin check behind a TLS proxy (`ForwardedHeadersTests`, `UntrustedPeerTests`, `platform/reverse-proxy.feature`) |
+
+With AA-01 resolved, condition 1 of the sign-off is met; WS-04 and SEC-09 are no longer weakened behind a reverse proxy.
+
 ## Sign-off
 
 **Sign-off for the application state S1–S11: granted**, under the following conditions:
