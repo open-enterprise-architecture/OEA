@@ -130,6 +130,17 @@ class HistoryVisibilityTests {
 		assertThat(this.visibility.hidden(List.of("viewer"), this.application)).isFalse();
 	}
 
+	@Test
+	void entriesOfADeletedRoleCountAsAbsent() {
+		String role = "history-deleted-" + UUID.randomUUID().toString().substring(0, 8);
+		this.jdbc.update("INSERT INTO authorization_roles (id, name) VALUES (?, ?)", role, role);
+		ok(set(this.securityAdmin, entry(role, this.component, "hide")));
+		assertThat(this.visibility.hidden(List.of(role), this.component)).isTrue();
+		this.jdbc.update("UPDATE authorization_roles SET deleted_at = now() WHERE id = ?", role);
+		assertThat(this.visibility.hidden(List.of(role), this.component)).isFalse();
+		assertThat(entries(ok(call("GET", null, this.securityAdmin)))).isEmpty();
+	}
+
 	// Requirement: Reading and changing the history visibility
 
 	@Test

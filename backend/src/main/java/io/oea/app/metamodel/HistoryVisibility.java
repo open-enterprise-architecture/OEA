@@ -66,7 +66,8 @@ public class HistoryVisibility {
 	/**
 	 * Whether a field the reader may not read is left out of the history of an entity of the
 	 * metatype: only when the reader has roles and every one is set to {@code hide} for exactly
-	 * this metatype (no inheritance along base types).
+	 * this metatype (no inheritance along base types). The entries of a deleted role count as
+	 * absent, as in {@link #list()}.
 	 */
 	public boolean hidden(Collection<String> roles, UUID metatypeId) {
 		Set<String> distinct = new HashSet<>(roles);
@@ -74,7 +75,10 @@ public class HistoryVisibility {
 			return false;
 		}
 		Integer hiding = this.jdbc.queryForObject(
-				"SELECT count(*) FROM history_visibility_settings WHERE metatype_id = ? AND role_id = ANY(?)",
+				"""
+						SELECT count(*) FROM history_visibility_settings s
+						JOIN authorization_roles r ON r.id = s.role_id AND r.deleted_at IS NULL
+						WHERE s.metatype_id = ? AND s.role_id = ANY(?)""",
 				Integer.class, metatypeId, distinct.toArray(String[]::new));
 		return hiding != null && hiding == distinct.size();
 	}
