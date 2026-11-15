@@ -17,7 +17,8 @@ public class OeaSessionFilter extends OncePerRequestFilter {
 	 * Security schemes of the contract that this release accepts; all others must be marked as
 	 * planned ({@link SecuritySchemeCoverageCheck}).
 	 */
-	public static final Set<String> ACCEPTED_SCHEMES = Set.of("cookieAuth");
+	public static final Set<String> ACCEPTED_SCHEMES = Set.of("cookieAuth", "bearerAuth", "oauth2ClientCredentials",
+			"clientSecretBasic");
 
 	private final Sessions sessions;
 
@@ -29,7 +30,8 @@ public class OeaSessionFilter extends OncePerRequestFilter {
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 			throws ServletException, IOException {
 		String token = SessionCookie.read(request);
-		if (token != null) {
+		// a bearer authentication of OeaTokenFilter is kept
+		if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 			this.sessions.authenticate(token).ifPresent((principal) -> SecurityContextHolder.getContext()
 				.setAuthentication(new OeaAuthentication(principal, token)));
 		}

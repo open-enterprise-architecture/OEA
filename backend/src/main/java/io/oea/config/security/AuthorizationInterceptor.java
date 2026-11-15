@@ -55,6 +55,21 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
 			"listOwnSecondFactors", "startTotpEnrollment", "confirmTotpEnrollment", "startPasskeyRegistration",
 			"confirmPasskeyRegistration");
 
+	/**
+	 * The operations of the own account (`/me/**` except reading the current principal, and
+	 * `/auth/**`) are for persons and the system admin account; a service account is refused with
+	 * 403 (design D5 of s12-client-credentials-token).
+	 */
+	static boolean ownAccountOperation(HttpServletRequest request) {
+		String path = request.getRequestURI().substring(request.getContextPath().length());
+		String me = ContractAuthorizationRules.API_PREFIX + "/me";
+		String auth = ContractAuthorizationRules.API_PREFIX + "/auth/";
+		if (path.equals(me)) {
+			return !"GET".equals(request.getMethod());
+		}
+		return path.startsWith(me + "/") || path.startsWith(auth);
+	}
+
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
 			throws Exception {
@@ -75,6 +90,11 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
 			return false;
 		}
 		OeaPrincipal principal = session.getPrincipal();
+		if (principal.type() == OeaPrincipal.Type.SERVICE_ACCOUNT && ownAccountOperation(request)) {
+			this.denials.record(principal, rule.operationId(), null, null, PermissionDenials.MISSING_PERMISSION);
+			Problems.write(response, HttpServletResponse.SC_FORBIDDEN, "forbidden", "Forbidden");
+			return false;
+		}
 		if (OeaPrincipal.CHANGE_PASSWORD.equals(principal.requiredAction())
 				&& !PASSWORD_CHANGE_OPERATIONS.contains(rule.operationId())) {
 			// REQ-173 AC2: a temporary password only leads to the password change

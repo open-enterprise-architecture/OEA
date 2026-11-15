@@ -110,8 +110,19 @@ public record AuditEvent(String eventType, Category category, Severity severity,
 
 	}
 
-	/** Pseudonymous actor (ADR-033 §3). */
-	public record Actor(String type, Long personId, UUID adminId) {
+	/**
+	 * Pseudonymous actor (ADR-033 §3); {@code agentId} is the client ID of a service account, taken
+	 * only from its authentication (ADR-033 §7, REQ-174), null for every other actor.
+	 */
+	public record Actor(String type, Long personId, UUID adminId, String agentId) {
+
+		public Actor(String type, Long personId, UUID adminId) {
+			this(type, personId, adminId, null);
+		}
+
+		public static Actor serviceAccount(long personId, UUID clientId) {
+			return new Actor("service-account", personId, null, clientId.toString());
+		}
 
 		public static Actor system() {
 			return new Actor("system", null, null);

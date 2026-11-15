@@ -50,14 +50,14 @@ Trace: REQ-176 AC2, REQ-155 AC3, ADR-050 rules 5, 6, 8
 
 ### Requirement: Limits of the token endpoint
 
-Failed token requests SHALL be throttled per client ID with exponential backoff from the sixth failure within 15 minutes, capped at a 15-minute lock, and per client address at 100 failures within 10 minutes; a throttled request SHALL be answered with 429 and `Retry-After` without checking the secret. At most 4 secret checks SHALL run at the same time; a request that waits longer than 2 seconds for a check SHALL be answered with 429.
+Failed token requests SHALL be throttled as local logins are: per client ID with an exponential backoff once 5 failures occurred within 15 minutes (at most 15 minutes), and per client address at 100 failures within 10 minutes. A throttled request SHALL get 429 with `Retry-After` without a secret check. At most 4 secret checks SHALL run at once; a request waiting longer than 2 seconds SHALL get 429.
 
 Trace: ADR-050 rules 6, 7, REQ-168, owner decision 2026-11-15
 
 #### Scenario: Backoff per client
 
-- **WHEN** a client has 5 failed token requests within 15 minutes, and then a sixth
-- **THEN** the sixth is still checked and answered with 401, and the next request within the backoff is answered with 429 and `Retry-After`
+- **WHEN** a client has 4 failed token requests within 15 minutes, and then a fifth
+- **THEN** the fifth is still checked and answered with 401, and the next request within the backoff is answered with 429 and `Retry-After`, even with the correct secret
 
 #### Scenario: Limit per address
 

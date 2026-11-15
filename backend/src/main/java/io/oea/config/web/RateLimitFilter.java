@@ -55,8 +55,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
 			return;
 		}
 		OeaPrincipal principal = authentication.getPrincipal();
-		String key = (principal.type() == OeaPrincipal.Type.PERSON) ? "person:" + principal.personId()
-				: "system-admin-account:" + principal.systemAdminAccountId();
+		String key = switch (principal.type()) {
+			case PERSON -> "person:" + principal.personId();
+			case SERVICE_ACCOUNT -> "service-account:" + principal.clientId();
+			case SYSTEM_ADMIN_ACCOUNT -> "system-admin-account:" + principal.systemAdminAccountId();
+		};
 		RateLimiter.Decision decision = this.limiter.acquire(key, REQUESTS, this.requestsPerMinute);
 		int limit = this.requestsPerMinute;
 		String limitName = REQUESTS;

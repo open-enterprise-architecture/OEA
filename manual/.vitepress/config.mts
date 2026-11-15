@@ -65,7 +65,10 @@ const chapters: Chapter[] = [
   {
     dir: 'api',
     title: { en: 'API reference', de: 'API-Referenz' },
-    pages: [{ path: '', title: { en: 'Using the API', de: 'Die API verwenden' } }],
+    pages: [
+      { path: '', title: { en: 'Using the API', de: 'Die API verwenden' } },
+      { path: 'access-without-browser', title: { en: 'API access without a browser', de: 'API-Zugriff ohne Browser' } },
+    ],
   },
 ]
 

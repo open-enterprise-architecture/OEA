@@ -4,9 +4,9 @@ title: Service Account Management for External Systems
 type: functional
 priority: should
 status: proposed
-version: 0.3.0
+version: 0.3.1
 created: 2026-06-29
-last_updated: 2026-11-14
+last_updated: 2026-11-15
 author: requirements-engineer
 references:
   use_cases:
@@ -72,7 +72,7 @@ Service accounts are `persons` with `person_type=service-account`. Credentials i
 **AC2**:
 
 - Given: service account with valid client_id/secret
-- When: OAuth2 client credentials flow → receive JWT; PUT /entities/by-external-id/...
+- When: OAuth2 client credentials flow → receive an opaque access token (ADR-050); a write operation with it, such as the entity batch (`PUT /entities/by-external-id/...` follows with ADR-026)
 - Then: 200/201; audit log shows `source=API`, `agent_id=<client_id>`
 
 **AC3**:
@@ -107,3 +107,4 @@ Service accounts are `persons` with `person_type=service-account`. Credentials i
 | 0.1.0 | 2026-06-29 | requirements-engineer | Initial draft from ADR-026 |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-13/SEC-15 / owner decision Q5: only machine access mechanism; lifecycle per REQ-176; `agent_id` from `client_id` only; no admin roles for service accounts (AC4) |
 | 0.3.0 | 2026-11-14 | solution-architect | Change us-142-service-accounts: inputs as a role list with a default, name and validity limits; error cases for unknown or non-assignable roles, taken names and the re-authentication; AC1 with `roles` |
+| 0.3.1 | 2026-11-15 | solution-architect | Change s12-client-credentials-token: AC2 with the opaque access token of ADR-050 instead of a JWT, and the entity batch as the implemented write operation |

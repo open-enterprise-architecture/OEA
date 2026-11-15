@@ -2,7 +2,7 @@
 identifier: machine-credential
 name_de: Maschinen-Credential
 name_en: Machine Credential
-version: 0.2.0
+version: 0.3.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -41,8 +41,23 @@ Permissions of a service account come only from [role assignments](./role-assign
 | status | enum | required | active | `[active, rotated, revoked]` | State |
 | createdAt / createdBy | datetime / principal | required | | holds `service-account:manage` | Issue |
 | expiresAt | datetime | required | createdAt + 90 days | 1 day to the configured maximum after `createdAt` (`oea.service-accounts.secret-max-validity-days`, default 365, at most 3650) | Mandatory expiry (REQ-176) |
-| lastUsedAt | datetime | optional | | | Last successful token grant |
+| lastUsedAt | datetime | optional | | set by every successful token grant | Last successful token grant |
 | revokedAt / revokedBy | datetime / principal | optional | | set on rotation or revocation | End of validity |
+
+## Access Tokens
+
+A machine credential obtains short-lived access tokens at the token endpoint (`POST /oauth2/token`, [ADR-050](../adrs/ADR-050-service-account-access-tokens.md)). An access token is not a business object of its own; it exists only as a record of the credential:
+
+| Attribute | Type | Optional | Constraints | Description |
+|---|---|---|---|---|
+| id | string | required | UUID | Token ID in the audit trail |
+| tokenHash | binary | required | SHA-256, unique | The token `oea_at_` + 256 random bits is stored only as its hash |
+| clientId | string | required | UUID | Client of the service account |
+| credential | reference | required | target: machine credential | The secret version that obtained the token |
+| issuedAt / expiresAt | datetime | required | `expiresAt = issuedAt + 900 s` | Lifetime of 900 seconds, no refresh token |
+| revokedAt / revocationReason | datetime / enum | optional | `[rotation, deactivation]` | Revoked at once when the secret is rotated or the account deactivated |
+
+Lifecycle: issued → expired or revoked → deleted one day after the expiry.
 
 ## Relationships
 
@@ -71,7 +86,7 @@ revoked        (expired = active with expiresAt in the past)
 |---|---|---|---|
 | BR-01 | Every machine credential MUST have an `expiresAt`; default 90 days, never beyond the configured maximum | onCreate | REQ-176 |
 | BR-02 | The secret is stored only as argon2id hash and returned in plaintext only once | onCreate | REQ-176, REQ-155 |
-| BR-03 | Issued access tokens have a lifetime ≤ 900 s and contain the `client_id` but no permissions | onTokenGrant | REQ-176, ADR-032 §7 |
+| BR-03 | Issued access tokens have a lifetime of 900 s, are opaque (linked to the `client_id` on the server, carrying no permissions) and are stored only as a hash | onTokenGrant | REQ-176, ADR-032 §7, ADR-050 |
 | BR-04 | Only service accounts own machine credentials; no other machine credential type (e.g. API keys) is accepted | onCreate, onRequest | REQ-176 AC4 |
 
 ## Examples
@@ -110,3 +125,4 @@ Business object created for the existing table `machine_credentials` (previously
 |---|---|---|---|
 | 0.1.0 | 2026-10-13 | Business Engineer | Initial draft from REQ-155, REQ-176 (SEC-15) |
 | 0.2.0 | 2026-11-14 | Business Engineer | Secret format, configured maximum validity, V30 (change `us-142-service-accounts`) |
+| 0.3.0 | 2026-11-15 | Business Engineer | Access tokens of ADR-050 (V31, change `s12-client-credentials-token`); BR-03 for opaque tokens; `lastUsedAt` set by every token grant |

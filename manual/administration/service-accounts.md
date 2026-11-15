@@ -11,9 +11,7 @@ External systems such as scanners, CI pipelines or a CMDB importer use the API w
 
 You manage service accounts on the page **Service accounts** (link in the header). You need the permission `service-account:manage`, which the role `system-admin` has. Choosing roles for a service account also needs `role:assign`.
 
-::: info Token endpoint
-The external system exchanges the client ID and secret for an access token at the token endpoint. That endpoint follows in a later version; until then you can create and prepare service accounts, but they cannot call the API yet.
-:::
+The external system exchanges the client ID and secret for an access token of 15 minutes and calls the API with it; see [API access without a browser](../api/access-without-browser). The column **Last use** shows when a service account last obtained a token.
 
 ## Create a service account
 
@@ -47,7 +45,7 @@ Every secret expires. The column **Secret expires** shows when; a secret that ex
 
 ## Rotate the secret {#rotate-the-secret}
 
-Choose **Rotate secret** and confirm. OEA creates a new secret, shows it once and invalidates the previous one **at once**; the client ID stays the same. Rotate the secret when it expires soon, when it may have leaked, or when a person who knew it leaves.
+Choose **Rotate secret** and confirm. OEA creates a new secret, shows it once and invalidates the previous one **at once**, together with every access token obtained with it; the client ID stays the same. Rotate the secret when it expires soon, when it may have leaked, or when a person who knew it leaves.
 
 ## Deactivate a service account
 
@@ -90,3 +88,12 @@ OEA_SERVICEACCOUNTS_SECRETMAXVALIDITYDAYS=180
 ```
 
 If the maximum is below 90 days, a secret without a chosen validity gets the maximum.
+
+## Cleanup of expired tokens {#token-cleanup}
+
+OEA deletes access tokens one day after their expiry; their issue stays in the audit log as `token.issued`. The job runs every hour; set another interval as an ISO 8601 duration:
+
+```bash
+# environment of the backend (or --oea.access-tokens.cleanup-interval=PT30M)
+OEA_ACCESSTOKENS_CLEANUPINTERVAL=PT30M
+```

@@ -6,6 +6,8 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
@@ -21,10 +23,11 @@ class SecuritySchemeCoverageCheckTests {
 	@Test
 	void markersMatchTheAcceptedSchemes() {
 		ContractAuthorizationRules rules = ContractAuthorizationRules.load();
+		// all four schemes are accepted since s12-client-credentials-token (ADR-050)
 		assertThat(rules.securitySchemes()).containsEntry("cookieAuth", false)
-			.containsEntry("bearerAuth", true)
-			.containsEntry("oauth2ClientCredentials", true)
-			.containsEntry("clientSecretBasic", true);
+			.containsEntry("bearerAuth", false)
+			.containsEntry("oauth2ClientCredentials", false)
+			.containsEntry("clientSecretBasic", false);
 		assertThatNoException().isThrownBy(() -> new SecuritySchemeCoverageCheck(rules));
 	}
 
@@ -37,21 +40,27 @@ class SecuritySchemeCoverageCheckTests {
 	}
 
 	@Test
-	void plannedSchemeWithoutMarker() {
+	void acceptedTokenSchemeMarkedAsPlanned() {
 		assertThatIllegalStateException()
-			.isThrownBy(() -> new SecuritySchemeCoverageCheck(variant((schemes) -> unmark(schemes, "bearerAuth"))))
-			.withMessageContaining("bearerAuth is not accepted but not marked as planned")
+			.isThrownBy(() -> new SecuritySchemeCoverageCheck(variant((schemes) -> mark(schemes, "bearerAuth"))))
+			.withMessageContaining("bearerAuth is accepted but marked as planned")
 			.withMessageNotContaining("cookieAuth");
 	}
 
 	@Test
+	void plannedSchemeWithoutMarker() {
+		// a release that accepts only the cookie must mark the token schemes as planned
+		assertThat(SecuritySchemeCoverageCheck.problems(
+				Map.of("cookieAuth", false, "bearerAuth", false, "oauth2ClientCredentials", true), Set.of("cookieAuth")))
+			.containsExactly("bearerAuth is not accepted but not marked as planned");
+	}
+
+	@Test
 	void bothErrorsAreNamed() {
-		assertThatIllegalStateException().isThrownBy(() -> new SecuritySchemeCoverageCheck(variant((schemes) -> {
-			mark(schemes, "cookieAuth");
-			unmark(schemes, "bearerAuth");
-		})))
-			.withMessageContaining("cookieAuth is accepted but marked as planned")
-			.withMessageContaining("bearerAuth is not accepted but not marked as planned");
+		assertThat(SecuritySchemeCoverageCheck.problems(Map.of("cookieAuth", true, "bearerAuth", false),
+				Set.of("cookieAuth")))
+			.containsExactly("bearerAuth is not accepted but not marked as planned",
+					"cookieAuth is accepted but marked as planned");
 	}
 
 	@Test
@@ -65,9 +74,6 @@ class SecuritySchemeCoverageCheckTests {
 		((ObjectNode) schemes.get(scheme)).put("x-oea-status", "planned");
 	}
 
-	private static void unmark(ObjectNode schemes, String scheme) {
-		((ObjectNode) schemes.get(scheme)).remove("x-oea-status");
-	}
 
 	private static ContractAuthorizationRules variant(Consumer<ObjectNode> change) {
 		try (InputStream in = new ClassPathResource(ContractAuthorizationRules.CONTRACT).getInputStream()) {

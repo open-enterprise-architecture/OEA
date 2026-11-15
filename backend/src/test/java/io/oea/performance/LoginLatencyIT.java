@@ -11,7 +11,9 @@ import io.oea.testsupport.containers.OeaKeycloak;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +44,8 @@ class LoginLatencyIT {
 	private static final int MEASURED = 30;
 
 	private static final String PASSWORD = "latency-password-123";
+
+	private static final String SECRET = "oea_cs_latency-secret-of-the-measurement";
 
 	private static OidcTestInstance instance;
 
@@ -85,6 +89,16 @@ class LoginLatencyIT {
 				    RETURNING id)
 				INSERT INTO password_credentials (credential_id, password_hash) SELECT id, '%s' FROM credentials"""
 			.formatted(hash));
+		// 1,000 active service accounts sharing one secret (US-008 AC2; design D8 of
+		// s12-client-credentials-token); a hash string carries its own salt and is valid on every row
+		instance.update("""
+				INSERT INTO persons (person_type, name, status)
+				SELECT 'service-account', 'latency-service-' || g, 'active' FROM generate_series(1, 1000) AS g""");
+		instance.update("""
+				INSERT INTO machine_credentials (client_id, person_id, client_secret_hash, expires_at)
+				SELECT gen_random_uuid(), id, '%s', now() + interval '90 days' FROM persons
+				WHERE person_type = 'service-account' AND name LIKE 'latency-service-%%'"""
+			.formatted(new PasswordHasher().hash(SECRET)));
 		instance.update("ANALYZE");
 	}
 
@@ -112,6 +126,49 @@ class LoginLatencyIT {
 			assertThat(login.statusCode()).as(login.body()).isEqualTo(201);
 		});
 		assertBelowTarget("password", times);
+	}
+
+	@Test
+	void tokenRequestsOfServiceAccounts() throws Exception {
+		List<String> clients = List.of(instance.single("SELECT string_agg(client_id::text, ',' ORDER BY person_id) FROM "
+				+ "(SELECT c.client_id, c.person_id FROM machine_credentials c JOIN persons p ON p.id = c.person_id "
+				+ "WHERE p.name LIKE 'latency-service-%' ORDER BY p.id LIMIT " + (WARM_UP + MEASURED) + ") AS s")
+			.split(","));
+		int[] next = { 0 };
+		for (int i = 0; i < WARM_UP; i++) {
+			tokenRequest(clients.get(next[0]++));
+		}
+		List<Double> times = new ArrayList<>();
+		for (int i = 0; i < MEASURED; i++) {
+			double before = tokenTotal();
+			tokenRequest(clients.get(next[0]++));
+			times.add(tokenTotal() - before);
+		}
+		assertBelowTarget("token", times);
+	}
+
+	private static void tokenRequest(String clientId) {
+		try {
+			String basic = Base64.getEncoder()
+				.encodeToString((clientId + ":" + SECRET).getBytes(StandardCharsets.UTF_8));
+			HttpResponse<String> response = instance.send(HttpRequest.newBuilder(URI.create(instance.url() + "/api/v1/oauth2/token"))
+				.header("Authorization", "Basic " + basic)
+				.header("Content-Type", "application/x-www-form-urlencoded")
+				.POST(HttpRequest.BodyPublishers.ofString("grant_type=client_credentials")));
+			assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+		}
+		catch (Exception ex) {
+			throw new IllegalStateException(ex);
+		}
+	}
+
+	private static double tokenTotal() {
+		Timer timer = instance.application()
+			.getBean(MeterRegistry.class)
+			.find("oea.token.processing")
+			.tag("outcome", "issued")
+			.timer();
+		return (timer != null) ? timer.totalTime(TimeUnit.MILLISECONDS) : 0;
 	}
 
 	/** Runs the warm-up and the measured logins; returns the processing time of each measured login. */

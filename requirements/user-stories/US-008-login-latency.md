@@ -2,9 +2,9 @@
 
 **ID**: US-008
 **Story Points**: 5
-**Status**: in-progress
+**Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-008-login-latency`, commit c747413 (#148) – metric `oea.login.processing` and the measurement `LoginLatencyIT` (AC1)
+**Implementation**: OpenSpec change `us-008-login-latency`, commit c747413 (#148) – metric `oea.login.processing` and the measurement `LoginLatencyIT` (AC1); OpenSpec change `s12-client-credentials-token` – metric `oea.token.processing` and the measurement of token requests with 1,000 service accounts in `LoginLatencyIT` (AC2)
 
 ## Story
 
@@ -54,6 +54,6 @@ As an operator, I want the login process to stay within a defined latency budget
 
 ## Notes
 
-Realigned by OpenSpec change `us-008-login-latency` (owner decision 2026-10-30): "server-side processing time" excludes the requests to the identity provider. AC1 is measured with every build by `LoginLatencyIT` on 10,000 persons, 1,000 roles and 1,000 IdP group mappings (first result: p95 14 ms for OIDC logins, 43 ms for password logins of persons). AC2 (client credentials token) follows with the token endpoint `issueClientCredentialsToken`, so the story stays in progress.
+Realigned by OpenSpec change `us-008-login-latency` (owner decision 2026-10-30): "server-side processing time" excludes the requests to the identity provider. AC1 is measured with every build by `LoginLatencyIT` on 10,000 persons, 1,000 roles and 1,000 IdP group mappings (first result: p95 14 ms for OIDC logins, 43 ms for password logins of persons). AC2 is measured by `LoginLatencyIT` since change `s12-client-credentials-token` on the token requests of 1,000 active service accounts (first result: p95 33 ms).
 
 Target values are preliminary walking skeleton assumptions (see REQ-008) and must be validated with real load measurement. Should only be meaningfully measurable once US-001/US-142 are in place. 2026-10-13: AC2 changed from API key validation to client credentials token issuance (REQ-008 v0.2.0, security review SEC-15 / owner decision Q5).

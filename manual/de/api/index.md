@@ -24,6 +24,8 @@ Es gibt keinen anonymen Zugriff, abgesehen von wenigen öffentlichen Operationen
 
 [Für die Administration über die API anmelden](../administration/#api-login) zeigt das mit `curl`.
 
+Skripte und Integrationen verwenden stattdessen ein **Access-Token** eines Service-Accounts: siehe [API-Zugriff ohne Browser](./access-without-browser).
+
 ## Berechtigungen
 
 Jede Operation nennt den Zugriff, den sie verlangt:

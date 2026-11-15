@@ -11,9 +11,7 @@ Externe Systeme wie Scanner, CI-Pipelines oder ein CMDB-Importer nutzen die API,
 
 Service-Accounts verwaltest du auf der Seite **Service-Accounts** (Link in der Kopfzeile). Du brauchst die Berechtigung `service-account:manage`, die die Rolle `system-admin` hat. Um Rollen für einen Service-Account auszuwählen, brauchst du zusätzlich `role:assign`.
 
-::: info Token-Endpoint
-Das externe System tauscht Client-ID und Secret am Token-Endpoint gegen ein Access-Token. Dieser Endpoint folgt in einer späteren Version; bis dahin kannst du Service-Accounts anlegen und vorbereiten, sie können die API aber noch nicht aufrufen.
-:::
+Das externe System tauscht Client-ID und Secret gegen ein Access-Token mit 15 Minuten Gültigkeit und ruft damit die API auf; siehe [API-Zugriff ohne Browser](../api/access-without-browser). Die Spalte **Letzte Nutzung** zeigt, wann ein Service-Account zuletzt ein Token geholt hat.
 
 ## Service-Account anlegen
 
@@ -47,7 +45,7 @@ Jedes Secret läuft ab. Die Spalte **Secret läuft ab** zeigt wann; ein Secret, 
 
 ## Secret rotieren {#rotate-the-secret}
 
-Wähle **Secret rotieren** und bestätige. OEA erzeugt ein neues Secret, zeigt es einmal an und macht das bisherige **sofort** ungültig; die Client-ID bleibt gleich. Rotiere das Secret, wenn es bald abläuft, wenn es geleakt sein könnte oder wenn eine Person geht, die es kannte.
+Wähle **Secret rotieren** und bestätige. OEA erzeugt ein neues Secret, zeigt es einmal an und macht das bisherige **sofort** ungültig, zusammen mit allen damit geholten Access-Tokens; die Client-ID bleibt gleich. Rotiere das Secret, wenn es bald abläuft, wenn es geleakt sein könnte oder wenn eine Person geht, die es kannte.
 
 ## Service-Account deaktivieren
 
@@ -90,3 +88,12 @@ OEA_SERVICEACCOUNTS_SECRETMAXVALIDITYDAYS=180
 ```
 
 Liegt das Maximum unter 90 Tagen, bekommt ein Secret ohne gewählte Gültigkeit das Maximum.
+
+## Bereinigung abgelaufener Tokens {#token-cleanup}
+
+OEA löscht Access-Tokens einen Tag nach ihrem Ablauf; ihre Ausstellung bleibt im Audit-Log als `token.issued` erhalten. Der Job läuft stündlich; ein anderes Intervall setzt du als ISO-8601-Dauer:
+
+```bash
+# Umgebung des Backends (oder --oea.access-tokens.cleanup-interval=PT30M)
+OEA_ACCESSTOKENS_CLEANUPINTERVAL=PT30M
+```

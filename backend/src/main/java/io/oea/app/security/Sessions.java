@@ -200,9 +200,11 @@ public class Sessions {
 	}
 
 	public static AuditEvent.Actor actor(OeaPrincipal principal) {
-		return (principal.type() == OeaPrincipal.Type.SYSTEM_ADMIN_ACCOUNT)
-				? AuditEvent.Actor.systemAdminAccount(principal.systemAdminAccountId())
-				: new AuditEvent.Actor("person", principal.personId(), null);
+		return switch (principal.type()) {
+			case SYSTEM_ADMIN_ACCOUNT -> AuditEvent.Actor.systemAdminAccount(principal.systemAdminAccountId());
+			case SERVICE_ACCOUNT -> AuditEvent.Actor.serviceAccount(principal.personId(), principal.clientId());
+			case PERSON -> new AuditEvent.Actor("person", principal.personId(), null);
+		};
 	}
 
 	public Duration absoluteLifetime() {
