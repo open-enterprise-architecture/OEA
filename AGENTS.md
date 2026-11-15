@@ -118,10 +118,18 @@ Before every merge to `main`:
 1. **Link validation**: `python3 scripts/validate_links.py` – must pass
 2. **Screen inventory**: `python3 scripts/check_screens.py` – inventory, stories and images consistent (ADR-031)
 3. **Traceability matrix**: `requirements/traceability.md` is generated – run `python3 scripts/generate_traceability.py` after changing UCs, REQs or USs (CI checks it with `--check`)
-4. **Markdown lint** (once set up)
+4. **Markdown lint**: every Markdown file outside `.claude/` with `.markdownlint.json` (markdownlint-cli2 action v25)
 5. **ADR consistency**: every ADR referenced in `adrs/` exists
 6. **Use case completeness**: every use case has a persona, acceptance criteria and a concept reference
 7. **Third-party licenses**: `THIRD-PARTY-LICENSES.md` is generated – after adding or updating a dependency run `./mvnw license:add-third-party` (in `backend/`), `npm run build` (in `frontend/`) and `python3 scripts/generate_third_party_licenses.py`; CI checks with `--check` that every distributed component has a license allowed by ADR-043 and that the file is current; on Dependabot pull requests the workflow `dependabot-licenses.yml` regenerates and commits the file
+
+### Before Pushing
+
+Run the checks locally the way CI runs them; the plain variants pass where CI fails:
+
+- **OpenSpec**: `openspec validate --specs --strict` and `openspec validate <change> --strict`. `--strict` turns warnings into failures, e.g. a requirement text over 500 characters. The change validation does not length-check MODIFIED requirements, and the main-spec check counts more than the first paragraph: keep MODIFIED requirement texts at about 400 characters or less.
+- **Markdown lint**: a current markdownlint-cli2 with `--config .markdownlint.json`; older versions miss rules that CI applies (e.g. MD038).
+- **Contract**: after changing `api/openapi.yaml` (operations, `x-oea-status` markers, security schemes), run the Redocly lint, `python3 scripts/check_openapi_authorization.py` **and** its test `python3 scripts/test_check_openapi_authorization.py`, which asserts the summary line of the check.
 
 ## Versioning
 
