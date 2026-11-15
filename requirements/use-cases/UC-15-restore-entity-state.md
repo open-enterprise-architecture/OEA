@@ -5,9 +5,9 @@ status: draft
 priority: should
 target_release: v1.0
 complexity: medium
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-27
-last_updated: 2026-06-27
+last_updated: 2026-11-15
 primary_actor: SH-03
 secondary_actors: []
 references:
@@ -81,13 +81,13 @@ Important: A restore creates a **new** version entry. The state before the resto
 ### On Success
 
 - The entity has the state of the selected version
-- The current state before the restore is stored as a new `entity_versions` snapshot (immutable)
+- The state before the restore remains unchanged as the previous version in the history (immutable, reconstructable; delta versioning by ADR-022)
 - The restore itself is visible as a version change: `changedBy`, `changedAt`, optional `changeReason`, marking as `restoredFromVersion: N`
 - The entity's `version` number was increased by 1
 
 ### On Failure
 
-- The entity is unchanged; no new snapshot
+- The entity is unchanged; no new version
 - Error message with a concrete hint
 
 ## Basic Flow
@@ -103,10 +103,10 @@ Important: A restore creates a **new** version entry. The state before the resto
    - Optional free-text field: "Reason for restore" (e.g., "Erroneous change by employee XY reverted")
 4. **Kurt**: optionally fills in the reason and confirms
 5. **System**: performs the restore:
-   - Snapshot of the current state is written to `entity_versions` (immutable)
+   - The current state stays unchanged as the previous version in the history (it is the snapshot; no copy is written)
    - Restorable fields are set to the state of v4 (BR-02)
    - `version` counter is increased by 1
-   - New `entity_versions` entry with `restoredFromVersion=4`, `changedBy`, `changedAt`, `changeReason`
+   - New version entry with `restoredFromVersion=4`, `changedBy`, `changedAt`, `changeReason`
 6. **System**: shows success message; entity detail view shows the restored state
 7. **System**: the new version entry appears in the timeline with a clear marking "Restored from v4"
 
@@ -124,7 +124,7 @@ Important: A restore creates a **new** version entry. The state before the resto
 ### E1 – Validation error caused by restore
 
 - Condition: The earlier state violates current metamodel rules (e.g., a property has meanwhile been marked `mandatory` and would have had no value in the old state)
-- Expected reaction: System shows validation warnings in the confirmation dialog (no block — Kurt decides); after the restore, the affected properties appear with a validation warning (as with a normal save with `validationMode=warning`)
+- Expected reaction: System shows validation warnings in the confirmation dialog (no block — Kurt decides); after the restore, an empty mandatory property is marked as missing, as after a metatype change. A value whose property is no longer mapped to the metatype, or that the current definition no longer accepts, is not restored and is listed as "not restored", like a property Kurt may not write (REQ-101 AC4)
 - Resumption: After the restore, Kurt corrects the affected fields
 
 ### E2 – Cancellation by Kurt
@@ -141,8 +141,8 @@ Important: A restore creates a **new** version entry. The state before the resto
 ### E4 – Optimistic lock conflict
 
 - Condition: Someone else changed the entity between Kurt's view and his confirmation
-- Expected reaction: HTTP 409; dialog stays open with notice "The entity has meanwhile been changed by [person]. Please check the current version and start the restore again."
-- Resumption: Kurt opens UC-14 again and checks the current state
+- Expected reaction: the restore requires `If-Match` with the version Kurt has seen: HTTP 412 `stale-version` (428 without `If-Match`); the dialog stays open with the notice that the entity was changed meanwhile and shows the reloaded preview
+- Resumption: Kurt checks the reloaded preview and confirms again, or cancels
 
 ## Data Flow
 
@@ -179,7 +179,7 @@ Restorable are: `name`, `description`, `isLogical`, `stereotypeIds`, `properties
 
 | Rule ID | Statement | Trigger |
 |---|---|---|
-| BR-01 | A restore ALWAYS first stores a snapshot of the current state in `entity_versions` before the target state is written | onRestore |
+| BR-01 | A restore ALWAYS keeps the current state as the unchanged previous version in the history before the target state is written; the version history stores deltas (ADR-022), so no copy is needed | onRestore |
 | BR-02 | Immutable fields (`id`, `entityTypeId`, `sourceEntityId`, `targetEntityId`, `createdAt`, `createdBy`) are never changed during a restore | onRestore |
 | BR-03 | The new `entity_versions` entry MUST contain `restoredFromVersion: N` so that the restore is clearly recognizable as such in the timeline | onRestore |
 | BR-04 | The restore is an atomic transaction: snapshot + update + new version entry occur in one DB transaction; complete rollback on error | onRestore |
@@ -197,7 +197,7 @@ Restorable are: `name`, `description`, `isLogical`, `stereotypeIds`, `properties
 - [ ] BR-04: on technical error complete rollback; no inconsistent state
 - [ ] E1: Validation warnings are displayed; no block of the restore
 - [ ] E3: Without write permission, the button is not visible
-- [ ] E4: Optimistic lock conflict is caught with 409 and an understandable message
+- [ ] E4: Optimistic lock conflict is caught with 412 and an understandable message
 
 ## Out of Scope
 

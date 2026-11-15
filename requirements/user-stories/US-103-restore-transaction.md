@@ -2,8 +2,9 @@
 
 **ID**: US-103
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S13
+**Implementation**: OpenSpec change `us-101-entity-restore` – entity update, version entry and audit event `entity.restored` in one transaction, rolled back as a whole on an error (AC1 realigned 2026-11-15, AC2)
 
 ## Story
 
@@ -19,8 +20,8 @@ As Kurt – Lead Enterprise Architect, I want to be sure that a restore is eithe
 
 **AC1** (Rollback on error):
 
-- When: a technical error occurs after the snapshot is written
-- Then: the entity is unchanged; no snapshot exists in `entity_versions`
+- When: a technical error occurs after the entity was written
+- Then: the entity is unchanged; no new version and no audit event exist
 
 **AC2** (Successful restore):
 

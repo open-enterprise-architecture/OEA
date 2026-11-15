@@ -82,7 +82,7 @@ public final class MetatypeRules {
 	 * {@code public} one always, a {@code role-restricted} one with a write role, a
 	 * {@code connection-scoped} one for an existing entity in the writer's scope.
 	 */
-	boolean writable(Definition definition, Integer entityId) {
+	public boolean writable(Definition definition, Integer entityId) {
 		return switch (definition.visibilityMode()) {
 			case "public" -> true;
 			case "role-restricted" -> this.restrictedWritable.test(definition.id(), entityId);

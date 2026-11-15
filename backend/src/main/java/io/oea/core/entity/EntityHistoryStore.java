@@ -21,7 +21,7 @@ import org.springframework.stereotype.Repository;
 public class EntityHistoryStore {
 
 	private static final String HEADERS = """
-			SELECT h.version, h.changed_at, h.changed_by, p.name
+			SELECT h.version, h.changed_at, h.changed_by, p.name, h.restored_from_version, h.change_reason
 			FROM entity_version_headers h JOIN persons p ON p.id = h.changed_by
 			WHERE h.entity_id = ?""";
 
@@ -32,15 +32,21 @@ public class EntityHistoryStore {
 	}
 
 	/** The entity whose history is read, deleted or not. */
-	public record HistoryEntity(int id, UUID metatypeId, String name) {
+	public record HistoryEntity(int id, UUID metatypeId, String name, int version) {
 	}
 
 	/** A person who made a version. */
 	public record Actor(long id, String name) {
 	}
 
-	/** A version header. */
-	public record Version(int version, Instant changedAt, Actor changedBy) {
+	/** A version header; a version written by a restore names its target version and reason (us-101). */
+	public record Version(int version, Instant changedAt, Actor changedBy, Integer restoredFromVersion,
+			String reason) {
+
+		public Version(int version, Instant changedAt, Actor changedBy) {
+			this(version, changedAt, changedBy, null, null);
+		}
+
 	}
 
 	/** A field changed by a version: a system field ({@code field_name}) or a property definition. */
@@ -54,8 +60,10 @@ public class EntityHistoryStore {
 	/** The entity with this ID, if a row exists. */
 	public Optional<HistoryEntity> entity(int id) {
 		return this.jdbc
-			.query("SELECT id, metatype_id, name FROM entities WHERE id = ?",
-					(rs, n) -> new HistoryEntity(rs.getInt(1), rs.getObject(2, UUID.class), rs.getString(3)), id)
+			.query("SELECT id, metatype_id, name, version FROM entities WHERE id = ?",
+					(rs, n) -> new HistoryEntity(rs.getInt(1), rs.getObject(2, UUID.class), rs.getString(3),
+							rs.getInt(4)),
+					id)
 			.stream()
 			.findFirst();
 	}
@@ -78,7 +86,8 @@ public class EntityHistoryStore {
 			sql.append(" OFFSET ").append(offset);
 		}
 		return this.jdbc.query(sql.toString(), (rs, n) -> new Version(rs.getInt(1), rs.getTimestamp(2).toInstant(),
-				new Actor(rs.getLong(3), rs.getString(4))), arguments.toArray());
+				new Actor(rs.getLong(3), rs.getString(4)), rs.getObject(5, Integer.class), rs.getString(6)),
+				arguments.toArray());
 	}
 
 	/** The number of versions that match the filters. */

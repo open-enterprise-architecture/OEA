@@ -13,8 +13,10 @@ import {
   type EntityVersionDiff,
   type EntityVersionState,
   type HistoryQuery,
+  type RestoreResult,
 } from '../api/history'
 import { rateLimitMessage, RequestRejected } from '../api/problem'
+import RestoreEntityModal from '../components/history/RestoreEntityModal.vue'
 import VersionDiff from '../components/history/VersionDiff.vue'
 import VersionState from '../components/history/VersionState.vue'
 import { currentLanguage } from '../i18n'
@@ -29,6 +31,9 @@ import { refreshSession, session } from '../session/store'
 // Values (US-099, US-100; design D5 of us-099-version-diff): a version expands to its diff
 // against its predecessor and offers its complete state; "Compare" selects two versions and shows
 // their net diff in a panel. Versions are immutable, so diffs and states are loaded once.
+// Restore (US-101, US-102; design D5 of us-101-entity-restore): with `entity:write` and
+// `entity:restore`, every version but the current one offers "Restore this version", which opens
+// the modal SCR-027; a version written by a restore carries "Restored from vN" and its reason.
 const props = defineProps<{ id: string; fetchFn?: typeof fetch }>()
 const { t } = useI18n()
 const route = useRoute()
@@ -55,9 +60,13 @@ const comparing = ref(false)
 const selected = ref<number[]>([])
 const comparison = ref<EntityVersionDiff>()
 const compareFailure = ref<string>()
+const restoreTarget = ref<number>()
+const restoredTo = ref<RestoreResult>()
 
 const entityId = computed(() => Number(props.id))
-const canRead = computed(() => (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read'))
+const permissions = computed(() => new Set((session.me?.permissions ?? []).map((entry) => entry.permission)))
+const canRead = computed(() => permissions.value.has('entity:read'))
+const canRestore = computed(() => permissions.value.has('entity:write') && permissions.value.has('entity:restore'))
 const filtered = computed(() => filter.actor !== ALL || filter.from !== '' || filter.to !== '')
 const periodInvalid = computed(() => filter.from !== '' && filter.to !== '' && filter.from > filter.to)
 const total = computed(() => history.value?.page.totalElements ?? 0)
@@ -202,6 +211,12 @@ watch(range, async (current) => {
   }
 })
 
+/** After a restore: the timeline is reloaded with the new version; the diffs stay valid. */
+async function restored(result: RestoreResult) {
+  restoredTo.value = result
+  await load()
+}
+
 watch(comparing, (active) => {
   if (!active) selected.value = []
 })
@@ -285,6 +300,16 @@ function day(value: string): string {
       </UCard>
 
       <UAlert v-if="failure" data-testid="history-failure" color="error" variant="subtle" :description="failure" />
+      <UAlert
+        v-if="restoredTo"
+        data-testid="history-restored"
+        color="success"
+        variant="subtle"
+        icon="i-lucide-circle-check"
+        :description="t('restore.done', { version: restoredTo.version, target: restoredTo.restoredFromVersion })"
+        close
+        @update:open="restoredTo = undefined"
+      />
 
       <UEmpty
         v-if="unchanged && history.created"
@@ -315,9 +340,28 @@ function day(value: string): string {
               </h2>
               <time data-testid="history-time" :datetime="version.changedAt" class="text-sm text-muted">{{ time(version.changedAt) }}</time>
               <span data-testid="history-actor" class="text-sm">{{ version.changedBy.name }}</span>
+              <UBadge
+                v-if="version.restoredFromVersion"
+                :data-testid="`history-restored-from-${version.version}`"
+                color="info"
+                variant="subtle"
+                icon="i-lucide-rotate-ccw"
+                :label="t('restore.restoredFrom', { version: version.restoredFromVersion })"
+              />
+              <UButton
+                v-if="canRestore && version.version !== history.currentVersion"
+                :data-testid="`history-restore-${version.version}`"
+                class="ms-auto"
+                color="neutral"
+                variant="outline"
+                size="xs"
+                icon="i-lucide-rotate-ccw"
+                :label="t('restore.action')"
+                @click="restoreTarget = version.version"
+              />
               <UButton
                 :data-testid="`history-toggle-${version.version}`"
-                class="ms-auto"
+                :class="canRestore && version.version !== history.currentVersion ? '' : 'ms-auto'"
                 color="neutral"
                 variant="ghost"
                 size="xs"
@@ -342,6 +386,9 @@ function day(value: string): string {
               </li>
             </ul>
             <p v-else-if="version.version > 1" data-testid="history-no-fields" class="text-sm text-muted italic">{{ t('history.noFields') }}</p>
+            <p v-if="version.reason" :data-testid="`history-reason-${version.version}`" class="text-sm text-muted">
+              {{ t('restore.reasonShown', { reason: version.reason }) }}
+            </p>
             <div
               v-if="expanded[version.version]"
               :id="`history-details-${version.version}`"
@@ -386,5 +433,15 @@ function day(value: string): string {
         />
       </div>
     </template>
+
+    <RestoreEntityModal
+      v-if="restoreTarget !== undefined"
+      :open="restoreTarget !== undefined"
+      :entity-id="entityId"
+      :target-version="restoreTarget"
+      :fetch-fn="fetchFn"
+      @update:open="(open: boolean) => { if (!open) restoreTarget = undefined }"
+      @restored="restored"
+    />
   </main>
 </template>

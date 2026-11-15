@@ -162,3 +162,19 @@ Feature: Change history of an entity
     And the role "viewer" is on the override role list
     When the viewer reads the history of "CRM System"
     Then version 2 lists "investmentCost"
+
+  # Requirement: Restore marker in the history (us-101-entity-restore)
+
+  @US-102 @AC1 @AC2 @REQ-102
+  Scenario: Restored version in the timeline
+    Given the history entity "CRM System" with 6 versions by "Kurt"
+    And version 6 of "CRM System" was restored from version 3 with the reason "Wrong owner"
+    When the enterprise architect reads the restore history of "CRM System"
+    Then version 6 in the restore history carries the restore from version 3 with the reason "Wrong owner"
+    And versions 1 to 5 in the restore history carry no restore
+
+  @US-102 @REQ-102
+  Scenario: Current version with a filter
+    Given the history entity "CRM System" with 6 versions by "Kurt"
+    When the enterprise architect reads the restore history of "CRM System" up to version 2
+    Then the restore history lists the versions "2, 1" and names 6 as the current version

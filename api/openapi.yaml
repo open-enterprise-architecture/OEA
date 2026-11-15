@@ -317,6 +317,13 @@ components:
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
+    PreconditionRequired:
+      description: |
+        The operation requires `If-Match` with the version the client has read (problem type
+        `urn:oea:problem:precondition-required`). Nothing is changed.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
     NotImplemented:
       description: |
         The operation is part of the published contract but not implemented in this release
@@ -401,6 +408,14 @@ components:
         `ETag` of the version the client has read (`"<version>"`, or `*`). A different
         version gives 412 `stale-version` and changes nothing; without the header the write
         proceeds (optimistic locking, UC-04 A5).
+      schema: { type: string, example: '"3"' }
+    IfMatchRequiredHeader:
+      name: If-Match
+      in: header
+      required: true
+      description: |
+        `ETag` of the version the client has read (`"<version>"`). A different version gives
+        412 `stale-version` and changes nothing; a missing header gives 428.
       schema: { type: string, example: '"3"' }
     UuidIdParam:
       name: id
@@ -1648,7 +1663,7 @@ components:
 
     EntityVersionSummary:
       type: object
-      required: [version, changedAt, changedBy, changes]
+      required: [version, changedAt, changedBy, changes, restoredFromVersion, reason]
       properties:
         version:    { type: integer }
         changedAt:  { type: string, format: date-time }
@@ -1657,13 +1672,22 @@ components:
           type: array
           description: Empty for version 1 and for a version whose fields are all hidden
           items: { $ref: '#/components/schemas/EntityVersionChange' }
+        restoredFromVersion:
+          type: [integer, 'null']
+          description: The version this version was restored from (UC-15, REQ-102); `null` for every other version
+        reason:
+          type: [string, 'null']
+          description: The reason given for the restore; `null` without a reason and for every other version
 
     EntityHistoryResponse:
       type: object
-      required: [entityId, entityName, created, actors, versions, page, nextCursor]
+      required: [entityId, entityName, currentVersion, created, actors, versions, page, nextCursor]
       properties:
         entityId:   { type: integer }
         entityName: { type: string }
+        currentVersion:
+          type: integer
+          description: The current version of the entity, independent of filters and paging (`If-Match` of `restoreEntity`)
         created:
           type: object
           required: [changedAt, changedBy]
@@ -1689,10 +1713,86 @@ components:
       properties:
         targetVersion:
           type: integer
-          description: Version number to restore to
+          minimum: 1
+          description: Version number to restore to; at least 1 and before the current version
         reason:
-          type: string
-          description: Reason (recorded in the audit log)
+          type: [string, 'null']
+          maxLength: 1000
+          description: Reason, recorded in the new version and the audit event `entity.restored`
+
+    RestoreField:
+      type: object
+      required: [field, label, isSystemField, dataType, currentValue, targetValue, redacted, restore, reason]
+      description: |
+        One field whose current value differs from the target version (US-101, REQ-101).
+        `field`, `label`, `isSystemField`, `dataType` and the text form of the values as in
+        `FieldDiff`.
+      properties:
+        field:         { type: string, description: "System field key (`name`, `description`, `isLogical`) or ID of a property definition" }
+        label:         { type: string }
+        isSystemField: { type: boolean }
+        dataType:      { $ref: '#/components/schemas/EntityVersionDataType' }
+        currentValue:  { type: [string, 'null'], description: "`null` without value or if redacted" }
+        targetValue:   { type: [string, 'null'], description: "`null` without value or if redacted" }
+        redacted:
+          type: boolean
+          description: "`true` = the caller may not read the field (REQ-160, REQ-101 AC5); both values are `null`"
+        restore:
+          type: boolean
+          description: "`true` = a restore sets the field to the target value"
+        reason:
+          type: [string, 'null']
+          enum: [write-protected, not-mapped, invalid-value, null]
+          description: |
+            Why the field is not restored (`null` when it is): the caller may not write the
+            property (REQ-162), the property is no longer mapped to the metatype, or the
+            current definition no longer accepts the target value (UC-15 E1)
+
+    RestoreFieldRef:
+      type: object
+      required: [field, label, reason]
+      properties:
+        field:  { type: string }
+        label:  { type: string }
+        reason:
+          type: [string, 'null']
+          enum: [write-protected, not-mapped, invalid-value, null]
+          description: "`null` for a restored field"
+
+    RestorePreview:
+      type: object
+      required: [entityId, currentVersion, targetVersion, fields, warnings]
+      properties:
+        entityId:       { type: integer }
+        currentVersion: { type: integer, description: "Send as `If-Match` of `restoreEntity`" }
+        targetVersion:  { type: integer }
+        fields:
+          type: array
+          description: The differing fields, system fields first; a property hidden for the caller is left out
+          items: { $ref: '#/components/schemas/RestoreField' }
+        warnings:
+          type: array
+          description: Mandatory (`MANDATORY_MISSING`) and recommended (`VALUE_MISSING`) properties that would be empty after the restore; never blocks it
+          items: { $ref: '#/components/schemas/ValidationError' }
+
+    RestoreResult:
+      type: object
+      required: [entityId, version, restoredFromVersion, restored, notRestored, warnings]
+      properties:
+        entityId:            { type: integer }
+        version:             { type: integer, description: "The new version written by the restore" }
+        restoredFromVersion: { type: integer }
+        restored:
+          type: array
+          items: { $ref: '#/components/schemas/RestoreFieldRef' }
+        notRestored:
+          type: array
+          description: Differing fields kept at their current value, with the reason
+          items: { $ref: '#/components/schemas/RestoreFieldRef' }
+        warnings:
+          type: array
+          description: As in `RestorePreview`; an empty mandatory property is afterwards marked as missing
+          items: { $ref: '#/components/schemas/ValidationError' }
 
     # ── External integration – write schemas (ADR-026) ─────────────────────────
     PropertyWriteValue:
@@ -6057,19 +6157,69 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /entities/{id}/restore:
-    post:
-      operationId: restoreEntity
-      summary: Restore entity (SCR-027, UC-15/16)
+    get:
+      operationId: previewEntityRestore
+      summary: Preview of a restore (SCR-027, UC-15)
       description: |
-        Restores an entity to an earlier version.
-        Soft-deleted entities can also be restored.
-        Properties the caller may not write are not restored and are reported
-        (REQ-162).
+        What `restoreEntity` would do with the same target version (US-101 AC2, REQ-101):
+        the current version and every field whose current value differs from the target
+        version, with both values and whether it would be restored. A field is not restored
+        when the caller may not write it (`write-protected`, REQ-162), when it is no longer
+        mapped to the metatype (`not-mapped`) or when the current definition no longer
+        accepts the target value (`invalid-value`, UC-15 E1). Mandatory and recommended
+        properties that would be empty are warnings, never errors.
+
+        A value the caller may not read is redacted (REQ-101 AC5, REQ-160); a property hidden
+        for the caller's roles is left out, and a value read through an override role is
+        audited as `property-override-access` (channel `history`). Changes nothing.
       tags: [Entities]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write", "entity:restore"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/EntityIdParam'
+        - name: targetVersion
+          in: query
+          required: true
+          schema: { type: integer, minimum: 1 }
+          description: At least 1 and before the current version; otherwise 400 naming `targetVersion`
+      responses:
+        '200':
+          description: The preview
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RestorePreview' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: Entity not found, or the target version is after the current version
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    post:
+      operationId: restoreEntity
+      summary: Restore entity (SCR-027, UC-15)
+      description: |
+        Restores an entity in full to an earlier version (US-101, US-102, US-103, REQ-101 to
+        REQ-103). Name, description, the logical flag and every restorable property get the
+        values of the target version; a property empty in the target version is removed. The
+        ID, the metatype, the endpoints of a connection and the creation fields never change.
+        Fields are classified as in `previewEntityRestore`; fields not restored keep their
+        current value and are listed in `notRestored`.
+
+        The restore writes one new version with `restoredFromVersion` and the reason; the
+        version before it stays unchanged in the history as the state before the restore
+        (ADR-022). An empty mandatory property is afterwards marked as missing. Entity,
+        version and the audit event `entity.restored` are written in one transaction.
+
+        `If-Match` with the current version is required: 428 without it, 412 `stale-version`
+        when the entity changed meanwhile. A restore whose restorable fields all have their
+        target value already gives 422 `urn:oea:problem:nothing-to-restore`.
+      tags: [Entities]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write", "entity:restore"]}
+      parameters:
+        - $ref: '#/components/parameters/EntityIdParam'
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
       requestBody:
         required: true
         content:
@@ -6080,22 +6230,24 @@ paths:
           description: Entity restored
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/EntityDetail' }
+              schema: { $ref: '#/components/schemas/RestoreResult' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
-          description: Entity or target version not found
+          description: Entity not found, or the target version is after the current version
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
-        '409':
-          description: Optimistic lock conflict (version outdated)
-          content:
-            application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '422':
+          description: Nothing to restore (`urn:oea:problem:nothing-to-restore`); nothing is changed
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  METAMODEL (SCR-030)                                                   ║

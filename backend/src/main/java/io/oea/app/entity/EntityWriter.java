@@ -46,8 +46,21 @@ public class EntityWriter {
 		this.clock = clock;
 	}
 
-	/** Correlation of the writes of one request: batch ID and the informational agent fields. */
-	public record WriteContext(UUID batchId, AuditEvent.Agent agent) {
+	/**
+	 * Correlation of the writes of one request: batch ID and the informational agent fields; a
+	 * restore names its target version and reason (us-101-entity-restore D2).
+	 */
+	public record WriteContext(UUID batchId, AuditEvent.Agent agent, EntityStore.Restore restore) {
+
+		public WriteContext(UUID batchId, AuditEvent.Agent agent) {
+			this(batchId, agent, null);
+		}
+
+		/** The context of a restore to {@code fromVersion}. */
+		public static WriteContext restore(int fromVersion, String reason) {
+			return new WriteContext(UUID.randomUUID(), AuditEvent.Agent.NONE, new EntityStore.Restore(fromVersion, reason));
+		}
+
 	}
 
 	public enum Status {
@@ -56,7 +69,7 @@ public class EntityWriter {
 
 	}
 
-	public record Written(Status status, int entityId) {
+	public record Written(Status status, int entityId, int version) {
 	}
 
 	/** The fixed source and target of a connection (us-036-connection-metatypes D1, D4). */
@@ -100,7 +113,7 @@ public class EntityWriter {
 				.forEach((definition, value) -> changes
 					.add(new AuditEvent.Change(definition, names.get(definition), false, null, value.asText())));
 			audit("entity.created", principal, checked, id, 1, context, changes, endpoints);
-			return new Written(Status.CREATED, id);
+			return new Written(Status.CREATED, id, 1);
 		}
 		List<FieldChange> fieldChanges = new ArrayList<>();
 		compare(fieldChanges, "name", existing.name(), fields.name());
@@ -116,9 +129,10 @@ public class EntityWriter {
 			}
 		}
 		if (fieldChanges.isEmpty() && newValues.isEmpty()) {
-			return new Written(Status.UNCHANGED, existing.id());
+			return new Written(Status.UNCHANGED, existing.id(), existing.version());
 		}
-		int version = this.store.update(existing, fields, fieldChanges, stored, newValues, principal.personId(), now);
+		int version = this.store.update(existing, fields, fieldChanges, stored, newValues, principal.personId(), now,
+				context.restore());
 		// a value clears the mark of a missing mandatory property (us-032-metatype-editing D7)
 		this.values.clearMarks(existing.id(), checked.values().keySet());
 		fieldChanges.forEach((change) -> changes
@@ -129,8 +143,9 @@ public class EntityWriter {
 					names.getOrDefault(definition, definition.toString()), false,
 					(before != null) ? before.asText() : null, (value != null) ? value.asText() : null));
 		});
-		audit("entity.updated", principal, checked, existing.id(), version, context, changes, endpoints);
-		return new Written(Status.UPDATED, existing.id());
+		audit((context.restore() != null) ? "entity.restored" : "entity.updated", principal, checked, existing.id(),
+				version, context, changes, endpoints);
+		return new Written(Status.UPDATED, existing.id(), version);
 	}
 
 	private void audit(String eventType, OeaPrincipal principal, EntityValidator.Checked checked, int entityId,
@@ -146,6 +161,12 @@ public class EntityWriter {
 			details.put("externalId", checked.fields().externalId());
 		}
 		details.put("version", version);
+		if (context.restore() != null) {
+			details.put("restoredFromVersion", context.restore().fromVersion());
+			if (context.restore().reason() != null) {
+				details.put("reason", context.restore().reason());
+			}
+		}
 		// ADR-033 §3: no names of modeled persons in the audit schema
 		String entityName = "person".equalsIgnoreCase(checked.metatype().name()) ? null : checked.fields().name();
 		this.audit.append(new AuditEvent(eventType, AuditEvent.Category.CHANGE, AuditEvent.Severity.INFO,

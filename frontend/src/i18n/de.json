@@ -990,5 +990,39 @@
     "validity": "Gültigkeit des Secrets (Tage)",
     "validityHint": "Standard sind 90 Tage, höchstens das für diese Instanz eingestellte Maximum (365 Tage, sofern nicht anders konfiguriert).",
     "validityInvalid": "Gib eine ganze Zahl von mindestens 1 Tag ein."
+  },
+  "restore": {
+    "action": "Diese Version wiederherstellen",
+    "title": "Version {version} wiederherstellen",
+    "intro": "Prüfe, was die Wiederherstellung ändert, bevor du sie bestätigst.",
+    "loading": "Die Vorschau wird geladen …",
+    "loadFailed": "Die Vorschau konnte nicht geladen werden.",
+    "failed": "Die Entität konnte nicht wiederhergestellt werden.",
+    "changes": "Änderungen von Version {current} zum Stand von Version {target}",
+    "nothing": "Nichts kann wiederhergestellt werden: Jedes abweichende Feld bleibt erhalten.",
+    "current": "Aktuell",
+    "after": "Nach der Wiederherstellung",
+    "notRestored": "Nicht wiederhergestellt",
+    "reasons": {
+      "write-protected": "Nicht wiederhergestellt: fehlende Berechtigung",
+      "not-mapped": "Nicht wiederhergestellt: Die Eigenschaft gehört nicht mehr zum Entitätstyp",
+      "invalid-value": "Nicht wiederhergestellt: Der Wert ist nicht mehr gültig"
+    },
+    "warnings": "Nach der Wiederherstellung prüfen",
+    "mandatoryMissing": "Die Pflichteigenschaft {property} wird keinen Wert haben.",
+    "valueMissing": "Die Eigenschaft {property} sollte einen Wert haben.",
+    "noticeHistory": "Der aktuelle Stand bleibt in der Historie erhalten und ist jederzeit abrufbar.",
+    "noticeImmutable": "ID, Typ und Verbindungsenden werden nicht geändert.",
+    "reason": "Grund der Wiederherstellung",
+    "optional": "Optional",
+    "reasonCount": "{count} / {max} Zeichen",
+    "reasonPlaceholder": "Zum Beispiel: falsche Änderung zurückgenommen",
+    "cancel": "Abbrechen",
+    "confirm": "Wiederherstellen",
+    "changedMeanwhile": "Diese Entität wurde inzwischen geändert. Die Vorschau zeigt ihren aktuellen Stand.",
+    "nothingToRestore": "Es kann nichts mehr wiederhergestellt werden. Die Vorschau zeigt den aktuellen Stand.",
+    "done": "Version {version} stellt den Stand von Version {target} wieder her.",
+    "restoredFrom": "Wiederhergestellt aus v{version}",
+    "reasonShown": "Grund: {reason}"
   }
 }
