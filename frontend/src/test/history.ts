@@ -6,6 +6,8 @@ import type {
   FieldDiff,
   HistoryActor,
   HistoryVisibilityEntry,
+  RestoreConnection,
+  RestoredField,
   RestoreField,
 } from '../api/history'
 
@@ -58,9 +60,27 @@ function version(
   changes: EntityVersionChange[] = [],
   restoredFromVersion: number | null = null,
   reason: string | null = null,
+  restoredFields: RestoredField[] | null = null,
 ): EntityVersion {
-  return { version: number, changedAt: at(number), changedBy: actor, changes, restoredFromVersion, reason }
+  return { version: number, changedAt: at(number), changedBy: actor, changes, restoredFromVersion, reason, restoredFields }
 }
+
+/** CRM System after a partial restore: version 6 restores Description and Owner of version 4. */
+export function partiallyRestoredVersions(): EntityVersion[] {
+  return [
+    version(6, KURT, [system('description', 'Description'), property(HISTORY_IDS.owner, 'Owner')], 4, null, [
+      { field: 'description', label: 'Description', restricted: false },
+      { field: HISTORY_IDS.owner, label: 'Owner', restricted: false },
+    ]),
+    ...CRM_VERSIONS,
+  ]
+}
+
+/** The connections of CRM System changed or created after version 3. */
+export const CRM_CONNECTIONS: RestoreConnection[] = [
+  { entityId: 201, name: 'CRM → Cloud DB', otherEndpoint: 'Cloud DB', direction: 'outgoing', change: 'added' },
+  { entityId: 202, name: 'ERP → CRM', otherEndpoint: 'ERP', direction: 'incoming', change: 'changed' },
+]
 
 /** CRM System: created by Kurt, then changes by Michael and Kurt; version 4 changed a restricted field. */
 export const CRM_VERSIONS: EntityVersion[] = [
@@ -115,7 +135,18 @@ export const PREVIEW_WITH_KEPT: RestoreField[] = [
 /** Only fields that are kept: nothing can be restored. */
 export const PREVIEW_NOTHING: RestoreField[] = [restoreField(HISTORY_IDS.cost, 'Investment Cost', 'integer', null, null, 'write-protected', true)]
 
-export const OWNER_MISSING = [{ field: 'properties[Owner]', code: 'MANDATORY_MISSING', message: 'The mandatory property Owner has no value.' }]
+/** A partial restore preview: the description and a not restorable go-live; the name, logical flag and status are identical. */
+export const PARTIAL_PREVIEW: RestoreField[] = [
+  restoreField('description', 'Description', 'system', 'Customer relationship management', 'Legacy CRM'),
+  restoreField(HISTORY_IDS.owner, 'Owner', 'string', 'Michael', 'Kurt'),
+  restoreField(HISTORY_IDS.cost, 'Investment Cost', 'integer', null, null, 'write-protected', true),
+  restoreField(HISTORY_IDS.goLive, 'Go-live', 'date', '2026-12-01', null, 'not-in-source'),
+]
+
+/** Only properties differ: the step "General" is skipped. */
+export const PROPERTIES_ONLY: RestoreField[] = [restoreField(HISTORY_IDS.owner, 'Owner', 'string', 'Michael', 'Kurt')]
+
+export const OWNER_MISSING = [{ field: HISTORY_IDS.owner, code: 'MANDATORY_MISSING', message: 'The mandatory property Owner has no value.' }]
 
 /** An entity with `count` versions, all by Michael. */
 export function manyVersions(count: number): EntityVersion[] {
@@ -157,7 +188,7 @@ export function historyApi(
     entities?: Record<number, HistoryEntity>
     visibility?: HistoryVisibilityEntry[]
     /** The fields and warnings of a restore preview; defaults to PREVIEW_FIELDS without warnings. */
-    preview?: { fields: RestoreField[]; warnings?: { field: string; code: string; message: string }[] }
+    preview?: { fields: RestoreField[]; warnings?: { field: string; code: string; message: string }[]; connections?: RestoreConnection[] }
     /** The version the backend has when another person changed the entity after the history was read. */
     changedMeanwhileTo?: number
   } = {},
@@ -173,7 +204,7 @@ export function historyApi(
   const diffs: string[] = []
   const states: number[] = []
   const previews: number[] = []
-  const restores: { ifMatch: string | null; body: { targetVersion: number; reason?: string } }[] = []
+  const restores: { ifMatch: string | null; body: { targetVersion: number; reason?: string; fields?: string[] } }[] = []
   let meanwhile = options.changedMeanwhileTo
   let previewsUntilMeanwhile = meanwhile !== undefined ? 1 : 0
   const stateOf = (entity: HistoryEntity, version: number) => entity.state?.(version) ?? [field('name', 'Name', 'system', entity.name)]
@@ -222,23 +253,45 @@ export function historyApi(
         if (previewsUntilMeanwhile > 0) previewsUntilMeanwhile -= 1
         if (target > current) return json(problem(404), 404)
         if (target < 1 || target === current) return json(problem(400, ['targetVersion']), 400)
-        return json({ entityId: id, currentVersion: current, targetVersion: target, fields: preview.fields, warnings: preview.warnings ?? [] })
+        return json({
+          entityId: id,
+          currentVersion: current,
+          targetVersion: target,
+          fields: preview.fields,
+          warnings: preview.warnings ?? [],
+          connections: preview.connections ?? [],
+        })
       }
-      const body = JSON.parse(String(init?.body)) as { targetVersion: number; reason?: string }
+      const body = JSON.parse(String(init?.body)) as { targetVersion: number; reason?: string; fields?: string[] }
       const ifMatch = new Headers(init?.headers).get('If-Match')
       restores.push({ ifMatch, body })
       if (ifMatch !== `"${current}"`) {
         return json({ type: 'urn:oea:problem:stale-version', title: 'Changed meanwhile', status: 412, currentVersion: current }, 412)
       }
+      const selected = body.fields ? preview.fields.filter((field) => body.fields!.includes(field.field)) : preview.fields
+      if (body.fields && (body.fields.length === 0 || selected.length !== body.fields.length)) {
+        return json(problem(422, ['fields']), 422)
+      }
+      const restored = selected.filter((field) => field.restore)
       const next = current + 1
-      entity.versions = [version(next, KURT, [], body.targetVersion, body.reason ?? null), ...entity.versions]
+      entity.versions = [
+        version(
+          next,
+          KURT,
+          [],
+          body.targetVersion,
+          body.reason ?? null,
+          body.fields ? restored.map((field) => ({ field: field.field, label: field.label, restricted: field.redacted })) : null,
+        ),
+        ...entity.versions,
+      ]
       meanwhile = undefined
       return json({
         entityId: id,
         version: next,
         restoredFromVersion: body.targetVersion,
-        restored: preview.fields.filter((field) => field.restore).map((field) => ({ field: field.field, label: field.label, reason: null })),
-        notRestored: preview.fields.filter((field) => !field.restore).map((field) => ({ field: field.field, label: field.label, reason: field.reason })),
+        restored: restored.map((field) => ({ field: field.field, label: field.label, reason: null })),
+        notRestored: selected.filter((field) => !field.restore).map((field) => ({ field: field.field, label: field.label, reason: field.reason })),
         warnings: preview.warnings ?? [],
       })
     }

@@ -1,7 +1,7 @@
 ---
 id: entity-version
 title: EntityVersion – Entity Version History
-version: 0.3.0
+version: 0.4.0
 status: draft
 created: 2026-06-27
 last_updated: 2026-11-15
@@ -40,6 +40,7 @@ references:
 | changedAt | datetime | required | now | ISO 8601, UTC | Time of the change |
 | restoredFromVersion | integer | optional | | ≥ 1 and < `version`; set only by a restore | The version a full restore returned to (UC-15, REQ-102) |
 | changeReason | string | optional | | at most 1000 characters; only with `restoredFromVersion` | The reason given for the restore |
+| restoredFields | string[] | optional | | at least one entry; only with `restoredFromVersion` | The keys of the fields a partial restore restored: `name`, `description`, `isLogical` or the ID of a property definition (UC-16, REQ-106) |
 
 ### System field delta (`entity_system_field_history`)
 
@@ -103,7 +104,7 @@ Restoring version 1 applies the deltas of versions 3 and 2 backwards to the curr
 
 ## Open Points
 
-- The partial restore marker `restoredFields` (UC-16) and the metamodel context of a version are decided with UC-16; the change reason and `restoredFromVersion` of a full restore are attributes since change us-101-entity-restore.
+- The metamodel context of a version is not recorded; the change reason, `restoredFromVersion` and `restoredFields` are attributes since the changes us-101-entity-restore and us-104-partial-restore.
 
 ## Change History
 
@@ -114,3 +115,4 @@ Restoring version 1 applies the deltas of versions 3 and 2 backwards to the curr
 | 0.2.0 | 2026-10-16 | Lukas Mathis | Aligned with ADR-022 and `docs/data-model.puml` (change us-141-entity-batch-upsert): version header plus system field and property value deltas instead of JSON snapshots; unchanged writes create no version (BR-05, replaces the 304 rule); restore markers and change reason moved to open points |
 | 0.2.1 | 2026-11-14 | Change us-099-version-diff | How the state of a version is reconstructed on read (US-100); no data model change |
 | 0.3.0 | 2026-11-15 | Change us-101-entity-restore | `restoredFromVersion` and `changeReason` of the version header, BR-07 (the previous version is the snapshot of a restore) |
+| 0.4.0 | 2026-11-15 | Change us-104-partial-restore | `restoredFields` of the version header (partial restore, UC-16) |

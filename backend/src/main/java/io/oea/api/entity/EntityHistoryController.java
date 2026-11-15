@@ -13,11 +13,13 @@ import io.oea.api.generated.model.EntityVersionState;
 import io.oea.api.generated.model.EntityVersionSummary;
 import io.oea.api.generated.model.FieldDiff;
 import io.oea.api.generated.model.PageMeta;
+import io.oea.api.generated.model.RestoreConnection;
 import io.oea.api.generated.model.RestoreField;
 import io.oea.api.generated.model.RestoreFieldRef;
 import io.oea.api.generated.model.RestorePreview;
 import io.oea.api.generated.model.RestoreRequest;
 import io.oea.api.generated.model.RestoreResult;
+import io.oea.api.generated.model.RestoredField;
 import io.oea.api.generated.model.ValidationError;
 import io.oea.app.entity.Issue;
 import io.oea.app.history.EntityHistory;
@@ -80,6 +82,12 @@ public class EntityHistoryController implements EntitiesApi {
 				.stream()
 				.map((version) -> new EntityVersionSummary().version(version.version())
 					.restoredFromVersion(version.restoredFromVersion())
+					.restoredFields((version.restoredFields() != null) ? version.restoredFields()
+						.stream()
+						.map((field) -> new RestoredField().field(field.field())
+							.label(field.label())
+							.restricted(field.restricted()))
+						.toList() : null)
 					.reason(version.reason())
 					.changedAt(time(version.changedAt()))
 					.changedBy(actor(version.changedBy()))
@@ -159,14 +167,23 @@ public class EntityHistoryController implements EntitiesApi {
 					.restore(field.restore())
 					.reason((field.reason() != null) ? RestoreField.ReasonEnum.fromValue(field.reason()) : null))
 				.toList())
-			.warnings(warnings(preview.warnings())));
+			.warnings(warnings(preview.warnings()))
+			.connections(preview.connections()
+				.stream()
+				.map((connection) -> new RestoreConnection().entityId(connection.entityId())
+					.name(connection.name())
+					.otherEndpoint(connection.otherEndpoint())
+					.direction(connection.outgoing() ? RestoreConnection.DirectionEnum.OUTGOING
+							: RestoreConnection.DirectionEnum.INCOMING)
+					.change(connection.added() ? RestoreConnection.ChangeEnum.ADDED : RestoreConnection.ChangeEnum.CHANGED))
+				.toList()));
 	}
 
 	@Override
 	@ContractViolationResponse(title = "Invalid request", detail = "Some fields do not meet the contract.")
 	public ResponseEntity<RestoreResult> restoreEntity(Integer id, String ifMatch, RestoreRequest restoreRequest) {
 		EntityRestore.Result result = this.restore.restore(principal(), id, restoreRequest.getTargetVersion(),
-				expectedVersion(ifMatch), restoreRequest.getReason());
+				expectedVersion(ifMatch), restoreRequest.getReason(), restoreRequest.getFields());
 		return ResponseEntity.ok(new RestoreResult().entityId(result.entityId())
 			.version(result.version())
 			.restoredFromVersion(result.restoredFromVersion())

@@ -22,6 +22,9 @@ export type RestorePreview = components['schemas']['RestorePreview']
 export type RestoreField = components['schemas']['RestoreField']
 export type RestoreResult = components['schemas']['RestoreResult']
 export type RestoreReason = NonNullable<RestoreField['reason']>
+export type RestoreConnection = components['schemas']['RestoreConnection']
+export type RestoredField = components['schemas']['RestoredField']
+export type RestoreWarning = RestorePreview['warnings'][number]
 export type HistoryVisibilityEntry = components['schemas']['HistoryVisibilityEntry']
 export type HistoryVisibilityMode = HistoryVisibilityEntry['mode']
 
@@ -98,12 +101,14 @@ export async function fetchRestorePreview(id: number, targetVersion: number, fet
 }
 
 /**
- * POST /entities/{id}/restore with `If-Match` naming `currentVersion`. A version changed meanwhile
- * is 412 `stale-version` with `currentVersion`, nothing to restore 422 `nothing-to-restore`.
+ * POST /entities/{id}/restore with `If-Match` naming `currentVersion`: in full, or with `fields`
+ * only the selected fields (us-104-partial-restore). A version changed meanwhile is 412
+ * `stale-version` with `currentVersion`, nothing to restore 422 `nothing-to-restore`, an empty or
+ * unknown selection 422 `validation-failed` naming `fields`.
  */
 export async function restoreEntity(
   id: number,
-  request: { targetVersion: number; currentVersion: number; reason?: string },
+  request: { targetVersion: number; currentVersion: number; reason?: string; fields?: string[] },
   fetchFn: typeof fetch = fetch,
 ): Promise<{ ok: true; value: RestoreResult } | { ok: false; rejection: Rejection }> {
   const csrfToken = currentCsrfToken()
@@ -117,7 +122,11 @@ export async function restoreEntity(
       'If-Match': `"${request.currentVersion}"`,
       ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
     },
-    body: JSON.stringify({ targetVersion: request.targetVersion, ...(reason ? { reason } : {}) }),
+    body: JSON.stringify({
+      targetVersion: request.targetVersion,
+      ...(reason ? { reason } : {}),
+      ...(request.fields ? { fields: request.fields } : {}),
+    }),
   })
   if (!response.ok) {
     return { ok: false, rejection: await readRejection(response) }

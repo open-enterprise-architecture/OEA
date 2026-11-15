@@ -1663,7 +1663,7 @@ components:
 
     EntityVersionSummary:
       type: object
-      required: [version, changedAt, changedBy, changes, restoredFromVersion, reason]
+      required: [version, changedAt, changedBy, changes, restoredFromVersion, reason, restoredFields]
       properties:
         version:    { type: integer }
         changedAt:  { type: string, format: date-time }
@@ -1678,6 +1678,13 @@ components:
         reason:
           type: [string, 'null']
           description: The reason given for the restore; `null` without a reason and for every other version
+        restoredFields:
+          type: [array, 'null']
+          description: |
+            The fields restored by a partial restore (UC-16, REQ-106), with their labels; `null`
+            for a full restore and every other version. A property the reader may not read is
+            `restricted`; a hidden one is left out.
+          items: { $ref: '#/components/schemas/RestoredField' }
 
     EntityHistoryResponse:
       type: object
@@ -1719,6 +1726,16 @@ components:
           type: [string, 'null']
           maxLength: 1000
           description: Reason, recorded in the new version and the audit event `entity.restored`
+        fields:
+          type: [array, 'null']
+          maxItems: 500
+          items: { type: string }
+          description: |
+            Partial restore (UC-16, US-105, REQ-106): the keys of the preview fields to restore
+            (`name`, `description`, `isLogical` or the ID of a property definition). Only these
+            fields are restored; every other field keeps its value. Omitted or `null` restores in
+            full. An empty list, or a key that is not a field whose current value differs from
+            the target version, gives 422 `validation-failed` naming `fields`.
 
     RestoreField:
       type: object
@@ -1742,11 +1759,12 @@ components:
           description: "`true` = a restore sets the field to the target value"
         reason:
           type: [string, 'null']
-          enum: [write-protected, not-mapped, invalid-value, null]
+          enum: [write-protected, not-mapped, invalid-value, not-in-source, null]
           description: |
             Why the field is not restored (`null` when it is): the caller may not write the
-            property (REQ-162), the property is no longer mapped to the metatype, or the
-            current definition no longer accepts the target value (UC-15 E1)
+            property (REQ-162), the property is no longer mapped to the metatype, the
+            current definition no longer accepts the target value (UC-15 E1), or the property
+            was neither mapped nor set at the target version (`not-in-source`, REQ-105 AC2)
 
     RestoreFieldRef:
       type: object
@@ -1756,12 +1774,39 @@ components:
         label:  { type: string }
         reason:
           type: [string, 'null']
-          enum: [write-protected, not-mapped, invalid-value, null]
+          enum: [write-protected, not-mapped, invalid-value, not-in-source, null]
           description: "`null` for a restored field"
+
+    RestoreConnection:
+      type: object
+      required: [entityId, name, otherEndpoint, direction, change]
+      description: |
+        A connection of the entity that changed or was created after the target version
+        (UC-16 step 3); restored on its own from its history, never by this restore.
+      properties:
+        entityId:      { type: integer, description: "ID of the connection entity" }
+        name:          { type: string }
+        otherEndpoint: { type: string, description: "Name of the other endpoint" }
+        direction:
+          type: string
+          enum: [outgoing, incoming]
+          description: "`outgoing` when the entity is the source, `incoming` when it is the target"
+        change:
+          type: string
+          enum: [changed, added]
+          description: "`added` when the connection was created after the target version"
+
+    RestoredField:
+      type: object
+      required: [field, label, restricted]
+      properties:
+        field:      { type: string }
+        label:      { type: string }
+        restricted: { type: boolean, description: "`true` = the reader may not read the property (REQ-160)" }
 
     RestorePreview:
       type: object
-      required: [entityId, currentVersion, targetVersion, fields, warnings]
+      required: [entityId, currentVersion, targetVersion, fields, warnings, connections]
       properties:
         entityId:       { type: integer }
         currentVersion: { type: integer, description: "Send as `If-Match` of `restoreEntity`" }
@@ -1772,8 +1817,15 @@ components:
           items: { $ref: '#/components/schemas/RestoreField' }
         warnings:
           type: array
-          description: Mandatory (`MANDATORY_MISSING`) and recommended (`VALUE_MISSING`) properties that would be empty after the restore; never blocks it
+          description: |
+            Mandatory (`MANDATORY_MISSING`) and recommended (`VALUE_MISSING`) properties that
+            would be empty after a full restore; `field` is the ID of the property. Never blocks
+            the restore.
           items: { $ref: '#/components/schemas/ValidationError' }
+        connections:
+          type: array
+          description: Connections of the entity changed or created after the target version, `added` first, then by name
+          items: { $ref: '#/components/schemas/RestoreConnection' }
 
     RestoreResult:
       type: object
@@ -1791,7 +1843,7 @@ components:
           items: { $ref: '#/components/schemas/RestoreFieldRef' }
         warnings:
           type: array
-          description: As in `RestorePreview`; an empty mandatory property is afterwards marked as missing
+          description: As in `RestorePreview`, for the restored fields only; an empty mandatory property is afterwards marked as missing
           items: { $ref: '#/components/schemas/ValidationError' }
 
     # ── External integration – write schemas (ADR-026) ─────────────────────────
@@ -6215,6 +6267,11 @@ paths:
         `If-Match` with the current version is required: 428 without it, 412 `stale-version`
         when the entity changed meanwhile. A restore whose restorable fields all have their
         target value already gives 422 `urn:oea:problem:nothing-to-restore`.
+
+        With `fields`, the restore is partial (UC-16, US-104 to US-106): only the selected
+        fields are restored, selected fields that cannot be restored are listed in
+        `notRestored`, and the new version records `restoredFields`. An empty selection or a key
+        that is not a differing field gives 422 `validation-failed` naming `fields`.
       tags: [Entities]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write", "entity:restore"]}
       parameters:
@@ -6242,7 +6299,7 @@ paths:
         '412': { $ref: '#/components/responses/PreconditionFailed' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
-          description: Nothing to restore (`urn:oea:problem:nothing-to-restore`); nothing is changed
+          description: Nothing to restore (`urn:oea:problem:nothing-to-restore`), or an empty or unknown selection in `fields` (`validation-failed` naming `fields`); nothing is changed
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }

@@ -2,7 +2,7 @@
 
 ## 1. Contract
 
-- [ ] 1.1 `api/openapi.yaml` (design D4):
+- [x] 1.1 `api/openapi.yaml` (design D4):
   - `RestoreRequest.fields` (`maxItems: 500`);
   - `not-in-source` in both reason enumerations;
   - `RestorePreview.connections` with `RestoreConnection`;
@@ -13,16 +13,16 @@
 
 ## 2. Backend: storage
 
-- [ ] 2.1 `V33__partial_restore.sql`, `EntityStore.Restore` with `fields`, and `EntityHistoryStore.Version` with `restoredFields` (design D1).
+- [x] 2.1 `V33__partial_restore.sql`, `EntityStore.Restore` with `fields`, and `EntityHistoryStore.Version` with `restoredFields` (design D1).
 
   Verify with `EntityStoreTests`:
   - a partial restore header stores its fields, and a full restore header stores none;
   - boundaries: one field is accepted, and an empty array is rejected by the check;
   - fields without `restored_from_version` are rejected;
   - the runtime role still cannot `UPDATE` a header.
-- [ ] 2.2 `EntityHistoryStore.connectionsChangedSince` (design D3).
+- [x] 2.2 `EntityHistoryStore.connectionsChangedSince` (design D3).
 
-  Verify with `EntityHistoryStoreTests`:
+  Verify through the preview in `EntityRestoreTests` (the store runs against the full schema there):
   - an outgoing and an incoming connection are listed with their direction;
   - `changed` and `added` are told apart;
   - an unchanged connection is left out;
@@ -30,7 +30,7 @@
 
 ## 3. Backend: partial restore
 
-- [ ] 3.1 `EntityRestore` (design D2): selection, `not-in-source`, warnings by field key, warnings and marks of the selection, `restoredFields` in the header and the event, and the connections in the preview.
+- [x] 3.1 `EntityRestore` (design D2): selection, `not-in-source`, warnings by field key, warnings and marks of the selection, `restoredFields` in the header and the event, and the connections in the preview.
 
   Verify with `EntityRestoreTests`:
   - positive: of `description`, `owner` and `criticality`, selecting `description` and `owner` restores those two, and `criticality` keeps its value; the header and `entity.restored` name both;
@@ -41,14 +41,14 @@
   - selection boundaries: 1 of 3 differing fields is accepted, and all 3 is accepted;
   - a full restore records no `restoredFields`;
   - warnings: the preview names the property ID, and the result names only selected fields.
-- [ ] 3.2 `EntityHistory` and `EntityHistoryController` (design D5): `restoredFields` with label, `restricted` and hiding; `fields` in `restoreEntity`; the 422 mapping of `InvalidRestoreSelectionException`.
+- [x] 3.2 `EntityHistory` and `EntityHistoryController` (design D5): `restoredFields` with label, `restricted` and hiding; `fields` in `restoreEntity`; the 422 mapping of `InvalidRestoreSelectionException`.
 
   Verify with `EntityRestoreTests`:
   - the history lists `restoredFields` with labels;
   - a restricted field is marked `restricted`;
   - a hidden field is left out;
   - the history of a full restore has `restoredFields` `null`.
-- [ ] 3.3 Cucumber: `entity-restore.feature` gains the scenarios of the spec:
+- [x] 3.3 Cucumber: `entity-restore.feature` gains the scenarios of the spec:
   - "Property added after the target version";
   - "Only the selected fields", "Selected write-protected property";
   - "Empty selection", "Identical field selected", "One selected field of several";
@@ -59,10 +59,10 @@
 
 ## 4. Frontend: SCR-029 and SCR-026
 
-- [ ] 4.1 Story first (design D6): `SCR-029-partial-restore.stories.ts` with `General`, `Properties`, `Connections`, `Summary` and `NothingSelected`, and SCR-026 with `PartiallyRestored`. The fake backend in `test/history.ts` covers `fields`, the connections and `restoredFields`.
+- [x] 4.1 Story first (design D6): `SCR-029-partial-restore.stories.ts` with `General`, `Properties`, `Connections`, `Summary` and `NothingSelected`, and SCR-026 with `PartiallyRestored`. The fake backend in `test/history.ts` covers `fields`, the connections and `restoredFields`.
 
   Verify that the stories render without a11y violations.
-- [ ] 4.2 `api/history.ts` (`fields`), `PartialRestoreWizard.vue`, and `EntityHistoryPage.vue` with the action and the marker. Texts go in `i18n` en/de.
+- [x] 4.2 `api/history.ts` (`fields`), `PartialRestoreWizard.vue`, and `EntityHistoryPage.vue` with the action and the marker. Texts go in `i18n` en/de.
 
   Verify with `PartialRestoreWizard.spec.ts` and `EntityHistoryPage.spec.ts`:
   - the wizard opens with the version as source;
@@ -78,16 +78,16 @@
   - a 412 reloads the preview;
   - the action appears only with both permissions;
   - the marker shows "Partially restored from v4 (Description, Owner)".
-- [ ] 4.3 `docs/screens/SCREENS.md`: the new SCR-029 `implemented` with its images; the SCR-026 entry names the action. Verify with `python3 scripts/check_screens.py`.
+- [x] 4.3 `docs/screens/SCREENS.md`: the new SCR-029 `implemented` with its images; the SCR-026 entry names the action. Verify with `python3 scripts/check_screens.py`.
 
 ## 5. Documentation
 
-- [ ] 5.1 Realign REQ-104 (statement), REQ-106 (statement, AC1, AC3), US-106 (AC1, AC3) and UC-16 (step 3, step 13, E2) as listed in the proposal, with a change history entry in each REQ.
-- [ ] 5.2 `docs/audit-event-catalog.md` (`restoredFields`), `docs/data-model.puml` and `business-objects/entity-version.md` (`restoredFields`).
-- [ ] 5.3 User manual `usage/change-history.md` in English and German: the partial restore, the steps, the connections and `fields` for API callers; the full restore keeps properties the source version did not know. Verify the manual build.
+- [x] 5.1 Realign REQ-104 (statement), REQ-106 (statement, AC1, AC3), US-106 (AC1, AC3) and UC-16 (step 3, step 13, E2) as listed in the proposal, with a change history entry in each REQ.
+- [x] 5.2 `docs/audit-event-catalog.md` (`restoredFields`), `docs/data-model.puml` and `business-objects/entity-version.md` (`restoredFields`).
+- [x] 5.3 User manual `usage/change-history.md` in English and German: the partial restore, the steps, the connections and `fields` for API callers; the full restore keeps properties the source version did not know. Verify the manual build.
 
 ## 6. Wrap-up
 
-- [ ] 6.1 Set US-104, US-105 and US-106 to done with the implementation note, and update the S13 row in `docs/sprint-plan.md`.
-- [ ] 6.2 Synchronize `docs/data-model.puml`, `business-objects/` and `docs/screens/SCREENS.md`, and regenerate `requirements/traceability.md`.
-- [ ] 6.3 Run `python3 scripts/validate_links.py`, markdownlint and `openspec validate --strict`, and verify they pass.
+- [x] 6.1 Set US-104, US-105 and US-106 to done with the implementation note, and update the S13 row in `docs/sprint-plan.md`.
+- [x] 6.2 Synchronize `docs/data-model.puml`, `business-objects/` and `docs/screens/SCREENS.md`, and regenerate `requirements/traceability.md`.
+- [x] 6.3 Run `python3 scripts/validate_links.py`, markdownlint and `openspec validate --strict`, and verify they pass.

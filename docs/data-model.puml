@@ -1249,6 +1249,7 @@ package "Repository" #FCE4EC {
     + changed_at  : TIMESTAMPTZ           {NN} DEFAULT NOW()
     + restored_from_version : INTEGER     {NULL} CHECK(≥ 1 AND < version)
     + change_reason : TEXT                {NULL} CHECK(≤ 1000; only with restored_from_version)
+    + restored_fields : TEXT[]            {NULL} CHECK(≥ 1 entry; only with restored_from_version)
   }
 
   note right of entity_version_headers
@@ -1262,6 +1263,8 @@ package "Repository" #FCE4EC {
     target version and the optional reason (V32,
     us-101-entity-restore); the version before
     it is the snapshot of the state before.
+    A partial restore records its field keys
+    in restored_fields (V33, us-104).
   end note
 
   class entity_system_field_history <<Table>> #F8BBD9 {

@@ -2,8 +2,9 @@
 
 **ID**: US-106
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S13
+**Implementation**: OpenSpec change `us-104-partial-restore` – `restoreEntity` with `fields` records `restoredFields` (V33) and names them in `entity.restored`; an empty or unknown selection gives 422; the timeline shows "Partially restored from vN" with the labels (AC1–AC3; AC1 and AC3 realigned 2026-11-15: field keys and labels instead of dot notation)
 
 ## Story
 
@@ -19,8 +20,8 @@ As Kurt – Lead Enterprise Architect, I want the exact restored fields to be vi
 
 **AC1** (restoredFields in version entry):
 
-- When: I partially restore `description` and `properties.owner`
-- Then: the version entry contains `restoredFields=["description","properties.owner"]`
+- When: I partially restore `description` and the property `owner`
+- Then: the version entry contains `restoredFields` with `description` and the ID of `owner`
 
 **AC2** (Reject empty selection):
 
@@ -30,7 +31,7 @@ As Kurt – Lead Enterprise Architect, I want the exact restored fields to be vi
 **AC3** (Timeline readability):
 
 - When: I view the timeline after the partial restore
-- Then: the entry shows "Partially restored from v4 (description, properties.owner)"
+- Then: the entry shows "Partially restored from v4 (Description, Owner)"
 
 ## Definition of Done
 

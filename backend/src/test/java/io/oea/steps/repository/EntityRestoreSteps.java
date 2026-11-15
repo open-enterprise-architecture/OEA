@@ -99,6 +99,36 @@ public class EntityRestoreSteps {
 		map(this.history.typedProperty(name, "public", "string"), necessity);
 	}
 
+	@Given("the restore property {string} mapped as {string} from {string}")
+	public void mappedPropertyFrom(String name, String necessity, String validFrom) throws Exception {
+		map(this.history.typedProperty(name, "public", "string"), necessity, validFrom);
+	}
+
+	/** A connection of the scenario entity with its other endpoint "ERP"; versions relative to the entity's version. */
+	@Given("the connection {string} to {string} changed after version {int}")
+	public void changedConnection(String name, String entity, int version) throws Exception {
+		connectionAt(name, entity, false, version - 1, version + 1);
+	}
+
+	@Given("the connection {string} from {string} created after version {int}")
+	public void addedConnection(String name, String entity, int version) throws Exception {
+		connectionAt(name, entity, true, version + 1);
+	}
+
+	@Given("the connection {string} from {string} unchanged since version {int}")
+	public void unchangedConnection(String name, String entity, int version) throws Exception {
+		connectionAt(name, entity, true, version - 2, version - 1);
+	}
+
+	@Given("version {int} of {string} was partially restored from version {int} with {string}")
+	public void partiallyRestored(int version, String entity, int target, String fields) throws Exception {
+		instance().oidc().update("""
+				UPDATE entity_version_headers SET restored_from_version = %d, restored_fields = ARRAY[%s]
+				WHERE entity_id = %d AND version = %d""".formatted(target,
+				String.join(", ", keys(fields).stream().map((key) -> "'" + key + "'").toList()),
+				this.history.entityId(entity), version));
+	}
+
 	@Given("the restore enumeration {string} with the values {string}")
 	public void enumeration(String name, String values) throws Exception {
 		String id = this.history.typedProperty(name, "public", "enum");
@@ -179,6 +209,15 @@ public class EntityRestoreSteps {
 		restore(instance().architect(), entity, target, null, null);
 	}
 
+	@When("the enterprise architect restores the fields {string} of {string} to version {int}")
+	public void restoreFields(String fields, String entity, int target) throws Exception {
+		var body = JsonMapper.shared().createObjectNode().put("targetVersion", target);
+		var list = body.putArray("fields");
+		keys(fields).forEach(list::add);
+		this.response = instance().send("POST", path(entity), body.toString(), instance().architect(),
+				Map.of("If-Match", current(entity)));
+	}
+
 	@When("a person with {string} but without {string} restores {string} to version {int}")
 	public void restoreWithoutPermission(String held, String missing, String entity, int target) throws Exception {
 		assertThat(held).isEqualTo("entity:write");
@@ -221,6 +260,67 @@ public class EntityRestoreSteps {
 		assertThat(body().path("currentVersion").asInt()).isEqualTo(current);
 	}
 
+	@Then("the restore is answered with {int} naming {string}")
+	public void answeredNaming(int status, String field) throws Exception {
+		answered(status);
+		List<String> fields = new ArrayList<>();
+		body().path("invalidFields").forEach((entry) -> fields.add(entry.asString()));
+		assertThat(fields).containsExactly(field);
+	}
+
+	@Then("the restore lists only {string} as restored")
+	public void restoredOnly(String expected) throws Exception {
+		List<String> names = new ArrayList<>();
+		ok().path("restored").forEach((entry) -> names.add(name(entry.path("field").asString())));
+		assertThat(String.join(", ", names)).isEqualTo(expected);
+	}
+
+	@Then("version {int} of {string} records the restored fields {string} from version {int}")
+	public void recordedFields(int version, String entity, String fields, int target) throws Exception {
+		assertThat(instance().oidc().single("""
+				SELECT restored_from_version || ' ' || array_to_string(restored_fields, ',') FROM entity_version_headers
+				WHERE entity_id = %d AND version = %d""".formatted(this.history.entityId(entity), version)))
+			.isEqualTo(target + " " + String.join(",", keys(fields)));
+	}
+
+	@Then("version {int} of {string} records no restored fields")
+	public void recordedNoFields(int version, String entity) throws Exception {
+		assertThat(instance().oidc().single("""
+				SELECT (restored_from_version IS NOT NULL AND restored_fields IS NULL)::text FROM entity_version_headers
+				WHERE entity_id = %d AND version = %d""".formatted(this.history.entityId(entity), version)))
+			.isEqualTo("true");
+	}
+
+	@Then("the {string} event of {string} names the restored fields {string}")
+	public void eventFields(String type, String entity, String fields) throws Exception {
+		JsonNode details = JsonMapper.shared().readTree(instance().oidc().single("""
+				SELECT details::text FROM audit.events WHERE event_type = '%s' AND target_id = '%s'
+				ORDER BY chain_seq DESC LIMIT 1""".formatted(type, this.history.entityId(entity))));
+		List<String> names = new ArrayList<>();
+		details.path("restoredFields").forEach((entry) -> names.add(name(entry.asString())));
+		assertThat(String.join(", ", names)).isEqualTo(fields);
+	}
+
+	@Then("the preview lists the connection {string} as {string}")
+	public void connectionListed(String name, String change) throws Exception {
+		assertThat(connections()).contains(name + " " + change);
+	}
+
+	@Then("the preview does not list the connection {string}")
+	public void connectionNotListed(String name) throws Exception {
+		assertThat(connections()).noneMatch((entry) -> entry.startsWith(name + " "));
+	}
+
+	@Then("version {int} in the restore history carries the restored fields {string} from version {int}")
+	public void historyFields(int version, String fields, int target) throws Exception {
+		JsonNode entry = version(ok(), version);
+		assertThat(entry.path("restoredFromVersion").asInt()).isEqualTo(target);
+		List<String> names = new ArrayList<>();
+		entry.path("restoredFields").forEach((field) -> names.add(name(field.path("field").asString())));
+		assertThat(String.join(", ", names)).isEqualTo(fields);
+		assertThat(entry.path("restoredFields").get(0).path("label").asString()).isEqualTo("Description");
+	}
+
 	@Then("the preview names version {int} as current")
 	public void current(int version) throws Exception {
 		assertThat(ok().path("currentVersion").asInt()).isEqualTo(version);
@@ -261,7 +361,8 @@ public class EntityRestoreSteps {
 	public void warning(String property) throws Exception {
 		List<String> fields = new ArrayList<>();
 		ok().path("warnings").forEach((warning) -> fields.add(warning.path("field").asString()));
-		assertThat(fields).anyMatch((field) -> field.contains(property));
+		// the field of a warning is the ID of the property (us-104-partial-restore D2)
+		assertThat(fields).contains(this.history.propertyId(property));
 	}
 
 	@Then("the restore lists {string} as not restored because {string}")
@@ -387,10 +488,59 @@ public class EntityRestoreSteps {
 	}
 
 	private void map(String property, String necessity) throws Exception {
+		map(property, necessity, "2026-01-01");
+	}
+
+	private void map(String property, String necessity, String validFrom) throws Exception {
 		instance().oidc().update("""
 				INSERT INTO metatype_property_mappings (metatype_id, property_def_id, necessity, valid_from, scope, sort_order)
-				VALUES ('%s', '%s', '%s', DATE '2026-01-01', 'organization', 1)"""
-			.formatted(this.metatypes.values().iterator().next(), property, necessity));
+				VALUES ('%s', '%s', '%s', DATE '%s', 'organization', 1)"""
+			.formatted(this.metatypes.values().iterator().next(), property, necessity, validFrom));
+	}
+
+	/** The field keys of scenario names: system fields as they are, properties by their definition ID. */
+	private List<String> keys(String names) {
+		if (names.isBlank()) {
+			return List.of();
+		}
+		return Arrays.stream(names.split(","))
+			.map(String::strip)
+			.map((name) -> List.of("name", "description", "isLogical").contains(name) ? name
+					: this.history.propertyId(name))
+			.toList();
+	}
+
+	/**
+	 * A connection between the entity and a new element "ERP", with one version 30 minutes after
+	 * each given version of the entity, so before the next one.
+	 */
+	private void connectionAt(String name, String entity, boolean outgoing, int... afterVersions) throws Exception {
+		String suffix = UUID.randomUUID().toString().substring(0, 8);
+		String flow = instance().oidc().single("""
+				INSERT INTO metatypes (config_id, name, is_connection) VALUES ('%s', 'Restore Flow %s', true)
+				RETURNING id::text""".formatted(CONFIG, suffix));
+		long person = this.history.personId("Kurt");
+		int id = this.history.entityId(entity);
+		int other = create(this.metatypes.values().iterator().next(), "ERP " + suffix, 1, "Kurt");
+		int connection = Integer.parseInt(instance().oidc().single("""
+				INSERT INTO entities (metatype_id, name, version, created_by) VALUES ('%s', '%s', %d, %d) RETURNING id::text"""
+			.formatted(flow, name, afterVersions.length, person)));
+		for (int version = 1; version <= afterVersions.length; version++) {
+			instance().oidc().update("""
+					INSERT INTO entity_version_headers (entity_id, version, changed_by, changed_at)
+					VALUES (%d, %d, %d, TIMESTAMPTZ '2026-11-02T08:30:00Z' + interval '%d hours')"""
+				.formatted(connection, version, person, afterVersions[version - 1]));
+		}
+		instance().oidc()
+			.update("INSERT INTO entity_connections (entity_id, source_entity_id, target_entity_id) VALUES (%d, %d, %d)"
+				.formatted(connection, outgoing ? id : other, outgoing ? other : id));
+	}
+
+	private List<String> connections() throws Exception {
+		List<String> entries = new ArrayList<>();
+		ok().path("connections")
+			.forEach((entry) -> entries.add(entry.path("name").asString() + " " + entry.path("change").asString()));
+		return entries;
 	}
 
 	private void restore(Session session, String entity, int target, String reason, String ifMatch) throws Exception {

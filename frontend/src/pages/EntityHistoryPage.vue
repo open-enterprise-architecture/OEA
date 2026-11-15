@@ -16,6 +16,7 @@ import {
   type RestoreResult,
 } from '../api/history'
 import { rateLimitMessage, RequestRejected } from '../api/problem'
+import PartialRestoreWizard from '../components/history/PartialRestoreWizard.vue'
 import RestoreEntityModal from '../components/history/RestoreEntityModal.vue'
 import VersionDiff from '../components/history/VersionDiff.vue'
 import VersionState from '../components/history/VersionState.vue'
@@ -34,6 +35,8 @@ import { refreshSession, session } from '../session/store'
 // Restore (US-101, US-102; design D5 of us-101-entity-restore): with `entity:write` and
 // `entity:restore`, every version but the current one offers "Restore this version", which opens
 // the modal SCR-027; a version written by a restore carries "Restored from vN" and its reason.
+// Partial restore (US-104 to US-106; design D6 of us-104-partial-restore): "Partially restore"
+// opens the wizard SCR-029; a partially restored version names its restored fields.
 const props = defineProps<{ id: string; fetchFn?: typeof fetch }>()
 const { t } = useI18n()
 const route = useRoute()
@@ -61,6 +64,7 @@ const selected = ref<number[]>([])
 const comparison = ref<EntityVersionDiff>()
 const compareFailure = ref<string>()
 const restoreTarget = ref<number>()
+const partialSource = ref<number>()
 const restoredTo = ref<RestoreResult>()
 
 const entityId = computed(() => Number(props.id))
@@ -221,6 +225,13 @@ watch(comparing, (active) => {
   if (!active) selected.value = []
 })
 
+/** The labels of the fields of a partial restore, for its marker. */
+function restoredLabels(version: EntityVersion): string {
+  return (version.restoredFields ?? [])
+    .map((field) => fieldLabel({ ...field, isSystemField: ['name', 'description', 'isLogical'].includes(field.field) }))
+    .join(', ')
+}
+
 function fieldLabel(change: EntityVersionChange): string {
   if (change.isSystemField) return t(`history.fields.${change.field}`)
   return label(labelKeys.property(change.field), change.label)
@@ -346,7 +357,14 @@ function day(value: string): string {
                 color="info"
                 variant="subtle"
                 icon="i-lucide-rotate-ccw"
-                :label="t('restore.restoredFrom', { version: version.restoredFromVersion })"
+                :label="
+                  version.restoredFields
+                    ? t('partialRestore.restoredFrom', {
+                        version: version.restoredFromVersion,
+                        fields: restoredLabels(version),
+                      })
+                    : t('restore.restoredFrom', { version: version.restoredFromVersion })
+                "
               />
               <UButton
                 v-if="canRestore && version.version !== history.currentVersion"
@@ -358,6 +376,16 @@ function day(value: string): string {
                 icon="i-lucide-rotate-ccw"
                 :label="t('restore.action')"
                 @click="restoreTarget = version.version"
+              />
+              <UButton
+                v-if="canRestore && version.version !== history.currentVersion"
+                :data-testid="`history-partial-restore-${version.version}`"
+                color="neutral"
+                variant="outline"
+                size="xs"
+                icon="i-lucide-list-checks"
+                :label="t('partialRestore.action')"
+                @click="partialSource = version.version"
               />
               <UButton
                 :data-testid="`history-toggle-${version.version}`"
@@ -441,6 +469,17 @@ function day(value: string): string {
       :target-version="restoreTarget"
       :fetch-fn="fetchFn"
       @update:open="(open: boolean) => { if (!open) restoreTarget = undefined }"
+      @restored="restored"
+    />
+    <PartialRestoreWizard
+      v-if="partialSource !== undefined && history"
+      :open="partialSource !== undefined"
+      :entity-id="entityId"
+      :source-version="partialSource"
+      :versions="versions"
+      :current-version="history.currentVersion"
+      :fetch-fn="fetchFn"
+      @update:open="(open: boolean) => { if (!open) partialSource = undefined }"
       @restored="restored"
     />
   </main>

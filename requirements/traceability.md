@@ -473,7 +473,7 @@ frontmatter and reference sections of the artifacts.
 | [UC-13](use-cases/UC-13-manage-navigation-tree.md) | [§6 Core Entity Types](../concept/20-entities/06-core-entity-types.md) | – |
 | [UC-14](use-cases/UC-14-view-change-history.md) | [§6 Core Entity Types](../concept/20-entities/06-core-entity-types.md) | [ADR-016](../adrs/ADR-016-persistence-strategy.md) |
 | [UC-15](use-cases/UC-15-restore-entity-state.md) | [§6 Core Entity Types](../concept/20-entities/06-core-entity-types.md) | [ADR-022](../adrs/ADR-022-structured-property-model.md) |
-| [UC-16](use-cases/UC-16-partial-entity-restore.md) | [§6 Core Entity Types](../concept/20-entities/06-core-entity-types.md) | – |
+| [UC-16](use-cases/UC-16-partial-entity-restore.md) | [§6 Core Entity Types](../concept/20-entities/06-core-entity-types.md) | [ADR-022](../adrs/ADR-022-structured-property-model.md) |
 | [UC-17](use-cases/UC-17-manage-continuum-building-blocks.md) | [§4 Enterprise Continuum and Technical Reference Model](../concept/10-foundations/04-enterprise-continuum-trm.md) | – |
 | [UC-18](use-cases/UC-18-import-continuum-package.md) | [§4 Enterprise Continuum and Technical Reference Model](../concept/10-foundations/04-enterprise-continuum-trm.md) | [ADR-002](../adrs/ADR-002-continuum-repository.md) |
 | [UC-19](use-cases/UC-19-configure-trm.md) | [§4 Enterprise Continuum and Technical Reference Model](../concept/10-foundations/04-enterprise-continuum-trm.md) | – |

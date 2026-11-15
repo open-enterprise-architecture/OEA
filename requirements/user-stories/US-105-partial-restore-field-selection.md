@@ -2,8 +2,9 @@
 
 **ID**: US-105
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S13
+**Implementation**: OpenSpec change `us-104-partial-restore` – only differing restorable fields are selectable on SCR-029; identical fields are grayed out, a property the source version did not know shows "(not present in source version)" (`not-in-source`), a selected field shows its source value (AC1–AC3)
 
 ## Story
 

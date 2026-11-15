@@ -95,7 +95,7 @@ public class EntityHistory {
 
 	/** A version with the person who made it and its listed fields. */
 	public record Version(int version, Instant changedAt, Actor changedBy, List<Change> changes,
-			Integer restoredFromVersion, String reason) {
+			Integer restoredFromVersion, String reason, List<Change> restoredFields) {
 	}
 
 	/** The creation of the entity: version 1. */
@@ -148,6 +148,12 @@ public class EntityHistory {
 				.map(ChangedField::propertyDefId)
 				.filter(Objects::nonNull)
 				.forEach(properties::add));
+		// the properties restored by partial restores (us-104-partial-restore D5)
+		headers.stream()
+			.filter((header) -> header.restoredFields() != null)
+			.flatMap((header) -> header.restoredFields().stream())
+			.filter((key) -> systemField(key) == null)
+			.forEach((key) -> properties.add(UUID.fromString(key)));
 		Map<UUID, String> propertyLabels = this.labels.propertyLabels(language, properties);
 		HistoryAccess rule = new HistoryAccess(access,
 				!properties.isEmpty() && this.visibility.hidden(new HashSet<>(roles), entity.metatypeId()));
@@ -176,7 +182,8 @@ public class EntityHistory {
 			propertyChanges.sort(Comparator.comparing(Change::label, String.CASE_INSENSITIVE_ORDER));
 			changes.addAll(propertyChanges);
 			versions.add(new Version(header.version(), header.changedAt(), Actor.of(header.changedBy()),
-					List.copyOf(changes), header.restoredFromVersion(), header.reason()));
+					List.copyOf(changes), header.restoredFromVersion(), header.reason(),
+					restoredFields(header.restoredFields(), propertyLabels, rule, entityId)));
 		}
 
 		String nextCursor = null;
@@ -200,6 +207,38 @@ public class EntityHistory {
 			.mapToInt(SystemField::order)
 			.findFirst()
 			.orElse(SYSTEM_FIELDS.size());
+	}
+
+
+	/**
+	 * The fields of a partial restore with their labels, in recorded order; a property the
+	 * reader may not read is restricted, a hidden one is left out; {@code null} for other versions.
+	 */
+	private static List<Change> restoredFields(List<String> keys, Map<UUID, String> propertyLabels, HistoryAccess rule,
+			int entityId) {
+		if (keys == null) {
+			return null;
+		}
+		List<Change> fields = new ArrayList<>();
+		for (String key : keys) {
+			SystemField system = systemField(key);
+			if (system != null) {
+				fields.add(new Change(system.key(), system.label(), true, false));
+				continue;
+			}
+			UUID property = UUID.fromString(key);
+			HistoryAccess.Visibility visibility = rule.of(property, entityId);
+			if (visibility != HistoryAccess.Visibility.HIDDEN) {
+				fields.add(new Change(key, propertyLabels.getOrDefault(property, key), false,
+						visibility == HistoryAccess.Visibility.RESTRICTED));
+			}
+		}
+		return List.copyOf(fields);
+	}
+
+	/** The system field with this API key ({@code name}, {@code isLogical}, …), or {@code null}. */
+	private static SystemField systemField(String key) {
+		return SYSTEM_FIELDS.values().stream().filter((field) -> field.key().equals(key)).findFirst().orElse(null);
 	}
 
 }

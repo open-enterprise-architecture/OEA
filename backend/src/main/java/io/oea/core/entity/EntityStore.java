@@ -43,8 +43,16 @@ public class EntityStore {
 	public record FieldChange(String field, String oldValue, String newValue) {
 	}
 
-	/** The restore that writes a version: its target version and the optional reason (us-101 D1). */
-	public record Restore(int fromVersion, String reason) {
+	/**
+	 * The restore that writes a version: its target version, the optional reason (us-101 D1) and
+	 * the keys of the fields of a partial restore, {@code null} for a full one (us-104 D1).
+	 */
+	public record Restore(int fromVersion, String reason, List<String> fields) {
+
+		public Restore(int fromVersion, String reason) {
+			this(fromVersion, reason, null);
+		}
+
 	}
 
 	/** An entity as endpoint of a connection (us-036-connection-metatypes D3). */
@@ -183,9 +191,10 @@ public class EntityStore {
 				personId, entity.id());
 		this.jdbc.update("""
 				INSERT INTO entity_version_headers (entity_id, version, changed_by, changed_at, restored_from_version,
-				    change_reason)
-				VALUES (?, ?, ?, ?, ?, ?)""", entity.id(), version, personId, Timestamp.from(now),
-				(restore != null) ? restore.fromVersion() : null, (restore != null) ? restore.reason() : null);
+				    change_reason, restored_fields)
+				VALUES (?, ?, ?, ?, ?, ?, ?)""", entity.id(), version, personId, Timestamp.from(now),
+				(restore != null) ? restore.fromVersion() : null, (restore != null) ? restore.reason() : null,
+				(restore != null && restore.fields() != null) ? restore.fields().toArray(String[]::new) : null);
 		for (FieldChange change : fieldChanges) {
 			this.jdbc.update("""
 					INSERT INTO entity_system_field_history (entity_id, entity_version, field_name, old_value, new_value,

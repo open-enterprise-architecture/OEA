@@ -42,6 +42,7 @@ import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.app.solution.InvalidSolutionException;
 import io.oea.app.solution.InvalidSolutionQueryException;
 import io.oea.app.history.InvalidHistoryQueryException;
+import io.oea.app.history.InvalidRestoreSelectionException;
 import io.oea.app.history.NothingToRestoreException;
 import io.oea.app.history.PreconditionRequiredException;
 import io.oea.app.history.StaleEntityVersionException;
@@ -354,6 +355,15 @@ public class ApiExceptionHandler {
 				ex.getMessage());
 		problem.setProperty("currentVersion", ex.getCurrentVersion());
 		return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).body(problem);
+	}
+
+	/** An empty or unknown selection of a partial restore (design D2 of us-104-partial-restore). */
+	@ExceptionHandler(InvalidRestoreSelectionException.class)
+	ResponseEntity<ProblemDetail> invalidRestoreSelection(InvalidRestoreSelectionException ex) {
+		ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "validation-failed", "Invalid selection",
+				ex.getMessage());
+		problem.setProperty("invalidFields", List.of("fields"));
+		return ResponseEntity.unprocessableContent().body(problem);
 	}
 
 	@ExceptionHandler(NothingToRestoreException.class)

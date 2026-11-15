@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fetchRestorePreview, restoreEntity, type RestoreField, type RestorePreview, type RestoreResult } from '../../api/history'
 import { rateLimitMessage, RequestRejected } from '../../api/problem'
-import { fieldLabel, fieldValue } from './fields'
+import { fieldLabel, fieldValue, warningLabel } from './fields'
 
 // SCR-027 "Restore entity" (UC-15, US-101, US-102, REQ-101; design D5 of us-101-entity-restore):
 // the preview of a restore to the target version: the fields that change from the current value
@@ -95,11 +95,6 @@ function reasonText(field: RestoreField): string {
   return t(`restore.reasons.${field.reason ?? 'write-protected'}`)
 }
 
-function warningLabel(field: string): string {
-  // `properties[<name>]` of the batch issues
-  const match = /^properties\[(.+)\]$/.exec(field)
-  return match ? match[1]! : field
-}
 </script>
 
 <template>
@@ -176,7 +171,7 @@ function warningLabel(field: string): string {
             <template #description>
               <ul class="list-disc ps-4">
                 <li v-for="warning in preview.warnings" :key="warning.field" data-testid="restore-warning">
-                  {{ t(warning.code === 'MANDATORY_MISSING' ? 'restore.mandatoryMissing' : 'restore.valueMissing', { property: warningLabel(warning.field) }) }}
+                  {{ t(warning.code === 'MANDATORY_MISSING' ? 'restore.mandatoryMissing' : 'restore.valueMissing', { property: warningLabel(warning, preview.fields, t) }) }}
                 </li>
               </ul>
             </template>

@@ -1,8 +1,8 @@
 ---
 title: Änderungshistorie
 covers:
-  screens: [SCR-026, SCR-027]
-  stories: [US-098, US-099, US-100, US-101, US-102, US-103]
+  screens: [SCR-026, SCR-027, SCR-029]
+  stories: [US-098, US-099, US-100, US-101, US-102, US-103, US-104, US-105, US-106]
 ---
 
 # Änderungshistorie
@@ -47,6 +47,7 @@ Mit den Berechtigungen `entity:write` und `entity:restore` bietet jeder Eintrag 
   - *fehlende Berechtigung*: Du darfst die Eigenschaft nach der [Sichtbarkeit von Eigenschaften](../administration/property-visibility) nicht schreiben;
   - *Die Eigenschaft gehört nicht mehr zum Entitätstyp*: Ihre Zuordnung zum Entitätstyp wurde inzwischen entfernt;
   - *Der Wert ist nicht mehr gültig*: Die Eigenschaft akzeptiert den Wert nicht mehr, zum Beispiel einen entfernten Listenwert;
+  - *in der Quellversion nicht vorhanden*: Die Eigenschaft kam erst nach dieser Version zum Entitätstyp, deshalb behält die Wiederherstellung ihren Wert;
 - Warnungen für Pflicht- oder empfohlene Eigenschaften, die danach leer wären. Sie blockieren die Wiederherstellung nie; eine leere Pflichteigenschaft wird danach als fehlend markiert, wie nach einer Änderung des Entitätstyps.
 
 Wiederhergestellt werden der Name, die Beschreibung, das Kennzeichen *logisch* und die Eigenschaften. Die ID, der Entitätstyp sowie Quelle und Ziel einer Verbindung ändern sich nie. Du kannst einen Grund mit bis zu 1000 Zeichen angeben. *Wiederherstellen* ist deaktiviert, wenn nichts wiederhergestellt werden kann; *Abbrechen* ändert nichts.
@@ -54,6 +55,19 @@ Wiederhergestellt werden der Name, die Beschreibung, das Kennzeichen *logisch* u
 Die Wiederherstellung schreibt eine neue Version. Sie trägt das Kennzeichen *Wiederhergestellt aus vN* und den Grund. Die Version vor der Wiederherstellung bleibt unverändert in der Historie, sodass du auch zu diesem Stand zurückkehren kannst.
 
 Hat jemand die Entität geändert, nachdem du den Dialog geöffnet hast, sagt der Dialog das und zeigt die Vorschau des aktuellen Stands. Prüfe sie und bestätige erneut.
+
+## Nur einzelne Felder wiederherstellen
+
+*Teilweise wiederherstellen* in einem Eintrag öffnet einen Assistenten, der nur die Felder wiederherstellt, die du auswählst; alle anderen Felder behalten ihren Wert. Er braucht dieselben Berechtigungen wie die vollständige Wiederherstellung. Oben kannst du eine andere Quellversion wählen; der Assistent lädt dann neu und verwirft deine Auswahl.
+
+1. **Allgemein:** Name, Beschreibung und das Kennzeichen *logisch*.
+2. **Eigenschaften:** die Eigenschaften der Entität.
+3. **Verbindungen:** die Verbindungen der Entität, die sich seit der Quellversion geändert haben oder hinzugekommen sind. Dieser Schritt ändert nichts. *Historie öffnen* führt zur Historie einer geänderten Verbindung, wo du sie einzeln wiederherstellst.
+4. **Zusammenfassung:** die ausgewählten Felder mit ihrem aktuellen Wert und dem Wert nach der Wiederherstellung, die Warnungen und ein optionaler Grund.
+
+In den ersten beiden Schritten zeigt eine Tabelle jedes Feld mit seinem Wert in der Quellversion und seinem aktuellen Wert. Nur Felder, die sich unterscheiden, sind auswählbar. Ein identisches Feld ist ausgegraut; ein Feld, das nicht wiederhergestellt werden kann, zeigt den Grund wie bei der vollständigen Wiederherstellung, und *(in der Quellversion nicht vorhanden)* für eine später hinzugekommene Eigenschaft. Ein ausgewähltes Feld zeigt seinen Wert nach der Wiederherstellung. Ein Schritt ohne Unterschiede wird mit einem Hinweis übersprungen, und *Überspringen* geht weiter, ohne im Schritt etwas auszuwählen. *Teilweise wiederherstellen* ist deaktiviert, bis du ein Feld auswählst.
+
+Die neue Version zeigt *Teilweise wiederhergestellt aus vN* mit den wiederhergestellten Feldern, zum Beispiel *Teilweise wiederhergestellt aus v4 (Beschreibung, Owner)*.
 
 ## Eingeschränkte Felder
 
@@ -73,3 +87,5 @@ Die Seite zeigt zuerst 50 Versionen. *Mehr laden* fügt die nächsten 50 hinzu.
 `GET /entities/{id}/versions/{version}` liefert den vollständigen Stand einer Version in `fields`, jedes mit `field`, `label`, `dataType`, `value` und `restricted`. `GET /entities/{id}/diff?from=2&to=7` liefert die Felder, deren Wert sich zwischen zwei Versionen unterscheidet, in `changes`, jedes mit `oldValue`, `newValue` und `redacted`; die Änderungen der Version N sind `from=N-1&to=N`. `from` muss mindestens 1 sein und vor `to` liegen, sonst 400 mit `from`; eine unbekannte Version wird mit 404 beantwortet. `PUT` und `DELETE` auf eine Version werden mit 405 beantwortet.
 
 `GET /entities/{id}/restore?targetVersion=3` liefert die Vorschau einer Wiederherstellung: `currentVersion` und in `fields` jedes abweichende Feld mit `currentValue`, `targetValue`, `redacted`, `restore` und `reason` (`write-protected`, `not-mapped`, `invalid-value`), dazu die `warnings`. `POST /entities/{id}/restore` mit `{"targetVersion": 3, "reason": "…"}` stellt die Entität wieder her und braucht den Header `If-Match: "5"` mit der aktuellen Version: Ohne ihn lautet die Antwort 428, mit einer anderen Version 412 `stale-version` mit `currentVersion`. Die Zielversion muss mindestens 1 sein und vor der aktuellen Version liegen (400 mit `targetVersion`); eine spätere Version wird mit 404 beantwortet. Eine Wiederherstellung ohne etwas wiederherzustellen wird mit 422 `nothing-to-restore` beantwortet. Die Historie nennt die aktuelle Version in `currentVersion` und kennzeichnet eine wiederhergestellte Version mit `restoredFromVersion` und `reason`.
+
+Eine teilweise Wiederherstellung sendet `"fields"` mit den Schlüsseln der Vorschaufelder, die wiederhergestellt werden sollen: `name`, `description`, `isLogical` oder die ID einer Eigenschaft. Eine leere Liste oder ein Schlüssel, der kein abweichendes Feld ist, wird mit 422 und `fields` beantwortet. Ein ausgewähltes Feld, das nicht wiederhergestellt werden kann, bleibt erhalten und steht in `notRestored`. Die Vorschau listet in `connections` die seit der Zielversion geänderten oder hinzugekommenen Verbindungen mit `entityId`, `name`, `otherEndpoint`, `direction` und `change`. Die Historie listet die Felder einer teilweisen Wiederherstellung in `restoredFields`, jedes mit `field`, `label` und `restricted`. Das `field` einer Warnung ist die ID der Eigenschaft.

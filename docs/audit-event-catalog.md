@@ -656,14 +656,14 @@ An entity was created or changed ([US-141](../requirements/user-stories/US-141-e
 
 ### `entity.restored`
 
-An entity was restored in full to an earlier version ([US-101](../requirements/user-stories/US-101-entity-full-restore.md), [US-102](../requirements/user-stories/US-102-restore-audit-snapshot.md), [REQ-102](../requirements/req/REQ-102-restore-audit-snapshot.md); change us-101-entity-restore). Written in the transaction of the restore; a rejected restore (400, 403, 404, 412, 422, 428) is not audited.
+An entity was restored in full or in part to an earlier version ([US-101](../requirements/user-stories/US-101-entity-full-restore.md), [US-102](../requirements/user-stories/US-102-restore-audit-snapshot.md), [REQ-102](../requirements/req/REQ-102-restore-audit-snapshot.md); change us-101-entity-restore). Written in the transaction of the restore; a rejected restore (400, 403, 404, 412, 422, 428) is not audited.
 
 | Field | Value |
 |---|---|
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the restoring person (`entity:write` and `entity:restore`) |
 | Target | `entity`, ID of the entity; `entity_id` and `entity_name` |
-| Details | `batchId` (one per restore), `metatypeId`, `externalId` if set, `version` (the new version), `restoredFromVersion` (the target version), `reason` if given |
+| Details | `batchId` (one per restore), `metatypeId`, `externalId` if set, `version` (the new version), `restoredFromVersion` (the target version), `reason` if given, `restoredFields` (the keys of the restored fields) for a partial restore (change us-104-partial-restore) |
 | Changes | as for `entity.updated`: one `audit.event_changes` row per restored system field and property with old and new value; fields that were not restored are not listed |
 
 ### `catalog.created`

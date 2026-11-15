@@ -1,4 +1,4 @@
-import type { EntityVersionDataType } from '../../api/history'
+import type { EntityVersionDataType, RestoreWarning } from '../../api/history'
 import { currentLanguage } from '../../i18n'
 import { label, labelKeys } from '../../i18n/labels'
 
@@ -23,4 +23,15 @@ export function fieldValue(value: string | null | undefined, dataType: EntityVer
     return new Intl.DateTimeFormat(currentLanguage(), { dateStyle: 'medium' }).format(new Date(year!, month! - 1, day!))
   }
   return value
+}
+
+/**
+ * The property of a restore warning (us-104-partial-restore D2): `field` is the ID of the property;
+ * its label comes from a listed field, the metamodel labels, or the name in the message.
+ */
+export function warningLabel(warning: RestoreWarning, fields: { field: string; label: string; isSystemField: boolean }[], t: Translate): string {
+  const listed = fields.find((candidate) => candidate.field === warning.field)
+  if (listed) return fieldLabel(listed, t)
+  const named = /property (.+?) (?:has no value|should have a value)/.exec(warning.message)
+  return label(labelKeys.property(warning.field), named?.[1] ?? warning.field)
 }

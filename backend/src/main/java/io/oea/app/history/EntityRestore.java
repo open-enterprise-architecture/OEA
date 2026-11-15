@@ -10,12 +10,14 @@ import io.oea.app.entity.PropertyWriteAccess;
 import io.oea.app.metamodel.MetamodelLabels;
 import io.oea.app.metamodel.PropertyAccess;
 import io.oea.app.security.OeaPrincipal;
+import io.oea.core.entity.EntityHistoryStore;
 import io.oea.core.entity.EntityStore;
 import io.oea.core.entity.EntityStore.StoredEntity;
 import io.oea.core.entity.EntityVersionStore;
 import io.oea.core.entity.PropertyValueStore;
 import io.oea.core.entity.TypedValue;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -52,7 +54,7 @@ public class EntityRestore {
 
 	static final String INVALID_VALUE = "invalid-value";
 
-	private static final Set<String> WARNINGS = Set.of("MANDATORY_MISSING", "VALUE_MISSING");
+	static final String NOT_IN_SOURCE = "not-in-source";
 
 	/** The system fields a restore sets, with their key and label. */
 	private static final Map<String, String> SYSTEM_LABELS = systemLabels();
@@ -62,6 +64,8 @@ public class EntityRestore {
 	private final EntityVersionStore versions;
 
 	private final EntityVersions display;
+
+	private final EntityHistoryStore history;
 
 	private final PropertyAccess access;
 
@@ -78,11 +82,13 @@ public class EntityRestore {
 	private final Clock clock;
 
 	public EntityRestore(EntityStore entities, EntityVersionStore versions, EntityVersions display,
+			EntityHistoryStore history,
 			PropertyAccess access, EntityWriter writer, PropertyValueStore values, MetamodelLabels labels,
 			LanguagePreferences languages, JdbcTemplate jdbc, Clock clock) {
 		this.entities = entities;
 		this.versions = versions;
 		this.display = display;
+		this.history = history;
 		this.access = access;
 		this.writer = writer;
 		this.values = values;
@@ -102,7 +108,11 @@ public class EntityRestore {
 
 	/** What a restore to the target version would do. */
 	public record Preview(int entityId, int currentVersion, int targetVersion, List<Field> fields,
-			List<Issue> warnings) {
+			List<Issue> warnings, List<Connection> connections) {
+	}
+
+	/** A connection of the entity changed or created after the target version (us-104 D3). */
+	public record Connection(int entityId, String name, String otherEndpoint, boolean outgoing, boolean added) {
 	}
 
 	/** A field of the result of a restore; {@code reason} is {@code null} for a restored field. */
@@ -120,7 +130,7 @@ public class EntityRestore {
 	 * values and its validation.
 	 */
 	private record Plan(Map<String, String> reasons, Set<String> restorable, Map<UUID, TypedValue> current,
-			EntityValidator.Checked checked, Set<UUID> missingMandatory) {
+			EntityValidator.Checked checked, List<Issue> warnings, Set<UUID> missingMandatory, Instant targetTime) {
 	}
 
 	/**
@@ -134,7 +144,7 @@ public class EntityRestore {
 	public Preview preview(OeaPrincipal principal, int entityId, int targetVersion) {
 		StoredEntity entity = this.entities.find(entityId).orElseThrow(NoSuchElementException::new);
 		checkTarget(entity, targetVersion);
-		Plan plan = plan(principal, entity, targetVersion);
+		Plan plan = plan(principal, entity, targetVersion, null);
 		List<Field> fields = new ArrayList<>();
 		// the display rules of the diff: labels, text values, redaction, hiding, the override audit
 		for (EntityVersions.Change change : this.display.compare(principal, entityId, targetVersion, entity.version())
@@ -146,24 +156,36 @@ public class EntityRestore {
 			fields.add(new Field(change.field(), change.label(), change.systemField(), change.dataType(),
 					change.newValue(), change.oldValue(), change.redacted(), reason == null, reason));
 		}
-		return new Preview(entityId, entity.version(), targetVersion, List.copyOf(fields),
-				warnings(plan.checked()));
+		List<Connection> connections = this.history.connectionsChangedSince(entityId, plan.targetTime())
+			.stream()
+			.map((connection) -> new Connection(connection.entityId(), connection.name(), connection.otherEndpoint(),
+					connection.outgoing(), connection.added()))
+			.toList();
+		return new Preview(entityId, entity.version(), targetVersion, List.copyOf(fields), plan.warnings(),
+				connections);
 	}
 
 	/**
-	 * Restores the entity to {@code targetVersion} in one transaction.
+	 * Restores the entity to {@code targetVersion} in one transaction: in full, or with
+	 * {@code fields} only the selected fields (us-104-partial-restore D2).
 	 *
 	 * @param expectedVersion the version named by {@code If-Match}, {@code null} without the header
+	 * @param fields the keys of the fields of a partial restore, {@code null} for a full one
+	 * @throws InvalidRestoreSelectionException for an empty selection or a key that is not a
+	 * differing field (422)
 	 * @throws PreconditionRequiredException without {@code If-Match} (428)
 	 * @throws StaleEntityVersionException when the entity is at another version (412)
 	 * @throws NothingToRestoreException when every restorable field has its target value (422)
 	 */
 	@Transactional
 	public Result restore(OeaPrincipal principal, int entityId, int targetVersion, Long expectedVersion,
-			String reason) {
+			String reason, List<String> fields) {
 		String given = (reason != null && !reason.isBlank()) ? reason : null;
 		if (given != null && given.length() > REASON_MAX_LENGTH) {
 			throw new InvalidHistoryQueryException("reason");
+		}
+		if (fields != null && fields.isEmpty()) {
+			throw new InvalidRestoreSelectionException();
 		}
 		StoredEntity entity = this.entities.lock(entityId).orElseThrow(NoSuchElementException::new);
 		if (expectedVersion == null) {
@@ -173,12 +195,13 @@ public class EntityRestore {
 			throw new StaleEntityVersionException(entity.version());
 		}
 		checkTarget(entity, targetVersion);
-		Plan plan = plan(principal, entity, targetVersion);
+		Plan plan = plan(principal, entity, targetVersion, (fields != null) ? new LinkedHashSet<>(fields) : null);
 		if (plan.restorable().isEmpty()) {
 			throw new NothingToRestoreException();
 		}
 		EntityWriter.Written written = this.writer.write(principal, plan.checked(), entity, plan.current(),
-				EntityWriter.WriteContext.restore(targetVersion, given));
+				EntityWriter.WriteContext.restore(targetVersion, given,
+						(fields != null) ? List.copyOf(plan.restorable()) : null));
 		this.values.mark(entityId, plan.missingMandatory(), this.clock.instant());
 
 		Set<UUID> properties = new HashSet<>();
@@ -194,8 +217,7 @@ public class EntityRestore {
 			.stream()
 			.map((entry) -> new FieldRef(entry.getKey(), label(entry.getKey(), propertyLabels), entry.getValue()))
 			.toList();
-		return new Result(entityId, written.version(), targetVersion, restored, notRestored,
-				warnings(plan.checked()));
+		return new Result(entityId, written.version(), targetVersion, restored, notRestored, plan.warnings());
 	}
 
 	private static void checkTarget(StoredEntity entity, int targetVersion) {
@@ -207,7 +229,13 @@ public class EntityRestore {
 		}
 	}
 
-	private Plan plan(OeaPrincipal principal, StoredEntity entity, int targetVersion) {
+	/**
+	 * Classifies every differing field and builds the input of the restore: all restorable
+	 * fields, or with a {@code selection} only the selected ones (us-104-partial-restore D2).
+	 *
+	 * @throws InvalidRestoreSelectionException for a selected key that is not a differing field
+	 */
+	private Plan plan(OeaPrincipal principal, StoredEntity entity, int targetVersion, Set<String> selection) {
 		EntityVersionStore.State target = this.versions.state(entity.id(), targetVersion)
 			.orElseThrow(NoSuchElementException::new);
 		Map<UUID, TypedValue> current = this.entities.values(entity.id());
@@ -219,15 +247,16 @@ public class EntityRestore {
 			throw new NoSuchElementException();
 		}
 
-		Set<String> restorable = new LinkedHashSet<>();
+		String currentDescription = Objects.requireNonNullElse(entity.description(), "");
 		String name = systemValue(target, EntityVersionStore.NAME, entity.name());
-		String description = systemValue(target, EntityVersionStore.DESCRIPTION, entity.description());
+		String description = systemValue(target, EntityVersionStore.DESCRIPTION, currentDescription);
 		boolean logical = Boolean.parseBoolean(
 				systemValue(target, EntityVersionStore.LOGICAL, Boolean.toString(entity.logical())));
+		Set<String> restorable = new LinkedHashSet<>();
 		if (!name.equals(entity.name())) {
 			restorable.add("name");
 		}
-		if (!description.equals(Objects.requireNonNullElse(entity.description(), ""))) {
+		if (!description.equals(currentDescription)) {
 			restorable.add("description");
 		}
 		if (logical != entity.logical()) {
@@ -235,9 +264,16 @@ public class EntityRestore {
 		}
 
 		Map<String, String> reasons = new LinkedHashMap<>();
-		List<EntityInput.PropertyInput> inputs = new ArrayList<>();
-		Set<UUID> properties = new LinkedHashSet<>(current.keySet());
-		properties.addAll(target.values().keySet());
+		Map<UUID, String> values = new LinkedHashMap<>();
+		// mapped properties in mapping order, then the others (the order of restoredFields)
+		Set<UUID> properties = new LinkedHashSet<>();
+		metatype.mappings().keySet().forEach((property) -> {
+			if (current.containsKey(property) || target.values().containsKey(property)) {
+				properties.add(property);
+			}
+		});
+		current.keySet().stream().sorted().forEach(properties::add);
+		target.values().keySet().stream().sorted().forEach(properties::add);
 		for (UUID property : properties) {
 			TypedValue now = current.get(property);
 			TypedValue then = target.values().get(property);
@@ -249,6 +285,10 @@ public class EntityRestore {
 			if (mapping == null) {
 				reasons.put(key, NOT_MAPPED);
 			}
+			else if (then == null && !target.mapped().containsKey(property)) {
+				// the target version did not know the property (REQ-105 AC2)
+				reasons.put(key, NOT_IN_SOURCE);
+			}
 			else if (!rules.writable(mapping.definition(), entity.id())) {
 				reasons.put(key, WRITE_PROTECTED);
 			}
@@ -258,24 +298,57 @@ public class EntityRestore {
 			}
 			else {
 				restorable.add(key);
-				inputs.add(new EntityInput.PropertyInput(property, (then != null) ? then.asText() : ""));
+				values.put(property, (then != null) ? then.asText() : "");
 			}
 		}
 
-		EntityInput input = new EntityInput(name, entity.metatypeId(), null, description, logical, null, null, inputs);
+		if (selection != null) {
+			for (String key : selection) {
+				if (!restorable.contains(key) && !reasons.containsKey(key)) {
+					throw new InvalidRestoreSelectionException();
+				}
+			}
+			restorable.retainAll(selection);
+			reasons.keySet().retainAll(selection);
+		}
+		List<EntityInput.PropertyInput> inputs = new ArrayList<>();
+		values.forEach((property, value) -> {
+			if (restorable.contains(property.toString())) {
+				inputs.add(new EntityInput.PropertyInput(property, value));
+			}
+		});
+		EntityInput input = new EntityInput(restorable.contains("name") ? name : entity.name(), entity.metatypeId(),
+				null, restorable.contains("description") ? description : currentDescription,
+				restorable.contains("isLogical") ? logical : entity.logical(), null, null, inputs);
 		EntityValidator.Checked checked = EntityValidator.check(input, rules, entity, current, this.entities::isActive,
 				metatype.connection(), EntityValidator.Necessity.WARN);
 		if (!checked.valid()) {
 			throw new IllegalStateException("restore input is not valid: " + checked.errors());
 		}
+
+		// warnings by field key; a partial restore reports only the fields it restores
+		List<Issue> warnings = new ArrayList<>();
 		Set<UUID> missingMandatory = new LinkedHashSet<>();
 		metatype.mappings().forEach((property, mapping) -> {
-			if ("mandatory".equals(mapping.necessity()) && !checked.values().containsKey(property)
-					&& rules.writable(mapping.definition(), entity.id())) {
-				missingMandatory.add(property);
+			if (checked.values().containsKey(property) || !rules.writable(mapping.definition(), entity.id())
+					|| (selection != null && !restorable.contains(property.toString()))) {
+				return;
+			}
+			String definition = mapping.definition().name();
+			if ("mandatory".equals(mapping.necessity())) {
+				warnings.add(new Issue(property.toString(), "MANDATORY_MISSING",
+						"The mandatory property " + definition + " has no value."));
+				if (restorable.contains(property.toString())) {
+					missingMandatory.add(property);
+				}
+			}
+			else if ("warning".equals(mapping.necessity())) {
+				warnings.add(new Issue(property.toString(), "VALUE_MISSING",
+						"The property " + definition + " should have a value."));
 			}
 		});
-		return new Plan(reasons, restorable, current, checked, missingMandatory);
+		return new Plan(reasons, restorable, current, checked, List.copyOf(warnings), missingMandatory,
+				target.header().changedAt());
 	}
 
 	/** A system field of the target state; an empty description has no history value. */
@@ -289,10 +362,6 @@ public class EntityRestore {
 
 	private static String text(TypedValue value) {
 		return (value != null) ? value.asText() : null;
-	}
-
-	private static List<Issue> warnings(EntityValidator.Checked checked) {
-		return checked.warnings().stream().filter((issue) -> WARNINGS.contains(issue.code())).toList();
 	}
 
 	private static Optional<UUID> property(String key) {
