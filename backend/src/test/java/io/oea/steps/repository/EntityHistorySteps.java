@@ -102,6 +102,22 @@ public class EntityHistorySteps {
 		return this.properties.get(name);
 	}
 
+	/** Registers an entity created by another step class of the scenario. */
+	void register(String name, int id) {
+		this.entities.put(name, id);
+	}
+
+	/** Creates a property of the scenario with a data type (us-101-entity-restore). */
+	String typedProperty(String name, String mode, String dataType) throws Exception {
+		String suffix = UUID.randomUUID().toString().substring(0, 8);
+		String id = instance().oidc().single("""
+				INSERT INTO property_definitions (name, sql_column_name, data_type, visibility_mode)
+				VALUES ('%s %s', 'h_%s', '%s', '%s') RETURNING id::text""".formatted(name, suffix, suffix, dataType, mode));
+		this.properties.put(name, id);
+		this.propertyNames.put(id, name);
+		return id;
+	}
+
 	/** The scenario name of a property definition ID, or the ID. */
 	String propertyName(String id) {
 		return this.propertyNames.getOrDefault(id, id);

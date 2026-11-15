@@ -1,10 +1,10 @@
 ---
 id: entity-version
 title: EntityVersion – Entity Version History
-version: 0.2.1
+version: 0.3.0
 status: draft
 created: 2026-06-27
-last_updated: 2026-11-14
+last_updated: 2026-11-15
 author: business-engineer
 references:
   business_objects:
@@ -38,6 +38,8 @@ references:
 | version | integer | required | | ≥ 1; unique per entityId | Version number; equals `ArchitectureEntity.version` after the change |
 | changedBy | reference | required | | target: person | Person who made the change |
 | changedAt | datetime | required | now | ISO 8601, UTC | Time of the change |
+| restoredFromVersion | integer | optional | | ≥ 1 and < `version`; set only by a restore | The version a full restore returned to (UC-15, REQ-102) |
+| changeReason | string | optional | | at most 1000 characters; only with `restoredFromVersion` | The reason given for the restore |
 
 ### System field delta (`entity_system_field_history`)
 
@@ -81,6 +83,7 @@ references:
 | BR-04 | The history records and the entity change MUST be written in the **same DB transaction**; if the transaction fails, neither history nor change is persisted | onUpdate (entity) | ADR-016 |
 | BR-05 | A change that modifies no field and no property value creates no version, no delta and no audit event | onUpdate (entity) | ADR-022 |
 | BR-06 | Each changed system field produces one system field delta with old and new value; each changed property produces one property value delta with the value before the change | onUpdate (entity) | ADR-022 |
+| BR-07 | A restore writes exactly one new version with `restoredFromVersion` and the optional reason; the version before it stays unchanged and is the snapshot of the state before the restore, so no copy is stored (owner decision 2026-11-15) | onRestore (entity) | ADR-022, REQ-102 |
 
 ## Lifecycle
 
@@ -100,7 +103,7 @@ Restoring version 1 applies the deltas of versions 3 and 2 backwards to the curr
 
 ## Open Points
 
-- Change reason, restore markers (`restoredFromVersion`, `restoredFields`) and the metamodel context of a version are decided with UC-14 to UC-16; they are not yet part of `docs/data-model.puml`.
+- The partial restore marker `restoredFields` (UC-16) and the metamodel context of a version are decided with UC-16; the change reason and `restoredFromVersion` of a full restore are attributes since change us-101-entity-restore.
 
 ## Change History
 
@@ -110,3 +113,4 @@ Restoring version 1 applies the deltas of versions 3 and 2 backwards to the curr
 | 0.1.1 | 2026-10-13 | Business Engineer | BR-02: append-only for the runtime role, deletion only by the REQ-190 purge (ADR-033 §10, DM-A9); the entity history is not the audit trail (see [audit-event](./audit-event.md)) |
 | 0.2.0 | 2026-10-16 | Lukas Mathis | Aligned with ADR-022 and `docs/data-model.puml` (change us-141-entity-batch-upsert): version header plus system field and property value deltas instead of JSON snapshots; unchanged writes create no version (BR-05, replaces the 304 rule); restore markers and change reason moved to open points |
 | 0.2.1 | 2026-11-14 | Change us-099-version-diff | How the state of a version is reconstructed on read (US-100); no data model change |
+| 0.3.0 | 2026-11-15 | Change us-101-entity-restore | `restoredFromVersion` and `changeReason` of the version header, BR-07 (the previous version is the snapshot of a restore) |

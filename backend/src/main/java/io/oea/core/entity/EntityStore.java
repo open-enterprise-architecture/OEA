@@ -43,6 +43,10 @@ public class EntityStore {
 	public record FieldChange(String field, String oldValue, String newValue) {
 	}
 
+	/** The restore that writes a version: its target version and the optional reason (us-101 D1). */
+	public record Restore(int fromVersion, String reason) {
+	}
+
 	/** An entity as endpoint of a connection (us-036-connection-metatypes D3). */
 	public record Endpoint(int id, UUID metatypeId, String name, boolean deleted) {
 	}
@@ -104,6 +108,16 @@ public class EntityStore {
 			.findFirst();
 	}
 
+	/** The entity with this ID, without a lock. */
+	public Optional<StoredEntity> find(int id) {
+		return this.jdbc.query(SELECT + " WHERE id = ?", EntityStore::entity, id).stream().findFirst();
+	}
+
+	/** The entity with this ID, locked for the rest of the transaction (FOR UPDATE, us-101 D1). */
+	public Optional<StoredEntity> lock(int id) {
+		return this.jdbc.query(SELECT + " WHERE id = ? FOR UPDATE", EntityStore::entity, id).stream().findFirst();
+	}
+
 	/**
 	 * The entity with this ID, locked against changes for the rest of the transaction (FOR SHARE);
 	 * readers and other share locks proceed (design D2 of us-041-modified-delta).
@@ -152,12 +166,26 @@ public class EntityStore {
 	 */
 	public int update(StoredEntity entity, Fields fields, List<FieldChange> fieldChanges,
 			Map<UUID, TypedValue> previousValues, Map<UUID, TypedValue> newValues, long personId, Instant now) {
+		return update(entity, fields, fieldChanges, previousValues, newValues, personId, now, null);
+	}
+
+	/**
+	 * As {@link #update(StoredEntity, Fields, List, Map, Map, long, Instant)}; a restore is
+	 * recorded in the version header.
+	 */
+	public int update(StoredEntity entity, Fields fields, List<FieldChange> fieldChanges,
+			Map<UUID, TypedValue> previousValues, Map<UUID, TypedValue> newValues, long personId, Instant now,
+			Restore restore) {
 		int version = entity.version() + 1;
 		this.jdbc.update("""
 				UPDATE entities SET name = ?, description = ?, is_logical = ?, version = ?, updated_at = ?, updated_by = ?
 				WHERE id = ?""", fields.name(), fields.description(), fields.logical(), version, Timestamp.from(now),
 				personId, entity.id());
-		header(entity.id(), version, personId, now);
+		this.jdbc.update("""
+				INSERT INTO entity_version_headers (entity_id, version, changed_by, changed_at, restored_from_version,
+				    change_reason)
+				VALUES (?, ?, ?, ?, ?, ?)""", entity.id(), version, personId, Timestamp.from(now),
+				(restore != null) ? restore.fromVersion() : null, (restore != null) ? restore.reason() : null);
 		for (FieldChange change : fieldChanges) {
 			this.jdbc.update("""
 					INSERT INTO entity_system_field_history (entity_id, entity_version, field_name, old_value, new_value,

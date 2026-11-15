@@ -84,6 +84,18 @@ public class PropertyValueStore {
 				ON CONFLICT DO NOTHING""", propertyDefId, Timestamp.from(now), uuidArray(metatypeIds), propertyDefId);
 	}
 
+	/**
+	 * Marks the entity as missing the mandatory properties, e.g. after a restore to a version in
+	 * which they were empty (us-101-entity-restore D2); an existing mark is kept.
+	 */
+	public void mark(int entityId, Set<UUID> properties, Instant now) {
+		for (UUID property : properties) {
+			this.jdbc.update("""
+					INSERT INTO entity_mandatory_marks (entity_id, property_def_id, marked_at) VALUES (?, ?, ?)
+					ON CONFLICT DO NOTHING""", entityId, property, Timestamp.from(now));
+		}
+	}
+
 	/** Clears the marks of the entity for the properties it now has a value for. */
 	public void clearMarks(int entityId, Set<UUID> propertiesWithValue) {
 		if (!propertiesWithValue.isEmpty()) {

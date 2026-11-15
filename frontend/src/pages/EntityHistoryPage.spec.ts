@@ -2,7 +2,7 @@ import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { session } from '../session/store'
-import { HISTORY_IDS, historyApi, KURT, manyVersions, ME_PORTAL_ONLY, MICHAEL } from '../test/history'
+import { crmState, HISTORY_IDS, historyApi, KURT, manyVersions, ME_PORTAL_ONLY, ME_RESTORER, ME_WRITER, MICHAEL, restoredVersions } from '../test/history'
 import { testRouter } from '../test/router'
 import EntityHistoryPage from './EntityHistoryPage.vue'
 
@@ -10,6 +10,8 @@ import EntityHistoryPage from './EntityHistoryPage.vue'
 // and "Opening the history from the catalog" (US-098 AC1–AC3; design D5 of us-098-entity-history),
 // and spec repository/entity-versions "Diff and state on the page \"Change history\"" and "Compare
 // mode on the page \"Change history\"" (US-099, US-100; design D5 of us-099-version-diff)
+// and spec repository/entity-restore "Restore action on the history" and repository/entity-history
+// "Restore marker in the history" (US-101, US-102; design D5 of us-101-entity-restore)
 
 async function mountPage(
   options: {
@@ -254,5 +256,42 @@ describe('EntityHistoryPage', () => {
         'The values of this version could not be loaded.',
       )
     })
+  })
+  it('offers "Restore this version" on every version but the current one', async () => {
+    const wrapper = await mountPage({ me: ME_RESTORER })
+    expect(wrapper.find('[data-testid="history-restore-5"]').exists()).toBe(false)
+    expect([4, 3, 2, 1].every((version) => wrapper.find(`[data-testid="history-restore-${version}"]`).exists())).toBe(true)
+  })
+
+  it('offers no restore without entity:restore or with entity:read only', async () => {
+    for (const me of [ME_WRITER, undefined]) {
+      const wrapper = await mountPage({ me })
+      expect(wrapper.findAll('[data-testid^="history-restore-"]')).toHaveLength(0)
+      wrapper.unmount()
+    }
+  })
+
+  it('opens the modal for the version and reloads the timeline after the restore', async () => {
+    const wrapper = await mountPage({ me: ME_RESTORER })
+    await wrapper.get('[data-testid="history-restore-3"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.api.previews).toEqual([3])
+    ;(document.body.querySelector('[data-testid="restore-confirm"]') as HTMLButtonElement).click()
+    await flushPromises()
+    expect(numbers(wrapper)[0]).toBe(6)
+    expect(wrapper.get('[data-testid="history-restored-from-6"]').text()).toBe('Restored from v3')
+    expect(wrapper.get('[data-testid="history-restored"]').text()).toContain('Version 6 restores the state of version 3.')
+    wrapper.unmount()
+  })
+
+  it('marks a restored version with its target and reason', async () => {
+    const wrapper = await mountPage({
+      me: ME_RESTORER,
+      entities: { [HISTORY_IDS.crm]: { name: 'CRM System', versions: restoredVersions(), state: crmState } },
+    })
+    expect(wrapper.get('[data-testid="history-restored-from-6"]').text()).toBe('Restored from v3')
+    expect(wrapper.get('[data-testid="history-reason-6"]').text()).toBe('Reason: Wrong lifecycle status reverted')
+    expect(wrapper.find('[data-testid="history-restored-from-5"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="history-restore-6"]').exists()).toBe(false)
   })
 })

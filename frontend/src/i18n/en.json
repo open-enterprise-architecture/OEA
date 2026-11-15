@@ -990,5 +990,39 @@
     "validity": "Secret validity (days)",
     "validityHint": "90 days by default; at most the maximum set for this instance (365 days unless configured otherwise).",
     "validityInvalid": "Enter a whole number of at least 1 day."
+  },
+  "restore": {
+    "action": "Restore this version",
+    "title": "Restore version {version}",
+    "intro": "Review what the restore changes before you confirm it.",
+    "loading": "Loading the preview …",
+    "loadFailed": "The preview could not be loaded.",
+    "failed": "The entity could not be restored.",
+    "changes": "Changes from version {current} to the state of version {target}",
+    "nothing": "Nothing can be restored: every differing field is kept.",
+    "current": "Current",
+    "after": "After the restore",
+    "notRestored": "Not restored",
+    "reasons": {
+      "write-protected": "Not restored: insufficient permission",
+      "not-mapped": "Not restored: the property is no longer part of the entity type",
+      "invalid-value": "Not restored: the value is no longer valid"
+    },
+    "warnings": "Check after the restore",
+    "mandatoryMissing": "The mandatory property {property} will have no value.",
+    "valueMissing": "The property {property} should have a value.",
+    "noticeHistory": "The current state stays in the history and can be retrieved at any time.",
+    "noticeImmutable": "ID, type and connection endpoints are not changed.",
+    "reason": "Reason for the restore",
+    "optional": "Optional",
+    "reasonCount": "{count} / {max} characters",
+    "reasonPlaceholder": "For example: wrong change reverted",
+    "cancel": "Cancel",
+    "confirm": "Restore",
+    "changedMeanwhile": "This entity was changed meanwhile. The preview shows its current state.",
+    "nothingToRestore": "Nothing can be restored anymore. The preview shows the current state.",
+    "done": "Version {version} restores the state of version {target}.",
+    "restoredFrom": "Restored from v{version}",
+    "reasonShown": "Reason: {reason}"
   }
 }

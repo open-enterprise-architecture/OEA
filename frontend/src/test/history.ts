@@ -1,9 +1,20 @@
-import type { EntityVersion, EntityVersionChange, EntityVersionDataType, EntityVersionField, FieldDiff, HistoryActor, HistoryVisibilityEntry } from '../api/history'
+import type {
+  EntityVersion,
+  EntityVersionChange,
+  EntityVersionDataType,
+  EntityVersionField,
+  FieldDiff,
+  HistoryActor,
+  HistoryVisibilityEntry,
+  RestoreField,
+} from '../api/history'
 
 // A fake backend for SCR-026 (us-098-entity-history, us-099-version-diff): the history of an
 // entity with the period and person filters, paging by cursor, 404 for an unknown entity, the
 // complete state of a version and the net diff of two versions, and the history visibility of
-// the section on SCR-032 with the 422 of an unknown role.
+// the section on SCR-032 with the 422 of an unknown role. The restore (us-101-entity-restore): the
+// preview of a restore with a configurable set of fields and warnings, and the restore itself with
+// `If-Match`, 412 when the entity changed meanwhile and a new version that names its target.
 
 function me(displayName: string, permissions: string[]) {
   return {
@@ -17,6 +28,8 @@ function me(displayName: string, permissions: string[]) {
 
 export const ME_HISTORY_READER = me('Anna', ['portal:read', 'entity:read'])
 export const ME_PORTAL_ONLY = me('Clara', ['portal:read'])
+export const ME_RESTORER = me('Kurt', ['portal:read', 'entity:read', 'entity:write', 'entity:restore'])
+export const ME_WRITER = me('Wanda', ['portal:read', 'entity:read', 'entity:write'])
 
 export const MICHAEL: HistoryActor = { id: 21, name: 'Michael' }
 export const KURT: HistoryActor = { id: 22, name: 'Kurt' }
@@ -39,8 +52,14 @@ export function at(version: number): string {
   return new Date(Date.UTC(2026, 10, 2, 8 + version)).toISOString().replace('.000Z', 'Z')
 }
 
-function version(number: number, actor: HistoryActor, changes: EntityVersionChange[] = []): EntityVersion {
-  return { version: number, changedAt: at(number), changedBy: actor, changes }
+function version(
+  number: number,
+  actor: HistoryActor,
+  changes: EntityVersionChange[] = [],
+  restoredFromVersion: number | null = null,
+  reason: string | null = null,
+): EntityVersion {
+  return { version: number, changedAt: at(number), changedBy: actor, changes, restoredFromVersion, reason }
 }
 
 /** CRM System: created by Kurt, then changes by Michael and Kurt; version 4 changed a restricted field. */
@@ -51,6 +70,52 @@ export const CRM_VERSIONS: EntityVersion[] = [
   version(2, MICHAEL, [property(HISTORY_IDS.status, 'Lifecycle Status')]),
   version(1, KURT),
 ]
+
+/** CRM System after a restore: version 6 restores version 3 with a reason. */
+export function restoredVersions(): EntityVersion[] {
+  return [
+    version(6, KURT, [system('name', 'Name'), property(HISTORY_IDS.status, 'Lifecycle Status')], 3, 'Wrong lifecycle status reverted'),
+    ...CRM_VERSIONS,
+  ]
+}
+
+const restoreField = (
+  field: string,
+  label: string,
+  dataType: EntityVersionDataType,
+  currentValue: string | null,
+  targetValue: string | null,
+  reason: RestoreField['reason'] = null,
+  redacted = false,
+): RestoreField => ({
+  field,
+  label,
+  isSystemField: dataType === 'system',
+  dataType,
+  currentValue: redacted ? null : currentValue,
+  targetValue: redacted ? null : targetValue,
+  redacted,
+  restore: reason === null,
+  reason,
+})
+
+/** The preview of a restore of CRM System (version 5) to version 3: name and lifecycle status change. */
+export const PREVIEW_FIELDS: RestoreField[] = [
+  restoreField('name', 'Name', 'system', 'CRM System', 'CRM'),
+  restoreField(HISTORY_IDS.status, 'Lifecycle Status', 'enum', 'Retiring', 'Active'),
+]
+
+/** As PREVIEW_FIELDS, with a write-protected restricted field and a value that is no longer valid. */
+export const PREVIEW_WITH_KEPT: RestoreField[] = [
+  ...PREVIEW_FIELDS,
+  restoreField(HISTORY_IDS.cost, 'Investment Cost', 'integer', null, null, 'write-protected', true),
+  restoreField(HISTORY_IDS.goLive, 'Go-live', 'date', '2026-12-01', '2026-06-01', 'invalid-value'),
+]
+
+/** Only fields that are kept: nothing can be restored. */
+export const PREVIEW_NOTHING: RestoreField[] = [restoreField(HISTORY_IDS.cost, 'Investment Cost', 'integer', null, null, 'write-protected', true)]
+
+export const OWNER_MISSING = [{ field: 'properties[Owner]', code: 'MANDATORY_MISSING', message: 'The mandatory property Owner has no value.' }]
 
 /** An entity with `count` versions, all by Michael. */
 export function manyVersions(count: number): EntityVersion[] {
@@ -91,6 +156,10 @@ export function historyApi(
     me?: unknown
     entities?: Record<number, HistoryEntity>
     visibility?: HistoryVisibilityEntry[]
+    /** The fields and warnings of a restore preview; defaults to PREVIEW_FIELDS without warnings. */
+    preview?: { fields: RestoreField[]; warnings?: { field: string; code: string; message: string }[] }
+    /** The version the backend has when another person changed the entity after the history was read. */
+    changedMeanwhileTo?: number
   } = {},
 ) {
   const entities: Record<number, HistoryEntity> = options.entities ?? {
@@ -103,6 +172,10 @@ export function historyApi(
   const puts: HistoryVisibilityEntry[][] = []
   const diffs: string[] = []
   const states: number[] = []
+  const previews: number[] = []
+  const restores: { ifMatch: string | null; body: { targetVersion: number; reason?: string } }[] = []
+  let meanwhile = options.changedMeanwhileTo
+  let previewsUntilMeanwhile = meanwhile !== undefined ? 1 : 0
   const stateOf = (entity: HistoryEntity, version: number) => entity.state?.(version) ?? [field('name', 'Name', 'system', entity.name)]
   const latest = (entity: HistoryEntity) => Math.max(...entity.versions.map((candidate) => candidate.version))
   const json = (body: unknown, status = 200) =>
@@ -133,6 +206,40 @@ export function historyApi(
         changedAt: header.changedAt,
         changedBy: header.changedBy,
         fields: stateOf(entity, number),
+      })
+    }
+    const restoreMatch = /^\/api\/v1\/entities\/(\d+)\/restore$/.exec(url.pathname)
+    if (restoreMatch) {
+      const id = Number(restoreMatch[1])
+      const entity = entities[id]
+      if (!entity) return json(problem(404), 404)
+      // the first preview still sees the version of the history; the change meanwhile follows
+      const current = meanwhile !== undefined && previewsUntilMeanwhile === 0 ? meanwhile : latest(entity)
+      const preview = options.preview ?? { fields: PREVIEW_FIELDS }
+      if (method === 'GET') {
+        const target = Number(url.searchParams.get('targetVersion'))
+        previews.push(target)
+        if (previewsUntilMeanwhile > 0) previewsUntilMeanwhile -= 1
+        if (target > current) return json(problem(404), 404)
+        if (target < 1 || target === current) return json(problem(400, ['targetVersion']), 400)
+        return json({ entityId: id, currentVersion: current, targetVersion: target, fields: preview.fields, warnings: preview.warnings ?? [] })
+      }
+      const body = JSON.parse(String(init?.body)) as { targetVersion: number; reason?: string }
+      const ifMatch = new Headers(init?.headers).get('If-Match')
+      restores.push({ ifMatch, body })
+      if (ifMatch !== `"${current}"`) {
+        return json({ type: 'urn:oea:problem:stale-version', title: 'Changed meanwhile', status: 412, currentVersion: current }, 412)
+      }
+      const next = current + 1
+      entity.versions = [version(next, KURT, [], body.targetVersion, body.reason ?? null), ...entity.versions]
+      meanwhile = undefined
+      return json({
+        entityId: id,
+        version: next,
+        restoredFromVersion: body.targetVersion,
+        restored: preview.fields.filter((field) => field.restore).map((field) => ({ field: field.field, label: field.label, reason: null })),
+        notRestored: preview.fields.filter((field) => !field.restore).map((field) => ({ field: field.field, label: field.label, reason: field.reason })),
+        warnings: preview.warnings ?? [],
       })
     }
     const diffMatch = /^\/api\/v1\/entities\/(\d+)\/diff$/.exec(url.pathname)
@@ -189,6 +296,7 @@ export function historyApi(
       return json({
         entityId: Number(match[1]),
         entityName: entity.name,
+        currentVersion: latest(entity),
         created: { changedAt: created.changedAt, changedBy: created.changedBy },
         actors,
         versions: matching.slice(page * pageSize, (page + 1) * pageSize),
@@ -212,5 +320,5 @@ export function historyApi(
     }
     return json(problem(404), 404)
   }
-  return { fetch: fetchFn, queries, puts, diffs, states }
+  return { fetch: fetchFn, queries, puts, diffs, states, previews, restores }
 }

@@ -1,8 +1,8 @@
 ---
 title: Change history
 covers:
-  screens: [SCR-026]
-  stories: [US-098, US-099, US-100]
+  screens: [SCR-026, SCR-027]
+  stories: [US-098, US-099, US-100, US-101, US-102, US-103]
 ---
 
 # Change history
@@ -38,6 +38,23 @@ Versions cannot be changed or deleted.
 
 Choose *Compare*, then select two versions. A panel above the timeline shows the fields whose value differs between the earlier and the later version. A field that was changed and later changed back does not appear. Selecting a third version replaces the version you selected first. *End comparison* closes the panel.
 
+## Restore an earlier version
+
+With the permissions `entity:write` and `entity:restore`, every entry except the current version offers *Restore this version*; the role `enterprise-architect` has both. It opens a dialog that shows what the restore would do before anything changes:
+
+- each field whose current value differs from the version, with the current value struck through and the value after the restore;
+- the fields that are **not restored**, with the reason:
+  - *insufficient permission*: you may not write the property under the [property visibility](../administration/property-visibility);
+  - *the property is no longer part of the entity type*: its assignment to the entity type was removed since;
+  - *the value is no longer valid*: the property no longer accepts the value, for example a removed list value;
+- warnings for mandatory or recommended properties that would be empty afterwards. They never block the restore; an empty mandatory property is marked as missing afterwards, as after a change of the entity type.
+
+The name, the description, the logical flag and the properties are restored. The ID, the entity type and the source and target of a connection never change. You can give a reason of up to 1000 characters. *Restore* is disabled when nothing can be restored; *Cancel* changes nothing.
+
+The restore writes one new version. It shows the badge *Restored from vN* and the reason. The version before the restore stays in the history unchanged, so you can return to that state as well.
+
+If someone changed the entity after you opened the dialog, the dialog says so and shows the preview of the current state. Check it and confirm again.
+
 ## Restricted fields
 
 A property you may not read under the [property visibility](../administration/property-visibility) never shows its value, neither in the changes nor in the complete state. Depending on the settings of your roles for the entity type, the field appears with the badge *Restricted*, or it is left out. If all fields of a version are left out, the version stays in the list without fields, so that the numbering has no gaps.
@@ -54,3 +71,5 @@ The page shows 50 versions at first. *Load more* adds the next 50.
 `GET /entities/{id}/history` returns the versions newest first, with `from` and `to` (inclusive timestamps), `actorId`, `page`, `pageSize` (1 to 200, default 50) and `cursor` (the `nextCursor` of the previous page, sent with `page` + 1). The answer names the creation in `created` and every person who made a version in `actors`, independent of the filters. A start after the end answers 400 naming `from`, an unknown entity 404.
 
 `GET /entities/{id}/versions/{version}` returns the complete state of a version in `fields`, each with `field`, `label`, `dataType`, `value` and `restricted`. `GET /entities/{id}/diff?from=2&to=7` returns the fields whose value differs between two versions in `changes`, each with `oldValue`, `newValue` and `redacted`; the changes of version N are `from=N-1&to=N`. `from` must be at least 1 and before `to`, otherwise 400 naming `from`; an unknown version answers 404. `PUT` and `DELETE` on a version answer 405.
+
+`GET /entities/{id}/restore?targetVersion=3` returns the preview of a restore: `currentVersion` and in `fields` every differing field with `currentValue`, `targetValue`, `redacted`, `restore` and `reason` (`write-protected`, `not-mapped`, `invalid-value`), and the `warnings`. `POST /entities/{id}/restore` with `{"targetVersion": 3, "reason": "…"}` restores the entity and needs the header `If-Match: "5"` with the current version: without it the answer is 428, with another version 412 `stale-version` naming `currentVersion`. The target version must be at least 1 and before the current version (400 naming `targetVersion`); a later version answers 404. A restore with nothing to restore answers 422 `nothing-to-restore`. The history names the current version in `currentVersion` and marks a restored version with `restoredFromVersion` and `reason`.

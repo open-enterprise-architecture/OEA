@@ -92,7 +92,8 @@ The restore result lists only labels and reasons, never values, so it needs no r
   - its 409 is removed;
   - its description no longer mentions soft-deleted entities.
 - **New schemas:**
-  - `RestoreField { field, label, isSystemField, dataType, oldValue, newValue, redacted, restore, reason }`, where `reason` is one of `write-protected`, `not-mapped`, `invalid-value` or `null`;
+  - `RestoreField { field, label, isSystemField, dataType, currentValue, targetValue, redacted, restore, reason }`, where `reason` is one of `write-protected`, `not-mapped`, `invalid-value` or `null`;
+  - `RestoreFieldRef { field, label, reason }` for the lists of the result;
   - `RestorePreview { entityId, currentVersion, targetVersion, fields[], warnings[] }`;
   - `RestoreResult { entityId, version, restoredFromVersion, restored[], notRestored[], warnings[] }`.
 
@@ -125,7 +126,7 @@ Each is a problem document without request-path branching (ArchUnit).
     - the two notices of UC-15;
     - a `UTextarea` "Reason for restore" (`maxlength` 1000, with a counter).
   - "Restore" is disabled while no field is restorable or a request is running.
-  - After success, the modal closes, a toast confirms, and the page reloads the timeline.
+  - After success, the modal closes, a success message on the page names the new version, and the page reloads the timeline.
   - On 412, the modal shows "This entity was changed meanwhile", reloads the preview and the timeline, and uses the new current version.
 - **Stories:**
   - SCR-027 `SCR-027-restore-entity.stories.ts` with the states `Default`, `NotRestored`, `Warnings`, `NothingToRestore` and `ChangedMeanwhile`;

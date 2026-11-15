@@ -94,7 +94,8 @@ public class EntityHistory {
 	}
 
 	/** A version with the person who made it and its listed fields. */
-	public record Version(int version, Instant changedAt, Actor changedBy, List<Change> changes) {
+	public record Version(int version, Instant changedAt, Actor changedBy, List<Change> changes,
+			Integer restoredFromVersion, String reason) {
 	}
 
 	/** The creation of the entity: version 1. */
@@ -102,7 +103,7 @@ public class EntityHistory {
 	}
 
 	/** One page of the timeline; {@code nextCursor} is {@code null} on the last page. */
-	public record Page(int entityId, String entityName, Creation created, List<Actor> actors, List<Version> versions,
+	public record Page(int entityId, String entityName, int currentVersion, Creation created, List<Actor> actors, List<Version> versions,
 			int page, int pageSize, long totalElements, int totalPages, String nextCursor) {
 	}
 
@@ -175,7 +176,7 @@ public class EntityHistory {
 			propertyChanges.sort(Comparator.comparing(Change::label, String.CASE_INSENSITIVE_ORDER));
 			changes.addAll(propertyChanges);
 			versions.add(new Version(header.version(), header.changedAt(), Actor.of(header.changedBy()),
-					List.copyOf(changes)));
+					List.copyOf(changes), header.restoredFromVersion(), header.reason()));
 		}
 
 		String nextCursor = null;
@@ -187,7 +188,7 @@ public class EntityHistory {
 			.map((version) -> new Creation(version.changedAt(), Actor.of(version.changedBy())))
 			.orElse(null);
 		int totalPages = Math.toIntExact((total + query.pageSize() - 1) / query.pageSize());
-		return new Page(entity.id(), entity.name(), created,
+		return new Page(entity.id(), entity.name(), entity.version(), created,
 				this.store.actors(entityId).stream().map(Actor::of).toList(), List.copyOf(versions),
 				query.page(), query.pageSize(), total, totalPages, nextCursor);
 	}

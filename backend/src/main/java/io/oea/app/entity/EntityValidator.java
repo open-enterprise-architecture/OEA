@@ -32,6 +32,16 @@ public final class EntityValidator {
 	private EntityValidator() {
 	}
 
+	/**
+	 * How an empty mandatory property is reported: as an error that blocks the write, or as a
+	 * warning {@code MANDATORY_MISSING} (a restore, us-101-entity-restore D2).
+	 */
+	public enum Necessity {
+
+		ENFORCE, WARN
+
+	}
+
 	/** Whether an active entity with this ID and metatype exists. */
 	@FunctionalInterface
 	public interface References {
@@ -70,6 +80,15 @@ public final class EntityValidator {
 	 */
 	public static Checked check(EntityInput input, MetatypeRules rules, StoredEntity existing,
 			Map<UUID, TypedValue> stored, References references, boolean asConnection) {
+		return check(input, rules, existing, stored, references, asConnection, Necessity.ENFORCE);
+	}
+
+	/**
+	 * As {@link #check(EntityInput, MetatypeRules, StoredEntity, Map, References, boolean)}, with
+	 * the reporting of empty mandatory properties.
+	 */
+	public static Checked check(EntityInput input, MetatypeRules rules, StoredEntity existing,
+			Map<UUID, TypedValue> stored, References references, boolean asConnection, Necessity necessity) {
 		List<Issue> errors = new ArrayList<>();
 		List<Issue> warnings = new ArrayList<>();
 		String name = input.name();
@@ -159,7 +178,11 @@ public final class EntityValidator {
 				// only properties the writer can change are checked (us-032-metatype-editing D7)
 				continue;
 			}
-			if ("mandatory".equals(mapping.necessity())) {
+			if ("mandatory".equals(mapping.necessity()) && necessity == Necessity.WARN) {
+				warnings.add(new Issue("properties[" + mapping.definition().name() + "]", "MANDATORY_MISSING",
+						"The mandatory property " + mapping.definition().name() + " has no value."));
+			}
+			else if ("mandatory".equals(mapping.necessity())) {
 				errors.add(new Issue("properties", "MANDATORY_MISSING",
 						"The mandatory property " + mapping.definition().name() + " has no value."));
 			}
@@ -174,6 +197,21 @@ public final class EntityValidator {
 		Fields fields = new Fields(metatype.id(), name, description, logical,
 				(existing != null) ? existing.externalId() : input.externalId());
 		return new Checked(errors, warnings, metatype, fields, values);
+	}
+
+	/**
+	 * Whether the property definition accepts the value as it is written by clients: data type,
+	 * length, range, pattern, enumeration values and an active referenced entity
+	 * (us-101-entity-restore D2).
+	 */
+	public static boolean accepts(MetatypeRules.Definition definition, String value, References references) {
+		try {
+			convert(definition, value, references);
+			return true;
+		}
+		catch (InvalidValueException ex) {
+			return false;
+		}
 	}
 
 	private static TypedValue convert(MetatypeRules.Definition definition, String value, References references) {

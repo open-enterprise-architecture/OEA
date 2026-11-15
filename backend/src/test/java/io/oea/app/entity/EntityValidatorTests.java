@@ -175,6 +175,42 @@ class EntityValidatorTests {
 				List.of(value(VERSION, "1")))))).containsExactly("NOT_SUPPORTED", "NOT_SUPPORTED");
 	}
 
+	@Test
+	void acceptsTheMaximumLengthAndRejectsOneMore() {
+		// us-101-entity-restore D2: Owner has a maximum length of 20
+		MetatypeRules.Definition owner = RULES.metatype(COMPONENT).mappings().get(OWNER).definition();
+
+		assertThat(EntityValidator.accepts(owner, "o".repeat(20), REFERENCES)).isTrue();
+		assertThat(EntityValidator.accepts(owner, "o".repeat(21), REFERENCES)).isFalse();
+	}
+
+	@Test
+	void acceptsOnlyCurrentEnumerationValuesAndActiveReferences() {
+		MetatypeRules.Definition status = RULES.metatype(COMPONENT).mappings().get(STATUS).definition();
+		MetatypeRules.Definition host = RULES.metatype(COMPONENT).mappings().get(HOST).definition();
+
+		assertThat(EntityValidator.accepts(status, "active", REFERENCES)).isTrue();
+		assertThat(EntityValidator.accepts(status, "retired", REFERENCES)).isFalse();
+		assertThat(EntityValidator.accepts(host, "7", REFERENCES)).isTrue();
+		assertThat(EntityValidator.accepts(host, "8", REFERENCES)).isFalse();
+	}
+
+	@Test
+	void emptyMandatoryPropertyIsAWarningWhenWarned() {
+		EntityInput withoutVersion = new EntityInput("CRM", COMPONENT, null, null, null, null, null, List.of());
+
+		EntityValidator.Checked warned = EntityValidator.check(withoutVersion, RULES, null, Map.of(), REFERENCES,
+				false, EntityValidator.Necessity.WARN);
+		EntityValidator.Checked enforced = EntityValidator.check(withoutVersion, RULES, null, Map.of(), REFERENCES,
+				false, EntityValidator.Necessity.ENFORCE);
+
+		assertThat(warned.valid()).isTrue();
+		assertThat(warned.warnings()).extracting(Issue::field, Issue::code)
+			.contains(Tuple.tuple("properties[Version]", "MANDATORY_MISSING"));
+		assertThat(codes(enforced)).containsExactly("MANDATORY_MISSING");
+		assertThat(codes(check(withoutVersion))).containsExactly("MANDATORY_MISSING");
+	}
+
 	private static EntityValidator.Checked check(EntityInput input) {
 		return EntityValidator.check(input, RULES, null, Map.of(), REFERENCES);
 	}

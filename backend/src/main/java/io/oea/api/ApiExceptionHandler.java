@@ -42,6 +42,9 @@ import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.app.solution.InvalidSolutionException;
 import io.oea.app.solution.InvalidSolutionQueryException;
 import io.oea.app.history.InvalidHistoryQueryException;
+import io.oea.app.history.NothingToRestoreException;
+import io.oea.app.history.PreconditionRequiredException;
+import io.oea.app.history.StaleEntityVersionException;
 import io.oea.app.solution.SolutionCompletedException;
 import io.oea.config.security.OeaAuthentication;
 import io.oea.config.web.RequestSizeLimitFilter;
@@ -67,6 +70,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -323,6 +327,40 @@ public class ApiExceptionHandler {
 				ex.getMessage());
 		problem.setProperty("invalidFields", ex.getFields());
 		return ResponseEntity.badRequest().body(problem);
+	}
+
+	/**
+	 * A required {@code If-Match} that is missing (428, design D4 of us-101-entity-restore); any
+	 * other missing header is an invalid request.
+	 */
+	@ExceptionHandler(MissingRequestHeaderException.class)
+	ResponseEntity<ProblemDetail> missingHeader(MissingRequestHeaderException ex) {
+		if (HttpHeaders.IF_MATCH.equalsIgnoreCase(ex.getHeaderName())) {
+			return preconditionRequired(new PreconditionRequiredException());
+		}
+		return invalidRequest();
+	}
+
+	@ExceptionHandler(PreconditionRequiredException.class)
+	ResponseEntity<ProblemDetail> preconditionRequired(PreconditionRequiredException ex) {
+		return ResponseEntity.status(HttpStatus.PRECONDITION_REQUIRED)
+			.body(problem(HttpStatus.PRECONDITION_REQUIRED, "precondition-required", "If-Match required",
+					ex.getMessage()));
+	}
+
+	@ExceptionHandler(StaleEntityVersionException.class)
+	ResponseEntity<ProblemDetail> staleEntityVersion(StaleEntityVersionException ex) {
+		ProblemDetail problem = problem(HttpStatus.PRECONDITION_FAILED, "stale-version", "Changed meanwhile",
+				ex.getMessage());
+		problem.setProperty("currentVersion", ex.getCurrentVersion());
+		return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).body(problem);
+	}
+
+	@ExceptionHandler(NothingToRestoreException.class)
+	ResponseEntity<ProblemDetail> nothingToRestore(NothingToRestoreException ex) {
+		return ResponseEntity.unprocessableContent()
+			.body(problem(HttpStatus.UNPROCESSABLE_CONTENT, "nothing-to-restore", "Nothing to restore",
+					ex.getMessage()));
 	}
 
 	@ExceptionHandler(BatchRejectedException.class)

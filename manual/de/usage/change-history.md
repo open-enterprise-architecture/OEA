@@ -1,8 +1,8 @@
 ---
 title: Änderungshistorie
 covers:
-  screens: [SCR-026]
-  stories: [US-098, US-099, US-100]
+  screens: [SCR-026, SCR-027]
+  stories: [US-098, US-099, US-100, US-101, US-102, US-103]
 ---
 
 # Änderungshistorie
@@ -38,6 +38,23 @@ Versionen lassen sich weder ändern noch löschen.
 
 Wähle *Vergleichen* und dann zwei Versionen. Ein Bereich über der Zeitleiste zeigt die Felder, deren Wert sich zwischen der früheren und der späteren Version unterscheidet. Ein Feld, das geändert und später zurückgeändert wurde, erscheint nicht. Wählst du eine dritte Version, ersetzt sie die zuerst gewählte. *Vergleich beenden* schliesst den Bereich.
 
+## Eine frühere Version wiederherstellen
+
+Mit den Berechtigungen `entity:write` und `entity:restore` bietet jeder Eintrag ausser der aktuellen Version *Diese Version wiederherstellen*; die Rolle `enterprise-architect` hat beide. Die Aktion öffnet einen Dialog, der zeigt, was die Wiederherstellung tun würde, bevor sich etwas ändert:
+
+- jedes Feld, dessen aktueller Wert von der Version abweicht, mit dem aktuellen Wert durchgestrichen und dem Wert nach der Wiederherstellung;
+- die Felder, die **nicht wiederhergestellt** werden, mit dem Grund:
+  - *fehlende Berechtigung*: Du darfst die Eigenschaft nach der [Sichtbarkeit von Eigenschaften](../administration/property-visibility) nicht schreiben;
+  - *Die Eigenschaft gehört nicht mehr zum Entitätstyp*: Ihre Zuordnung zum Entitätstyp wurde inzwischen entfernt;
+  - *Der Wert ist nicht mehr gültig*: Die Eigenschaft akzeptiert den Wert nicht mehr, zum Beispiel einen entfernten Listenwert;
+- Warnungen für Pflicht- oder empfohlene Eigenschaften, die danach leer wären. Sie blockieren die Wiederherstellung nie; eine leere Pflichteigenschaft wird danach als fehlend markiert, wie nach einer Änderung des Entitätstyps.
+
+Wiederhergestellt werden der Name, die Beschreibung, das Kennzeichen *logisch* und die Eigenschaften. Die ID, der Entitätstyp sowie Quelle und Ziel einer Verbindung ändern sich nie. Du kannst einen Grund mit bis zu 1000 Zeichen angeben. *Wiederherstellen* ist deaktiviert, wenn nichts wiederhergestellt werden kann; *Abbrechen* ändert nichts.
+
+Die Wiederherstellung schreibt eine neue Version. Sie trägt das Kennzeichen *Wiederhergestellt aus vN* und den Grund. Die Version vor der Wiederherstellung bleibt unverändert in der Historie, sodass du auch zu diesem Stand zurückkehren kannst.
+
+Hat jemand die Entität geändert, nachdem du den Dialog geöffnet hast, sagt der Dialog das und zeigt die Vorschau des aktuellen Stands. Prüfe sie und bestätige erneut.
+
 ## Eingeschränkte Felder
 
 Eine Eigenschaft, die du nach der [Sichtbarkeit von Eigenschaften](../administration/property-visibility) nicht lesen darfst, zeigt nie ihren Wert, weder in den Änderungen noch im vollständigen Stand. Je nach den Einstellungen deiner Rollen für den Entitätstyp erscheint das Feld mit dem Badge *Eingeschränkt*, oder es fehlt. Fehlen alle Felder einer Version, bleibt die Version ohne Felder in der Liste, damit die Nummerierung keine Lücken hat.
@@ -54,3 +71,5 @@ Die Seite zeigt zuerst 50 Versionen. *Mehr laden* fügt die nächsten 50 hinzu.
 `GET /entities/{id}/history` liefert die Versionen, die neueste zuerst, mit `from` und `to` (Zeitpunkte, einschliesslich), `actorId`, `page`, `pageSize` (1 bis 200, Standard 50) und `cursor` (der `nextCursor` der vorigen Seite, gesendet mit `page` + 1). Die Antwort nennt die Erstellung in `created` und alle Personen, die eine Version gemacht haben, in `actors`, unabhängig von den Filtern. Ein Start nach dem Ende wird mit 400 und `from` beantwortet, eine unbekannte Entität mit 404.
 
 `GET /entities/{id}/versions/{version}` liefert den vollständigen Stand einer Version in `fields`, jedes mit `field`, `label`, `dataType`, `value` und `restricted`. `GET /entities/{id}/diff?from=2&to=7` liefert die Felder, deren Wert sich zwischen zwei Versionen unterscheidet, in `changes`, jedes mit `oldValue`, `newValue` und `redacted`; die Änderungen der Version N sind `from=N-1&to=N`. `from` muss mindestens 1 sein und vor `to` liegen, sonst 400 mit `from`; eine unbekannte Version wird mit 404 beantwortet. `PUT` und `DELETE` auf eine Version werden mit 405 beantwortet.
+
+`GET /entities/{id}/restore?targetVersion=3` liefert die Vorschau einer Wiederherstellung: `currentVersion` und in `fields` jedes abweichende Feld mit `currentValue`, `targetValue`, `redacted`, `restore` und `reason` (`write-protected`, `not-mapped`, `invalid-value`), dazu die `warnings`. `POST /entities/{id}/restore` mit `{"targetVersion": 3, "reason": "…"}` stellt die Entität wieder her und braucht den Header `If-Match: "5"` mit der aktuellen Version: Ohne ihn lautet die Antwort 428, mit einer anderen Version 412 `stale-version` mit `currentVersion`. Die Zielversion muss mindestens 1 sein und vor der aktuellen Version liegen (400 mit `targetVersion`); eine spätere Version wird mit 404 beantwortet. Eine Wiederherstellung ohne etwas wiederherzustellen wird mit 422 `nothing-to-restore` beantwortet. Die Historie nennt die aktuelle Version in `currentVersion` und kennzeichnet eine wiederhergestellte Version mit `restoredFromVersion` und `reason`.

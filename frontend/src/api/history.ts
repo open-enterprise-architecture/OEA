@@ -6,6 +6,8 @@ import { currentCsrfToken } from './session'
 // versions newest first with the fields they changed, without values, and the history visibility
 // per role and metatype for security administration (section on SCR-032). The values of a version
 // (US-099, US-100; design D4 of us-099-version-diff): its complete state and the net diff of two.
+// The restore to an earlier version (US-101 to US-103; design D3, D5 of us-101-entity-restore):
+// its preview and the restore itself, which requires `If-Match` with the current version.
 
 export type EntityHistory = components['schemas']['EntityHistoryResponse']
 export type EntityVersion = components['schemas']['EntityVersionSummary']
@@ -16,6 +18,10 @@ export type EntityVersionField = components['schemas']['EntityVersionField']
 export type EntityVersionDiff = components['schemas']['EntityVersionDiff']
 export type FieldDiff = components['schemas']['FieldDiff']
 export type EntityVersionDataType = components['schemas']['EntityVersionDataType']
+export type RestorePreview = components['schemas']['RestorePreview']
+export type RestoreField = components['schemas']['RestoreField']
+export type RestoreResult = components['schemas']['RestoreResult']
+export type RestoreReason = NonNullable<RestoreField['reason']>
 export type HistoryVisibilityEntry = components['schemas']['HistoryVisibilityEntry']
 export type HistoryVisibilityMode = HistoryVisibilityEntry['mode']
 
@@ -74,6 +80,49 @@ export async function compareEntityVersions(id: number, from: number, to: number
     throw new RequestRejected(await readRejection(response))
   }
   return (await response.json()) as EntityVersionDiff
+}
+
+/**
+ * GET /entities/{id}/restore: what a restore to `targetVersion` would do. A target below 1 or not
+ * before the current version is 400 naming `targetVersion`, a later one or an unknown entity 404.
+ */
+export async function fetchRestorePreview(id: number, targetVersion: number, fetchFn: typeof fetch = fetch): Promise<RestorePreview> {
+  const response = await fetchFn(`/api/v1/entities/${id}/restore?targetVersion=${targetVersion}`, {
+    credentials: 'same-origin',
+    headers: JSON_HEADERS,
+  })
+  if (!response.ok) {
+    throw new RequestRejected(await readRejection(response))
+  }
+  return (await response.json()) as RestorePreview
+}
+
+/**
+ * POST /entities/{id}/restore with `If-Match` naming `currentVersion`. A version changed meanwhile
+ * is 412 `stale-version` with `currentVersion`, nothing to restore 422 `nothing-to-restore`.
+ */
+export async function restoreEntity(
+  id: number,
+  request: { targetVersion: number; currentVersion: number; reason?: string },
+  fetchFn: typeof fetch = fetch,
+): Promise<{ ok: true; value: RestoreResult } | { ok: false; rejection: Rejection }> {
+  const csrfToken = currentCsrfToken()
+  const reason = request.reason?.trim()
+  const response = await fetchFn(`/api/v1/entities/${id}/restore`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      ...JSON_HEADERS,
+      'Content-Type': 'application/json',
+      'If-Match': `"${request.currentVersion}"`,
+      ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
+    },
+    body: JSON.stringify({ targetVersion: request.targetVersion, ...(reason ? { reason } : {}) }),
+  })
+  if (!response.ok) {
+    return { ok: false, rejection: await readRejection(response) }
+  }
+  return { ok: true, value: (await response.json()) as RestoreResult }
 }
 
 /** GET /admin/history-visibility: the configured entries; a pair that is not listed is `show-restricted`. */

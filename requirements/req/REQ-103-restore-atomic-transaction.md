@@ -4,9 +4,9 @@ title: Restore as an atomic transaction
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-28
-last_updated: 2026-06-28
+last_updated: 2026-11-15
 author: requirements-engineer
 references:
   use_cases:
@@ -25,7 +25,7 @@ superseded_by: []
 
 ## Statement
 
-Snapshot backup, entity update and writing of the new EntityVersion entry MUST occur in a single DB transaction for every restore (UC-15 and UC-16). In case of a technical error, a complete rollback MUST occur; no inconsistent state (snapshot without update or update without snapshot) is permissible.
+The entity update, the new EntityVersion entry with its history rows and the audit event MUST be written in a single DB transaction for every restore (UC-15 and UC-16). In case of a technical error, a complete rollback MUST occur; no inconsistent state (version without update, update without version, or either without audit event) is permissible. The state before the restore is the previous version and is never changed (REQ-102).
 
 ## Rationale
 
@@ -35,13 +35,13 @@ A partial commit would produce either a lost audit snapshot or an invalid entity
 
 **AC1** (Rollback on DB error):
 
-- When: a simulated DB error occurs after the snapshot is written
-- Then: a complete rollback occurs; entity is unchanged; no snapshot in `entity_versions`
+- When: a simulated error occurs after the entity was written (e.g. writing the audit event fails)
+- Then: a complete rollback occurs; the entity is unchanged; no new version and no audit event exist
 
 **AC2** (Successful restore):
 
 - When: the restore completes successfully
-- Then: snapshot, entity update and version entry are all present and consistent
+- Then: entity update, version entry with `restoredFromVersion` and audit event `entity.restored` are all present and consistent
 
 ## Dependencies
 
@@ -52,10 +52,11 @@ A partial commit would produce either a lost audit snapshot or an invalid entity
 
 - Spring `@Transactional` with explicit rollback on all exceptions
 - Isolation at least `REPEATABLE READ`
-- Order within the transaction: (1) snapshot, (2) entity update, (3) EntityVersion entry
+- Order within the transaction: (1) lock the entity and check `If-Match`, (2) entity update with the version entry and its history rows, (3) audit event `entity.restored` (change us-101-entity-restore)
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-15 | Change us-101-entity-restore | Realigned: no separate snapshot is written, the transaction covers entity update, version entry and audit event (statement, AC1, AC2, implementation notes; owner decision 2026-11-15) |
