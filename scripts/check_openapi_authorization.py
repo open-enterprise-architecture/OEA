@@ -357,7 +357,7 @@ def main(argv: list[str]) -> int:
     print(f"{spec}: {len(operations)} operations declare authorization ({planned} planned); "
           f"{len(catalog)} permissions in catalog; security schemes accepted: "
           f"{', '.join(sorted(n for n, st in schemes.items() if st is None))}, planned: "
-          f"{', '.join(sorted(n for n, st in schemes.items() if st == 'planned'))}.")
+          f"{', '.join(sorted(n for n, st in schemes.items() if st == 'planned')) or 'none'}.")
     if unused:
         print(f"  note: catalog permissions not yet used by any operation: {', '.join(unused)}")
     return 0
