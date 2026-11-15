@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S13
-**Implementation**: OpenSpec change `us-101-entity-restore` – the restore writes one version with `restoredFromVersion` and the reason (`entity_version_headers`, V32); the version before it is the snapshot; SCR-026 shows "Restored from vN" and the reason (AC1, AC2; AC3 realigned 2026-11-15: no copy, delta versioning by ADR-022)
+**Implementation**: OpenSpec change `us-101-entity-restore`, commit 9c05f64 (#284) – the restore writes one version with `restoredFromVersion` and the reason (`entity_version_headers`, V32); the version before it is the snapshot; SCR-026 shows "Restored from vN" and the reason (AC1, AC2; AC3 realigned 2026-11-15: no copy, delta versioning by ADR-022)
 
 ## Story
 

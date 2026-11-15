@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S13
-**Implementation**: OpenSpec change `us-101-entity-restore` – entity update, version entry and audit event `entity.restored` in one transaction, rolled back as a whole on an error (AC1 realigned 2026-11-15, AC2)
+**Implementation**: OpenSpec change `us-101-entity-restore`, commit 9c05f64 (#284) – entity update, version entry and audit event `entity.restored` in one transaction, rolled back as a whole on an error (AC1 realigned 2026-11-15, AC2)
 
 ## Story
 

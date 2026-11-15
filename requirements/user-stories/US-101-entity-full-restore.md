@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: done
 **Sprint**: S13
-**Implementation**: OpenSpec change `us-101-entity-restore` – `previewEntityRestore` and `restoreEntity` (`entity:write`, `entity:restore`, `If-Match` required): name, description, logical flag and restorable properties set to the target version, write-protected, unmapped and no longer valid values kept and listed, empty mandatory values warned and marked; "Restore this version" on SCR-026 opens the modal SCR-027 with the diff (AC1–AC3)
+**Implementation**: OpenSpec change `us-101-entity-restore`, commit 9c05f64 (#284) – `previewEntityRestore` and `restoreEntity` (`entity:write`, `entity:restore`, `If-Match` required): name, description, logical flag and restorable properties set to the target version, write-protected, unmapped and no longer valid values kept and listed, empty mandatory values warned and marked; "Restore this version" on SCR-026 opens the modal SCR-027 with the diff (AC1–AC3)
 
 ## Story
 
