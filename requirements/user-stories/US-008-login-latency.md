@@ -4,7 +4,7 @@
 **Story Points**: 5
 **Status**: done
 **Sprint**: S5
-**Implementation**: OpenSpec change `us-008-login-latency`, commit c747413 (#148) – metric `oea.login.processing` and the measurement `LoginLatencyIT` (AC1); OpenSpec change `s12-client-credentials-token` – metric `oea.token.processing` and the measurement of token requests with 1,000 service accounts in `LoginLatencyIT` (AC2)
+**Implementation**: OpenSpec change `us-008-login-latency`, commit c747413 (#148) – metric `oea.login.processing` and the measurement `LoginLatencyIT` (AC1); OpenSpec change `s12-client-credentials-token`, commit 376ed1e (#280) – metric `oea.token.processing` and the measurement of token requests with 1,000 service accounts in `LoginLatencyIT` (AC2)
 
 ## Story
 

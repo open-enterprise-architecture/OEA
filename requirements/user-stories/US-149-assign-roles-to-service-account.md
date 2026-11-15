@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S12
-**Implementation**: OpenSpec change `us-142-service-accounts`, commit ea1221a (#277) – roles of a service account as local role assignments, only roles flagged `assignableToServiceAccounts` (SoD-4, 422 and `authz.denied`), setting or changing them needs `role:assign`; "Edit roles" on SCR-041 offers only assignable roles (AC1, AC3; AC4 was implemented by `us-128-override-role-list`).; OpenSpec change `s12-client-credentials-token` – a token of the service account is authorized with the permissions of its roles, and administration is refused (AC2, AC5)
+**Implementation**: OpenSpec change `us-142-service-accounts`, commit ea1221a (#277) – roles of a service account as local role assignments, only roles flagged `assignableToServiceAccounts` (SoD-4, 422 and `authz.denied`), setting or changing them needs `role:assign`; "Edit roles" on SCR-041 offers only assignable roles (AC1, AC3; AC4 was implemented by `us-128-override-role-list`).; OpenSpec change `s12-client-credentials-token`, commit 376ed1e (#280) – a token of the service account is authorized with the permissions of its roles, and administration is refused (AC2, AC5)
 
 ## Story
 
