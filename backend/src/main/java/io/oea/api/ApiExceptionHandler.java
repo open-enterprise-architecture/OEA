@@ -1,6 +1,9 @@
 package io.oea.api;
 
 import io.oea.api.generated.model.ValidationError;
+import io.oea.api.identity.OAuthErrorResponse;
+import io.oea.api.identity.OAuthRequestException;
+import io.oea.app.login.AccessTokens;
 import io.oea.app.access.AccessConflictException;
 import io.oea.app.access.InvalidServiceAccountException;
 import io.oea.app.access.InvalidStatusTransitionException;
@@ -63,6 +66,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -87,6 +92,53 @@ public class ApiExceptionHandler {
 			ObjectProvider<PermissionDenials> denials) {
 		this.packageImporter = packageImporter;
 		this.denials = denials;
+	}
+
+	/** RFC 6749 §5.2 errors of the token endpoint (design D3 of s12-client-credentials-token). */
+	@ExceptionHandler(OAuthRequestException.class)
+	ResponseEntity<Map<String, String>> oauthRequest(OAuthRequestException ex) {
+		return oauthError(ex.getStatus(), ex.getError());
+	}
+
+	/** The uniform refusal of a client authentication at the token endpoint (ADR-050 rule 5). */
+	@ExceptionHandler(AccessTokens.InvalidClientException.class)
+	ResponseEntity<Map<String, String>> invalidClient(AccessTokens.InvalidClientException ex) {
+		return oauthError(HttpStatus.UNAUTHORIZED, "invalid_client");
+	}
+
+	@ExceptionHandler(AccessTokens.ThrottledException.class)
+	ResponseEntity<ProblemDetail> tokenThrottled(AccessTokens.ThrottledException ex) {
+		return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+			.header(HttpHeaders.RETRY_AFTER, Long.toString(ex.getRetryAfterSeconds()))
+			.header(HttpHeaders.CACHE_CONTROL, "no-store")
+			.body(problem(HttpStatus.TOO_MANY_REQUESTS, "too-many-requests", "Too many requests",
+					"Too many failed token requests; try again later."));
+	}
+
+	/**
+	 * A missing required request parameter: an RFC 6749 {@code invalid_request} at the token
+	 * endpoint, a problem document everywhere else.
+	 */
+	@ExceptionHandler(MissingServletRequestParameterException.class)
+	ResponseEntity<?> missingParameter(MissingServletRequestParameterException ex, HttpServletRequest request) {
+		if (request.getAttribute(HandlerMapping.BEST_MATCHING_HANDLER_ATTRIBUTE) instanceof HandlerMethod handler
+				&& handler.hasMethodAnnotation(OAuthErrorResponse.class)) {
+			return oauthError(HttpStatus.BAD_REQUEST, "invalid_request");
+		}
+		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid request", ex.getMessage());
+		problem.setProperty("invalidFields", List.of(ex.getParameterName()));
+		return ResponseEntity.badRequest().body(problem);
+	}
+
+	private static ResponseEntity<Map<String, String>> oauthError(HttpStatus status, String error) {
+		ResponseEntity.BodyBuilder response = ResponseEntity.status(status)
+			.header(HttpHeaders.CACHE_CONTROL, "no-store")
+			.header(HttpHeaders.PRAGMA, "no-cache")
+			.contentType(MediaType.APPLICATION_JSON);
+		if (status == HttpStatus.UNAUTHORIZED) {
+			response.header(HttpHeaders.WWW_AUTHENTICATE, "Basic realm=\"oea\"");
+		}
+		return response.body(Map.of("error", error));
 	}
 
 	@ExceptionHandler(InvalidCredentialsException.class)

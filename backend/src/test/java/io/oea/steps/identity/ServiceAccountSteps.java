@@ -40,6 +40,9 @@ public class ServiceAccountSteps {
 
 	private final Map<String, String> clientIds = new HashMap<>();
 
+	/** The current secret of each service account of the scenario, by name. */
+	private final Map<String, String> secrets = new HashMap<>();
+
 	private String createdSecret;
 
 	private String createdClientId;
@@ -141,6 +144,25 @@ public class ServiceAccountSteps {
 		this.instance.response = this.instance.post(BASE + "/" + this.clientIds.get(name) + "/credentials/rotate", "{}",
 				true);
 		remember(this.instance.response);
+		if (this.instance.response.statusCode() == 200) {
+			this.previousSecrets.put(name, this.secrets.get(name));
+			this.secrets.put(name, LocalLoginSteps.json(this.instance.response).path("clientSecret").asString());
+		}
+	}
+
+	/** The secrets of the service accounts before their last rotation, by name. */
+	private final Map<String, String> previousSecrets = new HashMap<>();
+
+	String clientId(String name) {
+		return this.clientIds.get(name);
+	}
+
+	String secret(String name) {
+		return this.secrets.get(name);
+	}
+
+	String previousSecret(String name) {
+		return this.previousSecrets.get(name);
 	}
 
 	@When("the system admin rotates the secret of an unknown client ID")
@@ -320,6 +342,7 @@ public class ServiceAccountSteps {
 			JsonNode created = LocalLoginSteps.json(this.instance.response);
 			this.createdClientId = created.path("id").asString();
 			this.clientIds.put(created.path("name").asString(), this.createdClientId);
+			this.secrets.put(created.path("name").asString(), created.path("clientSecret").asString());
 		}
 		remember(this.instance.response);
 	}

@@ -19,7 +19,7 @@ Service accounts exist since change 3 (`us-142-service-accounts`), but they cann
 **Owner decisions of 2026-11-15:**
 
 - **Limits of the token endpoint (ADR-050 rules 6 and 7):** the same as for the local login.
-  - Per `client_id`: exponential backoff from the sixth failure within 15 minutes, capped at a 15-minute lock.
+  - Per `client_id`: exponential backoff once 5 failures occurred within 15 minutes, capped at a 15-minute lock (the behavior of the local login).
   - Per client address: 100 failures within 10 minutes.
   - Above a limit, the answer is 429 with `Retry-After`.
   - At most 4 secret checks run at the same time; a request that waits longer than 2 seconds for a slot gets 429.

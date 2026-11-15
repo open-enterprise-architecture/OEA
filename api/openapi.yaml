@@ -35,15 +35,16 @@ info:
     (REQ-160).
 
     There is no anonymous access (REQ-163). Clients authenticate with
-    - `bearerAuth`: OEA access token of the Electron client
+    - `bearerAuth`: opaque OEA access token (`oea_at_…`, ADR-050) in the
+      `Authorization` header; issued to service accounts by `POST /oauth2/token`
+      and, in a later release, to the Electron client
     - `cookieAuth`: session cookie of the web portal
-    - `oauth2ClientCredentials`: access token of a service account obtained at
+    - `oauth2ClientCredentials`: how a service account obtains its access token at
       `POST /oauth2/token` (REQ-176); token scopes are not used for OEA permissions
 
-    Implementation status: this release accepts only `cookieAuth`. The schemes
-    `bearerAuth`, `oauth2ClientCredentials` and `clientSecretBasic` are marked
-    `x-oea-status: planned` and follow with service accounts and the Electron client;
-    a request that carries only their credentials is unauthenticated (`401`).
+    A request carrying both a session cookie and a bearer token is rejected with `401`.
+    Requests with a bearer token need no CSRF token. The user manual describes API
+    access without a browser (page "API access without a browser").
 
     **External integration** (ADR-026, optional): write access by external systems
     (scanners, CI/CD pipelines, import tools) via upsert endpoints and batch write,
@@ -141,11 +142,15 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: JWT
-      x-oea-status: planned
+      bearerFormat: opaque
       description: |
-        OEA access token of the Electron client. Identifies principal and session only;
-        permissions are resolved server-side per request (ADR-032 §7).
+        Opaque OEA access token (ADR-050): the prefix `oea_at_` and 256 random bits,
+        valid for at most 900 seconds, accepted only in the `Authorization` header (never
+        in a query parameter or cookie). Service accounts obtain it at `POST /oauth2/token`;
+        the Electron client will obtain the same token through a person login. It
+        identifies the principal only; permissions are resolved server-side per request
+        (ADR-032 §7). An unknown, expired or revoked token → `401` with
+        `WWW-Authenticate: Bearer`.
     cookieAuth:
       type: apiKey
       in: cookie
@@ -157,7 +162,6 @@ components:
         `GET /me`) and an allowed `Origin`. The session identifies principal and session only.
     oauth2ClientCredentials:
       type: oauth2
-      x-oea-status: planned
       description: |
         Service accounts only (REQ-176). Access tokens carry only the `client_id`
         and live at most 15 minutes. Scopes are not used; permissions come from
@@ -169,7 +173,6 @@ components:
     clientSecretBasic:
       type: http
       scheme: basic
-      x-oea-status: planned
       description: |
         Client authentication at the token endpoint only (`client_id:client_secret`,
         RFC 6749 §2.3.1).
@@ -4653,14 +4656,22 @@ paths:
       operationId: issueClientCredentialsToken
       summary: OAuth2 token endpoint for service accounts (client credentials, REQ-176)
       description: |
-        Issues an access token (lifetime ≤ 900 s) carrying only the `client_id`.
-        Client authentication via HTTP Basic (`clientSecretBasic`). Expired or wrong
-        secrets → `401` and an audit event. Rate-limited.
+        Issues an opaque access token (ADR-050) for `grant_type=client_credentials`,
+        valid for 900 seconds, without refresh token. The server links it to the
+        `client_id`; the token itself carries no information. Client authentication only
+        via HTTP Basic (`clientSecretBasic`, `client_id:client_secret`, RFC 6749 §2.3.1);
+        credentials in the body or the query string → `401`. An unknown client, a wrong
+        or expired secret and a deactivated service account all get the same `401`
+        `invalid_client`. A grant sets `lastUsedAt` of the service account. Audited as
+        `token.issued` and `token.denied`; neither secret nor token is logged.
+        Failed requests are throttled per `client_id` (exponential backoff once 5
+        failures occurred within 15 minutes, at most 15 minutes, as for the local login) and per client address
+        (100 failures within 10 minutes); at most 4 secret checks run at the same time,
+        and a request that waits longer than 2 seconds gets `429`.
       tags: [Identity]
       security:
         - clientSecretBasic: []
       x-oea-authorization: {"access": "public"}
-      x-oea-status: planned
       requestBody:
         required: true
         content:
@@ -4672,6 +4683,8 @@ paths:
           headers:
             Cache-Control:
               schema: { type: string, example: "no-store" }
+            Pragma:
+              schema: { type: string, example: "no-cache" }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TokenResponse' }
@@ -4681,12 +4694,15 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/OAuthError' }
         '401':
-          description: Client authentication failed (unknown client, wrong or expired secret, deactivated account)
+          description: Client authentication failed (unknown client, wrong or expired secret, deactivated account, credentials outside the `Authorization` header)
+          headers:
+            WWW-Authenticate:
+              schema: { type: string, example: 'Basic realm="oea"' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/OAuthError' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  I18N                                                                  ║

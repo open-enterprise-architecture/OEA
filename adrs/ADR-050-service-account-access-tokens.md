@@ -64,7 +64,7 @@ The token and the token endpoint follow these rules:
 9. **Response headers:** `Cache-Control: no-store` and `Pragma: no-cache` (RFC 6749 §5.1).
 10. **Transport:** the token is accepted only in the `Authorization: Bearer` header, never in a query parameter or a cookie.
 
-The concrete limits of rules 6 and 7 are set in the change that implements the token endpoint.
+The concrete limits of rules 6 and 7 are set in the change that implements the token endpoint. Change `s12-client-credentials-token` set them on 2026-11-15 (owner decision): the throttle of the local login per `client_id` (exponential backoff once 5 failures occurred within 15 minutes, at most 15 minutes) and per client address (100 failures within 10 minutes), and at most 4 concurrent secret checks, a request waiting longer than 2 seconds getting 429. The same change reworded the scheme `bearerAuth` of the contract to this opaque token, which the Electron client (ADR-035) will later obtain through a person login.
 
 ## Consequences
 

@@ -63,6 +63,40 @@ class AuditWriterTests {
 		assertThat(recomputed).isEqualTo(HexFormat.of().formatHex(link.recordHash()));
 	}
 
+	/** Design D6 of s12-client-credentials-token: a service account is recorded with its client ID as agent ID. */
+	@Test
+	void serviceAccountActorCarriesTheAgentIdAndIsChained() {
+		Long person = this.jdbc.queryForObject("""
+				INSERT INTO persons (person_type, name, status) VALUES ('service-account', ?, 'active') RETURNING id""",
+				Long.class, "writer-" + UUID.randomUUID());
+		UUID client = UUID.randomUUID();
+		AppendedLink link = this.writer.append(new AuditEvent("test.audit-writer", AuditEvent.Category.SYSTEM,
+				AuditEvent.Severity.INFO, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API,
+				AuditEvent.Actor.serviceAccount(person, client), "setting", "1", Map.of()));
+		Map<String, Object> row = this.jdbc.queryForMap(
+				"SELECT actor_type, actor_person_id, actor_admin_id, agent_id FROM audit.events WHERE id = ?", link.id());
+		assertThat(row).containsEntry("actor_type", "service-account")
+			.containsEntry("actor_person_id", person)
+			.containsEntry("agent_id", client.toString());
+		assertThat(row.get("actor_admin_id")).isNull();
+		String recomputed = this.jdbc.query("SELECT * FROM audit.events WHERE id = ?", (rs) -> {
+			rs.next();
+			return HexFormat.of()
+				.formatHex(ChainHasher.recordHash(rs.getInt("hash_version"), rs.getLong("chain_seq"),
+						rs.getBytes("prev_hash"), ChainTable.EVENTS, ChainHasher.fieldValues(ChainTable.EVENTS, rs)));
+		}, link.id());
+		assertThat(recomputed).isEqualTo(HexFormat.of().formatHex(link.recordHash()));
+	}
+
+	@Test
+	void personAndSystemAdminAccountHaveNoAgentId() {
+		AppendedLink link = this.writer.append(new AuditEvent("test.audit-writer", AuditEvent.Category.SYSTEM,
+				AuditEvent.Severity.INFO, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API,
+				AuditEvent.Actor.systemAdminAccount(UUID.randomUUID()), "setting", "1", Map.of()));
+		assertThat(this.jdbc.queryForObject("SELECT agent_id FROM audit.events WHERE id = ?", String.class, link.id()))
+			.isNull();
+	}
+
 	@Test
 	void eventWithExplicitSourceAddressIsChainedWithoutRequestId() {
 		MDC.put(AuditWriter.REQUEST_ID, "req-ignored");

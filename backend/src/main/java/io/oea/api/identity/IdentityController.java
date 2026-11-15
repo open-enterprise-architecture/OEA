@@ -26,8 +26,10 @@ import io.oea.api.generated.model.SecondFactor;
 import io.oea.api.generated.model.TotpConfirmation;
 import io.oea.api.generated.model.TotpEnrollment;
 import io.oea.api.generated.model.TotpEnrollmentRequest;
+import io.oea.api.generated.model.TokenResponse;
 import io.oea.app.access.LanguagePreferences;
 import io.oea.app.access.SecondFactors;
+import io.oea.app.login.AccessTokens;
 import io.oea.app.login.LocalLogin;
 import io.oea.app.login.OidcLoginFailedException;
 import io.oea.app.login.OidcLoginFlow;
@@ -42,7 +44,10 @@ import io.oea.infrastructure.oidc.OidcProviderUnavailableException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.ZoneOffset;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -82,12 +87,15 @@ public class IdentityController implements IdentityApi {
 
 	private final LanguagePreferences languages;
 
+	private final AccessTokens accessTokens;
+
 	public IdentityController(Sessions sessions, PermissionResolver permissions, LocalLogin localLogin,
 			io.oea.app.login.TotpEnrollment enrollment, OidcLoginFlow oidcLogin,
 			io.oea.app.login.PasswordChange passwordChange, SecondFactors secondFactors,
 			io.oea.app.login.PasskeyRegistration passkeyRegistration, PasskeyLogin passkeyLogin,
-			LanguagePreferences languages) {
+			LanguagePreferences languages, AccessTokens accessTokens) {
 		this.languages = languages;
+		this.accessTokens = accessTokens;
 		this.sessions = sessions;
 		this.permissions = permissions;
 		this.localLogin = localLogin;
@@ -293,7 +301,8 @@ public class IdentityController implements IdentityApi {
 				.toList()))
 			.toList();
 		Me me = new Me(principalRef(principal), principal.secondFactorVerified(), roleGrants, effective)
-			.csrfToken(Sessions.csrfToken(authentication.sessionToken()))
+			// a bearer request has no session and needs no CSRF token
+			.csrfToken(authentication.bearer() ? null : Sessions.csrfToken(authentication.sessionToken()))
 			.requiredAction(requiredAction(principal));
 		String language = this.languages.language(principal);
 		me.setUiLanguage((language != null) ? Me.UiLanguageEnum.fromValue(language) : null);
@@ -313,9 +322,63 @@ public class IdentityController implements IdentityApi {
 		return ResponseEntity.ok().header("OEA-Purge-Local-Data", "session-ended").body(new Logout200Response());
 	}
 
+	/**
+	 * The client credentials grant (ADR-050 rule 5; design D3 of s12-client-credentials-token):
+	 * only {@code grant_type=client_credentials} with HTTP Basic client authentication; client
+	 * credentials anywhere else are refused like a failed authentication.
+	 */
+	@Override
+	@OAuthErrorResponse
+	public ResponseEntity<TokenResponse> issueClientCredentialsToken(String grantType) {
+		HttpServletRequest request = request();
+		if (request.getParameter("client_id") != null || request.getParameter("client_secret") != null) {
+			throw new OAuthRequestException(HttpStatus.UNAUTHORIZED, "invalid_client");
+		}
+		String[] grantTypes = request.getParameterValues("grant_type");
+		if (grantTypes == null || grantTypes.length != 1 || grantType == null || grantType.isBlank()) {
+			throw new OAuthRequestException(HttpStatus.BAD_REQUEST, "invalid_request");
+		}
+		if (!"client_credentials".equals(grantType)) {
+			throw new OAuthRequestException(HttpStatus.BAD_REQUEST, "unsupported_grant_type");
+		}
+		String[] credentials = basicCredentials(request.getHeader(HttpHeaders.AUTHORIZATION));
+		AccessTokens.Issued issued = this.accessTokens.issue(credentials[0], credentials[1], request.getRemoteAddr());
+		return ResponseEntity.ok()
+			.header(HttpHeaders.CACHE_CONTROL, "no-store")
+			.header(HttpHeaders.PRAGMA, "no-cache")
+			.body(new TokenResponse(issued.accessToken(), TokenResponse.TokenTypeEnum.BEARER,
+					Math.toIntExact(issued.expiresIn())));
+	}
+
+	/**
+	 * Client ID and secret of an HTTP Basic header, each form-urlencoded (RFC 6749 §2.3.1); a
+	 * missing or malformed header yields nulls, which the token service refuses like an unknown
+	 * client.
+	 */
+	static String[] basicCredentials(String header) {
+		if (header == null || !header.regionMatches(true, 0, "Basic ", 0, 6)) {
+			return new String[] { null, null };
+		}
+		try {
+			String decoded = new String(Base64.getDecoder().decode(header.substring(6).strip()), StandardCharsets.UTF_8);
+			int colon = decoded.indexOf(':');
+			if (colon < 0) {
+				return new String[] { null, null };
+			}
+			return new String[] { URLDecoder.decode(decoded.substring(0, colon), StandardCharsets.UTF_8),
+					URLDecoder.decode(decoded.substring(colon + 1), StandardCharsets.UTF_8) };
+		}
+		catch (IllegalArgumentException ex) {
+			return new String[] { null, null };
+		}
+	}
+
 	public static PrincipalRef principalRef(OeaPrincipal principal) {
-		PrincipalRef.PrincipalTypeEnum type = (principal.type() == OeaPrincipal.Type.SYSTEM_ADMIN_ACCOUNT)
-				? PrincipalRef.PrincipalTypeEnum.SYSTEM_ADMIN_ACCOUNT : PrincipalRef.PrincipalTypeEnum.PERSON;
+		PrincipalRef.PrincipalTypeEnum type = switch (principal.type()) {
+			case SYSTEM_ADMIN_ACCOUNT -> PrincipalRef.PrincipalTypeEnum.SYSTEM_ADMIN_ACCOUNT;
+			case SERVICE_ACCOUNT -> PrincipalRef.PrincipalTypeEnum.SERVICE_ACCOUNT;
+			case PERSON -> PrincipalRef.PrincipalTypeEnum.PERSON;
+		};
 		Integer id = (principal.personId() != null) ? Math.toIntExact(principal.personId()) : null;
 		return new PrincipalRef(type, principal.displayName()).id(id);
 	}

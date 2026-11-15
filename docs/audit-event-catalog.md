@@ -19,6 +19,7 @@ All audit records are rows of `audit.events` (with optional details in `audit.ev
 | `request_id` | Correlation ID (`X-Request-Id`), also present in the application log |
 | `actor_type` | `person`, `service-account`, `system-admin-account`, `system` or `unauthenticated` |
 | `actor_person_id` / `actor_admin_id` | Pseudonymous key of the actor; never names or e-mail addresses |
+| `agent_id` | Client ID of the service account that acted, taken only from its access token (ADR-033 §7, REQ-174); empty for every other actor |
 | `target_type` / `target_id` | Affected object |
 | `entity_id` / `entity_name` | Affected entity for `entity.*` events; the name is denormalized and empty for modeled persons |
 | `agent_label` / `agent_run` | Informational values of the headers `X-Agent-Id` and `X-Agent-Run` (control characters removed, at most 100 characters); never used for decisions (ADR-033 §7) |
@@ -453,6 +454,39 @@ A service account was deactivated for good: its secret and its role assignments 
 | Actor | the administrator with `service-account:manage` |
 | Target | `service-account`, client ID |
 | Details | `personId`, `rolesRevoked` |
+
+### `token.issued`
+
+An access token was issued to a service account at `POST /oauth2/token` ([ADR-050](../adrs/ADR-050-service-account-access-tokens.md), REQ-176; change s12-client-credentials-token). Neither the secret nor the token is part of the event.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `info` / `success` |
+| Actor | the service account (`agent_id` = its client ID) |
+| Target | `access-token`, ID of the token record |
+| Details | `clientId`, `tokenId`, `expiresAt` |
+
+### `token.denied`
+
+A token request failed the client authentication: unknown client, wrong or expired secret, or deactivated service account. The response is the same `401 invalid_client` for all of them; the reason is recorded here only. Subject to the [flood suppression](#flood-suppression).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `warning` / `denied` |
+| Actor | `unauthenticated` |
+| Target | `access-token`, empty |
+| Details | `claimedClientId` (the client ID as sent, at most 64 characters, otherwise empty), `unverified` (always `true`), `reason` (`unknown-client`, `wrong-secret`, `expired-secret`); summary events additionally `summary`, `suppressedCount`, `windowStart`, `windowEnd` |
+
+### `token.revoked`
+
+An access token was revoked because the secret of its service account was rotated or the account was deactivated (ADR-050 rule 4). One event per token.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `info` / `success` |
+| Actor | the administrator who rotated or deactivated |
+| Target | `access-token`, ID of the token record |
+| Details | `clientId`, `reason` (`rotation` or `deactivation`) |
 
 ### `metamodel.package-imported`
 

@@ -18,7 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
  * backend instances share it: per login name (also unknown ones) exponential backoff from the
  * sixth failure within 15 minutes, capped at a 15-minute temporary lock; per source address
  * a limit of 100 failures within 10 minutes. Failed setup-token attempts count towards the
- * same per-address limit (REQ-168; design D6 of s3-throttling-and-denials).
+ * same per-address limit (REQ-168; design D6 of s3-throttling-and-denials). Token requests of service
+ * accounts are throttled by the same rules per client ID and share the per-address limit (design D4
+ * of s12-client-credentials-token).
  */
 @Service
 public class LoginThrottle {
@@ -50,6 +52,11 @@ public class LoginThrottle {
 		return "account:" + ((loginName != null) ? loginName.strip().toLowerCase(Locale.ROOT) : "");
 	}
 
+	/** Throttle key of a client ID at the token endpoint, also of malformed or unknown ones. */
+	public static String clientKey(String clientId) {
+		return "client:" + ((clientId != null) ? clientId.strip().toLowerCase(Locale.ROOT) : "");
+	}
+
 	static String addressKey(String address) {
 		return "address:" + address;
 	}
@@ -59,6 +66,24 @@ public class LoginThrottle {
 	public long retryAfterSeconds(String loginName, String address) {
 		Instant now = this.clock.instant();
 		return Math.max(lockedFor(accountKey(loginName), now), lockedFor(addressKey(address), now));
+	}
+
+	/** Seconds until token requests of the client from the address are accepted again; 0 if not throttled. */
+	@Transactional(readOnly = true)
+	public long clientRetryAfterSeconds(String clientId, String address) {
+		Instant now = this.clock.instant();
+		return Math.max(lockedFor(clientKey(clientId), now), lockedFor(addressKey(address), now));
+	}
+
+	/** Records a failed token request in its own transaction, by the rules of a failed login. */
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public void recordClientFailure(String clientId, String address) {
+		recordFailure(clientKey(clientId), "client", address);
+	}
+
+	@Transactional
+	public void recordClientSuccess(String clientId) {
+		this.jdbc.update("DELETE FROM auth_throttle WHERE throttle_key = ?", clientKey(clientId));
 	}
 
 	/** Seconds until the source address accepts attempts again; 0 if not throttled. */
@@ -92,13 +117,16 @@ public class LoginThrottle {
 	/** Records a failed attempt in its own transaction (it survives the rollback of the login). */
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void recordFailure(String loginName, String address) {
+		recordFailure(accountKey(loginName), "account", address);
+	}
+
+	private void recordFailure(String key, String scope, String address) {
 		Instant now = this.clock.instant();
-		int accountFailures = increment(accountKey(loginName), now, ACCOUNT_WINDOW);
+		int accountFailures = increment(key, now, ACCOUNT_WINDOW);
 		if (accountFailures > ACCOUNT_FAILURES_BEFORE_BACKOFF - 1) {
 			long seconds = Math.min(1L << Math.min(accountFailures - ACCOUNT_FAILURES_BEFORE_BACKOFF, 20),
 					MAXIMUM_LOCK.toSeconds());
-			lock(accountKey(loginName), now.plusSeconds(seconds), accountFailures == ACCOUNT_FAILURES_BEFORE_BACKOFF,
-					"account");
+			lock(key, now.plusSeconds(seconds), accountFailures == ACCOUNT_FAILURES_BEFORE_BACKOFF, scope);
 		}
 		int addressFailures = increment(addressKey(address), now, ADDRESS_WINDOW);
 		if (addressFailures >= ADDRESS_FAILURES) {

@@ -345,6 +345,31 @@ package "Auth" #FFF8E1 {
     secrets expiring within 14 days.
   end note
 
+  class access_tokens <<Table>> #FFECB3 {
+    + id                  : UUID          {PK}
+    .. token ID of the audit events token.issued / token.revoked ..
+    --
+    + token_hash          : BYTEA         {NN} {UQ}
+    .. SHA-256 of the opaque token 'oea_at_' + 256 random bits; the token itself is never stored ..
+    + client_id           : UUID          {NN}
+    + credential_id       : UUID          {NN} {FK→machine_credentials.id}
+    .. the secret version that obtained the token ..
+    + issued_at           : TIMESTAMPTZ   {NN}
+    + expires_at          : TIMESTAMPTZ   {NN}
+    .. CHECK expires_at = issued_at + 900 seconds (ADR-050 rule 3) ..
+    + revoked_at          : TIMESTAMPTZ
+    + revocation_reason   : TEXT
+    .. enum: rotation | deactivation; CHECK set together with revoked_at ..
+  }
+
+  note right of access_tokens
+    Access tokens of service accounts (V31, ADR-050,
+    change s12-client-credentials-token). Opaque, checked
+    by hash on every bearer request; revoked at once when
+    the secret is rotated or the account deactivated;
+    deleted by a job one day after expiry. No refresh token.
+  end note
+
   persons               "1"    --o{ "0..*" person_identities     : bound to (human only)
   auth_providers        "1"    --o{ "0..*" person_identities     : issues
   persons               "0..1" --o| "0..1" system_admin_accounts : linked_person_id
@@ -355,6 +380,7 @@ package "Auth" #FFF8E1 {
   local_credentials     "1"    --||        password_credentials  : type=password
   local_credentials     "1"    --o{ "1..*" recovery_codes        : type=recovery-codes
   persons               "1"    --o{ "0..*" machine_credentials   : owns (service-account only)
+  machine_credentials   "1"    --o{ "0..*" access_tokens         : obtained
 
 }
 

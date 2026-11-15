@@ -24,6 +24,8 @@ There is no anonymous access, except for a few public operations (health, setup,
 
 [Log in for administration through the API](../administration/#log-in-for-administration-through-the-api) shows this with `curl`.
 
+Scripts and integrations use an **access token** of a service account instead: see [API access without a browser](./access-without-browser).
+
 ## Permissions
 
 Every operation states its required access:

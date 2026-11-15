@@ -10,6 +10,7 @@ import io.oea.app.security.SetupPhase;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.AccessTokenStore;
 import io.oea.core.access.ServiceAccountStore;
 import io.oea.core.access.ServiceAccountStore.Account;
 import io.oea.core.service.PasswordHasher;
@@ -68,6 +69,8 @@ public class ServiceAccounts {
 
 	private final ServiceAccountStore store;
 
+	private final AccessTokenStore tokens;
+
 	private final RoleAssignments assignments;
 
 	private final AccessCatalog catalog;
@@ -108,11 +111,12 @@ public class ServiceAccounts {
 	public record Request(String name, String description, List<String> roles, Integer secretValidityDays) {
 	}
 
-	public ServiceAccounts(ServiceAccountStore store, RoleAssignments assignments, AccessCatalog catalog,
+	public ServiceAccounts(ServiceAccountStore store, AccessTokenStore tokens, RoleAssignments assignments, AccessCatalog catalog,
 			PermissionResolver permissions, PermissionDenials denials, RecentAuthentication recentAuthentication,
 			SetupPhase setupPhase, PasswordHasher hasher, ServiceAccountProperties properties, AuditWriter audit,
 			Clock clock) {
 		this.store = store;
+		this.tokens = tokens;
 		this.assignments = assignments;
 		this.catalog = catalog;
 		this.permissions = permissions;
@@ -252,6 +256,7 @@ public class ServiceAccounts {
 		int validity = validity(secretValidityDays);
 		Instant now = now();
 		this.store.rotateActive(clientId, now, actor(principal));
+		revokeTokens(principal, clientId, "rotation", now);
 		String secret = secret();
 		Instant expiresAt = now.plus(Duration.ofDays(validity));
 		this.store.insertSecret(clientId, personId, this.hasher.hash(secret), now, expiresAt, actor(principal));
@@ -277,11 +282,22 @@ public class ServiceAccounts {
 			this.assignments.revoke(principal, personId, assignment.id(), "service account deactivated");
 			revokedRoles.add(assignment.roleId());
 		}
-		this.store.deactivate(clientId, personId, now(), actor(principal));
+		Instant now = now();
+		this.store.deactivate(clientId, personId, now, actor(principal));
+		revokeTokens(principal, clientId, "deactivation", now);
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("personId", personId);
 		details.put("rolesRevoked", revokedRoles);
 		append(principal, "service-account.deactivated", AuditEvent.Severity.HIGH, clientId, details);
+	}
+
+	/** ADR-050 rule 4: a rotation or deactivation revokes every token of the account at once. */
+	private void revokeTokens(OeaPrincipal principal, UUID clientId, String reason, Instant now) {
+		for (UUID tokenId : this.tokens.revokeAll(clientId, reason, now)) {
+			this.audit.append(new AuditEvent("token.revoked", AuditEvent.Category.SECURITY, AuditEvent.Severity.INFO,
+					AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal), "access-token",
+					tokenId.toString(), Map.of("clientId", clientId.toString(), "reason", reason)));
+		}
 	}
 
 	private long lockActive(UUID clientId) {

@@ -75,11 +75,18 @@ class SecuritySchemeStatusTests(unittest.TestCase):
     def setUp(self) -> None:
         self.text = SPEC.read_text(encoding="utf-8")
 
-    def test_contract_marks_the_planned_schemes(self) -> None:
+    def test_contract_accepts_every_scheme(self) -> None:
+        # all four schemes are accepted since s12-client-credentials-token (ADR-050)
         code, out = run(self.text)
         self.assertEqual(code, 0, out)
-        self.assertIn("security schemes accepted: cookieAuth, planned: bearerAuth, clientSecretBasic, "
-                      "oauth2ClientCredentials", out)
+        self.assertIn("security schemes accepted: bearerAuth, clientSecretBasic, cookieAuth, "
+                      "oauth2ClientCredentials, planned: none.", out)
+
+    def test_planned_marker_is_listed(self) -> None:
+        code, out = run(scheme_status(self.text, "bearerAuth", "planned"))
+        self.assertEqual(code, 0, out)
+        self.assertIn("security schemes accepted: clientSecretBasic, cookieAuth, oauth2ClientCredentials, "
+                      "planned: bearerAuth.", out)
 
     def test_scheme_without_marker_passes(self) -> None:
         code, out = run(scheme_status(self.text, "bearerAuth", None))

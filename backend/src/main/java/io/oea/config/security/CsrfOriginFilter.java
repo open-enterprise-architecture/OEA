@@ -19,7 +19,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 /**
  * CSRF protection for state-changing requests (REQ-187 AC3, design D2): an {@code Origin}
  * header, if sent, must be the own origin or an allowed one; requests authenticated by the
- * session cookie additionally need {@code X-XSRF-TOKEN} matching the token derived from it.
+ * session cookie additionally need {@code X-XSRF-TOKEN} matching the token derived from it. Requests
+ * authenticated by a bearer token are exempt: browsers never attach that header by themselves
+ * (design D5 of s12-client-credentials-token).
  */
 public class CsrfOriginFilter extends OncePerRequestFilter {
 
@@ -36,6 +38,11 @@ public class CsrfOriginFilter extends OncePerRequestFilter {
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 			throws ServletException, IOException {
+		if (SecurityContextHolder.getContext().getAuthentication() instanceof OeaAuthentication bearer
+				&& bearer.bearer()) {
+			chain.doFilter(request, response);
+			return;
+		}
 		if (!SAFE_METHODS.contains(request.getMethod())) {
 			String origin = request.getHeader("Origin");
 			if (origin != null && !originAllowed(request, origin)) {

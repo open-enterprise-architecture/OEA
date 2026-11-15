@@ -50,9 +50,9 @@
   - `no-store`, and the `Authorization` header only.
 - [ADR-028](../../../adrs/ADR-028-backend-layered-architecture.md):
   - the token store in `core/access`, next to `ServiceAccountStore`;
-  - issuance, check, revocation and cleanup in `app/access` (`AccessTokens`);
+  - issuance, check and cleanup in `app/login` (`AccessTokens`, `AccessTokenCleanup`), next to `LoginThrottle`, since `app/login` already depends on `app/access`; the revocation in `app/access` (`ServiceAccounts`) through the core store;
   - the filter in `config/security`;
-  - the endpoint in `api` (the generated `IdentityApi`).
+  - the endpoint in `IdentityController` (`api/identity`, the generated `IdentityApi`), with the RFC 6749 errors in `ApiExceptionHandler`.
 - [ADR-032](../../../adrs/ADR-032-authorization-model.md) §7: the token carries no permissions, and `PermissionResolver` resolves them per request.
 - [ADR-033](../../../adrs/ADR-033-audit-trail-hardening.md) §7 and REQ-174: `agentId` comes only from the authenticated client ID. `X-Agent-Id` stays informational.
 - [ADR-035](../../../adrs/ADR-035-electron-security-baseline.md): the Electron client will present the same token through its main-process proxy. Nothing here may tie the check to service accounts beyond the issuing path.
@@ -84,7 +84,7 @@
 
 ### D3 – Token endpoint
 
-`AccessTokenController` (`api/identity`) implements `issueClientCredentialsToken` and writes RFC 6749 responses (`OAuthError`), not problem documents.
+`IdentityController` (`api/identity`) implements `issueClientCredentialsToken`. Errors are RFC 6749 responses (`OAuthError`), not problem documents, written by `ApiExceptionHandler` for `OAuthRequestException` and `AccessTokens.InvalidClientException`; a missing `grant_type` (`MissingServletRequestParameterException`) is `invalid_request` there for operations marked `@OAuthErrorResponse`, read from the handler method and never from the path (the rule of `ApiExceptionHandlerTests`).
 
 - **Parsing:**
   - the body must be `application/x-www-form-urlencoded` with exactly `grant_type`;
@@ -104,7 +104,7 @@
 
 ### D4 – Limits
 
-- **Throttle:** `LoginThrottle` is generalized to a key-based `AuthThrottle`, or gets client keys. The keys are `client:<client_id or the raw value>` (the backoff of `account:`) and `address:<forwarded address>` (shared with logins, 100 per 10 minutes). The token endpoint uses the same rules as the login (owner decision 2026-11-15). A success resets only the client key.
+- **Throttle:** `LoginThrottle` is generalized to a key-based `AuthThrottle`, or gets client keys. The keys are `client:<client_id or the raw value>` (the backoff of `account:`: locked after the fifth failure within 15 minutes) and `address:<forwarded address>` (shared with logins, 100 per 10 minutes). The token endpoint uses the same rules as the login (owner decision 2026-11-15). A success resets only the client key.
 - **Concurrency:** a fair `Semaphore(4)` around the hash check, with `tryAcquire(2, SECONDS)`. A timeout gives 429 with `Retry-After: 1`, and counts neither as a success nor as a failure.
 - **Why:** the decision of 2026-11-15. The `auth_throttle` table works across several backend instances, while the semaphore is per instance, which is sufficient for a hashing guard.
 
@@ -140,13 +140,13 @@
 
 ### D7 – Revocation and cleanup
 
-- `ServiceAccounts.rotate` and `.deactivate` call `AccessTokens.revokeAll(clientId, reason)` in their transaction. It sets `revoked_at` and writes one `token.revoked` per token (token ID, client ID, reason).
+- `ServiceAccounts.rotate` and `.deactivate` call `AccessTokenStore.revokeAll(clientId, reason, now)` in their transaction. It sets `revoked_at` and writes one `token.revoked` per token (token ID, client ID, reason).
 - `AccessTokenCleanup` is `@Scheduled` with the interval `oea.access-tokens.cleanup-interval`, default PT1H. It deletes rows with `expires_at <= now - 1 day`, with an injected `Clock`. Deletion writes no audit event, since `token.issued` already recorded the token.
 
 ### D8 – Measurement
 
 - `AccessTokens` records the timer `oea.token.processing`, tagged `outcome` (`issued`, `denied`, `throttled`), around the whole request handling.
-- `LoginLatencyIT` creates 1,000 active service accounts through SQL. They share one secret, whose argon2id hash is computed once and stored for every account, since a hash string carries its own salt and stays valid on any row. It then measures 200 token requests after 5 for warm-up, through the timer difference as for logins, against p95 < 300 ms.
+- `LoginLatencyIT` creates 1,000 active service accounts through SQL. They share one secret, whose argon2id hash is computed once and stored for every account, since a hash string carries its own salt and stays valid on any row. It then measures 30 token requests after 5 for warm-up, through the timer difference as for logins, against p95 < 300 ms (first result: p95 33 ms).
 - **Why one check per request suffices:** the argon2id check dominates the processing time, and the endpoint runs exactly one per request; the measurement shows whether the parameters of REQ-169 fit the target.
 
 ## Data Model

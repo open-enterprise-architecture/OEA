@@ -2,9 +2,9 @@
 
 **ID**: US-142
 **Story Points**: 3
-**Status**: in-progress
+**Status**: done
 **Sprint**: S12
-**Implementation**: OpenSpec change `us-142-service-accounts`, commit ea1221a (#277) – `createServiceAccount`, `listServiceAccounts`, `getServiceAccount`, `updateServiceAccount`, `rotateServiceAccountCredentials`, `deleteServiceAccount` (`service-account:manage`): the account with a secret shown once and stored as an argon2id hash, a mandatory expiry, rotation and final deactivation; the screen SCR-041 (AC1, AC3 for the secret; AC4 shown by the permissions of the account). AC2 and the token side of AC3 and AC4 follow with change `s12-client-credentials-token`. Realigned 2026-11-14
+**Implementation**: OpenSpec change `us-142-service-accounts`, commit ea1221a (#277) – `createServiceAccount`, `listServiceAccounts`, `getServiceAccount`, `updateServiceAccount`, `rotateServiceAccountCredentials`, `deleteServiceAccount` (`service-account:manage`): the account with a secret shown once and stored as an argon2id hash, a mandatory expiry, rotation and final deactivation; the screen SCR-041 (AC1, AC3 for the secret; AC4 shown by the permissions of the account).; OpenSpec change `s12-client-credentials-token` – `issueClientCredentialsToken` and bearer authentication by ADR-050 (AC2, the token side of AC3 and AC4). Realigned 2026-11-14 and 2026-11-15
 
 ## Story
 
@@ -27,8 +27,8 @@ As a system administrator, I want to create service accounts and assign them the
 **AC2**:
 
 - Given: service account with `clientId` + `clientSecret`
-- When: OAuth2 client credentials grant against the auth provider
-- Then: an access token identifying the service account by its `client_id` is received; it carries no roles or permissions, and requests with it are authorized with the permissions of `integration-writer` resolved server-side (ADR-032 §7)
+- When: OAuth2 client credentials grant at the token endpoint `POST /oauth2/token` of OEA
+- Then: an opaque access token (ADR-050) is received, which the server links to the `client_id`; it carries no information, no roles and no permissions, and requests with it are authorized with the permissions of `integration-writer` resolved server-side (ADR-032 §7)
 
 **AC3**:
 
@@ -47,7 +47,7 @@ As a system administrator, I want to create service accounts and assign them the
 - `persons.person_type TEXT NN DEFAULT 'human'` (enum: human | service-account)
 - New table `machine_credentials` as in the business object [machine-credential](../../business-objects/machine-credential.md): one row per secret version with its own `id`, the stable `client_id`, `status` (active, rotated, revoked) and the mandatory `expires_at`
 - Role `integration-writer` in the `roles` table as a default role (is_builtin=true)
-- Token claims: `client_id` only; no `roles` claim – permissions are resolved server-side per request (ADR-032 §7, aligned 2026-10-13)
+- The access token is opaque (ADR-050): the server links it to the `client_id`; it carries no claims – permissions are resolved server-side per request (ADR-032 §7, aligned 2026-10-13, realigned 2026-11-15)
 - Only roles flagged `assignableToServiceAccounts` may be assigned (ADR-032 SoD-4, US-149)
 - `agent_id` is taken only from the authenticated client (`client_id` of the token); an `X-Agent-Id` header is ignored (REQ-154, REQ-174)
 
@@ -68,3 +68,5 @@ As a system administrator, I want to create service accounts and assign them the
 ## Notes
 
 Realigned by OpenSpec change `us-142-service-accounts` (owner decisions 2026-11-14): the request takes a list `roles` (default `["integration-writer"]`) and an optional `secretValidityDays` instead of a single `role`; `machine_credentials` follows the business object (one row per secret version) instead of the table sketched in the technical notes. AC2 and the use of the old secret in AC3 need the token endpoint and follow with change `s12-client-credentials-token`.
+
+Realigned by OpenSpec change `s12-client-credentials-token` (owner decision 2026-11-15): the access token of AC2 is the opaque token of ADR-050, issued by the token endpoint of OEA itself, not by an external auth provider.

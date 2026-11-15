@@ -1,5 +1,6 @@
 package io.oea.config.security;
 
+import io.oea.app.login.AccessTokens;
 import io.oea.app.security.PermissionDenials;
 import io.oea.app.security.PermissionResolver;
 import io.oea.app.security.Sessions;
@@ -71,7 +72,7 @@ public class SecurityConfiguration implements WebMvcConfigurer {
 	}
 
 	@Bean
-	SecurityFilterChain securityFilterChain(HttpSecurity http, Sessions sessions,
+	SecurityFilterChain securityFilterChain(HttpSecurity http, Sessions sessions, AccessTokens tokens,
 			@Value("${oea.security.cors.allowed-origins:}") List<String> allowedOrigins) throws Exception {
 		http.csrf((csrf) -> csrf.disable())
 			.httpBasic((basic) -> basic.disable())
@@ -92,7 +93,8 @@ public class SecurityConfiguration implements WebMvcConfigurer {
 				.addHeaderWriter(new DelegatingRequestMatcherHeaderWriter(PORTAL,
 						new ContentSecurityPolicyHeaderWriter(PORTAL_CONTENT_SECURITY_POLICY)))
 				.frameOptions((frame) -> frame.deny()))
-			.addFilterBefore(new OeaSessionFilter(sessions), AnonymousAuthenticationFilter.class)
+			.addFilterBefore(new OeaTokenFilter(tokens), AnonymousAuthenticationFilter.class)
+			.addFilterAfter(new OeaSessionFilter(sessions), OeaTokenFilter.class)
 			.addFilterAfter(new CsrfOriginFilter(allowedOrigins), OeaSessionFilter.class)
 			.exceptionHandling((exceptions) -> exceptions
 				.authenticationEntryPoint((request, response, ex) -> Problems.write(response,

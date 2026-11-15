@@ -29,15 +29,15 @@ public class AuditWriter {
 
 	private static final String INSERT = """
 			INSERT INTO audit.events (event_type, event_category, severity, outcome, source, source_ip, request_id,
-			                          actor_type, actor_person_id, actor_admin_id, target_type, target_id, details)
-			VALUES (?, ?, ?, ?, ?, ?::inet, ?, ?, ?, ?, ?, ?, ?::jsonb)
+			                          actor_type, actor_person_id, actor_admin_id, agent_id, target_type, target_id, details)
+			VALUES (?, ?, ?, ?, ?, ?::inet, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)
 			RETURNING id, chain_seq, record_hash""";
 
 	private static final String INSERT_FOR_ENTITY = """
 			INSERT INTO audit.events (event_type, event_category, severity, outcome, source, source_ip, request_id,
-			                          actor_type, actor_person_id, actor_admin_id, target_type, target_id, details,
+			                          actor_type, actor_person_id, actor_admin_id, agent_id, target_type, target_id, details,
 			                          entity_id, entity_name, agent_label, agent_run)
-			VALUES (?, ?, ?, ?, ?, ?::inet, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?)
+			VALUES (?, ?, ?, ?, ?, ?::inet, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?)
 			RETURNING id, chain_seq, record_hash""";
 
 	private static final String INSERT_CHANGE = """
@@ -79,7 +79,8 @@ public class AuditWriter {
 				(ResultSet rs, int rowNum) -> new AppendedLink(rs.getLong(1), rs.getLong(2), rs.getBytes(3)),
 				event.eventType(), event.category().dbValue(), event.severity().dbValue(), event.outcome().dbValue(),
 				event.source().dbValue(), sourceIp(), MDC.get(REQUEST_ID), event.actor().type(),
-				event.actor().personId(), event.actor().adminId(), event.targetType(), event.targetId(),
+				event.actor().personId(), event.actor().adminId(), event.actor().agentId(), event.targetType(),
+				event.targetId(),
 				event.details().isEmpty() ? null : this.json.writeValueAsString(event.details()), entity.entityId(),
 				entity.entityName(), agent.label(), agent.run());
 		if (changes.isEmpty()) {
@@ -143,7 +144,7 @@ public class AuditWriter {
 				rs.getLong(2), rs.getBytes(3)), event.eventType(), event.category().dbValue(),
 				event.severity().dbValue(), event.outcome().dbValue(), event.source().dbValue(), sourceAddress,
 				requestId, event.actor().type(), event.actor().personId(), event.actor().adminId(),
-				event.targetType(), event.targetId(),
+				event.actor().agentId(), event.targetType(), event.targetId(),
 				event.details().isEmpty() ? null : this.json.writeValueAsString(event.details()));
 	}
 
