@@ -2,7 +2,7 @@ import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { session } from '../session/store'
-import { crmState, HISTORY_IDS, historyApi, KURT, manyVersions, ME_PORTAL_ONLY, ME_RESTORER, ME_WRITER, MICHAEL, restoredVersions } from '../test/history'
+import { crmState, HISTORY_IDS, historyApi, KURT, manyVersions, ME_PORTAL_ONLY, ME_RESTORER, ME_WRITER, MICHAEL, partiallyRestoredVersions, restoredVersions } from '../test/history'
 import { testRouter } from '../test/router'
 import EntityHistoryPage from './EntityHistoryPage.vue'
 
@@ -293,5 +293,21 @@ describe('EntityHistoryPage', () => {
     expect(wrapper.get('[data-testid="history-reason-6"]').text()).toBe('Reason: Wrong lifecycle status reverted')
     expect(wrapper.find('[data-testid="history-restored-from-5"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="history-restore-6"]').exists()).toBe(false)
+  })
+  it('offers "Partially restore" with the same permissions as the restore', async () => {
+    const restorer = await mountPage({ me: ME_RESTORER })
+    expect(restorer.find('[data-testid="history-partial-restore-5"]').exists()).toBe(false)
+    expect(restorer.find('[data-testid="history-partial-restore-4"]').exists()).toBe(true)
+    restorer.unmount()
+    const writer = await mountPage({ me: ME_WRITER })
+    expect(writer.findAll('[data-testid^="history-partial-restore-"]')).toHaveLength(0)
+  })
+
+  it('marks a partially restored version with its fields', async () => {
+    const wrapper = await mountPage({
+      me: ME_RESTORER,
+      entities: { [HISTORY_IDS.crm]: { name: 'CRM System', versions: partiallyRestoredVersions(), state: crmState } },
+    })
+    expect(wrapper.get('[data-testid="history-restored-from-6"]').text()).toBe('Partially restored from v4 (Description, Owner)')
   })
 })

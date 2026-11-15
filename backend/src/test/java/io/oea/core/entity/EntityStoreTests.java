@@ -168,6 +168,61 @@ class EntityStoreTests {
 			.withMessageContaining("permission denied");
 	}
 
+	// us-104-partial-restore D1: restored fields
+
+	@Test
+	void partialRestoreHeaderRecordsItsFields() {
+		StoredEntity entity = entityAtVersion(2);
+
+		update(entity, new Restore(1, null, List.of("description", "name")));
+
+		assertThat(owner.queryForObject(
+				"SELECT array_to_string(restored_fields, ',') FROM entity_version_headers WHERE entity_id = ? AND version = 3",
+				String.class, entity.id())).isEqualTo("description,name");
+	}
+
+	@Test
+	void oneRestoredFieldIsAccepted() {
+		StoredEntity entity = entityAtVersion(2);
+
+		update(entity, new Restore(1, null, List.of("description")));
+
+		assertThat(owner.queryForObject(
+				"SELECT cardinality(restored_fields) FROM entity_version_headers WHERE entity_id = ? AND version = 3",
+				Integer.class, entity.id())).isEqualTo(1);
+	}
+
+	@Test
+	void emptyRestoredFieldsAreRejected() {
+		StoredEntity entity = entityAtVersion(2);
+
+		assertThatExceptionOfType(DataIntegrityViolationException.class)
+			.isThrownBy(() -> update(entity, new Restore(1, null, List.of())))
+			.withMessageContaining("entity_version_headers_restored_fields");
+	}
+
+	@Test
+	void restoredFieldsWithoutRestoreAreRejected() {
+		StoredEntity entity = entityAtVersion(1);
+
+		assertThatExceptionOfType(DataIntegrityViolationException.class)
+			.isThrownBy(() -> app.update("""
+					INSERT INTO entity_version_headers (entity_id, version, changed_by, restored_fields)
+					VALUES (?, 2, ?, ARRAY['name'])""", entity.id(), person))
+			.withMessageContaining("entity_version_headers_restored_fields");
+	}
+
+	@Test
+	void fullRestoreHeaderRecordsNoFields() {
+		StoredEntity entity = entityAtVersion(2);
+
+		update(entity, new Restore(1, "Reason"));
+
+		assertThat(owner.queryForObject(
+				"SELECT restored_fields IS NULL FROM entity_version_headers WHERE entity_id = ? AND version = 3",
+				Boolean.class, entity.id())).isTrue();
+	}
+
 	@Test
 	void lockReadsTheEntityById() {
 		StoredEntity entity = entityAtVersion(3);

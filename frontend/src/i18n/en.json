@@ -1006,7 +1006,8 @@
     "reasons": {
       "write-protected": "Not restored: insufficient permission",
       "not-mapped": "Not restored: the property is no longer part of the entity type",
-      "invalid-value": "Not restored: the value is no longer valid"
+      "invalid-value": "Not restored: the value is no longer valid",
+      "not-in-source": "Not restored: not present in the source version"
     },
     "warnings": "Check after the restore",
     "mandatoryMissing": "The mandatory property {property} will have no value.",
@@ -1024,5 +1025,47 @@
     "done": "Version {version} restores the state of version {target}.",
     "restoredFrom": "Restored from v{version}",
     "reasonShown": "Reason: {reason}"
+  },
+  "partialRestore": {
+    "action": "Partially restore",
+    "title": "Partially restore",
+    "intro": "Choose which fields get the value of the source version. Every other field stays unchanged.",
+    "source": "Source version",
+    "sourceItem": "Version {version} · {time} · {person}",
+    "sourceInfo": "Version {version}, changed on {time} by {person}",
+    "steps": "Steps",
+    "step": {
+      "general": "General",
+      "properties": "Properties",
+      "connections": "Connections",
+      "summary": "Summary"
+    },
+    "noDifferences": "No differences in this step: {step}",
+    "field": "Field",
+    "sourceValue": "Value in v{version}",
+    "currentValue": "Current value",
+    "restore": "Restore?",
+    "select": "Restore {field}",
+    "identical": "Identical",
+    "notInSource": "(not present in source version)",
+    "after": "After the restore: {value}",
+    "connectionsIntro": "Connections are restored on their own, from their history. This step changes nothing.",
+    "change": {
+      "changed": "Changed since",
+      "added": "Added since"
+    },
+    "direction": {
+      "outgoing": "to {other}",
+      "incoming": "from {other}"
+    },
+    "openHistory": "Open history",
+    "nothingSelected": "No field is selected. Go back and select the fields to restore.",
+    "othersUnchanged": "Every field that is not selected stays unchanged.",
+    "back": "Back",
+    "skip": "Skip",
+    "next": "Next",
+    "confirm": "Partially restore",
+    "selectionOutdated": "The selection no longer fits the current state. The preview was reloaded.",
+    "restoredFrom": "Partially restored from v{version} ({fields})"
   }
 }

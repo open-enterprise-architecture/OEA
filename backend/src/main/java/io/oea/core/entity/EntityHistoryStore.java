@@ -1,5 +1,6 @@
 package io.oea.core.entity;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -21,7 +22,8 @@ import org.springframework.stereotype.Repository;
 public class EntityHistoryStore {
 
 	private static final String HEADERS = """
-			SELECT h.version, h.changed_at, h.changed_by, p.name, h.restored_from_version, h.change_reason
+			SELECT h.version, h.changed_at, h.changed_by, p.name, h.restored_from_version, h.change_reason,
+			       h.restored_fields
 			FROM entity_version_headers h JOIN persons p ON p.id = h.changed_by
 			WHERE h.entity_id = ?""";
 
@@ -41,10 +43,10 @@ public class EntityHistoryStore {
 
 	/** A version header; a version written by a restore names its target version and reason (us-101). */
 	public record Version(int version, Instant changedAt, Actor changedBy, Integer restoredFromVersion,
-			String reason) {
+			String reason, List<String> restoredFields) {
 
 		public Version(int version, Instant changedAt, Actor changedBy) {
-			this(version, changedAt, changedBy, null, null);
+			this(version, changedAt, changedBy, null, null, null);
 		}
 
 	}
@@ -86,8 +88,8 @@ public class EntityHistoryStore {
 			sql.append(" OFFSET ").append(offset);
 		}
 		return this.jdbc.query(sql.toString(), (rs, n) -> new Version(rs.getInt(1), rs.getTimestamp(2).toInstant(),
-				new Actor(rs.getLong(3), rs.getString(4)), rs.getObject(5, Integer.class), rs.getString(6)),
-				arguments.toArray());
+				new Actor(rs.getLong(3), rs.getString(4)), rs.getObject(5, Integer.class), rs.getString(6),
+				textArray(rs.getArray(7))), arguments.toArray());
 	}
 
 	/** The number of versions that match the filters. */
@@ -122,6 +124,33 @@ public class EntityHistoryStore {
 				.add(new ChangedField(null, rs.getObject(2, UUID.class)));
 		}, entityId, numbers);
 		return changes;
+	}
+
+	/** A connection of an entity changed or created after a time (us-104-partial-restore D3). */
+	public record ChangedConnection(int entityId, String name, String otherEndpoint, boolean outgoing, boolean added) {
+	}
+
+	/**
+	 * The connections in which the entity is source or target and that have a version after
+	 * {@code time}: created after it ({@code added}) or changed; created ones first, then by name.
+	 */
+	public List<ChangedConnection> connectionsChangedSince(int entityId, Instant time) {
+		return this.jdbc.query("""
+				SELECT c.entity_id, e.name, o.name, c.source_entity_id = ?, first.changed_at > ?
+				FROM entity_connections c
+				JOIN entities e ON e.id = c.entity_id
+				JOIN entities o ON o.id = CASE WHEN c.source_entity_id = ? THEN c.target_entity_id ELSE c.source_entity_id END
+				LEFT JOIN entity_version_headers first ON first.entity_id = c.entity_id AND first.version = 1
+				WHERE (c.source_entity_id = ? OR c.target_entity_id = ?)
+				  AND EXISTS (SELECT 1 FROM entity_version_headers h WHERE h.entity_id = c.entity_id AND h.changed_at > ?)
+				ORDER BY 5 DESC, lower(e.name), c.entity_id""",
+				(rs, n) -> new ChangedConnection(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getBoolean(4),
+						rs.getBoolean(5)),
+				entityId, Timestamp.from(time), entityId, entityId, entityId, Timestamp.from(time));
+	}
+
+	private static List<String> textArray(java.sql.Array array) throws java.sql.SQLException {
+		return (array != null) ? List.of((String[]) array.getArray()) : null;
 	}
 
 	/** Every person who made a version of the entity, without filters, by name. */

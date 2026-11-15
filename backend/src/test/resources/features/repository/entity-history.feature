@@ -178,3 +178,13 @@ Feature: Change history of an entity
     Given the history entity "CRM System" with 6 versions by "Kurt"
     When the enterprise architect reads the restore history of "CRM System" up to version 2
     Then the restore history lists the versions "2, 1" and names 6 as the current version
+
+  # Requirement: Partial restore marker in the history (us-104-partial-restore)
+
+  @US-106 @AC3 @REQ-106
+  Scenario: Partially restored version in the timeline
+    Given the history entity "CRM System" with 6 versions by "Kurt"
+    And the public property "owner"
+    And version 6 of "CRM System" was partially restored from version 4 with "description, owner"
+    When the enterprise architect reads the restore history of "CRM System"
+    Then version 6 in the restore history carries the restored fields "description, owner" from version 4

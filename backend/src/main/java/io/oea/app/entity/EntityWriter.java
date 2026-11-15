@@ -56,9 +56,10 @@ public class EntityWriter {
 			this(batchId, agent, null);
 		}
 
-		/** The context of a restore to {@code fromVersion}. */
-		public static WriteContext restore(int fromVersion, String reason) {
-			return new WriteContext(UUID.randomUUID(), AuditEvent.Agent.NONE, new EntityStore.Restore(fromVersion, reason));
+		/** The context of a restore to {@code fromVersion}; {@code fields} of a partial one, else {@code null}. */
+		public static WriteContext restore(int fromVersion, String reason, List<String> fields) {
+			return new WriteContext(UUID.randomUUID(), AuditEvent.Agent.NONE,
+					new EntityStore.Restore(fromVersion, reason, fields));
 		}
 
 	}
@@ -165,6 +166,9 @@ public class EntityWriter {
 			details.put("restoredFromVersion", context.restore().fromVersion());
 			if (context.restore().reason() != null) {
 				details.put("reason", context.restore().reason());
+			}
+			if (context.restore().fields() != null) {
+				details.put("restoredFields", context.restore().fields());
 			}
 		}
 		// ADR-033 §3: no names of modeled persons in the audit schema

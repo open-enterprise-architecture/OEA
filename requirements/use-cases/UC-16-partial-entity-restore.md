@@ -5,9 +5,9 @@ status: draft
 priority: should
 target_release: v1.0
 complexity: large
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-27
-last_updated: 2026-06-27
+last_updated: 2026-11-15
 primary_actor: SH-03
 secondary_actors: []
 references:
@@ -88,7 +88,7 @@ As with UC-15, the partial restore is itself a traceable change: the current sta
 ### On Success
 
 - Only the selected fields have the value of the chosen target version; all other fields remain at the current state
-- The current state before the partial restore is stored as an `entity_versions` snapshot
+- The current state before the partial restore remains unchanged as the previous version in the history (delta versioning, ADR-022)
 - The new version entry contains `restoredFromVersion` and `restoredFields` (explicit list of the restored fields)
 - The entity's `version` counter was increased by 1
 
@@ -145,14 +145,14 @@ As with UC-15, the partial restore is itself a traceable change: the current sta
 
 ### Step 3 — Connections
 
-9. **System**: shows three groups of connections that reference this entity:
+9. **System**: shows the connections that reference this entity and changed or were added since v4:
 
-   **Connections with properties changed since v4** (selectively restorable):
+   **Connections changed since v4** (restored on their own):
 
-   | Connection | Changed properties | Action |
+   | Connection | Other endpoint | Action |
    |---|---|---|
-   | ERP→CRM Data Sync (id=88) | label: "old" → "new" | "Restore properties" → opens UC-16 for id=88 |
-   | ERP runs-on Server-01 (id=91) | description changed | "Restore properties" → opens UC-16 for id=91 |
+   | ERP→CRM Data Sync (id=88) | CRM | "Open history" → the history (UC-14) of id=88, where it is restored in full (UC-15) or in part (UC-16) |
+   | ERP runs-on Server-01 (id=91) | Server-01 | "Open history" → the history of id=91 |
 
    **Connections added since v4** (informational):
 
@@ -160,13 +160,13 @@ As with UC-15, the partial restore is itself a traceable change: the current sta
    |---|---|---|
    | ERP→Cloud-DB DataFlow (id=105) | 2026-05-10 | Did not yet exist in v4 |
 
-   **Connections removed since v4** (informational; not directly restorable):
+   **Connections removed since v4** (informational; follows with the deletion of entities, #70):
 
    | Connection | Removed on | Note |
    |---|---|---|
    | ERP→Legacy-FTP (id=77) | 2026-04-01 | Removed connections can only be retrieved via soft-delete restore (not yet available) |
 
-   Connection properties cannot be restored directly in this step — Kurt is redirected via "Restore properties" to a new UC-16 run for the respective connection entity.
+   Connections cannot be restored in this step — Kurt opens the history of a connection and restores it there, separately from this run (owner decision 2026-11-15).
 
 10. **Kurt**: notes which connections he wants to handle separately; clicks "Next → Summary"
 
@@ -184,12 +184,12 @@ As with UC-15, the partial restore is itself a traceable change: the current sta
 
 12. **Kurt**: optionally enters a reason and clicks "Partially restore"
 13. **System**: performs the atomic partial restore:
-    - Snapshot of the current state → `entity_versions` (immutable)
+    - The current state stays unchanged as the previous version in the history (it is the snapshot; no copy is written, as in UC-15)
     - Only the selected fields are set to target values
     - `version` counter +1
-    - New `entity_versions` entry with `restoredFromVersion=4` and `restoredFields=["description","properties.owner","properties.criticality"]`
+    - New version entry with `restoredFromVersion=4` and `restoredFields` naming `description` and the IDs of `owner` and `criticality`
 14. **System**: shows success message; entity detail view shows the updated state
-15. **System**: in the timeline (UC-14) the new entry appears with "Partially restored from v4 (description, owner, criticality)"
+15. **System**: in the timeline (UC-14) the new entry appears with "Partially restored from v4 (Description, Owner, Criticality)"
 
 ## Alternative Flows
 
@@ -222,7 +222,7 @@ As with UC-15, the partial restore is itself a traceable change: the current sta
 ### E2 – Optimistic lock conflict
 
 - Condition: The entity was changed by someone else between wizard start and confirmation
-- Expected reaction: 409 with notice; wizard stays open; Kurt can reload the diff (A3)
+- Expected reaction: the restore requires `If-Match`: 412 `stale-version` with notice; the wizard stays open and reloads the preview, keeping the selection that is still restorable
 - Resumption: Kurt loads the current state and restarts the wizard
 
 ### E3 – Missing write permission
@@ -260,7 +260,7 @@ As with UC-15, the partial restore is itself a traceable change: the current sta
 | BR-03 | A partial restore without selected fields (`restoredFields` empty) MUST be rejected — it produces no new version state (no empty commits) | onRestore |
 | BR-04 | `restoredFields` in the new `entity_versions` entry contains the exact dot-notation list of the restored fields (e.g., `["description", "properties.owner"]`); non-selected fields do not appear in the list | onRestore |
 | BR-05 | Immutable fields (`id`, `entityTypeId`, connection endpoints, `createdAt`, `createdBy`) can be neither selected nor restored — they do not appear in the wizard | UI + API |
-| BR-06 | Connection properties are not restored directly in UC-16; the wizard shows them informatively and redirects to separate UC-16 instances for the respective connection entity | Step 3 |
+| BR-06 | Connections are not restored in UC-16; the wizard lists them informatively and links each changed connection to its own history, where it is restored separately | Step 3 |
 | BR-07 | Properties that did not yet exist in the metamodel in the source version (added after a later metamodel extension) are not selectable; they are shown as "(not present in source version)" | Step 2 |
 
 ## Extension of the EntityVersion BO
@@ -276,7 +276,7 @@ UC-16 requires an additional attribute on `EntityVersion`:
 - [ ] Wizard opens with prefilled source version from UC-14
 - [ ] Step 1: Diff of general properties; identical fields grayed out; only changed fields selectable
 - [ ] Step 2: Diff of all configured custom properties (including empty ones); properties without source value marked as not selectable
-- [ ] Step 3: Connections in three groups (changed/added/removed); changed connections with navigation to a separate UC-16 run
+- [ ] Step 3: Connections changed or added since the source version; changed connections with navigation to their own history
 - [ ] A1: Each step individually skippable
 - [ ] A2: Steps without differences are skipped automatically with a notice
 - [ ] A4: Confirmation button disabled if no fields are selected (BR-03)
@@ -285,7 +285,7 @@ UC-16 requires an additional attribute on `EntityVersion`:
 - [ ] New `entity_versions` entry contains `restoredFromVersion` and `restoredFields`
 - [ ] In UC-14 timeline: entry shows "Partially restored from vN (field list)"
 - [ ] BR-02: Atomic transaction; complete rollback on error
-- [ ] E2: Optimistic lock conflict is caught with 409 and reload option
+- [ ] E2: Optimistic lock conflict is caught with 412 and reload option
 
 ## Out of Scope
 

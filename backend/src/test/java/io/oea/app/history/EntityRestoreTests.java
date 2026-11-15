@@ -432,6 +432,196 @@ class EntityRestoreTests {
 				Integer.class, Integer.toString(this.entity))).isZero();
 	}
 
+	// us-104-partial-restore: Partial restore; Rejections of a partial restore; Restored fields
+
+	@Test
+	void partialRestoreOfTheSelectedFields() {
+		JsonNode result = ok(partial(architect(), List.of("description", key(this.owner)), null));
+
+		assertThat(keys(result.path("restored"))).containsExactly("description", key(this.owner));
+		assertThat(result.path("notRestored")).isEmpty();
+		assertThat(this.jdbc.queryForMap("SELECT name, description FROM entities WHERE id = ?", this.entity))
+			.containsEntry("name", "CRM System")
+			.containsEntry("description", "Old text");
+		assertThat(text(this.entity, this.owner)).isEqualTo("Kurt");
+		assertThat(text(this.entity, this.website)).isEqualTo("https://crm.example.org");
+		assertThat(text(this.entity, this.contact)).isEqualTo("crm-team");
+		assertThat(this.jdbc.queryForObject(
+				"SELECT array_to_string(restored_fields, ',') FROM entity_version_headers WHERE entity_id = ? AND version = 6",
+				String.class, this.entity)).isEqualTo("description," + this.owner);
+		assertThat(this.jdbc.queryForObject("""
+				SELECT details->>'restoredFields' FROM audit.events WHERE event_type = 'entity.restored' AND target_id = ?""",
+				String.class, Integer.toString(this.entity))).contains("description").contains(this.owner.toString());
+		// warnings only for restored fields: contact stays set
+		assertThat(result.path("warnings")).isEmpty();
+	}
+
+	@Test
+	void selectedWriteProtectedPropertyIsKeptAndListed() {
+		JsonNode result = ok(partial(architect(), List.of("description", key(this.investmentCost)), null));
+
+		assertThat(keys(result.path("restored"))).containsExactly("description");
+		assertThat(result.path("notRestored")).hasSize(1);
+		assertThat(result.path("notRestored").get(0).path("field").asString()).isEqualTo(key(this.investmentCost));
+		assertThat(result.path("notRestored").get(0).path("reason").asString()).isEqualTo("write-protected");
+		assertThat(text(this.entity, this.investmentCost)).isEqualTo("100");
+	}
+
+	@Test
+	void oneOfSeveralDifferingFieldsIsAccepted() {
+		assertThat(keys(ok(partial(architect(), List.of(key(this.website)), null)).path("restored")))
+			.containsExactly(key(this.website));
+		assertThat(text(this.entity, this.website)).isNull();
+		assertThat(text(this.entity, this.owner)).isEqualTo("Michael");
+	}
+
+	@Test
+	void allRestorableFieldsSelected() {
+		JsonNode result = ok(partial(architect(),
+				List.of("name", "description", key(this.owner), key(this.website), key(this.contact)), null));
+
+		assertThat(keys(result.path("restored"))).hasSize(5);
+		assertThat(result.path("warnings")).extracting((warning) -> warning.path("field").asString())
+			.containsExactly(key(this.contact));
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "''", "isLogical", "unknown-field" })
+	void invalidSelectionIsRejected(String selected) {
+		List<String> fields = selected.isEmpty() ? List.of() : List.of(selected);
+
+		MvcTestResult result = partial(architect(), fields, null);
+
+		assertThat(result).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+		assertThat(body(result).path("type").asString()).isEqualTo("urn:oea:problem:validation-failed");
+		assertThat(body(result).path("invalidFields")).extracting(JsonNode::asString).containsExactly("fields");
+		assertThat(version(this.entity)).isEqualTo(5);
+	}
+
+	@Test
+	void onlyNotRestorableFieldsSelected() {
+		MvcTestResult result = partial(architect(), List.of(key(this.investmentCost), key(this.legacyCode)), null);
+
+		assertThat(result).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+		assertThat(body(result).path("type").asString()).isEqualTo("urn:oea:problem:nothing-to-restore");
+		assertThat(version(this.entity)).isEqualTo(5);
+	}
+
+	@Test
+	void fullRestoreRecordsNoFields() {
+		ok(restore(architect(), this.entity, "\"5\"", 3, null));
+
+		assertThat(this.jdbc.queryForObject(
+				"SELECT restored_fields IS NULL FROM entity_version_headers WHERE entity_id = ? AND version = 6",
+				Boolean.class, this.entity)).isTrue();
+		JsonNode history = ok(this.mvc.get().uri("/api/v1/entities/" + this.entity + "/history").cookie(cookie(architect())).exchange());
+		assertThat(history.path("versions").get(0).path("restoredFields").isNull()).isTrue();
+	}
+
+	@Test
+	void historyListsTheRestoredFields() {
+		this.jdbc.update("INSERT INTO property_visibility_roles (property_def_id, role_id, access) VALUES (?, 'enterprise-architect', 'write')",
+				this.secretNote);
+		ok(partial(architect(), List.of("description", key(this.owner), key(this.secretNote)), null));
+
+		JsonNode fields = ok(this.mvc.get().uri("/api/v1/entities/" + this.entity + "/history").cookie(cookie(architect())).exchange())
+			.path("versions")
+			.get(0)
+			.path("restoredFields");
+		assertThat(keys(fields)).containsExactly("description", key(this.owner), key(this.secretNote));
+		assertThat(fields.get(0).path("label").asString()).isEqualTo("Description");
+		assertThat(fields.get(1).path("label").asString()).startsWith("owner ");
+		assertThat(fields.get(1).path("restricted").asBoolean()).isFalse();
+		// written but not readable: restricted in the history of the architect
+		assertThat(fields.get(2).path("restricted").asBoolean()).isTrue();
+		this.jdbc.update("""
+				INSERT INTO history_visibility_settings (role_id, metatype_id, mode)
+				VALUES ('enterprise-architect', ?, 'hide')""", this.metatype);
+		JsonNode hidden = ok(this.mvc.get().uri("/api/v1/entities/" + this.entity + "/history").cookie(cookie(architect())).exchange())
+			.path("versions")
+			.get(0)
+			.path("restoredFields");
+		assertThat(keys(hidden)).containsExactly("description", key(this.owner));
+	}
+
+	// us-104-partial-restore: Fields not restored (not-in-source)
+
+	@Test
+	void propertyAddedAfterTheTargetVersionIsKept() {
+		UUID costCenter = property("costCenter", "string", "public");
+		this.jdbc.update("""
+				INSERT INTO metatype_property_mappings (metatype_id, property_def_id, necessity, valid_from, scope, sort_order)
+				VALUES (?, ?, 'optional', DATE '2026-11-10', 'organization', 9)""", this.metatype, costCenter);
+		value(this.entity, costCenter, "value_text", "4711");
+		history(this.entity, costCenter, 5, "value_text", null);
+
+		JsonNode preview = ok(preview(architect(), this.entity, 3));
+		assertThat(reason(preview, costCenter)).isEqualTo("not-in-source");
+
+		ok(restore(architect(), this.entity, "\"5\"", 3, null));
+		assertThat(text(this.entity, costCenter)).isEqualTo("4711");
+	}
+
+	@Test
+	void warningsAreKeyedByProperty() {
+		assertThat(ok(preview(architect(), this.entity, 3)).path("warnings"))
+			.extracting((warning) -> warning.path("field").asString())
+			.containsExactly(key(this.contact));
+	}
+
+	// us-104-partial-restore: Connections in the preview
+
+	@Test
+	void previewListsChangedAndAddedConnections() {
+		UUID flow = metatype("Flow", true);
+		int other = entity(this.metatype, "ERP", 1);
+		// the target version 3 is at START + 3 hours: one second later counts, the same instant does not
+		Instant target = START.plus(Duration.ofHours(3));
+		connection(flow, "CRM to ERP", this.entity, other, START, target.plusSeconds(1));
+		connection(flow, "CRM to Mail", this.entity, other, START, target);
+		connection(flow, "CRM to Wiki", this.entity, other, START);
+		connection(flow, "ERP to CRM", other, this.entity, target.plusSeconds(3600));
+
+		JsonNode connections = ok(preview(architect(), this.entity, 3)).path("connections");
+
+		assertThat(connections).extracting((connection) -> connection.path("name").asString() + " "
+				+ connection.path("change").asString() + " " + connection.path("direction").asString() + " "
+				+ connection.path("otherEndpoint").asString())
+			.containsExactly("ERP to CRM added incoming ERP", "CRM to ERP changed outgoing ERP");
+	}
+
+	private MvcTestResult partial(TestSession session, List<String> fields, String reason) {
+		Map<String, Object> body = new java.util.LinkedHashMap<>();
+		body.put("targetVersion", 3);
+		body.put("fields", fields);
+		if (reason != null) {
+			body.put("reason", reason);
+		}
+		return this.mvc.post()
+			.uri("/api/v1/entities/" + this.entity + "/restore")
+			.cookie(cookie(session))
+			.header(CsrfOriginFilter.HEADER, session.csrfToken())
+			.header("If-Match", "\"5\"")
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(JsonMapper.shared().writeValueAsString(body))
+			.exchange();
+	}
+
+	/** A connection with one version per given time. */
+	private int connection(UUID type, String name, int source, int target, Instant... versions) {
+		Integer id = this.jdbc.queryForObject(
+				"INSERT INTO entities (metatype_id, name, version, created_by) VALUES (?, ?, ?, ?) RETURNING id",
+				Integer.class, type, name, versions.length, this.creator);
+		for (int version = 1; version <= versions.length; version++) {
+			this.jdbc.update(
+					"INSERT INTO entity_version_headers (entity_id, version, changed_by, changed_at) VALUES (?, ?, ?, ?)",
+					id, version, this.creator, Timestamp.from(versions[version - 1]));
+		}
+		this.jdbc.update("INSERT INTO entity_connections (entity_id, source_entity_id, target_entity_id) VALUES (?, ?, ?)",
+				id, source, target);
+		return id;
+	}
+
 	private TestSession architect() {
 		return this.principals.personWithIdpRole("enterprise-architect");
 	}

@@ -4,9 +4,9 @@ title: Partial restore three-step wizard
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-28
-last_updated: 2026-06-28
+last_updated: 2026-11-15
 author: requirements-engineer
 references:
   use_cases:
@@ -25,7 +25,7 @@ superseded_by: []
 
 ## Statement
 
-The system MUST provide a three-step wizard for selective restore: step 1 general properties (`name`, `description`, `isLogical`), step 2 custom properties (all configured properties from `snapshot.propertyDefinitions`), step 3 connection overview (informational: changed/added/removed). Each step MUST be individually skippable. Steps without differences between the source and the current state MUST be skipped automatically with a note.
+The system MUST provide a wizard for selective restore with four steps: step 1 general properties (`name`, `description`, `isLogical`), step 2 custom properties (the properties mapped at the source version and those with a value then or now), step 3 connection overview (informational: connections changed or added since the source version, each linked to its own history, where it is restored on its own; removed connections follow with deletion), step 4 summary with the selection, the warnings and an optional reason. Each step MUST be individually skippable. Steps without differences between the source and the current state MUST be skipped automatically with a note.
 
 ## Rationale
 
@@ -55,8 +55,8 @@ A full restore overwrites correct changes. The wizard enables surgical correctio
 
 ## Implementation Notes
 
-- Wizard steps with step indicator (1/3, 2/3, 3/3) and skip link
-- Diff calculation for each step separately; load only changed fields
+- Wizard SCR-029 with a step indicator, "Skip", "Back" and "Next" (change us-104-partial-restore)
+- One preview (`previewEntityRestore`) feeds all steps; the state of the source version supplies the identical fields
 - Step 3 (connection overview) is purely informational; no selection needed
 
 ## Change History
@@ -64,3 +64,4 @@ A full restore overwrites correct changes. The wizard enables surgical correctio
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-15 | Change us-104-partial-restore | Realigned: four steps including the summary; the connection step links each changed connection to its own history (statement, implementation notes; owner decisions 2026-11-15) |

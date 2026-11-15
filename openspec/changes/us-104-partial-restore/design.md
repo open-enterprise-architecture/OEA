@@ -102,7 +102,7 @@ The warning `field` is documented as the field key.
 
 ### D6 – Frontend
 
-**`PartialRestoreWizard.vue`** (new, SCR-029) is a `UModal` with `UStepper` and four steps. The source version comes from the versions of the page as a `USelect`; changing it reloads the preview and clears the selection.
+**`PartialRestoreWizard.vue`** (new, SCR-029) is a `UModal` with a step indicator (an ordered list with `aria-current="step"`) and four steps. The source version comes from the versions of the page as a `USelect`; changing it reloads the preview and clears the selection.
 
 - **"General" and "Properties"** are tables with a checkbox per differing field:
   - a checkbox is disabled for an identical field (the current state of each field comes from the preview, and identical fields come from the state of the source version via `fetchEntityVersion`);

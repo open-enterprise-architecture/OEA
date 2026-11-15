@@ -1006,7 +1006,8 @@
     "reasons": {
       "write-protected": "Nicht wiederhergestellt: fehlende Berechtigung",
       "not-mapped": "Nicht wiederhergestellt: Die Eigenschaft gehört nicht mehr zum Entitätstyp",
-      "invalid-value": "Nicht wiederhergestellt: Der Wert ist nicht mehr gültig"
+      "invalid-value": "Nicht wiederhergestellt: Der Wert ist nicht mehr gültig",
+      "not-in-source": "Nicht wiederhergestellt: in der Quellversion nicht vorhanden"
     },
     "warnings": "Nach der Wiederherstellung prüfen",
     "mandatoryMissing": "Die Pflichteigenschaft {property} wird keinen Wert haben.",
@@ -1024,5 +1025,47 @@
     "done": "Version {version} stellt den Stand von Version {target} wieder her.",
     "restoredFrom": "Wiederhergestellt aus v{version}",
     "reasonShown": "Grund: {reason}"
+  },
+  "partialRestore": {
+    "action": "Teilweise wiederherstellen",
+    "title": "Teilweise wiederherstellen",
+    "intro": "Wähle, welche Felder den Wert der Quellversion bekommen. Alle anderen Felder bleiben unverändert.",
+    "source": "Quellversion",
+    "sourceItem": "Version {version} · {time} · {person}",
+    "sourceInfo": "Version {version}, geändert am {time} von {person}",
+    "steps": "Schritte",
+    "step": {
+      "general": "Allgemein",
+      "properties": "Eigenschaften",
+      "connections": "Verbindungen",
+      "summary": "Zusammenfassung"
+    },
+    "noDifferences": "Keine Unterschiede in diesem Schritt: {step}",
+    "field": "Feld",
+    "sourceValue": "Wert in v{version}",
+    "currentValue": "Aktueller Wert",
+    "restore": "Wiederherstellen?",
+    "select": "{field} wiederherstellen",
+    "identical": "Identisch",
+    "notInSource": "(in der Quellversion nicht vorhanden)",
+    "after": "Nach der Wiederherstellung: {value}",
+    "connectionsIntro": "Verbindungen werden einzeln über ihre Historie wiederhergestellt. Dieser Schritt ändert nichts.",
+    "change": {
+      "changed": "Seitdem geändert",
+      "added": "Seitdem hinzugekommen"
+    },
+    "direction": {
+      "outgoing": "zu {other}",
+      "incoming": "von {other}"
+    },
+    "openHistory": "Historie öffnen",
+    "nothingSelected": "Kein Feld ist ausgewählt. Geh zurück und wähle die Felder aus, die wiederhergestellt werden sollen.",
+    "othersUnchanged": "Jedes nicht ausgewählte Feld bleibt unverändert.",
+    "back": "Zurück",
+    "skip": "Überspringen",
+    "next": "Weiter",
+    "confirm": "Teilweise wiederherstellen",
+    "selectionOutdated": "Die Auswahl passt nicht mehr zum aktuellen Stand. Die Vorschau wurde neu geladen.",
+    "restoredFrom": "Teilweise wiederhergestellt aus v{version} ({fields})"
   }
 }

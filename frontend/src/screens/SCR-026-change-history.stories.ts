@@ -4,7 +4,7 @@ import type { Me } from '../api/session'
 import AppHeader from '../components/AppHeader.vue'
 import EntityHistoryPage from '../pages/EntityHistoryPage.vue'
 import { session } from '../session/store'
-import { CRM_VERSIONS, crmState, HISTORY_IDS, historyApi, ME_HISTORY_READER, ME_RESTORER, MICHAEL, restoredVersions } from '../test/history'
+import { CRM_VERSIONS, crmState, HISTORY_IDS, historyApi, ME_HISTORY_READER, ME_RESTORER, MICHAEL, partiallyRestoredVersions, restoredVersions } from '../test/history'
 
 // SCR-026 Change history (UC-14, US-098; design D5 of us-098-entity-history): the versions of an
 // entity newest first with number, local time, person and the changed fields without values; a
@@ -13,7 +13,8 @@ import { CRM_VERSIONS, crmState, HISTORY_IDS, historyApi, ME_HISTORY_READER, ME_
 // expanded to its diff and its complete state, and the comparison of two versions (US-099,
 // US-100; design D5 of us-099-version-diff), and the action "Restore this version" with the
 // badge "Restored from vN" of a restored version (US-101, US-102; design D5 of
-// us-101-entity-restore) (docs/screens/SCREENS.md). The first story is the screen image.
+// us-101-entity-restore), and "Partially restore" with the marker of a partially restored version
+// (US-104, US-106; design D6 of us-104-partial-restore) (docs/screens/SCREENS.md). The first story is the screen image.
 
 function screen(id: number = HISTORY_IDS.crm): Story {
   const fetchFn = historyApi({ me: ME_HISTORY_READER }).fetch
@@ -147,5 +148,28 @@ export const Restored: Story = {
     await expect(canvas.getByText('Reason: Wrong lifecycle status reverted')).toBeInTheDocument()
     // every version but the current one offers the restore
     await expect(canvas.getAllByRole('button', { name: 'Restore this version' })).toHaveLength(CRM_VERSIONS.length)
+  },
+}
+
+export const PartiallyRestored: Story = {
+  render: () => ({
+    components: { AppHeader, EntityHistoryPage },
+    setup: () => {
+      session.me = ME_RESTORER as unknown as Me
+      session.loaded = true
+      const fetchFn = historyApi({
+        me: ME_RESTORER,
+        entities: { [HISTORY_IDS.crm]: { name: 'CRM System', versions: partiallyRestoredVersions(), state: crmState } },
+      }).fetch
+      return { fetchFn, id: String(HISTORY_IDS.crm) }
+    },
+    template: `
+      <AppHeader :fetch-fn="fetchFn" />
+      <EntityHistoryPage :id="id" :fetch-fn="fetchFn" />`,
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Partially restored from v4 (Description, Owner)')).toBeInTheDocument()
+    await expect(canvas.getAllByRole('button', { name: 'Partially restore' })).toHaveLength(CRM_VERSIONS.length)
   },
 }

@@ -2,8 +2,9 @@
 
 **ID**: US-104
 **Story Points**: 8
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S13
+**Implementation**: OpenSpec change `us-104-partial-restore` – "Partially restore" on SCR-026 opens the wizard SCR-029 with the source version prefilled and selectable, the steps General, Properties, Connections and Summary, automatic skipping with a note, and "Partially restore" disabled without a selection (AC1–AC3)
 
 ## Story
 

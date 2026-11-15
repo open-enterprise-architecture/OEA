@@ -206,3 +206,107 @@ Feature: Restore an entity to an earlier version
     Then the restore is answered with 200
     And version 6 of "CRM System" records the restore from version 3 with the reason "Wrong owner"
     And an "entity.restored" event names version 6 of "CRM System", the target version 3 and the changed field "owner"
+
+  # us-104-partial-restore — Requirement: Fields not restored
+
+  @US-105 @AC2 @REQ-105
+  Scenario: Property added after the target version
+    Given the restore property "costCenter" mapped as "optional" from "2026-11-10"
+    And the values of "costCenter" of "CRM System" by version are "-, -, -, -, 4711"
+    When the enterprise architect previews the restore of "CRM System" to version 3
+    Then the preview lists "costCenter" as not restored because "not-in-source"
+    When the enterprise architect restores "CRM System" to version 3
+    Then the restore is answered with 422 of type "nothing-to-restore"
+    And "costCenter" of "CRM System" is "4711"
+
+  # Requirement: Partial restore
+
+  @US-105 @REQ-105 @REQ-106 @UC-16
+  Scenario: Only the selected fields
+    Given the restore property "owner" mapped as "optional"
+    And the restore property "criticality" mapped as "optional"
+    And the values of "description" of "CRM System" by version are "Old, Old, Old, New, New"
+    And the values of "owner" of "CRM System" by version are "Kurt, Kurt, Kurt, Michael, Michael"
+    And the values of "criticality" of "CRM System" by version are "high, high, high, medium, medium"
+    When the enterprise architect restores the fields "description, owner" of "CRM System" to version 3
+    Then the restore is answered with 200
+    And "description" of "CRM System" is "Old"
+    And "owner" of "CRM System" is "Kurt"
+    And "criticality" of "CRM System" is "medium"
+
+  @REQ-105 @AC4 @REQ-162
+  Scenario: Selected write-protected property
+    Given the property "investmentCost" readable only by "enterprise-architect"
+    And "investmentCost" is mapped to the metatype of "CRM System" from "2026-01-01"
+    And the values of "description" of "CRM System" by version are "Old, Old, Old, New, New"
+    And the values of "investmentCost" of "CRM System" by version are "50, 50, 50, 100, 100"
+    When the enterprise architect restores the fields "description, investmentCost" of "CRM System" to version 3
+    Then the restore is answered with 200
+    And "description" of "CRM System" is "Old"
+    And "investmentCost" of "CRM System" is "100"
+    And the restore lists "investmentCost" as not restored because "write-protected"
+
+  # Requirement: Rejections of a partial restore
+
+  @US-106 @AC2 @REQ-106
+  Scenario: Empty selection
+    Given the values of "description" of "CRM System" by version are "Old, Old, Old, New, New"
+    When the enterprise architect restores the fields "" of "CRM System" to version 3
+    Then the restore is answered with 422 naming "fields"
+    And "CRM System" is still at version 5
+
+  @REQ-105 @AC1
+  Scenario: Identical field selected
+    Given the values of "description" of "CRM System" by version are "Old, Old, Old, New, New"
+    When the enterprise architect restores the fields "isLogical" of "CRM System" to version 3
+    Then the restore is answered with 422 naming "fields"
+    And "CRM System" is still at version 5
+
+  @US-105 @REQ-105
+  Scenario: One selected field of several
+    Given the restore property "owner" mapped as "optional"
+    And the restore property "criticality" mapped as "optional"
+    And the values of "description" of "CRM System" by version are "Old, Old, Old, New, New"
+    And the values of "owner" of "CRM System" by version are "Kurt, Kurt, Kurt, Michael, Michael"
+    And the values of "criticality" of "CRM System" by version are "high, high, high, medium, medium"
+    When the enterprise architect restores the fields "owner" of "CRM System" to version 3
+    Then the restore is answered with 200
+    And the restore lists only "owner" as restored
+    And "description" of "CRM System" is "New"
+
+  # Requirement: Restored fields of a version
+
+  @US-106 @AC1 @REQ-106
+  Scenario: Recorded fields
+    Given the restore property "owner" mapped as "optional"
+    And the values of "description" of "CRM System" by version are "Old, Old, Old, Old, New"
+    And the values of "owner" of "CRM System" by version are "Kurt, Kurt, Kurt, Kurt, Michael"
+    When the enterprise architect restores the fields "description, owner" of "CRM System" to version 4
+    Then the restore is answered with 200
+    And version 6 of "CRM System" records the restored fields "description, owner" from version 4
+    And the "entity.restored" event of "CRM System" names the restored fields "description, owner"
+
+  @US-106 @REQ-106
+  Scenario: Full restore records no fields
+    Given the values of "description" of "CRM System" by version are "Old, Old, Old, New, New"
+    When the enterprise architect restores "CRM System" to version 3
+    Then the restore is answered with 200
+    And version 6 of "CRM System" records no restored fields
+
+  # Requirement: Connections in the preview
+
+  @US-104 @REQ-104 @UC-16
+  Scenario: Changed and added connections
+    Given the values of "description" of "CRM System" by version are "Old, Old, Old, New, New"
+    And the connection "ERP→CRM" to "CRM System" changed after version 3
+    And the connection "ERP→Cloud-DB" from "CRM System" created after version 3
+    When the enterprise architect previews the restore of "CRM System" to version 3
+    Then the preview lists the connection "ERP→CRM" as "changed"
+    And the preview lists the connection "ERP→Cloud-DB" as "added"
+
+  @US-104 @REQ-104
+  Scenario: Unchanged connection
+    Given the values of "description" of "CRM System" by version are "Old, Old, Old, New, New"
+    And the connection "ERP→Mail" from "CRM System" unchanged since version 3
+    When the enterprise architect previews the restore of "CRM System" to version 3
+    Then the preview does not list the connection "ERP→Mail"
