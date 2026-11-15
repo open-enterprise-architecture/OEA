@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S13
-**Implementation**: OpenSpec change `us-104-partial-restore` – `restoreEntity` with `fields` records `restoredFields` (V33) and names them in `entity.restored`; an empty or unknown selection gives 422; the timeline shows "Partially restored from vN" with the labels (AC1–AC3; AC1 and AC3 realigned 2026-11-15: field keys and labels instead of dot notation)
+**Implementation**: OpenSpec change `us-104-partial-restore`, commit bc72b2e (#287) – `restoreEntity` with `fields` records `restoredFields` (V33) and names them in `entity.restored`; an empty or unknown selection gives 422; the timeline shows "Partially restored from vN" with the labels (AC1–AC3; AC1 and AC3 realigned 2026-11-15: field keys and labels instead of dot notation)
 
 ## Story
 
