@@ -5,7 +5,7 @@
 Traceability from use cases through requirements to user stories, derived from the
 frontmatter and reference sections of the artifacts.
 
-**Total UCs**: 24 | **Total REQs**: 204 | **Total USs**: 151
+**Total UCs**: 24 | **Total REQs**: 204 | **Total USs**: 152
 
 ---
 
@@ -152,7 +152,7 @@ frontmatter and reference sections of the artifacts.
 |---|---|---|---|---|
 | [REQ-038](req/REQ-038-create-solution.md) | Create a solution and describe the architecture vision | functional | must | [US-038](user-stories/US-038-create-solution.md) |
 | [REQ-039](req/REQ-039-landscape-baseline.md) | Show the current IT landscape as the solution baseline | functional | must | [US-039](user-stories/US-039-show-landscape-baseline.md) |
-| [REQ-040](req/REQ-040-capture-entity-deltas.md) | Capture the EntityDeltas of a solution | functional | must | [US-040](user-stories/US-040-delta-new-entity.md), [US-041](user-stories/US-041-delta-modified.md), [US-042](user-stories/US-042-delta-retiring.md), [US-045](user-stories/US-045-delta-new-entity-diagram.md) |
+| [REQ-040](req/REQ-040-capture-entity-deltas.md) | Capture the EntityDeltas of a solution | functional | must | [US-040](user-stories/US-040-delta-new-entity.md), [US-041](user-stories/US-041-delta-modified.md), [US-042](user-stories/US-042-delta-retiring.md), [US-045](user-stories/US-045-delta-new-entity-diagram.md), [US-152](user-stories/US-152-solution-go-live.md) |
 | [REQ-041](req/REQ-041-diff-view.md) | Diff view of current state vs. target state of a solution | functional | should | [US-043](user-stories/US-043-diff-view.md) |
 | [REQ-042](req/REQ-042-conflict-warning-parallel-solutions.md) | Conflict warning for parallel EntityDeltas | functional | should | [US-044](user-stories/US-044-conflict-warning.md) |
 | [REQ-066](req/REQ-066-entity-creation-workflow.md) | Configurable entity creation workflows (wizard) | functional | must | [US-069](user-stories/US-069-creation-wizard.md) |
@@ -331,7 +331,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-102](req/REQ-102-restore-audit-snapshot.md) | Audit snapshot before every restore | functional | should | [US-102](user-stories/US-102-restore-audit-snapshot.md) |
 | [REQ-103](req/REQ-103-restore-atomic-transaction.md) | Restore as an atomic transaction | functional | should | [US-103](user-stories/US-103-restore-transaction.md) |
 | [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md) | Delete from Diagram (DEL) vs. Delete Entity (Ctrl+DEL) via Context Menu | functional | must | – |
-| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | – |
+| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | [US-152](user-stories/US-152-solution-go-live.md) |
 | [REQ-190](req/REQ-190-soft-deleted-data-retention.md) | Retention of soft-deleted data | compliance | should | – |
 | [REQ-204](req/REQ-204-diagram-checkpoints.md) | Named checkpoints of diagrams | functional | should | – |
 
@@ -344,7 +344,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-104](req/REQ-104-partial-restore-wizard.md) | Partial restore three-step wizard | functional | should | [US-104](user-stories/US-104-partial-restore-wizard.md) |
 | [REQ-105](req/REQ-105-partial-restore-field-selection.md) | Partial Restore Selective Field Selection | functional | should | [US-105](user-stories/US-105-partial-restore-field-selection.md) |
 | [REQ-106](req/REQ-106-partial-restore-restored-fields.md) | Partial Restore restoredFields Log | functional | should | [US-106](user-stories/US-106-partial-restore-restored-fields.md) |
-| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | – |
+| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | [US-152](user-stories/US-152-solution-go-live.md) |
 
 ### [UC-17](use-cases/UC-17-manage-continuum-building-blocks.md): Manage Reusable Architecture Building Blocks
 
@@ -409,7 +409,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md), [US-151](user-stories/US-151-define-custom-authorization-role.md) |
 | [REQ-160](req/REQ-160-visibility-on-all-read-channels.md) | Property visibility enforced on every read channel | functional | must | – |
 | [REQ-161](req/REQ-161-visibility-configuration-governance.md) | Governance of visibility configuration and scoping connections | business-rule | must | [US-128](user-stories/US-128-admin-override-property-visibility.md), [US-151](user-stories/US-151-define-custom-authorization-role.md) |
-| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | – |
+| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | [US-152](user-stories/US-152-solution-go-live.md) |
 
 ### [UC-22](use-cases/UC-22-import-current-state-from-source-system.md): Import Current State from Source System
 
@@ -419,7 +419,7 @@ frontmatter and reference sections of the artifacts.
 |---|---|---|---|---|
 | [REQ-153](req/REQ-153-external-entity-external-id.md) | Create and Update Entities Idempotently via external_id | functional | should | [US-141](user-stories/US-141-entity-batch-import.md) |
 | [REQ-154](req/REQ-154-batch-write-upsert.md) | Batch Write for Entities and Connections | functional | should | [US-141](user-stories/US-141-entity-batch-import.md) |
-| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | – |
+| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | [US-152](user-stories/US-152-solution-go-live.md) |
 | [REQ-174](req/REQ-174-audit-tamper-resistance.md) | Audit store tamper resistance | compliance | must | – |
 | [REQ-176](req/REQ-176-machine-credential-lifecycle.md) | Machine credential lifecycle and scoping (OAuth2 client credentials only) | functional | must | [US-149](user-stories/US-149-assign-roles-to-service-account.md) |
 | [REQ-177](req/REQ-177-external-id-ownership.md) | Ownership of external ID namespaces | business-rule | should | – |
@@ -503,13 +503,13 @@ frontmatter and reference sections of the artifacts.
 | UC-02 | 8 | 26 |
 | UC-03 | 9 | 32 |
 | UC-04 | 12 | 49 |
-| UC-05 | 12 | 55 |
+| UC-05 | 13 | 63 |
 | UC-06 | 12 | 47 |
 | UC-07 | 8 | 31 |
 | UC-08 | 6 | 24 |
 | UC-09 | 9 | 46 |
 | UC-10 | 4 | 24 |
-| UC-11 | 7 | 26 |
+| UC-11 | 8 | 34 |
 | UC-12 | 4 | 15 |
 | UC-13 | 8 | 34 |
 | UC-14 | 3 | 13 |
@@ -523,13 +523,13 @@ frontmatter and reference sections of the artifacts.
 | UC-22 | 1 | 5 |
 | UC-23 | 9 | 35 |
 | UC-24 | 0 | 0 |
-| **Total** | | **614** |
+| **Total** | | **630** |
 
 ## 5. Coverage Gaps
 
 ### REQs without US
 
-[REQ-071](req/REQ-071-catalog-query-latency.md), [REQ-072](req/REQ-072-canvas-rendering-latency.md), [REQ-073](req/REQ-073-system-availability.md), [REQ-074](req/REQ-074-concurrent-user-scalability.md), [REQ-075](req/REQ-075-platform-independent-deployment.md), [REQ-082](req/REQ-082-data-backup-retention.md), [REQ-083](req/REQ-083-audit-log-retention.md), [REQ-129](req/REQ-129-data-encryption.md), [REQ-130](req/REQ-130-wcag-accessibility.md), [REQ-131](req/REQ-131-graph-traversal-latency.md), [REQ-135](req/REQ-135-dark-mode-system-default.md), [REQ-136](req/REQ-136-local-auth-configurable.md), [REQ-137](req/REQ-137-auto-sso-redirect.md), [REQ-143](req/REQ-143-inline-column-filter.md), [REQ-144](req/REQ-144-shape-palette-panel.md), [REQ-145](req/REQ-145-shape-drag-entity-lookup.md), [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md), [REQ-147](req/REQ-147-api-completeness-automation.md), [REQ-151](req/REQ-151-audit-schema-separation.md), [REQ-156](req/REQ-156-postgresql-only-database.md), [REQ-159](req/REQ-159-object-level-authorization.md), [REQ-160](req/REQ-160-visibility-on-all-read-channels.md), [REQ-162](req/REQ-162-property-write-protection-all-paths.md), [REQ-163](req/REQ-163-no-anonymous-access.md), [REQ-166](req/REQ-166-oidc-hardening-identity-binding.md), [REQ-168](req/REQ-168-local-auth-throttling.md), [REQ-169](req/REQ-169-password-storage-quality.md), [REQ-170](req/REQ-170-totp-replay-protection.md), [REQ-171](req/REQ-171-mfa-privileged-accounts.md), [REQ-172](req/REQ-172-reauthentication-sensitive-actions.md), [REQ-173](req/REQ-173-account-recovery-temporary-passwords.md), [REQ-174](req/REQ-174-audit-tamper-resistance.md), [REQ-177](req/REQ-177-external-id-ownership.md), [REQ-178](req/REQ-178-outbound-request-controls.md), [REQ-179](req/REQ-179-secured-raw-query-analytics.md), [REQ-180](req/REQ-180-safe-rendering-user-content.md), [REQ-181](req/REQ-181-electron-hardening-local-data.md), [REQ-182](req/REQ-182-signed-client-updates.md), [REQ-183](req/REQ-183-production-safe-defaults.md), [REQ-184](req/REQ-184-safe-import-parsing.md), [REQ-185](req/REQ-185-bounded-expression-evaluation.md), [REQ-186](req/REQ-186-rate-limits-resource-quotas.md), [REQ-187](req/REQ-187-http-security-baseline.md), [REQ-188](req/REQ-188-secrets-key-management.md), [REQ-189](req/REQ-189-data-subject-rights-persons.md), [REQ-190](req/REQ-190-soft-deleted-data-retention.md), [REQ-191](req/REQ-191-supply-chain-integrity.md), [REQ-192](req/REQ-192-ci-least-privilege.md), [REQ-193](req/REQ-193-generic-error-responses.md), [REQ-195](req/REQ-195-client-update-control.md), [REQ-196](req/REQ-196-user-manual.md), [REQ-197](req/REQ-197-presence-and-pointers.md), [REQ-198](req/REQ-198-live-changes-everywhere.md), [REQ-199](req/REQ-199-co-editing-automatic-merge.md), [REQ-200](req/REQ-200-sticky-notes-in-diagrams.md), [REQ-201](req/REQ-201-comment-threads-in-diagrams.md), [REQ-202](req/REQ-202-collaboration-latency-scale.md), [REQ-203](req/REQ-203-collaboration-security.md), [REQ-204](req/REQ-204-diagram-checkpoints.md)
+[REQ-071](req/REQ-071-catalog-query-latency.md), [REQ-072](req/REQ-072-canvas-rendering-latency.md), [REQ-073](req/REQ-073-system-availability.md), [REQ-074](req/REQ-074-concurrent-user-scalability.md), [REQ-075](req/REQ-075-platform-independent-deployment.md), [REQ-082](req/REQ-082-data-backup-retention.md), [REQ-083](req/REQ-083-audit-log-retention.md), [REQ-129](req/REQ-129-data-encryption.md), [REQ-130](req/REQ-130-wcag-accessibility.md), [REQ-131](req/REQ-131-graph-traversal-latency.md), [REQ-135](req/REQ-135-dark-mode-system-default.md), [REQ-136](req/REQ-136-local-auth-configurable.md), [REQ-137](req/REQ-137-auto-sso-redirect.md), [REQ-143](req/REQ-143-inline-column-filter.md), [REQ-144](req/REQ-144-shape-palette-panel.md), [REQ-145](req/REQ-145-shape-drag-entity-lookup.md), [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md), [REQ-147](req/REQ-147-api-completeness-automation.md), [REQ-151](req/REQ-151-audit-schema-separation.md), [REQ-156](req/REQ-156-postgresql-only-database.md), [REQ-159](req/REQ-159-object-level-authorization.md), [REQ-160](req/REQ-160-visibility-on-all-read-channels.md), [REQ-163](req/REQ-163-no-anonymous-access.md), [REQ-166](req/REQ-166-oidc-hardening-identity-binding.md), [REQ-168](req/REQ-168-local-auth-throttling.md), [REQ-169](req/REQ-169-password-storage-quality.md), [REQ-170](req/REQ-170-totp-replay-protection.md), [REQ-171](req/REQ-171-mfa-privileged-accounts.md), [REQ-172](req/REQ-172-reauthentication-sensitive-actions.md), [REQ-173](req/REQ-173-account-recovery-temporary-passwords.md), [REQ-174](req/REQ-174-audit-tamper-resistance.md), [REQ-177](req/REQ-177-external-id-ownership.md), [REQ-178](req/REQ-178-outbound-request-controls.md), [REQ-179](req/REQ-179-secured-raw-query-analytics.md), [REQ-180](req/REQ-180-safe-rendering-user-content.md), [REQ-181](req/REQ-181-electron-hardening-local-data.md), [REQ-182](req/REQ-182-signed-client-updates.md), [REQ-183](req/REQ-183-production-safe-defaults.md), [REQ-184](req/REQ-184-safe-import-parsing.md), [REQ-185](req/REQ-185-bounded-expression-evaluation.md), [REQ-186](req/REQ-186-rate-limits-resource-quotas.md), [REQ-187](req/REQ-187-http-security-baseline.md), [REQ-188](req/REQ-188-secrets-key-management.md), [REQ-189](req/REQ-189-data-subject-rights-persons.md), [REQ-190](req/REQ-190-soft-deleted-data-retention.md), [REQ-191](req/REQ-191-supply-chain-integrity.md), [REQ-192](req/REQ-192-ci-least-privilege.md), [REQ-193](req/REQ-193-generic-error-responses.md), [REQ-195](req/REQ-195-client-update-control.md), [REQ-196](req/REQ-196-user-manual.md), [REQ-197](req/REQ-197-presence-and-pointers.md), [REQ-198](req/REQ-198-live-changes-everywhere.md), [REQ-199](req/REQ-199-co-editing-automatic-merge.md), [REQ-200](req/REQ-200-sticky-notes-in-diagrams.md), [REQ-201](req/REQ-201-comment-threads-in-diagrams.md), [REQ-202](req/REQ-202-collaboration-latency-scale.md), [REQ-203](req/REQ-203-collaboration-security.md), [REQ-204](req/REQ-204-diagram-checkpoints.md)
 
 ### REQs without UC reference
 

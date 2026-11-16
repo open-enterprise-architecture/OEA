@@ -36,11 +36,11 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | Stakeholder profiles | 8 |
 | Use Cases | 24 |
 | Requirements | 204 |
-| User Stories | 151 |
+| User Stories | 152 |
 | ADRs | 50 |
 | Business Objects | 33 |
 
-_Concept: v0.20 · Last update: 2026-11-15._
+_Concept: v0.20 · Last update: 2026-11-16._
 <!-- /AUTO-GENERATED: stats -->
 
 **Next step**: Walking Skeleton based on UC-06 (Catalog Browser).
