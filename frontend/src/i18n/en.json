@@ -891,6 +891,43 @@
       "notice": "No change concerns other active solutions. | {n} change also concerns other active solutions. Please coordinate with their owners. | {n} changes also concern other active solutions. Please coordinate with their owners.",
       "saved": "Saved. {name} is also changed in: {solutions}. Please coordinate with their owners.",
       "baseline": "Changed in {n} other solution | Changed in {n} other solutions"
+    },
+    "goLive": {
+      "action": "Go live",
+      "confirmTitle": "Take {name} live",
+      "created": "{n} entity is created | {n} entities are created",
+      "modified": "{n} entity is changed | {n} entities are changed",
+      "retired": "{n} entity is retired | {n} entities are retired",
+      "retiredConnections": "{n} connection of a retired entity is retired too | {n} connections of retired entities are retired too",
+      "violations": "{n} value does not fit the current metamodel; it is taken live and listed as an open issue | {n} values do not fit the current metamodel; they are taken live and listed as open issues",
+      "irreversible": "The go-live cannot be undone.",
+      "confirm": "Go live",
+      "cancel": "Cancel",
+      "done": "The solution went live.",
+      "failed": "The solution could not go live.",
+      "entityDeleted": "An entity of a modification was deleted meanwhile. Remove its delta and go live again.",
+      "merge": {
+        "title": "Resolve conflicts",
+        "intro": "These fields were changed in the catalog after the solution captured them. Choose which value goes live.",
+        "before": "When captured: {value}",
+        "current": "Keep the current value: {value}",
+        "delta": "Take the value of the solution: {value}",
+        "currentHidden": "Keep the current value",
+        "deltaHidden": "Take the value of the solution",
+        "own": "Enter an own value",
+        "ownLabel": "Own value of {field}",
+        "apply": "Apply",
+        "invalid": "A value is not valid for its field.",
+        "failed": "The conflicts could not be resolved."
+      },
+      "openIssues": {
+        "title": "Open issues ({n})",
+        "intro": "These values went live although they do not fit the current metamodel. Resolve them in the entities.",
+        "kind": {
+          "mandatory-missing": "Mandatory value missing",
+          "invalid-value": "Value not valid"
+        }
+      }
     }
   },
   "history": {

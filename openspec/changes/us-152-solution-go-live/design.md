@@ -49,6 +49,8 @@
 
 ### D2 – Field conflicts (`app/solution/SolutionGoLive`)
 
+By ADR-051 (merged after this proposal), `SolutionGoLive` runs no SQL itself: `core/solution/GoLiveStore` reads and writes solutions, deltas, fields and open issues, and `core/entity/MetatypeRuleStore` supplies the write rules (`MetatypeRules.load(MetatypeRuleStore, date)`), which also moves the SQL of the existing `MetatypeRules` into core.
+
 For each delta `modified`, the current values of its entity are read (`EntityStore.values`, name and description), and each field the delta changes is compared with its recorded before value, as text (`TypedValue.asText`). A difference is a conflict `{deltaId, entityId, entityName, field, label, dataType, before, current, after}`.
 
 Values the caller may not read are redacted as in `SolutionDeltas` (`readableFor` on the entity).
@@ -63,7 +65,7 @@ Values the caller may not read are redacted as in `SolutionDeltas` (`readableFor
    - `current` deletes the field's row;
    - `delta` keeps the after value and sets the before value to the current one;
    - `value` converts the text with `EntityValidator.accepts` and the conversion of the field. An invalid own value gives 422 naming the field.
-4. `updated_at`/`updated_by` of the delta are set, and the event `solution.delta-changed` is written as for an edit.
+4. `updated_at`/`updated_by` of the delta are set, and the event `solution.delta-updated` is written as for an edit.
 
 ### D4 – Go-live transaction
 

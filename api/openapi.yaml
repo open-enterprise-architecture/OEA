@@ -2713,12 +2713,115 @@ components:
       allOf:
         - $ref: '#/components/schemas/SolutionSummary'
         - type: object
-          required: [description, fromPlateauId, toPlateauId, createdBy]
+          required: [description, fromPlateauId, toPlateauId, createdBy, openIssueCount]
           properties:
             description:   { type: [string, 'null'], description: Architecture vision }
+            openIssueCount: { type: integer, minimum: 0, description: "Open issues left by the go-live (US-152 AC4); 0 before it" }
             fromPlateauId: { type: [string, 'null'], format: uuid, description: Baseline plateau; null in project mode (BR-01) }
             toPlateauId:   { type: [string, 'null'], format: uuid, description: Target plateau; null in project mode (BR-01) }
             createdBy:     { $ref: '#/components/schemas/PrincipalRef' }
+
+    SolutionGoLiveCounts:
+      type: object
+      required: [created, modified, retired, retiredConnections]
+      properties:
+        created:            { type: integer, minimum: 0, description: "Entities created from deltas `new`" }
+        modified:           { type: integer, minimum: 0, description: "Entities changed by deltas `modified`" }
+        retired:            { type: integer, minimum: 0, description: "Entities soft-deleted by deltas `retiring`" }
+        retiredConnections: { type: integer, minimum: 0, description: "Connections soft-deleted with an endpoint retired by the go-live" }
+
+    DeltaConflict:
+      type: object
+      required: [deltaId, entityId, entityName, field, label, dataType, before, current, after, redacted]
+      description: |
+        A field conflict (US-152 AC2): a field the delta `modified` changes has, in the entity, a
+        value other than the before value the delta recorded. Values are text as in `FieldDiff`;
+        all three are `null` when redacted.
+      properties:
+        deltaId:    { type: string, format: uuid }
+        entityId:   { type: integer }
+        entityName: { type: string }
+        field:      { type: string, description: "`name`, `description` or the ID of a property definition" }
+        label:      { type: string }
+        dataType:   { $ref: '#/components/schemas/EntityVersionDataType' }
+        before:     { type: [string, 'null'], description: "The value the delta recorded at the capture" }
+        current:    { type: [string, 'null'], description: "The value of the entity now" }
+        after:      { type: [string, 'null'], description: "The value of the delta" }
+        redacted:   { type: boolean }
+
+    SolutionOpenIssue:
+      type: object
+      required: [id, entityId, entityName, field, label, kind, createdAt]
+      description: |
+        A metamodel violation taken live by a go-live (US-152 AC4): an empty mandatory property
+        or a value the current definition does not accept.
+      properties:
+        id:         { type: string, format: uuid }
+        entityId:   { type: integer }
+        entityName: { type: string }
+        field:      { type: string }
+        label:      { type: string }
+        kind:       { type: string, enum: [mandatory-missing, invalid-value] }
+        createdAt:  { type: string, format: date-time }
+
+    SolutionGoLiveViolation:
+      type: object
+      required: [deltaId, entityName, field, label, kind]
+      description: A metamodel violation that a go-live would take as an open issue
+      properties:
+        deltaId:    { type: string, format: uuid }
+        entityId:   { type: [integer, 'null'], description: "`null` for a delta `new`" }
+        entityName: { type: string }
+        field:      { type: string }
+        label:      { type: string }
+        kind:       { type: string, enum: [mandatory-missing, invalid-value] }
+
+    SolutionGoLivePreview:
+      type: object
+      required: [solutionId, counts, conflicts, violations]
+      properties:
+        solutionId: { type: string, format: uuid }
+        counts:     { $ref: '#/components/schemas/SolutionGoLiveCounts' }
+        conflicts:
+          type: array
+          description: Field conflicts that must be resolved before the go-live
+          items: { $ref: '#/components/schemas/DeltaConflict' }
+        violations:
+          type: array
+          description: Metamodel violations that the go-live takes as open issues; they do not block
+          items: { $ref: '#/components/schemas/SolutionGoLiveViolation' }
+
+    SolutionGoLiveResult:
+      type: object
+      required: [solutionId, status, counts, openIssues]
+      properties:
+        solutionId: { type: string, format: uuid }
+        status:     { $ref: '#/components/schemas/SolutionStatus' }
+        counts:     { $ref: '#/components/schemas/SolutionGoLiveCounts' }
+        openIssues:
+          type: array
+          items: { $ref: '#/components/schemas/SolutionOpenIssue' }
+
+    DeltaConflictResolution:
+      type: object
+      required: [fields]
+      properties:
+        fields:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            type: object
+            required: [field, choice]
+            properties:
+              field:  { type: string, description: "`name`, `description` or the ID of a property definition" }
+              choice:
+                type: string
+                enum: [current, delta, value]
+                description: "`current` removes the field from the delta, `delta` keeps the delta value, `value` takes `value`"
+              value:
+                type: [string, 'null']
+                description: "The own value for `value`, written as in an entity write; empty removes the value"
 
     SolutionDeltaConflict:
       type: object
@@ -5115,6 +5218,147 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /solutions/{id}/go-live:
+    get:
+      operationId: previewSolutionGoLive
+      summary: Preview of the go-live of a solution (US-152, SCR-061)
+      description: |
+        What the go-live would do (US-152 AC5): the counts of created, changed and retired
+        entities (with the connections retired with an endpoint), the field conflicts that must be
+        resolved first (US-152 AC2), and the metamodel violations that become open issues (AC4).
+        Values the caller may not read are redacted. Changes nothing.
+      tags: [Solutions]
+      x-oea-authorization: {"access": "permission", "permissions": ["solution:write"]}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The preview
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SolutionGoLivePreview' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The solution is `implemented` or `archived` (`solution-completed`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    post:
+      operationId: goLiveSolution
+      summary: Take a solution live in project mode (US-152, SCR-061)
+      description: |
+        In one transaction: every delta `new` creates its entity, every delta `modified` writes
+        its after values, every delta `retiring` soft-deletes its entity and the connections of
+        that entity (ADR-019), metamodel violations are stored as open issues, and the solution
+        gets the status `implemented`. Writes `solution.went-live` and one event per entity. The
+        values of the deltas are taken as captured (owner decision 2026-11-16). An unresolved
+        field conflict gives 409 `merge-required` with `conflicts`; an `implemented` or
+        `archived` solution gives 409 `solution-completed`. Nothing changes on a rejection.
+      tags: [Solutions]
+      x-oea-authorization: {"access": "permission", "permissions": ["solution:write"]}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The solution went live
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SolutionGoLiveResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: |
+            Unresolved field conflicts (`merge-required`, extension member `conflicts` with the
+            `DeltaConflict` entries), a delta `modified` whose entity was deleted meanwhile
+            (`entity-deleted`, extension member `deltaIds`), or a completed solution
+            (`solution-completed`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /solutions/{id}/open-issues:
+    get:
+      operationId: listSolutionOpenIssues
+      summary: Open issues left by the go-live of a solution (US-152 AC4, SCR-061)
+      description: The metamodel violations taken live, by entity name and field label.
+      tags: [Solutions]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The open issues
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SolutionOpenIssue' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /solutions/{id}/deltas/{deltaId}/resolution:
+    post:
+      operationId: resolveSolutionDeltaConflicts
+      summary: Resolve the field conflicts of a delta (US-152 AC2, SCR-063)
+      description: |
+        Per field, takes the current value (removes the field from the delta), the delta value,
+        or an own value. The delta then records the current value as its before value and the
+        chosen value as its after value, and writes `solution.delta-updated`. A field without a
+        conflict, or an invalid own value, gives 422 naming the field; nothing changes then.
+      tags: [Solutions]
+      x-oea-authorization: {"access": "permission", "permissions": ["solution:write"]}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: deltaId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DeltaConflictResolution' }
+      responses:
+        '200':
+          description: The delta after the resolution
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SolutionDelta' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The solution is `implemented` or `archived` (`solution-completed`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /solutions/{id}/diff:

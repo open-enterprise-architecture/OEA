@@ -1,8 +1,8 @@
 ---
 title: Lösungen
 covers:
-  screens: [SCR-060, SCR-061, SCR-062]
-  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044]
+  screens: [SCR-060, SCR-061, SCR-062, SCR-063]
+  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044, US-152]
 ---
 
 # Lösungen
@@ -69,6 +69,16 @@ Die Regeln:
 - Eine Lösung kann beliebig viele Änderungen enthalten.
 - Eine umgesetzte oder archivierte Lösung ist abgeschlossen: Sie lässt sich nicht mehr ändern, und ihre Änderungen bleiben, wie sie sind.
 
+## Live schalten {#go-live}
+
+Ist die Initiative umgesetzt, übernimmt *Live schalten* die Lösung in den Katalog. Das braucht `solution:write` und wird angeboten, bis die Lösung umgesetzt oder archiviert ist.
+
+1. OEA prüft, ob ein Feld, das die Lösung ändert, nach dem Erfassen im Katalog geändert wurde. Nur ein solches Feld ist ein Konflikt; eine Änderung eines anderen Felds der Entität bleibt erhalten. Für jeden Konflikt zeigt der Dialog *Konflikte auflösen* den Wert beim Erfassen und lässt dich den aktuellen Wert behalten, den Wert der Lösung übernehmen oder einen eigenen Wert eingeben. *Übernehmen* speichert deine Wahl in der Änderung.
+2. Eine Bestätigung zeigt, wie viele Entitäten angelegt, geändert und stillgelegt werden und wie viele Verbindungen stillgelegter Entitäten mit stillgelegt werden. Das Live-Schalten kann nicht rückgängig gemacht werden.
+3. Nach *Live schalten* stehen neue Entitäten im Katalog, geänderte Entitäten haben die neuen Werte, und stillgelegte Entitäten samt ihren Verbindungen sind aus dem Katalog gelöscht; ihre Historie bleibt. Die Lösung ist *Umgesetzt* und kann nicht mehr geändert werden.
+
+Werte, die nicht mehr zum Metamodell passen, zum Beispiel eine Pflichteigenschaft, die nach dem Erfassen hinzukam, halten das Live-Schalten nicht auf. Sie werden übernommen und auf der Seite der Lösung unter *Offene Punkte* geführt.
+
 ## Vergleichen
 
 *Vergleichen* im Bereich *Änderungen* öffnet den Vergleich der Lösung. Für jede Änderung zeigt er die Entität, wie sie jetzt im Katalog steht, den *Ist-Stand*, neben ihrem Zustand nach der Lösung, dem *Soll-Stand*. Entitäten ohne Änderung erscheinen nicht. Auf einem schmalen Bildschirm stehen die beiden Stände untereinander.
@@ -113,6 +123,8 @@ curl "${auth[@]}" -d '{"deltaType": "modified", "entityId": 43, "properties": [{
 # der Vergleich von Ist- und Soll-Stand
 curl "${auth[@]}" "$OEA/solutions/$SOLUTION/diff?pageSize=50"
 ```
+
+`GET /solutions/{id}/go-live` zeigt, was das Live-Schalten tun würde: die Zahlen, die Feldkonflikte in `conflicts` und die `violations`, die zu offenen Punkten werden. `POST /solutions/{id}/deltas/{deltaId}/resolution` mit `{"fields": [{"field": "…", "choice": "current" | "delta" | "value", "value": "…"}]}` löst Konflikte auf; ein Feld ohne Konflikt wird mit 422 und seinem Namen beantwortet. `POST /solutions/{id}/go-live` schaltet die Lösung live; solange ein Konflikt offen ist, lautet die Antwort 409 `merge-required` mit den `conflicts`, für eine umgesetzte oder archivierte Lösung 409 `solution-completed`. `GET /solutions/{id}/open-issues` listet die offenen Punkte.
 
 `POST /solutions` antwortet mit 201 und der Lösung, mit 422 und `name` bei einem leeren oder vergebenen Namen und mit 403 ohne `solution:write`. Jedes Anlegen wird im Audit-Log als `solution.created` festgehalten.
 

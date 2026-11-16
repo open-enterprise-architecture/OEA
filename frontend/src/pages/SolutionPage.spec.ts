@@ -16,6 +16,8 @@ import {
   SOLUTIONS,
   manyApplications,
   manyDeltas,
+  goLiveConflict,
+  OPEN_ISSUES,
   solutionApi,
 } from '../test/solutions'
 import SolutionPage from './SolutionPage.vue'
@@ -439,5 +441,72 @@ describe('SolutionPage', () => {
       expect(wrapper.find('[data-testid="baseline-retire"]').exists()).toBe(false)
       wrapper.unmount()
     })
+  })
+
+  // spec solution/solution-go-live "Go-live on the page \"Solution\"" (US-152; design D6 of us-152-solution-go-live)
+
+  async function mountGoLive(options: Parameters<typeof solutionApi>[0] = {}, me: unknown = ME_SOLUTION_ARCHITECT) {
+    const router = testRouter()
+    await router.push(`/solutions/${SOLUTIONS[0]!.id}`)
+    const api = solutionApi({ me, deltas: [MODIFIED_ERP], ...options })
+    const wrapper = mount(SolutionPage, {
+      props: { id: SOLUTIONS[0]!.id, fetchFn: api.fetch },
+      global: { plugins: [ui, router] },
+      attachTo: document.body,
+    })
+    await flushPromises()
+    return Object.assign(wrapper, { api })
+  }
+
+  function body(testId: string): HTMLElement | null {
+    return document.body.querySelector(`[data-testid="${testId}"]`)
+  }
+
+  it('offers "Go live" only with solution:write while the solution is not completed', async () => {
+    const architect = await mountGoLive()
+    expect(architect.find('[data-testid="solution-go-live"]').exists()).toBe(true)
+    architect.unmount()
+    const viewer = await mountGoLive({}, ME_SOLUTION_VIEWER)
+    expect(viewer.find('[data-testid="solution-go-live"]').exists()).toBe(false)
+    viewer.unmount()
+    const implemented = await mountGoLive({ solutions: [{ ...SOLUTIONS[0]!, status: 'implemented' }] })
+    expect(implemented.find('[data-testid="solution-go-live"]').exists()).toBe(false)
+    implemented.unmount()
+    document.body.innerHTML = ''
+  })
+
+  it('confirms the go-live with the counts and shows the result', async () => {
+    const wrapper = await mountGoLive({ openIssues: OPEN_ISSUES })
+    await wrapper.get('[data-testid="solution-go-live"]').trigger('click')
+    await flushPromises()
+    expect(body('go-live-counts')!.textContent).toContain('1 entity is changed')
+    expect(body('go-live-violations')!.textContent).toContain('1 value does not fit the current metamodel')
+    ;(body('go-live-confirm-button') as HTMLButtonElement).click()
+    await flushPromises()
+    expect(wrapper.api.goLives).toEqual([SOLUTIONS[0]!.id])
+    expect(wrapper.get('[data-testid="solution-status"]').text()).toBe('Implemented')
+    expect(wrapper.get('[data-testid="solution-open-issues"]').text()).toContain('Mandatory value missing')
+    expect(wrapper.find('[data-testid="solution-go-live"]').exists()).toBe(false)
+    wrapper.unmount()
+    document.body.innerHTML = ''
+  })
+
+  it('opens the merge dialog first when conflicts exist, then the confirmation', async () => {
+    const wrapper = await mountGoLive({ goLiveConflicts: [goLiveConflict(MODIFIED_ERP.id)] })
+    await wrapper.get('[data-testid="solution-go-live"]').trigger('click')
+    await flushPromises()
+    expect(body('merge-dialog')).not.toBeNull()
+    expect(body('go-live-confirm')).toBeNull()
+    const radio = [...document.body.querySelectorAll('[data-testid^="merge-choice-"] button[role="radio"], [data-testid^="merge-choice-"] input[type="radio"]')].find(
+      (candidate) => candidate.getAttribute('value') === 'delta',
+    ) as HTMLElement
+    radio.click()
+    await flushPromises()
+    ;(body('merge-apply') as HTMLButtonElement).click()
+    await flushPromises()
+    expect(wrapper.api.resolutions).toHaveLength(1)
+    expect(body('go-live-confirm')).not.toBeNull()
+    wrapper.unmount()
+    document.body.innerHTML = ''
   })
 })

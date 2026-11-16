@@ -2,7 +2,7 @@
 identifier: solution
 name_de: Lösung / Solution Architecture
 name_en: Solution
-version: 0.8.0
+version: 0.9.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -139,6 +139,7 @@ Stored in `entity_deltas` and `entity_delta_property_values` (V26). A delta is r
 | BR-03 | A solution with `status=implemented` or `status=archived` is read-only, including its deltas (409) | onUpdate | – |
 | BR-04 | A `MetamodelConfiguration` naming a solution (`solutionId`) has `scope=solution` | onCreate, onUpdate | – |
 | BR-05 | Entities of a solution are visible to other solutions (basis for collision detection on parallel changes to the same entity). A delta `modified` or `retiring` conflicts with every delta `modified` or `retiring` on the same entity in another active solution (status not `implemented` or `archived`); a delta `new` never conflicts. The conflicts are computed on each read and never block a write (US-044, REQ-042; owner decision 2026-11-13) | onRead | – |
+| BR-07 | The go-live of a solution in project mode needs `solution:write`, is possible from every status except `implemented` and `archived`, and is refused (409) while a field of a delta `modified` has a value in its entity other than the recorded before value; the values of the deltas are taken as captured (US-152, owner decision 2026-11-16) | onGoLive | – |
 | BR-06 | A solution holds at most one delta per entity, at most one `new` delta per metatype and name (case-insensitive), and any number of deltas | onCreate | – |
 
 ## Lifecycle
@@ -150,7 +151,7 @@ draft → proposed → approved → in-progress → implemented
 
 **Plateau mode after `implemented`**: The go-live process sets `toPlateauId.status` from `target` to `realized`; the old baseline plateau becomes `realized`; the realized plateau becomes the new baseline.
 
-**Project mode after `implemented`**: The solution is completed; its deltas are a permanent part of the realized overall state (no plateau transitions needed).
+**Project mode after `implemented`**: The solution is completed; its deltas are a permanent part of the realized overall state (no plateau transitions needed). The go-live sets the status in one transaction with the entity writes: a delta `new` creates its entity and records its ID, a delta `modified` writes its after values, a delta `retiring` soft-deletes its entity and that entity's connections (ADR-019). A field changed in the catalog after the capture must be merged first; metamodel violations are taken live and kept as open issues of the solution (US-152; owner decisions 2026-11-16).
 
 ## Examples
 
@@ -214,3 +215,4 @@ TOGAF reference (plateau mode): "Solution Architecture" in phase E/F. The `Entit
 | 0.6.0 | 2026-11-13 | Change us-041-modified-delta | `changes` of a delta `modified`: name, description and properties with recorded before values; `updatedAt`, `updatedBy` |
 | 0.7.0 | 2026-11-13 | Change us-043-diff-view | BR-06 without the limit of 1000 deltas (owner decision 2026-11-13); the diff of a solution is computed and not stored |
 | 0.8.0 | 2026-11-13 | Change us-044-conflict-warning | BR-05: what conflicts between parallel solutions; the conflicts are computed and not stored (owner decision 2026-11-13) |
+| 0.9.0 | 2026-11-16 | Change us-152-solution-go-live | Go-live in project mode: BR-07, the effects on entities, open issues (V35) |

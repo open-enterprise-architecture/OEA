@@ -1,8 +1,8 @@
 ---
 title: Solutions
 covers:
-  screens: [SCR-060, SCR-061, SCR-062]
-  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044]
+  screens: [SCR-060, SCR-061, SCR-062, SCR-063]
+  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044, US-152]
 ---
 
 # Solutions
@@ -69,6 +69,16 @@ The rules:
 - A solution can hold any number of changes.
 - An implemented or archived solution is completed: it cannot be changed, and its changes stay as they are.
 
+## Go live {#go-live}
+
+When the initiative is done, *Go live* takes the solution into the catalog. It needs `solution:write` and is offered until the solution is implemented or archived.
+
+1. OEA checks whether a field the solution changes was changed in the catalog after you captured it. Only such a field is a conflict; a change of another field of the entity is kept. For each conflict, the dialog *Resolve conflicts* shows the value when captured and lets you keep the current value, take the value of the solution, or enter your own value. *Apply* records your choice in the change.
+2. A confirmation shows how many entities are created, changed and retired, and how many connections of retired entities are retired with them. The go-live cannot be undone.
+3. After *Go live*, new entities are in the catalog, modified entities have the new values, and retired entities and their connections are deleted from the catalog; their history stays. The solution is *Implemented* and can no longer be changed.
+
+Values that no longer fit the metamodel, for example a required property that was added after the capture, do not stop the go-live. They are taken over and listed under *Open issues* on the page of the solution.
+
 ## Compare
 
 *Compare* in the area *Changes* opens the comparison of the solution. For each change, it shows the entity as it is in the catalog now, the *current state*, next to how it will be after the solution, the *target state*. Entities without a change do not appear. On a narrow screen, the two states are shown one below the other.
@@ -113,6 +123,8 @@ curl "${auth[@]}" -d '{"deltaType": "modified", "entityId": 43, "properties": [{
 # the comparison of current and target state
 curl "${auth[@]}" "$OEA/solutions/$SOLUTION/diff?pageSize=50"
 ```
+
+`GET /solutions/{id}/go-live` shows what the go-live would do: the counts, the field `conflicts` and the `violations` that become open issues. `POST /solutions/{id}/deltas/{deltaId}/resolution` with `{"fields": [{"field": "…", "choice": "current" | "delta" | "value", "value": "…"}]}` resolves conflicts; a field without a conflict answers 422 naming it. `POST /solutions/{id}/go-live` takes the solution live; it answers 409 `merge-required` with the `conflicts` while one is unresolved, and 409 `solution-completed` for an implemented or archived solution. `GET /solutions/{id}/open-issues` lists the open issues.
 
 `POST /solutions` answers 201 with the solution, 422 naming `name` for a blank or taken name, and 403 without `solution:write`. Every creation is recorded in the audit log as `solution.created`.
 

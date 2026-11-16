@@ -1,8 +1,8 @@
 package io.oea.app.entity;
 
+import io.oea.core.entity.MetatypeRuleStore;
 import io.oea.core.entity.TypedValue;
 import java.math.BigDecimal;
-import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -93,59 +93,40 @@ public final class MetatypeRules {
 
 	/** Loads the rules that apply on the given date. */
 	public static MetatypeRules load(JdbcTemplate jdbc, LocalDate date) {
-		Map<UUID, Set<String>> enumValues = new HashMap<>();
-		jdbc.query("SELECT property_def_id, value FROM property_enum_values", (rs) -> {
-			enumValues.computeIfAbsent(rs.getObject(1, UUID.class), (k) -> new HashSet<>()).add(rs.getString(2));
-		});
+		return load(new MetatypeRuleStore(jdbc), date);
+	}
+
+	/** Loads the rules that apply on the given date from the store of core (ADR-051). */
+	public static MetatypeRules load(MetatypeRuleStore store, LocalDate date) {
 		Map<UUID, Definition> definitions = new HashMap<>();
-		jdbc.query("""
-				SELECT id, name, data_type, max_length, min_value, max_value, pattern, visibility_mode, ref_metatype_id
-				FROM property_definitions""", (rs) -> {
-			UUID id = rs.getObject(1, UUID.class);
-			definitions.put(id, new Definition(id, rs.getString(2), rs.getString(3), rs.getObject(4, Integer.class),
-					rs.getBigDecimal(5), rs.getBigDecimal(6), rs.getString(7), rs.getString(8),
-					rs.getObject(9, UUID.class), Set.copyOf(enumValues.getOrDefault(id, Set.of()))));
-		});
+		store.definitions()
+			.forEach((id, row) -> definitions.put(id, new Definition(id, row.name(), row.dataType(), row.maxLength(),
+					row.minValue(), row.maxValue(), row.pattern(), row.visibilityMode(), row.refMetatypeId(),
+					row.enumValues())));
 		Map<UUID, Metatype> own = new HashMap<>();
 		Map<UUID, UUID> bases = new HashMap<>();
 		// only the instance metamodel: metatypes of solution extensions get no entities until solutions
 		// exist (design D4 of us-037-solution-extensions-and-lock-mode)
-		jdbc.query("SELECT id, name, is_connection, base_metatype_id FROM metatypes WHERE config_id = ?", (rs) -> {
-			UUID id = rs.getObject(1, UUID.class);
-			own.put(id, new Metatype(id, rs.getString(2), rs.getBoolean(3), new LinkedHashMap<>()));
-			UUID base = rs.getObject(4, UUID.class);
-			if (base != null) {
-				bases.put(id, base);
+		for (MetatypeRuleStore.MetatypeRow row : store.metatypes(INSTANCE_CONFIGURATION)) {
+			own.put(row.id(), new Metatype(row.id(), row.name(), row.connection(), new LinkedHashMap<>()));
+			if (row.baseId() != null) {
+				bases.put(row.id(), row.baseId());
 			}
-		}, INSTANCE_CONFIGURATION);
-		// the mapping with the latest valid_from per metatype and property (ADR-022)
-		jdbc.query("""
-				SELECT metatype_id, property_def_id, necessity, default_value_text, default_value_int, default_value_bool,
-				       default_value_date, default_value_ref, default_value_enum
-				FROM (SELECT DISTINCT ON (metatype_id, property_def_id) *
-				      FROM metatype_property_mappings WHERE valid_from <= ?
-				      ORDER BY metatype_id, property_def_id, valid_from DESC) active
-				ORDER BY sort_order, property_def_id""", (rs) -> {
-			Metatype metatype = own.get(rs.getObject(1, UUID.class));
+		}
+		for (MetatypeRuleStore.MappingRow row : store.mappings(date)) {
+			Metatype metatype = own.get(row.metatypeId());
 			if (metatype == null) {
-				return;
+				continue;
 			}
-			Definition definition = definitions.get(rs.getObject(2, UUID.class));
-			Date defaultDate = rs.getDate(7);
-			TypedValue defaultValue = new TypedValue(rs.getString(4), rs.getObject(5, Long.class),
-					rs.getObject(6, Boolean.class), (defaultDate != null) ? defaultDate.toLocalDate() : null,
-					rs.getObject(8, Integer.class), rs.getString(9));
-			metatype.mappings()
-				.put(definition.id(), new Mapping(definition, rs.getString(3),
-						(defaultValue.asText() != null) ? defaultValue : null));
-		}, Date.valueOf(date));
+			Definition definition = definitions.get(row.propertyDefId());
+			metatype.mappings().put(definition.id(), new Mapping(definition, row.necessity(), row.defaultValue()));
+		}
 		Map<UUID, Set<UUID>> sources = new HashMap<>();
 		Map<UUID, Set<UUID>> targets = new HashMap<>();
-		jdbc.query("SELECT metatype_id, direction, allowed_metatype_id FROM metatype_connection_constraints", (rs) -> {
-			("source".equals(rs.getString(2)) ? sources : targets)
-				.computeIfAbsent(rs.getObject(1, UUID.class), (k) -> new HashSet<>())
-				.add(rs.getObject(3, UUID.class));
-		});
+		for (MetatypeRuleStore.ConstraintRow row : store.constraints()) {
+			(row.source() ? sources : targets).computeIfAbsent(row.metatypeId(), (k) -> new HashSet<>())
+				.add(row.allowedMetatypeId());
+		}
 		// a metatype inherits the mappings of all its base types (us-032-metatype-editing D4)
 		Map<UUID, Metatype> metatypes = new HashMap<>();
 		own.forEach((id, metatype) -> {

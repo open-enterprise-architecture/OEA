@@ -28,7 +28,7 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 
 ## Status
 
-**Pre-Alpha** – requirements engineering completed, Walking Skeleton in progress (project setup done).
+**Pre-Alpha** – implementation of Milestone 2 (Core Platform); sprint S14 (go-live of solutions, plateaus) is in progress, see [`docs/sprint-plan.md`](docs/sprint-plan.md).
 
 <!-- AUTO-GENERATED: stats -->
 | Artifact | Count |
@@ -40,15 +40,15 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | ADRs | 51 |
 | Business Objects | 33 |
 
-_Concept: v0.20 · Last update: 2026-11-16._
+_Concept: v0.20.1 · Last update: 2026-11-16._
 <!-- /AUTO-GENERATED: stats -->
 
-**Next step**: Walking Skeleton based on UC-06 (Catalog Browser).
+**Next step**: the go-live of solutions in project mode and the plateaus with their go-live (S14), which completes Milestone 2.
 
-- Concept: complete (24 chapters + changelog, v0.19.3), see [`concept/`](concept/)
-- Requirements: completed – all 21 UCs, 155 REQs, 142 USs, 29 ADRs defined
+- Concept: complete (24 chapters + changelog), see [`concept/`](concept/); its version is shown in the table above
+- Requirements: the requirements phase was completed in October 2026; use cases, requirements, user stories and ADRs are maintained with every change (counts in the table above)
 - Tech stack: decided (Java 25 / Vue 3 / PostgreSQL 15 / Electron)
-- Code: project setup of the walking skeleton – backend (`backend/`), frontend (`frontend/`), Compose setups, CI checks; see [Development](#development)
+- Code: walking skeleton done; implemented so far – login and administration of accounts, roles, second factors and service accounts with access tokens; metamodel with packages and extensions; catalogs with joins, filters and views; portal; property visibility; solutions with deltas, diff and conflict warnings; change history with full and partial restore. See [Development](#development)
 - v1.0-Release: TBD
 
 OEA is **not yet ready for production use**. If you want to contribute: [CONTRIBUTING.md](CONTRIBUTING.md).

@@ -223,6 +223,23 @@ class EntityStoreTests {
 				Boolean.class, entity.id())).isTrue();
 	}
 
+	// us-152-solution-go-live D4: soft deletion
+
+	@Test
+	void softDeleteKeepsTheHistory() {
+		StoredEntity entity = entityAtVersion(2);
+		int headers = owner.queryForObject("SELECT count(*) FROM entity_version_headers WHERE entity_id = ?",
+				Integer.class, entity.id());
+
+		store.softDelete(entity.id(), person, NOW, "Retired by the solution X");
+
+		assertThat(owner.queryForMap("SELECT deleted_at, deleted_by, deletion_reason FROM entities WHERE id = ?",
+				entity.id())).containsEntry("deleted_by", person).containsEntry("deletion_reason", "Retired by the solution X");
+		assertThat(owner.queryForObject("SELECT count(*) FROM entity_version_headers WHERE entity_id = ?",
+				Integer.class, entity.id())).isEqualTo(headers);
+		assertThat(store.find(entity.id())).map(StoredEntity::deleted).contains(true);
+	}
+
 	@Test
 	void lockReadsTheEntityById() {
 		StoredEntity entity = entityAtVersion(3);

@@ -214,6 +214,19 @@ public final class EntityValidator {
 		}
 	}
 
+	/**
+	 * The typed value of a value written by a client, or {@code null} when the definition does not
+	 * accept it (us-152-solution-go-live D3, an own value of a conflict resolution).
+	 */
+	public static TypedValue typed(MetatypeRules.Definition definition, String value, References references) {
+		try {
+			return convert(definition, value, references);
+		}
+		catch (InvalidValueException ex) {
+			return null;
+		}
+	}
+
 	private static TypedValue convert(MetatypeRules.Definition definition, String value, References references) {
 		return switch (definition.dataType()) {
 			case "string", "text", "url" -> text(definition, value);

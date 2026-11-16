@@ -1081,7 +1081,30 @@ package "Architecture Planning" #E3F2FD {
     + created_by             : BIGINT     {NN} {FK→persons.id}
     .. baseline (project mode): the entities of element metatypes ..
     .. with deleted_at IS NULL, read on demand (no table) ..
+    .. status implemented after the go-live (V35, us-152-solution-go-live) ..
   }
+
+  class solution_open_issues <<Table>> #BBDEFB {
+    + id              : UUID        {PK}
+    --
+    + solution_id     : UUID        {NN} {FK→solutions.id}
+    + entity_id       : INTEGER     {NN} {FK→entities.id}
+    + field           : TEXT        {NN}
+    .. name, description or the ID of a property definition ..
+    + property_def_id : UUID        {FK→property_definitions.id}
+    + kind            : TEXT        {NN}
+    .. enum: mandatory-missing | invalid-value ..
+    + created_at      : TIMESTAMPTZ {NN} DEFAULT NOW()
+    .. UNIQUE (solution_id, entity_id, field) ..
+  }
+
+  note right of solution_open_issues
+    Metamodel violations a go-live took live
+    (us-152-solution-go-live, V35); blocking
+    and resolution follow with US-153.
+  end note
+
+  solutions "1" --o{ "0..*" solution_open_issues : left by its go-live
 
   class entity_deltas <<Table>> #BBDEFB {
     + id          : UUID                  {PK}

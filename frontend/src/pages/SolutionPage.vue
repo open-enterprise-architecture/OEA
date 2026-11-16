@@ -5,12 +5,18 @@ import { rejectsCursor } from '../api/cursors'
 import { rateLimitMessage, RequestRejected } from '../api/problem'
 import {
   createSolutionDelta,
+  fetchGoLivePreview,
   fetchSolution,
   fetchSolutionDeltas,
+  fetchSolutionOpenIssues,
+  goLiveSolution,
   type Solution,
   type SolutionDelta,
+  type SolutionGoLivePreview,
   type SolutionLandscapeEntry,
+  type SolutionOpenIssue,
 } from '../api/solutions'
+import DeltaMergeDialog from '../components/solutions/DeltaMergeDialog.vue'
 import SolutionBaseline from '../components/solutions/SolutionBaseline.vue'
 import SolutionDeltas from '../components/solutions/SolutionDeltas.vue'
 import SolutionModifyDialog from '../components/solutions/SolutionModifyDialog.vue'
@@ -26,7 +32,10 @@ import { refreshSession, session } from '../session/store'
 // ("Load more"); after a write, the first page and the baseline load again, whose entries carry
 // the type of their delta (design D0 of us-043-diff-view). The header warns when changes concern
 // other active solutions, and saving a delta that conflicts names them in a notice above the list
-// until it is closed (US-044; design D4 of us-044-conflict-warning).
+// until it is closed (US-044; design D4 of us-044-conflict-warning). "Go live" (US-152; design D6
+// of us-152-solution-go-live) loads the preview: with field conflicts it opens the merge dialog
+// SCR-063 first, then the confirmation with the counts; after the go-live the page shows the
+// status `implemented` and the open issues.
 const props = defineProps<{ id: string; fetchFn?: typeof fetch }>()
 const { t } = useI18n()
 
@@ -48,6 +57,13 @@ const loadingMore = ref(false)
 const baselineKey = ref(0)
 const deltasFailure = ref<string>()
 const completed = ref(false)
+const preview = ref<SolutionGoLivePreview>()
+const merging = ref(false)
+const confirming = ref(false)
+const goingLive = ref(false)
+const goLiveFailure = ref<string>()
+const openIssues = ref<SolutionOpenIssue[]>([])
+const wentLive = ref(false)
 
 const canRead = computed(() => (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read'))
 const canWrite = computed(
@@ -147,6 +163,61 @@ async function retire(entry: SolutionLandscapeEntry) {
   }
 }
 
+/** Loads the preview; field conflicts open the merge dialog, otherwise the confirmation. */
+async function startGoLive() {
+  goLiveFailure.value = undefined
+  try {
+    preview.value = await fetchGoLivePreview(props.id, props.fetchFn)
+  } catch (error) {
+    const rejection = error instanceof RequestRejected ? error.rejection : undefined
+    if (rejection?.status === 409) {
+      onCompleted()
+    } else {
+      goLiveFailure.value = rateLimitMessage(rejection) ?? t('solutions.goLive.failed')
+    }
+    return
+  }
+  if (preview.value.conflicts.length > 0) {
+    merging.value = true
+  } else {
+    confirming.value = true
+  }
+}
+
+async function onMerged() {
+  merging.value = false
+  await loadDeltas()
+  await startGoLive()
+}
+
+async function confirmGoLive() {
+  goingLive.value = true
+  goLiveFailure.value = undefined
+  try {
+    const outcome = await goLiveSolution(props.id, props.fetchFn)
+    if (outcome.ok) {
+      confirming.value = false
+      wentLive.value = true
+      openIssues.value = outcome.value.openIssues
+      solution.value = await fetchSolution(props.id, props.fetchFn)
+      baselineKey.value += 1
+      await loadDeltas()
+    } else if (outcome.rejection.problemType === 'merge-required') {
+      confirming.value = false
+      await startGoLive()
+    } else if (outcome.rejection.problemType === 'solution-completed') {
+      confirming.value = false
+      onCompleted()
+    } else {
+      goLiveFailure.value =
+        rateLimitMessage(outcome.rejection) ??
+        (outcome.rejection.problemType === 'entity-deleted' ? t('solutions.goLive.entityDeleted') : t('solutions.goLive.failed'))
+    }
+  } finally {
+    goingLive.value = false
+  }
+}
+
 function onCompleted() {
   completed.value = true
   deltasFailure.value = t('solutions.deltas.completed')
@@ -161,6 +232,9 @@ onMounted(async () => {
   try {
     solution.value = await fetchSolution(props.id, props.fetchFn)
     await loadDeltas()
+    if (solution.value.openIssueCount > 0) {
+      openIssues.value = await fetchSolutionOpenIssues(props.id, props.fetchFn)
+    }
   } catch (error) {
     const rejection = error instanceof RequestRejected ? error.rejection : undefined
     if (rejection?.status === 404) {
@@ -209,7 +283,35 @@ const createdAt = computed(() =>
           variant="subtle"
           :label="t(`solutions.status.${solution.status}`)"
         />
+        <UButton
+          v-if="canWrite"
+          data-testid="solution-go-live"
+          class="ms-auto"
+          icon="i-lucide-rocket"
+          :label="t('solutions.goLive.action')"
+          @click="startGoLive"
+        />
       </div>
+      <UAlert v-if="goLiveFailure" data-testid="go-live-failure" color="error" variant="subtle" :description="goLiveFailure" />
+      <UAlert
+        v-if="wentLive"
+        data-testid="go-live-done"
+        color="success"
+        variant="subtle"
+        icon="i-lucide-circle-check"
+        :description="t('solutions.goLive.done')"
+      />
+      <section v-if="openIssues.length > 0" class="flex flex-col gap-2" data-testid="solution-open-issues">
+        <h2 class="text-lg font-semibold text-highlighted">{{ t('solutions.goLive.openIssues.title', { n: openIssues.length }) }}</h2>
+        <p class="text-sm text-muted">{{ t('solutions.goLive.openIssues.intro') }}</p>
+        <ul class="flex flex-col gap-1 text-sm">
+          <li v-for="issue in openIssues" :key="issue.id" :data-testid="`open-issue-${issue.id}`" class="flex flex-wrap gap-2">
+            <span class="font-medium text-highlighted">{{ issue.entityName }}</span>
+            <span>{{ issue.label }}</span>
+            <UBadge color="warning" variant="subtle" :label="t(`solutions.goLive.openIssues.kind.${issue.kind}`)" />
+          </li>
+        </ul>
+      </section>
       <dl class="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
         <dt class="text-muted">{{ t('solutions.owner') }}</dt>
         <dd data-testid="solution-owner">{{ solution.ownerName }}</dd>
@@ -263,6 +365,54 @@ const createdAt = computed(() =>
         @retire="retire"
         @modify="(entry: SolutionLandscapeEntry) => (modifying = { entityId: entry.id })"
       />
+      <UModal
+        :open="merging"
+        :title="t('solutions.goLive.merge.title')"
+        @update:open="(open: boolean) => !open && (merging = false)"
+      >
+        <template #body>
+          <DeltaMergeDialog
+            v-if="merging && preview"
+            :solution-id="solution.id"
+            :conflicts="preview.conflicts"
+            :fetch-fn="props.fetchFn"
+            @resolved="onMerged"
+            @cancel="merging = false"
+          />
+        </template>
+      </UModal>
+      <UModal
+        :open="confirming"
+        :title="t('solutions.goLive.confirmTitle', { name: solution.name })"
+        @update:open="(open: boolean) => !open && (confirming = false)"
+      >
+        <template #body>
+          <div v-if="preview" class="flex flex-col gap-4" data-testid="go-live-confirm">
+            <ul class="flex flex-col gap-1 text-sm" data-testid="go-live-counts">
+              <li>{{ t('solutions.goLive.created', { n: preview.counts.created }, preview.counts.created) }}</li>
+              <li>{{ t('solutions.goLive.modified', { n: preview.counts.modified }, preview.counts.modified) }}</li>
+              <li>{{ t('solutions.goLive.retired', { n: preview.counts.retired }, preview.counts.retired) }}</li>
+              <li v-if="preview.counts.retiredConnections > 0">
+                {{ t('solutions.goLive.retiredConnections', { n: preview.counts.retiredConnections }, preview.counts.retiredConnections) }}
+              </li>
+            </ul>
+            <UAlert
+              v-if="preview.violations.length > 0"
+              data-testid="go-live-violations"
+              color="warning"
+              variant="subtle"
+              icon="i-lucide-triangle-alert"
+              :description="t('solutions.goLive.violations', { n: preview.violations.length }, preview.violations.length)"
+            />
+            <p class="text-sm font-medium text-error">{{ t('solutions.goLive.irreversible') }}</p>
+            <UAlert v-if="goLiveFailure" color="error" variant="subtle" :description="goLiveFailure" />
+            <div class="flex justify-end gap-2">
+              <UButton data-testid="go-live-cancel" color="neutral" variant="outline" :label="t('solutions.goLive.cancel')" @click="confirming = false" />
+              <UButton data-testid="go-live-confirm-button" icon="i-lucide-rocket" :label="t('solutions.goLive.confirm')" :loading="goingLive" @click="confirmGoLive" />
+            </div>
+          </div>
+        </template>
+      </UModal>
       <UModal
         v-model:open="modifyOpen"
         :title="t(modifying?.delta ? 'solutions.deltas.modify.editTitle' : 'solutions.deltas.modify.title')"
