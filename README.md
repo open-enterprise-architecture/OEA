@@ -37,7 +37,7 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | Use Cases | 24 |
 | Requirements | 204 |
 | User Stories | 152 |
-| ADRs | 50 |
+| ADRs | 51 |
 | Business Objects | 33 |
 
 _Concept: v0.20 · Last update: 2026-11-16._
@@ -140,6 +140,7 @@ OEA is **not yet ready for production use**. If you want to contribute: [CONTRIB
 | [ADR-048](adrs/ADR-048-webauthn-library.md) | WebAuthn Library for Passkey Enrollment and Login | accepted |
 | [ADR-049](adrs/ADR-049-organization-extensions-of-packages.md) | Organization Extensions of Package Metamodel Content | accepted |
 | [ADR-050](adrs/ADR-050-service-account-access-tokens.md) | Access Tokens of Service Accounts | accepted |
+| [ADR-051](adrs/ADR-051-backend-module-cut.md) | Backend Module Cut — Feature Packages, Access Between Features, SQL Only in Core | accepted |
 <!-- /AUTO-GENERATED: adrs -->
 
 ## Development

@@ -6,6 +6,7 @@
 **Partially superseded**: 2026-10-13 by [ADR-030](./ADR-030-postgresql-only.md) — multi-database parts no longer apply (PostgreSQL only)
 **Partially superseded**: 2026-10-13 by [ADR-036](./ADR-036-dev-test-identity-provider.md) — development and test identity provider (see ADR-036)
 **Partially superseded**: 2026-10-15 by [ADR-041](./ADR-041-root-aggregator-pom.md) — root aggregator `pom.xml` for the dependency graph; the backend stays a single module
+**Partially superseded**: 2026-11-16 by [ADR-051](./ADR-051-backend-module-cut.md) — the package tree of §2 and the class examples of §3 (feature packages, no application-service interfaces, `integration` reserved for outgoing integrations)
 
 ---
 
