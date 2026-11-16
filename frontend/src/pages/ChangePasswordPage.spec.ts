@@ -50,8 +50,8 @@ describe('ChangePasswordPage', () => {
     await fill(wrapper, 'initial-password-123', 'chosen-password-456', 'other-password-789')
     expect(wrapper.get('[data-testid="password-failure"]').text()).toContain('differ')
     await fill(wrapper, 'initial-password-123', 'short')
-    expect(wrapper.get('[data-testid="password-failure"]').text()).toContain('12 to 128')
-    expect(recorded).toHaveLength(0)
+    expect(wrapper.get('[data-testid="password-failure"]').text()).toContain('at least 12 characters')
+    expect(recorded.filter((request) => request.path === '/api/v1/me/password')).toHaveLength(0)
   })
 
   it('sends a new password of 12 and of 128 characters but not of 11 or 129', async () => {
@@ -61,7 +61,7 @@ describe('ChangePasswordPage', () => {
     const { wrapper } = await mountPage(fetchFn)
     for (const length of [11, 129]) {
       await fill(wrapper, 'initial-password-123', 'p'.repeat(length))
-      expect(wrapper.get('[data-testid="password-failure"]').text()).toContain('12 to 128')
+      expect(wrapper.get('[data-testid="password-failure"]').text()).toMatch(/at least 12 characters|longer than 128/)
     }
     expect(changes()).toHaveLength(0)
     for (const length of [12, 128]) {
@@ -158,5 +158,50 @@ describe('ChangePasswordPage', () => {
     const { wrapper, router } = await mountPage(fetchFn)
     await fill(wrapper, 'initial-password-123', 'chosen-password-456')
     expect(router.currentRoute.value.fullPath).toBe('/me/second-factor')
+  })
+
+  // issue #262 API-6 (design D5 of s13-issue-fixes): the rules of the current policy
+
+  const RULES_14 = {
+    minLength: 14,
+    maxLength: 128,
+    requireUppercase: false,
+    requireLowercase: false,
+    requireDigits: true,
+    requireSpecialChars: false,
+  }
+
+  it('checks the minimum length of the policy: 14 characters are sent, 13 are not', async () => {
+    const recorded: RecordedRequest[] = []
+    const changes = () => recorded.filter((request) => request.path === '/api/v1/me/password')
+    const fetchFn = routedFetch(
+      { '/api/v1/me/password/rules': { body: RULES_14 }, '/api/v1/me/password': problem(403, 'invalid-credentials') },
+      recorded,
+    )
+    const { wrapper } = await mountPage(fetchFn)
+    await fill(wrapper, 'initial-password-123', '1'.repeat(13))
+    expect(wrapper.get('[data-testid="unmet-rules"]').text()).toContain('at least 14 characters')
+    expect(changes()).toHaveLength(0)
+    await fill(wrapper, 'initial-password-123', '1'.repeat(14))
+    expect(changes()).toHaveLength(1)
+  })
+
+  it('names a missing digit and sends nothing', async () => {
+    const recorded: RecordedRequest[] = []
+    const { wrapper } = await mountPage(routedFetch({ '/api/v1/me/password/rules': { body: RULES_14 } }, recorded))
+    await fill(wrapper, 'initial-password-123', 'p'.repeat(20))
+    expect(wrapper.get('[data-testid="unmet-rules"]').text()).toContain('It needs a digit.')
+    expect(recorded.filter((request) => request.path === '/api/v1/me/password')).toHaveLength(0)
+  })
+
+  it('still checks the repetition with the rules of the policy', async () => {
+    const { wrapper } = await mountPage(routedFetch({ '/api/v1/me/password/rules': { body: RULES_14 } }))
+    await fill(wrapper, 'initial-password-123', '1'.repeat(14), '2'.repeat(14))
+    expect(wrapper.get('[data-testid="password-failure"]').text()).toContain('differ')
+  })
+
+  it('shows the minimum length of the policy as help', async () => {
+    const { wrapper } = await mountPage(routedFetch({ '/api/v1/me/password/rules': { body: RULES_14 } }))
+    expect(wrapper.text()).toContain('14 to 128 characters')
   })
 })

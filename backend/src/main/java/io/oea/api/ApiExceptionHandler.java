@@ -31,6 +31,7 @@ import io.oea.app.metamodel.InvalidPackageException;
 import io.oea.app.metamodel.MetamodelChangeException;
 import io.oea.app.metamodel.MetamodelChanges;
 import io.oea.app.metamodel.MetamodelLabels;
+import io.oea.app.metamodel.PackageConflictException;
 import io.oea.app.metamodel.PackageImporter;
 import io.oea.app.navigation.InvalidTreeException;
 import io.oea.app.security.OeaPrincipal;
@@ -364,6 +365,21 @@ public class ApiExceptionHandler {
 				ex.getMessage());
 		problem.setProperty("invalidFields", List.of("fields"));
 		return ResponseEntity.unprocessableContent().body(problem);
+	}
+
+	/**
+	 * A package import rejected by conflicts (REQ-114; issue #262 API-3, design D3 of
+	 * s13-issue-fixes): 409 {@code package-conflict} with the conflicts in {@code conflictList}.
+	 */
+	@ExceptionHandler(PackageConflictException.class)
+	ResponseEntity<ProblemDetail> packageConflict(PackageConflictException ex) {
+		ProblemDetail problem = problem(HttpStatus.CONFLICT, "package-conflict", "Package conflict",
+				"The package conflicts with content of another package or of the organization; nothing was stored.");
+		problem.setProperty("conflictList", ex.getConflicts()
+			.stream()
+			.map((conflict) -> Map.of("element", conflict.element(), "reason", conflict.reason()))
+			.toList());
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
 	}
 
 	@ExceptionHandler(NothingToRestoreException.class)

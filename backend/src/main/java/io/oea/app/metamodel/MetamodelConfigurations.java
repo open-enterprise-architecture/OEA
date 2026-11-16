@@ -100,6 +100,11 @@ public class MetamodelConfigurations {
 		if (input.solutionId() == null) {
 			throw MetamodelChangeException.invalid("solutionId", "An extension names its solution.");
 		}
+		if (!Boolean.TRUE.equals(this.jdbc.queryForObject("SELECT EXISTS (SELECT 1 FROM solutions WHERE id = ?)",
+				Boolean.class, input.solutionId()))) {
+			// issue #237: an extension names an existing solution
+			throw MetamodelChangeException.invalid("solutionId", "The solution does not exist.");
+		}
 		UUID id = UUID.randomUUID();
 		this.jdbc.update("""
 				INSERT INTO metamodel_configurations (id, scope, parent_id, solution_id, name, edit_mode, last_modified_at,

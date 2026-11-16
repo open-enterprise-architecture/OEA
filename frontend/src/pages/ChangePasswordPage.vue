@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { changeOwnPassword, suggestPassword } from '../api/session'
+import { changeOwnPassword, fetchOwnPasswordRules, suggestPassword, type PasswordRules } from '../api/session'
 import { afterPasswordLogin } from '../session/secondFactorOffer'
 import { refreshSession, session } from '../session/store'
 
 // SCR-004 Change password (REQ-173 AC2, US-023): required after a login with a temporary or
 // expired password, available to every principal with a local password. The password policy
-// (US-027) is checked by the backend; a suggestion comes from the generator (US-026). After a
+// (US-027) is checked by the backend, and before sending against the rules read from
+// GET /me/password/rules (issue #262 API-6); a suggestion comes from the generator (US-026). After a
 // required change, a person without a second factor is offered the TOTP enrollment (US-021).
 const props = defineProps<{ fetchFn?: typeof fetch }>()
 const router = useRouter()
@@ -21,13 +22,47 @@ const suggestion = ref<string>()
 const copied = ref(false)
 const busy = ref(false)
 const required = computed(() => session.me?.requiredAction === 'change-password')
+const rules = ref<PasswordRules>()
+// the floor of the operator; the rules of the server replace it once loaded
+const minLength = computed(() => rules.value?.minLength ?? 12)
+const maxLength = computed(() => rules.value?.maxLength ?? 128)
 
 // Rule names of the problem type password-policy-violation (api/openapi.yaml)
 const RULES = ['minLength', 'maxLength', 'requireUppercase', 'requireLowercase', 'requireDigits', 'requireSpecialChars', 'historyCount']
 
+const isSpecial = (char: string) => char >= '!' && char <= '~' && !/[A-Za-z0-9]/.test(char)
+
+/** The rules of the current policy the new password does not meet (the history is checked by the server). */
+function unmet(password: string): string[] {
+  const chars = [...password]
+  const result: string[] = []
+  if (password.length < minLength.value) result.push('minLength')
+  if (password.length > maxLength.value) result.push('maxLength')
+  if (rules.value?.requireUppercase && !chars.some((char) => /[A-Z]/.test(char))) result.push('requireUppercase')
+  if (rules.value?.requireLowercase && !chars.some((char) => /[a-z]/.test(char))) result.push('requireLowercase')
+  if (rules.value?.requireDigits && !chars.some((char) => /[0-9]/.test(char))) result.push('requireDigits')
+  if (rules.value?.requireSpecialChars && !chars.some(isSpecial)) result.push('requireSpecialChars')
+  return result
+}
+
+function ruleText(rule: string): string {
+  return RULES.includes(rule) ? t(`password.rule.${rule}`, { min: minLength.value, max: maxLength.value }) : rule
+}
+
+onMounted(async () => {
+  try {
+    const outcome = await fetchOwnPasswordRules(props.fetchFn)
+    if (outcome.ok) rules.value = outcome.value
+  } catch {
+    // the server checks every rule on submit
+  }
+})
+
 function clientCheck(): string | undefined {
-  if (form.newPassword.length < 12 || form.newPassword.length > 128) {
-    return t('password.length')
+  const failed = unmet(form.newPassword)
+  if (failed.length > 0) {
+    unmetRules.value = failed.map(ruleText)
+    return t('password.policy')
   }
   if (form.newPassword !== form.repeated) {
     return t('password.differ')
@@ -91,9 +126,7 @@ async function submit() {
       failure.value = t('password.wrongCurrent')
     } else if (outcome.rejection.problemType === 'password-policy-violation') {
       failure.value = t('password.policy')
-      unmetRules.value = outcome.rejection.invalidFields.map((rule) =>
-        RULES.includes(rule) ? t(`password.rule.${rule}`) : rule,
-      )
+      unmetRules.value = outcome.rejection.invalidFields.map(ruleText)
     } else {
       failure.value = t('password.notAccepted')
     }
@@ -138,7 +171,7 @@ async function submit() {
           class="w-full"
         />
       </UFormField>
-      <UFormField :label="t('password.new')" name="newPassword" required :help="t('password.newHelp')">
+      <UFormField :label="t('password.new')" name="newPassword" required :help="t('password.newHelp', { min: minLength, max: maxLength })">
         <UInput
           v-model="form.newPassword"
           data-testid="newPassword"

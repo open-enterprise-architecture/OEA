@@ -6,6 +6,7 @@ export type LoginResult = components['schemas']['LoginResult']
 export type TotpEnrollment = components['schemas']['TotpEnrollment']
 export type LoginProvider = components['schemas']['LoginProvider']
 export type PasswordSuggestion = components['schemas']['PasswordSuggestion']
+export type PasswordRules = components['schemas']['PasswordRules']
 export type SecondFactor = components['schemas']['SecondFactor']
 export type PasskeyChallenge = components['schemas']['PasskeyChallenge']
 export type PasskeyRegistration = components['schemas']['PasskeyRegistration']
@@ -150,6 +151,18 @@ export async function suggestPassword(fetchFn: typeof fetch = fetch): Promise<Ou
   const response = await post('/api/v1/me/password/suggestion', undefined, fetchFn)
   if (response.status === 200) {
     return { ok: true, value: ((await response.json()) as PasswordSuggestion).password }
+  }
+  return { ok: false, rejection: await readRejection(response) }
+}
+
+/**
+ * GET /me/password/rules: the rules of a new own password under the current policy (issue #262
+ * API-6); also allowed while the session must change its password. 403 without a local password.
+ */
+export async function fetchOwnPasswordRules(fetchFn: typeof fetch = fetch): Promise<Outcome<PasswordRules>> {
+  const response = await fetchFn('/api/v1/me/password/rules', { credentials: 'same-origin', headers: JSON_HEADERS })
+  if (response.status === 200) {
+    return { ok: true, value: (await response.json()) as PasswordRules }
   }
   return { ok: false, rejection: await readRejection(response) }
 }

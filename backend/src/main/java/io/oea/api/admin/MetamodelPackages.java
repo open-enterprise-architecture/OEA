@@ -8,7 +8,6 @@ import io.oea.api.generated.model.MetatypePropertyMapping;
 import io.oea.api.generated.model.PropertyCategory;
 import io.oea.api.generated.model.PropertyDefinitionDetail;
 import io.oea.api.generated.model.PropertyEnumValue;
-import io.oea.app.metamodel.PackageConflictException;
 import io.oea.app.metamodel.PackageDefinition;
 import io.oea.app.metamodel.PackageImporter;
 import java.util.ArrayList;
@@ -59,15 +58,6 @@ final class MetamodelPackages {
 			.batchId(outcome.batchId())
 			.labelCount(outcome.labels())
 			.conflictList(List.of());
-	}
-
-	static ImportResult result(PackageConflictException conflict) {
-		return new ImportResult(ImportResult.StatusEnum.FAILED, 0, 0, conflict.getConflicts().size())
-			.conflictList(conflict.getConflicts()
-				.stream()
-				.map((c) -> new ImportResultConflictListInner(c.element(),
-						ImportResultConflictListInner.ReasonEnum.fromValue(c.reason())))
-				.toList());
 	}
 
 	private static PackageDefinition.Category category(PropertyCategory category) {

@@ -106,7 +106,7 @@ public class SolutionController implements SolutionsApi {
 	}
 
 	@Override
-	@ContractViolationResponse(title = "Invalid delta", detail = "The delta is invalid.")
+	@ContractViolationResponse(status = 422, title = "Invalid delta", detail = "The delta is invalid.")
 	public ResponseEntity<SolutionDelta> createSolutionDelta(UUID id, SolutionDeltaWrite request) {
 		SolutionDeltas.Delta created = this.deltas.create(principal(), id,
 				new SolutionDeltas.NewDelta(type(request.getDeltaType()), request.getEntityId(),
@@ -116,7 +116,7 @@ public class SolutionController implements SolutionsApi {
 	}
 
 	@Override
-	@ContractViolationResponse(title = "Invalid delta", detail = "The delta is invalid.")
+	@ContractViolationResponse(status = 422, title = "Invalid delta", detail = "The delta is invalid.")
 	public ResponseEntity<SolutionDelta> updateSolutionDelta(UUID id, UUID deltaId, SolutionDeltaUpdate request) {
 		return ResponseEntity.ok(delta(this.deltas.update(principal(), id, deltaId,
 				new SolutionDeltas.Modification(request.getName(), request.getDescription(),

@@ -32,7 +32,7 @@ curl "${auth[@]}" "$OEA/metamodel/metatypes"                                    
 Packages of your own use the same JSON format (`MetamodelPackage`, with `packageId`, `packageVersion`, `publisher` and stable UUIDs per element). Import them with `POST /admin/metamodel/import`:
 
 - A package is imported completely or not at all. Imported content gets the scope `imported` and the package as origin.
-- Importing the same package again updates its own content. Content of another package or of your organization is never overwritten; the answer is `409` with the list of conflicts.
+- Importing the same package again updates its own content. Content of another package or of your organization is never overwritten; the answer is `409` with the problem type `urn:oea:problem:package-conflict` and the list of conflicts in `conflictList`, and nothing of the package is stored.
 - A package can name a base type for an entity type (`baseMetatypeId`): an entity type of the same package or a built-in one. Your own properties on its entity types are kept or removed according to the re-import setting (see [Editing the metamodel](./metamodel-editing)).
 - Packages larger than `oea.metamodel.import.max-size` (default 10 MB) are rejected with `413`; faulty JSON or content that does not match the format with `422` and the location of the problem.
 - A package can bring labels per language in `i18nBundles`, keyed as in [Translating labels](./metamodel-editing#translating-labels), but only for its own elements. A re-import replaces them; your own labels stay.

@@ -36,6 +36,8 @@ public class PasswordAdministrationSteps {
 		this.persons = persons;
 	}
 
+	private HttpResponse<String> rules;
+
 	@When("the system admin sets a password policy with minimum length 2 and all four character types")
 	public void inconsistentPolicy() throws Exception {
 		this.instance.response = this.instance.put(POLICY, policy(2, true, true, true, true, 0, 0));
@@ -130,6 +132,35 @@ public class PasswordAdministrationSteps {
 				.POST(HttpRequest.BodyPublishers.noBody()));
 		assertThat(suggested.statusCode()).as(suggested.body()).isEqualTo(200);
 		this.generated.add(LocalLoginSteps.json(suggested).path("password").asString());
+	}
+
+	@Given("the system admin has set a password policy with minimum length {int} that requires digits")
+	public void minimumLengthAndDigits(int minLength) throws Exception {
+		setPolicy(policy(minLength, false, false, true, false, 0, 0));
+	}
+
+	@When("{string} reads her password rules")
+	public void readRules(String name) throws Exception {
+		this.personToken = this.persons.personToken();
+		this.rules = this.instance.send(HttpRequest.newBuilder(this.instance.uri("/api/v1/me/password/rules"))
+			.header("Cookie", PersonPasswordSteps.cookie(this.personToken))
+			.GET());
+	}
+
+	@When("the system admin reads her password rules")
+	public void adminReadsRules() throws Exception {
+		// the system admin of these features logs in with a password; an IdP-only person has none
+		this.rules = this.instance.get("/api/v1/me/password/rules");
+	}
+
+	@Then("the rules name the minimum length {int}, the maximum length {int} and a required digit")
+	public void rulesNamed(int minLength, int maxLength) {
+		assertThat(this.rules.statusCode()).as(this.rules.body()).isEqualTo(200);
+		JsonNode rules = LocalLoginSteps.json(this.rules);
+		assertThat(rules.path("minLength").asInt()).isEqualTo(minLength);
+		assertThat(rules.path("maxLength").asInt()).isEqualTo(maxLength);
+		assertThat(rules.path("requireDigits").asBoolean()).isTrue();
+		assertThat(rules.path("requireUppercase").asBoolean()).isFalse();
 	}
 
 	@Then("the suggestion contains a special character, and {string} changes her password to it")

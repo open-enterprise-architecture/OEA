@@ -798,8 +798,8 @@ package "Metamodel" #E8F5E9 {
     + scope            : TEXT             {NN} DEFAULT 'instance'
     .. enum: instance | solution ..
     + parent_id        : UUID             {FK→metamodel_configurations.id}
-    + solution_id      : UUID
-    .. set exactly for scope=solution (CHECK, V20); still no FK→solutions.id (us-038-create-solution, issue #237) ..
+    + solution_id      : UUID             {FK→solutions.id}
+    .. set exactly for scope=solution (CHECK, V20); FK since V34 (s13-issue-fixes, issue #237) ..
     + name             : TEXT             {NN} {UNIQUE lower(name)}
     .. 1–100 characters; instance: 'Instance metamodel' (V20, us-037-solution-extensions-and-lock-mode) ..
     + version          : INTEGER          {NN} DEFAULT 1

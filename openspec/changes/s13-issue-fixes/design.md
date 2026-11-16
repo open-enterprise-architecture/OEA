@@ -36,7 +36,7 @@ Four open issues are fixed in one change. Each touches a different module, so th
 - `true` through a read role or the override for a `role-restricted` one;
 - `true` only through the override for a `connection-scoped` one (`throughOverride`).
 
-`SolutionDeltas.values` uses it, and so do the capture response and `SolutionDiff` for deltas `new` (they read through `values` or the same rule; the implementation checks every call site with `grep readable(`). A value read only through the override writes the existing `property-override-access` event, as on the other read channels.
+`SolutionDeltas.values` uses it. The capture response and `SolutionDiff` read the values of deltas `new` through it, so one call site covers all three. The delta reads write no `property-override-access` event today; that stays as it is.
 
 Defaults stay stored (owner decision). The rule redacts them like any other value.
 
@@ -54,9 +54,9 @@ Paths the firewall of Spring Security already rejects (encoded `/`, `%25`, `;`) 
 
 ### D3 – Conflict problem document (#262 API-3)
 
-`AdminController` builds the 409 itself:
+`ApiExceptionHandler` maps `PackageConflictException` to the 409 (by exception, not by path):
 
-- a `ProblemDetail` with the type `package-conflict` and `conflictList` from `MetamodelPackages.result(ex)`;
+- a `ProblemDetail` with the type `package-conflict` and `conflictList` with `element` and `reason`;
 - `batchId` and `labelCount` are left out of the problem.
 
 The contract describes the problem with an extension member `conflictList`. `ImportResult` keeps `conflictList` for the successful result with `completed-with-conflicts`.

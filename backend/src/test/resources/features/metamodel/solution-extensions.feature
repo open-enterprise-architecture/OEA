@@ -21,6 +21,12 @@ Feature: Solution metamodel extensions
     When the viewer creates an extension for the solution "Cloud Migration 2027"
     Then the extension is rejected with 403
 
+  # s13-issue-fixes (issue #237) — Requirement: An extension names an existing solution
+
+  Scenario: Unknown solution
+    When the architect creates an extension for a solution that does not exist
+    Then the extension is rejected with 422 naming "solutionId"
+
   @AC1
   Scenario: CloudService only in the extension
     Given an extension for the solution "Cloud Migration 2027"

@@ -17,6 +17,7 @@ import io.oea.api.generated.model.PasskeyLoginRequest;
 import io.oea.api.generated.model.PasskeyRegistration;
 import io.oea.api.generated.model.PasskeyRegistrationStart;
 import io.oea.api.generated.model.PasswordChange;
+import io.oea.api.generated.model.PasswordRules;
 import io.oea.api.generated.model.PasswordSuggestion;
 import io.oea.api.generated.model.PersonPreferences;
 import io.oea.api.generated.model.PrincipalRef;
@@ -262,6 +263,13 @@ public class IdentityController implements IdentityApi {
 	@Override
 	public ResponseEntity<PasswordSuggestion> suggestPassword() {
 		return ResponseEntity.ok(new PasswordSuggestion(this.passwordChange.suggest(current().getPrincipal())));
+	}
+
+	@Override
+	public ResponseEntity<PasswordRules> getOwnPasswordRules() {
+		io.oea.app.login.PasswordChange.Rules rules = this.passwordChange.rules(current().getPrincipal());
+		return ResponseEntity.ok(new PasswordRules(rules.minLength(), rules.maxLength(), rules.requireUppercase(),
+				rules.requireLowercase(), rules.requireDigits(), rules.requireSpecialChars()));
 	}
 
 	private static RequiredAction requiredAction(OeaPrincipal principal) {

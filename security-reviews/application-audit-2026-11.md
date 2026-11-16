@@ -143,6 +143,15 @@ A delta `new` can hold such a value in two ways: (a) the property was `public` o
 
 With AA-01 resolved, condition 1 of the sign-off is met; WS-04 and SEC-09 are no longer weakened behind a reverse proxy.
 
+## Status Update 2026-11-16
+
+| Finding | Status | Resolution |
+|---|---|---|
+| AA-02 | **Resolved** | Change `s13-issue-fixes` ([#256](https://github.com/open-enterprise-architecture/OEA/issues/256)): a value of a delta `new` is read with `PropertyAccess.Snapshot.readableWithoutEntity`, so a `connection-scoped` value is readable only through an override role in the delta list, the capture response and the diff. Defaults stored for properties the writer may not write stay stored and are redacted by the same rule (owner decision 2026-11-15). Tests: `SolutionDeltasTests` (a value that became `connection-scoped` after the capture, the override role, the diff, a stored default) |
+| T-1 | **Confirmed and resolved** | Same change ([#263](https://github.com/open-enterprise-architecture/OEA/issues/263)): integration tests showed that `/api/v1/entities/b%61tch` reached the batch handler outside the batch rate limit, and that an encoded package or batch path got the default size limit. Both filters now compare the decoded, normalized path (`RequestPaths`). Tests: `BatchRateLimitTests`, `RequestSizeLimitTests`, `RequestPathsTests` |
+
+With AA-02 resolved, condition 2 of the sign-off is met. T-2 to T-4 and the go-live question stay open in #263.
+
 ## Sign-off
 
 **Sign-off for the application state S1–S11: granted**, under the following conditions:

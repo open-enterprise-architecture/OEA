@@ -147,6 +147,16 @@ public class PropertyAccess {
 			return connectionScoped(propertyDefId) && writableFor(propertyDefId, entityId);
 		}
 
+		/**
+		 * Whether the principal may read a value of the property that belongs to no entity yet,
+		 * such as a value of a delta {@code new} (issue #256, design D1 of s13-issue-fixes): like
+		 * {@link #readable}, but a {@code connection-scoped} property only through the override,
+		 * because no entity can be in the caller's scope.
+		 */
+		public boolean readableWithoutEntity(UUID propertyDefId) {
+			return this.override || allowed(propertyDefId, false);
+		}
+
 		/** Whether the principal may write the values of the property. */
 		public boolean writable(UUID propertyDefId) {
 			return allowed(propertyDefId, true);
