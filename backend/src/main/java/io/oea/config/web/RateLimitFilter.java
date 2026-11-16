@@ -64,7 +64,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 		int limit = this.requestsPerMinute;
 		String limitName = REQUESTS;
 		if (decision.allowed() && "POST".equals(request.getMethod())
-				&& RequestSizeConfiguration.BATCH_PATH.equals(request.getRequestURI())) {
+				&& RequestSizeConfiguration.BATCH_PATH.equals(RequestPaths.normalized(request))) {
 			decision = this.limiter.acquire(key, ENTITY_BATCH, this.batchesPerMinute);
 			limit = this.batchesPerMinute;
 			limitName = ENTITY_BATCH;

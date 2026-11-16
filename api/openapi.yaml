@@ -235,8 +235,9 @@ components:
         or a privileged role is not effective because the session lacks a second factor
         (SoD-8). The problem body is generic and does not reveal the missing permission.
         A session created with a temporary password answers every operation except
-        `GET /me`, the logout, `POST /me/password` and `POST /me/password/suggestion` with
-        problem type `urn:oea:problem:password-change-required` (REQ-173 AC2). A session that
+        `GET /me`, the logout, `POST /me/password`, `POST /me/password/suggestion` and
+        `GET /me/password/rules` with problem type `urn:oea:problem:password-change-required`
+        (REQ-173 AC2). A session that
         must enroll a second factor answers every operation except `GET /me`, the logout,
         `GET /me/second-factors` and the TOTP and passkey enrollment with problem type
         `urn:oea:problem:second-factor-enrollment-required` (US-031 AC2).
@@ -317,6 +318,28 @@ components:
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
+    PackageConflict:
+      description: |
+        The package conflicts with content of another package or of the organization (REQ-114):
+        problem type `urn:oea:problem:package-conflict` with the extension member `conflictList`,
+        each entry with `element` (type and name) and `reason` (`other-package`, `organization`,
+        `built-in`). No element of the package is stored.
+      content:
+        application/problem+json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Problem'
+              - type: object
+                required: [conflictList]
+                properties:
+                  conflictList:
+                    type: array
+                    items:
+                      type: object
+                      required: [element, reason]
+                      properties:
+                        element: { type: string }
+                        reason:  { type: string, enum: [other-package, organization, built-in] }
     PreconditionRequired:
       description: |
         The operation requires `If-Match` with the version the client has read (problem type
@@ -2779,8 +2802,8 @@ components:
         deltaType:   { $ref: '#/components/schemas/SolutionDeltaType' }
         entityId:    { type: integer, minimum: 1, description: "`modified`, `retiring`: the entity of the baseline" }
         metatypeId:  { type: string, format: uuid, description: "`new`: an element metatype" }
-        name:        { type: string, description: "`new`, `modified`: 1–255 characters, not blank" }
-        description: { type: string, description: "`new`, `modified`: at most 2000 characters" }
+        name:        { type: string, minLength: 1, maxLength: 255, description: "`new`, `modified`: 1–255 characters, not blank" }
+        description: { type: string, maxLength: 2000, description: "`new`, `modified`: at most 2000 characters" }
         properties:
           type: array
           description: "`new`, `modified`: the property values, as in an entity write"
@@ -2793,8 +2816,8 @@ components:
         stays keeps its recorded before value, a new field records its current value, and a field
         not sent leaves the delta.
       properties:
-        name:        { type: string, description: "1–255 characters, not blank" }
-        description: { type: string, description: "At most 2000 characters" }
+        name:        { type: string, minLength: 1, maxLength: 255, description: "1–255 characters, not blank" }
+        description: { type: string, maxLength: 2000, description: "At most 2000 characters" }
         properties:
           type: array
           items: { $ref: '#/components/schemas/PropertyWriteValue' }
@@ -3376,6 +3399,20 @@ components:
       required: [password]
       properties:
         password: { type: string, description: A generated password that satisfies the password policy; not stored }
+
+    PasswordRules:
+      type: object
+      required: [minLength, maxLength, requireUppercase, requireLowercase, requireDigits, requireSpecialChars]
+      description: |
+        The rules a new password must meet under the current password policy (REQ-028, US-027);
+        the history rule is checked by the server only.
+      properties:
+        minLength:           { type: integer, minimum: 12, maximum: 128 }
+        maxLength:           { type: integer, description: "Fixed at 128" }
+        requireUppercase:    { type: boolean }
+        requireLowercase:    { type: boolean }
+        requireDigits:       { type: boolean }
+        requireSpecialChars: { type: boolean, description: "Special characters are all printable ASCII characters that are not letters or digits" }
 
     PasswordReset:
       type: object
@@ -4576,6 +4613,30 @@ paths:
               schema: { $ref: '#/components/schemas/Problem' }
         '409':
           description: The policy cannot be satisfied (`password-policy-unsatisfiable`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /me/password/rules:
+    get:
+      operationId: getOwnPasswordRules
+      summary: Rules of a new own password (US-027, REQ-028)
+      description: |
+        For principals with a local password: the length and the character classes a new
+        password must meet under the current policy, so that the form SCR-004 can check them
+        before sending (architecture review 2026-11 API-6). Allowed while the session must
+        change its password. The server still checks every rule on `POST /me/password`.
+      tags: [Identity]
+      x-oea-authorization: {"access": "authenticated"}
+      responses:
+        '200':
+          description: The rules
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasswordRules' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: The principal has no local password
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
@@ -6379,8 +6440,9 @@ paths:
       description: |
         Creates a configuration with `scope=solution` that inherits from the instance
         configuration; `editMode` defaults to `gui-and-import`. A name already used by a
-        configuration, compared case-insensitively, gives 409 `name-taken`. Writes the audit
-        event `metamodel.configuration-created`.
+        configuration, compared case-insensitively, gives 409 `name-taken`. `solutionId` must
+        name an existing solution, otherwise 422 naming `solutionId` (issue #237). Writes the
+        audit event `metamodel.configuration-created`.
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["solution-metamodel:write"]}
       requestBody:
@@ -9886,11 +9948,7 @@ paths:
               schema: { $ref: '#/components/schemas/ImportResult' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '409':
-          description: Conflicts with content of another package or of the organization (`conflictList`)
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ImportResult' }
+        '409': { $ref: '#/components/responses/PackageConflict' }
         '413':
           description: Package larger than the configured maximum size
           content:
@@ -9948,11 +10006,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
-        '409':
-          description: Conflicts with content of another package or of the organization (`conflictList`)
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ImportResult' }
+        '409': { $ref: '#/components/responses/PackageConflict' }
 
   # ── Shape palette per viewpoint ─────────────────────────────────────────────
         '429': { $ref: '#/components/responses/TooManyRequests' }

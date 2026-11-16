@@ -573,7 +573,8 @@ public class SolutionDeltas {
 				(ResultSet rs) -> {
 					UUID property = rs.getObject(2, UUID.class);
 					Value value;
-					if (!access.readable(property)) {
+					// a delta new has no entity yet: connection-scoped only through the override (#256)
+					if (!access.readableWithoutEntity(property)) {
 						value = new Value(property, rs.getString(3), rs.getString(4), true, null, null, null, null, null,
 								null);
 					}

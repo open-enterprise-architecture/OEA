@@ -259,6 +259,9 @@ class PackageImportTests {
 		((ObjectNode) other.withArray("metatypes").get(1)).put("name", "owner-package Type 2");
 		MvcTestResult result = post(other.toString(), this.metamodelAdmin);
 		assertThat(result).hasStatus(HttpStatus.CONFLICT);
+		// a problem document (issue #262 API-3, design D3 of s13-issue-fixes)
+		assertThat(result.getResponse().getContentType()).startsWith("application/problem+json");
+		assertThat(body(result).path("type").asString()).isEqualTo("urn:oea:problem:package-conflict");
 		JsonNode conflict = body(result).path("conflictList").get(0);
 		assertThat(conflict.path("element").asString()).isEqualTo("metatype owner-package Type 2");
 		assertThat(conflict.path("reason").asString()).isEqualTo("other-package");

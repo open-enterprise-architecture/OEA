@@ -107,14 +107,26 @@ class MetamodelConfigurationsTests {
 	// metamodel/solution-extensions – Extension configurations
 
 	@Test
+	void unknownSolutionIsRejected() {
+		// issue #237: an extension names an existing solution
+		int before = this.jdbc.queryForObject("SELECT count(*) FROM metamodel_configurations", Integer.class);
+		MvcTestResult result = call(HttpMethod.POST, "/metamodel/configurations",
+				extension(UUID.randomUUID(), unique("Unknown")), this.architect);
+		assertThat(result).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+		assertThat(body(result).path("invalidFields")).extracting(JsonNode::asString).containsExactly("solutionId");
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM metamodel_configurations", Integer.class))
+			.isEqualTo(before);
+	}
+
+	@Test
 	void nameAtItsLimits() {
 		String prefix = UUID.randomUUID().toString().substring(0, 8);
 		UUID id = id(created(call(HttpMethod.POST, "/metamodel/configurations",
-				extension(UUID.randomUUID(), prefix + "n".repeat(92)), this.architect)));
+				extension(solution(), prefix + "n".repeat(92)), this.architect)));
 		assertThat(find(body(call(HttpMethod.GET, "/metamodel/configurations", null, this.viewer)), id).path("name")
 			.asString()).hasSize(100);
 		MvcTestResult tooLong = call(HttpMethod.POST, "/metamodel/configurations",
-				extension(UUID.randomUUID(), prefix + "m".repeat(93)), this.architect);
+				extension(solution(), prefix + "m".repeat(93)), this.architect);
 		// the contract limits the name (maxLength 100), so the request is refused before the service
 		assertThat(tooLong).hasStatus(HttpStatus.BAD_REQUEST);
 		assertThat(type(tooLong)).isEqualTo("urn:oea:problem:validation-failed");
@@ -123,7 +135,7 @@ class MetamodelConfigurationsTests {
 
 	@Test
 	void extensionForCloudMigration2027() {
-		UUID solution = UUID.randomUUID();
+		UUID solution = solution();
 		JsonNode created = created(call(HttpMethod.POST, "/metamodel/configurations",
 				extension(solution, unique("Cloud Migration 2027")).put("editMode", "gui-and-import"), this.architect));
 		UUID id = id(created);
@@ -145,7 +157,7 @@ class MetamodelConfigurationsTests {
 	void creatingAnExtensionWithoutPermission() {
 		int before = count("SELECT count(*) FROM metamodel_configurations");
 		MvcTestResult result = call(HttpMethod.POST, "/metamodel/configurations",
-				extension(UUID.randomUUID(), unique("Viewer")), this.viewer);
+				extension(solution(), unique("Viewer")), this.viewer);
 		assertThat(result).hasStatus(HttpStatus.FORBIDDEN);
 		assertThat(count("SELECT count(*) FROM metamodel_configurations")).isEqualTo(before);
 	}
@@ -153,13 +165,13 @@ class MetamodelConfigurationsTests {
 	@Test
 	void extensionNamesAreUnique() {
 		String name = unique("Twice");
-		created(call(HttpMethod.POST, "/metamodel/configurations", extension(UUID.randomUUID(), name), this.architect));
+		created(call(HttpMethod.POST, "/metamodel/configurations", extension(solution(), name), this.architect));
 		MvcTestResult result = call(HttpMethod.POST, "/metamodel/configurations",
-				extension(UUID.randomUUID(), name.toUpperCase()), this.architect);
+				extension(solution(), name.toUpperCase()), this.architect);
 		assertThat(result).hasStatus(HttpStatus.CONFLICT);
 		assertThat(type(result)).isEqualTo("urn:oea:problem:name-taken");
 		MvcTestResult instance = call(HttpMethod.POST, "/metamodel/configurations",
-				extension(UUID.randomUUID(), "instance METAMODEL"), this.architect);
+				extension(solution(), "instance METAMODEL"), this.architect);
 		assertThat(type(instance)).isEqualTo("urn:oea:problem:name-taken");
 	}
 
@@ -469,7 +481,7 @@ class MetamodelConfigurationsTests {
 	@Test
 	void lockedExtension() {
 		UUID extension = id(created(call(HttpMethod.POST, "/metamodel/configurations",
-				extension(UUID.randomUUID(), unique("Locked")).put("editMode", "import-only"), this.architect)));
+				extension(solution(), unique("Locked")).put("editMode", "import-only"), this.architect)));
 		MvcTestResult result = createMetatype(unique("Locked"), extension, null, this.architect);
 		assertThat(result).hasStatus(HttpStatus.FORBIDDEN);
 		assertThat(type(result)).isEqualTo("urn:oea:problem:metamodel-locked");
@@ -486,7 +498,15 @@ class MetamodelConfigurationsTests {
 
 	private UUID newExtension() {
 		return id(created(call(HttpMethod.POST, "/metamodel/configurations",
-				extension(UUID.randomUUID(), unique("Extension")), this.architect)));
+				extension(solution(), unique("Extension")), this.architect)));
+	}
+
+	/** A new solution: an extension names an existing one (issue #237). */
+	private UUID solution() {
+		return this.jdbc.queryForObject("""
+				INSERT INTO solutions (id, name, owner_id, created_by)
+				SELECT gen_random_uuid(), ?, id, id FROM persons ORDER BY id LIMIT 1 RETURNING id""", UUID.class,
+				unique("Solution"));
 	}
 
 	private static ObjectNode extension(UUID solution, String name) {

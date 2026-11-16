@@ -8,6 +8,7 @@ import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
 import io.oea.core.service.PasswordHasher;
+import io.oea.core.service.PasswordPolicy;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
@@ -81,6 +82,29 @@ public class PasswordChange {
 	 */
 	@Transactional(readOnly = true)
 	public String suggest(OeaPrincipal principal) {
+		requireLocalPassword(principal);
+		return this.policies.generate();
+	}
+
+	/** The rules a new own password must meet (issue #262 API-6, design D5 of s13-issue-fixes). */
+	public record Rules(int minLength, int maxLength, boolean requireUppercase, boolean requireLowercase,
+			boolean requireDigits, boolean requireSpecialChars) {
+	}
+
+	/**
+	 * The rules of the effective policy for the principal's own password change.
+	 *
+	 * @throws NoLocalPasswordException for a principal without an active local password (403)
+	 */
+	public Rules rules(OeaPrincipal principal) {
+		requireLocalPassword(principal);
+		PasswordPolicy policy = this.policies.effective();
+		return new Rules(Math.max(policy.minLength(), PasswordHasher.MINIMUM_LENGTH), PasswordHasher.MAXIMUM_LENGTH,
+				policy.requireUppercase(), policy.requireLowercase(), policy.requireDigits(),
+				policy.requireSpecialChars());
+	}
+
+	private void requireLocalPassword(OeaPrincipal principal) {
 		boolean person = principal.type() == OeaPrincipal.Type.PERSON;
 		Boolean exists = this.jdbc.queryForObject(person ? """
 				SELECT EXISTS (SELECT 1 FROM local_credentials WHERE person_id = ? AND type = 'password'
@@ -91,7 +115,6 @@ public class PasswordChange {
 		if (!Boolean.TRUE.equals(exists)) {
 			throw new NoLocalPasswordException();
 		}
-		return this.policies.generate();
 	}
 
 	@Transactional(noRollbackFor = WrongCurrentPasswordException.class)

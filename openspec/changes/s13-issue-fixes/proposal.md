@@ -58,7 +58,7 @@ This is S13 change 3. The owner chose these issues on 2026-11-15.
 **Extensions name an existing solution (#237, `metamodel`):**
 
 - `metamodel_configurations.solution_id` gets a foreign key to `solutions.id`.
-- `createMetamodelExtension` answers an unknown solution with 422 naming `solutionId`.
+- `createMetamodelConfiguration` answers an unknown solution with 422 naming `solutionId`.
 - The US-037 tests create their solution first.
 
 ## Out of Scope
@@ -87,7 +87,7 @@ This is S13 change 3. The owner chose these issues on 2026-11-15.
   - the 409 of `importStarterPackage` and `importMetamodelPackage`;
   - the delta schema limits;
   - the new `getOwnPasswordRules` with the schema `PasswordRules`;
-  - the 422 of `createMetamodelExtension`;
+  - the 422 of `createMetamodelConfiguration`;
   - the list of operations allowed during a password change.
 - **backend:**
   - `SolutionDeltas`;

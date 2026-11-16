@@ -96,10 +96,9 @@ describe('StarterConfigurationCard', () => {
         '/api/v1/admin/metamodel/starter-packages/oea-starter-togaf-classic/import': {
           status: 409,
           body: {
-            status: 'failed',
-            created: 0,
-            updated: 0,
-            conflicts: 1,
+            type: 'urn:oea:problem:package-conflict',
+            title: 'Package conflict',
+            status: 409,
             conflictList: [{ element: 'metatype Data Object', reason: 'organization' }],
           },
         },

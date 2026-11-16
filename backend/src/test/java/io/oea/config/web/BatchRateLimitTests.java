@@ -106,9 +106,47 @@ class BatchRateLimitTests {
 			.hasStatus(HttpStatus.OK);
 	}
 
+	/**
+	 * Security audit 2026-11 T-1 (issue #263; design D2 of s13-issue-fixes): a percent-encoded
+	 * batch path counts against the batch limit like the plain one.
+	 */
+	@Test
+	void percentEncodedBatchPathCountsAsBatch() {
+		TestPrincipals principals = new TestPrincipals(this.sessions, this.accounts, this.jdbc);
+		TestSession architect = principals.personWithIdpRole("enterprise-architect");
+		UUID component = component(principals);
+		String marker = "Encoded " + UUID.randomUUID();
+		for (int i = 1; i <= 10; i++) {
+			assertThat(batch(architect, marker + " " + i, component, "/api/v1/entities/b%61tch"))
+				.hasStatus(HttpStatus.OK);
+		}
+		assertThat(batch(architect, marker + " 11", component, "/api/v1/entities/b%61tch"))
+			.hasStatus(HttpStatus.TOO_MANY_REQUESTS);
+		assertThat(batch(architect, marker + " 12", component, "/api/v1/entities/batch"))
+			.hasStatus(HttpStatus.TOO_MANY_REQUESTS);
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM entities WHERE name LIKE ?", Integer.class,
+				marker + " %")).isEqualTo(10);
+	}
+
+	private UUID component(TestPrincipals principals) {
+		if (this.jdbc.queryForObject("SELECT count(*) FROM metatypes", Integer.class) == 0) {
+			TestSession metamodelAdmin = principals.personWithIdpRole("metamodel-admin");
+			assertThat(this.mvc.post()
+				.uri("/api/v1/admin/metamodel/starter-packages/oea-starter-togaf-classic/import")
+				.cookie(new Cookie(SessionCookie.NAME, metamodelAdmin.token()))
+				.header(CsrfOriginFilter.HEADER, metamodelAdmin.csrfToken())
+				.exchange()).hasStatus(HttpStatus.OK);
+		}
+		return this.jdbc.queryForObject("SELECT id FROM metatypes WHERE name = 'Application Component'", UUID.class);
+	}
+
 	private MvcTestResult batch(TestSession session, String name, UUID metatype) {
+		return batch(session, name, metatype, "/api/v1/entities/batch");
+	}
+
+	private MvcTestResult batch(TestSession session, String name, UUID metatype, String path) {
 		return this.mvc.post()
-			.uri("/api/v1/entities/batch")
+			.uri(java.net.URI.create(path))
 			.cookie(new Cookie(SessionCookie.NAME, session.token()))
 			.header(CsrfOriginFilter.HEADER, session.csrfToken())
 			.contentType(MediaType.APPLICATION_JSON)

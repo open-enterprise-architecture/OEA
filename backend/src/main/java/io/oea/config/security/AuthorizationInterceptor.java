@@ -48,7 +48,7 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
 	 * us-011-local-password; the suggestion: design D5 of us-027-password-administration).
 	 */
 	private static final Set<String> PASSWORD_CHANGE_OPERATIONS = Set.of("getCurrentPrincipal", "logout",
-			"changeOwnPassword", "suggestPassword");
+			"changeOwnPassword", "suggestPassword", "getOwnPasswordRules");
 
 	/** Operations a session with a required enrollment may call (design D4 of us-031-second-factor-enforcement). */
 	private static final Set<String> ENROLLMENT_OPERATIONS = Set.of("getCurrentPrincipal", "logout",

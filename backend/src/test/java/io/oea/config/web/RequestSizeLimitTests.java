@@ -160,6 +160,53 @@ class RequestSizeLimitTests {
 				"package-too-large");
 	}
 
+	// s13-issue-fixes (#263 T-1): limits apply to the decoded path
+
+	@Test
+	void percentEncodedPackagePathKeepsThePackageLimit() {
+		TestSession metamodelAdmin = this.principals.personWithIdpRole("metamodel-admin");
+		assertTooLarge(postEncoded(encoded(RequestSizeConfiguration.IMPORT_PATH), new byte[65 * 1024], metamodelAdmin),
+				"package-too-large");
+	}
+
+	@Test
+	void percentEncodedBatchPathKeepsTheBatchLimit() {
+		UUID component = this.jdbc.queryForObject("SELECT id FROM metatypes WHERE name = 'Application Component'",
+				UUID.class);
+		// above the default limit of 100 KB, within the batch limit of 10 MB
+		ObjectNode batch = JsonMapper.shared().createObjectNode();
+		ArrayNode entities = batch.putArray("entities");
+		String prefix = UUID.randomUUID().toString().substring(0, 8);
+		for (int i = 0; i < 150; i++) {
+			entities.addObject()
+				.put("name", "Encoded " + prefix + " " + i)
+				.put("metatypeId", component.toString())
+				.put("description", "d".repeat(1000));
+		}
+		byte[] body = batch.toString().getBytes(StandardCharsets.UTF_8);
+		assertThat(body.length).isGreaterThan(100 * 1024);
+		assertThat(postEncoded(encoded(RequestSizeConfiguration.BATCH_PATH), body, this.architect))
+			.hasStatus(HttpStatus.OK);
+		assertTooLarge(postEncoded(encoded(RequestSizeConfiguration.BATCH_PATH), new byte[10 * 1024 * 1024 + 1],
+				this.architect), "request-too-large");
+	}
+
+	/** The path with its last letter percent-encoded, e.g. {@code /api/v1/entities/batc%68}. */
+	private static String encoded(String path) {
+		char last = path.charAt(path.length() - 1);
+		return path.substring(0, path.length() - 1) + "%" + Integer.toHexString(last);
+	}
+
+	private MvcTestResult postEncoded(String path, byte[] body, TestSession session) {
+		return this.mvc.post()
+			.uri(URI.create(path))
+			.cookie(new Cookie(SessionCookie.NAME, session.token()))
+			.header(CsrfOriginFilter.HEADER, session.csrfToken())
+			.contentType("application/json")
+			.content(body)
+			.exchange();
+	}
+
 	// Requirement: Authentication before the size check
 
 	@Test

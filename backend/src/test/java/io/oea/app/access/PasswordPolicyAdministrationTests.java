@@ -249,6 +249,28 @@ class PasswordPolicyAdministrationTests {
 		assertThat(post("/api/v1/me/password/suggestion", this.personAdmin, "")).hasStatus(HttpStatus.FORBIDDEN);
 	}
 
+	// s13-issue-fixes (issue #262 API-6): the own password rules
+
+	@Test
+	void ownPasswordRulesFollowThePolicy() {
+		assertThat(put("/api/v1/admin/settings/password-policy", this.settingsAdmin,
+				STRICT.replace("\"minLength\":16", "\"minLength\":14"))).hasStatus(HttpStatus.OK);
+		long ida = invited("ida");
+		assertThat(post("/api/v1/admin/persons/" + ida + "/password", this.personAdmin,
+				"{\"password\":\"Initial-password-1!\"}")).hasStatus(HttpStatus.OK);
+		// allowed while the password change is required
+		TestSession session = session(login("ida@example.org", "Initial-password-1!"));
+		MvcTestResult rules = get("/api/v1/me/password/rules", session);
+		assertThat(rules).hasStatus(HttpStatus.OK);
+		assertThat(body(rules).path("minLength").asInt()).isEqualTo(14);
+		assertThat(body(rules).path("maxLength").asInt()).isEqualTo(128);
+		assertThat(body(rules).path("requireUppercase").asBoolean()).isTrue();
+		assertThat(body(rules).path("requireDigits").asBoolean()).isTrue();
+		assertThat(body(rules).path("requireSpecialChars").asBoolean()).isTrue();
+		// a principal without a local password gets none
+		assertThat(get("/api/v1/me/password/rules", this.personAdmin)).hasStatus(HttpStatus.FORBIDDEN);
+	}
+
 	@Test
 	void switchedOffByAnAdministrator() {
 		active("gina", "chosen-password-456");

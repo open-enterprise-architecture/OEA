@@ -82,6 +82,20 @@ public class MetamodelConfigurationSteps {
 		this.response = send("POST", CONFIGURATIONS, extensionBody(solution), instance().viewer());
 	}
 
+	@When("the architect creates an extension for a solution that does not exist")
+	public void architectCreatesExtensionOfUnknownSolution() throws Exception {
+		this.response = send("POST", CONFIGURATIONS,
+				object().put("solutionId", UUID.randomUUID().toString()).put("name", "Unknown" + this.suffix),
+				instance().architect());
+	}
+
+	@Then("the extension is rejected with {int} naming {string}")
+	public void extensionRejectedNaming(int status, String field) throws Exception {
+		extensionRejected(status);
+		assertThat(JsonMapper.shared().readTree(this.response.body()).path("invalidFields").get(0).asString())
+			.isEqualTo(field);
+	}
+
 	@Then("the extension is rejected with {int}")
 	public void extensionRejected(int status) {
 		assertThat(this.response.statusCode()).as(this.response.body()).isEqualTo(status);
@@ -252,8 +266,21 @@ public class MetamodelConfigurationSteps {
 	// helpers
 
 	private ObjectNode extensionBody(String solution) {
-		String id = this.solutions.computeIfAbsent(solution, (k) -> UUID.randomUUID().toString());
+		// issue #237: an extension names an existing solution
+		String id = this.solutions.computeIfAbsent(solution, (k) -> solution(k));
 		return object().put("solutionId", id).put("name", solution + this.suffix);
+	}
+
+	private String solution(String name) {
+		try {
+			return instance().oidc().single("""
+					INSERT INTO solutions (id, name, owner_id, created_by)
+					SELECT gen_random_uuid(), '%s', id, id FROM persons ORDER BY id LIMIT 1 RETURNING id::text"""
+				.formatted((name + this.suffix + " " + UUID.randomUUID().toString().substring(0, 6)).replace("'", "''")));
+		}
+		catch (Exception ex) {
+			throw new IllegalStateException(ex);
+		}
 	}
 
 	private ObjectNode metatypeBody(String name, String config) {

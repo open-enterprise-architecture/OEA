@@ -38,7 +38,7 @@ Betreibt deine Organisation OEA ohne Identity-Provider, gibt dir deine Administr
 1. Nach der ersten Anmeldung öffnet sich die Seite *Passwort ändern*. Gib das Initialpasswort als aktuelles Passwort ein und wähle zweimal dein eigenes Passwort. Bis dahin ist nichts anderes verfügbar.
 2. Ab dann meldest du dich mit deiner E-Mail-Adresse und deinem eigenen Passwort an. Unter `/me/password` kannst du es wieder ändern; das beendet deine anderen Sitzungen.
 
-- Dein Passwort muss die Passwort-Richtlinie deiner Organisation erfüllen: mindestens 12 Zeichen und eventuell eine größere Mindestlänge, bestimmte Zeichentypen oder ein Passwort, das du nicht kürzlich verwendet hast. Erfüllt es sie nicht, listet die Seite jede verfehlte Regel auf.
+- Dein Passwort muss die Passwort-Richtlinie deiner Organisation erfüllen: mindestens 12 Zeichen und eventuell eine größere Mindestlänge, bestimmte Zeichentypen oder ein Passwort, das du nicht kürzlich verwendet hast. Die Seite *Passwort ändern* zeigt die verlangte Länge und prüft das neue Passwort vor dem Senden; verfehlt es eine Regel, listet die Seite jede verfehlte Regel auf. Clients lesen die Regeln mit `GET /me/password/rules`.
 - *Passwort vorschlagen* zeigt ein erzeugtes Passwort, das die Richtlinie erfüllt. Speichere es in deinem Passwortmanager und übernimm es dann mit *Als neues Passwort verwenden*. OEA behält den Vorschlag nicht.
 - Lässt deine Organisation Passwörter ablaufen, öffnet sich die Seite *Passwort ändern* bei der ersten Anmeldung nach dem Ablauf, wie nach einem Initialpasswort.
 - Das Initialpasswort läuft nach der Zeit ab, die deine Administration gewählt hat (Standard 72 Stunden). Ein abgelaufenes Initialpasswort scheitert wie ein falsches; bitte deine Administration um ein neues.

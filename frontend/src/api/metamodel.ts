@@ -71,10 +71,16 @@ export async function fetchStarterPackages(fetchFn: typeof fetch = fetch): Promi
 }
 
 /** POST /admin/metamodel/starter-packages/{packageId}/import with the CSRF token of the session. */
+/** A conflicting element of a refused package import: its type and name, and why it conflicts. */
+export interface PackageConflict {
+  element: string
+  reason: 'other-package' | 'organization' | 'built-in'
+}
+
 export async function importStarterPackage(
   packageId: string,
   fetchFn: typeof fetch = fetch,
-): Promise<{ ok: true; result: ImportResult } | { ok: false; rejection: Rejection; result?: ImportResult }> {
+): Promise<{ ok: true; result: ImportResult } | { ok: false; rejection: Rejection; conflicts?: PackageConflict[] }> {
   const csrfToken = currentCsrfToken()
   const response = await fetchFn(`/api/v1/admin/metamodel/starter-packages/${encodeURIComponent(packageId)}/import`, {
     method: 'POST',
@@ -85,8 +91,9 @@ export async function importStarterPackage(
     return { ok: true, result: (await response.json()) as ImportResult }
   }
   if (response.status === 409) {
-    const result = (await response.json()) as ImportResult
-    return { ok: false, rejection: { status: 409, problemType: 'conflict', invalidFields: [] }, result }
+    // 409 package-conflict with the conflicts in `conflictList` (issue #262 API-3)
+    const problem = (await response.clone().json()) as { conflictList?: PackageConflict[] }
+    return { ok: false, rejection: await readRejection(response), conflicts: problem.conflictList ?? [] }
   }
   return { ok: false, rejection: await readRejection(response) }
 }

@@ -38,8 +38,8 @@ async function importPackage(starter: StarterPackage) {
     const outcome = await importStarterPackage(starter.packageId, props.fetchFn)
     if (outcome.ok) {
       imported.value = { name: starter.name, created: outcome.result.created }
-    } else if (outcome.result?.conflictList?.length) {
-      failure.value = t('starter.conflicts', { elements: outcome.result.conflictList.map((c) => c.element).join(', ') })
+    } else if (outcome.conflicts?.length) {
+      failure.value = t('starter.conflicts', { elements: outcome.conflicts.map((c) => c.element).join(', ') })
     } else {
       failure.value = t('starter.failed')
     }

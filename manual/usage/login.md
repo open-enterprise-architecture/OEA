@@ -36,7 +36,7 @@ If your organization runs OEA without an identity provider, your administrator g
 1. After the first login, the page *Change password* opens. Enter the initial password as current password and choose your own password twice. Until then, nothing else is available.
 2. From then on, log in with your e-mail address and your own password. You can change it again under `/me/password`; this ends your other sessions.
 
-- Your password must meet the password policy of your organization: at least 12 characters, and possibly a longer minimum, certain character types, or a password you have not used recently. If it does not, the page lists every rule it misses.
+- Your password must meet the password policy of your organization: at least 12 characters, and possibly a longer minimum, certain character types, or a password you have not used recently. The page *Change password* shows the length the policy requires and checks the new password before sending it; if it misses a rule, the page lists every rule it misses. Clients read the rules with `GET /me/password/rules`.
 - *Suggest a password* shows a generated password that meets the policy. Store it in your password manager, then use it with *Use as new password*. OEA does not keep the suggestion.
 - If your organization lets passwords expire, the page *Change password* opens at the first login after the expiry, as after an initial password.
 - The initial password expires after the time your administrator chose (default 72 hours). An expired initial password fails like a wrong one; ask your administrator for a new one.

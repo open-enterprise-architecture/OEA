@@ -32,7 +32,6 @@ import io.oea.api.generated.model.ServiceAccount;
 import io.oea.api.generated.model.ServiceAccountCreated;
 import io.oea.api.generated.model.ServiceAccountRotation;
 import io.oea.api.generated.model.ServiceAccountWrite;
-import io.oea.app.metamodel.PackageConflictException;
 import io.oea.app.metamodel.PackageImporter;
 import io.oea.app.metamodel.StarterPackages;
 import io.oea.app.security.OeaPrincipal;
@@ -269,26 +268,18 @@ public class AdminController implements AdminApi {
 	@Override
 	public ResponseEntity<ImportResult> importStarterPackage(String packageId) {
 		ImportMetamodelPackageRequest request = MetamodelPackages.read(this.starterPackages.get(packageId).content());
-		try {
-			return ResponseEntity.ok(MetamodelPackages
-				.result(this.packageImporter.importPackage(principal(), MetamodelPackages.definition(request))));
-		}
-		catch (PackageConflictException ex) {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body(MetamodelPackages.result(ex));
-		}
+		// a conflict is answered by ApiExceptionHandler as package-conflict (issue #262 API-3)
+		return ResponseEntity.ok(MetamodelPackages
+			.result(this.packageImporter.importPackage(principal(), MetamodelPackages.definition(request))));
 	}
 
 	@Override
 	@ContractViolationResponse(shape = ContractViolationResponse.Shape.PACKAGE, status = 422, title = "Invalid package",
 			detail = "The package is not valid JSON or does not match the package format.")
 	public ResponseEntity<ImportResult> importMetamodelPackage(ImportMetamodelPackageRequest request) {
-		try {
-			return ResponseEntity.ok(MetamodelPackages
-				.result(this.packageImporter.importPackage(principal(), MetamodelPackages.definition(request))));
-		}
-		catch (PackageConflictException ex) {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body(MetamodelPackages.result(ex));
-		}
+		// a conflict is answered by ApiExceptionHandler as package-conflict (issue #262 API-3)
+		return ResponseEntity.ok(MetamodelPackages
+			.result(this.packageImporter.importPackage(principal(), MetamodelPackages.definition(request))));
 	}
 
 	@Override

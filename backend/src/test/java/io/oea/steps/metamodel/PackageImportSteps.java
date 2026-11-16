@@ -174,6 +174,9 @@ public class PackageImportSteps {
 	@Then("the import is rejected with 409 listing {string} as conflict with another package")
 	public void conflict(String element) {
 		assertThat(this.response.statusCode()).isEqualTo(409);
+		assertThat(this.response.headers().firstValue("Content-Type")).hasValueSatisfying(
+				(type) -> assertThat(type).startsWith("application/problem+json"));
+		assertThat(body().path("type").asString()).isEqualTo("urn:oea:problem:package-conflict");
 		JsonNode conflict = body().path("conflictList").get(0);
 		assertThat(conflict.path("element").asString()).isEqualTo(element);
 		assertThat(conflict.path("reason").asString()).isEqualTo("other-package");

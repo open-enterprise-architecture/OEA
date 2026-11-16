@@ -59,3 +59,17 @@ Feature: Password policy and password generator
     When "Anna" logs in with her e-mail address and the initial password
     And "Anna" asks for a password suggestion
     Then the suggestion contains a special character, and "Anna" changes her password to it
+
+  # s13-issue-fixes (issue #262 API-6) — Requirement: Own password rules
+
+  @US-027 @REQ-028
+  Scenario: Rules of the current policy, also during a required change
+    Given a bootstrapped OEA instance in its setup phase with the system admin "admin" and password login of persons switched on
+    And the system admin is logged in
+    And the session is confirmed with a second factor
+    And the system admin has set a password policy with minimum length 14 that requires digits
+    And the system admin has invited the person "Anna" with the e-mail address "anna@example.org"
+    And the system admin has set the initial password of "Anna"
+    When "Anna" logs in with her e-mail address and the initial password
+    And "Anna" reads her password rules
+    Then the rules name the minimum length 14, the maximum length 128 and a required digit

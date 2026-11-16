@@ -236,6 +236,73 @@ class SolutionDeltasTests {
 		assertThat(shown.path("valueInt").asLong()).isEqualTo(100L);
 	}
 
+	// s13-issue-fixes (#256): values of a delta new before the entity exists
+
+	@Test
+	void valueThatBecameConnectionScopedIsRedacted() {
+		created(create(this.michael, this.solution, newEntity("Salesforce", null, value(this.owner, "Sales"),
+				value(this.release, "R1"))));
+		UUID scoping = metatype("Team Assignment", true);
+		this.jdbc.update("""
+				UPDATE property_definitions SET visibility_mode = 'connection-scoped', scoping_connection_type_id = ?
+				WHERE id = ?""", scoping, this.release);
+		UUID personType = metatype("Person", false);
+		this.jdbc.update("UPDATE visibility_settings SET person_metatype_id = ? WHERE id = 1", personType);
+		try {
+			// an account link gives a scope, but a delta new has no entity in it
+			this.jdbc.update("UPDATE persons SET entity_id = ? WHERE id = ?", entity(personType, "Michael"),
+					this.michaelId);
+			JsonNode listed = byName(list(this.michael, this.solution).path("items").get(0).path("properties"))
+				.get("Release");
+			assertThat(listed.path("redacted").asBoolean()).isTrue();
+			assertThat(listed.path("valueText").isNull()).isTrue();
+			JsonNode diff = json(this.mvc.get()
+				.uri("/api/v1/solutions/" + this.solution + "/diff")
+				.cookie(new Cookie(SessionCookie.NAME, this.michael.token()))
+				.exchange());
+			JsonNode release = null;
+			for (JsonNode field : diff.path("entries").get(0).path("fields")) {
+				if (this.release.toString().equals(field.path("propertyDefId").asString())) {
+					release = field;
+				}
+			}
+			assertThat(release).isNotNull();
+			assertThat(release.path("redacted").asBoolean()).isTrue();
+			// the override role reads it
+			String role = "delta-override-" + suffix();
+			this.jdbc.update("INSERT INTO authorization_roles (id, name, overrides_property_visibility) VALUES (?, ?, true)",
+					role, role);
+			JsonNode shown = byName(list(this.principals.personWithIdpRoles("solution-architect", role), this.solution)
+				.path("items")
+				.get(0)
+				.path("properties")).get("Release");
+			assertThat(shown.path("redacted").asBoolean()).isFalse();
+			assertThat(shown.path("valueText").asString()).isEqualTo("R1");
+			// a public value stays readable
+			assertThat(byName(list(this.michael, this.solution).path("items").get(0).path("properties")).get("Owner")
+				.path("valueText")
+				.asString()).isEqualTo("Sales");
+		}
+		finally {
+			this.jdbc.update("UPDATE persons SET entity_id = NULL WHERE id = ?", this.michaelId);
+			this.jdbc.update("UPDATE visibility_settings SET person_metatype_id = NULL WHERE id = 1");
+		}
+	}
+
+	@Test
+	void storedDefaultOfAWriteProtectedPropertyIsRedacted() {
+		this.jdbc.update("UPDATE metatype_property_mappings SET default_value_int = 42 WHERE property_def_id = ?",
+				this.cost);
+		// michael may neither write nor read Cost; its default is stored (owner decision 2026-11-15)
+		created(create(this.michael, this.solution, newEntity("Salesforce", null, value(this.owner, "Sales"))));
+		JsonNode hidden = byName(list(this.michael, this.solution).path("items").get(0).path("properties")).get("Cost");
+		assertThat(hidden.path("redacted").asBoolean()).isTrue();
+		assertThat(hidden.path("valueInt").isNull()).isTrue();
+		TestSession finance = this.principals.personWithIdpRoles("solution-architect", "enterprise-architect");
+		JsonNode shown = byName(list(finance, this.solution).path("items").get(0).path("properties")).get("Cost");
+		assertThat(shown.path("valueInt").asLong()).isEqualTo(42L);
+	}
+
 	@Test
 	void connectionScopedPropertyCannotBeSet() {
 		TestSession finance = this.principals.personWithIdpRoles("solution-architect", "enterprise-architect");

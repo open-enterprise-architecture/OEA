@@ -57,7 +57,7 @@ public class RequestSizeLimitFilter extends OncePerRequestFilter {
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 			throws ServletException, IOException {
-		Limit limit = this.limitsByPath.getOrDefault(request.getRequestURI(), this.defaultLimit);
+		Limit limit = this.limitsByPath.getOrDefault(RequestPaths.normalized(request), this.defaultLimit);
 		if (request.getContentLengthLong() > limit.maximumBytes()) {
 			Problems.write(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE, limit.problemType(),
 					limit.title());
