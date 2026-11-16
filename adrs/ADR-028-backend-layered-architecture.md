@@ -4,6 +4,7 @@
 **Date**: 2026-06-29
 **Deciders**: [Lukas Mathis – Repository Owner](../MAINTAINERS.md)
 **Amended**: 2026-11-13 – layers `infrastructure` and `audit`, rules for `config`, cycle-free packages, see [Amendment 2026-11-13](#amendment-2026-11-13-infrastructure-and-audit-layers)
+**Partially superseded**: 2026-11-16 by [ADR-051](./ADR-051-backend-module-cut.md) — the sections "Layer 2", "Layer 3" and "Package Structure (complete)": concrete feature services instead of interfaces and command/query records, generated DTOs, SQL only in the stores of `core`; the layers and their access rules stay
 
 ---
 
@@ -253,7 +254,7 @@ The owner decided on 2026-11-13 to add the missing layers and to forbid cycles. 
 - **No package cycles:** no two packages of the backend may depend on each other, directly or transitively. Types used by several features of `app` live in `io.oea.app.shared`, which depends on no other feature.
 - **Enforcement:** ArchUnit checks both rules, and fixtures prove that each rule detects a violation.
 
-The package structure and the stance on direct SQL in `app` (ARCH-3, ARCH-4) are decided separately ([#258](https://github.com/open-enterprise-architecture/OEA/issues/258)).
+The package structure and the stance on direct SQL in `app` (ARCH-3, ARCH-4) are decided in [ADR-051](./ADR-051-backend-module-cut.md) ([#258](https://github.com/open-enterprise-architecture/OEA/issues/258)).
 
 ---
 

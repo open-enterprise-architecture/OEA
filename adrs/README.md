@@ -63,8 +63,8 @@ In `.opencode/commands/`:
 | [ADR-024](./ADR-024-audit-separation.md) | Audit Data Storage — Separate Schema, Configurable as External Database | accepted | 2026-06-29 | – |
 | [ADR-025](./ADR-025-i18n-strategy.md) | I18N Strategy — Two-Layer with ETag Caching and SSE Invalidation | accepted | 2026-06-29 | – |
 | [ADR-026](./ADR-026-external-system-integration.md) | External System Integration — Write Access via API (optional) | accepted | 2026-06-29 | – |
-| [ADR-027](./ADR-027-project-setup-monorepo.md) | Project Setup — Mono-Repo, Maven Structure, Package Naming, Docker Compose | accepted | 2026-06-29 | – |
-| [ADR-028](./ADR-028-backend-layered-architecture.md) | Backend Layered Architecture — API / Application / Core | accepted | 2026-06-29 | – |
+| [ADR-027](./ADR-027-project-setup-monorepo.md) | Project Setup — Mono-Repo, Maven Structure, Package Naming, Docker Compose | accepted, partially superseded by ADR-051 | 2026-06-29 | – |
+| [ADR-028](./ADR-028-backend-layered-architecture.md) | Backend Layered Architecture — API / Application / Core | accepted, partially superseded by ADR-051 | 2026-06-29 | – |
 | [ADR-029](./ADR-029-cucumber-test-framework.md) | Test Framework for BDD System Tests — Cucumber JVM | accepted | 2026-06-30 | – |
 | [ADR-030](./ADR-030-postgresql-only.md) | PostgreSQL as the Only Supported Database | accepted | 2026-10-13 | ADR-023 |
 | [ADR-031](./ADR-031-ui-prototyping-storybook.md) | UI Prototyping with Clickable Vue Prototypes in Storybook | accepted | 2026-10-13 | – |
@@ -87,3 +87,4 @@ In `.opencode/commands/`:
 | [ADR-048](./ADR-048-webauthn-library.md) | WebAuthn Library for Passkey Enrollment and Login | accepted | 2026-10-29 | – |
 | [ADR-049](./ADR-049-organization-extensions-of-packages.md) | Organization Extensions of Package Metamodel Content | accepted | 2026-10-31 | – (refines ADR-002) |
 | [ADR-050](./ADR-050-service-account-access-tokens.md) | Access Tokens of Service Accounts | accepted | 2026-11-14 | – |
+| [ADR-051](./ADR-051-backend-module-cut.md) | Backend Module Cut — Feature Packages, Access Between Features, SQL Only in Core | accepted | 2026-11-16 | ADR-027, ADR-028 (partially) |
