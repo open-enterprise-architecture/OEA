@@ -70,7 +70,12 @@ public final class OeaDatabases {
 	 */
 	private static final java.util.Deque<String> retired = new java.util.ArrayDeque<>();
 
-	/** How many finished databases stay until a later class drops them. */
+	/**
+	 * How many finished databases stay until a later class drops them. Classes that create a
+	 * database per test push them out sooner, which leaves a few waits; a larger margin keeps the
+	 * connection pools of the paused contexts alive and exhausts the connections of the test
+	 * server (tried with 16).
+	 */
 	private static final int KEEP = 2;
 
 	static void drop(String name) {
