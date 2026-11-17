@@ -242,6 +242,106 @@ class SolutionTests {
 			.hasStatus(HttpStatus.FORBIDDEN);
 	}
 
+	// Requirement: Create a solution in plateau mode, Both plateau references or none (us-084-plateaus D3)
+
+	@Test
+	void solutionWithPlateaus() {
+		String baseline = baseline();
+		String target = plateau("target", baseline);
+		String name = unique("With plateaus");
+		JsonNode created = created(create(solution(name).put("fromPlateauId", baseline).put("toPlateauId", target),
+				this.michael));
+		assertThat(created.path("fromPlateauId").asString()).isEqualTo(baseline);
+		assertThat(created.path("toPlateauId").asString()).isEqualTo(target);
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM solutions WHERE to_plateau_id = ?::uuid",
+				Integer.class, target))
+			.isOne();
+	}
+
+	@Test
+	void transitionAsTarget() {
+		String target = plateau("target", baseline());
+		String phase = plateau("transition", target);
+		created(create(solution(unique("Phase")).put("fromPlateauId", target).put("toPlateauId", phase), this.michael));
+	}
+
+	@Test
+	void projectSolutionOncePlateausExist() {
+		baseline();
+		JsonNode created = created(create(solution(unique("Project")), this.michael));
+		assertThat(created.path("fromPlateauId").isNull()).isTrue();
+		assertThat(created.path("toPlateauId").isNull()).isTrue();
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "from", "to" })
+	void onlyOnePlateauReference(String given) {
+		String baseline = baseline();
+		String target = plateau("target", baseline);
+		String name = unique("Half");
+		ObjectNode body = solution(name);
+		if ("from".equals(given)) {
+			body.put("fromPlateauId", baseline);
+		}
+		else {
+			body.put("toPlateauId", target);
+		}
+		long events = events();
+		MvcTestResult result = create(body, this.michael);
+		assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+		assertThat(body(result).path("detail").asString()).isEqualTo("Both plateau references must be set or both empty");
+		assertThat(stored(name)).isZero();
+		assertThat(events()).isEqualTo(events);
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "baseline", "realized", "unknown" })
+	void targetNotPlanned(String kind) {
+		String baseline = baseline();
+		String target = switch (kind) {
+			case "baseline" -> baseline;
+			case "realized" -> this.jdbc.queryForObject("""
+					INSERT INTO plateaus (id, name, status, created_by)
+					VALUES (gen_random_uuid(), ?, 'realized', (SELECT min(id) FROM persons)) RETURNING id::text""",
+					String.class, unique("Realized"));
+			default -> UUID.randomUUID().toString();
+		};
+		String name = unique("Wrong target");
+		assertInvalid(create(solution(name).put("fromPlateauId", baseline).put("toPlateauId", target), this.michael),
+				"toPlateauId");
+		assertThat(stored(name)).isZero();
+	}
+
+	@Test
+	void startNotThePredecessor() {
+		String baseline = baseline();
+		String target = plateau("target", baseline);
+		String phase = plateau("transition", target);
+		String name = unique("Wrong start");
+		assertInvalid(create(solution(name).put("fromPlateauId", baseline).put("toPlateauId", phase), this.michael),
+				"fromPlateauId");
+		assertThat(stored(name)).isZero();
+	}
+
+	private int stored(String name) {
+		return this.jdbc.queryForObject("SELECT count(*) FROM solutions WHERE name = ?", Integer.class, name);
+	}
+
+	private String baseline() {
+		this.jdbc.update("""
+				INSERT INTO plateaus (id, name, status, created_by)
+				SELECT gen_random_uuid(), 'Baseline', 'baseline', min(id) FROM persons
+				ON CONFLICT DO NOTHING""");
+		return this.jdbc.queryForObject("SELECT id::text FROM plateaus WHERE status = 'baseline'", String.class);
+	}
+
+	private String plateau(String status, String succeeds) {
+		return this.jdbc.queryForObject("""
+				INSERT INTO plateaus (id, name, status, succeeds, basis, created_by)
+				VALUES (gen_random_uuid(), ?, ?, ?::uuid, 'catalog', (SELECT min(id) FROM persons)) RETURNING id::text""",
+				String.class, unique(status), status, succeeds);
+	}
+
 	// BR-01 in the schema (design D2)
 
 	@Test
@@ -250,11 +350,13 @@ class SolutionTests {
 		String insert = """
 				INSERT INTO solutions (id, name, owner_id, created_by, from_plateau_id, to_plateau_id)
 				VALUES (gen_random_uuid(), ?, ?, ?, ?, ?)""";
+		UUID plateau = this.jdbc.queryForObject("""
+				INSERT INTO plateaus (id, name, status, created_by) VALUES (gen_random_uuid(), ?, 'realized', ?)
+				RETURNING id""", UUID.class, unique("Plateau"), person);
 		org.assertj.core.api.Assertions
-			.assertThatThrownBy(() -> this.jdbc.update(insert, unique("Half"), person, person, UUID.randomUUID(), null))
+			.assertThatThrownBy(() -> this.jdbc.update(insert, unique("Half"), person, person, plateau, null))
 			.isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
-		assertThat(this.jdbc.update(insert, unique("Both"), person, person, UUID.randomUUID(), UUID.randomUUID()))
-			.isOne();
+		assertThat(this.jdbc.update(insert, unique("Both"), person, person, plateau, plateau)).isOne();
 	}
 
 	private MvcTestResult create(ObjectNode body, TestSession session) {

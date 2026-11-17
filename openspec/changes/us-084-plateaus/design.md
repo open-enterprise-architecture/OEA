@@ -103,7 +103,7 @@
   - `SolutionLandscapeEntry` gets `lifecycle` (`active`, `retiring` or `proposed`) and `changedBy` (`{solutionId, name}` or null);
   - `id` becomes nullable, null exactly for `proposed`;
   - `deltaId` is set for `proposed`.
-- **Performance:** the overlay reads only the deltas of the layers, through the existing indexes on `entity_deltas (solution_id)` and `(entity_id)`. A new index on `solutions (to_plateau_id)` finds the solutions of a layer. The baseline measurement of us-039 (50k entities) is repeated with 1,000 deltas in two layers, with the target p95 below 500 ms.
+- **Performance:** the overlay reads only the deltas of the layers, through the existing indexes on `entity_deltas (solution_id)` and `(entity_id)`. A new index on `solutions (to_plateau_id)` finds the solutions of a layer. The baseline measurement of us-039 is repeated with 50,000 entities and 1,000 deltas in two layers, with the target p95 below 500 ms (`SolutionLandscapeLatencyIT`). Measured on 2026-11-17: p95 68 ms over 20 requests with a search term.
 
 ### D5 – Before values and deltas
 
@@ -114,7 +114,7 @@
 ### D6 – Metamodel question per plateau
 
 - `DeltaValueStore.solutions` also returns `to_plateau_id` and the name of the plateau. `SolutionImpact.Affected` gets `plateauId` and `plateauName`.
-- `SolutionDecision` becomes `{solutionId?, plateauId?, decision}` with exactly one of the two IDs; both or none give 400 from the contract (`oneOf`). `SolutionImpact` expands each decision by plateau to the affected solutions of that plateau, and then applies `apply` and `keep` as today.
+- `SolutionDecision` becomes `{solutionId?, plateauId?, decision}` with exactly one of the two IDs; both or none give 400. The server checks this, because a `oneOf` with `not` makes the Redocly lint warn. In the query, a decision by plateau is `plateau:<plateauId>:apply|keep`. `SolutionImpact` expands each decision by plateau to the affected solutions of that plateau, and then applies `apply` and `keep` as today.
 - **Validation:**
   - a decision by solution for a solution with a plateau gives 422 naming the solution;
   - a plateau without affected solutions gives 422 naming the plateau;
@@ -137,7 +137,7 @@
 - **Changed:**
   - `SolutionCreate` gets `fromPlateauId` and `toPlateauId`; the description of `createSolution` drops "project mode only";
   - `SolutionLandscapeEntry` gets `lifecycle`, `changedBy` and `deltaId`, and `id` becomes nullable;
-  - `SolutionDecision` (D6) and `plateau` in the extension member `solutions` of `solution-decision-required`;
+  - `SolutionDecision` (D6), the pattern of the query parameter `decision`, and `plateau` in the extension member `solutions` of `solution-decision-required`;
   - the permission catalog and the role `enterprise-architect`;
   - the problem type `plateau-in-use`.
 

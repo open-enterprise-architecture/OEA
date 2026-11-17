@@ -186,7 +186,7 @@ Trace: US-155 AC2, owner decision 2026-11-17
 
 ### Requirement: Read plateaus
 
-`listPlateaus` SHALL return all plateaus ordered by status (baseline, transition and target, realized), then by `validFrom` and name. `getPlateau` SHALL return one plateau or 404. A plateau SHALL carry its fields, status, predecessor, basis, `validTo`, the number of solutions that target it and its creator.
+`listPlateaus` SHALL return the baseline, then the transition and target plateaus by `validFrom` and name, then the realized plateaus newest first. `getPlateau` SHALL return one plateau or 404. A plateau SHALL carry its fields, status, predecessor, basis, `validTo`, the number of solutions that target it and its creator.
 
 Trace: US-085, REQ-085
 

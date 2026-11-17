@@ -30,6 +30,11 @@ const canManageServiceAccounts = computed(() =>
   (session.me?.permissions ?? []).some((entry) => entry.permission === 'service-account:manage'),
 )
 
+// SCR-065 is readable with plateau:write, plateau:go-live or solution:write (design D8 of us-084-plateaus)
+const canSeePlateaus = computed(() =>
+  (session.me?.permissions ?? []).some((entry) => ['plateau:write', 'plateau:go-live', 'solution:write'].includes(entry.permission)),
+)
+
 const canSeeMetamodel = computed(() =>
   (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read' || entry.permission === 'metamodel:write'),
 )
@@ -67,6 +72,7 @@ async function logOut() {
         <RouterLink v-if="canSeePortal" to="/portal" data-testid="header-portal">{{ t('portal.title') }}</RouterLink>
         <RouterLink v-if="canSeeTree" to="/catalogs" data-testid="header-catalogs">{{ t('catalogs.title') }}</RouterLink>
         <RouterLink v-if="canSeeTree" to="/solutions" data-testid="header-solutions">{{ t('solutions.title') }}</RouterLink>
+        <RouterLink v-if="canSeePlateaus" to="/plateaus" data-testid="header-plateaus">{{ t('plateaus.title') }}</RouterLink>
         <RouterLink v-if="canSeeMetamodel" to="/metamodel" data-testid="header-metamodel">{{ t('metamodel.title') }}</RouterLink>
         <RouterLink v-if="canConfigureVisibility" to="/admin/property-visibility" data-testid="header-visibility">{{
           t('visibility.title')

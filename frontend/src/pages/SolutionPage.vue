@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { rejectsCursor } from '../api/cursors'
+import { fetchPlateaus, type Plateau } from '../api/plateaus'
 import { rateLimitMessage, RequestRejected } from '../api/problem'
 import {
   createSolutionDelta,
@@ -41,6 +42,15 @@ const props = defineProps<{ id: string; fetchFn?: typeof fetch }>()
 const { t } = useI18n()
 
 const solution = ref<Solution>()
+// the plateaus of a solution in plateau mode, for the header and the basis of the baseline (us-084 D8)
+const plateaus = ref<Plateau[]>([])
+const fromPlateau = computed(() => plateaus.value.find((plateau) => plateau.id === solution.value?.fromPlateauId))
+const toPlateau = computed(() => plateaus.value.find((plateau) => plateau.id === solution.value?.toPlateauId))
+const basis = computed(() => {
+  if (!solution.value?.toPlateauId) return undefined
+  if (toPlateau.value?.basis === 'predecessor') return t('solutions.plateaus.basisPredecessor', { name: fromPlateau.value?.name ?? '' })
+  return toPlateau.value ? t('solutions.plateaus.basisCatalog') : undefined
+})
 const loaded = ref(false)
 const notFound = ref(false)
 const failure = ref<string>()
@@ -161,7 +171,7 @@ async function loadMore() {
 }
 
 async function retire(entry: SolutionLandscapeEntry) {
-  const outcome = await createSolutionDelta(props.id, { deltaType: 'retiring', entityId: entry.id }, props.fetchFn)
+  const outcome = await createSolutionDelta(props.id, { deltaType: 'retiring', entityId: entry.id! }, props.fetchFn)
   if (outcome.ok) {
     deltasFailure.value = undefined
     await onChanged(outcome.value)
@@ -253,6 +263,10 @@ onMounted(async () => {
   }
   try {
     solution.value = await fetchSolution(props.id, props.fetchFn)
+    if (solution.value.toPlateauId) {
+      // without a permission to read plateaus, the header names the mode only
+      plateaus.value = await fetchPlateaus(props.fetchFn).catch(() => [])
+    }
     await loadDeltas()
     if (solution.value.status === 'implemented' || solution.value.openIssueCount > 0) {
       openIssues.value = await fetchSolutionOpenIssues(props.id, props.fetchFn)
@@ -357,7 +371,14 @@ const createdAt = computed(() =>
         <dt class="text-muted">{{ t('solutions.createdAt') }}</dt>
         <dd data-testid="solution-created">{{ createdAt }}</dd>
         <dt class="text-muted">{{ t('solutions.mode') }}</dt>
-        <dd>{{ t('solutions.projectMode') }}</dd>
+        <dd v-if="solution.toPlateauId" data-testid="solution-plateaus">
+          {{
+            fromPlateau && toPlateau
+              ? t('solutions.plateaus.mode', { from: fromPlateau.name, to: toPlateau.name })
+              : t('solutions.plateaus.modeOnly')
+          }}
+        </dd>
+        <dd v-else>{{ t('solutions.projectMode') }}</dd>
       </dl>
       <UAlert
         v-if="conflicted > 0"
@@ -400,9 +421,10 @@ const createdAt = computed(() =>
         :solution-id="solution.id"
         :can-write="canWrite"
         :reload-key="baselineKey"
+        :basis="basis"
         :fetch-fn="props.fetchFn"
         @retire="retire"
-        @modify="(entry: SolutionLandscapeEntry) => (modifying = { entityId: entry.id })"
+        @modify="(entry: SolutionLandscapeEntry) => (modifying = { entityId: entry.id! })"
       />
       <UModal
         :open="resolving"

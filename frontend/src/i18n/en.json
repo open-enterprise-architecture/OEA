@@ -635,7 +635,9 @@
       "apply": "Apply to this solution",
       "keep": "Keep as snapshot",
       "label": "Decision for {name}",
-      "affected": "{properties} · {values} delta values · {metatypes} extension metatypes"
+      "affected": "{properties} · {values} delta values · {metatypes} extension metatypes",
+      "plateau": "Plateau {name}",
+      "members": "Applies to all its solutions: {names}"
     }
   },
   "navigation": {
@@ -827,7 +829,11 @@
       "pageInfo": "Page {page} of {pages} · {entries} entities",
       "loadFailed": "The baseline could not be loaded.",
       "retire": "Retire",
-      "modify": "Modify"
+      "modify": "Modify",
+      "lifecycle": {
+        "retiring": "Retiring by {name}",
+        "proposed": "Proposed by {name}"
+      }
     },
     "deltas": {
       "title": "Changes",
@@ -967,6 +973,16 @@
         "removed": "Value removed",
         "automatic": "Resolved by the metamodel"
       }
+    },
+    "plateaus": {
+      "mode": "Plateau mode: from {from} to {to}",
+      "modeOnly": "Plateau mode",
+      "basisCatalog": "Basis: current catalog",
+      "basisPredecessor": "Basis: content of {name}",
+      "none": "No plateau (project mode)",
+      "target": "Target plateau",
+      "targetHint": "Optional: the plateau the solution works toward.",
+      "start": "Starts from {name}"
     }
   },
   "history": {
@@ -1147,5 +1163,55 @@
     "confirm": "Partially restore",
     "selectionOutdated": "The selection no longer fits the current state. The preview was reloaded.",
     "restoredFrom": "Partially restored from v{version} ({fields})"
+  },
+  "plateaus": {
+    "title": "Plateaus",
+    "intro": "The baseline is the architecture in production; target and transition plateaus describe planned states. Solutions work toward a plateau.",
+    "new": "New plateau",
+    "edit": "Edit",
+    "editTitle": "Edit plateau",
+    "create": "Create plateau",
+    "createBaseline": "Create initial baseline",
+    "dialogHint": "Name, planned date and, for a target or transition plateau, its predecessor and basis.",
+    "noAccess": "You need the permission to write plateaus, to take them live, or to write solutions to see the plateaus.",
+    "loadFailed": "The plateaus could not be loaded.",
+    "saveFailed": "The plateau could not be saved.",
+    "forbidden": "You may not change plateaus.",
+    "invalid": "The plateau is invalid.",
+    "inUse": "Solutions target this plateau, so its predecessor cannot change.",
+    "noBaseline": "No baseline plateau exists yet. Create the initial baseline to begin strategic EA planning.",
+    "baselineTitle": "Baseline",
+    "plannedTitle": "Target and transition plateaus",
+    "noTarget": "No target plateau planned yet",
+    "realizedTitle": "Realized plateaus ({n})",
+    "noRealized": "No plateau has been realized yet.",
+    "since": "Valid since {date}",
+    "plannedFor": "Planned for {date}",
+    "noDate": "No planned date",
+    "after": "after {name}",
+    "solutions": "no solutions | one solution | {n} solutions",
+    "validRange": "{from} – {to}",
+    "name": "Name",
+    "description": "Description",
+    "descriptionTooLong": "At most {max} characters.",
+    "validFrom": "Valid from",
+    "validFromPlanned": "The planned go-live date.",
+    "validFromBaseline": "The state as of this date.",
+    "statusLabel": "Type",
+    "succeeds": "Predecessor",
+    "succeedsLocked": "Solutions target this plateau, so its predecessor is fixed.",
+    "basisLabel": "Basis",
+    "basis": {
+      "catalog": "Current catalog",
+      "catalogHint": "Its solutions start from the catalog as it is now.",
+      "predecessor": "Content of the predecessor",
+      "predecessorHint": "Its solutions start from the predecessor with the changes of its solutions applied."
+    },
+    "status": {
+      "baseline": "Baseline",
+      "target": "Target",
+      "transition": "Transition",
+      "realized": "Realized"
+    }
   }
 }

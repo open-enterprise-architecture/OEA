@@ -19,6 +19,7 @@ import {
   SOLUTIONS,
   solutionApi,
 } from '../test/solutions'
+import { plateauApi, TARGET_2027_ID, TARGET_2028_ID, withPlateaus } from '../test/plateaus'
 
 // SCR-061 Solution (UC-05, US-038, US-039): name, status, owner, creation time and the
 // architecture vision of one solution (design D4 of us-038-create-solution), and its baseline
@@ -244,5 +245,37 @@ export const Implemented: Story = {
     await expect(await canvas.findByText('Open issues (2)')).toBeInTheDocument()
     await expect(canvas.queryByRole('button', { name: 'Go live' })).not.toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Resolve' })).toBeInTheDocument()
+  },
+}
+
+// a solution of the plateau Target 2028 with the basis "predecessor": the header names the
+// plateaus, the baseline its basis, and the entries a solution of Target 2027 retires or proposes
+// (US-155 AC2; design D8 of us-084-plateaus)
+const CRM_PLATEAU = { solutionId: '5d000000-0000-4000-8000-0000000000aa', name: 'CRM Replacement' }
+export const PlateauBasis: Story = {
+  render: () => ({
+    components: { AppHeader, SolutionPage },
+    setup: () => {
+      session.me = ME_SOLUTION_ARCHITECT as Me
+      session.loaded = true
+      const solution = { ...SOLUTIONS[0]!, fromPlateauId: TARGET_2027_ID, toPlateauId: TARGET_2028_ID }
+      const landscape: SolutionLandscapeEntry[] = [
+        { id: 101, name: 'CRM-Legacy', metatypeId: APPLICATION, metatypeName: 'Application', version: 3, parallelChanges: [], lifecycle: 'retiring', changedBy: CRM_PLATEAU, deltaId: null },
+        { id: 102, name: 'ERP-Core', metatypeId: APPLICATION, metatypeName: 'Application', version: 4, parallelChanges: [], lifecycle: 'active', changedBy: null, deltaId: null },
+        { id: null, name: 'Salesforce', metatypeId: APPLICATION, metatypeName: 'Application', version: 0, parallelChanges: [], lifecycle: 'proposed', changedBy: CRM_PLATEAU, deltaId: 'ae000000-0000-4000-8000-0000000000aa' },
+      ]
+      const fetchFn = withPlateaus(solutionApi({ me: ME_SOLUTION_ARCHITECT, solutions: [solution], landscape, deltas: [] }).fetch, plateauApi().fetch)
+      return { fetchFn, id: solution.id }
+    },
+    template: `
+      <AppHeader :fetch-fn="fetchFn" />
+      <SolutionPage :id="id" :fetch-fn="fetchFn" />`,
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Plateau mode: from Target Cloud Migration 2027 to Target 2028')).toBeInTheDocument()
+    await expect(await canvas.findByText('Basis: content of Target Cloud Migration 2027')).toBeInTheDocument()
+    await expect(await canvas.findByText('Proposed by CRM Replacement')).toBeInTheDocument()
+    await expect(canvas.getByText('Retiring by CRM Replacement')).toBeInTheDocument()
   },
 }

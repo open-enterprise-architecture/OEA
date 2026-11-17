@@ -2,7 +2,7 @@
 title: Lösungen
 covers:
   screens: [SCR-060, SCR-061, SCR-062, SCR-063, SCR-064]
-  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044, US-152, US-153]
+  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044, US-152, US-153, US-155]
 ---
 
 # Lösungen
@@ -27,7 +27,9 @@ Um Lösungen zu sehen, brauchst du die Berechtigung `entity:read` (zum Beispiel 
 
 Ist der Name schon vergeben, sagt der Dialog das, zum Beispiel „Der Name 'ERP Extension Logistics' ist bereits vergeben“; wähle einen anderen Namen. Ohne `solution:write` siehst du die Lösungen, aber nicht *Neue Lösung*.
 
-Eine neue Lösung hat den Status *Entwurf*, und du bist verantwortlich für sie. Sie entsteht im **Projektmodus**: ohne Ausgangs- und Zielplateau. Der Plateaumodus folgt mit den Plateaus.
+Gibt es [Plateaus](./plateaus), bietet der Dialog auch ein **Zielplateau** an. Ohne Zielplateau entsteht die Lösung im **Projektmodus** und geht vom aktuellen Katalog aus. Mit Zielplateau arbeitet sie auf dieses Plateau hin und startet von seinem Vorgänger, den der Dialog zeigt; ihre Ausgangslage ist dann die [Basis](./plateaus#basis) des Plateaus. Die Plateaus einer Lösung lassen sich später nicht ändern.
+
+Eine neue Lösung hat den Status *Entwurf*, und du bist verantwortlich für sie. Ihre Seite nennt ihren Modus und im Plateaumodus ihr Start- und Zielplateau.
 
 ## Lösungen ansehen
 
@@ -50,6 +52,8 @@ Der Bereich *Ausgangslage* (Baseline) einer Lösung zeigt die aktuelle IT-Landsc
 - **Seiten:** Die Ausgangslage zeigt 50 Entitäten pro Seite.
 
 Enthält der Katalog noch keine Entitäten, steht im Bereich „Keine Entitäten in der aktuellen Landschaft – du kannst nur neue Entitäten anlegen“. Findet nur deine Suche oder dein Filter nichts, steht stattdessen das.
+
+Bei einer Lösung, die auf ein Plateau hinarbeitet, nennt der Bereich die Basis des Plateaus. Mit der Basis „Inhalt des Vorgängers“ markiert er Entitäten, die eine Lösung des Vorgängers ausser Betrieb nimmt (*Wird abgelöst durch …*) oder vorschlägt (*Vorgeschlagen von …*); eine vorgeschlagene Entität bietet keine Aktion. Der Vergleich und das Go-live einer einzelnen Lösung vergleichen weiter mit dem Katalog; bis der Vorgänger live geht, erscheinen seine Änderungen dort deshalb als Änderungen nach der Erfassung.
 
 ## Änderungen
 

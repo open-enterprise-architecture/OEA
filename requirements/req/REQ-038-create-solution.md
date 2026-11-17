@@ -4,9 +4,9 @@ title: Create a solution and describe the architecture vision
 type: functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-26
-last_updated: 2026-11-12
+last_updated: 2026-11-17
 author: requirements-engineer
 references:
   use_cases:
@@ -128,7 +128,7 @@ An existing solution in status `draft` can be edited further at any time (steps 
 ## Implementation Notes
 
 - `POST /api/v1/solutions` (`createSolution`) with the permission `solution:write` (ADR-032 amendment 2026-11-12); held by the built-in roles `solution-architect` and `enterprise-architect`
-- Render the `fromPlateauId`/`toPlateauId` fields only if the instance is configured in plateau mode (instance-level setting, TBD)
+- The dialog offers the target plateau only when plateaus exist; plateau mode has no instance setting and starts with the first baseline plateau (owner decision 2026-11-17)
 - Name uniqueness check: case-insensitive, trimmed
 - Realigned by the OpenSpec change `us-038-create-solution`:
   - "solution architect permission" is the permission `solution:write`; only persons create solutions (the local system admin account gets 403);
@@ -136,13 +136,14 @@ An existing solution in status `draft` can be edited further at any time (steps 
   - while solutions cannot be archived (S12), the name is unique across all solutions, not only the non-archived ones;
   - the system navigates to the page of the created solution (SCR-061);
   - AC2, AC3 and BR-02 (plateau mode) follow with the plateaus in S14
+- Realigned by the OpenSpec change `us-084-plateaus` (owner decisions 2026-11-17): `toPlateauId` is a target or transition plateau that is not realized and `fromPlateauId` is its predecessor (422 naming the field otherwise); only one reference gives 422 "Both plateau references must be set or both empty"; the references cannot change after the creation
 
 ## Implementation
 
 - ADR(s): [ADR-032](../../adrs/ADR-032-authorization-model.md) (amendment 2026-11-12)
-- Implemented by: OpenSpec change `us-038-create-solution`, commit cc53421 (#238) (project mode: AC1, AC4, AC5; plateau mode AC2, AC3 in S14)
+- Implemented by: OpenSpec change `us-038-create-solution`, commit cc53421 (#238) (project mode: AC1, AC4, AC5); OpenSpec change `us-084-plateaus` (plateau mode: AC2, AC3)
 - Tests: `SolutionTests`, `features/solution/solution-creation.feature`, `features/solution/solution-overview.feature`, `SolutionsPage.spec.ts`, `SolutionPage.spec.ts`
-- Verification status: partially verified (project mode)
+- Verification status: verified (`SolutionTests`, `features/solution/plateaus.feature`)
 
 ## Change History
 
@@ -150,3 +151,4 @@ An existing solution in status `draft` can be edited further at any time (steps 
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft from UC-05 |
 | 0.2.0 | 2026-11-12 | Change us-038-create-solution | Project mode implemented; realigned permission, error answers and name rule; plateau mode deferred to S14 |
+| 0.3.0 | 2026-11-17 | Change us-084-plateaus | Plateau mode implemented; the start is the predecessor of the target plateau |

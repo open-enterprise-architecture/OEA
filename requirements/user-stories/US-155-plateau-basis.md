@@ -2,8 +2,9 @@
 
 **ID**: US-155
 **Story Points**: 8
-**Status**: backlog
+**Status**: done
 **Sprint**: S14
+**Implementation**: OpenSpec change `us-084-plateaus` – the basis `catalog` or `predecessor` of a plateau, its content computed on read, the baseline of the solutions of a plateau with the lifecycle of each entry, before values from the basis (AC1–AC4)
 
 ## Story
 
@@ -48,6 +49,6 @@ As Kurt – Lead Enterprise Architect, I want to choose, when I create a target 
 
 ## Definition of Done
 
-- [ ] Acceptance criteria met
+- [x] Acceptance criteria met
 - [ ] Code review by a second person
-- [ ] Tests written (unit, integration where applicable)
+- [x] Tests written (unit, integration where applicable)

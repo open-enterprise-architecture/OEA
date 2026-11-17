@@ -1059,9 +1059,17 @@ package "Architecture Planning" #E3F2FD {
     .. enum: baseline | transition | target | realized ..
     + valid_from  : DATE
     + valid_to    : DATE
-    + succeeds_id : UUID                  {FK→plateaus.id}
+    .. set by the plateau go-live (S14 change 4) ..
+    + succeeds    : UUID                  {FK→plateaus.id}
+    + basis       : TEXT
+    .. enum: catalog | predecessor; null for a baseline (US-155) ..
+    .. CHECK: a baseline has neither succeeds nor basis, a target or transition both ..
+    .. CHECK: succeeds <> id; longer cycles are refused by the service (BR-04) ..
+    .. at most one baseline: partial unique index on status = 'baseline' (BR-01) ..
     + created_at  : TIMESTAMPTZ           {NN} DEFAULT NOW()
     + created_by  : BIGINT                {NN} {FK→persons.id}
+    + updated_at  : TIMESTAMPTZ
+    + updated_by  : BIGINT                {FK→persons.id}
   }
 
   class solutions <<Table>> #BBDEFB {
@@ -1074,7 +1082,7 @@ package "Architecture Planning" #E3F2FD {
     .. enum: draft | proposed | approved | in-progress | implemented | archived ..
     + from_plateau_id        : UUID
     + to_plateau_id          : UUID
-    .. FK→plateaus.id follows with plateaus (S14); null in project mode ..
+    .. FK→plateaus.id (V37); null in project mode; from = the predecessor of to ..
     .. CHECK: from IS NULL = to IS NULL ..
     + owner_id               : BIGINT     {NN} {FK→persons.id}
     + created_at             : TIMESTAMPTZ {NN} DEFAULT NOW()
@@ -1191,7 +1199,7 @@ package "Architecture Planning" #E3F2FD {
     .. a delta new has exactly one after value per row (application rule) ..
   }
 
-  plateaus      "0..1" --o{ "0..*" plateaus                    : succeeds_id
+  plateaus      "0..1" --o{ "0..*" plateaus                    : succeeds
   plateaus      "0..1" --o{ "0..*" solutions                   : from_plateau_id
   plateaus      "0..1" --o{ "0..*" solutions                   : to_plateau_id
   solutions     "1"    --o{ "0..*" entity_deltas               : contains
@@ -2207,6 +2215,12 @@ metatypes "1" --o{ "0..*" history_visibility_settings : history visibility (US-0
 '   dropped: an extension names its solution in metamodel_configurations.solution_id.
 '   Permission solution:write and built-in role solution-architect added.
 '   Reason: US-038, REQ-038, ADR-032 amendment 2026-11-12.
+' 2026-11-17 (us-084-plateaus):
+'   plateaus created by V37: succeeds (renamed from succeeds_id) and basis
+'   (catalog | predecessor) with the shape checks, one baseline, updated_at/by;
+'   the foreign keys from solutions.from_plateau_id and to_plateau_id; the
+'   permission plateau:write for enterprise-architect.
+'   Reason: US-084, US-085, US-089, US-155, US-038 AC3/AC4; owner decisions 2026-11-17.
 ' 2026-11-12 (us-039-solution-baseline):
 '   No schema change. The baseline of a solution in project mode is the current
 '   catalog (entities of element metatypes with deleted_at IS NULL), read on

@@ -19,11 +19,16 @@ import { label, labelKeys } from '../../i18n/labels'
 // "Retiring" when it has a delta: each entry carries the type of its delta (design D0 of
 // us-043-diff-view). A changed `reloadKey` loads the shown page again, after a delta was written.
 // An entry whose metatype shows parallel changes names the other active solutions that change it
-// (US-044; design D4 of us-044-conflict-warning).
+// (US-044; design D4 of us-044-conflict-warning). For a solution of a plateau, the baseline is
+// the basis of the plateau: an entry a predecessor solution retires or proposes is marked with
+// it, and a proposed entry, which has no entity yet, offers no action (US-155; design D8 of
+// us-084-plateaus).
 const props = defineProps<{
   solutionId: string
   canWrite?: boolean
   reloadKey?: number
+  /** the basis of the target plateau, named above the baseline (US-155) */
+  basis?: string
   fetchFn?: typeof fetch
 }>()
 const emit = defineEmits<{ retire: [entry: SolutionLandscapeEntry]; modify: [entry: SolutionLandscapeEntry] }>()
@@ -128,6 +133,9 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
     <div class="flex flex-col gap-1">
       <h2 class="text-lg font-semibold text-highlighted">{{ t('solutions.baseline.title') }}</h2>
       <p class="text-sm text-muted">{{ t('solutions.baseline.intro') }}</p>
+      <p v-if="props.basis" data-testid="baseline-basis" class="text-sm">
+        <UBadge color="info" variant="subtle" icon="i-lucide-layers" :label="props.basis" />
+      </p>
     </div>
     <div class="flex flex-wrap gap-3">
       <UInput
@@ -164,7 +172,17 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
         <UTable data-testid="baseline-table" :data="rows" :columns="columns" :loading="loading" class="rounded-lg border border-default">
           <template #name-cell="{ row }">
             <div class="flex flex-col gap-1">
-              <span>{{ row.original.name }}</span>
+              <span class="flex flex-wrap items-center gap-2">
+                <span>{{ row.original.name }}</span>
+                <UBadge
+                  v-if="row.original.lifecycle !== 'active'"
+                  :data-testid="`baseline-lifecycle-${row.original.lifecycle}`"
+                  :color="row.original.lifecycle === 'retiring' ? 'warning' : 'success'"
+                  variant="outline"
+                  size="sm"
+                  :label="t(`solutions.baseline.lifecycle.${row.original.lifecycle}`, { name: row.original.changedBy?.name ?? '' })"
+                />
+              </span>
               <span
                 v-if="(row.original.parallelChanges ?? []).length > 0"
                 data-testid="baseline-parallel"
@@ -192,7 +210,7 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
                 :label="t(`solutions.deltas.types.${row.original.deltaType}`)"
               />
               <UButton
-                v-if="!row.original.deltaType && props.canWrite"
+                v-if="!row.original.deltaType && props.canWrite && row.original.lifecycle !== 'proposed'"
                 data-testid="baseline-modify"
                 color="neutral"
                 variant="ghost"
@@ -202,7 +220,7 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
                 @click="emit('modify', row.original)"
               />
               <UButton
-                v-if="!row.original.deltaType && props.canWrite"
+                v-if="!row.original.deltaType && props.canWrite && row.original.lifecycle !== 'proposed'"
                 data-testid="baseline-retire"
                 color="neutral"
                 variant="ghost"

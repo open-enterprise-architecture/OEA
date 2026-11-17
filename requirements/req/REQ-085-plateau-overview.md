@@ -4,9 +4,9 @@ title: Plateau overview grouped by status
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-28
-last_updated: 2026-06-28
+last_updated: 2026-11-17
 author: requirements-engineer
 references:
   use_cases:
@@ -54,9 +54,11 @@ Without a structured overview, Kurt cannot quickly see which state is currently 
 
 - Pagination for realized plateaus if more than 20 entries exist
 - Solution count as an aggregated counter per plateau (DB query with JOIN)
+- Realigned by the OpenSpec change `us-084-plateaus`: the overview is the screen SCR-065 at `/plateaus` (`listPlateaus`); transition plateaus are listed with the target plateaus; the realized plateaus are not paged yet, since they only arise with the plateau go-live
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-17 | Change us-084-plateaus | Realigned: SCR-065, transition plateaus with the targets |

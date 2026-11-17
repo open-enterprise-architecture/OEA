@@ -225,9 +225,17 @@ export function createMapping(
 /** A decision for an active solution a metamodel change affects (US-154). */
 export type SolutionDecision = components['schemas']['SolutionDecision']
 
-/** The decisions as the repeated query parameter `decision=<solutionId>:apply|keep`. */
+/**
+ * The decisions as the repeated query parameter `decision=<solutionId>:apply|keep`, or
+ * `decision=plateau:<plateauId>:apply|keep` for the solutions of a plateau (US-156).
+ */
 function decisionQuery(decisions: SolutionDecision[]): string {
-  const query = decisions.map((entry) => `decision=${encodeURIComponent(`${entry.solutionId}:${entry.decision}`)}`).join('&')
+  const query = decisions
+    .map((entry) => {
+      const target = entry.plateauId ? `plateau:${entry.plateauId}` : entry.solutionId
+      return `decision=${encodeURIComponent(`${target}:${entry.decision}`)}`
+    })
+    .join('&')
   return query === '' ? '' : `?${query}`
 }
 

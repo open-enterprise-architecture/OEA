@@ -19,6 +19,8 @@ export interface AffectedSolution {
   id: string
   name: string
   status: string
+  /** the target plateau of the solution, decided together with its other solutions (US-156) */
+  plateau?: { id: string; name: string } | null
   deltaValues: number
   extensionMetatypes: number
   properties: { metatypeId: string; propertyDefId: string; label: string; enumValue?: string | null }[]

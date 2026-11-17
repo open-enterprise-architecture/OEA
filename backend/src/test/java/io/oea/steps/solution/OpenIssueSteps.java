@@ -530,6 +530,59 @@ public class OpenIssueSteps {
 
 	// Helpers
 
+	// us-084-plateaus D6: the question per plateau (US-156)
+
+	private String plateau;
+
+	@Given("the solutions {string} and {string} target the plateau {string}")
+	public void solutionsTargetAPlateau(String first, String second, String name) throws Exception {
+		instance().oidc().update("""
+				INSERT INTO plateaus (id, name, status, created_by)
+				SELECT gen_random_uuid(), 'Baseline', 'baseline', min(id) FROM persons ON CONFLICT DO NOTHING""");
+		this.plateau = instance().oidc().single("""
+				INSERT INTO plateaus (id, name, status, succeeds, basis, created_by)
+				SELECT gen_random_uuid(), '%s', 'target', b.id, 'catalog', min(p.id)
+				FROM plateaus b, persons p WHERE b.status = 'baseline' GROUP BY b.id RETURNING id::text"""
+			.formatted(this.deltas.scenarioName(name)));
+		for (String solution : List.of(first, second)) {
+			instance().oidc().update("""
+					UPDATE solutions SET from_plateau_id = (SELECT succeeds FROM plateaus WHERE id = '%1$s'),
+					                     to_plateau_id = '%1$s' WHERE id = '%2$s'""".formatted(this.plateau,
+					solution(solution)));
+		}
+	}
+
+	@When("the metamodel administrator removes {string} from the applications keeping it for the plateau and applying it to the solution")
+	public void removeKeepingForThePlateau(String property) throws Exception {
+		removeMappingWith(property, "?decision=plateau:" + this.plateau + ":keep&decision=" + this.deltas.solutionId()
+				+ ":apply");
+	}
+
+	@When("the metamodel administrator removes {string} from the applications deciding for the solution {string} of the plateau")
+	public void removeDecidingForASolutionOfThePlateau(String property, String solution) throws Exception {
+		removeMappingWith(property, "?decision=plateau:" + this.plateau + ":keep&decision=" + this.deltas.solutionId()
+				+ ":apply&decision=" + solution(solution) + ":keep");
+	}
+
+	@Then("the answer names the plateau for {string} and {string}")
+	public void answerNamesThePlateau(String first, String second) throws Exception {
+		List<String> named = new ArrayList<>();
+		json(this.response).path("solutions").forEach((entry) -> {
+			if (!entry.path("plateau").isNull()) {
+				assertThat(entry.path("plateau").path("id").asString()).isEqualTo(this.plateau);
+				named.add(entry.path("id").asString());
+			}
+		});
+		assertThat(named).containsExactlyInAnyOrder(solution(first), solution(second));
+	}
+
+	@Then("the solution {string} keeps a snapshot of {string}")
+	public void solutionKeepsASnapshot(String solution, String property) throws Exception {
+		assertThat(instance().oidc().single("""
+				SELECT count(*)::text FROM solution_metamodel_snapshots WHERE solution_id = '%s' AND property_def_id = '%s'"""
+			.formatted(solution(solution), this.deltas.propertyId(property)))).isNotEqualTo("0");
+	}
+
 	private void removeMappingWith(String property, String query) throws Exception {
 		String mapping = instance().oidc().single("""
 				SELECT id::text FROM metatype_property_mappings WHERE metatype_id = '%s' AND property_def_id = '%s'"""

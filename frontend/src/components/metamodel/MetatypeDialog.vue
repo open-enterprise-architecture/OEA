@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { createMetatype, INSTANCE_CONFIGURATION, updateMetatype, type MetatypeDetail, type SolutionDecision } from '../../api/metamodel'
+import { createMetatype, INSTANCE_CONFIGURATION, updateMetatype, type MetatypeDetail } from '../../api/metamodel'
 import type { AffectedSolution } from '../../api/problem'
 import { label, labelKeys } from '../../i18n/labels'
 import { metamodel, metatypeById, reloadMetamodel } from '../../metamodel/store'
 import CollisionWarning from './CollisionWarning.vue'
 import SolutionDecisions from './SolutionDecisions.vue'
+import { allDecided, chosenDecisions, type Decisions } from './decisions'
 import { rejectionMessage } from './messages'
 
 // Creating and changing an organization metatype in SCR-030 (US-032 AC1, AC2, REQ-032, UC-04 A4;
@@ -39,8 +40,8 @@ const errors = ref<Partial<Record<Field, string>>>({})
 const failure = ref<string>()
 const submitting = ref(false)
 const affected = ref<AffectedSolution[]>([])
-const decisions = ref<Record<string, SolutionDecision['decision'] | undefined>>({})
-const decided = computed(() => affected.value.every((solution) => decisions.value[solution.id] !== undefined))
+const decisions = ref<Decisions>({})
+const decided = computed(() => allDecided(affected.value, decisions.value))
 const stale = ref(false)
 
 const current = computed(() => metatypeById(props.metatype?.id))
@@ -96,7 +97,7 @@ async function submit(version = props.metatype?.version) {
     baseMetatypeId: form.baseMetatypeId === NONE ? null : form.baseMetatypeId,
     ...(affected.value.length > 0
       ? {
-          solutionDecisions: affected.value.map((solution) => ({ solutionId: solution.id, decision: decisions.value[solution.id]! })),
+          solutionDecisions: chosenDecisions(affected.value, decisions.value),
         }
       : {}),
   }

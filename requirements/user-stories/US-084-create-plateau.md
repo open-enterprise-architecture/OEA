@@ -2,8 +2,9 @@
 
 **ID**: US-084
 **Story Points**: 5
-**Status**: backlog
+**Status**: done
 **Sprint**: S14
+**Implementation**: OpenSpec change `us-084-plateaus` – `createPlateau` with `plateau:write` (role `enterprise-architect`), one baseline, a predecessor and a basis for target and transition plateaus, `plateau.created` (V37); the dialog on SCR-065 (AC1–AC3)
 
 ## Story
 
@@ -35,5 +36,5 @@ As Kurt – Lead Enterprise Architect, I want to create plateaus with status `ba
 ## Definition of Done
 
 - [ ] AC1–AC3 fulfilled
-- [ ] Tests present
+- [x] Tests present
 - [ ] Code review; linter green; entered in trace matrix

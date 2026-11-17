@@ -4,6 +4,7 @@ import type { Me } from '../api/session'
 import AppHeader from '../components/AppHeader.vue'
 import SolutionsPage from '../pages/SolutionsPage.vue'
 import { session } from '../session/store'
+import { plateauApi, withPlateaus } from '../test/plateaus'
 import { ME_SOLUTION_ARCHITECT, ME_SOLUTION_VIEWER, solutionApi } from '../test/solutions'
 
 // SCR-060 Solutions (UC-05, US-038; design D4 of us-038-create-solution): every solution with
@@ -82,5 +83,18 @@ export const Reader: Story = {
     const canvas = within(canvasElement)
     await expect(await canvas.findByText('CRM Replacement')).toBeInTheDocument()
     await expect(canvas.queryByRole('button', { name: 'New solution' })).toBeNull()
+  },
+}
+
+// a solution may target a planned plateau and starts from its predecessor (US-038 AC3; design D8
+// of us-084-plateaus)
+export const NewSolutionInPlateauMode: Story = {
+  ...screen(withPlateaus(solutionApi().fetch, plateauApi().fetch)),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'New solution' }))
+    const body = within(canvasElement.ownerDocument.body)
+    await expect(await body.findByText('Target plateau')).toBeInTheDocument()
+    await expect(body.getByText('No plateau (project mode)')).toBeInTheDocument()
   },
 }

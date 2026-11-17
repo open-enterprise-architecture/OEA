@@ -635,7 +635,9 @@
       "apply": "Auf diese Lösung anwenden",
       "keep": "Als Snapshot behalten",
       "label": "Entscheidung für {name}",
-      "affected": "{properties} · {values} Delta-Werte · {metatypes} Erweiterungs-Metatypen"
+      "affected": "{properties} · {values} Delta-Werte · {metatypes} Erweiterungs-Metatypen",
+      "plateau": "Plateau {name}",
+      "members": "Gilt für alle seine Lösungen: {names}"
     }
   },
   "navigation": {
@@ -827,7 +829,11 @@
       "pageInfo": "Seite {page} von {pages} · {entries} Entitäten",
       "loadFailed": "Die Ausgangslage konnte nicht geladen werden.",
       "retire": "Ausser Betrieb nehmen",
-      "modify": "Ändern"
+      "modify": "Ändern",
+      "lifecycle": {
+        "retiring": "Wird abgelöst durch {name}",
+        "proposed": "Vorgeschlagen von {name}"
+      }
     },
     "deltas": {
       "title": "Änderungen",
@@ -967,6 +973,16 @@
         "removed": "Wert entfernt",
         "automatic": "Durch das Metamodell aufgelöst"
       }
+    },
+    "plateaus": {
+      "mode": "Plateau-Modus: von {from} nach {to}",
+      "modeOnly": "Plateau-Modus",
+      "basisCatalog": "Basis: aktueller Katalog",
+      "basisPredecessor": "Basis: Inhalt von {name}",
+      "none": "Kein Plateau (Projektmodus)",
+      "target": "Zielplateau",
+      "targetHint": "Optional: das Plateau, auf das die Lösung hinarbeitet.",
+      "start": "Startet von {name}"
     }
   },
   "history": {
@@ -1147,5 +1163,55 @@
     "confirm": "Teilweise wiederherstellen",
     "selectionOutdated": "Die Auswahl passt nicht mehr zum aktuellen Stand. Die Vorschau wurde neu geladen.",
     "restoredFrom": "Teilweise wiederhergestellt aus v{version} ({fields})"
+  },
+  "plateaus": {
+    "title": "Plateaus",
+    "intro": "Die Baseline ist die Architektur im Betrieb; Ziel- und Übergangsplateaus beschreiben geplante Zustände. Lösungen arbeiten auf ein Plateau hin.",
+    "new": "Neues Plateau",
+    "edit": "Bearbeiten",
+    "editTitle": "Plateau bearbeiten",
+    "create": "Plateau anlegen",
+    "createBaseline": "Initiale Baseline anlegen",
+    "dialogHint": "Name, geplantes Datum und für ein Ziel- oder Übergangsplateau sein Vorgänger und seine Basis.",
+    "noAccess": "Du brauchst die Berechtigung, Plateaus zu schreiben, sie live zu nehmen oder Lösungen zu schreiben, um die Plateaus zu sehen.",
+    "loadFailed": "Die Plateaus konnten nicht geladen werden.",
+    "saveFailed": "Das Plateau konnte nicht gespeichert werden.",
+    "forbidden": "Du darfst Plateaus nicht ändern.",
+    "invalid": "Das Plateau ist ungültig.",
+    "inUse": "Lösungen arbeiten auf dieses Plateau hin, darum kann sich sein Vorgänger nicht ändern.",
+    "noBaseline": "Es gibt noch kein Baseline-Plateau. Lege die initiale Baseline an, um mit der strategischen EA-Planung zu beginnen.",
+    "baselineTitle": "Baseline",
+    "plannedTitle": "Ziel- und Übergangsplateaus",
+    "noTarget": "Noch kein Zielplateau geplant",
+    "realizedTitle": "Realisierte Plateaus ({n})",
+    "noRealized": "Noch kein Plateau wurde realisiert.",
+    "since": "Gültig seit {date}",
+    "plannedFor": "Geplant für {date}",
+    "noDate": "Kein geplantes Datum",
+    "after": "nach {name}",
+    "solutions": "keine Lösungen | eine Lösung | {n} Lösungen",
+    "validRange": "{from} – {to}",
+    "name": "Name",
+    "description": "Beschreibung",
+    "descriptionTooLong": "Höchstens {max} Zeichen.",
+    "validFrom": "Gültig ab",
+    "validFromPlanned": "Das geplante Go-live-Datum.",
+    "validFromBaseline": "Der Stand zu diesem Datum.",
+    "statusLabel": "Art",
+    "succeeds": "Vorgänger",
+    "succeedsLocked": "Lösungen arbeiten auf dieses Plateau hin, darum ist sein Vorgänger fest.",
+    "basisLabel": "Basis",
+    "basis": {
+      "catalog": "Aktueller Katalog",
+      "catalogHint": "Seine Lösungen starten vom Katalog, wie er jetzt ist.",
+      "predecessor": "Inhalt des Vorgängers",
+      "predecessorHint": "Seine Lösungen starten vom Vorgänger mit den Änderungen seiner Lösungen."
+    },
+    "status": {
+      "baseline": "Baseline",
+      "target": "Ziel",
+      "transition": "Übergang",
+      "realized": "Realisiert"
+    }
   }
 }

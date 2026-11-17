@@ -2,8 +2,9 @@
 
 **ID**: US-085
 **Story Points**: 3
-**Status**: backlog
+**Status**: done
 **Sprint**: S14
+**Implementation**: OpenSpec change `us-084-plateaus` – `listPlateaus` and the screen SCR-065 with the baseline highlighted, the planned plateaus with their date and the realized ones collapsed (AC1, AC2)
 
 ## Story
 
@@ -30,5 +31,5 @@ As Kurt – Lead Enterprise Architect, I want to see a structured overview of al
 ## Definition of Done
 
 - [ ] AC1–AC2 fulfilled
-- [ ] Tests present
+- [x] Tests present
 - [ ] Code review; linter green; entered in trace matrix

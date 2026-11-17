@@ -13,6 +13,7 @@ import ServiceAccountsPage from '../pages/ServiceAccountsPage.vue'
 import SolutionDiffPage from '../pages/SolutionDiffPage.vue'
 import SolutionPage from '../pages/SolutionPage.vue'
 import SolutionsPage from '../pages/SolutionsPage.vue'
+import PlateausPage from '../pages/PlateausPage.vue'
 import PortalCatalogPage from '../pages/PortalCatalogPage.vue'
 import PortalPage from '../pages/PortalPage.vue'
 import ProfilePage from '../pages/ProfilePage.vue'
@@ -42,6 +43,8 @@ export const router = createRouter({
     { path: '/admin/override-roles', name: 'override-roles', component: OverrideRolesPage },
     { path: '/admin/roles', name: 'authorization-roles', component: AuthorizationRolesPage },
     { path: '/admin/service-accounts', name: 'service-accounts', component: ServiceAccountsPage },
+    // the plateaus of plateau mode (SCR-065, us-084-plateaus)
+    { path: '/plateaus', name: 'plateaus', component: PlateausPage },
     { path: '/solutions', name: 'solutions', component: SolutionsPage },
     { path: '/solutions/:id', name: 'solution', component: SolutionPage, props: true },
     // the comparison of current and target state of a solution (SCR-062, us-043-diff-view)

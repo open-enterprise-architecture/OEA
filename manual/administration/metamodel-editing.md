@@ -2,7 +2,7 @@
 title: Editing the metamodel
 covers:
   screens: [SCR-030]
-  stories: [US-032, US-034, US-035, US-036, US-037, US-137, US-140, US-154]
+  stories: [US-032, US-034, US-035, US-036, US-037, US-137, US-140, US-154, US-156]
 ---
 
 # Editing the metamodel
@@ -114,6 +114,8 @@ If active [solutions](../usage/solutions) use the values, the dialog lists them 
 
 - **Apply to this solution:** the values are removed from the changes of the solution as well. A modification that changed nothing else is removed.
 - **Keep as snapshot:** the solution keeps the property, or the value of the selection list, until its go-live. Its changes keep their values and can still set them. At the go-live, each such value is either discarded or becomes an [open issue](../usage/solutions#open-issues).
+
+Solutions that work toward the same [plateau](../usage/plateaus) are decided together: the dialog asks once for the plateau and names its solutions. A solution without a plateau is still asked on its own.
 
 A property that a solution keeps as a snapshot cannot be deleted until that solution went live. Changes inside the extension of a solution, and package imports, do not ask.
 

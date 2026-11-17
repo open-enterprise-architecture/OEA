@@ -185,7 +185,8 @@ public class SolutionController implements SolutionsApi {
 	@ContractViolationResponse(title = "Invalid solution", detail = "The name or the architecture vision is invalid.")
 	public ResponseEntity<Solution> createSolution(SolutionCreate request) {
 		Solutions.Solution created = this.solutions.create(principal(),
-				new Solutions.NewSolution(request.getName(), request.getDescription()));
+				new Solutions.NewSolution(request.getName(), request.getDescription(), request.getFromPlateauId(),
+						request.getToPlateauId()));
 		return ResponseEntity.created(URI.create(SOLUTIONS_PATH + "/" + created.id())).body(solution(created, 0));
 	}
 
@@ -214,7 +215,10 @@ public class SolutionController implements SolutionsApi {
 					.metatypeName(entry.metatypeName())
 					.version(entry.version())
 					.deltaType(deltaType(entry.deltaType()))
-					.parallelChanges(conflicts(entry.parallelChanges())))
+					.parallelChanges(conflicts(entry.parallelChanges()))
+					.lifecycle(SolutionLandscapeEntry.LifecycleEnum.fromValue(entry.lifecycle()))
+					.changedBy(changedBy(entry.changedBy()))
+					.deltaId(entry.deltaId()))
 				.toList())
 			.page(new PageMeta().page(result.page())
 				.pageSize(result.pageSize())
@@ -251,8 +255,18 @@ public class SolutionController implements SolutionsApi {
 			.version(found.entry().version())
 			.deltaType(deltaType(found.entry().deltaType()))
 			.parallelChanges(conflicts(found.entry().parallelChanges()))
+			.lifecycle(SolutionLandscapeEntity.LifecycleEnum.fromValue(found.entry().lifecycle()))
+			.changedBy(changedBy(found.entry().changedBy()))
+			.deltaId(found.entry().deltaId())
 			.description(found.description())
 			.properties(found.properties().stream().map(SolutionController::value).toList()));
+	}
+
+	private static io.oea.api.generated.model.SolutionLandscapeEntryChangedBy changedBy(
+			SolutionLandscape.ChangedBy changedBy) {
+		return (changedBy != null) ? new io.oea.api.generated.model.SolutionLandscapeEntryChangedBy()
+			.solutionId(changedBy.solutionId())
+			.name(changedBy.name()) : null;
 	}
 
 	private static SolutionDeltaType deltaType(SolutionDeltas.Type type) {

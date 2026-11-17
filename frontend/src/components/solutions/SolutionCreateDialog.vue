@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { rateLimitMessage, type Rejection } from '../../api/problem'
+import { fetchPlateaus, plannedPlateaus, type Plateau } from '../../api/plateaus'
 import { createSolution, type Solution } from '../../api/solutions'
 
 // The dialog "New solution" of SCR-060 (US-038 AC1, AC2; design D4 of us-038-create-solution):
-// name and architecture vision. A rejection keeps the dialog open and says why.
+// name and architecture vision. A rejection keeps the dialog open and says why. When plateaus
+// exist, the solution may target a target or transition plateau and then starts from its
+// predecessor (US-038 AC3; design D8 of us-084-plateaus).
 const props = defineProps<{ fetchFn?: typeof fetch }>()
 const emit = defineEmits<{ created: [solution: Solution]; cancel: [] }>()
 const { t } = useI18n()
@@ -18,6 +21,27 @@ const vision = ref('')
 const failure = ref<string>()
 const nameError = ref<string>()
 const saving = ref(false)
+// USelect does not accept an empty value, so project mode has its own value
+const NONE = 'none'
+const plateaus = ref<Plateau[]>([])
+const target = ref(NONE)
+const planned = computed(() => plannedPlateaus(plateaus.value))
+const targetItems = computed(() => [
+  { value: NONE, label: t('solutions.plateaus.none') },
+  ...planned.value.map((plateau) => ({ value: plateau.id, label: plateau.name })),
+])
+const start = computed(() => {
+  const chosen = planned.value.find((plateau) => plateau.id === target.value)
+  return chosen ? plateaus.value.find((plateau) => plateau.id === chosen.succeeds) : undefined
+})
+
+onMounted(async () => {
+  try {
+    plateaus.value = await fetchPlateaus(props.fetchFn)
+  } catch {
+    // without plateaus the solution is created in project mode
+  }
+})
 
 const nameValid = computed(() => name.value.trim().length > 0 && name.value.trim().length <= NAME_MAX)
 const visionValid = computed(() => vision.value.length <= VISION_MAX)
@@ -42,7 +66,11 @@ async function save() {
   saving.value = true
   try {
     const outcome = await createSolution(
-      { name: name.value.trim(), ...(vision.value.trim() ? { description: vision.value } : {}) },
+      {
+        name: name.value.trim(),
+        ...(vision.value.trim() ? { description: vision.value } : {}),
+        ...(start.value ? { fromPlateauId: start.value.id, toPlateauId: target.value } : {}),
+      },
       props.fetchFn,
     )
     if (outcome.ok) {
@@ -75,6 +103,15 @@ async function save() {
         >
       </template>
     </UFormField>
+
+    <template v-if="planned.length > 0">
+      <UFormField :label="t('solutions.plateaus.target')" :help="t('solutions.plateaus.targetHint')">
+        <USelect v-model="target" data-testid="solution-target-plateau" :items="targetItems" class="w-full" />
+      </UFormField>
+      <p v-if="start" data-testid="solution-start-plateau" class="text-sm text-muted">
+        {{ t('solutions.plateaus.start', { name: start.name }) }}
+      </p>
+    </template>
 
     <UAlert v-if="failure" data-testid="solution-failure" color="error" variant="subtle" :description="failure" />
 
