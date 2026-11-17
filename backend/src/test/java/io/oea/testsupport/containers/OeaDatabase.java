@@ -7,7 +7,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 /**
  * An own database on the shared test server, cloned from the migrated template (design D3 of
  * s2b-backend-hardening). It offers the container methods the tests use, so that a test sees
- * a fresh, provisioned and migrated database as before; {@link #stop()} drops it.
+ * a fresh, provisioned and migrated database as before; {@link #stop()} retires it, and it is
+ * dropped once later test classes finished (see {@link OeaDatabases}).
  */
 public final class OeaDatabase {
 
@@ -42,7 +43,10 @@ public final class OeaDatabase {
 		return this.server.execInContainer(command);
 	}
 
-	/** Drops the database; open connections are terminated. */
+	/**
+	 * Retires the database: it is dropped, with its open connections terminated, after two later
+	 * test classes finished, so that the pause of the Spring context still reaches it.
+	 */
 	public void stop() {
 		OeaDatabases.drop(this.name);
 	}
