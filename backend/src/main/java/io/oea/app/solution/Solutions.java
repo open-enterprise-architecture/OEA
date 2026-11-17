@@ -5,6 +5,7 @@ import io.oea.app.security.PermissionDeniedException;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.solution.PlateauStore;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -18,8 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Creating and reading solutions (US-038, REQ-038; design D3 of us-038-create-solution). A
- * solution is created in project mode: status {@code draft}, the caller as owner and creator, no
- * plateau references. The permission {@code solution:write} is checked from the contract.
+ * solution is created with status {@code draft} and the caller as owner and creator, in project
+ * mode without plateau references, or in plateau mode with a target plateau and its predecessor
+ * (US-038 AC3, AC4; design D3 of us-084-plateaus). The permission {@code solution:write} is
+ * checked from the contract.
  */
 @Service
 public class Solutions {
@@ -35,13 +38,21 @@ public class Solutions {
 
 	private final AuditWriter audit;
 
-	Solutions(JdbcTemplate jdbc, AuditWriter audit) {
+	private final PlateauStore plateaus;
+
+	Solutions(JdbcTemplate jdbc, AuditWriter audit, PlateauStore plateaus) {
 		this.jdbc = jdbc;
 		this.audit = audit;
+		this.plateaus = plateaus;
 	}
 
 	/** The input of {@link #create}; the contract checks the lengths. */
-	public record NewSolution(String name, String description) {
+	public record NewSolution(String name, String description, UUID fromPlateauId, UUID toPlateauId) {
+
+		public NewSolution(String name, String description) {
+			this(name, description, null, null);
+		}
+
 	}
 
 	/** A solution with the names of its owner and creator. */
@@ -66,10 +77,12 @@ public class Solutions {
 		if (name.isEmpty()) {
 			throw new InvalidSolutionException("name", "The name must not be blank.");
 		}
+		plateaus(input.fromPlateauId(), input.toPlateauId());
 		UUID id = UUID.randomUUID();
 		int inserted = this.jdbc.update("""
-				INSERT INTO solutions (id, name, description, owner_id, created_by) VALUES (?, ?, ?, ?, ?)
-				ON CONFLICT DO NOTHING""", id, name, input.description(), person, person);
+				INSERT INTO solutions (id, name, description, owner_id, created_by, from_plateau_id, to_plateau_id)
+				VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING""", id, name, input.description(), person, person,
+				input.fromPlateauId(), input.toPlateauId());
 		if (inserted == 0) {
 			throw new InvalidSolutionException("name", "Name '" + name + "' is already taken");
 		}
@@ -77,6 +90,28 @@ public class Solutions {
 				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal), "solution",
 				id.toString(), Map.of("name", name)));
 		return find(id).orElseThrow();
+	}
+
+	/**
+	 * Both plateau references or none (BR-01); the target is a target or transition plateau that is
+	 * not realized, locked against a change of its predecessor, and the start is its predecessor.
+	 */
+	private void plateaus(UUID from, UUID to) {
+		if ((from == null) != (to == null)) {
+			throw new InvalidPlateauException(null, "Both plateau references must be set or both empty");
+		}
+		if (to == null) {
+			return;
+		}
+		PlateauStore.PlateauRow target = this.plateaus.lock(to, false)
+			.filter((plateau) -> !Plateaus.BASELINE.equals(plateau.status())
+					&& !Plateaus.REALIZED.equals(plateau.status()))
+			.orElseThrow(() -> new InvalidPlateauException("toPlateauId",
+					"The target plateau must be a target or transition plateau that is not realized."));
+		if (!from.equals(target.succeeds())) {
+			throw new InvalidPlateauException("fromPlateauId",
+					"The start plateau must be the predecessor of the target plateau.");
+		}
 	}
 
 	/** All solutions, ordered by name case-insensitively. */

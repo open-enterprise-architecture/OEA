@@ -43,7 +43,9 @@ import io.oea.app.security.SetupPhase;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.app.solution.EntityDeletedException;
 import io.oea.app.entity.EntityBlockedException;
+import io.oea.app.solution.InvalidPlateauException;
 import io.oea.app.solution.InvalidSolutionException;
+import io.oea.app.solution.PlateauInUseException;
 import io.oea.app.solution.InvalidSolutionQueryException;
 import io.oea.app.history.InvalidHistoryQueryException;
 import io.oea.app.history.InvalidRestoreSelectionException;
@@ -303,6 +305,22 @@ public class ApiExceptionHandler {
 		return ResponseEntity.unprocessableContent().body(problem);
 	}
 
+	/** A plateau or plateau reference that violates a rule (design D2, D3 of us-084-plateaus). */
+	@ExceptionHandler(InvalidPlateauException.class)
+	ResponseEntity<ProblemDetail> invalidPlateau(InvalidPlateauException ex) {
+		ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "validation-failed", "Invalid plateau",
+				ex.getMessage());
+		problem.setProperty("invalidFields", ex.getFields());
+		return ResponseEntity.unprocessableContent().body(problem);
+	}
+
+	/** A new predecessor of a plateau that solutions target (design D2 of us-084-plateaus). */
+	@ExceptionHandler(PlateauInUseException.class)
+	ResponseEntity<ProblemDetail> plateauInUse(PlateauInUseException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+			.body(problem(HttpStatus.CONFLICT, "plateau-in-use", "Plateau in use", ex.getMessage()));
+	}
+
 	/** A go-live with unresolved field conflicts (design D4 of us-152-solution-go-live). */
 	@ExceptionHandler(MergeRequiredException.class)
 	ResponseEntity<ProblemDetail> mergeRequired(MergeRequiredException ex) {
@@ -342,6 +360,13 @@ public class ApiExceptionHandler {
 			shown.put("id", solution.id().toString());
 			shown.put("name", solution.name());
 			shown.put("status", solution.status());
+			Map<String, Object> plateau = null;
+			if (solution.plateauId() != null) {
+				plateau = new LinkedHashMap<>();
+				plateau.put("id", solution.plateauId().toString());
+				plateau.put("name", solution.plateauName());
+			}
+			shown.put("plateau", plateau);
 			shown.put("deltaValues", solution.deltaValues());
 			shown.put("extensionMetatypes", solution.extensionMetatypes());
 			shown.put("properties", solution.lost().stream().map((lost) -> {

@@ -2,7 +2,7 @@
 title: Solutions
 covers:
   screens: [SCR-060, SCR-061, SCR-062, SCR-063, SCR-064]
-  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044, US-152, US-153]
+  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044, US-152, US-153, US-155]
 ---
 
 # Solutions
@@ -27,7 +27,9 @@ You need the permission `entity:read` (for example the role `viewer`) to see sol
 
 If the name is already taken, the dialog says so, for example "Name 'ERP Extension Logistics' is already taken"; choose another name. Without `solution:write`, you see the solutions but not *New solution*.
 
-A new solution has the status *Draft*, and you are its owner. It is created in **project mode**: without a baseline and target plateau. Plateau mode follows with the plateaus.
+When [plateaus](./plateaus) exist, the dialog also offers a **target plateau**. Without one, the solution is created in **project mode** and starts from the current catalog. With one, it works toward that plateau and starts from its predecessor, which the dialog shows; its baseline is then the [basis](./plateaus#basis) of the plateau. The plateaus of a solution cannot be changed later.
+
+A new solution has the status *Draft*, and you are its owner. Its page names its mode, and in plateau mode its start and target plateau.
 
 ## View solutions
 
@@ -50,6 +52,8 @@ The area *Baseline* of a solution shows the current IT landscape the initiative 
 - **Pages:** the baseline shows 50 entities per page.
 
 If the catalog holds no entities yet, the area says "No entities in the current landscape – you can only create new entities". If only your search or filter matches nothing, it says so instead.
+
+For a solution that works toward a plateau, the area names the basis of the plateau. With the basis "content of the predecessor", it marks entities that a solution of the predecessor retires (*Retiring by …*) or proposes (*Proposed by …*); a proposed entity offers no action. The comparison and the go-live of a single solution still compare with the catalog, so the changes of the predecessor appear there as changes made after the capture until the predecessor goes live.
 
 ## Changes
 

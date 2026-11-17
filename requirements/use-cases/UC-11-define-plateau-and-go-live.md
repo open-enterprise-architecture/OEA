@@ -5,9 +5,9 @@ status: draft
 priority: must
 target_release: v1.0
 complexity: large
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-27
-last_updated: 2026-06-27
+last_updated: 2026-11-17
 primary_actor: SH-03
 secondary_actors:
   - SH-05
@@ -84,8 +84,8 @@ OEA supports this process by allowing Kurt to create the initial baseline, plan 
 
 ## Preconditions
 
-- [ ] Plateau mode is enabled for the OEA instance (instance configuration)
-- [ ] Kurt is logged in (UC-01) and has the role "EA Manager" or a role with the corresponding permission
+- [ ] Plateau mode is enabled for the OEA instance: there is no setting, the first baseline plateau turns it on (owner decision 2026-11-17)
+- [ ] Kurt is logged in (UC-01) and holds `plateau:write` (creating and editing) or `plateau:go-live` (go-live), e.g. through the role `enterprise-architect`
 - [ ] For the basic flow (go-live): a baseline plateau (`status=baseline`) and at least one target plateau (`status=target`) exist
 
 ## Postconditions
@@ -159,7 +159,8 @@ OEA supports this process by allowing Kurt to create the initial baseline, plan 
    - Name (e.g., "Target Cloud Migration 2027", mandatory field)
    - Description / strategic rationale (optional)
    - `validFrom` (planned go-live date; optional)
-   - `succeeds` (dropdown: current baseline preselected; changeable to any other plateau)
+   - `succeeds` (dropdown: current baseline preselected; changeable to any other plateau that is not realized)
+   - basis (US-155): the current catalog, or the content of the predecessor with the changes of its active solutions; the solutions of the plateau see the basis as their baseline
 3. **Kurt**: fills in the form and saves
 4. **System**: creates plateau with `status=target`; `succeeds` reference set
 5. **System**: shows the plateau detail view; solution architects can now assign solutions to this target plateau (UC-05 A1)
@@ -243,3 +244,14 @@ OEA supports this process by allowing Kurt to create the initial baseline, plan 
 - **Deleting a plateau**: no planned feature; plateaus are immutable architecture history
 - **Automatic rebase of other target plateaus**: deliberately not in the system — operator defines via business rules (ADR-017, ADR-018)
 - **Project mode**: this UC applies exclusively to instances in plateau mode
+
+## Realignment
+
+- 2026-11-17, OpenSpec change `us-084-plateaus` (owner decisions 2026-11-17): plateau mode starts with the first baseline plateau, without an instance setting; solutions without plateaus keep working in project mode. Creating and editing plateaus needs the new permission `plateau:write`, the go-live `plateau:go-live`. A target or transition plateau has a predecessor and a basis (US-155). The overview is SCR-065. A metamodel change asks once per plateau for its solutions (US-156). The go-live (basic flow) follows in S14 change 4.
+
+## Change History
+
+| Version | Date | Author | Change |
+|---|---|---|---|
+| 0.1.0 | 2026-06-27 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-17 | Change us-084-plateaus | A1–A3 and the overview realigned: implicit plateau mode, `plateau:write`, basis of a plateau |

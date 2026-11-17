@@ -117,6 +117,79 @@ class SolutionLandscapeLatencyIT {
 		assertThat(millis.get(2)).as("median of %s ms", millis).isLessThan(500);
 	}
 
+	// Performance of the basis of a plateau (design D4 of us-084-plateaus)
+
+	@Test
+	void basisOfAPredecessorOverFiftyThousandEntitiesWithin500Milliseconds() {
+		this.jdbc.update("""
+				INSERT INTO entities (metatype_id, name, created_by)
+				SELECT ?, 'System ' || g, ? FROM generate_series(1, 50000) g""", this.application, this.michaelId);
+		this.jdbc.update("""
+				INSERT INTO plateaus (id, name, status, created_by) VALUES (gen_random_uuid(), 'Baseline', 'baseline', ?)
+				ON CONFLICT DO NOTHING""", this.michaelId);
+		String first = plateau("Target 2027", "(SELECT id FROM plateaus WHERE status = 'baseline')", "catalog");
+		String second = plateau("Target 2028", "'" + first + "'::uuid", "predecessor");
+		String third = plateau("Target 2029", "'" + second + "'::uuid", "predecessor");
+		// 1,000 deltas in the two layers Target 2027 and Target 2028, in two solutions each
+		int offset = 0;
+		for (String layer : List.of(first, second)) {
+			for (int solution = 0; solution < 2; solution++) {
+				String id = this.jdbc.queryForObject("""
+						INSERT INTO solutions (id, name, owner_id, created_by, from_plateau_id, to_plateau_id)
+						SELECT gen_random_uuid(), ?, ?, ?, succeeds, id FROM plateaus WHERE id = ?::uuid
+						RETURNING id::text""", String.class, "Layer " + UUID.randomUUID(), this.michaelId, this.michaelId,
+						layer);
+				deltas(id, offset, 250);
+				offset += 250;
+			}
+		}
+		String solution = this.jdbc.queryForObject("""
+				INSERT INTO solutions (id, name, owner_id, created_by, from_plateau_id, to_plateau_id)
+				SELECT gen_random_uuid(), ?, ?, ?, succeeds, id FROM plateaus WHERE id = ?::uuid RETURNING id::text""",
+				String.class, "Measured " + UUID.randomUUID(), this.michaelId, this.michaelId, third);
+		String path = "/api/v1/solutions/" + solution + "/landscape?q=system%2099&pageSize=50";
+		assertThat(ok(call(path, this.michael)).path("page").path("totalElements").asInt()).isPositive();
+		List<Long> millis = new ArrayList<>();
+		for (int i = 0; i < 20; i++) {
+			long started = System.nanoTime();
+			ok(call(path, this.michael));
+			millis.add((System.nanoTime() - started) / 1_000_000);
+		}
+		Collections.sort(millis);
+		assertThat(millis.get(18)).as("p95 of %s ms", millis).isLessThan(500);
+	}
+
+	/** {@code count} deltas: per four entities a rename, a description, a retirement and a new entity. */
+	private void deltas(String solution, int offset, int count) {
+		for (int i = offset; i < offset + count; i++) {
+			int entity = this.jdbc.queryForObject("SELECT min(id) FROM entities WHERE deleted_at IS NULL", Integer.class)
+					+ i;
+			String type = switch (i % 4) {
+				case 2 -> "retiring";
+				case 3 -> "new";
+				default -> "modified";
+			};
+			String delta = this.jdbc.queryForObject("""
+					INSERT INTO entity_deltas (id, solution_id, delta_type, entity_id, metatype_id, name, created_by)
+					VALUES (gen_random_uuid(), ?::uuid, ?, ?, ?, ?, ?) RETURNING id::text""", String.class, solution, type,
+					"new".equals(type) ? null : entity, "new".equals(type) ? this.application : null,
+					"new".equals(type) ? "Proposed " + i : null, this.michaelId);
+			if ("modified".equals(type)) {
+				this.jdbc.update("""
+						INSERT INTO entity_delta_property_values (id, delta_id, system_field, after_value_text)
+						VALUES (gen_random_uuid(), ?::uuid, ?, ?)""", delta, (i % 4 == 0) ? "name" : "description",
+						"Changed " + i);
+			}
+		}
+	}
+
+	private String plateau(String name, String succeeds, String basis) {
+		return this.jdbc.queryForObject("""
+				INSERT INTO plateaus (id, name, status, succeeds, basis, created_by)
+				VALUES (gen_random_uuid(), ?, 'target', %s, ?, ?) RETURNING id::text""".formatted(succeeds), String.class,
+				name + " " + UUID.randomUUID(), basis, this.michaelId);
+	}
+
 	private UUID metatype(String name, boolean connection) {
 		return this.jdbc.queryForObject("""
 				INSERT INTO metatypes (config_id, name, is_connection)

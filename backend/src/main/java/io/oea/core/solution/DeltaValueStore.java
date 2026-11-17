@@ -24,7 +24,7 @@ public class DeltaValueStore {
 	}
 
 	/** An active solution with its name and status. */
-	public record SolutionRow(UUID id, String name, String status) {
+	public record SolutionRow(UUID id, String name, String status, UUID plateauId, String plateauName) {
 	}
 
 	/** The delta values of a property on a metatype in one solution. */
@@ -77,9 +77,11 @@ public class DeltaValueStore {
 		if (ids.isEmpty()) {
 			return List.of();
 		}
-		return this.jdbc.query("SELECT s.id, s.name, s.status FROM solutions s WHERE " + ACTIVE
+		return this.jdbc.query("SELECT s.id, s.name, s.status, p.id, p.name FROM solutions s"
+				+ " LEFT JOIN plateaus p ON p.id = s.to_plateau_id WHERE " + ACTIVE
 				+ " AND s.id = ANY (?::uuid[]) ORDER BY lower(s.name), s.id",
-				(rs, n) -> new SolutionRow(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3)),
+				(rs, n) -> new SolutionRow(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3),
+						rs.getObject(4, UUID.class), rs.getString(5)),
 				(Object) ids(ids));
 	}
 

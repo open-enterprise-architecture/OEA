@@ -87,9 +87,12 @@ public class SolutionDeltas {
 
 	private final SnapshotStore snapshots;
 
+	private final SolutionLandscape landscape;
+
 	SolutionDeltas(JdbcTemplate jdbc, EntityStore store, PropertyWriteAccess writeAccess, PropertyAccess readAccess,
 			AuditWriter audit, Clock clock, CatalogCursors cursors, SolutionConflicts conflicts, EntityBlocks blocks,
-			SnapshotStore snapshots) {
+			SnapshotStore snapshots, SolutionLandscape landscape) {
+		this.landscape = landscape;
 		this.blocks = blocks;
 		this.snapshots = snapshots;
 		this.jdbc = jdbc;
@@ -507,13 +510,17 @@ public class SolutionDeltas {
 			throw new InvalidSolutionException(checked.errors());
 		}
 		List<Computed> changes = new ArrayList<>();
+		// the before values come from the baseline of the solution, the basis of its plateau (us-084 D5)
+		Map<String, Object> basis = this.landscape.overlay(solutionId, stored.id());
 		if (input.name() != null) {
-			add(changes, recorded, new Computed(NAME, null, NAME, TypedValue.ofText(stored.name()),
+			add(changes, recorded, new Computed(NAME, null, NAME,
+					TypedValue.ofText((String) basis.getOrDefault(NAME, stored.name())),
 					TypedValue.ofText(input.name())));
 		}
 		if (input.description() != null) {
 			add(changes, recorded, new Computed(DESCRIPTION, null, DESCRIPTION,
-					(stored.description() != null) ? TypedValue.ofText(stored.description()) : null,
+					basis.containsKey(DESCRIPTION) ? (TypedValue) basis.get(DESCRIPTION)
+							: (stored.description() != null) ? TypedValue.ofText(stored.description()) : null,
 					TypedValue.ofText(input.description())));
 		}
 		Set<UUID> seen = new HashSet<>();
@@ -524,7 +531,9 @@ public class SolutionDeltas {
 				// an unmapped property is ignored, as in the batch write (REQ-149)
 				continue;
 			}
-			add(changes, recorded, new Computed(null, definition, mapping.definition().name(), current.get(definition),
+			TypedValue before = basis.containsKey(definition.toString()) ? (TypedValue) basis.get(definition.toString())
+					: current.get(definition);
+			add(changes, recorded, new Computed(null, definition, mapping.definition().name(), before,
 					checked.values().get(definition)));
 		}
 		if (changes.isEmpty() && !othersRemain) {

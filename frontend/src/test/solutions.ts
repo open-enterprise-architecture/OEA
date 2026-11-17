@@ -148,7 +148,7 @@ export const METATYPES = [
 
 function entry(id: number, name: string, metatypeId: string, version = 1): SolutionLandscapeEntry {
   const metatypeName = METATYPES.find((candidate) => candidate.id === metatypeId)!.name
-  return { id, name, metatypeId, metatypeName, version, parallelChanges: [] }
+  return { id, name, metatypeId, metatypeName, version, parallelChanges: [], lifecycle: 'active', changedBy: null, deltaId: null }
 }
 
 export const LANDSCAPE: SolutionLandscapeEntry[] = [
@@ -279,7 +279,7 @@ function modifiedDelta(id: string, entity: SolutionLandscapeEntry, changes: Solu
 
 /** The entry of the baseline as getSolutionLandscapeEntity returns it; Cost is hidden. */
 export function landscapeEntity(entry: SolutionLandscapeEntry): SolutionLandscapeEntity {
-  const stored = ENTRY_VALUES[entry.id] ?? { description: '', values: { [OWNER]: 'IT' } }
+  const stored = (entry.id !== null ? ENTRY_VALUES[entry.id] : undefined) ?? { description: '', values: { [OWNER]: 'IT' } }
   return {
     ...entry,
     description: stored.description,
@@ -493,7 +493,7 @@ export function solutionApi(
   // copies: a go-live changes the status of its solution
   const solutions = (options.solutions ?? SOLUTIONS).map((candidate) => ({ ...candidate }))
   const landscape = [...(options.landscape ?? LANDSCAPE)].sort(
-    (a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || a.id - b.id,
+    (a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || (a.id ?? 0) - (b.id ?? 0),
   )
   const posts: Record<string, unknown>[] = []
   const landscapeQueries: URLSearchParams[] = []
@@ -574,7 +574,7 @@ export function solutionApi(
       return { status: 422 as const, field: 'properties', detail: 'The mandatory property Owner has no value.' }
     }
     const stored = landscapeEntity(entity)
-    const current = ENTRY_VALUES[entity.id]?.values ?? { [OWNER]: 'IT' }
+    const current = (entity.id !== null ? ENTRY_VALUES[entity.id]?.values : undefined) ?? { [OWNER]: 'IT' }
     const changes: SolutionDeltaChange[] = []
     const keep = (change: SolutionDeltaChange) => {
       const earlier = recorded.find((candidate) => candidate.field === change.field && candidate.propertyDefId === change.propertyDefId)
@@ -656,7 +656,7 @@ export function solutionApi(
     return json(created, 201)
   }
   const parallelChanges = (entry: SolutionLandscapeEntry) =>
-    (options.parallelChangeMetatypes ?? []).includes(entry.metatypeId) ? (conflicts[entry.id] ?? []) : []
+    (options.parallelChangeMetatypes ?? []).includes(entry.metatypeId) && entry.id !== null ? (conflicts[entry.id] ?? []) : []
   const fetchFn: typeof fetch = async (input, init) => {
     const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, 'http://localhost')
     const method = init?.method ?? 'GET'

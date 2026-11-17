@@ -4,9 +4,9 @@ title: Realized plateau read-only
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-28
-last_updated: 2026-06-28
+last_updated: 2026-11-17
 author: requirements-engineer
 references:
   use_cases:
@@ -59,3 +59,4 @@ Realized plateaus represent immutable architecture history. Subsequent changes w
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-17 | Change us-084-plateaus | Implemented: `updatePlateau` answers 422 "Realized plateau is read-only"; SCR-065 shows no "Edit" for a realized plateau |

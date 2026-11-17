@@ -2,8 +2,9 @@
 
 **ID**: US-156
 **Story Points**: 3
-**Status**: backlog
+**Status**: done
 **Sprint**: S14
+**Implementation**: OpenSpec change `us-084-plateaus` – the metamodel question grouped by plateau, decisions `plateau:<id>:apply|keep`, 422 for a decision by solution for a solution of a plateau, the grouped question on SCR-030 (AC1–AC3)
 
 ## Story
 
@@ -42,6 +43,6 @@ As Kurt – Lead Enterprise Architect, I want to be asked once per target platea
 
 ## Definition of Done
 
-- [ ] Acceptance criteria met
+- [x] Acceptance criteria met
 - [ ] Code review by a second person
-- [ ] Tests written (unit, integration where applicable)
+- [x] Tests written (unit, integration where applicable)

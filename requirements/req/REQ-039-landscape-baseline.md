@@ -136,7 +136,7 @@ The baseline is context-bound: it appears only within a concrete solution and se
 - `GET /api/v1/solutions/{id}/landscape` (`getSolutionLandscape`, `entity:read`), read on demand
 - Paging: `page`, `pageSize` (1–200, default 50) and an opaque cursor, as for the catalog query (REQ-071)
 - Realigned by the OpenSpec change `us-039-solution-baseline` (owner decision 2026-11-12): the baseline in project mode is the current catalog, not the aggregate of the deltas of implemented solutions; AC1–AC3 and AC5 follow from it. Connections are not listed; the baseline shows no property values
-- AC4 (plateau mode) follows with the plateaus in S14
+- AC4 (plateau mode) realigned by the OpenSpec change `us-084-plateaus` (owner decision 2026-11-17): the baseline of a solution that targets a plateau is the basis of that plateau, the current catalog or the content of its predecessor with the changes of its active solutions applied; entries carry the lifecycle `active`, `retiring` or `proposed` (US-155)
 
 ## Implementation
 

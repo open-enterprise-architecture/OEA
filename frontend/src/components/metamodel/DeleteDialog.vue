@@ -5,6 +5,7 @@ import type { SolutionDecision, WriteOutcome } from '../../api/metamodel'
 import type { AffectedSolution } from '../../api/problem'
 import CollisionWarning from './CollisionWarning.vue'
 import SolutionDecisions from './SolutionDecisions.vue'
+import { allDecided, chosenDecisions, type Decisions } from './decisions'
 import { rejectionMessage } from './messages'
 
 // Confirmation of a deletion in SCR-030 with the version read (design D4 of
@@ -26,8 +27,8 @@ const failure = ref<string>()
 const staleVersion = ref<number>()
 const submitting = ref(false)
 const affected = ref<AffectedSolution[]>([])
-const decisions = ref<Record<string, SolutionDecision['decision'] | undefined>>({})
-const decided = computed(() => affected.value.every((solution) => decisions.value[solution.id] !== undefined))
+const decisions = ref<Decisions>({})
+const decided = computed(() => allDecided(affected.value, decisions.value))
 
 watch(open, (value) => {
   if (value) {
@@ -39,7 +40,7 @@ watch(open, (value) => {
 })
 
 function chosen(): SolutionDecision[] {
-  return affected.value.map((solution) => ({ solutionId: solution.id, decision: decisions.value[solution.id]! }))
+  return chosenDecisions(affected.value, decisions.value)
 }
 
 async function confirm(version: number | undefined) {

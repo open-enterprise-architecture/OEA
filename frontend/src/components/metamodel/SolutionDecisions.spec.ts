@@ -88,4 +88,44 @@ describe('SolutionDecisions in the delete dialog', () => {
     expect(calls).toEqual([[]])
     expect(document.querySelector('[data-testid="solution-decisions"]')).toBeNull()
   })
+
+  // US-156 AC1, AC2 (design D6 of us-084-plateaus)
+  it('asks once per plateau, names its solutions, and sends the plateau', async () => {
+    const plateau = { id: 'a1000000-0000-4000-8000-000000000001', name: 'Target 2027' }
+    const crm = { ...CRM, plateau }
+    const erp = { ...ERP, plateau }
+    const website: AffectedSolution = { ...CRM, id: '5d000000-0000-4000-8000-000000000003', name: 'Website Relaunch', plateau: null }
+    const calls: SolutionDecision[][] = []
+    const run = async (_version: number | undefined, decisions: SolutionDecision[]): Promise<WriteOutcome<void>> => {
+      calls.push(decisions)
+      if (decisions.length === 0) {
+        return {
+          ok: false,
+          rejection: { status: 409, problemType: 'solution-decision-required', invalidFields: [], solutions: [crm, erp, website] },
+        }
+      }
+      return { ok: true, value: undefined }
+    }
+    await mountWithMetamodel(DeleteDialog, { open: true, title: 'Remove', description: 'Remove it?', version: 1, run })
+
+    confirmButton().click()
+    await flushPromises()
+    const group = document.querySelector(`[data-testid="solution-decision-plateau:${plateau.id}"]`)
+    expect(group?.textContent).toContain('Plateau Target 2027')
+    expect(group?.querySelector('[data-testid="solution-decision-members"]')?.textContent).toContain('CRM Replacement, ERP Extension')
+    expect(document.querySelector(`[data-testid="solution-decision-${CRM.id}"]`)).toBeNull()
+    expect(document.querySelectorAll('[data-testid^="solution-decision-"]:not([data-testid="solution-decision-members"])')).toHaveLength(2)
+
+    await choose({ ...CRM, id: `plateau:${plateau.id}` }, 'keep')
+    expect(confirmButton().disabled).toBe(true)
+    await choose(website, 'apply')
+    expect(confirmButton().disabled).toBe(false)
+
+    confirmButton().click()
+    await flushPromises()
+    expect(calls[1]).toEqual([
+      { plateauId: plateau.id, decision: 'keep' },
+      { solutionId: website.id, decision: 'apply' },
+    ])
+  })
 })

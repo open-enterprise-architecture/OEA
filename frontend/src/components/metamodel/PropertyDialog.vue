@@ -16,6 +16,7 @@ import { metamodel, propertyById, reloadMetamodel } from '../../metamodel/store'
 import type { AffectedSolution } from '../../api/problem'
 import CollisionWarning from './CollisionWarning.vue'
 import SolutionDecisions from './SolutionDecisions.vue'
+import { allDecided, chosenDecisions, type Decisions } from './decisions'
 import VisibilitySummary from './VisibilitySummary.vue'
 import { rejectionMessage } from './messages'
 
@@ -46,8 +47,8 @@ const valueInput = ref('')
 const pendingDelete = ref<string>()
 // a deleted value that active solutions use asks per solution first (US-154)
 const deciding = ref<{ valueId: string; solutions: AffectedSolution[] }>()
-const decisions = ref<Record<string, SolutionDecision['decision'] | undefined>>({})
-const decided = computed(() => deciding.value?.solutions.every((solution) => decisions.value[solution.id] !== undefined) ?? false)
+const decisions = ref<Decisions>({})
+const decided = computed(() => (deciding.value ? allDecided(deciding.value.solutions, decisions.value) : false))
 const errors = ref<Partial<Record<Field, string>>>({})
 const failure = ref<string>()
 const notice = ref<string>()
@@ -209,7 +210,7 @@ async function confirmDecisions() {
   }
   await removeValue(
     pending.valueId,
-    pending.solutions.map((solution) => ({ solutionId: solution.id, decision: decisions.value[solution.id]! })),
+    chosenDecisions(pending.solutions, decisions.value),
   )
 }
 </script>

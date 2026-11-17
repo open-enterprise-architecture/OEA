@@ -576,7 +576,7 @@ An organization property was mapped to a metatype or removed from it ([US-032](.
 | Target | `metatype`, ID of the metatype |
 | Details | `mappingId`, `propertyDefId`; `necessity`, `validFrom` and `entitiesMarked` (created; 0 for a future entry); `entitiesWithRemovedValues` and `solutionDecisions` (deleted by an administrator); `batchId` and `reason` = `reimport` (deleted by a re-import) |
 
-`solutionDecisions` lists, for a change that removes values active solutions use, one `{solutionId, decision}` per affected solution: `apply` removed the values from its deltas, `keep` stored a snapshot until its go-live ([US-154](../requirements/user-stories/US-154-metamodel-change-in-solutions.md); change us-153-open-issues). A package import does not ask.
+`solutionDecisions` lists, for a change that removes values active solutions use, one `{solutionId, decision}` per affected solution without a plateau, and one `{plateauId, decision, solutionIds}` per plateau whose solutions were decided together: `apply` removed the values from their deltas, `keep` stored a snapshot until their go-live ([US-154](../requirements/user-stories/US-154-metamodel-change-in-solutions.md), [US-156](../requirements/user-stories/US-156-metamodel-change-per-plateau.md); changes us-153-open-issues and us-084-plateaus). A package import does not ask.
 
 ### `metamodel.mapping-effective`
 
@@ -811,9 +811,20 @@ A catalog was placed in a folder of the navigation tree or its entry removed ([U
 | Target | `tree-node`, ID of the folder |
 | Details | `itemId`, `itemType` (`catalog`) and `referenceId` (the ID of the catalog) |
 
+### `plateau.created` / `plateau.updated`
+
+A plateau was created or edited ([US-084](../requirements/user-stories/US-084-create-plateau.md), [US-155](../requirements/user-stories/US-155-plateau-basis.md), [REQ-084](../requirements/req/REQ-084-create-plateau.md); change us-084-plateaus). The first baseline turns plateau mode on. Rejected writes (a broken rule, a realized plateau, a plateau in use, missing permission) are not audited.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the person with `plateau:write` |
+| Target | `plateau`, ID of the plateau |
+| Details | `name` and `status` (created); `name` and `fields`, the names of the changed fields among `name`, `description`, `validFrom`, `succeeds` and `basis` (updated) |
+
 ### `solution.created`
 
-A solution was created in project mode ([US-038](../requirements/user-stories/US-038-create-solution.md), [REQ-038](../requirements/req/REQ-038-create-solution.md)). Rejected creations (taken or blank name, invalid input, missing permission) are not audited.
+A solution was created in project mode or with plateau references ([US-038](../requirements/user-stories/US-038-create-solution.md), [REQ-038](../requirements/req/REQ-038-create-solution.md)). Rejected creations (taken or blank name, invalid input, missing permission) are not audited.
 
 | Field | Value |
 |---|---|

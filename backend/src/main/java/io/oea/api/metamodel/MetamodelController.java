@@ -188,12 +188,7 @@ public class MetamodelController implements MetamodelApi {
 			probePath = "/api/v1/metamodel/metatypes/00000000-0000-0000-0000-000000000000")
 	public ResponseEntity<MetatypeDetail> updateMetatype(UUID id, MetatypeWrite metatypeWrite, String ifMatch) {
 		this.metatypes.update(principal(), id, metatypeInput(metatypeWrite), expectedVersion(ifMatch),
-				SolutionImpact.Decisions.of((metatypeWrite.getSolutionDecisions() != null)
-						? metatypeWrite.getSolutionDecisions()
-							.stream()
-							.collect(java.util.stream.Collectors.toMap(SolutionDecision::getSolutionId,
-									(entry) -> entry.getDecision().getValue(), (a, b) -> b))
-						: Map.of()));
+				bodyDecisions(metatypeWrite.getSolutionDecisions()));
 		return versioned(metatype(this.catalog.get(id)));
 	}
 
@@ -584,15 +579,45 @@ public class MetamodelController implements MetamodelApi {
 	}
 
 
-	/** The decisions {@code <solutionId>:apply|keep} of a request (US-154); the contract checks their shape. */
+	/**
+	 * The decisions {@code <solutionId>:apply|keep} and {@code plateau:<plateauId>:apply|keep} of a
+	 * request (US-154, US-156); the contract checks their shape.
+	 */
 	private static SolutionImpact.Decisions decisions(List<String> decision) {
 		Map<UUID, String> bySolution = new java.util.LinkedHashMap<>();
+		Map<UUID, String> byPlateau = new java.util.LinkedHashMap<>();
 		for (String entry : (decision != null) ? decision : List.<String>of()) {
 			int colon = entry.lastIndexOf(':');
 			// the pattern of the contract guarantees the shape (400 otherwise)
-			bySolution.put(UUID.fromString(entry.substring(0, colon)), entry.substring(colon + 1));
+			String id = entry.substring(0, colon);
+			if (id.startsWith("plateau:")) {
+				byPlateau.put(UUID.fromString(id.substring("plateau:".length())), entry.substring(colon + 1));
+			}
+			else {
+				bySolution.put(UUID.fromString(id), entry.substring(colon + 1));
+			}
 		}
-		return SolutionImpact.Decisions.of(bySolution);
+		return SolutionImpact.Decisions.of(bySolution, byPlateau);
+	}
+
+	/** The decisions of a metatype write, each naming exactly one solution or plateau (400 otherwise). */
+	private static SolutionImpact.Decisions bodyDecisions(List<SolutionDecision> decisions) {
+		Map<UUID, String> bySolution = new java.util.LinkedHashMap<>();
+		Map<UUID, String> byPlateau = new java.util.LinkedHashMap<>();
+		for (SolutionDecision entry : (decisions != null) ? decisions : List.<SolutionDecision>of()) {
+			if ((entry.getSolutionId() == null) == (entry.getPlateauId() == null)) {
+				throw new org.springframework.web.server.ResponseStatusException(
+						org.springframework.http.HttpStatus.BAD_REQUEST,
+						"A decision names either a solution or a plateau.");
+			}
+			if (entry.getSolutionId() != null) {
+				bySolution.put(entry.getSolutionId(), entry.getDecision().getValue());
+			}
+			else {
+				byPlateau.put(entry.getPlateauId(), entry.getDecision().getValue());
+			}
+		}
+		return SolutionImpact.Decisions.of(bySolution, byPlateau);
 	}
 
 }

@@ -16,7 +16,7 @@ Jede Operation von OEA verlangt eine Berechtigung, und Berechtigungen kommen nur
 | `portal-reader` | `portal:read` | geteilte Inhalte im Portal lesen |
 | `viewer` | `portal:read`, `entity:read` | das Repository lesen |
 | `analyst` | `viewer` + `analytics:query` | Analytics-Abfragen |
-| `enterprise-architect` | `viewer` + `entity:write`, `entity:delete`, `entity:restore`, `catalog:manage`, `dashboard:manage`, `viewpoint:manage`, `plateau:go-live`, `webhook:manage`, `solution-metamodel:write`, `solution:write` | die Architektur pflegen |
+| `enterprise-architect` | `viewer` + `entity:write`, `entity:delete`, `entity:restore`, `catalog:manage`, `dashboard:manage`, `viewpoint:manage`, `plateau:write`, `plateau:go-live`, `webhook:manage`, `solution-metamodel:write`, `solution:write` | die Architektur pflegen |
 | `solution-architect` | `viewer` + `solution:write`, `solution-metamodel:write` | Veränderungsvorhaben als [Lösungen](../usage/solutions) führen |
 | `integration-writer` | `entity:read`, `entity:write` | Integrationen, die Entitäten schreiben |
 | `auditor` | `audit:read` | das Audit-Log lesen und prüfen |
@@ -24,7 +24,7 @@ Jede Operation von OEA verlangt eine Berechtigung, und Berechtigungen kommen nur
 | `security-admin` | `visibility:configure`, `visibility-scope:assign`, `role:assign`, `person:manage` | Sichtbarkeitsregeln, Personen und Rollen |
 | `system-admin` | `role:assign`, `person:manage`, `service-account:manage`, `auth-config:manage`, `settings:manage` | die Instanz administrieren |
 
-`solution-metamodel:write` pflegt die Erweiterungen von Lösungen und ihre Entitätstypen (siehe [Erweiterungen von Lösungen](./metamodel-editing#extensions)); das Metamodell der Instanz verlangt weiterhin `metamodel:write`. `solution:write` legt [Lösungen](../usage/solutions) an.
+`solution-metamodel:write` pflegt die Erweiterungen von Lösungen und ihre Entitätstypen (siehe [Erweiterungen von Lösungen](./metamodel-editing#extensions)); das Metamodell der Instanz verlangt weiterhin `metamodel:write`. `solution:write` legt [Lösungen](../usage/solutions) an. `plateau:write` legt [Plateaus](../usage/plateaus) an und bearbeitet sie; `plateau:go-live` nimmt sie live.
 
 Das lokale Systemadmin-Konto hat die Rolle `system-admin`. **Privilegierte Rollen** – Rollen mit einer Berechtigung der Admin-Klasse (`metamodel:write`, `visibility:configure`, `visibility-scope:assign`, `role:assign`, `person:manage`, `service-account:manage`, `auth-config:manage`, `settings:manage`) – wirken nur in einer Sitzung, die mit einem zweiten Faktor bestätigt ist. Bei einer Anmeldung über einen Identity-Provider muss der Provider den zweiten Faktor in `amr` melden.
 

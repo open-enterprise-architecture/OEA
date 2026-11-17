@@ -2,7 +2,7 @@
 title: Metamodell bearbeiten
 covers:
   screens: [SCR-030]
-  stories: [US-032, US-034, US-035, US-036, US-037, US-137, US-140, US-154]
+  stories: [US-032, US-034, US-035, US-036, US-037, US-137, US-140, US-154, US-156]
 ---
 
 # Metamodell bearbeiten
@@ -114,6 +114,8 @@ Nutzen aktive [Lösungen](../usage/solutions) die Werte, listet der Dialog sie n
 
 - **Auf diese Lösung anwenden:** Die Werte werden auch aus den Änderungen der Lösung entfernt. Eine Änderung, die sonst nichts ändert, wird entfernt.
 - **Als Snapshot behalten:** Die Lösung behält die Eigenschaft oder den Wert der Auswahlliste bis zu ihrem Go-live. Ihre Änderungen behalten ihre Werte und können sie weiter setzen. Beim Go-live wird jeder solche Wert verworfen oder ein [offener Punkt](../usage/solutions#open-issues).
+
+Lösungen, die auf dasselbe [Plateau](../usage/plateaus) hinarbeiten, werden gemeinsam entschieden: Der Dialog fragt einmal für das Plateau und nennt seine Lösungen. Eine Lösung ohne Plateau wird weiterhin einzeln gefragt.
 
 Eine Eigenschaft, die eine Lösung als Snapshot behält, kann erst gelöscht werden, wenn diese Lösung live ist. Änderungen in der Erweiterung einer Lösung und Paketimporte fragen nicht nach.
 

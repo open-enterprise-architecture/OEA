@@ -177,3 +177,34 @@ Feature: A metamodel change asks whether it applies to active solutions
     And the architect took the solution live
     When the architect writes "CC-100" for the issue keeping "CC-100"
     Then the answer is 422
+
+  # us-084-plateaus – Requirements: Metamodel question per plateau, Decisions by plateau only
+
+  @US-156 @AC1
+  Scenario: Asked once per plateau
+    Given the solution "ERP Extension" captured the new application "Workday" with "Cost Center" "CC-7"
+    And the solution "Analytics" captured the new application "SAP" with "Cost Center" "CC-8"
+    And the solutions "ERP Extension" and "Analytics" target the plateau "Target 2027"
+    When the metamodel administrator removes "Cost Center" from the applications
+    Then the answer is 409 of type "solution-decision-required"
+    And the answer names the plateau for "ERP Extension" and "Analytics"
+
+  @US-156 @AC1 @AC2
+  Scenario: Decision by plateau
+    Given the solution "ERP Extension" captured the new application "Workday" with "Cost Center" "CC-7"
+    And the solution "Analytics" captured the new application "SAP" with "Cost Center" "CC-8"
+    And the solutions "ERP Extension" and "Analytics" target the plateau "Target 2027"
+    When the metamodel administrator removes "Cost Center" from the applications keeping it for the plateau and applying it to the solution
+    Then the answer is 204
+    And the solution "ERP Extension" keeps a snapshot of "Cost Center"
+    And the solution "Analytics" keeps a snapshot of "Cost Center"
+    And the delta of "Salesforce" has no cost center
+
+  @US-156 @AC3
+  Scenario: Decision for a solution of a plateau
+    Given the solution "ERP Extension" captured the new application "Workday" with "Cost Center" "CC-7"
+    And the solution "Analytics" captured the new application "SAP" with "Cost Center" "CC-8"
+    And the solutions "ERP Extension" and "Analytics" target the plateau "Target 2027"
+    When the metamodel administrator removes "Cost Center" from the applications deciding for the solution "ERP Extension" of the plateau
+    Then the answer is 422
+    And the mapping of "Cost Center" to the applications is kept

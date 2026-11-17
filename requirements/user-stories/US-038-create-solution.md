@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S10
-**Implementation**: OpenSpec change `us-038-create-solution`, commit cc53421 (#238) – `createSolution`, `listSolutions` and `getSolution` with the permission `solution:write` (built-in roles `solution-architect` and `enterprise-architect`), audited as `solution.created`; the pages SCR-060 (with the dialog "New solution") and SCR-061. AC3 and AC4 (plateau mode) follow with the plateaus in S14
+**Implementation**: OpenSpec change `us-038-create-solution`, commit cc53421 (#238) – `createSolution`, `listSolutions` and `getSolution` with the permission `solution:write` (built-in roles `solution-architect` and `enterprise-architect`), audited as `solution.created`; the pages SCR-060 (with the dialog "New solution") and SCR-061. AC3 and AC4 (plateau mode): OpenSpec change `us-084-plateaus` – `fromPlateauId` and `toPlateauId` with the check that the start is the predecessor of the target, and the target plateau in the dialog "New solution"
 
 ## Story
 
@@ -57,7 +57,7 @@ As a Solution Architect, I want to be able to create a new solution with a name 
 
 ## Definition of Done
 
-- [x] Acceptance criteria AC1, AC2 and AC5 met (AC3, AC4 follow in S14)
+- [x] Acceptance criteria AC1–AC5 met (AC3, AC4 with us-084-plateaus)
 - [ ] Code review by a second person
 - [x] Tests: creation (project mode), name collision, BR-01 as a database check, missing permission
 - [x] Linter and type checks green
@@ -73,3 +73,4 @@ As a Solution Architect, I want to be able to create a new solution with a name 
 3 SP: simple form with two text fields and optional plateau dropdowns. The main complexity lies in the BR-01 validation and the name uniqueness check. Plateau mode (AC3/AC4) can initially be disabled with a feature flag and enabled in a follow-up story.
 
 - 2026-11-12: implemented in project mode by the OpenSpec change `us-038-create-solution`, commit cc53421 (#238) (S10 change 5). Realigned: the solution architect permission is `solution:write`; the validation errors of AC2 answer 422 naming `name`; without `solution:write` the page "Solutions" lists the solutions but hides "New solution" (AC5), and the API answers 403. The foreign key from metamodel extensions to solutions follows in [#237](https://github.com/open-enterprise-architecture/OEA/issues/237).
+- 2026-11-17: AC3 and AC4 implemented by the OpenSpec change `us-084-plateaus` (S14 change 3). Realigned: the start plateau must be the predecessor of the target plateau (422 naming `fromPlateauId`), the target a target or transition plateau that is not realized (422 naming `toPlateauId`); the dialog offers the target plateau only when plateaus exist (owner decisions 2026-11-17).

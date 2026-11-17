@@ -180,3 +180,56 @@ export const SolutionDecisions: Story = {
     await expect(body.getByRole('button', { name: 'Delete' })).toBeDisabled()
   },
 }
+
+// the solutions that target a plateau are asked once per plateau (US-156; design D6 of
+// us-084-plateaus)
+export const SolutionDecisionsByPlateau: Story = {
+  render: () => ({
+    components: { DeleteDialog },
+    setup: () => {
+      const affected = (id: string, name: string, plateau: { id: string; name: string } | null) => ({
+        id,
+        name,
+        status: 'draft',
+        plateau,
+        deltaValues: 1,
+        extensionMetatypes: 0,
+        properties: [{ metatypeId: IDS.component, propertyDefId: IDS.owner, label: 'Cost Center', enumValue: null }],
+      })
+      const target = { id: 'b1000000-0000-4000-8000-000000000002', name: 'Target Cloud Migration 2027' }
+      return {
+        run: async (_version: number | undefined, decisions: unknown[]) =>
+          decisions.length > 0
+            ? { ok: true, value: undefined }
+            : {
+                ok: false,
+                rejection: {
+                  status: 409,
+                  problemType: 'solution-decision-required',
+                  invalidFields: [],
+                  solutions: [
+                    affected('5d000000-0000-4000-8000-000000000001', 'CRM Replacement', target),
+                    affected('5d000000-0000-4000-8000-000000000002', 'ERP Extension', target),
+                    affected('5d000000-0000-4000-8000-000000000003', 'Website Relaunch', null),
+                  ],
+                },
+              },
+      }
+    },
+    template: `
+      <DeleteDialog
+        :open="true"
+        title="Remove the mapping"
+        description="Cost Center is removed from Application Component."
+        :version="1"
+        :run="run"
+      />`,
+  }),
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(await body.findByRole('button', { name: 'Delete' }))
+    await expect(await body.findByText('Plateau Target Cloud Migration 2027')).toBeInTheDocument()
+    await expect(body.getByText(/Applies to all its solutions: CRM Replacement, ERP Extension/)).toBeInTheDocument()
+    await expect(body.getByText('Website Relaunch')).toBeInTheDocument()
+  },
+}

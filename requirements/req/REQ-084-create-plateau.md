@@ -4,9 +4,9 @@ title: Create plateau
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-28
-last_updated: 2026-06-28
+last_updated: 2026-11-17
 author: requirements-engineer
 references:
   use_cases:
@@ -58,11 +58,16 @@ Without plateau creation, no strategic architecture planning can take place in p
 ## Implementation Notes
 
 - Plateau status is immutable after go-live (`realized`); no further writing allowed
-- `succeeds` reference is optional and only meaningfully set for `target` plateaus
 - Secure the unique constraint on `status=baseline` per instance in the DB
+- Realigned by the OpenSpec change `us-084-plateaus` (owner decisions 2026-11-17):
+  - creating and editing plateaus needs the new permission `plateau:write` (role `enterprise-architect`); reading needs `plateau:write`, `plateau:go-live` or `solution:write`;
+  - the first baseline turns plateau mode on; a target or transition plateau without a baseline gives 422 "No baseline plateau exists. Create an initial baseline first.";
+  - a target or transition plateau needs `succeeds` (a plateau that is not realized, no cycle) and a `basis` (`catalog` or `predecessor`, US-155); a baseline has neither;
+  - the status is set at creation and changed only by the plateau go-live; the predecessor does not change while a solution targets the plateau (409 `plateau-in-use`)
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-17 | Change us-084-plateaus | Realigned: permission, predecessor and basis required for target and transition, plateau mode implicit |

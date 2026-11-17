@@ -289,7 +289,8 @@ class SolutionImpactTests {
 			.hasStatus(HttpStatus.NO_CONTENT);
 
 		assertThat(deltaValue(this.created, this.tier)).isEqualTo("high");
-		assertThat(count("SELECT count(*) FROM solution_metamodel_snapshots WHERE enum_value = 'high'")).isEqualTo(1);
+		assertThat(count("SELECT count(*) FROM solution_metamodel_snapshots WHERE enum_value = 'high' AND solution_id = '"
+				+ this.solution + "'")).isEqualTo(1);
 	}
 
 	@Test
@@ -397,6 +398,134 @@ class SolutionImpactTests {
 		JsonNode issues = json(post("/solutions/" + this.solution + "/open-issues/resolution", body));
 
 		assertThat(issueOf(issues, "CC-100").path("resolution").asString()).isEqualTo("removed");
+	}
+
+	// us-084-plateaus – Requirements: Metamodel question per plateau, Decisions by plateau only
+
+	@Test
+	void askedOncePerPlateau() {
+		String plateau = targetPlateau();
+		String crm = plateauSolution("CRM Plateau", plateau);
+		String erpExtension = plateauSolution("ERP Plateau", plateau);
+		capture(crm, newEntity("Workday", value(this.costCenter, "CC-7")));
+		capture(erpExtension, newEntity("SAP", value(this.costCenter, "CC-8")));
+
+		MvcTestResult asked = removeMapping();
+		assertThat(asked).hasStatus(HttpStatus.CONFLICT);
+		JsonNode solutions = json(asked).path("solutions");
+		assertThat(ids(solutions)).containsExactlyInAnyOrder(this.solution, crm, erpExtension);
+		solutions.forEach((solution) -> {
+			if (solution.path("id").asString().equals(this.solution)) {
+				assertThat(solution.path("plateau").isNull()).isTrue();
+			}
+			else {
+				assertThat(solution.path("plateau").path("id").asString()).isEqualTo(plateau);
+				assertThat(solution.path("plateau").path("name").asString()).startsWith("Target 2027");
+			}
+		});
+
+		MvcTestResult decided = removeMapping("plateau:" + plateau + ":keep", this.solution + ":apply");
+		assertThat(decided).as(() -> content(decided)).hasStatus(HttpStatus.NO_CONTENT);
+		assertThat(count("SELECT count(*) FROM solution_metamodel_snapshots WHERE solution_id IN ('" + crm + "', '"
+				+ erpExtension + "')")).isEqualTo(2);
+		assertThat(deltaValue(this.created, this.costCenter)).isNull();
+		assertThat(this.jdbc.queryForObject("""
+				SELECT details->'solutionDecisions' @> ?::jsonb FROM audit.events
+				WHERE event_type = 'metamodel.mapping-deleted' ORDER BY id DESC LIMIT 1""", Boolean.class,
+				"[{\"plateauId\": \"" + plateau + "\", \"decision\": \"keep\"}]")).isTrue();
+	}
+
+	@Test
+	void solutionWithoutPlateauStillAsked() {
+		String plateau = targetPlateau();
+		capture(plateauSolution("CRM Plateau", plateau), newEntity("Workday", value(this.costCenter, "CC-7")));
+
+		MvcTestResult result = removeMapping("plateau:" + plateau + ":apply");
+
+		assertThat(result).hasStatus(HttpStatus.CONFLICT);
+		assertThat(mappingExists()).isTrue();
+	}
+
+	@Test
+	void decisionForASolutionOfAPlateau() {
+		String plateau = targetPlateau();
+		String crm = plateauSolution("CRM Plateau", plateau);
+		capture(crm, newEntity("Workday", value(this.costCenter, "CC-7")));
+
+		MvcTestResult result = removeMapping(this.solution + ":apply", crm + ":apply", "plateau:" + plateau + ":apply");
+
+		assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.UNPROCESSABLE_ENTITY);
+		assertThat(json(result).path("detail").asString()).contains("decide for the plateau");
+		assertThat(mappingExists()).isTrue();
+	}
+
+	@Test
+	void plateauWithoutAffectedSolutions() {
+		String plateau = targetPlateau();
+
+		MvcTestResult result = removeMapping(this.solution + ":apply", "plateau:" + plateau + ":keep");
+
+		assertThat(result).hasStatus(HttpStatus.UNPROCESSABLE_ENTITY);
+		assertThat(mappingExists()).isTrue();
+	}
+
+	@Test
+	void enumerationValueDecidedByPlateau() {
+		String plateau = targetPlateau();
+		String crm = plateauSolution("CRM Plateau", plateau);
+		String delta = capture(crm, newEntity("Workday", value(this.tier, "high"))).path("id").asString();
+		UUID high = this.jdbc.queryForObject(
+				"SELECT id FROM property_enum_values WHERE property_def_id = ? AND value = 'high'", UUID.class, this.tier);
+		String path = "/metamodel/property-definitions/" + this.tier + "/enum-values/" + high;
+
+		assertThat(call(HttpMethod.DELETE, path + "?decision=" + this.solution + ":keep", null, this.kurt))
+			.hasStatus(HttpStatus.CONFLICT);
+		assertThat(call(HttpMethod.DELETE,
+				path + "?decision=" + this.solution + ":keep&decision=plateau:" + plateau + ":apply", null, this.kurt))
+			.hasStatus(HttpStatus.NO_CONTENT);
+		assertThat(deltaValue(delta, this.tier)).isNull();
+	}
+
+	@Test
+	void baseTypeChangeDecidedByPlateau() {
+		String plateau = targetPlateau();
+		String crm = plateauSolution("CRM Plateau", plateau);
+		UUID cloud = metatype("Cloud Service", INSTANCE, this.application);
+		capture(crm, JsonMapper.shared()
+			.createObjectNode()
+			.put("deltaType", "new")
+			.put("metatypeId", cloud.toString())
+			.put("name", "AWS")
+			.set("properties", JsonMapper.shared().createArrayNode().add(value(this.costCenter, "CC-9"))));
+		ObjectNode body = JsonMapper.shared()
+			.createObjectNode()
+			.put("name", name(cloud))
+			.put("configId", INSTANCE)
+			.putNull("baseMetatypeId");
+		var decisions = body.putArray("solutionDecisions");
+		ObjectNode both = decisions.addObject().put("solutionId", crm).put("plateauId", plateau).put("decision", "apply");
+
+		assertThat(call(HttpMethod.PUT, "/metamodel/metatypes/" + cloud, body, this.kurt))
+			.hasStatus(HttpStatus.BAD_REQUEST);
+		both.remove("solutionId");
+		assertThat(call(HttpMethod.PUT, "/metamodel/metatypes/" + cloud, body, this.kurt)).hasStatus(HttpStatus.OK);
+	}
+
+	private String targetPlateau() {
+		this.jdbc.update("""
+				INSERT INTO plateaus (id, name, status, created_by) VALUES (gen_random_uuid(), 'Baseline', 'baseline', ?)
+				ON CONFLICT DO NOTHING""", this.michaelId);
+		return this.jdbc.queryForObject("""
+				INSERT INTO plateaus (id, name, status, succeeds, basis, created_by)
+				SELECT gen_random_uuid(), ?, 'target', id, 'catalog', ? FROM plateaus WHERE status = 'baseline'
+				RETURNING id::text""", String.class, "Target 2027 " + suffix(), this.michaelId);
+	}
+
+	private String plateauSolution(String name, String plateau) {
+		return this.jdbc.queryForObject("""
+				INSERT INTO solutions (id, name, owner_id, created_by, from_plateau_id, to_plateau_id)
+				SELECT gen_random_uuid(), ?, ?, ?, succeeds, id FROM plateaus WHERE id = ?::uuid RETURNING id::text""",
+				String.class, name + " " + suffix(), this.michaelId, this.michaelId, plateau);
 	}
 
 	private MvcTestResult removeMapping(String... decisions) {

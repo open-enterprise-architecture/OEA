@@ -23,7 +23,9 @@ import org.springframework.stereotype.Component;
  * value, affects an active solution with delta values of it or with extension metatypes among the
  * changed ones. Every affected solution needs a decision: {@code apply} removes the values from its
  * deltas (a modification left without a change is removed), {@code keep} stores a snapshot until
- * its go-live. Runs in the transaction of the change; SQL runs in the stores of core (ADR-051).
+ * its go-live. The affected solutions that target a plateau are decided together, once per
+ * plateau (US-156; design D6 of us-084-plateaus); a solution without a plateau on its own. Runs in
+ * the transaction of the change; SQL runs in the stores of core (ADR-051).
  */
 @Component
 public class SolutionImpact {
@@ -49,21 +51,31 @@ public class SolutionImpact {
 	}
 
 	/**
-	 * An affected solution: how many delta values and extension metatypes the change touches, and
-	 * the properties it loses.
+	 * An affected solution: its target plateau, if any, how many delta values and extension
+	 * metatypes the change touches, and the properties it loses.
 	 */
-	public record Affected(UUID id, String name, String status, int deltaValues, int extensionMetatypes,
-			List<Lost> lost, Map<UUID, String> labels) {
+	public record Affected(UUID id, String name, String status, UUID plateauId, String plateauName, int deltaValues,
+			int extensionMetatypes, List<Lost> lost, Map<UUID, String> labels) {
 	}
 
 	/**
 	 * The decisions of a request; {@code null} for a change that is not asked (a package import),
 	 * which leaves the solutions as they are.
 	 */
-	public record Decisions(Map<UUID, String> bySolution) {
+	public record Decisions(Map<UUID, String> bySolution, Map<UUID, String> byPlateau) {
 
 		public static Decisions of(Map<UUID, String> bySolution) {
-			return new Decisions(Map.copyOf(bySolution));
+			return of(bySolution, Map.of());
+		}
+
+		public static Decisions of(Map<UUID, String> bySolution, Map<UUID, String> byPlateau) {
+			return new Decisions(Map.copyOf(bySolution), Map.copyOf(byPlateau));
+		}
+
+		/** The decision of the solution: by its plateau, or by itself without one. */
+		String of(Affected solution) {
+			return (solution.plateauId() != null) ? this.byPlateau.get(solution.plateauId())
+					: this.bySolution.get(solution.id());
 		}
 
 	}
@@ -98,8 +110,8 @@ public class SolutionImpact {
 		lost.forEach((entry) -> properties.add(entry.propertyDefId()));
 		Map<UUID, String> labels = this.deltas.propertyNames(properties);
 		for (DeltaValueStore.SolutionRow solution : this.deltas.solutions(pairs.keySet())) {
-			affected.add(new Affected(solution.id(), solution.name(), solution.status(),
-					values.getOrDefault(solution.id(), 0), extensions.getOrDefault(solution.id(), 0),
+			affected.add(new Affected(solution.id(), solution.name(), solution.status(), solution.plateauId(),
+					solution.plateauName(), values.getOrDefault(solution.id(), 0), extensions.getOrDefault(solution.id(), 0),
 					List.copyOf(pairs.get(solution.id())), labels));
 		}
 		return affected;
@@ -111,7 +123,8 @@ public class SolutionImpact {
 	 *
 	 * @throws SolutionDecisionRequiredException when an affected solution has no decision (409)
 	 * @throws MetamodelChangeException naming {@code decision} for a decision on a solution that is
-	 * not affected, or an unknown decision (422)
+	 * not affected or that targets a plateau, on a plateau without affected solutions, or an unknown
+	 * decision (422)
 	 */
 	public void apply(OeaPrincipal principal, List<Lost> lost, Decisions decisions, Map<String, Object> details,
 			Instant now) {
@@ -119,18 +132,34 @@ public class SolutionImpact {
 			return;
 		}
 		List<Affected> affected = affected(lost);
-		Set<UUID> ids = new HashSet<>();
-		affected.forEach((solution) -> ids.add(solution.id()));
+		Map<UUID, Affected> byId = new LinkedHashMap<>();
+		Map<UUID, List<UUID>> byPlateau = new LinkedHashMap<>();
+		for (Affected solution : affected) {
+			byId.put(solution.id(), solution);
+			if (solution.plateauId() != null) {
+				byPlateau.computeIfAbsent(solution.plateauId(), (k) -> new ArrayList<>()).add(solution.id());
+			}
+		}
 		for (Map.Entry<UUID, String> decision : decisions.bySolution().entrySet()) {
-			if (!ids.contains(decision.getKey())) {
+			Affected solution = byId.get(decision.getKey());
+			if (solution == null) {
 				throw MetamodelChangeException.invalid("decision",
 						"The solution " + decision.getKey() + " is not affected by this change.");
 			}
-			if (!APPLY.equals(decision.getValue()) && !KEEP.equals(decision.getValue())) {
-				throw MetamodelChangeException.invalid("decision", "A decision is apply or keep.");
+			if (solution.plateauId() != null) {
+				throw MetamodelChangeException.invalid("decision", "The solution " + solution.name()
+						+ " targets the plateau " + solution.plateauName() + "; decide for the plateau.");
 			}
+			valid(decision.getValue());
 		}
-		if (!decisions.bySolution().keySet().containsAll(ids)) {
+		for (Map.Entry<UUID, String> decision : decisions.byPlateau().entrySet()) {
+			if (!byPlateau.containsKey(decision.getKey())) {
+				throw MetamodelChangeException.invalid("decision",
+						"No affected solution targets the plateau " + decision.getKey() + ".");
+			}
+			valid(decision.getValue());
+		}
+		if (affected.stream().anyMatch((solution) -> decisions.of(solution) == null)) {
 			throw new SolutionDecisionRequiredException(affected);
 		}
 		if (affected.isEmpty()) {
@@ -139,7 +168,7 @@ public class SolutionImpact {
 		long person = MetamodelEffects.author(principal);
 		List<Map<String, Object>> shown = new ArrayList<>();
 		for (Affected solution : affected) {
-			String decision = decisions.bySolution().get(solution.id());
+			String decision = decisions.of(solution);
 			if (KEEP.equals(decision)) {
 				solution.lost()
 					.forEach((entry) -> this.snapshots.insert(solution.id(), entry.metatypeId(), entry.propertyDefId(),
@@ -148,12 +177,28 @@ public class SolutionImpact {
 			else {
 				removeValues(principal, solution, now);
 			}
-			Map<String, Object> entry = new LinkedHashMap<>();
-			entry.put("solutionId", solution.id().toString());
-			entry.put("decision", decision);
-			shown.add(entry);
+			if (solution.plateauId() == null) {
+				Map<String, Object> entry = new LinkedHashMap<>();
+				entry.put("solutionId", solution.id().toString());
+				entry.put("decision", decision);
+				shown.add(entry);
+			}
 		}
+		// a decision by plateau names the solutions it applied to
+		byPlateau.forEach((plateau, solutions) -> {
+			Map<String, Object> entry = new LinkedHashMap<>();
+			entry.put("plateauId", plateau.toString());
+			entry.put("decision", decisions.byPlateau().get(plateau));
+			entry.put("solutionIds", solutions.stream().map(UUID::toString).toList());
+			shown.add(entry);
+		});
 		details.put("solutionDecisions", shown);
+	}
+
+	private static void valid(String decision) {
+		if (!APPLY.equals(decision) && !KEEP.equals(decision)) {
+			throw MetamodelChangeException.invalid("decision", "A decision is apply or keep.");
+		}
 	}
 
 	private void removeValues(OeaPrincipal principal, Affected solution, Instant now) {

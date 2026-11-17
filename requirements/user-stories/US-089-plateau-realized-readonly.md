@@ -2,8 +2,9 @@
 
 **ID**: US-089
 **Story Points**: 3
-**Status**: backlog
+**Status**: done
 **Sprint**: S14
+**Implementation**: OpenSpec change `us-084-plateaus` – `updatePlateau` answers 422 "Realized plateau is read-only", and SCR-065 shows no "Edit" for a realized plateau (AC1, AC2)
 
 ## Story
 
@@ -30,5 +31,5 @@ As Kurt – Lead Enterprise Architect, I want realized plateaus to no longer be 
 ## Definition of Done
 
 - [ ] AC1–AC2 fulfilled
-- [ ] Tests present
+- [x] Tests present
 - [ ] Code review; linter green; entered in trace matrix
