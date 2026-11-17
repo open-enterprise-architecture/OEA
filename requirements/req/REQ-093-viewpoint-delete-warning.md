@@ -4,9 +4,9 @@ title: Viewpoint deletion with diagram warning
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-28
-last_updated: 2026-06-28
+last_updated: 2026-11-17
 author: requirements-engineer
 references:
   use_cases:
@@ -50,6 +50,8 @@ Viewpoints may be used by many diagrams in production. A silent deletion without
 
 ## Implementation Notes
 
+- Realigned by the OpenSpec change `us-090-viewpoints`: until diagrams exist, deleting a viewpoint asks for a plain confirmation (AC2); the count of affected diagrams (AC1) follows with the diagrams
+
 - Pre-delete check: COUNT of diagrams referencing this viewpoint ID
 - Affected diagrams receive `viewpointId=null` after deletion; UI shows a notice banner
 - Warning as a modal dialog before executing the deletion
@@ -59,3 +61,4 @@ Viewpoints may be used by many diagrams in production. A silent deletion without
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-17 | Change us-090-viewpoints | Plain confirmation implemented (AC2); AC1 with the diagrams |

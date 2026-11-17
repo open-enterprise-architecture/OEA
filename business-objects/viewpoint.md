@@ -2,7 +2,7 @@
 identifier: viewpoint
 name_de: Viewpoint / Architektursicht
 name_en: Viewpoint
-version: 0.2.0
+version: 0.3.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -369,5 +369,6 @@ viewpoint:
 
 | Version | Date | Author | Change |
 |---|---|---|---|
+| 0.3.0 | 2026-11-17 | Change us-090-viewpoints | Generic viewpoints implemented as the table `viewpoints` with link tables to the allowed element and connection metatypes of the instance (V39), UUID IDs, `version` for optimistic locking, name unique case-insensitively, at least one metatype; `notation`, `viewpointType`, `notationMappings` and the diagram references follow with the diagrams (owner decision 2026-11-17) |
 | 0.2.0 | 2026-06-26 | Business Engineer | ID-based references (entityTypeId instead of name); defaultWidth/defaultHeight in NotationMapping; notation element catalog (ArchiMate 3, UML, BPMN 2.0); BR-07/BR-08 (prefix consistency, import validation); import/export basis through REQ-058–060 |
 | 0.1.0 | 2026-06-26 | Business Engineer | Initial draft; ArchiMate 3, UML, BPMN 2.0 as notations; system-defined + user-defined viewpoints; NotationMapping as optional value object |

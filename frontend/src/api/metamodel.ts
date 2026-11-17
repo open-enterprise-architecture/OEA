@@ -358,3 +358,34 @@ export function updateMetamodelLabels(
 ) {
   return write<MetamodelLabel[]>('PUT', `${METAMODEL}/labels/${at(locale)}`, { labels }, undefined, fetchFn)
 }
+
+/** A generic viewpoint: the element and connection metatypes of a view (US-090; us-090-viewpoints). */
+export type Viewpoint = components['schemas']['ViewpointConfig']
+export type ViewpointWrite = components['schemas']['ViewpointWrite']
+
+const VIEWPOINTS = '/api/v1/admin/viewpoints'
+
+/** GET /admin/viewpoints, ordered by name. */
+export function fetchViewpoints(fetchFn: typeof fetch = fetch): Promise<Viewpoint[]> {
+  return read(VIEWPOINTS, fetchFn)
+}
+
+/** POST /admin/viewpoints: 422 names `name`, `metatypeIds` or `connectionTypeIds`. */
+export function createViewpoint(viewpoint: ViewpointWrite, fetchFn: typeof fetch = fetch): Promise<WriteOutcome<Viewpoint>> {
+  return write('POST', VIEWPOINTS, viewpoint, undefined, fetchFn)
+}
+
+/** PUT /admin/viewpoints/{id} with `If-Match`: 412 `stale-version` when changed meanwhile. */
+export function updateViewpoint(
+  id: string,
+  viewpoint: ViewpointWrite,
+  version: number | undefined,
+  fetchFn: typeof fetch = fetch,
+): Promise<WriteOutcome<Viewpoint>> {
+  return write('PUT', `${VIEWPOINTS}/${at(id)}`, viewpoint, version, fetchFn)
+}
+
+/** DELETE /admin/viewpoints/{id} with `If-Match`. */
+export function deleteViewpoint(id: string, version: number | undefined, fetchFn: typeof fetch = fetch): Promise<WriteOutcome<void>> {
+  return write('DELETE', `${VIEWPOINTS}/${at(id)}`, undefined, version, fetchFn)
+}

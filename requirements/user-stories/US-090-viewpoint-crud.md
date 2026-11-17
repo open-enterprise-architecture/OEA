@@ -2,8 +2,9 @@
 
 **ID**: US-090
 **Story Points**: 8
-**Status**: backlog
+**Status**: in-progress
 **Sprint**: S15
+**Implementation**: OpenSpec change `us-090-viewpoints` – generic viewpoints with allowed entity and connection types: `createViewpoint`, `listViewpoints`, `getViewpoint`, `updateViewpoint` and `deleteViewpoint` (`viewpoint:manage`, V39) and the section SCR-031 of the metamodel page (AC1, AC3). AC2 (diagrams affected) follows with the diagrams
 
 ## Story
 

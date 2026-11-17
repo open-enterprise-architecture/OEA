@@ -5,9 +5,9 @@ status: draft
 priority: must
 target_release: v1.0
 complexity: medium
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-27
-last_updated: 2026-06-27
+last_updated: 2026-11-17
 primary_actor: SH-03
 secondary_actors:
   - SH-04
@@ -258,3 +258,7 @@ Exported format (example):
 - **Adapting system-defined viewpoints**: deliberately not provided (BR-02); operator creates user-defined viewpoints as replacement/supplement
 - **Viewpoint inheritance**: a viewpoint cannot inherit from another; types are always selected explicitly
 - **Extending notation elements**: the notation element catalog (ArchiMate 3, UML, BPMN 2.0) is fixed in v1.0; extension is a v2.0 topic
+
+## Realignment
+
+- 2026-11-17, OpenSpec change `us-090-viewpoints` (owner decisions 2026-11-17): viewpoints are generic for now – the basic flow and A1, A2 without the notation steps (steps 4 notation, 8, 9): a viewpoint names the allowed element and connection metatypes of the instance; it needs `viewpoint:manage`, and the metamodel lock does not apply; the section "Viewpoints" of the metamodel page is SCR-031 at `/metamodel/viewpoints`. Notations, notation mappings, system-defined viewpoints and the diagram counts follow with the diagrams; export and import (A3, A4) are not implemented yet.

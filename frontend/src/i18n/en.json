@@ -375,7 +375,8 @@
       "categories": "Categories",
       "translations": "Translations",
       "changes": "Changes",
-      "settings": "Settings"
+      "settings": "Settings",
+      "viewpoints": "Viewpoints"
     },
     "scope": {
       "title": "Origin",
@@ -638,6 +639,24 @@
       "affected": "{properties} · {values} delta values · {metatypes} extension metatypes",
       "plateau": "Plateau {name}",
       "members": "Applies to all its solutions: {names}"
+    },
+    "viewpoint": {
+      "list": "Viewpoints ({count})",
+      "intro": "A viewpoint names the entity types and connection types of an organization-specific view. Notations follow with the diagrams.",
+      "new": "New viewpoint",
+      "edit": "Edit viewpoint",
+      "delete": "Delete viewpoint",
+      "deleteHint": "Delete the viewpoint {name}?",
+      "none": "No viewpoints yet.",
+      "name": "Name",
+      "description": "Description",
+      "descriptionTooLong": "At most {max} characters.",
+      "metatypes": "Entity types",
+      "metatypesHint": "At least one entity type of the instance.",
+      "connections": "Connection types",
+      "noConnections": "The instance has no connection types.",
+      "invalid": "The viewpoint is invalid.",
+      "loadFailed": "The viewpoints could not be loaded."
     }
   },
   "navigation": {

@@ -23,7 +23,9 @@ public class MetamodelChangeException extends RuntimeException {
 		/** {@code If-Match} names an older version; {@link #getCurrentVersion()} gives the current one (412). */
 		STALE_VERSION,
 		/** The configuration is {@code import-only}: only package imports change it (403 {@code metamodel-locked}, US-035). */
-		LOCKED
+		LOCKED,
+		/** A write that requires {@code If-Match} came without it (428 {@code precondition-required}, us-090-viewpoints D2). */
+		PRECONDITION_REQUIRED
 
 	}
 
@@ -46,6 +48,11 @@ public class MetamodelChangeException extends RuntimeException {
 		this.invalidFields = List.copyOf(invalidFields);
 		this.count = count;
 		this.currentVersion = currentVersion;
+	}
+
+	static MetamodelChangeException preconditionRequired(String element) {
+		return new MetamodelChangeException(Reason.PRECONDITION_REQUIRED,
+				"The write requires If-Match with the current version of the " + element + ".", List.of(), null);
 	}
 
 	static MetamodelChangeException staleVersion(String element, int currentVersion) {

@@ -2140,7 +2140,8 @@ components:
           items: { $ref: '#/components/schemas/PropertyDefinitionDetail' }
         viewpoints:
           type: array
-          items: { $ref: '#/components/schemas/ViewpointConfig' }
+          description: Not supported yet; a package with viewpoints is rejected with `unsupported-package-content` (UC-12 A3, A4)
+          items: { $ref: '#/components/schemas/PackageViewpoint' }
         shapeAssignments:
           type: array
           items: { $ref: '#/components/schemas/ShapeAssignment' }
@@ -2570,9 +2571,10 @@ components:
           description: Size of the separate analytics connection pool; takes effect after restart
 
     # ── Admin – Viewpoints ────────────────────────────────────────────────────
-    ViewpointConfig:
+    PackageViewpoint:
       type: object
       required: [id, name]
+      description: A viewpoint in a metamodel package; the package import does not support it yet
       properties:
         id:               { type: string }
         name:             { type: string }
@@ -2583,6 +2585,49 @@ components:
         allowedRelations:
           type: array
           items: { $ref: '#/components/schemas/MetatypeSummary' }
+
+    ViewpointConfig:
+      type: object
+      required: [id, name, description, allowedMetatypes, allowedRelations, version, createdAt, createdBy]
+      description: |
+        A generic viewpoint (US-090, UC-12): the element metatypes and connection metatypes that
+        belong to an organization-specific view. Notations follow with the diagrams.
+      properties:
+        id:          { type: string, format: uuid }
+        name:        { type: string }
+        description: { type: [string, 'null'] }
+        allowedMetatypes:
+          type: array
+          description: Element metatypes, ordered by name
+          items: { $ref: '#/components/schemas/MetatypeSummary' }
+        allowedRelations:
+          type: array
+          description: Connection metatypes, ordered by name
+          items: { $ref: '#/components/schemas/MetatypeSummary' }
+        version:     { type: integer, minimum: 1 }
+        createdAt:   { type: string, format: date-time }
+        createdBy:   { $ref: '#/components/schemas/EntityHistoryActor' }
+
+    ViewpointWrite:
+      type: object
+      required: [name, metatypeIds]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Unique within the instance (case-insensitive, trimmed); stored trimmed
+        description: { type: [string, 'null'], maxLength: 1000 }
+        metatypeIds:
+          type: array
+          maxItems: 500
+          description: Element metatypes of the instance configuration; at least one
+          items: { type: string, format: uuid }
+        connectionTypeIds:
+          type: array
+          maxItems: 500
+          description: Connection metatypes of the instance configuration
+          items: { type: string, format: uuid }
 
     # ── Admin – Property visibility (REQ-124, REQ-128, REQ-161) ───────────────
     PropertyVisibility:
@@ -8082,10 +8127,10 @@ paths:
   /admin/viewpoints:
     get:
       operationId: listViewpoints
-      summary: List viewpoints (SCR-031)
-      tags: [Admin]
+      summary: List viewpoints (US-090, SCR-031)
+      description: All viewpoints, ordered by name (case-insensitive), with their allowed metatypes and connection types.
+      tags: [Viewpoints]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "viewpoint:manage"]}
-      x-oea-status: planned
       responses:
         '200':
           description: Viewpoints
@@ -8096,54 +8141,60 @@ paths:
                 items: { $ref: '#/components/schemas/ViewpointConfig' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
-
-  /admin/viewpoints/{id}:
-    get:
-      operationId: getViewpoint
-      summary: Viewpoint detail (SCR-031)
-      tags: [Admin]
-      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "viewpoint:manage"]}
-      x-oea-status: planned
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    post:
+      operationId: createViewpoint
+      summary: Create a viewpoint (US-090, UC-12)
+      description: |
+        Creates a generic viewpoint with a name, an optional description, at least one element
+        metatype and any number of connection metatypes of the instance configuration (owner
+        decision 2026-11-17: notations follow with the diagrams). Writes `viewpoint.created`.
+      tags: [Viewpoints]
+      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ViewpointWrite' }
       responses:
-        '200':
-          description: Viewpoint
+        '201':
+          description: Viewpoint created
+          headers:
+            Location:
+              schema: { type: string }
+              description: URL of the viewpoint
+            ETag: { $ref: '#/components/headers/VersionETag' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ViewpointConfig' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '404':
-          description: Not found
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: |
+            A blank or taken name (`name`), no metatype, an unknown metatype, a connection
+            metatype or one of a solution extension (`metatypeIds`), or an unknown or element
+            metatype or one of a solution extension as connection type (`connectionTypeIds`);
+            problem type `urn:oea:problem:validation-failed`. Nothing is stored.
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
-    put:
-      operationId: updateViewpoint
-      summary: Update viewpoint (SCR-031)
-      tags: [Admin]
-      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
-      x-oea-status: planned
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /admin/viewpoints/{id}:
+    get:
+      operationId: getViewpoint
+      summary: Viewpoint detail (US-090, SCR-031)
+      tags: [Viewpoints]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "viewpoint:manage"]}
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/ViewpointConfig' }
+        - $ref: '#/components/parameters/UuidIdParam'
       responses:
         '200':
-          description: Updated
+          description: Viewpoint
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ViewpointConfig' }
@@ -8151,9 +8202,63 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    put:
+      operationId: updateViewpoint
+      summary: Update a viewpoint (US-090, UC-12 A1)
+      description: |
+        Replaces name, description and the allowed types with the checks of the creation.
+        Requires `If-Match` with the version read. Writes `viewpoint.updated` with the changed
+        fields.
+      tags: [Viewpoints]
+      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ViewpointWrite' }
+      responses:
+        '200':
+          description: Updated
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ViewpointConfig' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
-        '422': { $ref: '#/components/responses/ValidationFailed' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '422':
+          description: As for `createViewpoint`. Nothing changes.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      operationId: deleteViewpoint
+      summary: Delete a viewpoint (US-090 AC3, US-093, UC-12 A2)
+      description: Requires `If-Match` with the version read. Writes `viewpoint.deleted`.
+      tags: [Viewpoints]
+      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      responses:
+        '204': { description: Deleted }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/property-visibility:
     get:
@@ -11169,6 +11274,8 @@ paths:
 tags:
   - name: Catalogs
     description: Catalog definitions – create, list and read (UC-06, US-046) – and the catalog query (US-049)
+  - name: Viewpoints
+    description: Generic viewpoints of the instance – the metatypes and connection types of an organization-specific view (UC-12, US-090, US-093)
   - name: Plateaus
     description: Architecture plateaus of plateau mode – create, list, read and edit (UC-11, US-084, US-085, US-089, US-155)
   - name: Solutions

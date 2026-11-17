@@ -1,8 +1,8 @@
 ---
 title: Editing the metamodel
 covers:
-  screens: [SCR-030]
-  stories: [US-032, US-034, US-035, US-036, US-037, US-137, US-140, US-154, US-156]
+  screens: [SCR-030, SCR-031]
+  stories: [US-032, US-034, US-035, US-036, US-037, US-090, US-093, US-137, US-140, US-154, US-156]
 ---
 
 # Editing the metamodel
@@ -118,6 +118,18 @@ If active [solutions](../usage/solutions) use the values, the dialog lists them 
 Solutions that work toward the same [plateau](../usage/plateaus) are decided together: the dialog asks once for the plateau and names its solutions. A solution without a plateau is still asked on its own.
 
 A property that a solution keeps as a snapshot cannot be deleted until that solution went live. Changes inside the extension of a solution, and package imports, do not ask.
+
+## Viewpoints {#viewpoints}
+
+A viewpoint names the entity types and connection types that belong to an organization-specific view, for example "Application Landscape" with applications, data objects and their data flows. The section *Viewpoints* of the metamodel page lists them; everyone who may read the metamodel sees them. Notations such as ArchiMate follow with the diagrams.
+
+You need the permission `viewpoint:manage` (for example the role `enterprise-architect`) to change viewpoints; the [lock mode](#lock-mode) of the metamodel does not apply to them.
+
+- *New viewpoint* asks for a name (up to 255 characters, unique regardless of upper and lower case), an optional description (up to 1000 characters), at least one entity type and any number of connection types of the instance.
+- *Edit* changes them. If someone else changed the viewpoint meanwhile, the dialog shows the [current state](#concurrent-changes).
+- *Delete* removes the viewpoint after a confirmation.
+
+When an entity type is deleted, it disappears from the viewpoints that named it.
 
 ## Translating labels {#translating-labels}
 

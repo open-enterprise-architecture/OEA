@@ -10,6 +10,7 @@ type Mutable<T> = { -readonly [K in keyof T]: T[K] }
 type Metatype = Mutable<components['schemas']['MetatypeDetail']>
 type Property = Mutable<components['schemas']['PropertyDefinitionDetail']>
 type Category = Mutable<components['schemas']['PropertyCategory']>
+type Viewpoint = components['schemas']['ViewpointConfig']
 type Mapping = components['schemas']['MetatypePropertyMapping']
 type Scope = components['schemas']['MetamodelScope']
 type Configuration = Mutable<components['schemas']['MetamodelConfiguration']>
@@ -28,6 +29,7 @@ function me(displayName: string, permissions: string[]) {
 export const ME_METAMODEL_ADMIN = me('Kurt', ['portal:read', 'entity:read', 'metamodel:write'])
 export const ME_READER = me('Franz', ['portal:read', 'entity:read'])
 export const ME_NO_ACCESS = me('Max', ['portal:read'])
+export const ME_ARCHITECT = me('Kurt', ['portal:read', 'entity:read', 'viewpoint:manage', 'solution:write'])
 export const ME_SECURITY_ADMIN = me('Max', ['visibility:configure', 'visibility-scope:assign', 'role:assign', 'person:manage'])
 
 export const IDS = {
@@ -65,6 +67,8 @@ interface Stored {
   /** The metamodel changes of the audit trail, newest first (US-034). */
   changes: Change[]
   labels: Record<string, Record<string, { packageText?: string; organizationText?: string }>>
+  /** The viewpoints of the instance (us-090-viewpoints). */
+  viewpoints: Viewpoint[]
 }
 
 export interface MetamodelApiOptions {
@@ -104,6 +108,21 @@ function seed(): Stored {
   const general: Category = { id: IDS.general, name: 'General', sortOrder: 0, scope: 'imported', version: 1 }
   return {
     categories: [general],
+    viewpoints: [
+      {
+        id: 'b0000000-0000-4000-8000-000000000001',
+        name: 'Application Landscape',
+        description: 'Applications and the data flows between them.',
+        allowedMetatypes: [
+          { id: IDS.component, name: 'Application Component', abbreviation: 'AC' },
+          { id: IDS.service, name: 'Application Service', abbreviation: 'AS' },
+        ],
+        allowedRelations: [{ id: IDS.dataFlow, name: 'Data Flow', abbreviation: 'DF' }],
+        version: 1,
+        createdAt: '2026-11-17T09:00:00Z',
+        createdBy: { id: 1, name: 'Kurt' },
+      },
+    ],
     properties: [
       {
         id: IDS.status,
@@ -338,6 +357,51 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
         labelList(parts[1]!).map((entry) => [entry.key, own[entry.key]?.organizationText ?? own[entry.key]?.packageText ?? entry.name]),
       )
       return json(bundle)
+    }
+    // the viewpoints (us-090-viewpoints): name unique case-insensitively, at least one element metatype
+    if (parts[0] === 'admin' && parts[1] === 'viewpoints') {
+      const viewpointId = parts[2]
+      const summary = (id: string) => {
+        const found = state.metatypes.find((metatype) => metatype.id === id)!
+        return { id, name: found.name, abbreviation: found.abbreviation ?? '' }
+      }
+      const validate = (except?: string) => {
+        const name = String(body?.name ?? '').trim()
+        if (!name) return problem(422, 'validation-failed', { invalidFields: ['name'], detail: 'The name must not be blank.' })
+        if (state.viewpoints.some((other) => other.id !== except && other.name.toLowerCase() === name.toLowerCase())) {
+          return problem(422, 'validation-failed', { invalidFields: ['name'], detail: `Name '${name}' is already taken` })
+        }
+        if (((body?.metatypeIds ?? []) as string[]).length === 0) {
+          return problem(422, 'validation-failed', { invalidFields: ['metatypeIds'], detail: 'A viewpoint needs at least one metatype.' })
+        }
+        return undefined
+      }
+      const fields = () => ({
+        name: String(body?.name).trim(),
+        description: (body?.description as string | null | undefined) ?? null,
+        allowedMetatypes: ((body?.metatypeIds ?? []) as string[]).map(summary),
+        allowedRelations: ((body?.connectionTypeIds ?? []) as string[]).map(summary),
+      })
+      if (!viewpointId) {
+        if (method === 'GET') return json([...state.viewpoints].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase())))
+        const rejected = validate()
+        if (rejected) return rejected
+        const created = { id: newId(), ...fields(), version: 1, createdAt: '2026-11-17T10:00:00Z', createdBy: { id: 1, name: 'Kurt' } }
+        state.viewpoints.push(created)
+        return json(created, 201, 1)
+      }
+      const stored = state.viewpoints.find((viewpoint) => viewpoint.id === viewpointId)
+      if (!stored) return problem(404, 'not-found')
+      if (method === 'GET') return json(stored, 200, stored.version)
+      if (ifMatch !== `"${stored.version}"`) return problem(412, 'stale-version', { currentVersion: stored.version })
+      if (method === 'DELETE') {
+        state.viewpoints.splice(state.viewpoints.indexOf(stored), 1)
+        return json(null, 204)
+      }
+      const rejected = validate(stored.id)
+      if (rejected) return rejected
+      Object.assign(stored, fields(), { version: stored.version + 1 })
+      return json(stored, 200, stored.version)
     }
     if (parts[0] !== 'metamodel') {
       return problem(404, 'not-found')
