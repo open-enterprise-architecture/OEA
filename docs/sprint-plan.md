@@ -67,7 +67,7 @@ create → capture delta → detect conflict → plateau → history → restore
 
 | Sprint | UC | Content | SP |
 |--------|----|--------|----|
-| **S15** | UC-12 + UC-13 (1/2) | Manage viewpoint + navigation tree basic structure | 15 + ~17 |
+| **S15** | UC-12 + UC-13 (1/2) | Manage viewpoint + navigation tree basic structure. Owner decisions 2026-11-17: viewpoints first, in their generic form (allowed metatypes and connection types, no notation); notations, notation mapping and system-defined viewpoints (US-091, US-092) and the diagram counts (US-090 AC2, US-093 AC1) follow with the diagrams; the navigation tree holds entities, catalogs and solutions as items. Cut into two changes: (1) `us-090-viewpoints` – viewpoints (US-090, US-093) on the section SCR-031 of the metamodel page; (2) the navigation tree (US-094 remainder, US-095, US-096, US-097) | 15 + ~17 |
 | **S16** | UC-13 (2/2) + UC-07 (1/2) | Navigation tree finished + dashboard scaffold, first widgets | ~17 + ~15 |
 | **S17** | UC-07 (2/2) + UC-10 | Dashboard: charts, KPI cards, PropertyAggregation + model business processes | ~16 + 24 |
 | **S18** | UC-08 | Data flow map (data lineage): n-connection model (ADR-010), visualization, analysis | 24 |
