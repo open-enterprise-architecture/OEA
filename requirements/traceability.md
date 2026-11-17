@@ -5,7 +5,7 @@
 Traceability from use cases through requirements to user stories, derived from the
 frontmatter and reference sections of the artifacts.
 
-**Total UCs**: 24 | **Total REQs**: 204 | **Total USs**: 156
+**Total UCs**: 24 | **Total REQs**: 204 | **Total USs**: 157
 
 ---
 
@@ -152,7 +152,7 @@ frontmatter and reference sections of the artifacts.
 |---|---|---|---|---|
 | [REQ-038](req/REQ-038-create-solution.md) | Create a solution and describe the architecture vision | functional | must | [US-038](user-stories/US-038-create-solution.md) |
 | [REQ-039](req/REQ-039-landscape-baseline.md) | Show the current IT landscape as the solution baseline | functional | must | [US-039](user-stories/US-039-show-landscape-baseline.md), [US-155](user-stories/US-155-plateau-basis.md) |
-| [REQ-040](req/REQ-040-capture-entity-deltas.md) | Capture the EntityDeltas of a solution | functional | must | [US-040](user-stories/US-040-delta-new-entity.md), [US-041](user-stories/US-041-delta-modified.md), [US-042](user-stories/US-042-delta-retiring.md), [US-045](user-stories/US-045-delta-new-entity-diagram.md), [US-152](user-stories/US-152-solution-go-live.md), [US-153](user-stories/US-153-resolve-open-issues.md) |
+| [REQ-040](req/REQ-040-capture-entity-deltas.md) | Capture the EntityDeltas of a solution | functional | must | [US-040](user-stories/US-040-delta-new-entity.md), [US-041](user-stories/US-041-delta-modified.md), [US-042](user-stories/US-042-delta-retiring.md), [US-045](user-stories/US-045-delta-new-entity-diagram.md), [US-152](user-stories/US-152-solution-go-live.md), [US-153](user-stories/US-153-resolve-open-issues.md), [US-157](user-stories/US-157-plateau-solutions-go-live.md) |
 | [REQ-041](req/REQ-041-diff-view.md) | Diff view of current state vs. target state of a solution | functional | should | [US-043](user-stories/US-043-diff-view.md) |
 | [REQ-042](req/REQ-042-conflict-warning-parallel-solutions.md) | Conflict warning for parallel EntityDeltas | functional | should | [US-044](user-stories/US-044-conflict-warning.md) |
 | [REQ-066](req/REQ-066-entity-creation-workflow.md) | Configurable entity creation workflows (wizard) | functional | must | [US-069](user-stories/US-069-creation-wizard.md) |
@@ -268,7 +268,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-085](req/REQ-085-plateau-overview.md) | Plateau overview grouped by status | functional | must | [US-085](user-stories/US-085-plateau-overview.md) |
 | [REQ-086](req/REQ-086-go-live-two-step-confirmation.md) | Go-live two-step confirmation | functional | must | [US-086](user-stories/US-086-go-live-confirmation.md) |
 | [REQ-087](req/REQ-087-go-live-no-enforcement.md) | Go-live without enforcement through warnings | functional | must | [US-087](user-stories/US-087-go-live-no-enforcement.md) |
-| [REQ-088](req/REQ-088-go-live-atomic-transition.md) | Go-live as an atomic DB transaction | functional | must | [US-088](user-stories/US-088-go-live-atomic-transition.md) |
+| [REQ-088](req/REQ-088-go-live-atomic-transition.md) | Go-live as an atomic DB transaction | functional | must | [US-088](user-stories/US-088-go-live-atomic-transition.md), [US-157](user-stories/US-157-plateau-solutions-go-live.md) |
 | [REQ-089](req/REQ-089-plateau-realized-read-only.md) | Realized plateau read-only | functional | must | [US-089](user-stories/US-089-plateau-realized-readonly.md) |
 | [REQ-140](req/REQ-140-plateau-free-solutions-current-state.md) | Plateau-Free Solutions Visible Only in the Current State Node | functional | must | [US-134](user-stories/US-134-current-state-node.md) |
 | [REQ-147](req/REQ-147-api-completeness-automation.md) | API Completeness and Automation Suitability (API-First) | interface | must | – |
@@ -503,13 +503,13 @@ frontmatter and reference sections of the artifacts.
 | UC-02 | 8 | 26 |
 | UC-03 | 9 | 32 |
 | UC-04 | 14 | 60 |
-| UC-05 | 15 | 76 |
+| UC-05 | 16 | 84 |
 | UC-06 | 12 | 47 |
 | UC-07 | 8 | 31 |
 | UC-08 | 6 | 24 |
 | UC-09 | 9 | 46 |
 | UC-10 | 4 | 24 |
-| UC-11 | 10 | 45 |
+| UC-11 | 11 | 53 |
 | UC-12 | 4 | 15 |
 | UC-13 | 8 | 34 |
 | UC-14 | 3 | 13 |
@@ -523,7 +523,7 @@ frontmatter and reference sections of the artifacts.
 | UC-22 | 1 | 5 |
 | UC-23 | 9 | 35 |
 | UC-24 | 0 | 0 |
-| **Total** | | **665** |
+| **Total** | | **681** |
 
 ## 5. Coverage Gaps
 
