@@ -44,6 +44,22 @@ Implementation happens in OpenSpec changes (`openspec/README.md`), cut from the 
 
 **Tests are written as part of the OpenSpec change that implements the behavior** – derived from the change's spec scenarios and listed in its `tasks.md`. No test suites are created ahead of the code.
 
+### Change Workflow
+
+Every OpenSpec change runs through the following steps, decided by the repository owner on 2026-11-17. The orchestrating session (the main OpenCode or Claude Code session) invokes the agents in this order and passes each the change name and the results of the previous step:
+
+1. **Spec:** the `solution-architect` writes the change (proposal, delta specs, design, tasks) and keeps to the sprint plan (`docs/sprint-plan.md`).
+2. **Security:** the `security-engineer` adds the security aspects to the change: threats, authorization, audit, input limits, and the matching scenarios and tasks.
+3. **Consistency:** the `solution-architect` checks the additions of the security engineer and makes proposal, specs, design, tasks and sprint plan consistent.
+4. **Implementation:** the `backend-engineer` and the `frontend-engineer` implement the tasks and tick them off in `tasks.md`.
+5. **Local checks:** all tests and quality gates pass locally (see [Before Pushing](#before-pushing)).
+6. **Archive and pull request:** only then does the orchestrating session archive the change and open **one** pull request with spec, implementation and archive.
+
+Decisions:
+
+- **Business questions** (domain behavior, priorities, scope seen by the user) go to the repository owner only.
+- **Technical and scope decisions** within the sprint plan are taken by the `solution-architect`, recorded in the design of the change as decisions or assumptions, and reviewed in the pull request.
+
 **Completed approach of the requirements phase** (domain-model-first, still applies to new business functionality):
 
 1. Write out the vision in `business-analysis/vision.md` (✓ done)
@@ -204,7 +220,7 @@ These files and the matching skills in `.opencode/skills/` and `.claude/skills/`
 
 ## Agents (in `.opencode/agents/`)
 
-Seven agent roles for vibe coding. In OpenCode, all can be used as a primary agent (agent switch in the TUI) and as a subagent (`@<agent-name>`); in Claude Code they are available as subagents (generated into `.claude/agents/`). Write access is restricted per role to its own directory scope – enforced in OpenCode, binding as instruction in Claude Code:
+Seven agent roles for vibe coding. In OpenCode, all can be used as a primary agent (agent switch in the TUI) and as a subagent (`@<agent-name>`); in Claude Code they are available as subagents (generated into `.claude/agents/`). Write access is restricted per role to its own directory scope – enforced in OpenCode, binding as instruction in Claude Code. The `model:` of an agent file sets its model in both tools: Opus for the solution architect and the security engineer, Sonnet for the backend and frontend engineer; the other roles use the model of the session. Their part in a change is described in [Change Workflow](#change-workflow):
 
 - `business-engineer.md` – domain model first (before UC)
 - `solution-architect.md` – clarification, scope, specs, tickets

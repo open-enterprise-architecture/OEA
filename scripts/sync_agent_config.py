@@ -49,11 +49,14 @@ def parse_frontmatter(text):
 def parse_agent(path):
     """Extract description and permission rules from an OpenCode agent file."""
     lines, body = parse_frontmatter(path.read_text(encoding="utf-8"))
-    description = None
+    description = model = None
     rules, current = [], None
     for line in lines:
         if line.startswith("description:"):
             description = line.split(":", 1)[1].strip()
+        elif line.startswith("model:"):
+            # OpenCode names the provider ("anthropic/claude-opus-5-5"), Claude Code the model only
+            model = line.split(":", 1)[1].strip().split("/")[-1]
         m = re.match(r"\s*-?\s*(action|resource|effect):\s*\"?([^\"]*)\"?\s*$", line)
         if m:
             key, value = m.groups()
@@ -63,14 +66,15 @@ def parse_agent(path):
             current[key] = value
     if not description:
         raise ValueError(f"{path}: missing single-line 'description:' in frontmatter")
-    return description, rules, body
+    return description, model, rules, body
 
 
 def render_claude_agent(src):
-    description, rules, body = parse_agent(src)
+    description, model, rules, body = parse_agent(src)
     src_rel = src.relative_to(ROOT).as_posix()
-    out = ["---", f"name: {src.stem}", f"description: {description}", "---", "",
-           GENERATED_MARKER.format(src=src_rel), ""]
+    out = ["---", f"name: {src.stem}", f"description: {description}"]
+    out += [f"model: {model}"] if model else []
+    out += ["---", "", GENERATED_MARKER.format(src=src_rel), ""]
     if rules:
         # Claude Code subagents cannot enforce path-based permissions, so the
         # OpenCode rules are carried over as binding instructions.
