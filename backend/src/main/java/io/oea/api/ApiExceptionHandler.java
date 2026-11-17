@@ -466,7 +466,8 @@ public class ApiExceptionHandler {
 	@ExceptionHandler(MissingRequestHeaderException.class)
 	ResponseEntity<ProblemDetail> missingHeader(MissingRequestHeaderException ex) {
 		if (HttpHeaders.IF_MATCH.equalsIgnoreCase(ex.getHeaderName())) {
-			return preconditionRequired(new PreconditionRequiredException());
+			return preconditionRequired(
+					new PreconditionRequiredException("The write requires If-Match with the version read."));
 		}
 		return invalidRequest();
 	}
@@ -721,6 +722,8 @@ public class ApiExceptionHandler {
 			case STALE_VERSION -> problem(HttpStatus.PRECONDITION_FAILED, "stale-version", "Changed meanwhile",
 					ex.getMessage());
 			case LOCKED -> problem(HttpStatus.FORBIDDEN, "metamodel-locked", "Metamodel locked", ex.getMessage());
+			case PRECONDITION_REQUIRED -> problem(HttpStatus.PRECONDITION_REQUIRED, "precondition-required",
+					"If-Match required", ex.getMessage());
 		};
 		if (ex.getCurrentVersion() != null) {
 			problem.setProperty("currentVersion", ex.getCurrentVersion());

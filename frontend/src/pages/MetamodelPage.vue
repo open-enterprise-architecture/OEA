@@ -8,6 +8,7 @@ import MetatypesSection from '../components/metamodel/MetatypesSection.vue'
 import PropertiesSection from '../components/metamodel/PropertiesSection.vue'
 import SettingsSection from '../components/metamodel/SettingsSection.vue'
 import TranslationsSection from '../components/metamodel/TranslationsSection.vue'
+import ViewpointsSection from '../components/metamodel/ViewpointsSection.vue'
 import { manualUrl } from '../components/metamodel/messages'
 import { loadMetamodel, metamodel, metamodelLocked } from '../metamodel/store'
 import { refreshSession, session } from '../session/store'
@@ -19,7 +20,7 @@ const props = defineProps<{ fetchFn?: typeof fetch; section?: string; id?: strin
 const router = useRouter()
 const { t } = useI18n()
 
-const SECTIONS = ['metatypes', 'properties', 'categories', 'translations', 'changes', 'settings'] as const
+const SECTIONS = ['metatypes', 'properties', 'categories', 'viewpoints', 'translations', 'changes', 'settings'] as const
 // sections for metamodel administrators only (changes: US-034)
 const ADMINISTRATION: readonly Section[] = ['changes', 'settings']
 type Section = (typeof SECTIONS)[number]
@@ -29,6 +30,8 @@ const canAdminister = computed(() => permissions.value.has('metamodel:write'))
 const locked = computed(() => metamodelLocked())
 const canWrite = computed(() => canAdminister.value && !locked.value)
 const canRead = computed(() => canAdminister.value || permissions.value.has('entity:read'))
+// the viewpoints (SCR-031) are managed with viewpoint:manage; the metamodel lock does not apply (us-090-viewpoints)
+const canManageViewpoints = computed(() => permissions.value.has('viewpoint:manage'))
 // a section the person may not open shows the metatypes
 const active = computed<Section>(() =>
   (SECTIONS as readonly string[]).includes(props.section ?? '') &&
@@ -110,6 +113,7 @@ async function select(section: string | number) {
       />
       <PropertiesSection v-else-if="active === 'properties'" :can-write="canWrite" :fetch-fn="fetchFn" />
       <CategoriesSection v-else-if="active === 'categories'" :can-write="canWrite" :fetch-fn="fetchFn" />
+      <ViewpointsSection v-else-if="active === 'viewpoints'" :can-manage="canManageViewpoints" :fetch-fn="fetchFn" />
       <TranslationsSection v-else-if="active === 'translations'" :can-write="canWrite" :fetch-fn="fetchFn" />
       <ChangesSection v-else-if="active === 'changes' && canAdminister" :fetch-fn="fetchFn" />
       <SettingsSection v-else-if="active === 'settings' && canAdminister" :can-write="canAdminister" :fetch-fn="fetchFn" />

@@ -375,7 +375,8 @@
       "categories": "Kategorien",
       "translations": "Übersetzungen",
       "changes": "Änderungen",
-      "settings": "Einstellungen"
+      "settings": "Einstellungen",
+      "viewpoints": "Viewpoints"
     },
     "scope": {
       "title": "Herkunft",
@@ -638,6 +639,24 @@
       "affected": "{properties} · {values} Delta-Werte · {metatypes} Erweiterungs-Metatypen",
       "plateau": "Plateau {name}",
       "members": "Gilt für alle seine Lösungen: {names}"
+    },
+    "viewpoint": {
+      "list": "Viewpoints ({count})",
+      "intro": "Ein Viewpoint nennt die Entitätstypen und Verbindungstypen einer organisationsspezifischen Sicht. Notationen folgen mit den Diagrammen.",
+      "new": "Neuer Viewpoint",
+      "edit": "Viewpoint bearbeiten",
+      "delete": "Viewpoint löschen",
+      "deleteHint": "Den Viewpoint {name} löschen?",
+      "none": "Noch keine Viewpoints.",
+      "name": "Name",
+      "description": "Beschreibung",
+      "descriptionTooLong": "Höchstens {max} Zeichen.",
+      "metatypes": "Entitätstypen",
+      "metatypesHint": "Mindestens ein Entitätstyp der Instanz.",
+      "connections": "Verbindungstypen",
+      "noConnections": "Die Instanz hat keine Verbindungstypen.",
+      "invalid": "Der Viewpoint ist ungültig.",
+      "loadFailed": "Die Viewpoints konnten nicht geladen werden."
     }
   },
   "navigation": {

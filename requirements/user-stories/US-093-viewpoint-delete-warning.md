@@ -2,8 +2,9 @@
 
 **ID**: US-093
 **Story Points**: 2
-**Status**: backlog
+**Status**: in-progress
 **Sprint**: S15
+**Implementation**: OpenSpec change `us-090-viewpoints` – deleting a viewpoint asks for a plain confirmation (AC2). AC1 (the count of affected diagrams) follows with the diagrams
 
 ## Story
 

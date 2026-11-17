@@ -1,8 +1,8 @@
 ---
 title: Metamodell bearbeiten
 covers:
-  screens: [SCR-030]
-  stories: [US-032, US-034, US-035, US-036, US-037, US-137, US-140, US-154, US-156]
+  screens: [SCR-030, SCR-031]
+  stories: [US-032, US-034, US-035, US-036, US-037, US-090, US-093, US-137, US-140, US-154, US-156]
 ---
 
 # Metamodell bearbeiten
@@ -118,6 +118,18 @@ Nutzen aktive [Lösungen](../usage/solutions) die Werte, listet der Dialog sie n
 Lösungen, die auf dasselbe [Plateau](../usage/plateaus) hinarbeiten, werden gemeinsam entschieden: Der Dialog fragt einmal für das Plateau und nennt seine Lösungen. Eine Lösung ohne Plateau wird weiterhin einzeln gefragt.
 
 Eine Eigenschaft, die eine Lösung als Snapshot behält, kann erst gelöscht werden, wenn diese Lösung live ist. Änderungen in der Erweiterung einer Lösung und Paketimporte fragen nicht nach.
+
+## Viewpoints {#viewpoints}
+
+Ein Viewpoint nennt die Entitätstypen und Verbindungstypen, die zu einer organisationsspezifischen Sicht gehören, zum Beispiel „Application Landscape“ mit Anwendungen, Datenobjekten und ihren Datenflüssen. Der Abschnitt *Viewpoints* der Metamodell-Seite listet sie; alle, die das Metamodell lesen dürfen, sehen sie. Notationen wie ArchiMate folgen mit den Diagrammen.
+
+Zum Ändern von Viewpoints brauchst du die Berechtigung `viewpoint:manage` (zum Beispiel die Rolle `enterprise-architect`); der [Sperrmodus](#lock-mode) des Metamodells gilt für sie nicht.
+
+- *Neuer Viewpoint* fragt nach einem Namen (bis 255 Zeichen, eindeutig unabhängig von Gross- und Kleinschreibung), einer optionalen Beschreibung (bis 1000 Zeichen), mindestens einem Entitätstyp und beliebig vielen Verbindungstypen der Instanz.
+- *Bearbeiten* ändert sie. Hat jemand anderes den Viewpoint inzwischen geändert, zeigt der Dialog den [aktuellen Stand](#concurrent-changes).
+- *Löschen* entfernt den Viewpoint nach einer Bestätigung.
+
+Wird ein Entitätstyp gelöscht, verschwindet er aus den Viewpoints, die ihn nannten.
 
 ## Labels übersetzen {#translating-labels}
 

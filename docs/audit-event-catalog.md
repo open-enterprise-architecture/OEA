@@ -811,6 +811,17 @@ A catalog was placed in a folder of the navigation tree or its entry removed ([U
 | Target | `tree-node`, ID of the folder |
 | Details | `itemId`, `itemType` (`catalog`) and `referenceId` (the ID of the catalog) |
 
+### `viewpoint.created` / `viewpoint.updated` / `viewpoint.deleted`
+
+A viewpoint was created, edited or deleted ([US-090](../requirements/user-stories/US-090-viewpoint-crud.md), [REQ-090](../requirements/req/REQ-090-create-edit-delete-viewpoint.md); change us-090-viewpoints). Rejected writes (validation error, stale or missing version, missing permission) are not audited.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the person with `viewpoint:manage` |
+| Target | `viewpoint`, ID of the viewpoint |
+| Details | `name`; for `viewpoint.updated` also `fields`, the changed fields among `name`, `description`, `metatypeIds` and `connectionTypeIds` |
+
 ### `plateau.created` / `plateau.updated`
 
 A plateau was created or edited ([US-084](../requirements/user-stories/US-084-create-plateau.md), [US-155](../requirements/user-stories/US-155-plateau-basis.md), [REQ-084](../requirements/req/REQ-084-create-plateau.md); change us-084-plateaus). The first baseline turns plateau mode on. Rejected writes (a broken rule, a realized plateau, a plateau in use, missing permission) are not audited.
