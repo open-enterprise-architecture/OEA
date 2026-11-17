@@ -380,6 +380,18 @@ public class SolutionDeltas {
 		this.audit.append(event("solution.delta-removed", principal, solutionId, found.get(0), List.of()));
 	}
 
+	/**
+	 * One delta of the solution for the reader (us-152-solution-go-live D3).
+	 *
+	 * @throws NoSuchElementException for an unknown solution or a delta of another solution (404)
+	 */
+	@Transactional(readOnly = true)
+	public Delta get(OeaPrincipal principal, UUID solutionId, UUID deltaId) {
+		return read(solutionId, deltaId, this.readAccess.of(principal)).stream()
+			.findFirst()
+			.orElseThrow(() -> new NoSuchElementException("delta " + deltaId));
+	}
+
 	private void requireOpen(UUID solutionId) {
 		if (COMPLETED.contains(status(solutionId))) {
 			throw new SolutionCompletedException();

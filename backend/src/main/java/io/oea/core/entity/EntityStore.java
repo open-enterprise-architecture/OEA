@@ -134,6 +134,24 @@ public class EntityStore {
 		return this.jdbc.query(SELECT + " WHERE id = ? FOR SHARE", EntityStore::entity, id).stream().findFirst();
 	}
 
+	/**
+	 * Soft-deletes the entity (ADR-019; us-152-solution-go-live D4): it leaves catalogs and the
+	 * baseline, and its history stays.
+	 */
+	public void softDelete(int id, long personId, Instant now, String reason) {
+		this.jdbc.update("""
+				UPDATE entities SET deleted_at = ?, deleted_by = ?, deletion_reason = ? WHERE id = ? AND deleted_at IS NULL""",
+				Timestamp.from(now), personId, reason, id);
+	}
+
+	/** The active connections whose source or target is the entity, by ID. */
+	public List<Integer> activeConnectionsOf(int entityId) {
+		return this.jdbc.queryForList("""
+				SELECT c.entity_id FROM entity_connections c JOIN entities e ON e.id = c.entity_id
+				WHERE (c.source_entity_id = ? OR c.target_entity_id = ?) AND e.deleted_at IS NULL
+				ORDER BY c.entity_id""", Integer.class, entityId, entityId);
+	}
+
 	/** Whether an active entity with this ID and metatype exists (reference values). */
 	public boolean isActive(int id, UUID metatypeId) {
 		return Boolean.TRUE.equals(this.jdbc.queryForObject(

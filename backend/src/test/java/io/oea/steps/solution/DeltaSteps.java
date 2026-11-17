@@ -1120,6 +1120,40 @@ public class DeltaSteps {
 				necessity));
 	}
 
+	// Shared with GoLiveSteps (us-152-solution-go-live)
+
+	String solutionId() {
+		return this.solution;
+	}
+
+	int entityId(String name) {
+		return this.entities.get(name);
+	}
+
+	void registerEntity(String name, int id) {
+		this.entities.put(name, id);
+	}
+
+	UUID propertyId(String name) {
+		return this.properties.get(name);
+	}
+
+	UUID applicationsMetatype() {
+		return this.applications;
+	}
+
+	UUID dataFlowsMetatype() {
+		return this.dataFlows;
+	}
+
+	String scenarioName(String name) {
+		return named(name);
+	}
+
+	void setCatalogValue(int entity, String property, String value) throws Exception {
+		catalogValue(entity, property, value);
+	}
+
 	private String named(String name) {
 		return (name + " " + this.suffix).replace("'", "''");
 	}

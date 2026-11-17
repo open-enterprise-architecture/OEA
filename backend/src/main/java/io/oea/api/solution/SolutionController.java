@@ -2,6 +2,9 @@ package io.oea.api.solution;
 
 import io.oea.api.ContractViolationResponse;
 import io.oea.api.generated.SolutionsApi;
+import io.oea.api.generated.model.DeltaConflict;
+import io.oea.api.generated.model.DeltaConflictResolution;
+import io.oea.api.generated.model.EntityVersionDataType;
 import io.oea.api.generated.model.PageMeta;
 import io.oea.api.generated.model.PropertyValue;
 import io.oea.api.generated.model.PropertyValueValueRef;
@@ -20,9 +23,14 @@ import io.oea.api.generated.model.SolutionDeltaValueValueRef;
 import io.oea.api.generated.model.SolutionDeltaWrite;
 import io.oea.api.generated.model.SolutionDiffEntry;
 import io.oea.api.generated.model.SolutionDiffField;
+import io.oea.api.generated.model.SolutionGoLiveCounts;
+import io.oea.api.generated.model.SolutionGoLivePreview;
+import io.oea.api.generated.model.SolutionGoLiveResult;
+import io.oea.api.generated.model.SolutionGoLiveViolation;
 import io.oea.api.generated.model.SolutionLandscapeEntity;
 import io.oea.api.generated.model.SolutionLandscapeEntry;
 import io.oea.api.generated.model.SolutionLandscapePage;
+import io.oea.api.generated.model.SolutionOpenIssue;
 import io.oea.api.generated.model.SolutionStatus;
 import io.oea.api.generated.model.SolutionSummary;
 import io.oea.app.entity.EntityInput;
@@ -30,6 +38,7 @@ import io.oea.app.security.OeaPrincipal;
 import io.oea.app.solution.SolutionConflicts;
 import io.oea.app.solution.SolutionDeltas;
 import io.oea.app.solution.SolutionDiff;
+import io.oea.app.solution.SolutionGoLive;
 import io.oea.app.solution.SolutionLandscape;
 import io.oea.app.solution.Solutions;
 import io.oea.config.security.OeaAuthentication;
@@ -56,12 +65,87 @@ public class SolutionController implements SolutionsApi {
 
 	private final SolutionDiff diff;
 
+	private final SolutionGoLive goLive;
+
 	public SolutionController(Solutions solutions, SolutionLandscape landscape, SolutionDeltas deltas,
-			SolutionDiff diff) {
+			SolutionDiff diff, SolutionGoLive goLive) {
 		this.solutions = solutions;
 		this.landscape = landscape;
 		this.deltas = deltas;
 		this.diff = diff;
+		this.goLive = goLive;
+	}
+
+	@Override
+	public ResponseEntity<SolutionGoLivePreview> previewSolutionGoLive(UUID id) {
+		SolutionGoLive.Preview preview = this.goLive.preview(principal(), id);
+		return ResponseEntity.ok(new SolutionGoLivePreview().solutionId(preview.solutionId())
+			.counts(counts(preview.counts()))
+			.conflicts(preview.conflicts().stream().map(SolutionController::conflict).toList())
+			.violations(preview.violations()
+				.stream()
+				.map((violation) -> new SolutionGoLiveViolation().deltaId(violation.deltaId())
+					.entityId(violation.entityId())
+					.entityName(violation.entityName())
+					.field(violation.field())
+					.label(violation.label())
+					.kind(SolutionGoLiveViolation.KindEnum.fromValue(violation.kind())))
+				.toList()));
+	}
+
+	@Override
+	public ResponseEntity<SolutionGoLiveResult> goLiveSolution(UUID id) {
+		SolutionGoLive.Result result = this.goLive.goLive(principal(), id);
+		return ResponseEntity.ok(new SolutionGoLiveResult().solutionId(result.solutionId())
+			.status(SolutionStatus.fromValue(result.status()))
+			.counts(counts(result.counts()))
+			.openIssues(result.openIssues().stream().map(SolutionController::openIssue).toList()));
+	}
+
+	@Override
+	public ResponseEntity<List<SolutionOpenIssue>> listSolutionOpenIssues(UUID id) {
+		return ResponseEntity
+			.ok(this.goLive.openIssues(principal(), id).stream().map(SolutionController::openIssue).toList());
+	}
+
+	@Override
+	public ResponseEntity<SolutionDelta> resolveSolutionDeltaConflicts(UUID id, UUID deltaId,
+			DeltaConflictResolution request) {
+		return ResponseEntity.ok(delta(this.goLive.resolve(principal(), id, deltaId, request.getFields()
+			.stream()
+			.map((field) -> new SolutionGoLive.Choice(field.getField(), field.getChoice().getValue(), field.getValue()))
+			.toList())));
+	}
+
+	/** A field conflict of the preview. */
+	private static DeltaConflict conflict(SolutionGoLive.Conflict conflict) {
+		return new DeltaConflict().deltaId(conflict.deltaId())
+			.entityId(conflict.entityId())
+			.entityName(conflict.entityName())
+			.field(conflict.field())
+			.label(conflict.label())
+			.dataType(EntityVersionDataType.fromValue(conflict.dataType()))
+			.before(conflict.before())
+			.current(conflict.current())
+			.after(conflict.after())
+			.redacted(conflict.redacted());
+	}
+
+	private static SolutionGoLiveCounts counts(SolutionGoLive.Counts counts) {
+		return new SolutionGoLiveCounts().created(counts.created())
+			.modified(counts.modified())
+			.retired(counts.retired())
+			.retiredConnections(counts.retiredConnections());
+	}
+
+	private static SolutionOpenIssue openIssue(SolutionGoLive.OpenIssue issue) {
+		return new SolutionOpenIssue().id(issue.id())
+			.entityId(issue.entityId())
+			.entityName(issue.entityName())
+			.field(issue.field())
+			.label(issue.label())
+			.kind(SolutionOpenIssue.KindEnum.fromValue(issue.kind()))
+			.createdAt(issue.createdAt().atOffset(ZoneOffset.UTC));
 	}
 
 	@Override
@@ -69,7 +153,7 @@ public class SolutionController implements SolutionsApi {
 	public ResponseEntity<Solution> createSolution(SolutionCreate request) {
 		Solutions.Solution created = this.solutions.create(principal(),
 				new Solutions.NewSolution(request.getName(), request.getDescription()));
-		return ResponseEntity.created(URI.create(SOLUTIONS_PATH + "/" + created.id())).body(solution(created));
+		return ResponseEntity.created(URI.create(SOLUTIONS_PATH + "/" + created.id())).body(solution(created, 0));
 	}
 
 	@Override
@@ -79,7 +163,8 @@ public class SolutionController implements SolutionsApi {
 
 	@Override
 	public ResponseEntity<Solution> getSolution(UUID id) {
-		return ResponseEntity.ok(solution(this.solutions.get(id)));
+		Solutions.Solution solution = this.solutions.get(id);
+		return ResponseEntity.ok(solution(solution, this.goLive.openIssueCount(id)));
 	}
 
 	@Override
@@ -303,8 +388,9 @@ public class SolutionController implements SolutionsApi {
 			.createdAt(solution.createdAt().atOffset(ZoneOffset.UTC));
 	}
 
-	private static Solution solution(Solutions.Solution solution) {
+	private static Solution solution(Solutions.Solution solution, int openIssueCount) {
 		return new Solution().id(solution.id())
+			.openIssueCount(openIssueCount)
 			.name(solution.name())
 			.status(SolutionStatus.fromValue(solution.status()))
 			.ownerId(solution.ownerId())

@@ -2,8 +2,9 @@
 
 **ID**: US-152
 **Story Points**: 8
-**Status**: backlog
+**Status**: done
 **Sprint**: S14
+**Implementation**: OpenSpec change `us-152-solution-go-live` – `previewSolutionGoLive`, `resolveSolutionDeltaConflicts`, `goLiveSolution` and `listSolutionOpenIssues` (`solution:write`, the list `entity:read`): deltas `new` create entities, `modified` write their values, `retiring` soft-delete entities and their connections, in one transaction with `solution.went-live`; field conflicts open the merge dialog SCR-063; metamodel violations become open issues (V35) (AC1–AC5)
 
 ## Story
 

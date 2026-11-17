@@ -40,6 +40,7 @@ import io.oea.app.security.PermissionDeniedException;
 import io.oea.app.security.ReauthenticationRequiredException;
 import io.oea.app.security.SetupPhase;
 import io.oea.app.shared.InvalidAccessRequestException;
+import io.oea.app.solution.EntityDeletedException;
 import io.oea.app.solution.InvalidSolutionException;
 import io.oea.app.solution.InvalidSolutionQueryException;
 import io.oea.app.history.InvalidHistoryQueryException;
@@ -47,6 +48,7 @@ import io.oea.app.history.InvalidRestoreSelectionException;
 import io.oea.app.history.NothingToRestoreException;
 import io.oea.app.history.PreconditionRequiredException;
 import io.oea.app.history.StaleEntityVersionException;
+import io.oea.app.solution.MergeRequiredException;
 import io.oea.app.solution.SolutionCompletedException;
 import io.oea.config.security.OeaAuthentication;
 import io.oea.config.web.RequestSizeLimitFilter;
@@ -58,6 +60,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.UUID;
 import java.util.stream.Stream;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.NestedExceptionUtils;
@@ -295,6 +298,35 @@ public class ApiExceptionHandler {
 			.map((issue) -> Map.of("field", issue.field(), "code", issue.code(), "message", issue.message()))
 			.toList());
 		return ResponseEntity.unprocessableContent().body(problem);
+	}
+
+	/** A go-live with unresolved field conflicts (design D4 of us-152-solution-go-live). */
+	@ExceptionHandler(MergeRequiredException.class)
+	ResponseEntity<ProblemDetail> mergeRequired(MergeRequiredException ex) {
+		ProblemDetail problem = problem(HttpStatus.CONFLICT, "merge-required", "Merge required", ex.getMessage());
+		problem.setProperty("conflicts", ex.getConflicts().stream().map((conflict) -> {
+			Map<String, Object> entry = new java.util.LinkedHashMap<>();
+			entry.put("deltaId", conflict.deltaId().toString());
+			entry.put("entityId", conflict.entityId());
+			entry.put("entityName", conflict.entityName());
+			entry.put("field", conflict.field());
+			entry.put("label", conflict.label());
+			entry.put("dataType", conflict.dataType());
+			entry.put("before", conflict.before());
+			entry.put("current", conflict.current());
+			entry.put("after", conflict.after());
+			entry.put("redacted", conflict.redacted());
+			return entry;
+		}).toList());
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+	}
+
+	/** A go-live with a modification of an entity deleted meanwhile (design D4 of us-152-solution-go-live). */
+	@ExceptionHandler(EntityDeletedException.class)
+	ResponseEntity<ProblemDetail> entityDeleted(EntityDeletedException ex) {
+		ProblemDetail problem = problem(HttpStatus.CONFLICT, "entity-deleted", "Entity deleted", ex.getMessage());
+		problem.setProperty("deltaIds", ex.getDeltaIds().stream().map(UUID::toString).toList());
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
 	}
 
 	/** A change to a completed solution (design D4 of us-040-entity-deltas). */

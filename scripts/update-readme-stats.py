@@ -24,7 +24,7 @@ def concept_version():
     path = os.path.join(ROOT, 'concept', 'README.md')
     try:
         with open(path) as f:
-            m = re.search(r'v(\d+\.\d+)', f.read())
+            m = re.search(r'v(\d+\.\d+(?:\.\d+)?)', f.read())
             return f'v{m.group(1)}' if m else '?'
     except FileNotFoundError:
         return '?'

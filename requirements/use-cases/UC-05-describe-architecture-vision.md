@@ -5,9 +5,9 @@ status: draft
 priority: must
 target_release: v1.0
 complexity: large
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-26
-last_updated: 2026-11-12
+last_updated: 2026-11-16
 primary_actor: SH-04
 secondary_actors:
   - SH-03
@@ -208,7 +208,7 @@ If many entities are affected:
 ## Out of Scope
 
 - **Status transitions of the solution** (draft → proposed → approved → in-progress): this is a review and approval process; separate use case
-- **Go-live process** (completing the solution as `implemented`, triggering the plateau transition): future UC (number TBD)
+- **Go-live process in plateau mode** (triggering the plateau transition): [UC-11](./UC-11-define-plateau-and-go-live.md). The go-live of a solution in project mode (completing it as `implemented` and writing its deltas into the catalog) is [US-152](../user-stories/US-152-solution-go-live.md) (owner decision 2026-11-16)
 - **Creating and managing plateaus**: future UC (number TBD)
 - **Metamodel extension to solution scope** (custom EntityTypes only for this solution): UC-04 / REQ-037
 - **Deleting or archiving a solution**: separate UC or admin function
@@ -257,3 +257,4 @@ Project mode (SME) is the basic flow because it is the simpler entry point and a
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft |
 | 0.2.0 | 2026-11-12 | Change us-039-solution-baseline | The baseline in project mode is the current catalog (main flow step 8, E2, data, acceptance criteria, implementation notes) |
+| 0.3.0 | 2026-11-16 | Change us-152-solution-go-live | Out of scope: the go-live in project mode is US-152, the plateau go-live UC-11 |

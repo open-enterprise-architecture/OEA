@@ -88,8 +88,9 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 | ID | Screen | Platform | UC Reference | Priority | Status | Image |
 |---|---|---|---|---|---|---|
 | SCR-060 | Solutions (overview of change initiatives; dialog "New solution") | CA+WP | UC-05 | must | `implemented` | [light](./SCR-060-light.png) / [dark](./SCR-060-dark.png) |
-| SCR-061 | Solution (name, status, owner and architecture vision of one solution; its changes – new, modified and retiring entities, the dialogs "New entity" and "Modify entity", "Edit" and "Remove", the total, "Load more" and the link "Compare"; the warnings of conflicts with other active solutions on the changes, in the header and after saving; and its baseline with search, metatype filter, paging, the actions "Modify" and "Retire" and the marker of parallel changes) | CA+WP | UC-05 | must | `implemented` | [light](./SCR-061-light.png) / [dark](./SCR-061-dark.png) |
+| SCR-061 | Solution (name, status, owner and architecture vision of one solution; its changes – new, modified and retiring entities, the dialogs "New entity" and "Modify entity", "Edit" and "Remove", the total, "Load more" and the link "Compare"; the warnings of conflicts with other active solutions on the changes, in the header and after saving; and its baseline with search, metatype filter, paging, the actions "Modify" and "Retire" and the marker of parallel changes; "Go live" with a confirmation of the counts, SCR-063 for field conflicts, and the open issues after the go-live) | CA+WP | UC-05 | must | `implemented` | [light](./SCR-061-light.png) / [dark](./SCR-061-dark.png) |
 | SCR-062 | Solution comparison (per change of a solution, the current state of the entity in the catalog next to its target state; markings of new, modified and retiring entities, changed fields and drift since capture; the conflicts with other active solutions; "Refresh" and "Load more") | CA+WP | UC-05 | should | `implemented` | [light](./SCR-062-light.png) / [dark](./SCR-062-dark.png) |
+| SCR-063 | Resolve conflicts — merge dialog opened by "Go live" on SCR-061 when fields a solution changes were also changed in the catalog after the capture (per field the value when captured, and the current value, the value of the solution or an own value) | CA | UC-05 | must | `implemented` | [light](./SCR-063-light.png) / [dark](./SCR-063-dark.png) |
 
 ---
 
@@ -109,7 +110,7 @@ Complete list of all UI screens. Screens are prototyped as Storybook stories wit
 ## Overview by Priority
 
 **Must-have** (Walking Skeleton + v1.0 core):
-SCR-001, SCR-002, SCR-003, SCR-004, SCR-005, SCR-010, SCR-011, SCR-012, SCR-020, SCR-021, SCR-022, SCR-025, SCR-026, SCR-028, SCR-030, SCR-031, SCR-032, SCR-033, SCR-034, SCR-037, SCR-038, SCR-050, SCR-051, SCR-052, SCR-055, SCR-060, SCR-061
+SCR-001, SCR-002, SCR-003, SCR-004, SCR-005, SCR-010, SCR-011, SCR-012, SCR-020, SCR-021, SCR-022, SCR-025, SCR-026, SCR-028, SCR-030, SCR-031, SCR-032, SCR-033, SCR-034, SCR-037, SCR-038, SCR-050, SCR-051, SCR-052, SCR-055, SCR-060, SCR-061, SCR-063
 
 **Should-have** (v1.0 extensions):
 SCR-023, SCR-024, SCR-027, SCR-029, SCR-035, SCR-036, SCR-039, SCR-040, SCR-041, SCR-053, SCR-054, SCR-062

@@ -822,7 +822,7 @@ A solution was created in project mode ([US-038](../requirements/user-stories/US
 
 ### `solution.delta-added`
 
-An entity delta was captured in a solution: a new entity (`new`), changes of an entity of the baseline (`modified`) or an entity of the baseline to retire (`retiring`) ([US-040](../requirements/user-stories/US-040-delta-new-entity.md), [US-041](../requirements/user-stories/US-041-delta-modified.md), [US-042](../requirements/user-stories/US-042-delta-retiring.md), [REQ-040](../requirements/req/REQ-040-capture-entity-deltas.md)). The event carries no property values; the go-live (S14) audits them with the entity write. Rejected captures (validation error, completed solution, missing permission) are not audited.
+An entity delta was captured in a solution: a new entity (`new`), changes of an entity of the baseline (`modified`) or an entity of the baseline to retire (`retiring`) ([US-040](../requirements/user-stories/US-040-delta-new-entity.md), [US-041](../requirements/user-stories/US-041-delta-modified.md), [US-042](../requirements/user-stories/US-042-delta-retiring.md), [REQ-040](../requirements/req/REQ-040-capture-entity-deltas.md)). The event carries no property values; the go-live audits them with the entity write (`solution.went-live`). Rejected captures (validation error, completed solution, missing permission) are not audited.
 
 | Field | Value |
 |---|---|
@@ -853,6 +853,30 @@ An entity delta was removed from a solution, with its property values ([REQ-040]
 | Target | `solution`, ID of the solution |
 | Details | the details of `solution.delta-added` for the removed delta |
 
+### `solution.went-live`
+
+A solution went live in project mode ([US-152](../requirements/user-stories/US-152-solution-go-live.md); change us-152-solution-go-live): its deltas `new` created entities, its deltas `modified` changed them, and its deltas `retiring` deleted them with their connections, in one transaction with the entity events. A rejected go-live (field conflicts, completed solution, missing permission) is not audited.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the person who took the solution live (`solution:write`) |
+| Target | `solution`, ID of the solution |
+| Details | `name`, `created`, `modified`, `retired`, `retiredConnections`, `openIssues` (the metamodel violations taken live) |
+
+The resolution of field conflicts before a go-live writes `solution.delta-updated` with `resolvedFields` (the keys of the resolved fields).
+
+### `entity.deleted`
+
+An entity was soft-deleted (ADR-019): by the go-live of a solution for a delta `retiring`, or as a connection of such an entity (change us-152-solution-go-live). The entity leaves catalogs and baselines; its history stays.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the person who took the solution live |
+| Target | `entity`, ID of the entity; `entity_id` and `entity_name` |
+| Details | `solutionId`, `metatypeId`, `version` (the last version, unchanged) |
+
 ## Planned Event Types
 
-Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, `entity.deleted` and further `entity.*`, further `metamodel.*` (connection metatypes, fork).
+Named in ADR-033 §8 and written by later changes: `role.assigned`, `role.revoked`, `settings.changed`, `settings.audit-retention-changed`, `analytics.query.executed`, `analytics.query.rejected`, `audit.exported`, `audit.retention-purged`, `audit.integrity-verified`, `audit.integrity-violation`, further `entity.*`, further `metamodel.*` (connection metatypes, fork).

@@ -83,9 +83,16 @@ class EntityDeltaSchemaTests {
 		try (Connection app = OeaDatabases.asRole(postgres, "oea_app"); Statement statement = app.createStatement()) {
 			statement.execute(newDelta("Shape New"));
 			statement.execute(retiring(entityId));
-			// new without a name, new with an entity, retiring without an entity, retiring with a name
+			// a delta new records the entity of its go-live (V35, us-152-solution-go-live D1)
+			String created;
+			try (ResultSet rs = statement.executeQuery("INSERT INTO entities (metatype_id, name, created_by) VALUES ('"
+					+ metatypeId + "', 'Gone live', " + personId + ") RETURNING id")) {
+				rs.next();
+				created = rs.getString(1);
+			}
+			statement.execute(insert("'new'", created, "'" + metatypeId + "'", "'Gone live'"));
+			// new without a name, retiring without an entity, retiring with a name
 			for (String invalid : List.of(insert("'new'", "NULL", "'" + metatypeId + "'", "NULL"),
-					insert("'new'", entityId, "'" + metatypeId + "'", "'With entity'"),
 					insert("'retiring'", "NULL", "NULL", "NULL"),
 					insert("'retiring'", entityId, "'" + metatypeId + "'", "'Named'"),
 					insert("'changed'", entityId, "NULL", "NULL"))) {
@@ -175,7 +182,7 @@ class EntityDeltaSchemaTests {
 					columns.add(rs.getString(1));
 				}
 			}
-			assertThat(columns).containsExactly("updated_at", "updated_by");
+			assertThat(columns).containsExactly("entity_id", "updated_at", "updated_by");
 		}
 	}
 

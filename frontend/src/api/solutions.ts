@@ -203,3 +203,63 @@ export async function deleteSolutionDelta(
   }
   return { ok: true }
 }
+
+export type SolutionGoLivePreview = components['schemas']['SolutionGoLivePreview']
+export type SolutionGoLiveResult = components['schemas']['SolutionGoLiveResult']
+export type DeltaConflict = components['schemas']['DeltaConflict']
+export type SolutionOpenIssue = components['schemas']['SolutionOpenIssue']
+export type DeltaConflictChoice = components['schemas']['DeltaConflictResolution']['fields'][number]
+
+/**
+ * GET /solutions/{id}/go-live: what the go-live would do (US-152): counts, field conflicts and
+ * the metamodel violations that become open issues; 409 for a completed solution.
+ */
+export function fetchGoLivePreview(id: string, fetchFn: typeof fetch = fetch): Promise<SolutionGoLivePreview> {
+  return read(`${SOLUTIONS}/${encodeURIComponent(id)}/go-live`, fetchFn)
+}
+
+/**
+ * POST /solutions/{id}/go-live: takes the solution live. 409 `merge-required` with `conflicts`
+ * for unresolved field conflicts, 409 `solution-completed`, 409 `entity-deleted`.
+ */
+export async function goLiveSolution(
+  id: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<{ ok: true; value: SolutionGoLiveResult } | { ok: false; rejection: Rejection }> {
+  const response = await fetchFn(`${SOLUTIONS}/${encodeURIComponent(id)}/go-live`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: writeHeaders(),
+  })
+  if (!response.ok) {
+    return { ok: false, rejection: await readRejection(response) }
+  }
+  return { ok: true, value: (await response.json()) as SolutionGoLiveResult }
+}
+
+/**
+ * POST /solutions/{id}/deltas/{deltaId}/resolution: resolves field conflicts of a delta with the
+ * current value, the delta value or an own value; 422 naming a field without a conflict.
+ */
+export async function resolveDeltaConflicts(
+  id: string,
+  deltaId: string,
+  fields: DeltaConflictChoice[],
+  fetchFn: typeof fetch = fetch,
+): Promise<{ ok: true; value: SolutionDelta } | { ok: false; rejection: Rejection }> {
+  const response = await fetchFn(`${SOLUTIONS}/${encodeURIComponent(id)}/deltas/${encodeURIComponent(deltaId)}/resolution`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: writeHeaders(),
+    body: JSON.stringify({ fields }),
+  })
+  if (!response.ok) {
+    return { ok: false, rejection: await readRejection(response) }
+  }
+  return { ok: true, value: (await response.json()) as SolutionDelta }
+}
+
+/** GET /solutions/{id}/open-issues: the metamodel violations taken live by the go-live. */
+export function fetchSolutionOpenIssues(id: string, fetchFn: typeof fetch = fetch): Promise<SolutionOpenIssue[]> {
+  return read(`${SOLUTIONS}/${encodeURIComponent(id)}/open-issues`, fetchFn)
+}

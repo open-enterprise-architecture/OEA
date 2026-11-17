@@ -14,6 +14,9 @@ import {
   ME_SOLUTION_ARCHITECT,
   ME_SOLUTION_VIEWER,
   manyDeltas,
+  MODIFIED_ERP,
+  OPEN_ISSUES,
+  SOLUTIONS,
   solutionApi,
 } from '../test/solutions'
 
@@ -25,7 +28,9 @@ import {
 // us-041-modified-delta); the changes load page by page with "Load more", and "Compare" opens
 // SCR-062 (design D0, D3 of us-043-diff-view); the warnings of conflicts with other active
 // solutions on the entries, in the header and in the baseline (design D4 of
-// us-044-conflict-warning) (docs/screens/SCREENS.md). The first story is the screen image.
+// us-044-conflict-warning), and "Go live" with its confirmation and the open issues after it
+// (US-152; design D6 of us-152-solution-go-live) (docs/screens/SCREENS.md). The first story is the
+// screen image.
 
 // Warehouse Management (103) and ERP-Core (102) are also changed elsewhere; CRM-Legacy (101) is
 // changed by another solution, and applications show parallel changes in the baseline.
@@ -195,5 +200,48 @@ export const NotFound: Story = {
   ...screen('5d000000-0000-4000-8000-0000000000ff'),
   play: async ({ canvasElement }) => {
     await expect(await within(canvasElement).findByText('Solution not found')).toBeInTheDocument()
+  },
+}
+
+function goLiveScreen(api: ReturnType<typeof solutionApi>): Story {
+  return {
+    render: () => ({
+      components: { AppHeader, SolutionPage },
+      setup: () => {
+        session.me = ME_SOLUTION_ARCHITECT as unknown as Me
+        session.loaded = true
+        return { fetchFn: api.fetch, id: SOLUTIONS[0]!.id }
+      },
+      template: `
+        <AppHeader :fetch-fn="fetchFn" />
+        <SolutionPage :id="id" :fetch-fn="fetchFn" />`,
+    }),
+  }
+}
+
+export const GoLive: Story = {
+  ...goLiveScreen(solutionApi({ me: ME_SOLUTION_ARCHITECT, deltas: [...DELTAS, MODIFIED_ERP], openIssues: OPEN_ISSUES })),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Go live' }))
+    await expect(await body.findByText('The go-live cannot be undone.')).toBeInTheDocument()
+    await expect(body.getByText(/1 entity is changed/)).toBeInTheDocument()
+  },
+}
+
+export const Implemented: Story = {
+  ...goLiveScreen(
+    solutionApi({
+      me: ME_SOLUTION_ARCHITECT,
+      deltas: [...DELTAS, MODIFIED_ERP],
+      openIssues: OPEN_ISSUES,
+      solutions: [{ ...SOLUTIONS[0]!, status: 'implemented', openIssueCount: 1 }, ...SOLUTIONS.slice(1)],
+    }),
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Open issues (1)')).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: 'Go live' })).not.toBeInTheDocument()
   },
 }

@@ -891,6 +891,43 @@
       "notice": "Keine Änderung betrifft andere aktive Lösungen. | {n} Änderung betrifft auch andere aktive Lösungen. Bitte stimme dich mit den Verantwortlichen ab. | {n} Änderungen betreffen auch andere aktive Lösungen. Bitte stimme dich mit den Verantwortlichen ab.",
       "saved": "Gespeichert. {name} wird auch geändert in: {solutions}. Bitte stimme dich mit den Verantwortlichen ab.",
       "baseline": "In {n} anderen Lösung geändert | In {n} anderen Lösungen geändert"
+    },
+    "goLive": {
+      "action": "Live schalten",
+      "confirmTitle": "{name} live schalten",
+      "created": "{n} Entität wird angelegt | {n} Entitäten werden angelegt",
+      "modified": "{n} Entität wird geändert | {n} Entitäten werden geändert",
+      "retired": "{n} Entität wird stillgelegt | {n} Entitäten werden stillgelegt",
+      "retiredConnections": "{n} Verbindung einer stillgelegten Entität wird mit stillgelegt | {n} Verbindungen stillgelegter Entitäten werden mit stillgelegt",
+      "violations": "{n} Wert passt nicht zum aktuellen Metamodell; er wird übernommen und als offener Punkt geführt | {n} Werte passen nicht zum aktuellen Metamodell; sie werden übernommen und als offene Punkte geführt",
+      "irreversible": "Das Live-Schalten kann nicht rückgängig gemacht werden.",
+      "confirm": "Live schalten",
+      "cancel": "Abbrechen",
+      "done": "Die Solution ist live.",
+      "failed": "Die Solution konnte nicht live geschaltet werden.",
+      "entityDeleted": "Eine Entität einer Änderung wurde inzwischen gelöscht. Entferne ihr Delta und schalte erneut live.",
+      "merge": {
+        "title": "Konflikte auflösen",
+        "intro": "Diese Felder wurden im Katalog geändert, nachdem die Solution sie erfasst hat. Wähle, welcher Wert live geht.",
+        "before": "Beim Erfassen: {value}",
+        "current": "Aktuellen Wert behalten: {value}",
+        "delta": "Wert der Solution übernehmen: {value}",
+        "currentHidden": "Aktuellen Wert behalten",
+        "deltaHidden": "Wert der Solution übernehmen",
+        "own": "Eigenen Wert eingeben",
+        "ownLabel": "Eigener Wert für {field}",
+        "apply": "Übernehmen",
+        "invalid": "Ein Wert ist für sein Feld nicht gültig.",
+        "failed": "Die Konflikte konnten nicht aufgelöst werden."
+      },
+      "openIssues": {
+        "title": "Offene Punkte ({n})",
+        "intro": "Diese Werte sind live, obwohl sie nicht zum aktuellen Metamodell passen. Löse sie in den Entitäten auf.",
+        "kind": {
+          "mandatory-missing": "Pflichtwert fehlt",
+          "invalid-value": "Wert nicht gültig"
+        }
+      }
     }
   },
   "history": {
