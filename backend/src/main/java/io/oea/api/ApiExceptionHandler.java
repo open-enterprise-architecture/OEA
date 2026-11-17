@@ -46,6 +46,8 @@ import io.oea.app.entity.EntityBlockedException;
 import io.oea.app.solution.InvalidPlateauException;
 import io.oea.app.solution.InvalidSolutionException;
 import io.oea.app.solution.PlateauInUseException;
+import io.oea.app.solution.PlateauNotNextException;
+import io.oea.app.solution.PlateauSolutionException;
 import io.oea.app.solution.InvalidSolutionQueryException;
 import io.oea.app.history.InvalidHistoryQueryException;
 import io.oea.app.history.InvalidRestoreSelectionException;
@@ -321,6 +323,20 @@ public class ApiExceptionHandler {
 			.body(problem(HttpStatus.CONFLICT, "plateau-in-use", "Plateau in use", ex.getMessage()));
 	}
 
+	/** The go-live of a plateau that does not succeed the baseline (design D3 of us-086-plateau-go-live). */
+	@ExceptionHandler(PlateauNotNextException.class)
+	ResponseEntity<ProblemDetail> plateauNotNext(PlateauNotNextException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+			.body(problem(HttpStatus.CONFLICT, "plateau-not-next", "Plateau not next", ex.getMessage()));
+	}
+
+	/** The single go-live of a solution of a plateau (design D4 of us-086-plateau-go-live). */
+	@ExceptionHandler(PlateauSolutionException.class)
+	ResponseEntity<ProblemDetail> plateauSolution(PlateauSolutionException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+			.body(problem(HttpStatus.CONFLICT, "plateau-solution", "Plateau solution", ex.getMessage()));
+	}
+
 	/** A go-live with unresolved field conflicts (design D4 of us-152-solution-go-live). */
 	@ExceptionHandler(MergeRequiredException.class)
 	ResponseEntity<ProblemDetail> mergeRequired(MergeRequiredException ex) {
@@ -328,6 +344,7 @@ public class ApiExceptionHandler {
 		problem.setProperty("conflicts", ex.getConflicts().stream().map((conflict) -> {
 			Map<String, Object> entry = new java.util.LinkedHashMap<>();
 			entry.put("deltaId", conflict.deltaId().toString());
+			entry.put("solutionId", (conflict.solutionId() != null) ? conflict.solutionId().toString() : null);
 			entry.put("entityId", conflict.entityId());
 			entry.put("entityName", conflict.entityName());
 			entry.put("field", conflict.field());

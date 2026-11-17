@@ -982,7 +982,9 @@
       "none": "No plateau (project mode)",
       "target": "Target plateau",
       "targetHint": "Optional: the plateau the solution works toward.",
-      "start": "Starts from {name}"
+      "start": "Starts from {name}",
+      "goesLiveWith": "Goes live with plateau {name}",
+      "goesLiveWithPlateau": "Goes live with its plateau"
     }
   },
   "history": {
@@ -1212,6 +1214,28 @@
       "target": "Target",
       "transition": "Transition",
       "realized": "Realized"
+    },
+    "goLive": {
+      "action": "Go live",
+      "title": "Take {name} live",
+      "hint": "The plateau becomes the new baseline, and its solutions go live with it.",
+      "summary": "{plateau} becomes the new baseline; {baseline} is realized and read-only from then on.",
+      "counts": "{created} new, {modified} changed and {retired} retired entities",
+      "solutions": "No solutions go live with it | One solution goes live with it | {n} solutions go live with it",
+      "conflictCount": "one conflict | {n} conflicts",
+      "resolve": "Resolve",
+      "warnings": "Warnings – they do not block the go-live",
+      "notApproved": "no solution | One solution is not yet approved: {names} | {n} solutions are not yet approved: {names}",
+      "openIssues": "no open issue | One open issue remains after the go-live | {n} open issues remain after the go-live",
+      "irreversible": "This action cannot be undone.",
+      "nameLabel": "Type {name} to confirm",
+      "confirm": "Confirm go-live",
+      "conflicts": "Fields of its solutions were changed meanwhile. Resolve the conflicts first.",
+      "blocked": "An entity of its solutions has open issues of another solution.",
+      "notNext": "Only the plateau that succeeds the baseline can go live.",
+      "forbidden": "You may not take plateaus live.",
+      "failed": "The go-live failed; nothing was changed.",
+      "loadFailed": "The go-live preview could not be loaded."
     }
   }
 }

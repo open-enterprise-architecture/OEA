@@ -290,6 +290,88 @@ public class PlateauSteps {
 			.forEach((item) -> assertThat(item.path("name").asString()).isNotEqualTo(entity + this.suffix));
 	}
 
+	// us-086-plateau-go-live
+
+	@Given("the plateau {string} succeeds the current baseline")
+	public void nextPlateau(String name) throws Exception {
+		baseline();
+		givenTarget(name, "baseline", "catalog");
+	}
+
+	@Given("the solution {string} with status {string} targets {string}")
+	public void solutionWithStatus(String name, String status, String plateau) throws Exception {
+		solutionTargets(name, plateau);
+		instance().oidc().update("UPDATE solutions SET status = '%s' WHERE id = '%s'".formatted(status,
+				this.solutions.get(name)));
+	}
+
+	@When("the architect reads the go-live preview of {string}")
+	public void readPreview(String plateau) throws Exception {
+		this.response = instance().oidc().get(PLATEAUS + "/" + id(plateau) + "/go-live", instance().architect().token());
+	}
+
+	@When("the architect takes {string} live with the name {string}")
+	public void goLiveWithName(String plateau, String name) throws Exception {
+		this.response = send("POST", PLATEAUS + "/" + id(plateau) + "/go-live",
+				JsonMapper.shared().createObjectNode().put("name", name + this.suffix));
+	}
+
+	@When("the architect takes {string} live")
+	public void goLive(String plateau) throws Exception {
+		goLiveWithName(plateau, plateau);
+	}
+
+	@When("the viewer takes {string} live")
+	public void viewerGoesLive(String plateau) throws Exception {
+		this.response = instance().send("POST", PLATEAUS + "/" + id(plateau) + "/go-live",
+				JsonMapper.shared().createObjectNode().put("name", plateau + this.suffix).toString(), instance().viewer());
+	}
+
+	@When("the architect takes the solution {string} live on its own")
+	public void singleGoLive(String solution) throws Exception {
+		this.response = instance().send("POST", "/api/v1/solutions/" + this.solutions.get(solution) + "/go-live", null,
+				instance().architect());
+	}
+
+	@Then("the preview warns that {string} is not yet approved")
+	public void warnsNotApproved(String solution) throws Exception {
+		status(200);
+		assertThat(json(this.response).path("warnings").path("notApproved").toString())
+			.isEqualTo("[\"" + solution + this.suffix + "\"]");
+	}
+
+	@Then("the preview lists the solutions {string} and {string}")
+	public void previewLists(String first, String second) throws Exception {
+		status(200);
+		java.util.List<String> names = new java.util.ArrayList<>();
+		json(this.response).path("solutions").forEach((entry) -> names.add(entry.path("name").asString()));
+		assertThat(names).containsExactlyInAnyOrder(first + this.suffix, second + this.suffix);
+	}
+
+	@Then("{string} is the baseline and the old baseline is realized")
+	public void newBaseline(String plateau) throws Exception {
+		status(200);
+		assertThat(read(plateau).path("status").asString()).isEqualTo("baseline");
+		assertThat(json(this.response).path("realized").path("status").asString()).isEqualTo("realized");
+	}
+
+	@Then("{string} is still a target plateau")
+	public void stillTarget(String plateau) throws Exception {
+		assertThat(read(plateau).path("status").asString()).isEqualTo("target");
+	}
+
+	@Then("the solution {string} is {string}")
+	public void solutionStatus(String solution, String status) throws Exception {
+		assertThat(instance().oidc().single("SELECT status FROM solutions WHERE id = '%s'".formatted(
+				this.solutions.get(solution)))).isEqualTo(status);
+	}
+
+	@Then("the plateau go-live deleted {string}")
+	public void deletedFromCatalog(String entity) throws Exception {
+		assertThat(instance().oidc().single("SELECT (deleted_at IS NOT NULL)::text FROM entities WHERE id = "
+				+ this.entities.get(entity))).isEqualTo("true");
+	}
+
 	private void delta(String solution, String type, Integer entity, String name) throws Exception {
 		this.clock++;
 		instance().oidc().update("""

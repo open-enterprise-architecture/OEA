@@ -24,6 +24,7 @@ import io.oea.core.solution.GoLiveStore;
 import io.oea.core.solution.GoLiveStore.DeltaRow;
 import io.oea.core.solution.GoLiveStore.FieldRow;
 import io.oea.core.solution.OpenIssueStore;
+import io.oea.core.solution.PlateauStore;
 import io.oea.core.solution.SnapshotStore;
 import java.time.Clock;
 import java.time.Instant;
@@ -104,10 +105,13 @@ public class SolutionGoLive {
 
 	private final EntityBlocks blocks;
 
+	private final PlateauStore plateaus;
+
 	SolutionGoLive(GoLiveStore store, EntityStore entities, EntityVersionStore versions, PropertyValueStore values,
 			MetatypeRuleStore ruleStore, EntityWriter writer, PropertyAccess access, MetamodelLabels labels,
 			LanguagePreferences languages, SolutionDeltas deltas, AuditWriter audit, Clock clock, OpenIssueStore issues,
-			OpenIssues openIssues, SnapshotStore snapshots, EntityBlocks blocks) {
+			OpenIssues openIssues, SnapshotStore snapshots, EntityBlocks blocks, PlateauStore plateaus) {
+		this.plateaus = plateaus;
 		this.issues = issues;
 		this.openIssues = openIssues;
 		this.snapshots = snapshots;
@@ -134,8 +138,29 @@ public class SolutionGoLive {
 	 * A conflict {@code field} or {@code not-in-metamodel}; the three values are text and
 	 * {@code null} when redacted; {@code entityId} and {@code current} are {@code null} for a delta new.
 	 */
-	public record Conflict(String kind, UUID deltaId, Integer entityId, String entityName, String field, String label,
-			String dataType, String before, String current, String after, boolean redacted) {
+	public record Conflict(String kind, UUID deltaId, UUID solutionId, Integer entityId, String entityName,
+			String field, String label, String dataType, String before, String current, String after,
+			boolean redacted) {
+	}
+
+	/**
+	 * The values that the solutions going live before a solution of a plateau set, per entity and
+	 * field key, and the entities they retire (design D2 of us-086-plateau-go-live); a value
+	 * {@code null} is one they remove. Empty in project mode, and in the go-live of the plateau,
+	 * where the earlier solutions were already written.
+	 */
+	record Ahead(Map<Integer, Map<String, TypedValue>> values, Set<Integer> retired) {
+
+		static final Ahead EMPTY = new Ahead(Map.of(), Set.of());
+
+		boolean sets(int entityId, String key) {
+			return this.values.getOrDefault(entityId, Map.of()).containsKey(key);
+		}
+
+		TypedValue value(int entityId, String key) {
+			return this.values.get(entityId).get(key);
+		}
+
 	}
 
 	/** A metamodel violation a go-live takes as an open issue; {@code entityId} is {@code null} for a delta new. */
@@ -192,7 +217,7 @@ public class SolutionGoLive {
 		GoLiveStore.SolutionRow solution = this.store.find(solutionId)
 			.orElseThrow(() -> new NoSuchElementException("solution " + solutionId));
 		requireOpen(solution);
-		Plan plan = plan(solution, false);
+		Plan plan = plan(solution, false, ahead(solution.id()));
 		PropertyAccess.Snapshot reader = this.access.of(principal);
 		String language = this.languages.language(principal);
 		List<RawConflict> all = new ArrayList<>(plan.conflicts());
@@ -211,6 +236,19 @@ public class SolutionGoLive {
 	 */
 	@Transactional
 	public Result goLive(OeaPrincipal principal, UUID solutionId) {
+		if (this.store.plateauOf(solutionId).isPresent()) {
+			// a solution of a plateau goes live with its plateau (US-157 AC3)
+			throw new PlateauSolutionException();
+		}
+		return goLiveOne(principal, solutionId);
+	}
+
+	/**
+	 * Takes one solution live in the transaction of the caller; {@link PlateauGoLive} calls it for
+	 * each solution of a plateau, in the order of the go-live.
+	 */
+	@Transactional
+	Result goLiveOne(OeaPrincipal principal, UUID solutionId) {
 		Long person = principal.personId();
 		if (person == null) {
 			throw new PermissionDeniedException();
@@ -218,7 +256,7 @@ public class SolutionGoLive {
 		GoLiveStore.SolutionRow solution = this.store.lock(solutionId)
 			.orElseThrow(() -> new NoSuchElementException("solution " + solutionId));
 		requireOpen(solution);
-		Plan plan = plan(solution, true);
+		Plan plan = plan(solution, true, ahead(solution.id()));
 		Set<Integer> touched = new TreeSet<>();
 		plan.deltas()
 			.stream()
@@ -302,7 +340,7 @@ public class SolutionGoLive {
 		GoLiveStore.SolutionRow solution = this.store.lock(solutionId)
 			.orElseThrow(() -> new NoSuchElementException("solution " + solutionId));
 		requireOpen(solution);
-		Plan plan = plan(solution, true);
+		Plan plan = plan(solution, true, ahead(solution.id()));
 		DeltaRow delta = plan.deltas()
 			.stream()
 			.filter((candidate) -> candidate.id().equals(deltaId))
@@ -351,6 +389,35 @@ public class SolutionGoLive {
 		return this.deltas.get(principal, solutionId, deltaId);
 	}
 
+	/**
+	 * The values the solutions before this one set in the go-live of its plateau (design D2 of
+	 * us-086-plateau-go-live): the active solutions of the plateau in the order of the go-live, up
+	 * to this one. Solutions already implemented are in the catalog and not part of it.
+	 */
+	Ahead ahead(UUID solutionId) {
+		java.util.Optional<UUID> plateau = this.store.plateauOf(solutionId);
+		if (plateau.isEmpty()) {
+			return Ahead.EMPTY;
+		}
+		Map<Integer, Map<String, TypedValue>> values = new HashMap<>();
+		Set<Integer> retired = new HashSet<>();
+		for (UUID earlier : this.plateaus.goLiveOrder(plateau.get())) {
+			if (earlier.equals(solutionId)) {
+				break;
+			}
+			for (DeltaRow delta : this.store.deltas(earlier)) {
+				if ("retiring".equals(delta.type())) {
+					retired.add(delta.entityId());
+				}
+				else if ("modified".equals(delta.type())) {
+					Map<String, TypedValue> fields = values.computeIfAbsent(delta.entityId(), (k) -> new HashMap<>());
+					delta.fields().forEach((field) -> fields.put(field.key(), field.after()));
+				}
+			}
+		}
+		return new Ahead(values, retired);
+	}
+
 	private static void requireOpen(GoLiveStore.SolutionRow solution) {
 		if (COMPLETED.contains(solution.status())) {
 			throw new SolutionCompletedException();
@@ -361,7 +428,7 @@ public class SolutionGoLive {
 	 * What the deltas would do with the rules of today: counts, conflicts and violations. With
 	 * {@code lock}, the entities of the deltas are locked in ID order (design D4).
 	 */
-	private Plan plan(GoLiveStore.SolutionRow solution, boolean lock) {
+	private Plan plan(GoLiveStore.SolutionRow solution, boolean lock, Ahead ahead) {
 		List<DeltaRow> rows = this.store.deltas(solution.id());
 		MetatypeRules rules = MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock));
 		List<SnapshotStore.SnapshotRow> kept = this.snapshots.of(solution.id());
@@ -391,7 +458,7 @@ public class SolutionGoLive {
 				continue;
 			}
 			StoredEntity entity = stored.get(delta.entityId());
-			if (entity == null || entity.deleted()) {
+			if (entity == null || entity.deleted() || ahead.retired().contains(delta.entityId())) {
 				if ("modified".equals(delta.type())) {
 					deleted.add(delta.id());
 				}
@@ -405,7 +472,8 @@ public class SolutionGoLive {
 			Map<UUID, TypedValue> values = current.computeIfAbsent(entity.id(), this.entities::values);
 			List<FieldRow> onlyKept = snapshotOnly(entity.metatypeId(), delta, rules, kept);
 			for (FieldRow field : delta.fields()) {
-				TypedValue now = currentValue(entity, values, field);
+				TypedValue now = ahead.sets(entity.id(), field.key()) ? ahead.value(entity.id(), field.key())
+						: currentValue(entity, values, field);
 				if (onlyKept.contains(field)) {
 					snapshotValues.add(new RawConflict(NOT_IN_METAMODEL, delta, field, now));
 				}
@@ -650,7 +718,8 @@ public class SolutionGoLive {
 			String dataType = (field.propertyDefId() == null) ? "system"
 					: (definitions.get(field.propertyDefId()) != null) ? definitions.get(field.propertyDefId()).dataType()
 							: "string";
-			conflicts.add(new Conflict(conflict.kind(), conflict.delta().id(), entityId, entityName, field.key(),
+			conflicts.add(new Conflict(conflict.kind(), conflict.delta().id(), plan.solution().id(), entityId, entityName,
+					field.key(),
 					label(field.key(), field.propertyDefId(), propertyLabels), dataType,
 					redacted ? null : shown(field.before(), names), redacted ? null : shown(conflict.current(), names),
 					redacted ? null : shown(field.after(), names), redacted));

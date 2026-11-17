@@ -277,5 +277,8 @@ export const PlateauBasis: Story = {
     await expect(await canvas.findByText('Basis: content of Target Cloud Migration 2027')).toBeInTheDocument()
     await expect(await canvas.findByText('Proposed by CRM Replacement')).toBeInTheDocument()
     await expect(canvas.getByText('Retiring by CRM Replacement')).toBeInTheDocument()
+    // a solution of a plateau goes live with its plateau (us-086-plateau-go-live)
+    await expect(canvas.getByRole('link', { name: 'Goes live with plateau Target 2028' })).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: 'Go live' })).toBeNull()
   },
 }

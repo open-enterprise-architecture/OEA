@@ -159,6 +159,77 @@ class SolutionLandscapeLatencyIT {
 		assertThat(millis.get(18)).as("p95 of %s ms", millis).isLessThan(500);
 	}
 
+	// Performance of a plateau go-live (task 2.6 of us-086-plateau-go-live): one plateau with four
+	// solutions and 1,000 deltas over 50,000 entities; the time is recorded in the design
+
+	@Test
+	void plateauGoLiveOfThousandDeltas() {
+		this.jdbc.update("""
+				INSERT INTO entities (metatype_id, name, description, created_by)
+				SELECT ?, 'Unit ' || g, '', ? FROM generate_series(1, 50000) g""", this.application, this.michaelId);
+		this.jdbc.update("""
+				INSERT INTO entity_version_headers (entity_id, version, changed_by)
+				SELECT id, 1, ? FROM entities WHERE deleted_at IS NULL
+				ON CONFLICT DO NOTHING""", this.michaelId);
+		this.jdbc.update("""
+				INSERT INTO plateaus (id, name, status, created_by) VALUES (gen_random_uuid(), 'Baseline', 'baseline', ?)
+				ON CONFLICT DO NOTHING""", this.michaelId);
+		String target = plateau("Target Go-Live", "(SELECT id FROM plateaus WHERE status = 'baseline')", "catalog");
+		int offset = 0;
+		for (int solution = 0; solution < 4; solution++) {
+			String id = this.jdbc.queryForObject("""
+					INSERT INTO solutions (id, name, owner_id, created_by, status, from_plateau_id, to_plateau_id)
+					SELECT gen_random_uuid(), ?, ?, ?, 'approved', succeeds, id FROM plateaus WHERE id = ?::uuid
+					RETURNING id::text""", String.class, "Go-Live " + UUID.randomUUID(), this.michaelId, this.michaelId,
+					target);
+			goLiveDeltas(id, offset, 250);
+			offset += 250;
+		}
+		var architect = this.principals.personWithIdpRole("enterprise-architect");
+		String name = this.jdbc.queryForObject("SELECT name FROM plateaus WHERE id = ?::uuid", String.class, target);
+		long started = System.nanoTime();
+		MvcTestResult result = this.mvc.post()
+			.uri("/api/v1/plateaus/" + target + "/go-live")
+			.cookie(new Cookie(SessionCookie.NAME, architect.token()))
+			.header(CsrfOriginFilter.HEADER, architect.csrfToken())
+			.contentType("application/json")
+			.content("{\"name\": \"" + name + "\"}")
+			.exchange();
+		long millis = (System.nanoTime() - started) / 1_000_000;
+		assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.OK);
+		System.out.println("plateau go-live of 1,000 deltas over 50,000 entities: " + millis + " ms");
+		assertThat(millis).as("go-live took %s ms", millis).isLessThan(120_000);
+	}
+
+	/**
+	 * {@code count} deltas without field conflicts: per four entities a rename and a description
+	 * with the current values as before values, a retirement and a new entity.
+	 */
+	private void goLiveDeltas(String solution, int offset, int count) {
+		int first = this.jdbc.queryForObject("SELECT min(id) FROM entities WHERE deleted_at IS NULL", Integer.class);
+		for (int i = offset; i < offset + count; i++) {
+			int entity = first + i;
+			String type = switch (i % 4) {
+				case 2 -> "retiring";
+				case 3 -> "new";
+				default -> "modified";
+			};
+			String delta = this.jdbc.queryForObject("""
+					INSERT INTO entity_deltas (id, solution_id, delta_type, entity_id, metatype_id, name, created_by)
+					VALUES (gen_random_uuid(), ?::uuid, ?, ?, ?, ?, ?) RETURNING id::text""", String.class, solution, type,
+					"new".equals(type) ? null : entity, "new".equals(type) ? this.application : null,
+					"new".equals(type) ? "Proposed " + i : null, this.michaelId);
+			if ("modified".equals(type)) {
+				boolean rename = i % 4 == 0;
+				this.jdbc.update("""
+						INSERT INTO entity_delta_property_values (id, delta_id, system_field, before_value_text, after_value_text)
+						VALUES (gen_random_uuid(), ?::uuid, ?, (SELECT nullif(%s, '') FROM entities WHERE id = ?), ?)"""
+					.formatted(rename ? "name" : "description"), delta, rename ? "name" : "description", entity,
+						"Changed " + i);
+			}
+		}
+	}
+
 	/** {@code count} deltas: per four entities a rename, a description, a retirement and a new entity. */
 	private void deltas(String solution, int offset, int count) {
 		for (int i = offset; i < offset + count; i++) {

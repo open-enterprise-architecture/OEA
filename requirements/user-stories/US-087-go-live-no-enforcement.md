@@ -2,8 +2,9 @@
 
 **ID**: US-087
 **Story Points**: 2
-**Status**: backlog
+**Status**: in-progress
 **Sprint**: S14
+**Implementation**: OpenSpec change `us-086-plateau-go-live` – warnings that do not block: the solutions not yet approved and the open issues the go-live leaves; no warning section without them (AC1, AC3). AC2 (CEL rule violations) follows with the rule engine (ADR-018)
 
 ## Story
 
@@ -35,5 +36,5 @@ As Kurt – Lead Enterprise Architect, I want to be able to execute a go-live ev
 ## Definition of Done
 
 - [ ] AC1–AC3 fulfilled
-- [ ] Tests present
+- [x] Tests present
 - [ ] Code review; linter green; entered in trace matrix

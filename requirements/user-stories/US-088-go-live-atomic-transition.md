@@ -2,8 +2,9 @@
 
 **ID**: US-088
 **Story Points**: 5
-**Status**: backlog
+**Status**: done
 **Sprint**: S14
+**Implementation**: OpenSpec change `us-086-plateau-go-live` – `goLivePlateau` in one transaction: the plateau becomes the baseline, the old baseline is realized, retiring entities are soft-deleted; a failure rolls everything back (V38) (AC1, AC2)
 
 ## Story
 
@@ -30,5 +31,5 @@ As Kurt – Lead Enterprise Architect, I want to be sure that the go-live transi
 ## Definition of Done
 
 - [ ] AC1–AC2 fulfilled
-- [ ] Tests present
+- [x] Tests present
 - [ ] Code review; linter green; entered in trace matrix

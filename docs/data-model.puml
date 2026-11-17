@@ -1059,7 +1059,7 @@ package "Architecture Planning" #E3F2FD {
     .. enum: baseline | transition | target | realized ..
     + valid_from  : DATE
     + valid_to    : DATE
-    .. set by the plateau go-live (S14 change 4) ..
+    .. set by the plateau go-live (V38) ..
     + succeeds    : UUID                  {FK→plateaus.id}
     + basis       : TEXT
     .. enum: catalog | predecessor; null for a baseline (US-155) ..
@@ -2215,6 +2215,11 @@ metatypes "1" --o{ "0..*" history_visibility_settings : history visibility (US-0
 '   dropped: an extension names its solution in metamodel_configurations.solution_id.
 '   Permission solution:write and built-in role solution-architect added.
 '   Reason: US-038, REQ-038, ADR-032 amendment 2026-11-12.
+' 2026-11-17 (us-086-plateau-go-live):
+'   V38 grants UPDATE on plateaus (status, valid_from, valid_to) and on
+'   solutions (from_plateau_id) for the plateau go-live; the new baseline loses
+'   succeeds and basis, the old one is realized with valid_to.
+'   Reason: US-088, US-157; owner decisions 2026-11-17.
 ' 2026-11-17 (us-084-plateaus):
 '   plateaus created by V37: succeeds (renamed from succeeds_id) and basis
 '   (catalog | predecessor) with the shape checks, one baseline, updated_at/by;

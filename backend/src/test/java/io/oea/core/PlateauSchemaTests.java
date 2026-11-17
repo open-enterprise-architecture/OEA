@@ -60,14 +60,19 @@ class PlateauSchemaTests {
 		}
 	}
 
+	/** V37 and V38 (design D1 of us-086-plateau-go-live): the go-live sets status and validity. */
 	@Test
-	void runtimeUpdatesNoStatus() throws SQLException {
+	void runtimeUpdates() throws SQLException {
 		try (Connection su = OeaDatabases.asSuperuser(postgres); Statement statement = su.createStatement()) {
 			assertThat(strings(statement, """
 					SELECT column_name FROM information_schema.column_privileges
 					WHERE table_name = 'plateaus' AND grantee = 'oea_app' AND privilege_type = 'UPDATE'
-					ORDER BY column_name""")).containsExactly("basis", "description", "name", "succeeds", "updated_at",
-					"updated_by", "valid_from");
+					ORDER BY column_name""")).containsExactly("basis", "description", "name", "status", "succeeds",
+					"updated_at", "updated_by", "valid_from", "valid_to");
+			assertThat(strings(statement, """
+					SELECT column_name FROM information_schema.column_privileges
+					WHERE table_name = 'solutions' AND grantee = 'oea_app' AND privilege_type = 'UPDATE'
+					ORDER BY column_name""")).containsExactly("from_plateau_id", "status");
 		}
 	}
 

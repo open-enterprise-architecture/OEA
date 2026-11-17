@@ -1,4 +1,5 @@
-import type { Plateau } from '../api/plateaus'
+import type { Plateau, PlateauGoLivePreview } from '../api/plateaus'
+import type { DeltaConflict } from '../api/solutions'
 
 // A fake backend for SCR-065 and the plateau field of SCR-060 (us-084-plateaus): the plateaus in
 // the order of the overview, creating one with the rules of REQ-084 (one baseline, a predecessor
@@ -76,14 +77,44 @@ export interface PlateauApi {
   fetch: typeof fetch
   posts: Record<string, unknown>[]
   puts: { id: string; body: Record<string, unknown> }[]
+  goLives: { id: string; name: string }[]
+}
+
+/** The solutions of Target Cloud Migration 2027 that go live with it (US-157). */
+export const GO_LIVE_SOLUTIONS = [
+  { id: '5d000000-0000-4000-8000-0000000000c1', name: 'CRM Replacement', status: 'draft' as const },
+  { id: '5d000000-0000-4000-8000-0000000000c2', name: 'ERP Extension', status: 'approved' as const },
+]
+
+/** The preview of the go-live of Target Cloud Migration 2027, with conflicts of a solution if given. */
+export function goLivePreview(options: { conflicts?: DeltaConflict[]; warnings?: boolean } = {}): PlateauGoLivePreview {
+  const counts = { created: 1, modified: 2, retired: 1, retiredConnections: 0, notInMetamodel: 0 }
+  const warnings = options.warnings ?? true
+  return {
+    plateauId: TARGET_2027_ID,
+    baselineId: BASELINE_ID,
+    counts,
+    solutions: GO_LIVE_SOLUTIONS.map((solution, index) => ({
+      ...solution,
+      status: warnings ? solution.status : 'approved',
+      counts,
+      conflicts: index === 1 ? (options.conflicts ?? []) : [],
+    })),
+    violations: [],
+    warnings: warnings ? { notApproved: ['CRM Replacement'], openIssues: 2 } : { notApproved: [], openIssues: 0 },
+  }
 }
 
 const ORDER = { baseline: 0, transition: 1, target: 1, realized: 2 }
 
-export function plateauApi(options: { me?: unknown; plateaus?: Plateau[]; status?: number } = {}): PlateauApi {
+export function plateauApi(
+  options: { me?: unknown; plateaus?: Plateau[]; status?: number; goLive?: PlateauGoLivePreview; conflictsOnce?: boolean } = {},
+): PlateauApi {
   const plateaus = (options.plateaus ?? PLATEAUS).map((candidate) => ({ ...candidate }))
   const posts: Record<string, unknown>[] = []
   const puts: { id: string; body: Record<string, unknown> }[] = []
+  const goLives: { id: string; name: string }[] = []
+  let preview = options.goLive ?? goLivePreview()
   let next = 10
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': status < 400 ? 'application/json' : 'application/problem+json' } })
@@ -136,6 +167,27 @@ export function plateauApi(options: { me?: unknown; plateaus?: Plateau[]; status
       plateaus.push(created)
       return json(created, 201)
     }
+    const goLive = /^\/api\/v1\/plateaus\/([^/]+)\/go-live$/.exec(url.pathname)
+    if (goLive && method === 'GET') return json(preview)
+    if (goLive && method === 'POST') {
+      const id = decodeURIComponent(goLive[1]!)
+      const name = String((JSON.parse(String(init?.body)) as { name: string }).name)
+      goLives.push({ id, name })
+      const found = plateaus.find((candidate) => candidate.id === id)!
+      if (name !== found.name) return invalid('name', 'Enter the exact name of the plateau to confirm the go-live.')
+      if (preview.solutions.some((solution) => solution.conflicts.length > 0)) {
+        return json({ type: 'urn:oea:problem:merge-required', title: 'Merge required', status: 409 }, 409)
+      }
+      const old = plateaus.find((candidate) => candidate.status === 'baseline')!
+      Object.assign(old, { status: 'realized', validTo: '2026-11-17' })
+      Object.assign(found, { status: 'baseline', validFrom: '2026-11-17', succeeds: null, basis: null })
+      return json({ baseline: found, realized: old, solutions: [] })
+    }
+    // a resolution of the merge dialog clears the conflicts of the preview
+    if (/^\/api\/v1\/solutions\/[^/]+\/deltas\/[^/]+\/resolution$/.test(url.pathname) && method === 'POST') {
+      preview = { ...preview, solutions: preview.solutions.map((solution) => ({ ...solution, conflicts: [] })) }
+      return json({})
+    }
     const match = /^\/api\/v1\/plateaus\/([^/]+)$/.exec(url.pathname)
     if (match && method === 'PUT') {
       const id = decodeURIComponent(match[1]!)
@@ -172,7 +224,7 @@ export function plateauApi(options: { me?: unknown; plateaus?: Plateau[]; status
     }
     throw new TypeError(`no fake route for ${method} ${url.pathname}`)
   }
-  return { fetch: fetchFn, posts, puts }
+  return { fetch: fetchFn, posts, puts, goLives }
 }
 
 /** A fetch that answers the plateaus from `plateaus` and everything else from `other`. */

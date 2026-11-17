@@ -125,6 +125,11 @@ public class SolutionLandscape {
 		return new EntityEntry(entry, description, shown);
 	}
 
+	/** Whether the baseline of the solution is the content of a predecessor plateau rather than the catalog. */
+	boolean onBasis(UUID solutionId) {
+		return !this.content.layers(solutionId).isEmpty();
+	}
+
 	/**
 	 * The name, description and values of an entity in the baseline of the solution, unredacted,
 	 * for the before values of a modification (design D5 of us-084-plateaus); empty without layers.

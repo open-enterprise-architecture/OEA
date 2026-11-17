@@ -26,7 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * The diff of a solution (US-043, REQ-041; design D2 of us-043-diff-view): per delta, the current
  * state of its entity in the catalog next to the target state after the solution, computed on each
- * read from one page of the delta list and not stored.
+ * read from one page of the delta list and not stored. For a solution of a plateau with the basis
+ * {@code predecessor}, the current state is the entity in that basis (design D5 of
+ * us-086-plateau-go-live).
  */
 @Service
 public class SolutionDiff {
@@ -43,10 +45,13 @@ public class SolutionDiff {
 
 	private final PropertyAccess access;
 
-	SolutionDiff(JdbcTemplate jdbc, SolutionDeltas deltas, PropertyAccess access) {
+	private final SolutionLandscape landscape;
+
+	SolutionDiff(JdbcTemplate jdbc, SolutionDeltas deltas, PropertyAccess access, SolutionLandscape landscape) {
 		this.jdbc = jdbc;
 		this.deltas = deltas;
 		this.access = access;
+		this.landscape = landscape;
 	}
 
 	/**
@@ -86,7 +91,8 @@ public class SolutionDiff {
 			.filter(Objects::nonNull)
 			.distinct()
 			.toArray(Integer[]::new);
-		Map<Integer, Catalog> catalog = catalog(ids, snapshot);
+		Map<Integer, Catalog> catalog = this.landscape.onBasis(solutionId) ? basis(principal, solutionId, ids)
+				: catalog(ids, snapshot);
 		List<Entry> entries = page.items().stream().map((delta) -> entry(delta, catalog.get(delta.entityId()))).toList();
 		return new Page(entries, page);
 	}
@@ -222,6 +228,30 @@ public class SolutionDiff {
 	 * The entities of the baseline among {@code ids} with their values; a value the reader may not
 	 * read for the entity is redacted.
 	 */
+	/** The entities in the baseline of the solution, the basis of its plateau, redacted for the reader. */
+	private Map<Integer, Catalog> basis(OeaPrincipal principal, UUID solutionId, Integer[] ids) {
+		Map<Integer, Catalog> basis = new HashMap<>();
+		for (Integer id : ids) {
+			SolutionLandscape.EntityEntry entry;
+			try {
+				entry = this.landscape.entry(principal, solutionId, id);
+			}
+			catch (NoSuchElementException ex) {
+				// deleted meanwhile: no current state, as for the catalog
+				continue;
+			}
+			Map<UUID, Field> values = new LinkedHashMap<>();
+			for (Value value : entry.properties()) {
+				Typed typed = value.redacted() ? null : new Typed(value.text(), value.integer(), value.bool(),
+						value.date(), value.enumValue(), value.reference());
+				values.put(value.propertyDefId(), new Field(PROPERTY, value.propertyDefId(), value.propertyName(),
+						value.dataType(), value.redacted(), typed, null, false, false));
+			}
+			basis.put(id, new Catalog(entry.entry().name(), entry.description(), values));
+		}
+		return basis;
+	}
+
 	private Map<Integer, Catalog> catalog(Integer[] ids, PropertyAccess.Snapshot snapshot) {
 		Map<Integer, Catalog> catalog = new HashMap<>();
 		if (ids.length == 0) {

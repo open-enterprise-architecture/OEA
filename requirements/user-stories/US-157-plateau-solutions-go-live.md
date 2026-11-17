@@ -2,8 +2,9 @@
 
 **ID**: US-157
 **Story Points**: 8
-**Status**: backlog
+**Status**: done
 **Sprint**: S14
+**Implementation**: OpenSpec change `us-086-plateau-go-live` – the active solutions go live with their plateau in the order of their last change, field conflicts at each turn stop the go-live, a plateau solution has no own go-live (409 `plateau-solution`), and the plateaus that succeeded the old baseline follow the new one (AC1–AC4)
 
 ## Story
 
@@ -48,6 +49,6 @@ As Kurt – Lead Enterprise Architect, I want the go-live of a plateau to take a
 
 ## Definition of Done
 
-- [ ] Acceptance criteria met
+- [x] Acceptance criteria met
 - [ ] Code review by a second person
-- [ ] Tests written (unit, integration where applicable)
+- [x] Tests written (unit, integration where applicable)

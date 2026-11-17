@@ -2,7 +2,7 @@
 title: Solutions
 covers:
   screens: [SCR-060, SCR-061, SCR-062, SCR-063, SCR-064]
-  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044, US-152, US-153, US-155]
+  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044, US-152, US-153, US-155, US-157]
 ---
 
 # Solutions
@@ -75,7 +75,7 @@ The rules:
 
 ## Go live {#go-live}
 
-When the initiative is done, *Go live* takes the solution into the catalog. It needs `solution:write` and is offered until the solution is implemented or archived.
+When the initiative is done, *Go live* takes the solution into the catalog. It needs `solution:write` and is offered until the solution is implemented or archived. A solution that works toward a [plateau](./plateaus) has no *Go live* of its own: it goes live with its plateau, and its page links to it.
 
 1. OEA checks whether a field the solution changes was changed in the catalog after you captured it. Only such a field is a conflict; a change of another field of the entity is kept. For each conflict, the dialog *Resolve conflicts* shows the value when captured and lets you keep the current value, take the value of the solution, or enter your own value. *Apply* records your choice in the change.
 2. A confirmation shows how many entities are created, changed and retired, and how many connections of retired entities are retired with them. The go-live cannot be undone.

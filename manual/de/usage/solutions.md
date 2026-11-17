@@ -2,7 +2,7 @@
 title: Lösungen
 covers:
   screens: [SCR-060, SCR-061, SCR-062, SCR-063, SCR-064]
-  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044, US-152, US-153, US-155]
+  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044, US-152, US-153, US-155, US-157]
 ---
 
 # Lösungen
@@ -75,7 +75,7 @@ Die Regeln:
 
 ## Live schalten {#go-live}
 
-Ist die Initiative umgesetzt, übernimmt *Live schalten* die Lösung in den Katalog. Das braucht `solution:write` und wird angeboten, bis die Lösung umgesetzt oder archiviert ist.
+Ist die Initiative umgesetzt, übernimmt *Live schalten* die Lösung in den Katalog. Das braucht `solution:write` und wird angeboten, bis die Lösung umgesetzt oder archiviert ist. Eine Lösung, die auf ein [Plateau](./plateaus) hinarbeitet, hat kein eigenes *Live schalten*: Sie geht mit ihrem Plateau live, und ihre Seite verlinkt es.
 
 1. OEA prüft, ob ein Feld, das die Lösung ändert, nach dem Erfassen im Katalog geändert wurde. Nur ein solches Feld ist ein Konflikt; eine Änderung eines anderen Felds der Entität bleibt erhalten. Für jeden Konflikt zeigt der Dialog *Konflikte auflösen* den Wert beim Erfassen und lässt dich den aktuellen Wert behalten, den Wert der Lösung übernehmen oder einen eigenen Wert eingeben. *Übernehmen* speichert deine Wahl in der Änderung.
 2. Eine Bestätigung zeigt, wie viele Entitäten angelegt, geändert und stillgelegt werden und wie viele Verbindungen stillgelegter Entitäten mit stillgelegt werden. Das Live-Schalten kann nicht rückgängig gemacht werden.

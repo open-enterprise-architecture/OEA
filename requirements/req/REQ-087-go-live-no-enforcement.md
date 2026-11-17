@@ -4,9 +4,9 @@ title: Go-live without enforcement through warnings
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-28
-last_updated: 2026-06-28
+last_updated: 2026-11-17
 author: requirements-engineer
 references:
   use_cases:
@@ -56,6 +56,8 @@ Freedom is the greatest added value. Operators can consciously decide to put a p
 
 ## Implementation Notes
 
+- Realigned by the OpenSpec change `us-086-plateau-go-live` (owner decisions 2026-11-17): the active solutions of the plateau go live with it (US-157), so the warning names the solutions not yet approved (`draft`, `proposed`) instead of the non-implemented ones; field conflicts of its solutions stop the go-live until resolved, as for a single solution; AC2 (CEL violations) is deferred until the rule engine exists (ADR-018)
+
 - Warnings are informative; no HTTP error status for these states
 - The decision lies with the user; no automatic blocking by the system
 - Warning list: solution names and violations as an expandable list in the dialog
@@ -65,3 +67,4 @@ Freedom is the greatest added value. Operators can consciously decide to put a p
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-17 | Change us-086-plateau-go-live | Partially implemented: AC1, AC3; AC2 deferred |

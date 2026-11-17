@@ -1,8 +1,8 @@
 ---
 title: Plateaus
 covers:
-  screens: [SCR-065]
-  stories: [US-084, US-085, US-089, US-155]
+  screens: [SCR-065, SCR-066]
+  stories: [US-084, US-085, US-086, US-087, US-088, US-089, US-155, US-157]
 ---
 
 # Plateaus
@@ -56,6 +56,27 @@ Choose *Edit* next to a plateau to change its name, description, date, predecess
 
 A realized plateau is read-only: it has no *Edit*, and the API answers "Realized plateau is read-only".
 
+## Take a plateau live {#go-live}
+
+When the planned state is reached, the plateau goes live: it becomes the new baseline, the old baseline is realized, and the changes of its solutions reach the catalog. You need the permission `plateau:go-live` (for example the role `enterprise-architect`).
+
+Only the plateau that follows the baseline directly can go live; it shows *Go live*. The dialog *Take plateau live* shows:
+
+- which plateau becomes the baseline and which is realized;
+- how many entities are created, changed and retired;
+- the solutions that go live with the plateau;
+- warnings, which do not stop the go-live: solutions not yet approved, and the open issues the go-live will leave.
+
+Type the exact name of the plateau, then choose *Confirm go-live*. The go-live cannot be undone.
+
+All active solutions of the plateau go live in one step, in the order in which their changes were last edited, each as a single [solution goes live](./solutions#go-live). If a field a solution changes was changed meanwhile, in the catalog or by a solution that goes live before it, the dialog lists the conflict at that solution; *Resolve* opens *Resolve conflicts*. Until every conflict is resolved, nothing goes live. If anything fails during the go-live, nothing changes.
+
+After the go-live:
+
+- the plateau is the baseline from today, and the old baseline is realized until today and read-only;
+- the solutions of the plateau are *Implemented*, and retired entities are deleted from the catalog;
+- plateaus that followed the old baseline now follow the new one, and their solutions start from it.
+
 ## Through the API
 
-`GET /api/v1/plateaus` lists the plateaus, `POST /api/v1/plateaus` creates one, and `GET` and `PUT /api/v1/plateaus/{id}` read and edit one. Creating and editing are audited as `plateau.created` and `plateau.updated`.
+`GET /api/v1/plateaus` lists the plateaus, `POST /api/v1/plateaus` creates one, and `GET` and `PUT /api/v1/plateaus/{id}` read and edit one. `GET /api/v1/plateaus/{id}/go-live` shows what the go-live would do, and `POST` with the name of the plateau takes it live. Creating, editing and the go-live are audited as `plateau.created`, `plateau.updated` and `plateau.went-live`.

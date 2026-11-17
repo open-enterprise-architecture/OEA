@@ -295,6 +295,30 @@ class PlateauContentTests {
 		assertThat(cursor).isNull();
 	}
 
+	// us-086-plateau-go-live D5 – Requirement: Diff of a plateau solution
+
+	@Test
+	void diffAgainstTheBasis() {
+		modified(this.crm, this.erp, "description", "Core ERP");
+		capture(this.analytics, this.erp, "Analytics ERP");
+		JsonNode field = description(get("/api/v1/solutions/" + this.analytics + "/diff").path("entries").get(0));
+		assertThat(field.path("current").path("valueText").asString()).isEqualTo("Core ERP");
+		assertThat(field.path("catalogChanged").asBoolean()).isFalse();
+		// a project solution compares with the catalog
+		capture(this.website, this.erp, "Website ERP");
+		JsonNode project = description(get("/api/v1/solutions/" + this.website + "/diff").path("entries").get(0));
+		assertThat(project.path("current").path("valueText").asString()).isEqualTo("ERP");
+	}
+
+	private static JsonNode description(JsonNode entry) {
+		for (JsonNode field : entry.path("fields")) {
+			if ("description".equals(field.path("field").asString())) {
+				return field;
+			}
+		}
+		throw new AssertionError("no description in " + entry);
+	}
+
 	// Requirement: Before values from the basis
 
 	@Test

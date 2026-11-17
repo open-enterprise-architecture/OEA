@@ -96,6 +96,49 @@ public class PlateauStore {
 		return this.jdbc.query(SELECT + ORDER, PlateauStore::row);
 	}
 
+	/** The baseline plateau, if any. */
+	public Optional<PlateauRow> baseline() {
+		return this.jdbc.query(SELECT + "WHERE p.status = 'baseline'", PlateauStore::row).stream().findFirst();
+	}
+
+	/**
+	 * The active solutions of the plateau in the order of its go-live (design D2 of
+	 * us-086-plateau-go-live): by the last change of their deltas, a solution without deltas first,
+	 * then by name and ID.
+	 */
+	public List<UUID> goLiveOrder(UUID plateauId) {
+		return this.jdbc.queryForList("""
+				SELECT s.id FROM solutions s
+				LEFT JOIN entity_deltas d ON d.solution_id = s.id
+				WHERE s.to_plateau_id = ? AND s.status NOT IN ('implemented', 'archived')
+				GROUP BY s.id, s.name
+				ORDER BY max(coalesce(d.updated_at, d.created_at)) NULLS FIRST, lower(s.name), s.id""", UUID.class,
+				plateauId);
+	}
+
+	/**
+	 * The transition of a plateau go-live (design D3): the old baseline is realized until
+	 * {@code day} first, so that the partial unique index keeps one baseline, then the plateau
+	 * becomes the baseline from {@code day}, without predecessor and basis as a baseline has none; the plateaus that succeeded the old baseline succeed
+	 * the new one, and their solutions start from it. Returns the IDs of those plateaus.
+	 */
+	public List<UUID> transition(UUID plateauId, UUID oldBaselineId, LocalDate day, long personId, Instant now) {
+		this.jdbc.update("UPDATE plateaus SET status = 'realized', valid_to = ? WHERE id = ?", Date.valueOf(day),
+				oldBaselineId);
+		this.jdbc.update("""
+				UPDATE plateaus SET status = 'baseline', valid_from = ?, succeeds = NULL, basis = NULL, updated_at = ?,
+				                    updated_by = ?
+				WHERE id = ?""",
+				Date.valueOf(day), Timestamp.from(now), personId, plateauId);
+		List<UUID> followers = this.jdbc.queryForList("""
+				UPDATE plateaus SET succeeds = ?, updated_at = ?, updated_by = ?
+				WHERE succeeds = ? AND id <> ? RETURNING id""", UUID.class, plateauId, Timestamp.from(now), personId,
+				oldBaselineId, plateauId);
+		this.jdbc.update("UPDATE solutions SET from_plateau_id = ? WHERE from_plateau_id = ? AND to_plateau_id <> ?",
+				plateauId, oldBaselineId, plateauId);
+		return followers;
+	}
+
 	/** Whether a baseline plateau exists. */
 	public boolean baselineExists() {
 		return Boolean.TRUE.equals(this.jdbc
