@@ -7,6 +7,8 @@ name: Pages – user manual and Storybook
 # - version tag vX.Y.Z: walkthrough tests, manual of the tag under /vX.Y/ and, for the newest minor
 #   version, at the root
 # - workflow_dispatch: on main or a tag as above; on any other ref only the build (no publication)
+# - pull request: only the build with the walkthrough tests (no publication), so that a change
+#   that breaks the walkthrough fails before the merge and not on main
 # REQ-192: build runs third-party code with a read-only token; only publish may write the branch
 # gh-pages, only deploy may write to Pages.
 
@@ -24,16 +26,28 @@ on:
       - 'scripts/dev_seed.py'
       - 'scripts/walkthrough.sh'
       - '.github/workflows/pages.yml'
+  pull_request:
+    paths:
+      - 'manual/**'
+      - 'frontend/**'
+      - 'backend/src/main/**'
+      - 'api/openapi.yaml'
+      - 'compose.dev.yaml'
+      - 'dev/**'
+      - 'scripts/dev_seed.py'
+      - 'scripts/walkthrough.sh'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 # Least privilege (REQ-192): read-only token unless a job widens it
 permissions:
   contents: read
 
-# Publications write one branch; they run one after the other and are never cancelled
+# Publications write one branch; they run one after the other and are never cancelled. A pull
+# request builds only, in its own group, and a newer push to it cancels the older build.
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('pages-pr-{0}', github.event.pull_request.number) || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
