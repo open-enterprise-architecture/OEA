@@ -328,3 +328,19 @@ Trace: US-127 AC1–AC3, REQ-127 AC1, AC2, AC4, #68, owner decision 2026-11-10
 
 - **WHEN** the `DomainAssignment` of "ERP Warehouse" is deleted and Michael queries again
 - **THEN** "ERP Warehouse" shows an empty cell
+
+### Requirement: Entities with open issues in the catalog
+
+Every row of a catalog query SHALL carry `openIssues`, true while its entity has an open issue of a solution. The catalog browser (SCR-020) SHALL mark such a row next to its action "History", which leads to the open issues.
+
+Trace: US-153 AC5
+
+#### Scenario: Marked row
+
+- **WHEN** a person queries a catalog containing "Salesforce", which has an open issue
+- **THEN** the row of "Salesforce" has `openIssues: true` and shows the marker
+
+#### Scenario: Row without issues
+
+- **WHEN** the issue is resolved
+- **THEN** the row has `openIssues: false` and no marker

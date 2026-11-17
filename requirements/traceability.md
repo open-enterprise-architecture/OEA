@@ -5,7 +5,7 @@
 Traceability from use cases through requirements to user stories, derived from the
 frontmatter and reference sections of the artifacts.
 
-**Total UCs**: 24 | **Total REQs**: 204 | **Total USs**: 154
+**Total UCs**: 24 | **Total REQs**: 204 | **Total USs**: 156
 
 ---
 
@@ -122,12 +122,12 @@ frontmatter and reference sections of the artifacts.
 
 | REQ | Title | Type | Priority | USs |
 |---|---|---|---|---|
-| [REQ-032](req/REQ-032-entitytype-gui-configuration.md) | Configure custom EntityTypes via GUI | functional | must | [US-032](user-stories/US-032-create-entitytype.md), [US-154](user-stories/US-154-metamodel-change-in-solutions.md) |
+| [REQ-032](req/REQ-032-entitytype-gui-configuration.md) | Configure custom EntityTypes via GUI | functional | must | [US-032](user-stories/US-032-create-entitytype.md), [US-154](user-stories/US-154-metamodel-change-in-solutions.md), [US-156](user-stories/US-156-metamodel-change-per-plateau.md) |
 | [REQ-033](req/REQ-033-metamodel-import.md) | Import metamodel from file | functional | should | [US-033](user-stories/US-033-import-metamodel.md) |
 | [REQ-034](req/REQ-034-audit-log-metamodel.md) | Audit log for metamodel changes | compliance | should | [US-034](user-stories/US-034-audit-log-metamodel.md) |
 | [REQ-035](req/REQ-035-metamodel-lock-mode.md) | Metamodel lock mode (import-only) | functional | should | [US-035](user-stories/US-035-metamodel-lock-mode.md) |
 | [REQ-036](req/REQ-036-connection-entitytype.md) | Connection EntityType in the metamodel | functional | must | [US-036](user-stories/US-036-create-connection-entitytype.md) |
-| [REQ-037](req/REQ-037-architecture-metamodel-extension.md) | Solution-specific metamodel extension | functional | should | [US-037](user-stories/US-037-try-out-architecture-metamodel.md), [US-154](user-stories/US-154-metamodel-change-in-solutions.md) |
+| [REQ-037](req/REQ-037-architecture-metamodel-extension.md) | Solution-specific metamodel extension | functional | should | [US-037](user-stories/US-037-try-out-architecture-metamodel.md), [US-154](user-stories/US-154-metamodel-change-in-solutions.md), [US-156](user-stories/US-156-metamodel-change-per-plateau.md) |
 | [REQ-058](req/REQ-058-export-metamodel.md) | Export metamodel configuration | functional | should | [US-078](user-stories/US-078-export-metamodel-configuration.md) |
 | [REQ-059](req/REQ-059-viewpoint-import-export.md) | Import and export viewpoints | functional | should | [US-079](user-stories/US-079-export-and-import-viewpoint.md) |
 | [REQ-066](req/REQ-066-entity-creation-workflow.md) | Configurable entity creation workflows (wizard) | functional | must | [US-069](user-stories/US-069-creation-wizard.md) |
@@ -151,7 +151,7 @@ frontmatter and reference sections of the artifacts.
 | REQ | Title | Type | Priority | USs |
 |---|---|---|---|---|
 | [REQ-038](req/REQ-038-create-solution.md) | Create a solution and describe the architecture vision | functional | must | [US-038](user-stories/US-038-create-solution.md) |
-| [REQ-039](req/REQ-039-landscape-baseline.md) | Show the current IT landscape as the solution baseline | functional | must | [US-039](user-stories/US-039-show-landscape-baseline.md) |
+| [REQ-039](req/REQ-039-landscape-baseline.md) | Show the current IT landscape as the solution baseline | functional | must | [US-039](user-stories/US-039-show-landscape-baseline.md), [US-155](user-stories/US-155-plateau-basis.md) |
 | [REQ-040](req/REQ-040-capture-entity-deltas.md) | Capture the EntityDeltas of a solution | functional | must | [US-040](user-stories/US-040-delta-new-entity.md), [US-041](user-stories/US-041-delta-modified.md), [US-042](user-stories/US-042-delta-retiring.md), [US-045](user-stories/US-045-delta-new-entity-diagram.md), [US-152](user-stories/US-152-solution-go-live.md), [US-153](user-stories/US-153-resolve-open-issues.md) |
 | [REQ-041](req/REQ-041-diff-view.md) | Diff view of current state vs. target state of a solution | functional | should | [US-043](user-stories/US-043-diff-view.md) |
 | [REQ-042](req/REQ-042-conflict-warning-parallel-solutions.md) | Conflict warning for parallel EntityDeltas | functional | should | [US-044](user-stories/US-044-conflict-warning.md) |
@@ -264,7 +264,7 @@ frontmatter and reference sections of the artifacts.
 
 | REQ | Title | Type | Priority | USs |
 |---|---|---|---|---|
-| [REQ-084](req/REQ-084-create-plateau.md) | Create plateau | functional | must | [US-084](user-stories/US-084-create-plateau.md) |
+| [REQ-084](req/REQ-084-create-plateau.md) | Create plateau | functional | must | [US-084](user-stories/US-084-create-plateau.md), [US-155](user-stories/US-155-plateau-basis.md) |
 | [REQ-085](req/REQ-085-plateau-overview.md) | Plateau overview grouped by status | functional | must | [US-085](user-stories/US-085-plateau-overview.md) |
 | [REQ-086](req/REQ-086-go-live-two-step-confirmation.md) | Go-live two-step confirmation | functional | must | [US-086](user-stories/US-086-go-live-confirmation.md) |
 | [REQ-087](req/REQ-087-go-live-no-enforcement.md) | Go-live without enforcement through warnings | functional | must | [US-087](user-stories/US-087-go-live-no-enforcement.md) |
@@ -502,14 +502,14 @@ frontmatter and reference sections of the artifacts.
 | UC-01 | 13 | 45 |
 | UC-02 | 8 | 26 |
 | UC-03 | 9 | 32 |
-| UC-04 | 13 | 57 |
+| UC-04 | 14 | 60 |
 | UC-05 | 15 | 76 |
 | UC-06 | 12 | 47 |
 | UC-07 | 8 | 31 |
 | UC-08 | 6 | 24 |
 | UC-09 | 9 | 46 |
 | UC-10 | 4 | 24 |
-| UC-11 | 8 | 34 |
+| UC-11 | 10 | 45 |
 | UC-12 | 4 | 15 |
 | UC-13 | 8 | 34 |
 | UC-14 | 3 | 13 |
@@ -523,7 +523,7 @@ frontmatter and reference sections of the artifacts.
 | UC-22 | 1 | 5 |
 | UC-23 | 9 | 35 |
 | UC-24 | 0 | 0 |
-| **Total** | | **651** |
+| **Total** | | **665** |
 
 ## 5. Coverage Gaps
 

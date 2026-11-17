@@ -127,3 +127,19 @@ Trace: US-044, ADR-049, owner decision 2026-11-13
 - **GIVEN** the setting of a base type is on and that of its subtype is off
 - **WHEN** the baseline of a solution is read
 - **THEN** entities of the subtype carry no parallel changes
+
+### Requirement: Base type changes in active solutions
+
+A change of a base type that removes inherited properties SHALL ask about every affected active solution for each removed property, as a removed mapping does, with the decisions `apply` and `keep`.
+
+Trace: US-154 AC1–AC3
+
+#### Scenario: Inherited property lost
+
+- **WHEN** Kurt changes the base type of "Cloud Service" so that it no longer inherits "Cost Center", and a delta of "CRM Replacement" has a value of it
+- **THEN** the answer is 409 `solution-decision-required` until a decision for "CRM Replacement" is sent
+
+#### Scenario: Base type change without lost properties
+
+- **WHEN** the new base type still provides every inherited property
+- **THEN** the change runs without a question
