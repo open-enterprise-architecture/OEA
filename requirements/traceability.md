@@ -5,7 +5,7 @@
 Traceability from use cases through requirements to user stories, derived from the
 frontmatter and reference sections of the artifacts.
 
-**Total UCs**: 24 | **Total REQs**: 204 | **Total USs**: 152
+**Total UCs**: 24 | **Total REQs**: 204 | **Total USs**: 154
 
 ---
 
@@ -122,12 +122,12 @@ frontmatter and reference sections of the artifacts.
 
 | REQ | Title | Type | Priority | USs |
 |---|---|---|---|---|
-| [REQ-032](req/REQ-032-entitytype-gui-configuration.md) | Configure custom EntityTypes via GUI | functional | must | [US-032](user-stories/US-032-create-entitytype.md) |
+| [REQ-032](req/REQ-032-entitytype-gui-configuration.md) | Configure custom EntityTypes via GUI | functional | must | [US-032](user-stories/US-032-create-entitytype.md), [US-154](user-stories/US-154-metamodel-change-in-solutions.md) |
 | [REQ-033](req/REQ-033-metamodel-import.md) | Import metamodel from file | functional | should | [US-033](user-stories/US-033-import-metamodel.md) |
 | [REQ-034](req/REQ-034-audit-log-metamodel.md) | Audit log for metamodel changes | compliance | should | [US-034](user-stories/US-034-audit-log-metamodel.md) |
 | [REQ-035](req/REQ-035-metamodel-lock-mode.md) | Metamodel lock mode (import-only) | functional | should | [US-035](user-stories/US-035-metamodel-lock-mode.md) |
 | [REQ-036](req/REQ-036-connection-entitytype.md) | Connection EntityType in the metamodel | functional | must | [US-036](user-stories/US-036-create-connection-entitytype.md) |
-| [REQ-037](req/REQ-037-architecture-metamodel-extension.md) | Solution-specific metamodel extension | functional | should | [US-037](user-stories/US-037-try-out-architecture-metamodel.md) |
+| [REQ-037](req/REQ-037-architecture-metamodel-extension.md) | Solution-specific metamodel extension | functional | should | [US-037](user-stories/US-037-try-out-architecture-metamodel.md), [US-154](user-stories/US-154-metamodel-change-in-solutions.md) |
 | [REQ-058](req/REQ-058-export-metamodel.md) | Export metamodel configuration | functional | should | [US-078](user-stories/US-078-export-metamodel-configuration.md) |
 | [REQ-059](req/REQ-059-viewpoint-import-export.md) | Import and export viewpoints | functional | should | [US-079](user-stories/US-079-export-and-import-viewpoint.md) |
 | [REQ-066](req/REQ-066-entity-creation-workflow.md) | Configurable entity creation workflows (wizard) | functional | must | [US-069](user-stories/US-069-creation-wizard.md) |
@@ -152,7 +152,7 @@ frontmatter and reference sections of the artifacts.
 |---|---|---|---|---|
 | [REQ-038](req/REQ-038-create-solution.md) | Create a solution and describe the architecture vision | functional | must | [US-038](user-stories/US-038-create-solution.md) |
 | [REQ-039](req/REQ-039-landscape-baseline.md) | Show the current IT landscape as the solution baseline | functional | must | [US-039](user-stories/US-039-show-landscape-baseline.md) |
-| [REQ-040](req/REQ-040-capture-entity-deltas.md) | Capture the EntityDeltas of a solution | functional | must | [US-040](user-stories/US-040-delta-new-entity.md), [US-041](user-stories/US-041-delta-modified.md), [US-042](user-stories/US-042-delta-retiring.md), [US-045](user-stories/US-045-delta-new-entity-diagram.md), [US-152](user-stories/US-152-solution-go-live.md) |
+| [REQ-040](req/REQ-040-capture-entity-deltas.md) | Capture the EntityDeltas of a solution | functional | must | [US-040](user-stories/US-040-delta-new-entity.md), [US-041](user-stories/US-041-delta-modified.md), [US-042](user-stories/US-042-delta-retiring.md), [US-045](user-stories/US-045-delta-new-entity-diagram.md), [US-152](user-stories/US-152-solution-go-live.md), [US-153](user-stories/US-153-resolve-open-issues.md) |
 | [REQ-041](req/REQ-041-diff-view.md) | Diff view of current state vs. target state of a solution | functional | should | [US-043](user-stories/US-043-diff-view.md) |
 | [REQ-042](req/REQ-042-conflict-warning-parallel-solutions.md) | Conflict warning for parallel EntityDeltas | functional | should | [US-044](user-stories/US-044-conflict-warning.md) |
 | [REQ-066](req/REQ-066-entity-creation-workflow.md) | Configurable entity creation workflows (wizard) | functional | must | [US-069](user-stories/US-069-creation-wizard.md) |
@@ -331,7 +331,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-102](req/REQ-102-restore-audit-snapshot.md) | Audit snapshot before every restore | functional | should | [US-102](user-stories/US-102-restore-audit-snapshot.md) |
 | [REQ-103](req/REQ-103-restore-atomic-transaction.md) | Restore as an atomic transaction | functional | should | [US-103](user-stories/US-103-restore-transaction.md) |
 | [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md) | Delete from Diagram (DEL) vs. Delete Entity (Ctrl+DEL) via Context Menu | functional | must | – |
-| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | [US-152](user-stories/US-152-solution-go-live.md) |
+| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | [US-152](user-stories/US-152-solution-go-live.md), [US-153](user-stories/US-153-resolve-open-issues.md) |
 | [REQ-190](req/REQ-190-soft-deleted-data-retention.md) | Retention of soft-deleted data | compliance | should | – |
 | [REQ-204](req/REQ-204-diagram-checkpoints.md) | Named checkpoints of diagrams | functional | should | – |
 
@@ -344,7 +344,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-104](req/REQ-104-partial-restore-wizard.md) | Partial restore three-step wizard | functional | should | [US-104](user-stories/US-104-partial-restore-wizard.md) |
 | [REQ-105](req/REQ-105-partial-restore-field-selection.md) | Partial Restore Selective Field Selection | functional | should | [US-105](user-stories/US-105-partial-restore-field-selection.md) |
 | [REQ-106](req/REQ-106-partial-restore-restored-fields.md) | Partial Restore restoredFields Log | functional | should | [US-106](user-stories/US-106-partial-restore-restored-fields.md) |
-| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | [US-152](user-stories/US-152-solution-go-live.md) |
+| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | [US-152](user-stories/US-152-solution-go-live.md), [US-153](user-stories/US-153-resolve-open-issues.md) |
 
 ### [UC-17](use-cases/UC-17-manage-continuum-building-blocks.md): Manage Reusable Architecture Building Blocks
 
@@ -409,7 +409,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-157](req/REQ-157-permission-model.md) | Permission model with explicit permission matrix | functional | must | [US-143](user-stories/US-143-seed-permission-catalog-built-in-roles.md), [US-144](user-stories/US-144-assign-and-revoke-local-role.md), [US-145](user-stories/US-145-reject-self-administration.md), [US-146](user-stories/US-146-protect-last-system-admin-path.md), [US-147](user-stories/US-147-map-idp-group-to-role.md), [US-149](user-stories/US-149-assign-roles-to-service-account.md), [US-151](user-stories/US-151-define-custom-authorization-role.md) |
 | [REQ-160](req/REQ-160-visibility-on-all-read-channels.md) | Property visibility enforced on every read channel | functional | must | – |
 | [REQ-161](req/REQ-161-visibility-configuration-governance.md) | Governance of visibility configuration and scoping connections | business-rule | must | [US-128](user-stories/US-128-admin-override-property-visibility.md), [US-151](user-stories/US-151-define-custom-authorization-role.md) |
-| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | [US-152](user-stories/US-152-solution-go-live.md) |
+| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | [US-152](user-stories/US-152-solution-go-live.md), [US-153](user-stories/US-153-resolve-open-issues.md) |
 
 ### [UC-22](use-cases/UC-22-import-current-state-from-source-system.md): Import Current State from Source System
 
@@ -419,7 +419,7 @@ frontmatter and reference sections of the artifacts.
 |---|---|---|---|---|
 | [REQ-153](req/REQ-153-external-entity-external-id.md) | Create and Update Entities Idempotently via external_id | functional | should | [US-141](user-stories/US-141-entity-batch-import.md) |
 | [REQ-154](req/REQ-154-batch-write-upsert.md) | Batch Write for Entities and Connections | functional | should | [US-141](user-stories/US-141-entity-batch-import.md) |
-| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | [US-152](user-stories/US-152-solution-go-live.md) |
+| [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | [US-152](user-stories/US-152-solution-go-live.md), [US-153](user-stories/US-153-resolve-open-issues.md) |
 | [REQ-174](req/REQ-174-audit-tamper-resistance.md) | Audit store tamper resistance | compliance | must | – |
 | [REQ-176](req/REQ-176-machine-credential-lifecycle.md) | Machine credential lifecycle and scoping (OAuth2 client credentials only) | functional | must | [US-149](user-stories/US-149-assign-roles-to-service-account.md) |
 | [REQ-177](req/REQ-177-external-id-ownership.md) | Ownership of external ID namespaces | business-rule | should | – |
@@ -502,8 +502,8 @@ frontmatter and reference sections of the artifacts.
 | UC-01 | 13 | 45 |
 | UC-02 | 8 | 26 |
 | UC-03 | 9 | 32 |
-| UC-04 | 12 | 49 |
-| UC-05 | 13 | 63 |
+| UC-04 | 13 | 57 |
+| UC-05 | 15 | 76 |
 | UC-06 | 12 | 47 |
 | UC-07 | 8 | 31 |
 | UC-08 | 6 | 24 |
@@ -523,7 +523,7 @@ frontmatter and reference sections of the artifacts.
 | UC-22 | 1 | 5 |
 | UC-23 | 9 | 35 |
 | UC-24 | 0 | 0 |
-| **Total** | | **630** |
+| **Total** | | **651** |
 
 ## 5. Coverage Gaps
 

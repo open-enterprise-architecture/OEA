@@ -36,11 +36,11 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | Stakeholder profiles | 8 |
 | Use Cases | 24 |
 | Requirements | 204 |
-| User Stories | 152 |
+| User Stories | 154 |
 | ADRs | 51 |
 | Business Objects | 33 |
 
-_Concept: v0.20.1 · Last update: 2026-11-16._
+_Concept: v0.20.1 · Last update: 2026-11-17._
 <!-- /AUTO-GENERATED: stats -->
 
 **Next step**: the go-live of solutions in project mode and the plateaus with their go-live (S14), which completes Milestone 2.
