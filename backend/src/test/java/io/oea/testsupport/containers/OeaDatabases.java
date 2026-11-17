@@ -7,6 +7,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.testcontainers.containers.Container.ExecResult;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -60,8 +62,26 @@ public final class OeaDatabases {
 		return DriverManager.getConnection(database.getJdbcUrl(), role, OeaPostgres.ROLE_PASSWORDS.get(role));
 	}
 
+	/**
+	 * Databases whose test class finished, dropped only after the next test class started its
+	 * context: Spring pauses the context of a finished class when the next one starts, which stops
+	 * its lifecycle beans, and the audit checkpoint then still writes to the database. Dropping it
+	 * earlier made that write wait for the connection timeout of 30 seconds per class.
+	 */
+	private static final java.util.Deque<String> retired = new java.util.ArrayDeque<>();
+
+	/** How many finished databases stay until a later class drops them. */
+	private static final int KEEP = 2;
+
 	static void drop(String name) {
-		execute(OeaTestDatabase.migrated(), "DROP DATABASE IF EXISTS " + name + " WITH (FORCE)");
+		List<String> due = new ArrayList<>();
+		synchronized (retired) {
+			retired.addLast(name);
+			while (retired.size() > KEEP) {
+				due.add(retired.removeFirst());
+			}
+		}
+		due.forEach((database) -> execute(OeaTestDatabase.migrated(), "DROP DATABASE IF EXISTS " + database + " WITH (FORCE)"));
 	}
 
 	/** Provisions and migrates the template with the production script and migration step. */
